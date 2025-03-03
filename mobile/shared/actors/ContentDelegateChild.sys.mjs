@@ -172,7 +172,7 @@ export class ContentDelegateChild extends GeckoViewActorChild {
         let elementSrc = (isImage || isMedia) && (node.currentSrc || node.src);
         if (elementSrc) {
           const isBlob = elementSrc.startsWith("blob:");
-          if (isBlob && !URL.isValidObjectURL(elementSrc)) {
+          if (isBlob && !URL.isBoundToBlob(elementSrc)) {
             elementSrc = null;
           }
         }

@@ -129,21 +129,6 @@ add_task(async function test_permissions_prompt() {
 // as the addon install prompt (the test case part of the AOM mochitests
 // and named testInstallDialogShowsFullDomainsList).
 add_task(async function testOptionalPermissionsDialogShowsFullDomainsList() {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      // These are both expected to be the default, but we are setting
-      // them explicitly to make sure this test task is always running
-      // with the prefs set with these values even if we would be
-      // rolling back the pref value temporarily.
-      ["extensions.ui.installDialogFullDomains", true],
-    ],
-  });
-  // Sanity check.
-  ok(
-    ExtensionsUI.SHOW_FULL_DOMAINS_LIST,
-    "Expect SHOW_FULL_DOMAINS_LIST to be enabled"
-  );
-
   const createTestExtension = ({
     id,
     domainsListLength = 0,

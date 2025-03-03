@@ -25,6 +25,7 @@ struct RemoteSettingsServiceInner {
     storage_dir: Utf8PathBuf,
     base_url: Url,
     bucket_name: String,
+    app_context: Option<RemoteSettingsContext>,
     /// Weakrefs for all clients that we've created.  Note: this stores the
     /// top-level/public `RemoteSettingsClient` structs rather than `client::RemoteSettingsClient`.
     /// The reason for this is that we return Arcs to the public struct to the foreign code, so we
@@ -50,44 +51,26 @@ impl RemoteSettingsService {
                 storage_dir,
                 base_url,
                 bucket_name,
+                app_context: config.app_context,
                 clients: vec![],
             }),
         })
     }
 
-    /// Create a new Remote Settings client
-    #[cfg(feature = "jexl")]
-    pub fn make_client(
-        &self,
-        collection_name: String,
-        context: Option<RemoteSettingsContext>,
-    ) -> Result<Arc<RemoteSettingsClient>> {
+    pub fn make_client(&self, collection_name: String) -> Result<Arc<RemoteSettingsClient>> {
         let mut inner = self.inner.lock();
-        let storage = Storage::new(inner.storage_dir.join(format!("{collection_name}.sql")))?;
+        // Allow using in-memory databases for testing of external crates.
+        let storage = if inner.storage_dir == ":memory:" {
+            Storage::new(inner.storage_dir.clone())?
+        } else {
+            Storage::new(inner.storage_dir.join(format!("{collection_name}.sql")))?
+        };
 
         let client = Arc::new(RemoteSettingsClient::new(
             inner.base_url.clone(),
             inner.bucket_name.clone(),
             collection_name.clone(),
-            context,
-            storage,
-        )?);
-        inner.clients.push(Arc::downgrade(&client));
-        Ok(client)
-    }
-
-    #[cfg(not(feature = "jexl"))]
-    pub fn make_client(
-        &self,
-        collection_name: String,
-        #[allow(unused_variables)] context: Option<RemoteSettingsContext>,
-    ) -> Result<Arc<RemoteSettingsClient>> {
-        let mut inner = self.inner.lock();
-        let storage = Storage::new(inner.storage_dir.join(format!("{collection_name}.sql")))?;
-        let client = Arc::new(RemoteSettingsClient::new(
-            inner.base_url.clone(),
-            inner.bucket_name.clone(),
-            collection_name.clone(),
+            inner.app_context.clone(),
             storage,
         )?);
         inner.clients.push(Arc::downgrade(&client));

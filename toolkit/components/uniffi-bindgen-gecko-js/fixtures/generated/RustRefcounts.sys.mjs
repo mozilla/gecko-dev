@@ -371,7 +371,7 @@ export class SingletonObject {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                135, // refcounts:uniffi_uniffi_fixture_refcounts_fn_method_singletonobject_method
+                137, // refcounts:uniffi_uniffi_fixture_refcounts_fn_method_singletonobject_method
                 FfiConverterTypeSingletonObject.lower(this),
             )
         }
@@ -423,7 +423,7 @@ export function getJsRefcount() {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                133, // refcounts:uniffi_uniffi_fixture_refcounts_fn_func_get_js_refcount
+                135, // refcounts:uniffi_uniffi_fixture_refcounts_fn_func_get_js_refcount
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);
@@ -439,7 +439,7 @@ export function getSingleton() {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                134, // refcounts:uniffi_uniffi_fixture_refcounts_fn_func_get_singleton
+                136, // refcounts:uniffi_uniffi_fixture_refcounts_fn_func_get_singleton
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);

@@ -29,6 +29,7 @@
 #include "Relation.h"
 #include "RootAccessible.h"
 #include "TextLeafRange.h"
+#include "UiaText.h"
 #include "UiaTextRange.h"
 
 using namespace mozilla;
@@ -100,10 +101,17 @@ static void MaybeRaiseUiaLiveRegionEvent(Accessible* aAcc,
 }
 
 static bool HasTextPattern(Accessible* aAcc) {
-  // Only documents and editable text controls should have the Text pattern.
+  // The Text pattern must be supported for documents and editable text controls
+  // on the web:
   // https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-textpattern-and-embedded-objects-overview#webpage-and-text-input-controls-in-edge
+  // It is also recommended that the Text pattern be supported for the Text
+  // control type:
+  // https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-about-text-and-textrange-patterns#control-types
+  // If we don't support this for the Text control type, when Narrator is
+  // continuously reading a document, it doesn't respect the starting position
+  // of the cursor and doesn't move the cursor as it reads. See bug 1949920.
   constexpr uint64_t editableRootStates = states::EDITABLE | states::FOCUSABLE;
-  return aAcc->IsDoc() ||
+  return aAcc->IsText() || (aAcc->IsDoc() && !aAcc->IsRoot()) ||
          (aAcc->IsHyperText() &&
           (aAcc->State() & editableRootStates) == editableRootStates);
 }
@@ -463,8 +471,8 @@ uiaRawElmProvider::GetPatternProvider(
       return S_OK;
     case UIA_TextPatternId:
       if (HasTextPattern(acc)) {
-        auto text =
-            GetPatternFromDerived<ia2AccessibleHypertext, ITextProvider>();
+        RefPtr<ITextProvider> text =
+            new UiaText(static_cast<MsaaAccessible*>(this));
         text.forget(aPatternProvider);
       }
       return S_OK;

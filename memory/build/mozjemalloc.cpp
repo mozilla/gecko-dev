@@ -635,7 +635,7 @@ END_GLOBALS
 static const size_t gRecycleLimit = 128_MiB;
 
 // The current amount of recycled bytes, updated atomically.
-static Atomic<size_t, ReleaseAcquire> gRecycledSize;
+static Atomic<size_t> gRecycledSize;
 
 // Maximum number of dirty pages per arena.
 #define DIRTY_MAX_DEFAULT (1U << 8)
@@ -684,7 +684,11 @@ static void* base_alloc(size_t aSize);
 // threads are created.
 static bool malloc_initialized;
 #else
-static Atomic<bool, MemoryOrdering::ReleaseAcquire> malloc_initialized;
+// We can rely on Relaxed here because this variable is only ever set when
+// holding gInitLock. A thread that still sees it false while another sets it
+// true will enter the same lock, synchronize with the former and check the
+// flag again under the lock.
+static Atomic<bool, MemoryOrdering::Relaxed> malloc_initialized;
 #endif
 
 // This lock must be held while bootstrapping us.
@@ -1756,7 +1760,10 @@ class ArenaCollection {
   // the lock, see GetById().
   Tree mMainThreadArenas MOZ_GUARDED_BY(mLock);
 
-  Atomic<int32_t, MemoryOrdering::Relaxed> mDefaultMaxDirtyPageModifier;
+  // Set only rarely and then propagated on the same thread to all arenas via
+  // UpdateMaxDirty(). But also read in ExtraCommitPages on arbitrary threads.
+  // TODO: Could ExtraCommitPages use arena_t::mMaxDirty instead ?
+  Atomic<int32_t> mDefaultMaxDirtyPageModifier;
   // This is never changed except for forking, and it does not need mLock.
   Maybe<ThreadId> mMainThreadId;
 
@@ -1773,8 +1780,8 @@ class ArenaCollection {
   // (except for the short, controlled moment during MayPurgeStep).
   DoublyLinkedList<arena_t> mOutstandingPurges MOZ_GUARDED_BY(mPurgeListLock);
   // Flag if we should defer purge to later. Only ever set when holding the
-  // collection lock.
-  Atomic<bool, Relaxed> mIsDeferredPurgeEnabled;
+  // collection lock. Read only during arena_t ctor.
+  Atomic<bool> mIsDeferredPurgeEnabled;
 };
 
 MOZ_RUNINIT static ArenaCollection gArenas;

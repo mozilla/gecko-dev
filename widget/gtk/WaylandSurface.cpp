@@ -1131,63 +1131,43 @@ void WaylandSurface::ReleaseAllWaylandBuffersLocked(
   }
 }
 
-ssize_t WaylandSurface::FindBufferLocked(const WaylandSurfaceLock& aProofOfLock,
-                                         wl_buffer* aWlBuffer) {
-  for (size_t i = 0; i < mAttachedBuffers.Length(); i++) {
-    if (mAttachedBuffers[i]->Matches(aWlBuffer)) {
-      return i;
-    }
-  }
-  return -1;
-}
-
-ssize_t WaylandSurface::FindBufferLocked(const WaylandSurfaceLock& aProofOfLock,
-                                         WaylandBuffer* aWaylandBuffer) {
-  for (size_t i = 0; i < mAttachedBuffers.Length(); i++) {
-    if (mAttachedBuffers[i] == aWaylandBuffer) {
-      return i;
-    }
-  }
-  return -1;
-}
-
 // BufferFreeCallbackHandler is called when WaylandBuffer is detached by
 // compositor or we delete it explicitly. The two events can happen in any
 // order.
-void WaylandSurface::BufferFreeCallbackHandler(WaylandBuffer* aWaylandBuffer,
-                                               wl_buffer* aWlBuffer) {
-  LOGWAYLAND(
-      "WaylandSurface::BufferFreeCallbackHandler() WaylandBuffer [%p] "
-      "wl_buffer [%p]",
-      aWaylandBuffer, aWlBuffer);
+void WaylandSurface::BufferFreeCallbackHandler(uintptr_t aWlBufferID,
+                                               bool aWlBufferDelete) {
+  LOGWAYLAND("WaylandSurface::BufferFreeCallbackHandler() wl_buffer [%" PRIxPTR
+             "] buffer %s",
+             aWlBufferID, aWlBufferDelete ? "delete" : "detach");
   WaylandSurfaceLock lock(this);
 
   // BufferFreeCallbackHandler() should be caled by Wayland compostor
   // on main thread only.
   AssertIsOnMainThread();
 
-  auto bufferIndex = aWaylandBuffer ? FindBufferLocked(lock, aWaylandBuffer)
-                                    : FindBufferLocked(lock, aWlBuffer);
+  for (size_t i = 0; i < mAttachedBuffers.Length(); i++) {
+    if (mAttachedBuffers[i]->Matches(aWlBufferID)) {
+      mAttachedBuffers[i]->ReturnBufferDetached(lock);
+      mAttachedBuffers.RemoveElementAt(i);
+      return;
+    }
+  }
+
   // It's possible that buffer was already freed by previous detach call
   // and we're on synced delete now. In such case just quit.
   // Reversed order (delete, detach) is not possible - we can't get detach
   // for deleted buffers.
-  if (bufferIndex < 0) {
-    MOZ_DIAGNOSTIC_ASSERT(
-        aWaylandBuffer && !aWlBuffer,
-        "Wayland compositor detach call after wl_buffer delete?");
-    return;
-  }
-
-  mAttachedBuffers[bufferIndex]->ReturnBufferDetached(lock);
-  mAttachedBuffers.RemoveElementAt(bufferIndex);
+  MOZ_DIAGNOSTIC_ASSERT(
+      aWlBufferDelete,
+      "Wayland compositor detach call after wl_buffer delete?");
 }
 
 static void BufferDetachedCallbackHandler(void* aData, wl_buffer* aBuffer) {
   LOGS("BufferDetachedCallbackHandler() [%p] received wl_buffer [%p]", aData,
        aBuffer);
   RefPtr surface = static_cast<WaylandSurface*>(aData);
-  surface->BufferFreeCallbackHandler(/* WaylandBuffer */ nullptr, aBuffer);
+  surface->BufferFreeCallbackHandler(reinterpret_cast<uintptr_t>(aBuffer),
+                                     /* aWlBufferDelete */ false);
 }
 
 static const struct wl_buffer_listener sBufferDetachListener = {

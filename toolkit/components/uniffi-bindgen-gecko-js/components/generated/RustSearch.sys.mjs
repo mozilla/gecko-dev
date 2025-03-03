@@ -286,18 +286,18 @@ const constructUniffiObject = Symbol("constructUniffiObject");
 UnitTestObjs.uniffiObjectPtr = uniffiObjectPtr;
 
 // Export the FFIConverter object to make external types work.
-export class FfiConverterU8 extends FfiConverter {
+export class FfiConverterU32 extends FfiConverter {
     static checkType(value) {
         super.checkType(value);
         if (!Number.isInteger(value)) {
             throw new UniFFITypeError(`${value} is not an integer`);
         }
-        if (value < 0 || value > 256) {
-            throw new UniFFITypeError(`${value} exceeds the U8 bounds`);
+        if (value < 0 || value > 4294967295) {
+            throw new UniFFITypeError(`${value} exceeds the U32 bounds`);
         }
     }
     static computeSize(_value) {
-        return 1;
+        return 4;
     }
     static lift(value) {
         return value;
@@ -306,10 +306,10 @@ export class FfiConverterU8 extends FfiConverter {
         return value;
     }
     static write(dataStream, value) {
-        dataStream.writeUint8(value)
+        dataStream.writeUint32(value)
     }
     static read(dataStream) {
-        return dataStream.readUint8()
+        return dataStream.readUint32()
     }
 }
 
@@ -396,7 +396,7 @@ export class SearchEngineSelector {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                28, // search:uniffi_search_fn_constructor_searchengineselector_new
+                29, // search:uniffi_search_fn_constructor_searchengineselector_new
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);}
@@ -471,6 +471,52 @@ export class SearchEngineSelector {
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);
+    }
+
+    /**
+     * Sets the RemoteSettingsService to use. The selector will create the
+     * relevant remote settings client(s) from the service.
+     *
+     * # Params:
+     * - `service`: The remote settings service instance for the application.
+     * - `options`: The remote settings options to be passed to the client(s).
+     * - `apply_engine_overrides`: Whether or not to apply overrides from
+     * `search-config-v2-overrides` to the selected
+     * engines. Should be false unless the application
+     * supports the click URL feature.
+     */
+    useRemoteSettingsServer(service,applyEngineOverrides) {
+        const liftResult = (result) => undefined;
+        const liftError = (data) => FfiConverterTypeSearchApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterTypeRemoteSettingsService.checkType(service)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("service");
+                }
+                throw e;
+            }
+            try {
+                FfiConverterBool.checkType(applyEngineOverrides)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("applyEngineOverrides");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                28, // search:uniffi_search_fn_method_searchengineselector_use_remote_settings_server
+                FfiConverterTypeSearchEngineSelector.lower(this),
+                FfiConverterTypeRemoteSettingsService.lower(service),
+                FfiConverterBool.lower(applyEngineOverrides),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
     }
 
 }
@@ -650,9 +696,9 @@ export class FfiConverterTypeJsonEngineUrl extends FfiConverterArrayBuffer {
  * Reflects `types::SearchEngineUrls`, but using `EngineUrl`.
  */
 export class JsonEngineUrls {
-    constructor({ search, suggestions, trending }) {
+    constructor({ search, suggestions, trending, searchForm }) {
         try {
-            FfiConverterTypeJsonEngineUrl.checkType(search)
+            FfiConverterOptionalTypeJsonEngineUrl.checkType(search)
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart("search");
@@ -675,9 +721,17 @@ export class JsonEngineUrls {
             }
             throw e;
         }
+        try {
+            FfiConverterOptionalTypeJsonEngineUrl.checkType(searchForm)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("searchForm");
+            }
+            throw e;
+        }
         /**
          * The URL to use for searches.
-         * @type {JSONEngineUrl}
+         * @type {?JSONEngineUrl}
          */
         this.search = search;
         /**
@@ -690,13 +744,19 @@ export class JsonEngineUrls {
          * @type {?JSONEngineUrl}
          */
         this.trending = trending;
+        /**
+         * The URL of the search engine homepage.
+         * @type {?JSONEngineUrl}
+         */
+        this.searchForm = searchForm;
     }
 
     equals(other) {
         return (
-            this.search.equals(other.search) &&
+            this.search == other.search &&
             this.suggestions == other.suggestions &&
-            this.trending == other.trending
+            this.trending == other.trending &&
+            this.searchForm == other.searchForm
         )
     }
 }
@@ -705,22 +765,25 @@ export class JsonEngineUrls {
 export class FfiConverterTypeJsonEngineUrls extends FfiConverterArrayBuffer {
     static read(dataStream) {
         return new JsonEngineUrls({
-            search: FfiConverterTypeJsonEngineUrl.read(dataStream),
+            search: FfiConverterOptionalTypeJsonEngineUrl.read(dataStream),
             suggestions: FfiConverterOptionalTypeJsonEngineUrl.read(dataStream),
             trending: FfiConverterOptionalTypeJsonEngineUrl.read(dataStream),
+            searchForm: FfiConverterOptionalTypeJsonEngineUrl.read(dataStream),
         });
     }
     static write(dataStream, value) {
-        FfiConverterTypeJsonEngineUrl.write(dataStream, value.search);
+        FfiConverterOptionalTypeJsonEngineUrl.write(dataStream, value.search);
         FfiConverterOptionalTypeJsonEngineUrl.write(dataStream, value.suggestions);
         FfiConverterOptionalTypeJsonEngineUrl.write(dataStream, value.trending);
+        FfiConverterOptionalTypeJsonEngineUrl.write(dataStream, value.searchForm);
     }
 
     static computeSize(value) {
         let totalSize = 0;
-        totalSize += FfiConverterTypeJsonEngineUrl.computeSize(value.search);
+        totalSize += FfiConverterOptionalTypeJsonEngineUrl.computeSize(value.search);
         totalSize += FfiConverterOptionalTypeJsonEngineUrl.computeSize(value.suggestions);
         totalSize += FfiConverterOptionalTypeJsonEngineUrl.computeSize(value.trending);
+        totalSize += FfiConverterOptionalTypeJsonEngineUrl.computeSize(value.searchForm);
         return totalSize
     }
 
@@ -730,7 +793,7 @@ export class FfiConverterTypeJsonEngineUrls extends FfiConverterArrayBuffer {
             throw new UniFFITypeError(`Expected 'JsonEngineUrls', found '${typeof value}'`);
         }
         try {
-            FfiConverterTypeJsonEngineUrl.checkType(value.search);
+            FfiConverterOptionalTypeJsonEngineUrl.checkType(value.search);
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart(".search");
@@ -750,6 +813,14 @@ export class FfiConverterTypeJsonEngineUrls extends FfiConverterArrayBuffer {
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart(".trending");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalTypeJsonEngineUrl.checkType(value.searchForm);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".searchForm");
             }
             throw e;
         }
@@ -946,7 +1017,7 @@ export class SearchEngineDefinition {
             throw e;
         }
         try {
-            FfiConverterOptionalstring.checkType(telemetrySuffix)
+            FfiConverterString.checkType(telemetrySuffix)
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart("telemetrySuffix");
@@ -962,7 +1033,7 @@ export class SearchEngineDefinition {
             throw e;
         }
         try {
-            FfiConverterOptionalu8.checkType(orderHint)
+            FfiConverterOptionalu32.checkType(orderHint)
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart("orderHint");
@@ -1015,8 +1086,9 @@ export class SearchEngineDefinition {
         this.partnerCode = partnerCode;
         /**
          * Optional suffix that is appended to the search engine identifier
-         * following a dash, i.e. `<identifier>-<suffix>`
-         * @type {?string}
+         * following a dash, i.e. `<identifier>-<suffix>`. If it is an empty string
+         * no dash should be appended.
+         * @type {string}
          */
         this.telemetrySuffix = telemetrySuffix;
         /**
@@ -1062,9 +1134,9 @@ export class FfiConverterTypeSearchEngineDefinition extends FfiConverterArrayBuf
             name: FfiConverterString.read(dataStream),
             optional: FfiConverterBool.read(dataStream),
             partnerCode: FfiConverterString.read(dataStream),
-            telemetrySuffix: FfiConverterOptionalstring.read(dataStream),
+            telemetrySuffix: FfiConverterString.read(dataStream),
             urls: FfiConverterTypeSearchEngineUrls.read(dataStream),
-            orderHint: FfiConverterOptionalu8.read(dataStream),
+            orderHint: FfiConverterOptionalu32.read(dataStream),
         });
     }
     static write(dataStream, value) {
@@ -1075,9 +1147,9 @@ export class FfiConverterTypeSearchEngineDefinition extends FfiConverterArrayBuf
         FfiConverterString.write(dataStream, value.name);
         FfiConverterBool.write(dataStream, value.optional);
         FfiConverterString.write(dataStream, value.partnerCode);
-        FfiConverterOptionalstring.write(dataStream, value.telemetrySuffix);
+        FfiConverterString.write(dataStream, value.telemetrySuffix);
         FfiConverterTypeSearchEngineUrls.write(dataStream, value.urls);
-        FfiConverterOptionalu8.write(dataStream, value.orderHint);
+        FfiConverterOptionalu32.write(dataStream, value.orderHint);
     }
 
     static computeSize(value) {
@@ -1089,9 +1161,9 @@ export class FfiConverterTypeSearchEngineDefinition extends FfiConverterArrayBuf
         totalSize += FfiConverterString.computeSize(value.name);
         totalSize += FfiConverterBool.computeSize(value.optional);
         totalSize += FfiConverterString.computeSize(value.partnerCode);
-        totalSize += FfiConverterOptionalstring.computeSize(value.telemetrySuffix);
+        totalSize += FfiConverterString.computeSize(value.telemetrySuffix);
         totalSize += FfiConverterTypeSearchEngineUrls.computeSize(value.urls);
-        totalSize += FfiConverterOptionalu8.computeSize(value.orderHint);
+        totalSize += FfiConverterOptionalu32.computeSize(value.orderHint);
         return totalSize
     }
 
@@ -1157,7 +1229,7 @@ export class FfiConverterTypeSearchEngineDefinition extends FfiConverterArrayBuf
             throw e;
         }
         try {
-            FfiConverterOptionalstring.checkType(value.telemetrySuffix);
+            FfiConverterString.checkType(value.telemetrySuffix);
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart(".telemetrySuffix");
@@ -1173,7 +1245,7 @@ export class FfiConverterTypeSearchEngineDefinition extends FfiConverterArrayBuf
             throw e;
         }
         try {
-            FfiConverterOptionalu8.checkType(value.orderHint);
+            FfiConverterOptionalu32.checkType(value.orderHint);
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart(".orderHint");
@@ -1327,7 +1399,7 @@ export class FfiConverterTypeSearchEngineUrl extends FfiConverterArrayBuffer {
  * The URLs associated with the search engine.
  */
 export class SearchEngineUrls {
-    constructor({ search, suggestions, trending }) {
+    constructor({ search, suggestions, trending, searchForm }) {
         try {
             FfiConverterTypeSearchEngineUrl.checkType(search)
         } catch (e) {
@@ -1352,6 +1424,14 @@ export class SearchEngineUrls {
             }
             throw e;
         }
+        try {
+            FfiConverterOptionalTypeSearchEngineUrl.checkType(searchForm)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("searchForm");
+            }
+            throw e;
+        }
         /**
          * The URL to use for searches.
          * @type {SearchEngineUrl}
@@ -1367,13 +1447,19 @@ export class SearchEngineUrls {
          * @type {?SearchEngineUrl}
          */
         this.trending = trending;
+        /**
+         * The URL of the search engine homepage.
+         * @type {?SearchEngineUrl}
+         */
+        this.searchForm = searchForm;
     }
 
     equals(other) {
         return (
             this.search.equals(other.search) &&
             this.suggestions == other.suggestions &&
-            this.trending == other.trending
+            this.trending == other.trending &&
+            this.searchForm == other.searchForm
         )
     }
 }
@@ -1385,12 +1471,14 @@ export class FfiConverterTypeSearchEngineUrls extends FfiConverterArrayBuffer {
             search: FfiConverterTypeSearchEngineUrl.read(dataStream),
             suggestions: FfiConverterOptionalTypeSearchEngineUrl.read(dataStream),
             trending: FfiConverterOptionalTypeSearchEngineUrl.read(dataStream),
+            searchForm: FfiConverterOptionalTypeSearchEngineUrl.read(dataStream),
         });
     }
     static write(dataStream, value) {
         FfiConverterTypeSearchEngineUrl.write(dataStream, value.search);
         FfiConverterOptionalTypeSearchEngineUrl.write(dataStream, value.suggestions);
         FfiConverterOptionalTypeSearchEngineUrl.write(dataStream, value.trending);
+        FfiConverterOptionalTypeSearchEngineUrl.write(dataStream, value.searchForm);
     }
 
     static computeSize(value) {
@@ -1398,6 +1486,7 @@ export class FfiConverterTypeSearchEngineUrls extends FfiConverterArrayBuffer {
         totalSize += FfiConverterTypeSearchEngineUrl.computeSize(value.search);
         totalSize += FfiConverterOptionalTypeSearchEngineUrl.computeSize(value.suggestions);
         totalSize += FfiConverterOptionalTypeSearchEngineUrl.computeSize(value.trending);
+        totalSize += FfiConverterOptionalTypeSearchEngineUrl.computeSize(value.searchForm);
         return totalSize
     }
 
@@ -1430,6 +1519,14 @@ export class FfiConverterTypeSearchEngineUrls extends FfiConverterArrayBuffer {
             }
             throw e;
         }
+        try {
+            FfiConverterOptionalTypeSearchEngineUrl.checkType(value.searchForm);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".searchForm");
+            }
+            throw e;
+        }
     }
 }
 
@@ -1438,7 +1535,7 @@ export class FfiConverterTypeSearchEngineUrls extends FfiConverterArrayBuffer {
  * specified, along with one of value, experiment_config or search_access_point.
  */
 export class SearchUrlParam {
-    constructor({ name, value, experimentConfig }) {
+    constructor({ name, value, enterpriseValue, experimentConfig }) {
         try {
             FfiConverterString.checkType(name)
         } catch (e) {
@@ -1452,6 +1549,14 @@ export class SearchUrlParam {
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart("value");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(enterpriseValue)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("enterpriseValue");
             }
             throw e;
         }
@@ -1476,6 +1581,11 @@ export class SearchUrlParam {
          */
         this.value = value;
         /**
+         * Same as value but only used if Services.polices.isEnterprise is true. Overrides other parameters of the same name.
+         * @type {?string}
+         */
+        this.enterpriseValue = enterpriseValue;
+        /**
          * The value for the parameter will be derived from the equivalent experiment
          * configuration value.
          * Only desktop uses this currently.
@@ -1488,6 +1598,7 @@ export class SearchUrlParam {
         return (
             this.name == other.name &&
             this.value == other.value &&
+            this.enterpriseValue == other.enterpriseValue &&
             this.experimentConfig == other.experimentConfig
         )
     }
@@ -1499,12 +1610,14 @@ export class FfiConverterTypeSearchUrlParam extends FfiConverterArrayBuffer {
         return new SearchUrlParam({
             name: FfiConverterString.read(dataStream),
             value: FfiConverterOptionalstring.read(dataStream),
+            enterpriseValue: FfiConverterOptionalstring.read(dataStream),
             experimentConfig: FfiConverterOptionalstring.read(dataStream),
         });
     }
     static write(dataStream, value) {
         FfiConverterString.write(dataStream, value.name);
         FfiConverterOptionalstring.write(dataStream, value.value);
+        FfiConverterOptionalstring.write(dataStream, value.enterpriseValue);
         FfiConverterOptionalstring.write(dataStream, value.experimentConfig);
     }
 
@@ -1512,6 +1625,7 @@ export class FfiConverterTypeSearchUrlParam extends FfiConverterArrayBuffer {
         let totalSize = 0;
         totalSize += FfiConverterString.computeSize(value.name);
         totalSize += FfiConverterOptionalstring.computeSize(value.value);
+        totalSize += FfiConverterOptionalstring.computeSize(value.enterpriseValue);
         totalSize += FfiConverterOptionalstring.computeSize(value.experimentConfig);
         return totalSize
     }
@@ -1534,6 +1648,14 @@ export class FfiConverterTypeSearchUrlParam extends FfiConverterArrayBuffer {
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart(".value");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(value.enterpriseValue);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".enterpriseValue");
             }
             throw e;
         }
@@ -2193,10 +2315,10 @@ export class FfiConverterTypeSearchUpdateChannel extends FfiConverterArrayBuffer
 
 
 // Export the FFIConverter object to make external types work.
-export class FfiConverterOptionalu8 extends FfiConverterArrayBuffer {
+export class FfiConverterOptionalu32 extends FfiConverterArrayBuffer {
     static checkType(value) {
         if (value !== undefined && value !== null) {
-            FfiConverterU8.checkType(value)
+            FfiConverterU32.checkType(value)
         }
     }
 
@@ -2206,7 +2328,7 @@ export class FfiConverterOptionalu8 extends FfiConverterArrayBuffer {
             case 0:
                 return null
             case 1:
-                return FfiConverterU8.read(dataStream)
+                return FfiConverterU32.read(dataStream)
             default:
                 throw new UniFFIError(`Unexpected code: ${code}`);
         }
@@ -2218,14 +2340,14 @@ export class FfiConverterOptionalu8 extends FfiConverterArrayBuffer {
             return;
         }
         dataStream.writeUint8(1);
-        FfiConverterU8.write(dataStream, value)
+        FfiConverterU32.write(dataStream, value)
     }
 
     static computeSize(value) {
         if (value === null || value === undefined) {
             return 1;
         }
-        return 1 + FfiConverterU8.computeSize(value)
+        return 1 + FfiConverterU32.computeSize(value)
     }
 }
 
@@ -2545,6 +2667,14 @@ export class FfiConverterSequenceTypeSearchUrlParam extends FfiConverterArrayBuf
         })
     }
 }
+
+import {
+  FfiConverterTypeRemoteSettingsService,
+  RemoteSettingsService,
+} from "resource://gre/modules/RustRemoteSettings.sys.mjs";
+
+// Export the FFIConverter object to make external types work.
+export { FfiConverterTypeRemoteSettingsService, RemoteSettingsService };
 
 
 

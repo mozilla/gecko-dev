@@ -18,7 +18,8 @@
 namespace mozilla::dom {
 
 /* static */
-void URLMainThread::CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
+void URLMainThread::CreateObjectURL(const GlobalObject& aGlobal,
+                                    const BlobOrMediaSource& aObj,
                                     nsACString& aResult, ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -41,52 +42,23 @@ void URLMainThread::CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
   nsCOMPtr<nsIPrincipal> principal =
       nsContentUtils::ObjectPrincipal(aGlobal.Get());
 
-  aRv = BlobURLProtocolHandler::AddDataEntry(
-      aBlob.Impl(), principal, NS_ConvertUTF16toUTF8(partKey), aResult);
+  if (aObj.IsBlob()) {
+    aRv = BlobURLProtocolHandler::AddDataEntry(
+        aObj.GetAsBlob().Impl(), principal, NS_ConvertUTF16toUTF8(partKey),
+        aResult);
+  } else if (aObj.IsMediaSource()) {
+    aRv = BlobURLProtocolHandler::AddDataEntry(
+        &aObj.GetAsMediaSource(), principal, NS_ConvertUTF16toUTF8(partKey),
+        aResult);
+  } else {
+    MOZ_CRASH("Invalid type for a BlobOrMediaSource");
+  }
+
   if (NS_WARN_IF(aRv.Failed())) {
     return;
   }
 
   global->RegisterHostObjectURI(aResult);
-}
-
-/* static */
-void URLMainThread::CreateObjectURL(const GlobalObject& aGlobal,
-                                    MediaSource& aSource, nsACString& aResult,
-                                    ErrorResult& aRv) {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
-  if (NS_WARN_IF(!global)) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return;
-  }
-
-  nsAutoString partKey;
-  if (nsCOMPtr<nsPIDOMWindowInner> owner = do_QueryInterface(global)) {
-    if (Document* doc = owner->GetExtantDoc()) {
-      nsCOMPtr<nsICookieJarSettings> cookieJarSettings =
-          doc->CookieJarSettings();
-
-      cookieJarSettings->GetPartitionKey(partKey);
-    }
-  }
-
-  nsCOMPtr<nsIPrincipal> principal =
-      nsContentUtils::ObjectPrincipal(aGlobal.Get());
-
-  aRv = BlobURLProtocolHandler::AddDataEntry(
-      &aSource, principal, NS_ConvertUTF16toUTF8(partKey), aResult);
-  if (NS_WARN_IF(aRv.Failed())) {
-    return;
-  }
-
-  nsCOMPtr<nsIRunnable> revocation = NS_NewRunnableFunction(
-      "dom::URLMainThread::CreateObjectURL", [result = nsCString(aResult)] {
-        BlobURLProtocolHandler::RemoveDataEntries(nsTArray{result});
-      });
-
-  nsContentUtils::RunInStableState(revocation.forget());
 }
 
 /* static */
@@ -116,11 +88,11 @@ void URLMainThread::RevokeObjectURL(const GlobalObject& aGlobal,
   }
 }
 
-/* static */
-bool URLMainThread::IsValidObjectURL(const GlobalObject& aGlobal,
-                                     const nsACString& aURL, ErrorResult& aRv) {
+// static
+bool URLMainThread::IsBoundToBlob(const GlobalObject& aGlobal,
+                                  const nsACString& aURL, ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
-  return BlobURLProtocolHandler::HasDataEntry(aURL);
+  return BlobURLProtocolHandler::HasDataEntryTypeBlob(aURL);
 }
 
 }  // namespace mozilla::dom

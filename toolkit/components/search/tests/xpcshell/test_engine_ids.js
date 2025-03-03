@@ -55,11 +55,11 @@ add_task(async function test_user_engine_id() {
     SearchUtils.TOPIC_ENGINE_MODIFIED
   );
 
-  await Services.search.addUserEngine(
-    "user",
-    "https://example.com/user?q={searchTerms}",
-    "u"
-  );
+  await Services.search.addUserEngine({
+    name: "user",
+    url: "https://example.com/user?q={searchTerms}",
+    alias: "u",
+  });
 
   await promiseEngineAdded;
   let userEngine = Services.search.getEngineByName("user");

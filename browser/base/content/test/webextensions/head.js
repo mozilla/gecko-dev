@@ -397,31 +397,9 @@ async function testInstallMethod(installFn) {
 
     let panel = await promisePopupNotificationShown("addon-webext-permissions");
     if (filename == PERMS_XPI) {
-      // Account for both:
-      // - host permissions to be listed as a single permission
-      //   entry (new dialog design, enabled when ExtensionsUI.SHOW_FULL_DOMAINS_LIST
-      //   getter returns true)
-      // - host permissions for wildcard and non wildcards host
-      //   permissions to be listed as separate permissions entries
-      //   (old dialog design, enabled when ExtensionsUI.SHOW_FULL_DOMAINS_LIST
-      //   getter returns false)
-      const hostPermissions = !ExtensionsUI.SHOW_FULL_DOMAINS_LIST
-        ? [
-            [
-              "webext-perms-host-description-wildcard",
-              { domain: "wildcard.domain" },
-            ],
-            [
-              "webext-perms-host-description-one-site",
-              { domain: "singlehost.domain" },
-            ],
-          ]
-        : [
-            [
-              "webext-perms-host-description-multiple-domains",
-              { domainCount: 2 },
-            ],
-          ];
+      const hostPermissions = [
+        ["webext-perms-host-description-multiple-domains", { domainCount: 2 }],
+      ];
 
       // The icon should come from the extension, don't bother with the precise
       // path, just make sure we've got a jar url pointing to the right path

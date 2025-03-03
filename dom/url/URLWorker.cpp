@@ -84,37 +84,44 @@ class RevokeURLRunnable : public WorkerMainThreadRunnable {
   }
 };
 
-// This class checks if an URL is valid on the main thread.
-class IsValidURLRunnable : public WorkerMainThreadRunnable {
+// This class checks if an URL is valid and belongs to a Blob on the main
+// thread.
+class IsBoundToBlobRunnable : public WorkerMainThreadRunnable {
  private:
   const nsCString mURL;
-  bool mValid;
+  bool mResult;
 
  public:
-  IsValidURLRunnable(WorkerPrivate* aWorkerPrivate, const nsACString& aURL)
+  IsBoundToBlobRunnable(WorkerPrivate* aWorkerPrivate, const nsACString& aURL)
       : WorkerMainThreadRunnable(aWorkerPrivate, "URL :: IsValidURL"_ns),
         mURL(aURL),
-        mValid(false) {}
+        mResult(false) {}
 
   bool MainThreadRun() override {
     AssertIsOnMainThread();
 
-    mValid = BlobURLProtocolHandler::HasDataEntry(mURL);
+    mResult = BlobURLProtocolHandler::HasDataEntryTypeBlob(mURL);
 
     return true;
   }
 
-  bool IsValidURL() const { return mValid; }
+  bool Result() const { return mResult; }
 };
 
 /* static */
-void URLWorker::CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
+void URLWorker::CreateObjectURL(const GlobalObject& aGlobal,
+                                const BlobOrMediaSource& aObj,
                                 nsACString& aResult,
                                 mozilla::ErrorResult& aRv) {
+  if (!aObj.IsBlob()) {
+    MOZ_CRASH("MediaSource is not supported in workers");
+    return;
+  }
+
   JSContext* cx = aGlobal.Context();
   WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
 
-  RefPtr<BlobImpl> blobImpl = aBlob.Impl();
+  RefPtr<BlobImpl> blobImpl = aObj.GetAsBlob().Impl();
   MOZ_ASSERT(blobImpl);
 
   RefPtr<CreateURLRunnable> runnable =
@@ -152,20 +159,20 @@ void URLWorker::RevokeObjectURL(const GlobalObject& aGlobal,
 }
 
 /* static */
-bool URLWorker::IsValidObjectURL(const GlobalObject& aGlobal,
-                                 const nsACString& aUrl, ErrorResult& aRv) {
+bool URLWorker::IsBoundToBlob(const GlobalObject& aGlobal,
+                              const nsACString& aUrl, ErrorResult& aRv) {
   JSContext* cx = aGlobal.Context();
   WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
 
-  RefPtr<IsValidURLRunnable> runnable =
-      new IsValidURLRunnable(workerPrivate, aUrl);
+  RefPtr<IsBoundToBlobRunnable> runnable =
+      new IsBoundToBlobRunnable(workerPrivate, aUrl);
 
   runnable->Dispatch(workerPrivate, Canceling, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return false;
   }
 
-  return runnable->IsValidURL();
+  return runnable->Result();
 }
 
 }  // namespace mozilla::dom

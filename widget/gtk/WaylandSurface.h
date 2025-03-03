@@ -137,12 +137,7 @@ class WaylandSurface final {
 
   // Called from Wayland compostor async handler when wl_buffer is
   // detached or deleted.
-  // For deleted wl_buffer call we use WaylandBuffer as an argument
-  // as wl_buffer is already deleted.
-  // For detach event we pass wl_buffer as it's provided by Wayland compositor
-  // directly.
-  void BufferFreeCallbackHandler(WaylandBuffer* aWaylandBuffer,
-                                 wl_buffer* aWlBuffer);
+  void BufferFreeCallbackHandler(uintptr_t aWlBufferID, bool aWlBufferDelete);
 
   // CommitLocked() is needed to call after some of *Locked() method
   // to submit the action to Wayland compositor by wl_surface_commit().
@@ -305,11 +300,6 @@ class WaylandSurface final {
   void ClearReadyToDrawCallbacksLocked(const WaylandSurfaceLock& aProofOfLock);
 
   void ClearScaleLocked(const WaylandSurfaceLock& aProofOfLock);
-
-  ssize_t FindBufferLocked(const WaylandSurfaceLock& aProofOfLock,
-                           wl_buffer* aWlBuffer);
-  ssize_t FindBufferLocked(const WaylandSurfaceLock& aProofOfLock,
-                           WaylandBuffer* aWaylandBuffer);
 
   // Weak ref to owning widget (nsWindow or NativeLayerWayland),
   // used for diagnostics/logging only.

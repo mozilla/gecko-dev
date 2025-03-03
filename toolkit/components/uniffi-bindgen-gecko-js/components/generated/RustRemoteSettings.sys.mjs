@@ -857,7 +857,7 @@ export class RemoteSettingsService {
      * Create a new Remote Settings client
      * @returns {RemoteSettingsClient}
      */
-    makeClient(collectionName,appContext) {
+    makeClient(collectionName) {
         const liftResult = (result) => FfiConverterTypeRemoteSettingsClient.lift(result);
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
         const functionCall = () => {
@@ -869,19 +869,10 @@ export class RemoteSettingsService {
                 }
                 throw e;
             }
-            try {
-                FfiConverterOptionalTypeRemoteSettingsContext.checkType(appContext)
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("appContext");
-                }
-                throw e;
-            }
             return UniFFIScaffolding.callAsyncWrapper(
                 21, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_make_client
                 FfiConverterTypeRemoteSettingsService.lower(this),
                 FfiConverterString.lower(collectionName),
-                FfiConverterOptionalTypeRemoteSettingsContext.lower(appContext),
             )
         }
         try {
@@ -1276,7 +1267,7 @@ export class FfiConverterTypeRemoteSettingsConfig extends FfiConverterArrayBuffe
  * name.
  */
 export class RemoteSettingsConfig2 {
-    constructor({ server = null, bucketName = null }) {
+    constructor({ server = null, bucketName = null, appContext = null }) {
         try {
             FfiConverterOptionalTypeRemoteSettingsServer.checkType(server)
         } catch (e) {
@@ -1293,6 +1284,14 @@ export class RemoteSettingsConfig2 {
             }
             throw e;
         }
+        try {
+            FfiConverterOptionalTypeRemoteSettingsContext.checkType(appContext)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("appContext");
+            }
+            throw e;
+        }
         /**
          * The Remote Settings server to use. Defaults to [RemoteSettingsServer::Prod],
          * @type {?RemoteSettingsServer}
@@ -1303,12 +1302,18 @@ export class RemoteSettingsConfig2 {
          * @type {?string}
          */
         this.bucketName = bucketName;
+        /**
+         * App context to use for JEXL filtering (when the `jexl` feature is present).
+         * @type {?RemoteSettingsContext}
+         */
+        this.appContext = appContext;
     }
 
     equals(other) {
         return (
             this.server == other.server &&
-            this.bucketName == other.bucketName
+            this.bucketName == other.bucketName &&
+            this.appContext == other.appContext
         )
     }
 }
@@ -1319,17 +1324,20 @@ export class FfiConverterTypeRemoteSettingsConfig2 extends FfiConverterArrayBuff
         return new RemoteSettingsConfig2({
             server: FfiConverterOptionalTypeRemoteSettingsServer.read(dataStream),
             bucketName: FfiConverterOptionalstring.read(dataStream),
+            appContext: FfiConverterOptionalTypeRemoteSettingsContext.read(dataStream),
         });
     }
     static write(dataStream, value) {
         FfiConverterOptionalTypeRemoteSettingsServer.write(dataStream, value.server);
         FfiConverterOptionalstring.write(dataStream, value.bucketName);
+        FfiConverterOptionalTypeRemoteSettingsContext.write(dataStream, value.appContext);
     }
 
     static computeSize(value) {
         let totalSize = 0;
         totalSize += FfiConverterOptionalTypeRemoteSettingsServer.computeSize(value.server);
         totalSize += FfiConverterOptionalstring.computeSize(value.bucketName);
+        totalSize += FfiConverterOptionalTypeRemoteSettingsContext.computeSize(value.appContext);
         return totalSize
     }
 
@@ -1351,6 +1359,14 @@ export class FfiConverterTypeRemoteSettingsConfig2 extends FfiConverterArrayBuff
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart(".bucketName");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalTypeRemoteSettingsContext.checkType(value.appContext);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".appContext");
             }
             throw e;
         }

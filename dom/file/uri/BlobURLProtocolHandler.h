@@ -66,7 +66,7 @@ class BlobURLProtocolHandler final : public nsIProtocolHandler,
 
   static void RemoveDataEntries();
 
-  static bool HasDataEntry(const nsACString& aUri);
+  static bool HasDataEntryTypeBlob(const nsACString& aUri);
 
   static bool GetDataEntry(const nsACString& aUri, BlobImpl** aBlobImpl,
                            nsIPrincipal* aLoadingPrincipal,

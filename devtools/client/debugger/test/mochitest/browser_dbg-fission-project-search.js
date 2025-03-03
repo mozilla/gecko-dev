@@ -27,10 +27,10 @@ add_task(async function () {
   const matches = findAllElements(dbg, "projectSearchExpandedResults");
 
   is(fileResults.length, 2, "Two results found");
-  is(matches.length, 6, "Total no of matches found");
+  is(matches.length, 11, "Total no of matches found");
 
   // Asserts that we find a matches in the js file included in the top-level document
-  assertFileResult("simple1.js", 5);
+  assertFileResult("simple1.js", 10);
   // Asserts that we find the match in the js file included
   assertFileResult("simple2.js", 1);
 

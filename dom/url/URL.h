@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_URL_h
 #define mozilla_dom_URL_h
 
+#include "mozilla/dom/URLBinding.h"
 #include "mozilla/dom/URLSearchParams.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIURI.h"
@@ -57,17 +58,15 @@ class URL final : public URLSearchParamsObserver, public nsWrapperCache {
                                            const nsACString& aURL,
                                            nsIURI* aBase, ErrorResult& aRv);
 
-  static void CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
-                              nsACString& aResult, ErrorResult& aRv);
-
-  static void CreateObjectURL(const GlobalObject& aGlobal, MediaSource& aSource,
+  static void CreateObjectURL(const GlobalObject& aGlobal,
+                              const BlobOrMediaSource& aObj,
                               nsACString& aResult, ErrorResult& aRv);
 
   static void RevokeObjectURL(const GlobalObject& aGlobal,
                               const nsACString& aURL, ErrorResult& aRv);
 
-  static bool IsValidObjectURL(const GlobalObject& aGlobal,
-                               const nsACString& aURL, ErrorResult& aRv);
+  static bool IsBoundToBlob(const GlobalObject& aGlobal, const nsACString& aURL,
+                            ErrorResult& aRv);
 
   static already_AddRefed<URL> Parse(const GlobalObject& aGlobal,
                                      const nsACString& aURL,

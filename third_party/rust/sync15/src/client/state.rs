@@ -609,7 +609,7 @@ impl SetupState {
 /// cheap to recreate and very bad to use if it is wrong, so we insist on the
 /// *exact* timestamp matching and not a simple "later than" check.
 fn is_same_timestamp(local: ServerTimestamp, collections: &InfoCollections, key: &str) -> bool {
-    collections.get(key).map_or(false, |ts| local == *ts)
+    collections.get(key).is_some_and(|ts| local == *ts)
 }
 
 #[cfg(test)]

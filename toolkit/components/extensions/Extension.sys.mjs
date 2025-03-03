@@ -2588,9 +2588,6 @@ export class ExtensionData {
    *                 "sideload", "optional", or omitted for a regular
    *                 install prompt.
    * @param {object} options
-   * @param {boolean} [options.collapseOrigins]
-   *                  Wether to limit the number of displayed host permissions.
-   *                  Default is false.
    * @param {boolean} [options.buildOptionalOrigins]
    *                  Wether to build optional origins Maps for permission
    *                  controls.  Defaults to false.
@@ -2631,11 +2628,7 @@ export class ExtensionData {
       type,
       unsigned,
     },
-    {
-      collapseOrigins = false,
-      buildOptionalOrigins = false,
-      fullDomainsList = false,
-    } = {}
+    { buildOptionalOrigins = false, fullDomainsList = false } = {}
   ) {
     const l10n = lazy.PERMISSION_L10N;
 
@@ -2761,32 +2754,14 @@ export class ExtensionData {
         // Formats a list of host permissions.  If we have 4 or fewer, display
         // them all, otherwise display the first 3 followed by an item that
         // says "...plus N others"
-        const addMessages = (set, l10nId, moreL10nId) => {
-          if (collapseOrigins && set.size > 4) {
-            for (let domain of Array.from(set).slice(0, 3)) {
-              msgIds.push({ id: l10nId, args: { domain } });
-            }
-            msgIds.push({
-              id: moreL10nId,
-              args: { domainCount: set.size - 3 },
-            });
-          } else {
-            for (let domain of set) {
-              msgIds.push({ id: l10nId, args: { domain } });
-            }
+        const addMessages = (set, l10nId) => {
+          for (let domain of set) {
+            msgIds.push({ id: l10nId, args: { domain } });
           }
         };
 
-        addMessages(
-          wildcards,
-          "webext-perms-host-description-wildcard",
-          "webext-perms-host-description-too-many-wildcards"
-        );
-        addMessages(
-          sites,
-          "webext-perms-host-description-one-site",
-          "webext-perms-host-description-too-many-sites"
-        );
+        addMessages(wildcards, "webext-perms-host-description-wildcard");
+        addMessages(sites, "webext-perms-host-description-one-site");
       }
 
       if (!allUrls && fullDomainsList) {

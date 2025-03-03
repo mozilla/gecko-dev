@@ -64,6 +64,12 @@ loader.lazyRequireGetter(
   "resource://devtools/client/shared/sourceeditor/scope-utils.js"
 );
 
+loader.lazyRequireGetter(
+  this,
+  "lezerUtils",
+  "resource://devtools/client/shared/sourceeditor/lezer-utils.js"
+);
+
 const { OS } = Services.appinfo;
 
 // CM_BUNDLE and CM_IFRAME represent the HTML and JavaScript that is
@@ -161,15 +167,6 @@ class Editor extends EventEmitter {
     text: { name: "text" },
     vs: { name: "x-shader/x-vertex" },
     wasm: { name: "wasm" },
-  };
-
-  static #symbolTypes = {
-    functions: new Set([
-      "FunctionExpression",
-      "FunctionDeclaration",
-      "ArrowFunction",
-      "MethodDeclaration",
-    ]),
   };
 
   container = null;
@@ -2171,6 +2168,53 @@ class Editor extends EventEmitter {
   }
 
   /**
+   * Get the functions symbols for the current source loaded in the
+   * the editor.
+   *
+   * @param {Number} maxResults - The maximum no of results to display
+   */
+  async getFunctionSymbols(maxResults) {
+    const cm = editors.get(this);
+    const { codemirrorLanguage } = this.#CodeMirror6;
+
+    const functionSymbols = [];
+    let resultsCount = 0;
+    await lezerUtils.walkTree(cm, codemirrorLanguage, {
+      filterSet: lezerUtils.nodeTypeSets.functionsDeclAndExpr,
+      enterVisitor: node => {
+        if (resultsCount == maxResults) {
+          return;
+        }
+        const syntaxNode = node.node;
+        const name = lezerUtils.getFunctionName(cm.state.doc, syntaxNode);
+        // Ignore anonymous functions
+        if (name == null) {
+          return;
+        }
+
+        functionSymbols.push({
+          name,
+          klass: lezerUtils.getFunctionClass(cm.state.doc, syntaxNode),
+          location: {
+            start: this.#posToLineColumn(node.from),
+            end: this.#posToLineColumn(node.to),
+          },
+          parameterNames: lezerUtils.getFunctionParameterNames(
+            cm.state.doc,
+            syntaxNode
+          ),
+          identifier: null,
+          index: node.index,
+        });
+        resultsCount++;
+      },
+      forceParseTo: cm.state.doc.length,
+    });
+
+    return functionSymbols;
+  }
+
+  /**
    * Traverse the syntaxTree and return expressions
    * which best match the specified token location is on our
    * list of accepted symbol types.
@@ -2180,28 +2224,17 @@ class Editor extends EventEmitter {
    */
   async findBestMatchExpressions(tokenLocation) {
     const cm = editors.get(this);
-    const {
-      codemirrorLanguage: { syntaxTree },
-    } = this.#CodeMirror6;
+    const { codemirrorLanguage } = this.#CodeMirror6;
 
-    function matchPosition(node, position) {
-      return node.from <= position && node.to >= position;
-    }
     const expressions = [];
-    const symbolTypes = new Set([
-      "MemberExpression",
-      "VariableDefinition",
-      "VariableName",
-      "this",
-      "PropertyName",
-    ]);
 
     const line = cm.state.doc.line(tokenLocation.line);
     const tokPos = line.from + tokenLocation.column;
 
-    await syntaxTree(cm.state).iterate({
-      enter: node => {
-        if (symbolTypes.has(node.name) && matchPosition(node, tokPos)) {
+    await lezerUtils.walkTree(cm, codemirrorLanguage, {
+      filterSet: lezerUtils.nodeTypeSets.expressions,
+      enterVisitor: node => {
+        if (node.from <= tokPos && node.to >= tokPos) {
           expressions.push({
             type: node.name,
             // Computed member expressions not currently supported
@@ -2216,8 +2249,8 @@ class Editor extends EventEmitter {
           });
         }
       },
-      from: line.from,
-      to: line.to,
+      walkFrom: line.from,
+      walkTo: line.to,
     });
 
     // There might be multiple expressions which are within the locations.
@@ -2257,9 +2290,7 @@ class Editor extends EventEmitter {
    */
   async getInScopeLines(location) {
     const cm = editors.get(this);
-    const {
-      codemirrorLanguage: { syntaxTree, forceParsing },
-    } = this.#CodeMirror6;
+    const { codemirrorLanguage } = this.#CodeMirror6;
 
     // Converts the CM6 position to a source line
     function posToLine(view, pos) {
@@ -2268,20 +2299,17 @@ class Editor extends EventEmitter {
     }
 
     const functionLocations = [];
-    // Force parsing the source up to the end of the current viewport,
-    // Also increasing the timeout threshold so we make sure
-    // all required content is parsed (this is mostly needed for larger sources).
-    await forceParsing(cm, cm.viewport.to, 10000);
-    await syntaxTree(cm.state).iterate({
-      enter: node => {
-        if (Editor.#symbolTypes.functions.has(node.name)) {
-          functionLocations.push({
-            name: node.name,
-            startLine: posToLine(cm, node.from),
-            endLine: posToLine(cm, node.to),
-          });
-        }
+
+    await lezerUtils.walkTree(cm, codemirrorLanguage, {
+      filterSet: lezerUtils.nodeTypeSets.functions,
+      enterVisitor: node => {
+        functionLocations.push({
+          name: node.name,
+          startLine: posToLine(cm, node.from),
+          endLine: posToLine(cm, node.to),
+        });
       },
+      forceParseTo: cm.viewport.to,
     });
 
     // Sort based on the start locations so the scopes

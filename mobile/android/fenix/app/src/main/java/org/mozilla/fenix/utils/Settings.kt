@@ -115,6 +115,21 @@ class Settings(private val appContext: Context) : PreferencesHolder {
          */
         const val TOP_SITES_PROVIDER_LIMIT = 2
 
+        /**
+         * Minimum number of days between Set as default Browser prompt displays in home page.
+         */
+        const val DAYS_BETWEEN_DEFAULT_BROWSER_PROMPTS: Int = 14
+
+        /**
+         * Maximum number of times the Set as default Browser prompt from home page can be displayed to the user.
+         */
+        const val MAX_NUMBER_OF_DEFAULT_BROWSER_PROMPTS: Int = 3
+
+        /**
+         * Number of app cold starts before displaying the Set as default Browser prompt from home page.
+         */
+        const val APP_COLD_STARTS_TO_SHOW_DEFAULT_PROMPT: Int = 4
+
         private fun Action.toInt() = when (this) {
             Action.BLOCKED -> BLOCKED_INT
             Action.ASK_TO_ALLOW -> ASK_TO_ALLOW_INT
@@ -2201,10 +2216,9 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates if the Set as default browser prompt for existing users feature is enabled.
      */
-    var setAsDefaultBrowserPromptForExistingUsersEnabled by lazyFeatureFlagPreference(
+    var setAsDefaultBrowserPromptForExistingUsersEnabled by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_set_as_default_browser_prompt_enabled),
-        default = { FxNimbus.features.setAsDefaultPrompt.value().enabled },
-        featureFlag = true,
+        default = true,
     )
 
     /**
@@ -2240,32 +2254,14 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
-     * Number of days between Set as default Browser prompts.
-     */
-    private val daysBetweenDefaultBrowserPrompts: Int
-        get() = FxNimbus.features.setAsDefaultPrompt.value().daysBetweenPrompts
-
-    /**
-     * Maximum number of times the Set as default Browser prompt can be displayed to the user.
-     */
-    private val maxNumberOfDefaultBrowserPrompts: Int
-        get() = FxNimbus.features.setAsDefaultPrompt.value().maxNumberOfTimesToDisplay
-
-    /**
-     * Number of app cold starts before displaying the Set as default Browser prompt.
-     */
-    private val appColdStartsToShowDefaultPrompt: Int
-        get() = FxNimbus.features.setAsDefaultPrompt.value().appColdStartsBetweenPrompts
-
-    /**
      * Indicates if the Set as default Browser prompt should be displayed to the user.
      */
     val shouldShowSetAsDefaultPrompt: Boolean
         get() = setAsDefaultBrowserPromptForExistingUsersEnabled &&
             (System.currentTimeMillis() - lastSetAsDefaultPromptShownTimeInMillis) >
-            daysBetweenDefaultBrowserPrompts * ONE_DAY_MS &&
-            numberOfSetAsDefaultPromptShownTimes < maxNumberOfDefaultBrowserPrompts &&
-            coldStartsBetweenSetAsDefaultPrompts >= appColdStartsToShowDefaultPrompt
+            DAYS_BETWEEN_DEFAULT_BROWSER_PROMPTS * ONE_DAY_MS &&
+            numberOfSetAsDefaultPromptShownTimes < MAX_NUMBER_OF_DEFAULT_BROWSER_PROMPTS &&
+            coldStartsBetweenSetAsDefaultPrompts >= APP_COLD_STARTS_TO_SHOW_DEFAULT_PROMPT
 
     /**
      * Updates the relevant settings when the "Set as Default Browser" prompt is shown.

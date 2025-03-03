@@ -11,7 +11,6 @@
 #include "nsASCIIMask.h"
 #include "MainThreadUtils.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/dom/URLBinding.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "nsContentUtils.h"
 #include "mozilla/dom/Document.h"
@@ -81,19 +80,14 @@ already_AddRefed<URL> URL::FromURI(GlobalObject& aGlobal, nsIURI* aURI) {
   return MakeAndAddRef<URL>(aGlobal.GetAsSupports(), aURI);
 }
 
-void URL::CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
-                          nsACString& aResult, ErrorResult& aRv) {
+void URL::CreateObjectURL(const GlobalObject& aGlobal,
+                          const BlobOrMediaSource& aObj, nsACString& aResult,
+                          ErrorResult& aRv) {
   if (NS_IsMainThread()) {
-    URLMainThread::CreateObjectURL(aGlobal, aBlob, aResult, aRv);
+    URLMainThread::CreateObjectURL(aGlobal, aObj, aResult, aRv);
   } else {
-    URLWorker::CreateObjectURL(aGlobal, aBlob, aResult, aRv);
+    URLWorker::CreateObjectURL(aGlobal, aObj, aResult, aRv);
   }
-}
-
-void URL::CreateObjectURL(const GlobalObject& aGlobal, MediaSource& aSource,
-                          nsACString& aResult, ErrorResult& aRv) {
-  MOZ_ASSERT(NS_IsMainThread());
-  URLMainThread::CreateObjectURL(aGlobal, aSource, aResult, aRv);
 }
 
 void URL::RevokeObjectURL(const GlobalObject& aGlobal, const nsACString& aURL,
@@ -110,12 +104,12 @@ void URL::RevokeObjectURL(const GlobalObject& aGlobal, const nsACString& aURL,
   }
 }
 
-bool URL::IsValidObjectURL(const GlobalObject& aGlobal, const nsACString& aURL,
-                           ErrorResult& aRv) {
+bool URL::IsBoundToBlob(const GlobalObject& aGlobal, const nsACString& aURL,
+                        ErrorResult& aRv) {
   if (NS_IsMainThread()) {
-    return URLMainThread::IsValidObjectURL(aGlobal, aURL, aRv);
+    return URLMainThread::IsBoundToBlob(aGlobal, aURL, aRv);
   }
-  return URLWorker::IsValidObjectURL(aGlobal, aURL, aRv);
+  return URLWorker::IsBoundToBlob(aGlobal, aURL, aRv);
 }
 
 already_AddRefed<nsIURI> URL::ParseURI(const nsACString& aURL,

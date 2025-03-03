@@ -10,6 +10,9 @@ import { loadSourceText } from "./loadSourceText";
 import { memoizeableAction } from "../../utils/memoizableAction";
 import { fulfilled } from "../../utils/async-value";
 
+import { features } from "../../utils/prefs";
+import { getEditor } from "../../utils/editor/index";
+
 async function doSetSymbols(location, { dispatch, parserWorker }) {
   await dispatch(loadSourceText(location.source, location.sourceActor));
 
@@ -49,7 +52,10 @@ export function getFunctionSymbols(location, maxResults) {
   return async ({ parserWorker, dispatch }) => {
     // Make sure the source for the symbols exist in the parser worker.
     await dispatch(loadSourceText(location.source, location.sourceActor));
-    return parserWorker.getFunctionSymbols(location.source.id, maxResults);
+    const editor = getEditor();
+    return features.codemirrorNext && editor
+      ? editor.getFunctionSymbols(maxResults)
+      : parserWorker.getFunctionSymbols(location.source.id, maxResults);
   };
 }
 

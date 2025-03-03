@@ -21,6 +21,7 @@ addUiaTask(
 <div><input id="input" value="input"></div>
 <textarea id="textarea">textarea</textarea>
 <div id="contentEditable" contenteditable><p>content</p><p>editable</p></div>
+<p id="p">p</p>
 <a id="link" href="#">link</a>
   `,
   async function testTextDocumentRange() {
@@ -31,7 +32,7 @@ addUiaTask(
     if (gIsUiaEnabled) {
       is(
         await runPython(`pattern.DocumentRange.GetText(-1)`),
-        "inputtextareacontenteditablelink",
+        "inputtextareacontenteditableplink",
         "document DocumentRange Text correct"
       );
     }
@@ -67,7 +68,39 @@ addUiaTask(
       );
     }
 
+    await testPatternAbsent("p", "Text");
+    // The IA2 -> UIA proxy doesn't expose the Text pattern on this text leaf.
+    if (gIsUiaEnabled) {
+      await runPython(`
+        global pLeaf
+        p = findUiaByDomId(doc, "p")
+        pLeaf = uiaClient.RawViewWalker.GetFirstChildElement(p)
+      `);
+      await definePyVar("pattern", `getUiaPattern(pLeaf, "Text")`);
+      ok(await runPython(`bool(pattern)`), "pLeaf has Text pattern");
+      is(
+        await runPython(`pattern.DocumentRange.GetText(-1)`),
+        "p",
+        "pLeaf DocumentRange Text correct"
+      );
+    }
+
     await testPatternAbsent("link", "Text");
+    // The IA2 -> UIA proxy doesn't expose this text leaf at all.
+    if (gIsUiaEnabled) {
+      await runPython(`
+        global linkLeaf
+        link = findUiaByDomId(doc, "link")
+        linkLeaf = uiaClient.RawViewWalker.GetFirstChildElement(link)
+      `);
+      await definePyVar("pattern", `getUiaPattern(linkLeaf, "Text")`);
+      ok(await runPython(`bool(pattern)`), "linkLeaf has Text pattern");
+      is(
+        await runPython(`pattern.DocumentRange.GetText(-1)`),
+        "link",
+        "linkLeaf DocumentRange Text correct"
+      );
+    }
   }
 );
 

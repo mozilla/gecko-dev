@@ -3,13 +3,9 @@
 const INSTALL_PAGE = `${BASE}/file_install_extensions.html`;
 const INSTALL_XPI = `${BASE}/browser_webext_permissions.xpi`;
 
-// - with the old dialog design (enabled when ExtensionsUI.SHOW_FULL_DOMAINS_LIST returns false),
-//   wildcard and non-wildcard host permissions are expected to be shown as two separate
-//   permissions entries
-// - with the new dialog design (enabled when ExtensionsUI.SHOW_FULL_DOMAINS_LIST returns true)
-//   both wildcards and non-wildcards host permissions are expected to be shown as a single
-//   permission entry
-const expectedPermsCount = !ExtensionsUI.SHOW_FULL_DOMAINS_LIST ? 5 : 4;
+// With the new dialog design both wildcards and non-wildcards host
+// permissions are expected to be shown as a single permission entry
+const expectedPermsCount = 4;
 
 function assertPermissionsListCount({ grantedPermissionsCount }) {
   let permsUL = document.getElementById("addon-webext-perm-list");

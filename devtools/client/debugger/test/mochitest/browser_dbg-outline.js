@@ -29,6 +29,16 @@ add_task(async function () {
     "λdoNamedEval()",
     // evaledFunc is set twice
     "λevaledFunc()",
+    "λnormalFunction(foo)",
+    "λletFunction(a)",
+    "λconstFunction(x)",
+    "λProtoClass(a)",
+    "λprotoFoo(foo)",
+    "λprotoBar(x, y)",
+    "λprotoBoo(x)",
+    "λ1234()",
+    "λmemFoo(a, b)",
+    "λarrFoo(c)",
     "class MyClass",
     "λconstructor(a, b)",
     "λtest()",
@@ -36,6 +46,8 @@ add_task(async function () {
     "class Klass",
     "λconstructor()",
     "λtest()",
+    "λbar()",
+    "λboo(a)",
   ]);
 });
 
@@ -72,6 +84,16 @@ add_task(async function () {
     "λdoNamedEval()",
     // evaledFunc is set twice
     "λevaledFunc()",
+    "λnormalFunction(foo)",
+    "λletFunction(a)",
+    "λconstFunction(x)",
+    "λProtoClass(a)",
+    "λprotoFoo(foo)",
+    "λprotoBar(x, y)",
+    "λprotoBoo(x)",
+    "λ1234()",
+    "λmemFoo(a, b)",
+    "λarrFoo(c)",
     "class MyClass",
     "λconstructor(a, b)",
     "λtest()",
@@ -79,6 +101,8 @@ add_task(async function () {
     "class Klass",
     "λconstructor()",
     "λtest()",
+    "λbar()",
+    "λboo(a)",
   ]);
 
   info("Sort the list");
@@ -91,14 +115,27 @@ add_task(async function () {
   );
 
   info("Check that the list was sorted as expected");
+
   assertOutlineItems(dbg, [
+    "λ1234()",
+    "λProtoClass(a)",
+    "λarrFoo(c)",
+    "λconstFunction(x)",
     "λdoEval()",
     "λdoNamedEval()",
     // evaledFunc is set twice
     "λevaledFunc()",
     "λevaledFunc()",
+    "λletFunction(a)",
     "λmain()",
+    "λmemFoo(a, b)",
+    "λnormalFunction(foo)",
+    "λprotoBar(x, y)",
+    "λprotoBoo(x)",
+    "λprotoFoo(foo)",
     "class Klass",
+    "λbar()",
+    "λboo(a)",
     "λconstructor()",
     "λtest()",
     "class MyClass",
