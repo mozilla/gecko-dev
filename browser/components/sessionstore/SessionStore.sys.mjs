@@ -6240,9 +6240,13 @@ var SessionStoreInternal = {
    */
   restoreWindowFeatures: function ssi_restoreWindowFeatures(aWindow, aWinData) {
     var hidden = aWinData.hidden ? aWinData.hidden.split(",") : [];
-    WINDOW_HIDEABLE_FEATURES.forEach(function (aItem) {
-      aWindow[aItem].visible = !hidden.includes(aItem);
-    });
+    var isTaskbarTab =
+      aWindow.document.documentElement.getAttribute("taskbartab");
+    if (!isTaskbarTab) {
+      WINDOW_HIDEABLE_FEATURES.forEach(function (aItem) {
+        aWindow[aItem].visible = !hidden.includes(aItem);
+      });
+    }
 
     if (aWinData.isPopup) {
       this._windows[aWindow.__SSi].isPopup = true;
@@ -6251,7 +6255,7 @@ var SessionStoreInternal = {
       }
     } else {
       delete this._windows[aWindow.__SSi].isPopup;
-      if (aWindow.gURLBar) {
+      if (aWindow.gURLBar && !isTaskbarTab) {
         aWindow.gURLBar.readOnly = false;
       }
     }
