@@ -129,6 +129,7 @@ const PREF_XPI_SIGNATURES_DEV_ROOT = "xpinstall.signatures.dev-root";
 const TOOLKIT_ID = "toolkit@mozilla.org";
 
 const KEY_APP_SYSTEM_ADDONS = "app-system-addons";
+const KEY_APP_SYSTEM_BUILTINS = "app-system-builtins";
 const KEY_APP_SYSTEM_DEFAULTS = "app-system-defaults";
 const KEY_APP_SYSTEM_PROFILE = "app-system-profile";
 const KEY_APP_BUILTINS = "app-builtin";
@@ -517,6 +518,7 @@ export class AddonInternal {
         // System add-ons must be signed by the system key.
         return this.signedState == lazy.AddonManager.SIGNEDSTATE_SYSTEM;
 
+      case KEY_APP_SYSTEM_BUILTINS:
       case KEY_APP_SYSTEM_DEFAULTS:
       case KEY_APP_BUILTINS:
       case KEY_APP_TEMPORARY:
@@ -2471,7 +2473,20 @@ export const XPIDatabase = {
    * @returns {Promise<Array<AddonInternal>>}
    */
   getAddonsInLocation(aLocation) {
-    return this.getAddonList(aAddon => aAddon.location.name == aLocation);
+    return this.getAddonsInLocations([aLocation]);
+  },
+
+  /**
+   * Asynchronously get all the add-ons in an array of install locations.
+   *
+   * @param {Array<string>} aLocations
+   *        The name of the install location
+   * @returns {Promise<Array<AddonInternal>>}
+   */
+  getAddonsInLocations(aLocations) {
+    return this.getAddonList(aAddon =>
+      aLocations.includes(aAddon.location.name)
+    );
   },
 
   /**
@@ -3383,7 +3398,10 @@ export const XPIDatabaseReconcile = {
         );
       } else if (unsigned && !isNewInstall) {
         logger.warn("Not uninstalling existing unsigned add-on");
-      } else if (aLocation.name == KEY_APP_BUILTINS) {
+      } else if (
+        aLocation.name === KEY_APP_BUILTINS ||
+        aLocation.name === KEY_APP_SYSTEM_BUILTINS
+      ) {
         // If a builtin has been removed from the build, we need to remove it from our
         // data sets.  We cannot use location.isBuiltin since the system addon locations
         // mix it up.
@@ -3663,7 +3681,8 @@ export const XPIDatabaseReconcile = {
     return (
       location.name == KEY_APP_GLOBAL ||
       location.name == KEY_APP_SYSTEM_DEFAULTS ||
-      location.name == KEY_APP_BUILTINS
+      location.name == KEY_APP_BUILTINS ||
+      location.name == KEY_APP_SYSTEM_BUILTINS
     );
   },
 
@@ -3678,7 +3697,8 @@ export const XPIDatabaseReconcile = {
   isSystemAddonLocation(location) {
     return (
       location.name === KEY_APP_SYSTEM_DEFAULTS ||
-      location.name === KEY_APP_SYSTEM_ADDONS
+      location.name === KEY_APP_SYSTEM_ADDONS ||
+      location.name === KEY_APP_SYSTEM_BUILTINS
     );
   },
 
@@ -3723,7 +3743,13 @@ export const XPIDatabaseReconcile = {
     if (
       newAddon ||
       oldAddon.updateDate != xpiState.mtime ||
-      (aUpdateCompatibility && this.isAppBundledLocation(installLocation))
+      (aUpdateCompatibility && this.isAppBundledLocation(installLocation)) ||
+      // update addon metadata if the addon in bundled into
+      // the omni jar and version or the resource URI pointing
+      // to the extension assets has changed.
+      (installLocation.name === KEY_APP_SYSTEM_BUILTINS &&
+        (oldAddon.version != xpiState.version ||
+          oldAddon.rootURI != xpiState.rootURI))
     ) {
       newAddon = this.updateMetadata(
         installLocation,
@@ -3907,7 +3933,10 @@ export const XPIDatabaseReconcile = {
 
     for (let [id, addon] of previousVisible) {
       if (addon.location) {
-        if (addon.location.name == KEY_APP_BUILTINS) {
+        if (
+          addon.location.name === KEY_APP_BUILTINS ||
+          addon.location.name === KEY_APP_SYSTEM_BUILTINS
+        ) {
           continue;
         }
         XPIExports.XPIInternal.BootstrapScope.get(addon).uninstall();

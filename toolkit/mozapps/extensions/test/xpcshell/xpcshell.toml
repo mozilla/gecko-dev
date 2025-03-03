@@ -361,6 +361,10 @@ skip-if = ["os == 'android'"]
 head = "head_addons.js head_system_addons.js"
 skip-if = ["os == 'android'"]
 
+["test_system_builtins.js"]
+head = "head_addons.js head_system_addons.js"
+skip-if = ["os == 'android'"]
+
 ["test_system_delay_update.js"]
 head = "head_addons.js head_system_addons.js"
 skip-if = ["os == 'android'"]

@@ -70,6 +70,15 @@ def main(output, *args):
         action="store",
         help=("The distribution sub-directory " "containing feature add-ons"),
     )
+    parser.add_argument(
+        "--builtin-addons",
+        type=str,
+        dest="builtinsdir",
+        action="store",
+        help=(
+            "The build sub-directory containing builtin add-ons to include in the omni.ja"
+        ),
+    )
     args = parser.parse_args(args)
 
     registry, inputs = get_registry(manifest_paths)
@@ -89,6 +98,25 @@ def main(output, *args):
             features.add(mozpath.basename(get_child(args.featuresdir, p)))
 
         listing["system"] = sorted(features)
+
+    if args.builtinsdir:
+        builtins = list()
+        for p in registry.match("%s/*/manifest.json" % args.builtinsdir):
+            dirname = mozpath.basename(get_child(args.builtinsdir, p))
+            builtins_entry = dict()
+            builtins_entry["res_url"] = f"resource://builtin-addons/{dirname}/"
+            # collect addon id and version from each of the builtins manifest.json files.
+            webext_manifest = json.loads(registry[p].read())
+            builtins_entry["addon_id"] = webext_manifest["browser_specific_settings"][
+                "gecko"
+            ]["id"]
+            builtins_entry["addon_version"] = webext_manifest["version"]
+            builtins.append(builtins_entry)
+
+        def sort_by_dirname(entry):
+            return entry["res_url"]
+
+        listing["builtins"] = sorted(builtins, key=sort_by_dirname)
 
     json.dump(listing, output, sort_keys=True)
 
