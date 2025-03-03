@@ -86,6 +86,10 @@ const FORM_IFRAME_SANDBOXED_URL =
   "https://example.org" + HTTP_TEST_PATH + "autocomplete_iframe_sandboxed.html";
 const FORMS_WITH_DYNAMIC_FORM_CHANGE =
   "https://example.org" + HTTP_TEST_PATH + "dynamic_form_changes.html";
+const FORM_WITH_USER_INITIATED_FORM_CHANGE =
+  "https://example.org" +
+  HTTP_TEST_PATH +
+  "form_change_on_user_interaction.html";
 const FORMLESS_FIELDS_WITH_DYNAMIC_FORM_CHANGE_AFTER_NODE_MUTATIONS =
   "https://example.org" +
   HTTP_TEST_PATH +
@@ -385,6 +389,28 @@ async function waitForStorageChangedEvents(...eventTypes) {
       )
     )
   );
+}
+
+/**
+ * Sets up a promise that resolves when the FormAutofillParent sends out a notification
+ * that the field detection processes have completed in all FormAutofill children.
+ *
+ * @returns {Promise}
+ */
+async function getFieldDetectionCompletedPromiseResolver() {
+  let fieldDetectionCompletedPromiseResolver;
+  const fieldDetectionCompletedObserver = {
+    fieldDetectionCompleted() {
+      info(`All fields detected.`);
+      fieldDetectionCompletedPromiseResolver();
+      FormAutofillParent.removeMessageObserver(fieldDetectionCompletedObserver);
+    },
+  };
+
+  return new Promise(resolve => {
+    fieldDetectionCompletedPromiseResolver = resolve;
+    FormAutofillParent.addMessageObserver(fieldDetectionCompletedObserver);
+  });
 }
 
 /**

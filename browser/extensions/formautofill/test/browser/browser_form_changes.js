@@ -135,8 +135,13 @@ async function checkFormChangeHappened(formId) {
       // Click the first entry of the autocomplete popup and make sure all fields are autofilled
       await checkFieldsAutofilled(browser, formId, MOCK_STORAGE[0]);
 
-      // This is for checking the changes of element count.
+      const fieldsDetectedAfterFieldAdded =
+        getFieldDetectionCompletedPromiseResolver();
+
       addInputField(browser, formId, "address-level2");
+
+      await fieldsDetectedAfterFieldAdded;
+
       await openPopupOn(browser, `#${formId} input[name=name]`);
 
       // Click on an autofilled field would show an autocomplete popup with "clear form" entry
@@ -144,14 +149,20 @@ async function checkFormChangeHappened(formId) {
         browser,
         [
           "Clear Autofill Form", // Clear Autofill Form
-          "Manage addresses", // FormAutofill Preferemce
+          "Manage addresses", // FormAutofill Preference
         ],
         0
       );
 
+      const fieldDetectedAfterFieldMutations =
+        getFieldDetectionCompletedPromiseResolver();
+
       // This is for checking the changes of element removed and added then.
       removeInputField(browser, `#${formId} input[name=address-level2]`);
       addInputField(browser, formId, "address-level2");
+
+      await fieldDetectedAfterFieldMutations;
+
       await openPopupOn(browser, `#${formId} input[name=address-level2]`);
 
       await checkMenuEntries(
@@ -178,6 +189,11 @@ async function checkFormChangeHappened(formId) {
 add_setup(async function () {
   await setStorage(MOCK_STORAGE[0]);
   await setStorage(MOCK_STORAGE[1]);
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["extensions.formautofill.heuristics.detectDynamicFormChanges", true],
+    ],
+  });
 });
 
 add_task(async function check_change_happened_in_form() {

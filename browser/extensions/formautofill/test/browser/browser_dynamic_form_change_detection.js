@@ -13,21 +13,6 @@ add_setup(async () => {
   });
 });
 
-const setUpFieldDetectionCompletedPromiseResolver = () => {
-  let fieldDetectionCompletedPromiseResolver;
-  let fieldDetectionCompletedObserver = {
-    fieldDetectionCompleted() {
-      fieldDetectionCompletedPromiseResolver();
-      FormAutofillParent.removeMessageObserver(fieldDetectionCompletedObserver);
-    },
-  };
-
-  return new Promise(resolve => {
-    fieldDetectionCompletedPromiseResolver = resolve;
-    FormAutofillParent.addMessageObserver(fieldDetectionCompletedObserver);
-  });
-};
-
 const verifyCurrentIdentifiedFields = async (browser, expectedFields) => {
   const actor =
     browser.browsingContext.currentWindowGlobal.getActor("FormAutofill");
@@ -107,7 +92,7 @@ const verifyIdentifiedFieldsDuringFormChange = async (
 ) => {
   await BrowserTestUtils.withNewTab(documentPath, async browser => {
     const fieldDetectionCompletedBeforeFormChangePromise =
-      setUpFieldDetectionCompletedPromiseResolver();
+      getFieldDetectionCompletedPromiseResolver();
 
     info("Focusing on a form field to trigger the identification process");
     await SpecialPowers.spawn(browser, [elementIdToFill], elementId => {
@@ -126,7 +111,7 @@ const verifyIdentifiedFieldsDuringFormChange = async (
     );
 
     const fieldDetectionCompletedIncludingAdditionalFieldsPromise =
-      setUpFieldDetectionCompletedPromiseResolver();
+      getFieldDetectionCompletedPromiseResolver();
 
     info("Simulating user input so that additional field nodes are added.");
     await SpecialPowers.spawn(browser, [elementIdToFill], elementId => {
@@ -145,7 +130,7 @@ const verifyIdentifiedFieldsDuringFormChange = async (
     );
 
     const fieldDetectionCompletedExcludingAdditionalFieldsPromise =
-      setUpFieldDetectionCompletedPromiseResolver();
+      getFieldDetectionCompletedPromiseResolver();
 
     info("Clearing user input, so that additional fields are removed again.");
     await SpecialPowers.spawn(browser, [elementIdToFill], elementId => {
