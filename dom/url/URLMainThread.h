@@ -13,9 +13,8 @@ namespace mozilla::dom {
 
 class URLMainThread final {
  public:
-  static void CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
-                              nsACString& aResult, ErrorResult& aRv);
-  static void CreateObjectURL(const GlobalObject& aGlobal, MediaSource& aSource,
+  static void CreateObjectURL(const GlobalObject& aGlobal,
+                              const BlobOrMediaSource& aObj,
                               nsACString& aResult, ErrorResult& aRv);
   static void RevokeObjectURL(const GlobalObject& aGlobal,
                               const nsACString& aURL, ErrorResult& aRv);

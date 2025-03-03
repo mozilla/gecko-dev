@@ -229,9 +229,6 @@ support-files = [
 
 ["test_AudioChange_mp4_WebAudio.html"]
 
-["test_AutoRevocation.html"]
-tags = "firstpartyisolation"
-
 ["test_BufferedSeek.html"]
 
 ["test_BufferedSeek_mp4.html"]
