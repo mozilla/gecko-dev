@@ -63,23 +63,47 @@ void SetPassedMachSendRights(std::vector<UniqueMachSendRight>&& aSendRights) {
 }
 #endif
 
+static void ParseHandleArgument(uint32_t aArg, UniqueFileHandle& aOutHandle) {
+#ifdef XP_WIN
+  // Recover the pointer-sized HANDLE from the 32-bit argument received over IPC
+  // by sign-extending to the full pointer width. See `SerializeHandleArgument`
+  // for an explanation.
+  aOutHandle = UniqueFileHandle{reinterpret_cast<HANDLE>(
+      static_cast<uintptr_t>(static_cast<int32_t>(aArg)))};
+#else
+  // See the comment on gInitialFileHandles for an explanation of the
+  // behaviour here.
+  MOZ_RELEASE_ASSERT(aArg < std::size(gInitialFileHandles));
+  aOutHandle = UniqueFileHandle{std::exchange(gInitialFileHandles[aArg], -1)};
+#endif
+}
+
+static Maybe<uint32_t> SerializeHandleArgument(UniqueFileHandle&& aValue,
+                                               ChildProcessArgs& aArgs) {
+  if (aValue) {
+#ifdef XP_WIN
+    // On Windows, we'll inherit the handle by-identity, so pass down the
+    // HANDLE's value. Handles are always 32-bits (potentially sign-extended),
+    // so we explicitly truncate them before sending over IPC.
+    HANDLE value = aValue.get();
+    uint32_t arg = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(value));
+#else
+    uint32_t arg = static_cast<uint32_t>(aArgs.mFiles.size());
+#endif
+    aArgs.mFiles.push_back(std::move(aValue));
+    return Some(arg);
+  }
+  return Nothing();
+}
+
 template <>
 Maybe<UniqueFileHandle> CommandLineArg<UniqueFileHandle>::GetCommon(
     const char* aMatch, int& aArgc, char** aArgv, const CheckArgFlag aFlags) {
   if (Maybe<uint32_t> arg =
           CommandLineArg<uint32_t>::GetCommon(aMatch, aArgc, aArgv, aFlags)) {
-#ifdef XP_WIN
-    // Recover the pointer-sized HANDLE from the 32-bit argument received over
-    // IPC by sign-extending to the full pointer width. See `PutCommon` for an
-    // explanation.
-    return Some(UniqueFileHandle{reinterpret_cast<HANDLE>(
-        static_cast<uintptr_t>(static_cast<int32_t>(*arg)))});
-#else
-    // See the comment on gInitialFileHandles for an explanation of the
-    // behaviour here.
-    MOZ_RELEASE_ASSERT(*arg < std::size(gInitialFileHandles));
-    return Some(UniqueFileHandle{std::exchange(gInitialFileHandles[*arg], -1)});
-#endif
+    UniqueFileHandle h;
+    ParseHandleArgument(*arg, h);
+    return Some(std::move(h));
   }
   return Nothing();
 }
@@ -88,32 +112,36 @@ template <>
 void CommandLineArg<UniqueFileHandle>::PutCommon(const char* aName,
                                                  UniqueFileHandle aValue,
                                                  ChildProcessArgs& aArgs) {
-  if (aValue) {
-#ifdef XP_WIN
-    // On Windows, we'll inherit the handle by-identity, so pass down the
-    // HANDLE's value. Handles are always 32-bits (potentially sign-extended),
-    // so we explicitly truncate them before sending over IPC.
-    HANDLE value = aValue.get();
-    CommandLineArg<uint32_t>::PutCommon(
-        aName, static_cast<uint32_t>(reinterpret_cast<uintptr_t>(value)),
-        aArgs);
-#else
-    CommandLineArg<uint32_t>::PutCommon(
-        aName, static_cast<uint32_t>(aArgs.mFiles.size()), aArgs);
-#endif
-    aArgs.mFiles.push_back(std::move(aValue));
+  if (auto arg = SerializeHandleArgument(std::move(aValue), aArgs)) {
+    CommandLineArg<uint32_t>::PutCommon(aName, *arg, aArgs);
   }
 }
 
 #ifdef XP_DARWIN
+static void ParseHandleArgument(uint32_t aArg,
+                                UniqueMachSendRight& aOutHandle) {
+  MOZ_RELEASE_ASSERT(aArg < std::size(gMachSendRights));
+  aOutHandle =
+      UniqueMachSendRight{std::exchange(gMachSendRights[aArg], MACH_PORT_NULL)};
+}
+
+static Maybe<uint32_t> SerializeHandleArgument(UniqueMachSendRight&& aValue,
+                                               ChildProcessArgs& aArgs) {
+  if (aValue) {
+    aArgs.mSendRights.push_back(std::move(aValue));
+    return Some(static_cast<uint32_t>(aArgs.mSendRights.size() - 1));
+  }
+  return Nothing();
+}
+
 template <>
 Maybe<UniqueMachSendRight> CommandLineArg<UniqueMachSendRight>::GetCommon(
     const char* aMatch, int& aArgc, char** aArgv, const CheckArgFlag aFlags) {
   if (Maybe<uint32_t> arg =
           CommandLineArg<uint32_t>::GetCommon(aMatch, aArgc, aArgv, aFlags)) {
-    MOZ_RELEASE_ASSERT(*arg < std::size(gMachSendRights));
-    return Some(UniqueMachSendRight{
-        std::exchange(gMachSendRights[*arg], MACH_PORT_NULL)});
+    UniqueMachSendRight h;
+    ParseHandleArgument(*arg, h);
+    return Some(std::move(h));
   }
   return Nothing();
 }
@@ -122,12 +150,71 @@ template <>
 void CommandLineArg<UniqueMachSendRight>::PutCommon(const char* aName,
                                                     UniqueMachSendRight aValue,
                                                     ChildProcessArgs& aArgs) {
-  if (aValue) {
-    CommandLineArg<uint32_t>::PutCommon(
-        aName, static_cast<uint32_t>(aArgs.mSendRights.size()), aArgs);
-    aArgs.mSendRights.push_back(std::move(aValue));
+  if (auto arg = SerializeHandleArgument(std::move(aValue), aArgs)) {
+    CommandLineArg<uint32_t>::PutCommon(aName, *arg, aArgs);
   }
 }
 #endif
+
+// Shared memory handles are passed as a (handle, size) pair, which both turn
+// into numeric CLI arguments, so it's safe to use ":" as a separator.
+constexpr const char* kSharedMemoryHandleSeparator = ":";
+
+template <>
+Maybe<ipc::ReadOnlySharedMemoryHandle>
+CommandLineArg<ipc::ReadOnlySharedMemoryHandle>::GetCommon(
+    const char* aMatch, int& aArgc, char** aArgv, const CheckArgFlag aFlags) {
+  auto arg =
+      CommandLineArg<const char*>::GetCommon(aMatch, aArgc, aArgv, aFlags);
+  if (!arg) {
+    return Nothing();
+  }
+
+  std::string_view str = *arg;
+  auto position = str.find(kSharedMemoryHandleSeparator);
+  if (position == std::string_view::npos) {
+    return Nothing();
+  }
+
+  auto handleId = ParseIntArgument(str.substr(0, position));
+  auto size = ParseIntArgument(str.substr(position + 1));
+  if (!handleId || !size) {
+    return Nothing();
+  }
+
+  ipc::shared_memory::PlatformHandle handle;
+  ParseHandleArgument(*handleId, handle);
+  if (!handle) {
+    return Nothing();
+  }
+
+  mozilla::ipc::ReadOnlySharedMemoryHandle rv;
+  rv.mHandle = std::move(handle);
+  rv.SetSize(*size);
+
+  return Some(std::move(rv));
+}
+
+template <>
+void CommandLineArg<ipc::ReadOnlySharedMemoryHandle>::PutCommon(
+    const char* aName, ipc::ReadOnlySharedMemoryHandle aValue,
+    ChildProcessArgs& aArgs) {
+  if (!aValue) {
+    return;
+  }
+  auto size = aValue.Size();
+  auto handle = std::move(aValue).TakePlatformHandle();
+  MOZ_ASSERT(handle, "shmem platform handle is invalid");
+
+  auto handleId = SerializeHandleArgument(std::move(handle), aArgs);
+  if (!handleId) {
+    return;
+  }
+
+  auto arg = std::to_string(*handleId) + kSharedMemoryHandleSeparator +
+             std::to_string(size);
+
+  CommandLineArg<const char*>::PutCommon(aName, arg.c_str(), aArgs);
+}
 
 }  // namespace mozilla::geckoargs

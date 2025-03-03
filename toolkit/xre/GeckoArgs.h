@@ -8,12 +8,14 @@
 #include "mozilla/CmdLineAndEnvUtils.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/UniquePtrExtensions.h"
-#include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/ipc/SharedMemoryHandle.h"
 
 #include <array>
 #include <cctype>
+#include <charconv>
 #include <climits>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace mozilla {
@@ -52,6 +54,11 @@ void SetPassedMachSendRights(std::vector<UniqueMachSendRight>&& aSendRights);
 
 template <typename T>
 struct CommandLineArg {
+  bool IsPresent(int& aArgc, char** aArgv) const {
+    return ARG_FOUND ==
+           CheckArg(aArgc, aArgv, sMatch, nullptr, CheckArgFlag::None);
+  }
+
   Maybe<T> Get(int& aArgc, char** aArgv,
                const CheckArgFlag aFlags = CheckArgFlag::RemoveArg) {
     return GetCommon(sMatch, aArgc, aArgv, aFlags);
@@ -71,6 +78,16 @@ struct CommandLineArg {
 };
 
 /// Get()
+
+inline Maybe<uint64_t> ParseIntArgument(std::string_view aStr) {
+  uint64_t conv = 0;
+  const char* end = aStr.data() + aStr.size();
+  auto [ptr, ec] = std::from_chars(aStr.data(), end, conv);
+  if (ec == std::errc() && ptr == end) {
+    return Some(conv);
+  }
+  return Nothing();
+}
 
 template <>
 inline Maybe<const char*> CommandLineArg<const char*>::GetCommon(
@@ -100,12 +117,7 @@ inline Maybe<uint64_t> CommandLineArg<uint64_t>::GetCommon(
     const char* aMatch, int& aArgc, char** aArgv, const CheckArgFlag aFlags) {
   if (Maybe<const char*> arg = CommandLineArg<const char*>::GetCommon(
           aMatch, aArgc, aArgv, aFlags)) {
-    errno = 0;
-    char* endptr = nullptr;
-    uint64_t conv = std::strtoull(*arg, &endptr, 10);
-    if (errno == 0 && endptr && *endptr == '\0') {
-      return Some(conv);
-    }
+    return ParseIntArgument(*arg);
   }
   return Nothing();
 }
@@ -125,6 +137,11 @@ template <>
 Maybe<UniqueMachSendRight> CommandLineArg<UniqueMachSendRight>::GetCommon(
     const char* aMatch, int& aArgc, char** aArgv, const CheckArgFlag aFlags);
 #endif
+
+template <>
+Maybe<mozilla::ipc::ReadOnlySharedMemoryHandle>
+CommandLineArg<mozilla::ipc::ReadOnlySharedMemoryHandle>::GetCommon(
+    const char* aMatch, int& aArgc, char** aArgv, const CheckArgFlag aFlags);
 
 /// Put()
 
@@ -170,6 +187,11 @@ void CommandLineArg<UniqueMachSendRight>::PutCommon(const char* aName,
                                                     UniqueMachSendRight aValue,
                                                     ChildProcessArgs& aArgs);
 #endif
+
+template <>
+void CommandLineArg<mozilla::ipc::ReadOnlySharedMemoryHandle>::PutCommon(
+    const char* aName, mozilla::ipc::ReadOnlySharedMemoryHandle aValue,
+    ChildProcessArgs& aArgs);
 
 #if defined(__GNUC__)
 #  pragma GCC diagnostic push
