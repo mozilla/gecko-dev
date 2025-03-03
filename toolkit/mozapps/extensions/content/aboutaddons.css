@@ -120,6 +120,9 @@ h2 {
 .category[name="sitepermission"] {
   background-image: url("chrome://mozapps/skin/extensions/category-sitepermission.svg");
 }
+.category[name="mlmodel"] {
+  background-image: url("chrome://global/skin/icons/highlights.svg");
+}
 
 .sticky-container {
   background: var(--in-content-page-background);

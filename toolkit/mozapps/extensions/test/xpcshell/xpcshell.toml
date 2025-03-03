@@ -192,6 +192,12 @@ skip-if = ["os == 'android'"]
 ["test_locale.js"]
 skip-if = ["os == 'android'"]
 
+["test_ModelHubProvider.js"]
+skip-if = [
+  "appname == 'thunderbird'", # Disabled in extensions.manifest
+  "os == 'android'",
+]
+
 ["test_moved_extension_metadata.js"]
 skip-if = ["true"] # bug 1777900
 

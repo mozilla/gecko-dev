@@ -31,6 +31,7 @@
     <link rel="localization" href="branding/brand.ftl" />
     <link rel="localization" href="toolkit/about/aboutAddons.ftl" />
     <link rel="localization" href="toolkit/global/extensionPermissions.ftl" />
+    <link rel="localization" href="locales-preview/localModelManagement.ftl" />
 
     <!-- Defer scripts so all the templates are loaded by the time they run. -->
     <script
@@ -131,6 +132,15 @@
             class="category"
             role="tab"
             name="sitepermission"
+            hidden
+            default-hidden
+          ></button>
+          <button
+            is="category-button"
+            viewid="addons://list/mlmodel"
+            class="category"
+            role="tab"
+            name="mlmodel"
             hidden
             default-hidden
           ></button>
