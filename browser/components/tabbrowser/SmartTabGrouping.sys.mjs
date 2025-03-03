@@ -206,52 +206,63 @@ export class SmartTabGroupingManager {
     allTabs,
     groupedIndices,
     alreadyGroupedIndices,
-    threshold = NEAREST_NEIGHBOR_DEFAULT_THRESHOLD
+    threshold = NEAREST_NEIGHBOR_DEFAULT_THRESHOLD,
+    precomputedEmbeddings = [],
+    depth = 1
   ) {
-    // get tabs in group first
-    const tabsInGroup = groupedIndices.map(i => allTabs[i]);
-    const tabsInGroupData = await this._prepareTabData(tabsInGroup);
-    const tabsInGroupEmbeddings = await this._generateEmbeddings(
-      tabsInGroupData.map(a => a[EMBED_TEXT_KEY])
-    );
+    // get embeddings for all the tabs
+    const tabData = await this._prepareTabData(allTabs);
+    let embeddings = precomputedEmbeddings;
+    if (precomputedEmbeddings.length === 0) {
+      embeddings = await this._generateEmbeddings(
+        tabData.map(a => a[EMBED_TEXT_KEY])
+      );
+    }
 
-    // get tabs that we need to assign
+    // get tabs that need to be assigned
     const groupedTabIndices = groupedIndices.concat(alreadyGroupedIndices);
-    const tabsToAssign = allTabs.filter(
-      (_, index) => !groupedTabIndices.includes(index)
-    );
-    const tabsToAssignData = await this._prepareTabData(tabsToAssign);
-    const tabsToAssignEmbeddings = await this._generateEmbeddings(
-      tabsToAssignData.map(a => a[EMBED_TEXT_KEY])
-    );
+    const tabsToAssignIndices = allTabs
+      .map((_, index) => index)
+      .filter(i => !groupedTabIndices.includes(i));
 
-    // find closest tabs
-    // if any tab is close to a tab in the existing group, add to list
-    const closestTabs = [];
-
-    // select MAX_NN_GROUPED_TABS so too many tabs in same group won't cause performance issues
-    for (let i = 0; i < tabsToAssign.length; i++) {
+    let closestTabs = [];
+    const similarTabsIndices = [];
+    for (let i = 0; i < tabsToAssignIndices.length; i++) {
       let closestScore = null;
       for (
         let j = 0;
-        j < Math.min(tabsInGroup.length, MAX_NN_GROUPED_TABS);
+        j < Math.min(groupedIndices.length, MAX_NN_GROUPED_TABS);
         j++
       ) {
         const cosineSim = cosSim(
-          tabsToAssignEmbeddings[i],
-          tabsInGroupEmbeddings[j]
+          embeddings[tabsToAssignIndices[i]],
+          embeddings[groupedIndices[j]]
         );
         if (!closestScore || cosineSim > closestScore) {
           closestScore = cosineSim;
         }
       }
       if (closestScore > threshold) {
-        closestTabs.push([tabsToAssign[i], closestScore]);
+        closestTabs.push([allTabs[tabsToAssignIndices[i]], closestScore]);
+        similarTabsIndices.push(tabsToAssignIndices[i]);
       }
     }
-    // sort and return by tabs that are most similar
     closestTabs.sort((a, b) => b[1] - a[1]);
-    return closestTabs.map(t => t[0]);
+    closestTabs = closestTabs.map(t => t[0]);
+    // recurse once if the initial call only had a single tab
+    // and we found at least 1 similar tab - this improves recall
+    if (groupedIndices.length === 1 && !!closestTabs.length && depth === 1) {
+      const recurseSimilarTabs = await this.findNearestNeighbors(
+        allTabs,
+        similarTabsIndices,
+        alreadyGroupedIndices.concat(groupedIndices),
+        threshold,
+        embeddings,
+        depth - 1
+      );
+      closestTabs = closestTabs.concat(recurseSimilarTabs);
+    }
+    return closestTabs;
   }
 
   /**

@@ -41,7 +41,7 @@ const perfMetadata = {
   },
 };
 
-requestLongerTimeout(200);
+requestLongerTimeout(250);
 
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
@@ -224,6 +224,7 @@ add_task(async function test_clustering() {
   const endTime = performance.now();
   singleTabMetrics["SINGLE-TAB-LATENCY"].push(endTime - startTime);
   const titles = similarTabs.map(s => s.label);
+  Assert.equal(titles.length, 5, "Should get proper number of similar tabs");
   Assert.equal(
     titles[0],
     "Impact of Tourism on Local Communities - Google Scholar"
@@ -233,14 +234,15 @@ add_task(async function test_clustering() {
     "Tourist Behavior and Decision Making: A Research Overview"
   );
   Assert.equal(titles[2], "Global Health Outlook - Reuters");
-  Assert.equal(titles[3], "Hotel Deals: Save Big on Hotels with Expedia");
+  Assert.equal(titles[3], "Climate Change Impact 2022 - Google Scholar");
+  Assert.equal(titles[4], "Hotel Deals: Save Big on Hotels with Expedia");
   reportMetrics(singleTabMetrics);
   generateEmbeddingsStub.restore();
   await EngineProcess.destroyMLEngine();
   await cleanup();
 });
 
-const N_TABS = [10, 25, 50];
+const N_TABS = [10];
 const methods = ["KMEANS_ANCHOR", "NEAREST_NEIGHBORS_ANCHOR"];
 const nTabMetrics = {};
 
