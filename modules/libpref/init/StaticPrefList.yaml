@@ -2536,13 +2536,6 @@
   value: false
   mirror: always
 
-# Compression Streams (zstd) (CompressionStream/DecompressionStream)
-# Whether or not "zstd" is a supported format for these streams.
-- name: dom.compression_streams.zstd.enabled
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
 # Disable cookie-store API
 - name: dom.cookieStore.enabled
   type: RelaxedAtomicBool

@@ -11,7 +11,6 @@ enum CompressionFormat {
   "deflate",
   "deflate-raw",
   "gzip",
-  "zstd",
 };
 
 [Exposed=*]
