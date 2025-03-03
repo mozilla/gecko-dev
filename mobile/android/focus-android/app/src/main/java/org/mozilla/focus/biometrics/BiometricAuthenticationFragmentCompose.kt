@@ -5,7 +5,6 @@
 package org.mozilla.focus.biometrics
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -17,8 +16,6 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
@@ -30,6 +27,7 @@ import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.focus.R
 import org.mozilla.focus.ui.theme.FocusTheme
 import org.mozilla.focus.ui.theme.focusTypography
+import org.mozilla.focus.ui.theme.gradientBackground
 
 @Composable
 @Preview
@@ -52,20 +50,7 @@ fun BiometricPromptContent(biometricErrorText: String, showBiometricPrompt: () -
         modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight()
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        colorResource(R.color.home_screen_modal_gradient_one),
-                        colorResource(R.color.home_screen_modal_gradient_two),
-                        colorResource(R.color.home_screen_modal_gradient_three),
-                        colorResource(R.color.home_screen_modal_gradient_four),
-                        colorResource(R.color.home_screen_modal_gradient_five),
-                        colorResource(R.color.home_screen_modal_gradient_six),
-                    ),
-                    end = Offset(0f, Float.POSITIVE_INFINITY),
-                    start = Offset(Float.POSITIVE_INFINITY, 0f),
-                ),
-            ),
+            .gradientBackground(),
     ) {
         Image(
             painter = painterResource(R.drawable.wordmark2),
