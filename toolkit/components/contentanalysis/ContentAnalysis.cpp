@@ -1637,6 +1637,7 @@ RefPtr<MozPromise<T, nsresult, true>> ContentAnalysis::CallClientWithRetry(
     RefPtr<ContentAnalysis> owner = GetContentAnalysisFromService();
     if (!owner) {
       // May be shutting down
+      promise->Reject(NS_ERROR_ILLEGAL_DURING_SHUTDOWN, aMethodName);
       return;
     }
     // try to reconnect
@@ -1651,7 +1652,7 @@ RefPtr<MozPromise<T, nsresult, true>> ContentAnalysis::CallClientWithRetry(
         GetCurrentSerialEventTarget(), aMethodName,
         [aMethodName, promise, clientCallFunc = std::move(aClientCallFunc)](
             std::shared_ptr<content_analysis::sdk::Client> client) mutable {
-          NS_DispatchBackgroundTask(
+          nsresult rv = NS_DispatchBackgroundTask(
               NS_NewRunnableFunction(
                   aMethodName,
                   [aMethodName, promise,
@@ -1665,6 +1666,13 @@ RefPtr<MozPromise<T, nsresult, true>> ContentAnalysis::CallClientWithRetry(
                     }
                   }),
               NS_DISPATCH_EVENT_MAY_BLOCK);
+          if (NS_FAILED(rv)) {
+            LOGE(
+                "Failed to launch background task in second call for %s, "
+                "error=%s",
+                aMethodName.get(), SafeGetStaticErrorName(rv));
+            promise->Reject(rv, aMethodName);
+          }
         },
         [aMethodName, promise](nsresult rv) {
           LOGE("Failed to get client again for %s, error=%s", aMethodName.get(),
@@ -1677,7 +1685,7 @@ RefPtr<MozPromise<T, nsresult, true>> ContentAnalysis::CallClientWithRetry(
       GetCurrentSerialEventTarget(), aMethodName,
       [aMethodName, promise, aClientCallFunc, reconnectAndRetry](
           std::shared_ptr<content_analysis::sdk::Client> client) mutable {
-        NS_DispatchBackgroundTask(
+        nsresult rv = NS_DispatchBackgroundTask(
             NS_NewRunnableFunction(
                 aMethodName,
                 [aMethodName, promise, aClientCallFunc,
@@ -1696,6 +1704,12 @@ RefPtr<MozPromise<T, nsresult, true>> ContentAnalysis::CallClientWithRetry(
                       }));
                 }),
             NS_DISPATCH_EVENT_MAY_BLOCK);
+        if (NS_FAILED(rv)) {
+          LOGE(
+              "Failed to launch background task in first call for %s, error=%s",
+              aMethodName.get(), SafeGetStaticErrorName(rv));
+          promise->Reject(rv, aMethodName);
+        }
       },
       [reconnectAndRetry](nsresult rv) mutable { reconnectAndRetry(rv); });
   return promise.forget();
