@@ -17,10 +17,11 @@
 #include "mozilla/dom/UnionTypes.h"
 #include "mozilla/StaticPrefs_dom.h"
 
-#include "ZLibHelper.h"
+#include "CompressionStreamHelper.h"
 #include "zstd/zstd.h"
 
 namespace mozilla::dom {
+using namespace compression;
 
 class DecompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
  public:
@@ -89,8 +90,6 @@ class DecompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
  protected:
   static const uint16_t kBufferSize = 16384;
 
-  enum class Flush : bool { No, Yes };
-
   ~DecompressionStreamAlgorithms() = default;
 
   MOZ_CAN_RUN_SCRIPT
@@ -125,21 +124,6 @@ class ZLibDecompressionStreamAlgorithms : public DecompressionStreamAlgorithms {
   }
 
  private:
-  inline ZLibFlush intoZLibFlush(Flush aFlush) {
-    switch (aFlush) {
-      case Flush::No: {
-        return ZLibFlush::No;
-      }
-      case Flush::Yes: {
-        return ZLibFlush::Yes;
-      }
-      default: {
-        MOZ_ASSERT_UNREACHABLE("Unknown flush mode");
-        return ZLibFlush::No;
-      }
-    }
-  }
-
   // Shared by:
   // https://wicg.github.io/compression/#decompress-and-enqueue-a-chunk
   // https://wicg.github.io/compression/#decompress-flush-and-enqueue
