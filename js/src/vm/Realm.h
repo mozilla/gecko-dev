@@ -416,7 +416,6 @@ class JS::Realm : public JS::shadow::Realm {
   js::NewProxyCache newProxyCache;
   js::NewPlainObjectWithPropsCache newPlainObjectWithPropsCache;
   js::PlainObjectAssignCache plainObjectAssignCache;
-  js::ArraySpeciesLookup arraySpeciesLookup;
   js::PromiseLookup promiseLookup;
 
   // Last time at which an animation was played for this realm.

@@ -353,7 +353,6 @@ void Realm::purge() {
   newPlainObjectWithPropsCache.purge();
   plainObjectAssignCache.purge();
   objects_.iteratorCache.clearAndCompact();
-  arraySpeciesLookup.purge();
   promiseLookup.purge();
 }
 

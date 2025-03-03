@@ -1034,6 +1034,38 @@ bool js::IsCrossRealmArrayConstructor(JSContext* cx, JSObject* obj,
   return true;
 }
 
+static MOZ_ALWAYS_INLINE bool HasBuiltinArraySpecies(ArrayObject* arr,
+                                                     JSContext* cx) {
+  // Ensure `Array.prototype.constructor` and `Array[@@species]` haven't been
+  // mutated.
+  if (!cx->realm()->realmFuses.optimizeArraySpeciesFuse.intact()) {
+    return false;
+  }
+
+  // Ensure the array has `Array.prototype` as prototype and doesn't have an own
+  // `constructor` property.
+  //
+  // Most arrays have the default array shape so we have a fast path for this
+  // case.
+  GlobalObject* global = cx->global();
+  if (arr->shape() == global->maybeArrayShapeWithDefaultProto()) {
+    return true;
+  }
+
+  // Ensure the array's prototype is the actual Array.prototype.
+  NativeObject* arrayProto = global->maybeGetArrayPrototype();
+  if (!arrayProto || arr->staticPrototype() != arrayProto) {
+    return false;
+  }
+
+  // Fail if the array has an own `constructor` property.
+  if (arr->containsPure(NameToId(cx->names().constructor))) {
+    return false;
+  }
+
+  return true;
+}
+
 // Returns true iff we know for -sure- that it is definitely safe to use the
 // realm's array constructor.
 //
@@ -1059,8 +1091,7 @@ static MOZ_ALWAYS_INLINE bool IsArraySpecies(JSContext* cx,
     return true;
   }
 
-  if (cx->realm()->arraySpeciesLookup.tryOptimizeArray(
-          cx, &origArray->as<ArrayObject>())) {
+  if (HasBuiltinArraySpecies(&origArray->as<ArrayObject>(), cx)) {
     return true;
   }
 
@@ -5616,160 +5647,6 @@ bool js::ArrayInfo(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 #endif
-
-void js::ArraySpeciesLookup::initialize(JSContext* cx) {
-  MOZ_ASSERT(state_ == State::Uninitialized);
-
-  // Get the canonical Array.prototype.
-  NativeObject* arrayProto = cx->global()->maybeGetArrayPrototype();
-
-  // Leave the cache uninitialized if the Array class itself is not yet
-  // initialized.
-  if (!arrayProto) {
-    return;
-  }
-
-  // Get the canonical Array constructor. The Array constructor must be
-  // initialized if Array.prototype is initialized.
-  JSObject& arrayCtorObject = cx->global()->getConstructor(JSProto_Array);
-  JSFunction* arrayCtor = &arrayCtorObject.as<JSFunction>();
-
-  // Shortcut returns below means Array[@@species] will never be
-  // optimizable, set to disabled now, and clear it later when we succeed.
-  state_ = State::Disabled;
-
-  // Look up Array.prototype.constructor and ensure it's a data property.
-  Maybe<PropertyInfo> ctorProp =
-      arrayProto->lookup(cx, NameToId(cx->names().constructor));
-  if (ctorProp.isNothing() || !ctorProp->isDataProperty()) {
-    return;
-  }
-
-  // Get the referred value, and ensure it holds the canonical Array
-  // constructor.
-  JSFunction* ctorFun;
-  if (!IsFunctionObject(arrayProto->getSlot(ctorProp->slot()), &ctorFun)) {
-    return;
-  }
-  if (ctorFun != arrayCtor) {
-    return;
-  }
-
-  // Look up the '@@species' value on Array
-  Maybe<PropertyInfo> speciesProp = arrayCtor->lookup(
-      cx, PropertyKey::Symbol(cx->wellKnownSymbols().species));
-  if (speciesProp.isNothing() || !arrayCtor->hasGetter(*speciesProp)) {
-    return;
-  }
-
-  // Get the referred value, ensure it holds the canonical Array[@@species]
-  // function.
-  uint32_t speciesGetterSlot = speciesProp->slot();
-  JSObject* speciesGetter = arrayCtor->getGetter(speciesGetterSlot);
-  if (!speciesGetter || !speciesGetter->is<JSFunction>()) {
-    return;
-  }
-  JSFunction* speciesFun = &speciesGetter->as<JSFunction>();
-  if (!IsSelfHostedFunctionWithName(speciesFun,
-                                    cx->names().dollar_ArraySpecies_)) {
-    return;
-  }
-
-  // Store raw pointers below. This is okay to do here, because all objects
-  // are in the tenured heap.
-  MOZ_ASSERT(!IsInsideNursery(arrayProto));
-  MOZ_ASSERT(!IsInsideNursery(arrayCtor));
-  MOZ_ASSERT(!IsInsideNursery(arrayCtor->shape()));
-  MOZ_ASSERT(!IsInsideNursery(speciesFun));
-  MOZ_ASSERT(!IsInsideNursery(arrayProto->shape()));
-
-  state_ = State::Initialized;
-  arrayProto_ = arrayProto;
-  arrayConstructor_ = arrayCtor;
-  arrayConstructorShape_ = arrayCtor->shape();
-  arraySpeciesGetterSlot_ = speciesGetterSlot;
-  canonicalSpeciesFunc_ = speciesFun;
-  arrayProtoShape_ = arrayProto->shape();
-  arrayProtoConstructorSlot_ = ctorProp->slot();
-}
-
-void js::ArraySpeciesLookup::reset() {
-  AlwaysPoison(this, JS_RESET_VALUE_PATTERN, sizeof(*this),
-               MemCheckKind::MakeUndefined);
-  state_ = State::Uninitialized;
-}
-
-bool js::ArraySpeciesLookup::isArrayStateStillSane() {
-  MOZ_ASSERT(state_ == State::Initialized);
-
-  // Ensure that Array.prototype still has the expected shape.
-  if (arrayProto_->shape() != arrayProtoShape_) {
-    return false;
-  }
-
-  // Ensure that Array.prototype.constructor contains the canonical Array
-  // constructor function.
-  if (arrayProto_->getSlot(arrayProtoConstructorSlot_) !=
-      ObjectValue(*arrayConstructor_)) {
-    return false;
-  }
-
-  // Ensure that Array still has the expected shape.
-  if (arrayConstructor_->shape() != arrayConstructorShape_) {
-    return false;
-  }
-
-  // Ensure the species getter contains the canonical @@species function.
-  JSObject* getter = arrayConstructor_->getGetter(arraySpeciesGetterSlot_);
-  return getter == canonicalSpeciesFunc_;
-}
-
-bool js::ArraySpeciesLookup::tryOptimizeArray(JSContext* cx,
-                                              ArrayObject* array) {
-  if (state_ == State::Uninitialized) {
-    // If the cache is not initialized, initialize it.
-    initialize(cx);
-  } else if (state_ == State::Initialized && !isArrayStateStillSane()) {
-    // Otherwise, if the array state is no longer sane, reinitialize.
-    reset();
-    initialize(cx);
-  }
-
-  // If the cache is disabled or still uninitialized, don't bother trying to
-  // optimize.
-  if (state_ != State::Initialized) {
-    return false;
-  }
-
-  // By the time we get here, we should have a sane array state.
-  MOZ_ASSERT(isArrayStateStillSane());
-
-  // Ensure |array|'s prototype is the actual Array.prototype.
-  if (array->staticPrototype() != arrayProto_) {
-    return false;
-  }
-
-  // Ensure the array does not define an own "constructor" property which may
-  // shadow `Array.prototype.constructor`.
-
-  // Most arrays don't define any additional own properties beside their
-  // "length" property. If "length" is the last property, it must be the only
-  // property, because it's non-configurable.
-  MOZ_ASSERT(array->shape()->propMapLength() > 0);
-  PropertyKey lengthKey = NameToId(cx->names().length);
-  if (MOZ_LIKELY(array->getLastProperty().key() == lengthKey)) {
-    MOZ_ASSERT(array->shape()->propMapLength() == 1, "Expected one property");
-    return true;
-  }
-
-  // Fail if the array has an own "constructor" property.
-  uint32_t index;
-  if (array->shape()->lookup(cx, NameToId(cx->names().constructor), &index)) {
-    return false;
-  }
-
-  return true;
-}
 
 JS_PUBLIC_API JSObject* JS::NewArrayObject(JSContext* cx,
                                            const HandleValueArray& contents) {
