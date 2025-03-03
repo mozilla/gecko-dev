@@ -5394,6 +5394,20 @@ static MOZ_ALWAYS_INLINE ArrayObject* NewArrayWithProto(JSContext* cx,
   return NewArrayWithShape<maxLength>(cx, shape, length, newKind, nullptr);
 }
 
+static JSObject* CreateArrayConstructor(JSContext* cx, JSProtoKey key) {
+  MOZ_ASSERT(key == JSProto_Array);
+  Rooted<JSObject*> ctor(cx, GlobalObject::createConstructor(
+                                 cx, ArrayConstructor, cx->names().Array, 1,
+                                 gc::AllocKind::FUNCTION, &jit::JitInfo_Array));
+  if (!ctor) {
+    return nullptr;
+  }
+  if (!JSObject::setHasFuseProperty(cx, ctor)) {
+    return nullptr;
+  }
+  return ctor;
+}
+
 static JSObject* CreateArrayPrototype(JSContext* cx, JSProtoKey key) {
   MOZ_ASSERT(key == JSProto_Array);
   RootedObject proto(cx, &cx->global()->getObjectPrototype());
@@ -5453,13 +5467,8 @@ static const JSClassOps ArrayObjectClassOps = {
 };
 
 static const ClassSpec ArrayObjectClassSpec = {
-    GenericCreateConstructor<ArrayConstructor, 1, gc::AllocKind::FUNCTION,
-                             &jit::JitInfo_Array>,
-    CreateArrayPrototype,
-    array_static_methods,
-    array_static_props,
-    array_methods,
-    nullptr,
+    CreateArrayConstructor, CreateArrayPrototype, array_static_methods,
+    array_static_props,     array_methods,        nullptr,
     array_proto_finish,
 };
 

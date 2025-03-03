@@ -127,6 +127,20 @@ static bool ObjectHasDataProperty(NativeObject* obj, PropertyKey key,
   return true;
 }
 
+static bool ObjectHasGetterProperty(NativeObject* obj, PropertyKey key,
+                                    JSFunction** getter) {
+  mozilla::Maybe<PropertyInfo> prop = obj->lookupPure(key);
+  if (prop.isNothing() || !prop->isAccessorProperty()) {
+    return false;
+  }
+  JSObject* getterObject = obj->getGetter(*prop);
+  if (!getterObject || !getterObject->is<JSFunction>()) {
+    return false;
+  }
+  *getter = &getterObject->as<JSFunction>();
+  return true;
+}
+
 bool js::ArrayPrototypeIteratorFuse::checkInvariant(JSContext* cx) {
   // Prototype must be Array.prototype.
   auto* proto = cx->global()->maybeGetArrayPrototype();
@@ -241,4 +255,34 @@ bool js::IteratorPrototypeHasObjectProto::checkInvariant(JSContext* cx) {
 bool js::ObjectPrototypeHasNoReturnProperty::checkInvariant(JSContext* cx) {
   RootedObject proto(cx, &cx->global()->getObjectPrototype());
   return HasNoReturnName(cx, proto);
+}
+
+bool js::OptimizeArraySpeciesFuse::checkInvariant(JSContext* cx) {
+  // Prototype must be Array.prototype.
+  auto* proto = cx->global()->maybeGetArrayPrototype();
+  if (!proto) {
+    // No proto, invariant still holds
+    return true;
+  }
+
+  auto* ctor = cx->global()->maybeGetConstructor(JSProto_Array);
+  MOZ_ASSERT(ctor);
+
+  // Ensure Array.prototype's `constructor` slot is the `Array` constructor.
+  Value v;
+  if (!ObjectHasDataProperty(proto, NameToId(cx->names().constructor), &v)) {
+    return false;
+  }
+  if (v != ObjectValue(*ctor)) {
+    return false;
+  }
+
+  // Ensure Array's `@@species` slot is the $ArraySpecies getter.
+  PropertyKey speciesKey = PropertyKey::Symbol(cx->wellKnownSymbols().species);
+  JSFunction* getter = nullptr;
+  if (!ObjectHasGetterProperty(&ctor->as<NativeObject>(), speciesKey,
+                               &getter)) {
+    return false;
+  }
+  return IsSelfHostedFunctionWithName(getter, cx->names().dollar_ArraySpecies_);
 }

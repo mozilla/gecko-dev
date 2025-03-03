@@ -137,6 +137,18 @@ struct ObjectPrototypeHasNoReturnProperty final
   virtual bool checkInvariant(JSContext* cx) override;
 };
 
+// Fuse used to optimize @@species lookups for arrays. If this fuse is intact,
+// the following invariants must hold:
+//
+// - The builtin `Array.prototype` object has a `constructor` property that's
+//   the builtin `Array` constructor.
+// - This `Array` constructor has a `Symbol.species` property that's the
+//   original accessor.
+struct OptimizeArraySpeciesFuse final : public RealmFuse {
+  virtual const char* name() override { return "OptimizeArraySpeciesFuse"; }
+  virtual bool checkInvariant(JSContext* cx) override;
+};
+
 #define FOR_EACH_REALM_FUSE(FUSE)                                              \
   FUSE(OptimizeGetIteratorFuse, optimizeGetIteratorFuse)                       \
   FUSE(OptimizeArrayIteratorPrototypeFuse, optimizeArrayIteratorPrototypeFuse) \
@@ -149,7 +161,8 @@ struct ObjectPrototypeHasNoReturnProperty final
   FUSE(ArrayIteratorPrototypeHasIteratorProto,                                 \
        arrayIteratorPrototypeHasIteratorProto)                                 \
   FUSE(IteratorPrototypeHasObjectProto, iteratorPrototypeHasObjectProto)       \
-  FUSE(ObjectPrototypeHasNoReturnProperty, objectPrototypeHasNoReturnProperty)
+  FUSE(ObjectPrototypeHasNoReturnProperty, objectPrototypeHasNoReturnProperty) \
+  FUSE(OptimizeArraySpeciesFuse, optimizeArraySpeciesFuse)
 
 struct RealmFuses {
   RealmFuses() = default;
