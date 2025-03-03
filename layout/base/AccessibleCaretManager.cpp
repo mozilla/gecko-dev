@@ -978,7 +978,8 @@ void AccessibleCaretManager::ExtendPhoneNumberSelection(
     nsAutoString oldSelectedText = StringifiedSelection();
 
     // Extend the selection by one char.
-    selection->Modify(u"extend"_ns, aDirection, u"character"_ns);
+    selection->Modify(u"extend"_ns, aDirection, u"character"_ns,
+                      IgnoreErrors());
     if (IsTerminated() == Terminated::Yes) {
       return;
     }
