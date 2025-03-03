@@ -874,6 +874,8 @@
     <string name="preferences_link_sharing">Bağlantı paylaşımı</string>
     <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox).  -->
     <string name="link_sharing_toggle_title">WhatsApp paylaşımlarına %1$s indirme bağlantısını ekle</string>
+    <!--Snackbar message shown when user shares a link -->
+    <string name="link_shared_snackbar_message">Bağlantı paylaşıldı</string>
     <!-- Snackbar action label shown when user shares a link  -->
     <string name="link_shared_snackbar_action">Ayarları yönet</string>
     <!-- Preference for open links in third party apps -->

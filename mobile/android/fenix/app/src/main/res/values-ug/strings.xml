@@ -618,6 +618,11 @@
     <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
     <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">ئەڭ ئاخىرقى بىر ئىش</string>
 
+    <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Firefox نى قانداق بايقىغانلىقىڭىز ۋە ئۇنى ئىشلىتىشنى Mozilla نىڭ بازارچىلىق ھەمكارلاشقۇچىلىرى بىلەن ھەمبەھىرلەڭ. بۇ سانلىق مەلۇماتلار ھەرگىز سېتىلمايدۇ.</string>
+    <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">ساقلاپ كۆز يۈگۈرتۈشنى باشلا</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">قورال بالداق ئورنى تاللىنىدۇ</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -859,6 +864,10 @@
 
     <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
     <string name="preferences_show_nonsponsored_suggestions_summary">توردىن ئىزدىگىنىڭىزگە مۇناسىۋەتلىك تەكلىپكە ئېرىشىڭ</string>
+    <!-- Preference for link sharing -->
+    <string name="preferences_link_sharing">ئۇلانما ھەمبەھىر</string>
+    <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_title">WhatsApp دە مەزمۇن ھەمبەھىردە %1$s نىڭ چۈشۈرۈش ئۇلانمىسى بار</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">ئۇلىنىشنى ئەپتە ئاچ</string>
     <!-- Preference for open links in third party apps always open in apps option -->

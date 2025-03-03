@@ -3049,5 +3049,5 @@
     <!-- The default content description for the eye trailing icon button in TextField -->
     <string name="text_field_eye_trailing_icon_default_content_description">മറഞ്ഞിരിക്കുന്ന വാചകം കാണിക്കുക</string>
     <!-- The default content description for the cross trailing icon button in TextField -->
-    <string name="text_field_cross_trailing_icon_default_content_description">പാഠം വേൎപ്പെടുത്തുക</string>
+    <string name="text_field_cross_trailing_icon_default_content_description">എഴുത്തു് വേൎപ്പെടുത്തുക</string>
 </resources>
