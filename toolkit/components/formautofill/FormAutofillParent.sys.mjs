@@ -343,6 +343,11 @@ export class FormAutofillParent extends JSWindowActorParent {
         this.onFieldFilledModified(data);
         break;
       }
+      case "FormAutofill:FillFieldsOnFormChange": {
+        const { elementId, profile } = data;
+        this.onFillOnFormChange(elementId, profile);
+        break;
+      }
 
       // The remaining Save and Remove messages are invoked only by tests.
       case "FormAutofill:SaveAddress": {
@@ -565,6 +570,36 @@ export class FormAutofillParent extends JSWindowActorParent {
     // This is for testing purposes, to know that the fields were
     // identified after a form change
     this.notifyMessageObservers("fieldDetectionCompleted");
+  }
+
+  /**
+   * Re-filling fields after a form change occured
+   * immediately after the last filling process
+   *
+   * @param {string} elementId element id of focused element that triggered
+   *                           the initial autocompletion process
+   * @param {object} profile
+   */
+  async onFillOnFormChange(elementId, profile) {
+    const section = this.getSectionByElementId(elementId);
+    const msg = "FormAutofill:FillFieldsOnFormChange";
+    const fields = section.getAutofillFields();
+    const result = await this.#triggerAutofillActionInChildren(
+      msg,
+      elementId,
+      fields,
+      profile
+    );
+
+    // Todo: P7. Add telemetry to capture the fields that were filled on dynamic form change
+
+    result.forEach((value, key) => this.filledResult.set(key, value));
+
+    // For testing only
+    Services.obs.notifyObservers(
+      null,
+      "formautofill-fill-after-form-change-complete"
+    );
   }
 
   /**
@@ -1108,6 +1143,11 @@ export class FormAutofillParent extends JSWindowActorParent {
       const ids = fieldDetails
         .filter(detail => this.shouldAutofill(bc, detail))
         .map(detail => detail.elementId);
+
+      if (!ids.length) {
+        // No elements in this browsing context to trigger the action on
+        continue;
+      }
 
       try {
         const actor = FormAutofillParent.getActor(bc);
