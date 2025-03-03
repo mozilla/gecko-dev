@@ -235,23 +235,17 @@ void GetTrackerType(nsAutoCString& aTrackerType) {
        nsIClassifiedChannel::CLASSIFIED_TRACKING_AD |
        nsIClassifiedChannel::CLASSIFIED_TRACKING_ANALYTICS |
        nsIClassifiedChannel::CLASSIFIED_TRACKING_SOCIAL);
-  AutoTArray<RefPtr<BrowsingContextGroup>, 5> bcGroups;
-  BrowsingContextGroup::GetAllGroups(bcGroups);
-  for (auto& bcGroup : bcGroups) {
-    AutoTArray<DocGroup*, 5> docGroups;
-    bcGroup->GetDocGroups(docGroups);
-    for (auto* docGroup : docGroups) {
-      for (Document* doc : *docGroup) {
-        nsCOMPtr<nsIClassifiedChannel> classifiedChannel =
-            do_QueryInterface(doc->GetChannel());
-        if (classifiedChannel) {
-          uint32_t classificationFlags =
-              classifiedChannel->GetThirdPartyClassificationFlags();
-          trackingFlags &= classificationFlags;
-          if (!trackingFlags) {
-            return;
-          }
-        }
+  AutoTArray<RefPtr<Document>, 32> allDocuments;
+  Document::GetAllInProcessDocuments(allDocuments);
+  for (auto& doc : allDocuments) {
+    nsCOMPtr<nsIClassifiedChannel> classifiedChannel =
+        do_QueryInterface(doc->GetChannel());
+    if (classifiedChannel) {
+      uint32_t classificationFlags =
+          classifiedChannel->GetThirdPartyClassificationFlags();
+      trackingFlags &= classificationFlags;
+      if (!trackingFlags) {
+        return;
       }
     }
   }

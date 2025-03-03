@@ -541,8 +541,11 @@ class Document : public nsINode,
                  public DocumentOrShadowRoot,
                  public nsSupportsWeakReference,
                  public nsIScriptObjectPrincipal,
-                 public SupportsWeakPtr {
+                 public SupportsWeakPtr,
+                 private LinkedListElement<Document> {
   friend class DocumentOrShadowRoot;
+  friend class LinkedList<Document>;
+  friend class LinkedListElement<Document>;
 
  protected:
   explicit Document(const char* aContentType);
@@ -4226,6 +4229,14 @@ class Document : public nsINode,
   bool MayHaveDOMActivateListeners() const;
 
   void DropStyleSet();
+
+  // Get a list of all Document objects which are present in the current
+  // process. This should not be used in hot code paths.
+  //
+  // NOTE: This includes both primary and data documents, as well as documents
+  // which have not yet been fully initialized.
+  static void GetAllInProcessDocuments(
+      nsTArray<RefPtr<Document>>& aAllDocuments);
 
  protected:
   // Returns the WindowContext for the document that we will contribute
