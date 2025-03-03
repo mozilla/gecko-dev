@@ -9281,7 +9281,7 @@ void Document::SetDomain(const nsAString& aDomain, ErrorResult& rv) {
   }
 
   if (!GetDocGroup() || GetDocGroup()->IsOriginKeyed()) {
-    WarnOnceAbout(Document::eDocumentSetDomainNotAllowed);
+    WarnOnceAbout(Document::eDocumentSetDomainIgnored);
     return;
   }
 
