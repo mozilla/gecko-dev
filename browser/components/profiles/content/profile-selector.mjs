@@ -95,7 +95,7 @@ export class ProfileSelector extends MozLitElement {
     this.profiles = await this.selectableProfileService.getAllProfiles();
 
     if (!this.profiles.length) {
-      this.selectableProfileService.showProfileSelectorWindow(false);
+      this.selectableProfileService.setShowProfileSelectorWindow(false);
     }
 
     this.initialized = true;
@@ -112,7 +112,7 @@ export class ProfileSelector extends MozLitElement {
   handleCheckboxToggle() {
     let state = this.checkbox.checked ? "enabled" : "disabled";
     Glean.profilesSelectorWindow.showAtStartup.record({ value: state });
-    this.selectableProfileService.showProfileSelectorWindow(
+    this.selectableProfileService.setShowProfileSelectorWindow(
       this.checkbox.checked
     );
   }

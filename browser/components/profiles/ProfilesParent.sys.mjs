@@ -200,11 +200,6 @@ export class ProfilesParent extends JSWindowActorParent {
         } else if (source === "about:deleteprofile") {
           Glean.profilesDelete.confirm.record();
         }
-        let profiles = await SelectableProfileService.getAllProfiles();
-
-        if (profiles.length <= 1) {
-          return null;
-        }
 
         // Notify windows that a quit has been requested.
         let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].createInstance(
