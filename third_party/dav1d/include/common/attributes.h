@@ -123,6 +123,12 @@
 #define EXTERN extern
 #endif
 
+#if ARCH_X86_64 && __has_attribute(model)
+#define ATTR_MCMODEL_SMALL __attribute__((model("small")))
+#else
+#define ATTR_MCMODEL_SMALL
+#endif
+
 #ifdef __clang__
 #define NO_SANITIZE(x) __attribute__((no_sanitize(x)))
 #else

@@ -958,9 +958,7 @@ static int decode_b(Dav1dTaskContext *const t,
     }
 
     // delta-q/lf
-    if (!(t->bx & (31 >> !f->seq_hdr->sb128)) &&
-        !(t->by & (31 >> !f->seq_hdr->sb128)))
-    {
+    if (!((t->bx | t->by) & (31 >> !f->seq_hdr->sb128))) {
         const int prev_qidx = ts->last_qidx;
         const int have_delta_q = f->frame_hdr->delta.q.present &&
             (bs != (f->seq_hdr->sb128 ? BS_128x128 : BS_64x64) || !b->skip);
