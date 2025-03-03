@@ -3,8 +3,6 @@ support-files = ["browser_xhr_onchange_leak.html"]
 
 ["browser_blobFromFile.js"]
 
-["browser_block_sync_xhr_system_requests.js"]
-
 ["browser_sync_xhr_event_handing_switch_bcg.js"]
 support-files = [
   "empty.html",
