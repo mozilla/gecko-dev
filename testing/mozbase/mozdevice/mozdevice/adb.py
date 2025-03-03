@@ -14,6 +14,7 @@ import sys
 import tempfile
 import time
 import traceback
+from shutil import copy2 as shutil_copy2
 from shutil import copytree
 from threading import Thread
 
@@ -3009,7 +3010,28 @@ class ADBDevice(ADBCommand):
             temp_parent = tempfile.mkdtemp()
             remote_name = os.path.basename(remote)
             new_local = os.path.join(temp_parent, remote_name)
-            copytree(local, new_local)
+
+            # The build system puts the tests in objdir, as symlinks pointing
+            # to the actual file in the source tree. When the symlink target is
+            # removed (e.g. by updating the checkout), the symlink itself is
+            # not removed by `./mach build`. By default, shutil.copytree tries
+            # to read symlinks and raises an error in this case (bug 1950855).
+            # Ignore dangling symlinks to avoid this issue.
+            #
+            # shutil.copytree's ignore_dangling_symlinks=True should be used,
+            # but https://bugzilla.mozilla.org/show_bug.cgi?id=1950855#c1 shows
+            # that it is buggy. As an alternative, customize copy_function:
+            def copy_ignore_broken_link(src, dst):
+                try:
+                    return shutil_copy2(src, dst)
+                except OSError as e:
+                    if e.errno == 2 and os.path.islink(src):
+                        self._logger.debug("Ignoring broken symlink: %s" % src)
+                    else:
+                        raise e
+
+            copytree(local, new_local, copy_function=copy_ignore_broken_link)
+
             local = new_local
             # See do_sync_push in
             # https://android.googlesource.com/platform/system/core/+/master/adb/file_sync_client.cpp
