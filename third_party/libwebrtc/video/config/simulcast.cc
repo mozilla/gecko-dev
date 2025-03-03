@@ -19,16 +19,19 @@
 #include <vector>
 
 #include "absl/strings/match.h"
+#include "api/array_view.h"
 #include "api/field_trials_view.h"
-#include "api/video/video_codec_constants.h"
+#include "api/units/data_rate.h"
+#include "api/video/resolution.h"
+#include "api/video/video_codec_type.h"
 #include "media/base/media_constants.h"
 #include "modules/video_coding/utility/simulcast_rate_allocator.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/experiments/min_video_bitrate_experiment.h"
-#include "rtc_base/experiments/normalize_simulcast_size_experiment.h"
 #include "rtc_base/experiments/rate_control_settings.h"
 #include "rtc_base/logging.h"
+#include "video/config/video_encoder_config.h"
 
 namespace cricket {
 
@@ -197,6 +200,8 @@ int GetDefaultSimulcastTemporalLayers(webrtc::VideoCodecType codec) {
     case webrtc::kVideoCodecH265:
       return 1;
   }
+  RTC_DCHECK_NOTREACHED() << "Unsupported codec.";
+  return 1;
 }
 
 std::vector<SimulcastFormat> GetSimulcastFormats(
