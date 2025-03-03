@@ -95,6 +95,7 @@
   REAL(CompileError, ERROR_CLASP(JSEXN_WASMCOMPILEERROR))                   \
   REAL(LinkError, ERROR_CLASP(JSEXN_WASMLINKERROR))                         \
   REAL(RuntimeError, ERROR_CLASP(JSEXN_WASMRUNTIMEERROR))                   \
+  REAL_IF_WASM_JSPI(SuspendError, ERROR_CLASP(JSEXN_WASMSUSPENDERROR))      \
   REAL(ArrayBuffer, OCLASP(FixedLengthArrayBuffer))                         \
   REAL(Int8Array, TYPED_ARRAY_CLASP(Int8))                                  \
   REAL(Uint8Array, TYPED_ARRAY_CLASP(Uint8))                                \

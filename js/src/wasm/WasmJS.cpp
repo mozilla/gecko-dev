@@ -5427,6 +5427,7 @@ static bool WebAssemblyClassFinish(JSContext* cx, HandleObject object,
 #ifdef ENABLE_WASM_JSPI
   constexpr NameAndProtoKey jspiEntries[] = {
       {"Suspending", JSProto_WasmSuspending},
+      {"SuspendError", GetExceptionProtoKey(JSEXN_WASMSUSPENDERROR)},
   };
   if (JSPromiseIntegrationAvailable(cx)) {
     if (!JS_DefineFunctions(cx, wasm, WebAssembly_jspi_methods)) {

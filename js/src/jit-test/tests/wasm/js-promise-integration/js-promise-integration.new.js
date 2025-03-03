@@ -400,7 +400,7 @@ test(() => {
 )`, {m: {import: js_import}});
   let suspender = Promising(instance.exports.return_suspender)();
   for (s of [suspender, null, undefined, {}]) {
-    assert_throws(WebAssembly.RuntimeError, () => instance.exports.test(s));
+    assert_throws(WebAssembly.SuspendError, () => instance.exports.test(s));
   }
 }, "Call import with an invalid suspender");
 
@@ -537,7 +537,7 @@ promise_test(async (t) => {
         }});
   // export1 (promising)
   let wrapper = WebAssembly.promising(instance.exports.export1);
-  promise_rejects(t, new WebAssembly.RuntimeError(), wrapper(),
+  promise_rejects(t, new WebAssembly.SuspendError(), wrapper(),
       /trying to suspend JS frames/);
 });
 
