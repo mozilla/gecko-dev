@@ -11293,24 +11293,6 @@
       "last_modified": 1666727875260
     },
     {
-      "schema": 1666727367562,
-      "derHash": "GPQ2j+k7PK4CUjC85+rTQP2Q+yf5oQ42/uifxFTyJ4g=",
-      "subject": "CN=CrossTrust DV CA5,O=SECOM Trust Systems CO.\\,LTD.,C=JP",
-      "subjectDN": "MFAxCzAJBgNVBAYTAkpQMSUwIwYDVQQKExxTRUNPTSBUcnVzdCBTeXN0ZW1zIENPLixMVEQuMRowGAYDVQQDExFDcm9zc1RydXN0IERWIENBNQ==",
-      "whitelist": false,
-      "attachment": {
-        "hash": "2095edba6d54418256b1c82c2499bd9f75e39608c3dc0e3b395dac7a8870a119",
-        "size": 1642,
-        "filename": "mfydQPGtsWNlYaYdaD2eprRgxX0MdeoAw0G537kLXzk=.pem",
-        "location": "security-state-staging/intermediates/779275d4-b98f-4e5c-9606-7d98a85e2d32.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "mfydQPGtsWNlYaYdaD2eprRgxX0MdeoAw0G537kLXzk=",
-      "crlite_enrolled": false,
-      "id": "70cd95b5-008a-41bf-b38e-525ca51982fb",
-      "last_modified": 1666727875246
-    },
-    {
       "schema": 1666727335669,
       "derHash": "NEe3S15QClSZg/os7XOlZC5qrseIKVRhWEN99m10Nbg=",
       "subject": "CN=Entrust Certification Authority - L1J,OU=See www.entrust.net/legal-terms+OU=(c) 2016 Entrust\\, Inc. - for authorized use only,O=Entrust\\, Inc.,C=US",
@@ -11453,24 +11435,6 @@
       "crlite_enrolled": false,
       "id": "461c30ef-db33-4e0c-bcf1-c4fb264c2a61",
       "last_modified": 1666727875111
-    },
-    {
-      "schema": 1666727379977,
-      "derHash": "ecQJGwWxXBaDEot6NV4KrWLhu7w+Xzc1NwwGzE0a+0Q=",
-      "subject": "CN=CrossTrust OV CA5,O=SECOM Trust Systems CO.\\,LTD.,C=JP",
-      "subjectDN": "MFAxCzAJBgNVBAYTAkpQMSUwIwYDVQQKExxTRUNPTSBUcnVzdCBTeXN0ZW1zIENPLixMVEQuMRowGAYDVQQDExFDcm9zc1RydXN0IE9WIENBNQ==",
-      "whitelist": false,
-      "attachment": {
-        "hash": "bd3caa1f305a9f0b5a55466e00fb389199886a78055b526ee4a8fd5a2c317e51",
-        "size": 1642,
-        "filename": "9QmSs2TRmBuBXXpRPhom-2y54_RQ3KsK4te_JED6g0Q=.pem",
-        "location": "security-state-staging/intermediates/0cd79666-328f-4d26-a58d-65b8203303df.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "9QmSs2TRmBuBXXpRPhom+2y54/RQ3KsK4te/JED6g0Q=",
-      "crlite_enrolled": false,
-      "id": "b6b1d83f-6615-4c21-bf97-c5dba8c7d925",
-      "last_modified": 1666727875063
     },
     {
       "schema": 1666727339898,
@@ -30967,5 +30931,5 @@
       "last_modified": 1559865884636
     }
   ],
-  "timestamp": 1740581822302
+  "timestamp": 1740668222772
 }
