@@ -43,8 +43,9 @@ with tempfile.NamedTemporaryFile(mode="w+") as temp:
 
     try:
         mach.main(args)
-    except SystemExit:
-        pass
+    except SystemExit as e:
+        if e.code != 0:
+            raise
 
     # Restore stdout and dump the file.
     sys.stdout = old_stdout
