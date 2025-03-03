@@ -8,17 +8,19 @@
 
 #include "AudioContext.h"
 #include "AudioNodeTrack.h"
+#include "AudioWorklet.h"
 #include "GeckoProfiler.h"
 #include "mozilla/dom/AudioWorkletBinding.h"
 #include "mozilla/dom/AudioWorkletGlobalScope.h"
-#include "mozilla/dom/Worklet.h"
+#include "mozilla/dom/MessageChannel.h"
+#include "mozilla/dom/MessagePort.h"
 #include "mozilla/dom/WorkletThread.h"
 #include "nsGlobalWindowInner.h"
 
 namespace mozilla {
 
-/* static */ already_AddRefed<dom::Worklet> AudioWorkletImpl::CreateWorklet(
-    dom::AudioContext* aContext, ErrorResult& aRv) {
+/* static */ already_AddRefed<dom::AudioWorklet>
+AudioWorkletImpl::CreateWorklet(dom::AudioContext* aContext, ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
 
   nsGlobalWindowInner* window = aContext->GetOwnerWindow();
@@ -32,27 +34,41 @@ namespace mozilla {
     return nullptr;
   }
 
+  RefPtr<dom::MessageChannel> messageChannel =
+      dom::MessageChannel::Constructor(window, aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  dom::UniqueMessagePortId globalScopePortId;
+  messageChannel->Port2()->CloneAndDisentangle(globalScopePortId);
+
   RefPtr<AudioWorkletImpl> impl =
-      new AudioWorkletImpl(window, principal, aContext->DestinationTrack());
+      new AudioWorkletImpl(window, principal, aContext->DestinationTrack(),
+                           std::move(globalScopePortId));
 
   // The Worklet owns a reference to the AudioContext so as to keep the graph
   // thread running as long as the Worklet is alive by keeping the
   // AudioDestinationNode alive.
-  return MakeAndAddRef<dom::Worklet>(window, std::move(impl),
-                                     ToSupports(aContext));
+  return MakeAndAddRef<dom::AudioWorklet>(
+      window, std::move(impl), ToSupports(aContext), messageChannel->Port1());
 }
 
 AudioWorkletImpl::AudioWorkletImpl(nsPIDOMWindowInner* aWindow,
                                    nsIPrincipal* aPrincipal,
-                                   AudioNodeTrack* aDestinationTrack)
-    : WorkletImpl(aWindow, aPrincipal), mDestinationTrack(aDestinationTrack) {}
+                                   AudioNodeTrack* aDestinationTrack,
+                                   dom::UniqueMessagePortId&& aPortIdentifier)
+    : WorkletImpl(aWindow, aPrincipal),
+      mDestinationTrack(aDestinationTrack),
+      mGlobalScopePortIdentifier(std::move(aPortIdentifier)) {}
 
 AudioWorkletImpl::~AudioWorkletImpl() = default;
 
 JSObject* AudioWorkletImpl::WrapWorklet(JSContext* aCx, dom::Worklet* aWorklet,
                                         JS::Handle<JSObject*> aGivenProto) {
   MOZ_ASSERT(NS_IsMainThread());
-  return dom::AudioWorklet_Binding::Wrap(aCx, aWorklet, aGivenProto);
+  return dom::AudioWorklet_Binding::Wrap(
+      aCx, static_cast<dom::AudioWorklet*>(aWorklet), aGivenProto);
 }
 
 nsresult AudioWorkletImpl::SendControlMessage(
@@ -78,10 +94,23 @@ void AudioWorkletImpl::OnAddModulePromiseSettled() const {
 }
 
 already_AddRefed<dom::WorkletGlobalScope>
-AudioWorkletImpl::ConstructGlobalScope() {
+AudioWorkletImpl::ConstructGlobalScope(JSContext* aCx) {
   dom::WorkletThread::AssertIsOnWorkletThread();
 
-  return MakeAndAddRef<dom::AudioWorkletGlobalScope>(this);
+  RefPtr<dom::AudioWorkletGlobalScope> globalScope =
+      new dom::AudioWorkletGlobalScope(this);
+
+  ErrorResult rv;
+  RefPtr<dom::MessagePort> deserializedPort =
+      dom::MessagePort::Create(globalScope, mGlobalScopePortIdentifier, rv);
+  if (NS_WARN_IF(rv.MaybeSetPendingException(aCx))) {
+    // The exception will be propagated into the global
+    return globalScope.forget();
+  }
+
+  globalScope->SetPort(deserializedPort);
+
+  return globalScope.forget();
 }
 
 }  // namespace mozilla

@@ -16,4 +16,5 @@ interface AudioWorkletGlobalScope : WorkletGlobalScope {
     readonly  attribute   unsigned long long currentFrame;
     readonly  attribute   double currentTime;
     readonly  attribute   float sampleRate;
+    readonly attribute MessagePort port;
 };
