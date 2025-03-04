@@ -15,9 +15,12 @@ DEFAULT_CONFIG_PATH=dom/media/webrtc/third_party_build/default_config_env
 # use the previous default_config_env to make sure any locally overriden
 # settings don't interfere with the update process.
 MOZ_CONFIG_PATH=$DEFAULT_CONFIG_PATH source dom/media/webrtc/third_party_build/use_config_env.sh
+# build the "NEXT_MILESTONE" using the previous next milestone, which
+# will become the current milestone after updating the default config
+# file.
+NEXT_MILESTONE=$(($MOZ_NEXT_LIBWEBRTC_MILESTONE+1))
 
 if [ "x" = "x$NEW_BUG_NUMBER" ]; then
-  NEXT_MILESTONE=$(($MOZ_NEXT_LIBWEBRTC_MILESTONE+1))
   echo ""
   echo "NEW_BUG_NUMBER is not defined.  Please use the bug number created for"
   echo "updating the libwebrtc library to version $NEXT_MILESTONE."
@@ -46,6 +49,16 @@ fi
 # * u: All variables should be defined before use.
 # * o pipefail: All stages of all pipes should succeed.
 set -eEuo pipefail
+
+ERROR_HELP=$"
+Milestone $NEXT_MILESTONE is not found when attempting to lookup the
+libwebrtc branch-head used for the Chromium release.
+This may be because Chromium has not updated the info on page
+https://chromiumdash.appspot.com/branches
+"
+# check for a successful milestone-to-branch-head lookup to avoid
+# future potential errors
+./mach python dom/media/webrtc/third_party_build/lookup_branch_head.py $NEXT_MILESTONE
 
 ERROR_HELP=$"
 An error has occurred running $SCRIPT_DIR/write_default_config.py

@@ -59,10 +59,10 @@ export MOZ_LIBWEBRTC_OFFICIAL_BRANCH="moz-mods-chr$m2-for-rel$t2"
 def build_default_config_env(prior_bug_number, bug_number, milestone, target):
     prior_branch_head = lookup_branch_head.get_branch_head(milestone)
     if prior_branch_head is None:
-        sys.exit("error: chromium milestone '{milestone}' is not found.")
+        sys.exit(f"error: chromium milestone '{milestone}' is not found.")
     new_branch_head = lookup_branch_head.get_branch_head(milestone + 1)
     if new_branch_head is None:
-        sys.exit("error: next chromium milestone '{milestone + 1}' is not found.")
+        sys.exit(f"error: next chromium milestone '{milestone + 1}' is not found.")
 
     s = Template(text)
     return s.substitute(
