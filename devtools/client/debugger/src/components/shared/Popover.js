@@ -6,7 +6,6 @@ import React, { Component } from "devtools/client/shared/vendor/react";
 import { div } from "devtools/client/shared/vendor/react-dom-factories";
 import PropTypes from "devtools/client/shared/vendor/react-prop-types";
 import BracketArrow from "./BracketArrow";
-import SmartGap from "./SmartGap";
 
 const classnames = require("resource://devtools/client/shared/classnames.js");
 
@@ -83,21 +82,18 @@ class Popover extends Component {
     const isHoveredOnTooltip = this.$tooltip && this.$tooltip.matches(":hover");
     const isHoveredOnTarget = this.props.target.matches(":hover");
 
-    if (isHoveredOnGap) {
-      if (!this.wasOnGap) {
-        this.wasOnGap = true;
-        this.timerId = setTimeout(this.onTimeout, 200);
-        return;
-      }
-      this.props.mouseout();
+    // Don't clear the current preview if mouse is hovered on:
+    // - popover or tooltip (depending on the preview type we either have a PopOver or a Tooltip)
+    // - target, which is the highlighted token in CodeMirror
+    if (isHoveredOnPopover || isHoveredOnTooltip || isHoveredOnTarget) {
+      this.timerId = setTimeout(this.onTimeout, 0);
       return;
     }
 
-    // Don't clear the current preview if mouse is hovered on
-    // the current preview's token (target) or the popup element
-    if (isHoveredOnPopover || isHoveredOnTooltip || isHoveredOnTarget) {
-      this.wasOnGap = false;
-      this.timerId = setTimeout(this.onTimeout, 0);
+    // If we are only hovering the "gap", i.e. the extra space where the arrow pointing
+    // to the highlighted token is, hide the popup with an extra timeout
+    if (isHoveredOnGap) {
+      this.timerId = setTimeout(this.onTimeout, 200);
       return;
     }
 
@@ -238,28 +234,11 @@ class Popover extends Component {
   }
 
   getGap() {
-    if (this.firstRender) {
-      return div({
-        className: "gap",
-        key: "gap",
-        ref: a => (this.$gap = a),
-      });
-    }
-
-    return div(
-      {
-        className: "gap",
-        key: "gap",
-        ref: a => (this.$gap = a),
-      },
-      React.createElement(SmartGap, {
-        token: this.props.target,
-        preview: this.$tooltip || this.$popover,
-        gapHeight: this.gapHeight,
-        coords: this.state.coords,
-        offset: this.$gap.getBoundingClientRect().left,
-      })
-    );
+    return div({
+      className: "gap",
+      key: "gap",
+      ref: a => (this.$gap = a),
+    });
   }
 
   getPopoverArrow(orientation, left, top) {

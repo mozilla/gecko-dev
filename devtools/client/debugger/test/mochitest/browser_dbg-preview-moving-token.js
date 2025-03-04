@@ -17,7 +17,13 @@ add_task(async function () {
   invokeInTab("classPreview");
   await waitForPaused(dbg);
 
-  await scrollEditorIntoView(dbg, 50, 0);
+  // Scroll one line *fore* the hovered expression to guarantee showing the line entirely.
+  // It may not scroll if the line 50 is partially visible.
+  //
+  // Also ensure scrolling so that the scrolled line is at the top/start of the viewport
+  // so that the preview popup can be shown at the bottom of the token and not on its right.
+  await scrollEditorIntoView(dbg, 49, 0, "start");
+
   // Wait for all the updates to the document to complete to make all
   // token elements have been rendered
   await waitForDocumentLoadComplete(dbg);
@@ -116,6 +122,41 @@ add_task(async function () {
     Math.round(originalPopupPosition),
     `Popup position was updated`
   );
+
+  // Move many times between a token, its gap and then outside to hide it many times
+  // to highlight any potential race condition.
+  for (let i = 0; i < 10; i++) {
+    info(
+      `Move out by passing over the gap, before going on the right of the token to hide the preview (try #${i + 1})`
+    );
+    EventUtils.synthesizeMouseAtCenter(
+      privateStaticPopupEl.querySelector(".gap"),
+      { type: "mousemove" },
+      privateStaticPopupEl.ownerGlobal
+    );
+    EventUtils.synthesizeMouseAtPoint(
+      privateStaticTokenQuad.p2.x + 100,
+      privateStaticYCenter,
+      {
+        type: "mousemove",
+      },
+      fooTokenEl.ownerGlobal
+    );
+    info("Wait for popup to be hidden when going right");
+    await waitUntil(() => findElement(dbg, "popup") == null);
+
+    info("Move back in the center of the token to show the preview again");
+    EventUtils.synthesizeMouseAtPoint(
+      privateStaticXCenter,
+      privateStaticYCenter,
+      {
+        type: "mousemove",
+      },
+      fooTokenEl.ownerGlobal
+    );
+    info("Wait for popup to be shown on private field again");
+    await waitUntil(() => !!findElement(dbg, "popup"));
+  }
 
   await closePreviewForToken(dbg, privateStaticTokenEl, "popup");
   await resume(dbg);

@@ -3406,8 +3406,9 @@ class Editor extends EventEmitter {
    * Scrolls the editor to the specified line and column
    * @param {Number} line - The line in the source
    * @param {Number} column - The column in the source
+   * @param {String|null} yAlign - Optional value for position of the line after the line is scrolled.
    */
-  async scrollTo(line, column) {
+  async scrollTo(line, column, yAlign) {
     if (this.isDestroyed()) {
       return null;
     }
@@ -3425,7 +3426,7 @@ class Editor extends EventEmitter {
         return cm.dispatch({
           effects: EditorView.scrollIntoView(offset, {
             x: "nearest",
-            y: "center",
+            y: yAlign || "center",
           }),
         });
       }

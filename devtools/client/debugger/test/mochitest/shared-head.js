@@ -2397,12 +2397,13 @@ function setEditorCursorAt(dbg, line, column) {
  * @param {*} dbg
  * @param {Number} line
  * @param {Number} column
+ * @param {String|null} yAlign
  * @returns
  */
-async function scrollEditorIntoView(dbg, line, column) {
+async function scrollEditorIntoView(dbg, line, column, yAlign) {
   const onScrolled = waitForScrolling(dbg);
   line = isCm6Enabled ? line + 1 : line;
-  getCMEditor(dbg).scrollTo(line, column);
+  getCMEditor(dbg).scrollTo(line, column, yAlign);
   // Ensure the line is visible with margin because the bar at the bottom of
   // the editor overlaps into what the editor thinks is its own space, blocking
   // the click event below.
