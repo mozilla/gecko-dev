@@ -1415,6 +1415,7 @@ LayoutDeviceIntMargin Theme::GetWidgetBorder(nsDeviceContext* aContext,
     case StyleAppearance::MenulistButton:
     case StyleAppearance::Button:
     case StyleAppearance::Toolbarbutton:
+    case StyleAppearance::ProgressBar:
       // Return the border size from the UA sheet, even though what we paint
       // doesn't actually match that. We know this is the UA sheet border
       // because we disable native theming when different border widths are
