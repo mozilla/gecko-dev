@@ -121,7 +121,7 @@ define(function (require, exports) {
       // Render tree component.
       return TreeView({
         object: this.props.data,
-        mode: MODE.TINY,
+        mode: MODE.LONG,
         onFilter: this.onFilter,
         columns,
         renderValue: this.renderValue,
