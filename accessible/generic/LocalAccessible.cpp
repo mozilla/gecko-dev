@@ -1004,30 +1004,14 @@ nsresult LocalAccessible::HandleAccEvent(AccEvent* aEvent) {
 
   LocalAccessible* target = aEvent->GetAccessible();
   switch (aEvent->GetEventType()) {
-    case nsIAccessibleEvent::EVENT_SHOW: {
-      // Scope for PerfStats
-      AUTO_PROFILER_MARKER_TEXT("a11y::PlatformShowHideEvent", A11Y, {}, ""_ns);
-      PerfStats::AutoMetricRecording<
-          PerfStats::Metric::A11Y_PlatformShowHideEvent>
-          autoRecording;
-      // WITHIN THIS SCOPE, DO NOT ADD CODE ABOVE THIS BLOCK:
-      // THIS CODE IS MEASURING TIMINGS.
+    case nsIAccessibleEvent::EVENT_SHOW:
       PlatformShowHideEvent(target, target->LocalParent(), true,
                             aEvent->IsFromUserInput());
       break;
-    }
-    case nsIAccessibleEvent::EVENT_HIDE: {
-      // Scope for PerfStats
-      AUTO_PROFILER_MARKER_TEXT("a11y::PlatformShowHideEvent", A11Y, {}, ""_ns);
-      PerfStats::AutoMetricRecording<
-          PerfStats::Metric::A11Y_PlatformShowHideEvent>
-          autoRecording;
-      // WITHIN THIS SCOPE, DO NOT ADD CODE ABOVE THIS BLOCK:
-      // THIS CODE IS MEASURING TIMINGS.
+    case nsIAccessibleEvent::EVENT_HIDE:
       PlatformShowHideEvent(target, target->LocalParent(), false,
                             aEvent->IsFromUserInput());
       break;
-    }
     case nsIAccessibleEvent::EVENT_STATE_CHANGE: {
       AccStateChangeEvent* event = downcast_accEvent(aEvent);
       PlatformStateChangeEvent(target, event->GetState(),
@@ -3357,10 +3341,6 @@ AccGroupInfo* LocalAccessible::GetOrCreateGroupInfo() {
 void LocalAccessible::SendCache(uint64_t aCacheDomain,
                                 CacheUpdateType aUpdateType,
                                 bool aAppendEventData) {
-  PerfStats::AutoMetricRecording<PerfStats::Metric::A11Y_SendCache>
-      autoRecording;
-  // DO NOT ADD CODE ABOVE THIS BLOCK: THIS CODE IS MEASURING TIMINGS.
-
   if (!IPCAccessibilityActive() || !Document()) {
     return;
   }

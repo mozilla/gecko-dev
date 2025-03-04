@@ -185,16 +185,7 @@ mozilla::ipc::IPCResult DocAccessibleParent::ProcessShowEvent(
     return IPC_OK();
   }
 
-  {
-    // Scope for PerfStats
-    AUTO_PROFILER_MARKER_TEXT("a11y::PlatformShowHideEvent", A11Y, {}, ""_ns);
-    PerfStats::AutoMetricRecording<
-        PerfStats::Metric::A11Y_PlatformShowHideEvent>
-        autoRecording;
-    // WITHIN THIS SCOPE, DO NOT ADD CODE ABOVE THIS BLOCK:
-    // THIS CODE IS MEASURING TIMINGS.
-    PlatformShowHideEvent(root, rootParent, true, aFromUser);
-  }
+  PlatformShowHideEvent(root, rootParent, true, aFromUser);
 
   if (nsCOMPtr<nsIObserverService> obsService =
           services::GetObserverService()) {
@@ -308,11 +299,6 @@ void DocAccessibleParent::ShutdownOrPrepareForMove(RemoteAccessible* aAcc) {
 
 mozilla::ipc::IPCResult DocAccessibleParent::ProcessHideEvent(
     const uint64_t& aRootID, const bool& aFromUser) {
-  AUTO_PROFILER_MARKER_TEXT("DocAccessibleParent::ProcessHideEvent", A11Y, {},
-                            ""_ns);
-  PerfStats::AutoMetricRecording<PerfStats::Metric::A11Y_ProcessHideEvent>
-      autoRecording;
-  // DO NOT ADD CODE ABOVE THIS BLOCK: THIS CODE IS MEASURING TIMINGS.
   ACQUIRE_ANDROID_LOCK
 
   MOZ_ASSERT(CheckDocTree());
@@ -336,16 +322,7 @@ mozilla::ipc::IPCResult DocAccessibleParent::ProcessHideEvent(
   }
 
   RemoteAccessible* parent = root->RemoteParent();
-  {
-    // Scope for PerfStats
-    AUTO_PROFILER_MARKER_TEXT("a11y::PlatformShowHideEvent", A11Y, {}, ""_ns);
-    PerfStats::AutoMetricRecording<
-        PerfStats::Metric::A11Y_PlatformShowHideEvent>
-        autoRecording;
-    // WITHIN THIS SCOPE, DO NOT ADD CODE ABOVE THIS BLOCK:
-    // THIS CODE IS MEASURING TIMINGS.
-    PlatformShowHideEvent(root, parent, false, aFromUser);
-  }
+  PlatformShowHideEvent(root, parent, false, aFromUser);
 
   RefPtr<xpcAccHideEvent> event = nullptr;
   if (nsCoreUtils::AccEventObserversExist()) {
