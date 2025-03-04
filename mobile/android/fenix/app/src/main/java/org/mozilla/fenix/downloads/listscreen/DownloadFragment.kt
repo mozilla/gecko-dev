@@ -17,7 +17,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.MenuProvider
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.findNavController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.MainScope
@@ -141,7 +140,7 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler, MenuProvider
 
     override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         val menuRes = when (downloadStore.state.mode) {
-            is DownloadUIState.Mode.Normal -> R.menu.library_menu
+            is DownloadUIState.Mode.Normal -> return
             is DownloadUIState.Mode.Editing -> R.menu.download_select_multi
         }
         inflater.inflate(menuRes, menu)
@@ -153,11 +152,6 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler, MenuProvider
     }
 
     override fun onMenuItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        R.id.close_history -> {
-            findNavController().popBackStack()
-            true
-        }
-
         R.id.delete_downloads_multi_select -> {
             deleteFileItems(downloadStore.state.mode.selectedItems)
             downloadStore.dispatch(DownloadUIAction.ExitEditMode)
