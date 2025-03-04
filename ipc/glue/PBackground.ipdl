@@ -196,9 +196,8 @@ parent:
     nsIPrincipal aPrincipal,
     nsIPrincipal aEffectiveStoragePrincipal,
     bool aIsSecureContext,
-    nsString aId,
     nsString aScope,
-    IPCNotificationOptions aOptions
+    IPCNotification aNotification
   ) returns (bool rv);
 
   async PVsync();

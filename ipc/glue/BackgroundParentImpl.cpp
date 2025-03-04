@@ -484,15 +484,15 @@ mozilla::ipc::IPCResult BackgroundParentImpl::RecvCreateNotificationParent(
     Endpoint<dom::notification::PNotificationParent>&& aParentEndpoint,
     NotNull<nsIPrincipal*> aPrincipal,
     NotNull<nsIPrincipal*> aEffectiveStoragePrincipal,
-    const bool& aIsSecureContext, const nsAString& aId, const nsAString& aScope,
-    const IPCNotificationOptions& aOptions,
+    const bool& aIsSecureContext, const nsAString& aScope,
+    const IPCNotification& aNotification,
     CreateNotificationParentResolver&& aResolver) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
   auto actor = MakeRefPtr<dom::notification::NotificationParent>(
-      aPrincipal, aEffectiveStoragePrincipal, aIsSecureContext, aId, aScope,
-      aOptions);
+      aPrincipal, aEffectiveStoragePrincipal, aIsSecureContext, aScope,
+      aNotification);
   actor->BindToMainThread(std::move(aParentEndpoint), std::move(aResolver));
   return IPC_OK();
 }

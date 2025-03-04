@@ -26,15 +26,14 @@ class NotificationParent final : public PNotificationParent,
 
   NotificationParent(NotNull<nsIPrincipal*> aPrincipal,
                      NotNull<nsIPrincipal*> aEffectiveStoragePrincipal,
-                     bool aIsSecureContext, const nsAString& aId,
-                     const nsAString& aScope,
-                     const IPCNotificationOptions& aOptions)
+                     bool aIsSecureContext, const nsAString& aScope,
+                     const IPCNotification& aNotification)
       : mPrincipal(aPrincipal),
         mEffectiveStoragePrincipal(aEffectiveStoragePrincipal),
         mIsSecureContext(aIsSecureContext),
-        mId(aId),
+        mId(aNotification.id()),
         mScope(aScope),
-        mOptions(aOptions) {};
+        mOptions(aNotification.options()) {};
 
   IPCResult RecvShow(ShowResolver&& aResolver);
   IPCResult RecvClose();
@@ -64,7 +63,7 @@ class NotificationParent final : public PNotificationParent,
   // stay empty if the function fails.
   nsString mId;
   nsString mScope;
-  IPCNotificationOptions mOptions;
+  const IPCNotificationOptions mOptions;
 
   nsString mAlertName;
 

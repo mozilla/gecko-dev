@@ -133,8 +133,8 @@ class BackgroundParentImpl : public PBackgroundParent {
       Endpoint<dom::notification::PNotificationParent>&& aParentEndpoint,
       NotNull<nsIPrincipal*> aPrincipal,
       NotNull<nsIPrincipal*> aEffectiveStoragePrincipal,
-      const bool& aIsSecureContext, const nsAString& aId,
-      const nsAString& aScope, const IPCNotificationOptions& aOptions,
+      const bool& aIsSecureContext, const nsAString& aScope,
+      const IPCNotification& aNotification,
       CreateNotificationParentResolver&& aResolver) final;
 
   already_AddRefed<PIdleSchedulerParent> AllocPIdleSchedulerParent() override;
