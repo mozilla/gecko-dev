@@ -718,9 +718,6 @@ dependencies {
     implementation libs.play.review
     implementation libs.play.review.ktx
 
-    androidTestImplementation libs.testing.fastlane
-    androidTestImplementation libs.testing.falcon
-
     androidTestImplementation(libs.androidx.espresso.contrib) {
         exclude module: 'protobuf-lite'
     }

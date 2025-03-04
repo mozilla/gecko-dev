@@ -81,8 +81,6 @@ androidx-test-monitor = "1.7.2"
 androidx-test-orchestrator = "1.5.1"
 androidx-test-runner = "1.6.1"
 androidx-test-uiautomator = "2.3.0"
-falcon = "2.2.0"
-fastlane = "2.1.1"
 junit = "5.11.4"
 mockito = "5.15.2"
 mockk = "1.13.16"
@@ -102,8 +100,6 @@ junit-params = { group = "org.junit.jupiter", name = "junit-jupiter-params", ver
 junit-vintage = { group = "org.junit.vintage", name = "junit-vintage-engine", version.ref = "junit" }
 
 testing-robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
-testing-falcon = { group = "com.jraska", name = "falcon", version.ref = "falcon" }
-testing-fastlane = { group = "tools.fastlane", name = "screengrab", version.ref = "fastlane" }
 testing-mockito = { group = "org.mockito", name = "mockito-core", version.ref = "mockito" }
 testing-mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 testing-mockk-android = { group = "io.mockk", name = "mockk-android", version.ref = "mockk" }

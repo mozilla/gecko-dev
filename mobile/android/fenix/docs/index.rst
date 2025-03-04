@@ -32,7 +32,6 @@ Specific documentation on a few topics is available at:
    Certificates <certificates.md>
    Crash Reporting <crash-reporting.md>
    Experiments <experiments.md>
-   l10n Screenshots Tests <l10nScreenshotsTests.md>
    Manual Testing <manual-testing.md>
    Metrics Definitions <metrics.md>
    Release Checklist <release-checklist.md>

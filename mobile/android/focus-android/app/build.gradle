@@ -356,9 +356,6 @@ dependencies {
     testImplementation libs.testing.mockwebserver
     testImplementation project(':lib-fetch-okhttp')
 
-    androidTestImplementation libs.testing.fastlane
-    androidTestImplementation libs.testing.falcon
-
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.runner
     testImplementation libs.androidx.test.rules

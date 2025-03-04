@@ -62,9 +62,6 @@ test_artifacts/
 /build/test-tools/*.jar
 /build/test-tools/*.gz
 
-# Screenshots
-fastlane/
-
 # Secrets files, e.g. tokens
 .adjust_token
 .sentry_token
