@@ -377,8 +377,13 @@ tasks.register("ktlintFormat", JavaExec) {
 }
 
 tasks.register("listRepositories") {
+    def reposData = project.provider {
+        project.repositories.collect { repo ->
+            [name: repo.name, url: repo.url.toString()]
+        }
+    }
     doLast {
         println "Repositories:"
-        project.repositories.each { println "Name: " + it.name + "; url: " + it.url }
-   }
+        reposData.get().each { println "Name: " + it.name + "; url: " + it.url }
+    }
 }

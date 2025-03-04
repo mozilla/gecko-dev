@@ -34,6 +34,8 @@ open class ApkSizeTask : DefaultTask() {
     @Input
     var apks: List<String>? = null
 
+    private val projectDir = project.projectDir
+
     @TaskAction
     fun logApkSize() {
         val apkSizes = determineApkSizes()
@@ -50,7 +52,7 @@ open class ApkSizeTask : DefaultTask() {
     private fun determineApkSizes(): Map<String, Long> {
         val variantOutputPath = variantName?.removePrefix("fenix")?.lowercase()
         val basePath = listOf(
-            "${project.projectDir}", "build", "outputs", "apk", "fenix", variantOutputPath
+            "$projectDir", "build", "outputs", "apk", "fenix", variantOutputPath
         ).joinToString(File.separator)
 
         return requireNotNull(apks).associateWith { apk ->
