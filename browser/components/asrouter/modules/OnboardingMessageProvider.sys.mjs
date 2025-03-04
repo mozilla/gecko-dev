@@ -1365,6 +1365,45 @@ const BASE_MESSAGES = () => [
       id: "defaultBrowserCheck",
     },
   },
+  {
+    id: "INFOBAR_DEFAULT_AND_PIN_87",
+    groups: ["cfr"],
+    content: {
+      text: {
+        string_id: "default-browser-notification-message",
+      },
+      type: "global",
+      buttons: [
+        {
+          label: {
+            string_id: "default-browser-notification-button",
+          },
+          action: {
+            type: "PIN_AND_DEFAULT",
+          },
+          primary: true,
+          accessKey: "P",
+        },
+      ],
+      category: "cfrFeatures",
+      bucket_id: "INFOBAR_DEFAULT_AND_PIN_87",
+    },
+    trigger: {
+      id: "defaultBrowserCheck",
+    },
+    template: "infobar",
+    frequency: {
+      custom: [
+        {
+          cap: 1,
+          period: 3024000000,
+        },
+      ],
+      lifetime: 2,
+    },
+    targeting:
+      "(firefoxVersion >= 138 && source == 'startup' && !isDefaultBrowser && !'browser.shell.checkDefaultBrowser'|preferenceValue && currentDate|date - 'browser.shell.userDisabledDefaultCheck'|preferenceValue * 1000 >= 604800000 && isMajorUpgrade != true && platformName != 'linux' && ((currentDate|date - profileAgeCreated) / 604800000) >= 5 && !activeNotifications && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features'|preferenceValue && ((currentDate|date - profileAgeCreated) / 604800000) < 15",
+  },
 ];
 
 const PREONBOARDING_MESSAGES = () => [
