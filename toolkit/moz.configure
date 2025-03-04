@@ -33,7 +33,7 @@ project_flag(
     help="Application name in the User Agent string",
 )
 
-confvar(
+project_flag(
     "MOZ_APP_PROFILE",
     nargs=1,
     help='Used for application.ini\'s "Profile" field, which controls profile location',
