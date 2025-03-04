@@ -35,6 +35,7 @@ skip-if = [
 ["test_bug553888.js"]
 
 ["test_bug737966.js"]
+prefs = ["network.xhr.block_sync_system_requests=false"]
 
 ["test_cancelPrefetch.js"]
 

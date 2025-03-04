@@ -15014,6 +15014,12 @@
   value: 60000
   mirror: always
 
+# Block synchronous XMLHttpRequests coming from system requests
+- name: network.xhr.block_sync_system_requests
+  type: bool
+  value: true
+  mirror: always
+
 # When the Access-Control-Allow-Headers is wildcard (*), whether to allow
 # CORS-protected requests with the Authorization request header.
 - name: network.cors_preflight.authorization_covered_by_wildcard
