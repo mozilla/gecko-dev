@@ -70,13 +70,6 @@ void* MappingBase::Address() const {
 #endif
 }
 
-LeakedMapping MappingBase::ReleaseMapping() && {
-  // NOTE: this doesn't reduce gShmemMapped since it _is_ still mapped memory
-  // (and will be until the process terminates).
-  return LeakedMapping{static_cast<uint8_t*>(std::exchange(mMemory, nullptr)),
-                       std::exchange(mSize, 0)};
-}
-
 bool MappingBase::Map(const HandleBase& aHandle, void* aFixedAddress,
                       bool aReadOnly) {
   // Invalid handles will fail and result in an invalid mapping.
@@ -132,45 +125,30 @@ void MappingBase::Unmap() {
   mSize = 0;
 }
 
-Mapping::Mapping(const Handle& aHandle, void* aFixedAddress) {
-  Map(aHandle, aFixedAddress, false);
-}
-
-Mapping::Mapping(const Handle& aHandle, uint64_t aOffset, size_t aSize,
-                 void* aFixedAddress) {
-  MapSubregion(aHandle, aOffset, aSize, aFixedAddress, false);
-}
-
-ReadOnlyMapping::ReadOnlyMapping(const ReadOnlyHandle& aHandle,
-                                 void* aFixedAddress) {
-  Map(aHandle, aFixedAddress, true);
-}
-
-ReadOnlyMapping::ReadOnlyMapping(const ReadOnlyHandle& aHandle,
-                                 uint64_t aOffset, size_t aSize,
-                                 void* aFixedAddress) {
-  MapSubregion(aHandle, aOffset, aSize, aFixedAddress, true);
+std::tuple<void*, size_t> MappingBase::Release() && {
+  // NOTE: this doesn't reduce gShmemMapped since it _is_ still mapped memory
+  // (and will be until the process terminates).
+  return std::make_tuple(std::exchange(mMemory, nullptr),
+                         std::exchange(mSize, 0));
 }
 
 // We still store the handle if `Map` fails: the user may want to get it back
 // (for instance, if fixed-address mapping doesn't work they may try mapping
 // without one).
-FreezableMapping::FreezableMapping(FreezableHandle&& aHandle,
-                                   void* aFixedAddress)
+FreezableMapping::Mapping(FreezableHandle&& aHandle, void* aFixedAddress)
     : mHandle(std::move(aHandle)) {
   Map(mHandle, aFixedAddress, false);
 }
 
-FreezableMapping::FreezableMapping(FreezableHandle&& aHandle, uint64_t aOffset,
-                                   size_t aSize, void* aFixedAddress) {
-  if (MapSubregion(aHandle, aOffset, aSize, aFixedAddress, false)) {
-    mHandle = std::move(aHandle);
-  }
+FreezableMapping::Mapping(FreezableHandle&& aHandle, uint64_t aOffset,
+                          size_t aSize, void* aFixedAddress)
+    : mHandle(std::move(aHandle)) {
+  MapSubregion(mHandle, aOffset, aSize, aFixedAddress, false);
 }
 
-std::tuple<Mapping, ReadOnlyHandle> FreezableMapping::Freeze() && {
+std::tuple<MutableMapping, ReadOnlyHandle> FreezableMapping::Freeze() && {
   auto handle = std::move(mHandle);
-  return std::make_tuple(std::move(*this).ConvertTo<Mapping>(),
+  return std::make_tuple(ConvertMappingTo<Type::Mutable>(std::move(*this)),
                          std::move(handle).Freeze());
 }
 

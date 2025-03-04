@@ -118,21 +118,25 @@ void HandleBase::SetSize(uint64_t aSize) {
   mozilla::ipc::shared_memory::AllocationReporter::allocated += mSize;
 }
 
-Mapping Handle::Map(void* aFixedAddress) const {
-  return Mapping(*this, aFixedAddress);
+MutableMapping MutableHandle::Map(void* aFixedAddress) const {
+  return MutableMapping(*this, aFixedAddress);
 }
 
-Mapping Handle::MapSubregion(uint64_t aOffset, size_t aSize,
-                             void* aFixedAddress) const {
-  return Mapping(*this, aOffset, aSize, aFixedAddress);
+MutableMapping MutableHandle::MapSubregion(uint64_t aOffset, size_t aSize,
+                                           void* aFixedAddress) const {
+  return MutableMapping(*this, aOffset, aSize, aFixedAddress);
 }
 
-ReadOnlyHandle Handle::ToReadOnly() && {
-  return std::move(*this).ConvertTo<ReadOnlyHandle>();
+MutableMappingWithHandle MutableHandle::MapWithHandle(void* aFixedAddress) && {
+  return MutableMappingWithHandle(std::move(*this), aFixedAddress);
 }
 
-const ReadOnlyHandle& Handle::AsReadOnly() const {
-  static_assert(sizeof(ReadOnlyHandle) == sizeof(Handle));
+ReadOnlyHandle MutableHandle::ToReadOnly() && {
+  return std::move(*this).ConvertTo<Type::ReadOnly>();
+}
+
+const ReadOnlyHandle& MutableHandle::AsReadOnly() const {
+  static_assert(sizeof(ReadOnlyHandle) == sizeof(MutableHandle));
   return reinterpret_cast<const ReadOnlyHandle&>(*this);
 }
 
@@ -145,19 +149,24 @@ ReadOnlyMapping ReadOnlyHandle::MapSubregion(uint64_t aOffset, size_t aSize,
   return ReadOnlyMapping(*this, aOffset, aSize, aFixedAddress);
 }
 
-FreezableHandle::~FreezableHandle() {
+ReadOnlyMappingWithHandle ReadOnlyHandle::MapWithHandle(
+    void* aFixedAddress) && {
+  return ReadOnlyMappingWithHandle(std::move(*this), aFixedAddress);
+}
+
+FreezableHandle::~Handle() {
   NS_WARNING_ASSERTION(!IsValid(), "freezable shared memory was never frozen");
 }
 
-Handle FreezableHandle::WontFreeze() && {
-  return std::move(*this).ConvertTo<Handle>();
+MutableHandle FreezableHandle::WontFreeze() && {
+  return std::move(*this).ConvertTo<Type::Mutable>();
 }
 
 ReadOnlyHandle FreezableHandle::Freeze() && {
   DebugOnly<const uint64_t> previous_size = Size();
   if (Platform::Freeze(*this)) {
     MOZ_ASSERT(Size() == previous_size);
-    return std::move(*this).ConvertTo<ReadOnlyHandle>();
+    return std::move(*this).ConvertTo<Type::ReadOnly>();
   }
   return nullptr;
 }
@@ -171,8 +180,8 @@ FreezableMapping FreezableHandle::MapSubregion(uint64_t aOffset, size_t aSize,
   return FreezableMapping(std::move(*this), aOffset, aSize, aFixedAddress);
 }
 
-Handle Create(uint64_t aSize) {
-  Handle h;
+MutableHandle Create(uint64_t aSize) {
+  MutableHandle h;
   const auto success = Platform::Create(h, aSize);
   MOZ_ASSERT(success == h.IsValid());
   if (success) {
@@ -195,13 +204,15 @@ FreezableHandle CreateFreezable(uint64_t aSize) {
 
 namespace IPC {
 
-void ParamTraits<mozilla::ipc::shared_memory::Handle>::Write(
-    MessageWriter* aWriter, mozilla::ipc::shared_memory::Handle&& aParam) {
+void ParamTraits<mozilla::ipc::shared_memory::MutableHandle>::Write(
+    MessageWriter* aWriter,
+    mozilla::ipc::shared_memory::MutableHandle&& aParam) {
   std::move(aParam).ToMessageWriter(aWriter);
 }
 
-bool ParamTraits<mozilla::ipc::shared_memory::Handle>::Read(
-    MessageReader* aReader, mozilla::ipc::shared_memory::Handle* aResult) {
+bool ParamTraits<mozilla::ipc::shared_memory::MutableHandle>::Read(
+    MessageReader* aReader,
+    mozilla::ipc::shared_memory::MutableHandle* aResult) {
   return aResult->FromMessageReader(aReader);
 }
 

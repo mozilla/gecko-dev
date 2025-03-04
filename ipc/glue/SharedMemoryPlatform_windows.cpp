@@ -157,7 +157,7 @@ static Maybe<PlatformHandle> CreateImpl(size_t aSize, bool aFreezable) {
   }
 }
 
-bool Platform::Create(Handle& aHandle, size_t aSize) {
+bool Platform::Create(MutableHandle& aHandle, size_t aSize) {
   if (auto ph = CreateImpl(aSize, false)) {
     aHandle.mHandle = std::move(*ph);
     aHandle.SetSize(aSize);
