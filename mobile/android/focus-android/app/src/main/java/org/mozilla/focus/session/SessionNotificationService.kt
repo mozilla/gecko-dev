@@ -242,20 +242,22 @@ class SessionNotificationService : Service() {
             // before it times out. so this is a speculative fix to decrease the time between these two
             // calls by running this after potentially expensive calls in FocusApplication.onCreate and
             // BrowserFragment.inflateView by posting it to the end of the main thread.
-            @Suppress("TooGenericExceptionCaught")
-            try {
-                ThreadUtils.postToMainThread {
-                    context.startService(intent)
+            ThreadUtils.postToMainThread {
+                @Suppress("TooGenericExceptionCaught")
+                try {
+                    ThreadUtils.postToMainThread {
+                        context.startService(intent)
+                    }
+                } catch (e: Exception) {
+                    val extraInfo = getImportanceInfo()
+                    val sessionNotificationServiceException =
+                        SessionNotificationServiceException(
+                            "Failed to start SessionNotificationService",
+                            e,
+                            extraInfo,
+                        )
+                    crashReporter.submitCaughtException(sessionNotificationServiceException)
                 }
-            } catch (e: Exception) {
-                val extraInfo = getImportanceInfo()
-                val sessionNotificationServiceException =
-                    SessionNotificationServiceException(
-                        "Failed to start SessionNotificationService",
-                        e,
-                        extraInfo,
-                    )
-                crashReporter.submitCaughtException(sessionNotificationServiceException)
             }
         }
 
