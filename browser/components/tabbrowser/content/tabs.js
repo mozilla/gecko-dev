@@ -1154,9 +1154,8 @@
               : [dropElement, ...movingTabs];
             gBrowser.addTabGroup(tabsInGroup, {
               insertBefore: dropElement,
-              isUserCreated: true,
+              showCreateUI: true,
               color: draggedTab._dragData.tabGroupCreationColor,
-              telemetryUserCreateSource: "drag",
             });
           } else {
             moveTabs();
