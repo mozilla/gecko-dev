@@ -108,8 +108,14 @@ export function onMouseOver(editor) {
   let prevTokenPos = null;
 
   function onMouseLeave(event) {
+    // mouseleave's `relatedTarget` is the DOM element we entered to.
+    // If we enter into any element within the popup, ignore the mouseleave
+    // and track the leave from that new hovered element.
+    //
+    // This typicaly happens when moving from the token to the popup,
+    // but also from popup to the popup "gap",
     if (_invalidLeaveTarget(event.relatedTarget)) {
-      addMouseLeave(event.target);
+      addMouseLeave(event.relatedTarget);
       return;
     }
 
