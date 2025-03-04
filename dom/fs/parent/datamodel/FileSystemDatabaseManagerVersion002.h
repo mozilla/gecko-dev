@@ -68,6 +68,9 @@ class FileSystemDatabaseManagerVersion002
 
   Result<nsTArray<FileId>, QMResult> FindFilesUnderEntry(
       const EntryId& aEntryId) const override;
+
+  Result<nsTArray<EntryId>, QMResult> FindFileEntriesUnderDirectory(
+      const EntryId& aEntryId) const override;
 };
 
 }  // namespace mozilla::dom::fs::data
