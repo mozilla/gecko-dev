@@ -20,8 +20,6 @@ apply from: versionCodeGradle
 
 import com.android.build.api.variant.FilterConfiguration
 import groovy.json.JsonOutput
-import org.gradle.internal.logging.text.StyledTextOutput.Style
-import org.gradle.internal.logging.text.StyledTextOutputFactory
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 import static org.gradle.api.tasks.testing.TestResult.ResultType
@@ -640,17 +638,17 @@ if (project.hasProperty("coverage")) {
 // Taskgraph Usage: "./gradlew printVariants
 // -------------------------------------------------------------------------------------------------
 tasks.register('printVariants') {
-    doLast {
-        def variants = android.applicationVariants.collect { variant -> [
+    def variants = project.provider { android.applicationVariants.collect { variant -> [
             apks: variant.outputs.collect { output -> [
-                abi: output.getFilter(FilterConfiguration.FilterType.ABI.name()),
-                fileName: output.outputFile.name
+                    abi: output.getFilter(FilterConfiguration.FilterType.ABI.name()),
+                    fileName: output.outputFile.name
             ]},
             build_type: variant.buildType.name,
             name: variant.name,
-        ]}
+    ]}}
+    doLast {
         // AndroidTest is a special case not included above
-        variants.add([
+        variants.get().add([
             apks: [[
                 abi: 'noarch',
                 fileName: 'app-debug-androidTest.apk',
@@ -658,7 +656,7 @@ tasks.register('printVariants') {
             build_type: 'androidTest',
             name: 'androidTest',
         ])
-        println 'variants: ' + JsonOutput.toJson(variants)
+        println 'variants: ' + JsonOutput.toJson(variants.get())
     }
 }
 
@@ -671,38 +669,36 @@ afterEvaluate {
 
         testLogging.events = []
 
-        def out = services.get(StyledTextOutputFactory).create("tests")
-
         beforeSuite { descriptor ->
             if (descriptor.getClassName() != null) {
-                out.style(Style.Header).println("\nSUITE: " + descriptor.getClassName())
+                println("\nSUITE: " + descriptor.getClassName())
             }
         }
 
         beforeTest { descriptor ->
-            out.style(Style.Description).println("  TEST: " + descriptor.getName())
+            println("  TEST: " + descriptor.getName())
         }
 
         onOutput { descriptor, event ->
-            logger.lifecycle("    " + event.message.trim())
+            it.logger.lifecycle("    " + event.message.trim())
         }
 
         afterTest { descriptor, result ->
             switch (result.getResultType()) {
                 case ResultType.SUCCESS:
-                    out.style(Style.Success).println("  SUCCESS")
+                    println("  SUCCESS")
                     break
 
                 case ResultType.FAILURE:
                     def testId = descriptor.getClassName() + "." + descriptor.getName()
-                    out.style(Style.Failure).println("  TEST-UNEXPECTED-FAIL | " + testId + " | " + result.getException())
+                    println("  TEST-UNEXPECTED-FAIL | " + testId + " | " + result.getException())
                     break
 
                 case ResultType.SKIPPED:
-                    out.style(Style.Info).println("  SKIPPED")
+                    println("  SKIPPED")
                     break
             }
-            logger.lifecycle("")
+            it.logger.lifecycle("")
         }
     }
 }
