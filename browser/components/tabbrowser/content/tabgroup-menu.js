@@ -7,13 +7,6 @@
 // This is loaded into chrome windows with the subscript loader. Wrap in
 // a block to prevent accidentally leaking globals onto `window`.
 {
-  const lazy = {};
-  XPCOMUtils.defineLazyPreferenceGetter(
-    lazy,
-    "smartTabGroupsEnabled",
-    "browser.tabs.groups.smart.enabled"
-  );
-
   const { TabStateFlusher } = ChromeUtils.importESModule(
     "resource:///modules/sessionstore/TabStateFlusher.sys.mjs"
   );
@@ -30,6 +23,8 @@
       "gray",
       "red",
     ];
+
+    static AI_ICON = "chrome://global/skin/icons/highlights.svg";
 
     static headerSection = /*html*/ `
       <html:div class="panel-header">
@@ -304,6 +299,14 @@
 
     constructor() {
       super();
+      this.smartTabGroupsEnabled = false;
+      XPCOMUtils.defineLazyPreferenceGetter(
+        this,
+        "smartTabGroupsEnabled",
+        "browser.tabs.groups.smart.enabled",
+        false,
+        this.#onSmartTabGroupsPrefChange.bind(this)
+      );
     }
 
     connectedCallback() {
@@ -403,10 +406,14 @@
       this.#swatchesContainer.addEventListener("change", this);
     }
 
+    #onSmartTabGroupsPrefChange(_preName, _prev, latest) {
+      const icon = latest ? MozTabbrowserTabGroupMenu.AI_ICON : "";
+
+      this.#suggestionButton.iconSrc = icon;
+      this.#suggestionsMessage.iconSrc = icon;
+    }
+
     #initSuggestions() {
-      const AI_ICON = lazy.smartTabGroupsEnabled
-        ? "chrome://global/skin/icons/highlights.svg"
-        : "";
       const { SmartTabGroupingManager } = ChromeUtils.importESModule(
         "moz-src:///browser/components/tabbrowser/SmartTabGrouping.sys.mjs"
       );
@@ -416,7 +423,9 @@
       this.#suggestionButton = this.querySelector(
         "#tab-group-suggestion-button"
       );
-      this.#suggestionButton.iconSrc = AI_ICON;
+      this.#suggestionButton.iconSrc = this.smartTabGroupsEnabled
+        ? MozTabbrowserTabGroupMenu.AI_ICON
+        : "";
       this.#suggestionButton.addEventListener("click", () => {
         this.#handleSmartSuggest();
       });
@@ -441,7 +450,9 @@
       this.#suggestionsMessage = this.querySelector(
         "#tab-group-suggestions-message"
       );
-      this.#suggestionsMessage.iconSrc = AI_ICON;
+      this.#suggestionsMessage.iconSrc = this.smartTabGroupsEnabled
+        ? MozTabbrowserTabGroupMenu.AI_ICON
+        : "";
       this.#suggestionsDisclaimer = this.querySelector(
         "#tab-group-suggestions-disclaimer"
       );
@@ -580,7 +591,7 @@
     openCreateModal(group) {
       this.activeGroup = group;
       this.createMode = true;
-      this.suggestionState = lazy.smartTabGroupsEnabled
+      this.suggestionState = this.smartTabGroupsEnabled
         ? MozTabbrowserTabGroupMenu.State.CREATE_AI_INITIAL
         : MozTabbrowserTabGroupMenu.State.CREATE_STANDARD_INITIAL;
 
@@ -614,7 +625,7 @@
     openEditModal(group) {
       this.activeGroup = group;
       this.createMode = false;
-      this.suggestionState = lazy.smartTabGroupsEnabled
+      this.suggestionState = this.smartTabGroupsEnabled
         ? MozTabbrowserTabGroupMenu.State.EDIT_AI_INITIAL
         : MozTabbrowserTabGroupMenu.State.EDIT_STANDARD_INITIAL;
 
@@ -810,7 +821,7 @@
      * @param {string} action "save" or "cancel"
      */
     #handleMlTelemetry(action) {
-      if (!lazy.smartTabGroupsEnabled) {
+      if (!this.smartTabGroupsEnabled) {
         return;
       }
       if (this.#suggestedMlLabel) {
