@@ -178,6 +178,8 @@ DMABufDevice::~DMABufDevice() {
 void DMABufDevice::Configure() {
   LOGDMABUF(("DMABufDevice::Configure()"));
 
+  LoadFormatModifiers();
+
   if (!GbmLib::IsAvailable()) {
     LOGDMABUF(("GbmLib is not available!"));
     mFailureId = "FEATURE_FAILURE_NO_LIBGBM";
@@ -216,8 +218,6 @@ void DMABufDevice::Configure() {
     mFailureId = "FEATURE_FAILURE_NO_DRM_DEVICE";
     return;
   }
-
-  LoadFormatModifiers();
 
   LOGDMABUF(("DMABuf is enabled"));
 }
