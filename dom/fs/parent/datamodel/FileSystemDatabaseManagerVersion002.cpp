@@ -492,6 +492,35 @@ nsresult FileSystemDatabaseManagerVersion002::GetFile(
   return NS_OK;
 }
 
+Result<Ok, QMResult>
+FileSystemDatabaseManagerVersion002::DeprecateSharedLocksForDirectory(
+    const FileSystemChildMetadata& aNewDesignation) {
+  // We will deprecate all shared locks whose entries (locators)
+  // are about to get overwritten at the destination.
+  //
+  // If a non-empty directory gets overwritten with a different
+  // directory layout, closing a WritableFileStream for an invalid path
+  // will quietly turn into abort.
+  //
+  // If a deprecated handle is explicitly closed and the associated
+  // path is valid, it will overwrite the file at the destination,
+  // unless the destination is exclusively locked.
+  //
+  // This behavior allows one to use WritableFileStreams for
+  // switching between contexts with last-writer-wins semantics.
+  //
+  // To match stricter application requirements, WebLocks can be used
+  // to disallow such use as necessary.
+  QM_TRY_INSPECT(const auto& destinationId, GetEntryId(aNewDesignation));
+  QM_TRY_INSPECT(const auto& descendants,
+                 FindFileEntriesUnderDirectory(destinationId));
+  for (const auto& entryFile : descendants) {
+    mDataManager->DeprecateSharedLocks(entryFile.first, entryFile.second);
+  }
+
+  return Ok{};
+}
+
 Result<EntryId, QMResult> FileSystemDatabaseManagerVersion002::RenameEntry(
     const FileSystemEntryMetadata& aHandle, const Name& aNewName) {
   MOZ_ASSERT(!aNewName.IsEmpty());
@@ -513,25 +542,24 @@ Result<EntryId, QMResult> FileSystemDatabaseManagerVersion002::RenameEntry(
     return entryId;
   }
 
-  QM_TRY(QM_TO_RESULT(PrepareRenameEntry(mConnection, mDataManager, aHandle,
-                                         aNewName, isFile)));
-
   QM_TRY_UNWRAP(EntryId parentId, FindParent(mConnection, entryId));
   FileSystemChildMetadata newDesignation(parentId, aNewName);
 
   if (isFile) {
-    mDataManager->DeprecateSharedLocks(entryId);
+    // This will fail if there there is a locked file at the destination.
+    QM_TRY(QM_TO_RESULT(PrepareRenameEntry(mConnection, mDataManager, aHandle,
+                                           aNewName, isFile)));
 
     const ContentType type = DetermineContentType(aNewName);
     QM_TRY(
         QM_TO_RESULT(RehashFile(mConnection, entryId, newDesignation, type)));
-
   } else {
-    QM_TRY_INSPECT(const auto& descendants,
-                   FindFileEntriesUnderDirectory(entryId));
-    for (const auto& descendantEntryId : descendants) {
-      mDataManager->DeprecateSharedLocks(descendantEntryId);
-    }
+    QM_TRY(DeprecateSharedLocksForDirectory(newDesignation));
+
+    // We remove all not deprecated items from the destination.
+    // This will fail if the destination contains locked files.
+    QM_TRY(QM_TO_RESULT(PrepareRenameEntry(mConnection, mDataManager, aHandle,
+                                           aNewName, isFile)));
 
     QM_TRY(QM_TO_RESULT(RehashDirectory(mConnection, entryId, newDesignation)));
   }
@@ -568,21 +596,18 @@ Result<EntryId, QMResult> FileSystemDatabaseManagerVersion002::MoveEntry(
     return entryId;
   }
 
-  QM_TRY(QM_TO_RESULT(PrepareMoveEntry(mConnection, mDataManager, aHandle,
-                                       aNewDesignation, isFile)));
-
   if (isFile) {
-    mDataManager->DeprecateSharedLocks(entryId);
+    QM_TRY(QM_TO_RESULT(PrepareMoveEntry(mConnection, mDataManager, aHandle,
+                                         aNewDesignation, isFile)));
 
     const ContentType type = DetermineContentType(aNewDesignation.childName());
     QM_TRY(
         QM_TO_RESULT(RehashFile(mConnection, entryId, aNewDesignation, type)));
   } else {
-    QM_TRY_INSPECT(const auto& descendants,
-                   FindFileEntriesUnderDirectory(entryId));
-    for (const auto& descendantEntryId : descendants) {
-      mDataManager->DeprecateSharedLocks(descendantEntryId);
-    }
+    QM_TRY(DeprecateSharedLocksForDirectory(aNewDesignation));
+
+    QM_TRY(QM_TO_RESULT(PrepareMoveEntry(mConnection, mDataManager, aHandle,
+                                         aNewDesignation, isFile)));
 
     QM_TRY(
         QM_TO_RESULT(RehashDirectory(mConnection, entryId, aNewDesignation)));
@@ -832,7 +857,9 @@ FileSystemDatabaseManagerVersion002::FindFilesWithoutDeprecatedLocksUnderEntry(
 
       QM_TRY_INSPECT(const EntryId& entryId,
                      stmt.GetEntryIdByColumn(/* Column */ 0u));
-      if (!mDataManager->IsLockedWithDeprecatedSharedLock(entryId)) {
+      QM_TRY_INSPECT(const FileId& fileId,
+                     stmt.GetFileIdByColumn(/* Column */ 1u));
+      if (!mDataManager->IsLockedWithDeprecatedSharedLock(entryId, fileId)) {
         QM_TRY_INSPECT(const FileId& fileId,
                        stmt.GetFileIdByColumn(/* Column */ 1u));
         descendants.AppendElement(fileId);
@@ -847,7 +874,7 @@ FileSystemDatabaseManagerVersion002::FindFilesWithoutDeprecatedLocksUnderEntry(
   return std::make_pair(std::move(descendants), usage);
 }
 
-Result<nsTArray<EntryId>, QMResult>
+Result<nsTArray<std::pair<EntryId, FileId>>, QMResult>
 FileSystemDatabaseManagerVersion002::FindFileEntriesUnderDirectory(
     const EntryId& aEntryId) const {
   const nsLiteralCString descendantsQuery =
@@ -856,10 +883,11 @@ FileSystemDatabaseManagerVersion002::FindFileEntriesUnderDirectory(
       "UNION "
       "SELECT Entries.handle, Entries.parent FROM traceChildren, Entries "
       "WHERE traceChildren.handle = Entries.parent ) "
-      "SELECT handle FROM traceChildren INNER JOIN Files USING(handle) "
+      "SELECT FileIds.handle, FileIds.fileId "
+      "FROM traceChildren INNER JOIN FileIds USING(handle) "
       ";"_ns;
 
-  nsTArray<EntryId> descendants;
+  nsTArray<std::pair<EntryId, FileId>> descendants;
   {
     QM_TRY_UNWRAP(ResultStatement stmt,
                   ResultStatement::Create(mConnection, descendantsQuery));
@@ -871,9 +899,10 @@ FileSystemDatabaseManagerVersion002::FindFileEntriesUnderDirectory(
         break;
       }
 
-      QM_TRY_INSPECT(const EntryId& entryId,
-                     stmt.GetEntryIdByColumn(/* Column */ 0u));
-      descendants.AppendElement(entryId);
+      QM_TRY_UNWRAP(EntryId entryId, stmt.GetEntryIdByColumn(/* Column */ 0u));
+      QM_TRY_UNWRAP(FileId fileId, stmt.GetFileIdByColumn(/* Column */ 1u));
+      descendants.AppendElement(
+          std::make_pair(std::move(entryId), std::move(fileId)));
     }
   }
 
