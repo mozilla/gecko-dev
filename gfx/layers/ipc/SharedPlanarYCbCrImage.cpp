@@ -5,13 +5,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "SharedPlanarYCbCrImage.h"
-#include <stddef.h>                    // for size_t
-#include <stdio.h>                     // for printf
-#include "gfx2DGlue.h"                 // for Moz2D transition helpers
-#include "ISurfaceAllocator.h"         // for ISurfaceAllocator, etc
-#include "mozilla/Assertions.h"        // for MOZ_ASSERT, etc
-#include "mozilla/gfx/Types.h"         // for SurfaceFormat::SurfaceFormat::YUV
-#include "mozilla/ipc/SharedMemory.h"  // for SharedMemory, etc
+#include <stddef.h>              // for size_t
+#include <stdio.h>               // for printf
+#include "gfx2DGlue.h"           // for Moz2D transition helpers
+#include "ISurfaceAllocator.h"   // for ISurfaceAllocator, etc
+#include "mozilla/Assertions.h"  // for MOZ_ASSERT, etc
+#include "mozilla/gfx/Types.h"   // for SurfaceFormat::SurfaceFormat::YUV
 #include "mozilla/layers/ImageClient.h"     // for ImageClient
 #include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor, etc
 #include "mozilla/layers/TextureClient.h"

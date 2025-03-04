@@ -17,7 +17,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/ipc/SharedMemoryHandle.h"
 #include "nsCOMPtr.h"
 #include "nsIObserver.h"
 #include "nsIPrefBranch.h"
@@ -408,13 +408,10 @@ class Preferences final : public nsIPrefService,
   // prefs in bulk from the parent process, via shared memory.
   static void SerializePreferences(nsCString& aStr,
                                    bool aIsDestinationWebContentProcess);
-  static void DeserializePreferences(char* aStr, size_t aPrefsLen);
+  static void DeserializePreferences(const char* aStr, size_t aPrefsLen);
 
-#ifndef RUST_BINDGEN
-  static mozilla::ipc::SharedMemoryHandle EnsureSnapshot(size_t* aSize);
-  static void InitSnapshot(const mozilla::ipc::SharedMemoryHandle&,
-                           size_t aSize);
-#endif
+  static mozilla::ipc::ReadOnlySharedMemoryHandle EnsureSnapshot();
+  static void InitSnapshot(const mozilla::ipc::ReadOnlySharedMemoryHandle&);
 
   // When a single pref is changed in the parent process, these methods are
   // used to pass the update to content processes.

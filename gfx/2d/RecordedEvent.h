@@ -239,7 +239,7 @@ struct MemWriter {
 
 // An istream like class for reading from memory
 struct MemReader {
-  constexpr MemReader(char* aData, size_t aLen)
+  constexpr MemReader(const char* aData, size_t aLen)
       : mData(aData), mEnd(aData + aLen) {}
   void read(char* s, std::streamsize n) {
     if (n <= (mEnd - mData)) {
@@ -255,8 +255,8 @@ struct MemReader {
   bool good() { return !eof(); }
   void SetIsBad() { mData = mEnd + 1; }
 
-  char* mData;
-  char* mEnd;
+  const char* mData;
+  const char* mEnd;
 };
 
 class ContiguousBuffer {

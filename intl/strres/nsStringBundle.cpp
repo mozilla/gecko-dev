@@ -27,6 +27,7 @@
 #include "nsSimpleEnumerator.h"
 #include "nsStringStream.h"
 #include "mozilla/dom/txXSLTMsgsURL.h"
+#include "mozilla/ipc/SharedMemoryHandle.h"
 #include "mozilla/BinarySearch.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/ResultExtensions.h"
@@ -201,8 +202,7 @@ class SharedStringBundle final : public nsStringBundleBase {
    * called in child processes, for bundles initially created in the parent
    * process.
    */
-  void SetMapFile(const mozilla::ipc::SharedMemoryHandle& aHandle,
-                  size_t aSize);
+  void SetMapFile(mozilla::ipc::ReadOnlySharedMemoryHandle&& aHandle);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECLARE_STATIC_IID_ACCESSOR(SHAREDSTRINGBUNDLE_IID)
@@ -211,21 +211,21 @@ class SharedStringBundle final : public nsStringBundleBase {
 
   /**
    * Returns a copy of the file descriptor pointing to the shared memory
-   * key-values tore for this string bundle. This should only be called in the
+   * key-value store for this string bundle. This should only be called in the
    * parent process, and may be used to send shared string bundles to child
    * processes.
    */
-  mozilla::ipc::SharedMemoryHandle CloneHandle() const {
+  mozilla::ipc::ReadOnlySharedMemoryHandle CloneHandle() const {
     MOZ_ASSERT(XRE_IsParentProcess());
     if (mMapHandle.isSome()) {
-      return mozilla::ipc::SharedMemory::CloneHandle(mMapHandle.ref());
+      return mMapHandle.ref().Clone();
     }
     return mStringMap->CloneHandle();
   }
 
   size_t MapSize() const {
     if (mMapHandle.isSome()) {
-      return mMapSize;
+      return mMapHandle->Size();
     }
     if (mStringMap) {
       return mStringMap->MapSize();
@@ -241,7 +241,6 @@ class SharedStringBundle final : public nsStringBundleBase {
     StringBundleDescriptor descriptor;
     descriptor.bundleURL() = BundleURL();
     descriptor.mapHandle() = CloneHandle();
-    descriptor.mapSize() = MapSize();
     return descriptor;
   }
 
@@ -266,8 +265,7 @@ class SharedStringBundle final : public nsStringBundleBase {
  private:
   RefPtr<SharedStringMap> mStringMap;
 
-  Maybe<mozilla::ipc::SharedMemoryHandle> mMapHandle;
-  size_t mMapSize;
+  Maybe<mozilla::ipc::ReadOnlySharedMemoryHandle> mMapHandle;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(SharedStringBundle, SHAREDSTRINGBUNDLE_IID)
@@ -515,8 +513,7 @@ nsresult SharedStringBundle::LoadProperties() {
   if (mStringMap) return NS_OK;
 
   if (mMapHandle.isSome()) {
-    mStringMap = new SharedStringMap(mMapHandle.ref(), mMapSize);
-    mMapHandle.reset();
+    mStringMap = new SharedStringMap(mMapHandle.extract());
     return NS_OK;
   }
 
@@ -570,11 +567,10 @@ nsresult SharedStringBundle::LoadProperties() {
 }
 
 void SharedStringBundle::SetMapFile(
-    const mozilla::ipc::SharedMemoryHandle& aHandle, size_t aSize) {
+    mozilla::ipc::ReadOnlySharedMemoryHandle&& aHandle) {
   MOZ_ASSERT(XRE_IsContentProcess());
   mStringMap = nullptr;
-  mMapHandle.emplace(mozilla::ipc::SharedMemory::CloneHandle(aHandle));
-  mMapSize = aSize;
+  mMapHandle.emplace(std::move(aHandle));
 }
 
 NS_IMETHODIMP
@@ -822,7 +818,7 @@ void nsStringBundleService::SendContentBundles(ContentParent* aContentParent) {
 
 void nsStringBundleService::RegisterContentBundle(
     const nsACString& aBundleURL,
-    const mozilla::ipc::SharedMemoryHandle& aMapHandle, size_t aMapSize) {
+    mozilla::ipc::ReadOnlySharedMemoryHandle&& aMapHandle) {
   RefPtr<StringBundleProxy> proxy;
 
   bundleCacheEntry_t* cacheEntry = mBundleMap.Get(aBundleURL);
@@ -840,7 +836,7 @@ void nsStringBundleService::RegisterContentBundle(
 
   auto bundle = MakeBundleRefPtr<SharedStringBundle>(
       PromiseFlatCString(aBundleURL).get());
-  bundle->SetMapFile(aMapHandle, aMapSize);
+  bundle->SetMapFile(std::move(aMapHandle));
 
   if (proxy) {
     proxy->Retarget(bundle);

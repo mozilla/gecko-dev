@@ -18,6 +18,7 @@
 #include "mozilla/gfx/Point.h"
 #include "mozilla/ipc/Endpoint.h"
 #include "mozilla/ipc/ProcessChild.h"
+#include "mozilla/ipc/SharedMemoryHandle.h"
 #include "mozilla/layers/CanvasDrawEventRecorder.h"
 #include "mozilla/layers/ImageDataSerializer.h"
 #include "mozilla/layers/SourceSurfaceSharedData.h"
@@ -39,27 +40,29 @@ class RecorderHelpers final : public CanvasDrawEventRecorder::Helpers {
 
   ~RecorderHelpers() override = default;
 
-  bool InitTranslator(TextureType aTextureType, TextureType aWebglTextureType,
-                      gfx::BackendType aBackendType, Handle&& aReadHandle,
-                      nsTArray<Handle>&& aBufferHandles, uint64_t aBufferSize,
-                      CrossProcessSemaphoreHandle&& aReaderSem,
-                      CrossProcessSemaphoreHandle&& aWriterSem) override {
+  bool InitTranslator(
+      TextureType aTextureType, TextureType aWebglTextureType,
+      gfx::BackendType aBackendType,
+      ipc::MutableSharedMemoryHandle&& aReadHandle,
+      nsTArray<ipc::ReadOnlySharedMemoryHandle>&& aBufferHandles,
+      CrossProcessSemaphoreHandle&& aReaderSem,
+      CrossProcessSemaphoreHandle&& aWriterSem) override {
     NS_ASSERT_OWNINGTHREAD(RecorderHelpers);
     if (NS_WARN_IF(!mCanvasChild)) {
       return false;
     }
     return mCanvasChild->SendInitTranslator(
         aTextureType, aWebglTextureType, aBackendType, std::move(aReadHandle),
-        std::move(aBufferHandles), aBufferSize, std::move(aReaderSem),
+        std::move(aBufferHandles), std::move(aReaderSem),
         std::move(aWriterSem));
   }
 
-  bool AddBuffer(Handle&& aBufferHandle, uint64_t aBufferSize) override {
+  bool AddBuffer(ipc::ReadOnlySharedMemoryHandle&& aBufferHandle) override {
     NS_ASSERT_OWNINGTHREAD(RecorderHelpers);
     if (!mCanvasChild) {
       return false;
     }
-    return mCanvasChild->SendAddBuffer(std::move(aBufferHandle), aBufferSize);
+    return mCanvasChild->SendAddBuffer(std::move(aBufferHandle));
   }
 
   bool ReaderClosed() override {
@@ -192,7 +195,9 @@ class SourceSurfaceCanvasRecording final : public gfx::SourceSurface {
 
 class CanvasDataShmemHolder {
  public:
-  CanvasDataShmemHolder(ipc::SharedMemory* aShmem, CanvasChild* aCanvasChild)
+  CanvasDataShmemHolder(
+      const std::shared_ptr<ipc::ReadOnlySharedMemoryMapping>& aShmem,
+      CanvasChild* aCanvasChild)
       : mMutex("CanvasChild::DataShmemHolder::mMutex"),
         mShmem(aShmem),
         mCanvasChild(aCanvasChild) {}
@@ -259,7 +264,7 @@ class CanvasDataShmemHolder {
         return;
       }
 
-      mCanvasChild->ReturnDataSurfaceShmem(mShmem.forget());
+      mCanvasChild->ReturnDataSurfaceShmem(std::move(mShmem));
       mCanvasChild = nullptr;
       mWorkerRef = nullptr;
     }
@@ -276,7 +281,7 @@ class CanvasDataShmemHolder {
 
  private:
   Mutex mMutex;
-  RefPtr<ipc::SharedMemory> mShmem;
+  std::shared_ptr<ipc::ReadOnlySharedMemoryMapping> mShmem;
   RefPtr<CanvasChild> mCanvasChild MOZ_GUARDED_BY(mMutex);
   RefPtr<dom::ThreadSafeWorkerRef> mWorkerRef MOZ_GUARDED_BY(mMutex);
 };
@@ -489,26 +494,26 @@ bool CanvasChild::EnsureDataSurfaceShmem(gfx::IntSize aSize,
   if (!sizeRequired) {
     return false;
   }
-  sizeRequired = ipc::SharedMemory::PageAlignedSize(sizeRequired);
+  sizeRequired = ipc::shared_memory::PageAlignedSize(sizeRequired);
 
   if (!mDataSurfaceShmemAvailable || mDataSurfaceShmem->Size() < sizeRequired) {
     RecordEvent(RecordedPauseTranslation());
-    auto dataSurfaceShmem = MakeRefPtr<ipc::SharedMemory>();
-    if (!dataSurfaceShmem->Create(sizeRequired) ||
-        !dataSurfaceShmem->Map(sizeRequired)) {
-      return false;
-    }
-
-    auto shmemHandle = dataSurfaceShmem->TakeHandle();
+    auto shmemHandle = ipc::shared_memory::Create(sizeRequired);
     if (!shmemHandle) {
       return false;
     }
 
-    if (!SendSetDataSurfaceBuffer(std::move(shmemHandle), sizeRequired)) {
+    auto roMapping = shmemHandle.AsReadOnly().Map();
+    if (!roMapping) {
       return false;
     }
 
-    mDataSurfaceShmem = dataSurfaceShmem.forget();
+    if (!SendSetDataSurfaceBuffer(std::move(shmemHandle))) {
+      return false;
+    }
+
+    mDataSurfaceShmem = std::make_shared<ipc::ReadOnlySharedMemoryMapping>(
+        std::move(roMapping));
     mDataSurfaceShmemAvailable = true;
   }
 
@@ -560,8 +565,7 @@ already_AddRefed<gfx::DataSourceSurface> CanvasChild::GetDataSurface(
     // use that directly without having to allocate a new shmem for retrieval.
     auto it = mTextureInfo.find(aTextureOwnerId);
     if (it != mTextureInfo.end() && it->second.mSnapshotShmem) {
-      const auto shmemPtr =
-          reinterpret_cast<uint8_t*>(it->second.mSnapshotShmem->Memory());
+      const auto* shmemPtr = it->second.mSnapshotShmem->DataAs<uint8_t>();
       MOZ_ASSERT(shmemPtr);
       mRecorder->RecordEvent(RecordedPrepareShmem(aTextureOwnerId));
       auto checkpoint = CreateCheckpoint();
@@ -574,10 +578,12 @@ already_AddRefed<gfx::DataSourceSurface> CanvasChild::GetDataSurface(
         delete closure;
         return nullptr;
       }
+      // We can cast away the const of `shmemPtr` to match the call because the
+      // DataSourceSurface will not be written to.
       RefPtr<gfx::DataSourceSurface> dataSurface =
           gfx::Factory::CreateWrappingDataSourceSurface(
-              shmemPtr, stride, ssSize, ssFormat, ReleaseDataShmemHolder,
-              closure);
+              const_cast<uint8_t*>(shmemPtr), stride, ssSize, ssFormat,
+              ReleaseDataShmemHolder, closure);
       aMayInvalidate = true;
       return dataSurface.forget();
     }
@@ -603,11 +609,14 @@ already_AddRefed<gfx::DataSourceSurface> CanvasChild::GetDataSurface(
 
   mDataSurfaceShmemAvailable = false;
 
-  auto* data = static_cast<uint8_t*>(mDataSurfaceShmem->Memory());
+  const auto* data = mDataSurfaceShmem->DataAs<uint8_t>();
 
+  // We can cast away the const of `data` to match the call because the
+  // DataSourceSurface will not be written to.
   RefPtr<gfx::DataSourceSurface> dataSurface =
       gfx::Factory::CreateWrappingDataSourceSurface(
-          data, stride, ssSize, ssFormat, ReleaseDataShmemHolder, closure);
+          const_cast<uint8_t*>(data), stride, ssSize, ssFormat,
+          ReleaseDataShmemHolder, closure);
   aMayInvalidate = false;
   return dataSurface.forget();
 }
@@ -631,10 +640,9 @@ already_AddRefed<gfx::SourceSurface> CanvasChild::WrapSurface(
 }
 
 void CanvasChild::ReturnDataSurfaceShmem(
-    already_AddRefed<ipc::SharedMemory> aDataSurfaceShmem) {
-  RefPtr<ipc::SharedMemory> data = aDataSurfaceShmem;
+    std::shared_ptr<ipc::ReadOnlySharedMemoryMapping>&& aDataSurfaceShmem) {
   // We can only reuse the latest data surface shmem.
-  if (data == mDataSurfaceShmem) {
+  if (aDataSurfaceShmem == mDataSurfaceShmem) {
     MOZ_ASSERT(!mDataSurfaceShmemAvailable);
     mDataSurfaceShmemAvailable = true;
   }
@@ -680,17 +688,17 @@ bool CanvasChild::RequiresRefresh(
 }
 
 ipc::IPCResult CanvasChild::RecvSnapshotShmem(
-    const RemoteTextureOwnerId aTextureOwnerId, Handle&& aShmemHandle,
-    uint32_t aShmemSize, SnapshotShmemResolver&& aResolve) {
+    const RemoteTextureOwnerId aTextureOwnerId,
+    ipc::ReadOnlySharedMemoryHandle&& aShmemHandle,
+    SnapshotShmemResolver&& aResolve) {
   auto it = mTextureInfo.find(aTextureOwnerId);
   if (it != mTextureInfo.end()) {
-    auto shmem = MakeRefPtr<ipc::SharedMemory>();
-    if (NS_WARN_IF(!shmem->SetHandle(std::move(aShmemHandle),
-                                     ipc::SharedMemory::RightsReadOnly)) ||
-        NS_WARN_IF(!shmem->Map(aShmemSize))) {
+    auto shmem = aShmemHandle.Map();
+    if (NS_WARN_IF(!shmem)) {
       shmem = nullptr;
     } else {
-      it->second.mSnapshotShmem = std::move(shmem);
+      it->second.mSnapshotShmem =
+          std::make_shared<ipc::ReadOnlySharedMemoryMapping>(std::move(shmem));
     }
     aResolve(true);
   } else {

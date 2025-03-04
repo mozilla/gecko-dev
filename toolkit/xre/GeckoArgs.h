@@ -210,15 +210,12 @@ static CommandLineArg<const char*> sProfile{"-profile", "profile"};
 
 static CommandLineArg<UniqueFileHandle> sIPCHandle{"-ipcHandle", "ipchandle"};
 
-static CommandLineArg<mozilla::ipc::SharedMemoryHandle> sJsInitHandle{
+static CommandLineArg<mozilla::ipc::ReadOnlySharedMemoryHandle> sJsInitHandle{
     "-jsInitHandle", "jsinithandle"};
-static CommandLineArg<uint64_t> sJsInitLen{"-jsInitLen", "jsinitlen"};
-static CommandLineArg<mozilla::ipc::SharedMemoryHandle> sPrefsHandle{
+static CommandLineArg<mozilla::ipc::ReadOnlySharedMemoryHandle> sPrefsHandle{
     "-prefsHandle", "prefshandle"};
-static CommandLineArg<uint64_t> sPrefsLen{"-prefsLen", "prefslen"};
-static CommandLineArg<mozilla::ipc::SharedMemoryHandle> sPrefMapHandle{
+static CommandLineArg<mozilla::ipc::ReadOnlySharedMemoryHandle> sPrefMapHandle{
     "-prefMapHandle", "prefmaphandle"};
-static CommandLineArg<uint64_t> sPrefMapSize{"-prefMapSize", "prefmapsize"};
 
 static CommandLineArg<uint64_t> sSandboxingKind{"-sandboxingKind",
                                                 "sandboxingkind"};

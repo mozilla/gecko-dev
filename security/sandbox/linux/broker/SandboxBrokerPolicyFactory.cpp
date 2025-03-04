@@ -18,7 +18,7 @@
 #include "mozilla/StaticMutex.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/UniquePtrExtensions.h"
-#include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/ipc/SharedMemoryHandle.h"
 #include "nsComponentManagerUtils.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
@@ -320,7 +320,7 @@ static void AddLdLibraryEnvPaths(SandboxBroker::Policy* aPolicy) {
 
 static void AddSharedMemoryPaths(SandboxBroker::Policy* aPolicy, pid_t aPid) {
   std::string shmPath("/dev/shm");
-  if (ipc::SharedMemory::AppendPosixShmPrefix(&shmPath, aPid)) {
+  if (ipc::shared_memory::AppendPosixShmPrefix(&shmPath, aPid)) {
     aPolicy->AddPrefix(rdwrcr, shmPath.c_str());
   }
 }

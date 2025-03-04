@@ -6,41 +6,38 @@
 
 #include "MemMapSnapshot.h"
 
+#include "nsDebug.h"
 #include "mozilla/ResultExtensions.h"
+#include "mozilla/ipc/SharedMemoryHandle.h"
 
 namespace mozilla::ipc {
 
 Result<Ok, nsresult> MemMapSnapshot::Init(size_t aSize) {
   MOZ_ASSERT(!mMem);
 
-  auto aMem = MakeRefPtr<SharedMemory>();
-  if (NS_WARN_IF(!aMem->CreateFreezable(aSize))) {
-    return Err(NS_ERROR_FAILURE);
-  }
-  if (NS_WARN_IF(!aMem->Map(aSize))) {
+  auto handle = shared_memory::CreateFreezable(aSize);
+  if (NS_WARN_IF(!handle)) {
     return Err(NS_ERROR_FAILURE);
   }
 
-  mMem = std::move(aMem);
+  auto mem = std::move(handle).Map();
+  if (NS_WARN_IF(!mem)) {
+    return Err(NS_ERROR_FAILURE);
+  }
+
+  mMem = std::move(mem);
   return Ok();
 }
 
-Result<Ok, nsresult> MemMapSnapshot::Finalize(RefPtr<SharedMemory>& aMem) {
+Result<ReadOnlySharedMemoryHandle, nsresult> MemMapSnapshot::Finalize() {
   MOZ_ASSERT(mMem);
 
-  auto size = mMem->Size();
-  if (NS_WARN_IF(!mMem->Freeze())) {
+  auto [_, readOnlyHandle] = std::move(mMem).Freeze();
+  if (NS_WARN_IF(!readOnlyHandle)) {
     return Err(NS_ERROR_FAILURE);
   }
 
-  aMem = std::move(mMem);
-
-  // We need to re-map the memory as `Freeze()` unmaps it.
-  if (NS_WARN_IF(!aMem->Map(size))) {
-    return Err(NS_ERROR_FAILURE);
-  }
-
-  return Ok();
+  return std::move(readOnlyHandle);
 }
 
 }  // namespace mozilla::ipc

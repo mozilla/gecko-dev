@@ -29,18 +29,16 @@ void IdleSchedulerChild::Init(IdlePeriodState* aIdlePeriodState) {
   mIdlePeriodState = aIdlePeriodState;
 
   RefPtr<IdleSchedulerChild> scheduler = this;
-  auto resolve =
-      [&](std::tuple<mozilla::Maybe<SharedMemoryHandle>, uint32_t>&& aResult) {
-        if (std::get<0>(aResult)) {
-          mActiveCounter->SetHandle(std::move(*std::get<0>(aResult)),
-                                    SharedMemory::RightsReadWrite);
-          mActiveCounter->Map(sizeof(int32_t));
-          mChildId = std::get<1>(aResult);
-          if (mChildId && mIdlePeriodState && mIdlePeriodState->IsActive()) {
-            SetActive();
-          }
-        }
-      };
+  auto resolve = [&](std::tuple<mozilla::Maybe<MutableSharedMemoryHandle>,
+                                uint32_t>&& aResult) {
+    if (auto& handle = std::get<0>(aResult)) {
+      mActiveCounter = handle->Map();
+      mChildId = std::get<1>(aResult);
+      if (mChildId && mIdlePeriodState && mIdlePeriodState->IsActive()) {
+        SetActive();
+      }
+    }
+  };
 
   auto reject = [&](ResponseRejectReason) {};
   SendInitForIdleUse(std::move(resolve), std::move(reject));
@@ -54,23 +52,21 @@ IPCResult IdleSchedulerChild::RecvIdleTime(uint64_t aId, TimeDuration aBudget) {
 }
 
 void IdleSchedulerChild::SetActive() {
-  if (mChildId && CanSend() && mActiveCounter->Memory()) {
-    ++(static_cast<Atomic<int32_t>*>(
-        mActiveCounter->Memory())[NS_IDLE_SCHEDULER_INDEX_OF_ACTIVITY_COUNTER]);
-    ++(static_cast<Atomic<int32_t>*>(mActiveCounter->Memory())[mChildId]);
+  if (mChildId && CanSend() && mActiveCounter) {
+    auto counters = mActiveCounter.DataAsSpan<Atomic<int32_t>>();
+    ++counters[NS_IDLE_SCHEDULER_INDEX_OF_ACTIVITY_COUNTER];
+    ++counters[mChildId];
   }
 }
 
 bool IdleSchedulerChild::SetPaused() {
-  if (mChildId && CanSend() && mActiveCounter->Memory()) {
-    --(static_cast<Atomic<int32_t>*>(mActiveCounter->Memory())[mChildId]);
+  if (mChildId && CanSend() && mActiveCounter) {
+    auto counters = mActiveCounter.DataAsSpan<Atomic<int32_t>>();
+    --counters[mChildId];
     // The following expression reduces the global activity count and checks if
     // it drops below the cpu counter limit.
-    return (static_cast<Atomic<int32_t>*>(mActiveCounter->Memory())
-                [NS_IDLE_SCHEDULER_INDEX_OF_ACTIVITY_COUNTER])-- ==
-           static_cast<Atomic<int32_t>*>(
-               mActiveCounter
-                   ->Memory())[NS_IDLE_SCHEDULER_INDEX_OF_CPU_COUNTER];
+    return counters[NS_IDLE_SCHEDULER_INDEX_OF_ACTIVITY_COUNTER]-- ==
+           counters[NS_IDLE_SCHEDULER_INDEX_OF_CPU_COUNTER];
   }
 
   return false;

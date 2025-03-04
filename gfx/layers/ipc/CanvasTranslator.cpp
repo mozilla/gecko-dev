@@ -18,6 +18,7 @@
 #include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/ipc/Endpoint.h"
+#include "mozilla/ipc/SharedMemoryHandle.h"
 #include "mozilla/layers/BufferTexture.h"
 #include "mozilla/layers/CanvasTranslator.h"
 #include "mozilla/layers/ImageDataSerializer.h"
@@ -102,21 +103,6 @@ bool CanvasTranslator::IsInTaskQueue() const {
   return gfx::CanvasRenderThread::IsInCanvasRenderThread();
 }
 
-static bool CreateAndMapShmem(RefPtr<ipc::SharedMemory>& aShmem,
-                              Handle&& aHandle,
-                              ipc::SharedMemory::OpenRights aOpenRights,
-                              size_t aSize) {
-  auto shmem = MakeRefPtr<ipc::SharedMemory>();
-  if (!shmem->SetHandle(std::move(aHandle), aOpenRights) ||
-      !shmem->Map(aSize)) {
-    return false;
-  }
-
-  shmem->CloseHandle();
-  aShmem = shmem.forget();
-  return true;
-}
-
 StaticRefPtr<gfx::SharedContextWebgl> CanvasTranslator::sSharedContext;
 
 bool CanvasTranslator::EnsureSharedContextWebgl() {
@@ -154,8 +140,8 @@ void CanvasTranslator::Shutdown() {
 
 mozilla::ipc::IPCResult CanvasTranslator::RecvInitTranslator(
     TextureType aTextureType, TextureType aWebglTextureType,
-    gfx::BackendType aBackendType, Handle&& aReadHandle,
-    nsTArray<Handle>&& aBufferHandles, uint64_t aBufferSize,
+    gfx::BackendType aBackendType, ipc::MutableSharedMemoryHandle&& aReadHandle,
+    nsTArray<ipc::ReadOnlySharedMemoryHandle>&& aBufferHandles,
     CrossProcessSemaphoreHandle&& aReaderSem,
     CrossProcessSemaphoreHandle&& aWriterSem) {
   if (mHeaderShmem) {
@@ -167,14 +153,13 @@ mozilla::ipc::IPCResult CanvasTranslator::RecvInitTranslator(
   mBackendType = aBackendType;
   mOtherPid = OtherPid();
 
-  mHeaderShmem = MakeAndAddRef<ipc::SharedMemory>();
-  if (!CreateAndMapShmem(mHeaderShmem, std::move(aReadHandle),
-                         ipc::SharedMemory::RightsReadWrite, sizeof(Header))) {
+  mHeaderShmem = aReadHandle.Map();
+  if (!mHeaderShmem) {
     Deactivate();
     return IPC_FAIL(this, "Failed to map canvas header shared memory.");
   }
 
-  mHeader = static_cast<Header*>(mHeaderShmem->Memory());
+  mHeader = mHeaderShmem.DataAs<Header>();
 
   mWriterSemaphore.reset(CrossProcessSemaphore::Create(std::move(aWriterSem)));
   mWriterSemaphore->CloseHandle();
@@ -193,10 +178,10 @@ mozilla::ipc::IPCResult CanvasTranslator::RecvInitTranslator(
   }
 
   // Use the first buffer as our current buffer.
-  mDefaultBufferSize = aBufferSize;
+  mDefaultBufferSize = aBufferHandles[0].Size();
   auto handleIter = aBufferHandles.begin();
-  if (!CreateAndMapShmem(mCurrentShmem.shmem, std::move(*handleIter),
-                         ipc::SharedMemory::RightsReadOnly, aBufferSize)) {
+  mCurrentShmem.shmem = std::move(*handleIter).Map();
+  if (!mCurrentShmem.shmem) {
     Deactivate();
     return IPC_FAIL(this, "Failed to map canvas buffer shared memory.");
   }
@@ -205,8 +190,8 @@ mozilla::ipc::IPCResult CanvasTranslator::RecvInitTranslator(
   // Add all other buffers to our recycled CanvasShmems.
   for (handleIter++; handleIter < aBufferHandles.end(); handleIter++) {
     CanvasShmem newShmem;
-    if (!CreateAndMapShmem(newShmem.shmem, std::move(*handleIter),
-                           ipc::SharedMemory::RightsReadOnly, aBufferSize)) {
+    newShmem.shmem = std::move(*handleIter).Map();
+    if (!newShmem.shmem) {
       Deactivate();
       return IPC_FAIL(this, "Failed to map canvas buffer shared memory.");
     }
@@ -247,7 +232,7 @@ ipc::IPCResult CanvasTranslator::RecvRestartTranslation() {
 }
 
 ipc::IPCResult CanvasTranslator::RecvAddBuffer(
-    ipc::SharedMemory::Handle&& aBufferHandle, uint64_t aBufferSize) {
+    ipc::ReadOnlySharedMemoryHandle&& aBufferHandle) {
   if (mDeactivated) {
     // The other side might have sent a resume message before we deactivated.
     return IPC_OK();
@@ -255,20 +240,20 @@ ipc::IPCResult CanvasTranslator::RecvAddBuffer(
 
   if (UsePendingCanvasTranslatorEvents()) {
     MutexAutoLock lock(mCanvasTranslatorEventsLock);
-    mPendingCanvasTranslatorEvents.push_back(CanvasTranslatorEvent::AddBuffer(
-        std::move(aBufferHandle), aBufferSize));
+    mPendingCanvasTranslatorEvents.push_back(
+        CanvasTranslatorEvent::AddBuffer(std::move(aBufferHandle)));
     PostCanvasTranslatorEvents(lock);
   } else {
-    DispatchToTaskQueue(NewRunnableMethod<ipc::SharedMemory::Handle&&, size_t>(
+    DispatchToTaskQueue(NewRunnableMethod<ipc::ReadOnlySharedMemoryHandle&&>(
         "CanvasTranslator::AddBuffer", this, &CanvasTranslator::AddBuffer,
-        std::move(aBufferHandle), aBufferSize));
+        std::move(aBufferHandle)));
   }
 
   return IPC_OK();
 }
 
-bool CanvasTranslator::AddBuffer(ipc::SharedMemory::Handle&& aBufferHandle,
-                                 size_t aBufferSize) {
+bool CanvasTranslator::AddBuffer(
+    ipc::ReadOnlySharedMemoryHandle&& aBufferHandle) {
   MOZ_ASSERT(IsInTaskQueue());
   if (mHeader->readerState == State::Failed) {
     // We failed before we got to the pause event.
@@ -297,8 +282,8 @@ bool CanvasTranslator::AddBuffer(ipc::SharedMemory::Handle&& aBufferHandle,
   }
 
   CanvasShmem newShmem;
-  if (!CreateAndMapShmem(newShmem.shmem, std::move(aBufferHandle),
-                         ipc::SharedMemory::RightsReadOnly, aBufferSize)) {
+  newShmem.shmem = aBufferHandle.Map();
+  if (!newShmem.shmem) {
     return false;
   }
 
@@ -309,7 +294,7 @@ bool CanvasTranslator::AddBuffer(ipc::SharedMemory::Handle&& aBufferHandle,
 }
 
 ipc::IPCResult CanvasTranslator::RecvSetDataSurfaceBuffer(
-    ipc::SharedMemory::Handle&& aBufferHandle, uint64_t aBufferSize) {
+    ipc::MutableSharedMemoryHandle&& aBufferHandle) {
   if (mDeactivated) {
     // The other side might have sent a resume message before we deactivated.
     return IPC_OK();
@@ -318,21 +303,19 @@ ipc::IPCResult CanvasTranslator::RecvSetDataSurfaceBuffer(
   if (UsePendingCanvasTranslatorEvents()) {
     MutexAutoLock lock(mCanvasTranslatorEventsLock);
     mPendingCanvasTranslatorEvents.push_back(
-        CanvasTranslatorEvent::SetDataSurfaceBuffer(std::move(aBufferHandle),
-                                                    aBufferSize));
+        CanvasTranslatorEvent::SetDataSurfaceBuffer(std::move(aBufferHandle)));
     PostCanvasTranslatorEvents(lock);
   } else {
-    DispatchToTaskQueue(NewRunnableMethod<ipc::SharedMemory::Handle&&, size_t>(
+    DispatchToTaskQueue(NewRunnableMethod<ipc::MutableSharedMemoryHandle&&>(
         "CanvasTranslator::SetDataSurfaceBuffer", this,
-        &CanvasTranslator::SetDataSurfaceBuffer, std::move(aBufferHandle),
-        aBufferSize));
+        &CanvasTranslator::SetDataSurfaceBuffer, std::move(aBufferHandle)));
   }
 
   return IPC_OK();
 }
 
 bool CanvasTranslator::SetDataSurfaceBuffer(
-    ipc::SharedMemory::Handle&& aBufferHandle, size_t aBufferSize) {
+    ipc::MutableSharedMemoryHandle&& aBufferHandle) {
   MOZ_ASSERT(IsInTaskQueue());
   if (mHeader->readerState == State::Failed) {
     // We failed before we got to the pause event.
@@ -349,8 +332,8 @@ bool CanvasTranslator::SetDataSurfaceBuffer(
     return false;
   }
 
-  if (!CreateAndMapShmem(mDataSurfaceShmem, std::move(aBufferHandle),
-                         ipc::SharedMemory::RightsReadWrite, aBufferSize)) {
+  mDataSurfaceShmem = aBufferHandle.Map();
+  if (!mDataSurfaceShmem) {
     return false;
   }
 
@@ -385,11 +368,11 @@ void CanvasTranslator::GetDataSurface(uint64_t aSurfaceRef) {
       ImageDataSerializer::ComputeRGBStride(format, dstSize.width);
   auto requiredSize =
       ImageDataSerializer::ComputeRGBBufferSize(dstSize, format);
-  if (requiredSize <= 0 || size_t(requiredSize) > mDataSurfaceShmem->Size()) {
+  if (requiredSize <= 0 || size_t(requiredSize) > mDataSurfaceShmem.Size()) {
     return;
   }
 
-  uint8_t* dst = static_cast<uint8_t*>(mDataSurfaceShmem->Memory());
+  uint8_t* dst = mDataSurfaceShmem.DataAs<uint8_t>();
   const uint8_t* src = map->GetData();
   const uint8_t* endSrc = src + (srcSize.height * srcStride);
   while (src < endSrc) {
@@ -795,12 +778,11 @@ void CanvasTranslator::HandleCanvasTranslatorEvents() {
         dispatchTranslate = TranslateRecording();
         break;
       case CanvasTranslatorEvent::Tag::AddBuffer:
-        dispatchTranslate =
-            AddBuffer(event->TakeBufferHandle(), event->BufferSize());
+        dispatchTranslate = AddBuffer(event->TakeBufferHandle());
         break;
       case CanvasTranslatorEvent::Tag::SetDataSurfaceBuffer:
-        dispatchTranslate = SetDataSurfaceBuffer(event->TakeBufferHandle(),
-                                                 event->BufferSize());
+        dispatchTranslate =
+            SetDataSurfaceBuffer(event->TakeDataSurfaceBufferHandle());
         break;
       case CanvasTranslatorEvent::Tag::ClearCachedResources:
         ClearCachedResources();
@@ -1071,8 +1053,7 @@ void CanvasTranslator::CacheSnapshotShmem(
       nsCOMPtr<nsIThread> thread =
           gfx::CanvasRenderThread::GetCanvasRenderThread();
       RefPtr<CanvasTranslator> translator = this;
-      SendSnapshotShmem(aTextureOwnerId, std::move(shmemHandle),
-                        webgl->GetShmemSize())
+      SendSnapshotShmem(aTextureOwnerId, std::move(shmemHandle))
           ->Then(
               thread, __func__,
               [=](bool) { translator->RemoveTexture(aTextureOwnerId); },

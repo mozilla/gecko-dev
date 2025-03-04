@@ -176,9 +176,9 @@ static void SerializeAndAppendString(const nsCString& aChars, nsCString& aStr) {
   aStr.Append(aChars);
 }
 
-static char* DeserializeString(char* aChars, nsCString& aStr) {
-  char* p = aChars;
-  uint32_t length = strtol(p, &p, 10);
+static const char* DeserializeString(const char* aChars, nsCString& aStr) {
+  const char* p = aChars;
+  uint32_t length = strtol(p, const_cast<char**>(&p), 10);
   MOZ_ASSERT(p[0] == '/');
   p++;  // move past the '/'
   aStr.Assign(p, length);
@@ -332,9 +332,9 @@ union PrefValue {
     }
   }
 
-  static char* Deserialize(PrefType aType, char* aStr,
-                           Maybe<dom::PrefValue>* aDomValue) {
-    char* p = aStr;
+  static const char* Deserialize(PrefType aType, const char* aStr,
+                                 Maybe<dom::PrefValue>* aDomValue) {
+    const char* p = aStr;
 
     switch (aType) {
       case PrefType::Bool:
@@ -350,7 +350,7 @@ union PrefValue {
         return p;
 
       case PrefType::Int: {
-        *aDomValue = Some(int32_t(strtol(p, &p, 10)));
+        *aDomValue = Some(int32_t(strtol(p, const_cast<char**>(&p), 10)));
         return p;
       }
 
@@ -981,8 +981,8 @@ class Pref {
     aStr.Append('\n');
   }
 
-  static char* Deserialize(char* aStr, dom::Pref* aDomPref) {
-    char* p = aStr;
+  static const char* Deserialize(const char* aStr, dom::Pref* aDomPref) {
+    const char* p = aStr;
 
     // The type.
     PrefType type;
@@ -3796,13 +3796,13 @@ void Preferences::SerializePreferences(nsCString& aStr,
 }
 
 /* static */
-void Preferences::DeserializePreferences(char* aStr, size_t aPrefsLen) {
+void Preferences::DeserializePreferences(const char* aStr, size_t aPrefsLen) {
   MOZ_ASSERT(!XRE_IsParentProcess());
 
   MOZ_ASSERT(!gChangedDomPrefs);
   gChangedDomPrefs = new nsTArray<dom::Pref>();
 
-  char* p = aStr;
+  const char* p = aStr;
   while (*p != '\0') {
     dom::Pref pref;
     p = Pref::Deserialize(p, &pref);
@@ -3818,7 +3818,7 @@ void Preferences::DeserializePreferences(char* aStr, size_t aPrefsLen) {
 }
 
 /* static */
-mozilla::ipc::SharedMemoryHandle Preferences::EnsureSnapshot(size_t* aSize) {
+mozilla::ipc::ReadOnlySharedMemoryHandle Preferences::EnsureSnapshot() {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -3867,17 +3867,16 @@ mozilla::ipc::SharedMemoryHandle Preferences::EnsureSnapshot(size_t* aSize) {
     }
   }
 
-  *aSize = gSharedMap->MapSize();
   return gSharedMap->CloneHandle();
 }
 
 /* static */
-void Preferences::InitSnapshot(const mozilla::ipc::SharedMemoryHandle& aHandle,
-                               size_t aSize) {
+void Preferences::InitSnapshot(
+    const mozilla::ipc::ReadOnlySharedMemoryHandle& aHandle) {
   MOZ_ASSERT(!XRE_IsParentProcess());
   MOZ_ASSERT(!gSharedMap);
 
-  gSharedMap = new SharedPrefMap(aHandle, aSize);
+  gSharedMap = new SharedPrefMap(aHandle);
 
   StaticPrefs::InitStaticPrefsFromShared();
 }

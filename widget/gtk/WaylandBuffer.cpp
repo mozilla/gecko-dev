@@ -16,6 +16,7 @@
 #include "gfxPlatform.h"
 #include "mozilla/WidgetUtilsGtk.h"
 #include "mozilla/gfx/Tools.h"
+#include "mozilla/ipc/SharedMemoryHandle.h"
 #include "nsGtkUtils.h"
 #include "nsPrintfCString.h"
 #include "prenv.h"  // For PR_GetEnv
@@ -54,15 +55,16 @@ RefPtr<WaylandShmPool> WaylandShmPool::Create(nsWaylandDisplay* aWaylandDisplay,
 
   RefPtr<WaylandShmPool> shmPool = new WaylandShmPool();
 
-  shmPool->mShm = MakeRefPtr<ipc::SharedMemory>();
-  if (!shmPool->mShm->Create(aSize)) {
+  auto handle = ipc::shared_memory::Create(aSize);
+  if (!handle) {
     NS_WARNING("WaylandShmPool: Unable to allocate shared memory!");
     return nullptr;
   }
 
-  shmPool->mSize = aSize;
-  shmPool->mShmPool = wl_shm_create_pool(
-      aWaylandDisplay->GetShm(), shmPool->mShm->CloneHandle().get(), aSize);
+  shmPool->mShmHandle = handle.Clone();
+  shmPool->mShmPool =
+      wl_shm_create_pool(aWaylandDisplay->GetShm(),
+                         handle.Clone().TakePlatformHandle().get(), aSize);
   if (!shmPool->mShmPool) {
     NS_WARNING("WaylandShmPool: Unable to allocate shared memory pool!");
     return nullptr;
@@ -72,15 +74,14 @@ RefPtr<WaylandShmPool> WaylandShmPool::Create(nsWaylandDisplay* aWaylandDisplay,
 }
 
 void* WaylandShmPool::GetImageData() {
-  if (mImageData) {
-    return mImageData;
+  if (!mShm) {
+    mShm = mShmHandle.Map();
+    if (!mShm) {
+      NS_WARNING("WaylandShmPool: Failed to map Shm!");
+      return nullptr;
+    }
   }
-  if (!mShm->Map(mSize)) {
-    NS_WARNING("WaylandShmPool: Failed to map Shm!");
-    return nullptr;
-  }
-  mImageData = mShm->Memory();
-  return mImageData;
+  return mShm.Address();
 }
 
 WaylandShmPool::~WaylandShmPool() {

@@ -24,7 +24,6 @@ using mozilla::gfx::IntSize from "mozilla/gfx/Point.h";
 using mozilla::gfx::Matrix4x4 from "mozilla/gfx/Matrix.h";
 using mozilla::gfx::FenceInfo from "mozilla/gfx/FileHandleWrapper.h";
 [RefCounted] using mozilla::gfx::FileHandleWrapper from "mozilla/gfx/FileHandleWrapper.h";
-[MoveOnly] using mozilla::ipc::SharedMemory::Handle from "mozilla/ipc/SharedMemory.h";
 using gfxImageFormat from "gfxTypes.h";
 using mozilla::layers::MaybeVideoBridgeSource from "mozilla/layers/VideoBridgeUtils.h";
 using mozilla::layers::RemoteTextureId from "mozilla/layers/LayersTypes.h";
@@ -35,6 +34,7 @@ using mozilla::layers::GpuProcessQueryId from "mozilla/layers/LayersTypes.h";
 using mozilla::wr::ExternalImageSource from "mozilla/webrender/WebRenderTypes.h";
 using mozilla::wr::ExternalImageId from "mozilla/webrender/WebRenderTypes.h";
 using mozilla::layers::SurfaceDescriptorRemoteDecoderId from "mozilla/layers/LayersTypes.h";
+[MoveOnly] using mozilla::ipc::ReadOnlySharedMemoryHandle from "mozilla/ipc/SharedMemoryHandle.h";
 
 namespace mozilla {
 namespace layers {
@@ -186,12 +186,12 @@ namespace layers {
   MemoryOrShmem data;
 };
 
-[Comparable] struct SurfaceDescriptorShared
+struct SurfaceDescriptorShared
 {
   IntSize size;
   int32_t stride;
   SurfaceFormat format;
-  Handle handle;
+  ReadOnlySharedMemoryHandle handle;
 };
 
 [Comparable] struct SurfaceDescriptorExternalImage

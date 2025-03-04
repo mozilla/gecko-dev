@@ -27,42 +27,36 @@ static inline size_t GetAlignmentOffset(size_t aOffset, size_t aAlign) {
   return mod ? aAlign - mod : 0;
 }
 
-SharedStringMap::SharedStringMap(const SharedMemoryHandle& aMapHandle,
-                                 size_t aMapSize) {
-  auto map = MakeRefPtr<SharedMemory>();
-  {
-    auto result = map->SetHandle(SharedMemory::CloneHandle(aMapHandle),
-                                 SharedMemory::OpenRights::RightsReadOnly);
-    MOZ_RELEASE_ASSERT(result);
-  }
-  {
-    auto result = map->Map(aMapSize);
-    MOZ_RELEASE_ASSERT(result);
-  }
+SharedStringMap::SharedStringMap(const ReadOnlySharedMemoryHandle& aMapHandle) {
+  mHandle = aMapHandle.Clone();
+  MOZ_RELEASE_ASSERT(mHandle.IsValid());
+  auto mapping = aMapHandle.Map();
+  MOZ_RELEASE_ASSERT(mapping.IsValid());
 
   // We return literal nsStrings and nsCStrings pointing to the mapped data,
   // which means that we may still have references to the mapped data even
   // after this instance is destroyed. That means that we need to keep the
   // mapping alive until process shutdown, in order to be safe.
-  mMappedMemory = map->TakeMapping();
-  mHandle = map->TakeHandle();
+  mMappedMemory = std::move(mapping).Release();
 
   MOZ_RELEASE_ASSERT(GetHeader().mMagic == kSharedStringMapMagic);
 }
 
 SharedStringMap::SharedStringMap(SharedStringMapBuilder&& aBuilder) {
-  RefPtr<SharedMemory> map;
-  auto result = aBuilder.Finalize(map);
-  MOZ_RELEASE_ASSERT(result.isOk() && map);
+  ReadOnlySharedMemoryMappingWithHandle mappingWithHandle;
+  auto result = aBuilder.Finalize();
+  MOZ_RELEASE_ASSERT(result.isOk());
+  mHandle = result.unwrap();
+  auto mapping = mHandle.Map();
+  MOZ_RELEASE_ASSERT(mapping.IsValid());
 
-  mMappedMemory = map->TakeMapping();
-  mHandle = map->TakeHandle();
+  mMappedMemory = std::move(mapping).Release();
 
   MOZ_RELEASE_ASSERT(GetHeader().mMagic == kSharedStringMapMagic);
 }
 
-mozilla::ipc::SharedMemoryHandle SharedStringMap::CloneHandle() const {
-  return SharedMemory::CloneHandle(mHandle);
+mozilla::ipc::ReadOnlySharedMemoryHandle SharedStringMap::CloneHandle() const {
+  return mHandle.Clone();
 }
 
 bool SharedStringMap::Has(const nsCString& aKey) {
@@ -97,8 +91,8 @@ void SharedStringMapBuilder::Add(const nsCString& aKey,
                           Entry{mKeyTable.Add(aKey), mValueTable.Add(aValue)});
 }
 
-Result<Ok, nsresult> SharedStringMapBuilder::Finalize(
-    RefPtr<SharedMemory>& aMap) {
+Result<ReadOnlySharedMemoryHandle, nsresult>
+SharedStringMapBuilder::Finalize() {
   using Header = SharedStringMap::Header;
 
   MOZ_ASSERT(mEntries.Count() == mKeyTable.Count());
@@ -147,7 +141,7 @@ Result<Ok, nsresult> SharedStringMapBuilder::Finalize(
   mValueTable.Clear();
   mEntries.Clear();
 
-  return mem.Finalize(aMap);
+  return mem.Finalize();
 }
 
 }  // namespace dom::ipc

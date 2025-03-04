@@ -15,13 +15,16 @@
 #include "mozilla/gfx/InlineTranslator.h"
 #include "mozilla/gfx/RecordedEvent.h"
 #include "CanvasChild.h"
+#include "mozilla/ipc/SharedMemoryHandle.h"
 #include "mozilla/layers/CanvasDrawEventRecorder.h"
 #include "mozilla/layers/LayersSurfaces.h"
 #include "mozilla/layers/PCanvasParent.h"
 #include "mozilla/layers/RemoteTextureMap.h"
 #include "mozilla/ipc/CrossProcessSemaphore.h"
+#include "mozilla/ipc/SharedMemoryMapping.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/Variant.h"
 
 namespace mozilla {
 
@@ -81,14 +84,13 @@ class CanvasTranslator final : public gfx::InlineTranslator,
    * @param aReaderSem reading blocked semaphore for the CanvasEventRingBuffer
    * @param aWriterSem writing blocked semaphore for the CanvasEventRingBuffer
    */
-  ipc::IPCResult RecvInitTranslator(TextureType aTextureType,
-                                    TextureType aWebglTextureType,
-                                    gfx::BackendType aBackendType,
-                                    Handle&& aReadHandle,
-                                    nsTArray<Handle>&& aBufferHandles,
-                                    uint64_t aBufferSize,
-                                    CrossProcessSemaphoreHandle&& aReaderSem,
-                                    CrossProcessSemaphoreHandle&& aWriterSem);
+  ipc::IPCResult RecvInitTranslator(
+      TextureType aTextureType, TextureType aWebglTextureType,
+      gfx::BackendType aBackendType,
+      ipc::MutableSharedMemoryHandle&& aReadHandle,
+      nsTArray<ipc::ReadOnlySharedMemoryHandle>&& aBufferHandles,
+      CrossProcessSemaphoreHandle&& aReaderSem,
+      CrossProcessSemaphoreHandle&& aWriterSem);
 
   /**
    * Restart the translation from a Stopped state.
@@ -99,13 +101,13 @@ class CanvasTranslator final : public gfx::InlineTranslator,
    * Adds a new buffer to be translated. The current buffer will be recycled if
    * it is of the default size. The translation will then be restarted.
    */
-  ipc::IPCResult RecvAddBuffer(Handle&& aBufferHandle, uint64_t aBufferSize);
+  ipc::IPCResult RecvAddBuffer(ipc::ReadOnlySharedMemoryHandle&& aBufferHandle);
 
   /**
    * Sets the shared memory to be used for readback.
    */
-  ipc::IPCResult RecvSetDataSurfaceBuffer(Handle&& aBufferHandle,
-                                          uint64_t aBufferSize);
+  ipc::IPCResult RecvSetDataSurfaceBuffer(
+      ipc::MutableSharedMemoryHandle&& aBufferHandle);
 
   ipc::IPCResult RecvClearCachedResources();
 
@@ -316,23 +318,25 @@ class CanvasTranslator final : public gfx::InlineTranslator,
     const Tag mTag;
 
    private:
-    ipc::SharedMemory::Handle mBufferHandle;
-    const size_t mBufferSize;
+    Variant<ipc::ReadOnlySharedMemoryHandle, ipc::MutableSharedMemoryHandle>
+        mBufferHandle;
 
    public:
     explicit CanvasTranslatorEvent(const Tag aTag)
-        : mTag(aTag), mBufferSize(0) {
+        : mTag(aTag), mBufferHandle(ipc::ReadOnlySharedMemoryHandle()) {
       MOZ_ASSERT(mTag == Tag::TranslateRecording ||
                  mTag == Tag::ClearCachedResources ||
                  mTag == Tag::DropFreeBuffersWhenDormant);
     }
     CanvasTranslatorEvent(const Tag aTag,
-                          ipc::SharedMemory::Handle&& aBufferHandle,
-                          size_t aBufferSize)
-        : mTag(aTag),
-          mBufferHandle(std::move(aBufferHandle)),
-          mBufferSize(aBufferSize) {
-      MOZ_ASSERT(mTag == Tag::AddBuffer || mTag == Tag::SetDataSurfaceBuffer);
+                          ipc::ReadOnlySharedMemoryHandle&& aBufferHandle)
+        : mTag(aTag), mBufferHandle(std::move(aBufferHandle)) {
+      MOZ_ASSERT(mTag == Tag::AddBuffer);
+    }
+    CanvasTranslatorEvent(const Tag aTag,
+                          ipc::MutableSharedMemoryHandle&& aBufferHandle)
+        : mTag(aTag), mBufferHandle(std::move(aBufferHandle)) {
+      MOZ_ASSERT(mTag == Tag::SetDataSurfaceBuffer);
     }
 
     static UniquePtr<CanvasTranslatorEvent> TranslateRecording() {
@@ -340,15 +344,15 @@ class CanvasTranslator final : public gfx::InlineTranslator,
     }
 
     static UniquePtr<CanvasTranslatorEvent> AddBuffer(
-        ipc::SharedMemory::Handle&& aBufferHandle, size_t aBufferSize) {
-      return MakeUnique<CanvasTranslatorEvent>(
-          Tag::AddBuffer, std::move(aBufferHandle), aBufferSize);
+        ipc::ReadOnlySharedMemoryHandle&& aBufferHandle) {
+      return MakeUnique<CanvasTranslatorEvent>(Tag::AddBuffer,
+                                               std::move(aBufferHandle));
     }
 
     static UniquePtr<CanvasTranslatorEvent> SetDataSurfaceBuffer(
-        ipc::SharedMemory::Handle&& aBufferHandle, size_t aBufferSize) {
-      return MakeUnique<CanvasTranslatorEvent>(
-          Tag::SetDataSurfaceBuffer, std::move(aBufferHandle), aBufferSize);
+        ipc::MutableSharedMemoryHandle&& aBufferHandle) {
+      return MakeUnique<CanvasTranslatorEvent>(Tag::SetDataSurfaceBuffer,
+                                               std::move(aBufferHandle));
     }
 
     static UniquePtr<CanvasTranslatorEvent> ClearCachedResources() {
@@ -359,20 +363,20 @@ class CanvasTranslator final : public gfx::InlineTranslator,
       return MakeUnique<CanvasTranslatorEvent>(Tag::DropFreeBuffersWhenDormant);
     }
 
-    ipc::SharedMemory::Handle TakeBufferHandle() {
-      if (mTag == Tag::AddBuffer || mTag == Tag::SetDataSurfaceBuffer) {
-        return std::move(mBufferHandle);
+    ipc::ReadOnlySharedMemoryHandle TakeBufferHandle() {
+      if (mTag == Tag::AddBuffer) {
+        return std::move(mBufferHandle).as<ipc::ReadOnlySharedMemoryHandle>();
       }
       MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-      return mozilla::ipc::SharedMemory::NULLHandle();
+      return nullptr;
     }
 
-    size_t BufferSize() {
-      if (mTag == Tag::AddBuffer || mTag == Tag::SetDataSurfaceBuffer) {
-        return mBufferSize;
+    ipc::MutableSharedMemoryHandle TakeDataSurfaceBufferHandle() {
+      if (mTag == Tag::SetDataSurfaceBuffer) {
+        return std::move(mBufferHandle).as<ipc::MutableSharedMemoryHandle>();
       }
       MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-      return 0;
+      return nullptr;
     }
   };
 
@@ -380,13 +384,13 @@ class CanvasTranslator final : public gfx::InlineTranslator,
    * @returns true if next HandleCanvasTranslatorEvents() needs to call
    * TranslateRecording().
    */
-  bool AddBuffer(Handle&& aBufferHandle, size_t aBufferSize);
+  bool AddBuffer(ipc::ReadOnlySharedMemoryHandle&& aBufferHandle);
 
   /*
    * @returns true if next HandleCanvasTranslatorEvents() needs to call
    * TranslateRecording().
    */
-  bool SetDataSurfaceBuffer(Handle&& aBufferHandle, size_t aBufferSize);
+  bool SetDataSurfaceBuffer(ipc::MutableSharedMemoryHandle&& aBufferHandle);
 
   bool ReadNextEvent(EventType& aEventType);
 
@@ -470,7 +474,7 @@ class CanvasTranslator final : public gfx::InlineTranslator,
   using State = CanvasDrawEventRecorder::State;
   using Header = CanvasDrawEventRecorder::Header;
 
-  RefPtr<ipc::SharedMemory> mHeaderShmem;
+  ipc::SharedMemoryMapping mHeaderShmem;
   Header* mHeader = nullptr;
   // Limit event processing to stop at the designated checkpoint, rather than
   // proceed beyond it. This also forces processing to continue, even when it
@@ -479,20 +483,20 @@ class CanvasTranslator final : public gfx::InlineTranslator,
   int64_t mFlushCheckpoint = 0;
 
   struct CanvasShmem {
-    RefPtr<ipc::SharedMemory> shmem;
-    bool IsValid() const { return !!shmem; }
-    auto Size() { return shmem ? shmem->Size() : 0; }
+    ipc::ReadOnlySharedMemoryMapping shmem;
+    bool IsValid() const { return shmem.IsValid(); }
+    auto Size() { return shmem ? shmem.Size() : 0; }
     gfx::MemReader CreateMemReader() {
       if (!shmem) {
         return {nullptr, 0};
       }
-      return {static_cast<char*>(shmem->Memory()), Size()};
+      return {shmem.DataAs<char>(), Size()};
     }
   };
   std::queue<CanvasShmem> mCanvasShmems;
   CanvasShmem mCurrentShmem;
   gfx::MemReader mCurrentMemReader{0, 0};
-  RefPtr<ipc::SharedMemory> mDataSurfaceShmem;
+  ipc::SharedMemoryMapping mDataSurfaceShmem;
   UniquePtr<CrossProcessSemaphore> mWriterSemaphore;
   UniquePtr<CrossProcessSemaphore> mReaderSemaphore;
   TextureType mTextureType = TextureType::Unknown;

@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "GMPSharedMemManager.h"
-#include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/ipc/SharedMemoryMapping.h"
 
 namespace mozilla::gmp {
 
@@ -49,7 +49,7 @@ bool GMPSharedMemManager::MgrTakeShmem(GMPSharedMemClass aClass, size_t aSize,
   MOZ_ASSERT(MgrIsOnOwningThread());
 
   auto& pool = mPool[size_t(aClass)];
-  size_t alignedSize = ipc::SharedMemory::PageAlignedSize(aSize);
+  size_t alignedSize = ipc::shared_memory::PageAlignedSize(aSize);
   PurgeSmallerShmem(pool, alignedSize);
   if (pool.IsEmpty()) {
     return MgrAllocShmem(alignedSize, aMem);

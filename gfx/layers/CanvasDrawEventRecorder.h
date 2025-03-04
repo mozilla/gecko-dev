@@ -12,7 +12,7 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/gfx/DrawEventRecorder.h"
 #include "mozilla/ipc/CrossProcessSemaphore.h"
-#include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/ipc/SharedMemoryMapping.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
@@ -27,7 +27,6 @@ class ThreadSafeWorkerRef;
 
 namespace layers {
 
-typedef mozilla::ipc::SharedMemory::Handle Handle;
 typedef mozilla::CrossProcessSemaphoreHandle CrossProcessSemaphoreHandle;
 
 class CanvasDrawEventRecorder final : public gfx::DrawEventRecorderPrivate,
@@ -72,16 +71,15 @@ class CanvasDrawEventRecorder final : public gfx::DrawEventRecorderPrivate,
    public:
     virtual ~Helpers() = default;
 
-    virtual bool InitTranslator(TextureType aTextureType,
-                                TextureType aWebglTextureType,
-                                gfx::BackendType aBackendType,
-                                Handle&& aReadHandle,
-                                nsTArray<Handle>&& aBufferHandles,
-                                uint64_t aBufferSize,
-                                CrossProcessSemaphoreHandle&& aReaderSem,
-                                CrossProcessSemaphoreHandle&& aWriterSem) = 0;
+    virtual bool InitTranslator(
+        TextureType aTextureType, TextureType aWebglTextureType,
+        gfx::BackendType aBackendType,
+        ipc::MutableSharedMemoryHandle&& aReadHandle,
+        nsTArray<ipc::ReadOnlySharedMemoryHandle>&& aBufferHandles,
+        CrossProcessSemaphoreHandle&& aReaderSem,
+        CrossProcessSemaphoreHandle&& aWriterSem) = 0;
 
-    virtual bool AddBuffer(Handle&& aBufferHandle, uint64_t aBufferSize) = 0;
+    virtual bool AddBuffer(ipc::ReadOnlySharedMemoryHandle&& aBufferHandle) = 0;
 
     /**
      * @returns true if the reader of the CanvasEventRingBuffer has permanently
@@ -163,29 +161,28 @@ class CanvasDrawEventRecorder final : public gfx::DrawEventRecorderPrivate,
   UniquePtr<Helpers> mHelpers;
 
   TextureType mTextureType = TextureType::Unknown;
-  RefPtr<ipc::SharedMemory> mHeaderShmem;
+  ipc::SharedMemoryMapping mHeaderShmem;
   Header* mHeader = nullptr;
 
   struct CanvasBuffer : public gfx::ContiguousBuffer {
-    RefPtr<ipc::SharedMemory> shmem;
+    ipc::SharedMemoryMapping shmem;
 
     CanvasBuffer() : ContiguousBuffer(nullptr) {}
 
-    explicit CanvasBuffer(RefPtr<ipc::SharedMemory>&& aShmem)
-        : ContiguousBuffer(static_cast<char*>(aShmem->Memory()),
-                           aShmem->Size()),
+    explicit CanvasBuffer(ipc::SharedMemoryMapping&& aShmem)
+        : ContiguousBuffer(aShmem.DataAs<char>(), aShmem.Size()),
           shmem(std::move(aShmem)) {}
 
-    size_t Capacity() { return shmem ? shmem->Size() : 0; }
+    size_t Capacity() { return shmem ? shmem.Size() : 0; }
   };
 
   struct RecycledBuffer {
-    RefPtr<ipc::SharedMemory> shmem;
+    ipc::SharedMemoryMapping shmem;
     int64_t eventCount = 0;
-    explicit RecycledBuffer(RefPtr<ipc::SharedMemory>&& aShmem,
+    explicit RecycledBuffer(ipc::SharedMemoryMapping&& aShmem,
                             int64_t aEventCount)
         : shmem(std::move(aShmem)), eventCount(aEventCount) {}
-    size_t Capacity() { return shmem->Size(); }
+    size_t Capacity() { return shmem.Size(); }
   };
 
   CanvasBuffer mCurrentBuffer;

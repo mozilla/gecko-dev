@@ -11,8 +11,9 @@ include "mozilla/layers/CanvasTranslator.h";
 [MoveOnly] using mozilla::CrossProcessSemaphoreHandle from "mozilla/ipc/CrossProcessSemaphore.h";
 using mozilla::layers::RemoteTextureOwnerId from "mozilla/layers/LayersTypes.h";
 using mozilla::layers::TextureType from "mozilla/layers/LayersTypes.h";
-[MoveOnly] using mozilla::ipc::SharedMemory::Handle from "mozilla/ipc/SharedMemory.h";
 using mozilla::gfx::BackendType from "mozilla/gfx/Types.h";
+[MoveOnly] using mozilla::ipc::ReadOnlySharedMemoryHandle from "mozilla/ipc/SharedMemoryHandle.h";
+[MoveOnly] using mozilla::ipc::MutableSharedMemoryHandle from "mozilla/ipc/SharedMemoryHandle.h";
 
 namespace mozilla {
 namespace layers {
@@ -34,8 +35,8 @@ parent:
    * are handles for the semaphores to handle waiting on either side.
    */
   async InitTranslator(TextureType aTextureType, TextureType aWebglTextureType,
-                       BackendType aBackendType, Handle aHeaderHandle,
-                       Handle[] aBufferHandles, uint64_t aBufferSize,
+                       BackendType aBackendType, MutableSharedMemoryHandle aHeaderHandle,
+                       ReadOnlySharedMemoryHandle[] aBufferHandles,
                        CrossProcessSemaphoreHandle aReaderSem,
                        CrossProcessSemaphoreHandle aWriterSem);
 
@@ -48,12 +49,12 @@ parent:
    * Adds a new buffer to be translated. The current buffer will be recycled if
    * it is of the default size. The translation will then be restarted.
    */
-  async AddBuffer(Handle aBufferHandle, uint64_t aBufferSize);
+  async AddBuffer(ReadOnlySharedMemoryHandle aBufferHandle);
 
   /**
    * Sets the shared memory to be used for readback.
    */
-  async SetDataSurfaceBuffer(Handle aBufferHandle, uint64_t aBufferSize);
+  async SetDataSurfaceBuffer(MutableSharedMemoryHandle aBufferHandle);
 
   /**
    * Notify CanvasTranslator it is about to be minimized.
@@ -97,7 +98,7 @@ child:
   /**
    * Cache the shmem of the framebuffer for snapshotting.
    */
-  async SnapshotShmem(RemoteTextureOwnerId aTextureOwnerId, Handle aShmemHandle, uint32_t aShmemSize) returns (bool aSuccess);
+  async SnapshotShmem(RemoteTextureOwnerId aTextureOwnerId, ReadOnlySharedMemoryHandle aShmemHandle) returns (bool aSuccess);
 
   async NotifyTextureDestruction(RemoteTextureOwnerId aTextureOwnerId);
 };

@@ -7,6 +7,8 @@
 
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/Omnijar.h"
+#include "mozilla/ipc/SharedMemoryHandle.h"
+#include "mozilla/ipc/SharedMemoryMapping.h"
 #include "nsContentUtils.h"
 #include "nsIChannel.h"
 #include "nsIFile.h"
@@ -32,7 +34,7 @@ void DefaultDelete<const CompiledData>::operator()(
   mapped_hyph_free_compiled_data(const_cast<CompiledData*>(aData));
 }
 
-static const void* GetItemPtrFromJarURI(nsIJARURI* aJAR, uint32_t* aLength) {
+static const uint8_t* GetItemPtrFromJarURI(nsIJARURI* aJAR, uint32_t* aLength) {
   // Try to get the jarfile's nsZipArchive, find the relevant item, and return
   // a pointer to its data provided it is stored uncompressed.
   nsCOMPtr<nsIURI> jarFile;
@@ -66,63 +68,53 @@ static const void* GetItemPtrFromJarURI(nsIJARURI* aJAR, uint32_t* aLength) {
   return nullptr;
 }
 
-static RefPtr<ipc::SharedMemory> GetHyphDictFromParent(nsIURI* aURI,
-                                                       uint32_t* aLength) {
+static ipc::ReadOnlySharedMemoryMapping GetHyphDictFromParent(nsIURI* aURI) {
   MOZ_ASSERT(!XRE_IsParentProcess());
-  ipc::SharedMemory::Handle handle = ipc::SharedMemory::NULLHandle();
-  uint32_t size;
+  ipc::ReadOnlySharedMemoryHandle handle;
   MOZ_ASSERT(aURI);
-  if (!dom::ContentChild::GetSingleton()->SendGetHyphDict(aURI, &handle,
-                                                          &size)) {
+  if (!dom::ContentChild::GetSingleton()->SendGetHyphDict(aURI, &handle)) {
     return nullptr;
   }
-  RefPtr<ipc::SharedMemory> shm = MakeRefPtr<ipc::SharedMemory>();
-  if (!shm->IsHandleValid(handle)) {
+  if (!handle.IsValid()) {
     return nullptr;
   }
-  if (!shm->SetHandle(std::move(handle), ipc::SharedMemory::RightsReadOnly)) {
+  auto map = handle.Map();
+  if (!map) {
     return nullptr;
   }
-  if (!shm->Map(size)) {
+  if (!map.Address()) {
     return nullptr;
   }
-  char* addr = static_cast<char*>(shm->Memory());
-  if (!addr) {
-    return nullptr;
-  }
-  *aLength = size;
-  return shm;
+  return map;
 }
 
-static RefPtr<ipc::SharedMemory> CopyToShmem(const CompiledData* aData) {
+static ipc::ReadOnlySharedMemoryHandle CopyToShmem(const CompiledData* aData) {
   MOZ_ASSERT(XRE_IsParentProcess());
 
   // The shm-related calls here are not expected to fail, but if they do,
   // we'll just return null (as if the resource was unavailable) and proceed
   // without hyphenation.
   uint32_t size = mapped_hyph_compiled_data_size(aData);
-  RefPtr<ipc::SharedMemory> shm = MakeRefPtr<ipc::SharedMemory>();
-  if (!shm->CreateFreezable(size)) {
+  auto handle = ipc::shared_memory::CreateFreezable(size);
+  if (!handle) {
     return nullptr;
   }
-  if (!shm->Map(size)) {
+  auto map = std::move(handle).Map();
+  if (!map) {
     return nullptr;
   }
-  char* buffer = static_cast<char*>(shm->Memory());
+  char* buffer = map.DataAs<char>();
   if (!buffer) {
     return nullptr;
   }
 
   memcpy(buffer, mapped_hyph_compiled_data_ptr(aData), size);
-  if (!shm->Freeze()) {
-    return nullptr;
-  }
-
-  return shm;
+  auto [_, readOnlyHandle] = std::move(map).Freeze();
+  return std::move(readOnlyHandle);
 }
 
-static RefPtr<ipc::SharedMemory> LoadFromURI(nsIURI* aURI, uint32_t* aLength,
-                                             bool aPrecompiled) {
+static ipc::ReadOnlySharedMemoryHandle LoadFromURI(nsIURI* aURI,
+                                                   bool aPrecompiled) {
   MOZ_ASSERT(XRE_IsParentProcess());
   nsCOMPtr<nsIChannel> channel;
   if (NS_FAILED(NS_NewChannel(
@@ -145,14 +137,15 @@ static RefPtr<ipc::SharedMemory> LoadFromURI(nsIURI* aURI, uint32_t* aLength,
   }
 
   if (aPrecompiled) {
-    RefPtr<ipc::SharedMemory> shm = MakeRefPtr<ipc::SharedMemory>();
-    if (!shm->CreateFreezable(available)) {
+    auto handle = ipc::shared_memory::CreateFreezable(available);
+    if (!handle) {
       return nullptr;
     }
-    if (!shm->Map(available)) {
+    auto map = std::move(handle).Map();
+    if (!map) {
       return nullptr;
     }
-    char* buffer = static_cast<char*>(shm->Memory());
+    char* buffer = map.DataAs<char>();
     if (!buffer) {
       return nullptr;
     }
@@ -168,12 +161,13 @@ static RefPtr<ipc::SharedMemory> LoadFromURI(nsIURI* aURI, uint32_t* aLength,
       return nullptr;
     }
 
-    if (!shm->Freeze()) {
+    auto [_, readOnlyHandle] = std::move(map).Freeze();
+
+    if (!readOnlyHandle) {
       return nullptr;
     }
 
-    *aLength = bytesRead;
-    return shm;
+    return std::move(readOnlyHandle);
   }
 
   // Read from the URI into a temporary buffer, compile it, then copy the
@@ -188,7 +182,6 @@ static RefPtr<ipc::SharedMemory> LoadFromURI(nsIURI* aURI, uint32_t* aLength,
   UniquePtr<const CompiledData> data(mapped_hyph_compile_buffer(
       reinterpret_cast<const uint8_t*>(buffer.get()), bytesRead, false));
   if (data) {
-    *aLength = mapped_hyph_compiled_data_size(data.get());
     return CopyToShmem(data.get());
   }
 
@@ -196,8 +189,7 @@ static RefPtr<ipc::SharedMemory> LoadFromURI(nsIURI* aURI, uint32_t* aLength,
 }
 
 nsHyphenator::nsHyphenator(nsIURI* aURI, bool aHyphenateCapitalized)
-    : mDict(static_cast<const void*>(nullptr)),
-      mDictSize(0),
+    : mDict(Span<const uint8_t>()),
       mHyphenateCapitalized(aHyphenateCapitalized) {
   // Files with extension ".hyf" are expected to be precompiled mapped_hyph
   // tables; we also support uncompiled ".dic" files, but they are more
@@ -210,13 +202,11 @@ nsHyphenator::nsHyphenator(nsIURI* aURI, bool aHyphenateCapitalized)
   // them a compiled version of the resource, so that we only pay the cost of
   // compilation once per language per session.
   if (!precompiled && !XRE_IsParentProcess()) {
-    uint32_t length;
-    RefPtr<ipc::SharedMemory> shm = GetHyphDictFromParent(aURI, &length);
+    auto shm = GetHyphDictFromParent(aURI);
     if (shm) {
       // We don't need to validate mDict because the parent process
       // will have done so.
-      mDictSize = length;
-      mDict = AsVariant(std::move(shm));
+      mDict.emplace<ipc::ReadOnlySharedMemoryMapping>(std::move(shm));
     }
     return;
   }
@@ -226,15 +216,13 @@ nsHyphenator::nsHyphenator(nsIURI* aURI, bool aHyphenateCapitalized)
     // This gives us a raw pointer into the omnijar's data (if uncompressed);
     // we do not own it and must not attempt to free it!
     uint32_t length;
-    const void* ptr = GetItemPtrFromJarURI(jar, &length);
+    const uint8_t* ptr = GetItemPtrFromJarURI(jar, &length);
     if (ptr) {
       if (precompiled) {
         // The data should be directly usable by mapped_hyph; validate that it
         // looks correct, and save the pointer.
-        if (mapped_hyph_is_valid_hyphenator(static_cast<const uint8_t*>(ptr),
-                                            length)) {
-          mDictSize = length;
-          mDict = AsVariant(ptr);
+        if (mapped_hyph_is_valid_hyphenator(ptr, length)) {
+          mDict.emplace<Span<const uint8_t>>(ptr, length);
           return;
         }
       } else {
@@ -242,13 +230,12 @@ nsHyphenator::nsHyphenator(nsIURI* aURI, bool aHyphenateCapitalized)
         // We then move it to shared memory so we can expose it to content
         // processes.
         MOZ_ASSERT(XRE_IsParentProcess());
-        UniquePtr<const CompiledData> data(mapped_hyph_compile_buffer(
-            static_cast<const uint8_t*>(ptr), length, false));
+        UniquePtr<const CompiledData> data(
+            mapped_hyph_compile_buffer(ptr, length, false));
         if (data) {
-          RefPtr<ipc::SharedMemory> shm = CopyToShmem(data.get());
+          auto shm = CopyToShmem(data.get());
           if (shm) {
-            mDictSize = mapped_hyph_compiled_data_size(data.get());
-            mDict = AsVariant(std::move(shm));
+            mDict.emplace<ipc::ReadOnlySharedMemoryHandle>(std::move(shm));
             return;
           }
         }
@@ -259,19 +246,17 @@ nsHyphenator::nsHyphenator(nsIURI* aURI, bool aHyphenateCapitalized)
       // buffer; if we're a child, send a request to the parent for the
       // shared-memory copy (which it will load if not already available).
       if (XRE_IsParentProcess()) {
-        RefPtr<ipc::SharedMemory> shm = LoadFromURI(aURI, &length, precompiled);
+        auto shm = LoadFromURI(aURI, precompiled);
         if (shm) {
-          mDictSize = length;
-          mDict = AsVariant(std::move(shm));
+          mDict.emplace<ipc::ReadOnlySharedMemoryHandle>(std::move(shm));
           return;
         }
       } else {
-        RefPtr<ipc::SharedMemory> shm = GetHyphDictFromParent(aURI, &length);
+        auto shm = GetHyphDictFromParent(aURI);
         if (shm) {
           // We don't need to validate mDict because the parent process
           // will have done so.
-          mDictSize = length;
-          mDict = AsVariant(std::move(shm));
+          mDict.emplace<ipc::ReadOnlySharedMemoryMapping>(std::move(shm));
           return;
         }
       }
@@ -312,10 +297,9 @@ nsHyphenator::nsHyphenator(nsIURI* aURI, bool aHyphenateCapitalized)
       UniquePtr<const CompiledData> data(
           mapped_hyph_compile_file(path.get(), false));
       if (data) {
-        RefPtr<ipc::SharedMemory> shm = CopyToShmem(data.get());
+        auto shm = CopyToShmem(data.get());
         if (shm) {
-          mDictSize = mapped_hyph_compiled_data_size(data.get());
-          mDict = AsVariant(std::move(shm));
+          mDict.emplace<ipc::ReadOnlySharedMemoryHandle>(std::move(shm));
           return;
         }
       }
@@ -333,8 +317,9 @@ nsHyphenator::nsHyphenator(nsIURI* aURI, bool aHyphenateCapitalized)
 
 bool nsHyphenator::IsValid() {
   return mDict.match(
-      [](const void*& ptr) { return ptr != nullptr; },
-      [](RefPtr<ipc::SharedMemory>& shm) { return shm != nullptr; },
+      [](Span<const uint8_t>& span) { return span.data() != nullptr; },
+      [](ipc::ReadOnlySharedMemoryHandle& shm) { return shm.IsValid(); },
+      [](ipc::ReadOnlySharedMemoryMapping& shm) { return shm.IsValid(); },
       [](UniquePtr<const HyphDic>& hyph) { return hyph != nullptr; });
 }
 
@@ -441,16 +426,21 @@ void nsHyphenator::HyphenateWord(const nsAString& aString, uint32_t aStart,
   AutoTArray<uint8_t, 200> hyphenValues;
   hyphenValues.SetLength(utf8.Length());
   int32_t result = mDict.match(
-      [&](const void*& ptr) {
+      [&](Span<const uint8_t>& span) {
         return mapped_hyph_find_hyphen_values_raw(
-            static_cast<const uint8_t*>(ptr), mDictSize, utf8.BeginReading(),
-            utf8.Length(), hyphenValues.Elements(), hyphenValues.Length());
+            span.data(), span.size(), utf8.BeginReading(), utf8.Length(),
+            hyphenValues.Elements(), hyphenValues.Length());
       },
-      [&](RefPtr<ipc::SharedMemory>& shm) {
+      [&](ipc::ReadOnlySharedMemoryHandle& shm) {
+        // Only the parent process can have a handle stored. We should never
+        // get to this point with just a handle.
+        MOZ_ASSERT_UNREACHABLE("Unexpected HyphenateWord with only a handle");
+        return 0;
+      },
+      [&](ipc::ReadOnlySharedMemoryMapping& shm) {
         return mapped_hyph_find_hyphen_values_raw(
-            static_cast<const uint8_t*>(shm->Memory()), mDictSize,
-            utf8.BeginReading(), utf8.Length(), hyphenValues.Elements(),
-            hyphenValues.Length());
+            shm.DataAs<uint8_t>(), shm.Size(), utf8.BeginReading(),
+            utf8.Length(), hyphenValues.Elements(), hyphenValues.Length());
       },
       [&](UniquePtr<const HyphDic>& hyph) {
         return mapped_hyph_find_hyphen_values_dic(
@@ -486,14 +476,11 @@ void nsHyphenator::HyphenateWord(const nsAString& aString, uint32_t aStart,
   }
 }
 
-void nsHyphenator::CloneHandle(ipc::SharedMemory::Handle* aOutHandle,
-                               uint32_t* aOutSize) {
-  // If the resource is invalid, or if we fail to share it to the child
-  // process, we'll just bail out and continue without hyphenation; no need
-  // for this to be a fatal error.
-  if (!mDict.is<RefPtr<ipc::SharedMemory>>()) {
-    return;
+ipc::ReadOnlySharedMemoryHandle nsHyphenator::CloneHandle() {
+  MOZ_ASSERT(XRE_IsParentProcess());
+
+  if (mDict.is<ipc::ReadOnlySharedMemoryHandle>()) {
+    return mDict.as<ipc::ReadOnlySharedMemoryHandle>().Clone();
   }
-  *aOutHandle = mDict.as<RefPtr<ipc::SharedMemory>>()->CloneHandle();
-  *aOutSize = mDictSize;
+  return nullptr;
 }
