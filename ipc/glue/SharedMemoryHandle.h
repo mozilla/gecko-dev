@@ -30,6 +30,7 @@ namespace shared_memory {
 enum class Type {
   Mutable,
   ReadOnly,
+  MutableOrReadOnly,
   Freezable,
 };
 
@@ -56,6 +57,7 @@ using FreezableHandle = Handle<Type::Freezable>;
 
 using MutableMapping = Mapping<Type::Mutable>;
 using ReadOnlyMapping = Mapping<Type::ReadOnly>;
+using MutableOrReadOnlyMapping = Mapping<Type::MutableOrReadOnly>;
 using FreezableMapping = Mapping<Type::Freezable>;
 
 using MutableMappingWithHandle = Mapping<Type::Mutable, true>;

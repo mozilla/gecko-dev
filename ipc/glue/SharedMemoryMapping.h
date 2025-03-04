@@ -105,6 +105,10 @@ struct MappingData : MappingBase {
       std::conditional_t<CONST_MEMORY, std::add_const_t<std::remove_const_t<T>>,
                          T>;
 
+ protected:
+  MappingData() = default;
+  explicit MappingData(MappingBase&& aOther) : MappingBase(std::move(aOther)) {}
+
  public:
   /**
    * Get a pointer to the data in the mapping as a type T.
@@ -167,6 +171,32 @@ struct Mapping<T> : MappingData<T == Type::ReadOnly> {
     return LeakedMapping<T>{
         static_cast<typename LeakedMapping<T>::pointer>(ptr), size};
   }
+};
+
+/**
+ * A shared memory mapping which has runtime-stored mutability.
+ */
+template <>
+struct Mapping<Type::MutableOrReadOnly> : MappingData<true> {
+  /**
+   * Create an empty MutableOrReadOnlyMapping.
+   */
+  Mapping() = default;
+  MOZ_IMPLICIT Mapping(std::nullptr_t) {}
+
+  explicit Mapping(const ReadOnlyHandle& aHandle,
+                   void* aFixedAddress = nullptr);
+  explicit Mapping(const MutableHandle& aHandle, void* aFixedAddress = nullptr);
+  MOZ_IMPLICIT Mapping(ReadOnlyMapping&& aMapping);
+  MOZ_IMPLICIT Mapping(MutableMapping&& aMapping);
+
+  /**
+   * Return whether the mapping is read-only.
+   */
+  bool IsReadOnly() const { return mReadOnly; }
+
+ private:
+  bool mReadOnly = false;
 };
 
 /**
@@ -293,6 +323,8 @@ size_t PageAlignedSize(size_t aMinimum);
 
 using SharedMemoryMapping = shared_memory::MutableMapping;
 using ReadOnlySharedMemoryMapping = shared_memory::ReadOnlyMapping;
+using MutableOrReadOnlySharedMemoryMapping =
+    shared_memory::MutableOrReadOnlyMapping;
 using FreezableSharedMemoryMapping = shared_memory::FreezableMapping;
 
 using SharedMemoryMappingWithHandle = shared_memory::MutableMappingWithHandle;

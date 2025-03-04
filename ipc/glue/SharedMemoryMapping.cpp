@@ -132,6 +132,24 @@ std::tuple<void*, size_t> MappingBase::Release() && {
                          std::exchange(mSize, 0));
 }
 
+MutableOrReadOnlyMapping::Mapping(const MutableHandle& aHandle,
+                                  void* aFixedAddress)
+    : mReadOnly(false) {
+  Map(aHandle, aFixedAddress, false);
+}
+
+MutableOrReadOnlyMapping::Mapping(const ReadOnlyHandle& aHandle,
+                                  void* aFixedAddress)
+    : mReadOnly(true) {
+  Map(aHandle, aFixedAddress, true);
+}
+
+MutableOrReadOnlyMapping::Mapping(MutableMapping&& aMapping)
+    : MappingData(std::move(aMapping)), mReadOnly(false) {}
+
+MutableOrReadOnlyMapping::Mapping(ReadOnlyMapping&& aMapping)
+    : MappingData(std::move(aMapping)), mReadOnly(true) {}
+
 // We still store the handle if `Map` fails: the user may want to get it back
 // (for instance, if fixed-address mapping doesn't work they may try mapping
 // without one).
