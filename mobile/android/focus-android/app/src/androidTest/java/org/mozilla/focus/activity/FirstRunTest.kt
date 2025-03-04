@@ -50,7 +50,7 @@ class FirstRunTest : TestSetup() {
             verifyFirstOnboardingScreenItems()
             restartApp(mActivityTestRule)
             verifyFirstOnboardingScreenItems()
-            clickGetStartedButton()
+            clickAgreeAndContinueButton()
             verifySecondOnboardingScreenItems()
             restartApp(mActivityTestRule)
             verifySecondOnboardingScreenItems()

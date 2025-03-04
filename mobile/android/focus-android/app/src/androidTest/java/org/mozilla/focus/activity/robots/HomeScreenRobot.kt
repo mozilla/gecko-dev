@@ -78,7 +78,9 @@ class HomeScreenRobot {
         assertTrue(onboardingLogo.waitForExists(waitingTime))
         assertTrue(onboardingFirstScreenTitle.waitForExists(waitingTime))
         assertTrue(onboardingFirstScreenSubtitle.waitForExists(waitingTime))
-        assertTrue(onboardingGetStartedButton.waitForExists(waitingTime))
+        assertTrue(onboardingFirstScreenTermsOfUse.waitForExists(waitingTime))
+        assertTrue(onboardingFirstScreenPrivacyNotice.waitForExists(waitingTime))
+        assertTrue(onboardingAgreeAndContinueButton.waitForExists(waitingTime))
     }
 
     fun verifySecondOnboardingScreenItems() {
@@ -90,8 +92,8 @@ class HomeScreenRobot {
         assertTrue(onboardingSkipButton.waitForExists(waitingTime))
     }
 
-    fun clickGetStartedButton() {
-        onboardingGetStartedButton
+    fun clickAgreeAndContinueButton() {
+        onboardingAgreeAndContinueButton
             .also { it.waitForExists(waitingTime) }
             .also { it.clickAndWaitForNewWindow(waitingTime) }
     }
@@ -206,11 +208,20 @@ private val onboardingSecondScreenSecondSubtitle =
             ),
     )
 
-private val onboardingGetStartedButton =
+private val onboardingFirstScreenTermsOfUse =
     mDevice.findObject(
         UiSelector()
-            .textContains(getStringResource(R.string.onboarding_first_screen_button_text)),
+            .textContains("By continuing, you agree to the Firefox Terms of Use."),
     )
+
+private val onboardingFirstScreenPrivacyNotice =
+    mDevice.findObject(
+        UiSelector()
+            .textContains("Firefox cares about your privacy. Learn more in our Privacy Notice."),
+    )
+
+private val onboardingAgreeAndContinueButton =
+    mDevice.findObject(UiSelector().textContains("Agree and continue"))
 
 private val onboardingSetAsDefaultBrowserButton =
     mDevice.findObject(
