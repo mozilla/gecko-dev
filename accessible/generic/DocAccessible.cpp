@@ -240,6 +240,18 @@ uint64_t DocAccessible::NativeState() const {
   RefPtr<EditorBase> editorBase = GetEditor();
   state |= editorBase ? states::EDITABLE : states::READONLY;
 
+  // GetFrame() returns the root frame, which is normally what we want. However,
+  // user-select: none might be set on the body, in which case this won't be
+  // exposed on the root frame. Therefore, we explicitly use the body frame
+  // here (if any).
+  nsIFrame* bodyFrame = mContent ? mContent->GetPrimaryFrame() : nullptr;
+  if ((state & states::EDITABLE) ||
+      (bodyFrame && bodyFrame->IsSelectable(nullptr))) {
+    // If the accessible is editable the layout selectable state only disables
+    // mouse selection, but keyboard (shift+arrow) selection is still possible.
+    state |= states::SELECTABLE_TEXT;
+  }
+
   return state;
 }
 

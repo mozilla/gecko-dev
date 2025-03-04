@@ -1424,6 +1424,23 @@ body {
 );
 
 /**
+ * Test the Text pattern's SupportedTextSelection property on a document with a
+ * selectable body.
+ */
+addUiaTask(``, async function testTextSupportedTextSelectionSelectableBody() {
+  is(
+    await runPython(`
+      global doc
+      doc = getDocUia()
+      text = getUiaPattern(doc, "Text")
+      return text.SupportedTextSelection
+    `),
+    SupportedTextSelection_Multiple,
+    "doc SupportedTextSelection correct"
+  );
+});
+
+/**
  * Test the Text pattern's GetSelection method with the caret.
  */
 addUiaTask(

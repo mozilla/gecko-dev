@@ -79,7 +79,14 @@ const OOP_FRAME_DOCUMENT_SNAPSHOT = {
     "text-align": "start",
     "text-indent": "0px",
   },
-  states: ["readonly", "focusable", "opaque", "enabled", "sensitive"],
+  states: [
+    "readonly",
+    "focusable",
+    "selectable text",
+    "opaque",
+    "enabled",
+    "sensitive",
+  ],
   children: [
     {
       childCount: 1,
@@ -176,7 +183,14 @@ const EXPECTED_SNAPSHOT = {
     "text-align": "start",
     "text-indent": "0px",
   },
-  states: ["readonly", "focusable", "opaque", "enabled", "sensitive"],
+  states: [
+    "readonly",
+    "focusable",
+    "selectable text",
+    "opaque",
+    "enabled",
+    "sensitive",
+  ],
   children: [OOP_FRAME_SNAPSHOT],
 };
 

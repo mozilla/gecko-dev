@@ -39,6 +39,7 @@ const tests = [
           "focused",
           "readonly",
           "focusable",
+          "selectable text",
           "opaque",
           "enabled",
           "sensitive",
@@ -54,7 +55,13 @@ const tests = [
       ),
     expected: {
       sidebar: {
-        states: ["unavailable", "readonly", "focusable", "opaque"],
+        states: [
+          "unavailable",
+          "readonly",
+          "focusable",
+          "selectable text",
+          "opaque",
+        ],
       },
     },
   },
