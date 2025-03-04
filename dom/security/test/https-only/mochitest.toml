@@ -18,7 +18,6 @@ skip-if = [
 ]
 support-files = [
   "file_break_endless_upgrade_downgrade_loop.sjs",
-  "file_user_gesture.html",
 ]
 
 ["test_fragment.html"]

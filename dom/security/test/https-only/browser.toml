@@ -55,7 +55,7 @@ support-files = ["file_save_as.html"]
 ["browser_upgrade_exemption.js"]
 
 ["browser_user_gesture.js"]
-support-files = ["file_user_gesture.html"]
+support-files = ["file_user_gesture.sjs"]
 
 ["browser_websocket_exceptions.js"]
 skip-if = ["os == 'android'"] # WebSocket tests are not supported on Android Yet. Bug 1566168.

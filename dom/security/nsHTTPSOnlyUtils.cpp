@@ -326,14 +326,9 @@ bool nsHTTPSOnlyUtils::IsUpgradeDowngradeEndlessLoop(
   //     redirects. Call this function at the correct places instead
 
   // 6. Bug 1725026: Disable JS/Meta loop detection when the load was triggered
-  // by a user gesture. This information is only when the redirect chain is
-  // empty. When the redirect chain is not empty, this load is definitely
-  // triggered by redirection, not a user gesture.
-  // TODO(1896685): Verify whether check is still necessary.
-  if (aLoadInfo->RedirectChain().IsEmpty()) {
-    if (aLoadInfo->GetHasValidUserGestureActivation()) {
-      return false;
-    }
+  // by a user gesture.
+  if (aLoadInfo->GetHasValidUserGestureActivation()) {
+    return false;
   }
 
   // 7. Meta redirects and JS based redirects (win.location). We detect them
