@@ -215,15 +215,14 @@ class StorageAccessAPIHelper final {
 
   static void UpdateAllowAccessOnParentProcess(
       dom::BrowsingContext* aParentContext, const nsACString& aTrackingOrigin);
+
+  static RefPtr<StorageAccessPermissionGrantPromise> PerformTrackerCheck(
+      const nsACString& aTrackingOrigin);
 };
 
 class StorageAccessGrantTelemetryClassification
     : public nsIUrlClassifierFeatureCallback {
-  // List of features classifying basic trackers that have been annotated.
-  MOZ_RUNINIT static nsTArray<nsCString> sUrlClassifierFeaturesForTelemetry;
-
-  static const nsTArray<nsCString>& GetClassifierFeatureNamesForTrackers();
-
+ private:
   uint16_t mType;
   explicit StorageAccessGrantTelemetryClassification(uint16_t aType);
   virtual ~StorageAccessGrantTelemetryClassification() = default;

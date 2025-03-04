@@ -10,6 +10,7 @@
 #include "TemporaryAccessGrantObserver.h"
 
 #include "mozilla/BounceTrackingProtection.h"
+#include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Components.h"
 #include "mozilla/ContentBlockingAllowList.h"
 #include "mozilla/ContentBlockingUserInteraction.h"
@@ -68,6 +69,56 @@ bool GetTopLevelWindowId(BrowsingContext* aParentContext, uint32_t aBehavior,
           ? AntiTrackingUtils::GetTopLevelStorageAreaWindowId(aParentContext)
           : AntiTrackingUtils::GetTopLevelAntiTrackingWindowId(aParentContext);
   return aTopLevelInnerWindowId != 0;
+}
+
+// The list of feature names for trackers that have been annotated.
+static StaticAutoPtr<nsTArray<nsCString>> sUrlClassifierFeatureNamesForTrackers;
+
+// The list of features for trackers that have been annotated.
+static StaticAutoPtr<nsTArray<RefPtr<nsIUrlClassifierFeature>>>
+    sUrlClassifierFeaturesForTracker;
+
+const nsTArray<nsCString>& GetClassifierFeatureNamesForTrackers() {
+  if (!sUrlClassifierFeatureNamesForTrackers) {
+    sUrlClassifierFeatureNamesForTrackers = new nsTArray<nsCString>({
+        "emailtracking-protection"_ns,
+        "fingerprinting-annotation"_ns,
+        "socialtracking-annotation"_ns,
+        "tracking-annotation"_ns,
+    });
+
+    RunOnShutdown([] {
+      sUrlClassifierFeatureNamesForTrackers->Clear();
+      sUrlClassifierFeatureNamesForTrackers = nullptr;
+    });
+  }
+  return *sUrlClassifierFeatureNamesForTrackers;
+}
+
+const nsTArray<RefPtr<nsIUrlClassifierFeature>>&
+GetClassifierFeaturesForTrackers() {
+  if (!sUrlClassifierFeaturesForTracker) {
+    sUrlClassifierFeaturesForTracker =
+        new nsTArray<RefPtr<nsIUrlClassifierFeature>>();
+
+    // Construct the list of classifier features.
+    for (const nsCString& featureName :
+         GetClassifierFeatureNamesForTrackers()) {
+      nsCOMPtr<nsIUrlClassifierFeature> feature =
+          net::UrlClassifierFeatureFactory::GetFeatureByName(featureName);
+      if (NS_WARN_IF(!feature)) {
+        continue;
+      }
+      sUrlClassifierFeaturesForTracker->AppendElement(feature);
+    }
+    MOZ_ASSERT(!sUrlClassifierFeaturesForTracker->IsEmpty(),
+               "At least one URL classifier feature must be present");
+    RunOnShutdown([] {
+      sUrlClassifierFeaturesForTracker->Clear();
+      sUrlClassifierFeaturesForTracker = nullptr;
+    });
+  }
+  return *sUrlClassifierFeaturesForTracker;
 }
 
 }  // namespace
@@ -535,6 +586,23 @@ StorageAccessAPIHelper::CompleteAllowAccessForOnParentProcess(
                });
   };
 
+  // Exclude trackers from opener heuristic if the pref is enabled.
+  if (aReason == ContentBlockingNotifier::eOpener &&
+      StaticPrefs::
+          privacy_restrict3rdpartystorage_heuristic_exclude_third_party_trackers()) {
+    return PerformTrackerCheck(trackingOrigin)
+        ->Then(GetCurrentSerialEventTarget(), __func__,
+               [storePermission](
+                   StorageAccessPermissionGrantPromise::ResolveOrRejectValue&&
+                       aValue) {
+                 if (aValue.IsResolve()) {
+                   return storePermission(aValue.ResolveValue());
+                 }
+                 return StorageAccessPermissionGrantPromise::CreateAndReject(
+                     false, __func__);
+               });
+  }
+
   if (aPerformFinalChecks) {
     return aPerformFinalChecks()->Then(
         GetCurrentSerialEventTarget(), __func__,
@@ -549,6 +617,72 @@ StorageAccessAPIHelper::CompleteAllowAccessForOnParentProcess(
         });
   }
   return storePermission(false);
+}
+
+// A helper class to handle the callback of the URL classifier feature check.
+class CheckTrackerCallback final : public nsIUrlClassifierFeatureCallback {
+ public:
+  NS_DECL_ISUPPORTS
+
+  NS_IMETHOD
+  OnClassifyComplete(const nsTArray<RefPtr<nsIUrlClassifierFeatureResult>>&
+                         aResults) override {
+    // If the result shows no tracker, we can resolve the promise.
+    if (aResults.IsEmpty()) {
+      mPromiseHolder.ResolveIfExists(true, __func__);
+      return NS_OK;
+    }
+
+    // Otherwise, we reject the promise.
+    mPromiseHolder.RejectIfExists(false, __func__);
+    return NS_OK;
+  }
+
+  RefPtr<StorageAccessAPIHelper::StorageAccessPermissionGrantPromise>
+  Promise() {
+    return mPromiseHolder.Ensure(__func__);
+  }
+
+ private:
+  ~CheckTrackerCallback() = default;
+
+  MozPromiseHolder<StorageAccessAPIHelper::StorageAccessPermissionGrantPromise>
+      mPromiseHolder;
+};
+
+NS_IMPL_ISUPPORTS(CheckTrackerCallback, nsIUrlClassifierFeatureCallback);
+
+RefPtr<StorageAccessAPIHelper::StorageAccessPermissionGrantPromise>
+StorageAccessAPIHelper::PerformTrackerCheck(const nsACString& aTrackingOrigin) {
+  MOZ_ASSERT(XRE_IsParentProcess());
+
+  nsresult rv;
+  nsCOMPtr<nsIURIClassifier> uriClassifier =
+      do_GetService(NS_URICLASSIFIERSERVICE_CONTRACTID, &rv);
+
+  if (NS_FAILED(rv)) {
+    return StorageAccessPermissionGrantPromise::CreateAndReject(false,
+                                                                __func__);
+  }
+
+  nsCOMPtr<nsIURI> trackingURI;
+  rv = NS_NewURI(getter_AddRefs(trackingURI), aTrackingOrigin);
+  if (NS_FAILED(rv)) {
+    return StorageAccessPermissionGrantPromise::CreateAndReject(false,
+                                                                __func__);
+  }
+
+  auto callback = MakeRefPtr<CheckTrackerCallback>();
+
+  rv = uriClassifier->AsyncClassifyLocalWithFeatures(
+      trackingURI, GetClassifierFeaturesForTrackers(),
+      nsIUrlClassifierFeature::blocklist, callback, false);
+  if (NS_FAILED(rv)) {
+    return StorageAccessPermissionGrantPromise::CreateAndReject(false,
+                                                                __func__);
+  }
+
+  return callback->Promise();
 }
 
 /* static */ RefPtr<StorageAccessAPIHelper::StorageAccessPermissionGrantPromise>
@@ -1299,24 +1433,6 @@ void StorageAccessAPIHelper::UpdateAllowAccessOnParentProcess(
 NS_IMPL_ISUPPORTS(StorageAccessGrantTelemetryClassification,
                   nsIUrlClassifierFeatureCallback);
 
-// static
-nsTArray<nsCString> StorageAccessGrantTelemetryClassification::
-    sUrlClassifierFeaturesForTelemetry;
-
-// static
-const nsTArray<nsCString>& StorageAccessGrantTelemetryClassification::
-    GetClassifierFeatureNamesForTrackers() {
-  if (sUrlClassifierFeaturesForTelemetry.IsEmpty()) {
-    sUrlClassifierFeaturesForTelemetry = nsTArray<nsCString>({
-        "emailtracking-protection"_ns,
-        "fingerprinting-annotation"_ns,
-        "socialtracking-annotation"_ns,
-        "tracking-annotation"_ns,
-    });
-  }
-  return sUrlClassifierFeaturesForTelemetry;
-}
-
 StorageAccessGrantTelemetryClassification::
     StorageAccessGrantTelemetryClassification(uint16_t aType)
     : mType(aType) {}
@@ -1332,8 +1448,7 @@ void StorageAccessGrantTelemetryClassification::MaybeReportTracker(
   NS_ENSURE_TRUE_VOID(uriClassifier);
 
   const nsTArray<nsCString>& featureNames =
-      StorageAccessGrantTelemetryClassification::
-          GetClassifierFeatureNamesForTrackers();
+      GetClassifierFeatureNamesForTrackers();
 
   RefPtr<StorageAccessGrantTelemetryClassification> classification =
       new StorageAccessGrantTelemetryClassification(aType);

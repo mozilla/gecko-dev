@@ -6936,6 +6936,13 @@ void nsGlobalWindowOuter::MaybeAllowStorageForOpenedWindow(nsIURI* aURI) {
     return;
   }
 
+  // Don't trigger the heuristic for third-party trackers.
+  if (StaticPrefs::
+          privacy_restrict3rdpartystorage_heuristic_exclude_third_party_trackers() &&
+      nsContentUtils::IsThirdPartyTrackingResourceWindow(inner)) {
+    return;
+  }
+
   // No 3rd party URL/window.
   if (!AntiTrackingUtils::IsThirdPartyWindow(inner, aURI)) {
     return;
