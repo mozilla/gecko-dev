@@ -112,7 +112,7 @@ export class ContextMenuChild extends JSWindowActorChild {
                   media.requestFullscreen();
                 }
                 break;
-              case "pictureinpicture": {
+              case "pictureinpicture":
                 let event = new this.contentWindow.CustomEvent(
                   "MozTogglePictureInPicture",
                   {
@@ -123,7 +123,6 @@ export class ContextMenuChild extends JSWindowActorChild {
                 );
                 media.dispatchEvent(event);
                 break;
-              }
             }
           }
         );
@@ -218,37 +217,6 @@ export class ContextMenuChild extends JSWindowActorChild {
         }
 
         return Promise.resolve({ spec, title, postData, charset });
-      }
-
-      case "ContextMenu:SearchFieldEngineData": {
-        let node = lazy.ContentDOMReference.resolve(
-          message.data.targetIdentifier
-        );
-        let charset = node.ownerDocument.characterSet;
-        let formBaseURI = Services.io.newURI(node.form.baseURI, charset);
-        let method = node.form.method.toUpperCase();
-
-        let formData = new FormData(node.form);
-        formData.set(node.name, "{searchTerms}");
-
-        let url = Services.io.newURI(
-          node.form.getAttribute("action"),
-          charset,
-          formBaseURI
-        ).spec;
-
-        if (
-          !node.name ||
-          (method != "POST" && method != "GET") ||
-          node.form.enctype != "application/x-www-form-urlencoded" ||
-          formData.entries().some(([k, v]) => !k && typeof v != "string")
-        ) {
-          // This should never happen since these conditions are checked in
-          // `isTargetASearchEngineField`.
-          return Promise.reject("Cannot create search engine from this form.");
-        }
-
-        return Promise.resolve({ url, formData, charset, method });
       }
 
       case "ContextMenu:SaveVideoFrameAsImage": {
@@ -1137,7 +1105,6 @@ export class ContextMenuChild extends JSWindowActorChild {
       }
 
       context.onKeywordField = editFlags & lazy.SpellCheckHelper.KEYWORD;
-      context.onSearchField = editFlags & lazy.SpellCheckHelper.SEARCHENGINE;
     } else if (this.contentWindow.HTMLHtmlElement.isInstance(context.target)) {
       const bodyElt = context.target.ownerDocument.body;
 

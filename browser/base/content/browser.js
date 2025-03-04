@@ -4821,6 +4821,14 @@ var MailIntegration = {
   },
 };
 
+function AddKeywordForSearchField() {
+  if (!gContextMenu) {
+    throw new Error("Context menu doesn't seem to be open.");
+  }
+
+  gContextMenu.addKeywordForSearchField();
+}
+
 /**
  * Applies only to the cmd|ctrl + shift + T keyboard shortcut
  * Undo the last action that was taken - either closing the last tab or closing the last window;

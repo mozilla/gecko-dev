@@ -20,7 +20,6 @@ add_task(async function test_user_engine() {
   await Services.search.addUserEngine({
     name: "user",
     url: "https://example.com/user?q={searchTerms}",
-    suggestUrl: "https://example.com/suggest?q={searchTerms}",
     alias: "u",
   });
   await promiseEngineAdded;
@@ -40,11 +39,7 @@ add_task(async function test_user_engine() {
   );
 
   submission = engine.getSubmission("foo", SearchUtils.URL_TYPE.SUGGEST_JSON);
-  Assert.equal(
-    submission.uri.spec,
-    "https://example.com/suggest?q=foo",
-    "Should have the correct suggest url"
-  );
+  Assert.equal(submission, null, "Should not have a suggest url");
 
   Services.search.defaultEngine = engine;
 

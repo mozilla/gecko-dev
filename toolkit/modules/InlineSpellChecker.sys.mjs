@@ -442,8 +442,6 @@ export var SpellCheckHelper = {
   // specifically for spellcheck.
   SPELLCHECKABLE: 0x100,
 
-  SEARCHENGINE: 0x200,
-
   isTargetAKeywordField(aNode, window) {
     if (!window.HTMLInputElement.isInstance(aNode)) {
       return false;
@@ -473,24 +471,6 @@ export var SpellCheckHelper = {
     );
   },
 
-  isTargetASearchEngineField(aNode, window) {
-    if (!window.HTMLInputElement.isInstance(aNode)) {
-      return false;
-    }
-
-    let form = aNode.form;
-    if (!form || aNode.type == "password" || !aNode.name) {
-      return false;
-    }
-    let method = form.method.toUpperCase();
-
-    return (
-      (method == "GET" || method == "POST") &&
-      form.enctype == "application/x-www-form-urlencoded" &&
-      new FormData(form).entries().every(([k, v]) => k && typeof v == "string")
-    );
-  },
-
   isEditable(element, window) {
     var flags = 0;
     if (window.HTMLInputElement.isInstance(element)) {
@@ -514,9 +494,6 @@ export var SpellCheckHelper = {
         }
         if (this.isTargetAKeywordField(element, window)) {
           flags |= this.KEYWORD;
-        }
-        if (this.isTargetASearchEngineField(element, window)) {
-          flags |= this.SEARCHENGINE;
         }
         if (element.type == "password") {
           flags |= this.PASSWORD;

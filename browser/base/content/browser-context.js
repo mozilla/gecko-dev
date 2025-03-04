@@ -213,16 +213,7 @@ document.addEventListener(
           gContextMenu.takeScreenshot();
           break;
         case "context-keywordfield":
-          if (!gContextMenu) {
-            throw new Error("Context menu doesn't seem to be open.");
-          }
-          gContextMenu.addKeywordForSearchField();
-          break;
-        case "context-add-engine":
-          if (!gContextMenu) {
-            throw new Error("Context menu doesn't seem to be open.");
-          }
-          gContextMenu.addSearchFieldAsEngine();
+          AddKeywordForSearchField();
           break;
         case "context-searchselect": {
           let { searchTerms, usePrivate, principal, csp } = event.target;

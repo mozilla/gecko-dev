@@ -218,7 +218,6 @@ export class nsContextMenu {
     this.onEditable = context.onEditable;
     this.onImage = context.onImage;
     this.onKeywordField = context.onKeywordField;
-    this.onSearchField = context.onSearchField;
     this.onLink = context.onLink;
     this.onLoadedImage = context.onLoadedImage;
     this.onMailtoLink = context.onMailtoLink;
@@ -900,7 +899,6 @@ export class nsContextMenu {
         !this.onMozExtLink) ||
         this.onPlainTextLink
     );
-    this.showItem("context-add-engine", this.shouldShowAddEngine());
     this.showItem("context-keywordfield", this.shouldShowAddKeyword());
     this.showItem("frame", this.inFrame);
 
@@ -2346,20 +2344,6 @@ export class nsContextMenu {
     });
   }
 
-  addSearchFieldAsEngine() {
-    this.actor
-      .getSearchFieldEngineData(this.targetIdentifier)
-      .then(async ({ url, formData, charset, method }) => {
-        let icon = this.browser.mIconURL;
-        let uri = Services.io.newURI(url);
-        await this.window.gDialogBox.open(
-          "chrome://browser/content/search/addEngine.xhtml",
-          { uri, formData, charset, method, icon }
-        );
-      })
-      .catch(console.error);
-  }
-
   /**
    * Utilities
    */
@@ -2504,27 +2488,7 @@ export class nsContextMenu {
   }
 
   shouldShowAddKeyword() {
-    return (
-      this.onTextInput &&
-      this.onKeywordField &&
-      !this.isLoginForm() &&
-      !Services.prefs.getBoolPref(
-        "browser.urlbar.update2.engineAliasRefresh",
-        false
-      )
-    );
-  }
-
-  shouldShowAddEngine() {
-    return (
-      this.onTextInput &&
-      this.onSearchField &&
-      !this.isLoginForm() &&
-      Services.prefs.getBoolPref(
-        "browser.urlbar.update2.engineAliasRefresh",
-        false
-      )
-    );
+    return this.onTextInput && this.onKeywordField && !this.isLoginForm();
   }
 
   addDictionaries() {

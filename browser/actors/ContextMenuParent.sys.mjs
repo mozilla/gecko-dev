@@ -123,12 +123,6 @@ export class ContextMenuParent extends JSWindowActorParent {
     });
   }
 
-  getSearchFieldEngineData(targetIdentifier) {
-    return this.sendQuery("ContextMenu:SearchFieldEngineData", {
-      targetIdentifier,
-    });
-  }
-
   getTextDirective() {
     return this.sendQuery("ContextMenu:GetTextDirective");
   }

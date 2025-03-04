@@ -131,25 +131,3 @@ function clearSearchbarHistory() {
 registerCleanupFunction(async () => {
   await PlacesUtils.history.clear();
 });
-
-/**
- * Fills a text field ensuring to cause expected edit events.
- *
- * @param {string} id
- *        id of the text field
- * @param {string} text
- *        text to fill in
- * @param {object} win
- *        dialog window
- */
-function fillTextField(id, text, win) {
-  let elt = win.document.getElementById(id);
-  elt.focus();
-  elt.select();
-  EventUtils.synthesizeKey("a", { metaKey: true }, win);
-  EventUtils.synthesizeKey("KEY_Backspace", {}, win);
-
-  for (let c of text.split("")) {
-    EventUtils.synthesizeKey(c, {}, win);
-  }
-}

@@ -51,7 +51,6 @@ XPCOMUtils.defineLazyServiceGetter(
  * @typedef {import("SearchEngine.sys.mjs").SearchEngine} SearchEngine
  * @typedef {import("SearchEngineSelector.sys.mjs").RefinedConfig} RefinedConfig
  * @typedef {import("SearchEngineSelector.sys.mjs").SearchEngineSelector} SearchEngineSelector
- * @typedef {import("UserSearchEngine.sys.mjs").FormInfo} FormInfo
  */
 
 /**
@@ -639,14 +638,24 @@ export class SearchService {
   /**
    * Adds a search engine that is specified by the user.
    *
-   * @param {FormInfo} formInfo
-   *   General information about the search engine.
+   * @param {object} options
+   *   The options for the search engine
+   * @param {string} options.name
+   *   The name of the search engine
+   * @param {string} options.url
+   *   The url that the search engine uses for searches
+   * @param {?string} options.alias
+   *   An alias for the search engine
+   * @param {?string} options.suggestUrl
+   *   The url that the search engine uses for search suggestions
    */
-  async addUserEngine(formInfo) {
+  async addUserEngine(options) {
     await this.init();
 
-    let newEngine = new lazy.UserSearchEngine({ formInfo });
-    lazy.logConsole.debug(`Adding ${formInfo.name}`);
+    let newEngine = new lazy.UserSearchEngine({
+      details: options,
+    });
+    lazy.logConsole.debug(`Adding ${newEngine.name}`);
     this.#addEngineToStore(newEngine);
   }
 

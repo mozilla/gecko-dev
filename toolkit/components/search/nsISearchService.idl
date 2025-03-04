@@ -321,11 +321,16 @@ interface nsISearchService : nsISupports
   /**
    * Adds a new search engine defined by the user.
    *
-   * @param formInfo
-   *         General information about the search engine. See UserSearchEngine
-   *         for more details.
+   * @param options
+   *        An object containing the following fields:
+   *        - {name} The name of the engine.
+   *        - {url} The url of the engine with %s denoting where to
+   *          replace the search term.
+   *        - {alias} [optional] The alias to refer to the engine.
+   *        - {suggestUrl} [optional] The url that the search engine
+   *          uses for search suggestions.
    */
-  Promise addUserEngine(in jsval formInfo);
+  Promise addUserEngine(in jsval options);
 
   /**
    * Adds search providers to the search service.  If the search

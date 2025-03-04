@@ -82,6 +82,7 @@
   "WindowIsClosing",
   "warnAboutClosingWindow",
   "MailIntegration",
+  "AddKeywordForSearchField",
   "restoreLastClosedTabOrWindowOrSession",
   "undoCloseTab",
   "undoCloseWindow",
