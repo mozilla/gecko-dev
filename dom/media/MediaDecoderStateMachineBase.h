@@ -174,6 +174,10 @@ class MediaDecoderStateMachineBase {
 
   bool IsLiveStream() const;
 
+#ifdef DEBUG
+  bool HasNotifiedPlaybackError() const { return mHasNotifiedPlaybackError; }
+#endif
+
  protected:
   virtual ~MediaDecoderStateMachineBase() = default;
 
@@ -316,6 +320,10 @@ class MediaDecoderStateMachineBase {
 
  private:
   WatchManager<MediaDecoderStateMachineBase> mWatchManager;
+
+#ifdef DEBUG
+  bool mHasNotifiedPlaybackError = false;
+#endif
 };
 
 }  // namespace mozilla

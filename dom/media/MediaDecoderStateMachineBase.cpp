@@ -171,6 +171,9 @@ void MediaDecoderStateMachineBase::DecodeError(const MediaResult& aError) {
                        aError.Description());
   // Notify the decode error and MediaDecoder will shut down MDSM.
   mOnPlaybackErrorEvent.Notify(aError);
+#ifdef DEBUG
+  mHasNotifiedPlaybackError = true;
+#endif
 }
 
 RefPtr<SetCDMPromise> MediaDecoderStateMachineBase::SetCDMProxy(

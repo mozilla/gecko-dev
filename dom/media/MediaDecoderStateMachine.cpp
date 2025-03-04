@@ -3323,8 +3323,12 @@ void MediaDecoderStateMachine::BufferingState::Step() {
       return;
     }
   } else if (mMaster->OutOfDecodedAudio() || mMaster->OutOfDecodedVideo()) {
-    MOZ_ASSERT(!mMaster->OutOfDecodedAudio() || mMaster->IsTrackingAudioData());
-    MOZ_ASSERT(!mMaster->OutOfDecodedVideo() || mMaster->IsTrackingVideoData());
+    MOZ_ASSERT(!mMaster->OutOfDecodedAudio() ||
+               mMaster->IsTrackingAudioData() ||
+               mMaster->HasNotifiedPlaybackError());
+    MOZ_ASSERT(!mMaster->OutOfDecodedVideo() ||
+               mMaster->IsTrackingVideoData() ||
+               mMaster->HasNotifiedPlaybackError());
     SLOG(
         "In buffering mode, waiting to be notified: outOfAudio: %d, "
         "mAudioStatus: %s, outOfVideo: %d, mVideoStatus: %s",
