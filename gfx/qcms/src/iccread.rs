@@ -1277,7 +1277,7 @@ impl TryFrom<TransferCharacteristics> for curveType {
                 //
                 // Inverting gives the electro-optical transfer characteristic
                 // function (EOTF) which can be represented as ICC
-                // parametricCurveType with 4 parameters (ICC.1:2010 Table 5).
+                // parametricCurveType with 4 parameters (ICC.1:2010 Table 65).
                 // Converting between the two (Lc ↔︎ Y, V ↔︎ X):
                 //
                 // Y = (a * X + b)^g  for (X >= d)
@@ -1287,7 +1287,7 @@ impl TryFrom<TransferCharacteristics> for curveType {
                 //
                 // g = 1 / 0.45
                 // a = 1 / α
-                // b = 1 - α
+                // b = 1 - a
                 // c = 1 / 4.500
                 // d = 4.500 * β
                 //
