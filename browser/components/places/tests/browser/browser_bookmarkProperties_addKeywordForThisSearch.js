@@ -21,7 +21,7 @@ add_task(async function add_keyword() {
       await withBookmarksDialog(
         false,
         function () {
-          AddKeywordForSearchField();
+          gContextMenu.addKeywordForSearchField();
           contentAreaContextMenu.hidePopup();
         },
         async function (dialogWin) {
@@ -113,7 +113,7 @@ add_task(async function reopen_same_field() {
       await withBookmarksDialog(
         true,
         function () {
-          AddKeywordForSearchField();
+          gContextMenu.addKeywordForSearchField();
           contentAreaContextMenu.hidePopup();
         },
         async function (dialogWin) {
@@ -159,7 +159,7 @@ add_task(async function open_other_field() {
       await withBookmarksDialog(
         true,
         function () {
-          AddKeywordForSearchField();
+          gContextMenu.addKeywordForSearchField();
           contentAreaContextMenu.hidePopup();
         },
         function (dialogWin) {
