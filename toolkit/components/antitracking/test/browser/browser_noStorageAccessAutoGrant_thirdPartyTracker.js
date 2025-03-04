@@ -24,10 +24,7 @@ add_setup(async function () {
     set: [
       ["network.cookie.cookieBehavior.trackerCookieBlocking", false],
       ["dom.storage_access.max_concurrent_auto_grants", 2],
-      [
-        "privacy.restrict3rdpartystorage.heuristic.exclude_third_party_trackers",
-        true,
-      ],
+      ["dom.storage_access.auto_grants.exclude_third_party_trackers", true],
     ],
   });
 

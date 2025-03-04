@@ -4553,6 +4553,12 @@
   value: true
   mirror: always
 
+# Whether to exclude third-party trackers from Storage Access API auto grants.
+- name: dom.storage_access.auto_grants.exclude_third_party_trackers
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
 # Storage-access API.
 - name: dom.storage_access.enabled
   type: bool
@@ -15731,7 +15737,7 @@
   value: 600    # 10 minutes
   mirror: always
 
-# Whether to exclude third-party trackers from the storage accessheuristic.
+# Whether to exclude third-party trackers from the storage access heuristics.
 - name: privacy.restrict3rdpartystorage.heuristic.exclude_third_party_trackers
   type: bool
   value: @IS_NIGHTLY_BUILD@
