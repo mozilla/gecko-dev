@@ -705,5 +705,8 @@ const av1_codec_arg_definitions_t g_av1_codec_arg_defs = {
       ARG_DEF(NULL, "sb-qp-sweep", 1,
               "When set to 1, enable the superblock level qp sweep for a "
               "given lambda to minimize the rdcost."),
+  .enable_low_complexity_decode =
+      ARG_DEF(NULL, "enable-low-complexity-decode", 1,
+              "Enable low complexity decode (0: false (default), 1: true)"),
 #endif  // CONFIG_AV1_ENCODER
 };

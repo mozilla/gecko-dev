@@ -2732,7 +2732,7 @@ TEST_P(DatarateTestSVC, BasicRateTargetingSVC2TL1SLScreenDropFrame1920x1080) {
 // Check basic rate targeting for CBR, for 2 temporal layers, 1 spatial
 // for screen mode, with frame dropper on at low bitrates. Use small
 // values of rc_buf_initial/optimal/sz to trigger postencode frame drop.
-// Use 1920x1080 clip. This tests runs with 4 threads.
+// Use 1920x1080 clip. This test runs with 4 threads.
 TEST_P(DatarateTestSVC,
        BasicRateTargetingSVC2TL1SLScreenDropFrame1920x10804Thread) {
   BasicRateTargetingSVC2TL1SLScreenDropFrame1920x10804ThreadTest();

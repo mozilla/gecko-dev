@@ -25,7 +25,9 @@ if("${AOM_ROOT}" STREQUAL "${AOM_CONFIG_DIR}")
                 "And re-run CMake from the aom_build directory.")
 endif()
 
-project(AOM C CXX)
+# VERSION is the release version of the library. It should be updated at the
+# same time as the LT_* variables.
+project(AOM LANGUAGES C CXX VERSION 3.12.0)
 
 # GENERATED source property global visibility.
 if(POLICY CMP0118)
@@ -58,9 +60,11 @@ endif()
 # passed to libtool.
 #
 # We set SO_FILE_VERSION = [c-a].a.r
-set(LT_CURRENT 14)
+#
+# The VERSION number in project() should be updated when these variables are.
+set(LT_CURRENT 15)
 set(LT_REVISION 0)
-set(LT_AGE 11)
+set(LT_AGE 12)
 math(EXPR SO_VERSION "${LT_CURRENT} - ${LT_AGE}")
 set(SO_FILE_VERSION "${SO_VERSION}.${LT_AGE}.${LT_REVISION}")
 unset(LT_CURRENT)
@@ -285,9 +289,11 @@ else()
   set(target_objs_aom $<TARGET_OBJECTS:aom_obj>)
 endif()
 add_library(aom ${target_objs_aom} $<TARGET_OBJECTS:aom_rtcd>)
+target_include_directories(aom PUBLIC $<INSTALL_INTERFACE:include>)
 
 if(BUILD_SHARED_LIBS)
   add_library(aom_static STATIC ${target_objs_aom} $<TARGET_OBJECTS:aom_rtcd>)
+  target_include_directories(aom_static PUBLIC $<INSTALL_INTERFACE:include>)
   set_target_properties(aom_static PROPERTIES OUTPUT_NAME aom)
   if(MSVC OR (WIN32 AND NOT MINGW))
     # Fix race condition between the import library and the static library.

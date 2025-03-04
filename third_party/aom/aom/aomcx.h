@@ -1578,6 +1578,11 @@ enum aome_enc_control_id {
    */
   AV1E_SET_MAX_CONSEC_FRAME_DROP_MS_CBR = 169,
 
+  /*!\brief Codec control to enable the low complexity decode mode, unsigned
+   * int parameter. Value of zero means this mode is disabled.
+   */
+  AV1E_SET_ENABLE_LOW_COMPLEXITY_DECODE = 170,
+
   // Any new encoder control IDs should be added above.
   // Maximum allowed encoder control ID is 229.
   // No encoder control ID should be added below.
@@ -2278,6 +2283,9 @@ AOM_CTRL_USE_TYPE(AV1E_SET_POSTENCODE_DROP_RTC, int)
 
 AOM_CTRL_USE_TYPE(AV1E_SET_MAX_CONSEC_FRAME_DROP_MS_CBR, int)
 #define AOM_CTRL_AV1E_SET_MAX_CONSEC_FRAME_DROP_MS_CBR
+
+AOM_CTRL_USE_TYPE(AV1E_SET_ENABLE_LOW_COMPLEXITY_DECODE, unsigned int)
+#define AOM_CTRL_AV1E_SET_ENABLE_LOW_COMPLEXITY_DECODE
 
 /*!\endcond */
 /*! @} - end defgroup aom_encoder */

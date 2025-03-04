@@ -1,3 +1,86 @@
+2025-02-10 v3.12.0
+  This release includes new codec interfaces, compression efficiency and
+  perceptual improvements, speedup and memory optimizations, and bug
+  fixes. This release is ABI compatible with the last release.
+
+  Five internal functions (aom_free, aom_malloc, aom_wb_bytes_written,
+  aom_wb_write_bit, aom_wb_write_literal) that were exported by mistake
+  are no longer exported from the libaom shared library. The removal of
+  these internal functions from the ABI is a bug fix and does not break
+  ABI compatibility.
+
+  Acknowledgments: The image quality optimizations in the new tuning
+  mode AOM_TUNE_IQ were originally developed for SVT-AV1-PSY by
+  Cole Ogaard, Gianni Rosato, Julio Barba, and Zakaria Djebrouni.
+
+  - New Features
+    * New tuning mode AOM_TUNE_IQ (image quality) for the
+      AOME_SET_TUNING codec control (--tune=iq) in all-intra mode. The
+      feature detection macro AOM_HAVE_TUNE_IQ, if defined, indicates
+      that AOM_TUNE_IQ is available. The image quality optimizations in
+      AOM_TUNE_IQ were developed by using the SSIMULACRA 2 metric for
+      guidance and validated with subjective visual quality checks.
+    * New value 6 for the AV1E_SET_DELTAQ_MODE codec control
+      (--deltaq-mode): use modulation for all intra using Variance
+      Boost. Variance Boost is a variance adaptive quantization
+      implementation that modulates qindex depending on the ratio of
+      low-variance to high-variance 8x8 subblocks within a 64x64
+      superblock, as well as the actual variance of the subblocks
+      themselves.
+    * New value 3 for the AV1E_SET_ENABLE_CDEF codec control
+      (--enable-cdef): Enable CDEF adaptively based on frame qindex.
+    * In all-intra mode, the AOME_SET_SHARPNESS codec control now also
+      sets the loop_filter_sharpness syntax element in the bitstream.
+      Larger values increasingly reduce how much the filtering can
+      change the sample values on block edges to favor perceived
+      sharpness.
+    * In all-intra mode, the default value of the AV1E_SET_QM_MIN codec
+      control is decreased to 4, and the default value of the
+      AV1E_SET_QM_MAX codec control is increased to 10. The default
+      values in good-quality and realtime modes remain unchanged (5 and
+      9, respectively).
+
+  - Compression Efficiency Improvements
+    * Tuning mode AOM_TUNE_IQ improves image compression efficiency on
+      the CLIC dataset by up to 12% for the same SSIMULACRA 2 score, up
+      to 14% for the same DSSIM score, and up to 17% for the same
+      Butteraugli score.
+    * ~3% BD-rate gains for speed 11 VGA camera mode.
+    * ~5% BD-rate gains for speed 11 on scroll clips screen mode.
+
+  - Perceptual Quality Improvements
+    * Adjust temporal filter strength for better visual quality.
+    * RTC screen: visual quality improvements for scrolling and for
+      scene/slide changes.
+    * RTC camera mode: visual quality improvements for speed 11 VGA.
+
+  - Speedup and Memory Optimizations
+    * Optimize the Arm Neon implementation of the loop filter functions
+      with an average uplift of 15 - 25% in microbenchmarks.
+    * Add the CDEF optimization for RISC-V.
+    * Help the compiler generate better vectorized code for variance
+      calculation and warped motion in generic CPU builds.
+    * Make several arrays const.
+
+  - Other Improvements
+    * Binary size reduction: 1 - 2% compared with last release, with
+      CONFIG_REALTIME_ONLY enabled, CONFIG_AV1_DECODER and
+      CONFIG_AV1_HIGHBITDEPTH disabled.
+    * Build: compile source files in parallel under MSVC.
+
+  - Bug Fixes
+    * Fix bug where metadata added with aom_img_add_metadata was lost
+      when frame scaling was used.
+    * Bug b:383306740: RTC: Fix to issues with scrolling for screen
+      content.
+    * Bug b:382465458: RTC: Fix to artifact for grayscale input.
+    * Bug b:380247338: RTC: Fix to encode_time spikes on scene/slide
+      changes.
+    * RTC: Fix to rate correction factor update for VBR screen mode.
+      https://groups.google.com/a/aomedia.org/g/av1-discuss/c/nJxECdg-7P8
+    * Bug b:378401081: RTC: Fix to cyclic refresh update for external RC
+      (rate control).
+
 2024-10-24 v3.11.0
   This release includes perceptual quality improvements, binary size reduction
   under certain configurations and many bug fixes. This release changes the

@@ -420,27 +420,45 @@ EOF
   common_bottom;
 }
 
+# List of architectures in low-to-high preference order.
+my @PRIORITY_ARCH = qw/
+  c
+  mmx sse sse2 sse3 ssse3 sse4_1 sse4_2 avx avx2
+  arm_crc32 neon neon_dotprod neon_i8mm sve sve2
+  rvv
+  vsx
+  dspr2 msa
+/;
+my %PRIORITY_INDEX;
+for (my $i = 0; $i < @PRIORITY_ARCH; $i++) {
+  $PRIORITY_INDEX{$PRIORITY_ARCH[$i]} = $i;
+}
+
 #
 # Main Driver
 #
 
 &require("c");
-&require(keys %required);
+&require(sort { $PRIORITY_INDEX{$a} <=> $PRIORITY_INDEX{$b} } keys %required);
 if ($opts{arch} eq 'x86') {
   @ALL_ARCHS = filter(qw/mmx sse sse2 sse3 ssse3 sse4_1 sse4_2 avx avx2/);
   x86;
 } elsif ($opts{arch} eq 'x86_64') {
   @ALL_ARCHS = filter(qw/mmx sse sse2 sse3 ssse3 sse4_1 sse4_2 avx avx2/);
-  @REQUIRES = filter(qw/mmx sse sse2/);
-  &require(@REQUIRES);
+  if (keys %required == 0) {
+    @REQUIRES = filter(qw/mmx sse sse2/);
+    &require(@REQUIRES);
+  }
   x86;
 } elsif ($opts{arch} =~ /armv[78]\w?/) {
   @ALL_ARCHS = filter(qw/neon/);
   arm;
 } elsif ($opts{arch} eq 'arm64' ) {
   @ALL_ARCHS = filter(qw/neon arm_crc32 neon_dotprod neon_i8mm sve sve2/);
-  @REQUIRES = filter(qw/neon/);
-  &require(@REQUIRES);
+  if (keys %required == 0) {
+    @REQUIRES = filter(qw/neon/);
+    &require(@REQUIRES);
+  }
   arm;
 } elsif ($opts{arch} eq 'ppc') {
   @ALL_ARCHS = filter(qw/vsx/);

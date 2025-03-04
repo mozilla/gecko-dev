@@ -1041,6 +1041,9 @@ typedef struct AV1EncoderConfig {
   // Indicates the speed preset to be used.
   int speed;
 
+  // Enable the low complexity decode mode.
+  unsigned int enable_low_complexity_decode;
+
   // Indicates the target sequence level index for each operating point(OP).
   AV1_LEVEL target_seq_level_idx[MAX_NUM_OPERATING_POINTS];
 

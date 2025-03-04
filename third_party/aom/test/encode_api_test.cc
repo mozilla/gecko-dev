@@ -861,6 +861,46 @@ TEST(EncodeAPI, AomediaIssue3509VbrMinSection101Percent) {
   ASSERT_EQ(aom_codec_destroy(&enc), AOM_CODEC_OK);
 }
 
+TEST(EncodeAPI, Buganizer392929025) {
+  // Initialize libaom encoder.
+  aom_codec_iface_t *const iface = aom_codec_av1_cx();
+  aom_codec_ctx_t enc;
+  aom_codec_enc_cfg_t cfg;
+
+  ASSERT_EQ(aom_codec_enc_config_default(iface, &cfg, AOM_USAGE_REALTIME),
+            AOM_CODEC_OK);
+
+  cfg.g_w = 16;
+  cfg.g_h = 16;
+
+  ASSERT_EQ(aom_codec_enc_init(&enc, iface, &cfg, 0), AOM_CODEC_OK);
+
+  ASSERT_EQ(aom_codec_control(&enc, AV1E_SET_MATRIX_COEFFICIENTS,
+                              AOM_CICP_MC_IDENTITY),
+            AOM_CODEC_OK);
+
+  // Create input image.
+  aom_image_t *const image =
+      CreateGrayImage(AOM_IMG_FMT_I420, cfg.g_w, cfg.g_h);
+  ASSERT_NE(image, nullptr);
+
+  // Encode frame.
+  // AOM_CICP_MC_IDENTITY requires subsampling to be 0.
+  EXPECT_EQ(
+      aom_codec_encode(&enc, image, /*pts=*/0, /*duration=*/1, /*flags=*/0),
+      AOM_CODEC_INVALID_PARAM);
+
+  // Attempt to reconfigure with non-zero subsampling.
+  EXPECT_EQ(aom_codec_control(&enc, AV1E_SET_CHROMA_SUBSAMPLING_X, 1),
+            AOM_CODEC_INVALID_PARAM);
+  EXPECT_EQ(aom_codec_control(&enc, AV1E_SET_CHROMA_SUBSAMPLING_Y, 1),
+            AOM_CODEC_INVALID_PARAM);
+
+  // Free resources.
+  aom_img_free(image);
+  ASSERT_EQ(aom_codec_destroy(&enc), AOM_CODEC_OK);
+}
+
 class EncodeAPIParameterized
     : public testing::TestWithParam<std::tuple<
           /*usage=*/unsigned int, /*speed=*/int, /*aq_mode=*/unsigned int>> {};

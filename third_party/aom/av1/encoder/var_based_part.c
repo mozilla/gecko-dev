@@ -1332,8 +1332,10 @@ static void do_int_pro_motion_estimation(AV1_COMP *cpi, MACROBLOCK *x,
   MACROBLOCKD *xd = &x->e_mbd;
   MB_MODE_INFO *mi = xd->mi[0];
   const int is_screen = cpi->oxcf.tune_cfg.content == AOM_CONTENT_SCREEN;
-  const int increase_col_sw =
-      source_sad_nonrd > kMedSad && !cpi->rc.high_motion_content_screen_rtc;
+  const int increase_col_sw = source_sad_nonrd > kMedSad &&
+                              !cpi->rc.high_motion_content_screen_rtc &&
+                              (cpi->svc.temporal_layer_id == 0 ||
+                               cpi->rc.num_col_blscroll_last_tl0 > 2);
   int me_search_size_col = is_screen
                                ? increase_col_sw ? 512 : 96
                                : block_size_wide[cm->seq_params->sb_size] >> 1;
@@ -1355,6 +1357,12 @@ static void do_int_pro_motion_estimation(AV1_COMP *cpi, MACROBLOCK *x,
     if (*y_sad < (y_sad_zero >> 1) && *y_sad < thresh_sad) {
       x->sb_me_partition = 1;
       x->sb_me_mv.as_int = mi->mv[0].as_int;
+      if (cpi->svc.temporal_layer_id == 0) {
+        if (abs(mi->mv[0].as_mv.col) > 16 && abs(mi->mv[0].as_mv.row) == 0)
+          x->sb_col_scroll = 1;
+        else if (abs(mi->mv[0].as_mv.row) > 16 && abs(mi->mv[0].as_mv.col) == 0)
+          x->sb_row_scroll = 1;
+      }
     } else {
       x->sb_me_partition = 0;
       // Fall back to using zero motion.

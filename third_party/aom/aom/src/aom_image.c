@@ -180,6 +180,10 @@ static aom_image_t *img_alloc_helper(
     img->stride[AOM_PLANE_V] = 0;
   }
 
+  img->cp = AOM_CICP_CP_UNSPECIFIED;
+  img->tc = AOM_CICP_TC_UNSPECIFIED;
+  img->mc = AOM_CICP_MC_UNSPECIFIED;
+
   /* Default viewport to entire image. (This aom_img_set_rect call always
    * succeeds.) */
   int ret = aom_img_set_rect(img, 0, 0, d_w, d_h, border);

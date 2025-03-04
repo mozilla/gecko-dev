@@ -3374,7 +3374,10 @@ static void rc_scene_detection_onepass_rt(AV1_COMP *cpi,
                 cpi, src_y, last_src_y, src_ystride, last_src_ystride,
                 BLOCK_128X128, pos_col, pos_row, &best_intmv_col,
                 &best_intmv_row, sw_col, sw_row);
-            if (y_sad < 100 &&
+            unsigned int sad_thresh =
+                (abs(best_intmv_col) > 150 || abs(best_intmv_row) > 150) ? 300
+                                                                         : 150;
+            if (y_sad < sad_thresh &&
                 (abs(best_intmv_col) > 16 || abs(best_intmv_row) > 16)) {
               cpi->rc.high_motion_content_screen_rtc = 0;
               break;
@@ -3822,6 +3825,10 @@ void av1_get_one_pass_rt_params(AV1_COMP *cpi, FRAME_TYPE *const frame_type,
     resize_reset_rc(cpi, resize_pending_params->width,
                     resize_pending_params->height, cm->width, cm->height);
   }
+  if (svc->temporal_layer_id == 0) {
+    rc->num_col_blscroll_last_tl0 = 0;
+    rc->num_row_blscroll_last_tl0 = 0;
+  }
   // Set the GF interval and update flag.
   if (!rc->rtc_external_ratectrl)
     set_gf_interval_update_onepass_rt(cpi, *frame_type);
@@ -3901,9 +3908,16 @@ int av1_encodedframe_overshoot_cbr(AV1_COMP *cpi, int *q) {
         *q = cpi->rc.worst_quality;
       }
     } else {
-      *q = (3 * cpi->rc.worst_quality + *q) >> 2;
-      // For screen content use the max-q set by the user to allow for less
-      // overshoot on slide changes.
+      // Set a larger QP.
+      const uint64_t sad_thr = 64 * 64 * 32;
+      if (cm->width * cm->height >= 1280 * 720 &&
+          (p_rc->buffer_level > (p_rc->optimal_buffer_level) >> 1) &&
+          cpi->rc.avg_source_sad < sad_thr) {
+        *q = (*q + cpi->rc.worst_quality) >> 1;
+      } else {
+        *q = (3 * cpi->rc.worst_quality + *q) >> 2;
+      }
+      // If we arrive here for screen content: use the max-q set by the user.
       if (is_screen_content) *q = cpi->rc.worst_quality;
     }
   }
