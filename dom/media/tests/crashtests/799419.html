@@ -16,8 +16,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=799419
       var v1 = new RTCPeerConnection();
       var v2 = document.getElementById("pc1video");
       var v3 = document.getElementById("pc2video");
-      navigator.mozGetUserMedia({video:true, fake: true},
-        function(stream) {}, function() {});
+      navigator.mediaDevices.getUserMedia({video:true, fake: true});
       v0.close();
       v1.close();
 

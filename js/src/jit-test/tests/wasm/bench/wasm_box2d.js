@@ -2068,8 +2068,7 @@ function copyTempDouble(ptr) {
         }[name.substr(name.lastIndexOf('.')+1)];
       },getUserMedia:function (func) {
         if(!window.getUserMedia) {
-          window.getUserMedia = navigator['getUserMedia'] ||
-                                navigator['mozGetUserMedia'];
+          window.getUserMedia = navigator.mediaDevices.getUserMedia;
         }
         window.getUserMedia(func);
       },getMovementX:function (event) {

@@ -11960,6 +11960,12 @@
   value: true
   mirror: always
 
+# Expose the deprecated method navigator.mozGetUserMedia().
+- name: media.navigator.mozgetusermedia.enabled
+  type: bool
+  value: true
+  mirror: always
+
 # This pref turns off window-focus checks on the navigator.mediaDevices methods,
 # for partner testing frameworks.
 # Prefer "focusmanager.testmode", which is already set by default for

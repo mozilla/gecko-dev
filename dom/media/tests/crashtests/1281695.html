@@ -15,7 +15,7 @@ function zombieWindow()
 }
 
 function boom() {
-    zombieWindow().navigator.mozGetUserMedia({ "fake": true, "audio": true }, function(stream) {}, function(e) {});
+    zombieWindow().navigator.mediaDevices.getUserMedia({ "fake": true, "audio": true });
 }
 
 </script>

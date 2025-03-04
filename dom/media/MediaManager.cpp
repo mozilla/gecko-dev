@@ -2836,7 +2836,7 @@ static void ReduceConstraint(
 }
 
 /**
- * The entry point for this file. A call from Navigator::mozGetUserMedia
+ * The entry point for this file. A call from MediaDevices::GetUserMedia
  * will end up here. MediaManager is a singleton that is responsible
  * for handling all incoming getUserMedia calls from every window.
  */

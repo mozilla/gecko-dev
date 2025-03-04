@@ -15,7 +15,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=791330
       var pc = new RTCPeerConnection();
       pc.close();
 
-      navigator.mozGetUserMedia({audio: true, fake: true}, function (stream) {
+      navigator.mediaDevices.getUserMedia({audio: true, fake: true}).then(function (stream) {
         try {
           pc.addStream(stream);
           pc.createOffer(function (offer) {});
@@ -25,7 +25,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=791330
 
           finish();
         }
-      }, function () {});
+      });
     }
   </script>
 </head>

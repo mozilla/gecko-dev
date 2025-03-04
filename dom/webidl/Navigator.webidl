@@ -254,6 +254,15 @@ partial interface Navigator {
 partial interface Navigator {
   [NewObject, Func="Navigator::HasMidiSupport"]
   Promise<MIDIAccess> requestMIDIAccess(optional MIDIOptions options = {});
+
+  // Deprecated. Use mediaDevices.getUserMedia instead.
+  [Deprecated="NavigatorGetUserMedia", Throws,
+   Func="Navigator::MozGetUserMediaSupport",
+   NeedsCallerType,
+   UseCounter]
+  undefined mozGetUserMedia(MediaStreamConstraints constraints,
+                            NavigatorUserMediaSuccessCallback successCallback,
+                            NavigatorUserMediaErrorCallback errorCallback);
 };
 
 callback NavigatorUserMediaSuccessCallback = undefined (MediaStream stream);
@@ -262,15 +271,6 @@ callback NavigatorUserMediaErrorCallback = undefined (MediaStreamError error);
 partial interface Navigator {
   [Throws, Func="Navigator::HasUserMediaSupport"]
   readonly attribute MediaDevices mediaDevices;
-
-  // Deprecated. Use mediaDevices.getUserMedia instead.
-  [Deprecated="NavigatorGetUserMedia", Throws,
-   Func="Navigator::HasUserMediaSupport",
-   NeedsCallerType,
-   UseCounter]
-  undefined mozGetUserMedia(MediaStreamConstraints constraints,
-                            NavigatorUserMediaSuccessCallback successCallback,
-                            NavigatorUserMediaErrorCallback errorCallback);
 };
 
 // Service Workers/Navigation Controllers

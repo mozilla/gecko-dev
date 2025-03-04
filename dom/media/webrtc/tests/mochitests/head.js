@@ -363,7 +363,7 @@ function createMediaElementForTrack(track, idPrefix) {
  * to use fake devices or not is now determined in pref further below instead.
  *
  * @param {Dictionary} constraints
- *        The constraints for this mozGetUserMedia callback
+ *        The constraints for this getUserMedia callback
  */
 function getUserMedia(constraints) {
   if (!constraints.fake && constraints.audio) {

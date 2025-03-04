@@ -228,6 +228,8 @@ class Navigator final : public nsISupports, public nsWrapperCache {
   // WebIDL helper methods
   static bool HasUserMediaSupport(JSContext* /* unused */,
                                   JSObject* /* unused */);
+  static bool MozGetUserMediaSupport(JSContext* /* unused */,
+                                     JSObject* /* unused */);
   static bool HasShareSupport(JSContext* /* unused */, JSObject* /* unused */);
 
   static bool HasMidiSupport(JSContext* /* unused */, JSObject* /* unused */);

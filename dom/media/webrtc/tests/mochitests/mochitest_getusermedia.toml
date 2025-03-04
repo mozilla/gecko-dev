@@ -98,8 +98,6 @@ skip-if = [
 
 ["test_getUserMedia_bug1223696.html"]
 
-["test_getUserMedia_callbacks.html"]
-
 ["test_getUserMedia_constraints.html"]
 
 ["test_getUserMedia_cubebDisabled.html"]
