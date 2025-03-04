@@ -112,7 +112,7 @@ async function promiseClearSystemAddons() {
   return installSystemAddons(xml, []);
 }
 
-const builtInOverride = { system: [ADDON_ID] };
+const builtInOverride = { system: [ADDON_ID], builtins: [] };
 
 async function checkAddon(version, reason, startReason = reason) {
   let addons = await AddonManager.getAddonsByTypes(["extension"]);
@@ -308,8 +308,10 @@ add_task(async function test_system_addon_upgrades() {
 });
 
 // Run the test again, but starting from a "builtin" addon location
-add_task(async function test_builtin_addon_upgrades() {
+add_task(async function test_manually_installed_builtin_addon_upgrades() {
   builtInOverride.system = [];
+  builtInOverride.builtins = [];
+  await AddonTestUtils.overrideBuiltIns(builtInOverride);
 
   await AddonTestUtils.promiseStartupManager();
   await Promise.all([
@@ -333,9 +335,48 @@ add_task(async function test_builtin_addon_upgrades() {
   BootstrapMonitor.clear(ADDON_ID);
 });
 
+// Run the test again, but starting from a "builtin" addon location
+add_task(async function test_auto_installed_builtin_addon_upgrades() {
+  const ADDON_VERSION = "1.0";
+  const builtinExtensionDefinitions = {
+    manifest: {
+      version: ADDON_VERSION,
+      browser_specific_settings: {
+        gecko: { id: ADDON_ID },
+      },
+    },
+  };
+  await setupBuiltinExtension(builtinExtensionDefinitions, "test-builtin-ext");
+
+  builtInOverride.system = [];
+  builtInOverride.builtins = [
+    {
+      addon_id: ADDON_ID,
+      addon_version: ADDON_VERSION,
+      res_url: "resource://test-builtin-ext/",
+    },
+  ];
+  await AddonTestUtils.overrideBuiltIns(builtInOverride);
+
+  await Promise.all([
+    AddonTestUtils.promiseWebExtensionStartup(ADDON_ID),
+    AddonTestUtils.promiseStartupManager(),
+  ]);
+  await checkAddon(ADDON_VERSION, BOOTSTRAP_REASONS.ADDON_INSTALL);
+
+  await _test_builtin_addon_override();
+
+  let addon = await AddonManager.getAddonByID(ADDON_ID);
+  await addon.uninstall();
+  await AddonTestUtils.promiseShutdownManager();
+  BootstrapMonitor.clear(ADDON_ID);
+});
+
 add_task(async function test_system_addon_precedence() {
   builtInOverride.system = [ADDON_ID];
+  builtInOverride.builtins = [];
   await AddonTestUtils.overrideBuiltIns(builtInOverride);
+
   await promiseInstallDefaultSystemAddon(ADDON_ID, "1.0");
   await AddonTestUtils.promiseStartupManager();
   await checkAddon("1.0", BOOTSTRAP_REASONS.ADDON_INSTALL);
@@ -370,6 +411,8 @@ add_task(async function test_system_addon_precedence() {
 
 add_task(async function test_builtin_addon_version_precedence() {
   builtInOverride.system = [];
+  builtInOverride.builtins = [];
+  await AddonTestUtils.overrideBuiltIns(builtInOverride);
 
   await AddonTestUtils.promiseStartupManager();
   await Promise.all([

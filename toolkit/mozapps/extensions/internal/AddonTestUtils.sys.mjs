@@ -552,6 +552,24 @@ export var AddonTestUtils = {
     this.appInfo = lazy.getAppInfo();
   },
 
+  updateAppInfo(appInfoProps = {}) {
+    const {
+      ID = "xpcshell@tests.mozilla.org",
+      name = "XPCShell",
+      version = "1",
+      platformVersion = "1.0",
+    } = appInfoProps;
+    lazy.updateAppInfo({
+      ID,
+      name,
+      version,
+      platformVersion,
+      crashReporter: true,
+      ...appInfoProps,
+    });
+    this.appInfo = lazy.getAppInfo();
+  },
+
   getManifestURI(file) {
     if (file.isDirectory()) {
       file.leafName = "manifest.json";
