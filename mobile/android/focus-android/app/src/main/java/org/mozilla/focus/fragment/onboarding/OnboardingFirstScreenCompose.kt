@@ -55,35 +55,38 @@ fun OnBoardingFirstScreenCompose(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Image(
-            painter = painterResource(R.drawable.onboarding_logo),
-            contentDescription = LocalContext.current.getString(R.string.app_name),
-            modifier = Modifier
-                .size(150.dp, 150.dp),
-        )
-        Text(
-            text = stringResource(
-                R.string.onboarding_first_screen_title,
-                stringResource(R.string.app_name),
-            ),
-            modifier = Modifier
-                .padding(top = 32.dp, start = 16.dp, end = 16.dp),
-            textAlign = TextAlign.Center,
-            style = focusTypography.onboardingTitle,
-        )
-        Text(
-            text = stringResource(
-                R.string.onboarding_first_screen_subtitle,
-            ),
-            modifier = Modifier
-                .padding(top = 16.dp, start = 16.dp, end = 16.dp),
-            textAlign = TextAlign.Center,
-            style = focusTypography.onboardingSubtitle,
-        )
+        TitleContent()
+
         ComponentGoToOnBoardingSecondScreen {
             onGetStartedButtonClicked()
         }
     }
+}
+
+@Composable
+private fun TitleContent() {
+    Image(
+        painter = painterResource(R.drawable.onboarding_logo),
+        contentDescription = LocalContext.current.getString(R.string.app_name),
+        modifier = Modifier.size(150.dp, 150.dp),
+    )
+    Text(
+        text = stringResource(
+            R.string.onboarding_first_screen_title,
+            stringResource(R.string.app_name),
+        ),
+        modifier = Modifier.padding(top = 32.dp, start = 16.dp, end = 16.dp),
+        textAlign = TextAlign.Center,
+        style = focusTypography.onboardingTitle,
+    )
+    Text(
+        text = stringResource(
+            R.string.onboarding_first_screen_subtitle,
+        ),
+        modifier = Modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp),
+        textAlign = TextAlign.Center,
+        style = focusTypography.onboardingSubtitle,
+    )
 }
 
 @Composable
