@@ -355,3 +355,5 @@ skip-if = ["condprof"]  # Bug 1769154 - as designed
 run-sequentially = "hardcoded ports"
 
 ["test_x509.js"]
+
+["test_nss_errors_service.js"]

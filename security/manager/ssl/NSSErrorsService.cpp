@@ -179,25 +179,36 @@ static const char* getOverrideErrorStringName(PRErrorCode aErrorCode) {
   }
 }
 
+mozilla::Result<PRErrorCode, nsresult> NSResultToPRErrorCode(
+    nsresult aXPCOMErrorCode) {
+  if (NS_ERROR_GET_MODULE(aXPCOMErrorCode) != NS_ERROR_MODULE_SECURITY ||
+      NS_ERROR_GET_SEVERITY(aXPCOMErrorCode) != NS_ERROR_SEVERITY_ERROR) {
+    return Err(NS_ERROR_FAILURE);
+  }
+
+  PRErrorCode nsprCode = -1 * NS_ERROR_GET_CODE(aXPCOMErrorCode);
+
+  if (!mozilla::psm::IsNSSErrorCode(nsprCode)) {
+    return Err(NS_ERROR_FAILURE);
+  }
+
+  return nsprCode;
+}
+
 NS_IMETHODIMP
 NSSErrorsService::GetErrorMessage(nsresult aXPCOMErrorCode,
                                   nsAString& aErrorMessage) {
-  if (NS_ERROR_GET_MODULE(aXPCOMErrorCode) != NS_ERROR_MODULE_SECURITY ||
-      NS_ERROR_GET_SEVERITY(aXPCOMErrorCode) != NS_ERROR_SEVERITY_ERROR) {
-    return NS_ERROR_FAILURE;
+  auto prErrorCode = NSResultToPRErrorCode(aXPCOMErrorCode);
+  if (!prErrorCode.isOk()) {
+    return prErrorCode.unwrapErr();
   }
 
-  int32_t aNSPRCode = -1 * NS_ERROR_GET_CODE(aXPCOMErrorCode);
-
-  if (!mozilla::psm::IsNSSErrorCode(aNSPRCode)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsCOMPtr<nsIStringBundle> theBundle = mPIPNSSBundle;
-  const char* idStr = getOverrideErrorStringName(aNSPRCode);
-
-  if (!idStr) {
-    idStr = PR_ErrorToName(aNSPRCode);
+  nsCOMPtr<nsIStringBundle> theBundle;
+  const char* idStr = getOverrideErrorStringName(prErrorCode.unwrap());
+  if (idStr) {
+    theBundle = mPIPNSSBundle;
+  } else {
+    idStr = PR_ErrorToName(prErrorCode.unwrap());
     theBundle = mNSSErrorsBundle;
   }
 
@@ -211,6 +222,23 @@ NSSErrorsService::GetErrorMessage(nsresult aXPCOMErrorCode,
     aErrorMessage = msg;
   }
   return rv;
+}
+
+NS_IMETHODIMP
+NSSErrorsService::GetErrorName(nsresult aXPCOMErrorCode,
+                               nsAString& aErrorName) {
+  auto prErrorCode = NSResultToPRErrorCode(aXPCOMErrorCode);
+  if (!prErrorCode.isOk()) {
+    return prErrorCode.unwrapErr();
+  }
+
+  const char* idStr = PR_ErrorToName(prErrorCode.unwrap());
+  if (!idStr) {
+    return NS_ERROR_FAILURE;
+  }
+
+  aErrorName = NS_ConvertASCIItoUTF16(idStr);
+  return NS_OK;
 }
 
 }  // namespace psm
