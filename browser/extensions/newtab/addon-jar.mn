@@ -1,0 +1,25 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+browser.jar:
+% resource newtab %builtin-addons contentaccessible=yes
+% content newtab %content/builtin-addons contentaccessible=yes
+  builtin-addons/newtab/manifest.json (./manifest.json)
+  builtin-addons/newtab/chrome.manifest (./chrome.manifest)
+  builtin-addons/newtab/webext-glue/background.js (./webext-glue/background.js)
+  builtin-addons/newtab/webext-glue/schema.json (./webext-glue/schema.json)
+  builtin-addons/newtab/webext-glue/resource-mapping.js (./webext-glue/resource-mapping.js)
+  builtin-addons/newtab/lib/ (./lib/*)
+  builtin-addons/newtab/common/ (./common/*)
+* builtin-addons/newtab/data/content/abouthomecache/page.html.template (./data/content/abouthomecache/page.html.template)
+* builtin-addons/newtab/data/content/abouthomecache/script.js.template (./data/content/abouthomecache/script.js.template)
+  builtin-addons/newtab/data/data/content/assets/  (./data/content/assets/*)
+  builtin-addons/newtab/data/content/activity-stream.bundle.js (./data/content/activity-stream.bundle.js)
+  builtin-addons/newtab/data/content/newtab-render.js (./data/content/newtab-render.js)
+  builtin-addons/newtab/data/css/activity-stream.css (./css/activity-stream.css)
+  builtin-addons/newtab/prerendered/activity-stream.html (./prerendered/activity-stream.html)
+#ifndef RELEASE_OR_BETA
+  builtin-addons/newtab/prerendered/activity-stream-debug.html (./prerendered/activity-stream-debug.html)
+#endif
+  builtin-addons/newtab/prerendered/activity-stream-noscripts.html (./prerendered/activity-stream-noscripts.html)

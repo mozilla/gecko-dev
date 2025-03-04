@@ -18,4 +18,7 @@ XPCSHELL_TESTS_MANIFESTS += [
     "test/xpcshell/xpcshell.toml",
 ]
 
-JAR_MANIFESTS += ["jar.mn"]
+if CONFIG["BROWSER_NEWTAB_AS_ADDON"]:
+    JAR_MANIFESTS += ["addon-jar.mn"]
+else:
+    JAR_MANIFESTS += ["legacy-jar.mn"]

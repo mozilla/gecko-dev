@@ -1,0 +1,28 @@
+{
+  "manifest_version": 2,
+  "name": "New Tab",
+  "description": "",
+  "version": "138.0.0",
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "newtab@mozilla.org",
+      "strict_min_version": "138.0a1"
+    }
+  },
+
+  "experiment_apis": {
+    "resourceMapping": {
+      "schema": "webext-glue/schema.json",
+      "parent": {
+        "scopes": ["addon_parent"],
+        "script": "webext-glue/resource-mapping.js",
+        "events": ["startup"]
+      }
+    }
+  },
+
+  "background": {
+    "scripts": ["webext-glue/background.js"]
+  }
+}
