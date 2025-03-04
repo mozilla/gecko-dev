@@ -165,7 +165,12 @@ UiaText::get_SupportedTextSelection(
   if (!acc) {
     return CO_E_OBJNOTCONNECTED;
   }
-  if (acc->State() & states::SELECTABLE_TEXT) {
+  if (!acc->IsHyperText()) {
+    // Currently, the SELECTABLE_TEXT state is only exposed on HyperText
+    // Accessibles.
+    acc = acc->Parent();
+  }
+  if (acc && acc->State() & states::SELECTABLE_TEXT) {
     *aRetVal = SupportedTextSelection_Multiple;
   } else {
     *aRetVal = SupportedTextSelection_None;
