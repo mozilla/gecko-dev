@@ -6,6 +6,7 @@ support-files = [
   "discovery.html",
   "head.js",
   "opensearch.html",
+  "test_windows1252.html",
   "test.html",
   "testEngine.xml",
   "testEngine_diacritics.xml",
@@ -19,6 +20,9 @@ tags = "searchnontelem"
 support-files = ["test.html", "discovery.html", "426329.xml"]
 
 ["browser_addKeywordSearch.js"]
+
+["browser_addSearchEngineFromForm.js"]
+support-files = ["test.html", "test_windows1252.html"]
 
 ["browser_contentContextMenu.js"]
 support-files = ["browser_contentContextMenu.xhtml"]
