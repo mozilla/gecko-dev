@@ -153,6 +153,7 @@ function cloneFlatSection(section) {
     "no-unsanitized": require("eslint-plugin-no-unsanitized"),
     "@microsoft/sdl": require("@microsoft/eslint-plugin-sdl"),
     promise: require("eslint-plugin-promise"),
+    jsdoc: require("eslint-plugin-jsdoc"),
   };
   if (!config.languageOptions) {
     config.languageOptions = {};
