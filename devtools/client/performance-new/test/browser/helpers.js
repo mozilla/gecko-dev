@@ -166,7 +166,7 @@ async function makeSureProfilerPopupIsEnabled() {
     });
 
     info("> The menu button is not in the nav bar, add it.");
-    ProfilerMenuButton.addToNavbar();
+    ProfilerMenuButton.addToNavbar(document);
 
     await waitUntil(
       () => gBrowser.ownerDocument.getElementById("profiler-button"),

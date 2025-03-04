@@ -3782,7 +3782,11 @@ BrowserGlue.prototype = {
             "resource://devtools/client/performance-new/popup/menu-button.sys.mjs"
           );
           if (!ProfilerMenuButton.isInNavbar()) {
-            ProfilerMenuButton.addToNavbar();
+            // The profiler menu button is not enabled. Turn it on now.
+            const win = lazy.BrowserWindowTracker.getTopWindow();
+            if (win && win.document) {
+              ProfilerMenuButton.addToNavbar(win.document);
+            }
           }
         }
       }

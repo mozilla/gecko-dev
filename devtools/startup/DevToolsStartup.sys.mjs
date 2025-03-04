@@ -705,19 +705,6 @@ DevToolsStartup.prototype = {
     // popup for our users, regardless of if the feature is enabled by default.
     this.initializeProfilerWebChannel();
 
-    if (
-      !AppConstants.MOZILLA_OFFICIAL ||
-      (!Cu.isInAutomation && Services.env.exists("MOZ_PROFILER_STARTUP"))
-    ) {
-      // If EITHER
-      //   - we're in a local build OR
-      //   - the profiler is active due to startup profiling (but not in
-      //     automation to avoid side-effects with existing tests)
-      // THEN
-      //   show the profiler button in the nav bar
-      lazy.ProfilerMenuButton.ensureButtonInNavbar();
-    }
-
     if (isPopupFeatureFlagEnabled) {
       // Initialize the CustomizableUI widget.
       lazy.ProfilerMenuButton.initialize(this.toggleProfilerKeyShortcuts);
