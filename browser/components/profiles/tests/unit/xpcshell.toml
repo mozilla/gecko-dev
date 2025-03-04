@@ -6,6 +6,8 @@ prefs = [
   "browser.profiles.enabled=true",
 ]
 
+["test_delete_last_profile.js"]
+
 ["test_fail_recover_storeID.js"]
 
 ["test_recover_storeID.js"]
