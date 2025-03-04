@@ -575,13 +575,6 @@ add_task(async function test_protocolHandler_onUpdated_missing_handler() {
 
 // Test that a protocol handler will work if ftp is enabled
 add_task(async function test_ftp_protocolHandler() {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      // Disabling the external protocol permission prompt. We don't need it
-      // for this test.
-      ["security.external_protocol_requires_permission", false],
-    ],
-  });
   let extensionData = {
     manifest: {
       protocol_handlers: [
