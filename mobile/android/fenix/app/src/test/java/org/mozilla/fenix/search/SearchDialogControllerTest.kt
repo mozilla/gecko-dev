@@ -45,8 +45,10 @@ import org.mozilla.fenix.GleanMetrics.UnifiedSearch
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
-import org.mozilla.fenix.components.Core
 import org.mozilla.fenix.components.metrics.MetricsUtils
+import org.mozilla.fenix.components.search.BOOKMARKS_SEARCH_ENGINE_ID
+import org.mozilla.fenix.components.search.HISTORY_SEARCH_ENGINE_ID
+import org.mozilla.fenix.components.search.TABS_SEARCH_ENGINE_ID
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
@@ -601,7 +603,7 @@ class SearchDialogControllerTest {
     fun `WHEN history search engine is selected THEN dispatch correct action`() {
         val searchEngine: SearchEngine = mockk(relaxed = true)
         every { searchEngine.type } returns SearchEngine.Type.APPLICATION
-        every { searchEngine.id } returns Core.HISTORY_SEARCH_ENGINE_ID
+        every { searchEngine.id } returns HISTORY_SEARCH_ENGINE_ID
 
         assertNull(UnifiedSearch.engineSelected.testGetValue())
 
@@ -632,7 +634,7 @@ class SearchDialogControllerTest {
     fun `WHEN bookmarks search engine is selected THEN dispatch correct action`() {
         val searchEngine: SearchEngine = mockk(relaxed = true)
         every { searchEngine.type } returns SearchEngine.Type.APPLICATION
-        every { searchEngine.id } returns Core.BOOKMARKS_SEARCH_ENGINE_ID
+        every { searchEngine.id } returns BOOKMARKS_SEARCH_ENGINE_ID
 
         assertNull(UnifiedSearch.engineSelected.testGetValue())
 
@@ -663,7 +665,7 @@ class SearchDialogControllerTest {
     fun `WHEN tabs search engine is selected THEN dispatch correct action`() {
         val searchEngine: SearchEngine = mockk(relaxed = true)
         every { searchEngine.type } returns SearchEngine.Type.APPLICATION
-        every { searchEngine.id } returns Core.TABS_SEARCH_ENGINE_ID
+        every { searchEngine.id } returns TABS_SEARCH_ENGINE_ID
 
         assertNull(UnifiedSearch.engineSelected.testGetValue())
 

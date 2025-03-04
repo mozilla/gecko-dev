@@ -5,9 +5,9 @@
 package org.mozilla.fenix.ext
 
 import mozilla.components.browser.state.search.SearchEngine
-import org.mozilla.fenix.components.Core.Companion.BOOKMARKS_SEARCH_ENGINE_ID
-import org.mozilla.fenix.components.Core.Companion.HISTORY_SEARCH_ENGINE_ID
-import org.mozilla.fenix.components.Core.Companion.TABS_SEARCH_ENGINE_ID
+import org.mozilla.fenix.components.search.BOOKMARKS_SEARCH_ENGINE_ID
+import org.mozilla.fenix.components.search.HISTORY_SEARCH_ENGINE_ID
+import org.mozilla.fenix.components.search.TABS_SEARCH_ENGINE_ID
 
 // List of well known search domains, taken from
 // https://searchfox.org/mozilla-central/source/toolkit/components/search/SearchService.jsm#2405

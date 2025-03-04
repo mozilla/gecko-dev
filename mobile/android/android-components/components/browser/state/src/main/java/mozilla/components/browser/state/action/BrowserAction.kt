@@ -1816,6 +1816,11 @@ sealed class SearchAction : BrowserAction() {
     data class SetRegionAction(val regionState: RegionState, val distribution: String? = null) : SearchAction()
 
     /**
+     * Application Search Engines have finished loading from disk.
+     */
+    data class ApplicationSearchEnginesLoaded(val applicationSearchEngines: List<SearchEngine>) : SearchAction()
+
+    /**
      * Sets the list of search engines and default search engine IDs.
      */
     data class SetSearchEnginesAction(

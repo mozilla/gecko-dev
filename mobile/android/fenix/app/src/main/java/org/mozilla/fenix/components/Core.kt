@@ -8,9 +8,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.os.Build
 import android.os.StrictMode
-import androidx.appcompat.content.res.AppCompatResources.getDrawable
 import androidx.core.content.ContextCompat
-import androidx.core.graphics.drawable.toBitmap
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,9 +25,7 @@ import mozilla.components.browser.icons.BrowserIcons
 import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.state.engine.EngineMiddleware
 import mozilla.components.browser.state.engine.middleware.SessionPrioritizationMiddleware
-import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.state.BrowserState
-import mozilla.components.browser.state.state.SearchState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.storage.sync.PlacesBookmarksStorage
 import mozilla.components.browser.storage.sync.PlacesHistoryStorage
@@ -58,7 +54,6 @@ import mozilla.components.feature.pwa.WebAppShortcutManager
 import mozilla.components.feature.readerview.ReaderViewMiddleware
 import mozilla.components.feature.recentlyclosed.RecentlyClosedMiddleware
 import mozilla.components.feature.recentlyclosed.RecentlyClosedTabsStorage
-import mozilla.components.feature.search.ext.createApplicationSearchEngine
 import mozilla.components.feature.search.middleware.AdsTelemetryMiddleware
 import mozilla.components.feature.search.middleware.SearchExtraParams
 import mozilla.components.feature.search.middleware.SearchMiddleware
@@ -106,6 +101,7 @@ import org.mozilla.fenix.IntentReceiverActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.desktopmode.DefaultDesktopModeRepository
 import org.mozilla.fenix.browser.desktopmode.DesktopModeMiddleware
+import org.mozilla.fenix.components.search.ApplicationSearchMiddleware
 import org.mozilla.fenix.components.search.SearchMigration
 import org.mozilla.fenix.downloads.DownloadService
 import org.mozilla.fenix.ext.components
@@ -275,29 +271,6 @@ class Core(
         }
     }
 
-    val applicationSearchEngines: List<SearchEngine> by lazyMonitored {
-        listOf(
-            createApplicationSearchEngine(
-                id = BOOKMARKS_SEARCH_ENGINE_ID,
-                name = context.getString(R.string.library_bookmarks),
-                url = "",
-                icon = getDrawable(context, R.drawable.ic_bookmarks_search)?.toBitmap()!!,
-            ),
-            createApplicationSearchEngine(
-                id = TABS_SEARCH_ENGINE_ID,
-                name = context.getString(R.string.preferences_tabs),
-                url = "",
-                icon = getDrawable(context, R.drawable.ic_tabs_search)?.toBitmap()!!,
-            ),
-            createApplicationSearchEngine(
-                id = HISTORY_SEARCH_ENGINE_ID,
-                name = context.getString(R.string.library_history),
-                url = "",
-                icon = getDrawable(context, R.drawable.ic_history_search)?.toBitmap()!!,
-            ),
-        )
-    }
-
     /**
      * The [BrowserStore] holds the global [BrowserState].
      */
@@ -342,14 +315,10 @@ class Core(
                         context = context,
                     ),
                 ),
+                ApplicationSearchMiddleware(context),
             )
 
         BrowserStore(
-            initialState = BrowserState(
-                search = SearchState(
-                    applicationSearchEngines = applicationSearchEngines,
-                ),
-            ),
             middleware = middlewareList + EngineMiddleware.create(
                 engine,
                 // We are disabling automatic suspending of engine sessions under memory pressure.
@@ -723,9 +692,6 @@ class Core(
         const val HISTORY_METADATA_MAX_AGE_IN_MS = 14 * 24 * 60 * 60 * 1000 // 14 days
         private const val CONTILE_MAX_CACHE_AGE = 3600L // 60 minutes
         private const val MARS_TOP_SITES_MAX_CACHE_AGE = 1800L // 30 minutes
-        const val HISTORY_SEARCH_ENGINE_ID = "history_search_engine_id"
-        const val BOOKMARKS_SEARCH_ENGINE_ID = "bookmarks_search_engine_id"
-        const val TABS_SEARCH_ENGINE_ID = "tabs_search_engine_id"
 
         // Maximum number of suggestions returned from the history search engine source.
         const val METADATA_HISTORY_SUGGESTION_LIMIT = 100

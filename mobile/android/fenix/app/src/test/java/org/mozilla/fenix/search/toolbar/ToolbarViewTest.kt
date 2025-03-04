@@ -40,8 +40,10 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.Components
-import org.mozilla.fenix.components.Core
 import org.mozilla.fenix.components.metrics.MetricsUtils
+import org.mozilla.fenix.components.search.BOOKMARKS_SEARCH_ENGINE_ID
+import org.mozilla.fenix.components.search.HISTORY_SEARCH_ENGINE_ID
+import org.mozilla.fenix.components.search.TABS_SEARCH_ENGINE_ID
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
@@ -364,7 +366,7 @@ class ToolbarViewTest {
     @Test
     fun `WHEN history is selected as engine THEN show hint specific for history`() {
         val toolbarView = buildToolbarView(false)
-        val historyEngine = buildSearchEngine(SearchEngine.Type.APPLICATION, false, Core.HISTORY_SEARCH_ENGINE_ID)
+        val historyEngine = buildSearchEngine(SearchEngine.Type.APPLICATION, false, HISTORY_SEARCH_ENGINE_ID)
         val fragment = spyk(SearchDialogFragment())
         fragment.inlineAutocompleteEditText = InlineAutocompleteEditText(context)
         val searchState = mockk<SearchState>()
@@ -386,7 +388,7 @@ class ToolbarViewTest {
     @Test
     fun `WHEN bookmarks is selected as engine THEN show hint specific for bookmarks`() {
         val toolbarView = buildToolbarView(false)
-        val bookmarksEngine = buildSearchEngine(SearchEngine.Type.APPLICATION, false, Core.BOOKMARKS_SEARCH_ENGINE_ID)
+        val bookmarksEngine = buildSearchEngine(SearchEngine.Type.APPLICATION, false, BOOKMARKS_SEARCH_ENGINE_ID)
         val fragment = spyk(SearchDialogFragment())
         fragment.inlineAutocompleteEditText = InlineAutocompleteEditText(context)
         val searchState = mockk<SearchState>()
@@ -408,7 +410,7 @@ class ToolbarViewTest {
     @Test
     fun `WHEN tabs is selected as engine THEN show hint specific for tabs`() {
         val toolbarView = buildToolbarView(false)
-        val tabsEngine = buildSearchEngine(SearchEngine.Type.APPLICATION, false, Core.TABS_SEARCH_ENGINE_ID)
+        val tabsEngine = buildSearchEngine(SearchEngine.Type.APPLICATION, false, TABS_SEARCH_ENGINE_ID)
         val fragment = spyk(SearchDialogFragment())
         fragment.inlineAutocompleteEditText = InlineAutocompleteEditText(context)
         val searchState = mockk<SearchState>()

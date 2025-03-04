@@ -61,6 +61,33 @@ class SearchActionTest {
     }
 
     @Test
+    fun `ApplicationSearchEnginesLoaded - Sets the application search engines in the state`() {
+        val engine1 = SearchEngine(
+            id = "id1",
+            name = "search1",
+            icon = mock(),
+            type = SearchEngine.Type.APPLICATION,
+        )
+        val engine2 = SearchEngine(
+            id = "id2",
+            name = "search2",
+            icon = mock(),
+            type = SearchEngine.Type.APPLICATION,
+        )
+
+        val store = BrowserStore(BrowserState())
+        val searchEngineList = listOf(engine1, engine2)
+        assertTrue(store.state.search.applicationSearchEngines.isEmpty())
+
+        store.dispatch(
+            SearchAction.ApplicationSearchEnginesLoaded(searchEngineList),
+        ).joinBlocking()
+
+        val searchEngines = store.state.search.applicationSearchEngines
+        assertEquals(2, searchEngines.size)
+    }
+
+    @Test
     fun `SetSearchEnginesAction - sets custom search engines in state`() {
         val engine1 = SearchEngine(
             id = "id1",
