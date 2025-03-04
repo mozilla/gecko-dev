@@ -141,6 +141,8 @@
 
     <!-- Button text for showing all the tabs in the tabs tray -->
     <string name="recent_tabs_show_all">Amosar too</string>
+    <!-- Text for button in synced tab card that opens synced tabs tray -->
+    <string name="recent_tabs_see_all_synced_tabs_button_text">Ver toles llingüetes sincronizaes</string>
     <!-- Text for the dropdown menu to remove a recent synced tab from the homescreen -->
     <string name="recent_synced_tab_menu_item_remove">Quitar</string>
     <!-- Text for the menu button to remove a grouped highlight from the user's browsing history
@@ -232,12 +234,18 @@
     <string name="browser_menu_customize_home_1">Personalizar la páxina d\'aniciu</string>
     <!-- Browser menu label that navigates to the Password screen -->
     <string name="browser_menu_passwords">Contraseñes</string>
+    <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
+    <string name="browser_menu_switch_to_desktop_site">Cambiar al sitiu pa ordenadores</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Ferramientes</string>
     <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
     <string name="browser_main_menu_content_description_help_button">Ayuda</string>
     <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
     <string name="browser_main_menu_content_description_settings_button">Configuración</string>
+    <!-- Browser menu label that the saves the currently visited page as a PDF -->
+    <string name="browser_menu_save_as_pdf">Guardar como PDF…</string>
+    <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+    <string name="browser_menu_translate_page">Traducir la páxina…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
     <string name="browser_menu_webcompat_reporter">Informar d\'un sitiu estropiáu…</string>
     <!-- Browser menu label for the print feature -->
@@ -246,6 +254,11 @@
     <!-- Browser Toolbar -->
     <!-- Content description for the Home screen button on the browser toolbar -->
     <string name="browser_toolbar_home">Pantalla d\'aniciu</string>
+
+    <!-- Content description (not visible, for screen readers etc.) for the translate page toolbar button that opens the translations dialog when the page is translated successfully.
+         The first parameter is the name of the language that is displayed in the original page. (For example: English)
+         The second parameter is the name of the language which the page was translated to. (For example: French) -->
+    <string name="browser_toolbar_translated_successfully">La páxina tradúxose del «%1$s» al «%2$s».</string>
 
     <!-- Locale Settings Fragment -->
     <!-- Content description for tick mark on selected language -->
@@ -270,16 +283,45 @@
     <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix)-->
     <string name="search_suggestions_onboarding_text">%s va compartir tolo que teclexes na barra de direiciones col motor de busca predetermináu.</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Search engine icon.
+    The parameter is the search engine name (for example: DuckDuckGo). -->
+    <string name="search_engine_icon_content_description_1">Motor de busca: %s</string>
+
+    <!-- Home onboarding -->
+    <!-- Home onboarding dialog welcome screen title text. -->
+    <string name="onboarding_home_welcome_title_2">Afáyate nun internet más personal</string>
+    <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
+    <string name="onboarding_home_skip_button">Saltar</string>
+    <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
+    <string name="onboarding_home_content_description_close_button">Zarrar</string>
+
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">Préstanos pola vida protexete</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
+    <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">Agora non</string>
+    <!-- Text for the button to sign in to sync on the device -->
+    <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Aniciar la sesión</string>
+    <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_sign_in_negative_button" tools:ignore="UnusedResources">Agora non</string>
+    <!-- Text for the button to request notification permission on the device -->
+    <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">Activar los avisos</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_enable_notifications_negative_button" tools:ignore="UnusedResources">Agora non</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Agora non</string>
+    <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+    <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_positive_button">Fecho</string>
+    <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources" moz:removedIn="136">Encaboxar</string>
+    <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
+    <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">Afáyate en Firefox</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
     <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">Términos del serviciu</string>
+
+    <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
+    <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">Términos d\'usu de Mozilla</string>
 
     <!-- Text preview for smaller sized widgets -->
     <string name="search_widget_text_short">Buscar</string>
@@ -358,6 +400,8 @@
     <string name="preferences_account_sync_error">Volvi conectate pa siguir cola sincronización</string>
     <!-- Preference for language -->
     <string name="preferences_language">Llingua</string>
+    <!-- Preference for translations -->
+    <string name="preferences_translations">Traducciones</string>
     <!-- Preference for data collection -->
     <string name="preferences_data_collection">Recoyida de datos</string>
 
@@ -401,6 +445,8 @@
     <!-- Hint displayed on input field for custom collection user ID-->
     <string name="customize_addon_collection_user_hint">Propietariu de la coleición (ID d\'usuariu)</string>
 
+    <!-- Title for the customize home screen section with bookmarks. -->
+    <string name="customize_toggle_bookmarks">Marcadores</string>
     <!-- Title for the opening wallpaper settings screen -->
     <string name="customize_wallpapers">Fondos de pantalla</string>
     <!-- Title for the customize home screen section with sponsored shortcuts. -->
@@ -536,6 +582,13 @@
 
     <!-- Content description (not visible, for screen readers etc.): "Close button for library settings" -->
     <string name="content_description_close_button">Zarrar</string>
+
+    <!-- Text to show users they have one page in the history group section of the History fragment.
+    %d is a placeholder for the number of pages in the group. -->
+    <string name="history_search_group_site_1">%d páxina</string>
+    <!-- Text to show users they have multiple pages in the history group section of the History fragment.
+    %d is a placeholder for the number of pages in the group. -->
+    <string name="history_search_group_sites_1">%d páxines</string>
 
     <!-- Option in library for Recently Closed Tabs -->
     <string name="library_recently_closed_tabs">Llingüetes zarraes apocayá</string>
@@ -857,6 +910,9 @@
     <string name="delete_browsing_data_quit_on">Sí</string>
     <!-- Summary of delete browsing data on quit preference if it is set to off -->
     <string name="delete_browsing_data_quit_off">Non</string>
+
+    <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
+    <string name="preference_feature_desktop_mode_default">Pidir siempre\'l sitiu pa ordenadores</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->
@@ -1289,6 +1345,9 @@
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is signed into sync -->
     <string name="preferences_credit_cards_sync_cards">Sincronizar les tarxetes</string>
 
+    <!-- Preference option for adding a card -->
+    <string name="preferences_credit_cards_add_credit_card_2">Amestar una tarxeta</string>
+
     <!-- Title of the "Add card" screen -->
     <string name="credit_cards_add_card">Amiestu d\'una tarxeta</string>
     <!-- The header for the card number of a credit card -->
@@ -1499,6 +1558,18 @@
     <!-- Translation settings dialog -->
     <!-- Title of the translation settings dialog that allows a user to set their preferred translation settings. -->
     <string name="translation_settings_toolbar_title">Traducciones</string>
+
+    <!-- Section header text that begins the section of a list of different options the user may select to adjust their translation preferences. -->
+    <string name="translation_settings_translation_preference">Preferencies de la traducción</string>
+    <!-- Button text for the button that will take the user to the automatic translations settings dialog. On the automatic translations settings dialog, the user can set if translations should occur automatically for a given language. -->
+    <string name="translation_settings_automatic_translation">Traducción automática</string>
+
+    <!-- Automatic translation preference screen -->
+    <!-- Title of the automatic translation preference screen that will appear on the toolbar.-->
+    <string name="automatic_translation_toolbar_title_preference">Traducción automática</string>
+
+    <!-- Preference option for always translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="automatic_translation_option_always_translate_summary_preference">«%1$s» va traducir esta llingua automáticamente cuando cargue la páxina.</string>
 
     <!-- The Delete site dialogue title will appear when the user clicks on a list item.
              The first parameter is web site url (for example:"wikipedia.com") -->

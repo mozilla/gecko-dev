@@ -633,6 +633,13 @@
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">确认并开始浏览</string>
 
+    <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+    <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">最后一件事</string>
+    <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">与 Mozilla 的营销合作伙伴分享您发现 Firefox 的途径及使用方式。我们绝不会出售此数据。</string>
+    <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">同意并开始浏览</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">选取工具栏位置</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1804,6 +1811,8 @@
     <!-- Text for the button to connect another device -->
     <string name="sync_add_new_device_connect_button">连接其他设备…</string>
 
+    <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+    <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\n发自 %2$s 🦊 试试移动版浏览器：%3$s</string>
     <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
     <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\n发自 %2$s 🦊 %3$s</string>
 
