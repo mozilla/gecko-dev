@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Text
@@ -32,6 +31,8 @@ import org.mozilla.focus.R
 import org.mozilla.focus.ui.theme.FocusTheme
 import org.mozilla.focus.ui.theme.focusTypography
 import org.mozilla.focus.ui.theme.gradientBackground
+
+private const val TOP_SPACER_WEIGHT = 1f
 
 @Composable
 @Preview
@@ -60,7 +61,7 @@ fun OnBoardingSecondScreenCompose(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(modifier = Modifier.systemBarsPadding())
+        Spacer(Modifier.weight(TOP_SPACER_WEIGHT))
 
         Image(
             painter = painterResource(R.drawable.onboarding_second_screen_icon),
@@ -132,7 +133,7 @@ private fun ComponentOnBoardingSecondScreenButtons(
     Button(
         onClick = skipScreen,
         modifier = Modifier
-            .padding(top = 8.dp, start = 16.dp, end = 16.dp)
+            .padding(top = 8.dp, start = 16.dp, end = 16.dp, bottom = 74.dp)
             .fillMaxWidth(),
         colors = ButtonDefaults.textButtonColors(
             backgroundColor = colorResource(R.color.onboardingButtonTwoColor),
