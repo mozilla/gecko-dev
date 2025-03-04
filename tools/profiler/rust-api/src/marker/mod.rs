@@ -129,8 +129,9 @@ use crate::json_writer::JSONWriter;
 use crate::marker::deserializer_tags_state::get_or_insert_deserializer_tag;
 use crate::ProfilerTime;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use smallvec::SmallVec;
 use std::borrow::Cow;
-use std::os::raw::c_char;
+use std::ffi::c_char;
 
 /// Can be serialized/deserialized but does not allocate if built from
 /// a `&'static str`.
@@ -319,9 +320,19 @@ pub fn add_marker<T>(
         return;
     }
 
-    let encoded_payload: Vec<u8> = bincode::serialize(&payload).unwrap();
-    let payload_size = encoded_payload.len();
     let marker_tag = get_or_insert_deserializer_tag::<T>();
+    // Use a SmallVec instead of a Vec to reduce the overhead of heap
+    // allocations for marker payloads. Performance profiles have shown that
+    // repeatedly allocating and deallocating a Vec can impact the performance.
+    // Especially given that most marker payloads are under 64 bytes today,
+    // it's fine to keep them on the stack. This will still allocate if the
+    // payload is larger than 64 bytes.
+    // Note: This 64 byte is quite arbitrarily set after some manual testing.
+    // We may need to re-evaluate this approach if marker payloads from Rust
+    // grow larger in the future.
+    let mut encoded_payload = SmallVec::<[u8; 64]>::new();
+    bincode::serialize_into(&mut encoded_payload, &payload)
+        .expect("Failed to serialize marker payload");
 
     unsafe {
         bindings::gecko_profiler_add_marker(
@@ -332,8 +343,8 @@ pub fn add_marker<T>(
             options.stack,
             marker_tag,
             encoded_payload.as_ptr(),
-            payload_size,
-        )
+            encoded_payload.len(),
+        );
     }
 }
 
