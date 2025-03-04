@@ -47,6 +47,13 @@ AntiTracking._createTask({
     "https://tracking.example.org",
     "https://tracking.example.org",
   ],
+  extraPrefs: [
+    // Enable SA heuristics for trackers because the test depends on it.
+    [
+      "privacy.restrict3rdpartystorage.heuristic.exclude_third_party_trackers",
+      false,
+    ],
+  ],
 });
 
 add_task(async _ => {

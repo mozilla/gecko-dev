@@ -143,6 +143,11 @@ add_setup(async function () {
       // telemetry too soon.
       ["privacy.restrict3rdpartystorage.expiration", 2591999],
       ["privacy.restrict3rdpartystorage.expiration_redirect", 2591999],
+      // Enable SA heuristics for trackers because the test depends on it.
+      [
+        "privacy.restrict3rdpartystorage.heuristic.exclude_third_party_trackers",
+        false,
+      ],
     ],
   });
 

@@ -369,6 +369,10 @@ add_task(async function testCookiesSubViewAllowedHeuristic() {
     TPC_PREF,
     Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER
   );
+  Services.prefs.setBoolPref(
+    "privacy.restrict3rdpartystorage.heuristic.exclude_third_party_trackers",
+    false
+  );
   let principal =
     Services.scriptSecurityManager.createContentPrincipalFromOrigin(
       // eslint-disable-next-line @microsoft/sdl/no-insecure-url
@@ -474,6 +478,9 @@ add_task(async function testCookiesSubViewAllowedHeuristic() {
   BrowserTestUtils.removeTab(tab);
 
   Services.prefs.clearUserPref(TPC_PREF);
+  Services.prefs.clearUserPref(
+    "privacy.restrict3rdpartystorage.heuristic.exclude_third_party_trackers"
+  );
 });
 
 add_task(async function testCookiesSubViewBlockedDoublyNested() {
