@@ -434,6 +434,7 @@ class ChromeActions {
       canvasMaxAreaInBytes: Services.prefs.getIntPref("gfx.max-alloc-size"),
       isInAutomation: Cu.isInAutomation,
       localeProperties: this.getLocaleProperties(),
+      maxCanvasDim: Services.prefs.getIntPref("gfx.canvas.max-size"),
       nimbusDataStr,
       supportsDocumentFonts:
         !!Services.prefs.getIntPref("browser.display.use_document_fonts") &&
