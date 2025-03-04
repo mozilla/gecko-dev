@@ -8,7 +8,9 @@
 #define DOM_NOTIFICATION_NOTIFICATIONUTILS_H_
 
 #include <cstdint>
+#include "mozilla/dom/DOMTypes.h"
 #include "nsCOMPtr.h"
+#include "nsINotificationStorage.h"
 #include "nsStringFwd.h"
 
 enum class nsresult : uint32_t;
@@ -18,10 +20,6 @@ namespace mozilla::dom {
 enum class NotificationPermission : uint8_t;
 class Document;
 }  // namespace mozilla::dom
-
-namespace mozilla::dom {
-class IPCNotificationOptions;
-}
 
 namespace mozilla::dom::notification {
 
@@ -67,8 +65,8 @@ nsCOMPtr<nsINotificationStorage> GetNotificationStorage(bool isPrivate);
 
 nsresult GetOrigin(nsIPrincipal* aPrincipal, nsString& aOrigin);
 
-nsresult PersistNotification(nsIPrincipal* aPrincipal, const nsString& aId,
-                             const IPCNotificationOptions& aOptions,
+nsresult PersistNotification(nsIPrincipal* aPrincipal,
+                             const IPCNotification& aNotification,
                              const nsString& aScope);
 nsresult UnpersistNotification(nsIPrincipal* aPrincipal, const nsString& aId);
 
@@ -86,6 +84,22 @@ nsresult OpenSettings(nsIPrincipal* aPrincipal);
 enum class NotificationStatusChange { Shown, Closed };
 nsresult AdjustPushQuota(nsIPrincipal* aPrincipal,
                          NotificationStatusChange aChange);
+
+class NotificationStorageEntry : public nsINotificationStorageEntry {
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSINOTIFICATIONSTORAGEENTRY
+  explicit NotificationStorageEntry(const IPCNotification& aIPCNotification)
+      : mIPCNotification(aIPCNotification) {}
+
+  static Result<IPCNotification, nsresult> ToIPC(
+      nsINotificationStorageEntry& aEntry);
+
+ private:
+  virtual ~NotificationStorageEntry() = default;
+
+  IPCNotification mIPCNotification;
+};
 
 }  // namespace mozilla::dom::notification
 

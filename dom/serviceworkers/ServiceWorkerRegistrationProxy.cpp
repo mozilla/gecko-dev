@@ -496,39 +496,27 @@ class NotificationsCallback : public nsINotificationStorageCallback {
     return mPromiseHolder.Ensure(__func__);
   }
 
-  NS_IMETHOD Handle(const nsAString& aID, const nsAString& aTitle,
-                    const nsAString& aDir, const nsAString& aLang,
-                    const nsAString& aBody, const nsAString& aTag,
-                    const nsAString& aIcon, const nsAString& aData,
-                    const nsAString& aServiceWorkerRegistrationScope) final {
+  NS_IMETHOD Done(
+      const nsTArray<RefPtr<nsINotificationStorageEntry>>& aEntries) final {
     AssertIsOnMainThread();
-    MOZ_ASSERT(!aID.IsEmpty());
 
-    NotificationDirection dir =
-        StringToEnum<NotificationDirection>(aDir).valueOr(
-            NotificationDirection::Auto);
+    nsTArray<IPCNotification> notifications(aEntries.Length());
+    for (const auto& entry : aEntries) {
+      auto result = NotificationStorageEntry::ToIPC(*entry);
+      if (result.isErr()) {
+        continue;
+      }
+      MOZ_ASSERT(!result.inspect().id().IsEmpty());
+      notifications.AppendElement(result.unwrap());
+    }
 
-    // XXX(krosylight): we don't store all notification options
-    IPCNotification notification(
-        nsString(aID),
-        IPCNotificationOptions(nsString(aTitle), dir, nsString(aLang),
-                               nsString(aBody), nsString(aTag), nsString(aIcon),
-                               false, false, nsTArray<uint32_t>(),
-                               nsString(aData)));
-
-    mNotifications.AppendElement(std::move(notification));
-    return NS_OK;
-  }
-
-  NS_IMETHOD Done() final {
-    mPromiseHolder.Resolve(std::move(mNotifications), __func__);
+    mPromiseHolder.Resolve(std::move(notifications), __func__);
     return NS_OK;
   }
 
  protected:
   virtual ~NotificationsCallback() = default;
 
-  nsTArray<IPCNotification> mNotifications;
   MozPromiseHolder<NotificationsPromise> mPromiseHolder;
 };
 

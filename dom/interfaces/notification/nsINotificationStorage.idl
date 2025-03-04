@@ -4,36 +4,30 @@
 
 #include "domstubs.idl"
 
-[scriptable, uuid(c1622232-259c-43b0-b52e-89c39dcd9796)]
+[scriptable, uuid(c772e1b9-d4b0-4e23-8481-4a8b7dbbfe92)]
+interface nsINotificationStorageEntry : nsISupports {
+  readonly attribute AString id;
+  readonly attribute AString title;
+  readonly attribute ACString dir;
+  readonly attribute AString lang;
+  readonly attribute AString body;
+  readonly attribute AString tag;
+  readonly attribute AString icon;
+  readonly attribute boolean requireInteraction;
+  readonly attribute boolean silent;
+  readonly attribute AString dataSerialized;
+};
+
+[scriptable, function, uuid(c1622232-259c-43b0-b52e-89c39dcd9796)]
 interface nsINotificationStorageCallback : nsISupports
 {
   /**
    * Callback function used to pass single notification back
-   * into C++ land for Notification.get return data.
+   * into C++ land for getNotifications() return data.
    *
-   * @param id: a uuid for this notification
-   * @param title: the notification title
-   * @param dir: the notification direction,
-   *             possible values are "ltr", "rtl", "auto"
-   * @param lang: the notification language
-   * @param body: the notification body
-   * @param tag: the notification tag
+   * @param aEntry: the stored notification entries
    */
-  void handle(in AString id,
-              in AString title,
-              in AString dir,
-              in AString lang,
-              in AString body,
-              in AString tag,
-              in AString icon,
-              in AString data,
-              in AString serviceWorkerRegistrationScope);
-
-  /**
-   * Callback function used to notify C++ the we have returned
-   * all notification objects for this Notification.get call.
-   */
-  void done();
+  void done(in Array<nsINotificationStorageEntry> aEntries);
 };
 
 /**
@@ -46,34 +40,13 @@ interface nsINotificationStorage : nsISupports
   /**
    * Add/replace a notification to the persistence layer.
    *
-   * @param origin: the origin/app of this notification
-   * @param id: a uuid for this notification
-   * @param title: the notification title
-   * @param dir: the notification direction,
-   *             possible values are "ltr", "rtl", "auto"
-   * @param lang: the notification language
-   * @param body: the notification body
-   * @param tag: notification tag, will replace any existing
-   *             notifications with same origin/tag pair
-   * @param alertName: the alert identifier as used by system app.
-   *                   Stored in the database to avoid re-computing
-   *                   it. Built from origin and tag or id depending
-   *                   whether there is a tag defined.
-   * @param registrationID: Opaque string that identifies the service worker
-   *                        registration this Notification is associated with.
-   *                        May be empty. Only set for Notifications created by
-   *                        showNotification().
+   * @param aOrigin: the origin/app of this notification
+   * @param aScope: the ServiceWorker registration scope, or empty if unscoped.
+   * @param aEntry: the notification data to store
    */
-  void put(in AString origin,
-           in AString id,
-           in AString title,
-           in ACString dir,
-           in AString lang,
-           in AString body,
-           in AString tag,
-           in AString icon,
-           in AString data,
-           in AString serviceWorkerRegistrationScope);
+  void put(in AString aOrigin,
+           in nsINotificationStorageEntry aEntry,
+           in AString aScope);
 
   /**
    * Retrieve a list of notifications.

@@ -39,15 +39,9 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=782211
 
     const storageGet = (origin) => {
       const { promise, resolve } = Promise.withResolvers();
-      const ids = [];
-      notificationStorage.get(origin, "", "", {
-        handle(id) {
-          ids.push(id);
-        },
-        done() {
-          resolve(ids);
-        }
-      })
+      notificationStorage.get(origin, "", "", notifications => {
+        resolve(notifications.map(({ id }) => id));
+      });
       return promise;
     };
 

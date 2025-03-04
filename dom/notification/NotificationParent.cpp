@@ -46,7 +46,8 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
     (void)NS_WARN_IF(NS_FAILED(
         AdjustPushQuota(mPrincipal, NotificationStatusChange::Shown)));
     // XXX(krosylight): Non-persistent notifications probably don't need this
-    nsresult rv = PersistNotification(mPrincipal, mId, mOptions, mScope);
+    nsresult rv =
+        PersistNotification(mPrincipal, IPCNotification(mId, mOptions), mScope);
     if (NS_FAILED(rv)) {
       NS_WARNING("Could not persist Notification");
     }

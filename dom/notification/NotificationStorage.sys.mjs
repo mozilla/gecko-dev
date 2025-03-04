@@ -68,35 +68,17 @@ export class NotificationStorage {
     }
   }
 
-  put(
-    origin,
-    id,
-    title,
-    dir,
-    lang,
-    body,
-    tag,
-    icon,
-    data,
-    serviceWorkerRegistrationScope
-  ) {
-    lazy.console.debug(`PUT: ${origin} ${id}: ${title}`);
-    var notification = {
-      id,
-      title,
-      dir,
-      lang,
-      body,
-      tag,
-      icon,
+  put(aOrigin, aEntry, aScope) {
+    lazy.console.debug(`PUT: ${aOrigin} ${aEntry.id}: ${aEntry.title}`);
+    let { QueryInterface, ...entry } = aEntry;
+    let notification = {
+      ...entry,
       timestamp: new Date().getTime(),
-      origin,
-      data,
-      serviceWorkerRegistrationScope,
+      serviceWorkerRegistrationScope: aScope,
     };
 
     Services.cpmm.sendAsyncMessage(this.formatMessageType("Save"), {
-      origin,
+      origin: aOrigin,
       notification,
     });
   }
@@ -172,29 +154,10 @@ export class NotificationStorage {
     // Pass each notification back separately.
     // The callback is called asynchronously to match the behaviour when
     // fetching from the database.
-    notifications.forEach(function (notification) {
-      try {
-        Services.tm.dispatchToMainThread(() =>
-          callback.handle(
-            notification.id,
-            notification.title,
-            notification.dir,
-            notification.lang,
-            notification.body,
-            notification.tag,
-            notification.icon,
-            notification.data,
-            notification.serviceWorkerRegistrationScope
-          )
-        );
-      } catch (e) {
-        lazy.console.debug(`Error calling callback handle: ${e}`);
-      }
-    });
     try {
-      Services.tm.dispatchToMainThread(callback.done);
+      Services.tm.dispatchToMainThread(() => callback.done(notifications));
     } catch (e) {
-      lazy.console.debug(`Error calling callback done: ${e}`);
+      lazy.console.debug(`Error calling callback handle: ${e}`);
     }
   }
 

@@ -377,6 +377,9 @@ Result<already_AddRefed<Notification>, nsresult> Notification::ConstructFromIPC(
   options.mBody = ipcOptions.body();
   options.mTag = ipcOptions.tag();
   options.mIcon = ipcOptions.icon();
+  options.mRequireInteraction = ipcOptions.requireInteraction();
+  options.mSilent = ipcOptions.silent();
+
   IgnoredErrorResult rv;
   RefPtr<Notification> notification =
       CreateInternal(aGlobal, aIPCNotification.id(), ipcOptions.title(),
