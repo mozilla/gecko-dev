@@ -772,34 +772,16 @@ nsresult FileSystemDatabaseManagerVersion002::RemoveFileId(
   return stmt.Execute();
 }
 
-Result<Usage, QMResult>
-FileSystemDatabaseManagerVersion002::GetUsagesOfDescendants(
-    const EntryId& aEntryId) const {
-  const nsLiteralCString descendantUsagesQuery =
-      "WITH RECURSIVE traceChildren(handle, parent) AS ( "
-      "SELECT handle, parent FROM Entries WHERE handle = :handle "
-      "UNION "
-      "SELECT Entries.handle, Entries.parent FROM traceChildren, Entries "
-      "WHERE traceChildren.handle=Entries.parent ) "
-      "SELECT sum(Usages.usage) "
-      "FROM traceChildren "
-      "INNER JOIN FileIds ON traceChildren.handle = FileIds.handle "
-      "INNER JOIN Usages ON Usages.handle = FileIds.fileId "
-      ";"_ns;
-
-  QM_TRY_UNWRAP(ResultStatement stmt,
-                ResultStatement::Create(mConnection, descendantUsagesQuery));
-  QM_TRY(QM_TO_RESULT(stmt.BindEntryIdByName("handle"_ns, aEntryId)));
-  QM_TRY_UNWRAP(const bool moreResults, stmt.ExecuteStep());
-  if (!moreResults) {
-    return 0;
-  }
-
-  QM_TRY_RETURN(stmt.GetUsageByColumn(/* Column */ 0u));
-}
-
-Result<nsTArray<FileId>, QMResult>
-FileSystemDatabaseManagerVersion002::FindFilesUnderEntry(
+/**
+ * Technically, this function may return exclusively locked files.
+ * It is meant to assist move and remove operations after it has been
+ * already checked that the directory does not contain exclusively locked files.
+ * Perhaps it these checks could be unified one day?
+ * Until then, since this is not expected in those use cases, there is a
+ * debug assert to alert about the presence of exclusive locks.
+ */
+Result<std::pair<nsTArray<FileId>, Usage>, QMResult>
+FileSystemDatabaseManagerVersion002::FindFilesWithoutDeprecatedLocksUnderEntry(
     const EntryId& aEntryId) const {
   const nsLiteralCString descendantsQuery =
       "WITH RECURSIVE traceChildren(handle, parent) AS ( "
@@ -807,11 +789,13 @@ FileSystemDatabaseManagerVersion002::FindFilesUnderEntry(
       "UNION "
       "SELECT Entries.handle, Entries.parent FROM traceChildren, Entries "
       "WHERE traceChildren.handle = Entries.parent ) "
-      "SELECT FileIds.fileId "
+      "SELECT FileIds.handle, FileIds.fileId, Usages.usage "
       "FROM traceChildren INNER JOIN FileIds USING (handle) "
+      "INNER JOIN Usages ON Usages.handle = FileIds.fileId "
       ";"_ns;
 
   nsTArray<FileId> descendants;
+  Usage usage{0};
   {
     QM_TRY_UNWRAP(ResultStatement stmt,
                   ResultStatement::Create(mConnection, descendantsQuery));
@@ -823,13 +807,21 @@ FileSystemDatabaseManagerVersion002::FindFilesUnderEntry(
         break;
       }
 
-      QM_TRY_INSPECT(const FileId& fileId,
-                     stmt.GetFileIdByColumn(/* Column */ 0u));
-      descendants.AppendElement(fileId);
+      QM_TRY_INSPECT(const EntryId& entryId,
+                     stmt.GetEntryIdByColumn(/* Column */ 0u));
+      if (!mDataManager->IsLockedWithDeprecatedSharedLock(entryId)) {
+        QM_TRY_INSPECT(const FileId& fileId,
+                       stmt.GetFileIdByColumn(/* Column */ 1u));
+        descendants.AppendElement(fileId);
+
+        QM_TRY_INSPECT(const Usage& fileUsage,
+                       stmt.GetUsageByColumn(/* Column */ 2u));
+        usage += fileUsage;
+      }
     }
   }
 
-  return descendants;
+  return std::make_pair(std::move(descendants), usage);
 }
 
 Result<nsTArray<EntryId>, QMResult>

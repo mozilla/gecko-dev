@@ -63,10 +63,8 @@ class FileSystemDatabaseManagerVersion002
 
   nsresult RemoveFileId(const FileId& aFileId) override;
 
-  Result<Usage, QMResult> GetUsagesOfDescendants(
-      const EntryId& aEntryId) const override;
-
-  Result<nsTArray<FileId>, QMResult> FindFilesUnderEntry(
+  Result<std::pair<nsTArray<FileId>, Usage>, QMResult>
+  FindFilesWithoutDeprecatedLocksUnderEntry(
       const EntryId& aEntryId) const override;
 
   Result<nsTArray<EntryId>, QMResult> FindFileEntriesUnderDirectory(
