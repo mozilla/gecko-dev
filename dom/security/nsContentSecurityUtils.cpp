@@ -1245,7 +1245,7 @@ static nsLiteralCString sStyleSrcUnsafeInlineAllowList[] = {
     "chrome://browser/content/places/bookmarksSidebar.xhtml"_ns,
     "chrome://browser/content/places/historySidebar.xhtml"_ns,
     "chrome://browser/content/places/places.xhtml"_ns,
-    "chrome://browser/content/preferences/dialogs/addEngine.xhtml"_ns,
+    "chrome://browser/content/search/addEngine.xhtml"_ns,
     "chrome://browser/content/preferences/dialogs/applicationManager.xhtml"_ns,
     "chrome://browser/content/preferences/dialogs/browserLanguages.xhtml"_ns,
     "chrome://browser/content/preferences/dialogs/clearSiteData.xhtml"_ns,

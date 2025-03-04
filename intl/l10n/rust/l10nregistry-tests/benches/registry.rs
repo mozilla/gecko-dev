@@ -15,7 +15,6 @@ fn get_paths() -> Vec<ResourceId> {
         "browser/preferences/colors.ftl",
         "browser/preferences/selectBookmark.ftl",
         "browser/preferences/connection.ftl",
-        "browser/preferences/addEngine.ftl",
         "browser/preferences/siteDataSettings.ftl",
         "browser/preferences/fonts.ftl",
         "browser/preferences/languages.ftl",
