@@ -29,3 +29,8 @@ experimental-features-group-webpage-display =
   .label = Webpage Display
 experimental-features-group-customize-browsing =
   .label = Customize your browsing
+
+# Contextual Password Manager in sidebar
+experimental-features-contextual-password-manager =
+    .label = Passwords in the sidebar
+experimental-features-contextual-password-manager-description = Access your passwords right from the sidebar. No more searching around or resetting passwords when you’re trying to sign in. To use this feature, select passwords in the sidebar. Then go to your general settings and under browser layout, select show sidebar. Then, customize your sidebar by selecting passwords. If you try it, <a data-l10n-name="connect">let us know what you think</a>.
