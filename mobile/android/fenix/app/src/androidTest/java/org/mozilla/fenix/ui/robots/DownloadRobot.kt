@@ -14,6 +14,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.filter
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onChildren
@@ -167,7 +168,11 @@ class DownloadRobot {
         Log.i(TAG, "verifyDownloadedFileName: Trying to verify that the downloaded file: $fileName is displayed")
     }
 
+    @OptIn(ExperimentalTestApi::class)
     fun verifyEmptyDownloadsList(testRule: HomeActivityComposeTestRule) {
+        Log.i(TAG, "verifyEmptyDownloadsList: Waiting for $waitingTime until the \"No downloaded files\" list message exists")
+        testRule.waitUntilAtLeastOneExists(hasText(testRule.activity.getString(R.string.download_empty_message_1)), waitingTime)
+        Log.i(TAG, "verifyEmptyDownloadsList: Waited for $waitingTime until the \"No downloaded files\" list message exists")
         Log.i(TAG, "verifyEmptyDownloadsList: Trying to verify that the \"No downloaded files\" list message is displayed")
         testRule.onNodeWithText(text = testRule.activity.getString(R.string.download_empty_message_1))
             .assertIsDisplayed()

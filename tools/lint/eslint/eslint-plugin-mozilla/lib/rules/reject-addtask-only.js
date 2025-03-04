@@ -32,7 +32,7 @@ module.exports = {
           ) &&
           node.callee.property?.name == "only"
         ) {
-          let sourceCode = context.getSourceCode();
+          let sourceCode = context.sourceCode;
           context.report({
             loc: {
               start: sourceCode.getLocFromIndex(node.callee.object.range[1]),

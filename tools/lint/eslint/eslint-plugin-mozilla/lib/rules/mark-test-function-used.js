@@ -25,18 +25,18 @@ module.exports = {
 
   create(context) {
     return {
-      Program() {
+      Program(node) {
         let testType = helpers.getTestType(context);
         if (testType == "browser") {
-          context.markVariableAsUsed("test");
+          context.sourceCode.markVariableAsUsed("test", node);
         }
 
         if (testType == "xpcshell") {
-          context.markVariableAsUsed("run_test");
+          context.sourceCode.markVariableAsUsed("run_test", node);
         }
 
         if (helpers.getIsSjs(context)) {
-          context.markVariableAsUsed("handleRequest");
+          context.sourceCode.markVariableAsUsed("handleRequest", node);
         }
       },
     };

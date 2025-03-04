@@ -2036,29 +2036,45 @@ void nsWindow::NativeMoveResizeWaylandPopupCallback(
     return;
   }
 
-  LOG("  orig mBounds [%d, %d] -> [%d x %d]\n", mBounds.x, mBounds.y,
-      mBounds.width, mBounds.height);
-
-  const LayoutDeviceIntRect newBounds = [&] {
+  const GdkRectangle finalGdkRect = [&] {
     GdkRectangle finalRect = *aFinalSize;
     GdkPoint parent = WaylandGetParentPosition();
     finalRect.x += parent.x;
     finalRect.y += parent.y;
-    auto roundTo = RoundsWidgetCoordinatesTo();
-    auto rect = GdkRectToDevicePixels(finalRect);
-    // Ensure we do the same rounding that nsView would do, see
-    // MaybeRoundToDisplayPixels.
-    auto size = !mIsTransparent ? rect.Size().TruncatedToMultiple(roundTo)
-                                : rect.Size().CeiledToMultiple(roundTo);
-    return LayoutDeviceIntRect(rect.TopLeft().RoundedToMultiple(roundTo), size);
+    return finalRect;
   }();
 
+  // With fractional scaling, our devPx->Gdk->devPx conversion might not
+  // perfectly round-trip. Compare gdk rects to check whether size or positions
+  // have changed from what we'd request otherwise, in order to avoid
+  // flickering.
+  const GdkRectangle currentGdkRect = DevicePixelsToGdkRectRoundOut(mBounds);
+  auto scale = GdkCeiledScaleFactor();
+  auto IsSubstantiallyDifferent = [=](gint a, gint b) {
+    return std::abs(a - b) > scale;
+  };
+
+  const bool needsPositionUpdate =
+      IsSubstantiallyDifferent(finalGdkRect.x, currentGdkRect.x) ||
+      IsSubstantiallyDifferent(finalGdkRect.y, currentGdkRect.y);
+  const bool needsSizeUpdate =
+      IsSubstantiallyDifferent(finalGdkRect.width, currentGdkRect.width) ||
+      IsSubstantiallyDifferent(finalGdkRect.height, currentGdkRect.height);
+
+  const LayoutDeviceIntRect newBounds =
+      MaybeRoundToDisplayPixels(GdkRectToDevicePixels(finalGdkRect));
+  LOG("  orig gdk [%d, %d] -> [%d x %d]\n", currentGdkRect.x, currentGdkRect.y,
+      currentGdkRect.width, currentGdkRect.height);
+  LOG("  new gdk [%d, %d] -> [%d x %d]\n", finalGdkRect.x, finalGdkRect.y,
+      finalGdkRect.width, finalGdkRect.height);
+  LOG("  orig mBounds [%d, %d] -> [%d x %d]\n", mBounds.x, mBounds.y,
+      mBounds.width, mBounds.height);
   LOG("  new mBounds [%d, %d] -> [%d x %d]", newBounds.x, newBounds.y,
       newBounds.width, newBounds.height);
 
-  bool needsPositionUpdate = newBounds.TopLeft() != mLastMoveRequest;
-  bool needsSizeUpdate = newBounds.Size() != mLastSizeRequest;
-
+  if (!needsSizeUpdate && !needsPositionUpdate) {
+    return;
+  }
   if (needsSizeUpdate) {
     // Wayland compositor changed popup size request from layout.
     // Set the constraints to use them in nsMenuPopupFrame::SetPopupPosition().
@@ -2075,6 +2091,8 @@ void nsWindow::NativeMoveResizeWaylandPopupCallback(
         mMoveToRectPopupSize.height);
   }
   mBounds = newBounds;
+  mLastSizeRequest = newBounds.Size();
+  mLastMoveRequest = newBounds.TopLeft();
   // Check mBounds size
   if (mCompositorSession &&
       !wr::WindowSizeSanityCheck(mBounds.width, mBounds.height)) {
@@ -2119,21 +2137,21 @@ bool nsWindow::IsPopupDirectionRTL() {
 // It's used when we position noautihode popup and we don't use xdg_positioner.
 // See Bug 1718867
 void nsWindow::WaylandPopupSetDirectPosition() {
-  GdkPoint topLeft = DevicePixelsToGdkPointRoundDown(mLastMoveRequest);
-  GdkRectangle size = DevicePixelsToGdkSizeRoundUp(mLastSizeRequest);
+  const LayoutDeviceIntRect frameRect(mLastMoveRequest, mLastSizeRequest);
+  GdkRectangle rect = DevicePixelsToGdkRectRoundOut(frameRect);
 
-  LOG("nsWindow::WaylandPopupSetDirectPosition %d,%d -> %d x %d\n", topLeft.x,
-      topLeft.y, size.width, size.height);
+  LOG("nsWindow::WaylandPopupSetDirectPosition %d,%d -> %d x %d\n", rect.x,
+      rect.y, rect.width, rect.height);
 
-  mPopupPosition = {topLeft.x, topLeft.y};
-  mBounds.MoveTo(mLastMoveRequest);
+  mPopupPosition = {rect.x, rect.y};
+  mBounds = frameRect;
 
   if (mIsDragPopup) {
-    gtk_window_move(GTK_WINDOW(mShell), topLeft.x, topLeft.y);
-    gtk_window_resize(GTK_WINDOW(mShell), size.width, size.height);
+    gtk_window_move(GTK_WINDOW(mShell), rect.x, rect.y);
+    gtk_window_resize(GTK_WINDOW(mShell), rect.width, rect.height);
     // DND window is placed inside container so we need to make hard size
     // request to ensure parent container is resized too.
-    gtk_widget_set_size_request(GTK_WIDGET(mShell), size.width, size.height);
+    gtk_widget_set_size_request(GTK_WIDGET(mShell), rect.width, rect.height);
     return;
   }
 
@@ -2148,7 +2166,7 @@ void nsWindow::WaylandPopupSetDirectPosition() {
   }
 
   int parentWidth = gdk_window_get_width(gdkWindow);
-  int popupWidth = size.width;
+  int popupWidth = rect.width;
 
   int x;
   gdk_window_get_position(gdkWindow, &x, nullptr);
@@ -2173,10 +2191,10 @@ void nsWindow::WaylandPopupSetDirectPosition() {
   LOG("  set position [%d, %d]\n", mPopupPosition.x, mPopupPosition.y);
   gtk_window_move(GTK_WINDOW(mShell), mPopupPosition.x, mPopupPosition.y);
 
-  LOG("  set size [%d, %d]\n", size.width, size.height);
-  gtk_window_resize(GTK_WINDOW(mShell), size.width, size.height);
+  LOG("  set size [%d, %d]\n", rect.width, rect.height);
+  gtk_window_resize(GTK_WINDOW(mShell), rect.width, rect.height);
 
-  if (mPopupPosition.x != topLeft.x) {
+  if (mPopupPosition.x != rect.x) {
     mBounds.MoveTo(GdkPointToDevicePixels(mPopupPosition));
     LOG("  setting new bounds [%d, %d]\n", mBounds.x, mBounds.y);
     WaylandPopupPropagateChangesToLayout(/* move */ true, /* resize */ false);
@@ -2201,26 +2219,27 @@ bool nsWindow::WaylandPopupFitsToplevelWindow(bool aMove) {
   int parentHeight = gdk_window_get_height(toplevelGdkWindow);
   LOG("  parent size %d x %d", parentWidth, parentHeight);
 
-  GdkPoint topLeft = aMove ? mPopupPosition
-                           : DevicePixelsToGdkPointRoundDown(mLastMoveRequest);
-  GdkRectangle size = DevicePixelsToGdkSizeRoundUp(mLastSizeRequest);
-  LOG("  popup topleft %d, %d size %d x %d", topLeft.x, topLeft.y, size.width,
-      size.height);
+  GdkRectangle requestedRect = DevicePixelsToGdkRectRoundOut(
+      LayoutDeviceIntRect(mLastMoveRequest, mLastSizeRequest));
+  GdkPoint topLeft =
+      aMove ? mPopupPosition : GdkPoint{requestedRect.x, requestedRect.y};
+  LOG("  popup topleft %d, %d size %d x %d", topLeft.x, topLeft.y,
+      requestedRect.width, requestedRect.height);
   int fits = topLeft.x >= 0 && topLeft.y >= 0 &&
-             topLeft.x + size.width <= parentWidth &&
-             topLeft.y + size.height <= parentHeight;
+             topLeft.x + requestedRect.width <= parentWidth &&
+             topLeft.y + requestedRect.height <= parentHeight;
 
   LOG("  fits %d", fits);
   return fits;
 }
 
 void nsWindow::NativeMoveResizeWaylandPopup(bool aMove, bool aResize) {
-  GdkPoint topLeft = DevicePixelsToGdkPointRoundDown(mLastMoveRequest);
-  GdkRectangle size = DevicePixelsToGdkSizeRoundUp(mLastSizeRequest);
+  const LayoutDeviceIntRect frameRect(mLastMoveRequest, mLastSizeRequest);
+  GdkRectangle rect = DevicePixelsToGdkRectRoundOut(frameRect);
 
   LOG("nsWindow::NativeMoveResizeWaylandPopup Bounds %d,%d -> %d x %d move %d "
       "resize %d\n",
-      topLeft.x, topLeft.y, size.width, size.height, aMove, aResize);
+      rect.x, rect.y, rect.width, rect.height, aMove, aResize);
 
   // Compositor may be confused by windows with width/height = 0
   // and positioning such windows leads to Bug 1555866.
@@ -2262,8 +2281,8 @@ void nsWindow::NativeMoveResizeWaylandPopup(bool aMove, bool aResize) {
   }
 
   if (aResize) {
-    LOG("  set size [%d, %d]\n", size.width, size.height);
-    gtk_window_resize(GTK_WINDOW(mShell), size.width, size.height);
+    LOG("  set size [%d, %d]\n", rect.width, rect.height);
+    gtk_window_resize(GTK_WINDOW(mShell), rect.width, rect.height);
   }
 
   if (!aMove && WaylandPopupFitsToplevelWindow(aMove)) {
@@ -2279,9 +2298,9 @@ void nsWindow::NativeMoveResizeWaylandPopup(bool aMove, bool aResize) {
   // Save popup position for former re-calculations when popup hierarchy
   // is changed.
   LOG("  popup position changed from [%d, %d] to [%d, %d]\n", mPopupPosition.x,
-      mPopupPosition.y, topLeft.x, topLeft.y);
-  mPopupPosition = {topLeft.x, topLeft.y};
-  mBounds.MoveTo(mLastMoveRequest);
+      mPopupPosition.y, rect.x, rect.y);
+  mPopupPosition = {rect.x, rect.y};
+  mBounds = frameRect;
 
   UpdateWaylandPopupHierarchy();
 }
@@ -2517,16 +2536,16 @@ nsWindow::WaylandPopupGetPositionFromLayout() {
     hints = GdkAnchorHints(hints | GDK_ANCHOR_SLIDE);
   } else {
     switch (flipType) {
-      case FlipType_Both:
+      case FlipType::Both:
         hints = GdkAnchorHints(hints | GDK_ANCHOR_FLIP);
         break;
-      case FlipType_Slide:
+      case FlipType::Slide:
         hints = GdkAnchorHints(hints | GDK_ANCHOR_SLIDE);
         break;
-      case FlipType_Default:
+      case FlipType::Default:
         hints = GdkAnchorHints(hints | GDK_ANCHOR_FLIP);
         break;
-      default:
+      case FlipType::None:
         break;
     }
   }

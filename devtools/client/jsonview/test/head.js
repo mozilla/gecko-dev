@@ -215,6 +215,21 @@ function getElementAttr(selector, attr) {
   );
 }
 
+/**
+ * Return the text of a row given its index, e.g. `key: "value"`
+ * @param {Number} rowIndex
+ * @returns {Promise<String>}
+ */
+async function getRowText(rowIndex) {
+  const key = await getElementText(
+    `.jsonPanelBox .treeTable .treeRow:nth-of-type(${rowIndex + 1}) .treeLabelCell`
+  );
+  const value = await getElementText(
+    `.jsonPanelBox .treeTable .treeRow:nth-of-type(${rowIndex + 1}) .treeValueCell`
+  );
+  return `${key}: ${value}`;
+}
+
 function focusElement(selector) {
   info("Focus element: '" + selector + "'");
 

@@ -7,6 +7,7 @@ module.exports = {
     "mozilla/xpcshell": true,
   },
 
+  name: "mozilla/xpcshell-test",
   plugins: ["mozilla", "@microsoft/sdl"],
 
   rules: {

@@ -42,4 +42,14 @@ class RecentlyClosedFragmentInteractorTest {
             defaultRecentlyClosedController.handleNavigateToHistory()
         }
     }
+
+    @Test
+    fun onOpen() {
+        val tab = TabState(id = "tab-id", title = "Mozilla", url = "mozilla.org", lastAccess = 1L)
+        interactor.open(tab)
+
+        verify {
+            defaultRecentlyClosedController.handleRestore(tab)
+        }
+    }
 }

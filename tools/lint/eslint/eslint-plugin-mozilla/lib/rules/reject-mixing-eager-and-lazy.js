@@ -70,7 +70,7 @@ module.exports = {
         if (
           callerSource === "ChromeUtils.importESModule" &&
           helpers.getIsTopLevelAndUnconditionallyExecuted(
-            helpers.getAncestors(context, node)
+            context.sourceCode.getAncestors(node)
           )
         ) {
           if (node.arguments.length < 1) {

@@ -29,17 +29,25 @@ module.exports = {
   create(context) {
     return {
       "CallExpression[callee.object.name='ContentTask'][callee.property.name='spawn']":
-        function () {
+        function (node) {
           // testing/mochitest/BrowserTestUtils/content/content-task.js
           // This script is loaded as a sub script into a frame script.
           for (let [name, value] of Object.entries(frameScriptEnv.globals)) {
-            helpers.addVarToScope(name, context.getScope(), value);
+            helpers.addVarToScope(
+              name,
+              context.sourceCode.getScope(node),
+              value
+            );
           }
         },
       "CallExpression[callee.object.name='SpecialPowers'][callee.property.name='spawn']":
-        function () {
+        function (node) {
           for (let [name, value] of Object.entries(sandboxEnv.globals)) {
-            helpers.addVarToScope(name, context.getScope(), value);
+            helpers.addVarToScope(
+              name,
+              context.sourceCode.getScope(node),
+              value
+            );
           }
           let globals = [
             // testing/specialpowers/content/SpecialPowersChild.sys.mjs
@@ -50,13 +58,21 @@ module.exports = {
             "docShell",
           ];
           for (let global of globals) {
-            helpers.addVarToScope(global, context.getScope(), false);
+            helpers.addVarToScope(
+              global,
+              context.sourceCode.getScope(node),
+              false
+            );
           }
         },
       "CallExpression[callee.object.name='SpecialPowers'][callee.property.name='spawnChrome']":
-        function () {
+        function (node) {
           for (let [name, value] of Object.entries(sandboxEnv.globals)) {
-            helpers.addVarToScope(name, context.getScope(), value);
+            helpers.addVarToScope(
+              name,
+              context.sourceCode.getScope(node),
+              value
+            );
           }
           let globals = [
             // testing/specialpowers/content/SpecialPowersParent.sys.mjs
@@ -65,7 +81,11 @@ module.exports = {
             "browsingContext",
           ];
           for (let global of globals) {
-            helpers.addVarToScope(global, context.getScope(), false);
+            helpers.addVarToScope(
+              global,
+              context.sourceCode.getScope(node),
+              false
+            );
           }
         },
     };

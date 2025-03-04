@@ -46,21 +46,21 @@ enum ConsumeOutsideClicksResult {
   ConsumeOutsideClicks_Never = 2  // Never consume clicks
 };
 
-// How a popup may be flipped. Flipping to the outside edge is like how
-// a submenu would work. The entire popup is flipped to the opposite side
-// of the anchor.
-enum FlipStyle {
-  FlipStyle_None = 0,
-  FlipStyle_Outside = 1,
-  FlipStyle_Inside = 2
+// How a popup may be flipped. Flipping to the outside edge is like how a
+// submenu would work. The entire popup is flipped to the opposite side of the
+// anchor.
+enum class FlipStyle {
+  None = 0,
+  Outside = 1,
+  Inside = 2,
 };
 
 // Values for the flip attribute
-enum FlipType {
-  FlipType_Default = 0,
-  FlipType_None = 1,  // don't try to flip or translate to stay onscreen
-  FlipType_Both = 2,  // flip in both directions
-  FlipType_Slide = 3  // allow the arrow to "slide" instead of resizing
+enum class FlipType {
+  Default = 0,
+  None = 1,   // don't try to flip or translate to stay onscreen
+  Both = 2,   // flip in both directions
+  Slide = 3,  // allow the arrow to "slide" instead of resizing
 };
 
 enum class MenuPopupAnchorType : uint8_t {
@@ -618,7 +618,7 @@ class nsMenuPopupFrame final : public nsBlockFrame {
   int8_t mPopupAnchor = POPUPALIGNMENT_NONE;
   int8_t mPosition = POPUPPOSITION_UNKNOWN;
 
-  FlipType mFlip = FlipType_Default;  // Whether to flip
+  FlipType mFlip = FlipType::Default;  // Whether to flip
 
   // Whether we were moved by the move-to-rect Wayland callback. In that case,
   // we stop updating the anchor so that we can end up with a stable position.

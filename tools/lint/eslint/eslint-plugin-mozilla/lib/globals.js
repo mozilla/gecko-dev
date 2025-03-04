@@ -631,7 +631,7 @@ module.exports = {
 
     let parser = {
       Program(node) {
-        globalScope = helpers.getScope(context, node);
+        globalScope = context.sourceCode.getScope(node);
       },
     };
     let filename = context.getFilename();
@@ -647,12 +647,12 @@ module.exports = {
     for (let type of Object.keys(GlobalsForNode.prototype)) {
       parser[type] = function (node) {
         if (type === "Program") {
-          globalScope = helpers.getScope(context, node);
+          globalScope = context.sourceCode.getScope(node);
           helpers.addGlobals(extraHTMLGlobals, globalScope);
         }
         let globals = handler[type](
           node,
-          helpers.getAncestors(context, node),
+          context.sourceCode.getAncestors(node),
           globalScope
         );
         helpers.addGlobals(

@@ -205,26 +205,6 @@ bool nsView::IsEffectivelyVisible() {
   return true;
 }
 
-// Cocoa and GTK round widget coordinates to the nearest global "display pixel"
-// integer value. So we avoid fractional display pixel values by rounding to
-// the nearest value that won't yield a fractional display pixel.
-static LayoutDeviceIntRect MaybeRoundToDisplayPixels(
-    const LayoutDeviceIntRect& aRect, TransparencyMode aTransparency,
-    int32_t aRound) {
-  if (aRound == 1) {
-    return aRect;
-  }
-
-  // If the widget doesn't support transparency, we prefer truncating to
-  // ceiling, so that we don't have extra pixels not painted by our frame.
-  auto size = aTransparency == TransparencyMode::Opaque
-                  ? aRect.Size().TruncatedToMultiple(aRound)
-                  : aRect.Size().CeiledToMultiple(aRound);
-  Unused << NS_WARN_IF(aTransparency == TransparencyMode::Opaque &&
-                       size != aRect.Size());
-  return {aRect.TopLeft().RoundedToMultiple(aRound), size};
-}
-
 LayoutDeviceIntRect nsView::CalcWidgetBounds(WindowType aType,
                                              TransparencyMode aTransparency) {
   int32_t p2a = mViewManager->AppUnitsPerDevPixel();
@@ -268,7 +248,8 @@ LayoutDeviceIntRect nsView::CalcWidgetBounds(WindowType aType,
       return idealBounds;
     }
     const int32_t round = widget->RoundsWidgetCoordinatesTo();
-    return MaybeRoundToDisplayPixels(idealBounds, aTransparency, round);
+    return nsIWidget::MaybeRoundToDisplayPixels(idealBounds, aTransparency,
+                                                round);
   }();
 
   // Compute where the top-left of our widget ended up relative to the parent

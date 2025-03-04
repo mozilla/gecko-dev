@@ -27,7 +27,7 @@ module.exports = {
 
   create(context) {
     function getRangeAfterArgToEnd(argNumber, args) {
-      let sourceCode = context.getSourceCode();
+      let sourceCode = context.sourceCode;
       return [
         sourceCode.getTokenAfter(args[argNumber]).range[0],
         args[args.length - 1].range[1],

@@ -320,6 +320,7 @@ const extraRules = [
       // "worker" as well.
       "**/?(*.)worker.?(m)js",
     ],
+    name: "mozilla/recommended/worker",
   },
 ];
 

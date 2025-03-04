@@ -43,7 +43,7 @@ add_task(async function () {
   is(labels[0].textContent, "obj", "The first json property name is correct.");
   is(
     values[0].textContent,
-    'Object { type: "string" }',
+    '{ type: "string" }',
     "The first json property value is correct."
   );
 

@@ -12,6 +12,7 @@ module.exports = {
     SpecialPowers: false,
   },
 
+  name: "mozilla/mochitest-test",
   plugins: ["mozilla"],
 
   rules: {

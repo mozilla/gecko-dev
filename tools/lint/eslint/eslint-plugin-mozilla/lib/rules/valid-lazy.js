@@ -223,7 +223,7 @@ module.exports = {
         }
         if (
           helpers.getIsTopLevelAndUnconditionallyExecuted(
-            helpers.getAncestors(context, node)
+            context.sourceCode.getAncestors(node)
           )
         ) {
           context.report({

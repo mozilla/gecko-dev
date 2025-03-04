@@ -20,7 +20,7 @@ const renderComponent = (object, props) => {
 
 describe("Object - Basic", () => {
   const object = {};
-  const defaultOutput = "Object {  }";
+  const defaultOutput = "{}";
 
   it("selects the correct rep", () => {
     expect(getRep(object, undefined, true)).toBe(Obj.rep);
@@ -34,7 +34,9 @@ describe("Object - Basic", () => {
       "Object"
     );
 
-    expect(renderComponent(object, { mode: MODE.TINY }).text()).toEqual("{}");
+    expect(renderComponent(object, { mode: MODE.TINY }).text()).toEqual(
+      defaultOutput
+    );
     expect(renderComponent(object, { mode: MODE.TINY }).prop("title")).toEqual(
       "Object"
     );
@@ -50,7 +52,7 @@ describe("Object - Basic", () => {
 
 describe("Object - Max props", () => {
   const object = { a: "a", b: "b", c: "c" };
-  const defaultOutput = 'Object { a: "a", b: "b", c: "c" }';
+  const defaultOutput = '{ a: "a", b: "b", c: "c" }';
 
   it("renders object with max props as expected", () => {
     expect(renderComponent(object, { mode: undefined }).text()).toEqual(
@@ -71,7 +73,7 @@ describe("Object - Many props", () => {
   for (let i = 0; i < 100; i++) {
     object[`p${i}`] = i;
   }
-  const defaultOutput = "Object { p0: 0, p1: 1, p2: 2, … }";
+  const defaultOutput = "{ p0: 0, p1: 1, p2: 2, … }";
 
   it("renders object with many props as expected", () => {
     expect(renderComponent(object, { mode: undefined }).text()).toEqual(
@@ -89,7 +91,7 @@ describe("Object - Many props", () => {
 
 describe("Object - Uninteresting props", () => {
   const object = { a: undefined, b: undefined, c: "c", d: 0 };
-  const defaultOutput = 'Object { c: "c", d: 0, a: undefined, … }';
+  const defaultOutput = '{ c: "c", d: 0, a: undefined, … }';
 
   it("renders object with uninteresting props as expected", () => {
     expect(renderComponent(object, { mode: undefined }).text()).toEqual(
@@ -107,7 +109,7 @@ describe("Object - Uninteresting props", () => {
 
 describe("Object - Escaped property names", () => {
   const object = { "": 1, "quote-this": 2, noquotes: 3 };
-  const defaultOutput = 'Object { "": 1, "quote-this": 2, noquotes: 3 }';
+  const defaultOutput = '{ "": 1, "quote-this": 2, noquotes: 3 }';
 
   it("renders object with escaped property names as expected", () => {
     expect(renderComponent(object, { mode: undefined }).text()).toEqual(
@@ -133,7 +135,7 @@ describe("Object - Nested", () => {
     arrProp: [1],
   };
   const defaultOutput =
-    'Object { strProp: "test string", objProp: {…},' + " arrProp: (1)[…] }";
+    '{ strProp: "test string", objProp: {…},' + " arrProp: (1)[…] }";
 
   it("renders nested object as expected", () => {
     expect(
@@ -158,7 +160,7 @@ describe("Object - More prop", () => {
     more: 2,
     d: 3,
   };
-  const defaultOutput = "Object { b: 1, more: 2, d: 3, … }";
+  const defaultOutput = "{ b: 1, more: 2, d: 3, … }";
 
   it("renders object with more properties as expected", () => {
     expect(renderComponent(object, { mode: undefined }).text()).toEqual(
@@ -351,6 +353,6 @@ describe("Object - noGrip prop", () => {
 
     expect(
       renderComponent(object, { mode: MODE.SHORT, noGrip: true }).text()
-    ).toEqual('Object { class: "Array" }');
+    ).toEqual('{ class: "Array" }');
   });
 });

@@ -983,6 +983,21 @@ class nsIWidget : public nsISupports {
    */
   virtual TransparencyMode GetTransparencyMode() = 0;
 
+  // Cocoa and GTK round widget coordinates to the nearest global "display
+  // pixel" integer value; see bug 892994. So we avoid fractional display pixel
+  // values by rounding to the nearest value that won't yield a fractional
+  // display pixel.
+  virtual int32_t RoundsWidgetCoordinatesTo() { return 1; }
+  static LayoutDeviceIntRect MaybeRoundToDisplayPixels(
+      const LayoutDeviceIntRect& aRect, TransparencyMode aTransparency,
+      int32_t aRound);
+
+  LayoutDeviceIntRect MaybeRoundToDisplayPixels(
+      const LayoutDeviceIntRect& aRect) {
+    return MaybeRoundToDisplayPixels(aRect, GetTransparencyMode(),
+                                     RoundsWidgetCoordinatesTo());
+  }
+
   /**
    * Set the shadow style of the window.
    *
@@ -1952,13 +1967,6 @@ class nsIWidget : public nsISupports {
    * false otherwise.
    */
   virtual bool SynchronouslyRepaintOnResize() { return true; }
-
-  /**
-   * Some platforms (only cocoa right now) round widget coordinates to the
-   * nearest even pixels (see bug 892994), this function allows us to
-   * determine how widget coordinates will be rounded.
-   */
-  virtual int32_t RoundsWidgetCoordinatesTo() { return 1; }
 
   virtual void UpdateZoomConstraints(
       const uint32_t& aPresShellId, const ScrollableLayerGuid::ViewID& aViewId,

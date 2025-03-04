@@ -634,6 +634,15 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
             BrowserRobot().interact()
             return BrowserRobot.Transition()
         }
+
+        fun openReportBrokenSite(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+            Log.i(TAG, "openReportBrokenSite: Trying to click the \"Report broken site\" button")
+            composeTestRule.reportBrokenSiteButton().performClick()
+            Log.i(TAG, "openReportBrokenSite: Clicked the \"Report broken site\" button")
+
+            BrowserRobot().interact()
+            return BrowserRobot.Transition()
+        }
     }
 }
 

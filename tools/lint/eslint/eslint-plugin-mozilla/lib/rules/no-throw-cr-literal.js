@@ -32,7 +32,7 @@ function isNewError(argument) {
 }
 
 function fixT(context, node, argument, fixer) {
-  const sourceText = context.getSourceCode().getText(argument);
+  const sourceText = context.sourceCode.getText(argument);
   return fixer.replaceText(node, `Components.Exception("", ${sourceText})`);
 }
 

@@ -5,6 +5,7 @@
 "use strict";
 
 module.exports = {
+  name: "mozilla/valid-jsdoc",
   plugins: ["jsdoc"],
 
   rules: {

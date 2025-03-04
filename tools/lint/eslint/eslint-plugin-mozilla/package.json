@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-mozilla",
-  "version": "4.2.0",
+  "version": "4.2.1",
   "description": "A collection of rules that help enforce JavaScript coding standard in the Mozilla project.",
   "keywords": [
     "eslint",
@@ -33,9 +33,18 @@
   },
   "peerDependencies": {
     "@microsoft/eslint-plugin-sdl": "^0.2.2 || ^1.0.0",
-    "eslint": "^7.23.0 || ^8.0.0 || ^9.0.0",
+    "eslint": "^8.57.1 || ^9.0.0",
     "eslint-plugin-no-unsanitized": "^4.1.0",
-    "eslint-plugin-promise": "^7.2.1"
+    "eslint-plugin-promise": "^7.2.1",
+    "eslint-plugin-jsdoc": "^50.6.3"
+  },
+  "peerDependenciesMeta": {
+    "@eslint-plugin-jsdoc": {
+      "optional": true
+    },
+    "@microsoft/eslint-plugin-sdl": {
+      "optional": true
+    }
   },
   "engines": {
     "node": ">=18.0.0"

@@ -26,7 +26,7 @@ module.exports = {
 
   create(context) {
     return {
-      Program() {
+      Program(node) {
         let filePath = helpers.getAbsoluteFilePath(context);
         let relativePath = path.relative(helpers.rootDir, filePath);
         // We need to translate the path on Windows, due to the change
@@ -39,7 +39,7 @@ module.exports = {
           for (let global in browserWindowEnv.globals) {
             helpers.addVarToScope(
               global,
-              context.getScope(),
+              context.sourceCode.getScope(node),
               browserWindowEnv.globals[global]
             );
           }

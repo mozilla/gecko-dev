@@ -56,6 +56,7 @@ module.exports = {
     waitForFocus: false,
   },
 
+  name: "mozilla/browser-test",
   plugins: ["mozilla"],
 
   rules: {

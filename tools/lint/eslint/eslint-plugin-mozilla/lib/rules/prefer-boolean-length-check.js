@@ -10,7 +10,7 @@
 
 function funcForBooleanLength(context, node, conditionCheck) {
   let newText = "";
-  const sourceCode = context.getSourceCode();
+  const sourceCode = context.sourceCode;
   switch (node.operator) {
     case ">":
       if (node.right.value == 0) {

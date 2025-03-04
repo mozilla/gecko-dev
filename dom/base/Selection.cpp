@@ -3967,7 +3967,7 @@ void Selection::DeleteFromDocument(ErrorResult& aRv) {
 }
 
 void Selection::Modify(const nsAString& aAlter, const nsAString& aDirection,
-                       const nsAString& aGranularity, ErrorResult& aRv) {
+                       const nsAString& aGranularity) {
   if (NeedsToLogSelectionAPI(*this)) {
     LogSelectionAPI(this, __FUNCTION__, "aAlter", aAlter, "aDirection",
                     aDirection, "aGranularity", aGranularity);
@@ -3975,7 +3975,6 @@ void Selection::Modify(const nsAString& aAlter, const nsAString& aDirection,
   }
 
   if (!mFrameSelection) {
-    aRv.Throw(NS_ERROR_NOT_INITIALIZED);
     return;
   }
 
@@ -3985,8 +3984,6 @@ void Selection::Modify(const nsAString& aAlter, const nsAString& aDirection,
 
   if (!aAlter.LowerCaseEqualsLiteral("move") &&
       !aAlter.LowerCaseEqualsLiteral("extend")) {
-    aRv.ThrowSyntaxError(
-        R"(The first argument must be one of: "move" or "extend")");
     return;
   }
 
@@ -3994,8 +3991,6 @@ void Selection::Modify(const nsAString& aAlter, const nsAString& aDirection,
       !aDirection.LowerCaseEqualsLiteral("backward") &&
       !aDirection.LowerCaseEqualsLiteral("left") &&
       !aDirection.LowerCaseEqualsLiteral("right")) {
-    aRv.ThrowSyntaxError(
-        R"(The direction argument must be one of: "forward", "backward", "left", or "right")");
     return;
   }
 
@@ -4028,11 +4023,17 @@ void Selection::Modify(const nsAString& aAlter, const nsAString& aDirection,
              aGranularity.LowerCaseEqualsLiteral("paragraph") ||
              aGranularity.LowerCaseEqualsLiteral("paragraphboundary") ||
              aGranularity.LowerCaseEqualsLiteral("documentboundary")) {
-    aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
+    Document* document = GetParentObject();
+    if (document) {
+      AutoTArray<nsString, 1> params;
+      params.AppendElement(aGranularity);
+      nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "DOM"_ns,
+                                      document, nsContentUtils::eDOM_PROPERTIES,
+                                      "SelectionModifyGranualirtyUnsupported",
+                                      params);
+    }
     return;
   } else {
-    aRv.ThrowSyntaxError(
-        R"(The granularity argument must be one of: "character", "word", "line", or "lineboundary")");
     return;
   }
 
@@ -4044,7 +4045,6 @@ void Selection::Modify(const nsAString& aAlter, const nsAString& aDirection,
     RefPtr<nsINode> focusNode = GetFocusNode();
     // We should have checked earlier that there was a focus node.
     if (!focusNode) {
-      aRv.Throw(NS_ERROR_UNEXPECTED);
       return;
     }
     uint32_t focusOffset = FocusOffset();

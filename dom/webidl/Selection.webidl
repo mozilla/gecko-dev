@@ -77,19 +77,14 @@ interface Selection {
                              unsigned long focusOffset);
   [Throws, BinaryName="selectAllChildrenJS"]
   undefined selectAllChildren(Node node);
+  undefined modify(optional DOMString alter = "", optional DOMString direction = "",
+                   optional DOMString granularity = "");
   [CEReactions, Throws]
   undefined deleteFromDocument();
   [Throws]
   boolean   containsNode(Node node,
                          optional boolean allowPartialContainment = false);
   stringifier DOMString ();
-};
-
-// Additional methods not currently in the spec
-partial interface Selection {
-  [Throws]
-  undefined modify(DOMString alter, DOMString direction,
-                   DOMString granularity);
 };
 
 // Additional chrome-only methods.

@@ -519,16 +519,16 @@ class ThreeDotMenuMainRobot {
             return HomeScreenRobot.Transition()
         }
 
-        fun openReportSiteIssue(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
-            Log.i(TAG, "openReportSiteIssue: Trying to perform swipe up action on the three dot menu")
+        fun openReportBrokenSite(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+            Log.i(TAG, "openReportBrokenSite: Trying to perform swipe up action on the three dot menu")
             threeDotMenuRecyclerView().perform(swipeUp())
-            Log.i(TAG, "openReportSiteIssue: Performed swipe up action on the three dot menu")
-            Log.i(TAG, "openReportSiteIssue: Trying to perform swipe up action on the three dot menu")
+            Log.i(TAG, "openReportBrokenSite: Performed swipe up action on the three dot menu")
+            Log.i(TAG, "openReportBrokenSite: Trying to perform swipe up action on the three dot menu")
             threeDotMenuRecyclerView().perform(swipeUp())
-            Log.i(TAG, "openReportSiteIssue: Performed swipe up action on the three dot menu")
-            Log.i(TAG, "openReportSiteIssue: Trying to click the \"Report Site Issue\" button")
+            Log.i(TAG, "openReportBrokenSite: Performed swipe up action on the three dot menu")
+            Log.i(TAG, "openReportBrokenSite: Trying to click the \"Report broke site\" button")
             reportSiteIssueButton().click()
-            Log.i(TAG, "openReportSiteIssue: Clicked the \"Report Site Issue\" button")
+            Log.i(TAG, "openReportBrokenSite: Clicked the \"Report broke site\" button")
 
             BrowserRobot().interact()
             return BrowserRobot.Transition()

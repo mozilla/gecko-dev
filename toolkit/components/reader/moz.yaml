@@ -9,8 +9,8 @@ origin:
   description: Readability library used for Firefox Reader View
   url: https://github.com/mozilla/readability
   license: Apache-2.0
-  release: 0.5.0 (2023-12-15T17:20:28+00:00).
-  revision: 0.5.0
+  release: 0.6.0 (2025-03-03T21:53:13+00:00).
+  revision: 0.6.0
 
 vendoring:
   url: https://github.com/mozilla/readability

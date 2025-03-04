@@ -1397,6 +1397,7 @@ body {
 }
 </style>
 <input id="input">
+<p id="p">p</p>
   `,
   async function testTextSupportedTextSelection() {
     let result = await runPython(`
@@ -1411,13 +1412,57 @@ body {
       SupportedTextSelection_Multiple,
       "input SupportedTextSelection correct"
     );
-    // The IA2 -> UIA bridge doesn't understand that text isn't selectable in
-    // this document.
     if (gIsUiaEnabled) {
+      // The IA2 -> UIA proxy doesn't expose the Text pattern on this text leaf.
+      is(
+        await runPython(`
+          p = findUiaByDomId(doc, "p")
+          pLeaf = uiaClient.RawViewWalker.GetFirstChildElement(p)
+          text = getUiaPattern(pLeaf, "Text")
+          return text.SupportedTextSelection
+        `),
+        SupportedTextSelection_None,
+        "pLeaf SupportedTextSelection correct"
+      );
+      // The IA2 -> UIA proxy doesn't understand that text isn't selectable in
+      // this document.
       is(
         await runPython(`getUiaPattern(doc, "Text").SupportedTextSelection`),
         SupportedTextSelection_None,
         "doc SupportedTextSelection correct"
+      );
+    }
+  }
+);
+
+/**
+ * Test the Text pattern's SupportedTextSelection property on a document with a
+ * selectable body.
+ */
+addUiaTask(
+  `<p id="p">p</p>`,
+  async function testTextSupportedTextSelectionSelectableBody() {
+    is(
+      await runPython(`
+        global doc
+        doc = getDocUia()
+        text = getUiaPattern(doc, "Text")
+        return text.SupportedTextSelection
+      `),
+      SupportedTextSelection_Multiple,
+      "doc SupportedTextSelection correct"
+    );
+    // The IA2 -> UIA proxy doesn't expose the Text pattern on this text leaf.
+    if (gIsUiaEnabled) {
+      is(
+        await runPython(`
+          p = findUiaByDomId(doc, "p")
+          pLeaf = uiaClient.RawViewWalker.GetFirstChildElement(p)
+          text = getUiaPattern(pLeaf, "Text")
+          return text.SupportedTextSelection
+        `),
+        SupportedTextSelection_Multiple,
+        "pLeaf SupportedTextSelection correct"
       );
     }
   }

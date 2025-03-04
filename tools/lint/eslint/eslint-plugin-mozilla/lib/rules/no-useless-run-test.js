@@ -36,7 +36,7 @@ module.exports = {
           context.report({
             node,
             fix: fixer => {
-              let sourceCode = context.getSourceCode();
+              let sourceCode = context.sourceCode;
               let startNode;
               if (sourceCode.getCommentsBefore) {
                 // ESLint 4 has getCommentsBefore.

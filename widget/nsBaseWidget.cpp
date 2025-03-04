@@ -444,6 +444,23 @@ void nsIWidget::RemoveAllChildren() {
   }
 }
 
+LayoutDeviceIntRect nsIWidget::MaybeRoundToDisplayPixels(
+    const LayoutDeviceIntRect& aRect, TransparencyMode aTransparency,
+    int32_t aRound) {
+  if (aRound == 1) {
+    return aRect;
+  }
+
+  // If the widget doesn't support transparency, we prefer truncating to
+  // ceiling, so that we don't have extra pixels not painted by our frame.
+  auto size = aTransparency == TransparencyMode::Opaque
+                  ? aRect.Size().TruncatedToMultiple(aRound)
+                  : aRect.Size().CeiledToMultiple(aRound);
+  Unused << NS_WARN_IF(aTransparency == TransparencyMode::Opaque &&
+                       size != aRect.Size());
+  return {aRect.TopLeft().RoundedToMultiple(aRound), size};
+}
+
 //-------------------------------------------------------------------------
 //
 // Accessor functions to get/set the client data

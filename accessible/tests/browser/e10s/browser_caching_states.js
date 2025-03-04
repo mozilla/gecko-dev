@@ -863,3 +863,43 @@ addAccessibleTask(
   },
   { chrome: true, topLevel: true }
 );
+
+/**
+ * Test the selectable text state.
+ */
+addAccessibleTask(
+  `
+<p id="selectableP">selectableP</p>
+<p id="unselectableP" style="user-select: none;">unselectableP</p>
+  `,
+  async function testSelectableText(browser, docAcc) {
+    testStates(docAcc, 0, EXT_STATE_SELECTABLE_TEXT);
+    const selectableP = findAccessibleChildByID(docAcc, "selectableP");
+    testStates(selectableP, 0, EXT_STATE_SELECTABLE_TEXT);
+    const unselectableP = findAccessibleChildByID(docAcc, "unselectableP");
+    testStates(unselectableP, 0, 0, 0, EXT_STATE_SELECTABLE_TEXT);
+  },
+  { chrome: true, topLevel: true }
+);
+
+/**
+ * Test the selectable text state on an unselectable body.
+ */
+addAccessibleTask(
+  `
+<style>
+body {
+  user-select: none;
+}
+<p id="p">p</p>
+  `,
+  async function testSelectableTextUnselectableBody(browser, docAcc) {
+    testStates(docAcc, 0, 0, 0, EXT_STATE_SELECTABLE_TEXT);
+    const p = findAccessibleChildByID(docAcc, "p");
+    testStates(p, 0, 0, 0, EXT_STATE_SELECTABLE_TEXT);
+  },
+  {
+    chrome: true,
+    topLevel: true,
+  }
+);
