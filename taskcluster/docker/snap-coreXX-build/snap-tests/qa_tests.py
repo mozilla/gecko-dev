@@ -143,7 +143,7 @@ class QATests(SnapTestsBase):
         self._logger.info("find video: done")
 
     def _test_audio_video_playback(self, url):
-        iframe_css_selector = "#ucc-1"
+        iframe_css_selector = "iframe[id*=ucc-]"
         self._logger.info("open url {}".format(url))
         self.open_tab(url)
         self._logger.info("find thumbnail")
@@ -191,16 +191,6 @@ class QATests(SnapTestsBase):
         """
         C95233
         """
-
-        if (
-            self.update_channel() in ("release")
-            and self.version_major() >= "134"
-            and self.is_debug_build()
-        ):
-            self._logger.info(
-                "Skip test due to https://bugzilla.mozilla.org/show_bug.cgi?id=1934358"
-            )
-            return True
 
         self._test_audio_video_playback(
             "https://drive.google.com/file/d/0BwxFVkl63-lEY3l3ODJReDg3RzQ/view?resourcekey=0-5kDw2QbFk9eLrWE1N9M1rQ&hl=en-US"
