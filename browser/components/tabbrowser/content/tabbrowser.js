@@ -2919,8 +2919,14 @@
      *   An optional argument that accepts a single tab, which, if passed, will
      *   cause the group to be inserted just before this tab in the tab strip. By
      *   default, the group will be created at the end of the tab strip.
-     * @param {boolean} [options.showCreateUI]
-     *   Set this to true to show the post-creation group edtior.
+     * @param {boolean} [options.isUserCreated]
+     *   Should be true if this group is being created in response to an
+     *   explicit request from the user (as opposed to a group being created
+     *   for technical reasons, such as when an already existing group
+     *   switches windows).
+     *   Causes the group create UI to be displayed and telemetry events to be fired.
+     * @param {string} [options.telemetryUserCreateSource]
+     *   The means by which the tab group was created. Defaults to "unknown".
      */
     addTabGroup(
       tabs,
@@ -2929,7 +2935,8 @@
         color = null,
         label = "",
         insertBefore = null,
-        showCreateUI = false,
+        isUserCreated = false,
+        telemetryUserCreateSource = "unknown",
       } = {}
     ) {
       if (!tabs?.length) {
@@ -2975,9 +2982,18 @@
       group.dispatchEvent(
         new CustomEvent("TabGroupCreate", {
           bubbles: true,
-          detail: { showCreateUI },
+          detail: { isUserCreated },
         })
       );
+
+      if (isUserCreated) {
+        Glean.browserEngagement.tabGroupCreate.record({
+          id,
+          layout: this.tabContainer.verticalMode ? "vertical" : "horizontal",
+          source: telemetryUserCreateSource,
+          tabs: group.tabs.length,
+        });
+      }
 
       return group;
     }
@@ -6704,7 +6720,7 @@
           break;
         }
         case "TabGroupCreate":
-          if (aEvent.detail.showCreateUI) {
+          if (aEvent.detail.isUserCreated) {
             this.tabGroupMenu.openCreateModal(aEvent.target);
           }
           break;
@@ -8844,7 +8860,8 @@ var TabContextMenu = {
   moveTabsToNewGroup() {
     gBrowser.addTabGroup(this.contextTabs, {
       insertBefore: this.contextTab,
-      showCreateUI: true,
+      isUserCreated: true,
+      telemetryUserCreateSource: "tab_menu",
     });
 
     // When using the tab context menu to create a group from the all tabs
