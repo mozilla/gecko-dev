@@ -43,7 +43,7 @@ category browser-idle-startup resource:///modules/GenAI.sys.mjs GenAI.init
 category browser-idle-startup resource:///modules/QuickSuggest.sys.mjs QuickSuggest.init
 category browser-idle-startup resource:///modules/UrlbarSearchTermsPersistence.sys.mjs UrlbarSearchTermsPersistence.init
 category browser-idle-startup resource:///modules/ShoppingUtils.sys.mjs ShoppingUtils.init
-category browser-idle-startup resource:///modules/SearchSERPTelemetry.sys.mjs SearchSERPCategorization.init
+category browser-idle-startup resource:///modules/SERPCategorization.sys.mjs SERPCategorization.init
 category browser-idle-startup resource://gre/modules/ContentRelevancyManager.sys.mjs ContentRelevancyManager.init
 #ifdef MOZ_UPDATER
 category browser-idle-startup resource://gre/modules/UpdateListener.sys.mjs UpdateListener.maybeShowUnsupportedNotification
@@ -62,6 +62,8 @@ category browser-quit-application-granted resource://normandy/Normandy.sys.mjs N
 category browser-quit-application-granted resource://gre/modules/RFPHelper.sys.mjs RFPHelper.uninit
 category browser-quit-application-granted resource:///modules/ShoppingUtils.sys.mjs ShoppingUtils.uninit
 category browser-quit-application-granted resource:///modules/asrouter/ASRouterNewTabHook.sys.mjs ASRouterNewTabHook.destroy
+category browser-quit-application-granted resource:///modules/SERPCategorization.sys.mjs SERPCategorization.uninit
+category browser-quit-application-granted resource:///modules/SearchSERPTelemetry.sys.mjs SearchSERPTelemetry.uninit
 #ifdef MOZ_UPDATER
 category browser-quit-application-granted resource://gre/modules/UpdateListener.sys.mjs UpdateListener.reset
 #endif

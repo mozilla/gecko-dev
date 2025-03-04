@@ -74,7 +74,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Sanitizer: "resource:///modules/Sanitizer.sys.mjs",
   SandboxUtils: "resource://gre/modules/SandboxUtils.sys.mjs",
   ScreenshotsUtils: "resource:///modules/ScreenshotsUtils.sys.mjs",
-  SearchSERPCategorization: "resource:///modules/SearchSERPTelemetry.sys.mjs",
   SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.sys.mjs",
   SelectableProfileService:
     "resource:///modules/profiles/SelectableProfileService.sys.mjs",
@@ -2197,11 +2196,6 @@ BrowserGlue.prototype = {
           this._bookmarksBackupIdleTime = null;
         }
       },
-
-      // These should also be moved to use the category manager, but ran into
-      // leaking issues. Bug 1949294 tracks.
-      () => lazy.SearchSERPTelemetry.uninit(),
-      () => lazy.SearchSERPCategorization.uninit(),
 
       () => {
         // bug 1839426 - The FOG service needs to be instantiated reliably so it
