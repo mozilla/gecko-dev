@@ -184,6 +184,8 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
     }
 }
 
+def projectVersion = project.ext.gleanVersion
+
 configurations {
     api {
         outgoing {
@@ -193,7 +195,7 @@ configurations {
             }
             afterEvaluate {
                 // Implicit capability
-                capability("org.mozilla.geckoview:${getArtifactId()}:${project.ext.versionNumber}")
+                capability("org.mozilla.geckoview:${getArtifactId()}:${projectVersion}")
             }
         }
     }
@@ -204,8 +206,7 @@ configurations {
     runtimeOnly {
         outgoing {
             afterEvaluate {
-                // Implicit capability
-                capability("org.mozilla.geckoview:geckoview:${project.ext.versionNumber}")
+                capability("org.mozilla.geckoview:geckoview:${projectVersion}")
             }
         }
     }
@@ -250,6 +251,16 @@ android.libraryVariants.all { variant ->
     // https://code.tutsplus.com/tutorials/creating-and-publishing-an-android-library--cms-24582,
     // and amended from numerous Stackoverflow posts.
     def name = variant.name
+    def classpathFilesProvider = variant.javaCompileProvider.flatMap { compileTask ->
+        project.provider { compileTask.classpath.files }
+    }
+
+    def classpathFilesProviderFiles = project.provider {
+        files(classpathFilesProvider.get())
+    }
+
+    def androidLintProperty = project.provider { project.hasProperty('android-lint') }
+
     def javadoc = task "javadoc${name.capitalize()}"(type: Javadoc) {
         failOnError = false
         description = "Generate Javadoc for build variant $name"
@@ -259,12 +270,13 @@ android.libraryVariants.all { variant ->
         // this is a problem for the javadoc lint, which needs to read the output of the task
         // to determine if there are warnings or errors. To force that we pass a -Pandroid-lint
         // parameter to all lints that can be used here to force running the task every time.
+
         outputs.upToDateWhen {
-            !project.hasProperty('android-lint')
+            !androidLintProperty.get()
         }
 
         doFirst {
-            classpath = files(variant.javaCompileProvider.get().classpath.files)
+            classpath = classpathFilesProviderFiles.get()
         }
 
         def results = []
@@ -288,6 +300,9 @@ android.libraryVariants.all { variant ->
             logging.addStandardErrorListener(listener)
         }
 
+        def reportsDir = file("$buildDir/reports")
+        def reportsJsonFile = file("$buildDir/reports/javadoc-results-${name}.json")
+
         doLast {
             logging.removeStandardErrorListener(listener)
 
@@ -295,8 +310,8 @@ android.libraryVariants.all { variant ->
             // `android-javadoc` linter to fail in the face of Javadoc warnings.
             def resultsJson = JsonOutput.toJson(results)
 
-            file("$buildDir/reports").mkdirs()
-            file("$buildDir/reports/javadoc-results-${name}.json").write(resultsJson)
+            reportsDir.mkdirs()
+            reportsJsonFile.write(resultsJson)
         }
 
         source = variant.sourceSets.collect({ it.java.srcDirs })
@@ -473,6 +488,13 @@ afterEvaluate {
 apply from: "${topsrcdir}/mobile/android/gradle/debug_level.gradle"
 android.libraryVariants.all configureVariantDebugLevel
 
+def androidBootClasspath = provider {
+    android.bootClasspath.findAll { it.name.startsWith('android.jar') }
+}
+
+def bindingsDir = "${topobjdir}/widget/android/bindings"
+
+def generateSdkBindingsArgsProvider = project.provider { project.hasProperty('generate_sdk_bindings_args') ? project.generate_sdk_bindings_args : false }
 // There's nothing specific to the :geckoview project here -- this just needs to
 // be somewhere where the Android plugin is available so that we can fish the
 // path to "android.jar".
@@ -494,14 +516,14 @@ task("generateSDKBindings", type: JavaExec) {
     doFirst {
         // We only want to generate bindings for the main framework JAR,
         // but not any of the additional android.test libraries.
-        args android.bootClasspath.findAll { it.getName().startsWith('android.jar') }
+        args androidBootClasspath.get()
         args 29
-        args "${topobjdir}/widget/android/bindings"
+        args bindingsDir
 
         // From -Pgenerate_sdk_bindings_args=... on command line; missing in
         // `android-gradle-dependencies` toolchain task.
-        if (project.hasProperty('generate_sdk_bindings_args')) {
-            args project.generate_sdk_bindings_args.split(';')
+        if (generateSdkBindingsArgsProvider.get()) {
+            args generateSdkBindingsArgsProvider.get().split(';')
         }
     }
 

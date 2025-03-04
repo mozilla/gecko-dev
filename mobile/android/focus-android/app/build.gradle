@@ -552,15 +552,15 @@ android.applicationVariants.configureEach { variant ->
     }
 }
 
-def generatedLocaleListDir = 'src/main/java/org/mozilla/focus/generated'
+def generatedLocaleListDir = file('src/main/java/org/mozilla/focus/generated')
 def generatedLocaleListFilename = 'LocalesList.kt'
 
-tasks.register('generateLocaleList') {
-    doLast {
-        def dir = file(generatedLocaleListDir)
-        dir.mkdir()
-        def localeList = file(new File(dir, generatedLocaleListFilename))
+def enabledLocales = project.provider { getEnabledLocales() }
 
+tasks.register('generateLocaleList') {
+    def localeList = file(new File(generatedLocaleListDir, generatedLocaleListFilename))
+    doLast {
+        generatedLocaleListDir.mkdir()
         localeList.delete()
         localeList.createNewFile()
         localeList << "package org.mozilla.focus.generated" << "\n" << "\n"
@@ -578,7 +578,7 @@ tasks.register('generateLocaleList') {
         localeList << "        " << "listOf("
         localeList << "\n"
         localeList << "            "
-        localeList << getEnabledLocales().join(",\n" + "            ")
+        localeList << enabledLocales.get().join(",\n" + "            ")
         localeList << ",\n"
         localeList << "        )," << "\n"
         localeList << "    )" << "\n"
@@ -593,7 +593,7 @@ tasks.configureEach { task ->
 }
 
 clean.doLast {
-    file(generatedLocaleListDir).deleteDir()
+    generatedLocaleListDir.deleteDir()
 }
 
 if (project.hasProperty("coverage")) {

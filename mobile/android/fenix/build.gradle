@@ -126,7 +126,7 @@ subprojects {
             if (it.startsWith('w: ') || it.startsWith('e: ')) {
                 def matches = (it =~ /([ew]): (.+):(\d+):(\d+) (.*)/)
                 if (!matches) {
-                    logger.quiet "kotlinc message format has changed!"
+                    task.logger.quiet "kotlinc message format has changed!"
                     if (it.startsWith('w: ')) {
                         // For warnings, don't continue because we don't want to throw an
                         // exception. For errors, we want the exception so that the new error
@@ -137,7 +137,7 @@ subprojects {
                 def (_, type, file, line, column, message) = matches[0]
                 type = (type == 'w') ? 'warning' : 'error'
                 // Use logger.lifecycle, which does not go through stderr again.
-                logger.lifecycle "$file:$line:$column: $type: $message"
+                task.logger.lifecycle "$file:$line:$column: $type: $message"
             }
         } as StandardOutputListener
 
