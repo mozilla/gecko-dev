@@ -1,0 +1,11 @@
+<script>
+window.addEventListener("DOMContentLoaded", async () => {
+  let dir = await self.navigator.storage.getDirectory()
+  let a = await dir.getDirectoryHandle("478b0f5c-9abb-48d9-beb1-7e6aae189df7", {"create": true})
+  let b = await a.getFileHandle("9e643bcf-9f9e-4b35-9fec-e3285020b150", {"create": true})
+  let c = await b.createWritable({ })
+  await c.write("a")
+  await a.move(dir, "ó ²¾*")
+  await a.removeEntry("9e643bcf-9f9e-4b35-9fec-e3285020b150", { })
+})
+</script>
