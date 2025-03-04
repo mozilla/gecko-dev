@@ -69,6 +69,36 @@ class SupportUtilsTest {
     }
 
     @Test
+    fun `getMozillaPageUrl returns the correct URL for the terms of service`() {
+        Locale.setDefault(Locale.UK)
+        assertEquals(
+            "https://www.mozilla.org/en-GB/about/legal/terms/services/",
+            SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.TERMS_OF_SERVICE),
+        )
+
+        Locale.setDefault(Locale.KOREA)
+        assertEquals(
+            "https://www.mozilla.org/ko-KR/about/legal/terms/services/",
+            SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.TERMS_OF_SERVICE),
+        )
+    }
+
+    @Test
+    fun `getMozillaPageUrl returns the correct URL for the privacy notice`() {
+        Locale.setDefault(Locale.UK)
+        assertEquals(
+            "https://www.mozilla.org/en-GB/privacy/firefox/",
+            SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.PRIVATE_NOTICE),
+        )
+
+        Locale.setDefault(Locale.KOREA)
+        assertEquals(
+            "https://www.mozilla.org/ko-KR/privacy/firefox/",
+            SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.PRIVATE_NOTICE),
+        )
+    }
+
+    @Test
     fun `appVersionName returns proper value`() {
         val context: Context = mock()
         val packageManager: PackageManager = mock()

@@ -39,6 +39,23 @@ object SupportUtils {
             return "https://www.mozilla.org/$langTag/about/manifesto/"
         }
 
+    /**
+     * Paths for specific pages on the Mozilla website.
+     */
+    enum class MozillaPage(internal val path: String) {
+        PRIVATE_NOTICE("privacy/firefox/"),
+        TERMS_OF_SERVICE("about/legal/terms/services/"),
+    }
+
+    /**
+     * Returns the localised URL for a given [page].
+     */
+    fun getMozillaPageUrl(page: MozillaPage, locale: Locale = Locale.getDefault()): String {
+        val path = page.path
+        val langTag = Locales.getLanguageTag(locale)
+        return "https://www.mozilla.org/$langTag/$path"
+    }
+
     enum class SumoTopic(
         /** The final path segment for a SUMO URL - see {@see #getSumoURLForTopic}  */
         internal val topicStr: String,
