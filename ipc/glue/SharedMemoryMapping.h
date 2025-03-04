@@ -8,6 +8,7 @@
 #define mozilla_ipc_SharedMemoryMapping_h
 
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include "mozilla/Assertions.h"
 #include "mozilla/Span.h"
@@ -26,6 +27,15 @@ struct LeakedMapping : Span<uint8_t> {
   using Span::Span;
 };
 
+/**
+ * A leaked read-only memory mapping.
+ *
+ * This memory will never be unmapped.
+ */
+struct LeakedReadOnlyMapping : Span<const uint8_t> {
+  using Span::Span;
+};
+
 class MappingBase {
  public:
   /**
@@ -36,24 +46,7 @@ class MappingBase {
   /**
    * The pointer to the mapping in memory.
    */
-  void* Data() const;
-
-  /**
-   * Get a `Span<T>` over the mapping.
-   *
-   * The mapping data must meet the alignment requirements of @p T.
-   *
-   * @tparam T The type of data in the mapping.
-   *
-   * @return A span of type @p T covering as much of the mapping as possible.
-   */
-  template <typename T>
-  Span<T> DataAsSpan() const {
-    MOZ_ASSERT((reinterpret_cast<uintptr_t>(Data()) % alignof(T)) == 0,
-               "memory map does not meet alignment requirements of type");
-    size_t count = Size() / sizeof(T);
-    return {static_cast<T*>(Data()), count};
-  }
+  void* Address() const;
 
   /**
    * Whether this shared memory mapping is valid.
@@ -102,17 +95,57 @@ class MappingBase {
    *
    * This will cause the memory to be mapped until the process exits.
    */
-  LeakedMapping release() &&;
+  LeakedMapping ReleaseMapping() &&;
 
  private:
   void* mMemory = nullptr;
   size_t mSize = 0;
 };
 
+template <bool CONST_MEMORY>
+struct MappingData : MappingBase {
+ private:
+  template <typename T>
+  using DataType =
+      std::conditional_t<CONST_MEMORY, std::add_const_t<std::remove_const_t<T>>,
+                         T>;
+
+ public:
+  /**
+   * Get a pointer to the data in the mapping as a type T.
+   *
+   * The mapping data must meet the alignment requirements of @p T.
+   *
+   * @tparam T The type of data in the mapping.
+   *
+   * @return A pointer of type @p T*.
+   */
+  template <typename T>
+  DataType<T>* DataAs() const {
+    MOZ_ASSERT((reinterpret_cast<uintptr_t>(Address()) % alignof(T)) == 0,
+               "memory map does not meet alignment requirements of type");
+    return static_cast<DataType<T>*>(Address());
+  }
+
+  /**
+   * Get a `Span<T>` over the mapping.
+   *
+   * The mapping data must meet the alignment requirements of @p T.
+   *
+   * @tparam T The type of data in the mapping.
+   *
+   * @return A span of type @p T covering as much of the mapping as possible.
+   */
+  template <typename T>
+  Span<DataType<T>> DataAsSpan() const {
+    return {DataAs<T>(), Size() / sizeof(T)};
+  }
+};
+
 /**
  * A shared memory mapping.
  */
-struct Mapping : MappingBase {
+struct Mapping : MappingData<false> {
   /**
    * Create an empty Mapping.
    */
@@ -123,13 +156,13 @@ struct Mapping : MappingBase {
   Mapping(const Handle& aHandle, uint64_t aOffset, size_t aSize,
           void* aFixedAddress = nullptr);
 
-  using MappingBase::release;
+  LeakedMapping Release() && { return std::move(*this).ReleaseMapping(); }
 };
 
 /**
  * A read-only shared memory mapping.
  */
-struct ReadOnlyMapping : MappingBase {
+struct ReadOnlyMapping : MappingData<true> {
   /**
    * Create an empty ReadOnlyMapping.
    */
@@ -140,12 +173,17 @@ struct ReadOnlyMapping : MappingBase {
                            void* aFixedAddress = nullptr);
   ReadOnlyMapping(const ReadOnlyHandle& aHandle, uint64_t aOffset, size_t aSize,
                   void* aFixedAddress = nullptr);
+
+  LeakedReadOnlyMapping Release() && {
+    auto mapping = std::move(*this).ReleaseMapping();
+    return LeakedReadOnlyMapping{mapping.data(), mapping.size()};
+  }
 };
 
 /**
  * A freezable shared memory mapping.
  */
-struct FreezableMapping : MappingBase {
+struct FreezableMapping : MappingData<false> {
   /**
    * Create an empty FreezableMapping.
    */

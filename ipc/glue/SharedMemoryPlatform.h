@@ -10,6 +10,7 @@
 #include "mozilla/ipc/SharedMemoryHandle.h"
 #include "mozilla/ipc/SharedMemoryMapping.h"
 #include "mozilla/Logging.h"
+#include "mozilla/Maybe.h"
 
 namespace mozilla::ipc::shared_memory {
 
