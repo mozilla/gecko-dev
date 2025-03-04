@@ -2060,7 +2060,6 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
     case StyleAppearance::Statusbar:
       return Some(WidgetInfo::StatusBar(IsActiveToolbarControl(aFrame)));
 
-    case StyleAppearance::MenulistButton:
     case StyleAppearance::Menulist: {
       ControlParams controlParams = ComputeControlParams(aFrame, elementState);
       controlParams.pressed = IsOpenButton(aFrame);
@@ -2371,7 +2370,6 @@ bool nsNativeThemeCocoa::CreateWebRenderCommandsForWidget(
     case StyleAppearance::Separator:
     case StyleAppearance::Statusbar:
     case StyleAppearance::Menulist:
-    case StyleAppearance::MenulistButton:
     case StyleAppearance::MozMenulistArrowButton:
     case StyleAppearance::Textfield:
     case StyleAppearance::NumberInput:
@@ -2436,7 +2434,6 @@ LayoutDeviceIntMargin nsNativeThemeCocoa::GetWidgetBorder(
     }
 
     case StyleAppearance::Menulist:
-    case StyleAppearance::MenulistButton:
     case StyleAppearance::MozMenulistArrowButton:
       result = DirectionAwareMargin(kAquaDropdownBorder, aFrame);
       break;
@@ -2547,7 +2544,6 @@ bool nsNativeThemeCocoa::GetWidgetOverflow(nsDeviceContext* aContext,
     case StyleAppearance::Searchfield:
     case StyleAppearance::Listbox:
     case StyleAppearance::Menulist:
-    case StyleAppearance::MenulistButton:
     case StyleAppearance::MozMenulistArrowButton:
     case StyleAppearance::Checkbox:
     case StyleAppearance::Radio:
@@ -2623,8 +2619,7 @@ LayoutDeviceIntSize nsNativeThemeCocoa::GetMinimumWidgetSize(
       break;
     }
 
-    case StyleAppearance::Menulist:
-    case StyleAppearance::MenulistButton: {
+    case StyleAppearance::Menulist: {
       SInt32 popupHeight = 0;
       ::GetThemeMetric(kThemeMetricPopupButtonHeight, &popupHeight);
       result.SizeTo(0, popupHeight);
@@ -2737,7 +2732,6 @@ bool nsNativeThemeCocoa::ThemeSupportsWidget(nsPresContext* aPresContext,
   switch (aAppearance) {
     // Combobox dropdowns don't support native theming in vertical mode.
     case StyleAppearance::Menulist:
-    case StyleAppearance::MenulistButton:
     case StyleAppearance::MozMenulistArrowButton:
       if (aFrame && aFrame->GetWritingMode().IsVertical()) {
         return false;
@@ -2812,7 +2806,6 @@ bool nsNativeThemeCocoa::ThemeDrawsFocusForWidget(nsIFrame*,
     case StyleAppearance::NumberInput:
     case StyleAppearance::PasswordInput:
     case StyleAppearance::Menulist:
-    case StyleAppearance::MenulistButton:
     case StyleAppearance::Button:
     case StyleAppearance::MozMacHelpButton:
     case StyleAppearance::MozMacDisclosureButtonOpen:

@@ -2083,8 +2083,7 @@ bool nsLayoutUtils::AuthorSpecifiedBorderBackgroundDisablesTheming(
          aAppearance == StyleAppearance::Textfield ||
          aAppearance == StyleAppearance::Textarea ||
          aAppearance == StyleAppearance::Listbox ||
-         aAppearance == StyleAppearance::Menulist ||
-         aAppearance == StyleAppearance::MenulistButton;
+         aAppearance == StyleAppearance::Menulist;
 }
 
 static SVGTextFrame* GetContainingSVGTextFrame(const nsIFrame* aFrame) {

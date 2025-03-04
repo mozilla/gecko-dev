@@ -1530,9 +1530,10 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
         return mDefaultAppearance;
       case mozilla::StyleAppearance::MenulistButton:
         // `appearance: menulist-button` should behave like `auto` on all
-        // elements except for drop down selects, but since we have very little
-        // difference between menulist and menulist-button handling, we don't
-        // bother.
+        // elements except for drop down selects.
+        if (mDefaultAppearance == mozilla::StyleAppearance::Menulist) {
+          return mAppearance;
+        }
         return mDefaultAppearance;
       default:
         return mAppearance;
