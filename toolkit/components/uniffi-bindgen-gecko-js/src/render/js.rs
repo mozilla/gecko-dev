@@ -262,7 +262,7 @@ pub impl Type {
             | Type::Record { name, .. }
             | Type::CallbackInterface { name, .. }
             | Type::External { name, .. }
-            | Type::Custom { name, .. } => name.clone(),
+            | Type::Custom { name, .. } => name.to_upper_camel_case(),
             Type::Optional { inner_type } => format!("?{}", inner_type.type_name()),
             Type::Sequence { inner_type } => format!("Array.<{}>", inner_type.type_name()),
             Type::Map { .. } => "object".into(),

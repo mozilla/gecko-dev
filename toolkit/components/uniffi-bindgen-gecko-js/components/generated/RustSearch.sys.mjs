@@ -599,7 +599,7 @@ export class JsonEngineUrl {
         /**
          * The HTTP method to use to send the request (`GET` or `POST`).
          * If the engine definition has not specified the method, it defaults to GET.
-         * @type {?JSONEngineMethod}
+         * @type {?JsonEngineMethod}
          */
         this.method = method;
         /**
@@ -731,22 +731,22 @@ export class JsonEngineUrls {
         }
         /**
          * The URL to use for searches.
-         * @type {?JSONEngineUrl}
+         * @type {?JsonEngineUrl}
          */
         this.search = search;
         /**
          * The URL to use for suggestions.
-         * @type {?JSONEngineUrl}
+         * @type {?JsonEngineUrl}
          */
         this.suggestions = suggestions;
         /**
          * The URL to use for trending suggestions.
-         * @type {?JSONEngineUrl}
+         * @type {?JsonEngineUrl}
          */
         this.trending = trending;
         /**
          * The URL of the search engine homepage.
-         * @type {?JSONEngineUrl}
+         * @type {?JsonEngineUrl}
          */
         this.searchForm = searchForm;
     }

@@ -2918,7 +2918,7 @@ export class OptionneurDictionnaire {
          */
         this.enumerationVar = enumerationVar;
         /**
-         * @type {?minusculeMAJUSCULEEnum}
+         * @type {?MinusculeMajusculeEnum}
          */
         this.dictionnaireVar = dictionnaireVar;
     }
