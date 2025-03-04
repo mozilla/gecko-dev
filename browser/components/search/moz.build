@@ -10,6 +10,7 @@ EXTRA_JS_MODULES += [
     "SearchOneOffs.sys.mjs",
     "SearchSERPTelemetry.sys.mjs",
     "SearchUIUtils.sys.mjs",
+    "SERPCategorization.sys.mjs",
 ]
 
 BROWSER_CHROME_MANIFESTS += [
