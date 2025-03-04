@@ -1513,17 +1513,21 @@ auto nsMenuPopupFrame::GetRects(const nsSize& aPrefSize) const -> Rects {
       result.mUsedRect.MoveBy(margin.left, margin.top);
     }
 #ifdef XP_MACOSX
-    // OSX tooltips follow standard flip rule but other popups flip horizontally
-    // not vertically
+    // On macOS, tooltips follow standard flip rule but other popups like
+    // context menus flip horizontally, not vertically.
     if (mPopupType == PopupType::Tooltip) {
       vFlip = FlipStyle::Outside;
     } else {
       hFlip = FlipStyle::Outside;
     }
 #else
-    // Other OS screen positioned popups can be flipped vertically but never
-    // horizontally
+    // On Windows and Linux, other OS screen positioned popups can be flipped
+    // vertically. Only the context menu can be flipped horizontally as well, in
+    // order to avoid showing the context menu accidentally under the mouse.
     vFlip = FlipStyle::Outside;
+    if (mIsContextMenu) {
+      hFlip = FlipStyle::Outside;
+    }
 #endif  // #ifdef XP_MACOSX
   }
 
