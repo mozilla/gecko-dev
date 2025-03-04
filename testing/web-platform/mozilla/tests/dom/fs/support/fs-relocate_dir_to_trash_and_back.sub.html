@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+  <title>Move dusty-dir-handle to trash-bin and back!</title>
+  <head>
+    <script src="/resources/testharness.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      window.addEventListener("load", async () => {
+        const params = new URLSearchParams(window.location.search);
+        const channelName = params.get("channel");
+        if (!channelName) {
+          // On irrecoverable errors, window is closed: parent should check this.
+          window.close();
+
+          throw new Error("Unknown channel name");
+        }
+
+        const opName = params.get("op");
+        if (!opName || !["move", "rename"].includes(opName)) {
+          // On irrecoverable errors, window is closed: parent should check this.
+          window.close();
+
+          throw new Error("Unknown operation name");
+        }
+
+        const channel = new BroadcastChannel(channelName);
+        const dirHandleName = "dusty-dir-handle-" + channelName;
+        const trashBinName = "trash-bin-" + channelName;
+
+        channel.onmessage = async ev => {
+          if (ev.data == "cleanup") {
+            channel.postMessage("done");
+          }
+        };
+
+        try {
+          const rootDir = await navigator.storage.getDirectory();
+          const trashBin = await rootDir.getDirectoryHandle(trashBinName, {
+            create: true,
+          });
+          const trashId = crypto.randomUUID();
+
+          {
+            const subDir = await rootDir.getDirectoryHandle(dirHandleName, {
+              create: false,
+            });
+
+            // Let's do some clean up!
+            if (opName == "move") {
+              await subDir.move(trashBin);
+            } else {
+              await subDir.move(trashId);
+            }
+          }
+
+          // Oops! Didn't really mean to throw that to the trash bin!
+          if (opName == "move") {
+            const subDir = await trashBin.getDirectoryHandle(dirHandleName, {
+              create: false,
+            });
+            await subDir.move(rootDir);
+          } else {
+            const subDir = await rootDir.getDirectoryHandle(trashId, {
+              create: false,
+            });
+            await subDir.move(dirHandleName);
+          }
+
+          channel.postMessage("200 OK");
+        } catch (err) {
+          channel.postMessage(err.message);
+        }
+      });
+    </script>
+  </body>
+</html>

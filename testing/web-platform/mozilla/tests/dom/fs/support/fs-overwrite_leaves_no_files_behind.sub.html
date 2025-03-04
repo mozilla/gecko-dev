@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+  <title>Overwrite dusty-dir-handle with a better one from the trash-bin</title>
+  <head>
+    <script src="/resources/testharness.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var writable = null;
+      var otherWritable = null;
+
+      window.addEventListener("load", async () => {
+        const params = new URLSearchParams(window.location.search);
+
+        const channelName = params.get("channel");
+        if (!channelName) {
+          // On irrecoverable errors, window is closed: parent should check this.
+          window.close();
+
+          throw new Error("Unknown channel name");
+        }
+
+        const opName = params.get("op");
+        if (!opName || !["move", "rename"].includes(opName)) {
+          // On irrecoverable errors, window is closed: parent should check this.
+          window.close();
+
+          throw new Error("Unknown operation name");
+        }
+
+        const channel = new BroadcastChannel(channelName);
+        const dirHandleName = "dusty-dir-handle-" + channelName;
+        const fileHandleName = "funky-file-handle-" + channelName;
+        const otherFileHandleName = "other-file-handle-" + channelName;
+        const trashBinName = "trash-bin-" + channelName;
+
+        channel.onmessage = async ev => {
+          if (ev.data == "cleanup") {
+            if (writable && !writable.getWriter().closed) {
+              try {
+                await writable.abort();
+              } finally {
+                writable = null;
+              }
+            }
+
+            if (otherWritable && !otherWritable.getWriter().closed) {
+              try {
+                await otherWritable.abort();
+              } finally {
+                otherWritable = null;
+              }
+            }
+
+            channel.postMessage("done");
+          }
+        };
+
+        try {
+          const encoder = new TextEncoder();
+          const rootDir = await navigator.storage.getDirectory();
+
+          {
+            const originalDir = await rootDir.getDirectoryHandle(
+              dirHandleName,
+              { create: true }
+            );
+            const otherFile = await originalDir.getFileHandle(
+              otherFileHandleName,
+              { create: true }
+            );
+            otherWritable = await otherFile.createWritable({});
+
+            const otherBuffer = encoder.encode("Hello from the second tab!");
+            await otherWritable.write(otherBuffer);
+            await otherWritable.close();
+            otherWritable = null;
+          }
+
+          const trashBin = await rootDir.getDirectoryHandle(trashBinName, {
+            create: true,
+          });
+          const trashId = crypto.randomUUID();
+
+          // Let's create a new but identical directory tree in the trash bin
+          let subDir = null;
+          if (opName == "move") {
+            subDir = await trashBin.getDirectoryHandle(dirHandleName, {
+              create: true,
+            });
+          } else {
+            subDir = await rootDir.getDirectoryHandle(trashId, {
+              create: true,
+            });
+          }
+
+          const file = await subDir.getFileHandle(fileHandleName, {
+            create: true,
+          });
+          writable = await file.createWritable({});
+
+          const writeBuffer = encoder.encode("Hello from the second tab!");
+          await writable.write(writeBuffer);
+
+          const keep_open = params.has("keep_open") && params.get("keep_open");
+          if (!keep_open) {
+            await writable.close();
+            writable = null;
+          }
+
+          // Let's overwrite the originals!
+          if (opName == "move") {
+            await subDir.move(rootDir);
+          } else {
+            await subDir.move(dirHandleName);
+          }
+
+          {
+            const originalDir = await rootDir.getDirectoryHandle(
+              dirHandleName,
+              { create: false }
+            );
+
+            // The next line should throw, the file should be gone!
+            await originalDir.getFileHandle(otherFileHandleName, {
+              create: false,
+            });
+          }
+
+          channel.postMessage("200 OK");
+        } catch (err) {
+          channel.postMessage(err.message);
+        }
+      });
+    </script>
+  </body>
+</html>
