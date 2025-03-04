@@ -106,6 +106,15 @@ static_assert(F_ADD_SEALS == (F_LINUX_SPECIFIC_BASE + 9));
 static_assert(F_GET_SEALS == (F_LINUX_SPECIFIC_BASE + 10));
 #endif
 
+// Added in 6.13
+#ifndef MADV_GUARD_INSTALL
+#  define MADV_GUARD_INSTALL 102
+#  define MADV_GUARD_REMOVE 103
+#else
+static_assert(MADV_GUARD_INSTALL == 102);
+static_assert(MADV_GUARD_REMOVE == 103);
+#endif
+
 // To avoid visual confusion between "ifdef ANDROID" and "ifndef ANDROID":
 #ifndef ANDROID
 #  define DESKTOP
@@ -1066,6 +1075,10 @@ class SandboxPolicyCommon : public SandboxPolicyBase {
         // allowed values here also add them to the GMP sandbox rules.
         return If(advice == MADV_DONTNEED, Allow())
             .ElseIf(advice == MADV_FREE, Allow())
+            // Used by glibc (and maybe someday mozjemalloc).
+            .ElseIf(advice == MADV_GUARD_INSTALL, Allow())
+            .ElseIf(advice == MADV_GUARD_REMOVE, Allow())
+            // Formerly used by mozjemalloc; unclear if current use:
             .ElseIf(advice == MADV_HUGEPAGE, Allow())
             .ElseIf(advice == MADV_NOHUGEPAGE, Allow())
 #ifdef MOZ_ASAN
