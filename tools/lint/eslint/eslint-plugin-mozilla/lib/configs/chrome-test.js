@@ -18,6 +18,7 @@ module.exports = {
     getRootDirectory: false,
   },
 
+  name: "mozilla/chrome-test",
   plugins: ["mozilla"],
 
   rules: {

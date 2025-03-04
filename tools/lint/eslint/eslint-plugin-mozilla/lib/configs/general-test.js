@@ -4,6 +4,7 @@
 "use strict";
 
 module.exports = {
+  name: "mozilla/general-test",
   plugins: ["mozilla", "@microsoft/sdl", "no-unsanitized"],
 
   rules: {

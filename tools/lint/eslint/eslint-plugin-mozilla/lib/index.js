@@ -115,6 +115,9 @@ const configurations = [
 function cloneLegacySection(section) {
   let config = structuredClone(section);
 
+  // The legacy config doesn't support names, so get rid of those.
+  delete config.name;
+
   if (config.overrides) {
     for (let overridesSection of config.overrides) {
       // The legacy config doesn't support names in sections, so get rid of those.
@@ -153,6 +156,11 @@ function cloneFlatSection(section) {
   };
   if (!config.languageOptions) {
     config.languageOptions = {};
+  }
+
+  if (config.globals) {
+    config.languageOptions.globals = { ...config.globals };
+    delete config.globals;
   }
 
   // Handle changing the location of the sourceType.
