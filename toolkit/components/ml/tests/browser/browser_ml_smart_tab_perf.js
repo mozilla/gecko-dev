@@ -224,7 +224,11 @@ add_task(async function test_clustering() {
   const endTime = performance.now();
   singleTabMetrics["SINGLE-TAB-LATENCY"].push(endTime - startTime);
   const titles = similarTabs.map(s => s.label);
-  Assert.equal(titles.length, 5, "Should get proper number of similar tabs");
+  Assert.equal(
+    titles.length,
+    5,
+    "Proper number of similar tabs should be returned"
+  );
   Assert.equal(
     titles[0],
     "Impact of Tourism on Local Communities - Google Scholar"
