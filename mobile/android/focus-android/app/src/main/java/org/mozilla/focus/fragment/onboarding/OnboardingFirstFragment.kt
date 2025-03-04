@@ -12,6 +12,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
+import mozilla.components.browser.state.state.ExternalAppType
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.focus.GleanMetrics.Onboarding
 import org.mozilla.focus.R
@@ -30,7 +31,11 @@ class OnboardingFirstFragment : Fragment() {
     }
 
     private fun openLearnMore(url: String) {
-        SupportUtils.openUrlInCustomTab(requireActivity(), url)
+        SupportUtils.openUrlInCustomTab(
+            activity = requireActivity(),
+            destinationUrl = url,
+            externalAppType = ExternalAppType.ONBOARDING_CUSTOM_TAB,
+        )
     }
 
     override fun onAttach(context: Context) {

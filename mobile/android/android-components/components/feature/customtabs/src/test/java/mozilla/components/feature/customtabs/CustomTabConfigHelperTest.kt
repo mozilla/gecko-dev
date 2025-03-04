@@ -31,6 +31,7 @@ import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.CustomTabConfig
 import mozilla.components.browser.state.state.CustomTabMenuItem
 import mozilla.components.browser.state.state.CustomTabSessionState
+import mozilla.components.browser.state.state.ExternalAppType
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.test.mock
@@ -722,6 +723,31 @@ class CustomTabConfigHelperTest {
         val result = ColorSchemeParams().withDefault(defaultColorSchemeParams)
 
         assertEquals(defaultColorSchemeParams, result)
+    }
+
+    @Test
+    fun `WHEN externalAppType is default THEN createCustomTabConfigFromIntent sets the external app type to custom tab`() {
+        val customTabsIntent = CustomTabsIntent.Builder().build()
+
+        val result = createCustomTabConfigFromIntent(
+            intent = customTabsIntent.intent,
+            resources = testContext.resources,
+        )
+
+        assertEquals(ExternalAppType.CUSTOM_TAB, result.externalAppType)
+    }
+
+    @Test
+    fun `WHEN externalAppType is onboarding custom tab THEN createCustomTabConfigFromIntent sets the external app type to onboarding custom tab`() {
+        val customTabsIntent = CustomTabsIntent.Builder().build()
+
+        val result = createCustomTabConfigFromIntent(
+            intent = customTabsIntent.intent,
+            resources = testContext.resources,
+            externalAppType = ExternalAppType.ONBOARDING_CUSTOM_TAB,
+        )
+
+        assertEquals(ExternalAppType.ONBOARDING_CUSTOM_TAB, result.externalAppType)
     }
 
     private fun createColorSchemeParams() = ColorSchemeParams(

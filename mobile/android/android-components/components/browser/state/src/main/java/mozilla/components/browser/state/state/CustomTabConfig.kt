@@ -63,6 +63,12 @@ enum class ExternalAppType {
      * Custom tab is displayed fullscreen inside a Trusted Web Activity from an external app.
      */
     TRUSTED_WEB_ACTIVITY,
+
+    /**
+     * Custom tab that is displayed during onboarding. It has limited options to prevent users from
+     * bypassing the onboarding flow.
+     */
+    ONBOARDING_CUSTOM_TAB,
 }
 
 data class CustomTabActionButtonConfig(

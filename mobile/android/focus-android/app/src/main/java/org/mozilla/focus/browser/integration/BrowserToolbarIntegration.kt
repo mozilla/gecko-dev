@@ -67,6 +67,7 @@ class BrowserToolbarIntegration(
     private val eraseActionListener: () -> Unit,
     private val tabCounterListener: () -> Unit,
     private val customTabId: String? = null,
+    isOnboardingTab: Boolean = false,
     inTesting: Boolean = false,
 ) : LifecycleAwareFeature {
     private val presenter = ToolbarPresenter(
@@ -172,6 +173,7 @@ class BrowserToolbarIntegration(
                 context = fragment.requireContext(),
                 store = store,
                 currentTabId = customTabId,
+                isOnboardingTab = isOnboardingTab,
                 onItemTapped = { controller.handleMenuInteraction(it) },
             )
             customTabsFeature = CustomTabsToolbarFeature(

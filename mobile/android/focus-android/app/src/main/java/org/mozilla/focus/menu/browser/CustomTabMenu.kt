@@ -25,6 +25,7 @@ class CustomTabMenu(
     private val context: Context,
     private val store: BrowserStore,
     private val currentTabId: String,
+    private val isOnboardingTab: Boolean = false,
     private val onItemTapped: (ToolbarMenu.Item) -> Unit = {},
 ) : ToolbarMenu {
 
@@ -119,28 +120,7 @@ class CustomTabMenu(
             onItemTapped.invoke(ToolbarMenu.CustomTabItem.AddToHomeScreen)
         }
 
-        val appName = context.getString(R.string.app_name)
-        val openInFocus = SimpleBrowserMenuItem(
-            label = context.getString(R.string.menu_open_with_default_browser2, appName),
-        ) {
-            onItemTapped.invoke(ToolbarMenu.CustomTabItem.OpenInBrowser)
-        }
-
-        val openInApp = SimpleBrowserMenuItem(
-            label = context.getString(R.string.menu_open_with_a_browser2),
-        ) {
-            onItemTapped.invoke(ToolbarMenu.CustomTabItem.OpenInApp)
-        }
-
-        val poweredBy = BrowserMenuCategory(
-            label = context.getString(R.string.menu_custom_tab_branding, context.getString(R.string.app_name)),
-            textSize = CAPTION_TEXT_SIZE,
-            textColorResource = context.theme.resolveAttribute(R.attr.secondaryText),
-            backgroundColorResource = context.theme.resolveAttribute(R.attr.colorPrimary),
-            textStyle = Typeface.NORMAL,
-        )
-
-        listOfNotNull(
+        val menuItems = mutableListOf(
             menuToolbar,
             BrowserMenuDivider(),
             findInPage,
@@ -148,10 +128,38 @@ class CustomTabMenu(
             reportSiteIssue,
             BrowserMenuDivider(),
             addToHomescreen,
-            openInFocus,
-            openInApp,
-            poweredBy,
         )
+
+        if (!isOnboardingTab) {
+            val appName = context.getString(R.string.app_name)
+            val openInFocus = SimpleBrowserMenuItem(
+                label = context.getString(R.string.menu_open_with_default_browser2, appName),
+            ) {
+                onItemTapped.invoke(ToolbarMenu.CustomTabItem.OpenInBrowser)
+            }
+            menuItems.add(openInFocus)
+
+            val openInApp = SimpleBrowserMenuItem(
+                label = context.getString(R.string.menu_open_with_a_browser2),
+            ) {
+                onItemTapped.invoke(ToolbarMenu.CustomTabItem.OpenInApp)
+            }
+            menuItems.add(openInApp)
+        }
+
+        val poweredBy = BrowserMenuCategory(
+            label = context.getString(
+                R.string.menu_custom_tab_branding,
+                context.getString(R.string.app_name),
+            ),
+            textSize = CAPTION_TEXT_SIZE,
+            textColorResource = context.theme.resolveAttribute(R.attr.secondaryText),
+            backgroundColorResource = context.theme.resolveAttribute(R.attr.colorPrimary),
+            textStyle = Typeface.NORMAL,
+        )
+
+        menuItems.add(poweredBy)
+        menuItems.toList()
     }
 
     companion object {

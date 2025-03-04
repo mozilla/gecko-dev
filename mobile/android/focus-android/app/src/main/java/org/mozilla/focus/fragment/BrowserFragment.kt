@@ -20,6 +20,7 @@ import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.VisibleForTesting
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -39,6 +40,8 @@ import kotlinx.coroutines.plus
 import mozilla.components.browser.state.selector.findTabOrCustomTab
 import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.state.CustomTabConfig
+import mozilla.components.browser.state.state.CustomTabSessionState
+import mozilla.components.browser.state.state.ExternalAppType
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.state.createTab
@@ -567,7 +570,8 @@ class BrowserFragment :
             ::showShortcutAddedSnackBar,
         )
 
-        if (tab.ifCustomTab()?.config == null) {
+        val customTabSessionState = tab.ifCustomTab()
+        if (customTabSessionState?.config == null) {
             val browserMenu = DefaultBrowserMenu(
                 context = requireContext(),
                 appStore = requireComponents.appStore,
@@ -588,12 +592,17 @@ class BrowserFragment :
                 sessionUseCases = requireComponents.sessionUseCases,
                 onUrlLongClicked = ::onUrlLongClicked,
                 eraseActionListener = { erase(shouldEraseAllTabs = true) },
+                isOnboardingTab = isOnboardingTab(customTabSessionState),
                 tabCounterListener = ::tabCounterListener,
             ),
             owner = this,
             view = binding.browserToolbar,
         )
     }
+
+    @VisibleForTesting
+    internal fun isOnboardingTab(sessionState: CustomTabSessionState?) =
+        sessionState?.config?.externalAppType == ExternalAppType.ONBOARDING_CUSTOM_TAB
 
     private fun showShortcutAddedSnackBar() {
         FocusSnackbar.make(requireView())

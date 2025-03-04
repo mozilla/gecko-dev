@@ -120,10 +120,15 @@ fun isTrustedWebActivityIntent(safeIntent: SafeIntent) = isCustomTabIntent(safeI
  *
  * @param intent The [Intent] wrapped as a [SafeIntent], which is processed to extract configuration data.
  * @param resources Optional [Resources] to verify that only icons of a max size are provided.
+ * @param externalAppType The [ExternalAppType] to use for the custom tab.
  *
  * @return the configured [CustomTabConfig].
  */
-fun createCustomTabConfigFromIntent(intent: Intent, resources: Resources?): CustomTabConfig {
+fun createCustomTabConfigFromIntent(
+    intent: Intent,
+    resources: Resources?,
+    externalAppType: ExternalAppType = ExternalAppType.CUSTOM_TAB,
+): CustomTabConfig {
     val safeIntent = intent.toSafeIntent()
 
     return CustomTabConfig(
@@ -142,7 +147,7 @@ fun createCustomTabConfigFromIntent(intent: Intent, resources: Resources?): Cust
         } else {
             null
         },
-        externalAppType = ExternalAppType.CUSTOM_TAB,
+        externalAppType = externalAppType,
     )
 }
 
