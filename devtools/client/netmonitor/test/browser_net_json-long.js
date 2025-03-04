@@ -107,7 +107,7 @@ add_task(async function () {
     );
     is(
       values[0].textContent,
-      'Object { greeting: "Hello long string JSON!" }',
+      '{ greeting: "Hello long string JSON!" }',
       "The first json property value was incorrect."
     );
 

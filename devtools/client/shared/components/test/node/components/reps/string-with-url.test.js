@@ -589,7 +589,7 @@ describe("test String with URL", () => {
     const object = { test: string };
     const openLink = jest.fn();
     const element = renderRep(object, { openLink, noGrip: true });
-    expect(element.text()).toEqual(`Object { test: "${string}" }`);
+    expect(element.text()).toEqual(`{ test: "${string}" }`);
 
     const link = element.find("a");
     expect(link.prop("href")).toBe(url);

@@ -26,6 +26,14 @@ define(function (require, exports, module) {
   /**
    * Renders an object. An object is represented by a list of its
    * properties enclosed in curly brackets.
+   *
+   * This rep receives only an `object` property which is the actual object to render a
+   * preview for.
+   * This is used by JSON Viewer and Netmonitor to render JSON objects fetched from the
+   * frontend, which doesn't involve any Object Actor/Front or any grip (which is the
+   * object actor's form).
+   * In the console and debugger, plain JS objects are rendered via GripRep (in grip.js),
+   * as they involve an object actor.
    */
 
   ObjectRep.propTypes = {
@@ -72,24 +80,27 @@ define(function (require, exports, module) {
 
     const propsArray = safePropIterator(props, object);
 
+    const showTitle = getTitle(props) !== DEFAULT_TITLE;
+    const isEmptyObject = !propsArray.length;
+
     return span(
       {
         className: "objectBox objectBox-object",
         title: shouldRenderTooltip ? getTitle(props) : null,
       },
-      getTitleElement(props),
+      showTitle ? getTitleElement(props) : null,
       span(
         {
           className: "objectLeftBrace",
         },
-        " { "
+        (showTitle ? " " : "") + "{" + (isEmptyObject ? "" : " ")
       ),
       ...propsArray,
       span(
         {
           className: "objectRightBrace",
         },
-        " }"
+        (isEmptyObject ? "" : " ") + "}"
       )
     );
   }
