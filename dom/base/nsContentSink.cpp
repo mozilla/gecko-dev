@@ -883,6 +883,12 @@ bool nsContentSink::IsScriptExecutingImpl() {
   return !!mScriptLoader->GetCurrentScript();
 }
 
+void nsContentSink::ContinueParsingDocumentAfterCurrentScriptImpl() {
+  if (mScriptLoader) {
+    mScriptLoader->ContinueParsingDocumentAfterCurrentScript();
+  }
+}
+
 nsresult nsContentSink::WillParseImpl(void) {
   if (mRunsToCompletion || !mDocument) {
     return NS_OK;

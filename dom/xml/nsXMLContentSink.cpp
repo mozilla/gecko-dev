@@ -792,8 +792,6 @@ void nsXMLContentSink::SetDocumentCharset(NotNull<const Encoding*> aEncoding) {
 
 nsISupports* nsXMLContentSink::GetTarget() { return ToSupports(mDocument); }
 
-bool nsXMLContentSink::IsScriptExecuting() { return IsScriptExecutingImpl(); }
-
 nsresult nsXMLContentSink::FlushText(bool aReleaseTextNode) {
   nsresult rv = NS_OK;
 

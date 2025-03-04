@@ -69,7 +69,10 @@ class nsXMLContentSink : public nsContentSink,
   virtual void FlushPendingNotifications(mozilla::FlushType aType) override;
   virtual void SetDocumentCharset(NotNull<const Encoding*> aEncoding) override;
   virtual nsISupports* GetTarget() override;
-  virtual bool IsScriptExecuting() override;
+  bool IsScriptExecuting() override { return IsScriptExecutingImpl(); }
+  void ContinueParsingDocumentAfterCurrentScript() override {
+    ContinueParsingDocumentAfterCurrentScriptImpl();
+  }
   virtual void ContinueInterruptedParsingAsync() override;
   bool IsPrettyPrintXML() const override { return mPrettyPrintXML; }
   bool IsPrettyPrintHasSpecialRoot() const override {

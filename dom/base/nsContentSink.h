@@ -105,6 +105,7 @@ class nsContentSink : public nsICSSLoaderObserver,
   void DidBuildModelImpl(bool aTerminated);
   void DropParserAndPerfHint(void);
   bool IsScriptExecutingImpl();
+  void ContinueParsingDocumentAfterCurrentScriptImpl();
 
   void NotifyAppend(nsIContent* aContent, uint32_t aStartIndex);
 

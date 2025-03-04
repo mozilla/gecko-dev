@@ -161,6 +161,10 @@ class nsHtml5TreeOpExecutor final
 
   bool IsScriptExecuting() override { return IsScriptExecutingImpl(); }
 
+  void ContinueParsingDocumentAfterCurrentScript() override {
+    ContinueParsingDocumentAfterCurrentScriptImpl();
+  }
+
   // Not from interface
 
   void SetStreamParser(nsHtml5StreamParser* aStreamParser) {

@@ -207,6 +207,7 @@ ScriptLoader::ScriptLoader(Document* aDocument)
       mBlockingDOMContentLoaded(false),
       mLoadEventFired(false),
       mGiveUpEncoding(false),
+      mContinueParsingDocumentAfterCurrentScript(false),
       mReporter(new ConsoleReportCollector()) {
   LOG(("ScriptLoader::ScriptLoader %p", this));
 
@@ -2721,7 +2722,8 @@ nsresult ScriptLoader::EvaluateScriptElement(ScriptLoadRequest* aRequest) {
   Document* ownerDoc =
       aRequest->GetScriptLoadContext()->GetScriptOwnerDocument();
   if (ownerDoc != mDocument) {
-    // Willful violation of HTML5 as of 2010-12-01
+    // https://html.spec.whatwg.org/#prepare-the-script-element step 16
+    // as of 2025-01-15
     return NS_ERROR_FAILURE;
   }
 
@@ -2748,6 +2750,23 @@ nsresult ScriptLoader::EvaluateScriptElement(ScriptLoadRequest* aRequest) {
 
     globalObject = scriptGlobal;
   }
+
+  // This mechanism is currently only used when the parser returns
+  // early due to this script loader having a current script. However,
+  // now that we have this, we could migrate continuing after a
+  // parser-blocking script to this same mechanism. Not doing it right
+  // away to reduce risk of introducing bugs.
+  auto maybeContinueParser = MakeScopeExit([&] {
+    if (mContinueParsingDocumentAfterCurrentScript) {
+      mContinueParsingDocumentAfterCurrentScript = false;
+      if (mDocument) {
+        nsCOMPtr<nsIParser> parser = mDocument->CreatorParserOrNull();
+        if (parser) {
+          parser->ContinueInterruptedParsingAsync();
+        }
+      }
+    }
+  });
 
   // Update our current script.
   // This must be destroyed after destroying nsAutoMicroTask, see:

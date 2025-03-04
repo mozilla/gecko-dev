@@ -224,6 +224,11 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
    */
   nsIScriptElement* GetCurrentScript() { return mCurrentScript; }
 
+  void ContinueParsingDocumentAfterCurrentScript() {
+    MOZ_ASSERT(mCurrentScript);
+    mContinueParsingDocumentAfterCurrentScript = true;
+  }
+
   nsIScriptElement* GetCurrentParserInsertedScript() {
     return mCurrentParserInsertedScript;
   }
@@ -817,6 +822,7 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   bool mBlockingDOMContentLoaded;
   bool mLoadEventFired;
   bool mGiveUpEncoding;
+  bool mContinueParsingDocumentAfterCurrentScript;
 
   TimeDuration mMainThreadParseTime;
 
