@@ -513,6 +513,11 @@ void FileSystemDataManager::UnlockShared(const EntryId& aEntryId,
       QM_VOID);
 }
 
+bool FileSystemDataManager::IsLockedWithDeprecatedSharedLock(
+    const EntryId& aEntryId) const {
+  return mDeprecatedLocks.Contains(aEntryId);
+}
+
 FileMode FileSystemDataManager::GetMode(bool aKeepData) const {
   if (1 == mVersion) {
     return FileMode::EXCLUSIVE;
