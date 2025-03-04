@@ -33,7 +33,7 @@
   },
   "peerDependencies": {
     "@microsoft/eslint-plugin-sdl": "^0.2.2 || ^1.0.0",
-    "eslint": "^7.23.0 || ^8.0.0 || ^9.0.0",
+    "eslint": "^8.57.1 || ^9.0.0",
     "eslint-plugin-no-unsanitized": "^4.1.0",
     "eslint-plugin-promise": "^7.2.1"
   },

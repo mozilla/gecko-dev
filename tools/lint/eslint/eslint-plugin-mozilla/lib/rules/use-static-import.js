@@ -34,8 +34,8 @@ module.exports = {
         if (
           node.init?.type != "CallExpression" ||
           node.init?.callee?.type != "MemberExpression" ||
-          !context.getFilename().endsWith(".sys.mjs") ||
-          !helpers.isTopLevel(helpers.getAncestors(context, node))
+          !context.filename.endsWith(".sys.mjs") ||
+          !helpers.isTopLevel(context.sourceCode.getAncestors(node))
         ) {
           return;
         }
@@ -47,7 +47,7 @@ module.exports = {
           isIdentifier(callee.property, "importESModule") &&
           callee.parent.arguments.length == 1
         ) {
-          let sourceCode = context.getSourceCode();
+          let sourceCode = context.sourceCode;
           let importItemSource;
           if (node.id.type != "ObjectPattern") {
             importItemSource = sourceCode.getText(node.id);

@@ -22,8 +22,7 @@ function isMemberExpression(node, object, member) {
 }
 
 function funcToGenerateQI(context, node) {
-  const sourceCode = context.getSourceCode();
-  const text = sourceCode.getText(node);
+  const text = context.sourceCode.getText(node);
 
   let interfaces = [];
   let match;

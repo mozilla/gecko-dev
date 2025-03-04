@@ -13,7 +13,7 @@ var fs = require("fs");
 var helpers = require("../helpers");
 var globals = require("../globals");
 
-function importHead(context, path) {
+function importHead(context, path, node) {
   try {
     let stats = fs.statSync(path);
     if (!stats.isFile()) {
@@ -24,7 +24,7 @@ function importHead(context, path) {
   }
 
   let newGlobals = globals.getGlobalsForFile(path);
-  helpers.addGlobals(newGlobals, context.getScope());
+  helpers.addGlobals(newGlobals, context.sourceCode.getScope(node));
 }
 
 module.exports = {

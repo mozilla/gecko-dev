@@ -15,7 +15,7 @@ const privilegedGlobals = Object.keys(
 );
 
 function getMessageId(context) {
-  return path.extname(context.getFilename()) == ".sjs"
+  return path.extname(context.filename) == ".sjs"
     ? "unexpectedCallSjs"
     : "unexpectedCall";
 }

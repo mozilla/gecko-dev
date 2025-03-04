@@ -104,7 +104,7 @@ module.exports = {
           // would need to replace with `SpecialPowers.Services.${serviceName}`.
           // At the moment we do not have an easy way to detect that.
           // fix(fixer) {
-          //   let sourceCode = context.getSourceCode();
+          //   let sourceCode = context.sourceCode;
           //   return fixer.replaceTextRange(
           //     [
           //       sourceCode.getFirstToken(node.callee).range[0],
