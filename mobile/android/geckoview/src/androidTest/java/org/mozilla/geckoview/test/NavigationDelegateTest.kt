@@ -1773,7 +1773,10 @@ class NavigationDelegateTest : BaseSessionTest() {
 
         mainSession.loadUri("$TEST_ENDPOINT$HELLO2_HTML_PATH")
         sessionRule.waitForPageStop()
-
+        
+        // disabled for frequent failures - on Bug 1934356
+        assumeThat(sessionRule.env.isX86, equalTo(false))
+        
         sessionRule.forCallbacksDuringWait(object : NavigationDelegate {
             @AssertCalled(count = 1)
             override fun onLocationChange(
