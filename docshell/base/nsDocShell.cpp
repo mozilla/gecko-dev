@@ -3632,6 +3632,9 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI* aURI,
         error = "blockedByCOEP";
         errorDescriptionID = "blockedByCORP";
         break;
+      case NS_ERROR_DOM_INVALID_HEADER_VALUE:
+        error = "invalidHeaderValue";
+        break;
       case NS_ERROR_NET_HTTP2_SENT_GOAWAY:
       case NS_ERROR_NET_HTTP3_PROTOCOL_ERROR:
         // HTTP/2 or HTTP/3 stack detected a protocol error
@@ -6112,7 +6115,8 @@ nsresult nsDocShell::FilterStatusForErrorPage(
        aStatus == NS_ERROR_MALFORMED_URI ||
        aStatus == NS_ERROR_BLOCKED_BY_POLICY ||
        aStatus == NS_ERROR_DOM_COOP_FAILED ||
-       aStatus == NS_ERROR_DOM_COEP_FAILED) &&
+       aStatus == NS_ERROR_DOM_COEP_FAILED ||
+       aStatus == NS_ERROR_DOM_INVALID_HEADER_VALUE) &&
       (aIsTopFrame || aUseErrorPages)) {
     return aStatus;
   }
