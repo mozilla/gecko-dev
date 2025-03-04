@@ -508,21 +508,21 @@
 
     <!-- New Onboarding flow first screen 'terms of use link' -->
     <!-- 'Firefox' should NOT be translated -->
-    <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage,UnusedResources">Firefox Terms of Use.</string>
+    <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Firefox Terms of Use.</string>
 
     <!-- New Onboarding flow first screen 'privacy notice' text -->
     <!-- 'Firefox' should NOT be translated -->
     <!--  %1$s will be replaced by onboarding_first_screen_privacy_notice_link -->
-    <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage,UnusedResources">Firefox cares about your privacy. Learn more in our %1$s</string>
+    <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox cares about your privacy. Learn more in our %1$s</string>
 
     <!-- New Onboarding flow first screen 'privacy notice' link -->
-    <string name="onboarding_first_screen_privacy_notice_link" tools:ignore="UnusedResources">Privacy Notice.</string>
+    <string name="onboarding_first_screen_privacy_notice_link">Privacy Notice.</string>
 
     <!-- New Onboarding flow first screen button label-->
     <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">Get started</string>
 
     <!-- New Onboarding flow first screen button label -->
-    <string name="onboarding_first_screen_button_agree_and_continue" tools:ignore="UnusedResources">Agree and continue</string>
+    <string name="onboarding_first_screen_button_agree_and_continue">Agree and continue</string>
 
     <!-- Onboarding second screen: Title -->
     <!-- %1$s will be replaced by the app short name(Focus) -->
