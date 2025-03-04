@@ -78,6 +78,12 @@ namespace xsimd
     };
 
     template <>
+    struct as_unsigned_integer<bool>
+    {
+        using type = uint8_t;
+    };
+
+    template <>
     struct as_unsigned_integer<float>
     {
         using type = uint32_t;

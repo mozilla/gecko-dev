@@ -236,7 +236,7 @@ namespace xsimd
     /**
      * @ingroup batch_conversion
      *
-     * Perform a static_cast from \c T_in to \c T_out on \c \c x.
+     * Perform a static_cast from \c T_in to \c T_out on \c x.
      * @param x batch_bool of \c T_in
      * @return \c x cast to \c T_out
      */
@@ -252,7 +252,7 @@ namespace xsimd
     /**
      * @ingroup batch_conversion
      *
-     * Perform a static_cast from \c T_in to \c T_out on \c \c x.
+     * Perform a static_cast from \c T_in to \c T_out on \c x.
      * @param x batch of \c T_in
      * @return \c x cast to \c T_out
      */
@@ -486,15 +486,17 @@ namespace xsimd
     /**
      * @ingroup batch_data_transfer
      *
-     * Creates a batch from the single value \c v.
+     * Creates a batch from the single value \c v. If \c v is a boolean,
+     * this function returns a batch_bool<uint8_t>. If you need another type
+     * of batch_bool, please use \c broadcast_as instead.
      * @param v the value used to initialize the batch
      * @return a new batch instance
      */
     template <class T, class A = default_arch>
-    XSIMD_INLINE batch<T, A> broadcast(T v) noexcept
+    XSIMD_INLINE typename kernel::detail::broadcaster<T, A>::return_type broadcast(T v) noexcept
     {
         detail::static_check_supported_config<T, A>();
-        return batch<T, A>::broadcast(v);
+        return kernel::detail::broadcaster<T, A>::run(v);
     }
 
     /**

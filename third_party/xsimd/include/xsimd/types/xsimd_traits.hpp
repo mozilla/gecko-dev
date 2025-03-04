@@ -77,6 +77,11 @@ namespace xsimd
                           "usage of batch type with unsupported type");
         };
 
+        template <class A>
+        struct static_check_supported_config_emitter<bool, A> : static_check_supported_config_emitter<xsimd::as_unsigned_integer_t<bool>, A>
+        {
+        };
+
         template <class T, class A>
         struct static_check_supported_config_emitter<std::complex<T>, A> : static_check_supported_config_emitter<T, A>
         {

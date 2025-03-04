@@ -9,6 +9,27 @@
 Changelog
 =========
 
+13.2.0
+------
+
+    * Added broadcast overload for bool
+
+    * Fixed kernel::store for booleans
+
+    * Explicitly verify dependency between architectures (like sse2 implies sse2)
+
+    * Use default arch alignment as default alignment for xsimd::aligned_allocator
+
+    * sse2 version of xsimd::swizzle on [u]int16_t
+
+    * avx implementation of transpose for [u]int[8|16]
+
+    * Implement [u]int8 and [u]int16 matrix transpose for 128 bit registers
+
+    * Fix minor warning 
+
+    * Fix fma4 support
+
 13.1.0
 ------
 
