@@ -10,12 +10,16 @@
 
 #include "mozilla/CheckedInt.h"
 #include "mozilla/IntegerPrintfMacros.h"
+#include "mozilla/TimeStamp.h"
 
 #include <gemmology_fwd.h>
+#include "fmt/format.h"
 
 #include "js/ErrorReport.h"
 #include "js/HeapAPI.h"
 #include "vm/ArrayBufferObject.h"
+#include "vm/GeckoProfiler.h"
+#include "vm/JSContext.h"
 #include "wasm/WasmBuiltins.h"
 #include "wasm/WasmInstance.h"
 #include "wasm/WasmLog.h"
@@ -70,7 +74,42 @@
     return gemmology::Engine<decltype(arch)>::FUNC(args...);     \
   })
 
-struct JSContext;
+template <size_t TextLength = 512, typename CharT = char>
+struct AutoProfilerMarker {
+  AutoProfilerMarker(js::GeckoProfilerRuntime& profiler, const CharT* name)
+      : profiler(profiler), name(name) {
+    if (profiler.enabled()) {
+      startTime = mozilla::TimeStamp::Now();
+    }
+  }
+
+  template <typename... Args>
+  AutoProfilerMarker(js::GeckoProfilerRuntime& profiler, const CharT* name,
+                     fmt::format_string<Args...> aFormatStr, Args&&... aArgs)
+      : profiler(profiler), name(name) {
+    if (profiler.enabled()) {
+      startTime = mozilla::TimeStamp::Now();
+      auto [out, size] = fmt::vformat_to_n(
+          text, sizeof(text) - 1, aFormatStr,
+          fmt::make_format_args<fmt::buffered_context<CharT>>(aArgs...));
+
+      MOZ_ASSERT(size > sizeof(text) - 1,
+                 "Truncated marker, consider increasing the buffer");
+
+      *out = 0;
+    }
+  }
+  ~AutoProfilerMarker() {
+    if (profiler.enabled()) {
+      profiler.markInterval(name, startTime, text,
+                            JS::ProfilingCategoryPair::JS);
+    }
+  }
+  js::GeckoProfilerRuntime& profiler;
+  const char* name;
+  char text[TextLength]{};
+  mozilla::TimeStamp startTime;
+};
 
 static constexpr uint32_t ARRAY_ALIGNMENT = 64;
 static constexpr uint32_t ROWS_A_MULTIPLIER = 1;
@@ -169,6 +208,9 @@ int32_t js::intgemm::IntrI8PrepareB(wasm::Instance* instance,
   const float* inputMatrixBPtr =
       reinterpret_cast<const float*>(&memBase[inputMatrixB]);
   int8_t* outputMatrixBPtr = reinterpret_cast<int8_t*>(&memBase[outputMatrixB]);
+  AutoProfilerMarker marker(cx->runtime()->geckoProfiler(), "integemm::PreparB",
+                            FMT_STRING("rowsB: {} colsB: {} sizeB: {}"), rowsB,
+                            colsB, sizeB);
   GEMMOLOGY_DISPATCH(PrepareB)
   (inputMatrixBPtr, outputMatrixBPtr,
    scale,  // Quant Mult
@@ -212,6 +254,9 @@ int32_t js::intgemm::IntrI8PrepareBFromTransposed(
   const float* inputMatrixBTransposedPtr =
       reinterpret_cast<const float*>(&memBase[inputMatrixBTransposed]);
   int8_t* outputMatrixBPtr = reinterpret_cast<int8_t*>(&memBase[outputMatrixB]);
+  AutoProfilerMarker marker(
+      cx->runtime()->geckoProfiler(), "intgemm::PreparBTransposed",
+      FMT_STRING("rowsB: {} colsB: {} sizeB: {}"), rowsB, colsB, sizeB);
   GEMMOLOGY_DISPATCH(PrepareBTransposed)
   (inputMatrixBTransposedPtr, outputMatrixBPtr,
    scale,  // Quant Mult
@@ -255,6 +300,9 @@ int32_t js::intgemm::IntrI8PrepareBFromQuantizedTransposed(
       reinterpret_cast<const int8_t*>(
           &memBase[inputMatrixBQuantizedTransposed]);
   int8_t* outputMatrixBPtr = reinterpret_cast<int8_t*>(&memBase[outputMatrixB]);
+  AutoProfilerMarker marker(cx->runtime()->geckoProfiler(),
+                            "intgemm::PrepareBQuantizedTransposed",
+                            FMT_STRING("rowsB: {}, colsB: {}"), rowsB, colsB);
   GEMMOLOGY_DISPATCH(PrepareBQuantizedTransposed)
   (inputMatrixBQuantizedTransposedPtr, outputMatrixBPtr, rowsB, colsB);
   return 0;
@@ -268,7 +316,6 @@ int32_t js::intgemm::IntrI8PrepareA(wasm::Instance* instance,
   MOZ_ASSERT(wasm::SASigIntrI8PrepareA.failureMode ==
              wasm::FailureMode::FailOnNegI32);
   JSContext* cx = instance->cx();
-
   // Size checks for matricies
   if (!CheckMatrixDimension(cx, rowsA, ROWS_A_MULTIPLIER) ||
       !CheckMatrixDimension(cx, colsA, COLUMNS_A_MULTIPLIER)) {
@@ -296,6 +343,8 @@ int32_t js::intgemm::IntrI8PrepareA(wasm::Instance* instance,
   const float* inputMatrixAPtr =
       reinterpret_cast<const float*>(&memBase[inputMatrixA]);
   uint8_t* outputMatrixAPtr = &memBase[outputMatrixA];
+  AutoProfilerMarker marker(cx->runtime()->geckoProfiler(), "intgemm::PrepareA",
+                            FMT_STRING("rowsA: {}, colsA: {}"), rowsA, colsA);
   GEMMOLOGY_DISPATCH(Shift::PrepareA)
   (inputMatrixAPtr, outputMatrixAPtr, scale, rowsA, colsA);
   return 0;
@@ -350,11 +399,17 @@ int32_t js::intgemm::IntrI8PrepareBias(
     }
     const float* inputBiasPtr = reinterpret_cast<float*>(&memBase[inputBias]);
 
+    AutoProfilerMarker marker(
+        cx->runtime()->geckoProfiler(), "intgemm::PrepareBias w/ input bias",
+        FMT_STRING("rowsB: {} colsB: {} sizeB: {}"), rowsB, colsB, sizeB);
     GEMMOLOGY_DISPATCH(Shift::PrepareBias)
     (inputMatrixBPreparedPtr, rowsB, colsB,
      gemmology::callbacks::UnquantizeAndAddBiasAndWrite(
          unquantFactor, inputBiasPtr, outputPtr));
   } else {
+    AutoProfilerMarker marker(
+        cx->runtime()->geckoProfiler(), "intgemm::PrepareBias",
+        FMT_STRING("rowsB: {} colsB: {} sizeB: {}"), rowsB, colsB, sizeB);
     GEMMOLOGY_DISPATCH(Shift::PrepareBias)
     (inputMatrixBPreparedPtr, rowsB, colsB,
      gemmology::callbacks::UnquantizeAndWrite(unquantFactor, outputPtr));
@@ -415,6 +470,9 @@ int32_t js::intgemm::IntrI8MultiplyAndAddBias(
   float* outputPtr = reinterpret_cast<float*>(&memBase[output]);
   float unquantFactor = unquantMultiplier / (scaleA * scaleB);
 
+  AutoProfilerMarker marker(
+      cx->runtime()->geckoProfiler(), "intgemm::Shift::Multiply",
+      FMT_STRING("rowsA: {}, width: {}, colsA: {}"), rowsA, width, colsB);
   GEMMOLOGY_DISPATCH(Shift::Multiply)
   (inputMatrixAPreparedPtr, inputMatrixBPreparedPtr, rowsA, width, colsB,
    gemmology::callbacks::UnquantizeAndAddBiasAndWrite(
@@ -469,6 +527,10 @@ int32_t js::intgemm::IntrI8SelectColumnsOfB(wasm::Instance* instance,
   const uint32_t* colIndexListPtr =
       reinterpret_cast<const uint32_t*>(&memBase[colIndexList]);
   int8_t* outputPtr = reinterpret_cast<int8_t*>(&memBase[output]);
+  AutoProfilerMarker marker(
+      cx->runtime()->geckoProfiler(), "integemm::SelectColumnsB",
+      FMT_STRING("rowsB: {} colsB: {} sizecolList: {}, sizeB: {}"), rowsB,
+      colsB, sizeColIndexList, sizeB);
   GEMMOLOGY_DISPATCH(SelectColumnsB)
   (inputMatrixBPreparedPtr, outputPtr, rowsB, colIndexListPtr,
    colIndexListPtr + sizeColIndexList);

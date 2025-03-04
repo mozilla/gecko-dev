@@ -114,6 +114,7 @@ included_inclnames_to_ignore = set(
         "wasm/WasmBuiltinModuleGenerated.h",  # generated in $OBJDIR"
         "zydis/ZydisAPI.h",  # Zydis
         "xsum/xsum.h",  # xsum
+        "fmt/format.h",  # {fmt} main header
     ]
 )
 
