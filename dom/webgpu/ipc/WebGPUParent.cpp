@@ -549,11 +549,10 @@ WebGPUParent::BufferMapData* WebGPUParent::GetBufferMapData(RawId aBufferId) {
 
 ipc::IPCResult WebGPUParent::RecvDeviceCreateBuffer(
     RawId aDeviceId, RawId aBufferId, dom::GPUBufferDescriptor&& aDesc,
-    ipc::UnsafeSharedMemoryHandle&& aShmem) {
+    ipc::MutableSharedMemoryHandle&& aShmem) {
   webgpu::StringHelper label(aDesc.mLabel);
 
-  auto shmem =
-      ipc::WritableSharedMemoryMapping::Open(std::move(aShmem)).value();
+  auto shmem = aShmem.Map();
 
   bool hasMapFlags = aDesc.mUsage & (dom::GPUBufferUsage_Binding::MAP_WRITE |
                                      dom::GPUBufferUsage_Binding::MAP_READ);
@@ -664,7 +663,7 @@ void WebGPUParent::MapCallback(uint8_t* aUserData,
 
       MOZ_RELEASE_ASSERT(mapData->mShmem.Size() >= offset + size);
       if (src.ptr != nullptr && src.length >= size) {
-        auto dst = mapData->mShmem.Bytes().Subspan(offset, size);
+        auto dst = mapData->mShmem.DataAsSpan<uint8_t>().Subspan(offset, size);
         memcpy(dst.data(), src.ptr, size);
       }
     }
@@ -747,7 +746,7 @@ ipc::IPCResult WebGPUParent::RecvBufferUnmap(RawId aDeviceId, RawId aBufferId,
       MOZ_RELEASE_ASSERT(offset <= shmSize);
       MOZ_RELEASE_ASSERT(size <= shmSize - offset);
 
-      auto src = mapData->mShmem.Bytes().Subspan(offset, size);
+      auto src = mapData->mShmem.DataAsSpan<uint8_t>().Subspan(offset, size);
       memcpy(mapped.ptr, src.data(), size);
     }
 
@@ -920,14 +919,15 @@ ipc::IPCResult WebGPUParent::RecvQueueOnSubmittedWorkDone(
 
 ipc::IPCResult WebGPUParent::RecvQueueWriteAction(
     RawId aQueueId, RawId aDeviceId, const ipc::ByteBuf& aByteBuf,
-    ipc::UnsafeSharedMemoryHandle&& aShmem) {
-  auto mapping =
-      ipc::WritableSharedMemoryMapping::Open(std::move(aShmem)).value();
+    ipc::MutableSharedMemoryHandle&& aShmem) {
+  // `aShmem` may be an invalid handle, however this will simply result in an
+  // invalid mapping with 0 size, which is used safely below.
+  auto mapping = aShmem.Map();
 
   ErrorBuffer error;
-  ffi::wgpu_server_queue_write_action(mContext.get(), aQueueId,
-                                      ToFFI(&aByteBuf), mapping.Bytes().data(),
-                                      mapping.Size(), error.ToFFI());
+  ffi::wgpu_server_queue_write_action(
+      mContext.get(), aQueueId, ToFFI(&aByteBuf), mapping.DataAs<uint8_t>(),
+      mapping.Size(), error.ToFFI());
   ForwardError(aDeviceId, error);
   return IPC_OK();
 }

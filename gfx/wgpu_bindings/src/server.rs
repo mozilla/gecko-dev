@@ -2662,7 +2662,13 @@ pub unsafe extern "C" fn wgpu_server_queue_write_action(
     mut error_buf: ErrorBuffer,
 ) {
     let action: QueueWriteAction = bincode::deserialize(byte_buf.as_slice()).unwrap();
-    let data = slice::from_raw_parts(data, data_length);
+    // It is undefined behavior to pass a null pointer to `slice::from_raw_parts`, so in the case
+    // of a null pointer (which occurs if `data_length` is 0), we use a dangling pointer.
+    let data = ptr::NonNull::new(data as *mut u8).unwrap_or_else(|| {
+        assert!(data_length == 0);
+        ptr::NonNull::dangling()
+    });
+    let data = slice::from_raw_parts(data.as_ptr(), data_length);
     let result = match action {
         QueueWriteAction::Buffer { dst, offset } => {
             global.queue_write_buffer(self_id, dst, offset, data)

@@ -25,7 +25,6 @@
 #include "PipelineLayout.h"
 #include "Sampler.h"
 #include "CompilationInfo.h"
-#include "mozilla/ipc/RawShmem.h"
 #include "Utility.h"
 
 #include <utility>
