@@ -1022,10 +1022,9 @@ class EngineView {
             Services.search.removeEngine(this.selectedEngine.originalEngine);
             break;
           case "addEngineButton":
-            gSubDialog.open(
-              "chrome://browser/content/preferences/dialogs/addEngine.xhtml",
-              { features: "resizable=no, modal=yes" }
-            );
+            gSubDialog.open("chrome://browser/content/search/addEngine.xhtml", {
+              features: "resizable=no, modal=yes",
+            });
             break;
         }
         break;

@@ -8,7 +8,7 @@
 <window
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   xmlns:html="http://www.w3.org/1999/xhtml"
-  data-l10n-id="add-engine-window2"
+  data-l10n-id="add-engine-window"
   data-l10n-attrs="title, style"
   persist="width height"
 >
@@ -22,20 +22,14 @@
       <html:link rel="stylesheet" href="chrome://global/skin/global.css" />
       <html:link
         rel="stylesheet"
-        href="chrome://browser/content/preferences/dialogs/addEngine.css"
-      />
-      <html:link
-        rel="stylesheet"
-        href="chrome://browser/skin/preferences/preferences.css"
+        href="chrome://browser/content/search/addEngine.css"
       />
 
-      <html:link rel="localization" href="browser/preferences/addEngine.ftl" />
       <html:link rel="localization" href="preview/enUS-searchFeatures.ftl" />
+      <html:link rel="localization" href="browser/search.ftl" />
     </linkset>
 
-    <script src="chrome://browser/content/preferences/dialogs/addEngine.js" />
-    <script src="chrome://global/content/globalOverlay.js" />
-    <script src="chrome://browser/content/utilityOverlay.js" />
+    <script src="chrome://browser/content/search/addEngine.js" />
 
     <separator class="thin" />
 
@@ -80,12 +74,12 @@
       <html:span
         id="engineAliasExists"
         hidden="hidden"
-        data-l10n-id="engine-alias-exists"
+        data-l10n-id="engine-keyword-exists"
       />
       <html:label
         id="engineAliasLabel"
         for="engineAlias"
-        data-l10n-id="add-engine-alias"
+        data-l10n-id="add-engine-keyword"
       />
       <hbox>
         <html:input id="engineAlias" type="text" />

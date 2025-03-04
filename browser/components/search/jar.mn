@@ -3,6 +3,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 browser.jar:
+        content/browser/search/addEngine.css                        (content/addEngine.css)
+        content/browser/search/addEngine.js                         (content/addEngine.js)
+        content/browser/search/addEngine.xhtml                      (content/addEngine.xhtml)
         content/browser/search/autocomplete-popup.js                (content/autocomplete-popup.js)
         content/browser/search/searchbar.js                         (content/searchbar.js)
         content/browser/contentSearchUI.js                          (content/contentSearchUI.js)
