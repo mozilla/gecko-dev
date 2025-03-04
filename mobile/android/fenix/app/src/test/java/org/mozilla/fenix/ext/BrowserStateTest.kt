@@ -57,6 +57,19 @@ class BrowserStateTest {
     }
 
     @Test
+    fun `GIVEN the selected tab is a homepage tab WHEN asRecentTabs is called THEN return an empty list`() {
+        val selectedTab = createTab(url = "about:home", id = "3")
+        val browserState = BrowserState(
+            tabs = listOf(createTab("tab1"), selectedTab, createTab("tab3")),
+            selectedTabId = selectedTab.id,
+        )
+
+        val result = browserState.asRecentTabs()
+
+        assertEquals(0, result.size)
+    }
+
+    @Test
     fun `GIVEN the selected tab is a private tab and no media tab exists WHEN asRecentTabs is called THEN return a list of the last accessed normal tab`() {
         val selectedPrivateTab = createTab(url = "url", id = "1", lastAccess = 1, private = true)
         val lastAccessedNormalTab = createTab(url = "url2", id = "2", lastAccess = 2)
