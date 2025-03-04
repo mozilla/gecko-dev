@@ -792,44 +792,11 @@ FileSystemDatabaseManagerVersion001::GetDirectoryEntries(
   return entries;
 }
 
-Result<bool, QMResult> FileSystemDatabaseManagerVersion001::RemoveDirectory(
-    const FileSystemChildMetadata& aHandle, bool aRecursive) {
-  MOZ_ASSERT(!aHandle.parentId().IsEmpty());
-
-  if (aHandle.childName().IsEmpty()) {
-    return false;
-  }
-
-  DebugOnly<Name> name = aHandle.childName();
-  MOZ_ASSERT(!name.inspect().IsVoid());
-
-  QM_TRY_UNWRAP(bool exists, DoesDirectoryExist(mConnection, aHandle));
-
-  if (!exists) {
-    return false;
-  }
-
-  // At this point, entry exists and is a directory.
-  QM_TRY_UNWRAP(EntryId entryId, FindEntryId(mConnection, aHandle, false));
-  MOZ_ASSERT(!entryId.IsEmpty());
-
-  QM_TRY_UNWRAP(bool isEmpty, IsDirectoryEmpty(mConnection, entryId));
-
-  MOZ_ASSERT(mDataManager);
-  QM_TRY_UNWRAP(const bool isLocked,
-                IsAnyDescendantLocked(mConnection, *mDataManager, entryId));
-
-  // XXX If there are any locked file entries, we exit here.
-  // There has been talk that the spec might allow unconditional
-  // overwrites in the future.
-  QM_TRY(OkIf(!isLocked),
-         Err(QMResult(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR)));
-
-  if (!aRecursive && !isEmpty) {
-    return Err(QMResult(NS_ERROR_DOM_INVALID_MODIFICATION_ERR));
-  }
-
+Result<bool, QMResult> FileSystemDatabaseManagerVersion001::RemoveDirectoryImpl(
+    const EntryId& entryId) {
   using FileIdArrayAndUsage = std::pair<nsTArray<FileId>, Usage>;
+
+  // Caller has checked that there are no exclusively locked descendants.
   QM_TRY_INSPECT(const FileIdArrayAndUsage& unlockedFileInfo,
                  FindFilesWithoutDeprecatedLocksUnderEntry(entryId));
 
@@ -868,6 +835,46 @@ Result<bool, QMResult> FileSystemDatabaseManagerVersion001::RemoveDirectory(
   QM_TRY(DeleteEntry(mConnection, entryId));
 
   return true;
+}
+
+Result<bool, QMResult> FileSystemDatabaseManagerVersion001::RemoveDirectory(
+    const FileSystemChildMetadata& aHandle, bool aRecursive) {
+  MOZ_ASSERT(!aHandle.parentId().IsEmpty());
+
+  if (aHandle.childName().IsEmpty()) {
+    return false;
+  }
+
+  DebugOnly<Name> name = aHandle.childName();
+  MOZ_ASSERT(!name.inspect().IsVoid());
+
+  QM_TRY_UNWRAP(bool exists, DoesDirectoryExist(mConnection, aHandle));
+
+  if (!exists) {
+    return false;
+  }
+
+  // At this point, entry exists and is a directory.
+  QM_TRY_UNWRAP(EntryId entryId, FindEntryId(mConnection, aHandle, false));
+  MOZ_ASSERT(!entryId.IsEmpty());
+
+  QM_TRY_UNWRAP(bool isEmpty, IsDirectoryEmpty(mConnection, entryId));
+
+  MOZ_ASSERT(mDataManager);
+  QM_TRY_UNWRAP(const bool isLocked,
+                IsAnyDescendantLocked(mConnection, *mDataManager, entryId));
+
+  // XXX If there are any locked file entries, we exit here.
+  // There has been talk that the spec might allow unconditional
+  // overwrites in the future.
+  QM_TRY(OkIf(!isLocked),
+         Err(QMResult(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR)));
+
+  if (!aRecursive && !isEmpty) {
+    return Err(QMResult(NS_ERROR_DOM_INVALID_MODIFICATION_ERR));
+  }
+
+  QM_TRY_RETURN(RemoveDirectoryImpl(entryId));
 }
 
 Result<bool, QMResult> FileSystemDatabaseManagerVersion001::RemoveFile(
