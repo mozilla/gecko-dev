@@ -5278,7 +5278,11 @@ nsHttpHeaders.prototype = {
    */
   setHeader(fieldName, fieldValue, merge) {
     var name = headerUtils.normalizeFieldName(fieldName);
-    var value = headerUtils.normalizeFieldValue(fieldValue);
+    // Bug 1937905 - For testing a neterror page due to invalid header values
+    var value =
+      name === "x-invalid-header-value"
+        ? fieldValue
+        : headerUtils.normalizeFieldValue(fieldValue);
 
     // The following three headers are stored as arrays because their real-world
     // syntax prevents joining individual headers into a single header using
