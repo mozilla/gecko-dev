@@ -4558,6 +4558,16 @@ void WorkerPrivate::PropagateStorageAccessPermissionGrantedInternal() {
 
 void WorkerPrivate::TraverseTimeouts(nsCycleCollectionTraversalCallback& cb) {
   auto data = mWorkerThreadAccessible.Access();
+  if (StaticPrefs::dom_workers_timeoutmanager_AtStartup()) {
+    auto* timeoutManager =
+        data->mScope ? data->mScope->GetTimeoutManager() : nullptr;
+    if (timeoutManager) {
+      timeoutManager->ForEachUnorderedTimeout([&cb](Timeout* timeout) {
+        cb.NoteNativeChild(timeout, NS_CYCLE_COLLECTION_PARTICIPANT(Timeout));
+      });
+    }
+    return;
+  }
   for (uint32_t i = 0; i < data->mTimeouts.Length(); ++i) {
     // TODO(erahm): No idea what's going on here.
     TimeoutInfo* tmp = data->mTimeouts[i].get();
@@ -4567,6 +4577,17 @@ void WorkerPrivate::TraverseTimeouts(nsCycleCollectionTraversalCallback& cb) {
 
 void WorkerPrivate::UnlinkTimeouts() {
   auto data = mWorkerThreadAccessible.Access();
+  if (StaticPrefs::dom_workers_timeoutmanager_AtStartup()) {
+    auto* timeoutManager =
+        data->mScope ? data->mScope->GetTimeoutManager() : nullptr;
+    if (timeoutManager) {
+      timeoutManager->ClearAllTimeouts();
+      if (!timeoutManager->HasTimeouts()) {
+        UpdateCCFlag(CCFlag::EligibleForTimeout);
+      }
+    }
+    return;
+  }
   data->mTimeouts.Clear();
 }
 
@@ -4782,10 +4803,22 @@ void WorkerPrivate::UpdateCCFlag(const CCFlag aFlag) {
       break;
     }
     case CCFlag::EligibleForTimeout: {
+      if (StaticPrefs::dom_workers_timeoutmanager_AtStartup()) {
+        auto* timeoutManager =
+            data->mScope ? data->mScope->GetTimeoutManager() : nullptr;
+        MOZ_ASSERT(timeoutManager && !timeoutManager->HasTimeouts());
+        break;
+      }
       MOZ_ASSERT(data->mTimeouts.IsEmpty());
       break;
     }
     case CCFlag::IneligibleForTimeout: {
+      if (StaticPrefs::dom_workers_timeoutmanager_AtStartup()) {
+        auto* timeoutManager =
+            data->mScope ? data->mScope->GetTimeoutManager() : nullptr;
+        MOZ_ASSERT(!timeoutManager || timeoutManager->HasTimeouts());
+        break;
+      }
       MOZ_ASSERT(!data->mTimeouts.IsEmpty());
       break;
     }
@@ -4815,8 +4848,17 @@ void WorkerPrivate::UpdateCCFlag(const CCFlag aFlag) {
     return totalCount > nonblockingActorCount;
   };
 
-  bool eligibleForCC = data->mChildWorkers.IsEmpty() &&
-                       data->mTimeouts.IsEmpty() &&
+  bool noTimeouts{data->mTimeouts.IsEmpty()};
+
+  if (StaticPrefs::dom_workers_timeoutmanager_AtStartup()) {
+    auto* timeoutManager =
+        data->mScope ? data->mScope->GetTimeoutManager() : nullptr;
+    if (timeoutManager) {
+      noTimeouts = !timeoutManager->HasTimeouts();
+    }
+  }
+
+  bool eligibleForCC = data->mChildWorkers.IsEmpty() && noTimeouts &&
                        !data->mNumWorkerRefsPreventingShutdownStart;
 
   // Only checking BackgroundActors when no strong WorkerRef, ChildWorker, and
@@ -4870,6 +4912,9 @@ void WorkerPrivate::CancelAllTimeouts() {
         data->mScope ? data->mScope->GetTimeoutManager() : nullptr;
     if (timeoutManager) {
       timeoutManager->ClearAllTimeouts();
+      if (!timeoutManager->HasTimeouts()) {
+        UpdateCCFlag(CCFlag::EligibleForTimeout);
+      }
     }
     return;
   }
@@ -5590,12 +5635,18 @@ int32_t WorkerPrivate::SetTimeout(JSContext* aCx, TimeoutHandler* aHandler,
 
   if (StaticPrefs::dom_workers_timeoutmanager_AtStartup()) {
     WorkerGlobalScope* globalScope = GlobalScope();
+    MOZ_DIAGNOSTIC_ASSERT(globalScope);
     auto* timeoutManager = globalScope->GetTimeoutManager();
     int32_t timerId = -1;
+    bool hadTimeouts = timeoutManager->HasTimeouts();
     nsresult rv = timeoutManager->SetTimeout(aHandler, aTimeout, aIsInterval,
                                              aReason, &timerId);
     if (NS_FAILED(rv)) {
       aRv.Throw(NS_ERROR_FAILURE);
+      return timerId;
+    }
+    if (!hadTimeouts) {
+      UpdateCCFlag(CCFlag::IneligibleForTimeout);
     }
     return timerId;
   }
@@ -5682,8 +5733,12 @@ void WorkerPrivate::ClearTimeout(int32_t aId, Timeout::Reason aReason) {
              "This timeout reason doesn't support cancellation.");
   if (StaticPrefs::dom_workers_timeoutmanager_AtStartup()) {
     WorkerGlobalScope* globalScope = GlobalScope();
+    MOZ_DIAGNOSTIC_ASSERT(globalScope);
     auto* timeoutManager = globalScope->GetTimeoutManager();
     timeoutManager->ClearTimeout(aId, aReason);
+    if (!timeoutManager->HasTimeouts()) {
+      UpdateCCFlag(CCFlag::EligibleForTimeout);
+    }
     return;
   }
 
@@ -6015,7 +6070,7 @@ uint32_t WorkerPrivate::GetCurrentTimerNestingLevel() const {
   auto* timeoutManager =
       data->mScope ? data->mScope->GetTimeoutManager() : nullptr;
   if (timeoutManager) {
-    return timeoutManager->GetNestingLevel();
+    return timeoutManager->GetNestingLevelForWorker();
   }
 
   return data->mCurrentTimerNestingLevel;

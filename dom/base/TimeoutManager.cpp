@@ -21,7 +21,6 @@
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/TimeoutHandler.h"
 #include "TimeoutExecutor.h"
-#include "TimeoutBudgetManager.h"
 #include "mozilla/net/WebSocketEventService.h"
 #include "mozilla/MediaManager.h"
 #include "mozilla/dom/WorkerScope.h"
@@ -31,12 +30,14 @@ using namespace mozilla::dom;
 
 LazyLogModule gTimeoutLog("Timeout");
 
-static int32_t gRunningTimeoutDepth = 0;
+TimeoutBudgetManager TimeoutManager::sBudgetManager{};
 
 // static
 const uint32_t TimeoutManager::InvalidFiringId = 0;
 
 namespace {
+static int32_t gRunningTimeoutDepth = 0;
+
 double GetRegenerationFactor(bool aIsBackground) {
   // Lookup function for "dom.timeout.{background,
   // foreground}_budget_regeneration_rate".
@@ -146,7 +147,7 @@ void TimeoutManager::MoveIdleToActive() {
       TimeDuration elapsed = now - timeout->SubmitTime();
       TimeDuration target = timeout->When() - timeout->SubmitTime();
       TimeDuration delta = now - timeout->When();
-      if (mGlobalObject.GetAsInnerWindow()) {
+      if (mIsWindow) {
         nsPrintfCString marker(
             "Releasing deferred setTimeout() for %dms (original target time "
             "was "
@@ -203,8 +204,7 @@ TimeDuration TimeoutManager::MinSchedulingDelay() const {
   }
 
   // do not throttle workers if dom_workers_throttling is disabled
-  if (!GetInnerWindow() &&
-      StaticPrefs::dom_workers_timeoutmanager_AtStartup() &&
+  if (!mIsWindow && StaticPrefs::dom_workers_timeoutmanager_AtStartup() &&
       !StaticPrefs::dom_workers_throttling_enabled_AtStartup()) {
     return TimeDuration();
   }
@@ -333,8 +333,9 @@ TimeDuration TimeoutManager::CalculateDelay(Timeout* aTimeout) const {
 
 void TimeoutManager::RecordExecution(Timeout* aRunningTimeout,
                                      Timeout* aTimeout) {
-  TimeoutBudgetManager& budgetManager = TimeoutBudgetManager::Get();
   TimeStamp now = TimeStamp::Now();
+  TimeoutBudgetManager& budgetManager{mIsWindow ? sBudgetManager
+                                                : mBudgetManager};
 
   if (aRunningTimeout) {
     // If we're running a timeout callback, record any execution until
@@ -423,7 +424,8 @@ TimeoutManager::TimeoutManager(nsIGlobalObject& aHandle,
       mThrottleTrackingTimeouts(false),
       mBudgetThrottleTimeouts(false),
       mIsLoading(false),
-      mEventTarget(aEventTarget) {
+      mEventTarget(aEventTarget),
+      mIsWindow(aHandle.GetAsInnerWindow()) {
   MOZ_LOG(gTimeoutLog, LogLevel::Debug,
           ("TimeoutManager %p created, tracking bucketing %s\n", this,
            StaticPrefs::privacy_trackingprotection_annotate_channels()
@@ -432,7 +434,7 @@ TimeoutManager::TimeoutManager(nsIGlobalObject& aHandle,
 }
 
 TimeoutManager::~TimeoutManager() {
-  if (GetInnerWindow()) {
+  if (mIsWindow) {
     MOZ_DIAGNOSTIC_ASSERT(mGlobalObject.IsDying());
   }
   MOZ_DIAGNOSTIC_ASSERT(!mThrottleTimeoutsTimer);
@@ -481,12 +483,18 @@ nsresult TimeoutManager::SetTimeout(TimeoutHandler* aHandler, int32_t interval,
                                     int32_t* aReturn) {
   // If we don't have a document (we could have been unloaded since
   // the call to setTimeout was made), do nothing.
-  if (mGlobalObject.GetAsInnerWindow()) {
+  if (mIsWindow) {
     nsCOMPtr<Document> doc = mGlobalObject.GetAsInnerWindow()->GetExtantDoc();
     if (!doc || mGlobalObject.IsDying()) {
       return NS_OK;
     }
   }
+
+  auto scopeExit = MakeScopeExit([&] {
+    if (!mIsWindow && !HasTimeouts()) {
+      mGlobalObject.TriggerUpdateCCFlag();
+    }
+  });
 
   // Disallow negative intervals.
   interval = std::max(0, interval);
@@ -509,13 +517,16 @@ nsresult TimeoutManager::SetTimeout(TimeoutHandler* aHandler, int32_t interval,
   timeout->mScriptHandler = aHandler;
   timeout->mReason = aReason;
 
-  // No popups from timeouts by default
-  timeout->mPopupState = PopupBlocker::openAbused;
+  if (mIsWindow) {
+    // No popups from timeouts by default
+    timeout->mPopupState = PopupBlocker::openAbused;
+  }
 
   // XXX: Does eIdleCallbackTimeout need clamping?
   if (aReason == Timeout::Reason::eTimeoutOrInterval ||
       aReason == Timeout::Reason::eIdleCallbackTimeout) {
-    const uint32_t nestingLevel{GetNestingLevel()};
+    const uint32_t nestingLevel{mIsWindow ? GetNestingLevelForWindow()
+                                          : GetNestingLevelForWorker()};
     timeout->mNestingLevel =
         nestingLevel < StaticPrefs::dom_clamp_timeout_nesting_level_AtStartup()
             ? nestingLevel + 1
@@ -535,18 +546,20 @@ nsresult TimeoutManager::SetTimeout(TimeoutHandler* aHandler, int32_t interval,
     }
   }
 
-  if (gRunningTimeoutDepth == 0 &&
-      PopupBlocker::GetPopupControlState() < PopupBlocker::openBlocked) {
-    // This timeout is *not* set from another timeout and it's set
-    // while popups are enabled. Propagate the state to the timeout if
-    // its delay (interval) is equal to or less than what
-    // "dom.disable_open_click_delay" is set to (in ms).
+  if (mIsWindow) {
+    if (gRunningTimeoutDepth == 0 &&
+        PopupBlocker::GetPopupControlState() < PopupBlocker::openBlocked) {
+      // This timeout is *not* set from another timeout and it's set
+      // while popups are enabled. Propagate the state to the timeout if
+      // its delay (interval) is equal to or less than what
+      // "dom.disable_open_click_delay" is set to (in ms).
 
-    // This is checking |interval|, not realInterval, on purpose,
-    // because our lower bound for |realInterval| could be pretty high
-    // in some cases.
-    if (interval <= StaticPrefs::dom_disable_open_click_delay()) {
-      timeout->mPopupState = PopupBlocker::GetPopupControlState();
+      // This is checking |interval|, not realInterval, on purpose,
+      // because our lower bound for |realInterval| could be pretty high
+      // in some cases.
+      if (interval <= StaticPrefs::dom_disable_open_click_delay()) {
+        timeout->mPopupState = PopupBlocker::GetPopupControlState();
+      }
     }
   }
 
@@ -1110,14 +1123,18 @@ void TimeoutManager::Timeouts::Insert(Timeout* aTimeout, SortBy aSortBy) {
 Timeout* TimeoutManager::BeginRunningTimeout(Timeout* aTimeout) {
   Timeout* currentTimeout = mRunningTimeout;
   mRunningTimeout = aTimeout;
-  ++gRunningTimeoutDepth;
+  if (mIsWindow) {
+    ++gRunningTimeoutDepth;
+  }
 
   RecordExecution(currentTimeout, aTimeout);
   return currentTimeout;
 }
 
 void TimeoutManager::EndRunningTimeout(Timeout* aTimeout) {
-  --gRunningTimeoutDepth;
+  if (mIsWindow) {
+    --gRunningTimeoutDepth;
+  }
 
   RecordExecution(mRunningTimeout, aTimeout);
   mRunningTimeout = aTimeout;
@@ -1276,8 +1293,7 @@ ThrottleTimeoutsCallback::Notify(nsITimer* aTimer) {
 
 bool TimeoutManager::BudgetThrottlingEnabled(bool aIsBackground) const {
   // do not throttle workers if dom_workers_throttling is disabled
-  if (!GetInnerWindow() &&
-      StaticPrefs::dom_workers_timeoutmanager_AtStartup() &&
+  if (!mIsWindow && StaticPrefs::dom_workers_timeoutmanager_AtStartup() &&
       !StaticPrefs::dom_workers_throttling_enabled_AtStartup()) {
     return false;
   }

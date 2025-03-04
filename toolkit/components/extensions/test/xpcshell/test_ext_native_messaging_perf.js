@@ -2,8 +2,13 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
-const MAX_ROUND_TRIP_TIME_MS =
-  AppConstants.DEBUG || AppConstants.ASAN ? 60 : 30;
+let max_round_trip_time_ms = AppConstants.DEBUG || AppConstants.ASAN ? 60 : 30;
+if (Services.prefs.getBoolPref("dom.workers.timeoutmanager") === true) {
+  max_round_trip_time_ms = 90;
+}
+
+const MAX_ROUND_TRIP_TIME_MS = max_round_trip_time_ms;
+
 const MAX_RETRIES = 5;
 
 const ECHO_BODY = String.raw`

@@ -10,11 +10,6 @@
 
 namespace mozilla::dom {
 
-/* static */ TimeoutBudgetManager& TimeoutBudgetManager::Get() {
-  static TimeoutBudgetManager gTimeoutBudgetManager;
-  return gTimeoutBudgetManager;
-}
-
 void TimeoutBudgetManager::StartRecording(const TimeStamp& aNow) {
   mStart = aNow;
 }
