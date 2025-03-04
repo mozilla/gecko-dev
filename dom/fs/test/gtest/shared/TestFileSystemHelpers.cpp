@@ -81,7 +81,9 @@ class TestObject {
 
 TEST(TestFileSystemHelpers_Registered, Construct_Default)
 {
-  { Registered<TestObject> testObject; }
+  {
+    Registered<TestObject> testObject;
+  }
 }
 
 TEST(TestFileSystemHelpers_Registered, Construct_Copy)
@@ -103,7 +105,9 @@ TEST(TestFileSystemHelpers_Registered, Construct_Move)
 
 TEST(TestFileSystemHelpers_Registered, Construct_FromRefPtr)
 {
-  { Registered<TestObject> testObject(MakeRefPtr<TestObject>(1, 1)); }
+  {
+    Registered<TestObject> testObject(MakeRefPtr<TestObject>(1, 1));
+  }
 }
 
 TEST(TestFileSystemHelpers_Registered, Operator_Assign_FromNullPtr)
