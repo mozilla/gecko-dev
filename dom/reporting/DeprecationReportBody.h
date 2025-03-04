@@ -27,7 +27,8 @@ class DeprecationReportBody final : public ReportBody {
 
   void GetId(nsAString& aId) const;
 
-  Nullable<uint64_t> GetAnticipatedRemoval() const;
+  void GetAnticipatedRemoval(JSContext* aCx,
+                             JS::MutableHandle<JSObject*> aResult) const;
 
   void GetMessage(nsAString& aMessage) const;
 

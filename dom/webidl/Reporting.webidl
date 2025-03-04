@@ -46,11 +46,10 @@ typedef sequence<Report> ReportList;
 [Pref="dom.reporting.enabled",
  Exposed=Window]
 interface DeprecationReportBody : ReportBody {
+  [Default] object toJSON();
+
   readonly attribute DOMString id;
-  // The spec currently has Date, but that's not a type that exists in Web IDL.
-  // In any case, we always return null, so we just need _some_ nullable type
-  // here.
-  readonly attribute DOMTimeStamp? anticipatedRemoval;
+  readonly attribute object? anticipatedRemoval;
   readonly attribute DOMString message;
   readonly attribute UTF8String? sourceFile;
   readonly attribute unsigned long? lineNumber;
