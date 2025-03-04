@@ -45,17 +45,23 @@ private const val MIDDLE_SPACER_WEIGHT = 0.7f
 @Preview
 private fun OnBoardingFirstScreenComposePreview() {
     FocusTheme {
-        OnBoardingFirstScreenCompose {}
+        OnBoardingFirstScreenCompose({}, {}, {})
     }
 }
 
 /**
- * Displays the first onBoarding screen
+ * Displays the first onBoarding screen.
  *
- * @param onGetStartedButtonClicked Will be called when the user clicks on get started button.
+ * @param termsOfServiceOnClick called when the user clicks on the terms of service link.
+ * @param privacyNoticeOnClick called when the user clicks on the privacy notice link.
+ * @param buttonOnClick called when the user clicks on the 'continue' button.
  */
 @Composable
-fun OnBoardingFirstScreenCompose(onGetStartedButtonClicked: () -> Unit) {
+fun OnBoardingFirstScreenCompose(
+    termsOfServiceOnClick: () -> Unit,
+    privacyNoticeOnClick: () -> Unit,
+    buttonOnClick: () -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -75,6 +81,7 @@ fun OnBoardingFirstScreenCompose(onGetStartedButtonClicked: () -> Unit) {
                 stringResource(R.string.onboarding_first_screen_terms_of_use_link),
             ),
             linkText = stringResource(R.string.onboarding_first_screen_terms_of_use_link),
+            onClick = termsOfServiceOnClick,
         )
 
         LinkText(
@@ -83,11 +90,10 @@ fun OnBoardingFirstScreenCompose(onGetStartedButtonClicked: () -> Unit) {
                 stringResource(R.string.onboarding_first_screen_privacy_notice_link),
             ),
             linkText = stringResource(R.string.onboarding_first_screen_privacy_notice_link),
+            onClick = privacyNoticeOnClick,
         )
 
-        ComponentGoToOnBoardingSecondScreen {
-            onGetStartedButtonClicked()
-        }
+        ComponentGoToOnBoardingSecondScreen { buttonOnClick() }
     }
 }
 
@@ -118,7 +124,7 @@ private fun TitleContent() {
 }
 
 @Composable
-private fun LinkText(text: String, linkText: String) {
+private fun LinkText(text: String, linkText: String, onClick: () -> Unit) {
     Text(
         text = buildAnnotatedString {
             val textWithoutLink =
@@ -128,7 +134,7 @@ private fun LinkText(text: String, linkText: String) {
                 LinkAnnotation.Url(
                     "",
                     TextLinkStyles(SpanStyle(color = colorResource(R.color.preference_learn_more_link))),
-                ) { }
+                ) { onClick() }
             withLink(link) { append(linkText) }
         },
         modifier = Modifier

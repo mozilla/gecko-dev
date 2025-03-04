@@ -17,9 +17,21 @@ import org.mozilla.focus.GleanMetrics.Onboarding
 import org.mozilla.focus.R
 import org.mozilla.focus.ext.requireComponents
 import org.mozilla.focus.ui.theme.FocusTheme
+import org.mozilla.focus.utils.SupportUtils
 
 class OnboardingFirstFragment : Fragment() {
     private lateinit var onboardingInteractor: OnboardingInteractor
+
+    private val termsOfServiceUrl by lazy {
+        SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.TERMS_OF_SERVICE)
+    }
+    private val privacyNoticeUrl by lazy {
+        SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.PRIVATE_NOTICE)
+    }
+
+    private fun openLearnMore(url: String) {
+        SupportUtils.openUrlInCustomTab(requireActivity(), url)
+    }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -51,7 +63,9 @@ class OnboardingFirstFragment : Fragment() {
         (view as ComposeView).setContent {
             FocusTheme {
                 OnBoardingFirstScreenCompose(
-                    onGetStartedButtonClicked = {
+                    termsOfServiceOnClick = { openLearnMore(termsOfServiceUrl) },
+                    privacyNoticeOnClick = { openLearnMore(privacyNoticeUrl) },
+                    buttonOnClick = {
                         Onboarding.getStartedButton.record(NoExtras())
                         onboardingInteractor.onGetStartedButtonClicked()
                     },
