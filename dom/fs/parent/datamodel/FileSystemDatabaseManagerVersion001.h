@@ -89,6 +89,8 @@ class FileSystemDatabaseManagerVersion001 : public FileSystemDatabaseManager {
   Result<Path, QMResult> Resolve(
       const FileSystemEntryPair& aEndpoints) const override;
 
+  Result<bool, QMResult> DoesFileExist(const EntryId& aEntryId) const override;
+
   Result<EntryId, QMResult> GetEntryId(
       const FileSystemChildMetadata& aHandle) const override;
 
@@ -174,9 +176,6 @@ Result<bool, QMResult> ApplyEntryExistsQuery(
 Result<bool, QMResult> ApplyEntryExistsQuery(
     const FileSystemConnection& aConnection, const nsACString& aQuery,
     const EntryId& aEntry);
-
-Result<bool, QMResult> DoesFileExist(const FileSystemConnection& aConnection,
-                                     const EntryId& aEntryId);
 
 Result<bool, QMResult> IsFile(const FileSystemConnection& aConnection,
                               const EntryId& aEntryId);

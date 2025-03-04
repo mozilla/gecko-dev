@@ -48,6 +48,18 @@ constexpr const nsLiteralCString gDescendantsQuery =
     "USING(handle) "
     ";"_ns;
 
+Result<bool, QMResult> DoesFileExist(const FileSystemConnection& aConnection,
+                                     const EntryId& aEntryId) {
+  MOZ_ASSERT(!aEntryId.IsEmpty());
+
+  const nsCString existsQuery =
+      "SELECT EXISTS "
+      "(SELECT 1 FROM Files WHERE handle = :handle ) "
+      ";"_ns;
+
+  QM_TRY_RETURN(ApplyEntryExistsQuery(aConnection, existsQuery, aEntryId));
+}
+
 Result<bool, QMResult> IsDirectoryEmpty(const FileSystemConnection& mConnection,
                                         const EntryId& aEntryId) {
   const nsLiteralCString isDirEmptyQuery =
@@ -562,7 +574,7 @@ FileSystemDatabaseManagerVersion001::GetOrCreateDirectory(
   MOZ_ASSERT(!(name.IsVoid() || name.IsEmpty()));
 
   bool exists = true;
-  QM_TRY_UNWRAP(exists, DoesFileExist(mConnection, aHandle));
+  QM_TRY_UNWRAP(exists, data::DoesFileExist(mConnection, aHandle));
 
   // By spec, we don't allow a file and a directory
   // to have the same name and parent
@@ -643,7 +655,7 @@ Result<EntryId, QMResult> FileSystemDatabaseManagerVersion001::GetOrCreateFile(
   // to have the same name and parent
   QM_TRY(OkIf(!exists), Err(QMResult(NS_ERROR_DOM_TYPE_MISMATCH_ERR)));
 
-  QM_TRY_UNWRAP(exists, DoesFileExist(mConnection, aHandle));
+  QM_TRY_UNWRAP(exists, data::DoesFileExist(mConnection, aHandle));
 
   if (exists) {
     QM_TRY_RETURN(FindEntryId(mConnection, aHandle, /* aIsFile */ true));
@@ -852,7 +864,7 @@ Result<bool, QMResult> FileSystemDatabaseManagerVersion001::RemoveFile(
   MOZ_ASSERT(!name.inspect().IsVoid());
 
   // Make it more evident that we won't remove directories
-  QM_TRY_UNWRAP(bool exists, DoesFileExist(mConnection, aHandle));
+  QM_TRY_UNWRAP(bool exists, data::DoesFileExist(mConnection, aHandle));
 
   if (!exists) {
     return false;
@@ -1023,6 +1035,13 @@ Result<Path, QMResult> FileSystemDatabaseManagerVersion001::Resolve(
   return path;
 }
 
+Result<bool, QMResult> FileSystemDatabaseManagerVersion001::DoesFileExist(
+    const EntryId& aEntryId) const {
+  MOZ_ASSERT(!aEntryId.IsEmpty());
+
+  QM_TRY_RETURN(data::DoesFileExist(mConnection, aEntryId));
+}
+
 Result<EntryId, QMResult> FileSystemDatabaseManagerVersion001::GetEntryId(
     const FileSystemChildMetadata& aHandle) const {
   return GetUniqueEntryId(mConnection, aHandle);
@@ -1085,7 +1104,7 @@ Result<bool, QMResult> FileSystemDatabaseManagerVersion001::DoesFileIdExist(
     const FileId& aFileId) const {
   MOZ_ASSERT(!aFileId.IsEmpty());
 
-  QM_TRY_RETURN(DoesFileExist(mConnection, aFileId.Value()));
+  QM_TRY_RETURN(DoesFileExist(aFileId.Value()));
 }
 
 nsresult FileSystemDatabaseManagerVersion001::RemoveFileId(
@@ -1263,7 +1282,7 @@ nsresult FileSystemDatabaseManagerVersion001::ClearDestinationIfNotLocked(
     const FileSystemChildMetadata& aNewDesignation) {
   // If the destination file exists, fail explicitly.  Spec author plans to
   // revise the spec
-  QM_TRY_UNWRAP(bool exists, DoesFileExist(aConnection, aNewDesignation));
+  QM_TRY_UNWRAP(bool exists, data::DoesFileExist(aConnection, aNewDesignation));
   if (exists) {
     QM_TRY_INSPECT(const EntryId& destId,
                    FindEntryId(aConnection, aNewDesignation, true));
@@ -1372,18 +1391,6 @@ Result<bool, QMResult> ApplyEntryExistsQuery(
   QM_TRY(QM_TO_RESULT(stmt.BindEntryIdByName("handle"_ns, aEntry)));
 
   return stmt.YesOrNoQuery();
-}
-
-Result<bool, QMResult> DoesFileExist(const FileSystemConnection& aConnection,
-                                     const EntryId& aEntryId) {
-  MOZ_ASSERT(!aEntryId.IsEmpty());
-
-  const nsCString existsQuery =
-      "SELECT EXISTS "
-      "(SELECT 1 FROM Files WHERE handle = :handle ) "
-      ";"_ns;
-
-  QM_TRY_RETURN(ApplyEntryExistsQuery(aConnection, existsQuery, aEntryId));
 }
 
 Result<bool, QMResult> IsFile(const FileSystemConnection& aConnection,
