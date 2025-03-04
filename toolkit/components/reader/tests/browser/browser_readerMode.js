@@ -185,7 +185,7 @@ add_task(async function test_reader_button() {
 
 add_task(async function test_getOriginalUrl() {
   let { ReaderMode } = ChromeUtils.importESModule(
-    "resource://gre/modules/ReaderMode.sys.mjs"
+    "moz-src:///toolkit/components/reader/ReaderMode.sys.mjs"
   );
   let url = "https://foo.com/article.html";
 

@@ -9,5 +9,5 @@
 import { BasePromiseWorker } from "resource://gre/modules/PromiseWorker.sys.mjs";
 
 export var ReaderWorker = new BasePromiseWorker(
-  "resource://gre/modules/reader/Reader.worker.js"
+  "moz-src:///toolkit/components/reader/Reader.worker.js"
 );

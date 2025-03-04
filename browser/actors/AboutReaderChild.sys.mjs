@@ -6,8 +6,8 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  AboutReader: "resource://gre/modules/AboutReader.sys.mjs",
-  ReaderMode: "resource://gre/modules/ReaderMode.sys.mjs",
+  AboutReader: "moz-src:///toolkit/components/reader/AboutReader.sys.mjs",
+  ReaderMode: "moz-src:///toolkit/components/reader/ReaderMode.sys.mjs",
   Readerable: "resource://gre/modules/Readerable.sys.mjs",
 });
 

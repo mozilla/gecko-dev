@@ -6,20 +6,17 @@
 
 JAR_MANIFESTS += ["jar.mn"]
 
-EXTRA_JS_MODULES += [
+MOZ_SRC_FILES += [
     "AboutReader.sys.mjs",
+    "readability/JSDOMParser.js",
+    "readability/Readability.js",
+    "Reader.worker.js",
     "ReaderMode.sys.mjs",
+    "ReaderWorker.sys.mjs",
 ]
 
 EXTRA_PP_JS_MODULES += [
     "Readerable.sys.mjs",
-]
-
-EXTRA_JS_MODULES.reader = [
-    "readability/JSDOMParser.js",
-    "readability/Readability.js",
-    "Reader.worker.js",
-    "ReaderWorker.sys.mjs",
 ]
 
 BROWSER_CHROME_MANIFESTS += ["tests/browser/browser.toml"]
