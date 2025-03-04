@@ -17586,6 +17586,14 @@ void Document::MaybeAllowStorageForOpenerAfterUserInteraction() {
     return;
   }
 
+  // Don't trigger navigation heuristic for first-party trackers if the pref
+  // says so.
+  if (StaticPrefs::
+          privacy_restrict3rdpartystorage_heuristic_exclude_third_party_trackers() &&
+      nsContentUtils::IsFirstPartyTrackingResourceWindow(inner)) {
+    return;
+  }
+
   auto* outer = nsGlobalWindowOuter::Cast(inner->GetOuterWindow());
   if (NS_WARN_IF(!outer)) {
     return;
