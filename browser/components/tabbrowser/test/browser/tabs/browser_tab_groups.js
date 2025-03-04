@@ -1326,8 +1326,32 @@ add_task(
       );
     });
 
+    let ungroupedTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+      skipAnimation: true,
+    });
+    EventUtils.synthesizeMouseAtCenter(
+      ungroupedTab,
+      { ctrlKey: true, metaKey: true },
+      window
+    );
+    await withTabMenu(tabsToSelect[2], async (_, moveTabToGroupItem) => {
+      const submenu = moveTabToGroupItem.querySelector(
+        "#context_moveTabToGroupPopupMenu"
+      ).children;
+
+      const tabGroupIds = Array.from(submenu).map(item =>
+        item.getAttribute("tab-group-id")
+      );
+
+      Assert.ok(
+        tabGroupIds.includes(selectedTabGroup.getAttribute("id")),
+        "group with selected tabs is in context menu list since one of the selected tabs is ungrouped"
+      );
+    });
+
     await removeTabGroup(selectedTabGroup);
     await removeTabGroup(otherGroup);
+    BrowserTestUtils.removeTab(ungroupedTab);
   }
 );
 

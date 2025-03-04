@@ -8449,7 +8449,7 @@ var TabContextMenu = {
     if (gBrowser._tabGroupsEnabled) {
       let groupableTabs = this.contextTabs.filter(t => !t.pinned);
       let selectedGroupCount = new Set(
-        // the filter is necessary to remove the "null" group
+        // The filter removes the "null" group for ungrouped tabs.
         groupableTabs.map(t => t.group).filter(g => g)
       ).size;
 
@@ -8461,14 +8461,13 @@ var TabContextMenu = {
 
       // Determine whether or not the "current" tab group should appear in the
       // "move tab to group" context menu.
-      let groupToFilter;
       if (selectedGroupCount == 1) {
-        groupToFilter = groupableTabs[0].group;
-      }
-      if (groupToFilter) {
-        availableGroupsToMoveTo = availableGroupsToMoveTo.filter(
-          group => group !== groupToFilter
-        );
+        let groupToFilter = groupableTabs[0].group;
+        if (groupToFilter && groupableTabs.every(t => t.group)) {
+          availableGroupsToMoveTo = availableGroupsToMoveTo.filter(
+            group => group !== groupToFilter
+          );
+        }
       }
 
       contextMoveTabToGroup.disabled = !groupableTabs.length;
