@@ -3395,7 +3395,21 @@ export const XPIDatabaseReconcile = {
 
       // Remove the invalid add-on from the install location if the install
       // location isn't locked
-      if (aLocation.isLinkedAddon(aId)) {
+      if (
+        aLocation.name === KEY_APP_BUILTINS ||
+        aLocation.name === KEY_APP_SYSTEM_BUILTINS
+      ) {
+        // If a builtin has been removed from the build, we need to remove it from our
+        // data sets.  We cannot use location.isBuiltin since the system addon locations
+        // mix it up.
+        // NOTE: for the add-ons installed in KEY_APP_SYSTEM_BUILTINS, this logic ensures
+        // that we don't keep them as userDisabled in the add-on DB  when loading the
+        // manifest fails. Otherwise, they would stay userDisabled even when the application
+        // is updated and an updated manifest loads successfully for the new system built-in
+        // add-on version (test_system_reset.js covers this corner case).
+        XPIDatabase.removeAddonMetadata(aAddonState);
+        aLocation.removeAddon(aId);
+      } else if (aLocation.isLinkedAddon(aId)) {
         logger.warn("Not uninstalling invalid item because it is a proxy file");
       } else if (aLocation.locked) {
         logger.warn(
@@ -3403,15 +3417,6 @@ export const XPIDatabaseReconcile = {
         );
       } else if (unsigned && !isNewInstall) {
         logger.warn("Not uninstalling existing unsigned add-on");
-      } else if (
-        aLocation.name === KEY_APP_BUILTINS ||
-        aLocation.name === KEY_APP_SYSTEM_BUILTINS
-      ) {
-        // If a builtin has been removed from the build, we need to remove it from our
-        // data sets.  We cannot use location.isBuiltin since the system addon locations
-        // mix it up.
-        XPIDatabase.removeAddonMetadata(aAddonState);
-        aLocation.removeAddon(aId);
       } else {
         aLocation.installer.uninstallAddon(aId);
       }

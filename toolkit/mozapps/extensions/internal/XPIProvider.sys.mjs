@@ -975,7 +975,11 @@ var SystemBuiltInLocation =
   new (class _SystemBuiltInLocation extends XPIStateLocation {
     constructor() {
       super(KEY_APP_SYSTEM_BUILTINS, null, AddonManager.SCOPE_APPLICATION);
-      this.locked = false;
+      // This location is locked and system addons are added and removed
+      // from this location through XPIProvider.scanForChanges and
+      // XPIDatabaseReconcile.processFileChanges based on what readAddons
+      // methods return.
+      this.locked = true;
     }
 
     // The installer object is responsible for moving files around on disk

@@ -131,6 +131,26 @@ function getSystemAddonXPI(num, version) {
   return _systemXPIs.get(key);
 }
 
+async function getSystemBuiltin(num, version, res_url) {
+  const id = `system${num}@tests.mozilla.org`;
+  const addon_res_url_path = res_url ?? `builtin-system${num}`;
+  await setupBuiltinExtension(
+    {
+      manifest: {
+        name: `Built-in add-on #${num}`,
+        version,
+        browser_specific_settings: { gecko: { id } },
+      },
+    },
+    addon_res_url_path
+  );
+  return {
+    addon_id: id,
+    addon_version: version,
+    res_url: `resource://${addon_res_url_path}/`,
+  };
+}
+
 async function initSystemAddonDirs() {
   let hiddenSystemAddonDir = FileUtils.getDir("ProfD", [
     "sysfeatures",
