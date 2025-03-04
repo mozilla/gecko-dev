@@ -70,12 +70,12 @@ export class NotificationStorage {
 
   put(aOrigin, aEntry, aScope) {
     lazy.console.debug(`PUT: ${aOrigin} ${aEntry.id}: ${aEntry.title}`);
-    let { QueryInterface, ...entry } = aEntry;
     let notification = {
-      ...entry,
+      ...aEntry,
       timestamp: new Date().getTime(),
       serviceWorkerRegistrationScope: aScope,
     };
+    delete notification.QueryInterface;
 
     Services.cpmm.sendAsyncMessage(this.formatMessageType("Save"), {
       origin: aOrigin,
