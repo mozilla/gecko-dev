@@ -57,12 +57,22 @@ class MarkersActivityLifecycleCallbacks(
     }
 
     override fun onActivityStopped(activity: Activity) {
-        if (shouldSkip()) { return }
+        if (shouldSkip() ||
+            // These methods are manually instrumented with duration.
+            activity is HomeActivity
+        ) {
+            return
+        }
         engine.profiler?.addMarker(MARKER_NAME, "${activity::class.simpleName}.onStop (via callbacks)")
     }
 
     override fun onActivityDestroyed(activity: Activity) {
-        if (shouldSkip()) { return }
+        if (shouldSkip() ||
+            // These methods are manually instrumented with duration.
+            activity is HomeActivity
+        ) {
+            return
+        }
         engine.profiler?.addMarker(MARKER_NAME, "${activity::class.simpleName}.onDestroy (via callbacks)")
     }
 

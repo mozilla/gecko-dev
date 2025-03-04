@@ -698,6 +698,9 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
     }
 
     final override fun onStop() {
+        // DO NOT MOVE ANYTHING ABOVE THIS getProfilerTime CALL.
+        val startTimeProfiler = components.core.engine.profiler?.getProfilerTime()
+
         super.onStop()
 
         // Diagnostic breadcrumb for "Display already aquired" crash:
@@ -721,6 +724,12 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                 )
             }
         }
+
+        components.core.engine.profiler?.addMarker(
+            MarkersActivityLifecycleCallbacks.MARKER_NAME,
+            startTimeProfiler,
+            "HomeActivity.onStop",
+        )
     }
 
     final override fun onPause() {
@@ -768,6 +777,8 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
 
     @CallSuper
     override fun onDestroy() {
+        val startTimeProfiler = components.core.engine.profiler?.getProfilerTime()
+
         super.onDestroy()
 
         // Diagnostic breadcrumb for "Display already aquired" crash:
@@ -792,6 +803,12 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         if (this !is ExternalAppBrowserActivity && !activityStartedWithLink) {
             stopMediaSession()
         }
+
+        components.core.engine.profiler?.addMarker(
+            MarkersActivityLifecycleCallbacks.MARKER_NAME,
+            startTimeProfiler,
+            "HomeActivity.onDestroy",
+        )
     }
 
     final override fun onConfigurationChanged(newConfig: Configuration) {
