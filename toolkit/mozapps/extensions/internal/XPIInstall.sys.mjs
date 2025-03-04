@@ -788,12 +788,11 @@ var loadManifestFromFile = async function (aFile, aLocation, aOldAddon) {
  * this.
  */
 function syncLoadManifest(state, location, oldAddon) {
-  // TODO: turn into a single const exported from XPIDatabase.
-  if (["app-builtin", "app-system-builtins"].includes(location.name)) {
+  const { KEY_APP_BUILTINS, KEY_APP_SYSTEM_BUILTINS, awaitPromise } =
+    XPIExports.XPIInternal;
+  if ([KEY_APP_BUILTINS, KEY_APP_SYSTEM_BUILTINS].includes(location.name)) {
     let pkg = builtinPackage(Services.io.newURI(state.rootURI));
-    return XPIExports.XPIInternal.awaitPromise(
-      loadManifest(pkg, location, oldAddon)
-    );
+    return awaitPromise(loadManifest(pkg, location, oldAddon));
   }
 
   let file = new nsIFile(state.path);
