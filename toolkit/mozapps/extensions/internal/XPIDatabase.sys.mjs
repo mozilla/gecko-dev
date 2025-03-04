@@ -1239,6 +1239,11 @@ AddonWrapper = class {
     return lazy.AddonManager.SCOPE_PROFILE;
   }
 
+  get locationName() {
+    let addon = addonFor(this);
+    return addon.location.name;
+  }
+
   get pendingOperations() {
     let addon = addonFor(this);
     let pending = 0;

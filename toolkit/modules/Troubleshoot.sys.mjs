@@ -335,7 +335,6 @@ var dataProviders = {
       "sitepermission",
       "theme",
     ]);
-    addons = addons.filter(e => !e.isSystem);
     addons.sort(function (a, b) {
       if (a.isActive != b.isActive) {
         return b.isActive ? 1 : -1;
@@ -357,7 +356,7 @@ var dataProviders = {
       }
       return 0;
     });
-    let props = ["name", "type", "version", "isActive", "id"];
+    let props = ["name", "type", "version", "isActive", "id", "locationName"];
     done(
       addons.map(function (ext) {
         return props.reduce(function (extData, prop) {
@@ -386,33 +385,6 @@ var dataProviders = {
     }
 
     done(data);
-  },
-
-  features: async function features(done) {
-    let features = await AddonManager.getAddonsByTypes(["extension"]);
-    features = features.filter(f => f.isSystem);
-    features.sort(function (a, b) {
-      // In some unfortunate cases addon names can be null.
-      let aname = a.name || null;
-      let bname = b.name || null;
-      let lc = aname.localeCompare(bname);
-      if (lc != 0) {
-        return lc;
-      }
-      if (a.version != b.version) {
-        return a.version > b.version ? 1 : -1;
-      }
-      return 0;
-    });
-    let props = ["name", "version", "id"];
-    done(
-      features.map(function (f) {
-        return props.reduce(function (fData, prop) {
-          fData[prop] = f[prop];
-          return fData;
-        }, {});
-      })
-    );
   },
 
   processes: async function processes(done) {

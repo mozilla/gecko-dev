@@ -442,6 +442,10 @@ const SNAPSHOT_SCHEMA = {
             required: true,
             type: "boolean",
           },
+          locationName: {
+            required: true,
+            type: "string",
+          },
         },
       },
     },
@@ -460,27 +464,6 @@ const SNAPSHOT_SCHEMA = {
         registeredFirewall: {
           required: true,
           type: "string",
-        },
-      },
-    },
-    features: {
-      required: true,
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          name: {
-            required: true,
-            type: "string",
-          },
-          version: {
-            required: true,
-            type: "string",
-          },
-          id: {
-            required: true,
-            type: "string",
-          },
         },
       },
     },
