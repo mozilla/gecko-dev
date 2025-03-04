@@ -11,6 +11,7 @@
 
 #include "imgIContainer.h"
 #include "imgIRequest.h"
+#include "nsTHashSet.h"
 #include "mozilla/Preferences.h"
 #include "nsXULAppAPI.h"
 
@@ -138,20 +139,17 @@ void ImageTracker::RequestDiscardAll() {
 void ImageTracker::MediaFeatureValuesChangedAllDocuments(
     const MediaFeatureChange& aChange) {
   // Inform every content image used in the document that media feature values
-  // have changed.  If the same image is used in multiple places, then we can
-  // end up informing them multiple times.  Theme changes are rare though and we
-  // don't bother trying to ensure we only do this once per image.
-  //
-  // Pull the images out into an array and iterate over them, in case the
-  // image notifications do something that ends up modifying the table.
-  nsTArray<nsCOMPtr<imgIContainer>> images;
+  // have changed. Pull the images out into a set and iterate over them, in case
+  // the image notifications do something that ends up modifying the table.
+  nsTHashSet<nsRefPtrHashKey<imgIContainer>> images;
   for (imgIRequest* req : mImages.Keys()) {
     nsCOMPtr<imgIContainer> image;
     req->GetImage(getter_AddRefs(image));
     if (!image) {
       continue;
     }
-    images.AppendElement(image->Unwrap());
+    image = image->Unwrap();
+    images.Insert(image);
   }
   for (imgIContainer* image : images) {
     image->MediaFeatureValuesChangedAllDocuments(aChange);
