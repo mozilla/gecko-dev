@@ -20,12 +20,14 @@ namespace mozilla {
 namespace dom {
 class ClientInfo;
 class ServiceWorkerDescriptor;
+class IPCNotification;
 } // namespace dom
 } // namespace mozilla
 %}
 
 [ref] native const_ClientInfoRef(const mozilla::dom::ClientInfo);
 [ref] native const_ServiceWorkerDescriptorRef(const mozilla::dom::ServiceWorkerDescriptor);
+[ref] native const_IPCNotificationRef(const mozilla::dom::IPCNotification);
 
 [scriptable, uuid(52ee2c9d-ee87-4caf-9588-23ae77ff8798)]
 interface nsIServiceWorkerUnregisterCallback : nsISupports
@@ -295,27 +297,15 @@ interface nsIServiceWorkerManager : nsISupports
                            in nsIServiceWorkerUnregisterCallback aCallback,
                            in AString aScope);
 
+  [noscript]
   void sendNotificationClickEvent(in ACString aOriginSuffix,
                                   in AString scope,
-                                  in AString aID,
-                                  in AString aTitle,
-                                  in AString aDir,
-                                  in AString aLang,
-                                  in AString aBody,
-                                  in AString aTag,
-                                  in AString aIcon,
-                                  in AString aData);
+                                  in const_IPCNotificationRef aNotification);
 
+  [noscript]
   void sendNotificationCloseEvent(in ACString aOriginSuffix,
                                   in AString scope,
-                                  in AString aID,
-                                  in AString aTitle,
-                                  in AString aDir,
-                                  in AString aLang,
-                                  in AString aBody,
-                                  in AString aTag,
-                                  in AString aIcon,
-                                  in AString aData);
+                                  in const_IPCNotificationRef aNotification);
 
   [optional_argc] void sendPushEvent(in ACString aOriginAttributes,
                                      in ACString aScope,

@@ -1131,9 +1131,7 @@ ServiceWorkerManager::SendPushSubscriptionChangeEvent(
 
 nsresult ServiceWorkerManager::SendNotificationEvent(
     const nsAString& aEventName, const nsACString& aOriginSuffix,
-    const nsAString& aScope, const nsAString& aID, const nsAString& aTitle,
-    const nsAString& aDir, const nsAString& aLang, const nsAString& aBody,
-    const nsAString& aTag, const nsAString& aIcon, const nsAString& aData) {
+    const nsAString& aScope, const IPCNotification& aNotification) {
   OriginAttributes attrs;
   if (!attrs.PopulateFromSuffix(aOriginSuffix)) {
     return NS_ERROR_INVALID_ARG;
@@ -1147,36 +1145,24 @@ nsresult ServiceWorkerManager::SendNotificationEvent(
 
   ServiceWorkerPrivate* workerPrivate = info->WorkerPrivate();
 
-  NotificationDirection dir = StringToEnum<NotificationDirection>(aDir).valueOr(
-      NotificationDirection::Auto);
-
-  // XXX(krosylight): Some notifications options are missing in SWM
-  IPCNotificationOptions options(
-      nsString(aTitle), dir, nsString(aLang), nsString(aBody), nsString(aTag),
-      nsString(aIcon), false, false, nsTArray<uint32_t>(), nsString(aData));
-  return workerPrivate->SendNotificationEvent(aEventName, aScope, aID, options);
+  return workerPrivate->SendNotificationEvent(aEventName, aScope,
+                                              aNotification);
 }
 
 NS_IMETHODIMP
 ServiceWorkerManager::SendNotificationClickEvent(
     const nsACString& aOriginSuffix, const nsAString& aScope,
-    const nsAString& aID, const nsAString& aTitle, const nsAString& aDir,
-    const nsAString& aLang, const nsAString& aBody, const nsAString& aTag,
-    const nsAString& aIcon, const nsAString& aData) {
+    const IPCNotification& aIPCNotification) {
   return SendNotificationEvent(nsLiteralString(NOTIFICATION_CLICK_EVENT_NAME),
-                               aOriginSuffix, aScope, aID, aTitle, aDir, aLang,
-                               aBody, aTag, aIcon, aData);
+                               aOriginSuffix, aScope, aIPCNotification);
 }
 
 NS_IMETHODIMP
 ServiceWorkerManager::SendNotificationCloseEvent(
     const nsACString& aOriginSuffix, const nsAString& aScope,
-    const nsAString& aID, const nsAString& aTitle, const nsAString& aDir,
-    const nsAString& aLang, const nsAString& aBody, const nsAString& aTag,
-    const nsAString& aIcon, const nsAString& aData) {
+    const IPCNotification& aIPCNotification) {
   return SendNotificationEvent(nsLiteralString(NOTIFICATION_CLOSE_EVENT_NAME),
-                               aOriginSuffix, aScope, aID, aTitle, aDir, aLang,
-                               aBody, aTag, aIcon, aData);
+                               aOriginSuffix, aScope, aIPCNotification);
 }
 
 RefPtr<ServiceWorkerRegistrationPromise> ServiceWorkerManager::WhenReady(

@@ -985,8 +985,8 @@ nsresult ServiceWorkerPrivate::SendPushSubscriptionChangeEvent(
 }
 
 nsresult ServiceWorkerPrivate::SendNotificationEvent(
-    const nsAString& aEventName, const nsAString& aScope, const nsAString& aId,
-    const IPCNotificationOptions& aOptions) {
+    const nsAString& aEventName, const nsAString& aScope,
+    const IPCNotification& aNotification) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (!aEventName.EqualsLiteral(NOTIFICATION_CLICK_EVENT_NAME) &&
@@ -997,7 +997,7 @@ nsresult ServiceWorkerPrivate::SendNotificationEvent(
 
   ServiceWorkerNotificationEventOpArgs args;
   args.eventName() = nsString(aEventName);
-  args.notification() = IPCNotification(nsString(aId), aOptions);
+  args.notification() = aNotification;
 
   return ExecServiceWorkerOp(
       std::move(args), ServiceWorkerLifetimeExtension(FullLifetimeExtension{}),

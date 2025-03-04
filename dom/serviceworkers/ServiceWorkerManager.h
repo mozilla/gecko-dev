@@ -431,11 +431,8 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
 
   nsresult SendNotificationEvent(const nsAString& aEventName,
                                  const nsACString& aOriginSuffix,
-                                 const nsAString& aScope, const nsAString& aID,
-                                 const nsAString& aTitle, const nsAString& aDir,
-                                 const nsAString& aLang, const nsAString& aBody,
-                                 const nsAString& aTag, const nsAString& aIcon,
-                                 const nsAString& aData);
+                                 const nsAString& aScope,
+                                 const IPCNotification& aNotification);
 
   // Used by remove() and removeAll() when clearing history.
   // MUST ONLY BE CALLED FROM UnregisterIfMatchesHost!

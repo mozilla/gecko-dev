@@ -112,8 +112,8 @@ class ServiceWorkerPrivate final : public RemoteWorkerObserver {
       const RefPtr<nsIPushSubscription>& aOldSubscription);
 
   nsresult SendNotificationEvent(const nsAString& aEventName,
-                                 const nsAString& aScope, const nsAString& aId,
-                                 const IPCNotificationOptions& aOptions);
+                                 const nsAString& aScope,
+                                 const IPCNotification& aNotification);
 
   nsresult SendFetchEvent(nsCOMPtr<nsIInterceptedChannel> aChannel,
                           nsILoadGroup* aLoadGroup, const nsAString& aClientId,

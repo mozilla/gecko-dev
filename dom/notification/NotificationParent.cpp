@@ -96,11 +96,8 @@ nsresult NotificationParent::FireClickEvent() {
           mozilla::components::ServiceWorkerManager::Service()) {
     nsAutoCString originSuffix;
     MOZ_TRY(mPrincipal->GetOriginSuffix(originSuffix));
-    MOZ_TRY(swm->SendNotificationClickEvent(
-        originSuffix, mScope, mId, mOptions.title(),
-        NS_ConvertASCIItoUTF16(GetEnumString(mOptions.dir())), mOptions.lang(),
-        mOptions.body(), mOptions.tag(), mOptions.icon(),
-        mOptions.dataSerialized()));
+    MOZ_TRY(swm->SendNotificationClickEvent(originSuffix, mScope,
+                                            IPCNotification(mId, mOptions)));
 
     return NS_OK;
   }
@@ -116,11 +113,8 @@ nsresult NotificationParent::FireCloseEvent() {
           mozilla::components::ServiceWorkerManager::Service()) {
     nsAutoCString originSuffix;
     MOZ_TRY(mPrincipal->GetOriginSuffix(originSuffix));
-    MOZ_TRY(swm->SendNotificationCloseEvent(
-        originSuffix, mScope, mId, mOptions.title(),
-        NS_ConvertASCIItoUTF16(GetEnumString(mOptions.dir())), mOptions.lang(),
-        mOptions.body(), mOptions.tag(), mOptions.icon(),
-        mOptions.dataSerialized()));
+    MOZ_TRY(swm->SendNotificationCloseEvent(originSuffix, mScope,
+                                            IPCNotification(mId, mOptions)));
     return NS_OK;
   }
   return NS_ERROR_FAILURE;
