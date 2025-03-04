@@ -73,8 +73,6 @@
 #include "gtest/internal/gtest-internal.h"
 #include "gtest/internal/gtest-string.h"
 
-#include "mozilla/Attributes.h"
-
 GTEST_DISABLE_MSC_WARNINGS_PUSH_(4251 \
 /* class A needs to have dll-interface to be used by clients of class B */)
 
@@ -327,7 +325,7 @@ class GTEST_API_ Test {
   //
   // DO NOT OVERRIDE THIS FUNCTION DIRECTLY IN A USER PROGRAM.
   // Instead, use the TEST or TEST_F macro.
-  MOZ_CAN_RUN_SCRIPT virtual void TestBody() = 0;
+  virtual void TestBody() = 0;
 
   // Sets up, executes, and tears down the test.
   void Run();
@@ -1125,7 +1123,7 @@ class GTEST_API_ UnitTest {
   // This method can only be called from the main thread.
   //
   // INTERNAL IMPLEMENTATION - DO NOT USE IN A USER PROGRAM.
-  int Run() GTEST_MUST_USE_RESULT_;
+  [[nodiscard]] int Run();
 
   // Returns the working directory when the first TEST() or TEST_F()
   // was executed.  The UnitTest object owns the string.
@@ -2331,7 +2329,7 @@ TestInfo* RegisterTest(const char* test_suite_name, const char* test_name,
 //
 // This function was formerly a macro; thus, it is in the global
 // namespace and has an all-caps name.
-int RUN_ALL_TESTS() GTEST_MUST_USE_RESULT_;
+[[nodiscard]] int RUN_ALL_TESTS();
 
 inline int RUN_ALL_TESTS() { return ::testing::UnitTest::GetInstance()->Run(); }
 

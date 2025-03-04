@@ -3305,6 +3305,13 @@ auto UnpackStructImpl(const T& u, std::make_index_sequence<20>, char) {
   const auto& [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t] = u;
   return std::tie(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t);
 }
+template <typename T>
+auto UnpackStructImpl(const T& in, std::make_index_sequence<21>, char) {
+  const auto& [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u] =
+      in;
+  return std::tie(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t,
+                  u);
+}
 #endif  // defined(__cpp_structured_bindings)
 
 template <size_t I, typename T>
@@ -4453,6 +4460,10 @@ inline PolymorphicMatcher<internal::FieldMatcher<Class, FieldType>> Field(
 // matches 'matcher'.  For example,
 //   Property(&Foo::str, StartsWith("hi"))
 // matches a Foo object x if and only if x.str() starts with "hi".
+//
+// Warning: Don't use `Property()` against member functions that you do not
+// own, because taking addresses of functions is fragile and generally not part
+// of the contract of the function.
 template <typename Class, typename PropertyType, typename PropertyMatcher>
 inline PolymorphicMatcher<internal::PropertyMatcher<
     Class, PropertyType, PropertyType (Class::*)() const>>
@@ -5551,8 +5562,7 @@ PolymorphicMatcher<internal::ExceptionMatcherImpl<Err>> ThrowsMessage(
   template <typename arg_type>                                                \
   bool name##Matcher::gmock_Impl<arg_type>::MatchAndExplain(                  \
       const arg_type& arg,                                                    \
-      GTEST_INTERNAL_ATTRIBUTE_MAYBE_UNUSED ::testing::MatchResultListener*   \
-          result_listener) const
+      [[maybe_unused]] ::testing::MatchResultListener* result_listener) const
 
 #define MATCHER_P(name, p0, description) \
   GMOCK_INTERNAL_MATCHER(name, name##MatcherP, description, (#p0), (p0))
@@ -5637,8 +5647,8 @@ PolymorphicMatcher<internal::ExceptionMatcherImpl<Err>> ThrowsMessage(
   bool full_name<GMOCK_INTERNAL_MATCHER_TYPE_PARAMS(args)>::                   \
       gmock_Impl<arg_type>::MatchAndExplain(                                   \
           const arg_type& arg,                                                 \
-          GTEST_INTERNAL_ATTRIBUTE_MAYBE_UNUSED ::testing::                    \
-              MatchResultListener* result_listener) const
+          [[maybe_unused]] ::testing::MatchResultListener* result_listener)    \
+          const
 
 #define GMOCK_INTERNAL_MATCHER_TEMPLATE_PARAMS(args) \
   GMOCK_PP_TAIL(                                     \
