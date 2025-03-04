@@ -17,11 +17,13 @@ import { features } from "../../../utils/prefs";
 
 const EXCEPTION_MARKER = "mark-text-exception";
 
+const LOADING_CLASS = "preview-loading-token";
+
 class Preview extends PureComponent {
   target = null;
   constructor(props) {
     super(props);
-    this.state = { selecting: false };
+    this.state = { selecting: false, loading: null };
   }
 
   static get propTypes() {
@@ -72,12 +74,27 @@ class Preview extends PureComponent {
     }
   }
 
+  componentDidUpdate(_prevProps, prevState) {
+    // Ensure that only one token is highlighted as "loading"
+    const previous = prevState.loading;
+    if (previous) {
+      previous.classList.remove(LOADING_CLASS);
+    }
+    const { loading } = this.state;
+    if (loading) {
+      loading.classList.add(LOADING_CLASS);
+    }
+  }
+
   // Note that these events are emitted by utils/editor/tokens.js
   onTokenEnter = async ({ target, tokenPos }) => {
     // Use a temporary object to uniquely identify the asynchronous processing of this user event
     // and bail out if we started hovering another token.
     const tokenId = {};
     this.currentTokenId = tokenId;
+
+    // Immediately highlight the hovered token as "loading"
+    this.setState({ loading: target });
 
     const {
       editor,
@@ -90,24 +107,29 @@ class Preview extends PureComponent {
     const isTargetException = target.closest(`.${EXCEPTION_MARKER}`);
 
     let preview;
-    if (isTargetException) {
-      preview = await getExceptionPreview(target, tokenPos, editor);
-    }
+    try {
+      if (isTargetException) {
+        preview = await getExceptionPreview(target, tokenPos, editor);
+      }
 
-    if (!preview && (hasSelectedTrace || isPaused) && !this.state.selecting) {
-      if (hasSelectedTrace) {
-        preview = await getTracerPreview(target, tokenPos, editor);
+      if (!preview && (hasSelectedTrace || isPaused) && !this.state.selecting) {
+        if (hasSelectedTrace) {
+          preview = await getTracerPreview(target, tokenPos, editor);
+        }
+        if (!preview && isPaused) {
+          preview = await getPausedPreview(target, tokenPos, editor);
+        }
       }
-      if (!preview && isPaused) {
-        preview = await getPausedPreview(target, tokenPos, editor);
-      }
+    } catch (e) {
+      // Ignore any exception and dismiss the popup (as preview will be null)
     }
 
     // Prevent modifying state and showing this preview if we started hovering another token
-    if (!preview || this.currentTokenId !== tokenId) {
+    if (this.currentTokenId !== tokenId) {
       return;
     }
-    this.setState({ preview });
+
+    this.setState({ loading: null, preview });
   };
 
   onMouseUp = () => {
@@ -129,14 +151,19 @@ class Preview extends PureComponent {
   };
 
   clearPreview = () => {
-    this.setState({ preview: null });
+    this.setState({ loading: null, preview: null });
   };
 
   render() {
-    const { preview } = this.state;
-    if (!preview || this.state.selecting) {
+    if (this.state.selecting) {
       return null;
     }
+
+    const { preview } = this.state;
+    if (!preview) {
+      return null;
+    }
+
     return React.createElement(Popup, {
       preview,
       editor: this.props.editor,
