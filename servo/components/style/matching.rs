@@ -331,37 +331,6 @@ trait PrivateMatchMethods: TElement {
         return true;
     }
 
-    /// Create a SequentialTask for resolving descendants in a SMIL display
-    /// property animation if the display property changed from none.
-    #[cfg(feature = "gecko")]
-    fn handle_display_change_for_smil_if_needed(
-        &self,
-        context: &mut StyleContext<Self>,
-        old_values: Option<&ComputedValues>,
-        new_values: &ComputedValues,
-        restyle_hints: RestyleHint,
-    ) {
-        use crate::context::PostAnimationTasks;
-
-        if !restyle_hints.intersects(RestyleHint::RESTYLE_SMIL) {
-            return;
-        }
-
-        if new_values.is_display_property_changed_from_none(old_values) {
-            // When display value is changed from none to other, we need to
-            // traverse descendant elements in a subsequent normal
-            // traversal (we can't traverse them in this animation-only restyle
-            // since we have no way to know whether the decendants
-            // need to be traversed at the beginning of the animation-only
-            // restyle).
-            let task = crate::context::SequentialTask::process_post_animation(
-                *self,
-                PostAnimationTasks::DISPLAY_CHANGED_FROM_NONE_FOR_SMIL,
-            );
-            context.thread_local.tasks.push(task);
-        }
-    }
-
     #[cfg(feature = "gecko")]
     fn maybe_resolve_starting_style(
         &self,
@@ -475,19 +444,12 @@ trait PrivateMatchMethods: TElement {
         context: &mut StyleContext<Self>,
         old_styles: &mut ElementStyles,
         new_styles: &mut ResolvedElementStyles,
-        restyle_hint: RestyleHint,
         important_rules_changed: bool,
     ) {
         use crate::context::UpdateAnimationsTasks;
 
         let old_values = &old_styles.primary;
-        if context.shared.traversal_flags.for_animation_only() {
-            self.handle_display_change_for_smil_if_needed(
-                context,
-                old_values.as_deref(),
-                new_styles.primary_style(),
-                restyle_hint,
-            );
+        if context.shared.traversal_flags.for_animation_only() && old_values.is_some() {
             return;
         }
 
@@ -570,7 +532,6 @@ trait PrivateMatchMethods: TElement {
         context: &mut StyleContext<Self>,
         old_styles: &mut ElementStyles,
         new_resolved_styles: &mut ResolvedElementStyles,
-        _restyle_hint: RestyleHint,
         _important_rules_changed: bool,
     ) {
         use crate::animation::AnimationSetKey;
@@ -977,7 +938,6 @@ pub trait MatchMethods: TElement {
             context,
             &mut data.styles,
             &mut new_styles,
-            data.hint,
             important_rules_changed,
         );
 

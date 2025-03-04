@@ -217,17 +217,6 @@ pub trait DomTraversal<E: TElement>: Sync {
             el, traversal_flags, data
         );
 
-        // In case of animation-only traversal we need to traverse the element if the element has
-        // animation only dirty descendants bit, animation-only restyle hint.
-        if traversal_flags.for_animation_only() {
-            return data.map_or(false, |d| d.has_styles()) &&
-                (el.has_animation_only_dirty_descendants() ||
-                    data.as_ref()
-                        .unwrap()
-                        .hint
-                        .has_animation_hint_or_recascade());
-        }
-
         // Non-incremental layout visits every node.
         if is_servo_nonincremental_layout() {
             return true;
@@ -238,6 +227,13 @@ pub trait DomTraversal<E: TElement>: Sync {
             Some(d) if d.has_styles() => d,
             _ => return true,
         };
+
+        if traversal_flags.for_animation_only() {
+            // In case of animation-only traversal we need to traverse the element if the element
+            // has animation only dirty descendants bit, or animation-only restyle hint.
+            return el.has_animation_only_dirty_descendants() ||
+                   data.hint.has_animation_hint_or_recascade();
+        }
 
         // If the dirty descendants bit is set, we need to traverse no matter
         // what. Skip examining the ElementData.
@@ -577,9 +573,8 @@ where
     let new_styles = match kind {
         MatchAndCascade => {
             debug_assert!(
-                !context.shared.traversal_flags.for_animation_only(),
-                "MatchAndCascade shouldn't be processed during \
-                 animation-only traversal"
+                !context.shared.traversal_flags.for_animation_only() || !data.has_styles(),
+                "MatchAndCascade shouldn't normally be processed during animation-only traversal"
             );
             // Ensure the bloom filter is up to date.
             context

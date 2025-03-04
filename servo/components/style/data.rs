@@ -375,14 +375,14 @@ impl ElementData {
     /// Returns the kind of restyling that we're going to need to do on this
     /// element, based of the stored restyle hint.
     pub fn restyle_kind(&self, shared_context: &SharedStyleContext) -> Option<RestyleKind> {
-        if shared_context.traversal_flags.for_animation_only() {
-            return self.restyle_kind_for_animation(shared_context);
-        }
-
         let style = match self.styles.primary {
             Some(ref s) => s,
             None => return Some(RestyleKind::MatchAndCascade),
         };
+
+        if shared_context.traversal_flags.for_animation_only() {
+            return self.restyle_kind_for_animation(shared_context);
+        }
 
         let hint = self.hint;
         if hint.is_empty() {
@@ -423,10 +423,7 @@ impl ElementData {
         shared_context: &SharedStyleContext,
     ) -> Option<RestyleKind> {
         debug_assert!(shared_context.traversal_flags.for_animation_only());
-        debug_assert!(
-            self.has_styles(),
-            "animation traversal doesn't care about unstyled elements"
-        );
+        debug_assert!(self.has_styles());
 
         // FIXME: We should ideally restyle here, but it is a hack to work around our weird
         // animation-only traversal stuff: If we're display: none and the rules we could
@@ -442,9 +439,8 @@ impl ElementData {
         }
 
         let style = self.styles.primary();
-        // Return either CascadeWithReplacements or CascadeOnly in case of
-        // animation-only restyle. I.e. animation-only restyle never does
-        // selector matching.
+        // Return either CascadeWithReplacements or CascadeOnly in case of animation-only restyle.
+        // I.e. animation-only restyle never does selector matching.
         if hint.has_animation_hint() {
             return Some(RestyleKind::CascadeWithReplacements(
                 hint & RestyleHint::for_animations(),
@@ -464,8 +460,8 @@ impl ElementData {
 
     /// Drops any restyle state from the element.
     ///
-    /// FIXME(bholley): The only caller of this should probably just assert that
-    /// the hint is empty and call clear_flags_and_damage().
+    /// FIXME(bholley): The only caller of this should probably just assert that the hint is empty
+    /// and call clear_flags_and_damage().
     #[inline]
     pub fn clear_restyle_state(&mut self) {
         self.hint = RestyleHint::empty();
