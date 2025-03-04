@@ -3,26 +3,22 @@
 
 "use strict";
 
-const { actionTypes: at } = ChromeUtils.importESModule(
-  "resource://newtab/common/Actions.mjs"
-);
-
 ChromeUtils.defineESModuleGetters(this, {
+  actionTypes: "resource://newtab/common/Actions.mjs",
+  BOOKMARKS_RESTORE_SUCCESS_EVENT:
+    "resource://newtab/lib/HighlightsFeed.sys.mjs",
+  BOOKMARKS_RESTORE_FAILED_EVENT:
+    "resource://newtab/lib/HighlightsFeed.sys.mjs",
   FilterAdult: "resource:///modules/FilterAdult.sys.mjs",
+  HighlightsFeed: "resource://newtab/lib/HighlightsFeed.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
+  sinon: "resource://testing-common/Sinon.sys.mjs",
   Screenshots: "resource://newtab/lib/Screenshots.sys.mjs",
   SectionsManager: "resource://newtab/lib/SectionsManager.sys.mjs",
-  sinon: "resource://testing-common/Sinon.sys.mjs",
+  SECTION_ID: "resource://newtab/lib/HighlightsFeed.sys.mjs",
+  SYNC_BOOKMARKS_FINISHED_EVENT: "resource://newtab/lib/HighlightsFeed.sys.mjs",
 });
-
-const {
-  HighlightsFeed,
-  SYNC_BOOKMARKS_FINISHED_EVENT,
-  BOOKMARKS_RESTORE_SUCCESS_EVENT,
-  BOOKMARKS_RESTORE_FAILED_EVENT,
-  SECTION_ID,
-} = ChromeUtils.importESModule("resource://newtab/lib/HighlightsFeed.sys.mjs");
 
 const FAKE_LINKS = new Array(20)
   .fill(null)
@@ -134,7 +130,7 @@ add_task(function test_init_action() {
   sandbox.stub(feed, "fetchHighlights");
   sandbox.stub(feed.downloadsManager, "init");
 
-  feed.onAction({ type: at.INIT });
+  feed.onAction({ type: actionTypes.INIT });
 
   info("HighlightsFeed.onAction(INIT) should add a sync observer");
   Assert.equal(
@@ -1162,7 +1158,7 @@ add_task(async function test_uninit_disable_section() {
   feed.init();
 
   sandbox.stub(SectionsManager, "disableSection");
-  feed.onAction({ type: at.UNINIT });
+  feed.onAction({ type: actionTypes.UNINIT });
   Assert.ok(
     SectionsManager.disableSection.calledOnce,
     "SectionsManager.disableSection called"
@@ -1178,7 +1174,7 @@ add_task(async function test_uninit_remove_expiration_filter() {
   feed.init();
 
   sandbox.stub(PageThumbs, "removeExpirationFilter");
-  feed.onAction({ type: at.UNINIT });
+  feed.onAction({ type: actionTypes.UNINIT });
   Assert.ok(
     PageThumbs.removeExpirationFilter.calledOnce,
     "PageThumbs.removeExpirationFilter called"
@@ -1197,7 +1193,7 @@ add_task(async function test_onAction_relay_to_DownloadsManager_onAction() {
   sandbox.stub(feed.downloadsManager, "onAction");
 
   let action = {
-    type: at.COPY_DOWNLOAD_LINK,
+    type: actionTypes.COPY_DOWNLOAD_LINK,
     data: { url: "foo.png" },
     _target: {},
   };
@@ -1219,7 +1215,7 @@ add_task(async function test_onAction_fetch_highlights_on_SYSTEM_TICK() {
   await feed.fetchHighlights();
 
   sandbox.spy(feed, "fetchHighlights");
-  feed.onAction({ type: at.SYSTEM_TICK });
+  feed.onAction({ type: actionTypes.SYSTEM_TICK });
 
   Assert.ok(
     feed.fetchHighlights.calledOnce,
@@ -1245,7 +1241,7 @@ add_task(
 
     sandbox.spy(feed, "fetchHighlights");
     feed.onAction({
-      type: at.PREF_CHANGED,
+      type: actionTypes.PREF_CHANGED,
       data: { name: "section.highlights.includeBookmarks" },
     });
 
@@ -1269,7 +1265,7 @@ add_task(
 
     sandbox.spy(feed, "fetchHighlights");
     feed.onAction({
-      type: at.PREF_CHANGED,
+      type: actionTypes.PREF_CHANGED,
       data: { name: "section.topstories.pocketCta" },
     });
 
@@ -1323,7 +1319,7 @@ add_task(async function test_onAction_fetch_highlights_on_actions() {
     sandbox.spy(feed, "fetchHighlights");
     sandbox.stub(feed.linksCache, "expire");
 
-    feed.onAction({ type: at[action.actionType] });
+    feed.onAction({ type: actionTypes[action.actionType] });
     Assert.ok(
       feed.fetchHighlights.calledOnce,
       "HighlightsFeed.fetchHighlights called"
@@ -1356,7 +1352,7 @@ add_task(
     await feed.fetchHighlights();
     sandbox.spy(feed, "fetchHighlights");
 
-    feed.onAction({ type: at.TOP_SITES_UPDATED });
+    feed.onAction({ type: actionTypes.TOP_SITES_UPDATED });
     Assert.ok(
       feed.fetchHighlights.calledOnce,
       "HighlightsFeed.fetchHighlights called"
@@ -1386,7 +1382,7 @@ add_task(
     sandbox.spy(feed, "fetchHighlights");
 
     feed.onAction({
-      type: at.POCKET_LINK_DELETED_OR_ARCHIVED,
+      type: actionTypes.POCKET_LINK_DELETED_OR_ARCHIVED,
       data: { pocket_id: 12345 },
     });
     Assert.ok(

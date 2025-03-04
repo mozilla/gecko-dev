@@ -9,9 +9,6 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
  * Stream Redux store into an HTML document and script.
  */
 
-const { AddonTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/AddonTestUtils.sys.mjs"
-);
 const { SearchTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/SearchTestUtils.sys.mjs"
 );
@@ -21,21 +18,17 @@ const { TestUtils } = ChromeUtils.importESModule(
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
-const { DiscoveryStreamFeed } = ChromeUtils.importESModule(
-  "resource://newtab/lib/DiscoveryStreamFeed.sys.mjs"
-);
 
 SearchTestUtils.init(this);
 
 const { AboutNewTab } = ChromeUtils.importESModule(
   "resource:///modules/AboutNewTab.sys.mjs"
 );
-const { PREFS_CONFIG } = ChromeUtils.importESModule(
-  "resource://newtab/lib/ActivityStream.sys.mjs"
-);
 
 ChromeUtils.defineESModuleGetters(this, {
   BasePromiseWorker: "resource://gre/modules/PromiseWorker.sys.mjs",
+  DiscoveryStreamFeed: "resource://newtab/lib/DiscoveryStreamFeed.sys.mjs",
+  PREFS_CONFIG: "resource://newtab/lib/ActivityStream.sys.mjs",
 });
 
 const CACHE_WORKER_URL = "resource://newtab/lib/cache.worker.js";
@@ -95,7 +88,6 @@ add_setup(async function () {
       locale: "en-US",
     })
   );
-
   const sandbox = sinon.createSandbox();
   sandbox
     .stub(DiscoveryStreamFeed.prototype, "generateFeedUrl")

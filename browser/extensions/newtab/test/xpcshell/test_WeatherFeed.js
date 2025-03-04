@@ -3,17 +3,12 @@
 
 "use strict";
 
-const { WeatherFeed } = ChromeUtils.importESModule(
-  "resource://newtab/lib/WeatherFeed.sys.mjs"
-);
-
-const { actionCreators: ac, actionTypes: at } = ChromeUtils.importESModule(
-  "resource://newtab/common/Actions.mjs"
-);
-
 ChromeUtils.defineESModuleGetters(this, {
+  actionCreators: "resource://newtab/common/Actions.mjs",
+  actionTypes: "resource://newtab/common/Actions.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
   MerinoTestUtils: "resource://testing-common/MerinoTestUtils.sys.mjs",
+  WeatherFeed: "resource://newtab/lib/WeatherFeed.sys.mjs",
 });
 
 const { WEATHER_SUGGESTION } = MerinoTestUtils;
@@ -91,14 +86,14 @@ add_task(async function test_onAction_INIT() {
   info("WeatherFeed.onAction INIT should initialize Weather");
 
   await feed.onAction({
-    type: at.INIT,
+    type: actionTypes.INIT,
   });
 
   Assert.ok(feed.store.dispatch.calledOnce);
   Assert.ok(
     feed.store.dispatch.calledWith(
-      ac.BroadcastToContent({
-        type: at.WEATHER_UPDATE,
+      actionCreators.BroadcastToContent({
+        type: actionTypes.WEATHER_UPDATE,
         data: {
           suggestions: [WEATHER_SUGGESTION],
           lastUpdated: dateNowTestValue,

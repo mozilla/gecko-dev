@@ -3,17 +3,12 @@
 
 "use strict";
 
-const { WallpaperFeed } = ChromeUtils.importESModule(
-  "resource://newtab/lib/WallpaperFeed.sys.mjs"
-);
-
-const { actionCreators: ac, actionTypes: at } = ChromeUtils.importESModule(
-  "resource://newtab/common/Actions.mjs"
-);
-
 ChromeUtils.defineESModuleGetters(this, {
+  actionCreators: "resource://newtab/common/Actions.mjs",
+  actionTypes: "resource://newtab/common/Actions.mjs",
   Utils: "resource://services-settings/Utils.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
+  WallpaperFeed: "resource://newtab/lib/WallpaperFeed.sys.mjs",
 });
 
 const PREF_WALLPAPERS_ENABLED =
@@ -55,14 +50,14 @@ add_task(async function test_onAction_INIT() {
   info("WallpaperFeed.onAction INIT should initialize wallpapers");
 
   await feed.onAction({
-    type: at.INIT,
+    type: actionTypes.INIT,
   });
 
   Assert.ok(feed.store.dispatch.calledThrice);
   Assert.ok(
     feed.store.dispatch.secondCall.calledWith(
-      ac.BroadcastToContent({
-        type: at.WALLPAPERS_SET,
+      actionCreators.BroadcastToContent({
+        type: actionTypes.WALLPAPERS_SET,
         data: [
           {
             ...attachment,
@@ -89,7 +84,7 @@ add_task(async function test_onAction_PREF_CHANGED() {
   info("WallpaperFeed.onAction PREF_CHANGED should call wallpaperSetup");
 
   feed.onAction({
-    type: at.PREF_CHANGED,
+    type: actionTypes.PREF_CHANGED,
     data: { name: "newtabWallpapers.enabled" },
   });
 

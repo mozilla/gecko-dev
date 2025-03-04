@@ -3,14 +3,11 @@
 
 "use strict";
 
-const { TopSitesFeed, ContileIntegration, DEFAULT_TOP_SITES } =
-  ChromeUtils.importESModule("resource://newtab/lib/TopSitesFeed.sys.mjs");
-
-const { actionCreators: ac, actionTypes: at } = ChromeUtils.importESModule(
-  "resource://newtab/common/Actions.mjs"
-);
-
 ChromeUtils.defineESModuleGetters(this, {
+  actionCreators: "resource://newtab/common/Actions.mjs",
+  actionTypes: "resource://newtab/common/Actions.mjs",
+  ContileIntegration: "resource://newtab/lib/TopSitesFeed.sys.mjs",
+  DEFAULT_TOP_SITES: "resource://newtab/lib/TopSitesFeed.sys.mjs",
   FilterAdult: "resource:///modules/FilterAdult.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
@@ -21,6 +18,7 @@ ChromeUtils.defineESModuleGetters(this, {
   SearchService: "resource://gre/modules/SearchService.sys.mjs",
   TOP_SITES_DEFAULT_ROWS: "resource:///modules/topsites/constants.mjs",
   TOP_SITES_MAX_SITES_PER_ROW: "resource:///modules/topsites/constants.mjs",
+  TopSitesFeed: "resource://newtab/lib/TopSitesFeed.sys.mjs",
 });
 
 const FAKE_FAVICON = "data987";
@@ -147,7 +145,7 @@ add_task(async function test_refreshDefaults() {
 
   info("refreshDefaults should add defaults on PREFS_INITIAL_VALUES");
   feed.onAction({
-    type: at.PREFS_INITIAL_VALUES,
+    type: actionTypes.PREFS_INITIAL_VALUES,
     data: { "default.sites": "https://foo.com" },
   });
 
@@ -162,7 +160,7 @@ add_task(async function test_refreshDefaults() {
 
   info("refreshDefaults should add defaults on default.sites PREF_CHANGED");
   feed.onAction({
-    type: at.PREF_CHANGED,
+    type: actionTypes.PREF_CHANGED,
     data: { name: "default.sites", value: "https://foo.com" },
   });
 
@@ -177,7 +175,10 @@ add_task(async function test_refreshDefaults() {
 
   info("refreshDefaults should refresh on topSiteRows PREF_CHANGED");
   let refreshStub = sandbox.stub(feed, "refresh");
-  feed.onAction({ type: at.PREF_CHANGED, data: { name: "topSitesRows" } });
+  feed.onAction({
+    type: actionTypes.PREF_CHANGED,
+    data: { name: "topSitesRows" },
+  });
   Assert.ok(feed.refresh.calledOnce, "refresh called");
   refreshStub.restore();
 
@@ -1068,8 +1069,8 @@ add_task(async function test_refresh() {
   Assert.ok(feed.store.dispatch.calledOnce, "dispatch called once");
   Assert.ok(
     feed.store.dispatch.calledWithExactly(
-      ac.BroadcastToContent({
-        type: at.TOP_SITES_UPDATED,
+      actionCreators.BroadcastToContent({
+        type: actionTypes.TOP_SITES_UPDATED,
         data: { links: [] },
       })
     )
@@ -1100,7 +1101,7 @@ add_task(async function test_refresh_dispatch() {
   Assert.ok(feed.store.dispatch.calledOnce, "Store.dispatch called once");
   Assert.equal(
     feed.store.dispatch.firstCall.args[0].type,
-    at.TOP_SITES_UPDATED
+    actionTypes.TOP_SITES_UPDATED
   );
   Assert.deepEqual(feed.store.dispatch.firstCall.args[0].data.links, reference);
 
@@ -1158,8 +1159,8 @@ add_task(async function test_refresh_to_preloaded() {
   Assert.ok(feed.store.dispatch.calledOnce, "Store.dispatch called once");
   Assert.ok(
     feed.store.dispatch.calledWithExactly(
-      ac.AlsoToPreloaded({
-        type: at.TOP_SITES_UPDATED,
+      actionCreators.AlsoToPreloaded({
+        type: actionTypes.TOP_SITES_UPDATED,
         data: { links: [] },
       })
     )
@@ -1241,8 +1242,8 @@ add_task(async function test_allocatePositions() {
   Assert.ok(feed.store.dispatch.calledOnce, "feed.store.dispatch called once");
   Assert.ok(
     feed.store.dispatch.calledWithExactly(
-      ac.OnlyToMain({
-        type: at.SOV_UPDATED,
+      actionCreators.OnlyToMain({
+        type: actionTypes.SOV_UPDATED,
         data: {
           ready: true,
           positions: [
@@ -1265,8 +1266,8 @@ add_task(async function test_allocatePositions() {
   );
   Assert.ok(
     feed.store.dispatch.calledWithExactly(
-      ac.OnlyToMain({
-        type: at.SOV_UPDATED,
+      actionCreators.OnlyToMain({
+        type: actionTypes.SOV_UPDATED,
         data: {
           ready: true,
           positions: [
@@ -1294,10 +1295,10 @@ add_task(async function test_getScreenshotPreview() {
   Assert.ok(feed.store.dispatch.calledOnce);
   Assert.ok(
     feed.store.dispatch.calledWithExactly(
-      ac.OnlyToOneContent(
+      actionCreators.OnlyToOneContent(
         {
           data: { preview: FAKE_SCREENSHOT, url: "custom" },
-          type: at.PREVIEW_RESPONSE,
+          type: actionTypes.PREVIEW_RESPONSE,
         },
         1234
       )
@@ -1321,10 +1322,10 @@ add_task(async function test_getScreenshotPreview() {
   Assert.ok(feed.store.dispatch.calledOnce);
   Assert.ok(
     feed.store.dispatch.calledWithExactly(
-      ac.OnlyToOneContent(
+      actionCreators.OnlyToOneContent(
         {
           data: { preview: "", url: "custom" },
-          type: at.PREVIEW_RESPONSE,
+          type: actionTypes.PREVIEW_RESPONSE,
         },
         1234
       )
@@ -1346,7 +1347,7 @@ add_task(async function test_onAction_part_1() {
   sandbox.stub(feed, "getScreenshotPreview");
 
   feed.onAction({
-    type: at.PREVIEW_REQUEST,
+    type: actionTypes.PREVIEW_REQUEST,
     data: { url: "foo" },
     meta: { fromTarget: 1234 },
   });
@@ -1359,7 +1360,7 @@ add_task(async function test_onAction_part_1() {
 
   info("TopSitesFeed.onAction should refresh on SYSTEM_TICK");
   sandbox.stub(feed, "refresh");
-  feed.onAction({ type: at.SYSTEM_TICK });
+  feed.onAction({ type: actionTypes.SYSTEM_TICK });
 
   Assert.ok(feed.refresh.calledOnce, "feed.refresh called once");
   Assert.ok(feed.refresh.calledWithExactly({ broadcast: false }));
@@ -1371,7 +1372,7 @@ add_task(async function test_onAction_part_1() {
   sandbox.spy(feed, "pin");
 
   let pinAction = {
-    type: at.TOP_SITES_PIN,
+    type: actionTypes.TOP_SITES_PIN,
     data: { site: { url: "foo.com" }, index: 7 },
   };
   feed.onAction(pinAction);
@@ -1396,7 +1397,7 @@ add_task(async function test_onAction_part_1() {
   );
   sandbox.stub(NewTabUtils.blockedLinks, "unblock");
   pinAction = {
-    type: at.TOP_SITES_PIN,
+    type: actionTypes.TOP_SITES_PIN,
     data: { site: { url: "foo.com" }, index: -1 },
   };
   feed.onAction(pinAction);
@@ -1409,7 +1410,7 @@ add_task(async function test_onAction_part_1() {
   info("TopSitesFeed.onAction should call insert on TOP_SITES_INSERT");
   sandbox.stub(feed, "insert");
   let addAction = {
-    type: at.TOP_SITES_INSERT,
+    type: actionTypes.TOP_SITES_INSERT,
     data: { site: { url: "foo.com" } },
   };
 
@@ -1437,7 +1438,7 @@ add_task(async function test_onAction_part_1() {
   sandbox.stub(NewTabUtils.pinnedLinks, "unpin");
 
   let unpinAction = {
-    type: at.TOP_SITES_UNPIN,
+    type: actionTypes.TOP_SITES_UNPIN,
     data: { site: { url: "foo.com" } },
   };
   feed.onAction(unpinAction);
@@ -1460,7 +1461,7 @@ add_task(async function test_onAction_part_2() {
 
   let feed = getTopSitesFeedForTest(sandbox);
   sandbox.stub(feed, "refresh");
-  feed.onAction({ type: at.PLACES_HISTORY_CLEARED });
+  feed.onAction({ type: actionTypes.PLACES_HISTORY_CLEARED });
 
   Assert.ok(feed.refresh.calledOnce, "TopSitesFeed.refresh called once");
   Assert.ok(feed.refresh.calledWithExactly({ broadcast: true }));
@@ -1471,22 +1472,22 @@ add_task(async function test_onAction_part_2() {
     "TopSitesFeed.onAction should call refresh without a target " +
       "if we remove a Topsite from history"
   );
-  feed.onAction({ type: at.PLACES_LINKS_DELETED });
+  feed.onAction({ type: actionTypes.PLACES_LINKS_DELETED });
 
   Assert.ok(feed.refresh.calledOnce, "TopSitesFeed.refresh called once");
   Assert.ok(feed.refresh.calledWithExactly({ broadcast: true }));
 
   info("TopSitesFeed.onAction should call init on INIT action");
-  feed.onAction({ type: at.PLACES_LINKS_DELETED });
+  feed.onAction({ type: actionTypes.PLACES_LINKS_DELETED });
   sandbox.stub(feed, "init");
-  feed.onAction({ type: at.INIT });
+  feed.onAction({ type: actionTypes.INIT });
   Assert.ok(feed.init.calledOnce, "TopSitesFeed.init called once");
 
   info(
     "TopSitesFeed.onAction should call refresh on PLACES_LINK_BLOCKED action"
   );
   feed.refresh.resetHistory();
-  await feed.onAction({ type: at.PLACES_LINK_BLOCKED });
+  await feed.onAction({ type: actionTypes.PLACES_LINK_BLOCKED });
   Assert.ok(feed.refresh.calledOnce, "TopSitesFeed.refresh called once");
   Assert.ok(feed.refresh.calledWithExactly({ broadcast: true }));
 
@@ -1494,7 +1495,7 @@ add_task(async function test_onAction_part_2() {
     "TopSitesFeed.onAction should call refresh on PLACES_LINKS_CHANGED action"
   );
   feed.refresh.resetHistory();
-  await feed.onAction({ type: at.PLACES_LINKS_CHANGED });
+  await feed.onAction({ type: actionTypes.PLACES_LINKS_CHANGED });
   Assert.ok(feed.refresh.calledOnce, "TopSitesFeed.refresh called once");
   Assert.ok(feed.refresh.calledWithExactly({ broadcast: false }));
 
@@ -1505,7 +1506,7 @@ add_task(async function test_onAction_part_2() {
   sandbox.stub(NewTabUtils.pinnedLinks, "pin");
 
   let addAction = {
-    type: at.TOP_SITES_INSERT,
+    type: actionTypes.TOP_SITES_INSERT,
     data: { site: { url: "foo.bar", label: "foo" } },
   };
   feed.onAction(addAction);
@@ -1521,7 +1522,7 @@ add_task(async function test_onAction_part_2() {
   );
   NewTabUtils.pinnedLinks.pin.resetHistory();
   let dropAction = {
-    type: at.TOP_SITES_INSERT,
+    type: actionTypes.TOP_SITES_INSERT,
     data: { site: { url: "foo.bar", label: "foo" }, index: 3 },
   };
   feed.onAction(dropAction);
@@ -1566,7 +1567,7 @@ add_task(async function test_onAction_part_3() {
     },
   ];
   await feed.onAction({
-    type: at.UPDATE_PINNED_SEARCH_SHORTCUTS,
+    type: actionTypes.UPDATE_PINNED_SEARCH_SHORTCUTS,
     data: { addedShortcuts },
   });
   Assert.ok(
@@ -1580,7 +1581,7 @@ add_task(async function test_onAction_part_3() {
   );
   sandbox.spy(feed._contile, "refresh");
   let prefChangeAction = {
-    type: at.PREF_CHANGED,
+    type: actionTypes.PREF_CHANGED,
     data: { name: SHOW_SPONSORED_PREF },
   };
   sandbox.stub(NimbusFeatures.newtab, "getVariable").returns(true);
@@ -1615,7 +1616,7 @@ add_task(async function test_onAction_part_3() {
   );
   Services.prefs.setIntPref(CONTILE_CACHE_VALID_FOR_SECONDS_PREF, 15 * 60);
   prefChangeAction = {
-    type: at.PREF_CHANGED,
+    type: actionTypes.PREF_CHANGED,
     data: { name: SHOW_SPONSORED_PREF, value: false },
   };
   NimbusFeatures.newtab.getVariable.returns(true);
@@ -1651,10 +1652,10 @@ add_task(async function test_insert_part_1() {
     Assert.ok(feed.store.dispatch.calledOnce);
     Assert.ok(
       feed.store.dispatch.calledWithExactly(
-        ac.OnlyToOneContent(
+        actionCreators.OnlyToOneContent(
           {
             data: { preview: "", url: "custom" },
-            type: at.PREVIEW_RESPONSE,
+            type: actionTypes.PREVIEW_RESPONSE,
           },
           1234
         )
@@ -1781,7 +1782,7 @@ add_task(async function test_insert_part_2() {
     let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     sandbox.stub(feed, "refresh");
     let addAction = {
-      type: at.TOP_SITES_INSERT,
+      type: actionTypes.TOP_SITES_INSERT,
       data: { site: { url: "foo.com" } },
     };
 
@@ -2145,7 +2146,7 @@ add_task(async function test_pin_part_3() {
     let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     sandbox.stub(feed, "refresh");
     let pinExistingAction = {
-      type: at.TOP_SITES_PIN,
+      type: actionTypes.TOP_SITES_PIN,
       data: { site: FAKE_LINKS[4], index: 4 },
     };
 
@@ -2182,9 +2183,12 @@ add_task(async function test_integration() {
     NewTabUtils.pinnedLinks.links.push(link);
   });
 
-  await forDispatch({ type: at.TOP_SITES_INSERT, data: { site: { url } } });
+  await forDispatch({
+    type: actionTypes.TOP_SITES_INSERT,
+    data: { site: { url } },
+  });
   NewTabUtils.pinnedLinks.links.pop();
-  await forDispatch({ type: at.PLACES_LINK_BLOCKED });
+  await forDispatch({ type: actionTypes.PLACES_LINK_BLOCKED });
 
   Assert.ok(
     feed.store.dispatch.calledTwice,
@@ -2278,7 +2282,7 @@ add_task(async function test_improvesearch_noDefaultSearchTile_experiment() {
 
     sandbox.stub(feed, "_currentSearchHostname").get(() => "amazon");
     feed.onAction({
-      type: at.PREFS_INITIAL_VALUES,
+      type: actionTypes.PREFS_INITIAL_VALUES,
       data: { "default.sites": "google.com,amazon.com" },
     });
     gGetTopSitesStub.resolves([{ url: "https://foo.com" }]);
@@ -2356,13 +2360,13 @@ add_task(
       sandbox.stub(feed, "refresh");
 
       feed.onAction({
-        type: at.PREF_CHANGED,
+        type: actionTypes.PREF_CHANGED,
         data: { name: NO_DEFAULT_SEARCH_TILE_PREF, value: true },
       });
       Assert.ok(feed.refresh.calledOnce, "feed.refresh was called once");
 
       feed.onAction({
-        type: at.PREF_CHANGED,
+        type: actionTypes.PREF_CHANGED,
         data: { name: NO_DEFAULT_SEARCH_TILE_PREF, value: false },
       });
       Assert.ok(feed.refresh.calledTwice, "feed.refresh was called twice");
@@ -2403,7 +2407,7 @@ add_task(async function test_improvesearch_topSitesSearchShortcuts() {
 
     // turn the experiment on
     feed.onAction({
-      type: at.PREF_CHANGED,
+      type: actionTypes.PREF_CHANGED,
       data: { name: SEARCH_SHORTCUTS_EXPERIMENT_PREF, value: true },
     });
 
@@ -2467,7 +2471,7 @@ add_task(async function test_improvesearch_topSitesSearchShortcuts() {
     };
     gGetTopSitesStub.resolves([{ url: "https://foo.com" }]);
     feed.onAction({
-      type: at.PREFS_INITIAL_VALUES,
+      type: actionTypes.PREFS_INITIAL_VALUES,
       data: { "default.sites": "google.com,amazon.com" },
     });
 

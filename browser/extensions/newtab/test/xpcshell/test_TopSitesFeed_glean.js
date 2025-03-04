@@ -3,14 +3,12 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
-const { TopSitesFeed, ContileIntegration } = ChromeUtils.importESModule(
-  "resource://newtab/lib/TopSitesFeed.sys.mjs"
-);
-
 ChromeUtils.defineESModuleGetters(this, {
+  ContileIntegration: "resource://newtab/lib/TopSitesFeed.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
   SearchService: "resource://gre/modules/SearchService.sys.mjs",
+  TopSitesFeed: "resource://newtab/lib/TopSitesFeed.sys.mjs",
 });
 
 const SHOW_SPONSORED_PREF = "showSponsoredTopSites";

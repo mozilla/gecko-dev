@@ -1,5 +1,6 @@
 [DEFAULT]
 firefox-appdir = "browser"
+head = "head.js"
 skip-if = ["os == 'android'"] # bug 1730213
 prefs = [
   "browser.startup.homepage.abouthome_cache.enabled=true",

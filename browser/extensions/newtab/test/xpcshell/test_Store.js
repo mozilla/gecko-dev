@@ -3,15 +3,12 @@
 
 "use strict";
 
-const { Store } = ChromeUtils.importESModule(
-  "resource://newtab/lib/Store.sys.mjs"
-);
-const { ActivityStreamMessageChannel } = ChromeUtils.importESModule(
-  "resource://newtab/lib/ActivityStreamMessageChannel.sys.mjs"
-);
-const { sinon } = ChromeUtils.importESModule(
-  "resource://testing-common/Sinon.sys.mjs"
-);
+ChromeUtils.defineESModuleGetters(this, {
+  ActivityStreamMessageChannel:
+    "resource://newtab/lib/ActivityStreamMessageChannel.sys.mjs",
+  sinon: "resource://testing-common/Sinon.sys.mjs",
+  Store: "resource://newtab/lib/Store.sys.mjs",
+});
 
 // This creates the Redux top-level object.
 /* globals Redux */

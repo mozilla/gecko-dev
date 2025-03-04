@@ -3,15 +3,10 @@
 
 "use strict";
 
-const { AdsFeed } = ChromeUtils.importESModule(
-  "resource://newtab/lib/AdsFeed.sys.mjs"
-);
-
-const { actionCreators: ac, actionTypes: at } = ChromeUtils.importESModule(
-  "resource://newtab/common/Actions.mjs"
-);
-
 ChromeUtils.defineESModuleGetters(this, {
+  AdsFeed: "resource://newtab/lib/AdsFeed.sys.mjs",
+  actionCreators: "resource://newtab/common/Actions.mjs",
+  actionTypes: "resource://newtab/common/Actions.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
 });
 
@@ -163,13 +158,13 @@ add_task(async function test_onAction_INIT_tiles() {
   info("AdsFeed.onAction INIT should initialize Ads");
 
   await feed.onAction({
-    type: at.INIT,
+    type: actionTypes.INIT,
   });
 
   Assert.ok(feed.store.dispatch.calledOnce);
   Assert.ok(
     feed.store.dispatch.calledWith(
-      ac.BroadcastToContent({
+      actionCreators.BroadcastToContent({
         type: "ADS_UPDATE_DATA",
         data: {
           tiles: mockedTileData,
