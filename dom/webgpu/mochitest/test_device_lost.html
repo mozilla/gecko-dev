@@ -41,28 +41,24 @@
           const device = await adapter.requestDevice();
           ok(device !== undefined, "device !== undefined");
 
-          lostPromise = device.lost;
+          // Create a new promise that will resolve when the original
+          // lost promise resolves or rejects, either of which will be
+          // noted as an error.
+          lostPromise = device.lost.then(
+            resolve => {
+              ok(false, "device.lost should never resolve");
+              resolve("unexpected resolve");
+            },
+            reject => {
+              ok(false, "device.lost should never reject");
+              reject("unexpected reject");
+            }
+          );
         }
 
-        SimpleTest.requestFlakyTimeout(
-          "Racing against promise that should never resolve."
-        );
-        const TIMEOUT_MS = 5000;
-        let timeoutPromise = new Promise(resolve => {
-          let timeoutValue = { reason: "timeout", message: "" };
-          // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
-          setTimeout(() => resolve(timeoutValue), TIMEOUT_MS);
-        });
-
-        const firstPromise = await Promise.race([lostPromise, timeoutPromise]);
-        is(
-          firstPromise.reason,
-          "timeout",
-          "timeoutPromise should return before lostPromise."
-        );
-        // Check the message so we output some indication of what incorrectly
-        // resolved the lost promise.
-        is(firstPromise.message, "", "the message should be blank.");
+        // Give a chance (one event cycle) for the lostPromise to resolve or
+        // reject, but don't wait for any specific amount of time.
+        await new Promise(SimpleTest.executeSoon);
       };
 
       SimpleTest.waitForExplicitFinish();
