@@ -816,9 +816,14 @@ void NotificationController::WillRefresh(mozilla::TimeStamp aTime) {
         0, UINT32_MAX, nsIFrame::TextOffsetType::OffsetsInContentText,
         nsIFrame::TrailingWhitespace::DontTrim);
 
-    // Remove text accessible if rendered text is empty.
     if (textAcc) {
-      if (text.mString.IsEmpty()) {
+      // Remove the TextLeafAccessible if:
+      // 1. The rendered text is empty; or
+      // 2. The text is just a space, but its layout frame has a width of 0,
+      // so it isn't visible. This can happen if there is whitespace before an
+      // invisible element at the end of a block.
+      if (text.mString.IsEmpty() ||
+          (text.mString.EqualsLiteral(" ") && textFrame->GetRect().IsEmpty())) {
 #ifdef A11Y_LOG
         if (logging::IsEnabled(logging::eTree | logging::eText)) {
           logging::MsgBegin("TREE", "text node lost its content; doc: %p",

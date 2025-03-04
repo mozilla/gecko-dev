@@ -67,3 +67,44 @@ addAccessibleTask(
   },
   { iframe: true, remoteIframe: true }
 );
+
+/**
+ * Test whitespace before a hidden element at the end of a block.
+ */
+addAccessibleTask(
+  `<div id="container"><span>a</span> <span id="b" hidden>b</span></div>`,
+  async function testBeforeHiddenElementAtEnd(browser, docAcc) {
+    const container = findAccessibleChildByID(docAcc, "container");
+    testAccessibleTree(container, {
+      role: ROLE_SECTION,
+      children: [{ role: ROLE_TEXT_LEAF, name: "a" }],
+    });
+
+    info("Showing b");
+    let reordered = waitForEvent(EVENT_REORDER, container);
+    await invokeContentTask(browser, [], () => {
+      content.document.getElementById("b").hidden = false;
+    });
+    await reordered;
+    testAccessibleTree(container, {
+      role: ROLE_SECTION,
+      children: [
+        { role: ROLE_TEXT_LEAF, name: "a" },
+        { role: ROLE_TEXT_LEAF, name: " " },
+        { role: ROLE_TEXT_LEAF, name: "b" },
+      ],
+    });
+
+    info("Hiding b");
+    reordered = waitForEvent(EVENT_REORDER, container);
+    await invokeContentTask(browser, [], () => {
+      content.document.getElementById("b").hidden = true;
+    });
+    await reordered;
+    testAccessibleTree(container, {
+      role: ROLE_SECTION,
+      children: [{ role: ROLE_TEXT_LEAF, name: "a" }],
+    });
+  },
+  { chrome: true, topLevel: true }
+);
