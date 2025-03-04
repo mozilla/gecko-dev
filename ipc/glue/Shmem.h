@@ -13,10 +13,11 @@
 #include "base/process.h"
 #include "chrome/common/ipc_message_utils.h"
 
+#include "nsISupports.h"
 #include "nscore.h"
 #include "nsDebug.h"
 
-#include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/ipc/SharedMemoryMapping.h"
 #include "mozilla/Range.h"
 #include "mozilla/UniquePtr.h"
 
@@ -26,7 +27,7 @@
  *
  *  (1) C++ code calls, say, |parentActor->AllocShmem(size)|
 
- *  (2) IPDL-generated code creates a |mozilla::ipc::SharedMemory|
+ *  (2) IPDL-generated code creates a |mozilla::ipc::SharedMemoryMapping|
  *  wrapping the bare OS shmem primitives.  The code then adds the new
  *  SharedMemory to the set of shmem segments being managed by IPDL.
  *
@@ -36,7 +37,7 @@
  *  means is OS specific.)
  *
  *  (4a) The child receives the special IPC message, and using the
- *  |SharedMemory::Handle| it was passed, creates a |mozilla::ipc::SharedMemory|
+ *  |MutableSharedMemoryHandle| it was passed, creates a |SharedMemoryMapping|
  *  in the child process.
  *
  *  (4b) After sending the "shmem-created" IPC message, IPDL-generated
@@ -44,7 +45,7 @@
  *  caller of |parentActor->AllocShmem()|.  The |Shmem| is a "weak
  *  reference" to the underlying |SharedMemory|, which is managed by
  *  IPDL-generated code.  C++ consumers of |Shmem| can't get at the
- *  underlying |SharedMemory|.
+ *  underlying |SharedMemoryMapping|.
  *
  * If parent code wants to give access rights to the Shmem to the
  * child, it does so by sending its |Shmem| to the child, in an IPDL
@@ -62,24 +63,44 @@ template <typename P>
 struct IPDLParamTraits;
 
 class Shmem final {
-  friend struct IPDLParamTraits<mozilla::ipc::Shmem>;
-  friend class mozilla::ipc::IProtocol;
-  friend class mozilla::ipc::IToplevelProtocol;
+  friend struct IPDLParamTraits<Shmem>;
+  friend class IProtocol;
+  friend class IToplevelProtocol;
 
  public:
-  typedef int32_t id_t;
+  using id_t = int32_t;
   // Low-level wrapper around platform shmem primitives.
-  typedef mozilla::ipc::SharedMemory SharedMemory;
+  class Segment final : public SharedMemoryMapping {
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Segment);
+
+    explicit Segment(SharedMemoryMapping&& aMapping)
+        : SharedMemoryMapping(std::move(aMapping)) {}
+
+   private:
+    ~Segment() = default;
+  };
+
+  class Builder {
+   public:
+    explicit Builder(size_t aSize);
+
+    explicit operator bool() const { return mSegment && mSegment->IsValid(); }
+
+    // Prepare this to be shared with another process. Return an IPC message
+    // that contains enough information for the other process to map this
+    // segment in OpenExisting(), and the shmem.
+    std::tuple<UniquePtr<IPC::Message>, Shmem> Build(id_t aId, bool aUnsafe,
+                                                     int32_t aRoutingId);
+
+   private:
+    size_t mSize;
+    MutableSharedMemoryHandle mHandle;
+    RefPtr<Segment> mSegment;
+  };
 
   Shmem() : mSegment(nullptr), mData(nullptr), mSize(0), mId(0) {}
-
   Shmem(const Shmem& aOther) = default;
-
-  ~Shmem() {
-    // Shmem only holds a "weak ref" to the actual segment, which is
-    // owned by IPDL. So there's nothing interesting to be done here
-    forget();
-  }
+  ~Shmem() { forget(); }
 
   Shmem& operator=(const Shmem& aRhs) = default;
 
@@ -122,11 +143,11 @@ class Shmem final {
  private:
   // These shouldn't be used directly, use the IPDL interface instead.
 
-  Shmem(SharedMemory* aSegment, id_t aId, size_t aSize, bool aUnsafe);
+  Shmem(RefPtr<Segment>&& aSegment, id_t aId, size_t aSize, bool aUnsafe);
 
   id_t Id() const { return mId; }
 
-  SharedMemory* Segment() const { return mSegment; }
+  Segment* GetSegment() const { return mSegment; }
 
 #ifndef DEBUG
   void RevokeRights() {}
@@ -144,26 +165,19 @@ class Shmem final {
 #endif
   }
 
-  static already_AddRefed<Shmem::SharedMemory> Alloc(size_t aNBytes);
-
-  // Prepare this to be shared with another process. Return an IPC message that
-  // contains enough information for the other process to map this segment in
-  // OpenExisting() below.  Return a new message if successful (owned by the
-  // caller), nullptr if not.
-  UniquePtr<IPC::Message> MkCreatedMessage(int32_t routingId);
-
   // Stop sharing this with another process. Return an IPC message that
   // contains enough information for the other process to unmap this
   // segment.  Return a new message if successful (owned by the
   // caller), nullptr if not.
   UniquePtr<IPC::Message> MkDestroyedMessage(int32_t routingId);
 
-  // Return a SharedMemory instance in this process using the descriptor shared
+  // Return a Segment instance in this process using the descriptor shared
   // to us by the process that created the underlying OS shmem resource.  The
   // contents of the descriptor depend on the type of SharedMemory that was
   // passed to us.
-  static already_AddRefed<SharedMemory> OpenExisting(
-      const IPC::Message& aDescriptor, id_t* aId, bool aProtect = false);
+  static already_AddRefed<Segment> OpenExisting(const IPC::Message& aDescriptor,
+                                                id_t* aId,
+                                                bool aProtect = false);
 
   template <typename T>
   void AssertAligned() const {
@@ -176,7 +190,7 @@ class Shmem final {
   void AssertInvariants() const;
 #endif
 
-  RefPtr<SharedMemory> mSegment;
+  RefPtr<Segment> mSegment;
   void* mData;
   size_t mSize;
   id_t mId;
