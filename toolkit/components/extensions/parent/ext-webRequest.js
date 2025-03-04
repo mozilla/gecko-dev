@@ -8,7 +8,28 @@ ChromeUtils.defineESModuleGetters(this, {
   WebRequest: "resource://gre/modules/WebRequest.sys.mjs",
 });
 
-var { parseMatchPatterns } = ExtensionUtils;
+var { parseMatchPatterns, DefaultMap } = ExtensionUtils;
+
+const MAX_HANDLER_BEHAVIOR_CHANGED_CALLS_PER_10_MINUTES = 20;
+const TIME_10_MINUTES_IN_MS = 10 * 60 * 1000;
+
+// The timestamp of handlerBehaviorChanged calls which weren't rejected,
+// per extension id.
+const handlerBehaviorChangedTimeStampsMap = new DefaultMap(() => []);
+
+function clearOldTimeStamps(timestamps, now) {
+  while (timestamps.length) {
+    if (timestamps[0] < now - TIME_10_MINUTES_IN_MS) {
+      timestamps.shift();
+    } else {
+      break;
+    }
+  }
+}
+
+function handlerBehaviorChangedCallAllowed(timestamps) {
+  return timestamps.length < MAX_HANDLER_BEHAVIOR_CHANGED_CALLS_PER_10_MINUTES;
+}
 
 // The guts of a WebRequest event handler.  Takes care of converting
 // |details| parameter when invoking listeners.
@@ -205,8 +226,22 @@ this.webRequest = class extends ExtensionAPIPersistent {
             options,
           });
         },
-        handlerBehaviorChanged: function () {
-          // TODO: Flush all caches.
+        handlerBehaviorChanged: () => {
+          let timestamps = handlerBehaviorChangedTimeStampsMap.get(
+            context.extension.id
+          );
+
+          const now = Date.now();
+          clearOldTimeStamps(timestamps, now);
+          if (!handlerBehaviorChangedCallAllowed(timestamps)) {
+            context.extension.logger.warn(
+              `The number of webRequest.handlerBehaviorChanged calls exceeds the limit: ${MAX_HANDLER_BEHAVIOR_CHANGED_CALLS_PER_10_MINUTES} calls per 10 minutes`
+            );
+            return;
+          }
+          timestamps.push(now);
+
+          ChromeUtils.clearResourceCache(false); // false = content
         },
       },
     };

@@ -1,0 +1,4 @@
+body::after {
+  content: "file_webRequest_handlerBehaviorChanged.css loaded";
+  display: block;
+}
