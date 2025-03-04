@@ -62,6 +62,21 @@ function isInNavbar() {
   return Boolean(CustomizableUI.getPlacementOfWidget("profiler-button"));
 }
 
+function ensureButtonInNavbar() {
+  if (!isInNavbar()) {
+    // Ensure the widget is enabled.
+    Services.prefs.setBoolPref("devtools.performance.popup.feature-flag", true);
+
+    // Enable the profiler menu button.
+    addToNavbar();
+
+    // Dispatch the change event manually, so that the shortcuts will also be
+    // added.
+    const { CustomizableUI } = lazy.CustomizableUI();
+    CustomizableUI.dispatchToolboxEvent("customizationchange");
+  }
+}
+
 /**
  * Opens the popup for the profiler.
  * @param {Document} document
@@ -312,6 +327,7 @@ function initialize(toggleProfilerKeyShortcuts) {
 export const ProfilerMenuButton = {
   initialize,
   addToNavbar,
+  ensureButtonInNavbar,
   isInNavbar,
   openPopup,
   remove,

@@ -746,18 +746,7 @@ function startLogging() {
 
     // Force displaying the profiler button in the navbar if not preset, so
     // that there is a visual indication profiling is in progress.
-    if (!ProfilerMenuButton.isInNavbar()) {
-      // Ensure the widget is enabled.
-      Services.prefs.setBoolPref(
-        "devtools.performance.popup.feature-flag",
-        true
-      );
-      // Enable the profiler menu button.
-      ProfilerMenuButton.addToNavbar();
-      // Dispatch the change event manually, so that the shortcuts will also be
-      // added.
-      CustomizableUI.dispatchToolboxEvent("customizationchange");
-    }
+    ProfilerMenuButton.ensureButtonInNavbar();
 
     gProfilerPromise = Services.profiler.StartProfiler(
       entries,
