@@ -13,11 +13,13 @@
 
     <script src="inline-preview.js"></script>
     <script type="module">
+      import data from "./data.json" with { type: "json" };
       window.runInModule = function() {
         bar(4);
       }
       function bar(val) {
-        console.log(val);
+        const ids = data.map(({id}) => id)
+        console.log(val, ids);
         debugger;
       }
     </script>
