@@ -144,7 +144,7 @@ class WebExtensionPromptFeature(
         val shouldGrantWithoutPrompt = Addon.localizePermissions(
             promptRequest.permissions,
             context,
-        ).isEmpty()
+        ).isEmpty() && promptRequest.origins.isEmpty()
 
         // If we don't have any promptable permissions, just proceed.
         if (shouldGrantWithoutPrompt) {
@@ -157,6 +157,7 @@ class WebExtensionPromptFeature(
             promptRequest = promptRequest,
             forOptionalPermissions = true,
             permissions = promptRequest.permissions,
+            origins = promptRequest.origins,
         )
     }
 

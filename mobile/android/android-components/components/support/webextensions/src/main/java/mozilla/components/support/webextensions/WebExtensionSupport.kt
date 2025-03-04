@@ -339,6 +339,7 @@ object WebExtensionSupport {
                 override fun onOptionalPermissionsRequest(
                     extension: WebExtension,
                     permissions: List<String>,
+                    origins: List<String>,
                     onPermissionsGranted: ((Boolean) -> Unit),
                 ) {
                     store.dispatch(
@@ -346,6 +347,7 @@ object WebExtensionSupport {
                             WebExtensionPromptRequest.AfterInstallation.Permissions.Optional(
                                 extension,
                                 permissions,
+                                origins,
                                 onPermissionsGranted,
                             ),
                         ),

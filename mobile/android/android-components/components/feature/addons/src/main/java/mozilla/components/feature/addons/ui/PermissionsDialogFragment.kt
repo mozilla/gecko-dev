@@ -349,6 +349,7 @@ class PermissionsDialogFragment : AddonDialogFragment() {
          * @param forOptionalPermissions Whether to show a permission dialog for optional permissions
          * requested by the extension.
          * @param permissions The permissions requested by the extension.
+         * @param origins The host permissions requested by the extension.
          * @param promptsStyling Styling properties for the dialog.
          * @param onPositiveButtonClicked A lambda called when the allow button is clicked.
          * @param onNegativeButtonClicked A lambda called when the deny button is clicked.

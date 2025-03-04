@@ -5,11 +5,16 @@ permalink: /changelog/
 ---
 
 # 138.0 (In Development)
+* **browser-state**, **concept-engine**
+  * ⚠️ **Breaking change**: Added new `origins` parameter to `WebExtensionDelegate.onOptionalPermissionsRequest` and `WebExtensionPromptRequest.AfterInstallation.Permissions.Optional`. [Bug 1935680](https://bugzilla.mozilla.org/show_bug.cgi?id=1935680).
 
 # 137.0
 * **support-ktx**
   * 🌟 Added `String.isContentUrl` method that checks if the string is a content URL. [Bug 1944084](https://bugzilla.mozilla.org/show_bug.cgi?id=1944084).
   * 🌟 Added `String.isAboutUrl` method that checks if the string is an about URL. [Bug 1944084](https://bugzilla.mozilla.org/show_bug.cgi?id=1944084).
+* **browser-state**, **concept-engine**, **feature-addons**
+  * ⚠️ **Breaking change**: Added new `origins` parameter to `PermissionsDialogFragment.newInstance`. [Bug 1911999](https://bugzilla.mozilla.org/show_bug.cgi?id=1911999).
+  * ⚠️ **Breaking change**: Added new `origins` parameter to `WebExtensionDelegate.onInstallPermissionsRequest` and `WebExtensionPromptRequest.AfterInstallation.Permissions.Required`. [Bug 1911999](https://bugzilla.mozilla.org/show_bug.cgi?id=1911999).
 
 # 136.0
 * **support-ktx**

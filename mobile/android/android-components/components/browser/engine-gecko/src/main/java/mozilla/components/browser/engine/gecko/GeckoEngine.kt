@@ -397,7 +397,8 @@ class GeckoEngine(
                 val result = GeckoResult<AllowOrDeny>()
                 webExtensionDelegate.onOptionalPermissionsRequest(
                     GeckoWebExtension(extension, runtime),
-                    permissions.toList() + origins.toList(),
+                    permissions.toList(),
+                    origins.toList(),
                 ) { allow ->
                     if (allow) result.complete(AllowOrDeny.ALLOW) else result.complete(AllowOrDeny.DENY)
                 }

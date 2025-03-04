@@ -1084,15 +1084,16 @@ class WebExtensionSupportTest {
         val engine: Engine = mock()
         val ext: WebExtension = mock()
         val permissions = listOf("perm1", "perm2")
+        val origins = listOf("http://example.com/*", "https://example.org/*")
         val onPermissionsGranted: ((Boolean) -> Unit) = mock()
         val delegateCaptor = argumentCaptor<WebExtensionDelegate>()
         WebExtensionSupport.initialize(engine, store)
         verify(engine).registerWebExtensionDelegate(delegateCaptor.capture())
 
-        delegateCaptor.value.onOptionalPermissionsRequest(ext, permissions, onPermissionsGranted)
+        delegateCaptor.value.onOptionalPermissionsRequest(ext, permissions, origins, onPermissionsGranted)
         verify(store).dispatch(
             WebExtensionAction.UpdatePromptRequestWebExtensionAction(
-                WebExtensionPromptRequest.AfterInstallation.Permissions.Optional(ext, permissions, onPermissionsGranted),
+                WebExtensionPromptRequest.AfterInstallation.Permissions.Optional(ext, permissions, origins, onPermissionsGranted),
             ),
         )
     }

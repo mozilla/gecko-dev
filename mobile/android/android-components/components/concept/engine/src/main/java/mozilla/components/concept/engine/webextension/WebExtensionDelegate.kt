@@ -163,11 +163,13 @@ interface WebExtensionDelegate {
      *
      * @param extension The [WebExtension].
      * @param permissions The list of all the optional permissions.
+     * @param origins The list of all the optional host permissions.
      * @param onPermissionsGranted A callback to indicate if the optional permissions have been granted or not.
      */
     fun onOptionalPermissionsRequest(
         extension: WebExtension,
         permissions: List<String>,
+        origins: List<String>,
         onPermissionsGranted: ((Boolean) -> Unit),
     ) = Unit
 

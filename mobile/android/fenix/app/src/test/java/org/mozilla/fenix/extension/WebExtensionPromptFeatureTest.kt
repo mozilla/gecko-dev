@@ -249,6 +249,7 @@ class WebExtensionPromptFeatureTest {
                     mockk(relaxed = true),
                     mockk(),
                     mockk(),
+                    mockk(),
                 ),
             ),
         ).joinBlocking()
@@ -272,6 +273,7 @@ class WebExtensionPromptFeatureTest {
         val promptRequest = WebExtensionPromptRequest.AfterInstallation.Permissions.Optional(
             extension = mockk(),
             permissions = listOf("tabs"),
+            origins = emptyList(),
             onConfirm = mockk(),
         )
 
@@ -296,6 +298,7 @@ class WebExtensionPromptFeatureTest {
             extension = mockk(),
             // The "scripting" API permission doesn't have a description so we should not show a dialog for it.
             permissions = listOf("scripting"),
+            origins = emptyList(),
             onConfirm = onConfirm,
         )
 
@@ -308,6 +311,34 @@ class WebExtensionPromptFeatureTest {
     }
 
     @Test
+    fun `WHEN calling handleOptionalPermissionsRequest with host permissions along with permissions that don't have a description THEN call showPermissionDialog`() {
+        val addon: Addon = mockk(relaxed = true)
+        val onConfirm: ((Boolean) -> Unit) = mockk()
+        every { onConfirm(any()) } just runs
+        val promptRequest = WebExtensionPromptRequest.AfterInstallation.Permissions.Optional(
+            extension = mockk(),
+            // The "scripting" API permission doesn't have a description so we should not show a dialog for it.
+            permissions = listOf("scripting"),
+            origins = listOf("*://developer.mozilla.org/*"),
+            onConfirm = onConfirm,
+        )
+
+        webExtensionPromptFeature.handleOptionalPermissionsRequest(addon = addon, promptRequest = promptRequest)
+
+        verify {
+            webExtensionPromptFeature.showPermissionDialog(
+                eq(addon),
+                eq(promptRequest),
+                eq(true),
+                eq(promptRequest.permissions),
+                eq(promptRequest.origins),
+            )
+        }
+
+        verify(exactly = 0) { onConfirm(true) }
+    }
+
+    @Test
     fun `WHEN calling handleOptionalPermissionsRequest with no permissions THEN do not call showPermissionDialog`() {
         val addon: Addon = mockk(relaxed = true)
         val onConfirm: ((Boolean) -> Unit) = mockk()
@@ -315,6 +346,7 @@ class WebExtensionPromptFeatureTest {
         val promptRequest = WebExtensionPromptRequest.AfterInstallation.Permissions.Optional(
             extension = mockk(),
             permissions = emptyList(),
+            origins = emptyList(),
             onConfirm = onConfirm,
         )
 

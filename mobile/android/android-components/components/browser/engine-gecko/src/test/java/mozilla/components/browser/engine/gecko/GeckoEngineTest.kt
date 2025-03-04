@@ -1620,7 +1620,8 @@ class GeckoEngineTest {
         val onPermissionsGrantedCaptor = argumentCaptor<((Boolean) -> Unit)>()
         verify(webExtensionsDelegate).onOptionalPermissionsRequest(
             extensionCaptor.capture(),
-            eq(permissions.toList() + origins.toList()),
+            eq(permissions.toList()),
+            eq(origins.toList()),
             onPermissionsGrantedCaptor.capture(),
         )
         val current = extensionCaptor.value as mozilla.components.browser.engine.gecko.webextension.GeckoWebExtension
@@ -1653,7 +1654,8 @@ class GeckoEngineTest {
         val onPermissionsGrantedCaptor = argumentCaptor<((Boolean) -> Unit)>()
         verify(webExtensionsDelegate).onOptionalPermissionsRequest(
             extensionCaptor.capture(),
-            eq(permissions.toList() + origins.toList()),
+            eq(permissions.toList()),
+            eq(origins.toList()),
             onPermissionsGrantedCaptor.capture(),
         )
         val current = extensionCaptor.value as mozilla.components.browser.engine.gecko.webextension.GeckoWebExtension
