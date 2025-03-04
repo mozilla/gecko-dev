@@ -2536,16 +2536,16 @@ nsWindow::WaylandPopupGetPositionFromLayout() {
     hints = GdkAnchorHints(hints | GDK_ANCHOR_SLIDE);
   } else {
     switch (flipType) {
-      case FlipType_Both:
+      case FlipType::Both:
         hints = GdkAnchorHints(hints | GDK_ANCHOR_FLIP);
         break;
-      case FlipType_Slide:
+      case FlipType::Slide:
         hints = GdkAnchorHints(hints | GDK_ANCHOR_SLIDE);
         break;
-      case FlipType_Default:
+      case FlipType::Default:
         hints = GdkAnchorHints(hints | GDK_ANCHOR_FLIP);
         break;
-      default:
+      case FlipType::None:
         break;
     }
   }
