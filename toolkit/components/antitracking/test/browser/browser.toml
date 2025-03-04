@@ -247,6 +247,8 @@ support-files = ["file_ws_handshake_delay_wsh.py"]
 
 ["browser_storageAccessGrantedGivesUserInteraction.js"]
 
+["browser_storageAccessHeuristicsExcludeTrackers.js"]
+
 ["browser_storageAccessPrivilegeAPI.js"]
 
 ["browser_storageAccessPromiseRejectHandlerUserInteraction.js"]
