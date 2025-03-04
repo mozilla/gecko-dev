@@ -119,6 +119,33 @@
   cursor: default;
 }
 
+/**
+ * Use an animation in order to delay the preview-loading-token
+ * style 1/4s second after hovering a token.
+ *
+ * It avoids to render this intermediate style if the previews is ready
+ * right away.
+ */
+@keyframes animateLoading {
+  25% {
+    cursor: wait;
+    text-decoration: grey underline solid;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 2px;
+    text-decoration-skip-ink: none;
+  }
+  100% {
+    cursor: wait;
+    text-decoration: grey underline solid;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 2px;
+    text-decoration-skip-ink: none;
+  }
+}
+.preview-loading-token {
+  animation: animateLoading 1s forwards;
+}
+
 .preview-token,
 .debug-expression.preview-token {
   background-color: var(--theme-highlight-yellow);
