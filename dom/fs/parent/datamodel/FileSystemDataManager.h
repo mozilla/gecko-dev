@@ -140,11 +140,6 @@ class FileSystemDataManager
   void UnlockShared(const EntryId& aEntryId, const FileId& aFileId,
                     bool aAbort);
 
-  void DeprecateSharedLocks(const EntryId& aEntryId, const FileId& aFileId);
-
-  bool IsLockedWithDeprecatedSharedLock(const EntryId& aEntryId,
-                                        const FileId& aFileId) const;
-
   FileMode GetMode(bool aKeepData) const;
 
  protected:
@@ -172,7 +167,6 @@ class FileSystemDataManager
   const quota::OriginMetadata mOriginMetadata;
   nsTHashSet<EntryId> mExclusiveLocks;
   nsTHashMap<EntryId, uint32_t> mSharedLocks;
-  nsTHashMap<EntryId, nsTArray<FileId>> mDeprecatedLocks;
   NS_DECL_OWNINGEVENTTARGET
   const RefPtr<quota::QuotaManager> mQuotaManager;
   const NotNull<nsCOMPtr<nsISerialEventTarget>> mBackgroundTarget;

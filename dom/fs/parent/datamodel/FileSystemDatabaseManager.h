@@ -169,12 +169,6 @@ class FileSystemDatabaseManager {
       const FileSystemEntryPair& aEndpoints) const = 0;
 
   /**
-   * @brief Returns true only if a file with a given EntryId exists.
-   */
-  virtual Result<bool, QMResult> DoesFileExist(
-      const EntryId& aEntryId) const = 0;
-
-  /**
    * @brief Generates an EntryId for a given parent EntryId and filename.
    */
   virtual Result<EntryId, QMResult> GetEntryId(
