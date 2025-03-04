@@ -490,18 +490,34 @@ Result<FileId, QMResult> FileSystemDataManager::LockShared(
 void FileSystemDataManager::UnlockShared(const EntryId& aEntryId,
                                          const FileId& aFileId, bool aAbort) {
   MOZ_ASSERT(!mExclusiveLocks.Contains(aEntryId));
-  MOZ_ASSERT(mSharedLocks.Contains(aEntryId));
 
-  auto entry = mSharedLocks.Lookup(aEntryId);
-  MOZ_ASSERT(entry);
+  auto eraseLock = [&](auto& aLocks) {
+    auto entry = aLocks.Lookup(aEntryId);
+    if (!entry) {
+      return;
+    }
 
-  MOZ_ASSERT(entry.Data() > 0);
-  --entry.Data();
+    MOZ_ASSERT(entry.Data() > 0);
+    --entry.Data();
 
-  LOG_VERBOSE(("SharedUnlock %u", *entry));
+    LOG_VERBOSE(("SharedUnlock %u", *entry));
 
-  if (0u == entry.Data()) {
-    entry.Remove();
+    if (0u == entry.Data()) {
+      entry.Remove();
+    }
+  };
+
+  eraseLock(mSharedLocks);
+  eraseLock(mDeprecatedLocks);
+
+  // If underlying file does not exist but should close, abort instead.
+  if (!aAbort) {
+    QM_WARNONLY_TRY_UNWRAP(const Maybe<bool> doesFileExist,
+                           mDatabaseManager->DoesFileExist(aEntryId));
+    const bool exists = doesFileExist.isSome() && doesFileExist.ref();
+    if (!exists) {
+      aAbort = true;
+    }
   }
 
   // On error, usage tracking remains on to prevent writes until usage is
@@ -511,6 +527,16 @@ void FileSystemDataManager::UnlockShared(const EntryId& aEntryId,
   QM_TRY(
       MOZ_TO_RESULT(mDatabaseManager->MergeFileId(aEntryId, aFileId, aAbort)),
       QM_VOID);
+}
+
+void FileSystemDataManager::DeprecateSharedLocks(const EntryId& aEntryId) {
+  auto oldEntry = mSharedLocks.Lookup(aEntryId);
+  if (oldEntry) {
+    auto& deprecatedEntry = mDeprecatedLocks.LookupOrInsert(aEntryId, 0);
+    deprecatedEntry += oldEntry.Data();
+  }
+
+  oldEntry.Remove();
 }
 
 bool FileSystemDataManager::IsLockedWithDeprecatedSharedLock(
