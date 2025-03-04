@@ -8,34 +8,45 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <cstdint>
 #include <memory>
+#include <utility>
+#include <vector>
 
+#include "api/audio_options.h"
 #include "api/enable_media_with_defaults.h"
+#include "api/jsep.h"
+#include "api/media_stream_interface.h"
+#include "api/packet_socket_factory.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtc_event_log/rtc_event_log_factory.h"
 #include "api/scoped_refptr.h"
 #include "api/task_queue/default_task_queue_factory.h"
+#include "api/test/network_emulation/network_emulation_interfaces.h"
+#include "api/test/network_emulation_manager.h"
+#include "api/test/rtc_error_matchers.h"
+#include "api/test/simulated_network.h"
 #include "api/transport/field_trial_based_config.h"
-#include "media/engine/webrtc_media_engine.h"
 #include "modules/audio_device/include/test_audio_device.h"
-#include "p2p/base/basic_packet_socket_factory.h"
+#include "p2p/base/port_allocator.h"
 #include "p2p/client/basic_port_allocator.h"
 #include "pc/peer_connection_wrapper.h"
 #include "pc/test/mock_peer_connection_observers.h"
-#include "rtc_base/gunit.h"
+#include "rtc_base/network.h"
 #include "rtc_base/task_queue_for_test.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/network/network_emulation.h"
 #include "test/network/network_emulation_manager.h"
 #include "test/network/simulated_network.h"
+#include "test/wait_until.h"
 
 namespace webrtc {
 namespace test {
 namespace {
 
-constexpr int kDefaultTimeoutMs = 1000;
+using ::testing::Eq;
+using ::testing::IsTrue;
+
 constexpr int kMaxAptitude = 32000;
 constexpr int kSamplingFrequency = 48000;
 constexpr char kSignalThreadName[] = "signaling_thread";
@@ -171,11 +182,14 @@ TEST(NetworkEmulationManagerPCTest, Run) {
     // Connect peers.
     ASSERT_TRUE(alice->ExchangeOfferAnswerWith(bob.get()));
     // Do the SDP negotiation, and also exchange ice candidates.
-    ASSERT_TRUE_WAIT(
-        alice->signaling_state() == PeerConnectionInterface::kStable,
-        kDefaultTimeoutMs);
-    ASSERT_TRUE_WAIT(alice->IsIceGatheringDone(), kDefaultTimeoutMs);
-    ASSERT_TRUE_WAIT(bob->IsIceGatheringDone(), kDefaultTimeoutMs);
+    ASSERT_THAT(WaitUntil([&] { return alice->signaling_state(); },
+                          Eq(PeerConnectionInterface::kStable)),
+                IsRtcOk());
+    ASSERT_THAT(
+        WaitUntil([&] { return alice->IsIceGatheringDone(); }, IsTrue()),
+        IsRtcOk());
+    ASSERT_THAT(WaitUntil([&] { return bob->IsIceGatheringDone(); }, IsTrue()),
+                IsRtcOk());
 
     // Connect an ICE candidate pairs.
     ASSERT_TRUE(
@@ -183,8 +197,10 @@ TEST(NetworkEmulationManagerPCTest, Run) {
     ASSERT_TRUE(
         AddIceCandidates(alice.get(), bob->observer()->GetAllCandidates()));
     // This means that ICE and DTLS are connected.
-    ASSERT_TRUE_WAIT(bob->IsIceConnected(), kDefaultTimeoutMs);
-    ASSERT_TRUE_WAIT(alice->IsIceConnected(), kDefaultTimeoutMs);
+    ASSERT_THAT(WaitUntil([&] { return bob->IsIceConnected(); }, IsTrue()),
+                IsRtcOk());
+    ASSERT_THAT(WaitUntil([&] { return alice->IsIceConnected(); }, IsTrue()),
+                IsRtcOk());
 
     // Close peer connections
     alice->pc()->Close();
@@ -281,11 +297,14 @@ TEST(NetworkEmulationManagerPCTest, RunTURN) {
     // Connect peers.
     ASSERT_TRUE(alice->ExchangeOfferAnswerWith(bob.get()));
     // Do the SDP negotiation, and also exchange ice candidates.
-    ASSERT_TRUE_WAIT(
-        alice->signaling_state() == PeerConnectionInterface::kStable,
-        kDefaultTimeoutMs);
-    ASSERT_TRUE_WAIT(alice->IsIceGatheringDone(), kDefaultTimeoutMs);
-    ASSERT_TRUE_WAIT(bob->IsIceGatheringDone(), kDefaultTimeoutMs);
+    ASSERT_THAT(WaitUntil([&] { return alice->signaling_state(); },
+                          Eq(PeerConnectionInterface::kStable)),
+                IsRtcOk());
+    ASSERT_THAT(
+        WaitUntil([&] { return alice->IsIceGatheringDone(); }, IsTrue()),
+        IsRtcOk());
+    ASSERT_THAT(WaitUntil([&] { return bob->IsIceGatheringDone(); }, IsTrue()),
+                IsRtcOk());
 
     // Connect an ICE candidate pairs.
     ASSERT_TRUE(
@@ -293,8 +312,10 @@ TEST(NetworkEmulationManagerPCTest, RunTURN) {
     ASSERT_TRUE(
         AddIceCandidates(alice.get(), bob->observer()->GetAllCandidates()));
     // This means that ICE and DTLS are connected.
-    ASSERT_TRUE_WAIT(bob->IsIceConnected(), kDefaultTimeoutMs);
-    ASSERT_TRUE_WAIT(alice->IsIceConnected(), kDefaultTimeoutMs);
+    ASSERT_THAT(WaitUntil([&] { return bob->IsIceConnected(); }, IsTrue()),
+                IsRtcOk());
+    ASSERT_THAT(WaitUntil([&] { return alice->IsIceConnected(); }, IsTrue()),
+                IsRtcOk());
 
     // Close peer connections
     alice->pc()->Close();

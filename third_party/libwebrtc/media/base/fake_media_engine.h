@@ -861,6 +861,8 @@ class FakeMediaEngine : public CompositeMediaEngine {
   void SetAudioRecvCodecs(const std::vector<Codec>& codecs);
   void SetAudioSendCodecs(const std::vector<Codec>& codecs);
   void SetVideoCodecs(const std::vector<Codec>& codecs);
+  void SetVideoRecvCodecs(const std::vector<Codec>& codecs);
+  void SetVideoSendCodecs(const std::vector<Codec>& codecs);
 
   FakeVoiceEngine* fake_voice_engine() { return voice_; }
   FakeVideoEngine* fake_video_engine() { return video_; }

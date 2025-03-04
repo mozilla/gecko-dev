@@ -25,7 +25,8 @@
 @implementation RTCPeerConnectionFactoryBuilder (DefaultComponents)
 
 + (RTCPeerConnectionFactoryBuilder *)defaultBuilder {
-  RTCPeerConnectionFactoryBuilder *builder = [[RTCPeerConnectionFactoryBuilder alloc] init];
+  RTCPeerConnectionFactoryBuilder *builder =
+      [[RTCPeerConnectionFactoryBuilder alloc] init];
   auto audioEncoderFactory = webrtc::CreateBuiltinAudioEncoderFactory();
   [builder setAudioEncoderFactory:audioEncoderFactory];
 

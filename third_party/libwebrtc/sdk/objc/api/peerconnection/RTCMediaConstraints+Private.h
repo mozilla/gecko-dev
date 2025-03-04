@@ -20,8 +20,8 @@ NS_ASSUME_NONNULL_BEGIN
 ()
 
     /**
-     * A MediaConstraints representation of this RTCMediaConstraints object. This is
-     * needed to pass to the underlying C++ APIs.
+     * A MediaConstraints representation of this RTCMediaConstraints object.
+     * This is needed to pass to the underlying C++ APIs.
      */
     - (std::unique_ptr<webrtc::MediaConstraints>)nativeConstraints;
 

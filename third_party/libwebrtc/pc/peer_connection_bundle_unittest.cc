@@ -10,22 +10,16 @@
 
 #include <stddef.h>
 
-#include <cstdint>
 #include <memory>
 #include <ostream>
 #include <string>
 #include <tuple>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "api/audio/audio_device.h"
-#include "api/audio/audio_mixer.h"
-#include "api/audio/audio_processing.h"
-#include "api/audio_codecs/builtin_audio_decoder_factory.h"
-#include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/candidate.h"
-#include "api/create_peerconnection_factory.h"
+#include "api/enable_media_with_defaults.h"
 #include "api/jsep.h"
 #include "api/media_types.h"
 #include "api/peer_connection_interface.h"
@@ -33,9 +27,9 @@
 #include "api/rtp_sender_interface.h"
 #include "api/rtp_transceiver_interface.h"
 #include "api/scoped_refptr.h"
-#include "api/stats/rtc_stats.h"
 #include "api/stats/rtc_stats_report.h"
 #include "api/stats/rtcstats_objects.h"
+#include "api/test/rtc_error_matchers.h"
 #include "api/video_codecs/video_decoder_factory_template.h"
 #include "api/video_codecs/video_decoder_factory_template_dav1d_adapter.h"
 #include "api/video_codecs/video_decoder_factory_template_libvpx_vp8_adapter.h"
@@ -48,10 +42,8 @@
 #include "api/video_codecs/video_encoder_factory_template_open_h264_adapter.h"
 #include "media/base/stream_params.h"
 #include "p2p/base/p2p_constants.h"
-#include "p2p/base/port.h"
 #include "p2p/base/port_allocator.h"
 #include "p2p/base/transport_info.h"
-#include "p2p/client/basic_port_allocator.h"
 #include "pc/channel.h"
 #include "pc/peer_connection.h"
 #include "pc/peer_connection_proxy.h"
@@ -60,24 +52,24 @@
 #include "pc/rtp_transport_internal.h"
 #include "pc/sdp_utils.h"
 #include "pc/session_description.h"
+#include "pc/test/fake_audio_capture_module.h"
 #include "pc/test/integration_test_helpers.h"
 #include "pc/test/mock_peer_connection_observers.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/fake_network.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/net_helper.h"
 #include "rtc_base/network.h"
-#include "rtc_base/rtc_certificate_generator.h"
 #include "rtc_base/socket_address.h"
 #include "rtc_base/thread.h"
+#include "rtc_base/virtual_socket_server.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
+
 #ifdef WEBRTC_ANDROID
 #include "pc/test/android_test_initializer.h"
 #endif
-#include "pc/test/fake_audio_capture_module.h"
-#include "rtc_base/fake_network.h"
-#include "rtc_base/gunit.h"
-#include "rtc_base/virtual_socket_server.h"
-#include "test/gmock.h"
 
 namespace webrtc {
 
@@ -87,7 +79,6 @@ using RTCOfferAnswerOptions = PeerConnectionInterface::RTCOfferAnswerOptions;
 using RtcpMuxPolicy = PeerConnectionInterface::RtcpMuxPolicy;
 using rtc::SocketAddress;
 using ::testing::Combine;
-using ::testing::ElementsAre;
 using ::testing::UnorderedElementsAre;
 using ::testing::Values;
 
@@ -120,9 +111,9 @@ class PeerConnectionWrapperForBundleTest : public PeerConnectionWrapper {
     for (size_t i = 0; i < desc->contents().size(); i++) {
       const auto& content = desc->contents()[i];
       if (content.media_description()->type() == media_type) {
-        candidate->set_transport_name(content.name);
+        candidate->set_transport_name(content.mid());
         std::unique_ptr<IceCandidateInterface> jsep_candidate =
-            CreateIceCandidate(content.name, i, *candidate);
+            CreateIceCandidate(content.mid(), i, *candidate);
         return pc()->AddIceCandidate(jsep_candidate.get());
       }
     }
@@ -211,24 +202,10 @@ class PeerConnectionBundleBaseTest : public ::testing::Test {
   typedef std::unique_ptr<PeerConnectionWrapperForBundleTest> WrapperPtr;
 
   explicit PeerConnectionBundleBaseTest(SdpSemantics sdp_semantics)
-      : vss_(new rtc::VirtualSocketServer()),
-        socket_factory_(new rtc::BasicPacketSocketFactory(vss_.get())),
-        main_(vss_.get()),
-        sdp_semantics_(sdp_semantics) {
+      : main_(&vss_), sdp_semantics_(sdp_semantics) {
 #ifdef WEBRTC_ANDROID
     InitializeAndroidObjects();
 #endif
-    pc_factory_ = CreatePeerConnectionFactory(
-        rtc::Thread::Current(), rtc::Thread::Current(), rtc::Thread::Current(),
-        rtc::scoped_refptr<AudioDeviceModule>(FakeAudioCaptureModule::Create()),
-        CreateBuiltinAudioEncoderFactory(), CreateBuiltinAudioDecoderFactory(),
-        std::make_unique<VideoEncoderFactoryTemplate<
-            LibvpxVp8EncoderTemplateAdapter, LibvpxVp9EncoderTemplateAdapter,
-            OpenH264EncoderTemplateAdapter, LibaomAv1EncoderTemplateAdapter>>(),
-        std::make_unique<VideoDecoderFactoryTemplate<
-            LibvpxVp8DecoderTemplateAdapter, LibvpxVp9DecoderTemplateAdapter,
-            OpenH264DecoderTemplateAdapter, Dav1dDecoderTemplateAdapter>>(),
-        nullptr /* audio_mixer */, nullptr /* audio_processing */);
   }
 
   WrapperPtr CreatePeerConnection() {
@@ -236,25 +213,46 @@ class PeerConnectionBundleBaseTest : public ::testing::Test {
   }
 
   WrapperPtr CreatePeerConnection(const RTCConfiguration& config) {
-    auto* fake_network = NewFakeNetwork();
-    auto port_allocator = std::make_unique<cricket::BasicPortAllocator>(
-        fake_network, socket_factory_.get());
-    port_allocator->set_flags(cricket::PORTALLOCATOR_DISABLE_TCP |
-                              cricket::PORTALLOCATOR_DISABLE_RELAY);
-    port_allocator->set_step_delay(cricket::kMinimumStepDelay);
+    // Each PeerConnection has its own `NetworkManager` which is injected into
+    // `PeerConnectionFactoryDependencies`, thus each PeerConnection in these
+    // tests is created with own PeerConnectionFactory.
+    PeerConnectionFactoryDependencies pcf_deps;
+    pcf_deps.network_thread = rtc::Thread::Current();
+    pcf_deps.worker_thread = rtc::Thread::Current();
+    pcf_deps.signaling_thread = rtc::Thread::Current();
+    pcf_deps.socket_factory = &vss_;
+    auto network_manager =
+        std::make_unique<FakeNetworkManagerWithNoAnyNetwork>();
+    auto* fake_network = network_manager.get();
+    pcf_deps.network_manager = std::move(network_manager);
+    pcf_deps.adm = FakeAudioCaptureModule::Create();
+    pcf_deps.video_encoder_factory =
+        std::make_unique<VideoEncoderFactoryTemplate<
+            LibvpxVp8EncoderTemplateAdapter, LibvpxVp9EncoderTemplateAdapter,
+            OpenH264EncoderTemplateAdapter, LibaomAv1EncoderTemplateAdapter>>();
+    pcf_deps.video_decoder_factory =
+        std::make_unique<VideoDecoderFactoryTemplate<
+            LibvpxVp8DecoderTemplateAdapter, LibvpxVp9DecoderTemplateAdapter,
+            OpenH264DecoderTemplateAdapter, Dav1dDecoderTemplateAdapter>>();
+    EnableMediaWithDefaults(pcf_deps);
+
+    scoped_refptr<PeerConnectionFactoryInterface> pc_factory =
+        CreateModularPeerConnectionFactory(std::move(pcf_deps));
+
     auto observer = std::make_unique<MockPeerConnectionObserver>();
     RTCConfiguration modified_config = config;
+    modified_config.set_port_allocator_flags(
+        cricket::PORTALLOCATOR_DISABLE_TCP |
+        cricket::PORTALLOCATOR_DISABLE_RELAY);
     modified_config.sdp_semantics = sdp_semantics_;
-    PeerConnectionDependencies pc_dependencies(observer.get());
-    pc_dependencies.allocator = std::move(port_allocator);
-    auto result = pc_factory_->CreatePeerConnectionOrError(
-        modified_config, std::move(pc_dependencies));
+    auto result = pc_factory->CreatePeerConnectionOrError(
+        modified_config, PeerConnectionDependencies(observer.get()));
     if (!result.ok()) {
       return nullptr;
     }
 
     auto wrapper = std::make_unique<PeerConnectionWrapperForBundleTest>(
-        pc_factory_, result.MoveValue(), std::move(observer));
+        std::move(pc_factory), result.MoveValue(), std::move(observer));
     wrapper->set_network(fake_network);
     return wrapper;
   }
@@ -281,24 +279,8 @@ class PeerConnectionBundleBaseTest : public ::testing::Test {
     return candidate;
   }
 
-  rtc::FakeNetworkManager* NewFakeNetwork() {
-    // The PeerConnection's port allocator is tied to the PeerConnection's
-    // lifetime and expects the underlying NetworkManager to outlive it. If
-    // PeerConnectionWrapper owned the NetworkManager, it would be destroyed
-    // before the PeerConnection (since subclass members are destroyed before
-    // base class members). Therefore, the test fixture will own all the fake
-    // networks even though tests should access the fake network through the
-    // PeerConnectionWrapper.
-    auto* fake_network = new FakeNetworkManagerWithNoAnyNetwork();
-    fake_networks_.emplace_back(fake_network);
-    return fake_network;
-  }
-
-  std::unique_ptr<rtc::VirtualSocketServer> vss_;
-  std::unique_ptr<rtc::BasicPacketSocketFactory> socket_factory_;
+  rtc::VirtualSocketServer vss_;
   rtc::AutoSocketServerThread main_;
-  rtc::scoped_refptr<PeerConnectionFactoryInterface> pc_factory_;
-  std::vector<std::unique_ptr<rtc::FakeNetworkManager>> fake_networks_;
   const SdpSemantics sdp_semantics_;
 };
 
@@ -356,7 +338,9 @@ TEST_P(PeerConnectionBundleTest,
   ASSERT_TRUE(caller->SetRemoteDescription(std::move(answer)));
 
   // Check that caller has separate RTP and RTCP candidates for each media.
-  EXPECT_TRUE_WAIT(caller->IsIceGatheringDone(), kDefaultTimeout);
+  EXPECT_THAT(WaitUntil([&] { return caller->IsIceGatheringDone(); },
+                        ::testing::IsTrue()),
+              IsRtcOk());
   EXPECT_THAT(
       GetCandidateComponents(caller->observer()->GetCandidatesByMline(0)),
       UnorderedElementsAre(cricket::ICE_CANDIDATE_COMPONENT_RTP,
@@ -367,7 +351,9 @@ TEST_P(PeerConnectionBundleTest,
                            cricket::ICE_CANDIDATE_COMPONENT_RTCP));
 
   // Check that callee has separate RTP and RTCP candidates for each media.
-  EXPECT_TRUE_WAIT(callee->IsIceGatheringDone(), kDefaultTimeout);
+  EXPECT_THAT(WaitUntil([&] { return callee->IsIceGatheringDone(); },
+                        ::testing::IsTrue()),
+              IsRtcOk());
   EXPECT_THAT(
       GetCandidateComponents(callee->observer()->GetCandidatesByMline(0)),
       UnorderedElementsAre(cricket::ICE_CANDIDATE_COMPONENT_RTP,
@@ -394,7 +380,9 @@ TEST_P(PeerConnectionBundleTest,
   ASSERT_TRUE(
       caller->SetRemoteDescription(callee->CreateAnswer(options_no_bundle)));
 
-  EXPECT_TRUE_WAIT(caller->IsIceGatheringDone(), kDefaultTimeout);
+  EXPECT_THAT(WaitUntil([&] { return caller->IsIceGatheringDone(); },
+                        ::testing::IsTrue()),
+              IsRtcOk());
 
   EXPECT_EQ(1u, caller->observer()->GetCandidatesByMline(0).size());
   EXPECT_EQ(1u, caller->observer()->GetCandidatesByMline(1).size());
@@ -415,7 +403,9 @@ TEST_P(PeerConnectionBundleTest,
   ASSERT_TRUE(callee->SetRemoteDescription(caller->CreateOfferAndSetAsLocal()));
   ASSERT_TRUE(caller->SetRemoteDescription(callee->CreateAnswer()));
 
-  EXPECT_TRUE_WAIT(caller->IsIceGatheringDone(), kDefaultTimeout);
+  EXPECT_THAT(WaitUntil([&] { return caller->IsIceGatheringDone(); },
+                        ::testing::IsTrue()),
+              IsRtcOk());
 
   EXPECT_EQ(1u, caller->observer()->GetCandidatesByMline(0).size());
   EXPECT_EQ(0u, caller->observer()->GetCandidatesByMline(1).size());
@@ -692,10 +682,20 @@ TEST_P(PeerConnectionBundleTest,
   ASSERT_TRUE(caller->AddIceCandidateToMedia(&audio_candidate2,
                                              cricket::MEDIA_TYPE_AUDIO));
 
-  EXPECT_TRUE_WAIT(caller->HasConnectionWithRemoteAddress(kAudioAddress1),
-                   kDefaultTimeout);
-  EXPECT_TRUE_WAIT(caller->HasConnectionWithRemoteAddress(kAudioAddress2),
-                   kDefaultTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] {
+            return caller->HasConnectionWithRemoteAddress(kAudioAddress1);
+          },
+          ::testing::IsTrue()),
+      IsRtcOk());
+  EXPECT_THAT(
+      WaitUntil(
+          [&] {
+            return caller->HasConnectionWithRemoteAddress(kAudioAddress2);
+          },
+          ::testing::IsTrue()),
+      IsRtcOk());
   EXPECT_FALSE(caller->HasConnectionWithRemoteAddress(kVideoAddress));
 }
 
@@ -866,8 +866,8 @@ TEST_P(PeerConnectionBundleTest, AddContentToBundleGroupInAnswerNotSupported) {
   auto callee = CreatePeerConnectionWithAudioVideo();
 
   auto offer = caller->CreateOffer();
-  std::string first_mid = offer->description()->contents()[0].name;
-  std::string second_mid = offer->description()->contents()[1].name;
+  const auto first_mid = offer->description()->contents()[0].mid();
+  const auto second_mid = offer->description()->contents()[1].mid();
 
   cricket::ContentGroup bundle_group(cricket::GROUP_TYPE_BUNDLE);
   bundle_group.AddContentName(first_mid);
@@ -916,7 +916,7 @@ TEST_P(PeerConnectionBundleTest, RemoveContentFromBundleGroup) {
 
   EXPECT_TRUE(callee->SetRemoteDescription(caller->CreateOfferAndSetAsLocal()));
   auto answer = callee->CreateAnswer();
-  std::string second_mid = answer->description()->contents()[1].name;
+  const auto second_mid = answer->description()->contents()[1].mid();
 
   auto invalid_bundle_group =
       *answer->description()->GetGroupByName(cricket::GROUP_TYPE_BUNDLE);

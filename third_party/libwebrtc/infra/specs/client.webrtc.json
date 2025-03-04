@@ -430,24 +430,46 @@
         "test_id_prefix": "ninja://:webrtc_nonparallel_tests/"
       }
     ],
-    "junit_tests": [
+    "isolated_scripts": [
       {
         "args": [
           "--shards=1"
         ],
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "android_examples_junit_tests",
         "resultdb": {
           "enable": true,
           "has_native_resultdb_integration": true
         },
+        "swarming": {
+          "dimensions": {
+            "android_devices": "1",
+            "device_type": "walleye",
+            "os": "Android"
+          },
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
         "test": "android_examples_junit_tests",
         "test_id_prefix": "ninja://examples:android_examples_junit_tests/"
       },
       {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "android_sdk_junit_tests",
         "resultdb": {
           "enable": true,
           "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "dimensions": {
+            "android_devices": "1",
+            "device_type": "walleye",
+            "os": "Android"
+          },
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "android_sdk_junit_tests",
         "test_id_prefix": "ninja://sdk/android:android_sdk_junit_tests/"
@@ -883,24 +905,46 @@
         "test_id_prefix": "ninja://:webrtc_nonparallel_tests/"
       }
     ],
-    "junit_tests": [
+    "isolated_scripts": [
       {
         "args": [
           "--shards=1"
         ],
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "android_examples_junit_tests",
         "resultdb": {
           "enable": true,
           "has_native_resultdb_integration": true
         },
+        "swarming": {
+          "dimensions": {
+            "android_devices": "1",
+            "device_type": "walleye",
+            "os": "Android"
+          },
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
         "test": "android_examples_junit_tests",
         "test_id_prefix": "ninja://examples:android_examples_junit_tests/"
       },
       {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "android_sdk_junit_tests",
         "resultdb": {
           "enable": true,
           "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "dimensions": {
+            "android_devices": "1",
+            "device_type": "walleye",
+            "os": "Android"
+          },
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "android_sdk_junit_tests",
         "test_id_prefix": "ninja://sdk/android:android_sdk_junit_tests/"
@@ -1364,24 +1408,46 @@
         "test_id_prefix": "ninja://:webrtc_nonparallel_tests/"
       }
     ],
-    "junit_tests": [
+    "isolated_scripts": [
       {
         "args": [
           "--shards=1"
         ],
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "android_examples_junit_tests",
         "resultdb": {
           "enable": true,
           "has_native_resultdb_integration": true
         },
+        "swarming": {
+          "dimensions": {
+            "android_devices": "1",
+            "device_type": "walleye",
+            "os": "Android"
+          },
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
         "test": "android_examples_junit_tests",
         "test_id_prefix": "ninja://examples:android_examples_junit_tests/"
       },
       {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "android_sdk_junit_tests",
         "resultdb": {
           "enable": true,
           "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "dimensions": {
+            "android_devices": "1",
+            "device_type": "walleye",
+            "os": "Android"
+          },
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "android_sdk_junit_tests",
         "test_id_prefix": "ninja://sdk/android:android_sdk_junit_tests/"
@@ -1817,24 +1883,46 @@
         "test_id_prefix": "ninja://:webrtc_nonparallel_tests/"
       }
     ],
-    "junit_tests": [
+    "isolated_scripts": [
       {
         "args": [
           "--shards=1"
         ],
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "android_examples_junit_tests",
         "resultdb": {
           "enable": true,
           "has_native_resultdb_integration": true
         },
+        "swarming": {
+          "dimensions": {
+            "android_devices": "1",
+            "device_type": "walleye",
+            "os": "Android"
+          },
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
         "test": "android_examples_junit_tests",
         "test_id_prefix": "ninja://examples:android_examples_junit_tests/"
       },
       {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "android_sdk_junit_tests",
         "resultdb": {
           "enable": true,
           "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "dimensions": {
+            "android_devices": "1",
+            "device_type": "walleye",
+            "os": "Android"
+          },
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "android_sdk_junit_tests",
         "test_id_prefix": "ninja://sdk/android:android_sdk_junit_tests/"
@@ -7956,11 +8044,11 @@
     "isolated_scripts": [
       {
         "args": [
+          "--xcodebuild-sim-runner",
           "--platform",
           "iPhone 14",
           "--version",
           "17.5",
-          "--xcodebuild-sim-runner",
           "--xcode-build-version",
           "16a5230g",
           "--out-dir",
@@ -8005,11 +8093,11 @@
       },
       {
         "args": [
+          "--xcodebuild-sim-runner",
           "--platform",
           "iPhone 15",
           "--version",
           "18.0",
-          "--xcodebuild-sim-runner",
           "--xcode-build-version",
           "16a5230g",
           "--out-dir",
@@ -8054,11 +8142,11 @@
       },
       {
         "args": [
+          "--xcodebuild-sim-runner",
           "--platform",
           "iPhone X",
           "--version",
           "16.4",
-          "--xcodebuild-sim-runner",
           "--xcode-build-version",
           "16a5230g",
           "--out-dir",
@@ -9555,11 +9643,11 @@
       },
       {
         "args": [
+          "--xcodebuild-sim-runner",
           "--platform",
           "iPhone 14",
           "--version",
           "17.5",
-          "--xcodebuild-sim-runner",
           "--xcode-build-version",
           "16a5230g",
           "--out-dir",
@@ -9604,11 +9692,11 @@
       },
       {
         "args": [
+          "--xcodebuild-sim-runner",
           "--platform",
           "iPhone 15",
           "--version",
           "18.0",
-          "--xcodebuild-sim-runner",
           "--xcode-build-version",
           "16a5230g",
           "--out-dir",
@@ -9653,11 +9741,11 @@
       },
       {
         "args": [
+          "--xcodebuild-sim-runner",
           "--platform",
           "iPhone X",
           "--version",
           "16.4",
-          "--xcodebuild-sim-runner",
           "--xcode-build-version",
           "16a5230g",
           "--out-dir",
@@ -9702,11 +9790,11 @@
       },
       {
         "args": [
+          "--xcodebuild-sim-runner",
           "--platform",
           "iPhone 14",
           "--version",
           "17.5",
-          "--xcodebuild-sim-runner",
           "--xcode-build-version",
           "16a5230g",
           "--out-dir",
@@ -9751,11 +9839,11 @@
       },
       {
         "args": [
+          "--xcodebuild-sim-runner",
           "--platform",
           "iPhone 15",
           "--version",
           "18.0",
-          "--xcodebuild-sim-runner",
           "--xcode-build-version",
           "16a5230g",
           "--out-dir",
@@ -9800,11 +9888,11 @@
       },
       {
         "args": [
+          "--xcodebuild-sim-runner",
           "--platform",
           "iPhone X",
           "--version",
           "16.4",
-          "--xcodebuild-sim-runner",
           "--xcode-build-version",
           "16a5230g",
           "--out-dir",

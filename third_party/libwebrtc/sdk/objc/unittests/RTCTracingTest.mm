@@ -25,10 +25,11 @@
 
 - (NSString *)documentsFilePathForFileName:(NSString *)fileName {
   NSParameterAssert(fileName.length);
-  NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+  NSArray *paths = NSSearchPathForDirectoriesInDomains(
+      NSDocumentDirectory, NSUserDomainMask, YES);
   NSString *documentsDirPath = paths.firstObject;
   NSString *filePath =
-  [documentsDirPath stringByAppendingPathComponent:fileName];
+      [documentsDirPath stringByAppendingPathComponent:fileName];
   return filePath;
 }
 

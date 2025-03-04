@@ -33,7 +33,7 @@ index 2c5241d33e..105cbf0783 100644
  std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
      const DesktopCaptureOptions& options);
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index 9e2d9047e6..6bd08e52ce 100644
+index fbec429ffe..707199cd9e 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
 @@ -24,6 +24,8 @@
@@ -45,7 +45,7 @@ index 9e2d9047e6..6bd08e52ce 100644
  namespace webrtc {
  class ScreenCapturerSck;
  }  // namespace webrtc
-@@ -48,6 +50,14 @@ API_AVAILABLE(macos(14.0))
+@@ -49,6 +51,14 @@ - (void)releaseCapturer;
  
  namespace webrtc {
  
@@ -57,13 +57,13 @@ index 9e2d9047e6..6bd08e52ce 100644
 +  return sonomaOrHigher;
 +}
 +
- class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapturer {
+ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
+     : public DesktopCapturer {
   public:
-   explicit ScreenCapturerSck(const DesktopCaptureOptions& options);
-@@ -353,11 +363,10 @@ void ScreenCapturerSck::StartOrReconfigureCapturer() {
- }
+@@ -376,11 +386,10 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
  
- std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOptions& options) {
+ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
+     const DesktopCaptureOptions& options) {
 -  if (@available(macOS 14.0, *)) {
 +  if (SCK_AVAILABLE) {
      return std::make_unique<ScreenCapturerSck>(options);
@@ -74,7 +74,7 @@ index 9e2d9047e6..6bd08e52ce 100644
  }
  
  }  // namespace webrtc
-@@ -419,3 +428,5 @@ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOpt
+@@ -442,3 +451,5 @@ - (void)releaseCapturer {
  }
  
  @end

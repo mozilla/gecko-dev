@@ -15,11 +15,11 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6f6acc479b373662d
  1 file changed, 1 insertion(+)
 
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index 6bd08e52ce..70284cb7e7 100644
+index 707199cd9e..14c7ea24ec 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -245,6 +245,7 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
-                                                     excludingWindows:@[]];
+@@ -258,6 +258,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
+                               excludingWindows:@[]];
    SCStreamConfiguration* config = [[SCStreamConfiguration alloc] init];
    config.pixelFormat = kCVPixelFormatType_32BGRA;
 +  config.colorSpaceName = kCGColorSpaceSRGB;

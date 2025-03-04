@@ -41,40 +41,50 @@ RTC_OBJC_EXPORT
 /* Initialize object with default H264 video encoder/decoder factories and default ADM */
 - (instancetype)init;
 
-/* Initialize object with injectable video encoder/decoder factories and default ADM */
+/* Initialize object with injectable video encoder/decoder factories and default
+ * ADM */
 - (instancetype)
-    initWithEncoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
-            decoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)>)decoderFactory;
+    initWithEncoderFactory:
+        (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
+            decoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)>)
+                               decoderFactory;
 
-/* Initialize object with injectable video encoder/decoder factories and injectable ADM */
+/* Initialize object with injectable video encoder/decoder factories and
+ * injectable ADM */
 - (instancetype)
-    initWithEncoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
-            decoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)>)decoderFactory
-               audioDevice:(nullable id<RTC_OBJC_TYPE(RTCAudioDevice)>)audioDevice;
+    initWithEncoderFactory:
+        (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
+            decoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)>)
+                               decoderFactory
+               audioDevice:
+                   (nullable id<RTC_OBJC_TYPE(RTCAudioDevice)>)audioDevice;
 
 /**
  * Valid kind values are kRTCMediaStreamTrackKindAudio and
  * kRTCMediaStreamTrackKindVideo.
  */
-- (RTC_OBJC_TYPE(RTCRtpCapabilities) *)rtpSenderCapabilitiesForKind:(NSString *)kind;
+- (RTC_OBJC_TYPE(RTCRtpCapabilities) *)rtpSenderCapabilitiesForKind:
+    (NSString *)kind;
 
 /**
  * Valid kind values are kRTCMediaStreamTrackKindAudio and
  * kRTCMediaStreamTrackKindVideo.
  */
-- (RTC_OBJC_TYPE(RTCRtpCapabilities) *)rtpReceiverCapabilitiesForKind:(NSString *)kind;
+- (RTC_OBJC_TYPE(RTCRtpCapabilities) *)rtpReceiverCapabilitiesForKind:
+    (NSString *)kind;
 
 /** Initialize an RTCAudioSource with constraints. */
 - (RTC_OBJC_TYPE(RTCAudioSource) *)audioSourceWithConstraints:
     (nullable RTC_OBJC_TYPE(RTCMediaConstraints) *)constraints;
 
-/** Initialize an RTCAudioTrack with an id. Convenience ctor to use an audio source
- * with no constraints.
+/** Initialize an RTCAudioTrack with an id. Convenience ctor to use an audio
+ * source with no constraints.
  */
 - (RTC_OBJC_TYPE(RTCAudioTrack) *)audioTrackWithTrackId:(NSString *)trackId;
 
 /** Initialize an RTCAudioTrack with a source and an id. */
-- (RTC_OBJC_TYPE(RTCAudioTrack) *)audioTrackWithSource:(RTC_OBJC_TYPE(RTCAudioSource) *)source
+- (RTC_OBJC_TYPE(RTCAudioTrack) *)audioTrackWithSource:
+                                      (RTC_OBJC_TYPE(RTCAudioSource) *)source
                                                trackId:(NSString *)trackId;
 
 /** Initialize a generic RTCVideoSource. The RTCVideoSource should be
@@ -91,7 +101,8 @@ RTC_OBJC_EXPORT
 - (RTC_OBJC_TYPE(RTCVideoSource) *)videoSourceForScreenCast:(BOOL)forScreenCast;
 
 /** Initialize an RTCVideoTrack with a source and an id. */
-- (RTC_OBJC_TYPE(RTCVideoTrack) *)videoTrackWithSource:(RTC_OBJC_TYPE(RTCVideoSource) *)source
+- (RTC_OBJC_TYPE(RTCVideoTrack) *)videoTrackWithSource:
+                                      (RTC_OBJC_TYPE(RTCVideoSource) *)source
                                                trackId:(NSString *)trackId;
 
 /** Initialize an RTCMediaStream with an id. */
@@ -101,22 +112,32 @@ RTC_OBJC_EXPORT
  *  delegate.
  */
 - (nullable RTC_OBJC_TYPE(RTCPeerConnection) *)
-    peerConnectionWithConfiguration:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
-                        constraints:(RTC_OBJC_TYPE(RTCMediaConstraints) *)constraints
-                           delegate:(nullable id<RTC_OBJC_TYPE(RTCPeerConnectionDelegate)>)delegate;
+    peerConnectionWithConfiguration:
+        (RTC_OBJC_TYPE(RTCConfiguration) *)configuration
+                        constraints:
+                            (RTC_OBJC_TYPE(RTCMediaConstraints) *)constraints
+                           delegate:(nullable id<RTC_OBJC_TYPE(
+                                         RTCPeerConnectionDelegate)>)delegate;
 
 - (nullable RTC_OBJC_TYPE(RTCPeerConnection) *)
-    peerConnectionWithConfiguration:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
-                        constraints:(RTC_OBJC_TYPE(RTCMediaConstraints) *)constraints
+    peerConnectionWithConfiguration:
+        (RTC_OBJC_TYPE(RTCConfiguration) *)configuration
+                        constraints:
+                            (RTC_OBJC_TYPE(RTCMediaConstraints) *)constraints
                 certificateVerifier:
-                    (id<RTC_OBJC_TYPE(RTCSSLCertificateVerifier)>)certificateVerifier
-                           delegate:(nullable id<RTC_OBJC_TYPE(RTCPeerConnectionDelegate)>)delegate;
+                    (id<RTC_OBJC_TYPE(RTCSSLCertificateVerifier)>)
+                        certificateVerifier
+                           delegate:(nullable id<RTC_OBJC_TYPE(
+                                         RTCPeerConnectionDelegate)>)delegate;
 
 /** Set the options to be used for subsequently created RTCPeerConnections */
-- (void)setOptions:(nonnull RTC_OBJC_TYPE(RTCPeerConnectionFactoryOptions) *)options;
+- (void)setOptions:
+    (nonnull RTC_OBJC_TYPE(RTCPeerConnectionFactoryOptions) *)options;
 
-/** Start an AecDump recording. This API call will likely change in the future. */
-- (BOOL)startAecDumpWithFilePath:(NSString *)filePath maxSizeInBytes:(int64_t)maxSizeInBytes;
+/** Start an AecDump recording. This API call will likely change in the future.
+ */
+- (BOOL)startAecDumpWithFilePath:(NSString *)filePath
+                  maxSizeInBytes:(int64_t)maxSizeInBytes;
 
 /* Stop an active AecDump recording */
 - (void)stopAecDump;

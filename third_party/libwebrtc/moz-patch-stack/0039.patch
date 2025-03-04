@@ -20,7 +20,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/58f47eacaf10d12e2
  11 files changed, 27 insertions(+), 27 deletions(-)
 
 diff --git a/BUILD.gn b/BUILD.gn
-index 7368cb9adc..56023f205a 100644
+index 5f425ffdb0..b46e2b59ee 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -439,12 +439,12 @@ config("common_config") {
@@ -172,7 +172,7 @@ index ac862c65a8..e66ed2796e 100644
    } else {
      sources += [ "spl_sqrt_floor.c" ]
 diff --git a/modules/audio_processing/aec3/BUILD.gn b/modules/audio_processing/aec3/BUILD.gn
-index 39e24c9324..411c0d27ca 100644
+index 65aa6a9542..afd80a29cf 100644
 --- a/modules/audio_processing/aec3/BUILD.gn
 +++ b/modules/audio_processing/aec3/BUILD.gn
 @@ -123,7 +123,7 @@ rtc_library("aec3") {
@@ -184,7 +184,7 @@ index 39e24c9324..411c0d27ca 100644
      suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
      cflags = [ "-mfpu=neon" ]
    }
-@@ -159,7 +159,7 @@ rtc_library("aec3") {
+@@ -160,7 +160,7 @@ rtc_library("aec3") {
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  
@@ -193,7 +193,7 @@ index 39e24c9324..411c0d27ca 100644
      deps += [ ":aec3_avx2" ]
    }
  }
-@@ -249,7 +249,7 @@ rtc_source_set("fft_data") {
+@@ -250,7 +250,7 @@ rtc_source_set("fft_data") {
    ]
  }
  
@@ -224,10 +224,10 @@ index 80f2901049..a77f04aba5 100644
    } else {
      sources += [ "aecm_core_c.cc" ]
 diff --git a/modules/audio_processing/agc/BUILD.gn b/modules/audio_processing/agc/BUILD.gn
-index f5bb27217a..b8363ad79e 100644
+index 754b807879..14b75f1229 100644
 --- a/modules/audio_processing/agc/BUILD.gn
 +++ b/modules/audio_processing/agc/BUILD.gn
-@@ -82,7 +82,7 @@ rtc_library("legacy_agc") {
+@@ -84,7 +84,7 @@ rtc_library("legacy_agc") {
    ]
  
    if (rtc_build_with_neon) {
@@ -263,7 +263,7 @@ index 31ad61156d..6587fd14f3 100644
      cflags = [ "-mfpu=neon" ]
    }
 diff --git a/modules/desktop_capture/BUILD.gn b/modules/desktop_capture/BUILD.gn
-index e39700419d..1047f30ee4 100644
+index 059a4dadc1..9e687b8787 100644
 --- a/modules/desktop_capture/BUILD.gn
 +++ b/modules/desktop_capture/BUILD.gn
 @@ -10,7 +10,7 @@ import("//build/config/linux/gtk/gtk.gni")
@@ -276,7 +276,7 @@ index e39700419d..1047f30ee4 100644
  config("x11_config") {
    if (rtc_use_x11_extensions) {
 diff --git a/webrtc.gni b/webrtc.gni
-index 4d3d5a8289..6a6e5fbce7 100644
+index 69c55610c9..2c8813d391 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -169,13 +169,13 @@ declare_args() {

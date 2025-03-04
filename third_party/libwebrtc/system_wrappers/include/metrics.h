@@ -37,8 +37,6 @@ void NoOp(const Ts&...) {}
 
 #if RTC_METRICS_ENABLED
 #define EXPECT_METRIC_EQ(val1, val2) EXPECT_EQ(val1, val2)
-#define EXPECT_METRIC_EQ_WAIT(val1, val2, timeout) \
-  EXPECT_EQ_WAIT(val1, val2, timeout)
 #define EXPECT_METRIC_GT(val1, val2) EXPECT_GT(val1, val2)
 #define EXPECT_METRIC_LE(val1, val2) EXPECT_LE(val1, val2)
 #define EXPECT_METRIC_TRUE(conditon) EXPECT_TRUE(conditon)
@@ -46,8 +44,6 @@ void NoOp(const Ts&...) {}
 #define EXPECT_METRIC_THAT(value, matcher) EXPECT_THAT(value, matcher)
 #else
 #define EXPECT_METRIC_EQ(val1, val2) webrtc::metrics_impl::NoOp(val1, val2)
-#define EXPECT_METRIC_EQ_WAIT(val1, val2, timeout) \
-  webrtc::metrics_impl::NoOp(val1, val2, timeout)
 #define EXPECT_METRIC_GT(val1, val2) webrtc::metrics_impl::NoOp(val1, val2)
 #define EXPECT_METRIC_LE(val1, val2) webrtc::metrics_impl::NoOp(val1, val2)
 #define EXPECT_METRIC_TRUE(condition) \

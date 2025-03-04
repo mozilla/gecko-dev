@@ -58,7 +58,8 @@
   if ([[self class] isMetalAvailable]) {
     _metalView = [[MTKView alloc] initWithFrame:self.bounds];
     [self addSubview:_metalView];
-    _metalView.layerContentsPlacement = NSViewLayerContentsPlacementScaleProportionallyToFit;
+    _metalView.layerContentsPlacement =
+        NSViewLayerContentsPlacementScaleProportionallyToFit;
     _metalView.translatesAutoresizingMaskIntoConstraints = NO;
     _metalView.framebufferOnly = YES;
     _metalView.delegate = self;

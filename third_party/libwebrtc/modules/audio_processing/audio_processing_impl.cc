@@ -1898,7 +1898,7 @@ void AudioProcessingImpl::InitializeEchoController() {
         multichannel_config = EchoCanceller3::CreateDefaultMultichannelConfig();
       }
       submodules_.echo_controller = std::make_unique<EchoCanceller3>(
-          config, multichannel_config, proc_sample_rate_hz(),
+          env_, config, multichannel_config, proc_sample_rate_hz(),
           num_reverse_channels(), num_proc_channels());
     }
 
@@ -2017,8 +2017,9 @@ void AudioProcessingImpl::InitializeGainController1() {
     if (re_creation) {
       stream_analog_level = submodules_.agc_manager->recommended_analog_level();
     }
-    submodules_.agc_manager.reset(new AgcManagerDirect(
-        num_proc_channels(), config_.gain_controller1.analog_gain_controller));
+    submodules_.agc_manager = std::make_unique<AgcManagerDirect>(
+        env_, num_proc_channels(),
+        config_.gain_controller1.analog_gain_controller);
     if (re_creation) {
       submodules_.agc_manager->set_stream_analog_level(stream_analog_level);
     }

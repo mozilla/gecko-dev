@@ -14,21 +14,28 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "api/array_view.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/task_queue/task_queue_base.h"
+#include "api/test/rtc_error_matchers.h"
 #include "api/units/time_delta.h"
 #include "rtc_base/crypto_random.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/memory_stream.h"
+#include "rtc_base/stream.h"
+#include "rtc_base/thread.h"
 #include "rtc_base/time_utils.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 using ::cricket::PseudoTcp;
+using ::testing::IsTrue;
 using ::webrtc::ScopedTaskSafety;
 using ::webrtc::TaskQueueBase;
 using ::webrtc::TimeDelta;
@@ -243,10 +250,16 @@ class PseudoTcpTest : public PseudoTcpTestBase {
     // Connect and wait until connected.
     start = rtc::Time32();
     EXPECT_EQ(0, Connect());
-    EXPECT_TRUE_WAIT(have_connected_, kConnectTimeoutMs);
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] { return have_connected_; }, IsTrue(),
+                    {.timeout = webrtc::TimeDelta::Millis(kConnectTimeoutMs)}),
+                webrtc::IsRtcOk());
     // Sending will start from OnTcpWriteable and complete when all data has
     // been received.
-    EXPECT_TRUE_WAIT(have_disconnected_, kTransferTimeoutMs);
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] { return have_disconnected_; }, IsTrue(),
+                    {.timeout = webrtc::TimeDelta::Millis(kTransferTimeoutMs)}),
+                webrtc::IsRtcOk());
     elapsed = rtc::Time32() - start;
     recv_stream_.GetSize(&received);
     // Ensure we closed down OK and we got the right data.
@@ -366,10 +379,16 @@ class PseudoTcpTestPingPong : public PseudoTcpTestBase {
     // Connect and wait until connected.
     start = rtc::Time32();
     EXPECT_EQ(0, Connect());
-    EXPECT_TRUE_WAIT(have_connected_, kConnectTimeoutMs);
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] { return have_connected_; }, IsTrue(),
+                    {.timeout = webrtc::TimeDelta::Millis(kConnectTimeoutMs)}),
+                webrtc::IsRtcOk());
     // Sending will start from OnTcpWriteable and stop when the required
     // number of iterations have completed.
-    EXPECT_TRUE_WAIT(have_disconnected_, kTransferTimeoutMs);
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] { return have_disconnected_; }, IsTrue(),
+                    {.timeout = webrtc::TimeDelta::Millis(kTransferTimeoutMs)}),
+                webrtc::IsRtcOk());
     elapsed = rtc::TimeSince(start);
     RTC_LOG(LS_INFO) << "Performed " << iterations << " pings in " << elapsed
                      << " ms";
@@ -488,10 +507,16 @@ class PseudoTcpTestReceiveWindow : public PseudoTcpTestBase {
 
     // Connect and wait until connected.
     EXPECT_EQ(0, Connect());
-    EXPECT_TRUE_WAIT(have_connected_, kConnectTimeoutMs);
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] { return have_connected_; }, IsTrue(),
+                    {.timeout = webrtc::TimeDelta::Millis(kConnectTimeoutMs)}),
+                webrtc::IsRtcOk());
 
     TaskQueueBase::Current()->PostTask([this] { WriteData(); });
-    EXPECT_TRUE_WAIT(have_disconnected_, kTransferTimeoutMs);
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] { return have_disconnected_; }, IsTrue(),
+                    {.timeout = webrtc::TimeDelta::Millis(kTransferTimeoutMs)}),
+                webrtc::IsRtcOk());
 
     ASSERT_EQ(2u, send_position_.size());
     ASSERT_EQ(2u, recv_position_.size());

@@ -231,6 +231,7 @@ if (is_ios || is_mac) {
 
         deps = [
           ":audio_device",
+          ":audio_device_module_error_handler",
           "../api:make_ref_counted",
           "../api/audio:audio_device",
           "../modules/audio_device:audio_device_generic",
@@ -290,6 +291,7 @@ if (is_ios || is_mac) {
         ]
 
         deps = [
+          ":audio_device_module_error_handler",
           ":audio_objc",
           ":audio_session_observer",
           ":base_objc",
@@ -505,6 +507,16 @@ if (is_ios || is_mac) {
       if (is_mac) {
         frameworks = [ "AudioUnit.framework" ]
       }
+    }
+
+    rtc_source_set("audio_device_module_error_handler") {
+      visibility = [ ":*" ]
+
+      sources = [ "objc/native/api/audio_device_module_error_handler.h" ]
+
+      public_configs = [ ":common_config_objc" ]
+
+      deps = []
     }
 
     rtc_library("objc_audio_device_module") {
@@ -1202,6 +1214,7 @@ if (is_ios || is_mac) {
             ":videosource_objc",
             ":videotoolbox_objc",
             "../api:libjingle_peerconnection_api",
+            "../api:rtc_error_matchers",
             "../api:scoped_refptr",
             "../api/audio:audio_device",
             "../api/audio:audio_processing",
@@ -1222,6 +1235,8 @@ if (is_ios || is_mac) {
             "../rtc_base:rtc_event",
             "../rtc_base/system:unused",
             "../system_wrappers",
+            "../test:test_support",
+            "../test:wait_until",
             "//third_party/libyuv",
           ]
 

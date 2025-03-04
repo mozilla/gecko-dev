@@ -527,43 +527,43 @@ int PhysicalSocket::DoReadFromSocket(void* buffer,
     msg.msg_name = addr;
     msg.msg_namelen = addr_len;
   }
-    // TODO(bugs.webrtc.org/15368): What size is needed? IPV6_TCLASS is supposed
-    // to be an int. Why is a larger size needed?
-    char control[CMSG_SPACE(sizeof(struct timeval) + 5 * sizeof(int))] = {};
-    if (timestamp || ecn) {
-      *timestamp = -1;
-      msg.msg_control = &control;
-      msg.msg_controllen = sizeof(control);
-    }
-    received = ::recvmsg(s_, &msg, 0);
-    if (received <= 0) {
-      // An error occured or shut down.
-      return received;
-    }
-    if (timestamp || ecn) {
-      struct cmsghdr* cmsg;
-      for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-        if (ecn) {
-          if ((cmsg->cmsg_type == IPV6_TCLASS &&
-               cmsg->cmsg_level == IPPROTO_IPV6) ||
-              (cmsg->cmsg_type == IP_TOS && cmsg->cmsg_level == IPPROTO_IP)) {
-            *ecn = EcnFromDs(CMSG_DATA(cmsg)[0]);
-          }
-        }
-        if (cmsg->cmsg_level != SOL_SOCKET)
-          continue;
-        if (timestamp && cmsg->cmsg_type == SCM_TIMESTAMP) {
-          timeval ts;
-          std::memcpy(static_cast<void*>(&ts), CMSG_DATA(cmsg), sizeof(ts));
-          *timestamp =
-              rtc::kNumMicrosecsPerSec * static_cast<int64_t>(ts.tv_sec) +
-              static_cast<int64_t>(ts.tv_usec);
+  // TODO(bugs.webrtc.org/15368): What size is needed? IPV6_TCLASS is supposed
+  // to be an int. Why is a larger size needed?
+  char control[CMSG_SPACE(sizeof(struct timeval) + 5 * sizeof(int))] = {};
+  if (timestamp || ecn) {
+    *timestamp = -1;
+    msg.msg_control = &control;
+    msg.msg_controllen = sizeof(control);
+  }
+  received = ::recvmsg(s_, &msg, 0);
+  if (received <= 0) {
+    // An error occured or shut down.
+    return received;
+  }
+  if (timestamp || ecn) {
+    struct cmsghdr* cmsg;
+    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+      if (ecn) {
+        if ((cmsg->cmsg_type == IPV6_TCLASS &&
+             cmsg->cmsg_level == IPPROTO_IPV6) ||
+            (cmsg->cmsg_type == IP_TOS && cmsg->cmsg_level == IPPROTO_IP)) {
+          *ecn = EcnFromDs(CMSG_DATA(cmsg)[0]);
         }
       }
+      if (cmsg->cmsg_level != SOL_SOCKET)
+        continue;
+      if (timestamp && cmsg->cmsg_type == SCM_TIMESTAMP) {
+        timeval ts;
+        std::memcpy(static_cast<void*>(&ts), CMSG_DATA(cmsg), sizeof(ts));
+        *timestamp =
+            rtc::kNumMicrosecsPerSec * static_cast<int64_t>(ts.tv_sec) +
+            static_cast<int64_t>(ts.tv_usec);
+      }
     }
-    if (out_addr) {
-      SocketAddressFromSockAddrStorage(addr_storage, out_addr);
-    }
+  }
+  if (out_addr) {
+    SocketAddressFromSockAddrStorage(addr_storage, out_addr);
+  }
   return received;
 
 #else

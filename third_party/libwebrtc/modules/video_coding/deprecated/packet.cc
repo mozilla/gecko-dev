@@ -25,8 +25,7 @@ VCMPacket::VCMPacket()
       timesNacked(-1),
       completeNALU(kNaluUnset),
       insertStartCode(false),
-      video_header() {
-}
+      video_header() {}
 
 VCMPacket::VCMPacket(const uint8_t* ptr,
                      size_t size,

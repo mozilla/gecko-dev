@@ -11,7 +11,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b0658888969395dca
  2 files changed, 10 insertions(+)
 
 diff --git a/BUILD.gn b/BUILD.gn
-index 3fea832ed2..535c2d996b 100644
+index 486c6b66f2..510f0960ca 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -631,6 +631,10 @@ if (!build_with_chromium) {
@@ -26,10 +26,10 @@ index 3fea832ed2..535c2d996b 100644
        deps += [ "logging:rtc_event_log_proto" ]
      }
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index e445cdc90f..94628394c1 100644
+index e76b68c92e..627e59cfed 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -527,6 +527,7 @@ if (is_ios || is_mac) {
+@@ -539,6 +539,7 @@ if (is_ios || is_mac) {
        }
      }
  
@@ -37,7 +37,7 @@ index e445cdc90f..94628394c1 100644
      rtc_library("videosource_objc") {
        sources = [
          "objc/api/peerconnection/RTCVideoSource+Private.h",
-@@ -556,6 +557,7 @@ if (is_ios || is_mac) {
+@@ -568,6 +569,7 @@ if (is_ios || is_mac) {
          ":used_from_extension",
        ]
      }
@@ -45,7 +45,7 @@ index e445cdc90f..94628394c1 100644
  
      rtc_library("videoframebuffer_objc") {
        visibility = [ "*" ]
-@@ -588,6 +590,7 @@ if (is_ios || is_mac) {
+@@ -600,6 +602,7 @@ if (is_ios || is_mac) {
        ]
      }
  
@@ -53,7 +53,7 @@ index e445cdc90f..94628394c1 100644
      rtc_library("metal_objc") {
        visibility = [ "*" ]
        allow_poison = [
-@@ -649,6 +652,7 @@ if (is_ios || is_mac) {
+@@ -661,6 +664,7 @@ if (is_ios || is_mac) {
          ":videoframebuffer_objc",
        ]
      }
@@ -61,7 +61,7 @@ index e445cdc90f..94628394c1 100644
  
      rtc_library("videocapture_objc") {
        visibility = [ "*" ]
-@@ -677,6 +681,7 @@ if (is_ios || is_mac) {
+@@ -689,6 +693,7 @@ if (is_ios || is_mac) {
        ]
      }
  
@@ -69,7 +69,7 @@ index e445cdc90f..94628394c1 100644
      rtc_library("videocodec_objc") {
        visibility = [ "*" ]
        configs += [ "..:no_global_constructors" ]
-@@ -1766,5 +1771,6 @@ if (is_ios || is_mac) {
+@@ -1781,5 +1786,6 @@ if (is_ios || is_mac) {
          "VideoToolbox.framework",
        ]
      }

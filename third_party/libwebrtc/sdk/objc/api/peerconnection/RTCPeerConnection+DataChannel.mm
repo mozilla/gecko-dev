@@ -23,12 +23,14 @@
   std::string labelString = [NSString stdStringForString:label];
   const webrtc::DataChannelInit nativeInit =
       configuration.nativeDataChannelInit;
-  auto result = self.nativePeerConnection->CreateDataChannelOrError(labelString, &nativeInit);
+  auto result = self.nativePeerConnection->CreateDataChannelOrError(
+      labelString, &nativeInit);
   if (!result.ok()) {
     return nil;
   }
-  return [[RTC_OBJC_TYPE(RTCDataChannel) alloc] initWithFactory:self.factory
-                                              nativeDataChannel:result.MoveValue()];
+  return [[RTC_OBJC_TYPE(RTCDataChannel) alloc]
+        initWithFactory:self.factory
+      nativeDataChannel:result.MoveValue()];
 }
 
 @end

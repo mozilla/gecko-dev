@@ -35,7 +35,8 @@ RTC_OBJC_EXPORT
 /** Called on a system notification thread when AVAudioSession starts an
  *  interruption event.
  */
-- (void)audioSessionDidBeginInterruption:(RTC_OBJC_TYPE(RTCAudioSession) *)session;
+- (void)audioSessionDidBeginInterruption:
+    (RTC_OBJC_TYPE(RTCAudioSession) *)session;
 
 /** Called on a system notification thread when AVAudioSession ends an
  *  interruption event.
@@ -48,12 +49,14 @@ RTC_OBJC_EXPORT
  */
 - (void)audioSessionDidChangeRoute:(RTC_OBJC_TYPE(RTCAudioSession) *)session
                             reason:(AVAudioSessionRouteChangeReason)reason
-                     previousRoute:(AVAudioSessionRouteDescription *)previousRoute;
+                     previousRoute:
+                         (AVAudioSessionRouteDescription *)previousRoute;
 
 /** Called on a system notification thread when AVAudioSession media server
  *  terminates.
  */
-- (void)audioSessionMediaServerTerminated:(RTC_OBJC_TYPE(RTCAudioSession) *)session;
+- (void)audioSessionMediaServerTerminated:
+    (RTC_OBJC_TYPE(RTCAudioSession) *)session;
 
 /** Called on a system notification thread when AVAudioSession media server
  *  restarts.
@@ -68,12 +71,14 @@ RTC_OBJC_EXPORT
 /** Called on a WebRTC thread when the audio device is notified to begin
  *  playback or recording.
  */
-- (void)audioSessionDidStartPlayOrRecord:(RTC_OBJC_TYPE(RTCAudioSession) *)session;
+- (void)audioSessionDidStartPlayOrRecord:
+    (RTC_OBJC_TYPE(RTCAudioSession) *)session;
 
 /** Called on a WebRTC thread when the audio device is notified to stop
  *  playback or recording.
  */
-- (void)audioSessionDidStopPlayOrRecord:(RTC_OBJC_TYPE(RTCAudioSession) *)session;
+- (void)audioSessionDidStopPlayOrRecord:
+    (RTC_OBJC_TYPE(RTCAudioSession) *)session;
 
 /** Called when the AVAudioSession output volume value changes. */
 - (void)audioSession:(RTC_OBJC_TYPE(RTCAudioSession) *)audioSession
@@ -87,11 +92,13 @@ RTC_OBJC_EXPORT
 
 /** Called when the audio session is about to change the active state.
  */
-- (void)audioSession:(RTC_OBJC_TYPE(RTCAudioSession) *)audioSession willSetActive:(BOOL)active;
+- (void)audioSession:(RTC_OBJC_TYPE(RTCAudioSession) *)audioSession
+       willSetActive:(BOOL)active;
 
 /** Called after the audio session sucessfully changed the active state.
  */
-- (void)audioSession:(RTC_OBJC_TYPE(RTCAudioSession) *)audioSession didSetActive:(BOOL)active;
+- (void)audioSession:(RTC_OBJC_TYPE(RTCAudioSession) *)audioSession
+        didSetActive:(BOOL)active;
 
 /** Called after the audio session failed to change the active state.
  */
@@ -105,8 +112,9 @@ RTC_OBJC_EXPORT
 @end
 
 /** This is a protocol used to inform RTCAudioSession when the audio session
- *  activation state has changed outside of RTCAudioSession. The current known use
- *  case of this is when CallKit activates the audio session for the application
+ *  activation state has changed outside of RTCAudioSession. The current known
+ * use case of this is when CallKit activates the audio session for the
+ * application
  */
 RTC_OBJC_EXPORT
 @protocol RTC_OBJC_TYPE
@@ -173,10 +181,14 @@ RTC_OBJC_EXPORT
 @property(readonly) float inputGain;
 @property(readonly) BOOL inputGainSettable;
 @property(readonly) BOOL inputAvailable;
-@property(readonly, nullable) NSArray<AVAudioSessionDataSourceDescription *> *inputDataSources;
-@property(readonly, nullable) AVAudioSessionDataSourceDescription *inputDataSource;
-@property(readonly, nullable) NSArray<AVAudioSessionDataSourceDescription *> *outputDataSources;
-@property(readonly, nullable) AVAudioSessionDataSourceDescription *outputDataSource;
+@property(readonly, nullable)
+    NSArray<AVAudioSessionDataSourceDescription *> *inputDataSources;
+@property(readonly, nullable)
+    AVAudioSessionDataSourceDescription *inputDataSource;
+@property(readonly, nullable)
+    NSArray<AVAudioSessionDataSourceDescription *> *outputDataSources;
+@property(readonly, nullable)
+    AVAudioSessionDataSourceDescription *outputDataSource;
 @property(readonly) double sampleRate;
 @property(readonly) double preferredSampleRate;
 @property(readonly) NSInteger inputNumberOfChannels;
@@ -188,10 +200,11 @@ RTC_OBJC_EXPORT
 @property(readonly) NSTimeInterval preferredIOBufferDuration;
 
 /**
- When YES, calls to -setConfiguration:error: and -setConfiguration:active:error: ignore errors in
- configuring the audio session's "preferred" attributes (e.g. preferredInputNumberOfChannels).
- Typically, configurations to preferred attributes are optimizations, and ignoring this type of
- configuration error allows code flow to continue along the happy path when these optimization are
+ When YES, calls to -setConfiguration:error: and -setConfiguration:active:error:
+ ignore errors in configuring the audio session's "preferred" attributes (e.g.
+ preferredInputNumberOfChannels). Typically, configurations to preferred
+ attributes are optimizations, and ignoring this type of configuration error
+ allows code flow to continue along the happy path when these optimization are
  not available. The default value of this property is NO.
  */
 @property(nonatomic) BOOL ignoresPreferredAttributeConfigurationErrors;
@@ -235,11 +248,16 @@ RTC_OBJC_EXPORT
 - (BOOL)setMode:(AVAudioSessionMode)mode error:(NSError **)outError;
 - (BOOL)setInputGain:(float)gain error:(NSError **)outError;
 - (BOOL)setPreferredSampleRate:(double)sampleRate error:(NSError **)outError;
-- (BOOL)setPreferredIOBufferDuration:(NSTimeInterval)duration error:(NSError **)outError;
-- (BOOL)setPreferredInputNumberOfChannels:(NSInteger)count error:(NSError **)outError;
-- (BOOL)setPreferredOutputNumberOfChannels:(NSInteger)count error:(NSError **)outError;
-- (BOOL)overrideOutputAudioPort:(AVAudioSessionPortOverride)portOverride error:(NSError **)outError;
-- (BOOL)setPreferredInput:(AVAudioSessionPortDescription *)inPort error:(NSError **)outError;
+- (BOOL)setPreferredIOBufferDuration:(NSTimeInterval)duration
+                               error:(NSError **)outError;
+- (BOOL)setPreferredInputNumberOfChannels:(NSInteger)count
+                                    error:(NSError **)outError;
+- (BOOL)setPreferredOutputNumberOfChannels:(NSInteger)count
+                                     error:(NSError **)outError;
+- (BOOL)overrideOutputAudioPort:(AVAudioSessionPortOverride)portOverride
+                          error:(NSError **)outError;
+- (BOOL)setPreferredInput:(AVAudioSessionPortDescription *)inPort
+                    error:(NSError **)outError;
 - (BOOL)setInputDataSource:(AVAudioSessionDataSourceDescription *)dataSource
                      error:(NSError **)outError;
 - (BOOL)setOutputDataSource:(AVAudioSessionDataSourceDescription *)dataSource
@@ -254,13 +272,15 @@ RTC_OBJC_EXPORT
      *  returned.
      *  `lockForConfiguration` must be called first.
      */
-    - (BOOL)setConfiguration : (RTC_OBJC_TYPE(RTCAudioSessionConfiguration) *)configuration error
+    - (BOOL)setConfiguration
+    : (RTC_OBJC_TYPE(RTCAudioSessionConfiguration) *)configuration error
     : (NSError **)outError;
 
 /** Convenience method that calls both setConfiguration and setActive.
  *  `lockForConfiguration` must be called first.
  */
-- (BOOL)setConfiguration:(RTC_OBJC_TYPE(RTCAudioSessionConfiguration) *)configuration
+- (BOOL)setConfiguration:
+            (RTC_OBJC_TYPE(RTCAudioSessionConfiguration) *)configuration
                   active:(BOOL)active
                    error:(NSError **)outError;
 

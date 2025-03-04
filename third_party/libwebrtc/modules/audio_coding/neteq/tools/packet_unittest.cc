@@ -28,7 +28,7 @@ void MakeRtpHeader(int payload_type,
   rtp_data[0] = 0x80;
   rtp_data[1] = static_cast<uint8_t>(payload_type);
   rtp_data[2] = (seq_number >> 8) & 0xFF;
-  rtp_data[3] = (seq_number)&0xFF;
+  rtp_data[3] = (seq_number) & 0xFF;
   rtp_data[4] = timestamp >> 24;
   rtp_data[5] = (timestamp >> 16) & 0xFF;
   rtp_data[6] = (timestamp >> 8) & 0xFF;

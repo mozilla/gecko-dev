@@ -140,6 +140,8 @@ rtc_library("aec3_factory") {
     ":echo_control",
     "../../modules/audio_processing/aec3",
     "../../rtc_base/system:rtc_export",
+    "../environment",
+    "//third_party/abseil-cpp/absl/base:nullability",
   ]
 }
 

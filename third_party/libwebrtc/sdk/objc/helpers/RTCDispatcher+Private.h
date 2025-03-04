@@ -13,6 +13,7 @@
 @interface RTC_OBJC_TYPE (RTCDispatcher)
 ()
 
-    + (dispatch_queue_t)dispatchQueueForType : (RTCDispatcherQueueType)dispatchType;
+    + (dispatch_queue_t)dispatchQueueForType
+    : (RTCDispatcherQueueType)dispatchType;
 
 @end

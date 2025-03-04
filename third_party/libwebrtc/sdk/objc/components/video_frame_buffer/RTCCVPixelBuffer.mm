@@ -38,11 +38,12 @@
 @synthesize cropHeight = _cropHeight;
 
 + (NSSet<NSNumber*>*)supportedPixelFormats {
-  return [NSSet setWithObjects:@(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange),
-                               @(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange),
-                               @(kCVPixelFormatType_32BGRA),
-                               @(kCVPixelFormatType_32ARGB),
-                               nil];
+  return
+      [NSSet setWithObjects:@(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange),
+                            @(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange),
+                            @(kCVPixelFormatType_32BGRA),
+                            @(kCVPixelFormatType_32ARGB),
+                            nil];
 }
 
 - (instancetype)initWithPixelBuffer:(CVPixelBufferRef)pixelBuffer {
@@ -110,7 +111,8 @@
       int dstChromaWidth = (width + 1) / 2;
       int dstChromaHeight = (height + 1) / 2;
 
-      return srcChromaWidth * srcChromaHeight * 2 + dstChromaWidth * dstChromaHeight * 2;
+      return srcChromaWidth * srcChromaHeight * 2 +
+          dstChromaWidth * dstChromaHeight * 2;
     }
     case kCVPixelFormatType_32BGRA:
     case kCVPixelFormatType_32ARGB: {
@@ -124,7 +126,8 @@
 - (BOOL)cropAndScaleTo:(CVPixelBufferRef)outputPixelBuffer
         withTempBuffer:(nullable uint8_t*)tmpBuffer {
   const OSType srcPixelFormat = CVPixelBufferGetPixelFormatType(_pixelBuffer);
-  const OSType dstPixelFormat = CVPixelBufferGetPixelFormatType(outputPixelBuffer);
+  const OSType dstPixelFormat =
+      CVPixelBufferGetPixelFormatType(outputPixelBuffer);
 
   switch (srcPixelFormat) {
     case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange:
@@ -132,8 +135,9 @@
       size_t dstWidth = CVPixelBufferGetWidth(outputPixelBuffer);
       size_t dstHeight = CVPixelBufferGetHeight(outputPixelBuffer);
       if (dstWidth > 0 && dstHeight > 0) {
-        RTC_DCHECK(dstPixelFormat == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange ||
-                   dstPixelFormat == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange);
+        RTC_DCHECK(
+            dstPixelFormat == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange ||
+            dstPixelFormat == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange);
         if ([self requiresScalingToWidth:dstWidth height:dstHeight]) {
           RTC_DCHECK(tmpBuffer);
         }
@@ -176,17 +180,20 @@
   CVPixelBufferLockBaseAddress(_pixelBuffer, kCVPixelBufferLock_ReadOnly);
 
   RTC_OBJC_TYPE(RTCMutableI420Buffer)* i420Buffer =
-      [[RTC_OBJC_TYPE(RTCMutableI420Buffer) alloc] initWithWidth:[self width] height:[self height]];
+      [[RTC_OBJC_TYPE(RTCMutableI420Buffer) alloc] initWithWidth:[self width]
+                                                          height:[self height]];
 
   switch (pixelFormat) {
     case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange:
     case kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange: {
-      const uint8_t* srcY =
-          static_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(_pixelBuffer, 0));
-      const int srcYStride = CVPixelBufferGetBytesPerRowOfPlane(_pixelBuffer, 0);
-      const uint8_t* srcUV =
-          static_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(_pixelBuffer, 1));
-      const int srcUVStride = CVPixelBufferGetBytesPerRowOfPlane(_pixelBuffer, 1);
+      const uint8_t* srcY = static_cast<uint8_t*>(
+          CVPixelBufferGetBaseAddressOfPlane(_pixelBuffer, 0));
+      const int srcYStride =
+          CVPixelBufferGetBytesPerRowOfPlane(_pixelBuffer, 0);
+      const uint8_t* srcUV = static_cast<uint8_t*>(
+          CVPixelBufferGetBaseAddressOfPlane(_pixelBuffer, 1));
+      const int srcUVStride =
+          CVPixelBufferGetBytesPerRowOfPlane(_pixelBuffer, 1);
 
       // Crop just by modifying pointers.
       srcY += srcYStride * _cropY + _cropX;
@@ -215,17 +222,24 @@
       CVPixelBufferRef scaledPixelBuffer = NULL;
       CVPixelBufferRef sourcePixelBuffer = NULL;
       if ([self requiresCropping] ||
-          [self requiresScalingToWidth:i420Buffer.width height:i420Buffer.height]) {
-        CVPixelBufferCreate(
-            NULL, i420Buffer.width, i420Buffer.height, pixelFormat, NULL, &scaledPixelBuffer);
+          [self requiresScalingToWidth:i420Buffer.width
+                                height:i420Buffer.height]) {
+        CVPixelBufferCreate(NULL,
+                            i420Buffer.width,
+                            i420Buffer.height,
+                            pixelFormat,
+                            NULL,
+                            &scaledPixelBuffer);
         [self cropAndScaleTo:scaledPixelBuffer withTempBuffer:NULL];
 
-        CVPixelBufferLockBaseAddress(scaledPixelBuffer, kCVPixelBufferLock_ReadOnly);
+        CVPixelBufferLockBaseAddress(scaledPixelBuffer,
+                                     kCVPixelBufferLock_ReadOnly);
         sourcePixelBuffer = scaledPixelBuffer;
       } else {
         sourcePixelBuffer = _pixelBuffer;
       }
-      const uint8_t* src = static_cast<uint8_t*>(CVPixelBufferGetBaseAddress(sourcePixelBuffer));
+      const uint8_t* src =
+          static_cast<uint8_t*>(CVPixelBufferGetBaseAddress(sourcePixelBuffer));
       const size_t bytesPerRow = CVPixelBufferGetBytesPerRow(sourcePixelBuffer);
 
       if (pixelFormat == kCVPixelFormatType_32BGRA) {
@@ -255,7 +269,8 @@
       }
 
       if (scaledPixelBuffer) {
-        CVPixelBufferUnlockBaseAddress(scaledPixelBuffer, kCVPixelBufferLock_ReadOnly);
+        CVPixelBufferUnlockBaseAddress(scaledPixelBuffer,
+                                       kCVPixelBufferLock_ReadOnly);
         CVBufferRelease(scaledPixelBuffer);
       }
       break;
@@ -276,7 +291,9 @@
 - (id)debugQuickLookObject {
   CGImageRef cgImage;
   VTCreateCGImageFromCVPixelBuffer(_pixelBuffer, NULL, &cgImage);
-  UIImage *image = [UIImage imageWithCGImage:cgImage scale:1.0 orientation:UIImageOrientationUp];
+  UIImage* image = [UIImage imageWithCGImage:cgImage
+                                       scale:1.0
+                                 orientation:UIImageOrientationUp];
   CGImageRelease(cgImage);
   return image;
 }
@@ -284,7 +301,8 @@
 
 #pragma mark - Private
 
-- (void)cropAndScaleNV12To:(CVPixelBufferRef)outputPixelBuffer withTempBuffer:(uint8_t*)tmpBuffer {
+- (void)cropAndScaleNV12To:(CVPixelBufferRef)outputPixelBuffer
+            withTempBuffer:(uint8_t*)tmpBuffer {
   // Prepare output pointers.
   CVReturn cvRet = CVPixelBufferLockBaseAddress(outputPixelBuffer, 0);
   if (cvRet != kCVReturnSuccess) {
@@ -292,18 +310,22 @@
   }
   const int dstWidth = CVPixelBufferGetWidth(outputPixelBuffer);
   const int dstHeight = CVPixelBufferGetHeight(outputPixelBuffer);
-  uint8_t* dstY =
-      reinterpret_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(outputPixelBuffer, 0));
-  const int dstYStride = CVPixelBufferGetBytesPerRowOfPlane(outputPixelBuffer, 0);
-  uint8_t* dstUV =
-      reinterpret_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(outputPixelBuffer, 1));
-  const int dstUVStride = CVPixelBufferGetBytesPerRowOfPlane(outputPixelBuffer, 1);
+  uint8_t* dstY = reinterpret_cast<uint8_t*>(
+      CVPixelBufferGetBaseAddressOfPlane(outputPixelBuffer, 0));
+  const int dstYStride =
+      CVPixelBufferGetBytesPerRowOfPlane(outputPixelBuffer, 0);
+  uint8_t* dstUV = reinterpret_cast<uint8_t*>(
+      CVPixelBufferGetBaseAddressOfPlane(outputPixelBuffer, 1));
+  const int dstUVStride =
+      CVPixelBufferGetBytesPerRowOfPlane(outputPixelBuffer, 1);
 
   // Prepare source pointers.
   CVPixelBufferLockBaseAddress(_pixelBuffer, kCVPixelBufferLock_ReadOnly);
-  const uint8_t* srcY = static_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(_pixelBuffer, 0));
+  const uint8_t* srcY = static_cast<uint8_t*>(
+      CVPixelBufferGetBaseAddressOfPlane(_pixelBuffer, 0));
   const int srcYStride = CVPixelBufferGetBytesPerRowOfPlane(_pixelBuffer, 0);
-  const uint8_t* srcUV = static_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(_pixelBuffer, 1));
+  const uint8_t* srcUV = static_cast<uint8_t*>(
+      CVPixelBufferGetBaseAddressOfPlane(_pixelBuffer, 1));
   const int srcUVStride = CVPixelBufferGetBytesPerRowOfPlane(_pixelBuffer, 1);
 
   // Crop just by modifying pointers.
@@ -337,16 +359,19 @@
   const int dstWidth = CVPixelBufferGetWidth(outputPixelBuffer);
   const int dstHeight = CVPixelBufferGetHeight(outputPixelBuffer);
 
-  uint8_t* dst = reinterpret_cast<uint8_t*>(CVPixelBufferGetBaseAddress(outputPixelBuffer));
+  uint8_t* dst = reinterpret_cast<uint8_t*>(
+      CVPixelBufferGetBaseAddress(outputPixelBuffer));
   const int dstStride = CVPixelBufferGetBytesPerRow(outputPixelBuffer);
 
   // Prepare source pointers.
   CVPixelBufferLockBaseAddress(_pixelBuffer, kCVPixelBufferLock_ReadOnly);
-  const uint8_t* src = static_cast<uint8_t*>(CVPixelBufferGetBaseAddress(_pixelBuffer));
+  const uint8_t* src =
+      static_cast<uint8_t*>(CVPixelBufferGetBaseAddress(_pixelBuffer));
   const int srcStride = CVPixelBufferGetBytesPerRow(_pixelBuffer);
 
-  // Crop just by modifying pointers. Need to ensure that src pointer points to a byte corresponding
-  // to the start of a new pixel (byte with B for BGRA) so that libyuv scales correctly.
+  // Crop just by modifying pointers. Need to ensure that src pointer points to
+  // a byte corresponding to the start of a new pixel (byte with B for BGRA) so
+  // that libyuv scales correctly.
   const int bytesPerPixel = 4;
   src += srcStride * _cropY + (_cropX * bytesPerPixel);
 

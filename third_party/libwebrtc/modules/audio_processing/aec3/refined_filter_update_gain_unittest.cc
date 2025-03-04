@@ -15,6 +15,8 @@
 #include <string>
 #include <vector>
 
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "modules/audio_processing/aec3/adaptive_fir_filter.h"
 #include "modules/audio_processing/aec3/adaptive_fir_filter_erl.h"
 #include "modules/audio_processing/aec3/aec_state.h"
@@ -34,7 +36,8 @@ namespace {
 
 // Method for performing the simulations needed to test the refined filter
 // update gain functionality.
-void RunFilterUpdateTest(int num_blocks_to_process,
+void RunFilterUpdateTest(const Environment& env,
+                         int num_blocks_to_process,
                          size_t delay_samples,
                          int filter_length_blocks,
                          const std::vector<int>& blocks_with_echo_path_changes,
@@ -89,7 +92,7 @@ void RunFilterUpdateTest(int num_blocks_to_process,
   config.delay.default_delay = 1;
   std::unique_ptr<RenderDelayBuffer> render_delay_buffer(
       RenderDelayBuffer::Create(config, kSampleRateHz, kNumRenderChannels));
-  AecState aec_state(config, kNumCaptureChannels);
+  AecState aec_state(env, config, kNumCaptureChannels);
   RenderSignalAnalyzer render_signal_analyzer(config);
   std::optional<DelayEstimate> delay_estimate;
   std::array<float, kFftLength> s_scratch;
@@ -254,6 +257,7 @@ TEST(RefinedFilterUpdateGainDeathTest, NullDataOutputGain) {
 
 // Verifies that the gain formed causes the filter using it to converge.
 TEST(RefinedFilterUpdateGain, GainCausesFilterToConverge) {
+  const Environment env = CreateEnvironment();
   std::vector<int> blocks_with_echo_path_changes;
   std::vector<int> blocks_with_saturation;
   for (size_t filter_length_blocks : {12, 20, 30}) {
@@ -264,7 +268,7 @@ TEST(RefinedFilterUpdateGain, GainCausesFilterToConverge) {
       std::array<float, kBlockSize> y;
       FftData G;
 
-      RunFilterUpdateTest(600, delay_samples, filter_length_blocks,
+      RunFilterUpdateTest(env, 600, delay_samples, filter_length_blocks,
                           blocks_with_echo_path_changes, blocks_with_saturation,
                           false, &e, &y, &G);
 
@@ -284,6 +288,7 @@ TEST(RefinedFilterUpdateGain, GainCausesFilterToConverge) {
 // Verifies that the magnitude of the gain on average decreases for a
 // persistently exciting signal.
 TEST(RefinedFilterUpdateGain, DecreasingGain) {
+  const Environment env = CreateEnvironment();
   std::vector<int> blocks_with_echo_path_changes;
   std::vector<int> blocks_with_saturation;
 
@@ -296,11 +301,11 @@ TEST(RefinedFilterUpdateGain, DecreasingGain) {
   std::array<float, kFftLengthBy2Plus1> G_b_power;
   std::array<float, kFftLengthBy2Plus1> G_c_power;
 
-  RunFilterUpdateTest(250, 65, 12, blocks_with_echo_path_changes,
+  RunFilterUpdateTest(env, 250, 65, 12, blocks_with_echo_path_changes,
                       blocks_with_saturation, false, &e, &y, &G_a);
-  RunFilterUpdateTest(500, 65, 12, blocks_with_echo_path_changes,
+  RunFilterUpdateTest(env, 500, 65, 12, blocks_with_echo_path_changes,
                       blocks_with_saturation, false, &e, &y, &G_b);
-  RunFilterUpdateTest(750, 65, 12, blocks_with_echo_path_changes,
+  RunFilterUpdateTest(env, 750, 65, 12, blocks_with_echo_path_changes,
                       blocks_with_saturation, false, &e, &y, &G_c);
 
   G_a.Spectrum(Aec3Optimization::kNone, G_a_power);
@@ -317,6 +322,7 @@ TEST(RefinedFilterUpdateGain, DecreasingGain) {
 // Verifies that the gain is zero when there is saturation and that the internal
 // error estimates cause the gain to increase after a period of saturation.
 TEST(RefinedFilterUpdateGain, SaturationBehavior) {
+  const Environment env = CreateEnvironment();
   std::vector<int> blocks_with_echo_path_changes;
   std::vector<int> blocks_with_saturation;
   for (int k = 99; k < 200; ++k) {
@@ -336,17 +342,17 @@ TEST(RefinedFilterUpdateGain, SaturationBehavior) {
     std::array<float, kFftLengthBy2Plus1> G_a_power;
     std::array<float, kFftLengthBy2Plus1> G_b_power;
 
-    RunFilterUpdateTest(100, 65, filter_length_blocks,
+    RunFilterUpdateTest(env, 100, 65, filter_length_blocks,
                         blocks_with_echo_path_changes, blocks_with_saturation,
                         false, &e, &y, &G_a);
 
     EXPECT_EQ(G_a_ref.re, G_a.re);
     EXPECT_EQ(G_a_ref.im, G_a.im);
 
-    RunFilterUpdateTest(99, 65, filter_length_blocks,
+    RunFilterUpdateTest(env, 99, 65, filter_length_blocks,
                         blocks_with_echo_path_changes, blocks_with_saturation,
                         false, &e, &y, &G_a);
-    RunFilterUpdateTest(201, 65, filter_length_blocks,
+    RunFilterUpdateTest(env, 201, 65, filter_length_blocks,
                         blocks_with_echo_path_changes, blocks_with_saturation,
                         false, &e, &y, &G_b);
 
@@ -361,6 +367,7 @@ TEST(RefinedFilterUpdateGain, SaturationBehavior) {
 // Verifies that the gain increases after an echo path change.
 // TODO(peah): Correct and reactivate this test.
 TEST(RefinedFilterUpdateGain, DISABLED_EchoPathChangeBehavior) {
+  const Environment env = CreateEnvironment();
   for (size_t filter_length_blocks : {12, 20, 30}) {
     SCOPED_TRACE(ProduceDebugText(filter_length_blocks));
     std::vector<int> blocks_with_echo_path_changes;
@@ -374,10 +381,10 @@ TEST(RefinedFilterUpdateGain, DISABLED_EchoPathChangeBehavior) {
     std::array<float, kFftLengthBy2Plus1> G_a_power;
     std::array<float, kFftLengthBy2Plus1> G_b_power;
 
-    RunFilterUpdateTest(100, 65, filter_length_blocks,
+    RunFilterUpdateTest(env, 100, 65, filter_length_blocks,
                         blocks_with_echo_path_changes, blocks_with_saturation,
                         false, &e, &y, &G_a);
-    RunFilterUpdateTest(101, 65, filter_length_blocks,
+    RunFilterUpdateTest(env, 101, 65, filter_length_blocks,
                         blocks_with_echo_path_changes, blocks_with_saturation,
                         false, &e, &y, &G_b);
 

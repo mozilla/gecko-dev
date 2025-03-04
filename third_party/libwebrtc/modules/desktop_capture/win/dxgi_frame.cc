@@ -25,7 +25,9 @@ DxgiFrame::DxgiFrame(SharedMemoryFactory* factory) : factory_(factory) {}
 
 DxgiFrame::~DxgiFrame() = default;
 
-bool DxgiFrame::Prepare(DesktopSize size, DesktopCapturer::SourceId source_id) {
+bool DxgiFrame::Prepare(DesktopSize size,
+                        DesktopCapturer::SourceId source_id,
+                        std::optional<int32_t> device_scale_factor) {
   if (source_id != source_id_) {
     // Once the source has been changed, the entire source should be copied.
     source_id_ = source_id;
@@ -57,7 +59,7 @@ bool DxgiFrame::Prepare(DesktopSize size, DesktopCapturer::SourceId source_id) {
     } else {
       frame.reset(new BasicDesktopFrame(size));
     }
-
+    frame->set_device_scale_factor(device_scale_factor);
     frame_ = SharedDesktopFrame::Wrap(std::move(frame));
   }
 

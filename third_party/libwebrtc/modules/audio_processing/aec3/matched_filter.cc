@@ -29,9 +29,7 @@
 #include "modules/audio_processing/aec3/downsampled_render_buffer.h"
 #include "modules/audio_processing/logging/apm_data_dumper.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/logging.h"
-#include "system_wrappers/include/field_trial.h"
 
 namespace {
 
@@ -57,10 +55,9 @@ void UpdateAccumulatedError(
   }
 }
 
-size_t ComputePreEchoLag(
-    const rtc::ArrayView<const float> accumulated_error,
-    size_t lag,
-    size_t alignment_shift_winner) {
+size_t ComputePreEchoLag(const rtc::ArrayView<const float> accumulated_error,
+                         size_t lag,
+                         size_t alignment_shift_winner) {
   static constexpr float kPreEchoThreshold = 0.5f;
   RTC_DCHECK_GE(lag, alignment_shift_winner);
   size_t pre_echo_lag_estimate = lag - alignment_shift_winner;

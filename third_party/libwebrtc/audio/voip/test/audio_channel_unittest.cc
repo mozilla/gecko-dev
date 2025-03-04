@@ -58,7 +58,7 @@ class AudioChannelTest : public ::testing::Test {
     // By default, run the queued task immediately.
     ON_CALL(task_queue_, PostTaskImpl)
         .WillByDefault(WithArg<0>(
-            [](absl::AnyInvocable<void() &&> task) { std::move(task)(); }));
+            [](absl::AnyInvocable<void()&&> task) { std::move(task)(); }));
   }
 
   void SetUp() override { audio_channel_ = CreateAudioChannel(kLocalSsrc); }

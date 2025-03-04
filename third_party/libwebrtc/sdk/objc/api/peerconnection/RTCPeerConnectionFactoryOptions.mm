@@ -44,11 +44,15 @@ void setNetworkBit(webrtc::PeerConnectionFactoryInterface::Options* options,
   options.disable_encryption = self.disableEncryption;
   options.disable_network_monitor = self.disableNetworkMonitor;
 
-  setNetworkBit(&options, rtc::ADAPTER_TYPE_LOOPBACK, self.ignoreLoopbackNetworkAdapter);
+  setNetworkBit(
+      &options, rtc::ADAPTER_TYPE_LOOPBACK, self.ignoreLoopbackNetworkAdapter);
   setNetworkBit(&options, rtc::ADAPTER_TYPE_VPN, self.ignoreVPNNetworkAdapter);
-  setNetworkBit(&options, rtc::ADAPTER_TYPE_CELLULAR, self.ignoreCellularNetworkAdapter);
-  setNetworkBit(&options, rtc::ADAPTER_TYPE_WIFI, self.ignoreWiFiNetworkAdapter);
-  setNetworkBit(&options, rtc::ADAPTER_TYPE_ETHERNET, self.ignoreEthernetNetworkAdapter);
+  setNetworkBit(
+      &options, rtc::ADAPTER_TYPE_CELLULAR, self.ignoreCellularNetworkAdapter);
+  setNetworkBit(
+      &options, rtc::ADAPTER_TYPE_WIFI, self.ignoreWiFiNetworkAdapter);
+  setNetworkBit(
+      &options, rtc::ADAPTER_TYPE_ETHERNET, self.ignoreEthernetNetworkAdapter);
 
   return options;
 }

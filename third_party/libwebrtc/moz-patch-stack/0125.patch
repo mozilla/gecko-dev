@@ -10,10 +10,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fd7a2f8d10cf9d6e8
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/modules/audio_processing/aec3/echo_canceller3.cc b/modules/audio_processing/aec3/echo_canceller3.cc
-index 00010ceaea..4b3747e92b 100644
+index 2a60377364..069bd30bf5 100644
 --- a/modules/audio_processing/aec3/echo_canceller3.cc
 +++ b/modules/audio_processing/aec3/echo_canceller3.cc
-@@ -781,7 +781,7 @@ EchoCanceller3::EchoCanceller3(
+@@ -795,7 +795,7 @@ EchoCanceller3::EchoCanceller3(
      linear_output_framer_.reset(
          new BlockFramer(/*num_bands=*/1, num_capture_channels_));
      linear_output_block_ =

@@ -24,7 +24,8 @@
   rtc::scoped_refptr<webrtc::MediaStreamInterface> _nativeMediaStream;
 }
 
-- (instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
+- (instancetype)initWithFactory:
+                    (RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
                        streamId:(NSString *)streamId {
   NSParameterAssert(factory);
   NSParameterAssert(streamId.length);
@@ -36,14 +37,16 @@
 
 - (NSArray<RTC_OBJC_TYPE(RTCAudioTrack) *> *)audioTracks {
   if (!_signalingThread->IsCurrent()) {
-    return _signalingThread->BlockingCall([self]() { return self.audioTracks; });
+    return _signalingThread->BlockingCall(
+        [self]() { return self.audioTracks; });
   }
   return [_audioTracks copy];
 }
 
 - (NSArray<RTC_OBJC_TYPE(RTCVideoTrack) *> *)videoTracks {
   if (!_signalingThread->IsCurrent()) {
-    return _signalingThread->BlockingCall([self]() { return self.videoTracks; });
+    return _signalingThread->BlockingCall(
+        [self]() { return self.videoTracks; });
   }
   return [_videoTracks copy];
 }
@@ -79,7 +82,8 @@
   }
   NSUInteger index = [_audioTracks indexOfObjectIdenticalTo:audioTrack];
   if (index == NSNotFound) {
-    RTC_LOG(LS_INFO) << "|removeAudioTrack| called on unexpected RTC_OBJC_TYPE(RTCAudioTrack)";
+    RTC_LOG(LS_INFO) << "|removeAudioTrack| called on unexpected "
+                        "RTC_OBJC_TYPE(RTCAudioTrack)";
     return;
   }
   if (_nativeMediaStream->RemoveTrack(audioTrack.nativeAudioTrack)) {
@@ -94,7 +98,8 @@
   }
   NSUInteger index = [_videoTracks indexOfObjectIdenticalTo:videoTrack];
   if (index == NSNotFound) {
-    RTC_LOG(LS_INFO) << "|removeVideoTrack| called on unexpected RTC_OBJC_TYPE(RTCVideoTrack)";
+    RTC_LOG(LS_INFO) << "|removeVideoTrack| called on unexpected "
+                        "RTC_OBJC_TYPE(RTCVideoTrack)";
     return;
   }
 
@@ -104,10 +109,11 @@
 }
 
 - (NSString *)description {
-  return [NSString stringWithFormat:@"RTC_OBJC_TYPE(RTCMediaStream):\n%@\nA=%lu\nV=%lu",
-                                    self.streamId,
-                                    (unsigned long)self.audioTracks.count,
-                                    (unsigned long)self.videoTracks.count];
+  return [NSString
+      stringWithFormat:@"RTC_OBJC_TYPE(RTCMediaStream):\n%@\nA=%lu\nV=%lu",
+                       self.streamId,
+                       (unsigned long)self.audioTracks.count,
+                       (unsigned long)self.videoTracks.count];
 }
 
 #pragma mark - Private
@@ -116,9 +122,10 @@
   return _nativeMediaStream;
 }
 
-- (instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
-              nativeMediaStream:
-                  (rtc::scoped_refptr<webrtc::MediaStreamInterface>)nativeMediaStream {
+- (instancetype)
+      initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
+    nativeMediaStream:
+        (rtc::scoped_refptr<webrtc::MediaStreamInterface>)nativeMediaStream {
   NSParameterAssert(nativeMediaStream);
   self = [super init];
   if (self) {

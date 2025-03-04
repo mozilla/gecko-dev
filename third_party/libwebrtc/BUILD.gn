@@ -699,6 +699,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "api/task_queue:pending_task_safety_flag_unittests",
       "api/test/metrics:metrics_unittests",
       "api/transport:stun_unittest",
+      "api/transport/rtp:corruption_detection_message_unittest",
       "api/video/test:rtc_api_video_unittests",
       "api/video_codecs:libaom_av1_encoder_factory_test",
       "api/video_codecs:simple_encoder_wrapper_unittests",

@@ -19,7 +19,9 @@ void RTCEnableMetrics(void) {
 }
 
 NSArray<RTC_OBJC_TYPE(RTCMetricsSampleInfo) *> *RTCGetAndResetMetrics(void) {
-  std::map<std::string, std::unique_ptr<webrtc::metrics::SampleInfo>, rtc::AbslStringViewCmp>
+  std::map<std::string,
+           std::unique_ptr<webrtc::metrics::SampleInfo>,
+           rtc::AbslStringViewCmp>
       histograms;
   webrtc::metrics::GetAndReset(&histograms);
 
@@ -27,7 +29,8 @@ NSArray<RTC_OBJC_TYPE(RTCMetricsSampleInfo) *> *RTCGetAndResetMetrics(void) {
       [NSMutableArray arrayWithCapacity:histograms.size()];
   for (auto const &histogram : histograms) {
     RTC_OBJC_TYPE(RTCMetricsSampleInfo) *metric =
-        [[RTC_OBJC_TYPE(RTCMetricsSampleInfo) alloc] initWithNativeSampleInfo:*histogram.second];
+        [[RTC_OBJC_TYPE(RTCMetricsSampleInfo) alloc]
+            initWithNativeSampleInfo:*histogram.second];
     [metrics addObject:metric];
   }
   return metrics;

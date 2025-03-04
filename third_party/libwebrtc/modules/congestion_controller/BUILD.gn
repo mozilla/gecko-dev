@@ -36,6 +36,7 @@ rtc_library("congestion_controller") {
     "../remote_bitrate_estimator:congestion_control_feedback_generator",
     "../remote_bitrate_estimator:transport_sequence_number_feedback_generator",
     "../rtp_rtcp:rtp_rtcp_format",
+    "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/base:nullability",
   ]
 }

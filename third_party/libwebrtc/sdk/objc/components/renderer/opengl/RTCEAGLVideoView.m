@@ -30,13 +30,13 @@
 // error GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT. -[GLKView display] is
 // the method that will trigger the binding of the render
 // buffer. Because the standard behaviour of -[UIView setNeedsDisplay]
-// is disabled for the reasons above, the RTC_OBJC_TYPE(RTCEAGLVideoView) maintains
-// its own `isDirty` flag.
+// is disabled for the reasons above, the RTC_OBJC_TYPE(RTCEAGLVideoView)
+// maintains its own `isDirty` flag.
 
 @interface RTC_OBJC_TYPE (RTCEAGLVideoView)
 ()<GLKViewDelegate>
-    // `videoFrame` is set when we receive a frame from a worker thread and is read
-    // from the display link callback so atomicity is required.
+    // `videoFrame` is set when we receive a frame from a worker thread and is
+    // read from the display link callback so atomicity is required.
     @property(atomic, strong) RTC_OBJC_TYPE(RTCVideoFrame) * videoFrame;
 @property(nonatomic, readonly) GLKView *glkView;
 @end
@@ -68,7 +68,8 @@
   return [self initWithCoder:aDecoder shader:[[RTCDefaultShader alloc] init]];
 }
 
-- (instancetype)initWithFrame:(CGRect)frame shader:(id<RTC_OBJC_TYPE(RTCVideoViewShading)>)shader {
+- (instancetype)initWithFrame:(CGRect)frame
+                       shader:(id<RTC_OBJC_TYPE(RTCVideoViewShading)>)shader {
   self = [super initWithFrame:frame];
   if (self) {
     _shader = shader;
@@ -93,7 +94,7 @@
 
 - (BOOL)configure {
   EAGLContext *glContext =
-    [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
+      [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
   if (!glContext) {
     glContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
   }
@@ -104,8 +105,7 @@
   _glContext = glContext;
 
   // GLKView manages a framebuffer for us.
-  _glkView = [[GLKView alloc] initWithFrame:CGRectZero
-                                    context:_glContext];
+  _glkView = [[GLKView alloc] initWithFrame:CGRectZero context:_glContext];
   _glkView.drawableColorFormat = GLKViewDrawableColorFormatRGBA8888;
   _glkView.drawableDepthFormat = GLKViewDrawableDepthFormatNone;
   _glkView.drawableStencilFormat = GLKViewDrawableStencilFormatNone;
@@ -118,7 +118,7 @@
   // Listen to application state in order to clean up OpenGL before app goes
   // away.
   NSNotificationCenter *notificationCenter =
-    [NSNotificationCenter defaultCenter];
+      [NSNotificationCenter defaultCenter];
   [notificationCenter addObserver:self
                          selector:@selector(willResignActive)
                              name:UIApplicationWillResignActiveNotification
@@ -136,15 +136,16 @@
     RTC_OBJC_TYPE(RTCEAGLVideoView) *strongSelf = weakSelf;
     [strongSelf displayLinkTimerDidFire];
   }];
-  if ([[UIApplication sharedApplication] applicationState] == UIApplicationStateActive) {
+  if ([[UIApplication sharedApplication] applicationState] ==
+      UIApplicationStateActive) {
     [self setupGL];
   }
   return YES;
 }
 
 - (void)setMultipleTouchEnabled:(BOOL)multipleTouchEnabled {
-    [super setMultipleTouchEnabled:multipleTouchEnabled];
-    _glkView.multipleTouchEnabled = multipleTouchEnabled;
+  [super setMultipleTouchEnabled:multipleTouchEnabled];
+  _glkView.multipleTouchEnabled = multipleTouchEnabled;
 }
 
 - (void)dealloc {
@@ -191,14 +192,15 @@
     return;
   }
   RTCVideoRotation rotation = frame.rotation;
-  if(_rotationOverride != nil) {
-    [_rotationOverride getValue: &rotation];
+  if (_rotationOverride != nil) {
+    [_rotationOverride getValue:&rotation];
   }
   [self ensureGLContext];
   glClear(GL_COLOR_BUFFER_BIT);
   if ([frame.buffer isKindOfClass:[RTC_OBJC_TYPE(RTCCVPixelBuffer) class]]) {
     if (!_nv12TextureCache) {
-      _nv12TextureCache = [[RTCNV12TextureCache alloc] initWithContext:_glContext];
+      _nv12TextureCache =
+          [[RTCNV12TextureCache alloc] initWithContext:_glContext];
     }
     if (_nv12TextureCache) {
       [_nv12TextureCache uploadFrameToTextures:frame];
@@ -213,7 +215,8 @@
     }
   } else {
     if (!_i420TextureCache) {
-      _i420TextureCache = [[RTCI420TextureCache alloc] initWithContext:_glContext];
+      _i420TextureCache =
+          [[RTCI420TextureCache alloc] initWithContext:_glContext];
     }
     [_i420TextureCache uploadFrameToTextures:frame];
     [_shader applyShadingForFrameWithWidth:frame.width

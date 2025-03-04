@@ -76,6 +76,7 @@ using cricket::TransportInfo;
 using cricket::VideoContentDescription;
 using ::testing::ElementsAre;
 using ::testing::Field;
+using ::testing::Property;
 using webrtc::IceCandidateCollection;
 using webrtc::IceCandidateInterface;
 using webrtc::IceCandidateType;
@@ -1417,7 +1418,7 @@ class WebRtcSdpTest : public ::testing::Test {
       const cricket::ContentInfo& c1 = desc1.contents().at(i);
       const cricket::ContentInfo& c2 = desc2.contents().at(i);
       // ContentInfo properties.
-      EXPECT_EQ(c1.name, c2.name);
+      EXPECT_EQ(c1.mid(), c2.mid());
       EXPECT_EQ(c1.type, c2.type);
       EXPECT_EQ(c1.rejected, c2.rejected);
       EXPECT_EQ(c1.bundle_only, c2.bundle_only);
@@ -4738,8 +4739,8 @@ TEST_F(WebRtcSdpTest, ParseNoMid) {
   ASSERT_TRUE(webrtc::SdpDeserialize(sdp, &output, &error));
 
   EXPECT_THAT(output.description()->contents(),
-              ElementsAre(Field("name", &cricket::ContentInfo::name, ""),
-                          Field("name", &cricket::ContentInfo::name, "")));
+              ElementsAre(Property("name", &cricket::ContentInfo::mid, ""),
+                          Property("name", &cricket::ContentInfo::mid, "")));
 }
 
 TEST_F(WebRtcSdpTest, SerializeWithDefaultSctpProtocol) {
@@ -4843,8 +4844,8 @@ TEST_F(WebRtcSdpTest, DeserializeSdpWithUnsupportedMediaType) {
   EXPECT_TRUE(jdesc_output.description()->contents()[0].rejected);
   EXPECT_TRUE(jdesc_output.description()->contents()[1].rejected);
 
-  EXPECT_EQ(jdesc_output.description()->contents()[0].name, "bogusmid");
-  EXPECT_EQ(jdesc_output.description()->contents()[1].name, "somethingmid");
+  EXPECT_EQ(jdesc_output.description()->contents()[0].mid(), "bogusmid");
+  EXPECT_EQ(jdesc_output.description()->contents()[1].mid(), "somethingmid");
 }
 
 TEST_F(WebRtcSdpTest, MediaTypeProtocolMismatch) {

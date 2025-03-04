@@ -21,7 +21,6 @@
 #include "api/sequence_checker.h"
 #include "api/transport/network_control.h"
 #include "api/units/data_rate.h"
-#include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "modules/congestion_controller/remb_throttler.h"
@@ -89,11 +88,16 @@ ReceiveSideCongestionController::ReceiveSideCongestionController(
     const Environment& env,
     TransportSequenceNumberFeedbackGenenerator::RtcpSender feedback_sender,
     RembThrottler::RembSender remb_sender,
-    absl::Nullable<NetworkStateEstimator*> network_state_estimator)
+    absl::Nullable<NetworkStateEstimator*> /* unused */)
+    : ReceiveSideCongestionController(env, feedback_sender, remb_sender) {}
+
+ReceiveSideCongestionController::ReceiveSideCongestionController(
+    const Environment& env,
+    TransportSequenceNumberFeedbackGenenerator::RtcpSender feedback_sender,
+    RembThrottler::RembSender remb_sender)
     : env_(env),
       remb_throttler_(std::move(remb_sender), &env_.clock()),
-      transport_sequence_number_feedback_generator_(feedback_sender,
-                                                    network_state_estimator),
+      transport_sequence_number_feedback_generator_(feedback_sender),
       congestion_control_feedback_generator_(env, feedback_sender),
       rbe_(std::make_unique<RemoteBitrateEstimatorSingleStream>(
           env_,
@@ -182,15 +186,6 @@ TimeDelta ReceiveSideCongestionController::MaybeProcess() {
 void ReceiveSideCongestionController::SetMaxDesiredReceiveBitrate(
     DataRate bitrate) {
   remb_throttler_.SetMaxDesiredReceiveBitrate(bitrate);
-}
-
-void ReceiveSideCongestionController::SetTransportOverhead(
-    DataSize overhead_per_packet) {
-  RTC_DCHECK_RUN_ON(&sequence_checker_);
-  transport_sequence_number_feedback_generator_.SetTransportOverhead(
-      overhead_per_packet);
-  congestion_control_feedback_generator_.SetTransportOverhead(
-      overhead_per_packet);
 }
 
 }  // namespace webrtc

@@ -78,21 +78,26 @@ static size_t kBufferHeight = 200;
                         nil,
                         &pixelBufferRef);
     OCMStub([frameMock buffer])
-        .andReturn([[RTC_OBJC_TYPE(RTCCVPixelBuffer) alloc] initWithPixelBuffer:pixelBufferRef]);
+        .andReturn([[RTC_OBJC_TYPE(RTCCVPixelBuffer) alloc]
+            initWithPixelBuffer:pixelBufferRef]);
   } else {
     OCMStub([frameMock buffer])
-        .andReturn([[RTC_OBJC_TYPE(RTCI420Buffer) alloc] initWithWidth:kBufferWidth
-                                                                height:kBufferHeight]);
+        .andReturn([[RTC_OBJC_TYPE(RTCI420Buffer) alloc]
+            initWithWidth:kBufferWidth
+                   height:kBufferHeight]);
   }
-  OCMStub([((RTC_OBJC_TYPE(RTCVideoFrame) *)frameMock) width]).andReturn(kBufferWidth);
-  OCMStub([((RTC_OBJC_TYPE(RTCVideoFrame) *)frameMock) height]).andReturn(kBufferHeight);
+  OCMStub([((RTC_OBJC_TYPE(RTCVideoFrame) *)frameMock) width])
+      .andReturn(kBufferWidth);
+  OCMStub([((RTC_OBJC_TYPE(RTCVideoFrame) *)frameMock) height])
+      .andReturn(kBufferHeight);
   OCMStub([frameMock timeStampNs]).andReturn(arc4random_uniform(INT_MAX));
   return frameMock;
 }
 
 - (id)rendererMockWithSuccessfulSetup:(BOOL)success {
   id rendererMock = OCMClassMock([RTCMTLRenderer class]);
-  OCMStub([rendererMock addRenderingDestination:[OCMArg any]]).andReturn(success);
+  OCMStub([rendererMock addRenderingDestination:[OCMArg any]])
+      .andReturn(success);
   return rendererMock;
 }
 
@@ -124,8 +129,8 @@ static size_t kBufferHeight = 200;
   // given
   OCMStub([self.classMock isMetalAvailable]).andReturn(YES);
 
-  RTC_OBJC_TYPE(RTCMTLVideoView) *realView =
-      [[RTC_OBJC_TYPE(RTCMTLVideoView) alloc] initWithFrame:CGRectMake(0, 0, 640, 480)];
+  RTC_OBJC_TYPE(RTCMTLVideoView) *realView = [[RTC_OBJC_TYPE(RTCMTLVideoView)
+      alloc] initWithFrame:CGRectMake(0, 0, 640, 480)];
   self.frameMock = OCMClassMock([RTC_OBJC_TYPE(RTCVideoFrame) class]);
 
   [[self.frameMock reject] buffer];
@@ -148,11 +153,12 @@ static size_t kBufferHeight = 200;
   self.frameMock = [self frameMockWithCVPixelBuffer:NO];
 
   OCMExpect([self.rendererI420Mock drawFrame:self.frameMock]);
-  OCMExpect([self.classMock createI420Renderer]).andReturn(self.rendererI420Mock);
+  OCMExpect([self.classMock createI420Renderer])
+      .andReturn(self.rendererI420Mock);
   [[self.classMock reject] createNV12Renderer];
 
-  RTC_OBJC_TYPE(RTCMTLVideoView) *realView =
-      [[RTC_OBJC_TYPE(RTCMTLVideoView) alloc] initWithFrame:CGRectMake(0, 0, 640, 480)];
+  RTC_OBJC_TYPE(RTCMTLVideoView) *realView = [[RTC_OBJC_TYPE(RTCMTLVideoView)
+      alloc] initWithFrame:CGRectMake(0, 0, 640, 480)];
 
   // when
   [realView renderFrame:self.frameMock];
@@ -170,11 +176,12 @@ static size_t kBufferHeight = 200;
   self.frameMock = [self frameMockWithCVPixelBuffer:YES];
 
   OCMExpect([self.rendererNV12Mock drawFrame:self.frameMock]);
-  OCMExpect([self.classMock createNV12Renderer]).andReturn(self.rendererNV12Mock);
+  OCMExpect([self.classMock createNV12Renderer])
+      .andReturn(self.rendererNV12Mock);
   [[self.classMock reject] createI420Renderer];
 
-  RTC_OBJC_TYPE(RTCMTLVideoView) *realView =
-      [[RTC_OBJC_TYPE(RTCMTLVideoView) alloc] initWithFrame:CGRectMake(0, 0, 640, 480)];
+  RTC_OBJC_TYPE(RTCMTLVideoView) *realView = [[RTC_OBJC_TYPE(RTCMTLVideoView)
+      alloc] initWithFrame:CGRectMake(0, 0, 640, 480)];
 
   // when
   [realView renderFrame:self.frameMock];
@@ -191,11 +198,12 @@ static size_t kBufferHeight = 200;
   self.frameMock = [self frameMockWithCVPixelBuffer:YES];
 
   OCMExpect([self.rendererNV12Mock drawFrame:self.frameMock]);
-  OCMExpect([self.classMock createNV12Renderer]).andReturn(self.rendererNV12Mock);
+  OCMExpect([self.classMock createNV12Renderer])
+      .andReturn(self.rendererNV12Mock);
   [[self.classMock reject] createI420Renderer];
 
-  RTC_OBJC_TYPE(RTCMTLVideoView) *realView =
-      [[RTC_OBJC_TYPE(RTCMTLVideoView) alloc] initWithFrame:CGRectMake(0, 0, 640, 480)];
+  RTC_OBJC_TYPE(RTCMTLVideoView) *realView = [[RTC_OBJC_TYPE(RTCMTLVideoView)
+      alloc] initWithFrame:CGRectMake(0, 0, 640, 480)];
 
   [realView renderFrame:self.frameMock];
   [realView drawInMTKView:realView.metalView];
@@ -203,10 +211,12 @@ static size_t kBufferHeight = 200;
   [self.classMock verify];
 
   // Recreate view.
-  realView = [[RTC_OBJC_TYPE(RTCMTLVideoView) alloc] initWithFrame:CGRectMake(0, 0, 640, 480)];
+  realView = [[RTC_OBJC_TYPE(RTCMTLVideoView) alloc]
+      initWithFrame:CGRectMake(0, 0, 640, 480)];
   OCMExpect([self.rendererNV12Mock drawFrame:self.frameMock]);
   // View hould reinit renderer.
-  OCMExpect([self.classMock createNV12Renderer]).andReturn(self.rendererNV12Mock);
+  OCMExpect([self.classMock createNV12Renderer])
+      .andReturn(self.rendererNV12Mock);
 
   [realView renderFrame:self.frameMock];
   [realView drawInMTKView:realView.metalView];
@@ -220,11 +230,12 @@ static size_t kBufferHeight = 200;
   self.frameMock = [self frameMockWithCVPixelBuffer:YES];
 
   OCMExpect([self.rendererNV12Mock drawFrame:self.frameMock]);
-  OCMExpect([self.classMock createNV12Renderer]).andReturn(self.rendererNV12Mock);
+  OCMExpect([self.classMock createNV12Renderer])
+      .andReturn(self.rendererNV12Mock);
   [[self.classMock reject] createI420Renderer];
 
-  RTC_OBJC_TYPE(RTCMTLVideoView) *realView =
-      [[RTC_OBJC_TYPE(RTCMTLVideoView) alloc] initWithFrame:CGRectMake(0, 0, 640, 480)];
+  RTC_OBJC_TYPE(RTCMTLVideoView) *realView = [[RTC_OBJC_TYPE(RTCMTLVideoView)
+      alloc] initWithFrame:CGRectMake(0, 0, 640, 480)];
   [realView renderFrame:self.frameMock];
   [realView drawInMTKView:realView.metalView];
 
@@ -245,11 +256,12 @@ static size_t kBufferHeight = 200;
   self.frameMock = [self frameMockWithCVPixelBuffer:YES];
 
   OCMExpect([self.rendererNV12Mock drawFrame:self.frameMock]);
-  OCMExpect([self.classMock createNV12Renderer]).andReturn(self.rendererNV12Mock);
+  OCMExpect([self.classMock createNV12Renderer])
+      .andReturn(self.rendererNV12Mock);
   [[self.classMock reject] createI420Renderer];
 
-  RTC_OBJC_TYPE(RTCMTLVideoView) *realView =
-      [[RTC_OBJC_TYPE(RTCMTLVideoView) alloc] initWithFrame:CGRectMake(0, 0, 640, 480)];
+  RTC_OBJC_TYPE(RTCMTLVideoView) *realView = [[RTC_OBJC_TYPE(RTCMTLVideoView)
+      alloc] initWithFrame:CGRectMake(0, 0, 640, 480)];
   [realView renderFrame:self.frameMock];
   [realView drawInMTKView:realView.metalView];
 
@@ -269,12 +281,13 @@ static size_t kBufferHeight = 200;
 - (void)testReportsSizeChangesToDelegate {
   OCMStub([self.classMock isMetalAvailable]).andReturn(YES);
 
-  id delegateMock = OCMProtocolMock(@protocol(RTC_OBJC_TYPE(RTCVideoViewDelegate)));
+  id delegateMock =
+      OCMProtocolMock(@protocol(RTC_OBJC_TYPE(RTCVideoViewDelegate)));
   CGSize size = CGSizeMake(640, 480);
   OCMExpect([delegateMock videoView:[OCMArg any] didChangeVideoSize:size]);
 
-  RTC_OBJC_TYPE(RTCMTLVideoView) *realView =
-      [[RTC_OBJC_TYPE(RTCMTLVideoView) alloc] initWithFrame:CGRectMake(0, 0, 640, 480)];
+  RTC_OBJC_TYPE(RTCMTLVideoView) *realView = [[RTC_OBJC_TYPE(RTCMTLVideoView)
+      alloc] initWithFrame:CGRectMake(0, 0, 640, 480)];
   realView.delegate = delegateMock;
   [realView setSize:size];
 
@@ -290,7 +303,8 @@ static size_t kBufferHeight = 200;
       createMetalView:CGRectZero];
   OCMExpect([metalKitView setContentMode:UIViewContentModeScaleAspectFill]);
 
-  RTC_OBJC_TYPE(RTCMTLVideoView) *realView = [[RTC_OBJC_TYPE(RTCMTLVideoView) alloc] init];
+  RTC_OBJC_TYPE(RTCMTLVideoView) *realView =
+      [[RTC_OBJC_TYPE(RTCMTLVideoView) alloc] init];
   [realView setVideoContentMode:UIViewContentModeScaleAspectFill];
 
   OCMVerifyAll(metalKitView);

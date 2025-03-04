@@ -43,7 +43,7 @@ bool SdpContentsAll(SdpContentPredicate pred,
                     const cricket::SessionDescription* desc) {
   RTC_DCHECK(desc);
   for (const auto& content : desc->contents()) {
-    const auto* transport_info = desc->GetTransportInfoByName(content.name);
+    const auto* transport_info = desc->GetTransportInfoByName(content.mid());
     if (!pred(&content, transport_info)) {
       return false;
     }
@@ -65,7 +65,7 @@ void SdpContentsForEach(SdpContentMutator fn,
                         cricket::SessionDescription* desc) {
   RTC_DCHECK(desc);
   for (auto& content : desc->contents()) {
-    auto* transport_info = desc->GetTransportInfoByName(content.name);
+    auto* transport_info = desc->GetTransportInfoByName(content.mid());
     fn(&content, transport_info);
   }
 }

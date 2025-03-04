@@ -15,7 +15,8 @@
 @implementation RTC_OBJC_TYPE (RTCVideoEncoderSettings)
 (Private)
 
-    - (instancetype)initWithNativeVideoCodec : (const webrtc::VideoCodec *)videoCodec {
+    - (instancetype)initWithNativeVideoCodec
+    : (const webrtc::VideoCodec *)videoCodec {
   self = [super init];
   if (self) {
     if (videoCodec) {

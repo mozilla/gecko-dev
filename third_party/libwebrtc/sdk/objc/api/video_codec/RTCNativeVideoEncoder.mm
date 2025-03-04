@@ -20,7 +20,8 @@
   RTC_DCHECK_NOTREACHED();
 }
 
-- (NSInteger)startEncodeWithSettings:(RTC_OBJC_TYPE(RTCVideoEncoderSettings) *)settings
+- (NSInteger)startEncodeWithSettings:
+                 (RTC_OBJC_TYPE(RTCVideoEncoderSettings) *)settings
                        numberOfCores:(int)numberOfCores {
   RTC_DCHECK_NOTREACHED();
   return 0;

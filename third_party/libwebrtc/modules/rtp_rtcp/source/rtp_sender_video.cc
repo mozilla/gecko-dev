@@ -28,6 +28,7 @@
 #include "api/field_trials_view.h"
 #include "api/make_ref_counted.h"
 #include "api/media_types.h"
+#include "api/transport/rtp/corruption_detection_message.h"
 #include "api/transport/rtp/dependency_descriptor.h"
 #include "api/units/data_rate.h"
 #include "api/units/frequency.h"
@@ -41,7 +42,6 @@
 #include "api/video/video_rotation.h"
 #include "api/video/video_timing.h"
 #include "common_video/corruption_detection_converters.h"
-#include "common_video/corruption_detection_message.h"
 #include "common_video/frame_instrumentation_data.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/absolute_capture_time_sender.h"
@@ -192,8 +192,9 @@ RTPSenderVideo::RTPSenderVideo(const Config& config)
                     rtp_sender_->Rid(),
                     config.task_queue_factory)
               : nullptr),
-      enable_av1_even_split_(
-          config.field_trials->IsEnabled("WebRTC-Video-AV1EvenPayloadSizes")) {
+      // TODO: bugs.webrtc.org/42226301 - Remove when fully launched.
+      enable_av1_even_split_(!config.field_trials->IsDisabled(
+          "WebRTC-Video-AV1EvenPayloadSizes")) {
   if (frame_transformer_delegate_)
     frame_transformer_delegate_->Init();
 }

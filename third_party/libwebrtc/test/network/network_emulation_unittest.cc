@@ -11,32 +11,52 @@
 #include "test/network/network_emulation.h"
 
 #include <atomic>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "api/task_queue/task_queue_base.h"
-#include "api/test/create_time_controller.h"
+#include "api/test/network_emulation/network_emulation_interfaces.h"
+#include "api/test/network_emulation_manager.h"
+#include "api/test/rtc_error_matchers.h"
 #include "api/test/simulated_network.h"
 #include "api/transport/ecn_marking.h"
+#include "api/transport/stun.h"
+#include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "rtc_base/buffer.h"
-#include "rtc_base/gunit.h"
+#include "rtc_base/byte_buffer.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
+#include "rtc_base/ip_address.h"
+#include "rtc_base/net_helpers.h"
 #include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/task_queue_for_test.h"
+#include "rtc_base/third_party/sigslot/sigslot.h"
+#include "rtc_base/thread.h"
+#include "rtc_base/thread_annotations.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/network/network_emulation_manager.h"
 #include "test/network/simulated_network.h"
+#include "test/wait_until.h"
 
 namespace webrtc {
 namespace test {
 namespace {
 
 using ::testing::ElementsAreArray;
+using ::testing::Eq;
 
 constexpr TimeDelta kNetworkPacketWaitTimeout = TimeDelta::Millis(100);
 constexpr TimeDelta kStatsWaitTimeout = TimeDelta::Seconds(1);
@@ -93,7 +113,9 @@ class MockNetworkBehaviourInterface : public NetworkBehaviorInterface {
               DequeueDeliverablePackets,
               (int64_t),
               (override));
-  MOCK_METHOD(std::optional<int64_t>, NextDeliveryTimeUs, (),
+  MOCK_METHOD(std::optional<int64_t>,
+              NextDeliveryTimeUs,
+              (),
               (const, override));
   MOCK_METHOD(void,
               RegisterDeliveryTimeChangedCallback,
@@ -359,9 +381,10 @@ TEST(NetworkEmulationManagerTest, Run) {
 
     received_stats_count++;
   });
-  ASSERT_EQ_SIMULATED_WAIT(received_stats_count.load(), 2,
-                           kStatsWaitTimeout.ms(),
-                           *network_manager.time_controller());
+  ASSERT_THAT(WaitUntil([&] { return received_stats_count.load(); }, Eq(2),
+                        {.timeout = kStatsWaitTimeout,
+                         .clock = network_manager.time_controller()}),
+              IsRtcOk());
 }
 
 TEST(NetworkEmulationManagerTest, EcnMarkingIsPropagated) {
@@ -440,9 +463,10 @@ TEST(NetworkEmulationManagerTest, EcnMarkingIsPropagated) {
     EXPECT_EQ(st.overall_incoming_stats.ecn_count.not_ect(), 0);
     ++received_stats_count;
   });
-  ASSERT_EQ_SIMULATED_WAIT(received_stats_count.load(), 2,
-                           kStatsWaitTimeout.ms(),
-                           *network_manager.time_controller());
+  ASSERT_THAT(WaitUntil([&] { return received_stats_count.load(); }, Eq(2),
+                        {.timeout = kStatsWaitTimeout,
+                         .clock = network_manager.time_controller()}),
+              IsRtcOk());
 
   SendTask(t1, [&] { delete s1; });
   SendTask(t2, [&] { delete s2; });
@@ -544,9 +568,10 @@ TEST(NetworkEmulationManagerTest, DebugStatsCollectedInDebugMode) {
 
     received_stats_count++;
   });
-  ASSERT_EQ_SIMULATED_WAIT(received_stats_count.load(), 1,
-                           kStatsWaitTimeout.ms(),
-                           *network_manager.time_controller());
+  ASSERT_THAT(WaitUntil([&] { return received_stats_count.load(); }, Eq(1),
+                        {.timeout = kStatsWaitTimeout,
+                         .clock = network_manager.time_controller()}),
+              IsRtcOk());
 }
 
 TEST(NetworkEmulationManagerTest, ThroughputStats) {
@@ -622,9 +647,10 @@ TEST(NetworkEmulationManagerTest, ThroughputStats) {
     received_stats_count++;
   });
 
-  ASSERT_EQ_SIMULATED_WAIT(received_stats_count.load(), 1,
-                           kStatsWaitTimeout.ms(),
-                           *network_manager.time_controller());
+  ASSERT_THAT(WaitUntil([&] { return received_stats_count.load(); }, Eq(1),
+                        {.timeout = kStatsWaitTimeout,
+                         .clock = network_manager.time_controller()}),
+              IsRtcOk());
 
   EXPECT_EQ(r1.ReceivedCount(), 11);
   EXPECT_EQ(r2.ReceivedCount(), 11);

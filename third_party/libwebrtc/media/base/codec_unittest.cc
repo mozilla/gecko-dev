@@ -148,7 +148,6 @@ TEST(CodecTest, TestVideoCodecEqualsWithDifferentPacketization) {
   EXPECT_EQ(c2, c2);
 }
 
-
 TEST(CodecTest, TestSetParamGetParamAndRemoveParam) {
   Codec codec = cricket::CreateAudioCodec(0, "foo", 22222, 2);
   codec.SetParam("a", "1");

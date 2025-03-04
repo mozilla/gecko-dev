@@ -25,6 +25,7 @@
 #include "media/base/media_constants.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/string_encode.h"
 
 namespace webrtc {
 
@@ -80,6 +81,15 @@ bool CodecPrefersLowerRange(const cricket::Codec& codec) {
         return true;
       }
     }
+  } else if (absl::EqualsIgnoreCase(codec.name, cricket::kRtxCodecName)) {
+    // For RTX prefer lower range if the associated codec is in that range.
+    std::string associated_pt_str;
+    int associated_pt;
+    return codec.GetParam(cricket::kCodecParamAssociatedPayloadType,
+                          &associated_pt_str) &&
+           rtc::FromString(associated_pt_str, &associated_pt) &&
+           associated_pt >= kFirstDynamicPayloadTypeLowerRange &&
+           associated_pt <= kLastDynamicPayloadTypeLowerRange;
   }
   return false;
 }
@@ -179,7 +189,7 @@ PayloadTypePicker::PayloadTypePicker() {
       {{cricket::kDtmfCodecName, 32000, 1}, 112},
       {{cricket::kDtmfCodecName, 16000, 1}, 113},
       {{cricket::kDtmfCodecName, 8000, 1}, 126}};
-  for (auto entry : default_audio_mappings) {
+  for (const MapTableEntry& entry : default_audio_mappings) {
     AddMapping(PayloadType(entry.payload_type),
                cricket::CreateAudioCodec(entry.format));
   }
@@ -198,7 +208,7 @@ RTCErrorOr<PayloadType> PayloadTypePicker::SuggestMapping(
   }
   // The first matching entry is returned, unless excluder
   // maps it to something different.
-  for (auto entry : entries_) {
+  for (const MapEntry& entry : entries_) {
     if (MatchesWithReferenceAttributes(entry.codec(), codec)) {
       if (excluder) {
         auto result = excluder->LookupCodec(entry.payload_type());
@@ -223,7 +233,7 @@ RTCError PayloadTypePicker::AddMapping(PayloadType payload_type,
                                        cricket::Codec codec) {
   // Completely duplicate mappings are ignored.
   // Multiple mappings for the same codec and the same PT are legal;
-  for (auto entry : entries_) {
+  for (const MapEntry& entry : entries_) {
     if (payload_type == entry.payload_type() &&
         MatchesWithReferenceAttributes(codec, entry.codec())) {
       return RTCError::OK();

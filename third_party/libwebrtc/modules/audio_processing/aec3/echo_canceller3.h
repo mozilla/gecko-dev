@@ -21,6 +21,8 @@
 #include "api/array_view.h"
 #include "api/audio/echo_canceller3_config.h"
 #include "api/audio/echo_control.h"
+#include "api/environment/environment.h"
+#include "api/field_trials_view.h"
 #include "modules/audio_processing/aec3/api_call_jitter_metrics.h"
 #include "modules/audio_processing/aec3/block_delay_buffer.h"
 #include "modules/audio_processing/aec3/block_framer.h"
@@ -40,7 +42,8 @@ namespace webrtc {
 // Method for adjusting config parameter dependencies.
 // Only to be used externally to AEC3 for testing purposes.
 // TODO(webrtc:5298): Move this to a separate file.
-EchoCanceller3Config AdjustConfig(const EchoCanceller3Config& config);
+EchoCanceller3Config AdjustConfig(const EchoCanceller3Config& config,
+                                  const FieldTrialsView& field_trials);
 
 // Functor for verifying the invariance of the frames being put into the render
 // queue.
@@ -88,7 +91,8 @@ class Aec3RenderQueueItemVerifier {
 // AnalyzeRender call which can be called concurrently with the other methods.
 class EchoCanceller3 : public EchoControl {
  public:
-  EchoCanceller3(const EchoCanceller3Config& config,
+  EchoCanceller3(const Environment& env,
+                 const EchoCanceller3Config& config,
                  const std::optional<EchoCanceller3Config>& multichannel_config,
                  int sample_rate_hz,
                  size_t num_render_channels,
@@ -177,6 +181,7 @@ class EchoCanceller3 : public EchoControl {
   // Analyzes the full-band domain capture signal to detect signal saturation.
   void AnalyzeCapture(const AudioBuffer& capture);
 
+  const Environment env_;
   rtc::RaceChecker capture_race_checker_;
   rtc::RaceChecker render_race_checker_;
 

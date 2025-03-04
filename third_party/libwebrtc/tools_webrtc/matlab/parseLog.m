@@ -1,3 +1,4 @@
+%  // clang-format off
 function parsed = parseLog(filename)
 %
 % parsed = parseLog(filename)

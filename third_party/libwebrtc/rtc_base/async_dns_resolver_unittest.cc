@@ -10,13 +10,25 @@
 
 #include "rtc_base/async_dns_resolver.h"
 
-#include "rtc_base/gunit.h"
+#include <memory>
+
+#include "api/test/rtc_error_matchers.h"
+#include "api/units/time_delta.h"
+#include "rtc_base/logging.h"
+#include "rtc_base/net_helpers.h"
+#include "rtc_base/socket_address.h"
+#include "rtc_base/thread.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/run_loop.h"
+#include "test/wait_until.h"
 
 namespace webrtc {
 namespace {
-const int kDefaultTimeout = 1000;
+
+using ::testing::IsTrue;
+
+const webrtc::TimeDelta kDefaultTimeout = webrtc::TimeDelta::Millis(1000);
 const int kPortNumber = 3027;
 
 TEST(AsyncDnsResolver, ConstructorWorks) {
@@ -31,7 +43,9 @@ TEST(AsyncDnsResolver, ResolvingLocalhostWorks) {
   rtc::SocketAddress resolved_address;
   bool done = false;
   resolver.Start(address, [&done] { done = true; });
-  ASSERT_TRUE_WAIT(done, kDefaultTimeout);
+  ASSERT_THAT(
+      WaitUntil([&] { return done; }, IsTrue(), {.timeout = kDefaultTimeout}),
+      IsRtcOk());
   EXPECT_EQ(resolver.result().GetError(), 0);
   if (resolver.result().GetResolvedAddress(AF_INET, &resolved_address)) {
     EXPECT_EQ(resolved_address, rtc::SocketAddress("127.0.0.1", kPortNumber));

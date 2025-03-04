@@ -188,29 +188,29 @@ bool MediaChannelUtil::TransportForMediaChannels::SendRtcp(
 bool MediaChannelUtil::TransportForMediaChannels::SendRtp(
     rtc::ArrayView<const uint8_t> packet,
     const webrtc::PacketOptions& options) {
-  auto send =
-      [this, packet_id = options.packet_id,
-       included_in_feedback = options.included_in_feedback,
-       included_in_allocation = options.included_in_allocation,
-       batchable = options.batchable,
-       last_packet_in_batch = options.last_packet_in_batch,
-       is_media = options.is_media, ect_1 = options.send_as_ect1,
-       packet = rtc::CopyOnWriteBuffer(packet, kMaxRtpPacketLen)]() mutable {
-        rtc::PacketOptions rtc_options;
-        rtc_options.packet_id = packet_id;
-        if (DscpEnabled()) {
-          rtc_options.dscp = PreferredDscp();
-        }
-        rtc_options.info_signaled_after_sent.included_in_feedback =
-            included_in_feedback;
-        rtc_options.info_signaled_after_sent.included_in_allocation =
-            included_in_allocation;
-        rtc_options.info_signaled_after_sent.is_media = is_media;
-        rtc_options.ecn_1 = ect_1;
-        rtc_options.batchable = batchable;
-        rtc_options.last_packet_in_batch = last_packet_in_batch;
-        DoSendPacket(&packet, false, rtc_options);
-      };
+  auto send = [this, packet_id = options.packet_id,
+               included_in_feedback = options.included_in_feedback,
+               included_in_allocation = options.included_in_allocation,
+               batchable = options.batchable,
+               last_packet_in_batch = options.last_packet_in_batch,
+               is_media = options.is_media, ect_1 = options.send_as_ect1,
+               packet =
+                   rtc::CopyOnWriteBuffer(packet, kMaxRtpPacketLen)]() mutable {
+    rtc::PacketOptions rtc_options;
+    rtc_options.packet_id = packet_id;
+    if (DscpEnabled()) {
+      rtc_options.dscp = PreferredDscp();
+    }
+    rtc_options.info_signaled_after_sent.included_in_feedback =
+        included_in_feedback;
+    rtc_options.info_signaled_after_sent.included_in_allocation =
+        included_in_allocation;
+    rtc_options.info_signaled_after_sent.is_media = is_media;
+    rtc_options.ecn_1 = ect_1;
+    rtc_options.batchable = batchable;
+    rtc_options.last_packet_in_batch = last_packet_in_batch;
+    DoSendPacket(&packet, false, rtc_options);
+  };
 
   // TODO(bugs.webrtc.org/11993): ModuleRtpRtcpImpl2 and related classes (e.g.
   // RTCPSender) aren't aware of the network thread and may trigger calls to

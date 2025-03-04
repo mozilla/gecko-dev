@@ -20,7 +20,10 @@
 #include "api/environment/environment_factory.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtp_parameters.h"
-#include "media/base/media_engine.h"
+#include "api/test/rtc_error_matchers.h"
+#include "media/base/codec_comparators.h"
+#include "media/base/fake_media_engine.h"
+#include "pc/rtp_parameters_conversion.h"
 #include "pc/test/enable_fake_media.h"
 #include "pc/test/mock_channel_interface.h"
 #include "pc/test/mock_rtp_receiver_internal.h"
@@ -32,10 +35,12 @@
 using ::testing::_;
 using ::testing::ElementsAre;
 using ::testing::Field;
+using ::testing::NiceMock;
 using ::testing::Optional;
 using ::testing::Property;
 using ::testing::Return;
 using ::testing::ReturnRef;
+using ::testing::SizeIs;
 
 namespace webrtc {
 
@@ -49,8 +54,10 @@ class RtpTransceiverTest : public testing::Test {
             ConnectionContext::Create(CreateEnvironment(), &dependencies_)) {}
 
  protected:
-  cricket::MediaEngineInterface* media_engine() {
-    return context_->media_engine();
+  cricket::FakeMediaEngine* media_engine() {
+    // We know this cast is safe because we supplied the fake implementation
+    // in MakeDependencies().
+    return static_cast<cricket::FakeMediaEngine*>(context_->media_engine());
   }
   ConnectionContext* context() { return context_.get(); }
 
@@ -62,7 +69,7 @@ class RtpTransceiverTest : public testing::Test {
     d.network_thread = rtc::Thread::Current();
     d.worker_thread = rtc::Thread::Current();
     d.signaling_thread = rtc::Thread::Current();
-    EnableFakeMedia(d);
+    EnableFakeMedia(d, std::make_unique<cricket::FakeMediaEngine>());
     return d;
   }
 
@@ -75,7 +82,7 @@ TEST_F(RtpTransceiverTest, CannotSetChannelOnStoppedTransceiver) {
   const std::string content_name("my_mid");
   auto transceiver = rtc::make_ref_counted<RtpTransceiver>(
       cricket::MediaType::MEDIA_TYPE_AUDIO, context());
-  auto channel1 = std::make_unique<cricket::MockChannelInterface>();
+  auto channel1 = std::make_unique<NiceMock<cricket::MockChannelInterface>>();
   EXPECT_CALL(*channel1, media_type())
       .WillRepeatedly(Return(cricket::MediaType::MEDIA_TYPE_AUDIO));
   EXPECT_CALL(*channel1, mid()).WillRepeatedly(ReturnRef(content_name));
@@ -92,7 +99,7 @@ TEST_F(RtpTransceiverTest, CannotSetChannelOnStoppedTransceiver) {
   transceiver->StopInternal();
   EXPECT_EQ(channel1_ptr, transceiver->channel());
 
-  auto channel2 = std::make_unique<cricket::MockChannelInterface>();
+  auto channel2 = std::make_unique<NiceMock<cricket::MockChannelInterface>>();
   EXPECT_CALL(*channel2, media_type())
       .WillRepeatedly(Return(cricket::MediaType::MEDIA_TYPE_AUDIO));
 
@@ -111,7 +118,7 @@ TEST_F(RtpTransceiverTest, CanUnsetChannelOnStoppedTransceiver) {
   const std::string content_name("my_mid");
   auto transceiver = rtc::make_ref_counted<RtpTransceiver>(
       cricket::MediaType::MEDIA_TYPE_VIDEO, context());
-  auto channel = std::make_unique<cricket::MockChannelInterface>();
+  auto channel = std::make_unique<NiceMock<cricket::MockChannelInterface>>();
   EXPECT_CALL(*channel, media_type())
       .WillRepeatedly(Return(cricket::MediaType::MEDIA_TYPE_VIDEO));
   EXPECT_CALL(*channel, mid()).WillRepeatedly(ReturnRef(content_name));
@@ -137,59 +144,381 @@ TEST_F(RtpTransceiverTest, CanUnsetChannelOnStoppedTransceiver) {
 
 class RtpTransceiverUnifiedPlanTest : public RtpTransceiverTest {
  public:
-  RtpTransceiverUnifiedPlanTest()
-      : transceiver_(rtc::make_ref_counted<RtpTransceiver>(
-            RtpSenderProxyWithInternal<RtpSenderInternal>::Create(
-                rtc::Thread::Current(),
-                sender_),
-            RtpReceiverProxyWithInternal<RtpReceiverInternal>::Create(
-                rtc::Thread::Current(),
-                rtc::Thread::Current(),
-                receiver_),
-            context(),
-            media_engine()->voice().GetRtpHeaderExtensions(),
-            /* on_negotiation_needed= */ [] {})) {}
-
-  static rtc::scoped_refptr<MockRtpReceiverInternal> MockReceiver() {
-    auto receiver = rtc::make_ref_counted<MockRtpReceiverInternal>();
+  static rtc::scoped_refptr<MockRtpReceiverInternal> MockReceiver(
+      cricket::MediaType media_type) {
+    auto receiver = rtc::make_ref_counted<NiceMock<MockRtpReceiverInternal>>();
     EXPECT_CALL(*receiver.get(), media_type())
-        .WillRepeatedly(Return(cricket::MediaType::MEDIA_TYPE_AUDIO));
+        .WillRepeatedly(Return(media_type));
     return receiver;
   }
 
-  static rtc::scoped_refptr<MockRtpSenderInternal> MockSender() {
-    auto sender = rtc::make_ref_counted<MockRtpSenderInternal>();
-    EXPECT_CALL(*sender.get(), media_type())
-        .WillRepeatedly(Return(cricket::MediaType::MEDIA_TYPE_AUDIO));
+  static rtc::scoped_refptr<MockRtpSenderInternal> MockSender(
+      cricket::MediaType media_type) {
+    auto sender = rtc::make_ref_counted<NiceMock<MockRtpSenderInternal>>();
+    EXPECT_CALL(*sender.get(), media_type()).WillRepeatedly(Return(media_type));
     return sender;
   }
 
+  rtc::scoped_refptr<RtpTransceiver> CreateTransceiver(
+      rtc::scoped_refptr<RtpSenderInternal> sender,
+      rtc::scoped_refptr<RtpReceiverInternal> receiver) {
+    return rtc::make_ref_counted<RtpTransceiver>(
+        RtpSenderProxyWithInternal<RtpSenderInternal>::Create(
+            rtc::Thread::Current(), std::move(sender)),
+        RtpReceiverProxyWithInternal<RtpReceiverInternal>::Create(
+            rtc::Thread::Current(), rtc::Thread::Current(),
+            std::move(receiver)),
+        context(), media_engine()->voice().GetRtpHeaderExtensions(),
+        /* on_negotiation_needed= */ [] {});
+  }
+
+ protected:
   rtc::AutoThread main_thread_;
-  rtc::scoped_refptr<MockRtpReceiverInternal> receiver_ = MockReceiver();
-  rtc::scoped_refptr<MockRtpSenderInternal> sender_ = MockSender();
-  rtc::scoped_refptr<RtpTransceiver> transceiver_;
 };
 
 // Basic tests for Stop()
 TEST_F(RtpTransceiverUnifiedPlanTest, StopSetsDirection) {
-  EXPECT_CALL(*receiver_.get(), Stop());
-  EXPECT_CALL(*receiver_.get(), SetMediaChannel(_));
-  EXPECT_CALL(*sender_.get(), SetTransceiverAsStopped());
-  EXPECT_CALL(*sender_.get(), Stop());
+  rtc::scoped_refptr<MockRtpReceiverInternal> receiver =
+      MockReceiver(cricket::MediaType::MEDIA_TYPE_AUDIO);
+  rtc::scoped_refptr<MockRtpSenderInternal> sender =
+      MockSender(cricket::MediaType::MEDIA_TYPE_AUDIO);
+  rtc::scoped_refptr<RtpTransceiver> transceiver =
+      CreateTransceiver(sender, receiver);
 
-  EXPECT_EQ(RtpTransceiverDirection::kInactive, transceiver_->direction());
-  EXPECT_FALSE(transceiver_->current_direction());
-  transceiver_->StopStandard();
-  EXPECT_EQ(RtpTransceiverDirection::kStopped, transceiver_->direction());
-  EXPECT_FALSE(transceiver_->current_direction());
-  transceiver_->StopTransceiverProcedure();
-  EXPECT_TRUE(transceiver_->current_direction());
-  EXPECT_EQ(RtpTransceiverDirection::kStopped, transceiver_->direction());
+  EXPECT_CALL(*receiver.get(), Stop());
+  EXPECT_CALL(*receiver.get(), SetMediaChannel(_));
+  EXPECT_CALL(*sender.get(), SetTransceiverAsStopped());
+  EXPECT_CALL(*sender.get(), Stop());
+
+  EXPECT_EQ(RtpTransceiverDirection::kInactive, transceiver->direction());
+  EXPECT_FALSE(transceiver->current_direction());
+  transceiver->StopStandard();
+  EXPECT_EQ(RtpTransceiverDirection::kStopped, transceiver->direction());
+  EXPECT_FALSE(transceiver->current_direction());
+  transceiver->StopTransceiverProcedure();
+  EXPECT_TRUE(transceiver->current_direction());
+  EXPECT_EQ(RtpTransceiverDirection::kStopped, transceiver->direction());
   EXPECT_EQ(RtpTransceiverDirection::kStopped,
-            *transceiver_->current_direction());
+            *transceiver->current_direction());
 }
 
-class RtpTransceiverTestForHeaderExtensions : public RtpTransceiverTest {
+class RtpTransceiverFilteredCodecPreferencesTest
+    : public RtpTransceiverUnifiedPlanTest {
+ public:
+  RtpTransceiverFilteredCodecPreferencesTest()
+      : transceiver_(CreateTransceiver(
+            MockSender(cricket::MediaType::MEDIA_TYPE_VIDEO),
+            MockReceiver(cricket::MediaType::MEDIA_TYPE_VIDEO))) {}
+
+  struct H264CodecCapabilities {
+    cricket::Codec cricket_sendrecv_codec;
+    RtpCodecCapability sendrecv_codec;
+    cricket::Codec cricket_sendonly_codec;
+    RtpCodecCapability sendonly_codec;
+    cricket::Codec cricket_recvonly_codec;
+    RtpCodecCapability recvonly_codec;
+    cricket::Codec cricket_rtx_codec;
+    RtpCodecCapability rtx_codec;
+  };
+
+  // For H264, the profile and level IDs are entangled. This function uses
+  // profile-level-id values that are not equal even when levels are ignored.
+  H264CodecCapabilities ConfigureH264CodecCapabilities() {
+    cricket::Codec cricket_sendrecv_codec = cricket::CreateVideoCodec(
+        SdpVideoFormat("H264",
+                       {{"level-asymmetry-allowed", "1"},
+                        {"packetization-mode", "1"},
+                        {"profile-level-id", "42f00b"}},
+                       {ScalabilityMode::kL1T1}));
+    cricket::Codec cricket_sendonly_codec = cricket::CreateVideoCodec(
+        SdpVideoFormat("H264",
+                       {{"level-asymmetry-allowed", "1"},
+                        {"packetization-mode", "1"},
+                        {"profile-level-id", "640034"}},
+                       {ScalabilityMode::kL1T1}));
+    cricket::Codec cricket_recvonly_codec = cricket::CreateVideoCodec(
+        SdpVideoFormat("H264",
+                       {{"level-asymmetry-allowed", "1"},
+                        {"packetization-mode", "1"},
+                        {"profile-level-id", "f4001f"}},
+                       {ScalabilityMode::kL1T1}));
+    cricket::Codec cricket_rtx_codec = cricket::CreateVideoRtxCodec(
+        cricket::Codec::kIdNotSet, cricket::Codec::kIdNotSet);
+    media_engine()->SetVideoSendCodecs(
+        {cricket_sendrecv_codec, cricket_sendonly_codec, cricket_rtx_codec});
+    media_engine()->SetVideoRecvCodecs(
+        {cricket_sendrecv_codec, cricket_recvonly_codec, cricket_rtx_codec});
+    H264CodecCapabilities capabilities = {
+        .cricket_sendrecv_codec = cricket_sendrecv_codec,
+        .sendrecv_codec = ToRtpCodecCapability(cricket_sendrecv_codec),
+        .cricket_sendonly_codec = cricket_sendonly_codec,
+        .sendonly_codec = ToRtpCodecCapability(cricket_sendonly_codec),
+        .cricket_recvonly_codec = cricket_recvonly_codec,
+        .recvonly_codec = ToRtpCodecCapability(cricket_recvonly_codec),
+        .cricket_rtx_codec = cricket_rtx_codec,
+        .rtx_codec = ToRtpCodecCapability(cricket_rtx_codec),
+    };
+    EXPECT_FALSE(IsSameRtpCodecIgnoringLevel(
+        capabilities.cricket_sendrecv_codec, capabilities.sendonly_codec));
+    EXPECT_FALSE(IsSameRtpCodecIgnoringLevel(
+        capabilities.cricket_sendrecv_codec, capabilities.recvonly_codec));
+    EXPECT_FALSE(IsSameRtpCodecIgnoringLevel(
+        capabilities.cricket_sendonly_codec, capabilities.recvonly_codec));
+    return capabilities;
+  }
+
+#ifdef RTC_ENABLE_H265
+  struct H265CodecCapabilities {
+    // The level-id from sender getCapabilities() or receiver getCapabilities().
+    static constexpr const char* kSendOnlyLevel = "180";
+    static constexpr const char* kRecvOnlyLevel = "156";
+    // A valid H265 level-id, but one not present in either getCapabilities().
+    static constexpr const char* kLevelNotInCapabilities = "135";
+
+    cricket::Codec cricket_sendonly_codec;
+    RtpCodecCapability sendonly_codec;
+    cricket::Codec cricket_recvonly_codec;
+    RtpCodecCapability recvonly_codec;
+  };
+
+  // For H265, the profile and level IDs are separate and are ignored by
+  // IsSameRtpCodecIgnoringLevel().
+  H265CodecCapabilities ConfigureH265CodecCapabilities() {
+    cricket::Codec cricket_sendonly_codec = cricket::CreateVideoCodec(
+        SdpVideoFormat("H265",
+                       {{"profile-id", "1"},
+                        {"tier-flag", "0"},
+                        {"level-id", H265CodecCapabilities::kSendOnlyLevel},
+                        {"tx-mode", "SRST"}},
+                       {ScalabilityMode::kL1T1}));
+    cricket::Codec cricket_recvonly_codec = cricket::CreateVideoCodec(
+        SdpVideoFormat("H265",
+                       {{"profile-id", "1"},
+                        {"tier-flag", "0"},
+                        {"level-id", H265CodecCapabilities::kRecvOnlyLevel},
+                        {"tx-mode", "SRST"}},
+                       {ScalabilityMode::kL1T1}));
+    media_engine()->SetVideoSendCodecs({cricket_sendonly_codec});
+    media_engine()->SetVideoRecvCodecs({cricket_recvonly_codec});
+    return {
+        .cricket_sendonly_codec = cricket_sendonly_codec,
+        .sendonly_codec = ToRtpCodecCapability(cricket_sendonly_codec),
+        .cricket_recvonly_codec = cricket_recvonly_codec,
+        .recvonly_codec = ToRtpCodecCapability(cricket_recvonly_codec),
+    };
+  }
+#endif  // RTC_ENABLE_H265
+
+ protected:
+  rtc::scoped_refptr<RtpTransceiver> transceiver_;
+};
+
+TEST_F(RtpTransceiverFilteredCodecPreferencesTest, EmptyByDefault) {
+  ConfigureH264CodecCapabilities();
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kSendRecv),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(), SizeIs(0));
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kSendOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(), SizeIs(0));
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kRecvOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(), SizeIs(0));
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kInactive),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(), SizeIs(0));
+}
+
+TEST_F(RtpTransceiverFilteredCodecPreferencesTest, OrderIsMaintained) {
+  const auto codecs = ConfigureH264CodecCapabilities();
+  std::vector<RtpCodecCapability> codec_capabilities = {codecs.sendrecv_codec,
+                                                        codecs.rtx_codec};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities), IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codec_capabilities[0], codec_capabilities[1]));
+  // Reverse order.
+  codec_capabilities = {codecs.rtx_codec, codecs.sendrecv_codec};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities), IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codec_capabilities[0], codec_capabilities[1]));
+}
+
+TEST_F(RtpTransceiverFilteredCodecPreferencesTest,
+       FiltersCodecsBasedOnDirection) {
+  const auto codecs = ConfigureH264CodecCapabilities();
+  std::vector<RtpCodecCapability> codec_capabilities = {
+      codecs.sendonly_codec, codecs.sendrecv_codec, codecs.recvonly_codec};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities), IsRtcOk());
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kSendRecv),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codecs.sendrecv_codec));
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kSendOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codecs.sendonly_codec, codecs.sendrecv_codec));
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kRecvOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codecs.sendrecv_codec, codecs.recvonly_codec));
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kInactive),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codecs.sendrecv_codec));
+}
+
+TEST_F(RtpTransceiverFilteredCodecPreferencesTest,
+       RtxIsIncludedAfterFiltering) {
+  const auto codecs = ConfigureH264CodecCapabilities();
+  std::vector<RtpCodecCapability> codec_capabilities = {codecs.recvonly_codec,
+                                                        codecs.rtx_codec};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities), IsRtcOk());
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kRecvOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codecs.recvonly_codec, codecs.rtx_codec));
+}
+
+TEST_F(RtpTransceiverFilteredCodecPreferencesTest,
+       NoMediaIsTheSameAsNoPreference) {
+  const auto codecs = ConfigureH264CodecCapabilities();
+  std::vector<RtpCodecCapability> codec_capabilities = {codecs.recvonly_codec,
+                                                        codecs.rtx_codec};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities), IsRtcOk());
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kSendOnly),
+      IsRtcOk());
+  // After filtering the only codec that remains is RTX which is not a media
+  // codec, this is the same as not having any preferences.
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(), SizeIs(0));
+
+  // But the preferences are remembered in case the direction changes such that
+  // we do have a media codec.
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kRecvOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codecs.recvonly_codec, codecs.rtx_codec));
+}
+
+TEST_F(RtpTransceiverFilteredCodecPreferencesTest,
+       H264LevelIdsIgnoredByFilter) {
+  // Baseline 3.1 and 5.2 are compatible when ignoring level IDs.
+  cricket::Codec baseline_3_1 = cricket::CreateVideoCodec(
+      SdpVideoFormat("H264",
+                     {{"level-asymmetry-allowed", "1"},
+                      {"packetization-mode", "1"},
+                      {"profile-level-id", "42001f"}},
+                     {ScalabilityMode::kL1T1}));
+  cricket::Codec baseline_5_2 = cricket::CreateVideoCodec(
+      SdpVideoFormat("H264",
+                     {{"level-asymmetry-allowed", "1"},
+                      {"packetization-mode", "1"},
+                      {"profile-level-id", "420034"}},
+                     {ScalabilityMode::kL1T1}));
+  // High is NOT compatible with baseline.
+  cricket::Codec high_3_1 = cricket::CreateVideoCodec(
+      SdpVideoFormat("H264",
+                     {{"level-asymmetry-allowed", "1"},
+                      {"packetization-mode", "1"},
+                      {"profile-level-id", "64001f"}},
+                     {ScalabilityMode::kL1T1}));
+  // Configure being able to both send and receive Baseline but using different
+  // level IDs in either direction, while the High profile is "truly" recvonly.
+  media_engine()->SetVideoSendCodecs({baseline_3_1});
+  media_engine()->SetVideoRecvCodecs({baseline_5_2, high_3_1});
+
+  // Prefer to "sendrecv" Baseline 5.2. Even though we can only send 3.1 this
+  // codec is not filtered out due to 5.2 and 3.1 being compatible when ignoring
+  // level IDs.
+  std::vector<RtpCodecCapability> codec_capabilities = {
+      ToRtpCodecCapability(baseline_5_2)};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities), IsRtcOk());
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kSendRecv),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codec_capabilities[0]));
+  // Prefer to "sendrecv" High 3.1. This gets filtered out because we cannot
+  // send it (Baseline 3.1 is not compatible with it).
+  codec_capabilities = {ToRtpCodecCapability(high_3_1)};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities), IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(), SizeIs(0));
+  // Change direction to "recvonly" to avoid High 3.1 being filtered out.
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kRecvOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codec_capabilities[0]));
+}
+
+#ifdef RTC_ENABLE_H265
+TEST_F(RtpTransceiverFilteredCodecPreferencesTest,
+       H265LevelIdIsIgnoredByFilter) {
+  const auto codecs = ConfigureH265CodecCapabilities();
+  std::vector<RtpCodecCapability> codec_capabilities = {codecs.sendonly_codec,
+                                                        codecs.recvonly_codec};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities), IsRtcOk());
+  // Regardless of direction, both codecs are preferred due to ignoring levels.
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kSendOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codec_capabilities[0], codec_capabilities[1]));
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kRecvOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codec_capabilities[0], codec_capabilities[1]));
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kSendRecv),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codec_capabilities[0], codec_capabilities[1]));
+}
+
+TEST_F(RtpTransceiverFilteredCodecPreferencesTest,
+       H265LevelIdHasToBeFromSenderOrReceiverCapabilities) {
+  ConfigureH265CodecCapabilities();
+  cricket::Codec cricket_codec = cricket::CreateVideoCodec(SdpVideoFormat(
+      "H265",
+      {{"profile-id", "1"},
+       {"tier-flag", "0"},
+       {"level-id", H265CodecCapabilities::kLevelNotInCapabilities},
+       {"tx-mode", "SRST"}},
+      {ScalabilityMode::kL1T1}));
+
+  std::vector<RtpCodecCapability> codec_capabilities = {
+      ToRtpCodecCapability(cricket_codec)};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities),
+              IsRtcErrorWithTypeAndMessage(
+                  RTCErrorType::INVALID_MODIFICATION,
+                  "Invalid codec preferences: Missing codec from codec "
+                  "capabilities."));
+}
+#endif  // RTC_ENABLE_H265
+
+class RtpTransceiverTestForHeaderExtensions
+    : public RtpTransceiverUnifiedPlanTest {
  public:
   RtpTransceiverTestForHeaderExtensions()
       : extensions_(
@@ -217,28 +546,15 @@ class RtpTransceiverTestForHeaderExtensions : public RtpTransceiverTest {
             extensions_,
             /* on_negotiation_needed= */ [] {})) {}
 
-  static rtc::scoped_refptr<MockRtpReceiverInternal> MockReceiver() {
-    auto receiver = rtc::make_ref_counted<MockRtpReceiverInternal>();
-    EXPECT_CALL(*receiver.get(), media_type())
-        .WillRepeatedly(Return(cricket::MediaType::MEDIA_TYPE_AUDIO));
-    return receiver;
-  }
-
-  static rtc::scoped_refptr<MockRtpSenderInternal> MockSender() {
-    auto sender = rtc::make_ref_counted<MockRtpSenderInternal>();
-    EXPECT_CALL(*sender.get(), media_type())
-        .WillRepeatedly(Return(cricket::MediaType::MEDIA_TYPE_AUDIO));
-    return sender;
-  }
-
   void ClearChannel() {
     EXPECT_CALL(*sender_.get(), SetMediaChannel(_));
     transceiver_->ClearChannel();
   }
 
-  rtc::AutoThread main_thread_;
-  rtc::scoped_refptr<MockRtpReceiverInternal> receiver_ = MockReceiver();
-  rtc::scoped_refptr<MockRtpSenderInternal> sender_ = MockSender();
+  rtc::scoped_refptr<MockRtpReceiverInternal> receiver_ =
+      MockReceiver(cricket::MediaType::MEDIA_TYPE_AUDIO);
+  rtc::scoped_refptr<MockRtpSenderInternal> sender_ =
+      MockSender(cricket::MediaType::MEDIA_TYPE_AUDIO);
 
   std::vector<RtpHeaderExtensionCapability> extensions_;
   rtc::scoped_refptr<RtpTransceiver> transceiver_;
@@ -380,7 +696,8 @@ TEST_F(RtpTransceiverTestForHeaderExtensions,
   EXPECT_CALL(*sender_.get(), SetMediaChannel(_));
   EXPECT_CALL(*sender_.get(), SetTransceiverAsStopped());
   EXPECT_CALL(*sender_.get(), Stop());
-  auto mock_channel = std::make_unique<cricket::MockChannelInterface>();
+  auto mock_channel =
+      std::make_unique<NiceMock<cricket::MockChannelInterface>>();
   auto mock_channel_ptr = mock_channel.get();
   EXPECT_CALL(*mock_channel, SetFirstPacketReceivedCallback(_));
   EXPECT_CALL(*mock_channel, media_type())
@@ -413,7 +730,8 @@ TEST_F(RtpTransceiverTestForHeaderExtensions, ReturnsNegotiatedHdrExts) {
   EXPECT_CALL(*sender_.get(), SetTransceiverAsStopped());
   EXPECT_CALL(*sender_.get(), Stop());
 
-  auto mock_channel = std::make_unique<cricket::MockChannelInterface>();
+  auto mock_channel =
+      std::make_unique<NiceMock<cricket::MockChannelInterface>>();
   auto mock_channel_ptr = mock_channel.get();
   EXPECT_CALL(*mock_channel, SetFirstPacketReceivedCallback(_));
   EXPECT_CALL(*mock_channel, media_type())
@@ -492,7 +810,7 @@ TEST_F(RtpTransceiverTestForHeaderExtensions,
   };
 
   // Default is stopped.
-  auto sender = rtc::make_ref_counted<MockRtpSenderInternal>();
+  auto sender = rtc::make_ref_counted<NiceMock<MockRtpSenderInternal>>();
   auto transceiver = rtc::make_ref_counted<RtpTransceiver>(
       RtpSenderProxyWithInternal<RtpSenderInternal>::Create(
           rtc::Thread::Current(), sender),
@@ -511,7 +829,8 @@ TEST_F(RtpTransceiverTestForHeaderExtensions,
   // Simulcast, i.e. more than one encoding.
   RtpParameters simulcast_parameters;
   simulcast_parameters.encodings.resize(2);
-  auto simulcast_sender = rtc::make_ref_counted<MockRtpSenderInternal>();
+  auto simulcast_sender =
+      rtc::make_ref_counted<NiceMock<MockRtpSenderInternal>>();
   EXPECT_CALL(*simulcast_sender, GetParametersInternal())
       .WillRepeatedly(Return(simulcast_parameters));
   auto simulcast_transceiver = rtc::make_ref_counted<RtpTransceiver>(
@@ -538,7 +857,7 @@ TEST_F(RtpTransceiverTestForHeaderExtensions,
   svc_parameters.encodings.resize(1);
   svc_parameters.encodings[0].scalability_mode = "L3T3";
 
-  auto svc_sender = rtc::make_ref_counted<MockRtpSenderInternal>();
+  auto svc_sender = rtc::make_ref_counted<NiceMock<MockRtpSenderInternal>>();
   EXPECT_CALL(*svc_sender, GetParametersInternal())
       .WillRepeatedly(Return(svc_parameters));
   auto svc_transceiver = rtc::make_ref_counted<RtpTransceiver>(

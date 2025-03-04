@@ -80,7 +80,7 @@ struct SsrcGroup {
 
   std::string ToString() const;
 
-  std::string semantics;        // e.g FIX, FEC, SIM.
+  std::string semantics;        // e.g FID, FEC-FR, SIM.
   std::vector<uint32_t> ssrcs;  // SSRCs of this type.
 };
 

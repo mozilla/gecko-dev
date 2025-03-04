@@ -15,8 +15,9 @@
 
 /** Class for H264 specific config. */
 typedef NS_ENUM(NSUInteger, RTCH264PacketizationMode) {
-  RTCH264PacketizationModeNonInterleaved = 0,  // Mode 1 - STAP-A, FU-A is allowed
-  RTCH264PacketizationModeSingleNalUnit        // Mode 0 - only single NALU allowed
+  RTCH264PacketizationModeNonInterleaved =
+      0,                                 // Mode 1 - STAP-A, FU-A is allowed
+  RTCH264PacketizationModeSingleNalUnit  // Mode 0 - only single NALU allowed
 };
 
 RTC_OBJC_EXPORT

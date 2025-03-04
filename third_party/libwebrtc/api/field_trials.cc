@@ -22,38 +22,30 @@
 
 namespace {
 
-// This part is copied from system_wrappers/field_trial.cc.
-webrtc::flat_map<std::string, std::string> InsertIntoMap(const std::string& s) {
-  std::string::size_type field_start = 0;
+webrtc::flat_map<std::string, std::string> InsertIntoMap(absl::string_view s) {
   webrtc::flat_map<std::string, std::string> key_value_map;
-  while (field_start < s.size()) {
-    std::string::size_type separator_pos = s.find('/', field_start);
-    RTC_CHECK_NE(separator_pos, std::string::npos)
+  while (!s.empty()) {
+    absl::string_view::size_type separator_pos = s.find('/');
+    RTC_CHECK_NE(separator_pos, absl::string_view::npos)
         << "Missing separator '/' after field trial key.";
-    RTC_CHECK_GT(separator_pos, field_start)
-        << "Field trial key cannot be empty.";
-    std::string key = s.substr(field_start, separator_pos - field_start);
-    field_start = separator_pos + 1;
+    RTC_CHECK_GT(separator_pos, 0) << "Field trial key cannot be empty.";
+    absl::string_view key = s.substr(0, separator_pos);
+    s.remove_prefix(separator_pos + 1);
 
-    RTC_CHECK_LT(field_start, s.size())
+    RTC_CHECK(!s.empty())
         << "Missing value after field trial key. String ended.";
-    separator_pos = s.find('/', field_start);
-    RTC_CHECK_NE(separator_pos, std::string::npos)
+    separator_pos = s.find('/');
+    RTC_CHECK_NE(separator_pos, absl::string_view::npos)
         << "Missing terminating '/' in field trial string.";
-    RTC_CHECK_GT(separator_pos, field_start)
-        << "Field trial value cannot be empty.";
-    std::string value = s.substr(field_start, separator_pos - field_start);
-    field_start = separator_pos + 1;
+    RTC_CHECK_GT(separator_pos, 0) << "Field trial value cannot be empty.";
+    absl::string_view value = s.substr(0, separator_pos);
+    s.remove_prefix(separator_pos + 1);
 
     // If a key is specified multiple times, only the value linked to the first
     // key is stored. note: This will crash in debug build when calling
     // InitFieldTrialsFromString().
     key_value_map.emplace(key, value);
   }
-  // This check is technically redundant due to earlier checks.
-  // We nevertheless keep the check to make it clear that the entire
-  // string has been processed, and without indexing past the end.
-  RTC_CHECK_EQ(field_start, s.size());
 
   return key_value_map;
 }
@@ -67,7 +59,7 @@ std::atomic<bool> instance_created_{false};
 
 namespace webrtc {
 
-FieldTrials::FieldTrials(const std::string& s)
+FieldTrials::FieldTrials(absl::string_view s)
     : uses_global_(true),
       field_trial_string_(s),
       previous_field_trial_string_(webrtc::field_trial::GetFieldTrialString()),
@@ -78,11 +70,11 @@ FieldTrials::FieldTrials(const std::string& s)
       << "Only one instance may be instanciated at any given time!";
 }
 
-std::unique_ptr<FieldTrials> FieldTrials::CreateNoGlobal(const std::string& s) {
+std::unique_ptr<FieldTrials> FieldTrials::CreateNoGlobal(absl::string_view s) {
   return std::unique_ptr<FieldTrials>(new FieldTrials(s, true));
 }
 
-FieldTrials::FieldTrials(const std::string& s, bool)
+FieldTrials::FieldTrials(absl::string_view s, bool)
     : uses_global_(false),
       previous_field_trial_string_(nullptr),
       key_value_map_(InsertIntoMap(s)) {}
@@ -96,7 +88,7 @@ FieldTrials::~FieldTrials() {
 }
 
 std::string FieldTrials::GetValue(absl::string_view key) const {
-  auto it = key_value_map_.find(std::string(key));
+  auto it = key_value_map_.find(key);
   if (it != key_value_map_.end())
     return it->second;
 
@@ -104,7 +96,7 @@ std::string FieldTrials::GetValue(absl::string_view key) const {
   // a mix between FieldTrials and the global string continue to work
   // TODO(bugs.webrtc.org/10335): Remove the global string!
   if (uses_global_) {
-    return field_trial::FindFullName(std::string(key));
+    return field_trial::FindFullName(key);
   }
   return "";
 }

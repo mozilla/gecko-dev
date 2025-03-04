@@ -21,11 +21,14 @@
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/crypto/crypto_options.h"
 #include "api/dtls_transport_interface.h"
 #include "api/scoped_refptr.h"
+#include "api/test/rtc_error_matchers.h"
 #include "api/units/time_delta.h"
 #include "p2p/base/fake_ice_transport.h"
 #include "p2p/base/packet_transport_internal.h"
@@ -34,8 +37,9 @@
 #include "p2p/dtls/dtls_utils.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/byte_order.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/fake_clock.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/network/received_packet.h"
 #include "rtc_base/rtc_certificate.h"
@@ -44,8 +48,9 @@
 #include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
-#include "test/field_trial.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 #define MAYBE_SKIP_TEST(feature)                                  \
   if (!(rtc::SSLStreamAdapter::feature())) {                      \
@@ -54,6 +59,9 @@
   }
 
 namespace cricket {
+
+using ::testing::Eq;
+using ::testing::IsTrue;
 
 static const size_t kPacketNumOffset = 8;
 static const size_t kPacketHeaderLen = 12;
@@ -377,9 +385,15 @@ class DtlsTransportTestBase {
     Negotiate(client1_server);
     EXPECT_TRUE(client1_.Connect(&client2_, false));
 
-    EXPECT_TRUE_SIMULATED_WAIT(client1_.dtls_transport()->writable() &&
-                                   client2_.dtls_transport()->writable(),
-                               kTimeout, fake_clock_);
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] {
+                      return client1_.dtls_transport()->writable() &&
+                             client2_.dtls_transport()->writable();
+                    },
+                    IsTrue(),
+                    {.timeout = webrtc::TimeDelta::Millis(kTimeout),
+                     .clock = &fake_clock_}),
+                webrtc::IsRtcOk());
     if (!client1_.dtls_transport()->writable() ||
         !client2_.dtls_transport()->writable())
       return false;
@@ -429,8 +443,11 @@ class DtlsTransportTestBase {
     RTC_LOG(LS_INFO) << "Expect packets, size=" << size;
     client2_.ExpectPackets(size);
     client1_.SendPackets(size, count, srtp);
-    EXPECT_EQ_SIMULATED_WAIT(count, client2_.NumPacketsReceived(), kTimeout,
-                             fake_clock_);
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] { return client2_.NumPacketsReceived(); }, Eq(count),
+                    {.timeout = webrtc::TimeDelta::Millis(kTimeout),
+                     .clock = &fake_clock_}),
+                webrtc::IsRtcOk());
   }
 
  protected:
@@ -627,9 +644,15 @@ class DtlsTransportVersionTest
 
     EXPECT_TRUE(client1_.Connect(&client2_, false));
 
-    EXPECT_TRUE_SIMULATED_WAIT(client1_.dtls_transport()->writable() &&
-                                   client2_.dtls_transport()->writable(),
-                               kTimeout, fake_clock_);
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] {
+                      return client1_.dtls_transport()->writable() &&
+                             client2_.dtls_transport()->writable();
+                    },
+                    IsTrue(),
+                    {.timeout = webrtc::TimeDelta::Millis(kTimeout),
+                     .clock = &fake_clock_}),
+                webrtc::IsRtcOk());
 
     client1_.fake_ice_transport()->set_packet_send_filter(nullptr);
     client2_.fake_ice_transport()->set_packet_send_filter(nullptr);
@@ -839,9 +862,15 @@ TEST_F(DtlsTransportTest, TestRenegotiateBeforeConnect) {
   Negotiate();
   Negotiate();
   EXPECT_TRUE(client1_.Connect(&client2_, false));
-  EXPECT_TRUE_SIMULATED_WAIT(client1_.dtls_transport()->writable() &&
-                                 client2_.dtls_transport()->writable(),
-                             kTimeout, fake_clock_);
+  EXPECT_THAT(webrtc::WaitUntil(
+                  [&] {
+                    return client1_.dtls_transport()->writable() &&
+                           client2_.dtls_transport()->writable();
+                  },
+                  IsTrue(),
+                  {.timeout = webrtc::TimeDelta::Millis(kTimeout),
+                   .clock = &fake_clock_}),
+              webrtc::IsRtcOk());
   TestTransfer(1000, 100, true);
 }
 
@@ -902,11 +931,18 @@ TEST_F(DtlsTransportTest, TestRetransmissionSchedule) {
   // Make client2_ writable, but not client1_.
   // This means client1_ will send DTLS client hellos but get no response.
   EXPECT_TRUE(client2_.Connect(&client1_, true));
-  EXPECT_TRUE_SIMULATED_WAIT(client2_.fake_ice_transport()->writable(),
-                             kTimeout, fake_clock_);
+  EXPECT_THAT(
+      webrtc::WaitUntil(
+          [&] { return client2_.fake_ice_transport()->writable(); }, IsTrue(),
+          {.timeout = webrtc::TimeDelta::Millis(kTimeout),
+           .clock = &fake_clock_}),
+      webrtc::IsRtcOk());
 
   // Wait for the first client hello to be sent.
-  EXPECT_EQ_WAIT(1, client1_.received_dtls_client_hellos(), kTimeout);
+  EXPECT_THAT(webrtc::WaitUntil(
+                  [&] { return client1_.received_dtls_client_hellos(); }, Eq(1),
+                  {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              webrtc::IsRtcOk());
   EXPECT_FALSE(client1_.fake_ice_transport()->writable());
 
   static int timeout_schedule_ms[] = {50,   100,  200,   400,   800,   1600,
@@ -989,29 +1025,49 @@ class DtlsEventOrderingTest
           break;
         case CALLER_WRITABLE:
           EXPECT_TRUE(client1_.Connect(&client2_, true));
-          EXPECT_TRUE_SIMULATED_WAIT(client1_.fake_ice_transport()->writable(),
-                                     kTimeout, fake_clock_);
+          EXPECT_THAT(
+              webrtc::WaitUntil(
+                  [&] { return client1_.fake_ice_transport()->writable(); },
+                  IsTrue(),
+                  {.timeout = webrtc::TimeDelta::Millis(kTimeout),
+                   .clock = &fake_clock_}),
+              webrtc::IsRtcOk());
           break;
         case CALLER_RECEIVES_CLIENTHELLO:
           // Sanity check that a ClientHello hasn't already been received.
           EXPECT_EQ(0, client1_.received_dtls_client_hellos());
           // Making client2_ writable will cause it to send the ClientHello.
           EXPECT_TRUE(client2_.Connect(&client1_, true));
-          EXPECT_TRUE_SIMULATED_WAIT(client2_.fake_ice_transport()->writable(),
-                                     kTimeout, fake_clock_);
-          EXPECT_EQ_SIMULATED_WAIT(1, client1_.received_dtls_client_hellos(),
-                                   kTimeout, fake_clock_);
+          EXPECT_THAT(
+              webrtc::WaitUntil(
+                  [&] { return client2_.fake_ice_transport()->writable(); },
+                  IsTrue(),
+                  {.timeout = webrtc::TimeDelta::Millis(kTimeout),
+                   .clock = &fake_clock_}),
+              webrtc::IsRtcOk());
+          EXPECT_THAT(
+              webrtc::WaitUntil(
+                  [&] { return client1_.received_dtls_client_hellos(); }, Eq(1),
+                  {.timeout = webrtc::TimeDelta::Millis(kTimeout),
+                   .clock = &fake_clock_}),
+              webrtc::IsRtcOk());
           break;
         case HANDSHAKE_FINISHES:
           // Sanity check that the handshake hasn't already finished.
           EXPECT_FALSE(client1_.dtls_transport()->IsDtlsConnected() ||
                        client1_.dtls_transport()->dtls_state() ==
                            webrtc::DtlsTransportState::kFailed);
-          EXPECT_TRUE_SIMULATED_WAIT(
-              client1_.dtls_transport()->IsDtlsConnected() ||
-                  client1_.dtls_transport()->dtls_state() ==
-                      webrtc::DtlsTransportState::kFailed,
-              kTimeout, fake_clock_);
+          EXPECT_THAT(
+              webrtc::WaitUntil(
+                  [&] {
+                    return client1_.dtls_transport()->IsDtlsConnected() ||
+                           client1_.dtls_transport()->dtls_state() ==
+                               webrtc::DtlsTransportState::kFailed;
+                  },
+                  IsTrue(),
+                  {.timeout = webrtc::TimeDelta::Millis(kTimeout),
+                   .clock = &fake_clock_}),
+              webrtc::IsRtcOk());
           break;
       }
     }
@@ -1019,12 +1075,18 @@ class DtlsEventOrderingTest
     webrtc::DtlsTransportState expected_final_state =
         valid_fingerprint ? webrtc::DtlsTransportState::kConnected
                           : webrtc::DtlsTransportState::kFailed;
-    EXPECT_EQ_SIMULATED_WAIT(expected_final_state,
-                             client1_.dtls_transport()->dtls_state(), kTimeout,
-                             fake_clock_);
-    EXPECT_EQ_SIMULATED_WAIT(expected_final_state,
-                             client2_.dtls_transport()->dtls_state(), kTimeout,
-                             fake_clock_);
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] { return client1_.dtls_transport()->dtls_state(); },
+                    Eq(expected_final_state),
+                    {.timeout = webrtc::TimeDelta::Millis(kTimeout),
+                     .clock = &fake_clock_}),
+                webrtc::IsRtcOk());
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] { return client2_.dtls_transport()->dtls_state(); },
+                    Eq(expected_final_state),
+                    {.timeout = webrtc::TimeDelta::Millis(kTimeout),
+                     .clock = &fake_clock_}),
+                webrtc::IsRtcOk());
 
     // Transports should be writable iff there was a valid fingerprint.
     EXPECT_EQ(valid_fingerprint, client1_.dtls_transport()->writable());

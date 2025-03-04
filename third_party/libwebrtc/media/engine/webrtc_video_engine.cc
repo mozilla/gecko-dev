@@ -1445,7 +1445,8 @@ webrtc::RTCError WebRtcVideoSendChannel::SetRtpSendParameters(
     // the first layer.
     // TODO: https://issues.webrtc.org/362277533 - Support mixed-codec simulcast
     if (parameters.encodings[0].codec && send_codec_ &&
-        !IsSameRtpCodec(send_codec_->codec, *parameters.encodings[0].codec)) {
+        !IsSameRtpCodecIgnoringLevel(send_codec_->codec,
+                                     *parameters.encodings[0].codec)) {
       RTC_LOG(LS_VERBOSE) << "Trying to change codec to "
                           << parameters.encodings[0].codec->name;
       // Ignore level when matching negotiated codecs against the requested

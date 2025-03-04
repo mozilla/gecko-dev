@@ -720,8 +720,7 @@ Call::Call(CallConfig config,
                        absl::bind_front(&PacketRouter::SendCombinedRtcpPacket,
                                         transport_send->packet_router()),
                        absl::bind_front(&PacketRouter::SendRemb,
-                                        transport_send->packet_router()),
-                       /*network_state_estimator=*/nullptr),
+                                        transport_send->packet_router())),
       receive_time_calculator_(
           ReceiveTimeCalculator::CreateFromFieldTrial(env_.field_trials())),
       video_send_delay_stats_(new SendDelayStats(&env_.clock())),
@@ -832,14 +831,6 @@ webrtc::AudioSendStream* Call::CreateAudioSendStream(
              audio_send_ssrcs_.end());
   audio_send_ssrcs_[config.rtp.ssrc] = send_stream;
 
-  // TODO(bugs.webrtc.org/11993): call AssociateSendStream and
-  // UpdateAggregateNetworkState asynchronously on the network thread.
-  for (AudioReceiveStreamImpl* stream : audio_receive_streams_) {
-    if (stream->local_ssrc() == config.rtp.ssrc) {
-      stream->AssociateSendStream(send_stream);
-    }
-  }
-
   UpdateAggregateNetworkState();
 
   return send_stream;
@@ -859,14 +850,6 @@ void Call::DestroyAudioSendStream(webrtc::AudioSendStream* send_stream) {
 
   size_t num_deleted = audio_send_ssrcs_.erase(ssrc);
   RTC_DCHECK_EQ(1, num_deleted);
-
-  // TODO(bugs.webrtc.org/11993): call AssociateSendStream and
-  // UpdateAggregateNetworkState asynchronously on the network thread.
-  for (AudioReceiveStreamImpl* stream : audio_receive_streams_) {
-    if (stream->local_ssrc() == ssrc) {
-      stream->AssociateSendStream(nullptr);
-    }
-  }
 
   UpdateAggregateNetworkState();
 
@@ -892,11 +875,6 @@ webrtc::AudioReceiveStreamInterface* Call::CreateAudioReceiveStream(
   receive_stream->RegisterWithTransport(&audio_receiver_controller_);
 
   ConfigureSync(config.sync_group);
-
-  auto it = audio_send_ssrcs_.find(config.rtp.local_ssrc);
-  if (it != audio_send_ssrcs_.end()) {
-    receive_stream->AssociateSendStream(it->second);
-  }
 
   UpdateAggregateNetworkState();
   return receive_stream;
@@ -1282,13 +1260,7 @@ void Call::UpdateAggregateNetworkState() {
 void Call::OnLocalSsrcUpdated(webrtc::AudioReceiveStreamInterface& stream,
                               uint32_t local_ssrc) {
   RTC_DCHECK_RUN_ON(worker_thread_);
-  webrtc::AudioReceiveStreamImpl& receive_stream =
-      static_cast<webrtc::AudioReceiveStreamImpl&>(stream);
-
-  receive_stream.SetLocalSsrc(local_ssrc);
-  auto it = audio_send_ssrcs_.find(local_ssrc);
-  receive_stream.AssociateSendStream(it != audio_send_ssrcs_.end() ? it->second
-                                                                   : nullptr);
+  static_cast<webrtc::AudioReceiveStreamImpl&>(stream).SetLocalSsrc(local_ssrc);
 }
 
 void Call::OnLocalSsrcUpdated(VideoReceiveStreamInterface& stream,

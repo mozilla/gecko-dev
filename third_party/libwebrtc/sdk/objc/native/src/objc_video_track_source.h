@@ -19,7 +19,8 @@
 
 RTC_FWD_DECL_OBJC_CLASS(RTC_OBJC_TYPE(RTCVideoFrame));
 
-@interface RTCObjCVideoSourceAdapter : NSObject <RTC_OBJC_TYPE (RTCVideoCapturerDelegate)>
+@interface RTCObjCVideoSourceAdapter
+    : NSObject <RTC_OBJC_TYPE (RTCVideoCapturerDelegate)>
 @end
 
 namespace webrtc {

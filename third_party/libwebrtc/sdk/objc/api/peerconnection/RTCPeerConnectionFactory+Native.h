@@ -23,59 +23,79 @@
 NS_ASSUME_NONNULL_BEGIN
 
 /**
- * This class extension exposes methods that work directly with injectable C++ components.
+ * This class extension exposes methods that work directly with injectable C++
+ * components.
  */
 @interface RTC_OBJC_TYPE (RTCPeerConnectionFactory)
 ()
 
-/* Initializer used when WebRTC is compiled with no media support */
-- (instancetype)initWithNoMedia;
+    /* Initializer used when WebRTC is compiled with no media support */
+    - (instancetype)initWithNoMedia;
 
 /* Initialize object with provided dependencies and with media support. */
 - (instancetype)initWithMediaAndDependencies:
     (webrtc::PeerConnectionFactoryDependencies)dependencies;
 
-/* Initialize object with injectable native audio/video encoder/decoder factories */
-- (instancetype)initWithNativeAudioEncoderFactory:
-                    (rtc::scoped_refptr<webrtc::AudioEncoderFactory>)audioEncoderFactory
-                        nativeAudioDecoderFactory:
-                            (rtc::scoped_refptr<webrtc::AudioDecoderFactory>)audioDecoderFactory
-                        nativeVideoEncoderFactory:
-                            (std::unique_ptr<webrtc::VideoEncoderFactory>)videoEncoderFactory
-                        nativeVideoDecoderFactory:
-                            (std::unique_ptr<webrtc::VideoDecoderFactory>)videoDecoderFactory
-                                audioDeviceModule:
-                                    (nullable webrtc::AudioDeviceModule *)audioDeviceModule
-                            audioProcessingModule:
-                                (rtc::scoped_refptr<webrtc::AudioProcessing>)audioProcessingModule;
+/* Initialize object with injectable native audio/video encoder/decoder
+ * factories */
+- (instancetype)
+    initWithNativeAudioEncoderFactory:
+        (rtc::scoped_refptr<webrtc::AudioEncoderFactory>)audioEncoderFactory
+            nativeAudioDecoderFactory:
+                (rtc::scoped_refptr<webrtc::AudioDecoderFactory>)
+                    audioDecoderFactory
+            nativeVideoEncoderFactory:
+                (std::unique_ptr<webrtc::VideoEncoderFactory>)
+                    videoEncoderFactory
+            nativeVideoDecoderFactory:
+                (std::unique_ptr<webrtc::VideoDecoderFactory>)
+                    videoDecoderFactory
+                    audioDeviceModule:
+                        (nullable webrtc::AudioDeviceModule *)audioDeviceModule
+                audioProcessingModule:
+                    (rtc::scoped_refptr<webrtc::AudioProcessing>)
+                        audioProcessingModule;
 
 - (instancetype)
     initWithNativeAudioEncoderFactory:
         (rtc::scoped_refptr<webrtc::AudioEncoderFactory>)audioEncoderFactory
             nativeAudioDecoderFactory:
-                (rtc::scoped_refptr<webrtc::AudioDecoderFactory>)audioDecoderFactory
+                (rtc::scoped_refptr<webrtc::AudioDecoderFactory>)
+                    audioDecoderFactory
             nativeVideoEncoderFactory:
-                (std::unique_ptr<webrtc::VideoEncoderFactory>)videoEncoderFactory
+                (std::unique_ptr<webrtc::VideoEncoderFactory>)
+                    videoEncoderFactory
             nativeVideoDecoderFactory:
-                (std::unique_ptr<webrtc::VideoDecoderFactory>)videoDecoderFactory
-                    audioDeviceModule:(nullable webrtc::AudioDeviceModule *)audioDeviceModule
+                (std::unique_ptr<webrtc::VideoDecoderFactory>)
+                    videoDecoderFactory
+                    audioDeviceModule:
+                        (nullable webrtc::AudioDeviceModule *)audioDeviceModule
                 audioProcessingModule:
-                    (rtc::scoped_refptr<webrtc::AudioProcessing>)audioProcessingModule
-             networkControllerFactory:(std::unique_ptr<webrtc::NetworkControllerFactoryInterface>)
-                                          networkControllerFactory;
+                    (rtc::scoped_refptr<webrtc::AudioProcessing>)
+                        audioProcessingModule
+             networkControllerFactory:
+                 (std::unique_ptr<webrtc::NetworkControllerFactoryInterface>)
+                     networkControllerFactory;
 
 - (instancetype)
-    initWithEncoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
-            decoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)>)decoderFactory;
+    initWithEncoderFactory:
+        (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
+            decoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)>)
+                               decoderFactory;
 
 /** Initialize an RTCPeerConnection with a configuration, constraints, and
  *  dependencies.
  */
 - (nullable RTC_OBJC_TYPE(RTCPeerConnection) *)
-    peerConnectionWithDependencies:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
-                       constraints:(RTC_OBJC_TYPE(RTCMediaConstraints) *)constraints
-                      dependencies:(std::unique_ptr<webrtc::PeerConnectionDependencies>)dependencies
-                          delegate:(nullable id<RTC_OBJC_TYPE(RTCPeerConnectionDelegate)>)delegate;
+    peerConnectionWithDependencies:
+        (RTC_OBJC_TYPE(RTCConfiguration) *)configuration
+                       constraints:
+                           (RTC_OBJC_TYPE(RTCMediaConstraints) *)constraints
+                      dependencies:
+                          (std::unique_ptr<webrtc::PeerConnectionDependencies>)
+                              dependencies
+                          delegate:(nullable id<RTC_OBJC_TYPE(
+                                        RTCPeerConnectionDelegate)>)delegate;
 
 @end
 

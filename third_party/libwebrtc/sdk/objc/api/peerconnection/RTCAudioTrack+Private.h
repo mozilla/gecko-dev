@@ -19,10 +19,12 @@ NS_ASSUME_NONNULL_BEGIN
 ()
 
     /** AudioTrackInterface created or passed in at construction. */
-    @property(nonatomic, readonly) rtc::scoped_refptr<webrtc::AudioTrackInterface> nativeAudioTrack;
+    @property(nonatomic, readonly)
+        rtc::scoped_refptr<webrtc::AudioTrackInterface> nativeAudioTrack;
 
 /** Initialize an RTCAudioTrack with an id. */
-- (instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
+- (instancetype)initWithFactory:
+                    (RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
                          source:(RTC_OBJC_TYPE(RTCAudioSource) *)source
                         trackId:(NSString *)trackId;
 

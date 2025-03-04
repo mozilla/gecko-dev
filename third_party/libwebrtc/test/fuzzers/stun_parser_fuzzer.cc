@@ -15,7 +15,6 @@
 
 namespace webrtc {
 void FuzzOneInput(const uint8_t* data, size_t size) {
-
   // Normally we'd check the integrity first, but those checks are
   // fuzzed separately in stun_validator_fuzzer.cc. We still want to
   // fuzz this target since the integrity checks could be forged by a

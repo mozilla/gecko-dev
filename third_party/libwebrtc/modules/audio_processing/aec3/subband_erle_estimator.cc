@@ -13,9 +13,10 @@
 #include <algorithm>
 #include <functional>
 
+#include "api/environment/environment.h"
+#include "api/field_trials_view.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/numerics/safe_minmax.h"
-#include "system_wrappers/include/field_trial.h"
 
 namespace webrtc {
 
@@ -34,18 +35,20 @@ std::array<float, kFftLengthBy2Plus1> SetMaxErleBands(float max_erle_l,
   return max_erle;
 }
 
-bool EnableMinErleDuringOnsets() {
-  return !field_trial::IsEnabled("WebRTC-Aec3MinErleDuringOnsetsKillSwitch");
+bool EnableMinErleDuringOnsets(const FieldTrialsView& field_trials) {
+  return !field_trials.IsEnabled("WebRTC-Aec3MinErleDuringOnsetsKillSwitch");
 }
 
 }  // namespace
 
-SubbandErleEstimator::SubbandErleEstimator(const EchoCanceller3Config& config,
+SubbandErleEstimator::SubbandErleEstimator(const Environment& env,
+                                           const EchoCanceller3Config& config,
                                            size_t num_capture_channels)
     : use_onset_detection_(config.erle.onset_detection),
       min_erle_(config.erle.min),
       max_erle_(SetMaxErleBands(config.erle.max_l, config.erle.max_h)),
-      use_min_erle_during_onsets_(EnableMinErleDuringOnsets()),
+      use_min_erle_during_onsets_(
+          EnableMinErleDuringOnsets(env.field_trials())),
       accum_spectra_(num_capture_channels),
       erle_(num_capture_channels),
       erle_onset_compensated_(num_capture_channels),

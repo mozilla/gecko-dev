@@ -53,7 +53,8 @@ constexpr SupportedH264Profile kH264MaxSupportedProfiles[] = {
     {"iPhone13,1", /* https://support.apple.com/kb/SP829 iPhone 12 mini */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
 
-    {"iPhone12,8", /* https://support.apple.com/kb/SP820 iPhone SE (2nd generation) */
+    {"iPhone12,8", /* https://support.apple.com/kb/SP820 iPhone SE (2nd
+                      generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
     {"iPhone12,5", /* https://support.apple.com/kb/SP806 iPhone 11 Pro Max */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
@@ -111,52 +112,74 @@ constexpr SupportedH264Profile kH264MaxSupportedProfiles[] = {
      {H264Profile::kProfileHigh, H264Level::kLevel4_1}},
 
     // iPods with at least iOS 12
-    {"iPod9,1", /* https://support.apple.com/kb/SP796 iPod touch (7th generation) */
+    {"iPod9,1", /* https://support.apple.com/kb/SP796 iPod touch (7th
+                   generation) */
      {H264Profile::kProfileMain, H264Level::kLevel4_1}},
-    {"iPod7,1", /* https://support.apple.com/kb/SP720 iPod touch (6th generation) */
+    {"iPod7,1", /* https://support.apple.com/kb/SP720 iPod touch (6th
+                   generation) */
      {H264Profile::kProfileMain, H264Level::kLevel4_1}},
 
     // iPads with at least iOS 12
-    {"iPad14,6", /* https://support.apple.com/kb/SP883 iPad Pro 12.9-inch (6th generation) */
+    {"iPad14,6", /* https://support.apple.com/kb/SP883 iPad Pro 12.9-inch (6th
+                    generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad14,5", /* https://support.apple.com/kb/SP883 iPad Pro 12.9-inch (6th generation) */
+    {"iPad14,5", /* https://support.apple.com/kb/SP883 iPad Pro 12.9-inch (6th
+                    generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad14,4", /* https://support.apple.com/kb/SP882 iPad Pro 11-inch (4th generation) */
+    {"iPad14,4", /* https://support.apple.com/kb/SP882 iPad Pro 11-inch (4th
+                    generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad14,3", /* https://support.apple.com/kb/SP882 iPad Pro 11-inch (4th generation) */
+    {"iPad14,3", /* https://support.apple.com/kb/SP882 iPad Pro 11-inch (4th
+                    generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad14,2", /* https://support.apple.com/kb/SP850 iPad mini (6th generation)  */
+    {"iPad14,2", /* https://support.apple.com/kb/SP850 iPad mini (6th
+                    generation)  */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad14,1", /* https://support.apple.com/kb/SP850 iPad mini (6th generation)  */
+    {"iPad14,1", /* https://support.apple.com/kb/SP850 iPad mini (6th
+                    generation)  */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
 
-    {"iPad13,19", /* https://support.apple.com/kb/SP884 iPad (10th generation) */
+    {"iPad13,19", /* https://support.apple.com/kb/SP884 iPad (10th generation)
+                   */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad13,18", /* https://support.apple.com/kb/SP884 iPad (10th generation) */
+    {"iPad13,18", /* https://support.apple.com/kb/SP884 iPad (10th generation)
+                   */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad13,17", /* https://support.apple.com/kb/SP866 iPad Air (5th generation) */
+    {"iPad13,17", /* https://support.apple.com/kb/SP866 iPad Air (5th
+                     generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad13,16", /* https://support.apple.com/kb/SP866 iPad Air (5th generation) */
+    {"iPad13,16", /* https://support.apple.com/kb/SP866 iPad Air (5th
+                     generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad13,11", /* https://support.apple.com/kb/SP844 iPad Pro, 12.9-inch (5th generation) */
+    {"iPad13,11", /* https://support.apple.com/kb/SP844 iPad Pro, 12.9-inch (5th
+                     generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad13,10", /* https://support.apple.com/kb/SP844 iPad Pro, 12.9-inch (5th generation) */
+    {"iPad13,10", /* https://support.apple.com/kb/SP844 iPad Pro, 12.9-inch (5th
+                     generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad13,9", /* https://support.apple.com/kb/SP844 iPad Pro, 12.9-inch (5th generation) */
+    {"iPad13,9", /* https://support.apple.com/kb/SP844 iPad Pro, 12.9-inch (5th
+                    generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad13,8", /* https://support.apple.com/kb/SP844 iPad Pro, 12.9-inch (5th generation) */
+    {"iPad13,8", /* https://support.apple.com/kb/SP844 iPad Pro, 12.9-inch (5th
+                    generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad13,7", /* https://support.apple.com/kb/SP843 iPad Pro, 11-inch (3rd generation) */
+    {"iPad13,7", /* https://support.apple.com/kb/SP843 iPad Pro, 11-inch (3rd
+                    generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad13,6", /* https://support.apple.com/kb/SP843 iPad Pro, 11-inch (3rd generation) */
+    {"iPad13,6", /* https://support.apple.com/kb/SP843 iPad Pro, 11-inch (3rd
+                    generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad13,5", /* https://support.apple.com/kb/SP843 iPad Pro, 11-inch (3rd generation) */
+    {"iPad13,5", /* https://support.apple.com/kb/SP843 iPad Pro, 11-inch (3rd
+                    generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad13,4", /* https://support.apple.com/kb/SP843 iPad Pro, 11-inch (3rd generation) */
+    {"iPad13,4", /* https://support.apple.com/kb/SP843 iPad Pro, 11-inch (3rd
+                    generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad13,2", /* https://support.apple.com/kb/SP828 iPad Air (4th generation) */
+    {"iPad13,2", /* https://support.apple.com/kb/SP828 iPad Air (4th generation)
+                  */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad13,1", /* https://support.apple.com/kb/SP828 iPad Air (4th generation) */
+    {"iPad13,1", /* https://support.apple.com/kb/SP828 iPad Air (4th generation)
+                  */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
 
     {"iPad12,2", /* https://support.apple.com/kb/SP849 iPad (9th generation) */
@@ -168,38 +191,54 @@ constexpr SupportedH264Profile kH264MaxSupportedProfiles[] = {
      {H264Profile::kProfileHigh, H264Level::kLevel4_1}},
     {"iPad11,6", /* https://support.apple.com/kb/SP822 iPad (8th generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel4_1}},
-    {"iPad11,4", /* https://support.apple.com/kb/SP787 iPad Air (3rd generation) */
+    {"iPad11,4", /* https://support.apple.com/kb/SP787 iPad Air (3rd generation)
+                  */
      {H264Profile::kProfileHigh, H264Level::kLevel4_1}},
-    {"iPad11,3", /* https://support.apple.com/kb/SP787 iPad Air (3rd generation) */
+    {"iPad11,3", /* https://support.apple.com/kb/SP787 iPad Air (3rd generation)
+                  */
      {H264Profile::kProfileHigh, H264Level::kLevel4_1}},
-    {"iPad11,2", /* https://support.apple.com/kb/SP788 iPad mini (5th generation) */
+    {"iPad11,2", /* https://support.apple.com/kb/SP788 iPad mini (5th
+                    generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel4_1}},
-    {"iPad11,1", /* https://support.apple.com/kb/SP788 iPad mini (5th generation) */
+    {"iPad11,1", /* https://support.apple.com/kb/SP788 iPad mini (5th
+                    generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel4_1}},
 
-    {"iPad8,12", /* https://support.apple.com/kb/SP815 iPad Pro 12.9-inch (4th generation) */
+    {"iPad8,12", /* https://support.apple.com/kb/SP815 iPad Pro 12.9-inch (4th
+                    generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad8,11", /* https://support.apple.com/kb/SP815 iPad Pro 12.9-inch (4th generation) */
+    {"iPad8,11", /* https://support.apple.com/kb/SP815 iPad Pro 12.9-inch (4th
+                    generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad8,10", /* https://support.apple.com/kb/SP814 iPad Pro 11-inch (2nd generation) */
+    {"iPad8,10", /* https://support.apple.com/kb/SP814 iPad Pro 11-inch (2nd
+                    generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad8,9", /* https://support.apple.com/kb/SP814 iPad Pro 11-inch (2nd generation) */
+    {"iPad8,9", /* https://support.apple.com/kb/SP814 iPad Pro 11-inch (2nd
+                   generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad8,8", /* https://support.apple.com/kb/SP785 iPad Pro 12.9-inch (3rd generation) */
+    {"iPad8,8", /* https://support.apple.com/kb/SP785 iPad Pro 12.9-inch (3rd
+                   generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad8,7", /* https://support.apple.com/kb/SP785 iPad Pro 12.9-inch (3rd generation) */
+    {"iPad8,7", /* https://support.apple.com/kb/SP785 iPad Pro 12.9-inch (3rd
+                   generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad8,6", /* https://support.apple.com/kb/SP785 iPad Pro 12.9-inch (3rd generation) */
+    {"iPad8,6", /* https://support.apple.com/kb/SP785 iPad Pro 12.9-inch (3rd
+                   generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad8,5", /* https://support.apple.com/kb/SP785 iPad Pro 12.9-inch (3rd generation) */
+    {"iPad8,5", /* https://support.apple.com/kb/SP785 iPad Pro 12.9-inch (3rd
+                   generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad8,4", /* https://support.apple.com/kb/SP784 iPad Pro 11-inch (1st generation) */
+    {"iPad8,4", /* https://support.apple.com/kb/SP784 iPad Pro 11-inch (1st
+                   generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad8,3", /* https://support.apple.com/kb/SP784 iPad Pro 11-inch (1st generation) */
+    {"iPad8,3", /* https://support.apple.com/kb/SP784 iPad Pro 11-inch (1st
+                   generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad8,2", /* https://support.apple.com/kb/SP784 iPad Pro 11-inch (1st generation) */
+    {"iPad8,2", /* https://support.apple.com/kb/SP784 iPad Pro 11-inch (1st
+                   generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
-    {"iPad8,1", /* https://support.apple.com/kb/SP784 iPad Pro 11-inch (1st generation) */
+    {"iPad8,1", /* https://support.apple.com/kb/SP784 iPad Pro 11-inch (1st
+                   generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_2}},
 
     {"iPad7,12", /* https://support.apple.com/kb/SP807 iPad (7th generation) */
@@ -214,9 +253,11 @@ constexpr SupportedH264Profile kH264MaxSupportedProfiles[] = {
      {H264Profile::kProfileHigh, H264Level::kLevel5_1}},
     {"iPad7,3", /* https://support.apple.com/kb/SP762 iPad Pro (10.5-inch) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_1}},
-    {"iPad7,2", /* https://support.apple.com/kb/SP761 iPad Pro (12.9-inch) (2nd generation) */
+    {"iPad7,2", /* https://support.apple.com/kb/SP761 iPad Pro (12.9-inch) (2nd
+                   generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_1}},
-    {"iPad7,1", /* https://support.apple.com/kb/SP761 iPad Pro (12.9-inch) (2nd generation) */
+    {"iPad7,1", /* https://support.apple.com/kb/SP761 iPad Pro (12.9-inch) (2nd
+                   generation) */
      {H264Profile::kProfileHigh, H264Level::kLevel5_1}},
 
     {"iPad6,12", /* https://support.apple.com/kb/SP751 iPad (5th generation) */
@@ -247,11 +288,14 @@ constexpr SupportedH264Profile kH264MaxSupportedProfiles[] = {
      {H264Profile::kProfileHigh, H264Level::kLevel4_1}},
     {"iPad4,7", /* https://support.apple.com/kb/sp709 iPad mini 3 */
      {H264Profile::kProfileHigh, H264Level::kLevel4_1}},
-    {"iPad4,6", /* https://support.apple.com/kb/sp693 iPad mini 2 with Retina display */
+    {"iPad4,6", /* https://support.apple.com/kb/sp693 iPad mini 2 with Retina
+                   display */
      {H264Profile::kProfileHigh, H264Level::kLevel4_1}},
-    {"iPad4,5", /* https://support.apple.com/kb/sp693 iPad mini 2 with Retina display */
+    {"iPad4,5", /* https://support.apple.com/kb/sp693 iPad mini 2 with Retina
+                   display */
      {H264Profile::kProfileHigh, H264Level::kLevel4_1}},
-    {"iPad4,4", /* https://support.apple.com/kb/sp693 iPad mini 2 with Retina display */
+    {"iPad4,4", /* https://support.apple.com/kb/sp693 iPad mini 2 with Retina
+                   display */
      {H264Profile::kProfileHigh, H264Level::kLevel4_1}},
     {"iPad4,3", /* https://support.apple.com/kb/SP692 iPad Air */
      {H264Profile::kProfileHigh, H264Level::kLevel4_1}},
@@ -261,22 +305,25 @@ constexpr SupportedH264Profile kH264MaxSupportedProfiles[] = {
      {H264Profile::kProfileHigh, H264Level::kLevel4_1}},
 };
 
-std::optional<H264ProfileLevelId> FindMaxSupportedProfileForDevice(NSString* machineName) {
-  const auto* result =
-      std::find_if(std::begin(kH264MaxSupportedProfiles),
-                   std::end(kH264MaxSupportedProfiles),
-                   [machineName](const SupportedH264Profile& supportedProfile) {
-                     return [machineName isEqualToString:@(supportedProfile.machineName)];
-                   });
+std::optional<H264ProfileLevelId> FindMaxSupportedProfileForDevice(
+    NSString* machineName) {
+  const auto* result = std::find_if(
+      std::begin(kH264MaxSupportedProfiles),
+      std::end(kH264MaxSupportedProfiles),
+      [machineName](const SupportedH264Profile& supportedProfile) {
+        return [machineName isEqualToString:@(supportedProfile.machineName)];
+      });
   if (result != std::end(kH264MaxSupportedProfiles)) {
     return result->profile;
   }
   if ([machineName hasPrefix:@"iPhone"] || [machineName hasPrefix:@"iPad"]) {
-    H264ProfileLevelId fallbackProfile{H264Profile::kProfileHigh, H264Level::kLevel4_1};
+    H264ProfileLevelId fallbackProfile{H264Profile::kProfileHigh,
+                                       H264Level::kLevel4_1};
     return fallbackProfile;
   }
   if ([machineName hasPrefix:@"iPod"]) {
-    H264ProfileLevelId fallbackProfile{H264Profile::kProfileMain, H264Level::kLevel4_1};
+    H264ProfileLevelId fallbackProfile{H264Profile::kProfileMain,
+                                       H264Level::kLevel4_1};
     return fallbackProfile;
   }
   return std::nullopt;

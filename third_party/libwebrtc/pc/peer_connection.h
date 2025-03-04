@@ -376,7 +376,7 @@ class PeerConnection : public PeerConnectionInternal,
   void NoteUsageEvent(UsageEvent event) override;
 
   // Asynchronously adds a remote candidate on the network thread.
-  void AddRemoteCandidate(const std::string& mid,
+  void AddRemoteCandidate(absl::string_view mid,
                           const cricket::Candidate& candidate) override;
 
   // Report the UMA metric BundleUsage for the given remote description.
@@ -385,6 +385,9 @@ class PeerConnection : public PeerConnectionInternal,
 
   // Report several UMA metrics on establishing the connection.
   void ReportFirstConnectUsageMetrics() RTC_RUN_ON(signaling_thread());
+  // Report several UMA metrics for established connections when the connection
+  // is closed.
+  void ReportCloseUsageMetrics() RTC_RUN_ON(signaling_thread());
 
   // Returns true if the PeerConnection is configured to use Unified Plan
   // semantics for creating offers/answers and setting local/remote
@@ -719,6 +722,8 @@ class PeerConnection : public PeerConnectionInternal,
   PayloadTypePicker payload_type_picker_;
   // This variable needs to be the last one in the class.
   rtc::WeakPtrFactory<PeerConnection> weak_factory_;
+
+  bool CanAttemptDtlsStunPiggybacking(const RTCConfiguration& configuration);
 };
 
 }  // namespace webrtc

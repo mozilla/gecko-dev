@@ -41,9 +41,10 @@
 }
 
 - (NSString *)description {
-  return [NSString stringWithFormat:@"RTC_OBJC_TYPE(RTCSessionDescription):\n%@\n%@",
-                                    [[self class] stringForType:_type],
-                                    _sdp];
+  return [NSString
+      stringWithFormat:@"RTC_OBJC_TYPE(RTCSessionDescription):\n%@\n%@",
+                       [[self class] stringForType:_type],
+                       _sdp];
 }
 
 #pragma mark - Private
@@ -51,8 +52,9 @@
 - (std::unique_ptr<webrtc::SessionDescriptionInterface>)nativeDescription {
   webrtc::SdpParseError error;
 
-  std::unique_ptr<webrtc::SessionDescriptionInterface> description(webrtc::CreateSessionDescription(
-      [[self class] nativeTypeForType:_type], _sdp.stdString, &error));
+  std::unique_ptr<webrtc::SessionDescriptionInterface> description(
+      webrtc::CreateSessionDescription(
+          [[self class] nativeTypeForType:_type], _sdp.stdString, &error));
 
   if (!description) {
     RTCLogError(@"Failed to create session description: %s\nline: %s",
@@ -70,8 +72,7 @@
   nativeDescription->ToString(&sdp);
   RTCSdpType type = [[self class] typeForStdString:nativeDescription->type()];
 
-  return [self initWithType:type
-                        sdp:[NSString stringForStdString:sdp]];
+  return [self initWithType:type sdp:[NSString stringForStdString:sdp]];
 }
 
 + (std::string)stdStringForType:(RTCSdpType)type {

@@ -29,6 +29,8 @@
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
 #include "api/video/resolution.h"
+#include "api/video_codecs/video_decoder_factory.h"
+#include "api/video_codecs/video_encoder_factory.h"
 #include "pc/test/fake_audio_capture_module.h"
 #include "pc/test/fake_periodic_video_source.h"
 #include "pc/test/fake_periodic_video_track_source.h"
@@ -54,6 +56,13 @@ class PeerConnectionTestWrapper
       const webrtc::PeerConnectionInterface::RTCConfiguration& config,
       rtc::scoped_refptr<webrtc::AudioEncoderFactory> audio_encoder_factory,
       rtc::scoped_refptr<webrtc::AudioDecoderFactory> audio_decoder_factory,
+      std::unique_ptr<webrtc::FieldTrialsView> field_trials = nullptr);
+  bool CreatePc(
+      const webrtc::PeerConnectionInterface::RTCConfiguration& config,
+      rtc::scoped_refptr<webrtc::AudioEncoderFactory> audio_encoder_factory,
+      rtc::scoped_refptr<webrtc::AudioDecoderFactory> audio_decoder_factory,
+      std::unique_ptr<webrtc::VideoEncoderFactory> video_encoder_factory,
+      std::unique_ptr<webrtc::VideoDecoderFactory> video_decoder_factory,
       std::unique_ptr<webrtc::FieldTrialsView> field_trials = nullptr);
 
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory()

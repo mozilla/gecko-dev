@@ -12,18 +12,21 @@
 
 #include <string.h>
 
+#include <cstdint>
+#include <cstring>
 #include <iomanip>
-#include <string>
+#include <vector>
 
-#include "absl/base/attributes.h"
-#include "absl/base/const_init.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/field_trials_view.h"
 #include "modules/rtp_rtcp/source/rtp_util.h"
 #include "pc/external_hmac.h"
+#include "rtc_base/buffer.h"
 #include "rtc_base/byte_order.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/string_encode.h"
@@ -149,8 +152,6 @@ void LibSrtpInitializer::DecrementLibsrtpUsageCountAndMaybeDeinit() {
 
 }  // namespace
 
-using ::webrtc::ParseRtpSequenceNumber;
-
 // One more than the maximum libsrtp error code. Required by
 // RTC_HISTOGRAM_ENUMERATION. Keep this in sync with srtp_error_status_t defined
 // in srtp.h.
@@ -196,6 +197,42 @@ bool SrtpSession::UpdateReceive(int crypto_suite,
   return UpdateKey(ssrc_any_inbound, crypto_suite, key, extension_ids);
 }
 
+bool SrtpSession::ProtectRtp(rtc::CopyOnWriteBuffer& buffer) {
+  RTC_DCHECK(thread_checker_.IsCurrent());
+  if (!session_) {
+    RTC_LOG(LS_WARNING) << "Failed to protect SRTP packet: no SRTP Session";
+    return false;
+  }
+
+  // Note: the need_len differs from the libsrtp recommendatіon to ensure
+  // SRTP_MAX_TRAILER_LEN bytes of free space after the data. WebRTC
+  // never includes a MKI, therefore the amount of bytes added by the
+  // srtp_protect call is known in advance and depends on the cipher suite.
+  size_t need_len = buffer.size() + rtp_auth_tag_len_;  // NOLINT
+  if (buffer.capacity() < need_len) {
+    RTC_LOG(LS_WARNING) << "Failed to protect SRTP packet: The buffer length "
+                        << buffer.capacity() << " is less than the needed "
+                        << need_len;
+    return false;
+  }
+  if (dump_plain_rtp_) {
+    DumpPacket(buffer, /*outbound=*/true);
+  }
+
+  int out_len = buffer.size();
+  int err = srtp_protect(session_, buffer.MutableData<char>(), &out_len);
+  int seq_num = webrtc::ParseRtpSequenceNumber(buffer);
+  if (err != srtp_err_status_ok) {
+    RTC_LOG(LS_WARNING) << "Failed to protect SRTP packet, seqnum=" << seq_num
+                        << ", err=" << err
+                        << ", last seqnum=" << last_send_seq_num_;
+    return false;
+  }
+  buffer.SetSize(out_len);
+  last_send_seq_num_ = seq_num;
+  return true;
+}
+
 bool SrtpSession::ProtectRtp(void* p, int in_len, int max_len, int* out_len) {
   RTC_DCHECK(thread_checker_.IsCurrent());
   if (!session_) {
@@ -219,7 +256,7 @@ bool SrtpSession::ProtectRtp(void* p, int in_len, int max_len, int* out_len) {
 
   *out_len = in_len;
   int err = srtp_protect(session_, p, out_len);
-  int seq_num = ParseRtpSequenceNumber(
+  int seq_num = webrtc::ParseRtpSequenceNumber(
       rtc::MakeArrayView(reinterpret_cast<const uint8_t*>(p), in_len));
   if (err != srtp_err_status_ok) {
     RTC_LOG(LS_WARNING) << "Failed to protect SRTP packet, seqnum=" << seq_num
@@ -231,15 +268,57 @@ bool SrtpSession::ProtectRtp(void* p, int in_len, int max_len, int* out_len) {
   return true;
 }
 
-bool SrtpSession::ProtectRtp(void* p,
+bool SrtpSession::ProtectRtp(rtc::CopyOnWriteBuffer& buffer, int64_t* index) {
+  if (!ProtectRtp(buffer)) {
+    return false;
+  }
+  return (index) ? GetSendStreamPacketIndex(buffer, index) : true;
+}
+
+bool SrtpSession::ProtectRtp(void* data,
                              int in_len,
                              int max_len,
                              int* out_len,
                              int64_t* index) {
-  if (!ProtectRtp(p, in_len, max_len, out_len)) {
+  rtc::CopyOnWriteBuffer buffer(static_cast<uint8_t*>(data), in_len, max_len);
+  if (!ProtectRtp(buffer)) {
     return false;
   }
-  return (index) ? GetSendStreamPacketIndex(p, in_len, index) : true;
+  *out_len = buffer.size();
+  return (index) ? GetSendStreamPacketIndex(buffer, index) : true;
+}
+
+bool SrtpSession::ProtectRtcp(rtc::CopyOnWriteBuffer& buffer) {
+  RTC_DCHECK(thread_checker_.IsCurrent());
+  if (!session_) {
+    RTC_LOG(LS_WARNING) << "Failed to protect SRTCP packet: no SRTP Session";
+    return false;
+  }
+
+  // Note: the need_len differs from the libsrtp recommendatіon to ensure
+  // SRTP_MAX_TRAILER_LEN bytes of free space after the data. WebRTC
+  // never includes a MKI, therefore the amount of bytes added by the
+  // srtp_protect_rtp call is known in advance and depends on the cipher suite.
+  size_t need_len =
+      buffer.size() + sizeof(uint32_t) + rtcp_auth_tag_len_;  // NOLINT
+  if (buffer.capacity() < need_len) {
+    RTC_LOG(LS_WARNING)
+        << "Failed to protect SRTCP packet: The buffer capacity "
+        << buffer.capacity() << " is less than the needed " << need_len;
+    return false;
+  }
+  if (dump_plain_rtp_) {
+    DumpPacket(buffer, /*outbound=*/true);
+  }
+
+  int out_len = buffer.size();
+  int err = srtp_protect_rtcp(session_, buffer.MutableData<char>(), &out_len);
+  if (err != srtp_err_status_ok) {
+    RTC_LOG(LS_WARNING) << "Failed to protect SRTCP packet, err=" << err;
+    return false;
+  }
+  buffer.SetSize(out_len);
+  return true;
 }
 
 bool SrtpSession::ProtectRtcp(void* p, int in_len, int max_len, int* out_len) {
@@ -272,6 +351,36 @@ bool SrtpSession::ProtectRtcp(void* p, int in_len, int max_len, int* out_len) {
   return true;
 }
 
+bool SrtpSession::UnprotectRtp(rtc::CopyOnWriteBuffer& buffer) {
+  RTC_DCHECK(thread_checker_.IsCurrent());
+  if (!session_) {
+    RTC_LOG(LS_WARNING) << "Failed to unprotect SRTP packet: no SRTP Session";
+    return false;
+  }
+  int out_len = buffer.size();
+
+  int err = srtp_unprotect(session_, buffer.MutableData<char>(), &out_len);
+  if (err != srtp_err_status_ok) {
+    // Limit the error logging to avoid excessive logs when there are lots of
+    // bad packets.
+    const int kFailureLogThrottleCount = 100;
+    if (decryption_failure_count_ % kFailureLogThrottleCount == 0) {
+      RTC_LOG(LS_WARNING) << "Failed to unprotect SRTP packet, err=" << err
+                          << ", previous failure count: "
+                          << decryption_failure_count_;
+    }
+    ++decryption_failure_count_;
+    RTC_HISTOGRAM_ENUMERATION("WebRTC.PeerConnection.SrtpUnprotectError",
+                              static_cast<int>(err), kSrtpErrorCodeBoundary);
+    return false;
+  }
+  buffer.SetSize(out_len);
+  if (dump_plain_rtp_) {
+    DumpPacket(buffer, /*outbound=*/false);
+  }
+  return true;
+}
+
 bool SrtpSession::UnprotectRtp(void* p, int in_len, int* out_len) {
   RTC_DCHECK(thread_checker_.IsCurrent());
   if (!session_) {
@@ -297,6 +406,28 @@ bool SrtpSession::UnprotectRtp(void* p, int in_len, int* out_len) {
   }
   if (dump_plain_rtp_) {
     DumpPacket(p, *out_len, /*outbound=*/false);
+  }
+  return true;
+}
+
+bool SrtpSession::UnprotectRtcp(rtc::CopyOnWriteBuffer& buffer) {
+  RTC_DCHECK(thread_checker_.IsCurrent());
+  if (!session_) {
+    RTC_LOG(LS_WARNING) << "Failed to unprotect SRTCP packet: no SRTP Session";
+    return false;
+  }
+
+  int out_len = buffer.size();
+  int err = srtp_unprotect_rtcp(session_, buffer.MutableData<char>(), &out_len);
+  if (err != srtp_err_status_ok) {
+    RTC_LOG(LS_WARNING) << "Failed to unprotect SRTCP packet, err=" << err;
+    RTC_HISTOGRAM_ENUMERATION("WebRTC.PeerConnection.SrtcpUnprotectError",
+                              static_cast<int>(err), kSrtpErrorCodeBoundary);
+    return false;
+  }
+  buffer.SetSize(out_len);
+  if (dump_plain_rtp_) {
+    DumpPacket(buffer, /*outbound=*/false);
   }
   return true;
 }
@@ -373,19 +504,22 @@ bool SrtpSession::RemoveSsrcFromSession(uint32_t ssrc) {
   return srtp_remove_stream(session_, htonl(ssrc)) == srtp_err_status_ok;
 }
 
-bool SrtpSession::GetSendStreamPacketIndex(void* p,
-                                           int in_len,
+bool SrtpSession::GetSendStreamPacketIndex(rtc::CopyOnWriteBuffer& buffer,
                                            int64_t* index) {
   RTC_DCHECK(thread_checker_.IsCurrent());
-  srtp_hdr_t* hdr = reinterpret_cast<srtp_hdr_t*>(p);
-  srtp_stream_ctx_t* stream = srtp_get_stream(session_, hdr->ssrc);
-  if (!stream) {
+  const srtp_hdr_t* hdr = reinterpret_cast<const srtp_hdr_t*>(buffer.data());
+
+  uint32_t roc;
+  if (srtp_get_stream_roc(session_, htonl(hdr->ssrc), &roc) !=
+      srtp_err_status_ok) {
     return false;
   }
+  // Calculate the extended sequence number.
+  uint16_t seq_num = webrtc::ParseRtpSequenceNumber(buffer);
+  int64_t extended_seq_num = (roc << 16) + seq_num;
 
-  // Shift packet index, put into network byte order
-  *index = static_cast<int64_t>(rtc::NetworkToHost64(
-      srtp_rdbx_get_packet_index(&stream->rtp_rdbx) << 16));
+  // Shift extended sequence number, put into network byte order
+  *index = static_cast<int64_t>(rtc::NetworkToHost64(extended_seq_num << 16));
   return true;
 }
 
@@ -534,25 +668,31 @@ void SrtpSession::HandleEventThunk(srtp_event_data_t* ev) {
 // extracted by searching for RTP_DUMP
 //   grep RTP_DUMP chrome_debug.log > in.txt
 // and converted to pcap using
-//   text2pcap -D -u 1000,2000 -t %H:%M:%S. in.txt out.pcap
+//   text2pcap -D -u 1000,2000 -t %H:%M:%S.%f in.txt out.pcap
 // The resulting file can be replayed using the WebRTC video_replay tool and
 // be inspected in Wireshark using the RTP, VP8 and H264 dissectors.
-void SrtpSession::DumpPacket(const void* buf, int len, bool outbound) {
+void SrtpSession::DumpPacket(const rtc::CopyOnWriteBuffer& buffer,
+                             bool outbound) {
   int64_t time_of_day = rtc::TimeUTCMillis() % (24 * 3600 * 1000);
   int64_t hours = time_of_day / (3600 * 1000);
   int64_t minutes = (time_of_day / (60 * 1000)) % 60;
   int64_t seconds = (time_of_day / 1000) % 60;
   int64_t millis = time_of_day % 1000;
-  RTC_LOG(LS_VERBOSE) << "\n"
-                      << (outbound ? "O" : "I") << " " << std::setfill('0')
-                      << std::setw(2) << hours << ":" << std::setfill('0')
-                      << std::setw(2) << minutes << ":" << std::setfill('0')
-                      << std::setw(2) << seconds << "." << std::setfill('0')
-                      << std::setw(3) << millis << " "
-                      << "000000 "
-                      << rtc::hex_encode_with_delimiter(
-                             absl::string_view((const char*)buf, len), ' ')
-                      << " # RTP_DUMP";
+  RTC_LOG(LS_VERBOSE)
+      << "\n"
+      << (outbound ? "O" : "I") << " " << std::setfill('0') << std::setw(2)
+      << hours << ":" << std::setfill('0') << std::setw(2) << minutes << ":"
+      << std::setfill('0') << std::setw(2) << seconds << "."
+      << std::setfill('0') << std::setw(3) << millis << " " << "000000 "
+      << rtc::hex_encode_with_delimiter(
+             absl::string_view(buffer.data<char>(), buffer.size()), ' ')
+      << " # RTP_DUMP";
+}
+
+void SrtpSession::DumpPacket(const void* buf, int len, bool outbound) {
+  const rtc::CopyOnWriteBuffer buffer(static_cast<const uint8_t*>(buf), len,
+                                      len);
+  DumpPacket(buffer, outbound);
 }
 
 }  // namespace cricket

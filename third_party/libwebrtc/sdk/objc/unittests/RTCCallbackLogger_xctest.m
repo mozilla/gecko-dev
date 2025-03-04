@@ -37,7 +37,8 @@
 - (void)testCallbackGetsCalledForAppropriateLevel {
   self.logger.severity = RTCLoggingSeverityWarning;
 
-  XCTestExpectation *callbackExpectation = [self expectationWithDescription:@"callbackWarning"];
+  XCTestExpectation *callbackExpectation =
+      [self expectationWithDescription:@"callbackWarning"];
 
   [self.logger start:^(NSString *message) {
     XCTAssertTrue([message hasSuffix:@"Horrible error\n"]);
@@ -52,14 +53,15 @@
 - (void)testCallbackWithSeverityGetsCalledForAppropriateLevel {
   self.logger.severity = RTCLoggingSeverityWarning;
 
-  XCTestExpectation *callbackExpectation = [self expectationWithDescription:@"callbackWarning"];
+  XCTestExpectation *callbackExpectation =
+      [self expectationWithDescription:@"callbackWarning"];
 
-  [self.logger
-      startWithMessageAndSeverityHandler:^(NSString *message, RTCLoggingSeverity severity) {
-        XCTAssertTrue([message hasSuffix:@"Horrible error\n"]);
-        XCTAssertEqual(severity, RTCLoggingSeverityError);
-        [callbackExpectation fulfill];
-      }];
+  [self.logger startWithMessageAndSeverityHandler:^(
+                   NSString *message, RTCLoggingSeverity severity) {
+    XCTAssertTrue([message hasSuffix:@"Horrible error\n"]);
+    XCTAssertEqual(severity, RTCLoggingSeverityError);
+    [callbackExpectation fulfill];
+  }];
 
   RTCLogError("Horrible error");
 
@@ -69,7 +71,8 @@
 - (void)testCallbackDoesNotGetCalledForOtherLevels {
   self.logger.severity = RTCLoggingSeverityError;
 
-  XCTestExpectation *callbackExpectation = [self expectationWithDescription:@"callbackError"];
+  XCTestExpectation *callbackExpectation =
+      [self expectationWithDescription:@"callbackError"];
 
   [self.logger start:^(NSString *message) {
     XCTAssertTrue([message hasSuffix:@"Horrible error\n"]);
@@ -86,14 +89,15 @@
 - (void)testCallbackWithSeverityDoesNotGetCalledForOtherLevels {
   self.logger.severity = RTCLoggingSeverityError;
 
-  XCTestExpectation *callbackExpectation = [self expectationWithDescription:@"callbackError"];
+  XCTestExpectation *callbackExpectation =
+      [self expectationWithDescription:@"callbackError"];
 
-  [self.logger
-      startWithMessageAndSeverityHandler:^(NSString *message, RTCLoggingSeverity severity) {
-        XCTAssertTrue([message hasSuffix:@"Horrible error\n"]);
-        XCTAssertEqual(severity, RTCLoggingSeverityError);
-        [callbackExpectation fulfill];
-      }];
+  [self.logger startWithMessageAndSeverityHandler:^(
+                   NSString *message, RTCLoggingSeverity severity) {
+    XCTAssertTrue([message hasSuffix:@"Horrible error\n"]);
+    XCTAssertEqual(severity, RTCLoggingSeverityError);
+    [callbackExpectation fulfill];
+  }];
 
   RTCLogInfo("Just some info");
   RTCLogWarning("Warning warning");
@@ -105,7 +109,8 @@
 - (void)testCallbackDoesNotgetCalledForSeverityNone {
   self.logger.severity = RTCLoggingSeverityNone;
 
-  XCTestExpectation *callbackExpectation = [self expectationWithDescription:@"unexpectedCallback"];
+  XCTestExpectation *callbackExpectation =
+      [self expectationWithDescription:@"unexpectedCallback"];
 
   [self.logger start:^(NSString *message) {
     [callbackExpectation fulfill];
@@ -117,27 +122,30 @@
   RTCLogError("Horrible error");
 
   XCTWaiter *waiter = [[XCTWaiter alloc] init];
-  XCTWaiterResult result = [waiter waitForExpectations:@[ callbackExpectation ] timeout:1.0];
+  XCTWaiterResult result = [waiter waitForExpectations:@[ callbackExpectation ]
+                                               timeout:1.0];
   XCTAssertEqual(result, XCTWaiterResultTimedOut);
 }
 
 - (void)testCallbackWithSeverityDoesNotgetCalledForSeverityNone {
   self.logger.severity = RTCLoggingSeverityNone;
 
-  XCTestExpectation *callbackExpectation = [self expectationWithDescription:@"unexpectedCallback"];
+  XCTestExpectation *callbackExpectation =
+      [self expectationWithDescription:@"unexpectedCallback"];
 
-  [self.logger
-      startWithMessageAndSeverityHandler:^(NSString *message, RTCLoggingSeverity severity) {
-        [callbackExpectation fulfill];
-        XCTAssertTrue(false);
-      }];
+  [self.logger startWithMessageAndSeverityHandler:^(
+                   NSString *message, RTCLoggingSeverity severity) {
+    [callbackExpectation fulfill];
+    XCTAssertTrue(false);
+  }];
 
   RTCLogInfo("Just some info");
   RTCLogWarning("Warning warning");
   RTCLogError("Horrible error");
 
   XCTWaiter *waiter = [[XCTWaiter alloc] init];
-  XCTWaiterResult result = [waiter waitForExpectations:@[ callbackExpectation ] timeout:1.0];
+  XCTWaiterResult result = [waiter waitForExpectations:@[ callbackExpectation ]
+                                               timeout:1.0];
   XCTAssertEqual(result, XCTWaiterResultTimedOut);
 }
 
@@ -154,7 +162,8 @@
 }
 
 - (void)testStopCallbackLogger {
-  XCTestExpectation *callbackExpectation = [self expectationWithDescription:@"stopped"];
+  XCTestExpectation *callbackExpectation =
+      [self expectationWithDescription:@"stopped"];
 
   [self.logger start:^(NSString *message) {
     [callbackExpectation fulfill];
@@ -165,29 +174,33 @@
   RTCLogInfo("Just some info");
 
   XCTWaiter *waiter = [[XCTWaiter alloc] init];
-  XCTWaiterResult result = [waiter waitForExpectations:@[ callbackExpectation ] timeout:1.0];
+  XCTWaiterResult result = [waiter waitForExpectations:@[ callbackExpectation ]
+                                               timeout:1.0];
   XCTAssertEqual(result, XCTWaiterResultTimedOut);
 }
 
 - (void)testStopCallbackWithSeverityLogger {
-  XCTestExpectation *callbackExpectation = [self expectationWithDescription:@"stopped"];
+  XCTestExpectation *callbackExpectation =
+      [self expectationWithDescription:@"stopped"];
 
-  [self.logger
-      startWithMessageAndSeverityHandler:^(NSString *message, RTCLoggingSeverity loggingServerity) {
-        [callbackExpectation fulfill];
-      }];
+  [self.logger startWithMessageAndSeverityHandler:^(
+                   NSString *message, RTCLoggingSeverity loggingServerity) {
+    [callbackExpectation fulfill];
+  }];
 
   [self.logger stop];
 
   RTCLogInfo("Just some info");
 
   XCTWaiter *waiter = [[XCTWaiter alloc] init];
-  XCTWaiterResult result = [waiter waitForExpectations:@[ callbackExpectation ] timeout:1.0];
+  XCTWaiterResult result = [waiter waitForExpectations:@[ callbackExpectation ]
+                                               timeout:1.0];
   XCTAssertEqual(result, XCTWaiterResultTimedOut);
 }
 
 - (void)testDestroyingCallbackLogger {
-  XCTestExpectation *callbackExpectation = [self expectationWithDescription:@"destroyed"];
+  XCTestExpectation *callbackExpectation =
+      [self expectationWithDescription:@"destroyed"];
 
   [self.logger start:^(NSString *message) {
     [callbackExpectation fulfill];
@@ -198,38 +211,42 @@
   RTCLogInfo("Just some info");
 
   XCTWaiter *waiter = [[XCTWaiter alloc] init];
-  XCTWaiterResult result = [waiter waitForExpectations:@[ callbackExpectation ] timeout:1.0];
+  XCTWaiterResult result = [waiter waitForExpectations:@[ callbackExpectation ]
+                                               timeout:1.0];
   XCTAssertEqual(result, XCTWaiterResultTimedOut);
 }
 
 - (void)testDestroyingCallbackWithSeverityLogger {
-  XCTestExpectation *callbackExpectation = [self expectationWithDescription:@"destroyed"];
+  XCTestExpectation *callbackExpectation =
+      [self expectationWithDescription:@"destroyed"];
 
-  [self.logger
-      startWithMessageAndSeverityHandler:^(NSString *message, RTCLoggingSeverity loggingServerity) {
-        [callbackExpectation fulfill];
-      }];
+  [self.logger startWithMessageAndSeverityHandler:^(
+                   NSString *message, RTCLoggingSeverity loggingServerity) {
+    [callbackExpectation fulfill];
+  }];
 
   self.logger = nil;
 
   RTCLogInfo("Just some info");
 
   XCTWaiter *waiter = [[XCTWaiter alloc] init];
-  XCTWaiterResult result = [waiter waitForExpectations:@[ callbackExpectation ] timeout:1.0];
+  XCTWaiterResult result = [waiter waitForExpectations:@[ callbackExpectation ]
+                                               timeout:1.0];
   XCTAssertEqual(result, XCTWaiterResultTimedOut);
 }
 
 - (void)testCallbackWithSeverityLoggerCannotStartTwice {
   self.logger.severity = RTCLoggingSeverityWarning;
 
-  XCTestExpectation *callbackExpectation = [self expectationWithDescription:@"callbackWarning"];
+  XCTestExpectation *callbackExpectation =
+      [self expectationWithDescription:@"callbackWarning"];
 
-  [self.logger
-      startWithMessageAndSeverityHandler:^(NSString *message, RTCLoggingSeverity loggingServerity) {
-        XCTAssertTrue([message hasSuffix:@"Horrible error\n"]);
-        XCTAssertEqual(loggingServerity, RTCLoggingSeverityError);
-        [callbackExpectation fulfill];
-      }];
+  [self.logger startWithMessageAndSeverityHandler:^(
+                   NSString *message, RTCLoggingSeverity loggingServerity) {
+    XCTAssertTrue([message hasSuffix:@"Horrible error\n"]);
+    XCTAssertEqual(loggingServerity, RTCLoggingSeverityError);
+    [callbackExpectation fulfill];
+  }];
 
   [self.logger start:^(NSString *message) {
     [callbackExpectation fulfill];

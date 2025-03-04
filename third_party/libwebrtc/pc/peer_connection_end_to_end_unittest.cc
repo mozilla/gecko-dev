@@ -15,7 +15,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -35,19 +34,23 @@
 #include "api/audio_options.h"
 #include "api/data_channel_interface.h"
 #include "api/environment/environment.h"
+#include "api/make_ref_counted.h"
 #include "api/media_stream_interface.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtc_error.h"
+#include "api/rtp_parameters.h"
 #include "api/scoped_refptr.h"
+#include "api/test/rtc_error_matchers.h"
+#include "api/units/time_delta.h"
 #include "media/sctp/sctp_transport_internal.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/copy_on_write_buffer.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/physical_socket_server.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 #ifdef WEBRTC_ANDROID
 #include "pc/test/android_test_initializer.h"
@@ -66,7 +69,6 @@ using ::testing::StrictMock;
 using ::testing::Values;
 using ::webrtc::DataChannelInterface;
 using ::webrtc::Environment;
-using ::webrtc::MediaStreamInterface;
 using ::webrtc::PeerConnectionInterface;
 using ::webrtc::SdpSemantics;
 
@@ -184,14 +186,24 @@ class PeerConnectionEndToEndBaseTest : public sigslot::has_slots<>,
     }
 
     EXPECT_TRUE(dc1->Send(buffer));
-    EXPECT_EQ_WAIT(buffer.data,
-                   rtc::CopyOnWriteBuffer(dc2_observer->last_message()),
-                   kMaxWait);
+    EXPECT_THAT(
+        webrtc::WaitUntil(
+            [&] {
+              return rtc::CopyOnWriteBuffer(dc2_observer->last_message());
+            },
+            ::testing::Eq(buffer.data),
+            {.timeout = webrtc::TimeDelta::Millis(kMaxWait)}),
+        webrtc::IsRtcOk());
 
     EXPECT_TRUE(dc2->Send(buffer));
-    EXPECT_EQ_WAIT(buffer.data,
-                   rtc::CopyOnWriteBuffer(dc1_observer->last_message()),
-                   kMaxWait);
+    EXPECT_THAT(
+        webrtc::WaitUntil(
+            [&] {
+              return rtc::CopyOnWriteBuffer(dc1_observer->last_message());
+            },
+            ::testing::Eq(buffer.data),
+            {.timeout = webrtc::TimeDelta::Millis(kMaxWait)}),
+        webrtc::IsRtcOk());
 
     EXPECT_EQ(1U, dc1_observer->received_message_count());
     EXPECT_EQ(size, dc1_observer->last_message().length());
@@ -202,11 +214,22 @@ class PeerConnectionEndToEndBaseTest : public sigslot::has_slots<>,
   void WaitForDataChannelsToOpen(DataChannelInterface* local_dc,
                                  const DataChannelList& remote_dc_list,
                                  size_t remote_dc_index) {
-    EXPECT_EQ_WAIT(DataChannelInterface::kOpen, local_dc->state(), kMaxWait);
+    EXPECT_THAT(
+        webrtc::WaitUntil([&] { return local_dc->state(); },
+                          ::testing::Eq(DataChannelInterface::kOpen),
+                          {.timeout = webrtc::TimeDelta::Millis(kMaxWait)}),
+        webrtc::IsRtcOk());
 
-    ASSERT_TRUE_WAIT(remote_dc_list.size() > remote_dc_index, kMaxWait);
-    EXPECT_EQ_WAIT(DataChannelInterface::kOpen,
-                   remote_dc_list[remote_dc_index]->state(), kMaxWait);
+    ASSERT_THAT(
+        webrtc::WaitUntil([&] { return remote_dc_list.size(); },
+                          ::testing::Gt(remote_dc_index),
+                          {.timeout = webrtc::TimeDelta::Millis(kMaxWait)}),
+        webrtc::IsRtcOk());
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] { return remote_dc_list[remote_dc_index]->state(); },
+                    ::testing::Eq(DataChannelInterface::kOpen),
+                    {.timeout = webrtc::TimeDelta::Millis(kMaxWait)}),
+                webrtc::IsRtcOk());
     EXPECT_EQ(local_dc->id(), remote_dc_list[remote_dc_index]->id());
   }
 
@@ -214,9 +237,16 @@ class PeerConnectionEndToEndBaseTest : public sigslot::has_slots<>,
                          const DataChannelList& remote_dc_list,
                          size_t remote_dc_index) {
     local_dc->Close();
-    EXPECT_EQ_WAIT(DataChannelInterface::kClosed, local_dc->state(), kMaxWait);
-    EXPECT_EQ_WAIT(DataChannelInterface::kClosed,
-                   remote_dc_list[remote_dc_index]->state(), kMaxWait);
+    EXPECT_THAT(
+        webrtc::WaitUntil([&] { return local_dc->state(); },
+                          ::testing::Eq(DataChannelInterface::kClosed),
+                          {.timeout = webrtc::TimeDelta::Millis(kMaxWait)}),
+        webrtc::IsRtcOk());
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] { return remote_dc_list[remote_dc_index]->state(); },
+                    ::testing::Eq(DataChannelInterface::kClosed),
+                    {.timeout = webrtc::TimeDelta::Millis(kMaxWait)}),
+                webrtc::IsRtcOk());
   }
 
  protected:
@@ -648,10 +678,18 @@ TEST_P(PeerConnectionEndToEndTest,
   const std::string message_2 = "hello 2";
 
   caller_dc_1->Send(webrtc::DataBuffer(message_1));
-  EXPECT_EQ_WAIT(message_1, dc_1_observer->last_message(), kMaxWait);
+  EXPECT_THAT(
+      webrtc::WaitUntil([&] { return dc_1_observer->last_message(); },
+                        ::testing::Eq(message_1),
+                        {.timeout = webrtc::TimeDelta::Millis(kMaxWait)}),
+      webrtc::IsRtcOk());
 
   caller_dc_2->Send(webrtc::DataBuffer(message_2));
-  EXPECT_EQ_WAIT(message_2, dc_2_observer->last_message(), kMaxWait);
+  EXPECT_THAT(
+      webrtc::WaitUntil([&] { return dc_2_observer->last_message(); },
+                        ::testing::Eq(message_2),
+                        {.timeout = webrtc::TimeDelta::Millis(kMaxWait)}),
+      webrtc::IsRtcOk());
 
   EXPECT_EQ(1U, dc_1_observer->received_message_count());
   EXPECT_EQ(1U, dc_2_observer->received_message_count());
@@ -679,7 +717,11 @@ TEST_P(PeerConnectionEndToEndTest,
   // Previously, the channel on which Close is called reported being closed
   // prematurely, and this caused issues; see bugs.webrtc.org/4453.
   caller_dc->Close();
-  EXPECT_EQ_WAIT(DataChannelInterface::kClosed, caller_dc->state(), kMaxWait);
+  EXPECT_THAT(
+      webrtc::WaitUntil([&] { return caller_dc->state(); },
+                        ::testing::Eq(DataChannelInterface::kClosed),
+                        {.timeout = webrtc::TimeDelta::Millis(kMaxWait)}),
+      webrtc::IsRtcOk());
 
   // Create a new channel and ensure it works after closing the previous one.
   caller_dc = caller_->CreateDataChannel("data2", init);
@@ -712,7 +754,11 @@ TEST_P(PeerConnectionEndToEndTest, CloseDataChannelRemotelyWhileNotReferenced) {
   // This removes the reference to the remote data channel that we hold.
   callee_signaled_data_channels_.clear();
   caller_dc->Close();
-  EXPECT_EQ_WAIT(DataChannelInterface::kClosed, caller_dc->state(), kMaxWait);
+  EXPECT_THAT(
+      webrtc::WaitUntil([&] { return caller_dc->state(); },
+                        ::testing::Eq(DataChannelInterface::kClosed),
+                        {.timeout = webrtc::TimeDelta::Millis(kMaxWait)}),
+      webrtc::IsRtcOk());
 
   // Wait for a bit longer so the remote data channel will receive the
   // close message and be destroyed.
@@ -733,8 +779,11 @@ TEST_P(PeerConnectionEndToEndTest, TooManyDataChannelsOpenedBeforeConnecting) {
   }
   Negotiate();
   WaitForConnection();
-  EXPECT_EQ_WAIT(callee_signaled_data_channels_.size(),
-                 static_cast<size_t>(cricket::kMaxSctpStreams / 2), kMaxWait);
+  EXPECT_THAT(
+      webrtc::WaitUntil([&] { return callee_signaled_data_channels_; },
+                        ::testing::SizeIs(cricket::kMaxSctpStreams / 2),
+                        {.timeout = webrtc::TimeDelta::Millis(kMaxWait)}),
+      webrtc::IsRtcOk());
   EXPECT_EQ(DataChannelInterface::kOpen,
             channels[(cricket::kMaxSctpStreams / 2) - 1]->state());
   EXPECT_EQ(DataChannelInterface::kClosed,

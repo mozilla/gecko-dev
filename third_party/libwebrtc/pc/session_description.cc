@@ -19,23 +19,21 @@ namespace cricket {
 namespace {
 
 ContentInfo* FindContentInfoByName(ContentInfos* contents,
-                                   const std::string& name) {
+                                   absl::string_view name) {
   RTC_DCHECK(contents);
   for (ContentInfo& content : *contents) {
-    if (content.name == name) {
+    if (content.mid() == name) {
       return &content;
     }
   }
   return nullptr;
 }
 
-}  // namespace
-
 const ContentInfo* FindContentInfoByName(const ContentInfos& contents,
-                                         const std::string& name) {
+                                         absl::string_view name) {
   for (ContentInfos::const_iterator content = contents.begin();
        content != contents.end(); ++content) {
-    if (content->name == name) {
+    if (content->mid() == name) {
       return &(*content);
     }
   }
@@ -51,6 +49,8 @@ const ContentInfo* FindContentInfoByType(const ContentInfos& contents,
   }
   return nullptr;
 }
+
+}  // namespace
 
 ContentGroup::ContentGroup(const std::string& semantics)
     : semantics_(semantics) {}
@@ -117,7 +117,7 @@ ContentInfo* SessionDescription::GetContentByName(const std::string& name) {
 }
 
 const MediaContentDescription* SessionDescription::GetContentDescriptionByName(
-    const std::string& name) const {
+    absl::string_view name) const {
   const ContentInfo* cinfo = FindContentInfoByName(contents_, name);
   if (cinfo == NULL) {
     return NULL;
@@ -127,7 +127,7 @@ const MediaContentDescription* SessionDescription::GetContentDescriptionByName(
 }
 
 MediaContentDescription* SessionDescription::GetContentDescriptionByName(
-    const std::string& name) {
+    absl::string_view name) {
   ContentInfo* cinfo = FindContentInfoByName(&contents_, name);
   if (cinfo == NULL) {
     return NULL;
@@ -149,10 +149,7 @@ void SessionDescription::AddContent(
     const std::string& name,
     MediaProtocolType type,
     std::unique_ptr<MediaContentDescription> description) {
-  ContentInfo content(type);
-  content.name = name;
-  content.set_media_description(std::move(description));
-  AddContent(std::move(content));
+  AddContent(ContentInfo(type, name, std::move(description)));
 }
 
 void SessionDescription::AddContent(
@@ -160,11 +157,7 @@ void SessionDescription::AddContent(
     MediaProtocolType type,
     bool rejected,
     std::unique_ptr<MediaContentDescription> description) {
-  ContentInfo content(type);
-  content.name = name;
-  content.rejected = rejected;
-  content.set_media_description(std::move(description));
-  AddContent(std::move(content));
+  AddContent(ContentInfo(type, name, std::move(description), rejected));
 }
 
 void SessionDescription::AddContent(
@@ -173,12 +166,8 @@ void SessionDescription::AddContent(
     bool rejected,
     bool bundle_only,
     std::unique_ptr<MediaContentDescription> description) {
-  ContentInfo content(type);
-  content.name = name;
-  content.rejected = rejected;
-  content.bundle_only = bundle_only;
-  content.set_media_description(std::move(description));
-  AddContent(std::move(content));
+  AddContent(
+      ContentInfo(type, name, std::move(description), rejected, bundle_only));
 }
 
 void SessionDescription::AddContent(ContentInfo&& content) {
@@ -193,7 +182,7 @@ void SessionDescription::AddContent(ContentInfo&& content) {
 bool SessionDescription::RemoveContentByName(const std::string& name) {
   for (ContentInfos::iterator content = contents_.begin();
        content != contents_.end(); ++content) {
-    if (content->name == name) {
+    if (content->mid() == name) {
       contents_.erase(content);
       return true;
     }
@@ -285,20 +274,11 @@ ContentInfo::~ContentInfo() {}
 
 // Copy operator.
 ContentInfo::ContentInfo(const ContentInfo& o)
-    : name(o.name),
-      type(o.type),
+    : type(o.type),
       rejected(o.rejected),
       bundle_only(o.bundle_only),
+      mid_(o.mid_),
       description_(o.description_->Clone()) {}
-
-ContentInfo& ContentInfo::operator=(const ContentInfo& o) {
-  name = o.name;
-  type = o.type;
-  rejected = o.rejected;
-  bundle_only = o.bundle_only;
-  description_ = o.description_->Clone();
-  return *this;
-}
 
 const MediaContentDescription* ContentInfo::media_description() const {
   return description_.get();

@@ -89,12 +89,6 @@ void CongestionControlFeedbackGenerator::OnSendBandwidthEstimateChanged(
   max_feedback_rate_ = estimate * 0.05;
 }
 
-void CongestionControlFeedbackGenerator::SetTransportOverhead(
-    DataSize overhead_per_packet) {
-  RTC_DCHECK_RUN_ON(&sequence_checker_);
-  packet_overhead_ = overhead_per_packet;
-}
-
 void CongestionControlFeedbackGenerator::SendFeedback(Timestamp now) {
   uint32_t compact_ntp =
       CompactNtp(env_.clock().ConvertTimestampToNtpTime(now));
@@ -121,7 +115,7 @@ void CongestionControlFeedbackGenerator::CalculateNextPossibleSendTime(
   DataSize debt_payed = time_since_last_sent * max_feedback_rate_;
   send_rate_debt_ = debt_payed > send_rate_debt_ ? DataSize::Zero()
                                                  : send_rate_debt_ - debt_payed;
-  send_rate_debt_ += feedback_size + packet_overhead_;
+  send_rate_debt_ += feedback_size;
   last_feedback_sent_time_ = now;
   next_possible_feedback_send_time_ =
       now + std::clamp(max_feedback_rate_.IsZero()

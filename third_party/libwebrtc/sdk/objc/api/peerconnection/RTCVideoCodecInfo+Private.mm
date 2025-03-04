@@ -17,16 +17,20 @@
 @implementation RTC_OBJC_TYPE (RTCVideoCodecInfo)
 (Private)
 
-    - (instancetype)initWithNativeSdpVideoFormat : (webrtc::SdpVideoFormat)format {
+    - (instancetype)initWithNativeSdpVideoFormat
+    : (webrtc::SdpVideoFormat)format {
   NSMutableDictionary* params = [NSMutableDictionary dictionary];
   for (const auto& [key, value] : format.parameters) {
-    [params setObject:[NSString stringForStdString:value] forKey:[NSString stringForStdString:key]];
+    [params setObject:[NSString stringForStdString:value]
+               forKey:[NSString stringForStdString:key]];
   }
 
   NSMutableArray<NSString*>* scalabilityModes =
       [NSMutableArray arrayWithCapacity:format.scalability_modes.size()];
   for (webrtc::ScalabilityMode mode : format.scalability_modes) {
-    [scalabilityModes addObject:[NSString stringForAbslStringView:ScalabilityModeToString(mode)]];
+    [scalabilityModes
+        addObject:[NSString
+                      stringForAbslStringView:ScalabilityModeToString(mode)]];
   }
 
   return [self initWithName:[NSString stringForStdString:format.name]
@@ -36,16 +40,18 @@
 
 - (webrtc::SdpVideoFormat)nativeSdpVideoFormat {
   std::map<std::string, std::string> parameters;
-  for (NSString *paramKey in self.parameters.allKeys) {
+  for (NSString* paramKey in self.parameters.allKeys) {
     std::string key = [NSString stdStringForString:paramKey];
     std::string value = [NSString stdStringForString:self.parameters[paramKey]];
     parameters[key] = value;
   }
 
-  absl::InlinedVector<webrtc::ScalabilityMode, webrtc::kScalabilityModeCount> scalability_modes;
+  absl::InlinedVector<webrtc::ScalabilityMode, webrtc::kScalabilityModeCount>
+      scalability_modes;
   for (NSString* mode_name in self.scalabilityModes) {
     std::optional<webrtc::ScalabilityMode> mode =
-        webrtc::ScalabilityModeStringToEnum([NSString stdStringForString:mode_name]);
+        webrtc::ScalabilityModeStringToEnum(
+            [NSString stdStringForString:mode_name]);
     if (mode.has_value()) {
       scalability_modes.push_back(*mode);
     }

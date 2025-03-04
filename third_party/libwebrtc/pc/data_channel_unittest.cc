@@ -12,26 +12,32 @@
 #include <string.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "api/data_channel_interface.h"
+#include "api/make_ref_counted.h"
 #include "api/priority.h"
 #include "api/rtc_error.h"
 #include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
+#include "api/task_queue/pending_task_safety_flag.h"
+#include "api/test/rtc_error_matchers.h"
 #include "api/transport/data_channel_transport_interface.h"
-#include "media/base/media_channel.h"
 #include "media/sctp/sctp_transport_internal.h"
 #include "pc/sctp_data_channel.h"
 #include "pc/sctp_utils.h"
 #include "pc/test/fake_data_channel_controller.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/copy_on_write_buffer.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/null_socket_server.h"
 #include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/thread.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/run_loop.h"
+#include "test/wait_until.h"
 
 #if RTC_DCHECK_IS_ON && GTEST_HAS_DEATH_TEST && !defined(WEBRTC_ANDROID)
 #include "test/testsupport/rtc_expect_death.h"
@@ -41,7 +47,7 @@ namespace webrtc {
 
 namespace {
 
-static constexpr int kDefaultTimeout = 10000;
+using ::testing::Eq;
 
 class FakeDataChannelObserver : public DataChannelObserver {
  public:
@@ -164,10 +170,14 @@ TEST_F(SctpDataChannelTest, VerifyConfigurationGetters) {
   EXPECT_EQ(channel_->ordered(), init_.ordered);
   EXPECT_EQ(channel_->negotiated(), init_.negotiated);
   EXPECT_EQ(channel_->priority(), PriorityValue(Priority::kLow));
-  EXPECT_EQ(channel_->maxRetransmitTime(), static_cast<uint16_t>(-1));
   EXPECT_EQ(channel_->maxPacketLifeTime(), init_.maxRetransmitTime);
-  EXPECT_EQ(channel_->maxRetransmits(), static_cast<uint16_t>(-1));
   EXPECT_EQ(channel_->maxRetransmitsOpt(), init_.maxRetransmits);
+  // TODO: issues.webrtc.org/42220231 - remove when deprecation done
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+  EXPECT_EQ(channel_->maxRetransmitTime(), static_cast<uint16_t>(-1));
+  EXPECT_EQ(channel_->maxRetransmits(), static_cast<uint16_t>(-1));
+#pragma clang diagnostic pop
 
   // Check the non-const part of the configuration.
   EXPECT_EQ(channel_->id(), init_.id);
@@ -257,7 +267,9 @@ TEST_F(SctpDataChannelTest, SendUnorderedAfterReceivesOpenAck) {
       controller_->CreateDataChannel("test1", init);
   auto proxy = SctpDataChannel::CreateProxy(dc, signaling_safety_);
 
-  EXPECT_EQ_WAIT(DataChannelInterface::kOpen, proxy->state(), 1000);
+  EXPECT_THAT(WaitUntil([&] { return proxy->state(); },
+                        Eq(DataChannelInterface::kOpen)),
+              IsRtcOk());
 
   // Sends a message and verifies it's ordered.
   DataBuffer buffer("some data");
@@ -286,7 +298,9 @@ TEST_F(SctpDataChannelTest, DeprecatedSendUnorderedAfterReceivesOpenAck) {
       controller_->CreateDataChannel("test1", init);
   auto proxy = SctpDataChannel::CreateProxy(dc, signaling_safety_);
 
-  EXPECT_EQ_WAIT(DataChannelInterface::kOpen, proxy->state(), 1000);
+  EXPECT_THAT(WaitUntil([&] { return proxy->state(); },
+                        Eq(DataChannelInterface::kOpen)),
+              IsRtcOk());
 
   // Sends a message and verifies it's ordered.
   DataBuffer buffer("some data");
@@ -315,7 +329,9 @@ TEST_F(SctpDataChannelTest, SendUnorderedAfterReceiveData) {
       controller_->CreateDataChannel("test1", init);
   auto proxy = SctpDataChannel::CreateProxy(dc, signaling_safety_);
 
-  EXPECT_EQ_WAIT(DataChannelInterface::kOpen, proxy->state(), 1000);
+  EXPECT_THAT(WaitUntil([&] { return proxy->state(); },
+                        Eq(DataChannelInterface::kOpen)),
+              IsRtcOk());
 
   // Emulates receiving a DATA message.
   DataBuffer buffer("data");
@@ -338,7 +354,9 @@ TEST_F(SctpDataChannelTest, DeprecatedSendUnorderedAfterReceiveData) {
       controller_->CreateDataChannel("test1", init);
   auto proxy = SctpDataChannel::CreateProxy(dc, signaling_safety_);
 
-  EXPECT_EQ_WAIT(DataChannelInterface::kOpen, proxy->state(), 1000);
+  EXPECT_THAT(WaitUntil([&] { return proxy->state(); },
+                        Eq(DataChannelInterface::kOpen)),
+              IsRtcOk());
 
   // Emulates receiving a DATA message.
   DataBuffer buffer("data");
@@ -397,7 +415,9 @@ TEST_F(SctpDataChannelTest, NoMsgSentIfNegotiatedAndNotFromOpenMsg) {
       controller_->CreateDataChannel("test1", config);
   auto proxy = SctpDataChannel::CreateProxy(dc, signaling_safety_);
 
-  EXPECT_EQ_WAIT(DataChannelInterface::kOpen, proxy->state(), 1000);
+  EXPECT_THAT(WaitUntil([&] { return proxy->state(); },
+                        Eq(DataChannelInterface::kOpen)),
+              IsRtcOk());
   EXPECT_EQ(0, controller_->last_sid());
 }
 
@@ -462,7 +482,9 @@ TEST_F(SctpDataChannelTest, OpenAckSentIfCreatedFromOpenMessage) {
       controller_->CreateDataChannel("test1", config);
   auto proxy = SctpDataChannel::CreateProxy(dc, signaling_safety_);
 
-  EXPECT_EQ_WAIT(DataChannelInterface::kOpen, proxy->state(), 1000);
+  EXPECT_THAT(WaitUntil([&] { return proxy->state(); },
+                        Eq(DataChannelInterface::kOpen)),
+              IsRtcOk());
 
   EXPECT_EQ(config.id, controller_->last_sid());
   EXPECT_EQ(DataMessageType::kControl,
@@ -586,8 +608,9 @@ TEST_F(SctpDataChannelTest, TransportDestroyedWhileDataBuffered) {
   network_thread_.BlockingCall(
       [&] { inner_channel_->OnTransportChannelClosed(error); });
   controller_.reset(nullptr);
-  EXPECT_EQ_WAIT(DataChannelInterface::kClosed, channel_->state(),
-                 kDefaultTimeout);
+  EXPECT_THAT(WaitUntil([&] { return channel_->state(); },
+                        Eq(DataChannelInterface::kClosed)),
+              IsRtcOk());
   EXPECT_FALSE(channel_->error().ok());
   EXPECT_EQ(RTCErrorType::OPERATION_ERROR_WITH_DATA, channel_->error().type());
   EXPECT_EQ(RTCErrorDetailType::SCTP_FAILURE, channel_->error().error_detail());
@@ -607,8 +630,9 @@ TEST_F(SctpDataChannelTest, TransportGotErrorCode) {
   network_thread_.BlockingCall(
       [&] { inner_channel_->OnTransportChannelClosed(error); });
   controller_.reset(nullptr);
-  EXPECT_EQ_WAIT(DataChannelInterface::kClosed, channel_->state(),
-                 kDefaultTimeout);
+  EXPECT_THAT(WaitUntil([&] { return channel_->state(); },
+                        Eq(DataChannelInterface::kClosed)),
+              IsRtcOk());
   EXPECT_FALSE(channel_->error().ok());
   EXPECT_EQ(RTCErrorType::OPERATION_ERROR_WITH_DATA, channel_->error().type());
   EXPECT_EQ(RTCErrorDetailType::SCTP_FAILURE, channel_->error().error_detail());
@@ -722,8 +746,6 @@ class NoImplObserver : public DataChannelObserver {
 TEST(DataChannelInterfaceTest, Coverage) {
   auto channel = rtc::make_ref_counted<NoImplDataChannel>();
   EXPECT_FALSE(channel->ordered());
-  EXPECT_EQ(channel->maxRetransmitTime(), 0u);
-  EXPECT_EQ(channel->maxRetransmits(), 0u);
   EXPECT_FALSE(channel->maxRetransmitsOpt());
   EXPECT_FALSE(channel->maxPacketLifeTime());
   EXPECT_TRUE(channel->protocol().empty());

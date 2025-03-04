@@ -415,7 +415,7 @@ absl::AnyInvocable<void() &&> Thread::Get(int cmsWait) {
       }
       // Pull a message off the message queue, if available.
       if (!messages_.empty()) {
-        absl::AnyInvocable<void()&&> task = std::move(messages_.front());
+        absl::AnyInvocable<void() &&> task = std::move(messages_.front());
         messages_.pop();
         return task;
       }
@@ -845,7 +845,7 @@ bool Thread::ProcessMessages(int cmsLoop) {
 #if defined(WEBRTC_MAC)
     ScopedAutoReleasePool pool;
 #endif
-    absl::AnyInvocable<void()&&> task = Get(cmsNext);
+    absl::AnyInvocable<void() &&> task = Get(cmsNext);
     if (!task)
       return !IsQuitting();
     Dispatch(std::move(task));

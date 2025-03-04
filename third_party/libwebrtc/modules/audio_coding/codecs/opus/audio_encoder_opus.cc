@@ -703,9 +703,9 @@ bool AudioEncoderOpusImpl::RecreateEncoderInstance(
 
 void AudioEncoderOpusImpl::SetFrameLength(int frame_length_ms) {
   if (next_frame_length_ms_ != frame_length_ms) {
-    RTC_LOG(LS_VERBOSE) << "Update Opus frame length "
-                        << "from " << next_frame_length_ms_ << " ms "
-                        << "to " << frame_length_ms << " ms.";
+    RTC_LOG(LS_VERBOSE) << "Update Opus frame length " << "from "
+                        << next_frame_length_ms_ << " ms " << "to "
+                        << frame_length_ms << " ms.";
   }
   next_frame_length_ms_ = frame_length_ms;
 }

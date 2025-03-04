@@ -19,7 +19,8 @@ NS_ASSUME_NONNULL_BEGIN
 RTC_OBJC_EXPORT
 @protocol RTC_OBJC_TYPE
 (RTCVideoCapturerDelegate)<NSObject> -
-    (void)capturer : (RTC_OBJC_TYPE(RTCVideoCapturer) *)capturer didCaptureVideoFrame
+    (void)capturer
+    : (RTC_OBJC_TYPE(RTCVideoCapturer) *)capturer didCaptureVideoFrame
     : (RTC_OBJC_TYPE(RTCVideoFrame) *)frame;
 @end
 
@@ -28,7 +29,8 @@ RTC_OBJC_EXPORT
 
 @property(nonatomic, weak) id<RTC_OBJC_TYPE(RTCVideoCapturerDelegate)> delegate;
 
-- (instancetype)initWithDelegate:(id<RTC_OBJC_TYPE(RTCVideoCapturerDelegate)>)delegate;
+- (instancetype)initWithDelegate:
+    (id<RTC_OBJC_TYPE(RTCVideoCapturerDelegate)>)delegate;
 
 @end
 

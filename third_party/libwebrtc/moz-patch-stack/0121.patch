@@ -8,26 +8,26 @@ No need to update the last frame unless it has changed.
 Differential Revision: https://phabricator.services.mozilla.com/D221942
 Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8d52f2fd575479da72508033b3a2151906e2bf19
 ---
- .../desktop_capture/mac/screen_capturer_sck.mm  | 17 +++++++++++++++++
- 1 file changed, 17 insertions(+)
+ .../desktop_capture/mac/screen_capturer_sck.mm | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
 
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index 3d1751378c..d431ef0fc8 100644
+index 1a84a39c9c..92c7dadebe 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -511,6 +511,7 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* at
+@@ -556,6 +556,7 @@ void StartWithFilter(SCContentFilter* filter)
    CGRect contentRect = {};
    CGRect boundingRect = {};
    CGRect overlayRect = {};
 +  SCFrameStatus status = SCFrameStatusStopped;
    const auto* dirty_rects = (NSArray*)attachment[SCStreamFrameInfoDirtyRects];
-   if (auto factor = (NSNumber *)attachment[SCStreamFrameInfoScaleFactor]) {
+   if (auto factor = (NSNumber*)attachment[SCStreamFrameInfoScaleFactor]) {
      scaleFactor = [factor floatValue];
-@@ -536,6 +537,22 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* at
+@@ -584,6 +585,23 @@ void StartWithFilter(SCContentFilter* filter)
      }
    }
  
-+  if (auto statusNr = (NSNumber *)attachment[SCStreamFrameInfoStatus]) {
++  if (auto statusNr = (NSNumber*)attachment[SCStreamFrameInfoStatus]) {
 +    status = (SCFrameStatus)[statusNr integerValue];
 +  }
 +
@@ -43,6 +43,7 @@ index 3d1751378c..d431ef0fc8 100644
 +      // New frame. Process it.
 +      break;
 +  }
- 
-   auto imgBoundingRect = CGRectMake(
-       scaleFactor * boundingRect.origin.x,
++
+   auto imgBoundingRect = CGRectMake(scaleFactor * boundingRect.origin.x,
+                                     scaleFactor * boundingRect.origin.y,
+                                     scaleFactor * boundingRect.size.width,

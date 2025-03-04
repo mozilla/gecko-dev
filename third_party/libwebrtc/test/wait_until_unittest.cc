@@ -54,7 +54,7 @@ TEST(WaitUntilTest, ReturnsErrorWhenTimeoutIsReached) {
   // flakiness.
   EXPECT_THAT(
       result,
-      IsRtcErrorWithMessage(
+      IsRtcErrorOrWithMessage(
           _, MatchesRegex(
                  "Value of: counter\nExpected: is equal to 1\nActual: -\\d+")));
 }
@@ -71,7 +71,7 @@ TEST(WaitUntilTest, ErrorContainsMatcherExplanation) {
   // flakiness.
   EXPECT_THAT(
       result,
-      IsRtcErrorWithMessage(
+      IsRtcErrorOrWithMessage(
           _, MatchesRegex("Value of: counter\nExpected: \\(is > 0\\) and "
                           "\\(is < 10\\)\nActual: -\\d+, which doesn't match "
                           "\\(is > 0\\)")));

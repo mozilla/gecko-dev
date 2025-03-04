@@ -12,12 +12,15 @@
 
 #import <XCTest/XCTest.h>
 
+#include "api/test/rtc_error_matchers.h"
 #include "rtc_base/gunit.h"
+#include "test/gmock.h"
+#include "test/wait_until.h"
 
 NSString *const kTestFileName = @"foreman.mp4";
-static const int kTestTimeoutMs = 5 * 1000;  // 5secs.
 
-@interface MockCapturerDelegate : NSObject <RTC_OBJC_TYPE (RTCVideoCapturerDelegate)>
+@interface MockCapturerDelegate
+    : NSObject <RTC_OBJC_TYPE (RTCVideoCapturerDelegate)>
 
 @property(nonatomic, assign) NSInteger capturedFramesCount;
 
@@ -47,7 +50,8 @@ NS_CLASS_AVAILABLE_IOS(10)
 
 - (void)setUp {
   self.mockDelegate = [[MockCapturerDelegate alloc] init];
-  self.capturer = [[RTC_OBJC_TYPE(RTCFileVideoCapturer) alloc] initWithDelegate:self.mockDelegate];
+  self.capturer = [[RTC_OBJC_TYPE(RTCFileVideoCapturer) alloc]
+      initWithDelegate:self.mockDelegate];
 }
 
 - (void)tearDown {
@@ -62,8 +66,14 @@ NS_CLASS_AVAILABLE_IOS(10)
     errorOccured = YES;
   };
 
-  [self.capturer startCapturingFromFileNamed:@"not_in_bundle.mov" onError:errorBlock];
-  ASSERT_TRUE_WAIT(errorOccured, kTestTimeoutMs);
+  [self.capturer startCapturingFromFileNamed:@"not_in_bundle.mov"
+                                     onError:errorBlock];
+  EXPECT_THAT(webrtc::WaitUntil(
+                  ^() {
+                    return errorOccured;
+                  },
+                  ::testing::IsTrue()),
+              webrtc::IsRtcOk());
 }
 
 - (void)testSecondStartCaptureCallFails {
@@ -79,10 +89,17 @@ NS_CLASS_AVAILABLE_IOS(10)
     secondError = YES;
   };
 
-  [self.capturer startCapturingFromFileNamed:kTestFileName onError:firstErrorBlock];
-  [self.capturer startCapturingFromFileNamed:kTestFileName onError:secondErrorBlock];
+  [self.capturer startCapturingFromFileNamed:kTestFileName
+                                     onError:firstErrorBlock];
+  [self.capturer startCapturingFromFileNamed:kTestFileName
+                                     onError:secondErrorBlock];
 
-  ASSERT_TRUE_WAIT(secondError, kTestTimeoutMs);
+  EXPECT_THAT(webrtc::WaitUntil(
+                  ^() {
+                    return secondError;
+                  },
+                  ::testing::IsTrue()),
+              webrtc::IsRtcOk());
 }
 
 - (void)testStartStopCapturer {
@@ -96,13 +113,22 @@ NS_CLASS_AVAILABLE_IOS(10)
 
     // We're dispatching the `stopCapture` with delay to ensure the capturer has
     // had the chance to capture several frames.
-    dispatch_time_t captureDelay = dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC);  // 2secs.
-    dispatch_after(captureDelay, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-      capturedFrames = self.mockDelegate.capturedFramesCount;
-      [self.capturer stopCapture];
-      done = YES;
-    });
-    WAIT(done, kTestTimeoutMs);
+    dispatch_time_t captureDelay =
+        dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC);  // 2secs.
+    dispatch_after(
+        captureDelay,
+        dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
+        ^{
+          capturedFrames = self.mockDelegate.capturedFramesCount;
+          [self.capturer stopCapture];
+          done = YES;
+        });
+    EXPECT_THAT(webrtc::WaitUntil(
+                    ^() {
+                      return done;
+                    },
+                    ::testing::IsTrue()),
+                webrtc::IsRtcOk());
 
     capturedFramesAfterStop = self.mockDelegate.capturedFramesCount;
     ASSERT_TRUE(capturedFrames != -1);

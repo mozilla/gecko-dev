@@ -30,6 +30,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/async_dns_resolver.h"
@@ -251,6 +252,14 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
   const webrtc::FieldTrialsView* field_trials() const override {
     return field_trials_;
   }
+  void SetDtlsPiggybackingCallbacks(
+      absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+          dtls_piggyback_get_data,
+      absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+          dtls_piggyback_get_ack,
+      absl::AnyInvocable<void(const StunByteStringAttribute*,
+                              const StunByteStringAttribute*)>
+          dtls_piggyback_report_data) override;
 
  private:
   P2PTransportChannel(
@@ -515,6 +524,15 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
 
   // A dictionary that tracks attributes from peer.
   StunDictionaryView stun_dict_view_;
+
+  // DTLS-STUN piggybacking callbacks.
+  absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+      dtls_piggyback_get_data_;
+  absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+      dtls_piggyback_get_ack_;
+  absl::AnyInvocable<void(const StunByteStringAttribute*,
+                          const StunByteStringAttribute*)>
+      dtls_piggyback_report_data_;
 };
 
 }  // namespace cricket

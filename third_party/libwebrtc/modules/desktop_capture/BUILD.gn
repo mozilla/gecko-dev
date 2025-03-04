@@ -383,8 +383,11 @@ rtc_library("desktop_capture") {
       "Xdamage",
       "Xext",
       "Xfixes",
-      "Xrender",
+
+      # Xrandr depends on Xrender and needs to be listed before its dependency.
       "Xrandr",
+
+      "Xrender",
       "Xtst",
     ]
     if (build_with_mozilla) {

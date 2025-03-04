@@ -17,7 +17,7 @@
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/rtp_parameters.h"
-#include "common_video/corruption_detection_message.h"
+#include "api/transport/rtp/corruption_detection_message.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 
 namespace webrtc {

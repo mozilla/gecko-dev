@@ -22,8 +22,9 @@
 #import "RTCMTLNV12Renderer.h"
 #import "RTCMTLRGBRenderer.h"
 
-// To avoid unreconized symbol linker errors, we're taking advantage of the objc runtime.
-// Linking errors occur when compiling for architectures that don't support Metal.
+// To avoid unreconized symbol linker errors, we're taking advantage of the objc
+// runtime. Linking errors occur when compiling for architectures that don't
+// support Metal.
 #define MTKViewClass NSClassFromString(@"MTKView")
 #define RTCMTLNV12RendererClass NSClassFromString(@"RTCMTLNV12Renderer")
 #define RTCMTLI420RendererClass NSClassFromString(@"RTCMTLI420Renderer")
@@ -117,8 +118,8 @@
 }
 
 - (void)setMultipleTouchEnabled:(BOOL)multipleTouchEnabled {
-    [super setMultipleTouchEnabled:multipleTouchEnabled];
-    self.metalView.multipleTouchEnabled = multipleTouchEnabled;
+  [super setMultipleTouchEnabled:multipleTouchEnabled];
+  self.metalView.multipleTouchEnabled = multipleTouchEnabled;
 }
 
 - (void)layoutSubviews {
@@ -136,7 +137,8 @@
 #pragma mark - MTKViewDelegate methods
 
 - (void)drawInMTKView:(nonnull MTKView *)view {
-  NSAssert(view == self.metalView, @"Receiving draw callbacks from foreign instance.");
+  NSAssert(view == self.metalView,
+           @"Receiving draw callbacks from foreign instance.");
   RTC_OBJC_TYPE(RTCVideoFrame) *videoFrame = self.videoFrame;
   // Skip rendering if we've already rendered this frame.
   if (!videoFrame || videoFrame.width <= 0 || videoFrame.height <= 0 ||
@@ -149,10 +151,14 @@
   }
 
   RTCMTLRenderer *renderer;
-  if ([videoFrame.buffer isKindOfClass:[RTC_OBJC_TYPE(RTCCVPixelBuffer) class]]) {
-    RTC_OBJC_TYPE(RTCCVPixelBuffer) *buffer = (RTC_OBJC_TYPE(RTCCVPixelBuffer) *)videoFrame.buffer;
-    const OSType pixelFormat = CVPixelBufferGetPixelFormatType(buffer.pixelBuffer);
-    if (pixelFormat == kCVPixelFormatType_32BGRA || pixelFormat == kCVPixelFormatType_32ARGB) {
+  if ([videoFrame.buffer
+          isKindOfClass:[RTC_OBJC_TYPE(RTCCVPixelBuffer) class]]) {
+    RTC_OBJC_TYPE(RTCCVPixelBuffer) *buffer =
+        (RTC_OBJC_TYPE(RTCCVPixelBuffer) *)videoFrame.buffer;
+    const OSType pixelFormat =
+        CVPixelBufferGetPixelFormatType(buffer.pixelBuffer);
+    if (pixelFormat == kCVPixelFormatType_32BGRA ||
+        pixelFormat == kCVPixelFormatType_32ARGB) {
       if (!self.rendererRGB) {
         self.rendererRGB = [RTC_OBJC_TYPE(RTCMTLVideoView) createRGBRenderer];
         if (![self.rendererRGB addRenderingDestination:self.metalView]) {
@@ -222,8 +228,8 @@
   CGSize videoFrameSize = self.videoFrameSize;
   RTCVideoRotation frameRotation = [self frameRotation];
 
-  BOOL useLandscape =
-      (frameRotation == RTCVideoRotation_0) || (frameRotation == RTCVideoRotation_180);
+  BOOL useLandscape = (frameRotation == RTCVideoRotation_0) ||
+      (frameRotation == RTCVideoRotation_180);
   BOOL sizeIsLandscape = (self.videoFrame.rotation == RTCVideoRotation_0) ||
       (self.videoFrame.rotation == RTCVideoRotation_180);
 

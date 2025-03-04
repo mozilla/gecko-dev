@@ -1040,37 +1040,62 @@ void VideoReceiveStream2::UpdatePlayoutDelays() const {
   // Since nullopt < anything, this will return the largest of the minumum
   // delays, or nullopt if all are nullopt.
   std::optional<TimeDelta> minimum_delay = std::max(min_delays);
-  if (minimum_delay) {
-    auto num_playout_delays_set =
-        absl::c_count_if(min_delays, [](auto opt) { return opt.has_value(); });
-    if (num_playout_delays_set > 1 &&
-        timing_->min_playout_delay() != minimum_delay) {
+  if (!minimum_delay.has_value()) {
+    // `frame_maximum_playout_delay_` and `frame_minimum_delay_value_` are set
+    // together. Thus absence of the `minimum_delay` implies absene of the
+    // `frame_minimum_playout_delay_` and thus implies absence of the
+    // `frame_maximum_playout_delay_`.
+    RTC_DCHECK(!frame_maximum_playout_delay_.has_value());
+    return;
+  }
+
+  // When maximum delay is smaller than minimum delay, maximum delay takes
+  // priority. It arrived with the frame, and thus is an explicit request to
+  // limit the delay.
+  if (frame_maximum_playout_delay_.has_value() &&
+      minimum_delay > *frame_maximum_playout_delay_) {
+    minimum_delay = *frame_maximum_playout_delay_;
+    if (timing_->min_playout_delay() != *minimum_delay) {
       RTC_LOG(LS_WARNING)
-          << "Multiple playout delays set. Actual delay value set to "
-          << *minimum_delay << " frame min delay="
+          << "Maximum playout delay " << *frame_maximum_playout_delay_
+          << " overrides minimum delay. frame min delay="
           << OptionalDelayToLogString(frame_minimum_playout_delay_)
           << " base min delay="
           << OptionalDelayToLogString(base_minimum_playout_delay_)
           << " sync min delay="
           << OptionalDelayToLogString(syncable_minimum_playout_delay_);
     }
-    timing_->set_min_playout_delay(*minimum_delay);
-    if (frame_minimum_playout_delay_ == TimeDelta::Zero() &&
-        frame_maximum_playout_delay_ > TimeDelta::Zero()) {
-      // TODO(kron): Estimate frame rate from video stream.
-      constexpr Frequency kFrameRate = Frequency::Hertz(60);
-      // Convert playout delay in ms to number of frames.
-      int max_composition_delay_in_frames =
-          std::lrint(*frame_maximum_playout_delay_ * kFrameRate);
-      // Subtract frames in buffer.
-      max_composition_delay_in_frames =
-          std::max(max_composition_delay_in_frames - buffer_->Size(), 0);
-      timing_->SetMaxCompositionDelayInFrames(max_composition_delay_in_frames);
-    }
   }
 
-  if (frame_maximum_playout_delay_) {
-    timing_->set_max_playout_delay(*frame_maximum_playout_delay_);
+  auto num_playout_delays_set =
+      absl::c_count_if(min_delays, [](auto opt) { return opt.has_value(); });
+  if (num_playout_delays_set > 1 &&
+      timing_->min_playout_delay() != *minimum_delay) {
+    RTC_LOG(LS_WARNING)
+        << "Multiple playout delays set. Actual delay value set to "
+        << *minimum_delay << " frame min delay="
+        << OptionalDelayToLogString(frame_minimum_playout_delay_)
+        << " base min delay="
+        << OptionalDelayToLogString(base_minimum_playout_delay_)
+        << " sync min delay="
+        << OptionalDelayToLogString(syncable_minimum_playout_delay_);
+  }
+  if (frame_maximum_playout_delay_.has_value()) {
+    timing_->set_playout_delay({*minimum_delay, *frame_maximum_playout_delay_});
+  } else {
+    timing_->set_min_playout_delay(*minimum_delay);
+  }
+  if (frame_minimum_playout_delay_ == TimeDelta::Zero() &&
+      frame_maximum_playout_delay_ > TimeDelta::Zero()) {
+    // TODO(kron): Estimate frame rate from video stream.
+    constexpr Frequency kFrameRate = Frequency::Hertz(60);
+    // Convert playout delay to number of frames.
+    int max_composition_delay_in_frames =
+        std::lrint(*frame_maximum_playout_delay_ * kFrameRate);
+    // Subtract frames in buffer.
+    max_composition_delay_in_frames =
+        std::max(max_composition_delay_in_frames - buffer_->Size(), 0);
+    timing_->SetMaxCompositionDelayInFrames(max_composition_delay_in_frames);
   }
 }
 

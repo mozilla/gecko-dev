@@ -821,8 +821,7 @@ TEST_P(LowLatencyVideoStreamBufferControllerTest,
        FramesDecodedInstantlyWithLowLatencyRendering) {
   // Initial keyframe.
   StartNextDecodeForceKeyframe();
-  timing_.set_min_playout_delay(TimeDelta::Zero());
-  timing_.set_max_playout_delay(TimeDelta::Millis(10));
+  timing_.set_playout_delay({TimeDelta::Zero(), TimeDelta::Millis(10)});
   // Playout delay of 0 implies low-latency rendering.
   auto frame = test::FakeFrameBuilder()
                    .Id(0)
@@ -852,8 +851,7 @@ TEST_P(LowLatencyVideoStreamBufferControllerTest,
 TEST_P(LowLatencyVideoStreamBufferControllerTest, ZeroPlayoutDelayFullQueue) {
   // Initial keyframe.
   StartNextDecodeForceKeyframe();
-  timing_.set_min_playout_delay(TimeDelta::Zero());
-  timing_.set_max_playout_delay(TimeDelta::Millis(10));
+  timing_.set_playout_delay({TimeDelta::Zero(), TimeDelta::Millis(10)});
   auto frame = test::FakeFrameBuilder()
                    .Id(0)
                    .Time(0)
@@ -885,8 +883,7 @@ TEST_P(LowLatencyVideoStreamBufferControllerTest,
        MinMaxDelayZeroLowLatencyMode) {
   // Initial keyframe.
   StartNextDecodeForceKeyframe();
-  timing_.set_min_playout_delay(TimeDelta::Zero());
-  timing_.set_max_playout_delay(TimeDelta::Zero());
+  timing_.set_playout_delay({TimeDelta::Zero(), TimeDelta::Zero()});
   // Playout delay of 0 implies low-latency rendering.
   auto frame = test::FakeFrameBuilder()
                    .Id(0)

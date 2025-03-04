@@ -68,7 +68,7 @@ class AbsoluteSendTime {
 
   static constexpr Timestamp ToTimestamp(uint32_t time_24bits) {
     RTC_DCHECK_LT(time_24bits, (1 << 24));
-    return Timestamp::Micros((time_24bits* int64_t{1'000'000}) >> 18);
+    return Timestamp::Micros((time_24bits * int64_t{1'000'000}) >> 18);
   }
 };
 
@@ -325,7 +325,8 @@ class CsrcAudioLevel {
   static bool Parse(rtc::ArrayView<const uint8_t> data,
                     CsrcAudioLevelList* csrcAudioLevels);
   static size_t ValueSize(const CsrcAudioLevelList& csrcAudioLevels);
-  static bool Write(rtc::ArrayView<uint8_t> data, const CsrcAudioLevelList& csrcAudioLevels);
+  static bool Write(rtc::ArrayView<uint8_t> data,
+                    const CsrcAudioLevelList& csrcAudioLevels);
 };
 #endif
 

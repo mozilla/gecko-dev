@@ -22,6 +22,7 @@
 #include <emmintrin.h>
 #endif
 
+#include "api/environment/environment_factory.h"
 #include "modules/audio_processing/aec3/adaptive_fir_filter_erl.h"
 #include "modules/audio_processing/aec3/aec3_fft.h"
 #include "modules/audio_processing/aec3/aec_state.h"
@@ -482,7 +483,8 @@ TEST_P(AdaptiveFirFilterMultiChannel, FilterAndAdapt) {
   Block x(kNumBands, num_render_channels);
   std::vector<float> n(kBlockSize, 0.f);
   std::vector<float> y(kBlockSize, 0.f);
-  AecState aec_state(EchoCanceller3Config{}, num_capture_channels);
+  AecState aec_state(CreateEnvironment(), EchoCanceller3Config{},
+                     num_capture_channels);
   RenderSignalAnalyzer render_signal_analyzer(config);
   std::optional<DelayEstimate> delay_estimate;
   std::vector<float> e(kBlockSize, 0.f);

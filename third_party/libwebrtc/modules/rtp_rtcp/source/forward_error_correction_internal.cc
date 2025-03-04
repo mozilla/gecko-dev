@@ -471,7 +471,7 @@ void GeneratePacketMasks(int num_media_packets,
     UnequalProtectionMask(num_media_packets, num_fec_packets, num_imp_packets,
                           num_mask_bytes, packet_mask, mask_table);
   }  // End of UEP modification
-}  // End of GetPacketMasks
+}    // End of GetPacketMasks
 
 size_t PacketMaskSize(size_t num_sequence_numbers) {
   RTC_DCHECK_LE(num_sequence_numbers, 8 * kUlpfecPacketMaskSizeLBitSet);

@@ -27,8 +27,10 @@
 #include "api/make_ref_counted.h"
 #include "api/peer_connection_interface.h"
 #include "api/scoped_refptr.h"
+#include "api/test/rtc_error_matchers.h"
 #include "api/transport/data_channel_transport_interface.h"
 #include "api/transport/enums.h"
+#include "api/units/time_delta.h"
 #include "call/payload_type_picker.h"
 #include "p2p/base/candidate_pair_interface.h"
 #include "p2p/base/fake_ice_transport.h"
@@ -47,7 +49,6 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/fake_ssl_identity.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/net_helper.h"
 #include "rtc_base/socket_address.h"
@@ -57,13 +58,14 @@
 #include "rtc_base/task_queue_for_test.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/scoped_key_value_config.h"
+#include "test/wait_until.h"
 
 using cricket::Candidate;
 using cricket::Candidates;
 using cricket::FakeDtlsTransport;
-using webrtc::SdpType;
 
 static const int kTimeout = 100;
 static const char kIceUfrag1[] = "u0001";
@@ -562,7 +564,10 @@ TEST_F(JsepTransportControllerTest, MaybeStartGathering) {
   // After setting the local description, we should be able to start gathering
   // candidates.
   transport_controller_->MaybeStartGathering();
-  EXPECT_EQ_WAIT(cricket::kIceGatheringGathering, gathering_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceGatheringGathering; },
+                        ::testing::Eq(gathering_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(1, gathering_state_signal_count_);
 }
 
@@ -713,13 +718,23 @@ TEST_F(JsepTransportControllerTest, SignalConnectionStateFailed) {
   fake_ice->SetConnectionCount(1);
   // The connection stats will be failed if there is no active connection.
   fake_ice->SetConnectionCount(0);
-  EXPECT_EQ_WAIT(cricket::kIceConnectionFailed, connection_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceConnectionFailed; },
+                        ::testing::Eq(connection_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(1, connection_state_signal_count_);
-  EXPECT_EQ_WAIT(PeerConnectionInterface::kIceConnectionFailed,
-                 ice_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return PeerConnectionInterface::kIceConnectionFailed; },
+                ::testing::Eq(ice_connection_state_),
+                {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(1, ice_connection_state_signal_count_);
-  EXPECT_EQ_WAIT(PeerConnectionInterface::PeerConnectionState::kFailed,
-                 combined_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] { return PeerConnectionInterface::PeerConnectionState::kFailed; },
+          ::testing::Eq(combined_connection_state_),
+          {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(1, combined_connection_state_signal_count_);
 }
 
@@ -748,13 +763,23 @@ TEST_F(JsepTransportControllerTest,
   fake_video_dtls->fake_ice_transport()->SetConnectionCount(0);
   fake_video_dtls->fake_ice_transport()->SetCandidatesGatheringComplete();
 
-  EXPECT_EQ_WAIT(cricket::kIceConnectionFailed, connection_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceConnectionFailed; },
+                        ::testing::Eq(connection_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(1, connection_state_signal_count_);
-  EXPECT_EQ_WAIT(PeerConnectionInterface::kIceConnectionFailed,
-                 ice_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return PeerConnectionInterface::kIceConnectionFailed; },
+                ::testing::Eq(ice_connection_state_),
+                {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(2, ice_connection_state_signal_count_);
-  EXPECT_EQ_WAIT(PeerConnectionInterface::PeerConnectionState::kFailed,
-                 combined_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] { return PeerConnectionInterface::PeerConnectionState::kFailed; },
+          ::testing::Eq(combined_connection_state_),
+          {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(2, combined_connection_state_signal_count_);
 
   fake_audio_dtls->SetDtlsState(DtlsTransportState::kConnected);
@@ -763,13 +788,26 @@ TEST_F(JsepTransportControllerTest,
   // the transport state to be STATE_CONNECTING.
   fake_video_dtls->fake_ice_transport()->SetConnectionCount(2);
   fake_video_dtls->SetWritable(true);
-  EXPECT_EQ_WAIT(cricket::kIceConnectionConnected, connection_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceConnectionConnected; },
+                        ::testing::Eq(connection_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(2, connection_state_signal_count_);
-  EXPECT_EQ_WAIT(PeerConnectionInterface::kIceConnectionConnected,
-                 ice_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] { return PeerConnectionInterface::kIceConnectionConnected; },
+          ::testing::Eq(ice_connection_state_),
+          {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(3, ice_connection_state_signal_count_);
-  EXPECT_EQ_WAIT(PeerConnectionInterface::PeerConnectionState::kConnected,
-                 combined_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] {
+            return PeerConnectionInterface::PeerConnectionState::kConnected;
+          },
+          ::testing::Eq(combined_connection_state_),
+          {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(3, combined_connection_state_signal_count_);
 }
 
@@ -795,24 +833,43 @@ TEST_F(JsepTransportControllerTest, SignalConnectionStateComplete) {
   fake_audio_dtls->SetWritable(true);
   fake_audio_dtls->fake_ice_transport()->SetCandidatesGatheringComplete();
 
-  EXPECT_EQ_WAIT(PeerConnectionInterface::kIceConnectionChecking,
-                 ice_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return PeerConnectionInterface::kIceConnectionChecking; },
+                ::testing::Eq(ice_connection_state_),
+                {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(1, ice_connection_state_signal_count_);
-  EXPECT_EQ_WAIT(PeerConnectionInterface::PeerConnectionState::kConnecting,
-                 combined_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] {
+            return PeerConnectionInterface::PeerConnectionState::kConnecting;
+          },
+          ::testing::Eq(combined_connection_state_),
+          {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(1, combined_connection_state_signal_count_);
 
   fake_video_dtls->fake_ice_transport()->SetTransportState(
       IceTransportState::kFailed, cricket::IceTransportState::STATE_FAILED);
   fake_video_dtls->fake_ice_transport()->SetCandidatesGatheringComplete();
 
-  EXPECT_EQ_WAIT(cricket::kIceConnectionFailed, connection_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceConnectionFailed; },
+                        ::testing::Eq(connection_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(1, connection_state_signal_count_);
-  EXPECT_EQ_WAIT(PeerConnectionInterface::kIceConnectionFailed,
-                 ice_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return PeerConnectionInterface::kIceConnectionFailed; },
+                ::testing::Eq(ice_connection_state_),
+                {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(2, ice_connection_state_signal_count_);
-  EXPECT_EQ_WAIT(PeerConnectionInterface::PeerConnectionState::kFailed,
-                 combined_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] { return PeerConnectionInterface::PeerConnectionState::kFailed; },
+          ::testing::Eq(combined_connection_state_),
+          {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(2, combined_connection_state_signal_count_);
 
   fake_audio_dtls->SetDtlsState(DtlsTransportState::kConnected);
@@ -823,13 +880,26 @@ TEST_F(JsepTransportControllerTest, SignalConnectionStateComplete) {
       IceTransportState::kCompleted,
       cricket::IceTransportState::STATE_COMPLETED);
   fake_video_dtls->SetWritable(true);
-  EXPECT_EQ_WAIT(cricket::kIceConnectionCompleted, connection_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceConnectionCompleted; },
+                        ::testing::Eq(connection_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(3, connection_state_signal_count_);
-  EXPECT_EQ_WAIT(PeerConnectionInterface::kIceConnectionCompleted,
-                 ice_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] { return PeerConnectionInterface::kIceConnectionCompleted; },
+          ::testing::Eq(ice_connection_state_),
+          {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(3, ice_connection_state_signal_count_);
-  EXPECT_EQ_WAIT(PeerConnectionInterface::PeerConnectionState::kConnected,
-                 combined_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] {
+            return PeerConnectionInterface::PeerConnectionState::kConnected;
+          },
+          ::testing::Eq(combined_connection_state_),
+          {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(3, combined_connection_state_signal_count_);
 }
 
@@ -845,7 +915,10 @@ TEST_F(JsepTransportControllerTest, SignalIceGatheringStateGathering) {
       transport_controller_->GetDtlsTransport(kAudioMid1));
   fake_audio_dtls->fake_ice_transport()->MaybeStartGathering();
   // Should be in the gathering state as soon as any transport starts gathering.
-  EXPECT_EQ_WAIT(cricket::kIceGatheringGathering, gathering_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceGatheringGathering; },
+                        ::testing::Eq(gathering_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(1, gathering_state_signal_count_);
 }
 
@@ -863,7 +936,10 @@ TEST_F(JsepTransportControllerTest, SignalIceGatheringStateComplete) {
       transport_controller_->GetDtlsTransport(kVideoMid1));
 
   fake_audio_dtls->fake_ice_transport()->MaybeStartGathering();
-  EXPECT_EQ_WAIT(cricket::kIceGatheringGathering, gathering_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceGatheringGathering; },
+                        ::testing::Eq(gathering_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(1, gathering_state_signal_count_);
 
   // Have one transport finish gathering, to make sure gathering
@@ -872,11 +948,17 @@ TEST_F(JsepTransportControllerTest, SignalIceGatheringStateComplete) {
   EXPECT_EQ(1, gathering_state_signal_count_);
 
   fake_video_dtls->fake_ice_transport()->MaybeStartGathering();
-  EXPECT_EQ_WAIT(cricket::kIceGatheringGathering, gathering_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceGatheringGathering; },
+                        ::testing::Eq(gathering_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(1, gathering_state_signal_count_);
 
   fake_video_dtls->fake_ice_transport()->SetCandidatesGatheringComplete();
-  EXPECT_EQ_WAIT(cricket::kIceGatheringComplete, gathering_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceGatheringComplete; },
+                        ::testing::Eq(gathering_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(2, gathering_state_signal_count_);
 }
 
@@ -900,7 +982,10 @@ TEST_F(JsepTransportControllerTest,
   EXPECT_NE(fake_audio_dtls, fake_video_dtls);
 
   fake_audio_dtls->fake_ice_transport()->MaybeStartGathering();
-  EXPECT_EQ_WAIT(cricket::kIceGatheringGathering, gathering_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceGatheringGathering; },
+                        ::testing::Eq(gathering_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(1, gathering_state_signal_count_);
 
   // Let the audio transport complete.
@@ -920,12 +1005,18 @@ TEST_F(JsepTransportControllerTest,
   fake_video_dtls = static_cast<FakeDtlsTransport*>(
       transport_controller_->GetDtlsTransport(kVideoMid1));
   EXPECT_EQ(fake_audio_dtls, fake_video_dtls);
-  EXPECT_EQ_WAIT(cricket::kIceConnectionCompleted, connection_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceConnectionCompleted; },
+                        ::testing::Eq(connection_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(PeerConnectionInterface::kIceConnectionCompleted,
             ice_connection_state_);
   EXPECT_EQ(PeerConnectionInterface::PeerConnectionState::kConnected,
             combined_connection_state_);
-  EXPECT_EQ_WAIT(cricket::kIceGatheringComplete, gathering_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceGatheringComplete; },
+                        ::testing::Eq(gathering_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(2, gathering_state_signal_count_);
 }
 
@@ -955,13 +1046,25 @@ TEST_F(JsepTransportControllerTest,
   fake_audio_dtls->fake_ice_transport()->SetTransportState(
       IceTransportState::kChecking,
       cricket::IceTransportState::STATE_CONNECTING);
-  EXPECT_EQ_WAIT(PeerConnectionInterface::kIceConnectionChecking,
-                 ice_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return PeerConnectionInterface::kIceConnectionChecking; },
+                ::testing::Eq(ice_connection_state_),
+                {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(1, ice_connection_state_signal_count_);
-  EXPECT_EQ_WAIT(PeerConnectionInterface::PeerConnectionState::kConnecting,
-                 combined_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] {
+            return PeerConnectionInterface::PeerConnectionState::kConnecting;
+          },
+          ::testing::Eq(combined_connection_state_),
+          {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(1, combined_connection_state_signal_count_);
-  EXPECT_EQ_WAIT(cricket::kIceGatheringGathering, gathering_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceGatheringGathering; },
+                        ::testing::Eq(gathering_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(1, gathering_state_signal_count_);
 
   // Reject m= section which should disconnect the transport and return states
@@ -971,25 +1074,47 @@ TEST_F(JsepTransportControllerTest,
                   ->SetRemoteDescription(SdpType::kOffer, description.get(),
                                          description.get())
                   .ok());
-  EXPECT_EQ_WAIT(PeerConnectionInterface::kIceConnectionNew,
-                 ice_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return PeerConnectionInterface::kIceConnectionNew; },
+                ::testing::Eq(ice_connection_state_),
+                {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(2, ice_connection_state_signal_count_);
-  EXPECT_EQ_WAIT(PeerConnectionInterface::PeerConnectionState::kNew,
-                 combined_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] { return PeerConnectionInterface::PeerConnectionState::kNew; },
+          ::testing::Eq(combined_connection_state_),
+          {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(2, combined_connection_state_signal_count_);
-  EXPECT_EQ_WAIT(cricket::kIceGatheringNew, gathering_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceGatheringNew; },
+                        ::testing::Eq(gathering_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(2, gathering_state_signal_count_);
 
   // For good measure, rollback the offer and verify that states return to
   // their previous values.
   EXPECT_TRUE(transport_controller_->RollbackTransports().ok());
-  EXPECT_EQ_WAIT(PeerConnectionInterface::kIceConnectionChecking,
-                 ice_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return PeerConnectionInterface::kIceConnectionChecking; },
+                ::testing::Eq(ice_connection_state_),
+                {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(3, ice_connection_state_signal_count_);
-  EXPECT_EQ_WAIT(PeerConnectionInterface::PeerConnectionState::kConnecting,
-                 combined_connection_state_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] {
+            return PeerConnectionInterface::PeerConnectionState::kConnecting;
+          },
+          ::testing::Eq(combined_connection_state_),
+          {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(3, combined_connection_state_signal_count_);
-  EXPECT_EQ_WAIT(cricket::kIceGatheringGathering, gathering_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceGatheringGathering; },
+                        ::testing::Eq(gathering_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(3, gathering_state_signal_count_);
 }
 
@@ -1006,7 +1131,10 @@ TEST_F(JsepTransportControllerTest, SignalCandidatesGathered) {
       transport_controller_->GetDtlsTransport(kAudioMid1));
   fake_audio_dtls->fake_ice_transport()->SignalCandidateGathered(
       fake_audio_dtls->fake_ice_transport(), CreateCandidate(kAudioMid1, 1));
-  EXPECT_EQ_WAIT(1, candidates_signal_count_, kTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return 1; }, ::testing::Eq(candidates_signal_count_),
+                {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+      IsRtcOk());
   EXPECT_EQ(1u, candidates_[kAudioMid1].size());
 }
 
@@ -1020,15 +1148,27 @@ TEST_F(JsepTransportControllerTest, IceSignalingOccursOnNetworkThread) {
   CreateLocalDescriptionAndCompleteConnectionOnNetworkThread();
 
   // connecting --> connected --> completed
-  EXPECT_EQ_WAIT(cricket::kIceConnectionCompleted, connection_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceConnectionCompleted; },
+                        ::testing::Eq(connection_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(2, connection_state_signal_count_);
 
   // new --> gathering --> complete
-  EXPECT_EQ_WAIT(cricket::kIceGatheringComplete, gathering_state_, kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return cricket::kIceGatheringComplete; },
+                        ::testing::Eq(gathering_state_),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(2, gathering_state_signal_count_);
 
-  EXPECT_EQ_WAIT(1u, candidates_[kAudioMid1].size(), kTimeout);
-  EXPECT_EQ_WAIT(1u, candidates_[kVideoMid1].size(), kTimeout);
+  EXPECT_THAT(WaitUntil([&] { return candidates_[kAudioMid1].size(); },
+                        ::testing::Eq(1u),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
+  EXPECT_THAT(WaitUntil([&] { return candidates_[kVideoMid1].size(); },
+                        ::testing::Eq(1u),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+              IsRtcOk());
   EXPECT_EQ(2, candidates_signal_count_);
 
   EXPECT_EQ(ice_signaled_on_thread_, network_thread_.get());

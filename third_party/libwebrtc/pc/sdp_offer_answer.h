@@ -181,6 +181,8 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
     return false;
   }
 
+  SdpMungingType sdp_munging_type() const { return last_sdp_munging_type_; }
+
  private:
   class RemoteDescriptionOperation;
   class ImplicitCreateSessionDescriptionObserver;
@@ -603,6 +605,11 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
       RTC_GUARDED_BY(signaling_thread());
   std::unique_ptr<SessionDescriptionInterface> pending_remote_description_
       RTC_GUARDED_BY(signaling_thread());
+  std::unique_ptr<SessionDescriptionInterface> last_created_offer_
+      RTC_GUARDED_BY(signaling_thread());
+  std::unique_ptr<SessionDescriptionInterface> last_created_answer_
+      RTC_GUARDED_BY(signaling_thread());
+  SdpMungingType last_sdp_munging_type_ = SdpMungingType::kNoModification;
 
   PeerConnectionInterface::SignalingState signaling_state_
       RTC_GUARDED_BY(signaling_thread()) = PeerConnectionInterface::kStable;

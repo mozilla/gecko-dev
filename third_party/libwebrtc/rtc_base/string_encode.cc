@@ -66,7 +66,7 @@ void hex_encode_with_delimiter(char* buffer,
   while (srcpos < srclen) {
     unsigned char ch = bsource[srcpos++];
     buffer[bufpos] = hex_encode((ch >> 4) & 0xF);
-    buffer[bufpos + 1] = hex_encode((ch)&0xF);
+    buffer[bufpos + 1] = hex_encode((ch) & 0xF);
     bufpos += 2;
 
     // Don't write a delimiter after the last byte.

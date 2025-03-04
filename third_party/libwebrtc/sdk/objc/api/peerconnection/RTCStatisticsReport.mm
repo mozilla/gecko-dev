@@ -15,8 +15,9 @@
 
 namespace webrtc {
 
-/** Converts a single value to a suitable NSNumber, NSString or NSArray containing NSNumbers
-    or NSStrings, or NSDictionary of NSString keys to NSNumber values.*/
+/** Converts a single value to a suitable NSNumber, NSString or NSArray
+   containing NSNumbers or NSStrings, or NSDictionary of NSString keys to
+   NSNumber values.*/
 NSObject *ValueFromStatsAttribute(const Attribute &attribute) {
   if (!attribute.has_value()) {
     return nil;
@@ -44,48 +45,56 @@ NSObject *ValueFromStatsAttribute(const Attribute &attribute) {
     return [array copy];
   } else if (attribute.holds_alternative<std::vector<int32_t>>()) {
     std::vector<int32_t> sequence = attribute.get<std::vector<int32_t>>();
-    NSMutableArray<NSNumber *> *array = [NSMutableArray arrayWithCapacity:sequence.size()];
+    NSMutableArray<NSNumber *> *array =
+        [NSMutableArray arrayWithCapacity:sequence.size()];
     for (const auto &item : sequence) {
       [array addObject:[NSNumber numberWithInt:item]];
     }
     return [array copy];
   } else if (attribute.holds_alternative<std::vector<uint32_t>>()) {
     std::vector<uint32_t> sequence = attribute.get<std::vector<uint32_t>>();
-    NSMutableArray<NSNumber *> *array = [NSMutableArray arrayWithCapacity:sequence.size()];
+    NSMutableArray<NSNumber *> *array =
+        [NSMutableArray arrayWithCapacity:sequence.size()];
     for (const auto &item : sequence) {
       [array addObject:[NSNumber numberWithUnsignedInt:item]];
     }
     return [array copy];
   } else if (attribute.holds_alternative<std::vector<int64_t>>()) {
     std::vector<int64_t> sequence = attribute.get<std::vector<int64_t>>();
-    NSMutableArray<NSNumber *> *array = [NSMutableArray arrayWithCapacity:sequence.size()];
+    NSMutableArray<NSNumber *> *array =
+        [NSMutableArray arrayWithCapacity:sequence.size()];
     for (const auto &item : sequence) {
       [array addObject:[NSNumber numberWithLong:item]];
     }
     return [array copy];
   } else if (attribute.holds_alternative<std::vector<uint64_t>>()) {
     std::vector<uint64_t> sequence = attribute.get<std::vector<uint64_t>>();
-    NSMutableArray<NSNumber *> *array = [NSMutableArray arrayWithCapacity:sequence.size()];
+    NSMutableArray<NSNumber *> *array =
+        [NSMutableArray arrayWithCapacity:sequence.size()];
     for (const auto &item : sequence) {
       [array addObject:[NSNumber numberWithUnsignedLong:item]];
     }
     return [array copy];
   } else if (attribute.holds_alternative<std::vector<double>>()) {
     std::vector<double> sequence = attribute.get<std::vector<double>>();
-    NSMutableArray<NSNumber *> *array = [NSMutableArray arrayWithCapacity:sequence.size()];
+    NSMutableArray<NSNumber *> *array =
+        [NSMutableArray arrayWithCapacity:sequence.size()];
     for (const auto &item : sequence) {
       [array addObject:[NSNumber numberWithDouble:item]];
     }
     return [array copy];
   } else if (attribute.holds_alternative<std::vector<std::string>>()) {
-    std::vector<std::string> sequence = attribute.get<std::vector<std::string>>();
-    NSMutableArray<NSString *> *array = [NSMutableArray arrayWithCapacity:sequence.size()];
+    std::vector<std::string> sequence =
+        attribute.get<std::vector<std::string>>();
+    NSMutableArray<NSString *> *array =
+        [NSMutableArray arrayWithCapacity:sequence.size()];
     for (const auto &item : sequence) {
       [array addObject:[NSString stringForStdString:item]];
     }
     return [array copy];
   } else if (attribute.holds_alternative<std::map<std::string, uint64_t>>()) {
-    std::map<std::string, uint64_t> map = attribute.get<std::map<std::string, uint64_t>>();
+    std::map<std::string, uint64_t> map =
+        attribute.get<std::map<std::string, uint64_t>>();
     NSMutableDictionary<NSString *, NSNumber *> *dictionary =
         [NSMutableDictionary dictionaryWithCapacity:map.size()];
     for (const auto &item : map) {
@@ -93,7 +102,8 @@ NSObject *ValueFromStatsAttribute(const Attribute &attribute) {
     }
     return [dictionary copy];
   } else if (attribute.holds_alternative<std::map<std::string, double>>()) {
-    std::map<std::string, double> map = attribute.get<std::map<std::string, double>>();
+    std::map<std::string, double> map =
+        attribute.get<std::map<std::string, double>>();
     NSMutableDictionary<NSString *, NSNumber *> *dictionary =
         [NSMutableDictionary dictionaryWithCapacity:map.size()];
     for (const auto &item : map) {
@@ -118,10 +128,13 @@ NSObject *ValueFromStatsAttribute(const Attribute &attribute) {
   if (self) {
     _id = [NSString stringForStdString:statistics.id()];
     _timestamp_us = statistics.timestamp().us();
-    _type = [NSString stringWithCString:statistics.type() encoding:NSUTF8StringEncoding];
+    _type = [NSString stringWithCString:statistics.type()
+                               encoding:NSUTF8StringEncoding];
 
-    NSMutableDictionary<NSString *, NSObject *> *values = [NSMutableDictionary dictionary];
-    for (const auto &attribute : statistics.Attributes()) {
+    const std::vector<webrtc::Attribute> attributes = statistics.Attributes();
+    NSMutableDictionary<NSString *, NSObject *> *values =
+        [NSMutableDictionary dictionaryWithCapacity:attributes.size()];
+    for (const auto &attribute : attributes) {
       NSObject *value = ValueFromStatsAttribute(attribute);
       if (value) {
         NSString *name = [NSString stringWithCString:attribute.name()
@@ -138,11 +151,12 @@ NSObject *ValueFromStatsAttribute(const Attribute &attribute) {
 }
 
 - (NSString *)description {
-  return [NSString stringWithFormat:@"id = %@, type = %@, timestamp = %.0f, values = %@",
-                                    self.id,
-                                    self.type,
-                                    self.timestamp_us,
-                                    self.values];
+  return [NSString
+      stringWithFormat:@"id = %@, type = %@, timestamp = %.0f, values = %@",
+                       self.id,
+                       self.type,
+                       self.timestamp_us,
+                       self.values];
 }
 
 @end
@@ -153,15 +167,17 @@ NSObject *ValueFromStatsAttribute(const Attribute &attribute) {
 @synthesize statistics = _statistics;
 
 - (NSString *)description {
-  return [NSString
-      stringWithFormat:@"timestamp = %.0f, statistics = %@", self.timestamp_us, self.statistics];
+  return [NSString stringWithFormat:@"timestamp = %.0f, statistics = %@",
+                                    self.timestamp_us,
+                                    self.statistics];
 }
 
 @end
 
-@implementation RTC_OBJC_TYPE (RTCStatisticsReport) (Private)
+@implementation RTC_OBJC_TYPE (RTCStatisticsReport)
+(Private)
 
-- (instancetype)initWithReport : (const webrtc::RTCStatsReport &)report {
+    - (instancetype)initWithReport : (const webrtc::RTCStatsReport &)report {
   self = [super init];
   if (self) {
     _timestamp_us = report.timestamp().us();

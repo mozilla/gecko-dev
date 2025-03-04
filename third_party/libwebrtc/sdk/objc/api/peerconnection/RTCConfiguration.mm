@@ -57,8 +57,10 @@
 @synthesize rtcpVideoReportIntervalMs = _rtcpVideoReportIntervalMs;
 @synthesize enableImplicitRollback = _enableImplicitRollback;
 @synthesize offerExtmapAllowMixed = _offerExtmapAllowMixed;
-@synthesize iceCheckIntervalStrongConnectivity = _iceCheckIntervalStrongConnectivity;
-@synthesize iceCheckIntervalWeakConnectivity = _iceCheckIntervalWeakConnectivity;
+@synthesize iceCheckIntervalStrongConnectivity =
+    _iceCheckIntervalStrongConnectivity;
+@synthesize iceCheckIntervalWeakConnectivity =
+    _iceCheckIntervalWeakConnectivity;
 @synthesize iceUnwritableTimeout = _iceUnwritableTimeout;
 @synthesize iceUnwritableMinChecks = _iceUnwritableMinChecks;
 @synthesize iceInactiveTimeout = _iceInactiveTimeout;
@@ -76,7 +78,8 @@
   if (self) {
     _enableDscp = config.dscp();
     NSMutableArray *iceServers = [NSMutableArray array];
-    for (const webrtc::PeerConnectionInterface::IceServer& server : config.servers) {
+    for (const webrtc::PeerConnectionInterface::IceServer &server :
+         config.servers) {
       RTC_OBJC_TYPE(RTCIceServer) *iceServer =
           [[RTC_OBJC_TYPE(RTCIceServer) alloc] initWithNativeServer:server];
       [iceServers addObject:iceServer];
@@ -96,18 +99,20 @@
         [[self class] bundlePolicyForNativePolicy:config.bundle_policy];
     _rtcpMuxPolicy =
         [[self class] rtcpMuxPolicyForNativePolicy:config.rtcp_mux_policy];
-    _tcpCandidatePolicy = [[self class] tcpCandidatePolicyForNativePolicy:
-        config.tcp_candidate_policy];
+    _tcpCandidatePolicy = [[self class]
+        tcpCandidatePolicyForNativePolicy:config.tcp_candidate_policy];
     _candidateNetworkPolicy = [[self class]
         candidateNetworkPolicyForNativePolicy:config.candidate_network_policy];
     webrtc::PeerConnectionInterface::ContinualGatheringPolicy nativePolicy =
-    config.continual_gathering_policy;
-    _continualGatheringPolicy = [[self class] continualGatheringPolicyForNativePolicy:nativePolicy];
+        config.continual_gathering_policy;
+    _continualGatheringPolicy =
+        [[self class] continualGatheringPolicyForNativePolicy:nativePolicy];
     _disableIPV6OnWiFi = config.disable_ipv6_on_wifi;
     _maxIPv6Networks = config.max_ipv6_networks;
     _disableLinkLocalNetworks = config.disable_link_local_networks;
     _audioJitterBufferMaxPackets = config.audio_jitter_buffer_max_packets;
-    _audioJitterBufferFastAccelerate = config.audio_jitter_buffer_fast_accelerate;
+    _audioJitterBufferFastAccelerate =
+        config.audio_jitter_buffer_fast_accelerate;
     _iceConnectionReceivingTimeout = config.ice_connection_receiving_timeout;
     _iceBackupCandidatePairPingInterval =
         config.ice_backup_candidate_pair_ping_interval;
@@ -122,30 +127,34 @@
       _iceCheckMinInterval =
           [NSNumber numberWithInt:*config.ice_check_min_interval];
     }
-    _sdpSemantics = [[self class] sdpSemanticsForNativeSdpSemantics:config.sdp_semantics];
+    _sdpSemantics =
+        [[self class] sdpSemanticsForNativeSdpSemantics:config.sdp_semantics];
     _turnCustomizer = config.turn_customizer;
     _activeResetSrtpParams = config.active_reset_srtp_params;
     if (config.crypto_options) {
       _cryptoOptions = [[RTC_OBJC_TYPE(RTCCryptoOptions) alloc]
                initWithSrtpEnableGcmCryptoSuites:config.crypto_options->srtp
                                                      .enable_gcm_crypto_suites
-             srtpEnableAes128Sha1_32CryptoCipher:config.crypto_options->srtp
-                                                     .enable_aes128_sha1_32_crypto_cipher
-          srtpEnableEncryptedRtpHeaderExtensions:config.crypto_options->srtp
-                                                     .enable_encrypted_rtp_header_extensions
+             srtpEnableAes128Sha1_32CryptoCipher:
+                 config.crypto_options->srtp.enable_aes128_sha1_32_crypto_cipher
+          srtpEnableEncryptedRtpHeaderExtensions:
+              config.crypto_options->srtp.enable_encrypted_rtp_header_extensions
                     sframeRequireFrameEncryption:config.crypto_options->sframe
                                                      .require_frame_encryption];
     }
-    _turnLoggingId = [NSString stringWithUTF8String:config.turn_logging_id.c_str()];
+    _turnLoggingId =
+        [NSString stringWithUTF8String:config.turn_logging_id.c_str()];
     _rtcpAudioReportIntervalMs = config.audio_rtcp_report_interval_ms();
     _rtcpVideoReportIntervalMs = config.video_rtcp_report_interval_ms();
     _enableImplicitRollback = config.enable_implicit_rollback;
     _offerExtmapAllowMixed = config.offer_extmap_allow_mixed;
     _iceCheckIntervalStrongConnectivity =
         config.ice_check_interval_strong_connectivity.has_value() ?
-        [NSNumber numberWithInt:*config.ice_check_interval_strong_connectivity] :
+        [NSNumber
+            numberWithInt:*config.ice_check_interval_strong_connectivity] :
         nil;
-    _iceCheckIntervalWeakConnectivity = config.ice_check_interval_weak_connectivity.has_value() ?
+    _iceCheckIntervalWeakConnectivity =
+        config.ice_check_interval_weak_connectivity.has_value() ?
         [NSNumber numberWithInt:*config.ice_check_interval_weak_connectivity] :
         nil;
     _iceUnwritableTimeout = config.ice_unwritable_timeout.has_value() ?
@@ -162,35 +171,39 @@
 }
 
 - (NSString *)description {
-  static NSString *formatString = @"RTC_OBJC_TYPE(RTCConfiguration): "
-                                  @"{\n%@\n%@\n%@\n%@\n%@\n%@\n%@\n%@\n%d\n%d\n%d\n%d\n%d\n%d\n"
-                                  @"%d\n%@\n%d\n%d\n%d\n%d\n%d\n%d\n%d\n}\n";
+  static NSString *formatString =
+      @"RTC_OBJC_TYPE(RTCConfiguration): "
+      @"{\n%@\n%@\n%@\n%@\n%@\n%@\n%@\n%@\n%d\n%d\n%d\n%d\n%d\n%d\n"
+      @"%d\n%@\n%d\n%d\n%d\n%d\n%d\n%d\n%d\n}\n";
 
   return [NSString
-      stringWithFormat:formatString,
-                       _iceServers,
-                       [[self class] stringForTransportPolicy:_iceTransportPolicy],
-                       [[self class] stringForBundlePolicy:_bundlePolicy],
-                       [[self class] stringForRtcpMuxPolicy:_rtcpMuxPolicy],
-                       [[self class] stringForTcpCandidatePolicy:_tcpCandidatePolicy],
-                       [[self class] stringForCandidateNetworkPolicy:_candidateNetworkPolicy],
-                       [[self class] stringForContinualGatheringPolicy:_continualGatheringPolicy],
-                       [[self class] stringForSdpSemantics:_sdpSemantics],
-                       _audioJitterBufferMaxPackets,
-                       _audioJitterBufferFastAccelerate,
-                       _iceConnectionReceivingTimeout,
-                       _iceBackupCandidatePairPingInterval,
-                       _iceCandidatePoolSize,
-                       _shouldPruneTurnPorts,
-                       _shouldPresumeWritableWhenFullyRelayed,
-                       _shouldSurfaceIceCandidatesOnIceTransportTypeChanged,
-                       _iceCheckMinInterval,
-                       _disableLinkLocalNetworks,
-                       _disableIPV6OnWiFi,
-                       _maxIPv6Networks,
-                       _activeResetSrtpParams,
-                       _enableDscp,
-                       _enableImplicitRollback];
+      stringWithFormat:
+          formatString,
+          _iceServers,
+          [[self class] stringForTransportPolicy:_iceTransportPolicy],
+          [[self class] stringForBundlePolicy:_bundlePolicy],
+          [[self class] stringForRtcpMuxPolicy:_rtcpMuxPolicy],
+          [[self class] stringForTcpCandidatePolicy:_tcpCandidatePolicy],
+          [[self class]
+              stringForCandidateNetworkPolicy:_candidateNetworkPolicy],
+          [[self class]
+              stringForContinualGatheringPolicy:_continualGatheringPolicy],
+          [[self class] stringForSdpSemantics:_sdpSemantics],
+          _audioJitterBufferMaxPackets,
+          _audioJitterBufferFastAccelerate,
+          _iceConnectionReceivingTimeout,
+          _iceBackupCandidatePairPingInterval,
+          _iceCandidatePoolSize,
+          _shouldPruneTurnPorts,
+          _shouldPresumeWritableWhenFullyRelayed,
+          _shouldSurfaceIceCandidatesOnIceTransportTypeChanged,
+          _iceCheckMinInterval,
+          _disableLinkLocalNetworks,
+          _disableIPV6OnWiFi,
+          _maxIPv6Networks,
+          _activeResetSrtpParams,
+          _enableDscp,
+          _enableImplicitRollback];
 }
 
 #pragma mark - Private
@@ -215,14 +228,14 @@
       [[self class] nativeTcpCandidatePolicyForPolicy:_tcpCandidatePolicy];
   nativeConfig->candidate_network_policy = [[self class]
       nativeCandidateNetworkPolicyForPolicy:_candidateNetworkPolicy];
-  nativeConfig->continual_gathering_policy =
-      [[self class] nativeContinualGatheringPolicyForPolicy:_continualGatheringPolicy];
+  nativeConfig->continual_gathering_policy = [[self class]
+      nativeContinualGatheringPolicyForPolicy:_continualGatheringPolicy];
   nativeConfig->disable_ipv6_on_wifi = _disableIPV6OnWiFi;
   nativeConfig->max_ipv6_networks = _maxIPv6Networks;
   nativeConfig->disable_link_local_networks = _disableLinkLocalNetworks;
   nativeConfig->audio_jitter_buffer_max_packets = _audioJitterBufferMaxPackets;
   nativeConfig->audio_jitter_buffer_fast_accelerate =
-      _audioJitterBufferFastAccelerate  ? true : false;
+      _audioJitterBufferFastAccelerate ? true : false;
   nativeConfig->ice_connection_receiving_timeout =
       _iceConnectionReceivingTimeout;
   nativeConfig->ice_backup_candidate_pair_ping_interval =
@@ -234,8 +247,10 @@
     RTC_LOG(LS_INFO) << "Have configured cert - using it.";
     std::string pem_private_key = [[_certificate private_key] UTF8String];
     std::string pem_certificate = [[_certificate certificate] UTF8String];
-    rtc::RTCCertificatePEM pem = rtc::RTCCertificatePEM(pem_private_key, pem_certificate);
-    rtc::scoped_refptr<rtc::RTCCertificate> certificate = rtc::RTCCertificate::FromPEM(pem);
+    rtc::RTCCertificatePEM pem =
+        rtc::RTCCertificatePEM(pem_private_key, pem_certificate);
+    rtc::scoped_refptr<rtc::RTCCertificate> certificate =
+        rtc::RTCCertificate::FromPEM(pem);
     RTC_LOG(LS_INFO) << "Created cert from PEM strings.";
     if (!certificate) {
       RTC_LOG(LS_ERROR) << "Failed to generate certificate from PEM.";
@@ -247,8 +262,8 @@
     // Generate non-default certificate.
     if (keyType != rtc::KT_DEFAULT) {
       rtc::scoped_refptr<rtc::RTCCertificate> certificate =
-          rtc::RTCCertificateGenerator::GenerateCertificate(rtc::KeyParams(keyType),
-                                                            std::optional<uint64_t>());
+          rtc::RTCCertificateGenerator::GenerateCertificate(
+              rtc::KeyParams(keyType), std::optional<uint64_t>());
       if (!certificate) {
         RTCLogError(@"Failed to generate certificate.");
         return nullptr;
@@ -263,13 +278,16 @@
   nativeConfig->surface_ice_candidates_on_ice_transport_type_changed =
       _shouldSurfaceIceCandidatesOnIceTransportTypeChanged ? true : false;
   if (_iceCheckMinInterval != nil) {
-    nativeConfig->ice_check_min_interval = std::optional<int>(_iceCheckMinInterval.intValue);
+    nativeConfig->ice_check_min_interval =
+        std::optional<int>(_iceCheckMinInterval.intValue);
   }
-  nativeConfig->sdp_semantics = [[self class] nativeSdpSemanticsForSdpSemantics:_sdpSemantics];
+  nativeConfig->sdp_semantics =
+      [[self class] nativeSdpSemanticsForSdpSemantics:_sdpSemantics];
   if (_turnCustomizer) {
     nativeConfig->turn_customizer = _turnCustomizer;
   }
-  nativeConfig->active_reset_srtp_params = _activeResetSrtpParams ? true : false;
+  nativeConfig->active_reset_srtp_params =
+      _activeResetSrtpParams ? true : false;
   if (_cryptoOptions) {
     webrtc::CryptoOptions nativeCryptoOptions;
     nativeCryptoOptions.srtp.enable_gcm_crypto_suites =
@@ -280,7 +298,8 @@
         _cryptoOptions.srtpEnableEncryptedRtpHeaderExtensions ? true : false;
     nativeCryptoOptions.sframe.require_frame_encryption =
         _cryptoOptions.sframeRequireFrameEncryption ? true : false;
-    nativeConfig->crypto_options = std::optional<webrtc::CryptoOptions>(nativeCryptoOptions);
+    nativeConfig->crypto_options =
+        std::optional<webrtc::CryptoOptions>(nativeCryptoOptions);
   }
   nativeConfig->turn_logging_id = [_turnLoggingId UTF8String];
   nativeConfig->set_audio_rtcp_report_interval_ms(_rtcpAudioReportIntervalMs);
@@ -296,13 +315,16 @@
         std::optional<int>(_iceCheckIntervalWeakConnectivity.intValue);
   }
   if (_iceUnwritableTimeout != nil) {
-    nativeConfig->ice_unwritable_timeout = std::optional<int>(_iceUnwritableTimeout.intValue);
+    nativeConfig->ice_unwritable_timeout =
+        std::optional<int>(_iceUnwritableTimeout.intValue);
   }
   if (_iceUnwritableMinChecks != nil) {
-    nativeConfig->ice_unwritable_min_checks = std::optional<int>(_iceUnwritableMinChecks.intValue);
+    nativeConfig->ice_unwritable_min_checks =
+        std::optional<int>(_iceUnwritableMinChecks.intValue);
   }
   if (_iceInactiveTimeout != nil) {
-    nativeConfig->ice_inactive_timeout = std::optional<int>(_iceInactiveTimeout.intValue);
+    nativeConfig->ice_inactive_timeout =
+        std::optional<int>(_iceInactiveTimeout.intValue);
   }
   return nativeConfig.release();
 }
@@ -512,7 +534,8 @@
   }
 }
 
-+ (webrtc::SdpSemantics)nativeSdpSemanticsForSdpSemantics:(RTCSdpSemantics)sdpSemantics {
++ (webrtc::SdpSemantics)nativeSdpSemanticsForSdpSemantics:
+    (RTCSdpSemantics)sdpSemantics {
   switch (sdpSemantics) {
     case RTCSdpSemanticsPlanB:
       return webrtc::SdpSemantics::kPlanB_DEPRECATED;
@@ -521,7 +544,8 @@
   }
 }
 
-+ (RTCSdpSemantics)sdpSemanticsForNativeSdpSemantics:(webrtc::SdpSemantics)sdpSemantics {
++ (RTCSdpSemantics)sdpSemanticsForNativeSdpSemantics:
+    (webrtc::SdpSemantics)sdpSemantics {
   switch (sdpSemantics) {
     case webrtc::SdpSemantics::kPlanB_DEPRECATED:
       return RTCSdpSemanticsPlanB;

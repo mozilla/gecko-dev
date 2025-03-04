@@ -406,6 +406,7 @@ rtc_library("payload_type_picker") {
     "../media:media_constants",
     "../rtc_base:checks",
     "../rtc_base:logging",
+    "../rtc_base:stringutils",
     "../rtc_base:strong_alias",
     "//third_party/abseil-cpp/absl/strings",
   ]

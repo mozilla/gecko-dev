@@ -15,15 +15,18 @@
 
 #include "absl/strings/str_cat.h"
 #include "api/peer_connection_interface.h"
+#include "api/test/rtc_error_matchers.h"
 #include "pc/test/integration_test_helpers.h"
-#include "rtc_base/gunit.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 namespace webrtc {
 
 using testing::Eq;
+using ::testing::Gt;
 using testing::HasSubstr;
+using ::testing::IsTrue;
 using testing::Not;
 
 class PeerConnectionCongestionControlTest
@@ -48,20 +51,26 @@ TEST_F(PeerConnectionCongestionControlTest, ReceiveOfferSetsCcfbFlag) {
   ConnectFakeSignalingForSdpOnly();
   caller()->AddAudioVideoTracks();
   caller()->CreateAndSetAndSignalOffer();
-  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
-  // Check that the callee parsed it.
-  auto parsed_contents =
-      callee()->pc()->remote_description()->description()->contents();
-  EXPECT_FALSE(parsed_contents.empty());
-  for (const auto& content : parsed_contents) {
-    EXPECT_TRUE(content.media_description()->rtcp_fb_ack_ccfb());
+  ASSERT_THAT(WaitUntil([&] { return SignalingStateStable(); }, IsTrue()),
+              IsRtcOk());
+  {
+    // Check that the callee parsed it.
+    auto parsed_contents =
+        callee()->pc()->remote_description()->description()->contents();
+    EXPECT_FALSE(parsed_contents.empty());
+    for (const auto& content : parsed_contents) {
+      EXPECT_TRUE(content.media_description()->rtcp_fb_ack_ccfb());
+    }
   }
-  // Check that the caller also parsed it.
-  parsed_contents =
-      caller()->pc()->remote_description()->description()->contents();
-  EXPECT_FALSE(parsed_contents.empty());
-  for (const auto& content : parsed_contents) {
-    EXPECT_TRUE(content.media_description()->rtcp_fb_ack_ccfb());
+
+  {
+    // Check that the caller also parsed it.
+    auto parsed_contents =
+        caller()->pc()->remote_description()->description()->contents();
+    EXPECT_FALSE(parsed_contents.empty());
+    for (const auto& content : parsed_contents) {
+      EXPECT_TRUE(content.media_description()->rtcp_fb_ack_ccfb());
+    }
   }
   // Check that the answer does not contain transport-cc
   std::string answer_str = absl::StrCat(*caller()->pc()->remote_description());
@@ -74,14 +83,20 @@ TEST_F(PeerConnectionCongestionControlTest, CcfbGetsUsed) {
   ConnectFakeSignaling();
   caller()->AddAudioVideoTracks();
   caller()->CreateAndSetAndSignalOffer();
-  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  ASSERT_THAT(WaitUntil([&] { return SignalingStateStable(); }, IsTrue()),
+              IsRtcOk());
   MediaExpectations media_expectations;
   media_expectations.CalleeExpectsSomeAudio();
   media_expectations.CalleeExpectsSomeVideo();
   ASSERT_TRUE(ExpectNewFrames(media_expectations));
   auto pc_internal = caller()->pc_internal();
-  EXPECT_TRUE_WAIT(pc_internal->FeedbackAccordingToRfc8888CountForTesting() > 0,
-                   kDefaultTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] {
+            return pc_internal->FeedbackAccordingToRfc8888CountForTesting();
+          },
+          Gt(0)),
+      IsRtcOk());
   // There should be no transport-cc generated.
   EXPECT_THAT(pc_internal->FeedbackAccordingToTransportCcCountForTesting(),
               Eq(0));
@@ -93,15 +108,20 @@ TEST_F(PeerConnectionCongestionControlTest, TransportCcGetsUsed) {
   ConnectFakeSignaling();
   caller()->AddAudioVideoTracks();
   caller()->CreateAndSetAndSignalOffer();
-  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  ASSERT_THAT(WaitUntil([&] { return SignalingStateStable(); }, IsTrue()),
+              IsRtcOk());
   MediaExpectations media_expectations;
   media_expectations.CalleeExpectsSomeAudio();
   media_expectations.CalleeExpectsSomeVideo();
   ASSERT_TRUE(ExpectNewFrames(media_expectations));
   auto pc_internal = caller()->pc_internal();
-  EXPECT_TRUE_WAIT(
-      pc_internal->FeedbackAccordingToTransportCcCountForTesting() > 0,
-      kDefaultTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] {
+            return pc_internal->FeedbackAccordingToTransportCcCountForTesting();
+          },
+          Gt(0)),
+      IsRtcOk());
   // Test that RFC 8888 feedback is NOT generated when field trial disabled.
   EXPECT_THAT(pc_internal->FeedbackAccordingToRfc8888CountForTesting(), Eq(0));
 }

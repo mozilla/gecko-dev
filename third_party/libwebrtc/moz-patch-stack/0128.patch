@@ -79,7 +79,7 @@ index c810498584..6cec17ccb0 100644
  # The python interpreter to use by default. On Windows, this will look
  # for vpython3.exe and vpython3.bat.
 diff --git a/BUILD.gn b/BUILD.gn
-index 4a425bee51..1d9a620018 100644
+index 42912cd787..f21cc7996b 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -21,15 +21,15 @@
@@ -111,7 +111,7 @@ index 4a425bee51..1d9a620018 100644
      defines = []
  
      deps = [
-@@ -874,7 +874,7 @@ rtc_static_library("dcsctp") {
+@@ -875,7 +875,7 @@ rtc_static_library("dcsctp") {
    visibility = [ "//:default" ]
    sources = []
    complete_static_lib = true
@@ -271,7 +271,7 @@ index a6640678d9..835221fd96 100644
  
  rtc_source_set("scalability_mode") {
 diff --git a/audio/BUILD.gn b/audio/BUILD.gn
-index 4330d065ab..fb0d7db1da 100644
+index 412d51e288..e15971e8af 100644
 --- a/audio/BUILD.gn
 +++ b/audio/BUILD.gn
 @@ -8,8 +8,8 @@
@@ -498,7 +498,7 @@ index 55c39a530f..bf53fee4d5 100644
  
  config("audio_device_warnings_config") {
 diff --git a/modules/audio_processing/aec3/BUILD.gn b/modules/audio_processing/aec3/BUILD.gn
-index 411c0d27ca..c2bbc19292 100644
+index afd80a29cf..2d7a333c9e 100644
 --- a/modules/audio_processing/aec3/BUILD.gn
 +++ b/modules/audio_processing/aec3/BUILD.gn
 @@ -124,7 +124,7 @@ rtc_library("aec3") {
@@ -524,10 +524,10 @@ index a77f04aba5..b0e089d378 100644
      }
    }
 diff --git a/modules/audio_processing/agc/BUILD.gn b/modules/audio_processing/agc/BUILD.gn
-index b8363ad79e..a75d0d2000 100644
+index 14b75f1229..626997322e 100644
 --- a/modules/audio_processing/agc/BUILD.gn
 +++ b/modules/audio_processing/agc/BUILD.gn
-@@ -84,7 +84,7 @@ rtc_library("legacy_agc") {
+@@ -86,7 +86,7 @@ rtc_library("legacy_agc") {
    if (rtc_build_with_neon) {
      if (target_cpu != "arm64") {
        # Enable compilation for the NEON instruction set.
@@ -603,7 +603,7 @@ index 6587fd14f3..a3b3be86b6 100644
    }
  
 diff --git a/modules/desktop_capture/BUILD.gn b/modules/desktop_capture/BUILD.gn
-index 3940323d7e..2f99e3f75f 100644
+index c639ca6220..2245146890 100644
 --- a/modules/desktop_capture/BUILD.gn
 +++ b/modules/desktop_capture/BUILD.gn
 @@ -6,8 +6,8 @@
@@ -644,7 +644,7 @@ index 3053b829f2..703e561c85 100644
  import("../../webrtc.gni")
  
 diff --git a/pc/BUILD.gn b/pc/BUILD.gn
-index e13a04628c..bc5d82e36a 100644
+index d46ff16d72..973b533c43 100644
 --- a/pc/BUILD.gn
 +++ b/pc/BUILD.gn
 @@ -30,8 +30,8 @@
@@ -659,7 +659,7 @@ index e13a04628c..bc5d82e36a 100644
  
  if (rtc_build_libsrtp) {
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 0d5ec16ff0..d12c0cc76d 100644
+index ea3a02eb5e..2c83d6614d 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
 @@ -9,8 +9,8 @@
@@ -719,10 +719,10 @@ index 3ca6994c81..f248ce40da 100644
  
  rtc_source_set("arch") {
 diff --git a/rtc_tools/network_tester/BUILD.gn b/rtc_tools/network_tester/BUILD.gn
-index f8ce64e215..56d0b1e6c2 100644
+index 2ad4abd328..c1a19c0cd1 100644
 --- a/rtc_tools/network_tester/BUILD.gn
 +++ b/rtc_tools/network_tester/BUILD.gn
-@@ -174,8 +174,8 @@ if (is_android) {
+@@ -176,8 +176,8 @@ if (is_android) {
        "../../rtc_base:threading",
      ]
  
@@ -734,7 +734,7 @@ index f8ce64e215..56d0b1e6c2 100644
      output_extension = "so"
    }
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index bdfb7141e9..b6d2643f14 100644
+index 185af67fa6..1a1849d772 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
 @@ -9,11 +9,11 @@
@@ -761,7 +761,7 @@ index bdfb7141e9..b6d2643f14 100644
      }
    }
  
-@@ -1230,7 +1230,7 @@ if (is_ios || is_mac) {
+@@ -1245,7 +1245,7 @@ if (is_ios || is_mac) {
            }
  
            public_deps = [
@@ -812,7 +812,7 @@ index 953e4c595e..981ca46067 100644
      deps = [ ":google_test_runner_delegate" ]
    }
 diff --git a/test/fuzzers/BUILD.gn b/test/fuzzers/BUILD.gn
-index c1f6792ed4..4e9ed11dd8 100644
+index 9c3b9c89b1..2fb1b9904f 100644
 --- a/test/fuzzers/BUILD.gn
 +++ b/test/fuzzers/BUILD.gn
 @@ -6,7 +6,7 @@
@@ -874,7 +874,7 @@ index fb107ef1a3..b718fa583d 100644
  
  declare_args() {
 diff --git a/webrtc.gni b/webrtc.gni
-index d3e3920c50..60cb81271c 100644
+index c02a14c408..80e79259e4 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -5,12 +5,12 @@

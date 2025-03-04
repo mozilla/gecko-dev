@@ -41,7 +41,8 @@ RTC_OBJC_EXPORT
 @property(nonatomic) NSArray<NSString *> *streamIds;
 
 /** TODO(bugs.webrtc.org/7600): Not implemented. */
-@property(nonatomic) NSArray<RTC_OBJC_TYPE(RTCRtpEncodingParameters) *> *sendEncodings;
+@property(nonatomic)
+    NSArray<RTC_OBJC_TYPE(RTCRtpEncodingParameters) *> *sendEncodings;
 
 @end
 
@@ -50,10 +51,10 @@ RTC_OBJC_EXPORT
 @class RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability);
 
 /** The RTCRtpTransceiver maps to the RTCRtpTransceiver defined by the
- *  WebRTC specification. A transceiver represents a combination of an RTCRtpSender
- *  and an RTCRtpReceiver that share a common mid. As defined in JSEP, an
- *  RTCRtpTransceiver is said to be associated with a media description if its
- *  mid property is non-nil; otherwise, it is said to be disassociated.
+ *  WebRTC specification. A transceiver represents a combination of an
+ * RTCRtpSender and an RTCRtpReceiver that share a common mid. As defined in
+ * JSEP, an RTCRtpTransceiver is said to be associated with a media description
+ * if its mid property is non-nil; otherwise, it is said to be disassociated.
  *  JSEP: https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24
  *
  *  Note that RTCRtpTransceivers are only supported when using
@@ -66,8 +67,8 @@ RTC_OBJC_EXPORT
 @protocol RTC_OBJC_TYPE
 (RTCRtpTransceiver)<NSObject>
 
-    /** Media type of the transceiver. The sender and receiver will also have this
-     *  type.
+    /** Media type of the transceiver. The sender and receiver will also have
+     * this type.
      */
     @property(nonatomic, readonly) RTCRtpMediaType mediaType;
 
@@ -107,15 +108,18 @@ RTC_OBJC_EXPORT
 @property(nonatomic, readonly) RTCRtpTransceiverDirection direction;
 
 /** It will contain all the RTP header extensions that are supported.
- *  The direction attribute for all extensions that are mandatory to use MUST be initialized to an
- * appropriate value other than RTCRtpTransceiverDirectionStopped. The direction attribute for
- * extensions that will not be offered by default in an initial offer MUST be initialized to
- * RTCRtpTransceiverDirectionStopped.
+ *  The direction attribute for all extensions that are mandatory to use MUST be
+ * initialized to an appropriate value other than
+ * RTCRtpTransceiverDirectionStopped. The direction attribute for extensions
+ * that will not be offered by default in an initial offer MUST be initialized
+ * to RTCRtpTransceiverDirectionStopped.
  */
 @property(nonatomic, readonly, copy)
-    NSArray<RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) *> *headerExtensionsToNegotiate;
+    NSArray<RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) *>
+        *headerExtensionsToNegotiate;
 @property(nonatomic, readonly, copy)
-    NSArray<RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) *> *negotiatedHeaderExtensions;
+    NSArray<RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) *>
+        *negotiatedHeaderExtensions;
 
 /** The currentDirection attribute indicates the current direction negotiated
  *  for this transceiver. If this transceiver has never been represented in an
@@ -135,19 +139,22 @@ RTC_OBJC_EXPORT
  * by WebRTC for this transceiver.
  * https://w3c.github.io/webrtc-pc/#dom-rtcrtptransceiver-setcodecpreferences
  */
-- (BOOL)setCodecPreferences:(NSArray<RTC_OBJC_TYPE(RTCRtpCodecCapability) *> *_Nullable)codecs
+- (BOOL)setCodecPreferences:
+            (NSArray<RTC_OBJC_TYPE(RTCRtpCodecCapability) *> *_Nullable)codecs
                       error:(NSError **_Nullable)error;
 
 /** Deprecated version of [RTCRtpTransceiver setCodecPreferences:error:] */
-- (void)setCodecPreferences:(NSArray<RTC_OBJC_TYPE(RTCRtpCodecCapability) *> *_Nullable)codecs
+- (void)setCodecPreferences:
+    (NSArray<RTC_OBJC_TYPE(RTCRtpCodecCapability) *> *_Nullable)codecs
     RTC_OBJC_DEPRECATED("Use setCodecPreferences:error: instead.");
 
-/** The setHeaderExtensionsToNegotiate method overrides the default header extensions used
- *  by WebRTC for this transceiver.
+/** The setHeaderExtensionsToNegotiate method overrides the default header
+ * extensions used by WebRTC for this transceiver.
  *  https://w3c.github.io/webrtc-extensions/#ref-for-dom-rtcrtptransceiver-setheaderextensionstonegotiate
  */
 - (BOOL)setHeaderExtensionsToNegotiate:
-            (NSArray<RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) *> *)extensions
+            (NSArray<RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) *> *)
+                extensions
                                  error:(NSError **)error;
 
 /** An update of directionality does not take effect immediately. Instead,
@@ -155,7 +162,8 @@ RTC_OBJC_EXPORT
  *  descriptions as sendrecv, sendonly, recvonly, or inactive.
  *  https://w3c.github.io/webrtc-pc/#dom-rtcrtptransceiver-direction
  */
-- (void)setDirection:(RTCRtpTransceiverDirection)direction error:(NSError **)error;
+- (void)setDirection:(RTCRtpTransceiverDirection)direction
+               error:(NSError **)error;
 
 @end
 

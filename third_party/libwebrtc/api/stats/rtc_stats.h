@@ -63,6 +63,7 @@ class RTC_EXPORT RTCStats {
   const std::string& id() const { return id_; }
   // Time relative to the UNIX epoch (Jan 1, 1970, UTC), in microseconds.
   Timestamp timestamp() const { return timestamp_; }
+  void set_timestamp(Timestamp timestamp) { timestamp_ = timestamp; }
 
   // Returns the static member variable `kType` of the implementing class.
   virtual const char* type() const = 0;

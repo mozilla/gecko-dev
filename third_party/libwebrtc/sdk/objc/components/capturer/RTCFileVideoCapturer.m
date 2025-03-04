@@ -50,7 +50,9 @@ typedef NS_ENUM(NSInteger, RTCFileVideoCapturerStatus) {
     NSError *error =
         [NSError errorWithDomain:kRTCFileVideoCapturerErrorDomain
                             code:RTCFileVideoCapturerErrorCode_CapturerRunning
-                        userInfo:@{NSUnderlyingErrorKey : @"Capturer has been started."}];
+                        userInfo:@{
+                          NSUnderlyingErrorKey : @"Capturer has been started."
+                        }];
 
     errorBlock(error);
     return;
@@ -58,23 +60,25 @@ typedef NS_ENUM(NSInteger, RTCFileVideoCapturerStatus) {
     _status = RTCFileVideoCapturerStatusStarted;
   }
 
-  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-    NSString *pathForFile = [self pathForFileName:nameOfFile];
-    if (!pathForFile) {
-      NSString *errorString =
-          [NSString stringWithFormat:@"File %@ not found in bundle", nameOfFile];
-      NSError *error = [NSError errorWithDomain:kRTCFileVideoCapturerErrorDomain
-                                           code:RTCFileVideoCapturerErrorCode_FileNotFound
-                                       userInfo:@{NSUnderlyingErrorKey : errorString}];
-      errorBlock(error);
-      return;
-    }
+  dispatch_async(
+      dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        NSString *pathForFile = [self pathForFileName:nameOfFile];
+        if (!pathForFile) {
+          NSString *errorString = [NSString
+              stringWithFormat:@"File %@ not found in bundle", nameOfFile];
+          NSError *error = [NSError
+              errorWithDomain:kRTCFileVideoCapturerErrorDomain
+                         code:RTCFileVideoCapturerErrorCode_FileNotFound
+                     userInfo:@{NSUnderlyingErrorKey : errorString}];
+          errorBlock(error);
+          return;
+        }
 
-    self.lastPresentationTime = CMTimeMake(0, 0);
+        self.lastPresentationTime = CMTimeMake(0, 0);
 
-    self.fileURL = [NSURL fileURLWithPath:pathForFile];
-    [self setupReaderOnError:errorBlock];
-  });
+        self.fileURL = [NSURL fileURLWithPath:pathForFile];
+        [self setupReaderOnError:errorBlock];
+      });
 }
 
 - (void)setupReaderOnError:(RTCFileVideoCapturerErrorBlock)errorBlock {
@@ -90,10 +94,12 @@ typedef NS_ENUM(NSInteger, RTCFileVideoCapturerStatus) {
   }
 
   NSDictionary *options = @{
-    (NSString *)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)
+    (NSString *)kCVPixelBufferPixelFormatTypeKey :
+        @(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)
   };
   _outTrack =
-      [[AVAssetReaderTrackOutput alloc] initWithTrack:allTracks.firstObject outputSettings:options];
+      [[AVAssetReaderTrackOutput alloc] initWithTrack:allTracks.firstObject
+                                       outputSettings:options];
   [_reader addOutput:_outTrack];
 
   [_reader startReading];
@@ -113,8 +119,8 @@ typedef NS_ENUM(NSInteger, RTCFileVideoCapturerStatus) {
     return nil;
   }
 
-  NSString *path =
-      [[NSBundle mainBundle] pathForResource:nameComponents[0] ofType:nameComponents[1]];
+  NSString *path = [[NSBundle mainBundle] pathForResource:nameComponents[0]
+                                                   ofType:nameComponents[1]];
   return path;
 }
 
@@ -147,7 +153,8 @@ typedef NS_ENUM(NSInteger, RTCFileVideoCapturerStatus) {
     [self readNextBuffer];
     return;
   }
-  if (CMSampleBufferGetNumSamples(sampleBuffer) != 1 || !CMSampleBufferIsValid(sampleBuffer) ||
+  if (CMSampleBufferGetNumSamples(sampleBuffer) != 1 ||
+      !CMSampleBufferIsValid(sampleBuffer) ||
       !CMSampleBufferDataIsReady(sampleBuffer)) {
     CFRelease(sampleBuffer);
     [self readNextBuffer];
@@ -158,18 +165,22 @@ typedef NS_ENUM(NSInteger, RTCFileVideoCapturerStatus) {
 }
 
 - (void)publishSampleBuffer:(CMSampleBufferRef)sampleBuffer {
-  CMTime presentationTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
+  CMTime presentationTime =
+      CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
   Float64 presentationDifference =
       CMTimeGetSeconds(CMTimeSubtract(presentationTime, _lastPresentationTime));
   _lastPresentationTime = presentationTime;
-  int64_t presentationDifferenceRound = lroundf(presentationDifference * NSEC_PER_SEC);
+  int64_t presentationDifferenceRound =
+      lroundf(presentationDifference * NSEC_PER_SEC);
 
   __block dispatch_source_t timer = [self createStrictTimer];
-  // Strict timer that will fire `presentationDifferenceRound` ns from now and never again.
-  dispatch_source_set_timer(timer,
-                            dispatch_time(DISPATCH_TIME_NOW, presentationDifferenceRound),
-                            DISPATCH_TIME_FOREVER,
-                            0);
+  // Strict timer that will fire `presentationDifferenceRound` ns from now and
+  // never again.
+  dispatch_source_set_timer(
+      timer,
+      dispatch_time(DISPATCH_TIME_NOW, presentationDifferenceRound),
+      DISPATCH_TIME_FOREVER,
+      0);
   dispatch_source_set_event_handler(timer, ^{
     dispatch_source_cancel(timer);
     timer = nil;
@@ -177,14 +188,16 @@ typedef NS_ENUM(NSInteger, RTCFileVideoCapturerStatus) {
     CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
     if (!pixelBuffer) {
       CFRelease(sampleBuffer);
-      dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        [self readNextBuffer];
-      });
+      dispatch_async(
+          dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            [self readNextBuffer];
+          });
       return;
     }
 
     RTC_OBJC_TYPE(RTCCVPixelBuffer) *rtcPixelBuffer =
-        [[RTC_OBJC_TYPE(RTCCVPixelBuffer) alloc] initWithPixelBuffer:pixelBuffer];
+        [[RTC_OBJC_TYPE(RTCCVPixelBuffer) alloc]
+            initWithPixelBuffer:pixelBuffer];
     NSTimeInterval timeStampSeconds = CACurrentMediaTime();
     int64_t timeStampNs = lroundf(timeStampSeconds * NSEC_PER_SEC);
     RTC_OBJC_TYPE(RTCVideoFrame) *videoFrame =
@@ -193,9 +206,10 @@ typedef NS_ENUM(NSInteger, RTCFileVideoCapturerStatus) {
                                                  timeStampNs:timeStampNs];
     CFRelease(sampleBuffer);
 
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-      [self readNextBuffer];
-    });
+    dispatch_async(
+        dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+          [self readNextBuffer];
+        });
 
     [self.delegate capturer:self didCaptureVideoFrame:videoFrame];
   });

@@ -218,7 +218,8 @@ void ScreenCapturerFuchsia::SetupBuffers() {
   status = component_context_->svc()->Connect(sysmem_allocator_.NewRequest());
   if (status != ZX_OK) {
     fatal_error_ = true;
-    RTC_LOG(LS_ERROR) << "Failed to connect to fuchsia.sysmem2.Allocator: " << status;
+    RTC_LOG(LS_ERROR) << "Failed to connect to fuchsia.sysmem2.Allocator: "
+                      << status;
     return;
   }
 
@@ -263,7 +264,8 @@ void ScreenCapturerFuchsia::SetupBuffers() {
   if (status != ZX_OK) {
     fatal_error_ = true;
     RTC_LOG(LS_ERROR)
-        << "fuchsia.sysmem2.Allocator.BindSharedCollection() failed: " << status;
+        << "fuchsia.sysmem2.Allocator.BindSharedCollection() failed: "
+        << status;
     return;
   }
 

@@ -118,11 +118,11 @@ TEST_F(PeerConnectionFieldTrialTest, EnableDependencyDescriptorAdvertised) {
   const cricket::RtpHeaderExtensions& rtp_header_extensions1 =
       media_description1->rtp_header_extensions();
 
-  bool found = absl::c_find_if(rtp_header_extensions1,
-                               [](const RtpExtension& rtp_extension) {
-                                 return rtp_extension.uri ==
-                                        RtpExtension::kDependencyDescriptorUri;
-                               }) != rtp_header_extensions1.end();
+  bool found =
+      absl::c_find_if(
+          rtp_header_extensions1, [](const RtpExtension& rtp_extension) {
+            return rtp_extension.uri == RtpExtension::kDependencyDescriptorUri;
+          }) != rtp_header_extensions1.end();
   EXPECT_TRUE(found);
 }
 
@@ -152,11 +152,11 @@ TEST_F(PeerConnectionFieldTrialTest, MAYBE_InjectDependencyDescriptor) {
   cricket::RtpHeaderExtensions rtp_header_extensions1 =
       media_description1->rtp_header_extensions();
 
-  bool found1 = absl::c_find_if(rtp_header_extensions1,
-                                [](const RtpExtension& rtp_extension) {
-                                  return rtp_extension.uri ==
-                                         RtpExtension::kDependencyDescriptorUri;
-                                }) != rtp_header_extensions1.end();
+  bool found1 =
+      absl::c_find_if(
+          rtp_header_extensions1, [](const RtpExtension& rtp_extension) {
+            return rtp_extension.uri == RtpExtension::kDependencyDescriptorUri;
+          }) != rtp_header_extensions1.end();
   EXPECT_FALSE(found1);
 
   std::set<int> existing_ids;
@@ -196,11 +196,11 @@ TEST_F(PeerConnectionFieldTrialTest, MAYBE_InjectDependencyDescriptor) {
   cricket::RtpHeaderExtensions rtp_header_extensions2 =
       media_description2->rtp_header_extensions();
 
-  bool found2 = absl::c_find_if(rtp_header_extensions2,
-                                [](const RtpExtension& rtp_extension) {
-                                  return rtp_extension.uri ==
-                                         RtpExtension::kDependencyDescriptorUri;
-                                }) != rtp_header_extensions2.end();
+  bool found2 =
+      absl::c_find_if(
+          rtp_header_extensions2, [](const RtpExtension& rtp_extension) {
+            return rtp_extension.uri == RtpExtension::kDependencyDescriptorUri;
+          }) != rtp_header_extensions2.end();
   EXPECT_TRUE(found2);
 }
 

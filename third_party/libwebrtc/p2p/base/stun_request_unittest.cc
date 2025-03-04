@@ -10,18 +10,28 @@
 
 #include "p2p/base/stun_request.h"
 
-#include <utility>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <vector>
 
-#include "rtc_base/crypto_random.h"
+#include "api/test/rtc_error_matchers.h"
+#include "api/transport/stun.h"
+#include "api/units/time_delta.h"
 #include "rtc_base/fake_clock.h"
 #include "rtc_base/gunit.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/thread.h"
 #include "rtc_base/time_utils.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 namespace cricket {
 namespace {
+
+using ::testing::Ne;
+
 std::unique_ptr<StunMessage> CreateStunMessage(
     StunMessageType type,
     const StunMessage* req = nullptr) {
@@ -149,8 +159,11 @@ TEST_F(StunRequestTest, TestBackoff) {
   int64_t start = rtc::TimeMillis();
   manager_.Send(request);
   for (int i = 0; i < 9; ++i) {
-    EXPECT_TRUE_SIMULATED_WAIT(request_count_ != i, STUN_TOTAL_TIMEOUT,
-                               fake_clock);
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] { return request_count_; }, Ne(i),
+                    {.timeout = webrtc::TimeDelta::Millis(STUN_TOTAL_TIMEOUT),
+                     .clock = &fake_clock}),
+                webrtc::IsRtcOk());
     int64_t elapsed = rtc::TimeMillis() - start;
     RTC_DLOG(LS_INFO) << "STUN request #" << (i + 1) << " sent at " << elapsed
                       << " ms";

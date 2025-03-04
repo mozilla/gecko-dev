@@ -24,18 +24,22 @@
 @implementation RTCSessionDescriptionTests
 
 /**
- * Test conversion of an Objective-C RTC_OBJC_TYPE(RTCSessionDescription) to a native
- * SessionDescriptionInterface (based on the types and SDP strings being equal).
+ * Test conversion of an Objective-C RTC_OBJC_TYPE(RTCSessionDescription) to a
+ * native SessionDescriptionInterface (based on the types and SDP strings being
+ * equal).
  */
 - (void)testSessionDescriptionConversion {
   RTC_OBJC_TYPE(RTCSessionDescription) *description =
-      [[RTC_OBJC_TYPE(RTCSessionDescription) alloc] initWithType:RTCSdpTypeAnswer sdp:[self sdp]];
+      [[RTC_OBJC_TYPE(RTCSessionDescription) alloc]
+          initWithType:RTCSdpTypeAnswer
+                   sdp:[self sdp]];
 
   std::unique_ptr<webrtc::SessionDescriptionInterface> nativeDescription =
       description.nativeDescription;
 
   EXPECT_EQ(RTCSdpTypeAnswer,
-            [RTC_OBJC_TYPE(RTCSessionDescription) typeForStdString:nativeDescription->type()]);
+            [RTC_OBJC_TYPE(RTCSessionDescription)
+                typeForStdString:nativeDescription->type()]);
 
   std::string sdp;
   nativeDescription->ToString(&sdp);
@@ -43,13 +47,15 @@
 }
 
 - (void)testInitFromNativeSessionDescription {
-  const auto nativeDescription =
-      webrtc::CreateSessionDescription(webrtc::SdpType::kAnswer, [self sdp].stdString, nullptr);
+  const auto nativeDescription = webrtc::CreateSessionDescription(
+      webrtc::SdpType::kAnswer, [self sdp].stdString, nullptr);
 
-  RTC_OBJC_TYPE(RTCSessionDescription) *description = [[RTC_OBJC_TYPE(RTCSessionDescription) alloc]
-      initWithNativeDescription:nativeDescription.get()];
-  EXPECT_EQ(webrtc::SessionDescriptionInterface::kAnswer,
-            [RTC_OBJC_TYPE(RTCSessionDescription) stdStringForType:description.type]);
+  RTC_OBJC_TYPE(RTCSessionDescription) *description =
+      [[RTC_OBJC_TYPE(RTCSessionDescription) alloc]
+          initWithNativeDescription:nativeDescription.get()];
+  EXPECT_EQ(
+      webrtc::SessionDescriptionInterface::kAnswer,
+      [RTC_OBJC_TYPE(RTCSessionDescription) stdStringForType:description.type]);
   EXPECT_TRUE([[self sdp] isEqualToString:description.sdp]);
 }
 

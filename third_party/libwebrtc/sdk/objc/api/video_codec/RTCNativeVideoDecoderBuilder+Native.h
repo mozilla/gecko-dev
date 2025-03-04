@@ -20,6 +20,7 @@
 @protocol RTC_OBJC_TYPE
 (RTCNativeVideoDecoderBuilder)
 
-    - (std::unique_ptr<webrtc::VideoDecoder>)build : (const webrtc::Environment&)env;
+    - (std::unique_ptr<webrtc::VideoDecoder>)build
+    : (const webrtc::Environment&)env;
 
 @end

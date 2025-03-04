@@ -14,13 +14,13 @@
 #include <cstdint>
 #include <memory>
 
+#include "absl/base/attributes.h"
 #include "absl/base/nullability.h"
 #include "api/environment/environment.h"
 #include "api/media_types.h"
 #include "api/sequence_checker.h"
 #include "api/transport/network_control.h"
 #include "api/units/data_rate.h"
-#include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "modules/congestion_controller/remb_throttler.h"
 #include "modules/include/module_common_types.h"
@@ -40,11 +40,17 @@ class RemoteBitrateEstimator;
 // send our results back to the sender.
 class ReceiveSideCongestionController : public CallStatsObserver {
  public:
+  ABSL_DEPRECATED("Use the constructor without NetworkStateEstimator.")
   ReceiveSideCongestionController(
       const Environment& env,
       TransportSequenceNumberFeedbackGenenerator::RtcpSender feedback_sender,
       RembThrottler::RembSender remb_sender,
-      absl::Nullable<NetworkStateEstimator*> network_state_estimator);
+      absl::Nullable<NetworkStateEstimator*> unused);
+
+  ReceiveSideCongestionController(
+      const Environment& env,
+      TransportSequenceNumberFeedbackGenenerator::RtcpSender feedback_sender,
+      RembThrottler::RembSender remb_sender);
 
   ~ReceiveSideCongestionController() override = default;
 
@@ -61,8 +67,6 @@ class ReceiveSideCongestionController : public CallStatsObserver {
   // Ensures the remote party is notified of the receive bitrate no larger than
   // `bitrate` using RTCP REMB.
   void SetMaxDesiredReceiveBitrate(DataRate bitrate);
-
-  void SetTransportOverhead(DataSize overhead_per_packet);
 
   // Returns latest receive side bandwidth estimation.
   // Returns zero if receive side bandwidth estimation is unavailable.

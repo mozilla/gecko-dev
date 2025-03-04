@@ -29,20 +29,27 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)setFieldTrials:(std::unique_ptr<webrtc::FieldTrialsView>)fieldTrials;
 
-- (void)setVideoEncoderFactory:(std::unique_ptr<webrtc::VideoEncoderFactory>)videoEncoderFactory;
+- (void)setVideoEncoderFactory:
+    (std::unique_ptr<webrtc::VideoEncoderFactory>)videoEncoderFactory;
 
-- (void)setVideoDecoderFactory:(std::unique_ptr<webrtc::VideoDecoderFactory>)videoDecoderFactory;
+- (void)setVideoDecoderFactory:
+    (std::unique_ptr<webrtc::VideoDecoderFactory>)videoDecoderFactory;
 
-- (void)setAudioEncoderFactory:(rtc::scoped_refptr<webrtc::AudioEncoderFactory>)audioEncoderFactory;
+- (void)setAudioEncoderFactory:
+    (rtc::scoped_refptr<webrtc::AudioEncoderFactory>)audioEncoderFactory;
 
-- (void)setAudioDecoderFactory:(rtc::scoped_refptr<webrtc::AudioDecoderFactory>)audioDecoderFactory;
+- (void)setAudioDecoderFactory:
+    (rtc::scoped_refptr<webrtc::AudioDecoderFactory>)audioDecoderFactory;
 
-- (void)setAudioDeviceModule:(rtc::scoped_refptr<webrtc::AudioDeviceModule>)audioDeviceModule;
+- (void)setAudioDeviceModule:
+    (rtc::scoped_refptr<webrtc::AudioDeviceModule>)audioDeviceModule;
 
-- (void)setAudioProcessingModule:(rtc::scoped_refptr<webrtc::AudioProcessing>)audioProcessingModule;
+- (void)setAudioProcessingModule:
+    (rtc::scoped_refptr<webrtc::AudioProcessing>)audioProcessingModule;
 
 - (void)setAudioProcessingBuilder:
-    (std::unique_ptr<webrtc::AudioProcessingBuilderInterface>)audioProcessingBuilder;
+    (std::unique_ptr<webrtc::AudioProcessingBuilderInterface>)
+        audioProcessingBuilder;
 
 @end
 

@@ -561,22 +561,21 @@ TEST(AudioSendStreamTest, AudioNetworkAdaptorReceivesOverhead) {
     const std::string kAnaConfigString = "abcde";
 
     EXPECT_CALL(helper.mock_encoder_factory(), Create)
-        .WillOnce(
-            WithArg<1>([&kAnaConfigString](const SdpAudioFormat& format) {
-              auto mock_encoder = SetupAudioEncoderMock(format);
-              InSequence s;
-              EXPECT_CALL(
-                  *mock_encoder,
-                  OnReceivedOverhead(Eq(kOverheadPerPacket.bytes<size_t>())));
-              EXPECT_CALL(*mock_encoder,
-                          EnableAudioNetworkAdaptor(StrEq(kAnaConfigString), _))
-                  .WillOnce(Return(true));
-              // Note: Overhead is received AFTER ANA has been enabled.
-              EXPECT_CALL(
-                  *mock_encoder,
-                  OnReceivedOverhead(Eq(kOverheadPerPacket.bytes<size_t>())));
-              return mock_encoder;
-            }));
+        .WillOnce(WithArg<1>([&kAnaConfigString](const SdpAudioFormat& format) {
+          auto mock_encoder = SetupAudioEncoderMock(format);
+          InSequence s;
+          EXPECT_CALL(
+              *mock_encoder,
+              OnReceivedOverhead(Eq(kOverheadPerPacket.bytes<size_t>())));
+          EXPECT_CALL(*mock_encoder,
+                      EnableAudioNetworkAdaptor(StrEq(kAnaConfigString), _))
+              .WillOnce(Return(true));
+          // Note: Overhead is received AFTER ANA has been enabled.
+          EXPECT_CALL(
+              *mock_encoder,
+              OnReceivedOverhead(Eq(kOverheadPerPacket.bytes<size_t>())));
+          return mock_encoder;
+        }));
     EXPECT_CALL(*helper.rtp_rtcp(), ExpectedPerPacketOverhead)
         .WillRepeatedly(Return(kOverheadPerPacket.bytes<size_t>()));
     EXPECT_CALL(*helper.channel_send(), RegisterPacketOverhead);

@@ -47,12 +47,16 @@
 
   _audioDeviceModule = webrtc::CreateAudioDeviceModule();
   _audio_device.reset(new webrtc::ios_adm::AudioDeviceIOS(
-      /*bypass_voice_processing=*/false, /*muted_speech_event_handler=*/nullptr));
+      /*bypass_voice_processing=*/false,
+      /*muted_speech_event_handler=*/nullptr,
+      /*render_error_handler=*/nullptr));
   self.audioSession = [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
 
   NSError *error = nil;
   [self.audioSession lockForConfiguration];
-  [self.audioSession setCategory:AVAudioSessionCategoryPlayAndRecord withOptions:0 error:&error];
+  [self.audioSession setCategory:AVAudioSessionCategoryPlayAndRecord
+                     withOptions:0
+                           error:&error];
   XCTAssertNil(error);
 
   [self.audioSession setMode:AVAudioSessionModeVoiceChat error:&error];
@@ -75,27 +79,33 @@
 
 // Verifies that the AudioDeviceIOS is_interrupted_ flag is reset correctly
 // after an iOS AVAudioSessionInterruptionTypeEnded notification event.
-// AudioDeviceIOS listens to RTC_OBJC_TYPE(RTCAudioSession) interrupted notifications by:
+// AudioDeviceIOS listens to RTC_OBJC_TYPE(RTCAudioSession) interrupted
+// notifications by:
 // - In AudioDeviceIOS.InitPlayOrRecord registers its audio_session_observer_
 //   callback with RTC_OBJC_TYPE(RTCAudioSession)'s delegate list.
-// - When RTC_OBJC_TYPE(RTCAudioSession) receives an iOS audio interrupted notification, it
+// - When RTC_OBJC_TYPE(RTCAudioSession) receives an iOS audio interrupted
+// notification, it
 //   passes the notification to callbacks in its delegate list which sets
 //   AudioDeviceIOS's is_interrupted_ flag to true.
 // - When AudioDeviceIOS.ShutdownPlayOrRecord is called, its
 //   audio_session_observer_ callback is removed from RTCAudioSessions's
 //   delegate list.
-//   So if RTC_OBJC_TYPE(RTCAudioSession) receives an iOS end audio interruption notification,
-//   AudioDeviceIOS is not notified as its callback is not in RTC_OBJC_TYPE(RTCAudioSession)'s
-//   delegate list. This causes AudioDeviceIOS's is_interrupted_ flag to be in
-//   the wrong (true) state and the audio session will ignore audio changes.
-// As RTC_OBJC_TYPE(RTCAudioSession) keeps its own interrupted state, the fix is to initialize
-// AudioDeviceIOS's is_interrupted_ flag to RTC_OBJC_TYPE(RTCAudioSession)'s isInterrupted
-// flag in AudioDeviceIOS.InitPlayOrRecord.
+//   So if RTC_OBJC_TYPE(RTCAudioSession) receives an iOS end audio interruption
+//   notification, AudioDeviceIOS is not notified as its callback is not in
+//   RTC_OBJC_TYPE(RTCAudioSession)'s delegate list. This causes
+//   AudioDeviceIOS's is_interrupted_ flag to be in the wrong (true) state and
+//   the audio session will ignore audio changes.
+// As RTC_OBJC_TYPE(RTCAudioSession) keeps its own interrupted state, the fix is
+// to initialize AudioDeviceIOS's is_interrupted_ flag to
+// RTC_OBJC_TYPE(RTCAudioSession)'s isInterrupted flag in
+// AudioDeviceIOS.InitPlayOrRecord.
 - (void)testInterruptedAudioSession {
   XCTSkipIf(!_testEnabled);
   XCTAssertTrue(self.audioSession.isActive);
-  XCTAssertTrue([self.audioSession.category isEqual:AVAudioSessionCategoryPlayAndRecord] ||
-                [self.audioSession.category isEqual:AVAudioSessionCategoryPlayback]);
+  XCTAssertTrue(
+      [self.audioSession.category
+          isEqual:AVAudioSessionCategoryPlayAndRecord] ||
+      [self.audioSession.category isEqual:AVAudioSessionCategoryPlayback]);
   XCTAssertEqual(AVAudioSessionModeVoiceChat, self.audioSession.mode);
 
   std::unique_ptr<webrtc::TaskQueueFactory> task_queue_factory =
@@ -103,7 +113,8 @@
   std::unique_ptr<webrtc::AudioDeviceBuffer> audio_buffer;
   audio_buffer.reset(new webrtc::AudioDeviceBuffer(task_queue_factory.get()));
   _audio_device->AttachAudioBuffer(audio_buffer.get());
-  XCTAssertEqual(webrtc::AudioDeviceGeneric::InitStatus::OK, _audio_device->Init());
+  XCTAssertEqual(webrtc::AudioDeviceGeneric::InitStatus::OK,
+                 _audio_device->Init());
   XCTAssertEqual(0, _audio_device->InitPlayout());
   XCTAssertEqual(0, _audio_device->StartPlayout());
 
@@ -128,33 +139,41 @@
 }
 
 - (void)testMuteSpeechHandlerCalledWithStartedWhenSpeechActivityHasStarted {
-  XCTestExpectation *handlerExpectation = [self expectationWithDescription:@"mutedSpeechHandler"];
-  webrtc::AudioDeviceModule::MutedSpeechEventHandler muted_speech_event_handler =
-      ^void(webrtc::AudioDeviceModule::MutedSpeechEvent event) {
+  XCTestExpectation *handlerExpectation =
+      [self expectationWithDescription:@"mutedSpeechHandler"];
+  webrtc::AudioDeviceModule::MutedSpeechEventHandler
+      muted_speech_event_handler = ^void(
+          webrtc::AudioDeviceModule::MutedSpeechEvent event) {
         XCTAssertEqual(event, webrtc::AudioDeviceModule::kMutedSpeechStarted);
         [handlerExpectation fulfill];
       };
 
   _audio_device.reset(new webrtc::ios_adm::AudioDeviceIOS(
       /*bypass_voice_processing=*/false,
-      /*muted_speech_event_handler=*/muted_speech_event_handler));
+      /*muted_speech_event_handler=*/muted_speech_event_handler,
+      /*render_error_handler=*/nullptr));
 
-  _audio_device->OnReceivedMutedSpeechActivity(kAUVoiceIOSpeechActivityHasStarted);
+  _audio_device->OnReceivedMutedSpeechActivity(
+      kAUVoiceIOSpeechActivityHasStarted);
   [self waitForExpectations:@[ handlerExpectation ] timeout:10.0];
 }
 
 - (void)testMuteSpeechHandlerCalledWithEndedWhenSpeechActivityHasEnded {
-  XCTestExpectation *handlerExpectation = [self expectationWithDescription:@"mutedSpeechHandler"];
-  webrtc::AudioDeviceModule::MutedSpeechEventHandler muted_speech_event_handler =
-      ^void(webrtc::AudioDeviceModule::MutedSpeechEvent event) {
-        XCTAssertEqual(event, webrtc::AudioDeviceModule::kMutedSpeechEnded);
-        [handlerExpectation fulfill];
-      };
+  XCTestExpectation *handlerExpectation =
+      [self expectationWithDescription:@"mutedSpeechHandler"];
+  webrtc::AudioDeviceModule::MutedSpeechEventHandler
+      muted_speech_event_handler =
+          ^void(webrtc::AudioDeviceModule::MutedSpeechEvent event) {
+            XCTAssertEqual(event, webrtc::AudioDeviceModule::kMutedSpeechEnded);
+            [handlerExpectation fulfill];
+          };
 
   _audio_device.reset(new webrtc::ios_adm::AudioDeviceIOS(
       /*bypass_voice_processing=*/false,
-      /*muted_speech_event_handler=*/muted_speech_event_handler));
-  _audio_device->OnReceivedMutedSpeechActivity(kAUVoiceIOSpeechActivityHasEnded);
+      /*muted_speech_event_handler=*/muted_speech_event_handler,
+      /*render_error_handler=*/nullptr));
+  _audio_device->OnReceivedMutedSpeechActivity(
+      kAUVoiceIOSpeechActivityHasEnded);
   [self waitForExpectations:@[ handlerExpectation ] timeout:10.0];
 }
 

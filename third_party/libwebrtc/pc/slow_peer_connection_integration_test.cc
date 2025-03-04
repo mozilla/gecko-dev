@@ -14,8 +14,8 @@
 #include <stdint.h>
 
 #include <memory>
-#include <optional>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -25,6 +25,7 @@
 #include "api/peer_connection_interface.h"
 #include "api/rtp_receiver_interface.h"
 #include "api/scoped_refptr.h"
+#include "api/test/rtc_error_matchers.h"
 #include "api/units/time_delta.h"
 #include "p2p/base/port_allocator.h"
 #include "p2p/base/port_interface.h"
@@ -38,10 +39,10 @@
 #include "rtc_base/gunit.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/socket_address.h"
-#include "rtc_base/ssl_certificate.h"
 #include "rtc_base/test_certificate_verifier.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 namespace webrtc {
 
@@ -104,23 +105,33 @@ TEST_P(PeerConnectionIntegrationTest,
   callee()->AddAudioVideoTracks();
   // Start offer/answer exchange and wait for it to complete.
   caller()->CreateAndSetAndSignalOffer();
-  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  ASSERT_THAT(
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
+      IsRtcOk());
   // Should be one receiver each for audio/video.
   EXPECT_EQ(2U, caller()->rtp_receiver_observers().size());
   EXPECT_EQ(2U, callee()->rtp_receiver_observers().size());
   // Wait for all "first packet received" callbacks to be fired.
-  EXPECT_TRUE_WAIT(
-      absl::c_all_of(caller()->rtp_receiver_observers(),
-                     [](const std::unique_ptr<MockRtpReceiverObserver>& o) {
-                       return o->first_packet_received();
-                     }),
-      kMaxWaitForFramesMs);
-  EXPECT_TRUE_WAIT(
-      absl::c_all_of(callee()->rtp_receiver_observers(),
-                     [](const std::unique_ptr<MockRtpReceiverObserver>& o) {
-                       return o->first_packet_received();
-                     }),
-      kMaxWaitForFramesMs);
+  EXPECT_THAT(WaitUntil(
+                  [&] {
+                    return absl::c_all_of(
+                        caller()->rtp_receiver_observers(),
+                        [](const std::unique_ptr<MockRtpReceiverObserver>& o) {
+                          return o->first_packet_received();
+                        });
+                  },
+                  ::testing::IsTrue(), {.timeout = kMaxWaitForFrames}),
+              IsRtcOk());
+  EXPECT_THAT(WaitUntil(
+                  [&] {
+                    return absl::c_all_of(
+                        callee()->rtp_receiver_observers(),
+                        [](const std::unique_ptr<MockRtpReceiverObserver>& o) {
+                          return o->first_packet_received();
+                        });
+                  },
+                  ::testing::IsTrue(), {.timeout = kMaxWaitForFrames}),
+              IsRtcOk());
   // If new observers are set after the first packet was already received, the
   // callback should still be invoked.
   caller()->ResetRtpReceiverObservers();
@@ -217,7 +228,7 @@ TEST_P(PeerConnectionIntegrationTest,
   // TODO(bugs.webrtc.org/9219): When IceConnectionState is implemented
   // properly, should be able to just wait for a state of "failed" instead of
   // waiting a fixed 10 seconds.
-  WAIT_(DtlsConnected(), kDefaultTimeout, wait_res);
+  WAIT_(DtlsConnected(), kDefaultTimeout.ms(), wait_res);
   ASSERT_FALSE(wait_res);
 
   EXPECT_GT(client_1_cert_verifier->call_count_, 0u);
@@ -234,7 +245,9 @@ TEST_P(PeerConnectionIntegrationTest, GetCaptureStartNtpTimeWithOldStatsApi) {
 
   // Do offer/answer, wait for the callee to receive some frames.
   caller()->CreateAndSetAndSignalOffer();
-  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  ASSERT_THAT(
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
+      IsRtcOk());
 
   // Get the remote audio track created on the receiver, so they can be used as
   // GetStats filters.
@@ -244,9 +257,15 @@ TEST_P(PeerConnectionIntegrationTest, GetCaptureStartNtpTimeWithOldStatsApi) {
 
   // Get the audio output level stats. Note that the level is not available
   // until an RTCP packet has been received.
-  EXPECT_TRUE_WAIT(callee()->OldGetStatsForTrack(remote_audio_track.get())
-                           ->CaptureStartNtpTime() > 0,
-                   2 * kMaxWaitForFramesMs);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] {
+            return callee()
+                ->OldGetStatsForTrack(remote_audio_track.get())
+                ->CaptureStartNtpTime();
+          },
+          ::testing::Gt(0), {.timeout = 2 * kMaxWaitForFrames}),
+      IsRtcOk());
 }
 
 // Test that firewalling the ICE connection causes the clients to identify the
@@ -357,12 +376,16 @@ TEST_P(PeerConnectionIntegrationIceStatesTestWithFakeClock, VerifyIceStates) {
   // background.
   caller()->CreateAndSetAndSignalOffer();
 
-  ASSERT_EQ_SIMULATED_WAIT(PeerConnectionInterface::kIceConnectionCompleted,
-                           caller()->ice_connection_state(), kDefaultTimeout,
-                           FakeClock());
-  ASSERT_EQ_SIMULATED_WAIT(PeerConnectionInterface::kIceConnectionCompleted,
-                           caller()->standardized_ice_connection_state(),
-                           kDefaultTimeout, FakeClock());
+  ASSERT_THAT(
+      WaitUntil([&] { return caller()->ice_connection_state(); },
+                ::testing::Eq(PeerConnectionInterface::kIceConnectionCompleted),
+                {.clock = &FakeClock()}),
+      IsRtcOk());
+  ASSERT_THAT(
+      WaitUntil([&] { return caller()->standardized_ice_connection_state(); },
+                ::testing::Eq(PeerConnectionInterface::kIceConnectionCompleted),
+                {.clock = &FakeClock()}),
+      IsRtcOk());
 
   // Verify that the observer was notified of the intermediate transitions.
   EXPECT_THAT(caller()->ice_connection_state_history(),
@@ -387,37 +410,52 @@ TEST_P(PeerConnectionIntegrationIceStatesTestWithFakeClock, VerifyIceStates) {
     firewall()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, caller_address);
   }
   RTC_LOG(LS_INFO) << "Firewall rules applied";
-  ASSERT_EQ_SIMULATED_WAIT(PeerConnectionInterface::kIceConnectionDisconnected,
-                           caller()->ice_connection_state(), kDefaultTimeout,
-                           FakeClock());
-  ASSERT_EQ_SIMULATED_WAIT(PeerConnectionInterface::kIceConnectionDisconnected,
-                           caller()->standardized_ice_connection_state(),
-                           kDefaultTimeout, FakeClock());
+  ScopedFakeClock& fake_clock = FakeClock();
+  ASSERT_THAT(
+      WaitUntil(
+          [&] { return caller()->ice_connection_state(); },
+          ::testing::Eq(PeerConnectionInterface::kIceConnectionDisconnected),
+          {.timeout = TimeDelta::Seconds(10), .clock = &fake_clock}),
+      IsRtcOk());
+  ASSERT_THAT(
+      WaitUntil(
+          [&] { return caller()->standardized_ice_connection_state(); },
+          ::testing::Eq(PeerConnectionInterface::kIceConnectionDisconnected),
+          {.timeout = TimeDelta::Seconds(10), .clock = &fake_clock}),
+      IsRtcOk());
 
   // Let ICE re-establish by removing the firewall rules.
   firewall()->ClearRules();
   RTC_LOG(LS_INFO) << "Firewall rules cleared";
-  ASSERT_EQ_SIMULATED_WAIT(PeerConnectionInterface::kIceConnectionCompleted,
-                           caller()->ice_connection_state(), kDefaultTimeout,
-                           FakeClock());
-  ASSERT_EQ_SIMULATED_WAIT(PeerConnectionInterface::kIceConnectionCompleted,
-                           caller()->standardized_ice_connection_state(),
-                           kDefaultTimeout, FakeClock());
+  ASSERT_THAT(
+      WaitUntil([&] { return caller()->ice_connection_state(); },
+                ::testing::Eq(PeerConnectionInterface::kIceConnectionCompleted),
+                {.clock = &fake_clock}),
+      IsRtcOk());
+  ASSERT_THAT(
+      WaitUntil([&] { return caller()->standardized_ice_connection_state(); },
+                ::testing::Eq(PeerConnectionInterface::kIceConnectionCompleted),
+                {.clock = &fake_clock}),
+      IsRtcOk());
 
   // According to RFC7675, if there is no response within 30 seconds then the
   // peer should consider the other side to have rejected the connection. This
   // is signaled by the state transitioning to "failed".
-  constexpr int kConsentTimeout = 30000;
+  constexpr TimeDelta kConsentTimeout = TimeDelta::Millis(30000);
   for (const auto& caller_address : CallerAddresses()) {
     firewall()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, caller_address);
   }
   RTC_LOG(LS_INFO) << "Firewall rules applied again";
-  ASSERT_EQ_SIMULATED_WAIT(PeerConnectionInterface::kIceConnectionFailed,
-                           caller()->ice_connection_state(), kConsentTimeout,
-                           FakeClock());
-  ASSERT_EQ_SIMULATED_WAIT(PeerConnectionInterface::kIceConnectionFailed,
-                           caller()->standardized_ice_connection_state(),
-                           kConsentTimeout, FakeClock());
+  ASSERT_THAT(
+      WaitUntil([&] { return caller()->ice_connection_state(); },
+                ::testing::Eq(PeerConnectionInterface::kIceConnectionFailed),
+                {.timeout = kConsentTimeout, .clock = &fake_clock}),
+      IsRtcOk());
+  ASSERT_THAT(
+      WaitUntil([&] { return caller()->standardized_ice_connection_state(); },
+                ::testing::Eq(PeerConnectionInterface::kIceConnectionFailed),
+                {.timeout = kConsentTimeout, .clock = &fake_clock}),
+      IsRtcOk());
 }
 #endif
 
@@ -429,7 +467,9 @@ TEST_P(PeerConnectionIntegrationTest, CallTransferredForCallee) {
   caller()->AddAudioVideoTracks();
   callee()->AddAudioVideoTracks();
   caller()->CreateAndSetAndSignalOffer();
-  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  ASSERT_THAT(
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
+      IsRtcOk());
 
   // Keep the original peer around which will still send packets to the
   // receiving client. These SRTP packets will be dropped.
@@ -443,7 +483,9 @@ TEST_P(PeerConnectionIntegrationTest, CallTransferredForCallee) {
   ConnectFakeSignaling();
   caller()->AddAudioVideoTracks();
   caller()->CreateAndSetAndSignalOffer();
-  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  ASSERT_THAT(
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
+      IsRtcOk());
   // Wait for some additional frames to be transmitted end-to-end.
   MediaExpectations media_expectations;
   media_expectations.ExpectBidirectionalAudioAndVideo();
@@ -458,7 +500,9 @@ TEST_P(PeerConnectionIntegrationTest, CallTransferredForCaller) {
   caller()->AddAudioVideoTracks();
   callee()->AddAudioVideoTracks();
   caller()->CreateAndSetAndSignalOffer();
-  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  ASSERT_THAT(
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
+      IsRtcOk());
 
   // Keep the original peer around which will still send packets to the
   // receiving client. These SRTP packets will be dropped.
@@ -473,7 +517,9 @@ TEST_P(PeerConnectionIntegrationTest, CallTransferredForCaller) {
   callee()->AddAudioVideoTracks();
   caller()->SetOfferAnswerOptions(IceRestartOfferAnswerOptions());
   caller()->CreateAndSetAndSignalOffer();
-  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  ASSERT_THAT(
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
+      IsRtcOk());
   // Wait for some additional frames to be transmitted end-to-end.
   MediaExpectations media_expectations;
   media_expectations.ExpectBidirectionalAudioAndVideo();

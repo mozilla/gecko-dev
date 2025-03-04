@@ -23,8 +23,10 @@
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/candidate.h"
+#include "api/field_trials_view.h"
 #include "api/rtc_error.h"
 #include "api/transport/enums.h"
+#include "api/transport/stun.h"
 #include "p2p/base/candidate_pair_interface.h"
 #include "p2p/base/connection.h"
 #include "p2p/base/connection_info.h"
@@ -200,6 +202,9 @@ struct RTC_EXPORT IceConfig {
   std::optional<rtc::AdapterType> network_preference;
 
   webrtc::VpnPreference vpn_preference = webrtc::VpnPreference::kDefault;
+
+  // Experimental feature to transport the DTLS handshake in STUN packets.
+  bool dtls_handshake_in_stun = false;
 
   IceConfig();
   IceConfig(int receiving_timeout_ms,
@@ -398,11 +403,17 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
   virtual const webrtc::FieldTrialsView* field_trials() const {
     return nullptr;
   }
+  virtual void SetDtlsPiggybackingCallbacks(
+      absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+          dtls_piggyback_get_data,
+      absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+          dtls_piggyback_get_ack,
+      absl::AnyInvocable<void(const StunByteStringAttribute*,
+                              const StunByteStringAttribute*)>
+          dtls_piggyback_report_data) {}
 
  protected:
-  void SendGatheringStateEvent() {
-    gathering_state_callback_list_.Send(this);
-  }
+  void SendGatheringStateEvent() { gathering_state_callback_list_.Send(this); }
 
   webrtc::CallbackList<IceTransportInternal*,
                        const StunDictionaryView&,

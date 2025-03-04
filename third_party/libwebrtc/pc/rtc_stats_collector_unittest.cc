@@ -42,6 +42,7 @@
 #include "api/stats/rtc_stats_collector_callback.h"
 #include "api/stats/rtc_stats_report.h"
 #include "api/stats/rtcstats_objects.h"
+#include "api/test/rtc_error_matchers.h"
 #include "api/transport/enums.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
@@ -77,7 +78,6 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/fake_clock.h"
 #include "rtc_base/fake_ssl_identity.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/network_constants.h"
 #include "rtc_base/ref_counted_object.h"
 #include "rtc_base/rtc_certificate.h"
@@ -92,6 +92,7 @@
 #include "rtc_base/time_utils.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 using ::testing::_;
 using ::testing::Invoke;
@@ -604,7 +605,11 @@ class RTCStatsCollectorWrapper {
  private:
   rtc::scoped_refptr<const RTCStatsReport> WaitForReport(
       rtc::scoped_refptr<RTCStatsObtainer> callback) {
-    EXPECT_TRUE_WAIT(callback->report() != nullptr, kGetStatsReportTimeoutMs);
+    EXPECT_THAT(
+        WaitUntil(
+            [&] { return callback->report() != nullptr; }, ::testing::IsTrue(),
+            {.timeout = webrtc::TimeDelta::Millis(kGetStatsReportTimeoutMs)}),
+        IsRtcOk());
     int64_t after = rtc::TimeUTCMicros();
     for (const RTCStats& stats : *callback->report()) {
       if (stats.type() == RTCRemoteInboundRtpStreamStats::kType ||
@@ -883,7 +888,11 @@ class RTCStatsCollectorTest : public ::testing::Test {
 TEST_F(RTCStatsCollectorTest, SingleCallback) {
   rtc::scoped_refptr<const RTCStatsReport> result;
   stats_->stats_collector()->GetStatsReport(RTCStatsObtainer::Create(&result));
-  EXPECT_TRUE_WAIT(result != nullptr, kGetStatsReportTimeoutMs);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] { return result != nullptr; }, ::testing::IsTrue(),
+          {.timeout = webrtc::TimeDelta::Millis(kGetStatsReportTimeoutMs)}),
+      IsRtcOk());
 }
 
 TEST_F(RTCStatsCollectorTest, MultipleCallbacks) {
@@ -891,9 +900,21 @@ TEST_F(RTCStatsCollectorTest, MultipleCallbacks) {
   stats_->stats_collector()->GetStatsReport(RTCStatsObtainer::Create(&a));
   stats_->stats_collector()->GetStatsReport(RTCStatsObtainer::Create(&b));
   stats_->stats_collector()->GetStatsReport(RTCStatsObtainer::Create(&c));
-  EXPECT_TRUE_WAIT(a != nullptr, kGetStatsReportTimeoutMs);
-  EXPECT_TRUE_WAIT(b != nullptr, kGetStatsReportTimeoutMs);
-  EXPECT_TRUE_WAIT(c != nullptr, kGetStatsReportTimeoutMs);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] { return a != nullptr; }, ::testing::IsTrue(),
+          {.timeout = webrtc::TimeDelta::Millis(kGetStatsReportTimeoutMs)}),
+      IsRtcOk());
+  EXPECT_THAT(
+      WaitUntil(
+          [&] { return b != nullptr; }, ::testing::IsTrue(),
+          {.timeout = webrtc::TimeDelta::Millis(kGetStatsReportTimeoutMs)}),
+      IsRtcOk());
+  EXPECT_THAT(
+      WaitUntil(
+          [&] { return c != nullptr; }, ::testing::IsTrue(),
+          {.timeout = webrtc::TimeDelta::Millis(kGetStatsReportTimeoutMs)}),
+      IsRtcOk());
 
   EXPECT_EQ(a.get(), b.get());
   EXPECT_EQ(b.get(), c.get());
@@ -922,9 +943,21 @@ TEST_F(RTCStatsCollectorTest, MultipleCallbacksWithInvalidatedCacheInBetween) {
   // Cache is invalidated after 50 ms.
   fake_clock_.AdvanceTime(TimeDelta::Millis(51));
   stats_->stats_collector()->GetStatsReport(RTCStatsObtainer::Create(&c));
-  EXPECT_TRUE_WAIT(a != nullptr, kGetStatsReportTimeoutMs);
-  EXPECT_TRUE_WAIT(b != nullptr, kGetStatsReportTimeoutMs);
-  EXPECT_TRUE_WAIT(c != nullptr, kGetStatsReportTimeoutMs);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] { return a != nullptr; }, ::testing::IsTrue(),
+          {.timeout = webrtc::TimeDelta::Millis(kGetStatsReportTimeoutMs)}),
+      IsRtcOk());
+  EXPECT_THAT(
+      WaitUntil(
+          [&] { return b != nullptr; }, ::testing::IsTrue(),
+          {.timeout = webrtc::TimeDelta::Millis(kGetStatsReportTimeoutMs)}),
+      IsRtcOk());
+  EXPECT_THAT(
+      WaitUntil(
+          [&] { return c != nullptr; }, ::testing::IsTrue(),
+          {.timeout = webrtc::TimeDelta::Millis(kGetStatsReportTimeoutMs)}),
+      IsRtcOk());
   EXPECT_EQ(a.get(), b.get());
   // The act of doing `AdvanceTime` processes all messages. If this was not the
   // case we might not require `c` to be fresher than `b`.
@@ -3702,8 +3735,16 @@ TEST_F(RTCStatsCollectorTest, DoNotCrashWhenGetStatsCalledDuringCallback) {
   auto callback2 = rtc::make_ref_counted<RecursiveCallback>(stats_.get());
   stats_->stats_collector()->GetStatsReport(callback1);
   stats_->stats_collector()->GetStatsReport(callback2);
-  EXPECT_TRUE_WAIT(callback1->called(), kGetStatsReportTimeoutMs);
-  EXPECT_TRUE_WAIT(callback2->called(), kGetStatsReportTimeoutMs);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] { return callback1->called(); }, ::testing::IsTrue(),
+          {.timeout = webrtc::TimeDelta::Millis(kGetStatsReportTimeoutMs)}),
+      IsRtcOk());
+  EXPECT_THAT(
+      WaitUntil(
+          [&] { return callback2->called(); }, ::testing::IsTrue(),
+          {.timeout = webrtc::TimeDelta::Millis(kGetStatsReportTimeoutMs)}),
+      IsRtcOk());
 }
 
 class RTCTestStats : public RTCStats {
@@ -3755,7 +3796,11 @@ class FakeRTCStatsCollector : public RTCStatsCollector,
 
   void VerifyThreadUsageAndResultsMerging() {
     GetStatsReport(rtc::scoped_refptr<RTCStatsCollectorCallback>(this));
-    EXPECT_TRUE_WAIT(HasVerifiedResults(), kGetStatsReportTimeoutMs);
+    EXPECT_THAT(
+        WaitUntil(
+            [&] { return HasVerifiedResults(); }, ::testing::IsTrue(),
+            {.timeout = webrtc::TimeDelta::Millis(kGetStatsReportTimeoutMs)}),
+        IsRtcOk());
   }
 
   bool HasVerifiedResults() {

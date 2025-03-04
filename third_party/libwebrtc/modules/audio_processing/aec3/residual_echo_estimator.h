@@ -16,6 +16,7 @@
 #include <optional>
 
 #include "api/audio/echo_canceller3_config.h"
+#include "api/environment/environment.h"
 #include "modules/audio_processing/aec3/aec3_common.h"
 #include "modules/audio_processing/aec3/aec_state.h"
 #include "modules/audio_processing/aec3/render_buffer.h"
@@ -27,7 +28,8 @@ namespace webrtc {
 
 class ResidualEchoEstimator {
  public:
-  ResidualEchoEstimator(const EchoCanceller3Config& config,
+  ResidualEchoEstimator(const Environment& env,
+                        const EchoCanceller3Config& config,
                         size_t num_render_channels);
   ~ResidualEchoEstimator();
 

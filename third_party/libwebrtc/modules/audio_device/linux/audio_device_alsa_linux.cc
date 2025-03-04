@@ -803,7 +803,7 @@ int32_t AudioDeviceLinuxALSA::InitPlayoutLocked() {
 #if defined(WEBRTC_ARCH_BIG_ENDIAN)
            SND_PCM_FORMAT_S16_BE,
 #else
-           SND_PCM_FORMAT_S16_LE,                             // format
+           SND_PCM_FORMAT_S16_LE,  // format
 #endif
            SND_PCM_ACCESS_RW_INTERLEAVED,  // access
            _playChannels,                  // channels
@@ -927,7 +927,7 @@ int32_t AudioDeviceLinuxALSA::InitRecordingLocked() {
 #if defined(WEBRTC_ARCH_BIG_ENDIAN)
                                     SND_PCM_FORMAT_S16_BE,  // format
 #else
-                                    SND_PCM_FORMAT_S16_LE,    // format
+                                    SND_PCM_FORMAT_S16_LE,  // format
 #endif
                                     SND_PCM_ACCESS_RW_INTERLEAVED,  // access
                                     _recChannels,                   // channels

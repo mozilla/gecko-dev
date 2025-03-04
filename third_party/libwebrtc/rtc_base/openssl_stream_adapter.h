@@ -244,9 +244,6 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter {
   // be too aggressive for low bandwidth links.
   int dtls_handshake_timeout_ms_ = 50;
 
-  // Rollout killswitch for disabling session tickets.
-  const bool disable_handshake_ticket_;
-
   // 0 == Disabled
   // 1 == Max
   // 2 == Enabled (both min and max)

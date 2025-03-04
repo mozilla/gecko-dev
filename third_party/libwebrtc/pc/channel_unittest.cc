@@ -95,7 +95,6 @@ const int kAudioPts[] = {0, 8};
 const int kVideoPts[] = {97, 99};
 enum class NetworkIsWorker { Yes, No };
 
-
 template <class ChannelT,
           class MediaSendChannelT,
           class MediaReceiveChannelT,

@@ -14,6 +14,8 @@
 #include <cmath>
 
 #include "api/array_view.h"
+#include "api/environment/environment.h"
+#include "api/field_trials_view.h"
 #include "common_audio/include/audio_util.h"
 #include "modules/audio_processing/agc/gain_control.h"
 #include "modules/audio_processing/agc2/gain_map_internal.h"
@@ -22,7 +24,6 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/numerics/safe_minmax.h"
-#include "system_wrappers/include/field_trial.h"
 #include "system_wrappers/include/metrics.h"
 
 namespace webrtc {
@@ -69,14 +70,13 @@ using AnalogAgcConfig =
 // string. Returns an unspecified value if the field trial is not specified, if
 // disabled or if it cannot be parsed. Example:
 // 'WebRTC-Audio-2ndAgcMinMicLevelExperiment/Enabled-80' => returns 80.
-std::optional<int> GetMinMicLevelOverride() {
+std::optional<int> GetMinMicLevelOverride(const FieldTrialsView& field_trials) {
   constexpr char kMinMicLevelFieldTrial[] =
       "WebRTC-Audio-2ndAgcMinMicLevelExperiment";
-  if (!webrtc::field_trial::IsEnabled(kMinMicLevelFieldTrial)) {
+  if (!field_trials.IsEnabled(kMinMicLevelFieldTrial)) {
     return std::nullopt;
   }
-  const auto field_trial_string =
-      webrtc::field_trial::FindFullName(kMinMicLevelFieldTrial);
+  const auto field_trial_string = field_trials.Lookup(kMinMicLevelFieldTrial);
   int min_mic_level = -1;
   sscanf(field_trial_string.c_str(), "Enabled-%d", &min_mic_level);
   if (min_mic_level >= 0 && min_mic_level <= 255) {
@@ -447,19 +447,21 @@ void MonoAgc::UpdateCompressor() {
 std::atomic<int> AgcManagerDirect::instance_counter_(0);
 
 AgcManagerDirect::AgcManagerDirect(
+    const Environment& env,
     const AudioProcessing::Config::GainController1::AnalogGainController&
         analog_config,
     Agc* agc)
-    : AgcManagerDirect(/*num_capture_channels=*/1, analog_config) {
+    : AgcManagerDirect(env, /*num_capture_channels=*/1, analog_config) {
   RTC_DCHECK(channel_agcs_[0]);
   RTC_DCHECK(agc);
   channel_agcs_[0]->set_agc(agc);
 }
 
-AgcManagerDirect::AgcManagerDirect(int num_capture_channels,
+AgcManagerDirect::AgcManagerDirect(const Environment& env,
+                                   int num_capture_channels,
                                    const AnalogAgcConfig& analog_config)
     : analog_controller_enabled_(analog_config.enabled),
-      min_mic_level_override_(GetMinMicLevelOverride()),
+      min_mic_level_override_(GetMinMicLevelOverride(env.field_trials())),
       data_dumper_(new ApmDataDumper(instance_counter_.fetch_add(1) + 1)),
       num_capture_channels_(num_capture_channels),
       disable_digital_adaptive_(!analog_config.enable_digital_adaptive),

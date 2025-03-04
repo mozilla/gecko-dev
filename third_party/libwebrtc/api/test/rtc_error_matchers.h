@@ -37,7 +37,41 @@ MATCHER_P(IsRtcOkAndHolds,
   return testing::ExplainMatchResult(matcher, arg.value(), result_listener);
 }
 
-MATCHER_P2(IsRtcErrorWithMessage,
+MATCHER_P(IsRtcErrorWithType, error_type, ToString(error_type)) {
+  if (arg.ok()) {
+    *result_listener << "Expected " << ToString(error_type) << ", got OK.";
+    return false;
+  }
+  if (arg.type() != error_type) {
+    *result_listener << "Expected " << ToString(error_type) << ", got "
+                     << ToString(arg.type());
+    return false;
+  }
+  return true;
+}
+
+MATCHER_P2(IsRtcErrorWithTypeAndMessage,
+           error_type,
+           message,
+           ToString(error_type)) {
+  if (arg.ok()) {
+    *result_listener << "Expected " << ToString(error_type) << ", got OK.";
+    return false;
+  }
+  if (arg.type() != error_type) {
+    *result_listener << "Expected " << ToString(error_type) << ", got "
+                     << ToString(arg.type());
+    return false;
+  }
+  if (std::string(arg.message()) != message) {
+    *result_listener << "Expected message \"" << message << "\", got \""
+                     << arg.message() << "\"";
+    return false;
+  }
+  return true;
+}
+
+MATCHER_P2(IsRtcErrorOrWithMessage,
            error_matcher,
            message_matcher,
            "RtcErrorOr that is holding an error that " +

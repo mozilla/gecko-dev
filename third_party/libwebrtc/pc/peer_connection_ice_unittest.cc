@@ -15,25 +15,26 @@
 #include <optional>
 #include <string>
 #include <tuple>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "api/audio/audio_device.h"
-#include "api/audio/audio_mixer.h"
-#include "api/audio/audio_processing.h"
 #include "api/candidate.h"
 #include "api/field_trials.h"
 #include "api/ice_transport_interface.h"
 #include "api/jsep.h"
+#include "api/make_ref_counted.h"
 #include "api/media_types.h"
+#include "api/packet_socket_factory.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtc_error.h"
 #include "api/scoped_refptr.h"
+#include "api/test/rtc_error_matchers.h"
+#include "api/units/time_delta.h"
+#include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/base/fake_port_allocator.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/p2p_constants.h"
-#include "p2p/base/port.h"
 #include "p2p/base/port_allocator.h"
 #include "p2p/base/transport_description.h"
 #include "p2p/base/transport_info.h"
@@ -51,10 +52,11 @@
 #include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/net_helper.h"
-#include "rtc_base/rtc_certificate_generator.h"
 #include "rtc_base/socket_address.h"
+#include "rtc_base/socket_server.h"
 #include "rtc_base/thread.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 #ifdef WEBRTC_ANDROID
 #include "pc/test/android_test_initializer.h"
 #endif
@@ -76,7 +78,6 @@
 #include "pc/test/fake_audio_capture_module.h"
 #include "pc/test/mock_peer_connection_observers.h"
 #include "rtc_base/fake_network.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/virtual_socket_server.h"
 #include "system_wrappers/include/metrics.h"
@@ -103,10 +104,10 @@ class PeerConnectionWrapperForIceTest : public PeerConnectionWrapper {
       cricket::Candidate* candidate) {
     RTC_DCHECK(pc()->remote_description());
     const auto* desc = pc()->remote_description()->description();
-    RTC_DCHECK(desc->contents().size() > 0);
+    RTC_DCHECK(!desc->contents().empty());
     const auto& first_content = desc->contents()[0];
-    candidate->set_transport_name(first_content.name);
-    return CreateIceCandidate(first_content.name, -1, *candidate);
+    candidate->set_transport_name(first_content.mid());
+    return CreateIceCandidate(first_content.mid(), -1, *candidate);
   }
 
   // Adds a new ICE candidate to the first transport.
@@ -232,7 +233,7 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
                       const std::string& pwd) {
     auto* desc = sdesc->description();
     for (const auto& content : desc->contents()) {
-      auto* transport_info = desc->GetTransportInfoByName(content.name);
+      auto* transport_info = desc->GetTransportInfoByName(content.mid());
       transport_info->description.ice_ufrag = ufrag;
       transport_info->description.ice_pwd = pwd;
     }
@@ -243,7 +244,7 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
                   const cricket::IceMode ice_mode) {
     auto* desc = sdesc->description();
     for (const auto& content : desc->contents()) {
-      auto* transport_info = desc->GetTransportInfoByName(content.name);
+      auto* transport_info = desc->GetTransportInfoByName(content.mid());
       transport_info->description.ice_mode = ice_mode;
     }
   }
@@ -251,9 +252,9 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
   cricket::TransportDescription* GetFirstTransportDescription(
       SessionDescriptionInterface* sdesc) {
     auto* desc = sdesc->description();
-    RTC_DCHECK(desc->contents().size() > 0);
+    RTC_DCHECK(!desc->contents().empty());
     auto* transport_info =
-        desc->GetTransportInfoByName(desc->contents()[0].name);
+        desc->GetTransportInfoByName(desc->contents()[0].mid());
     RTC_DCHECK(transport_info);
     return &transport_info->description;
   }
@@ -261,9 +262,9 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
   const cricket::TransportDescription* GetFirstTransportDescription(
       const SessionDescriptionInterface* sdesc) {
     auto* desc = sdesc->description();
-    RTC_DCHECK(desc->contents().size() > 0);
+    RTC_DCHECK(!desc->contents().empty());
     auto* transport_info =
-        desc->GetTransportInfoByName(desc->contents()[0].name);
+        desc->GetTransportInfoByName(desc->contents()[0].mid());
     RTC_DCHECK(transport_info);
     return &transport_info->description;
   }
@@ -296,7 +297,7 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
     const auto* desc = description->description();
     for (const auto& content_info : desc->contents()) {
       const auto* transport_info =
-          desc->GetTransportInfoByName(content_info.name);
+          desc->GetTransportInfoByName(content_info.mid());
       if (transport_info) {
         ice_credentials.push_back(
             std::make_pair(transport_info->description.ice_ufrag,
@@ -309,11 +310,11 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
   bool AddCandidateToFirstTransport(cricket::Candidate* candidate,
                                     SessionDescriptionInterface* sdesc) {
     auto* desc = sdesc->description();
-    RTC_DCHECK(desc->contents().size() > 0);
+    RTC_DCHECK(!desc->contents().empty());
     const auto& first_content = desc->contents()[0];
-    candidate->set_transport_name(first_content.name);
+    candidate->set_transport_name(first_content.mid());
     std::unique_ptr<IceCandidateInterface> jsep_candidate =
-        CreateIceCandidate(first_content.name, 0, *candidate);
+        CreateIceCandidate(first_content.mid(), 0, *candidate);
     return sdesc->AddCandidate(jsep_candidate.get());
   }
 
@@ -382,7 +383,11 @@ TEST_P(PeerConnectionIceTest, OfferContainsGatheredCandidates) {
   // Start ICE candidate gathering by setting the local offer.
   ASSERT_TRUE(caller->SetLocalDescription(caller->CreateOffer()));
 
-  EXPECT_TRUE_WAIT(caller->IsIceGatheringDone(), kIceCandidatesTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return caller->IsIceGatheringDone(); },
+                ::testing::IsTrue(),
+                {.timeout = webrtc::TimeDelta::Millis(kIceCandidatesTimeout)}),
+      IsRtcOk());
 
   auto offer = caller->CreateOffer();
   EXPECT_LT(0u, caller->observer()->GetCandidatesByMline(0).size());
@@ -403,7 +408,11 @@ TEST_P(PeerConnectionIceTest, AnswerContainsGatheredCandidates) {
   ASSERT_TRUE(callee->SetRemoteDescription(caller->CreateOfferAndSetAsLocal()));
   ASSERT_TRUE(callee->SetLocalDescription(callee->CreateAnswer()));
 
-  EXPECT_TRUE_WAIT(callee->IsIceGatheringDone(), kIceCandidatesTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return callee->IsIceGatheringDone(); },
+                ::testing::IsTrue(),
+                {.timeout = webrtc::TimeDelta::Millis(kIceCandidatesTimeout)}),
+      IsRtcOk());
 
   auto* answer = callee->pc()->local_description();
   EXPECT_LT(0u, caller->observer()->GetCandidatesByMline(0).size());
@@ -529,7 +538,7 @@ TEST_P(PeerConnectionIceTest, CannotAddCandidateWhenPeerConnectionClosed) {
   auto* audio_content = cricket::GetFirstAudioContent(
       caller->pc()->local_description()->description());
   std::unique_ptr<IceCandidateInterface> jsep_candidate =
-      CreateIceCandidate(audio_content->name, 0, candidate);
+      CreateIceCandidate(audio_content->mid(), 0, candidate);
 
   caller->pc()->Close();
 
@@ -583,7 +592,7 @@ TEST_P(PeerConnectionIceTest,
   auto* audio_content = cricket::GetFirstAudioContent(
       caller->pc()->local_description()->description());
   std::unique_ptr<IceCandidateInterface> ice_candidate =
-      CreateIceCandidate(audio_content->name, 0, candidate);
+      CreateIceCandidate(audio_content->mid(), 0, candidate);
 
   ASSERT_TRUE(caller->pc()->AddIceCandidate(ice_candidate.get()));
 
@@ -608,7 +617,7 @@ TEST_P(PeerConnectionIceTest,
   auto* audio_content = cricket::GetFirstAudioContent(
       caller->pc()->local_description()->description());
   std::unique_ptr<IceCandidateInterface> ice_candidate =
-      CreateIceCandidate(audio_content->name, 0, candidate);
+      CreateIceCandidate(audio_content->mid(), 0, candidate);
   EXPECT_TRUE(caller->pc()->AddIceCandidate(ice_candidate.get()));
   EXPECT_TRUE(caller->pc()->RemoveIceCandidates({candidate}));
 }
@@ -723,7 +732,11 @@ TEST_P(PeerConnectionIceTest, CandidatesGeneratedForEachLocalInterface) {
   caller->network()->AddInterface(kLocalAddress2);
 
   caller->CreateOfferAndSetAsLocal();
-  EXPECT_TRUE_WAIT(caller->IsIceGatheringDone(), kIceCandidatesTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return caller->IsIceGatheringDone(); },
+                ::testing::IsTrue(),
+                {.timeout = webrtc::TimeDelta::Millis(kIceCandidatesTimeout)}),
+      IsRtcOk());
 
   auto candidates = caller->observer()->GetCandidatesByMline(0);
   EXPECT_PRED_FORMAT2(AssertIpInCandidates, kLocalAddress1, candidates);
@@ -787,7 +800,10 @@ TEST_P(PeerConnectionIceTest, AsyncAddIceCandidateIsAddedToRemoteDescription) {
                                   EXPECT_TRUE(result.ok());
                                   operation_completed = true;
                                 });
-  EXPECT_TRUE_WAIT(operation_completed, kWaitTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return operation_completed; }, ::testing::IsTrue(),
+                {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),
+      IsRtcOk());
 
   auto candidates = callee->GetIceCandidatesFromRemoteDescription();
   ASSERT_EQ(1u, candidates.size());
@@ -836,7 +852,10 @@ TEST_P(PeerConnectionIceTest,
   // The operation will not be able to complete until we EXPECT_TRUE_WAIT()
   // allowing CreateAnswer() to complete.
   EXPECT_FALSE(operation_completed);
-  EXPECT_TRUE_WAIT(answer_observer->called(), kWaitTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return answer_observer->called(); }, ::testing::IsTrue(),
+                {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),
+      IsRtcOk());
   // As soon as it does, AddIceCandidate() will execute without delay, so it
   // must also have completed.
   EXPECT_TRUE(operation_completed);
@@ -858,7 +877,10 @@ TEST_P(PeerConnectionIceTest,
                   std::string("The remote description was null"));
         operation_completed = true;
       });
-  EXPECT_TRUE_WAIT(operation_completed, kWaitTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return operation_completed; }, ::testing::IsTrue(),
+                {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),
+      IsRtcOk());
 }
 
 TEST_P(PeerConnectionIceTest,
@@ -892,7 +914,10 @@ TEST_P(PeerConnectionIceTest,
   EXPECT_FALSE(operation_completed);
   // This should delete the callee PC.
   callee = nullptr;
-  EXPECT_TRUE_WAIT(operation_completed, kWaitTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return operation_completed; }, ::testing::IsTrue(),
+                {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),
+      IsRtcOk());
 }
 
 TEST_P(PeerConnectionIceTest, LocalDescriptionUpdatedWhenContinualGathering) {
@@ -909,9 +934,14 @@ TEST_P(PeerConnectionIceTest, LocalDescriptionUpdatedWhenContinualGathering) {
   ASSERT_TRUE(caller->SetLocalDescription(caller->CreateOffer()));
 
   // Since we're using continual gathering, we won't get "gathering done".
-  EXPECT_TRUE_WAIT(
-      caller->pc()->local_description()->candidates(0)->count() > 0,
-      kIceCandidatesTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] {
+            return caller->pc()->local_description()->candidates(0)->count();
+          },
+          ::testing::Gt(0),
+          {.timeout = webrtc::TimeDelta::Millis(kIceCandidatesTimeout)}),
+      IsRtcOk());
 }
 
 // Test that when continual gathering is enabled, and a network interface goes
@@ -931,16 +961,27 @@ TEST_P(PeerConnectionIceTest,
   // Start ICE candidate gathering by setting the local offer.
   ASSERT_TRUE(caller->SetLocalDescription(caller->CreateOffer()));
 
-  EXPECT_TRUE_WAIT(
-      caller->pc()->local_description()->candidates(0)->count() > 0,
-      kIceCandidatesTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] {
+            return caller->pc()->local_description()->candidates(0)->count();
+          },
+          ::testing::Gt(0),
+          {.timeout = webrtc::TimeDelta::Millis(kIceCandidatesTimeout)}),
+      IsRtcOk());
 
   // Remove the only network interface, causing the PeerConnection to signal
   // the removal of all candidates derived from this interface.
   caller->network()->RemoveInterface(kLocalAddress);
 
-  EXPECT_EQ_WAIT(0u, caller->pc()->local_description()->candidates(0)->count(),
-                 kIceCandidatesTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] {
+            return caller->pc()->local_description()->candidates(0)->count();
+          },
+          ::testing::Eq(0u),
+          {.timeout = webrtc::TimeDelta::Millis(kIceCandidatesTimeout)}),
+      IsRtcOk());
   EXPECT_LT(0, caller->observer()->num_candidates_removed_);
 }
 
@@ -957,7 +998,11 @@ TEST_P(PeerConnectionIceTest,
   // Start ICE candidate gathering by setting the local offer.
   ASSERT_TRUE(caller->SetLocalDescription(caller->CreateOffer()));
 
-  EXPECT_TRUE_WAIT(caller->IsIceGatheringDone(), kIceCandidatesTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return caller->IsIceGatheringDone(); },
+                ::testing::IsTrue(),
+                {.timeout = webrtc::TimeDelta::Millis(kIceCandidatesTimeout)}),
+      IsRtcOk());
 
   caller->network()->RemoveInterface(kLocalAddress);
 
@@ -1528,7 +1573,7 @@ TEST_P(PeerConnectionIceTest, IceCredentialsCreateOffer) {
 
   auto* desc = offer->description();
   for (const auto& content : desc->contents()) {
-    auto* transport_info = desc->GetTransportInfoByName(content.name);
+    auto* transport_info = desc->GetTransportInfoByName(content.mid());
     EXPECT_EQ(transport_info->description.ice_ufrag, credentials[0].ufrag);
     EXPECT_EQ(transport_info->description.ice_pwd, credentials[0].pwd);
   }
@@ -1549,7 +1594,7 @@ TEST_P(PeerConnectionIceTest, IceCredentialsCreateAnswer) {
 
   auto* desc = answer->description();
   for (const auto& content : desc->contents()) {
-    auto* transport_info = desc->GetTransportInfoByName(content.name);
+    auto* transport_info = desc->GetTransportInfoByName(content.mid());
     EXPECT_EQ(transport_info->description.ice_ufrag, credentials[0].ufrag);
     EXPECT_EQ(transport_info->description.ice_pwd, credentials[0].pwd);
   }
@@ -1579,7 +1624,7 @@ TEST_P(PeerConnectionIceTest, PrefersMidOverMLineIndex) {
   auto* audio_content = cricket::GetFirstAudioContent(
       caller->pc()->local_description()->description());
   std::unique_ptr<IceCandidateInterface> ice_candidate =
-      CreateIceCandidate(audio_content->name, 65535, candidate);
+      CreateIceCandidate(audio_content->mid(), 65535, candidate);
   EXPECT_TRUE(caller->pc()->AddIceCandidate(ice_candidate.get()));
   EXPECT_TRUE(caller->pc()->RemoveIceCandidates({candidate}));
 }

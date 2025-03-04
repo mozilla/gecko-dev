@@ -21,19 +21,25 @@
 
 namespace {
 
-webrtc::AudioParameters RecordParameters(id<RTC_OBJC_TYPE(RTCAudioDevice)> audio_device) {
-  const double sample_rate = static_cast<int>([audio_device deviceInputSampleRate]);
-  const size_t channels = static_cast<size_t>([audio_device inputNumberOfChannels]);
-  const size_t frames_per_buffer =
-      static_cast<size_t>(sample_rate * [audio_device inputIOBufferDuration] + .5);
+webrtc::AudioParameters RecordParameters(
+    id<RTC_OBJC_TYPE(RTCAudioDevice)> audio_device) {
+  const double sample_rate =
+      static_cast<int>([audio_device deviceInputSampleRate]);
+  const size_t channels =
+      static_cast<size_t>([audio_device inputNumberOfChannels]);
+  const size_t frames_per_buffer = static_cast<size_t>(
+      sample_rate * [audio_device inputIOBufferDuration] + .5);
   return webrtc::AudioParameters(sample_rate, channels, frames_per_buffer);
 }
 
-webrtc::AudioParameters PlayoutParameters(id<RTC_OBJC_TYPE(RTCAudioDevice)> audio_device) {
-  const double sample_rate = static_cast<int>([audio_device deviceOutputSampleRate]);
-  const size_t channels = static_cast<size_t>([audio_device outputNumberOfChannels]);
-  const size_t frames_per_buffer =
-      static_cast<size_t>(sample_rate * [audio_device outputIOBufferDuration] + .5);
+webrtc::AudioParameters PlayoutParameters(
+    id<RTC_OBJC_TYPE(RTCAudioDevice)> audio_device) {
+  const double sample_rate =
+      static_cast<int>([audio_device deviceOutputSampleRate]);
+  const size_t channels =
+      static_cast<size_t>([audio_device outputNumberOfChannels]);
+  const size_t frames_per_buffer = static_cast<size_t>(
+      sample_rate * [audio_device outputIOBufferDuration] + .5);
   return webrtc::AudioParameters(sample_rate, channels, frames_per_buffer);
 }
 
@@ -42,8 +48,10 @@ webrtc::AudioParameters PlayoutParameters(id<RTC_OBJC_TYPE(RTCAudioDevice)> audi
 namespace webrtc {
 namespace objc_adm {
 
-ObjCAudioDeviceModule::ObjCAudioDeviceModule(id<RTC_OBJC_TYPE(RTCAudioDevice)> audio_device)
-    : audio_device_(audio_device), task_queue_factory_(CreateDefaultTaskQueueFactory()) {
+ObjCAudioDeviceModule::ObjCAudioDeviceModule(
+    id<RTC_OBJC_TYPE(RTCAudioDevice)> audio_device)
+    : audio_device_(audio_device),
+      task_queue_factory_(CreateDefaultTaskQueueFactory()) {
   RTC_DLOG_F(LS_VERBOSE) << "";
   RTC_DCHECK(audio_device_);
   thread_checker_.Detach();
@@ -55,7 +63,8 @@ ObjCAudioDeviceModule::~ObjCAudioDeviceModule() {
   RTC_DLOG_F(LS_VERBOSE) << "";
 }
 
-int32_t ObjCAudioDeviceModule::RegisterAudioCallback(AudioTransport* audioCallback) {
+int32_t ObjCAudioDeviceModule::RegisterAudioCallback(
+    AudioTransport* audioCallback) {
   RTC_DLOG_F(LS_VERBOSE) << "";
   RTC_DCHECK(audio_device_buffer_);
   return audio_device_buffer_->RegisterAudioCallback(audioCallback);
@@ -73,12 +82,14 @@ int32_t ObjCAudioDeviceModule::Init() {
   io_record_thread_checker_.Detach();
 
   thread_ = rtc::Thread::Current();
-  audio_device_buffer_.reset(new webrtc::AudioDeviceBuffer(task_queue_factory_.get()));
+  audio_device_buffer_.reset(
+      new webrtc::AudioDeviceBuffer(task_queue_factory_.get()));
 
   if (![audio_device_ isInitialized]) {
     if (audio_device_delegate_ == nil) {
       audio_device_delegate_ = [[ObjCAudioDeviceDelegate alloc]
-          initWithAudioDeviceModule:rtc::scoped_refptr<ObjCAudioDeviceModule>(this)
+          initWithAudioDeviceModule:rtc::scoped_refptr<ObjCAudioDeviceModule>(
+                                        this)
                   audioDeviceThread:thread_];
     }
 
@@ -90,10 +101,12 @@ int32_t ObjCAudioDeviceModule::Init() {
     }
   }
 
-  playout_parameters_.reset([audio_device_delegate_ preferredOutputSampleRate], 1);
+  playout_parameters_.reset([audio_device_delegate_ preferredOutputSampleRate],
+                            1);
   UpdateOutputAudioDeviceBuffer();
 
-  record_parameters_.reset([audio_device_delegate_ preferredInputSampleRate], 1);
+  record_parameters_.reset([audio_device_delegate_ preferredInputSampleRate],
+                           1);
   UpdateInputAudioDeviceBuffer();
 
   is_initialized_ = true;
@@ -148,7 +161,8 @@ int32_t ObjCAudioDeviceModule::PlayoutIsAvailable(bool* available) {
 bool ObjCAudioDeviceModule::PlayoutIsInitialized() const {
   RTC_DLOG_F(LS_VERBOSE) << "";
   RTC_DCHECK_RUN_ON(&thread_checker_);
-  return Initialized() && is_playout_initialized_ && [audio_device_ isPlayoutInitialized];
+  return Initialized() && is_playout_initialized_ &&
+      [audio_device_ isPlayoutInitialized];
 }
 
 int32_t ObjCAudioDeviceModule::InitPlayout() {
@@ -169,7 +183,8 @@ int32_t ObjCAudioDeviceModule::InitPlayout() {
     }
   }
 
-  if (UpdateAudioParameters(playout_parameters_, PlayoutParameters(audio_device_))) {
+  if (UpdateAudioParameters(playout_parameters_,
+                            PlayoutParameters(audio_device_))) {
     UpdateOutputAudioDeviceBuffer();
   }
 
@@ -224,8 +239,10 @@ int32_t ObjCAudioDeviceModule::StopPlayout() {
 
 int32_t ObjCAudioDeviceModule::PlayoutDelay(uint16_t* delayMS) const {
   RTC_DCHECK_RUN_ON(&thread_checker_);
-  *delayMS = static_cast<uint16_t>(rtc::SafeClamp<int>(
-      cached_playout_delay_ms_.load(), 0, std::numeric_limits<uint16_t>::max()));
+  *delayMS = static_cast<uint16_t>(
+      rtc::SafeClamp<int>(cached_playout_delay_ms_.load(),
+                          0,
+                          std::numeric_limits<uint16_t>::max()));
   return 0;
 }
 
@@ -239,7 +256,8 @@ int32_t ObjCAudioDeviceModule::RecordingIsAvailable(bool* available) {
 bool ObjCAudioDeviceModule::RecordingIsInitialized() const {
   RTC_DLOG_F(LS_VERBOSE) << "";
   RTC_DCHECK_RUN_ON(&thread_checker_);
-  return Initialized() && is_recording_initialized_ && [audio_device_ isRecordingInitialized];
+  return Initialized() && is_recording_initialized_ &&
+      [audio_device_ isRecordingInitialized];
 }
 
 int32_t ObjCAudioDeviceModule::InitRecording() {
@@ -260,7 +278,8 @@ int32_t ObjCAudioDeviceModule::InitRecording() {
     }
   }
 
-  if (UpdateAudioParameters(record_parameters_, RecordParameters(audio_device_))) {
+  if (UpdateAudioParameters(record_parameters_,
+                            RecordParameters(audio_device_))) {
     UpdateInputAudioDeviceBuffer();
   }
 
@@ -315,7 +334,8 @@ int32_t ObjCAudioDeviceModule::StopRecording() {
 
 #if defined(WEBRTC_IOS)
 
-int ObjCAudioDeviceModule::GetPlayoutAudioParameters(AudioParameters* params) const {
+int ObjCAudioDeviceModule::GetPlayoutAudioParameters(
+    AudioParameters* params) const {
   RTC_DLOG_F(LS_VERBOSE) << "";
   RTC_DCHECK(playout_parameters_.is_valid());
   RTC_DCHECK_RUN_ON(&thread_checker_);
@@ -323,7 +343,8 @@ int ObjCAudioDeviceModule::GetPlayoutAudioParameters(AudioParameters* params) co
   return 0;
 }
 
-int ObjCAudioDeviceModule::GetRecordAudioParameters(AudioParameters* params) const {
+int ObjCAudioDeviceModule::GetRecordAudioParameters(
+    AudioParameters* params) const {
   RTC_DLOG_F(LS_VERBOSE) << "";
   RTC_DCHECK(record_parameters_.is_valid());
   RTC_DCHECK_RUN_ON(&thread_checker_);
@@ -339,11 +360,13 @@ void ObjCAudioDeviceModule::UpdateOutputAudioDeviceBuffer() {
   RTC_DCHECK(audio_device_buffer_) << "AttachAudioBuffer must be called first";
 
   RTC_DCHECK_GT(playout_parameters_.sample_rate(), 0);
-  RTC_DCHECK(playout_parameters_.channels() == 1 || playout_parameters_.channels() == 2);
+  RTC_DCHECK(playout_parameters_.channels() == 1 ||
+             playout_parameters_.channels() == 2);
 
   audio_device_buffer_->SetPlayoutSampleRate(playout_parameters_.sample_rate());
   audio_device_buffer_->SetPlayoutChannels(playout_parameters_.channels());
-  playout_fine_audio_buffer_.reset(new FineAudioBuffer(audio_device_buffer_.get()));
+  playout_fine_audio_buffer_.reset(
+      new FineAudioBuffer(audio_device_buffer_.get()));
 }
 
 void ObjCAudioDeviceModule::UpdateInputAudioDeviceBuffer() {
@@ -352,15 +375,18 @@ void ObjCAudioDeviceModule::UpdateInputAudioDeviceBuffer() {
   RTC_DCHECK(audio_device_buffer_) << "AttachAudioBuffer must be called first";
 
   RTC_DCHECK_GT(record_parameters_.sample_rate(), 0);
-  RTC_DCHECK(record_parameters_.channels() == 1 || record_parameters_.channels() == 2);
+  RTC_DCHECK(record_parameters_.channels() == 1 ||
+             record_parameters_.channels() == 2);
 
-  audio_device_buffer_->SetRecordingSampleRate(record_parameters_.sample_rate());
+  audio_device_buffer_->SetRecordingSampleRate(
+      record_parameters_.sample_rate());
   audio_device_buffer_->SetRecordingChannels(record_parameters_.channels());
-  record_fine_audio_buffer_.reset(new FineAudioBuffer(audio_device_buffer_.get()));
+  record_fine_audio_buffer_.reset(
+      new FineAudioBuffer(audio_device_buffer_.get()));
 }
 
-void ObjCAudioDeviceModule::UpdateAudioDelay(std::atomic<int>& delay_ms,
-                                             const NSTimeInterval device_latency) {
+void ObjCAudioDeviceModule::UpdateAudioDelay(
+    std::atomic<int>& delay_ms, const NSTimeInterval device_latency) {
   RTC_DLOG_F(LS_VERBOSE) << "";
   RTC_DCHECK_RUN_ON(&thread_checker_);
   int latency_ms = static_cast<int>(rtc::kNumMillisecsPerSec * device_latency);
@@ -374,12 +400,13 @@ void ObjCAudioDeviceModule::UpdateAudioDelay(std::atomic<int>& delay_ms,
   }
 }
 
-bool ObjCAudioDeviceModule::UpdateAudioParameters(AudioParameters& params,
-                                                  const AudioParameters& device_params) {
+bool ObjCAudioDeviceModule::UpdateAudioParameters(
+    AudioParameters& params, const AudioParameters& device_params) {
   RTC_DLOG_F(LS_VERBOSE) << "";
   RTC_DCHECK_RUN_ON(&thread_checker_);
   if (!device_params.is_complete()) {
-    RTC_LOG_F(LS_INFO) << "Device params are incomplete: " << device_params.ToString();
+    RTC_LOG_F(LS_INFO) << "Device params are incomplete: "
+                       << device_params.ToString();
     return false;
   }
   if (params.channels() == device_params.channels() &&
@@ -390,10 +417,12 @@ bool ObjCAudioDeviceModule::UpdateAudioParameters(AudioParameters& params,
     return false;
   }
 
-  RTC_LOG_F(LS_INFO) << "Audio params will be changed from: " << params.ToString()
+  RTC_LOG_F(LS_INFO) << "Audio params will be changed from: "
+                     << params.ToString()
                      << " to: " << device_params.ToString();
-  params.reset(
-      device_params.sample_rate(), device_params.channels(), device_params.frames_per_buffer());
+  params.reset(device_params.sample_rate(),
+               device_params.channels(),
+               device_params.frames_per_buffer());
   return true;
 }
 
@@ -414,14 +443,17 @@ OSStatus ObjCAudioDeviceModule::OnDeliverRecordedData(
     // AudioBuffer already fullfilled with audio data
     RTC_DCHECK_EQ(1, io_data->mNumberBuffers);
     const AudioBuffer* audio_buffer = &io_data->mBuffers[0];
-    RTC_DCHECK(audio_buffer->mNumberChannels == 1 || audio_buffer->mNumberChannels == 2);
+    RTC_DCHECK(audio_buffer->mNumberChannels == 1 ||
+               audio_buffer->mNumberChannels == 2);
 
     record_fine_audio_buffer_->DeliverRecordedData(
-        rtc::ArrayView<const int16_t>(static_cast<int16_t*>(audio_buffer->mData), num_frames),
+        rtc::ArrayView<const int16_t>(
+            static_cast<int16_t*>(audio_buffer->mData), num_frames),
         cached_recording_delay_ms_.load());
     return noErr;
   }
-  RTC_DCHECK(render_block != nullptr) << "Either io_data or render_block must be provided";
+  RTC_DCHECK(render_block != nullptr)
+      << "Either io_data or render_block must be provided";
 
   // Set the size of our own audio buffer and clear it first to avoid copying
   // in combination with potential reallocations.
@@ -439,13 +471,18 @@ OSStatus ObjCAudioDeviceModule::OnDeliverRecordedData(
   audio_buffer_list.mNumberBuffers = 1;
   AudioBuffer* audio_buffer = &audio_buffer_list.mBuffers[0];
   audio_buffer->mNumberChannels = channels_count;
-  audio_buffer->mDataByteSize =
-      record_audio_buffer_.size() * sizeof(decltype(record_audio_buffer_)::value_type);
+  audio_buffer->mDataByteSize = record_audio_buffer_.size() *
+      sizeof(decltype(record_audio_buffer_)::value_type);
   audio_buffer->mData = reinterpret_cast<int8_t*>(record_audio_buffer_.data());
 
-  // Obtain the recorded audio samples by initiating a rendering cycle into own buffer.
-  result =
-      render_block(flags, time_stamp, bus_number, num_frames, &audio_buffer_list, render_context);
+  // Obtain the recorded audio samples by initiating a rendering cycle into own
+  // buffer.
+  result = render_block(flags,
+                        time_stamp,
+                        bus_number,
+                        num_frames,
+                        &audio_buffer_list,
+                        render_context);
   if (result != noErr) {
     RTC_LOG_F(LS_ERROR) << "Failed to render audio: " << result;
     return result;
@@ -454,21 +491,23 @@ OSStatus ObjCAudioDeviceModule::OnDeliverRecordedData(
   // Get a pointer to the recorded audio and send it to the WebRTC ADB.
   // Use the FineAudioBuffer instance to convert between native buffer size
   // and the 10ms buffer size used by WebRTC.
-  record_fine_audio_buffer_->DeliverRecordedData(record_audio_buffer_,
-                                                 cached_recording_delay_ms_.load());
+  record_fine_audio_buffer_->DeliverRecordedData(
+      record_audio_buffer_, cached_recording_delay_ms_.load());
   return noErr;
 }
 
-OSStatus ObjCAudioDeviceModule::OnGetPlayoutData(AudioUnitRenderActionFlags* flags,
-                                                 const AudioTimeStamp* time_stamp,
-                                                 NSInteger bus_number,
-                                                 UInt32 num_frames,
-                                                 AudioBufferList* io_data) {
+OSStatus ObjCAudioDeviceModule::OnGetPlayoutData(
+    AudioUnitRenderActionFlags* flags,
+    const AudioTimeStamp* time_stamp,
+    NSInteger bus_number,
+    UInt32 num_frames,
+    AudioBufferList* io_data) {
   RTC_DCHECK_RUN_ON(&io_playout_thread_checker_);
   // Verify 16-bit, noninterleaved mono or stereo PCM signal format.
   RTC_DCHECK_EQ(1, io_data->mNumberBuffers);
   AudioBuffer* audio_buffer = &io_data->mBuffers[0];
-  RTC_DCHECK(audio_buffer->mNumberChannels == 1 || audio_buffer->mNumberChannels == 2);
+  RTC_DCHECK(audio_buffer->mNumberChannels == 1 ||
+             audio_buffer->mNumberChannels == 2);
   RTC_DCHECK_EQ(audio_buffer->mDataByteSize,
                 sizeof(int16_t) * num_frames * audio_buffer->mNumberChannels);
 
@@ -476,7 +515,9 @@ OSStatus ObjCAudioDeviceModule::OnGetPlayoutData(AudioUnitRenderActionFlags* fla
   // activated.
   if (!playing_.load()) {
     *flags |= kAudioUnitRenderAction_OutputIsSilence;
-    memset(static_cast<int8_t*>(audio_buffer->mData), 0, audio_buffer->mDataByteSize);
+    memset(static_cast<int8_t*>(audio_buffer->mData),
+           0,
+           audio_buffer->mDataByteSize);
     return noErr;
   }
 
@@ -506,7 +547,8 @@ void ObjCAudioDeviceModule::HandleAudioInputParametersChange() {
   RTC_DLOG_F(LS_VERBOSE) << "";
   RTC_DCHECK_RUN_ON(&thread_checker_);
 
-  if (UpdateAudioParameters(record_parameters_, RecordParameters(audio_device_))) {
+  if (UpdateAudioParameters(record_parameters_,
+                            RecordParameters(audio_device_))) {
     UpdateInputAudioDeviceBuffer();
   }
 
@@ -517,7 +559,8 @@ void ObjCAudioDeviceModule::HandleAudioOutputParametersChange() {
   RTC_DLOG_F(LS_VERBOSE) << "";
   RTC_DCHECK_RUN_ON(&thread_checker_);
 
-  if (UpdateAudioParameters(playout_parameters_, PlayoutParameters(audio_device_))) {
+  if (UpdateAudioParameters(playout_parameters_,
+                            PlayoutParameters(audio_device_))) {
     UpdateOutputAudioDeviceBuffer();
   }
 
@@ -538,15 +581,17 @@ int16_t ObjCAudioDeviceModule::RecordingDevices() {
   return 0;
 }
 
-int32_t ObjCAudioDeviceModule::PlayoutDeviceName(uint16_t index,
-                                                 char name[kAdmMaxDeviceNameSize],
-                                                 char guid[kAdmMaxGuidSize]) {
+int32_t ObjCAudioDeviceModule::PlayoutDeviceName(
+    uint16_t index,
+    char name[kAdmMaxDeviceNameSize],
+    char guid[kAdmMaxGuidSize]) {
   return -1;
 }
 
-int32_t ObjCAudioDeviceModule::RecordingDeviceName(uint16_t index,
-                                                   char name[kAdmMaxDeviceNameSize],
-                                                   char guid[kAdmMaxGuidSize]) {
+int32_t ObjCAudioDeviceModule::RecordingDeviceName(
+    uint16_t index,
+    char name[kAdmMaxDeviceNameSize],
+    char guid[kAdmMaxGuidSize]) {
   return -1;
 }
 
@@ -664,7 +709,8 @@ int32_t ObjCAudioDeviceModule::StereoPlayout(bool* enabled) const {
   return 0;
 }
 
-int32_t ObjCAudioDeviceModule::StereoRecordingIsAvailable(bool* available) const {
+int32_t ObjCAudioDeviceModule::StereoRecordingIsAvailable(
+    bool* available) const {
   *available = false;
   return 0;
 }

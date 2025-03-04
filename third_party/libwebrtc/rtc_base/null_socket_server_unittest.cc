@@ -14,22 +14,30 @@
 
 #include <memory>
 
+#include "api/test/rtc_error_matchers.h"
 #include "api/units/time_delta.h"
-#include "rtc_base/gunit.h"
+#include "rtc_base/socket_server.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/time_utils.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 namespace rtc {
 
 TEST(NullSocketServerTest, WaitAndSet) {
+  AutoThread main_thread;
   NullSocketServer ss;
   auto thread = Thread::Create();
   EXPECT_TRUE(thread->Start());
   thread->PostTask([&ss] { ss.WakeUp(); });
   // The process_io will be ignored.
   const bool process_io = true;
-  EXPECT_TRUE_WAIT(ss.Wait(SocketServer::kForever, process_io), 5'000);
+  EXPECT_THAT(
+      webrtc::WaitUntil(
+          [&] { return ss.Wait(SocketServer::kForever, process_io); },
+          ::testing::IsTrue(), {.timeout = webrtc::TimeDelta::Millis(5'000)}),
+      webrtc::IsRtcOk());
 }
 
 TEST(NullSocketServerTest, TestWait) {

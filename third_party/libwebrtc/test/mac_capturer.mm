@@ -15,7 +15,8 @@
 #import "sdk/objc/native/api/video_capturer.h"
 #import "sdk/objc/native/src/objc_frame_buffer.h"
 
-@interface RTCTestVideoSourceAdapter : NSObject <RTC_OBJC_TYPE (RTCVideoCapturerDelegate)>
+@interface RTCTestVideoSourceAdapter
+    : NSObject <RTC_OBJC_TYPE (RTCVideoCapturerDelegate)>
 @property(nonatomic) webrtc::test::MacCapturer *capturer;
 @end
 
@@ -38,15 +39,18 @@
 
 namespace {
 
-AVCaptureDeviceFormat *SelectClosestFormat(AVCaptureDevice *device, size_t width, size_t height) {
+AVCaptureDeviceFormat *SelectClosestFormat(AVCaptureDevice *device,
+                                           size_t width,
+                                           size_t height) {
   NSArray<AVCaptureDeviceFormat *> *formats =
       [RTC_OBJC_TYPE(RTCCameraVideoCapturer) supportedFormatsForDevice:device];
   AVCaptureDeviceFormat *selectedFormat = nil;
   int currentDiff = INT_MAX;
   for (AVCaptureDeviceFormat *format in formats) {
-    CMVideoDimensions dimension = CMVideoFormatDescriptionGetDimensions(format.formatDescription);
-    int diff =
-        std::abs((int64_t)width - dimension.width) + std::abs((int64_t)height - dimension.height);
+    CMVideoDimensions dimension =
+        CMVideoFormatDescriptionGetDimensions(format.formatDescription);
+    int diff = std::abs((int64_t)width - dimension.width) +
+        std::abs((int64_t)height - dimension.height);
     if (diff < currentDiff) {
       selectedFormat = format;
       currentDiff = diff;
@@ -74,8 +78,8 @@ MacCapturer::MacCapturer(size_t width,
       [[RTC_OBJC_TYPE(RTCCameraVideoCapturer) alloc] initWithDelegate:adapter];
   capturer_ = (__bridge_retained void *)capturer;
 
-  AVCaptureDevice *device =
-      [[RTC_OBJC_TYPE(RTCCameraVideoCapturer) captureDevices] objectAtIndex:capture_device_index];
+  AVCaptureDevice *device = [[RTC_OBJC_TYPE(RTCCameraVideoCapturer)
+      captureDevices] objectAtIndex:capture_device_index];
   AVCaptureDeviceFormat *format = SelectClosestFormat(device, width, height);
   [capturer startCaptureWithDevice:device format:format fps:target_fps];
 }
@@ -90,7 +94,8 @@ MacCapturer *MacCapturer::Create(size_t width,
 void MacCapturer::Destroy() {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-variable"
-  RTCTestVideoSourceAdapter *adapter = (__bridge_transfer RTCTestVideoSourceAdapter *)adapter_;
+  RTCTestVideoSourceAdapter *adapter =
+      (__bridge_transfer RTCTestVideoSourceAdapter *)adapter_;
   RTC_OBJC_TYPE(RTCCameraVideoCapturer) *capturer =
       (__bridge_transfer RTC_OBJC_TYPE(RTCCameraVideoCapturer) *)capturer_;
   [capturer stopCapture];

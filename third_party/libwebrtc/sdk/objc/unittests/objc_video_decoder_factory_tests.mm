@@ -23,7 +23,8 @@
 #include "rtc_base/gunit.h"
 #import "sdk/objc/base/RTCMacros.h"
 
-id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)> CreateDecoderFactoryReturning(int return_code) {
+id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)> CreateDecoderFactoryReturning(
+    int return_code) {
   id decoderMock = OCMProtocolMock(@protocol(RTC_OBJC_TYPE(RTCVideoDecoder)));
   OCMStub([decoderMock startDecodeWithNumberOfCores:1]).andReturn(return_code);
   OCMStub([decoderMock decode:[OCMArg any]
@@ -33,11 +34,14 @@ id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)> CreateDecoderFactoryReturning(int retu
       .andReturn(return_code);
   OCMStub([decoderMock releaseDecoder]).andReturn(return_code);
 
-  id decoderFactoryMock = OCMProtocolMock(@protocol(RTC_OBJC_TYPE(RTCVideoDecoderFactory)));
+  id decoderFactoryMock =
+      OCMProtocolMock(@protocol(RTC_OBJC_TYPE(RTCVideoDecoderFactory)));
   RTC_OBJC_TYPE(RTCVideoCodecInfo)* supported =
-      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:@"H264" parameters:nil];
+      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:@"H264"
+                                                  parameters:nil];
   OCMStub([decoderFactoryMock supportedCodecs]).andReturn(@[ supported ]);
-  OCMStub([decoderFactoryMock createDecoder:[OCMArg any]]).andReturn(decoderMock);
+  OCMStub([decoderFactoryMock createDecoder:[OCMArg any]])
+      .andReturn(decoderMock);
   return decoderFactoryMock;
 }
 
@@ -52,7 +56,8 @@ id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)> CreateErrorDecoderFactory() {
 std::unique_ptr<webrtc::VideoDecoder> GetObjCDecoder(
     id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)> factory) {
   webrtc::ObjCVideoDecoderFactory decoder_factory(factory);
-  return decoder_factory.Create(webrtc::CreateEnvironment(), webrtc::SdpVideoFormat::H264());
+  return decoder_factory.Create(webrtc::CreateEnvironment(),
+                                webrtc::SdpVideoFormat::H264());
 }
 
 #pragma mark -
@@ -63,21 +68,24 @@ std::unique_ptr<webrtc::VideoDecoder> GetObjCDecoder(
 @implementation ObjCVideoDecoderFactoryTests
 
 - (void)testConfigureReturnsTrueOnSuccess {
-  std::unique_ptr<webrtc::VideoDecoder> decoder = GetObjCDecoder(CreateOKDecoderFactory());
+  std::unique_ptr<webrtc::VideoDecoder> decoder =
+      GetObjCDecoder(CreateOKDecoderFactory());
 
   webrtc::VideoDecoder::Settings settings;
   EXPECT_TRUE(decoder->Configure(settings));
 }
 
 - (void)testConfigureReturnsFalseOnFail {
-  std::unique_ptr<webrtc::VideoDecoder> decoder = GetObjCDecoder(CreateErrorDecoderFactory());
+  std::unique_ptr<webrtc::VideoDecoder> decoder =
+      GetObjCDecoder(CreateErrorDecoderFactory());
 
   webrtc::VideoDecoder::Settings settings;
   EXPECT_FALSE(decoder->Configure(settings));
 }
 
 - (void)testDecodeReturnsOKOnSuccess {
-  std::unique_ptr<webrtc::VideoDecoder> decoder = GetObjCDecoder(CreateOKDecoderFactory());
+  std::unique_ptr<webrtc::VideoDecoder> decoder =
+      GetObjCDecoder(CreateOKDecoderFactory());
 
   webrtc::EncodedImage encoded_image;
   encoded_image.SetEncodedData(webrtc::EncodedImageBuffer::Create());
@@ -86,7 +94,8 @@ std::unique_ptr<webrtc::VideoDecoder> GetObjCDecoder(
 }
 
 - (void)testDecodeReturnsErrorOnFail {
-  std::unique_ptr<webrtc::VideoDecoder> decoder = GetObjCDecoder(CreateErrorDecoderFactory());
+  std::unique_ptr<webrtc::VideoDecoder> decoder =
+      GetObjCDecoder(CreateErrorDecoderFactory());
 
   webrtc::EncodedImage encoded_image;
   encoded_image.SetEncodedData(webrtc::EncodedImageBuffer::Create());
@@ -95,13 +104,15 @@ std::unique_ptr<webrtc::VideoDecoder> GetObjCDecoder(
 }
 
 - (void)testReleaseDecodeReturnsOKOnSuccess {
-  std::unique_ptr<webrtc::VideoDecoder> decoder = GetObjCDecoder(CreateOKDecoderFactory());
+  std::unique_ptr<webrtc::VideoDecoder> decoder =
+      GetObjCDecoder(CreateOKDecoderFactory());
 
   EXPECT_EQ(decoder->Release(), WEBRTC_VIDEO_CODEC_OK);
 }
 
 - (void)testReleaseDecodeReturnsErrorOnFail {
-  std::unique_ptr<webrtc::VideoDecoder> decoder = GetObjCDecoder(CreateErrorDecoderFactory());
+  std::unique_ptr<webrtc::VideoDecoder> decoder =
+      GetObjCDecoder(CreateErrorDecoderFactory());
 
   EXPECT_EQ(decoder->Release(), WEBRTC_VIDEO_CODEC_ERROR);
 }

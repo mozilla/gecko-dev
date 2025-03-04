@@ -29,12 +29,12 @@ static NSString *const shaderSource = MTL_STRINGIFY(
     } Vertex;
 
     typedef struct {
-      float4 position[[position]];
+      float4 position [[position]];
       float2 texcoord;
     } Varyings;
 
-    vertex Varyings vertexPassthrough(constant Vertex *verticies[[buffer(0)]],
-                                      unsigned int vid[[vertex_id]]) {
+    vertex Varyings vertexPassthrough(constant Vertex * verticies [[buffer(0)]],
+                                      unsigned int vid [[vertex_id]]) {
       Varyings out;
       constant Vertex &v = verticies[vid];
       out.position = float4(float2(v.position), 0.0, 1.0);
@@ -44,10 +44,10 @@ static NSString *const shaderSource = MTL_STRINGIFY(
     }
 
     fragment half4 fragmentColorConversion(
-        Varyings in[[stage_in]],
-        texture2d<float, access::sample> textureY[[texture(0)]],
-        texture2d<float, access::sample> textureU[[texture(1)]],
-        texture2d<float, access::sample> textureV[[texture(2)]]) {
+        Varyings in [[stage_in]],
+        texture2d<float, access::sample> textureY [[texture(0)]],
+        texture2d<float, access::sample> textureU [[texture(1)]],
+        texture2d<float, access::sample> textureV [[texture(2)]]) {
       constexpr sampler s(address::clamp_to_edge, filter::linear);
       float y;
       float u;
@@ -129,10 +129,11 @@ static NSString *const shaderSource = MTL_STRINGIFY(
   if (!_descriptor || _width != frame.width || _height != frame.height) {
     _width = frame.width;
     _height = frame.height;
-    _descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Unorm
-                                                                     width:_width
-                                                                    height:_height
-                                                                 mipmapped:NO];
+    _descriptor = [MTLTextureDescriptor
+        texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Unorm
+                                     width:_width
+                                    height:_height
+                                 mipmapped:NO];
     _descriptor.usage = MTLTextureUsageShaderRead;
     _yTexture = [device newTextureWithDescriptor:_descriptor];
   }
@@ -143,14 +144,15 @@ static NSString *const shaderSource = MTL_STRINGIFY(
                  withBytes:buffer.dataY
                bytesPerRow:buffer.strideY];
 
-  if (!_chromaDescriptor || _chromaWidth != frame.width / 2 || _chromaHeight != frame.height / 2) {
+  if (!_chromaDescriptor || _chromaWidth != frame.width / 2 ||
+      _chromaHeight != frame.height / 2) {
     _chromaWidth = frame.width / 2;
     _chromaHeight = frame.height / 2;
-    _chromaDescriptor =
-        [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Unorm
-                                                           width:_chromaWidth
-                                                          height:_chromaHeight
-                                                       mipmapped:NO];
+    _chromaDescriptor = [MTLTextureDescriptor
+        texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Unorm
+                                     width:_chromaWidth
+                                    height:_chromaHeight
+                                 mipmapped:NO];
     _chromaDescriptor.usage = MTLTextureUsageShaderRead;
     _uTexture = [device newTextureWithDescriptor:_chromaDescriptor];
     _vTexture = [device newTextureWithDescriptor:_chromaDescriptor];
@@ -168,7 +170,8 @@ static NSString *const shaderSource = MTL_STRINGIFY(
   return (_uTexture != nil) && (_yTexture != nil) && (_vTexture != nil);
 }
 
-- (void)uploadTexturesToRenderEncoder:(id<MTLRenderCommandEncoder>)renderEncoder {
+- (void)uploadTexturesToRenderEncoder:
+    (id<MTLRenderCommandEncoder>)renderEncoder {
   [renderEncoder setFragmentTexture:_yTexture atIndex:0];
   [renderEncoder setFragmentTexture:_uTexture atIndex:1];
   [renderEncoder setFragmentTexture:_vTexture atIndex:2];

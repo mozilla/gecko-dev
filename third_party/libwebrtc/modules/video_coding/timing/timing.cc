@@ -92,12 +92,12 @@ void VCMTiming::set_min_playout_delay(TimeDelta min_playout_delay) {
   }
 }
 
-void VCMTiming::set_max_playout_delay(TimeDelta max_playout_delay) {
+void VCMTiming::set_playout_delay(const VideoPlayoutDelay& playout_delay) {
   MutexLock lock(&mutex_);
-  if (max_playout_delay_ != max_playout_delay) {
-    CheckDelaysValid(min_playout_delay_, max_playout_delay);
-    max_playout_delay_ = max_playout_delay;
-  }
+  // No need to call `CheckDelaysValid` as the same invariant (min <= max)
+  // is guaranteed by the `VideoPlayoutDelay` type.
+  min_playout_delay_ = playout_delay.min();
+  max_playout_delay_ = playout_delay.max();
 }
 
 void VCMTiming::SetJitterDelay(TimeDelta jitter_delay) {

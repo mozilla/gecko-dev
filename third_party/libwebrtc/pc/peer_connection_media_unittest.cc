@@ -15,40 +15,35 @@
 #include <algorithm>
 #include <functional>
 #include <iterator>
-#include <map>
 #include <memory>
 #include <optional>
 #include <set>
 #include <string>
 #include <tuple>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
-#include "api/audio_options.h"
 #include "api/jsep.h"
 #include "api/media_types.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtc_error.h"
 #include "api/rtc_event_log/rtc_event_log_factory.h"
-#include "api/rtc_event_log/rtc_event_log_factory_interface.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_sender_interface.h"
 #include "api/rtp_transceiver_direction.h"
 #include "api/rtp_transceiver_interface.h"
 #include "api/scoped_refptr.h"
 #include "api/task_queue/default_task_queue_factory.h"
-#include "api/task_queue/task_queue_factory.h"
 #include "media/base/codec.h"
 #include "media/base/fake_media_engine.h"
 #include "media/base/media_channel.h"
 #include "media/base/media_constants.h"
 #include "media/base/media_engine.h"
 #include "media/base/stream_params.h"
+#include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/base/fake_port_allocator.h"
 #include "p2p/base/p2p_constants.h"
-#include "p2p/base/port_allocator.h"
 #include "p2p/base/transport_info.h"
 #include "pc/channel_interface.h"
 #include "pc/media_session.h"
@@ -59,12 +54,13 @@
 #include "pc/test/enable_fake_media.h"
 #include "pc/test/mock_peer_connection_observers.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/rtc_certificate_generator.h"
+#include "rtc_base/ref_counted_object.h"
 #include "rtc_base/thread.h"
 #include "test/gtest.h"
 #ifdef WEBRTC_ANDROID
 #include "pc/test/android_test_initializer.h"
 #endif
+#include "api/test/rtc_error_matchers.h"
 #include "rtc_base/virtual_socket_server.h"
 #include "test/gmock.h"
 
@@ -1042,7 +1038,7 @@ TEST_P(PeerConnectionMediaInvalidMediaTest, FailToSetLocalAnswer) {
 void RemoveVideoContentAndUnbundle(cricket::SessionDescription* desc) {
   // Removing BUNDLE is easier than removing the content in there.
   desc->RemoveGroupByName("BUNDLE");
-  auto content_name = cricket::GetFirstVideoContent(desc)->name;
+  auto content_name = cricket::GetFirstVideoContent(desc)->mid();
   desc->RemoveContentByName(content_name);
   desc->RemoveTransportInfoByName(content_name);
 }
@@ -1051,9 +1047,9 @@ void RenameVideoContentAndUnbundle(cricket::SessionDescription* desc) {
   // Removing BUNDLE is easier than renaming the content in there.
   desc->RemoveGroupByName("BUNDLE");
   auto* video_content = cricket::GetFirstVideoContent(desc);
-  auto* transport_info = desc->GetTransportInfoByName(video_content->name);
-  video_content->name = "video_renamed";
-  transport_info->content_name = video_content->name;
+  auto* transport_info = desc->GetTransportInfoByName(video_content->mid());
+  video_content->set_mid("video_renamed");
+  transport_info->content_name = video_content->mid();
 }
 
 void ReverseMediaContent(cricket::SessionDescription* desc) {
@@ -1062,7 +1058,7 @@ void ReverseMediaContent(cricket::SessionDescription* desc) {
 }
 
 void ChangeMediaTypeAudioToVideo(cricket::SessionDescription* desc) {
-  std::string audio_mid = cricket::GetFirstAudioContent(desc)->name;
+  auto audio_mid = cricket::GetFirstAudioContent(desc)->mid();
   desc->RemoveContentByName(audio_mid);
   auto* video_content = cricket::GetFirstVideoContent(desc);
   desc->AddContent(audio_mid, video_content->type,
@@ -1142,8 +1138,8 @@ void RenameContent(cricket::SessionDescription* desc,
                    const std::string& new_name) {
   auto* content = cricket::GetFirstMediaContent(desc, media_type);
   RTC_DCHECK(content);
-  std::string old_name = content->name;
-  content->name = new_name;
+  std::string old_name(content->mid());
+  content->set_mid(new_name);
   auto* transport = desc->GetTransportInfoByName(old_name);
   RTC_DCHECK(transport);
   transport->content_name = new_name;
@@ -1172,9 +1168,9 @@ TEST_P(PeerConnectionMediaTest, AnswerHasSameMidsAsOffer) {
 
   auto answer = callee->CreateAnswer();
   EXPECT_EQ(kAudioMid,
-            cricket::GetFirstAudioContent(answer->description())->name);
+            cricket::GetFirstAudioContent(answer->description())->mid());
   EXPECT_EQ(kVideoMid,
-            cricket::GetFirstVideoContent(answer->description())->name);
+            cricket::GetFirstVideoContent(answer->description())->mid());
 }
 
 // Test that if the callee creates a re-offer, the MIDs are the same as the
@@ -1194,9 +1190,9 @@ TEST_P(PeerConnectionMediaTest, ReOfferHasSameMidsAsFirstOffer) {
 
   auto reoffer = callee->CreateOffer();
   EXPECT_EQ(kAudioMid,
-            cricket::GetFirstAudioContent(reoffer->description())->name);
+            cricket::GetFirstAudioContent(reoffer->description())->mid());
   EXPECT_EQ(kVideoMid,
-            cricket::GetFirstVideoContent(reoffer->description())->name);
+            cricket::GetFirstVideoContent(reoffer->description())->mid());
 }
 
 // Test that SetRemoteDescription returns an error if there are two m= sections
@@ -1517,8 +1513,9 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
                     return codec.name.find("_only_") != std::string::npos;
                   });
 
-  auto result = transceiver->SetCodecPreferences(codecs);
-  EXPECT_EQ(RTCErrorType::INVALID_MODIFICATION, result.type());
+  // This is OK, however because the codec is send-only and the transciever is
+  // not send-only, it would get filtered out during negotiation.
+  EXPECT_THAT(transceiver->SetCodecPreferences(codecs), IsRtcOk());
 }
 
 TEST_F(PeerConnectionMediaTestUnifiedPlan,
@@ -1585,10 +1582,8 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan, SetCodecPreferencesAllAudioCodecs) {
   // Normal case, set all capabilities as preferences
   EXPECT_TRUE(audio_transceiver->SetCodecPreferences(sender_audio_codecs).ok());
   auto offer = caller->CreateOffer();
-  auto codecs = offer->description()
-                    ->contents()[0]
-                    .media_description()
-                    ->codecs();
+  auto codecs =
+      offer->description()->contents()[0].media_description()->codecs();
   EXPECT_TRUE(CompareCodecs(sender_audio_codecs, codecs));
 }
 
@@ -1607,10 +1602,8 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
   // Normal case, reset codec preferences
   EXPECT_TRUE(audio_transceiver->SetCodecPreferences(empty_codecs).ok());
   auto offer = caller->CreateOffer();
-  auto codecs = offer->description()
-                    ->contents()[0]
-                    .media_description()
-                    ->codecs();
+  auto codecs =
+      offer->description()->contents()[0].media_description()->codecs();
   EXPECT_TRUE(CompareCodecs(sender_audio_codecs, codecs));
 }
 
@@ -1678,10 +1671,8 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan, SetCodecPreferencesAllVideoCodecs) {
   // Normal case, setting preferences to normal capabilities
   EXPECT_TRUE(video_transceiver->SetCodecPreferences(sender_video_codecs).ok());
   auto offer = caller->CreateOffer();
-  auto codecs = offer->description()
-                    ->contents()[0]
-                    .media_description()
-                    ->codecs();
+  auto codecs =
+      offer->description()->contents()[0].media_description()->codecs();
   EXPECT_TRUE(CompareCodecs(sender_video_codecs, codecs));
 }
 
@@ -1701,10 +1692,8 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
   // Normal case, resetting preferences with empty list of codecs
   EXPECT_TRUE(video_transceiver->SetCodecPreferences(empty_codecs).ok());
   auto offer = caller->CreateOffer();
-  auto codecs = offer->description()
-                    ->contents()[0]
-                    .media_description()
-                    ->codecs();
+  auto codecs =
+      offer->description()->contents()[0].media_description()->codecs();
   EXPECT_TRUE(CompareCodecs(sender_video_codecs, codecs));
 }
 
@@ -1729,10 +1718,8 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
 
   EXPECT_TRUE(video_transceiver->SetCodecPreferences(duplicate_codec).ok());
   auto offer = caller->CreateOffer();
-  auto codecs = offer->description()
-                    ->contents()[0]
-                    .media_description()
-                    ->codecs();
+  auto codecs =
+      offer->description()->contents()[0].media_description()->codecs();
   EXPECT_TRUE(CompareCodecs(single_codec, codecs));
 }
 
@@ -1773,10 +1760,8 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan, SetCodecPreferencesVideoWithRtx) {
   EXPECT_TRUE(
       video_transceiver->SetCodecPreferences(video_codecs_vpx_rtx).ok());
   auto offer = caller->CreateOffer();
-  auto codecs = offer->description()
-                    ->contents()[0]
-                    .media_description()
-                    ->codecs();
+  auto codecs =
+      offer->description()->contents()[0].media_description()->codecs();
 
   EXPECT_TRUE(CompareCodecs(video_codecs_vpx_rtx, codecs));
   EXPECT_EQ(codecs.size(), 4u);
@@ -1819,10 +1804,8 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
   EXPECT_TRUE(send_transceiver->SetCodecPreferences(video_codecs_vpx).ok());
 
   auto offer = caller->CreateOfferAndSetAsLocal();
-  auto codecs = offer->description()
-                    ->contents()[0]
-                    .media_description()
-                    ->codecs();
+  auto codecs =
+      offer->description()->contents()[0].media_description()->codecs();
 
   EXPECT_EQ(codecs.size(), 2u);  // VP8, VP9
   EXPECT_TRUE(CompareCodecs(video_codecs_vpx, codecs));
@@ -1843,10 +1826,8 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
 
   auto answer = callee->CreateAnswerAndSetAsLocal();
 
-  auto recv_codecs = answer->description()
-                         ->contents()[0]
-                         .media_description()
-                         ->codecs();
+  auto recv_codecs =
+      answer->description()->contents()[0].media_description()->codecs();
   EXPECT_EQ(recv_codecs.size(), 1u);  // VP8
 }
 
@@ -1890,10 +1871,8 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
   absl::c_reverse(video_codecs_vpx_reverse);
 
   auto offer = caller->CreateOfferAndSetAsLocal();
-  auto codecs = offer->description()
-                    ->contents()[0]
-                    .media_description()
-                    ->codecs();
+  auto codecs =
+      offer->description()->contents()[0].media_description()->codecs();
   EXPECT_EQ(codecs.size(), 2u);  // VP9, VP8
   EXPECT_TRUE(CompareCodecs(video_codecs_vpx, codecs));
 
@@ -1904,10 +1883,8 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
 
   auto answer = callee->CreateAnswerAndSetAsLocal();
 
-  auto recv_codecs = answer->description()
-                         ->contents()[0]
-                         .media_description()
-                         ->codecs();
+  auto recv_codecs =
+      answer->description()->contents()[0].media_description()->codecs();
 
   EXPECT_TRUE(CompareCodecs(video_codecs_vpx_reverse, recv_codecs));
 }
@@ -2069,7 +2046,7 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
 }
 
 TEST_F(PeerConnectionMediaTestUnifiedPlan,
-       SetCodecPreferencesReceiveOnlyWithSendOnlyTransceiverStops) {
+       SetCodecPreferencesRecvOnlyCodecOnSendOnlyTransceiver) {
   auto fake_engine = std::make_unique<cricket::FakeMediaEngine>();
 
   std::vector<cricket::Codec> audio_codecs;
@@ -2090,7 +2067,49 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
   EXPECT_TRUE(audio_transceiver->SetCodecPreferences(capabilities.codecs).ok());
   RTCOfferAnswerOptions options;
   EXPECT_TRUE(caller->SetLocalDescription(caller->CreateOffer(options)));
-  EXPECT_EQ(audio_transceiver->direction(), RtpTransceiverDirection::kStopped);
+  // The transceiver is still sendonly (not stopped) because preferring a codec
+  // that is not applicable to the sendonly use case is the same as not having
+  // any codec preferences.
+  EXPECT_EQ(audio_transceiver->direction(), RtpTransceiverDirection::kSendOnly);
+}
+
+TEST_F(PeerConnectionMediaTestUnifiedPlan, SetCodecPreferencesVideoNoRtx) {
+  auto fake_engine = std::make_unique<cricket::FakeMediaEngine>();
+
+  std::vector<cricket::Codec> video_codecs;
+  video_codecs.emplace_back(cricket::CreateVideoCodec(100, "bar"));
+  video_codecs.emplace_back(cricket::CreateVideoRtxCodec(101, 100));
+  video_codecs.emplace_back(
+      cricket::CreateVideoCodec(102, cricket::kRedCodecName));
+  fake_engine->SetVideoCodecs(video_codecs);
+
+  auto caller = CreatePeerConnectionWithVideo(std::move(fake_engine));
+
+  auto transceivers = caller->pc()->GetTransceivers();
+  ASSERT_EQ(1u, transceivers.size());
+
+  auto video_transceiver = caller->pc()->GetTransceivers()[0];
+  EXPECT_TRUE(video_transceiver
+                  ->SetDirectionWithError(RtpTransceiverDirection::kRecvOnly)
+                  .ok());
+  auto capabilities = caller->pc_factory()->GetRtpSenderCapabilities(
+      cricket::MediaType::MEDIA_TYPE_VIDEO);
+  auto it =
+      std::remove_if(capabilities.codecs.begin(), capabilities.codecs.end(),
+                     [](const RtpCodecCapability& codec) {
+                       return codec.name == cricket::kRtxCodecName;
+                     });
+  capabilities.codecs.erase(it, capabilities.codecs.end());
+  EXPECT_EQ(capabilities.codecs.size(), 2u);
+  EXPECT_TRUE(video_transceiver->SetCodecPreferences(capabilities.codecs).ok());
+
+  RTCOfferAnswerOptions options;
+  auto offer = caller->CreateOffer(options);
+  const auto& content = offer->description()->contents()[0];
+  auto& codecs = content.media_description()->codecs();
+  ASSERT_EQ(codecs.size(), 2u);
+  EXPECT_EQ(codecs[0].name, "bar");
+  EXPECT_EQ(codecs[1].name, cricket::kRedCodecName);
 }
 
 INSTANTIATE_TEST_SUITE_P(PeerConnectionMediaTest,

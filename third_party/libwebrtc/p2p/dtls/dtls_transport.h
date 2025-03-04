@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/crypto/crypto_options.h"
@@ -27,6 +28,7 @@
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
 #include "p2p/base/ice_transport_internal.h"
+#include "p2p/dtls/dtls_stun_piggyback_controller.h"
 #include "p2p/dtls/dtls_transport_internal.h"
 #include "rtc_base/async_packet_socket.h"
 #include "rtc_base/buffer.h"
@@ -55,6 +57,9 @@ class StreamInterfaceChannel : public rtc::StreamInterface {
  public:
   explicit StreamInterfaceChannel(IceTransportInternal* ice_transport);
 
+  void SetDtlsStunPiggybackController(
+      DtlsStunPiggybackController* dtls_stun_piggyback_controller);
+
   StreamInterfaceChannel(const StreamInterfaceChannel&) = delete;
   StreamInterfaceChannel& operator=(const StreamInterfaceChannel&) = delete;
 
@@ -73,6 +78,8 @@ class StreamInterfaceChannel : public rtc::StreamInterface {
 
  private:
   IceTransportInternal* const ice_transport_;  // owned by DtlsTransport
+  DtlsStunPiggybackController*
+      dtls_stun_piggyback_controller_;  // owned by DtlsTransport
   rtc::StreamState state_ RTC_GUARDED_BY(callback_sequence_);
   rtc::BufferQueue packets_ RTC_GUARDED_BY(callback_sequence_);
 };
@@ -221,6 +228,11 @@ class DtlsTransport : public DtlsTransportInternal {
     return sb.Release();
   }
 
+  void SetPiggybackDtlsDataCallback(
+      absl::AnyInvocable<void(rtc::PacketTransportInternal* transport,
+                              const rtc::ReceivedPacket& packet)> callback);
+  bool IsDtlsPiggybackSupportedByPeer();
+
  private:
   void ConnectToIceTransport();
 
@@ -237,7 +249,7 @@ class DtlsTransport : public DtlsTransportInternal {
   void MaybeStartDtls();
   bool HandleDtlsPacket(rtc::ArrayView<const uint8_t> payload);
   void OnDtlsHandshakeError(rtc::SSLHandshakeError error);
-  void ConfigureHandshakeTimeout();
+  void ConfigureHandshakeTimeout(bool uses_dtls_in_stun);
 
   void set_receiving(bool receiving);
   void set_writable(bool writable);
@@ -269,7 +281,18 @@ class DtlsTransport : public DtlsTransportInternal {
   bool receiving_ = false;
   bool writable_ = false;
 
+  bool was_ever_connected_ = false;
+
   webrtc::RtcEventLog* const event_log_;
+
+  // A controller for piggybacking DTLS in STUN.
+  DtlsStunPiggybackController dtls_stun_piggyback_controller_;
+
+  bool IsDtlsPiggybackHandshaking();
+
+  absl::AnyInvocable<void(rtc::PacketTransportInternal*,
+                          const rtc::ReceivedPacket&)>
+      piggybacked_dtls_callback_;
 };
 
 }  // namespace cricket

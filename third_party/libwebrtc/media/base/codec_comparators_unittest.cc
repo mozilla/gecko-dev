@@ -240,6 +240,112 @@ INSTANTIATE_TEST_SUITE_P(
       return info.param.name;
     });
 
+// For H264, the profile and level IDs are entangled into a single
+// "profile-level-id" attribute, so let's test many different versions.
+// See https://cconcolato.github.io/media-mime-support/ for inspiration.
+TEST(IsSameRtpCodecIgnoringLevelTest, IgnoresH264Levels) {
+  // AVC Baseline Level 3.1
+  Codec baseline_3_1 = CreateVideoCodec(
+      SdpVideoFormat("H264",
+                     {{cricket::kH264FmtpLevelAsymmetryAllowed, "1"},
+                      {cricket::kH264FmtpPacketizationMode, "1"},
+                      {cricket::kH264FmtpProfileLevelId, "42001f"}},
+                     {ScalabilityMode::kL1T1}));
+  // AVC Baseline Level 5.2
+  Codec baseline_5_2 = CreateVideoCodec(
+      SdpVideoFormat("H264",
+                     {{cricket::kH264FmtpLevelAsymmetryAllowed, "1"},
+                      {cricket::kH264FmtpPacketizationMode, "1"},
+                      {cricket::kH264FmtpProfileLevelId, "420034"}},
+                     {ScalabilityMode::kL1T1}));
+  // AVC High Level 3.1
+  Codec high_3_1 = CreateVideoCodec(
+      SdpVideoFormat("H264",
+                     {{cricket::kH264FmtpLevelAsymmetryAllowed, "1"},
+                      {cricket::kH264FmtpPacketizationMode, "1"},
+                      {cricket::kH264FmtpProfileLevelId, "64001f"}},
+                     {ScalabilityMode::kL1T1}));
+  // AVC High Level 5.2
+  Codec high_5_2 = CreateVideoCodec(
+      SdpVideoFormat("H264",
+                     {{cricket::kH264FmtpLevelAsymmetryAllowed, "1"},
+                      {cricket::kH264FmtpPacketizationMode, "1"},
+                      {cricket::kH264FmtpProfileLevelId, "640034"}},
+                     {ScalabilityMode::kL1T1}));
+  // AVC High 4:4:4 Predictive Level 3.1
+  Codec high_444_predictive_3_1 = CreateVideoCodec(
+      SdpVideoFormat("H264",
+                     {{cricket::kH264FmtpLevelAsymmetryAllowed, "1"},
+                      {cricket::kH264FmtpPacketizationMode, "1"},
+                      {cricket::kH264FmtpProfileLevelId, "f4001f"}},
+                     {ScalabilityMode::kL1T1}));
+
+  // AVC Baseline Level 5.2 is compatible with AVC Baseline Level 3.1.
+  EXPECT_TRUE(IsSameRtpCodecIgnoringLevel(baseline_5_2,
+                                          baseline_3_1.ToCodecParameters()));
+  // AVC High is NOT compatible with AVC Baseline.
+  EXPECT_FALSE(
+      IsSameRtpCodecIgnoringLevel(baseline_3_1, high_3_1.ToCodecParameters()));
+  EXPECT_FALSE(
+      IsSameRtpCodecIgnoringLevel(baseline_3_1, high_5_2.ToCodecParameters()));
+  EXPECT_FALSE(
+      IsSameRtpCodecIgnoringLevel(baseline_5_2, high_3_1.ToCodecParameters()));
+  EXPECT_FALSE(
+      IsSameRtpCodecIgnoringLevel(baseline_5_2, high_5_2.ToCodecParameters()));
+  // AVC High 5.2 is compatible with AVC High 3.1
+  EXPECT_TRUE(
+      IsSameRtpCodecIgnoringLevel(high_5_2, high_3_1.ToCodecParameters()));
+  // 4:4:4 Predictive is NOT compatible with either High or Baseline.
+  EXPECT_FALSE(IsSameRtpCodecIgnoringLevel(high_444_predictive_3_1,
+                                           high_3_1.ToCodecParameters()));
+  EXPECT_FALSE(IsSameRtpCodecIgnoringLevel(high_444_predictive_3_1,
+                                           high_5_2.ToCodecParameters()));
+  EXPECT_FALSE(IsSameRtpCodecIgnoringLevel(high_444_predictive_3_1,
+                                           baseline_3_1.ToCodecParameters()));
+  EXPECT_FALSE(IsSameRtpCodecIgnoringLevel(high_444_predictive_3_1,
+                                           baseline_3_1.ToCodecParameters()));
+}
+
+#ifdef RTC_ENABLE_H265
+// For H265, the "profile-id" and "level-id" are separate so test can be simple.
+// The level-id value for Level X.Y is calculated as (X * 10 + Y) * 3.
+// The lowest Level, 1.0, is thus (1 * 10 + 0) * 3 = 30.
+TEST(IsSameRtpCodecIgnoringLevelTest, IgnoresH265Levels) {
+  // Profile 1, Level 5.2
+  Codec profile_1_level_5_2 =
+      CreateVideoCodec(SdpVideoFormat("H265",
+                                      {{cricket::kH265FmtpProfileId, "1"},
+                                       {cricket::kH265FmtpTierFlag, "0"},
+                                       {cricket::kH265FmtpLevelId, "156"},
+                                       {cricket::kH265FmtpTxMode, "SRST"}},
+                                      {ScalabilityMode::kL1T1}));
+  // Profile 1, Level 6.0
+  Codec profile_1_level_6_0 =
+      CreateVideoCodec(SdpVideoFormat("H265",
+                                      {{cricket::kH265FmtpProfileId, "1"},
+                                       {cricket::kH265FmtpTierFlag, "0"},
+                                       {cricket::kH265FmtpLevelId, "180"},
+                                       {cricket::kH265FmtpTxMode, "SRST"}},
+                                      {ScalabilityMode::kL1T1}));
+  // Profile 2, Level 6.0
+  Codec profile_2_level_6_0 =
+      CreateVideoCodec(SdpVideoFormat("H265",
+                                      {{cricket::kH265FmtpProfileId, "2"},
+                                       {cricket::kH265FmtpTierFlag, "0"},
+                                       {cricket::kH265FmtpLevelId, "180"},
+                                       {cricket::kH265FmtpTxMode, "SRST"}},
+                                      {ScalabilityMode::kL1T1}));
+  // Profile 1 codecs are compatible with each other.
+  EXPECT_TRUE(IsSameRtpCodecIgnoringLevel(
+      profile_1_level_5_2, profile_1_level_6_0.ToCodecParameters()));
+  // Profile 2 codecs are NOT compatible with profile 1 codecs.
+  EXPECT_FALSE(IsSameRtpCodecIgnoringLevel(
+      profile_2_level_6_0, profile_1_level_5_2.ToCodecParameters()));
+  EXPECT_FALSE(IsSameRtpCodecIgnoringLevel(
+      profile_2_level_6_0, profile_1_level_6_0.ToCodecParameters()));
+}
+#endif  // RTC_ENABLE_H265
+
 TEST(CodecTest, TestCodecMatches) {
   // Test a codec with a static payload type.
   Codec c0 = cricket::CreateAudioCodec(34, "A", 44100, 1);

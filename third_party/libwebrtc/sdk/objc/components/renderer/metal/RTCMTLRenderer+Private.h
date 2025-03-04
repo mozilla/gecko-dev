@@ -20,7 +20,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (nullable id<MTLDevice>)currentMetalDevice;
 - (NSString *)shaderSource;
 - (BOOL)setupTexturesForFrame:(nonnull RTC_OBJC_TYPE(RTCVideoFrame) *)frame;
-- (void)uploadTexturesToRenderEncoder:(id<MTLRenderCommandEncoder>)renderEncoder;
+- (void)uploadTexturesToRenderEncoder:
+    (id<MTLRenderCommandEncoder>)renderEncoder;
 - (void)getWidth:(nonnull int *)width
           height:(nonnull int *)height
        cropWidth:(nonnull int *)cropWidth

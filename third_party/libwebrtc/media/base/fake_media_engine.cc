@@ -688,5 +688,11 @@ void FakeMediaEngine::SetVideoCodecs(const std::vector<Codec>& codecs) {
   video_->SetSendCodecs(codecs);
   video_->SetRecvCodecs(codecs);
 }
+void FakeMediaEngine::SetVideoRecvCodecs(const std::vector<Codec>& codecs) {
+  video_->SetRecvCodecs(codecs);
+}
+void FakeMediaEngine::SetVideoSendCodecs(const std::vector<Codec>& codecs) {
+  video_->SetSendCodecs(codecs);
+}
 
 }  // namespace cricket

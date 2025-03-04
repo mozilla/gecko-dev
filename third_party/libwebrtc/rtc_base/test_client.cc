@@ -12,12 +12,19 @@
 
 #include <string.h>
 
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include <utility>
 
+#include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
-#include "rtc_base/gunit.h"
+#include "rtc_base/async_packet_socket.h"
+#include "rtc_base/fake_clock.h"
 #include "rtc_base/network/received_packet.h"
+#include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
+#include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/time_utils.h"
 
@@ -79,7 +86,7 @@ std::unique_ptr<TestClient::Packet> TestClient::NextPacket(int timeout_ms) {
   while (TimeUntil(end) > 0) {
     {
       webrtc::MutexLock lock(&mutex_);
-      if (packets_.size() != 0) {
+      if (!packets_.empty()) {
         break;
       }
     }
@@ -89,7 +96,7 @@ std::unique_ptr<TestClient::Packet> TestClient::NextPacket(int timeout_ms) {
   // Return the first packet placed in the queue.
   std::unique_ptr<Packet> packet;
   webrtc::MutexLock lock(&mutex_);
-  if (packets_.size() > 0) {
+  if (!packets_.empty()) {
     packet = std::move(packets_.front());
     packets_.erase(packets_.begin());
   }
@@ -131,7 +138,9 @@ void TestClient::AdvanceTime(int ms) {
   // If the test is using a fake clock, we must advance the fake clock to
   // advance time. Otherwise, ProcessMessages will work.
   if (fake_clock_) {
-    SIMULATED_WAIT(false, ms, *fake_clock_);
+    for (int64_t start = rtc ::TimeMillis(); rtc ::TimeMillis() < start + ms;) {
+      fake_clock_->AdvanceTime(webrtc ::TimeDelta ::Millis(1));
+    };
   } else {
     Thread::Current()->ProcessMessages(1);
   }

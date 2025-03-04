@@ -109,7 +109,7 @@ class PeerConnectionSdpMethods {
                                   int max_message_size) = 0;
 
   // Asynchronously adds a remote candidate on the network thread.
-  virtual void AddRemoteCandidate(const std::string& mid,
+  virtual void AddRemoteCandidate(absl::string_view mid,
                                   const cricket::Candidate& candidate) = 0;
 
   virtual Call* call_ptr() = 0;

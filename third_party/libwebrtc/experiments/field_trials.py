@@ -116,9 +116,6 @@ ACTIVE_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
     FieldTrial('WebRTC-Pacer-KeyframeFlushing',
                42221435,
                date(2024, 4, 1)),
-    FieldTrial('WebRTC-DisableTlsSessionTicketKillswitch',
-               367181089,
-               date(2025, 7, 1)),
     FieldTrial('WebRTC-QCM-Dynamic-AV1',
                349860657,
                date(2025, 7, 1)),
@@ -194,6 +191,9 @@ ACTIVE_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
     FieldTrial('WebRTC-Video-Vp9FlexibleMode',
                329396373,
                date(2025, 6, 26)),
+    FieldTrial('WebRTC-IceHandshakeDtls',
+               367395350,
+               date(2026, 1, 1)),
     # keep-sorted end
 ])  # yapf: disable
 

@@ -355,7 +355,7 @@ class FakePeerConnectionBase : public PeerConnectionInternal {
                           int remote_port,
                           int max_message_size) override {}
 
-  void AddRemoteCandidate(const std::string& mid,
+  void AddRemoteCandidate(absl::string_view mid,
                           const cricket::Candidate& candidate) override {}
 
   Call* call_ptr() override { return nullptr; }

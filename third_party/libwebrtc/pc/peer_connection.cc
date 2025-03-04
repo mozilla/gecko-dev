@@ -301,6 +301,8 @@ cricket::IceConfig ParseIceConfig(
   ice_config.network_preference = config.network_preference;
   ice_config.stable_writable_connection_ping_interval =
       config.stable_writable_connection_ping_interval_ms;
+  ice_config.dtls_handshake_in_stun =
+      false;  // Filled in later based on field trial.
   return ice_config;
 }
 
@@ -613,8 +615,8 @@ RTCErrorOr<rtc::scoped_refptr<PeerConnection>> PeerConnection::Create(
   bool dtls_enabled = DtlsEnabled(configuration, options, dependencies);
 
   if (!dependencies.async_dns_resolver_factory) {
-      dependencies.async_dns_resolver_factory =
-          std::make_unique<BasicAsyncDnsResolverFactory>();
+    dependencies.async_dns_resolver_factory =
+        std::make_unique<BasicAsyncDnsResolverFactory>();
   }
 
   // The PeerConnection constructor consumes some, but not all, dependencies.
@@ -916,7 +918,11 @@ JsepTransportController* PeerConnection::InitializeTransportController_n(
             }));
       });
 
-  transport_controller_->SetIceConfig(ParseIceConfig(configuration));
+  auto ice_config = ParseIceConfig(configuration);
+  ice_config.dtls_handshake_in_stun =
+      CanAttemptDtlsStunPiggybacking(configuration);
+
+  transport_controller_->SetIceConfig(ice_config);
   return transport_controller_.get();
 }
 
@@ -1644,6 +1650,8 @@ RTCError PeerConnection::SetConfiguration(
       modified_config.GetTurnPortPrunePolicy() !=
           configuration_.GetTurnPortPrunePolicy();
   cricket::IceConfig ice_config = ParseIceConfig(modified_config);
+  ice_config.dtls_handshake_in_stun =
+      CanAttemptDtlsStunPiggybacking(modified_config);
 
   // Apply part of the configuration on the network thread.  In theory this
   // shouldn't fail.
@@ -1947,6 +1955,7 @@ void PeerConnection::Close() {
     StopRtcEventLog_w();
   });
   ReportUsagePattern();
+  ReportCloseUsageMetrics();
 
   // Signal shutdown to the sdp handler. This invalidates weak pointers for
   // internal pending callbacks.
@@ -2083,6 +2092,54 @@ void PeerConnection::ReportFirstConnectUsageMetrics() {
   }
   RTC_HISTOGRAM_ENUMERATION("WebRTC.PeerConnection.RtcpMuxPolicy",
                             rtcp_mux_policy, kRtcpMuxPolicyUsageMax);
+  switch (local_description()->GetType()) {
+    case SdpType::kOffer:
+      RTC_HISTOGRAM_ENUMERATION(
+          "WebRTC.PeerConnection.SdpMunging.Offer.ConnectionEstablished",
+          sdp_handler_->sdp_munging_type(), SdpMungingType::kMaxValue);
+      break;
+    case SdpType::kAnswer:
+      RTC_HISTOGRAM_ENUMERATION(
+          "WebRTC.PeerConnection.SdpMunging.Answer.ConnectionEstablished",
+          sdp_handler_->sdp_munging_type(), SdpMungingType::kMaxValue);
+      break;
+    case SdpType::kPrAnswer:
+      RTC_HISTOGRAM_ENUMERATION(
+          "WebRTC.PeerConnection.SdpMunging.PrAnswer.ConnectionEstablished",
+          sdp_handler_->sdp_munging_type(), SdpMungingType::kMaxValue);
+      break;
+    case SdpType::kRollback:
+      // Rollback does not have SDP so can not be munged.
+      break;
+  }
+}
+
+void PeerConnection::ReportCloseUsageMetrics() {
+  if (!was_ever_connected_) {
+    return;
+  }
+  RTC_DCHECK(local_description());
+  RTC_DCHECK(sdp_handler_);
+  switch (local_description()->GetType()) {
+    case SdpType::kOffer:
+      RTC_HISTOGRAM_ENUMERATION(
+          "WebRTC.PeerConnection.SdpMunging.Offer.ConnectionClosed",
+          sdp_handler_->sdp_munging_type(), SdpMungingType::kMaxValue);
+      break;
+    case SdpType::kAnswer:
+      RTC_HISTOGRAM_ENUMERATION(
+          "WebRTC.PeerConnection.SdpMunging.Answer.ConnectionClosed",
+          sdp_handler_->sdp_munging_type(), SdpMungingType::kMaxValue);
+      break;
+    case SdpType::kPrAnswer:
+      RTC_HISTOGRAM_ENUMERATION(
+          "WebRTC.PeerConnection.SdpMunging.PrAnswer.ConnectionClosed",
+          sdp_handler_->sdp_munging_type(), SdpMungingType::kMaxValue);
+      break;
+    case SdpType::kRollback:
+      // Rollback does not have SDP so can not be munged.
+      break;
+  }
 }
 
 void PeerConnection::OnIceGatheringChange(
@@ -2530,7 +2587,7 @@ bool PeerConnection::GetLocalCandidateMediaIndex(
   bool content_found = false;
   const ContentInfos& contents = local_description()->description()->contents();
   for (size_t index = 0; index < contents.size(); ++index) {
-    if (contents[index].name == content_name) {
+    if (contents[index].mid() == content_name) {
       *sdp_mline_index = static_cast<int>(index);
       content_found = true;
       break;
@@ -2612,7 +2669,7 @@ bool PeerConnection::ValidateBundleSettings(
        citer != contents.end(); ++citer) {
     const cricket::ContentInfo* content = (&*citer);
     RTC_DCHECK(content != NULL);
-    auto it = bundle_groups_by_mid.find(content->name);
+    auto it = bundle_groups_by_mid.find(content->mid());
     if (it != bundle_groups_by_mid.end() &&
         !(content->rejected || content->bundle_only) &&
         content->type == MediaProtocolType::kRtp) {
@@ -2690,7 +2747,7 @@ void PeerConnection::NoteUsageEvent(UsageEvent event) {
 }
 
 // Asynchronously adds remote candidates on the network thread.
-void PeerConnection::AddRemoteCandidate(const std::string& mid,
+void PeerConnection::AddRemoteCandidate(absl::string_view mid,
                                         const cricket::Candidate& candidate) {
   RTC_DCHECK_RUN_ON(signaling_thread());
 
@@ -2706,7 +2763,8 @@ void PeerConnection::AddRemoteCandidate(const std::string& mid,
   new_candidate.set_underlying_type_for_vpn(rtc::ADAPTER_TYPE_UNKNOWN);
 
   network_thread()->PostTask(SafeTask(
-      network_thread_safety_, [this, mid = mid, candidate = new_candidate] {
+      network_thread_safety_,
+      [this, mid = std::string(mid), candidate = new_candidate] {
         RTC_DCHECK_RUN_ON(network_thread());
         std::vector<cricket::Candidate> candidates = {candidate};
         RTCError error =
@@ -3071,6 +3129,16 @@ PeerConnection::InitializeUnDemuxablePacketHandler() {
               [](const RtpPacketReceived& packet) { return false; });
         }));
   };
+}
+
+bool PeerConnection::CanAttemptDtlsStunPiggybacking(
+    const RTCConfiguration& configuration) {
+  // Enable DTLS-in-STUN only if no certificates were passed those
+  // may be RSA certificates and this feature only works with small
+  // ECDSA certificates. Determining the type of the key is
+  // not trivially possible at this point.
+  return dtls_enabled_ && configuration.certificates.empty() &&
+         env_.field_trials().IsEnabled("WebRTC-IceHandshakeDtls");
 }
 
 }  // namespace webrtc

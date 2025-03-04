@@ -70,6 +70,7 @@ specific_include_rules = {
     "+p2p/base/port_allocator.h",
   ],
   ".*network_emulation_pc_unittest\.cc": [
+    "+p2p/base/port_allocator.h",
     "+pc/peer_connection_wrapper.h",
     "+pc/test/mock_peer_connection_observers.h",
     "+p2p/client/basic_port_allocator.h",

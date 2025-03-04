@@ -14,7 +14,8 @@
 
 @synthesize delegate = _delegate;
 
-- (instancetype)initWithDelegate:(id<RTC_OBJC_TYPE(RTCVideoCapturerDelegate)>)delegate {
+- (instancetype)initWithDelegate:
+    (id<RTC_OBJC_TYPE(RTCVideoCapturerDelegate)>)delegate {
   self = [super init];
   if (self) {
     _delegate = delegate;

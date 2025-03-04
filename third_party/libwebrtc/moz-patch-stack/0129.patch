@@ -10,12 +10,12 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/f18c05287ce831369
  1 file changed, 12 insertions(+), 2 deletions(-)
 
 diff --git a/webrtc.gni b/webrtc.gni
-index 60cb81271c..2efd99096f 100644
+index 80e79259e4..6a8b599ead 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -536,7 +536,7 @@ template("rtc_test") {
        min_sdk_version = 21
-       target_sdk_version = 23
+       target_sdk_version = 24
        deps += [
 -        "//build/android/gtest_apk:native_test_instrumentation_test_runner_java",
 +        "//chromium/build/android/gtest_apk:native_test_instrumentation_test_runner_java",

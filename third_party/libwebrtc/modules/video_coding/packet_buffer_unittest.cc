@@ -356,6 +356,19 @@ TEST_F(PacketBufferTest, FramesReordered) {
               StartSeqNumsAre(seq_num + 2));
 }
 
+TEST_F(PacketBufferTest, FramesReorderedReconstruction) {
+  Insert(100, kKeyFrame, kFirst, kNotLast, {}, 2);
+
+  Insert(98, kKeyFrame, kFirst, kNotLast, {}, 1);
+  EXPECT_THAT(Insert(99, kDeltaFrame, kNotFirst, kLast, {}, 1),
+              StartSeqNumsAre(98));
+
+  // Ideally frame with timestamp 2, seq No 100 should be
+  // reconstructed here from the first Insert() call in the test
+  EXPECT_THAT(Insert(101, kDeltaFrame, kNotFirst, kLast, {}, 2),
+              StartSeqNumsAre(100));
+}
+
 TEST_F(PacketBufferTest, InsertPacketAfterSequenceNumberWrapAround) {
   int64_t kFirstSeqNum = 0;
   uint32_t kTimestampDelta = 100;

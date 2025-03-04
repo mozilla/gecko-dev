@@ -22,15 +22,13 @@
 #include "rtc_base/logging.h"
 
 // Vertex shader doesn't do anything except pass coordinates through.
-const char kRTCVertexShaderSource[] =
-  SHADER_VERSION
-  VERTEX_SHADER_IN " vec2 position;\n"
-  VERTEX_SHADER_IN " vec2 texcoord;\n"
-  VERTEX_SHADER_OUT " vec2 v_texcoord;\n"
-  "void main() {\n"
-  "    gl_Position = vec4(position.x, position.y, 0.0, 1.0);\n"
-  "    v_texcoord = texcoord;\n"
-  "}\n";
+const char kRTCVertexShaderSource[] = SHADER_VERSION VERTEX_SHADER_IN
+    " vec2 position;\n" VERTEX_SHADER_IN " vec2 texcoord;\n" VERTEX_SHADER_OUT
+    " vec2 v_texcoord;\n"
+    "void main() {\n"
+    "    gl_Position = vec4(position.x, position.y, 0.0, 1.0);\n"
+    "    v_texcoord = texcoord;\n"
+    "}\n";
 
 // Compiles a shader of the given `type` with GLSL source `source` and returns
 // the shader handle or 0 on error.
@@ -84,7 +82,8 @@ GLuint RTCCreateProgram(GLuint vertexShader, GLuint fragmentShader) {
 // Creates and links a shader program with the given fragment shader source and
 // a plain vertex shader. Returns the program handle or 0 on error.
 GLuint RTCCreateProgramFromFragmentSource(const char fragmentShaderSource[]) {
-  GLuint vertexShader = RTCCreateShader(GL_VERTEX_SHADER, kRTCVertexShaderSource);
+  GLuint vertexShader =
+      RTCCreateShader(GL_VERTEX_SHADER, kRTCVertexShaderSource);
   RTC_CHECK(vertexShader) << "failed to create vertex shader";
   GLuint fragmentShader =
       RTCCreateShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
@@ -106,15 +105,22 @@ GLuint RTCCreateProgramFromFragmentSource(const char fragmentShaderSource[]) {
     return 0;
   }
 
-  // Read position attribute with size of 2 and stride of 4 beginning at the start of the array. The
-  // last argument indicates offset of data within the vertex buffer.
-  glVertexAttribPointer(position, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void *)0);
+  // Read position attribute with size of 2 and stride of 4 beginning at the
+  // start of the array. The last argument indicates offset of data within the
+  // vertex buffer.
+  glVertexAttribPointer(
+      position, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void *)0);
   glEnableVertexAttribArray(position);
 
-  // Read texcoord attribute  with size of 2 and stride of 4 beginning at the first texcoord in the
-  // array. The last argument indicates offset of data within the vertex buffer.
-  glVertexAttribPointer(
-      texcoord, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void *)(2 * sizeof(GLfloat)));
+  // Read texcoord attribute  with size of 2 and stride of 4 beginning at the
+  // first texcoord in the array. The last argument indicates offset of data
+  // within the vertex buffer.
+  glVertexAttribPointer(texcoord,
+                        2,
+                        GL_FLOAT,
+                        GL_FALSE,
+                        4 * sizeof(GLfloat),
+                        (void *)(2 * sizeof(GLfloat)));
   glEnableVertexAttribArray(texcoord);
 
   return program;
@@ -163,15 +169,27 @@ void RTCSetVertexData(RTCVideoRotation rotation) {
       rotation_offset = 3;
       break;
   }
-  std::rotate(UVCoords.begin(), UVCoords.begin() + rotation_offset,
-              UVCoords.end());
+  std::rotate(
+      UVCoords.begin(), UVCoords.begin() + rotation_offset, UVCoords.end());
 
   const GLfloat gVertices[] = {
       // X, Y, U, V.
-      -1, -1, UVCoords[0][0], UVCoords[0][1],
-       1, -1, UVCoords[1][0], UVCoords[1][1],
-       1,  1, UVCoords[2][0], UVCoords[2][1],
-      -1,  1, UVCoords[3][0], UVCoords[3][1],
+      -1,
+      -1,
+      UVCoords[0][0],
+      UVCoords[0][1],
+      1,
+      -1,
+      UVCoords[1][0],
+      UVCoords[1][1],
+      1,
+      1,
+      UVCoords[2][0],
+      UVCoords[2][1],
+      -1,
+      1,
+      UVCoords[3][0],
+      UVCoords[3][1],
   };
 
   glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(gVertices), gVertices);

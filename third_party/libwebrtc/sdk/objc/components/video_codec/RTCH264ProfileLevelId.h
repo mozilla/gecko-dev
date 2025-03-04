@@ -55,6 +55,7 @@ RTC_OBJC_EXPORT
 @property(nonatomic, readonly) NSString *hexString;
 
 - (instancetype)initWithHexString:(NSString *)hexString;
-- (instancetype)initWithProfile:(RTCH264Profile)profile level:(RTCH264Level)level;
+- (instancetype)initWithProfile:(RTCH264Profile)profile
+                          level:(RTCH264Level)level;
 
 @end

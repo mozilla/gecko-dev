@@ -12,26 +12,39 @@
 
 #include <stdlib.h>
 
-#include <algorithm>
+#include <cstdint>
+#include <cstring>
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
+#include "api/array_view.h"
+#include "api/sequence_checker.h"
+#include "api/test/rtc_error_matchers.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/net_helpers.h"
 #include "rtc_base/net_test_helpers.h"
+#include "rtc_base/network_constants.h"
 #include "rtc_base/network_monitor.h"
 #include "rtc_base/network_monitor_factory.h"
 #include "rtc_base/physical_socket_server.h"
+#include "rtc_base/socket_address.h"
+#include "rtc_base/socket_factory.h"
+#include "rtc_base/third_party/sigslot/sigslot.h"
+#include "rtc_base/thread.h"
+#include "test/gtest.h"
+#include "test/wait_until.h"
 #if defined(WEBRTC_POSIX)
 #include <net/if.h>
 #include <sys/types.h>
 
 #include "rtc_base/ifaddrs_converter.h"
 #endif  // defined(WEBRTC_POSIX)
-#include "rtc_base/gunit.h"
 #include "test/gmock.h"
 #if defined(WEBRTC_WIN)
 #include "rtc_base/logging.h"  // For RTC_LOG_GLE
@@ -40,6 +53,7 @@
 #include "test/scoped_key_value_config.h"
 
 using ::testing::Contains;
+using ::testing::IsTrue;
 using ::testing::Not;
 using ::testing::UnorderedElementsAre;
 using ::testing::UnorderedElementsAreArray;
@@ -93,7 +107,7 @@ class FakeNetworkMonitor : public NetworkMonitorInterface {
     }
 
     for (auto const& iter : adapters_) {
-      if (if_name.find(iter) != absl::string_view::npos) {
+      if (absl::StrContains(if_name, iter)) {
         return NetworkBindingResult::SUCCESS;
       }
     }
@@ -1248,7 +1262,8 @@ TEST_F(NetworkTest, TestNetworkMonitoring) {
   manager.StartUpdating();
   FakeNetworkMonitor* network_monitor = GetNetworkMonitor(manager);
   EXPECT_TRUE(network_monitor && network_monitor->started());
-  EXPECT_TRUE_WAIT(callback_called_, 1000);
+  EXPECT_THAT(webrtc::WaitUntil([&] { return callback_called_; }, IsTrue()),
+              webrtc::IsRtcOk());
   callback_called_ = false;
 
   // Clear the networks so that there will be network changes below.
@@ -1256,7 +1271,8 @@ TEST_F(NetworkTest, TestNetworkMonitoring) {
   // Network manager is started, so the callback is called when the network
   // monitor fires the network-change event.
   network_monitor->InovkeNetworksChangedCallbackForTesting();
-  EXPECT_TRUE_WAIT(callback_called_, 1000);
+  EXPECT_THAT(webrtc::WaitUntil([&] { return callback_called_; }, IsTrue()),
+              webrtc::IsRtcOk());
 
   // Network manager is stopped.
   manager.StopUpdating();
@@ -1278,7 +1294,8 @@ TEST_F(NetworkTest, MAYBE_DefaultLocalAddress) {
   manager.SignalNetworksChanged.connect(static_cast<NetworkTest*>(this),
                                         &NetworkTest::OnNetworksChanged);
   manager.StartUpdating();
-  EXPECT_TRUE_WAIT(callback_called_, 1000);
+  EXPECT_THAT(webrtc::WaitUntil([&] { return callback_called_; }, IsTrue()),
+              webrtc::IsRtcOk());
 
   // Make sure we can query default local address when an address for such
   // address family exists.

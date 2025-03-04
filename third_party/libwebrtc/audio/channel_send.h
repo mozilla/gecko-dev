@@ -11,19 +11,27 @@
 #ifndef AUDIO_CHANNEL_SEND_H_
 #define AUDIO_CHANNEL_SEND_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
-#include <string>
+#include <optional>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "api/audio/audio_frame.h"
 #include "api/audio_codecs/audio_encoder.h"
+#include "api/audio_codecs/audio_format.h"
+#include "api/call/bitrate_allocation.h"
 #include "api/crypto/crypto_options.h"
 #include "api/environment/environment.h"
 #include "api/frame_transformer_interface.h"
 #include "api/function_view.h"
+#include "api/scoped_refptr.h"
+#include "api/units/data_rate.h"
+#include "api/units/time_delta.h"
 #include "modules/rtp_rtcp/include/report_block_data.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtp_rtcp_interface.h"
-#include "modules/rtp_rtcp/source/rtp_sender_audio.h"
 
 namespace webrtc {
 
@@ -88,17 +96,6 @@ class ChannelSendInterface {
       std::unique_ptr<AudioFrame> audio_frame) = 0;
   virtual RtpRtcpInterface* GetRtpRtcp() const = 0;
 
-  // In RTP we currently rely on RTCP packets (`ReceivedRTCPPacket`) to inform
-  // about RTT.
-  // In media transport we rely on the TargetTransferRateObserver instead.
-  // In other words, if you are using RTP, you should expect
-  // `ReceivedRTCPPacket` to be called, if you are using media transport,
-  // `OnTargetTransferRate` will be called.
-  //
-  // In future, RTP media will move to the media transport implementation and
-  // these conditions will be removed.
-  // Returns the RTT in milliseconds.
-  virtual int64_t GetRTT() const = 0;
   virtual void StartSend() = 0;
   virtual void StopSend() = 0;
 

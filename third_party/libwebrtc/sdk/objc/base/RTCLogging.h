@@ -47,13 +47,17 @@ RTC_EXTERN NSString* RTCFileName(const char* filePath);
     RTCLogEx(severity, log_string);                             \
   } while (false)
 
-#define RTCLogVerbose(format, ...) RTCLogFormat(RTCLoggingSeverityVerbose, format, ##__VA_ARGS__)
+#define RTCLogVerbose(format, ...) \
+  RTCLogFormat(RTCLoggingSeverityVerbose, format, ##__VA_ARGS__)
 
-#define RTCLogInfo(format, ...) RTCLogFormat(RTCLoggingSeverityInfo, format, ##__VA_ARGS__)
+#define RTCLogInfo(format, ...) \
+  RTCLogFormat(RTCLoggingSeverityInfo, format, ##__VA_ARGS__)
 
-#define RTCLogWarning(format, ...) RTCLogFormat(RTCLoggingSeverityWarning, format, ##__VA_ARGS__)
+#define RTCLogWarning(format, ...) \
+  RTCLogFormat(RTCLoggingSeverityWarning, format, ##__VA_ARGS__)
 
-#define RTCLogError(format, ...) RTCLogFormat(RTCLoggingSeverityError, format, ##__VA_ARGS__)
+#define RTCLogError(format, ...) \
+  RTCLogFormat(RTCLoggingSeverityError, format, ##__VA_ARGS__)
 
 #if !defined(NDEBUG)
 #define RTCLogDebug(format, ...) RTCLogInfo(format, ##__VA_ARGS__)

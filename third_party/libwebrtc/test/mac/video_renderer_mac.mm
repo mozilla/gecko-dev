@@ -31,8 +31,8 @@
 @end
 
 @implementation CocoaWindow
-  static NSInteger nextXOrigin_;
-  static NSInteger nextYOrigin_;
+static NSInteger nextXOrigin_;
+static NSInteger nextYOrigin_;
 
 - (id)initWithTitle:(NSString *)title width:(int)width height:(int)height {
   self = [super init];
@@ -67,7 +67,8 @@
                                             defer:NO];
 
   NSRect viewFrame = NSMakeRect(0, 0, width_, height_);
-  NSOpenGLView *view = [[NSOpenGLView alloc] initWithFrame:viewFrame pixelFormat:nil];
+  NSOpenGLView *view = [[NSOpenGLView alloc] initWithFrame:viewFrame
+                                               pixelFormat:nil];
   context_ = [view openGLContext];
 
   [[window_ contentView] addSubview:view];
@@ -84,10 +85,10 @@
 namespace webrtc {
 namespace test {
 
-VideoRenderer* VideoRenderer::CreatePlatformRenderer(const char* window_title,
+VideoRenderer *VideoRenderer::CreatePlatformRenderer(const char *window_title,
                                                      size_t width,
                                                      size_t height) {
-  MacRenderer* renderer = new MacRenderer();
+  MacRenderer *renderer = new MacRenderer();
   if (!renderer->Init(window_title, width, height)) {
     delete renderer;
     return NULL;
@@ -95,20 +96,18 @@ VideoRenderer* VideoRenderer::CreatePlatformRenderer(const char* window_title,
   return renderer;
 }
 
-MacRenderer::MacRenderer()
-    : window_(NULL) {}
+MacRenderer::MacRenderer() : window_(NULL) {}
 
 MacRenderer::~MacRenderer() {
   GlRenderer::Destroy();
 }
 
-bool MacRenderer::Init(const char* window_title, int width, int height) {
+bool MacRenderer::Init(const char *window_title, int width, int height) {
   window_ = [[CocoaWindow alloc]
       initWithTitle:[NSString stringWithUTF8String:window_title]
-                                             width:width
-                                            height:height];
-  if (!window_)
-    return false;
+              width:width
+             height:height];
+  if (!window_) return false;
   [window_ performSelectorOnMainThread:@selector(createWindow:)
                             withObject:nil
                          waitUntilDone:YES];
@@ -119,10 +118,10 @@ bool MacRenderer::Init(const char* window_title, int width, int height) {
   return true;
 }
 
-void MacRenderer::OnFrame(const VideoFrame& frame) {
+void MacRenderer::OnFrame(const VideoFrame &frame) {
   [window_ makeCurrentContext];
   GlRenderer::OnFrame(frame);
 }
 
-}  // test
-}  // webrtc
+}  // namespace test
+}  // namespace webrtc

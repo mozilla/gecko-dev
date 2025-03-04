@@ -20,18 +20,16 @@
 #include <set>
 #include <string>
 #include <tuple>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "api/audio/audio_device.h"
-#include "api/audio/audio_mixer.h"
-#include "api/audio/audio_processing.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/create_peerconnection_factory.h"
 #include "api/dtls_transport_interface.h"
 #include "api/jsep.h"
+#include "api/make_ref_counted.h"
 #include "api/media_types.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtc_error.h"
@@ -39,8 +37,8 @@
 #include "api/rtp_sender_interface.h"
 #include "api/rtp_transceiver_interface.h"
 #include "api/scoped_refptr.h"
-#include "api/set_local_description_observer_interface.h"
-#include "api/set_remote_description_observer_interface.h"
+#include "api/test/rtc_error_matchers.h"
+#include "api/units/time_delta.h"
 #include "api/video_codecs/video_decoder_factory_template.h"
 #include "api/video_codecs/video_decoder_factory_template_dav1d_adapter.h"
 #include "api/video_codecs/video_decoder_factory_template_libvpx_vp8_adapter.h"
@@ -52,7 +50,6 @@
 #include "api/video_codecs/video_encoder_factory_template_libvpx_vp9_adapter.h"
 #include "api/video_codecs/video_encoder_factory_template_open_h264_adapter.h"
 #include "media/base/codec.h"
-#include "p2p/base/port_allocator.h"
 #include "pc/peer_connection.h"
 #include "pc/peer_connection_proxy.h"
 #include "pc/peer_connection_wrapper.h"
@@ -60,18 +57,16 @@
 #include "pc/session_description.h"
 #include "pc/test/mock_peer_connection_observers.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/rtc_certificate.h"
-#include "rtc_base/rtc_certificate_generator.h"
 #include "rtc_base/string_encode.h"
 #include "rtc_base/thread.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 #ifdef WEBRTC_ANDROID
 #include "pc/test/android_test_initializer.h"
 #endif
 #include "pc/test/fake_audio_capture_module.h"
 #include "pc/test/fake_rtc_certificate_generator.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/virtual_socket_server.h"
 
 namespace webrtc {
@@ -595,7 +590,10 @@ TEST_P(PeerConnectionSignalingTest, CreateOffersAndShutdown) {
     // We expect to have received a notification now even if the PeerConnection
     // was terminated. The offer creation may or may not have succeeded, but we
     // must have received a notification.
-    EXPECT_TRUE_WAIT(observer->called(), kWaitTimeout);
+    EXPECT_THAT(
+        WaitUntil([&] { return observer->called(); }, ::testing::IsTrue(),
+                  {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),
+        IsRtcOk());
   }
 }
 
@@ -609,7 +607,9 @@ TEST_P(PeerConnectionSignalingTest, CloseCreateOfferAndShutdown) {
   caller->pc()->Close();
   caller->pc()->CreateOffer(observer.get(), RTCOfferAnswerOptions());
   caller.reset(nullptr);
-  EXPECT_TRUE_WAIT(observer->called(), kWaitTimeout);
+  EXPECT_THAT(WaitUntil([&] { return observer->called(); }, ::testing::IsTrue(),
+                        {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),
+              IsRtcOk());
 }
 
 TEST_P(PeerConnectionSignalingTest,
@@ -701,7 +701,9 @@ TEST_P(PeerConnectionSignalingTest,
   bool checkpoint_reached = false;
   rtc::Thread::Current()->PostTask(
       [&checkpoint_reached] { checkpoint_reached = true; });
-  EXPECT_TRUE_WAIT(checkpoint_reached, kWaitTimeout);
+  EXPECT_THAT(WaitUntil([&] { return checkpoint_reached; }, ::testing::IsTrue(),
+                        {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),
+              IsRtcOk());
   // If resolving the observer was pending, it must now have been called.
   EXPECT_TRUE(observer->called());
 }
@@ -745,7 +747,10 @@ TEST_P(PeerConnectionSignalingTest, CreateOfferBlocksSetRemoteDescription) {
   // yet.
   EXPECT_EQ(0u, callee->pc()->GetReceivers().size());
   // EXPECT_TRUE_WAIT causes messages to be processed...
-  EXPECT_TRUE_WAIT(offer_observer->called(), kWaitTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return offer_observer->called(); }, ::testing::IsTrue(),
+                {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),
+      IsRtcOk());
   // Now that the offer has been completed, SetRemoteDescription() will have
   // been executed next in the chain.
   EXPECT_EQ(2u, callee->pc()->GetReceivers().size());
@@ -765,7 +770,9 @@ TEST_P(PeerConnectionSignalingTest,
   EXPECT_EQ(PeerConnection::kStable, caller->signaling_state());
 
   // Wait for messages to be processed.
-  EXPECT_TRUE_WAIT(observer->called(), kWaitTimeout);
+  EXPECT_THAT(WaitUntil([&] { return observer->called(); }, ::testing::IsTrue(),
+                        {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),
+              IsRtcOk());
   EXPECT_TRUE(observer->result());
   EXPECT_TRUE(caller->pc()->pending_local_description());
   EXPECT_EQ(SdpType::kOffer,
@@ -790,7 +797,9 @@ TEST_P(PeerConnectionSignalingTest,
   EXPECT_FALSE(callee->pc()->current_local_description());
 
   // Wait for messages to be processed.
-  EXPECT_TRUE_WAIT(observer->called(), kWaitTimeout);
+  EXPECT_THAT(WaitUntil([&] { return observer->called(); }, ::testing::IsTrue(),
+                        {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),
+              IsRtcOk());
   EXPECT_TRUE(observer->result());
   EXPECT_TRUE(callee->pc()->current_local_description());
   EXPECT_EQ(SdpType::kAnswer,
@@ -808,8 +817,11 @@ TEST_P(PeerConnectionSignalingTest,
       MockSetSessionDescriptionObserver::Create();
   caller->pc()->SetLocalDescription(
       caller_set_local_description_observer.get());
-  EXPECT_TRUE_WAIT(caller_set_local_description_observer->called(),
-                   kWaitTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return caller_set_local_description_observer->called(); },
+                ::testing::IsTrue(),
+                {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),
+      IsRtcOk());
   ASSERT_TRUE(caller->pc()->pending_local_description());
 
   // SetRemoteDescription(offer)
@@ -825,8 +837,11 @@ TEST_P(PeerConnectionSignalingTest,
       MockSetSessionDescriptionObserver::Create();
   callee->pc()->SetLocalDescription(
       callee_set_local_description_observer.get());
-  EXPECT_TRUE_WAIT(callee_set_local_description_observer->called(),
-                   kWaitTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return callee_set_local_description_observer->called(); },
+                ::testing::IsTrue(),
+                {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),
+      IsRtcOk());
   // Chaining guarantees SetRemoteDescription() happened before
   // SetLocalDescription().
   EXPECT_TRUE(callee_set_remote_description_observer->called());
@@ -839,8 +854,12 @@ TEST_P(PeerConnectionSignalingTest,
       caller_set_remote_description_observer.get(),
       CloneSessionDescription(callee->pc()->current_local_description())
           .release());
-  EXPECT_TRUE_WAIT(caller_set_remote_description_observer->called(),
-                   kWaitTimeout);
+  EXPECT_THAT(
+      WaitUntil(
+          [&] { return caller_set_remote_description_observer->called(); },
+          ::testing::IsTrue(),
+          {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),
+      IsRtcOk());
 
   EXPECT_EQ(PeerConnection::kStable, caller->signaling_state());
   EXPECT_EQ(PeerConnection::kStable, callee->signaling_state());
@@ -856,7 +875,9 @@ TEST_P(PeerConnectionSignalingTest,
 
   // The operation should fail asynchronously.
   EXPECT_FALSE(observer->called());
-  EXPECT_TRUE_WAIT(observer->called(), kWaitTimeout);
+  EXPECT_THAT(WaitUntil([&] { return observer->called(); }, ::testing::IsTrue(),
+                        {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),
+              IsRtcOk());
   EXPECT_FALSE(observer->result());
   // This did not affect the signaling state.
   EXPECT_EQ(PeerConnection::kClosed, caller->pc()->signaling_state());
@@ -876,7 +897,9 @@ TEST_P(PeerConnectionSignalingTest,
 
   // The operation should fail asynchronously.
   EXPECT_FALSE(observer->called());
-  EXPECT_TRUE_WAIT(observer->called(), kWaitTimeout);
+  EXPECT_THAT(WaitUntil([&] { return observer->called(); }, ::testing::IsTrue(),
+                        {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),
+              IsRtcOk());
   EXPECT_FALSE(observer->result());
   // This did not affect the signaling state.
   EXPECT_EQ(PeerConnection::kClosed, caller->pc()->signaling_state());
@@ -987,10 +1010,8 @@ TEST_P(PeerConnectionSignalingTest, ReceiveFlexFec) {
   auto answer = caller->CreateAnswer();
   ASSERT_EQ(answer->description()->contents().size(), 1u);
   ASSERT_NE(answer->description()->contents()[0].media_description(), nullptr);
-  auto codecs = answer->description()
-                    ->contents()[0]
-                    .media_description()
-                    ->codecs();
+  auto codecs =
+      answer->description()->contents()[0].media_description()->codecs();
   ASSERT_EQ(codecs.size(), 2u);
   EXPECT_EQ(codecs[1].name, "flexfec-03");
 
@@ -1040,10 +1061,8 @@ TEST_P(PeerConnectionSignalingTest, ReceiveFlexFecReoffer) {
   auto answer = caller->CreateAnswer();
   ASSERT_EQ(answer->description()->contents().size(), 1u);
   ASSERT_NE(answer->description()->contents()[0].media_description(), nullptr);
-  auto codecs = answer->description()
-                    ->contents()[0]
-                    .media_description()
-                    ->codecs();
+  auto codecs =
+      answer->description()->contents()[0].media_description()->codecs();
   ASSERT_EQ(codecs.size(), 2u);
   EXPECT_EQ(codecs[1].name, "flexfec-03");
   EXPECT_EQ(codecs[1].id, 35);
@@ -1052,10 +1071,8 @@ TEST_P(PeerConnectionSignalingTest, ReceiveFlexFecReoffer) {
 
   // This generates a collision for AV1 which needs to be remapped.
   auto offer = caller->CreateOffer(RTCOfferAnswerOptions());
-  auto offer_codecs = offer->description()
-                          ->contents()[0]
-                          .media_description()
-                          ->codecs();
+  auto offer_codecs =
+      offer->description()->contents()[0].media_description()->codecs();
   auto flexfec_it = std::find_if(
       offer_codecs.begin(), offer_codecs.end(),
       [](const cricket::Codec& codec) { return codec.name == "flexfec-03"; });
@@ -1175,7 +1192,10 @@ TEST_F(PeerConnectionSignalingUnifiedPlanTest,
             EXPECT_TRUE(pc->GetTransceivers()[0]->mid().has_value());
           });
   caller->pc()->CreateOffer(offer_observer.get(), RTCOfferAnswerOptions());
-  EXPECT_TRUE_WAIT(offer_observer->was_called(), kWaitTimeout);
+  EXPECT_THAT(WaitUntil([&] { return offer_observer->was_called(); },
+                        ::testing::IsTrue(),
+                        {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),
+              IsRtcOk());
 }
 
 // Test that transports are shown in the sender/receiver API after offer/answer.
@@ -1272,7 +1292,9 @@ TEST_F(PeerConnectionSignalingUnifiedPlanTest,
 
   // When the Operations Chain becomes empty again, a new negotiation needed
   // event will be generated that is not suppressed.
-  EXPECT_TRUE_WAIT(observer->called(), kWaitTimeout);
+  EXPECT_THAT(WaitUntil([&] { return observer->called(); }, ::testing::IsTrue(),
+                        {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),
+              IsRtcOk());
   EXPECT_TRUE(caller->observer()->has_negotiation_needed_event());
   EXPECT_TRUE(caller->pc()->ShouldFireNegotiationNeededEvent(
       caller->observer()->latest_negotiation_needed_event()));
@@ -1345,10 +1367,8 @@ TEST_F(PeerConnectionSignalingUnifiedPlanTest, RtxReofferApt) {
 
   callee->pc()->GetTransceivers()[0]->StopStandard();
   auto reoffer = callee->CreateOffer(RTCOfferAnswerOptions());
-  auto codecs = reoffer->description()
-                    ->contents()[0]
-                    .media_description()
-                    ->codecs();
+  auto codecs =
+      reoffer->description()->contents()[0].media_description()->codecs();
   ASSERT_GT(codecs.size(), 2u);
   EXPECT_EQ(codecs[0].name, "VP8");
   EXPECT_EQ(codecs[1].name, "rtx");

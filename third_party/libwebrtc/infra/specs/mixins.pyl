@@ -32,6 +32,7 @@
     }
   },
   'chromium-tester-service-account': {
+    'fail_if_unused': False,
     'swarming': {
       'service_account':
       'chromium-tester@chops-service-accounts.iam.gserviceaccount.com'
@@ -129,6 +130,7 @@
     }
   },
   'linux-jammy': {
+    'fail_if_unused': False,
     'swarming': {
       'dimensions': {
         'os': 'Ubuntu-22.04'
@@ -312,6 +314,7 @@
     }
   },
   'x86-64': {
+    'fail_if_unused': False,
     'swarming': {
       'dimensions': {
         'cpu': 'x86-64'

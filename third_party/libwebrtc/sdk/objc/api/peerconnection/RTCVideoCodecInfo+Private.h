@@ -18,7 +18,8 @@ NS_ASSUME_NONNULL_BEGIN
 @interface RTC_OBJC_TYPE (RTCVideoCodecInfo)
 (Private)
 
-    - (instancetype)initWithNativeSdpVideoFormat : (webrtc::SdpVideoFormat)format;
+    - (instancetype)initWithNativeSdpVideoFormat
+    : (webrtc::SdpVideoFormat)format;
 - (webrtc::SdpVideoFormat)nativeSdpVideoFormat;
 
 @end

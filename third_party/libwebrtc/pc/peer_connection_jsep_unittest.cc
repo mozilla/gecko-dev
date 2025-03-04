@@ -228,7 +228,7 @@ TEST_F(PeerConnectionJsepTest, MediaSectionsInInitialOfferHaveDifferentMids) {
   auto offer = caller->CreateOffer();
   auto contents = offer->description()->contents();
   ASSERT_EQ(2u, contents.size());
-  EXPECT_NE(contents[0].name, contents[1].name);
+  EXPECT_NE(contents[0].mid(), contents[1].mid());
 }
 
 TEST_F(PeerConnectionJsepTest,
@@ -259,8 +259,8 @@ TEST_F(PeerConnectionJsepTest, SetLocalOfferSetsTransceiverMid) {
   auto video_transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
 
   auto offer = caller->CreateOffer();
-  std::string audio_mid = offer->description()->contents()[0].name;
-  std::string video_mid = offer->description()->contents()[1].name;
+  auto audio_mid = offer->description()->contents()[0].mid();
+  auto video_mid = offer->description()->contents()[1].mid();
 
   ASSERT_TRUE(caller->SetLocalDescription(std::move(offer)));
 
@@ -439,13 +439,13 @@ TEST_F(PeerConnectionJsepTest, CreateAnswerHasSameMidsAsOffer) {
   auto contents = answer->description()->contents();
   ASSERT_EQ(4u, contents.size());
   EXPECT_EQ(cricket::MEDIA_TYPE_VIDEO, contents[0].media_description()->type());
-  EXPECT_EQ(first_transceiver->mid(), contents[0].name);
+  EXPECT_EQ(first_transceiver->mid(), contents[0].mid());
   EXPECT_EQ(cricket::MEDIA_TYPE_AUDIO, contents[1].media_description()->type());
-  EXPECT_EQ(second_transceiver->mid(), contents[1].name);
+  EXPECT_EQ(second_transceiver->mid(), contents[1].mid());
   EXPECT_EQ(cricket::MEDIA_TYPE_VIDEO, contents[2].media_description()->type());
-  EXPECT_EQ(third_transceiver->mid(), contents[2].name);
+  EXPECT_EQ(third_transceiver->mid(), contents[2].mid());
   EXPECT_EQ(cricket::MEDIA_TYPE_DATA, contents[3].media_description()->type());
-  EXPECT_EQ(offer_data->name, contents[3].name);
+  EXPECT_EQ(offer_data->mid(), contents[3].mid());
 }
 
 // Test that an answering media section is marked as rejected if the underlying
@@ -686,7 +686,7 @@ TEST_F(PeerConnectionJsepTest,
   callee->AddAudioTrack("audio2");
   auto offer = caller->CreateOffer();
   auto offer_contents = offer->description()->contents();
-  std::string second_mid = offer_contents[0].name;
+  auto second_mid = offer_contents[0].mid();
   ASSERT_EQ(1u, offer_contents.size());
   EXPECT_FALSE(offer_contents[0].rejected);
   EXPECT_NE(first_mid, second_mid);
@@ -707,7 +707,7 @@ TEST_F(PeerConnectionJsepTest,
   auto answer_contents = answer->description()->contents();
   ASSERT_EQ(1u, answer_contents.size());
   EXPECT_FALSE(answer_contents[0].rejected);
-  EXPECT_EQ(second_mid, answer_contents[0].name);
+  EXPECT_EQ(second_mid, answer_contents[0].mid());
 
   // Finishing the negotiation shouldn't add or dissociate any transceivers.
   ASSERT_TRUE(
@@ -742,7 +742,7 @@ TEST_F(PeerConnectionJsepTest, CreateOfferRecyclesWhenOfferingTwice) {
   ASSERT_TRUE(caller->SetLocalDescription(std::move(offer)));
   ASSERT_EQ(1u, caller->pc()->GetTransceivers().size());
   EXPECT_FALSE(caller->pc()->GetTransceivers()[0]->stopped());
-  std::string second_mid = offer_contents[0].name;
+  auto second_mid = offer_contents[0].mid();
 
   // Create another new offer and set the local description again without the
   // rest of any negotation ocurring.
@@ -751,7 +751,7 @@ TEST_F(PeerConnectionJsepTest, CreateOfferRecyclesWhenOfferingTwice) {
   ASSERT_EQ(1u, second_offer_contents.size());
   EXPECT_FALSE(second_offer_contents[0].rejected);
   // The mid shouldn't change.
-  EXPECT_EQ(second_mid, second_offer_contents[0].name);
+  EXPECT_EQ(second_mid, second_offer_contents[0].mid());
 
   ASSERT_TRUE(caller->SetLocalDescription(std::move(second_offer)));
   // Make sure that the caller's transceivers are associated correctly.
@@ -793,7 +793,7 @@ TEST_P(RecycleMediaSectionTest, CurrentLocalAndCurrentRemoteRejected) {
 
   ASSERT_TRUE(caller->ExchangeOfferAnswerWith(callee.get()));
 
-  std::string first_mid = *first_transceiver->mid();
+  auto first_mid = *first_transceiver->mid();
   first_transceiver->StopInternal();
 
   ASSERT_TRUE(caller->ExchangeOfferAnswerWith(callee.get()));
@@ -807,7 +807,7 @@ TEST_P(RecycleMediaSectionTest, CurrentLocalAndCurrentRemoteRejected) {
   ASSERT_EQ(1u, offer_contents.size());
   EXPECT_FALSE(offer_contents[0].rejected);
   EXPECT_EQ(second_type_, offer_contents[0].media_description()->type());
-  std::string second_mid = offer_contents[0].name;
+  auto second_mid = offer_contents[0].mid();
   EXPECT_NE(first_mid, second_mid);
 
   // Setting the local offer will dissociate the previous transceiver and set
@@ -830,7 +830,7 @@ TEST_P(RecycleMediaSectionTest, CurrentLocalAndCurrentRemoteRejected) {
   auto answer_contents = answer->description()->contents();
   ASSERT_EQ(1u, answer_contents.size());
   EXPECT_FALSE(answer_contents[0].rejected);
-  EXPECT_EQ(second_mid, answer_contents[0].name);
+  EXPECT_EQ(second_mid, answer_contents[0].mid());
   EXPECT_EQ(second_type_, answer_contents[0].media_description()->type());
 
   // Setting the local answer should succeed.
@@ -870,7 +870,7 @@ TEST_P(RecycleMediaSectionTest, CurrentRemoteOnlyRejected) {
   ASSERT_EQ(1u, offer_contents.size());
   EXPECT_FALSE(offer_contents[0].rejected);
   EXPECT_EQ(second_type_, offer_contents[0].media_description()->type());
-  std::string second_mid = offer_contents[0].name;
+  auto second_mid = offer_contents[0].mid();
   EXPECT_NE(first_mid, second_mid);
 
   // Setting the local offer will dissociate the previous transceiver and set
@@ -893,7 +893,7 @@ TEST_P(RecycleMediaSectionTest, CurrentRemoteOnlyRejected) {
   auto answer_contents = answer->description()->contents();
   ASSERT_EQ(1u, answer_contents.size());
   EXPECT_FALSE(answer_contents[0].rejected);
-  EXPECT_EQ(second_mid, answer_contents[0].name);
+  EXPECT_EQ(second_mid, answer_contents[0].mid());
   EXPECT_EQ(second_type_, answer_contents[0].media_description()->type());
 
   // Setting the local answer should succeed.
@@ -933,7 +933,7 @@ TEST_P(RecycleMediaSectionTest, CurrentLocalOnlyRejected) {
   ASSERT_EQ(1u, offer_contents.size());
   EXPECT_FALSE(offer_contents[0].rejected);
   EXPECT_EQ(second_type_, offer_contents[0].media_description()->type());
-  std::string second_mid = offer_contents[0].name;
+  auto second_mid = offer_contents[0].mid();
   EXPECT_NE(first_mid, second_mid);
 
   // Setting the local offer will dissociate the previous transceiver and set
@@ -956,7 +956,7 @@ TEST_P(RecycleMediaSectionTest, CurrentLocalOnlyRejected) {
   auto answer_contents = answer->description()->contents();
   ASSERT_EQ(1u, answer_contents.size());
   EXPECT_FALSE(answer_contents[0].rejected);
-  EXPECT_EQ(second_mid, answer_contents[0].name);
+  EXPECT_EQ(second_mid, answer_contents[0].mid());
   EXPECT_EQ(second_type_, answer_contents[0].media_description()->type());
 
   // Setting the local answer should succeed.
@@ -979,7 +979,7 @@ TEST_P(RecycleMediaSectionTest, PendingLocalRejectedAndNoRemote) {
 
   ASSERT_TRUE(caller->SetLocalDescription(caller->CreateOffer()));
 
-  std::string first_mid = *caller_first_transceiver->mid();
+  auto first_mid = *caller_first_transceiver->mid();
   caller_first_transceiver->StopInternal();
 
   // The reoffer will have a rejected m= section.
@@ -994,10 +994,10 @@ TEST_P(RecycleMediaSectionTest, PendingLocalRejectedAndNoRemote) {
   ASSERT_EQ(2u, reoffer_contents.size());
   EXPECT_TRUE(reoffer_contents[0].rejected);
   EXPECT_EQ(first_type_, reoffer_contents[0].media_description()->type());
-  EXPECT_EQ(first_mid, reoffer_contents[0].name);
+  EXPECT_EQ(first_mid, reoffer_contents[0].mid());
   EXPECT_FALSE(reoffer_contents[1].rejected);
   EXPECT_EQ(second_type_, reoffer_contents[1].media_description()->type());
-  std::string second_mid = reoffer_contents[1].name;
+  auto second_mid = reoffer_contents[1].mid();
   EXPECT_NE(first_mid, second_mid);
 
   ASSERT_TRUE(caller->SetLocalDescription(std::move(reoffer)));
@@ -1017,7 +1017,7 @@ TEST_P(RecycleMediaSectionTest, PendingLocalRejectedAndNotRejectedRemote) {
 
   ASSERT_TRUE(caller->ExchangeOfferAnswerWith(callee.get()));
 
-  std::string first_mid = *caller_first_transceiver->mid();
+  auto first_mid = *caller_first_transceiver->mid();
   caller_first_transceiver->StopInternal();
 
   // The reoffer will have a rejected m= section.
@@ -1032,10 +1032,10 @@ TEST_P(RecycleMediaSectionTest, PendingLocalRejectedAndNotRejectedRemote) {
   ASSERT_EQ(2u, reoffer_contents.size());
   EXPECT_TRUE(reoffer_contents[0].rejected);
   EXPECT_EQ(first_type_, reoffer_contents[0].media_description()->type());
-  EXPECT_EQ(first_mid, reoffer_contents[0].name);
+  EXPECT_EQ(first_mid, reoffer_contents[0].mid());
   EXPECT_FALSE(reoffer_contents[1].rejected);
   EXPECT_EQ(second_type_, reoffer_contents[1].media_description()->type());
-  std::string second_mid = reoffer_contents[1].name;
+  auto second_mid = reoffer_contents[1].mid();
   EXPECT_NE(first_mid, second_mid);
 
   ASSERT_TRUE(caller->SetLocalDescription(std::move(reoffer)));
@@ -1072,10 +1072,10 @@ TEST_P(RecycleMediaSectionTest, PendingRemoteRejectedAndNoLocal) {
   ASSERT_EQ(2u, reoffer_contents.size());
   EXPECT_TRUE(reoffer_contents[0].rejected);
   EXPECT_EQ(first_type_, reoffer_contents[0].media_description()->type());
-  EXPECT_EQ(first_mid, reoffer_contents[0].name);
+  EXPECT_EQ(first_mid, reoffer_contents[0].mid());
   EXPECT_FALSE(reoffer_contents[1].rejected);
   EXPECT_EQ(second_type_, reoffer_contents[1].media_description()->type());
-  std::string second_mid = reoffer_contents[1].name;
+  auto second_mid = reoffer_contents[1].mid();
   EXPECT_NE(first_mid, second_mid);
 
   // Note: Cannot actually set the reoffer since the callee is in the signaling
@@ -1109,10 +1109,10 @@ TEST_P(RecycleMediaSectionTest, PendingRemoteRejectedAndNotRejectedLocal) {
   ASSERT_EQ(2u, reoffer_contents.size());
   EXPECT_TRUE(reoffer_contents[0].rejected);
   EXPECT_EQ(first_type_, reoffer_contents[0].media_description()->type());
-  EXPECT_EQ(first_mid, reoffer_contents[0].name);
+  EXPECT_EQ(first_mid, reoffer_contents[0].mid());
   EXPECT_FALSE(reoffer_contents[1].rejected);
   EXPECT_EQ(second_type_, reoffer_contents[1].media_description()->type());
-  std::string second_mid = reoffer_contents[1].name;
+  auto second_mid = reoffer_contents[1].mid();
   EXPECT_NE(first_mid, second_mid);
 
   // Note: Cannot actually set the reoffer since the callee is in the signaling
@@ -1188,11 +1188,11 @@ TEST_F(PeerConnectionJsepTest, AudioTrackAddedAfterDataSectionInReoffer) {
 // Tests for MID properties.
 
 static void RenameSection(size_t mline_index,
-                          const std::string& new_mid,
+                          absl::string_view new_mid,
                           SessionDescriptionInterface* sdesc) {
   cricket::SessionDescription* desc = sdesc->description();
-  std::string old_mid = desc->contents()[mline_index].name;
-  desc->contents()[mline_index].name = new_mid;
+  std::string old_mid(desc->contents()[mline_index].mid());
+  desc->contents()[mline_index].set_mid(new_mid);
   desc->transport_infos()[mline_index].content_name = new_mid;
   const cricket::ContentGroup* bundle =
       desc->GetGroupByName(cricket::GROUP_TYPE_BUNDLE);
@@ -1234,8 +1234,8 @@ TEST_F(PeerConnectionJsepTest, OfferAnswerWithChangedMids) {
 
   auto answer = callee->CreateAnswer();
   auto answer_contents = answer->description()->contents();
-  EXPECT_EQ(kFirstMid, answer_contents[0].name);
-  EXPECT_EQ(kSecondMid, answer_contents[1].name);
+  EXPECT_EQ(kFirstMid, answer_contents[0].mid());
+  EXPECT_EQ(kSecondMid, answer_contents[1].mid());
 
   ASSERT_TRUE(
       callee->SetLocalDescription(CloneSessionDescription(answer.get())));
@@ -1252,8 +1252,7 @@ TEST_F(PeerConnectionJsepTest, CreateOfferGeneratesUniqueMidIfAlreadyTaken) {
   pc->AddAudioTrack("a");
   pc->AddAudioTrack("b");
   auto default_offer = pc->CreateOffer();
-  std::string default_second_mid =
-      default_offer->description()->contents()[1].name;
+  auto default_second_mid = default_offer->description()->contents()[1].mid();
 
   // Now, do an offer/answer with one track which has the MID set to the default
   // second MID.
@@ -1274,8 +1273,8 @@ TEST_F(PeerConnectionJsepTest, CreateOfferGeneratesUniqueMidIfAlreadyTaken) {
 
   auto reoffer = caller->CreateOffer();
   auto reoffer_contents = reoffer->description()->contents();
-  EXPECT_EQ(default_second_mid, reoffer_contents[0].name);
-  EXPECT_NE(reoffer_contents[0].name, reoffer_contents[1].name);
+  EXPECT_EQ(default_second_mid, reoffer_contents[0].mid());
+  EXPECT_NE(reoffer_contents[0].mid(), reoffer_contents[1].mid());
 }
 
 // Test that if an audio or video section has the default data section MID, then
@@ -1286,8 +1285,7 @@ TEST_F(PeerConnectionJsepTest,
   auto pc = CreatePeerConnection();
   pc->CreateDataChannel("dc");
   auto default_offer = pc->CreateOffer();
-  std::string default_data_mid =
-      default_offer->description()->contents()[0].name;
+  auto default_data_mid = default_offer->description()->contents()[0].mid();
 
   // Now do an offer/answer with one audio track which has a MID set to the
   // default data MID.
@@ -1308,8 +1306,8 @@ TEST_F(PeerConnectionJsepTest,
 
   auto reoffer = caller->CreateOffer();
   auto reoffer_contents = reoffer->description()->contents();
-  EXPECT_EQ(default_data_mid, reoffer_contents[0].name);
-  EXPECT_NE(reoffer_contents[0].name, reoffer_contents[1].name);
+  EXPECT_EQ(default_data_mid, reoffer_contents[0].mid());
+  EXPECT_NE(reoffer_contents[0].mid(), reoffer_contents[1].mid());
 }
 
 // Test that a reoffer initiated by the callee adds a new track to the caller.
@@ -1683,15 +1681,15 @@ static void ClearMids(SessionDescriptionInterface* sdesc) {
   desc->RemoveGroupByName(cricket::GROUP_TYPE_BUNDLE);
   cricket::ContentInfo* audio_content = cricket::GetFirstAudioContent(desc);
   if (audio_content) {
-    desc->GetTransportInfoByName(audio_content->name)->content_name = "";
-    audio_content->name = "";
+    desc->GetTransportInfoByName(audio_content->mid())->content_name = "";
+    audio_content->set_mid("");
     RemoveRtpHeaderExtensionByUri(audio_content->media_description(),
                                   RtpExtension::kMidUri);
   }
   cricket::ContentInfo* video_content = cricket::GetFirstVideoContent(desc);
   if (video_content) {
-    desc->GetTransportInfoByName(video_content->name)->content_name = "";
-    video_content->name = "";
+    desc->GetTransportInfoByName(video_content->mid())->content_name = "";
+    video_content->set_mid("");
     RemoveRtpHeaderExtensionByUri(video_content->media_description(),
                                   RtpExtension::kMidUri);
   }

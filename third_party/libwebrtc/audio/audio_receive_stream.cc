@@ -10,22 +10,36 @@
 
 #include "audio/audio_receive_stream.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <map>
+#include <memory>
+#include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
-#include "absl/memory/memory.h"
+#include "absl/strings/string_view.h"
 #include "api/array_view.h"
+#include "api/audio/audio_frame.h"
+#include "api/audio/audio_mixer.h"
 #include "api/audio_codecs/audio_format.h"
 #include "api/call/audio_sink.h"
-#include "api/rtp_parameters.h"
+#include "api/environment/environment.h"
+#include "api/frame_transformer_interface.h"
+#include "api/neteq/neteq_factory.h"
+#include "api/rtp_headers.h"
+#include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
+#include "api/transport/rtp/rtp_source.h"
 #include "audio/audio_send_stream.h"
 #include "audio/audio_state.h"
 #include "audio/channel_receive.h"
 #include "audio/conversion.h"
+#include "call/audio_state.h"
 #include "call/rtp_config.h"
 #include "call/rtp_stream_receiver_controller_interface.h"
-#include "modules/rtp_rtcp/source/rtp_packet_received.h"
+#include "call/syncable.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/strings/string_builder.h"
@@ -130,7 +144,6 @@ AudioReceiveStreamImpl::~AudioReceiveStreamImpl() {
   RTC_DCHECK_RUN_ON(&worker_thread_checker_);
   RTC_LOG(LS_INFO) << "~AudioReceiveStreamImpl: " << remote_ssrc();
   Stop();
-  channel_receive_->SetAssociatedSendChannel(nullptr);
   channel_receive_->ResetReceiverCongestionControlObjects();
 }
 
@@ -418,14 +431,6 @@ bool AudioReceiveStreamImpl::SetMinimumPlayoutDelay(int delay_ms) {
   return channel_receive_->SetMinimumPlayoutDelay(delay_ms);
 }
 
-void AudioReceiveStreamImpl::AssociateSendStream(
-    internal::AudioSendStream* send_stream) {
-  RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
-  channel_receive_->SetAssociatedSendChannel(
-      send_stream ? send_stream->GetChannel() : nullptr);
-  associated_send_stream_ = send_stream;
-}
-
 void AudioReceiveStreamImpl::DeliverRtcp(const uint8_t* packet, size_t length) {
   // TODO(solenberg): Tests call this function on a network thread, libjingle
   // calls on the worker thread. We should move towards always using a network
@@ -455,12 +460,6 @@ uint32_t AudioReceiveStreamImpl::local_ssrc() const {
 const std::string& AudioReceiveStreamImpl::sync_group() const {
   RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
   return config_.sync_group;
-}
-
-const AudioSendStream*
-AudioReceiveStreamImpl::GetAssociatedSendStreamForTesting() const {
-  RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
-  return associated_send_stream_;
 }
 
 internal::AudioState* AudioReceiveStreamImpl::audio_state() const {

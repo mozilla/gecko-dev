@@ -1,3 +1,4 @@
+%  // clang-format off
 function rtpAnalyze( input_file )
 %RTP_ANALYZE Analyze RTP stream(s) from a txt file
 %   The function takes the output from the command line tool rtp_analyze

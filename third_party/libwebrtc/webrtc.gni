@@ -534,7 +534,7 @@ template("rtc_test") {
       android_manifest = webrtc_root + "test/android/AndroidManifest.xml"
       use_raw_android_executable = false
       min_sdk_version = 21
-      target_sdk_version = 23
+      target_sdk_version = 24
       deps += [
         "//chromium/build/android/gtest_apk:native_test_instrumentation_test_runner_java",
         webrtc_root + "sdk/android:native_test_jni_onload",
@@ -1301,21 +1301,11 @@ if (is_android && !build_with_mozilla) {
                                "visibility",
                              ])
 
-      errorprone_args = []
-
-      # Treat warnings as errors.
-      errorprone_args += [ "-Werror" ]
-
       # Add any arguments defined by the invoker.
       if (defined(invoker.errorprone_args)) {
-        errorprone_args += invoker.errorprone_args
+        errorprone_args = invoker.errorprone_args
       }
 
-      if (!defined(deps)) {
-        deps = []
-      }
-
-      no_build_hooks = true
       not_needed([ "android_manifest" ])
     }
   }
@@ -1330,16 +1320,6 @@ if (is_android && !build_with_mozilla) {
                                "suppressed_configs",
                                "visibility",
                              ])
-
-      # Treat warnings as errors.
-      errorprone_args = []
-      errorprone_args += [ "-Werror" ]
-
-      if (!defined(deps)) {
-        deps = []
-      }
-
-      no_build_hooks = true
     }
   }
 
@@ -1353,16 +1333,6 @@ if (is_android && !build_with_mozilla) {
                                "suppressed_configs",
                                "visibility",
                              ])
-
-      # Treat warnings as errors.
-      errorprone_args = []
-      errorprone_args += [ "-Werror" ]
-
-      if (!defined(deps)) {
-        deps = []
-      }
-
-      no_build_hooks = true
     }
   }
 }

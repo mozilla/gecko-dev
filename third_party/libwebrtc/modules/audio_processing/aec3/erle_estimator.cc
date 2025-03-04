@@ -15,12 +15,13 @@
 
 namespace webrtc {
 
-ErleEstimator::ErleEstimator(size_t startup_phase_length_blocks,
+ErleEstimator::ErleEstimator(const Environment& env,
+                             size_t startup_phase_length_blocks,
                              const EchoCanceller3Config& config,
                              size_t num_capture_channels)
     : startup_phase_length_blocks_(startup_phase_length_blocks),
       fullband_erle_estimator_(config.erle, num_capture_channels),
-      subband_erle_estimator_(config, num_capture_channels) {
+      subband_erle_estimator_(env, config, num_capture_channels) {
   if (config.erle.num_sections > 1) {
     signal_dependent_erle_estimator_ =
         std::make_unique<SignalDependentErleEstimator>(config,

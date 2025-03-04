@@ -34,6 +34,7 @@
 #include "api/scoped_refptr.h"
 #include "api/test/mock_frame_transformer.h"
 #include "api/test/mock_transformable_audio_frame.h"
+#include "api/test/rtc_error_matchers.h"
 #include "api/transport/bitrate_settings.h"
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
@@ -42,18 +43,20 @@
 #include "call/rtp_transport_controller_send.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
-#include "rtc_base/gunit.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/mock_transport.h"
 #include "test/scoped_key_value_config.h"
 #include "test/time_controller/simulated_time_controller.h"
+#include "test/wait_until.h"
 
 namespace webrtc {
 namespace voe {
 namespace {
 
+using ::testing::Eq;
 using ::testing::Invoke;
+using ::testing::IsTrue;
 using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::SaveArg;
@@ -212,9 +215,11 @@ TEST_F(ChannelSendTest, FrameTransformerGetsCorrectTimestamp) {
   // Ensure the RTP timestamp on the frame passed to the transformer
   // includes the RTP offset and matches the actual RTP timestamp on the sent
   // packet.
-  EXPECT_EQ_WAIT(transformable_frame_timestamp,
-                 0 + channel_->GetRtpRtcp()->StartTimestamp(), 1000);
-  EXPECT_TRUE_WAIT(sent_timestamp, 1000);
+  EXPECT_THAT(
+      WaitUntil([&] { return 0 + channel_->GetRtpRtcp()->StartTimestamp(); },
+                Eq(transformable_frame_timestamp)),
+      IsRtcOk());
+  EXPECT_THAT(WaitUntil([&] { return sent_timestamp; }, IsTrue()), IsRtcOk());
   EXPECT_EQ(*sent_timestamp, transformable_frame_timestamp);
 }
 
@@ -264,7 +269,7 @@ TEST_F(ChannelSendTest, AudioLevelsAttachedToCorrectTransformedFrame) {
   ProcessNextFrame(CreateAudioFrame(/*data_init_value=*/3));
 
   // Wait for both packets to be encoded and sent to the transform.
-  EXPECT_EQ_WAIT(frames.size(), 2ul, 1000);
+  EXPECT_THAT(WaitUntil([&] { return frames.size(); }, Eq(2ul)), IsRtcOk());
   // Complete the transforms on both frames at the same time
   callback->OnTransformedFrame(std::move(frames[0]));
   callback->OnTransformedFrame(std::move(frames[1]));
@@ -274,7 +279,8 @@ TEST_F(ChannelSendTest, AudioLevelsAttachedToCorrectTransformedFrame) {
 
   // Ensure the audio levels on both sent packets is present and
   // matches their contents.
-  EXPECT_EQ_WAIT(sent_audio_levels.size(), 2ul, 1000);
+  EXPECT_THAT(WaitUntil([&] { return sent_audio_levels.size(); }, Eq(2ul)),
+              IsRtcOk());
   // rms dbov of the packet with raw audio of 7s is 73.
   EXPECT_EQ(sent_audio_levels[0], 73);
   // rms dbov of the second packet with raw audio of 3s is 81.
@@ -318,14 +324,14 @@ TEST_F(ChannelSendTest, AudioLevelsAttachedToInsertedTransformedFrame) {
   uint8_t payload[10];
   ON_CALL(*mock_frame, GetData())
       .WillByDefault(Return(rtc::ArrayView<uint8_t>(&payload[0], 10)));
-  EXPECT_TRUE_WAIT(callback, 1000);
+  EXPECT_THAT(WaitUntil([&] { return callback; }, IsTrue()), IsRtcOk());
   callback->OnTransformedFrame(std::move(mock_frame));
 
   // Allow things posted back to the encoder queue to run.
   time_controller_.AdvanceTime(TimeDelta::Millis(10));
 
   // Ensure the audio levels is set on the sent packet.
-  EXPECT_TRUE_WAIT(sent_audio_level, 1000);
+  EXPECT_THAT(WaitUntil([&] { return sent_audio_level; }, IsTrue()), IsRtcOk());
   EXPECT_EQ(*sent_audio_level, audio_level);
 }
 

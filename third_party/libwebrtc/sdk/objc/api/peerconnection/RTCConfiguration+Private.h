@@ -17,7 +17,8 @@ NS_ASSUME_NONNULL_BEGIN
 @interface RTC_OBJC_TYPE (RTCConfiguration)
 ()
 
-    + (webrtc::PeerConnectionInterface::IceTransportsType)nativeTransportsTypeForTransportPolicy
+    + (webrtc::PeerConnectionInterface::IceTransportsType)
+          nativeTransportsTypeForTransportPolicy
     : (RTCIceTransportPolicy)policy;
 
 + (RTCIceTransportPolicy)transportPolicyForTransportsType:
@@ -41,16 +42,16 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (NSString *)stringForRtcpMuxPolicy:(RTCRtcpMuxPolicy)policy;
 
-+ (webrtc::PeerConnectionInterface::TcpCandidatePolicy)nativeTcpCandidatePolicyForPolicy:
-    (RTCTcpCandidatePolicy)policy;
++ (webrtc::PeerConnectionInterface::TcpCandidatePolicy)
+    nativeTcpCandidatePolicyForPolicy:(RTCTcpCandidatePolicy)policy;
 
 + (RTCTcpCandidatePolicy)tcpCandidatePolicyForNativePolicy:
     (webrtc::PeerConnectionInterface::TcpCandidatePolicy)nativePolicy;
 
 + (NSString *)stringForTcpCandidatePolicy:(RTCTcpCandidatePolicy)policy;
 
-+ (webrtc::PeerConnectionInterface::CandidateNetworkPolicy)nativeCandidateNetworkPolicyForPolicy:
-    (RTCCandidateNetworkPolicy)policy;
++ (webrtc::PeerConnectionInterface::CandidateNetworkPolicy)
+    nativeCandidateNetworkPolicyForPolicy:(RTCCandidateNetworkPolicy)policy;
 
 + (RTCCandidateNetworkPolicy)candidateNetworkPolicyForNativePolicy:
     (webrtc::PeerConnectionInterface::CandidateNetworkPolicy)nativePolicy;
@@ -59,9 +60,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (rtc::KeyType)nativeEncryptionKeyTypeForKeyType:(RTCEncryptionKeyType)keyType;
 
-+ (webrtc::SdpSemantics)nativeSdpSemanticsForSdpSemantics:(RTCSdpSemantics)sdpSemantics;
++ (webrtc::SdpSemantics)nativeSdpSemanticsForSdpSemantics:
+    (RTCSdpSemantics)sdpSemantics;
 
-+ (RTCSdpSemantics)sdpSemanticsForNativeSdpSemantics:(webrtc::SdpSemantics)sdpSemantics;
++ (RTCSdpSemantics)sdpSemanticsForNativeSdpSemantics:
+    (webrtc::SdpSemantics)sdpSemantics;
 
 + (NSString *)stringForSdpSemantics:(RTCSdpSemantics)sdpSemantics;
 
@@ -69,10 +72,12 @@ NS_ASSUME_NONNULL_BEGIN
  * RTCConfiguration struct representation of this RTCConfiguration.
  * This is needed to pass to the underlying C++ APIs.
  */
-- (nullable webrtc::PeerConnectionInterface::RTCConfiguration *)createNativeConfiguration;
+- (nullable webrtc::PeerConnectionInterface::RTCConfiguration *)
+    createNativeConfiguration;
 
 - (instancetype)initWithNativeConfiguration:
-    (const webrtc::PeerConnectionInterface::RTCConfiguration &)config NS_DESIGNATED_INITIALIZER;
+    (const webrtc::PeerConnectionInterface::RTCConfiguration &)config
+    NS_DESIGNATED_INITIALIZER;
 
 @end
 

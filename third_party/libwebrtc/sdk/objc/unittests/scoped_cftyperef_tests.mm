@@ -33,7 +33,8 @@ struct TestTypeTraits {
 };
 }  // namespace
 
-using ScopedTestType = rtc::internal::ScopedTypeRef<TestTypeRef, TestTypeTraits>;
+using ScopedTestType =
+    rtc::internal::ScopedTypeRef<TestTypeRef, TestTypeTraits>;
 
 // In these tests we sometime introduce variables just to
 // observe side-effects. Ignore the compilers complaints.

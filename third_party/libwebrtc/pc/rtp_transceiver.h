@@ -275,9 +275,13 @@ class RtpTransceiver : public RtpTransceiverInterface {
   void StopInternal() override;
   RTCError SetCodecPreferences(
       rtc::ArrayView<RtpCodecCapability> codecs) override;
-  std::vector<RtpCodecCapability> codec_preferences() const override {
-    return codec_preferences_;
-  }
+  // TODO(https://crbug.com/webrtc/391275081): Delete codec_preferences() in
+  // favor of filtered_codec_preferences() because it's not used anywhere.
+  std::vector<RtpCodecCapability> codec_preferences() const override;
+  // A direction()-filtered view of codec_preferences(). If this filtering
+  // results in not having any media codecs, an empty list is returned to mean
+  // "no preferences".
+  std::vector<RtpCodecCapability> filtered_codec_preferences() const;
   std::vector<RtpHeaderExtensionCapability> GetHeaderExtensionsToNegotiate()
       const override;
   std::vector<RtpHeaderExtensionCapability> GetNegotiatedHeaderExtensions()
@@ -304,10 +308,15 @@ class RtpTransceiver : public RtpTransceiverInterface {
   void OnFirstPacketReceived();
   void OnFirstPacketSent();
   void StopSendingAndReceiving();
-  // Delete a channel, and ensure that references to its media channel
+  // Tell the senders and receivers about possibly-new media channels
+  // in a newly created `channel_`.
+  void PushNewMediaChannel();
+  // Delete `channel_`, and ensure that references to its media channels
   // are updated before deleting it.
-  void PushNewMediaChannelAndDeleteChannel(
-      std::unique_ptr<cricket::ChannelInterface> channel_to_delete);
+  void DeleteChannel();
+
+  RTCError UpdateCodecPreferencesCaches(
+      const std::vector<RtpCodecCapability>& codecs);
 
   // Enforce that this object is created, used and destroyed on one thread.
   TaskQueueBase* const thread_;
@@ -338,6 +347,9 @@ class RtpTransceiver : public RtpTransceiverInterface {
   std::unique_ptr<cricket::ChannelInterface> channel_ = nullptr;
   ConnectionContext* const context_;
   std::vector<RtpCodecCapability> codec_preferences_;
+  std::vector<RtpCodecCapability> sendrecv_codec_preferences_;
+  std::vector<RtpCodecCapability> sendonly_codec_preferences_;
+  std::vector<RtpCodecCapability> recvonly_codec_preferences_;
   std::vector<RtpHeaderExtensionCapability> header_extensions_to_negotiate_;
 
   // `negotiated_header_extensions_` is read and written to on the signaling

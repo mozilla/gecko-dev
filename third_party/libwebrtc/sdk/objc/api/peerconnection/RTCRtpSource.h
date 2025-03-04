@@ -27,29 +27,30 @@ RTC_OBJC_EXPORT
 (RTCRtpSource)<NSObject>
 
     /**
-    A positive integer value specifying the CSRC identifier of the contributing source or SSRC
-    identifier of the synchronization source. This uniquely identifies the source of the particular
-    stream RTP packets. */
+    A positive integer value specifying the CSRC identifier of the contributing
+    source or SSRC identifier of the synchronization source. This uniquely
+    identifies the source of the particular stream RTP packets. */
     @property(nonatomic, readonly) uint32_t sourceId;
 
 @property(nonatomic, readonly) RTCRtpSourceType sourceType;
 
 /**
-A floating-point value between 0.0 and 1.0 specifying the audio level contained in the last RTP
-packet played from the contributing source.
+A floating-point value between 0.0 and 1.0 specifying the audio level contained
+in the last RTP packet played from the contributing source.
 */
 @property(nonatomic, readonly, nullable) NSNumber *audioLevel;
 
 /**
-A timestamp indicating the most recent time at which a frame originating from this source was
-delivered to the receiver's track
+A timestamp indicating the most recent time at which a frame originating from
+this source was delivered to the receiver's track
 */
 @property(nonatomic, readonly) CFTimeInterval timestampUs;
 
 /**
-The RTP timestamp of the media. This source-generated timestamp indicates the time at which the
-media in this packet, scheduled for play out at the time indicated by timestamp, was initially
-sampled or generated. It may be useful for sequencing and synchronization purposes.
+The RTP timestamp of the media. This source-generated timestamp indicates the
+time at which the media in this packet, scheduled for play out at the time
+indicated by timestamp, was initially sampled or generated. It may be useful for
+sequencing and synchronization purposes.
 */
 @property(nonatomic, readonly) uint32_t rtpTimestamp;
 

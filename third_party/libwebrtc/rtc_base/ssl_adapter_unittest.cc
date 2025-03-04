@@ -10,37 +10,33 @@
 
 #include "rtc_base/ssl_adapter.h"
 
-#include <cstddef>
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "api/array_view.h"
-#include "api/sequence_checker.h"
-#include "rtc_base/checks.h"
-#include "rtc_base/gunit.h"
+#include "api/test/rtc_error_matchers.h"
+#include "api/units/time_delta.h"
 #include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
-#include "rtc_base/message_digest.h"
 #include "rtc_base/socket.h"
 #include "rtc_base/socket_address.h"
 #include "rtc_base/ssl_certificate.h"
 #include "rtc_base/ssl_identity.h"
-#include "rtc_base/stream.h"
+#include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/string_encode.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/virtual_socket_server.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 using ::testing::_;
 using ::testing::Return;
 
-static const int kTimeout = 5000;
+static const webrtc::TimeDelta kTimeout = webrtc::TimeDelta::Millis(5000);
 
 static rtc::Socket* CreateSocket() {
   rtc::SocketAddress address(rtc::IPAddress(INADDR_ANY), 0);
@@ -207,9 +203,11 @@ class SSLAdapterTestBase : public ::testing::Test, public sigslot::has_slots<> {
         thread_(vss_.get()),
         server_(new SSLAdapterTestDummyServer(key_params)),
         client_(new SSLAdapterTestDummyClient()),
-        handshake_wait_(kTimeout) {}
+        handshake_wait_(webrtc::TimeDelta::Millis(kTimeout.ms())) {}
 
-  void SetHandshakeWait(int wait) { handshake_wait_ = wait; }
+  void SetHandshakeWait(int wait) {
+    handshake_wait_ = webrtc::TimeDelta::Millis(wait);
+  }
 
   void SetIgnoreBadCert(bool ignore_bad_cert) {
     client_->SetIgnoreBadCert(ignore_bad_cert);
@@ -252,15 +250,19 @@ class SSLAdapterTestBase : public ::testing::Test, public sigslot::has_slots<> {
     if (expect_success) {
       // If expecting success, the client should end up in the CS_CONNECTED
       // state after handshake.
-      EXPECT_EQ_WAIT(rtc::Socket::CS_CONNECTED, client_->GetState(),
-                     handshake_wait_);
+      EXPECT_THAT(webrtc::WaitUntil([&] { return client_->GetState(); },
+                                    ::testing::Eq(rtc::Socket::CS_CONNECTED),
+                                    {.timeout = handshake_wait_}),
+                  webrtc::IsRtcOk());
 
       RTC_LOG(LS_INFO) << "TLS handshake complete.";
 
     } else {
       // On handshake failure the client should end up in the CS_CLOSED state.
-      EXPECT_EQ_WAIT(rtc::Socket::CS_CLOSED, client_->GetState(),
-                     handshake_wait_);
+      EXPECT_THAT(webrtc::WaitUntil([&] { return client_->GetState(); },
+                                    ::testing::Eq(rtc::Socket::CS_CLOSED),
+                                    {.timeout = handshake_wait_}),
+                  webrtc::IsRtcOk());
 
       RTC_LOG(LS_INFO) << "TLS handshake failed.";
     }
@@ -273,13 +275,19 @@ class SSLAdapterTestBase : public ::testing::Test, public sigslot::has_slots<> {
     ASSERT_EQ(static_cast<int>(message.length()), rv);
 
     // The server should have received the client's message.
-    EXPECT_EQ_WAIT(message, server_->GetReceivedData(), kTimeout);
+    EXPECT_THAT(
+        webrtc::WaitUntil([&] { return server_->GetReceivedData(); },
+                          ::testing::Eq(message), {.timeout = kTimeout}),
+        webrtc::IsRtcOk());
 
     rv = server_->Send(message);
     ASSERT_EQ(static_cast<int>(message.length()), rv);
 
     // The client should have received the server's message.
-    EXPECT_EQ_WAIT(message, client_->GetReceivedData(), kTimeout);
+    EXPECT_THAT(
+        webrtc::WaitUntil([&] { return client_->GetReceivedData(); },
+                          ::testing::Eq(message), {.timeout = kTimeout}),
+        webrtc::IsRtcOk());
 
     RTC_LOG(LS_INFO) << "Transfer complete.";
   }
@@ -291,7 +299,7 @@ class SSLAdapterTestBase : public ::testing::Test, public sigslot::has_slots<> {
   std::unique_ptr<SSLAdapterTestDummyClient> client_;
   std::unique_ptr<rtc::SSLCertificateVerifier> cert_verifier_;
 
-  int handshake_wait_;
+  webrtc::TimeDelta handshake_wait_;
 };
 
 class SSLAdapterTestTLS_RSA : public SSLAdapterTestBase {
@@ -383,14 +391,18 @@ TEST_F(SSLAdapterTestTLS_RSA, TestTLSTransferWithBlockedSocket) {
   // Unblock the underlying socket. All of the buffered messages should be sent
   // without any further action.
   vss_->SetSendingBlocked(false);
-  EXPECT_EQ_WAIT(expected, server_->GetReceivedData(), kTimeout);
+  EXPECT_THAT(webrtc::WaitUntil([&] { return server_->GetReceivedData(); },
+                                ::testing::Eq(expected), {.timeout = kTimeout}),
+              webrtc::IsRtcOk());
 
   // Send another message. This previously wasn't working
   std::string final_message = "Fin.";
   expected += final_message;
   EXPECT_EQ(static_cast<int>(final_message.size()),
             client_->Send(final_message));
-  EXPECT_EQ_WAIT(expected, server_->GetReceivedData(), kTimeout);
+  EXPECT_THAT(webrtc::WaitUntil([&] { return server_->GetReceivedData(); },
+                                ::testing::Eq(expected), {.timeout = kTimeout}),
+              webrtc::IsRtcOk());
 }
 
 // Test transfer between client and server, using ECDSA

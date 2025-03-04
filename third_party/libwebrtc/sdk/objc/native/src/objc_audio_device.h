@@ -29,7 +29,8 @@ namespace objc_adm {
 
 class ObjCAudioDeviceModule : public AudioDeviceModule {
  public:
-  explicit ObjCAudioDeviceModule(id<RTC_OBJC_TYPE(RTCAudioDevice)> audio_device);
+  explicit ObjCAudioDeviceModule(
+      id<RTC_OBJC_TYPE(RTCAudioDevice)> audio_device);
   ~ObjCAudioDeviceModule() override;
 
   // Retrieve the currently utilized audio layer
@@ -135,13 +136,14 @@ class ObjCAudioDeviceModule : public AudioDeviceModule {
 #endif  // WEBRTC_IOS
 
  public:
-  OSStatus OnDeliverRecordedData(AudioUnitRenderActionFlags* flags,
-                                 const AudioTimeStamp* time_stamp,
-                                 NSInteger bus_number,
-                                 UInt32 num_frames,
-                                 const AudioBufferList* io_data,
-                                 void* render_context,
-                                 RTC_OBJC_TYPE(RTCAudioDeviceRenderRecordedDataBlock) render_block);
+  OSStatus OnDeliverRecordedData(
+      AudioUnitRenderActionFlags* flags,
+      const AudioTimeStamp* time_stamp,
+      NSInteger bus_number,
+      UInt32 num_frames,
+      const AudioBufferList* io_data,
+      void* render_context,
+      RTC_OBJC_TYPE(RTCAudioDeviceRenderRecordedDataBlock) render_block);
 
   OSStatus OnGetPlayoutData(AudioUnitRenderActionFlags* flags,
                             const AudioTimeStamp* time_stamp,
@@ -150,20 +152,21 @@ class ObjCAudioDeviceModule : public AudioDeviceModule {
                             AudioBufferList* io_data);
 
   // Notifies `ObjCAudioDeviceModule` that at least one of the audio input
-  // parameters or audio input latency of `RTCAudioDevice` has changed. It necessary to
-  // update `record_parameters_` with current audio parameter of `RTCAudioDevice`
-  // via `UpdateAudioParameters` and if parameters are actually change then
-  // ADB parameters are updated with `UpdateInputAudioDeviceBuffer`. Audio input latency
-  // stored in `cached_recording_delay_ms_` is also updated with current latency
-  // of `RTCAudioDevice`.
+  // parameters or audio input latency of `RTCAudioDevice` has changed. It
+  // necessary to update `record_parameters_` with current audio parameter of
+  // `RTCAudioDevice` via `UpdateAudioParameters` and if parameters are actually
+  // change then ADB parameters are updated with `UpdateInputAudioDeviceBuffer`.
+  // Audio input latency stored in `cached_recording_delay_ms_` is also updated
+  // with current latency of `RTCAudioDevice`.
   void HandleAudioInputParametersChange();
 
-  // Same as `HandleAudioInputParametersChange` but should be called when audio output
-  // parameters of `RTCAudioDevice` has changed.
+  // Same as `HandleAudioInputParametersChange` but should be called when audio
+  // output parameters of `RTCAudioDevice` has changed.
   void HandleAudioOutputParametersChange();
 
-  // Notifies `ObjCAudioDeviceModule` about audio input interruption happen due to
-  // any reason so `ObjCAudioDeviceModule` is can prepare to restart of audio IO.
+  // Notifies `ObjCAudioDeviceModule` about audio input interruption happen due
+  // to any reason so `ObjCAudioDeviceModule` is can prepare to restart of audio
+  // IO.
   void HandleAudioInputInterrupted();
 
   // Same as `ObjCAudioDeviceModule` but should be called when audio output
@@ -171,33 +174,39 @@ class ObjCAudioDeviceModule : public AudioDeviceModule {
   void HandleAudioOutputInterrupted();
 
  private:
-  // Update our audio parameters if they are different from current device audio parameters
-  // Returns true when our parameters are update, false - otherwise.
-  // `ObjCAudioDeviceModule` has audio device buffer (ADB) which has audio parameters
-  // of playout & recording. The ADB is configured to work with specific sample rate & channel
-  // count. `ObjCAudioDeviceModule` stores audio parameters which were used to configure ADB in the
-  // fields `playout_parameters_` and `recording_parameters_`.
-  // `RTCAudioDevice` protocol has its own audio parameters exposed as individual properties.
-  // `RTCAudioDevice` audio parameters might change when playout/recording is already in progress,
-  // for example, when device is switched. `RTCAudioDevice` audio parameters must be kept in sync
-  // with ADB audio parameters. This method is invoked when `RTCAudioDevice` reports that it's audio
-  // parameters (`device_params`) are changed and it detects if there any difference with our
-  // current audio parameters (`params`). Our parameters are updated in case of actual change and
-  // method returns true. In case of actual change there is follow-up call to either
-  // `UpdateOutputAudioDeviceBuffer` or `UpdateInputAudioDeviceBuffer` to apply updated
-  // `playout_parameters_` or `recording_parameters_` to ADB.
+  // Update our audio parameters if they are different from current device audio
+  // parameters Returns true when our parameters are update, false - otherwise.
+  // `ObjCAudioDeviceModule` has audio device buffer (ADB) which has audio
+  // parameters of playout & recording. The ADB is configured to work with
+  // specific sample rate & channel count. `ObjCAudioDeviceModule` stores audio
+  // parameters which were used to configure ADB in the fields
+  // `playout_parameters_` and `recording_parameters_`. `RTCAudioDevice`
+  // protocol has its own audio parameters exposed as individual properties.
+  // `RTCAudioDevice` audio parameters might change when playout/recording is
+  // already in progress, for example, when device is switched. `RTCAudioDevice`
+  // audio parameters must be kept in sync with ADB audio parameters. This
+  // method is invoked when `RTCAudioDevice` reports that it's audio parameters
+  // (`device_params`) are changed and it detects if there any difference with
+  // our current audio parameters (`params`). Our parameters are updated in case
+  // of actual change and method returns true. In case of actual change there is
+  // follow-up call to either `UpdateOutputAudioDeviceBuffer` or
+  // `UpdateInputAudioDeviceBuffer` to apply updated `playout_parameters_` or
+  // `recording_parameters_` to ADB.
 
-  bool UpdateAudioParameters(AudioParameters& params, const AudioParameters& device_params);
+  bool UpdateAudioParameters(AudioParameters& params,
+                             const AudioParameters& device_params);
 
-  // Update our cached audio latency with device latency. Device latency is reported by
-  // `RTCAudioDevice` object. Whenever latency is changed, `RTCAudioDevice` is obliged to notify ADM
-  // about the change via `HandleAudioInputParametersChange` or `HandleAudioOutputParametersChange`.
-  // Current device IO latency is cached in the atomic field and used from audio IO thread
-  // to be reported to audio device buffer. It is highly recommended by Apple not to call any
-  // ObjC methods from audio IO thread, that is why implementation relies on caching latency
-  // into a field and being notified when latency is changed, which is the case when device
-  // is switched.
-  void UpdateAudioDelay(std::atomic<int>& delay_ms, const NSTimeInterval device_latency);
+  // Update our cached audio latency with device latency. Device latency is
+  // reported by `RTCAudioDevice` object. Whenever latency is changed,
+  // `RTCAudioDevice` is obliged to notify ADM about the change via
+  // `HandleAudioInputParametersChange` or `HandleAudioOutputParametersChange`.
+  // Current device IO latency is cached in the atomic field and used from audio
+  // IO thread to be reported to audio device buffer. It is highly recommended
+  // by Apple not to call any ObjC methods from audio IO thread, that is why
+  // implementation relies on caching latency into a field and being notified
+  // when latency is changed, which is the case when device is switched.
+  void UpdateAudioDelay(std::atomic<int>& delay_ms,
+                        const NSTimeInterval device_latency);
 
   // Uses current `playout_parameters_` to inform the audio device buffer (ADB)
   // about our internal audio parameters.
@@ -214,11 +223,12 @@ class ObjCAudioDeviceModule : public AudioDeviceModule {
 
   // AudioDeviceBuffer is a buffer to consume audio recorded by `RTCAudioDevice`
   // and provide audio to be played via `RTCAudioDevice`.
-  // Audio PCMs could have different sample rate and channels count, but expected
-  // to be in 16-bit integer interleaved linear PCM format.
-  // The current parameters ADB configured to work with is stored in field
+  // Audio PCMs could have different sample rate and channels count, but
+  // expected to be in 16-bit integer interleaved linear PCM format. The current
+  // parameters ADB configured to work with is stored in field
   // `playout_parameters_` for playout and `record_parameters_` for recording.
-  // These parameters and ADB must kept in sync with `RTCAudioDevice` audio parameters.
+  // These parameters and ADB must kept in sync with `RTCAudioDevice` audio
+  // parameters.
   std::unique_ptr<AudioDeviceBuffer> audio_device_buffer_;
 
   // Set to 1 when recording is active and 0 otherwise.

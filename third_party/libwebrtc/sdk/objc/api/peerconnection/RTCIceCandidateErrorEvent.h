@@ -23,16 +23,19 @@ RTC_OBJC_EXPORT
 /** The port used to communicate with the STUN or TURN server. */
 @property(nonatomic, readonly) int port;
 
-/** The STUN or TURN URL that identifies the STUN or TURN server for which the failure occurred. */
+/** The STUN or TURN URL that identifies the STUN or TURN server for which the
+ * failure occurred. */
 @property(nonatomic, readonly) NSString *url;
 
-/** The numeric STUN error code returned by the STUN or TURN server. If no host candidate can reach
- * the server, errorCode will be set to the value 701 which is outside the STUN error code range.
- * This error is only fired once per server URL while in the RTCIceGatheringState of "gathering". */
+/** The numeric STUN error code returned by the STUN or TURN server. If no host
+ * candidate can reach the server, errorCode will be set to the value 701 which
+ * is outside the STUN error code range. This error is only fired once per
+ * server URL while in the RTCIceGatheringState of "gathering". */
 @property(nonatomic, readonly) int errorCode;
 
-/** The STUN reason text returned by the STUN or TURN server. If the server could not be reached,
- * errorText will be set to an implementation-specific value providing details about the error. */
+/** The STUN reason text returned by the STUN or TURN server. If the server
+ * could not be reached, errorText will be set to an implementation-specific
+ * value providing details about the error. */
 @property(nonatomic, readonly) NSString *errorText;
 
 - (instancetype)init NS_DESIGNATED_INITIALIZER;

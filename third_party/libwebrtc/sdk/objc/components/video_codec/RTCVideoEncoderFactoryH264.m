@@ -16,7 +16,8 @@
 @implementation RTC_OBJC_TYPE (RTCVideoEncoderFactoryH264)
 
 - (NSArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *)supportedCodecs {
-  NSMutableArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *codecs = [NSMutableArray array];
+  NSMutableArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *codecs =
+      [NSMutableArray array];
   NSString *codecName = kRTCVideoCodecH264Name;
 
   NSDictionary<NSString *, NSString *> *constrainedHighParams = @{
@@ -25,8 +26,9 @@
     @"packetization-mode" : @"1",
   };
   RTC_OBJC_TYPE(RTCVideoCodecInfo) *constrainedHighInfo =
-      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:codecName
-                                                  parameters:constrainedHighParams];
+      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc]
+          initWithName:codecName
+            parameters:constrainedHighParams];
   [codecs addObject:constrainedHighInfo];
 
   NSDictionary<NSString *, NSString *> *constrainedBaselineParams = @{
@@ -35,14 +37,16 @@
     @"packetization-mode" : @"1",
   };
   RTC_OBJC_TYPE(RTCVideoCodecInfo) *constrainedBaselineInfo =
-      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:codecName
-                                                  parameters:constrainedBaselineParams];
+      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc]
+          initWithName:codecName
+            parameters:constrainedBaselineParams];
   [codecs addObject:constrainedBaselineInfo];
 
   return [codecs copy];
 }
 
-- (id<RTC_OBJC_TYPE(RTCVideoEncoder)>)createEncoder:(RTC_OBJC_TYPE(RTCVideoCodecInfo) *)info {
+- (id<RTC_OBJC_TYPE(RTCVideoEncoder)>)createEncoder:
+    (RTC_OBJC_TYPE(RTCVideoCodecInfo) *)info {
   return [[RTC_OBJC_TYPE(RTCVideoEncoderH264) alloc] initWithCodecInfo:info];
 }
 

@@ -36,11 +36,12 @@
 }
 
 - (NSString *)description {
-  return [NSString stringWithFormat:@"RTC_OBJC_TYPE(RTCIceCandidate):\n%@\n%d\n%@\n%@",
-                                    _sdpMid,
-                                    _sdpMLineIndex,
-                                    _sdp,
-                                    _serverUrl];
+  return [NSString
+      stringWithFormat:@"RTC_OBJC_TYPE(RTCIceCandidate):\n%@\n%d\n%@\n%@",
+                       _sdpMid,
+                       _sdpMLineIndex,
+                       _sdp,
+                       _serverUrl];
 }
 
 #pragma mark - Private
@@ -55,7 +56,8 @@
       [self initWithSdp:[NSString stringForStdString:sdp]
           sdpMLineIndex:candidate->sdp_mline_index()
                  sdpMid:[NSString stringForStdString:candidate->sdp_mid()]];
-  rtcCandidate->_serverUrl = [NSString stringForStdString:candidate->server_url()];
+  rtcCandidate->_serverUrl =
+      [NSString stringForStdString:candidate->server_url()];
   return rtcCandidate;
 }
 

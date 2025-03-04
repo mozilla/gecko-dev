@@ -8,12 +8,12 @@ I have filed this bug upstream: https://bugs.chromium.org/p/webrtc/issues/detail
 Differential Revision: https://phabricator.services.mozilla.com/D193172
 Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/91a763d768b74acc9cf4828f91a86df4a7b092ce
 ---
- .../capturer/RTCCameraVideoCapturer.h           |  5 ++++-
- .../capturer/RTCCameraVideoCapturer.m           | 17 +++++++++++++++--
- 2 files changed, 19 insertions(+), 3 deletions(-)
+ .../capturer/RTCCameraVideoCapturer.h         |  5 ++++-
+ .../capturer/RTCCameraVideoCapturer.m         | 19 +++++++++++++++----
+ 2 files changed, 19 insertions(+), 5 deletions(-)
 
 diff --git a/sdk/objc/components/capturer/RTCCameraVideoCapturer.h b/sdk/objc/components/capturer/RTCCameraVideoCapturer.h
-index 9874121238..39619b2fc3 100644
+index 5185fa866e..6aeb577b13 100644
 --- a/sdk/objc/components/capturer/RTCCameraVideoCapturer.h
 +++ b/sdk/objc/components/capturer/RTCCameraVideoCapturer.h
 @@ -26,7 +26,10 @@ RTC_OBJC_EXPORT
@@ -26,13 +26,13 @@ index 9874121238..39619b2fc3 100644
 +// Returns list of default capture devices types
 ++ (NSArray<AVCaptureDeviceType> *)defaultCaptureDeviceTypes;
  // Returns list of formats that are supported by this class for this device.
- + (NSArray<AVCaptureDeviceFormat *> *)supportedFormatsForDevice:(AVCaptureDevice *)device;
- 
+ + (NSArray<AVCaptureDeviceFormat *> *)supportedFormatsForDevice:
+     (AVCaptureDevice *)device;
 diff --git a/sdk/objc/components/capturer/RTCCameraVideoCapturer.m b/sdk/objc/components/capturer/RTCCameraVideoCapturer.m
-index d25f5e20ae..4f92f56807 100644
+index ff55bd7f19..60b1dbbfb5 100644
 --- a/sdk/objc/components/capturer/RTCCameraVideoCapturer.m
 +++ b/sdk/objc/components/capturer/RTCCameraVideoCapturer.m
-@@ -118,14 +118,27 @@ const int64_t kNanosecondsPerSecond = 1000000000;
+@@ -124,16 +124,27 @@ - (void)dealloc {
    [[NSNotificationCenter defaultCenter] removeObserver:self];
  }
  
@@ -40,7 +40,9 @@ index d25f5e20ae..4f92f56807 100644
 ++ (NSArray<AVCaptureDevice *> *)captureDevicesWithDeviceTypes:
 +    (NSArray<AVCaptureDeviceType> *)deviceTypes {
    AVCaptureDeviceDiscoverySession *session = [AVCaptureDeviceDiscoverySession
--      discoverySessionWithDeviceTypes:@[ AVCaptureDeviceTypeBuiltInWideAngleCamera ]
+-      discoverySessionWithDeviceTypes:@[
+-        AVCaptureDeviceTypeBuiltInWideAngleCamera
+-      ]
 +      discoverySessionWithDeviceTypes:deviceTypes
                              mediaType:AVMediaTypeVideo
                               position:AVCaptureDevicePositionUnspecified];
@@ -59,6 +61,6 @@ index d25f5e20ae..4f92f56807 100644
 +  return types;
 +}
 +
- + (NSArray<AVCaptureDeviceFormat *> *)supportedFormatsForDevice:(AVCaptureDevice *)device {
-   // Support opening the device in any format. We make sure it's converted to a format we
-   // can handle, if needed, in the method `-setupVideoDataOutput`.
+ + (NSArray<AVCaptureDeviceFormat *> *)supportedFormatsForDevice:
+     (AVCaptureDevice *)device {
+   // Support opening the device in any format. We make sure it's converted to a

@@ -12,32 +12,32 @@
 
 #include <memory>
 #include <optional>
-#include <string>
 
 #include "api/adaptation/resource.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
+#include "api/make_ref_counted.h"
 #include "api/media_stream_interface.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtc_error.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_sender_interface.h"
 #include "api/scoped_refptr.h"
+#include "api/test/rtc_error_matchers.h"
 #include "api/video/video_source_interface.h"
 #include "call/adaptation/test/fake_resource.h"
 #include "pc/test/fake_periodic_video_source.h"
 #include "pc/test/fake_periodic_video_track_source.h"
 #include "pc/test/peer_connection_test_wrapper.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/time_utils.h"
 #include "rtc_base/virtual_socket_server.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 namespace webrtc {
-
-const int64_t kDefaultTimeoutMs = 5000;
 
 struct TrackWithPeriodicSource {
   rtc::scoped_refptr<VideoTrackInterface> track;
@@ -132,10 +132,13 @@ TEST_F(PeerConnectionAdaptationIntegrationTest,
   // Inject a fake resource and spam kOveruse until resolution becomes limited.
   auto fake_resource = FakeResource::Create("FakeResource");
   caller->AddAdaptationResource(fake_resource);
-  EXPECT_TRUE_WAIT(
-      TriggerOveruseAndGetSinkWants(fake_resource, source).max_pixel_count <
-          pixel_count_before_overuse,
-      kDefaultTimeoutMs);
+  EXPECT_THAT(WaitUntil(
+                  [&] {
+                    return TriggerOveruseAndGetSinkWants(fake_resource, source)
+                        .max_pixel_count;
+                  },
+                  ::testing::Lt(pixel_count_before_overuse)),
+              IsRtcOk());
 }
 
 TEST_F(PeerConnectionAdaptationIntegrationTest,
@@ -163,10 +166,13 @@ TEST_F(PeerConnectionAdaptationIntegrationTest,
   int pixel_count_before_overuse = source.wants().max_pixel_count;
 
   // Spam kOveruse until resolution becomes limited.
-  EXPECT_TRUE_WAIT(
-      TriggerOveruseAndGetSinkWants(fake_resource, source).max_pixel_count <
-          pixel_count_before_overuse,
-      kDefaultTimeoutMs);
+  EXPECT_THAT(WaitUntil(
+                  [&] {
+                    return TriggerOveruseAndGetSinkWants(fake_resource, source)
+                        .max_pixel_count;
+                  },
+                  ::testing::Lt(pixel_count_before_overuse)),
+              IsRtcOk());
 }
 
 }  // namespace webrtc

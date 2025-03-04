@@ -590,10 +590,6 @@ class RtpReplayer final {
 
     while (true) {
       int64_t now_ms = CurrentTimeMs();
-      if (replay_start_ms == -1) {
-        replay_start_ms = now_ms;
-      }
-
       test::RtpPacket packet;
       if (!rtp_reader_->NextPacket(&packet)) {
         break;
@@ -618,6 +614,9 @@ class RtpReplayer final {
           header.Timestamp() < start_timestamp ||
           header.Timestamp() > stop_timestamp) {
         continue;
+      }
+      if (replay_start_ms == -1) {
+        replay_start_ms = now_ms - packet.time_ms;
       }
 
       int64_t deliver_in_ms = replay_start_ms + packet.time_ms - now_ms;

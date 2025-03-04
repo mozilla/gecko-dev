@@ -324,7 +324,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fc01107426c3adebb
  .../win/screen_capture_utils.cc               |   2 +-
  modules/rtp_rtcp/source/rtcp_sender.cc        |   2 +-
  .../rtp_rtcp/source/rtp_header_extensions.cc  |  39 ++++
- .../rtp_rtcp/source/rtp_header_extensions.h   |  15 ++
+ .../rtp_rtcp/source/rtp_header_extensions.h   |  16 ++
  modules/rtp_rtcp/source/rtp_packet.cc         |   4 +
  .../rtp_rtcp/source/rtp_packet_unittest.cc    |  30 +++
  modules/rtp_rtcp/source/rtp_rtcp_config.h     |   4 +
@@ -345,7 +345,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fc01107426c3adebb
  test/fuzzers/rtp_packet_fuzzer.cc             |   4 +
  test/vcm_capturer.cc                          |   2 +-
  webrtc.gni                                    |   2 +-
- 38 files changed, 564 insertions(+), 81 deletions(-)
+ 38 files changed, 565 insertions(+), 81 deletions(-)
 
 diff --git a/api/rtp_headers.cc b/api/rtp_headers.cc
 index c272ccae06..0271714c44 100644
@@ -415,7 +415,7 @@ index 178aeb8b66..8db74fde2d 100644
  
  bool RtpExtension::IsSupportedForVideo(absl::string_view uri) {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index 8f37af0be1..179d4c7efb 100644
+index 484b772e49..d5b92ea5df 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -20,6 +20,7 @@ rtc_library("call_interfaces") {
@@ -807,10 +807,10 @@ index 46c82180eb..bb035729f8 100644
  //
  // E.g. default video or screenshare.
 diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.h b/modules/rtp_rtcp/source/rtp_header_extensions.h
-index eb35da45c0..5b5c7c1e50 100644
+index c8ca45f72c..a42dcfd1cf 100644
 --- a/modules/rtp_rtcp/source/rtp_header_extensions.h
 +++ b/modules/rtp_rtcp/source/rtp_header_extensions.h
-@@ -310,6 +310,21 @@ class ColorSpaceExtension {
+@@ -310,6 +310,22 @@ class ColorSpaceExtension {
    static size_t WriteLuminance(uint8_t* data, float f, int denominator);
  };
  
@@ -826,7 +826,8 @@ index eb35da45c0..5b5c7c1e50 100644
 +  static bool Parse(rtc::ArrayView<const uint8_t> data,
 +                    CsrcAudioLevelList* csrcAudioLevels);
 +  static size_t ValueSize(const CsrcAudioLevelList& csrcAudioLevels);
-+  static bool Write(rtc::ArrayView<uint8_t> data, const CsrcAudioLevelList& csrcAudioLevels);
++  static bool Write(rtc::ArrayView<uint8_t> data,
++                    const CsrcAudioLevelList& csrcAudioLevels);
 +};
 +
  // Base extension class for RTP header extensions which are strings.
@@ -1530,7 +1531,7 @@ index 0073380520..c2dc03efda 100644
    const bool enable_svc_for_simulcast_;
    std::optional<SimulcastToSvcConverter> simulcast_to_svc_converter_;
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 0cd28c73e9..d0d90bbb3e 100644
+index ccdecd0832..3293ee145c 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
 @@ -442,6 +442,12 @@ rtc_library("logging") {
@@ -1620,7 +1621,7 @@ index 8131102944..3ac4edb454 100644
  
  //////////////////////////////////////////////////////////////////////
 diff --git a/test/fuzzers/rtp_packet_fuzzer.cc b/test/fuzzers/rtp_packet_fuzzer.cc
-index eaa423e855..6a7b233e29 100644
+index 46948a6bcb..fdc7c8be80 100644
 --- a/test/fuzzers/rtp_packet_fuzzer.cc
 +++ b/test/fuzzers/rtp_packet_fuzzer.cc
 @@ -170,6 +170,10 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
@@ -1648,7 +1649,7 @@ index 0a9226ef6f..620c1c02f3 100644
    vcm_ = nullptr;
  }
 diff --git a/webrtc.gni b/webrtc.gni
-index ec67d534eb..8c1aeab911 100644
+index c5eeba5211..4c24147133 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -123,7 +123,7 @@ declare_args() {

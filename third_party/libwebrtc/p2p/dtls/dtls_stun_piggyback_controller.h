@@ -60,10 +60,12 @@ class DtlsStunPiggybackController {
   }
 
   // Called by DtlsTransport when handshake is complete.
-  void SetDtlsHandshakeComplete(bool is_dtls_client);
+  void SetDtlsHandshakeComplete(bool is_dtls_client, bool is_dtls13);
 
-  // Called by DtlsTransport transport when there is data to piggyback.
-  void SetDataToPiggyback(rtc::ArrayView<const uint8_t> data);
+  // Intercepts DTLS packets which should go into the STUN packets during the
+  // handshake.
+  bool MaybeConsumePacket(rtc::ArrayView<const uint8_t> data);
+  void ClearCachedPacketForTesting();
 
   // Called by Connection, when sending a STUN BINDING { REQUEST / RESPONSE }
   // to obtain optional DTLS data or ACKs.

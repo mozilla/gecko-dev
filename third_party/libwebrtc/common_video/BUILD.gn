@@ -14,17 +14,9 @@ rtc_library("corruption_detection_converters") {
     "corruption_detection_converters.h",
   ]
   deps = [
-    ":corruption_detection_message",
     ":frame_instrumentation_data",
+    "../api/transport/rtp:corruption_detection_message",
     "../rtc_base:checks",
-  ]
-}
-
-rtc_library("corruption_detection_message") {
-  sources = [ "corruption_detection_message.h" ]
-  deps = [
-    "../api:array_view",
-    "//third_party/abseil-cpp/absl/container:inlined_vector",
   ]
 }
 
@@ -150,17 +142,8 @@ if (rtc_include_tests && !build_with_chromium) {
     sources = [ "corruption_detection_converters_unittest.cc" ]
     deps = [
       ":corruption_detection_converters",
-      ":corruption_detection_message",
       ":frame_instrumentation_data",
-      "../test:test_support",
-    ]
-  }
-
-  rtc_library("corruption_detection_message_unittest") {
-    testonly = true
-    sources = [ "corruption_detection_message_unittest.cc" ]
-    deps = [
-      ":corruption_detection_message",
+      "../api/transport/rtp:corruption_detection_message",
       "../test:test_support",
     ]
   }
@@ -193,7 +176,6 @@ if (rtc_include_tests && !build_with_chromium) {
     deps = [
       ":common_video",
       ":corruption_detection_converters_unittest",
-      ":corruption_detection_message_unittest",
       "../api:scoped_refptr",
       "../api/units:time_delta",
       "../api/video:video_frame",

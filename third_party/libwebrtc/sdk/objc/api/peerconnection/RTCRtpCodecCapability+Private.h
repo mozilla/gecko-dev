@@ -14,13 +14,16 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface RTC_OBJC_TYPE (RTCRtpCodecCapability)()
+@interface RTC_OBJC_TYPE (RTCRtpCodecCapability)
+()
 
-/**
- * The native RtpCodecCapability representation of this RTCRtpCodecCapability
- * object. This is needed to pass to the underlying C++ APIs.
- */
-@property(nonatomic, readonly) webrtc::RtpCodecCapability nativeRtpCodecCapability;
+    /**
+     * The native RtpCodecCapability representation of this
+     * RTCRtpCodecCapability object. This is needed to pass to the underlying
+     * C++ APIs.
+     */
+    @property(nonatomic,
+              readonly) webrtc::RtpCodecCapability nativeRtpCodecCapability;
 
 /**
  * Initialize an RTCRtpCodecCapability from a native RtpCodecCapability.

@@ -48,7 +48,7 @@ index bb035729f8..53211fa2b4 100644
  // Video Content Type.
  //
 diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.h b/modules/rtp_rtcp/source/rtp_header_extensions.h
-index 5b5c7c1e50..d0fafb4cd1 100644
+index a42dcfd1cf..134d9cfe4d 100644
 --- a/modules/rtp_rtcp/source/rtp_header_extensions.h
 +++ b/modules/rtp_rtcp/source/rtp_header_extensions.h
 @@ -106,6 +106,7 @@ class AudioLevelExtension {
@@ -75,9 +75,9 @@ index 5b5c7c1e50..d0fafb4cd1 100644
  class CsrcAudioLevel {
   public:
    static constexpr RTPExtensionType kId = kRtpExtensionCsrcAudioLevel;
-@@ -324,6 +327,7 @@ class CsrcAudioLevel {
-   static size_t ValueSize(const CsrcAudioLevelList& csrcAudioLevels);
-   static bool Write(rtc::ArrayView<uint8_t> data, const CsrcAudioLevelList& csrcAudioLevels);
+@@ -325,6 +328,7 @@ class CsrcAudioLevel {
+   static bool Write(rtc::ArrayView<uint8_t> data,
+                     const CsrcAudioLevelList& csrcAudioLevels);
  };
 +#endif
  
@@ -138,7 +138,7 @@ index 01de2fdabc..5cba8860a4 100644
    RTC_CHECK_NOTREACHED();
  }
 diff --git a/test/fuzzers/rtp_packet_fuzzer.cc b/test/fuzzers/rtp_packet_fuzzer.cc
-index 6a7b233e29..705ceee309 100644
+index fdc7c8be80..8b3427644a 100644
 --- a/test/fuzzers/rtp_packet_fuzzer.cc
 +++ b/test/fuzzers/rtp_packet_fuzzer.cc
 @@ -79,11 +79,13 @@ void FuzzOneInput(const uint8_t* data, size_t size) {

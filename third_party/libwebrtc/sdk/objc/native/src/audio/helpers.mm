@@ -39,10 +39,10 @@ std::string StdStringFromNSString(NSString* nsString) {
 
 bool CheckAndLogError(BOOL success, NSError* error) {
   if (!success) {
-    NSString* msg =
-        [NSString stringWithFormat:@"Error: %ld, %@, %@", (long)error.code,
-                                   error.localizedDescription,
-                                   error.localizedFailureReason];
+    NSString* msg = [NSString stringWithFormat:@"Error: %ld, %@, %@",
+                                               (long)error.code,
+                                               error.localizedDescription,
+                                               error.localizedFailureReason];
     RTC_LOG(LS_ERROR) << StdStringFromNSString(msg);
     return false;
   }

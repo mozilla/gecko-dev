@@ -45,7 +45,7 @@ index 0a29968b0c..c23051401e 100644
      return flexfec_ssrc_;
    }
 diff --git a/modules/rtp_rtcp/source/rtp_sender_video.cc b/modules/rtp_rtcp/source/rtp_sender_video.cc
-index 8a21d0523f..80964b30ee 100644
+index 9ba860836a..27f262f880 100644
 --- a/modules/rtp_rtcp/source/rtp_sender_video.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender_video.cc
 @@ -189,6 +189,7 @@ RTPSenderVideo::RTPSenderVideo(const Config& config)
@@ -55,7 +55,7 @@ index 8a21d0523f..80964b30ee 100644
 +                    rtp_sender_->Rid(),
                      config.task_queue_factory)
                : nullptr),
-       enable_av1_even_split_(
+       // TODO: bugs.webrtc.org/42226301 - Remove when fully launched.
 diff --git a/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc b/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc
 index d119fdcecf..3ebfe1c742 100644
 --- a/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc

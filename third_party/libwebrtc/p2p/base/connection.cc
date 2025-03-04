@@ -13,23 +13,43 @@
 #include <math.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/base/attributes.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
+#include "api/candidate.h"
+#include "api/rtc_error.h"
+#include "api/sequence_checker.h"
+#include "api/task_queue/task_queue_base.h"
+#include "api/transport/stun.h"
 #include "api/units/timestamp.h"
+#include "logging/rtc_event_log/events/rtc_event_ice_candidate_pair.h"
+#include "logging/rtc_event_log/events/rtc_event_ice_candidate_pair_config.h"
+#include "logging/rtc_event_log/ice_logger.h"
+#include "p2p/base/connection_info.h"
 #include "p2p/base/p2p_constants.h"
+#include "p2p/base/p2p_transport_channel_ice_field_trials.h"
+#include "p2p/base/port_interface.h"
+#include "p2p/base/stun_request.h"
+#include "p2p/base/transport_description.h"
+#include "rtc_base/async_packet_socket.h"
 #include "rtc_base/byte_buffer.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/crypto_random.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/net_helper.h"
+#include "rtc_base/net_helpers.h"
 #include "rtc_base/network.h"
+#include "rtc_base/network/received_packet.h"
 #include "rtc_base/network/sent_packet.h"
 #include "rtc_base/network_constants.h"
 #include "rtc_base/numerics/safe_minmax.h"
@@ -39,6 +59,7 @@
 #include "rtc_base/string_utils.h"
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/time_utils.h"
+#include "rtc_base/weak_ptr.h"
 
 namespace cricket {
 namespace {
@@ -557,6 +578,15 @@ void Connection::OnReadPacket(const rtc::ReceivedPacket& packet) {
       // This doesn't just check, it makes callbacks if transaction
       // id's match.
     case STUN_BINDING_RESPONSE:
+      if (dtls_stun_piggyback_consumer_) {
+        const StunByteStringAttribute* dtls_piggyback_attribute =
+            msg->GetByteString(STUN_ATTR_META_DTLS_IN_STUN);
+        const StunByteStringAttribute* dtls_piggyback_ack =
+            msg->GetByteString(STUN_ATTR_META_DTLS_IN_STUN_ACK);
+        dtls_stun_piggyback_consumer_(dtls_piggyback_attribute,
+                                      dtls_piggyback_ack);
+      }
+      ABSL_FALLTHROUGH_INTENDED;
     case STUN_BINDING_ERROR_RESPONSE:
       requests_.CheckResponse(msg.get());
       break;
@@ -578,6 +608,36 @@ void Connection::OnReadPacket(const rtc::ReceivedPacket& packet) {
     default:
       RTC_DCHECK_NOTREACHED();
       break;
+  }
+}
+
+void Connection::MaybeAddDtlsPiggybackingAttributes(StunMessage* msg) {
+  if (!(dtls_stun_piggyback_data_producer_ &&
+        dtls_stun_piggyback_ack_producer_)) {
+    return;
+  }
+  std::optional<absl::string_view> dtls_piggyback_attr =
+      dtls_stun_piggyback_data_producer_(STUN_BINDING_RESPONSE);
+  std::optional<absl::string_view> dtls_piggyback_ack =
+      dtls_stun_piggyback_ack_producer_(STUN_BINDING_REQUEST);
+
+  size_t need_length =
+      (dtls_piggyback_attr
+           ? dtls_piggyback_attr->length() + kStunAttributeHeaderSize
+           : 0) +
+      (dtls_piggyback_ack
+           ? dtls_piggyback_ack->length() + kStunAttributeHeaderSize
+           : 0);
+  if (msg->length() + need_length > kMaxStunBindingLength) {
+    return;
+  }
+  if (dtls_piggyback_attr) {
+    msg->AddAttribute(std::make_unique<StunByteStringAttribute>(
+        STUN_ATTR_META_DTLS_IN_STUN, *dtls_piggyback_attr));
+  }
+  if (dtls_piggyback_ack) {
+    msg->AddAttribute(std::make_unique<StunByteStringAttribute>(
+        STUN_ATTR_META_DTLS_IN_STUN_ACK, *dtls_piggyback_ack));
   }
 }
 
@@ -623,6 +683,14 @@ void Connection::HandleStunBindingOrGoogPingRequest(IceMessage* msg) {
 
   // This is a validated stun request from remote peer.
   if (msg->type() == STUN_BINDING_REQUEST) {
+    if (dtls_stun_piggyback_consumer_) {
+      const StunByteStringAttribute* dtls_piggyback_attribute =
+          msg->GetByteString(STUN_ATTR_META_DTLS_IN_STUN);
+      const StunByteStringAttribute* dtls_piggyback_ack =
+          msg->GetByteString(STUN_ATTR_META_DTLS_IN_STUN_ACK);
+      dtls_stun_piggyback_consumer_(dtls_piggyback_attribute,
+                                    dtls_piggyback_ack);
+    }
     SendStunBindingResponse(msg);
   } else {
     RTC_DCHECK(msg->type() == GOOG_PING_REQUEST);
@@ -739,14 +807,15 @@ void Connection::SendStunBindingResponse(const StunMessage* message) {
         RTC_LOG(LS_ERROR) << "GOOG_DELTA consumer did not return ack!";
       }
     } else {
-      RTC_LOG(LS_WARNING) << "Ignore GOOG_DELTA"
-                          << " len: " << delta->length()
+      RTC_LOG(LS_WARNING) << "Ignore GOOG_DELTA" << " len: " << delta->length()
                           << " answer_goog_delta = "
                           << field_trials_->answer_goog_delta
                           << " goog_delta_consumer_ = "
                           << goog_delta_consumer_.has_value();
     }
   }
+
+  MaybeAddDtlsPiggybackingAttributes(&response);
 
   response.AddMessageIntegrity(local_candidate().password());
   response.AddFingerprint();
@@ -1083,6 +1152,8 @@ std::unique_ptr<IceMessage> Connection::BuildPingRequest(
     RTC_LOG(LS_INFO) << "Sending GOOG_DELTA: len: " << delta->length();
     message->AddAttribute(std::move(delta));
   }
+
+  MaybeAddDtlsPiggybackingAttributes(message.get());
 
   message->AddMessageIntegrity(remote_candidate_.password());
   message->AddFingerprint();
@@ -1483,6 +1554,21 @@ void Connection::OnConnectionRequestResponse(StunRequest* request,
     }
   } else if (delta_ack) {
     RTC_LOG(LS_ERROR) << "Discard GOOG_DELTA_ACK, no consumer";
+  }
+
+  if (dtls_stun_piggyback_consumer_) {
+    const bool sent_dtls_piggyback =
+        request->msg()->GetByteString(STUN_ATTR_META_DTLS_IN_STUN) != nullptr;
+    const bool sent_dtls_piggyback_ack =
+        request->msg()->GetByteString(STUN_ATTR_META_DTLS_IN_STUN_ACK) !=
+        nullptr;
+    const StunByteStringAttribute* dtls_piggyback_attr =
+        response->GetByteString(STUN_ATTR_META_DTLS_IN_STUN);
+    const StunByteStringAttribute* dtls_piggyback_ack =
+        response->GetByteString(STUN_ATTR_META_DTLS_IN_STUN_ACK);
+    if (sent_dtls_piggyback || sent_dtls_piggyback_ack) {
+      dtls_stun_piggyback_consumer_(dtls_piggyback_attr, dtls_piggyback_ack);
+    }
   }
 }
 

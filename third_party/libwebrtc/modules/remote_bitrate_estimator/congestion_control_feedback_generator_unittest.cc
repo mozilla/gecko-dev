@@ -142,9 +142,7 @@ TEST(CongestionControlFeedbackGeneratorTest,
                                                rtcp_sender.AsStdFunction());
 
   const DataRate kSendBandwidthEstimate = DataRate::BytesPerSec(10'000);
-  const DataSize kPacketOverHead = DataSize::Bytes(25);
   generator.OnSendBandwidthEstimateChanged(kSendBandwidthEstimate);
-  generator.SetTransportOverhead(kPacketOverHead);
   TimeDelta time_to_next_process = generator.Process(clock.CurrentTime());
   clock.AdvanceTime(kSmallTimeInterval);
   time_to_next_process -= kSmallTimeInterval;
@@ -166,8 +164,7 @@ TEST(CongestionControlFeedbackGeneratorTest,
             // Expect at most 5% of send bandwidth to be used. This decide the
             // time to next feedback.
             expected_feedback_time +=
-                (DataSize::Bytes(rtcp_len) + kPacketOverHead) /
-                (0.05 * kSendBandwidthEstimate);
+                DataSize::Bytes(rtcp_len) / (0.05 * kSendBandwidthEstimate);
           });
   generator.OnReceivedPacket(
       CreatePacket(clock.CurrentTime(), /*marker=*/true));

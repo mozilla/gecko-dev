@@ -18,6 +18,7 @@
 #include <string>
 #include <utility>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/crypto/crypto_options.h"
@@ -26,11 +27,13 @@
 #include "api/rtc_event_log/rtc_event_log.h"
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
+#include "api/transport/stun.h"
 #include "api/units/timestamp.h"
 #include "logging/rtc_event_log/events/rtc_event_dtls_transport_state.h"
 #include "logging/rtc_event_log/events/rtc_event_dtls_writable_state.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/packet_transport_internal.h"
+#include "p2p/dtls/dtls_stun_piggyback_controller.h"
 #include "p2p/dtls/dtls_transport_internal.h"
 #include "p2p/dtls/dtls_utils.h"
 #include "rtc_base/buffer.h"
@@ -60,8 +63,10 @@ static const size_t kMaxPendingPackets = 2;
 
 // Minimum and maximum values for the initial DTLS handshake timeout. We'll pick
 // an initial timeout based on ICE RTT estimates, but clamp it to this range.
-static const int kMinHandshakeTimeout = 50;
-static const int kMaxHandshakeTimeout = 3000;
+static const int kMinHandshakeTimeoutMs = 50;
+static const int kMaxHandshakeTimeoutMs = 3000;
+// This effectively disables the handshake timeout.
+static const int kDisabledHandshakeTimeoutMs = 3600 * 1000 * 24;
 
 static bool IsRtpPacket(rtc::ArrayView<const uint8_t> payload) {
   const uint8_t* u = payload.data();
@@ -73,6 +78,11 @@ StreamInterfaceChannel::StreamInterfaceChannel(
     : ice_transport_(ice_transport),
       state_(rtc::SS_OPEN),
       packets_(kMaxPendingPackets, kMaxDtlsPacketLen) {}
+
+void StreamInterfaceChannel::SetDtlsStunPiggybackController(
+    DtlsStunPiggybackController* dtls_stun_piggyback_controller) {
+  dtls_stun_piggyback_controller_ = dtls_stun_piggyback_controller;
+}
 
 rtc::StreamResult StreamInterfaceChannel::Read(rtc::ArrayView<uint8_t> buffer,
                                                size_t& read,
@@ -96,6 +106,16 @@ rtc::StreamResult StreamInterfaceChannel::Write(
     size_t& written,
     int& /* error */) {
   RTC_DCHECK_RUN_ON(&callback_sequence_);
+
+  // If we try to use DTLS-in-STUN, DTLS packets will be sent as part of STUN
+  // packets and are consumed here.
+  if (ice_transport_->config().dtls_handshake_in_stun &&
+      dtls_stun_piggyback_controller_ &&
+      dtls_stun_piggyback_controller_->MaybeConsumePacket(data)) {
+    written = data.size();
+    return rtc::SR_SUCCESS;
+  }
+
   // Always succeeds, since this is an unreliable transport anyway.
   // TODO(zhihuang): Should this block if ice_transport_'s temporarily
   // unwritable?
@@ -140,16 +160,26 @@ DtlsTransport::DtlsTransport(IceTransportInternal* ice_transport,
                              rtc::SSLProtocolVersion max_version)
     : component_(ice_transport->component()),
       ice_transport_(ice_transport),
-      downward_(NULL),
+      downward_(nullptr),
       srtp_ciphers_(crypto_options.GetSupportedDtlsSrtpCryptoSuites()),
       ssl_max_version_(max_version),
-      event_log_(event_log) {
+      event_log_(event_log),
+      dtls_stun_piggyback_controller_(
+          [this](rtc::ArrayView<const uint8_t> piggybacked_dtls_packet) {
+            if (piggybacked_dtls_callback_ == nullptr) {
+              return;
+            }
+            piggybacked_dtls_callback_(
+                this, rtc::ReceivedPacket(piggybacked_dtls_packet,
+                                          rtc::SocketAddress()));
+          }) {
   RTC_DCHECK(ice_transport_);
   ConnectToIceTransport();
 }
 
 DtlsTransport::~DtlsTransport() {
   if (ice_transport_) {
+    ice_transport_->SetDtlsPiggybackingCallbacks(nullptr, nullptr, nullptr);
     ice_transport_->DeregisterReceivedPacketCallback(this);
   }
 }
@@ -361,6 +391,8 @@ bool DtlsTransport::SetupDtls() {
     auto downward = std::make_unique<StreamInterfaceChannel>(ice_transport_);
     StreamInterfaceChannel* downward_ptr = downward.get();
 
+    downward_ptr->SetDtlsStunPiggybackController(
+        &dtls_stun_piggyback_controller_);
     dtls_ = rtc::SSLStreamAdapter::Create(
         std::move(downward),
         [this](rtc::SSLHandshakeError error) { OnDtlsHandshakeError(error); },
@@ -531,6 +563,33 @@ void DtlsTransport::ConnectToIceTransport() {
       this, &DtlsTransport::OnReceivingState);
   ice_transport_->SignalNetworkRouteChanged.connect(
       this, &DtlsTransport::OnNetworkRouteChanged);
+  ice_transport_->SetDtlsPiggybackingCallbacks(
+      [this](StunMessageType stun_message_type) {
+        return dtls_stun_piggyback_controller_.GetDataToPiggyback(
+            stun_message_type);
+      },
+      [this](StunMessageType stun_message_type) {
+        return dtls_stun_piggyback_controller_.GetAckToPiggyback(
+            stun_message_type);
+      },
+      [this](const StunByteStringAttribute* data,
+             const StunByteStringAttribute* ack) {
+        dtls_stun_piggyback_controller_.ReportDataPiggybacked(data, ack);
+      });
+
+  SetPiggybackDtlsDataCallback([this](rtc::PacketTransportInternal* transport,
+                                      const rtc::ReceivedPacket& packet) {
+    RTC_DCHECK(dtls_active_);
+    RTC_DCHECK(IsDtlsPacket(packet.payload()));
+    if (!dtls_active_) {
+      // Not doing DTLS.
+      return;
+    }
+    if (!IsDtlsPacket(packet.payload())) {
+      return;
+    }
+    OnReadPacket(ice_transport_, packet);
+  });
 }
 
 // The state transition logic here is as follows:
@@ -557,11 +616,38 @@ void DtlsTransport::OnWritableState(rtc::PacketTransportInternal* transport) {
     return;
   }
 
+  // The opportunistic attempt to do DTLS piggybacking failed.
+  // Recreate the DTLS session. Note: this assumes we can consider
+  // the previous DTLS session state beyond repair and no packet
+  // reached the peer.
+  if (ice_transport_->config().dtls_handshake_in_stun && dtls_ &&
+      !was_ever_connected_ && !IsDtlsPiggybackSupportedByPeer() &&
+      (dtls_state() == webrtc::DtlsTransportState::kConnecting ||
+       dtls_state() == webrtc::DtlsTransportState::kNew)) {
+    RTC_LOG(LS_INFO) << "DTLS piggybacking not supported, restarting...";
+    ice_transport_->SetDtlsPiggybackingCallbacks(nullptr, nullptr, nullptr);
+
+    downward_->SetDtlsStunPiggybackController(nullptr);
+    dtls_.reset(nullptr);
+    set_dtls_state(webrtc::DtlsTransportState::kNew);
+    set_writable(false);
+
+    if (!SetupDtls()) {
+      RTC_LOG(LS_ERROR)
+          << "Failed to setup DTLS again after attempted piggybacking.";
+      set_dtls_state(webrtc::DtlsTransportState::kFailed);
+      return;
+    }
+    // SetupDtls has called MaybeStartDtls() already.
+    return;
+  }
+
   switch (dtls_state()) {
     case webrtc::DtlsTransportState::kNew:
       MaybeStartDtls();
       break;
     case webrtc::DtlsTransportState::kConnected:
+      was_ever_connected_ = true;
       // Note: SignalWritableState fired by set_writable.
       set_writable(ice_transport_->writable());
       break;
@@ -697,12 +783,21 @@ void DtlsTransport::OnReadyToSend(
 
 void DtlsTransport::OnDtlsEvent(int sig, int err) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
+  RTC_DCHECK(dtls_);
+
   if (sig & rtc::SE_OPEN) {
     // This is the first time.
     RTC_LOG(LS_INFO) << ToString() << ": DTLS handshake complete.";
+    // The check for OPEN shouldn't be necessary but let's make
+    // sure we don't accidentally frob the state if it's closed.
     if (dtls_->GetState() == rtc::SS_OPEN) {
-      // The check for OPEN shouldn't be necessary but let's make
-      // sure we don't accidentally frob the state if it's closed.
+      int ssl_version_bytes;
+      bool ret = dtls_->GetSslVersionBytes(&ssl_version_bytes);
+      RTC_DCHECK(ret);
+      dtls_stun_piggyback_controller_.SetDtlsHandshakeComplete(
+          dtls_role_ == rtc::SSL_CLIENT,
+          ssl_version_bytes == rtc::kDtls13VersionBytes);
+      downward_->SetDtlsStunPiggybackController(nullptr);
       set_dtls_state(webrtc::DtlsTransportState::kConnected);
       set_writable(true);
     }
@@ -762,8 +857,13 @@ void DtlsTransport::OnNetworkRouteChanged(
 }
 
 void DtlsTransport::MaybeStartDtls() {
-  if (dtls_ && ice_transport_->writable()) {
-    ConfigureHandshakeTimeout();
+  RTC_DCHECK(ice_transport_);
+  //  When adding the DTLS handshake in STUN we want to call StartSSL even
+  //  before the ICE transport is ready.
+  bool start_early_for_dtls_in_stun =
+      ice_transport_->config().dtls_handshake_in_stun;
+  if (dtls_ && (ice_transport_->writable() || start_early_for_dtls_in_stun)) {
+    ConfigureHandshakeTimeout(start_early_for_dtls_in_stun);
 
     if (dtls_->StartSSL()) {
       // This should never fail:
@@ -851,23 +951,56 @@ void DtlsTransport::OnDtlsHandshakeError(rtc::SSLHandshakeError error) {
   SendDtlsHandshakeError(error);
 }
 
-void DtlsTransport::ConfigureHandshakeTimeout() {
+void DtlsTransport::ConfigureHandshakeTimeout(bool uses_dtls_in_stun) {
   RTC_DCHECK(dtls_);
-  std::optional<int> rtt = ice_transport_->GetRttEstimate();
-  if (rtt) {
+  std::optional<int> rtt_ms = ice_transport_->GetRttEstimate();
+  if (uses_dtls_in_stun) {
+    // Configure a very high timeout to effectively disable the DTLS timeout
+    // and avoid fragmented resends. This is ok since DTLS-in-STUN caches
+    // the handshake pacets and resends them using the pacing of ICE.
+    RTC_LOG(LS_INFO) << ToString() << ": configuring DTLS handshake timeout "
+                     << kDisabledHandshakeTimeoutMs << "ms for DTLS-in-STUN";
+    dtls_->SetInitialRetransmissionTimeout(kDisabledHandshakeTimeoutMs);
+  } else if (rtt_ms) {
     // Limit the timeout to a reasonable range in case the ICE RTT takes
     // extreme values.
-    int initial_timeout = std::max(kMinHandshakeTimeout,
-                                   std::min(kMaxHandshakeTimeout, 2 * (*rtt)));
+    int initial_timeout_ms =
+        std::max(kMinHandshakeTimeoutMs,
+                 std::min(kMaxHandshakeTimeoutMs, 2 * (*rtt_ms)));
     RTC_LOG(LS_INFO) << ToString() << ": configuring DTLS handshake timeout "
-                     << initial_timeout << " based on ICE RTT " << *rtt;
+                     << initial_timeout_ms << "ms based on ICE RTT " << *rtt_ms;
 
-    dtls_->SetInitialRetransmissionTimeout(initial_timeout);
+    dtls_->SetInitialRetransmissionTimeout(initial_timeout_ms);
   } else {
     RTC_LOG(LS_INFO)
         << ToString()
         << ": no RTT estimate - using default DTLS handshake timeout";
   }
+}
+
+void DtlsTransport::SetPiggybackDtlsDataCallback(
+    absl::AnyInvocable<void(rtc::PacketTransportInternal* transport,
+                            const rtc::ReceivedPacket& packet)> callback) {
+  RTC_DCHECK(callback == nullptr || !piggybacked_dtls_callback_);
+  piggybacked_dtls_callback_ = std::move(callback);
+}
+
+bool DtlsTransport::IsDtlsPiggybackSupportedByPeer() {
+  RTC_DCHECK_RUN_ON(&thread_checker_);
+  RTC_DCHECK(ice_transport_);
+  return ice_transport_->config().dtls_handshake_in_stun &&
+         dtls_stun_piggyback_controller_.state() !=
+             DtlsStunPiggybackController::State::OFF;
+}
+
+bool DtlsTransport::IsDtlsPiggybackHandshaking() {
+  RTC_DCHECK_RUN_ON(&thread_checker_);
+  RTC_DCHECK(ice_transport_);
+  return ice_transport_->config().dtls_handshake_in_stun &&
+         (dtls_stun_piggyback_controller_.state() ==
+              DtlsStunPiggybackController::State::TENTATIVE ||
+          dtls_stun_piggyback_controller_.state() ==
+              DtlsStunPiggybackController::State::CONFIRMED);
 }
 
 }  // namespace cricket

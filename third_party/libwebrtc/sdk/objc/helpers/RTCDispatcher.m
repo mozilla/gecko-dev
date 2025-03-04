@@ -20,13 +20,11 @@ static dispatch_queue_t kNetworkMonitorQueue = nil;
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
     kAudioSessionQueue = dispatch_queue_create(
-        "org.webrtc.RTCDispatcherAudioSession",
-        DISPATCH_QUEUE_SERIAL);
+        "org.webrtc.RTCDispatcherAudioSession", DISPATCH_QUEUE_SERIAL);
     kCaptureSessionQueue = dispatch_queue_create(
-        "org.webrtc.RTCDispatcherCaptureSession",
-        DISPATCH_QUEUE_SERIAL);
-    kNetworkMonitorQueue =
-        dispatch_queue_create("org.webrtc.RTCDispatcherNetworkMonitor", DISPATCH_QUEUE_SERIAL);
+        "org.webrtc.RTCDispatcherCaptureSession", DISPATCH_QUEUE_SERIAL);
+    kNetworkMonitorQueue = dispatch_queue_create(
+        "org.webrtc.RTCDispatcherNetworkMonitor", DISPATCH_QUEUE_SERIAL);
   });
 }
 
@@ -39,10 +37,12 @@ static dispatch_queue_t kNetworkMonitorQueue = nil;
 + (BOOL)isOnQueueForType:(RTCDispatcherQueueType)dispatchType {
   dispatch_queue_t targetQueue = [self dispatchQueueForType:dispatchType];
   const char* targetLabel = dispatch_queue_get_label(targetQueue);
-  const char* currentLabel = dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL);
+  const char* currentLabel =
+      dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL);
 
   NSAssert(strlen(targetLabel) > 0, @"Label is required for the target queue.");
-  NSAssert(strlen(currentLabel) > 0, @"Label is required for the current queue.");
+  NSAssert(strlen(currentLabel) > 0,
+           @"Label is required for the current queue.");
 
   return strcmp(targetLabel, currentLabel) == 0;
 }

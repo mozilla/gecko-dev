@@ -33,6 +33,11 @@ class FineAudioBuffer;
 
 namespace ios_adm {
 
+// A callback handler for audio device rendering errors.
+// Note: Called on a realtime thread.
+// Note: Only applies to input rendering errors, not output.
+typedef void (^AudioDeviceIOSRenderErrorHandler)(OSStatus error);
+
 // Implements full duplex 16-bit mono PCM audio support for iOS using a
 // Voice-Processing (VP) I/O audio unit in Core Audio. The VP I/O audio unit
 // supports audio echo cancellation. It also adds automatic gain control,
@@ -52,7 +57,8 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
  public:
   explicit AudioDeviceIOS(
       bool bypass_voice_processing,
-      AudioDeviceModule::MutedSpeechEventHandler muted_speech_event_handler);
+      AudioDeviceModule::MutedSpeechEventHandler muted_speech_event_handler,
+      AudioDeviceIOSRenderErrorHandler render_error_handler);
   ~AudioDeviceIOS() override;
 
   void AttachAudioBuffer(AudioDeviceBuffer* audioBuffer) override;
@@ -219,6 +225,13 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
 
   // Handle a user speaking during muted event
   AudioDeviceModule::MutedSpeechEventHandler muted_speech_event_handler_;
+
+  // Handle microphone rendering errors.
+  AudioDeviceIOSRenderErrorHandler render_error_handler_;
+
+  // Copying microphone data (rendering to a buffer) may keep failing. This
+  // field makes sure subsequent errors are not reported.
+  bool disregard_next_render_error_;
 
   // Native I/O audio thread checker.
   SequenceChecker io_thread_checker_;

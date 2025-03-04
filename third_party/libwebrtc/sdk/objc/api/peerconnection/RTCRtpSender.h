@@ -40,7 +40,8 @@ RTC_OBJC_EXPORT
 @property(nonatomic, copy) NSArray<NSString *> *streamIds;
 
 /** The RTCDtmfSender accociated with the RTP sender. */
-@property(nonatomic, readonly, nullable) id<RTC_OBJC_TYPE(RTCDtmfSender)> dtmfSender;
+@property(nonatomic, readonly, nullable) id<RTC_OBJC_TYPE(RTCDtmfSender)>
+    dtmfSender;
 
 @end
 

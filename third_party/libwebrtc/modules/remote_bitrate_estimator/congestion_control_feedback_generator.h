@@ -54,8 +54,6 @@ class CongestionControlFeedbackGenerator
 
   TimeDelta Process(Timestamp now) override;
 
-  void SetTransportOverhead(DataSize overhead_per_packet) override;
-
  private:
   Timestamp NextFeedbackTime() const RTC_RUN_ON(sequence_checker_);
 

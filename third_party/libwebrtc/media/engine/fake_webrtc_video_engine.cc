@@ -62,8 +62,7 @@ bool FakeWebRtcVideoDecoder::Configure(const Settings& /* settings */) {
   return true;
 }
 
-int32_t FakeWebRtcVideoDecoder::Decode(const webrtc::EncodedImage&,
-                                       int64_t) {
+int32_t FakeWebRtcVideoDecoder::Decode(const webrtc::EncodedImage&, int64_t) {
   num_frames_received_++;
   return WEBRTC_VIDEO_CODEC_OK;
 }
@@ -116,6 +115,11 @@ void FakeWebRtcVideoDecoderFactory::DecoderDestroyed(
     FakeWebRtcVideoDecoder* decoder) {
   decoders_.erase(std::remove(decoders_.begin(), decoders_.end(), decoder),
                   decoders_.end());
+}
+
+void FakeWebRtcVideoDecoderFactory::AddSupportedVideoCodec(
+    const webrtc::SdpVideoFormat& format) {
+  supported_codec_formats_.push_back(format);
 }
 
 void FakeWebRtcVideoDecoderFactory::AddSupportedVideoCodecType(

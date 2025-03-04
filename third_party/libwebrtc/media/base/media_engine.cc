@@ -96,7 +96,8 @@ webrtc::RTCError CheckScalabilityModeValues(
     if (rtp_parameters.encodings[i].codec) {
       bool codecFound = false;
       for (const cricket::Codec& codec : send_codecs) {
-        if (IsSameRtpCodec(codec, *rtp_parameters.encodings[i].codec) &&
+        if (IsSameRtpCodecIgnoringLevel(codec,
+                                        *rtp_parameters.encodings[i].codec) &&
             SupportsMode(codec, rtp_parameters.encodings[i].scalability_mode)) {
           codecFound = true;
           send_codec = codec;

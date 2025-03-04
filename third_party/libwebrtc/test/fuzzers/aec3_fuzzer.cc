@@ -11,6 +11,7 @@
 #include <optional>
 
 #include "api/audio/audio_processing.h"
+#include "api/environment/environment_factory.h"
 #include "modules/audio_processing/aec3/echo_canceller3.h"
 #include "modules/audio_processing/audio_buffer.h"
 #include "test/fuzzers/fuzz_data_helper.h"
@@ -53,7 +54,7 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
   const size_t num_capture_channels =
       1 + fuzz_data.ReadOrDefaultValue<uint8_t>(0) % (kMaxNumChannels - 1);
 
-  EchoCanceller3 aec3(EchoCanceller3Config(),
+  EchoCanceller3 aec3(CreateEnvironment(), EchoCanceller3Config(),
                       /*multichannel_config=*/std::nullopt, sample_rate_hz,
                       num_render_channels, num_capture_channels);
 

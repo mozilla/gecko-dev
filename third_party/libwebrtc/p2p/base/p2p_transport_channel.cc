@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
@@ -310,6 +311,20 @@ void P2PTransportChannel::AddConnection(Connection* connection) {
       [this](webrtc::RTCErrorOr<const StunUInt64Attribute*> delta_ack) {
         GoogDeltaAckReceived(std::move(delta_ack));
       });
+  if (config_.dtls_handshake_in_stun) {
+    connection->RegisterDtlsPiggyback(
+        [this](StunMessageType stun_message_type) {
+          return dtls_piggyback_get_data_(stun_message_type);
+        },
+        [this](StunMessageType stun_message_type) {
+          return dtls_piggyback_get_ack_(stun_message_type);
+        },
+        [this](const StunByteStringAttribute* data,
+               const StunByteStringAttribute* ack) {
+          dtls_piggyback_report_data_(data, ack);
+        });
+  }
+
   LogCandidatePairConfig(connection,
                          webrtc::IceCandidatePairConfigType::kAdded);
 
@@ -695,6 +710,11 @@ void P2PTransportChannel::SetIceConfig(const IceConfig& config) {
   allocator_->SetVpnPreference(config_.vpn_preference);
 
   ice_controller_->SetIceConfig(config_);
+  if (config_.dtls_handshake_in_stun != config.dtls_handshake_in_stun) {
+    config_.dtls_handshake_in_stun = config.dtls_handshake_in_stun;
+    RTC_LOG(LS_INFO) << "Set DTLS handshake in STUN to "
+                     << config.dtls_handshake_in_stun;
+  }
 
   RTC_DCHECK(ValidateIceConfig(config_).ok());
 }
@@ -1603,6 +1623,7 @@ int P2PTransportChannel::SendPacket(const char* data,
     error_ = EINVAL;
     return -1;
   }
+
   // If we don't think the connection is working yet, return ENOTCONN
   // instead of sending a packet that will probably be dropped.
   if (!ReadyToSend(selected_connection_)) {
@@ -2151,6 +2172,7 @@ void P2PTransportChannel::RemoveConnection(Connection* connection) {
   connection->DeregisterReceivedPacketCallback();
   connections_.erase(it);
   connection->ClearStunDictConsumer();
+  connection->DeregisterDtlsPiggyback();
   ice_controller_->OnConnectionDestroyed(connection);
 }
 
@@ -2230,21 +2252,21 @@ void P2PTransportChannel::OnReadPacket(Connection* connection,
     return;
   }
 
-    // Let the client know of an incoming packet
-    packets_received_++;
-    bytes_received_ += packet.payload().size();
-    RTC_DCHECK(connection->last_data_received() >= last_data_received_ms_);
-    last_data_received_ms_ =
-        std::max(last_data_received_ms_, connection->last_data_received());
+  // Let the client know of an incoming packet
+  packets_received_++;
+  bytes_received_ += packet.payload().size();
+  RTC_DCHECK(connection->last_data_received() >= last_data_received_ms_);
+  last_data_received_ms_ =
+      std::max(last_data_received_ms_, connection->last_data_received());
 
-    NotifyPacketReceived(packet);
+  NotifyPacketReceived(packet);
 
-    // May need to switch the sending connection based on the receiving media
-    // path if this is the controlled side.
-    if (ice_role_ == ICEROLE_CONTROLLED && connection != selected_connection_) {
-      ice_controller_->OnImmediateSwitchRequest(IceSwitchReason::DATA_RECEIVED,
-                                                connection);
-    }
+  // May need to switch the sending connection based on the receiving media
+  // path if this is the controlled side.
+  if (ice_role_ == ICEROLE_CONTROLLED && connection != selected_connection_) {
+    ice_controller_->OnImmediateSwitchRequest(IceSwitchReason::DATA_RECEIVED,
+                                              connection);
+  }
 }
 
 void P2PTransportChannel::OnSentPacket(const rtc::SentPacket& sent_packet) {
@@ -2272,6 +2294,14 @@ void P2PTransportChannel::SetWritable(bool writable) {
     SignalReadyToSend(this);
   }
   SignalWritableState(this);
+
+  if (config_.dtls_handshake_in_stun &&
+      dtls_piggyback_report_data_ != nullptr) {
+    // Need to STUN ping here to get the last bit of the DTLS handshake across
+    // as quickly as possible. Only done when DTLS-in-STUN is configured
+    // and the data callback has not been reset due to lack of support.
+    SendPingRequestInternal(selected_connection_);
+  }
 }
 
 void P2PTransportChannel::SetReceiving(bool receiving) {
@@ -2341,6 +2371,38 @@ void P2PTransportChannel::GoogDeltaAckReceived(
     stun_dict_writer_.Disable();
     RTC_LOG(LS_ERROR) << "Failed GOOG_DELTA_ACK: "
                       << error_or_ack.error().message();
+  }
+}
+
+void P2PTransportChannel::SetDtlsPiggybackingCallbacks(
+    absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+        dtls_piggyback_get_data,
+    absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+        dtls_piggyback_get_ack,
+    absl::AnyInvocable<void(const StunByteStringAttribute*,
+                            const StunByteStringAttribute*)>
+        dtls_piggyback_report_data) {
+  RTC_DCHECK_RUN_ON(network_thread_);
+  dtls_piggyback_get_data_ = std::move(dtls_piggyback_get_data);
+  dtls_piggyback_get_ack_ = std::move(dtls_piggyback_get_ack);
+  dtls_piggyback_report_data_ = std::move(dtls_piggyback_report_data);
+
+  RTC_DCHECK(  // either all set
+      (dtls_piggyback_get_data_ != nullptr &&
+       dtls_piggyback_get_ack_ != nullptr &&
+       dtls_piggyback_report_data_ != nullptr) ||
+      // or all nullptr
+      (dtls_piggyback_get_data_ == nullptr &&
+       dtls_piggyback_get_ack_ == nullptr &&
+       dtls_piggyback_report_data_ == nullptr));
+
+  if (dtls_piggyback_get_data_ == nullptr &&
+      dtls_piggyback_get_ack_ == nullptr &&
+      dtls_piggyback_report_data_ == nullptr) {
+    // Iterate over connections, deregister.
+    for (auto& connection : connections_) {
+      connection->DeregisterDtlsPiggyback();
+    }
   }
 }
 

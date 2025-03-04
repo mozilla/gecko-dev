@@ -18,25 +18,28 @@
 #include <vector>
 
 #include "api/array_view.h"
+#include "api/environment/environment.h"
+#include "api/field_trials_view.h"
 #include "modules/audio_processing/aec3/aec3_common.h"
 #include "modules/audio_processing/logging/apm_data_dumper.h"
 #include "rtc_base/checks.h"
-#include "system_wrappers/include/field_trial.h"
 
 namespace webrtc {
 namespace {
 
-bool DeactivateInitialStateResetAtEchoPathChange() {
-  return field_trial::IsEnabled(
+bool DeactivateInitialStateResetAtEchoPathChange(
+    const FieldTrialsView& field_trials) {
+  return field_trials.IsEnabled(
       "WebRTC-Aec3DeactivateInitialStateResetKillSwitch");
 }
 
-bool FullResetAtEchoPathChange() {
-  return !field_trial::IsEnabled("WebRTC-Aec3AecStateFullResetKillSwitch");
+bool FullResetAtEchoPathChange(const FieldTrialsView& field_trials) {
+  return !field_trials.IsEnabled("WebRTC-Aec3AecStateFullResetKillSwitch");
 }
 
-bool SubtractorAnalyzerResetAtEchoPathChange() {
-  return !field_trial::IsEnabled(
+bool SubtractorAnalyzerResetAtEchoPathChange(
+    const FieldTrialsView& field_trials) {
+  return !field_trials.IsEnabled(
       "WebRTC-Aec3AecStateSubtractorAnalyzerResetKillSwitch");
 }
 
@@ -112,22 +115,27 @@ void AecState::GetResidualEchoScaling(
                                           residual_scaling);
 }
 
-AecState::AecState(const EchoCanceller3Config& config,
+AecState::AecState(const Environment& env,
+                   const EchoCanceller3Config& config,
                    size_t num_capture_channels)
     : data_dumper_(new ApmDataDumper(instance_count_.fetch_add(1) + 1)),
       config_(config),
       num_capture_channels_(num_capture_channels),
       deactivate_initial_state_reset_at_echo_path_change_(
-          DeactivateInitialStateResetAtEchoPathChange()),
-      full_reset_at_echo_path_change_(FullResetAtEchoPathChange()),
+          DeactivateInitialStateResetAtEchoPathChange(env.field_trials())),
+      full_reset_at_echo_path_change_(
+          FullResetAtEchoPathChange(env.field_trials())),
       subtractor_analyzer_reset_at_echo_path_change_(
-          SubtractorAnalyzerResetAtEchoPathChange()),
+          SubtractorAnalyzerResetAtEchoPathChange(env.field_trials())),
       initial_state_(config_),
       delay_state_(config_, num_capture_channels_),
-      transparent_state_(TransparentMode::Create(config_)),
+      transparent_state_(TransparentMode::Create(env, config_)),
       filter_quality_state_(config_, num_capture_channels_),
       erl_estimator_(2 * kNumBlocksPerSecond),
-      erle_estimator_(2 * kNumBlocksPerSecond, config_, num_capture_channels_),
+      erle_estimator_(env,
+                      2 * kNumBlocksPerSecond,
+                      config_,
+                      num_capture_channels_),
       filter_analyzer_(config_, num_capture_channels_),
       echo_audibility_(
           config_.echo_audibility.use_stationarity_properties_at_init),

@@ -22,9 +22,9 @@ Differential Revision: https://phabricator.services.mozilla.com/D221941
 Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/bc6215142feaab1a3f7820006129219504851bc8
 ---
  .../mac/desktop_frame_iosurface.h             |  9 +-
- .../mac/desktop_frame_iosurface.mm            | 37 ++++++--
- .../mac/screen_capturer_sck.mm                | 89 +++++++++++++++++--
- 3 files changed, 120 insertions(+), 15 deletions(-)
+ .../mac/desktop_frame_iosurface.mm            | 47 ++++++++--
+ .../mac/screen_capturer_sck.mm                | 94 +++++++++++++++++--
+ 3 files changed, 131 insertions(+), 19 deletions(-)
 
 diff --git a/modules/desktop_capture/mac/desktop_frame_iosurface.h b/modules/desktop_capture/mac/desktop_frame_iosurface.h
 index 73da0f693c..ed90e40993 100644
@@ -54,10 +54,10 @@ index 73da0f693c..ed90e40993 100644
    const rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface_;
  };
 diff --git a/modules/desktop_capture/mac/desktop_frame_iosurface.mm b/modules/desktop_capture/mac/desktop_frame_iosurface.mm
-index b59b319db9..7a5b595f19 100644
+index 11f2e9eaa2..a9b06428d1 100644
 --- a/modules/desktop_capture/mac/desktop_frame_iosurface.mm
 +++ b/modules/desktop_capture/mac/desktop_frame_iosurface.mm
-@@ -17,7 +17,7 @@ namespace webrtc {
+@@ -17,7 +17,7 @@
  
  // static
  std::unique_ptr<DesktopFrameIOSurface> DesktopFrameIOSurface::Wrap(
@@ -66,14 +66,16 @@ index b59b319db9..7a5b595f19 100644
    if (!io_surface) {
      return nullptr;
    }
-@@ -40,14 +40,39 @@ std::unique_ptr<DesktopFrameIOSurface> DesktopFrameIOSurface::Wrap(
+@@ -42,18 +42,45 @@
      return nullptr;
    }
  
--  return std::unique_ptr<DesktopFrameIOSurface>(new DesktopFrameIOSurface(io_surface));
+-  return std::unique_ptr<DesktopFrameIOSurface>(
+-      new DesktopFrameIOSurface(io_surface));
 +  size_t surfaceWidth = IOSurfaceGetWidth(io_surface.get());
 +  size_t surfaceHeight = IOSurfaceGetHeight(io_surface.get());
-+  uint8_t* data = static_cast<uint8_t*>(IOSurfaceGetBaseAddress(io_surface.get()));
++  uint8_t* data =
++      static_cast<uint8_t*>(IOSurfaceGetBaseAddress(io_surface.get()));
 +  size_t offset = 0;
 +  size_t width = surfaceWidth;
 +  size_t height = surfaceHeight;
@@ -85,50 +87,59 @@ index b59b319db9..7a5b595f19 100644
 +    height = std::floor(rect.size.height);
 +    offsetColumns = std::ceil(rect.origin.x);
 +    offsetRows = std::ceil(rect.origin.y);
-+    RTC_CHECK_GE(surfaceWidth,  offsetColumns + width);
++    RTC_CHECK_GE(surfaceWidth, offsetColumns + width);
 +    RTC_CHECK_GE(surfaceHeight, offsetRows + height);
 +    offset = stride * offsetRows + bytes_per_pixel * offsetColumns;
 +  }
 +
-+  RTC_LOG(LS_VERBOSE) << "DesktopFrameIOSurface wrapping IOSurface with size " << surfaceWidth << "x"
-+      << surfaceHeight << ". Cropping to (" << offsetColumns << "," << offsetRows << "; "
-+      << width << "x" << height << "). Stride=" << stride / bytes_per_pixel
-+      << ", buffer-offset-px=" << offset / bytes_per_pixel << ", buffer-offset-bytes=" << offset;
++  RTC_LOG(LS_VERBOSE) << "DesktopFrameIOSurface wrapping IOSurface with size "
++                      << surfaceWidth << "x" << surfaceHeight
++                      << ". Cropping to (" << offsetColumns << "," << offsetRows
++                      << "; " << width << "x" << height
++                      << "). Stride=" << stride / bytes_per_pixel
++                      << ", buffer-offset-px=" << offset / bytes_per_pixel
++                      << ", buffer-offset-bytes=" << offset;
 +
-+  return std::unique_ptr<DesktopFrameIOSurface>(new DesktopFrameIOSurface(io_surface, data + offset, width, height, stride));
++  return std::unique_ptr<DesktopFrameIOSurface>(new DesktopFrameIOSurface(
++      io_surface, data + offset, width, height, stride));
  }
  
--DesktopFrameIOSurface::DesktopFrameIOSurface(rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface)
-+DesktopFrameIOSurface::DesktopFrameIOSurface(
-+  rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface, uint8_t* data, int32_t width, int32_t height, int32_t stride)
-     : DesktopFrame(
--          DesktopSize(IOSurfaceGetWidth(io_surface.get()), IOSurfaceGetHeight(io_surface.get())),
+ DesktopFrameIOSurface::DesktopFrameIOSurface(
+-    rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface)
+-    : DesktopFrame(
+-          DesktopSize(IOSurfaceGetWidth(io_surface.get()),
+-                      IOSurfaceGetHeight(io_surface.get())),
 -          IOSurfaceGetBytesPerRow(io_surface.get()),
 -          static_cast<uint8_t*>(IOSurfaceGetBaseAddress(io_surface.get())),
-+          DesktopSize(width, height),
-+          stride,
-+          data,
-           nullptr),
+-          nullptr),
++    rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface,
++    uint8_t* data,
++    int32_t width,
++    int32_t height,
++    int32_t stride)
++    : DesktopFrame(DesktopSize(width, height), stride, data, nullptr),
        io_surface_(io_surface) {
    RTC_DCHECK(io_surface_);
+ }
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index e251120818..3d1751378c 100644
+index 915aa90bd7..1a84a39c9c 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -169,6 +169,12 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
-   // TODO: crbug.com/327458809 - Replace this flag with ScreenCapturerHelper to more accurately
-   // track the dirty rectangles from the SCStreamFrameInfoDirtyRects attachment.
+@@ -182,6 +182,13 @@ void StartWithFilter(SCContentFilter* filter)
+   // more accurately track the dirty rectangles from the
+   // SCStreamFrameInfoDirtyRects attachment.
    bool frame_is_dirty_ RTC_GUARDED_BY(latest_frame_lock_) = true;
 +
 +  // Tracks whether a reconfigure is needed.
 +  bool frame_needs_reconfigure_ RTC_GUARDED_BY(latest_frame_lock_) = false;
-+  // If a reconfigure is needed, this will be set to the size in pixels required to fit the entire
-+  // source without downscaling.
-+  std::optional<CGSize> frame_reconfigure_img_size_ RTC_GUARDED_BY(latest_frame_lock_);
++  // If a reconfigure is needed, this will be set to the size in pixels required
++  // to fit the entire source without downscaling.
++  std::optional<CGSize> frame_reconfigure_img_size_
++      RTC_GUARDED_BY(latest_frame_lock_);
  };
  
  ScreenCapturerSck::ScreenCapturerSck(const DesktopCaptureOptions& options)
-@@ -240,6 +246,7 @@ void ScreenCapturerSck::CaptureFrame() {
+@@ -261,6 +268,7 @@ void StartWithFilter(SCContentFilter* filter)
    }
  
    std::unique_ptr<DesktopFrame> frame;
@@ -136,7 +147,7 @@ index e251120818..3d1751378c 100644
    {
      MutexLock lock(&latest_frame_lock_);
      if (latest_frame_) {
-@@ -250,6 +257,8 @@ void ScreenCapturerSck::CaptureFrame() {
+@@ -272,6 +280,8 @@ void StartWithFilter(SCContentFilter* filter)
          frame_is_dirty_ = false;
        }
      }
@@ -145,8 +156,8 @@ index e251120818..3d1751378c 100644
    }
  
    if (frame) {
-@@ -260,6 +269,10 @@ void ScreenCapturerSck::CaptureFrame() {
-     RTC_LOG(LS_VERBOSE) << "ScreenCapturerSck " << this << " CaptureFrame() -> ERROR_TEMPORARY";
+@@ -284,6 +294,10 @@ void StartWithFilter(SCContentFilter* filter)
+                         << " CaptureFrame() -> ERROR_TEMPORARY";
      callback_->OnCaptureResult(Result::ERROR_TEMPORARY, nullptr);
    }
 +
@@ -156,7 +167,7 @@ index e251120818..3d1751378c 100644
  }
  
  void ScreenCapturerSck::EnsureVisible() {
-@@ -283,6 +296,9 @@ void ScreenCapturerSck::EnsureVisible() {
+@@ -308,6 +322,9 @@ void StartWithFilter(SCContentFilter* filter)
      stream = stream_;
      stream_ = nil;
      filter_ = nil;
@@ -166,16 +177,16 @@ index e251120818..3d1751378c 100644
    }
    [stream removeStreamOutput:helper_ type:SCStreamOutputTypeScreen error:nil];
    [stream stopCaptureWithCompletionHandler:nil];
-@@ -439,12 +455,21 @@ void ScreenCapturerSck::StartWithFilter(SCContentFilter* __strong filter) {
+@@ -474,13 +491,22 @@ void StartWithFilter(SCContentFilter* filter)
    {
      MutexLock lock(&latest_frame_lock_);
      latest_frame_dpi_ = filter.pointPixelScale * kStandardDPI;
 +    if (filter_ != filter) {
 +      frame_reconfigure_img_size_ = std::nullopt;
 +    }
-+    auto sourceImgRect = frame_reconfigure_img_size_.value_or(CGSizeMake(
-+          filter.contentRect.size.width * filter.pointPixelScale,
-+          filter.contentRect.size.height * filter.pointPixelScale));
++    auto sourceImgRect = frame_reconfigure_img_size_.value_or(
++        CGSizeMake(filter.contentRect.size.width * filter.pointPixelScale,
++                   filter.contentRect.size.height * filter.pointPixelScale));
 +    config.width = sourceImgRect.width;
 +    config.height = sourceImgRect.height;
    }
@@ -183,16 +194,17 @@ index e251120818..3d1751378c 100644
    filter_ = filter;
  
    if (stream_) {
--    RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " Updating stream configuration.";
-+    RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " Updating stream configuration to size="
+     RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this
+-                     << " Updating stream configuration.";
++                     << " Updating stream configuration to size="
 +                     << config.width << "x" << config.height << ".";
      [stream_ updateContentFilter:filter completionHandler:nil];
      [stream_ updateConfiguration:config completionHandler:nil];
    } else {
-@@ -481,20 +506,63 @@ void ScreenCapturerSck::StartWithFilter(SCContentFilter* __strong filter) {
- }
+@@ -525,21 +551,69 @@ void StartWithFilter(SCContentFilter* filter)
  
- void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* attachment) {
+ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface,
+                                        NSDictionary* attachment) {
 -  RTC_LOG(LS_VERBOSE) << "ScreenCapturerSck " << this << " " << __func__
 -                      << " width=" << IOSurfaceGetWidth(io_surface)
 -                      << ", height=" << IOSurfaceGetHeight(io_surface) << ".";
@@ -203,38 +215,40 @@ index e251120818..3d1751378c 100644
 +  CGRect boundingRect = {};
 +  CGRect overlayRect = {};
    const auto* dirty_rects = (NSArray*)attachment[SCStreamFrameInfoDirtyRects];
-+  if (auto factor = (NSNumber *)attachment[SCStreamFrameInfoScaleFactor]) {
++  if (auto factor = (NSNumber*)attachment[SCStreamFrameInfoScaleFactor]) {
 +    scaleFactor = [factor floatValue];
 +  }
-+  if (auto scale = (NSNumber *)attachment[SCStreamFrameInfoContentScale]) {
++  if (auto scale = (NSNumber*)attachment[SCStreamFrameInfoContentScale]) {
 +    contentScale = [scale floatValue];
 +  }
-+  if (const auto* rectDict = (__bridge CFDictionaryRef)attachment[SCStreamFrameInfoContentRect]) {
-+      if (!CGRectMakeWithDictionaryRepresentation(rectDict, &contentRect)) {
-+        contentRect = CGRect();
-+      }
++  if (const auto* rectDict =
++          (__bridge CFDictionaryRef)attachment[SCStreamFrameInfoContentRect]) {
++    if (!CGRectMakeWithDictionaryRepresentation(rectDict, &contentRect)) {
++      contentRect = CGRect();
++    }
 +  }
-+  if (const auto* rectDict = (__bridge CFDictionaryRef)attachment[SCStreamFrameInfoBoundingRect]) {
-+      if (!CGRectMakeWithDictionaryRepresentation(rectDict, &boundingRect)) {
-+        boundingRect = CGRect();
-+      }
++  if (const auto* rectDict =
++          (__bridge CFDictionaryRef)attachment[SCStreamFrameInfoBoundingRect]) {
++    if (!CGRectMakeWithDictionaryRepresentation(rectDict, &boundingRect)) {
++      boundingRect = CGRect();
++    }
 +  }
 +  if (@available(macOS 14.2, *)) {
-+    if (const auto* rectDict = (__bridge CFDictionaryRef)attachment[SCStreamFrameInfoPresenterOverlayContentRect ]) {
++    if (const auto* rectDict = (__bridge CFDictionaryRef)
++            attachment[SCStreamFrameInfoPresenterOverlayContentRect]) {
 +      if (!CGRectMakeWithDictionaryRepresentation(rectDict, &overlayRect)) {
 +        overlayRect = CGRect();
 +      }
 +    }
 +  }
 +
-+
-+  auto imgBoundingRect = CGRectMake(
-+      scaleFactor * boundingRect.origin.x,
-+      scaleFactor * boundingRect.origin.y,
-+      scaleFactor * boundingRect.size.width,
-+      scaleFactor * boundingRect.size.height);
++  auto imgBoundingRect = CGRectMake(scaleFactor * boundingRect.origin.x,
++                                    scaleFactor * boundingRect.origin.y,
++                                    scaleFactor * boundingRect.size.width,
++                                    scaleFactor * boundingRect.size.height);
  
-   rtc::ScopedCFTypeRef<IOSurfaceRef> scoped_io_surface(io_surface, rtc::RetainPolicy::RETAIN);
+   rtc::ScopedCFTypeRef<IOSurfaceRef> scoped_io_surface(
+       io_surface, rtc::RetainPolicy::RETAIN);
    std::unique_ptr<DesktopFrameIOSurface> desktop_frame_io_surface =
 -      DesktopFrameIOSurface::Wrap(scoped_io_surface);
 +      DesktopFrameIOSurface::Wrap(scoped_io_surface, imgBoundingRect);
@@ -247,18 +261,22 @@ index e251120818..3d1751378c 100644
 +  const size_t height = IOSurfaceGetHeight(io_surface);
 +
 +  RTC_LOG(LS_VERBOSE) << "ScreenCapturerSck " << this << " " << __func__
-+                      << ". New surface: width=" << width << ", height=" << height
-+                      << ", contentRect=" << NSStringFromRect(contentRect).UTF8String
-+                      << ", boundingRect=" << NSStringFromRect(boundingRect).UTF8String
-+                      << ", overlayRect=(" << NSStringFromRect(overlayRect).UTF8String
-+                      << ", scaleFactor=" << scaleFactor << ", contentScale=" << contentScale
-+                      << ". Cropping to rect " << NSStringFromRect(imgBoundingRect).UTF8String
-+                      << ".";
++                      << ". New surface: width=" << width
++                      << ", height=" << height << ", contentRect="
++                      << NSStringFromRect(contentRect).UTF8String
++                      << ", boundingRect="
++                      << NSStringFromRect(boundingRect).UTF8String
++                      << ", overlayRect=("
++                      << NSStringFromRect(overlayRect).UTF8String
++                      << ", scaleFactor=" << scaleFactor
++                      << ", contentScale=" << contentScale
++                      << ". Cropping to rect "
++                      << NSStringFromRect(imgBoundingRect).UTF8String << ".";
 +
    std::unique_ptr<SharedDesktopFrame> frame =
        SharedDesktopFrame::Wrap(std::move(desktop_frame_io_surface));
  
-@@ -529,8 +597,15 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* at
+@@ -575,8 +649,14 @@ void StartWithFilter(SCContentFilter* filter)
      }
    }
  
@@ -266,9 +284,8 @@ index e251120818..3d1751378c 100644
 +  if (contentScale > 0 && contentScale < 1) {
 +    frame_needs_reconfigure_ = true;
 +    double scale = 1 / contentScale;
-+    frame_reconfigure_img_size_ = CGSizeMake(
-+        std::ceil(scale * width),
-+        std::ceil(scale * height));
++    frame_reconfigure_img_size_ =
++        CGSizeMake(std::ceil(scale * width), std::ceil(scale * height));
 +  }
    if (dirty) {
 -    MutexLock lock(&latest_frame_lock_);

@@ -97,6 +97,18 @@ TEST(DesktopFrameTest, EmptyFrameIsNotBlack) {
   EXPECT_FALSE(frame->FrameDataIsBlack());
 }
 
+TEST(DesktopFrameTest, FrameHasDefaultDeviceScaleFactor) {
+  auto frame = std::make_unique<BasicDesktopFrame>(DesktopSize());
+  EXPECT_EQ(frame->device_scale_factor(), std::nullopt);
+}
+
+TEST(DesktopFrameTest, FrameSetsDeviceScaleFactorCorrectly) {
+  auto frame = std::make_unique<BasicDesktopFrame>(DesktopSize());
+  EXPECT_EQ(frame->device_scale_factor(), std::nullopt);
+  frame->set_device_scale_factor(/*device_scale_factor=*/150);
+  EXPECT_EQ(frame->device_scale_factor(), 150);
+}
+
 TEST(DesktopFrameTest, FrameDataSwitchesBetweenNonBlackAndBlack) {
   auto frame = CreateTestFrame(DesktopRect::MakeXYWH(0, 0, 10, 10), 0xff);
   EXPECT_FALSE(frame->FrameDataIsBlack());
@@ -234,7 +246,6 @@ TEST(DesktopFrameTest, CopyIntersectingPixelsFullyContainedRectsScaled) {
   RunTests(tests, arraysize(tests));
 }
 
-
 TEST(DesktopFrameTest, CopyIntersectingPixelsPartiallyContainedRects) {
   // clang-format off
   const TestData tests[] = {
@@ -298,7 +309,6 @@ TEST(DesktopFrameTest, CopyIntersectingPixelsPartiallyContainedRectsScaled) {
 
   RunTests(tests, arraysize(tests));
 }
-
 
 TEST(DesktopFrameTest, CopyIntersectingPixelsUncontainedRects) {
   // clang-format off

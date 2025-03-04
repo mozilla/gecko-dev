@@ -14,17 +14,20 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface RTC_OBJC_TYPE (RTCRtpHeaderExtensionCapability)()
+@interface RTC_OBJC_TYPE (RTCRtpHeaderExtensionCapability)
+()
+
+    /**
+     * The native RtpHeaderExtensionCapability representation of this
+     * RTCRtpHeaderExtensionCapability object. This is needed to pass to the
+     * underlying C++ APIs.
+     */
+    @property(nonatomic, readonly) webrtc::RtpHeaderExtensionCapability
+    nativeRtpHeaderExtensionCapability;
 
 /**
-* The native RtpHeaderExtensionCapability representation of this
-* RTCRtpHeaderExtensionCapability object. This is needed to pass to the underlying C++ APIs.
-*/
-@property(nonatomic,
-          readonly) webrtc::RtpHeaderExtensionCapability nativeRtpHeaderExtensionCapability;
-
-/**
- * Initialize an RTCRtpHeaderExtensionCapability from a native RtpHeaderExtensionCapability.
+ * Initialize an RTCRtpHeaderExtensionCapability from a native
+ * RtpHeaderExtensionCapability.
  */
 - (instancetype)initWithNativeRtpHeaderExtensionCapability:
     (const webrtc::RtpHeaderExtensionCapability &)rtpHeaderExtensionCapability;

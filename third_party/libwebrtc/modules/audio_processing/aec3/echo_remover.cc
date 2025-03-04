@@ -19,6 +19,7 @@
 #include <memory>
 
 #include "api/array_view.h"
+#include "api/environment/environment.h"
 #include "modules/audio_processing/aec3/aec3_common.h"
 #include "modules/audio_processing/aec3/aec3_fft.h"
 #include "modules/audio_processing/aec3/aec_state.h"
@@ -105,7 +106,8 @@ void WindowedPaddedFft(const Aec3Fft& fft,
 // Class for removing the echo from the capture signal.
 class EchoRemoverImpl final : public EchoRemover {
  public:
-  EchoRemoverImpl(const EchoCanceller3Config& config,
+  EchoRemoverImpl(const Environment& env,
+                  const EchoCanceller3Config& config,
                   int sample_rate_hz,
                   size_t num_render_channels,
                   size_t num_capture_channels);
@@ -182,7 +184,8 @@ class EchoRemoverImpl final : public EchoRemover {
 
 std::atomic<int> EchoRemoverImpl::instance_count_(0);
 
-EchoRemoverImpl::EchoRemoverImpl(const EchoCanceller3Config& config,
+EchoRemoverImpl::EchoRemoverImpl(const Environment& env,
+                                 const EchoCanceller3Config& config,
                                  int sample_rate_hz,
                                  size_t num_render_channels,
                                  size_t num_capture_channels)
@@ -195,7 +198,8 @@ EchoRemoverImpl::EchoRemoverImpl(const EchoCanceller3Config& config,
       num_capture_channels_(num_capture_channels),
       use_coarse_filter_output_(
           config_.filter.enable_coarse_filter_output_usage),
-      subtractor_(config,
+      subtractor_(env,
+                  config,
                   num_render_channels_,
                   num_capture_channels_,
                   data_dumper_.get(),
@@ -209,8 +213,8 @@ EchoRemoverImpl::EchoRemoverImpl(const EchoCanceller3Config& config,
                           sample_rate_hz_,
                           num_capture_channels_),
       render_signal_analyzer_(config_),
-      residual_echo_estimator_(config_, num_render_channels),
-      aec_state_(config_, num_capture_channels_),
+      residual_echo_estimator_(env, config_, num_render_channels),
+      aec_state_(env, config_, num_capture_channels_),
       e_old_(num_capture_channels_, {0.f}),
       y_old_(num_capture_channels_, {0.f}),
       e_heap_(NumChannelsOnHeap(num_capture_channels_), {0.f}),
@@ -510,12 +514,14 @@ void EchoRemoverImpl::FormLinearFilterOutput(
 
 }  // namespace
 
-EchoRemover* EchoRemover::Create(const EchoCanceller3Config& config,
-                                 int sample_rate_hz,
-                                 size_t num_render_channels,
-                                 size_t num_capture_channels) {
-  return new EchoRemoverImpl(config, sample_rate_hz, num_render_channels,
-                             num_capture_channels);
+std::unique_ptr<EchoRemover> EchoRemover::Create(
+    const Environment& env,
+    const EchoCanceller3Config& config,
+    int sample_rate_hz,
+    size_t num_render_channels,
+    size_t num_capture_channels) {
+  return std::make_unique<EchoRemoverImpl>(
+      env, config, sample_rate_hz, num_render_channels, num_capture_channels);
 }
 
 }  // namespace webrtc

@@ -11,25 +11,22 @@
 #include <stddef.h>
 
 #include <memory>
-#include <optional>
 #include <ostream>
 #include <string>
 #include <tuple>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
-#include "api/audio/audio_device.h"
-#include "api/audio/audio_mixer.h"
-#include "api/audio/audio_processing.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/create_peerconnection_factory.h"
-#include "api/crypto/crypto_options.h"
 #include "api/field_trials.h"
 #include "api/jsep.h"
+#include "api/make_ref_counted.h"
 #include "api/peer_connection_interface.h"
 #include "api/scoped_refptr.h"
+#include "api/test/rtc_error_matchers.h"
+#include "api/units/time_delta.h"
 #include "api/video_codecs/video_decoder_factory_template.h"
 #include "api/video_codecs/video_decoder_factory_template_dav1d_adapter.h"
 #include "api/video_codecs/video_decoder_factory_template_libvpx_vp8_adapter.h"
@@ -40,8 +37,8 @@
 #include "api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h"
 #include "api/video_codecs/video_encoder_factory_template_libvpx_vp9_adapter.h"
 #include "api/video_codecs/video_encoder_factory_template_open_h264_adapter.h"
+#include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/base/fake_port_allocator.h"
-#include "p2p/base/port_allocator.h"
 #include "p2p/base/transport_description.h"
 #include "p2p/base/transport_info.h"
 #include "pc/media_protocol_names.h"
@@ -57,12 +54,12 @@
 #include "rtc_base/thread.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 #ifdef WEBRTC_ANDROID
 #include "pc/test/android_test_initializer.h"
 #endif
 #include "pc/test/fake_audio_capture_module.h"
 #include "pc/test/fake_rtc_certificate_generator.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/virtual_socket_server.h"
 
 namespace webrtc {
@@ -158,7 +155,7 @@ class PeerConnectionCryptoBaseTest : public ::testing::Test {
       cricket::SessionDescription* desc,
       cricket::ContentInfo* content) {
     RTC_DCHECK(content);
-    auto* transport_info = desc->GetTransportInfoByName(content->name);
+    auto* transport_info = desc->GetTransportInfoByName(content->mid());
     RTC_DCHECK(transport_info);
     return transport_info->description.connection_role;
   }
@@ -383,10 +380,15 @@ TEST_P(PeerConnectionCryptoDtlsCertGenTest, TestCertificateGeneration) {
     pc->SetRemoteDescription(caller->CreateOfferAndSetAsLocal());
   }
   if (cert_gen_time_ == CertGenTime::kBefore) {
-    ASSERT_TRUE_WAIT(fake_certificate_generator->generated_certificates() +
-                             fake_certificate_generator->generated_failures() >
-                         0,
-                     kGenerateCertTimeout);
+    ASSERT_THAT(
+        WaitUntil(
+            [&] {
+              return fake_certificate_generator->generated_certificates() +
+                     fake_certificate_generator->generated_failures();
+            },
+            ::testing::Gt(0),
+            {.timeout = webrtc::TimeDelta::Millis(kGenerateCertTimeout)}),
+        IsRtcOk());
   } else {
     ASSERT_EQ(fake_certificate_generator->generated_certificates(), 0);
     fake_certificate_generator->set_should_wait(false);
@@ -406,7 +408,9 @@ TEST_P(PeerConnectionCryptoDtlsCertGenTest, TestCertificateGeneration) {
     }
   }
   for (auto& observer : observers) {
-    EXPECT_TRUE_WAIT(observer->called(), 1000);
+    EXPECT_THAT(
+        WaitUntil([&] { return observer->called(); }, ::testing::IsTrue()),
+        IsRtcOk());
     if (cert_gen_result_ == CertGenResult::kSucceed) {
       EXPECT_TRUE(observer->result());
     } else {
@@ -501,7 +505,7 @@ TEST_P(PeerConnectionCryptoTest, SessionErrorIfFingerprintInvalid) {
   ASSERT_TRUE(audio_content);
   auto* audio_transport_info =
       invalid_answer->description()->GetTransportInfoByName(
-          audio_content->name);
+          audio_content->mid());
   ASSERT_TRUE(audio_transport_info);
   audio_transport_info->description.identity_fingerprint =
       rtc::SSLFingerprint::CreateFromCertificate(*other_certificate);

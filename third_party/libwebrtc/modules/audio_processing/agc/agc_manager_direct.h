@@ -17,6 +17,7 @@
 
 #include "api/array_view.h"
 #include "api/audio/audio_processing.h"
+#include "api/environment/environment.h"
 #include "modules/audio_processing/agc/agc.h"
 #include "modules/audio_processing/agc2/clipping_predictor.h"
 #include "modules/audio_processing/audio_buffer.h"
@@ -42,6 +43,7 @@ class AgcManagerDirect final {
   // passed to `AnalyzePreProcess()` and `Process()`. Clamps
   // `analog_config.startup_min_level` in the [12, 255] range.
   AgcManagerDirect(
+      const Environment& env,
       int num_capture_channels,
       const AudioProcessing::Config::GainController1::AnalogGainController&
           analog_config);
@@ -142,6 +144,7 @@ class AgcManagerDirect final {
   // Ctor that creates a single channel AGC and by injecting `agc`.
   // `agc` will be owned by this class; hence, do not delete it.
   AgcManagerDirect(
+      const Environment& env,
       const AudioProcessing::Config::GainController1::AnalogGainController&
           analog_config,
       Agc* agc);
