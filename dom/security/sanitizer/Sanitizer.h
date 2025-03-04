@@ -10,6 +10,7 @@
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/DocumentFragment.h"
 #include "mozilla/dom/SanitizerBinding.h"
+#include "mozilla/dom/SanitizerTypes.h"
 #include "nsString.h"
 #include "nsIGlobalObject.h"
 #include "nsIParserUtils.h"
@@ -57,13 +58,16 @@ class Sanitizer final : public nsISupports, public nsWrapperCache {
 
   void Get(SanitizerConfig& aConfig);
 
-  void AllowElement(
-      const StringOrSanitizerElementNamespaceWithAttributes& aElement);
-  void RemoveElement(const StringOrSanitizerElementNamespace& aElement);
-  void ReplaceElementWithChildren(
-      const StringOrSanitizerElementNamespace& aElement);
-  void AllowAttribute(const StringOrSanitizerAttributeNamespace& aAttribute);
-  void RemoveAttribute(const StringOrSanitizerAttributeNamespace& aAttribute);
+  template <typename SanitizerElementWithAttributes>
+  void AllowElement(const SanitizerElementWithAttributes& aElement);
+  template <typename SanitizerElement>
+  void RemoveElement(const SanitizerElement& aElement);
+  template <typename SanitizerElement>
+  void ReplaceElementWithChildren(const SanitizerElement& aElement);
+  template <typename SanitizerAttribute>
+  void AllowAttribute(const SanitizerAttribute& aAttribute);
+  template <typename SanitizerAttribute>
+  void RemoveAttribute(const SanitizerAttribute& aAttribute);
   void SetComments(bool aAllow);
   void SetDataAttributes(bool aAllow);
   void RemoveUnsafe();
@@ -79,6 +83,11 @@ class Sanitizer final : public nsISupports, public nsWrapperCache {
   RefPtr<DocumentFragment> SanitizeFragment(RefPtr<DocumentFragment> aFragment,
                                             ErrorResult& aRv);
 
+ private:
+  ~Sanitizer() = default;
+
+  void SetConfig(const SanitizerConfig& aConfig, ErrorResult& aRv);
+
   /**
    * Logs localized message to either content console or browser console
    * @param aName              Localization key
@@ -87,9 +96,6 @@ class Sanitizer final : public nsISupports, public nsWrapperCache {
    */
   void LogLocalizedString(const char* aName, const nsTArray<nsString>& aParams,
                           uint32_t aFlags);
-
- private:
-  ~Sanitizer() = default;
 
   /**
    * Logs localized message to either content console or browser console
@@ -102,6 +108,16 @@ class Sanitizer final : public nsISupports, public nsWrapperCache {
                          uint64_t aInnerWindowID, bool aFromPrivateWindow);
 
   RefPtr<nsIGlobalObject> mGlobal;
+
+  sanitizer::ListSet<sanitizer::CanonicalElementWithAttributes> mElements;
+  sanitizer::ListSet<sanitizer::CanonicalName> mRemoveElements;
+  sanitizer::ListSet<sanitizer::CanonicalName> mReplaceWithChildrenElements;
+
+  sanitizer::ListSet<sanitizer::CanonicalName> mAttributes;
+  sanitizer::ListSet<sanitizer::CanonicalName> mRemoveAttributes;
+
+  bool mComments = false;
+  bool mDataAttributes = false;
 };
 }  // namespace dom
 }  // namespace mozilla

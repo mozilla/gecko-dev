@@ -12,13 +12,9 @@ with Files("**"):
 MOCHITEST_MANIFESTS += ["tests/mochitest/mochitest.toml"]
 
 
-EXPORTS.mozilla.dom += [
-    "Sanitizer.h",
-]
+EXPORTS.mozilla.dom += ["Sanitizer.h", "SanitizerTypes.h"]
 
-UNIFIED_SOURCES += [
-    "Sanitizer.cpp",
-]
+UNIFIED_SOURCES += ["Sanitizer.cpp", "SanitizerTypes.cpp"]
 
 LOCAL_INCLUDES += [
     "/dom/base",
