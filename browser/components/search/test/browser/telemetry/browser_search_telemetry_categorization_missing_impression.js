@@ -108,7 +108,7 @@ add_task(async function test_count_incremented_if_map_is_not_downloaded() {
   resetTelemetry();
 
   // Clear the existing domain-to-categories map.
-  await SearchSERPDomainToCategoriesMap.uninit({ deleteMap: true });
+  await SERPDomainToCategoriesMap.uninit({ deleteMap: true });
 
   let sandbox = sinon.createSandbox();
   sandbox
@@ -120,7 +120,7 @@ add_task(async function test_count_incremented_if_map_is_not_downloaded() {
       msg.wrappedJSObject.arguments[0].includes("Could not download file:")
     );
   });
-  await SearchSERPDomainToCategoriesMap.init();
+  await SERPDomainToCategoriesMap.init();
   info("Wait for download error.");
   await downloadError;
   info("Domain-to-categories map unsuccessfully downloaded.");
@@ -158,7 +158,7 @@ add_task(async function test_threshold_reached() {
 
   // Simulate a broken domain-to-categories map.
   let sandbox = sinon.createSandbox();
-  sandbox.stub(SearchSERPDomainToCategoriesMap, "get").returns([]);
+  sandbox.stub(SERPDomainToCategoriesMap, "get").returns([]);
 
   let submitted = false;
   GleanPings.serpCategorization.testBeforeNextSubmit(reason => {

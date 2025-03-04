@@ -15,7 +15,8 @@ ChromeUtils.defineESModuleGetters(this, {
   ADLINK_CHECK_TIMEOUT_MS: "resource:///modules/SearchSERPTelemetry.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   SEARCH_TELEMETRY_SHARED: "resource:///modules/SearchSERPTelemetry.sys.mjs",
-  SearchSERPCategorization: "resource:///modules/SearchSERPTelemetry.sys.mjs",
+  SearchSERPCategorization:
+    "resource:///modules/SearchSERPCategorization.sys.mjs",
   SearchSERPDomainToCategoriesMap:
     "resource:///modules/SearchSERPTelemetry.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",

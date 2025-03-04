@@ -7,8 +7,8 @@
  */
 
 ChromeUtils.defineESModuleGetters(this, {
-  CATEGORIZATION_SETTINGS: "resource:///modules/SearchSERPTelemetry.sys.mjs",
-  DomainToCategoriesStore: "resource:///modules/SearchSERPTelemetry.sys.mjs",
+  CATEGORIZATION_SETTINGS: "resource:///modules/SERPCategorization.sys.mjs",
+  DomainToCategoriesStore: "resource:///modules/SERPCategorization.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
   Sqlite: "resource://gre/modules/Sqlite.sys.mjs",
 });

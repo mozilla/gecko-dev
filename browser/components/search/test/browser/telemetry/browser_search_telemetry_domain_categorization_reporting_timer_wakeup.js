@@ -9,11 +9,11 @@
  */
 
 ChromeUtils.defineESModuleGetters(this, {
-  CATEGORIZATION_SETTINGS: "resource:///modules/SearchSERPTelemetry.sys.mjs",
-  SearchSERPCategorizationEventScheduler:
-    "resource:///modules/SearchSERPTelemetry.sys.mjs",
+  CATEGORIZATION_SETTINGS: "resource:///modules/SERPCategorization.sys.mjs",
+  SERPCategorizationEventScheduler:
+    "resource:///modules/SERPCategorization.sys.mjs",
   TELEMETRY_CATEGORIZATION_KEY:
-    "resource:///modules/SearchSERPTelemetry.sys.mjs",
+    "resource:///modules/SERPCategorization.sys.mjs",
 });
 
 const TEST_PROVIDER_INFO = [
@@ -79,8 +79,8 @@ add_setup(async function () {
       "browser.search.serpEventTelemetryCategorization.enabled"
     )
   ) {
-    SearchSERPCategorizationEventScheduler.uninit();
-    SearchSERPCategorizationEventScheduler.init();
+    SERPCategorizationEventScheduler.uninit();
+    SERPCategorizationEventScheduler.init();
   }
   await waitForIdle();
 
@@ -103,8 +103,8 @@ add_setup(async function () {
       await waitForDomainToCategoriesUninit();
     } else {
       // The scheduler uses the mock idle service.
-      SearchSERPCategorizationEventScheduler.uninit();
-      SearchSERPCategorizationEventScheduler.init();
+      SERPCategorizationEventScheduler.uninit();
+      SERPCategorizationEventScheduler.init();
     }
     CATEGORIZATION_SETTINGS.WAKE_TIMEOUT_MS = oldWakeTimeout;
     SearchSERPTelemetry.overrideSearchTelemetryForTests();

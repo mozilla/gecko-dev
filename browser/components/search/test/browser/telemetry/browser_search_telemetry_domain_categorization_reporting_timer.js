@@ -11,8 +11,8 @@
  */
 
 ChromeUtils.defineESModuleGetters(this, {
-  SearchSERPCategorizationEventScheduler:
-    "resource:///modules/SearchSERPTelemetry.sys.mjs",
+  SERPCategorizationEventScheduler:
+    "resource:///modules/SERPCategorization.sys.mjs",
 });
 
 const TEST_PROVIDER_INFO = [
@@ -74,8 +74,8 @@ add_setup(async function () {
       "browser.search.serpEventTelemetryCategorization.enabled"
     )
   ) {
-    SearchSERPCategorizationEventScheduler.uninit();
-    SearchSERPCategorizationEventScheduler.init();
+    SERPCategorizationEventScheduler.uninit();
+    SERPCategorizationEventScheduler.init();
   }
   await waitForIdle();
 
@@ -98,8 +98,8 @@ add_setup(async function () {
       await waitForDomainToCategoriesUninit();
     } else {
       // The scheduler uses the mock idle service.
-      SearchSERPCategorizationEventScheduler.uninit();
-      SearchSERPCategorizationEventScheduler.init();
+      SERPCategorizationEventScheduler.uninit();
+      SERPCategorizationEventScheduler.init();
     }
     SearchSERPTelemetry.overrideSearchTelemetryForTests();
     resetTelemetry();

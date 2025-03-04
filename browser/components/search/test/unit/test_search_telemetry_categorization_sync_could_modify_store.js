@@ -9,8 +9,7 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   Region: "resource://gre/modules/Region.sys.mjs",
-  SearchSERPDomainToCategoriesMap:
-    "resource:///modules/SearchSERPTelemetry.sys.mjs",
+  SERPDomainToCategoriesMap: "resource:///modules/SERPCategorization.sys.mjs",
 });
 
 // For the tests, domains aren't checked, but add at least one value so the
@@ -30,7 +29,7 @@ add_setup(async () => {
     "browser.search.serpEventTelemetryCategorization.enabled",
     true
   );
-  await SearchSERPDomainToCategoriesMap.init();
+  await SERPDomainToCategoriesMap.init();
   await Region.init();
   let originalRegion = Region.home;
   Region._setHomeRegion(USER_REGION);
@@ -203,9 +202,9 @@ const TESTS = [
 add_task(async function test_sync_may_modify_store() {
   for (let test of TESTS) {
     if (test.emptyMap) {
-      await SearchSERPDomainToCategoriesMap.overrideMapForTests({}, 0, false);
+      await SERPDomainToCategoriesMap.overrideMapForTests({}, 0, false);
     } else {
-      await SearchSERPDomainToCategoriesMap.overrideMapForTests(
+      await SERPDomainToCategoriesMap.overrideMapForTests(
         DATA,
         VERSION,
         test.isDefault
@@ -213,11 +212,11 @@ add_task(async function test_sync_may_modify_store() {
     }
     info(
       `Domain to Categories Map: ${
-        SearchSERPDomainToCategoriesMap.empty ? "Empty" : "Has Existing Data"
+        SERPDomainToCategoriesMap.empty ? "Empty" : "Has Existing Data"
       }.`
     );
     info(`${test.title}.`);
-    let result = await SearchSERPDomainToCategoriesMap.syncMayModifyStore(
+    let result = await SERPDomainToCategoriesMap.syncMayModifyStore(
       test.data,
       USER_REGION
     );

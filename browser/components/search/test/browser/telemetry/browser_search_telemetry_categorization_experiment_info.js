@@ -10,11 +10,11 @@
  */
 
 ChromeUtils.defineESModuleGetters(this, {
-  CATEGORIZATION_SETTINGS: "resource:///modules/SearchSERPTelemetry.sys.mjs",
+  CATEGORIZATION_SETTINGS: "resource:///modules/SERPCategorization.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
   SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.sys.mjs",
-  SERPCategorizationRecorder: "resource:///modules/SearchSERPTelemetry.sys.mjs",
+  SERPCategorizationRecorder: "resource:///modules/SERPCategorization.sys.mjs",
 });
 
 const TEST_PROVIDER_INFO = [
