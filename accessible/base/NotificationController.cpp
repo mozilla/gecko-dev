@@ -685,6 +685,10 @@ void NotificationController::ProcessMutationEvents() {
 
 void NotificationController::WillRefresh(mozilla::TimeStamp aTime) {
   AUTO_PROFILER_MARKER_UNTYPED("NotificationController::WillRefresh", A11Y, {});
+
+  PerfStats::AutoMetricRecording<PerfStats::Metric::A11Y_WillRefresh>
+      autoRecording;
+  // DO NOT ADD CODE ABOVE THIS BLOCK: THIS CODE IS MEASURING TIMINGS.
   auto timer = glean::a11y::tree_update_timing.Measure();
   // DO NOT ADD CODE ABOVE THIS BLOCK: THIS CODE IS MEASURING TIMINGS.
 
