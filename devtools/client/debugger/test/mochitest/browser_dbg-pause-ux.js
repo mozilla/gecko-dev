@@ -20,9 +20,9 @@ add_task(async function () {
   ok(isScrolledPositionVisible(dbg, 66), "The paused line is visible");
 
   info("1. adding a breakpoint should not scroll the editor");
-  await scrollEditorIntoView(dbg, 0, 0);
+  await scrollEditorIntoView(dbg, 1, 0);
   await addBreakpoint(dbg, longSrc, 11);
-  ok(isScrolledPositionVisible(dbg, 0), "scroll position");
+  ok(isScrolledPositionVisible(dbg, 1), "scroll position");
 
   info("2. searching should jump to the match");
   pressKey(dbg, "fileSearch");
