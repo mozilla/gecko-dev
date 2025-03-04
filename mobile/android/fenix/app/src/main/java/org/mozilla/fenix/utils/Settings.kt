@@ -15,7 +15,6 @@ import android.view.accessibility.AccessibilityManager
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.Companion.PRIVATE
 import androidx.lifecycle.LifecycleOwner
-import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.concept.engine.Engine.HttpsOnlyMode
 import mozilla.components.concept.engine.EngineSession.CookieBannerHandlingMode
 import mozilla.components.feature.sitepermissions.SitePermissionsRules
@@ -1119,11 +1118,39 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
-     * Returns true if trending searches should be shown to the user.
+     * Returns true if trending search suggestions should be shown to the user.
      */
-    fun shouldShowTrendingSearchSuggestions(isPrivate: Boolean, searchEngine: SearchEngine?) =
-        trendingSearchSuggestionsEnabled && isTrendingSearchesVisible &&
-            searchEngine?.trendingUrl != null && (!isPrivate || shouldShowSearchSuggestionsInPrivate)
+    fun shouldShowTrendingSearchSuggestions(
+        browsingMode: BrowsingMode,
+        isTrendingSuggestionSupported: Boolean,
+    ) =
+        trendingSearchSuggestionsEnabled && isTrendingSearchesVisible && isTrendingSuggestionSupported &&
+            (!browsingMode.isPrivate || shouldShowSearchSuggestionsInPrivate)
+
+    /**
+     * Indicates if the user have enabled recent search in the search suggestions setting preference.
+     */
+    @VisibleForTesting
+    internal var recentSearchSuggestionsEnabled by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_show_recent_search_suggestions),
+        default = true,
+    )
+
+    /**
+     * Returns true if recent searches should be shown to the user.
+     */
+    val shouldShowRecentSearchSuggestions: Boolean
+        get() = recentSearchSuggestionsEnabled && isRecentSearchesVisible
+
+    /**
+     * Returns true if trending searches or recent searches should be shown to the user.
+     */
+    fun shouldShowTrendingOrRecentSearchSuggestions(
+        browsingMode: BrowsingMode,
+        isTrendingSuggestionSupported: Boolean,
+    ) =
+        shouldShowTrendingSearchSuggestions(browsingMode, isTrendingSuggestionSupported) ||
+            shouldShowRecentSearchSuggestions
 
     var showSearchSuggestionsInPrivateOnboardingFinished by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_show_search_suggestions_in_private_onboarding),
@@ -1990,12 +2017,19 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
-     * Indicates if Trending Searches is enabled.
+     * Indicates if Trending Search Suggestions are enabled.
      */
-    var isTrendingSearchesVisible by lazyFeatureFlagPreference(
+    var isTrendingSearchesVisible by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_enable_trending_searches),
-        default = { FxNimbus.features.trendingSearches.value().enabled },
-        featureFlag = true,
+        default = FxNimbus.features.trendingSearches.value().enabled,
+    )
+
+    /**
+     * Indicates if Recent Search Suggestions are enabled.
+     */
+    var isRecentSearchesVisible by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_enable_recent_searches),
+        default = FxNimbus.features.recentSearches.value().enabled,
     )
 
     /**

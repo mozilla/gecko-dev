@@ -44,6 +44,11 @@
             android:layout="@layout/checkbox_left_preference"
             android:title="@string/preferences_show_trending_search_suggestions"
             app:iconSpaceReserved="false" />
+        <SwitchPreference
+            app:iconSpaceReserved="false"
+            android:defaultValue="true"
+            android:key="@string/pref_key_show_recent_search_suggestions"
+            android:title="@string/preferences_show_recent_search_suggestions" />
     </PreferenceCategory>
 
     <PreferenceCategory

@@ -479,11 +479,11 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
         observeClipboardState()
         observeSuggestionProvidersState()
 
-        val isPrivate = (requireActivity() as HomeActivity).browsingModeManager.mode.isPrivate
-        if (
-            view.context.settings().shouldShowTrendingSearchSuggestions(
-                isPrivate,
-                requireComponents.core.store.state.search.selectedOrDefaultSearchEngine,
+        val browsingMode = (requireActivity() as HomeActivity).browsingModeManager.mode
+        if (view.context.settings().shouldShowTrendingOrRecentSearchSuggestions(
+                browsingMode = browsingMode,
+                isTrendingSuggestionSupported = requireComponents.core.store.state.search
+                    .selectedOrDefaultSearchEngine?.trendingUrl != null,
             ) && (
                 store.state.query.isNotEmpty() ||
                     FxNimbus.features.searchSuggestionsOnHomepage.value().enabled

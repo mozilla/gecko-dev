@@ -103,6 +103,8 @@
     <string name="preferences_debug_settings_unified_trust_panel" translatable="false">Enable Unified Trust Panel</string>
     <!-- Label for enabling Trending Searches -->
     <string name="preferences_debug_settings_trending_searches" translatable="false">Enable Trending Searches</string>
+    <!-- Label for enabling Recent Searches -->
+    <string name="preferences_debug_settings_recent_searches" translatable="false">Enable Recent Searches</string>
 
     <!-- Label for enabling the DNS over HTTPS settings -->
     <string name="preferences_debug_settings_enable_doh_settings" translatable="false">Enable DNS over HTTPS settings</string>

@@ -1477,6 +1477,32 @@ class AwesomeBarViewTest {
         assertEquals(0, result.filterIsInstance<TrendingSearchProvider>().size)
         assertEquals(0, result.filterIsInstance<TopSitesSuggestionProvider>().size)
     }
+
+    @Test
+    fun `GIVEN should show recent searches WHEN configuring providers THEN add the recent search suggestions provider`() {
+        every { activity.settings() } returns mockk(relaxed = true) {
+            every { shouldShowRecentSearchSuggestions } returns true
+        }
+        val state = getSearchProviderState(
+            searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
+        )
+        val result = awesomeBarView.getProvidersToAdd(state)
+
+        assertEquals(2, result.filterIsInstance<SearchTermSuggestionsProvider>().size)
+    }
+
+    @Test
+    fun `GIVEN should not show recent searches WHEN configuring providers THEN don't add the recent search suggestions provider`() {
+        every { activity.settings() } returns mockk(relaxed = true) {
+            every { shouldShowRecentSearchSuggestions } returns false
+        }
+        val state = getSearchProviderState(
+            searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
+        )
+        val result = awesomeBarView.getProvidersToAdd(state)
+
+        assertEquals(1, result.filterIsInstance<SearchTermSuggestionsProvider>().size)
+    }
 }
 
 /**

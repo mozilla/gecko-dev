@@ -129,6 +129,7 @@
     <string name="pref_key_show_search_suggestions_in_private" translatable="false">pref_key_show_search_suggestions_in_private</string>
     <string name="pref_key_show_search_suggestions_in_private_onboarding" translatable="false">pref_key_show_search_suggestions_in_privateonboarding</string>
     <string name="pref_key_show_trending_search_suggestions" translatable="false">pref_key_show_trending_search_suggestions</string>
+    <string name="pref_key_show_recent_search_suggestions" translatable="false">pref_key_show_recent_search_suggestions</string>
     <string name="pref_key_show_voice_search" translatable="false">pref_key_show_voice_search</string>
     <string name="pref_key_enable_autocomplete_urls" translatable="false">pref_key_enable_domain_autocomplete</string>
     <string name="pref_key_show_sponsored_suggestions" translatable="false">pref_key_show_sponsored_suggestions</string>
@@ -403,6 +404,7 @@
     <string name="pref_key_enable_homepage_as_new_tab" translatable="false">pref_key_enable_homepage_as_new_tab</string>
     <string name="pref_key_enable_unified_trust_panel" translatable="false">pref_key_enable_unified_trust_panel</string>
     <string name="pref_key_enable_trending_searches" translatable="false">pref_key_enable_trending_searches</string>
+    <string name="pref_key_enable_recent_searches" translatable="false">pref_key_enable_recent_searches</string>
 
     <!-- Growth Data -->
     <string name="pref_key_growth_set_as_default" translatable="false">pref_key_growth_set_as_default</string>

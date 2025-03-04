@@ -128,6 +128,11 @@ class SearchEngineFragmentTest {
                 every { testContext.components.core.store.state.search } returns mockk(relaxed = true)
                 every { any<SearchState>().selectedOrDefaultSearchEngine } returns mockk(relaxed = true)
             }
+            every {
+                fragment.findPreference<SwitchPreference>(testContext.getString(R.string.pref_key_show_recent_search_suggestions))
+            } returns mockk(relaxed = true) {
+                every { context } returns testContext
+            }
 
             // Trigger the preferences setup.
             fragment.onResume()

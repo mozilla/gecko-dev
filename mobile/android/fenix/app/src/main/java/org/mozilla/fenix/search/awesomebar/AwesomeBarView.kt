@@ -299,7 +299,7 @@ class AwesomeBarView(
         state: SearchProviderState,
     ): MutableSet<AwesomeBar.SuggestionProvider> {
         val providersToAdd = mutableSetOf<AwesomeBar.SuggestionProvider>()
-        val isPrivate = activity.browsingModeManager.mode.isPrivate
+        val browsingMode = activity.browsingModeManager.mode
 
         when (state.searchEngineSource) {
             is SearchEngineSource.History -> {
@@ -314,11 +314,13 @@ class AwesomeBarView(
 
         if (state.showSearchTermHistory) {
             getSearchTermSuggestionsProvider(
-                state.searchEngineSource,
-                activity.settings().shouldShowTrendingSearchSuggestions(
-                    isPrivate,
-                    state.searchEngineSource.searchEngine,
-                ),
+                searchEngineSource = state.searchEngineSource,
+            )?.let { providersToAdd.add(it) }
+        }
+
+        if (activity.settings().shouldShowRecentSearchSuggestions) {
+            getRecentSearchSuggestionsProvider(
+                searchEngineSource = state.searchEngineSource,
             )?.let { providersToAdd.add(it) }
         }
 
@@ -407,8 +409,8 @@ class AwesomeBarView(
         providersToAdd.add(searchEngineSuggestionProvider)
 
         if (activity.settings().shouldShowTrendingSearchSuggestions(
-                isPrivate,
-                state.searchEngineSource.searchEngine,
+                browsingMode = browsingMode,
+                isTrendingSuggestionSupported = state.searchEngineSource.searchEngine?.trendingUrl != null,
             )
         ) {
             providersToAdd.add(defaultTopSitesSuggestionProvider)
@@ -483,7 +485,6 @@ class AwesomeBarView(
     @VisibleForTesting
     internal fun getSearchTermSuggestionsProvider(
         searchEngineSource: SearchEngineSource,
-        showSuggestionsWhenEmpty: Boolean = false,
     ): AwesomeBar.SuggestionProvider? {
         val validSearchEngine = searchEngineSource.searchEngine ?: return null
 
@@ -494,7 +495,23 @@ class AwesomeBarView(
             icon = getDrawable(activity, R.drawable.ic_history)?.toBitmap(),
             engine = engineForSpeculativeConnects,
             suggestionsHeader = getSearchEngineSuggestionsHeader(searchEngineSource.searchEngine),
-            showSuggestionsWhenEmpty = showSuggestionsWhenEmpty,
+        )
+    }
+
+    @VisibleForTesting
+    internal fun getRecentSearchSuggestionsProvider(
+        searchEngineSource: SearchEngineSource,
+    ): AwesomeBar.SuggestionProvider? {
+        val validSearchEngine = searchEngineSource.searchEngine ?: return null
+
+        return SearchTermSuggestionsProvider(
+            historyStorage = components.core.historyStorage,
+            searchUseCase = historySearchTermUseCase,
+            searchEngine = validSearchEngine,
+            icon = getDrawable(activity, R.drawable.ic_history)?.toBitmap(),
+            engine = engineForSpeculativeConnects,
+            suggestionsHeader = activity.getString(R.string.recent_searches_header),
+            showSuggestionsOnlyWhenEmpty = true,
         )
     }
 
