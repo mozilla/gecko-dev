@@ -859,6 +859,14 @@ ipc::IPCResult WebGPUParent::RecvRenderBundleDrop(RawId aBundleId) {
 ipc::IPCResult WebGPUParent::RecvQueueSubmit(
     RawId aQueueId, RawId aDeviceId, const nsTArray<RawId>& aCommandBuffers,
     const nsTArray<RawId>& aTextureIds) {
+  for (const auto& textureId : aTextureIds) {
+    auto it = mExternalTextures.find(textureId);
+    if (it != mExternalTextures.end()) {
+      auto& externalTexture = it->second;
+      externalTexture->onBeforeQueueSubmit(aQueueId);
+    }
+  }
+
   ErrorBuffer error;
   auto index = ffi::wgpu_server_queue_submit(
       mContext.get(), aQueueId, aCommandBuffers.Elements(),
@@ -1968,10 +1976,20 @@ VkImageHandle::~VkImageHandle() {
   }
   auto* context = mParent->GetContext();
   if (context && mParent->IsDeviceActive(mDeviceId) && mVkImageHandle) {
-    wgpu_vkimage_destroy(context, mDeviceId,
-                         const_cast<ffi::WGPUVkImageHandle*>(mVkImageHandle));
+    wgpu_vkimage_destroy(context, mDeviceId, mVkImageHandle);
   }
-  wgpu_vkimage_delete(const_cast<ffi::WGPUVkImageHandle*>(mVkImageHandle));
+  wgpu_vkimage_delete(mVkImageHandle);
+}
+
+VkSemaphoreHandle::~VkSemaphoreHandle() {
+  if (!mParent) {
+    return;
+  }
+  auto* context = mParent->GetContext();
+  if (context && mParent->IsDeviceActive(mDeviceId) && mVkSemaphoreHandle) {
+    wgpu_vksemaphore_destroy(context, mDeviceId, mVkSemaphoreHandle);
+  }
+  wgpu_vksemaphore_delete(mVkSemaphoreHandle);
 }
 #endif
 

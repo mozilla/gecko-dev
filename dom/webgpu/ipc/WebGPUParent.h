@@ -248,7 +248,7 @@ class VkImageHandle {
  public:
   explicit VkImageHandle(WebGPUParent* aParent,
                          const ffi::WGPUDeviceId aDeviceId,
-                         const ffi::WGPUVkImageHandle* aVkImageHandle)
+                         ffi::WGPUVkImageHandle* aVkImageHandle)
       : mParent(aParent),
         mDeviceId(aDeviceId),
         mVkImageHandle(aVkImageHandle) {}
@@ -260,7 +260,26 @@ class VkImageHandle {
  protected:
   const WeakPtr<WebGPUParent> mParent;
   const RawId mDeviceId;
-  const ffi::WGPUVkImageHandle* mVkImageHandle;
+  ffi::WGPUVkImageHandle* mVkImageHandle;
+};
+
+class VkSemaphoreHandle {
+ public:
+  explicit VkSemaphoreHandle(WebGPUParent* aParent,
+                             const ffi::WGPUDeviceId aDeviceId,
+                             ffi::WGPUVkSemaphoreHandle* aVkSemaphoreHandle)
+      : mParent(aParent),
+        mDeviceId(aDeviceId),
+        mVkSemaphoreHandle(aVkSemaphoreHandle) {}
+
+  const ffi::WGPUVkSemaphoreHandle* Get() { return mVkSemaphoreHandle; }
+
+  ~VkSemaphoreHandle();
+
+ protected:
+  const WeakPtr<WebGPUParent> mParent;
+  const RawId mDeviceId;
+  ffi::WGPUVkSemaphoreHandle* mVkSemaphoreHandle;
 };
 #endif
 

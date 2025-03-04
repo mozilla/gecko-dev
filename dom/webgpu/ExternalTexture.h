@@ -65,6 +65,8 @@ class ExternalTexture {
     return mOwnerId;
   }
 
+  virtual void onBeforeQueueSubmit(RawId aQueueId) {}
+
   const uint32_t mWidth;
   const uint32_t mHeight;
   const struct ffi::WGPUTextureFormat mFormat;

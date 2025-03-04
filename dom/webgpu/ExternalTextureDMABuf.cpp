@@ -27,7 +27,7 @@ UniquePtr<ExternalTextureDMABuf> ExternalTextureDMABuf::Create(
 
   auto* context = aParent->GetContext();
   uint64_t memorySize = 0;
-  const ffi::WGPUVkImageHandle* vkImage = wgpu_vkimage_create_with_dma_buf(
+  ffi::WGPUVkImageHandle* vkImage = wgpu_vkimage_create_with_dma_buf(
       context, aDeviceId, aWidth, aHeight, &memorySize);
   if (!vkImage) {
     gfxCriticalNoteOnce << "Failed to create VkImage";
@@ -77,17 +77,20 @@ UniquePtr<ExternalTextureDMABuf> ExternalTextureDMABuf::Create(
     return nullptr;
   }
 
-  return MakeUnique<ExternalTextureDMABuf>(std::move(handle), aWidth, aHeight,
-                                           aFormat, aUsage, std::move(surface),
-                                           desc.get_SurfaceDescriptorDMABuf());
+  return MakeUnique<ExternalTextureDMABuf>(
+      aParent, aDeviceId, std::move(handle), aWidth, aHeight, aFormat, aUsage,
+      std::move(surface), desc.get_SurfaceDescriptorDMABuf());
 }
 
 ExternalTextureDMABuf::ExternalTextureDMABuf(
+    WebGPUParent* aParent, const ffi::WGPUDeviceId aDeviceId,
     UniquePtr<VkImageHandle>&& aVkImageHandle, const uint32_t aWidth,
     const uint32_t aHeight, const struct ffi::WGPUTextureFormat aFormat,
     const ffi::WGPUTextureUsages aUsage, RefPtr<DMABufSurface>&& aSurface,
     const layers::SurfaceDescriptorDMABuf& aSurfaceDescriptor)
     : ExternalTexture(aWidth, aHeight, aFormat, aUsage),
+      mParent(aParent),
+      mDeviceId(aDeviceId),
       mVkImageHandle(std::move(aVkImageHandle)),
       mSurface(std::move(aSurface)),
       mSurfaceDescriptor(aSurfaceDescriptor) {}
@@ -106,6 +109,9 @@ Maybe<layers::SurfaceDescriptor> ExternalTextureDMABuf::ToSurfaceDescriptor(
   if (sd.type() != layers::SurfaceDescriptor::TSurfaceDescriptorDMABuf) {
     return Nothing();
   }
+
+  auto& sdDMABuf = sd.get_SurfaceDescriptorDMABuf();
+  sdDMABuf.semaphoreFd() = mSemaphoreFd;
 
   return Some(sd);
 }
@@ -153,6 +159,35 @@ UniqueFileHandle ExternalTextureDMABuf::CloneDmaBufFd() {
 
 const ffi::WGPUVkImageHandle* ExternalTextureDMABuf::GetHandle() {
   return mVkImageHandle->Get();
+}
+
+void ExternalTextureDMABuf::onBeforeQueueSubmit(RawId aQueueId) {
+  if (!mParent) {
+    return;
+  }
+
+  auto* context = mParent->GetContext();
+  if (!context) {
+    return;
+  }
+
+  ffi::WGPUVkSemaphoreHandle* vkSemaphore =
+      wgpu_vksemaphore_create_signal_semaphore(context, aQueueId);
+  if (!vkSemaphore) {
+    gfxCriticalNoteOnce << "Failed to create VkSemaphore";
+    return;
+  }
+
+  mVkSemaphoreHandle =
+      MakeUnique<VkSemaphoreHandle>(mParent, mDeviceId, vkSemaphore);
+
+  auto rawFd =
+      wgpu_vksemaphore_get_file_descriptor(context, mDeviceId, vkSemaphore);
+  if (rawFd < 0) {
+    gfxCriticalNoteOnce << "Failed to get fd from VkSemaphore";
+    return;
+  }
+  mSemaphoreFd = new gfx::FileHandleWrapper(UniqueFileHandle(rawFd));
 }
 
 }  // namespace mozilla::webgpu
