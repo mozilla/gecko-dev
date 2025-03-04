@@ -387,8 +387,8 @@ export class BaseContent extends React.PureComponent {
     if (wallpaperList) {
       let wallpaper = wallpaperList.find(wp => wp.title === selectedWallpaper);
 
-      let lightWallpaper;
-      let darkWallpaper;
+      let lightWallpaper = {};
+      let darkWallpaper = {};
       if (selectedWallpaper) {
         // if selectedWallpaper exists - we override what light and dark prefs are to match that
         lightWallpaper = wallpaper;
