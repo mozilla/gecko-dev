@@ -2009,6 +2009,15 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Indicates if the Homepage Search Bar is enabled.
+     */
+    var enableHomepageSearchBar by lazyFeatureFlagPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_enable_homepage_searchbar),
+        default = { FxNimbus.features.homepageSearchBar.value().enabled },
+        featureFlag = true,
+    )
+
+    /**
      * Indicates if the Unified Trust Panel is enabled.
      */
     var enableUnifiedTrustPanel by booleanPreference(
