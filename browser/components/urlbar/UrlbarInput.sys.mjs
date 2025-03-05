@@ -2126,12 +2126,9 @@ export class UrlbarInput {
   }
 
   startLayoutExtend() {
-    // Do not expand if:
-    // The Urlbar does not support being expanded or it is already expanded
-    if (
-      !this.hasAttribute("breakout") ||
-      this.hasAttribute("breakout-extend")
-    ) {
+    if (!this.#allowBreakout || this.hasAttribute("breakout-extend")) {
+      // Do not expand if the Urlbar does not support being expanded or it is
+      // already expanded.
       return;
     }
     if (!this.view.isOpen) {
