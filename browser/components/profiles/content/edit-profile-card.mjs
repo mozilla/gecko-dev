@@ -323,7 +323,7 @@ export class EditProfileCard extends MozLitElement {
             id="error-icon"
             src="chrome://global/skin/icons/info.svg"
           />
-          <span id="error-message"></span>
+          <span id="error-message" role="alert"></span>
         </span>
         <span class="message" hidden
           ><img
