@@ -773,12 +773,13 @@ function prompt(aActor, aBrowser, aRequest) {
         // The notification has been cancelled (e.g. due to entering
         // full-screen).  Also cancel the webRTC request.
         aActor.denyRequest(aRequest);
-      } else if (aTopic == "shown" && !notification.wasDismissed) {
-        let focusElement =
-          audioOutputDevices.length > 1
-            ? doc.getElementById("webRTC-selectSpeaker-richlistbox") // Focus the list on first show so that arrow keys select the speaker.
-            : doc.querySelector("button.popup-notification-primary-button"); // Or if the list is hidden (only 1 device), focus the primary button.
-        focusElement.focus();
+      } else if (
+        aTopic == "shown" &&
+        audioOutputDevices.length > 1 &&
+        !notification.wasDismissed
+      ) {
+        // Focus the list on first show so that arrow keys select the speaker.
+        doc.getElementById("webRTC-selectSpeaker-richlistbox").focus();
       }
 
       if (aTopic != "showing") {
