@@ -10,6 +10,7 @@ support-files = [
   "incremental-js-value-script.sjs",
   "fission_document.html",
   "fission_iframe.html",
+  "helper_service_workers_navigation.js",
   "test_service_worker.js",
   "test_sw_page.html",
   "test_sw_page_worker.js",
@@ -53,11 +54,12 @@ skip-if = [
 ]
 
 ["browser_target_command_service_workers_navigation.js"]
+
+["browser_target_command_service_workers_navigation_stopped.js"]
 skip-if = [
   "os == 'linux'", # Bug 1767781
   "win11_2009", # Bug 1767781
-  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1767781
-  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov", # Bug 1767781
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1767781
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929449
 ]
 
