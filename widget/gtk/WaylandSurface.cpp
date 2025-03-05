@@ -139,6 +139,8 @@ void WaylandSurface::InitialFrameCallbackHandler(struct wl_callback* callback) {
     }
     mIsReadyToDraw = true;
     cbs = std::move(mReadToDrawCallbacks);
+
+    RequestFrameCallbackLocked(lock);
   }
 
   // We can't call the callbacks under lock
@@ -148,15 +150,6 @@ void WaylandSurface::InitialFrameCallbackHandler(struct wl_callback* callback) {
   for (auto const& cb : cbs) {
     LOGWAYLAND("  initial callback fire  [%d]", callbackNum++);
     cb();
-  }
-
-  // If there's any frame callback waiting, register the handler now to fire
-  // them
-  if (!mPersistentFrameCallbackHandlers.empty() ||
-      !mOneTimeFrameCallbackHandlers.empty()) {
-    LOGWAYLAND("  initial callback: Register regular frame callback");
-    WaylandSurfaceLock lock(this);
-    RequestFrameCallbackLocked(lock);
   }
 }
 
@@ -279,6 +272,9 @@ void WaylandSurface::FrameCallbackHandler(struct wl_callback* aCallback,
     }
     std::copy(mPersistentFrameCallbackHandlers.begin(),
               mPersistentFrameCallbackHandlers.end(), back_inserter(cbs));
+
+    // Fire frame callback again if there's any pending frame callback
+    RequestFrameCallbackLocked(lock);
   }
 
   // We can't run the callbacks under WaylandSurfaceLock
@@ -292,13 +288,6 @@ void WaylandSurface::FrameCallbackHandler(struct wl_callback* aCallback,
       continue;
     }
     callback(aCallback, aTime);
-  }
-
-  // Fire frame callback again if there's any pending frame callback
-  if (!mPersistentFrameCallbackHandlers.empty() ||
-      !mOneTimeFrameCallbackHandlers.empty()) {
-    WaylandSurfaceLock lock(this);
-    RequestFrameCallbackLocked(lock);
   }
 }
 
@@ -328,6 +317,11 @@ void WaylandSurface::RequestFrameCallbackLocked(
   }
 
   if (!mFrameCallbackEnabled) {
+    return;
+  }
+
+  if (mPersistentFrameCallbackHandlers.empty() &&
+      mOneTimeFrameCallbackHandlers.empty()) {
     return;
   }
 
@@ -421,10 +415,7 @@ void WaylandSurface::SetFrameCallbackState(bool aEnabled) {
 
   // If there's any frame callback waiting, register the handler.
   if (mFrameCallbackEnabled) {
-    if (!mPersistentFrameCallbackHandlers.empty() ||
-        !mOneTimeFrameCallbackHandlers.empty()) {
-      RequestFrameCallbackLocked(lock);
-    }
+    RequestFrameCallbackLocked(lock);
   } else {
     ClearFrameCallbackLocked(lock);
   }
@@ -533,12 +524,8 @@ bool WaylandSurface::MapLocked(const WaylandSurfaceLock& aProofOfLock,
                wl_proxy_get_id((struct wl_proxy*)mReadyToDrawFrameCallback));
   }
 
-  // If there's any frame callback waiting, register the handler.
-  if (!mPersistentFrameCallbackHandlers.empty() ||
-      !mOneTimeFrameCallbackHandlers.empty()) {
-    LOGWAYLAND("  register frame callback");
-    RequestFrameCallbackLocked(aProofOfLock);
-  }
+  LOGWAYLAND("  register frame callback");
+  RequestFrameCallbackLocked(aProofOfLock);
 
   CommitLocked(aProofOfLock, /* aForceCommit */ true,
                /* aForceDisplayFlush */ true);
