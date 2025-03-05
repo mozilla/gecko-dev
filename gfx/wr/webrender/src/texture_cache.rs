@@ -1034,8 +1034,6 @@ impl TextureCache {
         handle: &TextureCacheHandle,
     ) -> Option<(CacheTextureId, DeviceIntRect, Swizzle, GpuCacheHandle, [f32; 4])> {
         let entry = self.get_entry_opt(handle)?;
-
-        debug_assert_eq!(entry.last_access, self.now);
         let origin = entry.details.describe();
         Some((
             entry.texture_id,
@@ -1055,18 +1053,7 @@ impl TextureCache {
         &self,
         handle: &TextureCacheHandle,
     ) -> (CacheTextureId, DeviceIntRect, Swizzle, GpuCacheHandle, [f32; 4]) {
-        let entry = self
-            .get_entry_opt(handle)
-            .expect("BUG: was dropped from cache or not updated!");
-        debug_assert_eq!(entry.last_access, self.now);
-        let origin = entry.details.describe();
-        (
-            entry.texture_id,
-            DeviceIntRect::from_origin_and_size(origin, entry.size),
-            entry.swizzle,
-            entry.uv_rect_handle,
-            entry.user_data,
-        )
+        self.try_get_cache_location(handle).expect("BUG: was dropped from cache or not updated!")
     }
 
     /// Internal helper function to evict a strong texture cache handle
