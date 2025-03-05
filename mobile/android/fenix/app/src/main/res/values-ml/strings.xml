@@ -582,6 +582,11 @@
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">ഉറപ്പിച്ചു് തിരയാൻ തുടങ്ങുക</string>
 
+    <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+    <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">ഇനിയും ഒരു കാര്യം</string>
+    <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">തീൎച്ചപ്പെടുത്തിയിട്ടു് തിരയാൻ തുടങ്ങുവിൻ</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">കരുപ്പട്ട സ്ഥാനം തിരഞ്ഞെടുക്കുക</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -810,6 +815,10 @@
     <string name="preferences_show_nonsponsored_suggestions">%1$s-ൽ നിന്നുള്ള നിർദ്ദേശങ്ങൾ</string>
     <!-- Preference for link sharing -->
     <string name="preferences_link_sharing">കണ്ണി പങ്കിടൽ</string>
+    <!--Snackbar message shown when user shares a link -->
+    <string name="link_shared_snackbar_message">കണ്ണി പങ്കിട്ടു</string>
+    <!-- Snackbar action label shown when user shares a link  -->
+    <string name="link_shared_snackbar_action">ക്രമീകരണങ്ങൾ കൈകാര്യം ചെയ്യുക</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">ആപ്പുകളിൽ കണ്ണികൾ തുറക്കുക</string>
 
@@ -847,6 +856,8 @@
     <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
     <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">എല്ല വെബ്സ്ഥാനങ്ങൾക്കു് അനുവദിക്കുക</string>
 
+    <!-- The subtitle for the allow for all sites preference toggle -->
+    <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">ഈ വിപുലീകരണത്തെ താങ്ങൾ വിശ്വസിക്കുന്നുവെങ്കിൽ, ഓരോ വെബിടത്തിഌം താങ്ങൾക്കു് ഇതിനു് അനുമതി നൽകാം.</string>
     <!-- The text shown when an extension does not require permissions -->
     <string name="addons_does_not_require_permissions">ഈ വിപുലീകരണത്തിനു് അനുമതികളുടെ അവിശ്യമില്ല.</string>
 

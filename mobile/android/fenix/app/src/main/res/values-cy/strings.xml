@@ -618,7 +618,7 @@
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Cadarnhau a dechrau pori</string>
 
     <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
-    <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Un peth olaf</string>
+    <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Un peth arall</string>
     <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
     <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Rhannwch sut wnaethoch chi ddarganfod Firefox, a\'ch bod chi\'n ei ddefnyddio, gyda phartneriaid marchnata Mozilla. Nid yw\'r data hwn byth yn cael ei werthu.</string>
     <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
@@ -867,9 +867,9 @@
     <!-- Preference for link sharing -->
     <string name="preferences_link_sharing">Rhannu dolenni</string>
     <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox).  -->
-    <string name="link_sharing_toggle_title">Cynnwys dolen lawrlwytho %1$s ar gyfranddaliadau WhatsApp</string>
+    <string name="link_sharing_toggle_title">Cynnwys dolen llwytho %1$s i lawr ar raniadau WhatsApp</string>
     <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox).  -->
-    <string name="link_sharing_toggle_body">Gwahoddwch eich ffrindiau i roi cynnig ar bori cyflymach a mwy diogel gyda %1$s bob tro y byddwch yn rhannu dolen ar WhatsApp.</string>
+    <string name="link_sharing_toggle_body">Gwahoddwch eich ffrindiau i roi cynnig ar bori cyflymach a mwy diogel gyda %1$s bob tro byddwch yn rhannu dolen ar WhatsApp.</string>
     <!--Snackbar message shown when user shares a link -->
     <string name="link_shared_snackbar_message">Dolen wedi\'i rhannu</string>
     <!-- Snackbar action label shown when user shares a link  -->
@@ -1776,7 +1776,7 @@
     <string name="sync_add_new_device_connect_button">Cysylltu Dyfais Arall…</string>
 
     <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
-    <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nAnfonwyd o %2$s 🦊 Ceisiwch y porwr symudol: %3$s</string>
+    <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nAnfonwyd o %2$s 🦊 Rhowch gynnig ar y porwr symudol: %3$s</string>
     <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
     <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nAnfonwyd o %2$s 🦊 %3$s</string>
 

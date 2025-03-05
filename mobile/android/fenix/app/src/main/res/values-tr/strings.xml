@@ -874,6 +874,8 @@
     <string name="preferences_link_sharing">Bağlantı paylaşımı</string>
     <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox).  -->
     <string name="link_sharing_toggle_title">WhatsApp paylaşımlarına %1$s indirme bağlantısını ekle</string>
+    <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_body">WhatsApp’ta bağlantı paylaşırken arkadaşlarınızı %1$s ile daha hızlı ve daha güvenli gezintiyi denemeye davet edin.</string>
     <!--Snackbar message shown when user shares a link -->
     <string name="link_shared_snackbar_message">Bağlantı paylaşıldı</string>
     <!-- Snackbar action label shown when user shares a link  -->
@@ -2134,6 +2136,9 @@
     <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
     <string name="preference_doh_default_protection_info_4">VPN, ebeveyn denetimleri veya kurumsal ilkeler etkinse güvenli DNS kapanır</string>
 
+    <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+    <string name="preference_doh_default_protection_info_5">Ağ, %1$s uygulamasının güvenli DNS kullanmamasını isterse güvenli DNS kapanır. %2$s</string>
+
     <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
     <string name="preference_doh_increased_protection">Artırılmış koruma</string>
     <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
@@ -2673,6 +2678,9 @@
 
     <!-- Search suggestions title for trending searches. -->
     <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">Gündemdeki Aramalar</string>
+    <!-- Search suggestions title for trending search suggestions.
+        %s is a placeholder for the name of the search engine providing the trending search suggestions. -->
+    <string name="trending_searches_header_2">%s gündeminde</string>
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Google Araması</string>
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->

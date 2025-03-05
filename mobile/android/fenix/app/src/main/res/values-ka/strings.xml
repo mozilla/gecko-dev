@@ -618,7 +618,7 @@
     <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
     <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">კიდევ ერთი რამ</string>
     <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
-    <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">გაუზიარეთ Mozilla-ს მოკავშირე სამსახურებს გაყიდვების საქმეში, როგორ აღმოაჩინეთ Firefox და იყენებთ თუ არა. ეს მონაცემები არასდროს გაიყიდება.</string>
+    <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">გაუზიარეთ Mozilla-ს მოკავშირე სამსახურებს გავრცელების საკითხებში, როგორ აღმოაჩინეთ Firefox და იყენებთ თუ არა. ეს მონაცემები არასდროს გაიყიდება.</string>
     <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">თანხმობა და გვერდების მონახულების დაწყება</string>
 
@@ -1087,10 +1087,10 @@
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
     <string name="preferences_marketing_data_2">გაცნობითი საქმიანობის საზომი</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
-    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">გაუზიარეთ სხვებს, თუ როგორ აღმოაჩინეთ Firefox, Mozilla-ს მარკეტინგული მოკავშირეების მეშვეობით. ეს გვეხმარება, გავაუმჯობესოთ Firefox განვითარებასა და უკეთესი ინტერნეტის შექმნაში</string>
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">გაუზიარეთ Mozilla-ს მოკავშირე სამსახურებს გავრცელების საკითხებში, თუ როგორ აღმოაჩინეთ Firefox. ეს გვეხმარება, გავაუმჯობესოთ Firefox და კიდევ უფრო განვავითაროთ ვებსივრცე</string>
     <!-- Preference description for marketing data collection.
     Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
-    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">გაუზიარეთ, როგორ აღმოაჩინეთ Firefox და იყენებთ თუ არა, Mozilla-ს გაყიდვების საქმიანობაში მოკავშირე სამსახურებს.</string>
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">გაუზიარეთ Mozilla-ს მოკავშირე სამსახურებს გავრცელების საკითხებში, როგორ აღმოაჩინეთ Firefox და იყენებთ თუ არა.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">ვრცლად მარკეტინგულ მონაცემებზე</string>
 
