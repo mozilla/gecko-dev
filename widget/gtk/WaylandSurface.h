@@ -285,10 +285,9 @@ class WaylandSurface final {
   // delete with wayland compostor.
   void ReleaseAllWaylandBuffersLocked(WaylandSurfaceLock& aSurfaceLock);
 
-  void RequestFrameCallbackLocked(const WaylandSurfaceLock& aProofOfLock,
-                                  bool aRequestEmulated);
+  void RequestFrameCallbackLocked(const WaylandSurfaceLock& aProofOfLock);
   void ClearFrameCallbackLocked(const WaylandSurfaceLock& aProofOfLock);
-  bool IsEmulatedFrameCallbackPendingLocked(
+  bool HasEmulatedFrameCallbackLocked(
       const WaylandSurfaceLock& aProofOfLock) const;
 
   void ClearReadyToDrawCallbacksLocked(const WaylandSurfaceLock& aProofOfLock);

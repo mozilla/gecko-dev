@@ -156,8 +156,7 @@ void WaylandSurface::InitialFrameCallbackHandler(struct wl_callback* callback) {
       !mOneTimeFrameCallbackHandlers.empty()) {
     LOGWAYLAND("  initial callback: Register regular frame callback");
     WaylandSurfaceLock lock(this);
-    RequestFrameCallbackLocked(lock,
-                               IsEmulatedFrameCallbackPendingLocked(lock));
+    RequestFrameCallbackLocked(lock);
   }
 }
 
@@ -221,11 +220,8 @@ void WaylandSurface::ClearReadyToDrawCallbacks() {
   ClearReadyToDrawCallbacksLocked(lock);
 }
 
-bool WaylandSurface::IsEmulatedFrameCallbackPendingLocked(
+bool WaylandSurface::HasEmulatedFrameCallbackLocked(
     const WaylandSurfaceLock& aProofOfLock) const {
-  if (mBufferAttached) {
-    return false;
-  }
   for (auto const& cb : mPersistentFrameCallbackHandlers) {
     if (cb.mEmulated) {
       return true;
@@ -302,10 +298,7 @@ void WaylandSurface::FrameCallbackHandler(struct wl_callback* aCallback,
   if (!mPersistentFrameCallbackHandlers.empty() ||
       !mOneTimeFrameCallbackHandlers.empty()) {
     WaylandSurfaceLock lock(this);
-    bool enableCallbackEmulation = emulatedCallback || aRoutedFromChildSurface;
-    RequestFrameCallbackLocked(
-        lock,
-        enableCallbackEmulation && IsEmulatedFrameCallbackPendingLocked(lock));
+    RequestFrameCallbackLocked(lock);
   }
 }
 
@@ -321,12 +314,11 @@ static const struct wl_callback_listener sWaylandSurfaceFrameListener = {
     ::FrameCallbackHandler};
 
 void WaylandSurface::RequestFrameCallbackLocked(
-    const WaylandSurfaceLock& aProofOfLock, bool aRequestEmulated) {
+    const WaylandSurfaceLock& aProofOfLock) {
   LOGVERBOSE(
       "WaylandSurface::RequestFrameCallbackLocked(), enabled %d mapped %d "
-      "emulate "
-      "%d mFrameCallback %d",
-      mFrameCallbackEnabled, !!mIsMapped, aRequestEmulated, !!mFrameCallback);
+      " mFrameCallback %d",
+      mFrameCallbackEnabled, !!mIsMapped, !!mFrameCallback);
 
   MOZ_DIAGNOSTIC_ASSERT(&aProofOfLock == mSurfaceLock);
 
@@ -348,8 +340,12 @@ void WaylandSurface::RequestFrameCallbackLocked(
     mSurfaceNeedsCommit = true;
   }
 
-  // Emulate callbacks for empty wl_surfaces only
-  if (aRequestEmulated && !mBufferAttached && !mEmulatedFrameCallbackTimerID) {
+  // Request frame callback emulation if:
+  // - we have registered any emulated frame callbacks
+  // - we don't have buffer attached so we can't get regular frame callback
+  // - emulated frame callback is not already pending
+  if (HasEmulatedFrameCallbackLocked(aProofOfLock) && !mBufferAttached &&
+      !mEmulatedFrameCallbackTimerID) {
     LOGVERBOSE(
         "WaylandSurface::RequestFrameCallbackLocked() emulated, schedule "
         "next check");
@@ -399,7 +395,7 @@ void WaylandSurface::AddOneTimeFrameCallbackLocked(
 
   mOneTimeFrameCallbackHandlers.push_back(
       FrameCallback{aFrameCallbackHandler, false});
-  RequestFrameCallbackLocked(aProofOfLock, /* aEmulateFrameCallback */ false);
+  RequestFrameCallbackLocked(aProofOfLock);
 }
 
 void WaylandSurface::AddPersistentFrameCallbackLocked(
@@ -411,7 +407,7 @@ void WaylandSurface::AddPersistentFrameCallbackLocked(
 
   mPersistentFrameCallbackHandlers.push_back(
       FrameCallback{aFrameCallbackHandler, aEmulateFrameCallback});
-  RequestFrameCallbackLocked(aProofOfLock, aEmulateFrameCallback);
+  RequestFrameCallbackLocked(aProofOfLock);
 }
 
 void WaylandSurface::SetFrameCallbackState(bool aEnabled) {
@@ -427,8 +423,7 @@ void WaylandSurface::SetFrameCallbackState(bool aEnabled) {
   if (mFrameCallbackEnabled) {
     if (!mPersistentFrameCallbackHandlers.empty() ||
         !mOneTimeFrameCallbackHandlers.empty()) {
-      RequestFrameCallbackLocked(lock,
-                                 IsEmulatedFrameCallbackPendingLocked(lock));
+      RequestFrameCallbackLocked(lock);
     }
   } else {
     ClearFrameCallbackLocked(lock);
@@ -542,8 +537,7 @@ bool WaylandSurface::MapLocked(const WaylandSurfaceLock& aProofOfLock,
   if (!mPersistentFrameCallbackHandlers.empty() ||
       !mOneTimeFrameCallbackHandlers.empty()) {
     LOGWAYLAND("  register frame callback");
-    RequestFrameCallbackLocked(
-        aProofOfLock, IsEmulatedFrameCallbackPendingLocked(aProofOfLock));
+    RequestFrameCallbackLocked(aProofOfLock);
   }
 
   CommitLocked(aProofOfLock, /* aForceCommit */ true,
