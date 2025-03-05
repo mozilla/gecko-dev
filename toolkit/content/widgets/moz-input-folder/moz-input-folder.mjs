@@ -1,0 +1,165 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+import { html, classMap, styleMap } from "../vendor/lit.all.mjs";
+import MozInputText from "chrome://global/content/elements/moz-input-text.mjs";
+
+window.MozXULElement?.insertFTLIfNeeded("toolkit/global/mozInputFolder.ftl");
+
+/**
+ * An input folder custom element.
+ *
+ * @tagname moz-input-folder
+ *
+ * @property {string} label - The text of the label element
+ * @property {string} name - The name of the input control
+ * @property {string} value - The path to the selected folder
+ * @property {boolean} disabled - The disabled state of the component
+ * @property {string} iconSrc - The src for an optional icon in the label
+ * @property {string} description - The text for the description element that helps describe the input control
+ * @property {string} supportPage - Name of the SUMO support page to link to.
+ * @property {string} placeholder - Text to display when the input has no value.
+ * @property {string} dialogTitle - Text to display as a file picker dialog title.
+ * @property {object} folder - The file object that represents the selected folder.
+ */
+
+export default class MozInputFolder extends MozInputText {
+  #folder;
+
+  static properties = {
+    dialogTitle: { type: String, fluent: true },
+    _inputIconSrc: { type: String, state: true },
+  };
+
+  static queries = {
+    chooseFolderButtonEl: "#choose-folder-button",
+  };
+
+  constructor() {
+    super();
+    this.readonly = true;
+    this.dialogTitle = "";
+    this._inputIconSrc = "";
+    this.#folder = null;
+  }
+
+  willUpdate(changedProperties) {
+    super.willUpdate(changedProperties);
+
+    if (changedProperties.has("readonly")) {
+      this.readonly = true;
+    }
+    if (changedProperties.has("value")) {
+      if (this.value == "") {
+        this.#folder = null;
+        this._inputIconSrc = "";
+      } else if (!this.#folder || this.value != this.#folder.path) {
+        let currentValue = this.value;
+        this.getFolderFromPath(this.value).then(folder => {
+          if (this.value === currentValue) {
+            this.#folder = folder;
+            this._inputIconSrc = this.getInputIconSrc(this.#folder);
+          }
+        });
+      } else {
+        this._inputIconSrc = this.getInputIconSrc(this.#folder);
+      }
+    }
+  }
+
+  get folder() {
+    return this.#folder;
+  }
+
+  async getFolderFromPath(path) {
+    let folder = null;
+    try {
+      folder = await IOUtils.getDirectory(path);
+    } catch (e) {
+      //Not a valid path
+      console.error(
+        "The error occurred while attempting to get directory from the moz-input-folder value"
+      );
+    }
+
+    return folder;
+  }
+
+  getInputIconSrc(folder) {
+    if (!folder) {
+      return "";
+    }
+
+    let fph = Services.io
+      .getProtocolHandler("file")
+      .QueryInterface(Ci.nsIFileProtocolHandler);
+    let iconUrlSpec = fph.getURLSpecFromDir(folder);
+    let inputIconSrc = "moz-icon://" + iconUrlSpec + "?size=16";
+    return inputIconSrc;
+  }
+
+  async openFolderPicker() {
+    let folderPicker = Cc["@mozilla.org/filepicker;1"].createInstance(
+      Ci.nsIFilePicker
+    );
+    let mode = Ci.nsIFilePicker.modeGetFolder;
+    folderPicker.init(window.browsingContext, this.dialogTitle, mode);
+    folderPicker.appendFilters(Ci.nsIFilePicker.filterAll);
+
+    if (this.#folder) {
+      folderPicker.displayDirectory = this.#folder;
+    }
+
+    let result = await new Promise(resolve => folderPicker.open(resolve));
+    if (
+      result != Ci.nsIFilePicker.returnOK ||
+      this.value == folderPicker.file.path
+    ) {
+      if (Cu.isInAutomation) {
+        // Dispatch a test-only event so we can tell that the dialog is closing.
+        this.dispatchEvent(new CustomEvent("moz-input-folder-picker-close"));
+      }
+
+      return;
+    }
+
+    this.#folder = folderPicker.file;
+    this.value = this.#folder.path;
+
+    this.dispatchEvent(new Event("input", { bubbles: true }));
+    this.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  inputStylesTemplate() {
+    return html`<link
+      rel="stylesheet"
+      href="chrome://global/content/elements/moz-input-folder.css"
+    />`;
+  }
+
+  inputTemplate() {
+    let classes, styles;
+    if (this._inputIconSrc) {
+      classes = classMap({
+        "with-icon": true,
+      });
+      styles = styleMap({
+        "--input-background-icon": `url(${this._inputIconSrc})`,
+      });
+    }
+
+    return html`
+      <div class="container">
+        ${super.inputTemplate(classes, styles)}
+        <moz-button
+          id="choose-folder-button"
+          data-l10n-id="choose-folder-button"
+          ?disabled=${this.disabled}
+          @click=${this.openFolderPicker}
+        ></moz-button>
+      </div>
+    `;
+  }
+}
+customElements.define("moz-input-folder", MozInputFolder);

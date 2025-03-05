@@ -835,6 +835,10 @@
             "chrome://global/content/elements/moz-five-star.mjs",
           ],
           [
+            "moz-input-folder",
+            "chrome://global/content/elements/moz-input-folder.mjs",
+          ],
+          [
             "moz-input-search",
             "chrome://global/content/elements/moz-input-search.mjs",
           ],

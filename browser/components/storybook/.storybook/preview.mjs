@@ -26,6 +26,24 @@ window.RPMGetFormatURLPref = () => {
   /* NOOP */
 };
 
+// Used to show a path and an image for moz-input-folder
+let mockFolderPath = "/User/Downloads";
+window.IOUtils = {
+  getDirectory: () => mockFolderPath,
+};
+window.Services = {
+  io: {
+    getProtocolHandler: () => ({
+      QueryInterface: () => ({
+        getURLSpecFromDir: () => mockFolderPath,
+      }),
+    }),
+  },
+};
+window.Ci = {
+  nsIFileProtocolHandler: {},
+};
+
 /**
  * Function to automatically import reusable components into all stories. This
  * helps ensure that components composed of multiple `moz-` elements will render
