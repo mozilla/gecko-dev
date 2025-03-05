@@ -15,6 +15,9 @@
 /* Other Mozilla code relies on memmove already, so we assume it's available */
 #define HAVE_MEMMOVE 1
 
+/* This doesn't mean we have poor entropy, just that we don't use Expat's. */
+#define XML_POOR_ENTROPY 1
+
 #define XMLCALL
 #define XML_STATIC
 #ifdef HAVE_VISIBILITY_HIDDEN_ATTRIBUTE
@@ -38,6 +41,8 @@ typedef uint16_t XML_Char;
 #endif
 
 #define XML_DTD
+#define XML_GE 1
 #define XML_NS
+#define XML_CONTEXT_BYTES 0
 
 #endif /* __expat_config_h__ */

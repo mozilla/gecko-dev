@@ -34,6 +34,7 @@
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/IntegerTypeTraits.h"
 #include "mozilla/NullPrincipal.h"
+#include "mozilla/RandomNum.h"
 #include "mozilla/glean/ParserHtmlparserMetrics.h"
 
 #include "nsThreadUtils.h"
@@ -1614,6 +1615,11 @@ nsresult nsExpatDriver::Initialize(nsIURI* aURI, nsIContentSink* aSink) {
   RLBOX_EXPAT_MCALL(MOZ_XML_SetParamEntityParsing,
                     XML_PARAM_ENTITY_PARSING_ALWAYS);
 #endif
+
+  rlbox_sandbox_expat::convert_to_sandbox_equivalent_nonclass_t<unsigned long> salt;
+  MOZ_RELEASE_ASSERT(mozilla::GenerateRandomBytesFromOS(&salt, sizeof(salt)));
+  MOZ_RELEASE_ASSERT(RLBOX_EXPAT_SAFE_MCALL(MOZ_XML_SetHashSalt, safe_unverified<int>, salt));
+  MOZ_RELEASE_ASSERT(RLBOX_EXPAT_SAFE_MCALL(MOZ_XML_SetReparseDeferralEnabled, safe_unverified<XML_Bool>, XML_FALSE));
 
   auto baseURI = GetExpatBaseURI(aURI);
   auto uri =
