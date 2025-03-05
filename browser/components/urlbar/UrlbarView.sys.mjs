@@ -1786,7 +1786,7 @@ export class UrlbarView {
       item.appendChild(item._content);
       // Clear previously set attributes and classes that may refer to a
       // different result type.
-      for (const attribute of item.attributes) {
+      for (const attribute of [...item.attributes]) {
         if (!item._sharedAttributes.has(attribute.name)) {
           item.removeAttribute(attribute.name);
         }
