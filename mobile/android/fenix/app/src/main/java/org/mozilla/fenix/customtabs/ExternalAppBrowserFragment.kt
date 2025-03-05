@@ -30,6 +30,7 @@ import mozilla.components.feature.pwa.feature.WebAppHideToolbarFeature
 import mozilla.components.feature.pwa.feature.WebAppSiteControlsFeature
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.support.ktx.android.arch.lifecycle.addObservers
+import mozilla.components.support.utils.ext.isContentUrl
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.R
@@ -209,6 +210,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                                 sessionId = tab.id,
                                 url = tab.content.url,
                                 title = tab.content.title,
+                                isLocalPdf = tab.content.url.isContentUrl(),
                                 isSecured = tab.content.securityInfo.secure,
                                 sitePermissions = sitePermissions,
                                 gravity = getAppropriateLayoutGravity(),

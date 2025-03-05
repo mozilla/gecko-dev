@@ -354,8 +354,8 @@ class ToolbarActivity : AppCompatActivity() {
         )
 
         binding.toolbar.display.colors = binding.toolbar.display.colors.copy(
-            securityIconInsecure = 0xFF20123a.toInt(),
-            securityIconSecure = 0xFF20123a.toInt(),
+            siteInfoIconInsecure = 0xFF20123a.toInt(),
+            siteInfoIconSecure = 0xFF20123a.toInt(),
             text = 0xFF0c0c0d.toInt(),
             menu = 0xFF20123a.toInt(),
             separator = 0x1E15141a.toInt(),
@@ -399,7 +399,7 @@ class ToolbarActivity : AppCompatActivity() {
 
         binding.toolbar.addBrowserAction(FakeTabCounterToolbarButton())
 
-        binding.toolbar.display.setOnSiteSecurityClickedListener {
+        binding.toolbar.display.setOnSiteInfoClickedListener {
             Toast.makeText(this, "Site security", Toast.LENGTH_SHORT).show()
         }
 
@@ -441,8 +441,8 @@ class ToolbarActivity : AppCompatActivity() {
         )
 
         binding.toolbar.display.colors = binding.toolbar.display.colors.copy(
-            securityIconSecure = 0xFF20123a.toInt(),
-            securityIconInsecure = 0xFF20123a.toInt(),
+            siteInfoIconSecure = 0xFF20123a.toInt(),
+            siteInfoIconInsecure = 0xFF20123a.toInt(),
             text = 0xFF0c0c0d.toInt(),
             title = 0xFF0c0c0d.toInt(),
             menu = 0xFF20123a.toInt(),
@@ -487,7 +487,7 @@ class ToolbarActivity : AppCompatActivity() {
 
         binding.toolbar.addBrowserAction(button)
 
-        binding.toolbar.display.setOnSiteSecurityClickedListener {
+        binding.toolbar.display.setOnSiteInfoClickedListener {
             Toast.makeText(this, "Site security", Toast.LENGTH_SHORT).show()
         }
 

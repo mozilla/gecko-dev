@@ -18,7 +18,7 @@ class ToolbarInteractorTest {
     class TestToolbar : Toolbar {
         override var highlight: Toolbar.Highlight = Toolbar.Highlight.NONE
         override var url: CharSequence = ""
-        override var siteSecure: Toolbar.SiteSecurity = Toolbar.SiteSecurity.INSECURE
+        override var siteInfo: Toolbar.SiteInfo = Toolbar.SiteInfo.INSECURE
         override var private: Boolean = false
         override var title: String = ""
 

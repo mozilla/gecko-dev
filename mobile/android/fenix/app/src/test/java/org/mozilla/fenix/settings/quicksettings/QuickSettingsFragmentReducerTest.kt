@@ -30,7 +30,7 @@ class QuickSettingsFragmentReducerTest {
 
         val map =
             mapOf<PhoneFeature, WebsitePermission>(PhoneFeature.CAMERA to toggleablePermission)
-        val infoState = WebsiteInfoState("", "", WebsiteSecurityUiValues.SECURE, "")
+        val infoState = WebsiteInfoState("", "", WebsiteInfoUiValues.SECURE, "")
         val tpState = ProtectionsState(
             null,
             "",
@@ -68,7 +68,7 @@ class QuickSettingsFragmentReducerTest {
 
         val map =
             mapOf<PhoneFeature, WebsitePermission>(PhoneFeature.AUTOPLAY to permissionPermission)
-        val infoState = WebsiteInfoState("", "", WebsiteSecurityUiValues.SECURE, "")
+        val infoState = WebsiteInfoState("", "", WebsiteInfoUiValues.SECURE, "")
         val tpState = ProtectionsState(
             null,
             "",
@@ -97,7 +97,7 @@ class QuickSettingsFragmentReducerTest {
     @Test
     fun `ProtectionsAction - ToggleTrackingProtectionEnabled`() = runTest {
         val state = QuickSettingsFragmentState(
-            webInfoState = WebsiteInfoState("", "", WebsiteSecurityUiValues.SECURE, ""),
+            webInfoState = WebsiteInfoState("", "", WebsiteInfoUiValues.SECURE, ""),
             websitePermissionsState = emptyMap(),
             protectionsState = ProtectionsState(
                 tab = null,

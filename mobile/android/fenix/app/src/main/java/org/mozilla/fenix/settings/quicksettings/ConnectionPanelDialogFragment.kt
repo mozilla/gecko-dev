@@ -69,6 +69,7 @@ class ConnectionPanelDialogFragment : FenixDialogFragment() {
             WebsiteInfoState.createWebsiteInfoState(
                 args.url,
                 args.title,
+                args.isLocalPdf,
                 args.isSecured,
                 args.certificateName,
             ),

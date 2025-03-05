@@ -7,5 +7,8 @@
         android:drawable="@drawable/mozac_ic_lock_24"
         ac:state_site_secure="true" />
     <item
+        android:drawable="@drawable/mozac_ic_page_portrait_24"
+        ac:state_local_pdf="true" />
+    <item
         android:drawable="@drawable/mozac_ic_broken_lock" />
 </selector>

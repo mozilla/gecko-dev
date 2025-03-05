@@ -204,8 +204,8 @@ class CustomTabsToolbarFeature(
             toolbar.display.colors = toolbar.display.colors.copy(
                 text = readableColor,
                 title = readableColor,
-                securityIconSecure = readableColor,
-                securityIconInsecure = readableColor,
+                siteInfoIconSecure = readableColor,
+                siteInfoIconInsecure = readableColor,
                 trackingProtection = readableColor,
                 menu = readableColor,
             )

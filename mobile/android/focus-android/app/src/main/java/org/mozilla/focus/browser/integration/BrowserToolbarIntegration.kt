@@ -124,7 +124,7 @@ class BrowserToolbarIntegration(
         toolbar.display.apply {
             colors = colors.copy(
                 hint = ContextCompat.getColor(toolbar.context, R.color.urlBarHintText),
-                securityIconInsecure = Color.TRANSPARENT,
+                siteInfoIconInsecure = Color.TRANSPARENT,
                 text = ContextCompat.getColor(toolbar.context, R.color.primaryText),
                 menu = ContextCompat.getColor(toolbar.context, R.color.primaryText),
             )
@@ -133,7 +133,7 @@ class BrowserToolbarIntegration(
 
             displayIndicatorSeparator = false
 
-            setOnSiteSecurityClickedListener {
+            setOnSiteInfoClickedListener {
                 TrackingProtection.toolbarShieldClicked.add()
                 fragment.initCookieBanner()
                 fragment.showTrackingProtectionPanel()

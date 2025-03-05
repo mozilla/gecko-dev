@@ -120,9 +120,9 @@ class BrowserToolbar @JvmOverloads constructor(
             display.url = (value as String).trimmed()
         }
 
-    override var siteSecure: Toolbar.SiteSecurity
-        get() = display.siteSecurity
-        set(value) { display.siteSecurity = value }
+    override var siteInfo: Toolbar.SiteInfo
+        get() = display.siteInfo
+        set(value) { display.siteInfo = value }
 
     override var highlight: Highlight = Highlight.NONE
         set(value) {

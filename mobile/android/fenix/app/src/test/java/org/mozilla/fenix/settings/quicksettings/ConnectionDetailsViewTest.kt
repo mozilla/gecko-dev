@@ -47,7 +47,7 @@ class ConnectionDetailsViewTest {
             WebsiteInfoState(
                 websiteUrl = websiteUrl,
                 websiteTitle = "Mozilla",
-                websiteSecurityUiValues = WebsiteSecurityUiValues.SECURE,
+                websiteInfoUiValues = WebsiteInfoUiValues.SECURE,
                 certificateName = "",
             ),
         )
@@ -64,7 +64,7 @@ class ConnectionDetailsViewTest {
             WebsiteInfoState(
                 websiteUrl = "https://mozilla.org",
                 websiteTitle = "Mozilla",
-                websiteSecurityUiValues = WebsiteSecurityUiValues.INSECURE,
+                websiteInfoUiValues = WebsiteInfoUiValues.INSECURE,
                 certificateName = "Certificate",
             ),
         )
@@ -78,7 +78,7 @@ class ConnectionDetailsViewTest {
             WebsiteInfoState(
                 websiteUrl = "https://mozilla.org",
                 websiteTitle = "Mozilla",
-                websiteSecurityUiValues = WebsiteSecurityUiValues.INSECURE,
+                websiteInfoUiValues = WebsiteInfoUiValues.INSECURE,
                 certificateName = "Certificate",
             ),
         )

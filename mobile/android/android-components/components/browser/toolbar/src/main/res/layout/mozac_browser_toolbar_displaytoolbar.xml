@@ -74,8 +74,8 @@
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/mozac_browser_toolbar_icons_vertical_separator" />
 
-    <mozilla.components.browser.toolbar.display.SiteSecurityIconView
-        android:id="@+id/mozac_browser_toolbar_security_indicator"
+    <mozilla.components.browser.toolbar.display.SiteInfoIconView
+        android:id="@+id/mozac_browser_toolbar_site_info_indicator"
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:layout_marginTop="8dp"
@@ -83,15 +83,15 @@
         android:scaleType="center"
         app:layout_constraintStart_toEndOf="@+id/mozac_browser_toolbar_separator"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/mozac_ic_site_security" />
+        app:srcCompat="@drawable/mozac_ic_site_info" />
 
     <mozilla.components.browser.toolbar.display.HighlightView
         android:id="@+id/mozac_browser_toolbar_permission_indicator"
         android:layout_width="10dp"
         android:layout_height="10dp"
         android:importantForAccessibility="no"
-        app:layout_constraintBottom_toBottomOf="@+id/mozac_browser_toolbar_security_indicator"
-        app:layout_constraintEnd_toEndOf="@+id/mozac_browser_toolbar_security_indicator"
+        app:layout_constraintBottom_toBottomOf="@+id/mozac_browser_toolbar_site_info_indicator"
+        app:layout_constraintEnd_toEndOf="@+id/mozac_browser_toolbar_site_info_indicator"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
         android:visibility="gone"
@@ -107,7 +107,7 @@
         android:minHeight="40dp"
         android:paddingEnd="@dimen/mozac_browser_toolbar_origin_padding_end"
         app:layout_constraintEnd_toStartOf="@+id/mozac_browser_toolbar_page_actions"
-        app:layout_constraintStart_toEndOf="@+id/mozac_browser_toolbar_security_indicator"
+        app:layout_constraintStart_toEndOf="@+id/mozac_browser_toolbar_site_info_indicator"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_goneMarginStart="8dp"

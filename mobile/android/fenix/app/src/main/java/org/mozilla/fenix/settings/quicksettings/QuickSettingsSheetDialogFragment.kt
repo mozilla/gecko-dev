@@ -84,6 +84,7 @@ class QuickSettingsSheetDialogFragment : FenixDialogFragment() {
             context = context,
             websiteUrl = args.url,
             websiteTitle = args.title,
+            isLocalPdf = args.isLocalPdf,
             isSecured = args.isSecured,
             permissions = args.sitePermissions,
             settings = components.settings,

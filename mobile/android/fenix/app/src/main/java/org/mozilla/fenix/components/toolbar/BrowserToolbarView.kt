@@ -326,8 +326,9 @@ class BrowserToolbarView(
 
         view.display.colors = view.display.colors.copy(
             text = primaryTextColor,
-            securityIconSecure = primaryTextColor,
-            securityIconInsecure = Color.TRANSPARENT,
+            siteInfoIconSecure = primaryTextColor,
+            siteInfoIconInsecure = Color.TRANSPARENT,
+            siteInfoIconLocalPdf = primaryTextColor,
             menu = primaryTextColor,
             hint = secondaryTextColor,
             separator = separatorColor,

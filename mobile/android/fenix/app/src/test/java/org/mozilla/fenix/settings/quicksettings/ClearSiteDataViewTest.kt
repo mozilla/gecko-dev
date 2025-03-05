@@ -49,7 +49,7 @@ class ClearSiteDataViewTest {
         val state = WebsiteInfoState(
             websiteUrl = "https://developers.mozilla.org",
             websiteTitle = "Mozilla",
-            websiteSecurityUiValues = WebsiteSecurityUiValues.SECURE,
+            websiteInfoUiValues = WebsiteInfoUiValues.SECURE,
             certificateName = "Certificate",
         )
 

@@ -44,7 +44,7 @@ class WebsiteInfoViewTest {
             WebsiteInfoState(
                 websiteUrl = websiteUrl,
                 websiteTitle = "Mozilla",
-                websiteSecurityUiValues = WebsiteSecurityUiValues.SECURE,
+                websiteInfoUiValues = WebsiteInfoUiValues.SECURE,
                 certificateName = "",
             ),
         )
@@ -61,7 +61,7 @@ class WebsiteInfoViewTest {
             WebsiteInfoState(
                 websiteUrl = "https://mozilla.org",
                 websiteTitle = "Mozilla",
-                websiteSecurityUiValues = WebsiteSecurityUiValues.INSECURE,
+                websiteInfoUiValues = WebsiteInfoUiValues.INSECURE,
                 certificateName = "Certificate",
             ),
         )

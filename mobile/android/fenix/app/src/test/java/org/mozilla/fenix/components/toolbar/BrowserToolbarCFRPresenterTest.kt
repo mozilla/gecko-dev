@@ -262,7 +262,7 @@ class BrowserToolbarCFRPresenterTest {
             every { hasShownTabSwipeCFR } returns false
         },
         toolbar: BrowserToolbar = mockk {
-            every { findViewById<View>(R.id.mozac_browser_toolbar_security_indicator) } returns anchor
+            every { findViewById<View>(R.id.mozac_browser_toolbar_site_info_indicator) } returns anchor
             every { findViewById<View>(R.id.mozac_browser_toolbar_page_actions) } returns anchor
             every { findViewById<View>(R.id.mozac_browser_toolbar_navigation_actions) } returns anchor
         },

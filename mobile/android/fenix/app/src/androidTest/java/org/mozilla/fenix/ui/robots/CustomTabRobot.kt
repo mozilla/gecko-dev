@@ -45,7 +45,7 @@ class CustomTabRobot {
 
     fun verifyCustomTabsSiteInfoButton() =
         assertUIObjectExists(
-            itemWithResId("$packageName:id/mozac_browser_toolbar_security_indicator"),
+            itemWithResId("$packageName:id/mozac_browser_toolbar_site_info_indicator"),
         )
 
     fun verifyCustomTabsShareButton() =

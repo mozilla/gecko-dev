@@ -2392,6 +2392,8 @@
     <string name="quick_settings_sheet_secure_connection_2">Connection is secure</string>
     <!-- Label that indicates a site is using a insecure connection -->
     <string name="quick_settings_sheet_insecure_connection_2">Connection is not secure</string>
+    <!-- Label that indicates a site is displaying a local document -->
+    <string name="quick_settings_sheet_local_page">This page is stored on your device.</string>
     <!-- Label to clear site data -->
     <string name="clear_site_data">Clear cookies and site data</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->

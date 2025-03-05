@@ -1010,6 +1010,9 @@
             android:name="url"
             app:argType="string" />
         <argument
+            android:name="isLocalPdf"
+            app:argType="boolean" />
+        <argument
             android:name="isSecured"
             app:argType="boolean" />
         <argument
@@ -1086,6 +1089,9 @@
         <argument
             android:name="url"
             app:argType="string" />
+        <argument
+            android:name="isLocalPdf"
+            app:argType="boolean" />
         <argument
             android:name="isSecured"
             app:argType="boolean" />

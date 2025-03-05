@@ -1537,10 +1537,10 @@ class BrowserRobot {
 
         fun openSiteSecuritySheet(interact: SiteSecurityRobot.() -> Unit): SiteSecurityRobot.Transition {
             Log.i(TAG, "openSiteSecuritySheet: Waiting for $waitingTime ms for site security toolbar button to exist")
-            siteSecurityToolbarButton().waitForExists(waitingTime)
+            siteInfoToolbarButton().waitForExists(waitingTime)
             Log.i(TAG, "openSiteSecuritySheet: Waited for $waitingTime ms for site security toolbar button to exist")
             Log.i(TAG, "openSiteSecuritySheet: Trying to click the site security toolbar button and wait for $waitingTime ms for a new window")
-            siteSecurityToolbarButton().clickAndWaitForNewWindow(waitingTime)
+            siteInfoToolbarButton().clickAndWaitForNewWindow(waitingTime)
             Log.i(TAG, "openSiteSecuritySheet: Clicked the site security toolbar button and waited for $waitingTime ms for a new window")
 
             SiteSecurityRobot().interact()
@@ -1635,8 +1635,8 @@ private fun suggestedLogins() = itemWithResId("$packageName:id/loginSelectBar")
 private fun selectAddressButton() = itemWithResId("$packageName:id/select_address_header")
 private fun selectCreditCardButton() = itemWithResId("$packageName:id/select_credit_card_header")
 
-private fun siteSecurityToolbarButton() =
-    itemWithResId("$packageName:id/mozac_browser_toolbar_security_indicator")
+private fun siteInfoToolbarButton() =
+    itemWithResId("$packageName:id/mozac_browser_toolbar_site_info_indicator")
 
 fun clickPageObject(item: UiObject) {
     for (i in 1..RETRY_COUNT) {

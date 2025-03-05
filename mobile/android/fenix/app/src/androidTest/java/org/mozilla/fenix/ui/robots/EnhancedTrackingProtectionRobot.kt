@@ -288,7 +288,7 @@ fun enhancedTrackingProtection(interact: EnhancedTrackingProtectionRobot.() -> U
 }
 
 private fun pageSecurityIndicator() =
-    mDevice.findObject(UiSelector().resourceId("$packageName:id/mozac_browser_toolbar_security_indicator"))
+    mDevice.findObject(UiSelector().resourceId("$packageName:id/mozac_browser_toolbar_site_info_indicator"))
 
 private fun enhancedTrackingProtectionSwitch() =
     onView(ViewMatchers.withResourceName("switch_widget"))

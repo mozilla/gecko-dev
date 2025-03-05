@@ -70,7 +70,7 @@ class CustomTabSessionTitleObserverTest {
         override var highlight: Toolbar.Highlight = Toolbar.Highlight.NONE
         override var url: CharSequence by ThrowProperty()
         override var private: Boolean by ThrowProperty()
-        override var siteSecure: Toolbar.SiteSecurity by ThrowProperty()
+        override var siteInfo: Toolbar.SiteInfo by ThrowProperty()
         override var siteTrackingProtection: Toolbar.SiteTrackingProtection by ThrowProperty()
         override fun setSearchTerms(searchTerms: String) = Unit
         override fun displayProgress(progress: Int) = Unit

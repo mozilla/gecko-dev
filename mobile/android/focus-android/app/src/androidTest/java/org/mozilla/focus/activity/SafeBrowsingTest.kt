@@ -133,7 +133,7 @@ class SafeBrowsingTest : TestSetup() {
         searchScreen {
         }.loadPage(insecurePageUrl) {
             verifyPageURL(insecurePageUrl)
-            verifySiteSecurityIndicatorShown()
+            verifySiteInfoIndicatorShown()
         }.openSiteSecurityInfoSheet {
             verifySiteConnectionInfoIsSecure(false)
         }.closeSecurityInfoSheet { }

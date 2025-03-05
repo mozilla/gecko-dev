@@ -42,7 +42,7 @@ class ConnectionDetailsView(
     fun update(state: WebsiteInfoState) {
         icons.loadIntoView(binding.faviconImage, state.websiteUrl)
         bindUrl(state.websiteUrl)
-        bindSecurityInfo(state.websiteSecurityUiValues)
+        bindSecurityInfo(state.websiteInfoUiValues)
         bindCertificateName(state.certificateName)
         bindTitle(state.websiteTitle)
         bindBackButtonListener()
@@ -52,8 +52,8 @@ class ConnectionDetailsView(
         binding.url.text = websiteUrl
     }
 
-    private fun bindSecurityInfo(uiValues: WebsiteSecurityUiValues) {
-        binding.securityInfo.setText(uiValues.securityInfoRes)
+    private fun bindSecurityInfo(uiValues: WebsiteInfoUiValues) {
+        binding.securityInfo.setText(uiValues.siteInfoRes)
         binding.securityInfoIcon.setImageResource(uiValues.iconRes)
     }
 

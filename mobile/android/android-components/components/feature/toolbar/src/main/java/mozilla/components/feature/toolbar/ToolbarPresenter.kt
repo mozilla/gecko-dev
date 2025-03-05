@@ -18,6 +18,7 @@ import mozilla.components.concept.toolbar.Toolbar.Highlight
 import mozilla.components.concept.toolbar.Toolbar.SiteTrackingProtection
 import mozilla.components.feature.toolbar.internal.URLRenderer
 import mozilla.components.lib.state.ext.flowScoped
+import mozilla.components.support.utils.ext.isContentUrl
 
 /**
  * Presenter implementation for a toolbar implementation in order to update the toolbar whenever
@@ -68,10 +69,12 @@ class ToolbarPresenter(
             toolbar.setSearchTerms(tab.content.searchTerms)
             toolbar.displayProgress(tab.content.progress)
 
-            toolbar.siteSecure = if (tab.content.securityInfo.secure) {
-                Toolbar.SiteSecurity.SECURE
+            toolbar.siteInfo = if (tab.content.url.isContentUrl()) {
+                Toolbar.SiteInfo.LOCAL_PDF
+            } else if (tab.content.securityInfo.secure) {
+                Toolbar.SiteInfo.SECURE
             } else {
-                Toolbar.SiteSecurity.INSECURE
+                Toolbar.SiteInfo.INSECURE
             }
 
             toolbar.siteTrackingProtection = when {
@@ -106,7 +109,7 @@ class ToolbarPresenter(
         toolbar.setSearchTerms("")
         toolbar.displayProgress(0)
 
-        toolbar.siteSecure = Toolbar.SiteSecurity.INSECURE
+        toolbar.siteInfo = Toolbar.SiteInfo.INSECURE
 
         toolbar.siteTrackingProtection = SiteTrackingProtection.OFF_GLOBALLY
         toolbar.highlight = Highlight.NONE

@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.concept.engine.cookiehandling.CookieBannersStorage
 import mozilla.components.concept.engine.permission.SitePermissions
+import mozilla.components.support.utils.ext.isContentUrl
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
@@ -65,6 +66,7 @@ class DefaultConnectionDetailsController(
                                     sessionId = tab.id,
                                     url = tab.content.url,
                                     title = tab.content.title,
+                                    isLocalPdf = tab.content.url.isContentUrl(),
                                     isSecured = tab.content.securityInfo.secure,
                                     sitePermissions = sitePermissions,
                                     gravity = gravity,

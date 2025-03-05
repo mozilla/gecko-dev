@@ -390,6 +390,7 @@ class DefaultQuickSettingsControllerTest {
         val state = WebsiteInfoState.createWebsiteInfoState(
             websiteUrl = tab.content.url,
             websiteTitle = tab.content.title,
+            isLocalPdf = false,
             isSecured = true,
             certificateName = "certificateName",
         )

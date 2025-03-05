@@ -23,7 +23,7 @@ import mozilla.components.browser.toolbar.display.MenuButton
 import mozilla.components.browser.toolbar.edit.EditToolbar
 import mozilla.components.concept.toolbar.AutocompleteDelegate
 import mozilla.components.concept.toolbar.Toolbar
-import mozilla.components.concept.toolbar.Toolbar.SiteSecurity
+import mozilla.components.concept.toolbar.Toolbar.SiteInfo
 import mozilla.components.concept.toolbar.Toolbar.SiteTrackingProtection
 import mozilla.components.support.ktx.kotlin.MAX_URI_LENGTH
 import mozilla.components.support.test.argumentCaptor
@@ -820,11 +820,11 @@ class BrowserToolbarTest {
     fun `siteSecure updates the display`() {
         val toolbar = BrowserToolbar(testContext)
         toolbar.display = spy(toolbar.display)
-        assertEquals(SiteSecurity.INSECURE, toolbar.siteSecure)
+        assertEquals(SiteInfo.INSECURE, toolbar.siteInfo)
 
-        toolbar.siteSecure = SiteSecurity.SECURE
+        toolbar.siteInfo = SiteInfo.SECURE
 
-        verify(toolbar.display).siteSecurity = SiteSecurity.SECURE
+        verify(toolbar.display).siteInfo = SiteInfo.SECURE
     }
 
     @Test

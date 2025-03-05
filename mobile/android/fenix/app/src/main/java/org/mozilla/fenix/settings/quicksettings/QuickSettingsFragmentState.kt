@@ -33,13 +33,13 @@ data class QuickSettingsFragmentState(
  *
  * @property websiteUrl [String] the URL of the current web page.
  * @property websiteTitle [String] the title of the current web page.
- * @property websiteSecurityUiValues UI values to represent the security of the website.
+ * @property websiteInfoUiValues UI values to represent the connection info of the website.
  * @property certificateName the certificate name of the current web page.
  */
 data class WebsiteInfoState(
     val websiteUrl: String,
     val websiteTitle: String,
-    val websiteSecurityUiValues: WebsiteSecurityUiValues,
+    val websiteInfoUiValues: WebsiteInfoUiValues,
     val certificateName: String,
 ) : State {
     companion object {
@@ -50,24 +50,35 @@ data class WebsiteInfoState(
          *
          * @param websiteUrl [String] the URL of the current web page.
          * @param websiteTitle [String] the title of the current web page.
+         * @param isLocalPdf [Boolean] whether the current tab is a local PDF.
          * @param isSecured [Boolean] whether the connection is secured (TLS) or not.
          * @param certificateName [String] the certificate name of the current web page.
          */
         fun createWebsiteInfoState(
             websiteUrl: String,
             websiteTitle: String,
+            isLocalPdf: Boolean,
             isSecured: Boolean,
             certificateName: String,
         ): WebsiteInfoState {
-            val uiValues =
-                if (isSecured) WebsiteSecurityUiValues.SECURE else WebsiteSecurityUiValues.INSECURE
+            val uiValues = if (isLocalPdf) {
+                WebsiteInfoUiValues.Document
+            } else if (isSecured) {
+                WebsiteInfoUiValues.SECURE
+            } else {
+                WebsiteInfoUiValues.INSECURE
+            }
+
             return WebsiteInfoState(websiteUrl, websiteTitle, uiValues, certificateName)
         }
     }
 }
 
-enum class WebsiteSecurityUiValues(
-    @StringRes val securityInfoRes: Int,
+/**
+ * An enum for the different website info icons and their descriptions.
+ */
+enum class WebsiteInfoUiValues(
+    @StringRes val siteInfoRes: Int,
     @DrawableRes val iconRes: Int,
 ) {
     SECURE(
@@ -77,6 +88,10 @@ enum class WebsiteSecurityUiValues(
     INSECURE(
         R.string.quick_settings_sheet_insecure_connection_2,
         R.drawable.mozac_ic_broken_lock,
+    ),
+    Document(
+        R.string.quick_settings_sheet_local_page,
+        R.drawable.mozac_ic_page_portrait_24,
     ),
 }
 

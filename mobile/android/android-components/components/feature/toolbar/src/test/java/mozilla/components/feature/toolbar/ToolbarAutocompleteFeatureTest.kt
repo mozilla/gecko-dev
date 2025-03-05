@@ -37,7 +37,7 @@ class ToolbarAutocompleteFeatureTest {
             Toolbar.SiteTrackingProtection.OFF_GLOBALLY
         override var title: String = ""
         override var url: CharSequence = ""
-        override var siteSecure: Toolbar.SiteSecurity = Toolbar.SiteSecurity.INSECURE
+        override var siteInfo: Toolbar.SiteInfo = Toolbar.SiteInfo.INSECURE
         override var private: Boolean = false
 
         var autocompleteFilter: (suspend (String, AutocompleteDelegate) -> Unit)? = null

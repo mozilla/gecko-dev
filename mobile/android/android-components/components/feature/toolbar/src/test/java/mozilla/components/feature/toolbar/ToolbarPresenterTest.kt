@@ -64,7 +64,7 @@ class ToolbarPresenterTest {
         verify(toolbarPresenter.renderer).post("https://www.mozilla.org")
         verify(toolbar).setSearchTerms("")
         verify(toolbar).displayProgress(0)
-        verify(toolbar).siteSecure = Toolbar.SiteSecurity.INSECURE
+        verify(toolbar).siteInfo = Toolbar.SiteInfo.INSECURE
     }
 
     @Test
@@ -92,11 +92,11 @@ class ToolbarPresenterTest {
         verify(toolbarPresenter.renderer).post("https://www.example.org")
         verify(toolbar).setSearchTerms("")
         verify(toolbar).displayProgress(0)
-        verify(toolbar).siteSecure = Toolbar.SiteSecurity.INSECURE
+        verify(toolbar).siteInfo = Toolbar.SiteInfo.INSECURE
     }
 
     @Test
-    fun `SecurityInfoState change updates toolbar`() {
+    fun `SiteInfoState change updates toolbar`() {
         val toolbar: Toolbar = mock()
         val store = spy(
             BrowserStore(
@@ -115,7 +115,7 @@ class ToolbarPresenterTest {
 
         dispatcher.scheduler.advanceUntilIdle()
 
-        verify(toolbar, never()).siteSecure = Toolbar.SiteSecurity.SECURE
+        verify(toolbar, never()).siteInfo = Toolbar.SiteInfo.SECURE
 
         store.dispatch(
             ContentAction.UpdateSecurityInfoAction(
@@ -130,7 +130,7 @@ class ToolbarPresenterTest {
 
         dispatcher.scheduler.advanceUntilIdle()
 
-        verify(toolbar).siteSecure = Toolbar.SiteSecurity.SECURE
+        verify(toolbar).siteInfo = Toolbar.SiteInfo.SECURE
     }
 
     @Test
@@ -166,7 +166,7 @@ class ToolbarPresenterTest {
         verify(toolbarPresenter.renderer).post("https://www.mozilla.org")
         verify(toolbar).setSearchTerms("Hello World")
         verify(toolbar).displayProgress(60)
-        verify(toolbar).siteSecure = Toolbar.SiteSecurity.SECURE
+        verify(toolbar).siteInfo = Toolbar.SiteInfo.SECURE
         verify(toolbar).siteTrackingProtection = Toolbar.SiteTrackingProtection.OFF_GLOBALLY
         verify(toolbar).highlight = Toolbar.Highlight.NONE
         verifyNoMoreInteractions(toolbarPresenter.renderer)
@@ -179,7 +179,7 @@ class ToolbarPresenterTest {
         verify(toolbarPresenter.renderer).post("")
         verify(toolbar).setSearchTerms("")
         verify(toolbar).displayProgress(0)
-        verify(toolbar).siteSecure = Toolbar.SiteSecurity.INSECURE
+        verify(toolbar).siteInfo = Toolbar.SiteInfo.INSECURE
     }
 
     @Test
@@ -293,7 +293,7 @@ class ToolbarPresenterTest {
         verify(toolbarPresenter.renderer).post("https://www.mozilla.org")
         verify(toolbar).setSearchTerms("Hello World")
         verify(toolbar).displayProgress(60)
-        verify(toolbar).siteSecure = Toolbar.SiteSecurity.SECURE
+        verify(toolbar).siteInfo = Toolbar.SiteInfo.SECURE
         verify(toolbar).siteTrackingProtection = Toolbar.SiteTrackingProtection.OFF_GLOBALLY
         verify(toolbar).highlight = Toolbar.Highlight.NONE
         verifyNoMoreInteractions(toolbarPresenter.renderer)
@@ -344,7 +344,7 @@ class ToolbarPresenterTest {
         verify(toolbarPresenter.renderer).post("https://www.mozilla.org")
         verify(toolbar).setSearchTerms("Hello World")
         verify(toolbar).displayProgress(60)
-        verify(toolbar).siteSecure = Toolbar.SiteSecurity.SECURE
+        verify(toolbar).siteInfo = Toolbar.SiteInfo.SECURE
         verify(toolbar).siteTrackingProtection = Toolbar.SiteTrackingProtection.OFF_GLOBALLY
         verify(toolbar).highlight = Toolbar.Highlight.NONE
         verifyNoMoreInteractions(toolbarPresenter.renderer)
@@ -357,7 +357,7 @@ class ToolbarPresenterTest {
         verify(toolbarPresenter.renderer).post("https://www.example.org")
         verify(toolbar).setSearchTerms("Example")
         verify(toolbar).displayProgress(90)
-        verify(toolbar).siteSecure = Toolbar.SiteSecurity.INSECURE
+        verify(toolbar).siteInfo = Toolbar.SiteInfo.INSECURE
         verify(toolbar).siteTrackingProtection = Toolbar.SiteTrackingProtection.ON_NO_TRACKERS_BLOCKED
         verify(toolbar).highlight = Toolbar.Highlight.PERMISSIONS_CHANGED
         verifyNoMoreInteractions(toolbarPresenter.renderer)
@@ -499,7 +499,7 @@ class ToolbarPresenterTest {
         verify(presenter.renderer).post("")
         verify(toolbar).setSearchTerms("")
         verify(toolbar).displayProgress(0)
-        verify(toolbar).siteSecure = Toolbar.SiteSecurity.INSECURE
+        verify(toolbar).siteInfo = Toolbar.SiteInfo.INSECURE
         verify(toolbar).siteTrackingProtection = Toolbar.SiteTrackingProtection.OFF_GLOBALLY
         verify(toolbar).highlight = Toolbar.Highlight.NONE
     }

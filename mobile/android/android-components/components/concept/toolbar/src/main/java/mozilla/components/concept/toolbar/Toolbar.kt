@@ -46,9 +46,9 @@ interface Toolbar : ScrollableToolbar {
     var private: Boolean
 
     /**
-     * Sets/Gets the site security to be displayed on the toolbar.
+     * Sets/Gets the site info icon to be displayed on the toolbar.
      */
-    var siteSecure: SiteSecurity
+    var siteInfo: SiteInfo
 
     /**
      * Sets/Gets the highlight icon to be displayed on the toolbar.
@@ -485,9 +485,13 @@ interface Toolbar : ScrollableToolbar {
         override fun bind(view: View) = Unit
     }
 
-    enum class SiteSecurity {
+    /**
+     * An enum for the different site info icons that can be displayed.
+     */
+    enum class SiteInfo {
         INSECURE,
         SECURE,
+        LOCAL_PDF,
     }
 
     /**

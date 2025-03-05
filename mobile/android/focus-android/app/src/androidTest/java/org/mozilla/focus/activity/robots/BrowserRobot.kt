@@ -212,7 +212,7 @@ class BrowserRobot {
 
     fun verifySiteTrackingProtectionIconShown() = assertTrue(securityIcon.waitForExists(waitingTime))
 
-    fun verifySiteSecurityIndicatorShown() = assertTrue(site_security_indicator.waitForExists(waitingTime))
+    fun verifySiteInfoIndicatorShown() = assertTrue(site_info_indicator.waitForExists(waitingTime))
 
     fun verifyLinkContextMenu(linkAddress: String) {
         assertTrue(
@@ -530,7 +530,7 @@ class BrowserRobot {
             if (securityIcon.exists()) {
                 securityIcon.click()
             } else {
-                site_security_indicator.click()
+                site_info_indicator.click()
             }
 
             SiteSecurityInfoSheetRobot().interact()
@@ -612,10 +612,10 @@ private val securityIcon =
             .resourceId("$packageName:id/mozac_browser_toolbar_tracking_protection_indicator"),
     )
 
-private val site_security_indicator =
+private val site_info_indicator =
     mDevice.findObject(
         UiSelector()
-            .resourceId("$packageName:id/mozac_browser_toolbar_security_indicator"),
+            .resourceId("$packageName:id/mozac_browser_toolbar_site_info_indicator"),
     )
 
 // Link long-tap context menu items

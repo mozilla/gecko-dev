@@ -78,6 +78,7 @@ class QuickSettingsFragmentStoreTest {
             websiteUrl = tab.content.url,
             websiteTitle = tab.content.title,
             certificateName = "issuer",
+            isLocalPdf = false,
             isSecured = true,
             permissions = permissions,
             permissionHighlights = permissionHighlights,
@@ -101,12 +102,18 @@ class QuickSettingsFragmentStoreTest {
         val certificateIssuer = "issuer"
         val securedStatus = true
 
-        val state = createWebsiteInfoState(websiteUrl, websiteTitle, securedStatus, certificateIssuer)
+        val state = createWebsiteInfoState(
+            websiteUrl = websiteUrl,
+            websiteTitle = websiteTitle,
+            isLocalPdf = false,
+            isSecured = securedStatus,
+            certificateName = certificateIssuer,
+        )
 
         assertNotNull(state)
         assertSame(websiteUrl, state.websiteUrl)
         assertSame(websiteTitle, state.websiteTitle)
-        assertEquals(WebsiteSecurityUiValues.SECURE, state.websiteSecurityUiValues)
+        assertEquals(WebsiteInfoUiValues.SECURE, state.websiteInfoUiValues)
     }
 
     @Test
@@ -116,12 +123,60 @@ class QuickSettingsFragmentStoreTest {
         val certificateIssuer = "issuer"
         val securedStatus = false
 
-        val state = createWebsiteInfoState(websiteUrl, websiteTitle, securedStatus, certificateIssuer)
+        val state = createWebsiteInfoState(
+            websiteUrl = websiteUrl,
+            websiteTitle = websiteTitle,
+            isLocalPdf = false,
+            isSecured = securedStatus,
+            certificateName = certificateIssuer,
+        )
 
         assertNotNull(state)
         assertSame(websiteUrl, state.websiteUrl)
         assertSame(websiteTitle, state.websiteTitle)
-        assertEquals(WebsiteSecurityUiValues.INSECURE, state.websiteSecurityUiValues)
+        assertEquals(WebsiteInfoUiValues.INSECURE, state.websiteInfoUiValues)
+    }
+
+    @Test
+    fun `WHEN website is not secure and a local PDF is displayed THEN createWebsiteInfoState constructs a WebsiteInfoState with the right value for a local PDF`() {
+        val websiteUrl = "content://testPdf"
+        val websiteTitle = "Test PDF"
+        val certificateIssuer = "issuer"
+        val securedStatus = false
+
+        val state = createWebsiteInfoState(
+            websiteUrl = websiteUrl,
+            websiteTitle = websiteTitle,
+            isLocalPdf = true,
+            isSecured = securedStatus,
+            certificateName = certificateIssuer,
+        )
+
+        assertNotNull(state)
+        assertSame(websiteUrl, state.websiteUrl)
+        assertSame(websiteTitle, state.websiteTitle)
+        assertEquals(WebsiteInfoUiValues.Document, state.websiteInfoUiValues)
+    }
+
+    @Test
+    fun `WHEN website is secure and a local PDF is displayed THEN createWebsiteInfoState constructs a WebsiteInfoState with the right value for a local PDF`() {
+        val websiteUrl = "content://testPdf"
+        val websiteTitle = "Test PDF"
+        val certificateIssuer = "issuer"
+        val securedStatus = true
+
+        val state = createWebsiteInfoState(
+            websiteUrl = websiteUrl,
+            websiteTitle = websiteTitle,
+            isLocalPdf = true,
+            isSecured = securedStatus,
+            certificateName = certificateIssuer,
+        )
+
+        assertNotNull(state)
+        assertSame(websiteUrl, state.websiteUrl)
+        assertSame(websiteTitle, state.websiteTitle)
+        assertEquals(WebsiteInfoUiValues.Document, state.websiteInfoUiValues)
     }
 
     @Test
