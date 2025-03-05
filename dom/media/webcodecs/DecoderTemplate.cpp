@@ -712,92 +712,92 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessFlushMessage(
   }
 
   mAgent->DrainAndFlush()
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [self = RefPtr{this}, id = mAgent->mId, m = std::move(marker),
-           this](DecoderAgent::DecodePromise::ResolveOrRejectValue&&
-                     aResult) mutable {
-            MOZ_ASSERT(self->mProcessingMessage);
-            MOZ_ASSERT(self->mProcessingMessage->AsFlushMessage());
-            MOZ_ASSERT(self->mState == CodecState::Configured);
-            MOZ_ASSERT(self->mAgent);
-            MOZ_ASSERT(id == self->mAgent->mId);
-            MOZ_ASSERT(self->mActiveConfig);
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             [self = RefPtr{this}, id = mAgent->mId, m = std::move(marker),
+              this](DecoderAgent::DecodePromise::ResolveOrRejectValue&&
+                        aResult) mutable {
+               MOZ_ASSERT(self->mProcessingMessage);
+               MOZ_ASSERT(self->mProcessingMessage->AsFlushMessage());
+               MOZ_ASSERT(self->mState == CodecState::Configured);
+               MOZ_ASSERT(self->mAgent);
+               MOZ_ASSERT(id == self->mAgent->mId);
+               MOZ_ASSERT(self->mActiveConfig);
 
-            FlushMessage* msg = self->mProcessingMessage->AsFlushMessage();
-            LOG("%s %p, DecoderAgent #%d %s has been %s",
-                DecoderType::Name.get(), self.get(), id, msg->ToString().get(),
-                aResult.IsResolve() ? "resolved" : "rejected");
-
-            nsCString msgStr = msg->ToString();
-
-            msg->Complete();
-
-            const auto flushPromiseId = msg->mUniqueId;
-
-            // If flush failed, it means decoder fails to decode the data
-            // sent before, so we treat it like decode error. We reject
-            // the promise first and then queue a task to close
-            // VideoDecoder with an EncodingError.
-            if (aResult.IsReject()) {
-              const MediaResult& error = aResult.RejectValue();
-              LOGE("%s %p, DecoderAgent #%d failed to flush: %s",
+               FlushMessage* msg = self->mProcessingMessage->AsFlushMessage();
+               LOG("%s %p, DecoderAgent #%d %s has been %s",
                    DecoderType::Name.get(), self.get(), id,
-                   error.Description().get());
-              // Reject with an EncodingError instead of the error we got
-              // above.
-              self->QueueATask(
-                  "Error during flush runnable",
-                  [self = RefPtr{this}]() MOZ_CAN_RUN_SCRIPT_BOUNDARY {
-                    // If Reset() was invoked before this task executes, the
-                    // promise in mPendingFlushPromises is handled there.
-                    // Otherwise, the promise is going to be rejected by
-                    // CloseInternal() below.
-                    self->mProcessingMessage.reset();
-                    MOZ_ASSERT(self->mState != CodecState::Closed);
-                    self->CloseInternal(
-                        NS_ERROR_DOM_ENCODING_NOT_SUPPORTED_ERR);
-                  });
-              return;
-            }
+                   msg->ToString().get(),
+                   aResult.IsResolve() ? "resolved" : "rejected");
 
-            nsTArray<RefPtr<MediaData>> data =
-                std::move(aResult.ResolveValue());
+               nsCString msgStr = msg->ToString();
 
-            if (data.IsEmpty()) {
-              LOG("%s %p gets no data for %s", DecoderType::Name.get(),
-                  self.get(), msgStr.get());
-            } else {
-              LOG("%s %p, schedule %zu decoded data output for %s",
-                  DecoderType::Name.get(), self.get(), data.Length(),
-                  msgStr.get());
-            }
+               msg->Complete();
 
-            m.End();
-            AUTO_DECODER_MARKER(outMarker, ".flush-output");
+               const auto flushPromiseId = msg->mUniqueId;
 
-            self->QueueATask(
-                "Flush: output decoding data task",
-                [self = RefPtr{self}, data = std::move(data),
-                 config = RefPtr{self->mActiveConfig}, flushPromiseId,
-                 om = std::move(
-                     outMarker)]() MOZ_CAN_RUN_SCRIPT_BOUNDARY mutable {
-                  self->OutputDecodedData(std::move(data), *config);
-                  // If Reset() was invoked before this task executes, or
-                  // during the output callback above in the execution of this
-                  // task, the promise in mPendingFlushPromises is handled
-                  // there. Otherwise, the promise is resolved here.
-                  if (Maybe<RefPtr<Promise>> p =
-                          self->mPendingFlushPromises.Take(flushPromiseId)) {
-                    LOG("%s %p, resolving the promise for flush %" PRId64
-                        " (unique id)",
-                        DecoderType::Name.get(), self.get(), flushPromiseId);
-                    p.value()->MaybeResolveWithUndefined();
-                  }
-                });
-            self->mProcessingMessage.reset();
-            self->ProcessControlMessageQueue();
-          })
+               // If flush failed, it means decoder fails to decode the data
+               // sent before, so we treat it like decode error. We reject
+               // the promise first and then queue a task to close
+               // VideoDecoder with an EncodingError.
+               if (aResult.IsReject()) {
+                 const MediaResult& error = aResult.RejectValue();
+                 LOGE("%s %p, DecoderAgent #%d failed to flush: %s",
+                      DecoderType::Name.get(), self.get(), id,
+                      error.Description().get());
+                 // Reject with an EncodingError instead of the error we got
+                 // above.
+                 self->QueueATask(
+                     "Error during flush runnable",
+                     [self = RefPtr{this}]() MOZ_CAN_RUN_SCRIPT_BOUNDARY {
+                       // If Reset() was invoked before this task executes, the
+                       // promise in mPendingFlushPromises is handled there.
+                       // Otherwise, the promise is going to be rejected by
+                       // CloseInternal() below.
+                       self->mProcessingMessage.reset();
+                       MOZ_ASSERT(self->mState != CodecState::Closed);
+                       self->CloseInternal(
+                           NS_ERROR_DOM_ENCODING_NOT_SUPPORTED_ERR);
+                     });
+                 return;
+               }
+
+               nsTArray<RefPtr<MediaData>> data =
+                   std::move(aResult.ResolveValue());
+
+               if (data.IsEmpty()) {
+                 LOG("%s %p gets no data for %s", DecoderType::Name.get(),
+                     self.get(), msgStr.get());
+               } else {
+                 LOG("%s %p, schedule %zu decoded data output for %s",
+                     DecoderType::Name.get(), self.get(), data.Length(),
+                     msgStr.get());
+               }
+
+               m.End();
+               AUTO_DECODER_MARKER(outMarker, ".flush-output");
+
+               self->QueueATask(
+                   "Flush: output decoding data task",
+                   [self = RefPtr{self}, data = std::move(data),
+                    config = RefPtr{self->mActiveConfig}, flushPromiseId,
+                    om = std::move(
+                        outMarker)]() MOZ_CAN_RUN_SCRIPT_BOUNDARY mutable {
+                     self->OutputDecodedData(std::move(data), *config);
+                     // If Reset() was invoked before this task executes, or
+                     // during the output callback above in the execution of
+                     // this task, the promise in mPendingFlushPromises is
+                     // handled there. Otherwise, the promise is resolved here.
+                     if (Maybe<RefPtr<Promise>> p =
+                             self->mPendingFlushPromises.Take(flushPromiseId)) {
+                       LOG("%s %p, resolving the promise for flush %" PRId64
+                           " (unique id)",
+                           DecoderType::Name.get(), self.get(), flushPromiseId);
+                       p.value()->MaybeResolveWithUndefined();
+                     }
+                   });
+               self->mProcessingMessage.reset();
+               self->ProcessControlMessageQueue();
+             })
       ->Track(msg->Request());
 
   return MessageProcessedResult::Processed;
