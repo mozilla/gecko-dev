@@ -327,7 +327,7 @@ export class FfiConverterString extends FfiConverter {
  * CustomTypesDemo
  */
 export class CustomTypesDemo {
-    constructor({ url, handle }) {
+    constructor({ url, handle } = { url: undefined, handle: undefined }) {
         try {
             FfiConverterTypeUrl.checkType(url)
         } catch (e) {

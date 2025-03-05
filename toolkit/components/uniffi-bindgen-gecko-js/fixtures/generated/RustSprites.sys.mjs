@@ -526,7 +526,7 @@ export class FfiConverterTypeSprite extends FfiConverter {
  * Point
  */
 export class Point {
-    constructor({ x, y }) {
+    constructor({ x, y } = { x: undefined, y: undefined }) {
         try {
             FfiConverterF64.checkType(x)
         } catch (e) {
@@ -609,7 +609,7 @@ export class FfiConverterTypePoint extends FfiConverterArrayBuffer {
  * Vector
  */
 export class Vector {
-    constructor({ dx, dy }) {
+    constructor({ dx, dy } = { dx: undefined, dy: undefined }) {
         try {
             FfiConverterF64.checkType(dx)
         } catch (e) {

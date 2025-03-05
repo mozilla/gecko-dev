@@ -972,7 +972,7 @@ export class FfiConverterTypeRemoteSettingsService extends FfiConverter {
  * included in calls to [Client::get_attachment].
  */
 export class Attachment {
-    constructor({ filename, mimetype, location, hash, size }) {
+    constructor({ filename, mimetype, location, hash, size } = { filename: undefined, mimetype: undefined, location: undefined, hash: undefined, size: undefined }) {
         try {
             FfiConverterString.checkType(filename)
         } catch (e) {
@@ -1132,7 +1132,7 @@ export class FfiConverterTypeAttachment extends FfiConverterArrayBuffer {
  * - `collection_name`: The name of the collection for the settings server.
  */
 export class RemoteSettingsConfig {
-    constructor({ collectionName, bucketName = null, serverUrl = null, server = null }) {
+    constructor({ collectionName, bucketName = null, serverUrl = null, server = null } = { collectionName: undefined, bucketName: undefined, serverUrl: undefined, server: undefined }) {
         try {
             FfiConverterString.checkType(collectionName)
         } catch (e) {
@@ -1267,7 +1267,7 @@ export class FfiConverterTypeRemoteSettingsConfig extends FfiConverterArrayBuffe
  * name.
  */
 export class RemoteSettingsConfig2 {
-    constructor({ server = null, bucketName = null, appContext = null }) {
+    constructor({ server = null, bucketName = null, appContext = null } = { server: undefined, bucketName: undefined, appContext: undefined }) {
         try {
             FfiConverterOptionalTypeRemoteSettingsServer.checkType(server)
         } catch (e) {
@@ -1383,7 +1383,7 @@ export class FfiConverterTypeRemoteSettingsConfig2 extends FfiConverterArrayBuff
  * When set, only records where the expression is true will be returned.
  */
 export class RemoteSettingsContext {
-    constructor({ appName, appId, channel, appVersion, appBuild, architecture, deviceManufacturer, deviceModel, locale, os, osVersion, androidSdkVersion, debugTag, installationDate, homeDirectory, customTargetingAttributes }) {
+    constructor({ appName, appId, channel, appVersion, appBuild, architecture, deviceManufacturer, deviceModel, locale, os, osVersion, androidSdkVersion, debugTag, installationDate, homeDirectory, customTargetingAttributes } = { appName: undefined, appId: undefined, channel: undefined, appVersion: undefined, appBuild: undefined, architecture: undefined, deviceManufacturer: undefined, deviceModel: undefined, locale: undefined, os: undefined, osVersion: undefined, androidSdkVersion: undefined, debugTag: undefined, installationDate: undefined, homeDirectory: undefined, customTargetingAttributes: undefined }) {
         try {
             FfiConverterString.checkType(appName)
         } catch (e) {
@@ -1819,7 +1819,7 @@ export class FfiConverterTypeRemoteSettingsContext extends FfiConverterArrayBuff
  * are required to further extract expected values from the [fields] member.
  */
 export class RemoteSettingsRecord {
-    constructor({ id, lastModified, deleted, attachment, fields }) {
+    constructor({ id, lastModified, deleted, attachment, fields } = { id: undefined, lastModified: undefined, deleted: undefined, attachment: undefined, fields: undefined }) {
         try {
             FfiConverterString.checkType(id)
         } catch (e) {
@@ -1976,7 +1976,7 @@ export class FfiConverterTypeRemoteSettingsRecord extends FfiConverterArrayBuffe
  * [last_modified] will be extracted from the etag header of the response.
  */
 export class RemoteSettingsResponse {
-    constructor({ records, lastModified }) {
+    constructor({ records, lastModified } = { records: undefined, lastModified: undefined }) {
         try {
             FfiConverterSequenceTypeRemoteSettingsRecord.checkType(records)
         } catch (e) {

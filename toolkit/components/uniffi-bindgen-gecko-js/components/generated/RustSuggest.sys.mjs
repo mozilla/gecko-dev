@@ -1156,7 +1156,7 @@ export class FfiConverterTypeSuggestStoreBuilder extends FfiConverter {
  * Additional data about how an FTS match was made
  */
 export class FtsMatchInfo {
-    constructor({ prefix, stemming }) {
+    constructor({ prefix, stemming } = { prefix: undefined, stemming: undefined }) {
         try {
             FfiConverterBool.checkType(prefix)
         } catch (e) {
@@ -1246,7 +1246,7 @@ export class FfiConverterTypeFtsMatchInfo extends FfiConverterArrayBuffer {
  * [1]: https://download.geonames.org/export/dump/readme.txt
  */
 export class Geoname {
-    constructor({ geonameId, name, latitude, longitude, countryCode, admin1Code, population }) {
+    constructor({ geonameId, name, latitude, longitude, countryCode, admin1Code, population } = { geonameId: undefined, name: undefined, latitude: undefined, longitude: undefined, countryCode: undefined, admin1Code: undefined, population: undefined }) {
         try {
             FfiConverterI64.checkType(geonameId)
         } catch (e) {
@@ -1462,7 +1462,7 @@ export class FfiConverterTypeGeoname extends FfiConverterArrayBuffer {
  * A fetched geoname with info on how it was matched.
  */
 export class GeonameMatch {
-    constructor({ geoname, matchType, prefix }) {
+    constructor({ geoname, matchType, prefix } = { geoname: undefined, matchType: undefined, prefix: undefined }) {
         try {
             FfiConverterTypeGeoname.checkType(geoname)
         } catch (e) {
@@ -1572,7 +1572,7 @@ export class FfiConverterTypeGeonameMatch extends FfiConverterArrayBuffer {
  * Single sample for a Glean labeled_timing_distribution
  */
 export class LabeledTimingSample {
-    constructor({ label, value }) {
+    constructor({ label, value } = { label: undefined, value: undefined }) {
         try {
             FfiConverterString.checkType(label)
         } catch (e) {
@@ -1656,7 +1656,7 @@ export class FfiConverterTypeLabeledTimingSample extends FfiConverterArrayBuffer
  * QueryWithMetricsResult
  */
 export class QueryWithMetricsResult {
-    constructor({ suggestions, queryTimes }) {
+    constructor({ suggestions, queryTimes } = { suggestions: undefined, queryTimes: undefined }) {
         try {
             FfiConverterSequenceTypeSuggestion.checkType(suggestions)
         } catch (e) {
@@ -1740,7 +1740,7 @@ export class FfiConverterTypeQueryWithMetricsResult extends FfiConverterArrayBuf
  * Global Suggest configuration data.
  */
 export class SuggestGlobalConfig {
-    constructor({ showLessFrequentlyCap }) {
+    constructor({ showLessFrequentlyCap } = { showLessFrequentlyCap: undefined }) {
         try {
             FfiConverterI32.checkType(showLessFrequentlyCap)
         } catch (e) {
@@ -1799,7 +1799,7 @@ export class FfiConverterTypeSuggestGlobalConfig extends FfiConverterArrayBuffer
  * Constraints limit which suggestions to ingest from Remote Settings.
  */
 export class SuggestIngestionConstraints {
-    constructor({ providers = null, providerConstraints = null, emptyOnly = false }) {
+    constructor({ providers = null, providerConstraints = null, emptyOnly = false } = { providers: undefined, providerConstraints: undefined, emptyOnly: undefined }) {
         try {
             FfiConverterOptionalSequenceTypeSuggestionProvider.checkType(providers)
         } catch (e) {
@@ -1910,7 +1910,7 @@ export class FfiConverterTypeSuggestIngestionConstraints extends FfiConverterArr
  * These are recorded during [crate::Store::ingest] and returned to the consumer to record.
  */
 export class SuggestIngestionMetrics {
-    constructor({ ingestionTimes, downloadTimes }) {
+    constructor({ ingestionTimes, downloadTimes } = { ingestionTimes: undefined, downloadTimes: undefined }) {
         try {
             FfiConverterSequenceTypeLabeledTimingSample.checkType(ingestionTimes)
         } catch (e) {
@@ -1996,7 +1996,7 @@ export class FfiConverterTypeSuggestIngestionMetrics extends FfiConverterArrayBu
  * other operations on those providers must be constrained to a desired subtype.
  */
 export class SuggestionProviderConstraints {
-    constructor({ exposureSuggestionTypes = null, ampAlternativeMatching = null }) {
+    constructor({ exposureSuggestionTypes = null, ampAlternativeMatching = null } = { exposureSuggestionTypes: undefined, ampAlternativeMatching: undefined }) {
         try {
             FfiConverterOptionalSequencestring.checkType(exposureSuggestionTypes)
         } catch (e) {
@@ -2084,7 +2084,7 @@ export class FfiConverterTypeSuggestionProviderConstraints extends FfiConverterA
  * A query for suggestions to show in the address bar.
  */
 export class SuggestionQuery {
-    constructor({ keyword, providers, providerConstraints = null, limit = null }) {
+    constructor({ keyword, providers, providerConstraints = null, limit = null } = { keyword: undefined, providers: undefined, providerConstraints: undefined, limit: undefined }) {
         try {
             FfiConverterString.checkType(keyword)
         } catch (e) {

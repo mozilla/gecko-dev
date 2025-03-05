@@ -646,7 +646,7 @@ export class FfiConverterTypeTodoList extends FfiConverter {
  * TodoEntry
  */
 export class TodoEntry {
-    constructor({ text }) {
+    constructor({ text } = { text: undefined }) {
         try {
             FfiConverterString.checkType(text)
         } catch (e) {

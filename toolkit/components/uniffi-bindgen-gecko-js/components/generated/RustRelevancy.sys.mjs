@@ -794,7 +794,7 @@ export class FfiConverterTypeRelevancyStore extends FfiConverter {
  * BanditData
  */
 export class BanditData {
-    constructor({ bandit, arm, impressions, clicks, alpha, beta }) {
+    constructor({ bandit, arm, impressions, clicks, alpha, beta } = { bandit: undefined, arm: undefined, impressions: undefined, clicks: undefined, alpha: undefined, beta: undefined }) {
         try {
             FfiConverterString.checkType(bandit)
         } catch (e) {
@@ -982,7 +982,7 @@ export class FfiConverterTypeBanditData extends FfiConverterArrayBuffer {
  * rounding.  This is to make them compatible with Glean's distribution metrics.
  */
 export class InterestMetrics {
-    constructor({ topSingleInterestSimilarity, top2interestSimilarity, top3interestSimilarity }) {
+    constructor({ topSingleInterestSimilarity, top2interestSimilarity, top3interestSimilarity } = { topSingleInterestSimilarity: undefined, top2interestSimilarity: undefined, top3interestSimilarity: undefined }) {
         try {
             FfiConverterU32.checkType(topSingleInterestSimilarity)
         } catch (e) {
@@ -1101,7 +1101,7 @@ export class FfiConverterTypeInterestMetrics extends FfiConverterArrayBuffer {
  * number of elements.
  */
 export class InterestVector {
-    constructor({ inconclusive, animals, arts, autos, business, career, education, fashion, finance, food, government, hobbies, home, news, realEstate, society, sports, tech, travel }) {
+    constructor({ inconclusive, animals, arts, autos, business, career, education, fashion, finance, food, government, hobbies, home, news, realEstate, society, sports, tech, travel } = { inconclusive: undefined, animals: undefined, arts: undefined, autos: undefined, business: undefined, career: undefined, education: undefined, fashion: undefined, finance: undefined, food: undefined, government: undefined, hobbies: undefined, home: undefined, news: undefined, realEstate: undefined, society: undefined, sports: undefined, tech: undefined, travel: undefined }) {
         try {
             FfiConverterU32.checkType(inconclusive)
         } catch (e) {

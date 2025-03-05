@@ -1063,7 +1063,7 @@ export class FfiConverterTypeWebExtStorageStore extends FfiConverter {
  * StorageChanges
  */
 export class StorageChanges {
-    constructor({ changes }) {
+    constructor({ changes } = { changes: undefined }) {
         try {
             FfiConverterSequenceTypeStorageValueChange.checkType(changes)
         } catch (e) {
@@ -1122,7 +1122,7 @@ export class FfiConverterTypeStorageChanges extends FfiConverterArrayBuffer {
  * StorageValueChange
  */
 export class StorageValueChange {
-    constructor({ key, oldValue, newValue }) {
+    constructor({ key, oldValue, newValue } = { key: undefined, oldValue: undefined, newValue: undefined }) {
         try {
             FfiConverterString.checkType(key)
         } catch (e) {
@@ -1229,7 +1229,7 @@ export class FfiConverterTypeStorageValueChange extends FfiConverterArrayBuffer 
  * SyncedExtensionChange
  */
 export class SyncedExtensionChange {
-    constructor({ extId, changes }) {
+    constructor({ extId, changes } = { extId: undefined, changes: undefined }) {
         try {
             FfiConverterString.checkType(extId)
         } catch (e) {

@@ -321,7 +321,7 @@ export class FfiConverterString extends FfiConverter {
  * Line
  */
 export class Line {
-    constructor({ start, end }) {
+    constructor({ start, end } = { start: undefined, end: undefined }) {
         try {
             FfiConverterTypePoint.checkType(start)
         } catch (e) {
@@ -404,7 +404,7 @@ export class FfiConverterTypeLine extends FfiConverterArrayBuffer {
  * Point
  */
 export class Point {
-    constructor({ coordX, coordY }) {
+    constructor({ coordX, coordY } = { coordX: undefined, coordY: undefined }) {
         try {
             FfiConverterF64.checkType(coordX)
         } catch (e) {

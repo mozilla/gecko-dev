@@ -1187,7 +1187,7 @@ export class FfiConverterTypeTabsStore extends FfiConverter {
  * ClientRemoteTabs
  */
 export class ClientRemoteTabs {
-    constructor({ clientId, clientName, deviceType, lastModified, remoteTabs }) {
+    constructor({ clientId, clientName, deviceType, lastModified, remoteTabs } = { clientId: undefined, clientName: undefined, deviceType: undefined, lastModified: undefined, remoteTabs: undefined }) {
         try {
             FfiConverterString.checkType(clientId)
         } catch (e) {
@@ -1343,7 +1343,7 @@ export class FfiConverterTypeClientRemoteTabs extends FfiConverterArrayBuffer {
  * Represents a "pending" command.
  */
 export class PendingCommand {
-    constructor({ deviceId, command, timeRequested, timeSent }) {
+    constructor({ deviceId, command, timeRequested, timeSent } = { deviceId: undefined, command: undefined, timeRequested: undefined, timeSent: undefined }) {
         try {
             FfiConverterString.checkType(deviceId)
         } catch (e) {
@@ -1474,7 +1474,7 @@ export class FfiConverterTypePendingCommand extends FfiConverterArrayBuffer {
  * RemoteTabRecord
  */
 export class RemoteTabRecord {
-    constructor({ title, urlHistory, icon, lastUsed, inactive = false }) {
+    constructor({ title, urlHistory, icon, lastUsed, inactive = false } = { title: undefined, urlHistory: undefined, icon: undefined, lastUsed: undefined, inactive: undefined }) {
         try {
             FfiConverterString.checkType(title)
         } catch (e) {
