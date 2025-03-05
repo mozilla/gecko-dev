@@ -20,6 +20,7 @@ window.MozXULElement?.insertFTLIfNeeded("toolkit/global/mozInputFolder.ftl");
  * @property {string} description - The text for the description element that helps describe the input control
  * @property {string} supportPage - Name of the SUMO support page to link to.
  * @property {string} placeholder - Text to display when the input has no value.
+ * @property {string} displayValue - The value of the input control if it's different from the component value.
  * @property {string} dialogTitle - Text to display as a file picker dialog title.
  * @property {object} folder - The file object that represents the selected folder.
  */
@@ -28,6 +29,7 @@ export default class MozInputFolder extends MozInputText {
   #folder;
 
   static properties = {
+    displayValue: { type: String },
     dialogTitle: { type: String, fluent: true },
     _inputIconSrc: { type: String, state: true },
   };
@@ -39,6 +41,7 @@ export default class MozInputFolder extends MozInputText {
   constructor() {
     super();
     this.readonly = true;
+    this.displayValue = "";
     this.dialogTitle = "";
     this._inputIconSrc = "";
     this.#folder = null;
@@ -139,6 +142,7 @@ export default class MozInputFolder extends MozInputText {
   }
 
   inputTemplate() {
+    let inputValue = this.displayValue || this.value;
     let classes, styles;
     if (this._inputIconSrc) {
       classes = classMap({
@@ -151,7 +155,7 @@ export default class MozInputFolder extends MozInputText {
 
     return html`
       <div class="container">
-        ${super.inputTemplate(classes, styles)}
+        ${super.inputTemplate(classes, styles, inputValue)}
         <moz-button
           id="choose-folder-button"
           data-l10n-id="choose-folder-button"

@@ -43,7 +43,7 @@ export default class MozInputText extends MozBaseInputElement {
     this.value = e.target.value;
   }
 
-  inputTemplate(classes, styles) {
+  inputTemplate(classes, styles, inputValue) {
     return html`
       <input
         id="input"
@@ -51,7 +51,7 @@ export default class MozInputText extends MozBaseInputElement {
         class=${ifDefined(classes)}
         style=${ifDefined(styles)}
         name=${this.name}
-        value=${this.value}
+        value=${inputValue || this.value}
         ?disabled=${this.disabled}
         ?readonly=${this.readonly}
         accesskey=${ifDefined(this.accessKey)}

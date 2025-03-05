@@ -20,8 +20,6 @@
         templateFn: (attrs, children) =>
           html`<moz-input-folder ${attrs}>${children}</moz-input-folder>`,
       });
-
-      MockFilePicker.init(window.browsingContext);
     });
 
     add_task(async function testMozInputFolderProperties() {
@@ -63,6 +61,7 @@
         Ci.nsIFile
       );
       dummyFile.initWithPath(mockCustomParentDir);
+      MockFilePicker.init(window.browsingContext);
       let filePickerShownPromise = new Promise(resolve => {
         MockFilePicker.showCallback = () => {
           ok(true, "Filepicker shown");
@@ -125,6 +124,64 @@
       await TestUtils.waitForTick();
 
       verifyEvents([]);
+
+      MockFilePicker.cleanup();
+    });
+
+    add_task(async function testInputFolderDisplayValue() {
+      let target = await testHelpers.renderTemplate();
+      let inputFolder = target.querySelector("moz-input-folder");
+      let inputElement = inputFolder.inputEl;
+      let chooseFolderButton = inputFolder.chooseFolderButtonEl;
+      inputFolder.addEventListener(
+        "change",
+        () => {
+          inputFolder.displayValue = "My Test Folder";
+        }
+      );
+
+      // Set up the file picker.
+      const mockCustomParentDir = await IOUtils.createUniqueDirectory(
+        PathUtils.tempDir,
+        "input-folder-custom-dir-test"
+      );
+      const dummyFile = Cc["@mozilla.org/file/local;1"].createInstance(
+        Ci.nsIFile
+      );
+      dummyFile.initWithPath(mockCustomParentDir);
+      MockFilePicker.init(window.browsingContext);
+      MockFilePicker.showCallback = () => {
+        ok(true, "Filepicker shown");
+        MockFilePicker.setFiles([dummyFile]);
+      };
+      MockFilePicker.returnValue = MockFilePicker.returnOK;
+
+      //Check initial values.
+      is(inputFolder.value, "", "The initial value of the component is an empty string.");
+      is(inputFolder.displayValue, "", "The initial displayValue of the component is an empty string.");
+      is(inputElement.value, "", "The initial value of the input element is an empty string.");
+
+      //Choose a new folder.
+      let folderChanged = BrowserTestUtils.waitForEvent(inputFolder, "change");
+      chooseFolderButton.click();
+      await folderChanged;
+
+      //Check if the values were updated.
+      is(
+        inputFolder.value,
+        mockCustomParentDir,
+        "The value of the moz-input-folder is set as a path to the temporary folder."
+      );
+      is(
+        inputFolder.displayValue,
+        "My Test Folder",
+        "The component has the expected displayValue."
+      );
+      is(
+        inputElement.value,
+        inputFolder.displayValue,
+        "The value of the input element is the same as the displayValue."
+      );
 
       MockFilePicker.cleanup();
     });
