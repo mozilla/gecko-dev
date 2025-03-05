@@ -17,7 +17,9 @@ from pathlib import Path
 import yaml
 
 HERE = Path(__file__).resolve().parent
-FETCH_FILE = (HERE / "../../../../../taskcluster/kinds/fetch/onnxruntime-web-fetch.yml").resolve()
+FETCH_FILE = (
+    HERE / "../../../../../taskcluster/kinds/fetch/onnxruntime-web-fetch.yml"
+).resolve()
 
 
 def is_git_lfs_installed():
