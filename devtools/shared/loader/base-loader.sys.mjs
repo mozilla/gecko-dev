@@ -28,6 +28,21 @@ ChromeUtils.defineESModuleGetters(
   { global: "contextual" }
 );
 
+const VENDOR_URI = "resource://devtools/client/shared/vendor/";
+const REACT_ESM_MODULES = [
+  VENDOR_URI + "react-dev.js",
+  VENDOR_URI + "react.js",
+  VENDOR_URI + "react-dom-dev.js",
+  VENDOR_URI + "react-dom.js",
+  VENDOR_URI + "react-dom-factories.js",
+  VENDOR_URI + "react-dom-server-dev.js",
+  VENDOR_URI + "react-dom-server.js",
+  VENDOR_URI + "react-prop-types-dev.js",
+  VENDOR_URI + "react-prop-types.js",
+  VENDOR_URI + "react-test-renderer.js",
+  VENDOR_URI + "react-test-renderer-shallow.js",
+];
+
 // Define some shortcuts.
 function* getOwnIdentifiers(x) {
   yield* Object.getOwnPropertyNames(x);
@@ -37,8 +52,8 @@ function* getOwnIdentifiers(x) {
 function isJSONURI(uri) {
   return uri.endsWith(".json");
 }
-function isSYSMJSURI(uri) {
-  return uri.endsWith(".sys.mjs");
+function isESMURI(uri) {
+  return uri.endsWith(".mjs");
 }
 function isJSURI(uri) {
   return uri.endsWith(".js");
@@ -216,7 +231,7 @@ function load(loader, module) {
 
 // Utility function to normalize module `uri`s so they have `.js` extension.
 function normalizeExt(uri) {
-  if (isJSURI(uri) || isJSONURI(uri) || isSYSMJSURI(uri)) {
+  if (isJSURI(uri) || isJSONURI(uri) || isESMURI(uri)) {
     return uri;
   }
   return uri + ".js";
@@ -330,15 +345,34 @@ export function Require(loader, requirer) {
   function _require(id) {
     let { uri, requirement } = getRequirements(id);
 
+    // Load all react modules as ES Modules, in the Browser Loader global.
+    // For this we have to ensure using ChromeUtils.importESModule with `global:"current"`,
+    // but executed from the Loader global scope. `syncImport` does that.
+    //
+    // Also all these modules but the react-dom-factories should have their "default"
+    // imported.
+    let importDefault = false;
+    if (REACT_ESM_MODULES.includes(uri)) {
+      // All CommonJS modules are still importing the .js/CommonJS version,
+      // but we hack these require() call to load the ESM version.
+      uri = uri.replace(/.js$/, ".mjs");
+      if (!uri.includes("react-dom-factories")) {
+        importDefault = true;
+      }
+    }
+
     let module = null;
     // If module is already cached by loader then just use it.
     if (uri in modules) {
       module = modules[uri];
-    } else if (isSYSMJSURI(uri)) {
+    } else if (isESMURI(uri)) {
       module = modules[uri] = Module(requirement, uri);
       module.exports = ChromeUtils.importESModule(uri, {
         global: "contextual",
       });
+      if (importDefault) {
+        module.exports = module.exports.default;
+      }
     } else if (isJSONURI(uri)) {
       let data;
 
