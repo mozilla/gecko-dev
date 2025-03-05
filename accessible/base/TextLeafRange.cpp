@@ -24,6 +24,7 @@
 #include "mozilla/TextEditor.h"
 #include "nsAccUtils.h"
 #include "nsBlockFrame.h"
+#include "nsFocusManager.h"
 #include "nsFrameSelection.h"
 #include "nsIAccessiblePivot.h"
 #include "nsILineIterator.h"
@@ -2174,7 +2175,6 @@ bool TextLeafRange::SetSelection(int32_t aSelectionNum) const {
       !reversed ? mStart.ToDOMPoint(false) : mEnd.ToDOMPoint(false);
   auto [endContent, endContentOffset] =
       !reversed ? mEnd.ToDOMPoint(false) : mStart.ToDOMPoint(false);
-
   if (!startContent || !endContent) {
     return false;
   }
@@ -2182,6 +2182,42 @@ bool TextLeafRange::SetSelection(int32_t aSelectionNum) const {
   RefPtr<dom::Selection> domSel = GetDOMSelection(startContent, endContent);
   if (!domSel) {
     return false;
+  }
+
+  HyperTextAccessible* hyp = nullptr;
+  if (mStart.mAcc->IsHyperText()) {
+    hyp = mStart.mAcc->AsLocal()->AsHyperText();
+  } else {
+    Accessible* parent = mStart.mAcc->Parent();
+    if (parent) {
+      hyp = parent->AsLocal()->AsHyperText();
+      // Note that hyp will still be null here if the parent is not a HyperText.
+      // That's okay.
+    }
+  }
+
+  // Before setting the selection range, we need to ensure that the editor
+  // is initialized. (See bug 804927.)
+  // Otherwise, it's possible that lazy editor initialization will override
+  // the selection we set here and leave the caret at the end of the text.
+  // By calling GetEditor here, we ensure that editor initialization is
+  // completed before we set the selection.
+  RefPtr<EditorBase> editor;
+  if (hyp) {
+    editor = hyp->GetEditor();
+  }
+
+  // XXX isFocusable will be false if mStart is not a direct child of the
+  // contentEditable. However, contentEditables generally don't mess with
+  // selection when they are focused. This has also been our behavior for a very
+  // long time.
+  const bool isFocusable = hyp && hyp->InteractiveState() & states::FOCUSABLE;
+  // If the Accessible is focusable, focus it before setting the selection to
+  // override the control's own selection changes on focus if any; e.g. inputs
+  // that do select all on focus. This also ensures that the user can interact
+  // with wherever they've moved the caret. See bug 524115.
+  if (isFocusable) {
+    hyp->TakeFocus();
   }
 
   uint32_t rangeCount = 0;
@@ -2214,14 +2250,35 @@ bool TextLeafRange::SetSelection(int32_t aSelectionNum) const {
 
   IgnoredErrorResult err;
   domSel->AddRangeAndSelectFramesAndNotifyListeners(*domRange, err);
-  if (!err.Failed()) {
-    // Changing the direction of the selection assures that the caret
-    // will be at the logical end of the selection.
-    domSel->SetDirection(reversed ? eDirPrevious : eDirNext);
-    return true;
+  if (err.Failed()) {
+    return false;
   }
 
-  return false;
+  // Changing the direction of the selection assures that the caret
+  // will be at the logical end of the selection.
+  domSel->SetDirection(reversed ? eDirPrevious : eDirNext);
+
+  // Make sure the selection is visible. See bug 1170242.
+  domSel->ScrollIntoView(nsISelectionController::SELECTION_FOCUS_REGION,
+                         ScrollAxis(), ScrollAxis(),
+                         ScrollFlags::ScrollOverflowHidden);
+
+  if (mStart == mEnd && !isFocusable) {
+    // We're moving the caret. Notify nsFocusManager so that the focus position
+    // is correct. See bug 546068.
+    if (nsFocusManager* DOMFocusManager = nsFocusManager::GetFocusManager()) {
+      MOZ_ASSERT(mStart.mAcc->AsLocal()->Document());
+      dom::Document* domDoc =
+          mStart.mAcc->AsLocal()->Document()->DocumentNode();
+      MOZ_ASSERT(domDoc);
+      nsCOMPtr<nsPIDOMWindowOuter> window = domDoc->GetWindow();
+      RefPtr<dom::Element> result;
+      DOMFocusManager->MoveFocus(
+          window, nullptr, nsIFocusManager::MOVEFOCUS_CARET,
+          nsIFocusManager::FLAG_BYMOVEFOCUS, getter_AddRefs(result));
+    }
+  }
+  return true;
 }
 
 /* static */
