@@ -553,7 +553,7 @@ bool WaylandSurface::MapLocked(const WaylandSurfaceLock& aProofOfLock,
                                gfx::IntPoint aSubsurfacePosition) {
   return MapLocked(aProofOfLock, nullptr, aParentWaylandSurfaceLock,
                    aSubsurfacePosition,
-                   /* aSubsurfaceDesync */ true,
+                   /* aSubsurfaceDesync */ false,
                    /* aUseReadyToDrawCallback */ false);
 }
 
@@ -1058,7 +1058,6 @@ void WaylandSurface::InvalidateRegionLocked(
     gfx::IntRect r = iter.Get();
     wl_surface_damage_buffer(mSurface, r.x, r.y, r.width, r.height);
   }
-
   mSurfaceNeedsCommit = true;
 }
 
