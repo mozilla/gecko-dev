@@ -6,12 +6,11 @@
 
 const EventEmitter = require("resource://devtools/shared/event-emitter.js");
 
-loader.lazyRequireGetter(
-  this,
-  "focusableSelector",
-  "resource://devtools/client/shared/focus.js",
-  true
-);
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  focusableSelector: "resource://devtools/client/shared/focus.mjs",
+});
+
 loader.lazyRequireGetter(
   this,
   "TooltipToggle",
@@ -940,7 +939,7 @@ HTMLTooltip.prototype = {
    * Returns true if we found something to focus on, false otherwise.
    */
   focus() {
-    const focusableElement = this.panel.querySelector(focusableSelector);
+    const focusableElement = this.panel.querySelector(lazy.focusableSelector);
     if (focusableElement) {
       focusableElement.focus();
     }
@@ -953,7 +952,9 @@ HTMLTooltip.prototype = {
    * Returns true if we found something to focus on, false otherwise.
    */
   focusEnd() {
-    const focusableElements = this.panel.querySelectorAll(focusableSelector);
+    const focusableElements = this.panel.querySelectorAll(
+      lazy.focusableSelector
+    );
     if (focusableElements.length) {
       focusableElements[focusableElements.length - 1].focus();
     }

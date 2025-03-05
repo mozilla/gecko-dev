@@ -24,12 +24,11 @@ const {
   preventDefaultAndStopPropagation,
 } = require("resource://devtools/client/shared/events.js");
 
-loader.lazyRequireGetter(
-  this,
-  ["getFocusableElements", "wrapMoveFocus"],
-  "resource://devtools/client/shared/focus.js",
-  true
-);
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  wrapMoveFocus: "resource://devtools/client/shared/focus.mjs",
+  getFocusableElements: "resource://devtools/client/shared/focus.mjs",
+});
 
 class ListItemClass extends Component {
   static get propTypes() {
@@ -70,8 +69,8 @@ class ListItemClass extends Component {
       return;
     }
 
-    const focusMoved = !!wrapMoveFocus(
-      getFocusableElements(this.contentRef.current),
+    const focusMoved = !!lazy.wrapMoveFocus(
+      lazy.getFocusableElements(this.contentRef.current),
       target,
       shiftKey
     );
@@ -90,7 +89,7 @@ class ListItemClass extends Component {
    * outside its container, focus on the first focusable element inside.
    */
   _setTabbableState() {
-    const elms = getFocusableElements(this.contentRef.current);
+    const elms = lazy.getFocusableElements(this.contentRef.current);
     if (elms.length === 0) {
       return;
     }

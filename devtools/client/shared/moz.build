@@ -30,7 +30,7 @@ DevToolsModules(
     "devices.js",
     "enum.js",
     "events.js",
-    "focus.js",
+    "focus.mjs",
     "inplace-editor.js",
     "key-shortcuts.js",
     "keycodes.js",

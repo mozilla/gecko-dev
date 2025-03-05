@@ -10,12 +10,10 @@ const {
   flashElementOff,
 } = require("resource://devtools/client/inspector/markup/utils.js");
 
-loader.lazyRequireGetter(
-  this,
-  "wrapMoveFocus",
-  "resource://devtools/client/shared/focus.js",
-  true
-);
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  wrapMoveFocus: "resource://devtools/client/shared/focus.mjs",
+});
 
 const DRAG_DROP_MIN_INITIAL_DISTANCE = 10;
 const TYPES = {
@@ -496,7 +494,7 @@ MarkupContainer.prototype = {
         // Only handle 'Tab' if tabbable element is on the edge (first or last).
         if (isInput) {
           // Corresponding tabbable element is editor's next sibling.
-          const next = wrapMoveFocus(
+          const next = lazy.wrapMoveFocus(
             this.focusableElms,
             target.nextSibling,
             shiftKey
@@ -511,7 +509,7 @@ MarkupContainer.prototype = {
             }
           }
         } else {
-          const next = wrapMoveFocus(this.focusableElms, target, shiftKey);
+          const next = lazy.wrapMoveFocus(this.focusableElms, target, shiftKey);
           if (next) {
             event.preventDefault();
           }

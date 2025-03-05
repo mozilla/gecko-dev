@@ -17,12 +17,11 @@ const {
   preventDefaultAndStopPropagation,
 } = require("resource://devtools/client/shared/events.js");
 
-loader.lazyRequireGetter(
-  this,
-  ["wrapMoveFocus", "getFocusableElements"],
-  "resource://devtools/client/shared/focus.js",
-  true
-);
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  wrapMoveFocus: "resource://devtools/client/shared/focus.mjs",
+  getFocusableElements: "resource://devtools/client/shared/focus.mjs",
+});
 
 const AUTO_EXPAND_DEPTH = 0;
 const NUMBER_OF_OFFSCREEN_ITEMS = 1;
@@ -948,7 +947,7 @@ class TreeNodeClass extends Component {
     // Make sure that none of the focusable elements inside the tree node container are
     // tabbable if the tree node is not active. If the tree node is active and focus is
     // outside its container, focus on the first focusable element inside.
-    const elms = getFocusableElements(this.refs.treenode);
+    const elms = lazy.getFocusableElements(this.refs.treenode);
     if (elms.length === 0) {
       return;
     }
@@ -970,8 +969,8 @@ class TreeNodeClass extends Component {
       return;
     }
 
-    const focusMoved = !!wrapMoveFocus(
-      getFocusableElements(this.refs.treenode),
+    const focusMoved = !!lazy.wrapMoveFocus(
+      lazy.getFocusableElements(this.refs.treenode),
       target,
       shiftKey
     );

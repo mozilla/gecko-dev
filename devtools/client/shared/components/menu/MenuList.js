@@ -17,9 +17,11 @@ const {
 const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 const { div } = dom;
-const {
-  focusableSelector,
-} = require("resource://devtools/client/shared/focus.js");
+
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  focusableSelector: "resource://devtools/client/shared/focus.mjs",
+});
 
 class MenuList extends PureComponent {
   static get propTypes() {
@@ -78,7 +80,7 @@ class MenuList extends PureComponent {
     }
 
     const getTabList = () =>
-      Array.from(this.wrapperRef.querySelectorAll(focusableSelector));
+      Array.from(this.wrapperRef.querySelectorAll(lazy.focusableSelector));
 
     switch (e.key) {
       case "Tab":
@@ -105,7 +107,9 @@ class MenuList extends PureComponent {
 
       case "Home":
         {
-          const firstItem = this.wrapperRef.querySelector(focusableSelector);
+          const firstItem = this.wrapperRef.querySelector(
+            lazy.focusableSelector
+          );
           if (firstItem) {
             firstItem.focus();
             e.preventDefault();

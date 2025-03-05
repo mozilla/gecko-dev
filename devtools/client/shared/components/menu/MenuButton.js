@@ -25,12 +25,10 @@ loader.lazyRequireGetter(
   true
 );
 
-loader.lazyRequireGetter(
-  this,
-  "focusableSelector",
-  "resource://devtools/client/shared/focus.js",
-  true
-);
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  focusableSelector: "resource://devtools/client/shared/focus.mjs",
+});
 
 loader.lazyRequireGetter(
   this,
@@ -356,7 +354,7 @@ class MenuButton extends PureComponent {
     } else if (
       this.state.expanded &&
       !e.defaultPrevented &&
-      e.target.matches(focusableSelector)
+      e.target.matches(lazy.focusableSelector)
     ) {
       this.hideMenu();
     }

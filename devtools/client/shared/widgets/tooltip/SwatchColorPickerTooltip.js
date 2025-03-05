@@ -22,12 +22,12 @@ loader.lazyRequireGetter(
   true
 );
 
-loader.lazyRequireGetter(
-  this,
-  ["getFocusableElements", "wrapMoveFocus"],
-  "resource://devtools/client/shared/focus.js",
-  true
-);
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  getFocusableElements: "resource://devtools/client/shared/focus.mjs",
+  wrapMoveFocus: "resource://devtools/client/shared/focus.mjs",
+});
+
 loader.lazyRequireGetter(
   this,
   "PICKER_TYPES",
@@ -205,7 +205,7 @@ class SwatchColorPickerTooltip extends SwatchBasedEditorTooltip {
       return;
     }
 
-    const focusMoved = !!wrapMoveFocus(
+    const focusMoved = !!lazy.wrapMoveFocus(
       this.focusableElements,
       target,
       shiftKey
@@ -343,9 +343,9 @@ class SwatchColorPickerTooltip extends SwatchBasedEditorTooltip {
   }
 
   get focusableElements() {
-    return getFocusableElements(this.tooltip.container).filter(
-      el => !!el.offsetParent
-    );
+    return lazy
+      .getFocusableElements(this.tooltip.container)
+      .filter(el => !!el.offsetParent);
   }
 
   destroy() {

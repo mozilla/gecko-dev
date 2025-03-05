@@ -15,7 +15,7 @@ import LabelCellClass from "resource://devtools/client/shared/components/tree/La
 import {
   wrapMoveFocus,
   getFocusableElements,
-} from "resource://devtools/client/shared/focus.js";
+} from "resource://devtools/client/shared/focus.mjs";
 
 const { tr } = dom;
 const { findDOMNode } = ReactDOM;
