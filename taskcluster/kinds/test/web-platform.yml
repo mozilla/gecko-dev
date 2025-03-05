@@ -26,9 +26,9 @@ task-defaults:
                     - remove_executables.py
     target:
         by-test-platform:
-            android-em-7.0-x86_64-shippable(-lite)?-qr/opt: geckoview-test_runner.apk
-            android-em-7.0-x86_64(-lite)?-qr/opt: geckoview-test_runner.apk
-            android-em-7.0-x86_64(-lite)?-qr/debug(-isolated-process)?: geckoview-test_runner.apk
+            android-em-7.0-x86_64-shippable(-lite)?(-qr)?/opt: geckoview-test_runner.apk
+            android-em-7.0-x86_64(-lite)?(-qr)?/opt: geckoview-test_runner.apk
+            android-em-7.0-x86_64(-lite)?(-qr)?/debug(-isolated-process)?: geckoview-test_runner.apk
             default: null
 
 web-platform-tests:
@@ -44,7 +44,7 @@ web-platform-tests:
                     default: default
             default:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: 3
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: 3
                     default: default
     chunks:
         by-variant:
@@ -55,7 +55,7 @@ web-platform-tests:
                 by-test-platform:
                     android.*/debug: 32
                     android.*: 24
-                    linux.*64-tsan-qr/opt: 32
+                    linux.*64-tsan(-qr)?/opt: 32
                     linux.*64-asan(-qr)?/opt: 22
                     linux.*64-ccov.*/opt: 20
                     linux.*/debug: 16
@@ -66,8 +66,9 @@ web-platform-tests:
                     default: 10
     max-run-time:
         by-test-platform:
-            .*-ccov.*/.*: 10800
-            linux.*64(-tsan|-asan)-qr/opt: 14400
+            .*-ccov.*: 10800
+            linux.*64-tsan(-qr)?/opt: 14400
+            linux.*64-asan(-qr)?/opt: 14400
             linux.*64(-qr)?/debug: 10800
             macosx.*/debug: 10800
             android-em.*/.*: 10800
@@ -83,15 +84,16 @@ web-platform-tests:
         by-variant:
             geckoview-no-fission-ship:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: []
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android-em.*: built-projects
                     default: []
             no-fission:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: []
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android.*: built-projects
-                    linux1804-64-qr/debug: ['mozilla-central']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['mozilla-central']
+                    linux1804-64(-qr)?/debug: ['mozilla-central']
+                    linux1804-64(-shippable)?(-qr)?/opt: ['mozilla-central']
+                    linux1804-64-asan(-qr)?/opt: ['mozilla-central']
                     default: []
             async-event-dispatching:
                 by-test-platform:
@@ -100,7 +102,7 @@ web-platform-tests:
             privatebrowsing:
                 by-test-platform:
                     android.*: []
-                    .*-(wayland).*/.*: []
+                    .*-wayland.*: []
                     default: built-projects
             inc-origin-init:
                 by-test-platform:
@@ -117,7 +119,7 @@ web-platform-tests:
             default:
                 by-test-platform:
                     android.*: []
-                    .*wayland.*: []
+                    .*-wayland.*: []
                     default: built-projects
     mozharness:
         chunked: true
@@ -157,7 +159,7 @@ web-platform-tests-backlog:
             default:
                 by-test-platform:
                     android.*: []
-                    .*wayland.*: []
+                    .*-wayland.*: []
                     default: ['mozilla-central']
     test-manifest-loader: null  # don't load tests in the taskgraph
     tier: 2
@@ -207,7 +209,7 @@ web-platform-tests-eme:
             default:
                 by-test-platform:
                     android.*: []
-                    .*wayland.*: []
+                    .*-wayland.*: []
                     windows1.*: []
                     default: built-projects
     mozharness:
@@ -223,16 +225,18 @@ web-platform-tests-reftest:
     treeherder-symbol: W(Wr)
     virtualization:
         by-test-platform:
-            windows.*-64.*/.*: virtual-with-gpu
+            windows.*64.*/.*: virtual-with-gpu
             default: virtual
     chunks:
         by-test-platform:
-            .*-ccov.*/.*: 8
-            linux.*64-tsan-qr/opt: 16
-            linux1804-64(-asan)?-qr/.*: 6
+            .*-ccov.*: 8
+            linux.*64-tsan(-qr)?/opt: 16
+            linux1804-64(-qr)?/.*: 6
+            linux1804-64-asan(-qr)?/.*: 6
             macosx.*-64/debug: 6
             macosx.*-64/opt: 3
-            windows.*-(32|64).*/debug: 5
+            windows.*-32.*/debug: 5
+            windows.*-64.*/debug: 5
             android.*: 6
             default: 4
     variants:
@@ -243,27 +247,29 @@ web-platform-tests-reftest:
         by-variant:
             webrender-sw:
                 by-test-platform:
-                    .*-32.*/.*: []
-                    linux.*64-qr/debug: built-projects
+                    .*-32.*: []
+                    linux.*64(-qr)?/debug: built-projects
                     windows.*/debug: built-projects
                     default: []
             webrender-sw+no-fission:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug: built-projects
-                    linux1804-64-qr/debug: ['mozilla-central']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['mozilla-central']
+                    android-em-7.0-x86_64(-qr)?/debug: built-projects
+                    linux1804-64(-qr)?/.*: ['mozilla-central']
+                    linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
+                    linux1804-64-asan(-qr)?/opt: ['mozilla-central']
                     default: []
             no-fission:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: []
-                    linux1804-64-qr/debug: ['mozilla-central']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['mozilla-central']
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
+                    linux1804-64(-qr)?/.*: ['mozilla-central']
+                    linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
+                    linux1804-64-asan(-qr)?/opt: ['mozilla-central']
                     android.*: built-projects
                     default: []
             default:
                 by-test-platform:
                     android.*: []
-                    .*wayland.*: []
+                    .*-wayland.*: []
                     default: built-projects
     tier:
         by-variant:
@@ -273,7 +279,7 @@ web-platform-tests-reftest:
                     default: default
             default:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: 3
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: 3
                     default: default
     mozharness:
         extra-options:
@@ -291,7 +297,7 @@ web-platform-tests-webgpu:
     tier:
         by-test-platform:
             android.*: 2  # https://bugzilla.mozilla.org/show_bug.cgi?id=1849914
-            macos.*: 2  # https://bugzilla.mozilla.org/show_bug.cgi?id=1849913
+            macosx.*: 2  # https://bugzilla.mozilla.org/show_bug.cgi?id=1849913
             linux2204.*-64.*: 2  # https://bugzilla.mozilla.org/show_bug.cgi?id=1849912
             windows.*-64.*: 2  # https://bugzilla.mozilla.org/show_bug.cgi?id=1849911
             default: 2
@@ -329,7 +335,7 @@ web-platform-tests-webgpu:
             - --timeout-multiplier=5.0
     worker-type:
         by-test-platform:
-            .*wayland.*: t-linux-wayland-vm
+            .*-wayland.*: t-linux-wayland-vm
             default: default
 
 web-platform-tests-webgpu-long:
@@ -369,7 +375,7 @@ web-platform-tests-webgpu-backlog:
     chunks:
         by-test-platform:
             linux2204.*-64.*: 20
-            macos.*: 25
+            macosx.*: 25
             windows.*-64.*/opt.*: 17
             windows.*-64.*/debug.*: 22
             default: 10
@@ -397,7 +403,7 @@ web-platform-tests-webgpu-backlog:
             - --timeout-multiplier=5.0
     worker-type:
         by-test-platform:
-            .*wayland.*: t-linux-wayland-vm
+            .*-wayland.*: t-linux-wayland-vm
             default: default
 
 web-platform-tests-webgpu-backlog-long:
@@ -440,18 +446,19 @@ web-platform-tests-canvas:
                     default: default
             default:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: 3
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: 3
                     default: default
     chunks:
         by-test-platform:
             windows.*: 2
-            .*tsan.*: 3
+            .*-tsan.*: 3
             linux.*/debug: 2
-            linux.*asan.*: 3
+            linux.*-asan.*: 3
             default: 1
     max-run-time:
         by-test-platform:
-            .*(-tsan|-asan).*: 2700
+            .*-tsan.*: 2700
+            .*-asan.*: 2700
             default: 1800
     variants:
         - no-fission
@@ -459,15 +466,16 @@ web-platform-tests-canvas:
         by-variant:
             no-fission:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: []
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android.*: built-projects
-                    linux1804-64-qr/debug: ['mozilla-central']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['mozilla-central']
+                    linux1804-64(-qr)?/.*: ['mozilla-central']
+                    linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
+                    linux1804-64-asan(-qr)?/opt: ['mozilla-central']
                     default: []
             default:
                 by-test-platform:
                     android.*: []
-                    .*wayland.*: []
+                    .*-wayland.*: []
                     default: built-projects
     mozharness:
         chunked: true
@@ -502,7 +510,7 @@ web-platform-tests-reftest-backlog:
             default:
                 by-test-platform:
                     android.*: []
-                    .*wayland.*: []
+                    .*-wayland.*: []
                     default: ['mozilla-central']
     test-manifest-loader: null  # don't load tests in the taskgraph
     tier: 2
@@ -522,8 +530,8 @@ web-platform-tests-wdspec:
     treeherder-symbol: W(Wd)
     chunks:
         by-test-platform:
-            .*-ccov.*/.*: 6
-            .*-tsan.*/.*: 8
+            .*-ccov.*: 6
+            .*-tsan.*: 8
             .*/debug: 6
             default: 5
     mozharness:
@@ -547,18 +555,19 @@ web-platform-tests-wdspec:
                     default: built-projects
             no-fission:
                 by-test-platform:
-                    linux1804-64-qr/debug: ['mozilla-central']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['mozilla-central']
+                    linux1804-64(-qr)?/.*: ['mozilla-central']
+                    linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
+                    linux1804-64-asan(-qr)?/opt: ['mozilla-central']
                     android.*: built-projects
                     default: []
             geckoview-no-fission-ship:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: []
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android-em.*: built-projects
                     default: []
             async-event-dispatching:
                 by-test-platform:
-                    .*-32.*/.*: []
+                    .*-32.*: []
                     .*/debug: []
                     default: []
             default: built-projects
@@ -621,30 +630,32 @@ web-platform-tests-crashtest:
         by-variant:
             webrender-sw:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug: built-projects
-                    .*-32.*/.*: []
-                    linux.*64-qr/debug: built-projects
-                    macosx1015.*64-qr/debug: built-projects
-                    macosx1470.*64/debug: built-projects
+                    android-em-7.0-x86_64(-qr)?/debug: built-projects
+                    .*-32.*: []
+                    linux.*64(-qr)?/debug: built-projects
+                    macosx1015.*-64(-qr)?/debug: built-projects
+                    macosx1470.*-64/debug: built-projects
                     windows.*/debug: built-projects
                     default: []
             webrender-sw+no-fission:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug: built-projects
-                    linux1804-64-qr/debug: ['mozilla-central']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['mozilla-central']
+                    android-em-7.0-x86_64(-qr)?/debug: built-projects
+                    linux1804-64(-qr)?/.*: ['mozilla-central']
+                    linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
+                    linux1804-64-asan(-qr)?/opt: ['mozilla-central']
                     default: []
             no-fission:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: []
-                    linux1804-64-qr/debug: ['mozilla-central']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['mozilla-central']
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
+                    linux1804-64(-qr)?/.*: ['mozilla-central']
+                    linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
+                    linux1804-64-asan(-qr)?/opt: ['mozilla-central']
                     android.*: built-projects
                     default: []
             default:
                 by-test-platform:
+                    android-em-7.0-x86_64(-qr)?/debug: built-projects
                     android.*: []
-                    android-em-7.0-x86_64-qr/debug: built-projects
                     default: built-projects
     tier:
         by-variant:
@@ -684,26 +695,28 @@ web-platform-tests-print-reftest:
             webrender-sw:
                 by-test-platform:
                     android.*: []
-                    .*-32.*/.*: []
-                    linux.*64-qr/debug: built-projects
+                    .*-32.*: []
+                    linux.*64(-qr)?/debug: built-projects
                     windows.*/debug: built-projects
                     default: []
             webrender-sw+no-fission:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug: built-projects
-                    linux1804-64-qr/debug: ['mozilla-central']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['mozilla-central']
+                    android-em-7.0-x86_64(-qr)?/debug: built-projects
+                    linux1804-64(-qr)?/.*: ['mozilla-central']
+                    linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
+                    linux1804-64-asan(-qr)?/opt: ['mozilla-central']
                     default: []
             no-fission:
                 by-test-platform:
-                    linux1804-64-qr/debug: ['mozilla-central']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['mozilla-central']
+                    linux1804-64(-qr)?/.*: ['mozilla-central']
+                    linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
+                    linux1804-64-asan(-qr)?/opt: ['mozilla-central']
                     android.*: built-projects
                     default: []
             default:
                 by-test-platform:
                     android.*: []
-                    .*wayland.*: []
+                    .*-wayland.*: []
                     default: built-projects
     mozharness:
         extra-options:
@@ -719,7 +732,10 @@ test-verify-wpt:
     run-on-projects:
         by-test-platform:
             # do not run on asan, ccov, shippable or wayland
-            .*-(asan|ccov|shippable|wayland).*/.*: []
+            .*-asan.*: []
+            .*-ccov.*: []
+            .*-shippable.*: []
+            .*-wayland.*: []
             # do not run on beta or release: usually just confirms earlier results
             default: ['integration']
     built-projects-only: true
@@ -773,15 +789,15 @@ test-coverage-wpt:
         by-variant:
             webrender-sw+no-fission:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug: built-projects
+                    android-em-7.0-x86_64(-qr)?/debug: built-projects
                     default: []
             no-fission:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug: built-projects
+                    android-em-7.0-x86_64(-qr)?/debug: built-projects
                     default: []
             default:
                 by-test-platform:
-                    .*-ccov.*/.*: built-projects
+                    .*-ccov.*: built-projects
                     default: []
     test-manifest-loader: null  # don't load tests in the taskgraph
     tier: 2

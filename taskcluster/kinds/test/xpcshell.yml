@@ -61,9 +61,10 @@ xpcshell:
             os-integration: []  # this variant only runs as a cron task
             conditioned_profile:
                 by-test-platform:
-                    .*asan.*: []
-                    .*ccov.*: []
-                    (linux1804-64|windows11-64).*/opt: ['trunk']
+                    .*-asan.*: []
+                    .*-ccov.*: []
+                    linux1804-64.*/opt: ['trunk']
+                    windows11-64.*/opt: ['trunk']
                     default: []
             socketprocess_networking+no-fission:
                 by-test-platform:
@@ -73,12 +74,12 @@ xpcshell:
                 by-test-platform:
                     macosx1015.*: ['trunk']  # All Mac variants
                     macosx1470.*: ['trunk']  # All Mac variants
-                    windows.*asan.*: []
+                    windows.*-asan.*: []
                     windows11.*: ['trunk']   # All Windows11 except ASAN
                     default: []
             no-fission:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: []
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android.*: built-projects
                     linux1804-64.*: ['mozilla-central']
                     default: []
@@ -89,19 +90,21 @@ xpcshell:
                     default: []
             geckoview-no-fission-ship:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: []
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android-em.*: built-projects
                     default: []
             inc-origin-init:
                 by-test-platform:
-                    .*asan.*: []
-                    .*ccov.*: []
-                    (linux.*64|macosx.*64|windows1.*-64.*)(-shippable)?(-qr)?/(opt|debug): built-projects
+                    .*-asan.*: []
+                    .*-ccov.*: []
+                    linux.*64(-shippable)?(-qr)?/.*: built-projects
+                    macosx.*64(-shippable)?(-qr)?/.*: built-projects
+                    windows1.*-64.*(-shippable)?(-qr)?/.*: built-projects
                     default: []
             default:
                 by-test-platform:
                     android.*: built-projects
-                    .*wayland.*: []
+                    .*-wayland.*: []
                     windows.*-asan/opt: []  # No XPCShell on ASAN yet
                     default: built-projects
     chunks:
@@ -111,9 +114,11 @@ xpcshell:
             default:
                 by-test-platform:
                     .*-asan.*/opt: 4
-                    .*-ccov.*/.*: 8
-                    .*-tsan-qr/opt: 10
-                    (android-em-7.*|macosx.*|linux1804-64.*/opt): 2
+                    .*-ccov.*: 8
+                    .*-tsan(-qr)?/opt: 10
+                    android-em-7.*: 2
+                    macosx.*: 2
+                    linux1804-64.*/opt: 2
                     default: 4
     max-run-time:
         by-variant:
@@ -121,8 +126,8 @@ xpcshell:
             conditioned_profile: 7200
             default:
                 by-test-platform:
-                    .*-ccov.*/.*: 7200
-                    .*-tsan-qr/opt: 7200
+                    .*-ccov.*: 7200
+                    .*-tsan(-qr)?/opt: 7200
                     default: 5400
     allow-software-gl-layers: false
     tier:
@@ -138,7 +143,7 @@ xpcshell:
             default:
                 by-test-platform:
                     windows.*-asan.*: 3
-                    android-em-7.0-x86_64-qr/debug-isolated-process: 3
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: 3
                     default: default
     mozharness:
         extra-options:
@@ -192,11 +197,11 @@ xpcshell-failures:
     mozharness:
         script:
             by-test-platform:
-                macos.*: mac_unittest.py
+                macosx.*: mac_unittest.py
                 windows1.*: desktop_unittest.py
         config:
             by-test-platform:
-                macos.*:
+                macosx.*:
                     - unittests/mac_unittest.py
                 windows1.*:
                     - unittests/win_unittest.py

@@ -31,11 +31,15 @@ task-defaults:
         by-shell:
             sm:
                 by-test-platform:
-                    (linux|windows|macos)(?!.*shippable).*: []
+                    linux(?!.*shippable).*: []
+                    windows(?!.*shippable).*: []
+                    mac(?!.*shippable).*: []
                     default: ['mozilla-central', 'integration']
             default:
                 by-test-platform:
-                    (linux|windows|macos)(?!.*shippable).*: []
+                    linux(?!.*shippable).*: []
+                    windows(?!.*shippable).*: []
+                    mac(?!.*shippable).*: []
                     default: ['mozilla-central']
     fetches:
         build:

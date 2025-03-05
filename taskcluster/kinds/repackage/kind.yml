@@ -60,7 +60,7 @@ tasks:
         worker:
             max-run-time:
                 by-build-platform:
-                    .*asan.*: 2700
+                    .*-asan.*: 2700
                     default: 900
         mozharness:
             config:

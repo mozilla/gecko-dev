@@ -17,11 +17,13 @@ task-defaults:
             chrome:
                 - (?!macosx1470).*shippable.*
             safari:
-                - .*macos.*shippable.*
+                - .*macosx.*shippable.*
             safari-tp:
                 - macosx1400.*
             custom-car:
-                - (macosx1400|linux|windows.*-64).*shippable.*
+                - macosx1400.*shippable.*
+                - linux.*shippable.*
+                - windows.*-64.*shippable.*
             default: []
     test-manifest-loader: null  # don't load tests in the taskgraph
     tier:
@@ -99,7 +101,9 @@ browsertime-tp6:
                 safari:
                     - .*macos.*shippable.*
                 custom-car:
-                    - (macosx1400|linux|windows.*-64).*shippable.*
+                    - macosx1400.*shippable.*
+                    - linux.*shippable.*
+                    - windows.*-64.*shippable.*
                 default: []
         max-run-time:
             by-subtest:
@@ -124,7 +128,9 @@ browsertime-tp6:
                         firefox:
                             by-test-platform:
                                 windows.*-32.*: []
-                                (macosx1470|linux|windows.*-64).*shippable.*: [trunk]
+                                linux.*shippable.*: [trunk]
+                                windows.*-64.*shippable.*: [trunk]
+                                macosx1470.*shippable.*: [trunk]
                                 default: []
                         default: []
                 default:
@@ -310,7 +316,9 @@ browsertime-tp7:
                 safari:
                     - .*macos.*shippable.*
                 custom-car:
-                    - (macosx1400|linux|windows.*-64).*shippable.*
+                    - macosx1400.*shippable.*
+                    - linux.*shippable.*
+                    - windows.*-64.*shippable.*
                 default: []
         max-run-time:
             by-subtest:
@@ -468,15 +476,18 @@ browsertime-benchmark:
                             # Bug 1909894, windows 10 + sp3 temporarily
                             windows10-64.*shippable.*: [mozilla-central]
                             windows11-64-.*-hw-ref-shippable/opt: [mozilla-central]
-                            windows11-64-shippable-qr/opt: [trunk]
+                            windows11-64-shippable(-qr)?/opt: [trunk]
                             windows11-64-24h2-shippable/opt: [trunk]
-                            (linux|macosx1470|macosx1400).*shippable.*: [trunk]
+                            linux.*shippable.*: [trunk]
+                            macosx1400.*shippable.*: [trunk]
+                            macosx1470.*shippable.*: [trunk]
                             .*nightlyasrelease.*: [autoland, mozilla-central]
                             default: []
                     custom-car:
                         by-test-platform:
                             # NOTE: this includes windows -hw-ref machines
-                            (linux|windows).*shippable.*: [mozilla-central]
+                            linux.*shippable.*: [mozilla-central]
+                            windows.*shippable.*: [mozilla-central]
                             default: []
                     safari-tp:
                         by-test-platform:
@@ -502,7 +513,8 @@ browsertime-benchmark:
                             default: []
                     custom-car:
                         by-test-platform:
-                            (linux|windows.*-64).*shippable.*: [mozilla-central]
+                            linux.*shippable.*: [mozilla-central]
+                            windows.*-64.*shippable.*: [mozilla-central]
                             default: []
                     default: []
             default:
@@ -604,7 +616,7 @@ browsertime-youtube-playback:
     run-on-projects:
         by-test-platform:
             windows.*-32.*: []
-            .*64(?!.*nightlyasrelease).*shippable.*/.*: [mozilla-central]
+            .*64(?!.*nightlyasrelease).*shippable.*: [mozilla-central]
             default: []
     tier:
         by-app:
@@ -776,8 +788,10 @@ browsertime-tp6-live-sheriffed:
             - --browsertime-arg=maxLoadTime=240000
     run-on-projects:
         by-test-platform:
-            (linux|windows.*-64|macos).*: []
+            linux.*: []
             windows.*-32.*: []
+            windows.*-64.*: []
+            macosx.*: []
             default: []
     tier:
         by-app:
@@ -802,7 +816,9 @@ browsertime-tp6-profiling:
             - --gecko-profile
     run-on-projects:
         by-test-platform:
-            (linux|windows|macosx1470).*shippable.*: [mozilla-central]
+            linux.*shippable.*: [mozilla-central]
+            windows.*shippable.*: [mozilla-central]
+            macosx1470.*shippable.*: [mozilla-central]
             default: []
     tier:
         by-app:
@@ -964,7 +980,8 @@ browsertime-pageload-benchmark:
     run-on-projects:
         by-test-platform:
             windows.*-32.*: []
-            (linux|windows.*-64).*shippable.*: [autoland]
+            windows.*-64.*shippable.*: [autoland]
+            linux.*shippable.*: [autoland]
             default: []
     tier:
         by-app:
@@ -1004,7 +1021,9 @@ browsertime-video-playback-latency:
         by-app:
             firefox:
                 by-test-platform:
-                    (macosx1470|linux|windows10-64).*shippable.*: [autoland, mozilla-central]
+                    macosx1470.*shippable.*: [autoland, mozilla-central]
+                    linux.*shippable.*: [autoland, mozilla-central]
+                    windows10-64.*shippable.*: [autoland, mozilla-central]
                     default: []
             default: []
     treeherder-symbol: Btime(vpl)
@@ -1156,7 +1175,9 @@ browsertime-indexeddb:
             chrome:
                 - (.*?!macosx1470.*)shippable.*
             custom-car:
-                - (macosx1400|linux|windows.*-64).*shippable.*
+                - macosx1400.*shippable.*
+                - linux.*shippable.*
+                - windows.*-64.*shippable.*
             default: []
     raptor:
         apps: [firefox, chrome]

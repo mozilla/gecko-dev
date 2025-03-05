@@ -18,11 +18,11 @@ task-defaults:
         by-variant:
             xorigin:
                 by-test-platform:
-                    linux.*64.*-qr/debug: 1
+                    linux.*64.*(-qr)?/debug: 1
                     default: 2
             default:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: 3
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: 3
                     default: default
     mozharness:
         script:
@@ -70,67 +70,78 @@ mochitest-plain:
             os-integration: []  # this variant only runs as a cron task
             conditioned_profile:
                 by-test-platform:
-                    .*(asan|ccov|wayland).*: []
-                    linux1804-64(-shippable)?-qr/opt: ['trunk']
+                    .*-ccov.*: []
+                    .*-asan.*: []
+                    .*-wayland.*: []
+                    linux1804-64(-shippable)?(-qr)?/opt: ['trunk']
                     windows11-64.*(-shippable)?(-qr)?/opt: []
                     default: []
             xorigin:
                 by-test-platform:
-                    .*(asan|wayland).*: []
-                    windows.*ccov.*: []
-                    (linux.*64|macosx.*64|windows11.*)(-shippable)?(-qr)?/(opt|debug): ['trunk']
-                    linux.*64-ccov-qr/opt: ['mozilla-central']
-                    android-em-7.0-x86_64-qr/debug-isolated-process: []
+                    .*-asan.*: []
+                    .*-wayland.*: []
+                    windows.*-ccov.*: []
+                    linux.*64(-shippable)?(-qr)?/.*: ['trunk']
+                    macosx.*64(-shippable)?(-qr)?/.*: ['trunk']
+                    windows11-64-24h2(-shippable)?(-qr)?/.*: ['trunk']
+                    linux.*64-ccov(-qr)?/opt: ['mozilla-central']
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android-em.*: ['trunk']
                     default: []
             socketprocess_networking:
                 by-test-platform:
-                    .*(asan|ccov|wayland).*: []
-                    linux.*64.*(-shippable)?-qr/debug: ['autoland', 'mozilla-central']
+                    .*-ccov.*: []
+                    .*-asan.*: []
+                    .*-wayland.*: []
+                    linux1804-64(-qr)?/debug: ['autoland', 'mozilla-central']
                     default: []
             aab+no-fission:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug: built-projects
+                    android-em-7.0-x86_64(-qr)?/debug: built-projects
                     default: []
             headless:
                 by-test-platform:
-                    .*wayland.*: []
+                    .*-wayland.*: []
                     linux1804-64.*: ['mozilla-central']
                     default: []
             no-fission:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: []
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android.*: built-projects
-                    linux1804-64-qr/debug: ['mozilla-central']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['mozilla-central']
+                    linux1804-64(-qr)?/debug: ['mozilla-central']
+                    linux1804-64-asan(-qr)?/opt: ['mozilla-central']
+                    linux1804-64(-shippable)?(-qr)?/opt: ['mozilla-central']
                     default: []
             http3:
                 by-test-platform:
-                    linux1804-64-qr/debug: built-projects
+                    linux1804-64(-qr)?/debug: built-projects
                     default: []
             http2:
                 by-test-platform:
-                    linux1804-64-qr/debug: built-projects
+                    linux1804-64(-qr)?/debug: built-projects
                     default: []
             geckoview-fission-isolate-high-value:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: []
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android-em.*: built-projects
                     default: []
             geckoview-no-fission-ship:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: []
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android-em.*: built-projects
                     default: []
             inc-origin-init:
                 by-test-platform:
-                    .*asan.*: []
-                    .*ccov.*: []
-                    (linux.*64|macosx.*64|windows1.*-64.*)(-shippable)?(-qr)?/(opt|debug): built-projects
+                    .*-asan.*: []
+                    .*-ccov.*: []
+                    linux.*64(-shippable)?(-qr)?/.*: built-projects
+                    macosx.*64(-shippable)?(-qr)?/.*: built-projects
+                    windows11-64-24h2(-shippable)?(-qr)?/.*: built-projects
+                    windows10-64-2009(-shippable)?(-qr)?/.*: built-projects
                     default: []
             default:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: []
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android.*: built-projects
                     default: built-projects
     chunks:
@@ -141,8 +152,9 @@ mochitest-plain:
                 by-test-platform:
                     android.*/debug: 10
                     linux.*/debug: 16
-                    linux.*64-tsan-qr/opt: 20
-                    .*(asan|ccov).*: 10
+                    linux.*64-tsan(-qr)?/opt: 20
+                    .*-ccov.*: 10
+                    .*-asan.*: 10
                     linux.*/opt: 8
                     windows.*/debug: 8
                     default: 5
@@ -155,7 +167,8 @@ mochitest-plain:
             default: default
     instance-size:
         by-test-platform:
-            linux.*64-[at]san-qr/opt: xlarge-noscratch  # runs out of memory using 8GB
+            linux.*64-asan(-qr)?/opt: xlarge-noscratch  # runs out of memory using 8GB
+            linux.*64-tsan(-qr)?/opt: xlarge-noscratch  # runs out of memory using 8GB
             default: default
     max-run-time: 3600
     allow-software-gl-layers: false
@@ -198,7 +211,7 @@ mochitest-plain:
                     - linux64-hostutils
     worker-type:
         by-test-platform:
-            .*wayland.*: t-linux-wayland-vm
+            .*-wayland.*: t-linux-wayland-vm
             default: default
 
 mochitest-a11y:
@@ -216,12 +229,12 @@ mochitest-a11y:
         by-variant:
             socketprocess_networking+1proc:
                 by-test-platform:
-                    linux.*64-qr/debug: ['autoland', 'mozilla-central']
+                    linux.*64(-qr)?/debug: ['autoland', 'mozilla-central']
                     default: []
             webrender-sw+1proc:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug: built-projects
-                    linux.*64-qr/debug: built-projects
+                    android-em-7.0-x86_64(-qr)?/debug: built-projects
+                    linux.*64(-qr)?/debug: built-projects
                     default: []
             1proc: built-projects
     mozharness:
@@ -247,22 +260,25 @@ mochitest-browser-chrome:
             os-integration: []  # this variant only runs as a cron task
             webrender-sw:
                 by-test-platform:
-                    linux.*64(-asan)?-qr/(opt|debug): ['all']
-                    linux.*64-tsan-qr/opt: built-projects
-                    linux.*64-shippable-qr/opt: ['release']
-                    linux.*64(-shippable)?-qr/opt: built-projects
-                    linux.*64-devedition-qr/opt: built-projects
-                    .*wayland.*: []  # will change to built-projects when greened up
+                    linux.*64(-qr)?/debug: ['all']
+                    linux.*64-asan(-qr)?/opt: ['all']
+                    linux.*64-tsan(-qr)?/opt: built-projects
+                    linux.*64(-qr)?/opt: built-projects
+                    linux.*64-devedition(-qr)?/opt: built-projects
+                    linux.*64-shippable(-qr)?/opt: ['release']
+                    .*-wayland.*: []  # will change to built-projects when greened up
                     default: []
             webrender-sw+a11y-checks:
                 by-test-platform:
-                    linux.*64(-shippable)?-qr/opt: ['trunk']
+                    linux.*64(-shippable)?(-qr)?/opt: ['trunk']
                     default: []
             socketprocess_networking:
                 by-test-platform:
-                    .*asan.*: []
-                    .*ccov.*: []
-                    (linux.*64|macosx.*64|windows1.*-64.*)(-shippable)?(-qr)?/(opt|debug): ['autoland', 'mozilla-central']
+                    .*-asan.*: []
+                    .*-ccov.*: []
+                    linux.*64(-shippable)?(-qr)?/.*: ['autoland', 'mozilla-central']
+                    macosx.*64(-shippable)?(-qr)?/.*: ['autoland', 'mozilla-central']
+                    windows1.*-64.*(-shippable)?/.*: ['autoland', 'mozilla-central']
                     default: []
             msix:
                 by-test-platform:
@@ -270,15 +286,19 @@ mochitest-browser-chrome:
                     default: []
             vertical-tabs:
                 by-test-platform:
-                    .*asan.*: []
-                    .*ccov.*: []
-                    (linux.*64|macosx.*64|windows1.*-64.*)(-shippable)?(-qr)?/(opt|debug): built-projects
+                    .*-asan.*: []
+                    .*-ccov.*: []
+                    linux.*64(-shippable)?(-qr)?/.*: ['autoland', 'mozilla-central']
+                    macosx.*64(-shippable)?(-qr)?/.*: ['autoland', 'mozilla-central']
+                    windows1.*-64.*(-shippable)?/.*: ['autoland', 'mozilla-central']
                     default: []
             inc-origin-init:
                 by-test-platform:
-                    .*asan.*: []
-                    .*ccov.*: []
-                    (linux.*64|macosx.*64|windows1.*-64.*)(-shippable)?(-qr)?/(opt|debug): built-projects
+                    .*-asan.*: []
+                    .*-ccov.*: []
+                    linux.*64(-shippable)?(-qr)?/.*: ['autoland', 'mozilla-central']
+                    macosx.*64(-shippable)?(-qr)?/.*: ['autoland', 'mozilla-central']
+                    windows1.*-64.*(-shippable)?/.*: ['autoland', 'mozilla-central']
                     default: []
             default:
                 by-test-platform:
@@ -289,7 +309,8 @@ mochitest-browser-chrome:
         by-variant:
             webrender-sw:
                 by-test-platform:
-                    linux.*64(-asan|-shippable)?-qr/(opt|debug): 1
+                    linux.*64-asan(-qr)?/opt: 1
+                    linux.*64(-shippable)?(-qr)?/.*: 1
                     default: default
             default: default
     chunks:
@@ -303,9 +324,9 @@ mochitest-browser-chrome:
             inc-origin-init: dynamic
             default:
                 by-test-platform:
-                    linux.*-qr/debug: 16
-                    linux.*64-asan-qr/opt: 16
-                    linux.*64-tsan-qr/opt: 32
+                    linux.*(-qr)?/debug: 16
+                    linux.*64-asan(-qr)?/opt: 16
+                    linux.*64-tsan(-qr)?/opt: 32
                     windows.*-asan.*/opt: 16
                     windows.*-ccov.*/.*: 14
                     macosx.*64.*/opt: 10
@@ -317,13 +338,13 @@ mochitest-browser-chrome:
             msix: 5400
             socketprocess_networking:
                 by-test-platform:
-                    linux.*-qr/debug: 7200
+                    linux.*(-qr)?/debug: 7200
                     default: 5400
             default:
                 by-test-platform:
                     linux.*64-ccov.*/.*: 9000
-                    linux.*64-tsan-qr/opt: 10800
-                    linux.*-qr/opt: 5400
+                    linux.*64-tsan(-qr)?/opt: 10800
+                    linux.*(-qr)?/opt: 5400
                     windows.*-ccov.*/.*: 10800
                     windows.*-asan.*/opt: 5400
                     .*/debug: 5400
@@ -333,7 +354,7 @@ mochitest-browser-chrome:
         chunked: true
     instance-size:
         by-test-platform:
-            linux.*64-asan-qr/opt: xlarge-noscratch  # runs out of memory frequently
+            linux.*64-asan(-qr)?/opt: xlarge-noscratch  # runs out of memory frequently
             default: default
     allow-software-gl-layers: false
     fetches:
@@ -354,21 +375,21 @@ mochitest-browser-chrome-failures:
     run-on-projects:
         by-test-platform:
             android.*: []
-            .*wayland.*: []  # will change to built-projects when greened up
+            .*-wayland.*: []  # will change to built-projects when greened up
             default: []
     tier: 3
     chunks: 2
     max-run-time:
         by-test-platform:
-            linux.*wayland.*/opt: 1800
-            linux.*wayland.*/debug: 3600
+            linux.*-wayland.*/opt: 1800
+            linux.*-wayland.*/debug: 3600
             default: 3600
     mozharness:
         mochitest-flavor: browser
         chunked: true
         extra-options:
             by-test-platform:
-                linux.*wayland.*:
+                linux.*-wayland.*:
                     - --run-failures="os == 'linux' && os_version == '22.04'"
                     - --timeout-as-pass
                     - --crash-as-pass
@@ -385,24 +406,24 @@ mochitest-browser-a11y:
     run-on-projects:
         by-test-platform:
             android.*: []
-            .*wayland.*: []
+            .*-wayland.*: []
             default: built-projects
     tier: default
     max-run-time:
         by-test-platform:
-            .*tsan.*: 2700
+            .*-tsan.*: 2700
             linux.*/debug: 2700
             default: 1800
     mozharness:
         mochitest-flavor: browser
         chunked:
             by-test-platform:
-                .*tsan.*: true
+                .*-tsan.*: true
                 default: false
     chunks:
         by-test-platform:
-            .*tsan.*: 2
-            .*asan.*: 2
+            .*-tsan.*: 2
+            .*-asan.*: 2
             default: 1
     instance-size: default
     allow-software-gl-layers: false
@@ -421,7 +442,7 @@ mochitest-browser-media:
         by-variant:
             wmf-media-engine:
                 by-test-platform:
-                    .*asan.*: []
+                    .*-asan.*: []
                     windows11-64.*/debug: []  # Bug 1805736
                     windows1.*-64.*: ['autoland', 'mozilla-central']
                     default: []
@@ -432,7 +453,7 @@ mochitest-browser-media:
     tier: default
     max-run-time:
         by-test-platform:
-            .*tsan.*: 1800
+            .*-tsan.*: 1800
             default: 1200
     mozharness:
         mochitest-flavor: browser
@@ -472,8 +493,8 @@ mochitest-browser-translations:
     tier: default
     max-run-time:
         by-test-platform:
-            .*asan.*: 1800
-            .*tsan.*: 2400
+            .*-asan.*: 1800
+            .*-tsan.*: 2400
             default: 1200
     mozharness:
         mochitest-flavor: browser
@@ -504,24 +525,26 @@ mochitest-chrome:
             1proc+os-integration: []  # this variant only runs as a cron task
             socketprocess_networking+1proc:
                 by-test-platform:
-                    .*asan.*: []
-                    .*ccov.*: []
-                    linux.*64.*(-shippable)?-qr/debug: ['autoland', 'mozilla-central']
+                    .*-asan.*: []
+                    .*-ccov.*: []
+                    linux1804-64(-qr)?/debug: ['autoland', 'mozilla-central']
                     default: []
             webrender-sw+1proc:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug: built-projects
-                    linux.*64-qr/debug: built-projects
+                    android-em-7.0-x86_64(-qr)?/debug: built-projects
+                    linux.*64(-qr)?/debug: built-projects
                     default: []
             1proc:
                 by-test-platform:
-                    .*wayland.*: []
+                    .*-wayland.*: []
                     default: built-projects
             inc-origin-init:
                 by-test-platform:
-                    .*asan.*: []
-                    .*ccov.*: []
-                    (linux.*64|macosx.*64|windows1.*-64.*)(-shippable)?(-qr)?/(opt|debug): built-projects
+                    .*-asan.*: []
+                    .*-ccov.*: []
+                    linux.*64(-shippable)?(-qr)?/.*: built-projects
+                    macosx.*64(-shippable)?(-qr)?/.*: built-projects
+                    windows1.*64.*(-shippable)?(-qr)?/.*: built-projects
                     default: []
     chunks:
         by-variant:
@@ -529,7 +552,7 @@ mochitest-chrome:
             inc-origin-init: dynamic
             default:
                 by-test-platform:
-                    .*tsan.*/opt: 6
+                    .*-tsan.*/opt: 6
                     default: 3
     max-run-time: 3600
     mozharness:
@@ -537,7 +560,7 @@ mochitest-chrome:
         chunked: true
     instance-size:
         by-test-platform:
-            linux.*64-tsan-qr/opt: xlarge-noscratch  # runs out of memory otherwise using 8GB
+            linux.*64-tsan(-qr)?/opt: xlarge-noscratch  # runs out of memory otherwise using 8GB
             default: default
 
 mochitest-devtools-chrome:
@@ -556,50 +579,51 @@ mochitest-devtools-chrome:
         by-variant:
             a11y-checks:
                 by-test-platform:
-                    linux.*64(-shippable)?-qr/opt: ['trunk']
+                    linux.*64(-shippable)?(-qr)?/opt: ['trunk']
                     default: []
             http3:
                 by-test-platform:
-                    linux1804-64-qr/debug: built-projects
+                    linux1804-64(-qr)?/debug: built-projects
                     default: []
             socketprocess_networking:
                 by-test-platform:
-                    .*asan.*: []
-                    .*ccov.*: []
-                    linux.*64.*(-shippable)?-qr/debug: ['autoland', 'mozilla-central']
+                    .*-asan.*: []
+                    .*-ccov.*: []
+                    linux1804-64(-qr)?/debug: ['autoland', 'mozilla-central']
                     default: []
             cm6:
                 by-test-platform:
-                    linux.*64(-shippable)?-qr/opt: ['trunk']
+                    linux.*64(-shippable)?(-qr)?/opt: ['trunk']
                     default: []
             default:
                 by-test-platform:
                     android.*: []
-                    .*wayland.*: []
-                    linux.*64-ccov-qr/opt: []
+                    .*-wayland.*: []
+                    linux.*64-ccov(-qr)?/opt: []
                     default: built-projects
     tier: default
     max-run-time:
         by-test-platform:
             windows.*-ccov.*/.*: 10800
             linux.*64-ccov.*/.*: 7200
-            linux.*64-tsan-qr/opt: 7200
+            linux.*64-tsan(-qr)?/opt: 7200
             default: 5400
     chunks:
         by-test-platform:
-            .*-ccov.*/.*: 12
-            linux.*wayland.*/debug: 14
-            linux.*64-qr/debug: 14
+            .*-ccov.*: 12
+            linux.*-wayland.*/debug: 14
+            linux.*64(-qr)?/debug: 14
             macosx.*64(-qr)?/debug: 8
             .*-asan.*/opt: 8
-            .*-tsan-qr/opt: 16
+            .*-tsan(-qr)?/opt: 16
             default: 5
     mozharness:
         mochitest-flavor: chrome
         chunked: true
     instance-size:
         by-test-platform:
-            linux.*64-[at]san(-qr)?/opt: xlarge-noscratch  # runs out of memory otherwise using 8GB
+            linux.*64-asan(-qr)?/opt: xlarge-noscratch  # runs out of memory otherwise using 8GB
+            linux.*64-tsan(-qr)?/opt: xlarge-noscratch  # runs out of memory otherwise using 8GB
             default: default
     # Bug 1296086: high number of intermittents observed with software GL and large instances
     allow-software-gl-layers: false
@@ -643,21 +667,21 @@ mochitest-devtools-chrome-failures:
     run-on-projects:
         by-test-platform:
             android.*: []
-            .*wayland.*: []  # will change to built-projects when greened up
+            .*-wayland.*: []  # will change to built-projects when greened up
             default: []
     tier: 3
     chunks: 2
     max-run-time:
         by-test-platform:
-            linux.*wayland.*/opt: 1800
-            linux.*wayland.*/debug: 3600
+            linux.*-wayland.*/opt: 1800
+            linux.*-wayland.*/debug: 3600
             default: 3600
     mozharness:
         mochitest-flavor: chrome
         chunked: true
         extra-options:
             by-test-platform:
-                linux.*wayland.*:
+                linux.*-wayland.*:
                     - --run-failures="os == 'linux' && os_version == '22.04'"
                     - --timeout-as-pass
                     - --crash-as-pass
@@ -680,27 +704,28 @@ mochitest-plain-gpu:
         by-variant:
             webrender-sw+no-fission:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug: built-projects
-                    linux.*asan.*: ['mozilla-central']
-                    linux.*64(-shippable)?-qr/(opt|debug): ['mozilla-central']
+                    android-em-7.0-x86_64(-qr)?/debug: built-projects
+                    linux.*-asan.*: ['mozilla-central']
+                    linux.*64(-shippable)?(-qr)?/debug: ['mozilla-central']
+                    linux.*64(-shippable)?(-qr)?/opt: ['mozilla-central']
                     default: []
             webrender-sw:
                 by-test-platform:
-                    linux.*64-qr/debug: built-projects
+                    linux.*64(-qr)?/debug: built-projects
                     default: []
             no-fission:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: []
-                    linux.*64-ccov-qr/opt: []
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
+                    linux.*64-ccov(-qr)?/opt: []
                     linux1804-32.*: []
-                    .*-tsan-qr/opt: []
-                    .*wayland.*: []
+                    .*-tsan(-qr)?/opt: []
+                    .*-wayland.*: []
                     linux.*: ['mozilla-central']  # linux opt/debug/asan
                     android.*: built-projects
                     default: []
             default:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: []
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     default: built-projects
     virtualization: virtual-with-gpu
     tier:
@@ -711,7 +736,7 @@ mochitest-plain-gpu:
                     default: default
             default:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug-isolated-process: 3
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: 3
                     default: default
     mozharness:
         mochitest-flavor: plain
@@ -724,7 +749,7 @@ mochitest-plain-gpu:
                     - --mochitest-suite=mochitest-plain-gpu
     instance-size:
         by-test-platform:
-            linux.*64-tsan-qr/opt: xlarge-noscratch  # runs out of memory otherwise using 8GB
+            linux.*64-tsan(-qr)?/opt: xlarge-noscratch  # runs out of memory otherwise using 8GB
             default: default
 
 mochitest-chrome-gpu:
@@ -744,8 +769,8 @@ mochitest-chrome-gpu:
             socketprocess_networking+1proc: []
             webrender-sw+1proc:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug: built-projects
-                    linux.*64-qr/debug: built-projects
+                    android-em-7.0-x86_64(-qr)?/debug: built-projects
+                    linux.*64(-qr)?/debug: built-projects
                     default: []
             1proc:
                 by-test-platform:
@@ -763,7 +788,7 @@ mochitest-chrome-gpu:
                     - --mochitest-suite=mochitest-chrome-gpu
     instance-size:
         by-test-platform:
-            linux.*64-tsan-qr/opt: xlarge-noscratch  # runs out of memory using 8GB of memory
+            linux.*64-tsan(-qr)?/opt: xlarge-noscratch  # runs out of memory using 8GB of memory
             default: default
 
 mochitest-media:
@@ -773,7 +798,7 @@ mochitest-media:
     max-run-time:
         by-test-platform:
             windows.*-ccov.*: 7200
-            linux.*64-tsan-qr/opt: 7200
+            linux.*64-tsan(-qr)?/opt: 7200
             default: 5400
     variants:
         - media-gpu
@@ -792,62 +817,67 @@ mochitest-media:
             socketprocess+no-fission:
                 by-test-platform:
                     .*hw-ref.*: []
-                    android-em-7.0-x86_64-qr/debug: ['autoland', 'mozilla-central']
-                    android-hw-.*-aarch64-qr/debug: built-projects
-                    linux1804-64-qr/debug: ['mozilla-central']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['mozilla-central']
+                    android-em-7.0-x86_64(-qr)?/debug: ['autoland', 'mozilla-central']
+                    android-hw-.*-aarch64(-qr)?/debug: built-projects
+                    linux1804-64(-qr)?/debug: ['mozilla-central']
+                    linux1804-64(-shippable)?(-qr)?/opt: ['mozilla-central']
+                    linux1804-64-asan(-qr)?/opt: ['mozilla-central']
                     default: []
             socketprocess:
                 by-test-platform:
                     android.*: []
-                    windows.*ccov.*: []
+                    windows.*-ccov.*: []
                     .*hw-ref.*: []
-                    linux.*64(-asan|-devedition|-shippable)?-qr/(opt|debug): built-projects
-                    linux.*64-tsan-qr/opt: ['autoland', 'mozilla-central']
-                    macosx.*-64(-devedition|-shippable)?(-qr)?/(opt|debug): built-projects
+                    linux.*64-asan(-qr)?/.*: built-projects
+                    linux.*64-devedition(-qr)?/.*: built-projects
+                    linux.*64(-shippable)?(-qr)?/.*: built-projects
+                    linux.*64-tsan(-qr)?/opt: ['autoland', 'mozilla-central']
+                    macosx.*-64-devedition(-qr)?/.*: built-projects
+                    macosx.*-64(-shippable)?(-qr)?/.*: built-projects
                     windows.*-asan.*: ['autoland', 'mozilla-central']
                     windows1.*: built-projects
                     default: []
             webrender-sw+no-fission:
                 by-test-platform:
                     .*hw-ref.*: []
-                    android-em-7.0-x86_64-qr/debug: ['autoland', 'mozilla-central']
-                    linux1804-64-qr/debug: ['mozilla-central']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['mozilla-central']
+                    android-em-7.0-x86_64(-qr)?/debug: ['autoland', 'mozilla-central']
+                    linux1804-64(-qr)?/.*: ['mozilla-central']
+                    linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
+                    linux1804-64-asan(-qr)?/opt: ['mozilla-central']
                     default: []
             webrender-sw:
                 by-test-platform:
                     android.*: []
                     .*hw-ref.*: []
-                    linux1804-64-qr/debug: ['autoland', 'mozilla-central']
+                    linux1804-64(-qr)?/debug: ['autoland', 'mozilla-central']
                     default: []
             no-fission:
                 by-test-platform:
                     android-hw-.*/opt: []
                     .*hw-ref.*: []
                     android-hw-.*-arm7.*/(?:debug)?: ['trunk', 'mozilla-beta', 'mozilla-release']
-                    android-em-7.0-x86_64-qr/debug-isolated-process: []
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android.*: built-projects
-                    linux1804-64-qr/debug: ['mozilla-central']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['mozilla-central']
+                    linux1804-64(-qr)?/.*: ['mozilla-central']
+                    linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
+                    linux1804-64-asan(-qr)?/opt: ['mozilla-central']
                     default: []
             wmf-media-engine:
                 by-test-platform:
                     .*hw-ref.*: []
-                    windows1.*ccov.*: []
-                    windows1.*-64.*: ['autoland', 'mozilla-central']
+                    windows1.*-ccov.*: []
+                    windows1.*64.*: ['autoland', 'mozilla-central']
                     default: []
             msix:
                 by-test-platform:
                     .*hw-ref.*: []
                     windows11-64-.*-shippable.*/opt: built-projects
-                    windows11-64-.*/opt: ['autoland']
-                    windows11-64-.*/debug: ['autoland']
+                    windows11-64-.*: ['autoland']
                     default: []
             media-gpu:
                 by-test-platform:
                     windows11.*hw-ref.*: ['autoland', 'mozilla-central', 'mozilla-beta']
-                    (macosx.*64)(-shippable)?(-qr)?/(opt|debug): ['autoland', 'mozilla-central', 'mozilla-beta']
+                    macosx.*64(-shippable)?(-qr)?/.*: ['autoland', 'mozilla-central', 'mozilla-beta']
                     android-hw-.*: ['autoland', 'mozilla-central', 'mozilla-beta']
                     default: []
                     # TODO : add Linux, it would crash on gfxFeature.cpp:180
@@ -855,12 +885,13 @@ mochitest-media:
                 by-test-platform:
                     .*hw-ref.*: []
                     android-hw.*/opt: []
-                    android-em-7.0-x86_64-qr/debug-isolated-process: []
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android.*: built-projects
-                    linux.*(asan|ccov)/opt: []
-                    .*(ccov/|asan/|-32).*: built-projects
+                    linux.*-asan/opt: []
+                    linux.*-ccov/opt: []
+                    .*-32.*: built-projects
                     windows11.*: built-projects
-                    (android|linux|windows10-64-2009|windows11-64|macos)(?!.*-qr).*: []
+                    (?!.*-qr).*: []
                     default: built-projects
     loopback-video: true
     chunks:
@@ -870,10 +901,12 @@ mochitest-media:
             media-gpu: 1
             default:
                 by-test-platform:
-                    (android|macos).*/opt: 1
-                    ^(?!.*asan).*windows1.*/opt: 1
+                    android.*/opt: 1
+                    macosx.*/opt: 1
+                    windows11-64-24h2-asan/opt: 2
+                    windows11-.*/opt: 1
                     linux.*/debug: 3
-                    linux.*64-tsan-qr/opt: 5
+                    linux.*64-tsan(-qr)?/opt: 5
                     default: 2
     mozharness:
         mochitest-flavor: plain
@@ -904,9 +937,9 @@ mochitest-media:
                     default: default
             default:
                 by-test-platform:
-                    .*ccov.*: 2
+                    .*-ccov.*: 2
                     android-em.*: 1
-                    android-em-7.0-x86_64-qr/debug-isolated-process: 3
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: 3
                     android-hw.*: 1
                     default: default
     use-caches:
@@ -948,19 +981,20 @@ mochitest-webgl1-core:
         by-variant:
             webrender-sw+no-fission:
                 by-test-platform:
-                    linux.*64-qr/debug: ['trunk']
+                    linux.*64(-qr)?/debug: ['trunk']
                     default: []
             webrender-sw:
                 by-test-platform:
-                    linux.*64-qr/debug: built-projects
+                    linux.*64(-qr)?/debug: built-projects
                     default: []
             no-fission:
                 by-test-platform:
                     android-hw-.*(?<!-shippable)(-qr)?/opt: ['mozilla-central', 'mozilla-beta', 'mozilla-release']
-                    android-hw.*aarch.*-shippable-qr/opt: ['mozilla-central']
-                    android-hw.*aarch.*-qr/debug: ['mozilla-central']
-                    linux1804-64-qr/debug: ['trunk']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
+                    android-hw.*aarch.*-shippable(-qr)?/opt: ['mozilla-central']
+                    android-hw.*aarch.*(-qr)?/debug: ['mozilla-central']
+                    linux1804-64(-qr)?/debug: ['trunk']
+                    linux1804-64(-shippable)?(-qr)?/opt: ['trunk']
+                    linux1804-64-asan(-qr)?/opt: ['trunk']
                     default: []
             default:
                 by-test-platform:
@@ -988,19 +1022,20 @@ mochitest-webgl1-ext:
         by-variant:
             webrender-sw+no-fission:
                 by-test-platform:
-                    linux.*64-qr/debug: ['trunk']
+                    linux.*64(-qr)?/debug: ['trunk']
                     default: []
             webrender-sw:
                 by-test-platform:
-                    linux.*64-qr/debug: built-projects
+                    linux.*64(-qr)?/debug: built-projects
                     default: []
             no-fission:
                 by-test-platform:
                     android-hw-.*(?<!-shippable)(-qr)?/opt: ['mozilla-central', 'mozilla-beta', 'mozilla-release']
-                    android-hw.*aarch.*-shippable-qr/opt: ['mozilla-central']
-                    android-hw.*aarch.*-qr/debug: ['mozilla-central']
-                    linux1804-64-qr/debug: ['trunk']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
+                    android-hw.*aarch.*-shippable(-qr)?/opt: ['mozilla-central']
+                    android-hw.*aarch.*(-qr)?/debug: ['mozilla-central']
+                    linux1804-64(-qr)?/.*: ['trunk']
+                    linux1804-64-shippable(-qr)?/opt: ['trunk']
+                    linux1804-64-asan(-qr)?/opt: ['trunk']
                     default: []
             default:
                 by-test-platform:
@@ -1032,24 +1067,26 @@ mochitest-webgl2-core:
         by-variant:
             webrender-sw+no-fission:
                 by-test-platform:
-                    linux.*64-qr/debug: ['trunk']
+                    linux.*64(-qr)?/debug: ['trunk']
                     default: []
             webrender-sw:
                 by-test-platform:
-                    linux.*64-qr/debug: built-projects
+                    linux.*64(-qr)?/debug: built-projects
                     default: []
             no-fission:
                 by-test-platform:
                     android-hw-.*(?<!-shippable)(-qr)?/opt: ['mozilla-central', 'mozilla-beta', 'mozilla-release']
-                    android-hw.*aarch.*-shippable-qr/opt: ['mozilla-central']
-                    android-hw.*aarch.*-qr/debug: ['mozilla-central']
-                    linux1804-64-qr/debug: ['trunk']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
+                    android-hw.*aarch.*-shippable(-qr)?/opt: ['mozilla-central']
+                    android-hw.*aarch.*(-qr)?/debug: ['mozilla-central']
+                    linux1804-64(-qr)?/.*: ['trunk']
+                    linux1804-64-shippable(-qr)?/opt: ['trunk']
+                    linux1804-64-asan(-qr)?/opt: ['trunk']
                     default: []
             default:
                 by-test-platform:
                     android.*: []
-                    .*-(tsan|wayland).*: []
+                    .*-tsan.*: []
+                    .*-wayland.*: []
                     default: built-projects
     # Bug 1296733: llvmpipe with mesa 9.2.1 lacks thread safety
     allow-software-gl-layers: false
@@ -1070,16 +1107,16 @@ mochitest-webgl2-ext:
         by-variant:
             webrender-sw+no-fission:
                 by-test-platform:
-                    linux.*64-qr/debug: ["trunk"]
+                    linux.*64(-qr)?/debug: ["trunk"]
                     default: []
             webrender-sw:
                 by-test-platform:
-                    linux.*64-qr/debug: built-projects
+                    linux.*64(-qr)?/debug: built-projects
                     default: []
             no-fission:
                 by-test-platform:
-                    linux1804-64-qr/debug: ['trunk']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
+                    linux1804-64(-qr)?/debug: ['trunk']
+                    linux1804-64(-shippable|-asan)?(-qr)?/opt: ['trunk']
                     android.*: built-projects
                     default: []
             default:
@@ -1127,12 +1164,13 @@ mochitest-webgpu:
         by-variant:
             webrender-sw+no-fission:
                 by-test-platform:
-                    android-em-7.0-x86_64-qr/debug: ["trunk"]
+                    android-em-7.0-x86_64(-qr)?/debug: ["trunk"]
                     default: []
             no-fission:
                 by-test-platform:
-                    linux2204-64-qr/debug: ['trunk']
-                    linux2204-64(-shippable|-asan)?-qr/opt: ['trunk']
+                    linux2204-64(-qr)?/.*: ['trunk']
+                    linux2204-64-shippable(-qr)?/opt: ['trunk']
+                    linux2204-64-asan(-qr)?/opt: ['trunk']
                     default: []
             default:
                 by-test-platform:
@@ -1158,14 +1196,15 @@ mochitest-remote:
         by-variant:
             socketprocess_networking:
                 by-test-platform:
-                    .*asan.*: []
-                    .*ccov.*: []
-                    linux.*64.*(-shippable)?-qr/debug: ['autoland', 'mozilla-central']
+                    .*-asan.*: []
+                    .*-ccov.*: []
+                    linux1804-64(-qr)?/debug: ['autoland', 'mozilla-central']
                     default: []
             no-fission:
                 by-test-platform:
-                    linux1804-64-qr/debug: ['trunk']
-                    linux1804-64(-shippable|-asan)?-qr/opt: ['trunk']
+                    linux1804-64(-qr)?/.*: ['trunk']
+                    linux1804-64-shippable(-qr)?/opt: ['trunk']
+                    linux1804-64-asan(-qr)?/opt: ['trunk']
                     default: []
             default:
                 by-test-platform:

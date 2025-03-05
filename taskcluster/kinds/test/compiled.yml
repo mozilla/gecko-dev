@@ -53,23 +53,26 @@ gtest:
     instance-size:
         by-test-platform:
             linux.*: large-noscratch
-            windows.*asan.*: large
+            windows.*-asan.*: large
             default: default
     run-on-projects:
         by-variant:
             1proc:
                 by-test-platform:
                     .*android.*: built-projects
-                    .*(devedition|wayland).*: []
-                    linux1804-32-qr/opt: []  # try only, shippable on m-c
-                    linux1804-32-qr/debug: ['mozilla-central']  # try and m-c
-                    linux1804-32-shippable-qr/opt: ['mozilla-central']  # try and m-c
+                    .*-devedition.*: []
+                    .*-wayland.*: []
+                    linux1804-32(-qr)?/opt: []  # try only, shippable on m-c
+                    linux1804-32(-qr)?/debug: ['mozilla-central']  # try and m-c
+                    linux1804-32-shippable(-qr)?/opt: ['mozilla-central']  # try and m-c
                     default: built-projects
             inc-origin-init:
                 by-test-platform:
-                    .*asan.*: []
-                    .*ccov.*: []
-                    (linux.*64|macosx.*64|windows1.*-64.*)(-shippable)?(-qr)?/(opt|debug): built-projects
+                    .*-asan.*: []
+                    .*-ccov.*: []
+                    linux.*64(-shippable)?(-qr)?/.*: built-projects
+                    macosx.*64(-shippable)?(-qr)?/.*: built-projects
+                    windows1.*64.*(-shippable)?(-qr)?/.*: built-projects
                     default: []
             default: []
     mozharness:
@@ -94,8 +97,8 @@ jittest:
         by-variant:
             1proc:
                 by-test-platform:
-                    android-hw-.*-aarch64-qr/debug: ['mozilla-central', 'release']
-                    android-hw-.*-arm7-qr/debug: ['mozilla-central', 'release']
+                    android-hw-.*-aarch64(-qr)?/debug: ['mozilla-central', 'release']
+                    android-hw-.*-arm7(-qr)?/debug: ['mozilla-central', 'release']
                     default: built-projects
             default: []
     chunks:
@@ -105,7 +108,7 @@ jittest:
             macosx.*/opt: 1
             macosx.*/debug: 3
             android.*/opt: 3
-            android-hw-.*-aarch64-qr/debug: 8
+            android-hw-.*-aarch64(-qr)?/debug: 8
             default: 6
     max-run-time:
         by-test-platform:
@@ -134,7 +137,7 @@ jittest-all:
     treeherder-symbol: Jit
     run-on-projects:
         by-test-platform:
-            android-hw-.*-arm7(?:-shippable)?-qr/.*: ['mozilla-central', 'release']
+            android-hw-.*-arm7(?:-shippable)?(-qr)?/.*: ['mozilla-central', 'release']
             default: []
     chunks:
         by-test-platform:

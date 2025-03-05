@@ -40,7 +40,9 @@ awsy-tp6:
         by-test-platform:
             .*-devedition/.*: []  # don't run on devedition
             windows.*-32.*/opt: []
-            (linux|windows|mac)(?!.*shippable).*/opt: []
+            linux(?!.*shippable).*/opt: []
+            windows(?!.*shippable).*/opt: []
+            mac(?!.*shippable).*/opt: []
             default: [trunk]
 
 awsy-dmd:
@@ -58,7 +60,9 @@ awsy-base:
         by-test-platform:
             .*-devedition/.*: []  # don't run on devedition.
             windows.*-32.*/opt: []
-            (linux|windows|mac)(?!.*shippable).*/opt: []
+            linux(?!.*shippable).*/opt: []
+            windows(?!.*shippable).*/opt: []
+            mac(?!.*shippable).*/opt: []
             default: [trunk]
     tier: default
     mozharness:
