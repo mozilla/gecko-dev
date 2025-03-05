@@ -20,7 +20,6 @@ module.exports = {
   modulePathIgnorePatterns: ["test/mochitest"],
   setupFilesAfterEnv: ["<rootDir>/src/test/tests-setup.js"],
   setupFiles: ["<rootDir>/src/test/shim.js", "jest-localstorage-mock"],
-  snapshotSerializers: ["enzyme-to-json/serializer"],
   moduleNameMapper: {
     ...sharedJestConfig.moduleNameMapper,
     "react-dom-factories": "<rootDir>/../shared/vendor/react-dom-factories.js",

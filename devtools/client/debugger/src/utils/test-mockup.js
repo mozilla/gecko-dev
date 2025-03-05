@@ -11,10 +11,7 @@
 
 import * as asyncValue from "./async-value";
 
-import { initialState } from "../reducers/index";
-
 import { getDisplayURL } from "./sources-tree/getURL";
-import { createLocation } from "./location";
 
 function makeMockSource(url = "url", id = "source", thread = "FakeThread") {
   return {
@@ -150,41 +147,6 @@ function makeMockBreakpoint(source = makeMockSource(), line = 1, column) {
   };
 }
 
-function makeMockFrame(
-  id = "frame",
-  source = makeMockSource("url"),
-  scope = makeMockScope(),
-  line = 4,
-  displayName = `display-${id}`,
-  index = 0
-) {
-  const sourceActor = {
-    id: `${source.id}-actor`,
-    actor: `${source.id}-actor`,
-    source: source.id,
-    sourceObject: source,
-  };
-  const location = createLocation({ source, sourceActor, line });
-  return {
-    id,
-    thread: "FakeThread",
-    displayName,
-    location,
-    generatedLocation: location,
-    source,
-    scope,
-    this: {},
-    index,
-    asyncCause: null,
-    state: "on-stack",
-    type: "call",
-  };
-}
-
-function makeMockFrameWithURL(url) {
-  return makeMockFrame(undefined, makeMockSource(url));
-}
-
 function makeWhyNormal(frameReturnValue = undefined) {
   if (frameReturnValue) {
     return { type: "why-normal", frameFinished: { return: frameReturnValue } };
@@ -224,13 +186,6 @@ function makeMockThread(fields) {
   };
 }
 
-function makeMockState(state) {
-  return {
-    ...initialState(),
-    ...state,
-  };
-}
-
 function formatTree(tree, depth = 0, str = "") {
   const whitespace = new Array(depth * 2).join(" ");
 
@@ -256,14 +211,11 @@ export {
   makeMockScope,
   mockScopeAddVariable,
   makeMockBreakpoint,
-  makeMockFrame,
-  makeMockFrameWithURL,
   makeWhyNormal,
   makeWhyThrow,
   makeMockExpression,
   mockcx,
   mockthreadcx,
-  makeMockState,
   makeMockThread,
   makeFullfilledMockSourceContent,
   formatTree,
