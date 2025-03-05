@@ -383,7 +383,7 @@ impl NeqoHttp3Conn {
             add("datagram", s.datagram);
         }
 
-        if static_prefs::pref!("network.http.http3.ecn") {
+        if static_prefs::pref!("network.http.http3.ecn") && stats.packets_rx != 0 {
             if stats.ecn_tx[IpTosEcn::Ect0] > 0 {
                 let ratio =
                     (stats.ecn_tx[IpTosEcn::Ce] * PRECISION_FACTOR) / stats.ecn_tx[IpTosEcn::Ect0];
