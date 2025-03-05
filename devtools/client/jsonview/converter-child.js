@@ -364,6 +364,9 @@ function initialHTML(doc) {
           element("script", {
             src: baseURI + "json-viewer.mjs",
             type: "module",
+            // This helps ensure that the ES Module get evaluated early,
+            // even if the HTTP request is transmitted in chunks (browser_jsonview_chunked_json.js).
+            async: "true",
           }),
         ]),
       ]
