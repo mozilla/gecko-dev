@@ -110,6 +110,13 @@ already_AddRefed<MediaRawData> EncodedVideoChunkData::TakeData() {
   return sample.forget();
 }
 
+nsCString EncodedVideoChunkData::ToString() const {
+  return nsFmtCString(
+      FMT_STRING("EncodedVideoChunkData[bytes: {}, type: {}, ts: {}, dur: {}]"),
+      mBuffer ? mBuffer->Length() : 0, GetEnumString(mType).get(), mTimestamp,
+      mDuration ? std::to_string(*mDuration).c_str() : "none");
+}
+
 EncodedVideoChunk::EncodedVideoChunk(
     nsIGlobalObject* aParent, already_AddRefed<MediaAlignedByteBuffer> aBuffer,
     const EncodedVideoChunkType& aType, int64_t aTimestamp,
