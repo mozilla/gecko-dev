@@ -1616,10 +1616,13 @@ nsresult nsExpatDriver::Initialize(nsIURI* aURI, nsIContentSink* aSink) {
                     XML_PARAM_ENTITY_PARSING_ALWAYS);
 #endif
 
-  rlbox_sandbox_expat::convert_to_sandbox_equivalent_nonclass_t<unsigned long> salt;
+  rlbox_sandbox_expat::convert_to_sandbox_equivalent_nonclass_t<unsigned long>
+      salt;
   MOZ_RELEASE_ASSERT(mozilla::GenerateRandomBytesFromOS(&salt, sizeof(salt)));
-  MOZ_RELEASE_ASSERT(RLBOX_EXPAT_SAFE_MCALL(MOZ_XML_SetHashSalt, safe_unverified<int>, salt));
-  MOZ_RELEASE_ASSERT(RLBOX_EXPAT_SAFE_MCALL(MOZ_XML_SetReparseDeferralEnabled, safe_unverified<XML_Bool>, XML_FALSE));
+  MOZ_RELEASE_ASSERT(
+      RLBOX_EXPAT_SAFE_MCALL(MOZ_XML_SetHashSalt, safe_unverified<int>, salt));
+  MOZ_RELEASE_ASSERT(RLBOX_EXPAT_SAFE_MCALL(
+      MOZ_XML_SetReparseDeferralEnabled, safe_unverified<XML_Bool>, XML_FALSE));
 
   auto baseURI = GetExpatBaseURI(aURI);
   auto uri =
