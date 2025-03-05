@@ -329,6 +329,35 @@ add_task(async function test_show_hide_pageAction() {
   });
 });
 
+add_task(async function test_show_hide_pageAction_v3() {
+  await testShowHideEvent({
+    manifest_version: 3,
+    id: "page-action@mochitest",
+    menuCreateParams: {
+      id: "page_action_item",
+      title: "pageAction item",
+      contexts: ["page_action"],
+    },
+    expectedShownEvent: {
+      contexts: ["page_action", "all"],
+      viewType: undefined,
+      editable: false,
+    },
+    expectedShownEventWithPermissions: {
+      contexts: ["page_action", "all"],
+      viewType: undefined,
+      editable: false,
+      pageUrl: PAGE,
+    },
+    async doOpenMenu(extension) {
+      await openActionContextMenu(extension, "page");
+    },
+    async doCloseMenu() {
+      await closeActionContextMenu(null, "page");
+    },
+  });
+});
+
 add_task(async function test_show_hide_browserAction() {
   await testShowHideEvent({
     menuCreateParams: {
