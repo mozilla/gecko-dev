@@ -569,6 +569,7 @@ dependencies {
 
     implementation project(':compose-awesomebar')
     implementation project(':compose-base')
+    implementation project(':compose-browser-toolbar')
     implementation project(':compose-cfr')
 
     implementation project(':concept-awesomebar')

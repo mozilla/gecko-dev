@@ -119,6 +119,12 @@ internal fun Homepage(
                         )
                     }
 
+                    if (showSearchBar) {
+                        SearchBar(
+                            onClick = interactor::onNavigateSearch,
+                        )
+                    }
+
                     if (showRecentTabs) {
                         RecentTabsSection(
                             interactor = interactor,
@@ -385,32 +391,39 @@ private fun CustomizeHomeButton(buttonBackgroundColor: Color, interactor: Custom
 @PreviewLightDark
 private fun HomepagePreview() {
     FirefoxTheme {
-        Homepage(
-            HomepageState.Normal(
-                nimbusMessage = FakeHomepagePreview.nimbusMessageState(),
-                topSites = FakeHomepagePreview.topSites(),
-                recentTabs = FakeHomepagePreview.recentTabs(),
-                syncedTab = FakeHomepagePreview.recentSyncedTab(),
-                bookmarks = FakeHomepagePreview.bookmarks(),
-                recentlyVisited = FakeHomepagePreview.recentHistory(),
-                collectionsState = FakeHomepagePreview.collectionsPlaceholder(),
-                pocketState = FakeHomepagePreview.pocketState(),
-                showTopSites = true,
-                showRecentTabs = true,
-                showRecentSyncedTab = true,
-                showBookmarks = true,
-                showRecentlyVisited = true,
-                showPocketStories = true,
-                topSiteColors = TopSiteColors.colors(),
-                cardBackgroundColor = WallpaperState.default.cardBackgroundColor,
-                buttonTextColor = WallpaperState.default.buttonTextColor,
-                buttonBackgroundColor = WallpaperState.default.buttonBackgroundColor,
-                customizeHomeButtonBackgroundColor = FirefoxTheme.colors.actionTertiary,
-                bottomSpacerHeight = 188.dp,
-            ),
-            interactor = FakeHomepagePreview.homepageInteractor,
-            onTopSitesItemBound = {},
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(color = FirefoxTheme.colors.layer1),
+        ) {
+            Homepage(
+                HomepageState.Normal(
+                    nimbusMessage = FakeHomepagePreview.nimbusMessageState(),
+                    topSites = FakeHomepagePreview.topSites(),
+                    recentTabs = FakeHomepagePreview.recentTabs(),
+                    syncedTab = FakeHomepagePreview.recentSyncedTab(),
+                    bookmarks = FakeHomepagePreview.bookmarks(),
+                    recentlyVisited = FakeHomepagePreview.recentHistory(),
+                    collectionsState = FakeHomepagePreview.collectionsPlaceholder(),
+                    pocketState = FakeHomepagePreview.pocketState(),
+                    showTopSites = true,
+                    showRecentTabs = true,
+                    showRecentSyncedTab = true,
+                    showBookmarks = true,
+                    showRecentlyVisited = true,
+                    showPocketStories = true,
+                    showSearchBar = true,
+                    topSiteColors = TopSiteColors.colors(),
+                    cardBackgroundColor = WallpaperState.default.cardBackgroundColor,
+                    buttonTextColor = WallpaperState.default.buttonTextColor,
+                    buttonBackgroundColor = WallpaperState.default.buttonBackgroundColor,
+                    customizeHomeButtonBackgroundColor = FirefoxTheme.colors.actionTertiary,
+                    bottomSpacerHeight = 188.dp,
+                ),
+                interactor = FakeHomepagePreview.homepageInteractor,
+                onTopSitesItemBound = {},
+            )
+        }
     }
 }
 
@@ -434,6 +447,7 @@ private fun HomepagePreviewCollections() {
                 showBookmarks = false,
                 showRecentlyVisited = true,
                 showPocketStories = true,
+                showSearchBar = true,
                 topSiteColors = TopSiteColors.colors(),
                 cardBackgroundColor = WallpaperState.default.cardBackgroundColor,
                 buttonTextColor = WallpaperState.default.buttonTextColor,

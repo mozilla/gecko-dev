@@ -12,11 +12,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.theme.AcornTheme
@@ -30,6 +32,7 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
  *
  * @param url The URL to be displayed.
  * @param colors The color scheme to use in the browser display toolbar.
+ * @param textStyle [TextStyle] configuration for the URL text.
  * @param navigationActions List of navigation [Action]s to be displayed on left side of the
  * display toolbar (outside of the URL bounding box).
  * @param pageActions List of page [Action]s to be displayed to the right side of the URL of the
@@ -44,6 +47,7 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
 fun BrowserDisplayToolbar(
     url: String,
     colors: BrowserDisplayToolbarColors,
+    textStyle: TextStyle = LocalTextStyle.current,
     navigationActions: List<Action> = emptyList(),
     pageActions: List<Action> = emptyList(),
     browserActions: List<Action> = emptyList(),
@@ -79,6 +83,7 @@ fun BrowserDisplayToolbar(
                     .padding(8.dp)
                     .weight(1f),
                 maxLines = 1,
+                style = textStyle,
             )
 
             ActionContainer(actions = pageActions)
