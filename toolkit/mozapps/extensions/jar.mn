@@ -11,6 +11,8 @@ toolkit.jar:
   content/mozapps/extensions/aboutaddonsCommon.js               (content/aboutaddonsCommon.js)
   content/mozapps/extensions/aboutaddons.css                    (content/aboutaddons.css)
   content/mozapps/extensions/abuse-reports.js                   (content/abuse-reports.js)
+  content/mozapps/extensions/components                         (content/components/*.css)
+  content/mozapps/extensions/components                         (content/components/*.mjs)
   content/mozapps/extensions/drag-drop-addon-installer.js       (content/drag-drop-addon-installer.js)
   content/mozapps/extensions/shortcuts.css                      (content/shortcuts.css)
   content/mozapps/extensions/shortcuts.js                       (content/shortcuts.js)

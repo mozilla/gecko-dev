@@ -3695,18 +3695,26 @@ class AddonList extends HTMLElement {
     }
     frag.appendChild(this.pendingUninstallStack);
 
+    if (this.type == "mlmodel") {
+      frag.appendChild(document.createElement("mlmodel-list-intro"));
+    }
+
     // Render the sections.
     for (let i = 0; i < sectionedAddons.length; i++) {
       this.sections[i].node = this.renderSection(sectionedAddons[i], i);
       frag.appendChild(this.sections[i].node);
     }
 
-    // Render the placeholder that is shown when all sections are empty.
-    // This call is after rendering the sections, because its visibility
-    // is controlled through the general sibling combinator relative to
-    // the sections (section ~).
-    let message = this.createEmptyListMessage();
-    frag.appendChild(message);
+    // Add the "empty list message" elements (but omit it in the list view
+    // related to the "mlmodel" type).
+    if (this.type != "mlmodel") {
+      // Render the placeholder that is shown when all sections are empty.
+      // This call is after rendering the sections, because its visibility
+      // is controlled through the general sibling combinator relative to
+      // the sections (section ~).
+      let message = this.createEmptyListMessage();
+      frag.appendChild(message);
+    }
 
     // Make sure fluent has set all the strings before we render. This will
     // avoid the height changing as strings go from 0 height to having text.

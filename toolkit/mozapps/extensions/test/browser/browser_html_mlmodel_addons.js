@@ -56,6 +56,11 @@ add_task(async function testModelHubProvider() {
     !enabledSection.querySelector(".list-section-heading"),
     "No heading for mlmodel"
   );
+  is(
+    enabledSection.previousSibling.localName,
+    "mlmodel-list-intro",
+    "Model hub custom section is shown"
+  );
 
   let promiseListUpdated = BrowserTestUtils.waitForEvent(
     enabledSection.closest("addon-list"),
@@ -75,6 +80,33 @@ add_task(async function testModelHubProvider() {
     enabledSection.children.length,
     1,
     "Got the expected number of mlmodel entries"
+  );
+
+  promiseListUpdated = BrowserTestUtils.waitForEvent(
+    enabledSection.closest("addon-list"),
+    "remove"
+  );
+  info("Uninstall the last one of the mlmodel entries");
+  const mlmodelmock1 = await AddonManager.getAddonByID(
+    "mockmodel1@tests.mozilla.org"
+  );
+
+  await mlmodelmock1.uninstall();
+  info("Wait for the list of mlmodel entries to be updated");
+  await promiseListUpdated;
+
+  enabledSection = getSection(doc, "mlmodel-enabled-section");
+  is(
+    enabledSection.children.length,
+    0,
+    "Expect mlmodel add-ons list view to be empty"
+  );
+
+  let emptyMessageFindModeOnAMO = doc.querySelector("#empty-addons-message");
+  is(
+    emptyMessageFindModeOnAMO,
+    null,
+    "Expect no #empty-addons-message element in the empty mlmodel list view"
   );
 
   await closeView(win);
