@@ -186,8 +186,8 @@ template <typename DecoderType>
 void DecoderTemplate<DecoderType>::Decode(InputType& aInput, ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
-  // TODO: Add InputType's info to log.
-  LOG("%s %p, Decode", DecoderType::Name.get(), this);
+  LOG("%s %p, Decode %s", DecoderType::Name.get(), this,
+      aInput.ToString().get());
 
   if (mState != CodecState::Configured) {
     aRv.ThrowInvalidStateError("Decoder must be configured first");
