@@ -128,7 +128,6 @@ export const INITIAL_STATE = {
     wallpaperList: [],
     highlightSeenCounter: 0,
     categories: [],
-    uploadedWallpaper: "",
   },
   Weather: {
     initialized: false,
@@ -897,8 +896,6 @@ function Wallpapers(prevState = INITIAL_STATE.Wallpapers, action) {
       };
     case at.WALLPAPERS_CATEGORY_SET:
       return { ...prevState, categories: action.data };
-    case at.WALLPAPERS_CUSTOM_SET:
-      return { ...prevState, uploadedWallpaper: action.data };
     default:
       return prevState;
   }
