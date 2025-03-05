@@ -756,6 +756,53 @@ function getUuid() {
   return crypto.randomUUID();
 }
 const AnnotationPrefix = "pdfjs_internal_id_";
+function _isValidExplicitDest(validRef, validName, dest) {
+  if (!Array.isArray(dest) || dest.length < 2) {
+    return false;
+  }
+  const [page, zoom, ...args] = dest;
+  if (!validRef(page) && !Number.isInteger(page)) {
+    return false;
+  }
+  if (!validName(zoom)) {
+    return false;
+  }
+  const argsLen = args.length;
+  let allowNull = true;
+  switch (zoom.name) {
+    case "XYZ":
+      if (argsLen < 2 || argsLen > 3) {
+        return false;
+      }
+      break;
+    case "Fit":
+    case "FitB":
+      return argsLen === 0;
+    case "FitH":
+    case "FitBH":
+    case "FitV":
+    case "FitBV":
+      if (argsLen > 1) {
+        return false;
+      }
+      break;
+    case "FitR":
+      if (argsLen !== 4) {
+        return false;
+      }
+      allowNull = false;
+      break;
+    default:
+      return false;
+  }
+  for (const arg of args) {
+    if (typeof arg === "number" || allowNull && arg === null) {
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
 function toHexUtil(arr) {
   if (Uint8Array.prototype.toHex) {
     return arr.toHex();
@@ -1969,9 +2016,7 @@ class ChunkedStreamManager {
         }
       }
     }
-    chunksToRequest.sort(function (a, b) {
-      return a - b;
-    });
+    chunksToRequest.sort((a, b) => a - b);
     return this._requestChunks(chunksToRequest);
   }
   groupChunks(chunks) {
@@ -2079,6 +2124,989 @@ class ChunkedStreamManager {
     for (const capability of this._promisesByRequest.values()) {
       capability.reject(reason);
     }
+  }
+}
+
+;// ./external/qcms/qcms_utils.js
+class QCMS {
+  static _module = null;
+  static _destBuffer = null;
+}
+function copy_result(ptr, len) {
+  const {
+    _module,
+    _destBuffer
+  } = QCMS;
+  const result = new Uint8Array(_module.memory.buffer, ptr, len);
+  if (result.length === _destBuffer.length) {
+    _destBuffer.set(result);
+    return;
+  }
+  for (let i = 0, j = 0, ii = result.length; i < ii; i += 3, j += 4) {
+    _destBuffer[j] = result[i];
+    _destBuffer[j + 1] = result[i + 1];
+    _destBuffer[j + 2] = result[i + 2];
+  }
+}
+function copy_rgb(ptr) {
+  QCMS._destBuffer.set(new Uint8Array(QCMS._module.memory.buffer, ptr, 3));
+}
+
+;// ./external/qcms/qcms.js
+
+let wasm;
+const cachedTextDecoder = typeof TextDecoder !== 'undefined' ? new TextDecoder('utf-8', {
+  ignoreBOM: true,
+  fatal: true
+}) : {
+  decode: () => {
+    throw Error('TextDecoder not available');
+  }
+};
+if (typeof TextDecoder !== 'undefined') {
+  cachedTextDecoder.decode();
+}
+;
+let cachedUint8ArrayMemory0 = null;
+function getUint8ArrayMemory0() {
+  if (cachedUint8ArrayMemory0 === null || cachedUint8ArrayMemory0.byteLength === 0) {
+    cachedUint8ArrayMemory0 = new Uint8Array(wasm.memory.buffer);
+  }
+  return cachedUint8ArrayMemory0;
+}
+function getStringFromWasm0(ptr, len) {
+  ptr = ptr >>> 0;
+  return cachedTextDecoder.decode(getUint8ArrayMemory0().subarray(ptr, ptr + len));
+}
+let WASM_VECTOR_LEN = 0;
+function passArray8ToWasm0(arg, malloc) {
+  const ptr = malloc(arg.length * 1, 1) >>> 0;
+  getUint8ArrayMemory0().set(arg, ptr / 1);
+  WASM_VECTOR_LEN = arg.length;
+  return ptr;
+}
+function qcms_convert_array(transformer, src) {
+  const ptr0 = passArray8ToWasm0(src, wasm.__wbindgen_malloc);
+  const len0 = WASM_VECTOR_LEN;
+  wasm.qcms_convert_array(transformer, ptr0, len0);
+}
+function qcms_convert_one(transformer, src) {
+  wasm.qcms_convert_one(transformer, src);
+}
+function qcms_convert_three(transformer, src1, src2, src3) {
+  wasm.qcms_convert_three(transformer, src1, src2, src3);
+}
+function qcms_convert_four(transformer, src1, src2, src3, src4) {
+  wasm.qcms_convert_four(transformer, src1, src2, src3, src4);
+}
+function qcms_transformer_from_memory(mem, in_type, intent) {
+  const ptr0 = passArray8ToWasm0(mem, wasm.__wbindgen_malloc);
+  const len0 = WASM_VECTOR_LEN;
+  const ret = wasm.qcms_transformer_from_memory(ptr0, len0, in_type, intent);
+  return ret >>> 0;
+}
+function qcms_drop_transformer(transformer) {
+  wasm.qcms_drop_transformer(transformer);
+}
+const DataType = Object.freeze({
+  RGB8: 0,
+  "0": "RGB8",
+  RGBA8: 1,
+  "1": "RGBA8",
+  BGRA8: 2,
+  "2": "BGRA8",
+  Gray8: 3,
+  "3": "Gray8",
+  GrayA8: 4,
+  "4": "GrayA8",
+  CMYK: 5,
+  "5": "CMYK"
+});
+const Intent = Object.freeze({
+  Perceptual: 0,
+  "0": "Perceptual",
+  RelativeColorimetric: 1,
+  "1": "RelativeColorimetric",
+  Saturation: 2,
+  "2": "Saturation",
+  AbsoluteColorimetric: 3,
+  "3": "AbsoluteColorimetric"
+});
+async function __wbg_load(module, imports) {
+  if (typeof Response === 'function' && module instanceof Response) {
+    if (typeof WebAssembly.instantiateStreaming === 'function') {
+      try {
+        return await WebAssembly.instantiateStreaming(module, imports);
+      } catch (e) {
+        if (module.headers.get('Content-Type') != 'application/wasm') {
+          console.warn("`WebAssembly.instantiateStreaming` failed because your server does not serve Wasm with `application/wasm` MIME type. Falling back to `WebAssembly.instantiate` which is slower. Original error:\n", e);
+        } else {
+          throw e;
+        }
+      }
+    }
+    const bytes = await module.arrayBuffer();
+    return await WebAssembly.instantiate(bytes, imports);
+  } else {
+    const instance = await WebAssembly.instantiate(module, imports);
+    if (instance instanceof WebAssembly.Instance) {
+      return {
+        instance,
+        module
+      };
+    } else {
+      return instance;
+    }
+  }
+}
+function __wbg_get_imports() {
+  const imports = {};
+  imports.wbg = {};
+  imports.wbg.__wbg_copyresult_b08ee7d273f295dd = function (arg0, arg1) {
+    copy_result(arg0 >>> 0, arg1 >>> 0);
+  };
+  imports.wbg.__wbg_copyrgb_d60ce17bb05d9b67 = function (arg0) {
+    copy_rgb(arg0 >>> 0);
+  };
+  imports.wbg.__wbindgen_init_externref_table = function () {
+    const table = wasm.__wbindgen_export_0;
+    const offset = table.grow(4);
+    table.set(0, undefined);
+    table.set(offset + 0, undefined);
+    table.set(offset + 1, null);
+    table.set(offset + 2, true);
+    table.set(offset + 3, false);
+  };
+  imports.wbg.__wbindgen_throw = function (arg0, arg1) {
+    throw new Error(getStringFromWasm0(arg0, arg1));
+  };
+  return imports;
+}
+function __wbg_init_memory(imports, memory) {}
+function __wbg_finalize_init(instance, module) {
+  wasm = instance.exports;
+  __wbg_init.__wbindgen_wasm_module = module;
+  cachedUint8ArrayMemory0 = null;
+  wasm.__wbindgen_start();
+  return wasm;
+}
+function initSync(module) {
+  if (wasm !== undefined) return wasm;
+  if (typeof module !== 'undefined') {
+    if (Object.getPrototypeOf(module) === Object.prototype) {
+      ({
+        module
+      } = module);
+    } else {
+      console.warn('using deprecated parameters for `initSync()`; pass a single object instead');
+    }
+  }
+  const imports = __wbg_get_imports();
+  __wbg_init_memory(imports);
+  if (!(module instanceof WebAssembly.Module)) {
+    module = new WebAssembly.Module(module);
+  }
+  const instance = new WebAssembly.Instance(module, imports);
+  return __wbg_finalize_init(instance, module);
+}
+async function __wbg_init(module_or_path) {
+  if (wasm !== undefined) return wasm;
+  if (typeof module_or_path !== 'undefined') {
+    if (Object.getPrototypeOf(module_or_path) === Object.prototype) {
+      ({
+        module_or_path
+      } = module_or_path);
+    } else {
+      console.warn('using deprecated parameters for the initialization function; pass a single object instead');
+    }
+  }
+  if (typeof module_or_path === 'undefined') {
+    module_or_path = new URL('qcms_bg.wasm', import.meta.url);
+  }
+  const imports = __wbg_get_imports();
+  if (typeof module_or_path === 'string' || typeof Request === 'function' && module_or_path instanceof Request || typeof URL === 'function' && module_or_path instanceof URL) {
+    module_or_path = fetch(module_or_path);
+  }
+  __wbg_init_memory(imports);
+  const {
+    instance,
+    module
+  } = await __wbg_load(await module_or_path, imports);
+  return __wbg_finalize_init(instance, module);
+}
+
+/* harmony default export */ const qcms = ((/* unused pure expression or super */ null && (__wbg_init)));
+;// ./src/core/colorspace.js
+
+
+function resizeRgbImage(src, dest, w1, h1, w2, h2, alpha01) {
+  const COMPONENTS = 3;
+  alpha01 = alpha01 !== 1 ? 0 : alpha01;
+  const xRatio = w1 / w2;
+  const yRatio = h1 / h2;
+  let newIndex = 0,
+    oldIndex;
+  const xScaled = new Uint16Array(w2);
+  const w1Scanline = w1 * COMPONENTS;
+  for (let i = 0; i < w2; i++) {
+    xScaled[i] = Math.floor(i * xRatio) * COMPONENTS;
+  }
+  for (let i = 0; i < h2; i++) {
+    const py = Math.floor(i * yRatio) * w1Scanline;
+    for (let j = 0; j < w2; j++) {
+      oldIndex = py + xScaled[j];
+      dest[newIndex++] = src[oldIndex++];
+      dest[newIndex++] = src[oldIndex++];
+      dest[newIndex++] = src[oldIndex++];
+      newIndex += alpha01;
+    }
+  }
+}
+function resizeRgbaImage(src, dest, w1, h1, w2, h2, alpha01) {
+  const xRatio = w1 / w2;
+  const yRatio = h1 / h2;
+  let newIndex = 0;
+  const xScaled = new Uint16Array(w2);
+  if (alpha01 === 1) {
+    for (let i = 0; i < w2; i++) {
+      xScaled[i] = Math.floor(i * xRatio);
+    }
+    const src32 = new Uint32Array(src.buffer);
+    const dest32 = new Uint32Array(dest.buffer);
+    const rgbMask = FeatureTest.isLittleEndian ? 0x00ffffff : 0xffffff00;
+    for (let i = 0; i < h2; i++) {
+      const buf = src32.subarray(Math.floor(i * yRatio) * w1);
+      for (let j = 0; j < w2; j++) {
+        dest32[newIndex++] |= buf[xScaled[j]] & rgbMask;
+      }
+    }
+  } else {
+    const COMPONENTS = 4;
+    const w1Scanline = w1 * COMPONENTS;
+    for (let i = 0; i < w2; i++) {
+      xScaled[i] = Math.floor(i * xRatio) * COMPONENTS;
+    }
+    for (let i = 0; i < h2; i++) {
+      const buf = src.subarray(Math.floor(i * yRatio) * w1Scanline);
+      for (let j = 0; j < w2; j++) {
+        const oldIndex = xScaled[j];
+        dest[newIndex++] = buf[oldIndex];
+        dest[newIndex++] = buf[oldIndex + 1];
+        dest[newIndex++] = buf[oldIndex + 2];
+      }
+    }
+  }
+}
+function copyRgbaImage(src, dest, alpha01) {
+  if (alpha01 === 1) {
+    const src32 = new Uint32Array(src.buffer);
+    const dest32 = new Uint32Array(dest.buffer);
+    const rgbMask = FeatureTest.isLittleEndian ? 0x00ffffff : 0xffffff00;
+    for (let i = 0, ii = src32.length; i < ii; i++) {
+      dest32[i] |= src32[i] & rgbMask;
+    }
+  } else {
+    let j = 0;
+    for (let i = 0, ii = src.length; i < ii; i += 4) {
+      dest[j++] = src[i];
+      dest[j++] = src[i + 1];
+      dest[j++] = src[i + 2];
+    }
+  }
+}
+class ColorSpace {
+  constructor(name, numComps) {
+    this.name = name;
+    this.numComps = numComps;
+  }
+  getRgb(src, srcOffset) {
+    const rgb = new Uint8ClampedArray(3);
+    this.getRgbItem(src, srcOffset, rgb, 0);
+    return rgb;
+  }
+  getRgbItem(src, srcOffset, dest, destOffset) {
+    unreachable("Should not call ColorSpace.getRgbItem");
+  }
+  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
+    unreachable("Should not call ColorSpace.getRgbBuffer");
+  }
+  getOutputLength(inputLength, alpha01) {
+    unreachable("Should not call ColorSpace.getOutputLength");
+  }
+  isPassthrough(bits) {
+    return false;
+  }
+  isDefaultDecode(decodeMap, bpc) {
+    return ColorSpace.isDefaultDecode(decodeMap, this.numComps);
+  }
+  fillRgb(dest, originalWidth, originalHeight, width, height, actualHeight, bpc, comps, alpha01) {
+    const count = originalWidth * originalHeight;
+    let rgbBuf = null;
+    const numComponentColors = 1 << bpc;
+    const needsResizing = originalHeight !== height || originalWidth !== width;
+    if (this.isPassthrough(bpc)) {
+      rgbBuf = comps;
+    } else if (this.numComps === 1 && count > numComponentColors && this.name !== "DeviceGray" && this.name !== "DeviceRGB") {
+      const allColors = bpc <= 8 ? new Uint8Array(numComponentColors) : new Uint16Array(numComponentColors);
+      for (let i = 0; i < numComponentColors; i++) {
+        allColors[i] = i;
+      }
+      const colorMap = new Uint8ClampedArray(numComponentColors * 3);
+      this.getRgbBuffer(allColors, 0, numComponentColors, colorMap, 0, bpc, 0);
+      if (!needsResizing) {
+        let destPos = 0;
+        for (let i = 0; i < count; ++i) {
+          const key = comps[i] * 3;
+          dest[destPos++] = colorMap[key];
+          dest[destPos++] = colorMap[key + 1];
+          dest[destPos++] = colorMap[key + 2];
+          destPos += alpha01;
+        }
+      } else {
+        rgbBuf = new Uint8Array(count * 3);
+        let rgbPos = 0;
+        for (let i = 0; i < count; ++i) {
+          const key = comps[i] * 3;
+          rgbBuf[rgbPos++] = colorMap[key];
+          rgbBuf[rgbPos++] = colorMap[key + 1];
+          rgbBuf[rgbPos++] = colorMap[key + 2];
+        }
+      }
+    } else if (!needsResizing) {
+      this.getRgbBuffer(comps, 0, width * actualHeight, dest, 0, bpc, alpha01);
+    } else {
+      rgbBuf = new Uint8ClampedArray(count * 3);
+      this.getRgbBuffer(comps, 0, count, rgbBuf, 0, bpc, 0);
+    }
+    if (rgbBuf) {
+      if (needsResizing) {
+        resizeRgbImage(rgbBuf, dest, originalWidth, originalHeight, width, height, alpha01);
+      } else {
+        let destPos = 0,
+          rgbPos = 0;
+        for (let i = 0, ii = width * actualHeight; i < ii; i++) {
+          dest[destPos++] = rgbBuf[rgbPos++];
+          dest[destPos++] = rgbBuf[rgbPos++];
+          dest[destPos++] = rgbBuf[rgbPos++];
+          destPos += alpha01;
+        }
+      }
+    }
+  }
+  get usesZeroToOneRange() {
+    return shadow(this, "usesZeroToOneRange", true);
+  }
+  static isDefaultDecode(decode, numComps) {
+    if (!Array.isArray(decode)) {
+      return true;
+    }
+    if (numComps * 2 !== decode.length) {
+      warn("The decode map is not the correct length");
+      return true;
+    }
+    for (let i = 0, ii = decode.length; i < ii; i += 2) {
+      if (decode[i] !== 0 || decode[i + 1] !== 1) {
+        return false;
+      }
+    }
+    return true;
+  }
+}
+class AlternateCS extends ColorSpace {
+  constructor(numComps, base, tintFn) {
+    super("Alternate", numComps);
+    this.base = base;
+    this.tintFn = tintFn;
+    this.tmpBuf = new Float32Array(base.numComps);
+  }
+  getRgbItem(src, srcOffset, dest, destOffset) {
+    const tmpBuf = this.tmpBuf;
+    this.tintFn(src, srcOffset, tmpBuf, 0);
+    this.base.getRgbItem(tmpBuf, 0, dest, destOffset);
+  }
+  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
+    const tintFn = this.tintFn;
+    const base = this.base;
+    const scale = 1 / ((1 << bits) - 1);
+    const baseNumComps = base.numComps;
+    const usesZeroToOneRange = base.usesZeroToOneRange;
+    const isPassthrough = (base.isPassthrough(8) || !usesZeroToOneRange) && alpha01 === 0;
+    let pos = isPassthrough ? destOffset : 0;
+    const baseBuf = isPassthrough ? dest : new Uint8ClampedArray(baseNumComps * count);
+    const numComps = this.numComps;
+    const scaled = new Float32Array(numComps);
+    const tinted = new Float32Array(baseNumComps);
+    let i, j;
+    for (i = 0; i < count; i++) {
+      for (j = 0; j < numComps; j++) {
+        scaled[j] = src[srcOffset++] * scale;
+      }
+      tintFn(scaled, 0, tinted, 0);
+      if (usesZeroToOneRange) {
+        for (j = 0; j < baseNumComps; j++) {
+          baseBuf[pos++] = tinted[j] * 255;
+        }
+      } else {
+        base.getRgbItem(tinted, 0, baseBuf, pos);
+        pos += baseNumComps;
+      }
+    }
+    if (!isPassthrough) {
+      base.getRgbBuffer(baseBuf, 0, count, dest, destOffset, 8, alpha01);
+    }
+  }
+  getOutputLength(inputLength, alpha01) {
+    return this.base.getOutputLength(inputLength * this.base.numComps / this.numComps, alpha01);
+  }
+}
+class PatternCS extends ColorSpace {
+  constructor(baseCS) {
+    super("Pattern", null);
+    this.base = baseCS;
+  }
+  isDefaultDecode(decodeMap, bpc) {
+    unreachable("Should not call PatternCS.isDefaultDecode");
+  }
+}
+class IndexedCS extends ColorSpace {
+  constructor(base, highVal, lookup) {
+    super("Indexed", 1);
+    this.base = base;
+    const length = base.numComps * (highVal + 1);
+    this.lookup = new Uint8Array(length);
+    if (lookup instanceof BaseStream) {
+      const bytes = lookup.getBytes(length);
+      this.lookup.set(bytes);
+    } else if (typeof lookup === "string") {
+      for (let i = 0; i < length; ++i) {
+        this.lookup[i] = lookup.charCodeAt(i) & 0xff;
+      }
+    } else {
+      throw new FormatError(`IndexedCS - unrecognized lookup table: ${lookup}`);
+    }
+  }
+  getRgbItem(src, srcOffset, dest, destOffset) {
+    const numComps = this.base.numComps;
+    const start = src[srcOffset] * numComps;
+    this.base.getRgbBuffer(this.lookup, start, 1, dest, destOffset, 8, 0);
+  }
+  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
+    const base = this.base;
+    const numComps = base.numComps;
+    const outputDelta = base.getOutputLength(numComps, alpha01);
+    const lookup = this.lookup;
+    for (let i = 0; i < count; ++i) {
+      const lookupPos = src[srcOffset++] * numComps;
+      base.getRgbBuffer(lookup, lookupPos, 1, dest, destOffset, 8, alpha01);
+      destOffset += outputDelta;
+    }
+  }
+  getOutputLength(inputLength, alpha01) {
+    return this.base.getOutputLength(inputLength * this.base.numComps, alpha01);
+  }
+  isDefaultDecode(decodeMap, bpc) {
+    if (!Array.isArray(decodeMap)) {
+      return true;
+    }
+    if (decodeMap.length !== 2) {
+      warn("Decode map length is not correct");
+      return true;
+    }
+    if (!Number.isInteger(bpc) || bpc < 1) {
+      warn("Bits per component is not correct");
+      return true;
+    }
+    return decodeMap[0] === 0 && decodeMap[1] === (1 << bpc) - 1;
+  }
+}
+class DeviceGrayCS extends ColorSpace {
+  constructor() {
+    super("DeviceGray", 1);
+  }
+  getRgbItem(src, srcOffset, dest, destOffset) {
+    const c = src[srcOffset] * 255;
+    dest[destOffset] = dest[destOffset + 1] = dest[destOffset + 2] = c;
+  }
+  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
+    const scale = 255 / ((1 << bits) - 1);
+    let j = srcOffset,
+      q = destOffset;
+    for (let i = 0; i < count; ++i) {
+      const c = scale * src[j++];
+      dest[q++] = c;
+      dest[q++] = c;
+      dest[q++] = c;
+      q += alpha01;
+    }
+  }
+  getOutputLength(inputLength, alpha01) {
+    return inputLength * (3 + alpha01);
+  }
+}
+class DeviceRgbCS extends ColorSpace {
+  constructor() {
+    super("DeviceRGB", 3);
+  }
+  getRgbItem(src, srcOffset, dest, destOffset) {
+    dest[destOffset] = src[srcOffset] * 255;
+    dest[destOffset + 1] = src[srcOffset + 1] * 255;
+    dest[destOffset + 2] = src[srcOffset + 2] * 255;
+  }
+  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
+    if (bits === 8 && alpha01 === 0) {
+      dest.set(src.subarray(srcOffset, srcOffset + count * 3), destOffset);
+      return;
+    }
+    const scale = 255 / ((1 << bits) - 1);
+    let j = srcOffset,
+      q = destOffset;
+    for (let i = 0; i < count; ++i) {
+      dest[q++] = scale * src[j++];
+      dest[q++] = scale * src[j++];
+      dest[q++] = scale * src[j++];
+      q += alpha01;
+    }
+  }
+  getOutputLength(inputLength, alpha01) {
+    return inputLength * (3 + alpha01) / 3 | 0;
+  }
+  isPassthrough(bits) {
+    return bits === 8;
+  }
+}
+class DeviceRgbaCS extends ColorSpace {
+  constructor() {
+    super("DeviceRGBA", 4);
+  }
+  getOutputLength(inputLength, _alpha01) {
+    return inputLength * 4;
+  }
+  isPassthrough(bits) {
+    return bits === 8;
+  }
+  fillRgb(dest, originalWidth, originalHeight, width, height, actualHeight, bpc, comps, alpha01) {
+    if (originalHeight !== height || originalWidth !== width) {
+      resizeRgbaImage(comps, dest, originalWidth, originalHeight, width, height, alpha01);
+    } else {
+      copyRgbaImage(comps, dest, alpha01);
+    }
+  }
+}
+class DeviceCmykCS extends ColorSpace {
+  constructor() {
+    super("DeviceCMYK", 4);
+  }
+  #toRgb(src, srcOffset, srcScale, dest, destOffset) {
+    const c = src[srcOffset] * srcScale;
+    const m = src[srcOffset + 1] * srcScale;
+    const y = src[srcOffset + 2] * srcScale;
+    const k = src[srcOffset + 3] * srcScale;
+    dest[destOffset] = 255 + c * (-4.387332384609988 * c + 54.48615194189176 * m + 18.82290502165302 * y + 212.25662451639585 * k + -285.2331026137004) + m * (1.7149763477362134 * m - 5.6096736904047315 * y + -17.873870861415444 * k - 5.497006427196366) + y * (-2.5217340131683033 * y - 21.248923337353073 * k + 17.5119270841813) + k * (-21.86122147463605 * k - 189.48180835922747);
+    dest[destOffset + 1] = 255 + c * (8.841041422036149 * c + 60.118027045597366 * m + 6.871425592049007 * y + 31.159100130055922 * k + -79.2970844816548) + m * (-15.310361306967817 * m + 17.575251261109482 * y + 131.35250912493976 * k - 190.9453302588951) + y * (4.444339102852739 * y + 9.8632861493405 * k - 24.86741582555878) + k * (-20.737325471181034 * k - 187.80453709719578);
+    dest[destOffset + 2] = 255 + c * (0.8842522430003296 * c + 8.078677503112928 * m + 30.89978309703729 * y - 0.23883238689178934 * k + -14.183576799673286) + m * (10.49593273432072 * m + 63.02378494754052 * y + 50.606957656360734 * k - 112.23884253719248) + y * (0.03296041114873217 * y + 115.60384449646641 * k + -193.58209356861505) + k * (-22.33816807309886 * k - 180.12613974708367);
+  }
+  getRgbItem(src, srcOffset, dest, destOffset) {
+    this.#toRgb(src, srcOffset, 1, dest, destOffset);
+  }
+  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
+    const scale = 1 / ((1 << bits) - 1);
+    for (let i = 0; i < count; i++) {
+      this.#toRgb(src, srcOffset, scale, dest, destOffset);
+      srcOffset += 4;
+      destOffset += 3 + alpha01;
+    }
+  }
+  getOutputLength(inputLength, alpha01) {
+    return inputLength / 4 * (3 + alpha01) | 0;
+  }
+}
+class CalGrayCS extends ColorSpace {
+  constructor(whitePoint, blackPoint, gamma) {
+    super("CalGray", 1);
+    if (!whitePoint) {
+      throw new FormatError("WhitePoint missing - required for color space CalGray");
+    }
+    [this.XW, this.YW, this.ZW] = whitePoint;
+    [this.XB, this.YB, this.ZB] = blackPoint || [0, 0, 0];
+    this.G = gamma || 1;
+    if (this.XW < 0 || this.ZW < 0 || this.YW !== 1) {
+      throw new FormatError(`Invalid WhitePoint components for ${this.name}, no fallback available`);
+    }
+    if (this.XB < 0 || this.YB < 0 || this.ZB < 0) {
+      info(`Invalid BlackPoint for ${this.name}, falling back to default.`);
+      this.XB = this.YB = this.ZB = 0;
+    }
+    if (this.XB !== 0 || this.YB !== 0 || this.ZB !== 0) {
+      warn(`${this.name}, BlackPoint: XB: ${this.XB}, YB: ${this.YB}, ` + `ZB: ${this.ZB}, only default values are supported.`);
+    }
+    if (this.G < 1) {
+      info(`Invalid Gamma: ${this.G} for ${this.name}, falling back to default.`);
+      this.G = 1;
+    }
+  }
+  #toRgb(src, srcOffset, dest, destOffset, scale) {
+    const A = src[srcOffset] * scale;
+    const AG = A ** this.G;
+    const L = this.YW * AG;
+    const val = Math.max(295.8 * L ** 0.3333333333333333 - 40.8, 0);
+    dest[destOffset] = val;
+    dest[destOffset + 1] = val;
+    dest[destOffset + 2] = val;
+  }
+  getRgbItem(src, srcOffset, dest, destOffset) {
+    this.#toRgb(src, srcOffset, dest, destOffset, 1);
+  }
+  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
+    const scale = 1 / ((1 << bits) - 1);
+    for (let i = 0; i < count; ++i) {
+      this.#toRgb(src, srcOffset, dest, destOffset, scale);
+      srcOffset += 1;
+      destOffset += 3 + alpha01;
+    }
+  }
+  getOutputLength(inputLength, alpha01) {
+    return inputLength * (3 + alpha01);
+  }
+}
+class CalRGBCS extends ColorSpace {
+  static #BRADFORD_SCALE_MATRIX = new Float32Array([0.8951, 0.2664, -0.1614, -0.7502, 1.7135, 0.0367, 0.0389, -0.0685, 1.0296]);
+  static #BRADFORD_SCALE_INVERSE_MATRIX = new Float32Array([0.9869929, -0.1470543, 0.1599627, 0.4323053, 0.5183603, 0.0492912, -0.0085287, 0.0400428, 0.9684867]);
+  static #SRGB_D65_XYZ_TO_RGB_MATRIX = new Float32Array([3.2404542, -1.5371385, -0.4985314, -0.9692660, 1.8760108, 0.0415560, 0.0556434, -0.2040259, 1.0572252]);
+  static #FLAT_WHITEPOINT_MATRIX = new Float32Array([1, 1, 1]);
+  static #tempNormalizeMatrix = new Float32Array(3);
+  static #tempConvertMatrix1 = new Float32Array(3);
+  static #tempConvertMatrix2 = new Float32Array(3);
+  static #DECODE_L_CONSTANT = ((8 + 16) / 116) ** 3 / 8.0;
+  constructor(whitePoint, blackPoint, gamma, matrix) {
+    super("CalRGB", 3);
+    if (!whitePoint) {
+      throw new FormatError("WhitePoint missing - required for color space CalRGB");
+    }
+    const [XW, YW, ZW] = this.whitePoint = whitePoint;
+    const [XB, YB, ZB] = this.blackPoint = blackPoint || new Float32Array(3);
+    [this.GR, this.GG, this.GB] = gamma || new Float32Array([1, 1, 1]);
+    [this.MXA, this.MYA, this.MZA, this.MXB, this.MYB, this.MZB, this.MXC, this.MYC, this.MZC] = matrix || new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
+    if (XW < 0 || ZW < 0 || YW !== 1) {
+      throw new FormatError(`Invalid WhitePoint components for ${this.name}, no fallback available`);
+    }
+    if (XB < 0 || YB < 0 || ZB < 0) {
+      info(`Invalid BlackPoint for ${this.name} [${XB}, ${YB}, ${ZB}], ` + "falling back to default.");
+      this.blackPoint = new Float32Array(3);
+    }
+    if (this.GR < 0 || this.GG < 0 || this.GB < 0) {
+      info(`Invalid Gamma [${this.GR}, ${this.GG}, ${this.GB}] for ` + `${this.name}, falling back to default.`);
+      this.GR = this.GG = this.GB = 1;
+    }
+  }
+  #matrixProduct(a, b, result) {
+    result[0] = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    result[1] = a[3] * b[0] + a[4] * b[1] + a[5] * b[2];
+    result[2] = a[6] * b[0] + a[7] * b[1] + a[8] * b[2];
+  }
+  #toFlat(sourceWhitePoint, LMS, result) {
+    result[0] = LMS[0] * 1 / sourceWhitePoint[0];
+    result[1] = LMS[1] * 1 / sourceWhitePoint[1];
+    result[2] = LMS[2] * 1 / sourceWhitePoint[2];
+  }
+  #toD65(sourceWhitePoint, LMS, result) {
+    const D65X = 0.95047;
+    const D65Y = 1;
+    const D65Z = 1.08883;
+    result[0] = LMS[0] * D65X / sourceWhitePoint[0];
+    result[1] = LMS[1] * D65Y / sourceWhitePoint[1];
+    result[2] = LMS[2] * D65Z / sourceWhitePoint[2];
+  }
+  #sRGBTransferFunction(color) {
+    if (color <= 0.0031308) {
+      return this.#adjustToRange(0, 1, 12.92 * color);
+    }
+    if (color >= 0.99554525) {
+      return 1;
+    }
+    return this.#adjustToRange(0, 1, (1 + 0.055) * color ** (1 / 2.4) - 0.055);
+  }
+  #adjustToRange(min, max, value) {
+    return Math.max(min, Math.min(max, value));
+  }
+  #decodeL(L) {
+    if (L < 0) {
+      return -this.#decodeL(-L);
+    }
+    if (L > 8.0) {
+      return ((L + 16) / 116) ** 3;
+    }
+    return L * CalRGBCS.#DECODE_L_CONSTANT;
+  }
+  #compensateBlackPoint(sourceBlackPoint, XYZ_Flat, result) {
+    if (sourceBlackPoint[0] === 0 && sourceBlackPoint[1] === 0 && sourceBlackPoint[2] === 0) {
+      result[0] = XYZ_Flat[0];
+      result[1] = XYZ_Flat[1];
+      result[2] = XYZ_Flat[2];
+      return;
+    }
+    const zeroDecodeL = this.#decodeL(0);
+    const X_DST = zeroDecodeL;
+    const X_SRC = this.#decodeL(sourceBlackPoint[0]);
+    const Y_DST = zeroDecodeL;
+    const Y_SRC = this.#decodeL(sourceBlackPoint[1]);
+    const Z_DST = zeroDecodeL;
+    const Z_SRC = this.#decodeL(sourceBlackPoint[2]);
+    const X_Scale = (1 - X_DST) / (1 - X_SRC);
+    const X_Offset = 1 - X_Scale;
+    const Y_Scale = (1 - Y_DST) / (1 - Y_SRC);
+    const Y_Offset = 1 - Y_Scale;
+    const Z_Scale = (1 - Z_DST) / (1 - Z_SRC);
+    const Z_Offset = 1 - Z_Scale;
+    result[0] = XYZ_Flat[0] * X_Scale + X_Offset;
+    result[1] = XYZ_Flat[1] * Y_Scale + Y_Offset;
+    result[2] = XYZ_Flat[2] * Z_Scale + Z_Offset;
+  }
+  #normalizeWhitePointToFlat(sourceWhitePoint, XYZ_In, result) {
+    if (sourceWhitePoint[0] === 1 && sourceWhitePoint[2] === 1) {
+      result[0] = XYZ_In[0];
+      result[1] = XYZ_In[1];
+      result[2] = XYZ_In[2];
+      return;
+    }
+    const LMS = result;
+    this.#matrixProduct(CalRGBCS.#BRADFORD_SCALE_MATRIX, XYZ_In, LMS);
+    const LMS_Flat = CalRGBCS.#tempNormalizeMatrix;
+    this.#toFlat(sourceWhitePoint, LMS, LMS_Flat);
+    this.#matrixProduct(CalRGBCS.#BRADFORD_SCALE_INVERSE_MATRIX, LMS_Flat, result);
+  }
+  #normalizeWhitePointToD65(sourceWhitePoint, XYZ_In, result) {
+    const LMS = result;
+    this.#matrixProduct(CalRGBCS.#BRADFORD_SCALE_MATRIX, XYZ_In, LMS);
+    const LMS_D65 = CalRGBCS.#tempNormalizeMatrix;
+    this.#toD65(sourceWhitePoint, LMS, LMS_D65);
+    this.#matrixProduct(CalRGBCS.#BRADFORD_SCALE_INVERSE_MATRIX, LMS_D65, result);
+  }
+  #toRgb(src, srcOffset, dest, destOffset, scale) {
+    const A = this.#adjustToRange(0, 1, src[srcOffset] * scale);
+    const B = this.#adjustToRange(0, 1, src[srcOffset + 1] * scale);
+    const C = this.#adjustToRange(0, 1, src[srcOffset + 2] * scale);
+    const AGR = A === 1 ? 1 : A ** this.GR;
+    const BGG = B === 1 ? 1 : B ** this.GG;
+    const CGB = C === 1 ? 1 : C ** this.GB;
+    const X = this.MXA * AGR + this.MXB * BGG + this.MXC * CGB;
+    const Y = this.MYA * AGR + this.MYB * BGG + this.MYC * CGB;
+    const Z = this.MZA * AGR + this.MZB * BGG + this.MZC * CGB;
+    const XYZ = CalRGBCS.#tempConvertMatrix1;
+    XYZ[0] = X;
+    XYZ[1] = Y;
+    XYZ[2] = Z;
+    const XYZ_Flat = CalRGBCS.#tempConvertMatrix2;
+    this.#normalizeWhitePointToFlat(this.whitePoint, XYZ, XYZ_Flat);
+    const XYZ_Black = CalRGBCS.#tempConvertMatrix1;
+    this.#compensateBlackPoint(this.blackPoint, XYZ_Flat, XYZ_Black);
+    const XYZ_D65 = CalRGBCS.#tempConvertMatrix2;
+    this.#normalizeWhitePointToD65(CalRGBCS.#FLAT_WHITEPOINT_MATRIX, XYZ_Black, XYZ_D65);
+    const SRGB = CalRGBCS.#tempConvertMatrix1;
+    this.#matrixProduct(CalRGBCS.#SRGB_D65_XYZ_TO_RGB_MATRIX, XYZ_D65, SRGB);
+    dest[destOffset] = this.#sRGBTransferFunction(SRGB[0]) * 255;
+    dest[destOffset + 1] = this.#sRGBTransferFunction(SRGB[1]) * 255;
+    dest[destOffset + 2] = this.#sRGBTransferFunction(SRGB[2]) * 255;
+  }
+  getRgbItem(src, srcOffset, dest, destOffset) {
+    this.#toRgb(src, srcOffset, dest, destOffset, 1);
+  }
+  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
+    const scale = 1 / ((1 << bits) - 1);
+    for (let i = 0; i < count; ++i) {
+      this.#toRgb(src, srcOffset, dest, destOffset, scale);
+      srcOffset += 3;
+      destOffset += 3 + alpha01;
+    }
+  }
+  getOutputLength(inputLength, alpha01) {
+    return inputLength * (3 + alpha01) / 3 | 0;
+  }
+}
+class LabCS extends ColorSpace {
+  constructor(whitePoint, blackPoint, range) {
+    super("Lab", 3);
+    if (!whitePoint) {
+      throw new FormatError("WhitePoint missing - required for color space Lab");
+    }
+    [this.XW, this.YW, this.ZW] = whitePoint;
+    [this.amin, this.amax, this.bmin, this.bmax] = range || [-100, 100, -100, 100];
+    [this.XB, this.YB, this.ZB] = blackPoint || [0, 0, 0];
+    if (this.XW < 0 || this.ZW < 0 || this.YW !== 1) {
+      throw new FormatError("Invalid WhitePoint components, no fallback available");
+    }
+    if (this.XB < 0 || this.YB < 0 || this.ZB < 0) {
+      info("Invalid BlackPoint, falling back to default");
+      this.XB = this.YB = this.ZB = 0;
+    }
+    if (this.amin > this.amax || this.bmin > this.bmax) {
+      info("Invalid Range, falling back to defaults");
+      this.amin = -100;
+      this.amax = 100;
+      this.bmin = -100;
+      this.bmax = 100;
+    }
+  }
+  #fn_g(x) {
+    return x >= 6 / 29 ? x ** 3 : 108 / 841 * (x - 4 / 29);
+  }
+  #decode(value, high1, low2, high2) {
+    return low2 + value * (high2 - low2) / high1;
+  }
+  #toRgb(src, srcOffset, maxVal, dest, destOffset) {
+    let Ls = src[srcOffset];
+    let as = src[srcOffset + 1];
+    let bs = src[srcOffset + 2];
+    if (maxVal !== false) {
+      Ls = this.#decode(Ls, maxVal, 0, 100);
+      as = this.#decode(as, maxVal, this.amin, this.amax);
+      bs = this.#decode(bs, maxVal, this.bmin, this.bmax);
+    }
+    if (as > this.amax) {
+      as = this.amax;
+    } else if (as < this.amin) {
+      as = this.amin;
+    }
+    if (bs > this.bmax) {
+      bs = this.bmax;
+    } else if (bs < this.bmin) {
+      bs = this.bmin;
+    }
+    const M = (Ls + 16) / 116;
+    const L = M + as / 500;
+    const N = M - bs / 200;
+    const X = this.XW * this.#fn_g(L);
+    const Y = this.YW * this.#fn_g(M);
+    const Z = this.ZW * this.#fn_g(N);
+    let r, g, b;
+    if (this.ZW < 1) {
+      r = X * 3.1339 + Y * -1.617 + Z * -0.4906;
+      g = X * -0.9785 + Y * 1.916 + Z * 0.0333;
+      b = X * 0.072 + Y * -0.229 + Z * 1.4057;
+    } else {
+      r = X * 3.2406 + Y * -1.5372 + Z * -0.4986;
+      g = X * -0.9689 + Y * 1.8758 + Z * 0.0415;
+      b = X * 0.0557 + Y * -0.204 + Z * 1.057;
+    }
+    dest[destOffset] = Math.sqrt(r) * 255;
+    dest[destOffset + 1] = Math.sqrt(g) * 255;
+    dest[destOffset + 2] = Math.sqrt(b) * 255;
+  }
+  getRgbItem(src, srcOffset, dest, destOffset) {
+    this.#toRgb(src, srcOffset, false, dest, destOffset);
+  }
+  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
+    const maxVal = (1 << bits) - 1;
+    for (let i = 0; i < count; i++) {
+      this.#toRgb(src, srcOffset, maxVal, dest, destOffset);
+      srcOffset += 3;
+      destOffset += 3 + alpha01;
+    }
+  }
+  getOutputLength(inputLength, alpha01) {
+    return inputLength * (3 + alpha01) / 3 | 0;
+  }
+  isDefaultDecode(decodeMap, bpc) {
+    return true;
+  }
+  get usesZeroToOneRange() {
+    return shadow(this, "usesZeroToOneRange", false);
+  }
+}
+
+;// ./src/core/icc_colorspace.js
+
+
+
+
+class IccColorSpace extends ColorSpace {
+  #transformer;
+  #convertPixel;
+  static #useWasm = true;
+  static #wasmUrl = null;
+  static #finalizer = new FinalizationRegistry(transformer => {
+    qcms_drop_transformer(transformer);
+  });
+  constructor(iccProfile, numComps) {
+    if (!IccColorSpace.isUsable) {
+      throw new Error("No ICC color space support");
+    }
+    super("ICCBased", numComps);
+    let inType;
+    switch (numComps) {
+      case 1:
+        inType = DataType.Gray8;
+        this.#convertPixel = (src, srcOffset) => qcms_convert_one(this.#transformer, src[srcOffset] * 255);
+        break;
+      case 3:
+        inType = DataType.RGB8;
+        this.#convertPixel = (src, srcOffset) => qcms_convert_three(this.#transformer, src[srcOffset] * 255, src[srcOffset + 1] * 255, src[srcOffset + 2] * 255);
+        break;
+      case 4:
+        inType = DataType.CMYK;
+        this.#convertPixel = (src, srcOffset) => qcms_convert_four(this.#transformer, src[srcOffset] * 255, src[srcOffset + 1] * 255, src[srcOffset + 2] * 255, src[srcOffset + 3] * 255);
+        break;
+      default:
+        throw new Error(`Unsupported number of components: ${numComps}`);
+    }
+    this.#transformer = qcms_transformer_from_memory(iccProfile, inType, Intent.Perceptual);
+    if (!this.#transformer) {
+      throw new Error("Failed to create ICC color space");
+    }
+    IccColorSpace.#finalizer.register(this, this.#transformer);
+  }
+  getRgbItem(src, srcOffset, dest, destOffset) {
+    QCMS._destBuffer = dest.subarray(destOffset, destOffset + 3);
+    this.#convertPixel(src, srcOffset);
+    QCMS._destBuffer = null;
+  }
+  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
+    src = src.subarray(srcOffset, srcOffset + count * this.numComps);
+    if (bits !== 8) {
+      const scale = 255 / ((1 << bits) - 1);
+      for (let i = 0, ii = src.length; i < ii; i++) {
+        src[i] *= scale;
+      }
+    }
+    QCMS._destBuffer = dest.subarray(destOffset, destOffset + count * (3 + alpha01));
+    qcms_convert_array(this.#transformer, src);
+    QCMS._destBuffer = null;
+  }
+  getOutputLength(inputLength, alpha01) {
+    return inputLength / this.numComps * (3 + alpha01) | 0;
+  }
+  static setOptions({
+    useWasm,
+    useWorkerFetch,
+    wasmUrl
+  }) {
+    if (!useWorkerFetch) {
+      this.#useWasm = false;
+      return;
+    }
+    this.#useWasm = useWasm;
+    this.#wasmUrl = wasmUrl;
+  }
+  static get isUsable() {
+    let isUsable = false;
+    if (this.#useWasm) {
+      try {
+        this._module = QCMS._module = this.#load();
+        isUsable = !!this._module;
+      } catch (e) {
+        warn(`ICCBased color space: "${e}".`);
+      }
+    }
+    return shadow(this, "isUsable", isUsable);
+  }
+  static #load() {
+    const filename = "qcms_bg.wasm";
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", `${this.#wasmUrl}${filename}`, false);
+    xhr.responseType = "arraybuffer";
+    xhr.send(null);
+    return initSync({
+      module: xhr.response
+    });
   }
 }
 
@@ -3970,7 +4998,7 @@ class JpegStream extends DecodeStream {
 
 ;// ./external/openjpeg/openjpeg.js
 var OpenJPEG = (() => {
-  var _scriptName = typeof document != 'undefined' ? document.currentScript?.src : undefined;
+  var _scriptName = import.meta.url;
   return async function (moduleArg = {}) {
     var moduleRtn;
     var Module = moduleArg;
@@ -4095,7 +5123,10 @@ var OpenJPEG = (() => {
     }
     var wasmBinaryFile;
     function findWasmBinary() {
-      return locateFile("openjpeg.wasm");
+      if (Module["locateFile"]) {
+        return locateFile("openjpeg.wasm");
+      }
+      return new URL("openjpeg.wasm", import.meta.url).href;
     }
     function getBinarySync(file) {
       if (file == wasmBinaryFile && wasmBinary) {
@@ -4698,182 +5729,52 @@ class JpxImage {
   }
 }
 
-;// ./src/core/colorspace.js
+;// ./src/core/colorspace_utils.js
 
 
 
 
-function resizeRgbImage(src, dest, w1, h1, w2, h2, alpha01) {
-  const COMPONENTS = 3;
-  alpha01 = alpha01 !== 1 ? 0 : alpha01;
-  const xRatio = w1 / w2;
-  const yRatio = h1 / h2;
-  let newIndex = 0,
-    oldIndex;
-  const xScaled = new Uint16Array(w2);
-  const w1Scanline = w1 * COMPONENTS;
-  for (let i = 0; i < w2; i++) {
-    xScaled[i] = Math.floor(i * xRatio) * COMPONENTS;
-  }
-  for (let i = 0; i < h2; i++) {
-    const py = Math.floor(i * yRatio) * w1Scanline;
-    for (let j = 0; j < w2; j++) {
-      oldIndex = py + xScaled[j];
-      dest[newIndex++] = src[oldIndex++];
-      dest[newIndex++] = src[oldIndex++];
-      dest[newIndex++] = src[oldIndex++];
-      newIndex += alpha01;
+
+class ColorSpaceUtils {
+  static parse({
+    cs,
+    xref,
+    resources = null,
+    pdfFunctionFactory,
+    globalColorSpaceCache,
+    localColorSpaceCache,
+    asyncIfNotCached = false
+  }) {
+    const options = {
+      xref,
+      resources,
+      pdfFunctionFactory,
+      globalColorSpaceCache,
+      localColorSpaceCache
+    };
+    let csName, csRef, parsedCS;
+    if (cs instanceof Ref) {
+      csRef = cs;
+      const cachedCS = globalColorSpaceCache.getByRef(csRef) || localColorSpaceCache.getByRef(csRef);
+      if (cachedCS) {
+        return cachedCS;
+      }
+      cs = xref.fetch(cs);
     }
-  }
-}
-function resizeRgbaImage(src, dest, w1, h1, w2, h2, alpha01) {
-  const xRatio = w1 / w2;
-  const yRatio = h1 / h2;
-  let newIndex = 0;
-  const xScaled = new Uint16Array(w2);
-  if (alpha01 === 1) {
-    for (let i = 0; i < w2; i++) {
-      xScaled[i] = Math.floor(i * xRatio);
-    }
-    const src32 = new Uint32Array(src.buffer);
-    const dest32 = new Uint32Array(dest.buffer);
-    const rgbMask = FeatureTest.isLittleEndian ? 0x00ffffff : 0xffffff00;
-    for (let i = 0; i < h2; i++) {
-      const buf = src32.subarray(Math.floor(i * yRatio) * w1);
-      for (let j = 0; j < w2; j++) {
-        dest32[newIndex++] |= buf[xScaled[j]] & rgbMask;
+    if (cs instanceof Name) {
+      csName = cs.name;
+      const cachedCS = localColorSpaceCache.getByName(csName);
+      if (cachedCS) {
+        return cachedCS;
       }
     }
-  } else {
-    const COMPONENTS = 4;
-    const w1Scanline = w1 * COMPONENTS;
-    for (let i = 0; i < w2; i++) {
-      xScaled[i] = Math.floor(i * xRatio) * COMPONENTS;
-    }
-    for (let i = 0; i < h2; i++) {
-      const buf = src.subarray(Math.floor(i * yRatio) * w1Scanline);
-      for (let j = 0; j < w2; j++) {
-        const oldIndex = xScaled[j];
-        dest[newIndex++] = buf[oldIndex];
-        dest[newIndex++] = buf[oldIndex + 1];
-        dest[newIndex++] = buf[oldIndex + 2];
+    try {
+      parsedCS = this.#parse(cs, options);
+    } catch (ex) {
+      if (asyncIfNotCached && !(ex instanceof MissingDataException)) {
+        return Promise.reject(ex);
       }
-    }
-  }
-}
-function copyRgbaImage(src, dest, alpha01) {
-  if (alpha01 === 1) {
-    const src32 = new Uint32Array(src.buffer);
-    const dest32 = new Uint32Array(dest.buffer);
-    const rgbMask = FeatureTest.isLittleEndian ? 0x00ffffff : 0xffffff00;
-    for (let i = 0, ii = src32.length; i < ii; i++) {
-      dest32[i] |= src32[i] & rgbMask;
-    }
-  } else {
-    let j = 0;
-    for (let i = 0, ii = src.length; i < ii; i += 4) {
-      dest[j++] = src[i];
-      dest[j++] = src[i + 1];
-      dest[j++] = src[i + 2];
-    }
-  }
-}
-class ColorSpace {
-  constructor(name, numComps) {
-    this.name = name;
-    this.numComps = numComps;
-  }
-  getRgb(src, srcOffset) {
-    const rgb = new Uint8ClampedArray(3);
-    this.getRgbItem(src, srcOffset, rgb, 0);
-    return rgb;
-  }
-  getRgbItem(src, srcOffset, dest, destOffset) {
-    unreachable("Should not call ColorSpace.getRgbItem");
-  }
-  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
-    unreachable("Should not call ColorSpace.getRgbBuffer");
-  }
-  getOutputLength(inputLength, alpha01) {
-    unreachable("Should not call ColorSpace.getOutputLength");
-  }
-  isPassthrough(bits) {
-    return false;
-  }
-  isDefaultDecode(decodeMap, bpc) {
-    return ColorSpace.isDefaultDecode(decodeMap, this.numComps);
-  }
-  fillRgb(dest, originalWidth, originalHeight, width, height, actualHeight, bpc, comps, alpha01) {
-    const count = originalWidth * originalHeight;
-    let rgbBuf = null;
-    const numComponentColors = 1 << bpc;
-    const needsResizing = originalHeight !== height || originalWidth !== width;
-    if (this.isPassthrough(bpc)) {
-      rgbBuf = comps;
-    } else if (this.numComps === 1 && count > numComponentColors && this.name !== "DeviceGray" && this.name !== "DeviceRGB") {
-      const allColors = bpc <= 8 ? new Uint8Array(numComponentColors) : new Uint16Array(numComponentColors);
-      for (let i = 0; i < numComponentColors; i++) {
-        allColors[i] = i;
-      }
-      const colorMap = new Uint8ClampedArray(numComponentColors * 3);
-      this.getRgbBuffer(allColors, 0, numComponentColors, colorMap, 0, bpc, 0);
-      if (!needsResizing) {
-        let destPos = 0;
-        for (let i = 0; i < count; ++i) {
-          const key = comps[i] * 3;
-          dest[destPos++] = colorMap[key];
-          dest[destPos++] = colorMap[key + 1];
-          dest[destPos++] = colorMap[key + 2];
-          destPos += alpha01;
-        }
-      } else {
-        rgbBuf = new Uint8Array(count * 3);
-        let rgbPos = 0;
-        for (let i = 0; i < count; ++i) {
-          const key = comps[i] * 3;
-          rgbBuf[rgbPos++] = colorMap[key];
-          rgbBuf[rgbPos++] = colorMap[key + 1];
-          rgbBuf[rgbPos++] = colorMap[key + 2];
-        }
-      }
-    } else if (!needsResizing) {
-      this.getRgbBuffer(comps, 0, width * actualHeight, dest, 0, bpc, alpha01);
-    } else {
-      rgbBuf = new Uint8ClampedArray(count * 3);
-      this.getRgbBuffer(comps, 0, count, rgbBuf, 0, bpc, 0);
-    }
-    if (rgbBuf) {
-      if (needsResizing) {
-        resizeRgbImage(rgbBuf, dest, originalWidth, originalHeight, width, height, alpha01);
-      } else {
-        let destPos = 0,
-          rgbPos = 0;
-        for (let i = 0, ii = width * actualHeight; i < ii; i++) {
-          dest[destPos++] = rgbBuf[rgbPos++];
-          dest[destPos++] = rgbBuf[rgbPos++];
-          dest[destPos++] = rgbBuf[rgbPos++];
-          destPos += alpha01;
-        }
-      }
-    }
-  }
-  get usesZeroToOneRange() {
-    return shadow(this, "usesZeroToOneRange", true);
-  }
-  static #cache(cacheKey, xref, globalColorSpaceCache, localColorSpaceCache, parsedCS) {
-    if (!globalColorSpaceCache || !localColorSpaceCache) {
-      throw new Error('ColorSpace.#cache - expected "globalColorSpaceCache"/"localColorSpaceCache" argument.');
-    }
-    if (!parsedCS) {
-      throw new Error('ColorSpace.#cache - expected "parsedCS" argument.');
-    }
-    let csName, csRef;
-    if (cacheKey instanceof Ref) {
-      csRef = cacheKey;
-      cacheKey = xref.fetch(cacheKey);
-    }
-    if (cacheKey instanceof Name) {
-      csName = cacheKey.name;
+      throw ex;
     }
     if (csName || csRef) {
       localColorSpaceCache.set(csName, csRef, parsedCS);
@@ -4881,72 +5782,47 @@ class ColorSpace {
         globalColorSpaceCache.set(null, csRef, parsedCS);
       }
     }
+    return asyncIfNotCached ? Promise.resolve(parsedCS) : parsedCS;
   }
-  static getCached(cacheKey, xref, globalColorSpaceCache, localColorSpaceCache) {
-    if (!globalColorSpaceCache || !localColorSpaceCache) {
-      throw new Error('ColorSpace.getCached - expected "globalColorSpaceCache"/"localColorSpaceCache" argument.');
-    }
-    if (cacheKey instanceof Ref) {
-      const cachedCS = globalColorSpaceCache.getByRef(cacheKey) || localColorSpaceCache.getByRef(cacheKey);
+  static #subParse(cs, options) {
+    const {
+      globalColorSpaceCache
+    } = options;
+    let csRef;
+    if (cs instanceof Ref) {
+      csRef = cs;
+      const cachedCS = globalColorSpaceCache.getByRef(csRef);
       if (cachedCS) {
         return cachedCS;
       }
-      try {
-        cacheKey = xref.fetch(cacheKey);
-      } catch (ex) {
-        if (ex instanceof MissingDataException) {
-          throw ex;
-        }
-      }
     }
-    if (cacheKey instanceof Name) {
-      return localColorSpaceCache.getByName(cacheKey.name) || null;
+    const parsedCS = this.#parse(cs, options);
+    if (csRef) {
+      globalColorSpaceCache.set(null, csRef, parsedCS);
     }
-    return null;
-  }
-  static async parseAsync({
-    cs,
-    xref,
-    resources = null,
-    pdfFunctionFactory,
-    globalColorSpaceCache,
-    localColorSpaceCache
-  }) {
-    const parsedCS = this.#parse(cs, xref, resources, pdfFunctionFactory);
-    this.#cache(cs, xref, globalColorSpaceCache, localColorSpaceCache, parsedCS);
     return parsedCS;
   }
-  static parse({
-    cs,
-    xref,
-    resources = null,
-    pdfFunctionFactory,
-    globalColorSpaceCache,
-    localColorSpaceCache
-  }) {
-    const cachedCS = this.getCached(cs, xref, globalColorSpaceCache, localColorSpaceCache);
-    if (cachedCS) {
-      return cachedCS;
-    }
-    const parsedCS = this.#parse(cs, xref, resources, pdfFunctionFactory);
-    this.#cache(cs, xref, globalColorSpaceCache, localColorSpaceCache, parsedCS);
-    return parsedCS;
-  }
-  static #parse(cs, xref, resources = null, pdfFunctionFactory) {
+  static #parse(cs, options) {
+    const {
+      xref,
+      resources,
+      pdfFunctionFactory,
+      globalColorSpaceCache
+    } = options;
     cs = xref.fetchIfRef(cs);
     if (cs instanceof Name) {
       switch (cs.name) {
         case "G":
         case "DeviceGray":
-          return this.singletons.gray;
+          return this.gray;
         case "RGB":
         case "DeviceRGB":
-          return this.singletons.rgb;
+          return this.rgb;
         case "DeviceRGBA":
-          return this.singletons.rgba;
+          return this.rgba;
         case "CMYK":
         case "DeviceCMYK":
-          return this.singletons.cmyk;
+          return this.cmyk;
         case "Pattern":
           return new PatternCS(null);
         default:
@@ -4956,7 +5832,7 @@ class ColorSpace {
               const resourcesCS = colorSpaces.get(cs.name);
               if (resourcesCS) {
                 if (resourcesCS instanceof Name) {
-                  return this.#parse(resourcesCS, xref, resources, pdfFunctionFactory);
+                  return this.#parse(resourcesCS, options);
                 }
                 cs = resourcesCS;
                 break;
@@ -4964,7 +5840,7 @@ class ColorSpace {
             }
           }
           warn(`Unrecognized ColorSpace: ${cs.name}`);
-          return this.singletons.gray;
+          return this.gray;
       }
     }
     if (Array.isArray(cs)) {
@@ -4973,13 +5849,13 @@ class ColorSpace {
       switch (mode) {
         case "G":
         case "DeviceGray":
-          return this.singletons.gray;
+          return this.gray;
         case "RGB":
         case "DeviceRGB":
-          return this.singletons.rgb;
+          return this.rgb;
         case "CMYK":
         case "DeviceCMYK":
-          return this.singletons.cmyk;
+          return this.cmyk;
         case "CalGray":
           params = xref.fetchIfRef(cs[1]);
           whitePoint = params.getArray("WhitePoint");
@@ -4994,34 +5870,55 @@ class ColorSpace {
           const matrix = params.getArray("Matrix");
           return new CalRGBCS(whitePoint, blackPoint, gamma, matrix);
         case "ICCBased":
+          const isRef = cs[1] instanceof Ref;
+          if (isRef) {
+            const cachedCS = globalColorSpaceCache.getByRef(cs[1]);
+            if (cachedCS) {
+              return cachedCS;
+            }
+          }
           const stream = xref.fetchIfRef(cs[1]);
           const dict = stream.dict;
           numComps = dict.get("N");
-          const alt = dict.get("Alternate");
-          if (alt) {
-            const altCS = this.#parse(alt, xref, resources, pdfFunctionFactory);
+          if (IccColorSpace.isUsable) {
+            try {
+              const iccCS = new IccColorSpace(stream.getBytes(), numComps);
+              if (isRef) {
+                globalColorSpaceCache.set(null, cs[1], iccCS);
+              }
+              return iccCS;
+            } catch (ex) {
+              if (ex instanceof MissingDataException) {
+                throw ex;
+              }
+              warn(`ICCBased color space (${cs[1]}): "${ex}".`);
+            }
+          }
+          const altRaw = dict.getRaw("Alternate");
+          if (altRaw) {
+            const altCS = this.#subParse(altRaw, options);
             if (altCS.numComps === numComps) {
               return altCS;
             }
             warn("ICCBased color space: Ignoring incorrect /Alternate entry.");
           }
           if (numComps === 1) {
-            return this.singletons.gray;
+            return this.gray;
           } else if (numComps === 3) {
-            return this.singletons.rgb;
+            return this.rgb;
           } else if (numComps === 4) {
-            return this.singletons.cmyk;
+            return this.cmyk;
           }
           break;
         case "Pattern":
           baseCS = cs[1] || null;
           if (baseCS) {
-            baseCS = this.#parse(baseCS, xref, resources, pdfFunctionFactory);
+            baseCS = this.#subParse(baseCS, options);
           }
           return new PatternCS(baseCS);
         case "I":
         case "Indexed":
-          baseCS = this.#parse(cs[1], xref, resources, pdfFunctionFactory);
+          baseCS = this.#subParse(cs[1], options);
           const hiVal = Math.max(0, Math.min(xref.fetchIfRef(cs[2]), 255));
           const lookup = xref.fetchIfRef(cs[3]);
           return new IndexedCS(baseCS, hiVal, lookup);
@@ -5029,7 +5926,7 @@ class ColorSpace {
         case "DeviceN":
           const name = xref.fetchIfRef(cs[1]);
           numComps = Array.isArray(name) ? name.length : 1;
-          baseCS = this.#parse(cs[2], xref, resources, pdfFunctionFactory);
+          baseCS = this.#subParse(cs[2], options);
           const tintFn = pdfFunctionFactory.create(cs[3]);
           return new AlternateCS(numComps, baseCS, tintFn);
         case "Lab":
@@ -5040,542 +5937,23 @@ class ColorSpace {
           return new LabCS(whitePoint, blackPoint, range);
         default:
           warn(`Unimplemented ColorSpace object: ${mode}`);
-          return this.singletons.gray;
+          return this.gray;
       }
     }
     warn(`Unrecognized ColorSpace object: ${cs}`);
-    return this.singletons.gray;
+    return this.gray;
   }
-  static isDefaultDecode(decode, numComps) {
-    if (!Array.isArray(decode)) {
-      return true;
-    }
-    if (numComps * 2 !== decode.length) {
-      warn("The decode map is not the correct length");
-      return true;
-    }
-    for (let i = 0, ii = decode.length; i < ii; i += 2) {
-      if (decode[i] !== 0 || decode[i + 1] !== 1) {
-        return false;
-      }
-    }
-    return true;
+  static get gray() {
+    return shadow(this, "gray", new DeviceGrayCS());
   }
-  static get singletons() {
-    return shadow(this, "singletons", {
-      get gray() {
-        return shadow(this, "gray", new DeviceGrayCS());
-      },
-      get rgb() {
-        return shadow(this, "rgb", new DeviceRgbCS());
-      },
-      get rgba() {
-        return shadow(this, "rgba", new DeviceRgbaCS());
-      },
-      get cmyk() {
-        return shadow(this, "cmyk", new DeviceCmykCS());
-      }
-    });
+  static get rgb() {
+    return shadow(this, "rgb", new DeviceRgbCS());
   }
-}
-class AlternateCS extends ColorSpace {
-  constructor(numComps, base, tintFn) {
-    super("Alternate", numComps);
-    this.base = base;
-    this.tintFn = tintFn;
-    this.tmpBuf = new Float32Array(base.numComps);
+  static get rgba() {
+    return shadow(this, "rgba", new DeviceRgbaCS());
   }
-  getRgbItem(src, srcOffset, dest, destOffset) {
-    const tmpBuf = this.tmpBuf;
-    this.tintFn(src, srcOffset, tmpBuf, 0);
-    this.base.getRgbItem(tmpBuf, 0, dest, destOffset);
-  }
-  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
-    const tintFn = this.tintFn;
-    const base = this.base;
-    const scale = 1 / ((1 << bits) - 1);
-    const baseNumComps = base.numComps;
-    const usesZeroToOneRange = base.usesZeroToOneRange;
-    const isPassthrough = (base.isPassthrough(8) || !usesZeroToOneRange) && alpha01 === 0;
-    let pos = isPassthrough ? destOffset : 0;
-    const baseBuf = isPassthrough ? dest : new Uint8ClampedArray(baseNumComps * count);
-    const numComps = this.numComps;
-    const scaled = new Float32Array(numComps);
-    const tinted = new Float32Array(baseNumComps);
-    let i, j;
-    for (i = 0; i < count; i++) {
-      for (j = 0; j < numComps; j++) {
-        scaled[j] = src[srcOffset++] * scale;
-      }
-      tintFn(scaled, 0, tinted, 0);
-      if (usesZeroToOneRange) {
-        for (j = 0; j < baseNumComps; j++) {
-          baseBuf[pos++] = tinted[j] * 255;
-        }
-      } else {
-        base.getRgbItem(tinted, 0, baseBuf, pos);
-        pos += baseNumComps;
-      }
-    }
-    if (!isPassthrough) {
-      base.getRgbBuffer(baseBuf, 0, count, dest, destOffset, 8, alpha01);
-    }
-  }
-  getOutputLength(inputLength, alpha01) {
-    return this.base.getOutputLength(inputLength * this.base.numComps / this.numComps, alpha01);
-  }
-}
-class PatternCS extends ColorSpace {
-  constructor(baseCS) {
-    super("Pattern", null);
-    this.base = baseCS;
-  }
-  isDefaultDecode(decodeMap, bpc) {
-    unreachable("Should not call PatternCS.isDefaultDecode");
-  }
-}
-class IndexedCS extends ColorSpace {
-  constructor(base, highVal, lookup) {
-    super("Indexed", 1);
-    this.base = base;
-    const length = base.numComps * (highVal + 1);
-    this.lookup = new Uint8Array(length);
-    if (lookup instanceof BaseStream) {
-      const bytes = lookup.getBytes(length);
-      this.lookup.set(bytes);
-    } else if (typeof lookup === "string") {
-      for (let i = 0; i < length; ++i) {
-        this.lookup[i] = lookup.charCodeAt(i) & 0xff;
-      }
-    } else {
-      throw new FormatError(`IndexedCS - unrecognized lookup table: ${lookup}`);
-    }
-  }
-  getRgbItem(src, srcOffset, dest, destOffset) {
-    const numComps = this.base.numComps;
-    const start = src[srcOffset] * numComps;
-    this.base.getRgbBuffer(this.lookup, start, 1, dest, destOffset, 8, 0);
-  }
-  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
-    const base = this.base;
-    const numComps = base.numComps;
-    const outputDelta = base.getOutputLength(numComps, alpha01);
-    const lookup = this.lookup;
-    for (let i = 0; i < count; ++i) {
-      const lookupPos = src[srcOffset++] * numComps;
-      base.getRgbBuffer(lookup, lookupPos, 1, dest, destOffset, 8, alpha01);
-      destOffset += outputDelta;
-    }
-  }
-  getOutputLength(inputLength, alpha01) {
-    return this.base.getOutputLength(inputLength * this.base.numComps, alpha01);
-  }
-  isDefaultDecode(decodeMap, bpc) {
-    if (!Array.isArray(decodeMap)) {
-      return true;
-    }
-    if (decodeMap.length !== 2) {
-      warn("Decode map length is not correct");
-      return true;
-    }
-    if (!Number.isInteger(bpc) || bpc < 1) {
-      warn("Bits per component is not correct");
-      return true;
-    }
-    return decodeMap[0] === 0 && decodeMap[1] === (1 << bpc) - 1;
-  }
-}
-class DeviceGrayCS extends ColorSpace {
-  constructor() {
-    super("DeviceGray", 1);
-  }
-  getRgbItem(src, srcOffset, dest, destOffset) {
-    const c = src[srcOffset] * 255;
-    dest[destOffset] = dest[destOffset + 1] = dest[destOffset + 2] = c;
-  }
-  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
-    const scale = 255 / ((1 << bits) - 1);
-    let j = srcOffset,
-      q = destOffset;
-    for (let i = 0; i < count; ++i) {
-      const c = scale * src[j++];
-      dest[q++] = c;
-      dest[q++] = c;
-      dest[q++] = c;
-      q += alpha01;
-    }
-  }
-  getOutputLength(inputLength, alpha01) {
-    return inputLength * (3 + alpha01);
-  }
-}
-class DeviceRgbCS extends ColorSpace {
-  constructor() {
-    super("DeviceRGB", 3);
-  }
-  getRgbItem(src, srcOffset, dest, destOffset) {
-    dest[destOffset] = src[srcOffset] * 255;
-    dest[destOffset + 1] = src[srcOffset + 1] * 255;
-    dest[destOffset + 2] = src[srcOffset + 2] * 255;
-  }
-  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
-    if (bits === 8 && alpha01 === 0) {
-      dest.set(src.subarray(srcOffset, srcOffset + count * 3), destOffset);
-      return;
-    }
-    const scale = 255 / ((1 << bits) - 1);
-    let j = srcOffset,
-      q = destOffset;
-    for (let i = 0; i < count; ++i) {
-      dest[q++] = scale * src[j++];
-      dest[q++] = scale * src[j++];
-      dest[q++] = scale * src[j++];
-      q += alpha01;
-    }
-  }
-  getOutputLength(inputLength, alpha01) {
-    return inputLength * (3 + alpha01) / 3 | 0;
-  }
-  isPassthrough(bits) {
-    return bits === 8;
-  }
-}
-class DeviceRgbaCS extends ColorSpace {
-  constructor() {
-    super("DeviceRGBA", 4);
-  }
-  getOutputLength(inputLength, _alpha01) {
-    return inputLength * 4;
-  }
-  isPassthrough(bits) {
-    return bits === 8;
-  }
-  fillRgb(dest, originalWidth, originalHeight, width, height, actualHeight, bpc, comps, alpha01) {
-    if (originalHeight !== height || originalWidth !== width) {
-      resizeRgbaImage(comps, dest, originalWidth, originalHeight, width, height, alpha01);
-    } else {
-      copyRgbaImage(comps, dest, alpha01);
-    }
-  }
-}
-class DeviceCmykCS extends ColorSpace {
-  constructor() {
-    super("DeviceCMYK", 4);
-  }
-  #toRgb(src, srcOffset, srcScale, dest, destOffset) {
-    const c = src[srcOffset] * srcScale;
-    const m = src[srcOffset + 1] * srcScale;
-    const y = src[srcOffset + 2] * srcScale;
-    const k = src[srcOffset + 3] * srcScale;
-    dest[destOffset] = 255 + c * (-4.387332384609988 * c + 54.48615194189176 * m + 18.82290502165302 * y + 212.25662451639585 * k + -285.2331026137004) + m * (1.7149763477362134 * m - 5.6096736904047315 * y + -17.873870861415444 * k - 5.497006427196366) + y * (-2.5217340131683033 * y - 21.248923337353073 * k + 17.5119270841813) + k * (-21.86122147463605 * k - 189.48180835922747);
-    dest[destOffset + 1] = 255 + c * (8.841041422036149 * c + 60.118027045597366 * m + 6.871425592049007 * y + 31.159100130055922 * k + -79.2970844816548) + m * (-15.310361306967817 * m + 17.575251261109482 * y + 131.35250912493976 * k - 190.9453302588951) + y * (4.444339102852739 * y + 9.8632861493405 * k - 24.86741582555878) + k * (-20.737325471181034 * k - 187.80453709719578);
-    dest[destOffset + 2] = 255 + c * (0.8842522430003296 * c + 8.078677503112928 * m + 30.89978309703729 * y - 0.23883238689178934 * k + -14.183576799673286) + m * (10.49593273432072 * m + 63.02378494754052 * y + 50.606957656360734 * k - 112.23884253719248) + y * (0.03296041114873217 * y + 115.60384449646641 * k + -193.58209356861505) + k * (-22.33816807309886 * k - 180.12613974708367);
-  }
-  getRgbItem(src, srcOffset, dest, destOffset) {
-    this.#toRgb(src, srcOffset, 1, dest, destOffset);
-  }
-  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
-    const scale = 1 / ((1 << bits) - 1);
-    for (let i = 0; i < count; i++) {
-      this.#toRgb(src, srcOffset, scale, dest, destOffset);
-      srcOffset += 4;
-      destOffset += 3 + alpha01;
-    }
-  }
-  getOutputLength(inputLength, alpha01) {
-    return inputLength / 4 * (3 + alpha01) | 0;
-  }
-}
-class CalGrayCS extends ColorSpace {
-  constructor(whitePoint, blackPoint, gamma) {
-    super("CalGray", 1);
-    if (!whitePoint) {
-      throw new FormatError("WhitePoint missing - required for color space CalGray");
-    }
-    [this.XW, this.YW, this.ZW] = whitePoint;
-    [this.XB, this.YB, this.ZB] = blackPoint || [0, 0, 0];
-    this.G = gamma || 1;
-    if (this.XW < 0 || this.ZW < 0 || this.YW !== 1) {
-      throw new FormatError(`Invalid WhitePoint components for ${this.name}, no fallback available`);
-    }
-    if (this.XB < 0 || this.YB < 0 || this.ZB < 0) {
-      info(`Invalid BlackPoint for ${this.name}, falling back to default.`);
-      this.XB = this.YB = this.ZB = 0;
-    }
-    if (this.XB !== 0 || this.YB !== 0 || this.ZB !== 0) {
-      warn(`${this.name}, BlackPoint: XB: ${this.XB}, YB: ${this.YB}, ` + `ZB: ${this.ZB}, only default values are supported.`);
-    }
-    if (this.G < 1) {
-      info(`Invalid Gamma: ${this.G} for ${this.name}, falling back to default.`);
-      this.G = 1;
-    }
-  }
-  #toRgb(src, srcOffset, dest, destOffset, scale) {
-    const A = src[srcOffset] * scale;
-    const AG = A ** this.G;
-    const L = this.YW * AG;
-    const val = Math.max(295.8 * L ** 0.3333333333333333 - 40.8, 0);
-    dest[destOffset] = val;
-    dest[destOffset + 1] = val;
-    dest[destOffset + 2] = val;
-  }
-  getRgbItem(src, srcOffset, dest, destOffset) {
-    this.#toRgb(src, srcOffset, dest, destOffset, 1);
-  }
-  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
-    const scale = 1 / ((1 << bits) - 1);
-    for (let i = 0; i < count; ++i) {
-      this.#toRgb(src, srcOffset, dest, destOffset, scale);
-      srcOffset += 1;
-      destOffset += 3 + alpha01;
-    }
-  }
-  getOutputLength(inputLength, alpha01) {
-    return inputLength * (3 + alpha01);
-  }
-}
-class CalRGBCS extends ColorSpace {
-  static #BRADFORD_SCALE_MATRIX = new Float32Array([0.8951, 0.2664, -0.1614, -0.7502, 1.7135, 0.0367, 0.0389, -0.0685, 1.0296]);
-  static #BRADFORD_SCALE_INVERSE_MATRIX = new Float32Array([0.9869929, -0.1470543, 0.1599627, 0.4323053, 0.5183603, 0.0492912, -0.0085287, 0.0400428, 0.9684867]);
-  static #SRGB_D65_XYZ_TO_RGB_MATRIX = new Float32Array([3.2404542, -1.5371385, -0.4985314, -0.9692660, 1.8760108, 0.0415560, 0.0556434, -0.2040259, 1.0572252]);
-  static #FLAT_WHITEPOINT_MATRIX = new Float32Array([1, 1, 1]);
-  static #tempNormalizeMatrix = new Float32Array(3);
-  static #tempConvertMatrix1 = new Float32Array(3);
-  static #tempConvertMatrix2 = new Float32Array(3);
-  static #DECODE_L_CONSTANT = ((8 + 16) / 116) ** 3 / 8.0;
-  constructor(whitePoint, blackPoint, gamma, matrix) {
-    super("CalRGB", 3);
-    if (!whitePoint) {
-      throw new FormatError("WhitePoint missing - required for color space CalRGB");
-    }
-    const [XW, YW, ZW] = this.whitePoint = whitePoint;
-    const [XB, YB, ZB] = this.blackPoint = blackPoint || new Float32Array(3);
-    [this.GR, this.GG, this.GB] = gamma || new Float32Array([1, 1, 1]);
-    [this.MXA, this.MYA, this.MZA, this.MXB, this.MYB, this.MZB, this.MXC, this.MYC, this.MZC] = matrix || new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
-    if (XW < 0 || ZW < 0 || YW !== 1) {
-      throw new FormatError(`Invalid WhitePoint components for ${this.name}, no fallback available`);
-    }
-    if (XB < 0 || YB < 0 || ZB < 0) {
-      info(`Invalid BlackPoint for ${this.name} [${XB}, ${YB}, ${ZB}], ` + "falling back to default.");
-      this.blackPoint = new Float32Array(3);
-    }
-    if (this.GR < 0 || this.GG < 0 || this.GB < 0) {
-      info(`Invalid Gamma [${this.GR}, ${this.GG}, ${this.GB}] for ` + `${this.name}, falling back to default.`);
-      this.GR = this.GG = this.GB = 1;
-    }
-  }
-  #matrixProduct(a, b, result) {
-    result[0] = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-    result[1] = a[3] * b[0] + a[4] * b[1] + a[5] * b[2];
-    result[2] = a[6] * b[0] + a[7] * b[1] + a[8] * b[2];
-  }
-  #toFlat(sourceWhitePoint, LMS, result) {
-    result[0] = LMS[0] * 1 / sourceWhitePoint[0];
-    result[1] = LMS[1] * 1 / sourceWhitePoint[1];
-    result[2] = LMS[2] * 1 / sourceWhitePoint[2];
-  }
-  #toD65(sourceWhitePoint, LMS, result) {
-    const D65X = 0.95047;
-    const D65Y = 1;
-    const D65Z = 1.08883;
-    result[0] = LMS[0] * D65X / sourceWhitePoint[0];
-    result[1] = LMS[1] * D65Y / sourceWhitePoint[1];
-    result[2] = LMS[2] * D65Z / sourceWhitePoint[2];
-  }
-  #sRGBTransferFunction(color) {
-    if (color <= 0.0031308) {
-      return this.#adjustToRange(0, 1, 12.92 * color);
-    }
-    if (color >= 0.99554525) {
-      return 1;
-    }
-    return this.#adjustToRange(0, 1, (1 + 0.055) * color ** (1 / 2.4) - 0.055);
-  }
-  #adjustToRange(min, max, value) {
-    return Math.max(min, Math.min(max, value));
-  }
-  #decodeL(L) {
-    if (L < 0) {
-      return -this.#decodeL(-L);
-    }
-    if (L > 8.0) {
-      return ((L + 16) / 116) ** 3;
-    }
-    return L * CalRGBCS.#DECODE_L_CONSTANT;
-  }
-  #compensateBlackPoint(sourceBlackPoint, XYZ_Flat, result) {
-    if (sourceBlackPoint[0] === 0 && sourceBlackPoint[1] === 0 && sourceBlackPoint[2] === 0) {
-      result[0] = XYZ_Flat[0];
-      result[1] = XYZ_Flat[1];
-      result[2] = XYZ_Flat[2];
-      return;
-    }
-    const zeroDecodeL = this.#decodeL(0);
-    const X_DST = zeroDecodeL;
-    const X_SRC = this.#decodeL(sourceBlackPoint[0]);
-    const Y_DST = zeroDecodeL;
-    const Y_SRC = this.#decodeL(sourceBlackPoint[1]);
-    const Z_DST = zeroDecodeL;
-    const Z_SRC = this.#decodeL(sourceBlackPoint[2]);
-    const X_Scale = (1 - X_DST) / (1 - X_SRC);
-    const X_Offset = 1 - X_Scale;
-    const Y_Scale = (1 - Y_DST) / (1 - Y_SRC);
-    const Y_Offset = 1 - Y_Scale;
-    const Z_Scale = (1 - Z_DST) / (1 - Z_SRC);
-    const Z_Offset = 1 - Z_Scale;
-    result[0] = XYZ_Flat[0] * X_Scale + X_Offset;
-    result[1] = XYZ_Flat[1] * Y_Scale + Y_Offset;
-    result[2] = XYZ_Flat[2] * Z_Scale + Z_Offset;
-  }
-  #normalizeWhitePointToFlat(sourceWhitePoint, XYZ_In, result) {
-    if (sourceWhitePoint[0] === 1 && sourceWhitePoint[2] === 1) {
-      result[0] = XYZ_In[0];
-      result[1] = XYZ_In[1];
-      result[2] = XYZ_In[2];
-      return;
-    }
-    const LMS = result;
-    this.#matrixProduct(CalRGBCS.#BRADFORD_SCALE_MATRIX, XYZ_In, LMS);
-    const LMS_Flat = CalRGBCS.#tempNormalizeMatrix;
-    this.#toFlat(sourceWhitePoint, LMS, LMS_Flat);
-    this.#matrixProduct(CalRGBCS.#BRADFORD_SCALE_INVERSE_MATRIX, LMS_Flat, result);
-  }
-  #normalizeWhitePointToD65(sourceWhitePoint, XYZ_In, result) {
-    const LMS = result;
-    this.#matrixProduct(CalRGBCS.#BRADFORD_SCALE_MATRIX, XYZ_In, LMS);
-    const LMS_D65 = CalRGBCS.#tempNormalizeMatrix;
-    this.#toD65(sourceWhitePoint, LMS, LMS_D65);
-    this.#matrixProduct(CalRGBCS.#BRADFORD_SCALE_INVERSE_MATRIX, LMS_D65, result);
-  }
-  #toRgb(src, srcOffset, dest, destOffset, scale) {
-    const A = this.#adjustToRange(0, 1, src[srcOffset] * scale);
-    const B = this.#adjustToRange(0, 1, src[srcOffset + 1] * scale);
-    const C = this.#adjustToRange(0, 1, src[srcOffset + 2] * scale);
-    const AGR = A === 1 ? 1 : A ** this.GR;
-    const BGG = B === 1 ? 1 : B ** this.GG;
-    const CGB = C === 1 ? 1 : C ** this.GB;
-    const X = this.MXA * AGR + this.MXB * BGG + this.MXC * CGB;
-    const Y = this.MYA * AGR + this.MYB * BGG + this.MYC * CGB;
-    const Z = this.MZA * AGR + this.MZB * BGG + this.MZC * CGB;
-    const XYZ = CalRGBCS.#tempConvertMatrix1;
-    XYZ[0] = X;
-    XYZ[1] = Y;
-    XYZ[2] = Z;
-    const XYZ_Flat = CalRGBCS.#tempConvertMatrix2;
-    this.#normalizeWhitePointToFlat(this.whitePoint, XYZ, XYZ_Flat);
-    const XYZ_Black = CalRGBCS.#tempConvertMatrix1;
-    this.#compensateBlackPoint(this.blackPoint, XYZ_Flat, XYZ_Black);
-    const XYZ_D65 = CalRGBCS.#tempConvertMatrix2;
-    this.#normalizeWhitePointToD65(CalRGBCS.#FLAT_WHITEPOINT_MATRIX, XYZ_Black, XYZ_D65);
-    const SRGB = CalRGBCS.#tempConvertMatrix1;
-    this.#matrixProduct(CalRGBCS.#SRGB_D65_XYZ_TO_RGB_MATRIX, XYZ_D65, SRGB);
-    dest[destOffset] = this.#sRGBTransferFunction(SRGB[0]) * 255;
-    dest[destOffset + 1] = this.#sRGBTransferFunction(SRGB[1]) * 255;
-    dest[destOffset + 2] = this.#sRGBTransferFunction(SRGB[2]) * 255;
-  }
-  getRgbItem(src, srcOffset, dest, destOffset) {
-    this.#toRgb(src, srcOffset, dest, destOffset, 1);
-  }
-  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
-    const scale = 1 / ((1 << bits) - 1);
-    for (let i = 0; i < count; ++i) {
-      this.#toRgb(src, srcOffset, dest, destOffset, scale);
-      srcOffset += 3;
-      destOffset += 3 + alpha01;
-    }
-  }
-  getOutputLength(inputLength, alpha01) {
-    return inputLength * (3 + alpha01) / 3 | 0;
-  }
-}
-class LabCS extends ColorSpace {
-  constructor(whitePoint, blackPoint, range) {
-    super("Lab", 3);
-    if (!whitePoint) {
-      throw new FormatError("WhitePoint missing - required for color space Lab");
-    }
-    [this.XW, this.YW, this.ZW] = whitePoint;
-    [this.amin, this.amax, this.bmin, this.bmax] = range || [-100, 100, -100, 100];
-    [this.XB, this.YB, this.ZB] = blackPoint || [0, 0, 0];
-    if (this.XW < 0 || this.ZW < 0 || this.YW !== 1) {
-      throw new FormatError("Invalid WhitePoint components, no fallback available");
-    }
-    if (this.XB < 0 || this.YB < 0 || this.ZB < 0) {
-      info("Invalid BlackPoint, falling back to default");
-      this.XB = this.YB = this.ZB = 0;
-    }
-    if (this.amin > this.amax || this.bmin > this.bmax) {
-      info("Invalid Range, falling back to defaults");
-      this.amin = -100;
-      this.amax = 100;
-      this.bmin = -100;
-      this.bmax = 100;
-    }
-  }
-  #fn_g(x) {
-    return x >= 6 / 29 ? x ** 3 : 108 / 841 * (x - 4 / 29);
-  }
-  #decode(value, high1, low2, high2) {
-    return low2 + value * (high2 - low2) / high1;
-  }
-  #toRgb(src, srcOffset, maxVal, dest, destOffset) {
-    let Ls = src[srcOffset];
-    let as = src[srcOffset + 1];
-    let bs = src[srcOffset + 2];
-    if (maxVal !== false) {
-      Ls = this.#decode(Ls, maxVal, 0, 100);
-      as = this.#decode(as, maxVal, this.amin, this.amax);
-      bs = this.#decode(bs, maxVal, this.bmin, this.bmax);
-    }
-    if (as > this.amax) {
-      as = this.amax;
-    } else if (as < this.amin) {
-      as = this.amin;
-    }
-    if (bs > this.bmax) {
-      bs = this.bmax;
-    } else if (bs < this.bmin) {
-      bs = this.bmin;
-    }
-    const M = (Ls + 16) / 116;
-    const L = M + as / 500;
-    const N = M - bs / 200;
-    const X = this.XW * this.#fn_g(L);
-    const Y = this.YW * this.#fn_g(M);
-    const Z = this.ZW * this.#fn_g(N);
-    let r, g, b;
-    if (this.ZW < 1) {
-      r = X * 3.1339 + Y * -1.617 + Z * -0.4906;
-      g = X * -0.9785 + Y * 1.916 + Z * 0.0333;
-      b = X * 0.072 + Y * -0.229 + Z * 1.4057;
-    } else {
-      r = X * 3.2406 + Y * -1.5372 + Z * -0.4986;
-      g = X * -0.9689 + Y * 1.8758 + Z * 0.0415;
-      b = X * 0.0557 + Y * -0.204 + Z * 1.057;
-    }
-    dest[destOffset] = Math.sqrt(r) * 255;
-    dest[destOffset + 1] = Math.sqrt(g) * 255;
-    dest[destOffset + 2] = Math.sqrt(b) * 255;
-  }
-  getRgbItem(src, srcOffset, dest, destOffset) {
-    this.#toRgb(src, srcOffset, false, dest, destOffset);
-  }
-  getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
-    const maxVal = (1 << bits) - 1;
-    for (let i = 0; i < count; i++) {
-      this.#toRgb(src, srcOffset, maxVal, dest, destOffset);
-      srcOffset += 3;
-      destOffset += 3 + alpha01;
-    }
-  }
-  getOutputLength(inputLength, alpha01) {
-    return inputLength * (3 + alpha01) / 3 | 0;
-  }
-  isDefaultDecode(decodeMap, bpc) {
-    return true;
-  }
-  get usesZeroToOneRange() {
-    return shadow(this, "usesZeroToOneRange", false);
+  static get cmyk() {
+    return shadow(this, "cmyk", new DeviceCmykCS());
   }
 }
 
@@ -7420,9 +7798,7 @@ function decodeBitmap(mmr, width, height, templateIndex, prediction, skip, at, d
   }
   const useskip = !!skip;
   const template = CodingTemplates[templateIndex].concat(at);
-  template.sort(function (a, b) {
-    return a.y - b.y || a.x - b.x;
-  });
+  template.sort((a, b) => a.y - b.y || a.x - b.x);
   const templateLength = template.length;
   const templateX = new Int8Array(templateLength);
   const templateY = new Int8Array(templateLength);
@@ -9294,11 +9670,9 @@ class RunLengthStream extends DecodeStream {
       }
     } else {
       n = 257 - n;
-      const b = repeatHeader[1];
       buffer = this.ensureBuffer(bufferLength + n + 1);
-      for (let i = 0; i < n; i++) {
-        buffer[bufferLength++] = b;
-      }
+      buffer.fill(repeatHeader[1], bufferLength, bufferLength + n);
+      bufferLength += n;
     }
     this.bufferLength = bufferLength;
   }
@@ -23809,9 +24183,7 @@ function getRanges(glyphs, toUnicodeExtraMap, numGlyphs) {
       glyphId: 0
     });
   }
-  codes.sort(function fontGetRangesSort(a, b) {
-    return a.fontCharCode - b.fontCharCode;
-  });
+  codes.sort((a, b) => a.fontCharCode - b.fontCharCode);
   const ranges = [];
   const length = codes.length;
   for (let n = 0; n < length;) {
@@ -24622,9 +24994,7 @@ class Font {
           hasShortCmap: false
         };
       }
-      mappings.sort(function (a, b) {
-        return a.charCode - b.charCode;
-      });
+      mappings.sort((a, b) => a.charCode - b.charCode);
       const finalMappings = [],
         seenCharCodes = new Set();
       for (const map of mappings) {
@@ -25969,7 +26339,7 @@ class RadialAxialShading extends BaseShading {
     if (!isNumberArray(this.coordsArr, coordsLen)) {
       throw new FormatError("RadialAxialShading: Invalid /Coords array.");
     }
-    const cs = ColorSpace.parse({
+    const cs = ColorSpaceUtils.parse({
       cs: dict.getRaw("CS") || dict.getRaw("ColorSpace"),
       xref,
       resources,
@@ -26210,7 +26580,7 @@ class MeshShading extends BaseShading {
     const dict = stream.dict;
     this.shadingType = dict.get("ShadingType");
     this.bbox = lookupNormalRect(dict.getArray("BBox"), null);
-    const cs = ColorSpace.parse({
+    const cs = ColorSpaceUtils.parse({
       cs: dict.getRaw("CS") || dict.getRaw("ColorSpace"),
       xref,
       resources,
@@ -29621,6 +29991,7 @@ class OperatorList {
 
 
 
+
 function decodeAndClamp(value, addend, coefficient, max) {
   value = addend + value * coefficient;
   if (value < 0) {
@@ -29757,7 +30128,7 @@ class PDFImage {
       } else if (this.jpxDecoderOptions?.smaskInData) {
         colorSpace = Name.get("DeviceRGBA");
       }
-      this.colorSpace = ColorSpace.parse({
+      this.colorSpace = ColorSpaceUtils.parse({
         cs: colorSpace,
         xref,
         resources: isInline ? res : null,
@@ -30429,6 +30800,7 @@ class PDFImage {
 
 
 
+
 const DefaultPartialEvaluatorOptions = Object.freeze({
   maxImageSize: -1,
   disableFontFace: false,
@@ -30746,21 +31118,12 @@ class PartialEvaluator {
         groupOptions.isolated = group.get("I") || false;
         groupOptions.knockout = group.get("K") || false;
         if (group.has("CS")) {
-          const cs = group.getRaw("CS");
-          const cachedColorSpace = ColorSpace.getCached(cs, this.xref, this.globalColorSpaceCache, localColorSpaceCache);
-          if (cachedColorSpace) {
-            colorSpace = cachedColorSpace;
-          } else {
-            colorSpace = await this.parseColorSpace({
-              cs,
-              resources,
-              localColorSpaceCache
-            });
-          }
+          const cs = this._getColorSpace(group.getRaw("CS"), resources, localColorSpaceCache);
+          colorSpace = cs instanceof ColorSpace ? cs : await this._handleColorSpace(cs);
         }
       }
       if (smask?.backdrop) {
-        colorSpace ||= ColorSpace.singletons.rgb;
+        colorSpace ||= ColorSpaceUtils.rgb;
         smask.backdrop = colorSpace.getRgb(smask.backdrop, 0);
       }
       operatorList.addOp(OPS.beginGroup, [groupOptions]);
@@ -31391,28 +31754,30 @@ class PartialEvaluator {
       }
     }
   }
-  parseColorSpace({
-    cs,
-    resources,
-    localColorSpaceCache
-  }) {
-    return ColorSpace.parseAsync({
+  _getColorSpace(cs, resources, localColorSpaceCache) {
+    return ColorSpaceUtils.parse({
       cs,
       xref: this.xref,
       resources,
       pdfFunctionFactory: this._pdfFunctionFactory,
       globalColorSpaceCache: this.globalColorSpaceCache,
-      localColorSpaceCache
-    }).catch(reason => {
-      if (reason instanceof AbortException) {
+      localColorSpaceCache,
+      asyncIfNotCached: true
+    });
+  }
+  async _handleColorSpace(csPromise) {
+    try {
+      return await csPromise;
+    } catch (ex) {
+      if (ex instanceof AbortException) {
         return null;
       }
       if (this.options.ignoreErrors) {
-        warn(`parseColorSpace - ignoring ColorSpace: "${reason}".`);
+        warn(`_handleColorSpace - ignoring ColorSpace: "${ex}".`);
         return null;
       }
-      throw reason;
-    });
+      throw ex;
+    }
   }
   parseShading({
     shading,
@@ -31785,33 +32150,25 @@ class PartialEvaluator {
             break;
           case OPS.setFillColorSpace:
             {
-              const cachedColorSpace = ColorSpace.getCached(args[0], xref, self.globalColorSpaceCache, localColorSpaceCache);
-              if (cachedColorSpace) {
-                stateManager.state.fillColorSpace = cachedColorSpace;
+              const fillCS = self._getColorSpace(args[0], resources, localColorSpaceCache);
+              if (fillCS instanceof ColorSpace) {
+                stateManager.state.fillColorSpace = fillCS;
                 continue;
               }
-              next(self.parseColorSpace({
-                cs: args[0],
-                resources,
-                localColorSpaceCache
-              }).then(function (colorSpace) {
-                stateManager.state.fillColorSpace = colorSpace || ColorSpace.singletons.gray;
+              next(self._handleColorSpace(fillCS).then(colorSpace => {
+                stateManager.state.fillColorSpace = colorSpace || ColorSpaceUtils.gray;
               }));
               return;
             }
           case OPS.setStrokeColorSpace:
             {
-              const cachedColorSpace = ColorSpace.getCached(args[0], xref, self.globalColorSpaceCache, localColorSpaceCache);
-              if (cachedColorSpace) {
-                stateManager.state.strokeColorSpace = cachedColorSpace;
+              const strokeCS = self._getColorSpace(args[0], resources, localColorSpaceCache);
+              if (strokeCS instanceof ColorSpace) {
+                stateManager.state.strokeColorSpace = strokeCS;
                 continue;
               }
-              next(self.parseColorSpace({
-                cs: args[0],
-                resources,
-                localColorSpaceCache
-              }).then(function (colorSpace) {
-                stateManager.state.strokeColorSpace = colorSpace || ColorSpace.singletons.gray;
+              next(self._handleColorSpace(strokeCS).then(colorSpace => {
+                stateManager.state.strokeColorSpace = colorSpace || ColorSpaceUtils.gray;
               }));
               return;
             }
@@ -31826,38 +32183,38 @@ class PartialEvaluator {
             fn = OPS.setStrokeRGBColor;
             break;
           case OPS.setFillGray:
-            stateManager.state.fillColorSpace = ColorSpace.singletons.gray;
-            args = ColorSpace.singletons.gray.getRgb(args, 0);
+            stateManager.state.fillColorSpace = ColorSpaceUtils.gray;
+            args = ColorSpaceUtils.gray.getRgb(args, 0);
             fn = OPS.setFillRGBColor;
             break;
           case OPS.setStrokeGray:
-            stateManager.state.strokeColorSpace = ColorSpace.singletons.gray;
-            args = ColorSpace.singletons.gray.getRgb(args, 0);
+            stateManager.state.strokeColorSpace = ColorSpaceUtils.gray;
+            args = ColorSpaceUtils.gray.getRgb(args, 0);
             fn = OPS.setStrokeRGBColor;
             break;
           case OPS.setFillCMYKColor:
-            stateManager.state.fillColorSpace = ColorSpace.singletons.cmyk;
-            args = ColorSpace.singletons.cmyk.getRgb(args, 0);
+            stateManager.state.fillColorSpace = ColorSpaceUtils.cmyk;
+            args = ColorSpaceUtils.cmyk.getRgb(args, 0);
             fn = OPS.setFillRGBColor;
             break;
           case OPS.setStrokeCMYKColor:
-            stateManager.state.strokeColorSpace = ColorSpace.singletons.cmyk;
-            args = ColorSpace.singletons.cmyk.getRgb(args, 0);
+            stateManager.state.strokeColorSpace = ColorSpaceUtils.cmyk;
+            args = ColorSpaceUtils.cmyk.getRgb(args, 0);
             fn = OPS.setStrokeRGBColor;
             break;
           case OPS.setFillRGBColor:
-            stateManager.state.fillColorSpace = ColorSpace.singletons.rgb;
-            args = ColorSpace.singletons.rgb.getRgb(args, 0);
+            stateManager.state.fillColorSpace = ColorSpaceUtils.rgb;
+            args = ColorSpaceUtils.rgb.getRgb(args, 0);
             break;
           case OPS.setStrokeRGBColor:
-            stateManager.state.strokeColorSpace = ColorSpace.singletons.rgb;
-            args = ColorSpace.singletons.rgb.getRgb(args, 0);
+            stateManager.state.strokeColorSpace = ColorSpaceUtils.rgb;
+            args = ColorSpaceUtils.rgb.getRgb(args, 0);
             break;
           case OPS.setFillColorN:
             cs = stateManager.state.patternFillColorSpace;
             if (!cs) {
               if (isNumberArray(args, null)) {
-                args = ColorSpace.singletons.gray.getRgb(args, 0);
+                args = ColorSpaceUtils.gray.getRgb(args, 0);
                 fn = OPS.setFillRGBColor;
                 break;
               }
@@ -31876,7 +32233,7 @@ class PartialEvaluator {
             cs = stateManager.state.patternStrokeColorSpace;
             if (!cs) {
               if (isNumberArray(args, null)) {
-                args = ColorSpace.singletons.gray.getRgb(args, 0);
+                args = ColorSpaceUtils.gray.getRgb(args, 0);
                 fn = OPS.setStrokeRGBColor;
                 break;
               }
@@ -33911,8 +34268,7 @@ class EvalState {
     this.ctm = new Float32Array(IDENTITY_MATRIX);
     this.font = null;
     this.textRenderingMode = TextRenderingMode.FILL;
-    this._fillColorSpace = ColorSpace.singletons.gray;
-    this._strokeColorSpace = ColorSpace.singletons.gray;
+    this._fillColorSpace = this._strokeColorSpace = ColorSpaceUtils.gray;
     this.patternFillColorSpace = null;
     this.patternStrokeColorSpace = null;
   }
@@ -34454,13 +34810,13 @@ class DefaultAppearanceEvaluator extends EvaluatorPreprocessor {
             }
             break;
           case OPS.setFillRGBColor:
-            ColorSpace.singletons.rgb.getRgbItem(args, 0, result.fontColor, 0);
+            ColorSpaceUtils.rgb.getRgbItem(args, 0, result.fontColor, 0);
             break;
           case OPS.setFillGray:
-            ColorSpace.singletons.gray.getRgbItem(args, 0, result.fontColor, 0);
+            ColorSpaceUtils.gray.getRgbItem(args, 0, result.fontColor, 0);
             break;
           case OPS.setFillCMYKColor:
-            ColorSpace.singletons.cmyk.getRgbItem(args, 0, result.fontColor, 0);
+            ColorSpaceUtils.cmyk.getRgbItem(args, 0, result.fontColor, 0);
             break;
         }
       }
@@ -34492,7 +34848,7 @@ class AppearanceStreamEvaluator extends EvaluatorPreprocessor {
       fontSize: 0,
       fontName: "",
       fontColor: new Uint8ClampedArray(3),
-      fillColorSpace: ColorSpace.singletons.gray
+      fillColorSpace: ColorSpaceUtils.gray
     };
     let breakLoop = false;
     const stack = [];
@@ -34532,7 +34888,7 @@ class AppearanceStreamEvaluator extends EvaluatorPreprocessor {
             }
             break;
           case OPS.setFillColorSpace:
-            result.fillColorSpace = ColorSpace.parse({
+            result.fillColorSpace = ColorSpaceUtils.parse({
               cs: args[0],
               xref: this.xref,
               resources: this.resources,
@@ -34546,13 +34902,13 @@ class AppearanceStreamEvaluator extends EvaluatorPreprocessor {
             cs.getRgbItem(args, 0, result.fontColor, 0);
             break;
           case OPS.setFillRGBColor:
-            ColorSpace.singletons.rgb.getRgbItem(args, 0, result.fontColor, 0);
+            ColorSpaceUtils.rgb.getRgbItem(args, 0, result.fontColor, 0);
             break;
           case OPS.setFillGray:
-            ColorSpace.singletons.gray.getRgbItem(args, 0, result.fontColor, 0);
+            ColorSpaceUtils.gray.getRgbItem(args, 0, result.fontColor, 0);
             break;
           case OPS.setFillCMYKColor:
-            ColorSpace.singletons.cmyk.getRgbItem(args, 0, result.fontColor, 0);
+            ColorSpaceUtils.cmyk.getRgbItem(args, 0, result.fontColor, 0);
             break;
           case OPS.showText:
           case OPS.showSpacedText:
@@ -35276,9 +35632,7 @@ class SimpleDOMNode {
     if (!this.childNodes) {
       return this.nodeValue || "";
     }
-    return this.childNodes.map(function (child) {
-      return child.textContent;
-    }).join("");
+    return this.childNodes.map(child => child.textContent).join("");
   }
   get children() {
     return this.childNodes || [];
@@ -36318,52 +36672,8 @@ class StructTreePage {
 
 
 
-function isValidExplicitDest(dest) {
-  if (!Array.isArray(dest) || dest.length < 2) {
-    return false;
-  }
-  const [page, zoom, ...args] = dest;
-  if (!(page instanceof Ref) && !Number.isInteger(page)) {
-    return false;
-  }
-  if (!(zoom instanceof Name)) {
-    return false;
-  }
-  const argsLen = args.length;
-  let allowNull = true;
-  switch (zoom.name) {
-    case "XYZ":
-      if (argsLen < 2 || argsLen > 3) {
-        return false;
-      }
-      break;
-    case "Fit":
-    case "FitB":
-      return argsLen === 0;
-    case "FitH":
-    case "FitBH":
-    case "FitV":
-    case "FitBV":
-      if (argsLen > 1) {
-        return false;
-      }
-      break;
-    case "FitR":
-      if (argsLen !== 4) {
-        return false;
-      }
-      allowNull = false;
-      break;
-    default:
-      return false;
-  }
-  for (const arg of args) {
-    if (!(typeof arg === "number" || allowNull && arg === null)) {
-      return false;
-    }
-  }
-  return true;
-}
+const isRef = v => v instanceof Ref;
+const isValidExplicitDest = _isValidExplicitDest.bind(null, isRef, isName);
 function fetchDest(dest) {
   if (dest instanceof Dict) {
     dest = dest.get("D");
@@ -36603,7 +36913,7 @@ class Catalog {
       const count = outlineDict.get("Count");
       let rgbColor = blackColor;
       if (isNumberArray(color, 3) && (color[0] !== 0 || color[1] !== 0 || color[2] !== 0)) {
-        rgbColor = ColorSpace.singletons.rgb.getRgb(color, 0);
+        rgbColor = ColorSpaceUtils.rgb.getRgb(color, 0);
       }
       const outlineItem = {
         action: data.action,
@@ -37534,9 +37844,7 @@ class Catalog {
         if (!found) {
           throw new FormatError("Kid reference not found in parent's kids.");
         }
-        return Promise.all(kidPromises).then(function () {
-          return [total, parentRef];
-        });
+        return Promise.all(kidPromises).then(() => [total, parentRef]);
       });
     }
     let total = 0;
@@ -48864,13 +49172,13 @@ function getRgbColor(color, defaultColor = new Uint8ClampedArray(3)) {
     case 0:
       return null;
     case 1:
-      ColorSpace.singletons.gray.getRgbItem(color, 0, rgbColor, 0);
+      ColorSpaceUtils.gray.getRgbItem(color, 0, rgbColor, 0);
       return rgbColor;
     case 3:
-      ColorSpace.singletons.rgb.getRgbItem(color, 0, rgbColor, 0);
+      ColorSpaceUtils.rgb.getRgbItem(color, 0, rgbColor, 0);
       return rgbColor;
     case 4:
-      ColorSpace.singletons.cmyk.getRgbItem(color, 0, rgbColor, 0);
+      ColorSpaceUtils.cmyk.getRgbItem(color, 0, rgbColor, 0);
       return rgbColor;
     default:
       return defaultColor;
@@ -49193,9 +49501,7 @@ class Annotation {
         return undefined;
       }
       const objectLoader = new ObjectLoader(resources, keys, resources.xref);
-      return objectLoader.load().then(function () {
-        return resources;
-      });
+      return objectLoader.load().then(() => resources);
     });
   }
   async getOperatorList(evaluator, task, intent, annotationStorage) {
@@ -54456,9 +54762,7 @@ class Page {
         task,
         resources: this.resources,
         operatorList: opList
-      }).then(function () {
-        return opList;
-      });
+      }).then(() => opList);
     });
     return Promise.all([pageListPromise, this._parsedAnnotations, newAnnotationsPromise]).then(function ([pageOpList, annotations, newAnnotations]) {
       if (newAnnotations) {
@@ -55506,6 +55810,7 @@ class PDFDocument {
 
 
 
+
 function parseDocBaseUrl(url) {
   if (url) {
     const absoluteUrl = createValidAbsoluteUrl(url);
@@ -55534,10 +55839,12 @@ class BasePdfManager {
     this.evaluatorOptions = Object.freeze(evaluatorOptions);
     ImageResizer.setOptions(evaluatorOptions);
     JpegStream.setOptions(evaluatorOptions);
-    JpxImage.setOptions({
+    const options = {
       ...evaluatorOptions,
       handler
-    });
+    };
+    JpxImage.setOptions(options);
+    IccColorSpace.setOptions(options);
   }
   get docId() {
     return this._docId;
@@ -56644,7 +56951,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "5.0.264";
+    const workerVersion = "5.0.299";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -56881,9 +57188,7 @@ class WorkerMessageHandler {
     handler.on("GetPageJSActions", function ({
       pageIndex
     }) {
-      return pdfManager.getPage(pageIndex).then(function (page) {
-        return pdfManager.ensure(page, "jsActions");
-      });
+      return pdfManager.getPage(pageIndex).then(page => pdfManager.ensure(page, "jsActions"));
     });
     handler.on("GetOutline", function (data) {
       return pdfManager.ensureCatalog("documentOutline");
@@ -56901,9 +57206,7 @@ class WorkerMessageHandler {
       return pdfManager.ensureCatalog("markInfo");
     });
     handler.on("GetData", function (data) {
-      return pdfManager.requestLoadedStream().then(function (stream) {
-        return stream.bytes;
-      });
+      return pdfManager.requestLoadedStream().then(stream => stream.bytes);
     });
     handler.on("GetAnnotations", function ({
       pageIndex,
@@ -57130,9 +57433,7 @@ class WorkerMessageHandler {
       });
     });
     handler.on("GetStructTree", function (data) {
-      return pdfManager.getPage(data.pageIndex).then(function (page) {
-        return pdfManager.ensure(page, "getStructTree");
-      });
+      return pdfManager.getPage(data.pageIndex).then(page => pdfManager.ensure(page, "getStructTree"));
     });
     handler.on("FontFallback", function (data) {
       return pdfManager.fontFallback(data.id, handler);
@@ -57176,8 +57477,8 @@ class WorkerMessageHandler {
 
 ;// ./src/pdf.worker.js
 
-const pdfjsVersion = "5.0.264";
-const pdfjsBuild = "89ccc3a52";
+const pdfjsVersion = "5.0.299";
+const pdfjsBuild = "dea35aed4";
 
 var __webpack_exports__WorkerMessageHandler = __webpack_exports__.WorkerMessageHandler;
 export { __webpack_exports__WorkerMessageHandler as WorkerMessageHandler };
