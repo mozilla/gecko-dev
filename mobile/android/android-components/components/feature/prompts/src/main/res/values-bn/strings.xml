@@ -1,74 +1,72 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-    <!-- Text for confirmation for a positive action in dialog  -->
-    <string name="mozac_feature_prompts_ok">ঠিক আছে</string>
-    <!-- Text for confirmation for a negative action in dialog.  -->
-    <string name="mozac_feature_prompts_cancel">বাতিল</string>
-    <!-- When a page shows many dialogs, this checkbox will appear for letting the user choose to prevent showing more dialogs. -->
-    <string name="mozac_feature_prompts_no_more_dialogs">অতিরিক্ত ডায়ালগ তৈরি করা থেকে এই পাতাটিকে বিরত রাখুন</string>
-    <!-- Text for a positive button, when an user selects a date in date/time picker. -->
-    <string name="mozac_feature_prompts_set_date">নির্ধারণ</string>
-    <!-- Text for a button that clears the selected input in the date/time picker. -->
-    <string name="mozac_feature_prompts_clear">পরিষ্কার</string>
-    <!-- Text for the title of an authentication dialog. -->
-    <string name="mozac_feature_prompt_sign_in">সাইন ইন</string>
-    <!-- Text for username field in an authentication dialog. -->
-    <string name="mozac_feature_prompt_username_hint">ব্যবহারকারীর নাম</string>
-    <!-- Text for password field in an authentication dialog. -->
-    <string name="mozac_feature_prompt_password_hint">পাসওয়ার্ড</string>
-    <!-- Negative confirmation that we should never save a login for this site -->
-    <string name="mozac_feature_prompt_never_save">কখনও সংরক্ষণ করবেন না</string>
-    <!-- Positive confirmation that we should save the new or updated login -->
-    <string name="mozac_feature_prompt_save_confirmation">সংরক্ষণ</string>
-    <!-- Positive confirmation that we should save the updated login -->
-    <string name="mozac_feature_prompt_update_confirmation">আপডেট</string>
-    <!-- Title of a color picker dialog, this text is shown above a color picker. -->
-    <string name="mozac_feature_prompts_choose_a_color">একটি রঙ নির্বাচন করুন</string>
-    <!-- Text of a confirm button in dialog requesting to open a new window. -->
-    <string name="mozac_feature_prompts_allow">অনুমতি দিন</string>
-    <!-- Text of a negative button in dialog requesting to open a new window. -->
-    <string name="mozac_feature_prompts_deny">প্রত্যাখান করুন</string>
-    <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
-    <string name="mozac_feature_prompt_before_unload_dialog_title">আপনি কি নিশ্চিত?</string>
-    <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
-    <string name="mozac_feature_prompt_before_unload_dialog_body">আপনি কি এই সাইটটি ছেড়ে যেতে চান? আপনার প্রবেশ করা ডাটা সংরক্ষণ নাও হতে পারে</string>
-    <!-- Stay button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to stay in the website. -->
-    <string name="mozac_feature_prompts_before_unload_stay">থাকুন</string>
-    <!-- Leave button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to leave in the website. -->
-    <string name="mozac_feature_prompts_before_unload_leave">ত্যাগ করুন</string>
-    <!-- Title of the month chooser dialog. -->
-    <string name="mozac_feature_prompts_set_month">একটি মাস বাছাই করুন</string>
-    <!-- January (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_jan">Jan</string>
-    <!-- February month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_feb">Feb</string>
-    <!-- March month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_mar">Mar</string>
-    <!-- April month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_apr">Apr</string>
-    <!-- May month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_may">May</string>
-    <!-- June month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_jun">Jun</string>
-    <!-- July month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_jul">Jul</string>
-    <!-- August month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_aug">Aug</string>
-    <!-- September month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_sep">Sep</string>
-    <!-- October month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_oct">Oct</string>
-    <!-- November month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_nov">Nov</string>
-    <!-- December month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_dec">Dec</string>
-
-    <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
-    <string name="mozac_feature_prompt_repost_title">সাইটে আবার তথ্য পাঠাবে?</string>
-    <string name="mozac_feature_prompt_repost_message">এই পৃষ্ঠাটি রিফ্রেশ করলে সাম্প্রতিক কাজ আবার হতে পারে যেমন কোনও অর্থ প্রদান বা দুইবার মন্তব্য পোস্ট করা।</string>
-    <!-- Pressing this will dismiss the dialog and reload the page sending again the previous data -->
-    <string name="mozac_feature_prompt_repost_positive_button_text">তথ্য আবার পাঠাও</string>
-    <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
-    <string name="mozac_feature_prompt_repost_negative_button_text">বাতিল</string>
-
-    </resources>
+<resources>
+  <!-- Text for confirmation for a positive action in dialog -->
+  <string name="mozac_feature_prompts_ok">ঠিক আছে</string>
+  <!-- Text for confirmation for a negative action in dialog. -->
+  <string name="mozac_feature_prompts_cancel">বাতিল</string>
+  <!-- When a page shows many dialogs, this checkbox will appear for letting the user choose to prevent showing more dialogs. -->
+  <string name="mozac_feature_prompts_no_more_dialogs">অতিরিক্ত ডায়ালগ তৈরি করা থেকে এই পাতাটিকে বিরত রাখুন</string>
+  <!-- Text for a positive button, when an user selects a date in date/time picker. -->
+  <string name="mozac_feature_prompts_set_date">নির্ধারণ</string>
+  <!-- Text for a button that clears the selected input in the date/time picker. -->
+  <string name="mozac_feature_prompts_clear">পরিষ্কার</string>
+  <!-- Text for the title of an authentication dialog. -->
+  <string name="mozac_feature_prompt_sign_in">সাইন ইন</string>
+  <!-- Text for username field in an authentication dialog. -->
+  <string name="mozac_feature_prompt_username_hint">ব্যবহারকারীর নাম</string>
+  <!-- Text for password field in an authentication dialog. -->
+  <string name="mozac_feature_prompt_password_hint">পাসওয়ার্ড</string>
+  <!-- Negative confirmation that we should never save a login for this site -->
+  <string name="mozac_feature_prompt_never_save">কখনও সংরক্ষণ করবেন না</string>
+  <!-- Positive confirmation that we should save the new or updated login -->
+  <string name="mozac_feature_prompt_save_confirmation">সংরক্ষণ</string>
+  <!-- Positive confirmation that we should save the updated login -->
+  <string name="mozac_feature_prompt_update_confirmation">আপডেট</string>
+  <!-- Title of a color picker dialog, this text is shown above a color picker. -->
+  <string name="mozac_feature_prompts_choose_a_color">একটি রঙ নির্বাচন করুন</string>
+  <!-- Text of a confirm button in dialog requesting to open a new window. -->
+  <string name="mozac_feature_prompts_allow">অনুমতি দিন</string>
+  <!-- Text of a negative button in dialog requesting to open a new window. -->
+  <string name="mozac_feature_prompts_deny">প্রত্যাখান করুন</string>
+  <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
+  <string name="mozac_feature_prompt_before_unload_dialog_title">আপনি কি নিশ্চিত?</string>
+  <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
+  <string name="mozac_feature_prompt_before_unload_dialog_body">আপনি কি এই সাইটটি ছেড়ে যেতে চান? আপনার প্রবেশ করা ডাটা সংরক্ষণ নাও হতে পারে</string>
+  <!-- Stay button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to stay in the website. -->
+  <string name="mozac_feature_prompts_before_unload_stay">থাকুন</string>
+  <!-- Leave button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to leave in the website. -->
+  <string name="mozac_feature_prompts_before_unload_leave">ত্যাগ করুন</string>
+  <!-- Title of the month chooser dialog. -->
+  <string name="mozac_feature_prompts_set_month">একটি মাস বাছাই করুন</string>
+  <!-- January (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_jan">Jan</string>
+  <!-- February month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_feb">Feb</string>
+  <!-- March month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_mar">Mar</string>
+  <!-- April month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_apr">Apr</string>
+  <!-- May month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_may">May</string>
+  <!-- June month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_jun">Jun</string>
+  <!-- July month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_jul">Jul</string>
+  <!-- August month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_aug">Aug</string>
+  <!-- September month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_sep">Sep</string>
+  <!-- October month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_oct">Oct</string>
+  <!-- November month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_nov">Nov</string>
+  <!-- December month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_dec">Dec</string>
+  <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
+  <string name="mozac_feature_prompt_repost_title">সাইটে আবার তথ্য পাঠাবে?</string>
+  <string name="mozac_feature_prompt_repost_message">এই পৃষ্ঠাটি রিফ্রেশ করলে সাম্প্রতিক কাজ আবার হতে পারে যেমন কোনও অর্থ প্রদান বা দুইবার মন্তব্য পোস্ট করা।</string>
+  <!-- Pressing this will dismiss the dialog and reload the page sending again the previous data -->
+  <string name="mozac_feature_prompt_repost_positive_button_text">তথ্য আবার পাঠাও</string>
+  <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
+  <string name="mozac_feature_prompt_repost_negative_button_text">বাতিল</string>
+</resources>

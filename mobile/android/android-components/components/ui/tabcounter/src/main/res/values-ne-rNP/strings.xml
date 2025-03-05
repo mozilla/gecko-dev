@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-    <!-- Browser menu button that creates a new tab -->
-    <string name="mozac_browser_menu_new_tab">नयाँ ट्याब</string>
-    <!-- Browser menu button that creates a private tab -->
-    <string name="mozac_browser_menu_new_private_tab">नयाँ निजी ट्याब</string>
-    <!-- Browser menu button to close tab. Closes the current session when pressed. -->
-    <string name="mozac_close_tab">ट्याब बन्द गर्नुहोस्</string>
-    <!-- Menu option to duplicate the current tab -->
-    <string name="mozac_ui_tabcounter_duplicate_tab">नक्कल ट्याब</string>
-    <!-- Content description of the tab counter toolbar button -->
-    <string name="mozac_tab_counter_content_description">ट्याब काउन्टर उपकरणपट्टी बटन् ।</string>
+<resources>
+  <!-- Browser menu button that creates a new tab -->
+  <string name="mozac_browser_menu_new_tab">नयाँ ट्याब</string>
+  <!-- Browser menu button that creates a private tab -->
+  <string name="mozac_browser_menu_new_private_tab">नयाँ निजी ट्याब</string>
+  <!-- Browser menu button to close tab. Closes the current session when pressed. -->
+  <string name="mozac_close_tab">ट्याब बन्द गर्नुहोस्</string>
+  <!-- Menu option to duplicate the current tab -->
+  <string name="mozac_ui_tabcounter_duplicate_tab">नक्कल ट्याब</string>
+  <!-- Content description of the tab counter toolbar button -->
+  <string name="mozac_tab_counter_content_description">ट्याब काउन्टर उपकरणपट्टी बटन् ।</string>
 </resources>

@@ -1,59 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Name of the "notification channel" used for displaying download notification. See https://developer.android.com/training/notify-user/channels -->
-    <string name="mozac_feature_downloads_notification_channel">ഇറക്കിവയ്ക്കലുകൾ</string>
-
-    <!-- Text shown on the second row of a paused download notification. -->
-    <string name="mozac_feature_downloads_paused_notification_text">ഇറക്കിവയ്ക്കൽ താൽക്കാലികമായി നിർത്തി</string>
-    <!-- Text shown on the second row of an completed download notification. The filename is shown on the first row. -->
-    <string name="mozac_feature_downloads_completed_notification_text2">ഇറക്കിവയ്ക്കൽ പൂര്‍ത്തിയായിരിക്കുന്നു</string>
-
-    <!-- Text shown on the second row of an failed download notification. The filename is shown on the first row. -->
-    <string name="mozac_feature_downloads_failed_notification_text2">ഇറക്കിവയ്ക്കാൻ കഴിഞ്ഞില്ല</string>
-
-    <!-- Alert dialog confirmation before download a file, this is the title. %1$s will be replaced with the name of the file. -->
-    <string name="mozac_feature_downloads_dialog_title2">ഇറക്കിവയ്ക്കുക (%1$s)</string>
-    <!-- Alert dialog confirmation before download a file, this is the positive action. -->
-    <string name="mozac_feature_downloads_dialog_download">ഇറക്കിവയ്ക്കൂ</string>
-    <!-- Alert dialog confirmation before download a file, this is the negative action. -->
-    <string name="mozac_feature_downloads_dialog_cancel">റദ്ദാക്കുക</string>
-    <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
-    <string name="mozac_feature_downloads_file_not_supported2">%1$s - ഈ ഫയൽ തരം ഡൗൺലോഡ് ചെയ്യാൻ സാധ്യമല്ല</string>
-
-    <!-- Message that appears when the downloaded file could not be opened-->
-    <string name="mozac_feature_downloads_could_not_open_file">ഫയൽ തുറക്കാൻ സാധിച്ചില്ല</string>
-
-    <!-- Message that appears when the downloaded file is a specific type that Android doesn't support opening-->
-    <string name="mozac_feature_downloads_open_not_supported1">%1$s ഫയലുകൾ തുറക്കുന്നതിന് ആപ്പുകളൊന്നും കണ്ടെത്തിയില്ല</string>
-
-    <!-- Button that pauses the download when pressed -->
-    <string name="mozac_feature_downloads_button_pause">തൽക്കാലം നിര്‍ത്തുക</string>
-    <!-- Button that resumes the download when pressed -->
-    <string name="mozac_feature_downloads_button_resume">തുടരുക</string>
-    <!-- Button that cancels the download when pressed -->
-    <string name="mozac_feature_downloads_button_cancel">റദ്ദാക്കുക</string>
-    <!-- Button that opens the downloaded file when pressed -->
-    <string name="mozac_feature_downloads_button_open">തുറക്കുക</string>
-    <!-- Button that restarts the download after a failed attempt -->
-    <string name="mozac_feature_downloads_button_try_again">വീണ്ടും ശ്രമിയ്ക്കുക</string>
-
-    <!-- Content description for close button -->
-    <string name="mozac_feature_downloads_button_close">അടയ്ക്കുക</string>
-
-    <!-- Title for the third party download app chooser dialog -->
-    <string name="mozac_feature_downloads_third_party_app_chooser_dialog_title">ഉപയോഗിച്ച് പ്രവർത്തനം പൂർത്തിയാക്കുക</string>
-    <!-- Message that appears when trying to download with an external app fails. %1$s will be replaced with the name the external app. -->--&gt;
-    <string name="mozac_feature_downloads_unable_to_open_third_party_app">%1$s തുറക്കാനായില്ല</string>
-
-    <!-- Text for the info dialog when write to storage permissions have been denied but user tries to download a file. -->
-    <string name="mozac_feature_downloads_write_external_storage_permissions_needed_message">ഫയലുകളെ ഇറക്കിവയ്ക്കാൻ ഫയലും മാധ്യമ അനുമതികളുടെ ആവശ്യമുണ്ടു്. ആണ്ട്രോയിടു് ക്രമീകരണങ്ങളിലേക്കു് പോവുക പിന്നെ അനുമതികളുള്ള വിഭാഗത്തിൽ അമൎത്തുക പിന്നെ അനുവദിക്കുക എന്നു് ബട്ടണിൽ അമൎത്തുക. </string>
-
-    <!-- Alert dialog confirmation before cancelling downloads, this is the title   -->
-    <string name="mozac_feature_downloads_cancel_active_downloads_warning_content_title">സ്വകാര്യ ഇറക്കിവയ്ക്കലുകൾ റദ്ദാക്കട്ടെ?</string>
-    <!-- Alert dialog confirmation before cancelling private downloads, this is the body. %1$s will be replaced with the name of the file. -->
-    <string name="mozac_feature_downloads_cancel_active_private_downloads_warning_content_body">താങ്ങൾ സ്വകാര്യ തിരച്ചിൽ ടാബുകളെ അടച്ചാൽ %1$s ഇറക്കിവയ്ക്കാലിനെ റദ്ദാക്കണ്ടിവരും. സ്വകാര്യ തിരച്ചിൽ രീതിയില്‍ നിന്നു്  തീര്‍ച്ചയായും പുറത്തേക്കടക്കണോ?</string>
-    <!-- Alert dialog confirmation before cancelling downloads, this is the positive action. -->
-    <string name="mozac_feature_downloads_cancel_active_downloads_accept">ഇറക്കിവയ്ക്കലുകൾ റദ്ദാക്കുക</string>
-    <!-- Alert dialog confirmation before cancelling downloads, this is the negative action. Leaves user in Private browsing -->
-    <string name="mozac_feature_downloads_cancel_active_private_downloads_deny">സ്വകാര്യ തിരച്ചിലിൽ താങ്ങിനില്ക്കുക</string>
+  <!-- Name of the "notification channel" used for displaying download notification. See https://developer.android.com/training/notify-user/channels -->
+  <string name="mozac_feature_downloads_notification_channel">ഇറക്കിവയ്ക്കലുകൾ</string>
+  <!-- Text shown on the second row of a paused download notification. -->
+  <string name="mozac_feature_downloads_paused_notification_text">ഇറക്കിവയ്ക്കൽ താൽക്കാലികമായി നിർത്തി</string>
+  <!-- Text shown on the second row of an completed download notification. The filename is shown on the first row. -->
+  <string name="mozac_feature_downloads_completed_notification_text2">ഇറക്കിവയ്ക്കൽ പൂര്‍ത്തിയായിരിക്കുന്നു</string>
+  <!-- Text shown on the second row of an failed download notification. The filename is shown on the first row. -->
+  <string name="mozac_feature_downloads_failed_notification_text2">ഇറക്കിവയ്ക്കാൻ കഴിഞ്ഞില്ല</string>
+  <!-- Alert dialog confirmation before download a file, this is the title. %1$s will be replaced with the name of the file. -->
+  <string name="mozac_feature_downloads_dialog_title2">ഇറക്കിവയ്ക്കുക (%1$s)</string>
+  <!-- Alert dialog confirmation before download a file, this is the positive action. -->
+  <string name="mozac_feature_downloads_dialog_download">ഇറക്കിവയ്ക്കൂ</string>
+  <!-- Alert dialog confirmation before download a file, this is the negative action. -->
+  <string name="mozac_feature_downloads_dialog_cancel">റദ്ദാക്കുക</string>
+  <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
+  <string name="mozac_feature_downloads_file_not_supported2">%1$s - ഈ ഫയൽ തരം ഡൗൺലോഡ് ചെയ്യാൻ സാധ്യമല്ല</string>
+  <!-- Message that appears when the downloaded file could not be opened -->
+  <string name="mozac_feature_downloads_could_not_open_file">ഫയൽ തുറക്കാൻ സാധിച്ചില്ല</string>
+  <!-- Message that appears when the downloaded file is a specific type that Android doesn't support opening -->
+  <string name="mozac_feature_downloads_open_not_supported1">%1$s ഫയലുകൾ തുറക്കുന്നതിന് ആപ്പുകളൊന്നും കണ്ടെത്തിയില്ല</string>
+  <!-- Button that pauses the download when pressed -->
+  <string name="mozac_feature_downloads_button_pause">തൽക്കാലം നിര്‍ത്തുക</string>
+  <!-- Button that resumes the download when pressed -->
+  <string name="mozac_feature_downloads_button_resume">തുടരുക</string>
+  <!-- Button that cancels the download when pressed -->
+  <string name="mozac_feature_downloads_button_cancel">റദ്ദാക്കുക</string>
+  <!-- Button that opens the downloaded file when pressed -->
+  <string name="mozac_feature_downloads_button_open">തുറക്കുക</string>
+  <!-- Button that restarts the download after a failed attempt -->
+  <string name="mozac_feature_downloads_button_try_again">വീണ്ടും ശ്രമിയ്ക്കുക</string>
+  <!-- Content description for close button -->
+  <string name="mozac_feature_downloads_button_close">അടയ്ക്കുക</string>
+  <!-- Title for the third party download app chooser dialog -->
+  <string name="mozac_feature_downloads_third_party_app_chooser_dialog_title">ഉപയോഗിച്ച് പ്രവർത്തനം പൂർത്തിയാക്കുക</string>
+  <!-- Message that appears when trying to download with an external app fails. %1$s will be replaced with the name the external app. -->
+  <string name="mozac_feature_downloads_unable_to_open_third_party_app">%1$s തുറക്കാനായില്ല</string>
+  <!-- Text for the info dialog when write to storage permissions have been denied but user tries to download a file. -->
+  <string name="mozac_feature_downloads_write_external_storage_permissions_needed_message">ഫയലുകളെ ഇറക്കിവയ്ക്കാൻ ഫയലും മാധ്യമ അനുമതികളുടെ ആവശ്യമുണ്ടു്. ആണ്ട്രോയിടു് ക്രമീകരണങ്ങളിലേക്കു് പോവുക പിന്നെ അനുമതികളുള്ള വിഭാഗത്തിൽ അമൎത്തുക പിന്നെ അനുവദിക്കുക എന്നു് ബട്ടണിൽ അമൎത്തുക. </string>
+  <!-- Alert dialog confirmation before cancelling downloads, this is the title -->
+  <string name="mozac_feature_downloads_cancel_active_downloads_warning_content_title">സ്വകാര്യ ഇറക്കിവയ്ക്കലുകൾ റദ്ദാക്കട്ടെ?</string>
+  <!-- Alert dialog confirmation before cancelling private downloads, this is the body. %1$s will be replaced with the name of the file. -->
+  <string name="mozac_feature_downloads_cancel_active_private_downloads_warning_content_body">താങ്ങൾ സ്വകാര്യ തിരച്ചിൽ ടാബുകളെ അടച്ചാൽ %1$s ഇറക്കിവയ്ക്കാലിനെ റദ്ദാക്കണ്ടിവരും. സ്വകാര്യ തിരച്ചിൽ രീതിയില്‍ നിന്നു്  തീര്‍ച്ചയായും പുറത്തേക്കടക്കണോ?</string>
+  <!-- Alert dialog confirmation before cancelling downloads, this is the positive action. -->
+  <string name="mozac_feature_downloads_cancel_active_downloads_accept">ഇറക്കിവയ്ക്കലുകൾ റദ്ദാക്കുക</string>
+  <!-- Alert dialog confirmation before cancelling downloads, this is the negative action. Leaves user in Private browsing -->
+  <string name="mozac_feature_downloads_cancel_active_private_downloads_deny">സ്വകാര്യ തിരച്ചിലിൽ താങ്ങിനില്ക്കുക</string>
 </resources>

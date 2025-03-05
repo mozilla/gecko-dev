@@ -1,48 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-
-    <!-- Tab tray multi select title in app bar. The first parameter is the number of tabs selected -->
-    <string name="tab_tray_multi_select_title">%1$d kapilih</string>
-    <!-- Label of button in create collection dialog for creating a new collection  -->
-    <string name="tab_tray_add_new_collection">Nambah koleksi anyar</string>
-    <!-- Label of editable text in create collection dialog for naming a new collection  -->
-    <string name="tab_tray_add_new_collection_name">Aran</string>
-
-    <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-    <string name="cfr_neg_button_text">Ten, suksma</string>
-
-
-    <!-- Text for the positive action button to go to Settings for auto close tabs. -->
-    <string name="tab_tray_close_tabs_banner_positive_button_text">Cingak opsi</string>
-
-
-    <!-- Button text for showing all the tabs in the tabs tray -->
-    <string name="recent_tabs_show_all">Cingak makejang</string>
-
-    <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine-->
-    <string name="search_engine_suggestions_title">Rereh %s</string>
-    <!-- Menu option in the search selector menu to open the search settings -->
-    <string name="search_settings_menu_item">Rereh piranti</string>
-
-    <!-- Text preview for smaller sized widgets -->
-    <string name="search_widget_text_short">Rereh</string>
-    <!-- Text preview for larger sized widgets -->
-    <string name="search_widget_text_long">Rereh situs</string>
-    <!-- Content description (not visible, for screen readers etc.): Voice search -->
-    <string name="search_widget_voice">Rereh anggen suara</string>
-
-    <!-- Preference category for all links about Fenix -->
-    <string name="preferences_category_about">Indik</string>
-
-
-    <!-- Preference for settings related to Search -->
-    <string name="preferences_search">Rereh</string>
-
-
-    <!-- Text for the menu button to edit a search engine -->
-    <string name="search_engine_edit">Uah</string>
-
-    <!-- Translations feature-->
-
-
-    </resources>
+<resources>
+  <!-- Tab tray multi select title in app bar. The first parameter is the number of tabs selected -->
+  <string name="tab_tray_multi_select_title">%1$d kapilih</string>
+  <!-- Label of button in create collection dialog for creating a new collection -->
+  <string name="tab_tray_add_new_collection">Nambah koleksi anyar</string>
+  <!-- Label of editable text in create collection dialog for naming a new collection -->
+  <string name="tab_tray_add_new_collection_name">Aran</string>
+  <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
+  <string name="cfr_neg_button_text">Ten, suksma</string>
+  <!-- Text for the positive action button to go to Settings for auto close tabs. -->
+  <string name="tab_tray_close_tabs_banner_positive_button_text">Cingak opsi</string>
+  <!-- Button text for showing all the tabs in the tabs tray -->
+  <string name="recent_tabs_show_all">Cingak makejang</string>
+  <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine -->
+  <string name="search_engine_suggestions_title">Rereh %s</string>
+  <!-- Menu option in the search selector menu to open the search settings -->
+  <string name="search_settings_menu_item">Rereh piranti</string>
+  <!-- Text preview for smaller sized widgets -->
+  <string name="search_widget_text_short">Rereh</string>
+  <!-- Text preview for larger sized widgets -->
+  <string name="search_widget_text_long">Rereh situs</string>
+  <!-- Content description (not visible, for screen readers etc.): Voice search -->
+  <string name="search_widget_voice">Rereh anggen suara</string>
+  <!-- Preference category for all links about Fenix -->
+  <string name="preferences_category_about">Indik</string>
+  <!-- Preference for settings related to Search -->
+  <string name="preferences_search">Rereh</string>
+  <!-- Text for the menu button to edit a search engine -->
+  <string name="search_engine_edit">Uah</string>
+  <!-- Translations feature -->
+</resources>

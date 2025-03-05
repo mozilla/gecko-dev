@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
-    <!-- ####################################################################################### -->
-    <!-- ## Put only strings into this file that should be translated. Move all other strings ## -->
-    <!-- ## into a separate file like strings_references.xml                                  ## -->
-    <!-- ####################################################################################### -->
+<resources>
+  <!--
+    #######################################################################################
 
+    ## Put only strings into this file that should be translated. Move all other strings ##
 
-    <!-- Tips displayed on the home view -->
+    ## into a separate file like strings_references.xml                                  ##
 
-    <!-- Tracking protection bottom sheet -->
+    #######################################################################################
+  -->
 
-     <!-- Promote SearchWidget Dialog -->
+  <!-- Tips displayed on the home view -->
 
-    </resources>
+  <!-- Tracking protection bottom sheet -->
+
+  <!-- Promote SearchWidget Dialog -->
+</resources>
