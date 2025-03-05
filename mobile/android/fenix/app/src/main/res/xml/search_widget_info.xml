@@ -4,6 +4,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_picket_description"
     android:minWidth="320dp"
     android:minHeight="40dp"
     android:resizeMode="horizontal"
