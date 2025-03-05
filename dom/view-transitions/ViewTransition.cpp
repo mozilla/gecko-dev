@@ -5,11 +5,17 @@
 #include "ViewTransition.h"
 
 #include "mozilla/gfx/2D.h"
+#include "WindowRenderer.h"
+#include "mozilla/layers/WebRenderLayerManager.h"
+#include "mozilla/layers/RenderRootStateManager.h"
 #include "mozilla/dom/BindContext.h"
+#include "mozilla/layers/WebRenderBridgeChild.h"
+#include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/DocumentTimeline.h"
 #include "mozilla/dom/Promise-inl.h"
 #include "mozilla/dom/ViewTransitionBinding.h"
+#include "mozilla/image/WebRenderImageProvider.h"
 #include "mozilla/webrender/WebRenderAPI.h"
 #include "mozilla/AnimationEventDispatcher.h"
 #include "mozilla/EffectSet.h"
@@ -18,9 +24,11 @@
 #include "mozilla/SVGIntegrationUtils.h"
 #include "mozilla/WritingModes.h"
 #include "nsDisplayList.h"
+#include "nsFrameState.h"
 #include "nsITimer.h"
 #include "nsLayoutUtils.h"
 #include "nsPresContext.h"
+#include "nsString.h"
 #include "Units.h"
 
 namespace mozilla::dom {
@@ -84,8 +92,78 @@ static RefPtr<gfx::DataSourceSurface> CaptureFallbackSnapshot(
   return surf->GetDataSurface();
 }
 
+static layers::RenderRootStateManager* GetWRStateManagerFor(nsIFrame* aFrame) {
+  if ((true)) {
+    // TODO(emilio): Enable this code-path.
+    return nullptr;
+  }
+  nsIWidget* widget = aFrame->GetNearestWidget();
+  if (NS_WARN_IF(!widget)) {
+    return nullptr;
+  }
+  auto* renderer = widget->GetWindowRenderer();
+  if (NS_WARN_IF(!renderer)) {
+    return nullptr;
+  }
+  layers::WebRenderLayerManager* lm = renderer->AsWebRender();
+  if (NS_WARN_IF(!lm)) {
+    return nullptr;
+  }
+  return lm->GetRenderRootStateManager();
+}
+
+static constexpr wr::ImageKey kNoKey{{0}, 0};
+
+struct OldSnapshotData {
+  wr::ImageKey mImageKey = kNoKey;
+  nsSize mSize;
+  RefPtr<gfx::DataSourceSurface> mFallback;
+  RefPtr<layers::RenderRootStateManager> mManager;
+
+  OldSnapshotData() = default;
+
+  explicit OldSnapshotData(nsIFrame* aFrame)
+      : mSize(aFrame->InkOverflowRectRelativeToSelf().Size()),
+        mManager(GetWRStateManagerFor(aFrame)) {
+    if (mManager) {
+      mImageKey = mManager->WrBridge()->GetNextImageKey();
+    } else {
+      mFallback = CaptureFallbackSnapshot(aFrame);
+    }
+  }
+
+  void EnsureKey(layers::RenderRootStateManager* aManager,
+                 wr::IpcResourceUpdateQueue& aResources) {
+    if (mImageKey != kNoKey) {
+      MOZ_ASSERT(mManager == aManager, "Stale manager?");
+      return;
+    }
+    if (NS_WARN_IF(!mFallback)) {
+      return;
+    }
+    gfx::DataSourceSurface::ScopedMap map(mFallback,
+                                          gfx::DataSourceSurface::READ);
+    if (NS_WARN_IF(!map.IsMapped())) {
+      return;
+    }
+    mManager = aManager;
+    mImageKey = aManager->WrBridge()->GetNextImageKey();
+    auto size = mFallback->GetSize();
+    auto format = mFallback->GetFormat();
+    wr::ImageDescriptor desc(size, format);
+    Range<uint8_t> bytes(map.GetData(), map.GetStride() * size.height);
+    Unused << NS_WARN_IF(!aResources.AddImage(mImageKey, desc, bytes));
+  }
+
+  ~OldSnapshotData() {
+    if (mManager) {
+      mManager->AddImageKeyForDiscard(mImageKey);
+    }
+  }
+};
+
 struct CapturedElementOldState {
-  RefPtr<gfx::DataSourceSurface> mImage;
+  OldSnapshotData mSnapshot;
   // Whether we tried to capture an image. Note we might fail to get a
   // snapshot, so this might not be the same as !!mImage.
   bool mTriedImage = false;
@@ -101,7 +179,7 @@ struct CapturedElementOldState {
 
   CapturedElementOldState(nsIFrame* aFrame,
                           const nsSize& aSnapshotContainingBlockSize)
-      : mImage(CaptureFallbackSnapshot(aFrame)),
+      : mSnapshot(aFrame),
         mTriedImage(true),
         mSize(aFrame->Style()->IsRootElementStyle()
                   ? aSnapshotContainingBlockSize
@@ -119,6 +197,8 @@ struct CapturedElementOldState {
 struct ViewTransition::CapturedElement {
   CapturedElementOldState mOldState;
   RefPtr<Element> mNewElement;
+  wr::SnapshotImageKey mNewSnapshotKey{kNoKey};
+  nsSize mNewSnapshotSize;
 
   CapturedElement() = default;
 
@@ -135,6 +215,14 @@ struct ViewTransition::CapturedElement {
   RefPtr<StyleLockedDeclarationBlock> mOldRule;
   // The rules for ::view-transition-new(<name>).
   RefPtr<StyleLockedDeclarationBlock> mNewRule;
+
+  ~CapturedElement() {
+    if (wr::AsImageKey(mNewSnapshotKey) != kNoKey) {
+      MOZ_ASSERT(mOldState.mSnapshot.mManager);
+      mOldState.mSnapshot.mManager->AddSnapshotImageKeyForDiscard(
+          mNewSnapshotKey);
+    }
+  }
 };
 
 static inline void ImplCycleCollectionTraverse(
@@ -164,12 +252,75 @@ ViewTransition::ViewTransition(Document& aDoc,
 
 ViewTransition::~ViewTransition() { ClearTimeoutTimer(); }
 
-gfx::DataSourceSurface* ViewTransition::GetOldSurface(nsAtom* aName) const {
+Maybe<nsSize> ViewTransition::GetOldSize(nsAtom* aName) const {
+  auto* el = mNamedElements.Get(aName);
+  if (NS_WARN_IF(!el)) {
+    return {};
+  }
+  return Some(el->mOldState.mSnapshot.mSize);
+}
+
+Maybe<nsSize> ViewTransition::GetNewSize(nsAtom* aName) const {
+  auto* el = mNamedElements.Get(aName);
+  if (NS_WARN_IF(!el)) {
+    return {};
+  }
+  return Some(el->mNewSnapshotSize);
+}
+
+const wr::ImageKey* ViewTransition::GetOldImageKey(
+    nsAtom* aName, layers::RenderRootStateManager* aManager,
+    wr::IpcResourceUpdateQueue& aResources) const {
   auto* el = mNamedElements.Get(aName);
   if (NS_WARN_IF(!el)) {
     return nullptr;
   }
-  return el->mOldState.mImage;
+  el->mOldState.mSnapshot.EnsureKey(aManager, aResources);
+  return &el->mOldState.mSnapshot.mImageKey;
+}
+
+const wr::ImageKey* ViewTransition::GetNewImageKey(nsAtom* aName) const {
+  auto* el = mNamedElements.Get(aName);
+  if (NS_WARN_IF(!el)) {
+    return nullptr;
+  }
+  return &el->mNewSnapshotKey._0;
+}
+
+const wr::ImageKey* ViewTransition::GetImageKeyForCapturedFrame(
+    nsIFrame* aFrame, layers::RenderRootStateManager* aManager,
+    wr::IpcResourceUpdateQueue& aResources) const {
+  MOZ_ASSERT(aFrame);
+  MOZ_ASSERT(aFrame->HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION));
+
+  if (!StaticPrefs::dom_viewTransitions_live_capture()) {
+    return nullptr;
+  }
+
+  nsAtom* name = aFrame->StyleUIReset()->mViewTransitionName._0.AsAtom();
+  if (NS_WARN_IF(name->IsEmpty())) {
+    return nullptr;
+  }
+  const bool isOld = mPhase < Phase::Animating;
+  if (isOld) {
+    return GetOldImageKey(name, aManager, aResources);
+  }
+  auto* el = mNamedElements.Get(name);
+  if (NS_WARN_IF(!el)) {
+    return nullptr;
+  }
+  if (NS_WARN_IF(el->mNewElement != aFrame->GetContent())) {
+    return nullptr;
+  }
+  if (wr::AsImageKey(el->mNewSnapshotKey) == kNoKey) {
+    MOZ_ASSERT(!el->mOldState.mSnapshot.mManager ||
+                   el->mOldState.mSnapshot.mManager == aManager,
+               "Stale manager?");
+    el->mNewSnapshotKey = {aManager->WrBridge()->GetNextImageKey()};
+    el->mOldState.mSnapshot.mManager = aManager;
+    aResources.AddSnapshotImage(el->mNewSnapshotKey);
+  }
+  return &el->mNewSnapshotKey._0;
 }
 
 nsIGlobalObject* ViewTransition::GetParentObject() const {
@@ -262,7 +413,7 @@ void ViewTransition::CallUpdateCallback(ErrorResult& aRv) {
         // new state, so we need to flush frames. Do it here so that we deal
         // with other potential script execution skipping the transition or
         // what not in a consistent way.
-        aVt->mDocument->FlushPendingNotifications(FlushType::Frames);
+        aVt->mDocument->FlushPendingNotifications(FlushType::Layout);
         if (aVt->mPhase == Phase::Done) {
           // "Skip a transition" step 8. We need to resolve "finished" after
           // update-callback-done.
@@ -604,15 +755,15 @@ bool ViewTransition::UpdatePseudoElementStyles(bool aNeedsInvalidation) {
     auto size = CSSPixel::FromAppUnits(newRect);
     // NOTE(emilio): Intentionally not short-circuiting. Int cast is needed to
     // silence warning.
-    bool changed = int(SetProp(rule, mDocument, eCSSProperty_width, size.width,
-                               eCSSUnit_Pixel)) |
-                   SetProp(rule, mDocument, eCSSProperty_height, size.height,
-                           eCSSUnit_Pixel) |
-                   SetProp(rule, mDocument, eCSSProperty_transform,
-                           EffectiveTransform(frame));
+    bool groupStyleChanged = int(SetProp(rule, mDocument, eCSSProperty_width,
+                                         size.width, eCSSUnit_Pixel)) |
+                             SetProp(rule, mDocument, eCSSProperty_height,
+                                     size.height, eCSSUnit_Pixel) |
+                             SetProp(rule, mDocument, eCSSProperty_transform,
+                                     EffectiveTransform(frame));
     // TODO: writing-mode, direction, text-orientation, mix-blend-mode,
     // backdrop-filter, color-scheme.
-    if (changed && aNeedsInvalidation) {
+    if (groupStyleChanged && aNeedsInvalidation) {
       auto* pseudo = FindPseudo(PseudoStyleRequest(
           PseudoStyleType::viewTransitionGroup, transitionName));
       MOZ_ASSERT(pseudo);
@@ -621,7 +772,16 @@ bool ViewTransition::UpdatePseudoElementStyles(bool aNeedsInvalidation) {
       nsLayoutUtils::PostRestyleEvent(pseudo, RestyleHint::RECASCADE_SELF,
                                       nsChangeHint(0));
     }
-    // 5. TODO(emilio): Live capturing (probably nothing to do here)
+
+    // 5. Live capturing (nothing to do here regarding the capture itself, but
+    // if the size has changed, then we need to invalidate the new frame).
+    auto oldSize = capturedElement.mNewSnapshotSize;
+    capturedElement.mNewSnapshotSize =
+        frame->InkOverflowRectRelativeToSelf().Size();
+    if (oldSize != capturedElement.mNewSnapshotSize && aNeedsInvalidation) {
+      frame->PresShell()->FrameNeedsReflow(
+          frame, IntrinsicDirty::FrameAndAncestors, NS_FRAME_IS_DIRTY);
+    }
   }
   return true;
 }
@@ -931,6 +1091,8 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureNewState() {
     auto& capturedElement = mNamedElements.LookupOrInsertWith(
         name, [&] { return MakeUnique<CapturedElement>(); });
     capturedElement->mNewElement = aFrame->GetContent()->AsElement();
+    capturedElement->mNewSnapshotSize =
+        aFrame->InkOverflowRectRelativeToSelf().Size();
     aFrame->AddStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION);
     return true;
   });

@@ -107,6 +107,8 @@ using namespace mozilla::layers;
 
 using mozilla::layout::TextDrawTarget;
 
+static constexpr wr::ImageKey kNoKey{{0}, 0};
+
 class nsDisplayGradient final : public nsPaintedDisplayItem {
  public:
   nsDisplayGradient(nsDisplayListBuilder* aBuilder, nsImageFrame* aFrame)
@@ -399,10 +401,10 @@ nsIFrame* NS_NewImageFrameForListStyleImage(PresShell* aPresShell,
                                        nsImageFrame::Kind::ListStyleImage);
 }
 
-nsIFrame* NS_NewImageFrameForViewTransitionOld(PresShell* aPresShell,
-                                               ComputedStyle* aStyle) {
+nsIFrame* NS_NewImageFrameForViewTransition(PresShell* aPresShell,
+                                            ComputedStyle* aStyle) {
   return new (aPresShell) nsImageFrame(aStyle, aPresShell->GetPresContext(),
-                                       nsImageFrame::Kind::ViewTransitionOld);
+                                       nsImageFrame::Kind::ViewTransition);
 }
 
 bool nsImageFrame::ShouldShowBrokenImageIcon() const {
@@ -471,7 +473,7 @@ a11y::AccType nsImageFrame::AccessibleType() {
     return a11y::eNoType;
   }
 
-  if (mKind == Kind::ViewTransitionOld) {
+  if (mKind == Kind::ViewTransition) {
     // View transitions don't show up in the a11y tree.
     return a11y::eNoType;
   }
@@ -536,13 +538,6 @@ void nsImageFrame::Destroy(DestroyContext& aContext) {
   // If we were displaying an icon, take ourselves off the list
   if (mDisplayingIcon) {
     BrokenImageIcon::RemoveObserver(this);
-  }
-
-  if (mViewTransitionData.HasKey()) {
-    MOZ_ASSERT(mViewTransitionData.mManager);
-    mViewTransitionData.mManager->AddImageKeyForDiscard(
-        mViewTransitionData.mImageKey);
-    mViewTransitionData = {};
   }
 
   nsAtomicContainerFrame::Destroy(aContext);
@@ -630,7 +625,7 @@ static bool SizeIsAvailable(imgIRequest* aRequest) {
 
 const StyleImage* nsImageFrame::GetImageFromStyle() const {
   switch (mKind) {
-    case Kind::ViewTransitionOld:
+    case Kind::ViewTransition:
       break;
     case Kind::ImageLoadingContent:
       break;
@@ -750,7 +745,7 @@ void nsImageFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
     }
   } else if (mKind == Kind::XULImage) {
     UpdateXULImage();
-  } else if (mKind == Kind::ViewTransitionOld) {
+  } else if (mKind == Kind::ViewTransition) {
     // View transitions have a surface directly.
   } else {
     const StyleImage* image = GetImageFromStyle();
@@ -881,13 +876,10 @@ IntrinsicSize nsImageFrame::ComputeIntrinsicSize(
     return FinishIntrinsicSize(containAxes, intrinsicSize);
   }
 
-  if (auto* surf = GetViewTransitionSurface()) {
+  if (auto size = GetViewTransitionSnapshotSize()) {
     IntrinsicSize intrinsicSize;
-    auto devPx = LayoutDeviceIntSize::FromUnknownSize(surf->GetSize());
-    auto size = LayoutDeviceIntSize::ToAppUnits(
-        devPx, PresContext()->AppUnitsPerDevPixel());
-    intrinsicSize.width.emplace(size.width);
-    intrinsicSize.height.emplace(size.height);
+    intrinsicSize.width.emplace(size->width);
+    intrinsicSize.height.emplace(size->height);
     return FinishIntrinsicSize(containAxes, intrinsicSize);
   }
 
@@ -950,18 +942,47 @@ bool nsImageFrame::UpdateIntrinsicSize() {
   return mIntrinsicSize != oldIntrinsicSize;
 }
 
-gfx::DataSourceSurface* nsImageFrame::GetViewTransitionSurface() const {
-  if (mKind != Kind::ViewTransitionOld) {
-    return nullptr;
-  }
-  auto* vt = PresContext()->Document()->GetActiveViewTransition();
-  if (NS_WARN_IF(!vt)) {
+nsAtom* nsImageFrame::GetViewTransitionName() const {
+  if (mKind != Kind::ViewTransition) {
     return nullptr;
   }
   MOZ_ASSERT(GetContent()->AsElement()->HasName());
-  nsAtom* name =
-      GetContent()->AsElement()->GetParsedAttr(nsGkAtoms::name)->GetAtomValue();
-  return vt->GetOldSurface(name);
+  return GetContent()
+      ->AsElement()
+      ->GetParsedAttr(nsGkAtoms::name)
+      ->GetAtomValue();
+}
+
+Maybe<nsSize> nsImageFrame::GetViewTransitionSnapshotSize() const {
+  auto* name = GetViewTransitionName();
+  if (!name) {
+    return {};
+  }
+  auto* vt = PresContext()->Document()->GetActiveViewTransition();
+  if (NS_WARN_IF(!vt)) {
+    return {};
+  }
+  return Style()->GetPseudoType() == PseudoStyleType::viewTransitionOld
+             ? vt->GetOldSize(name)
+             : vt->GetNewSize(name);
+}
+
+wr::ImageKey nsImageFrame::GetViewTransitionImageKey(
+    layers::RenderRootStateManager* aManager,
+    wr::IpcResourceUpdateQueue& aResources) const {
+  auto* name = GetViewTransitionName();
+  if (!name) {
+    return kNoKey;
+  }
+  auto* vt = PresContext()->Document()->GetActiveViewTransition();
+  if (NS_WARN_IF(!vt)) {
+    return kNoKey;
+  }
+  const auto* key =
+      Style()->GetPseudoType() == PseudoStyleType::viewTransitionOld
+          ? vt->GetOldImageKey(name, aManager, aResources)
+          : vt->GetNewImageKey(name);
+  return key ? *key : kNoKey;
 }
 
 AspectRatio nsImageFrame::ComputeIntrinsicRatioForImage(
@@ -976,8 +997,8 @@ AspectRatio nsImageFrame::ComputeIntrinsicRatioForImage(
     }
   }
 
-  if (auto* surf = GetViewTransitionSurface()) {
-    return AspectRatio::FromSize(surf->GetSize());
+  if (auto size = GetViewTransitionSnapshotSize()) {
+    return AspectRatio::FromSize(*size);
   }
 
   if (ShouldUseMappedAspectRatio()) {
@@ -2344,26 +2365,9 @@ void nsDisplayImage::MaybeCreateWebRenderCommandsForViewTransition(
     nsDisplayListBuilder* aDisplayListBuilder) {
   auto* frame = Frame();
   MOZ_ASSERT(!frame->mImage);
-  auto* surf = frame->GetViewTransitionSurface();
-  if (NS_WARN_IF(!surf)) {
+  auto key = frame->GetViewTransitionImageKey(aManager, aResources);
+  if (NS_WARN_IF(key == kNoKey)) {
     return;
-  }
-  if (!frame->mViewTransitionData.HasKey()) {
-    DataSourceSurface::ScopedMap map(surf, DataSourceSurface::READ);
-    if (NS_WARN_IF(!map.IsMapped())) {
-      return;
-    }
-    auto key = aManager->WrBridge()->GetNextImageKey();
-    auto size = surf->GetSize();
-    auto format = surf->GetFormat();
-    wr::ImageDescriptor desc(size, format);
-    Range<uint8_t> bytes(map.GetData(), map.GetStride() * size.height);
-    if (NS_WARN_IF(!aResources.AddImage(key, desc, bytes))) {
-      return;
-    }
-    // TODO: Discard this image
-    frame->mViewTransitionData.mImageKey = key;
-    frame->mViewTransitionData.mManager = aManager;
   }
   const nsRect destAppUnits = GetDestRect();
   const int32_t factor = mFrame->PresContext()->AppUnitsPerDevPixel();
@@ -2371,8 +2375,7 @@ void nsDisplayImage::MaybeCreateWebRenderCommandsForViewTransition(
       wr::ToLayoutRect(LayoutDeviceRect::FromAppUnits(destAppUnits, factor));
   auto rendering = wr::ToImageRendering(frame->UsedImageRendering());
   aBuilder.PushImage(destRect, destRect, !BackfaceIsHidden(),
-                     /* aForceAntiAliasing = */ false, rendering,
-                     frame->mViewTransitionData.mImageKey);
+                     /* aForceAntiAliasing = */ false, rendering, key);
 }
 
 bool nsDisplayImage::CreateWebRenderCommands(
@@ -2576,7 +2579,7 @@ void nsImageFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
       aBuilder, this, clipFlags);
 
   if (!mComputedSize.IsEmpty()) {
-    const bool isViewTransition = mKind == Kind::ViewTransitionOld;
+    const bool isViewTransition = mKind == Kind::ViewTransition;
     const bool imageOK = mKind != Kind::ImageLoadingContent ||
                          ImageOk(mContent->AsElement()->State());
 

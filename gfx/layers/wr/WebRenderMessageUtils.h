@@ -145,6 +145,12 @@ inline auto TiedFields<mozilla::wr::BlobImageKey>(
 }
 
 template <>
+inline auto TiedFields<mozilla::wr::SnapshotImageKey>(
+    mozilla::wr::SnapshotImageKey& a) {
+  return std::tie(a._0);
+}
+
+template <>
 inline auto TiedFields<mozilla::wr::FontKey>(mozilla::wr::FontKey& a) {
   return std::tie(a.mNamespace, a.mHandle);
 }
@@ -339,6 +345,10 @@ struct ParamTraits<mozilla::wr::ImageKey>
 template <>
 struct ParamTraits<mozilla::wr::BlobImageKey>
     : public ParamTraits_TiedFields<mozilla::wr::BlobImageKey> {};
+
+template <>
+struct ParamTraits<mozilla::wr::SnapshotImageKey>
+    : public ParamTraits_TiedFields<mozilla::wr::SnapshotImageKey> {};
 
 template <>
 struct ParamTraits<mozilla::wr::FontKey>

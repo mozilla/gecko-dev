@@ -5,6 +5,7 @@
 #ifndef mozilla_dom_ViewTransition_h
 #define mozilla_dom_ViewTransition_h
 
+#include "mozilla/layers/IpcResourceUpdateQueue.h"
 #include "nsRect.h"
 #include "nsWrapperCache.h"
 #include "nsAtomHashKeys.h"
@@ -24,6 +25,15 @@ struct StyleLockedDeclarationBlock;
 namespace gfx {
 class DataSourceSurface;
 }
+
+namespace layers {
+class RenderRootStateManager;
+}
+
+namespace wr {
+struct ImageKey;
+class IpcResourceUpdateQueue;
+}  // namespace wr
 
 namespace dom {
 
@@ -69,7 +79,15 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
   void PerformPendingOperations();
 
   Element* GetRoot() const { return mViewTransitionRoot; }
-  gfx::DataSourceSurface* GetOldSurface(nsAtom* aName) const;
+  Maybe<nsSize> GetOldSize(nsAtom* aName) const;
+  Maybe<nsSize> GetNewSize(nsAtom* aName) const;
+  const wr::ImageKey* GetOldImageKey(nsAtom* aName,
+                                     layers::RenderRootStateManager*,
+                                     wr::IpcResourceUpdateQueue&) const;
+  const wr::ImageKey* GetNewImageKey(nsAtom* aName) const;
+  const wr::ImageKey* GetImageKeyForCapturedFrame(
+      nsIFrame* aFrame, layers::RenderRootStateManager*,
+      wr::IpcResourceUpdateQueue&) const;
 
   Element* FindPseudo(const PseudoStyleRequest&) const;
 

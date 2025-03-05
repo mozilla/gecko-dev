@@ -132,6 +132,8 @@ class IpcResourceUpdateQueue {
   bool AddBlobImage(wr::BlobImageKey aKey, const ImageDescriptor& aDescriptor,
                     Range<uint8_t> aBytes, ImageIntRect aVisibleRect);
 
+  void AddSnapshotImage(wr::SnapshotImageKey aKey);
+
   void AddSharedExternalImage(wr::ExternalImageId aExtId, wr::ImageKey aKey);
 
   void PushExternalImageForTexture(wr::ExternalImageId aExtId,
@@ -155,6 +157,8 @@ class IpcResourceUpdateQueue {
   void DeleteImage(wr::ImageKey aKey);
 
   void DeleteBlobImage(wr::BlobImageKey aKey);
+
+  void DeleteSnapshotImage(wr::SnapshotImageKey aKey);
 
   bool AddRawFont(wr::FontKey aKey, Range<uint8_t> aBytes, uint32_t aIndex);
 

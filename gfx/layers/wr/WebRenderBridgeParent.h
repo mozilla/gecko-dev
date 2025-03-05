@@ -236,6 +236,10 @@ class WebRenderBridgeParent final : public PWebRenderBridgeParent,
     return MatchesNamespace(wr::AsImageKey(aBlobKey));
   }
 
+  bool MatchesNamespace(const wr::SnapshotImageKey& aSnapshotKey) const {
+    return MatchesNamespace(wr::AsImageKey(aSnapshotKey));
+  }
+
   bool MatchesNamespace(const wr::FontKey& aFontKey) const {
     return aFontKey.mNamespace == mIdNamespace;
   }

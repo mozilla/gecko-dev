@@ -221,7 +221,7 @@ nsIFrame* NS_NewXULImageFrame(PresShell*, ComputedStyle*);
 nsIFrame* NS_NewImageFrameForContentProperty(PresShell*, ComputedStyle*);
 nsIFrame* NS_NewImageFrameForGeneratedContentIndex(PresShell*, ComputedStyle*);
 nsIFrame* NS_NewImageFrameForListStyleImage(PresShell*, ComputedStyle*);
-nsIFrame* NS_NewImageFrameForViewTransitionOld(PresShell*, ComputedStyle*);
+nsIFrame* NS_NewImageFrameForViewTransition(PresShell*, ComputedStyle*);
 
 // Returns true if aFrame is an anonymous flex/grid item.
 static inline bool IsAnonymousItem(const nsIFrame* aFrame) {
@@ -3493,10 +3493,11 @@ nsCSSFrameConstructor::FindHTMLData(const Element& aElement,
         return &sComboboxLabelData;
       }
     }
-    if (aElement.GetPseudoElementType() == PseudoStyleType::viewTransitionOld) {
-      static constexpr FrameConstructionData sViewTransitionOldData(
-          NS_NewImageFrameForViewTransitionOld);
-      return &sViewTransitionOldData;
+    if (aStyle.GetPseudoType() == PseudoStyleType::viewTransitionOld ||
+        aStyle.GetPseudoType() == PseudoStyleType::viewTransitionNew) {
+      static constexpr FrameConstructionData sViewTransitionData(
+          NS_NewImageFrameForViewTransition);
+      return &sViewTransitionData;
     }
   }
 

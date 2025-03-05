@@ -20,6 +20,7 @@
 #include "mozilla/DisplayPortUtils.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/FocusModel.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/CSSAnimation.h"
 #include "mozilla/dom/CSSTransition.h"
 #include "mozilla/dom/ContentVisibilityAutoStateChangeEvent.h"
@@ -3366,16 +3367,11 @@ void nsIFrame::BuildDisplayListForStackingContext(
   // outside to inside.
   enum class ContainerItemType : uint8_t {
     None = 0,
-    OwnLayerIfNeeded,
-    BlendMode,
     FixedPosition,
     OwnLayerForTransformWithRoundedClip,
     Perspective,
     Transform,
-    SeparatorTransforms,
-    Opacity,
     Filter,
-    BlendContainer
   };
 
   nsDisplayListBuilder::AutoContainerASRTracker contASRTracker(aBuilder);
@@ -3576,6 +3572,18 @@ void nsIFrame::BuildDisplayListForStackingContext(
         GetRectRelativeToSelf() + aBuilder->ToReferenceFrame(this);
     resultList.AppendNewToTop<nsDisplayBackdropFilters>(
         aBuilder, this, &resultList, backdropRect, this);
+    createdContainer = true;
+  }
+
+  // FIXME: Ensure this is the right place to do this.
+  if (HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION) &&
+      StaticPrefs::dom_viewTransitions_live_capture()) {
+    resultList.AppendNewToTopWithIndex<nsDisplayOwnLayer>(
+        aBuilder, this,
+        /* aIndex = */ nsDisplayOwnLayer::OwnLayerForViewTransitionCapture,
+        &resultList, containerItemASR, nsDisplayOwnLayerFlags::None,
+        ScrollbarData{},
+        /* aForceActive = */ false, false);
     createdContainer = true;
   }
 

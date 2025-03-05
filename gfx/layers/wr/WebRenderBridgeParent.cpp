@@ -607,6 +607,24 @@ bool WebRenderBridgeParent::UpdateResources(
                                          wr::ToDeviceIntRect(op.area()));
         break;
       }
+      case OpUpdateResource::TOpAddSnapshotImage: {
+        const auto& op = cmd.get_OpAddSnapshotImage();
+        if (!MatchesNamespace(wr::AsImageKey(op.key()))) {
+          MOZ_ASSERT_UNREACHABLE("Stale snapshot image key (add)!");
+          break;
+        }
+        aUpdates.AddSnapshotImage(op.key());
+        break;
+      }
+      case OpUpdateResource::TOpDeleteSnapshotImage: {
+        const auto& op = cmd.get_OpDeleteSnapshotImage();
+        if (!MatchesNamespace(wr::AsImageKey(op.key()))) {
+          MOZ_ASSERT_UNREACHABLE("Stale snapshot image key (remove)!");
+          break;
+        }
+        aUpdates.DeleteSnapshotImage(op.key());
+        break;
+      }
       case OpUpdateResource::TOpAddSharedExternalImage: {
         const auto& op = cmd.get_OpAddSharedExternalImage();
         // gfxCriticalNote is called on error

@@ -113,9 +113,10 @@ template struct mozilla::wr::Box2D<int, mozilla::wr::LayoutPixel>;
 namespace mozilla {
 namespace wr {
 
-// Cast a blob image key into a regular image for use in
-// a display item.
+// Cast a blob image key into a regular image for use in a display item.
 inline ImageKey AsImageKey(BlobImageKey aKey) { return aKey._0; }
+// Cast a snapshot image key into a regular image for use in a display item.
+inline ImageKey AsImageKey(SnapshotImageKey aKey) { return aKey._0; }
 
 }  // namespace wr
 }  // namespace mozilla

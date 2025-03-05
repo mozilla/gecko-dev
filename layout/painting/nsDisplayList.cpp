@@ -24,6 +24,7 @@
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/dom/RemoteBrowser.h"
 #include "mozilla/dom/Selection.h"
+#include "mozilla/dom/ViewTransition.h"
 #include "mozilla/dom/ServiceWorkerRegistrar.h"
 #include "mozilla/dom/ServiceWorkerRegistration.h"
 #include "mozilla/dom/SVGElement.h"
@@ -5203,10 +5204,11 @@ bool nsDisplayOwnLayer::CreateWebRenderCommands(
     const StackingContextHelper& aSc, RenderRootStateManager* aManager,
     nsDisplayListBuilder* aDisplayListBuilder) {
   Maybe<wr::WrAnimationProperty> prop;
-  bool needsProp = aManager->LayerManager()->AsyncPanZoomEnabled() &&
-                   (IsScrollThumbLayer() || IsZoomingLayer() ||
-                    ShouldGetFixedAnimationId() ||
-                    (IsRootScrollbarContainer() && HasDynamicToolbar()));
+  Maybe<wr::SnapshotInfo> snapshot;
+  const bool needsProp = aManager->LayerManager()->AsyncPanZoomEnabled() &&
+                         (IsScrollThumbLayer() || IsZoomingLayer() ||
+                          ShouldGetFixedAnimationId() ||
+                          (IsRootScrollbarContainer() && HasDynamicToolbar()));
 
   if (needsProp) {
     // APZ is enabled and this is a scroll thumb or zooming layer, so we need
@@ -5228,12 +5230,33 @@ bool nsDisplayOwnLayer::CreateWebRenderCommands(
   params.animation = prop.ptrOr(nullptr);
   params.clip =
       wr::WrStackingContextClip::ClipChain(aBuilder.CurrentClipChainId());
-  if (IsScrollbarContainer() && IsRootScrollbarContainer()) {
+  const bool rootScrollbarContainer = IsRootScrollbarContainer();
+  if (rootScrollbarContainer) {
     params.prim_flags |= wr::PrimitiveFlags::IS_SCROLLBAR_CONTAINER;
   }
-  if (IsZoomingLayer() ||
-      (ShouldGetFixedAnimationId() ||
-       (IsRootScrollbarContainer() && HasDynamicToolbar()))) {
+  if (mFrame->HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION)) {
+    auto key = [&]() -> Maybe<wr::SnapshotImageKey> {
+      auto* vt = mFrame->PresContext()->Document()->GetActiveViewTransition();
+      if (NS_WARN_IF(!vt)) {
+        return Nothing();
+      }
+      const auto* key =
+          vt->GetImageKeyForCapturedFrame(mFrame, aManager, aResources);
+      return key ? Some(wr::SnapshotImageKey{*key}) : Nothing();
+    }();
+    if (key) {
+      float auPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
+      snapshot.emplace(wr::SnapshotInfo{
+          .key = *key,
+          .area = wr::ToLayoutRect(LayoutDeviceRect::FromAppUnits(
+              mFrame->InkOverflowRectRelativeToSelf(), auPerDevPixel)),
+          .detached = true,
+      });
+      params.snapshot = snapshot.ptr();
+    }
+  }
+  if (IsZoomingLayer() || ShouldGetFixedAnimationId() ||
+      (rootScrollbarContainer && HasDynamicToolbar())) {
     params.is_2d_scale_translation = true;
     params.should_snap = true;
   }

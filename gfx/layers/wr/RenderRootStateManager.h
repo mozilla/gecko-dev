@@ -35,8 +35,9 @@ class RenderRootStateManager {
   WebRenderUserDataRefTable* GetWebRenderUserDataTable();
   WebRenderLayerManager* LayerManager() { return mLayerManager; }
 
-  void AddImageKeyForDiscard(wr::ImageKey key);
-  void AddBlobImageKeyForDiscard(wr::BlobImageKey key);
+  void AddImageKeyForDiscard(wr::ImageKey);
+  void AddBlobImageKeyForDiscard(wr::BlobImageKey);
+  void AddSnapshotImageKeyForDiscard(wr::SnapshotImageKey);
   void DiscardImagesInTransaction(wr::IpcResourceUpdateQueue& aResources);
   void DiscardLocalImages();
 
@@ -76,6 +77,7 @@ class RenderRootStateManager {
   Maybe<wr::IpcResourceUpdateQueue> mAsyncResourceUpdates;
   nsTArray<wr::ImageKey> mImageKeysToDelete;
   nsTArray<wr::BlobImageKey> mBlobImageKeysToDelete;
+  nsTArray<wr::SnapshotImageKey> mSnapshotImageKeysToDelete;
   std::unordered_map<uint64_t, RefPtr<SharedSurfacesAnimation>>
       mAsyncAnimations;
 

@@ -322,6 +322,10 @@ bool IpcResourceUpdateQueue::AddImage(ImageKey key,
   return true;
 }
 
+void IpcResourceUpdateQueue::AddSnapshotImage(SnapshotImageKey aKey) {
+  mUpdates.AppendElement(layers::OpAddSnapshotImage(aKey));
+}
+
 bool IpcResourceUpdateQueue::AddBlobImage(BlobImageKey key,
                                           const ImageDescriptor& aDescriptor,
                                           Range<uint8_t> aBytes,
@@ -391,6 +395,10 @@ void IpcResourceUpdateQueue::SetBlobImageVisibleArea(
 
 void IpcResourceUpdateQueue::DeleteImage(ImageKey aKey) {
   mUpdates.AppendElement(layers::OpDeleteImage(aKey));
+}
+
+void IpcResourceUpdateQueue::DeleteSnapshotImage(SnapshotImageKey aKey) {
+  mUpdates.AppendElement(layers::OpDeleteSnapshotImage(aKey));
 }
 
 void IpcResourceUpdateQueue::DeleteBlobImage(BlobImageKey aKey) {

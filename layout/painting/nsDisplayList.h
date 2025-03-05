@@ -5380,7 +5380,7 @@ class nsDisplayOwnLayer : public nsDisplayWrapList {
  public:
   enum OwnLayerType {
     OwnLayerForTransformWithRoundedClip,
-    OwnLayerForStackingContext,
+    OwnLayerForViewTransitionCapture,
     OwnLayerForScrollbar,
     OwnLayerForScrollThumb,
     OwnLayerForSubdoc,
