@@ -215,10 +215,6 @@ class HyperTextAccessible : public AccessibleWrap,
   void GetSelectionDOMRanges(SelectionType aSelectionType,
                              nsTArray<nsRange*>* aRanges);
 
-  // TODO: annotate this with `MOZ_CAN_RUN_SCRIPT` instead.
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult SetSelectionRange(int32_t aStartPos,
-                                                         int32_t aEndPos);
-
   // Helpers
 
   /**
