@@ -4,7 +4,7 @@
 #ifndef INSTALL_DIR_LAYOUT_H
 #define INSTALL_DIR_LAYOUT_H
 
-enum class InstallationDirLayoutType { Single, Versioned };
+enum class InstallationDirLayoutType { Unknown, Single, Versioned };
 
 InstallationDirLayoutType GetInstallationDirLayoutType();
 
