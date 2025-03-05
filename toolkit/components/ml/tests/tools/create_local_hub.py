@@ -4,19 +4,30 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+
 import argparse
 import hashlib
+import os
 import shutil
 import subprocess
+import sys
 import urllib.request
 from pathlib import Path
 
 import yaml
 
 HERE = Path(__file__).resolve().parent
-FETCH_FILE = (
-    HERE / "../../../../../taskcluster/kinds/fetch/onnxruntime-web-fetch.yml"
-).resolve()
+FETCH_FILE = (HERE / "../../../../../taskcluster/kinds/fetch/onnxruntime-web-fetch.yml").resolve()
+
+
+def is_git_lfs_installed():
+    try:
+        output = subprocess.check_output(
+            ["git", "lfs", "version"], stderr=subprocess.DEVNULL, text=True
+        )
+        return "git-lfs" in output.lower()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
 
 
 def compute_sha256(file_path):
@@ -179,12 +190,25 @@ def clone_models(keys, fetches, fetches_dir):
 
 
 def main():
+    if not is_git_lfs_installed():
+        print("git lfs is required for this program to run:")
+        print("\t$ sudo apt install git-lfs")
+        print("\t$ sudo yum install git-lfs")
+        print("\t$ brew install git-lfs")
+        print()
+        print("\tor see https://github.com/git-lfs/git-lfs/blob/main/README.md")
+        sys.exit(1)
+
     parser = argparse.ArgumentParser(
         description="Download ort.jsep.wasm and optionally clone specified models."
     )
+
+    default_dir = os.getenv("MOZ_FETCHES_DIR", None)
+
     parser.add_argument(
         "--fetches-dir",
-        help="Directory to store the downloaded files (and cloned repos).",
+        help="Directory to store the downloaded files (and cloned repos). Uses MOZ_FETCH_DIR if present.",
+        default=default_dir,
     )
     parser.add_argument(
         "--list-models",
@@ -209,7 +233,7 @@ def main():
 
     if args.fetches_dir is None:
         raise ValueError(
-            "Missing --fetches-dir argument. Please specify a directory to store the downloaded files."
+            "Missing --fetches-dir argument or MOZ_FETCHES_DIR env var. Please specify a directory to store the downloaded files"
         )
 
     fetches_dir = Path(args.fetches_dir).resolve()
