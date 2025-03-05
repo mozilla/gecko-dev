@@ -50,15 +50,21 @@ def which(name):
     return name
 
 
-def choose_item(jobs, max_items, display):
+def choose_item(jobs, max_items):
     job_count = len(jobs)
 
     # Don't present a choice if there are too many tests
     if job_count > max_items:
         raise Exception("Too many jobs.")
 
+    def display_job(job):
+        flags = ""
+        if len(job.jitflags) != 0:
+            flags = "({})".format(" ".join(job.jitflags))
+        return "{} {}".format(job.path, flags)
+
     for i, job in enumerate(jobs, 1):
-        print("{}) {}".format(i, display(job)))
+        print("{}) {}".format(i, display_job(job)))
 
     item = read_input("Which one:\n")
     try:
@@ -227,6 +233,7 @@ def main(argv):
     op.add_argument(
         "--debugger", type=str, help="Run a single test under the specified debugger"
     )
+    op.add_argument("--one", action="store_true", help="Run a single test only.")
     op.add_argument(
         "--valgrind",
         dest="valgrind",
@@ -514,7 +521,19 @@ def main(argv):
 
     prefix += ["-p", prologue]
 
-    if options.debugger:
+    if options.one:
+        try:
+            jobs = list(job_list)
+            tc = choose_item(jobs, max_items=50)
+        except Exception as e:
+            sys.exit(str(e))
+
+        with change_env(test_environment):
+            with TemporaryDirectory() as tempdir:
+                cmd = tc.command(prefix, jittests.LIB_DIR, jittests.MODULE_DIR, tempdir)
+                os.execvp(cmd[0], cmd)
+        sys.exit()
+    elif options.debugger:
         if job_count > 1:
             print(
                 "Multiple tests match command line"
@@ -522,14 +541,8 @@ def main(argv):
             )
             jobs = list(job_list)
 
-            def display_job(job):
-                flags = ""
-                if len(job.jitflags) != 0:
-                    flags = "({})".format(" ".join(job.jitflags))
-                return "{} {}".format(job.path, flags)
-
             try:
-                tc = choose_item(jobs, max_items=50, display=display_job)
+                tc = choose_item(jobs, max_items=50)
             except Exception as e:
                 sys.exit(str(e))
         else:
