@@ -53,10 +53,6 @@ const gExperimentalPane = {
     this._setCategoryVisibility(shouldHide);
 
     if (shouldHide) {
-      // TODO: Remove this when we remove the GenAI integration with
-      // about:preferences, as this just patches over a failing test.
-      // https://bugzilla.mozilla.org/show_bug.cgi?id=1951311
-      Services.obs.notifyObservers(window, "experimental-pane-loaded");
       return;
     }
 

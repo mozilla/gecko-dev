@@ -29,18 +29,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
-  "chatHideFromLabs",
-  "browser.ml.chat.hideFromLabs",
-  false
-);
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "chatHideLabsShortcuts",
-  "browser.ml.chat.hideLabsShortcuts",
-  false
-);
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
   "chatHideLocalhost",
   "browser.ml.chat.hideLocalhost",
   null,
@@ -343,16 +331,6 @@ export const GenAI = {
       Object.entries(
         lazy.NimbusFeatures[featureId].getVariable("prefs")
       ).forEach(setPref);
-    });
-
-    // Detect about:preferences to add controls
-    Services.obs.addObserver(this, "experimental-pane-loaded");
-    // Check existing windows that might have preferences before init
-    lazy.EveryWindow.readyWindows.forEach(window => {
-      const content = window.gBrowser.selectedBrowser.contentWindow;
-      if (content?.location.href.startsWith("about:preferences")) {
-        this.buildPreferences(content);
-      }
     });
 
     // Record glean metrics after applying nimbus prefs
@@ -860,131 +838,6 @@ export const GenAI = {
       browser = context.window.gBrowser.addTab("", options).linkedBrowser;
     }
     browser.fixupAndLoadURIString(url, options);
-  },
-
-  /**
-   * Build preferences for chat such as handling providers.
-   *
-   * @param {Window} window for about:preferences
-   */
-  buildPreferences({ document, Preferences }) {
-    // Section can be hidden by featuregate targeting
-    const providerEl = document.getElementById("genai-chat-provider");
-    if (!providerEl) {
-      return;
-    }
-
-    // Some experiments might want to hide shortcuts
-    const shortcutsEl = document.getElementById("genai-chat-shortcuts");
-    if (lazy.chatHideLabsShortcuts || lazy.chatHideFromLabs) {
-      shortcutsEl.remove();
-    }
-
-    // Page can load (restore at startup) just before default prefs apply
-    if (lazy.chatHideFromLabs) {
-      providerEl.parentNode.remove();
-      document.getElementById("genai-chat").remove();
-      return;
-    }
-
-    const enabled = Preferences.get("browser.ml.chat.enabled");
-    const onEnabledChange = () => {
-      providerEl.disabled = !enabled.value;
-      shortcutsEl.disabled = !enabled.value;
-
-      // Update enabled telemetry
-      Glean.genaiChatbot.enabled.set(enabled.value);
-      if (onEnabledChange.canChange) {
-        Glean.genaiChatbot.experimentCheckboxClick.record({
-          enabled: enabled.value,
-        });
-      }
-      onEnabledChange.canChange = true;
-    };
-    onEnabledChange();
-    enabled.on("change", onEnabledChange);
-
-    // Populate providers and hide from list if necessary
-    this.chatProviders.forEach((data, url) => {
-      providerEl.appendItem(data.name, url).hidden = data.hidden ?? false;
-    });
-    const provider = Preferences.add({
-      id: "browser.ml.chat.provider",
-      type: "string",
-    });
-    let customItem;
-    const onProviderChange = () => {
-      // Add/update the Custom entry if it's not a default provider entry
-      if (provider.value && !this.chatProviders.has(provider.value)) {
-        if (!customItem) {
-          customItem = providerEl.appendItem();
-        }
-        customItem.label = `Custom (${provider.value})`;
-        customItem.value = provider.value;
-
-        // Select the item if the preference changed not via menu
-        providerEl.selectedItem = customItem;
-      }
-
-      // Update potentially multiple links for the provider
-      const links = document.getElementById("genai-chat-links");
-      const providerData = this.chatProviders.get(provider.value);
-      for (let i = 1; i <= 3; i++) {
-        const name = `link${i}`;
-        let link = links.querySelector(`[data-l10n-name=${name}]`);
-        const href = providerData?.[name];
-        if (href) {
-          if (!link) {
-            link = links.appendChild(document.createElement("a"));
-            link.dataset.l10nName = name;
-            link.target = "_blank";
-          }
-          link.href = href;
-        } else {
-          link?.remove();
-        }
-      }
-      document.l10n.setAttributes(
-        links,
-        providerData?.linksId ?? "genai-settings-chat-links"
-      );
-
-      // Update provider telemetry
-      const providerId = this.getProviderId(provider.value);
-      Glean.genaiChatbot.provider.set(providerId);
-      if (onProviderChange.lastId && document.hasFocus()) {
-        Glean.genaiChatbot.providerChange.record({
-          current: providerId,
-          previous: onProviderChange.lastId,
-          surface: "settings",
-        });
-      }
-      onProviderChange.lastId = providerId;
-    };
-    onProviderChange();
-    provider.on("change", onProviderChange);
-
-    const shortcuts = Preferences.add({
-      id: "browser.ml.chat.shortcuts",
-      type: "bool",
-    });
-    const onShortcutsChange = () => {
-      // Update shortcuts telemetry
-      Glean.genaiChatbot.shortcuts.set(shortcuts.value);
-      if (onShortcutsChange.canChange) {
-        Glean.genaiChatbot.shortcutsCheckboxClick.record({
-          enabled: shortcuts.value,
-        });
-      }
-      onShortcutsChange.canChange = true;
-    };
-    onShortcutsChange();
-    shortcuts.on("change", onShortcutsChange);
-  },
-
-  // nsIObserver
-  observe(window) {
-    this.buildPreferences(window);
   },
 };
 

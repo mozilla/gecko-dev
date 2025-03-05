@@ -49,21 +49,3 @@ add_task(async function test_chat_no_open() {
 
   Assert.ok(!SidebarController.isOpen, "Pref changes didn't open sidebar");
 });
-
-/**
- * Check that about:preferences is detected
- */
-add_task(async function test_preferences_observer() {
-  const sandbox = sinon.createSandbox();
-  const stub = sandbox.stub(GenAI, "buildPreferences");
-
-  await BrowserTestUtils.withNewTab("about:preferences#experimental", () => {
-    Assert.equal(stub.callCount, 1, "Would have built genai preferences");
-
-    GenAI.init();
-
-    Assert.equal(stub.callCount, 1, "Repeat init unnecessary so skipped");
-  });
-
-  sandbox.restore();
-});
