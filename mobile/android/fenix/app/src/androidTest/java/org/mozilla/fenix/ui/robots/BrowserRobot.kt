@@ -166,10 +166,14 @@ class BrowserRobot {
     }
 
     fun verifyETPLearnMoreURL() {
+        // Get and log the URL in case there are failures in the future
+        Log.i(TAG, "verifyETPLearnMoreURL: ETP learn more URL = ${itemWithResId("$packageName:id/mozac_browser_toolbar_url_view").text}")
         try {
+            verifyUrl("support.mozilla.org/en-US/kb/tracking-protection-firefox-android")
+        } catch (e: AssertionError) {
+            Log.i(TAG, "verifyETPLearnMoreURL: AssertionError caught, checking redirect URL")
             verifyUrl("support.mozilla.org/en-US/kb/enhanced-tracking-protection-firefox-android")
         } catch (e: AssertionError) {
-            Log.i(TAG, "verifyETPURL: AssertionError caught, checking redirect URL")
             verifyUrl(
                 SupportUtils.getSumoURLForTopic(appContext, SupportUtils.SumoTopic.TOTAL_COOKIE_PROTECTION).replace("https://", ""),
             )

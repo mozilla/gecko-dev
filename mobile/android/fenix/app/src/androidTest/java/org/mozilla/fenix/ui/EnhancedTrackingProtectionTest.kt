@@ -17,6 +17,7 @@ import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper.getEnhancedTrackingProtectionAsset
 import org.mozilla.fenix.helpers.TestAssetHelper.getGenericAsset
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper.appContext
 import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestHelper.mDevice
@@ -81,6 +82,7 @@ class EnhancedTrackingProtectionTest : TestSetup() {
             openExceptionsLearnMoreLink()
         }
         browserScreen {
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
             verifyETPLearnMoreURL()
         }
     }
