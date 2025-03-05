@@ -81,12 +81,17 @@ class Sanitizer final : public nsISupports, public nsWrapperCache {
    */
 
   RefPtr<DocumentFragment> SanitizeFragment(RefPtr<DocumentFragment> aFragment,
-                                            ErrorResult& aRv);
+                                            bool aSafe, ErrorResult& aRv);
 
  private:
   ~Sanitizer() = default;
 
   void SetConfig(const SanitizerConfig& aConfig, ErrorResult& aRv);
+
+  void SanitizeChildren(nsINode* aNode, bool aSafe);
+  void SanitizeAttributes(Element* aChild,
+                          const sanitizer::CanonicalName& aElementName,
+                          bool aSafe);
 
   /**
    * Logs localized message to either content console or browser console

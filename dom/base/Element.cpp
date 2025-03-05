@@ -5410,7 +5410,7 @@ void Element::SetHTML(const nsAString& aInnerHTML,
     return;
   }
 
-  sanitizer->SanitizeFragment(fragment, aError);
+  sanitizer->SanitizeFragment(fragment, /* aSafe */ true, aError);
   if (aError.Failed()) {
     return;
   }

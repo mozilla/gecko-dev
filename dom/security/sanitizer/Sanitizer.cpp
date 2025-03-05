@@ -4,15 +4,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "BindingDeclarations.h"
+#include "Sanitizer.h"
+#include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DocumentFragment.h"
 #include "mozilla/dom/HTMLTemplateElement.h"
 #include "mozilla/dom/SanitizerBinding.h"
 #include "nsContentUtils.h"
 #include "nsGenericHTMLElement.h"
+#include "nsIContentInlines.h"
 #include "nsNameSpaceManager.h"
-#include "Sanitizer.h"
 
 namespace mozilla::dom {
 
@@ -452,8 +453,9 @@ void Sanitizer::SetComments(bool aAllow) { mComments = aAllow; }
 void Sanitizer::SetDataAttributes(bool aAllow) { mDataAttributes = aAllow; }
 void Sanitizer::RemoveUnsafe() {}
 
+// https://wicg.github.io/sanitizer-api/#sanitize
 RefPtr<DocumentFragment> Sanitizer::SanitizeFragment(
-    RefPtr<DocumentFragment> aFragment, ErrorResult& aRv) {
+    RefPtr<DocumentFragment> aFragment, bool aSafe, ErrorResult& aRv) {
   nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(mGlobal);
   if (!window || !window->GetDoc()) {
     aRv.Throw(NS_ERROR_FAILURE);
@@ -462,9 +464,223 @@ RefPtr<DocumentFragment> Sanitizer::SanitizeFragment(
   // FIXME(freddyb)
   // (how) can we assert that the supplied doc is indeed inert?
 
-  // XXX Sanitize
+  // Step 1. Let configuration be the value of sanitizer’s configuration.
+
+  // Step 2. If safe is true, then set configuration to the result of calling
+  // remove unsafe on configuration.
+  //
+  // Optimization: We really don't want to make a copy of the configuration
+  // here, so we instead explictly remove the handful elements and
+  // attributes that are part of "remove unsafe" in the
+  // SanitizeChildren() and SanitizeAttributes() methods.
+
+  // Step 3. Call sanitize core on node, configuration, and with
+  // handleJavascriptNavigationUrls set to safe.
+  SanitizeChildren(aFragment, aSafe);
 
   return aFragment.forget();
+}
+
+static RefPtr<nsAtom> ToNamespace(int32_t aNamespaceID) {
+  if (aNamespaceID == kNameSpaceID_None) {
+    return nullptr;
+  }
+
+  RefPtr<nsAtom> atom =
+      nsNameSpaceManager::GetInstance()->NameSpaceURIAtom(aNamespaceID);
+  return atom;
+}
+
+// https://wicg.github.io/sanitizer-api/#sanitize-core
+void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
+  // Step 1. Let current be node.
+
+  // Step 2. For each child in current’s children:
+  nsCOMPtr<nsIContent> next = nullptr;
+  for (nsCOMPtr<nsIContent> child = aNode->GetFirstChild(); child;
+       child = next) {
+    next = child->GetNextSibling();
+
+    // Step 2.1. Assert: child implements Text, Comment, or Element.
+    // TODO
+
+    // Step 2.2. If child implements Text, then continue.
+    if (child->IsText()) {
+      continue;
+    }
+
+    // Step 2.3. If child implements Comment:
+    if (child->IsComment()) {
+      // Step 2.3.1 If configuration["comments"] is not true, then remove child.
+      if (!mComments) {
+        child->RemoveFromParent();
+      }
+      continue;
+    }
+
+    // Step 2.4. Otherwise:
+    MOZ_ASSERT(child->IsElement());
+
+    // Step 2.4.1. Let elementName be a SanitizerElementNamespace with child’s
+    // local name and namespace.
+    nsAtom* nameAtom = child->NodeInfo()->NameAtom();
+    int32_t namespaceID = child->NodeInfo()->NamespaceID();
+    CanonicalName elementName(nameAtom, ToNamespace(namespaceID));
+
+    // Optimization: Remove unsafe elements before doing anything else.
+    // https://wicg.github.io/sanitizer-api/#built-in-safe-baseline-configuration
+    if (aSafe) {
+      if ((namespaceID == kNameSpaceID_XHTML &&
+           (nameAtom == nsGkAtoms::script || nameAtom == nsGkAtoms::frame ||
+            nameAtom == nsGkAtoms::iframe || nameAtom == nsGkAtoms::object ||
+            nameAtom == nsGkAtoms::embed)) ||
+          (namespaceID == kNameSpaceID_SVG &&
+           (nameAtom == nsGkAtoms::script || nameAtom == nsGkAtoms::use))) {
+        // TODO: Complex removal
+        child->RemoveFromParent();
+        continue;
+      }
+    }
+
+    // Step 2.4.2. If configuration["removeElements"] contains elementName, or
+    // if configuration["elements"] is not empty and does not contain
+    // elementName, then remove child.
+    if (mRemoveElements.Contains(elementName) ||
+        (!mElements.IsEmpty() && !mElements.Contains(elementName))) {
+      // TODO: Do the more complex remove node stuff from nsTreeSanitizer.
+      child->RemoveFromParent();
+      continue;
+    }
+
+    // Step 2.4.3. If configuration["replaceWithChildrenElements"] contains
+    // elementName:
+    if (mReplaceWithChildrenElements.Contains(elementName)) {
+      // Note: This follows nsTreeSanitizer by first inserting the
+      // child's children in place of the current child and then
+      // continueing the sanitization from the first inserted grandchild.
+      nsCOMPtr<nsIContent> parent = child->GetParent();
+      nsCOMPtr<nsIContent> firstChild = child->GetFirstChild();
+      nsCOMPtr<nsIContent> newChild = firstChild;
+      for (; newChild; newChild = child->GetFirstChild()) {
+        ErrorResult rv;
+        parent->InsertBefore(*newChild, child, rv);
+        if (rv.Failed()) {
+          break;
+        }
+      }
+
+      child->RemoveFromParent();
+      if (firstChild) {
+        next = firstChild;
+      }
+      continue;
+    }
+
+    // Step 2.4.4. If elementName equals «[ "name" → "template", "namespace" →
+    // HTML namespace ]»
+    if (auto* templateEl = HTMLTemplateElement::FromNode(child)) {
+      // Step 2.4.4.1. Then call sanitize core on child’s template contents with
+      // configuration and handleJavascriptNavigationUrls.
+
+      // TODO: The <template>'s content can't be accessed after sanitizing,
+      // because nsINode::WrapObject throws NS_ERROR_UNEXPECTED.
+      RefPtr<DocumentFragment> frag = templateEl->Content();
+      SanitizeChildren(frag, aSafe);
+    }
+
+    // Step 2.4.5. If child is a shadow host, then call sanitize core on child’s
+    // shadow root with configuration and handleJavascriptNavigationUrls.
+    if (RefPtr<ShadowRoot> shadow = child->GetShadowRoot()) {
+      SanitizeChildren(shadow, aSafe);
+    }
+
+    // Step 2.4.6.
+    SanitizeAttributes(child->AsElement(), elementName, aSafe);
+
+    // XXX: Recursion missing from the spec ?!?
+    // TODO: Optimization: Remove recusion similar to nsTreeSanitizer
+    SanitizeChildren(child, aSafe);
+  }
+}
+
+void Sanitizer::SanitizeAttributes(Element* aChild,
+                                   const CanonicalName& aElementName,
+                                   bool aSafe) {
+  // TODO: Replace this with a hashmap.
+  const CanonicalElementWithAttributes* elementWithAttributes = nullptr;
+  if (auto index = mElements.Values().IndexOf(aElementName);
+      index != mElements.Values().NoIndex) {
+    elementWithAttributes = &mElements.Values()[index];
+  }
+
+  // https://wicg.github.io/sanitizer-api/#sanitize-core
+  // Substeps of
+  //  Step 2.4.6. For each attribute in child’s attribute list:
+  int32_t count = int32_t(aChild->GetAttrCount());
+  for (int32_t i = count - 1; i >= 0; --i) {
+    // Step 1. Let attrName be a SanitizerAttributeNamespace with attribute’s
+    // local name and namespace.
+    const nsAttrName* attr = aChild->GetAttrNameAt(i);
+    RefPtr<nsAtom> attrLocalName = attr->LocalName();
+    int32_t attrNs = attr->NamespaceID();
+    CanonicalName attrName(attrLocalName, ToNamespace(attrNs));
+
+    bool remove = false;
+    // Optimization: Remove unsafe event handler content attributes.
+    // https://wicg.github.io/sanitizer-api/#sanitizerconfig-remove-unsafe
+    if (aSafe && attrNs == kNameSpaceID_None &&
+        nsContentUtils::IsEventAttributeName(
+            attrLocalName, EventNameType_All & ~EventNameType_XUL)) {
+      remove = true;
+    }
+
+    // Step 2. If configuration["removeAttributes"] contains attrName, then
+    // Remove attribute from child.
+    else if (mRemoveAttributes.Contains(attrName)) {
+      remove = true;
+    }
+
+    // Step 3. If configuration["elements"]["removeAttributes"] contains
+    // attrName, then remove attribute from child.
+    // XXX:
+    //  Spec issue configuration["elements"][elementName]["removeAttributes"] ??
+    else if (elementWithAttributes &&
+             elementWithAttributes->mRemoveAttributes &&
+             elementWithAttributes->mRemoveAttributes->Contains(attrName)) {
+      remove = true;
+    }
+
+    // Step 4. If all of the following are false, then remove attribute from
+    // child.
+    // - configuration["attributes"] exists and contains attrName
+    //    TODO: exists check
+    // - configuration["elements"]["attributes"] contains attrName
+    // - "data-" is a code unit prefix of local name and namespace is null and
+    // configuration["dataAttributes"] is true
+    else if ((!mAttributes.IsEmpty() && !mAttributes.Contains(attrName)) &&
+             !(elementWithAttributes && elementWithAttributes->mAttributes &&
+               elementWithAttributes->mAttributes->Contains(attrName)) &&
+             !(StringBeginsWith(nsDependentAtomString(attrLocalName),
+                                u"data-"_ns) &&
+               attrNs == kNameSpaceID_None && mDataAttributes)) {
+      remove = true;
+    }
+
+    // Step 5. If handleJavascriptNavigationUrls:
+    else if (aSafe) {
+      // TODO
+    }
+
+    if (remove) {
+      aChild->UnsetAttr(attr->NamespaceID(), attr->LocalName(), false);
+
+      // XXX Copied from nsTreeSanitizer.
+      // In case the attribute removal shuffled the attribute order, start the
+      // loop again.
+      --count;
+      i = count;  // i will be decremented immediately thanks to the for loop
+    }
+  }
 }
 
 /* ------ Logging ------ */
