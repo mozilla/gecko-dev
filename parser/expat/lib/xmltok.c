@@ -1169,7 +1169,7 @@ static const char KW_no[] = {
   ASCII_n, ASCII_o,  '\0'
 };
 
-/* BEGIN MOZILLA CHANGE (http://bugzilla.mozilla.org/show_bug.cgi?id=62157) */
+/* BEGIN MOZILLA CHANGE (Bug 62157 - Document content is rendered even though version value is not "1.0") */
 static const char KW_XML_1_0[] = {
   ASCII_1, ASCII_PERIOD, ASCII_0, '\0'
 };
@@ -1211,7 +1211,7 @@ doParseXmlDecl(const ENCODING *(*encodingFinder)(const ENCODING *,
       *versionPtr = val;
     if (versionEndPtr)
       *versionEndPtr = ptr;
-/* BEGIN MOZILLA CHANGE (http://bugzilla.mozilla.org/show_bug.cgi?id=62157) */
+/* BEGIN MOZILLA CHANGE (Bug 62157 - Document content is rendered even though version value is not "1.0") */
      /* Anything else but a version="1.0" is invalid for us, until we support later versions. */
      if (!XmlNameMatchesAscii(enc, val, ptr - enc->minBytesPerChar, KW_XML_1_0)) {
        *badPtr = val;
