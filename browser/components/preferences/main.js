@@ -30,7 +30,6 @@ const PREF_CONTAINERS_EXTENSION = "privacy.userContext.extension";
 // Strings to identify ExtensionSettingsStore overrides
 const CONTAINERS_KEY = "privacy.containers";
 
-const PREF_USE_SYSTEM_COLORS = "browser.display.use_system_colors";
 const PREF_CONTENT_APPEARANCE =
   "layout.css.prefers-color-scheme.content-override";
 const FORCED_COLORS_QUERY = matchMedia("(forced-colors)");
@@ -104,6 +103,9 @@ Preferences.addAll([
     id: "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features",
     type: "bool",
   },
+
+  // High Contrast
+  { id: "browser.display.document_color_use", type: "int" },
 
   // Fonts
   { id: "font.language.group", type: "wstring" },
@@ -492,6 +494,11 @@ var gMainPane = {
     );
     setEventListener("advancedFonts", "command", gMainPane.configureFonts);
     setEventListener("colors", "command", gMainPane.configureColors);
+    Preferences.get("browser.display.document_color_use").on(
+      "change",
+      gMainPane.updateColorsButton.bind(gMainPane)
+    );
+    gMainPane.updateColorsButton();
     Preferences.get("layers.acceleration.disabled").on(
       "change",
       gMainPane.updateHardwareAcceleration.bind(gMainPane)
@@ -1041,6 +1048,11 @@ var gMainPane = {
     document.getElementById("text-zoom-override-warning").hidden =
       !checkbox.checked;
     document.getElementById("zoomBox").hidden = false;
+  },
+
+  updateColorsButton() {
+    document.getElementById("colors").disabled =
+      Preferences.get("browser.display.document_color_use").value != 2;
   },
 
   /**
@@ -4272,7 +4284,6 @@ const AppearanceChooser = {
     this.warning = document.getElementById("web-appearance-override-warning");
 
     FORCED_COLORS_QUERY.addEventListener("change", this);
-    Services.prefs.addObserver(PREF_USE_SYSTEM_COLORS, this);
     Services.obs.addObserver(this, "look-and-feel-changed");
     this._update();
   },
@@ -4308,7 +4319,6 @@ const AppearanceChooser = {
   },
 
   destroy() {
-    Services.prefs.removeObserver(PREF_USE_SYSTEM_COLORS, this);
     Services.obs.removeObserver(this, "look-and-feel-changed");
     FORCED_COLORS_QUERY.removeEventListener("change", this);
   },
@@ -4343,10 +4353,6 @@ const AppearanceChooser = {
   },
 
   _updateWarning() {
-    let forcingColorsAndNoColorSchemeSupport =
-      FORCED_COLORS_QUERY.matches &&
-      (AppConstants.platform == "win" ||
-        !Services.prefs.getBoolPref(PREF_USE_SYSTEM_COLORS));
-    this.warning.hidden = !forcingColorsAndNoColorSchemeSupport;
+    this.warning.hidden = !FORCED_COLORS_QUERY.matches;
   },
 };

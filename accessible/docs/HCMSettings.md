@@ -20,26 +20,17 @@ A -->|No| D
 ```
 
 ## Settings that control color usage in content
-- Colors Dialog (about:preferences > Manage Colors)
-	- Dropdown with options: Always, Only with High Contrast Themes, and Never
-	- Use System Colors checkbox
-	- Text, Background, Visited and Unvisited Link color inputs
+- Colors Dialog (about:preferences > Contrast Control)
 - Extensions like Dark Reader, or changes to user.css, may override author specified colors independent of HCM.
 
 ```{mermaid}
 flowchart TD
-A[What is the value of the dropdown in the colors dialog?]
-A -->|Always|C
+A[Which option is selected in 'Contrast Control'?]
 
-A -->|Only with High Contrast Themes| B[Is a OS HCM enabled?]
-B -->|Yes| C[Is the Use System Colors checkbox checked?]
-C -->|Yes, and OS HCM is on| D[Use OS HCM colors to render web content]
-C -->|Yes, and OS HCM is off| D2[Use OS dark/light colors to render web content]
-C-->|No| E[Use colors dialog colors to render web content]
+A -->|Use platform's contrast settings| B[Is a OS HCM enabled?]
+A -->|Off| H
+A --->|On| I[Use colors dialog colors to render all content &lpar;HCM&rpar;]
 
-B -->|No| F[Is a color-modifying web extension or color-modifying user.css change active?]
-F -->|Yes| G[Use web extension/user.css provided colors to render web content]
-F -->|No| H[Use author-provided colors to render web content]
-
-A -->|Never|F
+B -->|Yes| C[Use OS colors to render all content &lpar;HCM&rpar;]
+B -->|No| H[Use system colors for all unstyled content]
 ```
