@@ -189,6 +189,35 @@ export class WallpaperFeed {
     );
   }
 
+  async wallpaperUpload(file) {
+    try {
+      const wallpaperDir = PathUtils.join(PathUtils.profileDir, "wallpaper");
+
+      // create wallpaper directory if it does not exist
+      await IOUtils.makeDirectory(wallpaperDir, { ignoreExisting: true });
+      let uuid = Services.uuid.generateUUID().toString().slice(1, -1);
+      const filePath = PathUtils.join(wallpaperDir, uuid);
+
+      // convert to Uint8Array for IOUtils
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      await IOUtils.write(filePath, uint8Array, { tmpPath: `${filePath}.tmp` });
+
+      this.store.dispatch(
+        ac.AlsoToPreloaded({
+          type: at.WALLPAPERS_CUSTOM_SET,
+          data: filePath,
+        })
+      );
+
+      return filePath;
+    } catch (error) {
+      console.error("Error saving wallpaper:", error);
+      return null;
+    }
+  }
+
   async onAction(action) {
     switch (action.type) {
       case at.INIT:
@@ -220,6 +249,8 @@ export class WallpaperFeed {
       case at.WALLPAPERS_FEATURE_HIGHLIGHT_SEEN:
         this.wallpaperSeenEvent();
         break;
+      case at.WALLPAPER_UPLOAD:
+        this.wallpaperUpload(action.data);
     }
   }
 }

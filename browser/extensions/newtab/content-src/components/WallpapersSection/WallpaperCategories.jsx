@@ -215,8 +215,10 @@ export class _WallpaperCategories extends React.PureComponent {
     this.setState({ activeCategoryFluentID: fluent_id });
   };
 
-  handleUpload() {
-    // TODO: Bug 1947645: Add custom image upload functionality
+  // Custom wallpaper image upload
+  async handleUpload() {
+    // TODO: Bug 1943663: Add telemetry
+
     // TODO: Bug 1947813: Add image upload error states/UI
 
     // TODO: Once Bug 1947813 has landed, we may need a separate event
@@ -231,6 +233,26 @@ export class _WallpaperCategories extends React.PureComponent {
     });
 
     this.props.setPref(PREF_WALLPAPER_UPLOADED_PREVIOUSLY, true);
+
+    // Create a file input since category buttons are radio inputs
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "image/*"; // only allow image files
+
+    fileInput.onchange = async event => {
+      const [file] = event.target.files;
+
+      if (file) {
+        this.props.dispatch(
+          ac.OnlyToMain({
+            type: at.WALLPAPER_UPLOAD,
+            data: file,
+          })
+        );
+      }
+    };
+
+    fileInput.click();
   }
 
   handleBack() {
