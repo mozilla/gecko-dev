@@ -15,4 +15,7 @@
 static_assert(sizeof(int) == sizeof(int32_t), "Expected int and int32_t to be of same size.");
 #endif
 
+/* We don't need to nor want to expose getpid() to expat */
+#define getpid() 0
+
 #endif /* __expat_config_rlbox_h__ */

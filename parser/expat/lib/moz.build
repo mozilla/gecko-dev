@@ -1,0 +1,24 @@
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+include("sources.mozbuild")
+
+EXPORTS += [
+    'expat.h',
+    'expat_external.h',
+]
+
+if CONFIG["MOZ_WASM_SANDBOXING_EXPAT"]:
+    # Ideally we'd only build moz_extensions.c, but it's currently included
+    # from xmltok.c because it uses a lot of its internals.
+    SOURCES += ['xmltok.c']
+else:
+    SOURCES += expat_sources
+
+FINAL_LIBRARY = 'xul'
+
+for k, v in expat_defines:
+    DEFINES[k] = v

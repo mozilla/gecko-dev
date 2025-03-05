@@ -3,24 +3,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "xmltok.c"
-
-#ifdef MOZILLA_CLIENT
-#ifndef MOZ_IN_WASM_SANDBOX
-
 #ifdef IS_LITTLE_ENDIAN
 
 #define PREFIX(ident) little2_ ## ident
 #define BYTE_TYPE(p) LITTLE2_BYTE_TYPE(XmlGetUtf16InternalEncodingNS(), p)
-#define IS_NAME_CHAR_MINBPC(p) LITTLE2_IS_NAME_CHAR_MINBPC(p)
-#define IS_NMSTRT_CHAR_MINBPC(p) LITTLE2_IS_NMSTRT_CHAR_MINBPC(p)
+#define IS_NAME_CHAR_MINBPC(p) LITTLE2_IS_NAME_CHAR_MINBPC(0, p)
+#define IS_NMSTRT_CHAR_MINBPC(p) LITTLE2_IS_NMSTRT_CHAR_MINBPC(0, p)
 
 #else
 
 #define PREFIX(ident) big2_ ## ident
 #define BYTE_TYPE(p) BIG2_BYTE_TYPE(XmlGetUtf16InternalEncodingNS(), p)
-#define IS_NAME_CHAR_MINBPC(p) BIG2_IS_NAME_CHAR_MINBPC(p)
-#define IS_NMSTRT_CHAR_MINBPC(p) BIG2_IS_NMSTRT_CHAR_MINBPC(p)
+#define IS_NAME_CHAR_MINBPC(p) BIG2_IS_NAME_CHAR_MINBPC(0, p)
+#define IS_NMSTRT_CHAR_MINBPC(p) BIG2_IS_NMSTRT_CHAR_MINBPC(0, p)
 
 #endif
 
@@ -163,6 +158,3 @@ int MOZ_XMLTranslateEntity(const char* ptr, const char* end, const char** next,
 #undef BYTE_TYPE
 #undef IS_NAME_CHAR_MINBPC
 #undef IS_NMSTRT_CHAR_MINBPC
-
-#endif  /* !MOZ_IN_WASM_SANDBOX */
-#endif  /* MOZILLA_CLIENT */
