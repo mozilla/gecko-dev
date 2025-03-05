@@ -18415,11 +18415,25 @@
   value: 0
   mirror: always
 
-# Whether to give explorer.exe a delated nudge to recalculate the fullscreenness
-# of a window after maximizing it.
+# Whether to give explorer.exe a delayed nudge to recalculate the fullscreenness
+# of a window after unminimizing it.
 - name: widget.windows.fullscreen_remind_taskbar
   type: RelaxedAtomicBool
   value: true
+  mirror: always
+
+# Mechanism to use to mark fullscreen windows.
+#
+# (If no problems are reported which adjusting this pref solves, it should be
+# removed in v141, and fixed at `1`.)
+#
+# * 0: Default. Use Gecko-internal heuristics. May vary between versions.
+# * 1: Use only "NonRudeHWND". Historical default on Win7.
+# * 2: Use only MarkFullscreenWindow. Historical default for Win10+.
+# * 3: Use both. (Never a default; not well-tested.)
+- name: widget.windows.fullscreen_marking_method
+  type: RelaxedAtomicUint32
+  value: 0
   mirror: always
 
 # Whether to open the Windows file and folder pickers "remotely" (in a utility
