@@ -15,6 +15,7 @@ import cv2
 import numpy as np
 from mozdevice import ADBDevice
 
+APP_LINK_STARTUP_WEBSITE = "https://theme-crave-demo.myshopify.com/"
 PROD_FENIX = "fenix"
 PROD_CHRM = "chrome-m"
 BACKGROUND_TABS = [
@@ -27,11 +28,10 @@ ITERATIONS = 5
 
 
 class ImageAnalzer:
-    def __init__(self, browser, test, test_url):
+    def __init__(self, browser, test):
         self.video = None
         self.browser = browser
         self.test = test
-        self.test_url = test_url
         self.width = 0
         self.height = 0
         self.video_name = ""
@@ -175,7 +175,7 @@ class ImageAnalzer:
 
     def load_page_to_test_startup(self):
         # Navigate to the page we want to use for testing startup
-        self.device.shell(self.nav_start_command + self.test_url)
+        self.device.shell(self.nav_start_command + APP_LINK_STARTUP_WEBSITE)
         time.sleep(5)
 
     def open_browser_with_view_intent(self):
@@ -224,22 +224,17 @@ class ImageAnalzer:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
+    if len(sys.argv) != 3:
         raise Exception("Didn't pass the args properly :(")
     start_video_timestamp = []
     browser = sys.argv[1]
     test = sys.argv[2]
-
-    test_url = None
-    if test == "cold_view_nav_end":
-        test_url = sys.argv[3]
-
     perfherder_names = {
         "cold_view_nav_end": "applink_startup",
         "mobile_restore": "tab_restore",
     }
 
-    ImageObject = ImageAnalzer(browser, test, test_url)
+    ImageObject = ImageAnalzer(browser, test)
     for iteration in range(ITERATIONS):
         ImageObject.app_setup()
         ImageObject.get_video(iteration)
