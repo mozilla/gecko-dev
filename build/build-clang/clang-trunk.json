@@ -3,7 +3,7 @@
         "allow-unversioned-android.patch",
         "find_symbolizer_linux_clang_15.patch",
         "android-mangling-error_clang_12.patch",
-        "unpoison-thread-stacks_clang_10.patch",
+        "unpoison-thread-stacks_clang_21.patch",
         "downgrade-mangling-error_clang_12.patch",
         "fuzzing_ccov_build_clang_12.patch",
         "revert-llvmorg-16-init-11301-g163bb6d64e5f_clang_21.patch",
