@@ -35,8 +35,9 @@ class DefaultTrackingProtectionExceptionsInteractor(
     }
 
     override fun onDeleteAll() {
-        trackingProtectionUseCases.removeAllExceptions()
-        reloadExceptions()
+        trackingProtectionUseCases.removeAllExceptions {
+            reloadExceptions()
+        }
     }
 
     override fun onDeleteOne(item: TrackingProtectionException) {

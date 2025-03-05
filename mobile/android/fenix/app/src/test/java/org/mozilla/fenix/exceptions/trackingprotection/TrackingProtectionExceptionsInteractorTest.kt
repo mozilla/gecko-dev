@@ -63,6 +63,7 @@ class TrackingProtectionExceptionsInteractorTest {
 
             override fun removeAll(activeSessions: List<EngineSession>?, onRemove: () -> Unit) {
                 removedAll = true
+                onRemove()
             }
 
             override fun add(session: EngineSession, persistInPrivateMode: Boolean) = Unit
