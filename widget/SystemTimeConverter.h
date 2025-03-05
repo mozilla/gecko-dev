@@ -201,15 +201,16 @@ class SystemTimeConverter {
     int64_t wholeMillis = static_cast<int64_t>(timeStampDelta.ToMilliseconds());
     Time wrappedTimeStampDelta = wholeMillis;  // truncate to unsigned
 
-    Time timeToTimeStamp = wrappedTimeStampDelta - timeDelta;
+    int64_t timeToTimeStamp = static_cast<int64_t>(wrappedTimeStampDelta) -
+                              static_cast<int64_t>(timeDelta);
     bool isNewer = false;
     if (timeToTimeStamp == 0) {
       // wholeMillis needs no adjustment
-    } else if (timeToTimeStamp < kTimeHalfRange) {
-      wholeMillis -= timeToTimeStamp;
-    } else {
+    } else if (timeToTimeStamp < 0) {
       isNewer = true;
       wholeMillis += (-timeToTimeStamp);
+    } else {
+      wholeMillis -= timeToTimeStamp;
     }
     if (aTimeAsTimeStamp) {
       *aTimeAsTimeStamp =
