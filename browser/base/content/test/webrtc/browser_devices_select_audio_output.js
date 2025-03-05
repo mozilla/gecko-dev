@@ -171,6 +171,11 @@ var gTests = [
         promisePopupNotificationShown("webRTC-shareDevices"),
         simulateAudioOutputRequest({ deviceCount: 1 }),
       ]);
+      is(
+        document.activeElement.className,
+        "popup-notification-primary-button primary footer-button",
+        "popup button focus"
+      );
       checkDeviceSelectors(["speaker"]);
       await escapePrompt();
     },
