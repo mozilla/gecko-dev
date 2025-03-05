@@ -164,7 +164,7 @@ class TranslationsTest : TestSetup() {
     @Test
     fun verifyTheNeverTranslateOptionTest() {
         val firstTestPage = TestAssetHelper.getFirstForeignWebPageAsset(mockWebServer)
-        val secondTestPage = "https://support.mozilla.org/fr/"
+        val secondTestPage = TestAssetHelper.getSecondForeignWebPageAsset(mockWebServer)
 
         navigationToolbar {
         }.enterURL(firstTestPage.url) {
@@ -188,7 +188,7 @@ class TranslationsTest : TestSetup() {
         browserScreen {
         }.openTabDrawer(composeTestRule) {
         }.openNewTab {
-        }.submitQuery(secondTestPage) {
+        }.submitQuery(secondTestPage.url.toString()) {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }
         translationsRobot(composeTestRule) {
