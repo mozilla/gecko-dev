@@ -48,13 +48,8 @@ namespace xpc {
 
 #define Between(x, a, b) (a <= x && x <= b)
 
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
 static_assert(JSProto_URIError - JSProto_Error == 9,
               "New prototype added in error object range");
-#else
-static_assert(JSProto_URIError - JSProto_Error == 8,
-              "New prototype added in error object range");
-#endif
 #define AssertErrorObjectKeyInBounds(key)                      \
   static_assert(Between(key, JSProto_Error, JSProto_URIError), \
                 "We depend on js/ProtoKey.h ordering here");
