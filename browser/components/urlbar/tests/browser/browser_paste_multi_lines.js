@@ -210,6 +210,7 @@ add_task(async function test_paste_after_opening_autocomplete_panel() {
 
 async function assertResult(expected) {
   Assert.equal(gURLBar.value, expected.urlbar, "Pasted value is correct");
+  Assert.ok(gURLBar.valueIsTyped, "Pasted value counts as typed.");
 
   const result = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
   Assert.equal(result.title, expected.title, "Title of result is correct");

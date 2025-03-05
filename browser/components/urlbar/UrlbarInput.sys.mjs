@@ -4452,7 +4452,7 @@ export class UrlbarInput {
       event.stopImmediatePropagation();
 
       const value = oldStart + pasteData + oldEnd;
-      this._setValue(value);
+      this._setValue(value, { valueIsTyped: true });
       this.window.gBrowser.userTypedValue = value;
 
       this.toggleAttribute("usertyping", this._untrimmedValue);
