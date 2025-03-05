@@ -94,26 +94,3 @@ add_task(async function test_onAction_PREF_CHANGED() {
   Services.prefs.clearUserPref(PREF_WALLPAPERS_ENABLED);
   sandbox.restore();
 });
-
-add_task(async function test_onAction_WALLPAPER_UPLOAD() {
-  let sandbox = sinon.createSandbox();
-  let feed = new WallpaperFeed();
-  const fileData = {};
-
-  Services.prefs.setBoolPref(PREF_WALLPAPERS_ENABLED, true);
-  sandbox.stub(feed, "wallpaperUpload").returns();
-
-  info("WallpaperFeed.onAction WALLPAPER_UPLOAD should call wallpaperUpload");
-
-  feed.onAction({
-    type: actionTypes.WALLPAPER_UPLOAD,
-    data: fileData,
-  });
-
-  Assert.ok(feed.wallpaperUpload.calledOnce);
-  Assert.ok(feed.wallpaperUpload.calledWith(fileData));
-
-  Services.prefs.clearUserPref(PREF_WALLPAPERS_ENABLED);
-
-  sandbox.restore();
-});

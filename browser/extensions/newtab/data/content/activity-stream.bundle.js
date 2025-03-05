@@ -265,7 +265,6 @@ for (const type of [
   "WALLPAPERS_SET",
   "WALLPAPER_CATEGORY_CLICK",
   "WALLPAPER_CLICK",
-  "WALLPAPERS_CUSTOM_SET",
   "WALLPAPER_UPLOAD",
   "WEATHER_IMPRESSION",
   "WEATHER_LOAD_ERROR",
@@ -6751,7 +6750,6 @@ const INITIAL_STATE = {
     wallpaperList: [],
     highlightSeenCounter: 0,
     categories: [],
-    uploadedWallpaper: "",
   },
   Weather: {
     initialized: false,
@@ -7520,8 +7518,6 @@ function Wallpapers(prevState = INITIAL_STATE.Wallpapers, action) {
       };
     case actionTypes.WALLPAPERS_CATEGORY_SET:
       return { ...prevState, categories: action.data };
-    case actionTypes.WALLPAPERS_CUSTOM_SET:
-      return { ...prevState, uploadedWallpaper: action.data };
     default:
       return prevState;
   }
@@ -11417,11 +11413,8 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       activeCategoryFluentID: fluent_id
     });
   };
-
-  // Custom wallpaper image upload
-  async handleUpload() {
-    // TODO: Bug 1943663: Add telemetry
-
+  handleUpload() {
+    // TODO: Bug 1947645: Add custom image upload functionality
     // TODO: Bug 1947813: Add image upload error states/UI
 
     // TODO: Once Bug 1947813 has landed, we may need a separate event
@@ -11433,22 +11426,6 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       had_previous_wallpaper: !!this.props.activeWallpaper
     });
     this.props.setPref(PREF_WALLPAPER_UPLOADED_PREVIOUSLY, true);
-
-    // Create a file input since category buttons are radio inputs
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    fileInput.accept = "image/*"; // only allow image files
-
-    fileInput.onchange = async event => {
-      const [file] = event.target.files;
-      if (file) {
-        this.props.dispatch(actionCreators.OnlyToMain({
-          type: actionTypes.WALLPAPER_UPLOAD,
-          data: file
-        }));
-      }
-    };
-    fileInput.click();
   }
   handleBack() {
     this.setState({
