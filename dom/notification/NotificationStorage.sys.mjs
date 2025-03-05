@@ -72,6 +72,13 @@ export class NotificationStorage {
     lazy.console.debug(`PUT: ${aOrigin} ${aEntry.id}: ${aEntry.title}`);
     let notification = {
       ...aEntry,
+
+      // XPCOM objects cannot be sent as-is. See also bug 1937194 to skip this step
+      actions: aEntry.actions.map(rawAction => {
+        let actionEntry = { ...rawAction };
+        delete actionEntry.QueryInterface;
+        return actionEntry;
+      }),
       timestamp: new Date().getTime(),
       serviceWorkerRegistrationScope: aScope,
     };

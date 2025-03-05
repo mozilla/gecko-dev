@@ -493,7 +493,11 @@ mozilla::ipc::IPCResult BackgroundParentImpl::RecvCreateNotificationParent(
   auto actor = MakeRefPtr<dom::notification::NotificationParent>(
       aPrincipal, aEffectiveStoragePrincipal, aIsSecureContext, aScope,
       aNotification);
-  actor->BindToMainThread(std::move(aParentEndpoint), std::move(aResolver));
+  nsresult rv =
+      actor->BindToMainThread(std::move(aParentEndpoint), std::move(aResolver));
+  if (NS_FAILED(rv)) {
+    return IPC_FAIL(this, "Invalid NotificationParent constructor arguments");
+  }
   return IPC_OK();
 }
 

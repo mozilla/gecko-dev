@@ -337,6 +337,11 @@ struct IPCImage {
     ImageIntSize size;
 };
 
+struct IPCNotificationAction {
+  nsString name;
+  nsString title;
+};
+
 // Mostly same as NotificationOptions except:
 // * `title` is included (it's a separate parameter in the Notification constructor)
 // * `data` is serialized to base64 string by StructuredCloneContainer
@@ -352,6 +357,7 @@ struct IPCNotificationOptions {
   bool silent;
   uint32_t[] vibrate;
   nsString dataSerialized;
+  IPCNotificationAction[] actions;
 };
 
 struct IPCNotification {

@@ -5382,6 +5382,11 @@
   value: false
   mirror: always
 
+- name: dom.webnotifications.actions.enabled
+  type: RelaxedAtomicBool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
 # Setting log level for notification modules.
 # The value follows the enum ConsoleLogLevel in ConsoleInstance.webidl.
 - name: dom.webnotifications.loglevel

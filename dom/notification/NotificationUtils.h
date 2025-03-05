@@ -23,6 +23,11 @@ class Document;
 
 namespace mozilla::dom::notification {
 
+// The spec defines maxActions to depend on system limitation, but that can be
+// used for fingerprinting.
+// See also https://github.com/whatwg/notifications/issues/110.
+static constexpr uint8_t kMaxActions = 2;
+
 /**
  * Retrieves raw notification permission directly from PermissionManager.
  */
@@ -84,6 +89,24 @@ nsresult OpenSettings(nsIPrincipal* aPrincipal);
 enum class NotificationStatusChange { Shown, Closed };
 nsresult AdjustPushQuota(nsIPrincipal* aPrincipal,
                          NotificationStatusChange aChange);
+
+class NotificationActionStorageEntry
+    : public nsINotificationActionStorageEntry {
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSINOTIFICATIONACTIONSTORAGEENTRY
+  explicit NotificationActionStorageEntry(
+      const IPCNotificationAction& aIPCAction)
+      : mIPCAction(aIPCAction) {}
+
+  static Result<IPCNotificationAction, nsresult> ToIPC(
+      nsINotificationActionStorageEntry& aEntry);
+
+ private:
+  virtual ~NotificationActionStorageEntry() = default;
+
+  IPCNotificationAction mIPCAction;
+};
 
 class NotificationStorageEntry : public nsINotificationStorageEntry {
  public:

@@ -257,6 +257,27 @@ nsresult AdjustPushQuota(nsIPrincipal* aPrincipal,
   return pushQuotaManager->NotificationForOriginClosed(origin.get());
 }
 
+NS_IMPL_ISUPPORTS(NotificationActionStorageEntry,
+                  nsINotificationActionStorageEntry)
+
+NS_IMETHODIMP NotificationActionStorageEntry::GetName(nsAString& aName) {
+  aName = mIPCAction.name();
+  return NS_OK;
+}
+
+NS_IMETHODIMP NotificationActionStorageEntry::GetTitle(nsAString& aTitle) {
+  aTitle = mIPCAction.title();
+  return NS_OK;
+}
+
+Result<IPCNotificationAction, nsresult> NotificationActionStorageEntry::ToIPC(
+    nsINotificationActionStorageEntry& aEntry) {
+  IPCNotificationAction action;
+  MOZ_TRY(aEntry.GetName(action.name()));
+  MOZ_TRY(aEntry.GetTitle(action.title()));
+  return action;
+}
+
 NS_IMPL_ISUPPORTS(NotificationStorageEntry, nsINotificationStorageEntry)
 
 NS_IMETHODIMP NotificationStorageEntry::GetId(nsAString& aId) {
@@ -311,6 +332,20 @@ NS_IMETHODIMP NotificationStorageEntry::GetDataSerialized(
   return NS_OK;
 }
 
+NS_IMETHODIMP NotificationStorageEntry::GetActions(
+    nsTArray<RefPtr<nsINotificationActionStorageEntry>>& aRetVal) {
+  nsTArray<RefPtr<nsINotificationActionStorageEntry>> actions(
+      mIPCNotification.options().actions().Length());
+
+  for (const auto& action : mIPCNotification.options().actions()) {
+    actions.AppendElement(new NotificationActionStorageEntry(action));
+  }
+
+  aRetVal = std::move(actions);
+
+  return NS_OK;
+}
+
 Result<IPCNotification, nsresult> NotificationStorageEntry::ToIPC(
     nsINotificationStorageEntry& aEntry) {
   IPCNotification notification;
@@ -330,6 +365,16 @@ Result<IPCNotification, nsresult> NotificationStorageEntry::ToIPC(
   MOZ_TRY(aEntry.GetRequireInteraction(&options.requireInteraction()));
   MOZ_TRY(aEntry.GetSilent(&options.silent()));
   MOZ_TRY(aEntry.GetDataSerialized(options.dataSerialized()));
+
+  nsTArray<RefPtr<nsINotificationActionStorageEntry>> actionEntries;
+  MOZ_TRY(aEntry.GetActions(actionEntries));
+  nsTArray<IPCNotificationAction> actions(actionEntries.Length());
+  for (const auto& actionEntry : actionEntries) {
+    IPCNotificationAction action;
+    MOZ_TRY_VAR(action, NotificationActionStorageEntry::ToIPC(*actionEntry));
+    actions.AppendElement(std::move(action));
+  }
+  options.actions() = std::move(actions);
 
   return notification;
 }

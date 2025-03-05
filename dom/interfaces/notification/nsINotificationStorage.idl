@@ -4,6 +4,12 @@
 
 #include "domstubs.idl"
 
+[scriptable, uuid(6b782346-49ec-41dd-8165-171506f8d4f4)]
+interface nsINotificationActionStorageEntry : nsISupports {
+  readonly attribute AString name;
+  readonly attribute AString title;
+};
+
 [scriptable, uuid(c772e1b9-d4b0-4e23-8481-4a8b7dbbfe92)]
 interface nsINotificationStorageEntry : nsISupports {
   readonly attribute AString id;
@@ -16,6 +22,7 @@ interface nsINotificationStorageEntry : nsISupports {
   readonly attribute boolean requireInteraction;
   readonly attribute boolean silent;
   readonly attribute AString dataSerialized;
+  readonly attribute Array<nsINotificationActionStorageEntry> actions;
 };
 
 [scriptable, function, uuid(c1622232-259c-43b0-b52e-89c39dcd9796)]

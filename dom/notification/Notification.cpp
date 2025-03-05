@@ -453,12 +453,34 @@ already_AddRefed<Notification> Notification::ValidateAndCreate(
   nsString iconUrl = aOptions.mIcon;
   ResolveIconURL(aGlobal, iconUrl);
 
+  // Step 19: Set notification’s actions to « ».
+  nsTArray<IPCNotificationAction> actions;
+  if (StaticPrefs::dom_webnotifications_actions_enabled()) {
+    // Step 20: For each entry in options["actions"], up to the maximum number
+    // of actions supported (skip any excess entries):
+    for (const auto& entry : aOptions.mActions) {
+      // Step 20.1: Let action be a new notification action.
+      IPCNotificationAction action;
+      // Step 20.2: Set action’s name to entry["action"].
+      action.name() = entry.mAction;
+      // Step 20.3: Set action’s title to entry["title"].
+      action.title() = entry.mTitle;
+      // Step 20.4: (Skipping icon support, see
+      // https://github.com/whatwg/notifications/issues/233)
+      // Step 20.5: Append action to notification’s actions.
+      actions.AppendElement(std::move(action));
+      if (actions.Length() == kMaxActions) {
+        break;
+      }
+    }
+  }
+
   IPCNotification ipcNotification(
       nsString(), IPCNotificationOptions(
                       nsString(aTitle), aOptions.mDir, nsString(aOptions.mLang),
                       nsString(aOptions.mBody), nsString(aOptions.mTag),
                       iconUrl, aOptions.mRequireInteraction, silent, vibrate,
-                      nsString(dataResult.unwrap())));
+                      nsString(dataResult.unwrap()), std::move(actions)));
 
   RefPtr<Notification> notification =
       new Notification(aGlobal, ipcNotification, aScope);
@@ -590,6 +612,10 @@ NotificationPermission Notification::GetPermissionInternal(
 
   return GetNotificationPermission(principal, effectiveStoragePrincipal,
                                    aWindow->IsSecureContext(), aPurpose);
+}
+
+uint32_t Notification::MaxActions(const GlobalObject& aGlobal) {
+  return kMaxActions;
 }
 
 nsresult Notification::ResolveIconURL(nsIGlobalObject* aGlobal,
@@ -736,6 +762,17 @@ void Notification::GetData(JSContext* aCx,
   }
 
   aRetval.set(mData);
+}
+
+void Notification::GetActions(nsTArray<NotificationAction>& aRetVal) {
+  aRetVal.Clear();
+  for (const IPCNotificationAction& entry :
+       mIPCNotification.options().actions()) {
+    RootedDictionary<NotificationAction> action(RootingCx());
+    action.mAction = entry.name();
+    action.mTitle = entry.title();
+    aRetVal.AppendElement(action);
+  }
 }
 
 // Steps 2-5 of

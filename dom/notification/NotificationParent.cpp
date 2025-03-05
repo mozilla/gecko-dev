@@ -8,6 +8,7 @@
 
 #include "nsThreadUtils.h"
 #include "NotificationUtils.h"
+#include "mozilla/AlertNotification.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/ipc/Endpoint.h"
 #include "mozilla/Components.h"
@@ -187,6 +188,14 @@ nsresult NotificationParent::Show() {
                       mPrincipal->GetIsInPrivateBrowsing(), requireInteraction,
                       mOptions.silent(), mOptions.vibrate()));
 
+  nsTArray<RefPtr<nsIAlertAction>> actions;
+  MOZ_ASSERT(mOptions.actions().Length() <= kMaxActions);
+  for (const auto& action : mOptions.actions()) {
+    actions.AppendElement(new AlertAction(action.name(), action.title()));
+  }
+
+  alert->SetActions(actions);
+
   MOZ_TRY(alert->GetId(mId));
 
   nsCOMPtr<nsIAlertsService> alertService = components::Alerts::Service();
@@ -222,6 +231,10 @@ void NotificationParent::Unregister(CloseMode aCloseMode) {
 nsresult NotificationParent::BindToMainThread(
     Endpoint<PNotificationParent>&& aParentEndpoint,
     PBackgroundParent::CreateNotificationParentResolver&& aResolver) {
+  if (mOptions.actions().Length() > kMaxActions) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
   nsCOMPtr<nsIThread> thread = NS_GetCurrentThread();
 
   NS_DispatchToMainThread(NS_NewRunnableFunction(

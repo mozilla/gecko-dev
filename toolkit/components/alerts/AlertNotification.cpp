@@ -454,4 +454,39 @@ void AlertImageRequest::NotifyComplete() {
   }
 }
 
+NS_IMPL_ISUPPORTS(AlertAction, nsIAlertAction)
+
+AlertAction::AlertAction(const nsAString& aAction, const nsAString& aTitle)
+    : mAction(aAction), mTitle(aTitle) {}
+
+NS_IMETHODIMP
+AlertAction::GetAction(nsAString& aAction) {
+  aAction = mAction;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+AlertAction::GetTitle(nsAString& aTitle) {
+  aTitle = mTitle;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+AlertAction::GetIconURL(nsAString& aTitle) {
+  aTitle.Truncate();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+AlertAction::GetWindowsSystemActivationType(bool* aType) {
+  *aType = false;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+AlertAction::GetOpaqueRelaunchData(nsAString& aData) {
+  aData.Truncate();
+  return NS_OK;
+}
+
 }  // namespace mozilla

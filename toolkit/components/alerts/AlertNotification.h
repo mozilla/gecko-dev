@@ -84,6 +84,19 @@ class AlertNotification : public nsIAlertNotification {
   nsString mOpaqueRelaunchData;
 };
 
+class AlertAction : public nsIAlertAction {
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIALERTACTION
+
+  AlertAction(const nsAString& aAction, const nsAString& aTitle);
+
+ protected:
+  virtual ~AlertAction() = default;
+
+  nsString mAction;
+  nsString mTitle;
+};
+
 }  // namespace mozilla
 
 #endif /* mozilla_AlertNotification_h__ */
