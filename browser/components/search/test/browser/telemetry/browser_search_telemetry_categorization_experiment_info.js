@@ -10,11 +10,14 @@
  */
 
 ChromeUtils.defineESModuleGetters(this, {
-  CATEGORIZATION_SETTINGS: "resource:///modules/SERPCategorization.sys.mjs",
+  CATEGORIZATION_SETTINGS:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
-  SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.sys.mjs",
-  SERPCategorizationRecorder: "resource:///modules/SERPCategorization.sys.mjs",
+  SearchSERPTelemetry:
+    "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
+  SERPCategorizationRecorder:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
 });
 
 const TEST_PROVIDER_INFO = [

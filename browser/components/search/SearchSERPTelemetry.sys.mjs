@@ -5,15 +5,18 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.sys.mjs",
+  BrowserSearchTelemetry:
+    "moz-src:///browser/components/search/BrowserSearchTelemetry.sys.mjs",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
-  SERPCategorization: "resource:///modules/SERPCategorization.sys.mjs",
-  SERPCategorizationRecorder: "resource:///modules/SERPCategorization.sys.mjs",
+  SERPCategorization:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
+  SERPCategorizationRecorder:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
   SERPCategorizationEventScheduler:
-    "resource:///modules/SERPCategorization.sys.mjs",
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
 });
 
 // Exported for tests.

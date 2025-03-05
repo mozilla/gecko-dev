@@ -12,7 +12,7 @@
 "use strict";
 
 ChromeUtils.defineESModuleGetters(this, {
-  SearchUIUtils: "resource:///modules/SearchUIUtils.sys.mjs",
+  SearchUIUtils: "moz-src:///browser/components/search/SearchUIUtils.sys.mjs",
 });
 
 const TEST_PROVIDER_INFO = [

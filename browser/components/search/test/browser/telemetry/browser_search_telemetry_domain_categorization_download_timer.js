@@ -11,8 +11,9 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   TELEMETRY_CATEGORIZATION_DOWNLOAD_SETTINGS:
-    "resource:///modules/SERPCategorization.sys.mjs",
-  SERPDomainToCategoriesMap: "resource:///modules/SERPCategorization.sys.mjs",
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
+  SERPDomainToCategoriesMap:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
 });
 

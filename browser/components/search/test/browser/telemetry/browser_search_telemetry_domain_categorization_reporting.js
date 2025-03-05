@@ -8,8 +8,10 @@
  */
 
 ChromeUtils.defineESModuleGetters(this, {
-  CATEGORIZATION_SETTINGS: "resource:///modules/SERPCategorization.sys.mjs",
-  SERPDomainToCategoriesMap: "resource:///modules/SERPCategorization.sys.mjs",
+  CATEGORIZATION_SETTINGS:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
+  SERPDomainToCategoriesMap:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
 });
 
 const TEST_PROVIDER_INFO = [

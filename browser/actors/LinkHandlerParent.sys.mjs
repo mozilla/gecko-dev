@@ -6,7 +6,8 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
-  OpenSearchManager: "resource:///modules/OpenSearchManager.sys.mjs",
+  OpenSearchManager:
+    "moz-src:///browser/components/search/OpenSearchManager.sys.mjs",
 });
 
 let gTestListeners = new Set();

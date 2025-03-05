@@ -2,7 +2,8 @@
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 ChromeUtils.defineESModuleGetters(this, {
-  OpenSearchManager: "resource:///modules/OpenSearchManager.sys.mjs",
+  OpenSearchManager:
+    "moz-src:///browser/components/search/OpenSearchManager.sys.mjs",
 });
 
 function test() {

@@ -8,7 +8,7 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  SearchUIUtils: "resource:///modules/SearchUIUtils.sys.mjs",
+  SearchUIUtils: "moz-src:///browser/components/search/SearchUIUtils.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
 });

@@ -5,9 +5,10 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  OpenSearchManager: "resource:///modules/OpenSearchManager.sys.mjs",
+  OpenSearchManager:
+    "moz-src:///browser/components/search/OpenSearchManager.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
-  SearchUIUtils: "resource:///modules/SearchUIUtils.sys.mjs",
+  SearchUIUtils: "moz-src:///browser/components/search/SearchUIUtils.sys.mjs",
 });
 
 /**

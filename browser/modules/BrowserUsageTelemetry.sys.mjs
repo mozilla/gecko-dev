@@ -14,8 +14,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
   DeferredTask: "resource://gre/modules/DeferredTask.sys.mjs",
   PageActions: "resource:///modules/PageActions.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
-  SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.sys.mjs",
-  SearchSERPTelemetryUtils: "resource:///modules/SearchSERPTelemetry.sys.mjs",
+  SearchSERPTelemetry:
+    "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
+  SearchSERPTelemetryUtils:
+    "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
 
   WindowsInstallsInfo:
     "resource://gre/modules/components-utils/WindowsInstallsInfo.sys.mjs",

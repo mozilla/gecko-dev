@@ -10,10 +10,12 @@
 ChromeUtils.defineESModuleGetters(this, {
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
-  SERPCategorization: "resource:///modules/SERPCategorization.sys.mjs",
-  SERPDomainToCategoriesMap: "resource:///modules/SERPCategorization.sys.mjs",
+  SERPCategorization:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
+  SERPDomainToCategoriesMap:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
   TELEMETRY_CATEGORIZATION_KEY:
-    "resource:///modules/SERPCategorization.sys.mjs",
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
 });
 

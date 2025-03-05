@@ -4,7 +4,7 @@
 "use strict";
 
 const { SearchSERPTelemetry } = ChromeUtils.importESModule(
-  "resource:///modules/SearchSERPTelemetry.sys.mjs"
+  "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs"
 );
 
 const TEST_PROVIDER_INFO = [

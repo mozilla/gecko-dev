@@ -9,9 +9,12 @@
 "use strict";
 
 ChromeUtils.defineESModuleGetters(this, {
-  SERPCategorization: "resource:///modules/SERPCategorization.sys.mjs",
-  SERPDomainToCategoriesMap: "resource:///modules/SERPCategorization.sys.mjs",
-  CATEGORIZATION_SETTINGS: "resource:///modules/SERPCategorization.sys.mjs",
+  SERPCategorization:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
+  SERPDomainToCategoriesMap:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
+  CATEGORIZATION_SETTINGS:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(this, "gCryptoHash", () => {

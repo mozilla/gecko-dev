@@ -15,7 +15,8 @@ ChromeUtils.defineLazyGetter(lazy, "SearchUIUtilsL10n", () => {
 });
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.sys.mjs",
+  BrowserSearchTelemetry:
+    "moz-src:///browser/components/search/BrowserSearchTelemetry.sys.mjs",
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",

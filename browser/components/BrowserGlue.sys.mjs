@@ -21,7 +21,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BackupService: "resource:///modules/backup/BackupService.sys.mjs",
   BookmarkHTMLUtils: "resource://gre/modules/BookmarkHTMLUtils.sys.mjs",
   BookmarkJSONUtils: "resource://gre/modules/BookmarkJSONUtils.sys.mjs",
-  BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.sys.mjs",
+  BrowserSearchTelemetry:
+    "moz-src:///browser/components/search/BrowserSearchTelemetry.sys.mjs",
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   BrowserUsageTelemetry: "resource:///modules/BrowserUsageTelemetry.sys.mjs",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
@@ -74,7 +75,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Sanitizer: "resource:///modules/Sanitizer.sys.mjs",
   SandboxUtils: "resource://gre/modules/SandboxUtils.sys.mjs",
   ScreenshotsUtils: "resource:///modules/ScreenshotsUtils.sys.mjs",
-  SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.sys.mjs",
+  SearchSERPTelemetry:
+    "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
   SelectableProfileService:
     "resource:///modules/profiles/SelectableProfileService.sys.mjs",
   SessionStartup: "resource:///modules/sessionstore/SessionStartup.sys.mjs",

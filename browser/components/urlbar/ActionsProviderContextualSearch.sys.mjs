@@ -14,7 +14,8 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   OpenSearchEngine: "resource://gre/modules/OpenSearchEngine.sys.mjs",
-  OpenSearchManager: "resource:///modules/OpenSearchManager.sys.mjs",
+  OpenSearchManager:
+    "moz-src:///browser/components/search/OpenSearchManager.sys.mjs",
   loadAndParseOpenSearchEngine:
     "resource://gre/modules/OpenSearchLoader.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",

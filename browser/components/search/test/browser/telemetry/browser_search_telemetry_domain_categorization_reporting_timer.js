@@ -12,7 +12,7 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   SERPCategorizationEventScheduler:
-    "resource:///modules/SERPCategorization.sys.mjs",
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
 });
 
 const TEST_PROVIDER_INFO = [

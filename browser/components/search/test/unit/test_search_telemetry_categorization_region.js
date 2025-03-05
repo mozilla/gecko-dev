@@ -8,7 +8,8 @@
 "use strict";
 
 ChromeUtils.defineESModuleGetters(this, {
-  SERPDomainToCategoriesMap: "resource:///modules/SERPCategorization.sys.mjs",
+  SERPDomainToCategoriesMap:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
 });
 
 add_task(async function record_matches_region() {

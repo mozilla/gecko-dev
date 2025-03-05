@@ -53,7 +53,8 @@ ChromeUtils.defineESModuleGetters(this, {
   nsContextMenu: "chrome://browser/content/nsContextMenu.sys.mjs",
   OpenInTabsUtils:
     "moz-src:///browser/components/tabbrowser/OpenInTabsUtils.sys.mjs",
-  OpenSearchManager: "resource:///modules/OpenSearchManager.sys.mjs",
+  OpenSearchManager:
+    "moz-src:///browser/components/search/OpenSearchManager.sys.mjs",
   PageActions: "resource:///modules/PageActions.sys.mjs",
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
   PanelMultiView: "resource:///modules/PanelMultiView.sys.mjs",
@@ -73,7 +74,7 @@ ChromeUtils.defineESModuleGetters(this, {
   Sanitizer: "resource:///modules/Sanitizer.sys.mjs",
   SaveToPocket: "chrome://pocket/content/SaveToPocket.sys.mjs",
   ScreenshotsUtils: "resource:///modules/ScreenshotsUtils.sys.mjs",
-  SearchUIUtils: "resource:///modules/SearchUIUtils.sys.mjs",
+  SearchUIUtils: "moz-src:///browser/components/search/SearchUIUtils.sys.mjs",
   SessionStartup: "resource:///modules/sessionstore/SessionStartup.sys.mjs",
   SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
   ShoppingSidebarParent: "resource:///actors/ShoppingSidebarParent.sys.mjs",

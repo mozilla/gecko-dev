@@ -16,7 +16,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   LaterRun: "resource:///modules/LaterRun.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
-  SearchUIUtils: "resource:///modules/SearchUIUtils.sys.mjs",
+  SearchUIUtils: "moz-src:///browser/components/search/SearchUIUtils.sys.mjs",
   SessionStartup: "resource:///modules/sessionstore/SessionStartup.sys.mjs",
   ShellService: "resource:///modules/ShellService.sys.mjs",
   SpecialMessageActions:

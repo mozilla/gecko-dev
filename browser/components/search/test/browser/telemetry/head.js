@@ -4,24 +4,31 @@
 ChromeUtils.defineESModuleGetters(this, {
   ADLINK_CHECK_TIMEOUT_MS:
     "resource:///actors/SearchSERPTelemetryChild.sys.mjs",
-  BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.sys.mjs",
-  CATEGORIZATION_SETTINGS: "resource:///modules/SERPCategorization.sys.mjs",
+  BrowserSearchTelemetry:
+    "moz-src:///browser/components/search/BrowserSearchTelemetry.sys.mjs",
+  CATEGORIZATION_SETTINGS:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
   CustomizableUITestUtils:
     "resource://testing-common/CustomizableUITestUtils.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
-  SEARCH_TELEMETRY_SHARED: "resource:///modules/SearchSERPTelemetry.sys.mjs",
-  SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.sys.mjs",
-  SearchSERPTelemetryUtils: "resource:///modules/SearchSERPTelemetry.sys.mjs",
+  SEARCH_TELEMETRY_SHARED:
+    "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
+  SearchSERPTelemetry:
+    "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
+  SearchSERPTelemetryUtils:
+    "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
   SearchTestUtils: "resource://testing-common/SearchTestUtils.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
-  SERPCategorizationRecorder: "resource:///modules/SERPCategorization.sys.mjs",
-  SERPDomainToCategoriesMap: "resource:///modules/SERPCategorization.sys.mjs",
+  SERPCategorizationRecorder:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
+  SERPDomainToCategoriesMap:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
   SPA_ADLINK_CHECK_TIMEOUT_MS:
-    "resource:///modules/SearchSERPTelemetry.sys.mjs",
+    "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
   TELEMETRY_CATEGORIZATION_KEY:
-    "resource:///modules/SERPCategorization.sys.mjs",
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
   VISIBILITY_THRESHOLD: "resource:///actors/SearchSERPTelemetryChild.sys.mjs",
 });

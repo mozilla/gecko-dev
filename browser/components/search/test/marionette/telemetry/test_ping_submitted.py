@@ -46,7 +46,7 @@ class TestPingSubmitted(MarionetteTestCase):
         # Record an event for the ping to eventually submit.
         self.marionette.execute_script(
             """
-            const { SERPCategorizationRecorder } = ChromeUtils.importESModule("resource:///modules/SERPCategorization.sys.mjs");
+            const { SERPCategorizationRecorder } = ChromeUtils.importESModule("moz-src:///browser/components/search/SERPCategorization.sys.mjs");
             SERPCategorizationRecorder.recordCategorizationTelemetry({
                 organic_category: "3",
                 organic_num_domains: "1",

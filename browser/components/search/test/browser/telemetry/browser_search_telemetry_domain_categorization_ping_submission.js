@@ -13,13 +13,17 @@
 requestLongerTimeout(2);
 
 ChromeUtils.defineESModuleGetters(this, {
-  CATEGORIZATION_SETTINGS: "resource:///modules/SERPCategorization.sys.mjs",
-  DomainToCategoriesStore: "resource:///modules/SERPCategorization.sys.mjs",
+  CATEGORIZATION_SETTINGS:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
+  DomainToCategoriesStore:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
-  SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.sys.mjs",
-  SERPCategorizationRecorder: "resource:///modules/SERPCategorization.sys.mjs",
+  SearchSERPTelemetry:
+    "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
+  SERPCategorizationRecorder:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
   TELEMETRY_CATEGORIZATION_KEY:
-    "resource:///modules/SERPCategorization.sys.mjs",
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
 });
 
 const TEST_PROVIDER_INFO = [

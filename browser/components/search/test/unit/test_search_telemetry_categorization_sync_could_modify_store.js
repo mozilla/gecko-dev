@@ -9,7 +9,8 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   Region: "resource://gre/modules/Region.sys.mjs",
-  SERPDomainToCategoriesMap: "resource:///modules/SERPCategorization.sys.mjs",
+  SERPDomainToCategoriesMap:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
 });
 
 // For the tests, domains aren't checked, but add at least one value so the

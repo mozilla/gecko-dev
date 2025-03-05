@@ -4,7 +4,8 @@
 /* eslint-disable mozilla/no-arbitrary-setTimeout */
 
 ChromeUtils.defineESModuleGetters(this, {
-  OpenSearchManager: "resource:///modules/OpenSearchManager.sys.mjs",
+  OpenSearchManager:
+    "moz-src:///browser/components/search/OpenSearchManager.sys.mjs",
 });
 
 // Bug 1588193 - BrowserTestUtils.waitForContentEvent now resolves slightly

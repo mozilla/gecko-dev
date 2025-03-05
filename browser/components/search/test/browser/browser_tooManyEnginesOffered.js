@@ -4,7 +4,8 @@
 // a limited number of add-engine items will be shown in the searchbar.
 
 ChromeUtils.defineESModuleGetters(this, {
-  OpenSearchManager: "resource:///modules/OpenSearchManager.sys.mjs",
+  OpenSearchManager:
+    "moz-src:///browser/components/search/OpenSearchManager.sys.mjs",
 });
 
 const searchPopup = document.getElementById("PopupSearchAutoComplete");

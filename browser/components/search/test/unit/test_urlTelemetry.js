@@ -2,9 +2,11 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 ChromeUtils.defineESModuleGetters(this, {
-  BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.sys.mjs",
+  BrowserSearchTelemetry:
+    "moz-src:///browser/components/search/BrowserSearchTelemetry.sys.mjs",
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
-  SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.sys.mjs",
+  SearchSERPTelemetry:
+    "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
 });

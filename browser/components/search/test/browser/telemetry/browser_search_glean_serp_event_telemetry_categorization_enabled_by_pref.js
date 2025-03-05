@@ -9,7 +9,8 @@ const TELEMETRY_PREF =
   "browser.search.serpEventTelemetryCategorization.enabled";
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  SERPDomainToCategoriesMap: "resource:///modules/SERPCategorization.sys.mjs",
+  SERPDomainToCategoriesMap:
+    "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
