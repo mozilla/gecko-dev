@@ -607,7 +607,7 @@ bool IsSupportedVideoCodec(const nsAString& aCodec) {
     if (IsH265CodecString(aCodec)) {
       // H265 is supported only on MacOS in Nightly for now.
       return StaticPrefs::dom_media_webcodecs_h265_enabled() &&
-             StaticPrefs::media_hevc_enabled() && IsOnMacOS();
+             StaticPrefs::media_hevc_enabled() && (IsOnMacOS() || IsOnLinux());
     }
     return false;
   }
