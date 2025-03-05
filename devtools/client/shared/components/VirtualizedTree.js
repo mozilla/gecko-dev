@@ -10,9 +10,9 @@ const {
 } = require("resource://devtools/client/shared/vendor/react.js");
 const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
-const {
-  scrollIntoView,
-} = require("resource://devtools/client/shared/scroll.js");
+const { scrollIntoView } = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/scroll.mjs"
+);
 const {
   preventDefaultAndStopPropagation,
 } = require("resource://devtools/client/shared/events.js");

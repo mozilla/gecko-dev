@@ -66,9 +66,9 @@ loader.lazyRequireGetter(
   "resource://devtools/client/framework/menu-item.js"
 );
 
-const {
-  scrollIntoView,
-} = require("resource://devtools/client/shared/scroll.js");
+const { scrollIntoView } = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/scroll.mjs"
+);
 
 const JSON_URL_PREFIX = "data:application/json;charset=UTF-8,";
 

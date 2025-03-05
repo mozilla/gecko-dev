@@ -45,9 +45,9 @@ const {
   Provider,
 } = require("resource://devtools/client/accessibility/provider.js");
 
-const {
-  scrollIntoView,
-} = require("resource://devtools/client/shared/scroll.js");
+const { scrollIntoView } = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/scroll.mjs"
+);
 
 /**
  * Renders Accessibility panel tree.

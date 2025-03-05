@@ -4,9 +4,9 @@
 "use strict";
 
 // Tests that scrollIntoViewIfNeeded works properly.
-const {
-  scrollIntoViewIfNeeded,
-} = require("resource://devtools/client/shared/scroll.js");
+const { scrollIntoViewIfNeeded } = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/scroll.mjs"
+);
 
 const TEST_URI = CHROME_URL_ROOT + "doc_layoutHelpers.html";
 

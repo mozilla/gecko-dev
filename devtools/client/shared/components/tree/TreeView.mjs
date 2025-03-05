@@ -13,7 +13,7 @@ import { ObjectProvider } from "resource://devtools/client/shared/components/tre
 import TreeRowClass from "resource://devtools/client/shared/components/tree/TreeRow.mjs";
 import TreeHeaderClass from "resource://devtools/client/shared/components/tree/TreeHeader.mjs";
 
-import { scrollIntoView } from "resource://devtools/client/shared/scroll.js";
+import { scrollIntoView } from "resource://devtools/client/shared/scroll.mjs";
 
 const { cloneElement, Component, createFactory, createRef } = React;
 const { findDOMNode } = ReactDOM;

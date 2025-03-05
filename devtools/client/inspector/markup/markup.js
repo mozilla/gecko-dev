@@ -12,9 +12,9 @@ const { LocalizationHelper } = require("resource://devtools/shared/l10n.js");
 const { PluralForm } = require("resource://devtools/shared/plural-form.js");
 const AutocompletePopup = require("resource://devtools/client/shared/autocomplete-popup.js");
 const KeyShortcuts = require("resource://devtools/client/shared/key-shortcuts.js");
-const {
-  scrollIntoViewIfNeeded,
-} = require("resource://devtools/client/shared/scroll.js");
+const { scrollIntoViewIfNeeded } = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/scroll.mjs"
+);
 const { PrefObserver } = require("resource://devtools/client/shared/prefs.js");
 const MarkupElementContainer = require("resource://devtools/client/inspector/markup/views/element-container.js");
 const MarkupReadOnlyContainer = require("resource://devtools/client/inspector/markup/views/read-only-container.js");
