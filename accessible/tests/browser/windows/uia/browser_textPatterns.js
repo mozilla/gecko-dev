@@ -2036,15 +2036,36 @@ addUiaTask(
  */
 addUiaTask(
   `
+<p id="p">ab</p>
 <input id="input" type="text" value="ab">
 <div id="contenteditable" contenteditable role="textbox">ab</div>
   `,
   async function testTextRangeSelect(browser, docAcc) {
+    info("Moving caret to b in p");
+    const p = findAccessibleChildByID(docAcc, "p", [nsIAccessibleText]);
+    let moved = waitForEvent(EVENT_TEXT_CARET_MOVED, p);
+    await runPython(`
+      global doc
+      doc = getDocUia()
+      p = findUiaByDomId(doc, "p")
+      textChild = getUiaPattern(p, "TextChild")
+      global range
+      range = textChild.TextRange
+      # Encompass "b".
+      range.Move(TextUnit_Character, 1)
+      # Collapse.
+      range.MoveEndpointByRange(TextPatternRangeEndpoint_End, range, TextPatternRangeEndpoint_Start)
+      range.Select()
+    `);
+    await moved;
+    testTextSelectionCount(p, 0);
+    is(p.caretOffset, 1, "caret at 1");
+
     // <input> and contentEditable should behave the same.
     for (const id of ["input", "contenteditable"]) {
       info(`Focusing ${id}`);
       const acc = findAccessibleChildByID(docAcc, id, [nsIAccessibleText]);
-      let moved = waitForEvents([
+      moved = waitForEvents([
         [EVENT_FOCUS, acc],
         [EVENT_TEXT_CARET_MOVED, acc],
       ]);
@@ -2057,7 +2078,6 @@ addUiaTask(
         [EVENT_TEXT_CARET_MOVED, acc],
       ]);
       await runPython(`
-        doc = getDocUia()
         acc = findUiaByDomId(doc, "${id}")
         text = getUiaPattern(acc, "Text")
         global range
