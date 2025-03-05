@@ -39,6 +39,7 @@ DevToolsModules(
     "output-parser.js",
     "prefs.js",
     "react-utils.js",
+    "react-utils.mjs",
     "screenshot.js",
     "scroll.js",
     "source-utils.js",

@@ -15,50 +15,89 @@ You should start by upgrading our prop-types library to match the latest version
 ## Getting the Source
 
 ```bash
-git clone https://github.com/facebook/react.git
+git clone https://github.com/facebook/react.git --depth 1 --single-branch -b v16.8.6 # or the version you are targetting
 cd react
-git checkout v16.8.6 # or the version you are targetting
 ```
+
+Verify the `version` field in package.json, it is sometimes wrong and wouldn't match the git tag.
 
 ## Preparing to Build
 
 We need to disable minification and tree shaking as they overcomplicate the upgrade process without adding any benefits.
+We also need to generate an ES Module instead of commonjs/umd.
+And inject a little hack to convert some module require paths.
 
-- Open `scripts/rollup/build.js`
-- Find a method called `function getRollupOutputOptions()`
-- After `sourcemap: false` add `treeshake: false` and `freeze: false`
-- Remove `freeze: !isProduction,` from the same section.
-- Change this:
+Apply the following patch to React repo:
+```diff
+diff --git a/scripts/rollup/build.js b/scripts/rollup/build.js
+index 44e5a65..75ac8bf 100644
+--- a/scripts/rollup/build.js
++++ b/scripts/rollup/build.js
+@@ -164,12 +164,13 @@ function getRollupOutputOptions(
+     {},
+     {
+       file: outputPath,
+-      format,
++      format: "es",
+       globals,
+-      freeze: !isProduction,
+       interop: false,
+       name: globalName,
+       sourcemap: false,
++      treeshake: false,
++      freeze: false,
+     }
+   );
+ }
+@@ -357,8 +358,26 @@ function getPlugins(
+     }),
+     // We still need CommonJS for external deps like object-assign.
+     commonjs(),
++    {
++    transformBundle(source) {
++        return (
++          source.replace(/['"]react['"]/g,
++                          "'resource://devtools/client/shared/vendor/react.mjs'")
++                // Revert the previous replace change made to a call `createElement('react')` in react-dom-dev.js
++                .replace(/createElement\(['"]resource:\/\/devtools\/client\/shared\/vendor\/react.mjs['"]\)/g,
++                          "createElementNS('http://www.w3.org/1999/xhtml', 'react')")
++                .replace(/['"]react-dom['"]/g,
++                          "'resource://devtools/client/shared/vendor/react-dom.mjs'")
++                .replace(/rendererPackageName:\s['"]resource:\/\/devtools\/client\/shared\/vendor\/react-dom.mjs['"]/g,
++                          "rendererPackageName: 'react-dom'")
++                // We have to match document.createElement, as well as ownerDocument.createElement:
++                .replace(/ocument\.createElement\(/g,
++                          "ocument.createElementNS('http://www.w3.org/1999/xhtml', ")
++        );
++      },
++    },
+     // Apply dead code elimination and/or minification.
+-    isProduction &&
++    false &&
+       closure(
+         Object.assign({}, closureOptions, {
+           // Don't let it create global variables in the browser.
+@@ -613,19 +631,7 @@ async function buildEverything() {
+   for (const bundle of Bundles.bundles) {
+     await createBundle(bundle, UMD_DEV);
+     await createBundle(bundle, UMD_PROD);
+-    await createBundle(bundle, UMD_PROFILING);
+     await createBundle(bundle, NODE_DEV);
+-    await createBundle(bundle, NODE_PROD);
+-    await createBundle(bundle, NODE_PROFILING);
+-    await createBundle(bundle, FB_WWW_DEV);
+-    await createBundle(bundle, FB_WWW_PROD);
+-    await createBundle(bundle, FB_WWW_PROFILING);
+-    await createBundle(bundle, RN_OSS_DEV);
+-    await createBundle(bundle, RN_OSS_PROD);
+-    await createBundle(bundle, RN_OSS_PROFILING);
+-    await createBundle(bundle, RN_FB_DEV);
+-    await createBundle(bundle, RN_FB_PROD);
+-    await createBundle(bundle, RN_FB_PROFILING);
+   }
 
-  ```js
-  // Apply dead code elimination and/or minification.
-  isProduction &&
-  ```
-
-  To this:
-
-  ```js
-  {
-    transformBundle(source) {
-      return (
-        source.replace(/['"]react['"]/g,
-                        "'resource://devtools/client/shared/vendor/react.js'")
-              .replace(/createElementNS\(['"]http:\/\/www\.w3\.org\/1999\/xhtml['"], ['"]resource://devtools\/client\/shared\/vendor\/react.js['"]\)/g,
-                        "createElementNS('http://www.w3.org/1999/xhtml', 'react'")
-              .replace(/['"]react-dom['"]/g,
-                        "'resource://devtools/client/shared/vendor/react-dom.js'")
-              .replace(/rendererPackageName:\s['"]resource://devtools\/client\/shared\/vendor\/react-dom.js['"]/g,
-                        "rendererPackageName: 'react-dom'")
-              .replace(/ocument\.createElement\(/g,
-                        "ocument.createElementNS('http://www.w3.org/1999/xhtml', ")
-      );
-    },
-  },
-  // Apply dead code elimination and/or minification.
-  false &&
-  ```
-
-  - Find `await createBundle` and remove all bundles in that block except for `UMD_DEV`, `UMD_PROD` and `NODE_DEV`.
+   await Packaging.copyAllShims();
+``` 
 
 ## Building
 
@@ -70,23 +109,28 @@ yarn build
 
 ## Edit the generated files
 
-- Replace all instances of `'react'` with `'resource://devtools/client/shared/vendor/react.js'` (including the quotes) in all the files
-  to be copied in the next paragraph.
-
 ### Copy the Files Into your Firefox Repo
 
 ```bash
 cd <react repo root>
-cp build/dist/react.production.min.js <gecko-dev>/devtools/client/shared/vendor/react.js
-cp build/dist/react-dom.production.min.js <gecko-dev>/devtools/client/shared/vendor/react-dom.js
-cp build/dist/react-dom-server.browser.production.min.js <gecko-dev>/devtools/client/shared/vendor/react-dom-server.js
-cp build/dist/react-dom-test-utils.production.min.js <gecko-dev>/devtools/client/shared/vendor/react-dom-test-utils.js
-cp build/dist/react.development.js <gecko-dev>/devtools/client/shared/vendor/react-dev.js
-cp build/dist/react-dom.development.js <gecko-dev>/devtools/client/shared/vendor/react-dom-dev.js
-cp build/dist/react-dom-server.browser.development.js <gecko-dev>/devtools/client/shared/vendor/react-dom-server-dev.js
-cp build/dist/react-dom-test-utils.development.js <gecko-dev>/devtools/client/shared/vendor/react-dom-test-utils-dev.js
-cp build/dist/react-test-renderer-shallow.production.min.js <gecko-dev>/devtools/client/shared/vendor/react-test-renderer-shallow.js
-cp build/dist/react-test-renderer.production.min.js <gecko-dev>/devtools/client/shared/vendor/react-test-renderer.js
+export VENDOR_PATH=/path/to/mozilla-central/devtools/client/shared/vendor
+cp build/dist/react.production.min.js $VENDOR_PATH/react.mjs
+cp build/dist/react-dom.production.min.js $VENDOR_PATH/react-dom.mjs
+cp build/dist/react-dom-server.browser.production.min.js $VENDOR_PATH/react-dom-server.mjs
+cp build/dist/react-dom-test-utils.production.min.js $VENDOR_PATH/react-dom-test-utils.mjs
+cp build/dist/react.development.js $VENDOR_PATH/react-dev.mjs
+cp build/dist/react-dom.development.js $VENDOR_PATH/react-dom-dev.mjs
+cp build/dist/react-dom-server.browser.development.js $VENDOR_PATH/react-dom-server-dev.mjs
+cp build/dist/react-dom-test-utils.development.js $VENDOR_PATH/react-dom-test-utils-dev.mjs
+cp build/dist/react-test-renderer-shallow.production.min.js $VENDOR_PATH/react-test-renderer-shallow.mjs
+cp build/dist/react-test-renderer.production.min.js $VENDOR_PATH/react-test-renderer.mjs
+```
+
+Finally, append the following piece of code at the end of `react.mjs` and `react-dev.mjs`:
+```
+export {
+  createFactory, createElement, Component,
+}
 ```
 
 From this point we will no longer need your react repository so feel free to delete it.
@@ -111,19 +155,6 @@ From this point we will no longer need your react repository so feel free to del
 ```bash
 cd <srcdir> # where sourcedir is the root of your Firefox repo.
 ./mach build
-```
-
-#### Now update the debugger source
-
-```bash
-# Go to the debugger folder.
-cd devtools/client/debugger
-
-# Remove all node_modules folders.
-find . -name "node_modules" -exec rm -rf '{}' +
-
-# Install the new react and enzyme modules.
-yarn
 ```
 
 ### Run the debugger tests

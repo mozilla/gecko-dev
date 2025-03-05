@@ -28,9 +28,6 @@ add_task(async function () {
   runDuplicatedModulesTest(loaders, [
     "@loader/unload.js",
     "@loader/options.js",
-    "resource://devtools/client/shared/vendor/react.js",
-    "resource://devtools/client/shared/vendor/react-dom-factories.js",
-    "resource://devtools/client/shared/vendor/react-prop-types.js",
     "resource://devtools/client/shared/vendor/redux.js",
     "resource://devtools/client/shared/vendor/fluent-react.js",
   ]);

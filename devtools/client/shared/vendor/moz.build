@@ -15,10 +15,13 @@ DevToolsModules(
     'immutable.js',
     'md5.js',
     'react-dom-factories.js',
+    'react-dom-factories.mjs',
     'react-redux.js',
     'react-router-dom.js',
     'react-test-renderer-shallow.js',
+    'react-test-renderer-shallow.mjs',
     'react-test-renderer.js',
+    'react-test-renderer.mjs',
     'redux.js',
     'reselect.js',
     'WasmDis.js',
@@ -38,6 +41,9 @@ else:
       'react-dom-server.js',
       'react-dom-test-utils.js',
       'react-dom.js',
+      'react-dom.mjs',
       'react-prop-types.js',
-      'react.js'
+      'react-prop-types.mjs',
+      'react.js',
+      'react.mjs'
     )
