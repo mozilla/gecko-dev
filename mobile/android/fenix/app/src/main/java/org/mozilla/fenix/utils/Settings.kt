@@ -444,6 +444,28 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = true,
     )
 
+    /**
+     * Indicates if the user has enabled shortcuts in Firefox Suggest.
+     */
+    val shortcutSuggestionsEnabled by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_show_shortcuts_suggestions),
+        default = true,
+    )
+
+    /**
+     * Returns true if shortcut suggestions feature should be shown to the user.
+     */
+    val isShortcutSuggestionsVisible by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_enable_shortcuts_suggestions),
+        default = FxNimbus.features.topSitesSuggestions.value().enabled,
+    )
+
+    /**
+     * Returns true if shortcut suggestions should be shown to the user.
+     */
+    val shouldShowShortcutSuggestions: Boolean
+        get() = shortcutSuggestionsEnabled && isShortcutSuggestionsVisible
+
     val shouldShowSyncedTabsSuggestions by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_search_synced_tabs),
         default = true,
@@ -1150,7 +1172,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         isTrendingSuggestionSupported: Boolean,
     ) =
         shouldShowTrendingSearchSuggestions(browsingMode, isTrendingSuggestionSupported) ||
-            shouldShowRecentSearchSuggestions
+            shouldShowRecentSearchSuggestions || shouldShowShortcutSuggestions
 
     var showSearchSuggestionsInPrivateOnboardingFinished by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_show_search_suggestions_in_private_onboarding),

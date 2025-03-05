@@ -69,6 +69,11 @@
         <SwitchPreference
             app:iconSpaceReserved="false"
             android:defaultValue="true"
+            android:key="@string/pref_key_show_shortcuts_suggestions"
+            android:title='@string/preferences_show_shortcuts' />
+        <SwitchPreference
+            app:iconSpaceReserved="false"
+            android:defaultValue="true"
             android:key="@string/pref_key_search_synced_tabs"
             android:title='@string/preferences_search_synced_tabs' />
         <SwitchPreference

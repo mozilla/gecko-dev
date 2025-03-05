@@ -49,6 +49,9 @@ class SearchEngineFragment : PreferenceFragmentCompat() {
         requirePreference<SwitchPreference>(R.string.pref_key_show_recent_search_suggestions).apply {
             isVisible = context.settings().isRecentSearchesVisible
         }
+        requirePreference<SwitchPreference>(R.string.pref_key_show_shortcuts_suggestions).apply {
+            isVisible = context.settings().isShortcutSuggestionsVisible
+        }
 
         view?.hideKeyboard()
     }
@@ -78,7 +81,9 @@ class SearchEngineFragment : PreferenceFragmentCompat() {
             }
 
         val recentSearchSuggestionsPreference =
-            requirePreference<SwitchPreference>(R.string.pref_key_show_recent_search_suggestions)
+            requirePreference<SwitchPreference>(R.string.pref_key_show_recent_search_suggestions).apply {
+                isChecked = context.settings().shouldShowRecentSearchSuggestions
+            }
 
         val autocompleteURLsPreference =
             requirePreference<SwitchPreference>(R.string.pref_key_enable_autocomplete_urls).apply {
@@ -98,6 +103,11 @@ class SearchEngineFragment : PreferenceFragmentCompat() {
         val showBookmarkSuggestions =
             requirePreference<SwitchPreference>(R.string.pref_key_search_bookmarks).apply {
                 isChecked = context.settings().shouldShowBookmarkSuggestions
+            }
+
+        val showShortcutsSuggestions =
+            requirePreference<SwitchPreference>(R.string.pref_key_show_shortcuts_suggestions).apply {
+                isChecked = context.settings().shouldShowShortcutSuggestions
             }
 
         val showSyncedTabsSuggestions =
@@ -136,6 +146,7 @@ class SearchEngineFragment : PreferenceFragmentCompat() {
         searchSuggestionsPreference.onPreferenceChangeListener = SharedPreferenceUpdater()
         showHistorySuggestions.onPreferenceChangeListener = SharedPreferenceUpdater()
         showBookmarkSuggestions.onPreferenceChangeListener = SharedPreferenceUpdater()
+        showShortcutsSuggestions.onPreferenceChangeListener = SharedPreferenceUpdater()
         showSyncedTabsSuggestions.onPreferenceChangeListener = SharedPreferenceUpdater()
         showClipboardSuggestions.onPreferenceChangeListener = SharedPreferenceUpdater()
         searchSuggestionsInPrivatePreference.onPreferenceChangeListener = SharedPreferenceUpdater()

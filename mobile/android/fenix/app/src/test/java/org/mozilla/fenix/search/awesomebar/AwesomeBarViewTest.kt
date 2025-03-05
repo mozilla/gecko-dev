@@ -1451,7 +1451,7 @@ class AwesomeBarViewTest {
     }
 
     @Test
-    fun `GIVEN should show trending searches WHEN configuring providers THEN add the trending search provider and top sites suggestion providers`() {
+    fun `GIVEN should show trending searches WHEN configuring providers THEN add the trending search provider`() {
         every { activity.settings() } returns mockk(relaxed = true) {
             every { shouldShowTrendingSearchSuggestions(any(), any()) } returns true
         }
@@ -1461,7 +1461,6 @@ class AwesomeBarViewTest {
         val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(1, result.filterIsInstance<TrendingSearchProvider>().size)
-        assertEquals(1, result.filterIsInstance<TopSitesSuggestionProvider>().size)
     }
 
     @Test
@@ -1475,6 +1474,31 @@ class AwesomeBarViewTest {
         val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(0, result.filterIsInstance<TrendingSearchProvider>().size)
+    }
+
+    @Test
+    fun `GIVEN should show shortcut suggestions WHEN configuring providers THEN add the top sites provider and top sites suggestion providers`() {
+        every { activity.settings() } returns mockk(relaxed = true) {
+            every { shouldShowShortcutSuggestions } returns true
+        }
+        val state = getSearchProviderState(
+            searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
+        )
+        val result = awesomeBarView.getProvidersToAdd(state)
+
+        assertEquals(1, result.filterIsInstance<TopSitesSuggestionProvider>().size)
+    }
+
+    @Test
+    fun `GIVEN should not show shortcut suggestions WHEN configuring providers THEN don't add the top sites provider`() {
+        every { activity.settings() } returns mockk(relaxed = true) {
+            every { shouldShowShortcutSuggestions } returns false
+        }
+        val state = getSearchProviderState(
+            searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
+        )
+        val result = awesomeBarView.getProvidersToAdd(state)
+
         assertEquals(0, result.filterIsInstance<TopSitesSuggestionProvider>().size)
     }
 

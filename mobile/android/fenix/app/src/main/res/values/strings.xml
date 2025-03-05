@@ -797,6 +797,8 @@
     <string name="preferences_search_browsing_history">Search browsing history</string>
     <!-- Preference title for switch preference to suggest bookmarks when searching -->
     <string name="preferences_search_bookmarks">Search bookmarks</string>
+    <!-- Preference title for switch preference to show shortcuts when searching -->
+    <string name="preferences_show_shortcuts">Show shortcuts</string>
     <!-- Preference title for switch preference to suggest synced tabs when searching -->
     <string name="preferences_search_synced_tabs">Search synced tabs</string>
     <!-- Preference for account settings -->

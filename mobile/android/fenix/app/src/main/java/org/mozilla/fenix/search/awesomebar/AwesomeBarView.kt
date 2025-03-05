@@ -408,12 +408,15 @@ class AwesomeBarView(
 
         providersToAdd.add(searchEngineSuggestionProvider)
 
+        if (activity.settings().shouldShowShortcutSuggestions) {
+            providersToAdd.add(defaultTopSitesSuggestionProvider)
+        }
+
         if (activity.settings().shouldShowTrendingSearchSuggestions(
                 browsingMode = browsingMode,
                 isTrendingSuggestionSupported = state.searchEngineSource.searchEngine?.trendingUrl != null,
             )
         ) {
-            providersToAdd.add(defaultTopSitesSuggestionProvider)
             providersToAdd.add(defaultTrendingSearchProvider)
         }
 

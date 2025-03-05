@@ -133,6 +133,11 @@ class SearchEngineFragmentTest {
             } returns mockk(relaxed = true) {
                 every { context } returns testContext
             }
+            every {
+                fragment.findPreference<SwitchPreference>(testContext.getString(R.string.pref_key_show_shortcuts_suggestions))
+            } returns mockk(relaxed = true) {
+                every { context } returns testContext
+            }
 
             // Trigger the preferences setup.
             fragment.onResume()
