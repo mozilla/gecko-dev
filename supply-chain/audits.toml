@@ -4306,6 +4306,33 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.6.27 -> 0.6.28"
 
+[[audits.rinja]]
+who = "Ben Dean-Kawamura <bdk@mozilla.com>"
+criteria = "safe-to-deploy"
+version = "0.3.5"
+notes = """
+Template crate, forked from askama which has been audited.  The only unsafe code is calls to
+`str::from_utf8_unchecked` for known ASCII strings.
+"""
+
+[[audits.rinja_derive]]
+who = "Ben Dean-Kawamura <bdk@mozilla.com>"
+criteria = "safe-to-deploy"
+version = "0.3.5"
+notes = """
+Template crate, forked from askama which has been audited.  The only unsafe code is calls to
+`str::from_utf8_unchecked` for known ASCII strings.
+"""
+
+[[audits.rinja_parser]]
+who = "Ben Dean-Kawamura <bdk@mozilla.com>"
+criteria = "safe-to-deploy"
+version = "0.3.5"
+notes = """
+Template crate, forked from askama which has been audited.  The only unsafe code is calls to
+`str::from_utf8_unchecked` for known ASCII strings.
+"""
+
 [[audits.rkv]]
 who = "Chris H-C <chutten@mozilla.com>"
 criteria = "safe-to-deploy"
@@ -4430,6 +4457,12 @@ who = "Bobby Holley <bobbyholley@gmail.com>"
 criteria = "safe-to-deploy"
 version = "1.1.0"
 notes = "Straightforward crate with no unsafe code, does what it says on the tin."
+
+[[audits.rustc-hash]]
+who = "Ben Dean-Kawamura <bdk@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "1.1.0 -> 2.1.1"
+notes = "Simple hashing crate, no unsafe code."
 
 [[audits.rustc_version]]
 who = "Nika Layzell <nika@thelayzells.com>"
