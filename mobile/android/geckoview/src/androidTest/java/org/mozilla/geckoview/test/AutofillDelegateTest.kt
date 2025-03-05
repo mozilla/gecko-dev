@@ -12,6 +12,7 @@ import androidx.test.filters.MediumTest
 import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
 import org.junit.Assume.assumeThat
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
@@ -347,10 +348,10 @@ class AutofillDelegateTest : BaseSessionTest() {
 
     @WithDisplay(width = 100, height = 100)
     @Test
+    @Ignore("disable test for frequently failing Bug 1933403 and 1934456")
     fun autofillNavigation() {
         // Wait for the accessibility nodes to populate.
         mainSession.loadUri(pageUrl)
-
         sessionRule.waitUntilCalled(object :
             Autofill.Delegate,
             ShouldContinue,
