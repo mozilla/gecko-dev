@@ -85,16 +85,46 @@ export const DEFAULT_MODELS = Object.freeze({
 });
 
 /**
- * Lists Firefox internal features
+ * Lists Firefox internal features.
+ *
+ * Make sure to set an explicit engine id and add it in toolkit/components/ml/metrics.yml
+ *
+ * Engine ids can be shared, there's only one inference runtime running per engine id.
+ * When an inference is executed on an engine, if the pipeline options are different
+ * from the previous call, the engine is re-created. If they are the same, the engine is reused.
+ *
+ * The only exception is web extension, as the engine id is dynamically created with the extension id.
  */
-const FEATURES = [
-  "autofill-classification", // see toolkit/components/formautofill/MLAutofill.sys.mjs
-  "pdfjs-alt-text", // see toolkit/components/pdfjs/content/PdfjsParent.sys.mjs
-  "suggest-intent-classification", // see browser/components/urlbar/private/MLSuggest.sys.mjs
-  "suggest-NER", // see browser/components/urlbar/private/MLSuggest.sys.mjs
-  "smart-tab-embedding", // see browser/components/tabbrowser/SmartTabGrouping.sys.mjs,
-  "smart-tab-topic", // see browser/components/tabbrowser/SmartTabGrouping.sys.mjs
-];
+const FEATURES = {
+  // see toolkit/components/formautofill/MLAutofill.sys.mjs
+  "autofill-classification": {
+    engineId: "autofill-ml",
+  },
+  // see toolkit/components/pdfjs/content/PdfjsParent.sys.mjs
+  "pdfjs-alt-text": {
+    engineId: "pdfjs",
+  },
+  // see browser/components/urlbar/private/MLSuggest.sys.mjs
+  "suggest-intent-classification": {
+    engineId: "ml-suggest-intent",
+  },
+  // see browser/components/urlbar/private/MLSuggest.sys.mjs
+  "suggest-NER": {
+    engineId: "ml-suggest-ner",
+  },
+  // see toolkit/components/aboutinference/content/aboutInference.js
+  "about-inference": {
+    engineId: "about-inference",
+  },
+  // see browser/components/tabbrowser/SmartTabGrouping.sys.mjs,
+  "smart-tab-embedding": {
+    engineId: "smart-tab-embedding-engine",
+  },
+  // see browser/components/tabbrowser/SmartTabGrouping.sys.mjs
+  "smart-tab-topic": {
+    engineId: "smart-tab-topic-engine",
+  },
+};
 
 /**
  * Custom error class for validation errors.
@@ -560,12 +590,21 @@ export class PipelineOptions {
       if (!optionsKeys.includes(key) || options[key] == null) {
         return;
       }
-      if (key === "featureId" && !FEATURES.includes(options[key])) {
-        throw new PipelineOptionsValidationError(
-          key,
-          options[key],
-          `Should be one of ${FEATURES.join(", ")}`
-        );
+      // Validating featureId
+      if (key === "featureId") {
+        if (FEATURES.hasOwnProperty(options[key])) {
+          // if featureId is set and engineId is not set, we set it
+          if (options.engineId == null) {
+            options.engineId = FEATURES[options[key]].engineId;
+          }
+        } else {
+          // we want an explicit list of features.
+          throw new PipelineOptionsValidationError(
+            key,
+            options[key],
+            `Should be one of ${Object.keys(FEATURES).join(", ")}`
+          );
+        }
       }
       // Validating values.
       if (["taskName", "engineId"].includes(key)) {
@@ -818,7 +857,18 @@ export class EngineProcess {
  * @returns {Promise<MLEngine>} - A promise that resolves to the ML engine instance.
  */
 export async function createEngine(options, notificationsCallback = null) {
-  const pipelineOptions = new PipelineOptions(options);
-  const engineParent = await EngineProcess.getMLEngineParent();
-  return engineParent.getEngine(pipelineOptions, notificationsCallback);
+  try {
+    const pipelineOptions = new PipelineOptions(options);
+    const engineParent = await EngineProcess.getMLEngineParent();
+    return engineParent.getEngine(pipelineOptions, notificationsCallback);
+  } catch (e) {
+    Glean.firefoxAiRuntime.engineCreationFailure.record({
+      engineId: options.engineId || "",
+      modelId: options.modelId || "",
+      featureId: options.featureId || "",
+      taskName: options.taskName || "",
+      error: e.constructor.name || "",
+    });
+    throw e;
+  }
 }
