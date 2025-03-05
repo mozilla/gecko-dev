@@ -646,7 +646,8 @@ export class ShoppingContainer extends MozLitElement {
       this.showNewPositionCard &&
       this.isSidebarStartPosition &&
       // Set fallback value to true to prevent weird flickering UI when switching tabs
-      !RPMGetBoolPref(HAS_SEEN_POSITION_NOTIFICATION_CARD_PREF, true);
+      !RPMGetBoolPref(HAS_SEEN_POSITION_NOTIFICATION_CARD_PREF, true) &&
+      this.isProductPage;
     let canShowKeepClosedMessage =
       this.showingKeepClosedMessage &&
       RPMGetBoolPref(SHOW_KEEP_SIDEBAR_CLOSED_MESSAGE_PREF, true);

@@ -6,6 +6,7 @@
 /* import-globals-from head.js */
 
 const CONTENT_PAGE = "https://example.com";
+const NON_PDP_PAGE = "about:about";
 
 async function testMoveToRight() {
   await withReviewCheckerSidebar(async _args => {
@@ -106,21 +107,23 @@ add_setup(async function setup() {
 
 /**
  * Tests that the new position notification card is visible after auto open on a product page
- * and is correctly rendered.
+ * and is correctly rendered. Also tests that the card is not visible on non PDPs after the
+ * initial render.
  */
 add_task(async function test_new_position_notification_card_visibility() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.shopping.experience2023.newPositionCard.hasSeen", false],
       ["sidebar.position_start", true],
+      ["browser.shopping.experience2023.autoClose.userEnabled", false],
     ],
   });
   /* First, load a non PDP so that we can then make RC auto open once we
    * navigate to an actual PDP. Make sure the card is not visible on a non PDP. */
-  await BrowserTestUtils.withNewTab("about:about", async _browser => {
+  await BrowserTestUtils.withNewTab(NON_PDP_PAGE, async _browser => {
     await SidebarController.show("viewReviewCheckerSidebar");
     info("Waiting for sidebar to update.");
-    await reviewCheckerSidebarUpdated("about:about");
+    await reviewCheckerSidebarUpdated(NON_PDP_PAGE);
 
     await withReviewCheckerSidebar(async () => {
       let shoppingContainer = await ContentTaskUtils.waitForCondition(
@@ -157,7 +160,7 @@ add_task(async function test_new_position_notification_card_visibility() {
     info("Switching tabs now");
     await BrowserTestUtils.switchTab(gBrowser, newProductTab);
 
-    Assert.ok(true, "Browser is laoded");
+    Assert.ok(true, "Browser is loaded");
 
     info("Waiting for shown");
     await shownPromise;
@@ -190,6 +193,26 @@ add_task(async function test_new_position_notification_card_visibility() {
       Assert.ok(card.settingsLinkEl, "Card has settings link");
       Assert.ok(card.moveRightButtonEl, "Card has 'Move right' button");
       Assert.ok(card.dismissButtonEl, "Card has dismiss button");
+    });
+
+    // Load a non PDP for the new tab
+    BrowserTestUtils.startLoadingURIString(newProductBrowser, NON_PDP_PAGE);
+    browserLoadedPromise = BrowserTestUtils.browserLoaded(
+      newProductBrowser,
+      false,
+      NON_PDP_PAGE
+    );
+    await browserLoadedPromise;
+
+    await withReviewCheckerSidebar(async _args => {
+      let shoppingContainer = await ContentTaskUtils.waitForCondition(
+        () =>
+          content.document.querySelector("shopping-container")?.wrappedJSObject,
+        "Review Checker is loaded."
+      );
+
+      let card = shoppingContainer.newPositionNotificationCardEl;
+      Assert.ok(!card, "Card is no longer visible");
     });
 
     let hasSeen = Services.prefs.getBoolPref(
