@@ -45,7 +45,6 @@ support-files = [
   "mozFrameType_window.xhtml",
   "test_docRedirect.sjs",
 ]
-prefs = ["network.xhr.block_sync_system_requests=false"]
 
 ["test_allowContentRetargeting.html"]
 

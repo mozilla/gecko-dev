@@ -33,8 +33,6 @@ function test() {
         ["security.data_uri.block_toplevel_data_uri_navigations", false],
         // Relax the user input requirements while running this test.
         ["xpinstall.userActivation.required", false],
-        // Use sync XHR system requests
-        ["network.xhr.block_sync_system_requests", false],
       ],
     },
     runTest

@@ -4,7 +4,6 @@ support-files = [
   "markuprules.xml",
   "!/accessible/tests/mochitest/*.js",
   "!/accessible/tests/mochitest/moz.png"]
-prefs = ["network.xhr.block_sync_system_requests=false"]
 
 ["test_ARIACore_examples.html"]
 
