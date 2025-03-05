@@ -793,6 +793,49 @@ add_task(async function hasActionDescendant() {
   });
 });
 
+// Tests whether 'dynamicType' attribute is cleared.
+add_task(async function clear_dynamicType_attribute() {
+  /**
+   * A dummy provider that providers results with a `url` property.
+   */
+  class TestIndex0Provider extends TestProvider {
+    /**
+     * @param {object} context - Data regarding the context of the query.
+     * @param {Function} addCallback - Function to add a result to the query.
+     */
+    async startQuery(context, addCallback) {
+      for (let result of this.results) {
+        result.suggestedIndex = 0;
+        addCallback(this, result);
+      }
+    }
+  }
+
+  await withDynamicTypeProvider(async provider => {
+    // Do a search.
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value: "test",
+      waitForFocus: SimpleTest.waitForFocus,
+    });
+    // Check the dynamicType.
+    let row = await UrlbarTestUtils.waitForAutocompleteResultAt(window, 0);
+    Assert.equal(row.getAttribute("dynamicType"), "test");
+
+    // Unregister the provider to show normal result.
+    UrlbarProvidersManager.unregisterProvider(provider);
+    // Do a search again.
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value: "test",
+      waitForFocus: SimpleTest.waitForFocus,
+    });
+    Assert.ok(!row.hasAttribute("dynamicType"));
+
+    await UrlbarTestUtils.promisePopupClose(window);
+  }, new TestIndex0Provider());
+});
+
 // View templates that contain descendant `.urlbarView-url` and
 // `.urlbarView-action` elements should cause `has-url` and `has-action` to be
 // set on `.urlbarView-row`.
