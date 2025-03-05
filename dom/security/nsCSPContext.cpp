@@ -1302,7 +1302,7 @@ nsresult nsCSPContext::SendReportsToURIs(
 
   nsresult rv;
   for (uint32_t r = 0; r < reportURIs.Length(); r++) {
-    nsAutoCString reportURICstring = NS_ConvertUTF16toUTF8(reportURIs[r]);
+    NS_ConvertUTF16toUTF8 reportURICstring(reportURIs[r]);
     // try to create a new uri from every report-uri string
     rv = NS_NewURI(getter_AddRefs(reportURI), reportURIs[r]);
     if (NS_FAILED(rv)) {
@@ -1355,8 +1355,8 @@ nsresult nsCSPContext::SendReportsToURIs(
     nsLoadFlags flags;
     rv = reportChannel->GetLoadFlags(&flags);
     NS_ENSURE_SUCCESS(rv, rv);
-    flags |= nsIRequest::LOAD_ANONYMOUS;
-    flags |= nsIChannel::LOAD_BYPASS_SERVICE_WORKER;
+    flags |= nsIRequest::LOAD_ANONYMOUS | nsIChannel::LOAD_BACKGROUND |
+             nsIChannel::LOAD_BYPASS_SERVICE_WORKER;
     rv = reportChannel->SetLoadFlags(flags);
     NS_ENSURE_SUCCESS(rv, rv);
 
