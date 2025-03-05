@@ -28,7 +28,9 @@ const Tabbar = createFactory(
   require("resource://devtools/client/shared/components/tabs/TabBar.js")
 );
 const TabPanel = createFactory(
-  require("resource://devtools/client/shared/components/tabs/Tabs.js").TabPanel
+  ChromeUtils.importESModule(
+    "resource://devtools/client/shared/components/tabs/Tabs.mjs"
+  ).TabPanel
 );
 
 loader.lazyGetter(this, "SearchPanel", function () {

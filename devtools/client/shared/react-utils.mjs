@@ -10,7 +10,7 @@ import React from "resource://devtools/client/shared/vendor/react.mjs";
  *   const {
  *     Tabs,
  *     TabPanel
- *   } = createFactories(require("devtools/client/shared/components/tabs/Tabs"));
+ *   } = createFactories(ChromeUtils.importESModule("devtools/client/shared/components/tabs/Tabs.mjs"));
  */
 export function createFactories(args) {
   const result = {};

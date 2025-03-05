@@ -53,10 +53,10 @@ const {
   HTMLTooltip,
 } = require("resource://devtools/client/shared/widgets/tooltip/HTMLTooltip.js");
 
-const {
-  TabPanel,
-  Tabs,
-} = require("resource://devtools/client/shared/components/tabs/Tabs.js");
+const { TabPanel, Tabs } = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/components/tabs/Tabs.mjs",
+  { global: "current" }
+);
 
 import actions from "../../actions/index";
 

@@ -14,7 +14,10 @@ const SidebarToggle = createFactory(
   require("resource://devtools/client/shared/components/SidebarToggle.js")
 );
 const Tabs = createFactory(
-  require("resource://devtools/client/shared/components/tabs/Tabs.js").Tabs
+  ChromeUtils.importESModule(
+    "resource://devtools/client/shared/components/tabs/Tabs.mjs",
+    { global: "current" }
+  ).Tabs
 );
 
 class Sidebar extends PureComponent {

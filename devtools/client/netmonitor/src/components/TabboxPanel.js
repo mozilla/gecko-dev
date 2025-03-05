@@ -27,7 +27,9 @@ const Tabbar = createFactory(
   require("resource://devtools/client/shared/components/tabs/TabBar.js")
 );
 const TabPanel = createFactory(
-  require("resource://devtools/client/shared/components/tabs/Tabs.js").TabPanel
+  ChromeUtils.importESModule(
+    "resource://devtools/client/shared/components/tabs/Tabs.mjs"
+  ).TabPanel
 );
 const CookiesPanel = createFactory(
   require("resource://devtools/client/netmonitor/src/components/request-details/CookiesPanel.js")

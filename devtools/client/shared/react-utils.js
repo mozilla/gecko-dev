@@ -14,7 +14,7 @@ define(function (require, exports, module) {
    *   const {
    *     Tabs,
    *     TabPanel
-   *   } = createFactories(require("devtools/client/shared/components/tabs/Tabs"));
+   *   } = createFactories(ChromeUtils.importESModule("devtools/client/shared/components/tabs/Tabs.mjs"));
    */
   function createFactories(args) {
     const result = {};
