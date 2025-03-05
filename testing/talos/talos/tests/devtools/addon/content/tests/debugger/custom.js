@@ -37,7 +37,7 @@ const {
 const IFRAME_BASE_URL =
   "http://damp.top.com/tests/devtools/addon/content/pages/";
 const EXPECTED = {
-  sources: 1134,
+  sources: 1149,
   file: "App.js",
   sourceURL: `${IFRAME_BASE_URL}custom/debugger/app-build/static/js/App.js`,
   text: "import React, { Component } from 'react';",
@@ -48,6 +48,40 @@ const EXPECTED_FUNCTION = "window.hitBreakpoint()";
 
 const TEST_URL = PAGES_BASE_URL + "custom/debugger/app-build/index.html";
 const MINIFIED_URL = `${IFRAME_BASE_URL}custom/debugger/app-build/static/js/minified.js`;
+
+/*
+ * See testing/talos/talos/tests/devtools/addon/content/pages/custom/debugger/app/src for the details
+ * about the pages used for these tests.
+ */
+const STEP_TESTS = [
+  // This steps only once from the App.js into step-in-test.js.
+  // This `stepInNewSource` should always run first to make sure `step-in-test.js` file
+  // is loaded for the first time.
+  {
+    stepCount: 1,
+    location: { line: 22, file: "App.js" },
+    key: "stepInNewSource",
+    stepType: "stepIn",
+  },
+  {
+    stepCount: 2,
+    location: { line: 10194, file: "js/step-in-test.js" },
+    key: "stepIn",
+    stepType: "stepIn",
+  },
+  {
+    stepCount: 2,
+    location: { line: 16, file: "js/step-over-test.js" },
+    key: "stepOver",
+    stepType: "stepOver",
+  },
+  {
+    stepCount: 2,
+    location: { line: 998, file: "js/step-out-test.js" },
+    key: "stepOut",
+    stepType: "stepOut",
+  },
+];
 
 module.exports = async function () {
   const tab = await testSetup(TEST_URL, { disableCache: true });
@@ -67,12 +101,14 @@ module.exports = async function () {
 
   // these tests are only run on custom.jsdebugger
   await pauseDebuggerAndLog(dbg, tab, EXPECTED_FUNCTION);
-  await stepDebuggerAndLog(dbg, tab, EXPECTED_FUNCTION);
+  await stepDebuggerAndLog(dbg, tab, EXPECTED_FUNCTION, STEP_TESTS);
 
   await testProjectSearch(dbg, tab);
   await testPreview(dbg, tab, EXPECTED_FUNCTION);
   await testOpeningLargeMinifiedFile(dbg);
   await testPrettyPrint(dbg, toolbox);
+
+  await testBigBundle(dbg, tab);
 
   await closeToolboxAndLog("custom.jsdebugger", toolbox);
 
@@ -92,42 +128,7 @@ async function pauseDebuggerAndLog(dbg, tab, testFunction) {
   await garbageCollect();
 }
 
-async function stepDebuggerAndLog(dbg, tab, testFunction) {
-  /*
-   * See testing/talos/talos/tests/devtools/addon/content/pages/custom/debugger/app/src for the details
-   * about the pages used for these tests.
-   */
-
-  const stepTests = [
-    // This steps only once from the App.js into step-in-test.js.
-    // This `stepInNewSource` should always run first to make sure `step-in-test.js` file
-    // is loaded for the first time.
-    {
-      stepCount: 1,
-      location: { line: 22, file: "App.js" },
-      key: "stepInNewSource",
-      stepType: "stepIn",
-    },
-    {
-      stepCount: 2,
-      location: { line: 10194, file: "step-in-test.js" },
-      key: "stepIn",
-      stepType: "stepIn",
-    },
-    {
-      stepCount: 2,
-      location: { line: 16, file: "step-over-test.js" },
-      key: "stepOver",
-      stepType: "stepOver",
-    },
-    {
-      stepCount: 2,
-      location: { line: 998, file: "step-out-test.js" },
-      key: "stepOut",
-      stepType: "stepOut",
-    },
-  ];
-
+async function stepDebuggerAndLog(dbg, tab, testFunction, stepTests) {
   for (const stepTest of stepTests) {
     await pauseDebugger(dbg, tab, testFunction, stepTest.location);
     const test = runTest(`custom.jsdebugger.${stepTest.key}.DAMP`);
@@ -308,6 +309,7 @@ async function testPrettyPrint(dbg, toolbox) {
   await new Promise(r => setTimeout(r, 0));
 
   await removeBreakpoints(dbg);
+  await resume(dbg);
 
   // Clear the selection to avoid the source to be re-pretty printed on next load
   // Clear the selection before closing the tabs, otherwise closeTabs will reselect a random source.
@@ -317,6 +319,53 @@ async function testPrettyPrint(dbg, toolbox) {
   // Given that it is hard to find the non-pretty printed source via `findSource`
   // (because bundle and pretty print sources use almost the same URL except ':formatted' for the pretty printed one)
   // let's close all the tabs.
+  const sources = dbg.selectors.getSourceList(dbg.getState());
+  await dbg.actions.closeTabs(sources);
+
+  await garbageCollect();
+}
+
+async function testBigBundle(dbg, tab) {
+  const EXPECTED = {
+    sources: 1149,
+    file: "big-bundle/index.js",
+    sourceURL: `${PAGES_BASE_URL}custom/debugger/app-build/static/js/big-bundle/index.js`,
+    text: "import './minified.js';",
+    threadsCount: 2,
+  };
+  const EXPECTED_FUNCTION = "window.hitBreakpointInBigBundle()";
+  const STEP_TESTS = [
+    {
+      stepCount: 1,
+      location: { line: 7, file: "big-bundle/index.js" },
+      key: "stepInNewSource.big-bundle",
+      stepType: "stepIn",
+    },
+    {
+      stepCount: 2,
+      location: { line: 10194, file: "big-bundle/step-in-test.js" },
+      key: "stepIn.big-bundle",
+      stepType: "stepIn",
+    },
+    {
+      stepCount: 2,
+      location: { line: 16, file: "big-bundle/step-over-test.js" },
+      key: "stepOver.big-bundle",
+      stepType: "stepOver",
+    },
+    {
+      stepCount: 2,
+      location: { line: 998, file: "big-bundle/step-out-test.js" },
+      key: "stepOut.big-bundle",
+      stepType: "stepOut",
+    },
+  ];
+
+  await waitForSource(dbg, EXPECTED.sourceURL);
+  await selectSource(dbg, EXPECTED.file);
+
+  await stepDebuggerAndLog(dbg, tab, EXPECTED_FUNCTION, STEP_TESTS);
+
   const sources = dbg.selectors.getSourceList(dbg.getState());
   await dbg.actions.closeTabs(sources);
 
