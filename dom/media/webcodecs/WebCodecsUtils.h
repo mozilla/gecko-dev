@@ -13,6 +13,7 @@
 #include "js/TypeDecls.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MozPromise.h"
+#include "mozilla/ProfilerMarkers.h"
 #include "mozilla/Result.h"
 #include "mozilla/TaskQueue.h"
 #include "mozilla/dom/AudioDataBinding.h"
@@ -23,6 +24,23 @@
 #include "mozilla/dom/VideoFrameBinding.h"
 
 namespace mozilla {
+
+#define WEBCODECS_MARKER(codecType, desc, options, markerType, ...)    \
+  do {                                                                 \
+    if (profiler_is_collecting_markers()) {                            \
+      nsFmtCString marker(FMT_STRING("{}{}"), codecType, desc);        \
+      PROFILER_MARKER(                                                 \
+          ProfilerString8View::WrapNullTerminatedString(marker.get()), \
+          MEDIA_RT, options, markerType, __VA_ARGS__);                 \
+    }                                                                  \
+  } while (0)
+
+#define WEBCODECS_MARKER_INTERVAL_START(type, desc)                      \
+  WEBCODECS_MARKER(type, desc, {MarkerTiming::IntervalStart()}, Tracing, \
+                   "WebCodecs")
+#define WEBCODECS_MARKER_INTERVAL_END(type, desc)                      \
+  WEBCODECS_MARKER(type, desc, {MarkerTiming::IntervalEnd()}, Tracing, \
+                   "WebCodecs")
 
 namespace gfx {
 enum class ColorRange : uint8_t;

@@ -49,6 +49,11 @@ namespace mozilla::dom {
 #endif  // LOGV
 #define LOGV(msg, ...) LOG_INTERNAL(Verbose, msg, ##__VA_ARGS__)
 
+#define ENCODER_MARKER_INTERVAL_START(postfix) \
+  WEBCODECS_MARKER_INTERVAL_START(EncoderType::Name.get(), postfix)
+#define ENCODER_MARKER_INTERVAL_END(postfix) \
+  WEBCODECS_MARKER_INTERVAL_END(EncoderType::Name.get(), postfix)
+
 /*
  * Below are ControlMessage classes implementations
  */
@@ -770,6 +775,7 @@ void EncoderTemplate<EncoderType>::Configure(
   MOZ_ASSERT(mAgent);
   MOZ_ASSERT(mActiveConfig);
 
+  ENCODER_MARKER_INTERVAL_START(".configure");
   LOG("Real configuration with fresh config: %s",
       mActiveConfig->ToString().get());
 
@@ -786,6 +792,7 @@ void EncoderTemplate<EncoderType>::Configure(
                MOZ_ASSERT(id == self->mAgent->mId);
                MOZ_ASSERT(self->mActiveConfig);
 
+               ENCODER_MARKER_INTERVAL_END(".configure");
                LOG("%s %p, EncoderAgent #%zu %s has been %s. now unblocks "
                    "message-queue-processing",
                    EncoderType::Name.get(), self.get(), id,
@@ -864,6 +871,7 @@ MessageProcessedResult EncoderTemplate<EncoderType>::ProcessEncodeMessage(
     return closeOnError();
   }
 
+  ENCODER_MARKER_INTERVAL_START(".encode");
   mAgent->Encode(data.get())
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [self = RefPtr{this}, id = mAgent->mId, aMessage](
@@ -877,6 +885,7 @@ MessageProcessedResult EncoderTemplate<EncoderType>::ProcessEncodeMessage(
 
                nsCString msgStr = aMessage->ToString();
 
+               ENCODER_MARKER_INTERVAL_END(".encode");
                aMessage->Complete();
                self->mProcessingMessage = nullptr;
 
@@ -907,10 +916,12 @@ MessageProcessedResult EncoderTemplate<EncoderType>::ProcessEncodeMessage(
                  LOGV("%s %p, schedule %zu encoded data output for %s",
                       EncoderType::Name.get(), self.get(), data.Length(),
                       msgStr.get());
+                 ENCODER_MARKER_INTERVAL_START(".encode-output");
                  self->QueueATask(
                      "Output encoded Data",
                      [self = RefPtr{self}, data2 = std::move(data)]()
                          MOZ_CAN_RUN_SCRIPT_BOUNDARY {
+                           ENCODER_MARKER_INTERVAL_END(".encode-output");
                            self->OutputEncodedData(std::move(data2));
                          });
                }
@@ -946,6 +957,7 @@ MessageProcessedResult EncoderTemplate<EncoderType>::ProcessFlushMessage(
     return MessageProcessedResult::Processed;
   }
 
+  ENCODER_MARKER_INTERVAL_START(".flush");
   mAgent->Drain()
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [self = RefPtr{this}, id = mAgent->mId, aMessage, this](
@@ -957,6 +969,7 @@ MessageProcessedResult EncoderTemplate<EncoderType>::ProcessFlushMessage(
                MOZ_ASSERT(id == self->mAgent->mId);
                MOZ_ASSERT(self->mActiveConfig);
 
+               ENCODER_MARKER_INTERVAL_END(".flush");
                LOG("%s %p, EncoderAgent #%zu %s has been %s",
                    EncoderType::Name.get(), self.get(), id,
                    aMessage->ToString().get(),
@@ -1010,10 +1023,12 @@ MessageProcessedResult EncoderTemplate<EncoderType>::ProcessFlushMessage(
 
                const auto flushPromiseId =
                    static_cast<int64_t>(aMessage->mMessageId);
+               ENCODER_MARKER_INTERVAL_START(".flush-output");
                self->QueueATask(
                    "Flush: output encoded data task",
                    [self = RefPtr{self}, data = std::move(data),
                     flushPromiseId]() MOZ_CAN_RUN_SCRIPT_BOUNDARY {
+                     ENCODER_MARKER_INTERVAL_END(".flush-output");
                      self->OutputEncodedData(std::move(data));
                      // If Reset() was invoked before this task executes, or
                      // during the output callback above in the execution of
