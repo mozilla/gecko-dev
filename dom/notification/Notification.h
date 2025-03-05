@@ -152,23 +152,15 @@ class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
   nsresult DispatchToMainThread(already_AddRefed<nsIRunnable>&& aRunnable);
 
  protected:
-  Notification(nsIGlobalObject* aGlobal, IPCNotification&& aIPCNotification);
-
-  static already_AddRefed<Notification> CreateInternal(
-      nsIGlobalObject* aGlobal, const nsAString& aID, const nsAString& aTitle,
-      const nsAString& aDataSerialized, const NotificationOptions& aOptions,
-      ErrorResult& aRv);
+  Notification(nsIGlobalObject* aGlobal,
+               const IPCNotification& aIPCNotification,
+               const nsAString& aScope);
 
   void Deactivate();
 
   static NotificationPermission GetPermissionInternal(
       nsPIDOMWindowInner* aWindow,
       notification::PermissionCheckPurpose aPurpose, ErrorResult& rv);
-
-  void SetScope(const nsAString& aScope) {
-    MOZ_ASSERT(mScope.IsEmpty());
-    mScope = aScope;
-  }
 
   WeakPtr<notification::NotificationChild> mActor;
 
@@ -191,7 +183,7 @@ class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
   //
   // Note that aCx may not be in the compartment of aGlobal, but aOptions will
   // have its JS things in the compartment of aCx.
-  static already_AddRefed<Notification> Create(
+  static already_AddRefed<Notification> ValidateAndCreate(
       JSContext* aCx, nsIGlobalObject* aGlobal, const nsAString& aTitle,
       const NotificationOptions& aOptions, const nsAString& aScope,
       ErrorResult& aRv);
