@@ -57,6 +57,16 @@ add_task(async function accept() {
     );
   });
   Assert.ok(UrlbarPrefs.get("quicksuggest.dataCollection.enabled"));
+
+  info(
+    "Check whether the contextual opt-in result was removed from last query"
+  );
+  let { queryContext } = gURLBar.controller._lastQueryContextWrapper;
+  Assert.ok(
+    !queryContext.results.some(
+      r => r.providerName == "UrlbarProviderQuickSuggestContextualOptIn"
+    )
+  );
 });
 
 add_task(async function dismiss() {

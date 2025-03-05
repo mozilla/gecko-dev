@@ -274,7 +274,7 @@ class ProviderQuickSuggestContextualOptIn extends UrlbarProvider {
 
     // Remove the result if it shouldn't be active anymore due to above
     // actions.
-    if (!this._shouldDisplayContextualOptIn()) {
+    if (!this.#shouldDisplayContextualOptIn()) {
       if (result) {
         controller.removeResult(result);
       } else {
