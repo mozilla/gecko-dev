@@ -223,7 +223,9 @@ void GlobalKeyListener::HandleEventOnCaptureInSystemEventGroup(
     return;
   }
 
-  if (!HasHandlerForEvent(aEvent).mMeaningfulHandlerFound) {
+  WalkHandlersResult result = HasHandlerForEvent(aEvent);
+  widgetEvent->mFlags.mIsShortcutKey |= result.mRelevantHandlerFound;
+  if (!result.mMeaningfulHandlerFound) {
     return;
   }
 
@@ -261,6 +263,7 @@ GlobalKeyListener::WalkHandlersResult GlobalKeyListener::WalkHandlersInternal(
   }
 
   bool foundDisabledHandler = false;
+  bool foundRelevantHandler = false;
   for (const ShortcutKeyCandidate& key : shortcutKeys) {
     const bool skipIfEarlierHandlerDisabled =
         key.mSkipIfEarlierHandlerDisabled ==
@@ -276,6 +279,7 @@ GlobalKeyListener::WalkHandlersResult GlobalKeyListener::WalkHandlersInternal(
     if (result.mMeaningfulHandlerFound) {
       return result;
     }
+    foundRelevantHandler |= result.mRelevantHandlerFound;
     // Note that if the candidate should not match if an earlier handler is
     // disabled, the char code of the candidate is a char which may be
     // introduced with different shift state. In this case, we do NOT find a
@@ -286,7 +290,9 @@ GlobalKeyListener::WalkHandlersResult GlobalKeyListener::WalkHandlersInternal(
       foundDisabledHandler = result.mDisabledHandlerFound;
     }
   }
-  return {};
+  WalkHandlersResult result;
+  result.mRelevantHandlerFound = foundRelevantHandler;
+  return result;
 }
 
 GlobalKeyListener::WalkHandlersResult GlobalKeyListener::WalkHandlersAndExecute(
@@ -303,6 +309,7 @@ GlobalKeyListener::WalkHandlersResult GlobalKeyListener::WalkHandlersAndExecute(
 
   // Try all of the handlers until we find one that matches the event.
   bool foundDisabledHandler = false;
+  bool foundRelevantHandler = false;
   for (KeyEventHandler* handler = mHandler; handler;
        handler = handler->GetNextHandler()) {
     bool stopped = aKeyEvent->IsDispatchStopped();
@@ -352,6 +359,7 @@ GlobalKeyListener::WalkHandlersResult GlobalKeyListener::WalkHandlersAndExecute(
         result.mMeaningfulHandlerFound = true;
         result.mReservedHandlerForChromeFound =
             IsReservedKey(widgetKeyboardEvent, handler);
+        result.mRelevantHandlerFound = true;
         return result;
       }
 
@@ -364,8 +372,10 @@ GlobalKeyListener::WalkHandlersResult GlobalKeyListener::WalkHandlersAndExecute(
           WalkHandlersResult result;
           result.mMeaningfulHandlerFound = true;
           result.mReservedHandlerForChromeFound = true;
+          result.mRelevantHandlerFound = true;
           return result;
         }
+        foundRelevantHandler = true;
       }
       // Otherwise, we've not found a handler for the event yet.
       continue;
@@ -382,6 +392,7 @@ GlobalKeyListener::WalkHandlersResult GlobalKeyListener::WalkHandlersAndExecute(
       result.mReservedHandlerForChromeFound =
           IsReservedKey(widgetKeyboardEvent, handler);
       result.mDisabledHandlerFound = (rv == NS_SUCCESS_DOM_NO_OPERATION);
+      result.mRelevantHandlerFound = true;
       return result;
     }
   }
@@ -401,6 +412,7 @@ GlobalKeyListener::WalkHandlersResult GlobalKeyListener::WalkHandlersAndExecute(
 
   WalkHandlersResult result;
   result.mDisabledHandlerFound = foundDisabledHandler;
+  result.mRelevantHandlerFound = foundRelevantHandler;
   return result;
 }
 

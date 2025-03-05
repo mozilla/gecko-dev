@@ -310,28 +310,29 @@ class WidgetKeyboardEvent final : public WidgetInputEvent {
   }
 
   bool CanUserGestureActivateTarget() const {
-    // Printable keys, 'carriage return' and 'space' are supported user gestures
-    // for activating the document. However, if supported key is being pressed
-    // combining with other operation keys, such like alt, control ..etc., we
-    // won't activate the target for them because at that time user might
-    // interact with browser or window manager which doesn't necessarily
-    // demonstrate user's intent to play media.
-    const bool isCombiningWithOperationKeys = (IsControl() && !IsAltGraph()) ||
-                                              (IsAlt() && !IsAltGraph()) ||
-                                              IsMeta();
-    const bool isEnterOrSpaceKey =
-        mKeyNameIndex == KEY_NAME_INDEX_Enter || mKeyCode == NS_VK_SPACE;
-    return (PseudoCharCode() || isEnterOrSpaceKey) &&
-           (!isCombiningWithOperationKeys ||
-            // ctrl-c/ctrl-x/ctrl-v is quite common shortcut for clipboard
-            // operation.
-            // XXXedgar, we have to find a better way to handle browser keyboard
-            // shortcut for user activation, instead of just ignoring all
-            // combinations, see bug 1641171.
-            ((mKeyCode == dom::KeyboardEvent_Binding::DOM_VK_C ||
-              mKeyCode == dom::KeyboardEvent_Binding::DOM_VK_V ||
-              mKeyCode == dom::KeyboardEvent_Binding::DOM_VK_X) &&
-             IsAccel()));
+    if (IsModifierKeyEvent()) {
+      return false;
+    }
+
+    if (mFlags.mIsShortcutKey) {
+      // Space is quite common shortcut for playing media.
+      return mKeyCode == NS_VK_SPACE ||
+             // ctrl-c/ctrl-x/ctrl-v is quite common shortcut for clipboard
+             // operation.
+             // XXXedgar, we probably could improve this by referring to
+             // EditCommandsConstRef() if we're sure the event target on Linux
+             // and macOS is active with any edit commands.
+             ((mKeyCode == dom::KeyboardEvent_Binding::DOM_VK_C ||
+               mKeyCode == dom::KeyboardEvent_Binding::DOM_VK_V ||
+               mKeyCode == dom::KeyboardEvent_Binding::DOM_VK_X) &&
+              IsAccel());
+    }
+
+    // ESC key is ususally used to exit some state, it should not be considered
+    // as a user activation key to avoid page requests to enter again the same
+    // state to trap the user.
+    // https://html.spec.whatwg.org/multipage/interaction.html#activation-triggering-input-event
+    return mKeyNameIndex != KEY_NAME_INDEX_Escape;
   }
 
   // Returns true if this event is likely an user activation for a link or

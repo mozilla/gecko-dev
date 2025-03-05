@@ -1,0 +1,6 @@
+[DEFAULT]
+support-files = [
+  "../empty.html",
+]
+
+["browser_useractivation_key_events.js"]
