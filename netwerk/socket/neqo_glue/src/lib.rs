@@ -51,7 +51,7 @@ pub struct NeqoHttp3Conn {
     local_addr: SocketAddr,
     refcnt: AtomicRefcnt,
     last_output_time: Instant,
-    max_accumlated_time: Duration,
+    max_accumulated_time: Duration,
     /// Socket to use for IO.
     ///
     /// When [`None`], NSPR is used for IO.
@@ -152,7 +152,7 @@ impl NeqoHttp3Conn {
         webtransport: bool,
         qlog_dir: &nsACString,
         webtransport_datagram_size: u32,
-        max_accumlated_time_ms: u32,
+        max_accumulated_time_ms: u32,
         provider_flags: u32,
         idle_timeout: u32,
         socket: Option<i64>,
@@ -321,7 +321,7 @@ impl NeqoHttp3Conn {
             local_addr: local,
             refcnt: unsafe { AtomicRefcnt::new() },
             last_output_time: Instant::now(),
-            max_accumlated_time: Duration::from_millis(max_accumlated_time_ms.into()),
+            max_accumulated_time: Duration::from_millis(max_accumulated_time_ms.into()),
             socket,
             datagram_segment_size_sent: networking::http_3_udp_datagram_segment_size_sent
                 .start_buffer(),
@@ -475,7 +475,7 @@ pub extern "C" fn neqo_http3conn_new(
     webtransport: bool,
     qlog_dir: &nsACString,
     webtransport_datagram_size: u32,
-    max_accumlated_time_ms: u32,
+    max_accumulated_time_ms: u32,
     provider_flags: u32,
     idle_timeout: u32,
     socket: i64,
@@ -496,7 +496,7 @@ pub extern "C" fn neqo_http3conn_new(
         webtransport,
         qlog_dir,
         webtransport_datagram_size,
-        max_accumlated_time_ms,
+        max_accumulated_time_ms,
         provider_flags,
         idle_timeout,
         Some(socket),
@@ -524,7 +524,7 @@ pub extern "C" fn neqo_http3conn_new_use_nspr_for_io(
     webtransport: bool,
     qlog_dir: &nsACString,
     webtransport_datagram_size: u32,
-    max_accumlated_time_ms: u32,
+    max_accumulated_time_ms: u32,
     provider_flags: u32,
     idle_timeout: u32,
     result: &mut *const NeqoHttp3Conn,
@@ -544,7 +544,7 @@ pub extern "C" fn neqo_http3conn_new_use_nspr_for_io(
         webtransport,
         qlog_dir,
         webtransport_datagram_size,
-        max_accumlated_time_ms,
+        max_accumulated_time_ms,
         provider_flags,
         idle_timeout,
         None,
@@ -667,7 +667,7 @@ pub extern "C" fn neqo_http3conn_process_output_and_send_use_nspr_for_io(
         // The 1ms of extra delay is not ideal, but this is a fail
         set_timer_func(
             context,
-            u64::try_from((conn.last_output_time - now + conn.max_accumlated_time).as_millis())
+            u64::try_from((conn.last_output_time - now + conn.max_accumulated_time).as_millis())
                 .unwrap(),
         );
         return NS_OK;
@@ -712,7 +712,7 @@ pub extern "C" fn neqo_http3conn_process_output_and_send_use_nspr_for_io(
 
                 let timeout = min(to, Duration::from_nanos(u64::MAX - 1));
                 accumulated_time += timeout;
-                if accumulated_time >= conn.max_accumlated_time {
+                if accumulated_time >= conn.max_accumulated_time {
                     let mut timeout = accumulated_time.as_millis() as u64;
                     if timeout == 0 {
                         timeout = 1;
@@ -750,7 +750,7 @@ pub extern "C" fn neqo_http3conn_process_output_and_send(
         // The 1ms of extra delay is not ideal, but this is a fail
         set_timer_func(
             context,
-            u64::try_from((conn.last_output_time - now + conn.max_accumlated_time).as_millis())
+            u64::try_from((conn.last_output_time - now + conn.max_accumulated_time).as_millis())
                 .unwrap(),
         );
         return ProcessOutputAndSendResult {
@@ -808,7 +808,7 @@ pub extern "C" fn neqo_http3conn_process_output_and_send(
 
                 let timeout = min(to, Duration::from_nanos(u64::MAX - 1));
                 accumulated_time += timeout;
-                if accumulated_time >= conn.max_accumlated_time {
+                if accumulated_time >= conn.max_accumulated_time {
                     let mut timeout = accumulated_time.as_millis() as u64;
                     if timeout == 0 {
                         timeout = 1;

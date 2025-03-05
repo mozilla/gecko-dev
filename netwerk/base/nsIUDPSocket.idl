@@ -110,8 +110,8 @@ interface nsIUDPSocket : nsISupports
 
     /**
      * This adds a nsIUDPSocketSyncListener listener (defined below).
-     * When data is available onPacketReceived is called and the lisener uses
-     * recvWithAddr to actually retrive data from the socket.
+     * When data is available onPacketReceived is called and the listener uses
+     * recvWithAddr to actually retrieve data from the socket.
      * The listener can be use only if it runs on the socket thread.
      * If it is used off the socket thread there is a risk of triggering a bug
      * in OS thatcan cause a crash.
@@ -352,7 +352,7 @@ interface nsIUDPSocketListener : nsISupports
     /**
      * onPacketReceived
      *
-     * This method is called when a client sends an UDP packet.
+     * This method is called when a client sends a UDP packet.
      *
      * @param aSocket
      *        The UDP socket.

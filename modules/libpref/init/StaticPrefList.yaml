@@ -14677,6 +14677,8 @@
 
 # It represents the maximum duration that we used to accumulate
 # callback timeouts before we set a timer and break out of the loop.
+#
+# Note the typo in accumlated. Not worth fixing.
 - name: network.http.http3.max_accumlated_time_ms
   type: RelaxedAtomicUint32
   value: 1
