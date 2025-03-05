@@ -887,17 +887,7 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY STDMETHODIMP UiaTextRange::Select() {
   if (!range) {
     return CO_E_OBJNOTCONNECTED;
   }
-  NotNull<Accessible*> container = GetSelectionContainer(range);
-  nsTArray<TextLeafRange> ranges;
-  TextLeafRange::GetSelection(container, ranges);
-  HyperTextAccessibleBase* conHyp = container->AsHyperTextBase();
-  MOZ_ASSERT(conHyp);
-  // Remove all ranges from the selection.
-  for (int32_t s = ranges.Length() - 1; s >= 0; --s) {
-    conHyp->RemoveFromSelection(s);
-  }
-  // Select just this range.
-  if (!range.SetSelection(0)) {
+  if (!range.SetSelection(TextLeafRange::kRemoveAllExistingSelectedRanges)) {
     return UIA_E_INVALIDOPERATION;
   }
   return S_OK;

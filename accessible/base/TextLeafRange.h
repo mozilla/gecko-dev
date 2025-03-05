@@ -319,11 +319,17 @@ class TextLeafRange final {
    */
   static void GetSelection(Accessible* aAcc, nsTArray<TextLeafRange>& aRanges);
 
+  static const int32_t kCreateNewSelectionRange = -1;
+  static const int32_t kRemoveAllExistingSelectedRanges = -2;
+
   /**
    * Set range as DOM selection.
    * aSelectionNum is the selection index to use. If aSelectionNum is
-   * out of bounds for current selection ranges, or is -1, a new selection
-   * range is created.
+   * out of bounds for current selection ranges, or is kCreateNewSelectionRange,
+   * a new selection range is created. If aSelectionNum is
+   * kRemoveAllExistingSelectedRanges, this will be set as the only range in the
+   * selection; i.e. all existing ranges (if any) will be removed from the
+   * selection first.
    */
   MOZ_CAN_RUN_SCRIPT bool SetSelection(int32_t aSelectionNum) const;
 
