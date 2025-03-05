@@ -53,6 +53,7 @@ const CUSTOM_NER_OPTIONS = {
   numThreads: 2,
   timeoutMS: -1,
 };
+
 const journal = {};
 const runInference2 = async () => {
   ChromeUtils.defineESModuleGetters(this, {
@@ -102,9 +103,13 @@ const runInference2 = async () => {
     for (let metric of METRICS) {
       journal[metric] = [];
     }
+    journal["SUGGEST-model-run-latency"] = [];
   }
   for (let i = 0; i < numIterations; i++) {
+    const startTime = performance.now();
     const res = await MLSuggest.makeSuggestions(query);
+    const endTime = performance.now();
+    const diff = Math.round(endTime - startTime);
     let intent_metrics = fetchMetrics(res.metrics.intent, false);
     let ner_metrics = fetchMetrics(res.metrics.ner, false);
     let memUsage = await getTotalMemoryUsage();
@@ -123,6 +128,7 @@ const runInference2 = async () => {
       }
       journal[`NER-${metricName}`].push(metricVal);
     }
+    journal[`SUGGEST-model-run-latency`].push(diff);
   }
   await MLSuggest.shutdown();
   Assert.ok(true);
