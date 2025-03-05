@@ -928,9 +928,7 @@ interface nsIXULBrowserWindow extends nsISupports {
 
 }  // global
 
-declare namespace nsIAppStartup {
-
-enum IDLShutdownPhase {
+declare enum nsIAppStartup_IDLShutdownPhase {
   SHUTDOWN_PHASE_NOTINSHUTDOWN = 0,
   SHUTDOWN_PHASE_APPSHUTDOWNCONFIRMED = 1,
   SHUTDOWN_PHASE_APPSHUTDOWNNETTEARDOWN = 2,
@@ -942,11 +940,13 @@ enum IDLShutdownPhase {
   SHUTDOWN_PHASE_XPCOMSHUTDOWN = 8,
 }
 
-}
-
 declare global {
 
-interface nsIAppStartup extends nsISupports, Enums<typeof nsIAppStartup.IDLShutdownPhase> {
+namespace nsIAppStartup {
+  type IDLShutdownPhase = nsIAppStartup_IDLShutdownPhase;
+}
+
+interface nsIAppStartup extends nsISupports, Enums<typeof nsIAppStartup_IDLShutdownPhase> {
   readonly eConsiderQuit?: 1;
   readonly eAttemptQuit?: 2;
   readonly eForceQuit?: 3;
@@ -1523,38 +1523,41 @@ interface mozIGeckoMediaPluginService extends nsISupports {
 
 }  // global
 
-declare namespace nsIDocShell {
-
-enum DocShellEnumeratorDirection {
+declare enum nsIDocShell_DocShellEnumeratorDirection {
   ENUMERATE_FORWARDS = 0,
   ENUMERATE_BACKWARDS = 1,
 }
 
-enum AppType {
+declare enum nsIDocShell_AppType {
   APP_TYPE_UNKNOWN = 0,
   APP_TYPE_MAIL = 1,
   APP_TYPE_EDITOR = 2,
 }
 
-enum BusyFlags {
+declare enum nsIDocShell_BusyFlags {
   BUSY_FLAGS_NONE = 0,
   BUSY_FLAGS_BUSY = 1,
   BUSY_FLAGS_BEFORE_PAGE_LOAD = 2,
   BUSY_FLAGS_PAGE_LOADING = 4,
 }
 
-enum LoadCommand {
+declare enum nsIDocShell_LoadCommand {
   LOAD_CMD_NORMAL = 1,
   LOAD_CMD_RELOAD = 2,
   LOAD_CMD_HISTORY = 4,
   LOAD_CMD_PUSHSTATE = 8,
 }
 
-}
-
 declare global {
 
-interface nsIDocShell extends nsIDocShellTreeItem, Enums<typeof nsIDocShell.DocShellEnumeratorDirection & typeof nsIDocShell.AppType & typeof nsIDocShell.BusyFlags & typeof nsIDocShell.LoadCommand> {
+namespace nsIDocShell {
+  type DocShellEnumeratorDirection = nsIDocShell_DocShellEnumeratorDirection;
+  type AppType = nsIDocShell_AppType;
+  type BusyFlags = nsIDocShell_BusyFlags;
+  type LoadCommand = nsIDocShell_LoadCommand;
+}
+
+interface nsIDocShell extends nsIDocShellTreeItem, Enums<typeof nsIDocShell_DocShellEnumeratorDirection & typeof nsIDocShell_AppType & typeof nsIDocShell_BusyFlags & typeof nsIDocShell_LoadCommand> {
   setCancelContentJSEpoch(aEpoch: i32): void;
   addState(aData: any, aTitle: string, aURL: string, aReplace: boolean): void;
   prepareForNewContentModel(): void;
@@ -1690,24 +1693,25 @@ interface nsIDocumentLoaderFactory extends nsISupports {
 
 }  // global
 
-declare namespace nsIDocumentViewer {
-
-enum PermitUnloadAction {
+declare enum nsIDocumentViewer_PermitUnloadAction {
   ePrompt = 0,
   eDontPromptAndDontUnload = 1,
   eDontPromptAndUnload = 2,
 }
 
-enum PermitUnloadResult {
+declare enum nsIDocumentViewer_PermitUnloadResult {
   eAllowNavigation = 0,
   eRequestBlockNavigation = 1,
 }
 
-}
-
 declare global {
 
-interface nsIDocumentViewer extends nsISupports, Enums<typeof nsIDocumentViewer.PermitUnloadAction & typeof nsIDocumentViewer.PermitUnloadResult> {
+namespace nsIDocumentViewer {
+  type PermitUnloadAction = nsIDocumentViewer_PermitUnloadAction;
+  type PermitUnloadResult = nsIDocumentViewer_PermitUnloadResult;
+}
+
+interface nsIDocumentViewer extends nsISupports, Enums<typeof nsIDocumentViewer_PermitUnloadAction & typeof nsIDocumentViewer_PermitUnloadResult> {
   readonly eDelayResize?: 1;
 
   container: nsIDocShell;
@@ -1919,9 +1923,7 @@ interface mozIDOMWindowProxy extends nsISupports {
 
 }  // global
 
-declare namespace nsIContentPolicy {
-
-enum nsContentPolicyType {
+declare enum nsIContentPolicy_nsContentPolicyType {
   TYPE_INVALID = 0,
   TYPE_OTHER = 1,
   TYPE_SCRIPT = 2,
@@ -1987,11 +1989,13 @@ enum nsContentPolicyType {
   TYPE_END = 64,
 }
 
-}
-
 declare global {
 
-interface nsIContentPolicy extends nsISupports, Enums<typeof nsIContentPolicy.nsContentPolicyType> {
+namespace nsIContentPolicy {
+  type nsContentPolicyType = nsIContentPolicy_nsContentPolicyType;
+}
+
+interface nsIContentPolicy extends nsISupports, Enums<typeof nsIContentPolicy_nsContentPolicyType> {
   readonly REJECT_REQUEST?: -1;
   readonly REJECT_TYPE?: -2;
   readonly REJECT_SERVER?: -3;
@@ -2065,20 +2069,20 @@ interface nsIObjectLoadingContent extends nsISupports {
 
 }  // global
 
-declare namespace nsIScriptableContentIterator {
-
-enum IteratorType {
+declare enum nsIScriptableContentIterator_IteratorType {
   NOT_INITIALIZED = 0,
   POST_ORDER_ITERATOR = 1,
   PRE_ORDER_ITERATOR = 2,
   SUBTREE_ITERATOR = 3,
 }
 
-}
-
 declare global {
 
-interface nsIScriptableContentIterator extends nsISupports, Enums<typeof nsIScriptableContentIterator.IteratorType> {
+namespace nsIScriptableContentIterator {
+  type IteratorType = nsIScriptableContentIterator_IteratorType;
+}
+
+interface nsIScriptableContentIterator extends nsISupports, Enums<typeof nsIScriptableContentIterator_IteratorType> {
   initWithRootNode(aType: nsIScriptableContentIterator.IteratorType, aRoot: Node): void;
   initWithRange(aType: nsIScriptableContentIterator.IteratorType, aRange: Range): void;
   initWithRangeAllowCrossShadowBoundary(aType: nsIScriptableContentIterator.IteratorType, aRange: Range): void;
@@ -2096,9 +2100,7 @@ interface nsIScriptableContentIterator extends nsISupports, Enums<typeof nsIScri
 
 }  // global
 
-declare namespace nsISelectionController {
-
-enum ControllerScrollFlags {
+declare enum nsISelectionController_ControllerScrollFlags {
   SCROLL_SYNCHRONOUS = 2,
   SCROLL_FIRST_ANCESTOR_ONLY = 4,
   SCROLL_OVERFLOW_HIDDEN = 8,
@@ -2108,11 +2110,13 @@ enum ControllerScrollFlags {
   SCROLL_VERTICAL_END = 64,
 }
 
-}
-
 declare global {
 
-interface nsISelectionController extends nsISelectionDisplay, Enums<typeof nsISelectionController.ControllerScrollFlags> {
+namespace nsISelectionController {
+  type ControllerScrollFlags = nsISelectionController_ControllerScrollFlags;
+}
+
+interface nsISelectionController extends nsISelectionDisplay, Enums<typeof nsISelectionController_ControllerScrollFlags> {
   readonly SELECTION_NONE?: 0;
   readonly SELECTION_NORMAL?: 1;
   readonly SELECTION_SPELLCHECK?: 2;
@@ -2864,20 +2868,20 @@ interface nsIQueryContentEventResult extends nsISupports {
 
 }  // global
 
-declare namespace nsIRemoteTab {
-
-enum NavigationType {
+declare enum nsIRemoteTab_NavigationType {
   NAVIGATE_BACK = 0,
   NAVIGATE_FORWARD = 1,
   NAVIGATE_INDEX = 2,
   NAVIGATE_URL = 3,
 }
 
-}
-
 declare global {
 
-interface nsIRemoteTab extends nsISupports, Enums<typeof nsIRemoteTab.NavigationType> {
+namespace nsIRemoteTab {
+  type NavigationType = nsIRemoteTab_NavigationType;
+}
+
+interface nsIRemoteTab extends nsISupports, Enums<typeof nsIRemoteTab_NavigationType> {
   renderLayers: boolean;
   readonly hasLayers: boolean;
   priorityHint: boolean;
@@ -3579,20 +3583,20 @@ interface nsIPushQuotaManager extends nsISupports {
 
 }  // global
 
-declare namespace nsIQuotaArtificialFailure {
-
-enum Category {
+declare enum nsIQuotaArtificialFailure_Category {
   CATEGORY_NONE = 0,
   CATEGORY_INITIALIZE_ORIGIN = 1,
   CATEGORY_OPEN_CLIENT_DIRECTORY = 2,
   CATEGORY_CREATE_DIRECTORY_METADATA2 = 4,
 }
 
-}
-
 declare global {
 
-interface nsIQuotaArtificialFailure extends nsISupports, Enums<typeof nsIQuotaArtificialFailure.Category> {
+namespace nsIQuotaArtificialFailure {
+  type Category = nsIQuotaArtificialFailure_Category;
+}
+
+interface nsIQuotaArtificialFailure extends nsISupports, Enums<typeof nsIQuotaArtificialFailure_Category> {
 }
 
 // https://searchfox.org/mozilla-central/source/dom/quota/nsIQuotaCallbacks.idl
@@ -3717,9 +3721,7 @@ interface nsIContentSecurityManager extends nsISupports {
 
 }  // global
 
-declare namespace nsIContentSecurityPolicy {
-
-enum CSPDirective {
+declare enum nsIContentSecurityPolicy_CSPDirective {
   NO_DIRECTIVE = 0,
   DEFAULT_SRC_DIRECTIVE = 1,
   SCRIPT_SRC_DIRECTIVE = 2,
@@ -3750,17 +3752,20 @@ enum CSPDirective {
   REPORT_TO_DIRECTIVE = 27,
 }
 
-enum RequireTrustedTypesForDirectiveState {
+declare enum nsIContentSecurityPolicy_RequireTrustedTypesForDirectiveState {
   NONE = 0,
   REPORT_ONLY = 1,
   ENFORCE = 2,
 }
 
-}
-
 declare global {
 
-interface nsIContentSecurityPolicy extends nsISerializable, Enums<typeof nsIContentSecurityPolicy.CSPDirective & typeof nsIContentSecurityPolicy.RequireTrustedTypesForDirectiveState> {
+namespace nsIContentSecurityPolicy {
+  type CSPDirective = nsIContentSecurityPolicy_CSPDirective;
+  type RequireTrustedTypesForDirectiveState = nsIContentSecurityPolicy_RequireTrustedTypesForDirectiveState;
+}
+
+interface nsIContentSecurityPolicy extends nsISerializable, Enums<typeof nsIContentSecurityPolicy_CSPDirective & typeof nsIContentSecurityPolicy_RequireTrustedTypesForDirectiveState> {
   readonly VIOLATION_TYPE_EVAL?: 1;
   readonly VIOLATION_TYPE_WASM_EVAL?: 2;
 
@@ -3792,9 +3797,7 @@ type nsICSPEventListener = Callable<{
 
 }  // global
 
-declare namespace nsIReferrerInfo {
-
-enum ReferrerPolicyIDL {
+declare enum nsIReferrerInfo_ReferrerPolicyIDL {
   EMPTY = 0,
   NO_REFERRER_WHEN_DOWNGRADE = 1,
   NO_REFERRER = 2,
@@ -3806,11 +3809,13 @@ enum ReferrerPolicyIDL {
   STRICT_ORIGIN_WHEN_CROSS_ORIGIN = 8,
 }
 
-}
-
 declare global {
 
-interface nsIReferrerInfo extends nsISerializable, Enums<typeof nsIReferrerInfo.ReferrerPolicyIDL> {
+namespace nsIReferrerInfo {
+  type ReferrerPolicyIDL = nsIReferrerInfo_ReferrerPolicyIDL;
+}
+
+interface nsIReferrerInfo extends nsISerializable, Enums<typeof nsIReferrerInfo_ReferrerPolicyIDL> {
   readonly originalReferrer: nsIURI;
   readonly referrerPolicy: nsIReferrerInfo.ReferrerPolicyIDL;
   getReferrerPolicyString(): string;
@@ -4827,19 +4832,19 @@ interface imgICache extends nsISupports {
 
 }  // global
 
-declare namespace imgIContainer {
-
-enum DecodeResult {
+declare enum imgIContainer_DecodeResult {
   DECODE_SURFACE_AVAILABLE = 0,
   DECODE_REQUESTED = 1,
   DECODE_REQUEST_FAILED = 2,
 }
 
-}
-
 declare global {
 
-interface imgIContainer extends nsISupports, Enums<typeof imgIContainer.DecodeResult> {
+namespace imgIContainer {
+  type DecodeResult = imgIContainer_DecodeResult;
+}
+
+interface imgIContainer extends nsISupports, Enums<typeof imgIContainer_DecodeResult> {
   readonly TYPE_RASTER?: 0;
   readonly TYPE_VECTOR?: 1;
   readonly TYPE_REQUEST?: 2;
@@ -5112,19 +5117,19 @@ interface nsIJSInspector extends nsISupports {
 
 }  // global
 
-declare namespace nsIKeyValueService {
-
-enum RecoveryStrategy {
+declare enum nsIKeyValueService_RecoveryStrategy {
   ERROR = 0,
   DISCARD = 1,
   RENAME = 2,
 }
 
-}
-
 declare global {
 
-interface nsIKeyValueService extends nsISupports, Enums<typeof nsIKeyValueService.RecoveryStrategy> {
+namespace nsIKeyValueService {
+  type RecoveryStrategy = nsIKeyValueService_RecoveryStrategy;
+}
+
+interface nsIKeyValueService extends nsISupports, Enums<typeof nsIKeyValueService_RecoveryStrategy> {
   getOrCreate(callback: nsIKeyValueDatabaseCallback, path: string, name: string): void;
   getOrCreateWithOptions(callback: nsIKeyValueDatabaseCallback, path: string, name: string, recoveryStrategy?: nsIKeyValueService.RecoveryStrategy): void;
   createImporter(type: string, path: string): nsIKeyValueImporter;
@@ -5138,24 +5143,25 @@ interface nsIKeyValueImportSourceSpec extends nsISupports {
 
 }  // global
 
-declare namespace nsIKeyValueImporter {
-
-enum ConflictPolicy {
+declare enum nsIKeyValueImporter_ConflictPolicy {
   ERROR_ON_CONFLICT = 0,
   IGNORE_ON_CONFLICT = 1,
   REPLACE_ON_CONFLICT = 2,
 }
 
-enum CleanupPolicy {
+declare enum nsIKeyValueImporter_CleanupPolicy {
   KEEP_AFTER_IMPORT = 0,
   DELETE_AFTER_IMPORT = 1,
 }
 
-}
-
 declare global {
 
-interface nsIKeyValueImporter extends nsIKeyValueImportSourceSpec, Enums<typeof nsIKeyValueImporter.ConflictPolicy & typeof nsIKeyValueImporter.CleanupPolicy> {
+namespace nsIKeyValueImporter {
+  type ConflictPolicy = nsIKeyValueImporter_ConflictPolicy;
+  type CleanupPolicy = nsIKeyValueImporter_CleanupPolicy;
+}
+
+interface nsIKeyValueImporter extends nsIKeyValueImportSourceSpec, Enums<typeof nsIKeyValueImporter_ConflictPolicy & typeof nsIKeyValueImporter_CleanupPolicy> {
   readonly type: string;
   addPath(path: string): nsIKeyValueImportSourceSpec;
   import(callback: nsIKeyValueVoidCallback): void;
@@ -5784,19 +5790,19 @@ interface nsIInputStreamReceiver extends nsISupports {
 
 }  // global
 
-declare namespace nsICacheInfoChannel {
-
-enum PreferredAlternativeDataDeliveryType {
+declare enum nsICacheInfoChannel_PreferredAlternativeDataDeliveryType {
   NONE = 0,
   ASYNC = 1,
   SERIALIZE = 2,
 }
 
-}
-
 declare global {
 
-interface nsICacheInfoChannel extends nsISupports, Enums<typeof nsICacheInfoChannel.PreferredAlternativeDataDeliveryType> {
+namespace nsICacheInfoChannel {
+  type PreferredAlternativeDataDeliveryType = nsICacheInfoChannel_PreferredAlternativeDataDeliveryType;
+}
+
+interface nsICacheInfoChannel extends nsISupports, Enums<typeof nsICacheInfoChannel_PreferredAlternativeDataDeliveryType> {
   readonly cacheTokenFetchCount: u32;
   readonly cacheTokenExpirationTime: u32;
   isFromCache(): boolean;
@@ -5914,20 +5920,20 @@ interface nsIChildChannel extends nsISupports {
 
 }  // global
 
-declare namespace nsIClassOfService {
-
-enum FetchPriority {
+declare enum nsIClassOfService_FetchPriority {
   FETCHPRIORITY_UNSET = 0,
   FETCHPRIORITY_LOW = 1,
   FETCHPRIORITY_AUTO = 2,
   FETCHPRIORITY_HIGH = 3,
 }
 
-}
-
 declare global {
 
-interface nsIClassOfService extends nsISupports, Enums<typeof nsIClassOfService.FetchPriority> {
+namespace nsIClassOfService {
+  type FetchPriority = nsIClassOfService_FetchPriority;
+}
+
+interface nsIClassOfService extends nsISupports, Enums<typeof nsIClassOfService_FetchPriority> {
   readonly Leader?: 1;
   readonly Follower?: 2;
   readonly Speculative?: 4;
@@ -5951,9 +5957,7 @@ interface nsIClassOfService extends nsISupports, Enums<typeof nsIClassOfService.
 
 }  // global
 
-declare namespace nsIClassifiedChannel {
-
-enum ClassificationFlags {
+declare enum nsIClassifiedChannel_ClassificationFlags {
   CLASSIFIED_FINGERPRINTING = 1,
   CLASSIFIED_FINGERPRINTING_CONTENT = 128,
   CLASSIFIED_CRYPTOMINING = 2,
@@ -5974,11 +5978,13 @@ enum ClassificationFlags {
   CLASSIFIED_ANY_SOCIAL_TRACKING = 7680,
 }
 
-}
-
 declare global {
 
-interface nsIClassifiedChannel extends nsISupports, Enums<typeof nsIClassifiedChannel.ClassificationFlags> {
+namespace nsIClassifiedChannel {
+  type ClassificationFlags = nsIClassifiedChannel_ClassificationFlags;
+}
+
+interface nsIClassifiedChannel extends nsISupports, Enums<typeof nsIClassifiedChannel_ClassificationFlags> {
   setMatchedInfo(aList: string, aProvider: string, aFullHash: string): void;
   readonly matchedList: string;
   readonly matchedProvider: string;
@@ -6238,15 +6244,13 @@ interface nsILoadGroupChild extends nsISupports {
 
 }  // global
 
-declare namespace nsILoadInfo {
-
-enum StoragePermissionState {
+declare enum nsILoadInfo_StoragePermissionState {
   NoStoragePermission = 0,
   HasStoragePermission = 1,
   StoragePermissionAllowListed = 2,
 }
 
-enum CrossOriginOpenerPolicy {
+declare enum nsILoadInfo_CrossOriginOpenerPolicy {
   OPENER_POLICY_UNSAFE_NONE = 0,
   OPENER_POLICY_SAME_ORIGIN = 1,
   OPENER_POLICY_SAME_ORIGIN_ALLOW_POPUPS = 2,
@@ -6254,19 +6258,19 @@ enum CrossOriginOpenerPolicy {
   OPENER_POLICY_SAME_ORIGIN_EMBEDDER_POLICY_REQUIRE_CORP = 17,
 }
 
-enum CrossOriginEmbedderPolicy {
+declare enum nsILoadInfo_CrossOriginEmbedderPolicy {
   EMBEDDER_POLICY_NULL = 0,
   EMBEDDER_POLICY_REQUIRE_CORP = 1,
   EMBEDDER_POLICY_CREDENTIALLESS = 2,
 }
 
-enum SchemelessInputType {
+declare enum nsILoadInfo_SchemelessInputType {
   SchemelessInputTypeUnset = 0,
   SchemelessInputTypeSchemeful = 1,
   SchemelessInputTypeSchemeless = 2,
 }
 
-enum HTTPSUpgradeTelemetryType {
+declare enum nsILoadInfo_HTTPSUpgradeTelemetryType {
   NOT_INITIALIZED = 0,
   NO_UPGRADE = 1,
   ALREADY_HTTPS = 2,
@@ -6284,11 +6288,17 @@ enum HTTPSUpgradeTelemetryType {
   SKIP_HTTPS_UPGRADE = 8192,
 }
 
-}
-
 declare global {
 
-interface nsILoadInfo extends nsISupports, Enums<typeof nsILoadInfo.StoragePermissionState & typeof nsILoadInfo.CrossOriginOpenerPolicy & typeof nsILoadInfo.CrossOriginEmbedderPolicy & typeof nsILoadInfo.SchemelessInputType & typeof nsILoadInfo.HTTPSUpgradeTelemetryType> {
+namespace nsILoadInfo {
+  type StoragePermissionState = nsILoadInfo_StoragePermissionState;
+  type CrossOriginOpenerPolicy = nsILoadInfo_CrossOriginOpenerPolicy;
+  type CrossOriginEmbedderPolicy = nsILoadInfo_CrossOriginEmbedderPolicy;
+  type SchemelessInputType = nsILoadInfo_SchemelessInputType;
+  type HTTPSUpgradeTelemetryType = nsILoadInfo_HTTPSUpgradeTelemetryType;
+}
+
+interface nsILoadInfo extends nsISupports, Enums<typeof nsILoadInfo_StoragePermissionState & typeof nsILoadInfo_CrossOriginOpenerPolicy & typeof nsILoadInfo_CrossOriginEmbedderPolicy & typeof nsILoadInfo_SchemelessInputType & typeof nsILoadInfo_HTTPSUpgradeTelemetryType> {
   readonly SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK?: 0;
   readonly SEC_REQUIRE_SAME_ORIGIN_INHERITS_SEC_CONTEXT?: 1;
   readonly SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED?: 2;
@@ -6558,19 +6568,19 @@ interface nsINetUtil extends nsISupports {
 
 }  // global
 
-declare namespace nsINetworkConnectivityService {
-
-enum ConnectivityState {
+declare enum nsINetworkConnectivityService_ConnectivityState {
   UNKNOWN = 0,
   OK = 1,
   NOT_AVAILABLE = 2,
 }
 
-}
-
 declare global {
 
-interface nsINetworkConnectivityService extends nsISupports, Enums<typeof nsINetworkConnectivityService.ConnectivityState> {
+namespace nsINetworkConnectivityService {
+  type ConnectivityState = nsINetworkConnectivityService_ConnectivityState;
+}
+
+interface nsINetworkConnectivityService extends nsISupports, Enums<typeof nsINetworkConnectivityService_ConnectivityState> {
   DNSv4: nsINetworkConnectivityService.ConnectivityState;
   DNSv6: nsINetworkConnectivityService.ConnectivityState;
   DNS_HTTPS: nsINetworkConnectivityService.ConnectivityState;
@@ -6951,20 +6961,20 @@ interface nsIRedirectResultListener extends nsISupports {
 
 }  // global
 
-declare namespace nsIRequest {
-
-enum TRRMode {
+declare enum nsIRequest_TRRMode {
   TRR_DEFAULT_MODE = 0,
   TRR_DISABLED_MODE = 1,
   TRR_FIRST_MODE = 2,
   TRR_ONLY_MODE = 3,
 }
 
-}
-
 declare global {
 
-interface nsIRequest extends nsISupports, Enums<typeof nsIRequest.TRRMode> {
+namespace nsIRequest {
+  type TRRMode = nsIRequest_TRRMode;
+}
+
+interface nsIRequest extends nsISupports, Enums<typeof nsIRequest_TRRMode> {
   readonly LOAD_REQUESTMASK?: 65535;
   readonly LOAD_NORMAL?: 0;
   readonly LOAD_BACKGROUND?: 1;
@@ -7298,19 +7308,19 @@ interface nsIServerTiming extends nsISupports {
 
 }  // global
 
-declare namespace nsITimedChannel {
-
-enum BodyInfoAccess {
+declare enum nsITimedChannel_BodyInfoAccess {
   DISALLOWED = 0,
   ALLOW_SIZES = 1,
   ALLOW_ALL = 2,
 }
 
-}
-
 declare global {
 
-interface nsITimedChannel extends nsISupports, Enums<typeof nsITimedChannel.BodyInfoAccess> {
+namespace nsITimedChannel {
+  type BodyInfoAccess = nsITimedChannel_BodyInfoAccess;
+}
+
+interface nsITimedChannel extends nsISupports, Enums<typeof nsITimedChannel_BodyInfoAccess> {
   redirectCount: u8;
   internalRedirectCount: u8;
   initiatorType: string;
@@ -7677,20 +7687,20 @@ interface nsICacheTesting extends nsISupports {
 
 }  // global
 
-declare namespace nsICookie {
-
-enum schemeType {
+declare enum nsICookie_schemeType {
   SCHEME_UNSET = 0,
   SCHEME_HTTP = 1,
   SCHEME_HTTPS = 2,
   SCHEME_FILE = 4,
 }
 
-}
-
 declare global {
 
-interface nsICookie extends nsISupports, Enums<typeof nsICookie.schemeType> {
+namespace nsICookie {
+  type schemeType = nsICookie_schemeType;
+}
+
+interface nsICookie extends nsISupports, Enums<typeof nsICookie_schemeType> {
   readonly SAMESITE_NONE?: 0;
   readonly SAMESITE_LAX?: 1;
   readonly SAMESITE_STRICT?: 2;
@@ -7758,9 +7768,7 @@ interface nsICookieManager extends nsISupports {
 
 }  // global
 
-declare namespace nsICookieNotification {
-
-enum Action {
+declare enum nsICookieNotification_Action {
   COOKIE_DELETED = 0,
   COOKIE_ADDED = 1,
   COOKIE_CHANGED = 2,
@@ -7768,11 +7776,13 @@ enum Action {
   COOKIES_BATCH_DELETED = 4,
 }
 
-}
-
 declare global {
 
-interface nsICookieNotification extends nsISupports, Enums<typeof nsICookieNotification.Action> {
+namespace nsICookieNotification {
+  type Action = nsICookieNotification_Action;
+}
+
+interface nsICookieNotification extends nsISupports, Enums<typeof nsICookieNotification_Action> {
   readonly action: nsICookieNotification.Action;
   readonly cookie: nsICookie;
   readonly baseDomain: string;
@@ -7926,15 +7936,13 @@ interface nsIDNSAddrRecord extends nsIDNSRecord {
 
 }  // global
 
-declare namespace nsIDNSService {
-
-enum ResolveType {
+declare enum nsIDNSService_ResolveType {
   RESOLVE_TYPE_DEFAULT = 0,
   RESOLVE_TYPE_TXT = 16,
   RESOLVE_TYPE_HTTPSSVC = 65,
 }
 
-enum ResolverMode {
+declare enum nsIDNSService_ResolverMode {
   MODE_NATIVEONLY = 0,
   MODE_RESERVED1 = 1,
   MODE_TRRFIRST = 2,
@@ -7943,7 +7951,7 @@ enum ResolverMode {
   MODE_TRROFF = 5,
 }
 
-enum DNSFlags {
+declare enum nsIDNSService_DNSFlags {
   RESOLVE_DEFAULT_FLAGS = 0,
   RESOLVE_BYPASS_CACHE = 1,
   RESOLVE_CANONICAL_NAME = 2,
@@ -7966,7 +7974,7 @@ enum DNSFlags {
   ALL_DNSFLAGS_BITS = 524287,
 }
 
-enum ConfirmationState {
+declare enum nsIDNSService_ConfirmationState {
   CONFIRM_OFF = 0,
   CONFIRM_TRYING_OK = 1,
   CONFIRM_OK = 2,
@@ -7975,11 +7983,16 @@ enum ConfirmationState {
   CONFIRM_DISABLED = 5,
 }
 
-}
-
 declare global {
 
-interface nsIDNSService extends nsISupports, Enums<typeof nsIDNSService.ResolveType & typeof nsIDNSService.ResolverMode & typeof nsIDNSService.DNSFlags & typeof nsIDNSService.ConfirmationState> {
+namespace nsIDNSService {
+  type ResolveType = nsIDNSService_ResolveType;
+  type ResolverMode = nsIDNSService_ResolverMode;
+  type DNSFlags = nsIDNSService_DNSFlags;
+  type ConfirmationState = nsIDNSService_ConfirmationState;
+}
+
+interface nsIDNSService extends nsISupports, Enums<typeof nsIDNSService_ResolveType & typeof nsIDNSService_ResolverMode & typeof nsIDNSService_DNSFlags & typeof nsIDNSService_ConfirmationState> {
   asyncResolve(aHostName: string, aType: nsIDNSService.ResolveType, aFlags: nsIDNSService.DNSFlags, aInfo: nsIDNSAdditionalInfo, aListener: nsIDNSListener, aListenerTarget: nsIEventTarget, aOriginAttributes?: any): nsICancelable;
   newAdditionalInfo(aTrrURL: string, aPort: i32): nsIDNSAdditionalInfo;
   cancelAsyncResolve(aHostName: string, aType: nsIDNSService.ResolveType, aFlags: nsIDNSService.DNSFlags, aResolver: nsIDNSAdditionalInfo, aListener: nsIDNSListener, aReason: nsresult, aOriginAttributes?: any): void;
@@ -8042,9 +8055,7 @@ interface nsINativeDNSResolverOverride extends nsISupports {
 
 }  // global
 
-declare namespace nsITRRSkipReason {
-
-enum value {
+declare enum nsITRRSkipReason_value {
   TRR_UNSET = 0,
   TRR_OK = 1,
   TRR_NO_GSERVICE = 2,
@@ -8098,11 +8109,13 @@ enum value {
   eLAST_VALUE = 49,
 }
 
-}
-
 declare global {
 
-interface nsITRRSkipReason extends nsISupports, Enums<typeof nsITRRSkipReason.value> {
+namespace nsITRRSkipReason {
+  type value = nsITRRSkipReason_value;
+}
+
+interface nsITRRSkipReason extends nsISupports, Enums<typeof nsITRRSkipReason_value> {
 }
 
 // https://searchfox.org/mozilla-central/source/netwerk/dns/nsPIDNSService.idl
@@ -8666,23 +8679,24 @@ interface nsIWebSocketListener extends nsISupports {
 
 }  // global
 
-declare namespace nsIWebTransport {
-
-enum WebTransportError {
+declare enum nsIWebTransport_WebTransportError {
   UNKNOWN_ERROR = 0,
   INVALID_STATE_ERROR = 1,
 }
 
-enum HTTPVersion {
+declare enum nsIWebTransport_HTTPVersion {
   h3 = 0,
   h2 = 1,
 }
 
-}
-
 declare global {
 
-interface nsIWebTransport extends nsISupports, Enums<typeof nsIWebTransport.WebTransportError & typeof nsIWebTransport.HTTPVersion> {
+namespace nsIWebTransport {
+  type WebTransportError = nsIWebTransport_WebTransportError;
+  type HTTPVersion = nsIWebTransport_HTTPVersion;
+}
+
+interface nsIWebTransport extends nsISupports, Enums<typeof nsIWebTransport_WebTransportError & typeof nsIWebTransport_HTTPVersion> {
   asyncConnect(aURI: nsIURI, aDedicated: boolean, aServerCertHashes: nsIWebTransportHash[], aLoadingPrincipal: nsIPrincipal, aSecurityFlags: u32, aListener: WebTransportSessionEventListener, aVersion?: nsIWebTransport.HTTPVersion): void;
   getStats(): void;
   closeSession(aErrorCode: u32, aReason: string): void;
@@ -8694,19 +8708,19 @@ interface nsIWebTransport extends nsISupports, Enums<typeof nsIWebTransport.WebT
 
 }  // global
 
-declare namespace WebTransportSessionEventListener {
-
-enum DatagramOutcome {
+declare enum WebTransportSessionEventListener_DatagramOutcome {
   UNKNOWN = 0,
   DROPPED_TOO_MUCH_DATA = 1,
   SENT = 2,
 }
 
-}
-
 declare global {
 
-interface WebTransportSessionEventListener extends nsISupports, Enums<typeof WebTransportSessionEventListener.DatagramOutcome> {
+namespace WebTransportSessionEventListener {
+  type DatagramOutcome = WebTransportSessionEventListener_DatagramOutcome;
+}
+
+interface WebTransportSessionEventListener extends nsISupports, Enums<typeof WebTransportSessionEventListener_DatagramOutcome> {
   onSessionReady(aSessionId: u64): void;
   onSessionClosed(aCleanly: boolean, aErrorCode: u32, aReason: string): void;
   onIncomingBidirectionalStreamAvailable(aStream: nsIWebTransportBidirectionalStream): void;
@@ -9027,36 +9041,36 @@ interface nsICryptoHash extends nsISupports {
 
 }  // global
 
-declare namespace nsIDataStorageManager {
-
-enum DataStorage {
+declare enum nsIDataStorageManager_DataStorage {
   AlternateServices = 0,
   ClientAuthRememberList = 1,
   SiteSecurityServiceState = 2,
 }
 
-}
-
 declare global {
 
-interface nsIDataStorageManager extends nsISupports, Enums<typeof nsIDataStorageManager.DataStorage> {
+namespace nsIDataStorageManager {
+  type DataStorage = nsIDataStorageManager_DataStorage;
+}
+
+interface nsIDataStorageManager extends nsISupports, Enums<typeof nsIDataStorageManager_DataStorage> {
   get(dataStorage: nsIDataStorageManager.DataStorage): nsIDataStorage;
 }
 
 }  // global
 
-declare namespace nsIDataStorage {
-
-enum DataType {
+declare enum nsIDataStorage_DataType {
   Persistent = 0,
   Private = 1,
 }
 
-}
-
 declare global {
 
-interface nsIDataStorage extends nsISupports, Enums<typeof nsIDataStorage.DataType> {
+namespace nsIDataStorage {
+  type DataType = nsIDataStorage_DataType;
+}
+
+interface nsIDataStorage extends nsISupports, Enums<typeof nsIDataStorage_DataType> {
   get(key: string, type: nsIDataStorage.DataType): string;
   put(key: string, value: string, type: nsIDataStorage.DataType): void;
   remove(key: string, type: nsIDataStorage.DataType): void;
@@ -9098,6 +9112,7 @@ interface nsINSSErrorsService extends nsISupports {
   isNSSErrorCode(aNSPRCode: i32): boolean;
   getXPCOMFromNSSError(aNSPRCode: i32): nsresult;
   getErrorMessage(aXPCOMErrorCode: nsresult): string;
+  getErrorName(aXPCOMErrorCode: nsresult): string;
   getErrorClass(aXPCOMErrorCode: nsresult): u32;
 }
 
@@ -9234,19 +9249,19 @@ interface nsISecurityUITelemetry extends nsISupports {
 
 }  // global
 
-declare namespace nsISiteSecurityService {
-
-enum ResetStateBy {
+declare enum nsISiteSecurityService_ResetStateBy {
   ExactDomain = 0,
   RootDomain = 1,
   BaseDomain = 2,
 }
 
-}
-
 declare global {
 
-interface nsISiteSecurityService extends nsISupports, Enums<typeof nsISiteSecurityService.ResetStateBy> {
+namespace nsISiteSecurityService {
+  type ResetStateBy = nsISiteSecurityService_ResetStateBy;
+}
+
+interface nsISiteSecurityService extends nsISupports, Enums<typeof nsISiteSecurityService_ResetStateBy> {
   readonly Success?: 0;
   readonly ERROR_UNKNOWN?: 1;
   readonly ERROR_COULD_NOT_PARSE_HEADER?: 3;
@@ -9317,20 +9332,20 @@ interface nsITokenPasswordDialogs extends nsISupports {
 
 }  // global
 
-declare namespace nsITransportSecurityInfo {
-
-enum OverridableErrorCategory {
+declare enum nsITransportSecurityInfo_OverridableErrorCategory {
   ERROR_UNSET = 0,
   ERROR_TRUST = 1,
   ERROR_DOMAIN = 2,
   ERROR_TIME = 3,
 }
 
-}
-
 declare global {
 
-interface nsITransportSecurityInfo extends nsISupports, Enums<typeof nsITransportSecurityInfo.OverridableErrorCategory> {
+namespace nsITransportSecurityInfo {
+  type OverridableErrorCategory = nsITransportSecurityInfo_OverridableErrorCategory;
+}
+
+interface nsITransportSecurityInfo extends nsISupports, Enums<typeof nsITransportSecurityInfo_OverridableErrorCategory> {
   readonly SSL_VERSION_3?: 0;
   readonly TLS_VERSION_1?: 1;
   readonly TLS_VERSION_1_1?: 2;
@@ -9405,19 +9420,19 @@ interface nsIX509Cert extends nsISupports {
 
 }  // global
 
-declare namespace nsIAppSignatureInfo {
-
-enum SignatureAlgorithm {
+declare enum nsIAppSignatureInfo_SignatureAlgorithm {
   PKCS7_WITH_SHA1 = 0,
   PKCS7_WITH_SHA256 = 1,
   COSE_WITH_SHA256 = 2,
 }
 
-}
-
 declare global {
 
-interface nsIAppSignatureInfo extends nsISupports, Enums<typeof nsIAppSignatureInfo.SignatureAlgorithm> {
+namespace nsIAppSignatureInfo {
+  type SignatureAlgorithm = nsIAppSignatureInfo_SignatureAlgorithm;
+}
+
+interface nsIAppSignatureInfo extends nsISupports, Enums<typeof nsIAppSignatureInfo_SignatureAlgorithm> {
   readonly signerCert: nsIX509Cert;
   readonly signatureAlgorithm: nsIAppSignatureInfo.SignatureAlgorithm;
 }
@@ -9436,9 +9451,7 @@ type nsICertVerificationCallback = Callable<{
 
 }  // global
 
-declare namespace nsIX509CertDB {
-
-enum VerifyUsage {
+declare enum nsIX509CertDB_VerifyUsage {
   verifyUsageTLSServer = 1,
   verifyUsageTLSServerCA = 2,
   verifyUsageTLSClient = 3,
@@ -9448,11 +9461,13 @@ enum VerifyUsage {
   verifyUsageEmailCA = 7,
 }
 
-}
-
 declare global {
 
-interface nsIX509CertDB extends nsISupports, Enums<typeof nsIX509CertDB.VerifyUsage> {
+namespace nsIX509CertDB {
+  type VerifyUsage = nsIX509CertDB_VerifyUsage;
+}
+
+interface nsIX509CertDB extends nsISupports, Enums<typeof nsIX509CertDB_VerifyUsage> {
   readonly UNTRUSTED?: 0;
   readonly TRUSTED_SSL?: 1;
   readonly TRUSTED_EMAIL?: 2;
@@ -10732,9 +10747,7 @@ interface nsIBounceTrackingPurgeEntry extends nsIBounceTrackingMapEntry {
 
 }  // global
 
-declare namespace nsIBounceTrackingProtection {
-
-enum Modes {
+declare enum nsIBounceTrackingProtection_Modes {
   MODE_DISABLED = 0,
   MODE_ENABLED = 1,
   MODE_ENABLED_STANDBY = 2,
@@ -10742,11 +10755,13 @@ enum Modes {
   MAX_MODE_VALUE = 3,
 }
 
-}
-
 declare global {
 
-interface nsIBounceTrackingProtection extends nsISupports, Enums<typeof nsIBounceTrackingProtection.Modes> {
+namespace nsIBounceTrackingProtection {
+  type Modes = nsIBounceTrackingProtection_Modes;
+}
+
+interface nsIBounceTrackingProtection extends nsISupports, Enums<typeof nsIBounceTrackingProtection_Modes> {
   clearAll(): void;
   clearBySiteHostAndOriginAttributes(aSiteHost: string, originAttributes: any): void;
   clearBySiteHostAndOriginAttributesPattern(aSiteHost: string, aOriginAttributesPattern: any): void;
@@ -10971,15 +10986,13 @@ type nsIClearDataCallback = Callable<{
 
 }  // global
 
-declare namespace nsIContentAnalysisAcknowledgement {
-
-enum Result {
+declare enum nsIContentAnalysisAcknowledgement_Result {
   eSuccess = 1,
   eInvalidResponse = 2,
   eTooLate = 3,
 }
 
-enum FinalAction {
+declare enum nsIContentAnalysisAcknowledgement_FinalAction {
   eUnspecified = 0,
   eAllow = 1,
   eReportOnly = 2,
@@ -10987,11 +11000,14 @@ enum FinalAction {
   eBlock = 4,
 }
 
-}
-
 declare global {
 
-interface nsIContentAnalysisAcknowledgement extends nsISupports, Enums<typeof nsIContentAnalysisAcknowledgement.Result & typeof nsIContentAnalysisAcknowledgement.FinalAction> {
+namespace nsIContentAnalysisAcknowledgement {
+  type Result = nsIContentAnalysisAcknowledgement_Result;
+  type FinalAction = nsIContentAnalysisAcknowledgement_FinalAction;
+}
+
+interface nsIContentAnalysisAcknowledgement extends nsISupports, Enums<typeof nsIContentAnalysisAcknowledgement_Result & typeof nsIContentAnalysisAcknowledgement_FinalAction> {
   readonly result: nsIContentAnalysisAcknowledgement.Result;
   readonly finalAction: nsIContentAnalysisAcknowledgement.FinalAction;
 }
@@ -11002,9 +11018,7 @@ interface nsIContentAnalysisResult extends nsISupports {
 
 }  // global
 
-declare namespace nsIContentAnalysisResponse {
-
-enum Action {
+declare enum nsIContentAnalysisResponse_Action {
   eUnspecified = 0,
   eReportOnly = 1,
   eWarn = 2,
@@ -11013,7 +11027,7 @@ enum Action {
   eCanceled = 1001,
 }
 
-enum CancelError {
+declare enum nsIContentAnalysisResponse_CancelError {
   eUserInitiated = 0,
   eNoAgent = 1,
   eInvalidAgentSignature = 2,
@@ -11023,11 +11037,14 @@ enum CancelError {
   eTimeout = 6,
 }
 
-}
-
 declare global {
 
-interface nsIContentAnalysisResponse extends nsIContentAnalysisResult, Enums<typeof nsIContentAnalysisResponse.Action & typeof nsIContentAnalysisResponse.CancelError> {
+namespace nsIContentAnalysisResponse {
+  type Action = nsIContentAnalysisResponse_Action;
+  type CancelError = nsIContentAnalysisResponse_CancelError;
+}
+
+interface nsIContentAnalysisResponse extends nsIContentAnalysisResult, Enums<typeof nsIContentAnalysisResponse_Action & typeof nsIContentAnalysisResponse_CancelError> {
   readonly action: nsIContentAnalysisResponse.Action;
   readonly cancelError: nsIContentAnalysisResponse.CancelError;
   readonly requestToken: string;
@@ -11051,9 +11068,7 @@ interface nsIClientDownloadResource extends nsISupports {
 
 }  // global
 
-declare namespace nsIContentAnalysisRequest {
-
-enum AnalysisType {
+declare enum nsIContentAnalysisRequest_AnalysisType {
   eUnspecified = 0,
   eFileDownloaded = 1,
   eFileAttached = 2,
@@ -11062,7 +11077,7 @@ enum AnalysisType {
   eFileTransfer = 5,
 }
 
-enum Reason {
+declare enum nsIContentAnalysisRequest_Reason {
   eUnknown = 0,
   eClipboardPaste = 1,
   eDragAndDrop = 2,
@@ -11073,18 +11088,22 @@ enum Reason {
   eSaveAsDownload = 7,
 }
 
-enum OperationType {
+declare enum nsIContentAnalysisRequest_OperationType {
   eCustomDisplayString = 0,
   eClipboard = 1,
   eDroppedText = 2,
   eOperationPrint = 3,
 }
 
-}
-
 declare global {
 
-interface nsIContentAnalysisRequest extends nsISupports, Enums<typeof nsIContentAnalysisRequest.AnalysisType & typeof nsIContentAnalysisRequest.Reason & typeof nsIContentAnalysisRequest.OperationType> {
+namespace nsIContentAnalysisRequest {
+  type AnalysisType = nsIContentAnalysisRequest_AnalysisType;
+  type Reason = nsIContentAnalysisRequest_Reason;
+  type OperationType = nsIContentAnalysisRequest_OperationType;
+}
+
+interface nsIContentAnalysisRequest extends nsISupports, Enums<typeof nsIContentAnalysisRequest_AnalysisType & typeof nsIContentAnalysisRequest_Reason & typeof nsIContentAnalysisRequest_OperationType> {
   readonly analysisType: nsIContentAnalysisRequest.AnalysisType;
   readonly reason: nsIContentAnalysisRequest.Reason;
   readonly operationTypeForDisplay: nsIContentAnalysisRequest.OperationType;
@@ -11145,19 +11164,19 @@ interface nsIContentAnalysis extends nsISupports {
 
 }  // global
 
-declare namespace nsIClickRule {
-
-enum RunContext {
+declare enum nsIClickRule_RunContext {
   RUN_TOP = 0,
   RUN_CHILD = 1,
   RUN_ALL = 2,
 }
 
-}
-
 declare global {
 
-interface nsIClickRule extends nsISupports, Enums<typeof nsIClickRule.RunContext> {
+namespace nsIClickRule {
+  type RunContext = nsIClickRule_RunContext;
+}
+
+interface nsIClickRule extends nsISupports, Enums<typeof nsIClickRule_RunContext> {
   readonly presence: string;
   readonly skipPresenceVisibilityCheck: boolean;
   readonly runContext: nsIClickRule.RunContext;
@@ -11193,20 +11212,20 @@ interface nsICookieBannerRule extends nsISupports {
 
 }  // global
 
-declare namespace nsICookieBannerService {
-
-enum Modes {
+declare enum nsICookieBannerService_Modes {
   MODE_DISABLED = 0,
   MODE_REJECT = 1,
   MODE_REJECT_OR_ACCEPT = 2,
   MODE_UNSET = 3,
 }
 
-}
-
 declare global {
 
-interface nsICookieBannerService extends nsISupports, Enums<typeof nsICookieBannerService.Modes> {
+namespace nsICookieBannerService {
+  type Modes = nsICookieBannerService_Modes;
+}
+
+interface nsICookieBannerService extends nsISupports, Enums<typeof nsICookieBannerService_Modes> {
   readonly isEnabled: boolean;
   readonly rules: nsICookieBannerRule[];
   resetRules(doImport?: boolean): void;
@@ -11388,7 +11407,7 @@ interface nsISearchService extends nsISupports {
   runBackgroundChecks(): Promise<any>;
   resetToAppDefaultEngine(): void;
   addOpenSearchEngine(engineURL: string, iconURL: string): Promise<any>;
-  addUserEngine(name: string, url: string, alias?: string): Promise<any>;
+  addUserEngine(formInfo: any): Promise<any>;
   addEnginesFromExtension(extension: any): Promise<any>;
   restoreDefaultEngines(): void;
   getEngineByAlias(alias: string): Promise<any>;
@@ -11488,28 +11507,30 @@ interface nsIToolkitProfile extends nsISupports {
 
 }  // global
 
-declare namespace nsIToolkitProfileService {
-
-enum downgradeUIFlags {
+declare enum nsIToolkitProfileService_downgradeUIFlags {
   hasSync = 1,
 }
 
-enum downgradeUIChoice {
+declare enum nsIToolkitProfileService_downgradeUIChoice {
   quit = 0,
   createNewProfile = 1,
 }
 
-enum profileManagerResult {
+declare enum nsIToolkitProfileService_profileManagerResult {
   exit = 0,
   launchWithProfile = 1,
   restart = 2,
 }
 
-}
-
 declare global {
 
-interface nsIToolkitProfileService extends nsISupports, Enums<typeof nsIToolkitProfileService.downgradeUIFlags & typeof nsIToolkitProfileService.downgradeUIChoice & typeof nsIToolkitProfileService.profileManagerResult> {
+namespace nsIToolkitProfileService {
+  type downgradeUIFlags = nsIToolkitProfileService_downgradeUIFlags;
+  type downgradeUIChoice = nsIToolkitProfileService_downgradeUIChoice;
+  type profileManagerResult = nsIToolkitProfileService_profileManagerResult;
+}
+
+interface nsIToolkitProfileService extends nsISupports, Enums<typeof nsIToolkitProfileService_downgradeUIFlags & typeof nsIToolkitProfileService_downgradeUIChoice & typeof nsIToolkitProfileService_profileManagerResult> {
   readonly isListOutdated: boolean;
   startWithLastProfile: boolean;
   readonly profiles: nsISimpleEnumerator;
@@ -11988,24 +12009,25 @@ interface nsIUrlClassifierExceptionListService extends nsISupports {
 
 }  // global
 
-declare namespace nsIUrlClassifierFeature {
-
-enum listType {
+declare enum nsIUrlClassifierFeature_listType {
   blocklist = 0,
   entitylist = 1,
 }
 
-enum URIType {
+declare enum nsIUrlClassifierFeature_URIType {
   blocklistURI = 0,
   entitylistURI = 1,
   pairwiseEntitylistURI = 2,
 }
 
-}
-
 declare global {
 
-interface nsIUrlClassifierFeature extends nsISupports, Enums<typeof nsIUrlClassifierFeature.listType & typeof nsIUrlClassifierFeature.URIType> {
+namespace nsIUrlClassifierFeature {
+  type listType = nsIUrlClassifierFeature_listType;
+  type URIType = nsIUrlClassifierFeature_URIType;
+}
+
+interface nsIUrlClassifierFeature extends nsISupports, Enums<typeof nsIUrlClassifierFeature_listType & typeof nsIUrlClassifierFeature_URIType> {
   readonly name: string;
   readonly exceptionHostList: string;
 }
@@ -12384,23 +12406,24 @@ interface mozIExtensionServiceWorkerInfo extends nsISupports {
 
 }  // global
 
-declare namespace mozIExtensionListenerCallOptions {
-
-enum APIObjectType {
+declare enum mozIExtensionListenerCallOptions_APIObjectType {
   NONE = 0,
   RUNTIME_PORT = 1,
 }
 
-enum CallbackType {
+declare enum mozIExtensionListenerCallOptions_CallbackType {
   CALLBACK_NONE = 0,
   CALLBACK_SEND_RESPONSE = 1,
 }
 
-}
-
 declare global {
 
-interface mozIExtensionListenerCallOptions extends nsISupports, Enums<typeof mozIExtensionListenerCallOptions.APIObjectType & typeof mozIExtensionListenerCallOptions.CallbackType> {
+namespace mozIExtensionListenerCallOptions {
+  type APIObjectType = mozIExtensionListenerCallOptions_APIObjectType;
+  type CallbackType = mozIExtensionListenerCallOptions_CallbackType;
+}
+
+interface mozIExtensionListenerCallOptions extends nsISupports, Enums<typeof mozIExtensionListenerCallOptions_APIObjectType & typeof mozIExtensionListenerCallOptions_CallbackType> {
   readonly apiObjectType: mozIExtensionListenerCallOptions.APIObjectType;
   readonly apiObjectDescriptor: any;
   readonly apiObjectPrepended: boolean;
@@ -12413,9 +12436,7 @@ interface mozIExtensionEventListener extends nsISupports {
 
 }  // global
 
-declare namespace mozIExtensionAPIRequest {
-
-enum RequestType {
+declare enum mozIExtensionAPIRequest_RequestType {
   CALL_FUNCTION = 0,
   CALL_FUNCTION_NO_RETURN = 1,
   CALL_FUNCTION_ASYNC = 2,
@@ -12424,11 +12445,13 @@ enum RequestType {
   GET_PROPERTY = 5,
 }
 
-}
-
 declare global {
 
-interface mozIExtensionAPIRequest extends nsISupports, Enums<typeof mozIExtensionAPIRequest.RequestType> {
+namespace mozIExtensionAPIRequest {
+  type RequestType = mozIExtensionAPIRequest_RequestType;
+}
+
+interface mozIExtensionAPIRequest extends nsISupports, Enums<typeof mozIExtensionAPIRequest_RequestType> {
   toString(): string;
   readonly requestType: string;
   readonly apiNamespace: string;
@@ -12444,18 +12467,18 @@ interface mozIExtensionAPIRequest extends nsISupports, Enums<typeof mozIExtensio
 
 }  // global
 
-declare namespace mozIExtensionAPIRequestResult {
-
-enum ResultType {
+declare enum mozIExtensionAPIRequestResult_ResultType {
   RETURN_VALUE = 0,
   EXTENSION_ERROR = 1,
 }
 
-}
-
 declare global {
 
-interface mozIExtensionAPIRequestResult extends nsISupports, Enums<typeof mozIExtensionAPIRequestResult.ResultType> {
+namespace mozIExtensionAPIRequestResult {
+  type ResultType = mozIExtensionAPIRequestResult_ResultType;
+}
+
+interface mozIExtensionAPIRequestResult extends nsISupports, Enums<typeof mozIExtensionAPIRequestResult_ResultType> {
   readonly type: mozIExtensionAPIRequestResult.ResultType;
   readonly value: any;
 }
@@ -12563,20 +12586,20 @@ interface nsIClipboardGetDataSnapshotCallback extends nsISupports {
 
 }  // global
 
-declare namespace nsIClipboard {
-
-enum ClipboardType {
+declare enum nsIClipboard_ClipboardType {
   kSelectionClipboard = 0,
   kGlobalClipboard = 1,
   kFindClipboard = 2,
   kSelectionCache = 3,
 }
 
-}
-
 declare global {
 
-interface nsIClipboard extends nsISupports, Enums<typeof nsIClipboard.ClipboardType> {
+namespace nsIClipboard {
+  type ClipboardType = nsIClipboard_ClipboardType;
+}
+
+interface nsIClipboard extends nsISupports, Enums<typeof nsIClipboard_ClipboardType> {
   setData(aTransferable: nsITransferable, anOwner: nsIClipboardOwner, aWhichClipboard: nsIClipboard.ClipboardType, aSettingWindowContext?: WindowContext): void;
   asyncSetData(aWhichClipboard: nsIClipboard.ClipboardType, aSettingWindowContext?: WindowContext, aCallback?: nsIAsyncClipboardRequestCallback): nsIAsyncSetClipboardData;
   getData(aTransferable: nsITransferable, aWhichClipboard: nsIClipboard.ClipboardType, aRequestingWindowContext?: WindowContext): void;
@@ -12591,18 +12614,18 @@ interface nsIClipboard extends nsISupports, Enums<typeof nsIClipboard.ClipboardT
 
 }  // global
 
-declare namespace nsIClipboardHelper {
-
-enum SensitiveData {
+declare enum nsIClipboardHelper_SensitiveData {
   NotSensitive = 0,
   Sensitive = 1,
 }
 
-}
-
 declare global {
 
-interface nsIClipboardHelper extends nsISupports, Enums<typeof nsIClipboardHelper.SensitiveData> {
+namespace nsIClipboardHelper {
+  type SensitiveData = nsIClipboardHelper_SensitiveData;
+}
+
+interface nsIClipboardHelper extends nsISupports, Enums<typeof nsIClipboardHelper_SensitiveData> {
   copyStringToClipboard(aString: string, aClipboardID: nsIClipboard.ClipboardType, aSettingWindowContext?: WindowContext, aSensitive?: nsIClipboardHelper.SensitiveData): void;
   copyString(aString: string, aSettingWindowContext?: WindowContext, aSensitive?: nsIClipboardHelper.SensitiveData): void;
 }
@@ -12680,33 +12703,35 @@ interface nsIDragSession extends nsISupports {
 
 }  // global
 
-declare namespace nsIFilePicker {
-
-enum Mode {
+declare enum nsIFilePicker_Mode {
   modeOpen = 0,
   modeSave = 1,
   modeGetFolder = 2,
   modeOpenMultiple = 3,
 }
 
-enum ResultCode {
+declare enum nsIFilePicker_ResultCode {
   returnOK = 0,
   returnCancel = 1,
   returnReplace = 2,
 }
 
-enum CaptureTarget {
+declare enum nsIFilePicker_CaptureTarget {
   captureNone = 0,
   captureDefault = 1,
   captureUser = 2,
   captureEnv = 3,
 }
 
-}
-
 declare global {
 
-interface nsIFilePicker extends nsISupports, Enums<typeof nsIFilePicker.Mode & typeof nsIFilePicker.ResultCode & typeof nsIFilePicker.CaptureTarget> {
+namespace nsIFilePicker {
+  type Mode = nsIFilePicker_Mode;
+  type ResultCode = nsIFilePicker_ResultCode;
+  type CaptureTarget = nsIFilePicker_CaptureTarget;
+}
+
+interface nsIFilePicker extends nsISupports, Enums<typeof nsIFilePicker_Mode & typeof nsIFilePicker_ResultCode & typeof nsIFilePicker_CaptureTarget> {
   readonly filterAll?: 1;
   readonly filterHTML?: 2;
   readonly filterText?: 4;
@@ -12758,9 +12783,7 @@ interface nsIFormatConverter extends nsISupports {
 
 }  // global
 
-declare namespace nsIGfxInfo {
-
-enum FontVisibilityDeviceDetermination {
+declare enum nsIGfxInfo_FontVisibilityDeviceDetermination {
   Unassigned = 0,
   Unknown_Platform = 1,
   Windows_Platform = 2,
@@ -12785,11 +12808,13 @@ enum FontVisibilityDeviceDetermination {
   MacOS_sub_13 = 21,
 }
 
-}
-
 declare global {
 
-interface nsIGfxInfo extends nsISupports, Enums<typeof nsIGfxInfo.FontVisibilityDeviceDetermination> {
+namespace nsIGfxInfo {
+  type FontVisibilityDeviceDetermination = nsIGfxInfo_FontVisibilityDeviceDetermination;
+}
+
+interface nsIGfxInfo extends nsISupports, Enums<typeof nsIGfxInfo_FontVisibilityDeviceDetermination> {
   readonly D2DEnabled: boolean;
   readonly DWriteEnabled: boolean;
   readonly EmbeddedInFirefoxReality: boolean;
@@ -12858,9 +12883,7 @@ interface nsIGfxInfoDebug extends nsISupports {
 
 }  // global
 
-declare namespace nsIMockDragServiceController {
-
-enum EventType {
+declare enum nsIMockDragServiceController_EventType {
   eDragEnter = 0,
   eDragOver = 1,
   eDragExit = 2,
@@ -12870,11 +12893,13 @@ enum EventType {
   eMouseUp = 6,
 }
 
-}
-
 declare global {
 
-interface nsIMockDragServiceController extends nsISupports, Enums<typeof nsIMockDragServiceController.EventType> {
+namespace nsIMockDragServiceController {
+  type EventType = nsIMockDragServiceController_EventType;
+}
+
+interface nsIMockDragServiceController extends nsISupports, Enums<typeof nsIMockDragServiceController_EventType> {
   readonly mockDragService: nsIDragService;
   sendEvent(aBC: BrowsingContext, aEventType: nsIMockDragServiceController.EventType, aScreenX: i32, aScreenY: i32, aKeyModifiers?: u32): void;
   cancelDrag(aKeyModifiers?: u32): void;
@@ -12911,19 +12936,19 @@ interface nsIPrintDialogService extends nsISupports {
 
 }  // global
 
-declare namespace nsIPrintSettings {
-
-enum OutputDestinationType {
+declare enum nsIPrintSettings_OutputDestinationType {
   kOutputDestinationPrinter = 0,
   kOutputDestinationFile = 1,
   kOutputDestinationStream = 2,
 }
 
-}
-
 declare global {
 
-interface nsIPrintSettings extends nsISupports, Enums<typeof nsIPrintSettings.OutputDestinationType> {
+namespace nsIPrintSettings {
+  type OutputDestinationType = nsIPrintSettings_OutputDestinationType;
+}
+
+interface nsIPrintSettings extends nsISupports, Enums<typeof nsIPrintSettings_OutputDestinationType> {
   readonly kInitSaveHeaderLeft?: 2;
   readonly kInitSaveHeaderCenter?: 4;
   readonly kInitSaveHeaderRight?: 8;
@@ -13318,18 +13343,18 @@ interface nsIConsoleMessage extends nsISupports {
 
 }  // global
 
-declare namespace nsIConsoleService {
-
-enum OutputMode {
+declare enum nsIConsoleService_OutputMode {
   SuppressLog = 0,
   OutputToLog = 1,
 }
 
-}
-
 declare global {
 
-interface nsIConsoleService extends nsISupports, Enums<typeof nsIConsoleService.OutputMode> {
+namespace nsIConsoleService {
+  type OutputMode = nsIConsoleService_OutputMode;
+}
+
+interface nsIConsoleService extends nsISupports, Enums<typeof nsIConsoleService_OutputMode> {
   logMessage(message: nsIConsoleMessage): void;
   callFunctionAndLogException(targetGlobal: any, func: any): any;
   logMessageWithMode(message: nsIConsoleMessage, mode: nsIConsoleService.OutputMode): void;
@@ -14471,9 +14496,7 @@ interface nsIXULAppInfo extends nsIPlatformInfo {
 
 }  // global
 
-declare namespace nsIXULRuntime {
-
-enum ExperimentStatus {
+declare enum nsIXULRuntime_ExperimentStatus {
   eExperimentStatusUnenrolled = 0,
   eExperimentStatusControl = 1,
   eExperimentStatusTreatment = 2,
@@ -14482,7 +14505,7 @@ enum ExperimentStatus {
   eExperimentStatusCount = 5,
 }
 
-enum ContentWin32kLockdownState {
+declare enum nsIXULRuntime_ContentWin32kLockdownState {
   LockdownEnabled = 1,
   MissingWebRender = 2,
   OperatingSystemNotSupported = 3,
@@ -14502,7 +14525,7 @@ enum ContentWin32kLockdownState {
   IncompatibleMitigationPolicy = 17,
 }
 
-enum FissionDecisionStatus {
+declare enum nsIXULRuntime_FissionDecisionStatus {
   eFissionStatusUnknown = 0,
   eFissionDisabledByE10sEnv = 3,
   eFissionEnabledByEnv = 4,
@@ -14514,11 +14537,15 @@ enum FissionDecisionStatus {
   eFissionDisabledByE10sOther = 11,
 }
 
-}
-
 declare global {
 
-interface nsIXULRuntime extends nsISupports, Enums<typeof nsIXULRuntime.ExperimentStatus & typeof nsIXULRuntime.ContentWin32kLockdownState & typeof nsIXULRuntime.FissionDecisionStatus> {
+namespace nsIXULRuntime {
+  type ExperimentStatus = nsIXULRuntime_ExperimentStatus;
+  type ContentWin32kLockdownState = nsIXULRuntime_ContentWin32kLockdownState;
+  type FissionDecisionStatus = nsIXULRuntime_FissionDecisionStatus;
+}
+
+interface nsIXULRuntime extends nsISupports, Enums<typeof nsIXULRuntime_ExperimentStatus & typeof nsIXULRuntime_ContentWin32kLockdownState & typeof nsIXULRuntime_FissionDecisionStatus> {
   readonly PROCESS_TYPE_DEFAULT?: 0;
   readonly PROCESS_TYPE_CONTENT?: 2;
   readonly PROCESS_TYPE_IPDLUNITTEST?: 3;
@@ -14662,18 +14689,18 @@ interface nsISupportsPriority extends nsISupports {
 
 }  // global
 
-declare namespace nsIThread {
-
-enum QoSPriority {
+declare enum nsIThread_QoSPriority {
   QOS_PRIORITY_NORMAL = 0,
   QOS_PRIORITY_LOW = 1,
 }
 
-}
-
 declare global {
 
-interface nsIThread extends nsISerialEventTarget, Enums<typeof nsIThread.QoSPriority> {
+namespace nsIThread {
+  type QoSPriority = nsIThread_QoSPriority;
+}
+
+interface nsIThread extends nsISerialEventTarget, Enums<typeof nsIThread_QoSPriority> {
   shutdown(): void;
   hasPendingEvents(): boolean;
   hasPendingHighPriorityEvents(): boolean;
@@ -14914,9 +14941,7 @@ interface nsIXPCTestBug809674 extends nsISupports {
 
 }  // global
 
-declare namespace nsIXPCTestCEnums {
-
-enum testFlagsExplicit {
+declare enum nsIXPCTestCEnums_testFlagsExplicit {
   shouldBe1Explicit = 1,
   shouldBe2Explicit = 2,
   shouldBe4Explicit = 4,
@@ -14924,7 +14949,7 @@ enum testFlagsExplicit {
   shouldBe12Explicit = 12,
 }
 
-enum testFlagsImplicit {
+declare enum nsIXPCTestCEnums_testFlagsImplicit {
   shouldBe0Implicit = 0,
   shouldBe1Implicit = 1,
   shouldBe2Implicit = 2,
@@ -14935,11 +14960,14 @@ enum testFlagsImplicit {
   shouldBe3AgainImplicit = 3,
 }
 
-}
-
 declare global {
 
-interface nsIXPCTestCEnums extends nsISupports, Enums<typeof nsIXPCTestCEnums.testFlagsExplicit & typeof nsIXPCTestCEnums.testFlagsImplicit> {
+namespace nsIXPCTestCEnums {
+  type testFlagsExplicit = nsIXPCTestCEnums_testFlagsExplicit;
+  type testFlagsImplicit = nsIXPCTestCEnums_testFlagsImplicit;
+}
+
+interface nsIXPCTestCEnums extends nsISupports, Enums<typeof nsIXPCTestCEnums_testFlagsExplicit & typeof nsIXPCTestCEnums_testFlagsImplicit> {
   readonly testConst?: 1;
 
   testCEnumInput(abc: nsIXPCTestCEnums.testFlagsExplicit): void;
@@ -15159,7 +15187,7 @@ interface nsIXPCComponents_Interfaces {
   nsIWindowMediatorListener: nsJSIID<nsIWindowMediatorListener>;
   nsIWindowlessBrowser: nsJSIID<nsIWindowlessBrowser>;
   nsIXULBrowserWindow: nsJSIID<nsIXULBrowserWindow>;
-  nsIAppStartup: nsJSIID<nsIAppStartup, typeof nsIAppStartup.IDLShutdownPhase>;
+  nsIAppStartup: nsJSIID<nsIAppStartup, typeof nsIAppStartup_IDLShutdownPhase>;
   nsIAutoCompleteController: nsJSIID<nsIAutoCompleteController>;
   nsIAutoCompleteInput: nsJSIID<nsIAutoCompleteInput>;
   nsIAutoCompletePopup: nsJSIID<nsIAutoCompletePopup>;
@@ -15200,11 +15228,11 @@ interface nsIXPCComponents_Interfaces {
   nsIEventListenerService: nsJSIID<nsIEventListenerService>;
   mozIGeckoMediaPluginChromeService: nsJSIID<mozIGeckoMediaPluginChromeService>;
   mozIGeckoMediaPluginService: nsJSIID<mozIGeckoMediaPluginService>;
-  nsIDocShell: nsJSIID<nsIDocShell, typeof nsIDocShell.DocShellEnumeratorDirection & typeof nsIDocShell.AppType & typeof nsIDocShell.BusyFlags & typeof nsIDocShell.LoadCommand>;
+  nsIDocShell: nsJSIID<nsIDocShell, typeof nsIDocShell_DocShellEnumeratorDirection & typeof nsIDocShell_AppType & typeof nsIDocShell_BusyFlags & typeof nsIDocShell_LoadCommand>;
   nsIDocShellTreeItem: nsJSIID<nsIDocShellTreeItem>;
   nsIDocShellTreeOwner: nsJSIID<nsIDocShellTreeOwner>;
   nsIDocumentLoaderFactory: nsJSIID<nsIDocumentLoaderFactory>;
-  nsIDocumentViewer: nsJSIID<nsIDocumentViewer, typeof nsIDocumentViewer.PermitUnloadAction & typeof nsIDocumentViewer.PermitUnloadResult>;
+  nsIDocumentViewer: nsJSIID<nsIDocumentViewer, typeof nsIDocumentViewer_PermitUnloadAction & typeof nsIDocumentViewer_PermitUnloadResult>;
   nsIDocumentViewerEdit: nsJSIID<nsIDocumentViewerEdit>;
   nsILoadContext: nsJSIID<nsILoadContext>;
   nsILoadURIDelegate: nsJSIID<nsILoadURIDelegate>;
@@ -15220,7 +15248,7 @@ interface nsIXPCComponents_Interfaces {
   nsIWebPageDescriptor: nsJSIID<nsIWebPageDescriptor>;
   mozIDOMWindow: nsJSIID<mozIDOMWindow>;
   mozIDOMWindowProxy: nsJSIID<mozIDOMWindowProxy>;
-  nsIContentPolicy: nsJSIID<nsIContentPolicy, typeof nsIContentPolicy.nsContentPolicyType>;
+  nsIContentPolicy: nsJSIID<nsIContentPolicy, typeof nsIContentPolicy_nsContentPolicyType>;
   nsIDroppedLinkItem: nsJSIID<nsIDroppedLinkItem>;
   nsIDroppedLinkHandler: nsJSIID<nsIDroppedLinkHandler>;
   nsIEventSourceEventListener: nsJSIID<nsIEventSourceEventListener>;
@@ -15228,8 +15256,8 @@ interface nsIXPCComponents_Interfaces {
   nsIImageLoadingContent: nsJSIID<nsIImageLoadingContent>;
   nsIMessageSender: nsJSIID<nsIMessageSender>;
   nsIObjectLoadingContent: nsJSIID<nsIObjectLoadingContent>;
-  nsIScriptableContentIterator: nsJSIID<nsIScriptableContentIterator, typeof nsIScriptableContentIterator.IteratorType>;
-  nsISelectionController: nsJSIID<nsISelectionController, typeof nsISelectionController.ControllerScrollFlags>;
+  nsIScriptableContentIterator: nsJSIID<nsIScriptableContentIterator, typeof nsIScriptableContentIterator_IteratorType>;
+  nsISelectionController: nsJSIID<nsISelectionController, typeof nsISelectionController_ControllerScrollFlags>;
   nsISelectionDisplay: nsJSIID<nsISelectionDisplay>;
   nsISelectionListener: nsJSIID<nsISelectionListener>;
   nsISlowScriptDebugCallback: nsJSIID<nsISlowScriptDebugCallback>;
@@ -15265,7 +15293,7 @@ interface nsIXPCComponents_Interfaces {
   nsIGeckoViewServiceWorker: nsJSIID<nsIGeckoViewServiceWorker>;
   nsIPermissionDelegateHandler: nsJSIID<nsIPermissionDelegateHandler>;
   nsIQueryContentEventResult: nsJSIID<nsIQueryContentEventResult>;
-  nsIRemoteTab: nsJSIID<nsIRemoteTab, typeof nsIRemoteTab.NavigationType>;
+  nsIRemoteTab: nsJSIID<nsIRemoteTab, typeof nsIRemoteTab_NavigationType>;
   nsIServiceWorkerUnregisterCallback: nsJSIID<nsIServiceWorkerUnregisterCallback>;
   nsIServiceWorkerInfo: nsJSIID<nsIServiceWorkerInfo>;
   nsIServiceWorkerRegistrationInfoListener: nsJSIID<nsIServiceWorkerRegistrationInfoListener>;
@@ -15331,7 +15359,7 @@ interface nsIXPCComponents_Interfaces {
   nsIPushClearResultCallback: nsJSIID<nsIPushClearResultCallback>;
   nsIPushService: nsJSIID<nsIPushService>;
   nsIPushQuotaManager: nsJSIID<nsIPushQuotaManager>;
-  nsIQuotaArtificialFailure: nsJSIID<nsIQuotaArtificialFailure, typeof nsIQuotaArtificialFailure.Category>;
+  nsIQuotaArtificialFailure: nsJSIID<nsIQuotaArtificialFailure, typeof nsIQuotaArtificialFailure_Category>;
   nsIQuotaUsageCallback: nsJSIID<nsIQuotaUsageCallback>;
   nsIQuotaCallback: nsJSIID<nsIQuotaCallback>;
   nsIQuotaManagerService: nsJSIID<nsIQuotaManagerService>;
@@ -15345,9 +15373,9 @@ interface nsIXPCComponents_Interfaces {
   nsIQuotaEstimateResult: nsJSIID<nsIQuotaEstimateResult>;
   nsIQuotaUtilsService: nsJSIID<nsIQuotaUtilsService>;
   nsIContentSecurityManager: nsJSIID<nsIContentSecurityManager>;
-  nsIContentSecurityPolicy: nsJSIID<nsIContentSecurityPolicy, typeof nsIContentSecurityPolicy.CSPDirective & typeof nsIContentSecurityPolicy.RequireTrustedTypesForDirectiveState>;
+  nsIContentSecurityPolicy: nsJSIID<nsIContentSecurityPolicy, typeof nsIContentSecurityPolicy_CSPDirective & typeof nsIContentSecurityPolicy_RequireTrustedTypesForDirectiveState>;
   nsICSPEventListener: nsJSIID<nsICSPEventListener>;
-  nsIReferrerInfo: nsJSIID<nsIReferrerInfo, typeof nsIReferrerInfo.ReferrerPolicyIDL>;
+  nsIReferrerInfo: nsJSIID<nsIReferrerInfo, typeof nsIReferrerInfo_ReferrerPolicyIDL>;
   nsIHttpsOnlyModePermission: nsJSIID<nsIHttpsOnlyModePermission>;
   nsIDocumentEncoderNodeFixup: nsJSIID<nsIDocumentEncoderNodeFixup>;
   nsIDocumentEncoder: nsJSIID<nsIDocumentEncoder>;
@@ -15433,7 +15461,7 @@ interface nsIXPCComponents_Interfaces {
   nsISFVDictionary: nsJSIID<nsISFVDictionary>;
   nsISFVService: nsJSIID<nsISFVService>;
   imgICache: nsJSIID<imgICache>;
-  imgIContainer: nsJSIID<imgIContainer, typeof imgIContainer.DecodeResult>;
+  imgIContainer: nsJSIID<imgIContainer, typeof imgIContainer_DecodeResult>;
   imgIContainerDebug: nsJSIID<imgIContainerDebug>;
   imgIEncoder: nsJSIID<imgIEncoder>;
   imgILoader: nsJSIID<imgILoader>;
@@ -15453,9 +15481,9 @@ interface nsIXPCComponents_Interfaces {
   nsIZipReaderCache: nsJSIID<nsIZipReaderCache>;
   IJSDebugger: nsJSIID<IJSDebugger>;
   nsIJSInspector: nsJSIID<nsIJSInspector>;
-  nsIKeyValueService: nsJSIID<nsIKeyValueService, typeof nsIKeyValueService.RecoveryStrategy>;
+  nsIKeyValueService: nsJSIID<nsIKeyValueService, typeof nsIKeyValueService_RecoveryStrategy>;
   nsIKeyValueImportSourceSpec: nsJSIID<nsIKeyValueImportSourceSpec>;
-  nsIKeyValueImporter: nsJSIID<nsIKeyValueImporter, typeof nsIKeyValueImporter.ConflictPolicy & typeof nsIKeyValueImporter.CleanupPolicy>;
+  nsIKeyValueImporter: nsJSIID<nsIKeyValueImporter, typeof nsIKeyValueImporter_ConflictPolicy & typeof nsIKeyValueImporter_CleanupPolicy>;
   nsIKeyValueDatabaseImportOptions: nsJSIID<nsIKeyValueDatabaseImportOptions>;
   nsIKeyValueDatabase: nsJSIID<nsIKeyValueDatabase>;
   nsIKeyValuePair: nsJSIID<nsIKeyValuePair>;
@@ -15514,7 +15542,7 @@ interface nsIXPCComponents_Interfaces {
   nsIBufferedOutputStream: nsJSIID<nsIBufferedOutputStream>;
   nsIByteRangeRequest: nsJSIID<nsIByteRangeRequest>;
   nsIInputStreamReceiver: nsJSIID<nsIInputStreamReceiver>;
-  nsICacheInfoChannel: nsJSIID<nsICacheInfoChannel, typeof nsICacheInfoChannel.PreferredAlternativeDataDeliveryType>;
+  nsICacheInfoChannel: nsJSIID<nsICacheInfoChannel, typeof nsICacheInfoChannel_PreferredAlternativeDataDeliveryType>;
   nsICachingChannel: nsJSIID<nsICachingChannel>;
   nsICancelable: nsJSIID<nsICancelable>;
   nsICaptivePortalServiceCallback: nsJSIID<nsICaptivePortalServiceCallback>;
@@ -15523,8 +15551,8 @@ interface nsIXPCComponents_Interfaces {
   nsIIdentChannel: nsJSIID<nsIIdentChannel>;
   nsIChannelEventSink: nsJSIID<nsIChannelEventSink>;
   nsIChildChannel: nsJSIID<nsIChildChannel>;
-  nsIClassOfService: nsJSIID<nsIClassOfService, typeof nsIClassOfService.FetchPriority>;
-  nsIClassifiedChannel: nsJSIID<nsIClassifiedChannel, typeof nsIClassifiedChannel.ClassificationFlags>;
+  nsIClassOfService: nsJSIID<nsIClassOfService, typeof nsIClassOfService_FetchPriority>;
+  nsIClassifiedChannel: nsJSIID<nsIClassifiedChannel, typeof nsIClassifiedChannel_ClassificationFlags>;
   nsIContentSniffer: nsJSIID<nsIContentSniffer>;
   nsIDHCPClient: nsJSIID<nsIDHCPClient>;
   nsINetDashboardCallback: nsJSIID<nsINetDashboardCallback>;
@@ -15554,7 +15582,7 @@ interface nsIXPCComponents_Interfaces {
   nsILoadContextInfoFactory: nsJSIID<nsILoadContextInfoFactory>;
   nsILoadGroup: nsJSIID<nsILoadGroup>;
   nsILoadGroupChild: nsJSIID<nsILoadGroupChild>;
-  nsILoadInfo: nsJSIID<nsILoadInfo, typeof nsILoadInfo.StoragePermissionState & typeof nsILoadInfo.CrossOriginOpenerPolicy & typeof nsILoadInfo.CrossOriginEmbedderPolicy & typeof nsILoadInfo.SchemelessInputType & typeof nsILoadInfo.HTTPSUpgradeTelemetryType>;
+  nsILoadInfo: nsJSIID<nsILoadInfo, typeof nsILoadInfo_StoragePermissionState & typeof nsILoadInfo_CrossOriginOpenerPolicy & typeof nsILoadInfo_CrossOriginEmbedderPolicy & typeof nsILoadInfo_SchemelessInputType & typeof nsILoadInfo_HTTPSUpgradeTelemetryType>;
   nsIMIMEInputStream: nsJSIID<nsIMIMEInputStream>;
   nsIMockNetworkLayerController: nsJSIID<nsIMockNetworkLayerController>;
   nsIMultiPartChannel: nsJSIID<nsIMultiPartChannel>;
@@ -15565,7 +15593,7 @@ interface nsIXPCComponents_Interfaces {
   nsIJSURIMutator: nsJSIID<nsIJSURIMutator>;
   nsINetAddr: nsJSIID<nsINetAddr>;
   nsINetUtil: nsJSIID<nsINetUtil>;
-  nsINetworkConnectivityService: nsJSIID<nsINetworkConnectivityService, typeof nsINetworkConnectivityService.ConnectivityState>;
+  nsINetworkConnectivityService: nsJSIID<nsINetworkConnectivityService, typeof nsINetworkConnectivityService_ConnectivityState>;
   nsIListNetworkAddressesListener: nsJSIID<nsIListNetworkAddressesListener>;
   nsIGetHostnameListener: nsJSIID<nsIGetHostnameListener>;
   nsINetworkInfoService: nsJSIID<nsINetworkInfoService>;
@@ -15598,7 +15626,7 @@ interface nsIXPCComponents_Interfaces {
   nsIRedirectChannelRegistrar: nsJSIID<nsIRedirectChannelRegistrar>;
   nsIRedirectHistoryEntry: nsJSIID<nsIRedirectHistoryEntry>;
   nsIRedirectResultListener: nsJSIID<nsIRedirectResultListener>;
-  nsIRequest: nsJSIID<nsIRequest, typeof nsIRequest.TRRMode>;
+  nsIRequest: nsJSIID<nsIRequest, typeof nsIRequest_TRRMode>;
   nsIRequestObserver: nsJSIID<nsIRequestObserver>;
   nsIRequestObserverProxy: nsJSIID<nsIRequestObserverProxy>;
   nsIResumableChannel: nsJSIID<nsIResumableChannel>;
@@ -15632,7 +15660,7 @@ interface nsIXPCComponents_Interfaces {
   nsIInputChannelThrottleQueue: nsJSIID<nsIInputChannelThrottleQueue>;
   nsIThrottledInputChannel: nsJSIID<nsIThrottledInputChannel>;
   nsIServerTiming: nsJSIID<nsIServerTiming>;
-  nsITimedChannel: nsJSIID<nsITimedChannel, typeof nsITimedChannel.BodyInfoAccess>;
+  nsITimedChannel: nsJSIID<nsITimedChannel, typeof nsITimedChannel_BodyInfoAccess>;
   nsITraceableChannel: nsJSIID<nsITraceableChannel>;
   nsITransport: nsJSIID<nsITransport>;
   nsITransportEventSink: nsJSIID<nsITransportEventSink>;
@@ -15661,10 +15689,10 @@ interface nsIXPCComponents_Interfaces {
   nsICacheStorageConsumptionObserver: nsJSIID<nsICacheStorageConsumptionObserver>;
   nsICacheStorageVisitor: nsJSIID<nsICacheStorageVisitor>;
   nsICacheTesting: nsJSIID<nsICacheTesting>;
-  nsICookie: nsJSIID<nsICookie, typeof nsICookie.schemeType>;
+  nsICookie: nsJSIID<nsICookie, typeof nsICookie_schemeType>;
   nsICookieJarSettings: nsJSIID<nsICookieJarSettings>;
   nsICookieManager: nsJSIID<nsICookieManager>;
-  nsICookieNotification: nsJSIID<nsICookieNotification, typeof nsICookieNotification.Action>;
+  nsICookieNotification: nsJSIID<nsICookieNotification, typeof nsICookieNotification_Action>;
   nsICookiePermission: nsJSIID<nsICookiePermission>;
   nsICookieTransactionCallback: nsJSIID<nsICookieTransactionCallback>;
   nsICookieService: nsJSIID<nsICookieService>;
@@ -15686,11 +15714,11 @@ interface nsIXPCComponents_Interfaces {
   nsIDNSListener: nsJSIID<nsIDNSListener>;
   nsIDNSRecord: nsJSIID<nsIDNSRecord>;
   nsIDNSAddrRecord: nsJSIID<nsIDNSAddrRecord>;
-  nsIDNSService: nsJSIID<nsIDNSService, typeof nsIDNSService.ResolveType & typeof nsIDNSService.ResolverMode & typeof nsIDNSService.DNSFlags & typeof nsIDNSService.ConfirmationState>;
+  nsIDNSService: nsJSIID<nsIDNSService, typeof nsIDNSService_ResolveType & typeof nsIDNSService_ResolverMode & typeof nsIDNSService_DNSFlags & typeof nsIDNSService_ConfirmationState>;
   nsIEffectiveTLDService: nsJSIID<nsIEffectiveTLDService>;
   nsIIDNService: nsJSIID<nsIIDNService>;
   nsINativeDNSResolverOverride: nsJSIID<nsINativeDNSResolverOverride>;
-  nsITRRSkipReason: nsJSIID<nsITRRSkipReason, typeof nsITRRSkipReason.value>;
+  nsITRRSkipReason: nsJSIID<nsITRRSkipReason, typeof nsITRRSkipReason_value>;
   nsPIDNSService: nsJSIID<nsPIDNSService>;
   nsIFileChannel: nsJSIID<nsIFileChannel>;
   nsIFileProtocolHandler: nsJSIID<nsIFileProtocolHandler>;
@@ -15739,8 +15767,8 @@ interface nsIXPCComponents_Interfaces {
   nsIWebSocketEventService: nsJSIID<nsIWebSocketEventService>;
   nsIWebSocketImpl: nsJSIID<nsIWebSocketImpl>;
   nsIWebSocketListener: nsJSIID<nsIWebSocketListener>;
-  nsIWebTransport: nsJSIID<nsIWebTransport, typeof nsIWebTransport.WebTransportError & typeof nsIWebTransport.HTTPVersion>;
-  WebTransportSessionEventListener: nsJSIID<WebTransportSessionEventListener, typeof WebTransportSessionEventListener.DatagramOutcome>;
+  nsIWebTransport: nsJSIID<nsIWebTransport, typeof nsIWebTransport_WebTransportError & typeof nsIWebTransport_HTTPVersion>;
+  WebTransportSessionEventListener: nsJSIID<WebTransportSessionEventListener, typeof WebTransportSessionEventListener_DatagramOutcome>;
   nsIWebTransportStreamCallback: nsJSIID<nsIWebTransportStreamCallback>;
   nsIWebTransportHash: nsJSIID<nsIWebTransportHash>;
   nsIWebTransportSendStreamStats: nsJSIID<nsIWebTransportSendStreamStats>;
@@ -15773,8 +15801,8 @@ interface nsIXPCComponents_Interfaces {
   nsIClientAuthRememberService: nsJSIID<nsIClientAuthRememberService>;
   nsIContentSignatureVerifier: nsJSIID<nsIContentSignatureVerifier>;
   nsICryptoHash: nsJSIID<nsICryptoHash>;
-  nsIDataStorageManager: nsJSIID<nsIDataStorageManager, typeof nsIDataStorageManager.DataStorage>;
-  nsIDataStorage: nsJSIID<nsIDataStorage, typeof nsIDataStorage.DataType>;
+  nsIDataStorageManager: nsJSIID<nsIDataStorageManager, typeof nsIDataStorageManager_DataStorage>;
+  nsIDataStorage: nsJSIID<nsIDataStorage, typeof nsIDataStorage_DataType>;
   nsIDataStorageItem: nsJSIID<nsIDataStorageItem>;
   nsINSSComponent: nsJSIID<nsINSSComponent>;
   nsINSSErrorsService: nsJSIID<nsINSSErrorsService>;
@@ -15789,16 +15817,16 @@ interface nsIXPCComponents_Interfaces {
   nsIPublicKeyPinningService: nsJSIID<nsIPublicKeyPinningService>;
   nsISecretDecoderRing: nsJSIID<nsISecretDecoderRing>;
   nsISecurityUITelemetry: nsJSIID<nsISecurityUITelemetry>;
-  nsISiteSecurityService: nsJSIID<nsISiteSecurityService, typeof nsISiteSecurityService.ResetStateBy>;
+  nsISiteSecurityService: nsJSIID<nsISiteSecurityService, typeof nsISiteSecurityService_ResetStateBy>;
   nsITLSSocketControl: nsJSIID<nsITLSSocketControl>;
   nsITokenPasswordDialogs: nsJSIID<nsITokenPasswordDialogs>;
-  nsITransportSecurityInfo: nsJSIID<nsITransportSecurityInfo, typeof nsITransportSecurityInfo.OverridableErrorCategory>;
+  nsITransportSecurityInfo: nsJSIID<nsITransportSecurityInfo, typeof nsITransportSecurityInfo_OverridableErrorCategory>;
   nsIX509Cert: nsJSIID<nsIX509Cert>;
-  nsIAppSignatureInfo: nsJSIID<nsIAppSignatureInfo, typeof nsIAppSignatureInfo.SignatureAlgorithm>;
+  nsIAppSignatureInfo: nsJSIID<nsIAppSignatureInfo, typeof nsIAppSignatureInfo_SignatureAlgorithm>;
   nsIOpenSignedAppFileCallback: nsJSIID<nsIOpenSignedAppFileCallback>;
   nsIAsyncBoolCallback: nsJSIID<nsIAsyncBoolCallback>;
   nsICertVerificationCallback: nsJSIID<nsICertVerificationCallback>;
-  nsIX509CertDB: nsJSIID<nsIX509CertDB, typeof nsIX509CertDB.VerifyUsage>;
+  nsIX509CertDB: nsJSIID<nsIX509CertDB, typeof nsIX509CertDB_VerifyUsage>;
   nsIX509CertValidity: nsJSIID<nsIX509CertValidity>;
   mozIVisitInfo: nsJSIID<mozIVisitInfo>;
   mozIPlaceInfo: nsJSIID<mozIPlaceInfo>;
@@ -15890,7 +15918,7 @@ interface nsIXPCComponents_Interfaces {
   nsIBTPRemoteExceptionList: nsJSIID<nsIBTPRemoteExceptionList>;
   nsIBounceTrackingMapEntry: nsJSIID<nsIBounceTrackingMapEntry>;
   nsIBounceTrackingPurgeEntry: nsJSIID<nsIBounceTrackingPurgeEntry>;
-  nsIBounceTrackingProtection: nsJSIID<nsIBounceTrackingProtection, typeof nsIBounceTrackingProtection.Modes>;
+  nsIBounceTrackingProtection: nsJSIID<nsIBounceTrackingProtection, typeof nsIBounceTrackingProtection_Modes>;
   nsIContentBlockingAllowList: nsJSIID<nsIContentBlockingAllowList>;
   nsIPartitioningExceptionListObserver: nsJSIID<nsIPartitioningExceptionListObserver>;
   nsIPartitioningExceptionListService: nsJSIID<nsIPartitioningExceptionListService>;
@@ -15911,18 +15939,18 @@ interface nsIXPCComponents_Interfaces {
   nsIClearBySiteEntry: nsJSIID<nsIClearBySiteEntry>;
   nsIClearDataService: nsJSIID<nsIClearDataService>;
   nsIClearDataCallback: nsJSIID<nsIClearDataCallback>;
-  nsIContentAnalysisAcknowledgement: nsJSIID<nsIContentAnalysisAcknowledgement, typeof nsIContentAnalysisAcknowledgement.Result & typeof nsIContentAnalysisAcknowledgement.FinalAction>;
+  nsIContentAnalysisAcknowledgement: nsJSIID<nsIContentAnalysisAcknowledgement, typeof nsIContentAnalysisAcknowledgement_Result & typeof nsIContentAnalysisAcknowledgement_FinalAction>;
   nsIContentAnalysisResult: nsJSIID<nsIContentAnalysisResult>;
-  nsIContentAnalysisResponse: nsJSIID<nsIContentAnalysisResponse, typeof nsIContentAnalysisResponse.Action & typeof nsIContentAnalysisResponse.CancelError>;
+  nsIContentAnalysisResponse: nsJSIID<nsIContentAnalysisResponse, typeof nsIContentAnalysisResponse_Action & typeof nsIContentAnalysisResponse_CancelError>;
   nsIClientDownloadResource: nsJSIID<nsIClientDownloadResource>;
-  nsIContentAnalysisRequest: nsJSIID<nsIContentAnalysisRequest, typeof nsIContentAnalysisRequest.AnalysisType & typeof nsIContentAnalysisRequest.Reason & typeof nsIContentAnalysisRequest.OperationType>;
+  nsIContentAnalysisRequest: nsJSIID<nsIContentAnalysisRequest, typeof nsIContentAnalysisRequest_AnalysisType & typeof nsIContentAnalysisRequest_Reason & typeof nsIContentAnalysisRequest_OperationType>;
   nsIContentAnalysisCallback: nsJSIID<nsIContentAnalysisCallback>;
   nsIContentAnalysisDiagnosticInfo: nsJSIID<nsIContentAnalysisDiagnosticInfo>;
   nsIContentAnalysis: nsJSIID<nsIContentAnalysis>;
-  nsIClickRule: nsJSIID<nsIClickRule, typeof nsIClickRule.RunContext>;
+  nsIClickRule: nsJSIID<nsIClickRule, typeof nsIClickRule_RunContext>;
   nsICookieBannerListService: nsJSIID<nsICookieBannerListService>;
   nsICookieBannerRule: nsJSIID<nsICookieBannerRule>;
-  nsICookieBannerService: nsJSIID<nsICookieBannerService, typeof nsICookieBannerService.Modes>;
+  nsICookieBannerService: nsJSIID<nsICookieBannerService, typeof nsICookieBannerService_Modes>;
   nsICookieBannerTelemetryService: nsJSIID<nsICookieBannerTelemetryService>;
   nsICookieRule: nsJSIID<nsICookieRule>;
   nsICrashService: nsJSIID<nsICrashService>;
@@ -15948,7 +15976,7 @@ interface nsIXPCComponents_Interfaces {
   nsIProfileUnlocker: nsJSIID<nsIProfileUnlocker>;
   nsIProfileLock: nsJSIID<nsIProfileLock>;
   nsIToolkitProfile: nsJSIID<nsIToolkitProfile>;
-  nsIToolkitProfileService: nsJSIID<nsIToolkitProfileService, typeof nsIToolkitProfileService.downgradeUIFlags & typeof nsIToolkitProfileService.downgradeUIChoice & typeof nsIToolkitProfileService.profileManagerResult>;
+  nsIToolkitProfileService: nsJSIID<nsIToolkitProfileService, typeof nsIToolkitProfileService_downgradeUIFlags & typeof nsIToolkitProfileService_downgradeUIChoice & typeof nsIToolkitProfileService_profileManagerResult>;
   nsIRemoteService: nsJSIID<nsIRemoteService>;
   nsITransaction: nsJSIID<nsITransaction>;
   nsITransactionManager: nsJSIID<nsITransactionManager>;
@@ -15984,7 +16012,7 @@ interface nsIXPCComponents_Interfaces {
   nsIURIClassifier: nsJSIID<nsIURIClassifier>;
   nsIUrlClassifierExceptionListObserver: nsJSIID<nsIUrlClassifierExceptionListObserver>;
   nsIUrlClassifierExceptionListService: nsJSIID<nsIUrlClassifierExceptionListService>;
-  nsIUrlClassifierFeature: nsJSIID<nsIUrlClassifierFeature, typeof nsIUrlClassifierFeature.listType & typeof nsIUrlClassifierFeature.URIType>;
+  nsIUrlClassifierFeature: nsJSIID<nsIUrlClassifierFeature, typeof nsIUrlClassifierFeature_listType & typeof nsIUrlClassifierFeature_URIType>;
   nsIUrlClassifierFeatureResult: nsJSIID<nsIUrlClassifierFeatureResult>;
   nsIUrlClassifierFeatureCallback: nsJSIID<nsIUrlClassifierFeatureCallback>;
   IUrlClassifierUITelemetry: nsJSIID<IUrlClassifierUITelemetry>;
@@ -16018,10 +16046,10 @@ interface nsIXPCComponents_Interfaces {
   nsIWebBrowserPersistDocumentReceiver: nsJSIID<nsIWebBrowserPersistDocumentReceiver>;
   extIWebNavigation: nsJSIID<extIWebNavigation>;
   mozIExtensionServiceWorkerInfo: nsJSIID<mozIExtensionServiceWorkerInfo>;
-  mozIExtensionListenerCallOptions: nsJSIID<mozIExtensionListenerCallOptions, typeof mozIExtensionListenerCallOptions.APIObjectType & typeof mozIExtensionListenerCallOptions.CallbackType>;
+  mozIExtensionListenerCallOptions: nsJSIID<mozIExtensionListenerCallOptions, typeof mozIExtensionListenerCallOptions_APIObjectType & typeof mozIExtensionListenerCallOptions_CallbackType>;
   mozIExtensionEventListener: nsJSIID<mozIExtensionEventListener>;
-  mozIExtensionAPIRequest: nsJSIID<mozIExtensionAPIRequest, typeof mozIExtensionAPIRequest.RequestType>;
-  mozIExtensionAPIRequestResult: nsJSIID<mozIExtensionAPIRequestResult, typeof mozIExtensionAPIRequestResult.ResultType>;
+  mozIExtensionAPIRequest: nsJSIID<mozIExtensionAPIRequest, typeof mozIExtensionAPIRequest_RequestType>;
+  mozIExtensionAPIRequestResult: nsJSIID<mozIExtensionAPIRequestResult, typeof mozIExtensionAPIRequestResult_ResultType>;
   mozIExtensionAPIRequestHandler: nsJSIID<mozIExtensionAPIRequestHandler>;
   mozIExtensionProcessScript: nsJSIID<mozIExtensionProcessScript>;
   nsINativeMessagingPortal: nsJSIID<nsINativeMessagingPortal>;
@@ -16033,24 +16061,24 @@ interface nsIXPCComponents_Interfaces {
   nsIAsyncClipboardRequestCallback: nsJSIID<nsIAsyncClipboardRequestCallback>;
   nsIClipboardDataSnapshot: nsJSIID<nsIClipboardDataSnapshot>;
   nsIClipboardGetDataSnapshotCallback: nsJSIID<nsIClipboardGetDataSnapshotCallback>;
-  nsIClipboard: nsJSIID<nsIClipboard, typeof nsIClipboard.ClipboardType>;
-  nsIClipboardHelper: nsJSIID<nsIClipboardHelper, typeof nsIClipboardHelper.SensitiveData>;
+  nsIClipboard: nsJSIID<nsIClipboard, typeof nsIClipboard_ClipboardType>;
+  nsIClipboardHelper: nsJSIID<nsIClipboardHelper, typeof nsIClipboardHelper_SensitiveData>;
   nsIClipboardOwner: nsJSIID<nsIClipboardOwner>;
   nsIColorPickerShownCallback: nsJSIID<nsIColorPickerShownCallback>;
   nsIColorPicker: nsJSIID<nsIColorPicker>;
   nsIDisplayInfo: nsJSIID<nsIDisplayInfo>;
   nsIDragService: nsJSIID<nsIDragService>;
   nsIDragSession: nsJSIID<nsIDragSession>;
-  nsIFilePicker: nsJSIID<nsIFilePicker, typeof nsIFilePicker.Mode & typeof nsIFilePicker.ResultCode & typeof nsIFilePicker.CaptureTarget>;
+  nsIFilePicker: nsJSIID<nsIFilePicker, typeof nsIFilePicker_Mode & typeof nsIFilePicker_ResultCode & typeof nsIFilePicker_CaptureTarget>;
   nsIFilePickerShownCallback: nsJSIID<nsIFilePickerShownCallback>;
   nsIFormatConverter: nsJSIID<nsIFormatConverter>;
-  nsIGfxInfo: nsJSIID<nsIGfxInfo, typeof nsIGfxInfo.FontVisibilityDeviceDetermination>;
+  nsIGfxInfo: nsJSIID<nsIGfxInfo, typeof nsIGfxInfo_FontVisibilityDeviceDetermination>;
   nsIGfxInfoDebug: nsJSIID<nsIGfxInfoDebug>;
-  nsIMockDragServiceController: nsJSIID<nsIMockDragServiceController, typeof nsIMockDragServiceController.EventType>;
+  nsIMockDragServiceController: nsJSIID<nsIMockDragServiceController, typeof nsIMockDragServiceController_EventType>;
   nsIPaper: nsJSIID<nsIPaper>;
   nsIPaperMargin: nsJSIID<nsIPaperMargin>;
   nsIPrintDialogService: nsJSIID<nsIPrintDialogService>;
-  nsIPrintSettings: nsJSIID<nsIPrintSettings, typeof nsIPrintSettings.OutputDestinationType>;
+  nsIPrintSettings: nsJSIID<nsIPrintSettings, typeof nsIPrintSettings_OutputDestinationType>;
   nsIPrintSettingsService: nsJSIID<nsIPrintSettingsService>;
   nsIPrinterInfo: nsJSIID<nsIPrinterInfo>;
   nsIPrinter: nsJSIID<nsIPrinter>;
@@ -16076,7 +16104,7 @@ interface nsIXPCComponents_Interfaces {
   nsIAvailableMemoryWatcherBase: nsJSIID<nsIAvailableMemoryWatcherBase>;
   nsIConsoleListener: nsJSIID<nsIConsoleListener>;
   nsIConsoleMessage: nsJSIID<nsIConsoleMessage>;
-  nsIConsoleService: nsJSIID<nsIConsoleService, typeof nsIConsoleService.OutputMode>;
+  nsIConsoleService: nsJSIID<nsIConsoleService, typeof nsIConsoleService_OutputMode>;
   nsICycleCollectorHandler: nsJSIID<nsICycleCollectorHandler>;
   nsICycleCollectorLogSink: nsJSIID<nsICycleCollectorLogSink>;
   nsICycleCollectorListener: nsJSIID<nsICycleCollectorListener>;
@@ -16205,7 +16233,7 @@ interface nsIXPCComponents_Interfaces {
   nsIPlatformInfo: nsJSIID<nsIPlatformInfo>;
   nsISystemInfo: nsJSIID<nsISystemInfo>;
   nsIXULAppInfo: nsJSIID<nsIXULAppInfo>;
-  nsIXULRuntime: nsJSIID<nsIXULRuntime, typeof nsIXULRuntime.ExperimentStatus & typeof nsIXULRuntime.ContentWin32kLockdownState & typeof nsIXULRuntime.FissionDecisionStatus>;
+  nsIXULRuntime: nsJSIID<nsIXULRuntime, typeof nsIXULRuntime_ExperimentStatus & typeof nsIXULRuntime_ContentWin32kLockdownState & typeof nsIXULRuntime_FissionDecisionStatus>;
   nsIEnvironment: nsJSIID<nsIEnvironment>;
   nsIEventTarget: nsJSIID<nsIEventTarget>;
   nsINamed: nsJSIID<nsINamed>;
@@ -16214,7 +16242,7 @@ interface nsIXPCComponents_Interfaces {
   nsIRunnablePriority: nsJSIID<nsIRunnablePriority>;
   nsISerialEventTarget: nsJSIID<nsISerialEventTarget>;
   nsISupportsPriority: nsJSIID<nsISupportsPriority>;
-  nsIThread: nsJSIID<nsIThread, typeof nsIThread.QoSPriority>;
+  nsIThread: nsJSIID<nsIThread, typeof nsIThread_QoSPriority>;
   nsINestedEventLoopCondition: nsJSIID<nsINestedEventLoopCondition>;
   nsIThreadManager: nsJSIID<nsIThreadManager>;
   nsIThreadShutdown: nsJSIID<nsIThreadShutdown>;
@@ -16237,7 +16265,7 @@ interface nsIXPCComponents_Interfaces {
   nsIXPCTestObjectReadOnly: nsJSIID<nsIXPCTestObjectReadOnly>;
   nsIXPCTestObjectReadWrite: nsJSIID<nsIXPCTestObjectReadWrite>;
   nsIXPCTestBug809674: nsJSIID<nsIXPCTestBug809674>;
-  nsIXPCTestCEnums: nsJSIID<nsIXPCTestCEnums, typeof nsIXPCTestCEnums.testFlagsExplicit & typeof nsIXPCTestCEnums.testFlagsImplicit>;
+  nsIXPCTestCEnums: nsJSIID<nsIXPCTestCEnums, typeof nsIXPCTestCEnums_testFlagsExplicit & typeof nsIXPCTestCEnums_testFlagsImplicit>;
   nsIXPCTestInterfaceA: nsJSIID<nsIXPCTestInterfaceA>;
   nsIXPCTestInterfaceB: nsJSIID<nsIXPCTestInterfaceB>;
   nsIXPCTestInterfaceC: nsJSIID<nsIXPCTestInterfaceC>;

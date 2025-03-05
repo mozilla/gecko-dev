@@ -39,19 +39,19 @@ interface nsIAboutWindowsMessages extends nsISupports {
 
 }  // global
 
-declare namespace nsIWindowsAlertNotification {
-
-enum ImagePlacement {
+declare enum nsIWindowsAlertNotification_ImagePlacement {
   eInline = 0,
   eHero = 1,
   eIcon = 2,
 }
 
-}
-
 declare global {
 
-interface nsIWindowsAlertNotification extends nsIAlertNotification, Enums<typeof nsIWindowsAlertNotification.ImagePlacement> {
+namespace nsIWindowsAlertNotification {
+  type ImagePlacement = nsIWindowsAlertNotification_ImagePlacement;
+}
+
+interface nsIWindowsAlertNotification extends nsIAlertNotification, Enums<typeof nsIWindowsAlertNotification_ImagePlacement> {
   imagePlacement: nsIWindowsAlertNotification.ImagePlacement;
 }
 
@@ -103,20 +103,20 @@ interface nsIGeolocationUIUtilsWin extends nsISupports {
 
 }  // global
 
-declare namespace nsIWindowsShellService {
-
-enum LaunchOnLoginEnabledEnumerator {
+declare enum nsIWindowsShellService_LaunchOnLoginEnabledEnumerator {
   LAUNCH_ON_LOGIN_DISABLED_BY_SETTINGS = 0,
   LAUNCH_ON_LOGIN_DISABLED = 1,
   LAUNCH_ON_LOGIN_ENABLED = 2,
   LAUNCH_ON_LOGIN_ENABLED_BY_POLICY = 3,
 }
 
-}
-
 declare global {
 
-interface nsIWindowsShellService extends nsIShellService, Enums<typeof nsIWindowsShellService.LaunchOnLoginEnabledEnumerator> {
+namespace nsIWindowsShellService {
+  type LaunchOnLoginEnabledEnumerator = nsIWindowsShellService_LaunchOnLoginEnabledEnumerator;
+}
+
+interface nsIWindowsShellService extends nsIShellService, Enums<typeof nsIWindowsShellService_LaunchOnLoginEnabledEnumerator> {
   createShortcut(aBinary: nsIFile, aArguments: string[], aDescription: string, aIconFile: nsIFile, aIconIndex: u16, aAppUserModelId: string, aShortcutFolder: string, aShortcutName: string): Promise<any>;
   getLaunchOnLoginShortcuts(): string[];
   pinCurrentAppToStartMenuAsync(aCheckOnly: boolean): Promise<any>;
@@ -333,13 +333,13 @@ interface nsIXPCComponents_Interfaces {
   nsIInstalledApplication: nsJSIID<nsIInstalledApplication>;
   nsIAboutThirdParty: nsJSIID<nsIAboutThirdParty>;
   nsIAboutWindowsMessages: nsJSIID<nsIAboutWindowsMessages>;
-  nsIWindowsAlertNotification: nsJSIID<nsIWindowsAlertNotification, typeof nsIWindowsAlertNotification.ImagePlacement>;
+  nsIWindowsAlertNotification: nsJSIID<nsIWindowsAlertNotification, typeof nsIWindowsAlertNotification_ImagePlacement>;
   nsIWindowsAlertsService: nsJSIID<nsIWindowsAlertsService>;
   nsIDefaultAgent: nsJSIID<nsIDefaultAgent>;
   nsIWindowsMutex: nsJSIID<nsIWindowsMutex>;
   nsIWindowsMutexFactory: nsJSIID<nsIWindowsMutexFactory>;
   nsIGeolocationUIUtilsWin: nsJSIID<nsIGeolocationUIUtilsWin>;
-  nsIWindowsShellService: nsJSIID<nsIWindowsShellService, typeof nsIWindowsShellService.LaunchOnLoginEnabledEnumerator>;
+  nsIWindowsShellService: nsJSIID<nsIWindowsShellService, typeof nsIWindowsShellService_LaunchOnLoginEnabledEnumerator>;
   nsIWinTaskSchedulerService: nsJSIID<nsIWinTaskSchedulerService>;
   nsIJumpListBuilder: nsJSIID<nsIJumpListBuilder>;
   nsITaskbarOverlayIconController: nsJSIID<nsITaskbarOverlayIconController>;

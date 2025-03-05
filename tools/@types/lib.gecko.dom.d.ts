@@ -840,6 +840,7 @@ interface FailedCertSecurityInfo {
     certValidityRangeNotBefore?: DOMTimeStamp;
     channelStatus?: number;
     errorCodeString?: string;
+    errorIsOverridable?: boolean;
     errorMessage?: string;
     hasHPKP?: boolean;
     hasHSTS?: boolean;
@@ -3256,6 +3257,7 @@ interface RTCRtpReceiveParameters extends RTCRtpParameters {
 }
 
 interface RTCRtpSendParameters extends RTCRtpParameters {
+    degradationPreference?: RTCDegradationPreference;
     encodings: RTCRtpEncodingParameters[];
     transactionId?: string;
 }
@@ -4975,6 +4977,7 @@ declare var AudioTrackList: {
 
 /** Available only in secure contexts. */
 interface AudioWorklet extends Worklet {
+    readonly port: MessagePort;
 }
 
 declare var AudioWorklet: {
@@ -7069,12 +7072,13 @@ declare var DelayNode: {
 };
 
 interface DeprecationReportBody extends ReportBody {
-    readonly anticipatedRemoval: DOMTimeStamp | null;
+    readonly anticipatedRemoval: any;
     readonly columnNumber: number | null;
     readonly id: string;
     readonly lineNumber: number | null;
     readonly message: string;
     readonly sourceFile: string | null;
+    toJSON(): any;
 }
 
 declare var DeprecationReportBody: {
@@ -18406,7 +18410,6 @@ declare var Sanitizer: {
 
 interface Scheduler {
     postTask(callback: SchedulerPostTaskCallback, options?: SchedulerPostTaskOptions): Promise<any>;
-    yield(): Promise<void>;
 }
 
 declare var Scheduler: {
@@ -18576,7 +18579,7 @@ interface Selection {
     extend(node: Node, offset?: number): void;
     getComposedRanges(...shadowRoots: ShadowRoot[]): StaticRange[];
     getRangeAt(index: number): Range;
-    modify(alter: string, direction: string, granularity: string): void;
+    modify(alter?: string, direction?: string, granularity?: string): void;
     removeAllRanges(): void;
     removeRange(range: Range): void;
     removeSelectionListener(listenerToRemove: nsISelectionListener): void;
@@ -20362,10 +20365,9 @@ declare var URL: {
     new(url: string, base?: string): URL;
     isInstance: IsInstance<URL>;
     canParse(url: string, base?: string): boolean;
-    createObjectURL(blob: Blob): string;
-    createObjectURL(source: MediaSource): string;
+    createObjectURL(obj: Blob | MediaSource): string;
     fromURI(uri: URI): URL;
-    isValidObjectURL(url: string): boolean;
+    isBoundToBlob(url: string): boolean;
     parse(url: string, base?: string): URL | null;
     revokeObjectURL(url: string): void;
 };
@@ -23276,6 +23278,7 @@ interface Window extends EventTarget, AnimationFrameProvider, GlobalCrypto, Glob
     onvrdisplaypresentchange: ((this: Window, ev: Event) => any) | null;
     opener: any;
     readonly orientation: number;
+    readonly originAgentCluster: boolean;
     readonly outerHeight: number;
     readonly outerWidth: number;
     readonly pageXOffset: number;
@@ -25166,6 +25169,7 @@ declare var onvrdisplaydisconnect: ((this: Window, ev: Event) => any) | null;
 declare var onvrdisplaypresentchange: ((this: Window, ev: Event) => any) | null;
 declare var opener: any;
 declare var orientation: number;
+declare var originAgentCluster: boolean;
 declare var outerHeight: number;
 declare var outerWidth: number;
 declare var pageXOffset: number;
@@ -25579,7 +25583,7 @@ type CodecState = "closed" | "configured" | "unconfigured";
 type ColorGamut = "p3" | "rec2020" | "srgb";
 type ColorSpaceConversion = "default" | "none";
 type CompositeOperation = "accumulate" | "add" | "replace";
-type CompressionFormat = "deflate" | "deflate-raw" | "gzip";
+type CompressionFormat = "deflate" | "deflate-raw" | "gzip" | "zstd";
 type ConnectionType = "bluetooth" | "cellular" | "ethernet" | "none" | "other" | "unknown" | "wifi";
 type ConsoleLevel = "error" | "log" | "warning";
 type ConsoleLogLevel = "All" | "Clear" | "Debug" | "Dir" | "Dirxml" | "Error" | "Group" | "GroupEnd" | "Info" | "Log" | "Off" | "Profile" | "ProfileEnd" | "Time" | "TimeEnd" | "TimeLog" | "Trace" | "Warn";
@@ -25720,6 +25724,7 @@ type RTCBundlePolicy = "balanced" | "max-bundle" | "max-compat";
 type RTCCodecType = "decode" | "encode";
 type RTCDataChannelState = "closed" | "closing" | "connecting" | "open";
 type RTCDataChannelType = "arraybuffer" | "blob";
+type RTCDegradationPreference = "balanced" | "maintain-framerate" | "maintain-resolution";
 type RTCDtlsTransportState = "closed" | "connected" | "connecting" | "failed" | "new";
 type RTCEncodedVideoFrameType = "delta" | "empty" | "key";
 type RTCIceCandidateType = "host" | "prflx" | "relay" | "srflx";

@@ -46,9 +46,7 @@ interface nsIXPCTestBug809674 extends nsISupports {
 
 }  // global
 
-declare namespace nsIXPCTestCEnums {
-
-enum testFlagsExplicit {
+declare enum nsIXPCTestCEnums_testFlagsExplicit {
   shouldBe1Explicit = 1,
   shouldBe2Explicit = 2,
   shouldBe4Explicit = 4,
@@ -56,7 +54,7 @@ enum testFlagsExplicit {
   shouldBe12Explicit = 12,
 }
 
-enum testFlagsImplicit {
+declare enum nsIXPCTestCEnums_testFlagsImplicit {
   shouldBe0Implicit = 0,
   shouldBe1Implicit = 1,
   shouldBe2Implicit = 2,
@@ -67,11 +65,14 @@ enum testFlagsImplicit {
   shouldBe3AgainImplicit = 3,
 }
 
-}
-
 declare global {
 
-interface nsIXPCTestCEnums extends nsISupports, Enums<typeof nsIXPCTestCEnums.testFlagsExplicit & typeof nsIXPCTestCEnums.testFlagsImplicit> {
+namespace nsIXPCTestCEnums {
+  type testFlagsExplicit = nsIXPCTestCEnums_testFlagsExplicit;
+  type testFlagsImplicit = nsIXPCTestCEnums_testFlagsImplicit;
+}
+
+interface nsIXPCTestCEnums extends nsISupports, Enums<typeof nsIXPCTestCEnums_testFlagsExplicit & typeof nsIXPCTestCEnums_testFlagsImplicit> {
   readonly testConst?: 1;
 
   testCEnumInput(abc: nsIXPCTestCEnums.testFlagsExplicit): void;
@@ -170,7 +171,7 @@ interface nsIXPCComponents_Interfaces {
   nsIXPCTestObjectReadOnly: nsJSIID<nsIXPCTestObjectReadOnly>;
   nsIXPCTestObjectReadWrite: nsJSIID<nsIXPCTestObjectReadWrite>;
   nsIXPCTestBug809674: nsJSIID<nsIXPCTestBug809674>;
-  nsIXPCTestCEnums: nsJSIID<nsIXPCTestCEnums, typeof nsIXPCTestCEnums.testFlagsExplicit & typeof nsIXPCTestCEnums.testFlagsImplicit>;
+  nsIXPCTestCEnums: nsJSIID<nsIXPCTestCEnums, typeof nsIXPCTestCEnums_testFlagsExplicit & typeof nsIXPCTestCEnums_testFlagsImplicit>;
   nsIXPCTestInterfaceA: nsJSIID<nsIXPCTestInterfaceA>;
   nsIXPCTestInterfaceB: nsJSIID<nsIXPCTestInterfaceB>;
   nsIXPCTestInterfaceC: nsJSIID<nsIXPCTestInterfaceC>;

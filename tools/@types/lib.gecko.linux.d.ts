@@ -73,8 +73,8 @@ type InOutParam<T> = { value: T };
 /** XPCOM out param is written to the passed in object's value property. */
 type OutParam<T> = { value?: T };
 
-/** A named type to enable interfaces to inherit from enums. */
-type Enums<enums> = enums;
+/** Enable interfaces to inherit from enums: pick variants as optional. */
+type Enums<enums> = Partial<Pick<enums, keyof enums>>;
 
 /** Callable accepts either form of a [function] interface. */
 type Callable<iface> = iface | Extract<iface[keyof iface], Function>
