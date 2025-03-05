@@ -843,6 +843,12 @@ bool CompilePattern(JSContext* cx, MutableHandleRegExpShared re,
 
   SampleCharacters(input, compiler);
   data.node = compiler.PreprocessRegExp(&data, isLatin1);
+  if (data.error != RegExpError::kNone) {
+    MOZ_ASSERT(data.error == RegExpError::kTooLarge);
+    JS_ReportErrorASCII(cx, "regexp too big");
+    cx->reportResourceExhaustion();
+    return false;
+  }
   data.error = AnalyzeRegExp(cx->isolate, isLatin1, flags, data.node);
   if (data.error != RegExpError::kNone) {
     MOZ_ASSERT(data.error == RegExpError::kAnalysisStackOverflow);
