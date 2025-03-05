@@ -4,8 +4,12 @@
  * This program is made available under an ISC-style license.  See the
  * accompanying file LICENSE for details.
  */
+#ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0603
+#endif // !_WIN32_WINNT
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif // !NOMINMAX
 
 #include <algorithm>
 #include <atomic>
