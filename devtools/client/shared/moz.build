@@ -41,7 +41,7 @@ DevToolsModules(
     "react-utils.js",
     "react-utils.mjs",
     "screenshot.js",
-    "scroll.js",
+    "scroll.mjs",
     "source-utils.js",
     "string-utils.js",
     "stylesheet-utils.js",
