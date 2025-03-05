@@ -2,59 +2,51 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-"use strict";
+/* eslint no-shadow: ["error", { "allow": ["Headers"] }] */
 
-define(function (require, exports) {
-  const {
-    Component,
-  } = require("resource://devtools/client/shared/vendor/react.js");
-  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
-  const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
+import { Component } from "resource://devtools/client/shared/vendor/react.mjs";
+import * as PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
+import * as dom from "resource://devtools/client/shared/vendor/react-dom-factories.mjs";
+import { createFactories } from "resource://devtools/client/shared/react-utils.mjs";
 
-  const {
-    createFactories,
-  } = require("resource://devtools/client/shared/react-utils.js");
+import HeadersClass from "resource://devtools/client/jsonview/components/Headers.mjs";
 
-  const { Headers } = createFactories(
-    require("resource://devtools/client/jsonview/components/Headers.js")
-  );
-  const { HeadersToolbar } = createFactories(
-    require("resource://devtools/client/jsonview/components/HeadersToolbar.js")
-  );
+const { Headers } = createFactories(HeadersClass);
+import HeadersToolbarClass from "resource://devtools/client/jsonview/components/HeadersToolbar.mjs";
 
-  const { div } = dom;
+const { HeadersToolbar } = createFactories(HeadersToolbarClass);
 
-  /**
-   * This template represents the 'Headers' panel
-   * s responsible for rendering its content.
-   */
-  class HeadersPanel extends Component {
-    static get propTypes() {
-      return {
-        actions: PropTypes.object,
-        data: PropTypes.object,
-      };
-    }
+const { div } = dom;
 
-    constructor(props) {
-      super(props);
-
-      this.state = {
-        data: {},
-      };
-    }
-
-    render() {
-      const data = this.props.data;
-
-      return div(
-        { className: "headersPanelBox tab-panel-inner" },
-        HeadersToolbar({ actions: this.props.actions }),
-        div({ className: "panelContent" }, Headers({ data }))
-      );
-    }
+/**
+ * This template represents the 'Headers' panel
+ * s responsible for rendering its content.
+ */
+class HeadersPanel extends Component {
+  static get propTypes() {
+    return {
+      actions: PropTypes.object,
+      data: PropTypes.object,
+    };
   }
 
-  // Exports from this module
-  exports.HeadersPanel = HeadersPanel;
-});
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      data: {},
+    };
+  }
+
+  render() {
+    const data = this.props.data;
+
+    return div(
+      { className: "headersPanelBox tab-panel-inner" },
+      HeadersToolbar({ actions: this.props.actions }),
+      div({ className: "panelContent" }, Headers({ data }))
+    );
+  }
+}
+
+export default { HeadersPanel };

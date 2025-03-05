@@ -2,48 +2,40 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-"use strict";
+import React from "resource://devtools/client/shared/vendor/react.mjs";
+import * as PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
+import ReactDOM from "resource://devtools/client/shared/vendor/react-dom.mjs";
+import { pre } from "resource://devtools/client/shared/vendor/react-dom-factories.mjs";
 
-define(function (require, exports) {
-  const {
-    Component,
-  } = require("resource://devtools/client/shared/vendor/react.js");
-  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
-  const {
-    findDOMNode,
-  } = require("resource://devtools/client/shared/vendor/react-dom.js");
-  const {
-    pre,
-  } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
+const { Component } = React;
+const { findDOMNode } = ReactDOM;
 
-  /**
-   * This object represents a live DOM text node in a <pre>.
-   */
-  class LiveText extends Component {
-    static get propTypes() {
-      return {
-        data: PropTypes.instanceOf(Text),
-      };
-    }
-
-    componentDidMount() {
-      this.componentDidUpdate();
-    }
-
-    componentDidUpdate() {
-      const el = findDOMNode(this);
-      if (el.firstChild === this.props.data) {
-        return;
-      }
-      el.textContent = "";
-      el.append(this.props.data);
-    }
-
-    render() {
-      return pre({ className: "data" });
-    }
+/**
+ * This object represents a live DOM text node in a <pre>.
+ */
+class LiveText extends Component {
+  static get propTypes() {
+    return {
+      data: PropTypes.instanceOf(Text),
+    };
   }
 
-  // Exports from this module
-  exports.LiveText = LiveText;
-});
+  componentDidMount() {
+    this.componentDidUpdate();
+  }
+
+  componentDidUpdate() {
+    const el = findDOMNode(this);
+    if (el.firstChild === this.props.data) {
+      return;
+    }
+    el.textContent = "";
+    el.append(this.props.data);
+  }
+
+  render() {
+    return pre({ className: "data" });
+  }
+}
+
+export default { LiveText };

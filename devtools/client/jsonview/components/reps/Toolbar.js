@@ -2,49 +2,41 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-"use strict";
+import { Component } from "resource://devtools/client/shared/vendor/react.mjs";
+import * as PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
+import * as dom from "resource://devtools/client/shared/vendor/react-dom-factories.mjs";
 
-define(function (require, exports) {
-  const {
-    Component,
-  } = require("resource://devtools/client/shared/vendor/react.js");
-  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
-  const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
-
-  /**
-   * Renders a simple toolbar.
-   */
-  class Toolbar extends Component {
-    static get propTypes() {
-      return {
-        children: PropTypes.oneOfType([PropTypes.array, PropTypes.element]),
-      };
-    }
-
-    render() {
-      return dom.div({ className: "toolbar" }, this.props.children);
-    }
+/**
+ * Renders a simple toolbar.
+ */
+class Toolbar extends Component {
+  static get propTypes() {
+    return {
+      children: PropTypes.oneOfType([PropTypes.array, PropTypes.element]),
+    };
   }
 
-  /**
-   * Renders a simple toolbar button.
-   */
-  class ToolbarButton extends Component {
-    static get propTypes() {
-      return {
-        active: PropTypes.bool,
-        disabled: PropTypes.bool,
-        children: PropTypes.string,
-      };
-    }
+  render() {
+    return dom.div({ className: "toolbar" }, this.props.children);
+  }
+}
 
-    render() {
-      const props = Object.assign({ className: "btn" }, this.props);
-      return dom.button(props, this.props.children);
-    }
+/**
+ * Renders a simple toolbar button.
+ */
+class ToolbarButton extends Component {
+  static get propTypes() {
+    return {
+      active: PropTypes.bool,
+      disabled: PropTypes.bool,
+      children: PropTypes.string,
+    };
   }
 
-  // Exports from this module
-  exports.Toolbar = Toolbar;
-  exports.ToolbarButton = ToolbarButton;
-});
+  render() {
+    const props = Object.assign({ className: "btn" }, this.props);
+    return dom.button(props, this.props.children);
+  }
+}
+
+export default { Toolbar, ToolbarButton };

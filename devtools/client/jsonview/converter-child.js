@@ -362,8 +362,8 @@ function initialHTML(doc) {
         element("body", {}, [
           element("div", { id: "content" }, [element("div", { id: "json" })]),
           element("script", {
-            src: baseURI + "lib/require.js",
-            "data-main": baseURI + "viewer-config.js",
+            src: baseURI + "json-viewer.mjs",
+            type: "module",
           }),
         ]),
       ]
