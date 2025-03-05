@@ -1273,6 +1273,7 @@ static nsLiteralCString sStyleSrcUnsafeInlineAllowList[] = {
     "chrome://formautofill/content/manageCreditCards.xhtml"_ns,
     "chrome://global/content/commonDialog.xhtml"_ns,
     "chrome://global/content/resetProfileProgress.xhtml"_ns,
+    "chrome://mozapps/content/handling/appChooser.xhtml"_ns,
 };
 // img-src data: blob:
 static nsLiteralCString sImgSrcDataBlobAllowList[] = {
@@ -1325,12 +1326,14 @@ static nsLiteralCString sImgSrcHttpsAllowList[] = {
     "about:welcome"_ns,
     "chrome://devtools/content/application/index.html"_ns,
     "chrome://browser/content/preferences/dialogs/applicationManager.xhtml"_ns,
+    "chrome://mozapps/content/handling/appChooser.xhtml"_ns,
 };
 // img-src http:
 //  UNSAFE! Do not use.
 static nsLiteralCString sImgSrcHttpAllowList[] = {
     "about:addons"_ns, "chrome://devtools/content/application/index.html"_ns,
     "chrome://browser/content/preferences/dialogs/applicationManager.xhtml"_ns,
+    "chrome://mozapps/content/handling/appChooser.xhtml"_ns,
     // STOP! Do not add anything to this list.
 };
 // img-src jar: file:
@@ -1919,7 +1922,6 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
       "chrome://global/skin/in-content/info-pages.css"_ns,
       "chrome://layoutdebug/content/layoutdebug.xhtml"_ns,
       "chrome://mozapps/content/downloads/unknownContentType.xhtml"_ns,
-      "chrome://mozapps/content/handling/appChooser.xhtml"_ns,
       "chrome://mozapps/content/handling/permissionDialog.xhtml"_ns,
       "chrome://mozapps/content/preferences/changemp.xhtml"_ns,
       "chrome://mozapps/content/profile/createProfileWizard.xhtml"_ns,

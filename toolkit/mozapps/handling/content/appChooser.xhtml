@@ -5,6 +5,9 @@
 
 <!DOCTYPE window>
 
+<?csp default-src chrome:; style-src chrome: 'unsafe-inline'; img-src http:
+https:; ?>
+
 <window
   persist="width height screenX screenY"
   aria-describedby="description-text"
@@ -43,18 +46,10 @@
     <description id="description" />
 
     <vbox id="chooser" flex="1">
-      <richlistbox
-        id="items"
-        flex="1"
-        ondblclick="dialog.onDblClick();"
-        onselect="dialog.updateAcceptButton();"
-      >
+      <richlistbox id="items" flex="1">
         <richlistitem id="item-choose" orient="horizontal" selected="true">
           <label data-l10n-id="choose-other-app-description" flex="1" />
-          <button
-            oncommand="dialog.chooseApplication();"
-            data-l10n-id="choose-app-btn"
-          />
+          <button id="choose-app-btn" data-l10n-id="choose-app-btn" />
         </richlistitem>
       </richlistbox>
     </vbox>

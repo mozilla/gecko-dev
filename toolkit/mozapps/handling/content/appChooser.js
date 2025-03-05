@@ -68,6 +68,13 @@ let dialog = {
     this._itemChoose = document.getElementById("item-choose");
     this._rememberCheck = document.getElementById("remember");
 
+    let items = document.getElementById("items");
+    items.addEventListener("dblclick", () => this.onDblClick());
+    items.addEventListener("select", () => this.updateAcceptButton());
+    document
+      .getElementById("choose-app-btn")
+      .addEventListener("command", () => this.chooseApplication());
+
     // Register event listener for the checkbox hint.
     this._rememberCheck.addEventListener("change", () => this.onCheck());
 
