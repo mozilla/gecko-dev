@@ -627,7 +627,6 @@ async function runInference() {
   }
 
   const initData = {
-    featureId: "about-inference",
     modelId,
     modelRevision,
     tokenizerRevision: modelRevision,
@@ -635,6 +634,7 @@ async function runInference() {
     tokenizerId: modelId,
     processorId: modelId,
     taskName,
+    engineId: "about-inference",
     modelHub,
     device,
     dtype,

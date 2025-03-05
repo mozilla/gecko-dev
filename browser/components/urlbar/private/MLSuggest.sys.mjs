@@ -31,6 +31,7 @@ class _MLSuggest {
   INTENT_OPTIONS = {
     taskName: "text-classification",
     featureId: "suggest-intent-classification",
+    engineId: "ml-suggest-intent",
     timeoutMS: -1,
     numThreads: 2,
   };
@@ -38,6 +39,7 @@ class _MLSuggest {
   NER_OPTIONS = {
     taskName: "token-classification",
     featureId: "suggest-NER",
+    engineId: "ml-suggest-ner",
     timeoutMS: -1,
     numThreads: 2,
   };

@@ -55,13 +55,18 @@ const MAX_NN_GROUPED_TABS = 4;
 const ML_TASK_FEATURE_EXTRACTION = "feature-extraction";
 const ML_TASK_TEXT2TEXT = "text2text-generation";
 
+const ML_SMART_TAB_EMBEDDING_ENGINE_ID = "smart-tab-embedding-engine";
+const ML_SMART_TAB_TOPIC_ENGINE_ID = "smart-tab-topic-engine";
+
 const SMART_TAB_GROUPING_CONFIG = {
   embedding: {
+    engineId: ML_SMART_TAB_EMBEDDING_ENGINE_ID,
     dtype: "q8",
     timeoutMS: 2 * 60 * 1000, // 2 minutes
     taskName: ML_TASK_FEATURE_EXTRACTION,
   },
   topicGeneration: {
+    engineId: ML_SMART_TAB_TOPIC_ENGINE_ID,
     dtype: "q8",
     timeoutMS: 2 * 60 * 1000, // 2 minutes
     taskName: ML_TASK_TEXT2TEXT,
