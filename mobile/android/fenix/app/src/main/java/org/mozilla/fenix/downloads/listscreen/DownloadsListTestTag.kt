@@ -8,4 +8,5 @@ internal object DownloadsListTestTag {
 
     private const val DOWNLOADS_LIST = "downloadsList"
     internal const val DOWNLOADS_LIST_ITEM = "$DOWNLOADS_LIST.item"
+    internal const val DOWNLOADS_LIST_ITEM_MENU = "$DOWNLOADS_LIST_ITEM.menu"
 }

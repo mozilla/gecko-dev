@@ -21,8 +21,10 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -39,9 +41,12 @@ import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.list.SelectableListItem
+import org.mozilla.fenix.compose.menu.DropdownMenu
+import org.mozilla.fenix.compose.menu.MenuItem
 import org.mozilla.fenix.compose.snackbar.AcornSnackbarHostState
 import org.mozilla.fenix.compose.snackbar.SnackbarHost
 import org.mozilla.fenix.compose.snackbar.SnackbarState
+import org.mozilla.fenix.compose.text.Text
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIAction
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIStore
@@ -109,28 +114,12 @@ private fun DownloadsContent(
             items = state.itemsToDisplay,
             key = { it.id },
         ) { downloadItem ->
-            SelectableListItem(
-                label = downloadItem.fileName ?: downloadItem.url,
-                description = downloadItem.formattedSize,
+            FileListItem(
+                fileItem = downloadItem,
                 isSelected = state.mode.selectedItems.contains(downloadItem),
-                icon = downloadItem.getIcon(),
-                afterListAction = {
-                    if (state.isNormalMode) {
-                        Spacer(modifier = Modifier.width(16.dp))
-
-                        IconButton(
-                            onClick = { onDeleteClick(downloadItem) },
-                            modifier = Modifier.size(24.dp),
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.mozac_ic_delete_24),
-                                contentDescription = stringResource(id = R.string.download_delete_item_1),
-                                tint = FirefoxTheme.colors.iconPrimary,
-                            )
-                        }
-                    }
-                },
-                modifier = Modifier
+                isMenuIconVisible = state.isNormalMode,
+                onDeleteClick = onDeleteClick,
+                modifier = modifier
                     .animateItem()
                     .combinedClickable(
                         onClick = {
@@ -154,6 +143,54 @@ private fun DownloadsContent(
             )
         }
     }
+}
+
+@Composable
+private fun FileListItem(
+    fileItem: FileItem,
+    isSelected: Boolean,
+    isMenuIconVisible: Boolean,
+    modifier: Modifier = Modifier,
+    onDeleteClick: (FileItem) -> Unit,
+) {
+    SelectableListItem(
+        label = fileItem.fileName ?: fileItem.url,
+        description = fileItem.formattedSize,
+        isSelected = isSelected,
+        icon = fileItem.getIcon(),
+        afterListAction = {
+            if (isMenuIconVisible) {
+                var menuExpanded by remember { mutableStateOf(false) }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                IconButton(
+                    onClick = { menuExpanded = true },
+                    modifier = Modifier.size(24.dp)
+                        .testTag("${DownloadsListTestTag.DOWNLOADS_LIST_ITEM_MENU}.${fileItem.fileName}"),
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.mozac_ic_ellipsis_vertical_24),
+                        contentDescription = stringResource(id = R.string.content_description_menu),
+                        tint = FirefoxTheme.colors.iconPrimary,
+                    )
+
+                    DropdownMenu(
+                        menuItems = listOf(
+                            MenuItem.TextItem(
+                                text = Text.Resource(R.string.download_delete_item_1),
+                                onClick = { onDeleteClick(fileItem) },
+                                level = MenuItem.FixedItem.Level.Critical,
+                            ),
+                        ),
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                    )
+                }
+            }
+        },
+        modifier = modifier,
+    )
 }
 
 @Composable

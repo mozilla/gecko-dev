@@ -159,11 +159,13 @@ class DownloadTest : TestSetup() {
         }
         browserScreen {
         }.openThreeDotMenu {
-        }.openDownloadsManager() {
+        }.openDownloadsManager {
             verifyDownloadedFileExistsInDownloadsList(activityTestRule, "smallZip.zip")
+            clickDownloadItemMenuIcon(activityTestRule, "smallZip.zip")
             deleteDownloadedItem(activityTestRule, "smallZip.zip")
             clickSnackbarButton(activityTestRule, "UNDO")
             verifyDownloadedFileExistsInDownloadsList(activityTestRule, "smallZip.zip")
+            clickDownloadItemMenuIcon(activityTestRule, "smallZip.zip")
             deleteDownloadedItem(activityTestRule, "smallZip.zip")
             verifyEmptyDownloadsList(activityTestRule)
         }
