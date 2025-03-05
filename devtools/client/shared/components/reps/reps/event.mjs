@@ -13,7 +13,7 @@ import * as Grip from "resource://devtools/client/shared/components/reps/reps/gr
 /**
  * Renders DOM event objects.
  */
-Event.propTypes = {
+EventRep.propTypes = {
   object: PropTypes.object.isRequired,
   mode: PropTypes.oneOf(Object.values(MODE)),
   onDOMNodeMouseOver: PropTypes.func,
@@ -21,7 +21,7 @@ Event.propTypes = {
   onInspectIconClick: PropTypes.func,
 };
 
-function Event(props) {
+function EventRep(props) {
   const gripProps = {
     ...props,
     title: getTitle(props),
@@ -98,7 +98,7 @@ function supportsObject(grip) {
   return grip?.preview?.kind == "DOMEvent";
 }
 
-const rep = wrapRender(Event);
+const rep = wrapRender(EventRep);
 
 // Exports from this module
 export { rep, supportsObject };

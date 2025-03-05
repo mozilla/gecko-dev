@@ -14,7 +14,7 @@ import {
  * Renders a number
  */
 
-Number.propTypes = {
+NumberRep.propTypes = {
   object: PropTypes.oneOfType([
     PropTypes.object,
     PropTypes.number,
@@ -23,7 +23,7 @@ Number.propTypes = {
   shouldRenderTooltip: PropTypes.bool,
 };
 
-function Number(props) {
+function NumberRep(props) {
   const value = stringify(props.object);
   const config = getElementConfig(props.shouldRenderTooltip, value);
 
@@ -49,7 +49,7 @@ function supportsObject(object, noGrip = false) {
   return SUPPORTED_TYPES.has(getGripType(object, noGrip));
 }
 
-const rep = wrapRender(Number);
+const rep = wrapRender(NumberRep);
 
 // Exports from this module
 

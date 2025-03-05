@@ -15,12 +15,12 @@ import {
  * Renders a grip object with regular expression.
  */
 
-RegExp.propTypes = {
+RegExpRep.propTypes = {
   object: PropTypes.object.isRequired,
   shouldRenderTooltip: PropTypes.bool,
 };
 
-function RegExp(props) {
+function RegExpRep(props) {
   const { object } = props;
   const config = getElementConfig(props);
 
@@ -52,7 +52,7 @@ function supportsObject(object, noGrip = false) {
   return getGripType(object, noGrip) == "RegExp";
 }
 
-const rep = wrapRender(RegExp);
+const rep = wrapRender(RegExpRep);
 
 // Exports from this module
 export { rep, supportsObject };

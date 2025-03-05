@@ -17,12 +17,12 @@ import {
  * Renders a grip representing CSSStyleSheet
  */
 
-StyleSheet.propTypes = {
+StyleSheetRep.propTypes = {
   object: PropTypes.object.isRequired,
   shouldRenderTooltip: PropTypes.bool,
 };
 
-function StyleSheet(props) {
+function StyleSheetRep(props) {
   const grip = props.object;
   const shouldRenderTooltip = props.shouldRenderTooltip;
   const location = getLocation(grip);
@@ -62,7 +62,7 @@ function supportsObject(object, noGrip = false) {
   return getGripType(object, noGrip) == "CSSStyleSheet";
 }
 
-const rep = wrapRender(StyleSheet);
+const rep = wrapRender(StyleSheetRep);
 
 // Exports from this module
 

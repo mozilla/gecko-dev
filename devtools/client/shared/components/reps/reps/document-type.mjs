@@ -16,12 +16,12 @@ import {
  * Renders DOM documentType object.
  */
 
-DocumentType.propTypes = {
+DocumentTypeRep.propTypes = {
   object: PropTypes.object.isRequired,
   shouldRenderTooltip: PropTypes.bool,
 };
 
-function DocumentType(props) {
+function DocumentTypeRep(props) {
   const { object, shouldRenderTooltip } = props;
   const name =
     object && object.preview && object.preview.nodeName
@@ -48,7 +48,7 @@ function supportsObject(object, noGrip = false) {
   return object?.preview && getGripType(object, noGrip) === "DocumentType";
 }
 
-const rep = wrapRender(DocumentType);
+const rep = wrapRender(DocumentTypeRep);
 
 // Exports from this module
 export { rep, supportsObject };

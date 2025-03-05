@@ -14,7 +14,7 @@ import {
  * Renders a BigInt Number
  */
 
-BigInt.propTypes = {
+BigIntRep.propTypes = {
   object: PropTypes.oneOfType([
     PropTypes.object,
     PropTypes.number,
@@ -23,7 +23,7 @@ BigInt.propTypes = {
   shouldRenderTooltip: PropTypes.bool,
 };
 
-function BigInt(props) {
+function BigIntRep(props) {
   const { object, shouldRenderTooltip } = props;
   const text = object.text;
   const config = getElementConfig({ text, shouldRenderTooltip });
@@ -43,7 +43,7 @@ function supportsObject(object, noGrip = false) {
   return getGripType(object, noGrip) === "BigInt";
 }
 
-const rep = wrapRender(BigInt);
+const rep = wrapRender(BigIntRep);
 
 // Exports from this module
 

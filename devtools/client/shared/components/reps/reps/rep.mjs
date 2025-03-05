@@ -5,7 +5,7 @@
 import * as Undefined from "resource://devtools/client/shared/components/reps/reps/undefined.mjs";
 import * as Null from "resource://devtools/client/shared/components/reps/reps/null.mjs";
 import * as StringRep from "resource://devtools/client/shared/components/reps/reps/string.mjs";
-import * as Number from "resource://devtools/client/shared/components/reps/reps/number.mjs";
+import * as NumberRep from "resource://devtools/client/shared/components/reps/reps/number.mjs";
 import * as JsonNumber from "resource://devtools/client/shared/components/reps/reps/json-number.mjs";
 import * as ArrayRep from "resource://devtools/client/shared/components/reps/reps/array.mjs";
 import * as Obj from "resource://devtools/client/shared/components/reps/reps/object.mjs";
@@ -15,20 +15,20 @@ import * as NaNRep from "resource://devtools/client/shared/components/reps/reps/
 import * as Accessor from "resource://devtools/client/shared/components/reps/reps/accessor.mjs";
 import * as Accessible from "resource://devtools/client/shared/components/reps/reps/accessible.mjs";
 import * as Attribute from "resource://devtools/client/shared/components/reps/reps/attribute.mjs";
-import * as BigInt from "resource://devtools/client/shared/components/reps/reps/big-int.mjs";
+import * as BigIntRep from "resource://devtools/client/shared/components/reps/reps/big-int.mjs";
 import * as DateTime from "resource://devtools/client/shared/components/reps/reps/date-time.mjs";
-import * as Document from "resource://devtools/client/shared/components/reps/reps/document.mjs";
-import * as DocumentType from "resource://devtools/client/shared/components/reps/reps/document-type.mjs";
-import * as Event from "resource://devtools/client/shared/components/reps/reps/event.mjs";
+import * as DocumentRep from "resource://devtools/client/shared/components/reps/reps/document.mjs";
+import * as DocumentTypeRep from "resource://devtools/client/shared/components/reps/reps/document-type.mjs";
+import * as EventRep from "resource://devtools/client/shared/components/reps/reps/event.mjs";
 import * as Func from "resource://devtools/client/shared/components/reps/reps/function.mjs";
 import * as PromiseRep from "resource://devtools/client/shared/components/reps/reps/promise.mjs";
-import * as RegExp from "resource://devtools/client/shared/components/reps/reps/regexp.mjs";
-import * as StyleSheet from "resource://devtools/client/shared/components/reps/reps/stylesheet.mjs";
+import * as RegExpRep from "resource://devtools/client/shared/components/reps/reps/regexp.mjs";
+import * as StyleSheetRep from "resource://devtools/client/shared/components/reps/reps/stylesheet.mjs";
 import * as CommentNode from "resource://devtools/client/shared/components/reps/reps/comment-node.mjs";
 import * as ElementNode from "resource://devtools/client/shared/components/reps/reps/element-node.mjs";
 import * as TextNode from "resource://devtools/client/shared/components/reps/reps/text-node.mjs";
 import * as ErrorRep from "resource://devtools/client/shared/components/reps/reps/error.mjs";
-import * as Window from "resource://devtools/client/shared/components/reps/reps/window.mjs";
+import * as WindowRep from "resource://devtools/client/shared/components/reps/reps/window.mjs";
 import * as ObjectWithText from "resource://devtools/client/shared/components/reps/reps/object-with-text.mjs";
 import * as ObjectWithURL from "resource://devtools/client/shared/components/reps/reps/object-with-url.mjs";
 import * as GripArray from "resource://devtools/client/shared/components/reps/reps/grip-array.mjs";
@@ -41,9 +41,9 @@ import * as CustomFormatter from "resource://devtools/client/shared/components/r
 // XXX there should be a way for extensions to register a new
 // or modify an existing rep.
 const reps = [
-  RegExp,
-  StyleSheet,
-  Event,
+  RegExpRep,
+  StyleSheetRep,
+  EventRep,
   DateTime,
   CommentNode,
   Accessible,
@@ -52,9 +52,9 @@ const reps = [
   Attribute,
   Func,
   PromiseRep,
-  Document,
-  DocumentType,
-  Window,
+  DocumentRep,
+  DocumentTypeRep,
+  WindowRep,
   ObjectWithText,
   ObjectWithURL,
   ErrorRep,
@@ -65,8 +65,8 @@ const reps = [
   Undefined,
   Null,
   StringRep,
-  Number,
-  BigInt,
+  NumberRep,
+  BigIntRep,
   SymbolRep,
   InfinityRep,
   NaNRep,
@@ -77,7 +77,7 @@ const reps = [
 const noGripReps = [
   StringRep,
   JsonNumber,
-  Number,
+  NumberRep,
   ArrayRep,
   Undefined,
   Null,
@@ -106,14 +106,14 @@ const exportedReps = {
   Accessor,
   ArrayRep,
   Attribute,
-  BigInt,
+  BigInt: BigIntRep,
   CommentNode,
   DateTime,
-  Document,
-  DocumentType,
+  Document: DocumentRep,
+  DocumentType: DocumentTypeRep,
   ElementNode,
   ErrorRep,
-  Event,
+  Event: EventRep,
   Func,
   Grip,
   GripArray,
@@ -122,19 +122,19 @@ const exportedReps = {
   InfinityRep,
   NaNRep,
   Null,
-  Number,
+  Number: NumberRep,
   Obj,
   ObjectWithText,
   ObjectWithURL,
   PromiseRep,
-  RegExp,
+  RegExp: RegExpRep,
   Rep,
   StringRep,
   StyleSheet: StyleSheetRep,
   SymbolRep,
   TextNode,
   Undefined,
-  Window,
+  WindowRep,
 };
 
 // Custom Formatters

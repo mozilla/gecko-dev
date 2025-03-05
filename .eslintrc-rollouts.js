@@ -1909,6 +1909,7 @@ const rollouts = [
     // for system modules.
     files: [
       "browser/components/extensions/Extension*.sys.mjs",
+      "devtools/client/shared/components/reps/reps/**.mjs",
       "docshell/base/URIFixup.sys.mjs",
       "dom/base/ContentAreaDropListener.sys.mjs",
       "dom/manifest/ImageObjectProcessor.sys.mjs",
