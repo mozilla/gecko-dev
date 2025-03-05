@@ -109,6 +109,13 @@ already_AddRefed<MediaRawData> EncodedAudioChunkData::TakeData() {
   return sample.forget();
 }
 
+nsCString EncodedAudioChunkData::ToString() const {
+  return nsFmtCString(
+      FMT_STRING("EncodedAudioChunkData[bytes: {}, type: {}, ts: {}, dur: {}]"),
+      mBuffer ? mBuffer->Length() : 0, GetEnumString(mType).get(), mTimestamp,
+      mDuration ? std::to_string(*mDuration).c_str() : "none");
+}
+
 EncodedAudioChunk::EncodedAudioChunk(
     nsIGlobalObject* aParent, already_AddRefed<MediaAlignedByteBuffer> aBuffer,
     const EncodedAudioChunkType& aType, int64_t aTimestamp,

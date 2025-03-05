@@ -46,6 +46,8 @@ class EncodedAudioChunkData {
   UniquePtr<EncodedAudioChunkData> Clone() const;
   already_AddRefed<MediaRawData> TakeData();
 
+  nsCString ToString() const;
+
  protected:
   // mBuffer's byte length is guaranteed to be smaller than UINT32_MAX.
   RefPtr<MediaAlignedByteBuffer> mBuffer;
