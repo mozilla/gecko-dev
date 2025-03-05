@@ -1,0 +1,17 @@
+diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
+--- a/expat/lib/xmlparse.c	2024-09-13 08:32:41
++++ b/expat/lib/xmlparse.c	2024-09-13 08:33:05
+@@ -5723,7 +5723,13 @@
+           entity->open = XML_TRUE;
+           entityTrackingOnOpen(parser, entity, __LINE__);
+           if (! parser->m_externalEntityRefHandler(
++/* BEGIN MOZILLA CHANGE (Bug 191482 - Add external entity inclusions to internalSubset) */
++#if 0
+                   parser->m_externalEntityRefHandlerArg, 0, entity->base,
++#else
++                  parser->m_externalEntityRefHandlerArg, entity->name, entity->base,
++#endif
++/* END MOZILLA CHANGE */
+                   entity->systemId, entity->publicId)) {
+             entityTrackingOnClose(parser, entity, __LINE__);
+             entity->open = XML_FALSE;

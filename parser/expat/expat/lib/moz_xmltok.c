@@ -5,6 +5,9 @@
 
 #include "xmltok.c"
 
+#ifdef MOZILLA_CLIENT
+#ifndef MOZ_IN_WASM_SANDBOX
+
 #ifdef IS_LITTLE_ENDIAN
 
 #define PREFIX(ident) little2_ ## ident
@@ -160,3 +163,6 @@ int MOZ_XMLTranslateEntity(const char* ptr, const char* end, const char** next,
 #undef BYTE_TYPE
 #undef IS_NAME_CHAR_MINBPC
 #undef IS_NMSTRT_CHAR_MINBPC
+
+#endif  /* !MOZ_IN_WASM_SANDBOX */
+#endif  /* MOZILLA_CLIENT */
