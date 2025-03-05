@@ -51,11 +51,6 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "ExtensionSidebar",
-  "resource://devtools/client/inspector/extensions/extension-sidebar.js"
-);
-loader.lazyRequireGetter(
-  this,
   "PICKER_TYPES",
   "resource://devtools/shared/picker-constants.js"
 );
@@ -1320,6 +1315,11 @@ Inspector.prototype = {
       );
     }
 
+    // Load the ExtensionSidebar component via the Browser Loader as it ultimately loads Reps and Object Inspector,
+    // which are expected to be loaded in a document scope.
+    const ExtensionSidebar = this.browserRequire(
+      "resource://devtools/client/inspector/extensions/extension-sidebar.js"
+    );
     const extensionSidebar = new ExtensionSidebar(this, { id, title });
 
     // TODO(rpl): pass some extension metadata (e.g. extension name and icon) to customize
@@ -1349,6 +1349,9 @@ Inspector.prototype = {
 
     const panel = this._panels.get(id);
 
+    const ExtensionSidebar = this.browserRequire(
+      "resource://devtools/client/inspector/extensions/extension-sidebar.js"
+    );
     if (!(panel instanceof ExtensionSidebar)) {
       throw new Error(
         `The sidebar panel with id "${id}" is not an ExtensionSidebar`

@@ -36,6 +36,10 @@ const BROWSER_BASED_DIRS = [
   "resource://devtools/client/shared/fluent-l10n",
   "resource://devtools/client/shared/redux",
   "resource://devtools/client/shared/vendor",
+  // Ensure loading debugger modules in the document scope
+  // when they are loaded from SmartTrace, which requires to load Reps/ObjectInspector
+  // in a document scope
+  "resource://devtools/client/debugger/src",
 ];
 
 const COMMON_LIBRARY_DIRS = ["resource://devtools/client/shared/vendor"];

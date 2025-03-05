@@ -18,10 +18,6 @@ const {
   default: objectInspectorReducer,
 } = require("resource://devtools/client/shared/components/object-inspector/reducer.js");
 
-const ExtensionSidebarComponent = createFactory(
-  require("resource://devtools/client/inspector/extensions/components/ExtensionSidebar.js")
-);
-
 const {
   updateExtensionPage,
   updateObjectTreeView,
@@ -64,6 +60,13 @@ class ExtensionSidebar {
    */
   get provider() {
     if (!this._provider) {
+      // Load the ExtensionSidebar component via the Browser Loader as it ultimately loads Reps and Object Inspector,
+      // which are expected to be loaded in a document scope.
+      const ExtensionSidebarComponent = createFactory(
+        this.inspector.browserRequire(
+          "resource://devtools/client/inspector/extensions/components/ExtensionSidebar.js"
+        )
+      );
       this._provider = createElement(
         Provider,
         {
