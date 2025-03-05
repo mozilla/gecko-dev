@@ -4,16 +4,16 @@
 
 const {
   maybeEscapePropertyName,
-} = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
-const ArrayRep = require("resource://devtools/client/shared/components/reps/reps/array.js");
-const GripArrayRep = require("resource://devtools/client/shared/components/reps/reps/grip-array.js");
-const GripMap = require("resource://devtools/client/shared/components/reps/reps/grip-map.js");
-const GripEntryRep = require("resource://devtools/client/shared/components/reps/reps/grip-entry.js");
-const ErrorRep = require("resource://devtools/client/shared/components/reps/reps/error.js");
-const BigIntRep = require("resource://devtools/client/shared/components/reps/reps/big-int.js");
+} = ChromeUtils.importESModule("resource://devtools/client/shared/components/reps/reps/rep-utils.mjs", {global: "current"});
+const ArrayRep = ChromeUtils.importESModule("resource://devtools/client/shared/components/reps/reps/array.mjs", {global: "current"});
+const GripArrayRep = ChromeUtils.importESModule("resource://devtools/client/shared/components/reps/reps/grip-array.mjs", {global: "current"});
+const GripMap =  ChromeUtils.importESModule("resource://devtools/client/shared/components/reps/reps/grip-map.mjs", {global: "current"});
+const GripEntryRep =  ChromeUtils.importESModule("resource://devtools/client/shared/components/reps/reps/grip-entry.mjs", {global: "current"});
+const ErrorRep =  ChromeUtils.importESModule("resource://devtools/client/shared/components/reps/reps/error.mjs", {global: "current"});
+const BigIntRep =  ChromeUtils.importESModule("resource://devtools/client/shared/components/reps/reps/big-int.mjs", {global: "current"});
 const {
   isLongString,
-} = require("resource://devtools/client/shared/components/reps/reps/string.js");
+} = ChromeUtils.importESModule("resource://devtools/client/shared/components/reps/reps/string.mjs", {global: "current"});
 
 const MAX_NUMERICAL_PROPERTIES = 100;
 

@@ -59,8 +59,9 @@ const SearchBox = createFactory(
 );
 
 loader.lazyGetter(this, "MODE", function () {
-  return require("resource://devtools/client/shared/components/reps/index.js")
-    .MODE;
+  return ChromeUtils.importESModule(
+    "resource://devtools/client/shared/components/reps/index.mjs"
+  ).MODE;
 });
 
 const { div, input, label, span, h2 } = dom;

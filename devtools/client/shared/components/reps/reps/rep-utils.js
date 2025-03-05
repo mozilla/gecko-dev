@@ -2,625 +2,617 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-"use strict";
+/* eslint no-shadow: ["error", { "allow": ["name"] }] */
 
-// Make this available to both AMD and CJS environments
-define(function (require, exports, module) {
-  // Dependencies
-  const validProtocols = /(http|https|ftp|data|resource|chrome):/i;
+import * as dom from "resource://devtools/client/shared/vendor/react-dom-factories.mjs";
 
-  // URL Regex, common idioms:
-  //
-  // Lead-in (URL):
-  // (                     Capture because we need to know if there was a lead-in
-  //                       character so we can include it as part of the text
-  //                       preceding the match. We lack look-behind matching.
-  //  ^|                   The URL can start at the beginning of the string.
-  //  [\s(,;'"`“]          Or whitespace or some punctuation that does not imply
-  //                       a context which would preclude a URL.
-  // )
-  //
-  // We do not need a trailing look-ahead because our regex's will terminate
-  // because they run out of characters they can eat.
+const { span } = dom;
 
-  // What we do not attempt to have the regexp do:
-  // - Avoid trailing '.' and ')' characters.  We let our greedy match absorb
-  //   these, but have a separate regex for extra characters to leave off at the
-  //   end.
-  //
-  // The Regex (apart from lead-in/lead-out):
-  // (                     Begin capture of the URL
-  //  (?:                  (potential detect beginnings)
-  //   https?:\/\/|        Start with "http" or "https"
-  //   www\d{0,3}[.][a-z0-9.\-]{2,249}|
-  //                      Start with "www", up to 3 numbers, then "." then
-  //                       something that looks domain-namey.  We differ from the
-  //                       next case in that we do not constrain the top-level
-  //                       domain as tightly and do not require a trailing path
-  //                       indicator of "/".  This is IDN root compatible.
-  //   [a-z0-9.\-]{2,250}[.][a-z]{2,4}\/
-  //                       Detect a non-www domain, but requiring a trailing "/"
-  //                       to indicate a path.  This only detects IDN domains
-  //                       with a non-IDN root.  This is reasonable in cases where
-  //                       there is no explicit http/https start us out, but
-  //                       unreasonable where there is.  Our real fix is the bug
-  //                       to port the Thunderbird/gecko linkification logic.
-  //
-  //                       Domain names can be up to 253 characters long, and are
-  //                       limited to a-zA-Z0-9 and '-'.  The roots don't have
-  //                       hyphens unless they are IDN roots.  Root zones can be
-  //                       found here: http://www.iana.org/domains/root/db
-  //  )
-  //  [-\w.!~*'();,/?:@&=+$#%]*
-  //                       path onwards. We allow the set of characters that
-  //                       encodeURI does not escape plus the result of escaping
-  //                       (so also '%')
-  // )
-  // eslint-disable-next-line max-len
-  const urlRegex =
-    /(^|[\s(,;'"`“])((?:https?:\/(\/)?|www\d{0,3}[.][a-z0-9.\-]{2,249}|[a-z0-9.\-]{2,250}[.][a-z]{2,4}\/)[-\w.!~*'();,/?:@&=+$#%]*)/im;
+import { JSON_NUMBER } from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
 
-  // Set of terminators that are likely to have been part of the context rather
-  // than part of the URL and so should be uneaten. This is '(', ',', ';', plus
-  // quotes and question end-ing punctuation and the potential permutations with
-  // parentheses (english-specific).
-  const uneatLastUrlCharsRegex = /(?:[),;.!?`'"]|[.!?]\)|\)[.!?])$/;
+// Dependencies
+const validProtocols = /(http|https|ftp|data|resource|chrome):/i;
 
-  const ELLIPSIS = "\u2026";
-  const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
-  const { span } = dom;
+// URL Regex, common idioms:
+//
+// Lead-in (URL):
+// (                     Capture because we need to know if there was a lead-in
+//                       character so we can include it as part of the text
+//                       preceding the match. We lack look-behind matching.
+//  ^|                   The URL can start at the beginning of the string.
+//  [\s(,;'"`“]          Or whitespace or some punctuation that does not imply
+//                       a context which would preclude a URL.
+// )
+//
+// We do not need a trailing look-ahead because our regex's will terminate
+// because they run out of characters they can eat.
 
-  const {
-    JSON_NUMBER,
-  } = require("resource://devtools/client/shared/components/reps/reps/constants.js");
+// What we do not attempt to have the regexp do:
+// - Avoid trailing '.' and ')' characters.  We let our greedy match absorb
+//   these, but have a separate regex for extra characters to leave off at the
+//   end.
+//
+// The Regex (apart from lead-in/lead-out):
+// (                     Begin capture of the URL
+//  (?:                  (potential detect beginnings)
+//   https?:\/\/|        Start with "http" or "https"
+//   www\d{0,3}[.][a-z0-9.\-]{2,249}|
+//                      Start with "www", up to 3 numbers, then "." then
+//                       something that looks domain-namey.  We differ from the
+//                       next case in that we do not constrain the top-level
+//                       domain as tightly and do not require a trailing path
+//                       indicator of "/".  This is IDN root compatible.
+//   [a-z0-9.\-]{2,250}[.][a-z]{2,4}\/
+//                       Detect a non-www domain, but requiring a trailing "/"
+//                       to indicate a path.  This only detects IDN domains
+//                       with a non-IDN root.  This is reasonable in cases where
+//                       there is no explicit http/https start us out, but
+//                       unreasonable where there is.  Our real fix is the bug
+//                       to port the Thunderbird/gecko linkification logic.
+//
+//                       Domain names can be up to 253 characters long, and are
+//                       limited to a-zA-Z0-9 and '-'.  The roots don't have
+//                       hyphens unless they are IDN roots.  Root zones can be
+//                       found here: http://www.iana.org/domains/root/db
+//  )
+//  [-\w.!~*'();,/?:@&=+$#%]*
+//                       path onwards. We allow the set of characters that
+//                       encodeURI does not escape plus the result of escaping
+//                       (so also '%')
+// )
+// eslint-disable-next-line max-len
+const urlRegex =
+  /(^|[\s(,;'"`“])((?:https?:\/(\/)?|www\d{0,3}[.][a-z0-9.\-]{2,249}|[a-z0-9.\-]{2,250}[.][a-z]{2,4}\/)[-\w.!~*'();,/?:@&=+$#%]*)/im;
 
-  function escapeNewLines(value) {
-    return value.replace(/\r/gm, "\\r").replace(/\n/gm, "\\n");
+// Set of terminators that are likely to have been part of the context rather
+// than part of the URL and so should be uneaten. This is '(', ',', ';', plus
+// quotes and question end-ing punctuation and the potential permutations with
+// parentheses (english-specific).
+const uneatLastUrlCharsRegex = /(?:[),;.!?`'"]|[.!?]\)|\)[.!?])$/;
+
+const ELLIPSIS = "\u2026";
+
+function escapeNewLines(value) {
+  return value.replace(/\r/gm, "\\r").replace(/\n/gm, "\\n");
+}
+
+// Map from character code to the corresponding escape sequence.  \0
+// isn't here because it would require special treatment in some
+// situations.  \b, \f, and \v aren't here because they aren't very
+// common.  \' isn't here because there's no need, we only
+// double-quote strings.
+const escapeMap = {
+  // Tab.
+  9: "\\t",
+  // Newline.
+  0xa: "\\n",
+  // Carriage return.
+  0xd: "\\r",
+  // Quote.
+  0x22: '\\"',
+  // Backslash.
+  0x5c: "\\\\",
+};
+
+// All characters we might possibly want to escape, excluding quotes.
+// Note that we over-match here, because it's difficult to, say, match
+// an unpaired surrogate with a regexp.  The details are worked out by
+// the replacement function; see |escapeString|.
+const commonEscapes =
+  // Backslash.
+  "\\\\" +
+  // Controls.
+  "\x00-\x1f" +
+  // More controls.
+  "\x7f-\x9f" +
+  // BOM
+  "\ufeff" +
+  // Specials, except for the replacement character.
+  "\ufff0-\ufffc\ufffe\uffff" +
+  // Surrogates.
+  "\ud800-\udfff" +
+  // Mathematical invisibles.
+  "\u2061-\u2064" +
+  // Line and paragraph separators.
+  "\u2028-\u2029" +
+  // Private use area.
+  "\ue000-\uf8ff";
+const escapeRegexp = new RegExp(`[${commonEscapes}]`, "g");
+const escapeRegexpIncludingDoubleQuote = new RegExp(`[${commonEscapes}"]`, "g");
+
+/**
+ * Escape a string so that the result is viewable and valid JS.
+ * Control characters, other invisibles, invalid characters, and backslash
+ * are escaped.  The resulting string is quoted with either double quotes,
+ * single quotes, or backticks.  The preference is for a quote that doesn't
+ * require escaping, falling back to double quotes if that's not possible
+ * (and then escaping them in the string).
+ *
+ * @param {String} str
+ *        the input
+ * @param {Boolean} escapeWhitespace
+ *        if true, TAB, CR, and NL characters will be escaped
+ * @return {String} the escaped string
+ */
+function escapeString(str, escapeWhitespace) {
+  let quote = '"';
+  let regexp = escapeRegexp;
+  if (str.includes('"')) {
+    if (!str.includes("'")) {
+      quote = "'";
+    } else if (!str.includes("`") && !str.includes("${")) {
+      quote = "`";
+    } else {
+      regexp = escapeRegexpIncludingDoubleQuote;
+    }
   }
-
-  // Map from character code to the corresponding escape sequence.  \0
-  // isn't here because it would require special treatment in some
-  // situations.  \b, \f, and \v aren't here because they aren't very
-  // common.  \' isn't here because there's no need, we only
-  // double-quote strings.
-  const escapeMap = {
-    // Tab.
-    9: "\\t",
-    // Newline.
-    0xa: "\\n",
-    // Carriage return.
-    0xd: "\\r",
-    // Quote.
-    0x22: '\\"',
-    // Backslash.
-    0x5c: "\\\\",
-  };
-
-  // All characters we might possibly want to escape, excluding quotes.
-  // Note that we over-match here, because it's difficult to, say, match
-  // an unpaired surrogate with a regexp.  The details are worked out by
-  // the replacement function; see |escapeString|.
-  const commonEscapes =
-    // Backslash.
-    "\\\\" +
-    // Controls.
-    "\x00-\x1f" +
-    // More controls.
-    "\x7f-\x9f" +
-    // BOM
-    "\ufeff" +
-    // Specials, except for the replacement character.
-    "\ufff0-\ufffc\ufffe\uffff" +
-    // Surrogates.
-    "\ud800-\udfff" +
-    // Mathematical invisibles.
-    "\u2061-\u2064" +
-    // Line and paragraph separators.
-    "\u2028-\u2029" +
-    // Private use area.
-    "\ue000-\uf8ff";
-  const escapeRegexp = new RegExp(`[${commonEscapes}]`, "g");
-  const escapeRegexpIncludingDoubleQuote = new RegExp(
-    `[${commonEscapes}"]`,
-    "g"
-  );
-
-  /**
-   * Escape a string so that the result is viewable and valid JS.
-   * Control characters, other invisibles, invalid characters, and backslash
-   * are escaped.  The resulting string is quoted with either double quotes,
-   * single quotes, or backticks.  The preference is for a quote that doesn't
-   * require escaping, falling back to double quotes if that's not possible
-   * (and then escaping them in the string).
-   *
-   * @param {String} str
-   *        the input
-   * @param {Boolean} escapeWhitespace
-   *        if true, TAB, CR, and NL characters will be escaped
-   * @return {String} the escaped string
-   */
-  function escapeString(str, escapeWhitespace) {
-    let quote = '"';
-    let regexp = escapeRegexp;
-    if (str.includes('"')) {
-      if (!str.includes("'")) {
-        quote = "'";
-      } else if (!str.includes("`") && !str.includes("${")) {
-        quote = "`";
-      } else {
-        regexp = escapeRegexpIncludingDoubleQuote;
+  return `${quote}${str.replace(regexp, (match, offset) => {
+    const c = match.charCodeAt(0);
+    if (c in escapeMap) {
+      if (!escapeWhitespace && (c === 9 || c === 0xa || c === 0xd)) {
+        return match[0];
       }
+      return escapeMap[c];
     }
-    return `${quote}${str.replace(regexp, (match, offset) => {
-      const c = match.charCodeAt(0);
-      if (c in escapeMap) {
-        if (!escapeWhitespace && (c === 9 || c === 0xa || c === 0xd)) {
-          return match[0];
-        }
-        return escapeMap[c];
+    if (c >= 0xd800 && c <= 0xdfff) {
+      // Find the full code point containing the surrogate, with a
+      // special case for a trailing surrogate at the start of the
+      // string.
+      if (c >= 0xdc00 && offset > 0) {
+        --offset;
       }
-      if (c >= 0xd800 && c <= 0xdfff) {
-        // Find the full code point containing the surrogate, with a
-        // special case for a trailing surrogate at the start of the
-        // string.
-        if (c >= 0xdc00 && offset > 0) {
-          --offset;
+      const codePoint = str.codePointAt(offset);
+      if (codePoint >= 0xd800 && codePoint <= 0xdfff) {
+        // Unpaired surrogate.
+        return `\\u${codePoint.toString(16)}`;
+      } else if (codePoint >= 0xf0000 && codePoint <= 0x10fffd) {
+        // Private use area.  Because we visit each pair of a such a
+        // character, return the empty string for one half and the
+        // real result for the other, to avoid duplication.
+        if (c <= 0xdbff) {
+          return `\\u{${codePoint.toString(16)}}`;
         }
-        const codePoint = str.codePointAt(offset);
-        if (codePoint >= 0xd800 && codePoint <= 0xdfff) {
-          // Unpaired surrogate.
-          return `\\u${codePoint.toString(16)}`;
-        } else if (codePoint >= 0xf0000 && codePoint <= 0x10fffd) {
-          // Private use area.  Because we visit each pair of a such a
-          // character, return the empty string for one half and the
-          // real result for the other, to avoid duplication.
-          if (c <= 0xdbff) {
-            return `\\u{${codePoint.toString(16)}}`;
-          }
-          return "";
-        }
-        // Other surrogate characters are passed through.
-        return match;
+        return "";
       }
-      return `\\u${`0000${c.toString(16)}`.substr(-4)}`;
-    })}${quote}`;
+      // Other surrogate characters are passed through.
+      return match;
+    }
+    return `\\u${`0000${c.toString(16)}`.substr(-4)}`;
+  })}${quote}`;
+}
+
+/**
+ * Escape a property name, if needed.  "Escaping" in this context
+ * means surrounding the property name with quotes.
+ *
+ * @param {String}
+ *        name the property name
+ * @return {String} either the input, or the input surrounded by
+ *                  quotes, properly quoted in JS syntax.
+ */
+function maybeEscapePropertyName(name) {
+  // Quote the property name if it needs quoting.  This particular
+  // test is an approximation; see
+  // https://mathiasbynens.be/notes/javascript-properties.  However,
+  // the full solution requires a fair amount of Unicode data, and so
+  // let's defer that until either it's important, or the \p regexp
+  // syntax lands, see
+  // https://github.com/tc39/proposal-regexp-unicode-property-escapes.
+  if (!/^\w+$/.test(name)) {
+    name = escapeString(name);
   }
+  return name;
+}
 
-  /**
-   * Escape a property name, if needed.  "Escaping" in this context
-   * means surrounding the property name with quotes.
-   *
-   * @param {String}
-   *        name the property name
-   * @return {String} either the input, or the input surrounded by
-   *                  quotes, properly quoted in JS syntax.
-   */
-  function maybeEscapePropertyName(name) {
-    // Quote the property name if it needs quoting.  This particular
-    // test is an approximation; see
-    // https://mathiasbynens.be/notes/javascript-properties.  However,
-    // the full solution requires a fair amount of Unicode data, and so
-    // let's defer that until either it's important, or the \p regexp
-    // syntax lands, see
-    // https://github.com/tc39/proposal-regexp-unicode-property-escapes.
-    if (!/^\w+$/.test(name)) {
-      name = escapeString(name);
-    }
-    return name;
-  }
+function cropMultipleLines(text, limit) {
+  return escapeNewLines(cropString(text, limit));
+}
 
-  function cropMultipleLines(text, limit) {
-    return escapeNewLines(cropString(text, limit));
-  }
-
-  function rawCropString(text, limit, alternativeText = ELLIPSIS) {
-    // Crop the string only if a limit is actually specified.
-    if (!limit || limit <= 0) {
-      return text;
-    }
-
-    // Set the limit at least to the length of the alternative text
-    // plus one character of the original text.
-    if (limit <= alternativeText.length) {
-      limit = alternativeText.length + 1;
-    }
-
-    const halfLimit = (limit - alternativeText.length) / 2;
-
-    if (text.length > limit) {
-      return (
-        text.substr(0, Math.ceil(halfLimit)) +
-        alternativeText +
-        text.substr(text.length - Math.floor(halfLimit))
-      );
-    }
-
+function rawCropString(text, limit, alternativeText = ELLIPSIS) {
+  // Crop the string only if a limit is actually specified.
+  if (!limit || limit <= 0) {
     return text;
   }
 
-  function cropString(text, limit, alternativeText) {
-    return rawCropString(sanitizeString(`${text}`), limit, alternativeText);
+  // Set the limit at least to the length of the alternative text
+  // plus one character of the original text.
+  if (limit <= alternativeText.length) {
+    limit = alternativeText.length + 1;
   }
 
-  function sanitizeString(text) {
-    // Replace all non-printable characters, except of
-    // (horizontal) tab (HT: \x09) and newline (LF: \x0A, CR: \x0D),
-    // with unicode replacement character (u+fffd).
-    // eslint-disable-next-line no-control-regex
-    const re = new RegExp("[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]", "g");
-    return text.replace(re, "\ufffd");
+  const halfLimit = (limit - alternativeText.length) / 2;
+
+  if (text.length > limit) {
+    return (
+      text.substr(0, Math.ceil(halfLimit)) +
+      alternativeText +
+      text.substr(text.length - Math.floor(halfLimit))
+    );
   }
 
-  function parseURLParams(url) {
-    url = new URL(url);
-    return parseURLEncodedText(url.searchParams);
+  return text;
+}
+
+function cropString(text, limit, alternativeText) {
+  return rawCropString(sanitizeString(`${text}`), limit, alternativeText);
+}
+
+function sanitizeString(text) {
+  // Replace all non-printable characters, except of
+  // (horizontal) tab (HT: \x09) and newline (LF: \x0A, CR: \x0D),
+  // with unicode replacement character (u+fffd).
+  // eslint-disable-next-line no-control-regex
+  const re = new RegExp("[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]", "g");
+  return text.replace(re, "\ufffd");
+}
+
+function parseURLParams(url) {
+  url = new URL(url);
+  return parseURLEncodedText(url.searchParams);
+}
+
+function parseURLEncodedText(text) {
+  const params = [];
+
+  // In case the text is empty just return the empty parameters
+  if (text == "") {
+    return params;
   }
 
-  function parseURLEncodedText(text) {
-    const params = [];
+  const searchParams = new URLSearchParams(text);
+  const entries = [...searchParams.entries()];
+  return entries.map(entry => {
+    return {
+      name: entry[0],
+      value: entry[1],
+    };
+  });
+}
 
-    // In case the text is empty just return the empty parameters
-    if (text == "") {
-      return params;
-    }
+function getFileName(url) {
+  const split = splitURLBase(url);
+  return split.name;
+}
 
-    const searchParams = new URLSearchParams(text);
-    const entries = [...searchParams.entries()];
-    return entries.map(entry => {
-      return {
-        name: entry[0],
-        value: entry[1],
-      };
-    });
+function splitURLBase(url) {
+  if (!isDataURL(url)) {
+    return splitURLTrue(url);
   }
+  return {};
+}
 
-  function getFileName(url) {
-    const split = splitURLBase(url);
-    return split.name;
-  }
+function getURLDisplayString(url) {
+  return cropString(url);
+}
 
-  function splitURLBase(url) {
-    if (!isDataURL(url)) {
-      return splitURLTrue(url);
-    }
-    return {};
-  }
+function isDataURL(url) {
+  return url && url.substr(0, 5) == "data:";
+}
 
-  function getURLDisplayString(url) {
-    return cropString(url);
-  }
+function splitURLTrue(url) {
+  const reSplitFile = /(.*?):\/{2,3}([^\/]*)(.*?)([^\/]*?)($|\?.*)/;
+  const m = reSplitFile.exec(url);
 
-  function isDataURL(url) {
-    return url && url.substr(0, 5) == "data:";
-  }
-
-  function splitURLTrue(url) {
-    const reSplitFile = /(.*?):\/{2,3}([^\/]*)(.*?)([^\/]*?)($|\?.*)/;
-    const m = reSplitFile.exec(url);
-
-    if (!m) {
-      return {
-        name: url,
-        path: url,
-      };
-    } else if (m[4] == "" && m[5] == "") {
-      return {
-        protocol: m[1],
-        domain: m[2],
-        path: m[3],
-        name: m[3] != "/" ? m[3] : m[2],
-      };
-    }
-
+  if (!m) {
+    return {
+      name: url,
+      path: url,
+    };
+  } else if (m[4] == "" && m[5] == "") {
     return {
       protocol: m[1],
       domain: m[2],
-      path: m[2] + m[3],
-      name: m[4] + m[5],
+      path: m[3],
+      name: m[3] != "/" ? m[3] : m[2],
     };
   }
 
-  /**
-   * Wrap the provided render() method of a rep in a try/catch block that will
-   * render a fallback rep if the render fails.
-   */
-  function wrapRender(renderMethod) {
-    const wrappedFunction = function (props) {
-      try {
-        return renderMethod.call(this, props);
-      } catch (e) {
-        console.error(e);
-        return span(
-          {
-            className: "objectBox objectBox-failure",
-            title:
-              "This object could not be rendered, " +
-              "please file a bug on bugzilla.mozilla.org",
-          },
-          /* Labels have to be hardcoded for reps, see Bug 1317038. */
-          "Invalid object"
-        );
-      }
-    };
-    wrappedFunction.propTypes = renderMethod.propTypes;
-    return wrappedFunction;
-  }
+  return {
+    protocol: m[1],
+    domain: m[2],
+    path: m[2] + m[3],
+    name: m[4] + m[5],
+  };
+}
 
-  /**
-   * Get preview items from a Grip.
-   *
-   * @param {Object} Grip from which we want the preview items
-   * @return {Array} Array of the preview items of the grip, or an empty array
-   *                 if the grip does not have preview items
-   */
-  function getGripPreviewItems(grip) {
-    if (!grip) {
-      return [];
-    }
-
-    // Array Grip
-    if (grip.preview && grip.preview.items) {
-      return grip.preview.items;
-    }
-
-    // Node Grip
-    if (grip.preview && grip.preview.childNodes) {
-      return grip.preview.childNodes;
-    }
-
-    // Set or Map Grip
-    if (grip.preview && grip.preview.entries) {
-      return grip.preview.entries.reduce((res, entry) => res.concat(entry), []);
-    }
-
-    // Event Grip
-    if (grip.preview && grip.preview.target) {
-      const keys = Object.keys(grip.preview.properties);
-      const values = Object.values(grip.preview.properties);
-      return [grip.preview.target, ...keys, ...values];
-    }
-
-    // RegEx Grip
-    if (grip.displayString) {
-      return [grip.displayString];
-    }
-
-    // Generic Grip
-    if (grip.preview && grip.preview.ownProperties) {
-      let propertiesValues = Object.values(grip.preview.ownProperties).map(
-        property => property.value || property
+/**
+ * Wrap the provided render() method of a rep in a try/catch block that will
+ * render a fallback rep if the render fails.
+ */
+function wrapRender(renderMethod) {
+  const wrappedFunction = function (props) {
+    try {
+      return renderMethod.call(this, props);
+    } catch (e) {
+      console.error(e);
+      return span(
+        {
+          className: "objectBox objectBox-failure",
+          title:
+            "This object could not be rendered, " +
+            "please file a bug on bugzilla.mozilla.org",
+        },
+        /* Labels have to be hardcoded for reps, see Bug 1317038. */
+        "Invalid object"
       );
-
-      const propertyKeys = Object.keys(grip.preview.ownProperties);
-      propertiesValues = propertiesValues.concat(propertyKeys);
-
-      // ArrayBuffer Grip
-      if (grip.preview.safeGetterValues) {
-        propertiesValues = propertiesValues.concat(
-          Object.values(grip.preview.safeGetterValues).map(
-            property => property.getterValue || property
-          )
-        );
-      }
-
-      return propertiesValues;
     }
+  };
+  wrappedFunction.propTypes = renderMethod.propTypes;
+  return wrappedFunction;
+}
 
+/**
+ * Get preview items from a Grip.
+ *
+ * @param {Object} Grip from which we want the preview items
+ * @return {Array} Array of the preview items of the grip, or an empty array
+ *                 if the grip does not have preview items
+ */
+function getGripPreviewItems(grip) {
+  if (!grip) {
     return [];
   }
 
-  /**
-   * Get the type of an object.
-   *
-   * @param {Object} Grip from which we want the type.
-   * @param {boolean} noGrip true if the object is not a grip.
-   * @return {boolean}
-   */
-  function getGripType(object, noGrip) {
-    if (noGrip || Object(object) !== object) {
-      return typeof object;
-    }
-    if (object.type === "object") {
-      return object.class;
-    }
-    return object.type;
+  // Array Grip
+  if (grip.preview && grip.preview.items) {
+    return grip.preview.items;
   }
 
-  /**
-   * Determines whether a grip is a string containing a URL.
-   *
-   * @param string grip
-   *        The grip, which may contain a URL.
-   * @return boolean
-   *         Whether the grip is a string containing a URL.
-   */
-  function containsURL(grip) {
-    // An URL can't be shorter than 5 char (e.g. "ftp:").
-    if (typeof grip !== "string" || grip.length < 5) {
-      return false;
-    }
-
-    return validProtocols.test(grip);
+  // Node Grip
+  if (grip.preview && grip.preview.childNodes) {
+    return grip.preview.childNodes;
   }
 
-  /**
-   * Determines whether a string token is a valid URL.
-   *
-   * @param string token
-   *        The token.
-   * @return boolean
-   *         Whether the token is a URL.
-   */
-  function isURL(token) {
-    if (!validProtocols.test(token)) {
-      return false;
-    }
-    return URL.canParse(token);
+  // Set or Map Grip
+  if (grip.preview && grip.preview.entries) {
+    return grip.preview.entries.reduce((res, entry) => res.concat(entry), []);
   }
 
-  /**
-   * Returns new array in which `char` are interleaved between the original items.
-   *
-   * @param {Array} items
-   * @param {String} char
-   * @returns Array
-   */
-  function interleave(items, char) {
-    return items.reduce((res, item, index) => {
-      if (index !== items.length - 1) {
-        return res.concat(item, char);
-      }
-      return res.concat(item);
-    }, []);
+  // Event Grip
+  if (grip.preview && grip.preview.target) {
+    const keys = Object.keys(grip.preview.properties);
+    const values = Object.values(grip.preview.properties);
+    return [grip.preview.target, ...keys, ...values];
   }
 
-  const ellipsisElement = span(
-    {
-      key: "more",
-      className: "more-ellipsis",
-      title: `more${ELLIPSIS}`,
-    },
-    ELLIPSIS
-  );
+  // RegEx Grip
+  if (grip.displayString) {
+    return [grip.displayString];
+  }
 
-  /**
-   * Removes any unallowed CSS properties from a string of CSS declarations
-   *
-   * @param {String} userProvidedStyle CSS declarations
-   * @param {Function} createElement Method to create a dummy element the styles get applied to
-   * @returns {Object} Filtered CSS properties as JavaScript object in camelCase notation
-   */
-  function cleanupStyle(userProvidedStyle, createElement) {
-    // Regular expression that matches the allowed CSS property names.
-    const allowedStylesRegex = new RegExp(
-      "^(?:-moz-)?(?:align|background|border|box|clear|color|cursor|display|" +
-        "float|font|justify|line|margin|padding|position|text|transition" +
-        "|outline|vertical-align|white-space|word|writing|" +
-        "(?:min-|max-)?width|(?:min-|max-)?height)"
+  // Generic Grip
+  if (grip.preview && grip.preview.ownProperties) {
+    let propertiesValues = Object.values(grip.preview.ownProperties).map(
+      property => property.value || property
     );
 
-    const mozElementRegex = /\b((?:-moz-)?element)[\s('"]+/gi;
+    const propertyKeys = Object.keys(grip.preview.ownProperties);
+    propertiesValues = propertiesValues.concat(propertyKeys);
 
-    // Regex to retrieve usages of `url(*)` in property value
-    const cssUrlRegex = /url\([\'\"]?([^\)]*)/g;
-
-    // Use a dummy element to parse the style string.
-    const dummy = createElement("div");
-    dummy.style = userProvidedStyle;
-
-    // Return a style object as expected by React DOM components, e.g.
-    // {color: "red"}
-    // without forbidden properties and values.
-    return Array.from(dummy.style)
-      .filter(name => {
-        if (!allowedStylesRegex.test(name)) {
-          return false;
-        }
-
-        if (mozElementRegex.test(name)) {
-          return false;
-        }
-
-        if (name === "position") {
-          return ["static", "relative"].includes(
-            dummy.style.getPropertyValue(name)
-          );
-        }
-        // There can be multiple call to `url()` (e.g.` background: url("path/to/image"), url("data:image/png,…");`);
-        // filter out the property if the url function is called with anything that is not
-        // a data URL.
-        return Array.from(dummy.style[name].matchAll(cssUrlRegex))
-          .map(match => match[1])
-          .every(potentialUrl => potentialUrl.startsWith("data:"));
-      })
-      .reduce((object, name) => {
-        // React requires CSS properties to be provided in JavaScript form, i.e. camelCased.
-        const jsName = name.replace(/-([a-z])/g, (_, char) =>
-          char.toUpperCase()
-        );
-        return Object.assign(
-          {
-            [jsName]: dummy.style.getPropertyValue(name),
-          },
-          object
-        );
-      }, {});
-  }
-
-  /**
-   * Append has-rtl-char to className if passed string has RTL chars.
-   * has-rtl-char is used in reps.css to set `unicode-bidi: isolate` on the element.
-   * It's important to only apply it when needed as this CSS property can have an
-   * important impact on performance (See Bug 1879806)
-   *
-   * @param {String} className: The className want to set on an element
-   * @param {String} strToCheck: The string for which we want to check if it has RTL chars
-   * @returns {String}
-   */
-  function appendRTLClassNameIfNeeded(className = "", strToCheck) {
-    if (
-      // The JSONViewer, which uses some Reps component, doesn't have access to Services.
-      typeof Services == "undefined" ||
-      !Services?.intl?.stringHasRTLChars(strToCheck)
-    ) {
-      return className;
+    // ArrayBuffer Grip
+    if (grip.preview.safeGetterValues) {
+      propertiesValues = propertiesValues.concat(
+        Object.values(grip.preview.safeGetterValues).map(
+          property => property.getterValue || property
+        )
+      );
     }
-    return `${className} has-rtl-char`;
+
+    return propertiesValues;
   }
 
-  /**
-   * Parse JSON string and handle numbers that would be lossily parsed (e.g. 1516340399466235648).
-   * Such numbers are represented by an object with the following properties:
-   * - type: JSON_NUMBER , so the object can be rendered by the JsonNumber Rep
-   * - source: The original number in the JSON string (e.g. `1e2`)
-   * - parsedValue: The parsed number  (e.g. for `1e2` it will be `100`)
-   *
-   * @param {String} str: The JSON string
-   * @returns {*} The parsed JSON
-   */
-  function parseJsonLossless(str) {
-    return JSON.parse(str, (key, parsedValue, { source }) => {
-      // Parsed numbers might be different than the source, for example
-      // JSON.parse("1516340399466235648") returns 1516340399466235600.
-      if (
-        typeof parsedValue === "number" &&
-        source !== parsedValue.toString() &&
-        // `(-0).toString()` returns "0", but the value is correctly parsed as -0, so we
-        // shouldn't render JSON_NUMBER here.
-        source !== "-0"
-      ) {
-        // In such case, we want to show the actual source, as well as an indication
-        // to the user that the parsed value might be different.
-        return { source, type: JSON_NUMBER, parsedValue };
+  return [];
+}
+
+/**
+ * Get the type of an object.
+ *
+ * @param {Object} Grip from which we want the type.
+ * @param {boolean} noGrip true if the object is not a grip.
+ * @return {boolean}
+ */
+function getGripType(object, noGrip) {
+  if (noGrip || Object(object) !== object) {
+    return typeof object;
+  }
+  if (object.type === "object") {
+    return object.class;
+  }
+  return object.type;
+}
+
+/**
+ * Determines whether a grip is a string containing a URL.
+ *
+ * @param string grip
+ *        The grip, which may contain a URL.
+ * @return boolean
+ *         Whether the grip is a string containing a URL.
+ */
+function containsURL(grip) {
+  // An URL can't be shorter than 5 char (e.g. "ftp:").
+  if (typeof grip !== "string" || grip.length < 5) {
+    return false;
+  }
+
+  return validProtocols.test(grip);
+}
+
+/**
+ * Determines whether a string token is a valid URL.
+ *
+ * @param string token
+ *        The token.
+ * @return boolean
+ *         Whether the token is a URL.
+ */
+function isURL(token) {
+  if (!validProtocols.test(token)) {
+    return false;
+  }
+  return URL.canParse(token);
+}
+
+/**
+ * Returns new array in which `char` are interleaved between the original items.
+ *
+ * @param {Array} items
+ * @param {String} char
+ * @returns Array
+ */
+function interleave(items, char) {
+  return items.reduce((res, item, index) => {
+    if (index !== items.length - 1) {
+      return res.concat(item, char);
+    }
+    return res.concat(item);
+  }, []);
+}
+
+const ellipsisElement = span(
+  {
+    key: "more",
+    className: "more-ellipsis",
+    title: `more${ELLIPSIS}`,
+  },
+  ELLIPSIS
+);
+
+/**
+ * Removes any unallowed CSS properties from a string of CSS declarations
+ *
+ * @param {String} userProvidedStyle CSS declarations
+ * @param {Function} createElement Method to create a dummy element the styles get applied to
+ * @returns {Object} Filtered CSS properties as JavaScript object in camelCase notation
+ */
+function cleanupStyle(userProvidedStyle, createElement) {
+  // Regular expression that matches the allowed CSS property names.
+  const allowedStylesRegex = new RegExp(
+    "^(?:-moz-)?(?:align|background|border|box|clear|color|cursor|display|" +
+      "float|font|justify|line|margin|padding|position|text|transition" +
+      "|outline|vertical-align|white-space|word|writing|" +
+      "(?:min-|max-)?width|(?:min-|max-)?height)"
+  );
+
+  const mozElementRegex = /\b((?:-moz-)?element)[\s('"]+/gi;
+
+  // Regex to retrieve usages of `url(*)` in property value
+  const cssUrlRegex = /url\([\'\"]?([^\)]*)/g;
+
+  // Use a dummy element to parse the style string.
+  const dummy = createElement("div");
+  dummy.style = userProvidedStyle;
+
+  // Return a style object as expected by React DOM components, e.g.
+  // {color: "red"}
+  // without forbidden properties and values.
+  return Array.from(dummy.style)
+    .filter(name => {
+      if (!allowedStylesRegex.test(name)) {
+        return false;
       }
 
-      return parsedValue;
-    });
-  }
+      if (mozElementRegex.test(name)) {
+        return false;
+      }
 
-  module.exports = {
-    interleave,
-    isURL,
-    cropString,
-    containsURL,
-    rawCropString,
-    appendRTLClassNameIfNeeded,
-    sanitizeString,
-    escapeString,
-    wrapRender,
-    cropMultipleLines,
-    parseJsonLossless,
-    parseURLParams,
-    parseURLEncodedText,
-    getFileName,
-    getURLDisplayString,
-    maybeEscapePropertyName,
-    getGripPreviewItems,
-    getGripType,
-    ellipsisElement,
-    ELLIPSIS,
-    uneatLastUrlCharsRegex,
-    urlRegex,
-    cleanupStyle,
-  };
-});
+      if (name === "position") {
+        return ["static", "relative"].includes(
+          dummy.style.getPropertyValue(name)
+        );
+      }
+      // There can be multiple call to `url()` (e.g.` background: url("path/to/image"), url("data:image/png,…");`);
+      // filter out the property if the url function is called with anything that is not
+      // a data URL.
+      return Array.from(dummy.style[name].matchAll(cssUrlRegex))
+        .map(match => match[1])
+        .every(potentialUrl => potentialUrl.startsWith("data:"));
+    })
+    .reduce((object, name) => {
+      // React requires CSS properties to be provided in JavaScript form, i.e. camelCased.
+      const jsName = name.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
+      return Object.assign(
+        {
+          [jsName]: dummy.style.getPropertyValue(name),
+        },
+        object
+      );
+    }, {});
+}
+
+/**
+ * Append has-rtl-char to className if passed string has RTL chars.
+ * has-rtl-char is used in reps.css to set `unicode-bidi: isolate` on the element.
+ * It's important to only apply it when needed as this CSS property can have an
+ * important impact on performance (See Bug 1879806)
+ *
+ * @param {String} className: The className want to set on an element
+ * @param {String} strToCheck: The string for which we want to check if it has RTL chars
+ * @returns {String}
+ */
+function appendRTLClassNameIfNeeded(className = "", strToCheck) {
+  if (
+    // The JSONViewer, which uses some Reps component, doesn't have access to Services.
+    typeof Services == "undefined" ||
+    !Services?.intl?.stringHasRTLChars(strToCheck)
+  ) {
+    return className;
+  }
+  return `${className} has-rtl-char`;
+}
+
+/**
+ * Parse JSON string and handle numbers that would be lossily parsed (e.g. 1516340399466235648).
+ * Such numbers are represented by an object with the following properties:
+ * - type: JSON_NUMBER , so the object can be rendered by the JsonNumber Rep
+ * - source: The original number in the JSON string (e.g. `1e2`)
+ * - parsedValue: The parsed number  (e.g. for `1e2` it will be `100`)
+ *
+ * @param {String} str: The JSON string
+ * @returns {*} The parsed JSON
+ */
+function parseJsonLossless(str) {
+  return JSON.parse(str, (key, parsedValue, { source }) => {
+    // Parsed numbers might be different than the source, for example
+    // JSON.parse("1516340399466235648") returns 1516340399466235600.
+    if (
+      typeof parsedValue === "number" &&
+      source !== parsedValue.toString() &&
+      // `(-0).toString()` returns "0", but the value is correctly parsed as -0, so we
+      // shouldn't render JSON_NUMBER here.
+      source !== "-0"
+    ) {
+      // In such case, we want to show the actual source, as well as an indication
+      // to the user that the parsed value might be different.
+      return { source, type: JSON_NUMBER, parsedValue };
+    }
+
+    return parsedValue;
+  });
+}
+
+export {
+  interleave,
+  isURL,
+  cropString,
+  containsURL,
+  rawCropString,
+  appendRTLClassNameIfNeeded,
+  sanitizeString,
+  escapeString,
+  wrapRender,
+  cropMultipleLines,
+  parseJsonLossless,
+  parseURLParams,
+  parseURLEncodedText,
+  getFileName,
+  getURLDisplayString,
+  maybeEscapePropertyName,
+  getGripPreviewItems,
+  getGripType,
+  ellipsisElement,
+  ELLIPSIS,
+  uneatLastUrlCharsRegex,
+  urlRegex,
+  cleanupStyle,
+};

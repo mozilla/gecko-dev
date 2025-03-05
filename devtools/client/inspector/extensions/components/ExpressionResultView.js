@@ -19,7 +19,9 @@ const Types = require("resource://devtools/client/inspector/extensions/types.js"
 const {
   REPS: { Grip },
   MODE,
-} = require("resource://devtools/client/shared/components/reps/index.js");
+} = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/components/reps/index.mjs"
+);
 const {
   ObjectInspector: ObjectInspectorClass,
 } = require("resource://devtools/client/shared/components/object-inspector/index.js");

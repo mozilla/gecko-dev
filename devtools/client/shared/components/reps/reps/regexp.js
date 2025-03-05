@@ -2,67 +2,57 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-"use strict";
+import PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
+import { span } from "resource://devtools/client/shared/vendor/react-dom-factories.mjs";
 
-// Make this available to both AMD and CJS environments
-define(function (require, exports, module) {
-  // ReactJS
-  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
-  const {
-    span,
-  } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
+import {
+  getGripType,
+  wrapRender,
+  ELLIPSIS,
+} from "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs";
 
-  // Reps
-  const {
-    getGripType,
-    wrapRender,
-    ELLIPSIS,
-  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
+/**
+ * Renders a grip object with regular expression.
+ */
 
-  /**
-   * Renders a grip object with regular expression.
-   */
+RegExp.propTypes = {
+  object: PropTypes.object.isRequired,
+  shouldRenderTooltip: PropTypes.bool,
+};
 
-  RegExp.propTypes = {
-    object: PropTypes.object.isRequired,
-    shouldRenderTooltip: PropTypes.bool,
+function RegExp(props) {
+  const { object } = props;
+  const config = getElementConfig(props);
+
+  return span(config, getSource(object));
+}
+
+function getElementConfig(opts) {
+  const { object, shouldRenderTooltip } = opts;
+  const text = getSource(object);
+
+  return {
+    "data-link-actor-id": object.actor,
+    className: "objectBox objectBox-regexp regexpSource",
+    title: shouldRenderTooltip ? text : null,
   };
+}
 
-  function RegExp(props) {
-    const { object } = props;
-    const config = getElementConfig(props);
-
-    return span(config, getSource(object));
+function getSource(grip) {
+  const { displayString } = grip;
+  if (displayString?.type === "longString") {
+    return `${displayString.initial}${ELLIPSIS}`;
   }
 
-  function getElementConfig(opts) {
-    const { object, shouldRenderTooltip } = opts;
-    const text = getSource(object);
+  return displayString;
+}
 
-    return {
-      "data-link-actor-id": object.actor,
-      className: "objectBox objectBox-regexp regexpSource",
-      title: shouldRenderTooltip ? text : null,
-    };
-  }
+// Registration
+function supportsObject(object, noGrip = false) {
+  return getGripType(object, noGrip) == "RegExp";
+}
 
-  function getSource(grip) {
-    const { displayString } = grip;
-    if (displayString?.type === "longString") {
-      return `${displayString.initial}${ELLIPSIS}`;
-    }
+const rep = wrapRender(RegExp);
 
-    return displayString;
-  }
-
-  // Registration
-  function supportsObject(object, noGrip = false) {
-    return getGripType(object, noGrip) == "RegExp";
-  }
-
-  // Exports from this module
-  module.exports = {
-    rep: wrapRender(RegExp),
-    supportsObject,
-  };
-});
+// Exports from this module
+export { rep, supportsObject };

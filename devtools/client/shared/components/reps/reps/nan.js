@@ -2,52 +2,42 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-"use strict";
+import { span } from "resource://devtools/client/shared/vendor/react-dom-factories.mjs";
+import PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
 
-// Make this available to both AMD and CJS environments
-define(function (require, exports, module) {
-  // Dependencies
-  const {
-    span,
-  } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
+import {
+  getGripType,
+  wrapRender,
+} from "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs";
 
-  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+/**
+ * Renders a NaN object
+ */
 
-  const {
-    getGripType,
-    wrapRender,
-  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
+NaNRep.PropTypes = {
+  shouldRenderTooltip: PropTypes.bool,
+};
 
-  /**
-   * Renders a NaN object
-   */
+function NaNRep(props) {
+  const shouldRenderTooltip = props.shouldRenderTooltip;
 
-  NaNRep.PropTypes = {
-    shouldRenderTooltip: PropTypes.bool,
+  const config = getElementConfig(shouldRenderTooltip);
+
+  return span(config, "NaN");
+}
+
+function getElementConfig(shouldRenderTooltip) {
+  return {
+    className: "objectBox objectBox-nan",
+    title: shouldRenderTooltip ? "NaN" : null,
   };
+}
 
-  function NaNRep(props) {
-    const shouldRenderTooltip = props.shouldRenderTooltip;
+function supportsObject(object, noGrip = false) {
+  return getGripType(object, noGrip) == "NaN";
+}
 
-    const config = getElementConfig(shouldRenderTooltip);
+const rep = wrapRender(NaNRep);
 
-    return span(config, "NaN");
-  }
-
-  function getElementConfig(shouldRenderTooltip) {
-    return {
-      className: "objectBox objectBox-nan",
-      title: shouldRenderTooltip ? "NaN" : null,
-    };
-  }
-
-  function supportsObject(object, noGrip = false) {
-    return getGripType(object, noGrip) == "NaN";
-  }
-
-  // Exports from this module
-  module.exports = {
-    rep: wrapRender(NaNRep),
-    supportsObject,
-  };
-});
+// Exports from this module
+export { rep, supportsObject };

@@ -5,16 +5,21 @@
 "use strict";
 
 loader.lazyGetter(this, "MODE", function () {
-  return require("resource://devtools/client/shared/components/reps/index.js")
-    .MODE;
+  return ChromeUtils.importESModule(
+    "resource://devtools/client/shared/components/reps/index.mjs"
+  ).MODE;
 });
 
 loader.lazyGetter(this, "ElementNode", function () {
-  return require("resource://devtools/client/shared/components/reps/reps/element-node.js");
+  return ChromeUtils.importESModule(
+    "resource://devtools/client/shared/components/reps/reps/element-node.mjs"
+  );
 });
 
 loader.lazyGetter(this, "TextNode", function () {
-  return require("resource://devtools/client/shared/components/reps/reps/text-node.js");
+  return ChromeUtils.importESModule(
+    "resource://devtools/client/shared/components/reps/reps/text-node.mjs"
+  );
 });
 
 loader.lazyRequireGetter(

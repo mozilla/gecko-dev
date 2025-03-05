@@ -14,7 +14,9 @@ import { connect } from "devtools/client/shared/vendor/react-redux";
 import AccessibleImage from "../shared/AccessibleImage";
 import actions from "../../actions/index";
 
-import Reps from "devtools/client/shared/components/reps/index";
+const Reps = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/components/reps/index.mjs"
+);
 const {
   REPS: { Rep },
   MODE,

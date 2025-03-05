@@ -2,63 +2,54 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-"use strict";
+/* eslint no-shadow: ["error", { "allow": ["length"] }] */
 
-// Make this available to both AMD and CJS environments
-define(function (require, exports, module) {
-  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+import PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
+import { wrapRender } from "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs";
+import { MODE } from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
+import * as dom from "resource://devtools/client/shared/vendor/react-dom-factories.mjs";
 
+const { span } = dom;
+
+const ModePropType = PropTypes.oneOf(Object.values(MODE));
+
+GripLengthBubble.propTypes = {
+  object: PropTypes.object.isRequired,
+  maxLengthMap: PropTypes.instanceOf(Map).isRequired,
+  getLength: PropTypes.func.isRequired,
+  mode: ModePropType,
+  visibilityThreshold: PropTypes.number,
+};
+
+function GripLengthBubble(props) {
   const {
-    wrapRender,
-  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
-  const {
-    MODE,
-  } = require("resource://devtools/client/shared/components/reps/reps/constants.js");
-  const {
-    ModePropType,
-  } = require("resource://devtools/client/shared/components/reps/reps/array.js");
+    object,
+    mode = MODE.SHORT,
+    visibilityThreshold = 2,
+    maxLengthMap,
+    getLength,
+    showZeroLength = false,
+  } = props;
 
-  const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
-  const { span } = dom;
-
-  GripLengthBubble.propTypes = {
-    object: PropTypes.object.isRequired,
-    maxLengthMap: PropTypes.instanceOf(Map).isRequired,
-    getLength: PropTypes.func.isRequired,
-    mode: ModePropType,
-    visibilityThreshold: PropTypes.number,
-  };
-
-  function GripLengthBubble(props) {
-    const {
-      object,
-      mode = MODE.SHORT,
-      visibilityThreshold = 2,
-      maxLengthMap,
-      getLength,
-      showZeroLength = false,
-    } = props;
-
-    const length = getLength(object);
-    const isEmpty = length === 0;
-    const isObvious =
-      [MODE.SHORT, MODE.LONG].includes(mode) &&
-      length > 0 &&
-      length <= maxLengthMap.get(mode) &&
-      length <= visibilityThreshold;
-    if ((isEmpty && !showZeroLength) || isObvious) {
-      return "";
-    }
-
-    return span(
-      {
-        className: "objectLengthBubble",
-      },
-      `(${length})`
-    );
+  const length = getLength(object);
+  const isEmpty = length === 0;
+  const isObvious =
+    [MODE.SHORT, MODE.LONG].includes(mode) &&
+    length > 0 &&
+    length <= maxLengthMap.get(mode) &&
+    length <= visibilityThreshold;
+  if ((isEmpty && !showZeroLength) || isObvious) {
+    return "";
   }
 
-  module.exports = {
-    lengthBubble: wrapRender(GripLengthBubble),
-  };
-});
+  return span(
+    {
+      className: "objectLengthBubble",
+    },
+    `(${length})`
+  );
+}
+
+const lengthBubble = wrapRender(GripLengthBubble);
+
+export { lengthBubble };

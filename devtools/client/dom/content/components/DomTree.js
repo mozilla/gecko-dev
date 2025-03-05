@@ -21,10 +21,9 @@ const TreeView = createFactory(
   require("resource://devtools/client/shared/components/tree/TreeView.js")
 );
 // Reps
-const {
-  REPS,
-  MODE,
-} = require("resource://devtools/client/shared/components/reps/index.js");
+const { REPS, MODE } = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/components/reps/index.mjs"
+);
 const { Rep } = REPS;
 
 const Grip = REPS.Grip;

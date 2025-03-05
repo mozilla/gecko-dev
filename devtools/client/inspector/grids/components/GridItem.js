@@ -18,12 +18,14 @@ const {
 } = require("resource://devtools/client/inspector/layout/utils/l10n.js");
 
 loader.lazyGetter(this, "Rep", function () {
-  return require("resource://devtools/client/shared/components/reps/index.js")
-    .REPS.Rep;
+  return ChromeUtils.importESModule(
+    "resource://devtools/client/shared/components/reps/index.mjs"
+  ).REPS.Rep;
 });
 loader.lazyGetter(this, "MODE", function () {
-  return require("resource://devtools/client/shared/components/reps/index.js")
-    .MODE;
+  return ChromeUtils.importESModule(
+    "resource://devtools/client/shared/components/reps/index.mjs"
+  ).MODE;
 });
 
 loader.lazyRequireGetter(

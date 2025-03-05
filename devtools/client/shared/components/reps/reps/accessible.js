@@ -2,196 +2,180 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-"use strict";
-// Make this available to both AMD and CJS environments
-define(function (require, exports, module) {
-  // ReactJS
-  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+/* eslint no-shadow: ["error", { "allow": ["name"] }] */
+
+import PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
+import {
+  button,
+  span,
+} from "resource://devtools/client/shared/vendor/react-dom-factories.mjs";
+
+import { wrapRender } from "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs";
+import { rep as StringRep } from "resource://devtools/client/shared/components/reps/reps/string.mjs";
+
+/**
+ * Renders Accessible object.
+ */
+
+Accessible.propTypes = {
+  object: PropTypes.object.isRequired,
+  inspectIconTitle: PropTypes.string,
+  nameMaxLength: PropTypes.number,
+  onAccessibleClick: PropTypes.func,
+  onAccessibleMouseOver: PropTypes.func,
+  onAccessibleMouseOut: PropTypes.func,
+  onInspectIconClick: PropTypes.func,
+  roleFirst: PropTypes.bool,
+  separatorText: PropTypes.string,
+  shouldRenderTooltip: PropTypes.bool,
+};
+
+function Accessible(props) {
   const {
-    button,
-    span,
-  } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
-
-  // Utils
-  const {
-    wrapRender,
-  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
-  const {
-    rep: StringRep,
-  } = require("resource://devtools/client/shared/components/reps/reps/string.js");
-
-  /**
-   * Renders Accessible object.
-   */
-
-  Accessible.propTypes = {
-    object: PropTypes.object.isRequired,
-    inspectIconTitle: PropTypes.string,
-    nameMaxLength: PropTypes.number,
-    onAccessibleClick: PropTypes.func,
-    onAccessibleMouseOver: PropTypes.func,
-    onAccessibleMouseOut: PropTypes.func,
-    onInspectIconClick: PropTypes.func,
-    roleFirst: PropTypes.bool,
-    separatorText: PropTypes.string,
-    shouldRenderTooltip: PropTypes.bool,
-  };
-
-  function Accessible(props) {
-    const {
-      object,
-      inspectIconTitle,
-      nameMaxLength,
-      onAccessibleClick,
-      onInspectIconClick,
-      roleFirst,
-      separatorText,
-    } = props;
-
-    const isInTree = object.preview && object.preview.isConnected === true;
-
-    const config = getElementConfig({ ...props, isInTree });
-    const elements = getElements(
-      object,
-      nameMaxLength,
-      roleFirst,
-      separatorText
-    );
-    const inspectIcon = getInspectIcon({
-      object,
-      onInspectIconClick,
-      inspectIconTitle,
-      onAccessibleClick,
-      isInTree,
-    });
-
-    return span(config, ...elements, inspectIcon);
-  }
-
-  // Get React Config Obj
-  function getElementConfig(opts) {
-    const {
-      object,
-      isInTree,
-      onAccessibleClick,
-      onAccessibleMouseOver,
-      onAccessibleMouseOut,
-      shouldRenderTooltip,
-      roleFirst,
-    } = opts;
-    const { name, role } = object.preview;
-
-    // Initiate config
-    const config = {
-      "data-link-actor-id": object.actor,
-      className: "objectBox objectBox-accessible",
-    };
-
-    if (isInTree) {
-      if (onAccessibleClick) {
-        Object.assign(config, {
-          onClick: _ => onAccessibleClick(object),
-          className: `${config.className} clickable`,
-        });
-      }
-
-      if (onAccessibleMouseOver) {
-        Object.assign(config, {
-          onMouseOver: _ => onAccessibleMouseOver(object),
-        });
-      }
-
-      if (onAccessibleMouseOut) {
-        Object.assign(config, {
-          onMouseOut: onAccessibleMouseOut,
-        });
-      }
-    }
-
-    // If tooltip, build tooltip
-    if (shouldRenderTooltip) {
-      let tooltip;
-      if (!name) {
-        tooltip = role;
-      } else {
-        const quotedName = `"${name}"`;
-        tooltip = `${roleFirst ? role : quotedName}: ${
-          roleFirst ? quotedName : role
-        }`;
-      }
-
-      config.title = tooltip;
-    }
-
-    // Return config obj
-    return config;
-  }
-
-  // Get Content Elements
-  function getElements(
-    grip,
+    object,
+    inspectIconTitle,
     nameMaxLength,
-    roleFirst = false,
-    separatorText = ": "
-  ) {
-    const { name, role } = grip.preview;
-    const elements = [];
+    onAccessibleClick,
+    onInspectIconClick,
+    roleFirst,
+    separatorText,
+  } = props;
 
-    // If there's a `name` value in `grip.preview`, render it with the
-    // StringRep and push element into Elements array
+  const isInTree = object.preview && object.preview.isConnected === true;
 
-    if (name) {
-      elements.push(
-        StringRep({
-          className: "accessible-name",
-          object: name,
-          cropLimit: nameMaxLength,
-        }),
-        span({ className: "separator" }, separatorText)
-      );
+  const config = getElementConfig({ ...props, isInTree });
+  const elements = getElements(object, nameMaxLength, roleFirst, separatorText);
+  const inspectIcon = getInspectIcon({
+    object,
+    onInspectIconClick,
+    inspectIconTitle,
+    onAccessibleClick,
+    isInTree,
+  });
+
+  return span(config, ...elements, inspectIcon);
+}
+
+// Get React Config Obj
+function getElementConfig(opts) {
+  const {
+    object,
+    isInTree,
+    onAccessibleClick,
+    onAccessibleMouseOver,
+    onAccessibleMouseOut,
+    shouldRenderTooltip,
+    roleFirst,
+  } = opts;
+  const { name, role } = object.preview;
+
+  // Initiate config
+  const config = {
+    "data-link-actor-id": object.actor,
+    className: "objectBox objectBox-accessible",
+  };
+
+  if (isInTree) {
+    if (onAccessibleClick) {
+      Object.assign(config, {
+        onClick: _ => onAccessibleClick(object),
+        className: `${config.className} clickable`,
+      });
     }
 
-    elements.push(span({ className: "accessible-role" }, role));
-    return roleFirst ? elements.reverse() : elements;
-  }
-
-  // Get Icon
-  function getInspectIcon(opts) {
-    const {
-      object,
-      onInspectIconClick,
-      inspectIconTitle,
-      onAccessibleClick,
-      isInTree,
-    } = opts;
-
-    if (!isInTree || !onInspectIconClick) {
-      return null;
+    if (onAccessibleMouseOver) {
+      Object.assign(config, {
+        onMouseOver: _ => onAccessibleMouseOver(object),
+      });
     }
 
-    return button({
-      className: "open-accessibility-inspector",
-      title: inspectIconTitle,
-      onClick: e => {
-        if (onAccessibleClick) {
-          e.stopPropagation();
-        }
-
-        onInspectIconClick(object, e);
-      },
-    });
+    if (onAccessibleMouseOut) {
+      Object.assign(config, {
+        onMouseOut: onAccessibleMouseOut,
+      });
+    }
   }
 
-  // Registration
-  function supportsObject(object) {
-    return (
-      object?.preview && object.typeName && object.typeName === "accessible"
+  // If tooltip, build tooltip
+  if (shouldRenderTooltip) {
+    let tooltip;
+    if (!name) {
+      tooltip = role;
+    } else {
+      const quotedName = `"${name}"`;
+      tooltip = `${roleFirst ? role : quotedName}: ${
+        roleFirst ? quotedName : role
+      }`;
+    }
+
+    config.title = tooltip;
+  }
+
+  // Return config obj
+  return config;
+}
+
+// Get Content Elements
+function getElements(
+  grip,
+  nameMaxLength,
+  roleFirst = false,
+  separatorText = ": "
+) {
+  const { name, role } = grip.preview;
+  const elements = [];
+
+  // If there's a `name` value in `grip.preview`, render it with the
+  // StringRep and push element into Elements array
+
+  if (name) {
+    elements.push(
+      StringRep({
+        className: "accessible-name",
+        object: name,
+        cropLimit: nameMaxLength,
+      }),
+      span({ className: "separator" }, separatorText)
     );
   }
 
-  // Exports from this module
-  module.exports = {
-    rep: wrapRender(Accessible),
-    supportsObject,
-  };
-});
+  elements.push(span({ className: "accessible-role" }, role));
+  return roleFirst ? elements.reverse() : elements;
+}
+
+// Get Icon
+function getInspectIcon(opts) {
+  const {
+    object,
+    onInspectIconClick,
+    inspectIconTitle,
+    onAccessibleClick,
+    isInTree,
+  } = opts;
+
+  if (!isInTree || !onInspectIconClick) {
+    return null;
+  }
+
+  return button({
+    className: "open-accessibility-inspector",
+    title: inspectIconTitle,
+    onClick: e => {
+      if (onAccessibleClick) {
+        e.stopPropagation();
+      }
+
+      onInspectIconClick(object, e);
+    },
+  });
+}
+
+// Registration
+function supportsObject(object) {
+  return object?.preview && object.typeName && object.typeName === "accessible";
+}
+
+const rep = wrapRender(Accessible);
+
+// Exports from this module
+export { rep, supportsObject };

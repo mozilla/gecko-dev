@@ -9,7 +9,7 @@ const isMacOS = Services.appinfo.OS === "Darwin";
 
 const {
   MODE,
-} = require("resource://devtools/client/shared/components/reps/reps/constants.js");
+} = ChromeUtils.importESModule("resource://devtools/client/shared/components/reps/reps/constants.mjs", {global: "current"});
 
 const Utils = require("resource://devtools/client/shared/components/object-inspector/utils/index.js");
 

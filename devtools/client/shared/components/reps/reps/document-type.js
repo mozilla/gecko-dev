@@ -2,61 +2,53 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-"use strict";
+/* eslint no-shadow: ["error", { "allow": ["DocumentType", "name"] }] */
 
-// Make this available to both AMD and CJS environments
-define(function (require, exports, module) {
-  // ReactJS
-  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
-  const {
-    span,
-  } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
+import PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
+import { span } from "resource://devtools/client/shared/vendor/react-dom-factories.mjs";
 
-  // Reps
-  const {
-    getGripType,
-    wrapRender,
-  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
+import {
+  getGripType,
+  wrapRender,
+} from "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs";
 
-  /**
-   * Renders DOM documentType object.
-   */
+/**
+ * Renders DOM documentType object.
+ */
 
-  DocumentType.propTypes = {
-    object: PropTypes.object.isRequired,
-    shouldRenderTooltip: PropTypes.bool,
+DocumentType.propTypes = {
+  object: PropTypes.object.isRequired,
+  shouldRenderTooltip: PropTypes.bool,
+};
+
+function DocumentType(props) {
+  const { object, shouldRenderTooltip } = props;
+  const name =
+    object && object.preview && object.preview.nodeName
+      ? ` ${object.preview.nodeName}`
+      : "";
+
+  const config = getElementConfig({ object, shouldRenderTooltip, name });
+
+  return span(config, `<!DOCTYPE${name}>`);
+}
+
+function getElementConfig(opts) {
+  const { object, shouldRenderTooltip, name } = opts;
+
+  return {
+    "data-link-actor-id": object.actor,
+    className: "objectBox objectBox-document",
+    title: shouldRenderTooltip ? `<!DOCTYPE${name}>` : null,
   };
+}
 
-  function DocumentType(props) {
-    const { object, shouldRenderTooltip } = props;
-    const name =
-      object && object.preview && object.preview.nodeName
-        ? ` ${object.preview.nodeName}`
-        : "";
+// Registration
+function supportsObject(object, noGrip = false) {
+  return object?.preview && getGripType(object, noGrip) === "DocumentType";
+}
 
-    const config = getElementConfig({ object, shouldRenderTooltip, name });
+const rep = wrapRender(DocumentType);
 
-    return span(config, `<!DOCTYPE${name}>`);
-  }
-
-  function getElementConfig(opts) {
-    const { object, shouldRenderTooltip, name } = opts;
-
-    return {
-      "data-link-actor-id": object.actor,
-      className: "objectBox objectBox-document",
-      title: shouldRenderTooltip ? `<!DOCTYPE${name}>` : null,
-    };
-  }
-
-  // Registration
-  function supportsObject(object, noGrip = false) {
-    return object?.preview && getGripType(object, noGrip) === "DocumentType";
-  }
-
-  // Exports from this module
-  module.exports = {
-    rep: wrapRender(DocumentType),
-    supportsObject,
-  };
-});
+// Exports from this module
+export { rep, supportsObject };

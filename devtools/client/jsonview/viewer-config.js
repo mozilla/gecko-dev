@@ -33,7 +33,7 @@ require.config({
   map: {
     "*": {
       Services: "ServicesMock",
-      "resource://devtools/client/shared/components/reps/reps/custom-formatter.js":
+      "resource://devtools/client/shared/components/reps/reps/custom-formatter.mjs":
         "CustomFormatterMock",
     },
   },

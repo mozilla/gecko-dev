@@ -2,182 +2,163 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-"use strict";
+import { span } from "resource://devtools/client/shared/vendor/react-dom-factories.mjs";
+import PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
 
-// Make this available to both AMD and CJS environments
-define(function (require, exports, module) {
-  // Dependencies
-  const {
-    span,
-  } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
-  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
-  const {
-    wrapRender,
-  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
-  const {
-    MODE,
-  } = require("resource://devtools/client/shared/components/reps/reps/constants.js");
-  const {
-    lengthBubble,
-  } = require("resource://devtools/client/shared/components/reps/shared/grip-length-bubble.js");
+import { wrapRender } from "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs";
+import { MODE } from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
+import { Rep } from "resource://devtools/client/shared/components/reps/reps/rep.mjs";
+import { lengthBubble } from "resource://devtools/client/shared/components/reps/shared/grip-length-bubble.mjs";
 
-  const ModePropType = PropTypes.oneOf(Object.values(MODE));
+const ModePropType = PropTypes.oneOf(Object.values(MODE));
 
-  /**
-   * Renders an array. The array is enclosed by left and right bracket
-   * and the max number of rendered items depends on the current mode.
-   */
+/**
+ * Renders an array. The array is enclosed by left and right bracket
+ * and the max number of rendered items depends on the current mode.
+ */
 
-  ArrayRep.propTypes = {
-    mode: ModePropType,
-    object: PropTypes.array.isRequired,
-    shouldRenderTooltip: PropTypes.bool,
+ArrayRep.propTypes = {
+  mode: ModePropType,
+  object: PropTypes.array.isRequired,
+  shouldRenderTooltip: PropTypes.bool,
+};
+
+function ArrayRep(props) {
+  const { object, mode = MODE.SHORT, shouldRenderTooltip = true } = props;
+
+  let brackets;
+  let items;
+  const needSpace = function (space) {
+    return space ? { left: "[ ", right: " ]" } : { left: "[", right: "]" };
   };
 
-  function ArrayRep(props) {
-    const { object, mode = MODE.SHORT, shouldRenderTooltip = true } = props;
-
-    let brackets;
-    let items;
-    const needSpace = function (space) {
-      return space ? { left: "[ ", right: " ]" } : { left: "[", right: "]" };
-    };
-
-    if (mode === MODE.TINY) {
-      const isEmpty = object.length === 0;
-      if (isEmpty) {
-        items = [];
-      } else {
-        items = [
-          span(
-            {
-              className: "more-ellipsis",
-            },
-            "…"
-          ),
-        ];
-      }
-      brackets = needSpace(false);
+  if (mode === MODE.TINY) {
+    const isEmpty = object.length === 0;
+    if (isEmpty) {
+      items = [];
     } else {
-      items = arrayIterator(props, object, maxLengthMap.get(mode));
-      brackets = needSpace(!!items.length);
-    }
-
-    return span(
-      {
-        className: "objectBox objectBox-array",
-        title: shouldRenderTooltip ? "Array" : null,
-      },
-      lengthBubble({
-        object,
-        mode,
-        maxLengthMap,
-        getLength: () => object.length,
-      }),
-      span(
-        {
-          className: "arrayLeftBracket",
-        },
-        brackets.left
-      ),
-      ...items,
-      span(
-        {
-          className: "arrayRightBracket",
-        },
-        brackets.right
-      )
-    );
-  }
-
-  function arrayIterator(props, array, max) {
-    const items = [];
-
-    for (let i = 0; i < array.length && i < max; i++) {
-      const config = {
-        mode: MODE.TINY,
-        delim: i == array.length - 1 ? "" : ", ",
-      };
-      let item;
-
-      try {
-        item = ItemRep({
-          ...props,
-          ...config,
-          object: array[i],
-        });
-      } catch (exc) {
-        item = ItemRep({
-          ...props,
-          ...config,
-          object: exc,
-        });
-      }
-      items.push(item);
-    }
-
-    if (array.length > max) {
-      items.push(
+      items = [
         span(
           {
             className: "more-ellipsis",
           },
           "…"
-        )
-      );
+        ),
+      ];
     }
-
-    return items;
+    brackets = needSpace(false);
+  } else {
+    items = arrayIterator(props, object, maxLengthMap.get(mode));
+    brackets = needSpace(!!items.length);
   }
 
-  /**
-   * Renders array item. Individual values are separated by a comma.
-   */
+  return span(
+    {
+      className: "objectBox objectBox-array",
+      title: shouldRenderTooltip ? "Array" : null,
+    },
+    lengthBubble({
+      object,
+      mode,
+      maxLengthMap,
+      getLength: () => object.length,
+    }),
+    span(
+      {
+        className: "arrayLeftBracket",
+      },
+      brackets.left
+    ),
+    ...items,
+    span(
+      {
+        className: "arrayRightBracket",
+      },
+      brackets.right
+    )
+  );
+}
 
-  ItemRep.propTypes = {
-    object: PropTypes.any.isRequired,
-    delim: PropTypes.string.isRequired,
-    mode: ModePropType,
-  };
+function arrayIterator(props, array, max) {
+  const items = [];
 
-  function ItemRep(props) {
-    const {
-      Rep,
-    } = require("resource://devtools/client/shared/components/reps/reps/rep.js");
+  for (let i = 0; i < array.length && i < max; i++) {
+    const config = {
+      mode: MODE.TINY,
+      delim: i == array.length - 1 ? "" : ", ",
+    };
+    let item;
 
-    const { object, delim, mode } = props;
-    return span(
-      {},
-      Rep({
+    try {
+      item = ItemRep({
         ...props,
-        object,
-        mode,
-      }),
-      delim
+        ...config,
+        object: array[i],
+      });
+    } catch (exc) {
+      item = ItemRep({
+        ...props,
+        ...config,
+        object: exc,
+      });
+    }
+    items.push(item);
+  }
+
+  if (array.length > max) {
+    items.push(
+      span(
+        {
+          className: "more-ellipsis",
+        },
+        "…"
+      )
     );
   }
 
-  function getLength(object) {
-    return object.length;
-  }
+  return items;
+}
 
-  function supportsObject(object, noGrip = false) {
-    return (
-      noGrip &&
-      (Array.isArray(object) ||
-        Object.prototype.toString.call(object) === "[object Arguments]")
-    );
-  }
+/**
+ * Renders array item. Individual values are separated by a comma.
+ */
 
-  const maxLengthMap = new Map();
-  maxLengthMap.set(MODE.SHORT, 3);
-  maxLengthMap.set(MODE.LONG, 10);
+ItemRep.propTypes = {
+  object: PropTypes.any.isRequired,
+  delim: PropTypes.string.isRequired,
+  mode: ModePropType,
+};
 
-  // Exports from this module
-  module.exports = {
-    rep: wrapRender(ArrayRep),
-    supportsObject,
-    maxLengthMap,
-    getLength,
-  };
-});
+function ItemRep(props) {
+  const { object, delim, mode } = props;
+  return span(
+    {},
+    Rep({
+      ...props,
+      object,
+      mode,
+    }),
+    delim
+  );
+}
+
+function getLength(object) {
+  return object.length;
+}
+
+function supportsObject(object, noGrip = false) {
+  return (
+    noGrip &&
+    (Array.isArray(object) ||
+      Object.prototype.toString.call(object) === "[object Arguments]")
+  );
+}
+
+const maxLengthMap = new Map();
+maxLengthMap.set(MODE.SHORT, 3);
+maxLengthMap.set(MODE.LONG, 10);
+
+const rep = wrapRender(ArrayRep);
+
+// Exports from this module
+export { rep, supportsObject, maxLengthMap, getLength, ModePropType };

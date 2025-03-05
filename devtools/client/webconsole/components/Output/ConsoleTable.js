@@ -16,8 +16,10 @@ const {
   getDescriptorValue,
 } = require("resource://devtools/client/webconsole/utils/messages.js");
 loader.lazyGetter(this, "MODE", function () {
-  return require("resource://devtools/client/shared/components/reps/index.js")
-    .MODE;
+  return ChromeUtils.importESModule(
+    "resource://devtools/client/shared/components/reps/index.mjs",
+    { global: "current" }
+  ).MODE;
 });
 
 const GripMessageBody = createFactory(

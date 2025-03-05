@@ -2,109 +2,94 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-"use strict";
+/* eslint no-shadow: ["error", { "allow": ["name"] }] */
 
-// Make this available to both AMD and CJS environments
-define(function (require, exports, module) {
-  // Dependencies
-  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
-  const {
-    span,
-  } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
+import PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
+import { span } from "resource://devtools/client/shared/vendor/react-dom-factories.mjs";
 
-  const {
-    appendRTLClassNameIfNeeded,
-    maybeEscapePropertyName,
-    wrapRender,
-  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
-  const {
-    MODE,
-  } = require("resource://devtools/client/shared/components/reps/reps/constants.js");
+import {
+  appendRTLClassNameIfNeeded,
+  maybeEscapePropertyName,
+  wrapRender,
+} from "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs";
+import { MODE } from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
+import * as Grip from "resource://devtools/client/shared/components/reps/reps/grip.mjs";
+import { Rep } from "resource://devtools/client/shared/components/reps/reps/rep.mjs";
 
-  /**
-   * Property for Obj (local JS objects), Grip (remote JS objects)
-   * and GripMap (remote JS maps and weakmaps) reps.
-   * It's used to render object properties.
-   */
-  PropRep.propTypes = {
-    // Additional class to set on the key element
-    keyClassName: PropTypes.string,
-    // Property name.
-    name: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
-    // Equal character rendered between property name and value.
-    equal: PropTypes.string,
-    mode: PropTypes.oneOf(Object.values(MODE)),
-    onDOMNodeMouseOver: PropTypes.func,
-    onDOMNodeMouseOut: PropTypes.func,
-    onInspectIconClick: PropTypes.func,
-    // Normally a PropRep will quote a property name that isn't valid
-    // when unquoted; but this flag can be used to suppress the
-    // quoting.
-    suppressQuotes: PropTypes.bool,
-    shouldRenderTooltip: PropTypes.bool,
-  };
+/**
+ * Property for Obj (local JS objects), Grip (remote JS objects)
+ * and GripMap (remote JS maps and weakmaps) reps.
+ * It's used to render object properties.
+ */
+PropRep.propTypes = {
+  // Additional class to set on the key element
+  keyClassName: PropTypes.string,
+  // Property name.
+  name: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
+  // Equal character rendered between property name and value.
+  equal: PropTypes.string,
+  mode: PropTypes.oneOf(Object.values(MODE)),
+  onDOMNodeMouseOver: PropTypes.func,
+  onDOMNodeMouseOut: PropTypes.func,
+  onInspectIconClick: PropTypes.func,
+  // Normally a PropRep will quote a property name that isn't valid
+  // when unquoted; but this flag can be used to suppress the
+  // quoting.
+  suppressQuotes: PropTypes.bool,
+  shouldRenderTooltip: PropTypes.bool,
+};
 
-  /**
-   * Function that given a name, a delimiter and an object returns an array
-   * of React elements representing an object property (e.g. `name: value`)
-   *
-   * @param {Object} props
-   * @return {Array} Array of React elements.
-   */
+/**
+ * Function that given a name, a delimiter and an object returns an array
+ * of React elements representing an object property (e.g. `name: value`)
+ *
+ * @param {Object} props
+ * @return {Array} Array of React elements.
+ */
 
-  function PropRep(props) {
-    const Grip = require("resource://devtools/client/shared/components/reps/reps/grip.js");
-    const {
-      Rep,
-    } = require("resource://devtools/client/shared/components/reps/reps/rep.js");
+function PropRep(props) {
+  let { equal, keyClassName, mode, name, shouldRenderTooltip, suppressQuotes } =
+    props;
 
-    let {
-      equal,
-      keyClassName,
-      mode,
-      name,
-      shouldRenderTooltip,
-      suppressQuotes,
-    } = props;
+  const className = `nodeName${keyClassName ? " " + keyClassName : ""}`;
 
-    const className = `nodeName${keyClassName ? " " + keyClassName : ""}`;
-
-    let key;
-    // The key can be a simple string, for plain objects,
-    // or another object for maps and weakmaps.
-    if (typeof name === "string") {
-      if (!suppressQuotes) {
-        name = maybeEscapePropertyName(name);
-      }
-      key = span(
-        {
-          className: appendRTLClassNameIfNeeded(className, name),
-          title: shouldRenderTooltip ? name : null,
-        },
-        name
-      );
-    } else {
-      key = Rep({
-        ...props,
-        className,
-        object: name,
-        mode: mode || MODE.TINY,
-        defaultRep: Grip,
-      });
+  let key;
+  // The key can be a simple string, for plain objects,
+  // or another object for maps and weakmaps.
+  if (typeof name === "string") {
+    if (!suppressQuotes) {
+      name = maybeEscapePropertyName(name);
     }
-
-    return [
-      key,
-      span(
-        {
-          className: "objectEqual",
-        },
-        equal
-      ),
-      Rep({ ...props }),
-    ];
+    key = span(
+      {
+        className: appendRTLClassNameIfNeeded(className, name),
+        title: shouldRenderTooltip ? name : null,
+      },
+      name
+    );
+  } else {
+    key = Rep({
+      ...props,
+      className,
+      object: name,
+      mode: mode || MODE.TINY,
+      defaultRep: Grip,
+    });
   }
 
-  // Exports from this module
-  module.exports = wrapRender(PropRep);
-});
+  return [
+    key,
+    span(
+      {
+        className: "objectEqual",
+      },
+      equal
+    ),
+    Rep({ ...props }),
+  ];
+}
+
+const rep = wrapRender(PropRep);
+
+// Exports from this module
+export default rep;

@@ -10,10 +10,10 @@ const selection = require("resource://devtools/client/shared/components/object-i
 
 const {
   MODE,
-} = require("resource://devtools/client/shared/components/reps/reps/constants.js");
+} = ChromeUtils.importESModule("resource://devtools/client/shared/components/reps/reps/constants.mjs", {global: "current"});
 const {
   REPS: { Rep, Grip },
-} = require("resource://devtools/client/shared/components/reps/reps/rep.js");
+} = ChromeUtils.importESModule("resource://devtools/client/shared/components/reps/reps/rep.mjs", {global: "current"});
 
 function shouldRenderRootsInReps(roots, props = {}) {
   if (roots.length !== 1) {

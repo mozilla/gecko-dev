@@ -38,7 +38,7 @@ Message --> MessageIndent & MessageIcon & CollapseButton & GripMessageBody & Con
 end
 subgraph Reps
 direction TB
-ObjectInspector["ObjectInspector"] --> ObjectIspectorItem --> Rep["Rep<br/>[client/shared/components/reps/rep.js"] --> Rep
+ObjectInspector["ObjectInspector"] --> ObjectIspectorItem --> Rep["Rep<br/>[client/shared/components/reps/rep.mjs"] --> Rep
 end
 SideBar & ConsoleTable & GripMessageBody --> Reps
 Message --> Frame["Frame<br/>[client/shared/components/Frame.js]"] & SmartTrace["SmartTrace<br/>[client/shared/components/SmartTrace.js]"] & TabboxPanel["TabboxPanel<br/>[client/netmonitor/src/components/TabboxPanel.js]"]

@@ -47,7 +47,7 @@ const {
 } = Utils.node;
 const {
   MODE,
-} = require("resource://devtools/client/shared/components/reps/reps/constants.js");
+} = ChromeUtils.importESModule("resource://devtools/client/shared/components/reps/reps/constants.mjs", {global: "current"});
 
 // This implements a component that renders an interactive inspector
 // for looking at JavaScript objects. It expects descriptions of

@@ -35,10 +35,9 @@ loader.lazyRequireGetter(
   "PropTypes",
   "resource://devtools/client/shared/vendor/react-prop-types.js"
 );
-loader.lazyRequireGetter(
-  this,
-  "reps",
-  "resource://devtools/client/shared/components/reps/index.js"
+const reps = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/components/reps/index.mjs",
+  { global: "current" }
 );
 loader.lazyRequireGetter(
   this,

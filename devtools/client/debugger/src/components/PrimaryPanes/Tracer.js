@@ -39,7 +39,9 @@ const VirtualizedTree = require("resource://devtools/client/shared/components/Vi
 const FrameView = createFactory(
   require("resource://devtools/client/shared/components/Frame.js")
 );
-import Reps from "devtools/client/shared/components/reps/index";
+const Reps = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/components/reps/index.mjs"
+);
 const {
   REPS: { Rep },
   MODE,

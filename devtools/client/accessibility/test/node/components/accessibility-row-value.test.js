@@ -18,16 +18,13 @@ const {
 } = require("resource://devtools/client/accessibility/test/node/helpers.js");
 
 const Badges = require("resource://devtools/client/accessibility/components/Badges.js");
-const {
-  REPS: { Rep },
-} = require("resource://devtools/client/shared/components/reps/index.js");
 const AuditController = require("resource://devtools/client/accessibility/components/AuditController.js");
 
 const AccessibilityRowValueClass = require("resource://devtools/client/accessibility/components/AccessibilityRowValue.js");
 const AccessibilityRowValue = createFactory(AccessibilityRowValueClass);
 
 describe("AccessibilityRowValue component:", () => {
-  it("basic render", () => {
+  it("basic render", async () => {
     const store = setupStore({
       preloadedState: { ui: { supports: {} } },
     });
@@ -47,6 +44,11 @@ describe("AccessibilityRowValue component:", () => {
     expect(container.type()).toBe("span");
     expect(container.prop("role")).toBe("presentation");
     expect(container.children().length).toBe(2);
+    const {
+      Reps: { Rep },
+    } = await import(
+      "resource://devtools/client/shared/components/reps/index.mjs"
+    );
     expect(container.childAt(0).type()).toBe(Rep);
     const controller = container.childAt(1);
     expect(controller.type()).toBe(AuditController);

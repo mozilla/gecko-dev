@@ -2,77 +2,67 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-"use strict";
+import PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
+import { span } from "resource://devtools/client/shared/vendor/react-dom-factories.mjs";
 
-// Make this available to both AMD and CJS environments
-define(function (require, exports, module) {
-  // Dependencies
-  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
-  const {
-    span,
-  } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
-  const {
-    cropString,
-    cropMultipleLines,
-    wrapRender,
-  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
-  const {
-    MODE,
-  } = require("resource://devtools/client/shared/components/reps/reps/constants.js");
-  const nodeConstants = require("resource://devtools/client/shared/components/reps/shared/dom-node-constants.js");
+import {
+  cropString,
+  cropMultipleLines,
+  wrapRender,
+} from "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs";
+import { MODE } from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
+import * as nodeConstants from "resource://devtools/client/shared/components/reps/shared/dom-node-constants.mjs";
 
-  /**
-   * Renders DOM comment node.
-   */
+/**
+ * Renders DOM comment node.
+ */
 
-  CommentNode.propTypes = {
-    object: PropTypes.object.isRequired,
-    mode: PropTypes.oneOf(Object.values(MODE)),
-    shouldRenderTooltip: PropTypes.bool,
+CommentNode.propTypes = {
+  object: PropTypes.object.isRequired,
+  mode: PropTypes.oneOf(Object.values(MODE)),
+  shouldRenderTooltip: PropTypes.bool,
+};
+
+function CommentNode(props) {
+  const { object, mode = MODE.SHORT, shouldRenderTooltip } = props;
+
+  let { textContent } = object.preview;
+  if (mode === MODE.TINY || mode === MODE.HEADER) {
+    textContent = cropMultipleLines(textContent, 30);
+  } else if (mode === MODE.SHORT) {
+    textContent = cropString(textContent, 50);
+  }
+
+  const config = getElementConfig({
+    object,
+    textContent,
+    shouldRenderTooltip,
+  });
+
+  return span(config, `<!-- ${textContent} -->`);
+}
+
+function getElementConfig(opts) {
+  const { object, shouldRenderTooltip } = opts;
+
+  // Run textContent through cropString to sanitize
+  const uncroppedText = shouldRenderTooltip
+    ? cropString(object.preview.textContent)
+    : null;
+
+  return {
+    className: "objectBox theme-comment",
+    "data-link-actor-id": object.actor,
+    title: shouldRenderTooltip ? `<!-- ${uncroppedText} -->` : null,
   };
+}
 
-  function CommentNode(props) {
-    const { object, mode = MODE.SHORT, shouldRenderTooltip } = props;
+// Registration
+function supportsObject(object) {
+  return object?.preview?.nodeType === nodeConstants.COMMENT_NODE;
+}
 
-    let { textContent } = object.preview;
-    if (mode === MODE.TINY || mode === MODE.HEADER) {
-      textContent = cropMultipleLines(textContent, 30);
-    } else if (mode === MODE.SHORT) {
-      textContent = cropString(textContent, 50);
-    }
+const rep = wrapRender(CommentNode);
 
-    const config = getElementConfig({
-      object,
-      textContent,
-      shouldRenderTooltip,
-    });
-
-    return span(config, `<!-- ${textContent} -->`);
-  }
-
-  function getElementConfig(opts) {
-    const { object, shouldRenderTooltip } = opts;
-
-    // Run textContent through cropString to sanitize
-    const uncroppedText = shouldRenderTooltip
-      ? cropString(object.preview.textContent)
-      : null;
-
-    return {
-      className: "objectBox theme-comment",
-      "data-link-actor-id": object.actor,
-      title: shouldRenderTooltip ? `<!-- ${uncroppedText} -->` : null,
-    };
-  }
-
-  // Registration
-  function supportsObject(object) {
-    return object?.preview?.nodeType === nodeConstants.COMMENT_NODE;
-  }
-
-  // Exports from this module
-  module.exports = {
-    rep: wrapRender(CommentNode),
-    supportsObject,
-  };
-});
+// Exports from this module
+export { rep, supportsObject };

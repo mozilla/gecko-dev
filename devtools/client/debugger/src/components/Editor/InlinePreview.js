@@ -5,7 +5,9 @@
 import React, { PureComponent } from "devtools/client/shared/vendor/react";
 import { span } from "devtools/client/shared/vendor/react-dom-factories";
 import PropTypes from "devtools/client/shared/vendor/react-prop-types";
-import Reps from "devtools/client/shared/components/reps/index";
+const Reps = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/components/reps/index.mjs"
+);
 
 const {
   REPS: {

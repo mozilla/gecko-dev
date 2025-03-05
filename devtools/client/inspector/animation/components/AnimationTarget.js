@@ -16,10 +16,9 @@ const {
   translateNodeFrontToGrip,
 } = require("resource://devtools/client/inspector/shared/utils.js");
 
-const {
-  REPS,
-  MODE,
-} = require("resource://devtools/client/shared/components/reps/index.js");
+const { REPS, MODE } = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/components/reps/index.mjs"
+);
 const { Rep } = REPS;
 const ElementNode = REPS.ElementNode;
 

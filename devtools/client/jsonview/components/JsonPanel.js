@@ -22,12 +22,12 @@ define(function (require, exports) {
     require("resource://devtools/client/jsonview/components/JsonToolbar.js")
   );
 
-  const {
-    MODE,
-  } = require("resource://devtools/client/shared/components/reps/reps/constants.js");
-  const {
-    Rep,
-  } = require("resource://devtools/client/shared/components/reps/reps/rep.js");
+  const { MODE } = ChromeUtils.importESModule(
+    "resource://devtools/client/shared/components/reps/reps/constants.mjs"
+  );
+  const { Rep } = ChromeUtils.importESModule(
+    "resource://devtools/client/shared/components/reps/reps/rep.mjs"
+  );
 
   const { div } = dom;
 

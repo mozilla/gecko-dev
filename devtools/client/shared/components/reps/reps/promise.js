@@ -2,108 +2,92 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-"use strict";
+import PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
+import { span } from "resource://devtools/client/shared/vendor/react-dom-factories.mjs";
 
-// Make this available to both AMD and CJS environments
-define(function (require, exports, module) {
-  // ReactJS
-  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
-  const {
-    span,
-  } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
+import {
+  getGripType,
+  wrapRender,
+} from "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs";
+import * as Grip from "resource://devtools/client/shared/components/reps/reps/grip.mjs";
+import { MODE } from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
+import { Rep } from "resource://devtools/client/shared/components/reps/reps/rep.mjs";
 
-  // Dependencies
-  const {
-    getGripType,
-    wrapRender,
-  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
+/**
+ * Renders a DOM Promise object.
+ */
 
-  const Grip = require("resource://devtools/client/shared/components/reps/reps/grip.js");
-  const {
-    MODE,
-  } = require("resource://devtools/client/shared/components/reps/reps/constants.js");
+PromiseRep.propTypes = {
+  object: PropTypes.object.isRequired,
+  mode: PropTypes.oneOf(Object.values(MODE)),
+  onDOMNodeMouseOver: PropTypes.func,
+  onDOMNodeMouseOut: PropTypes.func,
+  onInspectIconClick: PropTypes.func,
+  shouldRenderTooltip: PropTypes.bool,
+};
 
-  /**
-   * Renders a DOM Promise object.
-   */
+function PromiseRep(props) {
+  const object = props.object;
 
-  PromiseRep.propTypes = {
-    object: PropTypes.object.isRequired,
-    mode: PropTypes.oneOf(Object.values(MODE)),
-    onDOMNodeMouseOver: PropTypes.func,
-    onDOMNodeMouseOut: PropTypes.func,
-    onInspectIconClick: PropTypes.func,
-    shouldRenderTooltip: PropTypes.bool,
-  };
-
-  function PromiseRep(props) {
-    const object = props.object;
-
-    // @backward-compat { version 85 } On older servers, the preview of a promise was
-    // useless and didn't include the internal promise state, which was directly exposed
-    // in the grip.
-    if (object.promiseState) {
-      const { state, value, reason } = object.promiseState;
-      const ownProperties = Object.create(null);
-      ownProperties["<state>"] = { value: state };
-      let ownPropertiesLength = 1;
-      if (state == "fulfilled") {
-        ownProperties["<value>"] = { value };
-        ++ownPropertiesLength;
-      } else if (state == "rejected") {
-        ownProperties["<reason>"] = { value: reason };
-        ++ownPropertiesLength;
-      }
-      object.preview = {
-        kind: "Object",
-        ownProperties,
-        ownPropertiesLength,
-      };
+  // @backward-compat { version 85 } On older servers, the preview of a promise was
+  // useless and didn't include the internal promise state, which was directly exposed
+  // in the grip.
+  if (object.promiseState) {
+    const { state, value, reason } = object.promiseState;
+    const ownProperties = Object.create(null);
+    ownProperties["<state>"] = { value: state };
+    let ownPropertiesLength = 1;
+    if (state == "fulfilled") {
+      ownProperties["<value>"] = { value };
+      ++ownPropertiesLength;
+    } else if (state == "rejected") {
+      ownProperties["<reason>"] = { value: reason };
+      ++ownPropertiesLength;
     }
-
-    if (props.mode !== MODE.TINY && props.mode !== MODE.HEADER) {
-      return Grip.rep(props);
-    }
-
-    const shouldRenderTooltip = props.shouldRenderTooltip;
-    const config = {
-      "data-link-actor-id": object.actor,
-      className: "objectBox objectBox-object",
-      title: shouldRenderTooltip ? "Promise" : null,
+    object.preview = {
+      kind: "Object",
+      ownProperties,
+      ownPropertiesLength,
     };
-
-    if (props.mode === MODE.HEADER) {
-      return span(config, getTitle(object));
-    }
-
-    const {
-      Rep,
-    } = require("resource://devtools/client/shared/components/reps/reps/rep.js");
-
-    return span(
-      config,
-      getTitle(object),
-      span({ className: "objectLeftBrace" }, " { "),
-      Rep({ object: object.preview.ownProperties["<state>"].value }),
-      span({ className: "objectRightBrace" }, " }")
-    );
   }
 
-  function getTitle(object) {
-    return span({ className: "objectTitle" }, object.class);
+  if (props.mode !== MODE.TINY && props.mode !== MODE.HEADER) {
+    return Grip.rep(props);
   }
 
-  // Registration
-  function supportsObject(object, noGrip = false) {
-    if (!Grip.supportsObject(object, noGrip)) {
-      return false;
-    }
-    return getGripType(object, noGrip) == "Promise";
-  }
-
-  // Exports from this module
-  module.exports = {
-    rep: wrapRender(PromiseRep),
-    supportsObject,
+  const shouldRenderTooltip = props.shouldRenderTooltip;
+  const config = {
+    "data-link-actor-id": object.actor,
+    className: "objectBox objectBox-object",
+    title: shouldRenderTooltip ? "Promise" : null,
   };
-});
+
+  if (props.mode === MODE.HEADER) {
+    return span(config, getTitle(object));
+  }
+
+  return span(
+    config,
+    getTitle(object),
+    span({ className: "objectLeftBrace" }, " { "),
+    Rep({ object: object.preview.ownProperties["<state>"].value }),
+    span({ className: "objectRightBrace" }, " }")
+  );
+}
+
+function getTitle(object) {
+  return span({ className: "objectTitle" }, object.class);
+}
+
+// Registration
+function supportsObject(object, noGrip = false) {
+  if (!Grip.supportsObject(object, noGrip)) {
+    return false;
+  }
+  return getGripType(object, noGrip) == "Promise";
+}
+
+const rep = wrapRender(PromiseRep);
+
+// Exports from this module
+export { rep, supportsObject };

@@ -12,11 +12,9 @@ const {
 const constants = require("resource://devtools/client/webconsole/constants.js");
 const { DEFAULT_FILTERS, FILTERS, MESSAGE_TYPE, MESSAGE_SOURCE } = constants;
 
-loader.lazyRequireGetter(
-  this,
-  "getGripPreviewItems",
-  "resource://devtools/client/shared/components/reps/index.js",
-  true
+const { getGripPreviewItems } = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/components/reps/index.mjs",
+  { global: "current" }
 );
 loader.lazyRequireGetter(
   this,
