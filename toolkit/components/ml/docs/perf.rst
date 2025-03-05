@@ -8,9 +8,8 @@ To do so, we use the `Perfherder <https://wiki.mozilla.org/Perfherder>`_ infrast
 to gather the performance metrics.
 
 Adding a new performance test is done in two steps:
-1. make it work locally
+1. making it work locally
 2. add it in perfherder
-
 
 Run locally
 -----------
@@ -67,12 +66,11 @@ Then add the file in `perftest.toml` and rebuild with `./mach build`.
 
 The test downloads models it uses from the local disk, so you need to prepare them.
 
-We provide a script to automate this. Make sure your Python 3 has PyYAML installed then run::
-
+We provide a script to automate this.
 
 .. code-block:: bash
 
-  ✗ python3 toolkit/components/ml/tests/tools/create_local_hub.py --list-models
+  $ mach python toolkit/components/ml/tests/tools/create_local_hub.py --list-models
   Available git-based models from the YAML:
 
   - xenova-all-minilm-l6-v2 -> path-prefix: onnx-models/Xenova/all-MiniLM-L6-v2/main/
@@ -86,37 +84,36 @@ We provide a script to automate this. Make sure your Python 3 has PyYAML install
 
   (Use `--model <key>` to clone one of these repositories.)
 
-You can then use `--model` to download locally models, by specifying the local MOZ_FETCHES_DIR directory :
+You can then use `--model` to download locally models, by specifying the local
+`MOZ_FETCHES_DIR` directory, via the env var or command line argument :
 
 .. code-block:: bash
 
-  ✗ python3 toolkit/components/ml/tests/tools/create_local_hub.py --model mozilla-smart-tab-emb --fetches-dir /Users/tarekziade/Dev/fetches
+  $ mach python toolkit/components/ml/tests/tools/create_local_hub.py --model mozilla-smart-tab-emb --fetches-dir ~/ml-fetches
   Found existing file /Users/tarekziade/Dev/fetches/ort-wasm-simd-threaded.jsep.wasm, verifying checksum...
   Existing file's checksum matches. Skipping download.
   Updated Git hooks.
   Git LFS initialized.
   Cloning https://huggingface.co/Mozilla/smart-tab-embedding into '/Users/tarekziade/Dev/fetches/onnx-models/Mozilla/smart-tab-embedding/main...
-  Clonage dans '/Users/tarekziade/Dev/fetches/onnx-models/Mozilla/smart-tab-embedding/main'...
+  Cloning in '/Users/tarekziade/Dev/fetches/onnx-models/Mozilla/smart-tab-embedding/main'...
   Checked out revision '2278e76f67ada584cfd3149fd2661dad03674e4d' in '/Users/tarekziade/Dev/fetches/onnx-models/Mozilla/smart-tab-embedding/main'.
 
 Once done, you should then be able to run it locally with :
 
 .. code-block:: bash
 
-   MOZ_FETCHES_DIR=/Users/tarekziade/Dev/fetches ./mach perftest toolkit/components/ml/tests/browser/browser_ml_engine_perf.js --mochitest-extra-args=headless
+   $ MOZ_FETCHES_DIR=~/ml-fetches ./mach perftest toolkit/components/ml/tests/browser/browser_ml_engine_perf.js --mochitest-extra-args=headless
 
 Notice that `MOZ_FETCHES_DIR` is an absolute path to the `root` directory.
-
 
 Add in the CI
 -------------
 
-
 To add the test in the CI you need to add an entry in
 
-- taskcluster/kinds/perftest/linux.yml
-- taskcluster/kinds/perftest/windows11.yml
-- taskcluster/kinds/perftest/macos.yml
+- `taskcluster/kinds/perftest/linux.yml`
+- `taskcluster/kinds/perftest/windows11.yml`
+- `taskcluster/kinds/perftest/macos.yml`
 
 With a unique name that starts with `ml-perf`
 
@@ -157,7 +154,7 @@ Once this is done, try it out with:
 
 .. code-block:: bash
 
-   ./mach try perf --single-run --full --artifact
+   $ ./mach try perf --single-run --full --artifact
 
 
 You should then see the results in treeherder.
