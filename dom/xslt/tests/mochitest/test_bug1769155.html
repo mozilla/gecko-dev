@@ -6,10 +6,6 @@
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" href="/tests/SimpleTest/test.css"/>
   <script>
-    SpecialPowers.pushPrefEnv({
-        set: [["network.xhr.block_sync_system_requests", false]]
-    });
-
     SimpleTest.waitForExplicitFinish();
 
     async function runTest() {

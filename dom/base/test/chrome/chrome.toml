@@ -19,10 +19,7 @@ support-files = [
   "window_nsITextInputProcessor.xhtml",
   "title_window.xhtml",
 ]
-prefs = [
-  "gfx.font_rendering.fallback.async=false",
-  "network.xhr.block_sync_system_requests=false",
-]
+prefs = ["gfx.font_rendering.fallback.async=false"]
 
 ["test_bug120684.xhtml"]
 

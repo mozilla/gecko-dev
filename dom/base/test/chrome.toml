@@ -16,7 +16,6 @@ support-files = [
   "referrer_testserver.sjs",
   "!/image/test/mochitest/shaver.png",
 ]
-prefs = ["network.xhr.block_sync_system_requests=false"] # Bug 721336
 
 ["test_anchor_target_blank_referrer.html"]
 
