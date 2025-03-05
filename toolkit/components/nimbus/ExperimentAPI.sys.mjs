@@ -281,15 +281,6 @@ export const ExperimentAPI = {
   },
 
   /**
-   * Deregisters an event listener.
-   * @param {string} eventName
-   * @param {function} callback
-   */
-  off(eventName, callback) {
-    this._store.off(eventName, callback);
-  },
-
-  /**
    * Returns the recipe for a given experiment slug
    *
    * This should noly be called from the main process.
