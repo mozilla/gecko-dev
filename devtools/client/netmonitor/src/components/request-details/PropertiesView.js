@@ -20,7 +20,9 @@ const {
 } = require("resource://devtools/client/netmonitor/src/actions/search.js");
 
 // Components
-const TreeViewClass = require("resource://devtools/client/shared/components/tree/TreeView.js");
+const TreeViewClass = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/components/tree/TreeView.mjs"
+).default;
 const TreeView = createFactory(TreeViewClass);
 const PropertiesViewContextMenu = require("resource://devtools/client/netmonitor/src/widgets/PropertiesViewContextMenu.js");
 

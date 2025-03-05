@@ -4,9 +4,10 @@
 
 "use strict";
 
-const {
-  ObjectProvider,
-} = require("resource://devtools/client/shared/components/tree/ObjectProvider.js");
+const { ObjectProvider } = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/components/tree/ObjectProvider.mjs",
+  { global: "current" }
+);
 const {
   getFileName,
 } = require("resource://devtools/client/netmonitor/src/utils/request-utils.js");

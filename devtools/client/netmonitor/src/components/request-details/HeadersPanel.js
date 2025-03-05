@@ -75,7 +75,10 @@ loader.lazyGetter(this, "MODE", function () {
 });
 loader.lazyGetter(this, "TreeRow", function () {
   return createFactory(
-    require("resource://devtools/client/shared/components/tree/TreeRow.js")
+    ChromeUtils.importESModule(
+      "resource://devtools/client/shared/components/tree/TreeRow.mjs",
+      { global: "current" }
+    ).default
   );
 });
 loader.lazyRequireGetter(

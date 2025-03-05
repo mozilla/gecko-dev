@@ -14,7 +14,9 @@ const { REPS, MODE } = ChromeUtils.importESModule(
   "resource://devtools/client/shared/components/reps/index.mjs"
 );
 const { Rep } = REPS;
-const TreeViewClass = require("resource://devtools/client/shared/components/tree/TreeView.js");
+const TreeViewClass = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/components/tree/TreeView.mjs"
+).default;
 const TreeView = createFactory(TreeViewClass);
 
 /**

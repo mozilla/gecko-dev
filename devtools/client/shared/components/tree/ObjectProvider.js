@@ -1,98 +1,93 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-"use strict";
 
-// Make this available to both AMD and CJS environments
-define(function (require, exports) {
-  const {
-    JSON_NUMBER,
-  } = require("resource://devtools/client/shared/components/reps/reps/constants.js");
+/* eslint no-shadow: ["error", { "allow": ["name"] }] */
 
-  /**
-   * Implementation of the default data provider. A provider is state less
-   * object responsible for transformation data (usually a state) to
-   * a structure that can be directly consumed by the tree-view component.
-   */
-  const ObjectProvider = {
-    getChildren(object) {
-      const children = [];
+import { JSON_NUMBER } from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
 
-      if (object instanceof ObjectProperty) {
-        object = object.value;
+/**
+ * Implementation of the default data provider. A provider is state less
+ * object responsible for transformation data (usually a state) to
+ * a structure that can be directly consumed by the tree-view component.
+ */
+const ObjectProvider = {
+  getChildren(object) {
+    const children = [];
+
+    if (object instanceof ObjectProperty) {
+      object = object.value;
+    }
+
+    if (!object) {
+      return [];
+    }
+
+    if (object?.type === JSON_NUMBER) {
+      return [];
+    }
+
+    if (typeof object == "string") {
+      return [];
+    }
+
+    for (const prop in object) {
+      try {
+        children.push(new ObjectProperty(prop, object[prop]));
+      } catch (e) {
+        console.error(e);
       }
+    }
+    return children;
+  },
 
-      if (!object) {
-        return [];
-      }
+  hasChildren(object) {
+    if (object instanceof ObjectProperty) {
+      object = object.value;
+    }
 
-      if (object?.type === JSON_NUMBER) {
-        return [];
-      }
+    if (!object) {
+      return false;
+    }
 
-      if (typeof object == "string") {
-        return [];
-      }
+    if (object.type === JSON_NUMBER) {
+      return false;
+    }
 
-      for (const prop in object) {
-        try {
-          children.push(new ObjectProperty(prop, object[prop]));
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      return children;
-    },
+    if (typeof object == "string") {
+      return false;
+    }
 
-    hasChildren(object) {
-      if (object instanceof ObjectProperty) {
-        object = object.value;
-      }
+    if (typeof object !== "object") {
+      return false;
+    }
 
-      if (!object) {
-        return false;
-      }
+    return !!Object.keys(object).length;
+  },
 
-      if (object.type === JSON_NUMBER) {
-        return false;
-      }
+  getLabel(object) {
+    return object instanceof ObjectProperty ? object.name : null;
+  },
 
-      if (typeof object == "string") {
-        return false;
-      }
+  getValue(object) {
+    return object instanceof ObjectProperty ? object.value : null;
+  },
 
-      if (typeof object !== "object") {
-        return false;
-      }
+  getKey(object) {
+    return object instanceof ObjectProperty ? object.name : null;
+  },
 
-      return !!Object.keys(object).length;
-    },
+  getType(object) {
+    return object instanceof ObjectProperty
+      ? typeof object.value
+      : typeof object;
+  },
+};
 
-    getLabel(object) {
-      return object instanceof ObjectProperty ? object.name : null;
-    },
+function ObjectProperty(name, value) {
+  this.name = name;
+  this.value = value;
+}
 
-    getValue(object) {
-      return object instanceof ObjectProperty ? object.value : null;
-    },
-
-    getKey(object) {
-      return object instanceof ObjectProperty ? object.name : null;
-    },
-
-    getType(object) {
-      return object instanceof ObjectProperty
-        ? typeof object.value
-        : typeof object;
-    },
-  };
-
-  function ObjectProperty(name, value) {
-    this.name = name;
-    this.value = value;
-  }
-
-  // Exports from this module
-  exports.ObjectProperty = ObjectProperty;
-  exports.ObjectProvider = ObjectProvider;
-});
+// Exports from this module
+export { ObjectProperty, ObjectProvider };

@@ -16,7 +16,9 @@ const {
 } = require("resource://devtools/client/shared/vendor/react-redux.js");
 
 const TreeView = createFactory(
-  require("resource://devtools/client/shared/components/tree/TreeView.js")
+  ChromeUtils.importESModule(
+    "resource://devtools/client/shared/components/tree/TreeView.mjs"
+  ).default
 );
 // Reps
 const { MODE } = ChromeUtils.importESModule(

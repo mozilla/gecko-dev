@@ -34,7 +34,7 @@ module.exports = {
     "^devtools/shared/flags": `${fixturesDir}/empty-module`,
     "^resource://devtools/shared/indexed-db.js": `${fixturesDir}/indexed-db`,
     "^devtools/shared/layout/utils": `${fixturesDir}/empty-module`,
-    "^devtools/client/shared/components/tree/TreeView": `${fixturesDir}/empty-module`,
+    "^devtools/client/shared/components/tree/TreeView.mjs": `${fixturesDir}/empty-module`,
     "/target-command.js": `${fixturesDir}/target-command`,
     // Map all require("devtools/...") to the real devtools root.
     "^devtools/(.*)": `${__dirname}/../../../$1`,

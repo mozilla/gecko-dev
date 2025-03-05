@@ -4,9 +4,10 @@
 
 "use strict";
 
-const {
-  ObjectProvider,
-} = require("resource://devtools/client/shared/components/tree/ObjectProvider.js");
+const { ObjectProvider } = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/components/tree/ObjectProvider.mjs",
+  { global: "current" }
+);
 
 /**
  * Custom tree provider.

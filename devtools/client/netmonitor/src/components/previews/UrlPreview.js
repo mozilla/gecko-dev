@@ -20,7 +20,10 @@ const {
 } = require("resource://devtools/client/netmonitor/src/utils/request-utils.js");
 
 const TreeRow = createFactory(
-  require("resource://devtools/client/shared/components/tree/TreeRow.js")
+  ChromeUtils.importESModule(
+    "resource://devtools/client/shared/components/tree/TreeRow.mjs",
+    { global: "current" }
+  ).default
 );
 
 loader.lazyGetter(this, "MODE", function () {

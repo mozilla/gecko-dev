@@ -18,7 +18,10 @@ const {
   connect,
 } = require("resource://devtools/client/shared/vendor/react-redux.js");
 
-const TreeRow = require("resource://devtools/client/shared/components/tree/TreeRow.js");
+const TreeRow = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/components/tree/TreeRow.mjs",
+  { global: "current" }
+).default;
 const AuditFilter = createFactory(
   require("resource://devtools/client/accessibility/components/AuditFilter.js")
 );

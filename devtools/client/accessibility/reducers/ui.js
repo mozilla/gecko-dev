@@ -20,7 +20,9 @@ const {
   UPDATE_DISPLAY_TABBING_ORDER,
 } = require("resource://devtools/client/accessibility/constants.js");
 
-const TreeView = require("resource://devtools/client/shared/components/tree/TreeView.js");
+const TreeView = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/components/tree/TreeView.mjs"
+).default;
 
 /**
  * Initial state definition

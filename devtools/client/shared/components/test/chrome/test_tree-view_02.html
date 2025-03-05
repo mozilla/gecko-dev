@@ -35,8 +35,9 @@ window.onload = function() {
       findRenderedDOMComponentWithClass,
       scryRenderedDOMComponentsWithClass,
     } = browserRequire("devtools/client/shared/vendor/react-dom-test-utils");
-    const TreeView =
-      browserRequire("devtools/client/shared/components/tree/TreeView");
+    const TreeView = ChromeUtils.importESModule(
+      "resource://devtools/client/shared/components/tree/TreeView.mjs"
+    ).default;
 
       function testKeyboardInteraction(tree, treeViewEl, rows) {
         // Expected tree when filtered (C is filtered)

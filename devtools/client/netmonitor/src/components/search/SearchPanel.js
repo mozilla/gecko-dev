@@ -19,10 +19,14 @@ const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-t
 const {
   connect,
 } = require("resource://devtools/client/shared/vendor/react-redux.js");
-const TreeViewClass = require("resource://devtools/client/shared/components/tree/TreeView.js");
+const TreeViewClass = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/components/tree/TreeView.mjs"
+).default;
 const TreeView = createFactory(TreeViewClass);
 const LabelCell = createFactory(
-  require("resource://devtools/client/shared/components/tree/LabelCell.js")
+  ChromeUtils.importESModule(
+    "resource://devtools/client/shared/components/tree/LabelCell.mjs"
+  ).default
 );
 const {
   SearchProvider,

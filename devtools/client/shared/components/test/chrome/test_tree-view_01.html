@@ -32,8 +32,10 @@ window.onload = function() {
       findRenderedDOMComponentWithTag,
       scryRenderedDOMComponentsWithClass,
     } = browserRequire("devtools/client/shared/vendor/react-dom-test-utils");
-    const TreeView =
-      browserRequire("devtools/client/shared/components/tree/TreeView");
+    const TreeView = ChromeUtils.importESModule(
+      "resource://devtools/client/shared/components/tree/TreeView.mjs",
+      { global: "current" }
+    ).default;
 
     const _props = {
       ...TEST_TREE_VIEW_INTERFACE,

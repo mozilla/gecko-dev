@@ -18,7 +18,9 @@ const {
 } = require("resource://devtools/client/netmonitor/src/utils/request-utils.js");
 
 // Components
-const TreeViewClass = require("resource://devtools/client/shared/components/tree/TreeView.js");
+const TreeViewClass = ChromeUtils.importESModule(
+  "resource://devtools/client/shared/components/tree/TreeView.mjs"
+).default;
 const PropertiesView = createFactory(
   require("resource://devtools/client/netmonitor/src/components/request-details/PropertiesView.js")
 );
