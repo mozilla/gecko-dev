@@ -55,6 +55,7 @@ class DomTree extends Component {
   constructor(props) {
     super(props);
     this.onFilter = this.onFilter.bind(this);
+    this.expandedNodes = new Set();
   }
 
   /**
@@ -127,6 +128,10 @@ class DomTree extends Component {
       openLink,
       provider: new GripProvider(grips, dispatch),
       renderValue,
+      // Ensure passing a stable expanded Set,
+      // so that TreeView doesn't reset to default prop's Set
+      // on each new received props.
+      expandedNodes: this.expandedNodes,
     });
   }
 }

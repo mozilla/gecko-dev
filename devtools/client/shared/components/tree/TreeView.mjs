@@ -33,18 +33,21 @@ const SUPPORTED_KEYS = [
   "Escape",
 ];
 
-const defaultProps = {
-  object: null,
-  renderRow: null,
-  provider: ObjectProvider,
-  expandedNodes: new Set(),
-  selected: null,
-  defaultSelectFirstNode: true,
-  active: null,
-  expandableStrings: true,
-  maxStringLength: 50,
-  columns: [],
-};
+// Use a function in order to avoid shared Set/Array between each instance!
+function getDefaultProps() {
+  return {
+    object: null,
+    renderRow: null,
+    provider: ObjectProvider,
+    expandedNodes: new Set(),
+    selected: null,
+    defaultSelectFirstNode: true,
+    active: null,
+    expandableStrings: true,
+    maxStringLength: 50,
+    columns: [],
+  };
+}
 
 /**
  * This component represents a tree view with expandable/collapsible nodes.
@@ -154,7 +157,7 @@ class TreeView extends Component {
   }
 
   static get defaultProps() {
-    return defaultProps;
+    return getDefaultProps();
   }
 
   static subPath(path, subKey) {
