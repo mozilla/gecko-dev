@@ -16,6 +16,8 @@ run-if = ["nightly_build"] # Bug 1890946
 
 ["browser_pdfjs_caret_browsing_mode.js"]
 
+["browser_pdfjs_check_alttext_en.js"]
+
 ["browser_pdfjs_chrome_events.js"]
 
 ["browser_pdfjs_download_button.js"]
