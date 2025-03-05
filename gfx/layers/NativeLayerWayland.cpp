@@ -102,23 +102,6 @@ void NativeLayerRootWayland::Init() {
   mTmpBuffer = widget::WaylandBufferSHM::Create(LayoutDeviceIntSize(1, 1));
   mDRMFormat = new DRMFormat(GBM_FORMAT_ARGB8888);
 
-  // Would be great to use synced commit to subsurfaces but we can't do it now.
-  // We're getting frame callbacks from subsurfaces with the same timestamp
-  // like:
-  //
-  // frame callback layer 1 time 49873
-  // frame callback layer 2 time 49873
-  // frame callback layer 3 time 49873
-  // frame callback layer 4 time 49873
-  // ...
-  //
-  // But we don't know which one is the last to perform commit to
-  // parent surface to reflect all changes.
-
-  // Request force commit to parent surface on frame callback to
-  // sync rendering of child subsurfaces.
-  // mSurface->RequestFrameCallbackForceCommitLocked(lock);
-
   // Unmap all layers if nsWindow is unmapped
   WaylandSurfaceLock lock(mSurface);
   mSurface->SetUnmapCallbackLocked(lock, [this, self = RefPtr{this}]() -> void {
