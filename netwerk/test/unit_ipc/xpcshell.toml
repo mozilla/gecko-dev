@@ -78,7 +78,10 @@ support-files = [
 ]
 
 ["test_XHR_redirects.js"]
-prefs = ["network.allow_raw_sockets_in_content_processes=true"]
+prefs = [
+  "network.allow_raw_sockets_in_content_processes=true",
+  "network.xhr.block_sync_system_requests=false",
+]
 
 ["test_alt-data_closeWithStatus_wrap.js"]
 prefs = ["network.allow_raw_sockets_in_content_processes=true"]
@@ -218,7 +221,10 @@ run-sequentially = "doesn't play nice with others."
 prefs = ["network.allow_raw_sockets_in_content_processes=true"]
 
 ["test_reentrancy_wrap.js"]
-prefs = ["network.allow_raw_sockets_in_content_processes=true"]
+prefs = [
+  "network.allow_raw_sockets_in_content_processes=true",
+  "network.xhr.block_sync_system_requests=false",
+]
 
 ["test_reply_without_content_type_wrap.js"]
 prefs = ["network.allow_raw_sockets_in_content_processes=true"]
@@ -242,4 +248,7 @@ prefs = ["network.allow_raw_sockets_in_content_processes=true"]
 skip-if = ["os == 'android'"]
 
 ["test_xmlhttprequest_wrap.js"]
-prefs = ["network.allow_raw_sockets_in_content_processes=true"]
+prefs = [
+  "network.allow_raw_sockets_in_content_processes=true",
+  "network.xhr.block_sync_system_requests=false",
+]
