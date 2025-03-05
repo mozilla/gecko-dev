@@ -261,15 +261,6 @@ mozilla::ipc::IPCResult DocAccessibleChild::RecvDoActionAsync(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult DocAccessibleChild::RecvSetCaretOffset(
-    const uint64_t& aID, const int32_t& aOffset) {
-  HyperTextAccessible* acc = IdToHyperTextAccessible(aID);
-  if (acc && acc->IsTextRole() && acc->IsValidOffset(aOffset)) {
-    acc->SetCaretOffset(aOffset);
-  }
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult DocAccessibleChild::RecvSetTextSelection(
     const uint64_t& aStartID, const int32_t& aStartOffset,
     const uint64_t& aEndID, const int32_t& aEndOffset,

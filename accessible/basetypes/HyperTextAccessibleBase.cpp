@@ -629,6 +629,16 @@ int32_t HyperTextAccessibleBase::CaretOffset() const {
   return htOffset;
 }
 
+void HyperTextAccessibleBase::SetCaretOffset(int32_t aOffset) {
+  TextLeafPoint point = ToTextLeafPoint(aOffset);
+  TextLeafRange range(point, point);
+  if (!range) {
+    NS_ERROR("Wrong in offset");
+    return;
+  }
+  range.SetSelection(TextLeafRange::kRemoveAllExistingSelectedRanges);
+}
+
 int32_t HyperTextAccessibleBase::CaretLineNumber() {
   TextLeafPoint point = TextLeafPoint::GetCaret(const_cast<Accessible*>(Acc()));
   if (point.mOffset == 0 && point.mAcc == Acc()) {

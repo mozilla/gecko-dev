@@ -93,9 +93,6 @@ class DocAccessibleChild : public PDocAccessibleChild {
   virtual mozilla::ipc::IPCResult RecvDoActionAsync(
       const uint64_t& aID, const uint8_t& aIndex) override;
 
-  virtual mozilla::ipc::IPCResult RecvSetCaretOffset(
-      const uint64_t& aID, const int32_t& aOffset) override;
-
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
   virtual mozilla::ipc::IPCResult RecvSetTextSelection(
       const uint64_t& aStartID, const int32_t& aStartOffset,

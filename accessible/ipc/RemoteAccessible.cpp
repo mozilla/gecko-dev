@@ -2325,10 +2325,6 @@ nsTArray<int32_t>& RemoteAccessible::GetCachedHyperTextOffsets() {
       CacheKey::HyperTextOffsets);
 }
 
-void RemoteAccessible::SetCaretOffset(int32_t aOffset) {
-  Unused << mDoc->SendSetCaretOffset(mID, aOffset);
-}
-
 Maybe<int32_t> RemoteAccessible::GetIntARIAAttr(nsAtom* aAttrName) const {
   if (RequestDomainsIfInactive(CacheDomain::ARIA)) {
     return Nothing();

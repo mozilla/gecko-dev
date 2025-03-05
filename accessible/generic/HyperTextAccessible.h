@@ -144,7 +144,6 @@ class HyperTextAccessible : public AccessibleWrap,
    * Get/set caret offset, if no caret then -1.
    */
   virtual int32_t CaretOffset() const override;
-  virtual void SetCaretOffset(int32_t aOffset) override;
 
   /**
    * Return the caret rect and the widget containing the caret within this

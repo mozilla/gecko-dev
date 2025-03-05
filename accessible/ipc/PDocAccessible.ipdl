@@ -157,8 +157,6 @@ child:
 
   // AccessibleText
 
-  async SetCaretOffset(uint64_t aID, int32_t aOffset);
-
   async SetTextSelection(uint64_t aStartID, int32_t aStartOffset,
                      uint64_t aEndID, int32_t aEndOffset,
                      int32_t aSelectionNum);

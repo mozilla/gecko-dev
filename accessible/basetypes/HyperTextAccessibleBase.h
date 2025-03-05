@@ -82,7 +82,7 @@ class HyperTextAccessibleBase {
    * Get/set caret offset, if no caret then -1.
    */
   virtual int32_t CaretOffset() const;
-  virtual void SetCaretOffset(int32_t aOffset) = 0;
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY virtual void SetCaretOffset(int32_t aOffset);
 
   /**
    * Provide the line number for the caret.
