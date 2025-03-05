@@ -63,9 +63,9 @@ void DOMSecurityMonitor::AuditParsingOfHTMLXMLFragments(
                        "Editor/ColumnBreakpoint.js"),
       nsLiteralCString(
           "resource://devtools/client/shared/vendor/fluent-react.js"),
-      "resource://devtools/client/shared/vendor/react-dom.js"_ns,
+      "resource://devtools/client/shared/vendor/react-dom.mjs"_ns,
       nsLiteralCString(
-          "resource://devtools/client/shared/vendor/react-dom-dev.js"),
+          "resource://devtools/client/shared/vendor/react-dom-dev.mjs"),
       nsLiteralCString(
           "resource://devtools/client/shared/widgets/FilterWidget.js"),
       nsLiteralCString("resource://devtools/client/shared/widgets/tooltip/"
