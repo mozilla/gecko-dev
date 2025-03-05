@@ -1260,15 +1260,64 @@
 }
 
 #vertical-pinned-tabs-container {
-  --tab-inline-padding: calc((calc(var(--tab-collapsed-background-width) + 2 * var(--tab-pinned-margin-inline-expanded) - var(--icon-size-default)) / 2));
-  display: none;
-  grid-template-columns: repeat(auto-fit, minmax(var(--tab-pinned-min-width-expanded), auto));
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: var(--vertical-tabs-scrollbar-color);
   /* Fit slightly more than 5 tabs + padding before overflowing */
   max-height: calc(5 * var(--tabstrip-min-height) + var(--space-large));
+  --tab-inline-padding: calc(
+    (
+      calc(
+          var(--tab-collapsed-background-width) + 2 *
+            var(--tab-pinned-margin-inline-expanded) - var(--icon-size-default)
+        ) /
+        2
+    )
+  );
+
+  &:empty {
+    display: none;
+  }
+
+  &::part(scrollbutton-up),
+  &::part(scrollbutton-down) {
+    display: none;
+  }
+
+  &::part(scrollbox) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--vertical-tabs-scrollbar-color);
+    overflow-y: auto;
+  }
+
+  &::part(items-wrapper) {
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(var(--tab-pinned-min-width-expanded), auto)
+    );
+    display: grid;
+    padding-inline: var(--tab-pinned-container-margin-inline-expanded);
+  }
+
+  &:not([scrolledtostart])::part(overflow-start-indicator),
+  &:not([scrolledtoend])::part(overflow-end-indicator) {
+    background-image: linear-gradient(
+      to top,
+      transparent 0%,
+      var(--toolbox-bgcolor)
+    );
+    background-repeat: no-repeat;
+    pointer-events: none;
+    position: relative;
+    height: 16px;
+    z-index: 1;
+  }
+
+  &::part(overflow-start-indicator) {
+    margin-block: 0 -16px;
+  }
+
+  &::part(overflow-end-indicator) {
+    transform: scaleY(-1);
+    margin-block: -16px 0;
+  }
 
   .tab-content {
     justify-content: center;
@@ -1291,8 +1340,6 @@
   }
 
   #tabbrowser-tabs[expanded] > & {
-    padding-inline: var(--tab-pinned-container-margin-inline-expanded);
-
     .tab-background {
       margin-inline: var(--tab-pinned-margin-inline-expanded);
     }
