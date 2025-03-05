@@ -15202,11 +15202,6 @@
   value: 10
   mirror: once
 
-- name: places.frecency.pages.alternative.interactions.numInteractions
-  type: uint32_t
-  value: 20
-  mirror: once
-
 # Max difference allowed between a visit and an interaction.
 - name: places.frecency.pages.alternative.interactions.maxVisitGapSeconds
   type: uint32_t

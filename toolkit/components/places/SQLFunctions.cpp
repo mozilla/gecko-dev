@@ -843,7 +843,7 @@ CalculateAltFrecencyFunction::OnFunctionCall(mozIStorageValueArray* aArguments,
       "        OR (total_view_time >= :viewTimeIfManyKeypressesSeconds * 1000 "
       "          AND key_presses >= :manyKeypresses)) "
       "  ORDER BY created_at DESC "
-      "  LIMIT :numInteractions "
+      "  LIMIT :numSampledVisits "
       "), "
       "visit_interaction AS ( "
       "  SELECT "
@@ -995,11 +995,6 @@ CalculateAltFrecencyFunction::OnFunctionCall(mozIStorageValueArray* aArguments,
       StaticPrefs::
           places_frecency_pages_alternative_maxDaysFromToday_AtStartup());
   rv = stmt->BindUTF8StringByName("maxDaysFromToday"_ns, maxDaysFromToday);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = stmt->BindInt64ByName(
-      "numInteractions"_ns,
-      StaticPrefs::
-          places_frecency_pages_alternative_interactions_numInteractions_AtStartup());
   NS_ENSURE_SUCCESS(rv, rv);
   rv = stmt->BindInt64ByName(
       "maxVisitGapSeconds"_ns,

@@ -16,8 +16,6 @@ add_task(async function () {
       variables: {
         pagesNumSampledVisits:
           "places.frecency.pages.alternative.numSampledVisits",
-        pagesNumInteractions:
-          "places.frecency.pages.alternative.interactions.numInteractions",
         pagesMaxVisitGap:
           "places.frecency.pages.alternative.interactions.maxVisitGapSeconds",
         pagesViewTimeSeconds:
