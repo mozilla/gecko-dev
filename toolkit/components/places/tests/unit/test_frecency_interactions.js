@@ -37,6 +37,9 @@ const SAMPLED_VISITS_THRESHOLD = Services.prefs.getIntPref(
 const INTERACTIONS_THRESHOLD = Services.prefs.getIntPref(
   "places.frecency.pages.alternative.interactions.numInteractions"
 );
+const MAX_VISIT_GAP = Services.prefs.getIntPref(
+  "places.frecency.pages.alternative.interactions.maxVisitGapSeconds"
+);
 
 async function insertIntoMozPlacesMetadata(
   place_id,
@@ -591,6 +594,59 @@ add_task(async function temp_redirect_alt_frecency() {
     newPage3.alt_frecency,
     page3.alt_frecency,
     "Alt frecency has increased"
+  );
+
+  await PlacesUtils.history.clear();
+});
+
+add_task(async function interaction_visit_gap() {
+  let url = "https://testdomain1.moz.org/";
+  let now = new Date();
+  let maxVisitGapMs = MAX_VISIT_GAP * 1000;
+
+  // Insert visits that match the number of sample threshold to avoid
+  // interesting interactions becoming virtual visits.
+  for (let i = 0; i < SAMPLED_VISITS_THRESHOLD; ++i) {
+    await PlacesTestUtils.addVisits([
+      {
+        url,
+        visitDate: now,
+      },
+    ]);
+  }
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
+
+  let page = await getPageWithUrl(url);
+  Assert.notEqual(page.alt_frecency, null, "Alt frecency is not null");
+
+  info("Add an interaction just below the visit gap.");
+  await insertIntoMozPlacesMetadata(page.id, {
+    total_view_time: VIEWTIME_THRESHOLD,
+    created_at: now.getTime() - maxVisitGapMs - 1,
+    updated_at: now.getTime() - maxVisitGapMs - 1,
+  });
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
+
+  let updatedPage = await getPageWithUrl(url);
+  Assert.equal(
+    updatedPage.alt_frecency,
+    page.alt_frecency,
+    "Alt frecency didn't change."
+  );
+
+  info("Add an interaction at the visit gap.");
+  await insertIntoMozPlacesMetadata(page.id, {
+    total_view_time: VIEWTIME_THRESHOLD,
+    created_at: now.getTime() - maxVisitGapMs,
+    updated_at: now.getTime() - maxVisitGapMs,
+  });
+  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
+
+  updatedPage = await getPageWithUrl(url);
+  Assert.greater(
+    updatedPage.alt_frecency,
+    page.alt_frecency,
+    "Alt frecency increased."
   );
 
   await PlacesUtils.history.clear();
