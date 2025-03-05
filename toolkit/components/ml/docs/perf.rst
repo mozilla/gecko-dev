@@ -67,20 +67,37 @@ Then add the file in `perftest.toml` and rebuild with `./mach build`.
 
 The test downloads models it uses from the local disk, so you need to prepare them.
 
-- Create a directory with a subdirectory called `onnx-models`.
-- Download all the models in the subdirectory
+We provide a script to automate this. Make sure your Python 3 has PyYAML installed then run::
 
-The directory follows a `organization/name/revision` structure.
-To make the previous example work, it would require you to download
-the model files locally under `<ROOT>/onnx-models/Xenova/all-MiniLM-L6-v2/main`
-
-Example:
 
 .. code-block:: bash
 
-  cd ROOT/onnx-models
-  git lfs install
-  git clone -b main https://huggingface.co/Xenova/all-MiniLM-L6-v2 onnx-models/Xenova/all-MiniLM-L6-v2/main/
+  ✗ python3 toolkit/components/ml/tests/tools/create_local_hub.py --list-models
+  Available git-based models from the YAML:
+
+  - xenova-all-minilm-l6-v2 -> path-prefix: onnx-models/Xenova/all-MiniLM-L6-v2/main/
+  - mozilla-ner -> path-prefix: onnx-models/Mozilla/distilbert-uncased-NER-LoRA/main/
+  - mozilla-intent -> path-prefix: onnx-models/Mozilla/mobilebert-uncased-finetuned-LoRA-intent-classifier/main/
+  - mozilla-autofill -> path-prefix: onnx-models/Mozilla/tinybert-uncased-autofill/main/
+  - distilbart-cnn-12-6 -> path-prefix: onnx-models/Mozilla/distilbart-cnn-12-6/main/
+  - qwen2.5-0.5-instruct -> path-prefix: onnx-models/Mozilla/Qwen2.5-0.5B-Instruct/main/
+  - mozilla-smart-tab-topic -> path-prefix: onnx-models/Mozilla/smart-tab-topic/main/
+  - mozilla-smart-tab-emb -> path-prefix: onnx-models/Mozilla/smart-tab-embedding/main/
+
+  (Use `--model <key>` to clone one of these repositories.)
+
+You can then use `--model` to download locally models, by specifying the local MOZ_FETCHES_DIR directory :
+
+.. code-block:: bash
+
+  ✗ python3 toolkit/components/ml/tests/tools/create_local_hub.py --model mozilla-smart-tab-emb --fetches-dir /Users/tarekziade/Dev/fetches
+  Found existing file /Users/tarekziade/Dev/fetches/ort-wasm-simd-threaded.jsep.wasm, verifying checksum...
+  Existing file's checksum matches. Skipping download.
+  Updated Git hooks.
+  Git LFS initialized.
+  Cloning https://huggingface.co/Mozilla/smart-tab-embedding into '/Users/tarekziade/Dev/fetches/onnx-models/Mozilla/smart-tab-embedding/main...
+  Clonage dans '/Users/tarekziade/Dev/fetches/onnx-models/Mozilla/smart-tab-embedding/main'...
+  Checked out revision '2278e76f67ada584cfd3149fd2661dad03674e4d' in '/Users/tarekziade/Dev/fetches/onnx-models/Mozilla/smart-tab-embedding/main'.
 
 Once done, you should then be able to run it locally with :
 
