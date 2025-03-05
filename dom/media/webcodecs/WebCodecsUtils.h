@@ -42,6 +42,50 @@ namespace mozilla {
   WEBCODECS_MARKER(type, desc, {MarkerTiming::IntervalEnd()}, Tracing, \
                    "WebCodecs")
 
+class AutoWebCodecsMarker {
+ public:
+  AutoWebCodecsMarker(const char* aType, const char* aDesc)
+      : mType(aType), mDesc(aDesc) {
+    WEBCODECS_MARKER_INTERVAL_START(mType, mDesc);
+  }
+
+  AutoWebCodecsMarker(AutoWebCodecsMarker&& aOther) noexcept {
+    MOZ_ASSERT(!aOther.mEnded, "Ended marker should not be moved");
+    mType = std::move(aOther.mType);
+    mDesc = std::move(aOther.mDesc);
+    mEnded = std::move(aOther.mEnded);
+    aOther.mEnded = true;
+  }
+
+  AutoWebCodecsMarker& operator=(AutoWebCodecsMarker&& aOther) noexcept {
+    if (this != &aOther) {
+      MOZ_ASSERT(!aOther.mEnded, "Ended marker should not be moved");
+      mType = std::move(aOther.mType);
+      mDesc = std::move(aOther.mDesc);
+      mEnded = std::move(aOther.mEnded);
+      aOther.mEnded = true;
+    }
+    return *this;
+  }
+
+  AutoWebCodecsMarker(const AutoWebCodecsMarker& aOther) = delete;
+  AutoWebCodecsMarker& operator=(const AutoWebCodecsMarker& aOther) = delete;
+
+  ~AutoWebCodecsMarker() { End(); }
+
+  void End() {
+    if (!mEnded) {
+      WEBCODECS_MARKER_INTERVAL_END(mType, mDesc);
+      mEnded = true;
+    }
+  }
+
+ private:
+  const char* mType;
+  const char* mDesc;
+  bool mEnded = false;
+};
+
 namespace gfx {
 enum class ColorRange : uint8_t;
 enum class ColorSpace2 : uint8_t;

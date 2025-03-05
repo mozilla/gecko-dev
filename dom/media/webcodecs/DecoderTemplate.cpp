@@ -54,10 +54,8 @@ namespace mozilla::dom {
 #endif  // LOGV
 #define LOGV(msg, ...) LOG_INTERNAL(Verbose, msg, ##__VA_ARGS__)
 
-#define DECODER_MARKER_INTERVAL_START(postfix) \
-  WEBCODECS_MARKER_INTERVAL_START(DecoderType::Name.get(), postfix)
-#define DECODER_MARKER_INTERVAL_END(postfix) \
-  WEBCODECS_MARKER_INTERVAL_END(DecoderType::Name.get(), postfix)
+#define AUTO_DECODER_MARKER(var, postfix) \
+  AutoWebCodecsMarker var(DecoderType::Name.get(), postfix);
 
 /*
  * Below are ControlMessage classes implementations
@@ -460,6 +458,8 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessConfigureMessage(
   MOZ_ASSERT(mState == CodecState::Configured);
   MOZ_ASSERT(aMessage->AsConfigureMessage());
 
+  AUTO_DECODER_MARKER(marker, ".configure");
+
   if (mProcessingMessage) {
     LOG("%s %p is processing %s. Defer %s", DecoderType::Name.get(), this,
         mProcessingMessage->ToString().get(), aMessage->ToString().get());
@@ -512,12 +512,11 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessConfigureMessage(
   bool lowLatency = mActiveConfig->mOptimizeForLatency.isSome() &&
                     mActiveConfig->mOptimizeForLatency.value();
 
-  DECODER_MARKER_INTERVAL_START(".configure");
   mAgent->Configure(preferSW, lowLatency)
       ->Then(GetCurrentSerialEventTarget(), __func__,
-             [self = RefPtr{this}, id = mAgent->mId](
+             [self = RefPtr{this}, id = mAgent->mId, m = std::move(marker)](
                  const DecoderAgent::ConfigurePromise::ResolveOrRejectValue&
-                     aResult) {
+                     aResult) mutable {
                MOZ_ASSERT(self->mProcessingMessage);
                MOZ_ASSERT(self->mProcessingMessage->AsConfigureMessage());
                MOZ_ASSERT(self->mState == CodecState::Configured);
@@ -527,7 +526,6 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessConfigureMessage(
 
                ConfigureMessage* msg =
                    self->mProcessingMessage->AsConfigureMessage();
-               DECODER_MARKER_INTERVAL_END(".configure");
                LOG("%s %p, DecoderAgent #%d %s has been %s. now unblocks "
                    "message-queue-processing",
                    DecoderType::Name.get(), self.get(), id,
@@ -570,6 +568,8 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessDecodeMessage(
   MOZ_ASSERT(mState == CodecState::Configured);
   MOZ_ASSERT(aMessage->AsDecodeMessage());
 
+  AUTO_DECODER_MARKER(marker, ".decode");
+
   if (mProcessingMessage) {
     LOGV("%s %p is processing %s. Defer %s", DecoderType::Name.get(), this,
          mProcessingMessage->ToString().get(), aMessage->ToString().get());
@@ -611,11 +611,11 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessDecodeMessage(
     return closeOnError();
   }
 
-  DECODER_MARKER_INTERVAL_START(".decode");
   mAgent->Decode(data.get())
       ->Then(GetCurrentSerialEventTarget(), __func__,
-             [self = RefPtr{this}, id = mAgent->mId](
-                 DecoderAgent::DecodePromise::ResolveOrRejectValue&& aResult) {
+             [self = RefPtr{this}, id = mAgent->mId, m = std::move(marker)](
+                 DecoderAgent::DecodePromise::ResolveOrRejectValue&&
+                     aResult) mutable {
                MOZ_ASSERT(self->mProcessingMessage);
                MOZ_ASSERT(self->mProcessingMessage->AsDecodeMessage());
                MOZ_ASSERT(self->mState == CodecState::Configured);
@@ -624,7 +624,6 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessDecodeMessage(
                MOZ_ASSERT(self->mActiveConfig);
 
                DecodeMessage* msg = self->mProcessingMessage->AsDecodeMessage();
-               DECODER_MARKER_INTERVAL_END(".decode");
                LOGV("%s %p, DecoderAgent #%d %s has been %s",
                     DecoderType::Name.get(), self.get(), id,
                     msg->ToString().get(),
@@ -662,15 +661,18 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessDecodeMessage(
                  LOGV("%s %p, schedule %zu decoded data output for %s",
                       DecoderType::Name.get(), self.get(), data.Length(),
                       msgStr.get());
-                 DECODER_MARKER_INTERVAL_START(".decode-output");
-                 self->QueueATask(
-                     "Output Decoded Data",
-                     [self = RefPtr{self}, data = std::move(data),
-                      config = RefPtr{self->mActiveConfig}]()
-                         MOZ_CAN_RUN_SCRIPT_BOUNDARY {
-                           DECODER_MARKER_INTERVAL_END(".decode-output");
-                           self->OutputDecodedData(std::move(data), *config);
-                         });
+
+                 m.End();
+                 AUTO_DECODER_MARKER(outMarker, ".decode-output");
+
+                 self->QueueATask("Output Decoded Data",
+                                  [self = RefPtr{self}, data = std::move(data),
+                                   config = RefPtr{self->mActiveConfig},
+                                   om = std::move(outMarker)]()
+                                      MOZ_CAN_RUN_SCRIPT_BOUNDARY mutable {
+                                        self->OutputDecodedData(std::move(data),
+                                                                *config);
+                                      });
                }
                self->ProcessControlMessageQueue();
              })
@@ -685,6 +687,8 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessFlushMessage(
   AssertIsOnOwningThread();
   MOZ_ASSERT(mState == CodecState::Configured);
   MOZ_ASSERT(aMessage->AsFlushMessage());
+
+  AUTO_DECODER_MARKER(marker, ".flush");
 
   if (mProcessingMessage) {
     LOG("%s %p is processing %s. Defer %s", DecoderType::Name.get(), this,
@@ -707,12 +711,12 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessFlushMessage(
     return MessageProcessedResult::Processed;
   }
 
-  DECODER_MARKER_INTERVAL_START(".flush");
   mAgent->DrainAndFlush()
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [self = RefPtr{this}, id = mAgent->mId,
-           this](DecoderAgent::DecodePromise::ResolveOrRejectValue&& aResult) {
+          [self = RefPtr{this}, id = mAgent->mId, m = std::move(marker),
+           this](DecoderAgent::DecodePromise::ResolveOrRejectValue&&
+                     aResult) mutable {
             MOZ_ASSERT(self->mProcessingMessage);
             MOZ_ASSERT(self->mProcessingMessage->AsFlushMessage());
             MOZ_ASSERT(self->mState == CodecState::Configured);
@@ -721,8 +725,6 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessFlushMessage(
             MOZ_ASSERT(self->mActiveConfig);
 
             FlushMessage* msg = self->mProcessingMessage->AsFlushMessage();
-            DECODER_MARKER_INTERVAL_END(".flush");
-
             LOG("%s %p, DecoderAgent #%d %s has been %s",
                 DecoderType::Name.get(), self.get(), id, msg->ToString().get(),
                 aResult.IsResolve() ? "resolved" : "rejected");
@@ -771,12 +773,15 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessFlushMessage(
                   msgStr.get());
             }
 
-            DECODER_MARKER_INTERVAL_START(".flush-output");
+            m.End();
+            AUTO_DECODER_MARKER(outMarker, ".flush-output");
+
             self->QueueATask(
                 "Flush: output decoding data task",
                 [self = RefPtr{self}, data = std::move(data),
-                 config = RefPtr{self->mActiveConfig},
-                 flushPromiseId]() MOZ_CAN_RUN_SCRIPT_BOUNDARY {
+                 config = RefPtr{self->mActiveConfig}, flushPromiseId,
+                 om = std::move(
+                     outMarker)]() MOZ_CAN_RUN_SCRIPT_BOUNDARY mutable {
                   self->OutputDecodedData(std::move(data), *config);
                   // If Reset() was invoked before this task executes, or
                   // during the output callback above in the execution of this
@@ -784,7 +789,6 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessFlushMessage(
                   // there. Otherwise, the promise is resolved here.
                   if (Maybe<RefPtr<Promise>> p =
                           self->mPendingFlushPromises.Take(flushPromiseId)) {
-                    DECODER_MARKER_INTERVAL_END(".flush-output");
                     LOG("%s %p, resolving the promise for flush %" PRId64
                         " (unique id)",
                         DecoderType::Name.get(), self.get(), flushPromiseId);
