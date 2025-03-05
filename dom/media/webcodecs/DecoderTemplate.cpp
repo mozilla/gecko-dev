@@ -54,6 +54,11 @@ namespace mozilla::dom {
 #endif  // LOGV
 #define LOGV(msg, ...) LOG_INTERNAL(Verbose, msg, ##__VA_ARGS__)
 
+#define DECODER_MARKER_INTERVAL_START(postfix) \
+  WEBCODECS_MARKER_INTERVAL_START(DecoderType::Name.get(), postfix)
+#define DECODER_MARKER_INTERVAL_END(postfix) \
+  WEBCODECS_MARKER_INTERVAL_END(DecoderType::Name.get(), postfix)
+
 /*
  * Below are ControlMessage classes implementations
  */
@@ -181,6 +186,7 @@ template <typename DecoderType>
 void DecoderTemplate<DecoderType>::Decode(InputType& aInput, ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
+  // TODO: Add InputType's info to log.
   LOG("%s %p, Decode", DecoderType::Name.get(), this);
 
   if (mState != CodecState::Configured) {
@@ -505,6 +511,8 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessConfigureMessage(
                   HardwareAcceleration::Prefer_software;
   bool lowLatency = mActiveConfig->mOptimizeForLatency.isSome() &&
                     mActiveConfig->mOptimizeForLatency.value();
+
+  DECODER_MARKER_INTERVAL_START(".configure");
   mAgent->Configure(preferSW, lowLatency)
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [self = RefPtr{this}, id = mAgent->mId](
@@ -519,6 +527,7 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessConfigureMessage(
 
                ConfigureMessage* msg =
                    self->mProcessingMessage->AsConfigureMessage();
+               DECODER_MARKER_INTERVAL_END(".configure");
                LOG("%s %p, DecoderAgent #%d %s has been %s. now unblocks "
                    "message-queue-processing",
                    DecoderType::Name.get(), self.get(), id,
@@ -602,6 +611,7 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessDecodeMessage(
     return closeOnError();
   }
 
+  DECODER_MARKER_INTERVAL_START(".decode");
   mAgent->Decode(data.get())
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [self = RefPtr{this}, id = mAgent->mId](
@@ -614,6 +624,7 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessDecodeMessage(
                MOZ_ASSERT(self->mActiveConfig);
 
                DecodeMessage* msg = self->mProcessingMessage->AsDecodeMessage();
+               DECODER_MARKER_INTERVAL_END(".decode");
                LOGV("%s %p, DecoderAgent #%d %s has been %s",
                     DecoderType::Name.get(), self.get(), id,
                     msg->ToString().get(),
@@ -651,13 +662,15 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessDecodeMessage(
                  LOGV("%s %p, schedule %zu decoded data output for %s",
                       DecoderType::Name.get(), self.get(), data.Length(),
                       msgStr.get());
-                 self->QueueATask("Output Decoded Data",
-                                  [self = RefPtr{self}, data = std::move(data),
-                                   config = RefPtr{self->mActiveConfig}]()
-                                      MOZ_CAN_RUN_SCRIPT_BOUNDARY {
-                                        self->OutputDecodedData(std::move(data),
-                                                                *config);
-                                      });
+                 DECODER_MARKER_INTERVAL_START(".decode-output");
+                 self->QueueATask(
+                     "Output Decoded Data",
+                     [self = RefPtr{self}, data = std::move(data),
+                      config = RefPtr{self->mActiveConfig}]()
+                         MOZ_CAN_RUN_SCRIPT_BOUNDARY {
+                           DECODER_MARKER_INTERVAL_END(".decode-output");
+                           self->OutputDecodedData(std::move(data), *config);
+                         });
                }
                self->ProcessControlMessageQueue();
              })
@@ -694,6 +707,7 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessFlushMessage(
     return MessageProcessedResult::Processed;
   }
 
+  DECODER_MARKER_INTERVAL_START(".flush");
   mAgent->DrainAndFlush()
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
@@ -707,6 +721,8 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessFlushMessage(
             MOZ_ASSERT(self->mActiveConfig);
 
             FlushMessage* msg = self->mProcessingMessage->AsFlushMessage();
+            DECODER_MARKER_INTERVAL_END(".flush");
+
             LOG("%s %p, DecoderAgent #%d %s has been %s",
                 DecoderType::Name.get(), self.get(), id, msg->ToString().get(),
                 aResult.IsResolve() ? "resolved" : "rejected");
@@ -755,6 +771,7 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessFlushMessage(
                   msgStr.get());
             }
 
+            DECODER_MARKER_INTERVAL_START(".flush-output");
             self->QueueATask(
                 "Flush: output decoding data task",
                 [self = RefPtr{self}, data = std::move(data),
@@ -767,6 +784,7 @@ MessageProcessedResult DecoderTemplate<DecoderType>::ProcessFlushMessage(
                   // there. Otherwise, the promise is resolved here.
                   if (Maybe<RefPtr<Promise>> p =
                           self->mPendingFlushPromises.Take(flushPromiseId)) {
+                    DECODER_MARKER_INTERVAL_END(".flush-output");
                     LOG("%s %p, resolving the promise for flush %" PRId64
                         " (unique id)",
                         DecoderType::Name.get(), self.get(), flushPromiseId);
