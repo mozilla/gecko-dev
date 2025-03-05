@@ -232,7 +232,7 @@ linux64-android-gradle-dependencies:
         sparse-profile: null
         resources:
             - '*.gradle'
-            - 'gradle/wrapper/gradle-wrapper.properties'
+            - 'gradle/**'
             - 'mobile/android/**/*.gradle'
             - 'mobile/android/android-components/plugins/dependencies/src/main/java/ApplicationServices.kt'
             - 'mobile/android/android-components/plugins/dependencies/src/main/java/DependenciesPlugin.kt'
@@ -265,7 +265,7 @@ linux64-android-gradle-dependencies-lite:
         sparse-profile: null
         resources:
             - '*.gradle'
-            - 'gradle/wrapper/gradle-wrapper.properties'
+            - 'gradle/**'
             - 'mobile/android/**/*.gradle'
             - 'mobile/android/android-components/plugins/dependencies/src/main/java/ApplicationServices.kt'
             - 'mobile/android/android-components/plugins/dependencies/src/main/java/DependenciesPlugin.kt'
