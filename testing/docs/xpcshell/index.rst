@@ -40,7 +40,7 @@ run:
 
 .. code:: bash
 
-   $ ./mach addtest path/to/test/test_example.js
+   $ ./mach addtest --suite xpcshell path/to/test/test_example.js
    $ hg add path/to/test/test_example.js
 
 This will automatically create the test file and add it to
