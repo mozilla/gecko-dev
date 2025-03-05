@@ -15,7 +15,6 @@
 #include "mozilla/mozalloc.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ServoCSSParser.h"
-#include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_editor.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
@@ -615,26 +614,27 @@ CSSEditUtils::RemoveCSSInlineStyleWithTransaction(
 
 // static
 void CSSEditUtils::GetDefaultBackgroundColor(nsAString& aColor) {
-  aColor.AssignLiteral("#ffffff");  // Default to white
-
   if (MOZ_UNLIKELY(StaticPrefs::editor_use_custom_colors())) {
-    DebugOnly<nsresult> rv =
-        Preferences::GetString("editor.background_color", aColor);
+    nsresult rv = Preferences::GetString("editor.background_color", aColor);
     // XXX Why don't you validate the pref value?
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                         "failed to get editor.background_color");
+    if (NS_FAILED(rv)) {
+      NS_WARNING("failed to get editor.background_color");
+      aColor.AssignLiteral("#ffffff");  // Default to white
+    }
     return;
   }
 
-  if (StaticPrefs::browser_display_document_color_use() != 2) {
+  if (Preferences::GetBool("browser.display.use_system_colors", false)) {
     return;
   }
 
-  DebugOnly<nsresult> rv =
+  nsresult rv =
       Preferences::GetString("browser.display.background_color", aColor);
   // XXX Why don't you validate the pref value?
-  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                       "failed to get browser.display.background_color");
+  if (NS_FAILED(rv)) {
+    NS_WARNING("failed to get browser.display.background_color");
+    aColor.AssignLiteral("#ffffff");  // Default to white
+  }
 }
 
 // static

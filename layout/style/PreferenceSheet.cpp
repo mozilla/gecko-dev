@@ -68,6 +68,17 @@ auto PreferenceSheet::PrefsKindFor(const Document& aDoc) -> PrefsKind {
   return PrefsKind::Content;
 }
 
+static bool UseDocumentColors(bool aUseAcccessibilityTheme) {
+  switch (StaticPrefs::browser_display_document_color_use()) {
+    case 1:
+      return true;
+    case 2:
+      return false;
+    default:
+      return !aUseAcccessibilityTheme;
+  }
+}
+
 static bool UseStandinsForNativeColors() {
   return nsContentUtils::ShouldResistFingerprinting(
              "we want to have consistent colors across the browser if RFP is "
@@ -89,52 +100,52 @@ void PreferenceSheet::Prefs::LoadColors(bool aIsLight) {
   }
 
   const auto scheme = aIsLight ? ColorScheme::Light : ColorScheme::Dark;
-  using ColorID = LookAndFeel::ColorID;
 
-  if (!mIsChrome && (mUseDocumentColors || mUseStandins)) {
-    // Tab content not in HCM, or we need to use standins.
-    auto GetStandinColor = [&scheme](ColorID aColorID, nscolor& aColor) {
-      aColor = LookAndFeel::Color(aColorID, scheme,
-                                  LookAndFeel::UseStandins::Yes, aColor);
-    };
+  // Link colors might be provided by the OS, but they might not be. If they are
+  // not, then fall back to the pref colors.
+  //
+  // In particular, we don't query active link color to the OS.
+  GetColor("browser.anchor_color", scheme, colors.mLink);
+  GetColor("browser.active_color", scheme, colors.mActiveLink);
+  GetColor("browser.visited_color", scheme, colors.mVisitedLink);
 
-    GetStandinColor(ColorID::Windowtext, colors.mDefault);
-    GetStandinColor(ColorID::Window, colors.mDefaultBackground);
-    GetStandinColor(ColorID::MozNativehyperlinktext, colors.mLink);
-    GetStandinColor(ColorID::MozNativevisitedhyperlinktext,
-                    colors.mVisitedLink);
-    // XXX: We don't have a standin for Activetext, so we fall back on the
-    // initial value
-    GetStandinColor(ColorID::Activetext, colors.mActiveLink);
-  } else if (!mIsChrome && mUsePrefColors) {
-    // Tab content with explicit browser HCM, use our prefs for colors.
+  // Historically we've given more weight to the "use standins" setting than the
+  // "use system colors" one. In practice most users don't use standins because
+  // it's hidden behind prefs.
+  if (mUsePrefColors && !mUseStandins) {
     GetColor("browser.display.background_color", scheme,
              colors.mDefaultBackground);
     GetColor("browser.display.foreground_color", scheme, colors.mDefault);
-    GetColor("browser.anchor_color", scheme, colors.mLink);
-    GetColor("browser.active_color", scheme, colors.mActiveLink);
-    GetColor("browser.visited_color", scheme, colors.mVisitedLink);
   } else {
-    // Browser UI or OS HCM, use system colors.
-    auto GetSystemColor = [&scheme](ColorID aColorID, nscolor& aColor) {
-      aColor = LookAndFeel::Color(aColorID, scheme,
-                                  LookAndFeel::UseStandins::No, aColor);
-    };
+    using ColorID = LookAndFeel::ColorID;
+    const auto standins = LookAndFeel::UseStandins(mUseStandins);
+    colors.mDefault = LookAndFeel::Color(ColorID::Windowtext, scheme, standins,
+                                         colors.mDefault);
+    colors.mDefaultBackground = LookAndFeel::Color(
+        ColorID::Window, scheme, standins, colors.mDefaultBackground);
+    colors.mLink = LookAndFeel::Color(ColorID::MozNativehyperlinktext, scheme,
+                                      standins, colors.mLink);
 
-    GetSystemColor(ColorID::Windowtext, colors.mDefault);
-    GetSystemColor(ColorID::Window, colors.mDefaultBackground);
-    GetSystemColor(ColorID::MozNativehyperlinktext, colors.mLink);
-    // The fallback visited link color on HCM (if the system doesn't provide
-    // one) is produced by preserving the foreground's green and averaging
-    // the foreground and background for the red and blue.  This is how IE
-    // and Edge do it too.
-    colors.mVisitedLink = NS_RGB(
-        AVG2(NS_GET_R(colors.mDefault), NS_GET_R(colors.mDefaultBackground)),
-        NS_GET_G(colors.mDefault),
-        AVG2(NS_GET_B(colors.mDefault), NS_GET_B(colors.mDefaultBackground)));
-    GetSystemColor(ColorID::MozNativevisitedhyperlinktext, colors.mVisitedLink);
+    if (auto color = LookAndFeel::GetColor(
+            ColorID::MozNativevisitedhyperlinktext, scheme, standins)) {
+      // If the system provides a visited link color, we should use it.
+      colors.mVisitedLink = *color;
+    } else if (mUseAccessibilityTheme) {
+      // The fallback visited link color on HCM (if the system doesn't provide
+      // one) is produced by preserving the foreground's green and averaging the
+      // foreground and background for the red and blue.  This is how IE and
+      // Edge do it too.
+      colors.mVisitedLink = NS_RGB(
+          AVG2(NS_GET_R(colors.mDefault), NS_GET_R(colors.mDefaultBackground)),
+          NS_GET_G(colors.mDefault),
+          AVG2(NS_GET_B(colors.mDefault), NS_GET_B(colors.mDefaultBackground)));
+    } else {
+      // Otherwise we keep the default visited link color
+    }
 
-    colors.mActiveLink = colors.mLink;
+    if (mUseAccessibilityTheme) {
+      colors.mActiveLink = colors.mLink;
+    }
   }
 
   // Wherever we got the default background color from, ensure it is opaque.
@@ -181,23 +192,8 @@ void PreferenceSheet::Prefs::Load(bool aIsChrome) {
       LookAndFeel::GetInt(LookAndFeel::IntID::UseAccessibilityTheme);
   // Chrome documents always use system colors, not stand-ins, not forced, etc.
   if (!aIsChrome) {
-    switch (StaticPrefs::browser_display_document_color_use()) {
-      case 1:
-        // Never High Contrast
-        mUsePrefColors = false;
-        mUseDocumentColors = true;
-        break;
-      case 2:
-        // Always High Contrast
-        mUsePrefColors = true;
-        mUseDocumentColors = false;
-        break;
-      default:
-        // Only with OS HCM
-        mUsePrefColors = false;
-        mUseDocumentColors = !mUseAccessibilityTheme;
-        break;
-    }
+    mUseDocumentColors = UseDocumentColors(mUseAccessibilityTheme);
+    mUsePrefColors = !StaticPrefs::browser_display_use_system_colors();
     mUseStandins = UseStandinsForNativeColors();
   }
 
@@ -314,6 +310,8 @@ void PreferenceSheet::Initialize() {
   }
 
   glean::a11y::backplate.Set(StaticPrefs::browser_display_permit_backplate());
+  glean::a11y::use_system_colors.Set(
+      StaticPrefs::browser_display_use_system_colors());
   glean::a11y::always_underline_links.Set(
       StaticPrefs::layout_css_always_underline_links());
 }

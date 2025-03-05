@@ -137,7 +137,7 @@ add_task(async function search_for_password_show_passwordGroup() {
     "startupGroup",
     "languagesGroup",
     "webAppearanceGroup",
-    "contrastControlGroup",
+    "colorsGroup",
     "fontsGroup",
     "zoomGroup",
     "downloadsGroup",

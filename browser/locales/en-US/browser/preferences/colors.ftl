@@ -9,6 +9,16 @@ colors-dialog2 =
 colors-close-key =
     .key = w
 
+colors-page-override = Override the colors specified by the page with your selections above
+    .accesskey = O
+
+colors-page-override-option-always =
+    .label = Always
+colors-page-override-option-auto =
+    .label = Only with High Contrast themes
+colors-page-override-option-never =
+    .label = Never
+
 colors-text-and-background = Text and Background
 
 colors-text-header = Text
@@ -16,6 +26,10 @@ colors-text-header = Text
 
 colors-background = Background
     .accesskey = B
+
+colors-use-system =
+    .label = Use system colors
+    .accesskey = s
 
 colors-links-header = Link Colors
 

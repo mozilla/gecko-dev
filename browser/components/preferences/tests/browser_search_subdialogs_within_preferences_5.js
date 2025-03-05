@@ -23,7 +23,7 @@ add_task(async function () {
   await openPreferencesViaOpenPreferencesAPI("paneGeneral", {
     leaveOpen: true,
   });
-  await evaluateSearchResults("Link Colors", "contrastControlGroup");
+  await evaluateSearchResults("Link Colors", "colorsGroup");
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
 

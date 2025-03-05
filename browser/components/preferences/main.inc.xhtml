@@ -243,36 +243,29 @@
 </groupbox>
 
 <!-- Colors -->
-<groupbox id="contrastControlGroup" data-category="paneGeneral" hidden="true">
-  <label><html:h2 data-l10n-id="preferences-contrast-control-header"/></label>
-  <description class="description-deemphasized" data-l10n-id="preferences-contrast-control-description"/>
+<groupbox id="colorsGroup" data-category="paneGeneral" hidden="true">
+  <label><html:h2 data-l10n-id="preferences-colors-header"/></label>
 
-  <radiogroup id="contrastControlSettings" preference="browser.display.document_color_use">
-    <radio id="contrastSettingsAuto"
-           value="0"
-           data-l10n-id="preferences-contrast-control-use-platform-settings"/>
-    <radio id="contrastSettingsOff"
-           value="1"
-           data-l10n-id="preferences-contrast-control-off"/>
-    <vbox align="start">
-      <radio id="contrastSettingsOn"
-           value="2"
-           flex="1"
-           data-l10n-id="preferences-contrast-control-custom"/>
-      <button id="colors"
-              is="highlightable-button"
-              class="accessory-button indent"
-              data-l10n-id="preferences-colors-manage-button"
-              search-l10n-ids="
-                colors-text-and-background,
-                colors-text-header,
-                colors-background,
-                colors-links-header,
-                colors-unvisited-links,
-                colors-visited-links
-              "/>
-    </vbox>
-  </radiogroup>
+  <hbox id="colorsSettings" align="center" flex="1">
+    <description flex="1" control="colors" data-l10n-id="preferences-colors-description"/>
+    <button id="colors"
+            is="highlightable-button"
+            class="accessory-button"
+            data-l10n-id="preferences-colors-manage-button"
+            search-l10n-ids="
+              colors-page-override,
+              colors-page-override-option-always.label,
+              colors-page-override-option-auto.label,
+              colors-page-override-option-never.label,
+              colors-text-and-background,
+              colors-text-header,
+              colors-background,
+              colors-use-system,
+              colors-links-header,
+              colors-unvisited-links,
+              colors-visited-links
+            "/>
+  </hbox>
 </groupbox>
 
 <!-- Fonts -->

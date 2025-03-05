@@ -309,21 +309,9 @@ preferences-web-appearance-override-warning2 =
 # to adapt to your language, but should not be changed.
 preferences-web-appearance-footer = Manage { -brand-short-name } themes in <a data-l10n-name="themes-link">Extensions & Themes</a>
 
-preferences-contrast-control-header = Contrast Control
+preferences-colors-header = Colors
 
-preferences-contrast-control-description = Websites have a variety of foreground and background colors. Configure { -brand-short-name } to use the same colors across websites for improved readability.
-
-preferences-contrast-control-use-platform-settings =
-    .label = Automatic (use system settings)
-    .accesskey = A
-
-preferences-contrast-control-off =
-    .label = Off
-    .accesskey = O
-
-preferences-contrast-control-custom =
-    .label = Custom
-    .accesskey = C
+preferences-colors-description = Override { -brand-short-name }’s default colors for text, website backgrounds, and links.
 
 preferences-colors-manage-button =
     .label = Manage Colors…

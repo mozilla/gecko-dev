@@ -52,6 +52,15 @@ add_task(async function test() {
 
   info("Pref action: " + handlerInfo.preferredAction);
 
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.display.document_color_use", 0],
+      ["browser.display.background_color", "#ff0000"],
+      ["browser.display.foreground_color", "#00ff00"],
+      ["browser.display.use_system_colors", false],
+    ],
+  });
+
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "about:blank" },
     async function (browser) {
@@ -72,13 +81,9 @@ add_task(async function test() {
     }
   );
 
-  // Force on custom HCM.
+  // Enable HCM.
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.display.background_color", "#ff0000"],
-      ["browser.display.foreground_color", "#00ff00"],
-      ["browser.display.document_color_use", 2],
-    ],
+    set: [["ui.useAccessibilityTheme", 1]],
   });
 
   await BrowserTestUtils.withNewTab(

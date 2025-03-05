@@ -65,6 +65,14 @@
             preference="browser.display.background_color"
           />
         </hbox>
+        <separator class="thin" />
+        <hbox align="center">
+          <checkbox
+            id="browserUseSystemColors"
+            data-l10n-id="colors-use-system"
+            preference="browser.display.use_system_colors"
+          />
+        </hbox>
       </groupbox>
 
       <groupbox flex="1">
@@ -96,6 +104,33 @@
           />
         </hbox>
       </groupbox>
+    </hbox>
+
+    <label data-l10n-id="colors-page-override" control="useDocumentColors" />
+    <hbox>
+      <menulist
+        id="useDocumentColors"
+        preference="browser.display.document_color_use"
+        flex="1"
+      >
+        <menupopup>
+          <menuitem
+            data-l10n-id="colors-page-override-option-always"
+            value="2"
+            id="documentColorAlways"
+          />
+          <menuitem
+            data-l10n-id="colors-page-override-option-auto"
+            value="0"
+            id="documentColorAutomatic"
+          />
+          <menuitem
+            data-l10n-id="colors-page-override-option-never"
+            value="1"
+            id="documentColorNever"
+          />
+        </menupopup>
+      </menulist>
     </hbox>
 
     <!-- Load the script after the elements for layout issues (bug 1501755). -->
