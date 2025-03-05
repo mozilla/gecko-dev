@@ -14070,6 +14070,12 @@
   value: 1048576
   mirror: always
 
+# If true, use the HSTS preload list.
+- name: network.stricttransportsecurity.preloadlist
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # DNS Trusted Recursive Resolver
 # 0 - default off, 1 - reserved/off, 2 - TRR first, 3 - TRR only,
 # 4 - reserved/off, 5 off by choice
@@ -17019,6 +17025,13 @@
 #---------------------------------------------------------------------------
 # Prefs starting with "test."
 #---------------------------------------------------------------------------
+
+# A mechanism to make the current time seem later than it is for specific
+# operations. Currently used to test expiration of the HSTS preload list.
+- name: test.currentTimeOffsetSeconds
+  type: RelaxedAtomicUint32
+  value: 0
+  mirror: always
 
 - name: test.events.async.enabled
   type: RelaxedAtomicBool
