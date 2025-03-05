@@ -7,14 +7,14 @@
 DIRS += ["reps"]
 
 DevToolsModules(
-    "Headers.js",
-    "HeadersPanel.js",
-    "HeadersToolbar.js",
-    "JsonPanel.js",
-    "JsonToolbar.js",
-    "LiveText.js",
-    "MainTabbedArea.js",
-    "SearchBox.js",
-    "TextPanel.js",
-    "TextToolbar.js",
+    "Headers.mjs",
+    "HeadersPanel.mjs",
+    "HeadersToolbar.mjs",
+    "JsonPanel.mjs",
+    "JsonToolbar.mjs",
+    "LiveText.mjs",
+    "MainTabbedArea.mjs",
+    "SearchBox.mjs",
+    "TextPanel.mjs",
+    "TextToolbar.mjs",
 )
