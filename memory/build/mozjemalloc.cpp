@@ -4641,6 +4641,7 @@ static inline void arena_dalloc(void* aPtr, size_t aOffset, arena_t* aArena) {
   arena_chunk_t* chunk_dealloc_delay = nullptr;
   purge_action_t purge_action;
   {
+    MOZ_DIAGNOSTIC_ASSERT(arena->mLock.SafeOnThisThread());
     MaybeMutexAutoLock lock(arena->mLock);
     arena_chunk_map_t* mapelm = &chunk->map[pageind];
     MOZ_RELEASE_ASSERT(

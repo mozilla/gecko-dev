@@ -171,7 +171,7 @@ class MOZ_CAPABILITY("mutex") MaybeMutex : public Mutex {
 
   bool Init(DoLock aDoLock) {
     mDoLock = aDoLock;
-#ifdef MOZ_DEBUG
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
     mThreadId = GetThreadId();
 #endif
     return Mutex::Init();
@@ -214,7 +214,7 @@ class MOZ_CAPABILITY("mutex") MaybeMutex : public Mutex {
   // Return true if we can use this resource from this thread, either because
   // we'll use the lock or because this is the only thread that will access the
   // protected resource.
-#ifdef MOZ_DEBUG
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
   bool SafeOnThisThread() const {
     return mDoLock == MUST_LOCK || ThreadIdEqual(GetThreadId(), mThreadId);
   }
@@ -232,16 +232,16 @@ class MOZ_CAPABILITY("mutex") MaybeMutex : public Mutex {
       return true;
     }
 
-    MOZ_ASSERT(ThreadIdEqual(GetThreadId(), mThreadId));
+    MOZ_ASSERT(SafeOnThisThread());
     return false;
   }
 
   DoLock mDoLock;
-#ifdef MOZ_DEBUG
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
   ThreadId mThreadId;
-#  ifndef XP_WIN
+#endif
+#if (!defined(XP_WIN) && defined(DEBUG))
   bool mDeniedAfterFork = false;
-#  endif
 #endif
 };
 
