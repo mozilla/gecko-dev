@@ -784,7 +784,7 @@ void EncoderTemplate<EncoderType>::Configure(
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [self = RefPtr{this}, id = mAgent->mId, aMessage](
                  const EncoderAgent::ConfigurePromise::ResolveOrRejectValue&
-                     aResult) MOZ_CAN_RUN_SCRIPT_BOUNDARY {
+                     aResult) {
                MOZ_ASSERT(self->mProcessingMessage);
                MOZ_ASSERT(self->mProcessingMessage->AsConfigureMessage());
                MOZ_ASSERT(self->mState == CodecState::Configured);
