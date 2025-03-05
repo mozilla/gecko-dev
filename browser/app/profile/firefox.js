@@ -2527,6 +2527,10 @@ pref("browser.tabs.unloadTabInContextMenu", false);
 // they are explicitly unloaded) are faded out in the tab bar
 pref("browser.tabs.fadeOutUnloadedTabs", false);
 
+// Whether unloaded tabs (either from session restore or because
+// they are explicitly unloaded) have grayscale favicons in the tab bar
+pref("browser.tabs.grayscaleUnloadedTabs", false);
+
 // If true, unprivileged extensions may use experimental APIs on
 // nightly and developer edition.
 pref("extensions.experiments.enabled", false);
