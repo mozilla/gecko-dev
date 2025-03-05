@@ -1,9 +1,9 @@
 [
   {
     "filename": "mitm11-windows-firefox-imgur.zip",
-    "size": 10695664,
+    "size": 14618098,
     "algorithm": "sha512",
-    "digest": "422eed404db2de26ccbf82d4e3983bddc8b57d990ea13b2764cb0065fc42a4a121ca493671bc1327796ec2b8f746392f60914a95fda5bea37bd93b730b0f702f",
+    "digest": "84b365fb461d7a7111ac864369f4149440f0e165f1acf835b5dc3deb59bbc80a62643e1d4cc560600dc1f0ebce247e11fce6466df93f3074339be0a94c3cf24e",
     "visibility": "public"
   }
 ]

@@ -24225,9 +24225,9 @@ Tests for page-load performance. The links direct to the actual websites that ar
    * **playback pageset manifest backup**: mitm8-linux-firefox-imgur.manifest
    * **playback version**: 11.0.0
    * **preferences**: media.autoplay.default=5 media.autoplay.ask-permission=true media.autoplay.blocking_policy=1 media.allowed-to-play.enabled=false media.block-autoplay-until-in-foreground=true
-   * **secondary url**: `<https://imgur.com/gallery/WuOobqV>`__
+   * **secondary url**: `<https://imgur.com/gallery/firefox-logo-w8fgXyY>`__
    * **support class**: browsertime_pageload.py
-   * **test url**: `<https://imgur.com/gallery/uTI7fKy>`__
+   * **test url**: `<https://imgur.com/gallery/mozilla-performance-testing-logo-sNUtC19>`__
    * **type**: pageload
    * **unit**: ms
    * **use live sites**: false

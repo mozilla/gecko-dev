@@ -1,9 +1,9 @@
 [
   {
     "filename": "mitm8-linux-firefox-amazon.zip",
-    "size": 32863692,
+    "size": 22970506,
     "algorithm": "sha512",
-    "digest": "c8e98e1d294fa58faaab499ccd904e7b8f98ffac7f3e8a835103eb41f54d98fad903175ae43dd1ddbabdfdefd57b1652436b287825f8474eed902b938f3dacd5",
+    "digest": "db8f15e54ba8b57487b874aee445858d20cc2c5fd8125d2a3860d9e8c4fda96041ef4f8cac8b9f714b0388689fb85ce8f4e0c3d1d3de10e7141a7165c2e482af",
     "visibility": "public"
   }
 ]
