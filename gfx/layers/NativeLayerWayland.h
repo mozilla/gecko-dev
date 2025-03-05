@@ -121,7 +121,7 @@ class NativeLayerRootWayland final : public NativeLayerRoot {
   // We're between CompositorBeginFrame() / CompositorEndFrame() calls.
   mozilla::Atomic<bool, mozilla::Relaxed> mFrameInProcess{false};
 
-  uint32_t aLastFrameCallbackTime = 0;
+  uint32_t mLastFrameCallbackTime = 0;
 
   // State flags used for optimizations
   // Layers have been added/removed

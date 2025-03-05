@@ -458,14 +458,14 @@ bool NativeLayerRootWayland::CommitToScreenLocked(
 // Ready-to-paint signal from root or child surfaces. Route it to
 // root WaylandSurface (owned by nsWindow) where it's used to fire VSync.
 void NativeLayerRootWayland::FrameCallbackHandler(uint32_t aTime) {
-  if (aTime <= aLastFrameCallbackTime) {
+  if (aTime <= mLastFrameCallbackTime) {
     LOGVERBOSE(
         "NativeLayerRootWayland::FrameCallbackHandler() ignoring redundant "
         "callback %d",
         aTime);
     return;
   }
-  aLastFrameCallbackTime = aTime;
+  mLastFrameCallbackTime = aTime;
 
   LOGVERBOSE("NativeLayerRootWayland::FrameCallbackHandler() time %d", aTime);
   mSurface->FrameCallbackHandler(nullptr, aTime,
