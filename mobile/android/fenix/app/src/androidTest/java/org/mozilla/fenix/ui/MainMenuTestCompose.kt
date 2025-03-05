@@ -1044,7 +1044,7 @@ class MainMenuTestCompose : TestSetup() {
         }.openExtensionsFromMainMenu {
             verifyNoInstalledExtensionsPromotionBanner(composeTestRule)
         }.clickExtensionsPromotionBannerLearnMoreLink(composeTestRule) {
-            verifyUrl("support.mozilla.org/en-US/kb/find-and-install-add-ons-firefox-android?as=u&utm_source=inproduct")
+            verifyExtensionsPromotionBannerLearnMoreLinkURL()
         }
     }
 
