@@ -77,6 +77,8 @@ class MockAudioReceiveStream : public webrtc::AudioReceiveStreamInterface {
     return mRtpSources;
   }
 
+  webrtc::AudioMixer::Source* source() override { return nullptr; }
+
   void SetRtcpMode(webrtc::RtcpMode mode) override {}
 
   virtual void SetDepacketizerToDecoderFrameTransformer(
