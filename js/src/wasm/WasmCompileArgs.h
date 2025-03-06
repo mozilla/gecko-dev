@@ -366,8 +366,8 @@ class BytecodeSource {
   // Create a bytecode source from regions that have already been split. Does
   // not do any validation.
   BytecodeSource(const BytecodeSpan& envSpan, const BytecodeSpan& codeSpan,
-                  const BytecodeSpan& tailSpan)
-  : env_(envSpan), code_(codeSpan), tail_(tailSpan) {}
+                 const BytecodeSpan& tailSpan)
+      : env_(envSpan), code_(codeSpan), tail_(tailSpan) {}
 
   // Parse a contiguous buffer into a bytecode source. This cannot fail because
   // invalid modules will result in a bytecode source with only an 'env' region
