@@ -33,7 +33,9 @@ class BookmarksRobotCompose(private val composeTestRule: ComposeTestRule) {
         Log.i(TAG, "verifyBookmarkedURL: Verified bookmarks url: $url is displayed")
     }
 
+    @OptIn(ExperimentalTestApi::class)
     fun verifyFolderTitle(title: String) {
+        composeTestRule.waitUntilAtLeastOneExists(hasText(title), waitingTime)
         Log.i(TAG, "verifyFolderTitle: Trying to verify bookmarks folder with title: $title is displayed")
         composeTestRule.onNodeWithText(title).assertIsDisplayed()
         Log.i(TAG, "verifyFolderTitle: Verified bookmarks folder with title: $title is displayed")
