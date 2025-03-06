@@ -27,7 +27,6 @@ support-files = [
   "head.js",
   "moz.png",
   "navigating_window_with_download.html",
-  "print_postdata.sjs",
   "test_bug462673.html",
   "test_bug628179.html",
   "title_test.svg",
