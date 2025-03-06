@@ -5249,7 +5249,8 @@ bool nsDisplayOwnLayer::CreateWebRenderCommands(
       snapshot.emplace(wr::SnapshotInfo{
           .key = *key,
           .area = wr::ToLayoutRect(LayoutDeviceRect::FromAppUnits(
-              mFrame->InkOverflowRectRelativeToSelf(), auPerDevPixel)),
+              mFrame->InkOverflowRectRelativeToSelf() + ToReferenceFrame(),
+              auPerDevPixel)),
           .detached = true,
       });
       params.snapshot = snapshot.ptr();
