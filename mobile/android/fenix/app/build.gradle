@@ -19,6 +19,8 @@ buildscript {
 }
 
 plugins {
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
     id "com.jetbrains.python.envs" version "$python_envs_plugin"
     id "com.google.protobuf" version "$protobuf_plugin"
 }
@@ -28,7 +30,6 @@ if (findProject(":geckoview") != null) {
 }
 
 apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-parcelize'
 apply plugin: 'jacoco'
 apply plugin: 'androidx.navigation.safeargs.kotlin'
@@ -298,10 +299,6 @@ android {
 
     buildFeatures {
         compose true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
     }
 
     namespace 'org.mozilla.fenix'

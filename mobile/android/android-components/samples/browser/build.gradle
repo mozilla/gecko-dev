@@ -2,12 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+plugins {
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+}
+
 if (findProject(":geckoview") != null) {
     buildDir "${topobjdir}/gradle/build/mobile/android/samples-browser"
 }
 
 apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
 
 android {
     defaultConfig {
@@ -54,10 +58,6 @@ android {
     buildFeatures {
         viewBinding true
         compose true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
     }
 
     namespace 'org.mozilla.samples.browser'

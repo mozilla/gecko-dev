@@ -19,7 +19,6 @@ buildscript {
 
     dependencies {
         classpath libs.tools.androidgradle
-        classpath libs.tools.kotlingradle
         classpath libs.osslicenses.plugin
         classpath "org.mozilla.telemetry:glean-gradle-plugin:${libs.versions.mozilla.glean.get()}"
         classpath "${ApplicationServicesConfig.groupId}:tooling-nimbus-gradle:${ApplicationServicesConfig.version}"
@@ -33,13 +32,14 @@ buildscript {
     ext {
         detekt_plugin = libs.versions.detekt.get()
         python_envs_plugin = libs.versions.python.envs.plugin.get()
-        ksp_plugin = libs.versions.ksp.plugin.get()
     }
 }
 
 plugins {
     id "mozac.ConfigPlugin"
     alias(libs.plugins.detekt)
+    alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.ksp)
 }
 

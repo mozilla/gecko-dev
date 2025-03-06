@@ -1,10 +1,13 @@
+plugins {
+    alias(libs.plugins.kotlin.android)
+}
+
 buildDir "${topobjdir}/gradle/build/mobile/android/geckoview"
 
 import groovy.json.JsonOutput
 
 apply plugin: 'com.android.library'
 apply plugin: 'checkstyle'
-apply plugin: 'kotlin-android'
 
 // The SDK binding generation tasks depend on the JAR creation task of the
 // :annotations project.

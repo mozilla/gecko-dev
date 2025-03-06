@@ -23,7 +23,6 @@ buildscript {
     dependencies {
         classpath libs.tools.androidgradle
         classpath libs.tools.benchmarkgradle
-        classpath libs.tools.kotlingradle
         classpath libs.androidx.navigation.safeargs
         classpath libs.osslicenses.plugin
         classpath libs.glean.gradle.plugin
@@ -37,7 +36,6 @@ buildscript {
     // intermediate variable which can pull from DependenciesPlugin.kt and be used later.
     ext {
         detekt_plugin = libs.versions.detekt.get()
-        ksp_plugin = libs.versions.ksp.plugin.get()
         protobuf_plugin = libs.versions.protobuf.plugin.get()
         python_envs_plugin = libs.versions.python.envs.plugin.get()
     }
@@ -47,6 +45,8 @@ plugins {
     id 'ApkSizePlugin'
     id "mozac.ConfigPlugin"
     alias(libs.plugins.detekt)
+    alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.ksp)
 }
 

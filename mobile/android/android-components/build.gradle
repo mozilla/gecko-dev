@@ -21,7 +21,6 @@ buildscript {
 
     dependencies {
         classpath libs.tools.androidgradle
-        classpath libs.tools.kotlingradle
     }
 
     // Variables in plugins {} aren't directly supported. Hack around it by setting an
@@ -29,12 +28,13 @@ buildscript {
     ext {
         detekt_plugin = libs.versions.detekt.get()
         python_envs_plugin = libs.versions.python.envs.plugin.get()
-        ksp_plugin = libs.versions.ksp.plugin.get()
     }
 }
 
 plugins {
     alias(libs.plugins.detekt)
+    alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.ksp)
 }
 
