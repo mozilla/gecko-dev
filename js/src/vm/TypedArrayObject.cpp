@@ -4827,31 +4827,66 @@ JSNative js::TypedArrayConstructorNative(Scalar::Type type) {
   MOZ_CRASH("unexpected typed array type");
 }
 
-bool js::IsBufferSource(JSObject* object, SharedMem<uint8_t*>* dataPointer,
+bool js::IsBufferSource(JSContext* cx, JSObject* object, bool allowShared,
+                        bool allowResizable, SharedMem<uint8_t*>* dataPointer,
                         size_t* byteLength) {
   if (object->is<TypedArrayObject>()) {
-    TypedArrayObject& view = object->as<TypedArrayObject>();
-    *dataPointer = view.dataPointerEither().cast<uint8_t*>();
-    *byteLength = view.byteLength().valueOr(0);
+    Rooted<TypedArrayObject*> view(cx, &object->as<TypedArrayObject>());
+    if (!allowShared && view->isSharedMemory()) {
+      return false;
+    }
+    if (!allowResizable && JS::IsResizableArrayBufferView(object)) {
+      return false;
+    }
+    // Ensure the pointer we pass out won't move as long as you properly root
+    // it.
+    if (!ArrayBufferViewObject::ensureNonInline(cx, view)) {
+      return false;
+    }
+    *dataPointer = view->dataPointerEither().cast<uint8_t*>();
+    *byteLength = view->byteLength().valueOr(0);
     return true;
   }
 
   if (object->is<DataViewObject>()) {
-    DataViewObject& view = object->as<DataViewObject>();
-    *dataPointer = view.dataPointerEither().cast<uint8_t*>();
-    *byteLength = view.byteLength().valueOr(0);
+    Rooted<DataViewObject*> view(cx, &object->as<DataViewObject>());
+    if (!allowShared && view->isSharedMemory()) {
+      return false;
+    }
+    if (!allowResizable && JS::IsResizableArrayBufferView(object)) {
+      return false;
+    }
+    // Ensure the pointer we pass out won't move as long as you properly root
+    // it.
+    if (!ArrayBufferViewObject::ensureNonInline(cx, view)) {
+      return false;
+    }
+    *dataPointer = view->dataPointerEither().cast<uint8_t*>();
+    *byteLength = view->byteLength().valueOr(0);
     return true;
   }
 
   if (object->is<ArrayBufferObject>()) {
-    ArrayBufferObject& buffer = object->as<ArrayBufferObject>();
-    *dataPointer = buffer.dataPointerShared();
-    *byteLength = buffer.byteLength();
+    Rooted<ArrayBufferObject*> buffer(cx, &object->as<ArrayBufferObject>());
+    if (!allowResizable && buffer->isResizable()) {
+      return false;
+    }
+    // Ensure the pointer we pass out won't move as long as you properly root
+    // it.
+    if (!ArrayBufferObject::ensureNonInline(cx, buffer)) {
+      return false;
+    }
+    *dataPointer = buffer->dataPointerEither();
+    *byteLength = buffer->byteLength();
     return true;
   }
 
-  if (object->is<SharedArrayBufferObject>()) {
+  if (allowShared && object->is<SharedArrayBufferObject>()) {
     SharedArrayBufferObject& buffer = object->as<SharedArrayBufferObject>();
+    if (!allowResizable && buffer.isResizable()) {
+      return false;
+    }
+    // This will always be locked and out of line.
     *dataPointer = buffer.dataPointerShared();
     *byteLength = buffer.byteLength();
     return true;

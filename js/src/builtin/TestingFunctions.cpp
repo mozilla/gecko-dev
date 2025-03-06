@@ -2230,8 +2230,8 @@ static bool WasmDumpIon(JSContext* cx, unsigned argc, Value* vp) {
 
   SharedMem<uint8_t*> dataPointer;
   size_t byteLength;
-  if (!IsBufferSource(args.get(0).toObjectOrNull(), &dataPointer,
-                      &byteLength)) {
+  if (!IsBufferSource(cx, args.get(0).toObjectOrNull(), /*allowShared*/ false,
+                      /*allowResizable*/ false, &dataPointer, &byteLength)) {
     JS_ReportErrorASCII(cx, "argument is not a buffer source");
     return false;
   }

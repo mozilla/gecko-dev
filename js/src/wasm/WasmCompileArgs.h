@@ -538,6 +538,7 @@ class BytecodeBufferOrSource {
   }
 
   [[nodiscard]] SharedBytes getOrCreateCodeSection() const {
+    MOZ_ASSERT(source().hasCodeSection());
     if (hasBuffer()) {
       return buffer().codeSection();
     }

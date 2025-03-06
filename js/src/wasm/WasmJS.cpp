@@ -1567,7 +1567,9 @@ static bool GetBufferSource(JSContext* cx, JSObject* obj, unsigned errorNumber,
 
   SharedMem<uint8_t*> dataPointer;
   size_t byteLength;
-  if (!unwrapped || !IsBufferSource(unwrapped, &dataPointer, &byteLength)) {
+  if (!unwrapped ||
+      !IsBufferSource(cx, unwrapped, /*allowShared*/ false,
+                      /*allowResizable*/ false, &dataPointer, &byteLength)) {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, errorNumber);
     return false;
   }
@@ -1632,12 +1634,6 @@ bool WasmModuleObject::construct(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  BytecodeSource source;
-  if (!GetBufferSource(cx, &callArgs[0].toObject(), JSMSG_WASM_BAD_BUF_ARG,
-                       &source)) {
-    return false;
-  }
-
   FeatureOptions options;
   if (!options.init(cx, callArgs.get(1))) {
     return false;
@@ -1646,6 +1642,12 @@ bool WasmModuleObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   SharedCompileArgs compileArgs =
       InitCompileArgs(cx, options, "WebAssembly.Module");
   if (!compileArgs) {
+    return false;
+  }
+
+  BytecodeSource source;
+  if (!GetBufferSource(cx, &callArgs[0].toObject(), JSMSG_WASM_BAD_BUF_ARG,
+                       &source)) {
     return false;
   }
 
