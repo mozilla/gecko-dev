@@ -17,7 +17,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Progress: "chrome://global/content/ml/Utils.sys.mjs",
   OPFS: "chrome://global/content/ml/Utils.sys.mjs",
   URLChecker: "chrome://global/content/ml/Utils.sys.mjs",
+  createFileUrl: "chrome://global/content/ml/Utils.sys.mjs",
   DEFAULT_ENGINE_ID: "chrome://global/content/ml/EngineProcess.sys.mjs",
+  FILE_REGEX: "chrome://global/content/ml/EngineProcess.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
@@ -1191,33 +1193,14 @@ export class ModelHub {
    * @returns {string} The full URL
    */
   #fileUrl({ model, revision, file, modelHubRootUrl, modelHubUrlTemplate }) {
-    const rootUrl = modelHubRootUrl || this.rootUrl;
-    const urlTemplate = modelHubUrlTemplate || this.urlTemplate;
-    const baseUrl = new URL(rootUrl);
-
-    if (!baseUrl.pathname.endsWith("/")) {
-      baseUrl.pathname += "/";
-    }
-    // Replace placeholders in the URL template with the provided data.
-    // If some keys are missing in the data object, the placeholder is left as is.
-    // If the placeholder is not found in the data object, it is left as is.
-    const data = {
+    return lazy.createFileUrl({
       model,
       revision,
-    };
-    let path = urlTemplate.replace(
-      /\{(\w+)\}/g,
-      (match, key) => data[key] || match
-    );
-    path = `${path}/${file}`;
-
-    const fullPath = `${baseUrl.pathname}${
-      path.startsWith("/") ? path.slice(1) : path
-    }`;
-
-    const urlObject = new URL(fullPath, baseUrl.origin);
-    urlObject.searchParams.append("download", "true");
-    return urlObject.toString();
+      file,
+      rootUrl: modelHubRootUrl || this.rootUrl,
+      urlTemplate: modelHubUrlTemplate || this.urlTemplate,
+      addDownloadParams: true,
+    });
   }
 
   /** Checks the model and revision inputs.
@@ -1250,21 +1233,6 @@ export class ModelHub {
     //                     [A-Za-z0-9-.]+     Alphanum characters, hyphens, or periods, one or more times
     const versionRegex = /^[A-Za-z0-9-.]+$/;
 
-    // Matches filenames with subdirectories, starting with alphanumeric or underscore,
-    // and optionally ending with a dot followed by a 2-9 letter extension.
-    //
-    //                 ^                                    $   Start and end of string
-    //                  (?:\/)?                                  Optional leading slash (for absolute paths or root directory)
-    //                        (?!\/)                             Negative lookahead for not starting with a slash
-    //                              [A-Za-z0-9-_]+               First directory or filename
-    //                                           (?:            Begin non-capturing group for additional directories or file
-    //                                              \/              Directory separator
-    //                                                [A-Za-z0-9-_]+ Directory or file name
-    //                                                             )* Zero or more times
-    //                                                                 (?:[.][A-Za-z_]{2,9})?   Optional non-capturing group for file extension
-    const fileRegex =
-      /^(?:\/)?(?!\/)[A-Za-z0-9-_]+(?:\/[A-Za-z0-9-_]+)*(?:[.][A-Za-z_]{2,9})?$/;
-
     if (!modelRegex.test(model)) {
       return new Error("Invalid model name.");
     }
@@ -1277,8 +1245,8 @@ export class ModelHub {
       return new Error("Invalid version identifier.");
     }
 
-    if (!fileRegex.test(file)) {
-      return new Error("Invalid file name");
+    if (!lazy.FILE_REGEX.test(file)) {
+      return new Error(`Invalid file name ${file}`);
     }
 
     return null;

@@ -17,6 +17,32 @@ export const DEFAULT_ENGINE_ID = "default-engine";
 
 /**
  * @constant
+ * @type {Array<string>}
+ * @description Supported backends.
+ */
+export const BACKENDS = ["onnx", "wllama"];
+
+/**
+ * @constant
+ * @type {string}
+ * @description Matches filenames with subdirectories, starting with alphanumeric or underscore,
+                and optionally ending with a dot followed by a 2-9 letter extension.
+
+                 ^                                    $   Start and end of string
+                  (?:\/)?                                  Optional leading slash (for absolute paths or root directory)
+                        (?!\/)                             Negative lookahead for not starting with a slash
+                              [A-Za-z0-9-_]+               First directory or filename
+                                           (?:            Begin non-capturing group for additional directories or file
+                                              \/              Directory separator
+                                                [A-Za-z0-9-_.]+ Directory or file name
+                                                             )* Zero or more times
+                                                                 (?:[.][A-Za-z_]{2,9})?   Optional non-capturing group for file extension
+ */
+export const FILE_REGEX =
+  /^(?:\/)?(?!\/)[A-Za-z0-9-_.]+(?:\/[A-Za-z0-9-_.]+)*(?:[.][A-Za-z_]{2,9})?$/;
+
+/**
+ * @constant
  * @type {{ [key: string]: string }}
  * @description Supported tasks with their default model identifiers.
  */
@@ -200,7 +226,7 @@ export const ExecutionPriority = {
 };
 
 /**
- * Enum for quantization levels.
+ * Enum for model quantization levels.
  *
  * Defines the quantization level of the task:
  *
@@ -225,6 +251,30 @@ export const QuantizationLevel = {
   Q4: "q4",
   BNB4: "bnb4",
   Q4F16: "q4f16",
+};
+
+/**
+ * Enum for KV cache quantization levels.
+ *
+ * - 'q8_0': Quantized 8-bit with optimized storage (`'_q8_0'`) (block-based)
+ * - 'q4_0': Quantized 4-bit version 0 (`'_q4_0'`) (block-based)
+ * - 'q4_1': Quantized 4-bit version 1 (`'_q4_1'`) (block-based)
+ * - 'q5_1': Quantized 5-bit version 1 (`'_q5_1'`) (block-based)
+ * - 'q5_0': Quantized 5-bit version 0 (`'_q5_0'`) (block-based)
+ * - 'f16':  Half-precision (16-bit floating point) (`'_f16'`)
+ * - 'f32':  Full precision  (32-bit floating point) (`'_f32'`)
+ *
+ * @readonly
+ * @enum {string}
+ */
+export const KVCacheQuantizationLevel = {
+  Q8_0: "q8_0",
+  Q4_0: "q4_0",
+  Q4_1: "q4_1",
+  Q5_1: "q5_1",
+  Q5_0: "q5_0",
+  F16: "f16",
+  F32: "f32",
 };
 
 /**
@@ -253,6 +303,14 @@ export const LogLevel = {
   CRITICAL: "Critical",
   ALL: "All",
 };
+
+/**
+ * Allowed boolean values.
+ *
+ * @readonly
+ * @enum {boolean}
+ */
+export const AllowedBoolean = [false, true];
 
 /**
  * @typedef {import("../../translations/actors/TranslationsEngineParent.sys.mjs").TranslationsEngineParent} TranslationsEngineParent
@@ -386,7 +444,7 @@ export class PipelineOptions {
   device = null;
 
   /**
-   * Quantization level
+   * Model Quantization level
    *
    * @type {QuantizationLevel | null}
    */
@@ -407,6 +465,76 @@ export class PipelineOptions {
    * @type {ExecutionPriority}
    */
   executionPriority = null;
+
+  /**
+   * KV cache Quantization level
+   *
+   * @type {KVCacheQuantizationLevel | null}
+   */
+  kvCacheDtype = null;
+
+  /**
+   * Maximum context size
+   *
+   * @type {?number}
+   */
+  numContext = 1024;
+
+  /**
+   * Number of tokens processed in a single forward pass.
+   *
+   * @type {?number}
+   */
+  numBatch = 1024;
+
+  /**
+   * Token batch size
+   *
+   * @type {?number}
+   */
+  numUbatch = 1024;
+
+  /**
+   * Whether to use flash attention
+   *
+   * @type {?boolean}
+   */
+  flashAttn = false;
+
+  /**
+   * Whether to use memory mapped for the model
+   *
+   * @type {?boolean}
+   */
+  useMmap = false;
+
+  /**
+   * Whether to lock in memory the full model.
+   *
+   * @type {?boolean}
+   */
+  useMlock = true;
+
+  /**
+   * Number of threads used during decoding.
+   *
+   * @type {?number}
+   */
+  numThreadsDecoding = null;
+
+  /**
+   * The name of model file
+   *
+   * @type {?string}
+   */
+  modelFile = null;
+
+  /**
+   * The backend to use.
+   *
+   * @type {?string}
+   */
+  backend = null;
 
   /**
    * Create a PipelineOptions instance.
@@ -447,6 +575,10 @@ export class PipelineOptions {
       executionPriority: ExecutionPriority,
       logLevel: LogLevel,
       modelHub: ModelHub,
+      kvCacheDtype: KVCacheQuantizationLevel,
+      flashAttn: AllowedBoolean,
+      useMmap: AllowedBoolean,
+      useMlock: AllowedBoolean,
     };
     // Check if the value is part of the enum or null
     if (!Object.values(enums[field]).includes(value)) {
@@ -550,6 +682,26 @@ export class PipelineOptions {
   }
 
   /**
+   * Validates the model file.
+   * The model file can be of the form filename.extension
+   *
+   * @param {string} field - The name of the field being validated (e.g., modelRevision, tokenizerRevision).
+   * @param {string} value - The value of the revision field to validate.
+   * @throws {Error} Throws an error if the model file does not follow the expected pattern.
+   * @private
+   */
+  #validateModelFile(field, value) {
+    // Check if the value matches the pattern
+    if (!FILE_REGEX.test(value)) {
+      throw new PipelineOptionsValidationError(
+        field,
+        value,
+        `Should be of the form filename.extension`
+      );
+    }
+  }
+
+  /**
    * Updates multiple options at once.
    *
    * @param {object} options - An object containing the options to update.
@@ -577,6 +729,16 @@ export class PipelineOptions {
       "numThreads",
       "executionPriority",
       "useExternalDataFormat",
+      "kvCacheDtype",
+      "numContext",
+      "numBatch",
+      "numUbatch",
+      "flashAttn",
+      "useMmap",
+      "useMlock",
+      "numThreadsDecoding",
+      "modelFile",
+      "backend",
     ];
 
     if (options instanceof PipelineOptions) {
@@ -635,12 +797,13 @@ export class PipelineOptions {
           "device",
           "executionPriority",
           "logLevel",
+          "kvCacheDtype",
         ].includes(key)
       ) {
         this.#validateEnum(key, options[key]);
       }
 
-      if (key === "numThreads") {
+      if (["numThreads", "numThreadsDecoding"].includes(key)) {
         this.#validateIntegerRange(key, options[key], 0, 100);
       }
 
@@ -650,6 +813,22 @@ export class PipelineOptions {
 
       if (key === "modelHub") {
         ModelHub.apply(this, options[key]);
+      }
+
+      if (key === "modelFile") {
+        this.#validateModelFile(key, options[key]);
+      }
+
+      if (["numContext", "numBatch", "numUbatch"].includes(key)) {
+        this.#validateIntegerRange(key, options[key], 1, 10000000);
+      }
+
+      if (key === "backend" && !BACKENDS.includes(options[key])) {
+        throw new PipelineOptionsValidationError(
+          key,
+          options[key],
+          `Should be one of ${BACKENDS.join(", ")}`
+        );
       }
 
       this[key] = options[key];
@@ -683,6 +862,16 @@ export class PipelineOptions {
       numThreads: this.numThreads,
       executionPriority: this.executionPriority,
       useExternalDataFormat: this.useExternalDataFormat,
+      kvCacheDtype: this.kvCacheDtype,
+      numContext: this.numContext,
+      numBatch: this.numBatch,
+      numUbatch: this.numUbatch,
+      flashAttn: this.flashAttn,
+      useMmap: this.useMmap,
+      useMlock: this.useMlock,
+      numThreadsDecoding: this.numThreadsDecoding,
+      modelFile: this.modelFile,
+      backend: this.backend,
     };
   }
 

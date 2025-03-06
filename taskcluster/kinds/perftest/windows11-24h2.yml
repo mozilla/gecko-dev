@@ -320,6 +320,30 @@ ml-summarizer-perf:
             --hooks toolkit/components/ml/tests/tools/hooks_local_hub.py
             toolkit/components/ml/tests/browser/browser_ml_summarizer_perf.js
 
+ml-llama-summarizer-perf:
+    fetches:
+        fetch:
+            - wllama.wasm
+            - smollm2-360-instruct-gguf
+    description: Run ML Summarizer Model Using Wllama
+    treeherder:
+        symbol: perftest(win-ml-llama-sum-perf)
+        tier: 2
+    attributes:
+        batch: false
+        cron: false
+    run-on-projects: [autoland, mozilla-central]
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $MOZ_FETCHES_DIR &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox.exe
+            --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --hooks toolkit/components/ml/tests/tools/hooks_local_hub.py
+            toolkit/components/ml/tests/browser/browser_ml_llama_summarizer_perf.js
+
 ml-multi-perf:
     fetches:
         fetch:

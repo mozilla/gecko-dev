@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /**
- * @typedef {import("../content/Utils.sys.mjs").ProgressAndStatusCallbackParams} ProgressAndStatusCallbackParams
+ * @typedef {import("../../content/Utils.sys.mjs").ProgressAndStatusCallbackParams} ProgressAndStatusCallbackParams
  */
 
 /* eslint-disable-next-line mozilla/reject-import-system-module-from-non-system */
@@ -255,7 +255,7 @@ async function checkGPUSupport() {
 /**
  * Represents a pipeline for processing machine learning tasks.
  */
-export class Pipeline {
+export class ONNXPipeline {
   #mlEngineWorker = null;
   #model = null;
   #tokenizer = null;
@@ -464,7 +464,7 @@ export class Pipeline {
     if (lazy.console.logLevel != config.logLevel) {
       lazy.console.logLevel = config.logLevel;
     }
-    const pipeline = new Pipeline(mlEngineWorker, config);
+    const pipeline = new ONNXPipeline(mlEngineWorker, config);
     await pipeline.ensurePipelineIsReady();
     await pipeline.#metricsSnapShot({
       name: "initializationStart",

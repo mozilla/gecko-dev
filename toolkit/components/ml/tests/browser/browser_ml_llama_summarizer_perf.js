@@ -12,46 +12,58 @@ async function fetchArticle(url) {
 
 let testData = [];
 
-const distilBartModel = {
-  taskName: "summarization",
-  modelId: "Mozilla/distilbart-cnn-12-6",
-  dtype: "q8",
-  // To keep history, we reuse xenova in the perf name
-  perfModelId: "Xenova/distilbart-cnn-12-6",
-};
-
-const qwenModel = {
+const smollm2Model = {
   taskName: "text-generation",
-  modelId: "Mozilla/Qwen2.5-0.5B-Instruct",
-  dtype: "q8",
-  // To keep history, we reuse onnx-community in the perf name
-  perfModelId: "onnx-community/Qwen2.5-0.5B-Instruct",
+  modelId: "HuggingFaceTB/SmolLM2-360M-Instruct-GGUF",
+  modelFile: "smollm2-360m-instruct-q8_0.gguf",
+  kvCacheDtype: "q8_0",
+  flashAttn: true,
+  useMmap: true,
+  useMlock: false,
+  perfModelId: "HuggingFaceTB/SmolLM2-360M-Instruct",
 };
 
-const articles = [{ data: `${rootDataUrl}/big.txt`, type: "big" }];
+const articles = [
+  {
+    data: `${rootDataUrl}/tiny.txt`,
+    type: "tiny",
+    numTokens: 200,
+  },
+  {
+    data: `${rootDataUrl}/medium.txt`,
+    type: "medium",
+    numTokens: 568,
+  },
+];
 
 let numEngines = 0;
 
-for (const model of [distilBartModel, qwenModel]) {
+for (const model of [smollm2Model]) {
   for (const article of articles) {
     // Replace all non-alphabnumeric or dash or underscore by underscore
     const perfName = `${model.perfModelId.replace(/\//g, "-")}_${article.type}`;
 
     const engineId = `engine-${numEngines}`;
 
-    const options = { ...model, article: article.data, engineId, perfName };
+    const options = {
+      ...model,
+      article: article.data,
+      engineId,
+      perfName,
+      numTokens: article.numTokens,
+    };
 
     numEngines += 1;
 
-    options.trackPeakMemory = false;
     testData.push(options);
   }
 }
 
 const perfMetadata = {
   owner: "GenAI Team",
-  name: "ML Summarizer Model",
-  description: "Template test for latency for Summarizer model",
+  name: "ML Llama Summarizer Model",
+  description:
+    "Template test for latency for Summarizer model using Llama.cpp WASM",
   options: {
     default: {
       perfherder: true,
@@ -63,7 +75,7 @@ const perfMetadata = {
         },
         {
           name: "memory",
-          unit: "MiB",
+          unit: "MB",
           shouldAlert: true,
         },
         {
@@ -100,21 +112,30 @@ async function run_summarizer_with_perf({
   taskName,
   modelId,
   article,
-  dtype,
   engineId,
   perfName,
+  numTokens,
   trackPeakMemory,
-  browserPrefs = null,
+  ...llamaOptions
 }) {
   let chatInput = await fetchArticle(article);
 
-  const minNewTokens = 195;
-  const maxNewTokens = 200;
+  const numNewTokens = 80;
 
-  let requestOptions = {
-    max_new_tokens: minNewTokens,
-    min_new_tokens: maxNewTokens,
+  const nextPowerOf2 = n => {
+    if (n <= 1) {
+      return 1;
+    }
+    n--;
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+    return n + 1;
   };
+
+  const numContext = nextPowerOf2(numTokens + numNewTokens + 10);
 
   const options = new PipelineOptions({
     engineId,
@@ -122,12 +143,15 @@ async function run_summarizer_with_perf({
     modelHubUrlTemplate: "{model}/{revision}",
     modelId,
     modelRevision: "main",
-    dtype,
-    useExternalDataFormat: true,
+    numContext,
+    numBatch: Math.min(numContext, 64),
+    numUbatch: Math.min(numContext, 64),
+    backend: "wllama",
     timeoutMS: -1,
+    ...llamaOptions,
   });
 
-  if (taskName === "text-generation") {
+  if (taskName.includes("text-generation")) {
     chatInput = [
       {
         role: "system",
@@ -139,58 +163,34 @@ async function run_summarizer_with_perf({
         content: chatInput,
       },
     ];
-
-    requestOptions = {
-      max_new_tokens: minNewTokens,
-      min_new_tokens: maxNewTokens,
-      return_full_text: true,
-      return_tensors: false,
-      do_sample: false,
-    };
   }
 
   const request = {
-    args: [chatInput],
-    options: requestOptions,
+    prompt: chatInput,
+    nPredict: numNewTokens,
+    skipPrompt: false,
   };
-
-  info(`is request null | ${request === null || request === undefined}`);
 
   await perfTest({
     name: `sum-${perfName}`,
     options,
     request,
     trackPeakMemory,
-    browserPrefs,
   });
 }
 
-/*
- * distilbart Model
- */
-add_task(async function test_ml_distilbart_tiny_article() {
+add_task(async function test_ml_smollm_tiny_article() {
   await run_summarizer_with_perf(testData[0]);
 });
 
-add_task(async function test_ml_distilbart_tiny_article_mem() {
-  await run_summarizer_with_perf({ ...testData[0], trackPeakMemory: true });
-});
-
-add_task(async function test_ml_distilbart_tiny_article_mem_no_ion() {
-  await run_summarizer_with_perf({
-    ...testData[0],
-    trackPeakMemory: true,
-    browserPrefs: [["javascript.options.wasm_optimizingjit", false]],
-  });
-});
-
-/*
- * Qwen model
- */
-add_task(async function test_ml_qwen_big_article() {
+add_task(async function test_ml_smollm_medium_article() {
   await run_summarizer_with_perf(testData[1]);
 });
 
-add_task(async function test_ml_qwen_big_article_with_mem() {
+add_task(async function test_ml_smollm_tiny_article_with_mem() {
+  await run_summarizer_with_perf({ ...testData[0], trackPeakMemory: true });
+});
+
+add_task(async function test_ml_smollm_medium_article_with_mem() {
   await run_summarizer_with_perf({ ...testData[1], trackPeakMemory: true });
 });

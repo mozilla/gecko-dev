@@ -63,6 +63,7 @@ suites:
             "ML Autofill Model": ""
             "ML Summarizer Model": ""
             "ML Smart Tab Model": ""
+            "ML Llama Summarizer Model": ""
 
     intl/benchmarks/test/xpcshell:
         description: "Performance tests running through XPCShell for Intl code"

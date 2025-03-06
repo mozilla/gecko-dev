@@ -8,8 +8,7 @@ ChromeUtils.defineESModuleGetters(
   lazy,
   {
     PromiseWorker: "resource://gre/modules/workers/PromiseWorker.mjs",
-    Pipeline: "chrome://global/content/ml/ONNXPipeline.mjs",
-    PipelineOptions: "chrome://global/content/ml/EngineProcess.sys.mjs",
+    getBackend: "chrome://global/content/ml/backends/Pipeline.mjs",
     modelToResponse: "chrome://global/content/ml/Utils.sys.mjs",
   },
   { global: "current" }
@@ -80,11 +79,7 @@ class MLEngineWorker {
    * @param {object} options received as an object, converted to a PipelineOptions instance
    */
   async initializeEngine(wasm, options) {
-    this.#pipeline = await lazy.Pipeline.initialize(
-      this,
-      wasm,
-      new lazy.PipelineOptions(options)
-    );
+    this.#pipeline = await lazy.getBackend(this, wasm, options);
   }
   /**
    * Run the worker.

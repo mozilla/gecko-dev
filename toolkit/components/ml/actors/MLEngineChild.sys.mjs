@@ -210,10 +210,11 @@ export class MLEngineChild extends JSProcessActorChild {
   /**
    * Gets the wasm array buffer from RemoteSettings.
    *
+   * @param {string} backend - The ML engine for which the WASM buffer is requested.
    * @returns {Promise<ArrayBuffer>}
    */
-  getWasmArrayBuffer() {
-    return this.sendQuery("MLEngine:GetWasmArrayBuffer");
+  getWasmArrayBuffer(backend) {
+    return this.sendQuery("MLEngine:GetWasmArrayBuffer", backend);
   }
 
   /**
@@ -330,7 +331,9 @@ class EngineDispatcher {
    */
   async initializeInferenceEngine(pipelineOptions, notificationsCallback) {
     // Create the inference engine given the wasm runtime and the options.
-    const wasm = await this.mlEngineChild.getWasmArrayBuffer();
+    const wasm = await this.mlEngineChild.getWasmArrayBuffer(
+      pipelineOptions.backend
+    );
 
     let remoteSettingsOptions = await this.mlEngineChild.getInferenceOptions(
       this.#featureId,
@@ -774,7 +777,7 @@ class InferenceEngine {
 
     const args = [wasm, pipelineOptions];
     const closure = {};
-    const transferables = [wasm];
+    const transferables = wasm instanceof ArrayBuffer ? [wasm] : [];
     await worker.post("initializeEngine", args, closure, transferables);
     return new InferenceEngine(worker);
   }

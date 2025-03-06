@@ -1,0 +1,15 @@
+schema: 1
+
+bugzilla:
+  product: Core
+  component: Machine Learning
+
+origin:
+  name: wllama
+  description: WebAssembly binding for llama.cpp - Enabling on-browser LLM inference
+  url: https://github.com/ngxson/wllama
+  release: 2.2.1
+  revision: 675200bba7dd1b83909a89353735e22023254a4f
+  license: MIT
+  license-file: LICENSE
+  notes: see README.md for more details.

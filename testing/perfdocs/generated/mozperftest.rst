@@ -400,6 +400,24 @@ browser_ml_autofill_perf.js
 
 **Template test for latency for ML Autofill model**
 
+browser_ml_llama_summarizer_perf.js
+===================================
+
+:owner: GenAI Team
+:name: ML Llama Summarizer Model
+:Default options:
+
+::
+
+ --perfherder
+ --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MB,shouldAlert:True, name:tokenSpeed,unit:tokens/s,shouldAlert:True,lowerIsBetter:False, name:charactersSpeed,unit:chars/s,shouldAlert:True,lowerIsBetter:False
+ --verbose
+ --manifest perftest.toml
+ --manifest-flavor browser-chrome
+ --try-platform linux, mac, win
+
+**Template test for latency for Summarizer model using Llama.cpp WASM**
+
 browser_ml_smart_tab_perf.js
 ============================
 

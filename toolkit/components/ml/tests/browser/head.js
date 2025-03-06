@@ -12,7 +12,7 @@ Services.scriptloader.loadSubScript(
 /**
  * @type {import("../../actors/MLEngineParent.sys.mjs")}
  */
-const { MLEngineParent } = ChromeUtils.importESModule(
+const { MLEngineParent, MLEngine } = ChromeUtils.importESModule(
   "resource://gre/actors/MLEngineParent.sys.mjs"
 );
 
@@ -49,10 +49,16 @@ Services.scriptloader.loadSubScript(
  * Sets up the stage for a test
  *
  */
-async function setup({ disabled = false, prefs = [], records = null } = {}) {
+async function setup({
+  disabled = false,
+  prefs = [],
+  records = null,
+  backend,
+} = {}) {
   const { removeMocks, remoteClients } = await createAndMockMLRemoteSettings({
     autoDownloadFromRemoteSettings: false,
     records,
+    backend,
   });
 
   await SpecialPowers.pushPrefEnv({
@@ -83,10 +89,12 @@ async function setup({ disabled = false, prefs = [], records = null } = {}) {
   };
 }
 
-function getDefaultWasmRecords() {
+function getDefaultWasmRecords(backend) {
   return [
     {
-      name: MLEngineParent.WASM_FILENAME,
+      name: MLEngineParent.WASM_FILENAME[
+        backend || MLEngineParent.DEFAULT_BACKEND
+      ],
       version: MLEngineParent.WASM_MAJOR_VERSION + ".0",
     },
   ];
@@ -95,14 +103,17 @@ function getDefaultWasmRecords() {
 async function createAndMockMLRemoteSettings({
   autoDownloadFromRemoteSettings = false,
   records = null,
+  backend,
 } = {}) {
-  const wasmRecords = getDefaultWasmRecords().map(({ name, version }) => ({
-    id: crypto.randomUUID(),
-    name,
-    version,
-    last_modified: Date.now(),
-    schema: Date.now(),
-  }));
+  const wasmRecords = getDefaultWasmRecords(backend).map(
+    ({ name, version }) => ({
+      id: crypto.randomUUID(),
+      name,
+      version,
+      last_modified: Date.now(),
+      schema: Date.now(),
+    })
+  );
   const runtime = await createRemoteClient({
     collectionName: "test-translation-wasm",
     records: wasmRecords,
@@ -328,6 +339,7 @@ async function initializeEngine(pipelineOptions, prefs = null) {
 
   const { cleanup } = await perfSetup({
     prefs: browserPrefs,
+    backend: pipelineOptions.backend,
   });
   info("Get the engine process");
   const startTime = performance.now();
@@ -356,9 +368,10 @@ function normalizePathForOS(path) {
   return path.replace(/\\/g, "/");
 }
 
-async function perfSetup({ disabled = false, prefs = [] } = {}) {
+async function perfSetup({ disabled = false, prefs = [], backend } = {}) {
   const { removeMocks, remoteClients } = await createAndMockMLRemoteSettings({
     autoDownloadFromRemoteSettings: false,
+    backend,
   });
 
   var finalPrefs = [
@@ -404,6 +417,7 @@ async function perfSetup({ disabled = false, prefs = [] } = {}) {
   }
 
   async function download(record) {
+    info(`Downloading record: ${record.name}`);
     const recordPath = normalizePathForOS(
       `${artifactDirectory}/${record.name}`
     );
@@ -518,7 +532,7 @@ async function runInference({
   try {
     const res = await run();
     const decodingTime = performance.now() - startTime;
-    metrics = fetchMetrics(res.metrics, isFirstRun);
+    metrics = fetchMetrics(res.metrics || [], isFirstRun);
     metrics[`${isFirstRun ? COLD_START_PREFIX : ""}${TOTAL_MEMORY_USAGE}`] =
       await getTotalMemoryUsage();
 
@@ -539,6 +553,7 @@ async function runInference({
     metrics[`${isFirstRun ? COLD_START_PREFIX : ""}${PROMPT_TOKEN_SPEED}`] =
       numPromptTokens / (timeToFirstToken / MS_PER_SEC);
   } finally {
+    await engine.terminate();
     await EngineProcess.destroyMLEngine();
     await cleanup();
   }
@@ -657,7 +672,7 @@ async function perfTest({
       journal[`${name}-${PEAK_MEMORY_USAGE}`].push(tracker.stop());
     } else {
       for (let [metricName, metricVal] of Object.entries(metrics)) {
-        if (metricVal === null || metricVal === undefined || metricVal < 0) {
+        if (!Number.isFinite(metricVal) || metricVal < 0) {
           metricVal = 0;
         }
         // Add the metric if it wasn't there

@@ -83,6 +83,16 @@ Below are the options available:
 - **runtimeFilename**: Name of the runtime wasm file.
 - **dtype**: quantization level, can be `fp32`, `fp16`, `q8`, `int8`, `uint8`, `q4`, `bnb4`, `q4f16``. Defaults to `q8`
 - **device**: device to use (`wasm` or `gpu`). Defaults to `wasm`
+- **kvCacheDtype**: quantization level for the wllama backend. It only applies to the wllama backend when flash attention is enabled. Otherwise, it is always `f32`.
+- **numContext**: Maximum context size. Applies only to the wllama backend.
+- **numBatch**: Number of tokens processed in a single forward pass. Applies only to the wllama backend.
+- **numUbatch**: Token batch size. Applies only to the wllama backend.
+- **flashAttn**: Whether to use flash attention. Applies only to the wllama backend.
+- **useMmap**: Whether to use memory mapped for the model. Applies only to the wllama backend.
+- **useMlock**: Whether to lock in memory the full model. Applies only to the wllama backend.
+- **numThreadsDecoding**: Number of threads used during decoding. Applies only to the wllama backend.
+- **modelFile**: The name of model file. Currently, only supported for the wllama backend.
+- **backend**: The backend to use, can be `onnx`, `wllama`. Default to `onnx`.
 
 **taskName** and **modelId** are required, the others are optional and will be filled automatically
 using values pulled from Remote Settings when the task id is recognized.

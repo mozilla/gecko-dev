@@ -128,6 +128,55 @@ export class ProgressAndStatusCallbackParams {
   }
 }
 
+/** Creates the file URL from the organization, model, and version.
+ *
+ * @param {object} config - The configuration object to be updated.
+ * @param {string} config.model - model name
+ * @param {string} config.revision - model revision
+ * @param {string} config.file - filename
+ * @param {string} config.rootUrl - root url of the model hub
+ * @param {string} config.urlTemplate - url template of the model hub
+ * @param {boolean} config.addDownloadParams - Whether to add a download query parameter.
+ * @returns {string} The full URL
+ */
+export function createFileUrl({
+  model,
+  revision,
+  file,
+  rootUrl,
+  urlTemplate,
+  addDownloadParams = false,
+}) {
+  const baseUrl = new URL(rootUrl);
+
+  if (!baseUrl.pathname.endsWith("/")) {
+    baseUrl.pathname += "/";
+  }
+  // Replace placeholders in the URL template with the provided data.
+  // If some keys are missing in the data object, the placeholder is left as is.
+  // If the placeholder is not found in the data object, it is left as is.
+  const data = {
+    model,
+    revision,
+  };
+  let path = urlTemplate.replace(
+    /\{(\w+)\}/g,
+    (match, key) => data[key] || match
+  );
+  path = `${path}/${file}`;
+
+  const fullPath = `${baseUrl.pathname}${
+    path.startsWith("/") ? path.slice(1) : path
+  }`;
+
+  const urlObject = new URL(fullPath, baseUrl.origin);
+  if (addDownloadParams) {
+    urlObject.searchParams.append("download", "true");
+  }
+
+  return urlObject.toString();
+}
+
 /**
  * Read and track progress when reading a Response object
  *

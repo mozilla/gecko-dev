@@ -84,7 +84,15 @@ export class MLEngineParent extends JSProcessActorParent {
    * Since SIMD is supported by all major JavaScript engines, non-SIMD build is no longer provided.
    * We also serve the threaded build since we can simply set numThreads to 1 to disable multi-threading.
    */
-  static WASM_FILENAME = "ort-wasm-simd-threaded.jsep.wasm";
+  static WASM_FILENAME = {
+    onnx: "ort-wasm-simd-threaded.jsep.wasm",
+    wllama: "wllama.wasm",
+  };
+
+  /**
+   * This default backend to use when none is specified.
+   */
+  static DEFAULT_BACKEND = "onnx";
 
   /**
    * The modelhub used to retrieve files.
@@ -224,7 +232,7 @@ export class MLEngineParent extends JSProcessActorParent {
   async receiveMessage(message) {
     switch (message.name) {
       case "MLEngine:GetWasmArrayBuffer":
-        return MLEngineParent.getWasmArrayBuffer();
+        return MLEngineParent.getWasmArrayBuffer(message.data);
 
       case "MLEngine:GetModelFile":
         return this.getModelFile(message.data);
@@ -366,12 +374,17 @@ export class MLEngineParent extends JSProcessActorParent {
   /** Gets the wasm file from remote settings.
    *
    * @param {RemoteSettingsClient} client
+   * @param {string} backend - The ML engine for which the WASM buffer is requested.
    */
-  static async #getWasmArrayRecord(client) {
+  static async #getWasmArrayRecord(client, backend) {
     /** @type {WasmRecord[]} */
     const wasmRecords =
       await lazy.TranslationsParent.getMaxSupportedVersionRecords(client, {
-        filters: { name: MLEngineParent.WASM_FILENAME },
+        filters: {
+          name: MLEngineParent.WASM_FILENAME[
+            backend || MLEngineParent.DEFAULT_BACKEND
+          ],
+        },
         minSupportedMajorVersion: MLEngineParent.WASM_MAJOR_VERSION,
         maxSupportedMajorVersion: MLEngineParent.WASM_MAJOR_VERSION,
       });
@@ -441,7 +454,8 @@ export class MLEngineParent extends JSProcessActorParent {
     // if the task name is not in our settings, we just set the onnx runtime filename.
     if (records.length === 0) {
       return {
-        runtimeFilename: MLEngineParent.WASM_FILENAME,
+        runtimeFilename:
+          MLEngineParent.WASM_FILENAME[MLEngineParent.DEFAULT_BACKEND],
       };
     }
     const options = records[0];
@@ -454,21 +468,28 @@ export class MLEngineParent extends JSProcessActorParent {
       processorId: options.processorId,
       dtype: options.dtype,
       numThreads: options.numThreads,
-      runtimeFilename: MLEngineParent.WASM_FILENAME,
+      runtimeFilename:
+        MLEngineParent.WASM_FILENAME[
+          options.backend || MLEngineParent.DEFAULT_BACKEND
+        ],
     };
   }
 
   /**
    * Download the wasm for the ML inference engine.
    *
+   * @param {string} backend - The ML engine for which the WASM buffer is requested.
    * @returns {Promise<ArrayBuffer>}
    */
-  static async getWasmArrayBuffer() {
+  static async getWasmArrayBuffer(backend) {
     const client = MLEngineParent.#getRemoteClient(RS_RUNTIME_COLLECTION);
 
     if (!MLEngineParent.#wasmRecord) {
       // Place the records into a promise to prevent any races.
-      MLEngineParent.#wasmRecord = MLEngineParent.#getWasmArrayRecord(client);
+      MLEngineParent.#wasmRecord = MLEngineParent.#getWasmArrayRecord(
+        client,
+        backend
+      );
     }
 
     let wasmRecord;
