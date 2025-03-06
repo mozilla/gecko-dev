@@ -32,7 +32,7 @@ def standardOutput = proc.standardOutput.asText.get()
 // Only show the output if something went wrong.
 if (result != 0) {
     logger.info("mozconfig.gradle> Error running ./mach environment: \n\n"
-            + "Process '${commandLine}' finished with non-zero exit value ${result}:\n\n"
+            + "Process '${command}' finished with non-zero exit value ${result}:\n\n"
             + "stdout:\n"
             + "${standardOutput}\n\n"
             + "stderr:\n"
