@@ -380,6 +380,13 @@ skip-if = ["os == 'android'"]
 head = "head_addons.js head_system_addons.js"
 skip-if = ["os == 'android'"]
 
+["test_system_startupprefs.js"]
+skip-if = [
+  "condprof", # Bug 1769184 - by design for now
+  "os == 'android'",
+]
+head = "head_addons.js head_system_addons.js"
+
 ["test_system_update_blank.js"]
 head = "head_addons.js head_system_addons.js"
 skip-if = ["os == 'android'"]
@@ -425,13 +432,6 @@ head = "head_addons.js head_system_addons.js"
 skip-if = ["os == 'android'"]
 
 ["test_system_upgrades.js"]
-skip-if = [
-  "condprof", # Bug 1769184 - by design for now
-  "os == 'android'",
-]
-head = "head_addons.js head_system_addons.js"
-
-["test_systemaddomstartupprefs.js"]
 skip-if = [
   "condprof", # Bug 1769184 - by design for now
   "os == 'android'",
