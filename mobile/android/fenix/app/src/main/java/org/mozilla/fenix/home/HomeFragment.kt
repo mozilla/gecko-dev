@@ -529,7 +529,6 @@ class HomeFragment : Fragment() {
             ),
             privateBrowsingController = DefaultPrivateBrowsingController(
                 activity = activity,
-                appStore = components.appStore,
                 navController = findNavController(),
                 browsingModeManager = browsingModeManager,
             ),
