@@ -2241,7 +2241,11 @@
         newIndex++;
       }
 
-      if (newIndex < 0 || newIndex == oldIndex) {
+      if (newIndex < 0) {
+        newIndex = oldIndex;
+      }
+
+      if (newIndex == dragData.animDropIndex) {
         return;
       }
       dragData.animDropIndex = newIndex;
