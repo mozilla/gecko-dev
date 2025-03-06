@@ -113,7 +113,6 @@ export class UserSearchEngine extends SearchEngine {
       this._queryCharset = formInfo.charset;
     }
     this.alias = formInfo.alias;
-    this._description = null;
   }
 
   /**

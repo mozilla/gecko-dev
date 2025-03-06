@@ -441,8 +441,6 @@ export class SearchEngine {
   // This will stay null for engines installed in the profile before we moved
   // to a JSON storage.
   _loadPath = null;
-  // The engine's description
-  _description = "";
   // The engine's name.
   _name = null;
   // The name of the charset used to submit the search terms.
@@ -722,7 +720,6 @@ export class SearchEngine {
       this._definedAliases = [details.keyword?.trim()];
     }
 
-    this._description = details.description;
     if (details.iconURL) {
       this._setIcon(details.iconURL).catch(e =>
         lazy.logConsole.log("Error while setting search engine icon:", e)
@@ -901,7 +898,6 @@ export class SearchEngine {
   _initWithJSON(json) {
     this.#id = json.id ?? this.#id;
     this._name = json._name;
-    this._description = json.description;
     this._queryCharset =
       json.queryCharset || lazy.SearchUtils.DEFAULT_QUERY_CHARSET;
     this._iconMapObj = json._iconMapObj || null;
@@ -938,7 +934,6 @@ export class SearchEngine {
       "id",
       "_name",
       "_loadPath",
-      "description",
       "_iconMapObj",
       "_metaData",
       "_urls",
@@ -1067,10 +1062,6 @@ export class SearchEngine {
   get identifier() {
     // No identifier if If the engine isn't app-provided
     return this.isAppProvided ? this._telemetryId : null;
-  }
-
-  get description() {
-    return this._description;
   }
 
   get hidden() {

@@ -11375,7 +11375,6 @@ interface nsISearchEngine extends nsISupports {
   speculativeConnect(options: any): void;
   alias: string;
   readonly aliases: string[];
-  readonly description: string;
   hidden: boolean;
   hideOneOffButton: boolean;
   readonly name: string;

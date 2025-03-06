@@ -51,11 +51,6 @@ add_task(async function test_enterprise_policy_engine() {
   Assert.ok(engine, "Should have installed the engine.");
 
   Assert.equal(engine.name, "policy", "Should have the correct name");
-  Assert.equal(
-    engine.description,
-    "Test policy engine",
-    "Should have a description"
-  );
   Assert.deepEqual(engine.aliases, ["p"], "Should have the correct alias");
 
   let submission = engine.getSubmission("foo");

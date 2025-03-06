@@ -50,8 +50,6 @@ const MOZSEARCH_LOCALNAME = "SearchPlugin";
  *   The display name of the engine.
  * @property {nsIURI} [installURL]
  *   The URL that the engine was initially loaded from.
- * @property {string} [description]
- *   The description of the engine.
  * @property {string} [queryCharset]
  *   The character set to use for encoding query values.
  * @property {string} [searchForm]
@@ -237,9 +235,6 @@ function processXMLDocument(xmlDocument) {
     switch (child.localName) {
       case "ShortName":
         result.name = child.textContent;
-        break;
-      case "Description":
-        result.description = child.textContent;
         break;
       case "Url":
         try {

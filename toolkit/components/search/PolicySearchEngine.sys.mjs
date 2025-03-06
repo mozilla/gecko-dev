@@ -34,7 +34,6 @@ export class PolicySearchEngine extends SearchEngine {
     // Map the data to look like a WebExtension manifest, as that is what
     // _initWithDetails requires.
     let details = {
-      description: options.details.Description,
       iconURL: options.details.IconURL ? options.details.IconURL.href : null,
       name: options.details.Name,
       // If the encoding is not specified or is falsy, we will fall back to

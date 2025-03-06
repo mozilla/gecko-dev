@@ -201,7 +201,6 @@ export class AddonSearchEngine extends SearchEngine {
     this._initWithDetails({
       ...searchProvider,
       iconURL,
-      description: manifest.description,
     });
   }
 

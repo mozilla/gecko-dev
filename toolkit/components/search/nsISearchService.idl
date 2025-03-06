@@ -123,11 +123,6 @@ interface nsISearchEngine : nsISupports
   readonly attribute Array<AString> aliases;
 
   /**
-   * A text description describing the engine.
-   */
-  readonly attribute AString description;
-
-  /**
    * Whether the engine should be hidden from the user.
    */
   attribute boolean hidden;

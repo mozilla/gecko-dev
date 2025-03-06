@@ -197,7 +197,6 @@ export class OpenSearchEngine extends SearchEngine {
     }
 
     this._name = name;
-    this._description = data.description ?? "";
     this._queryCharset = data.queryCharset ?? "UTF-8";
     if (data.searchForm) {
       try {
