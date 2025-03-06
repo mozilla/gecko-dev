@@ -50,6 +50,7 @@
   --arrow-corner-distance: 12px;
   --arrow-corner-inset: calc(var(--arrow-corner-distance) + (var(--extra-width-from-rotation) / 2));
   --arrow-overlap-magnitude: 5px;
+  --button-min-height: 24px;
 }
 @media (prefers-color-scheme: dark) {
   #feature-callout {
@@ -501,7 +502,7 @@ div#feature-callout.hidden {
 #feature-callout .screen[pos=callout] .section-main .main-content .steps {
   height: auto;
   position: absolute;
-  bottom: calc(var(--callout-padding, 16px) + 12px);
+  bottom: calc(var(--callout-padding, 16px) + var(--cta-height, 24px) / 2 - 4px);
   padding-block: 0;
 }
 #feature-callout .screen[pos=callout] .section-main .main-content .steps .indicator {
@@ -567,7 +568,7 @@ div#feature-callout.hidden {
   font-size: 0.813em;
   font-weight: 600;
   line-height: 16px;
-  min-height: 32px;
+  min-height: var(--button-min-height);
   text-decoration: none;
   cursor: default;
 }
@@ -600,6 +601,7 @@ div#feature-callout.hidden {
   border-end-start-radius: 0;
   margin-inline-start: 1px;
   padding: 8px;
+  min-height: var(--button-min-height);
   min-width: 30px;
   box-sizing: border-box;
   background-image: url("chrome://global/skin/icons/arrow-down.svg");
