@@ -8,7 +8,7 @@ from os import path
 from pathlib import Path
 
 import mozunit
-from glean_parser import parser, util
+from glean_parser import metrics, parser, util
 
 TELEMETRY_ROOT_PATH = path.abspath(
     path.join(path.dirname(__file__), path.pardir, path.pardir)
@@ -42,8 +42,8 @@ build = MozbuildObject.from_environment()
 
 # Generator to yield metrics.
 def mirroring_metrics(objs):
-    for category, metrics in objs.value.items():
-        for metric in metrics.values():
+    for category, metric_objs in objs.value.items():
+        for metric in metric_objs.values():
             if (
                 hasattr(metric, "telemetry_mirror")
                 and metric.telemetry_mirror is not None
@@ -104,6 +104,21 @@ def ensure_compatible_histogram(metric, probe):
         "exponential",
         "enumerated",
     ], f"Histogram {probe.name()}'s kind is not mirror-compatible."
+
+    # We cannot assert that all enumerated hgrams are custom distributions
+    # (some are e.g. timing_distributions), nor that all custom distributions
+    # mirror to enumerated hgrams (some map to linear/exponential).
+    # But in the case of a custom mapping to an enumerated, we check buckets.
+    if probe.kind() == "enumerated" and metric.type in (
+        "custom_distribution",
+        "labeled_custom_distribution",
+    ):
+        n_values_plus_one = probe._n_buckets
+        assert (
+            metric.range_min == 0
+            and metric.histogram_type == metrics.HistogramType.linear
+            and metric.bucket_count == n_values_plus_one
+        ), f"Metric {metric.identifier()} mapping to enumerated histogram {probe.name()} must have a range that starts at 0 (is {metric.range_min}), must have `linear` bucket allocation (is {metric.histogram_type}), and must have one more bucket than the probe's n_values (is {metric.bucket_count}, should be {n_values_plus_one})."
     assert (
         hasattr(metric, "labeled") and metric.labeled
     ) == probe.keyed(), f"Metric {metric.identifier()}'s labeledness must match mirrored histogram probe {probe.name()}'s keyedness."
