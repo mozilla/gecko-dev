@@ -140,6 +140,8 @@ class FileSystemDataManager
   void UnlockShared(const EntryId& aEntryId, const FileId& aFileId,
                     bool aAbort);
 
+  void DeprecateSharedLocks(const EntryId& aEntryId);
+
   bool IsLockedWithDeprecatedSharedLock(const EntryId& aEntryId) const;
 
   FileMode GetMode(bool aKeepData) const;

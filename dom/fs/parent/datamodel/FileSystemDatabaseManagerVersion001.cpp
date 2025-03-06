@@ -1317,10 +1317,12 @@ nsresult FileSystemDatabaseManagerVersion001::ClearDestinationIfNotLocked(
   } else {
     QM_TRY_UNWRAP(exists, DoesDirectoryExist(aConnection, aNewDesignation));
     if (exists) {
-      // Fails if directory contains locked files, otherwise total wipeout
+      QM_TRY_INSPECT(const EntryId& destId,
+                     FindEntryId(aConnection, aNewDesignation, false));
+
       QM_TRY_UNWRAP(DebugOnly<bool> isRemoved,
-                    MOZ_TO_RESULT(RemoveDirectory(aNewDesignation,
-                                                  /* recursive */ true)));
+                    MOZ_TO_RESULT(RemoveDirectoryImpl(destId)));
+
       MOZ_ASSERT(isRemoved);
     }
   }
