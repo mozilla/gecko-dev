@@ -58,12 +58,7 @@ add_task(async function () {
   is(overrides.length, 0, "No override is displayed in the debugger");
 
   info("Load and assert the content of the test.js script");
-  await selectSourceFromSourceTree(
-    dbg,
-    "test.js",
-    3,
-    "Select the `test.js` script for the tree"
-  );
+  await selectSourceFromSourceTree(dbg, "test.js");
   is(
     getEditorContent(dbg),
     testSourceContent,

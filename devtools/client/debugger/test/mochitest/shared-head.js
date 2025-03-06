@@ -855,10 +855,25 @@ function waitForLoadedSource(dbg, url) {
  *
  * @param {Object} dbg
  * @param {String} filename - The filename for the specific source
- * @param {Number} sourcePosition - The source node postion in the tree
- * @param {String} message - The info message to display
  */
-async function selectSourceFromSourceTree(
+async function selectSourceFromSourceTree(dbg, fileName) {
+  info(`Selecting '${fileName}' source from source tree`);
+  // Ensure that the source is visible in the tree before trying to click on it
+  const elt = await waitForSourceInSourceTree(dbg, fileName);
+  elt.scrollIntoView();
+  clickDOMElement(dbg, elt);
+  await waitForSelectedSource(dbg, fileName);
+  await waitFor(
+    () => getEditorContent(dbg) !== `Loading…`,
+    "Wait for source to completely load"
+  );
+}
+
+/**
+ * Similar to selectSourceFromSourceTree, but with a precise location
+ * in the source tree.
+ */
+async function selectSourceFromSourceTreeWithIndex(
   dbg,
   fileName,
   sourcePosition,
@@ -3039,18 +3054,46 @@ async function waitForSourceTreeThreadsCount(dbg, i) {
   });
 }
 
+function getDisplayedSourceElements(dbg) {
+  return [...findAllElements(dbg, "sourceTreeFiles")];
+}
+
+function getDisplayedSources(dbg) {
+  return getDisplayedSourceElements(dbg).map(e => {
+    // Replace some non visible space characters that prevents Array.includes from working correctly
+    return e.textContent.trim().replace(/^[\s\u200b]*/g, "");
+  });
+}
+
+/**
+ * Wait for a single source to be visible in the Source Tree.
+ */
+async function waitForSourceInSourceTree(dbg, fileName) {
+  return waitFor(
+    async () => {
+      await expandSourceTree(dbg);
+
+      return getDisplayedSourceElements(dbg).find(e => {
+        // Replace some non visible space characters that prevents Array.includes from working correctly
+        return e.textContent.trim().replace(/^[\s\u200b]*/g, "") == fileName;
+      });
+    },
+    null,
+    100,
+    50
+  );
+}
+
+/**
+ * Wait for a precise list of sources to be shown in the Source Tree.
+ * No more, no less than the list.
+ */
 async function waitForSourcesInSourceTree(
   dbg,
   sources,
   { noExpand = false } = {}
 ) {
   info(`waiting for ${sources.length} files in the source tree`);
-  function getDisplayedSources() {
-    // Replace some non visible space characters that prevents Array.includes from working correctly
-    return [...findAllElements(dbg, "sourceTreeFiles")].map(e => {
-      return e.textContent.trim().replace(/^[\s\u200b]*/g, "");
-    });
-  }
   try {
     // Use custom timeout and retry count for waitFor as the test method is slow to resolve
     // and default value makes the timeout unecessarily long
@@ -3059,7 +3102,7 @@ async function waitForSourcesInSourceTree(
         if (!noExpand) {
           await expandSourceTree(dbg);
         }
-        const displayedSources = getDisplayedSources();
+        const displayedSources = getDisplayedSources(dbg);
         return (
           displayedSources.length == sources.length &&
           sources.every(source => displayedSources.includes(source))

@@ -378,7 +378,7 @@ add_task(async function testSourceTreeOnTheIntegrationTestPage() {
   await onResumed;
 
   info("Verify blackbox source icon");
-  await selectSource(dbg, "script.js");
+  await selectSourceFromSourceTree(dbg, "script.js");
   await clickElement(dbg, "blackbox");
   await waitForDispatch(dbg.store, "BLACKBOX_WHOLE_SOURCES");
   assertSourceIcon(dbg, "script.js", "blackBox");
@@ -387,7 +387,7 @@ add_task(async function testSourceTreeOnTheIntegrationTestPage() {
   assertSourceIcon(dbg, "script.js", "javascript");
 
   info("Assert the content of the named eval");
-  await selectSource(dbg, "named-eval.js");
+  await selectSourceFromSourceTree(dbg, "named-eval.js");
   assertTextContentOnLine(dbg, 3, `console.log("named-eval");`);
 
   info("Assert that nameless eval don't show up in the source tree");
@@ -397,7 +397,7 @@ add_task(async function testSourceTreeOnTheIntegrationTestPage() {
   await resume(dbg);
 
   info("Assert the content of sources with query string");
-  await selectSource(dbg, "query.js?x=1");
+  await selectSourceFromSourceTree(dbg, "query.js?x=1");
   const tab = findElement(dbg, "activeTab");
   is(tab.innerText, "query.js?x=1", "Tab label is query.js?x=1");
   assertTextContentOnLine(
@@ -472,7 +472,7 @@ add_task(async function testSourceTreeWithWebExtensionContentScript() {
     "doc-strict.html",
     "content_script.js",
   ]);
-  await selectSource(dbg, "content_script.js");
+  await selectSourceFromSourceTree(dbg, "content_script.js");
   ok(
     findElementWithSelector(dbg, ".sources-list .focused"),
     "Source is focused"

@@ -150,7 +150,7 @@ add_task(async function testSourceTextContent() {
   // in order to avoid having any source being GC-ed.
   await navigateToAbsoluteURL(dbg, BASE_URL + "index.html", ...waitForSources);
 
-  await selectSourceFromSourceTree(
+  await selectSourceFromSourceTreeWithIndex(
     dbg,
     "new-function.js",
     noFissionNoEFT ? 6 : 5,
@@ -161,7 +161,7 @@ add_task(async function testSourceTextContent() {
     `function anonymous(\n) {\n${NEW_FUNCTION_CONTENT}\n}`
   );
 
-  await selectSourceFromSourceTree(
+  await selectSourceFromSourceTreeWithIndex(
     dbg,
     "normal-script.js",
     noFissionNoEFT ? 7 : 6,
@@ -169,7 +169,7 @@ add_task(async function testSourceTextContent() {
   );
   is(getEditorContent(dbg), `console.log("normal script")`);
 
-  await selectSourceFromSourceTree(
+  await selectSourceFromSourceTreeWithIndex(
     dbg,
     "slow-loading-script.js",
     noFissionNoEFT ? 9 : 8,
@@ -177,7 +177,7 @@ add_task(async function testSourceTextContent() {
   );
   is(getEditorContent(dbg), `console.log("slow loading script")`);
 
-  await selectSourceFromSourceTree(
+  await selectSourceFromSourceTreeWithIndex(
     dbg,
     "index.html",
     noFissionNoEFT ? 4 : 3,
@@ -185,7 +185,7 @@ add_task(async function testSourceTextContent() {
   );
   is(getEditorContent(dbg), INDEX_PAGE_CONTENT);
 
-  await selectSourceFromSourceTree(
+  await selectSourceFromSourceTreeWithIndex(
     dbg,
     "named-eval.js",
     noFissionNoEFT ? 5 : 4,
@@ -193,7 +193,7 @@ add_task(async function testSourceTextContent() {
   );
   is(getEditorContent(dbg), NAMED_EVAL_CONTENT);
 
-  await selectSourceFromSourceTree(
+  await selectSourceFromSourceTreeWithIndex(
     dbg,
     "same-url.js",
     noFissionNoEFT ? 8 : 7,
@@ -242,7 +242,7 @@ add_task(async function testSourceTextContent() {
       }
     );
 
-    await selectSourceFromSourceTree(
+    await selectSourceFromSourceTreeWithIndex(
       dbg,
       "same-url.js",
       12,
@@ -302,7 +302,7 @@ add_task(async function testSourceTextContent() {
     noExpand: true,
   });
 
-  await selectSourceFromSourceTree(
+  await selectSourceFromSourceTreeWithIndex(
     dbg,
     "same-url.js",
     noFissionNoEFT ? 12 : 15,
