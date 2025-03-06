@@ -2256,14 +2256,15 @@ main section {
 .home-section [slot=nested] {
   margin-block-start: 0;
 }
-.home-section .section .sponsored {
+.home-section .section .customize-menu-checkbox-label {
   font-size: 14px;
   margin-inline-start: 5px;
 }
 .home-section .section .check-wrapper {
   position: relative;
+  display: flex;
 }
-.home-section .section .sponsored-checkbox {
+.home-section .section .customize-menu-checkbox {
   margin-inline-start: 2px;
   width: 16px;
   height: 16px;
@@ -2273,28 +2274,29 @@ main section {
   border-radius: 4px;
   appearance: none;
   background-color: var(--newtab-element-secondary-color);
+  flex-shrink: 0;
 }
-.home-section .section .sponsored-checkbox:hover {
+.home-section .section .customize-menu-checkbox:hover {
   background-color: var(--newtab-element-secondary-hover-color);
 }
-.home-section .section .sponsored-checkbox:checked {
+.home-section .section .customize-menu-checkbox:checked {
   -moz-context-properties: fill;
   fill: var(--newtab-primary-element-text-color);
   background: url("chrome://global/skin/icons/check.svg") center no-repeat;
   background-color: var(--newtab-primary-action-background);
 }
-.home-section .section .sponsored-checkbox:checked:hover {
+.home-section .section .customize-menu-checkbox:checked:hover {
   background-color: var(--newtab-primary-element-hover-color);
 }
-.home-section .section .sponsored-checkbox:checked:active {
+.home-section .section .customize-menu-checkbox:checked:active {
   background-color: var(--newtab-primary-element-active-color);
 }
 @media (forced-colors: active) {
-  .home-section .section .sponsored-checkbox:checked {
+  .home-section .section .customize-menu-checkbox:checked {
     fill: #000;
   }
 }
-.home-section .section .sponsored-checkbox:active + .checkmark {
+.home-section .section .customize-menu-checkbox:active + .checkmark {
   fill: var(--newtab-element-secondary-color);
 }
 .home-section .section .selector {
@@ -2393,7 +2395,7 @@ main section {
   box-shadow: 0 0 0 2px var(--newtab-primary-action-background-dimmed);
 }
 
-.home-section .section .sponsored-checkbox, .home-section .section .selector {
+.home-section .section .customize-menu-checkbox, .home-section .section .selector {
   outline: 0;
   box-shadow: 0 0 0 2px light-dark(var(--newtab-background-color), var(--newtab-background-color-dark));
 }
@@ -2402,11 +2404,11 @@ main section {
   margin-block-start: var(--space-xxsmall);
 }
 
-.home-section .section .sponsored-checkbox:is(:focus-visible), .home-section .section .selector:is(:focus-visible) {
+.home-section .section .customize-menu-checkbox:is(:focus-visible), .home-section .section .selector:is(:focus-visible) {
   box-shadow: 0 0 0 2px var(--color-accent-primary);
   outline: var(--focus-outline);
 }
-.home-section .section .sponsored-checkbox:is(:active), .home-section .section .selector:is(:active) {
+.home-section .section .customize-menu-checkbox:is(:active), .home-section .section .selector:is(:active) {
   box-shadow: 0 0 0 2px var(--color-accent-primary-active);
   outline: 0;
 }

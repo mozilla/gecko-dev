@@ -11736,6 +11736,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       mayHaveSponsoredTopSites,
       pocketRegion,
       mayHaveSponsoredStories,
+      mayHaveInferredPersonalization,
       mayHaveRecentSaves,
       mayHaveWeather,
       openPreferences,
@@ -11754,6 +11755,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       weatherEnabled,
       showSponsoredTopSitesEnabled,
       showSponsoredPocketEnabled,
+      showInferredPersonalizationEnabled,
       showRecentSavesEnabled,
       topSitesRowsCount
     } = enabledSections;
@@ -11822,7 +11824,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       role: "presentation"
     }, /*#__PURE__*/external_React_default().createElement("input", {
       id: "sponsored-shortcuts",
-      className: "sponsored-checkbox",
+      className: "customize-menu-checkbox",
       disabled: !topSitesEnabled,
       checked: showSponsoredTopSitesEnabled,
       type: "checkbox",
@@ -11830,7 +11832,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       "data-preference": "showSponsoredTopSites",
       "data-eventSource": "SPONSORED_TOP_SITES"
     }), /*#__PURE__*/external_React_default().createElement("label", {
-      className: "sponsored",
+      className: "customize-menu-checkbox-label",
       htmlFor: "sponsored-shortcuts",
       "data-l10n-id": "newtab-custom-sponsored-sites"
     }))))))), pocketRegion && /*#__PURE__*/external_React_default().createElement("div", {
@@ -11856,7 +11858,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       role: "presentation"
     }, /*#__PURE__*/external_React_default().createElement("input", {
       id: "sponsored-pocket",
-      className: "sponsored-checkbox",
+      className: "customize-menu-checkbox",
       disabled: !pocketEnabled,
       checked: showSponsoredPocketEnabled,
       type: "checkbox",
@@ -11864,17 +11866,32 @@ class ContentSection extends (external_React_default()).PureComponent {
       "data-preference": "showSponsored",
       "data-eventSource": "POCKET_SPOCS"
     }), /*#__PURE__*/external_React_default().createElement("label", {
-      className: "sponsored",
+      className: "customize-menu-checkbox-label",
       htmlFor: "sponsored-pocket",
       "data-l10n-id": "newtab-custom-pocket-sponsored"
-    })), mayHaveTopicSections && /*#__PURE__*/external_React_default().createElement(SectionsMgmtPanel, {
+    })), mayHaveInferredPersonalization && /*#__PURE__*/external_React_default().createElement("div", {
+      className: "check-wrapper",
+      role: "presentation"
+    }, /*#__PURE__*/external_React_default().createElement("input", {
+      id: "inferred-personalization",
+      className: "customize-menu-checkbox",
+      disabled: !pocketEnabled,
+      checked: showInferredPersonalizationEnabled,
+      type: "checkbox",
+      onChange: this.onPreferenceSelect,
+      "data-preference": "discoverystream.sections.personalization.inferred.user.enabled",
+      "data-eventSource": "INFERRED_PERSONALIZATION"
+    }), /*#__PURE__*/external_React_default().createElement("label", {
+      className: "customize-menu-checkbox-label",
+      htmlFor: "inferred-personalization"
+    }, "Recommendations inferred from your activity with the feed")), mayHaveTopicSections && /*#__PURE__*/external_React_default().createElement(SectionsMgmtPanel, {
       exitEventFired: exitEventFired
     }), mayHaveRecentSaves && /*#__PURE__*/external_React_default().createElement("div", {
       className: "check-wrapper",
       role: "presentation"
     }, /*#__PURE__*/external_React_default().createElement("input", {
       id: "recent-saves-pocket",
-      className: "sponsored-checkbox",
+      className: "customize-menu-checkbox",
       disabled: !pocketEnabled,
       checked: showRecentSavesEnabled,
       type: "checkbox",
@@ -11882,7 +11899,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       "data-preference": "showRecentSaves",
       "data-eventSource": "POCKET_RECENT_SAVES"
     }), /*#__PURE__*/external_React_default().createElement("label", {
-      className: "sponsored",
+      className: "customize-menu-checkbox-label",
       htmlFor: "recent-saves-pocket",
       "data-l10n-id": "newtab-custom-pocket-show-recent-saves"
     }))))))), /*#__PURE__*/external_React_default().createElement("div", {
@@ -12003,6 +12020,7 @@ class _CustomizeMenu extends (external_React_default()).PureComponent {
       mayHaveTopicSections: this.props.mayHaveTopicSections,
       mayHaveSponsoredTopSites: this.props.mayHaveSponsoredTopSites,
       mayHaveSponsoredStories: this.props.mayHaveSponsoredStories,
+      mayHaveInferredPersonalization: this.props.mayHaveInferredPersonalization,
       mayHaveRecentSaves: this.props.DiscoveryStream.recentSavesEnabled,
       mayHaveWeather: this.props.mayHaveWeather,
       spocMessageVariant: this.props.spocMessageVariant,
@@ -13103,6 +13121,8 @@ const Base_VISIBILITY_CHANGE_EVENT = "visibilitychange";
 const Base_WALLPAPER_HIGHLIGHT_DISMISSED_PREF = "newtabWallpapers.highlightDismissed";
 const Base_PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 const PREF_THUMBS_UP_DOWN_LAYOUT_ENABLED = "discoverystream.thumbsUpDown.searchTopsitesCompact";
+const PREF_INFERRED_PERSONALIZATION_SYSTEM = "discoverystream.sections.personalization.inferred.enabled";
+const PREF_INFERRED_PERSONALIZATION_USER = "discoverystream.sections.personalization.inferred.user.enabled";
 const PrefsButton = ({
   onClick,
   icon
@@ -13587,12 +13607,14 @@ class BaseContent extends (external_React_default()).PureComponent {
       highlightsEnabled: prefs["feeds.section.highlights"],
       showSponsoredTopSitesEnabled: prefs.showSponsoredTopSites,
       showSponsoredPocketEnabled: prefs.showSponsored,
+      showInferredPersonalizationEnabled: prefs[PREF_INFERRED_PERSONALIZATION_USER],
       showRecentSavesEnabled: prefs.showRecentSaves,
       topSitesRowsCount: prefs.topSitesRows,
       weatherEnabled: prefs.showWeather
     };
     const pocketRegion = prefs["feeds.system.topstories"];
     const mayHaveSponsoredStories = prefs["system.showSponsored"];
+    const mayHaveInferredPersonalization = prefs[PREF_INFERRED_PERSONALIZATION_SYSTEM];
     const mayHaveWeather = prefs["system.showWeather"];
     const {
       mayHaveSponsoredTopSites
@@ -13634,6 +13656,7 @@ class BaseContent extends (external_React_default()).PureComponent {
       mayHaveTopicSections: mayHaveTopicSections,
       mayHaveSponsoredTopSites: mayHaveSponsoredTopSites,
       mayHaveSponsoredStories: mayHaveSponsoredStories,
+      mayHaveInferredPersonalization: mayHaveInferredPersonalization,
       mayHaveWeather: mayHaveWeather,
       spocMessageVariant: spocMessageVariant,
       showing: customizeMenuVisible

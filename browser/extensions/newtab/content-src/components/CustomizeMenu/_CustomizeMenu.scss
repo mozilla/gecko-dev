@@ -166,16 +166,17 @@
   }
 
   .section {
-    .sponsored {
+    .customize-menu-checkbox-label {
       font-size: 14px;
       margin-inline-start: 5px;
     }
 
     .check-wrapper {
       position: relative;
+      display: flex;
     }
 
-    .sponsored-checkbox {
+    .customize-menu-checkbox {
       margin-inline-start: 2px;
       width: 16px;
       height: 16px;
@@ -185,13 +186,14 @@
       border-radius: 4px;
       appearance: none;
       background-color: var(--newtab-element-secondary-color);
+      flex-shrink: 0;
 
       &:hover {
         background-color: var(--newtab-element-secondary-hover-color);
       }
     }
 
-    .sponsored-checkbox:checked {
+    .customize-menu-checkbox:checked {
       -moz-context-properties: fill;
       fill: var(--newtab-primary-element-text-color);
       background: url('chrome://global/skin/icons/check.svg') center no-repeat;
@@ -210,7 +212,7 @@
       }
     }
 
-    .sponsored-checkbox:active + .checkmark {
+    .customize-menu-checkbox:active + .checkmark {
       fill: var(--newtab-element-secondary-color);
     }
 
@@ -333,7 +335,7 @@
 // Make sure form elements under the "Shortcuts" subsection don't change position on focus
 // by always having a 2px box shadow around them - one that blends in with the background.
 .home-section .section {
-  .sponsored-checkbox, .selector {
+  .customize-menu-checkbox, .selector {
     outline: 0;
     box-shadow: 0 0 0 2px light-dark(var(--newtab-background-color), var(--newtab-background-color-dark));
   }
@@ -349,7 +351,7 @@
 // by setting a bright 2px box shadow in active and focus states.
 .home-section .section
 {
-  .sponsored-checkbox, .selector {
+  .customize-menu-checkbox, .selector {
     &:is(:focus-visible) {
       box-shadow: 0 0 0 2px var(--color-accent-primary);
       outline: var(--focus-outline); // For Windows high-contrast mode

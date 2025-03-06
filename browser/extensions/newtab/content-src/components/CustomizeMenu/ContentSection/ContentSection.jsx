@@ -97,6 +97,7 @@ export class ContentSection extends React.PureComponent {
       mayHaveSponsoredTopSites,
       pocketRegion,
       mayHaveSponsoredStories,
+      mayHaveInferredPersonalization,
       mayHaveRecentSaves,
       mayHaveWeather,
       openPreferences,
@@ -115,6 +116,7 @@ export class ContentSection extends React.PureComponent {
       weatherEnabled,
       showSponsoredTopSitesEnabled,
       showSponsoredPocketEnabled,
+      showInferredPersonalizationEnabled,
       showRecentSavesEnabled,
       topSitesRowsCount,
     } = enabledSections;
@@ -192,7 +194,7 @@ export class ContentSection extends React.PureComponent {
                       <div className="check-wrapper" role="presentation">
                         <input
                           id="sponsored-shortcuts"
-                          className="sponsored-checkbox"
+                          className="customize-menu-checkbox"
                           disabled={!topSitesEnabled}
                           checked={showSponsoredTopSitesEnabled}
                           type="checkbox"
@@ -201,7 +203,7 @@ export class ContentSection extends React.PureComponent {
                           data-eventSource="SPONSORED_TOP_SITES"
                         />
                         <label
-                          className="sponsored"
+                          className="customize-menu-checkbox-label"
                           htmlFor="sponsored-shortcuts"
                           data-l10n-id="newtab-custom-sponsored-sites"
                         />
@@ -235,7 +237,7 @@ export class ContentSection extends React.PureComponent {
                           <div className="check-wrapper" role="presentation">
                             <input
                               id="sponsored-pocket"
-                              className="sponsored-checkbox"
+                              className="customize-menu-checkbox"
                               disabled={!pocketEnabled}
                               checked={showSponsoredPocketEnabled}
                               type="checkbox"
@@ -244,10 +246,31 @@ export class ContentSection extends React.PureComponent {
                               data-eventSource="POCKET_SPOCS"
                             />
                             <label
-                              className="sponsored"
+                              className="customize-menu-checkbox-label"
                               htmlFor="sponsored-pocket"
                               data-l10n-id="newtab-custom-pocket-sponsored"
                             />
+                          </div>
+                        )}
+                        {mayHaveInferredPersonalization && (
+                          <div className="check-wrapper" role="presentation">
+                            <input
+                              id="inferred-personalization"
+                              className="customize-menu-checkbox"
+                              disabled={!pocketEnabled}
+                              checked={showInferredPersonalizationEnabled}
+                              type="checkbox"
+                              onChange={this.onPreferenceSelect}
+                              data-preference="discoverystream.sections.personalization.inferred.user.enabled"
+                              data-eventSource="INFERRED_PERSONALIZATION"
+                            />
+                            <label
+                              className="customize-menu-checkbox-label"
+                              htmlFor="inferred-personalization"
+                            >
+                              Recommendations inferred from your activity with
+                              the feed
+                            </label>
                           </div>
                         )}
                         {mayHaveTopicSections && (
@@ -257,7 +280,7 @@ export class ContentSection extends React.PureComponent {
                           <div className="check-wrapper" role="presentation">
                             <input
                               id="recent-saves-pocket"
-                              className="sponsored-checkbox"
+                              className="customize-menu-checkbox"
                               disabled={!pocketEnabled}
                               checked={showRecentSavesEnabled}
                               type="checkbox"
@@ -266,7 +289,7 @@ export class ContentSection extends React.PureComponent {
                               data-eventSource="POCKET_RECENT_SAVES"
                             />
                             <label
-                              className="sponsored"
+                              className="customize-menu-checkbox-label"
                               htmlFor="recent-saves-pocket"
                               data-l10n-id="newtab-custom-pocket-show-recent-saves"
                             />

@@ -25,6 +25,10 @@ const WALLPAPER_HIGHLIGHT_DISMISSED_PREF =
 const PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 const PREF_THUMBS_UP_DOWN_LAYOUT_ENABLED =
   "discoverystream.thumbsUpDown.searchTopsitesCompact";
+const PREF_INFERRED_PERSONALIZATION_SYSTEM =
+  "discoverystream.sections.personalization.inferred.enabled";
+const PREF_INFERRED_PERSONALIZATION_USER =
+  "discoverystream.sections.personalization.inferred.user.enabled";
 
 export const PrefsButton = ({ onClick, icon }) => (
   <div className="prefs-button">
@@ -598,6 +602,8 @@ export class BaseContent extends React.PureComponent {
       highlightsEnabled: prefs["feeds.section.highlights"],
       showSponsoredTopSitesEnabled: prefs.showSponsoredTopSites,
       showSponsoredPocketEnabled: prefs.showSponsored,
+      showInferredPersonalizationEnabled:
+        prefs[PREF_INFERRED_PERSONALIZATION_USER],
       showRecentSavesEnabled: prefs.showRecentSaves,
       topSitesRowsCount: prefs.topSitesRows,
       weatherEnabled: prefs.showWeather,
@@ -605,6 +611,8 @@ export class BaseContent extends React.PureComponent {
 
     const pocketRegion = prefs["feeds.system.topstories"];
     const mayHaveSponsoredStories = prefs["system.showSponsored"];
+    const mayHaveInferredPersonalization =
+      prefs[PREF_INFERRED_PERSONALIZATION_SYSTEM];
     const mayHaveWeather = prefs["system.showWeather"];
     const { mayHaveSponsoredTopSites } = prefs;
     const supportUrl = prefs["support.url"];
@@ -674,6 +682,7 @@ export class BaseContent extends React.PureComponent {
             mayHaveTopicSections={mayHaveTopicSections}
             mayHaveSponsoredTopSites={mayHaveSponsoredTopSites}
             mayHaveSponsoredStories={mayHaveSponsoredStories}
+            mayHaveInferredPersonalization={mayHaveInferredPersonalization}
             mayHaveWeather={mayHaveWeather}
             spocMessageVariant={spocMessageVariant}
             showing={customizeMenuVisible}
