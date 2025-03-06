@@ -122,8 +122,8 @@ class FileSystemDatabaseManagerVersion001 : public FileSystemDatabaseManager {
   virtual Result<std::pair<nsTArray<FileId>, Usage>, QMResult>
   FindFilesWithoutDeprecatedLocksUnderEntry(const EntryId& aEntryId) const;
 
-  virtual Result<nsTArray<EntryId>, QMResult> FindFileEntriesUnderDirectory(
-      const EntryId& aEntryId) const;
+  virtual Result<nsTArray<std::pair<EntryId, FileId>>, QMResult>
+  FindFileEntriesUnderDirectory(const EntryId& aEntryId) const;
 
   nsresult SetUsageTracking(const FileId& aFileId, bool aTracked);
 

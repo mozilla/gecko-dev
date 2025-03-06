@@ -489,10 +489,39 @@ Result<FileId, QMResult> FileSystemDataManager::LockShared(
 // TODO: Improve reporting of failures, see bug 1840811.
 void FileSystemDataManager::UnlockShared(const EntryId& aEntryId,
                                          const FileId& aFileId, bool aAbort) {
-  MOZ_ASSERT(!mExclusiveLocks.Contains(aEntryId));
+  const bool wasDeprecated = [&]() {
+    // Someone recreated the file and put an exclusive lock on it
+    if (mExclusiveLocks.Contains(aEntryId)) {
+      aAbort = true;
+    }
 
-  auto eraseLock = [&](auto& aLocks) {
-    auto entry = aLocks.Lookup(aEntryId);
+    auto entry = mDeprecatedLocks.Lookup(aEntryId);
+    if (!entry) {
+      return false;
+    }
+
+    auto& fileIdData = entry.Data();
+    auto fileIdIt = fileIdData.IndexOf(aFileId);
+    if (nsTArray<FileId>::NoIndex == fileIdIt) {
+      return false;
+    }
+
+    fileIdData.UnorderedRemoveElementAt(fileIdIt);
+
+    if (fileIdData.IsEmpty()) {
+      entry.Remove();
+    }
+
+    return true;
+  }();
+
+  // Deprecated locks are per file. A file cannot be
+  // both in active use with a shared lock and deprecated,
+  // while entries can.
+  if (!wasDeprecated) {
+    MOZ_ASSERT(!mExclusiveLocks.Contains(aEntryId));
+
+    auto entry = mSharedLocks.Lookup(aEntryId);
     if (!entry) {
       return;
     }
@@ -505,10 +534,7 @@ void FileSystemDataManager::UnlockShared(const EntryId& aEntryId,
     if (0u == entry.Data()) {
       entry.Remove();
     }
-  };
-
-  eraseLock(mSharedLocks);
-  eraseLock(mDeprecatedLocks);
+  }
 
   // If underlying file does not exist but should close, abort instead.
   if (!aAbort) {
@@ -529,19 +555,36 @@ void FileSystemDataManager::UnlockShared(const EntryId& aEntryId,
       QM_VOID);
 }
 
-void FileSystemDataManager::DeprecateSharedLocks(const EntryId& aEntryId) {
+void FileSystemDataManager::DeprecateSharedLocks(const EntryId& aEntryId,
+                                                 const FileId& aFileId) {
   auto oldEntry = mSharedLocks.Lookup(aEntryId);
-  if (oldEntry) {
-    auto& deprecatedEntry = mDeprecatedLocks.LookupOrInsert(aEntryId, 0);
-    deprecatedEntry += oldEntry.Data();
+  if (!oldEntry) {
+    return;
   }
 
-  oldEntry.Remove();
+  auto& deprecatedEntries = mDeprecatedLocks.LookupOrInsert(aEntryId);
+  MOZ_ASSERT(!deprecatedEntries.Contains(aFileId));
+  deprecatedEntries.AppendElement(aFileId);
+
+  MOZ_ASSERT(oldEntry.Data() >= 1);
+  if (oldEntry.Data() == 1) {
+    oldEntry.Remove();
+  } else {
+    --oldEntry.Data();
+  }
 }
 
 bool FileSystemDataManager::IsLockedWithDeprecatedSharedLock(
-    const EntryId& aEntryId) const {
-  return mDeprecatedLocks.Contains(aEntryId);
+    const EntryId& aEntryId, const FileId& aFileId) const {
+  MOZ_ASSERT(!aEntryId.IsEmpty());
+  MOZ_ASSERT(!aFileId.IsEmpty());
+
+  auto entry = mDeprecatedLocks.Lookup(aEntryId);
+  if (!entry) {
+    return false;
+  }
+
+  return nsTArray<FileId>::NoIndex != entry.Data().IndexOf(aFileId);
 }
 
 FileMode FileSystemDataManager::GetMode(bool aKeepData) const {
