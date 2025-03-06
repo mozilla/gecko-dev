@@ -53,21 +53,35 @@
 
 .sources-list .debugger-settings-menu-button {
   position: absolute;
-  top: 1px;
-  right: 0px;
+  top: 0;
+
+  inset-inline-end: 1px;
+  /* The negative margin is set in order to collapse the inline-end border with
+     the border of its container. */
+  margin-inline-end: -1px;
+  html[dir="rtl"] & {
+    /* In RTL mode, there is a slightly different offset, so even if we use
+       inline-end, we have to set slightly different values. */
+    inset-inline-end: -1px;
+    margin-inline-end: 0;
+  }
+
   z-index: 5;
 
   background: var(--theme-toolbar-background);
   min-width: unset;
-  width: 24px;
-  height: 24px;
+  width: 25px;
+  height: 25px;
   border: 1px solid var(--theme-splitter-color);
   border-top-width: 0;
 }
 
 .sources-list.sources-list-has-overflow:not(.sources-list-custom-root)
   .debugger-settings-menu-button {
-  right: 15px;
+  inset-inline-end: 15px;
+  html[dir="rtl"] & {
+    inset-inline-end: 14px;
+  }
 }
 
 .sources-list .sources-clear-root-container {
