@@ -341,7 +341,13 @@ initializeEncoding(XML_Parser parser);
 static enum XML_Error
 doProlog(XML_Parser parser, const ENCODING *enc, const char *s,
          const char *end, int tok, const char *next, const char **nextPtr,
+/* BEGIN MOZILLA CHANGE (Bug 1584907 - Take patches from expat 2.2.8) */
+#if 0
+         XML_Bool haveMore);
+#else
          XML_Bool haveMore, XML_Bool allowClosingDoctype);
+#endif
+/* END MOZILLA CHANGE */
 static enum XML_Error
 processInternalEntity(XML_Parser parser, ENTITY *entity,
                       XML_Bool betweenDecl);
@@ -349,10 +355,12 @@ static enum XML_Error
 doContent(XML_Parser parser, int startTagLevel, const ENCODING *enc,
           const char *start, const char *end, const char **endPtr,
           XML_Bool haveMore);
+/* BEGIN MOZILLA CHANGE (Bug 1746996 - Ensure that storeRawNames is always called) */
 static enum XML_Error
 doContentInternal(XML_Parser parser, int startTagLevel, const ENCODING *enc,
                   const char *start, const char *end, const char **endPtr,
                   XML_Bool haveMore);
+/* END MOZILLA CHANGE */
 static enum XML_Error
 doCdataSection(XML_Parser parser, const ENCODING *, const char **startPtr,
                const char *end, const char **nextPtr, XML_Bool haveMore);
@@ -405,8 +413,10 @@ static void FASTCALL normalizePublicId(XML_Char *s);
 
 static DTD * dtdCreate(const XML_Memory_Handling_Suite *ms);
 /* BEGIN MOZILLA CHANGE (unused API) */
+#if 0
 /* do not call if parentParser != NULL */
-//static void dtdReset(DTD *p, const XML_Memory_Handling_Suite *ms);
+static void dtdReset(DTD *p, const XML_Memory_Handling_Suite *ms);
+#endif
 /* END MOZILLA CHANGE */
 static void
 dtdDestroy(DTD *p, XML_Bool isDocEntity, const XML_Memory_Handling_Suite *ms);
@@ -421,7 +431,9 @@ lookup(XML_Parser parser, HASH_TABLE *table, KEY name, size_t createSize);
 static void FASTCALL
 hashTableInit(HASH_TABLE *, const XML_Memory_Handling_Suite *ms);
 /* BEGIN MOZILLA CHANGE (unused API) */
-//static void FASTCALL hashTableClear(HASH_TABLE *);
+#if 0
+static void FASTCALL hashTableClear(HASH_TABLE *);
+#endif
 /* END MOZILLA CHANGE */
 static void FASTCALL hashTableDestroy(HASH_TABLE *);
 static void FASTCALL
@@ -807,11 +819,15 @@ gather_time_entropy(void)
 
   gettimeofday_res = gettimeofday(&tv, NULL);
 
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
 #if defined(NDEBUG)
   (void)gettimeofday_res;
 #else
+/* END MOZILLA CHANGE */
   assert (gettimeofday_res == 0);
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
 #endif /* defined(NDEBUG) */
+/* END MOZILLA CHANGE */
 
   /* Microseconds time is <20 bits entropy */
   return tv.tv_usec;
@@ -1009,6 +1025,7 @@ parserCreate(const XML_Char *encodingName,
   parserInit(parser, encodingName);
 
   if (encodingName && !protocolEncodingName) {
+/* BEGIN MOZILLA CHANGE (cherrypicked from 2.5.0) */
     if (dtd) {
       // We need to stop the upcoming call to XML_ParserFree from happily
       // destroying parser->m_dtd because the DTD is shared with the parent
@@ -1017,6 +1034,7 @@ parserCreate(const XML_Char *encodingName,
       // XML_TRUE only later in XML_ExternalEntityParserCreate (or not at all).
       parser->m_dtd = NULL;
     }
+/* END MOZILLA CHANGE */
     XML_ParserFree(parser);
     return NULL;
   }
@@ -2127,7 +2145,13 @@ XML_GetBuffer(XML_Parser parser, int len)
 }
 
 enum XML_Status XMLCALL
+/* BEGIN MOZILLA CHANGE (Bug 1743007 - Convert expat XML_StopParser API to take an int param instead of u8) */
+#if 0
+XML_StopParser(XML_Parser parser, XML_Bool resumable)
+#else
 XML_StopParser(XML_Parser parser, int resumable)
+#endif
+/* END MOZILLA CHANGE */
 {
   if (parser == NULL)
     return XML_STATUS_ERROR;
@@ -2537,8 +2561,17 @@ contentProcessor(XML_Parser parser,
                  const char *end,
                  const char **endPtr)
 {
-  return doContent(parser, 0, encoding, start, end,
-                   endPtr, (XML_Bool)!ps_finalBuffer);
+  enum XML_Error result = doContent(parser, 0, encoding, start, end,
+                                    endPtr, (XML_Bool)!ps_finalBuffer);
+/* BEGIN MOZILLA CHANGE (Bug 1746996 - Ensure that storeRawNames is always called) */
+#if 0
+  if (result == XML_ERROR_NONE) {
+    if (!storeRawNames(parser))
+      return XML_ERROR_NO_MEMORY;
+  }
+#endif
+/* END MOZILLA CHANGE */
+  return result;
 }
 
 static enum XML_Error PTRCALL
@@ -2648,8 +2681,17 @@ externalEntityContentProcessor(XML_Parser parser,
                                const char *end,
                                const char **endPtr)
 {
-  return doContent(parser, 1, encoding, start, end,
-                   endPtr, (XML_Bool)!ps_finalBuffer);
+  enum XML_Error result = doContent(parser, 1, encoding, start, end,
+                                    endPtr, (XML_Bool)!ps_finalBuffer);
+/* BEGIN MOZILLA CHANGE (Bug 1746996 - Ensure that storeRawNames is always called) */
+#if 0
+  if (result == XML_ERROR_NONE) {
+    if (!storeRawNames(parser))
+      return XML_ERROR_NO_MEMORY;
+  }
+#endif
+/* END MOZILLA CHANGE */
+  return result;
 }
 
 static enum XML_Error
@@ -2661,6 +2703,7 @@ doContent(XML_Parser parser,
           const char **nextPtr,
           XML_Bool haveMore)
 {
+/* BEGIN MOZILLA CHANGE (Bug 1746996 - Ensure that storeRawNames is always called) */
   enum XML_Error result = doContentInternal(parser, startTagLevel, enc,
                                             s, end, nextPtr, haveMore);
   if (result == XML_ERROR_NONE) {
@@ -2679,6 +2722,7 @@ doContentInternal(XML_Parser parser,
                   const char **nextPtr,
                   XML_Bool haveMore)
 {
+/* END MOZILLA CHANGE */
   /* save one level of indirection */
   DTD * const dtd = _dtd;
 
@@ -2781,7 +2825,7 @@ doContentInternal(XML_Parser parser,
         else if (!entity) {
           if (skippedEntityHandler)
             skippedEntityHandler(handlerArg, name, 0);
-/* BEGIN MOZILLA CHANGE (http://bugzilla.mozilla.org/show_bug.cgi?id=35984) */
+/* BEGIN MOZILLA CHANGE (Bug 35984 - Undeclared entities are ignored when external DTD not found) */
 #if 0
           else if (defaultHandler)
             reportDefault(parser, enc, s, next);
@@ -2949,7 +2993,7 @@ doContentInternal(XML_Parser parser,
         if (len != tag->rawNameLength
             || memcmp(tag->rawName, rawName, len) != 0) {
 /* BEGIN MOZILLA CHANGE (Report opening tag of mismatched closing tag) */
-	  /* This code is copied from the |if (endElementHandler)| block below */
+          /* This code is copied from the |if (endElementHandler)| block below */
           const XML_Char *localPart;
           const XML_Char *prefix;
           XML_Char *uri;
@@ -3222,10 +3266,12 @@ storeAtts(XML_Parser parser, const ENCODING *enc,
   /* get the attributes from the tokenizer */
   n = XmlGetAttributes(enc, attStr, attsSize, atts);
 
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
   /* Detect and prevent integer overflow */
   if (n > INT_MAX - nDefaultAtts) {
     return XML_ERROR_NO_MEMORY;
   }
+/* END MOZILLA CHANGE */
 
   if (n + nDefaultAtts > attsSize) {
     int oldAttsSize = attsSize;
@@ -3234,14 +3280,17 @@ storeAtts(XML_Parser parser, const ENCODING *enc,
     XML_AttrInfo *temp2;
 #endif
 
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
     /* Detect and prevent integer overflow */
     if ((nDefaultAtts > INT_MAX - INIT_ATTS_SIZE)
         || (n > INT_MAX - (nDefaultAtts + INIT_ATTS_SIZE))) {
       return XML_ERROR_NO_MEMORY;
     }
+/* END MOZILLA CHANGE */
 
     attsSize = n + nDefaultAtts + INIT_ATTS_SIZE;
 
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
     /* Detect and prevent integer overflow.
      * The preprocessor guard addresses the "always false" warning
      * from -Wtype-limits on platforms where
@@ -3252,12 +3301,14 @@ storeAtts(XML_Parser parser, const ENCODING *enc,
       return XML_ERROR_NO_MEMORY;
     }
 #endif
+/* END MOZILLA CHANGE */
 
     temp = (ATTRIBUTE *)REALLOC((void *)atts, attsSize * sizeof(ATTRIBUTE));
     if (temp == NULL)
       return XML_ERROR_NO_MEMORY;
     atts = temp;
 #ifdef XML_ATTR_INFO
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
     /* Detect and prevent integer overflow.
      * The preprocessor guard addresses the "always false" warning
      * from -Wtype-limits on platforms where
@@ -3268,6 +3319,7 @@ storeAtts(XML_Parser parser, const ENCODING *enc,
       return XML_ERROR_NO_MEMORY;
     }
 #  endif
+/* END MOZILLA CHANGE */
 
     temp2 = (XML_AttrInfo *)REALLOC((void *)attInfo, attsSize * sizeof(XML_AttrInfo));
     if (temp2 == NULL)
@@ -3428,16 +3480,24 @@ storeAtts(XML_Parser parser, const ENCODING *enc,
     int j;  /* hash table index */
     unsigned long version = nsAttsVersion;
 
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
+#if 0
+    int nsAttsSize = (int)1 << nsAttsPower;
+#else
     /* Detect and prevent invalid shift */
     if (parser->m_nsAttsPower >= sizeof(unsigned int) * 8 /* bits per byte */) {
       return XML_ERROR_NO_MEMORY;
     }
 
     unsigned int nsAttsSize = 1u << nsAttsPower;
+#endif
+/* END MOZILLA CHANGE */
 /* BEGIN MOZILLA CHANGE (Include xmlns attributes in attributes array) */
     if (nPrefixes) {
 /* END MOZILLA CHANGE */
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
     unsigned char oldNsAttsPower = parser->m_nsAttsPower;
+/* END MOZILLA CHANGE */
     /* size of hash table must be at least 2 * (# of prefixed attributes) */
     if ((nPrefixes << 1) >> nsAttsPower) {  /* true for nsAttsPower = 0 */
       NS_ATT *temp;
@@ -3446,6 +3506,10 @@ storeAtts(XML_Parser parser, const ENCODING *enc,
       if (nsAttsPower < 3)
         nsAttsPower = 3;
 
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
+#if 0
+      nsAttsSize = (int)1 << nsAttsPower;
+#else
       /* Detect and prevent invalid shift */
       if (parser->m_nsAttsPower >= sizeof(nsAttsSize) * 8 /* bits per byte */) {
         /* Restore actual size of memory in m_nsAtts */
@@ -3466,6 +3530,8 @@ storeAtts(XML_Parser parser, const ENCODING *enc,
         return XML_ERROR_NO_MEMORY;
       }
 #endif
+#endif
+/* END MOZILLA CHANGE */
 
       temp = (NS_ATT *)REALLOC(nsAtts, nsAttsSize * sizeof(NS_ATT));
       if (!temp)
@@ -3665,16 +3731,19 @@ storeAtts(XML_Parser parser, const ENCODING *enc,
   for (i = 0; localPart[i++];)
     ;  /* i includes null terminator */
 
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
   /* Detect and prevent integer overflow */
   if (binding->uriLen > INT_MAX - prefixLen
       || i > INT_MAX - (binding->uriLen + prefixLen)) {
     return XML_ERROR_NO_MEMORY;
   }
+/* END MOZILLA CHANGE */
 
   n = i + binding->uriLen + prefixLen;
   if (n > binding->uriAlloc) {
     TAG *p;
 
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
     /* Detect and prevent integer overflow */
     if (n > INT_MAX - EXPAND_SPARE) {
       return XML_ERROR_NO_MEMORY;
@@ -3688,6 +3757,7 @@ storeAtts(XML_Parser parser, const ENCODING *enc,
       return XML_ERROR_NO_MEMORY;
     }
 #endif
+/* END MOZILLA CHANGE */
 
     uri = (XML_Char *)MALLOC((n + EXPAND_SPARE) * sizeof(XML_Char));
     if (!uri)
@@ -3789,6 +3859,7 @@ addBinding(XML_Parser parser, PREFIX *prefix, const ATTRIBUTE_ID *attId,
   if (freeBindingList) {
     b = freeBindingList;
     if (len > b->uriAlloc) {
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
       /* Detect and prevent integer overflow */
       if (len > INT_MAX - EXPAND_SPARE) {
         return XML_ERROR_NO_MEMORY;
@@ -3803,6 +3874,7 @@ addBinding(XML_Parser parser, PREFIX *prefix, const ATTRIBUTE_ID *attId,
         return XML_ERROR_NO_MEMORY;
       }
 #endif
+/* END MOZILLA CHANGE */
 
       XML_Char *temp = (XML_Char *)REALLOC(b->uri,
                           sizeof(XML_Char) * (len + EXPAND_SPARE));
@@ -3818,6 +3890,7 @@ addBinding(XML_Parser parser, PREFIX *prefix, const ATTRIBUTE_ID *attId,
     if (!b)
       return XML_ERROR_NO_MEMORY;
 
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
     /* Detect and prevent integer overflow */
     if (len > INT_MAX - EXPAND_SPARE) {
       return XML_ERROR_NO_MEMORY;
@@ -3831,6 +3904,7 @@ addBinding(XML_Parser parser, PREFIX *prefix, const ATTRIBUTE_ID *attId,
       return XML_ERROR_NO_MEMORY;
     }
 #endif
+/* END MOZILLA CHANGE */
 
     b->uri = (XML_Char *)MALLOC(sizeof(XML_Char) * (len + EXPAND_SPARE));
     if (!b->uri) {
@@ -4395,7 +4469,13 @@ externalParEntProcessor(XML_Parser parser,
 
   processor = prologProcessor;
   return doProlog(parser, encoding, s, end, tok, next,
+/* BEGIN MOZILLA CHANGE (Bug 1584907 - Take patches from expat 2.2.8) */
+#if 0
+                  nextPtr, (XML_Bool)!ps_finalBuffer);
+#else
                   nextPtr, (XML_Bool)!ps_finalBuffer, XML_TRUE);
+#endif
+/* END MOZILLA CHANGE */
 }
 
 static enum XML_Error PTRCALL
@@ -4445,7 +4525,13 @@ prologProcessor(XML_Parser parser,
   const char *next = s;
   int tok = XmlPrologTok(encoding, s, end, &next);
   return doProlog(parser, encoding, s, end, tok, next,
+/* BEGIN MOZILLA CHANGE (Bug 1584907 - Take patches from expat 2.2.8) */
+#if 0
+                  nextPtr, (XML_Bool)!ps_finalBuffer);
+#else
                   nextPtr, (XML_Bool)!ps_finalBuffer, XML_TRUE);
+#endif
+/* END MOZILLA CHANGE */
 }
 
 static enum XML_Error
@@ -4456,8 +4542,14 @@ doProlog(XML_Parser parser,
          int tok,
          const char *next,
          const char **nextPtr,
+/* BEGIN MOZILLA CHANGE (Bug 1584907 - Take patches from expat 2.2.8) */
+#if 0
+         XML_Bool haveMore)
+#else
          XML_Bool haveMore,
          XML_Bool allowClosingDoctype)
+#endif
+/* END MOZILLA CHANGE */
 {
 #ifdef XML_DTD
   static const XML_Char externalSubsetName[] = { ASCII_HASH , '\0' };
@@ -4633,10 +4725,12 @@ doProlog(XML_Parser parser,
       }
       break;
     case XML_ROLE_DOCTYPE_CLOSE:
+/* BEGIN MOZILLA CHANGE (Bug 1584907 - Take patches from expat 2.2.8) */
       if (allowClosingDoctype != XML_TRUE) {
         /* Must not close doctype from within expanded parameter entities */
         return XML_ERROR_INVALID_TOKEN;
       }
+/* END MOZILLA CHANGE */
 
       if (doctypeName) {
         startDoctypeDeclHandler(handlerArg, doctypeName,
@@ -5136,16 +5230,19 @@ doProlog(XML_Parser parser,
     case XML_ROLE_GROUP_OPEN:
       if (prologState.level >= groupSize) {
         if (groupSize) {
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
           /* Detect and prevent integer overflow */
           if (parser->m_groupSize > (unsigned int)(-1) / 2u) {
             return XML_ERROR_NO_MEMORY;
           }
+/* END MOZILLA CHANGE */
 
           char *temp = (char *)REALLOC(groupConnector, groupSize *= 2);
           if (temp == NULL)
             return XML_ERROR_NO_MEMORY;
           groupConnector = temp;
           if (dtd->scaffIndex) {
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
             /* Detect and prevent integer overflow.
              * The preprocessor guard addresses the "always false" warning
              * from -Wtype-limits on platforms where
@@ -5155,6 +5252,7 @@ doProlog(XML_Parser parser,
               return XML_ERROR_NO_MEMORY;
             }
 #endif
+/* END MOZILLA CHANGE */
 
             int *temp = (int *)REALLOC(dtd->scaffIndex,
                           groupSize * sizeof(int));
@@ -5257,7 +5355,7 @@ doProlog(XML_Parser parser,
           dtd->paramEntityRead = XML_FALSE;
           entity->open = XML_TRUE;
           if (!externalEntityRefHandler(externalEntityRefHandlerArg,
-/* BEGIN MOZILLA CHANGE (http://bugzilla.mozilla.org/show_bug.cgi?id=191482) */
+/* BEGIN MOZILLA CHANGE (Bug 191482 - Add external entity inclusions to internalSubset) */
 #if 0
                                         0,
 #else
@@ -5562,7 +5660,13 @@ processInternalEntity(XML_Parser parser, ENTITY *entity,
   if (entity->is_param) {
     int tok = XmlPrologTok(internalEncoding, textStart, textEnd, &next);
     result = doProlog(parser, internalEncoding, textStart, textEnd, tok,
+/* BEGIN MOZILLA CHANGE (Bug 1584907 - Take patches from expat 2.2.8) */
+#if 0
+                      next, &next, XML_FALSE);
+#else
                       next, &next, XML_FALSE, XML_FALSE);
+#endif
+/* END MOZILLA CHANGE */
   }
   else
 #endif /* XML_DTD */
@@ -5576,7 +5680,7 @@ processInternalEntity(XML_Parser parser, ENTITY *entity,
     }
     else {
       entity->open = XML_FALSE;
-/* BEGIN MOZILLA CHANGE (Deal with parser interruption from nested entities) */
+/* BEGIN MOZILLA CHANGE (Bug 569229 - Deal with parser interruption from nested entities) */
 #if 0
       openInternalEntities = openEntity->next;
 #else
@@ -5631,7 +5735,13 @@ internalEntityProcessor(XML_Parser parser,
   if (entity->is_param) {
     int tok = XmlPrologTok(internalEncoding, textStart, textEnd, &next);
     result = doProlog(parser, internalEncoding, textStart, textEnd, tok,
+/* BEGIN MOZILLA CHANGE (Bug 1584907 - Take patches from expat 2.2.8) */
+#if 0
+                      next, &next, XML_FALSE);
+#else
                       next, &next, XML_FALSE, XML_TRUE);
+#endif
+/* END MOZILLA CHANGE */
   }
   else
 #endif /* XML_DTD */
@@ -5658,13 +5768,24 @@ internalEntityProcessor(XML_Parser parser,
     processor = prologProcessor;
     tok = XmlPrologTok(encoding, s, end, &next);
     return doProlog(parser, encoding, s, end, tok, next, nextPtr,
+/* BEGIN MOZILLA CHANGE (Bug 1584907 - Take patches from expat 2.2.8) */
+#if 0
+                    (XML_Bool)!ps_finalBuffer);
+#else
                     (XML_Bool)!ps_finalBuffer, XML_TRUE);
+#endif
+/* END MOZILLA CHANGE */
   }
   else
 #endif /* XML_DTD */
   {
     processor = contentProcessor;
     /* see externalEntityContentProcessor vs contentProcessor */
+/* BEGIN MOZILLA CHANGE (Cherrypicked from 2.4.9) */
+#if 0
+    return doContent(parser, parentParser ? 1 : 0, encoding, s, end,
+                     nextPtr, (XML_Bool)!ps_finalBuffer);
+#else
     result = doContent(parser, parser->m_parentParser ? 1 : 0,
                        parser->m_encoding, s, end, nextPtr,
                        (XML_Bool)! parser->m_parsingStatus.finalBuffer);
@@ -5673,6 +5794,8 @@ internalEntityProcessor(XML_Parser parser,
         return XML_ERROR_NO_MEMORY;
     }
     return result;
+#endif
+/* END MOZILLA CHANGE */
   }
 }
 
@@ -5811,7 +5934,7 @@ appendAttributeValue(XML_Parser parser, const ENCODING *enc, XML_Bool isCdata,
           if ((pool == &tempPool) && defaultHandler)
             reportDefault(parser, enc, ptr, next);
           */
-/* BEGIN MOZILLA CHANGE (http://bugzilla.mozilla.org/show_bug.cgi?id=35984) */
+/* BEGIN MOZILLA CHANGE (Bug 35984 - Undeclared entities are ignored when external DTD not found) */
 #if 0
           break;
 #else
@@ -6152,13 +6275,16 @@ defineAttribute(ELEMENT_TYPE *type, ATTRIBUTE_ID *attId, XML_Bool isCdata,
     else {
       DEFAULT_ATTRIBUTE *temp;
 
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
       /* Detect and prevent integer overflow */
       if (type->allocDefaultAtts > INT_MAX / 2) {
         return 0;
       }
+/* END MOZILLA CHANGE */
 
       int count = type->allocDefaultAtts * 2;
 
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
       /* Detect and prevent integer overflow.
        * The preprocessor guard addresses the "always false" warning
        * from -Wtype-limits on platforms where
@@ -6168,6 +6294,7 @@ defineAttribute(ELEMENT_TYPE *type, ATTRIBUTE_ID *attId, XML_Bool isCdata,
         return 0;
       }
 #endif
+/* END MOZILLA CHANGE */
 
       temp = (DEFAULT_ATTRIBUTE *)
         REALLOC(type->defaultAtts, (count * sizeof(DEFAULT_ATTRIBUTE)));
@@ -6820,18 +6947,22 @@ lookup(XML_Parser parser, HASH_TABLE *table, KEY name, size_t createSize)
     if (table->used >> (table->power - 1)) {
       unsigned char newPower = table->power + 1;
 
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
       /* Detect and prevent invalid shift */
       if (newPower >= sizeof(unsigned long) * 8 /* bits per byte */) {
         return NULL;
       }
+/* END MOZILLA CHANGE */
 
       size_t newSize = (size_t)1 << newPower;
       unsigned long newMask = (unsigned long)newSize - 1;
 
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
       /* Detect and prevent integer overflow */
       if (newSize > (size_t)(-1) / sizeof(NAMED *)) {
         return NULL;
       }
+/* END MOZILLA CHANGE */
 
       size_t tsize = newSize * sizeof(NAMED *);
       NAMED **newV = (NAMED **)table->mem->malloc_fcn(tsize);
@@ -7169,6 +7300,7 @@ nextScaffoldPart(XML_Parser parser)
   if (dtd->scaffCount >= dtd->scaffSize) {
     CONTENT_SCAFFOLD *temp;
     if (dtd->scaffold) {
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
       /* Detect and prevent integer overflow */
       if (dtd->scaffSize > UINT_MAX / 2u) {
         return -1;
@@ -7182,6 +7314,7 @@ nextScaffoldPart(XML_Parser parser)
         return -1;
       }
 #endif
+/* END MOZILLA CHANGE */
 
       temp = (CONTENT_SCAFFOLD *)
         REALLOC(dtd->scaffold, dtd->scaffSize * 2 * sizeof(CONTENT_SCAFFOLD));
@@ -7260,6 +7393,11 @@ build_model (XML_Parser parser)
   XML_Content *cpos;
   XML_Char * str;
 
+/* BEGIN MOZILLA CHANGE (Cherrypicked) */
+#if 0
+  int allocsize = (dtd->scaffCount * sizeof(XML_Content)
+                   + (dtd->contentStringLen * sizeof(XML_Char)));
+#else
   /* Detect and prevent integer overflow.
    * The preprocessor guard addresses the "always false" warning
    * from -Wtype-limits on platforms where
@@ -7279,6 +7417,8 @@ build_model (XML_Parser parser)
 
   const size_t allocsize = (dtd->scaffCount * sizeof(XML_Content)
                             + (dtd->contentStringLen * sizeof(XML_Char)));
+#endif
+/* END MOZILLA CHANGE */
 
   ret = (XML_Content *)MALLOC(allocsize);
   if (!ret)
