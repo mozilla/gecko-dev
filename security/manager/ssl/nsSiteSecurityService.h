@@ -10,6 +10,7 @@
 #include "mozilla/RefPtr.h"
 #include "nsCOMPtr.h"
 #include "nsIDataStorage.h"
+#include "nsIObserver.h"
 #include "nsISiteSecurityService.h"
 #include "nsString.h"
 #include "nsTArray.h"
@@ -21,8 +22,12 @@ class nsIURI;
 using mozilla::OriginAttributes;
 
 // {16955eee-6c48-4152-9309-c42a465138a1}
-#define NS_SITE_SECURITY_SERVICE_CID \
-  {0x16955eee, 0x6c48, 0x4152, {0x93, 0x09, 0xc4, 0x2a, 0x46, 0x51, 0x38, 0xa1}}
+#define NS_SITE_SECURITY_SERVICE_CID                 \
+  {                                                  \
+    0x16955eee, 0x6c48, 0x4152, {                    \
+      0x93, 0x09, 0xc4, 0x2a, 0x46, 0x51, 0x38, 0xa1 \
+    }                                                \
+  }
 
 /**
  * SecurityPropertyState: A utility enum for representing the different states
@@ -85,9 +90,11 @@ class SiteHSTSState {
 
 struct nsSTSPreload;
 
-class nsSiteSecurityService : public nsISiteSecurityService {
+class nsSiteSecurityService : public nsISiteSecurityService,
+                              public nsIObserver {
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSIOBSERVER
   NS_DECL_NSISITESECURITYSERVICE
 
   nsSiteSecurityService();
@@ -142,6 +149,8 @@ class nsSiteSecurityService : public nsISiteSecurityService {
                                const OriginAttributes& aOriginAttributes,
                                nsIDataStorage::DataType aDataStorageType);
 
+  bool mUsePreloadList;
+  int64_t mPreloadListTimeOffset;
   nsCOMPtr<nsIDataStorage> mSiteStateStorage;
   const mozilla::Dafsa mDafsa;
 };
