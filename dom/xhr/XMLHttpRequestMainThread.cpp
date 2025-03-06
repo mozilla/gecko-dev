@@ -930,7 +930,7 @@ void XMLHttpRequestMainThread::GetContentRangeHeader(nsACString& out) const {
   }
 }
 
-void XMLHttpRequestMainThread::GetResponseURL(nsAString& aUrl) {
+void XMLHttpRequestMainThread::GetResponseURL(nsACString& aUrl) {
   aUrl.Truncate();
 
   if ((mState == XMLHttpRequest_Binding::UNSENT ||
@@ -950,9 +950,7 @@ void XMLHttpRequestMainThread::GetResponseURL(nsAString& aUrl) {
     return;
   }
 
-  nsAutoCString temp;
-  responseUrl->GetSpecIgnoringRef(temp);
-  CopyUTF8toUTF16(temp, aUrl);
+  responseUrl->GetSpecIgnoringRef(aUrl);
 }
 
 uint32_t XMLHttpRequestMainThread::GetStatus(ErrorResult& aRv) {
@@ -1521,25 +1519,17 @@ bool XMLHttpRequestMainThread::InUploadPhase() const {
 // This case is hit when the async parameter is outright omitted, which
 // should set it to true (and the username and password to null).
 void XMLHttpRequestMainThread::Open(const nsACString& aMethod,
-                                    const nsAString& aUrl, ErrorResult& aRv) {
-  Open(aMethod, aUrl, true, VoidString(), VoidString(), aRv);
+                                    const nsACString& aUrl, ErrorResult& aRv) {
+  Open(aMethod, aUrl, true, VoidCString(), VoidCString(), aRv);
 }
 
 // This case is hit when the async parameter is specified, even if the
 // JS value was "undefined" (which due to legacy reasons should be
 // treated as true, which is how it will already be passed in here).
 void XMLHttpRequestMainThread::Open(const nsACString& aMethod,
-                                    const nsAString& aUrl, bool aAsync,
-                                    const nsAString& aUsername,
-                                    const nsAString& aPassword,
-                                    ErrorResult& aRv) {
-  Open(aMethod, NS_ConvertUTF16toUTF8(aUrl), aAsync, aUsername, aPassword, aRv);
-}
-
-void XMLHttpRequestMainThread::Open(const nsACString& aMethod,
                                     const nsACString& aUrl, bool aAsync,
-                                    const nsAString& aUsername,
-                                    const nsAString& aPassword,
+                                    const nsACString& aUsername,
+                                    const nsACString& aPassword,
                                     ErrorResult& aRv) {
   DEBUG_WORKERREFS1(aMethod << " " << aUrl);
   NOT_CALLABLE_IN_SYNC_SEND_RV
@@ -1635,10 +1625,10 @@ void XMLHttpRequestMainThread::Open(const nsACString& aMethod,
   if (!host.IsEmpty() && (!aUsername.IsVoid() || !aPassword.IsVoid())) {
     auto mutator = NS_MutateURI(parsedURL);
     if (!aUsername.IsVoid()) {
-      mutator.SetUsername(NS_ConvertUTF16toUTF8(aUsername));
+      mutator.SetUsername(aUsername);
     }
     if (!aPassword.IsVoid()) {
-      mutator.SetPassword(NS_ConvertUTF16toUTF8(aPassword));
+      mutator.SetPassword(aPassword);
     }
     Unused << mutator.Finalize(parsedURL);
   }

@@ -76,7 +76,7 @@ class XMLHttpRequest : public XMLHttpRequestEventTarget {
   static constexpr ProgressEventType NAME { #NAME, u## #NAME }
 
 #define DECL_ERRORPROGRESSEVENT(NAME, ERR) \
-  static constexpr ErrorProgressEventType NAME { #NAME, u## #NAME, ERR };
+  static constexpr ErrorProgressEventType NAME{#NAME, u## #NAME, ERR};
 
   struct Events;
 
@@ -100,12 +100,12 @@ class XMLHttpRequest : public XMLHttpRequestEventTarget {
 
   virtual uint16_t ReadyState() const = 0;
 
-  virtual void Open(const nsACString& aMethod, const nsAString& aUrl,
+  virtual void Open(const nsACString& aMethod, const nsACString& aUrl,
                     ErrorResult& aRv) = 0;
 
-  virtual void Open(const nsACString& aMethod, const nsAString& aUrl,
-                    bool aAsync, const nsAString& aUser,
-                    const nsAString& aPassword, ErrorResult& aRv) = 0;
+  virtual void Open(const nsACString& aMethod, const nsACString& aUrl,
+                    bool aAsync, const nsACString& aUser,
+                    const nsACString& aPassword, ErrorResult& aRv) = 0;
 
   virtual void SetRequestHeader(const nsACString& aHeader,
                                 const nsACString& aValue, ErrorResult& aRv) = 0;
@@ -131,7 +131,7 @@ class XMLHttpRequest : public XMLHttpRequestEventTarget {
 
   virtual void Abort(ErrorResult& aRv) = 0;
 
-  virtual void GetResponseURL(nsAString& aUrl) = 0;
+  virtual void GetResponseURL(nsACString& aUrl) = 0;
 
   virtual uint32_t GetStatus(ErrorResult& aRv) = 0;
 

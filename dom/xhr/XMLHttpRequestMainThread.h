@@ -262,16 +262,12 @@ class XMLHttpRequestMainThread final : public XMLHttpRequest,
   nsresult InitiateFetch(already_AddRefed<nsIInputStream> aUploadStream,
                          int64_t aUploadLength, nsACString& aUploadContentType);
 
-  virtual void Open(const nsACString& aMethod, const nsAString& aUrl,
+  virtual void Open(const nsACString& aMethod, const nsACString& aUrl,
                     ErrorResult& aRv) override;
 
-  virtual void Open(const nsACString& aMethod, const nsAString& aUrl,
-                    bool aAsync, const nsAString& aUsername,
-                    const nsAString& aPassword, ErrorResult& aRv) override;
-
-  void Open(const nsACString& aMethod, const nsACString& aUrl, bool aAsync,
-            const nsAString& aUsername, const nsAString& aPassword,
-            ErrorResult& aRv);
+  virtual void Open(const nsACString& aMethod, const nsACString& aUrl,
+                    bool aAsync, const nsACString& aUsername,
+                    const nsACString& aPassword, ErrorResult& aRv) override;
 
   virtual void SetRequestHeader(const nsACString& aName,
                                 const nsACString& aValue,
@@ -332,7 +328,7 @@ class XMLHttpRequestMainThread final : public XMLHttpRequest,
   virtual void Abort(ErrorResult& aRv) override;
 
   // response
-  virtual void GetResponseURL(nsAString& aUrl) override;
+  virtual void GetResponseURL(nsACString& aUrl) override;
 
   virtual uint32_t GetStatus(ErrorResult& aRv) override;
 
@@ -341,18 +337,6 @@ class XMLHttpRequestMainThread final : public XMLHttpRequest,
 
   virtual void GetResponseHeader(const nsACString& aHeader, nsACString& aResult,
                                  ErrorResult& aRv) override;
-
-  void GetResponseHeader(const nsAString& aHeader, nsAString& aResult,
-                         ErrorResult& aRv) {
-    nsAutoCString result;
-    GetResponseHeader(NS_ConvertUTF16toUTF8(aHeader), result, aRv);
-    if (result.IsVoid()) {
-      aResult.SetIsVoid(true);
-    } else {
-      // The result value should be inflated:
-      CopyASCIItoUTF16(result, aResult);
-    }
-  }
 
   virtual void GetAllResponseHeaders(nsACString& aResponseHeaders,
                                      ErrorResult& aRv) override;
