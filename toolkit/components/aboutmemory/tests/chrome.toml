@@ -20,13 +20,9 @@ support-files = [
 ["test_aboutmemory3.xhtml"]
 
 ["test_aboutmemory4.xhtml"]
-skip-if = ["os == 'linux' && bits == 64 && debug"] # Bug 1683002
 
 ["test_aboutmemory5.xhtml"]
-skip-if = [
-  "asan", # Bug 1116230
-  "os == 'linux' && bits == 64 && debug", # Bug 1683002
-]
+skip-if = ["asan"] # Bug 1116230
 
 ["test_aboutmemory6.xhtml"]
 

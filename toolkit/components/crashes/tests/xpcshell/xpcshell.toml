@@ -12,7 +12,6 @@ skip-if = ["os == 'android'"]
 run-sequentially = "very high failure rate in parallel"
 skip-if = [
   "os == 'android'",
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov && !fission && socketprocess_networking", # Bug 1933914
 ]
 
 ["test_crash_store.js"]

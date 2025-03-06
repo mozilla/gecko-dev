@@ -1,9 +1,5 @@
 [DEFAULT]
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && asan", # bug 1662229 - task exception
-  "os == 'linux' && os_version == '18.04' && tsan", # bug 1662229 - task exception
-  "debug", # bug 1884982 - takes 20+ minutes to run on debug
-]
+skip-if = ["debug"] # bug 1884982 - takes 20+ minutes to run on debug
 prefs = [
   # Disable the Storage Access API prompts for all of the tests in this directory
   "dom.storage_access.prompt.testing=true",
@@ -51,18 +47,14 @@ skip-if = ["socketprocess_networking"]
 skip-if = ["socketprocess_networking"]
 
 ["browser_blockingIndexedDb.js"]
-skip-if = ["os == 'linux' && socketprocess_networking"]
 
 ["browser_blockingIndexedDbInWorkers.js"]
-skip-if = ["os == 'linux' && socketprocess_networking"]
 
 ["browser_blockingIndexedDbInWorkers2.js"]
 
 ["browser_blockingLocalStorage.js"]
-skip-if = ["os == 'linux' && socketprocess_networking"]
 
 ["browser_blockingMessaging.js"]
-skip-if = ["os == 'linux' && debug"] #bug 1627094
 
 ["browser_blockingNoOpener.js"]
 
@@ -73,7 +65,6 @@ skip-if = ["os == 'linux' && debug"] #bug 1627094
 ["browser_blockingSessionStorage.js"]
 
 ["browser_blockingSharedWorkers.js"]
-skip-if = ["os == 'linux' && socketprocess_networking"]
 
 ["browser_contentBlockingAllowListPrincipal.js"]
 support-files = [
