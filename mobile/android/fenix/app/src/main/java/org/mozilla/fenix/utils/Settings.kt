@@ -2392,6 +2392,14 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Indicates whether or not we should use the new compose logins UI
+     */
+    var enableComposeLogins by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_enable_compose_logins),
+        default = false,
+    )
+
+    /**
      * Indicates whether or not to show the entry point for the DNS over HTTPS settings
      */
     val showDohEntryPoint by booleanPreference(
