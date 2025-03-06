@@ -234,6 +234,24 @@ add_task(async function test_ui_state_signedin() {
     hideFxAText: true,
   });
 
+  // Ensure the profiles menuitem is not shown in the FxA panel when it is
+  // displayed as a subpanel of the app menu.
+  let appMenuFxAStatusButton = document.getElementById("appMenu-fxa-label2");
+  appMenuFxAStatusButton.click();
+  let fxaView = PanelMultiView.getViewNode(document, "PanelUI-fxa");
+  await BrowserTestUtils.waitForEvent(fxaView, "ViewShown");
+
+  // Verify the manage button is shown, just as a basic check.
+  let manageButton = fxaView.querySelector("#fxa-manage-account-button");
+  ok(
+    BrowserTestUtils.isVisible(manageButton),
+    "expected manage button to be visible after opening"
+  );
+  let profilesButton = fxaView.querySelector(
+    "PanelUI-fxa-menu-profiles-button"
+  );
+  ok(!profilesButton, "expected profiles button to not be present");
+
   await closeTabAndMainPanel();
 });
 

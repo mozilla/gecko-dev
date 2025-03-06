@@ -2349,6 +2349,13 @@ panelmultiview[mainViewId="PanelUI-fxa"]  {
   }
 }
 
+/* Special case: hide the profiles menuitem if the FxA/Sync panel is shown as
+ * a submenu of the app menu, rather than anchored to the FxA/Sync toolbar
+ * button. */
+#appMenu-popup panelmultiview[mainViewId="appMenu-mainView"] #PanelUI-fxa-menu-profiles-button {
+  display: none;
+}
+
 /* ----- Content Analysis indicator panel ----- */
 
 #content-analysis-panel-container {
