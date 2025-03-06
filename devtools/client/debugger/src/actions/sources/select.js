@@ -93,6 +93,26 @@ export function selectSourceURL(url, options) {
   };
 }
 
+/**
+ * Function dedicated to the Source Tree.
+ *
+ * This would automatically select the pretty printed source
+ * if one exists for the passed source.
+ *
+ * We aren't relying on selectLocation's mayBeSelectMappedSource logic
+ * as the (0,0) location (line 0, column 0) may not be mapped
+ * and wouldn't be resolved to the pretty printed source.
+ */
+export function selectMayBePrettyPrintedLocation(location) {
+  return async ({ dispatch, getState }) => {
+    const prettySource = getPrettySource(getState(), location.source.id);
+    if (prettySource) {
+      location = createLocation({ source: prettySource });
+    }
+    await dispatch(selectLocation(location));
+  };
+}
+
 export function selectSourceBySourceActorID(sourceActorId, options) {
   return async thunkArgs => {
     const { dispatch, getState } = thunkArgs;

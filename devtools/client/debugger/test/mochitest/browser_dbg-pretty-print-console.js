@@ -18,13 +18,13 @@ add_task(async function () {
   const minifiedLink = await waitForConsoleLink(
     dbg,
     "arithmetic",
-    "math.min.js:3:73"
+    "math.min.js:4:73"
   );
 
   info("Click on the link to open the debugger");
   minifiedLink.click();
   await waitForSelectedSource(dbg, "math.min.js");
-  await waitForSelectedLocation(dbg, 3);
+  await waitForSelectedLocation(dbg, 4);
 
   info("Click on pretty print button and wait for the file to be formatted");
   clickElement(dbg, "prettyPrintButton");

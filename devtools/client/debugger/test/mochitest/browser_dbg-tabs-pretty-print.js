@@ -9,7 +9,8 @@
 add_task(async function () {
   const dbg = await initDebugger("doc-minified.html", "math.min.js");
 
-  await selectSource(dbg, "math.min.js");
+  await selectSourceFromSourceTree(dbg, "math.min.js");
+  assertSourceIcon(dbg, "math.min.js", "javascript");
   clickElement(dbg, "prettyPrintButton");
   await waitForSource(dbg, "math.min.js:formatted");
 
@@ -31,9 +32,16 @@ add_task(async function () {
   await waitForSelectedSource(dbg, "math.min.js:formatted");
   ok(true, "Pretty printed source is selected on reload");
 
-  await selectSource(dbg, "math.min.js:formatted");
-  const source = findSource(dbg, "math.min.js:formatted");
-  dbg.actions.showSource(source.id);
+  // Select any other source
+  await selectSourceFromSourceTree(dbg, "doc-minified.html");
+
+  // Ensure that we can re-select the pretty printed source from the Source Tree
+  await selectSourceFromSourceTree(dbg, "math.min.js");
+  await waitForSelectedSource(dbg, "math.min.js:formatted");
+  assertSourceIcon(dbg, "math.min.js", "prettyPrint");
+  const tab = findElement(dbg, "activeTab");
+  ok(tab.querySelector(".img.prettyPrint"));
+
   const focusedTreeElement = findElementWithSelector(
     dbg,
     ".sources-list .focused .label"
