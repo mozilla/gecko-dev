@@ -14,6 +14,8 @@ internal sealed class PocketResponse<T> {
      *
      * @param data The data returned from the Pocket API.
      */
+    @ConsistentCopyVisibility
+    // Opt into behavior which will become the default in Kotlin 2.1+
     data class Success<T> internal constructor(val data: T) : PocketResponse<T>()
 
     /**
