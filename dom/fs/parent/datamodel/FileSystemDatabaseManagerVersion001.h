@@ -125,6 +125,9 @@ class FileSystemDatabaseManagerVersion001 : public FileSystemDatabaseManager {
   virtual Result<nsTArray<FileId>, QMResult> FindFilesUnderEntry(
       const EntryId& aEntryId) const;
 
+  virtual Result<nsTArray<EntryId>, QMResult> FindFileEntriesUnderDirectory(
+      const EntryId& aEntryId) const;
+
   nsresult SetUsageTracking(const FileId& aFileId, bool aTracked);
 
   nsresult UpdateUsageInDatabase(const FileId& aFileId, Usage aNewDiskUsage);
