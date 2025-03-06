@@ -31,11 +31,15 @@
         // Keys that are expected to be not considered interaction with the page, and
         // so not gesture activate the document.
         let blacklistKeyPresses = [
+          "Tab",
           "CapsLock",
           "NumLock",
           "ScrollLock",
           "FnLock",
           "Meta",
+          "Hyper",
+          "Super",
+          "ContextMenu",
           "ArrowUp",
           "ArrowDown",
           "ArrowLeft",
@@ -54,43 +58,12 @@
         ];
 
         let modifiedKeys = [
-          { key: "a", modifiers: { accelKey: true } },
-          { key: "z", modifiers: { accelKey: true } },
+          { key: "V", modifiers: { altKey: true, shiftKey: true } },
+          { key: "a", modifiers: { altKey: true } },
+          { key: "a", modifiers: { ctrlKey: true } },
           { key: "KEY_ArrowRight", modifiers: { metaKey: true } },
           { key: "KEY_ArrowRight", modifiers: { altKey: true } },
         ];
-
-        let script = SpecialPowers.loadChromeScript(function() {
-          /* eslint-env mozilla/chrome-script */
-          var EventUtils = {};
-          EventUtils.window = {};
-          EventUtils._EU_Ci = Ci;
-          EventUtils._EU_Cc = Cc;
-          Services.scriptloader
-            .loadSubScript("chrome://mochikit/content/tests/SimpleTest/EventUtils.js",
-                           EventUtils);
-
-          addMessageListener("synthesizeKey", function(data) {
-            let browserWin = Services.wm.getMostRecentWindow("navigator:browser");
-            EventUtils.synthesizeKey(data.key, data.event, browserWin);
-          });
-        });
-
-        async function synthesizeKeyAndWait(key, event = {}) {
-          let promise = new Promise(aResolve => {
-            document.addEventListener(
-              "keydown",
-              function (e) {
-                e.preventDefault();
-                info("Received keydown event: " + e.key);
-                aResolve();
-              },
-              { once: true }
-            );
-          });
-          script.sendAsyncMessage("synthesizeKey", { key, event});
-          await promise;
-        }
 
         async function sendInput(element, name, input) {
           synthesizeMouseAtCenter(input, {});
@@ -134,7 +107,7 @@
 
           for (let key of blacklistKeyPresses) {
             document.body.focus();
-            await synthesizeKeyAndWait("KEY_" + key);
+            synthesizeKey("KEY_" + key);
             played = await element.play().then(() => true, () => false);
             is(played, false, "Key " + key + " should not activate document and should not unblock play");
           }
@@ -143,14 +116,14 @@
           let keyNames = (m) => Object.keys(m).join("+");
           for (let x of modifiedKeys) {
             document.body.focus();
-            await synthesizeKeyAndWait(x.key, x.modifiers);
+            synthesizeKey(x.key, x.modifiers);
             played = await element.play().then(() => true, () => false);
             is(played, false, "Key (" + x.key + "+" + keyNames(x.modifiers) + ") should not activate document and should not unblock play");
           }
 
           // Try pressing a key not in the blacklist, then playing.
           // Document should be activated, and media should play.
-          await synthesizeKeyAndWait(" ");
+          synthesizeKey(" ");
           played = await element.play().then(() => true, () => false);
           is(played, true, "Space key should activate document and should unblock play");
 
