@@ -9,7 +9,7 @@ import mozilla.components.concept.engine.webextension.WebExtension
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
-import mozilla.components.support.webextensions.WebExtensionController
+import mozilla.components.support.webextensions.BuiltInWebExtensionController
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.spy
@@ -20,7 +20,7 @@ class WebCompatFeatureTest {
 
     @Before
     fun setup() {
-        WebExtensionController.installedExtensions.clear()
+        BuiltInWebExtensionController.installedBuiltInExtensions.clear()
     }
 
     @Test

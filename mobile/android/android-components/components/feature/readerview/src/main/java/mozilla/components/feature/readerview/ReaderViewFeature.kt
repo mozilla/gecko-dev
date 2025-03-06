@@ -27,7 +27,7 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.filterChanged
-import mozilla.components.support.webextensions.WebExtensionController
+import mozilla.components.support.webextensions.BuiltInWebExtensionController
 import org.json.JSONObject
 import java.lang.ref.WeakReference
 import java.net.URLEncoder
@@ -66,7 +66,7 @@ class ReaderViewFeature(
 
     @VisibleForTesting
     // This is an internal var to make it mutable for unit testing purposes only
-    internal var extensionController = WebExtensionController(
+    internal var extensionController = BuiltInWebExtensionController(
         READER_VIEW_EXTENSION_ID,
         READER_VIEW_EXTENSION_URL,
         READER_VIEW_CONTENT_PORT,
@@ -293,7 +293,7 @@ class ReaderViewFeature(
         }
     }
 
-    private fun WebExtensionController.createReaderUrl(url: String, id: String): String? {
+    private fun BuiltInWebExtensionController.createReaderUrl(url: String, id: String): String? {
         val colorScheme = config.colorScheme.name.lowercase(Locale.ROOT)
         // Encode the original page url, otherwise when the readerview page will try to
         // parse the url and retrieve the readerview url params (ir and colorScheme)

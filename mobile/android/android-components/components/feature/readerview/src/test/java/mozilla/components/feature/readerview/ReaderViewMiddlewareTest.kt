@@ -18,7 +18,7 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.feature.readerview.ReaderViewFeature.Companion.READER_VIEW_EXTENSION_ID
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.mock
-import mozilla.components.support.webextensions.WebExtensionController
+import mozilla.components.support.webextensions.BuiltInWebExtensionController
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -51,7 +51,7 @@ class ReaderViewMiddlewareTest {
     fun `state is updated to disconnect content script port when tab is removed`() {
         val tab = createTab("https://www.mozilla.org", id = "test-tab")
         val engineSession: EngineSession = mock()
-        val controller: WebExtensionController = mock()
+        val controller: BuiltInWebExtensionController = mock()
         val middleware = ReaderViewMiddleware().apply {
             extensionController = controller
         }

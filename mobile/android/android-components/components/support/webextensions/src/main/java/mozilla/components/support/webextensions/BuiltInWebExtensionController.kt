@@ -14,17 +14,18 @@ import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Provides functionality to feature modules that need to interact with a web extension.
+ * Provides functionality to feature modules that need to interact with a web extension
+ * that these modules provide.
  *
  * @property extensionId the unique ID of the web extension e.g. mozacReaderview.
  * @property extensionUrl the url pointing to a resources path for locating the
  * extension within the APK file e.g. resource://android/assets/extensions/my_web_ext.
  * @property defaultPort the name of the default port used to exchange messages
- * between extension scripts and the application. Extensions can open multiple ports
+ * between extension scripts and the application. Extensions can open multiple ports.
  * so [sendContentMessage] and [sendBackgroundMessage] allow specifying an
  * alternative port, if needed.
  */
-class WebExtensionController(
+class BuiltInWebExtensionController(
     private val extensionId: String,
     private val extensionUrl: String,
     private val defaultPort: String,
@@ -49,17 +50,17 @@ class WebExtensionController(
         onSuccess: ((WebExtension) -> Unit) = { },
         onError: ((Throwable) -> Unit) = { _ -> },
     ) {
-        val installedExtension = installedExtensions[extensionId]
+        val installedExtension = installedBuiltInExtensions[extensionId]
         if (installedExtension == null) {
             runtime.installBuiltInWebExtension(
                 extensionId,
                 extensionUrl,
                 onSuccess = {
                     logger.debug("Installed extension: ${it.id}")
-                    synchronized(this@WebExtensionController) {
+                    synchronized(this@BuiltInWebExtensionController) {
                         registerContentMessageHandler(it)
                         registerBackgroundMessageHandler(it)
-                        installedExtensions[extensionId] = it
+                        installedBuiltInExtensions[extensionId] = it
                         onSuccess(it)
                     }
                 },
@@ -92,7 +93,7 @@ class WebExtensionController(
                 it.registerContentMessageHandler(engineSession, name, messageHandler)
             }
 
-            installedExtensions[extensionId]?.let { registerContentMessageHandler(it) }
+            installedBuiltInExtensions[extensionId]?.let { registerContentMessageHandler(it) }
         }
     }
 
@@ -112,7 +113,7 @@ class WebExtensionController(
                 it.registerBackgroundMessageHandler(name, messageHandler)
             }
 
-            installedExtensions[extensionId]?.let { registerBackgroundMessageHandler(it) }
+            installedBuiltInExtensions[extensionId]?.let { registerBackgroundMessageHandler(it) }
         }
     }
 
@@ -125,7 +126,7 @@ class WebExtensionController(
      */
     fun sendContentMessage(msg: JSONObject, engineSession: EngineSession?, name: String = defaultPort) {
         engineSession?.let { session ->
-            installedExtensions[extensionId]?.let { ext ->
+            installedBuiltInExtensions[extensionId]?.let { ext ->
                 val port = ext.getConnectedPort(name, session)
                 port?.postMessage(msg)
                     ?: logger.error("No port with name $name connected for provided session. Message $msg not sent.")
@@ -143,7 +144,7 @@ class WebExtensionController(
         msg: JSONObject,
         name: String = defaultPort,
     ) {
-        installedExtensions[extensionId]?.let { ext ->
+        installedBuiltInExtensions[extensionId]?.let { ext ->
             val port = ext.getConnectedPort(name)
             port?.postMessage(msg)
                 ?: logger.error("No port connected for provided extension. Message $msg not sent.")
@@ -157,7 +158,7 @@ class WebExtensionController(
      * @param name (optional) name of the port, if not specified [defaultPort] will be used.
      */
     fun portConnected(engineSession: EngineSession?, name: String = defaultPort): Boolean {
-        return installedExtensions[extensionId]?.let { ext ->
+        return installedBuiltInExtensions[extensionId]?.let { ext ->
             ext.getConnectedPort(name, engineSession) != null
         } ?: false
     }
@@ -169,11 +170,14 @@ class WebExtensionController(
      * @param name (optional) name of the port, if not specified [defaultPort] will be used.
      */
     fun disconnectPort(engineSession: EngineSession?, name: String = defaultPort) {
-        installedExtensions[extensionId]?.disconnectPort(name, engineSession)
+        installedBuiltInExtensions[extensionId]?.disconnectPort(name, engineSession)
     }
 
+    /**
+     * Companion object for [BuiltInWebExtensionController].
+     */
     companion object {
         @VisibleForTesting
-        val installedExtensions = ConcurrentHashMap<String, WebExtension>()
+        val installedBuiltInExtensions = ConcurrentHashMap<String, WebExtension>()
     }
 }

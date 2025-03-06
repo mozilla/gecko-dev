@@ -36,7 +36,7 @@ import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
-import mozilla.components.support.webextensions.WebExtensionController
+import mozilla.components.support.webextensions.BuiltInWebExtensionController
 import mozilla.ext.appCompatContext
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -63,7 +63,7 @@ class ReaderViewFeatureTest {
 
     @Before
     fun setup() {
-        WebExtensionController.installedExtensions.clear()
+        BuiltInWebExtensionController.installedBuiltInExtensions.clear()
     }
 
     @Test
@@ -101,7 +101,7 @@ class ReaderViewFeatureTest {
         val view: ReaderViewControlsView = mock()
         val engineSession: EngineSession = mock()
         val controller = spy(
-            WebExtensionController(
+            BuiltInWebExtensionController(
                 READER_VIEW_EXTENSION_ID,
                 READER_VIEW_EXTENSION_URL,
                 READER_VIEW_CONTENT_PORT,
@@ -472,7 +472,7 @@ class ReaderViewFeatureTest {
         val view: ReaderViewControlsView = mock()
         val engineSession: EngineSession = mock()
         val ext: WebExtension = mock()
-        val controller: WebExtensionController = mock()
+        val controller: BuiltInWebExtensionController = mock()
         val tab = createTab(
             url = "https://www.mozilla.org",
             id = "test-tab",
@@ -487,7 +487,7 @@ class ReaderViewFeatureTest {
             ),
         )
 
-        WebExtensionController.installedExtensions[ReaderViewFeature.READER_VIEW_EXTENSION_ID] = ext
+        BuiltInWebExtensionController.installedBuiltInExtensions[ReaderViewFeature.READER_VIEW_EXTENSION_ID] = ext
 
         val port: Port = mock()
         whenever(port.engineSession).thenReturn(engineSession)
@@ -527,7 +527,7 @@ class ReaderViewFeatureTest {
         val view: ReaderViewControlsView = mock()
         val engineSession: EngineSession = mock()
         val ext: WebExtension = mock()
-        val controller: WebExtensionController = mock()
+        val controller: BuiltInWebExtensionController = mock()
         val tab = createTab(
             url = "https://www.mozilla.org",
             id = "test-tab",
@@ -542,7 +542,7 @@ class ReaderViewFeatureTest {
             ),
         )
 
-        WebExtensionController.installedExtensions[READER_VIEW_EXTENSION_ID] = ext
+        BuiltInWebExtensionController.installedBuiltInExtensions[READER_VIEW_EXTENSION_ID] = ext
 
         val port: Port = mock()
         whenever(port.engineSession).thenReturn(engineSession)
@@ -579,7 +579,7 @@ class ReaderViewFeatureTest {
         readerActivePort: Port? = null,
         tab: TabSessionState = createTab("https://www.mozilla.org", id = "test-tab"),
         engineSession: EngineSession = mock(),
-        controller: WebExtensionController? = null,
+        controller: BuiltInWebExtensionController? = null,
         createUUID: UUIDCreator = { "" },
     ): ReaderViewFeature {
         val engine: Engine = mock()
@@ -597,7 +597,7 @@ class ReaderViewFeatureTest {
             whenever(ext.getConnectedPort(eq(ReaderViewFeature.READER_VIEW_ACTIVE_CONTENT_PORT), any()))
                 .thenReturn(readerActivePort)
         }
-        WebExtensionController.installedExtensions[ReaderViewFeature.READER_VIEW_EXTENSION_ID] = ext
+        BuiltInWebExtensionController.installedBuiltInExtensions[ReaderViewFeature.READER_VIEW_EXTENSION_ID] = ext
 
         val feature = ReaderViewFeature(testContext, engine, store, mock(), createUUID)
         if (controller != null) {

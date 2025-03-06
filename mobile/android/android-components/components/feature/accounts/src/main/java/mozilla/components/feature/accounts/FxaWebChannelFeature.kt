@@ -31,7 +31,7 @@ import mozilla.components.service.fxa.toAuthType
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.kotlin.isSameOriginAs
-import mozilla.components.support.webextensions.WebExtensionController
+import mozilla.components.support.webextensions.BuiltInWebExtensionController
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -71,7 +71,7 @@ class FxaWebChannelFeature(
 
     @VisibleForTesting
     // This is an internal var to make it mutable for unit testing purposes only
-    internal var extensionController = WebExtensionController(
+    internal var extensionController = BuiltInWebExtensionController(
         WEB_CHANNEL_EXTENSION_ID,
         WEB_CHANNEL_EXTENSION_URL,
         WEB_CHANNEL_MESSAGING_ID,

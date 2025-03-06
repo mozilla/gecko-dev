@@ -9,7 +9,7 @@ import mozilla.components.concept.engine.webextension.MessageHandler
 import mozilla.components.concept.engine.webextension.Port
 import mozilla.components.concept.engine.webextension.WebExtensionRuntime
 import mozilla.components.support.base.log.logger.Logger
-import mozilla.components.support.webextensions.WebExtensionController
+import mozilla.components.support.webextensions.BuiltInWebExtensionController
 import org.json.JSONObject
 
 /**
@@ -25,7 +25,7 @@ object WebCompatReporterFeature {
 
     @VisibleForTesting
     // This is an internal var to make it mutable for unit testing purposes only
-    internal var extensionController = WebExtensionController(
+    internal var extensionController = BuiltInWebExtensionController(
         WEBCOMPAT_REPORTER_EXTENSION_ID,
         WEBCOMPAT_REPORTER_EXTENSION_URL,
         WEBCOMPAT_REPORTER_MESSAGING_ID,

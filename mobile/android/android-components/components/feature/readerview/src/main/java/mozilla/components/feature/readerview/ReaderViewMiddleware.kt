@@ -18,7 +18,7 @@ import mozilla.components.feature.readerview.ReaderViewFeature.Companion.READER_
 import mozilla.components.feature.readerview.ReaderViewFeature.Companion.READER_VIEW_EXTENSION_URL
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
-import mozilla.components.support.webextensions.WebExtensionController
+import mozilla.components.support.webextensions.BuiltInWebExtensionController
 
 /**
  * [Middleware] implementation for translating [BrowserAction]s to
@@ -28,7 +28,7 @@ import mozilla.components.support.webextensions.WebExtensionController
 class ReaderViewMiddleware : Middleware<BrowserState, BrowserAction> {
 
     @VisibleForTesting
-    internal var extensionController = WebExtensionController(
+    internal var extensionController = BuiltInWebExtensionController(
         READER_VIEW_EXTENSION_ID,
         READER_VIEW_EXTENSION_URL,
         READER_VIEW_CONTENT_PORT,

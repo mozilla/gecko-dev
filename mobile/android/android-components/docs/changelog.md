@@ -7,6 +7,8 @@ permalink: /changelog/
 # 138.0 (In Development)
 * **browser-state**, **concept-engine**
   * ⚠️ **Breaking change**: Added new `origins` parameter to `WebExtensionDelegate.onOptionalPermissionsRequest` and `WebExtensionPromptRequest.AfterInstallation.Permissions.Optional`. [Bug 1935680](https://bugzilla.mozilla.org/show_bug.cgi?id=1935680).
+* **support-webextensions**
+  * Renamed `WebExtensionController` to `BuiltInWebExtensionController`. [Bug 1950422](https://bugzilla.mozilla.org/show_bug.cgi?id=1950422).
 
 * **browser-toolbar**
   * Rename `securityIconSecure` and `securityIconInsecure` to `siteIconSecure` and `siteIconInsecure`. See [Bug 1920085](https://bugzilla.mozilla.org/show_bug.cgi?id=1920085).

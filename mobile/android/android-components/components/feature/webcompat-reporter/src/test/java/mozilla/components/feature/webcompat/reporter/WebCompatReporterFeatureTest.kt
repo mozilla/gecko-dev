@@ -13,7 +13,7 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
-import mozilla.components.support.webextensions.WebExtensionController
+import mozilla.components.support.webextensions.BuiltInWebExtensionController
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -28,20 +28,20 @@ class WebCompatReporterFeatureTest {
 
     @Before
     fun setup() {
-        WebExtensionController.installedExtensions.clear()
+        BuiltInWebExtensionController.installedBuiltInExtensions.clear()
     }
 
     @Test
     fun `installs the webextension`() {
         val engine: Engine = mock()
-        val controller: WebExtensionController = mock()
+        val controller: BuiltInWebExtensionController = mock()
         installFeatureForTest(engine, controller)
     }
 
     @Test
     fun `install registers the background message handler`() {
         val engine: Engine = mock()
-        val controller: WebExtensionController = mock()
+        val controller: BuiltInWebExtensionController = mock()
         installFeatureForTest(engine, controller)
 
         verify(controller).registerBackgroundMessageHandler(any(), any())
@@ -50,7 +50,7 @@ class WebCompatReporterFeatureTest {
     @Test
     fun `backgroundMessageHandler sends the default productName if unset`() {
         val engine: Engine = mock()
-        val controller: WebExtensionController = mock()
+        val controller: BuiltInWebExtensionController = mock()
         installFeatureForTest(engine, controller)
 
         val messageHandler = argumentCaptor<MessageHandler>()
@@ -70,7 +70,7 @@ class WebCompatReporterFeatureTest {
     @Test
     fun `backgroundMessageHandler sends the correct productName if set`() {
         val engine: Engine = mock()
-        val controller: WebExtensionController = mock()
+        val controller: BuiltInWebExtensionController = mock()
         installFeatureForTest(engine, controller, "test")
 
         val messageHandler = argumentCaptor<MessageHandler>()
@@ -89,7 +89,7 @@ class WebCompatReporterFeatureTest {
 
     private fun installFeatureForTest(
         engine: Engine,
-        controller: WebExtensionController,
+        controller: BuiltInWebExtensionController,
         productName: String? = null,
     ): WebCompatReporterFeature {
         val reporterFeature = spy(WebCompatReporterFeature)
