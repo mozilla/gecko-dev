@@ -1,129 +1,145 @@
-<!DOCTYPE HTML>
+<!doctype html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>MozBoxButton Tests</title>
-  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
-  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
-  <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
-  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
-  <script type="module" src="chrome://global/content/elements/moz-box-button.mjs"></script>
-  <script src="lit-test-helpers.js"></script>
-  <script>
-    let html;
-    let testHelpers = new LitTestHelpers();
+  <head>
+    <meta charset="utf-8" />
+    <title>MozBoxButton Tests</title>
+    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+    <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
+    <link
+      rel="stylesheet"
+      href="chrome://mochikit/content/tests/SimpleTest/test.css"
+    />
+    <script
+      type="module"
+      src="chrome://global/content/elements/moz-box-button.mjs"
+    ></script>
+    <script src="lit-test-helpers.js"></script>
+    <script>
+      let html;
+      let testHelpers = new LitTestHelpers();
 
-    add_setup(async function setup() {
-     ({ html } = await testHelpers.setupLit());
-     let templateFn = (attrs) => html`
-       <moz-box-button ${attrs}></moz-box-button>
-     `;
-     testHelpers.setupTests({ templateFn });
-   });
+      add_setup(async function setup() {
+        ({ html } = await testHelpers.setupLit());
+        let templateFn = attrs => html`
+          <moz-box-button ${attrs}></moz-box-button>
+        `;
+        testHelpers.setupTests({ templateFn });
+      });
 
-    add_task(async function testMozBoxButtonProperties() {
-      const TEST_LABEL = "this is a test";
-      let labelledTemplate = testHelpers.templateFn({ label: TEST_LABEL });
-      let renderTarget = await testHelpers.renderTemplate(labelledTemplate);
-      let button = renderTarget.firstElementChild;
+      add_task(async function testMozBoxButtonProperties() {
+        const TEST_LABEL = "this is a test";
+        let labelledTemplate = testHelpers.templateFn({ label: TEST_LABEL });
+        let renderTarget = await testHelpers.renderTemplate(labelledTemplate);
+        let button = renderTarget.firstElementChild;
 
-      ok(button, "The box button renders.");
-      ok(
-        button.navIcon,
-        "The box button has an icon indicating the type of navigation that happens on click."
-      );
-      is(
-        button.navIcon.src,
-        "chrome://global/skin/icons/arrow-right.svg",
-        "The button uses the expected icon."
-      );
+        ok(button, "The box button renders.");
+        ok(
+          button.navIcon,
+          "The box button has an icon indicating the type of navigation that happens on click."
+        );
+        is(
+          button.navIcon.src,
+          "chrome://global/skin/icons/arrow-right.svg",
+          "The button uses the expected icon."
+        );
 
-      is(button.label, TEST_LABEL, "The box button has the expected label.");
-      is(
-        button.labelEl.textContent.trim(),
-        TEST_LABEL,
-        "The box button label is rendered."
-      );
+        is(button.label, TEST_LABEL, "The box button has the expected label.");
+        is(
+          button.labelEl.textContent.trim(),
+          TEST_LABEL,
+          "The box button label is rendered."
+        );
 
-      const TEST_DESCRIPTION = "This is a description";
-      button.description = TEST_DESCRIPTION;
-      await button.updateComplete;
+        const TEST_DESCRIPTION = "This is a description";
+        button.description = TEST_DESCRIPTION;
+        await button.updateComplete;
 
-      is(
-        button.descriptionEl.textContent.trim(),
-        TEST_DESCRIPTION,
-        "The button supports setting a description."
-      );
+        is(
+          button.descriptionEl.textContent.trim(),
+          TEST_DESCRIPTION,
+          "The button supports setting a description."
+        );
 
-      const ICON_SRC = "chrome://global/skin/icons/edit-copy.svg";
-      button.iconSrc = ICON_SRC;
-      await button.updateComplete;
+        const ICON_SRC = "chrome://global/skin/icons/edit-copy.svg";
+        button.iconSrc = ICON_SRC;
+        await button.updateComplete;
 
-      is(
-        button.iconEl.getAttribute("src"),
-        ICON_SRC,
-        "The button supports setting an icon."
-      );
-    });
+        is(
+          button.iconEl.getAttribute("src"),
+          ICON_SRC,
+          "The button supports setting an icon."
+        );
+      });
 
-    add_task(async function testMozBoxButtonEvents() {
-      let seenEvents = [];
+      add_task(async function testMozBoxButtonEvents() {
+        let seenEvents = [];
 
-      let renderTarget = await testHelpers.renderTemplate();
-      let button = renderTarget.firstElementChild;
-      button.addEventListener("click", e => seenEvents.push(e));
+        let renderTarget = await testHelpers.renderTemplate();
+        let button = renderTarget.firstElementChild;
+        button.addEventListener("click", e => seenEvents.push(e));
 
-      synthesizeMouseAtCenter(button, {});
-      await TestUtils.waitForTick();
+        synthesizeMouseAtCenter(button, {});
+        await TestUtils.waitForTick();
 
-      is(
-        seenEvents.length,
-        1,
-        "MozBoxButton emitted the expected number of events."
-      );
-      is(seenEvents[0].type, "click", "MozBoxButton emitted a click event.");
-    });
+        is(
+          seenEvents.length,
+          1,
+          "MozBoxButton emitted the expected number of events."
+        );
+        is(seenEvents[0].type, "click", "MozBoxButton emitted a click event.");
+      });
 
-    add_task(async function testMozBoxButtonKeyboardFocus() {
-      let focusTemplate = html`
-        <button id="first">Button before</button>
-        <moz-box-button id="box" label="I'm the box button"></moz-box-button>
-        <button id="last">Button after</button>
-      `;
-      let renderTarget = await testHelpers.renderTemplate(focusTemplate);
-      let firstButton = renderTarget.firstElementChild;
+      add_task(async function testMozBoxButtonKeyboardFocus() {
+        let focusTemplate = html`
+          <button id="first">Button before</button>
+          <moz-box-button id="box" label="I'm the box button"></moz-box-button>
+          <button id="last">Button after</button>
+        `;
+        let renderTarget = await testHelpers.renderTemplate(focusTemplate);
+        let firstButton = renderTarget.firstElementChild;
 
-      firstButton.focus();
-      is(document.activeElement, firstButton, "The first button is focused.");
-      synthesizeKey("KEY_Tab", {});
+        firstButton.focus();
+        is(document.activeElement, firstButton, "The first button is focused.");
+        synthesizeKey("KEY_Tab", {});
 
-      let mozBoxButton = document.getElementById("box");
-      is(document.activeElement, mozBoxButton, "The MozBoxButton receives focus.");
+        let mozBoxButton = document.getElementById("box");
+        is(
+          document.activeElement,
+          mozBoxButton,
+          "The MozBoxButton receives focus."
+        );
 
-      synthesizeKey("KEY_Tab", {});
-      let lastButton = document.getElementById("last");
-      is(document.activeElement, lastButton, "Focus moves from the MozBoxButton.");
-    });
+        synthesizeKey("KEY_Tab", {});
+        let lastButton = document.getElementById("last");
+        is(
+          document.activeElement,
+          lastButton,
+          "Focus moves from the MozBoxButton."
+        );
+      });
 
-    add_task(async function testMozBoxButtonDisabled() {
-      let { children: [button] } = await testHelpers.renderTemplate();
-      is(button.disabled, false, "MozBoxButton is enabled by default.");
-      is(button.buttonEl.disabled, false, "Inner button element is enabled.");
+      add_task(async function testMozBoxButtonDisabled() {
+        let {
+          children: [button],
+        } = await testHelpers.renderTemplate();
+        is(button.disabled, false, "MozBoxButton is enabled by default.");
+        is(button.buttonEl.disabled, false, "Inner button element is enabled.");
 
-      button.disabled = true;
-      await button.updateComplete;
+        button.disabled = true;
+        await button.updateComplete;
 
-      is(
-        button.buttonEl.disabled,
-        true,
-        "Inner button element gets disabled when MozBoxButton is disabled."
-      );
-    });
-  </script>
-</head>
-<body>
-<p id="display"></p>
-<div id="content" style="display: none"></div>
-<pre id="test"></pre>
-</body>
+        is(
+          button.buttonEl.disabled,
+          true,
+          "Inner button element gets disabled when MozBoxButton is disabled."
+        );
+      });
+    </script>
+  </head>
+  <body>
+    <p id="display"></p>
+    <div id="content" style="display: none"></div>
+    <pre id="test"></pre>
+  </body>
 </html>

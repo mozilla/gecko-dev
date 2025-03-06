@@ -1,387 +1,383 @@
 <?xml version="1.0"?>
-<?xml-stylesheet href="chrome://global/skin" type="text/css"?>
-<?xml-stylesheet href="chrome://mochikit/content/tests/SimpleTest/test.css" type="text/css"?>
+<?xml-stylesheet href="chrome://global/skin" type="text/css"?> <?xml-stylesheet
+href="chrome://mochikit/content/tests/SimpleTest/test.css" type="text/css"?>
 
-<window title="Popup Anchor Tests"
+<window
+  title="Popup Anchor Tests"
   xmlns:html="http://www.w3.org/1999/xhtml"
-  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
-
-  <panel id="testPanel"
-         type="arrow"
-         animate="false"
-         noautohide="true">
-  </panel>
+  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+>
+  <panel id="testPanel" type="arrow" animate="false" noautohide="true"> </panel>
 
   <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
 
-<script>
-<![CDATA[
-var anchor, panel;
+  <script>
+    <![CDATA[
+    var anchor, panel;
 
-function is_close(got, exp, msg) {
-  // on some platforms we see differences of a fraction of a pixel - so
-  // allow any difference of < 1 pixels as being OK.
-  ok(Math.abs(got - exp) < 1, msg + ": " + got + " should be equal(-ish) to " + exp);
-}
+    function is_close(got, exp, msg) {
+      // on some platforms we see differences of a fraction of a pixel - so
+      // allow any difference of < 1 pixels as being OK.
+      ok(Math.abs(got - exp) < 1, msg + ": " + got + " should be equal(-ish) to " + exp);
+    }
 
-function margins(popup) {
-  let ret = {};
-  let cs = getComputedStyle(popup);
-  for (let side of ["top", "right", "bottom", "left"]) {
-    ret[side] = parseFloat(cs.getPropertyValue("margin-" + side));
-  }
-  return ret;
-}
+    function margins(popup) {
+      let ret = {};
+      let cs = getComputedStyle(popup);
+      for (let side of ["top", "right", "bottom", "left"]) {
+        ret[side] = parseFloat(cs.getPropertyValue("margin-" + side));
+      }
+      return ret;
+    }
 
-function checkPositionRelativeToAnchor(side) {
-  var panelRect = panel.getBoundingClientRect();
-  var anchorRect = anchor.getBoundingClientRect();
-  switch (side) {
-    case "left":
-    case "right":
-      is_close(panelRect.top - margins(panel).top, anchorRect.bottom, "top of panel should be at bottom of anchor");
-      break;
-    case "top":
-    case "bottom":
-      is_close(panelRect.right + margins(panel).left, anchorRect.left, "right of panel should be left of anchor");
-      break;
-    default:
-      ok(false, "unknown side " + side);
-      break;
-  }
-}
-
-function openSlidingPopup(position, callback) {
-  panel.setAttribute("flip", "slide");
-  _openPopup(position, callback);
-}
-
-function openPopup(position, callback) {
-  panel.setAttribute("flip", "both");
-  _openPopup(position, callback);
-}
-
-async function waitForPopupPositioned(actionFn, callback)
-{
-  info("waitForPopupPositioned");
-  let a = new Promise(resolve => {
-    panel.addEventListener("popuppositioned", () => resolve(true), { once: true });
-  });
-
-  actionFn();
-
-  // Ensure we get at least one event, but we might get more than one, so wait for them as needed.
-  //
-  // The double-raf ensures layout runs once. setTimeout is needed because that's how popuppositioned is scheduled.
-  let b = new Promise(resolve => {
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      setTimeout(() => resolve(false), 0);
-    }));
-  });
-
-  let gotEvent = await Promise.race([a, b]);
-  info("got event: " + gotEvent);
-  if (gotEvent) {
-    waitForPopupPositioned(() => {}, callback);
-  } else {
-    SimpleTest.executeSoon(callback);
-  }
-}
-
-function _openPopup(position, callback) {
-  panel.setAttribute("side", "noside");
-  panel.addEventListener("popupshown", callback, {once: true});
-  panel.openPopup(anchor, position);
-}
-
-var tests = [
-  // A panel with the anchor after_end - the anchor should not move on resize
-  ['simpleResizeHorizontal', 'middle', function(next) {
-    openPopup("after_end", function() {
-      checkPositionRelativeToAnchor("right");
-      var origPanelRect = panel.getBoundingClientRect();
-      panel.sizeTo(100, 100);
-      checkPositionRelativeToAnchor("right"); // should not have flipped, so still "right"
-      panel.sizeTo(origPanelRect.width, origPanelRect.height);
-      checkPositionRelativeToAnchor("right"); // should not have flipped, so still "right"
-      next();
-    });
-  }],
-
-  ['simpleResizeVertical', 'middle', function(next) {
-    openPopup("start_after", function() {
-      checkPositionRelativeToAnchor("bottom");
-      var origPanelRect = panel.getBoundingClientRect();
-      panel.sizeTo(100, 100);
-      checkPositionRelativeToAnchor("bottom"); // should not have flipped.
-      panel.sizeTo(origPanelRect.width, origPanelRect.height);
-      checkPositionRelativeToAnchor("bottom"); // should not have flipped.
-      next();
-    });
-  }],
-  ['flippingResizeHorizontal', 'middle', function(next) {
-    openPopup("after_end", function() {
-      checkPositionRelativeToAnchor("right");
-      waitForPopupPositioned(
-        () => { panel.sizeTo(anchor.getBoundingClientRect().left + 50, 50); },
-        () => {
-          checkPositionRelativeToAnchor("left"); // check it flipped.
-          next();
-        });
-    });
-  }],
-  ['flippingResizeVertical', 'middle', function(next) {
-    openPopup("start_after", function() {
-      checkPositionRelativeToAnchor("bottom");
-      waitForPopupPositioned(
-        () => { panel.sizeTo(50, anchor.getBoundingClientRect().top + 50); },
-        () => {
-          checkPositionRelativeToAnchor("top"); // check it flipped.
-          next();
-        });
-    });
-  }],
-
-  ['simpleMoveToAnchorHorizontal', 'middle', function(next) {
-    openPopup("after_end", function() {
-      checkPositionRelativeToAnchor("right");
-      waitForPopupPositioned(
-       () => { panel.moveToAnchor(anchor, "after_end", 20, 0); },
-       () => {
-         // the anchor and the panel should have moved 20px right without flipping.
-         checkPositionRelativeToAnchor("right");
-         waitForPopupPositioned(
-           () => { panel.moveToAnchor(anchor, "after_end", -20, 0);  },
-           () => {
-             // the anchor and the panel should have moved 20px left without flipping.
-             checkPositionRelativeToAnchor("right");
-             next();
-          });
-       });
-    });
-  }],
-
-  ['simpleMoveToAnchorVertical', 'middle', function(next) {
-    openPopup("start_after", function() {
-      checkPositionRelativeToAnchor("bottom");
-      waitForPopupPositioned(
-       () => { panel.moveToAnchor(anchor, "start_after", 0, 20); },
-       () => {
-         // the anchor and the panel should have moved 20px down without flipping.
-         checkPositionRelativeToAnchor("bottom");
-         waitForPopupPositioned(
-           () => { panel.moveToAnchor(anchor, "start_after", 0, -20) },
-           () => {
-             // the anchor and the panel should have moved 20px up without flipping.
-             checkPositionRelativeToAnchor("bottom");
-             next();
-          });
-       });
-    });
-  }],
-
-  // Do a moveToAnchor that causes the panel to flip horizontally
-  ['flippingMoveToAnchorHorizontal', 'middle', function(next) {
-    var anchorRight = anchor.getBoundingClientRect().right;
-    // Size the panel such that it only just fits from the left-hand side of
-    // the window to the right of the anchor - thus, it will fit when
-    // anchored to the right-hand side of the anchor.
-    panel.sizeTo(anchorRight - 10, 100);
-    openPopup("after_end", function() {
-      checkPositionRelativeToAnchor("right");
-      // Ask for it to be anchored 1/2 way between the left edge of the window
-      // and the anchor right - it can't fit with the panel on the left/arrow
-      // on the right, so it must flip (arrow on the left, panel on the right)
-      var offset = Math.floor(-anchorRight / 2);
-
-      waitForPopupPositioned(
-        () => panel.moveToAnchor(anchor, "after_end", offset, 0),
-        () => {
-          checkPositionRelativeToAnchor("left");
-          // resize back to original and move to a zero offset - it should flip back.
-
-          panel.sizeTo(anchorRight - 10, 100);
-          waitForPopupPositioned(
-            () => panel.moveToAnchor(anchor, "after_end", 0, 0),
-            () => {
-              checkPositionRelativeToAnchor("right"); // should have flipped back.
-              next();
-            });
-        });
-    });
-  }],
-
-  // Do a moveToAnchor that causes the panel to flip vertically
-  ['flippingMoveToAnchorVertical', 'middle', function(next) {
-    var anchorBottom = anchor.getBoundingClientRect().bottom;
-    // See comments above in flippingMoveToAnchorHorizontal, but read
-    // "top/bottom" instead of "left/right"
-    panel.sizeTo(100, anchorBottom - 10);
-    openPopup("start_after", function() {
-      checkPositionRelativeToAnchor("bottom");
-      var offset = Math.floor(-anchorBottom / 2);
-
-      waitForPopupPositioned(
-        () => panel.moveToAnchor(anchor, "start_after", 0, offset),
-        () => {
-          checkPositionRelativeToAnchor("top");
-          panel.sizeTo(100, anchorBottom - 10);
-
-          waitForPopupPositioned(
-            () => panel.moveToAnchor(anchor, "start_after", 0, 0),
-            () => {
-              checkPositionRelativeToAnchor("bottom");
-              next();
-            });
-        });
-    });
-  }],
-
-  ['veryWidePanel-after_end', 'middle', function(next) {
-    openSlidingPopup("after_end", function() {
-      waitForPopupPositioned(
-        () => { panel.sizeTo(window.innerWidth - 10, 60); },
-        () => {
-          is(panel.getBoundingClientRect().width, window.innerWidth - 10, "width is what we requested.")
-          next();
-      });
-    });
-  }],
-
-  ['veryWidePanel-before_start', 'middle', function(next) {
-    openSlidingPopup("before_start", function() {
-      waitForPopupPositioned(
-        () => { panel.sizeTo(window.innerWidth - 10, 60); },
-        () => {
-          is(panel.getBoundingClientRect().width, window.innerWidth - 10, "width is what we requested")
-          next();
-      });
-    });
-  }],
-
-  ['veryTallPanel-start_after', 'middle', function(next) {
-    openSlidingPopup("start_after", function() {
-      waitForPopupPositioned(
-        () => { panel.sizeTo(100, window.innerHeight - 10); },
-        () => {
-          is(panel.getBoundingClientRect().height, window.innerHeight - 10, "height is what we requested.")
-          next();
-        });
-    });
-  }],
-
-  ['veryTallPanel-start_before', 'middle', function(next) {
-    openSlidingPopup("start_before", function() {
-      waitForPopupPositioned(
-        () => { panel.sizeTo(100, window.innerHeight - 10); },
-        () => {
-          is(panel.getBoundingClientRect().height, window.innerHeight - 10, "height is what we requested")
-          next();
-      });
-    });
-  }],
-
-  // Tests against the anchor at the right-hand side of the window
-  ['afterend', 'right', function(next) {
-    openPopup("after_end", function() {
-      // when we request too far to the right/bottom, the panel gets shrunk
-      // and moved.  The amount it is shrunk by is how far it is moved.
-      checkPositionRelativeToAnchor("right");
-      next();
-    });
-  }],
-
-  ['after_start', 'right', function(next) {
-    openPopup("after_start", function() {
-      // See above - we are still too far to the right, but the anchor is
-      // on the other side.
-      checkPositionRelativeToAnchor("right");
-      next();
-    });
-  }],
-
-  // Tests against the anchor at the left-hand side of the window
-  ['after_start', 'left', function(next) {
-    openPopup("after_start", function() {
+    function checkPositionRelativeToAnchor(side) {
       var panelRect = panel.getBoundingClientRect();
-      ok(panelRect.left - margins(panel).left >= 0, "panel remains within the screen");
-      checkPositionRelativeToAnchor("left");
-      next();
-    });
-  }],
-]
+      var anchorRect = anchor.getBoundingClientRect();
+      switch (side) {
+        case "left":
+        case "right":
+          is_close(panelRect.top - margins(panel).top, anchorRect.bottom, "top of panel should be at bottom of anchor");
+          break;
+        case "top":
+        case "bottom":
+          is_close(panelRect.right + margins(panel).left, anchorRect.left, "right of panel should be left of anchor");
+          break;
+        default:
+          ok(false, "unknown side " + side);
+          break;
+      }
+    }
 
-function runTests() {
-  function runNextTest() {
-    let result = tests.shift();
-    if (!result) {
-      // out of tests
-      panel.hidePopup();
-      SimpleTest.finish();
-      return;
+    function openSlidingPopup(position, callback) {
+      panel.setAttribute("flip", "slide");
+      _openPopup(position, callback);
     }
-    let [name, anchorPos, test] = result;
-    SimpleTest.info("sub-test " + anchorPos + "." + name + " starting");
-    // first arrange for the anchor to be where the test requires it.
-    panel.hidePopup();
-    panel.sizeTo(100, 50);
-    // hide all the anchors here, then later we make one of them visible.
-    document.getElementById("anchor-left-wrapper").style.display = "none";
-    document.getElementById("anchor-middle-wrapper").style.display = "none";
-    document.getElementById("anchor-right-wrapper").style.display = "none";
-    switch(anchorPos) {
-      case 'middle':
-        anchor = document.getElementById("anchor-middle");
-        document.getElementById("anchor-middle-wrapper").style.display = "block";
-        break;
-      case 'left':
-        anchor = document.getElementById("anchor-left");
-        document.getElementById("anchor-left-wrapper").style.display = "block";
-        break;
-      case 'right':
-        anchor = document.getElementById("anchor-right");
-        document.getElementById("anchor-right-wrapper").style.display = "block";
-        break;
-      default:
-        SimpleTest.ok(false, "Bad anchorPos: " + anchorPos);
-        runNextTest();
-        return;
+
+    function openPopup(position, callback) {
+      panel.setAttribute("flip", "both");
+      _openPopup(position, callback);
     }
-    try {
-      test(runNextTest);
-    } catch (ex) {
-      SimpleTest.ok(false, "sub-test " + anchorPos + "." + name + " failed: " + ex.toString() + "\n" + ex.stack);
+
+    async function waitForPopupPositioned(actionFn, callback)
+    {
+      info("waitForPopupPositioned");
+      let a = new Promise(resolve => {
+        panel.addEventListener("popuppositioned", () => resolve(true), { once: true });
+      });
+
+      actionFn();
+
+      // Ensure we get at least one event, but we might get more than one, so wait for them as needed.
+      //
+      // The double-raf ensures layout runs once. setTimeout is needed because that's how popuppositioned is scheduled.
+      let b = new Promise(resolve => {
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          setTimeout(() => resolve(false), 0);
+        }));
+      });
+
+      let gotEvent = await Promise.race([a, b]);
+      info("got event: " + gotEvent);
+      if (gotEvent) {
+        waitForPopupPositioned(() => {}, callback);
+      } else {
+        SimpleTest.executeSoon(callback);
+      }
+    }
+
+    function _openPopup(position, callback) {
+      panel.setAttribute("side", "noside");
+      panel.addEventListener("popupshown", callback, {once: true});
+      panel.openPopup(anchor, position);
+    }
+
+    var tests = [
+      // A panel with the anchor after_end - the anchor should not move on resize
+      ['simpleResizeHorizontal', 'middle', function(next) {
+        openPopup("after_end", function() {
+          checkPositionRelativeToAnchor("right");
+          var origPanelRect = panel.getBoundingClientRect();
+          panel.sizeTo(100, 100);
+          checkPositionRelativeToAnchor("right"); // should not have flipped, so still "right"
+          panel.sizeTo(origPanelRect.width, origPanelRect.height);
+          checkPositionRelativeToAnchor("right"); // should not have flipped, so still "right"
+          next();
+        });
+      }],
+
+      ['simpleResizeVertical', 'middle', function(next) {
+        openPopup("start_after", function() {
+          checkPositionRelativeToAnchor("bottom");
+          var origPanelRect = panel.getBoundingClientRect();
+          panel.sizeTo(100, 100);
+          checkPositionRelativeToAnchor("bottom"); // should not have flipped.
+          panel.sizeTo(origPanelRect.width, origPanelRect.height);
+          checkPositionRelativeToAnchor("bottom"); // should not have flipped.
+          next();
+        });
+      }],
+      ['flippingResizeHorizontal', 'middle', function(next) {
+        openPopup("after_end", function() {
+          checkPositionRelativeToAnchor("right");
+          waitForPopupPositioned(
+            () => { panel.sizeTo(anchor.getBoundingClientRect().left + 50, 50); },
+            () => {
+              checkPositionRelativeToAnchor("left"); // check it flipped.
+              next();
+            });
+        });
+      }],
+      ['flippingResizeVertical', 'middle', function(next) {
+        openPopup("start_after", function() {
+          checkPositionRelativeToAnchor("bottom");
+          waitForPopupPositioned(
+            () => { panel.sizeTo(50, anchor.getBoundingClientRect().top + 50); },
+            () => {
+              checkPositionRelativeToAnchor("top"); // check it flipped.
+              next();
+            });
+        });
+      }],
+
+      ['simpleMoveToAnchorHorizontal', 'middle', function(next) {
+        openPopup("after_end", function() {
+          checkPositionRelativeToAnchor("right");
+          waitForPopupPositioned(
+           () => { panel.moveToAnchor(anchor, "after_end", 20, 0); },
+           () => {
+             // the anchor and the panel should have moved 20px right without flipping.
+             checkPositionRelativeToAnchor("right");
+             waitForPopupPositioned(
+               () => { panel.moveToAnchor(anchor, "after_end", -20, 0);  },
+               () => {
+                 // the anchor and the panel should have moved 20px left without flipping.
+                 checkPositionRelativeToAnchor("right");
+                 next();
+              });
+           });
+        });
+      }],
+
+      ['simpleMoveToAnchorVertical', 'middle', function(next) {
+        openPopup("start_after", function() {
+          checkPositionRelativeToAnchor("bottom");
+          waitForPopupPositioned(
+           () => { panel.moveToAnchor(anchor, "start_after", 0, 20); },
+           () => {
+             // the anchor and the panel should have moved 20px down without flipping.
+             checkPositionRelativeToAnchor("bottom");
+             waitForPopupPositioned(
+               () => { panel.moveToAnchor(anchor, "start_after", 0, -20) },
+               () => {
+                 // the anchor and the panel should have moved 20px up without flipping.
+                 checkPositionRelativeToAnchor("bottom");
+                 next();
+              });
+           });
+        });
+      }],
+
+      // Do a moveToAnchor that causes the panel to flip horizontally
+      ['flippingMoveToAnchorHorizontal', 'middle', function(next) {
+        var anchorRight = anchor.getBoundingClientRect().right;
+        // Size the panel such that it only just fits from the left-hand side of
+        // the window to the right of the anchor - thus, it will fit when
+        // anchored to the right-hand side of the anchor.
+        panel.sizeTo(anchorRight - 10, 100);
+        openPopup("after_end", function() {
+          checkPositionRelativeToAnchor("right");
+          // Ask for it to be anchored 1/2 way between the left edge of the window
+          // and the anchor right - it can't fit with the panel on the left/arrow
+          // on the right, so it must flip (arrow on the left, panel on the right)
+          var offset = Math.floor(-anchorRight / 2);
+
+          waitForPopupPositioned(
+            () => panel.moveToAnchor(anchor, "after_end", offset, 0),
+            () => {
+              checkPositionRelativeToAnchor("left");
+              // resize back to original and move to a zero offset - it should flip back.
+
+              panel.sizeTo(anchorRight - 10, 100);
+              waitForPopupPositioned(
+                () => panel.moveToAnchor(anchor, "after_end", 0, 0),
+                () => {
+                  checkPositionRelativeToAnchor("right"); // should have flipped back.
+                  next();
+                });
+            });
+        });
+      }],
+
+      // Do a moveToAnchor that causes the panel to flip vertically
+      ['flippingMoveToAnchorVertical', 'middle', function(next) {
+        var anchorBottom = anchor.getBoundingClientRect().bottom;
+        // See comments above in flippingMoveToAnchorHorizontal, but read
+        // "top/bottom" instead of "left/right"
+        panel.sizeTo(100, anchorBottom - 10);
+        openPopup("start_after", function() {
+          checkPositionRelativeToAnchor("bottom");
+          var offset = Math.floor(-anchorBottom / 2);
+
+          waitForPopupPositioned(
+            () => panel.moveToAnchor(anchor, "start_after", 0, offset),
+            () => {
+              checkPositionRelativeToAnchor("top");
+              panel.sizeTo(100, anchorBottom - 10);
+
+              waitForPopupPositioned(
+                () => panel.moveToAnchor(anchor, "start_after", 0, 0),
+                () => {
+                  checkPositionRelativeToAnchor("bottom");
+                  next();
+                });
+            });
+        });
+      }],
+
+      ['veryWidePanel-after_end', 'middle', function(next) {
+        openSlidingPopup("after_end", function() {
+          waitForPopupPositioned(
+            () => { panel.sizeTo(window.innerWidth - 10, 60); },
+            () => {
+              is(panel.getBoundingClientRect().width, window.innerWidth - 10, "width is what we requested.")
+              next();
+          });
+        });
+      }],
+
+      ['veryWidePanel-before_start', 'middle', function(next) {
+        openSlidingPopup("before_start", function() {
+          waitForPopupPositioned(
+            () => { panel.sizeTo(window.innerWidth - 10, 60); },
+            () => {
+              is(panel.getBoundingClientRect().width, window.innerWidth - 10, "width is what we requested")
+              next();
+          });
+        });
+      }],
+
+      ['veryTallPanel-start_after', 'middle', function(next) {
+        openSlidingPopup("start_after", function() {
+          waitForPopupPositioned(
+            () => { panel.sizeTo(100, window.innerHeight - 10); },
+            () => {
+              is(panel.getBoundingClientRect().height, window.innerHeight - 10, "height is what we requested.")
+              next();
+            });
+        });
+      }],
+
+      ['veryTallPanel-start_before', 'middle', function(next) {
+        openSlidingPopup("start_before", function() {
+          waitForPopupPositioned(
+            () => { panel.sizeTo(100, window.innerHeight - 10); },
+            () => {
+              is(panel.getBoundingClientRect().height, window.innerHeight - 10, "height is what we requested")
+              next();
+          });
+        });
+      }],
+
+      // Tests against the anchor at the right-hand side of the window
+      ['afterend', 'right', function(next) {
+        openPopup("after_end", function() {
+          // when we request too far to the right/bottom, the panel gets shrunk
+          // and moved.  The amount it is shrunk by is how far it is moved.
+          checkPositionRelativeToAnchor("right");
+          next();
+        });
+      }],
+
+      ['after_start', 'right', function(next) {
+        openPopup("after_start", function() {
+          // See above - we are still too far to the right, but the anchor is
+          // on the other side.
+          checkPositionRelativeToAnchor("right");
+          next();
+        });
+      }],
+
+      // Tests against the anchor at the left-hand side of the window
+      ['after_start', 'left', function(next) {
+        openPopup("after_start", function() {
+          var panelRect = panel.getBoundingClientRect();
+          ok(panelRect.left - margins(panel).left >= 0, "panel remains within the screen");
+          checkPositionRelativeToAnchor("left");
+          next();
+        });
+      }],
+    ]
+
+    function runTests() {
+      function runNextTest() {
+        let result = tests.shift();
+        if (!result) {
+          // out of tests
+          panel.hidePopup();
+          SimpleTest.finish();
+          return;
+        }
+        let [name, anchorPos, test] = result;
+        SimpleTest.info("sub-test " + anchorPos + "." + name + " starting");
+        // first arrange for the anchor to be where the test requires it.
+        panel.hidePopup();
+        panel.sizeTo(100, 50);
+        // hide all the anchors here, then later we make one of them visible.
+        document.getElementById("anchor-left-wrapper").style.display = "none";
+        document.getElementById("anchor-middle-wrapper").style.display = "none";
+        document.getElementById("anchor-right-wrapper").style.display = "none";
+        switch(anchorPos) {
+          case 'middle':
+            anchor = document.getElementById("anchor-middle");
+            document.getElementById("anchor-middle-wrapper").style.display = "block";
+            break;
+          case 'left':
+            anchor = document.getElementById("anchor-left");
+            document.getElementById("anchor-left-wrapper").style.display = "block";
+            break;
+          case 'right':
+            anchor = document.getElementById("anchor-right");
+            document.getElementById("anchor-right-wrapper").style.display = "block";
+            break;
+          default:
+            SimpleTest.ok(false, "Bad anchorPos: " + anchorPos);
+            runNextTest();
+            return;
+        }
+        try {
+          test(runNextTest);
+        } catch (ex) {
+          SimpleTest.ok(false, "sub-test " + anchorPos + "." + name + " failed: " + ex.toString() + "\n" + ex.stack);
+          runNextTest();
+        }
+      }
       runNextTest();
     }
-  }
-  runNextTest();
-}
 
-SimpleTest.waitForExplicitFinish();
+    SimpleTest.waitForExplicitFinish();
 
-addEventListener("load", function() {
-  // anchor is set by the test runner above
-  panel = document.getElementById("testPanel");
+    addEventListener("load", function() {
+      // anchor is set by the test runner above
+      panel = document.getElementById("testPanel");
 
-  runTests();
-});
+      runTests();
+    });
 
-]]>
-</script>
+    ]]>
+  </script>
 
-<body xmlns="http://www.w3.org/1999/xhtml">
-<!-- Our tests assume at least 100px around the anchor on all sides, else the
+  <body xmlns="http://www.w3.org/1999/xhtml">
+    <!-- Our tests assume at least 100px around the anchor on all sides, else the
      panel may flip when we don't expect it to
 -->
-<div id="anchor-middle-wrapper" style="margin: 100px 100px 100px 100px;">
-  <p>The anchor --&gt; <span id="anchor-middle">v</span> &lt;--</p>
-</div>
-<div id="anchor-left-wrapper" style="text-align: left; display: none;">
-  <p><span id="anchor-left">v</span> &lt;-- The anchor;</p>
-</div>
-<div id="anchor-right-wrapper" style="text-align: right; display: none;">
-  <p>The anchor --&gt; <span id="anchor-right">v</span></p>
-</div>
-</body>
-
+    <div id="anchor-middle-wrapper" style="margin: 100px 100px 100px 100px">
+      <p>The anchor --&gt; <span id="anchor-middle">v</span> &lt;--</p>
+    </div>
+    <div id="anchor-left-wrapper" style="text-align: left; display: none">
+      <p><span id="anchor-left">v</span> &lt;-- The anchor;</p>
+    </div>
+    <div id="anchor-right-wrapper" style="text-align: right; display: none">
+      <p>The anchor --&gt; <span id="anchor-right">v</span></p>
+    </div>
+  </body>
 </window>

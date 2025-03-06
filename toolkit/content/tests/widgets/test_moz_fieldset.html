@@ -1,134 +1,190 @@
-<!DOCTYPE HTML>
+<!doctype html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>MozFieldset tests</title>
-  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
-  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
-  <script type="module" src="chrome://global/content/elements/moz-fieldset.mjs"></script>
-  <script>
-    let html, render, renderTarget;
+  <head>
+    <meta charset="utf-8" />
+    <title>MozFieldset tests</title>
+    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+    <link
+      rel="stylesheet"
+      href="chrome://mochikit/content/tests/SimpleTest/test.css"
+    />
+    <script
+      type="module"
+      src="chrome://global/content/elements/moz-fieldset.mjs"
+    ></script>
+    <script>
+      let html, render, renderTarget;
 
-    add_setup(async function setup() {
-      ({ html, render } = await import(
-        "chrome://global/content/vendor/lit.all.mjs"
-      ));
-      renderTarget = document.getElementById("render");
-    });
+      add_setup(async function setup() {
+        ({ html, render } = await import(
+          "chrome://global/content/vendor/lit.all.mjs"
+        ));
+        renderTarget = document.getElementById("render");
+      });
 
-    add_task(async function testMozFieldsetAttributes() {
-      render(html`
-        <moz-fieldset label="Test label" description="Test description">
-          <label><input type="checkbox"> First setting</label>
-          <label><input type="checkbox"> Second setting</label>
-          <label><input type="checkbox"> Third setting</label>
-        </moz-fieldset>
-      `, renderTarget);
-      // Check initial rendered attributes.
-      let fieldset = renderTarget.querySelector("moz-fieldset");
-      await fieldset.updateComplete;
+      add_task(async function testMozFieldsetAttributes() {
+        render(
+          html`
+            <moz-fieldset label="Test label" description="Test description">
+              <label><input type="checkbox" /> First setting</label>
+              <label><input type="checkbox" /> Second setting</label>
+              <label><input type="checkbox" /> Third setting</label>
+            </moz-fieldset>
+          `,
+          renderTarget
+        );
+        // Check initial rendered attributes.
+        let fieldset = renderTarget.querySelector("moz-fieldset");
+        await fieldset.updateComplete;
 
-      let fieldsetEl = fieldset.shadowRoot.querySelector("fieldset");
-      let legend = fieldset.shadowRoot.querySelector("fieldset > legend");
-      let description = fieldset.shadowRoot.querySelector("fieldset > #description");
+        let fieldsetEl = fieldset.shadowRoot.querySelector("fieldset");
+        let legend = fieldset.shadowRoot.querySelector("fieldset > legend");
+        let description = fieldset.shadowRoot.querySelector(
+          "fieldset > #description"
+        );
 
-      is(legend.innerText, "Test label", "legend is set");
-      is(description.innerText, "Test description", "description is set");
-      ok(description.classList.contains("text-deemphasized"), "description is styled");
-      is(
-        fieldset.shadowRoot.getElementById(fieldsetEl.getAttribute("aria-describedby")),
-        description,
-        "description describes fieldset"
-      );
+        is(legend.innerText, "Test label", "legend is set");
+        is(description.innerText, "Test description", "description is set");
+        ok(
+          description.classList.contains("text-deemphasized"),
+          "description is styled"
+        );
+        is(
+          fieldset.shadowRoot.getElementById(
+            fieldsetEl.getAttribute("aria-describedby")
+          ),
+          description,
+          "description describes fieldset"
+        );
 
-      // Changing the attributes should update the DOM.
-      fieldset.label = "New label";
-      fieldset.description = "New description";
-      await fieldset.updateComplete;
+        // Changing the attributes should update the DOM.
+        fieldset.label = "New label";
+        fieldset.description = "New description";
+        await fieldset.updateComplete;
 
-      is(legend.innerText, "New label", "legend is set");
-      is(description.innerText, "New description", "description is set");
+        is(legend.innerText, "New label", "legend is set");
+        is(description.innerText, "New description", "description is set");
 
-      // Removing the description should remove the describedby association.
-      fieldset.description = null;
-      await fieldset.updateComplete;
+        // Removing the description should remove the describedby association.
+        fieldset.description = null;
+        await fieldset.updateComplete;
 
-      ok(
-        !fieldsetEl.hasAttribute("aria-describedby"),
-        "aria-describedby removed when no description"
-      );
-    });
+        ok(
+          !fieldsetEl.hasAttribute("aria-describedby"),
+          "aria-describedby removed when no description"
+        );
+      });
 
-    add_task(async function testMozFieldsetSupportLink() {
-      render(html`
-        <moz-fieldset label="Test label" description="Test description" support-page="test">
-          <label><input type="checkbox"> First setting</label>
-          <label><input type="checkbox"> Second setting</label>
-          <label><input type="checkbox"> Third setting</label>
-        </moz-fieldset>
-      `, renderTarget);
-      let fieldset = renderTarget.querySelector("moz-fieldset");
-      await fieldset.updateComplete;
+      add_task(async function testMozFieldsetSupportLink() {
+        render(
+          html`
+            <moz-fieldset
+              label="Test label"
+              description="Test description"
+              support-page="test"
+            >
+              <label><input type="checkbox" /> First setting</label>
+              <label><input type="checkbox" /> Second setting</label>
+              <label><input type="checkbox" /> Third setting</label>
+            </moz-fieldset>
+          `,
+          renderTarget
+        );
+        let fieldset = renderTarget.querySelector("moz-fieldset");
+        await fieldset.updateComplete;
 
-      let legendEl = fieldset.shadowRoot.querySelector("legend");
-      let fieldsetEl = fieldset.shadowRoot.querySelector("fieldset");
-      let supportLinkEl = fieldsetEl.querySelector("a[is='moz-support-link']");
-      ok(supportLinkEl, "support-link element should be rendered");
-      is(supportLinkEl.getAttribute("support-page"), "test", "'support-page' attribute is set");
-      is(supportLinkEl.getAttribute("part"), "support-link", "'part' attribute is set");
+        let legendEl = fieldset.shadowRoot.querySelector("legend");
+        let fieldsetEl = fieldset.shadowRoot.querySelector("fieldset");
+        let supportLinkEl = fieldsetEl.querySelector(
+          "a[is='moz-support-link']"
+        );
+        ok(supportLinkEl, "support-link element should be rendered");
+        is(
+          supportLinkEl.getAttribute("support-page"),
+          "test",
+          "'support-page' attribute is set"
+        );
+        is(
+          supportLinkEl.getAttribute("part"),
+          "support-link",
+          "'part' attribute is set"
+        );
 
-      // Update the support-page attribute
-      fieldset.supportPage = "foo";
-      await fieldset.updateComplete;
-      is(supportLinkEl.getAttribute("support-page"), "foo", "'support-page' attribute should update");
+        // Update the support-page attribute
+        fieldset.supportPage = "foo";
+        await fieldset.updateComplete;
+        is(
+          supportLinkEl.getAttribute("support-page"),
+          "foo",
+          "'support-page' attribute should update"
+        );
 
-      // Remove the support-page attribute
-      fieldset.supportPage = null;
-      await fieldset.updateComplete;
-      ok(!fieldsetEl.querySelector("a[is='moz-support-link']"), "support link element should be removed");
+        // Remove the support-page attribute
+        fieldset.supportPage = null;
+        await fieldset.updateComplete;
+        ok(
+          !fieldsetEl.querySelector("a[is='moz-support-link']"),
+          "support link element should be removed"
+        );
 
-      // Verify placement of support link
-      fieldset.supportPage = "foo";
-      fieldset.description = "";
-      await fieldset.updateComplete;
-      // The support link is re-rendered, so we need an updated reference
-      supportLinkEl = fieldsetEl.querySelector("a[is='moz-support-link']");
-      ok(supportLinkEl.previousElementSibling == legendEl, "support link element should be inline after the legend element if there's no description");
+        // Verify placement of support link
+        fieldset.supportPage = "foo";
+        fieldset.description = "";
+        await fieldset.updateComplete;
+        // The support link is re-rendered, so we need an updated reference
+        supportLinkEl = fieldsetEl.querySelector("a[is='moz-support-link']");
+        ok(
+          supportLinkEl.previousElementSibling == legendEl,
+          "support link element should be inline after the legend element if there's no description"
+        );
 
-      fieldset.description = "a test description";
-      await fieldset.updateComplete;
-      let descriptionEl = fieldset.shadowRoot.querySelector("#description");
-      // The support link is re-rendered, so we need an updated reference
-      supportLinkEl = fieldsetEl.querySelector("a[is='moz-support-link']");
-      ok(supportLinkEl.previousElementSibling == descriptionEl, "support link element should be placed after the description if there's one");
+        fieldset.description = "a test description";
+        await fieldset.updateComplete;
+        let descriptionEl = fieldset.shadowRoot.querySelector("#description");
+        // The support link is re-rendered, so we need an updated reference
+        supportLinkEl = fieldsetEl.querySelector("a[is='moz-support-link']");
+        ok(
+          supportLinkEl.previousElementSibling == descriptionEl,
+          "support link element should be placed after the description if there's one"
+        );
 
-      // Verify that slotted support link's placement renders as expected
-      fieldset.removeAttribute("support-page");
-      let slottedSupportLink = document.createElement("div");
-      slottedSupportLink.slot = "support-link";
-      slottedSupportLink.innerText = "slotted element";
-      fieldset.appendChild(slottedSupportLink);
-      await fieldset.updateComplete;
+        // Verify that slotted support link's placement renders as expected
+        fieldset.removeAttribute("support-page");
+        let slottedSupportLink = document.createElement("div");
+        slottedSupportLink.slot = "support-link";
+        slottedSupportLink.innerText = "slotted element";
+        fieldset.appendChild(slottedSupportLink);
+        await fieldset.updateComplete;
 
-      ok(!fieldset.getAttribute("support-page"), "There should not be a support-page attribute");
-      let slottedEl = fieldset.shadowRoot.querySelector("slot[name='support-link']");
-      ok(slottedEl, "Slotted support link should exist");
-      ok(slottedEl.previousElementSibling == descriptionEl, "Slotted support link element should be placed after the description if there's one");
+        ok(
+          !fieldset.getAttribute("support-page"),
+          "There should not be a support-page attribute"
+        );
+        let slottedEl = fieldset.shadowRoot.querySelector(
+          "slot[name='support-link']"
+        );
+        ok(slottedEl, "Slotted support link should exist");
+        ok(
+          slottedEl.previousElementSibling == descriptionEl,
+          "Slotted support link element should be placed after the description if there's one"
+        );
 
-      fieldset.description = "";
-      await fieldset.updateComplete;
-      fieldset.appendChild(slottedSupportLink);
-      await fieldset.updateComplete;
-      slottedEl = fieldset.shadowRoot.querySelector("slot[name='support-link']");
-      ok(slottedEl, "Slotted support link should exist");
-      ok(slottedEl.previousElementSibling == legendEl, "Slotted support link element should be placed inline with the legend when there is no description");
-
-    });
-
-  </script>
-</head>
-<body>
-  <div id="render">
-  </div>
-</body>
+        fieldset.description = "";
+        await fieldset.updateComplete;
+        fieldset.appendChild(slottedSupportLink);
+        await fieldset.updateComplete;
+        slottedEl = fieldset.shadowRoot.querySelector(
+          "slot[name='support-link']"
+        );
+        ok(slottedEl, "Slotted support link should exist");
+        ok(
+          slottedEl.previousElementSibling == legendEl,
+          "Slotted support link element should be placed inline with the legend when there is no description"
+        );
+      });
+    </script>
+  </head>
+  <body>
+    <div id="render"></div>
+  </body>
 </html>

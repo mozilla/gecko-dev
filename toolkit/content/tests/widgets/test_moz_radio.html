@@ -1,33 +1,39 @@
-<!DOCTYPE HTML>
+<!doctype html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>MozRadio Tests</title>
-  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
-  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
-  <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
-  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
-  <script type="module" src="chrome://global/content/elements/moz-radio-group.mjs"></script>
-  <script src="lit-test-helpers.js"></script>
-  <script>
-    let testHelpers = new InputTestHelpers();
+  <head>
+    <meta charset="utf-8" />
+    <title>MozRadio Tests</title>
+    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+    <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
+    <link
+      rel="stylesheet"
+      href="chrome://mochikit/content/tests/SimpleTest/test.css"
+    />
+    <script
+      type="module"
+      src="chrome://global/content/elements/moz-radio-group.mjs"
+    ></script>
+    <script src="lit-test-helpers.js"></script>
+    <script>
+      let testHelpers = new InputTestHelpers();
 
-    add_setup(async function setup() {
-      let { html } = await testHelpers.setupLit();
-      let templateFn = (attrs, children) => html`
-        <moz-radio-group name="test-name" label="Radio group label">
-          <moz-radio ${attrs}>${children}</moz-radio>
-        </moz-radio-group>
-      `;
-      testHelpers.setupTests({ templateFn });
-      testHelpers.activatedProperty = customElements.get("moz-radio").activatedProperty;
-    });
+      add_setup(async function setup() {
+        let { html } = await testHelpers.setupLit();
+        let templateFn = (attrs, children) => html`
+          <moz-radio-group name="test-name" label="Radio group label">
+            <moz-radio ${attrs}>${children}</moz-radio>
+          </moz-radio-group>
+        `;
+        testHelpers.setupTests({ templateFn });
+        testHelpers.activatedProperty =
+          customElements.get("moz-radio").activatedProperty;
+      });
 
-    add_task(async function testMozRadioProperties() {
-      await testHelpers.testCommonInputProperties("moz-radio");
-    });
-  </script>
-</head>
-<body>
-</body>
+      add_task(async function testMozRadioProperties() {
+        await testHelpers.testCommonInputProperties("moz-radio");
+      });
+    </script>
+  </head>
+  <body></body>
 </html>

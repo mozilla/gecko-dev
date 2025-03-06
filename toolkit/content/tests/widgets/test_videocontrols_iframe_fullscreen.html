@@ -1,58 +1,77 @@
-<!DOCTYPE HTML>
+<!doctype html>
 <html>
-<head>
-  <title>Video controls test - iframe</title>
-  <script src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script src="/tests/SimpleTest/EventUtils.js"></script>
-  <script type="text/javascript" src="head.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
-</head>
-<body>
-<p id="display"></p>
+  <head>
+    <title>Video controls test - iframe</title>
+    <script src="/tests/SimpleTest/SimpleTest.js"></script>
+    <script src="/tests/SimpleTest/EventUtils.js"></script>
+    <script type="text/javascript" src="head.js"></script>
+    <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  </head>
+  <body>
+    <p id="display"></p>
 
-<div id="content">
-<iframe id="ifr1"></iframe>
-<iframe id="ifr2" allowfullscreen></iframe>
-<iframe id="ifr1" allow="fullscreen 'none'"></iframe>
-</div>
+    <div id="content">
+      <iframe id="ifr1"></iframe>
+      <iframe id="ifr2" allowfullscreen></iframe>
+      <iframe id="ifr1" allow="fullscreen 'none'"></iframe>
+    </div>
 
-<script clas="testbody" type="application/javascript">
-  SimpleTest.waitForExplicitFinish();
+    <script clas="testbody" type="application/javascript">
+      SimpleTest.waitForExplicitFinish();
 
-  const testCases = [];
+      const testCases = [];
 
-  function checkIframeFullscreenAvailable(ifr) {
-    let video;
+      function checkIframeFullscreenAvailable(ifr) {
+        let video;
 
-    return () => new Promise(resolve => {
-      ifr.srcdoc = `<video id="video" controls preload="auto"></video>`;
-      ifr.addEventListener("load", resolve);
-    }).then(() => new Promise(resolve => {
-      video = ifr.contentDocument.getElementById("video");
-      video.src = "seek_with_sound.webm";
-      video.addEventListener("loadedmetadata", resolve);
-    })).then(() => new Promise(resolve => {
-      const available = video.ownerDocument.fullscreenEnabled;
-      const controlBar = getElementWithinVideo(video, "controlBar");
+        return () =>
+          new Promise(resolve => {
+            ifr.srcdoc = `<video id="video" controls preload="auto"></video>`;
+            ifr.addEventListener("load", resolve);
+          })
+            .then(
+              () =>
+                new Promise(resolve => {
+                  video = ifr.contentDocument.getElementById("video");
+                  video.src = "seek_with_sound.webm";
+                  video.addEventListener("loadedmetadata", resolve);
+                })
+            )
+            .then(
+              () =>
+                new Promise(resolve => {
+                  const available = video.ownerDocument.fullscreenEnabled;
+                  const controlBar = getElementWithinVideo(video, "controlBar");
 
-      is(controlBar.getAttribute("fullscreen-unavailable") == "true", !available, "The controlbar should have an attribute marking whether fullscreen is available that corresponds to if the iframe has the allowfullscreen attribute.");
-      resolve();
-    }));
-  }
+                  is(
+                    controlBar.getAttribute("fullscreen-unavailable") == "true",
+                    !available,
+                    "The controlbar should have an attribute marking whether fullscreen is available that corresponds to if the iframe has the allowfullscreen attribute."
+                  );
+                  resolve();
+                })
+            );
+      }
 
-  function start() {
-    testCases.reduce((promise, task) => promise.then(task), Promise.resolve());
-  }
+      function start() {
+        testCases.reduce(
+          (promise, task) => promise.then(task),
+          Promise.resolve()
+        );
+      }
 
-  function load() {
-    SpecialPowers.pushPrefEnv({"set": [["media.cache_size", 40000]]}, start);
-  }
+      function load() {
+        SpecialPowers.pushPrefEnv(
+          { set: [["media.cache_size", 40000]] },
+          start
+        );
+      }
 
-  for (let iframe of document.querySelectorAll("iframe"))
-    testCases.push(checkIframeFullscreenAvailable(iframe));
-  testCases.push(SimpleTest.finish);
+      for (let iframe of document.querySelectorAll("iframe"))
+        testCases.push(checkIframeFullscreenAvailable(iframe));
+      testCases.push(SimpleTest.finish);
 
-  window.addEventListener("load", load);
-</script>
-</body>
+      window.addEventListener("load", load);
+    </script>
+  </body>
 </html>
