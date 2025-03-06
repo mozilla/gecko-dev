@@ -166,6 +166,9 @@ class WindowContext : public nsISupports, public nsWrapperCache {
     return mNonSyntheticChildren;
   }
 
+  BrowsingContext* NonSyntheticLightDOMChildAt(uint32_t aIndex);
+  uint32_t NonSyntheticLightDOMChildrenCount();
+
   // Cast this object to it's parent-process canonical form.
   WindowGlobalParent* Canonical();
 
@@ -366,6 +369,10 @@ class WindowContext : public nsISupports, public nsWrapperCache {
   // BrowsingContext.
   void RecomputeCanExecuteScripts(bool aApplyChanges = true);
 
+  void ClearLightDOMChildren();
+
+  void EnsureLightDOMChildren();
+
   const uint64_t mInnerWindowId;
   const uint64_t mOuterWindowId;
   RefPtr<BrowsingContext> mBrowsingContext;
@@ -385,6 +392,12 @@ class WindowContext : public nsISupports, public nsWrapperCache {
   // loading images in <object> or <embed> elements, so that they can be hidden
   // from named targeting, `Window.frames` etc.
   nsTArray<RefPtr<BrowsingContext>> mNonSyntheticChildren;
+
+  // mNonSyntheticLightDOMChildren is otherwise the same as
+  // mNonSyntheticChildren, but it contains only those BrowsingContexts where
+  // embedder is in light DOM. The contents of the array are computed lazily and
+  // cleared if there are changes to mChildren.
+  Maybe<nsTArray<RefPtr<BrowsingContext>>> mNonSyntheticLightDOMChildren;
 
   bool mIsDiscarded = false;
   bool mIsInProcess = false;

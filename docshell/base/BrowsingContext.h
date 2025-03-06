@@ -541,6 +541,9 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
 
   Span<RefPtr<BrowsingContext>> NonSyntheticChildren() const;
 
+  BrowsingContext* NonSyntheticLightDOMChildAt(uint32_t aIndex) const;
+  uint32_t NonSyntheticLightDOMChildrenCount() const;
+
   const nsTArray<RefPtr<WindowContext>>& GetWindowContexts() {
     return mWindowContexts;
   }

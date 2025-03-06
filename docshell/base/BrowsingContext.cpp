@@ -752,6 +752,10 @@ static bool OwnerAllowsFullscreen(const Element& aEmbedder) {
 void BrowsingContext::SetEmbedderElement(Element* aEmbedder) {
   mEmbeddedByThisProcess = true;
 
+  if (RefPtr<WindowContext> parent = GetParentWindowContext()) {
+    parent->ClearLightDOMChildren();
+  }
+
   // Update embedder-element-specific fields in a shared transaction.
   // Don't do this when clearing our embedder, as we're being destroyed either
   // way.
@@ -1218,6 +1222,21 @@ Span<RefPtr<BrowsingContext>> BrowsingContext::NonSyntheticChildren() const {
     return current->NonSyntheticChildren();
   }
   return Span<RefPtr<BrowsingContext>>();
+}
+
+BrowsingContext* BrowsingContext::NonSyntheticLightDOMChildAt(
+    uint32_t aIndex) const {
+  if (WindowContext* current = mCurrentWindowContext) {
+    return current->NonSyntheticLightDOMChildAt(aIndex);
+  }
+  return nullptr;
+}
+
+uint32_t BrowsingContext::NonSyntheticLightDOMChildrenCount() const {
+  if (WindowContext* current = mCurrentWindowContext) {
+    return current->NonSyntheticLightDOMChildrenCount();
+  }
+  return 0;
 }
 
 void BrowsingContext::GetWindowContexts(
