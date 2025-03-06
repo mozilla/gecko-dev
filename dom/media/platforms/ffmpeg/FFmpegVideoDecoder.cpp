@@ -2036,10 +2036,6 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitD3D11VADecoder() {
   }
 
   // See
-  // https://github.com/FFmpeg/FFmpeg/blob/a234e5cd80224c95a205c1f3e297d8c04a1374c3/libavcodec/dxva2.c#L621-L627
-  framesContext->initial_pool_size = 9;
-
-  // See
   // https://github.com/FFmpeg/FFmpeg/blob/a234e5cd80224c95a205c1f3e297d8c04a1374c3/libavcodec/dxva2.c#L609-L616
   if (mCodecID == AV_CODEC_ID_AV1) {
     mTextureAlignment = 128;
