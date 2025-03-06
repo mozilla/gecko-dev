@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-02-28T14:45:57.795264+00:00'
+updated_at: '2025-03-05T15:19:16.010797+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -3759,7 +3759,6 @@ modules:
       - name: Screenshots
         description: Code relating to Screenshots functionality
         includes:
-          - browser/extensions/screenshots/**/*
           - browser/components/screenshots/**/*
         meta:
           owners_emeritus:
@@ -4562,5 +4561,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 32176ba85f50c207367d5bba928627f0d05cbae5
-  export: 9960fb38fd7ce09737a754985ddbeb3080831001
+  config: 780bce4fdea260f5d0a447e37a511568a485779f
+  export: 70c3cb29d528fbba8c6a91cfefc53a87a9c6fea8

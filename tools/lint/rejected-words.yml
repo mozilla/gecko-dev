@@ -60,7 +60,6 @@ avoid-blacklist-and-whitelist:
         - browser/components/urlbar/tests/unit/test_search_suggestions.js
         - browser/components/urlbar/tests/unit/test_tokenizer.js
         - browser/extensions/newtab/data/content/activity-stream.bundle.js
-        - browser/extensions/screenshots/background/main.js
         - browser/extensions/webcompat/shims/nielsen.js
         - browser/modules/SitePermissions.sys.mjs
         - browser/tools/mozscreenshots/mozscreenshots/extension/configurations/PermissionPrompts.sys.mjs

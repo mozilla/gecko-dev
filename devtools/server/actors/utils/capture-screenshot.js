@@ -12,8 +12,12 @@ const L10N = new LocalizationHelper(STRINGS_URI);
 
 // These values are used to truncate the resulting image if the captured area is bigger.
 // This is to avoid failing to produce a screenshot at all.
-// It is recommended to keep these values in sync with the corresponding screenshots addon
-// values in /browser/extensions/screenshots/selector/uicontrol.js
+// It is recommended to keep these values in sync with the corresponding screenshots features
+// values in browser/components/screenshots/ScreenshotsUtils.sys.mjs.
+//
+// TODO(Bug 1942439): Change the consts and related truncation warning logic to align it to the new consts
+// used by ScreenshotsUtils.sys.mjs, which does not use the same approach nor the MAX_IMAGE_WIDTH
+// and MAX_IMAGE_HEIGHT consts that the screenshots addon was originally using.
 const MAX_IMAGE_WIDTH = 10000;
 const MAX_IMAGE_HEIGHT = 10000;
 

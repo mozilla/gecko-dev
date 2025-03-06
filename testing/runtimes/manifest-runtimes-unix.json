@@ -195,7 +195,6 @@
     "browser/extensions/newtab/test/browser/browser.ini": 74.49,
     "browser/extensions/pdfjs/test/browser.ini": 19.44,
     "browser/extensions/report-site-issue/test/browser/browser.ini": 11.62,
-    "browser/extensions/screenshots/test/browser/browser.ini": 1.81,
     "browser/modules/test/browser/browser.ini": 147.75,
     "browser/modules/test/browser/formValidation/browser.ini": 1.36,
     "caps/tests/mochitest/browser.ini": 2.33,
