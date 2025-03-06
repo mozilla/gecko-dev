@@ -1,49 +1,40 @@
-<!doctype html>
+<!DOCTYPE HTML>
 <html>
-  <head>
-    <title>Video controls with Audio file test</title>
-    <script src="/tests/SimpleTest/SimpleTest.js"></script>
-    <script src="/tests/SimpleTest/EventUtils.js"></script>
-    <script src="head.js"></script>
-    <link rel="stylesheet" href="/tests/SimpleTest/test.css" />
-  </head>
-  <body>
-    <p id="display"></p>
+<head>
+  <title>Video controls with Audio file test</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="/tests/SimpleTest/EventUtils.js"></script>
+  <script src="head.js"></script>
+  <link rel="stylesheet" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+<p id="display"></p>
 
-    <div id="content">
-      <video id="video" controls preload="metadata"></video>
-    </div>
+<div id="content">
+  <video id="video" controls preload="metadata"></video>
+</div>
 
-    <script>
-      const video = document.getElementById("video");
-      function loadedmetadata() {
-        SimpleTest.executeSoon(function () {
-          const controlBar =
-            SpecialPowers.wrap(video).openOrClosedShadowRoot.querySelector(
-              ".controlBar"
-            );
-          is(
-            controlBar.getAttribute("fullscreen-unavailable"),
-            "true",
-            "Fullscreen button is hidden"
-          );
-          SimpleTest.finish();
-        });
-      }
+<pre id="test">
+<script>
 
-      SpecialPowers.pushPrefEnv(
-        { set: [["media.cache_size", 40000]] },
-        startTest
-      );
-      function startTest() {
-        // Kick off test once audio has loaded.
-        video.addEventListener("loadedmetadata", loadedmetadata, {
-          once: true,
-        });
-        video.src = "audio.ogg";
-      }
+  const video = document.getElementById("video");
+  function loadedmetadata() {
+    SimpleTest.executeSoon(function() {
+      const controlBar = SpecialPowers.wrap(video).openOrClosedShadowRoot.querySelector(".controlBar");
+      is(controlBar.getAttribute("fullscreen-unavailable"), "true", "Fullscreen button is hidden");
+      SimpleTest.finish();
+    });
+  }
 
-      SimpleTest.waitForExplicitFinish();
-    </script>
-  </body>
+  SpecialPowers.pushPrefEnv({"set": [["media.cache_size", 40000]]}, startTest);
+  function startTest() {
+    // Kick off test once audio has loaded.
+    video.addEventListener("loadedmetadata", loadedmetadata, { once: true });
+    video.src = "audio.ogg";
+  }
+
+  SimpleTest.waitForExplicitFinish();
+</script>
+</pre>
+</body>
 </html>

@@ -1,174 +1,101 @@
-<!doctype html>
+<!DOCTYPE HTML>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>MozToggle tests</title>
-    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
-    <link
-      rel="stylesheet"
-      href="chrome://mochikit/content/tests/SimpleTest/test.css"
-    />
-    <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
-    <!-- TODO: Bug 1798404 - in-content/common.css can be removed once we have a better
+<head>
+  <meta charset="utf-8">
+  <title>MozToggle tests</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+  <!-- TODO: Bug 1798404 - in-content/common.css can be removed once we have a better
   solution for token variables for the new widgets -->
-    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
-    <script
-      type="module"
-      src="chrome://global/content/elements/moz-toggle.mjs"
-    ></script>
-    <script src="lit-test-helpers.js"></script>
-  </head>
-  <body>
-    <script class="testbody" type="application/javascript">
-      let testHelpers = new InputTestHelpers();
+  <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
+  <script type="module" src="chrome://global/content/elements/moz-toggle.mjs"></script>
+  <script src="lit-test-helpers.js"></script>
+</head>
+<body>
+<script class="testbody" type="application/javascript">
+  let testHelpers = new InputTestHelpers();
 
-      add_setup(async function setup() {
-        let { html } = await testHelpers.setupLit();
-        let templateFn = (attrs, children) => html`
-          <moz-toggle ${attrs}>${children}</moz-toggle>
-        `;
-        testHelpers.setupTests({ templateFn });
-        testHelpers.activatedProperty =
-          customElements.get("moz-toggle").activatedProperty;
-      });
+  add_setup(async function setup() {
+    let { html } = await testHelpers.setupLit();
+    let templateFn = (attrs, children) => html`
+      <moz-toggle ${attrs}>${children}</moz-toggle>
+    `;
+    testHelpers.setupTests({ templateFn });
+    testHelpers.activatedProperty = customElements.get("moz-toggle").activatedProperty;
+  });
 
-      add_task(async function testMozToggleProperties() {
-        await testHelpers.testCommonInputProperties("moz-toggle");
-      });
+  add_task(async function testMozToggleProperties() {
+    await testHelpers.testCommonInputProperties("moz-toggle");
+  });
 
-      add_task(async function testMozToggleInteraction() {
-        let { trackEvent, verifyEvents } = testHelpers.getInputEventHelpers();
-        let interactionTemplate = testHelpers.templateFn({
-          value: "default",
-          label: "Label",
-        });
-        let renderTarget =
-          await testHelpers.renderTemplate(interactionTemplate);
-        const mozToggle = renderTarget.querySelector("moz-toggle");
-        const button = mozToggle.buttonEl;
-        mozToggle.pressed = true;
-        await mozToggle.updateComplete;
+  add_task(async function testMozToggleInteraction() {
+    let { trackEvent, verifyEvents } = testHelpers.getInputEventHelpers();
+    let interactionTemplate = testHelpers.templateFn({ value: "default", label: "Label" });
+    let renderTarget = await testHelpers.renderTemplate(interactionTemplate);
+    const mozToggle = renderTarget.querySelector("moz-toggle");
+    const button = mozToggle.buttonEl;
+    mozToggle.pressed = true;
+    await mozToggle.updateComplete;
 
-        mozToggle.addEventListener("click", trackEvent);
-        mozToggle.addEventListener("toggle", trackEvent);
+    mozToggle.addEventListener("click", trackEvent);
+    mozToggle.addEventListener("toggle", trackEvent);
 
-        is(mozToggle.pressed, true, "moz-toggle is pressed initially");
-        is(
-          button.getAttribute("aria-pressed"),
-          "true",
-          "aria-pressed reflects the pressed state"
-        );
+    is(mozToggle.pressed, true, "moz-toggle is pressed initially");
+    is(button.getAttribute("aria-pressed"), "true", "aria-pressed reflects the pressed state");
 
-        synthesizeMouseAtCenter(button, {});
-        await TestUtils.waitForTick();
+    synthesizeMouseAtCenter(button, {});
+    await TestUtils.waitForTick();
 
-        verifyEvents([
-          {
-            type: "click",
-            localName: "moz-toggle",
-            pressed: false,
-            value: "default",
-          },
-          {
-            type: "toggle",
-            localName: "moz-toggle",
-            pressed: false,
-            value: "default",
-          },
-        ]);
+    verifyEvents([
+      { type: "click", localName: "moz-toggle", pressed: false, value: "default" },
+      { type: "toggle", localName: "moz-toggle", pressed: false, value: "default" },
+    ]);
 
-        is(
-          mozToggle.pressed,
-          false,
-          "The toggle pressed state changes on click"
-        );
-        is(
-          button.getAttribute("aria-pressed"),
-          "false",
-          "aria-pressed reflects this change"
-        );
+    is(mozToggle.pressed, false, "The toggle pressed state changes on click");
+    is(button.getAttribute("aria-pressed"), "false", "aria-pressed reflects this change");
 
-        synthesizeMouseAtCenter(mozToggle.labelEl, {});
-        await TestUtils.waitForTick();
+    synthesizeMouseAtCenter(mozToggle.labelEl, {});
+    await TestUtils.waitForTick();
 
-        // Clicking the label element emits an additional click event that doesn't update the pressed state.
-        verifyEvents([
-          {
-            type: "click",
-            localName: "moz-toggle",
-            pressed: false,
-            value: "default",
-          },
-          {
-            type: "click",
-            localName: "moz-toggle",
-            pressed: true,
-            value: "default",
-          },
-          {
-            type: "toggle",
-            localName: "moz-toggle",
-            pressed: true,
-            value: "default",
-          },
-        ]);
+    // Clicking the label element emits an additional click event that doesn't update the pressed state.
+    verifyEvents([
+      { type: "click", localName: "moz-toggle", pressed: false, value: "default" },
+      { type: "click", localName: "moz-toggle", pressed: true, value: "default" },
+      { type: "toggle", localName: "moz-toggle", pressed: true, value: "default" },
+    ]);
 
-        is(
-          mozToggle.pressed,
-          true,
-          "The toggle pressed state changes on label click"
-        );
-        is(
-          button.getAttribute("aria-pressed"),
-          "true",
-          "aria-pressed reflects this change"
-        );
+    is(mozToggle.pressed, true, "The toggle pressed state changes on label click");
+    is(button.getAttribute("aria-pressed"), "true", "aria-pressed reflects this change");
 
-        mozToggle.focus();
-        synthesizeKey(" ", {});
-        await TestUtils.waitForTick();
+    mozToggle.focus();
+    synthesizeKey(" ", {});
+    await TestUtils.waitForTick();
 
-        verifyEvents([
-          {
-            type: "click",
-            localName: "moz-toggle",
-            pressed: false,
-            value: "default",
-          },
-          {
-            type: "toggle",
-            localName: "moz-toggle",
-            pressed: false,
-            value: "default",
-          },
-        ]);
+    verifyEvents([
+      { type: "click", localName: "moz-toggle", pressed: false, value: "default" },
+      { type: "toggle", localName: "moz-toggle", pressed: false, value: "default" },
+    ]);
 
-        is(
-          mozToggle.pressed,
-          false,
-          "The toggle pressed state can be changed via space bar"
-        );
-        is(
-          button.getAttribute("aria-pressed"),
-          "false",
-          "aria-pressed reflects this change"
-        );
+    is(mozToggle.pressed, false, "The toggle pressed state can be changed via space bar");
+    is(button.getAttribute("aria-pressed"), "false", "aria-pressed reflects this change");
 
-        synthesizeMouseAtCenter(mozToggle.descriptionEl, {});
-        await TestUtils.waitForTick();
+    synthesizeMouseAtCenter(mozToggle.descriptionEl, {});
+    await TestUtils.waitForTick();
 
-        verifyEvents([]);
+    verifyEvents([]);
 
-        isnot(
-          mozToggle.shadowRoot.activeElement,
-          mozToggle.buttonEl,
-          "Clicking the description should not focus the toggle button"
-        );
-      });
+    isnot(
+      mozToggle.shadowRoot.activeElement,
+      mozToggle.buttonEl,
+      "Clicking the description should not focus the toggle button"
+    );
+  });
 
-      add_task(async function testMozToggleWithoutVisibleLabel() {
-        await testHelpers.verifyAriaLabel("moz-toggle");
-      });
-    </script>
-  </body>
+  add_task(async function testMozToggleWithoutVisibleLabel() {
+    await testHelpers.verifyAriaLabel("moz-toggle");
+  });
+</script>
+</pre>
+</body>
 </html>

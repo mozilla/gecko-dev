@@ -12,10 +12,6 @@
 **/test*/**/*.xhtml
 **/test*/**/*.html
 
-# Include Widget test files in formatting
-!toolkit/content/tests/widgets/*.xhtml
-!toolkit/content/tests/widgets/*.html
-
 # This should be re-enabled in bug 1827456.
 js/src/builtin
 

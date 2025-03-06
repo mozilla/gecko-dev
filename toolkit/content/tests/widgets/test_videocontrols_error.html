@@ -1,88 +1,60 @@
-<!doctype html>
+<!DOCTYPE HTML>
 <html>
-  <head>
-    <title>Video controls test - Error</title>
-    <script src="/tests/SimpleTest/SimpleTest.js"></script>
-    <script src="/tests/SimpleTest/EventUtils.js"></script>
-    <script type="text/javascript" src="head.js"></script>
-    <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
-  </head>
-  <body>
-    <p id="display"></p>
+<head>
+  <title>Video controls test - Error</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="/tests/SimpleTest/EventUtils.js"></script>
+  <script type="text/javascript" src="head.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+<p id="display"></p>
 
-    <div id="content">
-      <video id="video" controls preload="auto"></video>
-    </div>
+<div id="content">
+  <video id="video" controls preload="auto"></video>
+</div>
 
-    <script clas="testbody" type="application/javascript">
-      const video = document.getElementById("video");
-      const statusOverlay = getElementWithinVideo(video, "statusOverlay");
-      const statusIcon = getElementWithinVideo(video, "statusIcon");
-      const statusLabelErrorNoSource = getElementWithinVideo(
-        video,
-        "errorNoSource"
-      );
+<pre id="test">
+<script clas="testbody" type="application/javascript">
+  const video = document.getElementById("video");
+  const statusOverlay = getElementWithinVideo(video, "statusOverlay");
+  const statusIcon = getElementWithinVideo(video, "statusIcon");
+  const statusLabelErrorNoSource = getElementWithinVideo(video, "errorNoSource");
 
-      add_task(async function setup() {
-        await SpecialPowers.pushPrefEnv({ set: [["media.cache_size", 40000]] });
-      });
+  add_task(async function setup() {
+    await SpecialPowers.pushPrefEnv({"set": [["media.cache_size", 40000]]});
+  });
 
-      add_task(async function check_normal_status() {
-        await new Promise(resolve => {
-          video.src = "seek_with_sound.webm";
-          video.addEventListener("loadedmetadata", () =>
-            SimpleTest.executeSoon(resolve)
-          );
-        });
+  add_task(async function check_normal_status() {
+    await new Promise(resolve => {
+      video.src = "seek_with_sound.webm";
+      video.addEventListener("loadedmetadata", () => SimpleTest.executeSoon(resolve));
+    });
 
-        // Wait for the fade out transition to complete in case the throbber
-        // shows up on slower platforms.
-        await SimpleTest.promiseWaitForCondition(
-          () => statusOverlay.hidden,
-          "statusOverlay should not present without error"
-        );
+    // Wait for the fade out transition to complete in case the throbber
+    // shows up on slower platforms.
+    await SimpleTest.promiseWaitForCondition(() => statusOverlay.hidden,
+      "statusOverlay should not present without error");
 
-        ok(
-          !statusOverlay.hasAttribute("status"),
-          "statusOverlay should not be showing a state message."
-        );
-        isnot(
-          statusIcon.getAttribute("type"),
-          "error",
-          "should not show error icon"
-        );
-      });
+    ok(!statusOverlay.hasAttribute("status"), "statusOverlay should not be showing a state message.");
+    isnot(statusIcon.getAttribute("type"), "error", "should not show error icon");
+  });
 
-      add_task(async function invalid_source() {
-        const errorType = "errorNoSource";
+  add_task(async function invalid_source() {
+    const errorType = "errorNoSource";
 
-        await new Promise(resolve => {
-          video.src = "invalid_source.webm";
-          video.addEventListener("error", () =>
-            SimpleTest.executeSoon(resolve)
-          );
-        });
+    await new Promise(resolve => {
+      video.src = "invalid_source.webm";
+      video.addEventListener("error", () => SimpleTest.executeSoon(resolve));
+    });
 
-        ok(
-          !statusOverlay.hidden,
-          `statusOverlay should show when ${errorType}`
-        );
-        is(
-          statusOverlay.getAttribute("status"),
-          errorType,
-          `statusOverlay should have correct error state: ${errorType}`
-        );
-        is(
-          statusIcon.getAttribute("type"),
-          "error",
-          `should show error icon when ${errorType}`
-        );
-        isnot(
-          statusLabelErrorNoSource.getBoundingClientRect().height,
-          0,
-          "errorNoSource status label should be visible."
-        );
-      });
-    </script>
-  </body>
+    ok(!statusOverlay.hidden, `statusOverlay should show when ${errorType}`);
+    is(statusOverlay.getAttribute("status"), errorType, `statusOverlay should have correct error state: ${errorType}`);
+    is(statusIcon.getAttribute("type"), "error", `should show error icon when ${errorType}`);
+    isnot(statusLabelErrorNoSource.getBoundingClientRect().height, 0,
+      "errorNoSource status label should be visible.");
+  });
+</script>
+</pre>
+</body>
 </html>

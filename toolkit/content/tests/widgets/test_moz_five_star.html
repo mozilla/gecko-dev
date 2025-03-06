@@ -1,184 +1,154 @@
-<!doctype html>
+<!DOCTYPE HTML>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>MozFiveStar Tests</title>
-    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
-    <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
-    <link
-      rel="stylesheet"
-      href="chrome://mochikit/content/tests/SimpleTest/test.css"
-    />
-    <script
-      type="module"
-      src="chrome://global/content/elements/moz-five-star.mjs"
-    ></script>
-  </head>
-  <body>
-    <p id="display"></p>
-    <div id="content" style="max-width: fit-content">
-      <moz-five-star label="Label" rating="2.5"></moz-five-star>
-      <moz-five-star rating="2" selectable></moz-five-star>
-    </div>
-    <script class="testbody" type="application/javascript">
-      const { BrowserTestUtils } = ChromeUtils.importESModule(
-        "resource://testing-common/BrowserTestUtils.sys.mjs"
-      );
+<head>
+  <meta charset="utf-8">
+  <title>MozFiveStar Tests</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+  <script type="module" src="chrome://global/content/elements/moz-five-star.mjs"></script>
+</head>
+<body>
+<p id="display"></p>
+<div id="content" style="max-width: fit-content">
+  <moz-five-star label="Label" rating="2.5"></moz-five-star>
+  <moz-five-star rating="2" selectable></moz-five-star>
+</div>
+<pre id="test">
+  <script class="testbody" type="application/javascript">
+    const { BrowserTestUtils } = ChromeUtils.importESModule("resource://testing-common/BrowserTestUtils.sys.mjs");
 
-      async function testRatingValue(
-        mozFiveStar,
-        value,
-        ratingRounded,
-        expectation
-      ) {
-        is(mozFiveStar.rating, value, "Rating property is set to value");
+    async function testRatingValue(mozFiveStar, value, ratingRounded, expectation) {
+      is(mozFiveStar.rating, value, "Rating property is set to value")
 
-        if (mozFiveStar.ownerDocument.hasPendingL10nMutations) {
-          await BrowserTestUtils.waitForEvent(
-            mozFiveStar.ownerDocument,
-            "L10nMutationsFinished"
-          );
-        }
-        let starsString = Array.from(mozFiveStar.starEls)
-          .map(star => star.getAttribute("fill"))
-          .join(",");
-        is(starsString, expectation, `Rendering of rating ${value}`);
+      if (mozFiveStar.ownerDocument.hasPendingL10nMutations) {
+        await BrowserTestUtils.waitForEvent(
+          mozFiveStar.ownerDocument,
+          "L10nMutationsFinished"
+        );
+      }
+      let starsString = Array.from(mozFiveStar.starEls)
+        .map(star => star.getAttribute("fill"))
+        .join(",");
+      is(starsString, expectation, `Rendering of rating ${value}`);
 
-        let ratingsString = Array.from(mozFiveStar.starEls)
-          .map(star => star.getAttribute("rating"))
-          .join(",");
-        is("1,2,3,4,5", ratingsString, `Rendering of rating attributes`);
+      let ratingsString = Array.from(mozFiveStar.starEls)
+        .map(star => star.getAttribute("rating"))
+        .join(",");
+      is("1,2,3,4,5", ratingsString, `Rendering of rating attributes`);
+    }
+
+    add_task(async function testMozFiveStar() {
+      const mozFiveStar = document.querySelector("moz-five-star");
+      ok(mozFiveStar, "moz-five-star is rendered");
+
+      const stars = mozFiveStar.starEls;
+      ok(stars, "moz-five-star has stars");
+      is(stars.length, 5, "moz-five-star stars count is 5");
+
+      const rating = mozFiveStar.rating;
+      ok(rating, "moz-five-star has a rating");
+      is(rating, 2.5, "moz-five-star rating is 2.5");
+    });
+
+    add_task(async function testMozFiveStarsDisplay() {
+      const mozFiveStar = document.querySelector("moz-five-star");
+      ok(mozFiveStar, "moz-five-star is rendered");
+
+      async function testRating(rating, ratingRounded, expectation) {
+        mozFiveStar.rating = rating;
+        await mozFiveStar.updateComplete;
+        await testRatingValue(mozFiveStar, rating, ratingRounded, expectation)
+
+        is(
+          mozFiveStar.starsWrapperEl.title,
+          `Rated ${ratingRounded} out of 5`,
+          "Rendered title must contain at most one fractional digit"
+        );
+
+        let isImage = mozFiveStar.starsWrapperEl.getAttribute("role") == "img"
+          || mozFiveStar.starsWrapperEl.getAttribute("role") == "image";
+
+        ok(
+          isImage,
+          "Rating element is an image for the title to be announced"
+        );
       }
 
-      add_task(async function testMozFiveStar() {
-        const mozFiveStar = document.querySelector("moz-five-star");
-        ok(mozFiveStar, "moz-five-star is rendered");
+      await testRating(0.0, "0", "empty,empty,empty,empty,empty");
+      await testRating(0.249, "0.2", "empty,empty,empty,empty,empty");
+      await testRating(0.25, "0.3", "half,empty,empty,empty,empty");
+      await testRating(0.749, "0.7", "half,empty,empty,empty,empty");
+      await testRating(0.99, "1", "full,empty,empty,empty,empty");
+      await testRating(1.0, "1", "full,empty,empty,empty,empty");
+      await testRating(2, "2", "full,full,empty,empty,empty");
+      await testRating(3.0, "3", "full,full,full,empty,empty");
+      await testRating(4.001, "4", "full,full,full,full,empty");
+      await testRating(4.249, "4.2", "full,full,full,full,empty");
+      await testRating(4.25, "4.3", "full,full,full,full,half");
+      await testRating(4.749, "4.7", "full,full,full,full,half");
+      await testRating(4.89, "4.9", "full,full,full,full,full");
+      await testRating(5.0, "5", "full,full,full,full,full");
+    });
 
-        const stars = mozFiveStar.starEls;
-        ok(stars, "moz-five-star has stars");
-        is(stars.length, 5, "moz-five-star stars count is 5");
+    add_task(async function testMozFiveStarsSelectable() {
+      const selectableMozFiveStar = document.querySelector("moz-five-star[selectable]");
 
-        const rating = mozFiveStar.rating;
-        ok(rating, "moz-five-star has a rating");
-        is(rating, 2.5, "moz-five-star rating is 2.5");
-      });
+      const selectedEvents = [];
 
-      add_task(async function testMozFiveStarsDisplay() {
-        const mozFiveStar = document.querySelector("moz-five-star");
-        ok(mozFiveStar, "moz-five-star is rendered");
+      selectableMozFiveStar.addEventListener("select", (e) => selectedEvents.push(e))
 
-        async function testRating(rating, ratingRounded, expectation) {
-          mozFiveStar.rating = rating;
-          await mozFiveStar.updateComplete;
-          await testRatingValue(
-            mozFiveStar,
-            rating,
-            ratingRounded,
-            expectation
-          );
+      await selectableMozFiveStar.updateComplete;
 
-          is(
-            mozFiveStar.starsWrapperEl.title,
-            `Rated ${ratingRounded} out of 5`,
-            "Rendered title must contain at most one fractional digit"
-          );
+      await testRatingValue(selectableMozFiveStar, 2, "2", "full,full,empty,empty,empty")
 
-          let isImage =
-            mozFiveStar.starsWrapperEl.getAttribute("role") == "img" ||
-            mozFiveStar.starsWrapperEl.getAttribute("role") == "image";
+      const fifthStar = Array.from(selectableMozFiveStar.starEls).at(4)
+      fifthStar.click();
 
-          ok(
-            isImage,
-            "Rating element is an image for the title to be announced"
-          );
-        }
+      is(selectedEvents.length, 1, "dispatched one event")
+      const selectedEvent = selectedEvents.at(0);
+      is(selectedEvent.type, "select", "dispatched select event")
+      is(selectedEvent.detail.rating, 5, "dispatched selected rating number")
 
-        await testRating(0.0, "0", "empty,empty,empty,empty,empty");
-        await testRating(0.249, "0.2", "empty,empty,empty,empty,empty");
-        await testRating(0.25, "0.3", "half,empty,empty,empty,empty");
-        await testRating(0.749, "0.7", "half,empty,empty,empty,empty");
-        await testRating(0.99, "1", "full,empty,empty,empty,empty");
-        await testRating(1.0, "1", "full,empty,empty,empty,empty");
-        await testRating(2, "2", "full,full,empty,empty,empty");
-        await testRating(3.0, "3", "full,full,full,empty,empty");
-        await testRating(4.001, "4", "full,full,full,full,empty");
-        await testRating(4.249, "4.2", "full,full,full,full,empty");
-        await testRating(4.25, "4.3", "full,full,full,full,half");
-        await testRating(4.749, "4.7", "full,full,full,full,half");
-        await testRating(4.89, "4.9", "full,full,full,full,full");
-        await testRating(5.0, "5", "full,full,full,full,full");
-      });
+      await selectableMozFiveStar.updateComplete;
+      await testRatingValue(selectableMozFiveStar, 5, "5", "full,full,full,full,full")
 
-      add_task(async function testMozFiveStarsSelectable() {
-        const selectableMozFiveStar = document.querySelector(
-          "moz-five-star[selectable]"
-        );
+    });
 
-        const selectedEvents = [];
+        add_task(async function testMozFiveStarsSelectableHover() {
 
-        selectableMozFiveStar.addEventListener("select", e =>
-          selectedEvents.push(e)
-        );
+          function assertFilledBg(star) {
+            ok(getComputedStyle(star).backgroundImage.includes("#full"), "bg is filled");
+          }
 
-        await selectableMozFiveStar.updateComplete;
+          function assertNotFilledBg(star) {
+            ok(getComputedStyle(star).backgroundImage.includes("#empty"), "bg is not filled");
+          }
 
-        await testRatingValue(
-          selectableMozFiveStar,
-          2,
-          "2",
-          "full,full,empty,empty,empty"
-        );
+          const selectableMozFiveStar = document.querySelector("moz-five-star[selectable]");
 
-        const fifthStar = Array.from(selectableMozFiveStar.starEls).at(4);
-        fifthStar.click();
+          selectableMozFiveStar.rating = 1;
+          await selectableMozFiveStar.updateComplete;
 
-        is(selectedEvents.length, 1, "dispatched one event");
-        const selectedEvent = selectedEvents.at(0);
-        is(selectedEvent.type, "select", "dispatched select event");
-        is(selectedEvent.detail.rating, 5, "dispatched selected rating number");
+          const [
+            firstStar,
+            secondStar,
+            thirdStar,
+            fourthStar,
+            fifthStar
+          ] = selectableMozFiveStar.starEls
 
-        await selectableMozFiveStar.updateComplete;
-        await testRatingValue(
-          selectableMozFiveStar,
-          5,
-          "5",
-          "full,full,full,full,full"
-        );
-      });
+          assertFilledBg(firstStar);
+          assertNotFilledBg(secondStar, thirdStar, fourthStar, fifthStar);
 
-      add_task(async function testMozFiveStarsSelectableHover() {
-        function assertFilledBg(star) {
-          ok(
-            getComputedStyle(star).backgroundImage.includes("#full"),
-            "bg is filled"
-          );
-        }
+          synthesizeMouseAtCenter(fourthStar, { type: "mouseover" });
 
-        function assertNotFilledBg(star) {
-          ok(
-            getComputedStyle(star).backgroundImage.includes("#empty"),
-            "bg is not filled"
-          );
-        }
 
-        const selectableMozFiveStar = document.querySelector(
-          "moz-five-star[selectable]"
-        );
+          assertFilledBg(firstStar, secondStar, thirdStar, fourthStar);
+          assertNotFilledBg(fifthStar);
 
-        selectableMozFiveStar.rating = 1;
-        await selectableMozFiveStar.updateComplete;
-
-        const [firstStar, secondStar, thirdStar, fourthStar, fifthStar] =
-          selectableMozFiveStar.starEls;
-
-        assertFilledBg(firstStar);
-        assertNotFilledBg(secondStar, thirdStar, fourthStar, fifthStar);
-
-        synthesizeMouseAtCenter(fourthStar, { type: "mouseover" });
-
-        assertFilledBg(firstStar, secondStar, thirdStar, fourthStar);
-        assertNotFilledBg(fifthStar);
-      });
-    </script>
-  </body>
+    });
+ </script>
+</pre>
+</body>
 </html>

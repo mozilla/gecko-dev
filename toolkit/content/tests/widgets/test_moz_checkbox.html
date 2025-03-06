@@ -1,222 +1,134 @@
-<!doctype html>
+<!DOCTYPE HTML>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>moz-checkbox tests</title>
-    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
-    <link
-      rel="stylesheet"
-      href="chrome://mochikit/content/tests/SimpleTest/test.css"
-    />
-    <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
-    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
-    <script
-      type="module"
-      src="chrome://global/content/elements/moz-checkbox.mjs"
-    ></script>
-    <script src="lit-test-helpers.js"></script>
-  </head>
-  <body>
-    <script class="testbody" type="application/javascript">
-      let testHelpers = new InputTestHelpers();
-      let html;
+<head>
+  <meta charset="utf-8">
+  <title>moz-checkbox tests</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+  <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
+  <script type="module" src="chrome://global/content/elements/moz-checkbox.mjs"></script>
+  <script src="lit-test-helpers.js"></script>
+  <script class="testbody" type="application/javascript">
+    let testHelpers = new InputTestHelpers();
+    let html;
 
-      add_setup(async function setup() {
-        ({ html } = await testHelpers.setupLit());
-        testHelpers.setupTests({
-          templateFn: (attrs, children) =>
-            html`<moz-checkbox ${attrs}>${children}</moz-checkbox>`,
-        });
-        testHelpers.activatedProperty =
-          customElements.get("moz-checkbox").activatedProperty;
+    add_setup(async function setup() {
+      ({ html } = await testHelpers.setupLit());
+      testHelpers.setupTests({
+        templateFn: (attrs, children) =>
+          html`<moz-checkbox ${attrs}>${children}</moz-checkbox>`,
+      });
+      testHelpers.activatedProperty = customElements.get("moz-checkbox").activatedProperty;
+    });
+
+    add_task(async function testMozCheckboxProperties() {
+      await testHelpers.testCommonInputProperties("moz-checkbox");
+    });
+
+    add_task(async function testCheckboxEvents() {
+      let eventsTemplate = html`
+        <moz-checkbox label="One" name="one" value="1"></moz-checkbox>
+        <moz-checkbox label="Two" name="two" value="2" disabled></moz-checkbox>
+        <moz-checkbox label="Three" name="three" value="3" description="description"></moz-checkbox>
+      `;
+
+      let renderTarget = await testHelpers.renderTemplate(eventsTemplate);
+      let checkboxes = renderTarget.querySelectorAll("moz-checkbox");
+      let [mozCheckbox1, mozCheckbox2, mozCheckbox3] = checkboxes;
+      let { trackEvent, verifyEvents } = testHelpers.getInputEventHelpers();
+
+      checkboxes.forEach(checkbox => {
+        checkbox.addEventListener("click", trackEvent);
+        checkbox.addEventListener("input", trackEvent);
+        checkbox.addEventListener("change", trackEvent);
       });
 
-      add_task(async function testMozCheckboxProperties() {
-        await testHelpers.testCommonInputProperties("moz-checkbox");
-      });
+      // Ensure that clicking the inner checkbox element emits the expected
+      // events in the correct order.
+      synthesizeMouseAtCenter(mozCheckbox1.inputEl, {});
+      await TestUtils.waitForTick();
 
-      add_task(async function testCheckboxEvents() {
-        let eventsTemplate = html`
-          <moz-checkbox label="One" name="one" value="1"></moz-checkbox>
-          <moz-checkbox
-            label="Two"
-            name="two"
-            value="2"
-            disabled
-          ></moz-checkbox>
-          <moz-checkbox
-            label="Three"
-            name="three"
-            value="3"
-            description="description"
-          ></moz-checkbox>
-        `;
+      verifyEvents([
+        { type: "click", localName: "moz-checkbox", checked: true, value: "1" },
+        { type: "input", localName: "moz-checkbox", checked: true, value: "1" },
+        { type: "change", localName: "moz-checkbox", checked: true, value: "1" },
+      ]);
 
-        let renderTarget = await testHelpers.renderTemplate(eventsTemplate);
-        let checkboxes = renderTarget.querySelectorAll("moz-checkbox");
-        let [mozCheckbox1, mozCheckbox2, mozCheckbox3] = checkboxes;
-        let { trackEvent, verifyEvents } = testHelpers.getInputEventHelpers();
+      ok(
+        mozCheckbox1.checked,
+        "Clicking the inner checkbox should toggle the checked attribute"
+      );
 
-        checkboxes.forEach(checkbox => {
-          checkbox.addEventListener("click", trackEvent);
-          checkbox.addEventListener("input", trackEvent);
-          checkbox.addEventListener("change", trackEvent);
-        });
+      // Ensure that clicking the inner label element emits the
+      // expected events in the correct order.
+      synthesizeMouseAtCenter(mozCheckbox1.labelEl, {});
+      await TestUtils.waitForTick();
 
-        // Ensure that clicking the inner checkbox element emits the expected
-        // events in the correct order.
-        synthesizeMouseAtCenter(mozCheckbox1.inputEl, {});
-        await TestUtils.waitForTick();
+      // Since we click the label element, there is an additional
+      // click event compared to the checkbox element, and this
+      // first click doesn't update the checked value
+      verifyEvents([
+        { type: "click", localName: "moz-checkbox", checked: true, value: "1" },
+        { type: "click", localName: "moz-checkbox", checked: false, value: "1" },
+        { type: "input", localName: "moz-checkbox", checked: false, value: "1" },
+        { type: "change", localName: "moz-checkbox", checked: false, value: "1" },
+      ]);
 
-        verifyEvents([
-          {
-            type: "click",
-            localName: "moz-checkbox",
-            checked: true,
-            value: "1",
-          },
-          {
-            type: "input",
-            localName: "moz-checkbox",
-            checked: true,
-            value: "1",
-          },
-          {
-            type: "change",
-            localName: "moz-checkbox",
-            checked: true,
-            value: "1",
-          },
-        ]);
+      ok(
+        !mozCheckbox1.checked,
+        "Clicking the checkbox should toggle the checked attribute"
+      );
 
-        ok(
-          mozCheckbox1.checked,
-          "Clicking the inner checkbox should toggle the checked attribute"
-        );
+      // Ensure that using the keyboard to activate the inner checkbox
+      // emits the expected events in the correct order.
+      mozCheckbox1.focus();
+      synthesizeKey(" ", {});
+      await TestUtils.waitForTick();
 
-        // Ensure that clicking the inner label element emits the
-        // expected events in the correct order.
-        synthesizeMouseAtCenter(mozCheckbox1.labelEl, {});
-        await TestUtils.waitForTick();
+      verifyEvents([
+        { type: "click", localName: "moz-checkbox", checked: true, value: "1" },
+        { type: "input", localName: "moz-checkbox", checked: true, value: "1" },
+        { type: "change", localName: "moz-checkbox", checked: true, value: "1" },
+      ]);
 
-        // Since we click the label element, there is an additional
-        // click event compared to the checkbox element, and this
-        // first click doesn't update the checked value
-        verifyEvents([
-          {
-            type: "click",
-            localName: "moz-checkbox",
-            checked: true,
-            value: "1",
-          },
-          {
-            type: "click",
-            localName: "moz-checkbox",
-            checked: false,
-            value: "1",
-          },
-          {
-            type: "input",
-            localName: "moz-checkbox",
-            checked: false,
-            value: "1",
-          },
-          {
-            type: "change",
-            localName: "moz-checkbox",
-            checked: false,
-            value: "1",
-          },
-        ]);
+      ok(
+        mozCheckbox1.checked,
+        "Activating the Space key on the inner checkbox should toggle the checked attribute"
+      );
 
-        ok(
-          !mozCheckbox1.checked,
-          "Clicking the checkbox should toggle the checked attribute"
-        );
+      // Ensure click() toggles the checkbox.
+      mozCheckbox1.click();
+      ok(!mozCheckbox1.checked, "click() toggled the checkbox");
 
-        // Ensure that using the keyboard to activate the inner checkbox
-        // emits the expected events in the correct order.
-        mozCheckbox1.focus();
-        synthesizeKey(" ", {});
-        await TestUtils.waitForTick();
+      verifyEvents([
+        { type: "click", localName: "moz-checkbox", checked: false, value: "1" },
+        { type: "input", localName: "moz-checkbox", checked: false, value: "1" },
+        { type: "change", localName: "moz-checkbox", checked: false, value: "1" },
+      ]);
 
-        verifyEvents([
-          {
-            type: "click",
-            localName: "moz-checkbox",
-            checked: true,
-            value: "1",
-          },
-          {
-            type: "input",
-            localName: "moz-checkbox",
-            checked: true,
-            value: "1",
-          },
-          {
-            type: "change",
-            localName: "moz-checkbox",
-            checked: true,
-            value: "1",
-          },
-        ]);
+      // Ensure clicking on a disabled moz-checkbox does not send
+      // any events.
+      synthesizeMouseAtCenter(mozCheckbox2.inputEl, {});
+      await TestUtils.waitForTick();
 
-        ok(
-          mozCheckbox1.checked,
-          "Activating the Space key on the inner checkbox should toggle the checked attribute"
-        );
+      verifyEvents([]);
 
-        // Ensure click() toggles the checkbox.
-        mozCheckbox1.click();
-        ok(!mozCheckbox1.checked, "click() toggled the checkbox");
+      // Ensure clicking on a description within moz-checkbox does not
+      // change the value of the checkbox input.
+      synthesizeMouseAtCenter(mozCheckbox3.descriptionEl, {});
+      await TestUtils.waitForTick();
 
-        verifyEvents([
-          {
-            type: "click",
-            localName: "moz-checkbox",
-            checked: false,
-            value: "1",
-          },
-          {
-            type: "input",
-            localName: "moz-checkbox",
-            checked: false,
-            value: "1",
-          },
-          {
-            type: "change",
-            localName: "moz-checkbox",
-            checked: false,
-            value: "1",
-          },
-        ]);
-
-        // Ensure clicking on a disabled moz-checkbox does not send
-        // any events.
-        synthesizeMouseAtCenter(mozCheckbox2.inputEl, {});
-        await TestUtils.waitForTick();
-
-        verifyEvents([]);
-
-        // Ensure clicking on a description within moz-checkbox does not
-        // change the value of the checkbox input.
-        synthesizeMouseAtCenter(mozCheckbox3.descriptionEl, {});
-        await TestUtils.waitForTick();
-
-        verifyEvents([
-          {
-            type: "click",
-            localName: "moz-checkbox",
-            checked: false,
-            value: "3",
-          },
-        ]);
-        is(
-          mozCheckbox3.checked,
-          false,
-          "Checkbox input should not change when clicking on description"
-        );
-      });
-    </script>
-  </body>
+      verifyEvents([
+        { type: "click", localName: "moz-checkbox", checked: false, value: "3" },
+      ]);
+      is(
+        mozCheckbox3.checked,
+        false,
+        "Checkbox input should not change when clicking on description"
+      );
+    });
+  </script>
+</pre>
+</body>
 </html>

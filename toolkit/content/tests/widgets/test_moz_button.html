@@ -1,429 +1,377 @@
-<!doctype html>
+<!DOCTYPE HTML>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>MozButton Tests</title>
-    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
-    <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
-    <script
-      type="module"
-      src="chrome://global/content/elements/moz-button.mjs"
-    ></script>
-    <link
-      rel="stylesheet"
-      href="chrome://mochikit/content/tests/SimpleTest/test.css"
-    />
-    <link
-      rel="stylesheet"
-      href="chrome://global/skin/design-system/tokens-brand.css"
-    />
-    <link
-      rel="stylesheet"
-      href="chrome://global/skin/design-system/text-and-typography.css"
-    />
-    <style>
-      .four::part(button),
-      .five::part(button),
-      .six::part(button) {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' width='16' height='16' fill='context-fill' fill-opacity='context-fill-opacity'%3E%3Cpath d='M3 7 1.5 7l-.5.5L1 9l.5.5 1.5 0 .5-.5 0-1.5z'/%3E%3Cpath d='m8.75 7-1.5 0-.5.5 0 1.5.5.5 1.5 0 .5-.5 0-1.5z'/%3E%3Cpath d='M14.5 7 13 7l-.5.5 0 1.5.5.5 1.5 0L15 9l0-1.5z'/%3E%3C/svg%3E");
+<head>
+  <meta charset="utf-8">
+  <title>MozButton Tests</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+  <script type="module" src="chrome://global/content/elements/moz-button.mjs"></script>
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+  <link rel="stylesheet" href="chrome://global/skin/design-system/tokens-brand.css">
+  <link rel="stylesheet" href="chrome://global/skin/design-system/text-and-typography.css">
+<style>
+.four::part(button),
+.five::part(button),
+.six::part(button) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' width='16' height='16' fill='context-fill' fill-opacity='context-fill-opacity'%3E%3Cpath d='M3 7 1.5 7l-.5.5L1 9l.5.5 1.5 0 .5-.5 0-1.5z'/%3E%3Cpath d='m8.75 7-1.5 0-.5.5 0 1.5.5.5 1.5 0 .5-.5 0-1.5z'/%3E%3Cpath d='M14.5 7 13 7l-.5.5 0 1.5.5.5 1.5 0L15 9l0-1.5z'/%3E%3C/svg%3E");
+}
+</style>
+  <script>
+    const { AddonManager } = ChromeUtils.importESModule(
+      "resource://gre/modules/AddonManager.sys.mjs"
+    );
+    // Always run tests with the light theme for consistency and to avoid from false
+    // test passes arising from the fact that --icon-color and --button-text-color
+    // have the same value in the dark theme.
+    add_setup(async function () {
+      // Developer Edition enables the wrong theme by default. Make sure
+      // the ordinary default theme is enabled.
+      let theme = await AddonManager.getAddonByID("default-theme@mozilla.org");
+      await theme.enable();
+
+      await SpecialPowers.pushPrefEnv({
+        set: [
+          ["ui.systemUsesDarkTheme", 0],
+        ],
+      });
+      // Triggers a refresh to ensure new theme applied.
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      ok(window.matchMedia("(prefers-color-scheme: light)").matches, "Light theme is active.");
+
+      // Move mouse to the bottom of the test frame to prevent hover on buttons.
+      let mouseTrap = document.getElementById("mouse-trap");
+      await synthesizeMouseAtCenter(mouseTrap, { type: "mousemove" });
+      ok(mouseTrap.matches(":hover"), "The mouse trap is hovered");
+    });
+
+    function normalizeColor(val, computedStyles) {
+      if (val.includes("currentColor")) {
+        val = val.replaceAll("currentColor", computedStyles.color);
       }
-    </style>
-    <script>
-      const { AddonManager } = ChromeUtils.importESModule(
-        "resource://gre/modules/AddonManager.sys.mjs"
+      if (val.startsWith("light-dark")) {
+        let [, light, dark] = val.match(/light-dark\(([^,]+),\s*([^)]+)\)/);
+        if (light && dark) {
+          val = window.matchMedia("(prefers-color-scheme: dark)").matches ? dark : light;
+        }
+      }
+      try {
+        let { r, g, b, a } = InspectorUtils.colorToRGBA(val);
+        return `rgba(${r}, ${g}, ${b}, ${a})`;
+      } catch (e) {
+        info(val);
+        throw e;
+      }
+    }
+
+    function assertButtonPropertiesMatch(el, propertyToCssVar) {
+      let elStyles = el.backgroundEl ? getComputedStyle(el.backgroundEl) : getComputedStyle(el);
+      for (let [property, cssVar] of Object.entries(propertyToCssVar)) {
+        let propertyVal = elStyles[property];
+        let cssVarVal = cssVar.startsWith("--") ? elStyles.getPropertyValue(cssVar) : cssVar;
+        if (propertyVal.startsWith("rgb") || propertyVal.startsWith("#") || propertyVal.startsWith("color")) {
+          propertyVal = normalizeColor(propertyVal, elStyles);
+          cssVarVal = normalizeColor(cssVarVal, elStyles);
+        }
+        info(`${propertyVal} == ${cssVarVal}`);
+        is(propertyVal, cssVarVal, `${property} should be ${cssVar}`);
+      }
+    }
+
+    add_task(async function testButtonTypes() {
+      let [...buttons] = document.querySelectorAll("moz-button");
+      let [one, two, three, four, five, six, seven] = buttons;
+
+      await Promise.all(buttons.map(btn => btn.updateComplete));
+
+      is(one.textContent, "Test button", "Text is set");
+      is(two.buttonEl.textContent.trim(), "Test button", "Text is set");
+      is(three.textContent, "Test button", "Text is set");
+      is(seven.buttonEl.textContent.trim(), "Test button", "Text is set");
+
+      assertButtonPropertiesMatch(one, {
+        backgroundColor: "--button-background-color",
+        color: "--button-text-color",
+        height: "--button-min-height",
+      });
+      assertButtonPropertiesMatch(two, {
+        backgroundColor: "--button-background-color",
+        color: "--button-text-color",
+        height: "--button-min-height",
+      });
+      assertButtonPropertiesMatch(three, {
+        backgroundColor: "--button-background-color-primary",
+        color: "--button-text-color-primary",
+        height: "--button-min-height",
+      });
+      assertButtonPropertiesMatch(four, {
+        width: "--button-size-icon",
+        height: "--button-size-icon",
+        backgroundColor: "--button-background-color",
+        fill: "--button-text-color",
+      });
+      assertButtonPropertiesMatch(five, {
+        width: "--button-size-icon",
+        height: "--button-size-icon",
+        backgroundColor: "transparent",
+        fill: "--button-text-color",
+      });
+      assertButtonPropertiesMatch(six, {
+        width: "--button-size-icon",
+        height: "--button-size-icon",
+        backgroundColor: "transparent",
+        fill: "--button-text-color",
+      });
+      assertButtonPropertiesMatch(seven, {
+        backgroundColor: "--button-background-color",
+        color: "--button-text-color",
+        height: "--button-min-height",
+      });
+
+      buttons.forEach(btn => (btn.size = "small"));
+
+      await Promise.all(buttons.map(btn => btn.updateComplete));
+
+      assertButtonPropertiesMatch(one, {
+        height: "--button-min-height-small",
+      });
+      assertButtonPropertiesMatch(two, {
+        height: "--button-min-height-small",
+      });
+      assertButtonPropertiesMatch(three, {
+        height: "--button-min-height-small",
+      });
+      assertButtonPropertiesMatch(four, {
+        width: "--button-size-icon-small",
+        height: "--button-size-icon-small",
+      });
+      assertButtonPropertiesMatch(five, {
+        width: "--button-size-icon-small",
+        height: "--button-size-icon-small",
+      });
+      assertButtonPropertiesMatch(six, {
+        width: "--button-size-icon-small",
+        height: "--button-size-icon-small",
+      });
+      assertButtonPropertiesMatch(seven, {
+        height: "--button-min-height-small",
+      });
+    });
+
+    add_task(async function testA11yAttributes() {
+      let button = document.querySelector("moz-button");
+
+      async function testProperty(propName, jsPropName = propName) {
+        let propValue = `${propName} value`;
+        ok(!button.buttonEl.hasAttribute(propName), `No ${propName} on inner button`);
+        button.setAttribute(propName, propValue);
+
+        await button.updateComplete;
+
+        ok(!button.hasAttribute(propName), `moz-button ${propName} cleared`);
+        is(button.buttonEl.getAttribute(propName), propValue, `${propName} added to inner button`);
+
+        button[jsPropName] = null;
+        await button.updateComplete;
+
+        ok(!button.buttonEl.hasAttribute(propName), `${propName} cleared by setting property`);
+      }
+
+      await testProperty("title");
+      await testProperty("aria-label", "ariaLabel");
+    });
+
+    add_task(async function testIconButtons() {
+      let buttons = ["four", "five", "six", "seven", "eight", "nine", "ten"].map(
+        className => document.querySelector(`.${className}`)
       );
-      // Always run tests with the light theme for consistency and to avoid from false
-      // test passes arising from the fact that --icon-color and --button-text-color
-      // have the same value in the dark theme.
-      add_setup(async function () {
-        // Developer Edition enables the wrong theme by default. Make sure
-        // the ordinary default theme is enabled.
-        let theme = await AddonManager.getAddonByID(
-          "default-theme@mozilla.org"
-        );
-        await theme.enable();
+      let [four, five, six, seven, eight, nine, ten] = buttons;
+      await Promise.all(buttons.map(btn => btn.updateComplete));
 
-        await SpecialPowers.pushPrefEnv({
-          set: [["ui.systemUsesDarkTheme", 0]],
-        });
-        // Triggers a refresh to ensure new theme applied.
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        ok(
-          window.matchMedia("(prefers-color-scheme: light)").matches,
-          "Light theme is active."
-        );
-
-        // Move mouse to the bottom of the test frame to prevent hover on buttons.
-        let mouseTrap = document.getElementById("mouse-trap");
-        await synthesizeMouseAtCenter(mouseTrap, { type: "mousemove" });
-        ok(mouseTrap.matches(":hover"), "The mouse trap is hovered");
-      });
-
-      function normalizeColor(val, computedStyles) {
-        if (val.includes("currentColor")) {
-          val = val.replaceAll("currentColor", computedStyles.color);
-        }
-        if (val.startsWith("light-dark")) {
-          let [, light, dark] = val.match(/light-dark\(([^,]+),\s*([^)]+)\)/);
-          if (light && dark) {
-            val = window.matchMedia("(prefers-color-scheme: dark)").matches
-              ? dark
-              : light;
-          }
-        }
-        try {
-          let { r, g, b, a } = InspectorUtils.colorToRGBA(val);
-          return `rgba(${r}, ${g}, ${b}, ${a})`;
-        } catch (e) {
-          info(val);
-          throw e;
-        }
-      }
-
-      function assertButtonPropertiesMatch(el, propertyToCssVar) {
-        let elStyles = el.backgroundEl
-          ? getComputedStyle(el.backgroundEl)
-          : getComputedStyle(el);
-        for (let [property, cssVar] of Object.entries(propertyToCssVar)) {
-          let propertyVal = elStyles[property];
-          let cssVarVal = cssVar.startsWith("--")
-            ? elStyles.getPropertyValue(cssVar)
-            : cssVar;
-          if (
-            propertyVal.startsWith("rgb") ||
-            propertyVal.startsWith("#") ||
-            propertyVal.startsWith("color")
-          ) {
-            propertyVal = normalizeColor(propertyVal, elStyles);
-            cssVarVal = normalizeColor(cssVarVal, elStyles);
-          }
-          info(`${propertyVal} == ${cssVarVal}`);
-          is(propertyVal, cssVarVal, `${property} should be ${cssVar}`);
-        }
-      }
-
-      add_task(async function testButtonTypes() {
-        let [...buttons] = document.querySelectorAll("moz-button");
-        let [one, two, three, four, five, six, seven] = buttons;
-
-        await Promise.all(buttons.map(btn => btn.updateComplete));
-
-        is(one.textContent, "Test button", "Text is set");
-        is(two.buttonEl.textContent.trim(), "Test button", "Text is set");
-        is(three.textContent, "Test button", "Text is set");
-        is(seven.buttonEl.textContent.trim(), "Test button", "Text is set");
-
-        assertButtonPropertiesMatch(one, {
-          backgroundColor: "--button-background-color",
-          color: "--button-text-color",
-          height: "--button-min-height",
-        });
-        assertButtonPropertiesMatch(two, {
-          backgroundColor: "--button-background-color",
-          color: "--button-text-color",
-          height: "--button-min-height",
-        });
-        assertButtonPropertiesMatch(three, {
-          backgroundColor: "--button-background-color-primary",
-          color: "--button-text-color-primary",
-          height: "--button-min-height",
-        });
-        assertButtonPropertiesMatch(four, {
-          width: "--button-size-icon",
-          height: "--button-size-icon",
-          backgroundColor: "--button-background-color",
+      function verifyBackgroundIcon(button) {
+        let img = button.shadowRoot.querySelector("img");
+        ok(!img, "button does not use an img element to display an icon");
+        assertButtonPropertiesMatch(button, {
           fill: "--button-text-color",
+          backgroundSize: "--icon-size-default",
         });
-        assertButtonPropertiesMatch(five, {
-          width: "--button-size-icon",
-          height: "--button-size-icon",
-          backgroundColor: "transparent",
-          fill: "--button-text-color",
-        });
-        assertButtonPropertiesMatch(six, {
-          width: "--button-size-icon",
-          height: "--button-size-icon",
-          backgroundColor: "transparent",
-          fill: "--button-text-color",
-        });
-        assertButtonPropertiesMatch(seven, {
-          backgroundColor: "--button-background-color",
-          color: "--button-text-color",
-          height: "--button-min-height",
-        });
-
-        buttons.forEach(btn => (btn.size = "small"));
-
-        await Promise.all(buttons.map(btn => btn.updateComplete));
-
-        assertButtonPropertiesMatch(one, {
-          height: "--button-min-height-small",
-        });
-        assertButtonPropertiesMatch(two, {
-          height: "--button-min-height-small",
-        });
-        assertButtonPropertiesMatch(three, {
-          height: "--button-min-height-small",
-        });
-        assertButtonPropertiesMatch(four, {
-          width: "--button-size-icon-small",
-          height: "--button-size-icon-small",
-        });
-        assertButtonPropertiesMatch(five, {
-          width: "--button-size-icon-small",
-          height: "--button-size-icon-small",
-        });
-        assertButtonPropertiesMatch(six, {
-          width: "--button-size-icon-small",
-          height: "--button-size-icon-small",
-        });
-        assertButtonPropertiesMatch(seven, {
-          height: "--button-min-height-small",
-        });
-      });
-
-      add_task(async function testA11yAttributes() {
-        let button = document.querySelector("moz-button");
-
-        async function testProperty(propName, jsPropName = propName) {
-          let propValue = `${propName} value`;
-          ok(
-            !button.buttonEl.hasAttribute(propName),
-            `No ${propName} on inner button`
-          );
-          button.setAttribute(propName, propValue);
-
-          await button.updateComplete;
-
-          ok(!button.hasAttribute(propName), `moz-button ${propName} cleared`);
-          is(
-            button.buttonEl.getAttribute(propName),
-            propValue,
-            `${propName} added to inner button`
-          );
-
-          button[jsPropName] = null;
-          await button.updateComplete;
-
-          ok(
-            !button.buttonEl.hasAttribute(propName),
-            `${propName} cleared by setting property`
-          );
-        }
-
-        await testProperty("title");
-        await testProperty("aria-label", "ariaLabel");
-      });
-
-      add_task(async function testIconButtons() {
-        let buttons = [
-          "four",
-          "five",
-          "six",
-          "seven",
-          "eight",
-          "nine",
-          "ten",
-        ].map(className => document.querySelector(`.${className}`));
-        let [four, five, six, seven, eight, nine, ten] = buttons;
-        await Promise.all(buttons.map(btn => btn.updateComplete));
-
-        function verifyBackgroundIcon(button) {
-          let img = button.shadowRoot.querySelector("img");
-          ok(!img, "button does not use an img element to display an icon");
-          assertButtonPropertiesMatch(button, {
-            fill: "--button-text-color",
-            backgroundSize: "--icon-size-default",
-          });
-        }
-
-        function verifyImageIcon(button) {
-          let img = button.shadowRoot.querySelector("img");
-          ok(img, "button uses an inner img element to display an icon");
-          is(
-            img.src,
-            "chrome://global/skin/icons/edit.svg",
-            "button displays the expected icon"
-          );
-          assertButtonPropertiesMatch(img, {
-            fill: "--button-text-color",
-            width: "--icon-size-default",
-            height: "--icon-size-default",
-          });
-        }
-
-        verifyBackgroundIcon(four);
-        verifyBackgroundIcon(five);
-        verifyBackgroundIcon(six);
-
-        verifyImageIcon(seven);
-        verifyImageIcon(eight);
-        verifyImageIcon(nine);
-        verifyImageIcon(ten);
-        is(ten.buttonEl.innerText, "Edit", "ten's label is correct");
-
-        nine.textContent = "With text";
-        // Ensure we've painted before checking styles
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        verifyImageIcon(nine);
-
-        nine.textContent = "";
-        // Ensure we've painted before checking styles
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        verifyImageIcon(nine);
-      });
-
-      add_task(async function testAccesskey() {
-        let firstButton = document.querySelector(".one");
-        let secondButton = document.querySelector(".two");
-        let accesskey = "t";
-        let seenEvents = [];
-
-        function trackEvent(event) {
-          seenEvents.push(event.type);
-        }
-
-        [firstButton, secondButton].forEach(button => {
-          button.addEventListener("click", trackEvent);
-        });
-
-        firstButton.setAttribute("accesskey", accesskey);
-        await firstButton.updateComplete;
-
-        firstButton.blur();
-        isnot(
-          document.activeElement,
-          firstButton,
-          "First button is not focused."
-        );
-        isnot(
-          firstButton.shadowRoot.activeElement,
-          firstButton.buttonEl,
-          "Inner button element is not focused."
-        );
-
-        synthesizeKey(
-          accesskey,
-          navigator.platform.includes("Mac")
-            ? { altKey: true, ctrlKey: true }
-            : { altKey: true, shiftKey: true }
-        );
-
-        is(
-          document.activeElement,
-          firstButton,
-          "First button recieves focus after accesskey is pressed."
-        );
-        is(
-          firstButton.shadowRoot.activeElement,
-          firstButton.buttonEl,
-          "Inner button input element is focused after accesskey is pressed."
-        );
-        is(seenEvents.length, 1, "One event was triggered.");
-        is(seenEvents[0], "click", "The first button was clicked.");
-
-        secondButton.setAttribute("accesskey", accesskey);
-        await secondButton.updateComplete;
-
-        synthesizeKey(
-          accesskey,
-          navigator.platform.includes("Mac")
-            ? { altKey: true, ctrlKey: true }
-            : { altKey: true, shiftKey: true }
-        );
-
-        is(
-          document.activeElement,
-          secondButton,
-          "Focus cycles between buttons with the same accesskey."
-        );
-
-        synthesizeKey(
-          accesskey,
-          navigator.platform.includes("Mac")
-            ? { altKey: true, ctrlKey: true }
-            : { altKey: true, shiftKey: true }
-        );
-
-        is(
-          document.activeElement,
-          firstButton,
-          "Focus cycles between buttons with the same accesskey."
-        );
-        is(seenEvents.length, 1, "No additional click events were triggered.");
-      });
-
-      add_task(async function testToolbarPaddingEvent() {
-        let toolbarButton = document.querySelector(".eleven");
-        let seenEvents = [];
-        function trackEvent(event) {
-          seenEvents.push(event.type);
-        }
-        toolbarButton.addEventListener("click", trackEvent);
-        // Slightly offset the mouse click so that we click within
-        // the toolbar button padding
-        synthesizeMouse(toolbarButton, 4, 4, {});
-
-        is(
-          seenEvents.length,
-          1,
-          "Clicking on button's padding must send a click event"
-        );
-      });
-    </script>
-  </head>
-  <body>
-    <style>
-      .wrapper {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        gap: 64px;
       }
-      .eleven {
-        /* Used to verify click events on the toolbar button */
-        --button-outer-padding-inline: 48px;
-        --button-outer-padding-block: 48px;
+
+      function verifyImageIcon(button) {
+        let img = button.shadowRoot.querySelector("img");
+        ok(img, "button uses an inner img element to display an icon");
+        is(img.src, "chrome://global/skin/icons/edit.svg", "button displays the expected icon");
+        assertButtonPropertiesMatch(img, {
+          fill: "--button-text-color",
+          width: "--icon-size-default",
+          height: "--icon-size-default",
+        });
       }
-    </style>
-    <div class="wrapper">
-      <div>
-        <moz-button class="one">Test button</moz-button>
-        <moz-button class="two" label="Test button"></moz-button>
-        <moz-button class="three" type="primary">Test button</moz-button>
-        <moz-button class="four" type="icon"></moz-button>
-        <moz-button class="five" type="icon ghost"></moz-button>
-        <moz-button class="six" type="ghost icon"></moz-button>
-        <moz-button
-          class="seven"
-          label="Test button"
-          iconsrc="chrome://global/skin/icons/edit.svg"
-        ></moz-button>
-        <moz-button
-          class="eight"
-          iconsrc="chrome://global/skin/icons/edit.svg"
-        ></moz-button>
-        <!-- Used to verify that empty space doesn't get treated as a label -->
-        <moz-button
-          class="nine"
-          type="ghost"
-          iconsrc="chrome://global/skin/icons/edit.svg"
-        >
-        </moz-button>
-        <!-- Used to verify that empty space doesn't overwrite a label property -->
-        <moz-button
-          class="ten"
-          label="Edit"
-          type="ghost"
-          iconsrc="chrome://global/skin/icons/edit.svg"
-        >
-        </moz-button>
-        <!-- Used to verify that click events work as expected in the padding around
+
+      verifyBackgroundIcon(four);
+      verifyBackgroundIcon(five);
+      verifyBackgroundIcon(six);
+
+      verifyImageIcon(seven);
+      verifyImageIcon(eight);
+      verifyImageIcon(nine);
+      verifyImageIcon(ten);
+      is(ten.buttonEl.innerText, "Edit", "ten's label is correct");
+
+      nine.textContent = "With text";
+      // Ensure we've painted before checking styles
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      verifyImageIcon(nine);
+
+      nine.textContent = "";
+      // Ensure we've painted before checking styles
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      verifyImageIcon(nine);
+    });
+
+    add_task(async function testAccesskey() {
+      let firstButton = document.querySelector(".one");
+      let secondButton = document.querySelector(".two");
+      let accesskey = "t";
+      let seenEvents = [];
+
+      function trackEvent(event) {
+        seenEvents.push(event.type);
+      }
+
+      [firstButton, secondButton].forEach(button => {
+        button.addEventListener("click", trackEvent);
+      });
+
+      firstButton.setAttribute("accesskey", accesskey);
+      await firstButton.updateComplete;
+
+      firstButton.blur();
+      isnot(document.activeElement, firstButton, "First button is not focused.");
+      isnot(
+        firstButton.shadowRoot.activeElement,
+        firstButton.buttonEl,
+        "Inner button element is not focused."
+      );
+
+      synthesizeKey(
+        accesskey,
+        navigator.platform.includes("Mac")
+          ? { altKey: true, ctrlKey: true }
+          : { altKey: true, shiftKey: true }
+      );
+
+      is(
+        document.activeElement,
+        firstButton,
+        "First button recieves focus after accesskey is pressed."
+      );
+      is(
+        firstButton.shadowRoot.activeElement,
+        firstButton.buttonEl,
+        "Inner button input element is focused after accesskey is pressed."
+      );
+      is(seenEvents.length, 1, "One event was triggered.");
+      is(seenEvents[0], "click", "The first button was clicked.");
+
+      secondButton.setAttribute("accesskey", accesskey);
+      await secondButton.updateComplete;
+
+      synthesizeKey(
+        accesskey,
+        navigator.platform.includes("Mac")
+          ? { altKey: true, ctrlKey: true }
+          : { altKey: true, shiftKey: true }
+      );
+
+      is(
+        document.activeElement,
+        secondButton,
+        "Focus cycles between buttons with the same accesskey."
+      );
+
+      synthesizeKey(
+        accesskey,
+        navigator.platform.includes("Mac")
+          ? { altKey: true, ctrlKey: true }
+          : { altKey: true, shiftKey: true }
+      );
+
+      is(
+        document.activeElement,
+        firstButton,
+        "Focus cycles between buttons with the same accesskey."
+      );
+      is(seenEvents.length, 1, "No additional click events were triggered.");
+    });
+
+    add_task(async function testToolbarPaddingEvent() {
+      let toolbarButton = document.querySelector(".eleven");
+      let seenEvents = [];
+      function trackEvent(event) {
+        seenEvents.push(event.type);
+      }
+      toolbarButton.addEventListener("click", trackEvent);
+      // Slightly offset the mouse click so that we click within
+      // the toolbar button padding
+      synthesizeMouse(toolbarButton, 4, 4, {});
+
+      is(seenEvents.length, 1, "Clicking on button's padding must send a click event");
+    });
+  </script>
+</head>
+<body>
+  <style>
+    .wrapper {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 64px;
+    }
+    .eleven {
+      /* Used to verify click events on the toolbar button */
+      --button-outer-padding-inline: 48px;
+      --button-outer-padding-block: 48px;
+    }
+  </style>
+  <div class="wrapper">
+    <div>
+      <moz-button class="one">Test button</moz-button>
+      <moz-button class="two" label="Test button"></moz-button>
+      <moz-button class="three" type="primary">Test button</moz-button>
+      <moz-button class="four" type="icon"></moz-button>
+      <moz-button class="five" type="icon ghost"></moz-button>
+      <moz-button class="six" type="ghost icon"></moz-button>
+      <moz-button
+        class="seven"
+        label="Test button"
+        iconsrc="chrome://global/skin/icons/edit.svg"
+      ></moz-button>
+      <moz-button
+        class="eight"
+        iconsrc="chrome://global/skin/icons/edit.svg"
+      ></moz-button>
+      <!-- Used to verify that empty space doesn't get treated as a label -->
+      <moz-button
+        class="nine"
+        type="ghost"
+        iconsrc="chrome://global/skin/icons/edit.svg"
+      >   </moz-button>
+      <!-- Used to verify that empty space doesn't overwrite a label property -->
+      <moz-button
+      class="ten"
+      label="Edit"
+      type="ghost"
+      iconsrc="chrome://global/skin/icons/edit.svg"
+      >   </moz-button>
+      <!-- Used to verify that click events work as expected in the padding around
            toolbar buttons -->
-        <moz-button class="eleven" label="toolbar"> </moz-button>
-      </div>
-      <button id="mouse-trap">Mouse goes here</button>
+      <moz-button
+      class="eleven"
+      label="toolbar"
+      >   </moz-button>
     </div>
-  </body>
+    <button id="mouse-trap">Mouse goes here</button>
+  </div>
+</body>
 </html>

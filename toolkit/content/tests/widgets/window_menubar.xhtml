@@ -4,1017 +4,1012 @@
 <!-- the condition in the focus event handler is because pressing Tab
      unfocuses and refocuses the window on Windows -->
 
-<window
-  title="Popup Tests"
+<window title="Popup Tests"
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
-  xmlns:html="http://www.w3.org/1999/xhtml"
->
+  xmlns:html="http://www.w3.org/1999/xhtml">
+
   <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
   <script type="application/javascript" src="popup_shared.js"></script>
 
-  <hbox style="margin-left: 275px; margin-top: 275px">
-    <menubar id="menubar">
-      <menu id="filemenu" label="File" accesskey="F">
-        <menupopup id="filepopup">
-          <menuitem id="item1" label="Open" accesskey="O" />
-          <menuitem id="item2" label="Save" accesskey="S" />
-          <menuitem id="item3" label="Close" accesskey="C" />
+<hbox style="margin-left: 275px; margin-top: 275px;">
+<menubar id="menubar">
+  <menu id="filemenu" label="File" accesskey="F">
+    <menupopup id="filepopup">
+      <menuitem id="item1" label="Open" accesskey="O"/>
+      <menuitem id="item2" label="Save" accesskey="S"/>
+      <menuitem id="item3" label="Close" accesskey="C"/>
+    </menupopup>
+  </menu>
+  <menu id="secretmenu" label="Secret Menu" accesskey="S" disabled="true">
+    <menupopup>
+      <menuitem label="Secret Command" accesskey="S"/>
+    </menupopup>
+  </menu>
+  <menu id="editmenu" label="Edit" accesskey="E">
+    <menupopup id="editpopup">
+      <menuitem id="cut" label="Cut" accesskey="t" disabled="true"/>
+      <menuitem id="copy" label="Copy" accesskey="C"/>
+      <menuitem id="paste" label="Paste" accesskey="P"/>
+    </menupopup>
+  </menu>
+  <menu id="viewmenu" label="View" accesskey="V">
+    <menupopup id="viewpopup">
+      <menu id="toolbar" label="Toolbar" accesskey="T">
+        <menupopup id="toolbarpopup">
+          <menuitem id="navigation" label="Navigation" accesskey="N" disabled="true"/>
+          <menuitem label="Bookmarks" accesskey="B" disabled="true"/>
         </menupopup>
       </menu>
-      <menu id="secretmenu" label="Secret Menu" accesskey="S" disabled="true">
+      <menuitem label="Status Bar" accesskey="S"/>
+      <menu label="Sidebar" accesskey="d">
         <menupopup>
-          <menuitem label="Secret Command" accesskey="S" />
+          <menuitem label="Bookmarks" accesskey="B"/>
+          <menuitem label="History" accesskey="H"/>
         </menupopup>
       </menu>
-      <menu id="editmenu" label="Edit" accesskey="E">
-        <menupopup id="editpopup">
-          <menuitem id="cut" label="Cut" accesskey="t" disabled="true" />
-          <menuitem id="copy" label="Copy" accesskey="C" />
-          <menuitem id="paste" label="Paste" accesskey="P" />
+    </menupopup>
+  </menu>
+  <menu id="helpmenu" label="Help" accesskey="H">
+    <menupopup id="helppopup" >
+      <label value="Unselectable"/>
+      <menuitem id="contents" label="Contents" accesskey="C"/>
+      <menuitem label="More Info" accesskey="I"/>
+      <menuitem id="amenu" label="A Menu" accesskey="M"/>
+      <menuitem label="Another Menu"/>
+      <menuitem id="one" label="One"/>
+      <menu id="only" label="Only Menu">
+        <menupopup>
+          <menuitem label="Test Submenu"/>
         </menupopup>
       </menu>
-      <menu id="viewmenu" label="View" accesskey="V">
-        <menupopup id="viewpopup">
-          <menu id="toolbar" label="Toolbar" accesskey="T">
-            <menupopup id="toolbarpopup">
-              <menuitem
-                id="navigation"
-                label="Navigation"
-                accesskey="N"
-                disabled="true"
-              />
-              <menuitem label="Bookmarks" accesskey="B" disabled="true" />
-            </menupopup>
-          </menu>
-          <menuitem label="Status Bar" accesskey="S" />
-          <menu label="Sidebar" accesskey="d">
-            <menupopup>
-              <menuitem label="Bookmarks" accesskey="B" />
-              <menuitem label="History" accesskey="H" />
-            </menupopup>
-          </menu>
-        </menupopup>
-      </menu>
-      <menu id="helpmenu" label="Help" accesskey="H">
-        <menupopup id="helppopup">
-          <label value="Unselectable" />
-          <menuitem id="contents" label="Contents" accesskey="C" />
-          <menuitem label="More Info" accesskey="I" />
-          <menuitem id="amenu" label="A Menu" accesskey="M" />
-          <menuitem label="Another Menu" />
-          <menuitem id="one" label="One" />
-          <menu id="only" label="Only Menu">
-            <menupopup>
-              <menuitem label="Test Submenu" />
-            </menupopup>
-          </menu>
-          <menuitem label="Second Menu" />
-          <menuitem id="other" disabled="true" label="Other Menu" />
-          <menuitem id="third" label="Third Menu" />
-          <menuitem label="One Other Menu" />
-          <label value="Unselectable" />
-          <menuitem id="about" label="About" accesskey="A" />
-        </menupopup>
-      </menu>
-    </menubar>
-    <hbox>
-      <description id="outside">Outside menubar</description>
-      <html:input id="input" />
-    </hbox>
-  </hbox>
+      <menuitem label="Second Menu"/>
+      <menuitem id="other" disabled="true" label="Other Menu"/>
+      <menuitem id="third" label="Third Menu"/>
+      <menuitem label="One Other Menu"/>
+      <label value="Unselectable"/>
+      <menuitem id="about" label="About" accesskey="A"/>
+    </menupopup>
+  </menu>
+</menubar>
+<hbox>
+  <description id="outside">Outside menubar</description>
+  <html:input id="input"/>
+</hbox>
+</hbox>
 
-  <script class="testbody" type="application/javascript">
-    <![CDATA[
+<script class="testbody" type="application/javascript">
+<![CDATA[
 
-    async function moveMouseOver(id) {
-      // A single synthesized mouse move isn't always enough in some platforms.
-      let el = document.getElementById(id);
-      synthesizeMouse(el, 5, 5, { type: "mousemove" });
-      await new Promise(r => setTimeout(r, 0));
-      synthesizeMouse(el, 8, 8, { type: "mousemove" });
+async function moveMouseOver(id) {
+  // A single synthesized mouse move isn't always enough in some platforms.
+  let el = document.getElementById(id);
+  synthesizeMouse(el, 5, 5, { type: "mousemove" });
+  await new Promise(r => setTimeout(r, 0));
+  synthesizeMouse(el, 8, 8, { type: "mousemove" });
+}
+
+let gFilePopup;
+window.opener.SimpleTest.waitForFocus(function () {
+  gFilePopup = document.getElementById("filepopup");
+  var filemenu = document.getElementById("filemenu");
+  filemenu.focus();
+  is(filemenu.openedWithKey, false, "initial openedWithKey");
+  startPopupTests(popupTests);
+}, window);
+
+const kIsWindows = navigator.platform.indexOf("Win") == 0;
+const kIsLinux = navigator.platform.includes("Linux");
+
+// On Linux, the first menu opens when F10 is pressed, but on other platforms
+// the menubar is focused but no menu is opened. This means that different events
+// fire.
+function pressF10Events()
+{
+  return kIsLinux ?
+    [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu", "popupshowing filepopup", "popupshown filepopup"] :
+    [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu" ];
+}
+
+function closeAfterF10Events()
+{
+  if (kIsLinux) {
+    return [
+      "popuphiding filepopup",
+      "popuphidden filepopup",
+      "DOMMenuInactive filepopup",
+      "DOMMenuItemInactive filemenu",
+      "DOMMenuBarInactive menubar",
+    ];
+  }
+
+  return [ "DOMMenuItemInactive filemenu", "DOMMenuBarInactive menubar" ];
+}
+
+var popupTests = [
+{
+  testname: "press on menu",
+  events: [ "DOMMenuBarActive menubar",
+            "DOMMenuItemActive filemenu", "popupshowing filepopup", "popupshown filepopup" ],
+  test() { synthesizeMouse(document.getElementById("filemenu"), 8, 8, { }); },
+  result (testname) {
+    checkActive(gFilePopup, "", testname);
+    checkOpen("filemenu", testname);
+    is(document.getElementById("filemenu").openedWithKey, false, testname + " openedWithKey");
+  }
+},
+{
+  // check that pressing cursor down while there is no selection
+  // highlights the first item
+  testname: "cursor down no selection",
+  events: [ "DOMMenuItemActive item1" ],
+  test() { synthesizeKey("KEY_ArrowDown"); },
+  result(testname) { checkActive(gFilePopup, "item1", testname); }
+},
+{
+  // check that pressing cursor up wraps and highlights the last item
+  testname: "cursor up wrap",
+  events: [ "DOMMenuItemInactive item1", "DOMMenuItemActive item3" ],
+  test() { synthesizeKey("KEY_ArrowUp"); },
+  result(testname) { checkActive(gFilePopup, "item3", testname); }
+},
+{
+  // check that pressing cursor down wraps and highlights the first item
+  testname: "cursor down wrap",
+  events: [ "DOMMenuItemInactive item3", "DOMMenuItemActive item1" ],
+  test() { synthesizeKey("KEY_ArrowDown"); },
+  result(testname) { checkActive(gFilePopup, "item1", testname); }
+},
+{
+  // check that pressing cursor down highlights the second item
+  testname: "cursor down",
+  events: [ "DOMMenuItemInactive item1", "DOMMenuItemActive item2" ],
+  test() { synthesizeKey("KEY_ArrowDown"); },
+  result(testname) { checkActive(gFilePopup, "item2", testname); }
+},
+{
+  // check that pressing cursor up highlights the second item
+  testname: "cursor up",
+  events: [ "DOMMenuItemInactive item2", "DOMMenuItemActive item1" ],
+  test() { synthesizeKey("KEY_ArrowUp"); },
+  result(testname) { checkActive(gFilePopup, "item1", testname); }
+},
+
+{
+  // cursor right should skip the disabled menu and move to the edit menu
+  testname: "cursor right skip disabled",
+  events() {
+    var elist = [
+      // the file menu gets deactivated, the file menu gets hidden, then
+      // the edit menu is activated
+      "DOMMenuItemInactive filemenu", "DOMMenuItemActive editmenu",
+      "popuphiding filepopup", "popuphidden filepopup",
+      // the popupshowing event gets fired when showing the edit menu.
+      "popupshowing editpopup",
+      "DOMMenuItemInactive item1",
+      "DOMMenuInactive filepopup",
+    ];
+    // finally, the first item is activated and popupshown is fired.
+    // On Windows, don't skip disabled items.
+    if (kIsWindows) {
+      elist.push("DOMMenuItemActive cut");
+    } else {
+      elist.push("DOMMenuItemActive copy");
     }
-
-    let gFilePopup;
-    window.opener.SimpleTest.waitForFocus(function () {
-      gFilePopup = document.getElementById("filepopup");
-      var filemenu = document.getElementById("filemenu");
-      filemenu.focus();
-      is(filemenu.openedWithKey, false, "initial openedWithKey");
-      startPopupTests(popupTests);
-    }, window);
-
-    const kIsWindows = navigator.platform.indexOf("Win") == 0;
-    const kIsLinux = navigator.platform.includes("Linux");
-
-    // On Linux, the first menu opens when F10 is pressed, but on other platforms
-    // the menubar is focused but no menu is opened. This means that different events
-    // fire.
-    function pressF10Events()
-    {
-      return kIsLinux ?
-        [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu", "popupshowing filepopup", "popupshown filepopup"] :
-        [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu" ];
+    elist.push("popupshown editpopup");
+    return elist;
+  },
+  test() { synthesizeKey("KEY_ArrowRight"); },
+  result(testname) {
+    var expected = kIsWindows ? "cut" : "copy";
+    checkActive(document.getElementById("editpopup"), expected, testname);
+    checkClosed("filemenu", testname);
+    checkOpen("editmenu", testname);
+    is(document.getElementById("editmenu").openedWithKey, false, testname + " openedWithKey");
+  }
+},
+{
+  // on Windows, a disabled item is selected, so pressing RETURN should close
+  // the menu but not fire a command event
+  testname: "enter on disabled",
+  events() {
+    if (kIsWindows) {
+      return [
+        "popuphiding editpopup",
+        "popuphidden editpopup",
+        "DOMMenuItemInactive cut",
+        "DOMMenuInactive editpopup",
+        "DOMMenuItemInactive editmenu",
+        "DOMMenuBarInactive menubar",
+      ];
     }
-
-    function closeAfterF10Events()
-    {
-      if (kIsLinux) {
-        return [
-          "popuphiding filepopup",
-          "popuphidden filepopup",
-          "DOMMenuInactive filepopup",
-          "DOMMenuItemInactive filemenu",
-          "DOMMenuBarInactive menubar",
-        ];
-      }
-
-      return [ "DOMMenuItemInactive filemenu", "DOMMenuBarInactive menubar" ];
+    return [
+      "DOMMenuItemInactive copy",
+      "DOMMenuInactive editpopup",
+      "DOMMenuItemInactive editmenu",
+      "DOMMenuBarInactive menubar",
+      "command copy",
+      "popuphiding editpopup", "popuphidden editpopup",
+    ];
+  },
+  test() { synthesizeKey("KEY_Enter"); },
+  result(testname) {
+    checkClosed("editmenu", testname);
+    is(document.getElementById("editmenu").openedWithKey, false, testname + " openedWithKey");
+  }
+},
+{
+  // pressing Alt + a key should open the corresponding menu
+  testname: "open with accelerator",
+  events() {
+    return [
+      "DOMMenuBarActive menubar",
+      "DOMMenuItemActive viewmenu",
+      "popupshowing viewpopup",
+      "DOMMenuItemActive toolbar",
+      "popupshown viewpopup",
+    ];
+  },
+  test() { synthesizeKey("V", { altKey: true }); },
+  result(testname) {
+    checkOpen("viewmenu", testname);
+    is(document.getElementById("viewmenu").openedWithKey, true, testname + " openedWithKey");
+  }
+},
+{
+  // open the submenu with the cursor right key
+  testname: "open submenu with cursor right",
+  events() {
+    // on Windows, the disabled 'navigation' item can still be highlighted
+    if (kIsWindows) {
+      return ["popupshowing toolbarpopup", "DOMMenuItemActive navigation",
+               "popupshown toolbarpopup" ];
     }
-
-    var popupTests = [
-    {
-      testname: "press on menu",
-      events: [ "DOMMenuBarActive menubar",
-                "DOMMenuItemActive filemenu", "popupshowing filepopup", "popupshown filepopup" ],
-      test() { synthesizeMouse(document.getElementById("filemenu"), 8, 8, { }); },
-      result (testname) {
-        checkActive(gFilePopup, "", testname);
-        checkOpen("filemenu", testname);
-        is(document.getElementById("filemenu").openedWithKey, false, testname + " openedWithKey");
-      }
-    },
-    {
-      // check that pressing cursor down while there is no selection
-      // highlights the first item
-      testname: "cursor down no selection",
-      events: [ "DOMMenuItemActive item1" ],
-      test() { synthesizeKey("KEY_ArrowDown"); },
-      result(testname) { checkActive(gFilePopup, "item1", testname); }
-    },
-    {
-      // check that pressing cursor up wraps and highlights the last item
-      testname: "cursor up wrap",
-      events: [ "DOMMenuItemInactive item1", "DOMMenuItemActive item3" ],
-      test() { synthesizeKey("KEY_ArrowUp"); },
-      result(testname) { checkActive(gFilePopup, "item3", testname); }
-    },
-    {
-      // check that pressing cursor down wraps and highlights the first item
-      testname: "cursor down wrap",
-      events: [ "DOMMenuItemInactive item3", "DOMMenuItemActive item1" ],
-      test() { synthesizeKey("KEY_ArrowDown"); },
-      result(testname) { checkActive(gFilePopup, "item1", testname); }
-    },
-    {
-      // check that pressing cursor down highlights the second item
-      testname: "cursor down",
-      events: [ "DOMMenuItemInactive item1", "DOMMenuItemActive item2" ],
-      test() { synthesizeKey("KEY_ArrowDown"); },
-      result(testname) { checkActive(gFilePopup, "item2", testname); }
-    },
-    {
-      // check that pressing cursor up highlights the second item
-      testname: "cursor up",
-      events: [ "DOMMenuItemInactive item2", "DOMMenuItemActive item1" ],
-      test() { synthesizeKey("KEY_ArrowUp"); },
-      result(testname) { checkActive(gFilePopup, "item1", testname); }
-    },
-
-    {
-      // cursor right should skip the disabled menu and move to the edit menu
-      testname: "cursor right skip disabled",
-      events() {
-        var elist = [
-          // the file menu gets deactivated, the file menu gets hidden, then
-          // the edit menu is activated
-          "DOMMenuItemInactive filemenu", "DOMMenuItemActive editmenu",
-          "popuphiding filepopup", "popuphidden filepopup",
-          // the popupshowing event gets fired when showing the edit menu.
-          "popupshowing editpopup",
-          "DOMMenuItemInactive item1",
-          "DOMMenuInactive filepopup",
-        ];
-        // finally, the first item is activated and popupshown is fired.
-        // On Windows, don't skip disabled items.
-        if (kIsWindows) {
-          elist.push("DOMMenuItemActive cut");
-        } else {
-          elist.push("DOMMenuItemActive copy");
-        }
-        elist.push("popupshown editpopup");
-        return elist;
-      },
-      test() { synthesizeKey("KEY_ArrowRight"); },
-      result(testname) {
-        var expected = kIsWindows ? "cut" : "copy";
-        checkActive(document.getElementById("editpopup"), expected, testname);
-        checkClosed("filemenu", testname);
-        checkOpen("editmenu", testname);
-        is(document.getElementById("editmenu").openedWithKey, false, testname + " openedWithKey");
-      }
-    },
-    {
-      // on Windows, a disabled item is selected, so pressing RETURN should close
-      // the menu but not fire a command event
-      testname: "enter on disabled",
-      events() {
-        if (kIsWindows) {
-          return [
-            "popuphiding editpopup",
-            "popuphidden editpopup",
-            "DOMMenuItemInactive cut",
-            "DOMMenuInactive editpopup",
-            "DOMMenuItemInactive editmenu",
-            "DOMMenuBarInactive menubar",
-          ];
-        }
-        return [
-          "DOMMenuItemInactive copy",
-          "DOMMenuInactive editpopup",
-          "DOMMenuItemInactive editmenu",
-          "DOMMenuBarInactive menubar",
-          "command copy",
-          "popuphiding editpopup", "popuphidden editpopup",
-        ];
-      },
-      test() { synthesizeKey("KEY_Enter"); },
-      result(testname) {
-        checkClosed("editmenu", testname);
-        is(document.getElementById("editmenu").openedWithKey, false, testname + " openedWithKey");
-      }
-    },
-    {
-      // pressing Alt + a key should open the corresponding menu
-      testname: "open with accelerator",
-      events() {
-        return [
-          "DOMMenuBarActive menubar",
-          "DOMMenuItemActive viewmenu",
-          "popupshowing viewpopup",
-          "DOMMenuItemActive toolbar",
-          "popupshown viewpopup",
-        ];
-      },
-      test() { synthesizeKey("V", { altKey: true }); },
-      result(testname) {
-        checkOpen("viewmenu", testname);
-        is(document.getElementById("viewmenu").openedWithKey, true, testname + " openedWithKey");
-      }
-    },
-    {
-      // open the submenu with the cursor right key
-      testname: "open submenu with cursor right",
-      events() {
-        // on Windows, the disabled 'navigation' item can still be highlighted
-        if (kIsWindows) {
-          return ["popupshowing toolbarpopup", "DOMMenuItemActive navigation",
-                   "popupshown toolbarpopup" ];
-        }
-        return [ "popupshowing toolbarpopup", "popupshown toolbarpopup" ];
-      },
-      test() { synthesizeKey("KEY_ArrowRight"); },
-      result(testname) {
-        checkOpen("viewmenu", testname);
-        checkOpen("toolbar", testname);
-      }
-    },
-    {
-      // close the submenu with the cursor left key
-      testname: "close submenu with cursor left",
-      events() {
-        if (kIsWindows) {
-          return [
-            "popuphiding toolbarpopup",
-            "popuphidden toolbarpopup",
-            "DOMMenuItemInactive navigation",
-            "DOMMenuInactive toolbarpopup",
-          ];
-        }
-        return [
-          "popuphiding toolbarpopup",
-          "popuphidden toolbarpopup",
-          "DOMMenuInactive toolbarpopup",
-        ];
-      },
-      test() {
-        synthesizeKey("KEY_ArrowLeft");
-      },
-      result(testname) {
-        checkOpen("viewmenu", testname);
-        checkClosed("toolbar", testname);
-      }
-    },
-    {
-      // open the submenu with the enter key
-      testname: "open submenu with enter",
-      events() {
-        if (kIsWindows) {
-          // on Windows, the disabled 'navigation' item can stll be highlighted
-          return [ "popupshowing toolbarpopup", "DOMMenuItemActive navigation",
-                   "popupshown toolbarpopup" ];
-        }
-        return [ "popupshowing toolbarpopup", "popupshown toolbarpopup" ];
-      },
-      test() { synthesizeKey("KEY_Enter"); },
-      result(testname) {
-        checkOpen("viewmenu", testname);
-        checkOpen("toolbar", testname);
-      },
-    },
-    {
-      testname: "close submenu with escape",
-      events() {
-        if (kIsWindows) {
-          return [
-            "popuphiding toolbarpopup",
-            "popuphidden toolbarpopup",
-            "DOMMenuItemInactive navigation",
-            "DOMMenuInactive toolbarpopup",
-          ];
-        }
-        return [
-          "popuphiding toolbarpopup",
-          "popuphidden toolbarpopup",
-          "DOMMenuInactive toolbarpopup",
-        ];
-      },
-      test() { synthesizeKey("KEY_Escape"); },
-      result(testname) {
-        checkOpen("viewmenu", testname);
-        checkClosed("toolbar", testname);
-      },
-    },
-    {
-      testname: "open submenu with enter again",
-      condition() { return kIsWindows; },
-      events() {
-        // on Windows, the disabled 'navigation' item can stll be highlighted
-        if (kIsWindows) {
-          return [
-            "popupshowing toolbarpopup",
-            "DOMMenuItemActive navigation",
-            "popupshown toolbarpopup"
-          ];
-        }
-        return [ "popupshowing toolbarpopup", "popupshown toolbarpopup" ];
-      },
-      test() { synthesizeKey("KEY_Enter"); },
-      result(testname) {
-        checkOpen("viewmenu", testname);
-        checkOpen("toolbar", testname);
-      },
-    },
-    {
-      // while a submenu is open, switch to the next toplevel menu with the cursor right key
-      testname: "while a submenu is open, switch to the next menu with the cursor right",
-      condition() { return kIsWindows; },
-      events: [
-        "DOMMenuItemInactive viewmenu",
-        "DOMMenuItemActive helpmenu",
+    return [ "popupshowing toolbarpopup", "popupshown toolbarpopup" ];
+  },
+  test() { synthesizeKey("KEY_ArrowRight"); },
+  result(testname) {
+    checkOpen("viewmenu", testname);
+    checkOpen("toolbar", testname);
+  }
+},
+{
+  // close the submenu with the cursor left key
+  testname: "close submenu with cursor left",
+  events() {
+    if (kIsWindows) {
+      return [
         "popuphiding toolbarpopup",
         "popuphidden toolbarpopup",
-        "popuphiding viewpopup",
-        "popuphidden viewpopup",
-        "popupshowing helppopup",
         "DOMMenuItemInactive navigation",
         "DOMMenuInactive toolbarpopup",
-        "DOMMenuItemInactive toolbar",
-        "DOMMenuInactive viewpopup",
-        "DOMMenuItemActive contents",
-        "popupshown helppopup"
-      ],
-      test() { synthesizeKey("KEY_ArrowRight"); },
-      result(testname) {
-        checkOpen("helpmenu", testname);
-        checkClosed("toolbar", testname);
-        checkClosed("viewmenu", testname);
-      }
-    },
-    {
-      // close the main menu with the escape key
-      testname: "close menubar menu with escape",
-      condition() { return kIsWindows; },
-      events: [
-        "popuphiding helppopup",
-        "popuphidden helppopup",
-        "DOMMenuItemInactive contents",
-        "DOMMenuInactive helppopup",
-      ],
-      test() { synthesizeKey("KEY_Escape"); },
-      result(testname) {
-        checkClosed("helpmenu", testname);
-      },
-    },
-    {
-      // close the main menu with the escape key
-      testname: "close menubar menu with escape",
-      condition() { return !kIsWindows; },
-      events: [
-        "popuphiding viewpopup",
-        "popuphidden viewpopup",
-        "DOMMenuItemInactive toolbar",
-        "DOMMenuInactive viewpopup",
-      ],
-      test() {
-        synthesizeKey("KEY_Escape");
-      },
-      result(testname) {
-        checkClosed("viewmenu", testname);
-      },
-    },
-    {
-      // Deactivate menubar with the escape key.
-      testname: "deactivate menubar menu with escape",
-      events: [
-        "DOMMenuItemInactive " + (kIsWindows ? "helpmenu" : "viewmenu"),
-        "DOMMenuBarInactive menubar",
-      ],
-      test() {
-        synthesizeKey("KEY_Escape");
-      },
-      result() {
-      },
-    },
-    {
-      // Pressing Alt should highlight the first menu but not open it,
-      // but it should be ignored if the alt keydown event is consumed.
-      testname: "alt shouldn't activate menubar if keydown event is consumed",
-      test() {
-        document.addEventListener("keydown", function (aEvent) {
-          aEvent.preventDefault();
-        }, {once: true});
-        synthesizeKey("KEY_Alt");
-      },
-      result(testname) {
-        ok(!document.getElementById("filemenu").openedWithKey, testname);
-        checkClosed("filemenu", testname);
-      },
-    },
-    {
-      // Pressing Alt should highlight the first menu but not open it,
-      // but it should be ignored if the alt keyup event is consumed.
-      testname: "alt shouldn't activate menubar if keyup event is consumed",
-      test() {
-        document.addEventListener("keyup", function (aEvent) {
-          aEvent.preventDefault();
-        }, {once: true});
-        synthesizeKey("KEY_Alt");
-      },
-      result(testname) {
-        ok(!document.getElementById("filemenu").openedWithKey, testname);
-        checkClosed("filemenu", testname);
-      },
-    },
-    {
-      // Pressing Alt should highlight the first menu but not open it.
-      testname: "alt to activate menubar",
-      events: [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu" ],
-      test() { synthesizeKey("KEY_Alt"); },
-      result(testname) {
-        is(document.getElementById("filemenu").openedWithKey, true, testname + " openedWithKey");
-        checkClosed("filemenu", testname);
-      },
-    },
-    {
-      // pressing cursor left should select the previous menu but not open it
-      testname: "cursor left on active menubar",
-      events: [ "DOMMenuItemInactive filemenu", "DOMMenuItemActive helpmenu" ],
-      test() { synthesizeKey("KEY_ArrowLeft"); },
-      result(testname) { checkClosed("helpmenu", testname); },
-    },
-    {
-      // pressing cursor right should select the previous menu but not open it
-      testname: "cursor right on active menubar",
-      events: [ "DOMMenuItemInactive helpmenu", "DOMMenuItemActive filemenu" ],
-      test() { synthesizeKey("KEY_ArrowRight"); },
-      result(testname) { checkClosed("filemenu", testname); },
-    },
-    {
-      // pressing a character should act as an accelerator and open the menu
-      testname: "accelerator on active menubar",
-      events: [
-        "DOMMenuItemInactive filemenu",
-        "DOMMenuItemActive helpmenu",
-        "popupshowing helppopup",
-        "DOMMenuItemActive contents",
-        "popupshown helppopup",
-      ],
-      test() { sendChar("h"); },
-      result(testname) {
-        checkOpen("helpmenu", testname);
-        is(document.getElementById("helpmenu").openedWithKey, true, testname + " openedWithKey");
-      },
-    },
-    {
-      // check that pressing cursor up skips non menuitems
-      testname: "cursor up wrap",
-      events: [ "DOMMenuItemInactive contents", "DOMMenuItemActive about" ],
-      test() { synthesizeKey("KEY_ArrowUp"); },
-      result() { }
-    },
-    {
-      // check that pressing cursor down skips non menuitems
-      testname: "cursor down wrap",
-      events: [ "DOMMenuItemInactive about", "DOMMenuItemActive contents" ],
-      test() { synthesizeKey("KEY_ArrowDown"); },
-      result() { }
-    },
-    {
-      // check that pressing a menuitem's accelerator selects it
-      testname: "menuitem accelerator",
-      events: [
-        "DOMMenuItemInactive contents",
-        "DOMMenuItemActive amenu",
-        "DOMMenuItemInactive amenu",
-        "DOMMenuInactive helppopup",
-        "DOMMenuItemInactive helpmenu",
-        "DOMMenuBarInactive menubar",
-        "command amenu",
-        "popuphiding helppopup",
-        "popuphidden helppopup",
-      ],
-      test() { sendChar("m"); },
-      result(testname) { checkClosed("helpmenu", testname); }
-    },
-    {
-      // pressing F10 should highlight the first menu. On Linux, the menu is opened.
-      testname: "F10 to activate menubar",
-      events: pressF10Events(),
-      test() { synthesizeKey("KEY_F10"); },
-      result(testname) {
-        is(document.getElementById("filemenu").openedWithKey, true, testname + " openedWithKey");
-        if (kIsLinux) {
-          checkOpen("filemenu", testname);
-        } else {
-          checkClosed("filemenu", testname);
-        }
-      },
-    },
-    {
-      // pressing cursor left then down should open a menu
-      testname: "cursor down on menu",
-      events: kIsLinux ?
-        [
-          "DOMMenuItemInactive filemenu",
-          "DOMMenuItemActive helpmenu",
-          // This is in a different order than the
-          // "accelerator on active menubar" because menus opened from a
-          // shortcut key are fired asynchronously
-          "popuphiding filepopup",
-          "popuphidden filepopup",
-          "popupshowing helppopup",
-          "DOMMenuInactive filepopup",
-          "popupshown helppopup",
-          "DOMMenuItemActive contents",
-        ] : [
-          "popupshowing helppopup",
-          "DOMMenuItemInactive filemenu",
-          "DOMMenuItemActive helpmenu",
-          // This is in a different order than the
-          // "accelerator on active menubar" because menus opened from a
-          // shortcut key are fired asynchronously
-          "DOMMenuItemActive contents",
-          "popupshown helppopup",
-        ],
-      async test() {
-        if (kIsLinux) {
-          // On linux we need to wait so that the hiding of the file popup happens
-          // (and the help popup opens) to send the key down.
-          let helpPopupShown = new Promise(r => {
-            document.getElementById("helppopup").addEventListener("popupshown", r, { once: true });
-          });
-          synthesizeKey("KEY_ArrowLeft");
-          await helpPopupShown;
-          synthesizeKey("KEY_ArrowDown");
-        } else {
-          synthesizeKey("KEY_ArrowLeft");
-          synthesizeKey("KEY_ArrowDown");
-        }
-      },
-      result(testname) {
-        is(document.getElementById("helpmenu").openedWithKey, true, testname + " openedWithKey");
-      }
-    },
-    {
-      // pressing a letter that doesn't correspond to an accelerator. The menu
-      // should not close because there is more than one item corresponding to
-      // that letter
-      testname: "menuitem with no accelerator",
-      events: [ "DOMMenuItemInactive contents", "DOMMenuItemActive one" ],
-      test() { sendChar("o"); },
-      result(testname) { checkOpen("helpmenu", testname); }
-    },
-    {
-      // pressing the letter again should select the next one that starts with
-      // that letter
-      testname: "menuitem with no accelerator again",
-      events: [ "DOMMenuItemInactive one", "DOMMenuItemActive only" ],
-      test() { sendChar("o"); },
-      result(testname) {
-        // 'only' is a menu but it should not be open
-        checkOpen("helpmenu", testname);
-        checkClosed("only", testname);
-      }
-    },
-    {
-      // pressing the letter again when the next item is disabled should still
-      // select the disabled item
-      testname: "menuitem with no accelerator disabled",
-      condition() { return kIsWindows; },
-      events: [ "DOMMenuItemInactive only", "DOMMenuItemActive other" ],
-      test() { sendChar("o"); },
-      result() { }
-    },
-    {
-      // when only one menuitem starting with that letter exists, it should be
-      // selected and the menu closed
-      testname: "menuitem with no accelerator single",
-      events() {
-        let elist = [
-          "DOMMenuItemInactive other",
-          "DOMMenuItemActive third",
-          "DOMMenuItemInactive third",
-          "DOMMenuInactive helppopup",
-          "DOMMenuItemInactive helpmenu",
-          "DOMMenuBarInactive menubar",
-          "command third",
-          "popuphiding helppopup",
-          "popuphidden helppopup"
-        ];
-        if (!kIsWindows) {
-          elist[0] = "DOMMenuItemInactive only";
-        }
-        return elist;
-      },
-      test() { sendChar("t"); },
-      result(testname) { checkClosed("helpmenu", testname); }
-    },
-    {
-      // pressing F10 should highlight the first menu but not open it
-      testname: "F10 to activate menubar again",
-      condition() { return kIsWindows; },
-      events: [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu" ],
-      test() { synthesizeKey("KEY_F10"); },
-      result(testname) { checkClosed("filemenu", testname); },
-    },
-    {
-      // pressing an accelerator for a disabled item should deactivate the menubar
-      testname: "accelerator for disabled menu",
-      condition() { return kIsWindows; },
-      events: [ "DOMMenuItemInactive filemenu", "DOMMenuBarInactive menubar" ],
-      test() { sendChar("s"); },
-      result(testname) {
-        checkClosed("secretmenu", testname);
-        is(document.getElementById("filemenu").openedWithKey, false, testname + " openedWithKey");
-      },
-    },
-    {
-      testname: "press on disabled menu",
-      test() {
-        synthesizeMouse(document.getElementById("secretmenu"), 8, 8, { });
-      },
-      result (testname) {
-        checkClosed("secretmenu", testname);
-      }
-    },
-    {
-      testname: "press on second menu with shift",
-      events: [
-        "DOMMenuBarActive menubar",
-        "DOMMenuItemActive editmenu",
-        "popupshowing editpopup",
-        "popupshown editpopup",
-      ],
-      test() {
-        synthesizeMouse(document.getElementById("editmenu"), 8, 8, { shiftKey : true });
-      },
-      result (testname) {
-        checkOpen("editmenu", testname);
-        checkActive(document.getElementById("menubar"), "editmenu", testname);
-      }
-    },
-    {
-      testname: "press on disabled menuitem",
-      test() {
-        synthesizeMouse(document.getElementById("cut"), 8, 8, { });
-      },
-      result (testname) {
-        checkOpen("editmenu", testname);
-      }
-    },
-    {
-      testname: "press on menuitem",
-      events: [
-        "DOMMenuInactive editpopup",
-        "DOMMenuItemInactive editmenu",
-        "DOMMenuBarInactive menubar",
-        "command copy",
-        "popuphiding editpopup",
-        "popuphidden editpopup",
-      ],
-      test() {
-        synthesizeMouse(document.getElementById("copy"), 8, 8, { });
-      },
-      result (testname) {
-        checkClosed("editmenu", testname);
-      }
-    },
-    {
-      // this test ensures that the menu can still be opened by clicking after selecting
-      // a menuitem from the menu. See bug 399350.
-      testname: "press on menu after menuitem selected",
-      events: [
-        "DOMMenuBarActive menubar",
-        "DOMMenuItemActive editmenu",
-        "popupshowing editpopup",
-        "popupshown editpopup",
-      ],
-      test() { synthesizeMouse(document.getElementById("editmenu"), 8, 8, { }); },
-      result (testname) {
-        checkActive(document.getElementById("editpopup"), "", testname);
-        checkOpen("editmenu", testname);
-      }
-    },
-    {  // try selecting a different command
-      testname: "press on menuitem again",
-      events: [
-        "DOMMenuInactive editpopup",
-        "DOMMenuItemInactive editmenu",
-        "DOMMenuBarInactive menubar",
-        "command paste",
-        "popuphiding editpopup",
-        "popuphidden editpopup",
-      ],
-      test() {
-        synthesizeMouse(document.getElementById("paste"), 8, 8, { });
-      },
-      result (testname) {
-        checkClosed("editmenu", testname);
-      }
-    },
-    {
-      testname: "F10 to activate menubar for tab deactivation",
-      events: pressF10Events(),
-      test() { synthesizeKey("KEY_F10"); },
-    },
-    {
-      testname: "Deactivate menubar with tab key",
-      events: closeAfterF10Events(),
-      test() { synthesizeKey("KEY_Tab"); },
-      result(testname) {
-        is(document.getElementById("filemenu").openedWithKey, false, testname + " openedWithKey");
-      }
-    },
-    {
-      testname: "F10 to activate menubar for escape deactivation",
-      events: pressF10Events(),
-      test() { synthesizeKey("KEY_F10"); },
-    },
-    {
-      testname: "Deactivate menubar with escape key",
-      events: closeAfterF10Events(),
-      test() {
-        synthesizeKey("KEY_Escape");
-        if (kIsLinux) {
-          // One to close the menu, one to deactivate the menubar.
-          synthesizeKey("KEY_Escape");
-        }
-      },
-      result(testname) {
-        is(document.getElementById("filemenu").openedWithKey, false, testname + " openedWithKey");
-      }
-    },
-    {
-      testname: "F10 to activate menubar for f10 deactivation",
-      events: pressF10Events(),
-      test() { synthesizeKey("KEY_F10"); },
-    },
-    {
-      testname: "Deactivate menubar with f10 key",
-      events: closeAfterF10Events(),
-      test() { synthesizeKey("KEY_F10"); },
-      result(testname) {
-        is(document.getElementById("filemenu").openedWithKey, false, testname + " openedWithKey");
-      }
-    },
-    {
-      testname: "F10 to activate menubar for alt deactivation",
-      condition() { return kIsWindows; },
-      events: [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu" ],
-      test() { synthesizeKey("KEY_F10"); },
-    },
-    {
-      testname: "Deactivate menubar with alt key",
-      condition() { return kIsWindows; },
-      events: [ "DOMMenuItemInactive filemenu", "DOMMenuBarInactive menubar" ],
-      test() { synthesizeKey("KEY_Alt"); },
-      result(testname) {
-        is(document.getElementById("filemenu").openedWithKey, false, testname + " openedWithKey");
-      }
-    },
-    {
-      testname: "Don't activate menubar with mousedown during alt key auto-repeat",
-      test() {
-        synthesizeKey("KEY_Alt", {type: "keydown"});
-        synthesizeMouse(document.getElementById("menubar"), 8, -30, { type: "mousedown", altKey: true });
-        synthesizeKey("KEY_Alt", {type: "keydown"});
-        synthesizeMouse(document.getElementById("menubar"), 8, -30, { type: "mouseup", altKey: true });
-        synthesizeKey("KEY_Alt", {type: "keydown"});
-        synthesizeKey("KEY_Alt", {type: "keyup"});
-      },
-      result (testname) {
-        checkActive(document.getElementById("menubar"), "", testname);
-      }
-    },
-
-    {
-      testname: "Open menu and press alt key by itself - open menu",
-      events: [
-        "DOMMenuBarActive menubar",
-        "DOMMenuItemActive filemenu",
-        "popupshowing filepopup",
-        "DOMMenuItemActive item1",
-        "popupshown filepopup",
-      ],
-      test() { synthesizeKey("F", { altKey: true }); },
-      result (testname) {
-        checkOpen("filemenu", testname);
-      }
-    },
-    {
-      testname: "Open menu and press alt key by itself - close menu",
-      events: [
-        "popuphiding filepopup",
-        "popuphidden filepopup",
-        "DOMMenuItemInactive item1",
-        "DOMMenuInactive filepopup",
-        "DOMMenuItemInactive filemenu",
-        "DOMMenuBarInactive menubar",
-      ],
-      test() {
-        synthesizeKey("KEY_Alt");
-      },
-      result (testname) {
-        checkClosed("filemenu", testname);
-      }
-    },
-
-    // Following 4 tests are a test of bug 616797, don't insert any new tests
-    // between them.
-    {
-      testname: "Open file menu by accelerator",
-      condition() { return kIsWindows; },
-      events: [
-        "DOMMenuBarActive menubar",
-        "DOMMenuItemActive filemenu",
-        "popupshowing filepopup",
-        "DOMMenuItemActive item1",
-        "popupshown filepopup"
-      ],
-      test() {
-        synthesizeKey("KEY_Alt", {type: "keydown"});
-        synthesizeKey("f", {altKey: true});
-        synthesizeKey("KEY_Alt", {type: "keyup"});
-      }
-    },
-    {
-      testname: "Close file menu by click at outside of popup menu",
-      condition() { return kIsWindows; },
-      events: [
-        "popuphiding filepopup",
-        "popuphidden filepopup",
-        "DOMMenuItemInactive item1",
-        "DOMMenuInactive filepopup",
-        "DOMMenuItemInactive filemenu",
-        "DOMMenuBarInactive menubar",
-      ],
-      test() {
-        document.getElementById("filepopup").hidePopup();
-      }
-    },
-    {
-      testname: "Alt keydown set focus the menubar",
-      condition() { return kIsWindows; },
-      events: [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu" ],
-      test() {
-        synthesizeKey("KEY_Alt");
-      },
-      result (testname) {
-        checkClosed("filemenu", testname);
-      }
-    },
-    {
-      testname: "unset focus the menubar",
-      condition() { return kIsWindows; },
-      events: [ "DOMMenuItemInactive filemenu", "DOMMenuBarInactive menubar" ],
-      test() {
-        synthesizeKey("KEY_Alt");
-      }
-    },
-
-    // bug 1811466
-    {
-      testname: "Menubar activation / deactivation on mouse over",
-      events: [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu", "DOMMenuItemInactive filemenu", "DOMMenuBarInactive menubar" ],
-      async test() {
-        await moveMouseOver("filemenu");
-        await moveMouseOver("outside");
-      },
-    },
-
-    // bug 1811466
-    {
-      testname: "Menubar hover in and out after key activation (part 1)",
-      events: [
-        "DOMMenuBarActive menubar",
-        "DOMMenuItemActive filemenu",
-        /* Shouldn't deactivate the menubar nor filemenu! */
-      ],
-      async test() {
-        synthesizeKey("KEY_Alt");
-        await moveMouseOver("filemenu");
-        await moveMouseOver("outside");
-      },
-    },
-    {
-      testname: "Deactivate the menubar by mouse",
-      events: [
-        "DOMMenuItemInactive filemenu",
-        "DOMMenuBarInactive menubar",
-      ],
-      test() {
-        synthesizeMouse(document.getElementById("outside"), 8, 8, {});
-      },
-    },
-
-
-    // bug 1818241
-    {
-      testname: "Shortcut navigation on mouse-activated menubar",
-      events: [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu", "DOMMenuItemInactive filemenu", "DOMMenuBarInactive menubar" ],
-      async test() {
-        let input = document.getElementById("input");
-        input.value = "";
-        input.focus();
-        await moveMouseOver("filemenu");
-        synthesizeKey("F");
-        await moveMouseOver("outside");
-        is(input.value, "F", "Key shouldn't be consumed by menubar");
-      },
-    },
-
-    // FIXME: This leaves the menubar in a state where IsActive() is false but
-    // IsActiveByKeyboard() is true!
-    {
-      testname: "Trying to activate menubar without activatable items shouldn't crash",
-      events: [ "TestDone menubar" ],
-      test() {
-        const items = document.querySelectorAll("menubar > menu");
-        let wasDisabled = {};
-        for (let item of items) {
-          wasDisabled[item] = item.disabled;
-          item.disabled = true;
-        }
-
-        synthesizeKey("KEY_F10");
-        setTimeout(function() {
-          synthesizeKey("KEY_F10");
-
-          for (let item of items) {
-            item.disabled = wasDisabled[item];
-          }
-
-          document.getElementById("menubar").dispatchEvent(new CustomEvent("TestDone", { bubbles: true }));
-        }, 0);
-      }
-    },
-
-    // bug 625151
-    {
-      testname: "Alt key state before deactivating the window shouldn't prevent " +
-                "next Alt key handling",
-      condition() { return kIsWindows; },
-      events: [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu" ],
-      test() {
-        synthesizeKey("KEY_Alt", {type: "keydown"});
-        synthesizeKey("KEY_Tab", {type: "keydown"}); // cancels the Alt key
-        var thisWindow = window;
-        var newWindow =
-          window.open("javascript:'<html><body>dummy</body></html>';", "_blank", "width=100,height=100");
-        newWindow.addEventListener("focus", function () {
-          thisWindow.addEventListener("focus", function () {
-            setTimeout(function () {
-              synthesizeKey("KEY_Alt", {}, thisWindow);
-            }, 0);
-          }, {once: true});
-          newWindow.close();
-          thisWindow.focus();
-        }, {once: true});
-      }
-    },
-
+      ];
+    }
+    return [
+      "popuphiding toolbarpopup",
+      "popuphidden toolbarpopup",
+      "DOMMenuInactive toolbarpopup",
     ];
+  },
+  test() {
+    synthesizeKey("KEY_ArrowLeft");
+  },
+  result(testname) {
+    checkOpen("viewmenu", testname);
+    checkClosed("toolbar", testname);
+  }
+},
+{
+  // open the submenu with the enter key
+  testname: "open submenu with enter",
+  events() {
+    if (kIsWindows) {
+      // on Windows, the disabled 'navigation' item can stll be highlighted
+      return [ "popupshowing toolbarpopup", "DOMMenuItemActive navigation",
+               "popupshown toolbarpopup" ];
+    }
+    return [ "popupshowing toolbarpopup", "popupshown toolbarpopup" ];
+  },
+  test() { synthesizeKey("KEY_Enter"); },
+  result(testname) {
+    checkOpen("viewmenu", testname);
+    checkOpen("toolbar", testname);
+  },
+},
+{
+  testname: "close submenu with escape",
+  events() {
+    if (kIsWindows) {
+      return [
+        "popuphiding toolbarpopup",
+        "popuphidden toolbarpopup",
+        "DOMMenuItemInactive navigation",
+        "DOMMenuInactive toolbarpopup",
+      ];
+    }
+    return [
+      "popuphiding toolbarpopup",
+      "popuphidden toolbarpopup",
+      "DOMMenuInactive toolbarpopup",
+    ];
+  },
+  test() { synthesizeKey("KEY_Escape"); },
+  result(testname) {
+    checkOpen("viewmenu", testname);
+    checkClosed("toolbar", testname);
+  },
+},
+{
+  testname: "open submenu with enter again",
+  condition() { return kIsWindows; },
+  events() {
+    // on Windows, the disabled 'navigation' item can stll be highlighted
+    if (kIsWindows) {
+      return [
+        "popupshowing toolbarpopup",
+        "DOMMenuItemActive navigation",
+        "popupshown toolbarpopup"
+      ];
+    }
+    return [ "popupshowing toolbarpopup", "popupshown toolbarpopup" ];
+  },
+  test() { synthesizeKey("KEY_Enter"); },
+  result(testname) {
+    checkOpen("viewmenu", testname);
+    checkOpen("toolbar", testname);
+  },
+},
+{
+  // while a submenu is open, switch to the next toplevel menu with the cursor right key
+  testname: "while a submenu is open, switch to the next menu with the cursor right",
+  condition() { return kIsWindows; },
+  events: [
+    "DOMMenuItemInactive viewmenu",
+    "DOMMenuItemActive helpmenu",
+    "popuphiding toolbarpopup",
+    "popuphidden toolbarpopup",
+    "popuphiding viewpopup",
+    "popuphidden viewpopup",
+    "popupshowing helppopup",
+    "DOMMenuItemInactive navigation",
+    "DOMMenuInactive toolbarpopup",
+    "DOMMenuItemInactive toolbar",
+    "DOMMenuInactive viewpopup",
+    "DOMMenuItemActive contents",
+    "popupshown helppopup"
+  ],
+  test() { synthesizeKey("KEY_ArrowRight"); },
+  result(testname) {
+    checkOpen("helpmenu", testname);
+    checkClosed("toolbar", testname);
+    checkClosed("viewmenu", testname);
+  }
+},
+{
+  // close the main menu with the escape key
+  testname: "close menubar menu with escape",
+  condition() { return kIsWindows; },
+  events: [
+    "popuphiding helppopup",
+    "popuphidden helppopup",
+    "DOMMenuItemInactive contents",
+    "DOMMenuInactive helppopup",
+  ],
+  test() { synthesizeKey("KEY_Escape"); },
+  result(testname) {
+    checkClosed("helpmenu", testname);
+  },
+},
+{
+  // close the main menu with the escape key
+  testname: "close menubar menu with escape",
+  condition() { return !kIsWindows; },
+  events: [
+    "popuphiding viewpopup",
+    "popuphidden viewpopup",
+    "DOMMenuItemInactive toolbar",
+    "DOMMenuInactive viewpopup",
+  ],
+  test() {
+    synthesizeKey("KEY_Escape");
+  },
+  result(testname) {
+    checkClosed("viewmenu", testname);
+  },
+},
+{
+  // Deactivate menubar with the escape key.
+  testname: "deactivate menubar menu with escape",
+  events: [
+    "DOMMenuItemInactive " + (kIsWindows ? "helpmenu" : "viewmenu"),
+    "DOMMenuBarInactive menubar",
+  ],
+  test() {
+    synthesizeKey("KEY_Escape");
+  },
+  result() {
+  },
+},
+{
+  // Pressing Alt should highlight the first menu but not open it,
+  // but it should be ignored if the alt keydown event is consumed.
+  testname: "alt shouldn't activate menubar if keydown event is consumed",
+  test() {
+    document.addEventListener("keydown", function (aEvent) {
+      aEvent.preventDefault();
+    }, {once: true});
+    synthesizeKey("KEY_Alt");
+  },
+  result(testname) {
+    ok(!document.getElementById("filemenu").openedWithKey, testname);
+    checkClosed("filemenu", testname);
+  },
+},
+{
+  // Pressing Alt should highlight the first menu but not open it,
+  // but it should be ignored if the alt keyup event is consumed.
+  testname: "alt shouldn't activate menubar if keyup event is consumed",
+  test() {
+    document.addEventListener("keyup", function (aEvent) {
+      aEvent.preventDefault();
+    }, {once: true});
+    synthesizeKey("KEY_Alt");
+  },
+  result(testname) {
+    ok(!document.getElementById("filemenu").openedWithKey, testname);
+    checkClosed("filemenu", testname);
+  },
+},
+{
+  // Pressing Alt should highlight the first menu but not open it.
+  testname: "alt to activate menubar",
+  events: [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu" ],
+  test() { synthesizeKey("KEY_Alt"); },
+  result(testname) {
+    is(document.getElementById("filemenu").openedWithKey, true, testname + " openedWithKey");
+    checkClosed("filemenu", testname);
+  },
+},
+{
+  // pressing cursor left should select the previous menu but not open it
+  testname: "cursor left on active menubar",
+  events: [ "DOMMenuItemInactive filemenu", "DOMMenuItemActive helpmenu" ],
+  test() { synthesizeKey("KEY_ArrowLeft"); },
+  result(testname) { checkClosed("helpmenu", testname); },
+},
+{
+  // pressing cursor right should select the previous menu but not open it
+  testname: "cursor right on active menubar",
+  events: [ "DOMMenuItemInactive helpmenu", "DOMMenuItemActive filemenu" ],
+  test() { synthesizeKey("KEY_ArrowRight"); },
+  result(testname) { checkClosed("filemenu", testname); },
+},
+{
+  // pressing a character should act as an accelerator and open the menu
+  testname: "accelerator on active menubar",
+  events: [
+    "DOMMenuItemInactive filemenu",
+    "DOMMenuItemActive helpmenu",
+    "popupshowing helppopup",
+    "DOMMenuItemActive contents",
+    "popupshown helppopup",
+  ],
+  test() { sendChar("h"); },
+  result(testname) {
+    checkOpen("helpmenu", testname);
+    is(document.getElementById("helpmenu").openedWithKey, true, testname + " openedWithKey");
+  },
+},
+{
+  // check that pressing cursor up skips non menuitems
+  testname: "cursor up wrap",
+  events: [ "DOMMenuItemInactive contents", "DOMMenuItemActive about" ],
+  test() { synthesizeKey("KEY_ArrowUp"); },
+  result() { }
+},
+{
+  // check that pressing cursor down skips non menuitems
+  testname: "cursor down wrap",
+  events: [ "DOMMenuItemInactive about", "DOMMenuItemActive contents" ],
+  test() { synthesizeKey("KEY_ArrowDown"); },
+  result() { }
+},
+{
+  // check that pressing a menuitem's accelerator selects it
+  testname: "menuitem accelerator",
+  events: [
+    "DOMMenuItemInactive contents",
+    "DOMMenuItemActive amenu",
+    "DOMMenuItemInactive amenu",
+    "DOMMenuInactive helppopup",
+    "DOMMenuItemInactive helpmenu",
+    "DOMMenuBarInactive menubar",
+    "command amenu",
+    "popuphiding helppopup",
+    "popuphidden helppopup",
+  ],
+  test() { sendChar("m"); },
+  result(testname) { checkClosed("helpmenu", testname); }
+},
+{
+  // pressing F10 should highlight the first menu. On Linux, the menu is opened.
+  testname: "F10 to activate menubar",
+  events: pressF10Events(),
+  test() { synthesizeKey("KEY_F10"); },
+  result(testname) {
+    is(document.getElementById("filemenu").openedWithKey, true, testname + " openedWithKey");
+    if (kIsLinux) {
+      checkOpen("filemenu", testname);
+    } else {
+      checkClosed("filemenu", testname);
+    }
+  },
+},
+{
+  // pressing cursor left then down should open a menu
+  testname: "cursor down on menu",
+  events: kIsLinux ?
+    [
+      "DOMMenuItemInactive filemenu",
+      "DOMMenuItemActive helpmenu",
+      // This is in a different order than the
+      // "accelerator on active menubar" because menus opened from a
+      // shortcut key are fired asynchronously
+      "popuphiding filepopup",
+      "popuphidden filepopup",
+      "popupshowing helppopup",
+      "DOMMenuInactive filepopup",
+      "popupshown helppopup",
+      "DOMMenuItemActive contents",
+    ] : [
+      "popupshowing helppopup",
+      "DOMMenuItemInactive filemenu",
+      "DOMMenuItemActive helpmenu",
+      // This is in a different order than the
+      // "accelerator on active menubar" because menus opened from a
+      // shortcut key are fired asynchronously
+      "DOMMenuItemActive contents",
+      "popupshown helppopup",
+    ],
+  async test() {
+    if (kIsLinux) {
+      // On linux we need to wait so that the hiding of the file popup happens
+      // (and the help popup opens) to send the key down.
+      let helpPopupShown = new Promise(r => {
+        document.getElementById("helppopup").addEventListener("popupshown", r, { once: true });
+      });
+      synthesizeKey("KEY_ArrowLeft");
+      await helpPopupShown;
+      synthesizeKey("KEY_ArrowDown");
+    } else {
+      synthesizeKey("KEY_ArrowLeft");
+      synthesizeKey("KEY_ArrowDown");
+    }
+  },
+  result(testname) {
+    is(document.getElementById("helpmenu").openedWithKey, true, testname + " openedWithKey");
+  }
+},
+{
+  // pressing a letter that doesn't correspond to an accelerator. The menu
+  // should not close because there is more than one item corresponding to
+  // that letter
+  testname: "menuitem with no accelerator",
+  events: [ "DOMMenuItemInactive contents", "DOMMenuItemActive one" ],
+  test() { sendChar("o"); },
+  result(testname) { checkOpen("helpmenu", testname); }
+},
+{
+  // pressing the letter again should select the next one that starts with
+  // that letter
+  testname: "menuitem with no accelerator again",
+  events: [ "DOMMenuItemInactive one", "DOMMenuItemActive only" ],
+  test() { sendChar("o"); },
+  result(testname) {
+    // 'only' is a menu but it should not be open
+    checkOpen("helpmenu", testname);
+    checkClosed("only", testname);
+  }
+},
+{
+  // pressing the letter again when the next item is disabled should still
+  // select the disabled item
+  testname: "menuitem with no accelerator disabled",
+  condition() { return kIsWindows; },
+  events: [ "DOMMenuItemInactive only", "DOMMenuItemActive other" ],
+  test() { sendChar("o"); },
+  result() { }
+},
+{
+  // when only one menuitem starting with that letter exists, it should be
+  // selected and the menu closed
+  testname: "menuitem with no accelerator single",
+  events() {
+    let elist = [
+      "DOMMenuItemInactive other",
+      "DOMMenuItemActive third",
+      "DOMMenuItemInactive third",
+      "DOMMenuInactive helppopup",
+      "DOMMenuItemInactive helpmenu",
+      "DOMMenuBarInactive menubar",
+      "command third",
+      "popuphiding helppopup",
+      "popuphidden helppopup"
+    ];
+    if (!kIsWindows) {
+      elist[0] = "DOMMenuItemInactive only";
+    }
+    return elist;
+  },
+  test() { sendChar("t"); },
+  result(testname) { checkClosed("helpmenu", testname); }
+},
+{
+  // pressing F10 should highlight the first menu but not open it
+  testname: "F10 to activate menubar again",
+  condition() { return kIsWindows; },
+  events: [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu" ],
+  test() { synthesizeKey("KEY_F10"); },
+  result(testname) { checkClosed("filemenu", testname); },
+},
+{
+  // pressing an accelerator for a disabled item should deactivate the menubar
+  testname: "accelerator for disabled menu",
+  condition() { return kIsWindows; },
+  events: [ "DOMMenuItemInactive filemenu", "DOMMenuBarInactive menubar" ],
+  test() { sendChar("s"); },
+  result(testname) {
+    checkClosed("secretmenu", testname);
+    is(document.getElementById("filemenu").openedWithKey, false, testname + " openedWithKey");
+  },
+},
+{
+  testname: "press on disabled menu",
+  test() {
+    synthesizeMouse(document.getElementById("secretmenu"), 8, 8, { });
+  },
+  result (testname) {
+    checkClosed("secretmenu", testname);
+  }
+},
+{
+  testname: "press on second menu with shift",
+  events: [
+    "DOMMenuBarActive menubar",
+    "DOMMenuItemActive editmenu",
+    "popupshowing editpopup",
+    "popupshown editpopup",
+  ],
+  test() {
+    synthesizeMouse(document.getElementById("editmenu"), 8, 8, { shiftKey : true });
+  },
+  result (testname) {
+    checkOpen("editmenu", testname);
+    checkActive(document.getElementById("menubar"), "editmenu", testname);
+  }
+},
+{
+  testname: "press on disabled menuitem",
+  test() {
+    synthesizeMouse(document.getElementById("cut"), 8, 8, { });
+  },
+  result (testname) {
+    checkOpen("editmenu", testname);
+  }
+},
+{
+  testname: "press on menuitem",
+  events: [
+    "DOMMenuInactive editpopup",
+    "DOMMenuItemInactive editmenu",
+    "DOMMenuBarInactive menubar",
+    "command copy",
+    "popuphiding editpopup",
+    "popuphidden editpopup",
+  ],
+  test() {
+    synthesizeMouse(document.getElementById("copy"), 8, 8, { });
+  },
+  result (testname) {
+    checkClosed("editmenu", testname);
+  }
+},
+{
+  // this test ensures that the menu can still be opened by clicking after selecting
+  // a menuitem from the menu. See bug 399350.
+  testname: "press on menu after menuitem selected",
+  events: [
+    "DOMMenuBarActive menubar",
+    "DOMMenuItemActive editmenu",
+    "popupshowing editpopup",
+    "popupshown editpopup",
+  ],
+  test() { synthesizeMouse(document.getElementById("editmenu"), 8, 8, { }); },
+  result (testname) {
+    checkActive(document.getElementById("editpopup"), "", testname);
+    checkOpen("editmenu", testname);
+  }
+},
+{  // try selecting a different command
+  testname: "press on menuitem again",
+  events: [
+    "DOMMenuInactive editpopup",
+    "DOMMenuItemInactive editmenu",
+    "DOMMenuBarInactive menubar",
+    "command paste",
+    "popuphiding editpopup",
+    "popuphidden editpopup",
+  ],
+  test() {
+    synthesizeMouse(document.getElementById("paste"), 8, 8, { });
+  },
+  result (testname) {
+    checkClosed("editmenu", testname);
+  }
+},
+{
+  testname: "F10 to activate menubar for tab deactivation",
+  events: pressF10Events(),
+  test() { synthesizeKey("KEY_F10"); },
+},
+{
+  testname: "Deactivate menubar with tab key",
+  events: closeAfterF10Events(),
+  test() { synthesizeKey("KEY_Tab"); },
+  result(testname) {
+    is(document.getElementById("filemenu").openedWithKey, false, testname + " openedWithKey");
+  }
+},
+{
+  testname: "F10 to activate menubar for escape deactivation",
+  events: pressF10Events(),
+  test() { synthesizeKey("KEY_F10"); },
+},
+{
+  testname: "Deactivate menubar with escape key",
+  events: closeAfterF10Events(),
+  test() {
+    synthesizeKey("KEY_Escape");
+    if (kIsLinux) {
+      // One to close the menu, one to deactivate the menubar.
+      synthesizeKey("KEY_Escape");
+    }
+  },
+  result(testname) {
+    is(document.getElementById("filemenu").openedWithKey, false, testname + " openedWithKey");
+  }
+},
+{
+  testname: "F10 to activate menubar for f10 deactivation",
+  events: pressF10Events(),
+  test() { synthesizeKey("KEY_F10"); },
+},
+{
+  testname: "Deactivate menubar with f10 key",
+  events: closeAfterF10Events(),
+  test() { synthesizeKey("KEY_F10"); },
+  result(testname) {
+    is(document.getElementById("filemenu").openedWithKey, false, testname + " openedWithKey");
+  }
+},
+{
+  testname: "F10 to activate menubar for alt deactivation",
+  condition() { return kIsWindows; },
+  events: [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu" ],
+  test() { synthesizeKey("KEY_F10"); },
+},
+{
+  testname: "Deactivate menubar with alt key",
+  condition() { return kIsWindows; },
+  events: [ "DOMMenuItemInactive filemenu", "DOMMenuBarInactive menubar" ],
+  test() { synthesizeKey("KEY_Alt"); },
+  result(testname) {
+    is(document.getElementById("filemenu").openedWithKey, false, testname + " openedWithKey");
+  }
+},
+{
+  testname: "Don't activate menubar with mousedown during alt key auto-repeat",
+  test() {
+    synthesizeKey("KEY_Alt", {type: "keydown"});
+    synthesizeMouse(document.getElementById("menubar"), 8, -30, { type: "mousedown", altKey: true });
+    synthesizeKey("KEY_Alt", {type: "keydown"});
+    synthesizeMouse(document.getElementById("menubar"), 8, -30, { type: "mouseup", altKey: true });
+    synthesizeKey("KEY_Alt", {type: "keydown"});
+    synthesizeKey("KEY_Alt", {type: "keyup"});
+  },
+  result (testname) {
+    checkActive(document.getElementById("menubar"), "", testname);
+  }
+},
 
-    ]]>
-  </script>
+{
+  testname: "Open menu and press alt key by itself - open menu",
+  events: [
+    "DOMMenuBarActive menubar",
+    "DOMMenuItemActive filemenu",
+    "popupshowing filepopup",
+    "DOMMenuItemActive item1",
+    "popupshown filepopup",
+  ],
+  test() { synthesizeKey("F", { altKey: true }); },
+  result (testname) {
+    checkOpen("filemenu", testname);
+  }
+},
+{
+  testname: "Open menu and press alt key by itself - close menu",
+  events: [
+    "popuphiding filepopup",
+    "popuphidden filepopup",
+    "DOMMenuItemInactive item1",
+    "DOMMenuInactive filepopup",
+    "DOMMenuItemInactive filemenu",
+    "DOMMenuBarInactive menubar",
+  ],
+  test() {
+    synthesizeKey("KEY_Alt");
+  },
+  result (testname) {
+    checkClosed("filemenu", testname);
+  }
+},
+
+// Following 4 tests are a test of bug 616797, don't insert any new tests
+// between them.
+{
+  testname: "Open file menu by accelerator",
+  condition() { return kIsWindows; },
+  events: [
+    "DOMMenuBarActive menubar",
+    "DOMMenuItemActive filemenu",
+    "popupshowing filepopup",
+    "DOMMenuItemActive item1",
+    "popupshown filepopup"
+  ],
+  test() {
+    synthesizeKey("KEY_Alt", {type: "keydown"});
+    synthesizeKey("f", {altKey: true});
+    synthesizeKey("KEY_Alt", {type: "keyup"});
+  }
+},
+{
+  testname: "Close file menu by click at outside of popup menu",
+  condition() { return kIsWindows; },
+  events: [
+    "popuphiding filepopup",
+    "popuphidden filepopup",
+    "DOMMenuItemInactive item1",
+    "DOMMenuInactive filepopup",
+    "DOMMenuItemInactive filemenu",
+    "DOMMenuBarInactive menubar",
+  ],
+  test() {
+    document.getElementById("filepopup").hidePopup();
+  }
+},
+{
+  testname: "Alt keydown set focus the menubar",
+  condition() { return kIsWindows; },
+  events: [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu" ],
+  test() {
+    synthesizeKey("KEY_Alt");
+  },
+  result (testname) {
+    checkClosed("filemenu", testname);
+  }
+},
+{
+  testname: "unset focus the menubar",
+  condition() { return kIsWindows; },
+  events: [ "DOMMenuItemInactive filemenu", "DOMMenuBarInactive menubar" ],
+  test() {
+    synthesizeKey("KEY_Alt");
+  }
+},
+
+// bug 1811466
+{
+  testname: "Menubar activation / deactivation on mouse over",
+  events: [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu", "DOMMenuItemInactive filemenu", "DOMMenuBarInactive menubar" ],
+  async test() {
+    await moveMouseOver("filemenu");
+    await moveMouseOver("outside");
+  },
+},
+
+// bug 1811466
+{
+  testname: "Menubar hover in and out after key activation (part 1)",
+  events: [
+    "DOMMenuBarActive menubar",
+    "DOMMenuItemActive filemenu",
+    /* Shouldn't deactivate the menubar nor filemenu! */
+  ],
+  async test() {
+    synthesizeKey("KEY_Alt");
+    await moveMouseOver("filemenu");
+    await moveMouseOver("outside");
+  },
+},
+{
+  testname: "Deactivate the menubar by mouse",
+  events: [
+    "DOMMenuItemInactive filemenu",
+    "DOMMenuBarInactive menubar",
+  ],
+  test() {
+    synthesizeMouse(document.getElementById("outside"), 8, 8, {});
+  },
+},
+
+
+// bug 1818241
+{
+  testname: "Shortcut navigation on mouse-activated menubar",
+  events: [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu", "DOMMenuItemInactive filemenu", "DOMMenuBarInactive menubar" ],
+  async test() {
+    let input = document.getElementById("input");
+    input.value = "";
+    input.focus();
+    await moveMouseOver("filemenu");
+    synthesizeKey("F");
+    await moveMouseOver("outside");
+    is(input.value, "F", "Key shouldn't be consumed by menubar");
+  },
+},
+
+// FIXME: This leaves the menubar in a state where IsActive() is false but
+// IsActiveByKeyboard() is true!
+{
+  testname: "Trying to activate menubar without activatable items shouldn't crash",
+  events: [ "TestDone menubar" ],
+  test() {
+    const items = document.querySelectorAll("menubar > menu");
+    let wasDisabled = {};
+    for (let item of items) {
+      wasDisabled[item] = item.disabled;
+      item.disabled = true;
+    }
+
+    synthesizeKey("KEY_F10");
+    setTimeout(function() {
+      synthesizeKey("KEY_F10");
+
+      for (let item of items) {
+        item.disabled = wasDisabled[item];
+      }
+
+      document.getElementById("menubar").dispatchEvent(new CustomEvent("TestDone", { bubbles: true }));
+    }, 0);
+  }
+},
+
+// bug 625151
+{
+  testname: "Alt key state before deactivating the window shouldn't prevent " +
+            "next Alt key handling",
+  condition() { return kIsWindows; },
+  events: [ "DOMMenuBarActive menubar", "DOMMenuItemActive filemenu" ],
+  test() {
+    synthesizeKey("KEY_Alt", {type: "keydown"});
+    synthesizeKey("KEY_Tab", {type: "keydown"}); // cancels the Alt key
+    var thisWindow = window;
+    var newWindow =
+      window.open("javascript:'<html><body>dummy</body></html>';", "_blank", "width=100,height=100");
+    newWindow.addEventListener("focus", function () {
+      thisWindow.addEventListener("focus", function () {
+        setTimeout(function () {
+          synthesizeKey("KEY_Alt", {}, thisWindow);
+        }, 0);
+      }, {once: true});
+      newWindow.close();
+      thisWindow.focus();
+    }, {once: true});
+  }
+},
+
+];
+
+]]>
+</script>
+
 </window>

@@ -1,297 +1,251 @@
-<!doctype html>
+<!DOCTYPE HTML>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>moz-card tests</title>
-    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
-    <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
-    <link
-      rel="stylesheet"
-      href="chrome://mochikit/content/tests/SimpleTest/test.css"
-    />
-    <script
-      type="module"
-      src="chrome://global/content/elements/moz-card.mjs"
-    ></script>
-    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
-  </head>
 
-  <body>
-    <p id="display"></p>
-    <style>
-      moz-card.withHeadingIcon::part(icon) {
-        background-image: url("chrome://browser/skin/preferences/category-general.svg");
+<head>
+  <meta charset="utf-8">
+  <title>moz-card tests</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css" />
+  <script type="module" src="chrome://global/content/elements/moz-card.mjs"></script>
+  <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
+</head>
+
+<body>
+  <p id="display"></p>
+  <style>
+    moz-card.withHeadingIcon::part(icon) {
+      background-image: url("chrome://browser/skin/preferences/category-general.svg");
+    }
+  </style>
+  <div id="content">
+    <moz-card id="default-card" data-l10n-id="test-id-1" data-l10n-attrs="heading">
+      <div>TEST</div>
+    </moz-card>
+    <hr />
+
+    <moz-card id="accordion-card" data-l10n-id="test-id-2" data-l10n-attrs="heading" heading="accordion heading"
+      type="accordion">
+      <div>accordion test content</div>
+    </moz-card>
+    <hr />
+
+    <moz-card id="heading-icon-card" data-l10n-id="test-id-3" data-l10n-attrs="heading" heading="heading with icon"
+      type="accordion" icon class="withHeadingIcon">
+      <div>heading icon test content</div>
+    </moz-card>
+    <hr />
+
+  </div>
+  <pre id="test"></pre>
+  <script>
+    let generatedSlotText = "generated slotted element";
+    let testHeading = "test heading";
+    const { BrowserTestUtils } = ChromeUtils.importESModule(
+      "resource://testing-common/BrowserTestUtils.sys.mjs"
+    );
+
+    function assertBasicProperties(card, expectedValues) {
+      info(`Testing card with ID: ${card.id}`);
+      ok(card, "The card element should exist");
+      is(card.localName, "moz-card", "The card should have the correct tag");
+      let l10nId = card.getAttribute("data-l10n-id");
+      let l10nAttrs = card.getAttribute("data-l10n-attrs");
+      if (expectedValues["data-l10n-id"]) {
+        is(l10nId, expectedValues["data-l10n-id"], "l10n id should be unchanged");
       }
-    </style>
-    <div id="content">
-      <moz-card
-        id="default-card"
-        data-l10n-id="test-id-1"
-        data-l10n-attrs="heading"
-      >
-        <div>TEST</div>
-      </moz-card>
-      <hr />
-
-      <moz-card
-        id="accordion-card"
-        data-l10n-id="test-id-2"
-        data-l10n-attrs="heading"
-        heading="accordion heading"
-        type="accordion"
-      >
-        <div>accordion test content</div>
-      </moz-card>
-      <hr />
-
-      <moz-card
-        id="heading-icon-card"
-        data-l10n-id="test-id-3"
-        data-l10n-attrs="heading"
-        heading="heading with icon"
-        type="accordion"
-        icon
-        class="withHeadingIcon"
-      >
-        <div>heading icon test content</div>
-      </moz-card>
-      <hr />
-    </div>
-    <pre id="test"></pre>
-    <script>
-      let generatedSlotText = "generated slotted element";
-      let testHeading = "test heading";
-      const { BrowserTestUtils } = ChromeUtils.importESModule(
-        "resource://testing-common/BrowserTestUtils.sys.mjs"
-      );
-
-      function assertBasicProperties(card, expectedValues) {
-        info(`Testing card with ID: ${card.id}`);
-        ok(card, "The card element should exist");
-        is(card.localName, "moz-card", "The card should have the correct tag");
-        let l10nId = card.getAttribute("data-l10n-id");
-        let l10nAttrs = card.getAttribute("data-l10n-attrs");
-        if (expectedValues["data-l10n-id"]) {
-          is(
-            l10nId,
-            expectedValues["data-l10n-id"],
-            "l10n id should be unchanged"
-          );
-        }
-        if (expectedValues["data-l10n-attrs"]) {
-          is(
-            l10nAttrs,
-            expectedValues["data-l10n-attrs"],
-            "l10n attrs should be unchanged"
-          );
-        }
-        let cardContent = card.firstElementChild;
-        ok(cardContent, "The content should exist");
-        is(
-          cardContent.textContent,
-          expectedValues.contentText,
-          "The content should be unchanged"
-        );
-        is(
-          card.contentSlotEl.id,
-          "content",
-          "The content container should have the correct ID"
-        );
-        if (card.type != "accordion") {
-          is(
-            card.contentSlotEl.getAttribute("aria-describedby"),
-            "content",
-            "The content container should be described by the 'content' slot"
-          );
-        }
-
-        if (expectedValues.headingText) {
-          ok(card.headingEl, "Heading should exist");
-          is(
-            card.headingEl.textContent,
-            expectedValues.headingText,
-            "Heading should match the 'heading' attribute value"
-          );
-        }
+      if (expectedValues["data-l10n-attrs"]) {
+        is(l10nAttrs, expectedValues["data-l10n-attrs"], "l10n attrs should be unchanged");
+      }
+      let cardContent = card.firstElementChild;
+      ok(cardContent, "The content should exist");
+      is(cardContent.textContent, expectedValues.contentText, "The content should be unchanged");
+      is(card.contentSlotEl.id, "content", "The content container should have the correct ID");
+      if (card.type != "accordion") {
+        is(card.contentSlotEl.getAttribute("aria-describedby"), "content", "The content container should be described by the 'content' slot");
       }
 
-      async function assertAccordionCardProperties(card) {
-        ok(card.detailsEl, "The details element should exist");
-        ok(
-          card.detailsEl.querySelector("summary"),
-          "There should be a summary element within the details element"
-        );
-        ok(
-          card.detailsEl
-            .querySelector("summary")
-            .querySelector(".chevron-icon"),
-          "There should be a chevron icon div within the summary element"
-        );
-
-        let cardToggled = BrowserTestUtils.waitForEvent(card, "toggle");
-        card.detailsEl.querySelector("summary").click();
-        let openEvent = await cardToggled;
-        is(openEvent.newState, "open", "Event shows new state is open");
-        is(openEvent.oldState, "closed", "Event shows old state is closed");
-        ok(
-          card.detailsEl.open,
-          "When the accordion is closed, it should expand when clicked"
-        );
-
-        cardToggled = BrowserTestUtils.waitForEvent(card, "toggle");
-        card.detailsEl.querySelector("summary").click();
-        let closeEvent = await cardToggled;
-        is(closeEvent.newState, "closed", "Event shows new state is closed");
-        is(closeEvent.oldState, "open", "Event shows old state is open");
-        ok(
-          !card.detailsEl.open,
-          "When the accordion is open, it should collapse when clicked"
-        );
+      if (expectedValues.headingText) {
+        ok(card.headingEl, "Heading should exist");
+        is(card.headingEl.textContent, expectedValues.headingText, "Heading should match the 'heading' attribute value");
       }
 
-      function assertHeadingIconCardProperties(card) {
-        ok(
-          card.shadowRoot
-            .querySelector("#heading-wrapper")
-            .querySelector("#heading-icon"),
-          "The heading icon element should exist"
-        );
-      }
+    }
 
-      async function generateCard(values) {
-        let card = document.createElement("moz-card");
-        for (let [key, value] of Object.entries(values)) {
-          card.setAttribute(key, value);
-        }
-        let div = document.createElement("div");
-        div.innerText = generatedSlotText;
-        card.appendChild(div);
-        document.body.appendChild(card);
-        await card.updateComplete;
-        document.body.appendChild(document.createElement("hr"));
-        return card;
-      }
+    async function assertAccordionCardProperties(card) {
+      ok(card.detailsEl, "The details element should exist");
+      ok(card.detailsEl.querySelector("summary"), "There should be a summary element within the details element");
+      ok(card.detailsEl.querySelector("summary").querySelector(".chevron-icon"), "There should be a chevron icon div within the summary element");
 
-      add_task(async function testDefaultCard() {
-        assertBasicProperties(document.getElementById("default-card"), {
+      let cardToggled = BrowserTestUtils.waitForEvent(card, "toggle");
+      card.detailsEl.querySelector("summary").click();
+      let openEvent = await cardToggled;
+      is(openEvent.newState, "open", "Event shows new state is open");
+      is(openEvent.oldState, "closed", "Event shows old state is closed");
+      ok(card.detailsEl.open, "When the accordion is closed, it should expand when clicked");
+
+      cardToggled = BrowserTestUtils.waitForEvent(card, "toggle");
+      card.detailsEl.querySelector("summary").click();
+      let closeEvent = await cardToggled;
+      is(closeEvent.newState, "closed", "Event shows new state is closed");
+      is(closeEvent.oldState, "open", "Event shows old state is open");
+      ok(!card.detailsEl.open, "When the accordion is open, it should collapse when clicked");
+    }
+
+    function assertHeadingIconCardProperties(card) {
+      ok(card.shadowRoot.querySelector("#heading-wrapper").querySelector("#heading-icon"), "The heading icon element should exist");
+    }
+
+    async function generateCard(values) {
+      let card = document.createElement("moz-card");
+      for (let [key, value] of Object.entries(values)) {
+        card.setAttribute(key, value);
+      }
+      let div = document.createElement("div");
+      div.innerText = generatedSlotText;
+      card.appendChild(div);
+      document.body.appendChild(card);
+      await card.updateComplete;
+      document.body.appendChild(document.createElement("hr"));
+      return card;
+    }
+
+    add_task(async function testDefaultCard() {
+      assertBasicProperties(document.getElementById("default-card"),
+        {
           "data-l10n-id": "test-id-1",
           "data-l10n-attrs": "heading",
-          contentText: "TEST",
-        });
+          contentText: "TEST"
+        }
+      );
 
-        let defaultCard = await generateCard({
+      let defaultCard = await generateCard(
+        {
           "data-l10n-id": "generated-id-1",
           "data-l10n-attrs": "heading",
           heading: testHeading,
-          id: "generated-default-card",
-        });
+          id: "generated-default-card"
+        }
+      );
 
-        assertBasicProperties(defaultCard, {
+      assertBasicProperties(defaultCard,
+        {
           "data-l10n-id": "generated-id-1",
           "data-l10n-attrs": "heading",
           contentText: generatedSlotText,
-          heading: testHeading,
-        });
-      });
+          heading: testHeading
+        }
+      );
+    });
 
-      add_task(async function testAccordionCard() {
-        assertBasicProperties(document.getElementById("accordion-card"), {
+    add_task(async function testAccordionCard() {
+      assertBasicProperties(document.getElementById("accordion-card"),
+        {
           "data-l10n-id": "test-id-2",
           "data-l10n-attrs": "heading",
           contentText: "accordion test content",
           headingText: "accordion heading",
-        });
-        await assertAccordionCardProperties(
-          document.getElementById("accordion-card"),
-          {
-            "data-l10n-id": "test-id-2",
-            "data-l10n-attrs": "heading",
-            contentText: "accordion test content",
-            headingText: "accordion heading",
-          }
-        );
+        }
+      );
+      await assertAccordionCardProperties(document.getElementById("accordion-card"),
+        {
+          "data-l10n-id": "test-id-2",
+          "data-l10n-attrs": "heading",
+          contentText: "accordion test content",
+          headingText: "accordion heading",
+        }
+      );
 
-        let accordionCard = await generateCard({
+      let accordionCard = await generateCard(
+        {
           type: "accordion",
           id: "generated-accordion-card",
           "data-l10n-id": "generated-id-2",
           "data-l10n-attrs": "heading",
-          heading: testHeading,
-        });
+          heading: testHeading
+        }
+      );
 
-        assertBasicProperties(accordionCard, {
+      assertBasicProperties(accordionCard,
+        {
           "data-l10n-id": "generated-id-2",
           "data-l10n-attrs": "heading",
           headingText: testHeading,
           contentText: generatedSlotText,
-        });
-        await assertAccordionCardProperties(accordionCard, {
+        }
+      );
+      await assertAccordionCardProperties(accordionCard,
+        {
           "data-l10n-id": "generated-id-2",
           "data-l10n-attrs": "heading",
           headingText: testHeading,
           contentText: generatedSlotText,
-        });
+        }
+      );
 
-        accordionCard = await generateCard({
+      accordionCard = await generateCard(
+        {
           type: "accordion",
           id: "expanded-accordion-card",
           "data-l10n-id": "generated-id-2",
           "data-l10n-attrs": "heading",
           heading: testHeading,
-          expanded: true,
-        });
-        is(
-          accordionCard.expanded,
-          true,
-          "Accordion card should be expanded on initial render"
-        );
-        is(
-          accordionCard.detailsEl.open,
-          true,
-          "The details element should be expanded"
-        );
-      });
+          expanded: true
+        }
+      );
+      is(accordionCard.expanded, true, "Accordion card should be expanded on initial render");
+      is(accordionCard.detailsEl.open, true, "The details element should be expanded");
+    });
 
-      add_task(async function testHeadingIconCard() {
-        assertBasicProperties(document.getElementById("heading-icon-card"), {
+    add_task(async function testHeadingIconCard() {
+      assertBasicProperties(document.getElementById("heading-icon-card"),
+        {
           "data-l10n-id": "test-id-3",
           "data-l10n-attrs": "heading",
           contentText: "heading icon test content",
           headingText: "heading with icon",
-        });
-        assertHeadingIconCardProperties(
-          document.getElementById("heading-icon-card"),
-          {
-            "data-l10n-id": "test-id-3",
-            "data-l10n-attrs": "heading",
-            contentText: "heading icon test content",
-            headingText: "heading with icon",
-          }
-        );
+        }
+      );
+      assertHeadingIconCardProperties(document.getElementById("heading-icon-card"),
+        {
+          "data-l10n-id": "test-id-3",
+          "data-l10n-attrs": "heading",
+          contentText: "heading icon test content",
+          headingText: "heading with icon",
+        }
+      );
 
-        let headingIconCard = await generateCard({
+      let headingIconCard = await generateCard(
+        {
           class: "heading-icon-class",
           type: "accordion",
           icon: "",
           id: "generated-heading-icon-card",
           "data-l10n-id": "generated-id-3",
           "data-l10n-attrs": "heading",
-          heading: testHeading,
-        });
+          heading: testHeading
+        }
+      );
 
-        assertBasicProperties(headingIconCard, {
+      assertBasicProperties(headingIconCard,
+        {
           "data-l10n-id": "generated-id-3",
           "data-l10n-attrs": "heading",
           headingText: testHeading,
           contentText: generatedSlotText,
-        });
-        assertHeadingIconCardProperties(headingIconCard, {
+        }
+      );
+      assertHeadingIconCardProperties(headingIconCard,
+        {
           "data-l10n-id": "generated-id-3",
           "data-l10n-attrs": "heading",
           headingText: testHeading,
           contentText: generatedSlotText,
-        });
-      });
-    </script>
-  </body>
+        }
+      );
+    });
+
+  </script>
+</body>
+
 </html>

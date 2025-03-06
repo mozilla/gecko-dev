@@ -1,71 +1,56 @@
-<!doctype html>
+<!DOCTYPE HTML>
 <!-- Any copyright is dedicated to the Public Domain.
    - https://creativecommons.org/publicdomain/zero/1.0/ -->
 <html>
-  <head>
-    <title>Video controls test</title>
-    <script src="/tests/SimpleTest/SimpleTest.js"></script>
-    <script src="/tests/SimpleTest/EventUtils.js"></script>
-    <script type="text/javascript" src="head.js"></script>
-    <link rel="stylesheet" href="/tests/SimpleTest/test.css" />
-  </head>
 
-  <body>
-    <p id="display"></p>
+<head>
+  <title>Video controls test</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="/tests/SimpleTest/EventUtils.js"></script>
+  <script type="text/javascript" src="head.js"></script>
+  <link rel="stylesheet" href="/tests/SimpleTest/test.css" />
+</head>
 
-    <div id="content">
-      <video width="320" height="240" id="video" controls></video>
-    </div>
+<body>
+  <p id="display"></p>
 
-    <div id="host"></div>
+  <div id="content">
+    <video width="320" height="240" id="video" controls></video>
+  </div>
 
-    <script class="testbody">
-      add_task(async function test_src_change() {
-        const video = document.getElementById("video");
+  <div id="host"></div>
 
-        function changeMediaSource(src) {
-          let loaded = new Promise(resolve =>
-            video.addEventListener("loadeddata", resolve, { once: true })
-          );
-          video.src = src;
-          return loaded;
-        }
+  <pre id="test">
+<script class="testbody">
+  add_task(async function test_src_change() {
+    const video = document.getElementById("video");
 
-        const muteButton = getElementWithinVideo(video, "muteButton");
+    function changeMediaSource(src) {
+      let loaded = new Promise((resolve) => video.addEventListener("loadeddata", resolve, { once: true }));
+      video.src = src;
+      return loaded;
+    }
 
-        await changeMediaSource("video.webm");
+    const muteButton = getElementWithinVideo(video, "muteButton");
 
-        ok(
-          muteButton.hasAttribute("noAudio"),
-          "noAudio attribute is present when the video has no audio track"
-        );
-        ok(
-          muteButton.disabled,
-          "Mute button is disabled when the video has no audio track"
-        );
+    await changeMediaSource("video.webm");
 
-        await changeMediaSource("seek_with_sound.webm");
+    ok(muteButton.hasAttribute("noAudio"), "noAudio attribute is present when the video has no audio track");
+    ok(muteButton.disabled, "Mute button is disabled when the video has no audio track");
 
-        ok(
-          !muteButton.hasAttribute("noAudio"),
-          "noAudio attribute is not present when the video has an audio track"
-        );
-        ok(
-          !muteButton.disabled,
-          "Mute button is enabled when the video has an audio track"
-        );
+    await changeMediaSource("seek_with_sound.webm");
 
-        await changeMediaSource("video.webm");
+    ok(!muteButton.hasAttribute("noAudio"), "noAudio attribute is not present when the video has an audio track");
+    ok(!muteButton.disabled, "Mute button is enabled when the video has an audio track");
 
-        ok(
-          muteButton.hasAttribute("noAudio"),
-          "noAudio attribute is present when the video has no audio track"
-        );
-        ok(
-          muteButton.disabled,
-          "Mute button is disabled when the video has no audio track"
-        );
-      });
-    </script>
-  </body>
+    await changeMediaSource("video.webm");
+
+    ok(muteButton.hasAttribute("noAudio"), "noAudio attribute is present when the video has no audio track")
+    ok(muteButton.disabled, "Mute button is disabled when the video has no audio track");
+  });
+
+</script>
+</pre>
+</body>
+
 </html>

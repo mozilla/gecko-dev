@@ -1,30 +1,23 @@
-<!doctype html>
+<!DOCTYPE HTML>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>moz-input-color Tests</title>
-    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
-    <script
-      type="module"
-      src="chrome://global/content/elements/moz-input-color.mjs"
-    ></script>
-    <link
-      rel="stylesheet"
-      href="chrome://mochikit/content/tests/SimpleTest/test.css"
-    />
-  </head>
 
-  <body>
-    <p id="display"></p>
-    <div id="content">
-      <moz-input-color
-        value="#ffffff"
-        name="test-prop"
-        data-l10n-id="color-input-test-label"
-      ></moz-input-color>
-    </div>
+<head>
+  <meta charset="utf-8">
+  <title>moz-input-color Tests</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="module" src="chrome://global/content/elements/moz-input-color.mjs"></script>
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css" />
+</head>
+
+<body>
+  <p id="display"></p>
+  <div id="content">
+    <moz-input-color value="#ffffff" name="test-prop" data-l10n-id="color-input-test-label"></moz-input-color>
+  </div>
+  <pre id="test">
     <script src="lit-test-helpers.js"></script>
     <script class="testbody" type="application/javascript">
+
       let testHelpers = new InputTestHelpers();
 
       add_task(async function testMozInputColor() {
@@ -43,7 +36,7 @@
         colorInput.addEventListener("change", trackEvent);
 
         // Simulate a value change on the inner input
-        const NEW_COLOR = "#000000";
+        const NEW_COLOR = "#000000"
         input.value = NEW_COLOR;
         input.dispatchEvent(new Event("change"));
 
@@ -51,8 +44,10 @@
         verifyEvents([
           { type: "change", localName: "moz-input-color", value: NEW_COLOR },
         ]);
-        is(colorInput.value, NEW_COLOR, "Input value was updated.");
+        is(colorInput.value, NEW_COLOR, "Input value was updated.")
       });
     </script>
-  </body>
+</pre>
+</body>
+
 </html>
