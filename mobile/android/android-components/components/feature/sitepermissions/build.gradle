@@ -47,10 +47,6 @@ android {
     namespace 'mozilla.components.feature.sitepermissions'
 }
 
-tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions.freeCompilerArgs += "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
-}
-
 dependencies {
     implementation project(':browser-state')
     implementation project(':concept-engine')

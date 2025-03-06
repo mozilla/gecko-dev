@@ -28,10 +28,6 @@ android {
     namespace 'mozilla.components.browser.session.storage'
 }
 
-tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions.freeCompilerArgs += "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
-}
-
 dependencies {
     api project(':browser-state')
 

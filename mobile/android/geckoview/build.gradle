@@ -175,7 +175,7 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
         }
     } as StandardOutputListener
 
-    kotlinOptions {
+    compilerOptions {
         allWarningsAsErrors = true
     }
 

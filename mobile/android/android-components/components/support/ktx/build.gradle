@@ -28,7 +28,6 @@ android {
 
 tasks.withType(KotlinCompile).configureEach {
     kotlinOptions.freeCompilerArgs += [
-        "-opt-in=kotlinx.coroutines.FlowPreview",
         "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
     ]
 }

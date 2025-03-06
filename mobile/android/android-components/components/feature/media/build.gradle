@@ -31,10 +31,6 @@ android {
     namespace 'mozilla.components.feature.media'
 }
 
-tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions.freeCompilerArgs += "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
-}
-
 dependencies {
     implementation project(':concept-engine')
     implementation project(':browser-state')

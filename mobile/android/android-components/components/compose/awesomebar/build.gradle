@@ -33,10 +33,6 @@ android {
     namespace 'mozilla.components.compose.browser.awesomebar'
 }
 
-tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions.freeCompilerArgs += "-Xjvm-default=all"
-}
-
 dependencies {
     implementation platform(libs.androidx.compose.bom)
     implementation project(":concept-awesomebar")

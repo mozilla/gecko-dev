@@ -96,6 +96,10 @@ allprojects {
             url "${gradle.mozconfig.topobjdir}/gradle/maven"
         }
     }
+
+    tasks.withType(KotlinCompile).configureEach {
+        compilerOptions.allWarningsAsErrors = true
+    }
 }
 
 subprojects {

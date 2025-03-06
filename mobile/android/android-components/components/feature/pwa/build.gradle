@@ -41,10 +41,6 @@ android {
     namespace 'mozilla.components.feature.pwa'
 }
 
-tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions.freeCompilerArgs += "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
-}
-
 dependencies {
     implementation project(':browser-icons')
     implementation project(':browser-state')

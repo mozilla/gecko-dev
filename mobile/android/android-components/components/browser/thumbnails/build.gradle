@@ -31,10 +31,6 @@ android {
     namespace 'mozilla.components.browser.thumbnails'
 }
 
-tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions.freeCompilerArgs += "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
-}
-
 dependencies {
     implementation project(':browser-state')
     implementation project(':concept-engine')

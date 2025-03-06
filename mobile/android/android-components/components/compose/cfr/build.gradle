@@ -28,10 +28,6 @@ android {
         compose true
     }
 
-    kotlinOptions {
-        freeCompilerArgs += "-Xjvm-default=all"
-    }
-
     namespace 'mozilla.components.compose.cfr'
 }
 

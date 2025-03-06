@@ -53,15 +53,15 @@ allprojects {
             url "${gradle.mozconfig.topobjdir}/gradle/maven"
         }
     }
+
+    // Enable Kotlin warnings as errors for all modules
+    tasks.withType(KotlinCompile).configureEach {
+        compilerOptions.allWarningsAsErrors = true
+    }
 }
 
 subprojects {
     apply plugin: 'jacoco'
-
-    // Enable Kotlin warnings as errors for all modules
-    tasks.withType(KotlinCompile).configureEach {
-        kotlinOptions.allWarningsAsErrors = true
-    }
 
     // Prevent some dependencies used by Fenix/Focus from being used in AC.
     project.configurations.all {
@@ -177,10 +177,6 @@ subprojects {
 
                 androidResources {
                     ignoreAssetsPattern "manifest.template.json"
-                }
-
-                tasks.withType(KotlinCompile).configureEach {
-                    kotlinOptions.freeCompilerArgs += ["-opt-in=kotlin.RequiresOptIn"]
                 }
             }
 

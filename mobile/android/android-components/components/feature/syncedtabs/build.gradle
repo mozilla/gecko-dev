@@ -30,10 +30,6 @@ android {
     namespace 'mozilla.components.feature.sendtab'
 }
 
-tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions.freeCompilerArgs += "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
-}
-
 dependencies {
     implementation project(':service-firefox-accounts')
     implementation project(':browser-icons')

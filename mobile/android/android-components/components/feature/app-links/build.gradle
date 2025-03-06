@@ -32,10 +32,6 @@ android {
     namespace 'mozilla.components.feature.app.links'
 }
 
-tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions.freeCompilerArgs += "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
-}
-
 dependencies {
     implementation project(':browser-state')
     implementation project(':concept-engine')

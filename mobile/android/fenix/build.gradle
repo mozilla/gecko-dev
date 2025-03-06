@@ -68,10 +68,7 @@ allprojects {
     }
 
     tasks.withType(KotlinCompile).configureEach {
-        kotlinOptions.allWarningsAsErrors = true
-        kotlinOptions.freeCompilerArgs += [
-                "-opt-in=kotlin.RequiresOptIn", "-Xjvm-default=all-compatibility"
-        ]
+        compilerOptions.allWarningsAsErrors = true
     }
 }
 
