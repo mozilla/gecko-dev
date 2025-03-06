@@ -27,6 +27,7 @@ class ForkServer {
   static bool RunForkServer(int* aArgc, char*** aArgv);
 
  private:
+  UniqueFileHandle mIpcFd;
   UniquePtr<MiniTransceiver> mTcver;
 
   int* mArgc;

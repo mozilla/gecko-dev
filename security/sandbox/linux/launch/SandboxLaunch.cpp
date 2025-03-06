@@ -306,7 +306,8 @@ bool SandboxLaunch::Configure(GeckoProcessType aType, SandboxingKind aKind,
   // At this point, we know we'll be using sandboxing; generic
   // sandboxing support goes here.
   PreloadSandboxLib(&aOptions->env_map);
-  if (!AttachSandboxReporter(aExtraOpts)) {
+  if (aType != GeckoProcessType_ForkServer &&
+      !AttachSandboxReporter(aExtraOpts)) {
     return false;
   }
 
