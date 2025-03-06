@@ -1,5 +1,9 @@
 // Tests that system add-on upgrades work.
 
+// Enable SCOPE_APPLICATION for builtin testing.  Default in tests is only SCOPE_PROFILE.
+let scopes = AddonManager.SCOPE_PROFILE | AddonManager.SCOPE_APPLICATION;
+Services.prefs.setIntPref("extensions.enabledScopes", scopes);
+
 createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "2");
 
 let distroDir = FileUtils.getDir("ProfD", ["sysfeatures", "empty"]);
@@ -38,8 +42,8 @@ const TEST_CONDITIONS = {
     },
     initialState: [
       { isUpgrade: false, version: null },
-      { isUpgrade: false, version: "2.0" },
-      { isUpgrade: false, version: "2.0" },
+      { isUpgrade: false, version: "2.0", asBuiltin: true },
+      { isUpgrade: false, version: "2.0", asBuiltin: false },
       { isUpgrade: false, version: null },
       { isUpgrade: false, version: null },
     ],
@@ -67,7 +71,7 @@ const TEST_CONDITIONS = {
       distroDir.leafName = "hidden";
     },
     initialState: [
-      { isUpgrade: false, version: "1.0" },
+      { isUpgrade: false, version: "1.0", asBuiltin: false },
       { isUpgrade: true, version: "2.0" },
       { isUpgrade: true, version: "2.0" },
       { isUpgrade: false, version: null },
@@ -116,7 +120,7 @@ const TESTS = {
         { isUpgrade: true, version: "1.0" },
       ],
       withBothSets: [
-        { isUpgrade: false, version: "1.0" },
+        { isUpgrade: false, version: "1.0", asBuiltin: false },
         { isUpgrade: true, version: "3.0" },
         { isUpgrade: true, version: "3.0" },
         { isUpgrade: false, version: null },
