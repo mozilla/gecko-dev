@@ -58,8 +58,8 @@ VideoType PipeWireRawFormatToVideoType(uint32_t id) {
 
 void PipeWireNode::PipeWireNodeDeleter::operator()(
     PipeWireNode* node) const noexcept {
-  pw_proxy_destroy(node->proxy_);
   spa_hook_remove(&node->node_listener_);
+  pw_proxy_destroy(node->proxy_);
 }
 
 // static
