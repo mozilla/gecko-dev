@@ -48,9 +48,11 @@ WebRenderImageHost::~WebRenderImageHost() {
 }
 
 void WebRenderImageHost::OnReleased() {
+  ImageComposite::ClearImages();
   if (!mPendingRemoteTextureWrappers.empty()) {
     mPendingRemoteTextureWrappers.clear();
   }
+  SetCurrentTextureHost(nullptr);
 }
 
 void WebRenderImageHost::UseTextureHost(
