@@ -169,7 +169,6 @@ export class MLEngineParent extends JSProcessActorParent {
 
       if (currentEngine) {
         if (currentEngine.pipelineOptions.equals(pipelineOptions)) {
-          lazy.console.debug("Returning existing engine", engineId);
           return currentEngine;
         }
         await MLEngine.removeInstance(
@@ -179,12 +178,19 @@ export class MLEngineParent extends JSProcessActorParent {
         );
       }
 
-      lazy.console.debug("Creating a new engine");
-      const engine = await MLEngine.initialize({
+      var engine;
+      const start = Cu.now();
+
+      engine = await MLEngine.initialize({
         mlEngineParent: this,
         pipelineOptions,
         notificationsCallback,
       });
+      const creationTime = Cu.now() - start;
+
+      Glean.firefoxAiRuntime.engineCreationSuccess[
+        engine.getGleanLabel()
+      ].accumulateSingleSample(creationTime);
 
       // TODO - What happens if the engine is already killed here?
       return engine;
@@ -702,6 +708,18 @@ class MLEngine {
   notificationsCallback = null;
 
   /**
+   * Returns the label used in telemetry for that engine id
+   *
+   * @returns {string}
+   */
+  getGleanLabel() {
+    if (this.engineId.startsWith("ML-ENGINE-")) {
+      return "webextension";
+    }
+    return this.engineId;
+  }
+
+  /**
    * Removes an instance of the MLEngine with the given engineId.
    *
    * @param {string} engineId - The ID of the engine instance to be removed.
@@ -902,7 +920,19 @@ class MLEngine {
         const { response, error, requestId } = data;
         const request = this.#requests.get(requestId);
         if (request) {
+          if (error) {
+            Glean.firefoxAiRuntime.runInferenceFailure.record({
+              engineId: this.engineId,
+              modelId: this.pipelineOptions.modelId,
+              featureId: this.pipelineOptions.featureId,
+            });
+          }
           if (response) {
+            const totalTime =
+              response.metrics.tokenizingTime + response.metrics.inferenceTime;
+            Glean.firefoxAiRuntime.runInferenceSuccess[
+              this.getGleanLabel()
+            ].accumulateSingleSample(totalTime);
             request.resolve(response);
           } else {
             request.reject(error);
@@ -913,6 +943,7 @@ class MLEngine {
             data
           );
         }
+
         this.#requests.delete(requestId);
         break;
       }
@@ -1027,7 +1058,6 @@ class MLEngine {
     const resolvers = Promise.withResolvers();
     const requestId = this.#nextRequestId++;
     this.#requests.set(requestId, resolvers);
-
     let transferables = [];
     if (request.data instanceof ArrayBuffer) {
       transferables.push(request.data);

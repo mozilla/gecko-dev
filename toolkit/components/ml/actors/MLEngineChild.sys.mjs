@@ -153,7 +153,6 @@ export class MLEngineChild extends JSProcessActorChild {
 
       // And then overwrite with the ones passed in the message
       options.updateOptions(pipelineOptions);
-
       const engineId = options.engineId;
       this.#engineStatuses.set(engineId, "INITIALIZING");
 

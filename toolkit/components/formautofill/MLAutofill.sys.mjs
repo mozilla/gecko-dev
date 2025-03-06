@@ -61,7 +61,6 @@ export class MLAutofill {
     return {
       taskName: "text-classification",
       featureId: "autofill-classification",
-      engineId: "autofill-ml",
       modelRevision: lazy.FormAutofill.MLModelRevision,
       dtype: "int8",
       timeoutMS: -1,
