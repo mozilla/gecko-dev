@@ -9,18 +9,14 @@ add_task(async function test_launcher() {
   // mock() returns an object with a fake `runw` method that, when
   // called, records its arguments.
   let input = [];
-  let mock = () => {
-    return {
-      runw: (...args) => {
-        input = args;
-      },
-    };
+  let mock = args => {
+    input = args;
   };
 
   let profile = await createTestProfile();
 
   const SelectableProfileService = getSelectableProfileService();
-  SelectableProfileService.getExecutableProcess = mock;
+  SelectableProfileService.execProcess = mock;
   SelectableProfileService.launchInstance(profile);
 
   let expected;
@@ -35,7 +31,7 @@ add_task(async function test_launcher() {
     expected = ["--profile", profile.path, "--profiles-activate"];
   }
 
-  Assert.deepEqual(expected, input[1], "Expected runw arguments");
+  Assert.deepEqual(expected, input, "Expected runw arguments");
 
   SelectableProfileService.launchInstance(profile, "about:profilemanager");
 
@@ -51,5 +47,5 @@ add_task(async function test_launcher() {
     expected = ["--profile", profile.path, "-url", "about:profilemanager"];
   }
 
-  Assert.deepEqual(expected, input[1], "Expected runw arguments");
+  Assert.deepEqual(expected, input, "Expected runw arguments");
 });
