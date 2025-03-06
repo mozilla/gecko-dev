@@ -31,6 +31,8 @@ built_in_addons = "built_in_addons.json"
 GENERATED_FILES += [built_in_addons]
 manifest = GENERATED_FILES[built_in_addons]
 manifest.script = "gen_built_in_addons.py"
+# Force regeneration of `built_in_addons.json` through `mach build faster`/`mach build`.
+manifest.force = True
 
 if CONFIG["MOZ_BUILD_APP"] == "browser":
     manifest.flags = [
