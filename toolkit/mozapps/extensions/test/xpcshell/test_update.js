@@ -4,6 +4,10 @@
 
 // This verifies that add-on update checks work
 
+// Enable SCOPE_APPLICATION for builtin testing.  Default in tests is only SCOPE_PROFILE.
+let scopes = AddonManager.SCOPE_PROFILE | AddonManager.SCOPE_APPLICATION;
+Services.prefs.setIntPref("extensions.enabledScopes", scopes);
+
 // The test extension uses an insecure update url.
 Services.prefs.setBoolPref(PREF_EM_CHECK_UPDATE_SECURITY, false);
 // This test uses add-on versions that follow the toolkit version but we
@@ -52,7 +56,7 @@ testserver.registerDirectory("/data/", do_get_file("data"));
 
 const XPIS = {};
 
-add_task(async function setup() {
+add_setup(async function setup() {
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1");
 
   Services.locale.requestedLocales = ["fr-FR"];
@@ -790,34 +794,61 @@ add_task(async function test_no_auto_update() {
 
 // Test that the update check returns nothing for addons in locked install
 // locations.
-add_task(async function run_test_locked_install() {
-  const lockedDir = gProfD.clone();
-  lockedDir.append("locked_extensions");
-  registerDirectory("XREAppFeat", lockedDir);
-
-  await promiseShutdownManager();
-
-  let xpi = await createTempWebExtensionFile({
+async function run_test_locked_install({ asBuiltIn = true } = {}) {
+  const ADDON_ID = "addon13@tests.mozilla.org";
+  const testExtensionProps = {
     manifest: {
       name: "Test Addon 13",
       version: "1.0",
       browser_specific_settings: {
         gecko: {
-          id: "addon13@tests.mozilla.org",
+          id: ADDON_ID,
           update_url: "http://example.com/data/test_update.json",
         },
       },
     },
-  });
-  xpi.copyTo(lockedDir, "addon13@tests.mozilla.org.xpi");
+  };
 
-  let validAddons = { system: ["addon13@tests.mozilla.org"] };
-  await overrideBuiltIns(validAddons);
+  await promiseShutdownManager();
+
+  if (!asBuiltIn) {
+    const lockedDir = gProfD.clone();
+    lockedDir.append("locked_extensions");
+    registerDirectory("XREAppFeat", lockedDir);
+
+    let xpi = await createTempWebExtensionFile(testExtensionProps);
+    xpi.copyTo(lockedDir, `${ADDON_ID}.xpi`);
+    await overrideBuiltIns({ system: [ADDON_ID] });
+  } else {
+    await setupBuiltinExtension(testExtensionProps, "builtin-addon13-ext");
+    await overrideBuiltIns({
+      builtins: [
+        {
+          addon_id: ADDON_ID,
+          addon_version: "1.0",
+          res_url: "resource://builtin-addon13-ext/",
+        },
+      ],
+    });
+  }
 
   await promiseStartupManager();
 
-  let a13 = await AddonManager.getAddonByID("addon13@tests.mozilla.org");
+  let a13 = await AddonManager.getAddonByID(ADDON_ID);
   notEqual(a13, null);
+
+  if (asBuiltIn) {
+    equal(
+      a13.getResourceURI().spec,
+      "resource://builtin-addon13-ext/",
+      "Expect addon root uri to be a resource:// URI"
+    );
+  } else {
+    ok(
+      a13.getResourceURI() instanceof Ci.nsIJARURI,
+      "Expect addon root uri to be a jar uri"
+    );
+  }
 
   let result = await AddonTestUtils.promiseFindAddonUpdates(a13);
   ok(
@@ -828,4 +859,13 @@ add_task(async function run_test_locked_install() {
 
   let installs = await AddonManager.getAllInstalls();
   equal(installs.length, 0);
+}
+
+// TODO(Bug 1949847): remove this test along with removing the app-system-defaults location.
+add_task(async function test_locked_location_system_xpi() {
+  await run_test_locked_install({ asBuiltIn: false });
+});
+
+add_task(async function test_locked_location_system_builtin() {
+  await run_test_locked_install();
 });
