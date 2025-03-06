@@ -496,7 +496,10 @@ function parseManifest(manifestUri) {
       } else if (type == "category") {
         if (gInterestingCategories.has(argv[0])) {
           gReferencesFromCode.set(argv[2], null);
-        } else if (argv[1].startsWith("resource://")) {
+        } else if (
+          argv[1].startsWith("resource://") ||
+          argv[1].startsWith("moz-src://")
+        ) {
           // Assume that any resource paths immediately after the category name
           // are for use with BrowserUtils.callModulesFromCategory (rather than
           // having to hardcode a list of categories in this test).
