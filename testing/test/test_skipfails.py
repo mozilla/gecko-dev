@@ -246,7 +246,9 @@ def test_task_to_skip_if():
     sf.platform_permutations = {
         "test-manifest": {
             "win": {
-                "11.2009": {"x86": {"debug": ["no_variant"], "opt": ["no_variant"]}}
+                "11.2009": {
+                    "x86": {"debug": {"no_variant": {}}, "opt": {"no_variant": {}}}
+                }
             }
         }
     }
@@ -276,7 +278,10 @@ def test_task_to_skip_if():
         "test-manifest": {
             "mac": {
                 "10.15": {
-                    "x86_64": {"debug": ["swgl", "no_variant"], "opt": ["no_variant"]}
+                    "x86_64": {
+                        "debug": {"swgl": {}, "no_variant": {}},
+                        "opt": {"no_variant": {}},
+                    }
                 }
             }
         }
@@ -310,7 +315,10 @@ def test_task_to_skip_if():
         "test-manifest": {
             "mac": {
                 "11.00": {
-                    "aarch64": {"debug": ["swgl", "no_variant"], "opt": ["no_variant"]}
+                    "aarch64": {
+                        "debug": {"swgl": {}, "no_variant": {}},
+                        "opt": {"no_variant": {}},
+                    }
                 }
             }
         }
@@ -343,7 +351,7 @@ def test_task_to_skip_if():
     }
     sf.tasks[task_id] = task_details
     sf.platform_permutations = {
-        "test-manifest": {"linux": {"18.04": {"x86": {"opt": ["no_variant"]}}}}
+        "test-manifest": {"linux": {"18.04": {"x86": {"opt": {"no_variant": {}}}}}}
     }
     # function under test
     skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
@@ -369,7 +377,7 @@ def test_task_to_skip_if():
     }
     sf.tasks[task_id] = task_details
     sf.platform_permutations = {
-        "test-manifest": {"linux": {"18.04": {"x86": {"opt": ["xorigin"]}}}}
+        "test-manifest": {"linux": {"18.04": {"x86": {"opt": {"xorigin": {}}}}}}
     }
     # function under test
     skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
@@ -397,7 +405,7 @@ def test_task_to_skip_if():
     sf.tasks[task_id] = task_details
     sf.platform_permutations = {
         "test-manifest": {
-            "linux": {"18.04": {"x86": {"opt": ["no_variant", "xorigin"]}}}
+            "linux": {"18.04": {"x86": {"opt": {"no_variant": {}, "xorigin": {}}}}}
         }
     }
     # function under test
@@ -438,7 +446,10 @@ def test_task_to_skip_if():
         "test-manifest": {
             "linux": {
                 "18.04": {
-                    "x86": {"opt": ["no_variant", "xorigin"], "debug": ["no_variant"]}
+                    "x86": {
+                        "opt": {"no_variant": {}, "xorigin": {}},
+                        "debug": {"no_variant": {}},
+                    }
                 }
             }
         }
@@ -520,7 +531,10 @@ def test_task_to_skip_if():
         "test-manifest": {
             "linux": {
                 "18.04": {
-                    "x86": {"opt": ["no_variant"], "debug": ["no_variant", "xorigin"]}
+                    "x86": {
+                        "opt": {"no_variant": {}},
+                        "debug": {"no_variant": {}, "xorigin": {}},
+                    }
                 }
             }
         }
@@ -625,7 +639,9 @@ def test_task_to_skip_if_wpt():
     sf.platform_permutations = {
         "test-manifest": {
             "linux": {
-                "18.04": {"x86": {"debug": ["no_variant"], "opt": ["no_variant"]}}
+                "18.04": {
+                    "x86": {"debug": {"no_variant": {}}, "opt": {"no_variant": {}}}
+                }
             }
         }
     }
