@@ -359,20 +359,10 @@
   <string name="browser_tools_menu_handlebar_content_description">കരുക്കുറിപ്പടി കടലാസു് അടയ്ക്കുക</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">ഇഷ്ടാനുസൃത ടാബുകുറിപ്പടി താളു് അടയ്ക്കുക</string>
-  <!--
-    Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-    The first parameter is the label of the report site issue (for example: Report Site issue)
-  -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">വായന കാഴ്ച, വിവർത്തനം, %s, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_translate_with_report_site_2">വായന കാഴ്ച, വിവർത്തനം, തകർന്ന വെബ്സ്ഥാനത്തിനെ കുറിച്ചു് വിവരം അറിയിക്കുക,അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
   <string name="browser_menu_tools_description_with_translate_without_report_site">വായന കാഴ്ച, വിവർത്തനം, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
-  <!--
-    Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-    The first parameter is the label of the report site issue (for example: Report Site issue)
-  -->
-  <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">വായന കാഴ്ച, %s, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_report_site_2">വായന കാഴ്ച, തകർന്ന വെബ്സ്ഥാനത്തിനെ കുറിച്ചു് വിവരം അറിയിക്കുക,അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -670,16 +660,12 @@
   <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">തിരയലുകൾ കൈയെത്തും ദൂരത്ത് വയ്ക്കുക.</string>
   <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
   <string name="onboarding_save_and_continue_button">കരുതിവച്ചിട്ടു് തുടരുക</string>
-  <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-  <string name="onboarding_customize_toolbar_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">ഒഴിവാക്കുക</string>
   <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_top_option">മുകള്‍ഭാഗം</string>
   <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_bottom_option">കീഴ്ഭാഗം</string>
   <!-- Onboarding toolbar selection card content description for the main image. -->
   <string name="onboarding_customize_toolbar_main_image_content_description">ഒരു ചിത്രീകരിച്ച കരുപ്പട്ട കാണിക്കുന്ന കരുപ്പട്ട തിരഞ്ഞെടുക്കൽ കാഴ്ചയുടെ വലിയ തലക്കെട്ട് ചിത്രം.</string>
-  <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
-  <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">%1$s കരുപ്പട്ടയിന്റെ ചിത്രം</string>
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">കീഴ്ക്കരുപ്പട്ടയിന്റെ ചിത്രം</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">മേൽക്കരുപ്പട്ടയിന്റെ ചിത്രം</string>
@@ -691,8 +677,6 @@
   <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">മികച്ച വെളിച്ചത്തിൽ വെബ് കാണുക.</string>
   <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
   <string name="onboarding_save_and_start_button">കരുതിവച്ചിട്ടു് തിരയാൻ തുടങ്ങുക</string>
-  <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-  <string name="onboarding_customize_theme_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">ഒഴിവാക്കുക</string>
   <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_dark_option">ഇരുണ്ടത്</string>
   <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -1286,20 +1270,16 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">കൂടുതലറിയുക</string>
   <!-- Dialog message shown after removing a study -->
-  <string name="studies_restart_app" moz:removedIn="135">മാറ്റങ്ങൾ ബാധകമാക്കാൻ പ്രയോഗയന്ത്രാംശം പുറത്തുകടക്കും</string>
+  <string name="studies_restart_app" moz:removedIn="137">മാറ്റങ്ങൾ ബാധകമാക്കാൻ പ്രയോഗയന്ത്രാംശം പുറത്തുകടക്കും</string>
   <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="135">ശരി</string>
+  <string name="studies_restart_dialog_ok" moz:removedIn="137">ശരി</string>
   <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="135">റദ്ദാക്കുക</string>
-  <!-- Toast shown after turning on/off studies preferences -->
-  <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">മാറ്റങ്ങൾ പ്രാവർത്തികമാക്കാൻ പ്രയോഗത്തിൽ നിന്നും പുറത്തുകടക്കുന്നു…</string>
+  <string name="studies_restart_dialog_cancel" moz:removedIn="137">റദ്ദാക്കുക</string>
   <!--
     Sessions
 
-    Title for the list of tabs
+    Title for the list of tabs in the current private session
   -->
-  <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">തുറന്നിരുന്ന ടാബുകള്‍</string>
-  <!-- Title for the list of tabs in the current private session -->
   <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">സ്വകാര്യ ടാബുകൾ</string>
   <!--
     Title for the list of tabs in the current private session used by a11y services

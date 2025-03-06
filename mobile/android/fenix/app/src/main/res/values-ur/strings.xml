@@ -502,20 +502,16 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">مزید سیکھیں</string>
   <!-- Dialog message shown after removing a study -->
-  <string name="studies_restart_app" moz:removedIn="135">تبدیلیاں لاگو کرنے کے لیے ایپلیکیشن چھوڑ دی جائے گی۔</string>
+  <string name="studies_restart_app" moz:removedIn="137">تبدیلیاں لاگو کرنے کے لیے ایپلیکیشن چھوڑ دی جائے گی۔</string>
   <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="135">ٹھیک ہے</string>
+  <string name="studies_restart_dialog_ok" moz:removedIn="137">ٹھیک ہے</string>
   <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="135">منسوخ کریں</string>
-  <!-- Toast shown after turning on/off studies preferences -->
-  <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">تبدیلیاں لاگو کرنے کے لیے ایپلیکیشن چھوڑ رہے ہیں…</string>
+  <string name="studies_restart_dialog_cancel" moz:removedIn="137">منسوخ کریں</string>
   <!--
     Sessions
 
-    Title for the list of tabs
+    Title for the list of tabs in the current private session
   -->
-  <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">ٹیبس کھولیں</string>
-  <!-- Title for the list of tabs in the current private session -->
   <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">نجی ٹیبس</string>
   <!-- Title for the list of tabs in the synced tabs -->
   <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">سنک شدہ ٹیبز</string>

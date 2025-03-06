@@ -362,20 +362,10 @@
   <string name="browser_tools_menu_handlebar_content_description">Siere il menù dai struments</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">Siere il menù pe personalizazion des schedis</string>
-  <!--
-    Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-    The first parameter is the label of the report site issue (for example: Report Site issue)
-  -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Viodude di leture, traduzion, %s, stampe, condivision, vierzi aplicazion</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_translate_with_report_site_2">Viodude di leture, traduzion, segnale probleme cul sît, stampe, condivision, vierzi aplicazion</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
   <string name="browser_menu_tools_description_with_translate_without_report_site">Viodude di leture, traduzion, stampe, condivision, vierzi app</string>
-  <!--
-    Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-    The first parameter is the label of the report site issue (for example: Report Site issue)
-  -->
-  <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Viodude di leture, %s, stampe, condivision, vierzi aplicazion</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_report_site_2">Viodude di leture, segnale probleme cul sît, stampe, condivision, vierzi aplicazion</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -685,16 +675,12 @@
   <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Ten lis ricercjis sot man.</string>
   <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
   <string name="onboarding_save_and_continue_button">Salve e continue</string>
-  <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-  <string name="onboarding_customize_toolbar_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">Salte</string>
   <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_top_option">Adalt</string>
   <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_bottom_option">In bas</string>
   <!-- Onboarding toolbar selection card content description for the main image. -->
   <string name="onboarding_customize_toolbar_main_image_content_description">Imagjin di intestazion grande de viodude di selezion de sbare dai struments che e mostre la ilustrazion di une sbare dai struments.</string>
-  <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
-  <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">Imagjin de sbare dai struments cun posizion “%1$s”</string>
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">Imagjin de sbare dai struments plaçade in bas</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">Imagjin de sbare dai struments plaçade adalt</string>
@@ -706,8 +692,6 @@
   <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Cjale il web intune biele lûs.</string>
   <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
   <string name="onboarding_save_and_start_button">Salve e scomence a navigâ</string>
-  <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-  <string name="onboarding_customize_theme_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">Salte</string>
   <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_dark_option">Scûr</string>
   <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -1356,20 +1340,16 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Plui informazions</string>
   <!-- Dialog message shown after removing a study -->
-  <string name="studies_restart_app" moz:removedIn="135">La aplicazion e jessarà par aplicâ lis modifichis</string>
+  <string name="studies_restart_app" moz:removedIn="137">La aplicazion e jessarà par aplicâ lis modifichis</string>
   <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="135">Va ben</string>
+  <string name="studies_restart_dialog_ok" moz:removedIn="137">Va ben</string>
   <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="135">Anule</string>
-  <!-- Toast shown after turning on/off studies preferences -->
-  <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Daûr a sierâ la aplicazion par aplicâ lis modifichis…</string>
+  <string name="studies_restart_dialog_cancel" moz:removedIn="137">Anule</string>
   <!--
     Sessions
 
-    Title for the list of tabs
+    Title for the list of tabs in the current private session
   -->
-  <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Schedis viertis</string>
-  <!-- Title for the list of tabs in the current private session -->
   <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Schedis privadis</string>
   <!--
     Title for the list of tabs in the current private session used by a11y services

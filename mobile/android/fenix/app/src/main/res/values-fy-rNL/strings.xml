@@ -363,20 +363,10 @@
   <string name="browser_tools_menu_handlebar_content_description">Menublêd Ekstra slute</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">Menublêd Ljepblêd oanpasse slute</string>
-  <!--
-    Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-    The first parameter is the label of the report site issue (for example: Report Site issue)
-  -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Lêzerwerjefte, Oersette, %s, Ofdrukke, Diele, App iepenje</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_translate_with_report_site_2">Lêzerwerjefte, Oersette, Net-wurkjende website melde, Ofdrukke, Diele, App iepenje</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
   <string name="browser_menu_tools_description_with_translate_without_report_site">Lêzerwerjefte, Oersette, Ofdrukke, Diele, App iepenje</string>
-  <!--
-    Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-    The first parameter is the label of the report site issue (for example: Report Site issue)
-  -->
-  <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Lêzerwerjefte, %s, Ofdrukke, Diele, App iepenje</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_report_site_2">Lêzerwerjefte, Net-wurkjende website melde, Ofdrukke, Diele, App iepenje</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -680,22 +670,24 @@
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Hoe’t wy gegevens brûke</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Befêstigje en begjinne mei sneupen</string>
+  <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Noch ien ding</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Diel mei Mozilla\'s marketingtechnologypartners hoe’t jo Firefox ûntdutsen hawwe en dat jo it brûke. Dizze gegevens wurde nea ferkocht.</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Akkoard en begjinne mei sneupen</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Kies in arkbalkepleatsing</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Hâld sykopdrachten binnen hânberik.</string>
   <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
   <string name="onboarding_save_and_continue_button">Bewarje en trochgean</string>
-  <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-  <string name="onboarding_customize_toolbar_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">Oerslaan</string>
   <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_top_option">Boppe</string>
   <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_bottom_option">Under</string>
   <!-- Onboarding toolbar selection card content description for the main image. -->
   <string name="onboarding_customize_toolbar_main_image_content_description">Grutte headerôfbylding fan de seleksjewerjefte fan de arkbalke mei in yllustrearre arkbalke.</string>
-  <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
-  <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">Ofbylding fan de %1$s arkbalke</string>
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">Ofbylding fan de ûnderste arkbalke</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">Ofbylding fan de boppeste arkbalke</string>
@@ -707,8 +699,6 @@
   <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Besjoch it web yn it bêste ljocht.</string>
   <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
   <string name="onboarding_save_and_start_button">Bewarje en begjinne mei sneupen</string>
-  <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-  <string name="onboarding_customize_theme_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">Oerslaan</string>
   <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_dark_option">Donker</string>
   <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -888,6 +878,10 @@
   <string name="preferences_show_voice_search">Sprutsen sykopdracht toane</string>
   <!-- Preference title for switch preference to show search suggestions also in private mode -->
   <string name="preferences_show_search_suggestions_in_private">Toane yn priveesesjes</string>
+  <!-- Preference title for switch preference to show trending search suggestions -->
+  <string name="preferences_show_trending_search_suggestions">Trending suggestjes toane</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Resinte sykopdrachten toane</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Klamboerdsuggestjes toane</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
@@ -914,6 +908,16 @@
   <string name="preferences_show_nonsponsored_suggestions">Suggestjes fan %1$s</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">Krij suggestjes fan it web relatearre oan jo sykopdracht</string>
+  <!-- Preference for link sharing -->
+  <string name="preferences_link_sharing">Keppelingen diele</string>
+  <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_title">Downloadkeppeling foar %1$s byfoegje by dielen op WhatsApp</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">Nûgje jo freonen út om rapper, feiliger blêdzjen te probearjen mei %1$s elke kear as jo in keppeling diele op WhatsApp.</string>
+  <!-- Snackbar message shown when user shares a link -->
+  <string name="link_shared_snackbar_message">Keppeling dield</string>
+  <!-- Snackbar action label shown when user shares a link -->
+  <string name="link_shared_snackbar_action">Ynstellingen beheare</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Keppelingen iepenje yn apps</string>
   <!-- Preference for open links in third party apps always open in apps option -->
@@ -1357,20 +1361,16 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Mear ynfo</string>
   <!-- Dialog message shown after removing a study -->
-  <string name="studies_restart_app" moz:removedIn="135">De tapassing wurdt ôfsluten om wizigingen ta te passen</string>
+  <string name="studies_restart_app" moz:removedIn="137">De tapassing wurdt ôfsluten om wizigingen ta te passen</string>
   <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="135">OK</string>
+  <string name="studies_restart_dialog_ok" moz:removedIn="137">OK</string>
   <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="135">Annulearje</string>
-  <!-- Toast shown after turning on/off studies preferences -->
-  <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">De tapassing wurdt ôfsluten om wizigingen ta te passen…</string>
+  <string name="studies_restart_dialog_cancel" moz:removedIn="137">Annulearje</string>
   <!--
     Sessions
 
-    Title for the list of tabs
+    Title for the list of tabs in the current private session
   -->
-  <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Iepen ljepblêden</string>
-  <!-- Title for the list of tabs in the current private session -->
   <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Priveeljepblêden</string>
   <!--
     Title for the list of tabs in the current private session used by a11y services
@@ -1865,6 +1865,10 @@
   <string name="sync_add_new_device_learn_button">Mear ynfo oer it ferstjoeren fan ljepblêden…</string>
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">In oar apparaat ferbine…</string>
+  <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nFerstjoerd fan %2$s 🦊 út. Probearje de mobile browser: %3$s</string>
+  <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\nFerstjoerd fan %2$s 🦊 út %3$s</string>
   <!--
     Notifications
 
@@ -2203,6 +2207,94 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">Piktogram foar de foarkar foar Ferbettere beskerming tsjin folgjen-útsûndering</string>
+  <!--
+    DNS Over HTTPS (DoH)
+
+    Preference title for DNS over HTTPS settings
+  -->
+  <string name="preference_doh_title">DNS oer HTTPS</string>
+  <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_summary">Domain Name System (DNS) oer HTTPS ferstjoert jo oanfraach foar in domeinnamme fia in fersifere ferbining, wêrtroch in feilige DNS jûn wurdt en it foar oaren dreger wurdt om te sjen hokker website jo besykje gean. %1$s</string>
+  <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+  <string name="preference_doh_learn_more">Mear ynfo</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="preference_doh_up_description">Omheech</string>
+  <!-- Content description for the "Exceptions" button -->
+  <string name="preference_doh_exceptions_description">Utsûnderingen</string>
+  <!-- Content description for the "Info" button -->
+  <string name="preference_doh_info_description">Ynfo</string>
+  <!-- Content description for the "Add Site" button -->
+  <string name="preference_doh_add_site_description">Website tafoegje</string>
+  <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection">Standert beskerming</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">%1$s bepaalt wannear’t befeilige DNS brûkt wurde moat om jo privacy te beskermjen.</string>
+  <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_1">De provider dy’t jo selektearje brûke</string>
+  <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_2">Jo standert DNS-resolver brûke as der in probleem is mei de befeilige-DNS-provider</string>
+  <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_3">Wannear mooglik lokale provider brûke. %1$s</string>
+  <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_4">Utskeakelje as VPN, âlderlik tafersjoch of bedriuwsbelied aktyf binne</string>
+  <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_5">Utskeakelje as in netwurk %1$s fertelt dat it gjin feilige DNS brûke moat. %2$s</string>
+  <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection">Ferhege beskerming</string>
+  <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_summary">Jo bepale wannear’t befeilige DNS brûkt wurdt en kieze jo provider.</string>
+  <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_1">De provider dy’t jo selektearje brûke</string>
+  <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_2">Allinnich jo standert DNS-resolver brûke as der in probleem mei befeilige DNS is</string>
+  <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection">Maks. beskerming</string>
+  <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_max_protection_summary">%1$s brûkt altyd befeilige DNS. Jo sjogge in befeiligingswarskôging eardat wy de DNS fan jo systeem brûke.</string>
+  <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_1">Allinnich de troch jo selektearre provider brûke</string>
+  <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_2">Altyd warskôgje as befeilige DNS net beskikber is</string>
+  <!-- Bullet point 3 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_3">Wannear’t befeilige DNS net beskikber is, sille websites net lade of goed funksjonearje</string>
+  <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off">Ut</string>
+  <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off_summary">Brûk jo standert DNS-resolver</string>
+  <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
+  <string name="preference_doh_choose_provider">Kies provider</string>
+  <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_default">(standert)</string>
+  <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_custom">Oanpast</string>
+  <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_title">Oanpaste provider</string>
+  <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_textfield">Provider</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
+  <string name="preference_doh_provider_custom_dialog_error_https">URL moat begjinne mei ‘https://’</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
+  <string name="preference_doh_provider_custom_dialog_error_invalid">Unjildige URL</string>
+  <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_cancel">Annulearje</string>
+  <!-- Add button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_add">Tafoegje</string>
+  <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
+  <string name="preference_doh_exceptions">Utsûnderingen</string>
+  <!-- Description of "exceptions" for "DNS over HTTPS". The first parameter is the name of the application. (For example: Fenix) -->
+  <string name="preference_doh_exceptions_summary">%1$s brûkt gjin befeilige DNS op dizze websites en harren subdomeinen.</string>
+  <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
+  <string name="preference_doh_exceptions_add">Website tafoegje</string>
+  <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_site">Website</string>
+  <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_placeholder">example.com</string>
+  <!-- Error displayed in the input field when adding invalid URLs for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_error">Moat in jildich domain wêze</string>
+  <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_add_save">Bewarje</string>
+  <!-- Text displayed for removing all exceptions in "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_remove_all_exceptions">Alle útsûnderingen fuortsmite</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Stipe</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -2663,10 +2755,19 @@
     Search suggestions title for Firefox Suggest.
   -->
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox Suggestjes</string>
+  <!-- Search suggestions title for trending searches. -->
+  <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">Trending sykopdrachten</string>
+  <!--
+    Search suggestions title for trending search suggestions.
+    %s is a placeholder for the name of the search engine providing the trending search suggestions.
+  -->
+  <string name="trending_searches_header_2">Trending op %s</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header">Google Sykje</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">Sykje mei %s</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">Resinte sykopdrachten</string>
   <!--
     Default browser experiment
 
@@ -3118,6 +3219,14 @@ Dizze analyze sil jo allinnich helpe om de beoardielingskwaliteit te beoardielen
   <string name="download_language_file_dialog_positive_button_text_all_languages">Downloade en oersette</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
   <string name="download_language_file_dialog_negative_button_text">Annulearje</string>
+  <!--
+    Unified Trust Panel
+
+    Text for the protection panel header when the site is secure.
+  -->
+  <string name="protection_panel_header_secure">Befeilige</string>
+  <!-- Text for the protection panel header when the site is not secure. -->
+  <string name="protection_panel_header_not_secure">Net befeilige</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Wês foarsichtich op dizze website</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3142,6 +3251,46 @@ Dizze analyze sil jo allinnich helpe om de beoardielingskwaliteit te beoardielen
   <string name="protection_panel_etp_toggle_enabled_description">As der wat op dizze website net wurket, probearje dan beskermingen út te skeakeljen.</string>
   <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
   <string name="protection_panel_etp_toggle_disabled_description">Beskermingen binne ÚT. Wy riede jo oan se wer yn te skeakeljen.</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the protection panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="protection_panel_num_trackers_blocked">Trackers blokkearre: %d</string>
+  <!-- Text for when no trackers have been blocked. -->
+  <string name="protection_panel_no_trackers_blocked">Gjin trackers fûn</string>
+  <!-- Link text to navigate to privacy and security settings from the protection panel. -->
+  <string name="protection_panel_privacy_and_security_settings">Privacy- en befeiligingsynstellingen</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the trackers blocked panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_total_num_trackers_blocked">Trackers blokkearre: %d</string>
+  <!--
+    Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
+    %s is a placeholder for the name of the tracker category.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
+  <!--
+    Description text for a dialog confirming whether the user wants to delete all data for current site.
+    %s is a placeholder for the base domain of website.
+  -->
+  <string name="clear_site_data_dialog_description">It fuortsmiten fan cookies en websitegegevens foar &lt;b&gt;%s&lt;/b&gt; kin jo ôfmelde by websites en winkelweinen wiskje.</string>
+  <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
+  <string name="clear_site_data_dialog_positive_button_text">Wiskje</string>
+  <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
+  <string name="clear_site_data_dialog_negative_button_text">Annulearje</string>
+  <!-- Snackbar title shown when the site data has been cleared. -->
+  <string name="clear_site_data_snackbar">Cookies en websitegegevens fuortsmiten</string>
+  <!-- Text for the connection security panel when the site is secure. -->
+  <string name="connection_security_panel_secure">Befeilige ferbining</string>
+  <!-- Text for the connection security panel when the site is not secure. -->
+  <string name="connection_security_panel_not_secure">Ferbining net befeilige</string>
+  <!--
+    Text for the connection security panel to indicate who the certificate was verified by.
+    %s is a placeholder for the name of the certificate authority that verified the ticket
+  -->
+  <string name="connection_security_panel_verified_by">Ferifiearre troch: %s</string>
   <!--
     Debug drawer
 

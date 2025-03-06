@@ -359,20 +359,10 @@
   <string name="browser_tools_menu_handlebar_content_description">Затваряне на менюто с инструменти</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">Затваряне на менюто с раздел по избор</string>
-  <!--
-    Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-    The first parameter is the label of the report site issue (for example: Report Site issue)
-  -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Изглед за четене, Превод, %s, Отпечатване, Споделяне, Отваряне на приложение</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_translate_with_report_site_2">Изглед за четене, превод, доклад за повредена страница, отпечатване, споделяне, отваряне на приложение</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
   <string name="browser_menu_tools_description_with_translate_without_report_site">Изглед за четене, превод, отпечатване, споделяне, отваряне на приложение</string>
-  <!--
-    Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-    The first parameter is the label of the report site issue (for example: Report Site issue)
-  -->
-  <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Изглед за четене, %s, Отпечатване, Споделяне, Отваряне на приложение</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_report_site_2">Изглед за четене, доклад за повредена страница, отпечатване, споделяне, отваряне на приложение</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -688,16 +678,12 @@
   <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Дръжте търсенията под ръка.</string>
   <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
   <string name="onboarding_save_and_continue_button">Запазване и продължаване</string>
-  <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-  <string name="onboarding_customize_toolbar_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">Пропускане</string>
   <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_top_option">Горе</string>
   <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_bottom_option">Отдолу</string>
   <!-- Onboarding toolbar selection card content description for the main image. -->
   <string name="onboarding_customize_toolbar_main_image_content_description">Голямо заглавно изображение на изгледа за избор на лентата с инструменти, показващо илюстрирана лента с инструменти.</string>
-  <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
-  <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">Изображение на лентата с инструменти на %1$s</string>
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">Изображение на долната лента с инструменти</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">Изображение на горната лента с инструменти</string>
@@ -709,8 +695,6 @@
   <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Вижте Мрежата в най-добра светлина.</string>
   <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
   <string name="onboarding_save_and_start_button">Запазване и начало на разглеждане</string>
-  <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-  <string name="onboarding_customize_theme_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">Пропускане</string>
   <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_dark_option">Тъмна</string>
   <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -892,6 +876,8 @@
   <string name="preferences_show_search_suggestions_in_private">В поверителен режим също</string>
   <!-- Preference title for switch preference to show trending search suggestions -->
   <string name="preferences_show_trending_search_suggestions">Показване на набиращи популярност предложения</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Показване на последните търсения</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Предложения от буфера</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
@@ -1371,20 +1357,16 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Научете повече</string>
   <!-- Dialog message shown after removing a study -->
-  <string name="studies_restart_app" moz:removedIn="135">Приложението ще се затвори, за да приложи промените</string>
+  <string name="studies_restart_app" moz:removedIn="137">Приложението ще се затвори, за да приложи промените</string>
   <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="135">Добре</string>
+  <string name="studies_restart_dialog_ok" moz:removedIn="137">Добре</string>
   <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="135">Отказ</string>
-  <!-- Toast shown after turning on/off studies preferences -->
-  <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Приложението се затваря за прилагане на промени…</string>
+  <string name="studies_restart_dialog_cancel" moz:removedIn="137">Отказ</string>
   <!--
     Sessions
 
-    Title for the list of tabs
+    Title for the list of tabs in the current private session
   -->
-  <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Отворени раздели</string>
-  <!-- Title for the list of tabs in the current private session -->
   <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Поверителни раздели</string>
   <!--
     Title for the list of tabs in the current private session used by a11y services
@@ -2780,6 +2762,8 @@
   <string name="google_search_engine_suggestion_header">Търсене в Гугъл</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">Търсене чрез %s</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">Скорошни търсения</string>
   <!--
     Default browser experiment
 

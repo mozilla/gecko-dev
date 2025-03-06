@@ -531,20 +531,16 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Mas información</string>
   <!-- Dialog message shown after removing a study -->
-  <string name="studies_restart_app" moz:removedIn="135">L’aplicación se tancará pa aplicar cambios</string>
+  <string name="studies_restart_app" moz:removedIn="137">L’aplicación se tancará pa aplicar cambios</string>
   <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="135">Aceptar</string>
+  <string name="studies_restart_dialog_ok" moz:removedIn="137">Aceptar</string>
   <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="135">Cancelar</string>
-  <!-- Toast shown after turning on/off studies preferences -->
-  <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Tancando l’aplicación pa aplicar cambios…</string>
+  <string name="studies_restart_dialog_cancel" moz:removedIn="137">Cancelar</string>
   <!--
     Sessions
 
-    Title for the list of tabs
+    Title for the list of tabs in the current private session
   -->
-  <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Pestanyas ubiertas</string>
-  <!-- Title for the list of tabs in the current private session -->
   <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Pestanyas privadas</string>
   <!-- Title for the list of tabs in the synced tabs -->
   <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Pestanyas sincronizadas</string>

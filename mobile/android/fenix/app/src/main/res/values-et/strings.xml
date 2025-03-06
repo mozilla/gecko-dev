@@ -697,20 +697,16 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Rohkem teavet</string>
   <!-- Dialog message shown after removing a study -->
-  <string name="studies_restart_app" moz:removedIn="135">Muudatuste rakendamiseks äpp suletakse</string>
+  <string name="studies_restart_app" moz:removedIn="137">Muudatuste rakendamiseks äpp suletakse</string>
   <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="135">Olgu</string>
+  <string name="studies_restart_dialog_ok" moz:removedIn="137">Olgu</string>
   <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="135">Loobu</string>
-  <!-- Toast shown after turning on/off studies preferences -->
-  <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Äpist väljumine muudatuste rakendamiseks…</string>
+  <string name="studies_restart_dialog_cancel" moz:removedIn="137">Loobu</string>
   <!--
     Sessions
 
-    Title for the list of tabs
+    Title for the list of tabs in the current private session
   -->
-  <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Avatud kaardid</string>
-  <!-- Title for the list of tabs in the current private session -->
   <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Privaatsed kaardid</string>
   <!-- Title for the list of tabs in the synced tabs -->
   <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Sünkroniseeritud kaardid</string>

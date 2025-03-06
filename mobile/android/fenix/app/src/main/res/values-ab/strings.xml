@@ -1173,20 +1173,16 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Еиҳаны аилкаара</string>
   <!-- Dialog message shown after removing a study -->
-  <string name="studies_restart_app" moz:removedIn="135">Апрограмма аркхоит аиҭакрақәа рхархәаразы</string>
+  <string name="studies_restart_app" moz:removedIn="137">Апрограмма аркхоит аиҭакрақәа рхархәаразы</string>
   <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="135">ИБЗИОУП</string>
+  <string name="studies_restart_dialog_ok" moz:removedIn="137">ИБЗИОУП</string>
   <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="135">Аԥыхра</string>
-  <!-- Toast shown after turning on/off studies preferences -->
-  <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Аԥсахрақәа рхархәаразы апликациа аҭыҵра……</string>
+  <string name="studies_restart_dialog_cancel" moz:removedIn="137">Аԥыхра</string>
   <!--
     Sessions
 
-    Title for the list of tabs
+    Title for the list of tabs in the current private session
   -->
-  <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Иаарттәуп абларҭақәа</string>
-  <!-- Title for the list of tabs in the current private session -->
   <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Ахатә абӷьыцқәа</string>
   <!-- Title for the list of tabs in the synced tabs -->
   <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Аԥсҭҳәа абларҭақәа</string>

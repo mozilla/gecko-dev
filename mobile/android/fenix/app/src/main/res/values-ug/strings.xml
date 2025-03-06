@@ -361,20 +361,10 @@
   <string name="browser_tools_menu_handlebar_content_description">قورال تىزىملىك جەدۋىلىنى تاقايدۇ</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">ئىختىيارى بەتكۈچ تىزىملىك جەدۋىلىنى تاقايدۇ</string>
-  <!--
-    Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-    The first parameter is the label of the report site issue (for example: Report Site issue)
-  -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">ئوقۇرمەن كۆرۈنۈشى، تەرجىمە، %s، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_translate_with_report_site_2">ئوقۇرمەن كۆرۈنۈشى، تەرجىمە، بۇزۇلغان بېكەتنى دوكلات قىلىش، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
   <string name="browser_menu_tools_description_with_translate_without_report_site">ئوقۇرمەن كۆرۈنۈشى، تەرجىمە، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
-  <!--
-    Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-    The first parameter is the label of the report site issue (for example: Report Site issue)
-  -->
-  <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">ئوقۇرمەن كۆرۈنۈشى، %s، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_report_site_2">ئوقۇرمەن كۆرۈنۈشى، بۇزۇلغان بېكەتنى دوكلات قىلىش، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -690,16 +680,12 @@
   <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">ئىزدەشنى ئوڭايلا داۋاملاشتۇرىدۇ.</string>
   <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
   <string name="onboarding_save_and_continue_button">ساقلاپ داۋاملاشتۇر</string>
-  <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-  <string name="onboarding_customize_toolbar_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">ئاتلا</string>
   <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_top_option">چوققا</string>
   <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_bottom_option">ئاستى</string>
   <!-- Onboarding toolbar selection card content description for the main image. -->
   <string name="onboarding_customize_toolbar_main_image_content_description">قورال بالداق تاللاش كۆرۈنۈشىدە سۈرەت كۆرسەتمىلىك قورال بالدىقىدا چوڭ ماۋزۇ سۈرىتىنى كۆرسىتىدۇ.</string>
-  <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
-  <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">%1$s قورالبالداقنىڭ سۈرىتى</string>
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">ئاستى قورال بالداقنىڭ سۈرىتى</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">چوققا قورال بالداقنىڭ سۈرىتى</string>
@@ -711,8 +697,6 @@
   <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">سىز ياقتۇرىدىغان رەڭدە تورنى زىيارەت قىلىڭ.</string>
   <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
   <string name="onboarding_save_and_start_button">ساقلاپ كۆز يۈگۈرتۈشنى باشلايدۇ</string>
-  <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-  <string name="onboarding_customize_theme_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">ئاتلا</string>
   <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_dark_option">قاراڭغۇ</string>
   <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -1367,20 +1351,16 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">تەپسىلاتى</string>
   <!-- Dialog message shown after removing a study -->
-  <string name="studies_restart_app" moz:removedIn="135">ئۆزگەرتىشلەرنى قوللىنىش ئۈچۈن ئەپتىن چېكىنىدۇ</string>
+  <string name="studies_restart_app" moz:removedIn="137">ئۆزگەرتىشلەرنى قوللىنىش ئۈچۈن ئەپتىن چېكىنىدۇ</string>
   <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="135">جەزملە</string>
+  <string name="studies_restart_dialog_ok" moz:removedIn="137">جەزملە</string>
   <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="135">ۋاز كەچ</string>
-  <!-- Toast shown after turning on/off studies preferences -->
-  <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">ئۆزگەرتىشنى قوللىنىش ئۈچۈن ئەپتىن چېكىنىۋاتىدۇ…</string>
+  <string name="studies_restart_dialog_cancel" moz:removedIn="137">ۋاز كەچ</string>
   <!--
     Sessions
 
-    Title for the list of tabs
+    Title for the list of tabs in the current private session
   -->
-  <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">بەتكۈچ ئاچ</string>
-  <!-- Title for the list of tabs in the current private session -->
   <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">شەخسىي بەتكۈچ</string>
   <!--
     Title for the list of tabs in the current private session used by a11y services

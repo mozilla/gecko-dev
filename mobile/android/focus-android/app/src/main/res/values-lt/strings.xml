@@ -558,7 +558,7 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Sužinoti daugiau</string>
   <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="135">Norint pritaikyti pakeitimus, programa bus uždaryta</string>
+  <string name="studies_restart_app" moz:removedIn="137">Norint pritaikyti pakeitimus, programa bus uždaryta</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">Pašalinti</string>
   <!-- Title of the active section on the studies list -->

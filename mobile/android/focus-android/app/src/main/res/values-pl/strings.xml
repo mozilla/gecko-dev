@@ -464,7 +464,7 @@
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">Szybka. Prywatna. Skupiona na celu.</string>
   <!-- New Onboarding flow first screen button label -->
-  <string name="onboarding_first_screen_button_text">Pierwsze kroki</string>
+  <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">Pierwsze kroki</string>
   <!--
     Onboarding second screen: Title
 
@@ -717,7 +717,7 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Więcej informacji</string>
   <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="135">Aplikacja zakończy działanie, aby zastosować zmiany</string>
+  <string name="studies_restart_app" moz:removedIn="137">Aplikacja zakończy działanie, aby zastosować zmiany</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">Usuń</string>
   <!-- Title of the active section on the studies list -->

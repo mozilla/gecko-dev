@@ -464,7 +464,7 @@
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">Rapidu. Pruvatu. Senza distrazzione.</string>
   <!-- New Onboarding flow first screen button label -->
-  <string name="onboarding_first_screen_button_text">Principià</string>
+  <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">Principià</string>
   <!--
     Onboarding second screen: Title
 
@@ -717,7 +717,7 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Per sapene di più</string>
   <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="135">L’appiecazione hà da piantà per appiecà i cambiamenti</string>
+  <string name="studies_restart_app" moz:removedIn="137">L’appiecazione hà da piantà per appiecà i cambiamenti</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">Caccià</string>
   <!-- Title of the active section on the studies list -->
