@@ -85,10 +85,13 @@ already_AddRefed<PreloaderBase> PreloadService::PreloadLinkElement(
   aLinkElement->GetImageSizes(sizes);
   aLinkElement->GetHref(url);
   aLinkElement->GetCrossOrigin(crossOrigin);
-  aLinkElement->GetIntegrity(integrity);
   aLinkElement->GetReferrerPolicy(referrerPolicy);
   aLinkElement->GetFetchPriority(fetchPriority);
   aLinkElement->GetRel(rel);
+
+  aLinkElement->GetIntegrity(integrity);
+  integrity =
+      aLinkElement->HasAttr(nsGkAtoms::integrity) ? integrity : VoidString();
 
   nsAutoString nonce;
   if (nsString* cspNonce =
