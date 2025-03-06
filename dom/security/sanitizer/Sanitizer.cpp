@@ -603,6 +603,82 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
   }
 }
 
+// https://wicg.github.io/sanitizer-api/#sanitize-core
+// Step 2.4.6.5. If handleJavascriptNavigationUrls:
+static bool RemoveJavascriptNavigationURLAttribute(Element* aElement,
+                                                   nsAtom* aLocalName,
+                                                   int32_t aNamespaceID) {
+  auto containsJavascriptURL = [&]() {
+    nsAutoString value;
+    if (!aElement->GetAttr(aNamespaceID, aLocalName, value)) {
+      return false;
+    }
+
+    // https://wicg.github.io/sanitizer-api/#contains-a-javascript-url
+    // Step 1. Let url be the result of running the basic URL parser on
+    // attribute’s value.
+    // XXX follow base-uri?
+    nsCOMPtr<nsIURI> uri;
+    if (NS_FAILED(NS_NewURI(getter_AddRefs(uri), value))) {
+      // Step 2. If url is failure, then return false.
+      return false;
+    }
+
+    // Step 3. Return whether url’s scheme is "javascript".
+    return uri->SchemeIs("javascript");
+  };
+
+  // Step 1. If «[elementName, attrName]» matches an entry in the built-in
+  // navigating URL attributes list, and if attribute contains a javascript:
+  // URL, then remove attribute from child.
+  if ((aElement->IsAnyOfHTMLElements(nsGkAtoms::a, nsGkAtoms::area,
+                                     nsGkAtoms::base) &&
+       aLocalName == nsGkAtoms::href && aNamespaceID == kNameSpaceID_None) ||
+      (aElement->IsAnyOfHTMLElements(nsGkAtoms::button, nsGkAtoms::input) &&
+       aLocalName == nsGkAtoms::formaction &&
+       aNamespaceID == kNameSpaceID_None) ||
+      (aElement->IsHTMLElement(nsGkAtoms::form) &&
+       aLocalName == nsGkAtoms::action && aNamespaceID == kNameSpaceID_None) ||
+      (aElement->IsHTMLElement(nsGkAtoms::iframe) &&
+       aLocalName == nsGkAtoms::src && aNamespaceID == kNameSpaceID_None) ||
+      (aElement->IsSVGElement(nsGkAtoms::a) && aLocalName == nsGkAtoms::href &&
+       (aNamespaceID == kNameSpaceID_None ||
+        aNamespaceID == kNameSpaceID_XLink))) {
+    if (containsJavascriptURL()) {
+      return true;
+    }
+  };
+
+  // Step 2. If child’s namespace is the MathML Namespace and attr’s local name
+  // is "href" and attr’s namespace is null or the XLink namespace and attr
+  // contains a javascript: URL, then remove attr.
+  if (aElement->IsMathMLElement() && aLocalName == nsGkAtoms::href &&
+      (aNamespaceID == kNameSpaceID_None ||
+       aNamespaceID == kNameSpaceID_XLink)) {
+    if (containsJavascriptURL()) {
+      return true;
+    }
+  }
+
+  // Step 3. If the built-in animating URL attributes list contains
+  // «[elementName, attrName]» and attr’s value is "href" or "xlink:href", then
+  // remove attr.
+  if (aLocalName == nsGkAtoms::attributeName &&
+      aNamespaceID == kNameSpaceID_None &&
+      aElement->IsAnyOfSVGElements(nsGkAtoms::animate, nsGkAtoms::animateMotion,
+                                   nsGkAtoms::animateTransform,
+                                   nsGkAtoms::set)) {
+    nsAutoString value;
+    if (!aElement->GetAttr(aNamespaceID, aLocalName, value)) {
+      return false;
+    }
+
+    return value.EqualsLiteral("href") || value.EqualsLiteral("xlink:href");
+  }
+
+  return false;
+}
+
 void Sanitizer::SanitizeAttributes(Element* aChild,
                                    const CanonicalName& aElementName,
                                    bool aSafe) {
@@ -668,7 +744,8 @@ void Sanitizer::SanitizeAttributes(Element* aChild,
 
     // Step 5. If handleJavascriptNavigationUrls:
     else if (aSafe) {
-      // TODO
+      remove =
+          RemoveJavascriptNavigationURLAttribute(aChild, attrLocalName, attrNs);
     }
 
     if (remove) {
