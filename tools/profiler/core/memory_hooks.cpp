@@ -551,9 +551,10 @@ static bool replace_moz_enable_deferred_purge(bool aEnable) {
   return gMallocTable.moz_enable_deferred_purge(aEnable);
 }
 
-static purge_result_t replace_moz_may_purge_one_now(bool aPeekOnly,
-                                                    uint32_t aReuseGraceMS) {
-  return gMallocTable.moz_may_purge_one_now(aPeekOnly, aReuseGraceMS);
+static purge_result_t replace_moz_may_purge_now(
+    bool aPeekOnly, uint32_t aReuseGraceMS,
+    const mozilla::Maybe<std::function<bool()>>& aKeepGoing) {
+  return gMallocTable.moz_may_purge_now(aPeekOnly, aReuseGraceMS, aKeepGoing);
 }
 
 // Must come after all the replace_* funcs

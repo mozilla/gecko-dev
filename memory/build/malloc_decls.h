@@ -27,6 +27,15 @@
 #  define MALLOC_FUNCS_ALL \
     (MALLOC_FUNCS_MALLOC | MALLOC_FUNCS_JEMALLOC | MALLOC_FUNCS_ARENA)
 
+// Some malloc operations require extra includes.  Before using this header with
+// MALLOC_FUNCS unset or containing MALLOC_FUNCS_JEMALLOC you must include
+// this header once, outside a struct/class definition and without MALLOC_DECL
+// set and it will include headers it may later need.
+#  if !defined(MALLOC_DECL) && defined(__cplusplus)
+#    include <functional>
+#    include "mozilla/Maybe.h"
+#  endif
+
 #endif  // malloc_decls_h
 
 #ifndef MALLOC_FUNCS
@@ -122,7 +131,7 @@ MALLOC_DECL(moz_set_max_dirty_page_modifier, void, int32_t)
 
 // Enable or disable deferred purging. Returns the former state.
 // If enabled, jemalloc will not purge anything until either
-// jemalloc_free_[excess]_dirty_pages or moz_may_purge_one_now are called
+// jemalloc_free_[excess]_dirty_pages or moz_may_purge_now are called
 // explicitly. Disabling it may cause an immediate synchronous purge of all
 // arenas.
 // Must be called only on the main thread.
@@ -130,7 +139,8 @@ MALLOC_DECL(moz_set_max_dirty_page_modifier, void, int32_t)
 // bool:            enable/disable
 MALLOC_DECL(moz_enable_deferred_purge, bool, bool)
 
-// Execute at most one purge.
+// Perform some purging.
+//
 // Returns a purge_result_t with the following meaning:
 // Done:       Purge has completed for all arenas.
 // NeedsMore:  There may be an arena that needs to be purged now.  The caller
@@ -138,15 +148,24 @@ MALLOC_DECL(moz_enable_deferred_purge, bool, bool)
 // WantsLater: There is at least one arena that might want a purge later,
 //             according to aReuseGraceMS passed.  But none requesting purge
 //             now.
+//
 // Parameters:
-// bool:      If the bool parameter aPeekOnly is true, it won't process
-//            any purge but just return if some is needed now or wanted later.
-// uint32_t:  aReuseGraceMS is the time to wait with purge after a significant
-//            re-use happened for an arena.
+// aPeekOnly:     If true, it won't process any purge but just return if some is
+//                needed now or wanted later.
+// aReuseGraceMS: The time to wait after a significant re-use happened before
+//                purging memory in an arena.
+// aKeepGoing:    Used to determine if it should continue processing purge
+//                requests and may be used to implement a work budget.  It will
+//                exit if there's no more requests, if it finishes processing an
+//                arena or if this parameter returns false.
+//
 // The cost of calling this when there is no pending purge is: a mutex
 // lock/unlock and iterating the list of purges. The mutex is never held during
 // expensive operations.
-MALLOC_DECL(moz_may_purge_one_now, purge_result_t, bool, uint32_t)
+#    ifdef __cplusplus
+MALLOC_DECL(moz_may_purge_now, purge_result_t, bool, uint32_t,
+            const mozilla::Maybe<std::function<bool()>>&)
+#    endif
 
 // Free dirty pages until the max dirty pages threshold is satisfied. Useful
 // after lowering the max dirty pages threshold to get RSS back to normal.
