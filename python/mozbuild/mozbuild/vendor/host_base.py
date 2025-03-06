@@ -10,12 +10,25 @@ import urllib
 
 import mozfile
 import requests
+import urllib3
+
+
+class HttpError(Exception):
+    pass
 
 
 class BaseHost:
-    def __init__(self, manifest):
+    MAX_RETRIES_DEFAULT = urllib3.util.Retry(
+        total=5, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504]
+    )
+
+    def __init__(self, manifest, max_retries=MAX_RETRIES_DEFAULT):
         self.manifest = manifest
         self.repo_url = urllib.parse.urlparse(self.manifest["vendoring"]["url"])
+        adapter = requests.adapters.HTTPAdapter(max_retries=max_retries)
+        self.session = requests.Session()
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
 
     def upstream_tag(self, revision):
         """Temporarily clone the repo to get the latest tag and timestamp"""
@@ -86,9 +99,11 @@ class BaseHost:
         shutil.copy2(from_file.name, destination)
 
     def download_single_file(self, url, destination):
+        response = self.session.get(url, stream=True)
+        if response.status_code != 200:
+            raise HttpError(response.status_code, url)
         with mozfile.NamedTemporaryFile() as tmpfile:
-            req = requests.get(url, stream=True)
-            for data in req.iter_content(4096):
+            for data in response.iter_content(4096):
                 tmpfile.write(data)
 
             tmpfile.seek(0)
