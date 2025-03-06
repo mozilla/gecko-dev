@@ -182,8 +182,10 @@ add_task(async function () {
     await Services.search.removeEngine(engine);
   }
 
-  // Let the dialog fully close.
-  await new Promise(r => setTimeout(r));
+  // Let the dialog fully close. Otherwise, the tab cannot be closed properly.
+  await TestUtils.waitForCondition(
+    () => !document.documentElement.hasAttribute("window-modal-open")
+  );
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
 
