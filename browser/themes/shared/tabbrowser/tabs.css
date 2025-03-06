@@ -218,7 +218,7 @@
     display: block;
   }
 
-  #tabbrowser-tabs[movingtab] &:is([selected], [multiselected]) {
+  #tabbrowser-tabs[movingtab] &:is(:active, [multiselected]) {
     position: relative;
     z-index: 2;
     pointer-events: none; /* avoid blocking dragover events on scroll buttons */
@@ -838,7 +838,7 @@
       display: flex;
     }
 
-    #tabbrowser-tabs[movingtab] &:is([selected],[multiselected]) {
+    #tabbrowser-tabs[movingtab] &:is(:active,[multiselected]) {
       display: flex;
       background-color: light-dark(var(--dragover-tab-group-color), var(--dragover-tab-group-color-invert));
       border-radius: 1px;
@@ -901,6 +901,11 @@
 }
 
 .tab-group-label-container {
+  #tabbrowser-tabs[movingtab] &:active {
+    position: relative;
+    z-index: 2;
+    pointer-events: none; /* avoid blocking dragover events on scroll buttons */
+  }
   @media (prefers-reduced-motion: no-preference) {
     #tabbrowser-tabs[movingtab] &,
     &[multiselected-move-together],
@@ -995,6 +1000,14 @@
     outline: var(--focus-outline);
     outline-offset: var(--focus-outline-offset);
   }
+}
+
+#tab-drag-empty-feedback {
+  background: rgba(0,0,0,0.01);
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  pointer-events: none;
 }
 
 .tab-group-editor-panel {
