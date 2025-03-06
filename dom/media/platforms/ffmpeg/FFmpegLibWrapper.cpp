@@ -246,6 +246,8 @@ FFmpegLibWrapper::LinkResult FFmpegLibWrapper::Link() {
   AV_FUNC(av_opt_set, AV_FUNC_AVUTIL_ALL)
   AV_FUNC(av_opt_set_double, AV_FUNC_AVUTIL_ALL)
   AV_FUNC(av_opt_set_int, AV_FUNC_AVUTIL_ALL)
+  AV_FUNC(avcodec_free_context,
+          AV_FUNC_57 | AV_FUNC_58 | AV_FUNC_59 | AV_FUNC_60 | AV_FUNC_61)
   AV_FUNC_OPTION_SILENT(avcodec_get_hw_config,
                         AV_FUNC_58 | AV_FUNC_59 | AV_FUNC_60 | AV_FUNC_61)
   AV_FUNC_OPTION_SILENT(av_codec_is_decoder,

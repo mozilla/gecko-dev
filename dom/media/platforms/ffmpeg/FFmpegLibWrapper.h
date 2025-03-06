@@ -105,6 +105,7 @@ struct MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS FFmpegLibWrapper {
   // libavcodec >= v57
   void (*av_packet_unref)(AVPacket* pkt);
   void (*av_packet_free)(AVPacket** pkt);
+  void (*avcodec_free_context)(AVCodecContext** avctx);
 
   // libavcodec >= 61
   AVPacket* (*av_packet_alloc)();

@@ -277,8 +277,12 @@ void FFmpegDataDecoder<LIBAV_VER>::ProcessShutdown() {
     if (mCodecContext->extradata) {
       mLib->av_freep(&mCodecContext->extradata);
     }
+#if LIBAVCODEC_VERSION_MAJOR < 57
     mLib->avcodec_close(mCodecContext);
     mLib->av_freep(&mCodecContext);
+#else
+    mLib->avcodec_free_context(&mCodecContext);
+#endif
 #if LIBAVCODEC_VERSION_MAJOR >= 55
     mLib->av_frame_free(&mFrame);
 #elif LIBAVCODEC_VERSION_MAJOR == 54
