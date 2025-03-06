@@ -364,7 +364,7 @@ def test_task_to_skip_if():
     skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
     assert (
         skip_if
-        == "os == 'mac' && os_version == '11.20' && processor == 'aarch64' && debug && swgl"
+        == "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && debug && swgl"
     )
 
     # Do not include build type or test variant if everything failed

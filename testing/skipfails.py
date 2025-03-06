@@ -1320,7 +1320,14 @@ class Skipfails(object):
 
         processor = extra.arch
         if skip_if is not None and kind != Kind.LIST:
-            if processor is not None:
+            # Rosetta specific hack for macos 11.20
+            if (
+                extra.os == "mac"
+                and extra.os_version == "11.20"
+                and processor == "aarch64"
+            ):
+                skip_if += aa + "arch" + eq + qq + processor + qq
+            elif processor is not None:
                 skip_if += aa + "processor" + eq + qq + processor + qq
 
             failure_key = os + os_version + processor + manifest + file_path
@@ -1334,9 +1341,7 @@ class Skipfails(object):
                     .get(processor, None)
                 )
 
-                self.failed_platforms[failure_key] = FailedPlatform(
-                    permutations
-                )
+                self.failed_platforms[failure_key] = FailedPlatform(permutations)
 
             build_types = extra.build_type
             skip_if += self.failed_platforms[failure_key].get_skip_string(
