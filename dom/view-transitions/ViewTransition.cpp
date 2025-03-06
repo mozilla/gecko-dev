@@ -171,11 +171,16 @@ struct CapturedElementOldState {
   // Encompasses width and height.
   nsSize mSize;
   CSSToCSSMatrix4x4Flagged mTransform;
-  // Encompasses writing-mode / direction / text-orientation.
-  WritingMode mWritingMode;
+  StyleWritingModeProperty mWritingMode =
+      StyleWritingModeProperty::HorizontalTb;
+  StyleDirection mDirection = StyleDirection::Ltr;
+  StyleTextOrientation mTextOrientation = StyleTextOrientation::Mixed;
   StyleBlend mMixBlendMode = StyleBlend::Normal;
   StyleOwnedSlice<StyleFilter> mBackdropFilters;
-  StyleColorSchemeFlags mColorScheme{0};
+  // Note: it's unfortunate we cannot just store the bits here. color-scheme
+  // property uses idents for serialization. If the idents and bits are not
+  // aligned, we assert it in ToCSS.
+  StyleColorScheme mColorScheme;
 
   CapturedElementOldState(nsIFrame* aFrame,
                           const nsSize& aSnapshotContainingBlockSize)
@@ -185,10 +190,12 @@ struct CapturedElementOldState {
                   ? aSnapshotContainingBlockSize
                   : aFrame->GetRect().Size()),
         mTransform(EffectiveTransform(aFrame)),
-        mWritingMode(aFrame->GetWritingMode()),
+        mWritingMode(aFrame->StyleVisibility()->mWritingMode),
+        mDirection(aFrame->StyleVisibility()->mDirection),
+        mTextOrientation(aFrame->StyleVisibility()->mTextOrientation),
         mMixBlendMode(aFrame->StyleEffects()->mMixBlendMode),
         mBackdropFilters(aFrame->StyleEffects()->mBackdropFilters),
-        mColorScheme(aFrame->StyleUI()->mColorScheme.bits) {}
+        mColorScheme(aFrame->StyleUI()->mColorScheme) {}
 
   CapturedElementOldState() = default;
 };
@@ -527,6 +534,42 @@ static bool SetProp(StyleLockedDeclarationBlock* aDecls, Document*,
   return Servo_DeclarationBlock_SetTransform(aDecls, aProp, &ops);
 }
 
+static bool SetProp(StyleLockedDeclarationBlock* aDecls, Document* aDoc,
+                    nsCSSPropertyID aProp, const StyleWritingModeProperty aWM) {
+  return Servo_DeclarationBlock_SetKeywordValue(aDecls, aProp, (int32_t)aWM);
+}
+
+static bool SetProp(StyleLockedDeclarationBlock* aDecls, Document* aDoc,
+                    nsCSSPropertyID aProp, const StyleDirection aDirection) {
+  return Servo_DeclarationBlock_SetKeywordValue(aDecls, aProp,
+                                                (int32_t)aDirection);
+}
+
+static bool SetProp(StyleLockedDeclarationBlock* aDecls, Document* aDoc,
+                    nsCSSPropertyID aProp,
+                    const StyleTextOrientation aTextOrientation) {
+  return Servo_DeclarationBlock_SetKeywordValue(aDecls, aProp,
+                                                (int32_t)aTextOrientation);
+}
+
+static bool SetProp(StyleLockedDeclarationBlock* aDecls, Document* aDoc,
+                    nsCSSPropertyID aProp, const StyleBlend aBlend) {
+  return Servo_DeclarationBlock_SetKeywordValue(aDecls, aProp, (int32_t)aBlend);
+}
+
+static bool SetProp(
+    StyleLockedDeclarationBlock* aDecls, Document*, nsCSSPropertyID aProp,
+    const StyleOwnedSlice<mozilla::StyleFilter>& aBackdropFilters) {
+  return Servo_DeclarationBlock_SetBackdropFilter(aDecls, aProp,
+                                                  &aBackdropFilters);
+}
+
+static bool SetProp(StyleLockedDeclarationBlock* aDecls, Document*,
+                    nsCSSPropertyID aProp,
+                    const StyleColorScheme& aColorScheme) {
+  return Servo_DeclarationBlock_SetColorScheme(aDecls, aProp, &aColorScheme);
+}
+
 static StyleLockedDeclarationBlock* EnsureRule(
     RefPtr<StyleLockedDeclarationBlock>& aRule) {
   if (!aRule) {
@@ -680,8 +723,18 @@ void ViewTransition::SetupTransitionPseudoElements() {
               eCSSUnit_Pixel);
       SetProp(rule, mDocument, eCSSProperty_transform,
               capturedElement.mOldState.mTransform);
-      // TODO: writing-mode, direction, text-orientation, mix-blend-mode,
-      // backdrop-filter, color-scheme.
+      SetProp(rule, mDocument, eCSSProperty_writing_mode,
+              capturedElement.mOldState.mWritingMode);
+      SetProp(rule, mDocument, eCSSProperty_direction,
+              capturedElement.mOldState.mDirection);
+      SetProp(rule, mDocument, eCSSProperty_text_orientation,
+              capturedElement.mOldState.mTextOrientation);
+      SetProp(rule, mDocument, eCSSProperty_mix_blend_mode,
+              capturedElement.mOldState.mMixBlendMode);
+      SetProp(rule, mDocument, eCSSProperty_backdrop_filter,
+              capturedElement.mOldState.mBackdropFilters);
+      SetProp(rule, mDocument, eCSSProperty_color_scheme,
+              capturedElement.mOldState.mColorScheme);
     }
     // If both of capturedElement's old image and new element are not null,
     // then:
@@ -755,14 +808,25 @@ bool ViewTransition::UpdatePseudoElementStyles(bool aNeedsInvalidation) {
     auto size = CSSPixel::FromAppUnits(newRect);
     // NOTE(emilio): Intentionally not short-circuiting. Int cast is needed to
     // silence warning.
-    bool groupStyleChanged = int(SetProp(rule, mDocument, eCSSProperty_width,
-                                         size.width, eCSSUnit_Pixel)) |
-                             SetProp(rule, mDocument, eCSSProperty_height,
-                                     size.height, eCSSUnit_Pixel) |
-                             SetProp(rule, mDocument, eCSSProperty_transform,
-                                     EffectiveTransform(frame));
-    // TODO: writing-mode, direction, text-orientation, mix-blend-mode,
-    // backdrop-filter, color-scheme.
+    bool groupStyleChanged =
+        int(SetProp(rule, mDocument, eCSSProperty_width, size.width,
+                    eCSSUnit_Pixel)) |
+        SetProp(rule, mDocument, eCSSProperty_height, size.height,
+                eCSSUnit_Pixel) |
+        SetProp(rule, mDocument, eCSSProperty_transform,
+                EffectiveTransform(frame)) |
+        SetProp(rule, mDocument, eCSSProperty_writing_mode,
+                frame->StyleVisibility()->mWritingMode) |
+        SetProp(rule, mDocument, eCSSProperty_direction,
+                frame->StyleVisibility()->mDirection) |
+        SetProp(rule, mDocument, eCSSProperty_text_orientation,
+                frame->StyleVisibility()->mTextOrientation) |
+        SetProp(rule, mDocument, eCSSProperty_mix_blend_mode,
+                frame->StyleEffects()->mMixBlendMode) |
+        SetProp(rule, mDocument, eCSSProperty_backdrop_filter,
+                frame->StyleEffects()->mBackdropFilters) |
+        SetProp(rule, mDocument, eCSSProperty_color_scheme,
+                frame->StyleUI()->mColorScheme);
     if (groupStyleChanged && aNeedsInvalidation) {
       auto* pseudo = FindPseudo(PseudoStyleRequest(
           PseudoStyleType::viewTransitionGroup, transitionName));

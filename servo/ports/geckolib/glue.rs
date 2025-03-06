@@ -5400,7 +5400,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(
     declarations: &LockedDeclarationBlock,
     property: nsCSSPropertyID,
     value: i32,
-) {
+) -> bool {
     use num_traits::FromPrimitive;
     use style::properties::longhands;
     use style::properties::PropertyDeclaration;
@@ -5457,10 +5457,18 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(
             debug_assert_eq!(value, 0);
             TextTransform::NONE
         },
+        WritingMode => get_from_computed::<longhands::writing_mode::SpecifiedValue>(value),
+        TextOrientation => get_from_computed::<longhands::text_orientation::SpecifiedValue>(value),
+        MixBlendMode => get_from_computed::<longhands::mix_blend_mode::SpecifiedValue>(value),
     };
-    write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-        decls.push(prop, Importance::Normal);
-    })
+    let mut source_declarations = SourcePropertyDeclaration::with_one(prop);
+    set_property_to_declarations(
+        Some(long.into()),
+        declarations,
+        &mut source_declarations,
+        NO_MUTATION_CLOSURE,
+        Importance::Normal,
+    )
 }
 
 #[no_mangle]
@@ -5698,6 +5706,51 @@ pub extern "C" fn Servo_DeclarationBlock_SetTransform(
     let v = GenericTransform(ops.iter().map(ToComputedValue::from_computed_value).collect());
     let prop = match_wrap_declared! { long,
         Transform => v,
+    };
+    let mut source_declarations = SourcePropertyDeclaration::with_one(prop);
+    set_property_to_declarations(
+        Some(long.into()),
+        declarations,
+        &mut source_declarations,
+        NO_MUTATION_CLOSURE,
+        Importance::Normal,
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_SetBackdropFilter(
+    declarations: &LockedDeclarationBlock,
+    property: nsCSSPropertyID,
+    filters: &style::OwnedSlice<Filter>,
+) -> bool {
+    use style::properties::longhands::backdrop_filter::SpecifiedValue as BackdropFilters;
+    use style::properties::PropertyDeclaration;
+    let long = get_longhand_from_id!(property);
+    let v = BackdropFilters(filters.iter().map(ToComputedValue::from_computed_value).collect());
+    let prop = match_wrap_declared! { long,
+        BackdropFilter => v,
+    };
+    let mut source_declarations = SourcePropertyDeclaration::with_one(prop);
+    set_property_to_declarations(
+        Some(long.into()),
+        declarations,
+        &mut source_declarations,
+        NO_MUTATION_CLOSURE,
+        Importance::Normal,
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_SetColorScheme(
+    declarations: &LockedDeclarationBlock,
+    property: nsCSSPropertyID,
+    color_scheme: &style::values::computed::ColorScheme,
+) -> bool {
+    use style::values::specified::ColorScheme;
+    use style::properties::PropertyDeclaration;
+    let long = get_longhand_from_id!(property);
+    let prop = match_wrap_declared! { long,
+        ColorScheme => ColorScheme::from_computed_value(color_scheme),
     };
     let mut source_declarations = SourcePropertyDeclaration::with_one(prop);
     set_property_to_declarations(
