@@ -2975,8 +2975,6 @@ interface nsIServiceWorkerManager extends nsISupports {
   getAllRegistrations(): nsIArray;
   removeRegistrationsByOriginAttributes(aOriginAttributes: string): void;
   propagateUnregister(aPrincipal: nsIPrincipal, aCallback: nsIServiceWorkerUnregisterCallback, aScope: string): void;
-  sendNotificationClickEvent(aOriginSuffix: string, scope: string, aID: string, aTitle: string, aDir: string, aLang: string, aBody: string, aTag: string, aIcon: string, aData: string): void;
-  sendNotificationCloseEvent(aOriginSuffix: string, scope: string, aID: string, aTitle: string, aDir: string, aLang: string, aBody: string, aTag: string, aIcon: string, aData: string): void;
   sendPushEvent(aOriginAttributes: string, aScope: string, aDataBytes?: u8[]): void;
   sendPushSubscriptionChangeEvent(aOriginAttributes: string, scope: string, aOldSubscription?: nsIPushSubscription): void;
   addListener(aListener: nsIServiceWorkerManagerListener): void;
@@ -3274,13 +3272,31 @@ interface nsIUDPSocketInternal extends nsISupports {
 
 // https://searchfox.org/mozilla-central/source/dom/interfaces/notification/nsINotificationStorage.idl
 
-interface nsINotificationStorageCallback extends nsISupports {
-  handle(id: string, title: string, dir: string, lang: string, body: string, tag: string, icon: string, data: string, serviceWorkerRegistrationScope: string): void;
-  done(): void;
+interface nsINotificationActionStorageEntry extends nsISupports {
+  readonly name: string;
+  readonly title: string;
 }
 
+interface nsINotificationStorageEntry extends nsISupports {
+  readonly id: string;
+  readonly title: string;
+  readonly dir: string;
+  readonly lang: string;
+  readonly body: string;
+  readonly tag: string;
+  readonly icon: string;
+  readonly requireInteraction: boolean;
+  readonly silent: boolean;
+  readonly dataSerialized: string;
+  readonly actions: nsINotificationActionStorageEntry[];
+}
+
+type nsINotificationStorageCallback = Callable<{
+  done(aEntries: nsINotificationStorageEntry[]): void;
+}>
+
 interface nsINotificationStorage extends nsISupports {
-  put(origin: string, id: string, title: string, dir: string, lang: string, body: string, tag: string, icon: string, data: string, serviceWorkerRegistrationScope: string): void;
+  put(aOrigin: string, aEntry: nsINotificationStorageEntry, aScope: string): void;
   get(origin: string, scope: string, tag: string, aCallback: nsINotificationStorageCallback): void;
   delete(origin: string, id: string): void;
 }
@@ -15322,6 +15338,8 @@ interface nsIXPCComponents_Interfaces {
   nsIMediaManagerService: nsJSIID<nsIMediaManagerService>;
   nsITCPSocketCallback: nsJSIID<nsITCPSocketCallback>;
   nsIUDPSocketInternal: nsJSIID<nsIUDPSocketInternal>;
+  nsINotificationActionStorageEntry: nsJSIID<nsINotificationActionStorageEntry>;
+  nsINotificationStorageEntry: nsJSIID<nsINotificationStorageEntry>;
   nsINotificationStorageCallback: nsJSIID<nsINotificationStorageCallback>;
   nsINotificationStorage: nsJSIID<nsINotificationStorage>;
   nsIPaymentResponseData: nsJSIID<nsIPaymentResponseData>;

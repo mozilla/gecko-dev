@@ -2270,7 +2270,13 @@ interface NetErrorInfo {
     responseStatusText?: string;
 }
 
+interface NotificationAction {
+    action: string;
+    title: string;
+}
+
 interface NotificationOptions {
+    actions?: NotificationAction[];
     body?: string;
     data?: any;
     dir?: NotificationDirection;
@@ -14571,6 +14577,7 @@ interface NotificationEventMap {
 }
 
 interface Notification extends EventTarget {
+    readonly actions: NotificationAction[];
     readonly body: string | null;
     readonly data: any;
     readonly dir: NotificationDirection;
@@ -14596,6 +14603,7 @@ declare var Notification: {
     prototype: Notification;
     new(title: string, options?: NotificationOptions): Notification;
     isInstance: IsInstance<Notification>;
+    readonly maxActions: number;
     readonly permission: NotificationPermission;
     requestPermission(permissionCallback?: NotificationPermissionCallback): Promise<NotificationPermission>;
 };
