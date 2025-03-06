@@ -70,6 +70,7 @@
 #include "IPv4Parser.h"
 #include "ssl.h"
 #include "StaticComponents.h"
+#include "SuspendableChannelWrapper.h"
 
 #ifdef MOZ_WIDGET_ANDROID
 #  include <regex>
@@ -1285,6 +1286,17 @@ nsIOService::NewChannel(const nsACString& aSpec, const char* aCharset,
   return NewChannelFromURI(uri, aLoadingNode, aLoadingPrincipal,
                            aTriggeringPrincipal, aSecurityFlags,
                            aContentPolicyType, result);
+}
+
+NS_IMETHODIMP
+nsIOService::NewSuspendableChannelWrapper(
+    nsIChannel* aInnerChannel, nsISuspendableChannelWrapper** result) {
+  NS_ENSURE_ARG_POINTER(aInnerChannel);
+
+  nsCOMPtr<nsISuspendableChannelWrapper> wrapper =
+      new SuspendableChannelWrapper(aInnerChannel);
+  wrapper.forget(result);
+  return NS_OK;
 }
 
 NS_IMETHODIMP

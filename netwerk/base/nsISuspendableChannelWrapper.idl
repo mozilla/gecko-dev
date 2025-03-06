@@ -1,0 +1,19 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsIChannel.idl"
+
+/**
+ * An nsISuspendableChannelWrapper is an nsIChannel that will forward calls to
+ * an inner channel (passed in at initialization), but allows suspend() and
+ * resume() to be called before asyncOpen() is called. If the
+ * nsISuspendableChannelWrapper is fully resumed after asyncOpen() is called,
+ * the wrapped channel will have asyncOpen() called on it.
+ *
+ * An nsISuspendableChannelWrapper cannot be opened synchronously.
+ */
+[scriptable, builtinclass, uuid(317c1a44-2a66-4a30-9769-5e8489a64859)]
+interface nsISuspendableChannelWrapper : nsIChannel
+{
+};

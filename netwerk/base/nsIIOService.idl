@@ -13,6 +13,7 @@ interface nsIFile;
 interface nsIPrincipal;
 interface nsILoadInfo;
 interface nsIWebTransport;
+interface nsISuspendableChannelWrapper;
 
 webidl Node;
 
@@ -161,6 +162,14 @@ interface nsIIOService : nsISupports
                           in nsIPrincipal aTriggeringPrincipal,
                           in unsigned long aSecurityFlags,
                           in nsContentPolicyType aContentPolicyType);
+
+    /**
+     * Creates a channel that wraps an innerChannel. The
+     * nsISuspendableChannelWrapper can be suspended before asyncOpen is called
+     * on it. Beyond suspend(), resume() and asyncOpen(), all other calls are
+     * forwarded to the innerChannel.
+     */
+    nsISuspendableChannelWrapper newSuspendableChannelWrapper(in nsIChannel innerChannel);
 
     /**
      * Creates a WebTransport.

@@ -1203,6 +1203,8 @@ fail-if = ["os == 'android'"]
 
 ["test_suspend_channel_on_modified.js"]
 
+["test_suspendable_channel_wrapper.js"]
+
 ["test_synthesized_response.js"]
 
 ["test_throttlechannel.js"]
