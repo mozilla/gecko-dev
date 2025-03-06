@@ -47,7 +47,10 @@ add_task(async function test() {
     { gBrowser, url: "about:blank" },
     async function (browser) {
       await SpecialPowers.pushPrefEnv({
-        set: [["pdfjs.annotationEditorMode", 0]],
+        set: [
+          ["pdfjs.annotationEditorMode", 0],
+          ["pdfjs.enableUpdatedAddImage", false],
+        ],
       });
 
       Services.fog.testResetFOG();
