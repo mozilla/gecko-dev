@@ -58,6 +58,7 @@ const {
   createFactory,
 } = require("resource://devtools/client/shared/vendor/react.js");
 const {
+  code,
   div,
   label,
   input,
@@ -463,7 +464,13 @@ class Settings extends PureComponent {
             !isSupported && featureDescription.experimental
               ? // Note when unsupported features are experimental.
                 `${name} (Experimental)`
-              : name
+              : name,
+            span(
+              { className: "perf-toggle-feature-value" },
+              "(",
+              code(null, value),
+              ")"
+            )
           ),
           div(
             { className: "perf-toggle-description" },

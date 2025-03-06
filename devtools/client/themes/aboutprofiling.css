@@ -39,7 +39,13 @@
 
 .perf-toggle-text-label {
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  gap: 1em;
+}
+
+.perf-toggle-feature-value {
+  font-size: 11px;
+  color: var(--text-color-deemphasized);
 }
 
 .perf-toggle-description {
