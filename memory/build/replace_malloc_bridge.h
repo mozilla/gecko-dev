@@ -61,9 +61,6 @@ MOZ_BEGIN_EXTERN_C
 MFBT_API ReplaceMallocBridge* get_bridge();
 #endif
 
-// Include once without MALLOC_DECL set so it can include other headers.
-#include "malloc_decls.h"
-
 // Table of malloc functions.
 //   e.g. void* (*malloc)(size_t), etc.
 

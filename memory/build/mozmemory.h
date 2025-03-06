@@ -20,12 +20,10 @@
 #ifdef MALLOC_H
 #  include MALLOC_H
 #endif
-
 #include "mozmemory_wrap.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Types.h"
 #include "mozjemalloc_types.h"
-#include "malloc_decls.h"
 #include "stdbool.h"
 
 #ifdef MOZ_MEMORY

@@ -27,15 +27,6 @@
 #  define MALLOC_FUNCS_ALL \
     (MALLOC_FUNCS_MALLOC | MALLOC_FUNCS_JEMALLOC | MALLOC_FUNCS_ARENA)
 
-// Some malloc operations require extra includes.  Before using this header with
-// MALLOC_FUNCS unset or containing MALLOC_FUNCS_JEMALLOC you must include
-// this header once, outside a struct/class definition and without MALLOC_DECL
-// set and it will include headers it may later need.
-#  if !defined(MALLOC_DECL) && defined(__cplusplus)
-#    include <functional>
-#    include "mozilla/Maybe.h"
-#  endif
-
 #endif  // malloc_decls_h
 
 #ifndef MALLOC_FUNCS
@@ -124,49 +115,6 @@ MALLOC_DECL(jemalloc_purge_freed_pages, void)
 // that are not created with ARENA_FLAG_THREAD_MAIN_THREAD_ONLY will be purged.
 MALLOC_DECL(jemalloc_free_dirty_pages, void)
 
-// Set the default modifier for mMaxDirty. The value is the number of shifts
-// applied to the value. Positive value is handled as <<, negative >>.
-// Arenas may override the default modifier.
-MALLOC_DECL(moz_set_max_dirty_page_modifier, void, int32_t)
-
-// Enable or disable deferred purging. Returns the former state.
-// If enabled, jemalloc will not purge anything until either
-// jemalloc_free_[excess]_dirty_pages or moz_may_purge_now are called
-// explicitly. Disabling it may cause an immediate synchronous purge of all
-// arenas.
-// Must be called only on the main thread.
-// Parameters:
-// bool:            enable/disable
-MALLOC_DECL(moz_enable_deferred_purge, bool, bool)
-
-// Perform some purging.
-//
-// Returns a purge_result_t with the following meaning:
-// Done:       Purge has completed for all arenas.
-// NeedsMore:  There may be an arena that needs to be purged now.  The caller
-//             may call moz_may_purge_one_now again.
-// WantsLater: There is at least one arena that might want a purge later,
-//             according to aReuseGraceMS passed.  But none requesting purge
-//             now.
-//
-// Parameters:
-// aPeekOnly:     If true, it won't process any purge but just return if some is
-//                needed now or wanted later.
-// aReuseGraceMS: The time to wait after a significant re-use happened before
-//                purging memory in an arena.
-// aKeepGoing:    Used to determine if it should continue processing purge
-//                requests and may be used to implement a work budget.  It will
-//                exit if there's no more requests, if it finishes processing an
-//                arena or if this parameter returns false.
-//
-// The cost of calling this when there is no pending purge is: a mutex
-// lock/unlock and iterating the list of purges. The mutex is never held during
-// expensive operations.
-#    ifdef __cplusplus
-MALLOC_DECL(moz_may_purge_now, purge_result_t, bool, uint32_t,
-            const mozilla::Maybe<std::function<bool()>>&)
-#    endif
-
 // Free dirty pages until the max dirty pages threshold is satisfied. Useful
 // after lowering the max dirty pages threshold to get RSS back to normal.
 // This behaves just like a synchronous purge on all arenas.
@@ -187,6 +135,7 @@ MALLOC_DECL(jemalloc_ptr_info, void, const void*, jemalloc_ptr_info_t*)
 #  endif
 
 #  if MALLOC_FUNCS & MALLOC_FUNCS_ARENA_BASE
+
 // Creates a separate arena, and returns its id, valid to use with moz_arena_*
 // functions. A helper is provided in mozmemory.h that doesn't take any
 // arena_params_t: moz_create_arena.
@@ -196,6 +145,38 @@ MALLOC_DECL(moz_create_arena_with_params, arena_id_t, arena_params_t*)
 // Passing an invalid id (inexistent or already disposed) to this function
 // will crash. The arena must be empty prior to calling this function.
 MALLOC_DECL(moz_dispose_arena, void, arena_id_t)
+
+// Set the default modifier for mMaxDirty. The value is the number of shifts
+// applied to the value. Positive value is handled as <<, negative >>.
+// Arenas may override the default modifier.
+MALLOC_DECL(moz_set_max_dirty_page_modifier, void, int32_t)
+
+// Enable or disable deferred purging. Returns the former state.
+// If enabled, jemalloc will not purge anything until either
+// jemalloc_free_[excess]_dirty_pages or moz_may_purge_one_now are called
+// explicitly. Disabling it may cause an immediate synchronous purge of all
+// arenas.
+// Must be called only on the main thread.
+// Parameters:
+// bool:            enable/disable
+MALLOC_DECL(moz_enable_deferred_purge, bool, bool)
+
+// Execute at most one purge.
+// Returns a purge_result_t with the following meaning:
+// Done:       Purge has completed for all arenas.
+// NeedsMore:  There is at least one arena that needs to be purged now.
+// WantsLater: There is at least one arena that might want a purge later,
+//             according to aReuseGraceMS passed.
+// Parameters:
+// bool:      If the bool parameter aPeekOnly is true, it won't process
+//            any purge but just return if some is needed now or wanted later.
+// uint32_t:  aReuseGraceMS is the time to wait with purge after a significant
+//            re-use happened for an arena.
+// The cost of calling this when there is no pending purge is minimal: a mutex
+// lock/unlock and an isEmpty check. Note that the mutex is never held during
+// expensive operations and guards only that list.
+MALLOC_DECL(moz_may_purge_one_now, purge_result_t, bool, uint32_t)
+
 #  endif
 
 #  if MALLOC_FUNCS & MALLOC_FUNCS_ARENA_ALLOC

@@ -10,7 +10,6 @@
 #include <errno.h>
 
 #include "mozjemalloc_types.h"
-#include "malloc_decls.h"
 #include "mozilla/MacroArgs.h"
 
 // Macro helpers
@@ -172,9 +171,8 @@ struct DummyArenaAllocator {
 
   static bool moz_enable_deferred_purge(bool aEnable) { return false; }
 
-  static purge_result_t moz_may_purge_now(
-      bool aPeekOnly, uint32_t aReuseGraceMS,
-      const mozilla::Maybe<std::function<bool()>>& aKeepGoing) {
+  static purge_result_t moz_may_purge_one_now(bool aPeekOnly,
+                                              uint32_t aReuseGraceMS) {
     return purge_result_t::Done;
   }
 

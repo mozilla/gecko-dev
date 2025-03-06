@@ -1721,28 +1721,22 @@ class ArenaCollection {
   // Execute all outstanding purge requests, if any.
   void MayPurgeAll(bool aForce);
 
-  // Purge some dirty memory, based on purge requests, returns true if there are
-  // more to process.
-  //
+  // Execute at most one request.
   // Returns a purge_result_t with the following meaning:
   // Done:       Purge has completed for all arenas.
-  // NeedsMore:  There may be some arenas that needs to be purged now.
+  // NeedsMore:  There is at least one arena that needs to be purged now.
   // WantsLater: There is at least one arena that might want a purge later,
   //             according to aReuseGraceMS.
   //
   // Parameters:
-  // aPeekOnly:     If true, check only if there is work to do without doing it.
-  // aReuseGraceMS: The time to wait with purge after a
-  //                significant re-use happened for an arena.
-  // aKeepGoing:    If this returns false purging will cease.
+  // aPeekOnly: If true, check only if there is work to do without doing it.
+  // uint32_t:  aReuseGraceMS is the time to wait with purge after a
+  //            significant re-use happened for an arena.
   //
-  // This could exit for 3 different reasons.
-  //  - There are no more requests (it returns false)
-  //  - There are more requests but aKeepGoing() returned false. (returns true)
-  //  - One arena is completely purged, (returns true).
-  //
-  purge_result_t MayPurgeSteps(bool aPeekOnly, uint32_t aReuseGraceMS,
-                               const Maybe<std::function<bool()>>& aKeepGoing);
+  // Note that this executes at most one call to arena_t::Purge for at most
+  // one arena, which will purge at most one chunk from that arena. This is the
+  // smallest possible fraction we can purge currently.
+  purge_result_t MayPurgeStep(bool aPeekOnly, uint32_t aReuseGraceMS);
 
  private:
   const static arena_id_t MAIN_THREAD_ARENA_BIT = 0x1;
@@ -5977,10 +5971,9 @@ inline bool MozJemalloc::moz_enable_deferred_purge(bool aEnabled) {
   return gArenas.SetDeferredPurge(aEnabled);
 }
 
-inline purge_result_t MozJemalloc::moz_may_purge_now(
-    bool aPeekOnly, uint32_t aReuseGraceMS,
-    const Maybe<std::function<bool()>>& aKeepGoing) {
-  return gArenas.MayPurgeSteps(aPeekOnly, aReuseGraceMS, aKeepGoing);
+inline purge_result_t MozJemalloc::moz_may_purge_one_now(
+    bool aPeekOnly, uint32_t aReuseGraceMS) {
+  return gArenas.MayPurgeStep(aPeekOnly, aReuseGraceMS);
 }
 
 inline void ArenaCollection::AddToOutstandingPurges(arena_t* aArena) {
@@ -6005,9 +5998,8 @@ inline void ArenaCollection::RemoveFromOutstandingPurges(arena_t* aArena) {
   }
 }
 
-purge_result_t ArenaCollection::MayPurgeSteps(
-    bool aPeekOnly, uint32_t aReuseGraceMS,
-    const Maybe<std::function<bool()>>& aKeepGoing) {
+purge_result_t ArenaCollection::MayPurgeStep(bool aPeekOnly,
+                                             uint32_t aReuseGraceMS) {
   // If we'd want to allow to call this from non-main threads, we would need
   // to ensure that arenas cannot be disposed while here, see bug 1364359.
   MOZ_ASSERT(IsOnMainThreadWeak());
@@ -6026,31 +6018,24 @@ purge_result_t ArenaCollection::MayPurgeSteps(
         break;
       }
     }
-
     if (!found) {
       return purge_result_t::WantsLater;
     }
-    if (aPeekOnly) {
+    if (aPeekOnly && found) {
       return purge_result_t::NeedsMore;
     }
-
-    // We need to avoid the invalid state where mIsDeferredPurgePending is set
-    // but the arena is not in the list or about to be added. So remove the
-    // arena from the list before calling Purge().
-    mOutstandingPurges.remove(found);
   }
 
-  bool more_pages;
-  do {
-    more_pages = found->Purge(false);
-  } while (more_pages && aKeepGoing && (*aKeepGoing)());
-
-  if (more_pages) {
+  // We need to avoid to exit in a state where mIsDeferredPurgePending is set
+  // but the arena is not in the list. Only Purge can clear the flag and only
+  // ShouldStartPurge can set it. So if Purge exits true, we can be sure the
+  // flag is still set and re-add the arena.
+  RemoveFromOutstandingPurges(found);
+  if (found->Purge(false)) {
     // Note that between the above Purge() and the lock there is a potential
     // rare race with MayPurgeAll() running on a different thread that clears
     // mIsDeferredPurgePending. That is fine, we'll adjust our bookkeeping
     // when calling either ShouldStartPurge() or Purge() next time.
-
     MutexAutoLock lock(mPurgeListLock);
     if (!mOutstandingPurges.ElementProbablyInList(found)) {
       // Given we want to continue to purge this arena, push it to the front to
