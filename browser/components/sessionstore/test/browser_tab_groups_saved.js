@@ -36,7 +36,7 @@ add_task(async function test_SaveTabGroups() {
   Assert.equal(state.savedGroups[1].tabs.length, 1, "group2 has 1 tab");
 
   ss.forgetSavedTabGroup(group1.id);
-  win.gBrowser.removeTabGroup(group1);
+  await win.gBrowser.removeTabGroup(group1);
   state = ss.getCurrentState();
 
   Assert.equal(state.savedGroups.length, 1, "savedGroups has 1 group");
@@ -44,7 +44,7 @@ add_task(async function test_SaveTabGroups() {
   Assert.equal(state.savedGroups[0].tabs.length, 1, "group2 still has 1 tab");
 
   ss.forgetSavedTabGroup(group2.id);
-  win.gBrowser.removeTabGroup(group2);
+  await win.gBrowser.removeTabGroup(group2);
   await BrowserTestUtils.closeWindow(win);
   forgetClosedWindows();
 });
@@ -67,7 +67,7 @@ add_task(async function test_ignoreUnimportantTabGroups() {
   state = ss.getCurrentState();
   Assert.equal(state.savedGroups.length, 0, "savedGroups is still empty");
 
-  win.gBrowser.removeTabGroup(group1);
+  await win.gBrowser.removeTabGroup(group1);
   await BrowserTestUtils.closeWindow(win);
   forgetClosedWindows();
 });
