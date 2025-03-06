@@ -319,15 +319,24 @@ export class SmartTabGroupingManager {
   /**
    * Logs to the appropriate place for debugging. Console for now
    * @param {string} msg Message to log
+   * @param {boolean} useDescription Whether to add description to the final text
    */
   log(_msg) {}
 
-  async _prepareTabData(tabList) {
+  /**
+   * Prepares data to be used by the ml models
+   * @param {Object[]} tabList list of tabs in the current window
+   * @param {boolean} useDescription whether we should combined the title and description
+   * @return {Promise<*[Object]>}
+   * @private
+   */
+  async _prepareTabData(tabList, useDescription = false) {
     const titleKey = this.config.dataConfig.titleKey;
     const descriptionKey = this.config.dataConfig.descriptionKey;
     const structuredData = [];
     for (let tab of tabList) {
-      const description = descriptionKey && tab[descriptionKey];
+      const description =
+        useDescription && descriptionKey && tab[descriptionKey];
 
       let textToEmbed;
       if (description) {
