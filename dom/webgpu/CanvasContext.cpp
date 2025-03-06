@@ -137,7 +137,7 @@ void CanvasContext::Configure(const dom::GPUCanvasConfiguration& aConfig) {
       !gfx::gfxVars::AllowSoftwareWebRenderD3D11()) {
     mUseExternalTextureInSwapChain = false;
   }
-#elif defined(MOZ_WIDGET_GTK)
+#elif defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
   // When DMABufDevice is not enabled, disable external texture in swap chain.
   const auto& modifiers = gfx::gfxVars::DMABufModifiersARGB();
   if (modifiers.IsEmpty()) {
