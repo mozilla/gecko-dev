@@ -21,6 +21,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Sqlite: "resource://gre/modules/Sqlite.sys.mjs",
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "profilesLocalization", () => {
@@ -1144,6 +1145,29 @@ class SelectableProfileServiceClass extends EventEmitter {
 
       // And also set the profile selector window to show at startup (bug 1933911).
       this.setShowProfileSelectorWindow(true);
+
+      // For first-run dark mode macOS users, the original profile's dock icon
+      // disappears after creating and launching an additional profile for the
+      // first time. Here we hack around this problem.
+      //
+      // Wait a full second, which seems to be enough time for the newly-
+      // launched second Firefox instance's dock animation to complete. Then
+      // trigger redrawing the original profile's badged icon (by setting the
+      // avatar to its current value, a no-op change which redraws the dock
+      // icon as a side effect).
+      //
+      // Shorter timeouts don't work, perhaps because they trigger the update
+      // before the dock bouncing animation completes for the other instance?
+      //
+      // We haven't figured out the lower-level bug that's causing this, but
+      // hope to someday find that better solution (bug 1952338).
+      if (Services.appinfo.OS === "Darwin") {
+        lazy.setTimeout(() => {
+          // To avoid displeasing the linter, assign to a temporary variable.
+          let avatar = SelectableProfileService.currentProfile.avatar;
+          SelectableProfileService.currentProfile.avatar = avatar;
+        }, 1000);
+      }
     }
   }
 
