@@ -41,7 +41,6 @@
     <input type="checkbox" />
   </label>
 </div>
-<pre id="test">
 <script class="testbody" type="application/javascript">
   let labels = document.querySelectorAll("label[is='moz-label']");
   let isMac = navigator.platform.includes("Mac");
@@ -155,6 +154,5 @@
     is(input.checked, false, "The associated input is not triggered by accesskey.")
   });
 </script>
-</pre>
 </body>
 </html>

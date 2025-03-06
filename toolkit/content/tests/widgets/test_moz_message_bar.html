@@ -22,7 +22,6 @@
       <a slot="support-link" href="#learn-less">Learn less</a>
     </moz-message-bar>
   </div>
-  <pre id="test">
   <script class="testbody" type="application/javascript">
     add_task(async function test_component_declaration() {
       const mozMessageBar = document.querySelector("#infoMessage");
@@ -125,7 +124,6 @@
       is(msgEl2.className, "message", "Class when link was never assigned");
     });
   </script>
-</pre>
 </body>
 
 </html>
