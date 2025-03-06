@@ -1750,6 +1750,9 @@ void FFmpegVideoDecoder<LIBAV_VER>::ProcessShutdown() {
         reinterpret_cast<AVD3D11VADeviceContext*>(hwctx->hwctx);
     d3d11vactx->device = nullptr;
     mLib->av_buffer_unref(&mD3D11VADeviceContext);
+    mD3D11VADeviceContext = nullptr;
+    mLib->av_buffer_unref(&mD3D11VAHWFrameContext);
+    mD3D11VAHWFrameContext = nullptr;
   }
 #endif
   FFmpegDataDecoder<LIBAV_VER>::ProcessShutdown();
@@ -1992,6 +1995,11 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitD3D11VADecoder() {
           reinterpret_cast<AVD3D11VADeviceContext*>(hwctx->hwctx);
       d3d11vactx->device = nullptr;
       mLib->av_buffer_unref(&mD3D11VADeviceContext);
+      mD3D11VADeviceContext = nullptr;
+    }
+    if (mD3D11VAHWFrameContext) {
+      mLib->av_buffer_unref(&mD3D11VAHWFrameContext);
+      mD3D11VAHWFrameContext = nullptr;
     }
     mDXVA2Manager.reset();
   });
@@ -2029,14 +2037,14 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitD3D11VADecoder() {
   mCodecContext->hw_device_ctx = mLib->av_buffer_ref(mD3D11VADeviceContext);
 
   FFMPEG_LOG("  creating hwframe context");
-  AVBufferRef* hwFrameContext = nullptr;
-  hwFrameContext = mLib->av_hwframe_ctx_alloc(mD3D11VADeviceContext);
-  if (!hwFrameContext) {
+  mD3D11VAHWFrameContext = mLib->av_hwframe_ctx_alloc(mD3D11VADeviceContext);
+  if (!mD3D11VAHWFrameContext) {
     FFMPEG_LOG("  av_hwframe_ctx_alloc failed.");
     return NS_ERROR_DOM_MEDIA_FATAL_ERR;
   }
 
-  AVHWFramesContext* framesContext = (AVHWFramesContext*)hwFrameContext->data;
+  AVHWFramesContext* framesContext =
+      (AVHWFramesContext*)mD3D11VAHWFrameContext->data;
   framesContext->format = AV_PIX_FMT_D3D11;
   if (mInfo.mColorDepth == gfx::ColorDepth::COLOR_10) {
     framesContext->sw_format = AV_PIX_FMT_P010;
@@ -2062,7 +2070,7 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitD3D11VADecoder() {
     d3d11vaFramesContext->BindFlags |= D3D11_BIND_SHADER_RESOURCE;
   }
 
-  int err = mLib->av_hwframe_ctx_init(hwFrameContext);
+  int err = mLib->av_hwframe_ctx_init(mD3D11VAHWFrameContext);
   if (err < 0) {
     FFMPEG_LOG("  av_hwframe_ctx_init failed. err=%d", err);
     return NS_ERROR_DOM_MEDIA_FATAL_ERR;
