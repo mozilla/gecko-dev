@@ -1556,9 +1556,50 @@ bool BigInt::calculateMaximumDigitsRequired(JSContext* cx, uint8_t radix,
   return true;
 }
 
+static BigInt::Digit PowerOf(BigInt::Digit base, size_t n) {
+  MOZ_ASSERT(n > 0);
+  mozilla::CheckedInt<BigInt::Digit> result = base;
+  for (size_t i = 1; i < n; i++) {
+    result *= base;
+  }
+  MOZ_ASSERT(result.isValid(), "unexpected overflow");
+  return result.value();
+}
+
 template <typename CharT>
-BigInt* BigInt::parseLiteralDigits(JSContext* cx,
-                                   const Range<const CharT> chars,
+static bool ParseLiteralDigit(Range<const CharT> chars, unsigned radix,
+                              BigInt::Digit* result) {
+  MOZ_ASSERT(chars.length() > 0);
+  RangedPtr<const CharT> start = chars.begin();
+  RangedPtr<const CharT> end = chars.end();
+
+  mozilla::CheckedInt<BigInt::Digit> d = 0;
+  for (; start < end; start++) {
+    uint32_t digit;
+    CharT c = *start;
+    if (c >= '0' && c <= '9') {
+      digit = c - '0';
+    } else if (c >= 'a' && c <= 'z') {
+      digit = c - 'a' + 10;
+    } else if (c >= 'A' && c <= 'Z') {
+      digit = c - 'A' + 10;
+    } else {
+      return false;
+    }
+    if (MOZ_UNLIKELY(digit >= radix)) {
+      return false;
+    }
+
+    d = d * radix + digit;
+  }
+  MOZ_ASSERT(d.isValid(), "unexpected overflow");
+
+  *result = d.value();
+  return true;
+}
+
+template <typename CharT>
+BigInt* BigInt::parseLiteralDigits(JSContext* cx, Range<const CharT> chars,
                                    unsigned radix, bool isNegative,
                                    bool* haveParseError, gc::Heap heap) {
   static_assert(
@@ -1579,14 +1620,23 @@ BigInt* BigInt::parseLiteralDigits(JSContext* cx,
     }
   }
 
-  unsigned limit0 = '0' + std::min(radix, 10u);
-  unsigned limita = 'a' + (radix - 10);
-  unsigned limitA = 'A' + (radix - 10);
-
   size_t length;
   if (!calculateMaximumDigitsRequired(cx, radix, end - start, &length)) {
     return nullptr;
   }
+  MOZ_ASSERT(length > 0);
+
+  // Fast path for the single digit case.
+  if (length == 1) {
+    BigInt::Digit digit = 0;
+    if (!ParseLiteralDigit(chars, radix, &digit)) {
+      *haveParseError = true;
+      return nullptr;
+    }
+    MOZ_ASSERT(digit > 0);
+    return BigInt::createFromDigit(cx, digit, isNegative, heap);
+  }
+
   BigInt* result = createUninitialized(cx, length, isNegative, heap);
   if (!result) {
     return nullptr;
@@ -1594,22 +1644,51 @@ BigInt* BigInt::parseLiteralDigits(JSContext* cx,
 
   result->initializeDigitsToZero();
 
-  for (; start < end; start++) {
-    uint32_t digit;
-    CharT c = *start;
-    if (c >= '0' && c < limit0) {
-      digit = c - '0';
-    } else if (c >= 'a' && c < limita) {
-      digit = c - 'a' + 10;
-    } else if (c >= 'A' && c < limitA) {
-      digit = c - 'A' + 10;
-    } else {
+  // Numbers in radix 2, 4, and 16 can be directly stored into the result when
+  // parsing from right to left.
+  uint8_t log2 = mozilla::FloorLog2(radix);
+  if (mozilla::IsPowerOfTwo(log2)) {
+    size_t chunkChars = BigInt::DigitBits >> mozilla::FloorLog2(log2);
+
+    size_t i = 0;
+    RangedPtr<const CharT> to = end;
+    while (to > start) {
+      RangedPtr<const CharT> from = to - std::min(to - start, chunkChars);
+
+      Digit chunk = 0;
+      if (!ParseLiteralDigit(Range{from, to}, radix, &chunk)) {
+        *haveParseError = true;
+        return nullptr;
+      }
+
+      result->setDigit(i++, chunk);
+      to = from;
+    }
+    MOZ_ASSERT(i == length, "unexpected over allocation");
+    MOZ_ASSERT(result->digit(length - 1) > 0, "unexpected leading zero");
+
+    return result;
+  }
+
+  size_t chunkChars = toStringInfo[radix].maxExponentInDigit;
+  Digit chunkMultiplier = toStringInfo[radix].maxPowerInDigit;
+
+  while (start < end) {
+    RangedPtr<const CharT> limit = start + std::min(end - start, chunkChars);
+
+    Digit chunk = 0;
+    if (!ParseLiteralDigit(Range{start, limit}, radix, &chunk)) {
       *haveParseError = true;
       return nullptr;
     }
 
-    result->inplaceMultiplyAdd(static_cast<Digit>(radix),
-                               static_cast<Digit>(digit));
+    BigInt::Digit multiplier = chunkMultiplier;
+    if ((limit - start) < chunkChars) {
+      multiplier = PowerOf(radix, limit - start);
+      MOZ_ASSERT(multiplier < chunkMultiplier);
+    }
+    result->inplaceMultiplyAdd(multiplier, chunk);
+    start = limit;
   }
 
   return destructivelyTrimHighZeroDigits(cx, result);
@@ -1617,7 +1696,7 @@ BigInt* BigInt::parseLiteralDigits(JSContext* cx,
 
 // BigInt proposal section 7.2
 template <typename CharT>
-BigInt* BigInt::parseLiteral(JSContext* cx, const Range<const CharT> chars,
+BigInt* BigInt::parseLiteral(JSContext* cx, Range<const CharT> chars,
                              bool* haveParseError, js::gc::Heap heap) {
   RangedPtr<const CharT> start = chars.begin();
   const RangedPtr<const CharT> end = chars.end();
@@ -4013,26 +4092,6 @@ BigInt* JS::StringToBigInt(JSContext* cx, const Range<const char16_t>& chars) {
   return StringToBigIntHelper(cx, chars);
 }
 
-static inline BigInt* SimpleStringToBigIntHelper(
-    JSContext* cx, mozilla::Span<const Latin1Char> chars, uint8_t radix,
-    bool* haveParseError) {
-  if (chars.Length() > 1) {
-    if (chars[0] == '+') {
-      return BigInt::parseLiteralDigits(
-          cx, Range<const Latin1Char>{chars.From(1)}, radix,
-          /* isNegative = */ false, haveParseError);
-    }
-    if (chars[0] == '-') {
-      return BigInt::parseLiteralDigits(
-          cx, Range<const Latin1Char>{chars.From(1)}, radix,
-          /* isNegative = */ true, haveParseError);
-    }
-  }
-
-  return BigInt::parseLiteralDigits(cx, Range<const Latin1Char>{chars}, radix,
-                                    /* isNegative = */ false, haveParseError);
-}
-
 BigInt* JS::SimpleStringToBigInt(JSContext* cx, mozilla::Span<const char> chars,
                                  uint8_t radix) {
   if (chars.empty()) {
@@ -4047,8 +4106,16 @@ BigInt* JS::SimpleStringToBigInt(JSContext* cx, mozilla::Span<const char> chars,
 
   mozilla::Span<const Latin1Char> latin1{
       reinterpret_cast<const Latin1Char*>(chars.data()), chars.size()};
+
+  bool isNegative = false;
+  if (chars.size() > 1 && (chars[0] == '-' || chars[0] == '+')) {
+    isNegative = chars[0] == '-';
+    latin1 = latin1.From(1);
+  }
+
   bool haveParseError = false;
-  BigInt* bi = SimpleStringToBigIntHelper(cx, latin1, radix, &haveParseError);
+  BigInt* bi = BigInt::parseLiteralDigits(cx, mozilla::Range{latin1}, radix,
+                                          isNegative, &haveParseError);
   if (!bi) {
     if (haveParseError) {
       JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,

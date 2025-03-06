@@ -240,19 +240,15 @@ class BigInt final : public js::gc::CellWithLengthAndFlags {
   static JSLinearString* toString(JSContext* cx, Handle<BigInt*> x,
                                   uint8_t radix);
   template <typename CharT>
-  static BigInt* parseLiteral(JSContext* cx,
-                              const mozilla::Range<const CharT> chars,
+  static BigInt* parseLiteral(JSContext* cx, mozilla::Range<const CharT> chars,
                               bool* haveParseError,
                               js::gc::Heap heap = js::gc::Heap::Default);
   template <typename CharT>
   static BigInt* parseLiteralDigits(JSContext* cx,
-                                    const mozilla::Range<const CharT> chars,
+                                    mozilla::Range<const CharT> chars,
                                     unsigned radix, bool isNegative,
                                     bool* haveParseError,
                                     js::gc::Heap heap = js::gc::Heap::Default);
-
-  template <typename CharT>
-  static bool literalIsZero(const mozilla::Range<const CharT> chars);
 
   static int8_t compare(const BigInt* lhs, const BigInt* rhs);
   static bool equal(const BigInt* lhs, const BigInt* rhs);
