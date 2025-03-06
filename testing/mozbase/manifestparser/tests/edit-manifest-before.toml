@@ -21,3 +21,15 @@ skip-if = [
   "os == 'linux'",  #  Bug 222
   "os == 'win'",    #  Bug 333
 ]
+
+["test_extend_linux.js"]
+skip-if = [
+  "os == 'mac'", # Bug 111
+  "os == 'linux'", # Bug 222
+]
+
+["test_simplify_linux.js"]
+skip-if = [
+  "os == 'mac'", # Bug 111
+  "os == 'linux' && version == '18,04'", # Bug 222
+]

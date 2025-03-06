@@ -252,19 +252,20 @@ def _simplify_comment(comment):
     return comment.rstrip()
 
 
-def _should_keep_condition(existing_condition: str, new_condition: str):
+def _should_keep_existing_condition(existing_condition: str, new_condition: str):
     """
-    Checks if there is any overlap between the existing condition and the new one.
-    Existing conditions too simple or too complex should be replaced by the new one.
-    If both are equal, then we keep the existing to prevent changing the order of conditions
+    Checks the new condition is equal or not simpler than the existing one
     """
-    return existing_condition == new_condition or not (
-        # Make sure to add a space to prevent overwriting combined test variants
-        # Eg: "debug && e10s" should not overwrite "debug && e10s+swgl"
-        # but "debug" should overwrite "debug && e10s"
-        (existing_condition + " ") in new_condition
-        or (new_condition + " ") in existing_condition
+    return (
+        existing_condition == new_condition or not new_condition in existing_condition
     )
+
+
+def _should_ignore_new_condition(existing_condition: str, new_condition: str):
+    """
+    Checks if the new condition is equal or more complex than an existing one
+    """
+    return existing_condition == new_condition or existing_condition in new_condition
 
 
 def add_skip_if(manifest, filename, condition, bug=None):
@@ -283,7 +284,7 @@ def add_skip_if(manifest, filename, condition, bug=None):
     first = None
     first_comment = ""
     skip_if = None
-    existing = False  # this condition is already present
+    ignore_condition = False  # this condition should not be added
     if "skip-if" in keyvals:
         skip_if = keyvals["skip-if"]
         if len(skip_if) == 1:
@@ -309,9 +310,11 @@ def add_skip_if(manifest, filename, condition, bug=None):
         # dumping them in the TOML
         conditions_array = []
         if first is not None:
-            if first == condition:
-                existing = True
-            if first_comment is not None and _should_keep_condition(first, condition):
+            if _should_ignore_new_condition(first, condition):
+                ignore_condition = True
+            if first_comment is not None and _should_keep_existing_condition(
+                first, condition
+            ):
                 conditions_array.append([first, _simplify_comment(first_comment)])
         if len(skip_if) > 1:
             e_condition = None
@@ -319,21 +322,21 @@ def add_skip_if(manifest, filename, condition, bug=None):
             for e in skip_if._iter_items():
                 if isinstance(e, String):
                     if e_condition is not None:
-                        if _should_keep_condition(e_condition, condition):
+                        if _should_keep_existing_condition(e_condition, condition):
                             conditions_array.append([e_condition, e_comment])
                         e_comment = None
                         e_condition = None
                     if len(e) > 0:
                         e_condition = e.as_string().strip('"')
-                        if e_condition == condition:
-                            existing = True
+                        if _should_ignore_new_condition(e_condition, condition):
+                            ignore_condition = True
                 elif isinstance(e, Comment):
                     e_comment = _simplify_comment(e.as_string())
-            if e_condition is not None and _should_keep_condition(
+            if e_condition is not None and _should_keep_existing_condition(
                 e_condition, condition
             ):
                 conditions_array.append([e_condition, e_comment])
-        if not existing:
+        if not ignore_condition:
             conditions_array.append([condition, bug])
         conditions_array.sort()
         for c in conditions_array:

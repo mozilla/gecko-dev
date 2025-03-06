@@ -30,8 +30,20 @@ skip-if = [
   "tsan", # Bug 444
 ]
 
+["test_extend_linux.js"]
+skip-if = [
+  "os == 'linux'", # Bug 222
+  "os == 'mac'", # Bug 111
+]
+
 ["test_foo.html"]
 skip-if = [
   "os == 'mac' && !debug", # bug 31415
   "os == 'mac' && debug",
+]
+
+["test_simplify_linux.js"]
+skip-if = [
+  "os == 'linux'",
+  "os == 'mac'", # Bug 111
 ]

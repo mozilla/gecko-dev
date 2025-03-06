@@ -585,37 +585,49 @@ yellow = submarine
 
         filename = "bug_20.js"
         assert filename in manifest
-        condition1a = "os == 'mac'"
+        condition = "os == 'mac'"
         bug = "Bug 20"
-        manifestparser.toml.add_skip_if(manifest, filename, condition1a, bug)
-        condition1b = "os == 'windows'"
-        manifestparser.toml.add_skip_if(manifest, filename, condition1b, bug)
+        manifestparser.toml.add_skip_if(manifest, filename, condition, bug)
+        condition = "os == 'windows'"
+        manifestparser.toml.add_skip_if(manifest, filename, condition, bug)
 
-        filename2 = "test_foo.html"
-        assert filename2 in manifest
-        condition2 = "os == 'mac' && debug"
-        manifestparser.toml.add_skip_if(manifest, filename2, condition2)
+        filename = "test_foo.html"
+        assert filename in manifest
+        condition = "os == 'mac' && debug"
+        manifestparser.toml.add_skip_if(manifest, filename, condition)
 
-        filename3 = "test_bar.html"
-        assert filename3 in manifest
-        condition3a = "tsan"
-        bug3a = "Bug 444"
-        manifestparser.toml.add_skip_if(manifest, filename3, condition3a, bug3a)
-        condition3b = "os == 'linux'"  # pre-existing, should be ignored
-        bug3b = "Bug 555"
-        manifestparser.toml.add_skip_if(manifest, filename3, condition3b, bug3b)
+        filename = "test_bar.html"
+        assert filename in manifest
+        condition = "tsan"
+        bug = "Bug 444"
+        manifestparser.toml.add_skip_if(manifest, filename, condition, bug)
+        condition = "os == 'linux'"  # pre-existing, should be ignored
+        bug = "Bug 555"
+        manifestparser.toml.add_skip_if(manifest, filename, condition, bug)
 
-        filename4 = "bug_100.js"
-        assert filename4 in manifest
-        condition4 = "apple_catalina"
-        bug4 = "Bug 200"
-        manifestparser.toml.add_skip_if(manifest, filename4, condition4, bug4)
+        filename = "bug_100.js"
+        assert filename in manifest
+        condition = "apple_catalina"
+        bug = "Bug 200"
+        manifestparser.toml.add_skip_if(manifest, filename, condition, bug)
 
-        filename5 = "bug_3.js"
-        assert filename5 in manifest
-        condition5 = "verify"
-        bug5 = "Bug 33333"
-        manifestparser.toml.add_skip_if(manifest, filename5, condition5, bug5)
+        filename = "bug_3.js"
+        assert filename in manifest
+        condition = "verify"
+        bug = "Bug 33333"
+        manifestparser.toml.add_skip_if(manifest, filename, condition, bug)
+
+        # Should not extend exising conditions
+        filename = "test_extend_linux.js"
+        assert filename in manifest
+        condition = "os == 'linux' && version == '18.04'"
+        manifestparser.toml.add_skip_if(manifest, filename, condition)
+
+        # Should simplify exising conditions
+        filename = "test_simplify_linux.js"
+        assert filename in manifest
+        condition = "os == 'linux'"
+        manifestparser.toml.add_skip_if(manifest, filename, condition)
 
         manifest_str = manifestparser.toml.alphabetize_toml_str(manifest)
         after = "edit-manifest-after.toml"
