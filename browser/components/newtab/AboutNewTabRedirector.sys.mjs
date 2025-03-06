@@ -29,6 +29,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  AddonManagerPrivate: "resource://gre/modules/AddonManager.sys.mjs",
   BasePromiseWorker: "resource://gre/modules/PromiseWorker.sys.mjs",
 });
 
@@ -59,6 +60,8 @@ const IS_PRIVILEGED_PROCESS =
 const PREF_SEPARATE_PRIVILEGEDABOUT_CONTENT_PROCESS =
   "browser.tabs.remote.separatePrivilegedContentProcess";
 const PREF_ACTIVITY_STREAM_DEBUG = "browser.newtabpage.activity-stream.debug";
+
+const BUILTIN_ADDON_ID = "newtab@mozilla.org";
 
 /**
  * The AboutHomeStartupCacheChild is responsible for connecting the
@@ -462,6 +465,9 @@ class BaseAboutNewTabRedirector {
  * before the AboutNewTabRedirectorChild has a chance to handle the request).
  */
 export class AboutNewTabRedirectorParent extends BaseAboutNewTabRedirector {
+  #addonInitialized = false;
+  #suspendedChannels = [];
+
   constructor() {
     super();
 
@@ -489,6 +495,36 @@ export class AboutNewTabRedirectorParent extends BaseAboutNewTabRedirector {
       matches: ["about:home*", "about:newtab*"],
       remoteTypes: ["privilegedabout"],
     });
+
+    if (AppConstants.BROWSER_NEWTAB_AS_ADDON) {
+      this.#waitForBuiltInAddonInitialized();
+    }
+  }
+
+  /**
+   * Waits for the AddonManager to be fully initialized, and for the built-in
+   * addon to be ready. Once that's done, it tterates any suspended channels and
+   * resumes them, now that the built-in addon has been set up.
+   *
+   * @returns {Promise<undefined>}
+   *   Resolves when the built-in addon has initialized and all suspended
+   *   channels are resumed.
+   */
+  async #waitForBuiltInAddonInitialized() {
+    let addon = WebExtensionPolicy.getByID(BUILTIN_ADDON_ID);
+    if (!addon?.readyPromise) {
+      await lazy.AddonManagerPrivate.databaseReady;
+      addon = WebExtensionPolicy.getByID(BUILTIN_ADDON_ID);
+    }
+
+    await addon.readyPromise;
+
+    this.#addonInitialized = true;
+
+    for (let suspendedChannel of this.#suspendedChannels) {
+      suspendedChannel.resume();
+    }
+    this.#suspendedChannels = [];
   }
 
   newChannel(uri, loadInfo) {
@@ -506,7 +542,30 @@ export class AboutNewTabRedirectorParent extends BaseAboutNewTabRedirector {
       loadInfo
     );
     resultChannel.originalURI = uri;
+
+    if (AppConstants.BROWSER_NEWTAB_AS_ADDON && !this.#addonInitialized) {
+      return this.#getSuspendedChannel(resultChannel);
+    }
+
     return resultChannel;
+  }
+
+  /**
+   * Wraps an nsIChannel with an nsISuspendableChannelWrapper, suspends that
+   * wrapper, and then stores the wrapper in #suspendedChannels so that it can
+   * be resumed with a call to #notifyBuildInAddonInitialized.
+   *
+   * @param {nsIChannel} innerChannel
+   *   The channel to wrap and suspend.
+   * @returns {nsISuspendableChannelWrapper}
+   */
+  #getSuspendedChannel(innerChannel) {
+    let suspendedChannel =
+      Services.io.newSuspendableChannelWrapper(innerChannel);
+    suspendedChannel.suspend();
+
+    this.#suspendedChannels.push(suspendedChannel);
+    return suspendedChannel;
   }
 }
 
