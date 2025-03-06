@@ -1,34 +1,36 @@
-<!DOCTYPE HTML>
+<!doctype html>
 <html>
-<head>
-  <title>Image recognition unsupported</title>
-  <script src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script src="/tests/SimpleTest/EventUtils.js"></script>
-  <script type="text/javascript" src="head.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
-</head>
-<body>
-<p id="display"></p>
+  <head>
+    <title>Image recognition unsupported</title>
+    <script src="/tests/SimpleTest/SimpleTest.js"></script>
+    <script src="/tests/SimpleTest/EventUtils.js"></script>
+    <script type="text/javascript" src="head.js"></script>
+    <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  </head>
+  <body>
+    <p id="display"></p>
 
-<div id="content">
-  <img src="image.png" />
-</div>
+    <div id="content">
+      <img src="image.png" />
+    </div>
 
-<script class="testbody">
-  /**
-   * This test is for platforms that do not support text recognition.
-   */
-  add_task(async () => {
-    const img = document.querySelector("#content img");
+    <script class="testbody">
+      /**
+       * This test is for platforms that do not support text recognition.
+       */
+      add_task(async () => {
+        const img = document.querySelector("#content img");
 
-    info("Recognizing the current image text is not supported on this platform.");
-    try {
-      await SpecialPowers.wrap(img).recognizeCurrentImageText();
-      ok(false, "Recognizing the text should not be supported.");
-    } catch (error) {
-      ok(error, "Expected unsupported message: " + error.message);
-    }
-  });
-</script>
-</body>
+        info(
+          "Recognizing the current image text is not supported on this platform."
+        );
+        try {
+          await SpecialPowers.wrap(img).recognizeCurrentImageText();
+          ok(false, "Recognizing the text should not be supported.");
+        } catch (error) {
+          ok(error, "Expected unsupported message: " + error.message);
+        }
+      });
+    </script>
+  </body>
 </html>

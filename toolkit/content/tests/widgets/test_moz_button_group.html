@@ -1,16 +1,25 @@
-<!DOCTYPE HTML>
+<!doctype html>
 <html>
   <head>
-    <meta charset="utf-8">
+    <meta charset="utf-8" />
     <title>moz-button-group tests</title>
     <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
     <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
-    <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+    <link
+      rel="stylesheet"
+      href="chrome://mochikit/content/tests/SimpleTest/test.css"
+    />
     <!-- TODO: Bug 1798404 - in-content/common.css can be removed once we have a better
       solution for token variables for the new widgets -->
-      <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
-      <script type="module" src="chrome://global/content/elements/moz-button-group.mjs"></script>
-      <script type="module" src="chrome://global/content/elements/moz-button.mjs"></script>
+    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
+    <script
+      type="module"
+      src="chrome://global/content/elements/moz-button-group.mjs"
+    ></script>
+    <script
+      type="module"
+      src="chrome://global/content/elements/moz-button.mjs"
+    ></script>
   </head>
   <body>
     <p id="display"></p>
@@ -22,8 +31,7 @@
     <!-- This is here to ensure the stylesheet is loaded. It gets removed in setup. -->
     <moz-button-group></moz-button-group>
     <moz-button>Test</moz-button>
-    <pre id="test">
-    </pre>
+    <pre id="test"></pre>
 
     <script>
       let html;
@@ -39,8 +47,13 @@
           let secondBounds = b.getBoundingClientRect();
 
           ok(firstBounds.right < secondBounds.left, `First button comes first`);
-          let locationDiff = Math.abs(secondBounds.left - firstBounds.right - 8);
-          ok(locationDiff < 1, `Second button is 8px after first (${locationDiff}, ${firstBounds.right}, ${secondBounds.left})`);
+          let locationDiff = Math.abs(
+            secondBounds.left - firstBounds.right - 8
+          );
+          ok(
+            locationDiff < 1,
+            `Second button is 8px after first (${locationDiff}, ${firstBounds.right}, ${secondBounds.left})`
+          );
         };
 
         ok(buttons.length >= 2, "There are at least 2 buttons to check");
@@ -61,20 +74,33 @@
         }
 
         synthesizeKey("VK_TAB");
-        is(document.activeElement, afterButton, "After button is at the end in tab order");
+        is(
+          document.activeElement,
+          afterButton,
+          "After button is at the end in tab order"
+        );
 
         // Verify light DOM order is correct, in case of manual tab management in JS.
         let { parentElement } = buttons[0];
         let parentChildren = parentElement.children;
-        is(parentChildren.length, buttons.length, "Expected number of children");
+        is(
+          parentChildren.length,
+          buttons.length,
+          "Expected number of children"
+        );
         for (let i = 0; i < parentChildren.length; i++) {
-          is(parentChildren[i], buttons[i], `Button ${i} is in correct light DOM spot`);
+          is(
+            parentChildren[i],
+            buttons[i],
+            `Button ${i} is in correct light DOM spot`
+          );
         }
       }
 
-
       add_setup(async function setup() {
-        ({ html, render} = await import("chrome://global/content/vendor/lit.all.mjs"));
+        ({ html, render } = await import(
+          "chrome://global/content/vendor/lit.all.mjs"
+        ));
         document.querySelector("moz-button-group").remove();
         document.querySelector("moz-button").remove();
       });
@@ -89,7 +115,9 @@
           `,
           html`
             <moz-button-group>
-              <moz-button slot="primary" id="primary-button">Primary</moz-button>
+              <moz-button slot="primary" id="primary-button"
+                >Primary</moz-button
+              >
               <moz-button id="secondary-button">Secondary</moz-button>
             </moz-button-group>
           `,
@@ -100,7 +128,6 @@
           let buttonGroup = document.querySelector("moz-button-group");
           let primaryButton = document.getElementById("primary-button");
           let secondaryButton = document.getElementById("secondary-button");
-
 
           buttonGroup.platform = "win";
           await buttonGroup.updateComplete;
@@ -140,10 +167,12 @@
           let primaryButton = buttonGroup.querySelector(
             ".primary, [type=primary], [type=destructive]"
           );
-          let secondaryButton = buttonGroup.querySelector(".secondary, [type=default]");
+          let secondaryButton = buttonGroup.querySelector(
+            ".secondary, [type=default]"
+          );
           buttonGroup.platform = "win";
           await buttonGroup.updateComplete;
-          is(primaryButton.slot, "primary", "primary button was auto-slotted")
+          is(primaryButton.slot, "primary", "primary button was auto-slotted");
           await checkButtons(primaryButton, secondaryButton);
 
           buttonGroup.platform = "macosx";
@@ -168,7 +197,7 @@
         let secondaryButton = buttonGroup.querySelector(".secondary");
         buttonGroup.platform = "win";
         await buttonGroup.updateComplete;
-        is(submitButton.slot, "primary", "submit button was auto-slotted")
+        is(submitButton.slot, "primary", "submit button was auto-slotted");
         await checkButtons(submitButton, secondaryButton);
 
         buttonGroup.platform = "macosx";
@@ -192,7 +221,11 @@
         let secondaryButton = buttonGroup.querySelector(".secondary");
         buttonGroup.platform = "win";
         await buttonGroup.updateComplete;
-        is(autofocusButton.slot, "primary", "autofocus button was auto-slotted")
+        is(
+          autofocusButton.slot,
+          "primary",
+          "autofocus button was auto-slotted"
+        );
         await checkButtons(autofocusButton, secondaryButton);
 
         buttonGroup.platform = "macosx";
@@ -216,7 +249,7 @@
         let secondaryButton = buttonGroup.querySelector(".secondary");
         buttonGroup.platform = "win";
         await buttonGroup.updateComplete;
-        is(defaultButton.slot, "primary", "default button was auto-slotted")
+        is(defaultButton.slot, "primary", "default button was auto-slotted");
         await checkButtons(defaultButton, secondaryButton);
 
         buttonGroup.platform = "macosx";
@@ -243,7 +276,8 @@
         ];
 
         for (let markup of markupOptions) {
-          const renderPlatform = platform => render(markup(platform), renderArea);
+          const renderPlatform = platform =>
+            render(markup(platform), renderArea);
 
           renderPlatform("win");
           let buttonGroup = document.querySelector("moz-button-group");

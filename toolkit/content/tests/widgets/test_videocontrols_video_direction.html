@@ -1,28 +1,48 @@
-<!DOCTYPE HTML>
+<!doctype html>
 <html>
-<head>
-  <title>Video controls directionality test</title>
-  <script src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script src="/tests/SimpleTest/WindowSnapshot.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
-</head>
-<body>
-<p id="display"></p>
+  <head>
+    <title>Video controls directionality test</title>
+    <script src="/tests/SimpleTest/SimpleTest.js"></script>
+    <script src="/tests/SimpleTest/WindowSnapshot.js"></script>
+    <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  </head>
+  <body>
+    <p id="display"></p>
 
-<div id="content">
-</div>
+    <div id="content"></div>
 
-<script class="testbody" type="text/javascript">
-
-var tests = [
-  {op: "==", test: "videocontrols_direction-1a.html", ref: "videocontrols_direction-1-ref.html"},
-  {op: "==", test: "videocontrols_direction-1b.html", ref: "videocontrols_direction-1-ref.html"},
-  {op: "==", test: "videocontrols_direction-1c.html", ref: "videocontrols_direction-1-ref.html"},
-  {op: "==", test: "videocontrols_direction-1d.html", ref: "videocontrols_direction-1-ref.html"},
-  {op: "==", test: "videocontrols_direction-1e.html", ref: "videocontrols_direction-1-ref.html"},
-];
-
-</script>
-<script type="text/javascript" src="videocontrols_direction_test.js"></script>
-</body>
+    <script class="testbody" type="text/javascript">
+      var tests = [
+        {
+          op: "==",
+          test: "videocontrols_direction-1a.html",
+          ref: "videocontrols_direction-1-ref.html",
+        },
+        {
+          op: "==",
+          test: "videocontrols_direction-1b.html",
+          ref: "videocontrols_direction-1-ref.html",
+        },
+        {
+          op: "==",
+          test: "videocontrols_direction-1c.html",
+          ref: "videocontrols_direction-1-ref.html",
+        },
+        {
+          op: "==",
+          test: "videocontrols_direction-1d.html",
+          ref: "videocontrols_direction-1-ref.html",
+        },
+        {
+          op: "==",
+          test: "videocontrols_direction-1e.html",
+          ref: "videocontrols_direction-1-ref.html",
+        },
+      ];
+    </script>
+    <script
+      type="text/javascript"
+      src="videocontrols_direction_test.js"
+    ></script>
+  </body>
 </html>

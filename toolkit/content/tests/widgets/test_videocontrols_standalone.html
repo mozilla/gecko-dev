@@ -1,129 +1,185 @@
-<!DOCTYPE HTML>
+<!doctype html>
 <html>
-<head>
-  <title>Video controls test</title>
-  <script src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script src="/tests/SimpleTest/EventUtils.js"></script>
-  <script src="/tests/SimpleTest/NativeKeyCodes.js"></script>
-  <script type="text/javascript" src="head.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
-</head>
-<body>
-<p id="display"></p>
+  <head>
+    <title>Video controls test</title>
+    <script src="/tests/SimpleTest/SimpleTest.js"></script>
+    <script src="/tests/SimpleTest/EventUtils.js"></script>
+    <script src="/tests/SimpleTest/NativeKeyCodes.js"></script>
+    <script type="text/javascript" src="head.js"></script>
+    <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  </head>
+  <body>
+    <p id="display"></p>
 
-<script class="testbody" type="text/javascript">
-  SimpleTest.expectAssertions(0, 1);
+    <script class="testbody" type="text/javascript">
+      SimpleTest.expectAssertions(0, 1);
 
-const videoWidth = 320;
-const videoHeight = 240;
+      const videoWidth = 320;
+      const videoHeight = 240;
 
-function getMediaElement(aWindow) {
-  return aWindow.document.getElementsByTagName("video")[0];
-}
+      function getMediaElement(aWindow) {
+        return aWindow.document.getElementsByTagName("video")[0];
+      }
 
-var popup = window.open("seek_with_sound.webm");
-popup.addEventListener("load", function() {
-  var video = getMediaElement(popup);
+      var popup = window.open("seek_with_sound.webm");
+      popup.addEventListener(
+        "load",
+        function () {
+          var video = getMediaElement(popup);
 
-  is(popup.document.activeElement, video, "Document should load with focus moved to the video element.");
+          is(
+            popup.document.activeElement,
+            video,
+            "Document should load with focus moved to the video element."
+          );
 
-  if (!video.paused) {
-    runTestVideo(video);
-  } else {
-    video.addEventListener("play", function() {
-      runTestVideo(video);
-    }, {once: true});
-  }
-}, {once: true});
+          if (!video.paused) {
+            runTestVideo(video);
+          } else {
+            video.addEventListener(
+              "play",
+              function () {
+                runTestVideo(video);
+              },
+              { once: true }
+            );
+          }
+        },
+        { once: true }
+      );
 
-function runTestVideo(aVideo) {
-  var condition = function() {
-    var boundingRect = aVideo.getBoundingClientRect();
-    return boundingRect.width == videoWidth &&
-           boundingRect.height == videoHeight;
-  };
-  waitForCondition(condition, function() {
-    var boundingRect = aVideo.getBoundingClientRect();
-    is(boundingRect.width, videoWidth, "Width of the video should match expectation");
-    is(boundingRect.height, videoHeight, "Height of video should match expectation");
-    popup.close();
-    runTestAudioPre();
-  }, "The media element should eventually be resized to match the intrinsic size of the video.");
-}
+      function runTestVideo(aVideo) {
+        var condition = function () {
+          var boundingRect = aVideo.getBoundingClientRect();
+          return (
+            boundingRect.width == videoWidth &&
+            boundingRect.height == videoHeight
+          );
+        };
+        waitForCondition(
+          condition,
+          function () {
+            var boundingRect = aVideo.getBoundingClientRect();
+            is(
+              boundingRect.width,
+              videoWidth,
+              "Width of the video should match expectation"
+            );
+            is(
+              boundingRect.height,
+              videoHeight,
+              "Height of video should match expectation"
+            );
+            popup.close();
+            runTestAudioPre();
+          },
+          "The media element should eventually be resized to match the intrinsic size of the video."
+        );
+      }
 
-function runTestAudioPre() {
-  popup = window.open("audio.ogg");
-  popup.addEventListener("load", function() {
-    var audio = getMediaElement(popup);
+      function runTestAudioPre() {
+        popup = window.open("audio.ogg");
+        popup.addEventListener(
+          "load",
+          function () {
+            var audio = getMediaElement(popup);
 
-    is(popup.document.activeElement, audio, "Document should load with focus moved to the video element.");
+            is(
+              popup.document.activeElement,
+              audio,
+              "Document should load with focus moved to the video element."
+            );
 
-    if (!audio.paused) {
-      runTestAudio(audio);
-    } else {
-      audio.addEventListener("play", function() {
-        runTestAudio(audio);
-      }, {once: true});
-    }
-  }, {once: true});
-}
+            if (!audio.paused) {
+              runTestAudio(audio);
+            } else {
+              audio.addEventListener(
+                "play",
+                function () {
+                  runTestAudio(audio);
+                },
+                { once: true }
+              );
+            }
+          },
+          { once: true }
+        );
+      }
 
-function runTestAudio(aAudio) {
-  info("User agent (help diagnose bug #943556): " + navigator.userAgent);
-  var isAndroid = navigator.userAgent.includes("Android");
-  var expectedHeight = isAndroid ? 103 : 40;
-  var condition = function() {
-    var boundingRect = aAudio.getBoundingClientRect();
-    return boundingRect.height == expectedHeight;
-  };
-  waitForCondition(condition, function() {
-    var boundingRect = aAudio.getBoundingClientRect();
-    is(boundingRect.height, expectedHeight,
-       "Height of audio element should be " + expectedHeight + ", which is equal to the controls bar.");
-    ok(!aAudio.paused, "Should be playing");
-    testPauseByKeyboard(aAudio);
-  }, "The media element should eventually be resized to match the height of the audio controls.");
-}
+      function runTestAudio(aAudio) {
+        info("User agent (help diagnose bug #943556): " + navigator.userAgent);
+        var isAndroid = navigator.userAgent.includes("Android");
+        var expectedHeight = isAndroid ? 103 : 40;
+        var condition = function () {
+          var boundingRect = aAudio.getBoundingClientRect();
+          return boundingRect.height == expectedHeight;
+        };
+        waitForCondition(
+          condition,
+          function () {
+            var boundingRect = aAudio.getBoundingClientRect();
+            is(
+              boundingRect.height,
+              expectedHeight,
+              "Height of audio element should be " +
+                expectedHeight +
+                ", which is equal to the controls bar."
+            );
+            ok(!aAudio.paused, "Should be playing");
+            testPauseByKeyboard(aAudio);
+          },
+          "The media element should eventually be resized to match the height of the audio controls."
+        );
+      }
 
-function testPauseByKeyboard(aAudio) {
-  aAudio.addEventListener("pause", function() {
-    afterKeyPause(aAudio);
-  }, {once: true});
-  // Press spacebar, which means play/pause.
-  synthesizeKey(" ", {}, popup);
-}
+      function testPauseByKeyboard(aAudio) {
+        aAudio.addEventListener(
+          "pause",
+          function () {
+            afterKeyPause(aAudio);
+          },
+          { once: true }
+        );
+        // Press spacebar, which means play/pause.
+        synthesizeKey(" ", {}, popup);
+      }
 
-function afterKeyPause(aAudio) {
-  ok(true, "successfully caused audio to pause");
-  waitForCondition(function() {
-    return aAudio.paused;
-  },
-  function() {
-    // Click outside of the controls area. (Hopefully this has no effect.)
-    synthesizeMouseAtPoint(5, 5, { type: 'mousedown' }, popup);
-    synthesizeMouseAtPoint(5, 5, { type: 'mouseup' }, popup);
-    setTimeout(function() {
-      testPlayByKeyboard(aAudio);
-    }, 0);
-  });
-}
+      function afterKeyPause(aAudio) {
+        ok(true, "successfully caused audio to pause");
+        waitForCondition(
+          function () {
+            return aAudio.paused;
+          },
+          function () {
+            // Click outside of the controls area. (Hopefully this has no effect.)
+            synthesizeMouseAtPoint(5, 5, { type: "mousedown" }, popup);
+            synthesizeMouseAtPoint(5, 5, { type: "mouseup" }, popup);
+            setTimeout(function () {
+              testPlayByKeyboard(aAudio);
+            }, 0);
+          }
+        );
+      }
 
-function testPlayByKeyboard(aAudio) {
-  aAudio.addEventListener("play", function() {
-    ok(true, "successfully caused audio to play");
-    finishAudio();
-  }, {once: true});
-  // Press spacebar, which means play/pause.
-  synthesizeKey(" ", {}, popup);
-}
+      function testPlayByKeyboard(aAudio) {
+        aAudio.addEventListener(
+          "play",
+          function () {
+            ok(true, "successfully caused audio to play");
+            finishAudio();
+          },
+          { once: true }
+        );
+        // Press spacebar, which means play/pause.
+        synthesizeKey(" ", {}, popup);
+      }
 
-function finishAudio() {
-  popup.close();
-  SimpleTest.finish();
-}
+      function finishAudio() {
+        popup.close();
+        SimpleTest.finish();
+      }
 
-SimpleTest.waitForExplicitFinish();
-
-</script>
-</body>
+      SimpleTest.waitForExplicitFinish();
+    </script>
+  </body>
 </html>

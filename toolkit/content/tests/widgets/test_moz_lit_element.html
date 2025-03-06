@@ -1,28 +1,32 @@
-<!DOCTYPE HTML>
+<!doctype html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>MozLitElement Tests</title>
-  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
-  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
-  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
-  <script>
-    let html, render, renderTarget, defaultTemplate, MozLitElement;
-    var mockL10n;
+  <head>
+    <meta charset="utf-8" />
+    <title>MozLitElement Tests</title>
+    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+    <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+    <link
+      rel="stylesheet"
+      href="chrome://mochikit/content/tests/SimpleTest/test.css"
+    />
+    <script>
+      let html, render, renderTarget, defaultTemplate, MozLitElement;
+      var mockL10n;
 
-    add_setup(async function setup() {
-      ({ html, render } = await import(
-        "chrome://global/content/vendor/lit.all.mjs"
-      ));
-      ({ MozLitElement } = await import(
-        "chrome://global/content/lit-utils.mjs"
-      ));
-      renderTarget = document.getElementById("render");
+      add_setup(async function setup() {
+        ({ html, render } = await import(
+          "chrome://global/content/vendor/lit.all.mjs"
+        ));
+        ({ MozLitElement } = await import(
+          "chrome://global/content/lit-utils.mjs"
+        ));
+        renderTarget = document.getElementById("render");
 
-      const l10nReg = new L10nRegistry();
-      const fs = [{
-        path: "/localization/en-US/mock.ftl",
-        source: `
+        const l10nReg = new L10nRegistry();
+        const fs = [
+          {
+            path: "/localization/en-US/mock.ftl",
+            source: `
 example-label =
   .label = Example label!
   .message = And a message!
@@ -30,84 +34,117 @@ example-label =
   .rename = Also renamed!
   .accesskey = E
         `,
-      }];
-      const source = L10nFileSource.createMock("test", "app", ["en-US"], "/localization/{locale}", fs);
-      l10nReg.registerSources([source]);
-      mockL10n = new DOMLocalization(["/mock.ftl"], false, l10nReg, ["en-US"]);
-      mockL10n.addResourceIds(["/mock.ftl"]);
+          },
+        ];
+        const source = L10nFileSource.createMock(
+          "test",
+          "app",
+          ["en-US"],
+          "/localization/{locale}",
+          fs
+        );
+        l10nReg.registerSources([source]);
+        mockL10n = new DOMLocalization(["/mock.ftl"], false, l10nReg, [
+          "en-US",
+        ]);
+        mockL10n.addResourceIds(["/mock.ftl"]);
 
-      defaultTemplate = html`
-        <example-element data-l10n-id="example-label"></example-element>
-      `;
-    });
+        defaultTemplate = html`
+          <example-element data-l10n-id="example-label"></example-element>
+        `;
+      });
 
-    async function renderTemplate(template = defaultTemplate) {
-      render(template, renderTarget);
-      return renderTarget.firstElementChild;
-    }
+      async function renderTemplate(template = defaultTemplate) {
+        render(template, renderTarget);
+        return renderTarget.firstElementChild;
+      }
 
-    function defineExampleElement() {
-      class ExampleElement extends MozLitElement {
-        static properties = {
-          label: { type: String, fluent: true },
-          message: { type: String, fluent: true },
-          tooltipText: { type: String, fluent: true },
-          renamedAttribute: { type: String, fluent: true, attribute: "rename" },
-          mappedAttribute: { type: String, mapped: true, attribute: "mapped" },
-          ariaLabel: { type: String, mapped: true },
-          accessKey: { type: String, mapped: true, fluent: true },
-        };
+      function defineExampleElement() {
+        class ExampleElement extends MozLitElement {
+          static properties = {
+            label: { type: String, fluent: true },
+            message: { type: String, fluent: true },
+            tooltipText: { type: String, fluent: true },
+            renamedAttribute: {
+              type: String,
+              fluent: true,
+              attribute: "rename",
+            },
+            mappedAttribute: {
+              type: String,
+              mapped: true,
+              attribute: "mapped",
+            },
+            ariaLabel: { type: String, mapped: true },
+            accessKey: { type: String, mapped: true, fluent: true },
+          };
 
-        render() {
-          return this.label + this.message + this.tooltipText + this.renamedAttribute + this.accessKey;
-        }
+          render() {
+            return (
+              this.label +
+              this.message +
+              this.tooltipText +
+              this.renamedAttribute +
+              this.accessKey
+            );
+          }
 
-        updated(changes) {
-          if (changes.has("label") && this.label) {
-            this.dispatchEvent(new CustomEvent("label-changed"));
+          updated(changes) {
+            if (changes.has("label") && this.label) {
+              this.dispatchEvent(new CustomEvent("label-changed"));
+            }
           }
         }
+        customElements.define("example-element", ExampleElement);
       }
-      customElements.define("example-element", ExampleElement);
-    }
 
-    add_task(async function testL10nAttrs() {
-      let el = await renderTemplate();
-      window.el = el;
-      defineExampleElement();
-      is(el.shadowRoot.textContent, "", "There's no text");
-      is(
-        el.dataset.l10nAttrs,
-        "label,message,tooltiptext,rename,accesskey",
-        "data-l10n-attrs is set"
-      );
-      await new Promise(r => el.addEventListener("label-changed", r, { once: true }));
-      is(
-        el.shadowRoot.textContent,
-        "Example label!And a message!Also a tooltiptext!Also renamed!E",
-        "Text rendered automatically on upgrade"
-      );
+      add_task(async function testL10nAttrs() {
+        let el = await renderTemplate();
+        window.el = el;
+        defineExampleElement();
+        is(el.shadowRoot.textContent, "", "There's no text");
+        is(
+          el.dataset.l10nAttrs,
+          "label,message,tooltiptext,rename,accesskey",
+          "data-l10n-attrs is set"
+        );
+        await new Promise(r =>
+          el.addEventListener("label-changed", r, { once: true })
+        );
+        is(
+          el.shadowRoot.textContent,
+          "Example label!And a message!Also a tooltiptext!Also renamed!E",
+          "Text rendered automatically on upgrade"
+        );
 
-      is(el.accessKey, "E", "accessKey is mapped with custom attribute");
-      ok(!el.hasAttribute("accesskey"), "renamed attribute was removed");
-    });
+        is(el.accessKey, "E", "accessKey is mapped with custom attribute");
+        ok(!el.hasAttribute("accesskey"), "renamed attribute was removed");
+      });
 
-    add_task(async function testMappedAttributes() {
-      let el = await renderTemplate(
-        html`<example-element accesskey="f" mapped="mapped-val" aria-label="Label!"></example-element>`
-      );
-      is(el.accessKey, "f", "accessKey property is correct");
-      ok(!el.hasAttribute("accesskey"), "accesskey attribute was removed");
+      add_task(async function testMappedAttributes() {
+        let el = await renderTemplate(
+          html`<example-element
+            accesskey="f"
+            mapped="mapped-val"
+            aria-label="Label!"
+          ></example-element>`
+        );
+        is(el.accessKey, "f", "accessKey property is correct");
+        ok(!el.hasAttribute("accesskey"), "accesskey attribute was removed");
 
-      is(el.mappedAttribute, "mapped-val", "mappedAttribute is mapped with custom attribute");
-      ok(!el.hasAttribute("mapped"), "mapped attribute was removed");
+        is(
+          el.mappedAttribute,
+          "mapped-val",
+          "mappedAttribute is mapped with custom attribute"
+        );
+        ok(!el.hasAttribute("mapped"), "mapped attribute was removed");
 
-      is(el.ariaLabel, "Label!", "ariaLabel property is set");
-      ok(!el.hasAttribute("aria-label"), "aria-label was removed");
-    });
-  </script>
-</head>
-<body>
-  <div id="render"></div>
-</body>
+        is(el.ariaLabel, "Label!", "ariaLabel property is set");
+        ok(!el.hasAttribute("aria-label"), "aria-label was removed");
+      });
+    </script>
+  </head>
+  <body>
+    <div id="render"></div>
+  </body>
 </html>
