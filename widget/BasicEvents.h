@@ -162,6 +162,9 @@ struct BaseEventFlags {
   // Certain mouse events can be marked as positionless to return 0 from
   // coordinate related getters.
   bool mIsPositionless : 1;
+  // Indicates if a key handler is registered to execute a command for the key
+  // combination.
+  bool mIsShortcutKey : 1;
 
   // Flags managing state of propagation between processes.
   // Note the the following flags shouldn't be referred directly.  Use utility

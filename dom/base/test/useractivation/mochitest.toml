@@ -30,8 +30,6 @@ support-files = ["file_self_close.html"]
 
 ["test_useractivation_has_been_activated.html"]
 
-["test_useractivation_key_events.html"]
-
 ["test_useractivation_open_new_window.html"]
 support-files = ["file_self_close.html"]
 
