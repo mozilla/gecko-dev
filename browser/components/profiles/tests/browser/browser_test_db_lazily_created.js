@@ -10,9 +10,7 @@ add_task(async function test_dbLazilyCreated() {
   );
 
   // Mock the executable process so we doon't launch a new process
-  SelectableProfileService.getExecutableProcess = () => {
-    return { runw: () => {} };
-  };
+  SelectableProfileService.execProcess = () => {};
 
   await SelectableProfileService.maybeSetupDataStore();
   ok(

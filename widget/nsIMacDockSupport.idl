@@ -7,6 +7,16 @@
 interface nsIStandaloneNativeMenu;
 interface nsISVGPaintContext;
 interface imgIContainer;
+interface nsIFile;
+
+[scriptable, uuid(2cbde069-b80d-4e63-b7c7-c4dfe4617028)]
+interface nsIAppBundleLaunchOptions : nsISupports {
+  /**
+   * A Boolean value indicating whether to add the app or documents to the
+   * Recent Items menu.
+   */
+  readonly attribute boolean addsToRecentItems;
+};
 
 /**
  * Allow applications to interface with the Mac OS X Dock.
@@ -77,4 +87,12 @@ interface nsIMacDockSupport : nsISupports
    */
   boolean ensureAppIsPinnedToDock([optional] in AString aAppPath,
                                   [optional] in AString aAppToReplacePath);
+
+  /**
+   * Launches an application bundle passing the given command line arguments.
+   * The `aLaunchOptions` parameter can control aspects of how the bundle is
+   * launched.
+   */
+  void launchAppBundle(in nsIFile aAppBundle, in Array<ACString> aArgs,
+                       [optional] in nsIAppBundleLaunchOptions aLaunchOptions);
 };

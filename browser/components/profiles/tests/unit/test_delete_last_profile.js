@@ -9,16 +9,12 @@ add_task(async function test_delete_last_profile() {
   // mock() returns an object with a fake `runw` method that, when
   // called, records its arguments.
   let input = [];
-  let mock = () => {
-    return {
-      runw: (...args) => {
-        input = args;
-      },
-    };
+  let mock = args => {
+    input = args;
   };
 
   const SelectableProfileService = getSelectableProfileService();
-  SelectableProfileService.getExecutableProcess = mock;
+  SelectableProfileService.execProcess = mock;
 
   let profiles = await SelectableProfileService.getAllProfiles();
   Assert.equal(profiles.length, 1, "Only 1 profile exists before deleting");
@@ -56,7 +52,7 @@ add_task(async function test_delete_last_profile() {
   } else {
     expectedRunwArgs = ["--profile", profile.path, "-url", "about:newprofile"];
   }
-  Assert.deepEqual(expectedRunwArgs, input[1], "Expected runw arguments");
+  Assert.deepEqual(expectedRunwArgs, input, "Expected runw arguments");
 
   Assert.equal(
     SelectableProfileService.groupToolkitProfile.rootDir.path,

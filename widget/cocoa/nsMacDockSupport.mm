@@ -15,8 +15,10 @@
 #include "nsString.h"
 #include "imgLoader.h"
 #include "MOZIconHelper.h"
+#include "mozilla/MacStringHelpers.h"
 #include "mozilla/SVGImageContext.h"
 #include "nsISVGPaintContext.h"
+#include "nsIFile.h"
 
 NS_IMPL_ISUPPORTS(nsMacDockSupport, nsIMacDockSupport, nsITaskbarProgress)
 
@@ -504,6 +506,46 @@ nsresult nsMacDockSupport::EnsureAppIsPinnedToDock(
   RefreshDock(dockPlist);
 
   *aIsInDock = true;
+  return NS_OK;
+
+  NS_OBJC_END_TRY_BLOCK_RETURN(NS_ERROR_FAILURE);
+}
+
+nsresult nsMacDockSupport::LaunchAppBundle(
+    nsIFile* aAppBundle, const nsTArray<nsCString>& aArgs,
+    nsIAppBundleLaunchOptions* aLaunchOptions) {
+  NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
+
+  nsString bundlePath;
+  nsresult rv = aAppBundle->GetPath(bundlePath);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  NSString* launchPath = mozilla::XPCOMStringToNSString(bundlePath);
+  NSMutableArray* arguments = [NSMutableArray arrayWithCapacity:aArgs.Length()];
+
+  for (const auto& arg : aArgs) {
+    [arguments addObject:mozilla::XPCOMStringToNSString(arg)];
+  }
+
+  NSWorkspaceOpenConfiguration* config =
+      [NSWorkspaceOpenConfiguration configuration];
+  [config setArguments:arguments];
+  [config setCreatesNewApplicationInstance:YES];
+  [config setEnvironment:[[NSProcessInfo processInfo] environment]];
+
+  if (aLaunchOptions) {
+    bool val = false;
+    if (NS_SUCCEEDED(aLaunchOptions->GetAddsToRecentItems(&val))) {
+      [config setAddsToRecentItems:val];
+    }
+  }
+
+  [[NSWorkspace sharedWorkspace]
+      openApplicationAtURL:[NSURL fileURLWithPath:launchPath]
+             configuration:config
+         completionHandler:^(NSRunningApplication* aChild, NSError* aError){
+         }];
+
   return NS_OK;
 
   NS_OBJC_END_TRY_BLOCK_RETURN(NS_ERROR_FAILURE);

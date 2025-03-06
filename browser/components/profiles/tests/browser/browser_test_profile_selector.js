@@ -66,13 +66,7 @@ add_task(async function test_selector_window() {
   // mock() returns an object with a fake `runw` method that, when
   // called, records its arguments.
   let input = [];
-  let mock = () => {
-    return {
-      runw: (...args) => {
-        input.push(...args);
-      },
-    };
-  };
+  let mock = args => (input = args);
 
   const profileSelector = dialog.document.querySelector("profile-selector");
   await profileSelector.updateComplete;
@@ -130,7 +124,7 @@ add_task(async function test_selector_window() {
     "Profile selector should be disabled"
   );
 
-  profileSelector.selectableProfileService.getExecutableProcess = mock;
+  profileSelector.selectableProfileService.execProcess = mock;
 
   const profiles = profileSelector.profileCards;
 
@@ -163,7 +157,7 @@ add_task(async function test_selector_window() {
     expected = ["--profile", profile.path, "--profiles-activate"];
   }
 
-  Assert.deepEqual(input[1], expected, "Expected runw arguments");
+  Assert.deepEqual(input, expected, "Expected runw arguments");
 
   await assertGlean("profiles", "selector_window", "launch");
 
