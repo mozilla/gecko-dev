@@ -27,6 +27,8 @@ loader.lazyRequireGetter(
 
 const DBG_STRINGS_URI = [
   "devtools/client/locales/debugger.properties",
+  // Used by App.js to map the sourceeditor goto line shortcut
+  "devtools/client/locales/sourceeditor.properties",
   // These are used in the AppErrorBoundary component
   "devtools/client/locales/startup.properties",
   "devtools/client/locales/components.properties",

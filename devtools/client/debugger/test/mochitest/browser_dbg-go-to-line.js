@@ -25,6 +25,14 @@ add_task(async function () {
   assertDisabled(dbg);
   is(findElement(dbg, "searchField"), null, "The 'go to line' box is closed");
 
+  info("Test the sourceeditor shortcut");
+  pressKey(dbg, "sourceeditorGoToLine");
+  assertEnabled(dbg);
+
+  pressKey(dbg, "Escape");
+  assertDisabled(dbg);
+  is(findElement(dbg, "searchField"), null, "The 'go to line' box is closed");
+
   info("Test closing by escape");
   pressKey(dbg, "goToLine");
   assertEnabled(dbg);
