@@ -3192,21 +3192,6 @@ export class SearchService {
       name: engine.name ? engine.name : "",
     };
 
-    if (engine.isAppProvided) {
-      engineData.origin = "default";
-    } else {
-      let currentHash = engine.getAttr("loadPathHash");
-      if (!currentHash) {
-        engineData.origin = "unverified";
-      } else {
-        let loadPathHash = lazy.SearchUtils.getVerificationHash(
-          engine._loadPath
-        );
-        engineData.origin =
-          currentHash == loadPathHash ? "verified" : "invalid";
-      }
-    }
-
     // For privacy, we only collect the submission URL for default engines...
     let sendSubmissionURL = engine.isAppProvided;
 
@@ -3321,7 +3306,6 @@ export class SearchService {
     Glean.searchEngineDefault.submissionUrl.set(
       info.defaultSearchEngineData.submissionURL ?? "blank:"
     );
-    Glean.searchEngineDefault.verified.set(info.defaultSearchEngineData.origin);
 
     Glean.searchEnginePrivate.engineId.set(
       info.defaultPrivateSearchEngine ?? ""
@@ -3337,14 +3321,10 @@ export class SearchService {
       Glean.searchEnginePrivate.submissionUrl.set(
         info.defaultPrivateSearchEngineData.submissionURL ?? "blank:"
       );
-      Glean.searchEnginePrivate.verified.set(
-        info.defaultPrivateSearchEngineData.origin
-      );
     } else {
       Glean.searchEnginePrivate.displayName.set("");
       Glean.searchEnginePrivate.loadPath.set("");
       Glean.searchEnginePrivate.submissionUrl.set("blank:");
-      Glean.searchEnginePrivate.verified.set("");
     }
   }
 

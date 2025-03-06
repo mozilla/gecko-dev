@@ -103,29 +103,6 @@ search.engine.default:
     send_in_pings:
       - 'metrics'
 
-  verified:
-    type: string
-    description: |
-      The verified status of the search engine.
-      For application provided engines, this will always be `default`.
-      For other engines this will either be `verified` or `unverified` depending
-      on if the loadPathHash is valid.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1259139
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1766999
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1259139#c6
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1766999
-    data_sensitivity:
-      - technical
-    notification_emails:
-      - fx-search-telemetry@mozilla.com
-      - rev-data@mozilla.com
-    expires: never
-    lifetime: application
-    send_in_pings:
-      - 'metrics'
-
   changed:
     type: event
     description: |
@@ -274,34 +251,6 @@ search.engine.private:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1766999
     data_sensitivity:
       - web_activity
-    notification_emails:
-      - fx-search-telemetry@mozilla.com
-      - rev-data@mozilla.com
-    expires: never
-    lifetime: application
-    send_in_pings:
-      - 'metrics'
-
-  verified:
-    type: string
-    description: |
-      The verified status of the search engine.
-      For application provided engines, this will always be `default`.
-      For other engines this will either be `verified` or `unverified` depending
-      on if the loadPathHash is valid.
-      If this string is an empty string (`""`), this means that one or both of
-      the preferences `browser.search.separatePrivateDefault` and
-      `browser.search.separatePrivateDefault.ui.enabled` are set to false.
-      It is possible that the user selects the same private engine as for the
-      default engine, and hence both versions of these fields will be filled in.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1563016
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1766999
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1563016#c8
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1766999
-    data_sensitivity:
-      - technical
     notification_emails:
       - fx-search-telemetry@mozilla.com
       - rev-data@mozilla.com

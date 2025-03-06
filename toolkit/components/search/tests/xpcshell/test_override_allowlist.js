@@ -336,7 +336,6 @@ for (const test of tests) {
           defaultSearchEngineData: {
             loadPath: "[app]simple",
             name: "Simple Engine",
-            origin: "default",
             submissionURL: test.expected.searchUrl.replace("{searchTerms}", ""),
           },
         },

@@ -54,7 +54,6 @@ add_task(async function test_user_engine() {
       displayName: "user",
       loadPath: "[user]",
       submissionUrl: "blank:",
-      verified: "verified",
     },
   });
 });

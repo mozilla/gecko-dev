@@ -42,7 +42,6 @@ Structure:
         defaultSearchEngineData: {, // data about the current default engine
           name: <string>, // engine name, e.g. "Yahoo"; or "NONE" if no default
           loadPath: <string>, // where the engine line is located; missing if no default
-          origin: <string>, // 'default', 'verified', 'unverified', or 'invalid'; based on the presence and validity of the engine's loadPath verification hash.
           submissionURL: <string> // set for default engines or well known search domains
         },
         defaultPrivateSearchEngine: <string>, // e.g. "duckduckgo"
@@ -354,8 +353,6 @@ The object contains:
   [http/https]example.com/engine-name.xml
   [http/https]example.com/engine-name.xml:extensionID
 
-- an ``origin`` property: the value will be ``default`` for engines that are built-in or from distribution partners, ``verified`` for user-installed engines with valid verification hashes, ``unverified`` for non-default engines without verification hash, and ``invalid`` for engines with broken verification hashes.
-
 - a ``submissionURL`` property with the HTTP url we would use to search.
   For privacy, we don't record this for user-installed engines.
 
@@ -613,6 +610,8 @@ Version History
   - Removed unused and Android-only fields as part of Glean mirroring support. (`bug 1943698 <https://bugzilla.mozilla.org/show_bug.cgi?id=1943698>`_)
 
   - Removed ``browser.urlbar.quicksuggest.onboardingDialogChoice`` as part of removing whole onboarding dialog. (`bug 1936455 <https://bugzilla.mozilla.org/show_bug.cgi?id=1936455>`_)
+
+  - Removed ``settings.default(Private)SearchEngineData.origin`` (`bug 1929058 <https://bugzilla.mozilla.org/show_bug.cgi?id=1929058>`_)
 
 - Firefox 88:
 

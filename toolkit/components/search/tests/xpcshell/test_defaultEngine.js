@@ -46,7 +46,6 @@ add_task(async function test_defaultEngine() {
       displayName: "Test search engine",
       loadPath: "[http]localhost/test-search-engine.xml",
       submissionUrl: "https://www.google.com/search?q=",
-      verified: "verified",
     },
   });
 
@@ -61,7 +60,6 @@ add_task(async function test_defaultEngine() {
       displayName: "A second test engine",
       loadPath: "[http]localhost/a-second-test-engine.xml",
       submissionUrl: "https://duckduckgo.com/?q=",
-      verified: "verified",
     },
   });
 
@@ -76,7 +74,6 @@ add_task(async function test_defaultEngine() {
       displayName: "Test search engine",
       loadPath: "[http]localhost/test-search-engine.xml",
       submissionUrl: "https://www.google.com/search?q=",
-      verified: "verified",
     },
   });
 });
@@ -93,14 +90,12 @@ add_task(async function test_telemetry_empty_submission_url() {
       displayName: "simple",
       loadPath: "[http]localhost/simple.xml",
       submissionUrl: "blank:",
-      verified: "verified",
     },
     private: {
       engineId: "",
       displayName: "",
       loadPath: "",
       submissionUrl: "blank:",
-      verified: "",
     },
   });
 });

@@ -451,12 +451,7 @@ async function assertGleanDefaultEngine(expected) {
     "Should have set the correct telemetry id for the private engine"
   );
 
-  for (let property of [
-    "displayName",
-    "loadPath",
-    "submissionUrl",
-    "verified",
-  ]) {
+  for (let property of ["displayName", "loadPath", "submissionUrl"]) {
     if (property in expected.normal) {
       Assert.equal(
         Glean.searchEngineDefault[property].testGetValue(),

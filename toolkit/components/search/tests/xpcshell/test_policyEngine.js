@@ -80,7 +80,6 @@ add_task(async function test_enterprise_policy_engine() {
       displayName: "policy",
       loadPath: "[policy]",
       submissionUrl: "blank:",
-      verified: "verified",
     },
   });
 });

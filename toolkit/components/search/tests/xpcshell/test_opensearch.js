@@ -139,7 +139,6 @@ add_task(async function test_telemetry_reporting() {
       displayName: "simple",
       loadPath: "[http]localhost/simple.xml",
       submissionUrl: "blank:",
-      verified: "verified",
     },
   });
 });

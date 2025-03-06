@@ -168,7 +168,6 @@ async function checkDefaultSearch(privateOn, reInitSearchService) {
   let expectedSearchEngineData = {
     name: "telemetrySearchIdentifier",
     loadPath: "[app]telemetrySearchIdentifier",
-    origin: "default",
     submissionURL:
       "https://ar.wikipedia.org/wiki/%D8%AE%D8%A7%D8%B5:%D8%A8%D8%AD%D8%AB?sourceId=Mozilla-search&search=",
   };
@@ -247,7 +246,6 @@ async function checkDefaultSearch(privateOn, reInitSearchService) {
   const EXPECTED_SEARCH_ENGINE_DATA = {
     name: SEARCH_ENGINE_ID,
     loadPath: `[addon]${SEARCH_ENGINE_ID}@test.engine`,
-    origin: "verified",
   };
   if (privateOn) {
     Assert.equal(
@@ -278,16 +276,14 @@ async function checkDefaultSearch(privateOn, reInitSearchService) {
 
 add_task(async function test_defaultSearchEngine() {
   await checkDefaultSearch(false);
-
-  // Cleanly install an engine from an xml file, and check if origin is
-  // recorded as "verified".
+  // Cleanly install an engine from an xml file.
   let promise = new Promise(resolve => {
     TelemetryEnvironment.registerChangeListener(
       "testWatch_SearchDefault",
       resolve
     );
   });
-  let engine = await SearchTestUtils.installOpenSearchEngine({
+  await SearchTestUtils.installOpenSearchEngine({
     url: gDataRoot + "engine.xml",
     setAsDefault: true,
     skipReset: true,
@@ -299,26 +295,7 @@ add_task(async function test_defaultSearchEngine() {
   Assert.deepEqual(data.settings.defaultSearchEngineData, {
     name: "engine-telemetry",
     loadPath: "[http]localhost/engine-telemetry.xml",
-    origin: "verified",
   });
-
-  // Now break this engine's load path hash.
-  promise = new Promise(resolve => {
-    TelemetryEnvironment.registerChangeListener(
-      "testWatch_SearchDefault",
-      resolve
-    );
-  });
-  engine.wrappedJSObject.setAttr("loadPathHash", "broken");
-  Services.obs.notifyObservers(
-    null,
-    "browser-search-engine-modified",
-    "engine-default"
-  );
-  await promise;
-  TelemetryEnvironment.unregisterChangeListener("testWatch_SearchDefault");
-  data = TelemetryEnvironment.currentEnvironment;
-  Assert.equal(data.settings.defaultSearchEngineData.origin, "invalid");
 
   const SEARCH_ENGINE_ID = "telemetry_default";
   const EXPECTED_SEARCH_ENGINE = "other-" + SEARCH_ENGINE_ID;
@@ -389,7 +366,6 @@ add_task(async function test_defaultSearchEngine_paramsChanged() {
   Assert.deepEqual(data.settings.defaultSearchEngineData, {
     name: "TestEngine",
     loadPath: "[addon]testengine@tests.mozilla.org",
-    origin: "verified",
     submissionURL: "https://www.google.com/fake1?q=",
   });
 
@@ -417,7 +393,6 @@ add_task(async function test_defaultSearchEngine_paramsChanged() {
   Assert.deepEqual(data.settings.defaultSearchEngineData, {
     name: "TestEngine",
     loadPath: "[addon]testengine@tests.mozilla.org",
-    origin: "verified",
     submissionURL: "https://www.google.com/fake2?q=",
   });
 

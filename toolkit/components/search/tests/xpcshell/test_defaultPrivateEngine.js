@@ -109,14 +109,12 @@ add_task(async function test_defaultPrivateEngine() {
       displayName: "Application Default",
       loadPath: "[app]appDefault",
       submissionUrl: "https://example.org/?q1=",
-      verified: "default",
     },
     private: {
       engineId: "appDefaultPrivate",
       displayName: "Application Default Private",
       loadPath: "[app]appDefaultPrivate",
       submissionUrl: "https://example.org/?q2=",
-      verified: "default",
     },
   });
 
@@ -145,14 +143,12 @@ add_task(async function test_defaultPrivateEngine() {
       displayName: "Application Default",
       loadPath: "[app]appDefault",
       submissionUrl: "https://example.org/?q1=",
-      verified: "default",
     },
     private: {
       engineId: "otherEngine1",
       displayName: "Other Engine 1",
       loadPath: "[app]otherEngine1",
       submissionUrl: "https://example.org/engine1/?q=",
-      verified: "default",
     },
   });
 
@@ -192,14 +188,12 @@ add_task(async function test_defaultPrivateEngine() {
       displayName: "Application Default",
       loadPath: "[app]appDefault",
       submissionUrl: "https://example.org/?q1=",
-      verified: "default",
     },
     private: {
       engineId: "otherEngine2",
       displayName: "Other Engine 2",
       loadPath: "[app]otherEngine2",
       submissionUrl: "https://example.org/engine2/?q=",
-      verified: "default",
     },
   });
 
@@ -287,7 +281,6 @@ add_task(async function test_telemetry_private_empty_submission_url() {
       displayName: "simple",
       loadPath: "[http]localhost/simple.xml",
       submissionUrl: "blank:",
-      verified: "verified",
     },
   });
 
