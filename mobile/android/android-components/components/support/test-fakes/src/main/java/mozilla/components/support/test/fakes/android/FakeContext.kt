@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// We hit Kotlin warnings (fatal due to Werror) about overriding deprecated methods in this file.
+// This is expected and we can't avoid them since we can't remove the overrides in question until
+// we bump our minimum SDK version to one where the methods no longer exist.
+@file:Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+
 package mozilla.components.support.test.fakes.android
 
 import android.annotation.SuppressLint
