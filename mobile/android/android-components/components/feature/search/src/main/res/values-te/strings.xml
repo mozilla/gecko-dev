@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Text preview for smaller sized widgets -->
-    <string name="search_widget_text_short">వెతకండి</string>
-    <!-- Text preview for larger sized widgets -->
-    <string name="search_widget_text_long">జాలంలో వెతకండి</string>
-    <!-- Content description (not visible, for screen readers etc.): Voice search -->
-    <string name="search_widget_voice">స్వర శోధన</string>
+  <!-- Text preview for smaller sized widgets -->
+  <string name="search_widget_text_short">వెతకండి</string>
+  <!-- Text preview for larger sized widgets -->
+  <string name="search_widget_text_long">జాలంలో వెతకండి</string>
+  <!-- Content description (not visible, for screen readers etc.): Voice search -->
+  <string name="search_widget_voice">స్వర శోధన</string>
 </resources>

@@ -1,109 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-    <!-- The button that appears at the bottom of an error page. -->
-    <string name="mozac_browser_errorpages_page_refresh">یئنی‌دن چالیش</string>
-
-    <!-- The document title and heading of an error page shown when a website cannot be loaded for an unknown reason. -->
-    <string name="mozac_browser_errorpages_generic_title">ایستک قورتارا بیلمیر</string>
-
-    <!-- The error message shown when a website cannot be loaded for an unknown reason. -->
-    <string name="mozac_browser_errorpages_generic_message"><![CDATA[<p>بو موشکول و خطا ایله ایلگیلی آرتیقراق بیلگی هله یوخدور.</p>]]></string>
-
-    <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
-    <string name="mozac_browser_errorpages_security_ssl_title">گوونلی باغلانتی اوغورسوز اولدو</string>
-
-    <!-- The document title and heading of the error page shown when a website sends has an invalid or expired SSL certificate. -->
-    <string name="mozac_browser_errorpages_security_bad_cert_title">گوونلی باغلانتی اوغورسوز اولدو</string>
-
-    <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
-    <string name="mozac_browser_errorpages_security_bad_cert_advanced">قاباغجیل</string>
-    <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
-    <string name="mozac_browser_errorpages_security_bad_cert_back">قاییت(توصیه اولونور)</string>
-    <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
-    <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">ریسکی قبول ائلییرک دوام ائدین</string>
-
-    <!-- The document title and heading of the error page shown when a website uses HSTS. -->
-    <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">بو سایت گوونلی باغلانتی ایسته ییر.</string>
-
-    <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website uses HSTS. -->
-    <string name="mozac_browser_errorpages_security_bad_hsts_cert_advanced">قاباغجیل…</string>
-
-    <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
-    <string name="mozac_browser_errorpages_security_bad_hsts_cert_back">دالیا گئت</string>
-
-    <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
-    <string name="mozac_browser_errorpages_net_interrupt_title">باغلانتی کسیلدی</string>
-
-    <!-- The document title and heading of the error page shown when a website takes too long to load. -->
-    <string name="mozac_browser_errorpages_net_timeout_title">باغلانتی‌نین زامان قیسیتی قوتولدی</string>
-
-    <!-- The document title and heading of the error page shown when a website could not be reached. -->
-    <string name="mozac_browser_errorpages_connection_failure_title">باغلانانمیر</string>
-
-    <!-- The document title and heading of the error page shown when a website responds in an unexpected way and the browser cannot continue. -->
-    <string name="mozac_browser_errorpages_unknown_socket_type_title">سروردن گودولمه‌ین جواب گلدی</string>
-
-    <!-- The document title and heading of the error page shown when the browser gets stuck in an infinite loop when loading a website. -->
-    <string name="mozac_browser_errorpages_redirect_loop_title">صفحه دوزگون یؤنلندیریلمیر</string>
-
-    <!-- The document title and heading of the error page shown when a website cannot be loaded because the browser is in offline mode. -->
-    <string name="mozac_browser_errorpages_offline_title">آفلاین حالت</string>
-
-    <!-- The document title and heading of the error page shown when the Internet connection is disrupted while loading a website. -->
-    <string name="mozac_browser_errorpages_net_reset_title">باغلانتی یئنی‌دن قورولدی</string>
-
-    <!-- The document title and heading of the error page shown when the browser refuses to load a type of file that is considered unsafe. -->
-    <string name="mozac_browser_errorpages_unsafe_content_type_title">گوونسیز سند تیپی</string>
-
-    <!-- The document title and heading of the error page shown when a file cannot be loaded because of a detected data corruption. -->
-    <string name="mozac_browser_errorpages_corrupted_content_title">کورلانمیش ایچریک خطاسی</string>
-
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_content_crashed_title">ایچریک سیندی</string>
-
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_invalid_content_encoding_title">ایچریک کدلاما خطاسی</string>
-
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_unknown_host_title">آدرس تاپیلمادی</string>
-
-    <!-- Text that will show up on the button at the bottom of the error page -->
-    <string name="mozac_browser_errorpages_no_internet_refresh_button">یئنیله</string>
-
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_malformed_uri_title">گئچرسیز آدرس</string>
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_malformed_uri_title_alternative">آدرس گئچرلی دئییل</string>
-
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_unknown_protocol_title">تانینمایان پروتکل</string>
-
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_file_not_found_title">فایل تاپیلمادی</string>
-
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_file_access_denied_title">فایلؽن ایشلدیلمه‌سینه ایجازه وئریلمه‌دی</string>
-
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_proxy_connection_refused_title">پروکسی سرور باغلانتی‌نی رد ائتدی</string>
-
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_unknown_proxy_host_title">پروکسی سرور تاپیلمادی</string>
-
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_safe_browsing_malware_uri_title">ضرر وئریجی سایت سورونو</string>
-
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_title">ایستنمیه‌ن سایت سورونو</string>
-
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_safe_harmful_uri_title">ضررلی سایت سورونو</string>
-
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_safe_phishing_uri_title">آلداتان سایت سورونو</string>
-
-    <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
-    <string name="mozac_browser_errorpages_httpsonly_title">گوونلی سایت موجود دئییل</string>
-    <!-- Button on error page for websites that do not support HTTPS when HTTPS-Only is turned on. Clicking the button allows the user to nevertheless load the website using HTTP. -->
-    <string name="mozac_browser_errorpages_httpsonly_button">HTTP سایتینا دوام ائت</string>
+<resources>
+  <!-- The button that appears at the bottom of an error page. -->
+  <string name="mozac_browser_errorpages_page_refresh">یئنی‌دن چالیش</string>
+  <!-- The document title and heading of an error page shown when a website cannot be loaded for an unknown reason. -->
+  <string name="mozac_browser_errorpages_generic_title">ایستک قورتارا بیلمیر</string>
+  <!-- The error message shown when a website cannot be loaded for an unknown reason. -->
+  <string name="mozac_browser_errorpages_generic_message">&lt;p&gt;بو موشکول و خطا ایله ایلگیلی آرتیقراق بیلگی هله یوخدور.&lt;/p&gt;</string>
+  <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
+  <string name="mozac_browser_errorpages_security_ssl_title">گوونلی باغلانتی اوغورسوز اولدو</string>
+  <!-- The document title and heading of the error page shown when a website sends has an invalid or expired SSL certificate. -->
+  <string name="mozac_browser_errorpages_security_bad_cert_title">گوونلی باغلانتی اوغورسوز اولدو</string>
+  <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
+  <string name="mozac_browser_errorpages_security_bad_cert_advanced">قاباغجیل</string>
+  <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
+  <string name="mozac_browser_errorpages_security_bad_cert_back">قاییت(توصیه اولونور)</string>
+  <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
+  <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">ریسکی قبول ائلییرک دوام ائدین</string>
+  <!-- The document title and heading of the error page shown when a website uses HSTS. -->
+  <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">بو سایت گوونلی باغلانتی ایسته ییر.</string>
+  <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website uses HSTS. -->
+  <string name="mozac_browser_errorpages_security_bad_hsts_cert_advanced">قاباغجیل…</string>
+  <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
+  <string name="mozac_browser_errorpages_security_bad_hsts_cert_back">دالیا گئت</string>
+  <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
+  <string name="mozac_browser_errorpages_net_interrupt_title">باغلانتی کسیلدی</string>
+  <!-- The document title and heading of the error page shown when a website takes too long to load. -->
+  <string name="mozac_browser_errorpages_net_timeout_title">باغلانتی‌نین زامان قیسیتی قوتولدی</string>
+  <!-- The document title and heading of the error page shown when a website could not be reached. -->
+  <string name="mozac_browser_errorpages_connection_failure_title">باغلانانمیر</string>
+  <!-- The document title and heading of the error page shown when a website responds in an unexpected way and the browser cannot continue. -->
+  <string name="mozac_browser_errorpages_unknown_socket_type_title">سروردن گودولمه‌ین جواب گلدی</string>
+  <!-- The document title and heading of the error page shown when the browser gets stuck in an infinite loop when loading a website. -->
+  <string name="mozac_browser_errorpages_redirect_loop_title">صفحه دوزگون یؤنلندیریلمیر</string>
+  <!-- The document title and heading of the error page shown when a website cannot be loaded because the browser is in offline mode. -->
+  <string name="mozac_browser_errorpages_offline_title">آفلاین حالت</string>
+  <!-- The document title and heading of the error page shown when the Internet connection is disrupted while loading a website. -->
+  <string name="mozac_browser_errorpages_net_reset_title">باغلانتی یئنی‌دن قورولدی</string>
+  <!-- The document title and heading of the error page shown when the browser refuses to load a type of file that is considered unsafe. -->
+  <string name="mozac_browser_errorpages_unsafe_content_type_title">گوونسیز سند تیپی</string>
+  <!-- The document title and heading of the error page shown when a file cannot be loaded because of a detected data corruption. -->
+  <string name="mozac_browser_errorpages_corrupted_content_title">کورلانمیش ایچریک خطاسی</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_content_crashed_title">ایچریک سیندی</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_invalid_content_encoding_title">ایچریک کدلاما خطاسی</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_unknown_host_title">آدرس تاپیلمادی</string>
+  <!-- Text that will show up on the button at the bottom of the error page -->
+  <string name="mozac_browser_errorpages_no_internet_refresh_button">یئنیله</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_malformed_uri_title">گئچرسیز آدرس</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_malformed_uri_title_alternative">آدرس گئچرلی دئییل</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_unknown_protocol_title">تانینمایان پروتکل</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_file_not_found_title">فایل تاپیلمادی</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_file_access_denied_title">فایلؽن ایشلدیلمه‌سینه ایجازه وئریلمه‌دی</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_proxy_connection_refused_title">پروکسی سرور باغلانتی‌نی رد ائتدی</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_unknown_proxy_host_title">پروکسی سرور تاپیلمادی</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_safe_browsing_malware_uri_title">ضرر وئریجی سایت سورونو</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_title">ایستنمیه‌ن سایت سورونو</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_safe_harmful_uri_title">ضررلی سایت سورونو</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_safe_phishing_uri_title">آلداتان سایت سورونو</string>
+  <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
+  <string name="mozac_browser_errorpages_httpsonly_title">گوونلی سایت موجود دئییل</string>
+  <!-- Button on error page for websites that do not support HTTPS when HTTPS-Only is turned on. Clicking the button allows the user to nevertheless load the website using HTTP. -->
+  <string name="mozac_browser_errorpages_httpsonly_button">HTTP سایتینا دوام ائت</string>
 </resources>

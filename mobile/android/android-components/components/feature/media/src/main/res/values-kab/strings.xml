@@ -1,39 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-    <!-- Name of the "notification channel" used for displaying media notification. See https://developer.android.com/training/notify-user/channels -->
-    <string name="mozac_feature_media_notification_channel">Allalen n teywalt</string>
-
-    <!-- Title of notification shown when the device's camera is shared with a website (WebRTC) -->
-    <string name="mozac_feature_media_sharing_camera">Takamirat tetteddu</string>
-    <!-- Title of notification shown when the device's microphone is shared with a website (WebRTC) -->
-    <string name="mozac_feature_media_sharing_microphone">Asawaḍ itteddu</string>
-
-    <!-- Title of notification shown when the device's camera and microphone is shared with a website (WebRTC) -->
-    <string name="mozac_feature_media_sharing_camera_and_microphone">Takamiṛat akked usawaḍ tteddun</string>
-
-
-    <!-- Text of notification shown when the device's camera is shared with a website (WebRTC) -->
-    <string name="mozac_feature_media_sharing_camera_text">Sit i wakken ad teldiḍ iccer i yesseqdacen takamiṛat-ik.</string>
-    <!-- Text of notification shown when the device's microphone is shared with a website (WebRTC) -->
-    <string name="mozac_feature_media_sharing_microphone_text">Sit i wakken ad teldiḍ iccer i yesseqdacen asawaḍ-ik.</string>
-    <!-- Text of notification shown when the device's camera and microphone is shared with a website (WebRTC) -->
-    <string name="mozac_feature_media_sharing_camera_and_microphone_text">Sit i wakken ad teldiḍ iccer i yesseqdacen asawaḍ-ik d tkamiṛat.</string>
-
-
-    <!-- Text of reminder notification shown when the device's camera is shared with a website (WebRTC). %1$s is a placeholder that will be replaced by the app name-->
-    <string name="mozac_feature_media_sharing_camera_reminder_text">Asmekti: %1$s mazal yesseqdac takamiṛat-ik. Sit i wakken ad teldiḍ iccer.</string>
-    <!-- Text of reminder notification shown when the device's microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
-    <string name="mozac_feature_media_sharing_microphone_reminder_text_2">Asmekti: %1$s mazal yesseqdac asawaḍ-ik. Sit i wakken ad teldiḍ iccer.</string>
-
-    <!-- Text of reminder notification shown when the device's camera and microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
-    <string name="mozac_feature_media_sharing_camera_and_microphone_reminder_text_2">Asmekti: %1$s mazal yesseqdac asawaḍ-ik d tkamiṛat. Sit i wakken ad teldiḍ iccer.</string>
-
-    <!--This is the title of the "play" action media shown in the media notification while web content is playing media. Clicking it will resume playing paused media. On most modern Android system only an icon is visible. But screen readers may read this title. -->
-    <string name="mozac_feature_media_notification_action_play">Urar</string>
-
-    <!--This is the title of the "pause" action shown in the media notification while web content is playing media. Clicking it will pause currently playing media. On most modern Android system only an icon is visible. But screen readers may read this title. -->
-    <string name="mozac_feature_media_notification_action_pause">Asteɛfu</string>
-
-    <!-- Neutral title of the media notification for when a website that is open in private mode. -->
-    <string name="mozac_feature_media_notification_private_mode">Asmel yaqqaṛ aferdis aget midya</string>
+<resources>
+  <!-- Name of the "notification channel" used for displaying media notification. See https://developer.android.com/training/notify-user/channels -->
+  <string name="mozac_feature_media_notification_channel">Allalen n teywalt</string>
+  <!-- Title of notification shown when the device's camera is shared with a website (WebRTC) -->
+  <string name="mozac_feature_media_sharing_camera">Takamirat tetteddu</string>
+  <!-- Title of notification shown when the device's microphone is shared with a website (WebRTC) -->
+  <string name="mozac_feature_media_sharing_microphone">Asawaḍ itteddu</string>
+  <!-- Title of notification shown when the device's camera and microphone is shared with a website (WebRTC) -->
+  <string name="mozac_feature_media_sharing_camera_and_microphone">Takamiṛat akked usawaḍ tteddun</string>
+  <!-- Text of notification shown when the device's camera is shared with a website (WebRTC) -->
+  <string name="mozac_feature_media_sharing_camera_text">Sit i wakken ad teldiḍ iccer i yesseqdacen takamiṛat-ik.</string>
+  <!-- Text of notification shown when the device's microphone is shared with a website (WebRTC) -->
+  <string name="mozac_feature_media_sharing_microphone_text">Sit i wakken ad teldiḍ iccer i yesseqdacen asawaḍ-ik.</string>
+  <!-- Text of notification shown when the device's camera and microphone is shared with a website (WebRTC) -->
+  <string name="mozac_feature_media_sharing_camera_and_microphone_text">Sit i wakken ad teldiḍ iccer i yesseqdacen asawaḍ-ik d tkamiṛat.</string>
+  <!-- Text of reminder notification shown when the device's camera is shared with a website (WebRTC). %1$s is a placeholder that will be replaced by the app name -->
+  <string name="mozac_feature_media_sharing_camera_reminder_text">Asmekti: %1$s mazal yesseqdac takamiṛat-ik. Sit i wakken ad teldiḍ iccer.</string>
+  <!-- Text of reminder notification shown when the device's microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name -->
+  <string name="mozac_feature_media_sharing_microphone_reminder_text_2">Asmekti: %1$s mazal yesseqdac asawaḍ-ik. Sit i wakken ad teldiḍ iccer.</string>
+  <!-- Text of reminder notification shown when the device's camera and microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name -->
+  <string name="mozac_feature_media_sharing_camera_and_microphone_reminder_text_2">Asmekti: %1$s mazal yesseqdac asawaḍ-ik d tkamiṛat. Sit i wakken ad teldiḍ iccer.</string>
+  <!-- This is the title of the "play" action media shown in the media notification while web content is playing media. Clicking it will resume playing paused media. On most modern Android system only an icon is visible. But screen readers may read this title. -->
+  <string name="mozac_feature_media_notification_action_play">Urar</string>
+  <!-- This is the title of the "pause" action shown in the media notification while web content is playing media. Clicking it will pause currently playing media. On most modern Android system only an icon is visible. But screen readers may read this title. -->
+  <string name="mozac_feature_media_notification_action_pause">Asteɛfu</string>
+  <!-- Neutral title of the media notification for when a website that is open in private mode. -->
+  <string name="mozac_feature_media_notification_private_mode">Asmel yaqqaṛ aferdis aget midya</string>
 </resources>

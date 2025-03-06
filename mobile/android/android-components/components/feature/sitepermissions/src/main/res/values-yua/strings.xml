@@ -1,33 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Title of a dialog for a notification permission request. -->
-    <string name="mozac_feature_sitepermissions_notification_title">Ku cha\'ik u túuxtik notificaciones ti\' %1$s?</string>
-    <!-- Title of a dialog for a camera permission request. -->
-    <string name="mozac_feature_sitepermissions_camera_title">Ku cha\'ik u meyaj %1$s u cámara?</string>
-    <!-- Title of a dialog for a microphone permission request. -->
-    <string name="mozac_feature_sitepermissions_microfone_title">Ka cha\'ik ti\' %1$s u meyajtik a micrófono?</string>
-    <!-- Title of a dialog for a location permission request. -->
-    <string name="mozac_feature_sitepermissions_location_title">Ka cha\'ik u meyajtik %1$s a tu\'ux yaan?</string>
-    <!-- Title of a dialog for a camera and microphone permission request. -->
-    <string name="mozac_feature_sitepermissions_camera_and_microphone">Ka cha\'ik ti\' %1$s u meyajtik a cámara yéetel a micrófono?</string>
-    <!-- Option in a dialog for requesting a camera permission, this option will give access to
-         back facing camera-->
-    <string name="mozac_feature_sitepermissions_back_facing_camera2">Cámara trasera</string>
-    <!-- Option in a dialog for requesting a camera permission, this option will give access to
-     front facing camera-->
-    <string name="mozac_feature_sitepermissions_selfie_camera2">Cámara delantera</string>
-    <!-- Text for a positive button in a permission request dialog, this button will give
-        access to this permission-->
-    <string name="mozac_feature_sitepermissions_allow">Cha</string>
-    <!-- Text for a negative button in a permission request dialog, this button will do not give
-    access to this permission-->
-    <string name="mozac_feature_sitepermissions_not_allow">Ma\' a cha\'ik</string>
-    <!-- Text for a checkbox in a permission request dialog, this will allow to not show again the prompt-->
-    <string name="mozac_feature_sitepermissions_do_not_ask_again_on_this_site2">K\'a\'ajaktech u jets\'t\'aanil le ts\'ono\'oto\'</string>
-    <!-- Text for a positive button in a permission request dialog. This will always allow and remember the decision of the user, this is the special case of the notification permission, that is only ask one time-->
-    <string name="mozac_feature_sitepermissions_always_allow">Maantats</string>
-    <!-- Text for a negative button in a permission request dialog. This will never allow and remember the decision of the user, this is the special case of the notification permission, that is only ask one time-->
-    <string name="mozac_feature_sitepermissions_never_allow">Mixbik\'in</string>
-    <!-- Clickable text that will open a new tab navigating the user to online documentation about specific features. -->
-    <string name="mozac_feature_sitepermissions_learn_more_title">K’ajóoltal u yaanali’</string>
+  <!-- Title of a dialog for a notification permission request. -->
+  <string name="mozac_feature_sitepermissions_notification_title">Ku cha\'ik u túuxtik notificaciones ti\' %1$s?</string>
+  <!-- Title of a dialog for a camera permission request. -->
+  <string name="mozac_feature_sitepermissions_camera_title">Ku cha\'ik u meyaj %1$s u cámara?</string>
+  <!-- Title of a dialog for a microphone permission request. -->
+  <string name="mozac_feature_sitepermissions_microfone_title">Ka cha\'ik ti\' %1$s u meyajtik a micrófono?</string>
+  <!-- Title of a dialog for a location permission request. -->
+  <string name="mozac_feature_sitepermissions_location_title">Ka cha\'ik u meyajtik %1$s a tu\'ux yaan?</string>
+  <!-- Title of a dialog for a camera and microphone permission request. -->
+  <string name="mozac_feature_sitepermissions_camera_and_microphone">Ka cha\'ik ti\' %1$s u meyajtik a cámara yéetel a micrófono?</string>
+  <!--
+    Option in a dialog for requesting a camera permission, this option will give access to
+    back facing camera
+  -->
+  <string name="mozac_feature_sitepermissions_back_facing_camera2">Cámara trasera</string>
+  <!--
+    Option in a dialog for requesting a camera permission, this option will give access to
+    front facing camera
+  -->
+  <string name="mozac_feature_sitepermissions_selfie_camera2">Cámara delantera</string>
+  <!--
+    Text for a positive button in a permission request dialog, this button will give
+    access to this permission
+  -->
+  <string name="mozac_feature_sitepermissions_allow">Cha</string>
+  <!--
+    Text for a negative button in a permission request dialog, this button will do not give
+    access to this permission
+  -->
+  <string name="mozac_feature_sitepermissions_not_allow">Ma\' a cha\'ik</string>
+  <!-- Text for a checkbox in a permission request dialog, this will allow to not show again the prompt -->
+  <string name="mozac_feature_sitepermissions_do_not_ask_again_on_this_site2">K\'a\'ajaktech u jets\'t\'aanil le ts\'ono\'oto\'</string>
+  <!-- Text for a positive button in a permission request dialog. This will always allow and remember the decision of the user, this is the special case of the notification permission, that is only ask one time -->
+  <string name="mozac_feature_sitepermissions_always_allow">Maantats</string>
+  <!-- Text for a negative button in a permission request dialog. This will never allow and remember the decision of the user, this is the special case of the notification permission, that is only ask one time -->
+  <string name="mozac_feature_sitepermissions_never_allow">Mixbik\'in</string>
+  <!-- Clickable text that will open a new tab navigating the user to online documentation about specific features. -->
+  <string name="mozac_feature_sitepermissions_learn_more_title">K’ajóoltal u yaanali’</string>
 </resources>

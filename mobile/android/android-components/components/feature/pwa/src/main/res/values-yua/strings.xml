@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <!-- Text shown on the second row of the site controls notification. -->
-    <string name="mozac_feature_pwa_site_controls_notification_text">Pulse utia\'al u copiar u URL le ka\'anatako\'ob</string>
-    <!-- Refresh button in site controls notification. -->
-    <string name="mozac_feature_pwa_site_controls_refresh">Túumbenkuunsik</string>
-    <!-- Toast displayed when the website URL is copied. -->
-    <string name="mozac_feature_pwa_copy_success">URL copiado.</string>
+  <!-- Text shown on the second row of the site controls notification. -->
+  <string name="mozac_feature_pwa_site_controls_notification_text">Pulse utia\'al u copiar u URL le ka\'anatako\'ob</string>
+  <!-- Refresh button in site controls notification. -->
+  <string name="mozac_feature_pwa_site_controls_refresh">Túumbenkuunsik</string>
+  <!-- Toast displayed when the website URL is copied. -->
+  <string name="mozac_feature_pwa_copy_success">URL copiado.</string>
 </resources>

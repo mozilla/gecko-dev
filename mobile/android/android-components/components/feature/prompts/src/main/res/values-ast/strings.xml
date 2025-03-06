@@ -1,174 +1,174 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-    <!-- Text for confirmation for a positive action in dialog  -->
-    <string name="mozac_feature_prompts_ok">D\'acuerdu</string>
-    <!-- Text for confirmation for a negative action in dialog.  -->
-    <string name="mozac_feature_prompts_cancel">Encaboxar</string>
-    <!-- When a page shows many dialogs, this checkbox will appear for letting the user choose to prevent showing more dialogs. -->
-    <string name="mozac_feature_prompts_no_more_dialogs">Impidir qu\'esta páxina cree diálogos adicionales</string>
-    <!-- Text for a positive button, when an user selects a date in date/time picker. -->
-    <string name="mozac_feature_prompts_set_date">Afitar</string>
-    <!-- Text for a button that clears the selected input in the date/time picker. -->
-    <string name="mozac_feature_prompts_clear">Borrar</string>
-    <!-- Text for the title of an authentication dialog. -->
-    <string name="mozac_feature_prompt_sign_in">Aniciu de sesión</string>
-    <!-- Text for username field in an authentication dialog. -->
-    <string name="mozac_feature_prompt_username_hint">Nome d\'usuariu</string>
-    <!-- Text for password field in an authentication dialog. -->
-    <string name="mozac_feature_prompt_password_hint">Contraseña</string>
-    <!-- Negative confirmation that we should not save the new or updated login -->
-    <string name="mozac_feature_prompt_dont_save_2">Agora non</string>
-    <!-- Negative confirmation that we should never save a login for this site -->
-    <string name="mozac_feature_prompt_never_save">Nun guardar enxamás</string>
-    <!-- Negative confirmation that we should not save a credit card for this site -->
-    <string name="mozac_feature_prompt_not_now">Agora non</string>
-    <!-- Positive confirmation that we should save the new or updated login -->
-    <string name="mozac_feature_prompt_save_confirmation">Guardar</string>
-    <!-- Negative confirmation that we should not save the updated login -->
-    <string name="mozac_feature_prompt_dont_update_2">Agora non</string>
-    <!-- Positive confirmation that we should save the updated login -->
-    <string name="mozac_feature_prompt_update_confirmation">Anovar</string>
-    <!-- Error text displayed underneath the password field when it is in an error case -->
-    <string name="mozac_feature_prompt_error_empty_password_2">Introduz una contraseña</string>
-    <!-- Error text displayed underneath the password field when it is in an error case -->
-    <string name="mozac_feature_prompt_error_unknown_cause_2">Nun se pue guardar la contraseña</string>
-    <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new password. -->
-    <string name="mozac_feature_prompt_login_save_headline_2">¿Quies guardar la contraseña?</string>
-    <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
-    <string name="mozac_feature_prompt_login_update_headline_2">¿Quies anovar la contraseña?</string>
-    <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_add_username_headline_2">¿Quies anovar el nome d\'usuariu?</string>
-    <!-- Text for a label for the field when prompt requesting a text is shown. -->
-    <!-- For more info take a look here https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt -->
-    <string name="mozac_feature_prompts_content_description_input_label">Etiqueta pa introducir un campu d\'entrada de testu</string>
-    <!-- Title of a color picker dialog, this text is shown above a color picker. -->
-    <string name="mozac_feature_prompts_choose_a_color">Seleición d\'un color</string>
-    <!-- Text of a confirm button in dialog requesting to open a new window. -->
-    <string name="mozac_feature_prompts_allow">Permitir</string>
-    <!-- Text of a negative button in dialog requesting to open a new window. -->
-    <string name="mozac_feature_prompts_deny">Negar</string>
-    <!-- Text of the title of a dialog when a page is requesting to open a new window. -->
-    <string name="mozac_feature_prompts_popup_dialog_title">¿Quies permitir que s\'abra esti sitiu?</string>
-    <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
-    <string name="mozac_feature_prompt_before_unload_dialog_title">¿De xuru?</string>
-    <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
-    <string name="mozac_feature_prompt_before_unload_dialog_body">¿Quies colar d\'esti sitiu? Ye posible que nun se guarden los datos qu\'introduxeres</string>
-    <!-- Stay button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to stay in the website. -->
-    <string name="mozac_feature_prompts_before_unload_stay">Quedar</string>
-    <!-- Leave button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to leave in the website. -->
-    <string name="mozac_feature_prompts_before_unload_leave">Colar</string>
-    <!-- Title of the month chooser dialog. -->
-    <string name="mozac_feature_prompts_set_month">Seleición d\'un mes</string>
-    <!-- January (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_jan">Xin</string>
-    <!-- February month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_feb">Feb</string>
-    <!-- March month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_mar">Mar</string>
-    <!-- April month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_apr">Abr</string>
-    <!-- May month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_may">May</string>
-    <!-- June month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_jun">Xun</string>
-    <!-- July month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_jul">Xnt</string>
-    <!-- August month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_aug">Ago</string>
-    <!-- September month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_sep">Set</string>
-    <!-- October month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_oct">Och</string>
-    <!-- November month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_nov">Pay</string>
-    <!-- December month of the year (short description), used on the month chooser dialog. -->
-    <string name="mozac_feature_prompts_dec">Avi</string>
+<resources xmlns:tools="http://schemas.android.com/tools">
+  <!-- Text for confirmation for a positive action in dialog -->
+  <string name="mozac_feature_prompts_ok">D\'acuerdu</string>
+  <!-- Text for confirmation for a negative action in dialog. -->
+  <string name="mozac_feature_prompts_cancel">Encaboxar</string>
+  <!-- When a page shows many dialogs, this checkbox will appear for letting the user choose to prevent showing more dialogs. -->
+  <string name="mozac_feature_prompts_no_more_dialogs">Impidir qu\'esta páxina cree diálogos adicionales</string>
+  <!-- Text for a positive button, when an user selects a date in date/time picker. -->
+  <string name="mozac_feature_prompts_set_date">Afitar</string>
+  <!-- Text for a button that clears the selected input in the date/time picker. -->
+  <string name="mozac_feature_prompts_clear">Borrar</string>
+  <!-- Text for the title of an authentication dialog. -->
+  <string name="mozac_feature_prompt_sign_in">Aniciu de sesión</string>
+  <!-- Text for username field in an authentication dialog. -->
+  <string name="mozac_feature_prompt_username_hint">Nome d\'usuariu</string>
+  <!-- Text for password field in an authentication dialog. -->
+  <string name="mozac_feature_prompt_password_hint">Contraseña</string>
+  <!-- Negative confirmation that we should not save the new or updated login -->
+  <string name="mozac_feature_prompt_dont_save_2">Agora non</string>
+  <!-- Negative confirmation that we should never save a login for this site -->
+  <string name="mozac_feature_prompt_never_save">Nun guardar enxamás</string>
+  <!-- Negative confirmation that we should not save a credit card for this site -->
+  <string name="mozac_feature_prompt_not_now">Agora non</string>
+  <!-- Positive confirmation that we should save the new or updated login -->
+  <string name="mozac_feature_prompt_save_confirmation">Guardar</string>
+  <!-- Negative confirmation that we should not save the updated login -->
+  <string name="mozac_feature_prompt_dont_update_2">Agora non</string>
+  <!-- Positive confirmation that we should save the updated login -->
+  <string name="mozac_feature_prompt_update_confirmation">Anovar</string>
+  <!-- Error text displayed underneath the password field when it is in an error case -->
+  <string name="mozac_feature_prompt_error_empty_password_2">Introduz una contraseña</string>
+  <!-- Error text displayed underneath the password field when it is in an error case -->
+  <string name="mozac_feature_prompt_error_unknown_cause_2">Nun se pue guardar la contraseña</string>
+  <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new password. -->
+  <string name="mozac_feature_prompt_login_save_headline_2">¿Quies guardar la contraseña?</string>
+  <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
+  <string name="mozac_feature_prompt_login_update_headline_2">¿Quies anovar la contraseña?</string>
+  <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
+  <string name="mozac_feature_prompt_login_add_username_headline_2">¿Quies anovar el nome d\'usuariu?</string>
+  <!--
+    Text for a label for the field when prompt requesting a text is shown.
 
-    <!-- Title of the time picker dialog. -->
-    <string name="mozac_feature_prompts_set_time">Seleición de la hora</string>
-    <!-- Option in expanded select password prompt that links to password settings -->
-    <string name="mozac_feature_prompts_manage_logins_2">Xestionar les contraseñes</string>
-    <!-- Content description for expanding the saved passwords options in the select password prompt -->
-    <string name="mozac_feature_prompts_expand_logins_content_description_2">Espander les contraseñes guardaes</string>
-    <!-- Content description for collapsing the saved passwords options in the select password prompt -->
-    <string name="mozac_feature_prompts_collapse_logins_content_description_2">Contrayer les contraseñes guardaes</string>
-    <!-- Header for the select password prompt to allow users to fill a form with a saved password -->
-    <string name="mozac_feature_prompts_saved_logins_2">Contraseñes guardaes</string>
+    For more info take a look here https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt
+  -->
+  <string name="mozac_feature_prompts_content_description_input_label">Etiqueta pa introducir un campu d\'entrada de testu</string>
+  <!-- Title of a color picker dialog, this text is shown above a color picker. -->
+  <string name="mozac_feature_prompts_choose_a_color">Seleición d\'un color</string>
+  <!-- Text of a confirm button in dialog requesting to open a new window. -->
+  <string name="mozac_feature_prompts_allow">Permitir</string>
+  <!-- Text of a negative button in dialog requesting to open a new window. -->
+  <string name="mozac_feature_prompts_deny">Negar</string>
+  <!-- Text of the title of a dialog when a page is requesting to open a new window. -->
+  <string name="mozac_feature_prompts_popup_dialog_title">¿Quies permitir que s\'abra esti sitiu?</string>
+  <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
+  <string name="mozac_feature_prompt_before_unload_dialog_title">¿De xuru?</string>
+  <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
+  <string name="mozac_feature_prompt_before_unload_dialog_body">¿Quies colar d\'esti sitiu? Ye posible que nun se guarden los datos qu\'introduxeres</string>
+  <!-- Stay button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to stay in the website. -->
+  <string name="mozac_feature_prompts_before_unload_stay">Quedar</string>
+  <!-- Leave button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to leave in the website. -->
+  <string name="mozac_feature_prompts_before_unload_leave">Colar</string>
+  <!-- Title of the month chooser dialog. -->
+  <string name="mozac_feature_prompts_set_month">Seleición d\'un mes</string>
+  <!-- January (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_jan">Xin</string>
+  <!-- February month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_feb">Feb</string>
+  <!-- March month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_mar">Mar</string>
+  <!-- April month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_apr">Abr</string>
+  <!-- May month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_may">May</string>
+  <!-- June month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_jun">Xun</string>
+  <!-- July month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_jul">Xnt</string>
+  <!-- August month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_aug">Ago</string>
+  <!-- September month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_sep">Set</string>
+  <!-- October month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_oct">Och</string>
+  <!-- November month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_nov">Pay</string>
+  <!-- December month of the year (short description), used on the month chooser dialog. -->
+  <string name="mozac_feature_prompts_dec">Avi</string>
+  <!-- Title of the time picker dialog. -->
+  <string name="mozac_feature_prompts_set_time">Seleición de la hora</string>
+  <!-- Option in expanded select password prompt that links to password settings -->
+  <string name="mozac_feature_prompts_manage_logins_2">Xestionar les contraseñes</string>
+  <!-- Content description for expanding the saved passwords options in the select password prompt -->
+  <string name="mozac_feature_prompts_expand_logins_content_description_2">Espander les contraseñes guardaes</string>
+  <!-- Content description for collapsing the saved passwords options in the select password prompt -->
+  <string name="mozac_feature_prompts_collapse_logins_content_description_2">Contrayer les contraseñes guardaes</string>
+  <!-- Header for the select password prompt to allow users to fill a form with a saved password -->
+  <string name="mozac_feature_prompts_saved_logins_2">Contraseñes guardaes</string>
+  <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
+  <string name="mozac_feature_prompts_suggest_strong_password_content_description">Suxerir una contraseña segura</string>
+  <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
+  <string name="mozac_feature_prompts_suggest_strong_password_2">Usar una contraseña segura</string>
+  <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
+  <string name="mozac_feature_prompts_suggest_strong_password_message">Usar una contraseña segura: %1$s</string>
+  <!-- Title for using the suggest strong password confirmation dialog -->
+  <string name="mozac_feature_prompts_suggest_strong_password_title">¿Quies usar una contraseña segura?</string>
+  <!-- Content description for the suggest strong password confirmation dialog -->
+  <string name="mozac_feature_prompts_suggest_strong_password_description_3">Protexi la cuenta usando una contraseña segura xenerada aleatoriamente. Va guardase na to cuenta pa usala nel futuru.</string>
+  <!-- Pressing this will use the suggested strong password -->
+  <string name="mozac_feature_prompts_suggest_strong_password_use_password">Usar la contraseña</string>
+  <!-- Pressing this will dismiss the suggested strong password dialog -->
+  <string name="mozac_feature_prompts_suggest_strong_password_dismiss">Agora non</string>
+  <!-- Title for showing the suggest strong password saved confirmation snackbar -->
+  <string name="mozac_feature_prompts_suggest_strong_password_saved_snackbar_title">Guardóse la contraseña</string>
+  <!-- Title for showing the suggest strong password updated confirmation snackbar -->
+  <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Anovóse la contraseña</string>
+  <!-- Title for showing the username updated confirmation snackbar -->
+  <string name="mozac_feature_prompt_login_snackbar_username_updated">Anovóse\'l nome d\'usuariu</string>
+  <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
+  <string name="mozac_feature_prompt_repost_title">¿Quies volver unviar los datos a esti sitiu?</string>
+  <string name="mozac_feature_prompt_repost_message">Anovar esta páxina podría duplicar les aiciones de recién, como l\'unviu d\'un pagu o la publicación repitida d\'un artículu.</string>
+  <!-- Pressing this will dismiss the dialog and reload the page sending again the previous data -->
+  <string name="mozac_feature_prompt_repost_positive_button_text">Volver unviar</string>
+  <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
+  <string name="mozac_feature_prompt_repost_negative_button_text">Encaboxar</string>
+  <!--
+    Credit Card Autofill
 
-    <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password_content_description">Suxerir una contraseña segura</string>
+    Header for the select card prompt to allow users to fill a form with a saved card.
+  -->
+  <string name="mozac_feature_prompts_select_credit_card_2">Usar la tarxeta guardada</string>
+  <!-- Content description for expanding the saved card options in the select card prompt. -->
+  <string name="mozac_feature_prompts_expand_credit_cards_content_description_2">Espander les tarxetes guardaes</string>
+  <!-- Content description for collapsing the saved card options in the select prompt. -->
+  <string name="mozac_feature_prompts_collapse_credit_cards_content_description_2">Contrayer les tarxetes guardaes</string>
+  <!-- Option in the expanded select card prompt that links to cards settings. -->
+  <string name="mozac_feature_prompts_manage_credit_cards_2">Xestionar les tarxetes</string>
+  <!-- Text for the title of a save credit card dialog. -->
+  <string name="mozac_feature_prompts_save_credit_card_prompt_title">¿Quies guardar esta tarxeta de mou seguru?</string>
+  <!-- Text for the title of an update credit card dialog. -->
+  <string name="mozac_feature_prompts_update_credit_card_prompt_title">¿Quies anovar la data de caducidá de la tarxeta?</string>
+  <!-- Subtitle text displayed under the title of the saved card dialog. Parameter will be replaced by app name -->
+  <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s cifra\'l númberu de la tarxeta. El códigu de seguranza nun va guardase.</string>
+  <!--
+    Address Autofill
 
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password_2">Usar una contraseña segura</string>
+    Header for the select address prompt to allow users to fill a form with a saved address.
+  -->
+  <string name="mozac_feature_prompts_select_address_2">Seleición d\'unes señes</string>
+  <!-- Content description for expanding the saved addresses options in the select address prompt. -->
+  <string name="mozac_feature_prompts_expand_address_content_description_2">Espander les señes guardaes</string>
+  <!-- Content description for collapsing the saved address options in the select address prompt. -->
+  <string name="mozac_feature_prompts_collapse_address_content_description_2">Contrayer les señes guardaes</string>
+  <!-- Text for the manage addresses button. -->
+  <string name="mozac_feature_prompts_manage_address">Xestionar les señes</string>
+  <!--
+    Federated Credential Management prompts
 
-    <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
-    <string name="mozac_feature_prompts_suggest_strong_password_message">Usar una contraseña segura: %1$s</string>
-
-    <!-- Title for using the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_title">¿Quies usar una contraseña segura?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Protexi la cuenta usando una contraseña segura xenerada aleatoriamente. Va guardase na to cuenta pa usala nel futuru.</string>
-
-    <!-- Pressing this will use the suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password_use_password">Usar la contraseña</string>
-    <!-- Pressing this will dismiss the suggested strong password dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_dismiss">Agora non</string>
-
-    <!-- Title for showing the suggest strong password saved confirmation snackbar -->
-    <string name="mozac_feature_prompts_suggest_strong_password_saved_snackbar_title">Guardóse la contraseña</string>
-    <!-- Title for showing the suggest strong password updated confirmation snackbar -->
-    <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Anovóse la contraseña</string>
-    <!-- Title for showing the username updated confirmation snackbar -->
-    <string name="mozac_feature_prompt_login_snackbar_username_updated">Anovóse\'l nome d\'usuariu</string>
-
-    <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
-    <string name="mozac_feature_prompt_repost_title">¿Quies volver unviar los datos a esti sitiu?</string>
-    <string name="mozac_feature_prompt_repost_message">Anovar esta páxina podría duplicar les aiciones de recién, como l\'unviu d\'un pagu o la publicación repitida d\'un artículu.</string>
-    <!-- Pressing this will dismiss the dialog and reload the page sending again the previous data -->
-    <string name="mozac_feature_prompt_repost_positive_button_text">Volver unviar</string>
-    <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
-    <string name="mozac_feature_prompt_repost_negative_button_text">Encaboxar</string>
-
-    <!-- Credit Card Autofill -->
-    <!-- Header for the select card prompt to allow users to fill a form with a saved card. -->
-    <string name="mozac_feature_prompts_select_credit_card_2">Usar la tarxeta guardada</string>
-    <!-- Content description for expanding the saved card options in the select card prompt. -->
-    <string name="mozac_feature_prompts_expand_credit_cards_content_description_2">Espander les tarxetes guardaes</string>
-    <!-- Content description for collapsing the saved card options in the select prompt. -->
-    <string name="mozac_feature_prompts_collapse_credit_cards_content_description_2">Contrayer les tarxetes guardaes</string>
-    <!-- Option in the expanded select card prompt that links to cards settings. -->
-    <string name="mozac_feature_prompts_manage_credit_cards_2">Xestionar les tarxetes</string>
-    <!-- Text for the title of a save credit card dialog. -->
-    <string name="mozac_feature_prompts_save_credit_card_prompt_title">¿Quies guardar esta tarxeta de mou seguru?</string>
-    <!-- Text for the title of an update credit card dialog. -->
-    <string name="mozac_feature_prompts_update_credit_card_prompt_title">¿Quies anovar la data de caducidá de la tarxeta?</string>
-
-    <!-- Subtitle text displayed under the title of the saved card dialog. Parameter will be replaced by app name-->
-    <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s cifra\'l númberu de la tarxeta. El códigu de seguranza nun va guardase.</string>
-
-    <!-- Address Autofill -->
-    <!-- Header for the select address prompt to allow users to fill a form with a saved address. -->
-    <string name="mozac_feature_prompts_select_address_2">Seleición d\'unes señes</string>
-    <!-- Content description for expanding the saved addresses options in the select address prompt. -->
-    <string name="mozac_feature_prompts_expand_address_content_description_2">Espander les señes guardaes</string>
-    <!-- Content description for collapsing the saved address options in the select address prompt. -->
-    <string name="mozac_feature_prompts_collapse_address_content_description_2">Contrayer les señes guardaes</string>
-    <!-- Text for the manage addresses button. -->
-    <string name="mozac_feature_prompts_manage_address">Xestionar les señes</string>
-
-    <!-- Federated Credential Management prompts -->
-    <!--Content description for the Account picture in the Select Account FedCM prompt -->
-    <string name="mozac_feature_prompts_account_picture">Semeya de la cuenta</string>
-    <!-- Title of the Identity Credential provider dialog chooser. -->
-    <string name="mozac_feature_prompts_identity_credentials_choose_provider">Escueyi un fornidor de cuentes</string>
-    <!-- Title of an account picker dialog for identity credentials. The %1$s will be replaced with the name of the provider -->
-    <string name="mozac_feature_prompts_identity_credentials_choose_account_for_provider">Anicia la sesión con una cuenta %1$s</string>
-    <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Usu del serviciu «%1$s» como fornidor de cuentes</string>
-    <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[L\'aniciu de sesión nel serviciu «%1$s» con una cuenta %2$s ta suxetu a la <a href="%3$s">política de privacidá</a> y los <a href="%4$s">términos del serviciu</a> de so]]></string>
-    <!-- Text for the positive button of the Identity Credential dialogs. -->
-    <string name="mozac_feature_prompts_identity_credentials_continue">Siguir</string>
-    <!-- Text for the cancel button of the Identity Credential dialogs. -->
-    <string name="mozac_feature_prompts_identity_credentials_cancel">Encaboxar</string>
+    Content description for the Account picture in the Select Account FedCM prompt
+  -->
+  <string name="mozac_feature_prompts_account_picture">Semeya de la cuenta</string>
+  <!-- Title of the Identity Credential provider dialog chooser. -->
+  <string name="mozac_feature_prompts_identity_credentials_choose_provider">Escueyi un fornidor de cuentes</string>
+  <!-- Title of an account picker dialog for identity credentials. The %1$s will be replaced with the name of the provider -->
+  <string name="mozac_feature_prompts_identity_credentials_choose_account_for_provider">Anicia la sesión con una cuenta %1$s</string>
+  <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Usu del serviciu «%1$s» como fornidor de cuentes</string>
+  <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">L\'aniciu de sesión nel serviciu «%1$s» con una cuenta %2$s ta suxetu a la &lt;a href="%3$s"&gt;política de privacidá&lt;/a&gt; y los &lt;a href="%4$s"&gt;términos del serviciu&lt;/a&gt; de so</string>
+  <!-- Text for the positive button of the Identity Credential dialogs. -->
+  <string name="mozac_feature_prompts_identity_credentials_continue">Siguir</string>
+  <!-- Text for the cancel button of the Identity Credential dialogs. -->
+  <string name="mozac_feature_prompts_identity_credentials_cancel">Encaboxar</string>
 </resources>
