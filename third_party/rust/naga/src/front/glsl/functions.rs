@@ -1,11 +1,3 @@
-use alloc::{
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
-use core::iter;
-
 use super::{
     ast::*,
     builtins::{inject_builtin, sampled_to_depth},
@@ -19,6 +11,7 @@ use crate::{
     Expression, Function, FunctionArgument, FunctionResult, Handle, Literal, LocalVariable, Scalar,
     ScalarKind, Span, Statement, StructMember, Type, TypeInner,
 };
+use std::iter;
 
 /// Struct detailing a store operation that must happen after a function call
 struct ProxyWrite {
@@ -289,7 +282,7 @@ impl Frontend {
 
                 for i in 0..columns as u32 {
                     if i < ori_cols as u32 {
-                        use core::cmp::Ordering;
+                        use std::cmp::Ordering;
 
                         let vector = ctx.add_expression(
                             Expression::AccessIndex {
@@ -1237,7 +1230,7 @@ impl Frontend {
             + 3,
         );
 
-        let global_init_body = core::mem::replace(&mut ctx.body, body);
+        let global_init_body = std::mem::replace(&mut ctx.body, body);
 
         for arg in self.entry_args.iter() {
             if arg.storage != StorageQualifier::Input {

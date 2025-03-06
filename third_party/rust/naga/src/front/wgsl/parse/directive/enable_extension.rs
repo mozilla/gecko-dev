@@ -1,7 +1,6 @@
 //! `enable …;` extensions in WGSL.
 //!
 //! The focal point of this module is the [`EnableExtension`] API.
-
 use crate::{front::wgsl::error::Error, Span};
 
 /// Tracks the status of every enable-extension known to Naga.
@@ -41,12 +40,6 @@ pub enum EnableExtension {
     #[allow(unused)]
     Implemented(ImplementedEnableExtension),
     Unimplemented(UnimplementedEnableExtension),
-}
-
-impl From<ImplementedEnableExtension> for EnableExtension {
-    fn from(value: ImplementedEnableExtension) -> Self {
-        Self::Implemented(value)
-    }
 }
 
 impl EnableExtension {
@@ -98,13 +91,13 @@ pub enum UnimplementedEnableExtension {
     ///
     /// In the WGSL standard, this corresponds to [`enable clip_distances;`].
     ///
-    /// [`enable clip_distances;`]: https://www.w3.org/TR/WGSL/#extension-clip_distances
+    /// [`enable clip_distances;`]: https://www.w3.org/TR/WGSL/#extension-f16
     ClipDistances,
     /// Enables the `blend_src` attribute in WGSL.
     ///
     /// In the WGSL standard, this corresponds to [`enable dual_source_blending;`].
     ///
-    /// [`enable dual_source_blending;`]: https://www.w3.org/TR/WGSL/#extension-dual_source_blending
+    /// [`enable dual_source_blending;`]: https://www.w3.org/TR/WGSL/#extension-f16
     DualSourceBlending,
 }
 

@@ -49,12 +49,11 @@ impl crate::diagnostic_filter::Severity {
 
 #[cfg(test)]
 mod test {
-    use alloc::format;
-
     use strum::IntoEnumIterator;
 
-    use super::DirectiveKind;
     use crate::front::wgsl::assert_parse_err;
+
+    use super::DirectiveKind;
 
     #[test]
     fn directive_after_global_decl() {

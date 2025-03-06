@@ -1,11 +1,8 @@
+use super::{conv::is_layered_target, Command as C, PrivateCapabilities};
 use alloc::sync::Arc;
-use alloc::vec;
-use core::{slice, sync::atomic::Ordering};
-
 use arrayvec::ArrayVec;
+use core::{mem::size_of, slice, sync::atomic::Ordering};
 use glow::HasContext;
-
-use super::{conv::is_layered_target, lock, Command as C, PrivateCapabilities};
 
 const DEBUG_ID: u32 = 0;
 
@@ -343,7 +340,7 @@ impl super::Queue {
                     }
                 }
                 None => {
-                    lock(dst.data.as_ref().unwrap()).as_mut_slice()
+                    dst.data.as_ref().unwrap().lock().unwrap().as_mut_slice()
                         [range.start as usize..range.end as usize]
                         .fill(0);
                 }
@@ -385,7 +382,7 @@ impl super::Queue {
                         };
                     }
                     (Some(src), None) => {
-                        let mut data = lock(dst.data.as_ref().unwrap());
+                        let mut data = dst.data.as_ref().unwrap().lock().unwrap();
                         let dst_data = &mut data.as_mut_slice()
                             [copy.dst_offset as usize..copy.dst_offset as usize + size];
 
@@ -400,7 +397,7 @@ impl super::Queue {
                         };
                     }
                     (None, Some(dst)) => {
-                        let data = lock(src.data.as_ref().unwrap());
+                        let data = src.data.as_ref().unwrap().lock().unwrap();
                         let src_data = &data.as_slice()
                             [copy.src_offset as usize..copy.src_offset as usize + size];
                         unsafe { gl.bind_buffer(copy_dst_target, Some(dst)) };
@@ -741,7 +738,7 @@ impl super::Queue {
                             glow::PixelUnpackData::BufferOffset(copy.buffer_layout.offset as u32)
                         }
                         None => {
-                            buffer_data = lock(src.data.as_ref().unwrap());
+                            buffer_data = src.data.as_ref().unwrap().lock().unwrap();
                             let src_data =
                                 &buffer_data.as_slice()[copy.buffer_layout.offset as usize..];
                             glow::PixelUnpackData::Slice(Some(src_data))
@@ -805,7 +802,7 @@ impl super::Queue {
                             )
                         }
                         None => {
-                            buffer_data = lock(src.data.as_ref().unwrap());
+                            buffer_data = src.data.as_ref().unwrap().lock().unwrap();
                             let src_data = &buffer_data.as_slice()
                                 [(offset as usize)..(offset + bytes_in_upload) as usize];
                             glow::CompressedPixelUnpackData::Slice(src_data)
@@ -886,7 +883,7 @@ impl super::Queue {
                             glow::PixelPackData::BufferOffset(offset as u32)
                         }
                         None => {
-                            buffer_data = lock(dst.data.as_ref().unwrap());
+                            buffer_data = dst.data.as_ref().unwrap().lock().unwrap();
                             let dst_data = &mut buffer_data.as_mut_slice()[offset as usize..];
                             glow::PixelPackData::Slice(Some(dst_data))
                         }
@@ -1057,7 +1054,7 @@ impl super::Queue {
                             };
                         }
                         None => {
-                            let data = &mut lock(dst.data.as_ref().unwrap());
+                            let data = &mut dst.data.as_ref().unwrap().lock().unwrap();
                             let len = query_data.len().min(data.len());
                             data[..len].copy_from_slice(&query_data[..len]);
                         }

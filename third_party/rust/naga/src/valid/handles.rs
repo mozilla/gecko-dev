@@ -1,18 +1,17 @@
 //! Implementation of `Validator::validate_module_handles`.
 
-use core::{convert::TryInto, hash::Hash};
-
-use super::ValidationError;
-use crate::non_max_u32::NonMaxU32;
 use crate::{
     arena::{BadHandle, BadRangeError},
     diagnostic_filter::DiagnosticFilterNode,
     Handle,
 };
+
+use crate::non_max_u32::NonMaxU32;
 use crate::{Arena, UniqueArena};
 
-#[cfg(test)]
-use alloc::string::ToString;
+use super::ValidationError;
+
+use std::{convert::TryInto, hash::Hash};
 
 impl super::Validator {
     /// Validates that all handles within `module` are:
@@ -246,9 +245,6 @@ impl super::Validator {
         if let Some(ty) = special_types.ray_intersection {
             validate_type(ty)?;
         }
-        if let Some(ty) = special_types.ray_vertex_return {
-            validate_type(ty)?;
-        }
 
         for (handle, _node) in diagnostic_filters.iter() {
             let DiagnosticFilterNode { inner: _, parent } = diagnostic_filters[handle];
@@ -313,8 +309,8 @@ impl super::Validator {
             | crate::TypeInner::Atomic { .. }
             | crate::TypeInner::Image { .. }
             | crate::TypeInner::Sampler { .. }
-            | crate::TypeInner::AccelerationStructure { .. }
-            | crate::TypeInner::RayQuery { .. } => None,
+            | crate::TypeInner::AccelerationStructure
+            | crate::TypeInner::RayQuery => None,
             crate::TypeInner::Pointer { base, space: _ } => {
                 handle.check_dep(base)?;
                 None
@@ -560,10 +556,6 @@ impl super::Validator {
                 handle.check_dep(array)?;
             }
             crate::Expression::RayQueryGetIntersection {
-                query,
-                committed: _,
-            }
-            | crate::Expression::RayQueryVertexPositions {
                 query,
                 committed: _,
             } => {
@@ -846,9 +838,9 @@ impl<T> Handle<T> {
             };
             Err(FwdDepError {
                 subject: erase_handle_type(self),
-                subject_kind: core::any::type_name::<T>(),
+                subject_kind: std::any::type_name::<T>(),
                 depends_on: erase_handle_type(depends_on),
-                depends_on_kind: core::any::type_name::<T>(),
+                depends_on_kind: std::any::type_name::<T>(),
             })
         }
     }

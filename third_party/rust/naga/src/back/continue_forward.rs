@@ -59,9 +59,8 @@
 //! [`Switch`]: crate::Statement::Switch
 //! [`SwitchCase`]: crate::SwitchCase
 
-use alloc::{rc::Rc, string::String, vec::Vec};
-
 use crate::proc::Namer;
+use std::rc::Rc;
 
 /// A summary of the code surrounding a statement.
 enum Nesting {

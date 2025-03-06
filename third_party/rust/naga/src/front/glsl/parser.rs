@@ -1,8 +1,3 @@
-use alloc::{string::String, vec};
-use core::iter::Peekable;
-
-use pp_rs::token::{PreprocessorError, Token as PPToken, TokenValue as PPTokenValue};
-
 use super::{
     ast::{FunctionKind, Profile, TypeQualifiers},
     context::{Context, ExprPos},
@@ -15,6 +10,8 @@ use super::{
     Frontend, Result,
 };
 use crate::{arena::Handle, proc::U32EvalError, Expression, Module, Span, Type};
+use pp_rs::token::{PreprocessorError, Token as PPToken, TokenValue as PPTokenValue};
+use std::iter::Peekable;
 
 mod declarations;
 mod expressions;

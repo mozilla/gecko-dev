@@ -1,5 +1,3 @@
-use alloc::string::String;
-
 use super::Capabilities;
 use crate::{arena::Handle, proc::Alignment};
 
@@ -704,21 +702,15 @@ impl super::Validator {
                 TypeFlags::ARGUMENT | TypeFlags::CREATION_RESOLVED,
                 Alignment::ONE,
             ),
-            Ti::AccelerationStructure { vertex_return } => {
+            Ti::AccelerationStructure => {
                 self.require_type_capability(Capabilities::RAY_QUERY)?;
-                if vertex_return {
-                    self.require_type_capability(Capabilities::RAY_HIT_VERTEX_POSITION)?;
-                }
                 TypeInfo::new(
                     TypeFlags::ARGUMENT | TypeFlags::CREATION_RESOLVED,
                     Alignment::ONE,
                 )
             }
-            Ti::RayQuery { vertex_return } => {
+            Ti::RayQuery => {
                 self.require_type_capability(Capabilities::RAY_QUERY)?;
-                if vertex_return {
-                    self.require_type_capability(Capabilities::RAY_HIT_VERTEX_POSITION)?;
-                }
                 TypeInfo::new(
                     TypeFlags::DATA
                         | TypeFlags::CONSTRUCTIBLE

@@ -1,10 +1,5 @@
 //! Producing the WGSL forms of types, for use in error messages.
 
-use alloc::{
-    format,
-    string::{String, ToString},
-};
-
 use crate::proc::GlobalCtx;
 use crate::Handle;
 
@@ -122,14 +117,8 @@ impl crate::TypeInner {
                 format!("texture{class_suffix}{dim_suffix}{array_suffix}{type_in_brackets}")
             }
             Ti::Sampler { .. } => "sampler".to_string(),
-            Ti::AccelerationStructure { vertex_return } => {
-                let caps = if vertex_return { "<vertex_return>" } else { "" };
-                format!("acceleration_structure{}", caps)
-            }
-            Ti::RayQuery { vertex_return } => {
-                let caps = if vertex_return { "<vertex_return>" } else { "" };
-                format!("ray_query{}", caps)
-            }
+            Ti::AccelerationStructure => "acceleration_structure".to_string(),
+            Ti::RayQuery => "ray_query".to_string(),
             Ti::BindingArray { base, size, .. } => {
                 let member_type = &gctx.types[base];
                 let base = member_type.name.as_deref().unwrap_or("unknown");
@@ -209,13 +198,10 @@ impl crate::StorageFormat {
     }
 }
 
-#[cfg(test)]
 mod tests {
-    use alloc::{string::ToString, vec};
-
     #[test]
     fn to_wgsl() {
-        use core::num::NonZeroU32;
+        use std::num::NonZeroU32;
 
         let mut types = crate::UniqueArena::new();
 

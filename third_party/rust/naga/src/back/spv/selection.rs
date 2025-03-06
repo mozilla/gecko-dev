@@ -57,11 +57,8 @@ pointer for the duration of its lifetime. To obtain the block for generating
 code in the selection's body, call the `Selection::block` method.
 */
 
-use alloc::{vec, vec::Vec};
-
-use spirv::Word;
-
 use super::{Block, BlockContext, Instruction};
+use spirv::Word;
 
 /// A private struct recording what we know about the selection construct so far.
 pub(super) struct Selection<'b, M: MergeTuple> {
@@ -128,7 +125,7 @@ impl<'b, M: MergeTuple> Selection<'b, M> {
         let merge_label = self.make_merge_label(ctx);
         let next_label = ctx.gen_id();
         ctx.function.consume(
-            core::mem::replace(self.block, Block::new(next_label)),
+            std::mem::replace(self.block, Block::new(next_label)),
             Instruction::branch_conditional(cond, next_label, merge_label),
         );
     }
@@ -163,7 +160,7 @@ impl<'b, M: MergeTuple> Selection<'b, M> {
                 // Emit the final branch and transition to the merge block.
                 values.push((final_values, block.label_id));
                 ctx.function.consume(
-                    core::mem::replace(block, Block::new(merge_label)),
+                    std::mem::replace(block, Block::new(merge_label)),
                     Instruction::branch(merge_label),
                 );
 

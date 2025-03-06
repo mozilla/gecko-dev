@@ -1,5 +1,6 @@
 use super::{compose::validate_compose, FunctionInfo, ModuleInfo, ShaderStages, TypeFlags};
 use crate::arena::UniqueArena;
+
 use crate::{
     arena::Handle,
     proc::{IndexableLengthError, ResolveError},
@@ -176,7 +177,7 @@ struct ExpressionTypeResolver<'a> {
     info: &'a FunctionInfo,
 }
 
-impl core::ops::Index<Handle<crate::Expression>> for ExpressionTypeResolver<'_> {
+impl std::ops::Index<Handle<crate::Expression>> for ExpressionTypeResolver<'_> {
     type Output = crate::TypeInner;
 
     #[allow(clippy::panic)]
@@ -1726,28 +1727,7 @@ impl super::Validator {
                     base,
                     space: crate::AddressSpace::Function,
                 } => match resolver.types[base].inner {
-                    Ti::RayQuery { .. } => ShaderStages::all(),
-                    ref other => {
-                        log::error!("Intersection result of a pointer to {:?}", other);
-                        return Err(ExpressionError::InvalidRayQueryType(query));
-                    }
-                },
-                ref other => {
-                    log::error!("Intersection result of {:?}", other);
-                    return Err(ExpressionError::InvalidRayQueryType(query));
-                }
-            },
-            E::RayQueryVertexPositions {
-                query,
-                committed: _,
-            } => match resolver[query] {
-                Ti::Pointer {
-                    base,
-                    space: crate::AddressSpace::Function,
-                } => match resolver.types[base].inner {
-                    Ti::RayQuery {
-                        vertex_return: true,
-                    } => ShaderStages::all(),
+                    Ti::RayQuery => ShaderStages::all(),
                     ref other => {
                         log::error!("Intersection result of a pointer to {:?}", other);
                         return Err(ExpressionError::InvalidRayQueryType(query));

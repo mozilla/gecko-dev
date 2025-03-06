@@ -25,9 +25,7 @@ enum ResourceType {
     Sampler {
         comparison: bool,
     },
-    AccelerationStructure {
-        vertex_return: bool,
-    },
+    AccelerationStructure,
 }
 
 #[derive(Clone, Debug)]
@@ -44,7 +42,7 @@ impl From<&ResourceType> for BindingTypeName {
             ResourceType::Buffer { .. } => BindingTypeName::Buffer,
             ResourceType::Texture { .. } => BindingTypeName::Texture,
             ResourceType::Sampler { .. } => BindingTypeName::Sampler,
-            ResourceType::AccelerationStructure { .. } => BindingTypeName::AccelerationStructure,
+            ResourceType::AccelerationStructure => BindingTypeName::AccelerationStructure,
         }
     }
 }
@@ -56,7 +54,7 @@ impl From<&BindingType> for BindingTypeName {
             BindingType::Texture { .. } => BindingTypeName::Texture,
             BindingType::StorageTexture { .. } => BindingTypeName::Texture,
             BindingType::Sampler { .. } => BindingTypeName::Sampler,
-            BindingType::AccelerationStructure { .. } => BindingTypeName::AccelerationStructure,
+            BindingType::AccelerationStructure => BindingTypeName::AccelerationStructure,
         }
     }
 }
@@ -559,10 +557,8 @@ impl Resource {
                     });
                 }
             }
-            ResourceType::AccelerationStructure { vertex_return } => match entry.ty {
-                BindingType::AccelerationStructure {
-                    vertex_return: entry_vertex_return,
-                } if vertex_return == entry_vertex_return => (),
+            ResourceType::AccelerationStructure => match entry.ty {
+                BindingType::AccelerationStructure => (),
                 _ => {
                     return Err(BindingError::WrongType {
                         binding: (&entry.ty).into(),
@@ -654,9 +650,7 @@ impl Resource {
                     },
                 }
             }
-            ResourceType::AccelerationStructure { vertex_return } => {
-                BindingType::AccelerationStructure { vertex_return }
-            }
+            ResourceType::AccelerationStructure => BindingType::AccelerationStructure,
         })
     }
 }
@@ -955,9 +949,7 @@ impl Interface {
                     class,
                 },
                 naga::TypeInner::Sampler { comparison } => ResourceType::Sampler { comparison },
-                naga::TypeInner::AccelerationStructure { vertex_return } => {
-                    ResourceType::AccelerationStructure { vertex_return }
-                }
+                naga::TypeInner::AccelerationStructure => ResourceType::AccelerationStructure,
                 ref other => ResourceType::Buffer {
                     size: wgt::BufferSize::new(other.size(module.to_ctx()) as u64).unwrap(),
                 },

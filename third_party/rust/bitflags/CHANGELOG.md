@@ -1,23 +1,3 @@
-# 2.9.0
-
-## What's Changed
-* `Flags` trait: add `clear(&mut self)` method by @wysiwys in https://github.com/bitflags/bitflags/pull/437
-* Fix up UI tests by @KodrAus in https://github.com/bitflags/bitflags/pull/438
-
-
-**Full Changelog**: https://github.com/bitflags/bitflags/compare/2.8.0...2.9.0
-
-# 2.8.0
-
-## What's Changed
-* feat(core): Add bitflags_match macro for bitflag matching by @YuniqueUnic in https://github.com/bitflags/bitflags/pull/423
-* Finalize bitflags_match by @KodrAus in https://github.com/bitflags/bitflags/pull/431
-
-## New Contributors
-* @YuniqueUnic made their first contribution in https://github.com/bitflags/bitflags/pull/423
-
-**Full Changelog**: https://github.com/bitflags/bitflags/compare/2.7.0...2.8.0
-
 # 2.7.0
 
 ## What's Changed

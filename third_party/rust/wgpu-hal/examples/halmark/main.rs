@@ -14,7 +14,9 @@ use winit::{
 
 use std::{
     borrow::{Borrow, Cow},
-    iter, ptr,
+    iter,
+    mem::size_of,
+    ptr,
     time::Instant,
 };
 

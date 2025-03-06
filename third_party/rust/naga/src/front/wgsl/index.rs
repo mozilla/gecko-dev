@@ -1,5 +1,3 @@
-use alloc::{vec, vec::Vec};
-
 use super::Error;
 use crate::front::wgsl::parse::ast;
 use crate::{FastHashMap, Handle, Span};

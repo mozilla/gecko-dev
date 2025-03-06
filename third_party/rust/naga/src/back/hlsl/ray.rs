@@ -1,7 +1,6 @@
-use core::fmt::Write;
-
 use crate::back::hlsl::BackendResult;
 use crate::{RayQueryIntersection, TypeInner};
+use std::fmt::Write;
 
 impl<W: Write> super::Writer<'_, W> {
     // constructs hlsl RayDesc from wgsl RayDesc
@@ -28,12 +27,7 @@ impl<W: Write> super::Writer<'_, W> {
     ) -> BackendResult {
         self.write_type(module, module.special_types.ray_intersection.unwrap())?;
         write!(self.out, " GetCommittedIntersection(")?;
-        self.write_value_type(
-            module,
-            &TypeInner::RayQuery {
-                vertex_return: false,
-            },
-        )?;
+        self.write_value_type(module, &TypeInner::RayQuery)?;
         writeln!(self.out, " rq) {{")?;
         write!(self.out, "    ")?;
         self.write_type(module, module.special_types.ray_intersection.unwrap())?;
@@ -99,12 +93,7 @@ impl<W: Write> super::Writer<'_, W> {
     ) -> BackendResult {
         self.write_type(module, module.special_types.ray_intersection.unwrap())?;
         write!(self.out, " GetCandidateIntersection(")?;
-        self.write_value_type(
-            module,
-            &TypeInner::RayQuery {
-                vertex_return: false,
-            },
-        )?;
+        self.write_value_type(module, &TypeInner::RayQuery)?;
         writeln!(self.out, " rq) {{")?;
         write!(self.out, "    ")?;
         self.write_type(module, module.special_types.ray_intersection.unwrap())?;

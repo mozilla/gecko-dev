@@ -527,7 +527,7 @@ pub fn flatten_compose<'arenas>(
                 return subcomponents;
             }
         }
-        core::slice::from_ref(component)
+        std::slice::from_ref(component)
     }
 
     /// Flatten `Splat` expressions if `is_vector` is true.
@@ -544,7 +544,7 @@ pub fn flatten_compose<'arenas>(
                 count = size as usize;
             }
         }
-        core::iter::repeat(expr).take(count)
+        std::iter::repeat(expr).take(count)
     }
 
     // Expressions like `vec4(vec3(vec2(6, 7), 8), 9)` require us to

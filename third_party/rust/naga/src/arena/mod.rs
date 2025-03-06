@@ -31,12 +31,11 @@ pub(crate) use handlevec::HandleVec;
 pub use range::{BadRangeError, Range};
 pub use unique_arena::UniqueArena;
 
-use alloc::vec::Vec;
-use core::{fmt, ops};
-
 use crate::Span;
 
 use handle::Index;
+
+use std::{fmt, ops};
 
 /// An arena holding some kind of component (e.g., type, constant,
 /// instruction, etc.) that can be referenced.
@@ -104,7 +103,7 @@ impl<T> Arena<T> {
 
     /// Drains the arena, returning an iterator over the items stored.
     pub fn drain(&mut self) -> impl DoubleEndedIterator<Item = (Handle<T>, T, Span)> {
-        let arena = core::mem::take(self);
+        let arena = std::mem::take(self);
         arena
             .data
             .into_iter()
@@ -259,7 +258,7 @@ where
         D: serde::Deserializer<'de>,
     {
         let data = Vec::deserialize(deserializer)?;
-        let span_info = core::iter::repeat(Span::default())
+        let span_info = std::iter::repeat(Span::default())
             .take(data.len())
             .collect();
 

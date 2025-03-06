@@ -1,4 +1,11 @@
-use std::{ptr, string::String, sync::Arc, thread, vec::Vec};
+use std::{
+    mem::{size_of, size_of_val},
+    ptr,
+    string::String,
+    sync::Arc,
+    thread,
+    vec::Vec,
+};
 
 use parking_lot::Mutex;
 use windows::{

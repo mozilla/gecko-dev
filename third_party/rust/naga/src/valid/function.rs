@@ -1,12 +1,12 @@
-use alloc::{format, string::String};
+use crate::arena::{Arena, UniqueArena};
+use crate::arena::{Handle, HandleSet};
 
 use super::validate_atomic_compare_exchange_struct;
+
 use super::{
     analyzer::{UniformityDisruptor, UniformityRequirements},
     ExpressionError, FunctionInfo, ModuleInfo,
 };
-use crate::arena::{Arena, UniqueArena};
-use crate::arena::{Handle, HandleSet};
 use crate::span::WithSpan;
 use crate::span::{AddSpan as _, MapErrWithSpan as _};
 
@@ -173,12 +173,6 @@ pub enum FunctionError {
     InvalidRayQueryExpression(Handle<crate::Expression>),
     #[error("Acceleration structure {0:?} is not a matching expression")]
     InvalidAccelerationStructure(Handle<crate::Expression>),
-    #[error(
-        "Acceleration structure {0:?} is missing flag vertex_return while Ray Query {1:?} does"
-    )]
-    MissingAccelerationStructureVertexReturn(Handle<crate::Expression>, Handle<crate::Expression>),
-    #[error("Ray Query {0:?} is missing flag vertex_return")]
-    MissingRayQueryVertexReturn(Handle<crate::Expression>),
     #[error("Ray descriptor {0:?} is not a matching expression")]
     InvalidRayDescriptor(Handle<crate::Expression>),
     #[error("Ray Query {0:?} does not have a matching type")]
@@ -771,8 +765,7 @@ impl super::Validator {
                             | Ex::Math { .. }
                             | Ex::As { .. }
                             | Ex::ArrayLength(_)
-                            | Ex::RayQueryGetIntersection { .. }
-                            | Ex::RayQueryVertexPositions { .. } => {
+                            | Ex::RayQueryGetIntersection { .. } => {
                                 self.emit_expression(handle, context)?
                             }
                             Ex::CallResult(_)
@@ -1147,10 +1140,10 @@ impl super::Validator {
                     };
 
                     // The `coordinate` operand must be a vector of the appropriate size.
-                    if context
+                    if !context
                         .resolve_type(coordinate, &self.valid_expression_set)?
                         .image_storage_coordinates()
-                        .is_none_or(|coord_dim| coord_dim != dim)
+                        .is_some_and(|coord_dim| coord_dim == dim)
                     {
                         return Err(FunctionError::InvalidImageStore(
                             ExpressionError::InvalidImageCoordinateType(dim, coordinate),
@@ -1458,14 +1451,14 @@ impl super::Validator {
                                 .with_span_static(span, "invalid query expression"));
                         }
                     };
-                    let rq_vertex_return = match context.types[query_var.ty].inner {
-                        Ti::RayQuery { vertex_return } => vertex_return,
+                    match context.types[query_var.ty].inner {
+                        Ti::RayQuery => {}
                         ref other => {
                             log::error!("Unexpected ray query type {other:?}");
                             return Err(FunctionError::InvalidRayQueryType(query_var.ty)
                                 .with_span_static(span, "invalid query type"));
                         }
-                    };
+                    }
                     match *fun {
                         crate::RayQueryFunction::Initialize {
                             acceleration_structure,
@@ -1474,11 +1467,7 @@ impl super::Validator {
                             match *context
                                 .resolve_type(acceleration_structure, &self.valid_expression_set)?
                             {
-                                Ti::AccelerationStructure { vertex_return } => {
-                                    if (!vertex_return) && rq_vertex_return {
-                                        return Err(FunctionError::MissingAccelerationStructureVertexReturn(acceleration_structure, query).with_span_static(span, "invalid acceleration structure"));
-                                    }
-                                }
+                                Ti::AccelerationStructure => {}
                                 _ => {
                                     return Err(FunctionError::InvalidAccelerationStructure(
                                         acceleration_structure,

@@ -1,5 +1,3 @@
-use alloc::vec;
-
 use super::Error;
 use crate::arena::{Arena, Handle};
 

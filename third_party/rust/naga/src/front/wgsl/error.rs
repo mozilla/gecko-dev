@@ -1,19 +1,3 @@
-use alloc::{
-    borrow::Cow,
-    boxed::Box,
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
-use core::ops::Range;
-
-use codespan_reporting::diagnostic::{Diagnostic, Label};
-use codespan_reporting::files::SimpleFile;
-use codespan_reporting::term;
-use termcolor::{ColorChoice, NoColor, StandardStream};
-use thiserror::Error;
-
 use crate::diagnostic_filter::ConflictingDiagnosticRuleError;
 use crate::front::wgsl::parse::directive::enable_extension::{
     EnableExtension, UnimplementedEnableExtension,
@@ -25,6 +9,16 @@ use crate::front::wgsl::parse::lexer::Token;
 use crate::front::wgsl::Scalar;
 use crate::proc::{Alignment, ConstantEvaluatorError, ResolveError};
 use crate::{SourceLocation, Span};
+use codespan_reporting::diagnostic::{Diagnostic, Label};
+use codespan_reporting::files::SimpleFile;
+use codespan_reporting::term;
+use std::borrow::Cow;
+use std::ops::Range;
+use termcolor::{ColorChoice, NoColor, StandardStream};
+use thiserror::Error;
+
+#[cfg(test)]
+use std::mem::size_of;
 
 #[derive(Clone, Debug)]
 pub struct ParseError {
@@ -108,14 +102,14 @@ impl ParseError {
     }
 }
 
-impl core::fmt::Display for ParseError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl std::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.message)
     }
 }
 
-impl core::error::Error for ParseError {
-    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+impl std::error::Error for ParseError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         None
     }
 }
@@ -718,7 +712,7 @@ impl<'a> Error<'a> {
 
                 ParseError {
                     message: "invalid left-hand side of assignment".into(),
-                    labels: core::iter::once((span, "cannot assign to this expression".into()))
+                    labels: std::iter::once((span, "cannot assign to this expression".into()))
                         .chain(extra_label)
                         .collect(),
                     notes,
@@ -1106,7 +1100,7 @@ impl<'a> Error<'a> {
                             )
                         })
                         .expect("internal error: diag. attr. rejection on empty map");
-                    core::iter::once(first)
+                    std::iter::once(first)
                         .chain(spans.map(|span| (span, "".into())))
                         .collect()
                 },

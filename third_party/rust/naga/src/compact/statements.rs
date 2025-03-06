@@ -1,5 +1,3 @@
-use alloc::{vec, vec::Vec};
-
 use super::functions::FunctionTracer;
 use super::FunctionMap;
 use crate::arena::Handle;

@@ -114,9 +114,7 @@ mod ray;
 mod storage;
 mod writer;
 
-use alloc::{string::String, vec::Vec};
-use core::fmt::Error as FmtError;
-
+use std::fmt::Error as FmtError;
 use thiserror::Error;
 
 use crate::{back, proc};
@@ -174,7 +172,7 @@ where
 }
 
 // Using `BTreeMap` instead of `HashMap` so that we can hash itself.
-pub type BindingMap = alloc::collections::BTreeMap<crate::ResourceBinding, BindTarget>;
+pub type BindingMap = std::collections::BTreeMap<crate::ResourceBinding, BindTarget>;
 
 /// A HLSL shader model version.
 #[allow(non_snake_case, non_camel_case_types)]
@@ -298,7 +296,7 @@ where
 
 // We use a BTreeMap here so that we can hash it.
 pub type SamplerIndexBufferBindingMap =
-    alloc::collections::BTreeMap<SamplerIndexBufferKey, BindTarget>;
+    std::collections::BTreeMap<SamplerIndexBufferKey, BindTarget>;
 
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
@@ -324,7 +322,7 @@ where
     Ok(map)
 }
 
-pub type DynamicStorageBufferOffsetsTargets = alloc::collections::BTreeMap<u32, OffsetsBindTarget>;
+pub type DynamicStorageBufferOffsetsTargets = std::collections::BTreeMap<u32, OffsetsBindTarget>;
 
 /// Shorthand result used internally by the backend
 type BackendResult = Result<(), Error>;
@@ -389,9 +387,9 @@ impl Default for Options {
             fake_missing_bindings: true,
             special_constants_binding: None,
             sampler_heap_target: SamplerHeapBindTargets::default(),
-            sampler_buffer_binding_map: alloc::collections::BTreeMap::default(),
+            sampler_buffer_binding_map: std::collections::BTreeMap::default(),
             push_constants_target: None,
-            dynamic_storage_buffer_offsets_targets: alloc::collections::BTreeMap::new(),
+            dynamic_storage_buffer_offsets_targets: std::collections::BTreeMap::new(),
             zero_initialize_workgroup_memory: true,
             restrict_indexing: true,
             force_loop_bounding: true,
@@ -444,23 +442,18 @@ pub enum Error {
     Override,
 }
 
-#[derive(PartialEq, Eq, Hash)]
-enum WrappedType {
-    ZeroValue(help::WrappedZeroValue),
-    ArrayLength(help::WrappedArrayLength),
-    ImageQuery(help::WrappedImageQuery),
-    ImageLoadScalar(crate::Scalar),
-    Constructor(help::WrappedConstructor),
-    StructMatrixAccess(help::WrappedStructMatrixAccess),
-    MatCx2(help::WrappedMatCx2),
-    Math(help::WrappedMath),
-    UnaryOp(help::WrappedUnaryOp),
-    BinaryOp(help::WrappedBinaryOp),
-}
-
 #[derive(Default)]
 struct Wrapped {
-    types: crate::FastHashSet<WrappedType>,
+    zero_values: crate::FastHashSet<help::WrappedZeroValue>,
+    array_lengths: crate::FastHashSet<help::WrappedArrayLength>,
+    image_queries: crate::FastHashSet<help::WrappedImageQuery>,
+    image_load_scalars: crate::FastHashSet<crate::Scalar>,
+    constructors: crate::FastHashSet<help::WrappedConstructor>,
+    struct_matrix_access: crate::FastHashSet<help::WrappedStructMatrixAccess>,
+    mat_cx2s: crate::FastHashSet<help::WrappedMatCx2>,
+    math: crate::FastHashSet<help::WrappedMath>,
+    unary_op: crate::FastHashSet<help::WrappedUnaryOp>,
+    binary_op: crate::FastHashSet<help::WrappedBinaryOp>,
     /// If true, the sampler heaps have been written out.
     sampler_heaps: bool,
     // Mapping from SamplerIndexBufferKey to the name the namer returned.
@@ -468,12 +461,15 @@ struct Wrapped {
 }
 
 impl Wrapped {
-    fn insert(&mut self, r#type: WrappedType) -> bool {
-        self.types.insert(r#type)
-    }
-
     fn clear(&mut self) {
-        self.types.clear();
+        self.array_lengths.clear();
+        self.image_queries.clear();
+        self.constructors.clear();
+        self.struct_matrix_access.clear();
+        self.mat_cx2s.clear();
+        self.math.clear();
+        self.unary_op.clear();
+        self.binary_op.clear();
     }
 }
 

@@ -1,12 +1,3 @@
-use alloc::{
-    borrow::Cow,
-    string::{String, ToString},
-};
-use core::mem;
-
-use hashbrown::HashSet;
-use thiserror::Error;
-
 use super::PipelineConstants;
 use crate::{
     arena::HandleVec,
@@ -15,6 +6,9 @@ use crate::{
     Arena, Block, Constant, Expression, Function, Handle, Literal, Module, Override, Range, Scalar,
     Span, Statement, TypeInner, WithSpan,
 };
+use hashbrown::HashSet;
+use std::{borrow::Cow, mem};
+use thiserror::Error;
 
 #[derive(Error, Debug, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -249,7 +243,7 @@ fn process_pending(
                                 ),
                         ))
                     } else {
-                        Ok(core::num::NonZeroU32::new(n).unwrap())
+                        Ok(std::num::NonZeroU32::new(n).unwrap())
                     }
                 })
                 .map_err(|_| {
@@ -638,12 +632,6 @@ fn adjust_expr(new_pos: &HandleVec<Expression, Handle<Expression>>, expr: &mut E
         | Expression::WorkGroupUniformLoadResult { ty: _ }
         | Expression::SubgroupBallotResult
         | Expression::SubgroupOperationResult { .. } => {}
-        Expression::RayQueryVertexPositions {
-            ref mut query,
-            committed: _,
-        } => {
-            adjust(query);
-        }
     }
 }
 

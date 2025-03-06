@@ -249,12 +249,6 @@ An override expression can be evaluated at pipeline creation time.
         clippy::todo
     )
 )]
-#![no_std]
-
-#[cfg(any(test, spv_out, feature = "spv-in", feature = "wgsl-in"))]
-extern crate std;
-
-extern crate alloc;
 
 mod arena;
 pub mod back;
@@ -271,14 +265,12 @@ pub mod proc;
 mod span;
 pub mod valid;
 
-use alloc::{string::String, vec::Vec};
-
 pub use crate::arena::{Arena, Handle, Range, UniqueArena};
-pub use crate::span::{SourceLocation, Span, SpanContext, WithSpan};
-use diagnostic_filter::DiagnosticFilterNode;
 
+pub use crate::span::{SourceLocation, Span, SpanContext, WithSpan};
 #[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
+use diagnostic_filter::DiagnosticFilterNode;
 #[cfg(feature = "deserialize")]
 use serde::Deserialize;
 #[cfg(feature = "serialize")]
@@ -291,25 +283,25 @@ pub const BOOL_WIDTH: Bytes = 1;
 pub const ABSTRACT_WIDTH: Bytes = 8;
 
 /// Hash map that is faster but not resilient to DoS attacks.
-/// (Similar to rustc_hash::FxHashMap but using hashbrown::HashMap instead of alloc::collections::HashMap.)
+/// (Similar to rustc_hash::FxHashMap but using hashbrown::HashMap instead of std::collections::HashMap.)
 /// To construct a new instance: `FastHashMap::default()`
 pub type FastHashMap<K, T> =
-    hashbrown::HashMap<K, T, core::hash::BuildHasherDefault<rustc_hash::FxHasher>>;
+    hashbrown::HashMap<K, T, std::hash::BuildHasherDefault<rustc_hash::FxHasher>>;
 
 /// Hash set that is faster but not resilient to DoS attacks.
-/// (Similar to rustc_hash::FxHashSet but using hashbrown::HashSet instead of alloc::collections::HashMap.)
+/// (Similar to rustc_hash::FxHashSet but using hashbrown::HashSet instead of std::collections::HashMap.)
 pub type FastHashSet<K> =
-    hashbrown::HashSet<K, core::hash::BuildHasherDefault<rustc_hash::FxHasher>>;
+    hashbrown::HashSet<K, std::hash::BuildHasherDefault<rustc_hash::FxHasher>>;
 
 /// Insertion-order-preserving hash set (`IndexSet<K>`), but with the same
 /// hasher as `FastHashSet<K>` (faster but not resilient to DoS attacks).
 pub type FastIndexSet<K> =
-    indexmap::IndexSet<K, core::hash::BuildHasherDefault<rustc_hash::FxHasher>>;
+    indexmap::IndexSet<K, std::hash::BuildHasherDefault<rustc_hash::FxHasher>>;
 
 /// Insertion-order-preserving hash map (`IndexMap<K, V>`), but with the same
 /// hasher as `FastHashMap<K, V>` (faster but not resilient to DoS attacks).
 pub type FastIndexMap<K, V> =
-    indexmap::IndexMap<K, V, core::hash::BuildHasherDefault<rustc_hash::FxHasher>>;
+    indexmap::IndexMap<K, V, std::hash::BuildHasherDefault<rustc_hash::FxHasher>>;
 
 /// Map of expressions that have associated variable names
 pub(crate) type NamedExpressions = FastIndexMap<Handle<Expression>, String>;
@@ -519,7 +511,7 @@ pub enum PendingArraySize {
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub enum ArraySize {
     /// The array size is constant.
-    Constant(core::num::NonZeroU32),
+    Constant(std::num::NonZeroU32),
     /// The array size is an override-expression.
     Pending(PendingArraySize),
     /// The array size can change at runtime.
@@ -847,10 +839,10 @@ pub enum TypeInner {
     Sampler { comparison: bool },
 
     /// Opaque object representing an acceleration structure of geometry.
-    AccelerationStructure { vertex_return: bool },
+    AccelerationStructure,
 
     /// Locally used handle for ray queries.
-    RayQuery { vertex_return: bool },
+    RayQuery,
 
     /// Array of bindings.
     ///
@@ -1379,8 +1371,6 @@ bitflags::bitflags! {
         const WORK_GROUP = 1 << 1;
         /// Barrier synchronizes execution across all invocations within a subgroup that execute this instruction.
         const SUB_GROUP = 1 << 2;
-        /// Barrier synchronizes texture memory accesses in a workgroup.
-        const TEXTURE = 1 << 3;
     }
 }
 
@@ -1696,14 +1686,6 @@ pub enum Expression {
     /// This doesn't match the semantics of spirv's `OpArrayLength`, which must be passed
     /// a pointer to a structure containing a runtime array in its' last field.
     ArrayLength(Handle<Expression>),
-
-    /// Get the Positions of the triangle hit by the [`RayQuery`]
-    ///
-    /// [`RayQuery`]: Statement::RayQuery
-    RayQueryVertexPositions {
-        query: Handle<Expression>,
-        committed: bool,
-    },
 
     /// Result of a [`Proceed`] [`RayQuery`] statement.
     ///
@@ -2348,11 +2330,6 @@ pub struct SpecialTypes {
     /// Call [`Module::generate_ray_intersection_type`] to populate
     /// this if needed and return the handle.
     pub ray_intersection: Option<Handle<Type>>,
-
-    /// Type for `RayVertexReturn
-    ///
-    /// Call [`Module::generate_vertex_return_type`]
-    pub ray_vertex_return: Option<Handle<Type>>,
 
     /// Types for predeclared wgsl types instantiated on demand.
     ///

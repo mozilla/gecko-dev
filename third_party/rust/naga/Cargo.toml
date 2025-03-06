@@ -11,7 +11,7 @@
 
 [package]
 edition = "2021"
-rust-version = "1.82.0"
+rust-version = "1.76"
 name = "naga"
 version = "24.0.0"
 authors = ["gfx-rs developers"]
@@ -104,7 +104,7 @@ version = "0.8"
 default-features = false
 
 [dependencies.bitflags]
-version = "2.9"
+version = "2.7"
 
 [dependencies.codespan-reporting]
 version = "0.11.0"
@@ -211,8 +211,3 @@ version = "2"
 
 [build-dependencies.cfg_aliases]
 version = "0.2.1"
-
-[lints.clippy]
-alloc_instead_of_core = "warn"
-std_instead_of_alloc = "warn"
-std_instead_of_core = "warn"
