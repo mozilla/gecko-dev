@@ -765,7 +765,7 @@ void MacroAssemblerMIPS64::ma_push(Register r) {
     r = ScratchRegister;
   }
 
-  as_daddiu(StackPointer, StackPointer, (int32_t)-sizeof(intptr_t));
+  as_daddiu(StackPointer, StackPointer, -int32_t(sizeof(intptr_t)));
   as_sd(r, StackPointer, 0);
 }
 
@@ -951,6 +951,13 @@ void MacroAssemblerMIPS64::ma_cmp_set(Register rd, Register rs, ImmPtr imm,
   ma_cmp_set(rd, rs, ImmWord(uintptr_t(imm.value)), c);
 }
 
+void MacroAssemblerMIPS64::ma_cmp_set(Register rd, Register rs, ImmGCPtr imm,
+                                      Condition c) {
+  ScratchRegisterScope scratch(asMasm());
+  ma_li(scratch, imm);
+  ma_cmp_set(rd, rs, scratch, c);
+}
+
 void MacroAssemblerMIPS64::ma_cmp_set(Register rd, Address address, Register rt,
                                       Condition c) {
   SecondScratchRegisterScope scratch2(asMasm());
@@ -1082,7 +1089,7 @@ void MacroAssemblerMIPS64::ma_pop(FloatRegister f) {
 }
 
 void MacroAssemblerMIPS64::ma_push(FloatRegister f) {
-  as_daddiu(StackPointer, StackPointer, (int32_t)-sizeof(double));
+  as_daddiu(StackPointer, StackPointer, -int32_t(sizeof(double)));
   as_sdc1(f, StackPointer, 0);
 }
 

@@ -181,6 +181,7 @@ class MacroAssemblerLOONG64 : public Assembler {
 
   void ma_cmp_set(Register dst, Register lhs, ImmWord imm, Condition c);
   void ma_cmp_set(Register dst, Register lhs, ImmPtr imm, Condition c);
+  void ma_cmp_set(Register dst, Register lhs, ImmGCPtr imm, Condition c);
   void ma_cmp_set(Register dst, Address address, Register rhs, Condition c);
   void ma_cmp_set(Register dst, Address address, Imm32 imm, Condition c);
   void ma_cmp_set(Register dst, Address address, ImmWord imm, Condition c);
