@@ -392,6 +392,12 @@
   max-height: 100%;
   height: 100%;
 }
+
+/* This makes sure we use the font-family set for devtools */
+.cm-editor .cm-scroller {
+  font-family: unset;
+}
+
 .cm-editor .cm-selectionBackground {
   background: var(--theme-text-selection-background) !important;
 }
