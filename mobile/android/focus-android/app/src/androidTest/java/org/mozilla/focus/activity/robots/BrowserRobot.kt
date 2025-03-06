@@ -19,6 +19,7 @@ import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiObject
 import androidx.test.uiautomator.UiObjectNotFoundException
+import androidx.test.uiautomator.UiScrollable
 import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
 import org.hamcrest.Matchers.not
@@ -69,6 +70,16 @@ class BrowserRobot {
                 }
             }
         }
+    }
+
+    fun scrollIntoViewTheSmartBlockFixesSection() {
+        val aboutCompatView = UiScrollable(UiSelector().text("about:compat")).setAsVerticalList()
+        aboutCompatView.scrollIntoView(mDevice.findObject(UiSelector().textContains("SmartBlock Fixes")))
+    }
+
+    fun scrollToTheEndOfTheAboutCompatPage() {
+        val aboutCompatView = UiScrollable(UiSelector().text("about:compat")).setAsVerticalList()
+        aboutCompatView.scrollToEnd(3)
     }
 
     fun verifyTrackingProtectionAlert(expectedText: String) {
