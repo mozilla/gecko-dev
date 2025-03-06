@@ -1,10 +1,10 @@
 diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
---- a/expat/lib/xmlparse.c	2024-09-12 17:12:56
-+++ b/expat/lib/xmlparse.c	2024-09-12 17:13:18
-@@ -2673,6 +2673,13 @@
+--- a/expat/lib/xmlparse.c
++++ b/expat/lib/xmlparse.c
+@@ -2676,6 +2676,13 @@ MOZ_XML_GetMismatchedTag(XML_Parser pars
  }
  /* END MOZILLA CHANGE */
-
+ 
 +/* BEGIN MOZILLA CHANGE (Report whether the parser is currently expanding an entity) */
 +XML_Bool XMLCALL
 +MOZ_XML_ProcessingEntityValue(XML_Parser parser) {

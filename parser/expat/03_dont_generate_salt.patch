@@ -1,7 +1,7 @@
 diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
---- a/expat/lib/xmlparse.c	2024-09-12 17:10:00
-+++ b/expat/lib/xmlparse.c	2024-09-12 17:10:21
-@@ -966,6 +966,8 @@
+--- a/expat/lib/xmlparse.c
++++ b/expat/lib/xmlparse.c
+@@ -960,6 +960,8 @@ ENTROPY_DEBUG(const char *label, unsigne
  
  static unsigned long
  generate_hash_secret_salt(XML_Parser parser) {
@@ -10,7 +10,7 @@ diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
    unsigned long entropy;
    (void)parser;
  
-@@ -1005,6 +1007,10 @@
+@@ -999,6 +1001,10 @@ generate_hash_secret_salt(XML_Parser par
                           entropy * (unsigned long)2305843009213693951ULL);
    }
  #endif

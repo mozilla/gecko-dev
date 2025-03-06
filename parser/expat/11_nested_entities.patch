@@ -1,7 +1,7 @@
 diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
---- a/expat/lib/xmlparse.c	2024-09-13 08:33:25
-+++ b/expat/lib/xmlparse.c	2024-09-13 08:33:55
-@@ -6056,7 +6056,29 @@
+--- a/expat/lib/xmlparse.c
++++ b/expat/lib/xmlparse.c
+@@ -6081,7 +6081,29 @@ processInternalEntity(XML_Parser parser,
        entityTrackingOnClose(parser, entity, __LINE__);
  #endif /* XML_GE == 1 */
        entity->open = XML_FALSE;

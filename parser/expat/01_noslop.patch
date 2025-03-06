@@ -1,7 +1,7 @@
 diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
---- a/expat/lib/xmlparse.c	2024-09-12 17:06:19
-+++ b/expat/lib/xmlparse.c	2024-09-12 17:06:34
-@@ -268,7 +268,9 @@
+--- a/expat/lib/xmlparse.c
++++ b/expat/lib/xmlparse.c
+@@ -269,7 +269,9 @@ typedef struct {
  #define INIT_DATA_BUF_SIZE 1024
  #define INIT_ATTS_SIZE 16
  #define INIT_ATTS_VERSION 0xFFFFFFFF

@@ -1,7 +1,7 @@
 diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
---- a/expat/lib/xmlparse.c	2024-09-13 08:32:41
-+++ b/expat/lib/xmlparse.c	2024-09-13 08:33:05
-@@ -5723,7 +5723,13 @@
+--- a/expat/lib/xmlparse.c
++++ b/expat/lib/xmlparse.c
+@@ -5748,7 +5748,13 @@ doProlog(XML_Parser parser, const ENCODI
            entity->open = XML_TRUE;
            entityTrackingOnOpen(parser, entity, __LINE__);
            if (! parser->m_externalEntityRefHandler(

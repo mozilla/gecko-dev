@@ -1,7 +1,7 @@
 diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
---- a/expat/lib/xmlparse.c	2024-09-12 17:07:05
-+++ b/expat/lib/xmlparse.c	2024-09-12 17:08:45
-@@ -763,6 +763,9 @@
+--- a/expat/lib/xmlparse.c
++++ b/expat/lib/xmlparse.c
+@@ -764,6 +764,9 @@ struct XML_ParserStruct {
    ACCOUNTING m_accounting;
    ENTITY_STATS m_entity_stats;
  #endif
@@ -11,7 +11,7 @@ diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
  };
  
  #define MALLOC(parser, s) (parser->m_mem.malloc_fcn((s)))
-@@ -1188,6 +1191,10 @@
+@@ -1189,6 +1192,10 @@ parserCreate(const XML_Char *encodingNam
      parser->m_internalEncoding = XmlGetInternalEncoding();
    }
  
@@ -22,7 +22,7 @@ diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
    return parser;
  }
  
-@@ -2635,6 +2642,14 @@
+@@ -2645,6 +2652,14 @@ XML_SetBillionLaughsAttackProtectionActi
  }
  #endif /* XML_GE == 1 */
  
@@ -37,7 +37,7 @@ diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
  XML_Bool XMLCALL
  XML_SetReparseDeferralEnabled(XML_Parser parser, XML_Bool enabled) {
    if (parser != NULL && (enabled == XML_TRUE || enabled == XML_FALSE)) {
-@@ -3107,6 +3122,33 @@
+@@ -3117,6 +3132,33 @@ doContent(XML_Parser parser, int startTa
          len = XmlNameLength(enc, rawName);
          if (len != tag->rawNameLength
              || memcmp(tag->rawName, rawName, len) != 0) {

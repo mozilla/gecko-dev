@@ -1,23 +1,23 @@
 diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
---- a/expat/lib/xmlparse.c	2024-09-12 17:23:02
-+++ b/expat/lib/xmlparse.c	2024-09-12 17:23:42
-@@ -3013,9 +3013,15 @@
-           if (parser->m_skippedEntityHandler)
-             parser->m_skippedEntityHandler(parser->m_handlerArg, entity->name,
-                                            0);
+--- a/expat/lib/xmlparse.c
++++ b/expat/lib/xmlparse.c
+@@ -3024,9 +3024,15 @@ doContentInternal(XML_Parser parser, int
+       } else if (! entity) {
+         if (parser->m_skippedEntityHandler)
+           parser->m_skippedEntityHandler(parser->m_handlerArg, name, 0);
 +/* BEGIN MOZILLA CHANGE (Bug 35984 - Undeclared entities are ignored when external DTD not found) */
 +#if 0
-           else if (parser->m_defaultHandler)
-             reportDefault(parser, enc, s, next);
-           break;
+         else if (parser->m_defaultHandler)
+           reportDefault(parser, enc, s, next);
+         break;
 +#else
-+          return XML_ERROR_UNDEFINED_ENTITY;
++        return XML_ERROR_UNDEFINED_ENTITY;
 +#endif
 +/* END MOZILLA CHANGE */
-         }
-         result = processInternalEntity(parser, entity, XML_FALSE);
-         if (result != XML_ERROR_NONE)
-@@ -6196,7 +6202,13 @@
+       }
+       if (entity->open)
+         return XML_ERROR_RECURSIVE_ENTITY_REF;
+@@ -6225,7 +6231,13 @@ appendAttributeValue(XML_Parser parser, 
          if ((pool == &parser->m_tempPool) && parser->m_defaultHandler)
            reportDefault(parser, enc, ptr, next);
          */

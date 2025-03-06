@@ -1,7 +1,7 @@
 diff --git a/expat/lib/xmltok.c b/expat/lib/xmltok.c
---- a/expat/lib/xmltok.c	2024-09-10 16:02:11
-+++ b/expat/lib/xmltok.c	2024-09-13 08:34:46
-@@ -1148,6 +1148,10 @@
+--- a/expat/lib/xmltok.c
++++ b/expat/lib/xmltok.c
+@@ -1148,6 +1148,10 @@ static const char KW_yes[] = {ASCII_y, A
  
  static const char KW_no[] = {ASCII_n, ASCII_o, '\0'};
  
@@ -12,7 +12,7 @@ diff --git a/expat/lib/xmltok.c b/expat/lib/xmltok.c
  static int
  doParseXmlDecl(const ENCODING *(*encodingFinder)(const ENCODING *, const char *,
                                                   const char *),
-@@ -1175,6 +1179,13 @@
+@@ -1175,6 +1179,13 @@ doParseXmlDecl(const ENCODING *(*encodin
        *versionPtr = val;
      if (versionEndPtr)
        *versionEndPtr = ptr;

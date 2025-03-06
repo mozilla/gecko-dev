@@ -1,7 +1,7 @@
 diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
---- a/expat/lib/xmlparse.c	2024-09-13 08:34:14
-+++ b/expat/lib/xmlparse.c	2024-09-13 08:35:40
-@@ -8753,6 +8753,8 @@
+--- a/expat/lib/xmlparse.c
++++ b/expat/lib/xmlparse.c
+@@ -8782,6 +8782,8 @@ unsignedCharToPrintable(unsigned char c)
  
  static unsigned long
  getDebugLevel(const char *variableName, unsigned long defaultDebugLevel) {
@@ -10,12 +10,13 @@ diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
    const char *const valueOrNull = getenv(variableName);
    if (valueOrNull == NULL) {
      return defaultDebugLevel;
-@@ -8768,4 +8770,8 @@
+@@ -8797,4 +8799,8 @@ getDebugLevel(const char *variableName, 
    }
  
    return debugLevel;
+-}
 +#else
 +  return 0;
 +#endif
 +/* END MOZILLA CHANGE (don't use environment values) */
- }
++}

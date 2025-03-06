@@ -1,7 +1,7 @@
 diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
---- a/expat/lib/xmlparse.c	2024-09-12 17:24:03
-+++ b/expat/lib/xmlparse.c	2024-09-12 17:24:42
-@@ -3429,6 +3429,9 @@
+--- a/expat/lib/xmlparse.c
++++ b/expat/lib/xmlparse.c
+@@ -3454,6 +3454,9 @@ storeAtts(XML_Parser parser, const ENCOD
    int n;
    XML_Char *uri;
    int nPrefixes = 0;
@@ -11,7 +11,7 @@ diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
    BINDING *binding;
    const XML_Char *localPart;
  
-@@ -3586,7 +3589,15 @@
+@@ -3611,7 +3614,15 @@ storeAtts(XML_Parser parser, const ENCOD
                                             appAtts[attIndex], bindingsPtr);
          if (result)
            return result;
@@ -27,7 +27,7 @@ diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
        } else {
          /* deal with other prefixed names later */
          attIndex++;
-@@ -3618,6 +3629,12 @@
+@@ -3643,6 +3654,12 @@ storeAtts(XML_Parser parser, const ENCOD
                                               da->value, bindingsPtr);
            if (result)
              return result;
@@ -40,7 +40,7 @@ diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
          } else {
            (da->id->name)[-1] = 2;
            nPrefixes++;
-@@ -3636,7 +3653,13 @@
+@@ -3661,7 +3678,13 @@ storeAtts(XML_Parser parser, const ENCOD
    /* expand prefixed attribute names, check for duplicates,
       and clear flags that say whether attributes were specified */
    i = 0;
@@ -54,7 +54,7 @@ diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
      int j; /* hash table index */
      unsigned long version = parser->m_nsAttsVersion;
  
-@@ -3646,6 +3669,9 @@
+@@ -3671,6 +3694,9 @@ storeAtts(XML_Parser parser, const ENCOD
      }
  
      unsigned int nsAttsSize = 1u << parser->m_nsAttsPower;
@@ -64,7 +64,7 @@ diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
      unsigned char oldNsAttsPower = parser->m_nsAttsPower;
      /* size of hash table must be at least 2 * (# of prefixed attributes) */
      if ((nPrefixes << 1)
-@@ -3695,6 +3721,9 @@
+@@ -3720,6 +3746,9 @@ storeAtts(XML_Parser parser, const ENCOD
          parser->m_nsAtts[--j].version = version;
      }
      parser->m_nsAttsVersion = --version;
@@ -74,7 +74,7 @@ diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
  
      /* expand prefixed names and check for duplicates */
      for (; i < attIndex; i += 2) {
-@@ -3794,10 +3823,63 @@
+@@ -3819,10 +3848,63 @@ storeAtts(XML_Parser parser, const ENCOD
          parser->m_nsAtts[j].hash = uriHash;
          parser->m_nsAtts[j].uriName = s;
  

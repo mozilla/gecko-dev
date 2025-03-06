@@ -1,7 +1,7 @@
 diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
---- a/expat/lib/xmlparse.c	2024-09-12 17:12:14
-+++ b/expat/lib/xmlparse.c	2024-09-12 17:12:32
-@@ -2353,7 +2353,13 @@
+--- a/expat/lib/xmlparse.c
++++ b/expat/lib/xmlparse.c
+@@ -2353,7 +2353,13 @@ XML_GetCurrentByteIndex(XML_Parser parse
    if (parser->m_eventPtr)
      return (XML_Index)(parser->m_parseEndByteIndex
                         - (parser->m_parseEndPtr - parser->m_eventPtr));
