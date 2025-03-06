@@ -304,7 +304,7 @@ async function checkInstalledSystemAddons(conditions, distroDir) {
       }
 
       let asBuiltin = conditions[i].asBuiltin;
-      if (asBuiltin) {
+      if (asBuiltin && !isUpgrade) {
         Assert.equal(uri.spec, `resource://test-builtin-ext${i + 1}/`);
       } else {
         Assert.ok(uri instanceof Ci.nsIFileURL);
@@ -420,6 +420,9 @@ async function setupSystemAddonConditions(setup, distroDir) {
     startupPromises.push(promiseWebExtensionStartup(id));
   }
 
+  info(
+    `setupSystemAddonConditions overriddenBuiltIns: ${JSON.stringify(overriddenBuiltInsData, null, 2)}\n`
+  );
   await overrideBuiltIns(overriddenBuiltInsData);
 
   await Promise.all([promiseStartupManager(), ...startupPromises]);

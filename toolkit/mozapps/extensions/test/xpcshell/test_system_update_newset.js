@@ -2,13 +2,15 @@
 
 createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "2");
 
+// Enable SCOPE_APPLICATION for builtin testing.  Default in tests is only SCOPE_PROFILE.
+let scopes = AddonManager.SCOPE_PROFILE | AddonManager.SCOPE_APPLICATION;
+Services.prefs.setIntPref("extensions.enabledScopes", scopes);
+
 let distroDir = FileUtils.getDir("ProfD", ["sysfeatures", "empty"]);
 distroDir.create(Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
 registerDirectory("XREAppFeat", distroDir);
 
 AddonTestUtils.usePrivilegedSignatures = () => "system";
-
-add_task(() => initSystemAddonDirs());
 
 /**
  * Defines the set of initial conditions to run each test against. Each should
@@ -128,8 +130,9 @@ const TESTS = {
   },
 };
 
-add_task(async function setup() {
+add_setup(async function setup() {
   // Initialise the profile
+  initSystemAddonDirs();
   await overrideBuiltIns({ system: [] });
   await promiseStartupManager();
   await promiseShutdownManager();
@@ -161,6 +164,35 @@ add_task(async function () {
       let test = TESTS[testName];
 
       await execSystemAddonTest(setupName, setup, test, distroDir);
+
+      // TODO(Bug 1949847): update this part along with removing the app-system-defaults location.
+      // Running the same test case again but with the default
+      // system addon installed as a system builtin.
+      info("Running test " + setupName + " " + testName + " (asBuiltIn)");
+      const setupAsBuiltIn = {
+        setup: setup.setup,
+        initialState: setup.initialState.map(stateEntry => {
+          return stateEntry.version
+            ? { ...stateEntry, asBuiltin: true }
+            : stateEntry;
+        }),
+      };
+      const testAsBuiltIn = {
+        updateList: test.updateList,
+        finalState: {
+          [setupName]: test.finalState[setupName].map(stateEntry => {
+            return stateEntry.isUpgrade
+              ? stateEntry
+              : { ...stateEntry, asBuiltin: true };
+          }),
+        },
+      };
+      await execSystemAddonTest(
+        setupName,
+        setupAsBuiltIn,
+        testAsBuiltIn,
+        distroDir
+      );
     }
   }
 });
