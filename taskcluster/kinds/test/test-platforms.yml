@@ -228,27 +228,6 @@ windows10-64-2009-shippable-qr/opt:
     test-sets:
         - windows10-2009-tests
 
-# win11-64 2009
-# a few tests remain in win11-2009-tests set
-windows11-64-2009-qr/debug:
-    build-platform: win64/debug
-    build-signing-label:
-        by-variant:
-            msix: repackage-signing-msix-win64/debug
-            default: build-signing-win64/debug
-    test-sets:
-        - webgpu
-
-windows11-64-2009-qr/opt:
-    build-platform: win64/opt
-    build-signing-label:
-        by-variant:
-            msix: repackage-signing-msix-win64/opt
-            default: build-signing-win64/opt
-    test-sets:
-        - webgpu
-
-
 # win64 24h2 (no -qr)
 # no perf right now
 windows11-64-24h2-ccov/opt:
@@ -268,6 +247,7 @@ windows11-64-24h2/debug:
             default: build-signing-win64/debug
     test-sets:
         - web-platform-tests
+        - webgpu
         - windows11-24h2-tests
 
 windows11-64-24h2/opt:
@@ -281,6 +261,7 @@ windows11-64-24h2/opt:
         - desktop-screenshot-capture
         - web-platform-tests
         - web-platform-tests-backlog
+        - webgpu
         - windows11-24h2-tests
         - talos-xperf
         - windows-talos
