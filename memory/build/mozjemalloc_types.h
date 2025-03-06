@@ -219,7 +219,7 @@ enum purge_result_t {
   // Done: No more purge requests are pending.
   Done,
 
-  // There is at least one arena left whose reuse grace period expired and
+  // There may be one or more arenas whose reuse grace period expired and
   // needs purging asap.
   NeedsMore,
 
