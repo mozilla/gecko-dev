@@ -304,7 +304,7 @@ def test_task_to_skip_if():
                 "build": {"type": "debug"},
                 "platform": {
                     "arch": "aarch64",
-                    "os": {"name": "macosx", "version": "1100"},
+                    "os": {"name": "macosx", "version": "1015"},
                 },
                 "runtime": {"webrender-sw": True},
             },
@@ -314,7 +314,7 @@ def test_task_to_skip_if():
     sf.platform_permutations = {
         "test-manifest": {
             "mac": {
-                "11.00": {
+                "10.15": {
                     "aarch64": {
                         "debug": {"swgl": {}, "no_variant": {}},
                         "opt": {"no_variant": {}},
@@ -327,7 +327,44 @@ def test_task_to_skip_if():
     skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
     assert (
         skip_if
-        == "os == 'mac' && os_version == '11.00' && processor == 'aarch64' && debug && swgl"
+        == "os == 'mac' && os_version == '10.15' && processor == 'aarch64' && debug && swgl"
+    )
+
+    # Hacks for macosx 11
+    sf = Skipfails()
+    task_id = "bAkMaQIVQp6oeEIW6fzBDw"
+    task_details = {
+        "expires": "2024-01-09T16:05:56.825Z",
+        "extra": {
+            "suite": "mochitest-media",
+            "test-setting": {
+                "build": {"type": "debug"},
+                "platform": {
+                    "arch": "aarch64",
+                    "os": {"name": "macosx", "version": "1100"},
+                },
+                "runtime": {"webrender-sw": True},
+            },
+        },
+    }
+    sf.tasks[task_id] = task_details
+    sf.platform_permutations = {
+        "test-manifest": {
+            "mac": {
+                "11.20": {
+                    "aarch64": {
+                        "debug": {"swgl": {}, "no_variant": {}},
+                        "opt": {"no_variant": {}},
+                    }
+                }
+            }
+        }
+    }
+    # function under test
+    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
+    assert (
+        skip_if
+        == "os == 'mac' && os_version == '11.20' && processor == 'aarch64' && debug && swgl"
     )
 
     # Do not include build type or test variant if everything failed

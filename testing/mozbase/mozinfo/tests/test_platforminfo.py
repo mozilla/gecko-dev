@@ -62,6 +62,12 @@ def test_os_version():
     platform_info = PlatformInfo(test_settings)
     assert platform_info.os_version == "14.70"
 
+    # Macos 11 has specific hacks
+    test_settings["platform"]["os"]["name"] = "macosx"
+    test_settings["platform"]["os"]["version"] = "1100"
+    platform_info = PlatformInfo(test_settings)
+    assert platform_info.os_version == "11.20"
+
     # Android os version gets converted to sdk version
     test_settings["platform"]["os"]["name"] = "android"
     test_settings["platform"]["os"]["version"] = "14.0"

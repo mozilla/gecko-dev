@@ -78,6 +78,9 @@ class PlatformInfo:
             raise Exception("Could not find platform version")
 
         if cleaned_name in ["mac", "linux"]:
+            # Hack for macosx 11.20 reported as 11.00
+            if cleaned_name == "mac" and version == "1100":
+                return "11.20"
             return version[0:2] + "." + version[2:4]
         if cleaned_name == "android":
             android_version = self.android_os_to_sdk_map.get(version)
