@@ -44,7 +44,7 @@ class TestSessionRestoreWithTabGroups(SessionStoreTestCase):
             let resolve = arguments[0];
             gBrowser.addTabGroup([gBrowser.tabs[2], gBrowser.tabs[3]], { id: "group-left-open", label: "open" });
             let closedGroup = gBrowser.addTabGroup([gBrowser.tabs[1]], { id:"group-closed", label: "closed" });
-            await gBrowser.removeTabGroup(closedGroup);
+            gBrowser.removeTabGroup(closedGroup);
 
             let { TabStateFlusher } = ChromeUtils.importESModule("resource:///modules/sessionstore/TabStateFlusher.sys.mjs");
             TabStateFlusher.flushWindow(gBrowser.ownerGlobal).then(resolve);

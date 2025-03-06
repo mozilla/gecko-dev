@@ -1960,7 +1960,7 @@ add_task(async function test_saveDisabledForUnimportantGroup() {
   );
   tabgroupEditor.panel.hidePopup();
   await panelHidden;
-  await gBrowser.removeTabGroup(group);
+  gBrowser.removeTabGroup(group);
 });
 
 add_task(async function test_saveAndCloseGroup() {

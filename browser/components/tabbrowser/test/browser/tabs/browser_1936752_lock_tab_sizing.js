@@ -43,5 +43,5 @@ add_task(async function test_lockTabSizing_resets_collapsed_tab_groups() {
   );
 
   // Clean up the tab group + tabs we created.
-  await gBrowser.removeTabGroup(tabGroup);
+  gBrowser.removeTabGroup(tabGroup);
 });

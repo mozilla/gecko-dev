@@ -3005,43 +3005,20 @@
      * @param {object} [options]
      *   Options to use when removing tabs. @see removeTabs for more info.
      */
-    async removeTabGroup(group, options = {}) {
+    removeTabGroup(group, options = {}) {
       if (this.tabGroupMenu.panel.state != "closed") {
         this.tabGroupMenu.panel.hidePopup(options.animate);
-      }
-
-      if (!options.skipPermitUnload) {
-        // Process permit unload handlers and allow user cancel
-        let cancel = await this.runBeforeUnloadForTabs(group.tabs);
-        if (cancel) {
-          if (SessionStore.getSavedTabGroup(group.id)) {
-            // If this group is currently saved, it's being removed as part of a
-            // save & close operation. We need to forget the saved group
-            // if the close is canceled.
-            SessionStore.forgetSavedTabGroup(group.id);
-          }
-          return;
-        }
-        options.skipPermitUnload = true;
       }
 
       // This needs to be fired before tabs are removed because session store
       // needs to respond to this while tabs are still part of the group
       group.dispatchEvent(
-        new CustomEvent("TabGroupRemoveRequested", {
-          bubbles: true,
-          detail: {
-            skipSessionStore: options.skipSessionStore,
-          },
-        })
+        new CustomEvent("TabGroupRemoveRequested", { bubbles: true })
       );
 
       // Skip session store on a per-tab basis since these tabs will get
       // recorded as part of a group
       options.skipSessionStore = true;
-
-      // tell removeTabs not to subprocess groups since we're removing a group.
-      options.skipGroupCheck = true;
 
       this.removeTabs(group.tabs, options);
     }
@@ -4252,10 +4229,27 @@
       let beforeUnloadPromises = [];
       /** @type {MozTabbrowserTab|undefined} */
       let lastToClose;
+      /**
+       * Map of tab group to surviving tabs in the group.
+       * If any of the `tabs` to be removed belong to a tab group, keep track
+       * of how many tabs in the tab group will be left after removing `tabs`.
+       * For any tab group with 0 surviving tabs, we can know that that tab
+       * group will be removed as a consequence of removing these `tabs`.
+       * @type {Map<MozTabbrowserTabGroup, Set<MozTabbrowserTab>>}
+       */
+      let tabGroupsSurvivingTabs = new Map();
 
       for (let tab of tabs) {
         if (!skipRemoves) {
           tab._closedInMultiselection = true;
+        }
+        if (!skipRemoves && !skipSessionStore) {
+          if (tab.group) {
+            if (!tabGroupsSurvivingTabs.has(tab.group)) {
+              tabGroupsSurvivingTabs.set(tab.group, new Set(tab.group.tabs));
+            }
+            tabGroupsSurvivingTabs.get(tab.group).delete(tab);
+          }
         }
         if (!skipRemoves && tab.selected) {
           lastToClose = tab;
@@ -4310,6 +4304,22 @@
           );
         } else {
           tabsWithoutBeforeUnload.push(tab);
+        }
+      }
+
+      if (!skipRemoves && !skipSessionStore) {
+        for (let [
+          tabGroup,
+          survivingTabs,
+        ] of tabGroupsSurvivingTabs.entries()) {
+          // Before removing any tabs, save tab groups that won't survive
+          // because all of their tabs are about to be removed. Then remove
+          // the tab group directly to prevent the closing tabs from being
+          // recorded by the session as individually closed tabs.
+          if (!survivingTabs.size) {
+            tabGroup.save();
+            this.removeTabGroup(tabGroup);
+          }
         }
       }
 
@@ -4381,44 +4391,6 @@
     }
 
     /**
-     * Given an array of tabs, returns a tuple [groups, leftoverTabs] such that:
-     *  - groups contains all groups whose tabs are a subset of the initial array
-     *  - leftoverTabs contains the remaining tabs
-     * @param {Array} tabs list of tabs
-     * @returns {Array} a tuple where the first element is an array of groups
-     *                  and the second is an array of tabs
-     */
-    #separateWholeGroups(tabs) {
-      /**
-       * Map of tab group to surviving tabs in the group.
-       * If any of the `tabs` to be removed belong to a tab group, keep track
-       * of how many tabs in the tab group will be left after removing `tabs`.
-       * For any tab group with 0 surviving tabs, we can know that that tab
-       * group will be removed as a consequence of removing these `tabs`.
-       * @type {Map<MozTabbrowserTabGroup, Set<MozTabbrowserTab>>}
-       */
-      let tabGroupSurvivingTabs = new Map();
-      let wholeGroups = [];
-      for (let tab of tabs) {
-        if (tab.group) {
-          if (!tabGroupSurvivingTabs.has(tab.group)) {
-            tabGroupSurvivingTabs.set(tab.group, new Set(tab.group.tabs));
-          }
-          tabGroupSurvivingTabs.get(tab.group).delete(tab);
-        }
-      }
-
-      for (let [tabGroup, survivingTabs] of tabGroupSurvivingTabs.entries()) {
-        if (!survivingTabs.size) {
-          wholeGroups.push(tabGroup);
-          tabs = tabs.filter(t => !tabGroup.tabs.includes(t));
-        }
-      }
-
-      return [wholeGroups, tabs];
-    }
-
-    /**
      * Removes multiple tabs from the tab browser.
      *
      * @param {MozTabbrowserTab[]} tabs
@@ -4433,9 +4405,6 @@
      *   using it in tandem with `runBeforeUnloadForTabs`.
      * @param {boolean}  [options.skipSessionStore]
      *   If true, don't record the closed tabs in SessionStore.
-     * @param {boolean} [options.skipGroupCheck]
-     *   Skip separate processing of whole tab groups from the set of tabs.
-     *   Used by removeTabGroup.
      */
     removeTabs(
       tabs,
@@ -4444,7 +4413,6 @@
         suppressWarnAboutClosingWindow = false,
         skipPermitUnload = false,
         skipSessionStore = false,
-        skipGroupCheck = false,
       } = {}
     ) {
       // When 'closeWindowWithLastTab' pref is enabled, closing all tabs
@@ -4468,22 +4436,6 @@
 
       // Guarantee that _clearMultiSelectionLocked lock gets released.
       try {
-        // If selection includes entire groups, we might want to save them
-        if (!skipGroupCheck) {
-          let [groups, leftoverTabs] = this.#separateWholeGroups(tabs);
-          groups.forEach(group => {
-            if (!skipSessionStore) {
-              group.save();
-            }
-            gBrowser.removeTabGroup(group, {
-              animate,
-              skipSessionStore,
-              skipPermitUnload,
-            });
-          });
-          tabs = leftoverTabs;
-        }
-
         let { beforeUnloadComplete, tabsWithBeforeUnloadPrompt, lastToClose } =
           this._startRemoveTabs(tabs, {
             animate,

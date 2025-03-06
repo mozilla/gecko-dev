@@ -104,7 +104,7 @@ add_task(
       "tab group should just have one tab left"
     );
 
-    await win.gBrowser.removeTabGroup(tabGroup);
+    win.gBrowser.removeTabGroup(tabGroup);
     await BrowserTestUtils.closeWindow(win);
     forgetClosedWindows();
     forgetSavedTabGroups();
