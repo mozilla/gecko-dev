@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <title>No-op window</title>
+  <head>
+    <script src="/resources/testharness.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      window.addEventListener("load", () => {
+        const params = new URLSearchParams(window.location.search);
+        const channelName = params.get("channel");
+        if (!channelName) {
+          // On irrecoverable errors, window is closed: parent should check this.
+          window.close();
+
+          throw new Error("Unknown channel name");
+        }
+
+        const channel = new BroadcastChannel(channelName);
+
+        channel.onmessage = async ev => {
+          if (ev.data == "cleanup") {
+            channel.postMessage("done");
+          }
+        };
+
+        channel.postMessage("200 OK");
+      });
+    </script>
+  </body>
+</html>
