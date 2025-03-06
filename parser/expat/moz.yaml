@@ -1,0 +1,64 @@
+schema: 1
+
+bugzilla:
+  product: Core
+  component: "XML"
+
+# Document the source of externally hosted code
+origin:
+  name: libexpat
+  description: Expat is an XML parser.
+  url: https://github.com/libexpat/libexpat
+  release: 2.2.1 (2017-06-17T18:07:00+02:00).
+  revision: 2.2.1
+  license: MIT
+  license-file: COPYING
+
+  notes: >
+    To test the upstream's main branch tip, one can
+    run `./mach vendor --revision tip parser/expat/moz.yaml`
+
+vendoring:
+  url: https://github.com/libexpat/libexpat
+  source-hosting: github
+  tracking: tag
+
+  exclude:
+    - "**"
+    - expat/lib/Makefile.am
+    - expat/lib/libexpat.def.cmake
+
+  include:
+    - AUTHORS
+    - Changes
+    - COPYING
+    - README.md
+    - expat/lib/*
+
+  keep:
+    - expat_config.h
+    - expat_config_moz.h
+    - expat_config_rlbox.h
+    - rlbox_expat.h
+    - rlbox_expat_types.h
+    - sources.mozbuild
+    - expat/lib/moz_expat.h
+    - expat/lib/moz_xmlparse.c
+    - expat/lib/moz_xmltok.c
+
+  patches:
+    - 00_xmlchar.patch
+    - 01_noslop.patch
+    - 02_report_mismatched_tag.patch
+    - 03_dont_generate_salt.patch
+    - 04_always_set_eventptrs.patch
+    - 05_getcurrentbyteindex.patch
+    - 06_report_processing_entity.patch
+    - 07_always_store_rawnames.patch
+    - 08_dont_ignore_undeclared_entity.patch
+    - 09_include_xmlns.patch
+    - 10_internalsubset.patch
+    - 11_nested_entities.patch
+    - 12_version_limit.patch
+    - 13_no_getenv.patch
+    - 14_unused.patch

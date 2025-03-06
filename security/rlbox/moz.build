@@ -54,11 +54,11 @@ if CONFIG["MOZ_WASM_SANDBOXING_OGG"]:
     LOCAL_INCLUDES += ["/media/libogg"]
 
 if CONFIG["MOZ_WASM_SANDBOXING_EXPAT"]:
-    include("/parser/expat/lib/sources.mozbuild")
-    WASM_SOURCES += ["/parser/expat/lib/" + s for s in expat_sources]
+    include("/parser/expat/sources.mozbuild")
+    WASM_SOURCES += ["/parser/expat/" + s for s in expat_sources]
     for k, v in expat_defines:
         WASM_DEFINES[k] = v
-    LOCAL_INCLUDES += ["/parser/expat/lib/"]
+    LOCAL_INCLUDES += ["/parser/expat/expat/lib/"]
 
 if CONFIG["MOZ_WASM_SANDBOXING_WOFF2"]:
     include("/modules/woff2/sources.mozbuild")

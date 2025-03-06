@@ -1,0 +1,9 @@
+The Expat parser is vendored from https://github.com/libexpat/libexpat.
+See moz.yaml for the current in-tree version.
+
+To update run
+
+$ ./mach vendor parser/expat/moz.yaml --patch-mode=none
+$ hg commit -m "Bug X - Update to Expat x.x.x."
+$ ./mach vendor parser/expat/moz.yaml --patch-mode=only
+$ hg commit -m "Bug X - Apply local patches to Expat x.x.x."
