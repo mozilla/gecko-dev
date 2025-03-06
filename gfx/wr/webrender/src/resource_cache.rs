@@ -667,7 +667,19 @@ impl ResourceCache {
 
         let render_task = rg_builder.get_task_mut(task_id);
 
-        let mut texture_cache_handle = TextureCacheHandle::invalid();
+        // Make sure to update the existing image info and texture cache handle
+        // instead of overwriting them if they already exist for this key.
+        let image_result = self.cached_images.entry(image_key).or_insert_with(|| {
+            ImageResult::UntiledAuto(CachedImageInfo {
+                texture_cache_handle: TextureCacheHandle::invalid(),
+                dirty_rect: ImageDirtyRect::All,
+                manual_eviction: true,
+            })
+        });
+
+        let ImageResult::UntiledAuto(ref mut info) = *image_result else {
+            unreachable!("Expected untiled image for snapshot");
+        };
 
         let flags = if is_opaque {
             ImageDescriptorFlags::IS_OPAQUE
@@ -686,7 +698,7 @@ impl ResourceCache {
         // and CPU-side data to be uploaded.
         let user_data = [0.0; 4];
         self.texture_cache.update(
-            &mut texture_cache_handle,
+            &mut info.texture_cache_handle,
             descriptor,
             TextureFilter::Linear,
             None,
@@ -703,7 +715,7 @@ impl ResourceCache {
         // this in the render task. The renderer will draw this task
         // into the appropriate rect of the texture cache on this frame.
         let (texture_id, uv_rect, _, _, _) =
-            self.texture_cache.get_cache_location(&texture_cache_handle);
+            self.texture_cache.get_cache_location(&info.texture_cache_handle);
 
         render_task.location = RenderTaskLocation::Static {
             surface: StaticRenderTaskSurface::TextureCache {
@@ -712,15 +724,6 @@ impl ResourceCache {
             },
             rect: uv_rect.to_i32(),
         };
-
-        self.cached_images.insert(
-            image_key,
-            ImageResult::UntiledAuto(CachedImageInfo {
-                texture_cache_handle,
-                dirty_rect: ImageDirtyRect::All,
-                manual_eviction: true,
-            })
-        );
 
         self.resources.image_templates
             .get_mut(image_key)
