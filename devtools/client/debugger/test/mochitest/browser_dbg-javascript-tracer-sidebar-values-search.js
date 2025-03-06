@@ -64,8 +64,9 @@ add_task(async function () {
         `#tracer-tab-panel .call-tree-container .search-value`
       );
       return (
+        argumentSearchValue &&
         argumentSearchValue.textContent ==
-        `Searching for:${previewString} (${matchesCount} match(es))`
+          `Searching for:${previewString} (${matchesCount} match(es))`
       );
     });
   }
