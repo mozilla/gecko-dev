@@ -10,6 +10,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.mockk.verifyOrder
 import kotlinx.coroutines.test.runTest
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.state.ContentState
@@ -21,6 +22,7 @@ import mozilla.components.browser.state.state.createTab
 import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.pwa.WebAppUseCases
+import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.service.fxa.manager.AccountState.Authenticated
 import mozilla.components.service.fxa.manager.AccountState.AuthenticationProblem
 import mozilla.components.service.fxa.manager.AccountState.NotAuthenticated
@@ -55,6 +57,7 @@ class MenuNavigationMiddlewareTest {
     private val scope = coroutinesTestRule.scope
 
     private val navController: NavController = mockk(relaxed = true)
+    private val tabsUseCases: TabsUseCases = mockk(relaxed = true)
     private val webAppUseCases: WebAppUseCases = mockk(relaxed = true)
     private val settings: Settings = mockk(relaxed = true)
 
@@ -577,6 +580,58 @@ class MenuNavigationMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN homepage as a new tab is enabled WHEN navigate to new tab action is dispatched THEN navigate to a new homepage tab`() = runTest {
+        every { settings.enableHomepageAsNewTab } returns true
+
+        val browsingModeManager = SimpleBrowsingModeManager(BrowsingMode.Private)
+        val store = createStore(
+            browsingModeManager = browsingModeManager,
+        )
+        store.dispatch(MenuAction.Navigate.NewTab).join()
+
+        assertEquals(BrowsingMode.Normal, browsingModeManager.mode)
+
+        verifyOrder {
+            tabsUseCases.addTab.invoke(
+                url = "about:home",
+                startLoading = false,
+                private = false,
+            )
+
+            navController.nav(
+                R.id.menuDialogFragment,
+                MenuDialogFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN homepage as a new tab is enabled WHEN navigate to new private tab action is dispatched THEN navigate to a private homepage tab`() = runTest {
+        every { settings.enableHomepageAsNewTab } returns true
+
+        val browsingModeManager = SimpleBrowsingModeManager(BrowsingMode.Normal)
+        val store = createStore(
+            browsingModeManager = browsingModeManager,
+        )
+        store.dispatch(MenuAction.Navigate.NewPrivateTab).join()
+
+        assertEquals(BrowsingMode.Private, browsingModeManager.mode)
+
+        verifyOrder {
+            tabsUseCases.addTab.invoke(
+                url = "about:home",
+                startLoading = false,
+                private = true,
+            )
+
+            navController.nav(
+                R.id.menuDialogFragment,
+                MenuDialogFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
+            )
+        }
+    }
+
+    @Test
     fun `WHEN navigate to addon details is dispatched THEN navigate to the addon details`() = runTest {
         val addon = Addon(id = "ext1")
         val store = createStore()
@@ -662,6 +717,7 @@ class MenuNavigationMiddlewareTest {
                 navController = navController,
                 browsingModeManager = browsingModeManager,
                 openToBrowser = openToBrowser,
+                tabsUseCases = tabsUseCases,
                 webAppUseCases = webAppUseCases,
                 settings = settings,
                 onDismiss = onDismiss,

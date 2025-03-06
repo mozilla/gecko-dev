@@ -246,6 +246,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 navController = findNavController(),
                                 browsingModeManager = browsingModeManager,
                                 openToBrowser = ::openToBrowser,
+                                tabsUseCases = components.useCases.tabsUseCases,
                                 webAppUseCases = webAppUseCases,
                                 settings = settings,
                                 onDismiss = {
