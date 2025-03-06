@@ -106,5 +106,6 @@ add_task(async function () {
       await loadPromise;
     }
   );
+  await FormHistory.update({ op: "remove" });
   await SpecialPowers.popPrefEnv();
 });

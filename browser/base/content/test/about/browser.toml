@@ -1,11 +1,7 @@
 [DEFAULT]
 support-files = [
   "head.js",
-  "print_postdata.sjs",
-  "searchSuggestionEngine.sjs",
-  "searchSuggestionEngine.xml",
   "slow_loading_page.sjs",
-  "POSTSearchEngine.xml",
   "dummy_page.html",
 ]
 
@@ -37,22 +33,6 @@ support-files = [
 ["browser_aboutCertError_telemetry.js"]
 
 ["browser_aboutDialog_distribution.js"]
-
-["browser_aboutHome_search_POST.js"]
-
-["browser_aboutHome_search_composing.js"]
-
-["browser_aboutHome_search_searchbar.js"]
-
-["browser_aboutHome_search_suggestion.js"]
-skip-if = [
-  "os == 'mac'",
-  "os == 'linux' && os_version == '18.04' && !debug",
-  "os == 'linux' && os_version == '18.04' && bits == 64",
-  "win10_2009 && bits == 64 && !debug", # Bug 1399648, bug 1402502
-]
-
-["browser_aboutHome_search_telemetry.js"]
 
 ["browser_aboutNetError.js"]
 

@@ -23,7 +23,7 @@ add_task(async function () {
       let engine;
       await promiseContentSearchChange(browser, async () => {
         engine = await SearchTestUtils.installOpenSearchEngine({
-          url: "https://example.com/browser/browser/base/content/test/about/POSTSearchEngine.xml",
+          url: getRootDirectory(gTestPath) + "POSTSearchEngine.xml",
           setAsDefault: true,
         });
         return engine.name;
