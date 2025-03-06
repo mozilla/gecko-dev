@@ -2466,6 +2466,7 @@ void JS::TransitiveCompileOptions::copyPODTransitiveOptions(
 
   borrowBuffer = rhs.borrowBuffer;
   usePinnedBytecode = rhs.usePinnedBytecode;
+  deoptimizeModuleGlobalVars = rhs.deoptimizeModuleGlobalVars;
 
   prefableOptions_ = rhs.prefableOptions_;
 
