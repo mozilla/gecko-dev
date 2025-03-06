@@ -468,4 +468,4 @@ devtools.jar:
     # about:profiling
     skin/aboutprofiling.css (themes/aboutprofiling.css)
     content/performance-new/aboutprofiling/initializer.js (performance-new/aboutprofiling/initializer.js)
-    content/performance-new/aboutprofiling/index.html (performance-new/aboutprofiling/index.html)
+    content/performance-new/aboutprofiling/index.xhtml (performance-new/aboutprofiling/index.xhtml)
