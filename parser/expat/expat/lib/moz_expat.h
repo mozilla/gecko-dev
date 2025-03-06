@@ -101,6 +101,8 @@ XML_Index MOZ_XML_GetCurrentByteIndex(XML_Parser parser);
 void
 MOZ_XML_ParserFree(XML_Parser parser);
 
+XML_Bool MOZ_XML_SetReparseDeferralEnabled(XML_Parser parser, int enabled);
+
 // Mozilla-only API: Report opening tag of mismatched closing tag.
 const XML_Char*
 MOZ_XML_GetMismatchedTag(XML_Parser parser);
