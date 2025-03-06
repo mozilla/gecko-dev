@@ -1036,7 +1036,7 @@ suggest_relevance:
     notification_emails:
       - disco-team@mozilla.com
       - najiang@mozilla.com
-    expires: 139
+    expires: 147
     data_sensitivity:
       - technical
   outcome:
@@ -1056,7 +1056,7 @@ suggest_relevance:
     notification_emails:
       - disco-team@mozilla.com
       - najiang@mozilla.com
-    expires: 139
+    expires: 147
     data_sensitivity:
       - technical
 
