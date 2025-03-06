@@ -388,9 +388,8 @@ nsresult GPUProcessManager::EnsureGPUReady(
       }
     }
 
-    // The only scenario this should be possible is if we raced with the
-    // initialization, which failed, and has already decided to disable the GPU
-    // process.
+    // If we don't have a connected process by this stage, we must have
+    // explicitly disabled the GPU process.
     if (!mGPUChild) {
       MOZ_DIAGNOSTIC_ASSERT(!gfxConfig::IsEnabled(Feature::GPU_PROCESS));
       break;
@@ -401,21 +400,17 @@ nsresult GPUProcessManager::EnsureGPUReady(
     }
 
     // If the initialization above fails, we likely have a GPU process teardown
-    // waiting in our message queue (or will soon). If the fallback wants us to
-    // give up on the GPU process, we will exit the loop.
-    if (MaybeDisableGPUProcess("Failed to initialize GPU process",
-                               /* aAllowRestart */ true)) {
-      MOZ_DIAGNOSTIC_ASSERT(!gfxConfig::IsEnabled(Feature::GPU_PROCESS));
-      break;
-    }
+    // waiting in our message queue (or will soon). OnProcessUnexpectedShutdown
+    // will explicitly teardown the process and prevent any pending events from
+    // triggering our fallback logic again. It will allow a number of attempts
+    // in the same configuration in case we are failing for intermittent
+    // reasons, before first falling back from acceleration, and eventually
+    // disabling the GPU process altogether.
+    OnProcessUnexpectedShutdown(mProcess);
 
-    // Otherwise HandleProcessLost will explicitly teardown the process and
-    // prevent any pending events from triggering our fallback logic again, and
-    // we will retry with a different configuration.
-    MOZ_DIAGNOSTIC_ASSERT(gfxConfig::IsEnabled(Feature::GPU_PROCESS));
-    OnBlockingProcessUnexpectedShutdown();
-
-    // Some callers may need to reconfigure if we fellback.
+    // If aRetryAfterFallback is true, we will relaunch the process immediately
+    // in this loop (if still enabled). Otherwise we return to the caller to
+    // allow them to reconfigure first.
     if (!aRetryAfterFallback) {
       return NS_ERROR_NOT_AVAILABLE;
     }
@@ -893,15 +888,6 @@ void GPUProcessManager::NotifyListenersOnCompositeDeviceReset() {
   }
 }
 
-void GPUProcessManager::OnBlockingProcessUnexpectedShutdown() {
-  if (mProcess) {
-    CompositorManagerChild::OnGPUProcessLost(mProcess->GetProcessToken());
-  }
-  DestroyProcess(/* aUnexpectedShutdown */ true);
-  mUnstableProcessAttempts = 0;
-  HandleProcessLost();
-}
-
 void GPUProcessManager::OnProcessUnexpectedShutdown(GPUProcessHost* aHost) {
   MOZ_ASSERT(mProcess && mProcess == aHost);
 
@@ -1207,14 +1193,13 @@ already_AddRefed<CompositorSession> GPUProcessManager::CreateTopLevelCompositor(
                                   aOptions, aUseExternalSurfaceSize,
                                   aSurfaceSize, aInnerWindowId);
     if (NS_WARN_IF(!session)) {
-      if (!MaybeDisableGPUProcess("Failed to create remote compositor",
-                                  /* aAllowRestart */ true)) {
-        // Fallback wants the GPU process. Reset our counter.
-        MOZ_DIAGNOSTIC_ASSERT(gfxConfig::IsEnabled(Feature::GPU_PROCESS));
-        OnBlockingProcessUnexpectedShutdown();
-      } else {
-        MOZ_DIAGNOSTIC_ASSERT(!gfxConfig::IsEnabled(Feature::GPU_PROCESS));
-      }
+      // This may have failed for intermittent reasons, or perhaps indicates we
+      // are fundamentally unable to use acceleration.
+      // OnProcessUnexpectedShutdown will first attempt to relaunch the GPU
+      // process in the same configuration a number of times, then fallback from
+      // acceleration, then finally disable the GPU process if it continues to
+      // fail.
+      OnProcessUnexpectedShutdown(mProcess);
       *aRetryOut = true;
       return nullptr;
     }

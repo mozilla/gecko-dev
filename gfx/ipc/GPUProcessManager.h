@@ -257,8 +257,6 @@ class GPUProcessManager final : public GPUProcessHost::Listener {
   void DestroyRemoteCompositorSessions();
   void DestroyInProcessCompositorSessions();
 
-  void OnBlockingProcessUnexpectedShutdown();
-
   // Returns true if we crossed the threshold such that we should disable
   // acceleration.
   bool OnDeviceReset(bool aTrackThreshold);
