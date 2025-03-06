@@ -3113,7 +3113,13 @@
     "interventions": [
       {
         "platforms": ["all"],
-        "ua_string": ["add_Chrome"]
+        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
+      },
+      {
+        "platforms": ["linux"],
+        "content_scripts": {
+          "js": ["bug1950282-formula1.com-platform-linux-fix.js"]
+        }
       }
     ]
   }
