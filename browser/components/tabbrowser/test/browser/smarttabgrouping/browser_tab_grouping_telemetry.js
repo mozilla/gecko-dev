@@ -28,11 +28,6 @@ async function setup(enableSmartTab = true) {
   sinon
     .stub(SmartTabGroupingManager.prototype, "smartTabGroupingForGroup")
     .resolves([]);
-  sinon.stub(SmartTabGroupingManager.prototype, "getEngineConfigs").resolves({
-    "smart-tab-topic-engine": { modelRevision: "v0.3.4" },
-    "smart-tab-embedding-engine": { modelRevision: "v0.1.0" },
-  });
-
   let tab = BrowserTestUtils.addTab(gBrowser, "about:blank");
   const cleanup = () => {
     sinon.restore();
@@ -54,6 +49,7 @@ add_task(async function test_saving_ml_suggested_label_telemetry() {
   tabgroupEditor.mlLabel = "Random ML Suggested Label"; // suggested label
   tabgroupPanel.querySelector("#tab-group-editor-button-create").click();
   let panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
+  tabgroupPanel.querySelector("#tab-group-editor-button-create").click(); // save
   await panelHidden;
 
   const events = Glean.browserMlInteraction.smartTabTopic.testGetValue();
@@ -70,11 +66,6 @@ add_task(async function test_saving_ml_suggested_label_telemetry() {
     "25",
     "User input was the same as ml suggested label"
   );
-  Assert.equal(
-    events[0].extra.model_revision,
-    "v0.3.4",
-    "Model revision should be present"
-  );
   cleanup();
 });
 
@@ -89,8 +80,6 @@ add_task(async function test_cancel_ml_suggested_label_telemetry() {
   nameField.value = "Random ML Suggested Label"; // user label matching suggested label
   tabgroupEditor.mlLabel = "Random ML Suggested Label"; // suggested label
   tabgroupPanel.querySelector("#tab-group-editor-button-cancel").click(); // cancel
-  let panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
-  await panelHidden;
 
   const events = Glean.browserMlInteraction.smartTabTopic.testGetValue();
   Assert.equal(events.length, 1, "Should create a label event");
@@ -110,11 +99,6 @@ add_task(async function test_cancel_ml_suggested_label_telemetry() {
     "25",
     "User input was the same as ml suggested label"
   );
-  Assert.equal(
-    events[0].extra.model_revision,
-    "v0.3.4",
-    "Model revision should be present"
-  );
   cleanup();
 });
 
@@ -132,8 +116,6 @@ add_task(async function test_saving_ml_suggested_tabs() {
   tabgroupPanel.querySelector("#tab-group-suggestion-button").click();
   tabgroupEditor.hasSuggestedMlTabs = true;
   tabgroupPanel.querySelector("#tab-group-create-suggestions-button").click();
-  let panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
-  await panelHidden;
   const events = Glean.browserMlInteraction.smartTabSuggest.testGetValue();
   Assert.equal(events.length, 1, "Should create a sugggest event");
   Assert.equal(events[0].extra.action, "save", "Save button was clicked");
@@ -154,11 +136,6 @@ add_task(async function test_saving_ml_suggested_tabs() {
   );
   Assert.equal(events[0].extra.num_tabs_approved, "0", "No tabs were approved");
   Assert.equal(events[0].extra.num_tabs_removed, "0", "No tabs were removed");
-  Assert.equal(
-    events[0].extra.model_revision,
-    "v0.1.0",
-    "Model revision should be present"
-  );
   cleanup();
 });
 
@@ -177,9 +154,6 @@ add_task(async function test_saving_ml_suggested_tabs_with_ml_label() {
   tabgroupPanel.querySelector("#tab-group-suggestion-button").click();
   tabgroupEditor.hasSuggestedMlTabs = true;
   tabgroupPanel.querySelector("#tab-group-create-suggestions-button").click();
-  let panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
-  await panelHidden;
-
   const labelEvent = Glean.browserMlInteraction.smartTabTopic.testGetValue();
   const suggestEvent =
     Glean.browserMlInteraction.smartTabSuggest.testGetValue();
@@ -205,9 +179,6 @@ add_task(async function test_canceling_ml_suggested_tabs_with_ml_label() {
   tabgroupPanel.querySelector("#tab-group-suggestion-button").click();
   tabgroupEditor.hasSuggestedMlTabs = true;
   tabgroupPanel.querySelector("#tab-group-cancel-suggestions-button").click(); // cancel
-  let panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
-  await panelHidden;
-
   const labelEvent = Glean.browserMlInteraction.smartTabTopic.testGetValue();
   const suggestEvent =
     Glean.browserMlInteraction.smartTabSuggest.testGetValue();

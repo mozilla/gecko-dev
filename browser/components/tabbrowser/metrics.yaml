@@ -184,9 +184,6 @@ browser.ml.interaction:
           Levenshtein distance between label suggested by model
           and saved by user
         type: quantity
-      model_revision:
-        description: topic model version currently running
-        type: string
     expires: never
     no_lint:
       - COMMON_PREFIX
@@ -226,9 +223,6 @@ browser.ml.interaction:
           number of tabs the user removed from the
           suggestions
         type: quantity
-      model_revision:
-        description: embedding model version currently running
-        type: string
     expires: never
     no_lint:
       - COMMON_PREFIX

@@ -21,7 +21,6 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   NLP: "resource://gre/modules/NLP.sys.mjs",
-  MLEngineParent: "resource://gre/actors/MLEngineParent.sys.mjs",
 });
 
 const EMBED_TEXT_KEY = "combined_text";
@@ -680,9 +679,7 @@ export class SmartTabGroupingManager {
    * @param {string} mlLabel ML generated label for the tab group
    * @param {string} userLabel User saved label for the tab group
    */
-  async handleLabelTelemetry({ action, numTabsInGroup, mlLabel, userLabel }) {
-    const { [ML_SMART_TAB_TOPIC_ENGINE_ID]: topicEngineConfig } =
-      await this.getEngineConfigs();
+  handleLabelTelemetry({ action, numTabsInGroup, mlLabel, userLabel }) {
     Glean.browserMlInteraction.smartTabTopic.record({
       action,
       num_tabs_in_group: numTabsInGroup,
@@ -692,7 +689,6 @@ export class SmartTabGroupingManager {
         userLabel || "",
         mlLabel || ""
       ),
-      model_revision: topicEngineConfig.modelRevision || "",
     });
   }
 
@@ -707,7 +703,7 @@ export class SmartTabGroupingManager {
    * @param {number} numTabsApproved Number of tabs approved by the user
    * @param {number} numTabsRemoved Number of tabs removed by the user
    */
-  async handleSuggestTelemetry({
+  handleSuggestTelemetry({
     action,
     numTabsInWindow,
     numTabsInGroup,
@@ -715,8 +711,6 @@ export class SmartTabGroupingManager {
     numTabsApproved,
     numTabsRemoved,
   }) {
-    const { [ML_SMART_TAB_EMBEDDING_ENGINE_ID]: embeddingEngineConfig } =
-      await this.getEngineConfigs();
     Glean.browserMlInteraction.smartTabSuggest.record({
       action,
       num_tabs_in_window: numTabsInWindow,
@@ -724,33 +718,7 @@ export class SmartTabGroupingManager {
       num_tabs_suggested: numTabsSuggested,
       num_tabs_approved: numTabsApproved,
       num_tabs_removed: numTabsRemoved,
-      model_revision: embeddingEngineConfig.modelRevision || "",
     });
-  }
-
-  /**
-   * Gets config that engine was initialized with
-   *
-   * @return {Promise<{"[ML_SMART_TAB_TOPIC_ENGINE_ID]", "[ML_SMART_TAB_EMBEDDING_ENGINE_ID]"}>}
-   */
-  async getEngineConfigs() {
-    if (!this.topicEngineConfig) {
-      this.topicEngineConfig = await lazy.MLEngineParent.getInferenceOptions(
-        this.config.topicGeneration.engineId,
-        this.config.topicGeneration.taskName
-      );
-    }
-    if (!this.embeddingEngineConfig) {
-      this.embeddingEngineConfig =
-        await lazy.MLEngineParent.getInferenceOptions(
-          this.config.embedding.engineId,
-          this.config.embedding.taskName
-        );
-    }
-    return {
-      [ML_SMART_TAB_TOPIC_ENGINE_ID]: this.topicEngineConfig,
-      [ML_SMART_TAB_EMBEDDING_ENGINE_ID]: this.embeddingEngineConfig,
-    };
   }
 }
 
