@@ -643,6 +643,7 @@ class BrowserFragment :
         requireActivity().exitImmersiveMode()
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         promptFeature.withFeature { it.onActivityResult(requestCode, data, resultCode) }
     }

@@ -60,6 +60,8 @@ class VisibilityLifeCycleCallback(private val context: Context) : ActivityLifecy
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {}
+
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun onLowMemory() {}
 
     companion object {

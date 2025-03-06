@@ -2144,6 +2144,7 @@ abstract class BaseBrowserFragment :
     /**
      * Forwards permission grant results to one of the features.
      */
+    @Suppress("OVERRIDE_DEPRECATION")
     final override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<String>,

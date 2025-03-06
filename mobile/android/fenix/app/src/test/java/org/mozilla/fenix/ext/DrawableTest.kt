@@ -31,6 +31,8 @@ class DrawableTest {
 
     private class TestDrawable : Drawable() {
         var boundsChanged: Boolean = false
+
+        @Suppress("OVERRIDE_DEPRECATION")
         override fun getOpacity(): Int {
             return 0
         }

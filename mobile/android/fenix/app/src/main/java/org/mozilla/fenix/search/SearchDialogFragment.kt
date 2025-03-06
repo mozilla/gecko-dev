@@ -738,8 +738,8 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
         )
     }
 
-    @Suppress("DEPRECATION")
-    // https://github.com/mozilla-mobile/fenix/issues/19920
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1813657
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<String>,

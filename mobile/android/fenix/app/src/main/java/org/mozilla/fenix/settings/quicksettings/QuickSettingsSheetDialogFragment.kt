@@ -153,6 +153,7 @@ class QuickSettingsSheetDialogFragment : FenixDialogFragment() {
         _binding = null
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,

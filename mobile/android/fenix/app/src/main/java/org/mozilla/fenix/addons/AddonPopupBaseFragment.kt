@@ -284,6 +284,7 @@ abstract class AddonPopupBaseFragment : Fragment(), EngineSession.Observer, User
         requireComponents.core.store.dispatch(CustomTabListAction.AddCustomTabAction(session as CustomTabSessionState))
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     final override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<String>,
