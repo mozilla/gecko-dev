@@ -115,37 +115,6 @@ MALLOC_DECL(jemalloc_purge_freed_pages, void)
 // that are not created with ARENA_FLAG_THREAD_MAIN_THREAD_ONLY will be purged.
 MALLOC_DECL(jemalloc_free_dirty_pages, void)
 
-// Free dirty pages until the max dirty pages threshold is satisfied. Useful
-// after lowering the max dirty pages threshold to get RSS back to normal.
-// This behaves just like a synchronous purge on all arenas.
-// Note that if called on a different thread than the main thread, only arenas
-// that are not created with ARENA_FLAG_THREAD_MAIN_THREAD_ONLY will be purged.
-MALLOC_DECL(jemalloc_free_excess_dirty_pages, void)
-
-// Change the value of opt_randomize_small to control small allocation
-// randomization and maybe perform a reinitialization of the arena's PRNG.
-MALLOC_DECL(jemalloc_reset_small_alloc_randomization, void, bool)
-
-// Opt in or out of a thread local arena (bool argument is whether to opt-in
-// (true) or out (false)).
-MALLOC_DECL(jemalloc_thread_local_arena, void, bool)
-
-// Provide information about any allocation enclosing the given address.
-MALLOC_DECL(jemalloc_ptr_info, void, const void*, jemalloc_ptr_info_t*)
-#  endif
-
-#  if MALLOC_FUNCS & MALLOC_FUNCS_ARENA_BASE
-
-// Creates a separate arena, and returns its id, valid to use with moz_arena_*
-// functions. A helper is provided in mozmemory.h that doesn't take any
-// arena_params_t: moz_create_arena.
-MALLOC_DECL(moz_create_arena_with_params, arena_id_t, arena_params_t*)
-
-// Dispose of the given arena. Subsequent uses of the arena will crash.
-// Passing an invalid id (inexistent or already disposed) to this function
-// will crash. The arena must be empty prior to calling this function.
-MALLOC_DECL(moz_dispose_arena, void, arena_id_t)
-
 // Set the default modifier for mMaxDirty. The value is the number of shifts
 // applied to the value. Positive value is handled as <<, negative >>.
 // Arenas may override the default modifier.
@@ -179,6 +148,35 @@ MALLOC_DECL(moz_enable_deferred_purge, bool, bool)
 // expensive operations.
 MALLOC_DECL(moz_may_purge_one_now, purge_result_t, bool, uint32_t)
 
+// Free dirty pages until the max dirty pages threshold is satisfied. Useful
+// after lowering the max dirty pages threshold to get RSS back to normal.
+// This behaves just like a synchronous purge on all arenas.
+// Note that if called on a different thread than the main thread, only arenas
+// that are not created with ARENA_FLAG_THREAD_MAIN_THREAD_ONLY will be purged.
+MALLOC_DECL(jemalloc_free_excess_dirty_pages, void)
+
+// Change the value of opt_randomize_small to control small allocation
+// randomization and maybe perform a reinitialization of the arena's PRNG.
+MALLOC_DECL(jemalloc_reset_small_alloc_randomization, void, bool)
+
+// Opt in or out of a thread local arena (bool argument is whether to opt-in
+// (true) or out (false)).
+MALLOC_DECL(jemalloc_thread_local_arena, void, bool)
+
+// Provide information about any allocation enclosing the given address.
+MALLOC_DECL(jemalloc_ptr_info, void, const void*, jemalloc_ptr_info_t*)
+#  endif
+
+#  if MALLOC_FUNCS & MALLOC_FUNCS_ARENA_BASE
+// Creates a separate arena, and returns its id, valid to use with moz_arena_*
+// functions. A helper is provided in mozmemory.h that doesn't take any
+// arena_params_t: moz_create_arena.
+MALLOC_DECL(moz_create_arena_with_params, arena_id_t, arena_params_t*)
+
+// Dispose of the given arena. Subsequent uses of the arena will crash.
+// Passing an invalid id (inexistent or already disposed) to this function
+// will crash. The arena must be empty prior to calling this function.
+MALLOC_DECL(moz_dispose_arena, void, arena_id_t)
 #  endif
 
 #  if MALLOC_FUNCS & MALLOC_FUNCS_ARENA_ALLOC
