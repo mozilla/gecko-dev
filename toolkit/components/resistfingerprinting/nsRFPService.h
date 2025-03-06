@@ -219,8 +219,7 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
 
   static bool IsRFPEnabledFor(
       bool aIsPrivateMode, RFPTarget aTarget,
-      const Maybe<RFPTargetSet>& aOverriddenFingerprintingSettings,
-      bool aSkipChromePrincipalCheck = false);
+      const Maybe<RFPTargetSet>& aOverriddenFingerprintingSettings);
 
   static bool IsSystemPrincipalOrAboutFingerprintingProtection(JSContext*,
                                                                JSObject*);
