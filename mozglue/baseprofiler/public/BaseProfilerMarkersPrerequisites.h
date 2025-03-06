@@ -26,7 +26,6 @@ enum class StackCaptureOptions {
 
 #include "BaseProfileJSONWriter.h"
 #include "BaseProfilingCategory.h"
-#include "X11UndefineNone.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/ProfileChunkedBuffer.h"
 #include "mozilla/BaseProfilerState.h"
