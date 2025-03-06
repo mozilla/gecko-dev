@@ -230,10 +230,8 @@ TEST_F(VideoConduitTest, TestConfigureReceiveMediaCodecsFEC) {
 
 TEST_F(VideoConduitTest, TestConfigureReceiveMediaCodecsH264) {
   mControl.Update([&](auto& aControl) {
-    // Insert twice to test that only one H264 codec is used at a time
     aControl.mReceiving = true;
     aControl.mVideoRecvCodecs = {
-        VideoCodecConfig(120, "H264", EncodingConstraints()),
         VideoCodecConfig(120, "H264", EncodingConstraints())};
     aControl.mVideoRecvRtpRtcpConfig =
         Some(RtpRtcpConfig(webrtc::RtcpMode::kCompound));
@@ -242,6 +240,43 @@ TEST_F(VideoConduitTest, TestConfigureReceiveMediaCodecsH264) {
   ASSERT_EQ(Call()->mVideoReceiveConfig->decoders.size(), 1U);
   ASSERT_EQ(Call()->mVideoReceiveConfig->decoders[0].payload_type, 120);
   ASSERT_EQ(Call()->mVideoReceiveConfig->decoders[0].video_format.name, "H264");
+  ASSERT_NE(Call()->mVideoReceiveConfig->rtp.local_ssrc, 0U);
+  ASSERT_NE(Call()->mVideoReceiveConfig->rtp.remote_ssrc, 0U);
+  ASSERT_EQ(Call()->mVideoReceiveConfig->rtp.rtcp_mode,
+            webrtc::RtcpMode::kCompound);
+  ASSERT_EQ(Call()->mVideoReceiveConfig->rtp.nack.rtp_history_ms, 0);
+  ASSERT_FALSE(Call()->mVideoReceiveConfig->rtp.remb);
+  ASSERT_FALSE(Call()->mVideoReceiveConfig->rtp.tmmbr);
+  ASSERT_EQ(Call()->mVideoReceiveConfig->rtp.keyframe_method,
+            webrtc::KeyFrameReqMethod::kNone);
+  ASSERT_EQ(Call()->mVideoReceiveConfig->rtp.ulpfec_payload_type, -1);
+  ASSERT_EQ(Call()->mVideoReceiveConfig->rtp.red_payload_type, -1);
+  ASSERT_EQ(
+      Call()->mVideoReceiveConfig->rtp.rtx_associated_payload_types.size(), 0U);
+}
+
+TEST_F(VideoConduitTest, TestConfigureReceiveMediaCodecsMultipleH264) {
+  mControl.Update([&](auto& aControl) {
+    // Insert two H264 codecs to test that the receive stream knows about both.
+    aControl.mReceiving = true;
+    VideoCodecConfig h264_b(126, "H264", EncodingConstraints());
+    h264_b.mProfile = 0x42;
+    h264_b.mConstraints = 0xE0;
+    h264_b.mLevel = 0x01;
+    VideoCodecConfig h264_h(105, "H264", EncodingConstraints());
+    h264_h.mProfile = 0x64;
+    h264_h.mConstraints = 0xE0;
+    h264_h.mLevel = 0x01;
+    aControl.mVideoRecvCodecs = {h264_b, h264_h};
+    aControl.mVideoRecvRtpRtcpConfig =
+        Some(RtpRtcpConfig(webrtc::RtcpMode::kCompound));
+  });
+  ASSERT_TRUE(Call()->mVideoReceiveConfig);
+  ASSERT_EQ(Call()->mVideoReceiveConfig->decoders.size(), 2U);
+  ASSERT_EQ(Call()->mVideoReceiveConfig->decoders[0].payload_type, 126);
+  ASSERT_EQ(Call()->mVideoReceiveConfig->decoders[0].video_format.name, "H264");
+  ASSERT_EQ(Call()->mVideoReceiveConfig->decoders[1].payload_type, 105);
+  ASSERT_EQ(Call()->mVideoReceiveConfig->decoders[1].video_format.name, "H264");
   ASSERT_NE(Call()->mVideoReceiveConfig->rtp.local_ssrc, 0U);
   ASSERT_NE(Call()->mVideoReceiveConfig->rtp.remote_ssrc, 0U);
   ASSERT_EQ(Call()->mVideoReceiveConfig->rtp.rtcp_mode,

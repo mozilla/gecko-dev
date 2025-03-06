@@ -520,7 +520,6 @@ void WebrtcVideoConduit::OnControlConfigChange() {
     newRtp.ulpfec_payload_type = kNullPayloadType;
     newRtp.red_payload_type = kNullPayloadType;
     bool use_fec = false;
-    bool configuredH264 = false;
     std::vector<webrtc::VideoReceiveStreamInterface::Decoder> recv_codecs;
 
     // Try Applying the codecs in the list
@@ -532,14 +531,6 @@ void WebrtcVideoConduit::OnControlConfigChange() {
         CSFLogError(LOGTAG, "Invalid recv codec config for %s decoder: %i",
                     codec_config.mName.c_str(), condError);
         continue;
-      }
-
-      if (codec_config.mName == kH264CodecName) {
-        // TODO(bug 1200768): We can only handle configuring one recv H264 codec
-        if (configuredH264) {
-          continue;
-        }
-        configuredH264 = true;
       }
 
       if (codec_config.mName == kUlpfecCodecName) {
