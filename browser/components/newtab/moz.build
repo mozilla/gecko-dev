@@ -7,20 +7,16 @@
 with Files("**"):
     BUG_COMPONENT = ("Firefox", "New Tab Page")
 
-XPIDL_SOURCES += [
-    "nsIAboutNewTabService.idl",
-]
-
-XPIDL_MODULE = "browser-newtab"
-
 EXTRA_JS_MODULES += [
     "AboutHomeStartupCache.sys.mjs",
-    "AboutNewTabService.sys.mjs",
+    "AboutNewTabRedirector.sys.mjs",
 ]
 
 XPCOM_MANIFESTS += [
     "components.conf",
 ]
+
+FINAL_LIBRARY = "browsercomps"
 
 XPCSHELL_TESTS_MANIFESTS += [
     "test/xpcshell/xpcshell.toml",

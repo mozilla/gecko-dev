@@ -201,6 +201,12 @@ nsresult NimbusFeatures::RecordExposureEvent(const nsACString& aFeatureId,
           .featureid = Some(featureName),
           .value = Some(slugName),
       }));
+  glean::nimbus_events::exposure.Record(
+      Some(glean::nimbus_events::ExposureExtra{
+          .branch = Some(branchName),
+          .experiment = Some(slugName),
+          .featureId = Some(featureName),
+      }));
 
   return NS_OK;
 }

@@ -6,4 +6,6 @@ firefox-appdir = "browser"
 
 ["test_AboutWelcomeTelemetry.js"]
 
+["test_AboutWelcomeTelemetry_exposure.js"]
+
 ["test_AboutWelcomeTelemetry_glean.js"]

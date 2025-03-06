@@ -4,7 +4,7 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 "use strict";
 
 const { AboutHomeStartupCacheChild } = ChromeUtils.importESModule(
-  "resource:///modules/AboutNewTabService.sys.mjs"
+  "resource:///modules/AboutNewTabRedirector.sys.mjs"
 );
 
 /**

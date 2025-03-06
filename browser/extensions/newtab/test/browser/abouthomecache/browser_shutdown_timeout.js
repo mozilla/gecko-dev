@@ -23,7 +23,7 @@ add_task(async function test_shutdown_timeout() {
     // it doesn't respond to requests to the cache streams.
     await SpecialPowers.spawn(browser, [], async () => {
       let { AboutHomeStartupCacheChild } = ChromeUtils.importESModule(
-        "resource:///modules/AboutNewTabService.sys.mjs"
+        "resource:///modules/AboutNewTabRedirector.sys.mjs"
       );
       AboutHomeStartupCacheChild.uninit();
     });

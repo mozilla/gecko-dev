@@ -30,23 +30,21 @@ If the HTTP cache entry is already available when the process launches, and cach
 
 If the HTTP cache is not yet available, we hold references to those `nsIPipe` instances, and wait until the cache entry is available. Only then do we connect the cache entry to the `nsIPipe` instances to send the data down to the "privileged about content process".
 
-### `AboutNewTabService`
+### `AboutNewTabRedirectorParent` and `AboutNewTabRedirectorChild`
 
-The `AboutNewTabService` is used by the `AboutRedirector` in both the parent and content processes to determine how to handle attempts to load `about:home` and `about:newtab`.
+ `AboutNewTabRedirectorParent` and `AboutNewTabRedirectorChild` are used in the parent and content processes respectively to determine how to handle attempts to load `about:home` and `about:newtab`.
 
-There are distinct versions of the `AboutNewTabService` - one for the parent process (`BaseAboutNewTabService`), and one for content processes (`AboutNewTabChildService`, which inherits from `BaseAboutNewTabService`).
-
-The `AboutRedirector`, when running inside of a "privileged about content process" knows to direct attempts to load `about:home` to `AboutNewTabChildService`'s `aboutHomeCacheChannel` method. This method is then responsible for choosing whether or not to return an `nsIChannel` for the cached document, or for the dynamically generated version of `about:home`.
+The `AboutNewTabRedirectorChild`, when running inside of a "privileged about content process" knows to direct attempts to load `about:home` to `AboutNewTabChildService`'s `aboutHomeCacheChannel` method. This method is then responsible for choosing whether or not to return an `nsIChannel` for the cached document, or for the dynamically generated version of `about:home`.
 
 ### `AboutHomeStartupCacheChild`
 
 This singleton component lives inside of the "privileged about content process", and is initialized as soon as the message is received from the parent that includes the `nsIInputStream`'s that will be used to potentially load from the cache.
 
-When the `AboutRedirector` in the "privileged about content process" notices that a request has been made to `about:home`, it asks `nsIAboutNewTabService` to return a new `nsIChannel` for that document. The `AboutNewTabChildService` then checks to see if the `AboutHomeStartupCacheChild` can return an `nsIChannel` for any cached content.
+When the `AboutNewTabRedirectorChild` in the "privileged about content process" notices that a request has been made to `about:home`, it checks to see if the `AboutHomeStartupCacheChild` can return an `nsIChannel` for any cached content.
 
 If, at this point, nothing has been streamed from the parent, we fall back to loading the dynamic `about:home` document. This might occur if the cache doesn't exist yet, or if we were too slow to pull it off of the disk. Subsequent attempts to load `about:home` will bypass the cache and load the dynamic document instead. This is true even if the privileged about content process crashes and a new one is created.
 
-The `AboutHomeStartupCacheChild` will also be responsible for generating the cache periodically. Periodically, the `AboutNewTabService` will send down the most up-to-date state for `about:home` from the parent process, and then the `AboutHomeStartupCacheChild` will generate document markup using ReactDOMServer within a `ChromeWorker`. After that's generated, the "privileged about content process" will send up `nsIInputStream` instances for both the markup and the script for the initial page state. The `AboutHomeStartupCache` singleton is responsible for receiving those `nsIInputStream`'s and persisting them in the HTTP cache for the next start.
+The `AboutHomeStartupCacheChild` will also be responsible for generating the cache periodically. Periodically, the `AboutHomeStartupCache` will send down the most up-to-date state for `about:home` from the parent process, and then the `AboutHomeStartupCacheChild` will generate document markup using ReactDOMServer within a `ChromeWorker`. After that's generated, the "privileged about content process" will send up `nsIInputStream` instances for both the markup and the script for the initial page state. The `AboutHomeStartupCache` singleton is responsible for receiving those `nsIInputStream`'s and persisting them in the HTTP cache for the next start.
 
 ## What is cached?
 

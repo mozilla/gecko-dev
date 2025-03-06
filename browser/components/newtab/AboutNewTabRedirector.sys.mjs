@@ -5,15 +5,14 @@
  */
 
 /**
- * The nsIAboutNewTabService is accessed by the AboutRedirector anytime
- * about:home, about:newtab or about:welcome are requested. The primary
- * job of an nsIAboutNewTabService is to tell the AboutRedirector what
- * resources to actually load for those requests.
+ * This nsIAboutModule is for about:home and about:newtab. The primary
+ * job of the AboutNewTabRedirector is to resolve requests to load about:home
+ * and about:newtab to the appropriate resources for those requests.
  *
- * The nsIAboutNewTabService is not involved when the user has overridden
+ * The AboutNewTabRedirector is not involved when the user has overridden
  * the default about:home or about:newtab pages.
  *
- * There are two implementations of this service - one for the parent
+ * There are two implementations of this nsIAboutModule - one for the parent
  * process, and one for content processes. Each one has some secondary
  * responsibilties that are process-specific.
  *
@@ -31,8 +30,14 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   BasePromiseWorker: "resource://gre/modules/PromiseWorker.sys.mjs",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
 });
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "BUILTIN_NEWTAB_ENABLED",
+  "browser.newtabpage.enabled",
+  true
+);
 
 /**
  * BEWARE: Do not add variables for holding state in the global scope.
@@ -45,8 +50,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 const PREF_ABOUT_HOME_CACHE_TESTING =
   "browser.startup.homepage.abouthome_cache.testing";
-const ABOUT_WELCOME_URL =
-  "chrome://browser/content/aboutwelcome/aboutwelcome.html";
 
 const CACHE_WORKER_URL = "resource://newtab/lib/cache.worker.js";
 
@@ -59,7 +62,7 @@ const PREF_ACTIVITY_STREAM_DEBUG = "browser.newtabpage.activity-stream.debug";
 
 /**
  * The AboutHomeStartupCacheChild is responsible for connecting the
- * nsIAboutNewTabService with a cached document and script for about:home
+ * AboutNewTabRedirectorChild with a cached document and script for about:home
  * if one happens to exist. The AboutHomeStartupCacheChild is only ever
  * handed the streams for those caches when the "privileged about content
  * process" first launches, so subsequent loads of about:home do not read
@@ -91,7 +94,7 @@ export const AboutHomeStartupCacheChild = {
   /**
    * Called via a process script very early on in the process lifetime. This
    * prepares the AboutHomeStartupCacheChild to pass an nsIChannel back to
-   * the nsIAboutNewTabService when the initial about:home document is
+   * the AboutNewTabRedirectorChild when the initial about:home document is
    * eventually requested.
    *
    * @param {nsIInputStream} pageInputStream
@@ -163,12 +166,11 @@ export const AboutHomeStartupCacheChild = {
   },
 
   /**
-   * A public method called from nsIAboutNewTabService that attempts
-   * return an nsIChannel for a cached about:home document that we
-   * were initialized with. If we failed to be initted with the
-   * cache, or the input streams that we were sent have no data
-   * yet available, this function returns null. The caller should
-   * fall back to generating the page dynamically.
+   * Attempts to return an nsIChannel for a cached about:home document that
+   * we were initialized with. If we failed to be initted with the cache, or the
+   * input streams that we were sent have no data yet available, this function
+   * returns null. The caller should fall back to generating the page
+   * dynamically.
    *
    * This function will be called when loading about:home, or
    * about:home?jscache - the latter returns the cached script.
@@ -177,10 +179,10 @@ export const AboutHomeStartupCacheChild = {
    * page will also load the cached script.
    *
    * @param {nsIURI} uri
-   *   The URI for the requested page, as passed by nsIAboutNewTabService.
+   *   The URI for the requested page, as passed by AboutNewTabRedirectorChild.
    * @param {nsILoadInfo} loadInfo
    *   The nsILoadInfo for the requested load, as passed by
-   *   nsIAboutNewWTabService.
+   *   AboutNewTabRedirectorChild.
    * @returns {?nsIChannel}
    */
   maybeGetCachedPageChannel(uri, loadInfo) {
@@ -383,10 +385,10 @@ export const AboutHomeStartupCacheChild = {
 };
 
 /**
- * This is an abstract base class for the nsIAboutNewTabService
- * implementations that has some common methods and properties.
+ * This is an abstract base class for the nsIAboutModule implementations for
+ * about:home and about:newtab that has some common methods and properties.
  */
-class BaseAboutNewTabService {
+class BaseAboutNewTabRedirector {
   constructor() {
     if (!AppConstants.RELEASE_OR_BETA) {
       XPCOMUtils.defineLazyPreferenceGetter(
@@ -405,12 +407,6 @@ class BaseAboutNewTabService {
       PREF_SEPARATE_PRIVILEGEDABOUT_CONTENT_PROCESS,
       false
     );
-
-    this.classID = Components.ID("{cb36c925-3adc-49b3-b720-a5cc49d8a40e}");
-    this.QueryInterface = ChromeUtils.generateQI([
-      "nsIAboutNewTabService",
-      "nsIObserver",
-    ]);
   }
 
   /**
@@ -436,39 +432,36 @@ class BaseAboutNewTabService {
     ].join("");
   }
 
-  /**
-   * @returns {string} the about:welcome URL
-   *
-   * This is calculated in the same way the default URL is.
-   *
-   * (defaultURL's description)
-   * this URL depends on various activity stream prefs. Overriding
-   * the newtab page has no effect on the result of this function.
-   */
-  get welcomeURL() {
-    lazy.NimbusFeatures.aboutwelcome.recordExposureEvent({ once: true });
-    if (lazy.NimbusFeatures.aboutwelcome.getVariable("enabled") ?? true) {
-      return ABOUT_WELCOME_URL;
-    }
-    // If about:welcome isn't enabled, fallback to showing about:home.
-    return "about:home";
-  }
-
-  aboutHomeChannel() {
+  newChannel() {
     throw Components.Exception(
-      "AboutHomeChannel not implemented for this process.",
+      "getChannel not implemented for this process.",
       Cr.NS_ERROR_NOT_IMPLEMENTED
     );
   }
+
+  getURIFlags() {
+    return (
+      Ci.nsIAboutModule.ALLOW_SCRIPT |
+      Ci.nsIAboutModule.ENABLE_INDEXED_DB |
+      Ci.nsIAboutModule.URI_MUST_LOAD_IN_CHILD |
+      Ci.nsIAboutModule.URI_CAN_LOAD_IN_PRIVILEGEDABOUT_PROCESS |
+      Ci.nsIAboutModule.URI_SAFE_FOR_UNTRUSTED_CONTENT
+    );
+  }
+
+  getChromeURI() {
+    return Services.io.newURI("chrome://browser/content/blanktab.html");
+  }
+
+  QueryInterface = ChromeUtils.generateQI(["nsIAboutModule"]);
 }
 
 /**
- * The parent-process implementation of nsIAboutNewTabService,
- * which mainly delegates to the BaseAboutNewTabService implementation,
- * except for doing some New Tab initialization work for the parent
- * process.
+ * The parent-process implementation of the nsIAboutModule, which is the first
+ * stop for when requests are made to visit about:home or about:newtab (so
+ * before the AboutNewTabRedirectorChild has a chance to handle the request).
  */
-class AboutNewTabParentService extends BaseAboutNewTabService {
+export class AboutNewTabRedirectorParent extends BaseAboutNewTabRedirector {
   constructor() {
     super();
 
@@ -497,16 +490,43 @@ class AboutNewTabParentService extends BaseAboutNewTabService {
       remoteTypes: ["privilegedabout"],
     });
   }
+
+  newChannel(uri, loadInfo) {
+    let chromeURI = this.getChromeURI(uri);
+
+    if (
+      uri.spec.startsWith("about:home") ||
+      (uri.spec.startsWith("about:newtab") && lazy.BUILTIN_NEWTAB_ENABLED)
+    ) {
+      chromeURI = Services.io.newURI(this.defaultURL);
+    }
+
+    let resultChannel = Services.io.newChannelFromURIWithLoadInfo(
+      chromeURI,
+      loadInfo
+    );
+    resultChannel.originalURI = uri;
+    return resultChannel;
+  }
 }
 
 /**
- * The child-process implementation of nsIAboutNewTabService,
- * which also does the work of redirecting about:home loads to
- * the about:home startup cache if its available.
+ * The child-process implementation of nsIAboutModule, which also does the work
+ * of redirecting about:home loads to the about:home startup cache if its
+ * available.
  */
-class AboutNewTabChildService extends BaseAboutNewTabService {
-  aboutHomeChannel(uri, loadInfo) {
-    if (IS_PRIVILEGED_PROCESS) {
+export class AboutNewTabRedirectorChild extends BaseAboutNewTabRedirector {
+  newChannel(uri, loadInfo) {
+    if (!IS_PRIVILEGED_PROCESS) {
+      throw Components.Exception(
+        "newChannel can only be called from the privilegedabout content process.",
+        Cr.NS_ERROR_UNEXPECTED
+      );
+    }
+
+    let pageURI;
+
+    if (uri.spec.startsWith("about:home")) {
       let cacheChannel = AboutHomeStartupCacheChild.maybeGetCachedPageChannel(
         uri,
         loadInfo
@@ -514,41 +534,41 @@ class AboutNewTabChildService extends BaseAboutNewTabService {
       if (cacheChannel) {
         return cacheChannel;
       }
+      pageURI = Services.io.newURI(this.defaultURL);
+    } else {
+      // The only other possibility is about:newtab.
+      //
+      // If about:newtab is being requested, then any subsequent request for
+      // about:home should _never_ request the cache (which might be woefully
+      // out of date compared to about:newtab), so we disqualify the cache if
+      // it still happens to be around.
+      AboutHomeStartupCacheChild.disqualifyCache();
+
+      if (lazy.BUILTIN_NEWTAB_ENABLED) {
+        pageURI = Services.io.newURI(this.defaultURL);
+      } else {
+        pageURI = this.getChromeURI(uri);
+      }
     }
 
-    let pageURI = Services.io.newURI(this.defaultURL);
-    let fileChannel = Services.io.newChannelFromURIWithLoadInfo(
+    let resultChannel = Services.io.newChannelFromURIWithLoadInfo(
       pageURI,
       loadInfo
     );
-    fileChannel.originalURI = uri;
-    return fileChannel;
-  }
-
-  get defaultURL() {
-    if (IS_PRIVILEGED_PROCESS) {
-      // This is a bit of a hack, but attempting to load about:newtab will
-      // enter this code path in order to get at the expected URL, and we
-      // can use that to disqualify the about:home cache, since we don't
-      // use it for about:newtab loads, and we don't want the about:home
-      // cache to be wildly out of date when about:home is eventually
-      // loaded (for example, in the first new window).
-      AboutHomeStartupCacheChild.disqualifyCache();
-    }
-
-    return super.defaultURL;
+    resultChannel.originalURI = uri;
+    return resultChannel;
   }
 }
 
 /**
- * The AboutNewTabStubService is a function called in both the main and
- * content processes when trying to get at the nsIAboutNewTabService. This
- * function does the job of choosing the appropriate implementation of
- * nsIAboutNewTabService for the process type.
+ * The AboutNewTabRedirectorStub is a function called in both the main and
+ * content processes when trying to get at the nsIAboutModule for about:newtab
+ * and about:home. This function does the job of choosing the appropriate
+ * implementation of nsIAboutModule for the process type.
  */
-export function AboutNewTabStubService() {
+export function AboutNewTabRedirectorStub() {
   if (Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_DEFAULT) {
-    return new AboutNewTabParentService();
+    return new AboutNewTabRedirectorParent();
   }
-  return new AboutNewTabChildService();
+  return new AboutNewTabRedirectorChild();
 }

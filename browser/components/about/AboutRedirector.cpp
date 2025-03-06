@@ -7,7 +7,6 @@
 
 #include "AboutRedirector.h"
 #include "nsNetUtil.h"
-#include "nsIAboutNewTabService.h"
 #include "nsIAppStartup.h"
 #include "nsIChannel.h"
 #include "nsIURI.h"
@@ -16,19 +15,17 @@
 #include "mozilla/Components.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/dom/ContentChild.h"
+#include "mozilla/browser/NimbusFeatures.h"
 
 #define PROFILES_ENABLED_PREF "browser.profiles.enabled"
+#define ABOUT_WELCOME_CHROME_URL \
+  "chrome://browser/content/aboutwelcome/aboutwelcome.html"
+#define ABOUT_HOME_URL "about:home"
 
 namespace mozilla {
 namespace browser {
 
 NS_IMPL_ISUPPORTS(AboutRedirector, nsIAboutModule)
-
-static const uint32_t ACTIVITY_STREAM_FLAGS =
-    nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::ENABLE_INDEXED_DB |
-    nsIAboutModule::URI_MUST_LOAD_IN_CHILD |
-    nsIAboutModule::URI_CAN_LOAD_IN_PRIVILEGEDABOUT_PROCESS |
-    nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT;
 
 struct RedirEntry {
   const char* id;
@@ -111,10 +108,6 @@ static const RedirEntry kRedirMap[] = {
     {"welcomeback", "chrome://browser/content/aboutWelcomeBack.xhtml",
      nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::HIDE_FROM_ABOUTABOUT |
          nsIAboutModule::IS_SECURE_CHROME_UI},
-    // Actual activity stream URL for home and newtab are set in channel
-    // creation
-    {"home", "about:blank", ACTIVITY_STREAM_FLAGS},
-    {"newtab", "chrome://browser/content/blanktab.html", ACTIVITY_STREAM_FLAGS},
     {"welcome", "about:blank",
      nsIAboutModule::URI_MUST_LOAD_IN_CHILD |
          nsIAboutModule::URI_CAN_LOAD_IN_PRIVILEGEDABOUT_PROCESS |
@@ -210,25 +203,6 @@ AboutRedirector::NewChannel(nsIURI* aURI, nsILoadInfo* aLoadInfo,
 
   nsAutoCString path = GetAboutModuleName(aURI);
 
-  nsresult rv;
-  nsCOMPtr<nsIIOService> ioService = do_GetIOService(&rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // If we're accessing about:home in the "privileged about content
-  // process", then we give the nsIAboutNewTabService the responsibility
-  // to return the nsIChannel, since it might be from the about:home
-  // startup cache.
-  if (XRE_IsContentProcess() && path.EqualsLiteral("home")) {
-    auto& remoteType = dom::ContentChild::GetSingleton()->GetRemoteType();
-    if (remoteType == PRIVILEGEDABOUT_REMOTE_TYPE) {
-      nsCOMPtr<nsIAboutNewTabService> aboutNewTabService =
-          do_GetService("@mozilla.org/browser/aboutnewtab-service;1", &rv);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      return aboutNewTabService->AboutHomeChannel(aURI, aLoadInfo, result);
-    }
-  }
-
   if ((path.EqualsASCII("editprofile") || path.EqualsASCII("deleteprofile") ||
        path.EqualsASCII("newprofile")) &&
       !mozilla::Preferences::GetBool(PROFILES_ENABLED_PREF, false)) {
@@ -249,24 +223,13 @@ AboutRedirector::NewChannel(nsIURI* aURI, nsILoadInfo* aLoadInfo,
     if (!strcmp(path.get(), redir.id)) {
       nsAutoCString url;
 
-      // Let the aboutNewTabService decide where to redirect for about:home and
-      // enabled about:newtab. Disabled about:newtab page uses fallback.
-      if (path.EqualsLiteral("home") ||
-          (StaticPrefs::browser_newtabpage_enabled() &&
-           path.EqualsLiteral("newtab"))) {
-        nsCOMPtr<nsIAboutNewTabService> aboutNewTabService =
-            do_GetService("@mozilla.org/browser/aboutnewtab-service;1", &rv);
-        NS_ENSURE_SUCCESS(rv, rv);
-        rv = aboutNewTabService->GetDefaultURL(url);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
-
       if (path.EqualsLiteral("welcome")) {
-        nsCOMPtr<nsIAboutNewTabService> aboutNewTabService =
-            do_GetService("@mozilla.org/browser/aboutnewtab-service;1", &rv);
-        NS_ENSURE_SUCCESS(rv, rv);
-        rv = aboutNewTabService->GetWelcomeURL(url);
-        NS_ENSURE_SUCCESS(rv, rv);
+        NimbusFeatures::RecordExposureEvent("aboutwelcome"_ns, true);
+        if (NimbusFeatures::GetBool("aboutwelcome"_ns, "enabled"_ns, true)) {
+          url.AssignASCII(ABOUT_WELCOME_CHROME_URL);
+        } else {
+          url.AssignASCII(ABOUT_HOME_URL);
+        }
       }
 
       // fall back to the specified url in the map
@@ -276,7 +239,7 @@ AboutRedirector::NewChannel(nsIURI* aURI, nsILoadInfo* aLoadInfo,
 
       nsCOMPtr<nsIChannel> tempChannel;
       nsCOMPtr<nsIURI> tempURI;
-      rv = NS_NewURI(getter_AddRefs(tempURI), url);
+      nsresult rv = NS_NewURI(getter_AddRefs(tempURI), url);
       NS_ENSURE_SUCCESS(rv, rv);
 
       // If tempURI links to an external URI (i.e. something other than
