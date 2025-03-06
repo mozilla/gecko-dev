@@ -2,9 +2,6 @@
 adjust = "4.38.2"
 installreferrer = "2.2"
 
-kotlin = "1.9.24" # remember to change ksp-plugin
-coroutines = "1.8.1"
-serialization = "1.6.3"
 python-envs-plugin = "0.0.31"
 mozilla-glean = "63.1.0"
 maven-ant-tasks = "2.1.3"
@@ -19,9 +16,6 @@ ktlint = "0.49.1"
 zxing = "3.5.3"
 disklrucache = "2.0.2"
 leakcanary = "2.14"
-ksp = "1.0.20" # remember to change ksp-plugin
-ksp-plugin = "1.9.24-1.0.20" # $kotlin-$ksp
-compose-compiler = "1.5.14"
 
 # AndroidX versions
 activity = "1.10.1"
@@ -72,6 +66,12 @@ play-services-ads-id = "18.1.0"
 play-services-base = "18.5.0"
 play-services-fido = "21.1.0"
 protobuf = "4.29.0" # Keep Protobuf in sync with the version used by AppServices.
+
+# Kotlin versions
+coroutines = "1.10.1"
+kotlin = "2.1.10" # remember to change ksp-plugin
+ksp-plugin = "2.1.10-1.0.31"
+serialization = "1.8.0"
 
 # Testing versions
 androidx-test = "1.6.1"
@@ -194,7 +194,6 @@ leakcanary = { group = "com.squareup.leakcanary", name = "leakcanary-android", v
 
 tools-androidgradle = { group = "com.android.tools.build", name = "gradle", version.ref = "android-gradle-plugin" }
 tools-benchmarkgradle = { group = "androidx.benchmark", name = "benchmark-gradle-plugin", version.ref = "benchmark" }
-tools-kotlingradle = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 tools-lint = { group = "com.android.tools.lint", name = "lint", version.ref = "lint" }
 tools-lintapi = { group = "com.android.tools.lint", name = "lint-api", version.ref = "lint" }
 tools-lintchecks = { group = "com.android.tools.lint", name = "lint-checks", version.ref = "lint" }
@@ -232,4 +231,6 @@ installreferrer = { group = "com.android.installreferrer", name = "installreferr
 
 [plugins]
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin"}
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin"}
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp-plugin" }
