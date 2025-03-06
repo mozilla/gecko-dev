@@ -29,13 +29,11 @@ DevToolsModules(
 # react dev versions are used if enable-debug-js-modules is set in .mozconfig.
 if CONFIG['DEBUG_JS_MODULES']:
     RenamedDevToolsModules('react-dom-dev.mjs', 'react-dom.mjs')
-    RenamedDevToolsModules('react-dom-server-dev.js', 'react-dom-server.js')
     RenamedDevToolsModules('react-dom-test-utils-dev.js', 'react-dom-test-utils.js')
     RenamedDevToolsModules('react-prop-types-dev.mjs', 'react-prop-types.mjs')
     RenamedDevToolsModules('react-dev.mjs', 'react.mjs')
 else:
     DevToolsModules(
-      'react-dom-server.js',
       'react-dom-test-utils.js',
       'react-dom.mjs',
       'react-prop-types.mjs',
