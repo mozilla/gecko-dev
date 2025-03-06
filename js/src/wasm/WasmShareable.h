@@ -63,6 +63,8 @@ struct ShareableVector
 
   size_t length() const { return vector.length(); }
   bool empty() const { return vector.empty(); }
+  T* begin() { return vector.begin(); }
+  T* end() { return vector.end(); }
   const T* begin() const { return vector.begin(); }
   const T* end() const { return vector.end(); }
   mozilla::Span<const T> span() const {
@@ -73,9 +75,18 @@ struct ShareableVector
   }
   bool append(const T* start, size_t len) { return vector.append(start, len); }
   bool appendAll(const VecT& other) { return vector.appendAll(other); }
+  void shrinkTo(size_t len) { return vector.shrinkTo(len); }
 
   ShareableVector() = default;
   explicit ShareableVector(VecT&& vector) : vector(std::move(vector)) {}
+
+  static const ShareableVector* fromSpan(mozilla::Span<const T> span) {
+    ShareableVector* vector = js_new<ShareableVector>();
+    if (!vector || !vector->append(span.data(), span.size())) {
+      return nullptr;
+    }
+    return vector;
+  }
 };
 
 using ShareableBytes = ShareableVector<uint8_t, 0, SystemAllocPolicy>;
