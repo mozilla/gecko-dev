@@ -188,6 +188,12 @@ export var ScreenshotsUtils = {
     if (this.initialized) {
       Services.obs.removeObserver(this, "menuitem-screenshot");
       this.initialized = false;
+      if (Cu.isInAutomation) {
+        Services.obs.notifyObservers(
+          null,
+          "screenshots-component-uninitialized"
+        );
+      }
     }
   },
 

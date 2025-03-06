@@ -2221,7 +2221,6 @@ BrowserGlue.prototype = {
   _monitorScreenshotsPref() {
     const SCREENSHOTS_PREF = "extensions.screenshots.disabled";
     const COMPONENT_PREF = "screenshots.browser.component.enabled";
-    const ID = "screenshots@mozilla.org";
     const _checkScreenshotsPref = async () => {
       let screenshotsDisabled = Services.prefs.getBoolPref(
         SCREENSHOTS_PREF,
@@ -2229,25 +2228,16 @@ BrowserGlue.prototype = {
       );
       let componentEnabled = Services.prefs.getBoolPref(COMPONENT_PREF, true);
 
-      let screenshotsAddon = await lazy.AddonManager.getAddonByID(ID);
-
-      if (screenshotsDisabled) {
-        if (componentEnabled) {
-          lazy.ScreenshotsUtils.uninitialize();
-        } else if (screenshotsAddon?.isActive) {
-          await screenshotsAddon.disable({ allowSystemAddons: true });
-        }
+      // TODO(Bug 1948366): simplify this logic further once we have migrated
+      // all users of the legacy `extensions.screenshots.disabled` to the new
+      // `screenshots.browser.component.enabled` pref (e.g. enterprise policies
+      // `DisableFirefoxScreenshots` setting and users that may have been directly
+      // using the legacy pref to disable the screenshot feature).
+      if (screenshotsDisabled && componentEnabled) {
+        lazy.ScreenshotsUtils.uninitialize();
       } else if (componentEnabled) {
         lazy.ScreenshotsUtils.initialize();
-        if (screenshotsAddon?.isActive) {
-          await screenshotsAddon.disable({ allowSystemAddons: true });
-        }
       } else {
-        try {
-          await screenshotsAddon.enable({ allowSystemAddons: true });
-        } catch (ex) {
-          console.error(`Error trying to enable screenshots extension: ${ex}`);
-        }
         lazy.ScreenshotsUtils.uninitialize();
       }
     };
