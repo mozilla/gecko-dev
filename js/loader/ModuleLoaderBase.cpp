@@ -953,10 +953,37 @@ void ModuleLoaderBase::StartFetchingModuleDependencies(
   }
 }
 
+bool ModuleLoaderBase::GetImportMapSRI(
+    nsIURI* aURI, nsIURI* aSourceURI, nsIConsoleReportCollector* aReporter,
+    mozilla::dom::SRIMetadata* aMetadataOut) {
+  MOZ_ASSERT(aMetadataOut->IsEmpty());
+  MOZ_ASSERT(aURI);
+
+  if (!HasImportMapRegistered()) {
+    return false;
+  }
+
+  mozilla::Maybe<nsString> entry =
+      ImportMap::LookupIntegrity(mImportMap.get(), aURI);
+  if (entry.isNothing()) {
+    return false;
+  }
+
+  mozilla::dom::SRICheck::IntegrityMetadata(
+      *entry, aSourceURI->GetSpecOrDefault(), aReporter, aMetadataOut);
+  return true;
+}
+
 void ModuleLoaderBase::StartFetchingModuleAndDependencies(
     ModuleLoadRequest* aParent, const ModuleMapKey& aRequestedModule) {
-  RefPtr<ModuleLoadRequest> childRequest = CreateStaticImport(
-      aRequestedModule.mUri, aRequestedModule.mModuleType, aParent);
+  // Check import map for integrity information
+  mozilla::dom::SRIMetadata sriMetadata;
+  GetImportMapSRI(aRequestedModule.mUri, aParent->mURI,
+                  mLoader->GetConsoleReportCollector(), &sriMetadata);
+
+  RefPtr<ModuleLoadRequest> childRequest =
+      CreateStaticImport(aRequestedModule.mUri, aRequestedModule.mModuleType,
+                         aParent, sriMetadata);
 
   aParent->mImports.AppendElement(childRequest);
 

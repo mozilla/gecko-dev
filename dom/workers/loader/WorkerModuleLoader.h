@@ -56,8 +56,8 @@ class WorkerModuleLoader : public JS::loader::ModuleLoaderBase {
   nsIURI* GetBaseURI() const override;
 
   already_AddRefed<ModuleLoadRequest> CreateStaticImport(
-      nsIURI* aURI, JS::ModuleType aModuleType,
-      ModuleLoadRequest* aParent) override;
+      nsIURI* aURI, JS::ModuleType aModuleType, ModuleLoadRequest* aParent,
+      const mozilla::dom::SRIMetadata& aSriMetadata) override;
 
   already_AddRefed<ModuleLoadRequest> CreateDynamicImport(
       JSContext* aCx, nsIURI* aURI, JS::ModuleType aModuleType,

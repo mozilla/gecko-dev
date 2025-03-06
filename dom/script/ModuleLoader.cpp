@@ -322,7 +322,7 @@ nsresult ModuleLoader::CompileJsonModule(
 already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateTopLevel(
     nsIURI* aURI, ReferrerPolicy aReferrerPolicy,
     ScriptFetchOptions* aFetchOptions, const SRIMetadata& aIntegrity,
-    nsIURI* aReferrer, ScriptLoader* aLoader, ScriptLoadContext* aContext) {
+    nsIURI* aReferrer, ScriptLoadContext* aContext) {
   RefPtr<VisitedURLSet> visitedSet =
       ModuleLoadRequest::NewVisitedSetForTopLevelImport(
           aURI, JS::ModuleType::JavaScript);
@@ -331,14 +331,15 @@ already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateTopLevel(
       aURI, JS::ModuleType::JavaScript, aReferrerPolicy, aFetchOptions,
       aIntegrity, aReferrer, aContext, true,
       /* is top level */ false, /* is dynamic import */
-      aLoader->GetModuleLoader(), visitedSet, nullptr);
+      this, visitedSet, nullptr);
 
   request->NoCacheEntryFound();
   return request.forget();
 }
 
 already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateStaticImport(
-    nsIURI* aURI, JS::ModuleType aModuleType, ModuleLoadRequest* aParent) {
+    nsIURI* aURI, JS::ModuleType aModuleType, ModuleLoadRequest* aParent,
+    const mozilla::dom::SRIMetadata& aSriMetadata) {
   RefPtr<ScriptLoadContext> newContext = new ScriptLoadContext();
   newContext->mIsInline = false;
   // Propagated Parent values. TODO: allow child modules to use root module's
@@ -347,8 +348,8 @@ already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateStaticImport(
 
   RefPtr<ModuleLoadRequest> request = new ModuleLoadRequest(
       aURI, aModuleType, aParent->ReferrerPolicy(), aParent->mFetchOptions,
-      SRIMetadata(), aParent->mURI, newContext, false, /* is top level */
-      false,                                           /* is dynamic import */
+      aSriMetadata, aParent->mURI, newContext, false, /* is top level */
+      false,                                          /* is dynamic import */
       aParent->mLoader, aParent->mVisitedSet, aParent->GetRootModule());
 
   request->NoCacheEntryFound();
@@ -408,9 +409,13 @@ already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateDynamicImport(
   RefPtr<VisitedURLSet> visitedSet =
       ModuleLoadRequest::NewVisitedSetForTopLevelImport(aURI, aModuleType);
 
+  SRIMetadata sriMetadata;
+  GetImportMapSRI(aURI, baseURL, mLoader->GetConsoleReportCollector(),
+                  &sriMetadata);
+
   RefPtr<ModuleLoadRequest> request =
       new ModuleLoadRequest(aURI, aModuleType, referrerPolicy, options,
-                            SRIMetadata(), baseURL, context, true,
+                            sriMetadata, baseURL, context, true,
                             /* is top level */ true, /* is dynamic import */
                             this, visitedSet, nullptr);
 

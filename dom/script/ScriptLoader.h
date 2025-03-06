@@ -621,6 +621,10 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
 
   void ReportPreloadErrorsToConsole(ScriptLoadRequest* aRequest);
 
+  nsIConsoleReportCollector* GetConsoleReportCollector() const override {
+    return mReporter;
+  }
+
   nsresult AttemptOffThreadScriptCompile(ScriptLoadRequest* aRequest,
                                          bool* aCouldCompileOut);
 

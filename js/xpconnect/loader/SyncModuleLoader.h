@@ -53,8 +53,8 @@ class SyncModuleLoader : public JS::loader::ModuleLoaderBase {
   ~SyncModuleLoader();
 
   already_AddRefed<ModuleLoadRequest> CreateStaticImport(
-      nsIURI* aURI, JS::ModuleType aModuleType,
-      ModuleLoadRequest* aParent) override;
+      nsIURI* aURI, JS::ModuleType aModuleType, ModuleLoadRequest* aParent,
+      const mozilla::dom::SRIMetadata& aSriMetadata) override;
 
   already_AddRefed<ModuleLoadRequest> CreateDynamicImport(
       JSContext* aCx, nsIURI* aURI, JS::ModuleType aModuleType,

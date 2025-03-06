@@ -60,15 +60,15 @@ class ModuleLoader final : public JS::loader::ModuleLoaderBase {
       JS::MutableHandle<JSObject*> aModuleScript) override;
 
   // Create a top-level module load request.
-  static already_AddRefed<ModuleLoadRequest> CreateTopLevel(
+  already_AddRefed<ModuleLoadRequest> CreateTopLevel(
       nsIURI* aURI, ReferrerPolicy aReferrerPolicy,
       ScriptFetchOptions* aFetchOptions, const SRIMetadata& aIntegrity,
-      nsIURI* aReferrer, ScriptLoader* aLoader, ScriptLoadContext* aContext);
+      nsIURI* aReferrer, ScriptLoadContext* aContext);
 
   // Create a module load request for a static module import.
   already_AddRefed<ModuleLoadRequest> CreateStaticImport(
-      nsIURI* aURI, JS::ModuleType aModuleType,
-      ModuleLoadRequest* aParent) override;
+      nsIURI* aURI, JS::ModuleType aModuleType, ModuleLoadRequest* aParent,
+      const mozilla::dom::SRIMetadata& aSriMetadata) override;
 
   // Create a module load request for a dynamic module import.
   already_AddRefed<ModuleLoadRequest> CreateDynamicImport(

@@ -1168,8 +1168,8 @@ already_AddRefed<ScriptLoadRequest> ScriptLoader::CreateLoadRequest(
   }
 
   MOZ_ASSERT(aKind == ScriptKind::eModule);
-  RefPtr<ModuleLoadRequest> aRequest = ModuleLoader::CreateTopLevel(
-      aURI, aReferrerPolicy, fetchOptions, aIntegrity, referrer, this, context);
+  RefPtr<ModuleLoadRequest> aRequest = mModuleLoader->CreateTopLevel(
+      aURI, aReferrerPolicy, fetchOptions, aIntegrity, referrer, context);
   return aRequest.forget();
 }
 
@@ -1256,9 +1256,19 @@ bool ScriptLoader::ProcessExternalScript(nsIScriptElement* aElement,
       *aScriptContent->AsElement());
   SRIMetadata sriMetadata;
   {
+    // https://html.spec.whatwg.org/multipage/scripting.html#prepare-the-script-element
+    // Step 31.11.
+    // - module: If el does not have an integrity attribute, then set options's
+    // integrity metadata to the result of resolving a module integrity metadata
+    // with url and settings object.
     nsAutoString integrity;
-    aScriptContent->AsElement()->GetAttr(nsGkAtoms::integrity, integrity);
-    GetSRIMetadata(integrity, &sriMetadata);
+    if (aScriptContent->AsElement()->GetAttr(nsGkAtoms::integrity, integrity)) {
+      GetSRIMetadata(integrity, &sriMetadata);
+    } else if (aScriptKind == ScriptKind::eModule) {
+      mModuleLoader->GetImportMapSRI(scriptURI,
+                                     mDocument->GetDocumentURIAsReferrer(),
+                                     mReporter, &sriMetadata);
+    }
   }
 
   RefPtr<ScriptLoadRequest> request =
@@ -4423,6 +4433,10 @@ void ScriptLoader::PreloadURI(
 
   SRIMetadata sriMetadata;
   GetSRIMetadata(aIntegrity, &sriMetadata);
+  if (aIntegrity.IsVoid() && scriptKind == ScriptKind::eModule) {
+    mModuleLoader->GetImportMapSRI(aURI, mDocument->GetDocumentURIAsReferrer(),
+                                   mReporter, &sriMetadata);
+  }
 
   const auto requestPriority = FetchPriorityToRequestPriority(
       nsGenericHTMLElement::ToFetchPriority(aFetchPriority));
