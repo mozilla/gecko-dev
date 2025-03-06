@@ -1216,7 +1216,7 @@ void nsExpatDriver::ParseChunk(const char16_t* aBuffer, uint32_t aLength,
     return parserBytesBefore;
   };
   int32_t parserBytesBefore = RLBOX_EXPAT_SAFE_MCALL(
-      XML_GetCurrentByteIndex, parserBytesBefore_verifier);
+      MOZ_XML_GetCurrentByteIndex, parserBytesBefore_verifier);
 
   if (mInternalState != NS_OK && !BlockedOrInterrupted()) {
     return;
@@ -1251,7 +1251,7 @@ void nsExpatDriver::ParseChunk(const char16_t* aBuffer, uint32_t aLength,
     return parserBytesConsumed;
   };
   int32_t parserBytesConsumed = RLBOX_EXPAT_SAFE_MCALL(
-      XML_GetCurrentByteIndex, parserBytesConsumed_verifier);
+      MOZ_XML_GetCurrentByteIndex, parserBytesConsumed_verifier);
 
   // Consumed something.
   *aConsumed += (parserBytesConsumed - parserBytesBefore) / sizeof(char16_t);
