@@ -26,6 +26,11 @@
   --arrowpanel-border-color: ThreeDShadow;
   --arrowpanel-border-radius: 8px;
   --arrowpanel-padding: 16px;
+  --arrowpanel-shadow-margin: 4px;
+  @media (-moz-platform: macos) {
+    /* On macOS we use native shadows via -moz-window-shadow */
+    --arrowpanel-shadow-margin: 0px;
+  }
 
   --arrowpanel-dimmed: color-mix(in srgb, currentColor 17%, transparent);
   --arrowpanel-dimmed-further: color-mix(in srgb, currentColor 30%, transparent);
@@ -130,6 +135,7 @@
   --panel-border-color: var(--arrowpanel-border-color);
   --panel-border-radius: var(--arrowpanel-border-radius);
   --panel-padding: var(--arrowpanel-padding);
+  --panel-shadow-margin: var(--arrowpanel-shadow-margin);
 }
 
 /* Lightweight theme roots */
