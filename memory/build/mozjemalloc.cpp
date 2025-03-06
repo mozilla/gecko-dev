@@ -6018,19 +6018,20 @@ purge_result_t ArenaCollection::MayPurgeStep(bool aPeekOnly,
         break;
       }
     }
+
     if (!found) {
       return purge_result_t::WantsLater;
     }
     if (aPeekOnly) {
       return purge_result_t::NeedsMore;
     }
+
+    // We need to avoid the invalid state where mIsDeferredPurgePending is set
+    // but the arena is not in the list or about to be added. So remove the
+    // arena from the list before calling Purge().
+    mOutstandingPurges.remove(found);
   }
 
-  // We need to avoid to exit in a state where mIsDeferredPurgePending is set
-  // but the arena is not in the list. Only Purge can clear the flag and only
-  // ShouldStartPurge can set it. So if Purge exits true, we can be sure the
-  // flag is still set and re-add the arena.
-  RemoveFromOutstandingPurges(found);
   if (found->Purge(false)) {
     // Note that between the above Purge() and the lock there is a potential
     // rare race with MayPurgeAll() running on a different thread that clears
