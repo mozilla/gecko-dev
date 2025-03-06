@@ -39,8 +39,10 @@ struct TaskbarConcealerImpl {
         StaticPrefs::widget_windows_fullscreen_marking_method();
     if (val >= 1 && val <= 3) return MarkingMethod(val);
 
-    // By default, just use `NonRudeHWND`.
-    return MarkingMethod::NonRudeHwnd;
+    // By default, use both.
+    // - Bug 1952284 shows that NonRudeHwnd is insufficient.
+    // - Bug 1949079 comment 15 shows that PrepareFullScreen is insufficient.
+    return MarkingMethod(3);
   }
 
  private:
