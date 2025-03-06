@@ -515,7 +515,11 @@ class NotificationsCallback : public nsINotificationStorageCallback {
   }
 
  protected:
-  virtual ~NotificationsCallback() = default;
+  virtual ~NotificationsCallback() {
+    // We may be shutting down prematurely without getting the result, so make
+    // sure to settle the promise.
+    mPromiseHolder.RejectIfExists(NS_ERROR_DOM_INVALID_STATE_ERR, __func__);
+  };
 
   MozPromiseHolder<NotificationsPromise> mPromiseHolder;
 };
