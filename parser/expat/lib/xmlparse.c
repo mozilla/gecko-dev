@@ -2145,13 +2145,7 @@ XML_GetBuffer(XML_Parser parser, int len)
 }
 
 enum XML_Status XMLCALL
-/* BEGIN MOZILLA CHANGE (Bug 1743007 - Convert expat XML_StopParser API to take an int param instead of u8) */
-#if 0
 XML_StopParser(XML_Parser parser, XML_Bool resumable)
-#else
-XML_StopParser(XML_Parser parser, int resumable)
-#endif
-/* END MOZILLA CHANGE */
 {
   if (parser == NULL)
     return XML_STATUS_ERROR;

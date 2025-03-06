@@ -7,7 +7,7 @@
 #define NS_EXPAT_DRIVER__
 
 #include "expat_config.h"
-#include "expat.h"
+#include "moz_expat.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nsIDTD.h"
