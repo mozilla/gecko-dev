@@ -17,8 +17,8 @@ class MInstruction;
 class MDefinition;
 class TempAllocator;
 
-extern MDefinition* AlwaysBoxAt(TempAllocator& alloc, MInstruction* at,
-                                MDefinition* operand);
+extern MDefinition* BoxAt(TempAllocator& alloc, MInstruction* at,
+                          MDefinition* operand);
 
 // A type policy directs the type analysis phases, which insert conversion,
 // boxing, unboxing, and type changes as necessary.

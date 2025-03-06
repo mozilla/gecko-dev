@@ -78,8 +78,8 @@ static void SetTypePolicyBailoutKind(MInstruction* newIns,
   return replace->typePolicy()->adjustInputs(alloc, replace);
 }
 
-MDefinition* js::jit::AlwaysBoxAt(TempAllocator& alloc, MInstruction* at,
-                                  MDefinition* operand) {
+MDefinition* js::jit::BoxAt(TempAllocator& alloc, MInstruction* at,
+                            MDefinition* operand) {
   MDefinition* boxedOperand = operand;
   // Replace Float32 by double
   if (operand->type() == MIRType::Float32) {
@@ -90,14 +90,6 @@ MDefinition* js::jit::AlwaysBoxAt(TempAllocator& alloc, MInstruction* at,
   MBox* box = MBox::New(alloc, boxedOperand);
   at->block()->insertBefore(at, box);
   return box;
-}
-
-static MDefinition* BoxAt(TempAllocator& alloc, MInstruction* at,
-                          MDefinition* operand) {
-  if (operand->isUnbox()) {
-    return operand->toUnbox()->input();
-  }
-  return AlwaysBoxAt(alloc, at, operand);
 }
 
 bool BoxInputsPolicy::staticAdjustInputs(TempAllocator& alloc,

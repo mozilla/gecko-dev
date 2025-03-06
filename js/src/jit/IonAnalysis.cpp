@@ -2313,7 +2313,7 @@ bool TypeAnalyzer::adjustPhiInputs(MPhi* phi) {
       }
 
       MBasicBlock* pred = phi->block()->getPredecessor(i);
-      in = AlwaysBoxAt(alloc(), pred->lastIns(), in);
+      in = BoxAt(alloc(), pred->lastIns(), in);
     }
 
     phi->replaceOperand(i, in);
