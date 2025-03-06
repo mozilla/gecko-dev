@@ -7088,6 +7088,8 @@ float nsGridContainerFrame::Tracks::FindFrUnitSize(
   uint32_t numFlexTracks = flexTracks.Length();
   do {
     restart = false;
+
+    // 12.7.1.2: If flexFactorSum is less than 1, set it to 1 instead.
     hypotheticalFrSize = leftOverSpace / std::max(flexFactorSum, 1.0f);
     for (uint32_t i = 0, len = flexTracks.Length(); i < len; ++i) {
       uint32_t track = flexTracks[i];
