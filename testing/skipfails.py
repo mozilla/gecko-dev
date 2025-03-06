@@ -214,8 +214,11 @@ class Skipfails(object):
                     Dict[
                         str,  # Processor
                         Dict[
-                            str,  # Variant
-                            Dict[str, int],  # pass: X, fail: Y
+                            str,  # Build type
+                            Dict[
+                                str,  # Test Variant
+                                Dict[str, int],  # {'pass': x, 'fail': y}
+                            ],
                         ],
                     ],
                 ],

@@ -4,7 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from functools import reduce
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 
 
 class FailedPlatform:
@@ -23,7 +23,12 @@ class FailedPlatform:
         # x and y represent number of times this was run in the last 30 days
         # See examples in
         # https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/gecko.v2.mozilla-central.latest.source.test-info-all/artifacts/public%2Ftest-info-testrun-matrix.json
-        oop_permutations: Dict[str, Dict[str, Dict[str, int]]],
+        oop_permutations: Optional[
+            Dict[
+                str,  # Build type
+                Dict[str, Dict[str, int]],  # Test Variant  # {'pass': x, 'fail': y}
+            ]
+        ],
     ) -> None:
         # Contains all test variants for each build type the task failed on
         self.failures: Dict[str, Set[str]] = {}
