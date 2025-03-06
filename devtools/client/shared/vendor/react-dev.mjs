@@ -3146,6 +3146,11 @@ var react = React$3.default || React$3;
 
 export default react;
 
+// createFactory only exists on React object,
+// and createElement is overloaded via createElementWithValidation on React object.
+var createFactoryExport = React.createFactory;
+var createElementExport = React.createElement;
+
 export {
-  createFactory, createElement, Component,
+  createFactoryExport as createFactory, createElementExport as createElement, Component
 }

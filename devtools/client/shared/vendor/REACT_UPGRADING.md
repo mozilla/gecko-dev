@@ -126,10 +126,21 @@ cp build/dist/react-test-renderer-shallow.production.min.js $VENDOR_PATH/react-t
 cp build/dist/react-test-renderer.production.min.js $VENDOR_PATH/react-test-renderer.mjs
 ```
 
-Finally, append the following piece of code at the end of `react.mjs` and `react-dev.mjs`:
+Finally, append the following piece of code at the end of `react.mjs`:
 ```
 export {
   createFactory, createElement, Component,
+}
+```
+and the following lines to the end of `react-dev.mjs`:
+```
+// createFactory only exists on React object,
+// and createElement is overloaded via createElementWithValidation on React object.
+var createFactoryExport = React.createFactory;
+var createElementExport = React.createElement;
+
+export {
+  createFactoryExport as createFactory, createElementExport as createElement, Component
 }
 ```
 
