@@ -5,21 +5,17 @@
 package org.mozilla.fenix.settings.studies
 
 import android.annotation.SuppressLint
-import android.content.Context
-import android.content.DialogInterface
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting
-import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import com.google.android.material.button.MaterialButton
 import mozilla.components.service.nimbus.messaging.MESSAGING_FEATURE_ID
-import mozilla.components.ui.widgets.withCenterAlignedButtons
 import org.mozilla.experiments.nimbus.internal.EnrolledExperiment
 import org.mozilla.fenix.R
 import org.mozilla.fenix.settings.studies.CustomViewHolder.SectionViewHolder
@@ -121,30 +117,8 @@ class StudiesAdapter(
         holder.summaryView.text = study.userFacingDescription
 
         holder.deleteButton.setOnClickListener {
-            showDeleteDialog(holder.titleView.context, study)
+            studiesDelegate.onRemoveButtonClicked(study)
         }
-    }
-
-    @VisibleForTesting
-    internal fun showDeleteDialog(context: Context, study: EnrolledExperiment): AlertDialog {
-        val builder = AlertDialog.Builder(context)
-            .setPositiveButton(
-                R.string.studies_restart_dialog_ok,
-            ) { dialog, _ ->
-                studiesDelegate.onRemoveButtonClicked(study)
-                dialog.dismiss()
-            }
-            .setNegativeButton(
-                R.string.studies_restart_dialog_cancel,
-            ) { dialog: DialogInterface, _ ->
-                dialog.dismiss()
-            }
-            .setTitle(R.string.preference_experiments_2)
-            .setMessage(R.string.studies_restart_app)
-            .setCancelable(false)
-        val alertDialog: AlertDialog = builder.create().withCenterAlignedButtons()
-        alertDialog.show()
-        return alertDialog
     }
 
     internal fun createListWithSections(studies: List<EnrolledExperiment>): List<Any> {

@@ -81,8 +81,6 @@ class StudiesAdapterTest {
 
         adapter = spyk(StudiesAdapter(delegate, listOf(study), false))
 
-        every { adapter.showDeleteDialog(any(), any()) } returns mockk()
-
         adapter.bindStudy(holder, study)
 
         verify {
@@ -93,7 +91,7 @@ class StudiesAdapterTest {
         deleteButton.performClick()
 
         verify {
-            adapter.showDeleteDialog(any(), any())
+            delegate.onRemoveButtonClicked(any())
         }
     }
 

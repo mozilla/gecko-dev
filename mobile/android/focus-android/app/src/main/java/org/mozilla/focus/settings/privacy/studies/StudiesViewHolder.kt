@@ -3,12 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package org.mozilla.focus.settings.privacy.studies
 
-import android.content.Context
-import android.content.DialogInterface
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
-import androidx.appcompat.app.AlertDialog
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
@@ -31,34 +28,7 @@ sealed class StudiesViewHolder(var viewGroup: ViewGroup) : RecyclerView.ViewHold
         ) {
             titleView.text = activeStudy.value.userFacingName
             summaryView.text = activeStudy.value.userFacingDescription
-            removeButton.setOnClickListener { view ->
-                showRemoveDialog(view.context, removeStudyListener, activeStudy)
-            }
-        }
-
-        private fun showRemoveDialog(
-            context: Context,
-            studyListener: (StudiesListItem.ActiveStudy) -> Unit,
-            activeStudy: StudiesListItem.ActiveStudy,
-        ): AlertDialog {
-            val builder = AlertDialog.Builder(context)
-                .setPositiveButton(
-                    R.string.action_ok,
-                ) { dialog, _ ->
-                    studyListener.invoke(activeStudy)
-                    dialog.dismiss()
-                }
-                .setNegativeButton(
-                    R.string.action_cancel,
-                ) { dialog: DialogInterface, _ ->
-                    dialog.dismiss()
-                }
-                .setTitle(R.string.preference_studies)
-                .setMessage(R.string.studies_restart_app)
-                .setCancelable(false)
-            val alertDialog: AlertDialog = builder.create()
-            alertDialog.show()
-            return alertDialog
+            removeButton.setOnClickListener { removeStudyListener.invoke(activeStudy) }
         }
     }
 
