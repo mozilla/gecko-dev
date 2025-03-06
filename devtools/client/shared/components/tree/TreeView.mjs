@@ -6,7 +6,7 @@
 
 import React from "resource://devtools/client/shared/vendor/react.mjs";
 import ReactDOM from "resource://devtools/client/shared/vendor/react-dom.mjs";
-import * as PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
+import PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
 import * as dom from "resource://devtools/client/shared/vendor/react-dom-factories.mjs";
 
 import { ObjectProvider } from "resource://devtools/client/shared/components/tree/ObjectProvider.mjs";

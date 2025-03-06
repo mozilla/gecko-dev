@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import React from "resource://devtools/client/shared/vendor/react.mjs";
-import * as PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
+import PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
 import ReactDOM from "resource://devtools/client/shared/vendor/react-dom.mjs";
 import { pre } from "resource://devtools/client/shared/vendor/react-dom-factories.mjs";
 

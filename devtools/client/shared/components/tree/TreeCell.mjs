@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { Component } from "resource://devtools/client/shared/vendor/react.mjs";
-import * as PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
+import PropTypes from "resource://devtools/client/shared/vendor/react-prop-types.mjs";
 import * as dom from "resource://devtools/client/shared/vendor/react-dom-factories.mjs";
 
 const { input, span, td } = dom;
