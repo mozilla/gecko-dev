@@ -777,6 +777,7 @@ MSG_DEF(JSMSG_IMPORT_MAPS_NOT_A_MAP, 0, JSEXN_TYPEERR, "the top-level value need
 MSG_DEF(JSMSG_IMPORT_MAPS_IMPORTS_NOT_A_MAP, 0, JSEXN_TYPEERR, "the imports top-level key needs to be a JSON object")
 MSG_DEF(JSMSG_IMPORT_MAPS_SCOPES_NOT_A_MAP, 0, JSEXN_TYPEERR, "the scopes top-level key needs to be a JSON object")
 MSG_DEF(JSMSG_IMPORT_MAPS_SCOPE_VALUE_NOT_A_MAP, 1, JSEXN_TYPEERR, "the value of the scope with prefix '{0}' needs to be a JSON object")
+MSG_DEF(JSMSG_IMPORT_MAPS_INTEGRITY_NOT_A_MAP, 0, JSEXN_TYPEERR, "the integrity top-level key needs to be a JSON object")
 
 // Import Attributes
 MSG_DEF(JSMSG_IMPORT_ATTRIBUTES_STATIC_IMPORT_UNSUPPORTED_ATTRIBUTE, 1, JSEXN_SYNTAXERR, "Unsupported import attribute: {0}")

@@ -309,6 +309,68 @@ static UniquePtr<ScopeMap> SortAndNormalizeScopes(
   return normalized;
 }
 
+// https://html.spec.whatwg.org/multipage/webappapis.html#normalizing-a-module-integrity-map
+static UniquePtr<IntegrityMap> NormalizeIntegrity(
+    JSContext* aCx, JS::HandleObject aOriginalMap, nsIURI* aBaseURL,
+    const ReportWarningHelper& aWarning) {
+  // Step 1. Let normalized be an empty ordered map.
+  UniquePtr<IntegrityMap> normalized = MakeUnique<IntegrityMap>();
+
+  JS::Rooted<JS::IdVector> keys(aCx, JS::IdVector(aCx));
+  if (!JS_Enumerate(aCx, aOriginalMap, &keys)) {
+    return nullptr;
+  }
+
+  // Step 2. For each key → value of originalMap,
+  for (size_t i = 0; i < keys.length(); i++) {
+    const JS::RootedId keyId(aCx, keys[i]);
+    nsAutoJSString key;
+    NS_ENSURE_TRUE(key.init(aCx, keyId), nullptr);
+
+    // Step 2.1. Let resolvedURL be the result of resolving a URL-like module
+    // specifier given key and baseURL.
+    auto parseResult = ResolveURLLikeModuleSpecifier(key, aBaseURL);
+
+    // Step 2.2. If resolvedURL is null, then:
+    if (parseResult.isErr()) {
+      // Step 2.2.1. The user agent may report a warning to the console
+      // indicating that the key failed to resolve.
+      AutoTArray<nsString, 1> params;
+      params.AppendElement(key);
+      aWarning.Report("ImportMapInvalidAddress", params);
+
+      // Step 2.2.2. Continue.
+      continue;
+    }
+
+    nsCOMPtr<nsIURI> resolvedURL = parseResult.unwrap();
+
+    JS::RootedValue idVal(aCx);
+    NS_ENSURE_TRUE(JS_GetPropertyById(aCx, aOriginalMap, keyId, &idVal),
+                   nullptr);
+
+    // Step 2.3. If value is not a string, then:
+    if (!idVal.isString()) {
+      // Step 2.3.1. The user agent may report a warning to the console
+      // indicating that integrity metadata values need to be strings.
+      aWarning.Report("ImportMapIntegrityValuesNotStrings");
+      // Step 2.3.2. Continue.
+      continue;
+    }
+
+    nsAutoJSString value;
+    NS_ENSURE_TRUE(value.init(aCx, idVal), nullptr);
+
+    // Step 2.4. Set normalized[resolvedURL] to value.
+    normalized->insert_or_assign(resolvedURL->GetSpecOrDefault(), value);
+  }
+
+  // Step 3: Return normalized.
+  //
+  // Impl note: The sorting is done when inserting the entry.
+  return normalized;
+}
+
 // https://html.spec.whatwg.org/multipage/webappapis.html#parse-an-import-map-string
 // static
 UniquePtr<ImportMap> ImportMap::ParseString(
@@ -426,8 +488,44 @@ UniquePtr<ImportMap> ImportMap::ParseString(
     }
   }
 
-  // Step 7. If parsed’s keys contains any items besides "imports" or
-  // "scopes", then the user agent should report a warning to the console
+  JS::RootedValue integrityVal(aCx);
+  if (!JS_GetProperty(aCx, parsedObj, "integrity", &integrityVal)) {
+    return nullptr;
+  }
+
+  // Step 7. Let normalizedIntegrity be an empty ordered map.
+  //
+  // Impl note: If parsed["integrity"] doesn't exist, we will allocate
+  // normalizedIntegrity to an empty map in Step 8 below.
+  UniquePtr<IntegrityMap> normalizedIntegrity = nullptr;
+
+  // Step 8. If parsed["integrity"] exists, then:
+  if (!integrityVal.isUndefined()) {
+    // Step 6.1. If parsed["integrity"] is not an ordered map, then throw a
+    // TypeError indicating that the "integrity" top-level key needs to be a
+    // JSON object.
+    bool isMap;
+    if (!IsMapObject(aCx, integrityVal, &isMap)) {
+      return nullptr;
+    }
+    if (!isMap) {
+      JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+                                JSMSG_IMPORT_MAPS_INTEGRITY_NOT_A_MAP);
+      return nullptr;
+    }
+
+    // Step 6.2. Set normalizedIntegrity to the result of normalizing
+    // integrities given parsed["integrity"] and baseURL.
+    JS::RootedObject integrityObj(aCx, &integrityVal.toObject());
+    normalizedIntegrity =
+        NormalizeIntegrity(aCx, integrityObj, aBaseURL, aWarning);
+    if (!normalizedIntegrity) {
+      return nullptr;
+    }
+  }
+
+  // Step 9. If parsed's keys contains any items besides "imports", "scopes",
+  // or "integrity", then the user agent should report a warning to the console
   // indicating that an invalid top-level key was present in the import map.
   JS::Rooted<JS::IdVector> keys(aCx, JS::IdVector(aCx));
   if (!JS_Enumerate(aCx, parsedObj, &keys)) {
@@ -438,7 +536,8 @@ UniquePtr<ImportMap> ImportMap::ParseString(
     const JS::RootedId key(aCx, keys[i]);
     nsAutoJSString val;
     NS_ENSURE_TRUE(val.init(aCx, key), nullptr);
-    if (val.EqualsLiteral("imports") || val.EqualsLiteral("scopes")) {
+    if (val.EqualsLiteral("imports") || val.EqualsLiteral("scopes") ||
+        val.EqualsLiteral("integrity")) {
       continue;
     }
 
@@ -447,20 +546,26 @@ UniquePtr<ImportMap> ImportMap::ParseString(
     aWarning.Report("ImportMapInvalidTopLevelKey", params);
   }
 
-  // Impl note: Create empty maps for sortedAndNormalizedImports and
-  // sortedAndNormalizedImports if they aren't allocated.
+  // Impl note: Create empty maps for sortedAndNormalizedImports,
+  // sortedAndNormalizedScopes, and normalizedIntegrity if they
+  // aren't allocated.
   if (!sortedAndNormalizedImports) {
     sortedAndNormalizedImports = MakeUnique<SpecifierMap>();
   }
   if (!sortedAndNormalizedScopes) {
     sortedAndNormalizedScopes = MakeUnique<ScopeMap>();
   }
+  if (!normalizedIntegrity) {
+    normalizedIntegrity = MakeUnique<IntegrityMap>();
+  }
 
-  // Step 8. Return an import map whose imports are
-  // sortedAndNormalizedImports and whose scopes scopes are
-  // sortedAndNormalizedScopes.
+  // Step 10. Return an import map whose imports are
+  // sortedAndNormalizedImports, whose scopes are
+  // sortedAndNormalizedScopes, and whose integrity
+  // are normalizedIntegrity.
   return MakeUnique<ImportMap>(std::move(sortedAndNormalizedImports),
-                               std::move(sortedAndNormalizedScopes));
+                               std::move(sortedAndNormalizedScopes),
+                               std::move(normalizedIntegrity));
 }
 
 // https://url.spec.whatwg.org/#is-special
@@ -690,6 +795,16 @@ ResolveResult ImportMap::ResolveModuleSpecifier(ImportMap* aImportMap,
   }
 
   return Err(ResolveError::InvalidBareSpecifier);
+}
+
+mozilla::Maybe<nsString> ImportMap::LookupIntegrity(ImportMap* aImportMap,
+                                                    nsIURI* aURL) {
+  auto it = aImportMap->mIntegrity->find(aURL->GetSpecOrDefault());
+  if (it == aImportMap->mIntegrity->end()) {
+    return mozilla::Nothing();
+  }
+
+  return mozilla::Some(it->second);
 }
 
 #undef LOG
