@@ -168,6 +168,7 @@ testing/gtest/gtest/
 testing/mochitest/pywebsocket3/
 testing/modules/sinon-7.2.7.js
 testing/mozbase/mozproxy/mozproxy/backends/mitm/scripts/catapult/
+testing/performance/mobile-startup/newssite-nuxt/
 testing/talos/talos/tests/devtools/addon/content/pages/
 testing/talos/talos/tests/dromaeo/
 testing/talos/talos/tests/kraken/
