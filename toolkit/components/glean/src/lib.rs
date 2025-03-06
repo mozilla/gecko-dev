@@ -17,12 +17,13 @@
 //! [privacy-policy]: https://www.mozilla.org/privacy/
 //! [docs]: https://firefox-source-docs.mozilla.org/toolkit/components/glean/
 
-use firefox_on_glean::{ipc, metrics};
 #[cfg(target_os = "android")]
 use firefox_on_glean::pings;
+use firefox_on_glean::{ipc, metrics};
 use nserror::{nsresult, NS_ERROR_FAILURE, NS_OK};
-use nsstring::{nsACString, nsCString};
+use nsstring::{nsACString, nsAString, nsCString};
 use std::cell::UnsafeCell;
+use std::fs;
 use thin_vec::ThinVec;
 
 #[macro_use]
@@ -241,4 +242,24 @@ pub extern "C" fn fog_apply_server_knobs_config(config_json: &nsACString) {
 #[no_mangle]
 pub extern "C" fn fog_internal_glean_handle_client_inactive() {
     glean::handle_client_inactive();
+}
+
+/// Apply a serverknobs config from the given path.
+#[no_mangle]
+pub extern "C" fn fog_apply_serverknobs(serverknobs_path: &nsAString) -> bool {
+    let config_json = match fs::read_to_string(serverknobs_path.to_string()) {
+        Ok(c) => c,
+        _ => {
+            log::error!(
+                "Boo, couldn't open serverknobs file at {}",
+                serverknobs_path.to_string()
+            );
+            return false;
+        }
+    };
+
+    log::trace!("Loaded serverknobs config. Applying.");
+    glean::glean_apply_server_knobs_config(config_json);
+
+    true
 }
