@@ -17,7 +17,10 @@ body {
   display: flex;
   justify-content: center;
 
-  background-color: var(--newtab-background-color, var(--background-color-canvas));
+  background-color: var(
+    --newtab-background-color,
+    var(--background-color-canvas)
+  );
 }
 
 edit-profile-card,
@@ -28,7 +31,6 @@ new-profile-card {
 
   @media only screen and (width >= 700px) {
     width: 672px;
-    margin: calc(1.5 * var(--space-xxlarge)) 0;
   }
 
   @media only screen and (width >= 830px) {
@@ -52,8 +54,9 @@ new-profile-card {
   gap: var(--space-xxlarge);
   padding: var(--space-xxlarge);
 
-  @media only screen and (width < 700px) {
+  @media only screen and (width <= 830px) {
     flex-direction: column;
+    gap: var(--space-medium);
   }
 }
 
