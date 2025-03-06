@@ -13,10 +13,12 @@ import mozilla.components.browser.state.selector.findCustomTab
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.selector.findTabOrCustomTab
 import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.state.MediaSessionState
 import mozilla.components.browser.state.state.createCustomTab
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.support.test.argumentCaptor
@@ -57,6 +59,31 @@ class TabsRemovedMiddlewareTest {
 
         assertNull(store.state.findTab(tab.id)?.engineState?.engineSession)
         assertEquals(1, middleware.sessionsPendingDeletion.sessions.size)
+    }
+
+    @Test
+    fun `pause any media that is playing when tab is removed`() = runTestOnMain {
+        val middleware = TabsRemovedMiddleware(scope)
+        val controller: MediaSession.Controller = mock()
+
+        val tab = createTab(
+            url = "https://www.mozilla.org",
+            id = "1",
+            mediaSessionState = MediaSessionState(controller),
+        )
+        val store = BrowserStore(
+            initialState = BrowserState(tabs = listOf(tab)),
+            middleware = listOf(middleware, ConsumeRemoveTabActionsMiddleware()),
+        )
+
+        linkEngineSession(store, tab.id)
+        store.dispatch(TabListAction.RemoveTabAction(tab.id)).joinBlocking()
+        store.waitUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(store.state.findTab(tab.id)?.engineState?.engineSession)
+        assertEquals(1, middleware.sessionsPendingDeletion.sessions.size)
+        verify(controller).pause()
     }
 
     @Test
