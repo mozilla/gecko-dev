@@ -663,51 +663,36 @@ class SelectableProfileServiceClass extends EventEmitter {
   // App session lifecycle methods and multi-process support
 
   /*
-   * Helper that executes a new Firefox process. Mostly useful for mocking in
-   * unit testing.
+   * Helper that returns an inited Firefox executable process (nsIProcess).
+   * Mostly useful for mocking in unit testing.
    */
-  execProcess(aArgs) {
-    let executable = SelectableProfileServiceClass.getDirectory("XREExeF");
-
-    if (AppConstants.platform == "macosx") {
-      // Use the application bundle if possible.
-      let appBundle = executable.parent.parent.parent;
-      if (appBundle.path.endsWith(".app")) {
-        executable = appBundle;
-
-        Cc["@mozilla.org/widget/macdocksupport;1"]
-          .getService(Ci.nsIMacDockSupport)
-          .launchAppBundle(appBundle, aArgs, { addsToRecentItems: false });
-        return;
-      }
-    }
-
+  getExecutableProcess() {
     let process = Cc["@mozilla.org/process/util;1"].createInstance(
       Ci.nsIProcess
     );
+    let executable = SelectableProfileServiceClass.getDirectory("XREExeF");
     process.init(executable);
-    process.runw(false, aArgs, aArgs.length);
+    return process;
   }
 
   /**
    * Launch a new Firefox instance using the given selectable profile.
    *
    * @param {SelectableProfile} aProfile The profile to launch
-   * @param {string} aUrl A url to open in launched profile
+   * @param {string} url A url to open in launched profile
    */
-  launchInstance(aProfile, aUrl) {
+  launchInstance(aProfile, url) {
+    let process = this.getExecutableProcess();
     let args = ["--profile", aProfile.path];
     if (Services.appinfo.OS === "Darwin") {
       args.unshift("-foreground");
     }
-
-    if (aUrl) {
-      args.push("-url", aUrl);
+    if (url) {
+      args.push("-url", url);
     } else {
       args.push(`--${COMMAND_LINE_ACTIVATE}`);
     }
-
-    this.execProcess(args);
+    process.runw(false, args, args.length);
   }
 
   /**

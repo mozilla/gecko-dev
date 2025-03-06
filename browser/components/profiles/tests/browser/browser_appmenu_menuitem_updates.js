@@ -15,12 +15,15 @@ async function promiseAppMenuOpened() {
 add_task(async function test_appmenu_updates_on_edit() {
   // Mock the executable process so we don't launch a new process when we
   // create new profiles.
-  SelectableProfileService._execProcess = SelectableProfileService.execProcess;
+  SelectableProfileService._getExecutableProcess =
+    SelectableProfileService.getExecutableProcess;
   registerCleanupFunction(() => {
-    SelectableProfileService.execProcess =
-      SelectableProfileService._execProcess;
+    SelectableProfileService.getExecutableProcess =
+      SelectableProfileService._getExecutableProcess;
   });
-  SelectableProfileService.execProcess = () => {};
+  SelectableProfileService.getExecutableProcess = () => {
+    return { runw: () => {} };
+  };
 
   // We need to create a second profile for the name to be shown in the app
   // menu.
