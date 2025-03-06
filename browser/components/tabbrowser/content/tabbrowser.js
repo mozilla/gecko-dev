@@ -99,7 +99,6 @@
       this.tabContainer = document.getElementById("tabbrowser-tabs");
       this.tabGroupMenu = document.getElementById("tab-group-editor");
       this.tabbox = document.getElementById("tabbrowser-tabbox");
-      this.tabGroupNameField = document.getElementById("tab-group-name");
       this.tabpanels = document.getElementById("tabbrowser-tabpanels");
       this.verticalPinnedTabsContainer = document.getElementById(
         "vertical-pinned-tabs-container"
@@ -168,11 +167,6 @@
         "security.notification_enable_delay",
         500
       );
-      XPCOMUtils.defineLazyPreferenceGetter(
-        this,
-        "_smartTabGroupsEnabled",
-        "browser.tabs.groups.smart.enabled"
-      );
 
       if (AppConstants.MOZ_CRASHREPORTER) {
         ChromeUtils.defineESModuleGetters(this, {
@@ -189,7 +183,6 @@
       window.addEventListener("activate", this);
       window.addEventListener("deactivate", this);
       window.addEventListener("TabGroupCreate", this);
-      window.addEventListener("MlLabelCreate", this);
 
       this.tabContainer.init();
       this._setupInitialBrowserAndTab();
@@ -2960,21 +2953,6 @@
       if (!group.tabs.length) {
         group.remove();
         return null;
-      }
-
-      if (this._smartTabGroupsEnabled) {
-        gBrowser.getGroupTitleForTabs(tabs).then(newLabel => {
-          group.label = newLabel;
-          if (this.tabGroupMenu.panel.state !== "closed") {
-            this.tabGroupNameField.value = newLabel;
-            group.dispatchEvent(
-              new CustomEvent("MlLabelCreate", {
-                bubbles: true,
-                detail: { mlLabel: newLabel },
-              })
-            );
-          }
-        });
       }
 
       group.dispatchEvent(
@@ -6720,11 +6698,6 @@
         case "TabGroupCreate":
           if (aEvent.detail.isUserCreated) {
             this.tabGroupMenu.openCreateModal(aEvent.target);
-          }
-          break;
-        case "MlLabelCreate":
-          if (aEvent.detail.mlLabel) {
-            this.tabGroupMenu.mlLabel = aEvent.detail.mlLabel;
           }
           break;
         case "activate":

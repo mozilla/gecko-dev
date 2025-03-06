@@ -588,6 +588,38 @@
       return "bottomleft topleft";
     }
 
+    #initMlGroupLabel() {
+      if (!this.smartTabGroupsEnabled) {
+        return;
+      }
+      gBrowser.getGroupTitleForTabs(this.activeGroup.tabs).then(newLabel => {
+        this.#setMlGroupLabel(newLabel);
+      });
+    }
+
+    /**
+     * Check if the label should be updated with the suggested label
+     * @returns {boolean}
+     */
+    #shouldUpdateLabelWithMlLabel() {
+      return !this.#nameField.value && this.panel.state !== "closed";
+    }
+
+    /**
+     * Attempt to set the label of the group to the suggested label
+     * @param {MozTabbrowserTabGroup} group
+     * @param {string} newLabel
+     * @returns
+     */
+    #setMlGroupLabel(newLabel) {
+      if (!this.#shouldUpdateLabelWithMlLabel()) {
+        return;
+      }
+      this.#activeGroup.label = newLabel;
+      this.#nameField.value = newLabel;
+      this.#suggestedMlLabel = newLabel;
+    }
+
     openCreateModal(group) {
       this.activeGroup = group;
       this.createMode = true;
@@ -598,17 +630,7 @@
       this.#panel.openPopup(group.firstChild, {
         position: this.#panelPosition,
       });
-    }
-
-    /*
-     * set the ml generated label
-     */
-    set mlLabel(label) {
-      this.#suggestedMlLabel = label;
-    }
-
-    get mlLabel() {
-      return this.#suggestedMlLabel;
+      this.#initMlGroupLabel();
     }
 
     /*
