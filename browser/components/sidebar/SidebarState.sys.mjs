@@ -58,9 +58,8 @@ export class SidebarState {
     launcherDragActive: false,
     launcherHoverActive: false,
     collapsedLauncherWidth: undefined,
-    command: undefined,
   };
-  #previousLauncherExpanded = undefined;
+  #previousLauncherVisible = undefined;
 
   /**
    * Construct a new SidebarState.
@@ -154,7 +153,7 @@ export class SidebarState {
       }
       switch (key) {
         case "command":
-          this.command = value;
+          this.#controller.showInitially(value);
           break;
         case "panelWidth":
           this.#panelEl.style.width = `${value}px`;
@@ -168,33 +167,10 @@ export class SidebarState {
         case "hidden":
           this.launcherVisible = !value;
           break;
-        case "panelOpen":
-          // we need to know if we have a command value before finalizing panelOpen
-          break;
         default:
           this[key] = value;
       }
     }
-    if (this.revampEnabled) {
-      if (this.command && !this.launcherVisible) {
-        // We're restoring a session or state saved with an open sidebar panel when sidebar.revamp was false
-        props.panelOpen = true;
-      }
-    }
-    if (this.command && !props.hasOwnProperty("panelOpen")) {
-      // legacy state saved before panelOpen was a thing
-      props.panelOpen = true;
-    }
-    if (!this.command) {
-      props.panelOpen = false;
-    }
-    this.panelOpen = !!props.panelOpen;
-    if (this.command && this.panelOpen) {
-      this.launcherVisible = true;
-      // show() is async, so make sure we return its promise here
-      return this.#controller.showInitially(this.command);
-    }
-    return this.#controller.hide();
   }
 
   /**
@@ -216,8 +192,7 @@ export class SidebarState {
    */
   getProperties() {
     return {
-      command: this.command,
-      panelOpen: this.panelOpen,
+      command: this.#controller.currentID,
       panelWidth: this.panelWidth,
       launcherWidth: convertToInt(this.launcherWidth),
       expandedLauncherWidth: convertToInt(this.expandedLauncherWidth),
@@ -235,24 +210,20 @@ export class SidebarState {
   }
 
   set panelOpen(open) {
-    if (this.#props.panelOpen == open) {
-      return;
-    }
-    this.#props.panelOpen = !!open;
+    this.#props.panelOpen = open;
     if (open) {
       // Launcher must be visible to open a panel.
+      this.#previousLauncherVisible = this.launcherVisible;
       this.launcherVisible = true;
-      // We need to know how to revert the launcher when the panel closes
-      this.#previousLauncherExpanded = this.launcherExpanded;
-
       Services.prefs.setBoolPref(
         this.revampEnabled ? REVAMP_USED_PREF : LEGACY_USED_PREF,
         true
       );
     } else if (this.revampVisibility === "hide-sidebar") {
       this.launcherExpanded = lazy.verticalTabsEnabled
-        ? this.#previousLauncherExpanded
+        ? this.#previousLauncherVisible
         : false;
+      this.launcherVisible = this.#previousLauncherVisible;
     }
   }
 
@@ -294,7 +265,7 @@ export class SidebarState {
       case "hide-sidebar":
         if (onToolbarButtonRemoval) {
           // If we are hiding the sidebar because we removed the toolbar button, close everything
-          this.#previousLauncherExpanded = false;
+          this.#previousLauncherVisible = false;
           this.launcherVisible = false;
           this.launcherExpanded = false;
 
@@ -312,7 +283,7 @@ export class SidebarState {
           } else {
             // Hide the launcher when the pref is set to hide-sidebar
             this.launcherVisible = false;
-            this.#previousLauncherExpanded = false;
+            this.#previousLauncherVisible = false;
             return;
           }
         }
@@ -321,11 +292,8 @@ export class SidebarState {
       case "always-show":
       case "expand-on-hover":
         this.launcherVisible = true;
-        if (forceExpandValue !== null) {
-          this.launcherExpanded = forceExpandValue;
-        } else if (onUserToggle) {
-          this.launcherExpanded = !this.launcherExpanded;
-        }
+        this.launcherExpanded =
+          forceExpandValue !== null ? forceExpandValue : !this.launcherExpanded;
         break;
     }
   }
@@ -451,24 +419,6 @@ export class SidebarState {
     this.#controllerGlobal.document
       .getElementById("tabbrowser-tabbox")
       .toggleAttribute("sidebar-shown", isSidebarShown);
-  }
-
-  get command() {
-    return this.#props.command || "";
-  }
-
-  set command(id) {
-    if (id && !this.#controller.sidebars.has(id)) {
-      throw new Error("Setting command to an invalid value");
-    }
-    if (id && id !== this.#props.command) {
-      this.#props.command = id;
-      // We need the attribute to mirror the command property as its used as a CSS hook
-      this.#controller._box.setAttribute("sidebarcommand", id);
-    } else if (!id) {
-      delete this.#props.command;
-      this.#controller._box.setAttribute("sidebarcommand", "");
-    }
   }
 }
 
