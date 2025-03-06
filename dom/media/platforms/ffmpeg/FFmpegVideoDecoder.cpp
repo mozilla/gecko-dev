@@ -1744,6 +1744,11 @@ void FFmpegVideoDecoder<LIBAV_VER>::ProcessShutdown() {
 #endif
 #ifdef MOZ_ENABLE_D3D11VA
   if (IsHardwareAccelerated()) {
+    AVHWDeviceContext* hwctx =
+        reinterpret_cast<AVHWDeviceContext*>(mD3D11VADeviceContext->data);
+    AVD3D11VADeviceContext* d3d11vactx =
+        reinterpret_cast<AVD3D11VADeviceContext*>(hwctx->hwctx);
+    d3d11vactx->device = nullptr;
     mLib->av_buffer_unref(&mD3D11VADeviceContext);
   }
 #endif
@@ -1981,6 +1986,11 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitD3D11VADecoder() {
       mLib->av_freep(&mCodecContext);
     }
     if (mD3D11VADeviceContext) {
+      AVHWDeviceContext* hwctx =
+          reinterpret_cast<AVHWDeviceContext*>(mD3D11VADeviceContext->data);
+      AVD3D11VADeviceContext* d3d11vactx =
+          reinterpret_cast<AVD3D11VADeviceContext*>(hwctx->hwctx);
+      d3d11vactx->device = nullptr;
       mLib->av_buffer_unref(&mD3D11VADeviceContext);
     }
     mDXVA2Manager.reset();
