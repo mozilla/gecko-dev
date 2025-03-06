@@ -287,6 +287,9 @@ Services.prefs.setBoolPref(
   true
 );
 
+// Enable dumping scope variables when a test failure occurs.
+Services.prefs.setBoolPref("devtools.testing.testScopes", true);
+
 registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.dump.emit");
   Services.prefs.clearUserPref("devtools.inspector.three-pane-enabled");
@@ -298,6 +301,7 @@ registerCleanupFunction(() => {
   Services.prefs.clearUserPref(
     "devtools.inspector.simple-highlighters.message-dismissed"
   );
+  Services.prefs.clearUserPref("devtools.testing.testScopes");
 });
 
 var {
