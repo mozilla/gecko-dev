@@ -50,10 +50,10 @@ def test_is_full_test_variants_fail():
     """Test is_full_test_variants_fail"""
 
     fp = FailedPlatform({})
-    assert fp.is_full_test_variants_fail("")
+    assert not fp.is_full_test_variants_fail("")
 
     fp = FailedPlatform({"build_type1": {}})
-    assert fp.is_full_test_variants_fail("build_type1")
+    assert not fp.is_full_test_variants_fail("build_type1")
 
     fp = FailedPlatform({"build_type1": {"test_variant1": {}}})
     assert not fp.is_full_test_variants_fail("build_type1")
@@ -79,7 +79,7 @@ def test_is_full_fail():
     """Test is_full_fail"""
 
     fp = FailedPlatform({})
-    assert fp.is_full_fail()
+    assert not fp.is_full_fail()
 
     fp = FailedPlatform({"build_type1": {}})
     assert not fp.is_full_fail()
@@ -89,7 +89,7 @@ def test_is_full_fail():
 
     fp = FailedPlatform({"build_type1": {}})
     fp.failures["build_type1"] = set()
-    assert fp.is_full_fail()
+    assert not fp.is_full_fail()
 
     fp = FailedPlatform({"build_type1": {}})
     fp.failures["build_type2"] = set()

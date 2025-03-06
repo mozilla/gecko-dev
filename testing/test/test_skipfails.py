@@ -438,7 +438,36 @@ def test_task_to_skip_if():
     sf.platform_permutations = {}
     # function under test
     skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
-    assert skip_if == "os == 'linux' && os_version == '18.04' && processor == 'x86'"
+    assert (
+        skip_if == "os == 'linux' && os_version == '18.04' && processor == 'x86' && opt"
+    )
+
+    sf = Skipfails()
+    task_id = "czj2mQwqQv6PwON5aijPJg"
+    task_details = {
+        "expires": "2024-03-19T03:29:11.050Z",
+        "extra": {
+            "suite": "web-platform-tests",
+            "test-setting": {
+                "build": {
+                    "type": "opt",
+                },
+                "platform": {
+                    "arch": "32",
+                    "os": {"name": "linux", "version": "1804"},
+                },
+                "runtime": {"xorigin": True},
+            },
+        },
+    }
+    sf.tasks[task_id] = task_details
+    sf.platform_permutations = {}
+    # function under test
+    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
+    assert (
+        skip_if
+        == "os == 'linux' && os_version == '18.04' && processor == 'x86' && opt && xorigin"
+    )
 
     # Full fail with everal tasks
     sf = Skipfails()

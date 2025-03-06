@@ -35,10 +35,18 @@ class FailedPlatform:
         self.oop_permutations = oop_permutations
 
     def get_possible_build_types(self) -> List[str]:
-        return list(self.oop_permutations.keys())
+        return (
+            list(self.oop_permutations.keys())
+            if self.oop_permutations is not None
+            else []
+        )
 
     def get_possible_test_variants(self, build_type: str) -> List[str]:
-        permutations = self.oop_permutations.get(build_type, {})
+        permutations = (
+            self.oop_permutations.get(build_type, {})
+            if self.oop_permutations is not None
+            else []
+        )
         return [tv for tv in permutations]
 
     def is_full_fail(self) -> bool:
@@ -46,10 +54,15 @@ class FailedPlatform:
         Test if failed on every test variant of every build type
         """
         build_types = set(self.failures.keys())
+        possible_build_types = self.get_possible_build_types()
+        # If we do not have information on possible build types, do not consider it a full fail
+        # This avoids creating a too broad skip-if condition
+        if len(possible_build_types) == 0:
+            return False
         return all(
             [
                 bt in build_types and self.is_full_test_variants_fail(bt)
-                for bt in self.get_possible_build_types()
+                for bt in possible_build_types
             ]
         )
 
@@ -58,9 +71,12 @@ class FailedPlatform:
         Test if failed on every test variant of given build type
         """
         failed_variants = self.failures.get(build_type, [])
-        return all(
-            [t in failed_variants for t in self.get_possible_test_variants(build_type)]
-        )
+        possible_test_variants = self.get_possible_test_variants(build_type)
+        # If we do not have information on possible test variants, do not consider it a full fail
+        # This avoids creating a too broad skip-if condition
+        if len(possible_test_variants) == 0:
+            return False
+        return all([t in failed_variants for t in possible_test_variants])
 
     def get_negated_variant(self, test_variant: str):
         if not test_variant.startswith("!"):
@@ -128,15 +144,6 @@ class FailedPlatform:
         return test_variant
 
     def get_skip_string(self, and_str: str, build_type: str, test_variant: str) -> str:
-        if not build_type in self.get_possible_build_types():
-            raise Exception(
-                f"Build type {build_type} does not exist in {self.get_possible_build_types()}"
-            )
-        if not test_variant in self.get_possible_test_variants(build_type):
-            raise Exception(
-                f"Test variant {test_variant} does not exist in {self.get_possible_test_variants(build_type)}"
-            )
-
         if self.failures.get(build_type) is None:
             self.failures[build_type] = {test_variant}
         else:
