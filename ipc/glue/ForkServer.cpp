@@ -47,7 +47,9 @@ ForkServer::ForkServer(int* aArgc, char*** aArgv) : mArgc(aArgc), mArgv(aArgv) {
     MOZ_CRASH("forkserver missing ipcHandle argument");
   }
 
-  mTcver = MakeUnique<MiniTransceiver>(ipcHandle->release(),
+  // Hold our IPC FD while our MiniTransceiver is alive.
+  mIpcFd = ipcHandle.extract();
+  mTcver = MakeUnique<MiniTransceiver>(mIpcFd.get(),
                                        DataBufferClear::AfterReceiving);
 }
 
