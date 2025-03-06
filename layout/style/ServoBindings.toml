@@ -301,6 +301,7 @@ opaque-types = [
     "mozilla::dom::Touch",
     "mozilla::dom::Sequence",
     "mozilla::SmallPointerArray",
+    "mozilla::SmallPointerArray_Element",
     "mozilla::dom::Optional",
     "mozilla::dom::OwningNodeOrString_Value",
     "mozilla::dom::Nullable",
