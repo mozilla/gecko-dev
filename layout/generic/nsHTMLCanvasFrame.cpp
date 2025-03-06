@@ -179,7 +179,7 @@ class nsDisplayCanvas final : public nsPaintedDisplayItem {
         // the iframe. That happens in WebRenderCompositableHolder.s2);
         aBuilder.PushIFrame(bounds, !BackfaceIsHidden(),
                             data->GetPipelineId().ref(),
-                            /*ignoreMissingPipelines*/ false);
+                            /*ignoreMissingPipelines*/ true);
 
         LayoutDeviceRect scBounds(LayoutDevicePoint(0, 0), bounds.Size());
         auto filter = wr::ToImageRendering(mFrame->UsedImageRendering());
