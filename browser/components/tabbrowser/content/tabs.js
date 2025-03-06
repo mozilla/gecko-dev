@@ -419,7 +419,7 @@
         event.eventPhase == Event.BUBBLING_PHASE &&
         event.button == 1
       ) {
-        let tab = event.target ? event.target.closest("tab") : null;
+        let tab = event.target?.closest("tab");
         if (tab) {
           if (tab.multiselected) {
             gBrowser.removeMultiSelectedTabs();
@@ -429,6 +429,8 @@
               triggeringEvent: event,
             });
           }
+        } else if (isTabGroupLabel(event.target)) {
+          event.target.group.saveAndClose();
         } else if (
           event.originalTarget.closest("scrollbox") &&
           !Services.prefs.getBoolPref(
@@ -1478,9 +1480,7 @@
       // open the tab group context menu as if the label had DOM focus.
       // The button property is used to differentiate between key and mouse.
       if (event.button == 0 && isTabGroupLabel(this.ariaFocusedItem)) {
-        gBrowser.tabGroupMenu.openEditModal(
-          this.ariaFocusedItem.closest("tab-group")
-        );
+        gBrowser.tabGroupMenu.openEditModal(this.ariaFocusedItem.group);
         event.preventDefault();
       }
     }
@@ -2586,9 +2586,7 @@
           delete dragData.shouldCreateGroupOnDrop;
 
           // Default to dropping into `dropElement`'s tab group, if it exists.
-          let dropElementGroup = isTabGroupLabel(dropElement)
-            ? dropElement.closest("tab-group")
-            : dropElement?.group;
+          let dropElementGroup = dropElement?.group;
           let colorCode = dropElementGroup?.color;
 
           if (

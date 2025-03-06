@@ -203,6 +203,7 @@
         }
       );
       this.#labelElement?.setAttribute("aria-label", tabGroupName);
+      this.#labelElement.group = this;
       this.#labelElement?.setAttribute("aria-description", tabGroupDescription);
     }
 
@@ -257,6 +258,12 @@
      */
     save() {
       SessionStore.addSavedTabGroup(this);
+      this.dispatchEvent(new CustomEvent("TabGroupSaved", { bubbles: true }));
+    }
+
+    saveAndClose() {
+      this.save();
+      gBrowser.removeTabGroup(this);
     }
 
     /**

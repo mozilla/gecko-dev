@@ -385,19 +385,19 @@
       document
         .getElementById("tabGroupEditor_ungroupTabs")
         .addEventListener("command", () => {
-          this.#handleUngroup();
+          this.activeGroup.ungroupTabs();
         });
 
       document
         .getElementById("tabGroupEditor_saveAndCloseGroup")
         .addEventListener("command", () => {
-          this.#handleSaveAndClose();
+          this.activeGroup.saveAndClose();
         });
 
       document
         .getElementById("tabGroupEditor_deleteGroup")
         .addEventListener("command", () => {
-          this.#handleDelete();
+          gBrowser.removeTabGroup(this.activeGroup);
         });
 
       this.panel.addEventListener("popupshown", this);
@@ -722,22 +722,6 @@
       };
       window.addEventListener("TabOpen", onTabOpened);
       gBrowser.addAdjacentNewTab(lastTab);
-    }
-
-    #handleUngroup() {
-      this.activeGroup?.ungroupTabs();
-    }
-
-    #handleSaveAndClose() {
-      this.activeGroup.save();
-      this.activeGroup.dispatchEvent(
-        new CustomEvent("TabGroupSaved", { bubbles: true })
-      );
-      gBrowser.removeTabGroup(this.activeGroup);
-    }
-
-    #handleDelete() {
-      gBrowser.removeTabGroup(this.activeGroup);
     }
 
     /**
