@@ -11,7 +11,7 @@
 
 [package]
 edition = "2021"
-rust-version = "1.76"
+rust-version = "1.82.0"
 name = "wgpu-types"
 version = "24.0.0"
 authors = ["gfx-rs developers"]
@@ -61,7 +61,7 @@ name = "wgpu_types"
 path = "src/lib.rs"
 
 [dependencies.bitflags]
-version = "2.7"
+version = "2.9"
 features = ["serde"]
 
 [dependencies.log]
