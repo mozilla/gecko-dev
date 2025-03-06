@@ -25,7 +25,6 @@ import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.AppStore
-import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
@@ -49,7 +48,6 @@ class DefaultPrivateBrowsingControllerTest {
         store = BrowserStore()
         controller = DefaultPrivateBrowsingController(
             activity = activity,
-            appStore = appStore,
             navController = navController,
             browsingModeManager = browsingModeManager,
         )
@@ -93,7 +91,6 @@ class DefaultPrivateBrowsingControllerTest {
         verify {
             browsingModeManager.mode = newMode
             settings.incrementNumTimesPrivateModeOpened()
-            AppAction.ModeChange(newMode)
         }
     }
 
@@ -121,7 +118,6 @@ class DefaultPrivateBrowsingControllerTest {
         verify {
             browsingModeManager.mode = newMode
             settings.incrementNumTimesPrivateModeOpened()
-            AppAction.ModeChange(newMode)
             navController.navigate(
                 BrowserFragmentDirections.actionGlobalSearchDialog(
                     sessionId = null,
@@ -155,9 +151,6 @@ class DefaultPrivateBrowsingControllerTest {
         verify {
             browsingModeManager.mode = newMode
 
-            appStore.dispatch(
-                AppAction.ModeChange(newMode),
-            )
             navController.navigate(
                 BrowserFragmentDirections.actionGlobalSearchDialog(
                     sessionId = null,

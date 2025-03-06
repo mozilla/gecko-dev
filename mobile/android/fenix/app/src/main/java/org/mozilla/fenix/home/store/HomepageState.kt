@@ -132,7 +132,7 @@ internal sealed class HomepageState {
             settings: Settings,
         ): HomepageState {
             return with(appState) {
-                if (mode.isPrivate) {
+                if (browsingModeManager.mode.isPrivate) {
                     Private(
                         feltPrivateBrowsingEnabled = settings.feltPrivateBrowsingEnabled,
                         bottomSpacerHeight = getBottomSpace(),
