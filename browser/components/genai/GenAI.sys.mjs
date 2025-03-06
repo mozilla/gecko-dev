@@ -435,6 +435,8 @@ export const GenAI = {
     // Hide shortcuts and panel
     const hide = () => {
       aiActionButton.setAttribute("type", buttonDefaultState);
+      aiActionButton.removeEventListener("mouseover", aiActionButton.listener);
+      aiActionButton.listener = null;
       chatShortcutsOptionsPanel.hidePopup();
       selectionShortcutActionPanel.hidePopup();
     };
@@ -486,7 +488,7 @@ export const GenAI = {
         aiActionButton.setAttribute("type", buttonDefaultState);
 
         // Detect hover to build and open the popup
-        aiActionButton.addEventListener("mouseover", async () => {
+        aiActionButton.listener = async () => {
           if (aiActionButton.hasAttribute("active")) {
             return;
           }
@@ -592,7 +594,8 @@ export const GenAI = {
             provider: this.getProviderId(),
             warning: showWarning,
           });
-        });
+        };
+        aiActionButton.addEventListener("mouseover", aiActionButton.listener);
 
         // Save the latest selection so it can be used by popup
         aiActionButton.data = data;

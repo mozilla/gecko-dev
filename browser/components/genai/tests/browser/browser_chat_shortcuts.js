@@ -108,6 +108,44 @@ add_task(async function test_show_shortcuts() {
 });
 
 /**
+ * Check that shortcuts shown on second tab
+ */
+add_task(async function test_show_shortcuts_second_tab() {
+  // NB: this test runs after test_show_shortcuts, which showed shortcuts
+  await BrowserTestUtils.withNewTab(
+    "data:text/html,<title>second</title>page",
+    async browser => {
+      await SimpleTest.promiseFocus(browser);
+      const selectPromise = SpecialPowers.spawn(browser, [], () => {
+        ContentTaskUtils.waitForCondition(() => content.getSelection());
+      });
+      goDoCommand("cmd_selectAll");
+      await selectPromise;
+      BrowserTestUtils.synthesizeMouseAtCenter(
+        browser,
+        { type: "mouseup" },
+        browser
+      );
+
+      await TestUtils.waitForCondition(() => {
+        const panelElement = document.getElementById(
+          "selection-shortcut-action-panel"
+        );
+        return panelElement.getAttribute("panelopen") === "true";
+      });
+      const sandbox = sinon.createSandbox();
+      const stub = sandbox.stub(GenAI, "addAskChatItems");
+
+      const shortcuts = document.querySelector("#ai-action-button");
+      EventUtils.sendMouseEvent({ type: "mouseover" }, shortcuts);
+
+      Assert.equal(stub.callCount, 1, "Shortcuts added on select");
+      Assert.equal(stub.firstCall.args[0], browser, "Got correct browser");
+    }
+  );
+});
+
+/**
  * Check that the warning label is shown when too much text is selected
  */
 add_task(async function test_show_warning_label() {
