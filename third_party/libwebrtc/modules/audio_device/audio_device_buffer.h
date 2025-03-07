@@ -240,7 +240,7 @@ class AudioDeviceBuffer {
 
   // Used for converting capture timestaps (received from AudioRecordThread
   // via AudioRecordJni::DataIsRecorded) to RTC clock.
-  rtc::TimestampAligner timestamp_aligner_;
+  TimestampAligner timestamp_aligner_;
 
 // Should *never* be defined in production builds. Only used for testing.
 // When defined, the output signal will be replaced by a sinus tone at 440Hz.

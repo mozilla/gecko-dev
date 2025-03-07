@@ -16,7 +16,7 @@
 #include "rtc_base/system/rtc_export.h"
 #include "rtc_base/time_utils.h"
 
-namespace rtc {
+namespace webrtc {
 
 // The TimestampAligner class helps translating timestamps of a capture system
 // into the same timescale as is used by rtc::TimeMicros(). Some capture systems
@@ -88,6 +88,12 @@ class RTC_EXPORT TimestampAligner {
   int64_t prev_time_offset_us_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::TimestampAligner;
 }  // namespace rtc
 
 #endif  // RTC_BASE_TIMESTAMP_ALIGNER_H_

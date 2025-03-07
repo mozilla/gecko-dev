@@ -264,8 +264,7 @@ int32_t AudioDeviceBuffer::SetRecordedBuffer(
 
   if (capture_timestamp_ns) {
     int64_t align_offsync_estimation_time = rtc::TimeMicros();
-    if (align_offsync_estimation_time -
-            rtc::TimestampAligner::kMinFrameIntervalUs >
+    if (align_offsync_estimation_time - TimestampAligner::kMinFrameIntervalUs >
         align_offsync_estimation_time_) {
       align_offsync_estimation_time_ = align_offsync_estimation_time;
       capture_timestamp_ns_ =
