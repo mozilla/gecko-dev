@@ -17,7 +17,6 @@
 #include <utility>
 #include <vector>
 
-#include "api/audio/audio_device.h"
 #include "api/candidate.h"
 #include "api/enable_media_with_defaults.h"
 #include "api/jsep.h"
@@ -46,7 +45,6 @@
 #include "p2p/base/transport_info.h"
 #include "pc/channel.h"
 #include "pc/peer_connection.h"
-#include "pc/peer_connection_proxy.h"
 #include "pc/peer_connection_wrapper.h"
 #include "pc/rtp_transceiver.h"
 #include "pc/rtp_transport_internal.h"
@@ -149,13 +147,6 @@ class PeerConnectionWrapperForBundleTest : public PeerConnectionWrapper {
       }
     }
     return nullptr;
-  }
-
-  PeerConnection* GetInternalPeerConnection() {
-    auto* pci =
-        static_cast<PeerConnectionProxyWithInternal<PeerConnectionInterface>*>(
-            pc());
-    return static_cast<PeerConnection*>(pci->internal());
   }
 
   // Returns true if the stats indicate that an ICE connection is either in

@@ -136,9 +136,6 @@ class PeerConnectionWrapperForIceTest : public PeerConnectionWrapper {
 
   void set_network(rtc::FakeNetworkManager* network) { network_ = network; }
 
-  // The port allocator used by this PC.
-  cricket::PortAllocator* port_allocator_;
-
  private:
   rtc::FakeNetworkManager* network_;
 };
@@ -182,7 +179,6 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
     RTCConfiguration modified_config = config;
     modified_config.sdp_semantics = sdp_semantics_;
     auto observer = std::make_unique<MockPeerConnectionObserver>();
-    auto port_allocator_copy = port_allocator.get();
     PeerConnectionDependencies pc_dependencies(observer.get());
     pc_dependencies.allocator = std::move(port_allocator);
     auto result = pc_factory_->CreatePeerConnectionOrError(
@@ -195,7 +191,6 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
     auto wrapper = std::make_unique<PeerConnectionWrapperForIceTest>(
         pc_factory_, result.MoveValue(), std::move(observer));
     wrapper->set_network(fake_network);
-    wrapper->port_allocator_ = port_allocator_copy;
     return wrapper;
   }
 
@@ -1566,9 +1561,11 @@ TEST_P(PeerConnectionIceTest, IceCredentialsCreateOffer) {
   config.sdp_semantics = SdpSemantics::kUnifiedPlan;
   config.ice_candidate_pool_size = 1;
   auto pc = CreatePeerConnectionWithAudioVideo(config);
-  ASSERT_NE(pc->port_allocator_, nullptr);
+  ASSERT_NE(pc->GetInternalPeerConnection()->port_allocator(), nullptr);
   auto offer = pc->CreateOffer();
-  auto credentials = pc->port_allocator_->GetPooledIceCredentials();
+  auto credentials = pc->GetInternalPeerConnection()
+                         ->port_allocator()
+                         ->GetPooledIceCredentials();
   ASSERT_EQ(1u, credentials.size());
 
   auto* desc = offer->description();
@@ -1584,12 +1581,14 @@ TEST_P(PeerConnectionIceTest, IceCredentialsCreateAnswer) {
   config.sdp_semantics = SdpSemantics::kUnifiedPlan;
   config.ice_candidate_pool_size = 1;
   auto pc = CreatePeerConnectionWithAudioVideo(config);
-  ASSERT_NE(pc->port_allocator_, nullptr);
+  ASSERT_NE(pc->GetInternalPeerConnection()->port_allocator(), nullptr);
   auto offer = pc->CreateOffer();
   ASSERT_TRUE(pc->SetRemoteDescription(std::move(offer)));
   auto answer = pc->CreateAnswer();
 
-  auto credentials = pc->port_allocator_->GetPooledIceCredentials();
+  auto credentials = pc->GetInternalPeerConnection()
+                         ->port_allocator()
+                         ->GetPooledIceCredentials();
   ASSERT_EQ(1u, credentials.size());
 
   auto* desc = answer->description();

@@ -2241,6 +2241,8 @@ if (rtc_include_tests && !build_with_chromium) {
     ]
     deps = [
       ":pc_test_utils",
+      ":peer_connection",
+      ":peer_connection_proxy",
       ":sdp_utils",
       "../api:function_view",
       "../api:libjingle_peerconnection_api",
@@ -2250,14 +2252,11 @@ if (rtc_include_tests && !build_with_chromium) {
       "../api:rtc_error_matchers",
       "../api:rtc_stats_api",
       "../api:rtp_parameters",
-      "../api:rtp_sender_interface",
       "../api:scoped_refptr",
       "../rtc_base:checks",
-      "../rtc_base:gunit_helpers",
       "../rtc_base:logging",
       "../test:test_support",
       "../test:wait_until",
-      "//testing/gmock",
     ]
   }
 
@@ -2323,8 +2322,6 @@ if (rtc_include_tests && !build_with_chromium) {
       "peer_connection_signaling_unittest.cc",
       "peer_connection_simulcast_unittest.cc",
       "peer_connection_svc_integrationtest.cc",
-      "peer_connection_wrapper.cc",
-      "peer_connection_wrapper.h",
       "proxy_unittest.cc",
       "rtc_stats_collector_unittest.cc",
       "rtc_stats_integrationtest.cc",
@@ -2366,6 +2363,7 @@ if (rtc_include_tests && !build_with_chromium) {
       ":peer_connection_factory",
       ":peer_connection_internal",
       ":peer_connection_proxy",
+      ":peerconnection_wrapper",
       ":proxy",
       ":rtc_stats_collector",
       ":rtc_stats_traversal",
@@ -2403,7 +2401,6 @@ if (rtc_include_tests && !build_with_chromium) {
       "../api:fake_frame_encryptor",
       "../api:field_trials",
       "../api:field_trials_view",
-      "../api:function_view",
       "../api:ice_transport_interface",
       "../api:libjingle_logging_api",
       "../api:libjingle_peerconnection_api",

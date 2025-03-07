@@ -28,6 +28,7 @@
 #include "api/rtp_transceiver_interface.h"
 #include "api/scoped_refptr.h"
 #include "api/stats/rtc_stats_report.h"
+#include "pc/peer_connection.h"
 #include "pc/test/mock_peer_connection_observers.h"
 
 namespace webrtc {
@@ -61,6 +62,8 @@ class PeerConnectionWrapper {
   PeerConnectionFactoryInterface* pc_factory();
   PeerConnectionInterface* pc();
   MockPeerConnectionObserver* observer();
+
+  PeerConnection* GetInternalPeerConnection();
 
   // Calls the underlying PeerConnection's CreateOffer method and returns the
   // resulting SessionDescription once it is available. If the method call

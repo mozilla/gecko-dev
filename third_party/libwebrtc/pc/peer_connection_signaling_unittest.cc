@@ -51,23 +51,23 @@
 #include "api/video_codecs/video_encoder_factory_template_open_h264_adapter.h"
 #include "media/base/codec.h"
 #include "pc/peer_connection.h"
-#include "pc/peer_connection_proxy.h"
 #include "pc/peer_connection_wrapper.h"
 #include "pc/sdp_utils.h"
 #include "pc/session_description.h"
+#include "pc/test/fake_audio_capture_module.h"
+#include "pc/test/fake_rtc_certificate_generator.h"
 #include "pc/test/mock_peer_connection_observers.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/string_encode.h"
 #include "rtc_base/thread.h"
+#include "rtc_base/virtual_socket_server.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/wait_until.h"
+
 #ifdef WEBRTC_ANDROID
 #include "pc/test/android_test_initializer.h"
 #endif
-#include "pc/test/fake_audio_capture_module.h"
-#include "pc/test/fake_rtc_certificate_generator.h"
-#include "rtc_base/virtual_socket_server.h"
 
 namespace webrtc {
 
@@ -89,13 +89,6 @@ class PeerConnectionWrapperForSignalingTest : public PeerConnectionWrapper {
 
   bool initial_offerer() {
     return GetInternalPeerConnection()->initial_offerer();
-  }
-
-  PeerConnection* GetInternalPeerConnection() {
-    auto* pci =
-        static_cast<PeerConnectionProxyWithInternal<PeerConnectionInterface>*>(
-            pc());
-    return static_cast<PeerConnection*>(pci->internal());
   }
 };
 
