@@ -1,76 +1,22 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Mon, 3 Mar 2025 15:57:00 +0000
-Subject: Bug 1948818 - Cherry-pick upstream libwebrtc commit a705b2d73a
- r=webrtc-reviewers,mjf
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+From: Michael Froman <mfroman@mozilla.com>
+Date: Fri, 7 Feb 2025 16:26:00 -0600
+Subject: Bug 1942428 - (fix-e500d46600) upstream removed p2p:rtc_p2p
 
-Upstream commit: https://webrtc.googlesource.com/src/+/a705b2d73ae6822b2c70ad43be94a885a056c499
-       assert unreachable code in simulcast config
-
-       and IWYU
-
-       BUG=webrtc:398218412
-
-       Change-Id: I6adba61fe9f14f31035f0ff142b51cd991dff2a1
-       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/379280
-       Commit-Queue: Erik Språng <sprang@webrtc.org>
-       Reviewed-by: Mirko Bonadei <mbonadei@webrtc.org>
-       Reviewed-by: Erik Språng <sprang@webrtc.org>
-       Cr-Commit-Position: refs/heads/main@{#44012}
-
-Differential Revision: https://phabricator.services.mozilla.com/D240009
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fac9dfdf2632317aa066ee6c2cd6a9cfdef1ce4e
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0155a8718d5d7f23b8391a1d04b1196e30127dad
 ---
- video/config/BUILD.gn     | 1 +
- video/config/simulcast.cc | 9 +++++++--
- 2 files changed, 8 insertions(+), 2 deletions(-)
+ BUILD.gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/video/config/BUILD.gn b/video/config/BUILD.gn
-index 17930de346..c6d000cda0 100644
---- a/video/config/BUILD.gn
-+++ b/video/config/BUILD.gn
-@@ -23,6 +23,7 @@ rtc_library("streams_config") {
-     "../../api/units:data_rate",
-     "../../api/video:resolution",
-     "../../api/video:video_codec_constants",
-+    "../../api/video:video_frame",
-     "../../api/video_codecs:video_codecs_api",
-     "../../call/adaptation:resource_adaptation",
-     "../../media:media_constants",
-diff --git a/video/config/simulcast.cc b/video/config/simulcast.cc
-index 35be2f700a..caaeb9f037 100644
---- a/video/config/simulcast.cc
-+++ b/video/config/simulcast.cc
-@@ -19,16 +19,19 @@
- #include <vector>
- 
- #include "absl/strings/match.h"
-+#include "api/array_view.h"
- #include "api/field_trials_view.h"
--#include "api/video/video_codec_constants.h"
-+#include "api/units/data_rate.h"
-+#include "api/video/resolution.h"
-+#include "api/video/video_codec_type.h"
- #include "media/base/media_constants.h"
- #include "modules/video_coding/utility/simulcast_rate_allocator.h"
- #include "rtc_base/checks.h"
- #include "rtc_base/experiments/field_trial_parser.h"
- #include "rtc_base/experiments/min_video_bitrate_experiment.h"
--#include "rtc_base/experiments/normalize_simulcast_size_experiment.h"
- #include "rtc_base/experiments/rate_control_settings.h"
- #include "rtc_base/logging.h"
-+#include "video/config/video_encoder_config.h"
- 
- namespace cricket {
- 
-@@ -197,6 +200,8 @@ int GetDefaultSimulcastTemporalLayers(webrtc::VideoCodecType codec) {
-     case webrtc::kVideoCodecH265:
-       return 1;
-   }
-+  RTC_DCHECK_NOTREACHED() << "Unsupported codec.";
-+  return 1;
- }
- 
- std::vector<SimulcastFormat> GetSimulcastFormats(
+diff --git a/BUILD.gn b/BUILD.gn
+index ba8ce4d2f3..723fb7330c 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -598,7 +598,7 @@ if (!build_with_chromium) {
+         "api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+         "api/video_codecs:video_encoder_factory_template_open_h264_adapter",
+         "logging:rtc_event_log_api",
+-        "p2p:rtc_p2p",
++#        "p2p:rtc_p2p",
+         "pc:libjingle_peerconnection",
+         "pc:rtc_pc",
+         "sdk",
