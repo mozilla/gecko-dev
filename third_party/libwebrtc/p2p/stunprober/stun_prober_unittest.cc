@@ -16,7 +16,7 @@
 #include <utility>
 
 #include "p2p/base/basic_packet_socket_factory.h"
-#include "p2p/base/test_stun_server.h"
+#include "p2p/test/test_stun_server.h"
 #include "rtc_base/gunit.h"
 #include "rtc_base/ip_address.h"
 #include "rtc_base/ssl_adapter.h"

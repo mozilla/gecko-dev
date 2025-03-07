@@ -16,11 +16,11 @@
 #include <vector>
 
 #include "api/scoped_refptr.h"
-#include "p2p/base/fake_port_allocator.h"
-#include "p2p/base/mock_ice_transport.h"
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/port.h"
-#include "p2p/base/stun_server.h"
+#include "p2p/test/fake_port_allocator.h"
+#include "p2p/test/mock_ice_transport.h"
+#include "p2p/test/stun_server.h"
 #include "rtc_base/gunit.h"
 #include "rtc_base/socket_address.h"
 #include "rtc_base/thread.h"

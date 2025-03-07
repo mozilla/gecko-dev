@@ -1043,7 +1043,7 @@ index c15dcedc2a..1a737e1596 100644
          "/config/external/nspr",
          "/nsprpub/lib/ds",
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 3293ee145c..e15986b4b1 100644
+index 19d5c60e1c..b1e53c16c7 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
 @@ -312,6 +312,7 @@ rtc_library("sample_counter") {
@@ -1206,7 +1206,7 @@ index 3293ee145c..e15986b4b1 100644
  
  rtc_library("ssl_adapter") {
    visibility = [ "*" ]
-@@ -2212,7 +2236,7 @@ if (rtc_include_tests) {
+@@ -2205,7 +2229,7 @@ if (rtc_include_tests) {
    }
  }
  

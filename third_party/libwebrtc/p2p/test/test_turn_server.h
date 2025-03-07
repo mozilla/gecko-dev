@@ -8,8 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef P2P_BASE_TEST_TURN_SERVER_H_
-#define P2P_BASE_TEST_TURN_SERVER_H_
+#ifndef P2P_TEST_TEST_TURN_SERVER_H_
+#define P2P_TEST_TEST_TURN_SERVER_H_
 
 #include <memory>
 #include <string>
@@ -20,7 +20,7 @@
 #include "api/sequence_checker.h"
 #include "api/transport/stun.h"
 #include "p2p/base/basic_packet_socket_factory.h"
-#include "p2p/base/turn_server.h"
+#include "p2p/test/turn_server.h"
 #include "rtc_base/async_udp_socket.h"
 #include "rtc_base/ssl_adapter.h"
 #include "rtc_base/ssl_identity.h"
@@ -158,4 +158,4 @@ class TestTurnServer : public TurnAuthInterface {
 
 }  // namespace cricket
 
-#endif  // P2P_BASE_TEST_TURN_SERVER_H_
+#endif  // P2P_TEST_TEST_TURN_SERVER_H_

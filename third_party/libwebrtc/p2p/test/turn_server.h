@@ -8,8 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef P2P_BASE_TURN_SERVER_H_
-#define P2P_BASE_TURN_SERVER_H_
+#ifndef P2P_TEST_TURN_SERVER_H_
+#define P2P_TEST_TURN_SERVER_H_
 
 #include <list>
 #include <map>
@@ -372,4 +372,4 @@ class TurnServer : public sigslot::has_slots<> {
 
 }  // namespace cricket
 
-#endif  // P2P_BASE_TURN_SERVER_H_
+#endif  // P2P_TEST_TURN_SERVER_H_

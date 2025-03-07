@@ -10,7 +10,7 @@
 
 #include "p2p/base/packet_transport_internal.h"
 
-#include "p2p/base/fake_packet_transport.h"
+#include "p2p/test/fake_packet_transport.h"
 #include "rtc_base/gunit.h"
 #include "rtc_base/network/received_packet.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"

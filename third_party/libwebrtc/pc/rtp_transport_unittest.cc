@@ -17,7 +17,7 @@
 #include "api/test/rtc_error_matchers.h"
 #include "api/units/time_delta.h"
 #include "call/rtp_demuxer.h"
-#include "p2p/base/fake_packet_transport.h"
+#include "p2p/test/fake_packet_transport.h"
 #include "pc/test/rtp_transport_test_util.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/containers/flat_set.h"

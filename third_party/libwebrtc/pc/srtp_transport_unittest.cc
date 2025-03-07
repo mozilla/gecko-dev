@@ -18,8 +18,8 @@
 
 #include "call/rtp_demuxer.h"
 #include "media/base/fake_rtp.h"
-#include "p2p/base/fake_packet_transport.h"
 #include "p2p/dtls/dtls_transport_internal.h"
+#include "p2p/test/fake_packet_transport.h"
 #include "pc/test/rtp_transport_test_util.h"
 #include "pc/test/srtp_test_util.h"
 #include "rtc_base/async_packet_socket.h"

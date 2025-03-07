@@ -8,8 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef P2P_BASE_MOCK_DNS_RESOLVING_PACKET_SOCKET_FACTORY_H_
-#define P2P_BASE_MOCK_DNS_RESOLVING_PACKET_SOCKET_FACTORY_H_
+#ifndef P2P_TEST_MOCK_DNS_RESOLVING_PACKET_SOCKET_FACTORY_H_
+#define P2P_TEST_MOCK_DNS_RESOLVING_PACKET_SOCKET_FACTORY_H_
 
 #include <functional>
 #include <memory>
@@ -50,4 +50,4 @@ class MockDnsResolvingPacketSocketFactory : public BasicPacketSocketFactory {
 
 }  // namespace rtc
 
-#endif  // P2P_BASE_MOCK_DNS_RESOLVING_PACKET_SOCKET_FACTORY_H_
+#endif  // P2P_TEST_MOCK_DNS_RESOLVING_PACKET_SOCKET_FACTORY_H_

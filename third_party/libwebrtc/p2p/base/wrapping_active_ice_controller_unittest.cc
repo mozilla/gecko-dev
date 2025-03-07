@@ -15,8 +15,8 @@
 #include <vector>
 
 #include "p2p/base/connection.h"
-#include "p2p/base/mock_ice_agent.h"
-#include "p2p/base/mock_ice_controller.h"
+#include "p2p/test/mock_ice_agent.h"
+#include "p2p/test/mock_ice_controller.h"
 #include "rtc_base/fake_clock.h"
 #include "rtc_base/gunit.h"
 #include "rtc_base/thread.h"

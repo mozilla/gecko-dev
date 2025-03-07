@@ -8,8 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef P2P_BASE_FAKE_PACKET_TRANSPORT_H_
-#define P2P_BASE_FAKE_PACKET_TRANSPORT_H_
+#ifndef P2P_TEST_FAKE_PACKET_TRANSPORT_H_
+#define P2P_TEST_FAKE_PACKET_TRANSPORT_H_
 
 #include <map>
 #include <string>
@@ -146,4 +146,4 @@ class FakePacketTransport : public PacketTransportInternal {
 
 }  // namespace rtc
 
-#endif  // P2P_BASE_FAKE_PACKET_TRANSPORT_H_
+#endif  // P2P_TEST_FAKE_PACKET_TRANSPORT_H_

@@ -18,7 +18,7 @@
 #include "examples/turnserver/read_auth_file.h"
 #include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/base/port_interface.h"
-#include "p2p/base/turn_server.h"
+#include "p2p/test/turn_server.h"
 #include "rtc_base/async_udp_socket.h"
 #include "rtc_base/ip_address.h"
 #include "rtc_base/physical_socket_server.h"

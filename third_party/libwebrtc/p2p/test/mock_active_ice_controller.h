@@ -8,8 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef P2P_BASE_MOCK_ACTIVE_ICE_CONTROLLER_H_
-#define P2P_BASE_MOCK_ACTIVE_ICE_CONTROLLER_H_
+#ifndef P2P_TEST_MOCK_ACTIVE_ICE_CONTROLLER_H_
+#define P2P_TEST_MOCK_ACTIVE_ICE_CONTROLLER_H_
 
 #include <memory>
 
@@ -86,4 +86,4 @@ class MockActiveIceControllerFactory
 
 }  // namespace cricket
 
-#endif  // P2P_BASE_MOCK_ACTIVE_ICE_CONTROLLER_H_
+#endif  // P2P_TEST_MOCK_ACTIVE_ICE_CONTROLLER_H_

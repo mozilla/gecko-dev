@@ -8,8 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef P2P_BASE_STUN_SERVER_H_
-#define P2P_BASE_STUN_SERVER_H_
+#ifndef P2P_TEST_STUN_SERVER_H_
+#define P2P_TEST_STUN_SERVER_H_
 
 #include <stddef.h>
 
@@ -65,4 +65,4 @@ class StunServer {
 
 }  // namespace cricket
 
-#endif  // P2P_BASE_STUN_SERVER_H_
+#endif  // P2P_TEST_STUN_SERVER_H_

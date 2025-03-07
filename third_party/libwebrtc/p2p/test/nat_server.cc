@@ -8,16 +8,16 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "rtc_base/nat_server.h"
+#include "p2p/test/nat_server.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 
 #include "api/array_view.h"
+#include "p2p/test/nat_socket_factory.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
-#include "rtc_base/nat_socket_factory.h"
 #include "rtc_base/network/received_packet.h"
 #include "rtc_base/socket_adapters.h"
 #include "rtc_base/socket_address.h"
@@ -75,7 +75,7 @@ bool AddrCmp::operator()(const SocketAddress& a1,
 // a TCP connection to the NAT server.
 class NATProxyServerSocket : public AsyncProxyServerSocket {
  public:
-  NATProxyServerSocket(Socket* socket)
+  explicit NATProxyServerSocket(Socket* socket)
       : AsyncProxyServerSocket(socket, kNATEncodedIPv6AddressSize) {
     BufferInput(true);
   }

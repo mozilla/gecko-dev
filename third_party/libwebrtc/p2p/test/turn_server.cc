@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "p2p/base/turn_server.h"
+#include "p2p/test/turn_server.h"
 
 #include <algorithm>
 #include <memory>
@@ -48,7 +48,7 @@ constexpr size_t kNonceSize = 48;
 
 constexpr size_t TURN_CHANNEL_HEADER_SIZE = 4U;
 
-// TODO(mallinath) - Move these to a common place.
+// TODO(mallinath): Move these to a common place.
 bool IsTurnChannelData(uint16_t msg_type) {
   // The first two bits of a channel data message are 0b01.
   return ((msg_type & 0xC000) == 0x4000);

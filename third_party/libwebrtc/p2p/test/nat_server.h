@@ -8,14 +8,14 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef RTC_BASE_NAT_SERVER_H_
-#define RTC_BASE_NAT_SERVER_H_
+#ifndef P2P_TEST_NAT_SERVER_H_
+#define P2P_TEST_NAT_SERVER_H_
 
 #include <map>
 #include <set>
 
+#include "p2p/test/nat_types.h"
 #include "rtc_base/async_udp_socket.h"
-#include "rtc_base/nat_types.h"
 #include "rtc_base/proxy_server.h"
 #include "rtc_base/socket_address_pair.h"
 #include "rtc_base/socket_factory.h"
@@ -126,4 +126,4 @@ class NATServer {
 
 }  // namespace rtc
 
-#endif  // RTC_BASE_NAT_SERVER_H_
+#endif  // P2P_TEST_NAT_SERVER_H_

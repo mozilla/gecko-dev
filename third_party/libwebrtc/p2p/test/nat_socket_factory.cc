@@ -8,14 +8,14 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "rtc_base/nat_socket_factory.h"
+#include "p2p/test/nat_socket_factory.h"
 
 #include "api/units/timestamp.h"
+#include "p2p/test/nat_server.h"
 #include "rtc_base/arraysize.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
-#include "rtc_base/nat_server.h"
 #include "rtc_base/virtual_socket_server.h"
 
 namespace rtc {
