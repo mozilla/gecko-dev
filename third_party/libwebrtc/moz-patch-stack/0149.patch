@@ -1,0 +1,32 @@
+From: Jan Grulich <jgrulich@redhat.com>
+Date: Tue, 4 Mar 2025 13:45:00 +0000
+Subject: Bug 1942551 - WebRTC backport: PipeWire camera: Fix cleanup order
+ r=pehrsons,webrtc-reviewers
+
+The hook is associated with the proxy object. We should remove the hook
+first before destroying the proxy object to avoid use-after-free.
+
+This is a simple backport of an WebRTC upstream change.
+
+Upstream commit: caa8ef3ab511d54dfa486eb7599ef0a74f7471ee
+
+Differential Revision: https://phabricator.services.mozilla.com/D239886
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/7fb1200cdac7f72e2a4aca7e739773592a8584c5
+---
+ modules/video_capture/linux/pipewire_session.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
+index 0b1504170b..b58ea755c6 100644
+--- a/modules/video_capture/linux/pipewire_session.cc
++++ b/modules/video_capture/linux/pipewire_session.cc
+@@ -58,8 +58,8 @@ VideoType PipeWireRawFormatToVideoType(uint32_t id) {
+ 
+ void PipeWireNode::PipeWireNodeDeleter::operator()(
+     PipeWireNode* node) const noexcept {
+-  pw_proxy_destroy(node->proxy_);
+   spa_hook_remove(&node->node_listener_);
++  pw_proxy_destroy(node->proxy_);
+ }
+ 
+ // static
