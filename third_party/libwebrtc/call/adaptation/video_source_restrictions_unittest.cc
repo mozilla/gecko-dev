@@ -10,8 +10,9 @@
 
 #include "call/adaptation/video_source_restrictions.h"
 
-#include "test/gtest.h"
+#include <optional>
 
+#include "test/gtest.h"
 namespace webrtc {
 
 namespace {

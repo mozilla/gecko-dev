@@ -55,7 +55,6 @@ namespace webrtc {
 namespace {
 
 using ::testing::_;
-using ::testing::Contains;
 using ::testing::MockFunction;
 using ::testing::NiceMock;
 using ::testing::StrictMock;

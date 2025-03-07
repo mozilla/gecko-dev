@@ -11,6 +11,7 @@
 #include "call/adaptation/test/fake_resource.h"
 
 #include <algorithm>
+#include <string>
 #include <utility>
 
 #include "absl/strings/string_view.h"

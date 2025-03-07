@@ -78,7 +78,7 @@ bool CodecPrefersLowerRange(const cricket::Codec& codec) {
     std::string profile_id;
 
     if (codec.GetParam(cricket::kVP9ProfileId, &profile_id)) {
-      if (profile_id.compare("1") == 0 || profile_id.compare("3") == 0) {
+      if (profile_id == "1" || profile_id == "3") {
         return true;
       }
     }

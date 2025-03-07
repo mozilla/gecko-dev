@@ -10,6 +10,7 @@
 
 #include "call/adaptation/encoder_settings.h"
 
+#include <optional>
 #include <utility>
 
 namespace webrtc {

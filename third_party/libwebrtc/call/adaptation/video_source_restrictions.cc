@@ -12,6 +12,9 @@
 
 #include <algorithm>
 #include <limits>
+#include <optional>
+#include <string>
+#include <utility>
 
 #include "rtc_base/checks.h"
 #include "rtc_base/strings/string_builder.h"

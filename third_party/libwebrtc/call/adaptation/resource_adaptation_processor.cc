@@ -11,8 +11,11 @@
 #include "call/adaptation/resource_adaptation_processor.h"
 
 #include <algorithm>
+#include <map>
 #include <string>
+#include <tuple>
 #include <utility>
+#include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"

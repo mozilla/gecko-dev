@@ -22,7 +22,6 @@ namespace webrtc {
 using testing::Eq;
 using testing::Ge;
 using testing::Le;
-using testing::Lt;
 using testing::Ne;
 
 TEST(PayloadTypePicker, PayloadTypeAssignmentWorks) {
