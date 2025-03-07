@@ -79,7 +79,6 @@ export class PdfjsParent extends JSWindowActorParent {
     this._findFailedString = null;
     this._lastNotFoundStringLength = 0;
 
-    this.#checkPreferences();
     this._updatedPreference();
   }
 
@@ -235,22 +234,6 @@ export class PdfjsParent extends JSWindowActorParent {
       return false;
     } finally {
       await db?.close();
-    }
-  }
-
-  #checkPreferences() {
-    if (Services.prefs.getBoolPref("pdfjs.enableAltTextForEnglish", true)) {
-      return;
-    }
-    Services.prefs.setBoolPref("pdfjs.enableAltTextForEnglish", true);
-    if (Services.locale.appLocaleAsBCP47.substring(0, 2) !== "en") {
-      return;
-    }
-    if (!Services.prefs.prefHasUserValue("browser.ml.enable")) {
-      Services.prefs.setBoolPref("browser.ml.enable", true);
-    }
-    if (!Services.prefs.prefHasUserValue("pdfjs.enableAltText")) {
-      Services.prefs.setBoolPref("pdfjs.enableAltText", true);
     }
   }
 
