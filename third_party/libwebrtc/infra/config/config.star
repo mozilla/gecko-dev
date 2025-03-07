@@ -53,7 +53,6 @@ def os_from_name(name):
 # useful when a failure can be safely ignored while fixing it without
 # blocking the LKGR finder on it.
 skipped_lkgr_bots = [
-    "iOS Debug (simulator)",
 ]
 
 # Use LUCI Scheduler BBv2 names and add Scheduler realms configs.
@@ -761,8 +760,7 @@ ios_builder("iOS64 Release", "iOS|arm64|rel")
 ios_try_job("ios_compile_arm64_rel")
 ios_builder("iOS Debug (simulator)", "iOS|x64|sim")
 
-# TODO: b/396118151 - Reenable the bot when the issue is fixed.
-ios_try_job("ios_dbg_simulator", cq = None)
+ios_try_job("ios_dbg_simulator")
 ios_builder("iOS API Framework Builder", "iOS|fat|size", recipe = "ios_api_framework", prioritized = True)
 ios_try_job("ios_api_framework", recipe = "ios_api_framework")
 
