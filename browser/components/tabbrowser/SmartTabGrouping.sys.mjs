@@ -21,6 +21,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   NLP: "resource://gre/modules/NLP.sys.mjs",
+  MLEngineParent: "resource://gre/actors/MLEngineParent.sys.mjs",
 });
 
 const EMBED_TEXT_KEY = "combined_text";
@@ -679,7 +680,9 @@ export class SmartTabGroupingManager {
    * @param {string} mlLabel ML generated label for the tab group
    * @param {string} userLabel User saved label for the tab group
    */
-  handleLabelTelemetry({ action, numTabsInGroup, mlLabel, userLabel }) {
+  async handleLabelTelemetry({ action, numTabsInGroup, mlLabel, userLabel }) {
+    const { [ML_TASK_TEXT2TEXT]: topicEngineConfig } =
+      await this.getEngineConfigs();
     Glean.browserMlInteraction.smartTabTopic.record({
       action,
       num_tabs_in_group: numTabsInGroup,
@@ -689,6 +692,7 @@ export class SmartTabGroupingManager {
         userLabel || "",
         mlLabel || ""
       ),
+      model_revision: topicEngineConfig.modelRevision || "",
     });
   }
 
@@ -703,7 +707,7 @@ export class SmartTabGroupingManager {
    * @param {number} numTabsApproved Number of tabs approved by the user
    * @param {number} numTabsRemoved Number of tabs removed by the user
    */
-  handleSuggestTelemetry({
+  async handleSuggestTelemetry({
     action,
     numTabsInWindow,
     numTabsInGroup,
@@ -711,6 +715,8 @@ export class SmartTabGroupingManager {
     numTabsApproved,
     numTabsRemoved,
   }) {
+    const { [ML_TASK_FEATURE_EXTRACTION]: embeddingEngineConfig } =
+      await this.getEngineConfigs();
     Glean.browserMlInteraction.smartTabSuggest.record({
       action,
       num_tabs_in_window: numTabsInWindow,
@@ -718,7 +724,33 @@ export class SmartTabGroupingManager {
       num_tabs_suggested: numTabsSuggested,
       num_tabs_approved: numTabsApproved,
       num_tabs_removed: numTabsRemoved,
+      model_revision: embeddingEngineConfig.modelRevision || "",
     });
+  }
+
+  /**
+   * Gets config that engine was initialized with
+   *
+   * @return {Promise<{"[ML_TASK_TEXT2TEXT]", "[ML_TASK_FEATURE_EXTRACTION]"}>}
+   */
+  async getEngineConfigs() {
+    if (!this.topicEngineConfig) {
+      this.topicEngineConfig = await lazy.MLEngineParent.getInferenceOptions(
+        this.config.topicGeneration.engineId,
+        this.config.topicGeneration.taskName
+      );
+    }
+    if (!this.embeddingEngineConfig) {
+      this.embeddingEngineConfig =
+        await lazy.MLEngineParent.getInferenceOptions(
+          this.config.embedding.engineId,
+          this.config.embedding.taskName
+        );
+    }
+    return {
+      [ML_TASK_TEXT2TEXT]: this.topicEngineConfig,
+      [ML_TASK_FEATURE_EXTRACTION]: this.embeddingEngineConfig,
+    };
   }
 }
 
