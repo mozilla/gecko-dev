@@ -3,6 +3,7 @@ subsuite = "media"
 tags = "autoplay"
 support-files = [
   "../../../test/manifest.js",
+  "../../../test/avc-2bytes-nalu.mp4",
   "../../../test/bogus.duh",
   "../../../test/detodos-short.opus",
   "../../../test/flac-s24.flac",

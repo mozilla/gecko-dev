@@ -79,6 +79,13 @@ var gSmallTests = [
   },
   { name: "flac-s24.flac", type: "audio/flac", duration: 4.04 },
   { name: "bogus.duh", type: "bogus/duh" },
+  {
+    name: "avc-2bytes-nalu.mp4",
+    type: "video/mp4",
+    width: 400,
+    height: 300,
+    duration: 0.5,
+  },
 ];
 
 var gFrameCountTests = [

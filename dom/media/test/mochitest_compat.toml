@@ -59,6 +59,7 @@ support-files = [
   "aspect_ratio_5_2_hevc.mp4^headers^",
   "av1.mp4",
   "av1.mp4^headers^",
+  "avc-2bytes-nalu.mp4",
   "background_video.js",
   "badtags.ogg",
   "badtags.ogg^headers^",
