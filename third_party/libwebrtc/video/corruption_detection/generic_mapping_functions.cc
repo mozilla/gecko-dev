@@ -24,6 +24,7 @@ constexpr int kChromaThresholdVp8 = 6;
 constexpr int kChromaThresholdVp9 = 4;
 constexpr int kChromaThresholdAv1 = 4;
 constexpr int kChromaThresholdH264 = 2;
+constexpr int kChromaThresholdH265 = 4;
 
 int LumaThreshold(VideoCodecType codec_type) {
   return kLumaThreshold;
@@ -39,6 +40,8 @@ int ChromaThreshold(VideoCodecType codec_type) {
       return kChromaThresholdAv1;
     case VideoCodecType::kVideoCodecH264:
       return kChromaThresholdH264;
+    case VideoCodecType::kVideoCodecH265:
+      return kChromaThresholdH265;
     default:
       RTC_FATAL() << "Codec type " << CodecTypeToPayloadString(codec_type)
                   << " is not supported.";
@@ -65,6 +68,10 @@ double MapQpToOptimalStdDev(int qp, VideoCodecType codec_type) {
       return RationalFunction(0.69, -256, 0.42, qp);
     case VideoCodecType::kVideoCodecH264:
       return ExponentialFunction(0.016, 0.13976962, -1.40179328, qp);
+    case VideoCodecType::kVideoCodecH265:
+      // Observe that these values are currently only tuned for software libx265
+      // in "preset ultrafast -tune zerolatency" mode.
+      return RationalFunction(1.6, -52, 0.1, qp);
     default:
       RTC_FATAL() << "Codec type " << CodecTypeToPayloadString(codec_type)
                   << " is not supported.";
