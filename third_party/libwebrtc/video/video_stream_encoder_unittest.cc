@@ -94,6 +94,7 @@
 #include "rtc_base/event.h"
 #include "rtc_base/experiments/encoder_info_settings.h"
 #include "rtc_base/experiments/rate_control_settings.h"
+#include "rtc_base/gunit.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/ref_counted_object.h"
 #include "rtc_base/strings/string_builder.h"
@@ -1273,6 +1274,11 @@ class VideoStreamEncoderTest : public ::testing::Test {
       return num_set_rates_;
     }
 
+    int GetNumEncodes() const {
+      MutexLock lock(&local_mutex_);
+      return num_encodes_;
+    }
+
     void SetPreferredPixelFormats(
         absl::InlinedVector<VideoFrameBuffer::Type, kMaxPreferredPixelFormats>
             pixel_formats) {
@@ -1295,6 +1301,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
                    const std::vector<VideoFrameType>* frame_types) override {
       {
         MutexLock lock(&local_mutex_);
+        num_encodes_++;
         if (expect_null_frame_) {
           EXPECT_EQ(input_image.rtp_timestamp(), 0u);
           EXPECT_EQ(input_image.width(), 1);
@@ -1426,6 +1433,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
     std::vector<ResolutionBitrateLimits> resolution_bitrate_limits_
         RTC_GUARDED_BY(local_mutex_);
     int num_set_rates_ RTC_GUARDED_BY(local_mutex_) = 0;
+    int num_encodes_ RTC_GUARDED_BY(local_mutex_) = 0;
     std::optional<VideoFrameBuffer::Type> last_input_pixel_format_
         RTC_GUARDED_BY(local_mutex_);
     absl::InlinedVector<VideoFrameBuffer::Type, kMaxPreferredPixelFormats>
@@ -8253,9 +8261,7 @@ TEST_F(VideoStreamEncoderTest,
       .WillByDefault(Return(WEBRTC_VIDEO_CODEC_ENCODER_FAILURE));
 
   rtc::Event encode_attempted;
-  EXPECT_CALL(switch_callback,
-              RequestEncoderSwitch(Field(&SdpVideoFormat::name, "VP8"),
-                                   /*allow_default_fallback=*/true))
+  EXPECT_CALL(switch_callback, RequestEncoderFallback())
       .WillOnce([&encode_attempted]() { encode_attempted.Set(); });
 
   video_source_.IncomingCapturedFrame(CreateFrame(1, nullptr));
@@ -8316,6 +8322,115 @@ TEST_F(VideoStreamEncoderTest, NullEncoderReturnSwitch) {
 
   video_stream_encoder_->Stop();
 
+  // The encoders produced by the VideoEncoderProxyFactory have a pointer back
+  // to it's factory, so in order for the encoder instance in the
+  // `video_stream_encoder_` to be destroyed before the `encoder_factory` we
+  // reset the `video_stream_encoder_` here.
+  video_stream_encoder_.reset();
+}
+
+TEST_F(VideoStreamEncoderTest, NoPreferenceDefaultFallbackToVP8Disabled) {
+  constexpr int kSufficientBitrateToNotDrop = 1000;
+  constexpr int kDontCare = 100;
+  constexpr int kNumFrames = 8;
+
+  NiceMock<MockVideoEncoder> video_encoder;
+  StrictMock<MockEncoderSwitchRequestCallback> switch_callback;
+  video_send_config_.encoder_settings.encoder_switch_request_callback =
+      &switch_callback;
+  auto encoder_factory = std::make_unique<test::VideoEncoderProxyFactory>(
+      &video_encoder, /*encoder_selector=*/nullptr);
+  video_send_config_.encoder_settings.encoder_factory = encoder_factory.get();
+
+  // Reset encoder for new configuration to take effect.
+  ConfigureEncoder(video_encoder_config_.Copy());
+
+  // The VideoStreamEncoder needs some bitrate before it can start encoding,
+  // setting some bitrate so that subsequent calls to WaitForEncodedFrame does
+  // not fail.
+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
+      /*target_bitrate=*/DataRate::KilobitsPerSec(kSufficientBitrateToNotDrop),
+      /*stable_target_bitrate=*/
+      DataRate::KilobitsPerSec(kSufficientBitrateToNotDrop),
+      /*link_allocation=*/DataRate::KilobitsPerSec(kSufficientBitrateToNotDrop),
+      /*fraction_lost=*/0,
+      /*round_trip_time_ms=*/0,
+      /*cwnd_reduce_ratio=*/0);
+
+  EXPECT_CALL(video_encoder, Encode)
+      .WillOnce(Return(WEBRTC_VIDEO_CODEC_ENCODER_FAILURE));
+
+  EXPECT_CALL(switch_callback, RequestEncoderFallback());
+
+  VideoFrame frame = CreateFrame(1, kDontCare, kDontCare);
+  for (int i = 0; i < kNumFrames; ++i) {
+    int64_t timestamp_ms = CurrentTimeMs();
+    frame.set_ntp_time_ms(timestamp_ms);
+    frame.set_timestamp_us(timestamp_ms * 1000);
+    video_source_.IncomingCapturedFrame(frame);
+    time_controller_.AdvanceTime(TimeDelta::Millis(33));
+  }
+
+  ASSERT_THAT(WaitUntil([&] { return fake_encoder_.GetNumEncodes() == 0; },
+                        ::testing::IsTrue()),
+              IsRtcOk());
+
+  // After requesting fallback failure, the encoder will be released.
+  EXPECT_CALL(video_encoder, Release()).Times(1);
+
+  AdvanceTime(TimeDelta::Zero());
+  video_stream_encoder_->Stop();
+  // The encoders produced by the VideoEncoderProxyFactory have a pointer back
+  // to it's factory, so in order for the encoder instance in the
+  // `video_stream_encoder_` to be destroyed before the `encoder_factory` we
+  // reset the `video_stream_encoder_` here.
+  video_stream_encoder_.reset();
+}
+
+TEST_F(VideoStreamEncoderTest, NoPreferenceDefaultFallbackToVP8Enabled) {
+  constexpr int kSufficientBitrateToNotDrop = 1000;
+  constexpr int kDontCare = 100;
+
+  webrtc::test::ScopedKeyValueConfig field_trials(
+      field_trials_,
+      "WebRTC-SwitchEncoderFollowCodecPreferenceOrder/Disabled/");
+
+  NiceMock<MockVideoEncoder> video_encoder;
+  StrictMock<MockEncoderSwitchRequestCallback> switch_callback;
+  video_send_config_.encoder_settings.encoder_switch_request_callback =
+      &switch_callback;
+  auto encoder_factory = std::make_unique<test::VideoEncoderProxyFactory>(
+      &video_encoder, /*encoder_selector=*/nullptr);
+  video_send_config_.encoder_settings.encoder_factory = encoder_factory.get();
+  video_encoder_config_.codec_type = kVideoCodecVP9;
+
+  // Reset encoder for new configuration to take effect.
+  ConfigureEncoder(video_encoder_config_.Copy());
+
+  // The VideoStreamEncoder needs some bitrate before it can start encoding,
+  // setting some bitrate so that subsequent calls to WaitForEncodedFrame does
+  // not fail.
+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
+      /*target_bitrate=*/DataRate::KilobitsPerSec(kSufficientBitrateToNotDrop),
+      /*stable_target_bitrate=*/
+      DataRate::KilobitsPerSec(kSufficientBitrateToNotDrop),
+      /*link_allocation=*/DataRate::KilobitsPerSec(kSufficientBitrateToNotDrop),
+      /*fraction_lost=*/0,
+      /*round_trip_time_ms=*/0,
+      /*cwnd_reduce_ratio=*/0);
+
+  EXPECT_CALL(video_encoder, Encode)
+      .WillOnce(Return(WEBRTC_VIDEO_CODEC_ENCODER_FAILURE));
+
+  // Fallback request will be asking for switching to VP8.
+  EXPECT_CALL(switch_callback,
+              RequestEncoderSwitch(Field(&SdpVideoFormat::name, "VP8"),
+                                   /*allow_default_fallback=*/true));
+
+  VideoFrame frame = CreateFrame(1, kDontCare, kDontCare);
+  video_source_.IncomingCapturedFrame(frame);
+
+  video_stream_encoder_->Stop();
   // The encoders produced by the VideoEncoderProxyFactory have a pointer back
   // to it's factory, so in order for the encoder instance in the
   // `video_stream_encoder_` to be destroyed before the `encoder_factory` we
