@@ -795,7 +795,7 @@ void TurnServerAllocation::OnExternalPacket(rtc::AsyncPacketSocket* socket,
     rtc::ByteBufferWriter buf;
     buf.WriteUInt16(channel->id);
     buf.WriteUInt16(static_cast<uint16_t>(packet.payload().size()));
-    buf.WriteBytes(packet.payload().data(), packet.payload().size());
+    buf.Write(webrtc::ArrayView<const uint8_t>(packet.payload()));
     server_->Send(&conn_, buf);
   } else if (!server_->enable_permission_checks_ ||
              HasPermission(packet.source_address().ipaddr())) {

@@ -131,8 +131,7 @@ class MockOnCompleteFrameCallback
   void ClearExpectedBitstream() { buffer_.Clear(); }
 
   void AppendExpectedBitstream(const uint8_t data[], size_t size_in_bytes) {
-    // TODO(Johan): Let rtc::ByteBuffer handle uint8_t* instead of char*.
-    buffer_.WriteBytes(data, size_in_bytes);
+    buffer_.Write(ArrayView<const uint8_t>(data, size_in_bytes));
   }
   rtc::ByteBufferWriter buffer_;
 };

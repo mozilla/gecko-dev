@@ -168,12 +168,24 @@ TEST(ByteBufferTest, TestReadWriteBuffer) {
 
   // Write and read bytes
   uint8_t write_bytes[] = {3, 2, 1};
-  buffer.WriteBytes(write_bytes, 3);
+  buffer.Write(webrtc::ArrayView<const uint8_t>(write_bytes, 3));
   ByteBufferReader read_buf7(buffer);
   uint8_t read_bytes[3];
   EXPECT_TRUE(read_buf7.ReadBytes(read_bytes));
   EXPECT_THAT(read_bytes, ElementsAreArray(write_bytes));
   EXPECT_EQ(read_buf7.Length(), 0U);
+  buffer.Clear();
+
+  // Write and read bytes with deprecated function
+  // TODO: issues.webrtc.org/42225170 - delete
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+  buffer.WriteBytes(write_bytes, 3);
+#pragma clang diagnostic pop
+  ByteBufferReader read_buf75(buffer);
+  EXPECT_TRUE(read_buf75.ReadBytes(read_bytes));
+  EXPECT_THAT(read_bytes, ElementsAreArray(write_bytes));
+  EXPECT_EQ(read_buf75.Length(), 0U);
   buffer.Clear();
 
   // Write and read reserved buffer space
