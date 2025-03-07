@@ -966,9 +966,9 @@ TEST_F(MediaSessionDescriptionFactoryTest, TestCreateAnswerWithCustomCodecs) {
 // RTP paylod type. The test verifies that the offer don't contain the
 // duplicate RTP payload types.
 TEST_F(MediaSessionDescriptionFactoryTest, TestBundleOfferWithSameCodecPlType) {
-  const Codec& offered_video_codec =
+  Codec offered_video_codec =
       f2_.CodecVendorForTesting()->video_sendrecv_codecs()[0];
-  const Codec& offered_audio_codec =
+  Codec offered_audio_codec =
       f2_.CodecVendorForTesting()->audio_sendrecv_codecs()[0];
   ASSERT_EQ(offered_video_codec.id, offered_audio_codec.id);
 

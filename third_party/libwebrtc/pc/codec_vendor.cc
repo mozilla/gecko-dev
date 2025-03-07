@@ -646,57 +646,66 @@ void CodecVendor::NegotiateCodecs(const CodecList& local_codecs,
   }
 }
 
+TypedCodecVendor::TypedCodecVendor(MediaEngineInterface* media_engine,
+                                   MediaType type,
+                                   bool is_sender,
+                                   bool rtx_enabled) {
+  if (type == MEDIA_TYPE_AUDIO) {
+    if (is_sender) {
+      codecs_ = CodecList(media_engine->voice().send_codecs());
+    } else {
+      codecs_ = CodecList(media_engine->voice().recv_codecs());
+    }
+  } else {
+    if (is_sender) {
+      codecs_ = CodecList(media_engine->video().send_codecs(rtx_enabled));
+    } else {
+      codecs_ = CodecList(media_engine->video().recv_codecs(rtx_enabled));
+    }
+  }
+}
+
 CodecVendor::CodecVendor(MediaEngineInterface* media_engine, bool rtx_enabled) {
   // Null media_engine is permitted in order to allow unit testing where
   // the codecs are explicitly set by the test.
   if (media_engine) {
-    audio_send_codecs_ = CodecList(media_engine->voice().send_codecs());
-    audio_recv_codecs_ = CodecList(media_engine->voice().recv_codecs());
-    video_send_codecs_ =
-        CodecList(media_engine->video().send_codecs(rtx_enabled));
-    video_recv_codecs_ =
-        CodecList(media_engine->video().recv_codecs(rtx_enabled));
-    ComputeAudioCodecsIntersectionAndUnion();
-    ComputeVideoCodecsIntersectionAndUnion();
+    audio_send_codecs_ = TypedCodecVendor(media_engine, MEDIA_TYPE_AUDIO,
+                                          /* is_sender= */ true, rtx_enabled);
+    audio_recv_codecs_ = TypedCodecVendor(media_engine, MEDIA_TYPE_AUDIO,
+                                          /* is_sender= */ false, rtx_enabled);
+    video_send_codecs_ = TypedCodecVendor(media_engine, MEDIA_TYPE_VIDEO,
+                                          /* is_sender= */ true, rtx_enabled);
+    video_recv_codecs_ = TypedCodecVendor(media_engine, MEDIA_TYPE_VIDEO,
+                                          /* is_sender= */ false, rtx_enabled);
   }
 }
 
-const CodecList& CodecVendor::audio_sendrecv_codecs() const {
-  return audio_sendrecv_codecs_;
-}
-
 const CodecList& CodecVendor::audio_send_codecs() const {
-  return audio_send_codecs_;
+  return audio_send_codecs_.codecs();
 }
 
 const CodecList& CodecVendor::audio_recv_codecs() const {
-  return audio_recv_codecs_;
+  return audio_recv_codecs_.codecs();
 }
 
 void CodecVendor::set_audio_codecs(const CodecList& send_codecs,
                                    const CodecList& recv_codecs) {
-  audio_send_codecs_ = send_codecs;
-  audio_recv_codecs_ = recv_codecs;
-  ComputeAudioCodecsIntersectionAndUnion();
-}
-
-const CodecList& CodecVendor::video_sendrecv_codecs() const {
-  return video_sendrecv_codecs_;
+  audio_send_codecs_.set_codecs(send_codecs);
+  audio_recv_codecs_.set_codecs(recv_codecs);
 }
 
 const CodecList& CodecVendor::video_send_codecs() const {
-  return video_send_codecs_;
+  return video_send_codecs_.codecs();
 }
 
 const CodecList& CodecVendor::video_recv_codecs() const {
-  return video_recv_codecs_;
+  return video_recv_codecs_.codecs();
 }
 
 void CodecVendor::set_video_codecs(const CodecList& send_codecs,
                                    const CodecList& recv_codecs) {
-  video_send_codecs_ = send_codecs;
-  video_recv_codecs_ = recv_codecs;
-  ComputeVideoCodecsIntersectionAndUnion();
+  video_send_codecs_.set_codecs(send_codecs);
+  video_recv_codecs_.set_codecs(recv_codecs);
 }
 // Getting codecs for an offer involves these steps:
 //
@@ -718,8 +727,8 @@ void CodecVendor::GetCodecsForOffer(
                              video_codec_list, &used_pltypes);
 
   // Add our codecs that are not in the current description.
-  MergeCodecs(CodecList{all_audio_codecs_}, audio_codec_list, &used_pltypes);
-  MergeCodecs(CodecList{all_video_codecs_}, video_codec_list, &used_pltypes);
+  MergeCodecs(all_audio_codecs(), audio_codec_list, &used_pltypes);
+  MergeCodecs(all_video_codecs(), video_codec_list, &used_pltypes);
   *audio_codecs = audio_codec_list.codecs();
   *video_codecs = video_codec_list.codecs();
 }
@@ -754,7 +763,7 @@ void CodecVendor::GetCodecsForAnswer(
       for (const Codec& offered_audio_codec : offered_codecs) {
         if (!FindMatchingCodec(offered_codecs, filtered_offered_audio_codecs,
                                offered_audio_codec) &&
-            FindMatchingCodec(offered_codecs, all_audio_codecs_,
+            FindMatchingCodec(offered_codecs, all_audio_codecs(),
                               offered_audio_codec)) {
           filtered_offered_audio_codecs.push_back(offered_audio_codec);
         }
@@ -764,7 +773,7 @@ void CodecVendor::GetCodecsForAnswer(
       for (const Codec& offered_video_codec : offered_codecs) {
         if (!FindMatchingCodec(offered_codecs, filtered_offered_video_codecs,
                                offered_video_codec) &&
-            FindMatchingCodec(offered_codecs, all_video_codecs_,
+            FindMatchingCodec(offered_codecs, all_video_codecs(),
                               offered_video_codec)) {
           filtered_offered_video_codecs.push_back(offered_video_codec);
         }
@@ -780,23 +789,23 @@ void CodecVendor::GetCodecsForAnswer(
   *video_codecs = video_codec_list.codecs();
 }
 
-const CodecList& CodecVendor::GetVideoCodecsForOffer(
+CodecList CodecVendor::GetVideoCodecsForOffer(
     const RtpTransceiverDirection& direction) const {
   switch (direction) {
     // If stream is inactive - generate list as if sendrecv.
     case RtpTransceiverDirection::kSendRecv:
     case RtpTransceiverDirection::kStopped:
     case RtpTransceiverDirection::kInactive:
-      return video_sendrecv_codecs_;
+      return video_sendrecv_codecs();
     case RtpTransceiverDirection::kSendOnly:
-      return video_send_codecs_;
+      return video_send_codecs_.codecs();
     case RtpTransceiverDirection::kRecvOnly:
-      return video_recv_codecs_;
+      return video_recv_codecs_.codecs();
   }
   RTC_CHECK_NOTREACHED();
 }
 
-const CodecList& CodecVendor::GetVideoCodecsForAnswer(
+CodecList CodecVendor::GetVideoCodecsForAnswer(
     const RtpTransceiverDirection& offer,
     const RtpTransceiverDirection& answer) const {
   switch (answer) {
@@ -808,30 +817,30 @@ const CodecList& CodecVendor::GetVideoCodecsForAnswer(
       return GetVideoCodecsForOffer(
           webrtc::RtpTransceiverDirectionReversed(offer));
     case RtpTransceiverDirection::kSendOnly:
-      return video_send_codecs_;
+      return video_send_codecs_.codecs();
     case RtpTransceiverDirection::kRecvOnly:
-      return video_recv_codecs_;
+      return video_recv_codecs_.codecs();
   }
   RTC_CHECK_NOTREACHED();
 }
 
-const CodecList& CodecVendor::GetAudioCodecsForOffer(
+CodecList CodecVendor::GetAudioCodecsForOffer(
     const RtpTransceiverDirection& direction) const {
   switch (direction) {
     // If stream is inactive - generate list as if sendrecv.
     case RtpTransceiverDirection::kSendRecv:
     case RtpTransceiverDirection::kStopped:
     case RtpTransceiverDirection::kInactive:
-      return audio_sendrecv_codecs_;
+      return audio_sendrecv_codecs();
     case RtpTransceiverDirection::kSendOnly:
-      return audio_send_codecs_;
+      return audio_send_codecs_.codecs();
     case RtpTransceiverDirection::kRecvOnly:
-      return audio_recv_codecs_;
+      return audio_recv_codecs_.codecs();
   }
   RTC_CHECK_NOTREACHED();
 }
 
-const CodecList& CodecVendor::GetAudioCodecsForAnswer(
+CodecList CodecVendor::GetAudioCodecsForAnswer(
     const RtpTransceiverDirection& offer,
     const RtpTransceiverDirection& answer) const {
   switch (answer) {
@@ -843,60 +852,65 @@ const CodecList& CodecVendor::GetAudioCodecsForAnswer(
       return GetAudioCodecsForOffer(
           webrtc::RtpTransceiverDirectionReversed(offer));
     case RtpTransceiverDirection::kSendOnly:
-      return audio_send_codecs_;
+      return audio_send_codecs_.codecs();
     case RtpTransceiverDirection::kRecvOnly:
-      return audio_recv_codecs_;
+      return audio_recv_codecs_.codecs();
   }
   RTC_CHECK_NOTREACHED();
 }
 
-void CodecVendor::ComputeAudioCodecsIntersectionAndUnion() {
-  audio_sendrecv_codecs_.clear();
-  all_audio_codecs_.clear();
+CodecList CodecVendor::all_video_codecs() const {
+  // Use ComputeCodecsUnion to avoid having duplicate payload IDs
+  return ComputeCodecsUnion(video_recv_codecs_.codecs(),
+                            video_send_codecs_.codecs());
+}
+
+CodecList CodecVendor::all_audio_codecs() const {
   // Compute the audio codecs union.
-  for (const Codec& send : audio_send_codecs_) {
-    all_audio_codecs_.push_back(send);
-    if (!FindMatchingCodec(audio_send_codecs_, audio_recv_codecs_, send)) {
+  CodecList codecs;
+  for (const Codec& send : audio_send_codecs_.codecs()) {
+    codecs.push_back(send);
+    if (!FindMatchingCodec(audio_send_codecs_.codecs(),
+                           audio_recv_codecs_.codecs(), send)) {
       // It doesn't make sense to have an RTX codec we support sending but not
       // receiving.
       RTC_DCHECK(send.GetResiliencyType() != Codec::ResiliencyType::kRtx);
     }
   }
-  for (const Codec& recv : audio_recv_codecs_) {
-    if (!FindMatchingCodec(audio_recv_codecs_, audio_send_codecs_, recv)) {
-      all_audio_codecs_.push_back(recv);
+  for (const Codec& recv : audio_recv_codecs_.codecs()) {
+    if (!FindMatchingCodec(audio_recv_codecs_.codecs(),
+                           audio_send_codecs_.codecs(), recv)) {
+      codecs.push_back(recv);
     }
   }
+  return codecs;
+}
+
+CodecList CodecVendor::audio_sendrecv_codecs() const {
   // Use NegotiateCodecs to merge our codec lists, since the operation is
   // essentially the same. Put send_codecs as the offered_codecs, which is the
   // order we'd like to follow. The reasoning is that encoding is usually more
   // expensive than decoding, and prioritizing a codec in the send list probably
   // means it's a codec we can handle efficiently.
   std::vector<Codec> audio_sendrecv_codecs_vector;
-  NegotiateCodecs(audio_recv_codecs_, audio_send_codecs_,
+  NegotiateCodecs(audio_recv_codecs_.codecs(), audio_send_codecs_.codecs(),
                   &audio_sendrecv_codecs_vector, true);
-  audio_sendrecv_codecs_ = CodecList(audio_sendrecv_codecs_vector);
+  return CodecList(audio_sendrecv_codecs_vector);
 }
 
-void CodecVendor::ComputeVideoCodecsIntersectionAndUnion() {
-  video_sendrecv_codecs_.clear();
-
-  // Use ComputeCodecsUnion to avoid having duplicate payload IDs
-  all_video_codecs_ = ComputeCodecsUnion(CodecList(video_recv_codecs_),
-                                         CodecList(video_send_codecs_));
-
+CodecList CodecVendor::video_sendrecv_codecs() const {
   // Use NegotiateCodecs to merge our codec lists, since the operation is
   // essentially the same. Put send_codecs as the offered_codecs, which is the
   // order we'd like to follow. The reasoning is that encoding is usually more
   // expensive than decoding, and prioritizing a codec in the send list probably
   // means it's a codec we can handle efficiently.
   // Also for the same profile of a codec, if there are different levels in the
-  // send and receive codecs, |video_sendrecv_codecs_| will contain the lower
+  // send and receive codecs, |video_sendrecv_codecs| will contain the lower
   // level of the two for that profile.
   std::vector<Codec> video_sendrecv_codecs_vector;
-  NegotiateCodecs(video_recv_codecs_, video_send_codecs_,
+  NegotiateCodecs(video_recv_codecs_.codecs(), video_send_codecs_.codecs(),
                   &video_sendrecv_codecs_vector, true);
-  video_sendrecv_codecs_ = CodecList(video_sendrecv_codecs_vector);
+  return CodecList(video_sendrecv_codecs_vector);
 }
 
 }  // namespace cricket

@@ -23,6 +23,28 @@
 
 namespace cricket {
 
+// This class vends codecs of a specific type only.
+// It is intended to eventually be owned by the RtpSender and RtpReceiver
+// objects.
+class TypedCodecVendor {
+ public:
+  // Constructor for the case where media engine is not provided. The resulting
+  // vendor will always return an empty codec list.
+  TypedCodecVendor() {}
+  TypedCodecVendor(MediaEngineInterface* media_engine,
+                   MediaType type,
+                   bool is_sender,
+                   bool rtx_enabled);
+  const CodecList& codecs() const { return codecs_; }
+  void set_codecs(const CodecList& codecs) { codecs_ = codecs; }
+  // For easy initialization, copying is allowed.
+  TypedCodecVendor(const TypedCodecVendor& from) = default;
+  TypedCodecVendor& operator=(const TypedCodecVendor& from) = default;
+
+ private:
+  CodecList codecs_;
+};
+
 // This class contains the functions required to compute the list of codecs
 // for SDP offer/answer. It is exposed to MediaSessionDescriptionFactory
 // for the construction of offers and answers.
@@ -30,7 +52,7 @@ namespace cricket {
 // TODO: bugs.webrtc.org/360058654 - complete the architectural changes
 // The list of things to be done:
 // - Make as much as possible private.
-// - Split object usage into a video object and an audio object.
+// - Split object usage into four objects: sender/receiver/audio/video.
 // - Remove audio/video from the call names, merge code where possible.
 // - Make the class instances owned by transceivers, so that codec
 //   lists can differ per transceiver.
@@ -82,40 +104,33 @@ class CodecVendor {
                         const std::vector<Codec>& recv_codecs) {
     set_video_codecs(CodecList(send_codecs), CodecList(recv_codecs));
   }
-  const CodecList& audio_sendrecv_codecs() const;
+  CodecList audio_sendrecv_codecs() const;
   const CodecList& audio_send_codecs() const;
   const CodecList& audio_recv_codecs() const;
-  const CodecList& video_sendrecv_codecs() const;
+  CodecList video_sendrecv_codecs() const;
   const CodecList& video_send_codecs() const;
   const CodecList& video_recv_codecs() const;
 
  private:
-  const CodecList& GetAudioCodecsForOffer(
+  CodecList GetAudioCodecsForOffer(
       const webrtc::RtpTransceiverDirection& direction) const;
-  const CodecList& GetAudioCodecsForAnswer(
+  CodecList GetAudioCodecsForAnswer(
       const webrtc::RtpTransceiverDirection& offer,
       const webrtc::RtpTransceiverDirection& answer) const;
-  const CodecList& GetVideoCodecsForOffer(
+  CodecList GetVideoCodecsForOffer(
       const webrtc::RtpTransceiverDirection& direction) const;
-  const CodecList& GetVideoCodecsForAnswer(
+  CodecList GetVideoCodecsForAnswer(
       const webrtc::RtpTransceiverDirection& offer,
       const webrtc::RtpTransceiverDirection& answer) const;
-  void ComputeAudioCodecsIntersectionAndUnion();
 
-  void ComputeVideoCodecsIntersectionAndUnion();
+  CodecList all_video_codecs() const;
+  CodecList all_audio_codecs() const;
 
-  CodecList audio_send_codecs_;
-  CodecList audio_recv_codecs_;
-  // Intersection of send and recv.
-  CodecList audio_sendrecv_codecs_;
-  // Union of send and recv.
-  CodecList all_audio_codecs_;
-  CodecList video_send_codecs_;
-  CodecList video_recv_codecs_;
-  // Intersection of send and recv.
-  CodecList video_sendrecv_codecs_;
-  // Union of send and recv.
-  CodecList all_video_codecs_;
+  TypedCodecVendor audio_send_codecs_;
+  TypedCodecVendor audio_recv_codecs_;
+
+  TypedCodecVendor video_send_codecs_;
+  TypedCodecVendor video_recv_codecs_;
 };
 
 }  // namespace cricket
