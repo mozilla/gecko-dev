@@ -105,7 +105,9 @@ struct RTC_EXPORT Codec {
 
   // Non key-value parameters such as the telephone-event "0‐15" are
   // represented using an empty string as key, i.e. {"": "0-15"}.
+  // The equivalent of fmtp in SDP.
   webrtc::CodecParameterMap params;
+  // The equivalent of rtcp-fb in SDP.
   FeedbackParams feedback_params;
 
   Codec(const Codec& c);

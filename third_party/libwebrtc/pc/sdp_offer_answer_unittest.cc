@@ -56,7 +56,6 @@
 #include "pc/test/fake_rtc_certificate_generator.h"
 #include "pc/test/integration_test_helpers.h"
 #include "pc/test/mock_peer_connection_observers.h"
-#include "rtc_base/logging.h"
 #include "rtc_base/string_encode.h"
 #include "rtc_base/thread.h"
 #include "system_wrappers/include/metrics.h"
@@ -2277,6 +2276,153 @@ TEST_F(SdpOfferAnswerMungingTest, HeaderExtensionModified) {
   EXPECT_THAT(
       metrics::Samples("WebRTC.PeerConnection.SdpMunging.Offer.Initial"),
       ElementsAre(Pair(SdpMungingType::kRtpHeaderExtensionModified, 1)));
+}
+
+TEST_F(SdpOfferAnswerMungingTest, PayloadTypeChanged) {
+  auto pc = CreatePeerConnection();
+  pc->AddAudioTrack("audio_track", {});
+
+  auto offer = pc->CreateOffer();
+  auto& contents = offer->description()->contents();
+  ASSERT_EQ(contents.size(), 1u);
+  auto* media_description = contents[0].media_description();
+  ASSERT_TRUE(media_description);
+  auto codecs = media_description->codecs();
+  ASSERT_GT(codecs.size(), 0u);
+  codecs[0].id = 19;  // IANA reserved payload type, should not conflict.
+  media_description->set_codecs(codecs);
+
+  RTCError error;
+  EXPECT_TRUE(pc->SetLocalDescription(std::move(offer), &error));
+  EXPECT_THAT(
+      metrics::Samples("WebRTC.PeerConnection.SdpMunging.Offer.Initial"),
+      ElementsAre(Pair(SdpMungingType::kPayloadTypes, 1)));
+}
+
+TEST_F(SdpOfferAnswerMungingTest, AudioCodecsReordered) {
+  auto pc = CreatePeerConnection();
+  pc->AddAudioTrack("audio_track", {});
+
+  auto offer = pc->CreateOffer();
+  auto& contents = offer->description()->contents();
+  ASSERT_EQ(contents.size(), 1u);
+  auto* media_description = contents[0].media_description();
+  ASSERT_TRUE(media_description);
+  auto codecs = media_description->codecs();
+  ASSERT_GT(codecs.size(), 1u);
+  std::swap(codecs[0], codecs[1]);
+  media_description->set_codecs(codecs);
+
+  RTCError error;
+  EXPECT_TRUE(pc->SetLocalDescription(std::move(offer), &error));
+  EXPECT_THAT(
+      metrics::Samples("WebRTC.PeerConnection.SdpMunging.Offer.Initial"),
+      ElementsAre(Pair(SdpMungingType::kAudioCodecsReordered, 1)));
+}
+
+TEST_F(SdpOfferAnswerMungingTest, VideoCodecsReordered) {
+  auto pc = CreatePeerConnection();
+  pc->AddVideoTrack("video_track", {});
+
+  auto offer = pc->CreateOffer();
+  auto& contents = offer->description()->contents();
+  ASSERT_EQ(contents.size(), 1u);
+  auto* media_description = contents[0].media_description();
+  ASSERT_TRUE(media_description);
+  auto codecs = media_description->codecs();
+  ASSERT_GT(codecs.size(), 1u);
+  std::swap(codecs[0], codecs[1]);
+  media_description->set_codecs(codecs);
+
+  RTCError error;
+  EXPECT_TRUE(pc->SetLocalDescription(std::move(offer), &error));
+  EXPECT_THAT(
+      metrics::Samples("WebRTC.PeerConnection.SdpMunging.Offer.Initial"),
+      ElementsAre(Pair(SdpMungingType::kVideoCodecsReordered, 1)));
+}
+
+TEST_F(SdpOfferAnswerMungingTest, AudioCodecsFmtp) {
+  auto pc = CreatePeerConnection();
+  pc->AddAudioTrack("audio_track", {});
+
+  auto offer = pc->CreateOffer();
+  auto& contents = offer->description()->contents();
+  ASSERT_EQ(contents.size(), 1u);
+  auto* media_description = contents[0].media_description();
+  ASSERT_TRUE(media_description);
+  auto codecs = media_description->codecs();
+  ASSERT_GT(codecs.size(), 0u);
+  codecs[0].params["dont"] = "munge";
+  media_description->set_codecs(codecs);
+
+  RTCError error;
+  EXPECT_TRUE(pc->SetLocalDescription(std::move(offer), &error));
+  EXPECT_THAT(
+      metrics::Samples("WebRTC.PeerConnection.SdpMunging.Offer.Initial"),
+      ElementsAre(Pair(SdpMungingType::kAudioCodecsFmtp, 1)));
+}
+
+TEST_F(SdpOfferAnswerMungingTest, VideoCodecsFmtp) {
+  auto pc = CreatePeerConnection();
+  pc->AddVideoTrack("video_track", {});
+
+  auto offer = pc->CreateOffer();
+  auto& contents = offer->description()->contents();
+  ASSERT_EQ(contents.size(), 1u);
+  auto* media_description = contents[0].media_description();
+  ASSERT_TRUE(media_description);
+  auto codecs = media_description->codecs();
+  ASSERT_GT(codecs.size(), 0u);
+  codecs[0].params["dont"] = "munge";
+  media_description->set_codecs(codecs);
+
+  RTCError error;
+  EXPECT_TRUE(pc->SetLocalDescription(std::move(offer), &error));
+  EXPECT_THAT(
+      metrics::Samples("WebRTC.PeerConnection.SdpMunging.Offer.Initial"),
+      ElementsAre(Pair(SdpMungingType::kVideoCodecsFmtp, 1)));
+}
+
+TEST_F(SdpOfferAnswerMungingTest, AudioCodecsRtcpFb) {
+  auto pc = CreatePeerConnection();
+  pc->AddAudioTrack("audio_track", {});
+
+  auto offer = pc->CreateOffer();
+  auto& contents = offer->description()->contents();
+  ASSERT_EQ(contents.size(), 1u);
+  auto* media_description = contents[0].media_description();
+  ASSERT_TRUE(media_description);
+  auto codecs = media_description->codecs();
+  ASSERT_GT(codecs.size(), 0u);
+  codecs[0].feedback_params.Add({"dont", "munge"});
+  media_description->set_codecs(codecs);
+
+  RTCError error;
+  EXPECT_TRUE(pc->SetLocalDescription(std::move(offer), &error));
+  EXPECT_THAT(
+      metrics::Samples("WebRTC.PeerConnection.SdpMunging.Offer.Initial"),
+      ElementsAre(Pair(SdpMungingType::kAudioCodecsRtcpFb, 1)));
+}
+
+TEST_F(SdpOfferAnswerMungingTest, VideoCodecsRtcpFb) {
+  auto pc = CreatePeerConnection();
+  pc->AddVideoTrack("video_track", {});
+
+  auto offer = pc->CreateOffer();
+  auto& contents = offer->description()->contents();
+  ASSERT_EQ(contents.size(), 1u);
+  auto* media_description = contents[0].media_description();
+  ASSERT_TRUE(media_description);
+  auto codecs = media_description->codecs();
+  ASSERT_GT(codecs.size(), 0u);
+  codecs[0].feedback_params.Add({"dont", "munge"});
+  media_description->set_codecs(codecs);
+
+  RTCError error;
+  EXPECT_TRUE(pc->SetLocalDescription(std::move(offer), &error));
+  EXPECT_THAT(
+      metrics::Samples("WebRTC.PeerConnection.SdpMunging.Offer.Initial"),
+      ElementsAre(Pair(SdpMungingType::kVideoCodecsRtcpFb, 1)));
 }
 
 }  // namespace webrtc
