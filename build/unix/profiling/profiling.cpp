@@ -10,6 +10,8 @@
 #  include <unistd.h>
 #  include <errno.h>
 
+#  include "mozilla/Attributes.h"
+
 #  if defined(__cplusplus)
 extern "C" {
 #  endif
