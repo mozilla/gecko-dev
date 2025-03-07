@@ -26,6 +26,15 @@ function waitForEvent(element, eventName) {
 }
 
 function waitForPromptHandled() {
+  if (AppConstants.platform === "android") {
+    return new Promise(resolve => {
+      let MockPromptCollection = SpecialPowers.MockPromptCollection;
+      MockPromptCollection.showConfirmFolderUploadCallback = function() {
+        resolve();
+        return true;
+      };
+    });
+  }
   return new Promise(resolve => promptHandler.addMessageListener("promptAccepted", resolve));
 }
 
@@ -48,7 +57,7 @@ function populateInputFile(aInputFile) {
   var script = SpecialPowers.loadChromeScript(url);
 
   var MockFilePicker = SpecialPowers.MockFilePicker;
-  MockFilePicker.init(SpecialPowers.wrap(window).browsingContext, "A Mock File Picker", SpecialPowers.Ci.nsIFilePicker.modeGetFolder);
+  MockFilePicker.init(SpecialPowers.wrap(window).browsingContext);
 
   async function onOpened(message) {
     MockFilePicker.useDirectory(message.dir);
@@ -135,7 +144,7 @@ async function test_individualSymlink(aInputFile) {
 
   // -- Have the picker pick it
   var MockFilePicker = SpecialPowers.MockFilePicker;
-  MockFilePicker.init(SpecialPowers.wrap(window).browsingContext, "A Mock File Picker", SpecialPowers.Ci.nsIFilePicker.modeOpen);
+  MockFilePicker.init(SpecialPowers.wrap(window).browsingContext);
 
   MockFilePicker.displayDirectory = dir;
   let pickerShown = new Promise(resolve => {
@@ -188,7 +197,7 @@ function test_changeDataWhileWorking() {
   var script = SpecialPowers.loadChromeScript(url);
 
   var MockFilePicker = SpecialPowers.MockFilePicker;
-  MockFilePicker.init(SpecialPowers.wrap(window).browsingContext, "A Mock File Picker", SpecialPowers.Ci.nsIFilePicker.modeGetFolder);
+  MockFilePicker.init(SpecialPowers.wrap(window).browsingContext);
   let promptHandled;
 
   // Let's start retrieving the root nsIFile object
@@ -205,7 +214,7 @@ function test_changeDataWhileWorking() {
   // input.click() pointing to the root dir
   .then(async function(aDir) {
     MockFilePicker.cleanup();
-    MockFilePicker.init(SpecialPowers.wrap(window).browsingContext, "A Mock File Picker", SpecialPowers.Ci.nsIFilePicker.modeGetFolder);
+    MockFilePicker.init(SpecialPowers.wrap(window).browsingContext);
     MockFilePicker.useDirectory(aDir);
     var input = document.getElementById("inputFileDirectoryChange");
 
@@ -232,7 +241,7 @@ function test_changeDataWhileWorking() {
   // Now let's click again and wait for onchange.
   .then(async function(aDir) {
       MockFilePicker.cleanup();
-      MockFilePicker.init(SpecialPowers.wrap(window).browsingContext, "A Mock File Picker", SpecialPowers.Ci.nsIFilePicker.modeGetFolder);
+      MockFilePicker.init(SpecialPowers.wrap(window).browsingContext);
       MockFilePicker.useDirectory(aDir);
 
       let input = document.getElementById("inputFileDirectoryChange");
@@ -252,18 +261,26 @@ function test_changeDataWhileWorking() {
 }
 
 async function test_setup() {
-  let promptHandlerUrl = SimpleTest.getTestFileURL("script_promptHandler.js")
-  promptHandler = SpecialPowers.loadChromeScript(promptHandlerUrl);
+  if (AppConstants.platform === "android") {
+    let MockPromptCollection = SpecialPowers.MockPromptCollection;
+    MockPromptCollection.init(SpecialPowers.wrap(window).browsingContext);
+  } else {
+    let promptHandlerUrl = SimpleTest.getTestFileURL("script_promptHandler.js")
+    promptHandler = SpecialPowers.loadChromeScript(promptHandlerUrl);
 
-  let promptHandlerReady = new Promise(resolve => promptHandler.addMessageListener("initDone", resolve));
-  promptHandler.sendAsyncMessage("init");
-  await promptHandlerReady;
+    let promptHandlerReady = new Promise(resolve => promptHandler.addMessageListener("initDone", resolve));
+    promptHandler.sendAsyncMessage("init");
+    await promptHandlerReady;
+  }
 
   SpecialPowers.pushPrefEnv({"set": [["dom.filesystem.pathcheck.disabled", true],
                                      ["dom.webkitBlink.dirPicker.enabled", true]]}, next);
 }
 
 async function test_cleanup() {
+  if (AppConstants.platform === "android") {
+    return;
+  }
   let promptHandlerDone = new Promise(resolve => promptHandler.addMessageListener("cleanupDone", resolve));
   promptHandler.sendAsyncMessage("cleanup");
   await promptHandlerDone;
