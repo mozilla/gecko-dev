@@ -9,6 +9,7 @@ from collections import defaultdict
 
 import mozpack.path as mozpath
 from mach.decorators import Command, CommandArgument, SubCommand
+from mozpack.files import FileFinder
 
 TOPSRCDIR = os.path.abspath(os.path.join(__file__, "../../../../../"))
 
@@ -281,12 +282,14 @@ def _get_files_info(command_context, paths, rev=None):
 
     # Normalize to relative from topsrcdir.
     relpaths = []
-    for p in paths:
-        a = mozpath.abspath(p)
-        if not mozpath.basedir(a, [command_context.topsrcdir]):
-            raise InvalidPathException("path is outside topsrcdir: %s" % p)
+    finder = FileFinder(command_context.topsrcdir)
+    for path in paths:
+        for p, _ in finder.find(path):
+            a = mozpath.abspath(p)
+            if not mozpath.basedir(a, [command_context.topsrcdir]):
+                raise InvalidPathException("path is outside topsrcdir: %s" % p)
 
-        relpaths.append(mozpath.relpath(a, command_context.topsrcdir))
+            relpaths.append(mozpath.relpath(a, command_context.topsrcdir))
 
     # Expand wildcards.
     # One variable is for ordering. The other for membership tests.
