@@ -34,6 +34,21 @@
   const DIRECTION_BACKWARD = -1;
 
   /**
+   * @param {MozTabbrowserTab|MozTabbrowserTabGroup} element
+   * @returns {boolean}
+   *   `true` if element is a `<tab>`
+   */
+  const isTab = element => !!(element?.tagName == "tab");
+
+  /**
+   * @param {MozTabbrowserTab|MozTextLabel} element
+   * @returns {boolean}
+   *   `true` if element is the `<label>` in a `<tab-group>`
+   */
+  const isTabGroupLabel = element =>
+    !!element?.classList?.contains("tab-group-label");
+
+  /**
    * Updates the User Context UI indicators if the browser is in a non-default context
    */
   function updateUserContextUIIndicator() {
@@ -819,7 +834,7 @@
           this.verticalPinnedTabsContainer.appendChild(aTab)
         );
       } else {
-        this.moveTabTo(aTab, this.pinnedTabCount, { forceStandaloneTab: true });
+        this.moveTabTo(aTab, this.pinnedTabCount, { forceUngrouped: true });
       }
       aTab.setAttribute("pinned", "true");
       this._updateTabBarForPinnedTabs();
@@ -841,7 +856,7 @@
         });
       } else {
         this.moveTabTo(aTab, this.pinnedTabCount - 1, {
-          forceStandaloneTab: true,
+          forceUngrouped: true,
         });
         aTab.removeAttribute("pinned");
       }
@@ -5800,30 +5815,38 @@
     }
 
     /**
-     * @param {MozTabbrowserTab} aTab
+     * @param {MozTabbrowserTab|MozTabbrowserTabGroup} aTab
+     *   The tab or tab group to move. Also accepts a tab group label as a
+     *   stand-in for its group.
      * @param {number} aIndex
      * @param {object} [options]
-     * @param {boolean} [options.forceStandaloneTab=false]
+     * @param {boolean} [options.forceUngrouped=false]
      *   Force `aTab` to move into position as a standalone tab, overriding
      *   any possibility of entering a tab group. For example, setting `true`
      *   ensures that a pinned tab will not accidentally be placed inside of
      *   a tab group, since pinned tabs are presently not allowed in tab groups.
-     * @returns {void}
      */
-    moveTabTo(aTab, aIndex, { forceStandaloneTab = false } = {}) {
-      // Don't allow mixing pinned and unpinned tabs.
-      if (aTab.pinned) {
-        aIndex = Math.min(aIndex, this.pinnedTabCount - 1);
+    moveTabTo(aTab, aIndex, { forceUngrouped = false } = {}) {
+      if (isTab(aTab)) {
+        // Don't allow mixing pinned and unpinned tabs.
+        if (aTab.pinned) {
+          aIndex = Math.min(aIndex, this.pinnedTabCount - 1);
+        } else {
+          aIndex = Math.max(aIndex, this.pinnedTabCount);
+        }
+        if (aTab._tPos == aIndex && !(aTab.group && forceUngrouped)) {
+          return;
+        }
       } else {
-        aIndex = Math.max(aIndex, this.pinnedTabCount);
-      }
-      if (aTab._tPos == aIndex && !(aTab.group && forceStandaloneTab)) {
-        return;
+        forceUngrouped = true;
+        if (isTabGroupLabel(aTab)) {
+          aTab = aTab.group;
+        }
       }
 
       this.#handleTabMove(aTab, () => {
         let neighbor = this.tabs[aIndex];
-        if (forceStandaloneTab && neighbor.group) {
+        if (forceUngrouped && neighbor.group) {
           neighbor = neighbor.group;
         }
         if (neighbor && aIndex > aTab._tPos) {
@@ -5835,7 +5858,7 @@
     }
 
     /**
-     * @param {MozTabbrowserTab} tab
+     * @param {MozTabbrowserTab|MozTabbrowserTabGroup} tab
      * @param {MozTabbrowserTab|MozTabbrowserTabGroup} targetElement
      */
     moveTabBefore(tab, targetElement) {
@@ -5843,7 +5866,7 @@
     }
 
     /**
-     * @param {MozTabbrowserTab[]} tabs
+     * @param {MozTabbrowserTab|MozTabbrowserTabGroup[]} tabs
      * @param {MozTabbrowserTab|MozTabbrowserTabGroup} targetElement
      */
     moveTabsBefore(tabs, targetElement) {
@@ -5851,7 +5874,7 @@
     }
 
     /**
-     * @param {MozTabbrowserTab} tab
+     * @param {MozTabbrowserTab|MozTabbrowserTabGroup} tab
      * @param {MozTabbrowserTab|MozTabbrowserTabGroup} targetElement
      */
     moveTabAfter(tab, targetElement) {
@@ -5859,7 +5882,7 @@
     }
 
     /**
-     * @param {MozTabbrowserTab[]} tabs
+     * @param {MozTabbrowserTab|MozTabbrowserTabGroup[]} tabs
      * @param {MozTabbrowserTab|MozTabbrowserTabGroup} targetElement
      */
     moveTabsAfter(tabs, targetElement) {
@@ -5867,17 +5890,27 @@
     }
 
     /**
-     * @param {MozTabbrowserTab} tab
+     * @param {MozTabbrowserTab|MozTabbrowserTabGroup} tab
+     *   The tab or tab group to move. Also accepts a tab group label as a
+     *   stand-in for its group.
      * @param {MozTabbrowserTab|MozTabbrowserTabGroup} targetElement
      * @param {boolean} moveBefore
      */
     #moveTabNextTo(tab, targetElement, moveBefore = false) {
+      if (isTabGroupLabel(tab)) {
+        tab = tab.group;
+        if (targetElement?.group) {
+          targetElement = targetElement.group;
+        }
+      }
+
       let getContainer = () => {
         if (tab.pinned && this.tabContainer.verticalMode) {
           return this.tabContainer.verticalPinnedTabsContainer;
         }
         return this.tabContainer;
       };
+
       this.#handleTabMove(tab, () => {
         if (moveBefore) {
           getContainer().insertBefore(tab, targetElement);
@@ -5922,7 +5955,7 @@
      */
     #handleTabMove(aTab, moveActionCallback) {
       let wasFocused = document.activeElement == this.selectedTab;
-      let oldPosition = aTab._tPos;
+      let oldPosition = isTab(aTab) && aTab.elementIndex;
 
       moveActionCallback();
 
@@ -5945,12 +5978,11 @@
       }
       // Pinning/unpinning vertical tabs, and moving tabs into tab groups, both bypass moveTabTo.
       // We still want to check whether its worth dispatching an event.
-      if (oldPosition == aTab._tPos) {
-        return;
+      if (isTab(aTab) && oldPosition != aTab.elementIndex) {
+        let evt = document.createEvent("UIEvents");
+        evt.initUIEvent("TabMove", true, false, window, oldPosition);
+        aTab.dispatchEvent(evt);
       }
-      var evt = document.createEvent("UIEvents");
-      evt.initUIEvent("TabMove", true, false, window, oldPosition);
-      aTab.dispatchEvent(evt);
     }
 
     /**
@@ -6075,11 +6107,11 @@
     }
 
     moveTabToStart(aTab = this.selectedTab) {
-      this.moveTabTo(aTab, 0, { forceStandaloneTab: true });
+      this.moveTabTo(aTab, 0, { forceUngrouped: true });
     }
 
     moveTabToEnd(aTab = this.selectedTab) {
-      this.moveTabTo(aTab, this.tabs.length - 1, { forceStandaloneTab: true });
+      this.moveTabTo(aTab, this.tabs.length - 1, { forceUngrouped: true });
     }
 
     /**
