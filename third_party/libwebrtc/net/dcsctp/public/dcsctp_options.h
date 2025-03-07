@@ -176,6 +176,16 @@ struct DcSctpOptions {
   // creating small fragmented packets.
   size_t avoid_fragmentation_cwnd_mtus = 6;
 
+  // When the congestion window is below this number of MTUs, sent data chunks
+  // will have the "I" (Immediate SACK - RFC7053) bit set. That will prevent the
+  // receiver from delaying the SACK, which result in shorter time until the
+  // sender can send the next packet as its driven by SACKs. This can reduce
+  // latency for low utilized and lossy connections.
+  //
+  // Default value set to be same as initial congestion window. Set to zero to
+  // disable.
+  size_t immediate_sack_under_cwnd_mtus = 10;
+
   // The number of packets that may be sent at once. This is limited to avoid
   // bursts that too quickly fill the send buffer. Typically in a a socket in
   // its "slow start" phase (when it sends as much as it can), it will send

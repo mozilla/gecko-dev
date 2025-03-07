@@ -68,6 +68,7 @@ using ::testing::AllOf;
 using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
 using ::testing::Eq;
+using ::testing::Field;
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
 using ::testing::Not;
@@ -3296,6 +3297,92 @@ TEST(DcSctpSocketTest, ConnectionCanContinueFromSecondInitAck) {
   ASSERT_TRUE(msg.has_value());
   EXPECT_EQ(msg->stream_id(), StreamID(1));
   EXPECT_THAT(msg->payload(), SizeIs(kLargeMessageSize));
+}
+
+TEST_P(DcSctpSocketParametrizedTest, LowCongestionWindowSetsIsackBit) {
+  // This test verifies the option `immediate_sack_under_cwnd_mtus`.
+  DcSctpOptions options = {.cwnd_mtus_initial = 4,
+                           .immediate_sack_under_cwnd_mtus = 2};
+  SocketUnderTest a("A", options);
+  SocketUnderTest z("Z");
+
+  ConnectSockets(a, z);
+
+  EXPECT_EQ(a.socket.GetMetrics()->cwnd_bytes,
+            options.cwnd_mtus_initial * options.mtu);
+
+  a.socket.Send(DcSctpMessage(StreamID(1), PPID(51), std::vector<uint8_t>(1)),
+                SendOptions());
+
+  // Drop the first packet, and let T3-rtx fire, which lowers cwnd.
+  auto packet1 = a.cb.ConsumeSentPacket();
+  EXPECT_THAT(packet1,
+              HasChunks(ElementsAre(IsDataChunk(AllOf(
+                  Property(&DataChunk::stream_id, StreamID(1)),
+                  Property(&DataChunk::options,
+                           Field(&AnyDataChunk::Options::immediate_ack,
+                                 AnyDataChunk::ImmediateAckFlag(false))))))));
+
+  AdvanceTime(a, z, a.options.rto_initial.ToTimeDelta());
+  EXPECT_EQ(a.socket.GetMetrics()->cwnd_bytes, 1 * options.mtu);
+
+  // Observe that the retransmission will have the I-SACK bit set.
+  auto packet2 = a.cb.ConsumeSentPacket();
+  z.socket.ReceivePacket(packet2);
+  EXPECT_THAT(packet2,
+              HasChunks(ElementsAre(IsDataChunk(AllOf(
+                  Property(&DataChunk::stream_id, StreamID(1)),
+                  Property(&DataChunk::options,
+                           Field(&AnyDataChunk::Options::immediate_ack,
+                                 AnyDataChunk::ImmediateAckFlag(true))))))));
+
+  // The receiver immediately SACKS. It would even without this bit set.
+  auto packet3 = z.cb.ConsumeSentPacket();
+  a.socket.ReceivePacket(packet3);
+  EXPECT_THAT(packet3, HasChunks(ElementsAre(IsChunkType(SackChunk::kType))));
+
+  // Next sent chunk will also have the i-sack set, as cwnd is low.
+  a.socket.Send(DcSctpMessage(StreamID(1), PPID(53),
+                              std::vector<uint8_t>(kLargeMessageSize)),
+                kSendOptions);
+
+  a.socket.Send(DcSctpMessage(StreamID(1), PPID(51), std::vector<uint8_t>(1)),
+                SendOptions());
+
+  // Observe that the retransmission will have the I-SACK bit set.
+  auto packet4 = a.cb.ConsumeSentPacket();
+  z.socket.ReceivePacket(packet4);
+  EXPECT_THAT(packet4,
+              HasChunks(ElementsAre(IsDataChunk(AllOf(
+                  Property(&DataChunk::stream_id, StreamID(1)),
+                  Property(&DataChunk::options,
+                           Field(&AnyDataChunk::Options::immediate_ack,
+                                 AnyDataChunk::ImmediateAckFlag(true))))))));
+
+  // The receiver would normally delay this sack, but now it's sent directly.
+  auto packet5 = z.cb.ConsumeSentPacket();
+  a.socket.ReceivePacket(packet5);
+  EXPECT_THAT(packet5, HasChunks(ElementsAre(IsChunkType(SackChunk::kType))));
+
+  // Transfer the rest of the message.
+  ExchangeMessages(a, z);
+
+  // This will grow the cwnd, as the message was large.
+  EXPECT_GT(a.socket.GetMetrics()->cwnd_bytes,
+            options.immediate_sack_under_cwnd_mtus * options.mtu);
+
+  // Future chunks will then not have the I-SACK bit set.
+  a.socket.Send(DcSctpMessage(StreamID(1), PPID(51), std::vector<uint8_t>(1)),
+                SendOptions());
+
+  // Drop the first packet, and let T3-rtx fire, which lowers cwnd.
+  auto packet6 = a.cb.ConsumeSentPacket();
+  EXPECT_THAT(packet6,
+              HasChunks(ElementsAre(IsDataChunk(AllOf(
+                  Property(&DataChunk::stream_id, StreamID(1)),
+                  Property(&DataChunk::options,
+                           Field(&AnyDataChunk::Options::immediate_ack,
+                                 AnyDataChunk::ImmediateAckFlag(false))))))));
 }
 
 }  // namespace
