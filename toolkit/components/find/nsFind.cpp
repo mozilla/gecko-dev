@@ -611,6 +611,10 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
 already_AddRefed<nsRange> nsFind::FindFromRangeBoundaries(
     const nsAString& aPatText, const mozilla::RangeBoundary& aStartPoint,
     const mozilla::RangeBoundary& aEndPoint) {
+  if (!aStartPoint.IsSetAndInComposedDoc() ||
+      !aEndPoint.IsSetAndInComposedDoc()) {
+    return nullptr;
+  }
   MOZ_ASSERT(aStartPoint.IsSetAndValid());
   MOZ_ASSERT(aEndPoint.IsSetAndValid());
   // set up node index cache. If there is no cache given from the outside
