@@ -388,6 +388,24 @@ TEST_P(AudioStateTest, AlwaysCallInitRecordingBeforeStartRecording) {
   audio_state->RemoveSendingStream(&stream);
 }
 
+// The recording can also be initialized by WebRtcVoiceSendChannel
+// options_.init_recording_on_send. Make sure StopRecording is still
+// being called in this scenario.
+TEST_P(AudioStateTest, CallStopRecordingIfRecordingIsInitialized) {
+  ConfigHelper helper(GetParam());
+  rtc::scoped_refptr<internal::AudioState> audio_state(
+      rtc::make_ref_counted<internal::AudioState>(helper.config()));
+
+  auto* adm = reinterpret_cast<MockAudioDeviceModule*>(
+      helper.config().audio_device_module.get());
+
+  audio_state->SetRecording(false);
+
+  EXPECT_CALL(*adm, RecordingIsInitialized()).WillOnce(testing::Return(true));
+  EXPECT_CALL(*adm, StopRecording());
+  audio_state->SetRecording(false);
+}
+
 INSTANTIATE_TEST_SUITE_P(AudioStateTest,
                          AudioStateTest,
                          Values(ConfigHelper::Params({false, false}),
