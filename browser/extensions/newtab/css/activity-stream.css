@@ -1448,7 +1448,9 @@ main section {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-line-clamp: 2;
+  white-space: wrap;
+  word-break: break-word;
   line-height: 1.3;
   min-height: 2lh;
   width: 100px;
@@ -1456,14 +1458,8 @@ main section {
 }
 .top-sites-list .top-site-outer .title.sponsored .title-label,
 .fields-and-preview .top-site-outer .title.sponsored .title-label {
+  -webkit-line-clamp: 1;
   min-height: 1lh;
-}
-.top-sites-list .top-site-outer:hover .title:not(.sponsored) .title-label, .top-sites-list .top-site-outer:focus-within .title:not(.sponsored) .title-label,
-.fields-and-preview .top-site-outer:hover .title:not(.sponsored) .title-label,
-.fields-and-preview .top-site-outer:focus-within .title:not(.sponsored) .title-label {
-  -webkit-line-clamp: 2;
-  white-space: wrap;
-  word-break: break-word;
 }
 
 @keyframes fade-up-tt {
