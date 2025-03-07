@@ -52,7 +52,9 @@ def os_from_name(name):
 # Add names of builders to remove from LKGR finder to this list. This is
 # useful when a failure can be safely ignored while fixing it without
 # blocking the LKGR finder on it.
-skipped_lkgr_bots = []
+skipped_lkgr_bots = [
+    "iOS Debug (simulator)",
+]
 
 # Use LUCI Scheduler BBv2 names and add Scheduler realms configs.
 lucicfg.enable_experiment("crbug.com/1182002")
