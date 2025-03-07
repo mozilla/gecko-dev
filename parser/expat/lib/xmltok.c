@@ -1758,11 +1758,3 @@ XmlInitUnknownEncodingNS(void *mem,
 }
 
 #endif /* XML_NS */
-
-/* BEGIN MOZILLA CHANGE (Mozilla extensions for QName checking) */
-#ifdef MOZILLA_CLIENT
-#ifndef MOZ_IN_WASM_SANDBOX
-#include "moz_extensions.c"
-#endif
-#endif /* MOZILLA_CLIENT */
-/* END MOZILLA CHANGE */
