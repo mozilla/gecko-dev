@@ -150,7 +150,6 @@ allprojects {
     // NOTE: Kotlin code indexing is currently removed due to lack of Kotlin 2.x support (see bug 1938622)
     if (mozconfig.substs.ENABLE_MOZSEARCH_PLUGIN || mozconfig.substs.DOWNLOAD_ALL_GRADLE_DEPENDENCIES) {
         def targetRoot = new File(topobjdir, "mozsearch_java_index")
-        def semanticdbJavacVersion = "com.sourcegraph:semanticdb-javac:0.10.3"
 
         afterEvaluate {
             def addDependencyToConfigurationIfExists = { configurationName, dependency ->
@@ -160,9 +159,9 @@ allprojects {
                 }
             }
 
-            addDependencyToConfigurationIfExists("compileOnly", semanticdbJavacVersion)
-            addDependencyToConfigurationIfExists("testCompileOnly", semanticdbJavacVersion)
-            addDependencyToConfigurationIfExists("androidTestCompileOnly", semanticdbJavacVersion)
+            addDependencyToConfigurationIfExists("compileOnly", libs.semanticdb.java)
+            addDependencyToConfigurationIfExists("testCompileOnly", libs.semanticdb.java)
+            addDependencyToConfigurationIfExists("androidTestCompileOnly", libs.semanticdb.java)
         }
 
         tasks.withType(JavaCompile) {

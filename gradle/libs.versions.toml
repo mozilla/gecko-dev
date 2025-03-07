@@ -54,8 +54,6 @@ transition = "1.5.1"
 viewpager2 = "1.1.0"
 work = "2.10.0"
 
-protobuf-plugin = "0.9.4"
-
 # Google versions
 accompanist = "0.37.0"
 firebase-messaging = "24.1.0"
@@ -66,6 +64,10 @@ play-services-ads-id = "18.1.0"
 play-services-base = "18.5.0"
 play-services-fido = "21.1.0"
 protobuf = "4.29.0" # Keep Protobuf in sync with the version used by AppServices.
+
+# Gradle plugins
+protobuf-plugin = "0.9.4"
+scip-java = "0.10.4"
 
 # Kotlin versions
 coroutines = "1.10.1"
@@ -221,6 +223,9 @@ play-services-base = { group = "com.google.android.gms", name = "play-services-b
 play-services-fido = { group = "com.google.android.gms", name = "play-services-fido", version.ref = "play-services-fido" }
 protobuf-compiler = { group = "com.google.protobuf", name = "protoc", version.ref = "protobuf" }
 protobuf-javalite = { group = "com.google.protobuf", name = "protobuf-javalite", version.ref = "protobuf" }
+
+# Gradle plugins
+semanticdb-java = { group = "com.sourcegraph", name = "semanticdb-javac", version.ref = "scip-java" }
 
 glean-gradle-plugin = { group = "org.mozilla.telemetry", name = "glean-gradle-plugin", version.ref = "mozilla-glean" }
 kotlin-annotations-jvm = { group = "org.jetbrains.kotlin", name = "kotlin-annotations-jvm", version.ref = "kotlin" }
