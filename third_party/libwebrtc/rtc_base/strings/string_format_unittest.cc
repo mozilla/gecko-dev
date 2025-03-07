@@ -17,7 +17,7 @@
 #include "rtc_base/string_encode.h"
 #include "test/gtest.h"
 
-namespace rtc {
+namespace webrtc {
 
 TEST(StringFormatTest, Empty) {
   EXPECT_EQ("", StringFormat("%s", ""));
@@ -49,4 +49,4 @@ TEST(StringFormatTest, FormatStringView) {
   EXPECT_EQ(formatted.compare("We have a substring."), 0);
 }
 
-}  // namespace rtc
+}  // namespace webrtc

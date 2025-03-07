@@ -2452,17 +2452,17 @@ void WebRtcVoiceReceiveChannel::OnDemuxerCriteriaUpdateComplete() {}
 
 bool WebRtcVoiceReceiveChannel::SetOutputVolume(uint32_t ssrc, double volume) {
   RTC_DCHECK_RUN_ON(worker_thread_);
-  RTC_LOG(LS_INFO) << rtc::StringFormat("WRVMC::%s({ssrc=%u}, {volume=%.2f})",
-                                        __func__, ssrc, volume);
+  RTC_LOG(LS_INFO) << webrtc::StringFormat(
+      "WRVMC::%s({ssrc=%u}, {volume=%.2f})", __func__, ssrc, volume);
   const auto it = recv_streams_.find(ssrc);
   if (it == recv_streams_.end()) {
-    RTC_LOG(LS_WARNING) << rtc::StringFormat(
+    RTC_LOG(LS_WARNING) << webrtc::StringFormat(
         "WRVMC::%s => (WARNING: no receive stream for SSRC %u)", __func__,
         ssrc);
     return false;
   }
   it->second->SetOutputVolume(volume);
-  RTC_LOG(LS_INFO) << rtc::StringFormat(
+  RTC_LOG(LS_INFO) << webrtc::StringFormat(
       "WRVMC::%s => (stream with SSRC %u now uses volume %.2f)", __func__, ssrc,
       volume);
   return true;

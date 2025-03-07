@@ -115,8 +115,7 @@ bool RemoteAudioSource::remote() const {
 void RemoteAudioSource::SetVolume(double volume) {
   RTC_DCHECK_GE(volume, 0);
   RTC_DCHECK_LE(volume, 10);
-  RTC_LOG(LS_INFO) << rtc::StringFormat("RAS::%s({volume=%.2f})", __func__,
-                                        volume);
+  RTC_LOG(LS_INFO) << StringFormat("RAS::%s({volume=%.2f})", __func__, volume);
   for (auto* observer : audio_observers_) {
     observer->OnSetVolume(volume);
   }

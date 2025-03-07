@@ -167,7 +167,8 @@ class SctpActor : public DcSctpSocketCallbacks {
     double bitrate_mbps =
         static_cast<double>(received_bytes_ * 8) / duration.ms() / 1000;
     RTC_LOG(LS_INFO) << log_prefix()
-                     << rtc::StringFormat("Received %0.2f Mbps", bitrate_mbps);
+                     << webrtc::StringFormat("Received %0.2f Mbps",
+                                             bitrate_mbps);
 
     received_bitrate_mbps_.push_back(bitrate_mbps);
     received_bytes_ = 0;

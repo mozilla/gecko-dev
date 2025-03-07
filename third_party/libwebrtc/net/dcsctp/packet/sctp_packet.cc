@@ -139,7 +139,7 @@ std::optional<SctpPacket> SctpPacket::Parse(rtc::ArrayView<const uint8_t> data,
     BoundedByteWriter<kHeaderSize>(data_copy).Store32<8>(0);
     uint32_t calculated_checksum = GenerateCrc32C(data_copy);
     if (calculated_checksum != common_header.checksum) {
-      RTC_DLOG(LS_WARNING) << rtc::StringFormat(
+      RTC_DLOG(LS_WARNING) << webrtc::StringFormat(
           "Invalid packet checksum, packet_checksum=0x%08x, "
           "calculated_checksum=0x%08x",
           common_header.checksum, calculated_checksum);

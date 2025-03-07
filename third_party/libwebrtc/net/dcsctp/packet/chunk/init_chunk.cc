@@ -81,8 +81,8 @@ void InitChunk::SerializeTo(std::vector<uint8_t>& out) const {
 }
 
 std::string InitChunk::ToString() const {
-  return rtc::StringFormat("INIT, initiate_tag=0x%0x, initial_tsn=%u",
-                           *initiate_tag(), *initial_tsn());
+  return webrtc::StringFormat("INIT, initiate_tag=0x%0x, initial_tsn=%u",
+                              *initiate_tag(), *initial_tsn());
 }
 
 }  // namespace dcsctp
