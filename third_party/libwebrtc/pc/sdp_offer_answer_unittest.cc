@@ -50,6 +50,7 @@
 #include "media/base/stream_params.h"
 #include "p2p/base/transport_description.h"
 #include "pc/peer_connection_wrapper.h"
+#include "pc/rtp_parameters_conversion.h"
 #include "pc/session_description.h"
 #include "pc/test/fake_audio_capture_module.h"
 #include "pc/test/fake_rtc_certificate_generator.h"
@@ -75,6 +76,7 @@ using ::testing::IsTrue;
 using RTCConfiguration = PeerConnectionInterface::RTCConfiguration;
 using ::testing::ElementsAre;
 using ::testing::Pair;
+using ::testing::SizeIs;
 
 namespace {
 
@@ -1252,6 +1254,136 @@ TEST_F(SdpOfferAnswerTest, MsidSignalingUnknownRespondsWithMsidAndKeepsSsrc) {
   EXPECT_EQ(first_stream_serialized, second_stream_serialized);
   EXPECT_TRUE(pc->SetLocalDescription(std::move(reoffer)));
 }
+
+// Runs for each payload type in the valid dynamic ranges.
+class SdpOfferAnswerWithPayloadTypeTest
+    : public SdpOfferAnswerTest,
+      public testing::WithParamInterface<int> {
+ public:
+  static std::vector<int> GetAllPayloadTypesInValidDynamicRange() {
+    std::vector<int> payload_types;
+    // The lower range is [35, 63].
+    for (int pt = 35; pt <= 63; ++pt) {
+      payload_types.push_back(pt);
+    }
+    // The upper range is [96, 127].
+    for (int pt = 96; pt <= 127; ++pt) {
+      payload_types.push_back(pt);
+    }
+    return payload_types;
+  }
+};
+
+TEST_P(SdpOfferAnswerWithPayloadTypeTest,
+       FollowUpOfferDoesNotRepurposePayloadType) {
+  int payload_type = GetParam();
+  std::string payload_type_str = rtc::ToString(payload_type);
+
+  auto pc = CreatePeerConnection();
+  std::string sdp =
+      "v=0\r\n"
+      "o=- 8506393630701383055 2 IN IP4 127.0.0.1\r\n"
+      "s=-\r\n"
+      "t=0 0\r\n"
+      "a=group:BUNDLE 0\r\n"
+      "a=extmap-allow-mixed\r\n"
+      "a=msid-semantic: WMS\r\n"
+      "m=video 9 UDP/TLS/RTP/SAVPF " +
+      payload_type_str +
+      "\r\n"
+      "c=IN IP4 0.0.0.0\r\n"
+      "a=rtcp:9 IN IP4 0.0.0.0\r\n"
+      "a=ice-ufrag:7ZPs\r\n"
+      "a=ice-pwd:3/ZaqZrZaVzg1Tfju5x3CGeJ\r\n"
+      "a=ice-options:trickle\r\n"
+      "a=fingerprint:sha-256 7D:29:C5:B8:D2:30:57:F3:0D:CA:0A:8E:4B:6A:AE:53:26"
+      ":9F:14:DF:47:8E:0C:A3:EC:8D:B1:71:B5:D5:5A:9C\r\n"
+      "a=setup:actpass\r\n"
+      "a=mid:0\r\n"
+      "a=extmap:9 urn:ietf:params:rtp-hdrext:sdes:mid\r\n"
+      "a=sendrecv\r\n"
+      "a=msid:- e2628265-b712-40de-81c9-76d49b7079a0\r\n"
+      "a=rtcp-mux\r\n"
+      "a=rtcp-rsize\r\n"
+      "a=rtpmap:" +
+      payload_type_str +
+      " VP9/90000\r\n"
+      "a=rtcp-fb:" +
+      payload_type_str +
+      " goog-remb\r\n"
+      "a=rtcp-fb:" +
+      payload_type_str +
+      " transport-cc\r\n"
+      "a=rtcp-fb:" +
+      payload_type_str +
+      " ccm fir\r\n"
+      "a=rtcp-fb:" +
+      payload_type_str +
+      " nack\r\n"
+      "a=rtcp-fb:" +
+      payload_type_str +
+      " nack pli\r\n"
+      "a=fmtp:" +
+      payload_type_str +
+      " profile-id=0\r\n"
+      "a=ssrc:2245042191 cname:A206VC6FXsn47EwJ\r\n"
+      "a=ssrc:2245042191 msid:- e2628265-b712-40de-81c9-76d49b7079a0\r\n";
+
+  // Set remote offer with given PT for VP9.
+  EXPECT_TRUE(
+      pc->SetRemoteDescription(CreateSessionDescription(SdpType::kOffer, sdp)));
+  // The answer should accept the PT for VP9.
+  auto answer = pc->CreateAnswer();
+  {
+    const auto* mid_0 = answer->description()->GetContentDescriptionByName("0");
+    ASSERT_TRUE(mid_0);
+    ASSERT_THAT(mid_0->codecs(), SizeIs(1));
+    const auto& codec = mid_0->codecs()[0];
+    EXPECT_EQ(codec.name, "VP9");
+    EXPECT_EQ(codec.id, payload_type);
+    std::string param;
+    EXPECT_TRUE(codec.GetParam("profile-id", &param));
+    EXPECT_EQ(param, "0");
+  }
+
+  EXPECT_TRUE(pc->SetLocalDescription(std::move(answer)));
+  // The follow-up offer should continue to use the same PT for VP9.
+  auto offer = pc->CreateOffer();
+  {
+    const auto* mid_0 = offer->description()->GetContentDescriptionByName("0");
+    ASSERT_TRUE(mid_0);
+    // We should have more codecs to offer than the one previously negotiated.
+    const auto& codecs = mid_0->codecs();
+    ASSERT_GT(codecs.size(), 1u);
+    // The previously negotiated PT should still map to the same VP9 codec.
+    auto it = std::find_if(
+        codecs.begin(), codecs.end(),
+        [&](const cricket::Codec& codec) { return codec.id == payload_type; });
+    ASSERT_TRUE(it != codecs.end());
+    const auto& vp9_codec = *it;
+    EXPECT_EQ(vp9_codec.name, "VP9");
+    EXPECT_EQ(vp9_codec.id, payload_type);
+    std::string param;
+    EXPECT_TRUE(vp9_codec.GetParam("profile-id", &param));
+    EXPECT_EQ(param, "0");
+    // None of the other codecs should collide with our VP9 PT.
+    for (const auto& codec : codecs) {
+      if (codec == vp9_codec) {
+        continue;
+      }
+      EXPECT_NE(codec.id, vp9_codec.id);
+    }
+  }
+  // Last sanity check: it's always possible to set an unmunged local offer.
+  EXPECT_TRUE(pc->SetLocalDescription(std::move(offer)));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    SdpOfferAnswerWithPayloadTypeTest,
+    SdpOfferAnswerWithPayloadTypeTest,
+    ::testing::ValuesIn(SdpOfferAnswerWithPayloadTypeTest::
+                            GetAllPayloadTypesInValidDynamicRange()),
+    ::testing::PrintToStringParamName());
 
 // Test variant with boolean order for audio-video and video-audio.
 class SdpOfferAnswerShuffleMediaTypes
