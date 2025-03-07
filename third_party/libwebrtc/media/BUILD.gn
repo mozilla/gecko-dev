@@ -857,6 +857,7 @@ if (rtc_include_tests) {
       "../api:call_api",
       "../api:fec_controller_api",
       "../api:frame_transformer_interface",
+      "../api:make_ref_counted",
       "../api:rtc_error",
       "../api:rtp_headers",
       "../api:rtp_parameters",

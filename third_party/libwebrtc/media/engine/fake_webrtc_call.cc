@@ -10,21 +10,51 @@
 
 #include "media/engine/fake_webrtc_call.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <map>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
+#include "api/adaptation/resource.h"
+#include "api/audio_codecs/audio_format.h"
 #include "api/call/audio_sink.h"
+#include "api/crypto/frame_decryptor_interface.h"
 #include "api/environment/environment.h"
+#include "api/frame_transformer_interface.h"
+#include "api/make_ref_counted.h"
+#include "api/media_types.h"
+#include "api/rtc_error.h"
+#include "api/rtp_headers.h"
+#include "api/rtp_parameters.h"
+#include "api/rtp_sender_interface.h"
+#include "api/scoped_refptr.h"
+#include "api/task_queue/task_queue_base.h"
 #include "api/units/timestamp.h"
+#include "api/video/video_source_interface.h"
+#include "api/video_codecs/video_codec.h"
+#include "api/video_codecs/video_encoder.h"
+#include "call/audio_receive_stream.h"
+#include "call/audio_send_stream.h"
+#include "call/call.h"
+#include "call/flexfec_receive_stream.h"
 #include "call/packet_receiver.h"
+#include "call/video_receive_stream.h"
+#include "call/video_send_stream.h"
 #include "media/base/media_channel.h"
+#include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "modules/rtp_rtcp/source/rtp_util.h"
+#include "rtc_base/buffer.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/gunit.h"
+#include "rtc_base/copy_on_write_buffer.h"
+#include "rtc_base/network/sent_packet.h"
 #include "rtc_base/thread.h"
+#include "test/gtest.h"
 #include "video/config/encoder_stream_factory.h"
+#include "video/config/video_encoder_config.h"
 
 namespace cricket {
 
@@ -522,6 +552,7 @@ webrtc::NetworkState FakeCall::GetNetworkState(webrtc::MediaType media) const {
       return video_network_state_;
     case webrtc::MediaType::DATA:
     case webrtc::MediaType::ANY:
+    case webrtc::MediaType::UNSUPPORTED:
       ADD_FAILURE() << "GetNetworkState called with unknown parameter.";
       return webrtc::kNetworkDown;
   }
@@ -722,6 +753,7 @@ void FakeCall::SignalChannelNetworkState(webrtc::MediaType media,
       break;
     case webrtc::MediaType::DATA:
     case webrtc::MediaType::ANY:
+    case webrtc::MediaType::UNSUPPORTED:
       ADD_FAILURE()
           << "SignalChannelNetworkState called with unknown parameter.";
   }
