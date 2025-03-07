@@ -965,6 +965,7 @@ if (rtc_include_tests) {
       defines = []
       deps = [
         ":codec",
+        ":codec_list",
         ":media_channel",
         ":media_constants",
         ":media_engine",
@@ -1101,6 +1102,7 @@ if (rtc_include_tests) {
 
       sources = [
         "base/codec_comparators_unittest.cc",
+        "base/codec_list_unittest.cc",
         "base/codec_unittest.cc",
         "base/media_engine_unittest.cc",
         "base/rtp_utils_unittest.cc",
