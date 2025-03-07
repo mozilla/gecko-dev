@@ -163,6 +163,7 @@ if (rtc_include_tests && !build_with_chromium) {
     "../resources/near88_stereo.pcm",
     "../resources/near8_stereo.pcm",
     "../resources/near96_stereo.pcm",
+    "../resources/photo_1850_1110.yuv",
     "../resources/ref03.aecdump",
     "../resources/remote_bitrate_estimator/VideoSendersTest_BweTest_IncreasingChoke1_0_AST.bin",
     "../resources/remote_bitrate_estimator/VideoSendersTest_BweTest_IncreasingChoke1_0_TOF.bin",
@@ -199,7 +200,7 @@ if (rtc_include_tests && !build_with_chromium) {
     bundle_data("modules_unittests_bundle_data") {
       testonly = true
       sources = modules_unittests_resources
-      outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
+      outputs = [ "{{bundle_resources_dir}}/{{source_root_relative_dir}}/{{source_file_part}}" ]
     }
   }
 
