@@ -205,6 +205,39 @@ final class BasicGeckoViewPrompt implements GeckoSession.PromptDelegate {
     return res;
   }
 
+  @Nullable
+  @Override
+  public GeckoResult<PromptResponse> onFolderUploadPrompt(
+      final GeckoSession session, final FolderUploadPrompt prompt) {
+    final Activity activity = mActivity;
+    if (activity == null) {
+      return GeckoResult.fromValue(prompt.dismiss());
+    }
+    final AlertDialog.Builder builder =
+        new AlertDialog.Builder(activity)
+            .setTitle(R.string.folder_upload_title)
+            .setMessage(R.string.folder_upload_message);
+
+    final GeckoResult<PromptResponse> res = new GeckoResult<>();
+
+    final DialogInterface.OnClickListener listener =
+        (dialog, which) -> {
+          if (which == DialogInterface.BUTTON_POSITIVE) {
+            res.complete(prompt.confirm(AllowOrDeny.ALLOW));
+          } else if (which == DialogInterface.BUTTON_NEGATIVE) {
+            res.complete(prompt.confirm(AllowOrDeny.DENY));
+          } else {
+            res.complete(prompt.dismiss());
+          }
+        };
+
+    builder.setPositiveButton(R.string.folder_upload_confirm_accept, listener);
+    builder.setNegativeButton(R.string.folder_upload_confirm_cancel, listener);
+
+    createStandardDialog(builder, prompt, res).show();
+    return res;
+  }
+
   private int getViewPadding(final AlertDialog.Builder builder) {
     final TypedArray attr =
         builder
@@ -857,12 +890,34 @@ final class BasicGeckoViewPrompt implements GeckoSession.PromptDelegate {
     return res;
   }
 
+  private GeckoResult<PromptResponse> onFolderPrompt(
+      final GeckoSession session, final FilePrompt prompt) {
+    final Activity activity = mActivity;
+    final Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+    intent.addCategory(Intent.CATEGORY_DEFAULT);
+    final GeckoResult<PromptResponse> res = new GeckoResult<PromptResponse>();
+
+    try {
+      mFileResponse = res;
+      mFilePrompt = prompt;
+      activity.startActivityForResult(intent, filePickerRequestCode);
+    } catch (final ActivityNotFoundException e) {
+      Log.e(LOGTAG, "Cannot launch activity", e);
+      return GeckoResult.fromValue(prompt.dismiss());
+    }
+    return res;
+  }
+
   @Override
   @TargetApi(19)
   public GeckoResult<PromptResponse> onFilePrompt(GeckoSession session, FilePrompt prompt) {
     final Activity activity = mActivity;
     if (activity == null) {
       return GeckoResult.fromValue(prompt.dismiss());
+    }
+
+    if (prompt.type == FilePrompt.Type.FOLDER) {
+      return onFolderPrompt(session, prompt);
     }
 
     // Merge all given MIME types into one, using wildcard if needed.
@@ -951,6 +1006,8 @@ final class BasicGeckoViewPrompt implements GeckoSession.PromptDelegate {
         uris.add(clip.getItemAt(i).getUri());
       }
       res.complete(prompt.confirm(mActivity, uris.toArray(new Uri[uris.size()])));
+    } else if (prompt.type == FilePrompt.Type.FOLDER) {
+      res.complete(prompt.confirm(mActivity, uri));
     }
   }
 

@@ -11,9 +11,7 @@ import static org.mozilla.geckoview.GeckoSession.GeckoPrintException.ERROR_NO_PR
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
-import android.content.ContentResolver;
 import android.content.Context;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.Point;
@@ -27,6 +25,7 @@ import android.os.IInterface;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.SystemClock;
+import android.provider.DocumentsContract;
 import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
@@ -5503,6 +5502,42 @@ public class GeckoSession {
     }
 
     /**
+     * FolderUploadPrompt represents a prompt shown whenever the browser needs to upload folder data
+     */
+    class FolderUploadPrompt extends BasePrompt {
+      /** The directory name to confirm folder tries to uploading. */
+      public final @Nullable String directoryName;
+
+      /**
+       * A constructor for FolderUploadPrompt
+       *
+       * @param id The identification for this prompt.
+       * @param directoryName The directory that is confirmed.
+       * @param observer A callback to notify when the prompt has been completed.
+       */
+      protected FolderUploadPrompt(
+          @NonNull final String id,
+          @Nullable final String directoryName,
+          @NonNull final Observer observer) {
+        super(id, null, observer);
+        this.directoryName = directoryName;
+      }
+
+      /**
+       * Confirms the prompt.
+       *
+       * @param allowOrDeny whether the browser should allow resubmitting data.
+       * @return A {@link PromptResponse} which can be used to complete the {@link GeckoResult}
+       *     associated with this prompt.
+       */
+      @UiThread
+      public @NonNull PromptResponse confirm(final @Nullable AllowOrDeny allowOrDeny) {
+        ensureResult().putBoolean("allow", allowOrDeny != AllowOrDeny.DENY);
+        return super.confirm();
+      }
+    }
+
+    /**
      * RepostConfirmPrompt represents a prompt shown whenever the browser needs to resubmit POST
      * data (e.g. due to page refresh).
      */
@@ -6372,7 +6407,7 @@ public class GeckoSession {
      */
     class FilePrompt extends BasePrompt {
       @Retention(RetentionPolicy.SOURCE)
-      @IntDef({Type.SINGLE, Type.MULTIPLE})
+      @IntDef({Type.SINGLE, Type.MULTIPLE, Type.FOLDER})
       public @interface FileType {}
 
       /** Types of file prompts. */
@@ -6382,6 +6417,9 @@ public class GeckoSession {
 
         /** Prompt for multiple files. */
         public static final int MULTIPLE = 2;
+
+        /** Prompt for directory. */
+        public static final int FOLDER = 3;
 
         protected Type() {}
       }
@@ -6458,7 +6496,7 @@ public class GeckoSession {
       @UiThread
       public @NonNull PromptResponse confirm(
           @NonNull final Context context, @NonNull final Uri[] uris) {
-        if (Type.SINGLE == type && (uris == null || uris.length != 1)) {
+        if ((Type.SINGLE == type || Type.FOLDER == type) && (uris == null || uris.length != 1)) {
           throw new IllegalArgumentException();
         }
 
@@ -6483,33 +6521,14 @@ public class GeckoSession {
         if ("file".equals(uri.getScheme())) {
           return uri.getPath();
         }
-        final ContentResolver cr = context.getContentResolver();
-        final Cursor cur =
-            cr.query(
-                uri,
-                new String[] {"_data"}, /* selection */
-                null,
-                /* args */ null, /* sort */
-                null);
-        if (cur == null) {
-          return null;
-        }
-        try {
-          final int idx = cur.getColumnIndex("_data");
-          if (idx < 0 || !cur.moveToFirst()) {
-            return null;
+        if ("content".equals(uri.getScheme())) {
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && DocumentsContract.isTreeUri(uri)) {
+            return IntentUtils.resolveTreeUri(context, uri);
           }
-          do {
-            try {
-              final String path = cur.getString(idx);
-              if (path != null && !path.isEmpty()) {
-                return path;
-              }
-            } catch (final Exception e) {
-            }
-          } while (cur.moveToNext());
-        } finally {
-          cur.close();
+          if (DocumentsContract.isDocumentUri(context, uri)) {
+            return IntentUtils.resolveDocumentUri(context, uri);
+          }
+          return IntentUtils.resolveContentUri(context, uri);
         }
         return null;
       }
@@ -6706,6 +6725,20 @@ public class GeckoSession {
     @UiThread
     default @Nullable GeckoResult<PromptResponse> onButtonPrompt(
         @NonNull final GeckoSession session, @NonNull final ButtonPrompt prompt) {
+      return null;
+    }
+
+    /**
+     * Display a folder upload prompt.
+     *
+     * @param session GeckoSession that triggered the prompt.
+     * @param prompt The {@link FolderUploadPrompt} that describes the prompt.
+     * @return A {@link GeckoResult} resolving to a {@link PromptResponse} which includes all
+     *     necessary information to resolve the prompt.
+     */
+    @UiThread
+    default @Nullable GeckoResult<PromptResponse> onFolderUploadPrompt(
+        @NonNull final GeckoSession session, @NonNull final FolderUploadPrompt prompt) {
       return null;
     }
 

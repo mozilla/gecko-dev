@@ -32,9 +32,14 @@ export class PromptCollection {
     }).then(result => !!result?.allow);
   }
 
-  confirmFolderUpload() {
-    // Folder upload is not supported by GeckoView yet, see Bug 1674428.
-    return false;
+  confirmFolderUpload(browsingContext, directoryName) {
+    const msg = {
+      type: "folderUpload",
+      directoryName,
+    };
+    const prompter = new lazy.GeckoViewPrompter(browsingContext);
+    const result = prompter.showPrompt(msg);
+    return !!result?.allow;
   }
 }
 

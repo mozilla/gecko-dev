@@ -16,18 +16,26 @@ const { debug, warn } = GeckoViewUtils.initLogging("FilePickerDelegate");
 export class FilePickerDelegate {
   /* ----------  nsIFilePicker  ---------- */
   init(aBrowsingContext, aTitle, aMode) {
-    if (
-      aMode === Ci.nsIFilePicker.modeGetFolder ||
-      aMode === Ci.nsIFilePicker.modeSave
-    ) {
-      throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
+    let mode;
+    switch (aMode) {
+      case Ci.nsIFilePicker.modeOpen:
+        mode = "single";
+        break;
+      case Ci.nsIFilePicker.modeGetFolder:
+        mode = "folder";
+        break;
+      case Ci.nsIFilePicker.modeOpenMultiple:
+        mode = "multiple";
+        break;
+      default:
+        throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
     }
     this._browsingContext = aBrowsingContext;
     this._prompt = new lazy.GeckoViewPrompter(aBrowsingContext);
     this._msg = {
       type: "file",
       title: aTitle,
-      mode: aMode === Ci.nsIFilePicker.modeOpenMultiple ? "multiple" : "single",
+      mode,
     };
     this._mode = aMode;
     this._mimeTypes = [];
@@ -68,10 +76,10 @@ export class FilePickerDelegate {
 
     try {
       for (const file of aFiles) {
-        const domFile = await this._getDOMFile(file);
+        const domFileOrDir = await this._getDOMFileOrDir(file);
         fileData.push({
           file,
-          domFile,
+          domFileOrDir,
         });
       }
     } catch (ex) {
@@ -106,7 +114,7 @@ export class FilePickerDelegate {
 
     for (const fileData of this._fileData) {
       if (aDOMFile) {
-        yield fileData.domFile;
+        yield fileData.domFileOrDir;
       }
       yield new lazy.FileUtils.File(fileData.file);
     }
@@ -114,6 +122,20 @@ export class FilePickerDelegate {
 
   get files() {
     return this._getEnumerator(/* aDOMFile */ false);
+  }
+
+  _getDOMFileOrDir(aPath) {
+    if (this.mode == Ci.nsIFilePicker.modeGetFolder) {
+      return this._getDOMDir(aPath);
+    }
+    return this._getDOMFile(aPath);
+  }
+
+  _getDOMDir(aPath) {
+    if (this._prompt.domWin) {
+      return new this._prompt.domWin.Directory(aPath);
+    }
+    return new Directory(aPath);
   }
 
   _getDOMFile(aPath) {
@@ -127,7 +149,7 @@ export class FilePickerDelegate {
     if (!this._fileData) {
       throw Components.Exception("", Cr.NS_ERROR_NOT_AVAILABLE);
     }
-    return this._fileData[0] ? this._fileData[0].domFile : null;
+    return this._fileData[0]?.domFileOrDir;
   }
 
   get domFileOrDirectoryEnumerator() {

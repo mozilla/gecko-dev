@@ -175,4 +175,9 @@
     <string name="repost_confirm_title">Are you sure?</string>
     <string name="repost_confirm_resend">Resend</string>
     <string name="repost_confirm_cancel">Cancel</string>
+
+    <string name="folder_upload_message">Are you sure you want to upload all files? Only do this if you trust the site.</string>
+    <string name="folder_upload_title">Confirm Upload</string>
+    <string name="folder_upload_confirm_accept">Upload</string>
+    <string name="folder_upload_confirm_cancel">Cancel</string>
 </resources>

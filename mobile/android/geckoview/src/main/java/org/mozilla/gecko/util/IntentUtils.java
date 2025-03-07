@@ -6,13 +6,26 @@
 
 package org.mozilla.gecko.util;
 
+import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.provider.DocumentsContract;
+import android.util.Log;
 import java.net.URISyntaxException;
 import java.util.Locale;
 
 /** Utilities for Intents. */
 public class IntentUtils {
+  private static final String LOGTAG = "IntentUtils";
+  private static final boolean DEBUG = false;
+
+  private static final String EXTERNAL_STORAGE_PROVIDER_AUTHORITY =
+      "com.android.externalstorage.documents";
+
   private IntentUtils() {}
 
   /**
@@ -116,5 +129,91 @@ public class IntentUtils {
   // We create a separate method to better encapsulate the @TargetApi use.
   private static void nullIntentSelector(final Intent intent) {
     intent.setSelector(null);
+  }
+
+  /**
+   * Return a local path from the Uri that is content schema.
+   *
+   * @param context The context.
+   * @param uri The URI.
+   * @return A local path if resolved. If this cannot resolve URI, return null.
+   */
+  public static String resolveContentUri(final Context context, final Uri uri) {
+    final ContentResolver cr = context.getContentResolver();
+    try (final Cursor cur =
+        cr.query(
+            uri, new String[] {"_data"}, /* selection */ null, /* args */ null, /* sort */ null)) {
+      final int idx = cur.getColumnIndex("_data");
+      if (idx < 0 || !cur.moveToFirst()) {
+        return null;
+      }
+      do {
+        try {
+          final String path = cur.getString(idx);
+          if (path != null && !path.isEmpty()) {
+            return path;
+          }
+        } catch (final Exception e) {
+        }
+      } while (cur.moveToNext());
+    } catch (final UnsupportedOperationException e) {
+      Log.e(LOGTAG, "Failed to query child documents", e);
+    }
+
+    if (DEBUG) {
+      Log.e(LOGTAG, "Failed to resolve uri. uri=" + uri.toString());
+    }
+    return null;
+  }
+
+  /**
+   * Return a local path from tree Uri.
+   *
+   * @param context The context.
+   * @param uri The uri that @{link DoumentContract#isTreeUri} returns true.
+   * @return A local path if resolved. If this cannot resolve URI, return null.
+   */
+  public static String resolveTreeUri(final Context context, final Uri uri) {
+    final Uri docDirUri =
+        DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri));
+    return resolveDocumentUri(context, docDirUri);
+  }
+
+  /**
+   * Return a local path from document Uri.
+   *
+   * @param context The context.
+   * @param uri The uri that @{link DoumentContract#isDocumentUri} returns true.
+   * @return A local path if resolved. If this cannot resolve URI, return null.
+   */
+  public static String resolveDocumentUri(final Context context, final Uri uri) {
+    if (EXTERNAL_STORAGE_PROVIDER_AUTHORITY.equals(uri.getAuthority())) {
+      final String docId = DocumentsContract.getDocumentId(uri);
+      final String[] split = docId.split(":");
+
+      if (split[0].equals("primary")) {
+        // This is the internal storage.
+        final StringBuilder sb =
+            new StringBuilder(Environment.getExternalStorageDirectory().toString());
+        if (split.length > 1) {
+          sb.append("/").append(split[1]);
+        }
+        return sb.toString();
+      }
+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        // This might be sd card. /storage/xxxx-xxxx/...
+        final StringBuilder sb = new StringBuilder(Environment.getStorageDirectory().toString());
+        sb.append("/").append(split[0]);
+        if (split.length > 1) {
+          sb.append("/").append(split[1]);
+        }
+        return sb.toString();
+      }
+    }
+    if (DEBUG) {
+      Log.e(LOGTAG, "Failed to resolve uri. uri=" + uri.toString());
+    }
+    return null;
   }
 }

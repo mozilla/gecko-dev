@@ -29,6 +29,7 @@ import org.mozilla.geckoview.GeckoSession.PromptDelegate.ChoicePrompt;
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.ColorPrompt;
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.DateTimePrompt;
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.FilePrompt;
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.FolderUploadPrompt;
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.IdentityCredential.AccountSelectorPrompt;
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.IdentityCredential.PrivacyPolicyPrompt;
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.IdentityCredential.ProviderSelectorPrompt;
@@ -362,6 +363,8 @@ import org.mozilla.geckoview.GeckoSession.PromptDelegate.TextPrompt;
         intMode = FilePrompt.Type.SINGLE;
       } else if ("multiple".equals(mode)) {
         intMode = FilePrompt.Type.MULTIPLE;
+      } else if ("folder".equals(mode)) {
+        intMode = FilePrompt.Type.FOLDER;
       } else {
         return null;
       }
@@ -376,6 +379,22 @@ import org.mozilla.geckoview.GeckoSession.PromptDelegate.TextPrompt;
     public GeckoResult<PromptResponse> callDelegate(
         final FilePrompt prompt, final GeckoSession session, final PromptDelegate delegate) {
       return delegate.onFilePrompt(session, prompt);
+    }
+  }
+
+  private static final class FolderUploadHandler implements PromptHandler<FolderUploadPrompt> {
+    @Override
+    public FolderUploadPrompt newPrompt(final GeckoBundle info, final Observer observer) {
+      return new FolderUploadPrompt(
+          info.getString("id"), info.getString("directoryName"), observer);
+    }
+
+    @Override
+    public GeckoResult<PromptResponse> callDelegate(
+        final FolderUploadPrompt prompt,
+        final GeckoSession session,
+        final PromptDelegate delegate) {
+      return delegate.onFolderUploadPrompt(session, prompt);
     }
   }
 
@@ -727,6 +746,7 @@ import org.mozilla.geckoview.GeckoSession.PromptDelegate.TextPrompt;
     sPromptHandlers.register(new ColorHandler(), "color");
     sPromptHandlers.register(new DateTimeHandler(), "datetime");
     sPromptHandlers.register(new FileHandler(), "file");
+    sPromptHandlers.register(new FolderUploadHandler(), "folderUpload");
     sPromptHandlers.register(new PopupHandler(), "popup");
     sPromptHandlers.register(new RepostHandler(), "repost");
     sPromptHandlers.register(new ShareHandler(), "share");

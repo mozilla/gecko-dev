@@ -13,6 +13,18 @@ exclude: true
 
 ⚠️  breaking change and deprecation notices
 
+## v138
+- Added [`GeckoSession.Loader.originalInput`][138.1] option, which allows passing through the original user address bar input
+- Added [`PromptDelegate.FilePrompt.Type.FOLDER`][138.2] to show directory picker.
+  ([bug 1674428]({{bugzilla}}1674428))
+- Added [`onFolderUploadPrompt`][138.3] and [`PromptDelegate.FolderUploadPrompt`][138.4] to confirm folder upload.
+  ([bug 1674428]({{bugzilla}}1674428))
+
+[138.1]: {{javadoc_uri}}/GeckoSession.Loader.html#originalInput(java.lang.String)
+[138.2]: {{javadoc_uri}}/GeckoSession.PromptDelegate.FilePrompt.Type.html#FOLDER
+[138.3]: {{javadoc_uri}}/GeckoSession.PromptDelegate.html#onFolderUploadPrompt(org.mozilla.geckoview.GeckoSession,org.mozilla.geckoview.GeckoSession.PromptDelegate.FolderUploadPrompt)
+[138.4]: {{javadoc_uri}}/GeckoSession.PromptDelegate.FolderUploadPrompt.html
+
 ## v137
 - ⚠️ [`GeckoSession.requestAnalysis`][118.4], [`GeckoSession.requestCreateAnalysis`][122.2], [`GeckoSession.requestAnalysisStatus`][137.1], [`GeckoSession.sendPlacementAttributionEvent`][123.3], [`GeckoSession.pollForAnalysisCompleted`][137.2], [`GeckoSession.sendClickAttributionEvent`][121.4], [`GeckoSession.sendImpressionAttributionEvent`][121.5], [`GeckoSession.sendPlacementAttributionEvent`][123.3], [`GeckoSession.requestRecommendations`][118.5], [`GeckoSession.reportBackInStock`][122.1], `AnalysisStatusResponse`, [`ReviewAnalysis`][120.2] and [`Recommendation`][120.3] are deprecated, and it will be deleted in version 139 see https://bugzilla.mozilla.org/show_bug.cgi?id=1941470.
 - Added support for controlling `network.trr.default_provider_uri` via [`GeckoRuntimeSettings.setDefaultRecursiveResolverUri`][137.3] and [`GeckoRuntimeSettings.getDefaultRecursiveResolverUri`][137.4]
@@ -1677,4 +1689,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 5457ccf9a76bbdba450eede7c0f8084747965685
+[api-version]: c4088b9c37d508e0a5346aa173795fc7d82ff6f2
