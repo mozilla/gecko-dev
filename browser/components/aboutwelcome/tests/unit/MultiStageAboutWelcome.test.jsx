@@ -457,6 +457,7 @@ describe("MultiStageAboutWelcome module", () => {
           },
           navigate: sandbox.stub(),
           setActiveTheme: sandbox.stub(),
+          setActiveMultiSelect: sandbox.stub(),
         };
         sandbox.stub(AboutWelcomeUtils, "handleUserAction").resolves();
       });
