@@ -364,13 +364,109 @@ H265BitstreamParser::Result H265BitstreamParser::ParseNonParameterSetNalu(
           }
         }
       }
-      if (!slice_reader.Ok() ||
-          ((pps->weighted_pred_flag && slice_type == H265::SliceType::kP) ||
-           (pps->weighted_bipred_flag && slice_type == H265::SliceType::kB))) {
-        // pred_weight_table()
-        RTC_LOG(LS_ERROR) << "Streams with pred_weight_table unsupported.";
-        return kUnsupportedStream;
+
+      // pred_weight_table()
+      if ((pps->weighted_pred_flag && slice_type == H265::SliceType::kP) ||
+          (pps->weighted_bipred_flag && slice_type == H265::SliceType::kB)) {
+        uint32_t luma_log2_weight_denom = slice_reader.ReadExponentialGolomb();
+        IN_RANGE_OR_RETURN(luma_log2_weight_denom, 0, 7);
+        uint32_t chroma_array_type =
+            sps->separate_colour_plane_flag == 0 ? sps->chroma_format_idc : 0;
+        int32_t chroma_log2_weight_denom = luma_log2_weight_denom;
+        // wp_offset_half_range_c and wp_offset_half_range_y depends on
+        // sps.high_precision_offsets_enable_flag. Since range extension is not
+        // supported, so for now below two are fixed to 128 instead of 1 <<
+        // (sps.bit_depth_luma|chroma_minus8 + 7).
+        int32_t wp_offset_half_range_c = (1 << 7);
+        int32_t wp_offset_half_range_y = (1 << 7);
+        if (chroma_array_type != 0) {
+          // delta_chroma_log2_weight_denom: se(v)
+          chroma_log2_weight_denom +=
+              slice_reader.ReadSignedExponentialGolomb();
+        }
+        IN_RANGE_OR_RETURN(chroma_log2_weight_denom, 0, 7);
+
+        bool luma_weight_flag_l0[kMaxRefIdxActive] = {};
+        bool chroma_weight_flag_l0[kMaxRefIdxActive] = {};
+        int32_t delta_chroma_weight_l0[kMaxRefIdxActive][2] = {};
+        int32_t luma_offset_l0[kMaxRefIdxActive] = {};
+        int32_t delta_chroma_offset_l0[kMaxRefIdxActive][2] = {};
+        for (uint32_t i = 0; i <= num_ref_idx_l0_active_minus1; i++) {
+          // luma_weight_l0_flag: u(1). By syntax this should conditionally
+          // check if the POC or layer ID of the reference picture is different,
+          // but we don't support encoding referencing different layers in the
+          // same AU. Skip the check for now.
+          luma_weight_flag_l0[i] = slice_reader.Read<bool>();
+        }
+        if (chroma_array_type != 0) {
+          for (uint32_t i = 0; i <= num_ref_idx_l0_active_minus1; i++) {
+            // chroma_weight_l0_flag: u(1)
+            chroma_weight_flag_l0[i] = slice_reader.Read<bool>();
+          }
+        }
+        for (uint32_t i = 0; i <= num_ref_idx_l0_active_minus1; i++) {
+          if (luma_weight_flag_l0[i]) {
+            int32_t delta_luma_weight_l0[kMaxRefIdxActive] = {};
+            delta_luma_weight_l0[i] =
+                slice_reader.ReadSignedExponentialGolomb();
+            IN_RANGE_OR_RETURN(delta_luma_weight_l0[i], -128, 127);
+            luma_offset_l0[i] = slice_reader.ReadSignedExponentialGolomb();
+            IN_RANGE_OR_RETURN(luma_offset_l0[i], -wp_offset_half_range_y,
+                               wp_offset_half_range_y - 1);
+          }
+          if (chroma_weight_flag_l0[i]) {
+            for (uint32_t j = 0; j < 2; j++) {
+              delta_chroma_weight_l0[i][j] =
+                  slice_reader.ReadSignedExponentialGolomb();
+              IN_RANGE_OR_RETURN(delta_chroma_weight_l0[i][j], -128, 127);
+              delta_chroma_offset_l0[i][j] =
+                  slice_reader.ReadSignedExponentialGolomb();
+              IN_RANGE_OR_RETURN(delta_chroma_offset_l0[i][j],
+                                 -4 * wp_offset_half_range_c,
+                                 4 * wp_offset_half_range_c - 1);
+            }
+          }
+        }
+        if (slice_type == H265::SliceType::kB) {
+          bool luma_weight_flag_l1[kMaxRefIdxActive] = {};
+          bool chroma_weight_flag_l1[kMaxRefIdxActive] = {};
+          int32_t delta_chroma_weight_l1[kMaxRefIdxActive][2] = {};
+          int32_t luma_offset_l1[kMaxRefIdxActive] = {};
+          int32_t delta_chroma_offset_l1[kMaxRefIdxActive][2] = {};
+          for (uint32_t i = 0; i < num_ref_idx_l1_active_minus1; i++) {
+            luma_weight_flag_l1[i] = slice_reader.Read<bool>();
+          }
+          if (chroma_array_type != 0) {
+            for (uint32_t i = 0; i <= num_ref_idx_l1_active_minus1; i++) {
+              chroma_weight_flag_l1[i] = slice_reader.Read<bool>();
+            }
+          }
+          for (uint32_t i = 0; i <= num_ref_idx_l1_active_minus1; i++) {
+            if (luma_weight_flag_l1[i]) {
+              int32_t delta_luma_weight_l1[kMaxRefIdxActive] = {};
+              delta_luma_weight_l1[i] =
+                  slice_reader.ReadSignedExponentialGolomb();
+              IN_RANGE_OR_RETURN(delta_luma_weight_l1[i], -128, 127);
+              luma_offset_l1[i] = slice_reader.ReadSignedExponentialGolomb();
+              IN_RANGE_OR_RETURN(luma_offset_l1[i], -wp_offset_half_range_y,
+                                 wp_offset_half_range_y - 1);
+            }
+            if (chroma_weight_flag_l1[i]) {
+              for (uint32_t j = 0; j < 2; j++) {
+                delta_chroma_weight_l1[i][j] =
+                    slice_reader.ReadSignedExponentialGolomb();
+                IN_RANGE_OR_RETURN(delta_chroma_weight_l1[i][j], -128, 127);
+                delta_chroma_offset_l1[i][j] =
+                    slice_reader.ReadSignedExponentialGolomb();
+                IN_RANGE_OR_RETURN(delta_chroma_offset_l1[i][j],
+                                   -4 * wp_offset_half_range_c,
+                                   4 * wp_offset_half_range_c - 1);
+              }
+            }
+          }
+        }
       }
+
       // five_minus_max_num_merge_cand: ue(v)
       uint32_t five_minus_max_num_merge_cand =
           slice_reader.ReadExponentialGolomb();
