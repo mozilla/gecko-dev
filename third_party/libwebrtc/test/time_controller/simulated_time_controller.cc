@@ -193,7 +193,7 @@ rtc::Thread* GlobalSimulatedTimeController::GetMainThread() {
 }
 
 void GlobalSimulatedTimeController::AdvanceTime(TimeDelta duration) {
-  rtc::ScopedYieldPolicy yield_policy(&impl_);
+  ScopedYieldPolicy yield_policy(&impl_);
   Timestamp current_time = impl_.CurrentTime();
   Timestamp target_time = current_time + duration;
   RTC_DCHECK_EQ(current_time.us(), rtc::TimeMicros());
@@ -212,7 +212,7 @@ void GlobalSimulatedTimeController::AdvanceTime(TimeDelta duration) {
 }
 
 void GlobalSimulatedTimeController::SkipForwardBy(TimeDelta duration) {
-  rtc::ScopedYieldPolicy yield_policy(&impl_);
+  ScopedYieldPolicy yield_policy(&impl_);
   Timestamp current_time = impl_.CurrentTime();
   Timestamp target_time = current_time + duration;
   impl_.AdvanceTime(target_time);

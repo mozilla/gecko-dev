@@ -160,7 +160,7 @@ bool Event::Wait(TimeDelta give_up_after, TimeDelta warn_after) {
           ? std::nullopt
           : std::make_optional(GetTimespec(give_up_after));
 
-  ScopedYieldPolicy::YieldExecution();
+  webrtc::ScopedYieldPolicy::YieldExecution();
   pthread_mutex_lock(&event_mutex_);
 
   // Wait for `event_cond_` to trigger and `event_status_` to be set, with the

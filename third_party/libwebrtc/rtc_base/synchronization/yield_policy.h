@@ -10,7 +10,7 @@
 #ifndef RTC_BASE_SYNCHRONIZATION_YIELD_POLICY_H_
 #define RTC_BASE_SYNCHRONIZATION_YIELD_POLICY_H_
 
-namespace rtc {
+namespace webrtc {
 class YieldInterface {
  public:
   virtual ~YieldInterface() = default;
@@ -33,6 +33,13 @@ class ScopedYieldPolicy final {
   YieldInterface* const previous_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::ScopedYieldPolicy;
+using ::webrtc::YieldInterface;
 }  // namespace rtc
 
 #endif  // RTC_BASE_SYNCHRONIZATION_YIELD_POLICY_H_

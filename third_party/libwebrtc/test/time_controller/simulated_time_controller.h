@@ -43,7 +43,7 @@ class SimulatedSequenceRunner {
 };
 
 class SimulatedTimeControllerImpl : public TaskQueueFactory,
-                                    public rtc::YieldInterface {
+                                    public YieldInterface {
  public:
   explicit SimulatedTimeControllerImpl(Timestamp start_time);
   ~SimulatedTimeControllerImpl() override;
@@ -158,7 +158,7 @@ class GlobalSimulatedTimeController : public TimeController {
   // Provides simulated CurrentNtpInMilliseconds()
   SimulatedClock sim_clock_;
   sim_time_impl::SimulatedTimeControllerImpl impl_;
-  rtc::ScopedYieldPolicy yield_policy_;
+  ScopedYieldPolicy yield_policy_;
   std::unique_ptr<rtc::Thread> main_thread_;
 };
 }  // namespace webrtc
