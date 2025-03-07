@@ -210,7 +210,7 @@ class RTC_EXPORT DxgiDuplicatorController {
   // If system does not support DXGI based capturer, or `monitor_id` is greater
   // than the total screen count of all the Duplicators, this function returns
   // std::nullopt.
-  std::optional<int32_t> GetDeviceScaleFactor(int monitor_id) const
+  std::optional<float> GetDeviceScaleFactor(int monitor_id) const
       RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Returns the size of one screen. `id` should be >= 0. If system does not

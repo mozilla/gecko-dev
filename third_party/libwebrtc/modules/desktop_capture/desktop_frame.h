@@ -75,10 +75,10 @@ class RTC_EXPORT DesktopFrame {
   const DesktopVector& dpi() const { return dpi_; }
   void set_dpi(const DesktopVector& dpi) { dpi_ = dpi; }
 
-  std::optional<int32_t> device_scale_factor() const {
+  std::optional<float> device_scale_factor() const {
     return device_scale_factor_;
   }
-  void set_device_scale_factor(std::optional<int32_t> device_scale_factor) {
+  void set_device_scale_factor(std::optional<float> device_scale_factor) {
     device_scale_factor_ = device_scale_factor;
   }
   // Indicates if this frame may have the mouse cursor in it. Capturers that
@@ -181,8 +181,8 @@ class RTC_EXPORT DesktopFrame {
   std::vector<uint8_t> icc_profile_;
   // Currently only used on Windows. It stores the device scale factor of the
   // captured surface and has distinct values possible in the range of
-  // [100,500].
-  std::optional<int32_t> device_scale_factor_;
+  // [1,5].
+  std::optional<float> device_scale_factor_;
 };
 
 // A DesktopFrame that stores data in the heap.

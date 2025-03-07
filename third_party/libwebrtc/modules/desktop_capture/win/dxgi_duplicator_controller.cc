@@ -404,7 +404,7 @@ DesktopSize DxgiDuplicatorController::desktop_size() const {
   return desktop_rect_.size();
 }
 
-std::optional<int32_t> DxgiDuplicatorController::GetDeviceScaleFactor(
+std::optional<float> DxgiDuplicatorController::GetDeviceScaleFactor(
     int monitor_id) const {
   if (monitor_id < 0) {
     return std::nullopt;

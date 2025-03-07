@@ -86,7 +86,9 @@ class DxgiOutputDuplicator {
 
   // Device scale factor of the monitor associated with this
   // DxigOutputDuplicator.
-  std::optional<DEVICE_SCALE_FACTOR> device_scale_factor() const;
+  std::optional<float> device_scale_factor() const {
+    return device_scale_factor_;
+  }
 
   // Moves `desktop_rect_`. See DxgiDuplicatorController::TranslateRect().
   void TranslateRect(const DesktopVector& position);
@@ -138,7 +140,7 @@ class DxgiOutputDuplicator {
   std::unique_ptr<DxgiTexture> texture_;
   Rotation rotation_;
   DesktopSize unrotated_size_;
-  DEVICE_SCALE_FACTOR device_scale_factor_ = DEVICE_SCALE_FACTOR_INVALID;
+  std::optional<float> device_scale_factor_;
 
   // After each AcquireNextFrame() function call, updated_region_(s) of all
   // active Context(s) need to be updated. Since they have missed the

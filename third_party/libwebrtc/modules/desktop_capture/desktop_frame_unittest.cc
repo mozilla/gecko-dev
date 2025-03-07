@@ -105,8 +105,9 @@ TEST(DesktopFrameTest, FrameHasDefaultDeviceScaleFactor) {
 TEST(DesktopFrameTest, FrameSetsDeviceScaleFactorCorrectly) {
   auto frame = std::make_unique<BasicDesktopFrame>(DesktopSize());
   EXPECT_EQ(frame->device_scale_factor(), std::nullopt);
-  frame->set_device_scale_factor(/*device_scale_factor=*/150);
-  EXPECT_EQ(frame->device_scale_factor(), 150);
+  float device_scale_factor = 1.5f;
+  frame->set_device_scale_factor(device_scale_factor);
+  EXPECT_EQ(frame->device_scale_factor(), device_scale_factor);
 }
 
 TEST(DesktopFrameTest, FrameDataSwitchesBetweenNonBlackAndBlack) {

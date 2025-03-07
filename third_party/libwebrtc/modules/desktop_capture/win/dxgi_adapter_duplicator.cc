@@ -148,7 +148,7 @@ bool DxgiAdapterDuplicator::DuplicateMonitor(Context* context,
                                             DesktopVector(), target);
 }
 
-std::optional<int32_t> DxgiAdapterDuplicator::GetDeviceScaleFactor(
+std::optional<float> DxgiAdapterDuplicator::GetDeviceScaleFactor(
     int screen_id) const {
   if (screen_id < 0 || static_cast<size_t>(screen_id) >= duplicators_.size()) {
     return std::nullopt;

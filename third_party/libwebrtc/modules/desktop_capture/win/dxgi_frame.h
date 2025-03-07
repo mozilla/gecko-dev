@@ -49,7 +49,7 @@ class DxgiFrame final {
   // factor.
   bool Prepare(DesktopSize size,
                DesktopCapturer::SourceId source_id,
-               std::optional<int32_t> device_scale_factor);
+               std::optional<float> device_scale_factor);
 
   // Should not be called if Prepare() is not executed or returns false.
   Context* context();
