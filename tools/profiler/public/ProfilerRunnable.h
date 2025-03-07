@@ -85,6 +85,8 @@ class MOZ_RAII AutoProfileRunnable {
     nsCOMPtr<nsINamed> named = do_QueryInterface(aRunnable);
     if (named) {
       named->GetName(mName);
+    } else {
+      mName = "Unnamed runnable";
     }
   }
   // XXX: we should remove this constructor so that we can track flows properly
