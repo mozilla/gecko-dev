@@ -24,7 +24,7 @@ constexpr double ninetyfive_percent_confidence = 1.96;
 
 }  // namespace
 
-namespace rtc {
+namespace webrtc {
 
 // `half_time` specifies how much weight will be given to old samples,
 // a sample gets exponentially less weight so that it's 50%
@@ -81,4 +81,4 @@ double EventBasedExponentialMovingAverage::GetConfidenceInterval() const {
          sqrt(sample_variance_ * estimator_variance_);
 }
 
-}  // namespace rtc
+}  // namespace webrtc

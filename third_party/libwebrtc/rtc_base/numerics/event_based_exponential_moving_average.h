@@ -16,7 +16,7 @@
 #include <limits>
 #include <optional>
 
-namespace rtc {
+namespace webrtc {
 
 /**
  * This class implements exponential moving average for time series
@@ -65,6 +65,12 @@ class EventBasedExponentialMovingAverage {
   std::optional<int64_t> last_observation_timestamp_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::EventBasedExponentialMovingAverage;
 }  // namespace rtc
 
 #endif  // RTC_BASE_NUMERICS_EVENT_BASED_EXPONENTIAL_MOVING_AVERAGE_H_
