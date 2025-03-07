@@ -5578,7 +5578,7 @@ var SessionStoreInternal = {
       for (let i = 0; i < initialTabs.length; i++) {
         tabbrowser.unpinTab(initialTabs[i]);
         tabbrowser.moveTabTo(initialTabs[i], endPosition, {
-          forceUngrouped: true,
+          forceStandaloneTab: true,
         });
       }
     }

@@ -682,12 +682,8 @@
     }
 
     on_dragstart(event) {
-      if (this._isCustomizing) {
-        return;
-      }
-
       var tab = this._getDragTargetTab(event);
-      if (!tab) {
+      if (!tab || this._isCustomizing) {
         return;
       }
 
@@ -715,36 +711,34 @@
       }
 
       let dataTransferOrderedTabs;
-      if (fromTabList || isTabGroupLabel(tab)) {
-        // Dragging a group label or an item in the all tabs menu doesn't
-        // change the currently selected tabs, and it's not possible to select
-        // multiple tabs from the list, thus handle only the dragged tab in
-        // this case.
-        dataTransferOrderedTabs = [tab];
-      } else {
+      if (!fromTabList) {
         let selectedTabs = gBrowser.selectedTabs;
         let otherSelectedTabs = selectedTabs.filter(
           selectedTab => selectedTab != tab
         );
         dataTransferOrderedTabs = [tab].concat(otherSelectedTabs);
+      } else {
+        // Dragging an item in the tabs list doesn't change the currently
+        // selected tabs, and it's not possible to select multiple tabs from
+        // the list, thus handle only the dragged tab in this case.
+        dataTransferOrderedTabs = [tab];
       }
 
       let dt = event.dataTransfer;
       for (let i = 0; i < dataTransferOrderedTabs.length; i++) {
         let dtTab = dataTransferOrderedTabs[i];
-        dt.mozSetDataAt(TAB_DROP_TYPE, dtTab, i);
-        if (isTab(dtTab)) {
-          let dtBrowser = dtTab.linkedBrowser;
 
-          // We must not set text/x-moz-url or text/plain data here,
-          // otherwise trying to detach the tab by dropping it on the desktop
-          // may result in an "internet shortcut"
-          dt.mozSetDataAt(
-            "text/x-moz-text-internal",
-            dtBrowser.currentURI.spec,
-            i
-          );
-        }
+        dt.mozSetDataAt(TAB_DROP_TYPE, dtTab, i);
+        let dtBrowser = dtTab.linkedBrowser;
+
+        // We must not set text/x-moz-url or text/plain data here,
+        // otherwise trying to detach the tab by dropping it on the desktop
+        // may result in an "internet shortcut"
+        dt.mozSetDataAt(
+          "text/x-moz-text-internal",
+          dtBrowser.currentURI.spec,
+          i
+        );
       }
 
       // Set the cursor to an arrow during tab drags.
@@ -754,20 +748,8 @@
       // node to deliver the `dragend` event.  See bug 1345473.
       dt.addElement(tab);
 
-      let expandedTabGroups;
       if (tab.multiselected) {
         this.#moveTogetherSelectedTabs(tab);
-      } else if (isTabGroupLabel(tab)) {
-        expandedTabGroups = gBrowser.tabGroups.filter(
-          group => !group.collapsed
-        );
-        if (expandedTabGroups.length) {
-          this._lockTabSizing();
-          this.#keepTabSizeLocked = true;
-        }
-        for (let group of expandedTabGroups) {
-          group.collapsed = true;
-        }
       }
 
       // Create a canvas to which we capture the current tab.
@@ -790,10 +772,8 @@
       canvas.height = 90 * scale;
       let toDrag = canvas;
       let dragImageOffset = -16;
-      let browser = isTab(tab) && tab.linkedBrowser;
-      if (isTabGroupLabel(tab)) {
-        toDrag = document.getElementById("tab-drag-empty-feedback");
-      } else if (gMultiProcessBrowser) {
+      let browser = tab.linkedBrowser;
+      if (gMultiProcessBrowser) {
         var context = canvas.getContext("2d");
         context.fillStyle = "white";
         context.fillRect(0, 0, canvas.width, canvas.height);
@@ -871,7 +851,6 @@
         ),
         fromTabList,
         tabGroupCreationColor: gBrowser.tabGroupMenu.nextUnusedColor,
-        expandedTabGroups,
       };
 
       event.stopPropagation();
@@ -918,7 +897,7 @@
       let draggedTab = event.dataTransfer.mozGetDataAt(TAB_DROP_TYPE, 0);
       if (
         (effects == "move" || effects == "copy") &&
-        document == draggedTab.ownerDocument &&
+        this == draggedTab.container &&
         !draggedTab._dragData.fromTabList
       ) {
         ind.hidden = true;
@@ -1138,16 +1117,12 @@
 
         if (shouldTranslate) {
           let translationPromises = [];
-          for (let item of movingTabs) {
-            if (isTabGroupLabel(item)) {
-              // Shift the `.tab-group-label-container` to shift the label element.
-              item = item.parentElement;
-            }
+          for (let tab of movingTabs) {
             let translationPromise = new Promise(resolve => {
-              item.toggleAttribute("tabdrop-samewindow", true);
-              item.style.transform = `translate(${newTranslateX}px, ${newTranslateY}px)`;
+              tab.toggleAttribute("tabdrop-samewindow", true);
+              tab.style.transform = `translate(${newTranslateX}px, ${newTranslateY}px)`;
               let postTransitionCleanup = () => {
-                item.removeAttribute("tabdrop-samewindow");
+                tab.removeAttribute("tabdrop-samewindow");
                 resolve();
               };
               if (gReduceMotion) {
@@ -1156,15 +1131,15 @@
                 let onTransitionEnd = transitionendEvent => {
                   if (
                     transitionendEvent.propertyName != "transform" ||
-                    transitionendEvent.originalTarget != item
+                    transitionendEvent.originalTarget != tab
                   ) {
                     return;
                   }
-                  item.removeEventListener("transitionend", onTransitionEnd);
+                  tab.removeEventListener("transitionend", onTransitionEnd);
 
                   postTransitionCleanup();
                 };
-                item.addEventListener("transitionend", onTransitionEnd);
+                tab.addEventListener("transitionend", onTransitionEnd);
               }
             });
             translationPromises.push(translationPromise);
@@ -1282,13 +1257,6 @@
       }
 
       if (draggedTab) {
-        if (draggedTab._dragData.expandedTabGroups?.length) {
-          for (let group of draggedTab._dragData.expandedTabGroups) {
-            group.collapsed = false;
-          }
-          this.#keepTabSizeLocked = true;
-          this._unlockTabSizing();
-        }
         delete draggedTab._dragData;
       }
     }
@@ -1893,12 +1861,10 @@
       selectedTab._notselectedsinceload = false;
     }
 
-    #keepTabSizeLocked;
-
     /**
      * Try to keep the active tab's close button under the mouse cursor
      */
-    _lockTabSizing(aClosingTab, aTabWidth) {
+    _lockTabSizing(aTab, aTabWidth) {
       if (this.verticalMode) {
         return;
       }
@@ -1908,23 +1874,17 @@
         return;
       }
 
-      let numPinned = gBrowser.pinnedTabCount;
-      let isEndTab = aClosingTab && aClosingTab._tPos > tabs.at(-1)._tPos;
+      var isEndTab = aTab._tPos > tabs.at(-1)._tPos;
 
       if (!this._tabDefaultMaxWidth) {
         this._tabDefaultMaxWidth = parseFloat(
-          window.getComputedStyle(tabs[numPinned]).maxWidth
+          window.getComputedStyle(aTab).maxWidth
         );
       }
       this._lastTabClosedByMouse = true;
       this._scrollButtonWidth = window.windowUtils.getBoundsWithoutFlushing(
         this.arrowScrollbox._scrollButtonDown
       ).width;
-      if (aTabWidth === undefined) {
-        aTabWidth = window.windowUtils.getBoundsWithoutFlushing(
-          tabs[numPinned]
-        ).width;
-      }
 
       if (this.overflowing) {
         // Don't need to do anything if we're in overflow mode and aren't scrolled
@@ -1935,15 +1895,17 @@
         // If the tab has an owner that will become the active tab, the owner will
         // be to the left of it, so we actually want the left tab to slide over.
         // This can't be done as easily in non-overflow mode, so we don't bother.
-        if (aClosingTab?.owner) {
+        if (aTab.owner) {
           return;
         }
         this._expandSpacerBy(aTabWidth);
-      } /* non-overflow mode */ else {
+      } else {
+        // non-overflow mode
+        // Locking is neither in effect nor needed, so let tabs expand normally.
         if (isEndTab && !this._hasTabTempMaxWidth) {
-          // Locking is neither in effect nor needed, so let tabs expand normally.
           return;
         }
+        let numPinned = gBrowser.pinnedTabCount;
         // Force tabs to stay the same width, unless we're closing the last tab,
         // which case we need to let them expand just enough so that the overall
         // tabbar width is the same.
@@ -1993,10 +1955,6 @@
     }
 
     _unlockTabSizing() {
-      if (this.#keepTabSizeLocked) {
-        return;
-      }
-
       gBrowser.removeEventListener("mousemove", this);
       window.removeEventListener("mouseout", this);
 
@@ -2385,12 +2343,8 @@
       let lastBound = endEdge(lastTab) - lastMovingTabScreen;
       translate = Math.min(Math.max(translate, firstBound), lastBound);
 
-      for (let item of movingTabs) {
-        if (isTabGroupLabel(item)) {
-          // Shift the `.tab-group-label-container` to shift the label element.
-          item = item.parentElement;
-        }
-        item.style.transform = `${translateAxis}(${translate}px)`;
+      for (let tab of movingTabs) {
+        tab.style.transform = `${translateAxis}(${translate}px)`;
       }
 
       dragData.translatePos = translate;
@@ -2608,7 +2562,7 @@
         }
       }
 
-      if (gBrowser._tabGroupsEnabled && isTab(draggedTab) && !isPinned) {
+      if (gBrowser._tabGroupsEnabled && !isPinned) {
         let dragOverGroupingThreshold = 1 - moveOverThreshold;
 
         // When dragging tab(s) over an ungrouped tab, signal to the user
@@ -2948,10 +2902,7 @@
           }
         // fall through
         case "mousemove":
-          if (
-            document.getElementById("tabContextMenu").state != "open" &&
-            !this.hasAttribute("movingtab")
-          ) {
+          if (document.getElementById("tabContextMenu").state != "open") {
             this._unlockTabSizing();
           }
           break;
@@ -3076,30 +3027,28 @@
      */
     _getDragTargetTab(event, { ignoreTabSides = false } = {}) {
       let { target } = event;
-      while (target) {
-        if (isTab(target) || isTabGroupLabel(target)) {
-          break;
-        }
-        target = target.parentNode;
+      if (target.nodeType != Node.ELEMENT_NODE) {
+        target = target.parentElement;
       }
-      if (target && ignoreTabSides) {
-        let { width, height } = target.getBoundingClientRect();
+      let tab = target?.closest("tab");
+      if (tab && ignoreTabSides) {
+        let { width, height } = tab.getBoundingClientRect();
         if (
-          event.screenX < target.screenX + width * 0.25 ||
-          event.screenX > target.screenX + width * 0.75 ||
-          ((event.screenY < target.screenY + height * 0.25 ||
-            event.screenY > target.screenY + height * 0.75) &&
+          event.screenX < tab.screenX + width * 0.25 ||
+          event.screenX > tab.screenX + width * 0.75 ||
+          ((event.screenY < tab.screenY + height * 0.25 ||
+            event.screenY > tab.screenY + height * 0.75) &&
             this.verticalMode)
         ) {
           return null;
         }
       }
-      return target;
+      return tab;
     }
 
     _getDropIndex(event) {
       let tab = this._getDragTargetTab(event);
-      if (!isTab(tab)) {
+      if (!tab) {
         return this.allTabs.length;
       }
       let isBeforeMiddle;
@@ -3131,10 +3080,12 @@
       if (isMovingTabs) {
         let sourceNode = dt.mozGetDataAt(TAB_DROP_TYPE, 0);
         if (
-          (isTab(sourceNode) || isTabGroupLabel(sourceNode)) &&
+          XULElement.isInstance(sourceNode) &&
+          sourceNode.localName == "tab" &&
           sourceNode.ownerGlobal.isChromeWindow &&
           sourceNode.ownerDocument.documentElement.getAttribute("windowtype") ==
-            "navigator:browser"
+            "navigator:browser" &&
+          sourceNode.ownerGlobal.gBrowser.tabContainer == sourceNode.container
         ) {
           // Do not allow transfering a private tab to a non-private window
           // and vice versa.
