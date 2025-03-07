@@ -44,7 +44,7 @@ class QualityScaler::QpSmoother {
 
   std::optional<int> GetAvg() const {
     float value = smoother_.filtered();
-    if (value == rtc::ExpFilter::kValueUndefined) {
+    if (value == ExpFilter::kValueUndefined) {
       return std::nullopt;
     }
     return static_cast<int>(value);
@@ -61,7 +61,7 @@ class QualityScaler::QpSmoother {
  private:
   const float alpha_;
   int64_t last_sample_ms_;
-  rtc::ExpFilter smoother_;
+  ExpFilter smoother_;
 };
 
 // The QualityScaler checks for QP periodically by queuing CheckQpTasks. The

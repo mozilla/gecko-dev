@@ -79,8 +79,8 @@ class SendProcessingUsage1 : public OveruseFrameDetector::ProcessingUsage {
         count_(0),
         last_processed_capture_time_us_(-1),
         max_sample_diff_ms_(kDefaultSampleDiffMs * kMaxSampleDiffMarginFactor),
-        filtered_processing_ms_(new rtc::ExpFilter(kWeightFactorProcessing)),
-        filtered_frame_diff_ms_(new rtc::ExpFilter(kWeightFactorFrameDiff)) {
+        filtered_processing_ms_(new ExpFilter(kWeightFactorProcessing)),
+        filtered_frame_diff_ms_(new ExpFilter(kWeightFactorFrameDiff)) {
     Reset();
   }
   ~SendProcessingUsage1() override {}
@@ -212,8 +212,8 @@ class SendProcessingUsage1 : public OveruseFrameDetector::ProcessingUsage {
   uint64_t count_;
   int64_t last_processed_capture_time_us_;
   float max_sample_diff_ms_;
-  std::unique_ptr<rtc::ExpFilter> filtered_processing_ms_;
-  std::unique_ptr<rtc::ExpFilter> filtered_frame_diff_ms_;
+  std::unique_ptr<ExpFilter> filtered_processing_ms_;
+  std::unique_ptr<ExpFilter> filtered_frame_diff_ms_;
 };
 
 // New cpu load estimator.

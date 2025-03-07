@@ -297,7 +297,7 @@ class SendStatisticsProxy : public VideoStreamEncoderObserver,
   VideoEncoderConfig::ContentType content_type_ RTC_GUARDED_BY(mutex_);
   const int64_t start_ms_;
   VideoSendStream::Stats stats_ RTC_GUARDED_BY(mutex_);
-  rtc::ExpFilter encode_time_ RTC_GUARDED_BY(mutex_);
+  ExpFilter encode_time_ RTC_GUARDED_BY(mutex_);
   QualityLimitationReasonTracker quality_limitation_reason_tracker_
       RTC_GUARDED_BY(mutex_);
   rtc::RateTracker media_byte_rate_tracker_ RTC_GUARDED_BY(mutex_);

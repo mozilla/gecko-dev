@@ -339,11 +339,11 @@ class VCMLossProtectionLogic {
   int64_t _lastPrUpdateT;
   int64_t _lastPacketPerFrameUpdateT;
   int64_t _lastPacketPerFrameUpdateTKey;
-  rtc::ExpFilter _lossPr255;
+  ExpFilter _lossPr255;
   VCMLossProbabilitySample _lossPrHistory[kLossPrHistorySize];
   uint8_t _shortMaxLossPr255;
-  rtc::ExpFilter _packetsPerFrame;
-  rtc::ExpFilter _packetsPerFrameKey;
+  ExpFilter _packetsPerFrame;
+  ExpFilter _packetsPerFrameKey;
   size_t _codecWidth;
   size_t _codecHeight;
   int _numLayers;
