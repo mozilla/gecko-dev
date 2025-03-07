@@ -22,6 +22,7 @@ using ::testing::SizeIs;
 
 constexpr bool kScreenshare = true;
 constexpr int kDefaultTemporalLayers = 3;  // Value from simulcast.cc.
+constexpr int kDefaultH265TemporalLayers = 1;  // Value from simulcast.cc.
 
 // Values from kSimulcastConfigs in simulcast.cc.
 const std::vector<VideoStream> GetSimulcastBitrates720p() {
@@ -35,6 +36,21 @@ const std::vector<VideoStream> GetSimulcastBitrates720p() {
   streams[2].min_bitrate_bps = 600000;
   streams[2].target_bitrate_bps = 2500000;
   streams[2].max_bitrate_bps = 2500000;
+  return streams;
+}
+
+// Values from kSimulcastFormatsH265 in simulcast.cc
+const std::vector<VideoStream> GetH265SimulcastBitrates720p() {
+  std::vector<VideoStream> streams(3);
+  streams[0].min_bitrate_bps = 30'000;
+  streams[0].target_bitrate_bps = 142'000;
+  streams[0].max_bitrate_bps = 142'000;
+  streams[1].min_bitrate_bps = 193'000;
+  streams[1].target_bitrate_bps = 420'000;
+  streams[1].max_bitrate_bps = 420'000;
+  streams[2].min_bitrate_bps = 481'000;
+  streams[2].target_bitrate_bps = 1'524'000;
+  streams[2].max_bitrate_bps = 1'524'000;
   return streams;
 }
 
@@ -112,6 +128,35 @@ TEST(SimulcastTest, GetConfig) {
 
   for (size_t i = 0; i < streams.size(); ++i) {
     EXPECT_EQ(size_t{kDefaultTemporalLayers}, streams[i].num_temporal_layers);
+    EXPECT_EQ(cricket::kDefaultVideoMaxFramerate, streams[i].max_framerate);
+    EXPECT_EQ(-1, streams[i].max_qp);
+    EXPECT_EQ(kExpected[i].min_bitrate_bps, streams[i].min_bitrate_bps);
+    EXPECT_EQ(kExpected[i].target_bitrate_bps, streams[i].target_bitrate_bps);
+    EXPECT_EQ(kExpected[i].max_bitrate_bps, streams[i].max_bitrate_bps);
+    EXPECT_TRUE(streams[i].active);
+  }
+}
+
+TEST(SimulcastTest, GetConfigH265) {
+  const ExplicitKeyValueConfig trials("");
+  const std::vector<VideoStream> kExpected = GetH265SimulcastBitrates720p();
+
+  const size_t kMaxLayers = 3;
+  std::vector<VideoStream> streams = cricket::GetSimulcastConfig(
+      CreateResolutions(1280, 720, kMaxLayers), !kScreenshare, true, trials,
+      webrtc::kVideoCodecH265);
+
+  ASSERT_THAT(streams, SizeIs(kMaxLayers));
+  EXPECT_EQ(320u, streams[0].width);
+  EXPECT_EQ(180u, streams[0].height);
+  EXPECT_EQ(640u, streams[1].width);
+  EXPECT_EQ(360u, streams[1].height);
+  EXPECT_EQ(1280u, streams[2].width);
+  EXPECT_EQ(720u, streams[2].height);
+
+  for (size_t i = 0; i < streams.size(); ++i) {
+    EXPECT_EQ(size_t{kDefaultH265TemporalLayers},
+              streams[i].num_temporal_layers);
     EXPECT_EQ(cricket::kDefaultVideoMaxFramerate, streams[i].max_framerate);
     EXPECT_EQ(-1, streams[i].max_qp);
     EXPECT_EQ(kExpected[i].min_bitrate_bps, streams[i].min_bitrate_bps);

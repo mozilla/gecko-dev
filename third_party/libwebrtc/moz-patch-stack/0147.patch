@@ -40,7 +40,7 @@ index 17930de346..c6d000cda0 100644
      "../../call/adaptation:resource_adaptation",
      "../../media:media_constants",
 diff --git a/video/config/simulcast.cc b/video/config/simulcast.cc
-index 4391d973f6..9beb2cbf33 100644
+index 0893b4ca90..ff6529dd7e 100644
 --- a/video/config/simulcast.cc
 +++ b/video/config/simulcast.cc
 @@ -19,16 +19,19 @@

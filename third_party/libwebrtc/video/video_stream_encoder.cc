@@ -92,6 +92,9 @@ int GetNumSpatialLayers(const VideoCodec& codec) {
   } else if (codec.codecType == kVideoCodecAV1 &&
              codec.GetScalabilityMode().has_value()) {
     return ScalabilityModeToNumSpatialLayers(*(codec.GetScalabilityMode()));
+  } else if (codec.codecType == kVideoCodecH265) {
+    // No spatial scalability support for H.265.
+    return 1;
   } else {
     return 0;
   }
