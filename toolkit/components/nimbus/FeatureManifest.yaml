@@ -4400,3 +4400,15 @@ css-masonry:
       setPref:
         branch: user
         pref: "layout.css.grid-template-masonry-value.enabled"
+
+h1-in-section-styles:
+  description: "H1 in section user agent styles"
+  owner: zcorpan@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      description: Whether to enable H1 in section UA styles, see https://github.com/whatwg/html/issues/7867.
+      setPref:
+        branch: user
+        pref: layout.css.h1-in-section-ua-styles.enabled
