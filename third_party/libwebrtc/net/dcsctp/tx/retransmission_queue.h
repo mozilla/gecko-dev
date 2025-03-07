@@ -210,10 +210,6 @@ class RetransmissionQueue {
                : CongestionAlgorithmPhase::kCongestionAvoidance;
   }
 
-  // Returns the number of bytes that may be sent in a single packet according
-  // to the congestion control algorithm.
-  size_t max_bytes_to_send() const;
-
   DcSctpSocketCallbacks& callbacks_;
   const DcSctpOptions options_;
   // If the peer supports RFC3758 - SCTP Partial Reliability Extension.

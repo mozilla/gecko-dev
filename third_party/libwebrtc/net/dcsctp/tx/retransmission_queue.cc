@@ -456,12 +456,23 @@ std::vector<std::pair<TSN, Data>> RetransmissionQueue::GetChunksToSend(
   size_t old_unacked_packet_bytes = unacked_packet_bytes();
   size_t old_rwnd = rwnd_;
 
-  // Calculate the bandwidth budget (how many bytes that is
-  // allowed to be sent), and fill that up first with chunks that are
-  // scheduled to be retransmitted. If there is still budget, send new chunks
-  // (which will have their TSN assigned here.)
+  // Calculate the bandwidth budget (how many bytes that is allowed to be sent).
+  size_t max_packet_bytes_allowed_by_cwnd =
+      old_unacked_packet_bytes >= cwnd_ ? 0 : cwnd_ - old_unacked_packet_bytes;
+  size_t max_packet_bytes_allowed_by_rwnd =
+      RoundUpTo4(rwnd() + data_chunk_header_size_);
+
+  if (outstanding_data_.unacked_items() == 0) {
+    // https://datatracker.ietf.org/doc/html/rfc4960#section-6.1
+    // ... However, regardless of the value of rwnd (including if it is 0), the
+    // data sender can always have one DATA chunk in flight to the receiver if
+    // allowed by cwnd (see rule B, below).
+    max_packet_bytes_allowed_by_rwnd = options_.mtu;
+  }
   size_t max_bytes =
-      RoundDownTo4(std::min(max_bytes_to_send(), bytes_remaining_in_packet));
+      RoundDownTo4(std::min(std::min(max_packet_bytes_allowed_by_cwnd,
+                                     max_packet_bytes_allowed_by_rwnd),
+                            bytes_remaining_in_packet));
 
   to_be_sent = outstanding_data_.GetChunksToBeRetransmitted(max_bytes);
 
@@ -542,21 +553,6 @@ bool RetransmissionQueue::ShouldSendForwardTsn(Timestamp now) {
   bool ret = outstanding_data_.ShouldSendForwardTsn();
   RTC_DCHECK(IsConsistent());
   return ret;
-}
-
-size_t RetransmissionQueue::max_bytes_to_send() const {
-  size_t left =
-      unacked_packet_bytes() >= cwnd_ ? 0 : cwnd_ - unacked_packet_bytes();
-
-  if (unacked_packet_bytes() == 0) {
-    // https://datatracker.ietf.org/doc/html/rfc4960#section-6.1
-    // ... However, regardless of the value of rwnd (including if it is 0), the
-    // data sender can always have one DATA chunk in flight to the receiver if
-    // allowed by cwnd (see rule B, below).
-    return left;
-  }
-
-  return std::min(rwnd(), left);
 }
 
 void RetransmissionQueue::PrepareResetStream(StreamID stream_id) {
