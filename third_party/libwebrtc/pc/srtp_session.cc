@@ -507,11 +507,10 @@ bool SrtpSession::RemoveSsrcFromSession(uint32_t ssrc) {
 bool SrtpSession::GetSendStreamPacketIndex(rtc::CopyOnWriteBuffer& buffer,
                                            int64_t* index) {
   RTC_DCHECK(thread_checker_.IsCurrent());
-  const srtp_hdr_t* hdr = reinterpret_cast<const srtp_hdr_t*>(buffer.data());
 
+  uint32_t ssrc = webrtc::ParseRtpSsrc(buffer);
   uint32_t roc;
-  if (srtp_get_stream_roc(session_, htonl(hdr->ssrc), &roc) !=
-      srtp_err_status_ok) {
+  if (srtp_get_stream_roc(session_, ssrc, &roc) != srtp_err_status_ok) {
     return false;
   }
   // Calculate the extended sequence number.
