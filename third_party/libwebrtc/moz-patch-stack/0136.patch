@@ -38,7 +38,7 @@ index cb91c54edc..b33b252f06 100644
        ]
        # Added when we removed deps in other places to avoid building
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 807993a5e0..605000f883 100644
+index e993807abb..6ef84a1195 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -12,12 +12,10 @@ import("../webrtc.gni")
@@ -96,7 +96,7 @@ index 807993a5e0..605000f883 100644
      "base/rid_description.cc",
      "base/rid_description.h",
    ]
-   deps = []
+   deps = [ ":codec" ]
  }
 -}
  

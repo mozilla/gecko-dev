@@ -375,8 +375,9 @@ static bool ParseMsidAttribute(absl::string_view line,
                                std::string* track_id,
                                SdpParseError* error);
 
-static void RemoveInvalidRidDescriptions(const std::vector<int>& payload_types,
-                                         std::vector<RidDescription>* rids);
+static void RemoveDuplicateRidDescriptions(
+    const std::vector<int>& payload_types,
+    std::vector<RidDescription>* rids);
 
 static SimulcastLayerList RemoveRidsFromSimulcastLayerList(
     const std::set<std::string>& to_remove,
@@ -1712,7 +1713,7 @@ void BuildRtpContentAttributes(const MediaContentDescription* media_desc,
     for (const RidDescription& rid_description : track.rids()) {
       InitAttrLine(kAttributeRid, &os);
       os << kSdpDelimiterColon
-         << serializer.SerializeRidDescription(rid_description);
+         << serializer.SerializeRidDescription(*media_desc, rid_description);
       AddLine(os.str(), message);
     }
   }
@@ -1720,7 +1721,7 @@ void BuildRtpContentAttributes(const MediaContentDescription* media_desc,
   for (const RidDescription& rid_description : media_desc->receive_rids()) {
     InitAttrLine(kAttributeRid, &os);
     os << kSdpDelimiterColon
-       << serializer.SerializeRidDescription(rid_description);
+       << serializer.SerializeRidDescription(*media_desc, rid_description);
     AddLine(os.str(), message);
   }
 
@@ -2396,57 +2397,19 @@ static bool ParseMsidAttribute(absl::string_view line,
   return true;
 }
 
-static void RemoveInvalidRidDescriptions(const std::vector<int>& payload_types,
-                                         std::vector<RidDescription>* rids) {
+static void RemoveDuplicateRidDescriptions(
+    const std::vector<int>& payload_types,
+    std::vector<RidDescription>* rids) {
   RTC_DCHECK(rids);
   std::set<std::string> to_remove;
   std::set<std::string> unique_rids;
-
-  // Check the rids to see which ones should be removed.
+  // Find duplicate RIDs to remove.
   for (RidDescription& rid : *rids) {
-    // In the case of a duplicate, the entire "a=rid" line, and all "a=rid"
-    // lines with rid-ids that duplicate this line, are discarded and MUST NOT
-    // be included in the SDP Answer.
-    auto pair = unique_rids.insert(rid.rid);
-    // Insert will "fail" if element already exists.
-    if (!pair.second) {
+    if (!unique_rids.insert(rid.rid).second) {
       to_remove.insert(rid.rid);
       continue;
-    }
-
-    // If the "a=rid" line contains a "pt=", the list of payload types
-    // is verified against the list of valid payload types for the media
-    // section (that is, those listed on the "m=" line).  Any PT missing
-    // from the "m=" line is discarded from the set of values in the
-    // "pt=".  If no values are left in the "pt=" parameter after this
-    // processing, then the "a=rid" line is discarded.
-    if (rid.payload_types.empty()) {
-      // If formats were not specified, rid should not be removed.
-      continue;
-    }
-
-    // Note: Spec does not mention how to handle duplicate formats.
-    // Media section does not handle duplicates either.
-    std::set<int> removed_formats;
-    for (int payload_type : rid.payload_types) {
-      if (!absl::c_linear_search(payload_types, payload_type)) {
-        removed_formats.insert(payload_type);
-      }
-    }
-
-    rid.payload_types.erase(
-        std::remove_if(rid.payload_types.begin(), rid.payload_types.end(),
-                       [&removed_formats](int format) {
-                         return removed_formats.count(format) > 0;
-                       }),
-        rid.payload_types.end());
-
-    // If all formats were removed then remove the rid alogether.
-    if (rid.payload_types.empty()) {
-      to_remove.insert(rid.rid);
     }
   }
-
   // Remove every rid description that appears in the to_remove list.
   if (!to_remove.empty()) {
     rids->erase(std::remove_if(rids->begin(), rids->end(),
@@ -3301,7 +3264,7 @@ bool ParseContent(absl::string_view message,
         }
         RTCErrorOr<RidDescription> error_or_rid_description =
             deserializer.DeserializeRidDescription(
-                line->substr(kRidPrefixLength));
+                *media_desc, line->substr(kRidPrefixLength));
 
         // Malformed a=rid lines are discarded.
         if (!error_or_rid_description.ok()) {
@@ -3351,8 +3314,8 @@ bool ParseContent(absl::string_view message,
     }
   }
 
-  // Remove duplicate or inconsistent rids.
-  RemoveInvalidRidDescriptions(payload_types, &rids);
+  // Remove duplicate rids.
+  RemoveDuplicateRidDescriptions(payload_types, &rids);
 
   // If simulcast is specifed, split the rids into send and receive.
   // Rids that do not appear in simulcast attribute will be removed.

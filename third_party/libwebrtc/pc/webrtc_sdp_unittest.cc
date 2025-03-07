@@ -4589,7 +4589,7 @@ TEST_F(WebRtcSdpTest, TestDeserializeIgnoresMalformedRidLines) {
 TEST_F(WebRtcSdpTest, TestDeserializeRemovesRidsWithInvalidCodec) {
   std::string sdp = kUnifiedPlanSdpFullStringNoSsrc;
   sdp += "a=rid:1 send pt=121,120\r\n";  // Should remove 121 and keep RID.
-  sdp += "a=rid:2 send pt=121\r\n";      // Should remove RID altogether.
+  sdp += "a=rid:2 send pt=121\r\n";      // Should remove 121 and keep RID.
   sdp += "a=simulcast:send 1;2\r\n";
   JsepSessionDescription output(kDummyType);
   SdpParseError error;
@@ -4600,15 +4600,17 @@ TEST_F(WebRtcSdpTest, TestDeserializeRemovesRidsWithInvalidCodec) {
   EXPECT_TRUE(media->HasSimulcast());
   const SimulcastDescription& simulcast = media->simulcast_description();
   EXPECT_TRUE(simulcast.receive_layers().empty());
-  EXPECT_EQ(1ul, simulcast.send_layers().size());
-  EXPECT_EQ(1ul, simulcast.send_layers().GetAllLayers().size());
+  EXPECT_EQ(2ul, simulcast.send_layers().size());
+  EXPECT_EQ(2ul, simulcast.send_layers().GetAllLayers().size());
   EXPECT_EQ("1", simulcast.send_layers()[0][0].rid);
   EXPECT_EQ(1ul, media->streams().size());
   const std::vector<RidDescription>& rids = media->streams()[0].rids();
-  EXPECT_EQ(1ul, rids.size());
+  EXPECT_EQ(2ul, rids.size());
   EXPECT_EQ("1", rids[0].rid);
-  EXPECT_EQ(1ul, rids[0].payload_types.size());
-  EXPECT_EQ(120, rids[0].payload_types[0]);
+  EXPECT_EQ(1ul, rids[0].codecs.size());
+  EXPECT_EQ(120, rids[0].codecs[0].id);
+  EXPECT_EQ("2", rids[1].rid);
+  EXPECT_EQ(0ul, rids[1].codecs.size());
 }
 
 // Ignores duplicate rid lines

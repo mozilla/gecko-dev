@@ -470,7 +470,7 @@ rtc_library("rid_description") {
     "base/rid_description.cc",
     "base/rid_description.h",
   ]
-  deps = []
+  deps = [ ":codec" ]
 }
 
 rtc_library("rtc_simulcast_encoder_adapter") {

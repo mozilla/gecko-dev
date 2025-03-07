@@ -15,6 +15,8 @@
 #include <string>
 #include <vector>
 
+#include "media/base/codec.h"
+
 namespace cricket {
 
 enum class RidDirection { kSend, kReceive };
@@ -73,9 +75,11 @@ struct RidDescription final {
   // the stream were changed to "sendrecv" or "recvonly".
   RidDirection direction;
 
-  // The list of codec payload types for this stream.
-  // It should be a subset of the payloads supported for the media section.
-  std::vector<int> payload_types;
+  // The list of codecs for this stream.
+  // When the RID is serialized/deserialized, these codecs are mapped to/from
+  // the payload types listed in the media section, ensuring PT consistency in
+  // the SDP even when `codecs[i].id` cannot be trusted.
+  std::vector<Codec> codecs;
 
   // Contains key-value pairs for restrictions.
   // The keys are not validated against a known set.

@@ -21,8 +21,7 @@ RidDescription& RidDescription::operator=(const RidDescription& other) =
     default;
 bool RidDescription::operator==(const RidDescription& other) const {
   return rid == other.rid && direction == other.direction &&
-         payload_types == other.payload_types &&
-         restrictions == other.restrictions;
+         codecs == other.codecs && restrictions == other.restrictions;
 }
 
 }  // namespace cricket

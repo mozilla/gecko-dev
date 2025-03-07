@@ -52,6 +52,7 @@
 #include "api/video/video_codec_constants.h"
 #include "call/payload_type.h"
 #include "media/base/codec.h"
+#include "media/base/codec_comparators.h"
 #include "media/base/media_engine.h"
 #include "media/base/rid_description.h"
 #include "media/base/stream_params.h"
@@ -644,16 +645,8 @@ std::vector<RtpEncodingParameters> GetSendEncodingsFromRemoteDescription(
     auto rid_desc = std::find_if(
         desc.receive_rids().begin(), desc.receive_rids().end(),
         [&layer](const RidDescription& rid) { return rid.rid == layer.rid; });
-    if (rid_desc != desc.receive_rids().end() &&
-        !rid_desc->payload_types.empty()) {
-      int payload_type = rid_desc->payload_types[0];
-      auto codec = std::find_if(desc.codecs().begin(), desc.codecs().end(),
-                                [payload_type](const cricket::Codec& codec) {
-                                  return codec.id == payload_type;
-                                });
-      if (codec != desc.codecs().end()) {
-        parameters.codec = codec->ToCodecParameters();
-      }
+    if (rid_desc != desc.receive_rids().end() && !rid_desc->codecs.empty()) {
+      parameters.codec = rid_desc->codecs[0].ToCodecParameters();
     }
     result.push_back(parameters);
   }
@@ -813,8 +806,8 @@ cricket::MediaDescriptionOptions GetMediaDescriptionOptionsForTransceiver(
     if (encoding.codec) {
       auto send_codecs = transceiver->sender_internal()->GetSendCodecs();
       for (const cricket::Codec& codec : send_codecs) {
-        if (codec.MatchesRtpCodec(*encoding.codec)) {
-          send_rid.payload_types.push_back(codec.id);
+        if (IsSameRtpCodecIgnoringLevel(codec, *encoding.codec)) {
+          send_rid.codecs.push_back(codec);
           break;
         }
       }

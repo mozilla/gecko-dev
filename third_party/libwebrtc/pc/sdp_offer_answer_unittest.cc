@@ -654,26 +654,27 @@ TEST_F(SdpOfferAnswerTest, SimulcastAnswerWithNoRidsIsRejected) {
   EXPECT_TRUE(pc->SetRemoteDescription(std::move(rejected_answer)));
 }
 
-// TODO: bugs.webrtc.org/362277533 - reenable before launch.
-TEST_F(SdpOfferAnswerTest, DISABLED_SimulcastOfferWithMixedCodec) {
+TEST_F(SdpOfferAnswerTest, SimulcastOfferWithMixedCodec) {
   auto pc = CreatePeerConnection(
       FieldTrials::CreateNoGlobal("WebRTC-MixedCodecSimulcast/Enabled/"));
 
-  std::optional<RtpCodecCapability> vp8_codec = FindFirstSendCodecWithName(
-      cricket::MEDIA_TYPE_VIDEO, cricket::kVp8CodecName);
-  ASSERT_TRUE(vp8_codec);
-  std::optional<RtpCodecCapability> vp9_codec = FindFirstSendCodecWithName(
-      cricket::MEDIA_TYPE_VIDEO, cricket::kVp9CodecName);
-  ASSERT_TRUE(vp9_codec);
+  std::optional<RtpCodecCapability> vp8_codec_capability =
+      FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
+                                 cricket::kVp8CodecName);
+  ASSERT_TRUE(vp8_codec_capability);
+  std::optional<RtpCodecCapability> vp9_codec_capability =
+      FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
+                                 cricket::kVp9CodecName);
+  ASSERT_TRUE(vp9_codec_capability);
 
   RtpTransceiverInit init;
   RtpEncodingParameters rid1;
   rid1.rid = "1";
-  rid1.codec = *vp8_codec;
+  rid1.codec = *vp8_codec_capability;
   init.send_encodings.push_back(rid1);
   RtpEncodingParameters rid2;
   rid2.rid = "2";
-  rid2.codec = *vp9_codec;
+  rid2.codec = *vp9_codec_capability;
   init.send_encodings.push_back(rid2);
 
   auto transceiver = pc->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
@@ -683,28 +684,30 @@ TEST_F(SdpOfferAnswerTest, DISABLED_SimulcastOfferWithMixedCodec) {
   // Verify that the serialized SDP includes pt=.
   std::string sdp;
   offer->ToString(&sdp);
-  int vp8_pt = cricket::Codec::kIdNotSet;
-  int vp9_pt = cricket::Codec::kIdNotSet;
+  const cricket::Codec* vp8_send_codec = nullptr;
+  const cricket::Codec* vp9_send_codec = nullptr;
   for (auto& codec : send_codecs) {
-    if (codec.name == vp8_codec->name && vp8_pt == cricket::Codec::kIdNotSet) {
-      vp8_pt = codec.id;
+    if (codec.name == vp8_codec_capability->name && !vp8_send_codec) {
+      vp8_send_codec = &codec;
     }
-    if (codec.name == vp9_codec->name && vp9_pt == cricket::Codec::kIdNotSet) {
-      vp9_pt = codec.id;
+    if (codec.name == vp9_codec_capability->name && !vp9_send_codec) {
+      vp9_send_codec = &codec;
     }
   }
-  EXPECT_THAT(sdp,
-              testing::HasSubstr("a=rid:1 send pt=" + std::to_string(vp8_pt)));
-  EXPECT_THAT(sdp,
-              testing::HasSubstr("a=rid:2 send pt=" + std::to_string(vp9_pt)));
+  ASSERT_TRUE(vp8_send_codec);
+  ASSERT_TRUE(vp9_send_codec);
+  EXPECT_THAT(sdp, testing::HasSubstr("a=rid:1 send pt=" +
+                                      std::to_string(vp8_send_codec->id)));
+  EXPECT_THAT(sdp, testing::HasSubstr("a=rid:2 send pt=" +
+                                      std::to_string(vp9_send_codec->id)));
   // Verify that SDP containing pt= can be parsed correctly.
   auto offer2 = CreateSessionDescription(SdpType::kOffer, sdp);
   auto& offer_contents2 = offer2->description()->contents();
   auto send_rids2 = offer_contents2[0].media_description()->streams()[0].rids();
-  EXPECT_EQ(send_rids2[0].payload_types.size(), 1u);
-  EXPECT_EQ(send_rids2[0].payload_types[0], vp8_pt);
-  EXPECT_EQ(send_rids2[1].payload_types.size(), 1u);
-  EXPECT_EQ(send_rids2[1].payload_types[0], vp9_pt);
+  EXPECT_EQ(send_rids2[0].codecs.size(), 1u);
+  EXPECT_EQ(send_rids2[0].codecs[0], *vp8_send_codec);
+  EXPECT_EQ(send_rids2[1].codecs.size(), 1u);
+  EXPECT_EQ(send_rids2[1].codecs[0], *vp9_send_codec);
 }
 
 TEST_F(SdpOfferAnswerTest, SimulcastAnswerWithPayloadType) {
