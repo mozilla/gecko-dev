@@ -172,7 +172,7 @@ class QualityScaler::CheckQpTask {
   const Result previous_task_result_;
   Result result_;
 
-  rtc::WeakPtrFactory<CheckQpTask> weak_ptr_factory_;
+  WeakPtrFactory<CheckQpTask> weak_ptr_factory_;
 };
 
 QualityScaler::QualityScaler(QualityScalerQpUsageHandlerInterface* handler,

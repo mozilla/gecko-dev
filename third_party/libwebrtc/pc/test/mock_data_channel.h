@@ -21,10 +21,9 @@ namespace webrtc {
 
 class MockSctpDataChannel : public SctpDataChannel {
  public:
-  MockSctpDataChannel(
-      rtc::WeakPtr<SctpDataChannelControllerInterface> controller,
-      int id,
-      DataState state)
+  MockSctpDataChannel(WeakPtr<SctpDataChannelControllerInterface> controller,
+                      int id,
+                      DataState state)
       : MockSctpDataChannel(std::move(controller),
                             id,
                             "MockSctpDataChannel",
@@ -35,7 +34,7 @@ class MockSctpDataChannel : public SctpDataChannel {
                             0,
                             0) {}
   MockSctpDataChannel(
-      rtc::WeakPtr<SctpDataChannelControllerInterface> controller,
+      WeakPtr<SctpDataChannelControllerInterface> controller,
       int id,
       const std::string& label,
       DataState state,

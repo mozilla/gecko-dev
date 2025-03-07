@@ -130,7 +130,7 @@ class SctpSidAllocator {
 class SctpDataChannel : public DataChannelInterface {
  public:
   static rtc::scoped_refptr<SctpDataChannel> Create(
-      rtc::WeakPtr<SctpDataChannelControllerInterface> controller,
+      WeakPtr<SctpDataChannelControllerInterface> controller,
       const std::string& label,
       bool connected_to_transport,
       const InternalDataChannelInit& config,
@@ -232,7 +232,7 @@ class SctpDataChannel : public DataChannelInterface {
 
  protected:
   SctpDataChannel(const InternalDataChannelInit& config,
-                  rtc::WeakPtr<SctpDataChannelControllerInterface> controller,
+                  WeakPtr<SctpDataChannelControllerInterface> controller,
                   const std::string& label,
                   bool connected_to_transport,
                   rtc::Thread* signaling_thread,
@@ -290,7 +290,7 @@ class SctpDataChannel : public DataChannelInterface {
   uint64_t bytes_sent_ RTC_GUARDED_BY(network_thread_) = 0;
   uint32_t messages_received_ RTC_GUARDED_BY(network_thread_) = 0;
   uint64_t bytes_received_ RTC_GUARDED_BY(network_thread_) = 0;
-  rtc::WeakPtr<SctpDataChannelControllerInterface> controller_
+  WeakPtr<SctpDataChannelControllerInterface> controller_
       RTC_GUARDED_BY(network_thread_);
   HandshakeState handshake_state_ RTC_GUARDED_BY(network_thread_) =
       kHandshakeInit;

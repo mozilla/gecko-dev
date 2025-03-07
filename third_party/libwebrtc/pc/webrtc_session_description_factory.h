@@ -147,7 +147,7 @@ class WebRtcSessionDescriptionFactory {
   std::function<void(const rtc::scoped_refptr<rtc::RTCCertificate>&)>
       on_certificate_ready_;
 
-  rtc::WeakPtrFactory<WebRtcSessionDescriptionFactory> weak_factory_{this};
+  WeakPtrFactory<WebRtcSessionDescriptionFactory> weak_factory_{this};
 };
 }  // namespace webrtc
 

@@ -285,7 +285,7 @@ class SctpDataChannel::ObserverAdapter : public DataChannelObserver {
 
 // static
 rtc::scoped_refptr<SctpDataChannel> SctpDataChannel::Create(
-    rtc::WeakPtr<SctpDataChannelControllerInterface> controller,
+    WeakPtr<SctpDataChannelControllerInterface> controller,
     const std::string& label,
     bool connected_to_transport,
     const InternalDataChannelInit& config,
@@ -312,7 +312,7 @@ rtc::scoped_refptr<DataChannelInterface> SctpDataChannel::CreateProxy(
 
 SctpDataChannel::SctpDataChannel(
     const InternalDataChannelInit& config,
-    rtc::WeakPtr<SctpDataChannelControllerInterface> controller,
+    WeakPtr<SctpDataChannelControllerInterface> controller,
     const std::string& label,
     bool connected_to_transport,
     rtc::Thread* signaling_thread,

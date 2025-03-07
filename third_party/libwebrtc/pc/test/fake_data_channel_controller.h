@@ -38,7 +38,7 @@ class FakeDataChannelController
     });
   }
 
-  rtc::WeakPtr<FakeDataChannelController> weak_ptr() {
+  webrtc::WeakPtr<FakeDataChannelController> weak_ptr() {
     RTC_DCHECK_RUN_ON(network_thread_);
     return weak_factory_.GetWeakPtr();
   }
@@ -49,7 +49,7 @@ class FakeDataChannelController
     rtc::scoped_refptr<webrtc::SctpDataChannel> channel =
         network_thread_->BlockingCall([&]() {
           RTC_DCHECK_RUN_ON(network_thread_);
-          rtc::WeakPtr<FakeDataChannelController> my_weak_ptr = weak_ptr();
+          webrtc::WeakPtr<FakeDataChannelController> my_weak_ptr = weak_ptr();
           // Explicitly associate the weak ptr instance with the current thread
           // to catch early any inappropriate referencing of it on the network
           // thread.
@@ -239,7 +239,7 @@ class FakeDataChannelController
   std::set<webrtc::SctpDataChannel*> connected_channels_
       RTC_GUARDED_BY(network_thread_);
   std::set<webrtc::StreamId> known_stream_ids_ RTC_GUARDED_BY(network_thread_);
-  rtc::WeakPtrFactory<FakeDataChannelController> weak_factory_
+  webrtc::WeakPtrFactory<FakeDataChannelController> weak_factory_
       RTC_GUARDED_BY(network_thread_){this};
 };
 #endif  // PC_TEST_FAKE_DATA_CHANNEL_CONTROLLER_H_

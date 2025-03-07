@@ -1188,7 +1188,7 @@ class SdpOfferAnswerHandler::ImplicitCreateSessionDescriptionObserver
     : public CreateSessionDescriptionObserver {
  public:
   ImplicitCreateSessionDescriptionObserver(
-      rtc::WeakPtr<SdpOfferAnswerHandler> sdp_handler,
+      WeakPtr<SdpOfferAnswerHandler> sdp_handler,
       rtc::scoped_refptr<SetLocalDescriptionObserverInterface>
           set_local_description_observer)
       : sdp_handler_(std::move(sdp_handler)),
@@ -1234,7 +1234,7 @@ class SdpOfferAnswerHandler::ImplicitCreateSessionDescriptionObserver
 
  private:
   bool was_called_ = false;
-  rtc::WeakPtr<SdpOfferAnswerHandler> sdp_handler_;
+  WeakPtr<SdpOfferAnswerHandler> sdp_handler_;
   rtc::scoped_refptr<SetLocalDescriptionObserverInterface>
       set_local_description_observer_;
   std::function<void()> operation_complete_callback_;
@@ -1325,7 +1325,7 @@ class SdpOfferAnswerHandler::SetSessionDescriptionObserverAdapter
       public SetRemoteDescriptionObserverInterface {
  public:
   SetSessionDescriptionObserverAdapter(
-      rtc::WeakPtr<SdpOfferAnswerHandler> handler,
+      WeakPtr<SdpOfferAnswerHandler> handler,
       rtc::scoped_refptr<SetSessionDescriptionObserver> inner_observer)
       : handler_(std::move(handler)),
         inner_observer_(std::move(inner_observer)) {}
@@ -1352,7 +1352,7 @@ class SdpOfferAnswerHandler::SetSessionDescriptionObserverAdapter
     }
   }
 
-  rtc::WeakPtr<SdpOfferAnswerHandler> handler_;
+  WeakPtr<SdpOfferAnswerHandler> handler_;
   rtc::scoped_refptr<SetSessionDescriptionObserver> inner_observer_;
 };
 

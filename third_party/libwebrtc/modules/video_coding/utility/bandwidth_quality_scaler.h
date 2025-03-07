@@ -86,7 +86,7 @@ class BandwidthQualityScaler {
   std::optional<int64_t> last_time_sent_in_ms_ RTC_GUARDED_BY(&task_checker_);
   RateStatistics encoded_bitrate_ RTC_GUARDED_BY(&task_checker_);
   std::optional<int> last_frame_size_pixels_ RTC_GUARDED_BY(&task_checker_);
-  rtc::WeakPtrFactory<BandwidthQualityScaler> weak_ptr_factory_;
+  WeakPtrFactory<BandwidthQualityScaler> weak_ptr_factory_;
 
   std::vector<VideoEncoder::ResolutionBitrateLimits> resolution_bitrate_limits_;
 };
