@@ -40,7 +40,7 @@ index 17930de346..c6d000cda0 100644
      "../../call/adaptation:resource_adaptation",
      "../../media:media_constants",
 diff --git a/video/config/simulcast.cc b/video/config/simulcast.cc
-index 35be2f700a..caaeb9f037 100644
+index 5803f3fbb3..a1000dbee0 100644
 --- a/video/config/simulcast.cc
 +++ b/video/config/simulcast.cc
 @@ -19,16 +19,19 @@
@@ -63,9 +63,9 @@ index 35be2f700a..caaeb9f037 100644
  #include "rtc_base/logging.h"
 +#include "video/config/video_encoder_config.h"
  
- namespace cricket {
+ namespace webrtc {
  
-@@ -197,6 +200,8 @@ int GetDefaultSimulcastTemporalLayers(webrtc::VideoCodecType codec) {
+@@ -197,6 +200,8 @@ int GetDefaultSimulcastTemporalLayers(VideoCodecType codec) {
      case webrtc::kVideoCodecH265:
        return 1;
    }

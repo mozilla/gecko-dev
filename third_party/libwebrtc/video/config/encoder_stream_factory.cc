@@ -216,7 +216,7 @@ void OverrideStreamSettings(
       encoder_config.max_bitrate_bps > 0) {
     // No application-configured maximum for the largest layer.
     // If there is bitrate leftover, give it to the largest layer.
-    BoostMaxSimulcastLayer(
+    webrtc::BoostMaxSimulcastLayer(
         webrtc::DataRate::BitsPerSec(encoder_config.max_bitrate_bps), &layers);
   }
 
@@ -459,7 +459,7 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
 
   // Use legacy simulcast screenshare if conference mode is explicitly enabled
   // or use the regular simulcast configuration path which is generic.
-  std::vector<webrtc::VideoStream> layers = GetSimulcastConfig(
+  std::vector<webrtc::VideoStream> layers = webrtc::GetSimulcastConfig(
       resolutions,
       webrtc::SimulcastUtility::IsConferenceModeScreenshare(encoder_config),
       IsTemporalLayersSupported(encoder_config.codec_type), trials,
@@ -532,7 +532,7 @@ std::vector<webrtc::Resolution> EncoderStreamFactory::GetStreamResolutions(
     size_t min_num_layers = FindRequiredActiveLayers(encoder_config);
     size_t max_num_layers =
         !encoder_config.HasScaleResolutionDownTo()
-            ? LimitSimulcastLayerCount(
+            ? webrtc::LimitSimulcastLayerCount(
                   min_num_layers, encoder_config.number_of_streams, width,
                   height, trials, encoder_config.codec_type)
             : encoder_config.number_of_streams;

@@ -21,16 +21,15 @@
 #include "api/video/resolution.h"
 #include "video/config/video_encoder_config.h"
 
-namespace cricket {
+namespace webrtc {
 
 // Gets the total maximum bitrate for the `streams`.
-webrtc::DataRate GetTotalMaxBitrate(
-    const std::vector<webrtc::VideoStream>& streams);
+DataRate GetTotalMaxBitrate(const std::vector<VideoStream>& streams);
 
 // Adds any bitrate of `max_bitrate` that is above the total maximum bitrate for
 // the `layers` to the highest quality layer.
-void BoostMaxSimulcastLayer(webrtc::DataRate max_bitrate,
-                            std::vector<webrtc::VideoStream>* layers);
+void BoostMaxSimulcastLayer(DataRate max_bitrate,
+                            std::vector<VideoStream>* layers);
 
 // Returns number of simulcast streams. The value depends on the resolution and
 // is restricted to the range from `min_num_layers` to `max_num_layers`,
@@ -39,17 +38,26 @@ size_t LimitSimulcastLayerCount(size_t min_num_layers,
                                 size_t max_num_layers,
                                 int width,
                                 int height,
-                                const webrtc::FieldTrialsView& trials,
-                                webrtc::VideoCodecType codec);
+                                const FieldTrialsView& trials,
+                                VideoCodecType codec);
 
 // Gets simulcast settings.
-std::vector<webrtc::VideoStream> GetSimulcastConfig(
-    rtc::ArrayView<const webrtc::Resolution> resolutions,
+std::vector<VideoStream> GetSimulcastConfig(
+    rtc::ArrayView<const Resolution> resolutions,
     bool is_screenshare_with_conference_mode,
     bool temporal_layers_supported,
-    const webrtc::FieldTrialsView& trials,
-    webrtc::VideoCodecType codec);
+    const FieldTrialsView& trials,
+    VideoCodecType codec);
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace cricket {
+using ::webrtc::BoostMaxSimulcastLayer;
+using ::webrtc::GetSimulcastConfig;
+using ::webrtc::GetTotalMaxBitrate;
+using ::webrtc::LimitSimulcastLayerCount;
 }  // namespace cricket
 
 #endif  // VIDEO_CONFIG_SIMULCAST_H_
