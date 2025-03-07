@@ -54,10 +54,11 @@ struct MapTableEntry {
 bool CodecPrefersLowerRange(const cricket::Codec& codec) {
   // All audio codecs prefer upper range.
   if (codec.type == cricket::Codec::Type::kAudio) {
-    return false;
+    return absl::EqualsIgnoreCase(codec.name, cricket::kRedCodecName);
   }
   if (absl::EqualsIgnoreCase(codec.name, cricket::kFlexfecCodecName) ||
-      absl::EqualsIgnoreCase(codec.name, cricket::kAv1CodecName)) {
+      absl::EqualsIgnoreCase(codec.name, cricket::kAv1CodecName) ||
+      absl::EqualsIgnoreCase(codec.name, cricket::kH265CodecName)) {
     return true;
   } else if (absl::EqualsIgnoreCase(codec.name, cricket::kH264CodecName)) {
     std::string profile_level_id;
