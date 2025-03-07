@@ -4,15 +4,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-include("sources.mozbuild")
-
 with Files('**'):
     BUG_COMPONENT = ('Core', 'XML')
 
+DIRS += ['lib']
+
 EXPORTS += [
-    'expat/lib/expat.h',
-    'expat/lib/expat_external.h',
-    'expat/lib/moz_expat.h',
     'expat_config.h',
     'expat_config_moz.h',
     'expat_config_rlbox.h',
@@ -20,16 +17,6 @@ EXPORTS += [
     'rlbox_expat_types.h',
 ]
 
-if CONFIG["MOZ_WASM_SANDBOXING_EXPAT"]:
-    SOURCES += ['expat/lib/moz_xmltok.c']
-else:
-    SOURCES += expat_sources
-
 LOCAL_INCLUDES += [
     '!/security/rlbox',
 ]
-
-FINAL_LIBRARY = 'xul'
-
-for k, v in expat_defines:
-    DEFINES[k] = v

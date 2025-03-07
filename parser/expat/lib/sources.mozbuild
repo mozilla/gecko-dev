@@ -5,9 +5,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 expat_sources = [
-    'expat/lib/moz_xmlparse.c',
-    'expat/lib/moz_xmltok.c',
-    'expat/lib/xmlrole.c',
+    'xmlparse.c',
+    'xmlrole.c',
+    'xmltok.c',
 ]
 
 expat_defines = [
