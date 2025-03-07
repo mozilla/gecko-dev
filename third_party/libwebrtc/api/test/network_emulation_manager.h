@@ -26,7 +26,6 @@
 #include "api/packet_socket_factory.h"
 #include "api/test/network_emulation/cross_traffic.h"
 #include "api/test/network_emulation/network_emulation_interfaces.h"
-#include "api/test/peer_network_dependencies.h"
 #include "api/test/simulated_network.h"
 #include "api/test/time_controller.h"
 #include "api/units/data_rate.h"
@@ -141,29 +140,24 @@ class EmulatedNetworkManagerInterface {
   // EmulatedNetworkManagerInterface implementation.
   // Deprecated in favor of injecting NetworkManager into PeerConnectionFactory
   // instead of creating and injecting BasicPortAllocator into PeerConnection.
-  // TODO: bugs.webrtc.org/42232556 - Cleanup usages of this accessor in WebRTC,
-  // and then deprecate or remove it.
-  virtual absl::Nonnull<rtc::NetworkManager*> network_manager() = 0;
+  [[deprecated("bugs.webrtc.org/42232556")]]  //
+  virtual absl::Nonnull<rtc::NetworkManager*>
+  network_manager() = 0;
 
   // Returns packet socket factory that have to be injected
   // into WebRTC to properly setup network emulation. Returned factory is owned
   // by EmulatedNetworkManagerInterface implementation.
   // Deprecated in favor of injecting SocketFactory into PeerConnectionFactory
   // instead of creating and injecting BasicPortAllocator into PeerConnection.
-  // TODO: bugs.webrtc.org/42232556 - Cleanup usages of this accessor in WebRTC,
-  // and then deprecate or remove it.
-  virtual absl::Nonnull<rtc::PacketSocketFactory*> packet_socket_factory() = 0;
+  [[deprecated("bugs.webrtc.org/42232556")]]  //
+  virtual absl::Nonnull<rtc::PacketSocketFactory*>
+  packet_socket_factory() = 0;
 
   // Returns objects to pass to PeerConnectionFactoryDependencies.
   virtual absl::Nonnull<rtc::SocketFactory*> socket_factory() = 0;
   virtual absl::Nonnull<std::unique_ptr<rtc::NetworkManager>>
   ReleaseNetworkManager() = 0;
 
-  [[deprecated("bugs.webrtc.org/42232556")]]  //
-  webrtc::webrtc_pc_e2e::PeerNetworkDependencies
-  network_dependencies() {
-    return {network_thread(), network_manager(), packet_socket_factory()};
-  }
   // Returns list of endpoints that are associated with this instance. Pointers
   // are guaranteed to be non-null and are owned by NetworkEmulationManager.
   virtual std::vector<EmulatedEndpoint*> endpoints() const = 0;

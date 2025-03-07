@@ -33,7 +33,6 @@
 #include "api/test/network_emulation_manager.h"
 #include "api/test/pclf/media_configuration.h"
 #include "api/test/pclf/media_quality_test_params.h"
-#include "api/test/peer_network_dependencies.h"
 #include "api/transport/bitrate_settings.h"
 #include "api/transport/network_control.h"
 #include "api/video_codecs/video_decoder_factory.h"
@@ -51,8 +50,6 @@ class PeerConfigurer {
       absl::variant<std::unique_ptr<test::FrameGeneratorInterface>,
                     CapturingDeviceIndex>;
 
-  [[deprecated("bugs.webrtc.org/42232556")]] explicit PeerConfigurer(
-      const PeerNetworkDependencies& network_dependencies);
   explicit PeerConfigurer(EmulatedNetworkManagerInterface& network);
 
   // Sets peer name that will be used to report metrics related to this peer.

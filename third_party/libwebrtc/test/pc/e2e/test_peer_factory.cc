@@ -34,8 +34,6 @@
 #include "api/video_codecs/video_decoder_factory.h"
 #include "api/video_codecs/video_encoder_factory.h"
 #include "modules/audio_device/include/test_audio_device.h"
-#include "p2p/base/port_allocator.h"
-#include "p2p/client/basic_port_allocator.h"
 #include "pc/test/mock_peer_connection_observers.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/system/file_wrapper.h"
@@ -206,6 +204,8 @@ PeerConnectionFactoryDependencies CreatePCFDependencies(
   pcf_deps.signaling_thread = signaling_thread;
   pcf_deps.worker_thread = worker_thread;
   pcf_deps.network_thread = network_thread;
+  pcf_deps.socket_factory = pcf_dependencies->socket_factory;
+  pcf_deps.network_manager = std::move(pcf_dependencies->network_manager);
 
   pcf_deps.event_log_factory = std::move(pcf_dependencies->event_log_factory);
   pcf_deps.task_queue_factory = time_controller.CreateTaskQueueFactory();
@@ -247,22 +247,10 @@ PeerConnectionFactoryDependencies CreatePCFDependencies(
 // from InjectableComponents::PeerConnectionComponents.
 PeerConnectionDependencies CreatePCDependencies(
     MockPeerConnectionObserver* observer,
-    std::optional<uint32_t> port_allocator_flags,
     std::unique_ptr<PeerConnectionComponents> pc_dependencies) {
   PeerConnectionDependencies pc_deps(observer);
 
-  auto port_allocator = std::make_unique<cricket::BasicPortAllocator>(
-      pc_dependencies->network_manager, pc_dependencies->packet_socket_factory);
 
-  // This test does not support TCP by default.
-  int flags =
-      cricket::kDefaultPortAllocatorFlags | cricket::PORTALLOCATOR_DISABLE_TCP;
-  if (port_allocator_flags.has_value()) {
-    flags = *port_allocator_flags;
-  }
-  port_allocator->set_flags(port_allocator->flags() | flags);
-
-  pc_deps.allocator = std::move(port_allocator);
 
   if (pc_dependencies->async_dns_resolver_factory != nullptr) {
     pc_deps.async_dns_resolver_factory =
@@ -346,9 +334,11 @@ std::unique_ptr<TestPeer> TestPeerFactory::CreateTestPeer(
   }
 
   // Create peer connection.
-  PeerConnectionDependencies pc_deps =
-      CreatePCDependencies(observer.get(), params->port_allocator_flags,
-                           std::move(components->pc_dependencies));
+  PeerConnectionDependencies pc_deps = CreatePCDependencies(
+      observer.get(), std::move(components->pc_dependencies));
+
+  params->rtc_configuration.port_allocator_config.flags =
+      params->port_allocator_flags;
   rtc::scoped_refptr<PeerConnectionInterface> peer_connection =
       peer_connection_factory
           ->CreatePeerConnectionOrError(params->rtc_configuration,

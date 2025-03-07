@@ -121,8 +121,6 @@ if (!build_with_chromium) {
         "../../../api/video_codecs:video_codecs_api",
         "../../../modules/audio_device:test_audio_device_module",
         "../../../modules/audio_processing/aec_dump",
-        "../../../p2p:basic_port_allocator",
-        "../../../p2p:port_allocator",
         "../../../pc:pc_test_utils",
         "../../../rtc_base:checks",
         "../../../rtc_base:threading",
