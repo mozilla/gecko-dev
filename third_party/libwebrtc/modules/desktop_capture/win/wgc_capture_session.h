@@ -149,11 +149,8 @@ class WgcCaptureSession final {
   // false.
   DesktopRegion damage_region_;
 
-  // Captures the device scale factor of the monitor where the frame is captured
-  // from. This value is the same as the scale from windows settings. Valid
-  // values are some distinct numbers in the range of [1,5], for example,
-  // 1, 1.5, 2.5, etc.
-  std::optional<float> device_scale_factor_;
+  // The unique id to represent a Source of current DesktopCapturer.
+  intptr_t source_id_;
 
   SequenceChecker sequence_checker_;
 };

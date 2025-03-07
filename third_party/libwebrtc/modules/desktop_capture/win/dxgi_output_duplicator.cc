@@ -68,18 +68,12 @@ DxgiOutputDuplicator::DxgiOutputDuplicator(const D3dDevice& device,
     : device_(device),
       output_(output),
       device_name_(rtc::ToUtf8(desc.DeviceName)),
-      desktop_rect_(RECTToDesktopRect(desc.DesktopCoordinates)) {
+      desktop_rect_(RECTToDesktopRect(desc.DesktopCoordinates)),
+      monitor_(desc.Monitor) {
   RTC_DCHECK(output_);
   RTC_DCHECK(!desktop_rect_.is_empty());
   RTC_DCHECK_GT(desktop_rect_.width(), 0);
   RTC_DCHECK_GT(desktop_rect_.height(), 0);
-  DEVICE_SCALE_FACTOR device_scale_factor = DEVICE_SCALE_FACTOR_INVALID;
-  HRESULT hr = GetScaleFactorForMonitor(desc.Monitor, &device_scale_factor);
-  RTC_LOG_IF(LS_ERROR, FAILED(hr))
-      << "Failed to get scale factor for monitor: " << hr;
-  if (device_scale_factor != DEVICE_SCALE_FACTOR_INVALID) {
-    device_scale_factor_ = static_cast<float>(device_scale_factor) / 100.0f;
-  }
 }
 
 DxgiOutputDuplicator::DxgiOutputDuplicator(DxgiOutputDuplicator&& other) =
@@ -423,6 +417,17 @@ int64_t DxgiOutputDuplicator::num_frames_captured() const {
   RTC_DCHECK_EQ(!!last_frame_, num_frames_captured_ > 0);
 #endif
   return num_frames_captured_;
+}
+
+std::optional<float> DxgiOutputDuplicator::device_scale_factor() const {
+  DEVICE_SCALE_FACTOR device_scale_factor = DEVICE_SCALE_FACTOR_INVALID;
+  HRESULT hr = GetScaleFactorForMonitor(monitor_, &device_scale_factor);
+  if (FAILED(hr)) {
+    RTC_LOG(LS_ERROR) << "Failed to get scale factor for monitor: " << hr;
+    return std::nullopt;
+  }
+  RTC_DCHECK(device_scale_factor != DEVICE_SCALE_FACTOR_INVALID);
+  return static_cast<float>(device_scale_factor) / 100.0f;
 }
 
 void DxgiOutputDuplicator::TranslateRect(const DesktopVector& position) {

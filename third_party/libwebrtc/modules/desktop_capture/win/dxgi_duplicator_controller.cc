@@ -189,12 +189,12 @@ DxgiDuplicatorController::Result DxgiDuplicatorController::DoDuplicate(
     return Result::INITIALIZATION_FAILED;
   }
 
-  if (!frame->Prepare(SelectedDesktopSize(monitor_id), monitor_id,
-                      GetDeviceScaleFactor(monitor_id))) {
+  if (!frame->Prepare(SelectedDesktopSize(monitor_id), monitor_id)) {
     return Result::FRAME_PREPARE_FAILED;
   }
 
   frame->frame()->mutable_updated_region()->Clear();
+  frame->frame()->set_device_scale_factor(GetDeviceScaleFactor(monitor_id));
 
   if (DoDuplicateUnlocked(frame->context(), monitor_id, frame->frame())) {
     succeeded_duplications_++;

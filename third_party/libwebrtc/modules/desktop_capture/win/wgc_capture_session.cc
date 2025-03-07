@@ -106,21 +106,9 @@ WgcCaptureSession::WgcCaptureSession(intptr_t source_id,
                                      ABI::Windows::Graphics::SizeInt32 size)
     : d3d11_device_(std::move(d3d11_device)),
       item_(std::move(item)),
-      size_(size) {
+      size_(size),
+      source_id_(source_id) {
   RTC_CHECK(source_id);
-  HMONITOR monitor = 0;
-  if (!GetHmonitorFromDeviceIndex(source_id, &monitor)) {
-    monitor = MonitorFromWindow(reinterpret_cast<HWND>(source_id),
-                                /*dwFlags=*/MONITOR_DEFAULTTONEAREST);
-  }
-  DEVICE_SCALE_FACTOR device_scale_factor = DEVICE_SCALE_FACTOR_INVALID;
-  HRESULT hr = GetScaleFactorForMonitor(monitor, &device_scale_factor);
-  RTC_LOG_IF(LS_ERROR, FAILED(hr))
-      << "Failed to get scale factor for monitor: " << hr;
-
-  if (device_scale_factor != DEVICE_SCALE_FACTOR_INVALID) {
-    device_scale_factor_ = static_cast<float>(device_scale_factor) / 100.0f;
-  }
 }
 
 WgcCaptureSession::~WgcCaptureSession() {
@@ -479,8 +467,30 @@ HRESULT WgcCaptureSession::ProcessFrame() {
   }
 
   DesktopFrame* current_frame = queue_.current_frame();
-  current_frame->set_device_scale_factor(device_scale_factor_);
   DesktopFrame* previous_frame = queue_.previous_frame();
+
+  // If the captured window moves to another screen, the HMONITOR assosciated
+  // with the captured window will change. Therefore, we need to get the value
+  // of HMONITOR per frame.
+  HMONITOR monitor;
+  if (!GetHmonitorFromDeviceIndex(source_id_, &monitor)) {
+    monitor = MonitorFromWindow(reinterpret_cast<HWND>(source_id_),
+                                /*dwFlags=*/MONITOR_DEFAULTTONEAREST);
+  }
+
+  // Captures the device scale factor of the monitor where the frame is captured
+  // from. This value is the same as the scale from windows settings. Valid
+  // values are some distinct numbers in the range of [1,5], for example,
+  // 1, 1.5, 2.5, etc.
+  DEVICE_SCALE_FACTOR device_scale_factor = DEVICE_SCALE_FACTOR_INVALID;
+  HRESULT scale_factor_hr =
+      GetScaleFactorForMonitor(monitor, &device_scale_factor);
+  RTC_LOG_IF(LS_ERROR, FAILED(scale_factor_hr))
+      << "Failed to get scale factor for monitor: " << scale_factor_hr;
+  if (device_scale_factor != DEVICE_SCALE_FACTOR_INVALID) {
+    current_frame->set_device_scale_factor(
+        static_cast<float>(device_scale_factor) / 100.0f);
+  }
 
   // Will be set to true while copying the frame data to the `current_frame` if
   // we can already determine that the content of the new frame differs from the
