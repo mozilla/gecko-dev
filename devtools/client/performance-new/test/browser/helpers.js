@@ -699,7 +699,7 @@ async function getActiveButtonFromText(document, text) {
   // This could select a span inside the button, or the button itself.
   let button = await getElementFromDocumentByText(document, text);
 
-  while (button.tagName !== "button") {
+  while (button.tagName.toLowerCase() !== "button") {
     // Walk up until a button element is found.
     button = button.parentElement;
     if (!button) {
