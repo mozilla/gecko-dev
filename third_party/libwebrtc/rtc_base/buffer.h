@@ -25,7 +25,7 @@
 #include "rtc_base/type_traits.h"
 #include "rtc_base/zero_memory.h"
 
-namespace rtc {
+namespace webrtc {
 
 namespace internal {
 
@@ -447,6 +447,16 @@ using Buffer = BufferT<uint8_t>;
 template <typename T>
 using ZeroOnFreeBuffer = BufferT<T, true>;
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+template <typename T, bool ZeroOnFree = false>
+using BufferT = ::webrtc::BufferT<T, ZeroOnFree>;
+using ::webrtc::Buffer;
+template <typename T>
+using ZeroOnFreeBuffer = ::webrtc::ZeroOnFreeBuffer<T>;
 }  // namespace rtc
 
 #endif  // RTC_BASE_BUFFER_H_

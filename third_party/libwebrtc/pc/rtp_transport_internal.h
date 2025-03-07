@@ -22,11 +22,12 @@
 #include "rtc_base/ssl_stream_adapter.h"
 
 namespace rtc {
-class CopyOnWriteBuffer;
 struct PacketOptions;
 }  // namespace rtc
 
 namespace webrtc {
+
+class CopyOnWriteBuffer;
 
 // This class is an internal interface; it is not accessible to API consumers
 // but is accessible to internal classes in order to send and receive RTP and

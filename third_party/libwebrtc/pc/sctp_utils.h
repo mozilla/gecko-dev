@@ -22,11 +22,8 @@
 #include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/ssl_stream_adapter.h"  // For SSLRole
 
-namespace rtc {
-class CopyOnWriteBuffer;
-}  // namespace rtc
-
 namespace webrtc {
+class CopyOnWriteBuffer;
 struct DataChannelInit;
 
 // Wraps the `uint16_t` sctp data channel stream id value and does range

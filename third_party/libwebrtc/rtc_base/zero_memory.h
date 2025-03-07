@@ -17,7 +17,7 @@
 
 #include "api/array_view.h"
 
-namespace rtc {
+namespace webrtc {
 
 // Fill memory with zeros in a way that the compiler doesn't optimize it away
 // even if the pointer is not used afterwards.
@@ -30,6 +30,12 @@ void ExplicitZeroMemory(rtc::ArrayView<T> a) {
   ExplicitZeroMemory(a.data(), a.size());
 }
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::ExplicitZeroMemory;
 }  // namespace rtc
 
 #endif  // RTC_BASE_ZERO_MEMORY_H_

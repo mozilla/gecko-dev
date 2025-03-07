@@ -27,7 +27,7 @@
 #include "rtc_base/system/rtc_export.h"
 #include "rtc_base/type_traits.h"
 
-namespace rtc {
+namespace webrtc {
 
 class RTC_EXPORT CopyOnWriteBuffer {
  public:
@@ -316,6 +316,12 @@ class RTC_EXPORT CopyOnWriteBuffer {
                    // Should be 0 if the buffer_ is empty.
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::CopyOnWriteBuffer;
 }  // namespace rtc
 
 #endif  // RTC_BASE_COPY_ON_WRITE_BUFFER_H_
