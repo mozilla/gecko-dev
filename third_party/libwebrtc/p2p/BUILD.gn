@@ -145,6 +145,7 @@ rtc_library("basic_port_allocator") {
 
 rtc_source_set("candidate_pair_interface") {
   sources = [ "base/candidate_pair_interface.h" ]
+  deps = [ "../api:candidate" ]
 }
 
 rtc_library("connection") {

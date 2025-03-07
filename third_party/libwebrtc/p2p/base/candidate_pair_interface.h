@@ -11,9 +11,9 @@
 #ifndef P2P_BASE_CANDIDATE_PAIR_INTERFACE_H_
 #define P2P_BASE_CANDIDATE_PAIR_INTERFACE_H_
 
-namespace cricket {
+#include "api/candidate.h"
 
-class Candidate;
+namespace cricket {
 
 class CandidatePairInterface {
  public:
