@@ -365,6 +365,10 @@ WindowCapturerWinGdi::CaptureResults WindowCapturerWinGdi::CaptureFrame(
         for (auto it = owned_windows_.rbegin(); it != owned_windows_.rend();
              it++) {
           HWND hwnd = *it;
+          LONG style = GetWindowLong(hwnd, GWL_EXSTYLE);
+          if (style & WS_EX_LAYERED) {
+            continue;
+          }
           if (owned_window_capturer_->SelectSource(
                   reinterpret_cast<SourceId>(hwnd))) {
             CaptureResults results = owned_window_capturer_->CaptureFrame(
