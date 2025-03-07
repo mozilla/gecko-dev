@@ -768,20 +768,6 @@ if (rtc_include_tests && !build_with_chromium) {
   }
 
   # TODO(pbos): Rename test suite, this is no longer "just" for video targets.
-  video_engine_tests_resources = [
-    "resources/ConferenceMotion_1280_720_50.yuv",
-    "resources/foreman_cif_short.yuv",
-    "resources/voice_engine/audio_long16.pcm",
-  ]
-
-  if (is_ios) {
-    bundle_data("video_engine_tests_bundle_data") {
-      testonly = true
-      sources = video_engine_tests_resources
-      outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
-    }
-  }
-
   rtc_test("video_engine_tests") {
     testonly = true
     deps = [
@@ -797,36 +783,16 @@ if (rtc_include_tests && !build_with_chromium) {
       "video:video_tests",
       "video/adaptation:video_adaptation_tests",
     ]
-    data = video_engine_tests_resources
+
+    data_deps = [ "resources:video_engine_tests_data" ]
+
     if (is_android) {
       use_default_launcher = false
       deps += [ "//build/android/gtest_apk:native_test_instrumentation_test_runner_java" ]
       shard_timeout = 900
     }
     if (is_ios) {
-      deps += [ ":video_engine_tests_bundle_data" ]
-    }
-  }
-
-  webrtc_perf_tests_resources = [
-    "resources/ConferenceMotion_1280_720_50.yuv",
-    "resources/audio_coding/speech_mono_16kHz.pcm",
-    "resources/audio_coding/speech_mono_32_48kHz.pcm",
-    "resources/audio_coding/testfile32kHz.pcm",
-    "resources/difficult_photo_1850_1110.yuv",
-    "resources/foreman_cif.yuv",
-    "resources/paris_qcif.yuv",
-    "resources/photo_1850_1110.yuv",
-    "resources/presentation_1850_1110.yuv",
-    "resources/voice_engine/audio_long16.pcm",
-    "resources/web_screenshot_1850_1110.yuv",
-  ]
-
-  if (is_ios) {
-    bundle_data("webrtc_perf_tests_bundle_data") {
-      testonly = true
-      sources = webrtc_perf_tests_resources
-      outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
+      deps += [ "resources:video_engine_tests_bundle_data" ]
     }
   }
 
@@ -842,14 +808,15 @@ if (rtc_include_tests && !build_with_chromium) {
       "video:video_pc_full_stack_tests",
     ]
 
-    data = webrtc_perf_tests_resources
+    data_deps = [ "resources:webrtc_perf_tests_data" ]
+
     if (is_android) {
       use_default_launcher = false
       deps += [ "//build/android/gtest_apk:native_test_instrumentation_test_runner_java" ]
       shard_timeout = 4500
     }
     if (is_ios) {
-      deps += [ ":webrtc_perf_tests_bundle_data" ]
+      deps += [ "resources:webrtc_perf_tests_bundle_data" ]
     }
   }
 

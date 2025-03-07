@@ -79,7 +79,7 @@ index c810498584..6cec17ccb0 100644
  # The python interpreter to use by default. On Windows, this will look
  # for vpython3.exe and vpython3.bat.
 diff --git a/BUILD.gn b/BUILD.gn
-index ab24dbac21..24fc2b19ca 100644
+index 75e46f9310..b162b61b77 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -21,15 +21,15 @@
@@ -111,7 +111,7 @@ index ab24dbac21..24fc2b19ca 100644
      defines = []
  
      deps = [
-@@ -875,7 +875,7 @@ rtc_static_library("dcsctp") {
+@@ -842,7 +842,7 @@ rtc_static_library("dcsctp") {
    visibility = [ "//:default" ]
    sources = []
    complete_static_lib = true
