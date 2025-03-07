@@ -1,49 +1,23 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Tue, 28 Jan 2025 21:45:00 +0000
-Subject: Bug 1938047 - Hook up VideoStreamFactory with EncoderInfo like the
- libwebrtc factory. r=webrtc-reviewers,dbaker
+From: Michael Froman <mfroman@mozilla.com>
+Date: Wed, 5 Feb 2025 18:03:00 +0000
+Subject: Bug 1942171 - add builtin_audio_processing_builder to the libwebrtc
+ build. r=pehrsons,webrtc-reviewers
 
-This is necessary for the factory to factor in the encoder's resolution
-alignment requirements when calculating stream resolutions.
-
-Differential Revision: https://phabricator.services.mozilla.com/D235702
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8b5653392e88ccd0c2b0675c761bb22733364225
+Differential Revision: https://phabricator.services.mozilla.com/D234594
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/27c29807e6f46562d2b6bae4b7b06a5966290afe
 ---
- video/config/video_encoder_config.h | 4 ++++
- video/video_stream_encoder.cc       | 1 +
- 2 files changed, 5 insertions(+)
+ BUILD.gn | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/video/config/video_encoder_config.h b/video/config/video_encoder_config.h
-index 59ee866f53..b062ca6563 100644
---- a/video/config/video_encoder_config.h
-+++ b/video/config/video_encoder_config.h
-@@ -23,6 +23,7 @@
- #include "api/video_codecs/scalability_mode.h"
- #include "api/video_codecs/sdp_video_format.h"
- #include "api/video_codecs/video_codec.h"
-+#include "api/video_codecs/video_encoder.h"
- #include "rtc_base/ref_count.h"
+diff --git a/BUILD.gn b/BUILD.gn
+index 0dd2bb4f74..d3caa21e77 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -615,6 +615,7 @@ if (!build_with_chromium) {
  
- namespace webrtc {
-@@ -151,6 +152,9 @@ class VideoEncoderConfig {
-         int frame_height,
-         const VideoEncoderConfig& encoder_config) = 0;
- 
-+    // Mozilla: Patching in necessary info our custom VideoStreamFactory will need to know.
-+    virtual void SetEncoderInfo(const VideoEncoder::EncoderInfo& info) {}
-+
-    protected:
-     ~VideoStreamFactoryInterface() override {}
-   };
-diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
-index 9db694119e..621b3db3d2 100644
---- a/video/video_stream_encoder.cc
-+++ b/video/video_stream_encoder.cc
-@@ -1030,6 +1030,7 @@ void VideoStreamEncoder::ReconfigureEncoder() {
-   std::vector<VideoStream> streams;
-   if (encoder_config_.video_stream_factory) {
-     // Note: only tests set their own EncoderStreamFactory...
-+    encoder_config_.video_stream_factory->SetEncoderInfo(encoder_->GetEncoderInfo());
-     streams = encoder_config_.video_stream_factory->CreateEncoderStreams(
-         env_.field_trials(), last_frame_info_->width, last_frame_info_->height,
-         encoder_config_);
+     if (build_with_mozilla) {
+       deps += [
++        "api/audio:builtin_audio_processing_builder",
+         "api/environment:environment_factory",
+         "api/video:video_frame",
+         "api/video:video_rtp_headers",

@@ -1,26 +1,22 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 7 Feb 2025 15:53:00 -0600
-Subject: Bug 1942428 - (fix-882b32d00f) fix
- -Wtautological-unsigned-zero-compare in payload_type.h
+Date: Fri, 7 Feb 2025 16:26:00 -0600
+Subject: Bug 1942428 - (fix-e500d46600) upstream removed p2p:rtc_p2p
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/f3ed04250e9ec1b22731ac690eb66bc96ff894d6
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0155a8718d5d7f23b8391a1d04b1196e30127dad
 ---
- call/payload_type.h | 4 ++++
- 1 file changed, 4 insertions(+)
+ BUILD.gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/call/payload_type.h b/call/payload_type.h
-index 672c489fc6..b2466f6d18 100644
---- a/call/payload_type.h
-+++ b/call/payload_type.h
-@@ -33,7 +33,11 @@ class PayloadType : public StrongAlias<class PayloadTypeTag, uint8_t> {
-     if (rtcp_mux && (id > 63 && id < 96)) {
-       return false;
-     }
-+#if defined(WEBRTC_MOZILLA_BUILD)
-+    return id <= 127; // id is unsigned, therefor always >= 0
-+#else
-     return id >= 0 && id <= 127;
-+#endif
-   }
-   template <typename Sink>
-   friend void AbslStringify(Sink& sink, const PayloadType pt) {
+diff --git a/BUILD.gn b/BUILD.gn
+index d3caa21e77..f0f6d6a103 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -599,7 +599,7 @@ if (!build_with_chromium) {
+         "api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+         "api/video_codecs:video_encoder_factory_template_open_h264_adapter",
+         "logging:rtc_event_log_api",
+-        "p2p:rtc_p2p",
++#        "p2p:rtc_p2p",
+         "pc:libjingle_peerconnection",
+         "pc:rtc_pc",
+         "sdk",

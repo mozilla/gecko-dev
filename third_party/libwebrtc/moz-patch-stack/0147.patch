@@ -1,76 +1,32 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Mon, 3 Mar 2025 15:57:00 +0000
-Subject: Bug 1948818 - Cherry-pick upstream libwebrtc commit a705b2d73a
- r=webrtc-reviewers,mjf
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+From: Jan Grulich <jgrulich@redhat.com>
+Date: Tue, 4 Mar 2025 13:45:00 +0000
+Subject: Bug 1942551 - WebRTC backport: PipeWire camera: Fix cleanup order
+ r=pehrsons,webrtc-reviewers
 
-Upstream commit: https://webrtc.googlesource.com/src/+/a705b2d73ae6822b2c70ad43be94a885a056c499
-       assert unreachable code in simulcast config
+The hook is associated with the proxy object. We should remove the hook
+first before destroying the proxy object to avoid use-after-free.
 
-       and IWYU
+This is a simple backport of an WebRTC upstream change.
 
-       BUG=webrtc:398218412
+Upstream commit: caa8ef3ab511d54dfa486eb7599ef0a74f7471ee
 
-       Change-Id: I6adba61fe9f14f31035f0ff142b51cd991dff2a1
-       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/379280
-       Commit-Queue: Erik Språng <sprang@webrtc.org>
-       Reviewed-by: Mirko Bonadei <mbonadei@webrtc.org>
-       Reviewed-by: Erik Språng <sprang@webrtc.org>
-       Cr-Commit-Position: refs/heads/main@{#44012}
-
-Differential Revision: https://phabricator.services.mozilla.com/D240009
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fac9dfdf2632317aa066ee6c2cd6a9cfdef1ce4e
+Differential Revision: https://phabricator.services.mozilla.com/D239886
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/7fb1200cdac7f72e2a4aca7e739773592a8584c5
 ---
- video/config/BUILD.gn     | 1 +
- video/config/simulcast.cc | 9 +++++++--
- 2 files changed, 8 insertions(+), 2 deletions(-)
+ modules/video_capture/linux/pipewire_session.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/video/config/BUILD.gn b/video/config/BUILD.gn
-index 17930de346..c6d000cda0 100644
---- a/video/config/BUILD.gn
-+++ b/video/config/BUILD.gn
-@@ -23,6 +23,7 @@ rtc_library("streams_config") {
-     "../../api/units:data_rate",
-     "../../api/video:resolution",
-     "../../api/video:video_codec_constants",
-+    "../../api/video:video_frame",
-     "../../api/video_codecs:video_codecs_api",
-     "../../call/adaptation:resource_adaptation",
-     "../../media:media_constants",
-diff --git a/video/config/simulcast.cc b/video/config/simulcast.cc
-index 5803f3fbb3..a1000dbee0 100644
---- a/video/config/simulcast.cc
-+++ b/video/config/simulcast.cc
-@@ -19,16 +19,19 @@
- #include <vector>
+diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
+index 0b1504170b..b58ea755c6 100644
+--- a/modules/video_capture/linux/pipewire_session.cc
++++ b/modules/video_capture/linux/pipewire_session.cc
+@@ -58,8 +58,8 @@ VideoType PipeWireRawFormatToVideoType(uint32_t id) {
  
- #include "absl/strings/match.h"
-+#include "api/array_view.h"
- #include "api/field_trials_view.h"
--#include "api/video/video_codec_constants.h"
-+#include "api/units/data_rate.h"
-+#include "api/video/resolution.h"
-+#include "api/video/video_codec_type.h"
- #include "media/base/media_constants.h"
- #include "modules/video_coding/utility/simulcast_rate_allocator.h"
- #include "rtc_base/checks.h"
- #include "rtc_base/experiments/field_trial_parser.h"
- #include "rtc_base/experiments/min_video_bitrate_experiment.h"
--#include "rtc_base/experiments/normalize_simulcast_size_experiment.h"
- #include "rtc_base/experiments/rate_control_settings.h"
- #include "rtc_base/logging.h"
-+#include "video/config/video_encoder_config.h"
- 
- namespace webrtc {
- 
-@@ -197,6 +200,8 @@ int GetDefaultSimulcastTemporalLayers(VideoCodecType codec) {
-     case webrtc::kVideoCodecH265:
-       return 1;
-   }
-+  RTC_DCHECK_NOTREACHED() << "Unsupported codec.";
-+  return 1;
+ void PipeWireNode::PipeWireNodeDeleter::operator()(
+     PipeWireNode* node) const noexcept {
+-  pw_proxy_destroy(node->proxy_);
+   spa_hook_remove(&node->node_listener_);
++  pw_proxy_destroy(node->proxy_);
  }
  
- std::vector<SimulcastFormat> GetSimulcastFormats(
+ // static
