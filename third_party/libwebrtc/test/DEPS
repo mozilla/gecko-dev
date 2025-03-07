@@ -88,8 +88,9 @@ specific_include_rules = {
   "benchmark_main\.cc": [
     "+benchmark",
   ],
-  "emulated_turn_server\.h": [
+  "emulated_turn_server\.(h|cc)": [
      "+p2p/base/turn_server.h",
+     "+p2p/base/port_interface.h",
   ],
   "wait_until\.cc": [
     "+absl/functional/overload.h",

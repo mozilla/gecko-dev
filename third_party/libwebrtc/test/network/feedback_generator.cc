@@ -9,10 +9,21 @@
  */
 #include "test/network/feedback_generator.h"
 
+#include <cstddef>
+#include <utility>
+#include <vector>
+
 #include "absl/memory/memory.h"
+#include "api/test/network_emulation_manager.h"
+#include "api/test/simulated_network.h"
 #include "api/transport/network_types.h"
+#include "api/units/data_rate.h"
+#include "api/units/data_size.h"
+#include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "rtc_base/checks.h"
 #include "test/network/network_emulation_manager.h"
+#include "test/network/simulated_network.h"
 
 namespace webrtc {
 

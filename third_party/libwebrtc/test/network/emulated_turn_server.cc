@@ -10,13 +10,28 @@
 
 #include "test/network/emulated_turn_server.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 
+#include "api/async_dns_resolver.h"
 #include "api/packet_socket_factory.h"
+#include "api/sequence_checker.h"
+#include "api/test/network_emulation/network_emulation_interfaces.h"
+#include "api/test/network_emulation_manager.h"
+#include "p2p/base/port_interface.h"
+#include "p2p/base/turn_server.h"
+#include "rtc_base/async_packet_socket.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/network/received_packet.h"
+#include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/task_queue_for_test.h"
+#include "rtc_base/thread.h"
 
 namespace {
 

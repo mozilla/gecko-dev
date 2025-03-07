@@ -12,13 +12,26 @@
 
 #include <math.h>
 
-#include <optional>
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <utility>
 
-#include "absl/memory/memory.h"
+#include "api/sequence_checker.h"
+#include "api/task_queue/task_queue_base.h"
+#include "api/test/network_emulation/cross_traffic.h"
+#include "api/units/data_rate.h"
+#include "api/units/data_size.h"
+#include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "cross_traffic.h"
-#include "rtc_base/logging.h"
 #include "rtc_base/numerics/safe_minmax.h"
+#include "rtc_base/strings/string_builder.h"
+#include "system_wrappers/include/clock.h"
+#include "test/network/network_emulation.h"
+#include "test/scenario/column_printer.h"
 
 namespace webrtc {
 namespace test {

@@ -11,19 +11,24 @@
 #ifndef TEST_NETWORK_NETWORK_EMULATION_MANAGER_H_
 #define TEST_NETWORK_NETWORK_EMULATION_MANAGER_H_
 
+#include <cstdint>
+#include <functional>
+#include <list>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <utility>
 #include <vector>
 
 #include "api/array_view.h"
-#include "api/field_trials_view.h"
+#include "api/test/network_emulation/cross_traffic.h"
+#include "api/test/network_emulation/network_emulation_interfaces.h"
 #include "api/test/network_emulation_manager.h"
 #include "api/test/simulated_network.h"
 #include "api/test/time_controller.h"
-#include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/task_queue_for_test.h"
 #include "rtc_base/task_utils/repeating_task.h"
 #include "system_wrappers/include/clock.h"

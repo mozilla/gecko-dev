@@ -10,19 +10,33 @@
 
 #include "test/network/fake_network_socket_server.h"
 
-#include <algorithm>
+#include <cerrno>
+#include <cstddef>
+#include <cstdint>
+#include <map>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
+#include "api/test/network_emulation/network_emulation_interfaces.h"
 #include "api/transport/ecn_marking.h"
+#include "api/units/time_delta.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/event.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
+#include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/thread.h"
+#include "rtc_base/thread_annotations.h"
+#include "test/network/network_emulation.h"
 
 namespace webrtc {
 namespace test {

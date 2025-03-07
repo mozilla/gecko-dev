@@ -15,9 +15,15 @@
 #include <utility>
 #include <vector>
 
-#include "absl/memory/memory.h"
+#include "api/sequence_checker.h"
+#include "api/test/network_emulation/network_emulation_interfaces.h"
+#include "api/test/time_controller.h"
 #include "p2p/base/basic_packet_socket_factory.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/network.h"
+#include "rtc_base/task_queue_for_test.h"
 #include "test/network/fake_network_socket_server.h"
+#include "test/network/network_emulation.h"
 
 namespace webrtc {
 namespace test {

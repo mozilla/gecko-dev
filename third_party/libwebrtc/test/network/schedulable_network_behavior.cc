@@ -9,16 +9,19 @@
  */
 #include "test/network/schedulable_network_behavior.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <utility>
 
 #include "absl/functional/any_invocable.h"
 #include "api/sequence_checker.h"
+#include "api/task_queue/task_queue_base.h"
 #include "api/test/network_emulation/network_config_schedule.pb.h"
 #include "api/test/simulated_network.h"
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/task_utils/repeating_task.h"
 #include "system_wrappers/include/clock.h"
 #include "test/network/simulated_network.h"

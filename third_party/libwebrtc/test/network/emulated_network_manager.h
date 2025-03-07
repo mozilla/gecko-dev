@@ -15,13 +15,16 @@
 #include <memory>
 #include <vector>
 
-#include "api/sequence_checker.h"
+#include "api/packet_socket_factory.h"
+#include "api/test/network_emulation/network_emulation_interfaces.h"
 #include "api/test/network_emulation_manager.h"
 #include "api/test/time_controller.h"
-#include "rtc_base/ip_address.h"
 #include "rtc_base/network.h"
 #include "rtc_base/socket_server.h"
+#include "rtc_base/task_queue_for_test.h"
+#include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
+#include "rtc_base/thread_annotations.h"
 #include "test/network/network_emulation.h"
 
 namespace webrtc {

@@ -11,15 +11,15 @@
 #ifndef TEST_NETWORK_FAKE_NETWORK_SOCKET_SERVER_H_
 #define TEST_NETWORK_FAKE_NETWORK_SOCKET_SERVER_H_
 
-#include <set>
 #include <vector>
 
-#include "api/units/timestamp.h"
+#include "api/units/time_delta.h"
 #include "rtc_base/event.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/socket.h"
 #include "rtc_base/socket_server.h"
 #include "rtc_base/synchronization/mutex.h"
-#include "system_wrappers/include/clock.h"
+#include "rtc_base/thread_annotations.h"
 #include "test/network/network_emulation.h"
 
 namespace webrtc {

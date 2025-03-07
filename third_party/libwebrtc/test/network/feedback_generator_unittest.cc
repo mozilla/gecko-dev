@@ -8,7 +8,12 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <cstddef>
+
+#include "api/test/simulated_network.h"
 #include "api/transport/test/create_feedback_generator.h"
+#include "api/transport/test/feedback_generator_interface.h"
+#include "api/units/time_delta.h"
 #include "test/gtest.h"
 
 namespace webrtc {

@@ -10,17 +10,20 @@
 #ifndef TEST_NETWORK_FEEDBACK_GENERATOR_H_
 #define TEST_NETWORK_FEEDBACK_GENERATOR_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <queue>
-#include <utility>
 #include <vector>
 
+#include "api/test/simulated_network.h"
 #include "api/transport/network_types.h"
 #include "api/transport/test/feedback_generator_interface.h"
+#include "api/units/data_rate.h"
+#include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "test/network/network_emulation.h"
 #include "test/network/network_emulation_manager.h"
 #include "test/network/simulated_network.h"
-#include "test/time_controller/simulated_time_controller.h"
 
 namespace webrtc {
 
