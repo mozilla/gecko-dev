@@ -10,7 +10,7 @@ vars = {
   # chromium waterfalls. More info at: crbug.com/570091.
   'checkout_configuration': 'default',
   'checkout_instrumented_libraries': 'checkout_linux and checkout_configuration == "default"',
-  'chromium_revision': '6aa3cdb6140f119f143a75ad8b6d5222abe92604',
+  'chromium_revision': '673317c28947d2821b8e6004d1b3969afd4a8037',
 
   # Fetch the prebuilt binaries for llvm-cov and llvm-profdata. Needed to
   # process the raw profiles produced by instrumented targets (built with
@@ -68,20 +68,20 @@ deps = {
   'src/build':
     'https://chromium.googlesource.com/chromium/src/build@5ae20d9aa6b5cd922d335e4cd2ad2a9f96544373',
   'src/buildtools':
-    'https://chromium.googlesource.com/chromium/src/buildtools@46df359b8ee972eab43ca8e5f56aa4dd0e15c16d',
+    'https://chromium.googlesource.com/chromium/src/buildtools@eaa072a7179020b04a2d6488b4c57e01f5143198',
   # Gradle 6.6.1. Used for testing Android Studio project generation for WebRTC.
   'src/examples/androidtests/third_party/gradle': {
     'url': 'https://chromium.googlesource.com/external/github.com/gradle/gradle.git@f2d1fb54a951d8b11d25748e4711bec8d128d7e3',
     'condition': 'checkout_android',
   },
   'src/ios': {
-    'url': 'https://chromium.googlesource.com/chromium/src/ios@065942bd99ff2f44f6c6fc540abde27661b4b41f',
+    'url': 'https://chromium.googlesource.com/chromium/src/ios@16f8a644ff35bafa1b2977862edfd2438b169823',
     'condition': 'checkout_ios',
   },
   'src/testing':
-    'https://chromium.googlesource.com/chromium/src/testing@c35b05c6306d1aeb3183e0ab56e80b26caf23c27',
+    'https://chromium.googlesource.com/chromium/src/testing@7f5cacb256e02939c0769e6ffeff24f0547d8379',
   'src/third_party':
-    'https://chromium.googlesource.com/chromium/src/third_party@50be74e0d41b1dd116c52590ff9bdda385ea52af',
+    'https://chromium.googlesource.com/chromium/src/third_party@40b57d81d1718f72fee830e8e1c6233c2ed93a9d',
 
   'src/buildtools/linux64': {
     'packages': [
@@ -164,11 +164,11 @@ deps = {
   'src/third_party/clang-format/script':
     'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/clang/tools/clang-format.git@37f6e68a107df43b7d7e044fd36a13cbae3413f2',
   'src/third_party/libc++/src':
-    'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxx.git@8af5af8b0b9c99c57fe7cbe898e51deb8f7636e7',
+    'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxx.git@94672e2af44a266bfafbae01a18cae546aa67ed6',
   'src/third_party/libc++abi/src':
     'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxxabi.git@94c5d7a8edc09f0680aee57548c0b5d400c2840d',
   'src/third_party/llvm-libc/src':
-    'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libc.git@1efd5593f9976b1cc0929f347b6a94d4926f1452',
+    'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libc.git@7f56829772d01907478433e4fbe07fddc95edad4',
   'src/third_party/libunwind/src':
     'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libunwind.git@62e217a12ee1133833d9890b2f7adde900e4efbd',
 
@@ -303,7 +303,7 @@ deps = {
   'src/third_party/crc32c/src':
     'https://chromium.googlesource.com/external/github.com/google/crc32c.git@d3d60ac6e0f16780bcfcc825385e1d338801a558',
   'src/third_party/depot_tools':
-    'https://chromium.googlesource.com/chromium/tools/depot_tools.git@c994f00deea05fc327fb272f3bef8d626343ee72',
+    'https://chromium.googlesource.com/chromium/tools/depot_tools.git@f945c74073a4295c04bb9353e10d20c7679099d5',
   'src/third_party/ffmpeg':
     'https://chromium.googlesource.com/chromium/third_party/ffmpeg.git@fbce2a76c00cd2e5aeffe3c2e71d44c284ec52d6',
   'src/third_party/flatbuffers/src':
@@ -462,7 +462,7 @@ deps = {
     'condition': 'checkout_android',
   },
   'src/tools':
-    'https://chromium.googlesource.com/chromium/src/tools@8ee2d3da6079bd42adedacaf1e92b8097b0a8237',
+    'https://chromium.googlesource.com/chromium/src/tools@3a142de5f401e2557ac8a35bbb481e3f6187c4f8',
 
   'src/third_party/espresso': {
       'packages': [
