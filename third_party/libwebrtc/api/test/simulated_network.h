@@ -74,10 +74,7 @@ struct BuiltInNetworkBehaviorConfig {
   int queue_delay_ms = 0;
   // Standard deviation of the extra delay.
   int delay_standard_deviation_ms = 0;
-  // Link capacity in kbps. 0 is treated as infinite capacity.
-  // Deprecated, please use link_capacity instead.
-  // TODO(bugs.webrtc.org/14525): Remove once all usage has migrated.
-  int link_capacity_kbps = 0;
+  // Link capacity.
   DataRate link_capacity = DataRate::Infinity();
   // Random packet loss, range 0 to 100.
   double loss_percent = 0.;

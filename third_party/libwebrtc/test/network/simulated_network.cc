@@ -54,15 +54,6 @@ Timestamp CalculateArrivalTime(Timestamp start_time,
                                         capacity.kbps());
 }
 
-void UpdateLegacyConfiguration(SimulatedNetwork::Config& config) {
-  if (config.link_capacity_kbps != 0) {
-    RTC_DCHECK(config.link_capacity ==
-                   DataRate::KilobitsPerSec(config.link_capacity_kbps) ||
-               config.link_capacity == DataRate::Infinity());
-    config.link_capacity = DataRate::KilobitsPerSec(config.link_capacity_kbps);
-  }
-}
-
 }  // namespace
 
 SimulatedNetwork::SimulatedNetwork(Config config, uint64_t random_seed)
@@ -75,7 +66,6 @@ SimulatedNetwork::~SimulatedNetwork() = default;
 void SimulatedNetwork::SetConfig(const Config& config) {
   MutexLock lock(&config_lock_);
   config_state_.config = config;  // Shallow copy of the struct.
-  UpdateLegacyConfiguration(config_state_.config);
 
   double prob_loss = config.loss_percent / 100.0;
   if (config_state_.config.avg_burst_loss_length == -1) {
@@ -127,7 +117,6 @@ void SimulatedNetwork::UpdateConfig(
     std::function<void(BuiltInNetworkBehaviorConfig*)> config_modifier) {
   MutexLock lock(&config_lock_);
   config_modifier(&config_state_.config);
-  UpdateLegacyConfiguration(config_state_.config);
 }
 
 void SimulatedNetwork::PauseTransmissionUntil(int64_t until_us) {
