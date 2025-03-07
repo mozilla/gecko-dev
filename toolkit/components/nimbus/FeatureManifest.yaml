@@ -363,6 +363,18 @@ urlbar:
         branch: default
         pref: browser.urlbar.quicksuggest.contextualOptIn.thirdReshowAfterPeriodDays
       description: Period until reshow the Firefox Suggest contextual opt-in result when third dismissed.
+    quickSuggestContextualOptInImpressionLimit:
+      type: int
+      setPref:
+        branch: default
+        pref: browser.urlbar.quicksuggest.contextualOptIn.impressionLimit
+      description: Limit for impression to dismiss the Firefox Suggest contextual opt-in result.
+    quickSuggestContextualOptInImpressionDaysLimit:
+      type: int
+      setPref:
+        branch: default
+        pref: browser.urlbar.quicksuggest.contextualOptIn.impressionDaysLimit
+      description: Days until dismiss the Firefox Suggest contextual opt-in result after first impression.
     quickSuggestDataCollectionEnabled:
       type: boolean
       description: Whether data collection should be enabled by default. If this variable is specified, it will override the value implied by the scenario. It will never override the user's local preference to disable (or enable) data collection, if the user has already toggled that preference.
