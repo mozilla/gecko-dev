@@ -43,9 +43,6 @@ support-files = ["openPromptOffTimeout.html"]
 
 ["browser_promptFocus.js"]
 
-["browser_prompt_close_groups.js"]
-support-files = ["file_beforeunload_stop.html"]
-
 ["browser_prompt_close_event.js"]
 
 ["browser_prompt_closed_window.js"]

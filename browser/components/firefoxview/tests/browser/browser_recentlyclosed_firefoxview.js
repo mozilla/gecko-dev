@@ -356,7 +356,7 @@ add_task(async function test_restore_tab_from_deleted_group() {
   let group = gBrowser.addTabGroup([tab]);
   Assert.equal(gBrowser.visibleTabs.length, 2, "2 tabs are open");
   Assert.ok(tab.group, "New tab is grouped");
-  await gBrowser.removeTabGroup(group);
+  gBrowser.removeTabGroup(group);
   Assert.equal(
     gBrowser.visibleTabs.length,
     1,

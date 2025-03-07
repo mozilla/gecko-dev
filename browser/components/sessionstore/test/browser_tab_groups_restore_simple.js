@@ -62,7 +62,7 @@ add_task(async function test_RestoreSingleGroup() {
     "tab group collapsed state should be restored"
   );
 
-  await win.gBrowser.removeTabGroup(tabGroup);
+  win.gBrowser.removeTabGroup(tabGroup);
   await BrowserTestUtils.closeWindow(win);
   forgetClosedWindows();
 });
