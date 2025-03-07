@@ -145,3 +145,7 @@ void
 MOZ_XML_ParserFree(XML_Parser parser) {
   return XML_ParserFree(parser);
 }
+
+XML_Bool MOZ_XML_SetReparseDeferralEnabled(XML_Parser parser, int enabled) {
+  return XML_SetReparseDeferralEnabled(parser, enabled);
+}
