@@ -20,6 +20,7 @@
 #include "api/video/video_frame_buffer.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/numerics/safe_minmax.h"
 #include "video/corruption_detection/halton_sequence.h"
 
 namespace webrtc {
@@ -134,7 +135,9 @@ double GetFilteredElement(int width,
       total_weight += weight;
     }
   }
-  return element_sum / total_weight;
+
+  // Take the rounding errors into consideration.
+  return rtc::SafeClamp(element_sum / total_weight, 0.0, 255.0);
 }
 
 std::vector<FilteredSample> GetSampleValuesForFrame(

@@ -103,6 +103,7 @@ rtc_library("halton_frame_sampler") {
     "../../api/video:video_frame",
     "../../rtc_base:checks",
     "../../rtc_base:logging",
+    "../../rtc_base:safe_minmax",
   ]
 }
 

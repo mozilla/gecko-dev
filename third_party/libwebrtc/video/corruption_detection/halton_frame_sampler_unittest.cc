@@ -145,6 +145,18 @@ TEST(GaussianFilteringTest, ShouldCrashWhenStdDevIsNegative) {
       _);
 }
 
+TEST(GaussianFilteringTest, RoundingErrorsShouldNotHappen) {
+  // These values should force a rounding error.
+  constexpr int kWidth = 128;
+  constexpr int kHeight = 128;
+  constexpr double kStdDev = 40;
+  const std::vector<uint8_t> data(kWidth * kHeight, 255);
+
+  EXPECT_THAT(GetFilteredElement(kWidth, kHeight, kHeight, data.data(),
+                                 kWidth / 2, kHeight / 2, kStdDev),
+              255);
+}
+
 TEST(HaltonFrameSamplerTest, FrameIsNotSampledWhenTimestampsAreEqual) {
   HaltonFrameSampler halton_frame_sampler;
 
