@@ -17,7 +17,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/numerics/safe_conversions.h"
 
-namespace rtc {
+namespace webrtc {
 
 SampleCounter::SampleCounter() = default;
 SampleCounter::~SampleCounter() = default;
@@ -117,4 +117,4 @@ void SampleCounterWithVariance::Reset() {
   *this = {};
 }
 
-}  // namespace rtc
+}  // namespace webrtc
