@@ -109,10 +109,10 @@ class ProviderQuickSuggestContextualOptIn extends UrlbarProvider {
       return false;
     }
 
-    let lastDismissed = lazy.UrlbarPrefs.get(
-      "quicksuggest.contextualOptIn.lastDismissed"
+    let lastDismissedTime = lazy.UrlbarPrefs.get(
+      "quicksuggest.contextualOptIn.lastDismissedTime"
     );
-    if (!lastDismissed) {
+    if (!lastDismissedTime) {
       return true;
     }
 
@@ -145,8 +145,8 @@ class ProviderQuickSuggestContextualOptIn extends UrlbarProvider {
       }
     }
 
-    let time = reshowAfterPeriodDays * 24 * 60 * 60 * 1000;
-    return new Date() - new Date(lastDismissed) > time;
+    let time = reshowAfterPeriodDays * 24 * 60 * 60;
+    return Date.now() / 1000 - lastDismissedTime > time;
   }
 
   isActive(queryContext) {
@@ -205,6 +205,51 @@ class ProviderQuickSuggestContextualOptIn extends UrlbarProvider {
     row.ownerGlobal.A11yUtils.announce({ raw: alertText });
   }
 
+  onImpression(state, _queryContext, _controller, _resultsAndIndexes, details) {
+    if (state == "engagement" && details.provider == this.name) {
+      return;
+    }
+
+    let impressionCount = lazy.UrlbarPrefs.get(
+      "quicksuggest.contextualOptIn.impressionCount"
+    );
+    let impressionLimit = lazy.UrlbarPrefs.get(
+      "quicksuggest.contextualOptIn.impressionLimit"
+    );
+
+    impressionCount += 1;
+    if (impressionCount >= impressionLimit) {
+      this.#dismiss();
+      return;
+    }
+
+    let firstImpressionTime = lazy.UrlbarPrefs.get(
+      "quicksuggest.contextualOptIn.firstImpressionTime"
+    );
+
+    if (firstImpressionTime) {
+      let days = lazy.UrlbarPrefs.get(
+        "quicksuggest.contextualOptIn.impressionDaysLimit"
+      );
+
+      let time = days * 24 * 60 * 60;
+      if (Date.now() / 1000 - firstImpressionTime > time) {
+        this.#dismiss();
+        return;
+      }
+    } else {
+      lazy.UrlbarPrefs.set(
+        "quicksuggest.contextualOptIn.firstImpressionTime",
+        Date.now() / 1000
+      );
+    }
+
+    lazy.UrlbarPrefs.set(
+      "quicksuggest.contextualOptIn.impressionCount",
+      impressionCount
+    );
+  }
+
   onEngagement(queryContext, controller, details) {
     this._handleCommand(details.element, controller, details.result);
   }
@@ -219,18 +264,7 @@ class ProviderQuickSuggestContextualOptIn extends UrlbarProvider {
         lazy.UrlbarPrefs.set("quicksuggest.dataCollection.enabled", true);
         break;
       case "dismiss":
-        lazy.UrlbarPrefs.set(
-          "quicksuggest.contextualOptIn.lastDismissed",
-          new Date().toISOString()
-        );
-        let dismissedCount = lazy.UrlbarPrefs.get(
-          "quicksuggest.contextualOptIn.dismissedCount"
-        );
-        lazy.UrlbarPrefs.set(
-          "quicksuggest.contextualOptIn.dismissedCount",
-          dismissedCount + 1
-        );
-
+        this.#dismiss();
         break;
       default:
         return;
@@ -249,6 +283,23 @@ class ProviderQuickSuggestContextualOptIn extends UrlbarProvider {
         container.hidden = true;
       }
     }
+  }
+
+  #dismiss() {
+    lazy.UrlbarPrefs.set("quicksuggest.contextualOptIn.firstImpressionTime", 0);
+    lazy.UrlbarPrefs.set("quicksuggest.contextualOptIn.impressionCount", 0);
+
+    lazy.UrlbarPrefs.set(
+      "quicksuggest.contextualOptIn.lastDismissedTime",
+      Date.now() / 1000
+    );
+    let dismissedCount = lazy.UrlbarPrefs.get(
+      "quicksuggest.contextualOptIn.dismissedCount"
+    );
+    lazy.UrlbarPrefs.set(
+      "quicksuggest.contextualOptIn.dismissedCount",
+      dismissedCount + 1
+    );
   }
 
   /**

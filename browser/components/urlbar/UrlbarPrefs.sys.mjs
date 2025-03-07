@@ -241,9 +241,9 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Whether the Firefox Suggest data collection opt-in result is enabled.
   ["quicksuggest.contextualOptIn", false],
 
-  // The last time (as ISO string) the user dismissed the Firefox Suggest
-  // contextual opt-in result.
-  ["quicksuggest.contextualOptIn.lastDismissed", ""],
+  // The last time (as seconds) the user dismissed the Firefox Suggest contextual
+  // opt-in result.
+  ["quicksuggest.contextualOptIn.lastDismissedTime", 0],
 
   // Number that the user dismissed the Firefox Suggest contextual opt-in result.
   ["quicksuggest.contextualOptIn.dismissedCount", 0],
@@ -256,6 +256,21 @@ const PREF_URLBAR_DEFAULTS = new Map([
 
   // Period until reshow the Firefox Suggest contextual opt-in result when third dismissed.
   ["quicksuggest.contextualOptIn.thirdReshowAfterPeriodDays", 60],
+
+  // Number of impression for the Firefox Suggest contextual opt-in result.
+  ["quicksuggest.contextualOptIn.impressionCount", 0],
+
+  // Limit for impression to dismiss the Firefox Suggest contextual opt-in
+  // result.
+  ["quicksuggest.contextualOptIn.impressionLimit", 20],
+
+  // The first impression time (seconds) for the Firefox Suggest contextual
+  // opt-in result.
+  ["quicksuggest.contextualOptIn.firstImpressionTime", 0],
+
+  // Days until dismiss the Firefox Suggest contextual opt-in result after first
+  // impression.
+  ["quicksuggest.contextualOptIn.impressionDaysLimit", 5],
 
   // Whether the user has opted in to data collection for quick suggest.
   ["quicksuggest.dataCollection.enabled", false],
