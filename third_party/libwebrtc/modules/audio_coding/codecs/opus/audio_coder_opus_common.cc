@@ -39,7 +39,7 @@ std::optional<std::vector<unsigned char>> GetFormatParameter(
                                               : (next_comma - pos);
     auto substring_with_number =
         comma_separated_list.substr(pos, distance_to_next_comma);
-    auto conv = rtc::StringToNumber<int>(substring_with_number);
+    auto conv = StringToNumber<int>(substring_with_number);
     if (!conv.has_value()) {
       return std::nullopt;
     }

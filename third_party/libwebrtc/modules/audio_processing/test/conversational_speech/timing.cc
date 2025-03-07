@@ -35,10 +35,10 @@ std::vector<Turn> LoadTiming(absl::string_view timing_filepath) {
     RTC_CHECK_LE(fields.size(), 4);
     int gain = 0;
     if (fields.size() == 4) {
-      gain = rtc::StringToNumber<int>(fields[3]).value_or(0);
+      gain = StringToNumber<int>(fields[3]).value_or(0);
     }
     return Turn(fields[0], fields[1],
-                rtc::StringToNumber<int>(fields[2]).value_or(0), gain);
+                StringToNumber<int>(fields[2]).value_or(0), gain);
   };
 
   // Init.

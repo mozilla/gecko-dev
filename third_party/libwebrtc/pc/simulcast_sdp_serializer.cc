@@ -164,7 +164,7 @@ webrtc::RTCError ParseRidPayloadList(const std::string& payload_list,
   }
 
   for (const std::string& payload_type : string_payloads) {
-    std::optional<int> value = rtc::StringToNumber<int>(payload_type);
+    std::optional<int> value = StringToNumber<int>(payload_type);
     if (!value.has_value()) {
       return ParseError("Invalid payload type: " + payload_type);
     }

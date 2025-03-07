@@ -108,7 +108,7 @@ int CalculateBitrate(int max_playback_rate_hz,
       CalculateDefaultBitrate(max_playback_rate_hz, num_channels);
 
   if (bitrate_param) {
-    const auto bitrate = rtc::StringToNumber<int>(*bitrate_param);
+    const auto bitrate = StringToNumber<int>(*bitrate_param);
     if (bitrate) {
       const int chosen_bitrate =
           std::max(AudioEncoderOpusConfig::kMinBitrateBps,

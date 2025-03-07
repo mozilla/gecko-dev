@@ -43,7 +43,7 @@ std::optional<AudioEncoderL16::Config> AudioEncoderL16::SdpToConfig(
   config.num_channels = rtc::dchecked_cast<int>(format.num_channels);
   auto ptime_iter = format.parameters.find("ptime");
   if (ptime_iter != format.parameters.end()) {
-    const auto ptime = rtc::StringToNumber<int>(ptime_iter->second);
+    const auto ptime = StringToNumber<int>(ptime_iter->second);
     if (ptime && *ptime > 0) {
       config.frame_size_ms = rtc::SafeClamp(10 * (*ptime / 10), 10, 60);
     }

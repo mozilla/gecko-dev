@@ -96,7 +96,7 @@ template <typename T,
                                   int>::type = 0>
 static bool FromString(absl::string_view s, T* t) {
   RTC_DCHECK(t);
-  std::optional<T> result = StringToNumber<T>(s);
+  std::optional<T> result = webrtc::StringToNumber<T>(s);
 
   if (result)
     *t = *result;

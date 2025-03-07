@@ -155,10 +155,10 @@ rtc::scoped_refptr<Video> OpenY4mFile(const std::string& file_name) {
     const std::string suffix = field.substr(1);
     switch (prefix) {
       case 'W':
-        width = rtc::StringToNumber<int>(suffix);
+        width = StringToNumber<int>(suffix);
         break;
       case 'H':
-        height = rtc::StringToNumber<int>(suffix);
+        height = StringToNumber<int>(suffix);
         break;
       case 'C':
         if (suffix != "420" && suffix != "420mpeg2") {
@@ -173,10 +173,9 @@ rtc::scoped_refptr<Video> OpenY4mFile(const std::string& file_name) {
         std::vector<std::string> fraction;
         rtc::tokenize(suffix, ':', &fraction);
         if (fraction.size() == 2) {
-          const std::optional<int> numerator =
-              rtc::StringToNumber<int>(fraction[0]);
+          const std::optional<int> numerator = StringToNumber<int>(fraction[0]);
           const std::optional<int> denominator =
-              rtc::StringToNumber<int>(fraction[1]);
+              StringToNumber<int>(fraction[1]);
           if (numerator && denominator && *denominator != 0)
             fps = *numerator / static_cast<float>(*denominator);
           break;

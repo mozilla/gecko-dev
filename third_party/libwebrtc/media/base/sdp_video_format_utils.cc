@@ -64,8 +64,7 @@ std::optional<int> ParsePositiveNumberFromParams(
   if (max_frame_rate_it == params.end())
     return std::nullopt;
 
-  const std::optional<int> i =
-      rtc::StringToNumber<int>(max_frame_rate_it->second);
+  const std::optional<int> i = StringToNumber<int>(max_frame_rate_it->second);
   if (!i.has_value() || i.value() <= 0)
     return std::nullopt;
   return i;

@@ -43,7 +43,7 @@ std::optional<AudioEncoderG722Config> AudioEncoderG722::SdpToConfig(
   config.num_channels = rtc::checked_cast<int>(format.num_channels);
   auto ptime_iter = format.parameters.find("ptime");
   if (ptime_iter != format.parameters.end()) {
-    auto ptime = rtc::StringToNumber<int>(ptime_iter->second);
+    auto ptime = StringToNumber<int>(ptime_iter->second);
     if (ptime && *ptime > 0) {
       const int whole_packets = *ptime / 10;
       config.frame_size_ms = rtc::SafeClamp<int>(whole_packets * 10, 10, 60);

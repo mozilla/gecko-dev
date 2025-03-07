@@ -29,7 +29,7 @@ std::optional<std::string> GetFormatParameter(const SdpAudioFormat& format,
 template <typename T>
 std::optional<T> GetFormatParameter(const SdpAudioFormat& format,
                                     absl::string_view param) {
-  return rtc::StringToNumber<T>(GetFormatParameter(format, param).value_or(""));
+  return StringToNumber<T>(GetFormatParameter(format, param).value_or(""));
 }
 
 template <>

@@ -38,7 +38,7 @@ std::string VP9ProfileToString(VP9Profile profile) {
 }
 
 std::optional<VP9Profile> StringToVP9Profile(const std::string& str) {
-  const std::optional<int> i = rtc::StringToNumber<int>(str);
+  const std::optional<int> i = StringToNumber<int>(str);
   if (!i.has_value())
     return std::nullopt;
 

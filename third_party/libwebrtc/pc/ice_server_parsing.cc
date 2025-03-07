@@ -96,7 +96,7 @@ std::optional<int> ParsePort(absl::string_view in_str) {
       return false;
     }
   }
-  return rtc::StringToNumber<int>(in_str);
+  return StringToNumber<int>(in_str);
 }
 
 // This method parses IPv6 and IPv4 literal strings, along with hostnames in

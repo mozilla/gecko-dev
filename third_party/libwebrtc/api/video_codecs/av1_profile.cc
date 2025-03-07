@@ -35,7 +35,7 @@ absl::string_view AV1ProfileToString(AV1Profile profile) {
 }
 
 std::optional<AV1Profile> StringToAV1Profile(absl::string_view str) {
-  const std::optional<int> i = rtc::StringToNumber<int>(str);
+  const std::optional<int> i = StringToNumber<int>(str);
   if (!i.has_value())
     return std::nullopt;
 

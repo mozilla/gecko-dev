@@ -66,7 +66,7 @@ static constexpr LevelConstraint kLevelConstraints[] = {
 
 // Annex A of https://www.itu.int/rec/T-REC-H.265 (08/21), section A.3.
 std::optional<H265Profile> StringToH265Profile(const std::string& profile) {
-  std::optional<int> i = rtc::StringToNumber<int>(profile);
+  std::optional<int> i = StringToNumber<int>(profile);
   if (!i.has_value()) {
     return std::nullopt;
   }
@@ -102,7 +102,7 @@ std::optional<H265Profile> StringToH265Profile(const std::string& profile) {
 // Annex A of https://www.itu.int/rec/T-REC-H.265 (08/21), section A.4,
 // tiers and levels.
 std::optional<H265Tier> StringToH265Tier(const std::string& tier) {
-  std::optional<int> i = rtc::StringToNumber<int>(tier);
+  std::optional<int> i = StringToNumber<int>(tier);
   if (!i.has_value()) {
     return std::nullopt;
   }
@@ -118,7 +118,7 @@ std::optional<H265Tier> StringToH265Tier(const std::string& tier) {
 }
 
 std::optional<H265Level> StringToH265Level(const std::string& level) {
-  const std::optional<int> i = rtc::StringToNumber<int>(level);
+  const std::optional<int> i = StringToNumber<int>(level);
   if (!i.has_value())
     return std::nullopt;
 

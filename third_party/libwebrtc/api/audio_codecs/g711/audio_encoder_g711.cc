@@ -44,7 +44,7 @@ std::optional<AudioEncoderG711::Config> AudioEncoderG711::SdpToConfig(
     config.frame_size_ms = 20;
     auto ptime_iter = format.parameters.find("ptime");
     if (ptime_iter != format.parameters.end()) {
-      const auto ptime = rtc::StringToNumber<int>(ptime_iter->second);
+      const auto ptime = StringToNumber<int>(ptime_iter->second);
       if (ptime && *ptime > 0) {
         config.frame_size_ms = rtc::SafeClamp(10 * (*ptime / 10), 10, 60);
       }
