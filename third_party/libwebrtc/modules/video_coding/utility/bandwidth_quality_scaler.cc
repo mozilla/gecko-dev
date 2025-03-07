@@ -92,10 +92,12 @@ void BandwidthQualityScaler::ReportEncodeInfo(int frame_size_bytes,
 
 void BandwidthQualityScaler::SetResolutionBitrateLimits(
     const std::vector<VideoEncoder::ResolutionBitrateLimits>&
-        resolution_bitrate_limits) {
+        resolution_bitrate_limits,
+    VideoCodecType codec_type) {
   if (resolution_bitrate_limits.empty()) {
-    resolution_bitrate_limits_ = EncoderInfoSettings::
-        GetDefaultSinglecastBitrateLimitsWhenQpIsUntrusted();
+    resolution_bitrate_limits_ =
+        EncoderInfoSettings::GetDefaultSinglecastBitrateLimitsWhenQpIsUntrusted(
+            codec_type);
   } else {
     resolution_bitrate_limits_ = resolution_bitrate_limits;
   }

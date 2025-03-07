@@ -172,6 +172,11 @@ const uint8_t kCodedFrameVp8Qp25[] = {
     0x02, 0x47, 0x08, 0x85, 0x85, 0x88, 0x85, 0x84, 0x88, 0x0c,
     0x82, 0x00, 0x0c, 0x0d, 0x60, 0x00, 0xfe, 0xfc, 0x5c, 0xd0};
 
+#ifdef RTC_ENABLE_H265
+// Default value from encoder_info_settings.cc
+const DataRate kDefaultH265Bitrate180p = DataRate::KilobitsPerSec(150);
+#endif
+
 VideoFrame CreateSimpleNV12Frame() {
   return VideoFrame::Builder()
       .set_video_frame_buffer(rtc::make_ref_counted<NV12Buffer>(
@@ -2272,6 +2277,43 @@ TEST_F(VideoStreamEncoderTest,
 
   video_stream_encoder_->Stop();
 }
+
+// ReconfigureEncoder checks RTC_ENABLE_H265 flag, and we want to test specific
+// behavior of H265, when bitrate limits reported from hardware encoders are 0,
+// expecting default target bitrate to be used in this case.
+#ifdef RTC_ENABLE_H265
+TEST_F(VideoStreamEncoderTest,
+       ApplyDefaultBitrateLimitsWhenEncoderInfoResolutionBitrateLimitsAreZero) {
+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
+      kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
+  const uint32_t kMinEncBitrateKbps = 100;
+  const uint32_t kMaxEncBitrateKbps = 1000;
+  const VideoEncoder::ResolutionBitrateLimits encoder_bitrate_limits_180p(
+      320 * 180,
+      /*min_start_bitrate_bps=*/0,
+      /*min_bitrate_bps=*/0,
+      /*max_bitrate_bps=*/0);
+  fake_encoder_.SetResolutionBitrateLimits({encoder_bitrate_limits_180p});
+
+  VideoEncoderConfig video_encoder_config;
+  test::FillEncoderConfiguration(kVideoCodecH265, 1, &video_encoder_config);
+  video_encoder_config.max_bitrate_bps = kMaxEncBitrateKbps * 1000;
+  video_encoder_config.simulcast_layers[0].min_bitrate_bps =
+      kMinEncBitrateKbps * 1000;
+  video_encoder_config.simulcast_layers[0].width = 320;
+  video_encoder_config.simulcast_layers[0].height = 180;
+  video_stream_encoder_->ConfigureEncoder(video_encoder_config.Copy(),
+                                          kMaxPayloadLength);
+
+  video_source_.IncomingCapturedFrame(CreateFrame(1, nullptr));
+  WaitForEncodedFrame(1);
+  EXPECT_EQ(bitrate_allocator_factory_.codec_config()
+                .simulcastStream[0]
+                .targetBitrate,
+            kDefaultH265Bitrate180p.kbps());
+  video_stream_encoder_->Stop();
+}
+#endif
 
 TEST_F(VideoStreamEncoderTest,
        EncoderAndAppLimitsDontIntersectEncoderLimitsIgnored) {
@@ -8951,7 +8993,8 @@ TEST_F(VideoStreamEncoderTest, EncoderDoesnotProvideLimitsWhenQPIsNotTrusted) {
           GetSinglecastBitrateLimitForResolutionWhenQpIsUntrusted(
               codec_width_ * codec_height_,
               EncoderInfoSettings::
-                  GetDefaultSinglecastBitrateLimitsWhenQpIsUntrusted());
+                  GetDefaultSinglecastBitrateLimitsWhenQpIsUntrusted(
+                      kVideoCodecH264));
   EXPECT_TRUE(suitable_bitrate_limit.has_value());
 
   const int max_encoder_bitrate = suitable_bitrate_limit->max_bitrate_bps;
@@ -8992,7 +9035,8 @@ TEST_F(VideoStreamEncoderTest,
           GetSinglecastBitrateLimitForResolutionWhenQpIsUntrusted(
               codec_width_ * codec_height_,
               EncoderInfoSettings::
-                  GetDefaultSinglecastBitrateLimitsWhenQpIsUntrusted());
+                  GetDefaultSinglecastBitrateLimitsWhenQpIsUntrusted(
+                      kVideoCodecH264));
   EXPECT_TRUE(suitable_bitrate_limit.has_value());
 
   const int max_encoder_bitrate = suitable_bitrate_limit->max_bitrate_bps;

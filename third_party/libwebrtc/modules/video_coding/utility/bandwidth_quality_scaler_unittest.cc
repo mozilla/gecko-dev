@@ -14,6 +14,7 @@
 #include <string>
 
 #include "api/units/time_delta.h"
+#include "api/video/video_codec_type.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/event.h"
 #include "rtc_base/experiments/encoder_info_settings.h"
@@ -80,17 +81,19 @@ class BandwidthQualityScalerTest : public ::testing::Test {
     int actual_height;
   };
 
-  BandwidthQualityScalerTest()
+  explicit BandwidthQualityScalerTest(VideoCodecType codec_type)
       : task_queue_(time_controller_.GetTaskQueueFactory()->CreateTaskQueue(
             "BandwidthQualityScalerTestQueue",
             TaskQueueFactory::Priority::NORMAL)),
-        handler_(std::make_unique<FakeBandwidthQualityScalerHandler>()) {
+        handler_(std::make_unique<FakeBandwidthQualityScalerHandler>()),
+        codec_type_(codec_type) {
     task_queue_.SendTask([this] {
       bandwidth_quality_scaler_ =
           std::make_unique<BandwidthQualityScaler>(handler_.get());
       bandwidth_quality_scaler_->SetResolutionBitrateLimits(
           EncoderInfoSettings::
-              GetDefaultSinglecastBitrateLimitsWhenQpIsUntrusted());
+              GetDefaultSinglecastBitrateLimitsWhenQpIsUntrusted(codec_type_),
+          codec_type_);
       // Only for testing. Set first_timestamp_ in RateStatistics to 0.
       bandwidth_quality_scaler_->ReportEncodeInfo(0, 0, 0, 0);
     });
@@ -131,7 +134,8 @@ class BandwidthQualityScalerTest : public ::testing::Test {
         GetSinglecastBitrateLimitForResolutionWhenQpIsUntrusted(
             frame_size_pixels,
             EncoderInfoSettings::
-                GetDefaultSinglecastBitrateLimitsWhenQpIsUntrusted());
+                GetDefaultSinglecastBitrateLimitsWhenQpIsUntrusted(
+                    codec_type_));
   }
 
   void TriggerBandwidthQualityScalerTest(
@@ -178,9 +182,17 @@ class BandwidthQualityScalerTest : public ::testing::Test {
   TaskQueueForTest task_queue_;
   std::unique_ptr<BandwidthQualityScaler> bandwidth_quality_scaler_;
   std::unique_ptr<FakeBandwidthQualityScalerHandler> handler_;
+  VideoCodecType codec_type_;
 };
 
-TEST_F(BandwidthQualityScalerTest, AllNormalFrame_640x360) {
+class BandwidthQualityScalerTests
+    : public BandwidthQualityScalerTest,
+      public ::testing::WithParamInterface<VideoCodecType> {
+ protected:
+  BandwidthQualityScalerTests() : BandwidthQualityScalerTest(GetParam()) {}
+};
+
+TEST_P(BandwidthQualityScalerTests, AllNormalFrame_640x360) {
   const std::vector<FrameConfig> frame_configs{
       FrameConfig(150, FrameType::kNormalFrame, 640, 360)};
   TriggerBandwidthQualityScalerTest(frame_configs);
@@ -193,7 +205,7 @@ TEST_F(BandwidthQualityScalerTest, AllNormalFrame_640x360) {
   EXPECT_EQ(0, handler_->adapt_up_event_count_);
 }
 
-TEST_F(BandwidthQualityScalerTest, AllNormalFrame_AboveMaxBandwidth_640x360) {
+TEST_P(BandwidthQualityScalerTests, AllNormalFrame_AboveMaxBandwidth_640x360) {
   const std::vector<FrameConfig> frame_configs{
       FrameConfig(150, FrameType::kNormalFrame_Overuse, 640, 360)};
   TriggerBandwidthQualityScalerTest(frame_configs);
@@ -206,7 +218,7 @@ TEST_F(BandwidthQualityScalerTest, AllNormalFrame_AboveMaxBandwidth_640x360) {
   EXPECT_EQ(1, handler_->adapt_up_event_count_);
 }
 
-TEST_F(BandwidthQualityScalerTest, AllNormalFrame_Underuse_640x360) {
+TEST_P(BandwidthQualityScalerTests, AllNormalFrame_Underuse_640x360) {
   const std::vector<FrameConfig> frame_configs{
       FrameConfig(150, FrameType::kNormalFrame_Underuse, 640, 360)};
   TriggerBandwidthQualityScalerTest(frame_configs);
@@ -219,7 +231,7 @@ TEST_F(BandwidthQualityScalerTest, AllNormalFrame_Underuse_640x360) {
   EXPECT_EQ(0, handler_->adapt_up_event_count_);
 }
 
-TEST_F(BandwidthQualityScalerTest, FixedFrameTypeTest1_640x360) {
+TEST_P(BandwidthQualityScalerTests, FixedFrameTypeTest1_640x360) {
   const std::vector<FrameConfig> frame_configs{
       FrameConfig(5, FrameType::kNormalFrame_Underuse, 640, 360),
       FrameConfig(110, FrameType::kNormalFrame, 640, 360),
@@ -236,7 +248,7 @@ TEST_F(BandwidthQualityScalerTest, FixedFrameTypeTest1_640x360) {
   EXPECT_EQ(1, handler_->adapt_up_event_count_);
 }
 
-TEST_F(BandwidthQualityScalerTest, FixedFrameTypeTest2_640x360) {
+TEST_P(BandwidthQualityScalerTests, FixedFrameTypeTest2_640x360) {
   const std::vector<FrameConfig> frame_configs{
       FrameConfig(10, FrameType::kNormalFrame_Underuse, 640, 360),
       FrameConfig(50, FrameType::kNormalFrame, 640, 360),
@@ -252,5 +264,9 @@ TEST_F(BandwidthQualityScalerTest, FixedFrameTypeTest2_640x360) {
   EXPECT_EQ(0, handler_->adapt_down_event_count_);
   EXPECT_EQ(1, handler_->adapt_up_event_count_);
 }
+
+INSTANTIATE_TEST_SUITE_P(AllCodecs,
+                         BandwidthQualityScalerTests,
+                         ::testing::Values(kVideoCodecH264, kVideoCodecH265));
 
 }  // namespace webrtc

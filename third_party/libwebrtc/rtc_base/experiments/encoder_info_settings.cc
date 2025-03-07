@@ -53,11 +53,13 @@ EncoderInfoSettings::GetDefaultSinglecastBitrateLimits(
             {1280 * 720, 576000, 0, 1536000}};
   }
 
-  if (codec_type == kVideoCodecVP9) {
+  if (codec_type == kVideoCodecVP9 || codec_type == kVideoCodecH265) {
     // VP9 singlecast bitrate limits are derived ~directly from VP9 SVC bitrate
     // limits. The current max limits are unnecessarily too strict for
     // singlecast, where BWE is known end-to-end, especially for low
     // resolutions.
+    // TODO(crbugs.com/39206082): Consider fine-tuning H.265 to have its own
+    // bitrate settings separate from VP9.
     return {{320 * 180, 0, 30000, 150000},
             {480 * 270, 120000, 30000, 300000},
             {640 * 360, 190000, 30000, 420000},
@@ -85,18 +87,28 @@ EncoderInfoSettings::GetDefaultSinglecastBitrateLimitsForResolution(
 
 // Return the suitable bitrate limits for specified resolution when qp is
 // untrusted, they are experimental values.
-// TODO(bugs.webrtc.org/12942): Maybe we need to add other codecs(VP8/VP9)
-// experimental values.
 std::vector<VideoEncoder::ResolutionBitrateLimits>
-EncoderInfoSettings::GetDefaultSinglecastBitrateLimitsWhenQpIsUntrusted() {
-  // Specific limits for H264/AVC
-  return {{0 * 0, 0, 0, 0},
-          {320 * 180, 0, 30000, 300000},
-          {480 * 270, 300000, 30000, 500000},
-          {640 * 360, 500000, 30000, 800000},
-          {960 * 540, 800000, 30000, 1500000},
-          {1280 * 720, 1500000, 30000, 2500000},
-          {1920 * 1080, 2500000, 30000, 4000000}};
+EncoderInfoSettings::GetDefaultSinglecastBitrateLimitsWhenQpIsUntrusted(
+    VideoCodecType codec_type) {
+  if (codec_type == kVideoCodecH265) {
+    // Similar settings from the simulcast bitate limits for H.265.
+    return {{0 * 0, 0, 0, 0},
+            {320 * 180, 0, 30000, 150000},
+            {480 * 270, 150000, 30000, 300000},
+            {640 * 360, 300000, 30000, 420000},
+            {960 * 540, 420000, 30000, 1000000},
+            {1280 * 720, 1000000, 30000, 1500000},
+            {1920 * 1080, 1500000, 30000, 3300000}};
+  } else {
+    // Settings for H.264. Other codecs will not work in QP-untrusted mode.
+    return {{0 * 0, 0, 0, 0},
+            {320 * 180, 0, 30000, 300000},
+            {480 * 270, 300000, 30000, 500000},
+            {640 * 360, 500000, 30000, 800000},
+            {960 * 540, 800000, 30000, 1500000},
+            {1280 * 720, 1500000, 30000, 2500000},
+            {1920 * 1080, 2500000, 30000, 4000000}};
+  }
 }
 
 // Through linear interpolation, return the bitrate limit corresponding to the

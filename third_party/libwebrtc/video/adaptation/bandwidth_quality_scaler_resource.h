@@ -45,7 +45,8 @@ class BandwidthQualityScalerResource
 
   void StartCheckForOveruse(
       const std::vector<VideoEncoder::ResolutionBitrateLimits>&
-          resolution_bitrate_limits);
+          resolution_bitrate_limits,
+      VideoCodecType codec_type);
   void StopCheckForOveruse();
 
   // BandwidthScalerQpUsageHandlerInterface implementation.

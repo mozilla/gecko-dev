@@ -40,7 +40,8 @@ bool BandwidthQualityScalerResource::is_started() const {
 
 void BandwidthQualityScalerResource::StartCheckForOveruse(
     const std::vector<VideoEncoder::ResolutionBitrateLimits>&
-        resolution_bitrate_limits) {
+        resolution_bitrate_limits,
+    VideoCodecType codec_type) {
   RTC_DCHECK_RUN_ON(encoder_queue());
   RTC_DCHECK(!is_started());
   bandwidth_quality_scaler_ = std::make_unique<BandwidthQualityScaler>(this);
@@ -48,7 +49,7 @@ void BandwidthQualityScalerResource::StartCheckForOveruse(
   // If the configuration parameters more than one, we should define and
   // declare the function BandwidthQualityScaler::Initialize() and call it.
   bandwidth_quality_scaler_->SetResolutionBitrateLimits(
-      resolution_bitrate_limits);
+      resolution_bitrate_limits, codec_type);
 }
 
 void BandwidthQualityScalerResource::StopCheckForOveruse() {

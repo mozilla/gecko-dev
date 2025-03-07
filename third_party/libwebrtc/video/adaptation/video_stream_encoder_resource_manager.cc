@@ -538,7 +538,8 @@ void VideoStreamEncoderResourceManager::UpdateQualityScalerSettings(
 void VideoStreamEncoderResourceManager::UpdateBandwidthQualityScalerSettings(
     bool bandwidth_quality_scaling_allowed,
     const std::vector<VideoEncoder::ResolutionBitrateLimits>&
-        resolution_bitrate_limits) {
+        resolution_bitrate_limits,
+    VideoCodecType codec_type) {
   RTC_DCHECK_RUN_ON(encoder_queue_);
 
   if (!bandwidth_quality_scaling_allowed) {
@@ -553,7 +554,7 @@ void VideoStreamEncoderResourceManager::UpdateBandwidthQualityScalerSettings(
       AddResource(bandwidth_quality_scaler_resource_,
                   webrtc::VideoAdaptationReason::kQuality);
       bandwidth_quality_scaler_resource_->StartCheckForOveruse(
-          resolution_bitrate_limits);
+          resolution_bitrate_limits, codec_type);
     }
   }
 }
@@ -612,8 +613,9 @@ void VideoStreamEncoderResourceManager::ConfigureBandwidthQualityScaler(
        encoder_settings_->encoder_config().is_quality_scaling_allowed) &&
       !encoder_info.is_qp_trusted.value_or(true);
 
-  UpdateBandwidthQualityScalerSettings(bandwidth_quality_scaling_allowed,
-                                       encoder_info.resolution_bitrate_limits);
+  UpdateBandwidthQualityScalerSettings(
+      bandwidth_quality_scaling_allowed, encoder_info.resolution_bitrate_limits,
+      GetVideoCodecTypeOrGeneric(encoder_settings_));
   UpdateStatsAdaptationSettings();
 }
 

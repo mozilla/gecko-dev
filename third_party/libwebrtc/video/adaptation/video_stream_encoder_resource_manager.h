@@ -171,7 +171,8 @@ class VideoStreamEncoderResourceManager
   void UpdateBandwidthQualityScalerSettings(
       bool bandwidth_quality_scaling_allowed,
       const std::vector<VideoEncoder::ResolutionBitrateLimits>&
-          resolution_bitrate_limits);
+          resolution_bitrate_limits,
+      VideoCodecType codec_type);
 
   void UpdateStatsAdaptationSettings() const;
 

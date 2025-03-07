@@ -359,6 +359,10 @@ VideoCodec VideoCodecInitializer::SetupCodec(
           break;
         }
       }
+      video_codec.spatialLayers[0].minBitrate = video_codec.minBitrate;
+      video_codec.spatialLayers[0].targetBitrate = video_codec.maxBitrate;
+      video_codec.spatialLayers[0].maxBitrate = video_codec.maxBitrate;
+      video_codec.spatialLayers[0].active = codec_active;
       break;
     default:
       // TODO(pbos): Support encoder_settings codec-agnostically.
