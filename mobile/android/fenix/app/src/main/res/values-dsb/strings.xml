@@ -711,6 +711,12 @@
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Nic něnto</string>
   <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Malsne pytanje startowaś</string>
+  <!--
     Search Widget
 
     Content description for searching with a widget. The first parameter is the name of the application.
@@ -887,6 +893,8 @@
   <string name="preferences_search_browsing_history">Pśeglědowańsku historiju pśepytaś</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">Cytańske znamjenja pśepytaś</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">Skrotconki pokazaś</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">Synchronizěrowane rejtariki pytaś</string>
   <!-- Preference for account settings -->
@@ -2598,6 +2606,8 @@
   <string name="quick_settings_sheet_secure_connection_2">Zwisk jo wěsty</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">Zwisk njejo wěsty</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">Toś ten bok se na wašom rěźe składujo.</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">Cookieje a sedłowe daty wulašowaś</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->

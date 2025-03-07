@@ -655,8 +655,22 @@
   <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Para ayudar a mejorar el navegador, Firefox envía datos de diagnóstico e interacción a Mozilla. %1$s</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
   <string name="onboarding_term_of_service_line_three_link_text">Administrar</string>
+  <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Ayúdanos a hacer crecer Firefox</string>
+  <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Cuando compartes cómo descubriste Firefox y lo utilizas, nos ayudas a presentar nuestro navegador a más personas.</string>
+  <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Comparte datos mínimos con los socios tecnológicos de marketing de Mozilla. Estos datos nunca se venden ni se utilizan para mostrarte anuncios.</string>
+  <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+  <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Cómo utilizamos los datos</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Confirmar y comenzar a navegar</string>
+  <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Una última cosa</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Comparte con los socios de marketing de Mozilla cómo descubriste Firefox y cómo lo usas. Estos datos nunca se venden.</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Aceptar y comenzar a navegar</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Selecciona una ubicación para la barra de herramientas</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -859,6 +873,10 @@
   <string name="preferences_show_voice_search">Mostrar búsqueda por voz</string>
   <!-- Preference title for switch preference to show search suggestions also in private mode -->
   <string name="preferences_show_search_suggestions_in_private">Mostrar en sesiones privadas</string>
+  <!-- Preference title for switch preference to show trending search suggestions -->
+  <string name="preferences_show_trending_search_suggestions">Mostrar sugerencias de tendencias</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Mostrar búsquedas recientes</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Mostrar sugerencias del portapapeles</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
@@ -885,6 +903,16 @@
   <string name="preferences_show_nonsponsored_suggestions">Sugerencias de %1$s</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">Recibe sugerencias de la web relacionadas con tu búsqueda</string>
+  <!-- Preference for link sharing -->
+  <string name="preferences_link_sharing">Compartir enlaces</string>
+  <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_title">Incluir el enlace de descarga de %1$s en las acciones de WhatsApp</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">Invita a tus amigos a probar una navegación más rápida y segura con %1$s cada vez que compartas un enlace en WhatsApp.</string>
+  <!-- Snackbar message shown when user shares a link -->
+  <string name="link_shared_snackbar_message">Enlace compartido</string>
+  <!-- Snackbar action label shown when user shares a link -->
+  <string name="link_shared_snackbar_action">Administrar ajustes</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Abrir enlaces en aplicaciones</string>
   <!-- Preference for open links in third party apps always open in apps option -->
@@ -1108,10 +1136,19 @@
   <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Saber más</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Comparte datos de rendimiento, uso, hardware y personalizaciones sobre tu navegador con Mozilla para ayudar a mejorar %1$s</string>
+  <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Los datos sobre tu dispositivo, la configuración del hardware y el uso nos ayudan a mejorar las funciones, el rendimiento y la estabilidad de Firefox.</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Datos de marketing</string>
+  <!-- Preference switch for campaign measurement data (marketing data) collection -->
+  <string name="preferences_marketing_data_2">Datos de medición de campañas</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
   <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Comparte información sobre cómo descubriste Firefox con los socios de marketing de Mozilla. Esto nos ayuda a hacer crecer Firefox y a construir un mejor Internet</string>
+  <!--
+    Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for.
+  -->
+  <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Comparte cómo descubriste Firefox y cómo lo utilizas con los socios tecnológicos de marketing de Mozilla.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Saber más sobre los datos de marketing</string>
   <!-- Preference switch for daily usage ping data collection -->
@@ -1312,6 +1349,8 @@
   <string name="studies_active">Activo</string>
   <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
   <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s puede instalar y ejecutar estudios de vez en cuando.</string>
+  <!-- Description for studies -->
+  <string name="studies_description_3">Prueba funcionalidades e ideas antes de que estén disponibles para todos.</string>
   <!-- Title of the Studies data preference -->
   <string name="studies_title">Instalar y ejecutar estudios</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
@@ -1821,6 +1860,10 @@
   <string name="sync_add_new_device_learn_button">Saber más sobre cómo enviar pestañas…</string>
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">Conectar otro dispositivo…</string>
+  <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nEnviado desde %2$s 🦊 Prueba el navegador móvil: %3$s</string>
+  <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nEnviado desde %2$s 🦊 %3$s</string>
   <!--
     Notifications
 
@@ -2159,6 +2202,64 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">Ícono de preferencia de excepción de protección contra el rastreo mejorada</string>
+  <!--
+    DNS Over HTTPS (DoH)
+
+    Preference title for DNS over HTTPS settings
+  -->
+  <string name="preference_doh_title">DNS sobre HTTPS</string>
+  <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+  <string name="preference_doh_learn_more">Saber más</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="preference_doh_up_description">Navegar hacia arriba</string>
+  <!-- Content description for the "Exceptions" button -->
+  <string name="preference_doh_exceptions_description">Excepciones</string>
+  <!-- Content description for the "Info" button -->
+  <string name="preference_doh_info_description">Información</string>
+  <!-- Content description for the "Add Site" button -->
+  <string name="preference_doh_add_site_description">Agregar sitio</string>
+  <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection">Protección predeterminada</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">%1$s decide cuándo utilizar DNS seguro para proteger tu privacidad.</string>
+  <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_1">Usar el proveedor seleccionado</string>
+  <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_2">Usa la resolución de DNS predeterminada si hay un problema con el proveedor de DNS seguro</string>
+  <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off">Desactivar</string>
+  <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off_summary">Usar la resolución de DNS predeterminada</string>
+  <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
+  <string name="preference_doh_choose_provider">Elije un proveedor</string>
+  <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_default">(predeterminado)</string>
+  <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_custom">Personalizado</string>
+  <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_title">Proveedor personalizado</string>
+  <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_textfield">Proveedor</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
+  <string name="preference_doh_provider_custom_dialog_error_invalid">URL no válida</string>
+  <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_cancel">Cancelar</string>
+  <!-- Add button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_add">Agregar</string>
+  <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
+  <string name="preference_doh_exceptions">Excepciones</string>
+  <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
+  <string name="preference_doh_exceptions_add">Agregar sitio</string>
+  <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_site">Sitio</string>
+  <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_placeholder">example.com</string>
+  <!-- Error displayed in the input field when adding invalid URLs for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_error">Debe ser un dominio válido</string>
+  <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_add_save">Guardar</string>
+  <!-- Text displayed for removing all exceptions in "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_remove_all_exceptions">Eliminar todas las excepciones</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Ayuda</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -2620,6 +2721,11 @@
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox Suggest</string>
   <!-- Search suggestions title for trending searches. -->
   <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">Búsquedas más populares</string>
+  <!--
+    Search suggestions title for trending search suggestions.
+    %s is a placeholder for the name of the search engine providing the trending search suggestions.
+  -->
+  <string name="trending_searches_header_2">Tendencias en %s</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header">Búsqueda de Google</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
@@ -3106,6 +3212,20 @@
   <string name="protection_panel_etp_toggle_enabled_description">Si algo parece que no funciona en este sitio, intenta desactivar las protecciones.</string>
   <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
   <string name="protection_panel_etp_toggle_disabled_description">Las protecciones están desactivadas. Te sugerimos volver a activarlas.</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the protection panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="protection_panel_num_trackers_blocked">Rastreadores bloqueados: %d</string>
+  <!-- Text for when no trackers have been blocked. -->
+  <string name="protection_panel_no_trackers_blocked">No se encontraron rastreadores</string>
+  <!-- Link text to navigate to privacy and security settings from the protection panel. -->
+  <string name="protection_panel_privacy_and_security_settings">Ajustes de privacidad y seguridad</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the trackers blocked panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_total_num_trackers_blocked">Rastreadores bloqueados: %d</string>
   <!--
     Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
     %s is a placeholder for the name of the tracker category.

@@ -878,6 +878,8 @@
   <string name="preferences_show_search_suggestions_in_private">شەخسىي سۆزلەشكۈدە كۆرسىتىدۇ</string>
   <!-- Preference title for switch preference to show trending search suggestions -->
   <string name="preferences_show_trending_search_suggestions">ئوقۇش تەكلىپىنى كۆرسىتىدۇ</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">يېقىنقى ئىزدەشنى كۆرسىتىدۇ</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">چاپلاش تاختىسى تەكلىپىنى كۆرسەت</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
@@ -908,6 +910,12 @@
   <string name="preferences_link_sharing">ئۇلانما ھەمبەھىر</string>
   <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
   <string name="link_sharing_toggle_title">WhatsApp دە مەزمۇن ھەمبەھىردە %1$s نىڭ چۈشۈرۈش ئۇلانمىسى بار</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">سىز ھەر قېتىم WhatsApp تە ئۇلانمىنى ھەمبەھىرلىگەندە، دوستلىرىڭىزغا تېخىمۇ تېز، تېخىمۇ بىخەتەر %1$s نى ئىشلىتىپ تورغا چىقىشنى تەكلىپ قىلىڭ.</string>
+  <!-- Snackbar message shown when user shares a link -->
+  <string name="link_shared_snackbar_message">ئۇلانما ھەمبەھىرلەندى</string>
+  <!-- Snackbar action label shown when user shares a link -->
+  <string name="link_shared_snackbar_action">تەڭشەك باشقۇرۇش</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">ئۇلىنىشنى ئەپتە ئاچ</string>
   <!-- Preference for open links in third party apps always open in apps option -->
@@ -1855,6 +1863,10 @@
   <string name="sync_add_new_device_learn_button">بەتكۈچ يوللاش ھەققىدىكى تەپسىلات…</string>
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">باشقا ئۈسكۈنىگە باغلىنىۋاتىدۇ…</string>
+  <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nيوللىغۇچى %2$s 🦊 كۆچمە توركۆرگۈنى سىناڭ: %3$s</string>
+  <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nيوللىغۇچى %2$s 🦊 %3$s</string>
   <!--
     Notifications
 

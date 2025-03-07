@@ -669,6 +669,8 @@
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Πώς χρησιμοποιούμε τα δεδομένα</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Επιβεβαίωση και έναρξη περιήγησης</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Αποδοχή και έναρξη περιήγησης</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Επιλογή τοποθεσίας γραμμής εργαλείων</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -873,12 +875,16 @@
   <string name="preferences_show_search_suggestions_in_private">Εμφάνιση σε ιδιωτικές συνεδρίες</string>
   <!-- Preference title for switch preference to show trending search suggestions -->
   <string name="preferences_show_trending_search_suggestions">Εμφάνιση δημοφιλών προτάσεων</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Εμφάνιση πρόσφατων αναζητήσεων</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Εμφάνιση προτάσεων προχείρου</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
   <string name="preferences_search_browsing_history">Αναζήτηση ιστορικού περιήγησης</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">Αναζήτηση σελιδοδεικτών</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">Εμφάνιση συντομεύσεων</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">Αναζήτηση συγχρονισμένων καρτελών</string>
   <!-- Preference for account settings -->
@@ -1127,7 +1133,7 @@
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Δεδομένα μάρκετινγκ</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
-  <string name="preferences_marketing_data_2">Δεδομένα μέτρησης καμπάνιας</string>
+  <string name="preferences_marketing_data_2">Δεδομένα μέτρησης εκστρατειών</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
   <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Μοιραστείτε πληροφορίες σχετικά με το πώς ανακαλύψατε το Firefox με τους συνεργάτες μάρκετινγκ της Mozilla. Αυτό μας βοηθά να αναπτύξουμε το Firefox και να δημιουργήσουμε ένα καλύτερο διαδίκτυο.</string>
   <!--
@@ -2196,6 +2202,8 @@
   <string name="preference_doh_add_site_description">Προσθήκη ιστοτόπου</string>
   <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection">Προεπιλεγμένη προστασία</string>
+  <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection">Μέγιστη προστασία</string>
   <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
   <string name="preference_doh_provider_default">(προεπιλογή)</string>
   <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
@@ -2685,6 +2693,8 @@
   <string name="google_search_engine_suggestion_header">Αναζήτηση Google</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">Αναζήτηση %s</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">Πρόσφατες αναζητήσεις</string>
   <!--
     Default browser experiment
 

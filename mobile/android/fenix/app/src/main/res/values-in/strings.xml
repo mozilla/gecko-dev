@@ -648,6 +648,14 @@
   <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Untuk membantu meningkatkan peramban, Firefox mengirimkan data diagnostik dan interaksi ke Mozilla. %1$s</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
   <string name="onboarding_term_of_service_line_three_link_text">Kelola</string>
+  <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Bantu kami menumbuhkan Firefox</string>
+  <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Konfirmasi dan mulai menjelajah</string>
+  <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Satu hal lagi</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Setuju dan mulai menjelajah</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Pilih penempatan bilah alat</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -874,6 +882,10 @@
   <string name="preferences_show_nonsponsored_suggestions">Saran dari %1$s</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">Dapatkan rekomendasi dari web yang terkait dengan pencarian Anda</string>
+  <!-- Snackbar message shown when user shares a link -->
+  <string name="link_shared_snackbar_message">Tautan dibagikan</string>
+  <!-- Snackbar action label shown when user shares a link -->
+  <string name="link_shared_snackbar_action">Kelola pengaturan</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Buka tautan di aplikasi</string>
   <!-- Preference for open links in third party apps always open in apps option -->
@@ -2122,6 +2134,28 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">Ikon preferensi pengecualian perlindungan pelacakan yang ditingkatkan</string>
+  <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+  <string name="preference_doh_learn_more">Pelajari lebih lanjut</string>
+  <!-- Content description for the "Exceptions" button -->
+  <string name="preference_doh_exceptions_description">Pengecualian</string>
+  <!-- Content description for the "Info" button -->
+  <string name="preference_doh_info_description">Info</string>
+  <!-- Content description for the "Add Site" button -->
+  <string name="preference_doh_add_site_description">Tambahkan Situs</string>
+  <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection">Perlindungan Baku</string>
+  <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_textfield">Penyedia</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
+  <string name="preference_doh_provider_custom_dialog_error_https">URL harus diawali dengan “https://”</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
+  <string name="preference_doh_provider_custom_dialog_error_invalid">URL tidak valid</string>
+  <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_cancel">Batal</string>
+  <!-- Add button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_add">Tambah</string>
+  <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
+  <string name="preference_doh_exceptions">Pengecualian</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Dukungan</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -2130,6 +2164,8 @@
   <string name="about_privacy_notice">Kebijakan privasi</string>
   <!-- About page link text to open know your rights link -->
   <string name="about_know_your_rights">Ketahui hak Anda</string>
+  <!-- About page link text to open terms of use link -->
+  <string name="about_terms_of_use" tools:ignore="UnusedResources">Syarat Penggunaan</string>
   <!-- About page link text to open licensing information link -->
   <string name="about_licensing_information">Informasi lisensi</string>
   <!-- About page link text to open a screen with libraries that are used -->
@@ -2888,6 +2924,42 @@
   <string name="translation_settings_automatic_translation">Terjemahan otomatis</string>
   <!-- Button text for the button that will take the user to the never translate these sites dialog. On the never translate these sites dialog, the user can set if translations should never occur on certain websites. -->
   <string name="translation_settings_automatic_never_translate_sites">Jangan pernah terjemahkan situs ini</string>
+  <!-- The subhead of the download language preference screen will appear above the items that were not downloaded. -->
+  <string name="download_language_header_preference">Unduh Bahasa</string>
+  <!-- All languages list item. When the user presses this item, they can download all languages. -->
+  <string name="download_language_all_languages_item_preference">Semua bahasa</string>
+  <!-- All languages list item. When the user presses this item, they can delete all languages that were downloaded. -->
+  <string name="download_language_all_languages_item_preference_to_delete">Hapus semua bahasa</string>
+  <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
+  <string name="download_languages_item_content_description_downloaded_state">Hapus</string>
+  <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
+  <string name="download_languages_item_content_description_delete_in_progress_state">Sedang berlangsung</string>
+  <!--
+    Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
+    The first parameter is the language name, for example, "Spanish".
+    The second parameter is the language file size, for example, "(3.91 KB)".
+  -->
+  <string name="download_languages_item_content_description_download_in_progress_state">Berhenti mengunduh %1$s (%2$s)</string>
+  <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
+  <string name="download_languages_item_content_description_not_downloaded_state">Unduh</string>
+  <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
+  <string name="download_languages_fetch_error_warning_text">Tidak bisa memuat bahasa. Silakan periksa lagi nanti.</string>
+  <!--
+    The title of the warning card informs the user that an error has occurred at downloading a language.
+    The first parameter is the language name, for example, "Spanish".
+  -->
+  <string name="download_languages_error_warning_text">Tidak bisa mengunduh &lt;b&gt;%1$s&lt;/b&gt;. Silakan coba lagi.</string>
+  <!--
+    The title of the warning card informs the user that an error has occurred at deleting a language.
+    The first parameter is the language name, for example, "Spanish".
+  -->
+  <string name="download_languages_delete_error_warning_text">Tidak bisa menghapus &lt;b&gt;%1$s&lt;/b&gt;. Silakan coba lagi.</string>
+  <!--
+    Title for the dialog used by the translations feature to confirm deleting a language.
+    The dialog will be presented when the user requests deletion of a language.
+    The first parameter is the name of the language, for example, "Spanish" and the second parameter is the size in kilobytes or megabytes of the language file.
+  -->
+  <string name="delete_language_file_dialog_title">Hapus %1$s (%2$s)?</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
   <string name="download_language_file_dialog_positive_button_text">Unduh</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file and perform a translation. -->
