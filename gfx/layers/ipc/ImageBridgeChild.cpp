@@ -357,9 +357,10 @@ void ImageBridgeChild::UpdateCompositable(
   EndTransaction();
 }
 
-void ImageBridgeChild::FlushAllImagesSync(SynchronousTask* aTask,
-                                          ImageClient* aClient,
-                                          ImageContainer* aContainer) {
+void ImageBridgeChild::ClearImagesInHostSync(SynchronousTask* aTask,
+                                             ImageClient* aClient,
+                                             ImageContainer* aContainer,
+                                             ClearImagesType aType) {
   AutoCompleteTask complete(aTask);
 
   if (!CanSend()) {
@@ -371,27 +372,29 @@ void ImageBridgeChild::FlushAllImagesSync(SynchronousTask* aTask,
   if (aContainer) {
     aContainer->ClearImagesFromImageBridge();
   }
-  aClient->FlushAllImages();
+  aClient->ClearImagesInHost(aType);
   EndTransaction();
 }
 
-void ImageBridgeChild::FlushAllImages(ImageClient* aClient,
-                                      ImageContainer* aContainer) {
+void ImageBridgeChild::ClearImagesInHost(ImageClient* aClient,
+                                         ImageContainer* aContainer,
+                                         ClearImagesType aType) {
   MOZ_ASSERT(aClient);
   MOZ_ASSERT(!InImageBridgeChildThread());
 
   if (InImageBridgeChildThread()) {
     NS_ERROR(
-        "ImageBridgeChild::FlushAllImages() is called on ImageBridge thread.");
+        "ImageBridgeChild::ClearImagesInHost() is called on ImageBridge "
+        "thread.");
     return;
   }
 
-  SynchronousTask task("FlushAllImages Lock");
+  SynchronousTask task("ClearImagesInHost Lock");
 
   // RefPtrs on arguments are not needed since this dispatches synchronously.
   RefPtr<Runnable> runnable = WrapRunnable(
-      RefPtr<ImageBridgeChild>(this), &ImageBridgeChild::FlushAllImagesSync,
-      &task, aClient, aContainer);
+      RefPtr<ImageBridgeChild>(this), &ImageBridgeChild::ClearImagesInHostSync,
+      &task, aClient, aContainer, aType);
   GetThread()->Dispatch(runnable.forget());
 
   task.Wait();
@@ -903,6 +906,18 @@ void ImageBridgeChild::RemoveTextureFromCompositable(
   mTxn->AddNoSwapEdit(CompositableOperation(
       aCompositable->GetIPCHandle(),
       OpRemoveTexture(WrapNotNull(aTexture->GetIPDLActor()))));
+}
+
+void ImageBridgeChild::ClearImagesFromCompositable(
+    CompositableClient* aCompositable, ClearImagesType aType) {
+  MOZ_ASSERT(CanSend());
+  MOZ_ASSERT(aCompositable->IsConnected());
+  if (!aCompositable->IsConnected()) {
+    return;
+  }
+
+  mTxn->AddNoSwapEdit(CompositableOperation(aCompositable->GetIPCHandle(),
+                                            OpClearImages(aType)));
 }
 
 bool ImageBridgeChild::IsSameProcess() const {

@@ -88,6 +88,8 @@ class CompositableHost {
   virtual void UseTextureHost(const nsTArray<TimedTexture>& aTextures);
   virtual void RemoveTextureHost(TextureHost* aTexture);
 
+  virtual void ClearImages(ClearImagesType aType) {}
+
   const AsyncCompositableRef& GetAsyncRef() const { return mAsyncRef; }
   void SetAsyncRef(const AsyncCompositableRef& aRef) { mAsyncRef = aRef; }
 

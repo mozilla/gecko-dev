@@ -75,14 +75,8 @@ TextureInfo ImageClientSingle::GetTextureInfo() const {
                      TextureFlags::DEFAULT);
 }
 
-void ImageClientSingle::FlushAllImages() {
-  for (auto& b : mBuffers) {
-    // It should be safe to just assume a default render root here, even if
-    // the texture actually presents in a content render root, as the only
-    // risk would be if the content render root has not / is not going to
-    // generate a frame before the texture gets cleared.
-    RemoveTexture(b.mTextureClient);
-  }
+void ImageClientSingle::ClearImagesInHost(ClearImagesType aType) {
+  GetForwarder()->ClearImagesFromCompositable(this, aType);
   mBuffers.Clear();
 }
 

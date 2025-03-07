@@ -144,7 +144,7 @@ void VideoFrameContainer::SetCurrentFramesLocked(
   }
 
   if (aImages.IsEmpty()) {
-    mImageContainer->ClearAllImages();
+    mImageContainer->ClearImagesInHost(layers::ClearImagesType::All);
   } else {
     mImageContainer->SetCurrentImages(aImages);
   }
@@ -194,6 +194,11 @@ void VideoFrameContainer::ClearFutureFrames(TimeStamp aNow) {
 void VideoFrameContainer::ClearCachedResources() {
   MutexAutoLock lock(mMutex);
   mImageContainer->ClearCachedResources();
+}
+
+void VideoFrameContainer::ClearImagesInHost(layers::ClearImagesType aType) {
+  MutexAutoLock lock(mMutex);
+  mImageContainer->ClearImagesInHost(aType);
 }
 
 ImageContainer* VideoFrameContainer::GetImageContainer() {

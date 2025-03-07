@@ -252,13 +252,32 @@ void WebRenderImageHost::UseRemoteTexture() {
 }
 
 void WebRenderImageHost::CleanupResources() {
-  ClearImages();
+  ImageComposite::ClearImages();
   SetCurrentTextureHost(nullptr);
 }
 
 void WebRenderImageHost::RemoveTextureHost(TextureHost* aTexture) {
-  CompositableHost::RemoveTextureHost(aTexture);
   RemoveImagesWithTextureHost(aTexture);
+}
+
+void WebRenderImageHost::ClearImages(ClearImagesType aType) {
+  ImageComposite::ClearImages();
+  if (aType == ClearImagesType::All) {
+    if (!mPendingRemoteTextureWrappers.empty()) {
+      mPendingRemoteTextureWrappers.clear();
+    }
+    SetCurrentTextureHost(nullptr);
+
+    if (GetAsyncRef()) {
+      for (const auto& it : mWrBridges) {
+        RefPtr<WebRenderBridgeParent> wrBridge = it.second->WrBridge();
+        if (wrBridge && wrBridge->CompositorScheduler()) {
+          wrBridge->CompositorScheduler()->ScheduleComposition(
+              wr::RenderReasons::ASYNC_IMAGE);
+        }
+      }
+    }
+  }
 }
 
 TimeStamp WebRenderImageHost::GetCompositionTime() const {

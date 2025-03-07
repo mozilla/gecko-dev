@@ -51,6 +51,12 @@ bool CompositableParentManager::ReceiveCompositableUpdate(
       aCompositable->RemoveTextureHost(tex);
       break;
     }
+    case CompositableOperationDetail::TOpClearImages: {
+      const OpClearImages& op = aDetail.get_OpClearImages();
+
+      aCompositable->ClearImages(op.type());
+      break;
+    }
     case CompositableOperationDetail::TOpUseTexture: {
       const OpUseTexture& op = aDetail.get_OpUseTexture();
 

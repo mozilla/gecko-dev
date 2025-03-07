@@ -14,6 +14,7 @@
 #include "FrameMetrics.h"
 #include "VsyncSource.h"
 #include "chrome/common/ipc_message_utils.h"
+#include "ImageContainer.h"
 #include "ipc/EnumSerializer.h"
 #include "ipc/IPCMessageUtils.h"
 #include "mozilla/ScrollSnapInfo.h"
@@ -1129,6 +1130,13 @@ struct ParamTraits<mozilla::layers::CompositionPayload> {
            ReadParam(aReader, &aResult->mTimeStamp);
   }
 };
+
+template <>
+struct ParamTraits<mozilla::layers::ClearImagesType>
+    : public ContiguousEnumSerializerInclusive<
+          mozilla::layers::ClearImagesType,
+          mozilla::layers::ClearImagesType::All,
+          mozilla::layers::ClearImagesType::CacheOnly> {};
 
 template <>
 struct ParamTraits<mozilla::layers::CantZoomOutBehavior>

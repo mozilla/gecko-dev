@@ -11,6 +11,7 @@
 #include <stdint.h>  // for uint32_t, uint64_t
 #include <unordered_map>
 
+#include "ImageContainer.h"
 #include "mozilla/Attributes.h"  // for override
 #include "mozilla/Atomics.h"
 #include "mozilla/RefPtr.h"  // for already_AddRefed
@@ -206,9 +207,10 @@ class ImageBridgeChild final : public PImageBridgeChild,
                           const RefPtr<FwdTransactionTracker> aTracker);
 
   /**
-   * Flush all Images sent to CompositableHost.
+   * Clear Images in host.
    */
-  void FlushAllImages(ImageClient* aClient, ImageContainer* aContainer);
+  void ClearImagesInHost(ImageClient* aClient, ImageContainer* aContainer,
+                         ClearImagesType aType);
 
   bool IPCOpen() const override { return mCanSend; }
 
@@ -225,8 +227,8 @@ class ImageBridgeChild final : public PImageBridgeChild,
                              CompositableType aType,
                              ImageContainer* aImageContainer);
 
-  void FlushAllImagesSync(SynchronousTask* aTask, ImageClient* aClient,
-                          ImageContainer* aContainer);
+  void ClearImagesInHostSync(SynchronousTask* aTask, ImageClient* aClient,
+                             ImageContainer* aContainer, ClearImagesType aType);
 
   void ProxyAllocShmemNow(SynchronousTask* aTask, size_t aSize,
                           mozilla::ipc::Shmem* aShmem, bool aUnsafe,
@@ -281,6 +283,9 @@ class ImageBridgeChild final : public PImageBridgeChild,
 
   void RemoveTextureFromCompositable(CompositableClient* aCompositable,
                                      TextureClient* aTexture) override;
+
+  void ClearImagesFromCompositable(CompositableClient* aCompositable,
+                                   ClearImagesType aType) override;
 
   // ISurfaceAllocator
 

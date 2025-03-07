@@ -709,7 +709,7 @@ void VideoSink::SetSecondaryVideoContainer(VideoFrameContainer* aSecondary) {
   if (mSecondaryContainer && aSecondary != mSecondaryContainer) {
     ImageContainer* secondaryImageContainer =
         mSecondaryContainer->GetImageContainer();
-    secondaryImageContainer->ClearAllImages();
+    secondaryImageContainer->ClearImagesInHost(layers::ClearImagesType::All);
   }
   mSecondaryContainer = aSecondary;
   if (!IsPlaying() && mSecondaryContainer) {

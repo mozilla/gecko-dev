@@ -68,8 +68,11 @@ class VideoFrameContainer {
   // but was actually painted at t+n, this returns n in seconds. Threadsafe.
   double GetFrameDelay();
 
-  // Clear any resources that are not immediately necessary.
+  // Clear any resources in client that are not immediately necessary.
   void ClearCachedResources();
+
+  // Clear images in host.
+  void ClearImagesInHost(layers::ClearImagesType aType);
 
   // Returns a new frame ID for SetCurrentFrames().  The client must either
   // call this on only one thread or provide barriers.  Do not use together

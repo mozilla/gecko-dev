@@ -371,17 +371,22 @@ void ImageContainer::SetCurrentImages(const nsTArray<NonOwningImage>& aImages) {
   SetCurrentImageInternal(aImages);
 }
 
-void ImageContainer::ClearAllImages() {
+void ImageContainer::ClearImagesInHost(ClearImagesType aType) {
+  MOZ_ASSERT(mIsAsync);
+  if (!mIsAsync) {
+    return;
+  }
+
   mRecursiveMutex.Lock();
   if (mImageClient) {
     RefPtr<ImageClient> imageClient = mImageClient;
     mRecursiveMutex.Unlock();
 
-    // Let ImageClient release all TextureClients. This doesn't return
-    // until ImageBridge has called ClearCurrentImageFromImageBridge.
+    // Let ImageClient clear Images(TextureClients). This doesn't return
+    // until ImageBridge has called ImageClient::ClearImagesInHost.
     if (RefPtr<ImageBridgeChild> imageBridge =
             ImageBridgeChild::GetSingleton()) {
-      imageBridge->FlushAllImages(imageClient, this);
+      imageBridge->ClearImagesInHost(imageClient, this, aType);
     }
     return;
   }

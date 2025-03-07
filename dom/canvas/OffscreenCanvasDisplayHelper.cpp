@@ -39,7 +39,7 @@ void OffscreenCanvasDisplayHelper::DestroyElement() {
 
   MutexAutoLock lock(mMutex);
   if (mImageContainer) {
-    mImageContainer->ClearAllImages();
+    mImageContainer->ClearImagesInHost(layers::ClearImagesType::All);
     mImageContainer = nullptr;
   }
   mFrontBufferSurface = nullptr;
@@ -53,7 +53,7 @@ void OffscreenCanvasDisplayHelper::DestroyCanvas() {
 
   MutexAutoLock lock(mMutex);
   if (mImageContainer) {
-    mImageContainer->ClearAllImages();
+    mImageContainer->ClearImagesInHost(layers::ClearImagesType::All);
     mImageContainer = nullptr;
   }
   mFrontBufferSurface = nullptr;
@@ -309,7 +309,7 @@ bool OffscreenCanvasDisplayHelper::CommitFrameToCompositor(
         image, TimeStamp(), mLastFrameID++, mImageProducerID));
     mImageContainer->SetCurrentImages(imageList);
   } else {
-    mImageContainer->ClearAllImages();
+    mImageContainer->ClearImagesInHost(layers::ClearImagesType::All);
   }
 
   return true;
