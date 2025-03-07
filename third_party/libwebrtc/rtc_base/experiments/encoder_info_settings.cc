@@ -46,11 +46,10 @@ EncoderInfoSettings::GetDefaultSinglecastBitrateLimits(
     // The min bitrate limits are not used in singlecast (used in SVC/simulcast
     // to de-/activate spatial layers) and are set to zero. Send resolution in
     // singlecast is assumed to be regulated by QP-based quality scaler.
-    return {{320 * 180, 0, 0, 256000},
-            {480 * 270, 176000, 0, 384000},
-            {640 * 360, 256000, 0, 512000},
-            {960 * 540, 384000, 0, 1024000},
-            {1280 * 720, 576000, 0, 1536000}};
+    return {
+        {320 * 180, 0, 0, 256000},        {480 * 270, 176000, 0, 384000},
+        {640 * 360, 256000, 0, 512000},   {960 * 540, 384000, 0, 1024000},
+        {1280 * 720, 576000, 0, 1536000}, {1920 * 1080, 1000000, 0, 3700000}};
   }
 
   if (codec_type == kVideoCodecVP9 || codec_type == kVideoCodecH265) {
@@ -64,7 +63,8 @@ EncoderInfoSettings::GetDefaultSinglecastBitrateLimits(
             {480 * 270, 120000, 30000, 300000},
             {640 * 360, 190000, 30000, 420000},
             {960 * 540, 350000, 30000, 1000000},
-            {1280 * 720, 480000, 30000, 1500000}};
+            {1280 * 720, 480000, 30000, 1500000},
+            {1920 * 1080, 1000000, 30000, 3700000}};
   }
 
   // VP8 and other codecs.
@@ -72,7 +72,8 @@ EncoderInfoSettings::GetDefaultSinglecastBitrateLimits(
           {480 * 270, 200000, 30000, 500000},
           {640 * 360, 300000, 30000, 800000},
           {960 * 540, 500000, 30000, 1500000},
-          {1280 * 720, 900000, 30000, 2500000}};
+          {1280 * 720, 900000, 30000, 2500000},
+          {1920 * 1080, 2000000, 30000, 5000000}};
 }
 
 std::optional<VideoEncoder::ResolutionBitrateLimits>

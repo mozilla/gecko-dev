@@ -344,15 +344,14 @@ TEST_P(ResolutionBitrateLimitsTest, LimitsAppliedMiddleActive) {
   RunBaseTest(&test);
 }
 
-TEST_P(ResolutionBitrateLimitsTest, EncodingMinBitrateAppliedMiddleActive) {
+TEST_P(ResolutionBitrateLimitsTest, EncodingMinMaxBitrateAppliedMiddleActive) {
   webrtc::test::ScopedFieldTrials field_trials(
       "WebRTC-GetEncoderInfoOverride/"
       "frame_size_pixels:230400|921600,"
       "min_start_bitrate_bps:0|0,"
       "min_bitrate_bps:31000|32000,"
-      "max_bitrate_bps:2222000|3333000/");
+      "max_bitrate_bps:1111000|3333000/");
 
-  // Max bitrate: min of encoding and bitrate limits used.
   InitEncodeTest test(env(), payload_name_,
                       {{.active = false,
                         .bitrate = {DataRate::KilobitsPerSec(28),
@@ -365,6 +364,49 @@ TEST_P(ResolutionBitrateLimitsTest, EncodingMinBitrateAppliedMiddleActive) {
                       {{.pixels = 640 * 360,
                         .eq_bitrate = {DataRate::KilobitsPerSec(28),
                                        DataRate::KilobitsPerSec(1555)}}});
+  RunBaseTest(&test);
+}
+
+TEST_P(ResolutionBitrateLimitsTest, MinBitrateNotAboveEncodingMax) {
+  webrtc::test::ScopedFieldTrials field_trials(
+      "WebRTC-GetEncoderInfoOverride/"
+      "frame_size_pixels:230400|921600,"
+      "min_start_bitrate_bps:0|0,"
+      "min_bitrate_bps:31000|32000,"
+      "max_bitrate_bps:1111000|3333000/");
+
+  InitEncodeTest test(
+      env(), payload_name_,
+      {{.active = false},
+       {.active = true,
+        .bitrate = {std::nullopt, DataRate::KilobitsPerSec(25)}},
+       {.active = false}},
+      // Expectations:
+      {{.pixels = 640 * 360,
+        .eq_bitrate = {DataRate::KilobitsPerSec(25),
+                       DataRate::KilobitsPerSec(25)}}});
+  RunBaseTest(&test);
+}
+
+TEST_P(ResolutionBitrateLimitsTest, MaxBitrateNotBelowEncodingMin) {
+  webrtc::test::ScopedFieldTrials field_trials(
+      "WebRTC-GetEncoderInfoOverride/"
+      "frame_size_pixels:230400|921600,"
+      "min_start_bitrate_bps:0|0,"
+      "min_bitrate_bps:21000|22000,"
+      "max_bitrate_bps:31000|32000/");
+
+  InitEncodeTest test(
+      env(), payload_name_,
+      {{.active = false,
+        .bitrate = {DataRate::KilobitsPerSec(50), std::nullopt}},
+       {.active = true,
+        .bitrate = {DataRate::KilobitsPerSec(50), std::nullopt}},
+       {.active = false}},
+      // Expectations:
+      {{.pixels = 640 * 360,
+        .eq_bitrate = {DataRate::KilobitsPerSec(50),
+                       DataRate::KilobitsPerSec(50)}}});
   RunBaseTest(&test);
 }
 
@@ -423,15 +465,14 @@ TEST_P(ResolutionBitrateLimitsTest, LimitsAppliedHighestActive) {
   RunBaseTest(&test);
 }
 
-TEST_P(ResolutionBitrateLimitsTest, EncodingMinBitrateAppliedHighestActive) {
+TEST_P(ResolutionBitrateLimitsTest, EncodingMinMaxBitrateAppliedHighestActive) {
   webrtc::test::ScopedFieldTrials field_trials(
       "WebRTC-GetEncoderInfoOverride/"
       "frame_size_pixels:230400|921600,"
       "min_start_bitrate_bps:0|0,"
       "min_bitrate_bps:31000|32000,"
-      "max_bitrate_bps:2222000|3333000/");
+      "max_bitrate_bps:555000|1111000/");
 
-  // Max bitrate: min of encoding and bitrate limits used.
   InitEncodeTest test(env(), payload_name_,
                       {{.active = false,
                         .bitrate = {DataRate::KilobitsPerSec(28),
@@ -552,15 +593,14 @@ TEST_F(ResolutionBitrateLimitsWithScalabilityModeTest,
 }
 
 TEST_F(ResolutionBitrateLimitsWithScalabilityModeTest,
-       EncodingMinBitrateAppliedForAv1SingleSpatialLayer) {
+       EncodingMinMaxBitrateAppliedForAv1SingleSpatialLayer) {
   webrtc::test::ScopedFieldTrials field_trials(
       "WebRTC-GetEncoderInfoOverride/"
       "frame_size_pixels:921600,"
       "min_start_bitrate_bps:0,"
       "min_bitrate_bps:32000,"
-      "max_bitrate_bps:133000/");
+      "max_bitrate_bps:99000/");
 
-  // Max bitrate: min of encoding and bitrate limits used.
   InitEncodeTest test(env(), "AV1",
                       {{.active = true,
                         .bitrate = {DataRate::KilobitsPerSec(28),

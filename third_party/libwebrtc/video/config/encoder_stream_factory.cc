@@ -409,7 +409,8 @@ EncoderStreamFactory::CreateDefaultVideoStreams(
       RTC_DCHECK_GE(sum_max_bitrates_kbps, 0);
       if (!api_max_bitrate_bps.has_value()) {
         max_bitrate_bps = sum_max_bitrates_kbps * 1000;
-      } else {
+      } else if (encoder_config.simulcast_layers[0].max_bitrate_bps <= 0) {
+        // Encoding max bitrate is kept if configured.
         max_bitrate_bps =
             std::min(max_bitrate_bps, sum_max_bitrates_kbps * 1000);
       }

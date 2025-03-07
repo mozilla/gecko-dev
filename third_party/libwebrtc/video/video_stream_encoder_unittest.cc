@@ -2685,16 +2685,18 @@ TEST_F(VideoStreamEncoderTest,
   config.video_stream_factory = nullptr;
   video_stream_encoder_->ConfigureEncoder(config.Copy(), kMaxPayloadLength);
 
-  // The encoder bitrate limits for 270p should be used.
+  // The max configured bitrate should be used.
+  // The encoder bitrate limits for 270p should be used for min bitrate
   video_source_.IncomingCapturedFrame(CreateFrame(1, 480, 270));
   video_stream_encoder_->WaitUntilTaskQueueIsIdle();
   EXPECT_EQ(fake_encoder_.config().numberOfSimulcastStreams, kNumStreams);
   EXPECT_EQ(static_cast<uint32_t>(kEncoderLimits270p.min_bitrate_bps),
             fake_encoder_.config().simulcastStream[1].minBitrate * 1000);
-  EXPECT_EQ(static_cast<uint32_t>(kEncoderLimits270p.max_bitrate_bps),
+  EXPECT_EQ(static_cast<uint32_t>(kMaxBitrateBps),
             fake_encoder_.config().simulcastStream[1].maxBitrate * 1000);
 
-  // The max configured bitrate is less than the encoder limit for 360p.
+  // The max configured bitrate should be used.
+  // The encoder bitrate limits for 360p should be used for min bitrate
   video_source_.IncomingCapturedFrame(CreateFrame(2, 640, 360));
   video_stream_encoder_->WaitUntilTaskQueueIsIdle();
   EXPECT_EQ(static_cast<uint32_t>(kEncoderLimits360p.min_bitrate_bps),

@@ -468,15 +468,15 @@ void ApplySpatialLayerBitrateLimits(
   if (encoder_config.simulcast_layers[*index].max_bitrate_bps <= 0) {
     max_bitrate_bps = bitrate_limits->max_bitrate_bps;
   } else {
-    max_bitrate_bps =
-        std::min(bitrate_limits->max_bitrate_bps,
-                 encoder_config.simulcast_layers[*index].max_bitrate_bps);
+    max_bitrate_bps = encoder_config.simulcast_layers[*index].max_bitrate_bps;
   }
-  if (min_bitrate_bps >= max_bitrate_bps) {
-    RTC_LOG(LS_WARNING) << "Bitrate limits not used, min_bitrate_bps "
-                        << min_bitrate_bps << " >= max_bitrate_bps "
-                        << max_bitrate_bps;
-    return;
+
+  if (encoder_config.simulcast_layers[*index].min_bitrate_bps > 0) {
+    // Ensure max is not below configured min.
+    max_bitrate_bps = std::max(min_bitrate_bps, max_bitrate_bps);
+  } else {
+    // Ensure min is not above max.
+    min_bitrate_bps = std::min(min_bitrate_bps, max_bitrate_bps);
   }
 
   for (int i = 0; i < GetNumSpatialLayers(*codec); ++i) {
@@ -484,8 +484,9 @@ void ApplySpatialLayerBitrateLimits(
       codec->spatialLayers[i].minBitrate = min_bitrate_bps / 1000;
       codec->spatialLayers[i].maxBitrate = max_bitrate_bps / 1000;
       codec->spatialLayers[i].targetBitrate =
-          std::min(codec->spatialLayers[i].targetBitrate,
-                   codec->spatialLayers[i].maxBitrate);
+          std::clamp(codec->spatialLayers[i].targetBitrate,
+                     codec->spatialLayers[i].minBitrate,
+                     codec->spatialLayers[i].maxBitrate);
       break;
     }
   }
@@ -531,25 +532,21 @@ void ApplyEncoderBitrateLimitsIfSingleActiveStream(
   if (encoder_config_layers[index].max_bitrate_bps <= 0) {
     max_bitrate_bps = encoder_bitrate_limits->max_bitrate_bps;
   } else {
-    max_bitrate_bps = std::min(encoder_bitrate_limits->max_bitrate_bps,
-                               (*streams)[index].max_bitrate_bps);
+    max_bitrate_bps = (*streams)[index].max_bitrate_bps;
   }
-  if (min_bitrate_bps >= max_bitrate_bps) {
-    RTC_LOG(LS_WARNING) << "Encoder bitrate limits"
-                        << " (min=" << encoder_bitrate_limits->min_bitrate_bps
-                        << ", max=" << encoder_bitrate_limits->max_bitrate_bps
-                        << ") do not intersect with stream limits"
-                        << " (min=" << (*streams)[index].min_bitrate_bps
-                        << ", max=" << (*streams)[index].max_bitrate_bps
-                        << "). Encoder bitrate limits not used.";
-    return;
+
+  if (encoder_config_layers[index].min_bitrate_bps > 0) {
+    // Ensure max is not below configured min.
+    max_bitrate_bps = std::max(min_bitrate_bps, max_bitrate_bps);
+  } else {
+    // Ensure min is not above max.
+    min_bitrate_bps = std::min(min_bitrate_bps, max_bitrate_bps);
   }
 
   (*streams)[index].min_bitrate_bps = min_bitrate_bps;
   (*streams)[index].max_bitrate_bps = max_bitrate_bps;
-  (*streams)[index].target_bitrate_bps =
-      std::min((*streams)[index].target_bitrate_bps,
-               encoder_bitrate_limits->max_bitrate_bps);
+  (*streams)[index].target_bitrate_bps = std::clamp(
+      (*streams)[index].target_bitrate_bps, min_bitrate_bps, max_bitrate_bps);
 }
 
 std::optional<int> ParseVp9LowTierCoreCountThreshold(
