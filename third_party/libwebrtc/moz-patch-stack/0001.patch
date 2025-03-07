@@ -1,161 +1,163 @@
-From: Michael Froman <mjfroman@mac.com>
-Date: Fri, 7 Mar 2025 14:13:25 -0600
-Subject: (tmp-cherry-pick) Revert "Fix codec collision on reoffer after munged
- codec on offer." (20bd702ebe)
+From: Harald Alvestrand <hta@webrtc.org>
+Date: Mon, 17 Feb 2025 18:06:32 +0000
+Subject: (cherry-pick-branch-heads/6998) [Merge M134] Fix codec collision on
+ reoffer after munged codec
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-This reverts commit b9ddaa154b91b5d1cbe38bf38fce544a87e00d1a.
+This reverts commit 20bd702ebeb13a709832463fe5aadd623b7dc71b.
 
-Reason for revert: Downstream failure.
+Reason for revert: Fixed test to not fail when AV1 is missing
 
 Original change's description:
-> Fix codec collision on reoffer after munged codec on offer.
+> Revert "Fix codec collision on reoffer after munged codec on offer."
+>
+> This reverts commit b9ddaa154b91b5d1cbe38bf38fce544a87e00d1a.
+>
+> Reason for revert: Downstream failure.
+>
+> Original change's description:
+> > Fix codec collision on reoffer after munged codec on offer.
+> >
+> > Bug: chromium:395077842
+> > Change-Id: I7665e593fa0f6883150363cb75103facd62f4fea
+> > Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/377141
+> > Reviewed-by: Henrik Boström <hbos@webrtc.org>
+> > Commit-Queue: Harald Alvestrand <hta@webrtc.org>
+> > Cr-Commit-Position: refs/heads/main@{#43889}
 >
 > Bug: chromium:395077842
-> Change-Id: I7665e593fa0f6883150363cb75103facd62f4fea
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/377141
-> Reviewed-by: Henrik Boström <hbos@webrtc.org>
+> Change-Id: I10184a0d521add123838861a5c5e7929864537bb
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/377500
+> Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+> Reviewed-by: Jeremy Leconte <jleconte@webrtc.org>
 > Commit-Queue: Harald Alvestrand <hta@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#43889}
+> Reviewed-by: Henrik Boström <hbos@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#43901}
 
-Bug: chromium:395077842
-Change-Id: I10184a0d521add123838861a5c5e7929864537bb
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/377500
-Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Reviewed-by: Jeremy Leconte <jleconte@webrtc.org>
-Commit-Queue: Harald Alvestrand <hta@webrtc.org>
+(cherry picked from commit 4aeab708bb9bd41f5626b05965bfd13fe8a6c458)
+
+Bug: chromium:395077842, chromium:397067501
+Change-Id: I3ba5cacebc7eb608edffea2de54cf1c1e9355a81
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/377281
 Reviewed-by: Henrik Boström <hbos@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#43901}
+Commit-Queue: Harald Alvestrand <hta@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#43907}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/377823
+Reviewed-by: Fredrik Solenberg <solenberg@webrtc.org>
+Cr-Commit-Position: refs/branch-heads/6998@{#1}
+Cr-Branched-From: 9c56cb3edae7d5e222eb643a43846dca7fa6a1c5-refs/heads/main@{#43845}
 ---
- pc/codec_vendor.cc                    | 14 ++------
- pc/peer_connection_integrationtest.cc | 31 ------------------
- pc/test/integration_test_helpers.h    | 47 +++++++++++++--------------
- 3 files changed, 25 insertions(+), 67 deletions(-)
+ pc/codec_vendor.cc                    | 14 ++++++--
+ pc/peer_connection_integrationtest.cc | 44 +++++++++++++++++++++++++
+ pc/test/integration_test_helpers.h    | 47 ++++++++++++++-------------
+ 3 files changed, 80 insertions(+), 25 deletions(-)
 
 diff --git a/pc/codec_vendor.cc b/pc/codec_vendor.cc
-index 529246c354..0ab676a9cd 100644
+index 0ab676a9cd..529246c354 100644
 --- a/pc/codec_vendor.cc
 +++ b/pc/codec_vendor.cc
-@@ -454,14 +454,6 @@ webrtc::RTCErrorOr<std::vector<Codec>> CodecVendor::GetNegotiatedCodecsForOffer(
+@@ -454,6 +454,14 @@ webrtc::RTCErrorOr<std::vector<Codec>> CodecVendor::GetNegotiatedCodecsForOffer(
          }
        }
      }
--    // Note what PTs are already in use.
--    UsedPayloadTypes
--        used_pltypes;  // Used to avoid pt collisions in filtered_codecs
--    for (auto& codec : filtered_codecs) {
--      // Note: This may change PTs. Doing so woud indicate an error, but
--      // UsedPayloadTypes doesn't offer a means to make the distinction.
--      used_pltypes.FindAndSetIdUsed(&codec);
--    }
++    // Note what PTs are already in use.
++    UsedPayloadTypes
++        used_pltypes;  // Used to avoid pt collisions in filtered_codecs
++    for (auto& codec : filtered_codecs) {
++      // Note: This may change PTs. Doing so woud indicate an error, but
++      // UsedPayloadTypes doesn't offer a means to make the distinction.
++      used_pltypes.FindAndSetIdUsed(&codec);
++    }
      // Add other supported codecs.
      for (const Codec& codec : supported_codecs) {
        std::optional<Codec> found_codec =
-@@ -469,12 +461,12 @@ webrtc::RTCErrorOr<std::vector<Codec>> CodecVendor::GetNegotiatedCodecsForOffer(
+@@ -461,12 +469,12 @@ webrtc::RTCErrorOr<std::vector<Codec>> CodecVendor::GetNegotiatedCodecsForOffer(
        if (found_codec &&
            !FindMatchingCodec(supported_codecs, filtered_codecs, codec)) {
          // Use the `found_codec` from `codecs` because it has the
--        // correctly mapped payload type (most of the time).
-+        // correctly mapped payload type.
-+        // This is only done for video since we do not yet have rtx for audio.
+-        // correctly mapped payload type.
+-        // This is only done for video since we do not yet have rtx for audio.
++        // correctly mapped payload type (most of the time).
          if (media_description_options.type == MEDIA_TYPE_VIDEO &&
              found_codec->GetResiliencyType() == Codec::ResiliencyType::kRtx) {
            // For RTX we might need to adjust the apt parameter if we got a
            // remote offer without RTX for a codec for which we support RTX.
--          // This is only done for video since we do not yet have rtx for audio.
++          // This is only done for video since we do not yet have rtx for audio.
            auto referenced_codec =
                GetAssociatedCodecForRtx(supported_codecs, codec);
            RTC_DCHECK(referenced_codec);
-@@ -487,8 +479,6 @@ webrtc::RTCErrorOr<std::vector<Codec>> CodecVendor::GetNegotiatedCodecsForOffer(
+@@ -479,6 +487,8 @@ webrtc::RTCErrorOr<std::vector<Codec>> CodecVendor::GetNegotiatedCodecsForOffer(
                                    changed_referenced_codec->id);
            }
          }
--        // Quick fix for b/395077842: Remap the codec if it collides.
--        used_pltypes.FindAndSetIdUsed(&(*found_codec));
++        // Quick fix for b/395077842: Remap the codec if it collides.
++        used_pltypes.FindAndSetIdUsed(&(*found_codec));
          filtered_codecs.push_back(*found_codec);
        }
      }
 diff --git a/pc/peer_connection_integrationtest.cc b/pc/peer_connection_integrationtest.cc
-index 2e7786db31..20643c2f29 100644
+index 20643c2f29..ce02e516e8 100644
 --- a/pc/peer_connection_integrationtest.cc
 +++ b/pc/peer_connection_integrationtest.cc
-@@ -4731,37 +4731,6 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
+@@ -4731,6 +4731,50 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
    EXPECT_LT(metrics::MinSample("WebRTC.Call.AbsCapture.Offset"), 2);
  }
  
--// Test that when SDP is munged to use a PT for a different codec,
--// the old codec is added to a subsequent offer with a different PT
--// Regression test for https://issues.chromium.org/395077824
--TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
--       MungeOfferCodecAndReOfferWorks) {
--  ASSERT_TRUE(CreatePeerConnectionWrappers());
--  ConnectFakeSignaling();
--  caller()->AddVideoTrack();
--  auto munger = [](std::unique_ptr<SessionDescriptionInterface>& sdp) {
--    auto video = GetFirstVideoContentDescription(sdp->description());
--    auto codecs = video->codecs();
--    for (auto&& codec : codecs) {
--      if (codec.name == "VP9") {
--        RTC_LOG(LS_ERROR) << "Remapping VP9 codec " << codec << " to AV1";
--        codec.name = "AV1";
--      }
--    }
--    video->set_codecs(codecs);
--  };
--  caller()->SetGeneratedSdpMunger(munger);
--  caller()->CreateAndSetAndSignalOffer();
--  ASSERT_THAT(
--      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
--      IsRtcOk());
--  caller()->SetGeneratedSdpMunger(nullptr);
--  auto offer = caller()->CreateOfferAndWait();
--  ASSERT_NE(nullptr, offer);
--  // The offer should be acceptable.
--  EXPECT_TRUE(caller()->SetLocalDescriptionAndSendSdpMessage(std::move(offer)));
--}
--
++// Test that when SDP is munged to use a PT for a different codec,
++// the old codec is added to a subsequent offer with a different PT
++// Regression test for https://issues.chromium.org/395077824
++TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
++       MungeOfferCodecAndReOfferWorks) {
++  ASSERT_TRUE(CreatePeerConnectionWrappers());
++  ConnectFakeSignaling();
++  caller()->AddVideoTrack();
++  auto munger = [](std::unique_ptr<SessionDescriptionInterface>& sdp) {
++    auto video = GetFirstVideoContentDescription(sdp->description());
++    auto codecs = video->codecs();
++    std::optional<cricket::Codec> replacement_codec;
++    for (auto&& codec : codecs) {
++      if (codec.name == "AV1") {
++        replacement_codec = codec;
++        break;
++      }
++    }
++    if (replacement_codec) {
++      for (auto&& codec : codecs) {
++        if (codec.name == "VP9") {
++          RTC_LOG(LS_INFO) << "Remapping VP9 codec " << codec << " to AV1";
++          codec.name = replacement_codec->name;
++          codec.params = replacement_codec->params;
++          break;
++        }
++      }
++      video->set_codecs(codecs);
++    } else {
++      RTC_LOG(LS_INFO) << "Skipping munge, no AV1 codec found";
++    }
++  };
++  caller()->SetGeneratedSdpMunger(munger);
++  caller()->CreateAndSetAndSignalOffer();
++  ASSERT_THAT(
++      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
++      IsRtcOk());
++  caller()->SetGeneratedSdpMunger(nullptr);
++  auto offer = caller()->CreateOfferAndWait();
++  ASSERT_NE(nullptr, offer);
++  // The offer should be acceptable.
++  EXPECT_TRUE(caller()->SetLocalDescriptionAndSendSdpMessage(std::move(offer)));
++}
++
  }  // namespace
  
  }  // namespace webrtc
 diff --git a/pc/test/integration_test_helpers.h b/pc/test/integration_test_helpers.h
-index 9aa72883d6..0b7c8b5de0 100644
+index 0b7c8b5de0..9aa72883d6 100644
 --- a/pc/test/integration_test_helpers.h
 +++ b/pc/test/integration_test_helpers.h
-@@ -746,30 +746,6 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
+@@ -746,6 +746,30 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
      });
-   }
- 
--  // Setting the local description and sending the SDP message over the fake
--  // signaling channel are combined into the same method because the SDP
--  // message needs to be sent as soon as SetLocalDescription finishes, without
--  // waiting for the observer to be called. This ensures that ICE candidates
--  // don't outrace the description.
--  bool SetLocalDescriptionAndSendSdpMessage(
--      std::unique_ptr<SessionDescriptionInterface> desc) {
--    auto observer = rtc::make_ref_counted<MockSetSessionDescriptionObserver>();
--    RTC_LOG(LS_INFO) << debug_name_ << ": SetLocalDescriptionAndSendSdpMessage";
--    SdpType type = desc->GetType();
--    std::string sdp;
--    EXPECT_TRUE(desc->ToString(&sdp));
--    RTC_LOG(LS_INFO) << debug_name_ << ": local SDP contents=\n" << sdp;
--    pc()->SetLocalDescription(observer.get(), desc.release());
--    RemoveUnusedVideoRenderers();
--    // As mentioned above, we need to send the message immediately after
--    // SetLocalDescription.
--    SendSdpMessage(type, sdp);
--    EXPECT_THAT(
--        WaitUntil([&] { return observer->called(); }, ::testing::IsTrue()),
--        IsRtcOk());
--    return true;
--  }
--
-  private:
-   // Constructor used by friend class PeerConnectionIntegrationBaseTest.
-   explicit PeerConnectionIntegrationWrapper(const std::string& debug_name)
-@@ -892,6 +868,29 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
-     return description;
    }
  
 +  // Setting the local description and sending the SDP message over the fake
@@ -181,6 +183,37 @@ index 9aa72883d6..0b7c8b5de0 100644
 +        IsRtcOk());
 +    return true;
 +  }
++
+  private:
+   // Constructor used by friend class PeerConnectionIntegrationBaseTest.
+   explicit PeerConnectionIntegrationWrapper(const std::string& debug_name)
+@@ -868,29 +892,6 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
+     return description;
+   }
+ 
+-  // Setting the local description and sending the SDP message over the fake
+-  // signaling channel are combined into the same method because the SDP
+-  // message needs to be sent as soon as SetLocalDescription finishes, without
+-  // waiting for the observer to be called. This ensures that ICE candidates
+-  // don't outrace the description.
+-  bool SetLocalDescriptionAndSendSdpMessage(
+-      std::unique_ptr<SessionDescriptionInterface> desc) {
+-    auto observer = rtc::make_ref_counted<MockSetSessionDescriptionObserver>();
+-    RTC_LOG(LS_INFO) << debug_name_ << ": SetLocalDescriptionAndSendSdpMessage";
+-    SdpType type = desc->GetType();
+-    std::string sdp;
+-    EXPECT_TRUE(desc->ToString(&sdp));
+-    RTC_LOG(LS_INFO) << debug_name_ << ": local SDP contents=\n" << sdp;
+-    pc()->SetLocalDescription(observer.get(), desc.release());
+-    RemoveUnusedVideoRenderers();
+-    // As mentioned above, we need to send the message immediately after
+-    // SetLocalDescription.
+-    SendSdpMessage(type, sdp);
+-    EXPECT_THAT(
+-        WaitUntil([&] { return observer->called(); }, ::testing::IsTrue()),
+-        IsRtcOk());
+-    return true;
+-  }
  
    // This is a work around to remove unused fake_video_renderers from
    // transceivers that have either stopped or are no longer receiving.
