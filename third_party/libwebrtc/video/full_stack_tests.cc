@@ -1008,8 +1008,7 @@ TEST(FullStackTest, Vp9ksvc_3sl_Low) {
 
 TEST(FullStackTest, Vp9ksvc_3sl_Low_Bw_Limited) {
   webrtc::test::ScopedFieldTrials override_trials(
-      AppendFieldTrials("WebRTC-Vp9IssueKeyFrameOnLayerDeactivation/Enabled/"
-                        "WebRTC-Vp9ExternalRefCtrl/Enabled/"));
+      AppendFieldTrials("WebRTC-Vp9IssueKeyFrameOnLayerDeactivation/Enabled/"));
   auto fixture = CreateVideoQualityTestFixture();
   ParamsWithLogging simulcast;
   simulcast.config->link_capacity = DataRate::KilobitsPerSec(500);

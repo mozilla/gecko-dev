@@ -161,7 +161,6 @@ class LibvpxVp9Encoder : public VideoEncoder {
   bool layer_deactivation_requires_key_frame_;
   bool is_svc_;
   InterLayerPredMode inter_layer_pred_;
-  bool external_ref_control_;
   const bool trusted_rate_controller_;
   vpx_svc_frame_drop_t svc_drop_frame_;
   bool first_frame_in_picture_;
@@ -201,7 +200,6 @@ class LibvpxVp9Encoder : public VideoEncoder {
   } quality_scaler_experiment_;
   static QualityScalerExperiment ParseQualityScalerConfig(
       const FieldTrialsView& trials);
-  const bool external_ref_ctrl_;
 
   // Flags that can affect speed vs quality tradeoff, and are configureable per
   // resolution ranges.

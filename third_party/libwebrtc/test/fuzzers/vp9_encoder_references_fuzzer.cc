@@ -192,7 +192,6 @@ class FieldTrials : public FieldTrialsView {
   ~FieldTrials() override = default;
   std::string Lookup(absl::string_view key) const override {
     static constexpr absl::string_view kBinaryFieldTrials[] = {
-        "WebRTC-Vp9ExternalRefCtrl",
         "WebRTC-Vp9IssueKeyFrameOnLayerDeactivation",
     };
     for (size_t i = 0; i < ABSL_ARRAYSIZE(kBinaryFieldTrials); ++i) {

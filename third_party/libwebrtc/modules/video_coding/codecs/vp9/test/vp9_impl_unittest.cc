@@ -735,8 +735,6 @@ TEST(Vp9ImplTest, SpatialUpswitchNotAtGOFBoundary) {
 TEST_F(TestVp9Impl, DisableEnableBaseLayerTriggersKeyFrame) {
   // Configure encoder to produce N spatial layers. Encode frames for all
   // layers. Then disable all but the last layer. Then reenable all back again.
-  test::ScopedFieldTrials override_field_trials(
-      "WebRTC-Vp9ExternalRefCtrl/Enabled/");
   const size_t num_spatial_layers = 3;
   const size_t num_temporal_layers = 3;
   // Must not be multiple of temporal period to exercise all code paths.
@@ -1954,18 +1952,14 @@ TEST_F(TestVp9Impl, EncoderInfoFpsAllocationFlexibleMode) {
 }
 
 class Vp9ImplWithLayeringTest
-    : public ::testing::TestWithParam<std::tuple<int, int, bool>> {
+    : public ::testing::TestWithParam<std::tuple<int, int>> {
  protected:
   Vp9ImplWithLayeringTest()
       : num_spatial_layers_(std::get<0>(GetParam())),
-        num_temporal_layers_(std::get<1>(GetParam())),
-        override_field_trials_(std::get<2>(GetParam())
-                                   ? "WebRTC-Vp9ExternalRefCtrl/Enabled/"
-                                   : "") {}
+        num_temporal_layers_(std::get<1>(GetParam())) {}
 
   const uint8_t num_spatial_layers_;
   const uint8_t num_temporal_layers_;
-  const test::ScopedFieldTrials override_field_trials_;
 };
 
 TEST_P(Vp9ImplWithLayeringTest, FlexibleMode) {
@@ -2032,8 +2026,7 @@ TEST_P(Vp9ImplWithLayeringTest, FlexibleMode) {
 INSTANTIATE_TEST_SUITE_P(All,
                          Vp9ImplWithLayeringTest,
                          ::testing::Combine(::testing::Values(1, 2, 3),
-                                            ::testing::Values(1, 2, 3),
-                                            ::testing::Bool()));
+                                            ::testing::Values(1, 2, 3)));
 
 class TestVp9ImplFrameDropping : public TestVp9Impl {
  protected:

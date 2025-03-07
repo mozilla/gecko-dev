@@ -274,7 +274,6 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
           "WebRTC-Vp9IssueKeyFrameOnLayerDeactivation")),
       is_svc_(false),
       inter_layer_pred_(InterLayerPredMode::kOn),
-      external_ref_control_(false),  // Set in InitEncode because of tests.
       trusted_rate_controller_(RateControlSettings(env.field_trials())
                                    .LibvpxVp9TrustedRateController()),
       first_frame_in_picture_(true),
@@ -286,8 +285,6 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
       is_flexible_mode_(false),
       variable_framerate_controller_(variable_framerate_screenshare::kMinFps),
       quality_scaler_experiment_(ParseQualityScalerConfig(env.field_trials())),
-      external_ref_ctrl_(
-          !env.field_trials().IsDisabled("WebRTC-Vp9ExternalRefCtrl")),
       performance_flags_(ParsePerformanceFlagsFromTrials(env.field_trials())),
       num_steady_state_frames_(0),
       config_changed_(true),
@@ -689,13 +686,6 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
   }
 
-  // External reference control is required for different frame rate on spatial
-  // layers because libvpx generates rtp incompatible references in this case.
-  external_ref_control_ = external_ref_ctrl_ ||
-                          (num_spatial_layers_ > 1 &&
-                           codec_.mode == VideoCodecMode::kScreensharing) ||
-                          inter_layer_pred_ == InterLayerPredMode::kOn;
-
   if (num_temporal_layers_ == 1) {
     gof_.SetGofInfoVP9(kTemporalStructureMode1);
     config_->temporal_layering_mode = VP9E_TEMPORAL_LAYERING_MODE_NOLAYERING;
@@ -728,14 +718,12 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
   }
 
-  if (external_ref_control_) {
-    config_->temporal_layering_mode = VP9E_TEMPORAL_LAYERING_MODE_BYPASS;
-    if (num_temporal_layers_ > 1 && num_spatial_layers_ > 1 &&
-        codec_.mode == VideoCodecMode::kScreensharing) {
-      // External reference control for several temporal layers with different
-      // frame rates on spatial layers is not implemented yet.
-      return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
-    }
+  config_->temporal_layering_mode = VP9E_TEMPORAL_LAYERING_MODE_BYPASS;
+  if (num_temporal_layers_ > 1 && num_spatial_layers_ > 1 &&
+      codec_.mode == VideoCodecMode::kScreensharing) {
+    // External reference control for several temporal layers with different
+    // frame rates on spatial layers is not implemented yet.
+    return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
   }
   ref_buf_ = {};
 
@@ -1217,7 +1205,7 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
     vpx_svc_ref_frame_config_t ref_config = Vp9References(layer_frames_);
     libvpx_->codec_control(encoder_, VP9E_SET_SVC_REF_FRAME_CONFIG,
                            &ref_config);
-  } else if (external_ref_control_) {
+  } else {
     vpx_svc_ref_frame_config_t ref_config =
         SetReferences(force_key_frame_, layer_id.spatial_layer_id);
 
