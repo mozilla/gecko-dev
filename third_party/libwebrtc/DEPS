@@ -10,7 +10,7 @@ vars = {
   # chromium waterfalls. More info at: crbug.com/570091.
   'checkout_configuration': 'default',
   'checkout_instrumented_libraries': 'checkout_linux and checkout_configuration == "default"',
-  'chromium_revision': 'abee3a760c3d06ada5ef9348e644083ce155f10b',
+  'chromium_revision': '82a94fe97cf20a823f90bd2fb8806452a51645a4',
 
   # Fetch the prebuilt binaries for llvm-cov and llvm-profdata. Needed to
   # process the raw profiles produced by instrumented targets (built with
@@ -66,7 +66,7 @@ deps = {
   'src/base':
     'https://chromium.googlesource.com/chromium/src/base@afaf45a9592d7cfd845e2395947185c7d6ca8e97',
   'src/build':
-    'https://chromium.googlesource.com/chromium/src/build@0cd653f87eaee835f0abe560a813733e8e78189b',
+    'https://chromium.googlesource.com/chromium/src/build@3bdd887b1fd9ceda227f66c558ea32ea86d6e822',
   'src/buildtools':
     'https://chromium.googlesource.com/chromium/src/buildtools@f6b9b8d65b89dd04cd4937dfbef4a32fc6ddabe5',
   # Gradle 6.6.1. Used for testing Android Studio project generation for WebRTC.
@@ -75,13 +75,13 @@ deps = {
     'condition': 'checkout_android',
   },
   'src/ios': {
-    'url': 'https://chromium.googlesource.com/chromium/src/ios@8fcd8b9339e70aea6b4838ff1e3e302172d55b7c',
+    'url': 'https://chromium.googlesource.com/chromium/src/ios@0d882582e50cf2be84496c7f3072080f67f3ca12',
     'condition': 'checkout_ios',
   },
   'src/testing':
-    'https://chromium.googlesource.com/chromium/src/testing@fbd44d71ddc49d4132eacf10302b80102c05faab',
+    'https://chromium.googlesource.com/chromium/src/testing@d6c679f6035355d96bf50b682f76fe2b5d3dbf25',
   'src/third_party':
-    'https://chromium.googlesource.com/chromium/src/third_party@9cb2f57192224e02828d90336ed87951d0261b06',
+    'https://chromium.googlesource.com/chromium/src/third_party@af555d49de2fee7fa907f0c14089d0a3d03672a3',
 
   'src/buildtools/linux64': {
     'packages': [
@@ -303,7 +303,7 @@ deps = {
   'src/third_party/crc32c/src':
     'https://chromium.googlesource.com/external/github.com/google/crc32c.git@d3d60ac6e0f16780bcfcc825385e1d338801a558',
   'src/third_party/depot_tools':
-    'https://chromium.googlesource.com/chromium/tools/depot_tools.git@7a0dbd20744917e3124a36276ef039848c4229ed',
+    'https://chromium.googlesource.com/chromium/tools/depot_tools.git@6cf251b5179f2cd5157cc314b60ef461d863eca1',
   'src/third_party/ffmpeg':
     'https://chromium.googlesource.com/chromium/third_party/ffmpeg.git@fbce2a76c00cd2e5aeffe3c2e71d44c284ec52d6',
   'src/third_party/flatbuffers/src':
@@ -403,7 +403,7 @@ deps = {
       'condition': 'checkout_android',
   },
   'src/third_party/perfetto':
-    'https://android.googlesource.com/platform/external/perfetto.git@55ff5964a73796071fa4e272b9a5a9125a3cadf6',
+    'https://android.googlesource.com/platform/external/perfetto.git@5e781054371ac921eb820ab561a47279cfefcae5',
   'src/third_party/protobuf-javascript/src':
     Var('chromium_git') + '/external/github.com/protocolbuffers/protobuf-javascript' + '@' + '426b2e025aa59c23a1b6e19fbacd6b4a11bfad16',
   'src/third_party/libvpx/source/libvpx':
@@ -451,7 +451,7 @@ deps = {
       'packages': [
           {
               'package': 'chromium/third_party/r8',
-              'version': 'ukddmPlorF_6XXPBcxDxCmK2PSAJlhu_MDUhZQCz1l8C',
+              'version': 'a5lzGHzibplY-YfBMiaHgYRnmll4wB1csMwXCzHMoH8C',
           },
       ],
       'condition': 'checkout_android',
@@ -462,7 +462,7 @@ deps = {
     'condition': 'checkout_android',
   },
   'src/tools':
-    'https://chromium.googlesource.com/chromium/src/tools@34df53e03f0850cb24f9242897a2a691d8debb1b',
+    'https://chromium.googlesource.com/chromium/src/tools@66f879dee82de911b82cb840f038af7aae98b42c',
 
   'src/third_party/espresso': {
       'packages': [
@@ -501,7 +501,7 @@ deps = {
     'packages': [
       {
           'package': 'chromium/third_party/androidx',
-          'version': 'kMGhCipQ0J24vixeCuWk_AIvJ4oPSsyZ6uZXJ85WkuIC',
+          'version': 'hvcOjbIWnv7L3lMkKC8exxG1FXD0Lu-RFLyJjSB5DnUC',
       },
     ],
     'condition': 'checkout_android and non_git_source',
