@@ -599,21 +599,24 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
             // Don't encode disabled spatial layers.
             continue;
           }
-          bool drop = true;
-          switch (state.frame_drop.framedrop_mode) {
-            case FULL_SUPERFRAME_DROP:
-              drop = encode_spatial_layers == 0;
-              break;
-            case LAYER_DROP:
-              drop = (encode_spatial_layers & (1 << sid)) == 0;
-              break;
-            case CONSTRAINED_LAYER_DROP:
-              drop = DropBelow(encode_spatial_layers, sid,
-                               state.config.ss_number_layers);
-              break;
-            case CONSTRAINED_FROM_ABOVE_DROP:
-              drop = DropAbove(encode_spatial_layers, sid);
-              break;
+          bool drop = false;
+          // Never drop keyframe.
+          if (frame_types[0] != VideoFrameType::kVideoFrameKey) {
+            switch (state.frame_drop.framedrop_mode) {
+              case FULL_SUPERFRAME_DROP:
+                drop = encode_spatial_layers == 0;
+                break;
+              case LAYER_DROP:
+                drop = (encode_spatial_layers & (1 << sid)) == 0;
+                break;
+              case CONSTRAINED_LAYER_DROP:
+                drop = DropBelow(encode_spatial_layers, sid,
+                                 state.config.ss_number_layers);
+                break;
+              case CONSTRAINED_FROM_ABOVE_DROP:
+                drop = DropAbove(encode_spatial_layers, sid);
+                break;
+            }
           }
           if (!drop) {
             state.layer_id.spatial_layer_id = sid;
