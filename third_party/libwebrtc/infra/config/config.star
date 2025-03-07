@@ -291,6 +291,10 @@ luci.bucket(
             "project-webrtc-ci-schedulers",
         ]),
     ],
+    constraints = luci.bucket_constraints(
+        pools = ["luci.webrtc.ci"],
+        service_accounts = ["webrtc-ci-builder@chops-service-accounts.iam.gserviceaccount.com"],
+    ),
 )
 
 luci.bucket(
@@ -304,6 +308,10 @@ luci.bucket(
             "service-account-chromeperf",
         ]),
     ],
+    constraints = luci.bucket_constraints(
+        pools = ["luci.webrtc.perf"],
+        service_accounts = ["webrtc-ci-builder@chops-service-accounts.iam.gserviceaccount.com"],
+    ),
 )
 
 luci.bucket(
