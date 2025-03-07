@@ -10,12 +10,15 @@
 
 #include "pc/rtp_parameters_conversion.h"
 
-#include <cstdint>
 #include <map>
+#include <optional>
 #include <string>
 
 #include "api/media_types.h"
+#include "api/rtp_parameters.h"
 #include "media/base/codec.h"
+#include "media/base/media_constants.h"
+#include "pc/session_description.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 
@@ -137,19 +140,15 @@ TEST(RtpParametersConversionTest, ToRtpCodecCapabilityUnknownFeedbackParam) {
 // the "fec" list is assembled correctly.
 TEST(RtpParametersConversionTest, ToRtpCapabilities) {
   cricket::Codec vp8 = cricket::CreateVideoCodec(101, "VP8");
-  vp8.clockrate = 90000;
 
   cricket::Codec red = cricket::CreateVideoCodec(102, "red");
-  red.clockrate = 90000;
+  // Note: fmtp not usually done for video-red but we want it filtered.
+  red.SetParam(cricket::kCodecParamNotInNameValueFormat, "101/101");
 
+  cricket::Codec red2 = cricket::CreateVideoCodec(127, "red");
   cricket::Codec ulpfec = cricket::CreateVideoCodec(103, "ulpfec");
-  ulpfec.clockrate = 90000;
-
   cricket::Codec flexfec = cricket::CreateVideoCodec(102, "flexfec-03");
-  flexfec.clockrate = 90000;
-
   cricket::Codec rtx = cricket::CreateVideoRtxCodec(014, 101);
-
   cricket::Codec rtx2 = cricket::CreateVideoRtxCodec(105, 109);
 
   RtpCapabilities capabilities =
@@ -166,7 +165,7 @@ TEST(RtpParametersConversionTest, ToRtpCapabilities) {
   EXPECT_EQ(3, capabilities.header_extensions[1].preferred_id);
   EXPECT_EQ(0u, capabilities.fec.size());
 
-  capabilities = ToRtpCapabilities({vp8, red, ulpfec, rtx},
+  capabilities = ToRtpCapabilities({vp8, red, red2, ulpfec, rtx},
                                    cricket::RtpHeaderExtensions());
   EXPECT_EQ(4u, capabilities.codecs.size());
   EXPECT_THAT(
@@ -178,6 +177,8 @@ TEST(RtpParametersConversionTest, ToRtpCapabilities) {
   EXPECT_EQ(3u, capabilities.codecs.size());
   EXPECT_THAT(capabilities.fec,
               UnorderedElementsAre(FecMechanism::RED, FecMechanism::FLEXFEC));
+  EXPECT_EQ(capabilities.codecs[1].name, "red");
+  EXPECT_TRUE(capabilities.codecs[1].parameters.empty());
 }
 
 }  // namespace webrtc

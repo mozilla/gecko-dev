@@ -10,21 +10,16 @@
 
 #include "pc/rtp_parameters_conversion.h"
 
-#include <cstdint>
-#include <set>
+#include <optional>
 #include <string>
-#include <type_traits>
-#include <utility>
+#include <vector>
 
-#include "api/array_view.h"
 #include "api/media_types.h"
-#include "api/rtc_error.h"
+#include "api/rtp_parameters.h"
 #include "media/base/codec.h"
 #include "media/base/media_constants.h"
-#include "media/base/rtp_utils.h"
-#include "rtc_base/checks.h"
+#include "pc/session_description.h"
 #include "rtc_base/logging.h"
-#include "rtc_base/strings/string_builder.h"
 
 namespace webrtc {
 
@@ -118,6 +113,10 @@ RtpCapabilities ToRtpCapabilities(
   bool have_rtx = false;
   for (const cricket::Codec& cricket_codec : cricket_codecs) {
     if (cricket_codec.name == cricket::kRedCodecName) {
+      if (have_red) {
+        // There should only be one RED codec entry in caps.
+        continue;
+      }
       have_red = true;
     } else if (cricket_codec.name == cricket::kUlpfecCodecName) {
       have_ulpfec = true;
@@ -125,14 +124,17 @@ RtpCapabilities ToRtpCapabilities(
       have_flexfec = true;
     } else if (cricket_codec.name == cricket::kRtxCodecName) {
       if (have_rtx) {
-        // There should only be one RTX codec entry
+        // There should only be one RTX codec entry in caps.
         continue;
       }
       have_rtx = true;
     }
     auto codec_capability = ToRtpCodecCapability(cricket_codec);
-    if (cricket_codec.name == cricket::kRtxCodecName) {
-      // RTX codec should not have any parameter
+    if (cricket_codec.name == cricket::kRtxCodecName ||
+        cricket_codec.name == cricket::kRedCodecName) {
+      // For RTX this removes the APT which points to a payload type.
+      // For RED this removes the redundancy spec which points to a payload
+      // type.
       codec_capability.parameters.clear();
     }
     capabilities.codecs.push_back(codec_capability);

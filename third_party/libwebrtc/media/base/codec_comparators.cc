@@ -19,6 +19,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
+#include "api/media_types.h"
 #include "api/rtp_parameters.h"
 #include "api/video_codecs/av1_profile.h"
 #include "api/video_codecs/h264_profile_level_id.h"
@@ -406,6 +407,12 @@ bool IsSameRtpCodecIgnoringLevel(const Codec& codec,
       rtp_codec.IsMediaCodec()) {
     return IsSameCodecSpecific(rtp_codec.name, params1, rtp_codec2.name,
                                params2);
+  }
+  // audio/RED should ignore the parameters which specify payload types so
+  // can not be compared.
+  if (rtp_codec.kind == cricket::MediaType::MEDIA_TYPE_AUDIO &&
+      rtp_codec.name == cricket::kRedCodecName) {
+    return true;
   }
 
   return params1 == params2;
