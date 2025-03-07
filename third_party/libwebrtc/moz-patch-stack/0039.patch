@@ -276,7 +276,7 @@ index 059a4dadc1..9e687b8787 100644
  config("x11_config") {
    if (rtc_use_x11_extensions) {
 diff --git a/webrtc.gni b/webrtc.gni
-index e635ff0866..16a1e59e9a 100644
+index 29286c5b95..dc0553d964 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -169,13 +169,13 @@ declare_args() {
@@ -293,5 +293,5 @@ index e635ff0866..16a1e59e9a 100644
 -      (current_cpu == "arm" && arm_use_neon) || current_cpu == "arm64"
 +      (target_cpu == "arm" && arm_use_neon) || target_cpu == "arm64"
  
-   # Enable this to build OpenH264 encoder/FFmpeg decoder. This is supported on
-   # all platforms except Android and iOS. Because FFmpeg can be built
+   # Enable this to build OpenH264 encoder/FFmpeg decoder. When building WebRTC
+   # as part of Chromium, this is delegated to `media_use_openh264`. When
