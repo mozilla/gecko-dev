@@ -13,10 +13,13 @@
 #include <stdint.h>
 
 #include <algorithm>
+#include <cstring>
+#include <vector>
 
 #include "api/array_view.h"
 #include "api/video/video_frame_type.h"
 #include "modules/rtp_rtcp/source/leb128.h"
+#include "modules/rtp_rtcp/source/rtp_format.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 #include "rtc_base/byte_buffer.h"
 #include "rtc_base/checks.h"
@@ -71,12 +74,10 @@ int MaxFragmentSize(int remaining_bytes) {
 RtpPacketizerAv1::RtpPacketizerAv1(rtc::ArrayView<const uint8_t> payload,
                                    RtpPacketizer::PayloadSizeLimits limits,
                                    VideoFrameType frame_type,
-                                   bool is_last_frame_in_picture,
-                                   bool even_distribution)
+                                   bool is_last_frame_in_picture)
     : frame_type_(frame_type),
       obus_(ParseObus(payload)),
-      packets_(even_distribution ? PacketizeAboutEqually(obus_, limits)
-                                 : Packetize(obus_, limits)),
+      packets_(Packetize(obus_, limits)),
       is_last_frame_in_picture_(is_last_frame_in_picture) {}
 
 std::vector<RtpPacketizerAv1::Obu> RtpPacketizerAv1::ParseObus(
@@ -146,7 +147,7 @@ int RtpPacketizerAv1::AdditionalBytesForPreviousObuElement(
   return Leb128Size(packet.last_obu_size);
 }
 
-std::vector<RtpPacketizerAv1::Packet> RtpPacketizerAv1::Packetize(
+std::vector<RtpPacketizerAv1::Packet> RtpPacketizerAv1::PacketizeInternal(
     rtc::ArrayView<const Obu> obus,
     PayloadSizeLimits limits) {
   std::vector<Packet> packets;
@@ -299,10 +300,10 @@ std::vector<RtpPacketizerAv1::Packet> RtpPacketizerAv1::Packetize(
   return packets;
 }
 
-std::vector<RtpPacketizerAv1::Packet> RtpPacketizerAv1::PacketizeAboutEqually(
+std::vector<RtpPacketizerAv1::Packet> RtpPacketizerAv1::Packetize(
     rtc::ArrayView<const Obu> obus,
     PayloadSizeLimits limits) {
-  std::vector<Packet> packets = Packetize(obus, limits);
+  std::vector<Packet> packets = PacketizeInternal(obus, limits);
   if (packets.size() <= 1) {
     return packets;
   }
@@ -334,7 +335,7 @@ std::vector<RtpPacketizerAv1::Packet> RtpPacketizerAv1::PacketizeAboutEqually(
         limits.max_payload_len - limits.first_packet_reduction_len < 3) {
       return packets;
     }
-    std::vector<Packet> packets_even = Packetize(obus, limits);
+    std::vector<Packet> packets_even = PacketizeInternal(obus, limits);
     // The number of packets should not change in the second pass. If it does,
     // conservatively return the original packets.
     if (packets_even.size() == packets.size()) {

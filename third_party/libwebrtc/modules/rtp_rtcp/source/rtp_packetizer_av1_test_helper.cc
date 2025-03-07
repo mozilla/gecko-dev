@@ -14,6 +14,7 @@
 #include <stdint.h>
 
 #include <initializer_list>
+#include <utility>
 #include <vector>
 
 namespace webrtc {
