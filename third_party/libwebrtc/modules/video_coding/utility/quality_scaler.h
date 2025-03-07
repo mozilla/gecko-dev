@@ -88,10 +88,9 @@ class QualityScaler {
   VideoEncoder::QpThresholds thresholds_ RTC_GUARDED_BY(&task_checker_);
   const int64_t sampling_period_ms_;
   bool fast_rampup_ RTC_GUARDED_BY(&task_checker_);
-  rtc::MovingAverage average_qp_ RTC_GUARDED_BY(&task_checker_);
-  rtc::MovingAverage framedrop_percent_media_opt_
-      RTC_GUARDED_BY(&task_checker_);
-  rtc::MovingAverage framedrop_percent_all_ RTC_GUARDED_BY(&task_checker_);
+  MovingAverage average_qp_ RTC_GUARDED_BY(&task_checker_);
+  MovingAverage framedrop_percent_media_opt_ RTC_GUARDED_BY(&task_checker_);
+  MovingAverage framedrop_percent_all_ RTC_GUARDED_BY(&task_checker_);
 
   // Used by QualityScalingExperiment.
   const bool experiment_enabled_;
