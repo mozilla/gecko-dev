@@ -463,8 +463,30 @@
   <string name="onboarding_first_screen_title">Добро пожаловать в %1$s</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">Быстро. Приватный. Никаких отвлечений.</string>
+  <!--
+    New Onboarding flow first screen 'terms of use' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Продолжая, вы соглашаетесь с %1$s</string>
+  <!--
+    New Onboarding flow first screen 'terms of use link'
+
+    Text for the link used in onboarding_first_screen_terms_of_use_text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Условия использования Firefox.</string>
+  <!--
+    New Onboarding flow first screen 'privacy notice' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
+  -->
+  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox заботится о вашей приватности. Узнайте больше в нашем %1$s</string>
+  <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
+  <string name="onboarding_first_screen_privacy_notice_link">Уведомление о конфиденциальности.</string>
   <!-- New Onboarding flow first screen button label -->
-  <string name="onboarding_first_screen_button_text">Начать</string>
+  <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">Начать</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue">Согласиться и продолжить</string>
   <!--
     Onboarding second screen: Title
 
@@ -717,7 +739,7 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Подробнее</string>
   <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="135">Приложение закроется, чтобы применить изменения</string>
+  <string name="studies_restart_app" moz:removedIn="137">Приложение закроется, чтобы применить изменения</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">Удалить</string>
   <!-- Title of the active section on the studies list -->

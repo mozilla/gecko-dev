@@ -362,20 +362,10 @@
   <string name="browser_tools_menu_handlebar_content_description">Serriñ panell al lañser ostilhoù</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">Serriñ panell al lañser ivinelloù personelaet</string>
-  <!--
-    Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-    The first parameter is the label of the report site issue (for example: Report Site issue)
-  -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Mod lenn, treiñ, %s, moullañ, rannañ, digeriñ en un arload</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_translate_with_report_site_2">Mod lenn, treiñ, danevelloù ul lec\'hienn torret, moullañ, rannañ, digeriñ en un arload</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
   <string name="browser_menu_tools_description_with_translate_without_report_site">Mod lenn, treiñ, moullañ, rannañ, digeriñ en un arload</string>
-  <!--
-    Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-    The first parameter is the label of the report site issue (for example: Report Site issue)
-  -->
-  <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Mod lenn, %s, moullañ, rannañ, digeriñ en un arload</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_report_site_2">Mod lenn, danevelloù ul lec\'hienn torret, moullañ, rannañ, digeriñ en un arload</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -1287,20 +1277,16 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Gouzout hiroc’h</string>
   <!-- Dialog message shown after removing a study -->
-  <string name="studies_restart_app" moz:removedIn="135">Serriñ a raio an arload evit kemer e kont ar cheñchamantoù.</string>
+  <string name="studies_restart_app" moz:removedIn="137">Serriñ a raio an arload evit kemer e kont ar cheñchamantoù.</string>
   <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="135">Mat eo</string>
+  <string name="studies_restart_dialog_ok" moz:removedIn="137">Mat eo</string>
   <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="135">Nullañ</string>
-  <!-- Toast shown after turning on/off studies preferences -->
-  <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">O serriñ emañ an arload evit kemer e kont ar cheñchamantoù…</string>
+  <string name="studies_restart_dialog_cancel" moz:removedIn="137">Nullañ</string>
   <!--
     Sessions
 
-    Title for the list of tabs
+    Title for the list of tabs in the current private session
   -->
-  <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Ivinelloù digor</string>
-  <!-- Title for the list of tabs in the current private session -->
   <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Ivinelloù prevez</string>
   <!-- Title for the list of tabs in the synced tabs -->
   <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Ivinelloù goubredet</string>

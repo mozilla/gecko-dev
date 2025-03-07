@@ -362,20 +362,10 @@
   <string name="browser_tools_menu_handlebar_content_description">Menuya amûran bigire</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">Menuya hilpekîna taybet bigire</string>
-  <!--
-    Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-    The first parameter is the label of the report site issue (for example: Report Site issue)
-  -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Xuyakirina Readerê, Wergerandin, %s, Çapkirin, Parvekirin, Bernamokê veke</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_translate_with_report_site_2">Xuyakirina Readerê, Wergerandin, malpera xirabe rapor bike, Çapkirin, Parvekirin, Bernamokê veke</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
   <string name="browser_menu_tools_description_with_translate_without_report_site">Xuyakirina Readerê, Wergerandin, Çapkirin, Parvekirin, Bernamokê veke</string>
-  <!--
-    Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-    The first parameter is the label of the report site issue (for example: Report Site issue)
-  -->
-  <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Xuyakirina Readerê, %s, Çapkirin, Parvekirin, Bernamokê veke</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_report_site_2">Xuyakirina Readerê, Malpera xirabe rapor bike, Çapkirin, Parvekirin, Bernamokê vek</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -1067,20 +1057,16 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Zêdetir bizane</string>
   <!-- Dialog message shown after removing a study -->
-  <string name="studies_restart_app" moz:removedIn="135">Sepan ew ê ji bo sepandina guhertinan were girtin</string>
+  <string name="studies_restart_app" moz:removedIn="137">Sepan ew ê ji bo sepandina guhertinan were girtin</string>
   <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="135">Baş e</string>
+  <string name="studies_restart_dialog_ok" moz:removedIn="137">Baş e</string>
   <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="135">Betal bike</string>
-  <!-- Toast shown after turning on/off studies preferences -->
-  <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Ji bo sepandina guhertinan ji sepanê tê derketin…</string>
+  <string name="studies_restart_dialog_cancel" moz:removedIn="137">Betal bike</string>
   <!--
     Sessions
 
-    Title for the list of tabs
+    Title for the list of tabs in the current private session
   -->
-  <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Hilpekînên vekirî</string>
-  <!-- Title for the list of tabs in the current private session -->
   <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Hilpekînên veşartî</string>
   <!-- Title for the list of tabs in the synced tabs -->
   <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Hilpekînên senkronîzekirî</string>

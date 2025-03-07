@@ -25,7 +25,7 @@
   <!-- The advanced certificate information shown when a website sends has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_techInfo">&lt;label&gt;შესაძლოა, ვიღაც ამ საიტის სხვა საიტად გასაღებას ცდილობდეს და ჯობია, აღარ განაგრძოთ.&lt;/label&gt;
         &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;ვებსაიტები საკუთარ ნამდვილობას სერტიფიკატებით ადასტურებს. %1$s არ ენდობა &lt;b&gt;%2$s&lt;/b&gt;-ს, რადგან მისი უსაფრთხოების სერტიფიკატის გამომცემი უცნობია, შეიძლება თავადვე აქვთ ხელმოწერილი ან სერვერი სათანადოდ არ აგზავნის შუალედურ სერტიფიკატებს.&lt;/label&gt;</string>
+        &lt;label&gt;ვებსაიტები საკუთარ ნამდვილობას სერტიფიკატებით ადასტურებენ. %1$s მიიჩნევს, რომ არასანდოა &lt;b&gt;%2$s&lt;/b&gt;, რადგან მისი უსაფრთხოების სერტიფიკატის გამომცემი უცნობია, შეიძლება თავადვე აქვთ ხელმოწერილი ან სერვერი სათანადოდ არ აგზავნის შუალედურ სერტიფიკატებს.&lt;/label&gt;</string>
   <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
   <string name="mozac_browser_errorpages_security_bad_cert_back">უკან დაბრუნება (სასურველია)</string>
   <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->

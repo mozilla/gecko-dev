@@ -102,9 +102,9 @@
   <!-- Option for auto closing tabs that will auto close tabs after one month -->
   <string name="close_tabs_after_one_month">Pagkatapos sang isa ka bulan</string>
   <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="135">Sige</string>
+  <string name="studies_restart_dialog_ok" moz:removedIn="137">Sige</string>
   <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="135">Kanselahon</string>
+  <string name="studies_restart_dialog_cancel" moz:removedIn="137">Kanselahon</string>
   <!-- Text for the new tab button to indicate adding a new private tab in the tab -->
   <string name="tab_drawer_fab_content">Pribado</string>
   <!-- Text for the new tab button to indicate syncing command on the synced tabs page -->

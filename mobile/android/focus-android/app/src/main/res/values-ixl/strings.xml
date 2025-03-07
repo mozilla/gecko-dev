@@ -458,7 +458,7 @@
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">Oora kuxhtu´. Eetz kuxhtu´. Ye´l uma´l b´alonaal ati.</string>
   <!-- New Onboarding flow first screen button label -->
-  <string name="onboarding_first_screen_button_text">Xe´ten</string>
+  <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">Xe´ten</string>
   <!--
     Onboarding second screen: Title
 
@@ -711,7 +711,7 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Ootzi ka´te</string>
   <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="135">La uch ijupata’ aq’al uva’ la jalpu unq’a kame’ stuul</string>
+  <string name="studies_restart_app" moz:removedIn="137">La uch ijupata’ aq’al uva’ la jalpu unq’a kame’ stuul</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">Sojsa el</string>
   <!-- Title of the active section on the studies list -->

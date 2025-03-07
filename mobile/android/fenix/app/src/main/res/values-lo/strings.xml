@@ -360,20 +360,10 @@
   <string name="browser_tools_menu_handlebar_content_description">ປິດແຜ່ນເມນູເຄື່ອງມື</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">ປິດຊີດເມນູແຖບແບບກຳນົດເອງ</string>
-  <!--
-    Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-    The first parameter is the label of the report site issue (for example: Report Site issue)
-  -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Reader View, Translate, %s, Print, Share, ເປີດແອັບ</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_translate_with_report_site_2">ມຸມມອງຜູ້ອ່ານ, ແປພາສາ, ລາຍງານເວັບໄຊທີ່ມີບັນຫາ, ພິມ, ແບ່ງປັນ, ເປີດແອັບ</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
   <string name="browser_menu_tools_description_with_translate_without_report_site">ມຸມມອງຜູ້ອ່ານ, ແປ, ພິມ, ແບ່ງປັນ, ເປີດແອັບ</string>
-  <!--
-    Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-    The first parameter is the label of the report site issue (for example: Report Site issue)
-  -->
-  <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Reader View, %s, Print, Share, ເປີດແອັບ</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_report_site_2">Reader View, ລາຍງານເວັບໄຊທີ່ມີບັນຫາ, ພິມ, ແບ່ງປັນ, ເປີດແອັບ</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -657,8 +647,14 @@
   <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">ເງື່ອນໄຂການໃຫ້ບໍລິການ</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
   <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">ເງື່ອນໄຂການນໍາໃຊ້ Firefox</string>
+  <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
+  <string name="onboarding_term_of_service_line_two" moz:removedIn="136" tools:ignore="UnusedResources,BrandUsage">Firefox ເປັນຫ່ວງກ່ຽວກັບຄວາມເປັນສ່ວນຕົວຂອງທ່ານ. ອ່ານເພີ່ມເຕີມໃນ %1$s ຂອງພວກເຮົາ.</string>
+  <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
+  <string name="onboarding_term_of_service_line_two_2" tools:ignore="BrandUsage">Firefox ເປັນຫ່ວງກ່ຽວກັບຄວາມເປັນສ່ວນຕົວຂອງທ່ານ. ສຶກສາເພີ່ມເຕີມໃນ %1$s ຂອງພວກເຮົາ.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
   <string name="onboarding_term_of_service_line_two_link_text">ນະໂຍບາຍຄວາມເປັນສ່ວນຕົວ</string>
+  <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (“Manage”). -->
+  <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">ເພື່ອຊ່ວຍປັບປຸງຕົວທ່ອງເວັບ, Firefox ສົ່ງຂໍ້ມູນການວິເຄາະ ແລະ ການໂຕ້ຕອບກັບ Mozilla. %1$s</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
   <string name="onboarding_term_of_service_line_three_link_text">ຈັດການ</string>
   <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
@@ -669,12 +665,12 @@
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">ຢືນຢັນ ແລະ ເລີ່ມໃຊ້ browser</string>
   <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
   <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">ຂັ້ນຕອນສຸດທ້າຍ</string>
+  <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
+  <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">ເລືອກການຈັດວາງແຖບເຄື່ອງມື</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">ໃຫ້ການຄົ້ນຫາຢູ່ໃກ້.</string>
   <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
   <string name="onboarding_save_and_continue_button">ບັນທຶກ ແລະ ສືບຕໍ່</string>
-  <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-  <string name="onboarding_customize_toolbar_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">ຂ້າມ</string>
   <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_top_option">ເທິງ</string>
   <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -690,8 +686,6 @@
   <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">ເບິ່ງເວັບໃນແສງສະຫວ່າງທີ່ດີທີ່ສຸດ.</string>
   <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
   <string name="onboarding_save_and_start_button">ບັນທຶກ ແລະ ເລີ່ມໃຊ້ browser</string>
-  <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-  <string name="onboarding_customize_theme_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">ຂ້າມ</string>
   <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_dark_option">ມືດ</string>
   <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -1239,20 +1233,16 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
   <!-- Dialog message shown after removing a study -->
-  <string name="studies_restart_app" moz:removedIn="135">ແອັບພລິເຄຊັນຈະອອກເພື່ອນຳໃຊ້ການປ່ຽນແປງ</string>
+  <string name="studies_restart_app" moz:removedIn="137">ແອັບພລິເຄຊັນຈະອອກເພື່ອນຳໃຊ້ການປ່ຽນແປງ</string>
   <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="135">ໂອເຄ</string>
+  <string name="studies_restart_dialog_ok" moz:removedIn="137">ໂອເຄ</string>
   <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="135">ຍົກເລີກ</string>
-  <!-- Toast shown after turning on/off studies preferences -->
-  <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">ກຳລັງອອກຈາກແອັບພລິເຄຊັນເພື່ອນຳໃຊ້ການປ່ຽນແປງ…</string>
+  <string name="studies_restart_dialog_cancel" moz:removedIn="137">ຍົກເລີກ</string>
   <!--
     Sessions
 
-    Title for the list of tabs
+    Title for the list of tabs in the current private session
   -->
-  <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">ເປີດແທັບ</string>
-  <!-- Title for the list of tabs in the current private session -->
   <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">ແທັບສ່ວນຕົວ</string>
   <!-- Title for the list of tabs in the synced tabs -->
   <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">ແທັບທີ່ Sync ແລ້ວ</string>

@@ -593,7 +593,7 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Rohkem teavet</string>
   <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="135">Muudatuste rakendamiseks äpp suletakse</string>
+  <string name="studies_restart_app" moz:removedIn="137">Muudatuste rakendamiseks äpp suletakse</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">Eemalda</string>
   <!-- Title of the active section on the studies list -->

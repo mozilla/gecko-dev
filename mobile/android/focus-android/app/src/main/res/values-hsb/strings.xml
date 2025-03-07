@@ -463,8 +463,30 @@
   <string name="onboarding_first_screen_title">Witajće k %1$s</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">Spěšny. Priwatny. Žane wotwjedźenja.</string>
+  <!--
+    New Onboarding flow first screen 'terms of use' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Hdyž pokročujeće, zwoliće do %1$s</string>
+  <!--
+    New Onboarding flow first screen 'terms of use link'
+
+    Text for the link used in onboarding_first_screen_terms_of_use_text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Wužiwanske wuměnjenja Firefox.</string>
+  <!--
+    New Onboarding flow first screen 'privacy notice' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
+  -->
+  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox so wo wašu priwatnosć stara. Dalše informacije w: %1$s</string>
+  <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
+  <string name="onboarding_first_screen_privacy_notice_link">Zdźělenka priwatnosće.</string>
   <!-- New Onboarding flow first screen button label -->
-  <string name="onboarding_first_screen_button_text">Prěnje kroki</string>
+  <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">Prěnje kroki</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue">Přizwolić a pokročować</string>
   <!--
     Onboarding second screen: Title
 
@@ -717,7 +739,7 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Dalše informacije</string>
   <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="135">Nałoženje so skónči, zo bychu so změny wuskutkowali</string>
+  <string name="studies_restart_app" moz:removedIn="137">Nałoženje so skónči, zo bychu so změny wuskutkowali</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">Wotstronić</string>
   <!-- Title of the active section on the studies list -->

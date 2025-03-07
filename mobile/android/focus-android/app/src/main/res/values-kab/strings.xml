@@ -458,7 +458,7 @@
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">D arurad. D uslig. Ulac yesruḥuyen ddehn.</string>
   <!-- New Onboarding flow first screen button label -->
-  <string name="onboarding_first_screen_button_text">Bdu</string>
+  <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">Bdu</string>
   <!--
     Onboarding second screen: Title
 
@@ -711,7 +711,7 @@
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Issin ugar</string>
   <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="135">Asnas ad yemdel i wakken ad ttusnasen ibiddilen</string>
+  <string name="studies_restart_app" moz:removedIn="137">Asnas ad yemdel i wakken ad ttusnasen ibiddilen</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">Kkes</string>
   <!-- Title of the active section on the studies list -->
