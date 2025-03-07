@@ -26,6 +26,7 @@ namespace test {
 namespace {
 
 using ::testing::_;
+using ::testing::InSequence;
 using ::testing::Matcher;
 using ::testing::NiceMock;
 using ::testing::StrictMock;
@@ -355,6 +356,36 @@ TEST_P(AudioStateTest,
   audio_state->audio_transport()->NeedMorePlayData(
       kSampleRate / 100, kNumberOfChannels * 2, kNumberOfChannels, kSampleRate,
       audio_buffer, n_samples_out, &elapsed_time_ms, &ntp_time_ms);
+}
+
+TEST_P(AudioStateTest, AlwaysCallInitRecordingBeforeStartRecording) {
+  ConfigHelper helper(GetParam());
+  rtc::scoped_refptr<internal::AudioState> audio_state(
+      rtc::make_ref_counted<internal::AudioState>(helper.config()));
+
+  auto* adm = reinterpret_cast<MockAudioDeviceModule*>(
+      helper.config().audio_device_module.get());
+
+  MockAudioSendStream stream;
+  {
+    InSequence s;
+    EXPECT_CALL(*adm, InitRecording());
+    EXPECT_CALL(*adm, StartRecording());
+    audio_state->AddSendingStream(&stream, kSampleRate, kNumberOfChannels);
+  }
+
+  EXPECT_CALL(*adm, StopRecording());
+  audio_state->SetRecording(false);
+
+  {
+    InSequence s;
+    EXPECT_CALL(*adm, InitRecording());
+    EXPECT_CALL(*adm, StartRecording());
+    audio_state->SetRecording(true);
+  }
+
+  EXPECT_CALL(*adm, StopRecording());
+  audio_state->RemoveSendingStream(&stream);
 }
 
 INSTANTIATE_TEST_SUITE_P(AudioStateTest,

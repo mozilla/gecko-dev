@@ -141,13 +141,16 @@ void AudioState::SetRecording(bool enabled) {
   RTC_LOG(LS_INFO) << "SetRecording(" << enabled << ")";
   RTC_DCHECK_RUN_ON(&thread_checker_);
   if (recording_enabled_ != enabled) {
+    auto* adm = config_.audio_device_module.get();
     recording_enabled_ = enabled;
     if (enabled) {
       if (!sending_streams_.empty()) {
-        config_.audio_device_module->StartRecording();
+        if (adm->InitRecording() == 0) {
+          adm->StartRecording();
+        }
       }
     } else {
-      config_.audio_device_module->StopRecording();
+      adm->StopRecording();
     }
   }
 }
