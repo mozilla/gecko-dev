@@ -188,23 +188,6 @@ BasicPortAllocator::BasicPortAllocator(
                    webrtc::NO_PRUNE, customizer);
 }
 
-BasicPortAllocator::BasicPortAllocator(
-    rtc::NetworkManager* network_manager,
-    rtc::PacketSocketFactory* socket_factory,
-    const ServerAddresses& stun_servers,
-    const webrtc::FieldTrialsView* field_trials)
-    : field_trials_(field_trials),
-      network_manager_(network_manager),
-      socket_factory_(socket_factory),
-      default_relay_port_factory_(new TurnPortFactory()),
-      relay_port_factory_(default_relay_port_factory_.get()) {
-  RTC_CHECK(socket_factory_);
-  RTC_DCHECK(relay_port_factory_);
-  RTC_DCHECK(network_manager_);
-  SetConfiguration(stun_servers, std::vector<RelayServerConfig>(), 0,
-                   webrtc::NO_PRUNE, nullptr);
-}
-
 BasicPortAllocator::~BasicPortAllocator() {
   CheckRunOnValidThreadIfInitialized();
   // Our created port allocator sessions depend on us, so destroy our remaining

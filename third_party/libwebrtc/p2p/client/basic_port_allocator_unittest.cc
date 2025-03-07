@@ -165,11 +165,11 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
                      kTurnUdpIntAddr,
                      kTurnUdpExtAddr),
         candidate_allocation_done_(false) {
-    ServerAddresses stun_servers;
-    stun_servers.insert(kStunAddr);
-
     allocator_ = std::make_unique<BasicPortAllocator>(
-        &network_manager_, &socket_factory_, stun_servers, &field_trials_);
+        &network_manager_, &socket_factory_, /*customizer=*/nullptr,
+        /*relay_port_factory=*/nullptr, &field_trials_);
+    allocator_->SetConfiguration({kStunAddr}, {}, 0, webrtc::NO_PRUNE, nullptr);
+
     allocator_->Initialize();
     allocator_->set_step_delay(kMinimumStepDelay);
     webrtc::metrics::Reset();
@@ -489,9 +489,13 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
     if (!stun_server.IsNil()) {
       stun_servers.insert(stun_server);
     }
-    allocator_.reset(new BasicPortAllocator(&network_manager_,
-                                            nat_socket_factory_.get(),
-                                            stun_servers, &field_trials_));
+    allocator_ = std::make_unique<BasicPortAllocator>(
+        &network_manager_, nat_socket_factory_.get(),
+        /*customizer=*/nullptr,
+        /*relay_port_factory=*/nullptr, &field_trials_);
+    allocator_->SetConfiguration(stun_servers, {}, 0, webrtc::NO_PRUNE,
+                                 nullptr);
+
     allocator_->Initialize();
     allocator_->set_step_delay(kMinimumStepDelay);
   }
