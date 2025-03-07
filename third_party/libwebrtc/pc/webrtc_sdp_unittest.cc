@@ -4585,11 +4585,11 @@ TEST_F(WebRtcSdpTest, TestDeserializeIgnoresMalformedRidLines) {
   CompareRidDescriptionIds(rids, {"5"});
 }
 
-// Removes RIDs that specify a different format than the m= section.
-TEST_F(WebRtcSdpTest, TestDeserializeRemovesRidsWithInvalidCodec) {
+// Ignores codecs from RIDs where the PTs are missing from the m= section.
+TEST_F(WebRtcSdpTest, TestDeserializeIgnoresInvalidPayloadTypesInRid) {
   std::string sdp = kUnifiedPlanSdpFullStringNoSsrc;
-  sdp += "a=rid:1 send pt=121,120\r\n";  // Should remove 121 and keep RID.
-  sdp += "a=rid:2 send pt=121\r\n";      // Should remove 121 and keep RID.
+  sdp += "a=rid:1 send pt=121,120\r\n";  // Should remove 121 and keep 120.
+  sdp += "a=rid:2 send pt=121\r\n";      // Should remove 121.
   sdp += "a=simulcast:send 1;2\r\n";
   JsepSessionDescription output(kDummyType);
   SdpParseError error;
