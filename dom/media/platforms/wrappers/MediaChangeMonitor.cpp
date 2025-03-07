@@ -69,6 +69,14 @@ class H264ChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
       : mCurrentConfig(aInfo), mFullParsing(aFullParsing) {
     if (CanBeInstantiated()) {
       UpdateConfigFromExtraData(aInfo.mExtraData);
+      auto avcc = AVCCConfig::Parse(mCurrentConfig.mExtraData);
+      if (avcc.isOk() && avcc.unwrap().NALUSize() != 4) {
+        // `CheckForChange()` will use `AnnexB::ConvertSampleToAVCC()` to change
+        // NAL units into 4-byte.
+        // `AVCDecoderConfigurationRecord.lengthSizeMinusOne` in the config
+        // should be modified too.
+        mCurrentConfig.mExtraData->ReplaceElementAt(4, 0xfc | 3);
+      }
     }
   }
 
