@@ -413,8 +413,8 @@ std::vector<Codec> LegacyCollectCodecs(
       if (allocate_pt) {
         std::string red_fmtp =
             rtc::ToString(codec.id) + "/" + rtc::ToString(codec.id);
-        cricket::Codec red_codec =
-            CreateAudioCodec({kRedCodecName, 48000, 2, {{"", red_fmtp}}});
+        cricket::Codec red_codec = CreateAudioCodec(
+            {kRedCodecName, codec.clockrate, codec.channels, {{"", red_fmtp}}});
         red_codec.id = pt_mapper.SuggestMapping(red_codec, nullptr).value();
         out.push_back(red_codec);
       } else {

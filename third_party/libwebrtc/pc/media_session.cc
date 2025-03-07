@@ -434,7 +434,7 @@ webrtc::RTCError AssignCodecIdsAndLinkRed(
     webrtc::PayloadTypeSuggester* pt_suggester,
     const std::string& mid,
     std::vector<Codec>& codecs) {
-  int opus_codec = Codec::kIdNotSet;
+  int codec_payload_type = Codec::kIdNotSet;
   for (cricket::Codec& codec : codecs) {
     if (codec.id == Codec::kIdNotSet) {
       // Add payload types to codecs, if needed
@@ -449,18 +449,18 @@ webrtc::RTCError AssignCodecIdsAndLinkRed(
     }
     // record first Opus codec id
     if (absl::EqualsIgnoreCase(codec.name, kOpusCodecName) &&
-        opus_codec == Codec::kIdNotSet) {
-      opus_codec = codec.id;
+        codec_payload_type == Codec::kIdNotSet) {
+      codec_payload_type = codec.id;
     }
   }
-  if (opus_codec != Codec::kIdNotSet) {
+  if (codec_payload_type != Codec::kIdNotSet) {
     for (cricket::Codec& codec : codecs) {
       if (codec.type == Codec::Type::kAudio &&
           absl::EqualsIgnoreCase(codec.name, kRedCodecName)) {
         if (codec.params.empty()) {
           char buffer[100];
           rtc::SimpleStringBuilder param(buffer);
-          param << opus_codec << "/" << opus_codec;
+          param << codec_payload_type << "/" << codec_payload_type;
           RTC_LOG(LS_ERROR) << "DEBUG: Setting RED param to " << param.str();
           codec.SetParam(kCodecParamNotInNameValueFormat, param.str());
         }
