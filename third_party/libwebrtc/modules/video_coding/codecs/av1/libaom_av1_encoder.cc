@@ -135,9 +135,6 @@ class LibaomAv1Encoder final : public VideoEncoder {
   const LibaomAv1EncoderInfoSettings encoder_info_override_;
   // TODO(webrtc:351644568): Remove this kill-switch after the feature is fully
   // deployed.
-  const bool adaptive_max_consec_drops_;
-  // TODO(webrtc:351644568): Remove this kill-switch after the feature is fully
-  // deployed.
   const bool post_encode_frame_drop_;
 };
 
@@ -179,8 +176,6 @@ LibaomAv1Encoder::LibaomAv1Encoder(const Environment& env,
       framerate_fps_(0),
       timestamp_(0),
       encoder_info_override_(env.field_trials()),
-      adaptive_max_consec_drops_(!env.field_trials().IsDisabled(
-          "WebRTC-LibaomAv1Encoder-AdaptiveMaxConsecDrops")),
       post_encode_frame_drop_(!env.field_trials().IsDisabled(
           "WebRTC-LibaomAv1Encoder-PostEncodeFrameDrop")) {}
 
@@ -336,13 +331,9 @@ int LibaomAv1Encoder::InitEncode(const VideoCodec* codec_settings,
   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ENABLE_SMOOTH_INTERINTRA, 0);
   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ENABLE_TX64, 0);
   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_MAX_REFERENCE_FRAMES, 3);
-
-  if (adaptive_max_consec_drops_) {
 #if !defined(WEBRTC_MOZILLA_BUILD) // Mozilla: Need to update AV1 to enable this
-    SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_MAX_CONSEC_FRAME_DROP_MS_CBR,
-                                      250);
+  SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_MAX_CONSEC_FRAME_DROP_MS_CBR, 250);
 #endif
-  }
 
   if (post_encode_frame_drop_) {
     SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_POSTENCODE_DROP_RTC, 1);
