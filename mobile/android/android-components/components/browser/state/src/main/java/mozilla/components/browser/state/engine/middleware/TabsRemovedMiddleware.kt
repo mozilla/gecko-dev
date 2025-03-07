@@ -118,6 +118,7 @@ internal class TabsRemovedMiddleware(
         context: MiddlewareContext<BrowserState, BrowserAction>,
         sessionState: SessionState,
     ) {
+        sessionState.mediaSessionState?.controller?.pause()
         sessionState.engineState.engineSession?.also {
             it.register(object : EngineSession.Observer {
                 override fun onStateUpdated(state: EngineSessionState) {
