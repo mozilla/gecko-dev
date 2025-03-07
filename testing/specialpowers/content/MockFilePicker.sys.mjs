@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
+
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -70,6 +72,7 @@ export var MockFilePicker = {
     this.mode = null;
     this.returnData = [];
     this.returnValue = null;
+    this.returnDataForWebKitDirs = [];
     this.showCallback = null;
     this.afterOpenCallback = null;
     this.shown = false;
@@ -132,6 +135,22 @@ export var MockFilePicker = {
       this.internalFileData({ domDirectory: directory, nsIFile: file }),
     ];
     this.pendingPromises = [];
+    this.returnDataForWebKitDirs = [];
+
+    if (AppConstants.platform === "android") {
+      for (const filename of ["/foo.txt", "/subdir/bar.txt"]) {
+        let fileInDir = lazy.FileUtils.File(aPath + filename);
+        this.window.File.createFromNsIFile(file, {
+          existenceCheck: false,
+        }).then(domFile => {
+          this.returnDataForWebKitDirs.push(
+            this.internalFileData({ nsIFile: fileInDir, domFile })
+          );
+        });
+        // promise might be added into pendinngPromise, but it causes
+        // InvalidStateError.
+      }
+    }
   },
 
   setFiles(files) {
@@ -242,6 +261,18 @@ MockFilePickerInstance.prototype = {
   },
   get domFileOrDirectoryEnumerator() {
     return this.getFiles(true);
+  },
+  *getDomFilesInWebKitDirectory() {
+    for (let d of MockFilePicker.returnDataForWebKitDirs) {
+      yield d.domFile;
+    }
+  },
+  get domFilesInWebKitDirectory() {
+    if (AppConstants.platform !== "android") {
+      throw Components.Exception("", Cr.NS_ERROR_FAILURE);
+    }
+
+    return this.getDomFilesInWebKitDirectory();
   },
   open(aFilePickerShownCallback) {
     MockFilePicker.showing = true;

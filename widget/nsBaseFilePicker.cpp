@@ -472,3 +472,8 @@ nsBaseFilePicker::GetDomFileOrDirectoryEnumerator(
   retIter.forget(aValue);
   return NS_OK;
 }
+
+NS_IMETHODIMP
+nsBaseFilePicker::GetDomFilesInWebKitDirectory(nsISimpleEnumerator** aValue) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}

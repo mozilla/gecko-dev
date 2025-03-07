@@ -182,6 +182,25 @@ mozilla::ipc::IPCResult nsFilePickerProxy::Recv__delete__(
 
     OwningFileOrDirectory* element = mFilesOrDirectories.AppendElement();
     element->SetAsDirectory() = directory;
+
+    const nsTArray<IPCBlob>& blobs =
+        aData.get_InputDirectory().blobsInWebKitDirectory();
+    for (const auto& blob : blobs) {
+      RefPtr<BlobImpl> blobImpl = IPCBlobUtils::Deserialize(blob);
+      NS_ENSURE_TRUE(blobImpl, IPC_OK());
+
+      if (!blobImpl->IsFile()) {
+        return IPC_OK();
+      }
+
+      RefPtr<File> file = File::Create(inner->AsGlobal(), blobImpl);
+      if (NS_WARN_IF(!file)) {
+        return IPC_OK();
+      }
+
+      OwningFileOrDirectory* element = mFilesInWebKitDirectory.AppendElement();
+      element->SetAsFile() = file;
+    }
   }
 
   if (mCallback) {
@@ -282,4 +301,17 @@ nsresult nsFilePickerProxy::ResolveSpecialDirectory(
   // Unfortunately we can't easily verify that `aSpecialDirectory` is usable or
   // even meaningful here, so we just accept anything.
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFilePickerProxy::GetDomFilesInWebKitDirectory(
+    nsISimpleEnumerator** aDomfiles) {
+#ifdef MOZ_WIDGET_ANDROID
+  RefPtr<SimpleEnumerator> enumerator =
+      new SimpleEnumerator(mFilesInWebKitDirectory);
+  enumerator.forget(aDomfiles);
+  return NS_OK;
+#else
+  return NS_ERROR_NOT_IMPLEMENTED;
+#endif
 }

@@ -50,6 +50,8 @@ class nsBaseFilePicker : public nsIFilePicker {
   NS_IMETHOD GetDomFileOrDirectory(nsISupports** aValue) override;
   NS_IMETHOD GetDomFileOrDirectoryEnumerator(
       nsISimpleEnumerator** aValue) override;
+  NS_IMETHOD GetDomFilesInWebKitDirectory(
+      nsISimpleEnumerator** aValue) override;
 
  protected:
   virtual ~nsBaseFilePicker();

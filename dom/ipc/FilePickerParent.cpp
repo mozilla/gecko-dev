@@ -45,12 +45,13 @@ FilePickerParent::~FilePickerParent() = default;
 // 2. The stream transport thread stat()s the file in Run() and then dispatches
 // the same runnable on the main thread.
 // 3. The main thread sends the results over IPC.
-FilePickerParent::IORunnable::IORunnable(FilePickerParent* aFPParent,
-                                         nsTArray<nsCOMPtr<nsIFile>>&& aFiles,
-                                         bool aIsDirectory)
+FilePickerParent::IORunnable::IORunnable(
+    FilePickerParent* aFPParent, nsTArray<nsCOMPtr<nsIFile>>&& aFiles,
+    nsTArray<RefPtr<BlobImpl>>&& aFilesInWebKitDirectory, bool aIsDirectory)
     : mozilla::Runnable("dom::FilePickerParent::IORunnable"),
       mFilePickerParent(aFPParent),
       mFiles(std::move(aFiles)),
+      mFilesInWebKitDirectory(std::move(aFilesInWebKitDirectory)),
       mIsDirectory(aIsDirectory) {
   MOZ_ASSERT_IF(aIsDirectory, mFiles.Length() == 1);
 }
@@ -73,7 +74,8 @@ FilePickerParent::IORunnable::Run() {
   // results.
   if (NS_IsMainThread()) {
     if (mFilePickerParent) {
-      mFilePickerParent->SendFilesOrDirectories(mResults);
+      mFilePickerParent->SendFilesOrDirectories(mResults,
+                                                mFilesInWebKitDirectory);
     }
     return NS_OK;
   }
@@ -128,7 +130,8 @@ FilePickerParent::IORunnable::Run() {
 void FilePickerParent::IORunnable::Destroy() { mFilePickerParent = nullptr; }
 
 void FilePickerParent::SendFilesOrDirectories(
-    const nsTArray<BlobImplOrString>& aData) {
+    const nsTArray<BlobImplOrString>& aData,
+    const nsTArray<RefPtr<BlobImpl>>& aFilesInWebKitDirectory) {
   ContentParent* parent = BrowserParent::GetFrom(Manager())->Manager();
 
   if (mMode == nsIFilePicker::modeGetFolder) {
@@ -146,8 +149,20 @@ void FilePickerParent::SendFilesOrDirectories(
     fss->GrantAccessToContentProcess(parent->ChildID(),
                                      aData[0].mDirectoryPath);
 
+    nsTArray<IPCBlob> ipcBlobs;
+    for (const auto& blob : aFilesInWebKitDirectory) {
+      IPCBlob ipcBlob;
+
+      nsresult rv = IPCBlobUtils::Serialize(blob, ipcBlob);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        break;
+      }
+      ipcBlobs.AppendElement(ipcBlob);
+    }
+
     InputDirectory input;
     input.directoryPath() = aData[0].mDirectoryPath;
+    input.blobsInWebKitDirectory() = std::move(ipcBlobs);
     Unused << Send__delete__(this, input, mResult);
     return;
   }
@@ -208,9 +223,32 @@ void FilePickerParent::Done(nsIFilePicker::ResultCode aResult) {
     return;
   }
 
+  nsTArray<RefPtr<BlobImpl>> blobsInWebKitDirectory;
+
+#ifdef MOZ_WIDGET_ANDROID
+  if (mMode == nsIFilePicker::modeGetFolder) {
+    nsCOMPtr<nsISimpleEnumerator> iter;
+    if (NS_SUCCEEDED(
+            mFilePicker->GetDomFilesInWebKitDirectory(getter_AddRefs(iter)))) {
+      nsCOMPtr<nsISupports> supports;
+
+      bool loop = true;
+      while (NS_SUCCEEDED(iter->HasMoreElements(&loop)) && loop) {
+        iter->GetNext(getter_AddRefs(supports));
+        if (supports) {
+          RefPtr<BlobImpl> file = static_cast<File*>(supports.get())->Impl();
+          MOZ_ASSERT(file);
+          blobsInWebKitDirectory.AppendElement(file);
+        }
+      }
+    }
+  }
+#endif
+
   MOZ_ASSERT(!mRunnable);
-  mRunnable = new IORunnable(this, std::move(files),
-                             mMode == nsIFilePicker::modeGetFolder);
+  mRunnable =
+      new IORunnable(this, std::move(files), std::move(blobsInWebKitDirectory),
+                     mMode == nsIFilePicker::modeGetFolder);
 
   // Dispatch to background thread to do I/O:
   if (!mRunnable->Dispatch()) {

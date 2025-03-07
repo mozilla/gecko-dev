@@ -43,7 +43,9 @@ class FilePickerParent : public PFilePickerParent {
     enum { eBlobImpl, eDirectoryPath } mType;
   };
 
-  void SendFilesOrDirectories(const nsTArray<BlobImplOrString>& aData);
+  void SendFilesOrDirectories(
+      const nsTArray<BlobImplOrString>& aData,
+      const nsTArray<RefPtr<BlobImpl>>& aFilesInWebKitDirectory);
 
   mozilla::ipc::IPCResult RecvOpen(
       const int16_t& aSelectedType, const bool& aAddToRecentDocs,
@@ -79,11 +81,14 @@ class FilePickerParent : public PFilePickerParent {
     nsTArray<nsCOMPtr<nsIFile>> mFiles;
     nsTArray<BlobImplOrString> mResults;
     nsCOMPtr<nsIEventTarget> mEventTarget;
+    nsTArray<RefPtr<BlobImpl>> mFilesInWebKitDirectory;
     bool mIsDirectory;
 
    public:
     IORunnable(FilePickerParent* aFPParent,
-               nsTArray<nsCOMPtr<nsIFile>>&& aFiles, bool aIsDirectory);
+               nsTArray<nsCOMPtr<nsIFile>>&& aFiles,
+               nsTArray<RefPtr<BlobImpl>>&& aFilesInWebKitDirectory,
+               bool aIsDirectory);
 
     bool Dispatch();
     NS_IMETHOD Run() override;

@@ -53,6 +53,8 @@ class nsFilePickerProxy : public nsBaseFilePicker,
   NS_IMETHOD GetDomFileOrDirectory(nsISupports** aValue) override;
   NS_IMETHOD GetDomFileOrDirectoryEnumerator(
       nsISimpleEnumerator** aValue) override;
+  NS_IMETHOD GetDomFilesInWebKitDirectory(
+      nsISimpleEnumerator** aValue) override;
 
   NS_IMETHOD Open(nsIFilePickerShownCallback* aCallback) override;
 
@@ -70,6 +72,7 @@ class nsFilePickerProxy : public nsBaseFilePicker,
 
   nsTArray<mozilla::dom::OwningFileOrDirectory> mFilesOrDirectories;
   nsCOMPtr<nsIFilePickerShownCallback> mCallback;
+  nsTArray<mozilla::dom::OwningFileOrDirectory> mFilesInWebKitDirectory;
 
   int16_t mSelectedType;
   nsString mFile;

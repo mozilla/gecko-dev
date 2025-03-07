@@ -18,7 +18,10 @@ namespace mozilla {
 namespace dom {
 
 struct InputBlobs { IPCBlob[] blobs; };
-struct InputDirectory { nsString directoryPath; };
+struct InputDirectory {
+  nsString directoryPath;
+  IPCBlob[] blobsInWebKitDirectory;
+};
 union MaybeInputData
 {
   InputBlobs;
