@@ -84,6 +84,10 @@
     "label": "//media:rtc_media_unittests",
     "type": "console_test_launcher",
   },
+  "rtc_p2p_unittests": {
+    "label": "//:rtc_p2p_unittests",
+    "type": "console_test_launcher",
+  },
   "rtc_pc_unittests": {
     "label": "//pc:rtc_pc_unittests",
     "type": "console_test_launcher",

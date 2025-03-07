@@ -47,6 +47,7 @@ if (!build_with_chromium && !build_with_mozilla) {
     }
     if (rtc_include_tests) {
       deps += [
+        ":rtc_p2p_unittests",
         ":rtc_unittests",
         ":video_engine_tests",
         ":voip_unittests",
@@ -706,8 +707,6 @@ if (rtc_include_tests && !build_with_chromium) {
       "api/video_codecs/test:video_codecs_api_unittests",
       "api/voip:compile_all_headers",
       "call:fake_network_pipe_unittests",
-      "p2p:libstunprober_unittests",
-      "p2p:rtc_p2p_unittests",
       "rtc_base:async_dns_resolver_unittests",
       "rtc_base:async_packet_socket_unittest",
       "rtc_base:async_udp_socket_unittest",
@@ -755,6 +754,16 @@ if (rtc_include_tests && !build_with_chromium) {
       ]
       shard_timeout = 900
     }
+  }
+
+  rtc_test("rtc_p2p_unittests") {
+    testonly = true
+
+    deps = [
+      "p2p:libstunprober_unittests",
+      "p2p:rtc_p2p_unittests",
+      "test:test_main",
+    ]
   }
 
   if (rtc_enable_google_benchmarks) {

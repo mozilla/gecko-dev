@@ -8,10 +8,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0155a8718d5d7f23b
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/BUILD.gn b/BUILD.gn
-index ba8ce4d2f3..723fb7330c 100644
+index d3caa21e77..f0f6d6a103 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -598,7 +598,7 @@ if (!build_with_chromium) {
+@@ -599,7 +599,7 @@ if (!build_with_chromium) {
          "api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
          "api/video_codecs:video_encoder_factory_template_open_h264_adapter",
          "logging:rtc_event_log_api",

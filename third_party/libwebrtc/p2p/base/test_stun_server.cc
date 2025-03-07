@@ -22,7 +22,9 @@ TestStunServer::Create(rtc::SocketServer* ss,
                        const rtc::SocketAddress& addr,
                        rtc::Thread& network_thread) {
   rtc::Socket* socket = ss->CreateSocket(addr.family(), SOCK_DGRAM);
+  RTC_CHECK(socket != nullptr) << "Failed to create socket";
   rtc::AsyncUDPSocket* udp_socket = rtc::AsyncUDPSocket::Create(socket, addr);
+  RTC_CHECK(udp_socket != nullptr) << "Failed to create AsyncUDPSocket";
   TestStunServer* server = nullptr;
   network_thread.BlockingCall(
       [&]() { server = new TestStunServer(udp_socket, network_thread); });

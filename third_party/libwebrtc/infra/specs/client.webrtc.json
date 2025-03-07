@@ -210,6 +210,26 @@
         "merge": {
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "enable": true,
+          "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "dimensions": {
+            "android_devices": "1",
+            "device_type": "walleye",
+            "os": "Android"
+          },
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_gtest_merge.py"
+        },
         "name": "rtc_pc_unittests",
         "resultdb": {
           "enable": true,
@@ -680,6 +700,26 @@
         },
         "test": "rtc_media_unittests",
         "test_id_prefix": "ninja://media:rtc_media_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_gtest_merge.py"
+        },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "enable": true,
+          "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "dimensions": {
+            "android_devices": "1",
+            "device_type": "walleye",
+            "os": "Android"
+          },
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
       },
       {
         "merge": {
@@ -1188,6 +1228,26 @@
         "merge": {
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "enable": true,
+          "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "dimensions": {
+            "android_devices": "1",
+            "device_type": "walleye",
+            "os": "Android"
+          },
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_gtest_merge.py"
+        },
         "name": "rtc_pc_unittests",
         "resultdb": {
           "enable": true,
@@ -1663,6 +1723,26 @@
         "merge": {
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "enable": true,
+          "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "dimensions": {
+            "android_devices": "1",
+            "device_type": "walleye",
+            "os": "Android"
+          },
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_gtest_merge.py"
+        },
         "name": "rtc_pc_unittests",
         "resultdb": {
           "enable": true,
@@ -2064,6 +2144,30 @@
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
         },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_file": "${ISOLATED_OUTDIR}/gtest_output.json",
+          "result_format": "gtest_json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Ubuntu-22.04"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
+      },
+      {
+        "args": [
+          "--test-launcher-summary-output=${ISOLATED_OUTDIR}/gtest_output.json",
+          "--test-arg=--gtest_output=json:/custom_artifacts/gtest_output.json",
+          "--test-arg=--undefok=test_launcher_summary_output",
+          "--gtest_output=json:${ISOLATED_OUTDIR}/gtest_output.json"
+        ],
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "rtc_pc_unittests",
         "resultdb": {
           "result_file": "${ISOLATED_OUTDIR}/gtest_output.json",
@@ -2364,6 +2468,23 @@
         },
         "test": "rtc_media_unittests",
         "test_id_prefix": "ninja://media:rtc_media_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_format": "json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Ubuntu-20.04"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
       },
       {
         "merge": {
@@ -2719,6 +2840,23 @@
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
         },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_format": "json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Ubuntu-20.04"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "rtc_pc_unittests",
         "resultdb": {
           "result_format": "json"
@@ -3052,6 +3190,23 @@
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
         },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_format": "json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Ubuntu-20.04"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "rtc_pc_unittests",
         "resultdb": {
           "result_format": "json"
@@ -3380,6 +3535,23 @@
         },
         "test": "rtc_media_unittests",
         "test_id_prefix": "ninja://media:rtc_media_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_format": "json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Ubuntu-20.04"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
       },
       {
         "merge": {
@@ -3735,6 +3907,23 @@
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
         },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_format": "json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Ubuntu-20.04"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "rtc_pc_unittests",
         "resultdb": {
           "result_format": "json"
@@ -4085,6 +4274,23 @@
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
         },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_format": "json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Ubuntu-22.04"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "rtc_pc_unittests",
         "resultdb": {
           "result_format": "json"
@@ -4414,6 +4620,23 @@
         },
         "test": "rtc_media_unittests",
         "test_id_prefix": "ninja://media:rtc_media_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_format": "json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Ubuntu-22.04"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
       },
       {
         "merge": {
@@ -4749,6 +4972,23 @@
         },
         "test": "rtc_media_unittests",
         "test_id_prefix": "ninja://media:rtc_media_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_format": "json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Ubuntu-22.04"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
       },
       {
         "merge": {
@@ -5100,6 +5340,23 @@
         },
         "test": "rtc_media_unittests",
         "test_id_prefix": "ninja://media:rtc_media_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_format": "json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Ubuntu-22.04"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
       },
       {
         "merge": {
@@ -5465,6 +5722,24 @@
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
         },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_format": "json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cores": "12",
+            "cpu": "x86-64",
+            "os": "Mac-14"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "rtc_pc_unittests",
         "resultdb": {
           "result_format": "json"
@@ -5818,6 +6093,24 @@
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
         },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_format": "json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cores": "12",
+            "cpu": "x86-64",
+            "os": "Mac-14"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "rtc_pc_unittests",
         "resultdb": {
           "result_format": "json"
@@ -6162,6 +6455,23 @@
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
         },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_format": "json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Mac-14"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "rtc_pc_unittests",
         "resultdb": {
           "result_format": "json"
@@ -6490,6 +6800,23 @@
         },
         "test": "rtc_media_unittests",
         "test_id_prefix": "ninja://media:rtc_media_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_format": "json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cpu": "arm64-64-Apple_M1",
+            "os": "Mac-14"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
       },
       {
         "merge": {
@@ -6853,6 +7180,23 @@
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
         },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_format": "json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Windows-10-19045"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "rtc_pc_unittests",
         "resultdb": {
           "result_format": "json"
@@ -7181,6 +7525,23 @@
         },
         "test": "rtc_media_unittests",
         "test_id_prefix": "ninja://media:rtc_media_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_format": "json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Windows-10-19045"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
       },
       {
         "merge": {
@@ -7519,6 +7880,23 @@
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
         },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_format": "json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Windows-10-19045"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
         "name": "rtc_pc_unittests",
         "resultdb": {
           "result_format": "json"
@@ -7847,6 +8225,23 @@
         },
         "test": "rtc_media_unittests",
         "test_id_prefix": "ninja://media:rtc_media_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
+        "name": "rtc_p2p_unittests",
+        "resultdb": {
+          "result_format": "json"
+        },
+        "swarming": {
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Windows-10-19045"
+          }
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/"
       },
       {
         "merge": {
@@ -9204,6 +9599,150 @@
         },
         "test": "rtc_media_unittests",
         "test_id_prefix": "ninja://media:rtc_media_unittests/",
+        "variant_id": "iPhone X 16.4"
+      },
+      {
+        "args": [
+          "--platform",
+          "iPhone 14",
+          "--version",
+          "17.5",
+          "--xcode-build-version",
+          "16a5230g",
+          "--out-dir",
+          "${ISOLATED_OUTDIR}",
+          "--xctest"
+        ],
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
+        "name": "rtc_p2p_unittests iPhone 14 17.5",
+        "resultdb": {
+          "enable": true,
+          "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "cipd_packages": [
+            {
+              "cipd_package": "infra/tools/mac_toolchain/${platform}",
+              "location": ".",
+              "revision": "git_revision:a18b7d95d26f3c6bf9591978b19cf0ca8268ac7d"
+            }
+          ],
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Mac-14"
+          },
+          "named_caches": [
+            {
+              "name": "xcode_ios_16a5230g",
+              "path": "Xcode.app"
+            },
+            {
+              "name": "runtime_ios_17_5",
+              "path": "Runtime-ios-17.5"
+            }
+          ],
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/",
+        "variant_id": "iPhone 14 17.5"
+      },
+      {
+        "args": [
+          "--platform",
+          "iPhone 15",
+          "--version",
+          "18.0",
+          "--xcode-build-version",
+          "16a5230g",
+          "--out-dir",
+          "${ISOLATED_OUTDIR}",
+          "--xctest"
+        ],
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
+        "name": "rtc_p2p_unittests iPhone 15 18.0",
+        "resultdb": {
+          "enable": true,
+          "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "cipd_packages": [
+            {
+              "cipd_package": "infra/tools/mac_toolchain/${platform}",
+              "location": ".",
+              "revision": "git_revision:a18b7d95d26f3c6bf9591978b19cf0ca8268ac7d"
+            }
+          ],
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Mac-14"
+          },
+          "named_caches": [
+            {
+              "name": "xcode_ios_16a5230g",
+              "path": "Xcode.app"
+            },
+            {
+              "name": "runtime_ios_18_0",
+              "path": "Runtime-ios-18.0"
+            }
+          ],
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/",
+        "variant_id": "iPhone 15 18.0"
+      },
+      {
+        "args": [
+          "--platform",
+          "iPhone X",
+          "--version",
+          "16.4",
+          "--xcode-build-version",
+          "16a5230g",
+          "--out-dir",
+          "${ISOLATED_OUTDIR}",
+          "--xctest"
+        ],
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
+        "name": "rtc_p2p_unittests iPhone X 16.4",
+        "resultdb": {
+          "enable": true,
+          "has_native_resultdb_integration": true
+        },
+        "swarming": {
+          "cipd_packages": [
+            {
+              "cipd_package": "infra/tools/mac_toolchain/${platform}",
+              "location": ".",
+              "revision": "git_revision:a18b7d95d26f3c6bf9591978b19cf0ca8268ac7d"
+            }
+          ],
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Mac-14"
+          },
+          "named_caches": [
+            {
+              "name": "xcode_ios_16a5230g",
+              "path": "Xcode.app"
+            },
+            {
+              "name": "runtime_ios_16_4",
+              "path": "Runtime-ios-16.4"
+            }
+          ],
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "rtc_p2p_unittests",
+        "test_id_prefix": "ninja://:rtc_p2p_unittests/",
         "variant_id": "iPhone X 16.4"
       },
       {
