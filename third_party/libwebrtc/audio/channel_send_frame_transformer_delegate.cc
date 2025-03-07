@@ -13,6 +13,9 @@
 #include <utility>
 #include <vector>
 
+#include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
+
 namespace webrtc {
 namespace {
 
@@ -110,6 +113,10 @@ class TransformableOutgoingAudioFrame
   }
 
   std::optional<Timestamp> ReceiveTime() const override { return std::nullopt; }
+  std::optional<Timestamp> CaptureTime() const override { return std::nullopt; }
+  std::optional<TimeDelta> SenderCaptureTimeOffset() const override {
+    return std::nullopt;
+  }
 
  private:
   AudioFrameType frame_type_;

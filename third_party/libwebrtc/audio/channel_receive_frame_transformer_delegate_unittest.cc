@@ -24,6 +24,7 @@
 #include "api/test/mock_transformable_audio_frame.h"
 #include "api/units/timestamp.h"
 #include "rtc_base/thread.h"
+#include "system_wrappers/include/ntp_time.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 
@@ -193,7 +194,7 @@ TEST(ChannelReceiveFrameTransformerDelegateTest,
 }
 
 TEST(ChannelReceiveFrameTransformerDelegateTest,
-     AudioLevelAbsentWithoutExtension) {
+     AudioLevelAndCaptureTimeAbsentWithoutExtension) {
   rtc::AutoThread main_thread;
   rtc::scoped_refptr<MockFrameTransformer> mock_frame_transformer =
       rtc::make_ref_counted<NiceMock<MockFrameTransformer>>();
@@ -223,6 +224,8 @@ TEST(ChannelReceiveFrameTransformerDelegateTest,
   auto* audio_frame =
       static_cast<TransformableAudioFrameInterface*>(frame.get());
   EXPECT_FALSE(audio_frame->AudioLevel());
+  EXPECT_FALSE(audio_frame->CaptureTime());
+  EXPECT_FALSE(audio_frame->SenderCaptureTimeOffset());
   EXPECT_EQ(audio_frame->Type(),
             TransformableAudioFrameInterface::FrameType::kAudioFrameCN);
 }
@@ -263,6 +266,49 @@ TEST(ChannelReceiveFrameTransformerDelegateTest,
   EXPECT_EQ(*audio_frame->AudioLevel(), audio_level_dbov);
   EXPECT_EQ(audio_frame->Type(),
             TransformableAudioFrameInterface::FrameType::kAudioFrameSpeech);
+}
+
+TEST(ChannelReceiveFrameTransformerDelegateTest,
+     CaptureTimePresentWithExtension) {
+  rtc::AutoThread main_thread;
+  rtc::scoped_refptr<MockFrameTransformer> mock_frame_transformer =
+      rtc::make_ref_counted<NiceMock<MockFrameTransformer>>();
+  rtc::scoped_refptr<ChannelReceiveFrameTransformerDelegate> delegate =
+      rtc::make_ref_counted<ChannelReceiveFrameTransformerDelegate>(
+          /*receive_frame_callback=*/nullptr, mock_frame_transformer,
+          rtc::Thread::Current());
+  rtc::scoped_refptr<TransformedFrameCallback> callback;
+  EXPECT_CALL(*mock_frame_transformer, RegisterTransformedFrameCallback)
+      .WillOnce(SaveArg<0>(&callback));
+  delegate->Init();
+  ASSERT_TRUE(callback);
+
+  const uint8_t data[] = {1, 2, 3, 4};
+  rtc::ArrayView<const uint8_t> packet(data, sizeof(data));
+  Timestamp capture_time = Timestamp::Millis(1234);
+  TimeDelta sender_capture_time_offset = TimeDelta::Millis(56);
+  AbsoluteCaptureTime absolute_capture_time = {
+      .absolute_capture_timestamp = Int64MsToUQ32x32(capture_time.ms()),
+      .estimated_capture_clock_offset =
+          Int64MsToUQ32x32(sender_capture_time_offset.ms())};
+  RTPHeader header;
+  header.extension.absolute_capture_time = absolute_capture_time;
+
+  std::unique_ptr<TransformableFrameInterface> frame;
+  ON_CALL(*mock_frame_transformer, Transform)
+      .WillByDefault(
+          [&](std::unique_ptr<TransformableFrameInterface> transform_frame) {
+            frame = std::move(transform_frame);
+          });
+  delegate->Transform(packet, header, /*ssrc=*/1111, /*mimeType=*/"audio/opus",
+                      kFakeReceiveTimestamp);
+
+  EXPECT_TRUE(frame);
+  auto* audio_frame =
+      static_cast<TransformableAudioFrameInterface*>(frame.get());
+  EXPECT_EQ(*audio_frame->CaptureTime(), capture_time);
+  EXPECT_EQ(*audio_frame->SenderCaptureTimeOffset(),
+            sender_capture_time_offset);
 }
 
 }  // namespace

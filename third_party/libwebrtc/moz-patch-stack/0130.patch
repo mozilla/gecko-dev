@@ -121,7 +121,7 @@ index ab24dbac21..24fc2b19ca 100644
    deps = [
      "net/dcsctp/public:factory",
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index 1b7e1a7ed4..70c9374aca 100644
+index 9550cede4f..aabbee809c 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -8,8 +8,8 @@

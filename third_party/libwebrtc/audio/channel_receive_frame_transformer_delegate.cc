@@ -22,9 +22,11 @@
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
 #include "api/task_queue/task_queue_base.h"
+#include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/string_encode.h"
+#include "system_wrappers/include/ntp_time.h"
 
 namespace webrtc {
 
@@ -94,6 +96,25 @@ class TransformableIncomingAudioFrame
     return receive_time_ == Timestamp::MinusInfinity()
                ? std::nullopt
                : std::optional<Timestamp>(receive_time_);
+  }
+
+  std::optional<Timestamp> CaptureTime() const override {
+    if (header_.extension.absolute_capture_time) {
+      return Timestamp::Micros(UQ32x32ToInt64Us(
+          header_.extension.absolute_capture_time->absolute_capture_timestamp));
+    }
+    return std::nullopt;
+  }
+
+  std::optional<TimeDelta> SenderCaptureTimeOffset() const override {
+    if (header_.extension.absolute_capture_time &&
+        header_.extension.absolute_capture_time
+            ->estimated_capture_clock_offset) {
+      return TimeDelta::Micros(
+          UQ32x32ToInt64Us(*header_.extension.absolute_capture_time
+                                ->estimated_capture_clock_offset));
+    }
+    return std::nullopt;
   }
 
  private:

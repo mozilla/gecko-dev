@@ -19,6 +19,7 @@
 #include "api/array_view.h"
 #include "api/ref_count.h"
 #include "api/scoped_refptr.h"
+#include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "api/video/video_frame_metadata.h"
 #include "rtc_base/system/rtc_export.h"
@@ -100,6 +101,7 @@ class TransformableAudioFrameInterface : public TransformableFrameInterface {
 
   virtual const std::optional<uint16_t> SequenceNumber() const = 0;
 
+  // TODO(crbug.com/391114797): Delete this function.
   virtual std::optional<uint64_t> AbsoluteCaptureTimestamp() const = 0;
 
   enum class FrameType { kEmptyFrame, kAudioFrameSpeech, kAudioFrameCN };
@@ -116,6 +118,21 @@ class TransformableAudioFrameInterface : public TransformableFrameInterface {
   // Timestamp at which the packet has been first seen on the network interface.
   // Only defined for received audio packet.
   virtual std::optional<Timestamp> ReceiveTime() const = 0;
+
+  // Timestamp at which the frame was captured in the capturer system.
+  // The timestamp is expressed in the capturer system's clock relative to the
+  // NTP epoch (January 1st 1970 00:00 UTC)
+  // Accessible only if the absolute capture timestamp header extension is
+  // enabled.
+  virtual std::optional<Timestamp> CaptureTime() const = 0;
+
+  // Offset between the sender system's clock and the capturer system's clock.
+  // Can be used to express the capture time in the local system's clock as
+  // long as the local system can determine the offset between its local clock
+  // and the sender system's clock.
+  // Accessible only if the absolute capture timestamp header extension is
+  // enabled.
+  virtual std::optional<TimeDelta> SenderCaptureTimeOffset() const = 0;
 };
 
 // Objects implement this interface to be notified with the transformed frame.

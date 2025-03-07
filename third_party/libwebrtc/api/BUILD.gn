@@ -439,6 +439,7 @@ rtc_source_set("frame_transformer_interface") {
     ":scoped_refptr",
     "../rtc_base:refcount",
     "../rtc_base/system:rtc_export",
+    "units:time_delta",
     "units:timestamp",
     "video:encoded_frame",
     "video:video_frame_metadata",
