@@ -1,39 +1,23 @@
 From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Wed, 10 Apr 2024 21:54:00 +0000
-Subject: Bug 1888181 - (fix-52fec7d3) Limit scope of race checker in
- VideoCaptureModuleV4L2::StartCapture. r=mjf
+Date: Fri, 19 Apr 2024 06:09:00 +0000
+Subject: Bug 1892221 - Initialize VideoCaptureModuleV4L2::_streaming in ctor.
+ r=webrtc-reviewers,dbaker
 
-TSAN detects a race between destroying the scoped race checker in StartCapture
-and creating the scoped race checker in CaptureProcess, because once the capture
-thread has been created (and given its run function) there is no synchronization
-before the run function starts to run.
-
-This patch avoids the race by destroying the StartCapture scoped race checker
-before creating the capture thread.
-
-Differential Revision: https://phabricator.services.mozilla.com/D207203
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b046a1446cee5ab485d4868b3ca9784b16b2d02f
+Differential Revision: https://phabricator.services.mozilla.com/D207926
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/00c4bd7039dc8992dd93d4a5948a9260b72ec2a8
 ---
- modules/video_capture/linux/video_capture_v4l2.cc | 2 ++
- 1 file changed, 2 insertions(+)
+ modules/video_capture/linux/video_capture_v4l2.cc | 1 +
+ 1 file changed, 1 insertion(+)
 
 diff --git a/modules/video_capture/linux/video_capture_v4l2.cc b/modules/video_capture/linux/video_capture_v4l2.cc
-index 6d8a5e463f..db2450a2c7 100644
+index db2450a2c7..74af348a6c 100644
 --- a/modules/video_capture/linux/video_capture_v4l2.cc
 +++ b/modules/video_capture/linux/video_capture_v4l2.cc
-@@ -129,6 +129,7 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
-     }
-   }
+@@ -62,6 +62,7 @@ VideoCaptureModuleV4L2::VideoCaptureModuleV4L2()
+       _deviceId(-1),
+       _deviceFd(-1),
+       _buffersAllocatedByDevice(-1),
++      _streaming(false),
+       _captureStarted(false),
+       _pool(NULL) {}
  
-+  {
-   // We don't want members above to be guarded by capture_checker_ as
-   // it's meant to be for members that are accessed on the API thread
-   // only when we are not capturing. The code above can be called many
-@@ -298,6 +299,7 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
-   _requestedCapability = capability;
-   _captureStarted = true;
-   _streaming = true;
-+  }
- 
-   // start capture thread;
-   if (_captureThread.empty()) {
