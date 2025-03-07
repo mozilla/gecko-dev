@@ -113,7 +113,7 @@ TEST_F(JitterEstimatorTest, LowFramerateDisablesJitterEstimator) {
 }
 
 TEST_F(JitterEstimatorTest, RttMultAddCap) {
-  std::vector<std::pair<TimeDelta, rtc::HistogramPercentileCounter>>
+  std::vector<std::pair<TimeDelta, HistogramPercentileCounter>>
       jitter_by_rtt_mult_cap;
   jitter_by_rtt_mult_cap.emplace_back(
       /*rtt_mult_add_cap=*/TimeDelta::Millis(10), /*long_tail_boundary=*/1000);

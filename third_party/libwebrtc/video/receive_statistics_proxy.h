@@ -147,7 +147,7 @@ class ReceiveStatisticsProxy : public VideoStreamBufferControllerStatsObserver,
     SampleCounter received_height;
     SampleCounter qp_counter;
     FrameCounts frame_counts;
-    rtc::HistogramPercentileCounter interframe_delay_percentiles;
+    HistogramPercentileCounter interframe_delay_percentiles;
     webrtc_impl::RunningStatistics<double> corruption_score;
   };
 
