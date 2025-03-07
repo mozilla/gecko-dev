@@ -100,7 +100,7 @@ void RunFilterUpdateTest(int num_blocks_to_process,
                    e_coarse.begin(),
                    [&](float a, float b) { return a - b * kScale; });
     std::for_each(e_coarse.begin(), e_coarse.end(),
-                  [](float& a) { a = rtc::SafeClamp(a, -32768.f, 32767.f); });
+                  [](float& a) { a = SafeClamp(a, -32768.f, 32767.f); });
     fft.ZeroPaddedFft(e_coarse, Aec3Fft::Window::kRectangular, &E_coarse);
 
     std::array<float, kFftLengthBy2Plus1> render_power;

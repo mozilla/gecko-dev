@@ -1061,8 +1061,8 @@ bool ChannelReceive::SetMinimumPlayoutDelay(int delay_ms) {
   RTC_DCHECK_RUN_ON(&worker_thread_checker_);
   // Limit to range accepted by both VoE and ACM, so we're at least getting as
   // close as possible, instead of failing.
-  delay_ms = rtc::SafeClamp(delay_ms, kVoiceEngineMinMinPlayoutDelayMs,
-                            kVoiceEngineMaxMinPlayoutDelayMs);
+  delay_ms = SafeClamp(delay_ms, kVoiceEngineMinMinPlayoutDelayMs,
+                       kVoiceEngineMaxMinPlayoutDelayMs);
   if (!neteq_->SetMinimumDelay(delay_ms)) {
     RTC_DLOG(LS_ERROR)
         << "SetMinimumPlayoutDelay() failed to set min playout delay "

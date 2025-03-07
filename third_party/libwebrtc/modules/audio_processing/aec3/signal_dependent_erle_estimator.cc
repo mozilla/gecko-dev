@@ -205,12 +205,12 @@ void SignalDependentErleEstimator::Update(
       float correction_factor =
           correction_factors_[ch][n_active_sections_[ch][k]]
                              [band_to_subband_[k]];
-      erle_[ch][k] = rtc::SafeClamp(average_erle[ch][k] * correction_factor,
-                                    min_erle_, max_erle_[band_to_subband_[k]]);
+      erle_[ch][k] = SafeClamp(average_erle[ch][k] * correction_factor,
+                               min_erle_, max_erle_[band_to_subband_[k]]);
       if (use_onset_detection_) {
-        erle_onset_compensated_[ch][k] = rtc::SafeClamp(
-            average_erle_onset_compensated[ch][k] * correction_factor,
-            min_erle_, max_erle_[band_to_subband_[k]]);
+        erle_onset_compensated_[ch][k] =
+            SafeClamp(average_erle_onset_compensated[ch][k] * correction_factor,
+                      min_erle_, max_erle_[band_to_subband_[k]]);
       }
     }
   }
@@ -306,7 +306,7 @@ void SignalDependentErleEstimator::UpdateCorrectionFactors(
         alpha = static_cast<float>(is_erle_updated[subband]) * alpha;
         erle_estimators_[ch][idx][subband] +=
             alpha * (new_erle[subband] - erle_estimators_[ch][idx][subband]);
-        erle_estimators_[ch][idx][subband] = rtc::SafeClamp(
+        erle_estimators_[ch][idx][subband] = SafeClamp(
             erle_estimators_[ch][idx][subband], min_erle_, max_erle_[subband]);
       }
 
@@ -317,8 +317,8 @@ void SignalDependentErleEstimator::UpdateCorrectionFactors(
         alpha = static_cast<float>(is_erle_updated[subband]) * alpha;
         erle_ref_[ch][subband] +=
             alpha * (new_erle[subband] - erle_ref_[ch][subband]);
-        erle_ref_[ch][subband] = rtc::SafeClamp(erle_ref_[ch][subband],
-                                                min_erle_, max_erle_[subband]);
+        erle_ref_[ch][subband] =
+            SafeClamp(erle_ref_[ch][subband], min_erle_, max_erle_[subband]);
       }
 
       for (size_t subband = 0; subband < kSubbands; ++subband) {

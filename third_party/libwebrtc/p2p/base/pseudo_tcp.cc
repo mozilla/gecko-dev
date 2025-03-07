@@ -713,8 +713,8 @@ bool PseudoTcp::process(Segment& seg) {
           m_rx_rttvar = (3 * m_rx_rttvar + abs_err) / 4;
           m_rx_srtt = (7 * m_rx_srtt + rtt) / 8;
         }
-        m_rx_rto = rtc::SafeClamp(m_rx_srtt + rtc::SafeMax(1, 4 * m_rx_rttvar),
-                                  MIN_RTO, MAX_RTO);
+        m_rx_rto = webrtc::SafeClamp(
+            m_rx_srtt + webrtc::SafeMax(1, 4 * m_rx_rttvar), MIN_RTO, MAX_RTO);
 #if _DEBUGMSG >= _DBG_VERBOSE
         RTC_LOG(LS_INFO) << "rtt: " << rtt << "  srtt: " << m_rx_srtt
                          << "  rto: " << m_rx_rto;

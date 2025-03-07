@@ -137,7 +137,7 @@ double GetFilteredElement(int width,
   }
 
   // Take the rounding errors into consideration.
-  return rtc::SafeClamp(element_sum / total_weight, 0.0, 255.0);
+  return SafeClamp(element_sum / total_weight, 0.0, 255.0);
 }
 
 std::vector<FilteredSample> GetSampleValuesForFrame(

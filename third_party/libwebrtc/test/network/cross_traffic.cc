@@ -56,7 +56,7 @@ void RandomWalkCrossTraffic::Process(Timestamp at_time) {
   if (at_time - last_update_time_ >= config_.update_interval) {
     intensity_ += random_.Gaussian(config_.bias, config_.variance) *
                   sqrt((at_time - last_update_time_).seconds<double>());
-    intensity_ = rtc::SafeClamp(intensity_, 0.0, 1.0);
+    intensity_ = SafeClamp(intensity_, 0.0, 1.0);
     last_update_time_ = at_time;
   }
   pending_size_ += TrafficRate() * delta;

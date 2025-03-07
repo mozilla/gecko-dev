@@ -494,7 +494,7 @@ void BitrateAllocator::OnNetworkEstimateChanged(TargetTransferRate msg) {
 
   int loss_ratio_255 = msg.network_estimate.loss_rate_ratio * 255;
   last_fraction_loss_ =
-      rtc::dchecked_cast<uint8_t>(rtc::SafeClamp(loss_ratio_255, 0, 255));
+      rtc::dchecked_cast<uint8_t>(SafeClamp(loss_ratio_255, 0, 255));
   last_rtt_ = msg.network_estimate.round_trip_time.ms();
   last_bwe_period_ms_ = msg.network_estimate.bwe_period.ms();
 

@@ -79,8 +79,8 @@ void ScaleSamples(MonoView<const float> per_sample_scaling_factors,
   for (size_t i = 0; i < signal.num_channels(); ++i) {
     MonoView<float> channel = signal[i];
     for (int j = 0; j < samples_per_channel; ++j) {
-      channel[j] = rtc::SafeClamp(channel[j] * per_sample_scaling_factors[j],
-                                  kMinFloatS16Value, kMaxFloatS16Value);
+      channel[j] = SafeClamp(channel[j] * per_sample_scaling_factors[j],
+                             kMinFloatS16Value, kMaxFloatS16Value);
     }
   }
 }

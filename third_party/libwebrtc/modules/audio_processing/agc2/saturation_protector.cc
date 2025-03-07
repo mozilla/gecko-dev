@@ -88,7 +88,7 @@ void UpdateSaturationProtectorState(float peak_dbfs,
   }
 
   state.headroom_db =
-      rtc::SafeClamp<float>(state.headroom_db, kMinMarginDb, kMaxMarginDb);
+      SafeClamp<float>(state.headroom_db, kMinMarginDb, kMaxMarginDb);
 }
 
 // Saturation protector which recommends a headroom based on the recent peaks.

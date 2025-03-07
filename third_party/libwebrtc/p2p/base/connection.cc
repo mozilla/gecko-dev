@@ -983,7 +983,7 @@ void Connection::UpdateState(int64_t now) {
     return;
 
   // Computes our estimate of the RTT given the current estimate.
-  int rtt = rtc::SafeClamp(2 * rtt_, MINIMUM_RTT, MAXIMUM_RTT);
+  int rtt = webrtc::SafeClamp(2 * rtt_, MINIMUM_RTT, MAXIMUM_RTT);
 
   if (RTC_LOG_CHECK_LEVEL(LS_VERBOSE)) {
     std::string pings;

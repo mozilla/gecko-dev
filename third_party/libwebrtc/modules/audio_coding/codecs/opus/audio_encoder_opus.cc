@@ -733,9 +733,9 @@ void AudioEncoderOpusImpl::SetProjectedPacketLossRate(float fraction) {
 }
 
 void AudioEncoderOpusImpl::SetTargetBitrate(int bits_per_second) {
-  const int new_bitrate = rtc::SafeClamp<int>(
-      bits_per_second, AudioEncoderOpusConfig::kMinBitrateBps,
-      AudioEncoderOpusConfig::kMaxBitrateBps);
+  const int new_bitrate =
+      SafeClamp<int>(bits_per_second, AudioEncoderOpusConfig::kMinBitrateBps,
+                     AudioEncoderOpusConfig::kMaxBitrateBps);
   if (config_.bitrate_bps && *config_.bitrate_bps != new_bitrate) {
     config_.bitrate_bps = new_bitrate;
     RTC_DCHECK(config_.IsOk());

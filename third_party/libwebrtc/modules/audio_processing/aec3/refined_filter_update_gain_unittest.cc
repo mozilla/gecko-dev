@@ -162,7 +162,7 @@ void RunFilterUpdateTest(const Environment& env,
                    e_refined.begin(),
                    [&](float a, float b) { return a - b * kScale; });
     std::for_each(e_refined.begin(), e_refined.end(),
-                  [](float& a) { a = rtc::SafeClamp(a, -32768.f, 32767.f); });
+                  [](float& a) { a = SafeClamp(a, -32768.f, 32767.f); });
     fft.ZeroPaddedFft(e_refined, Aec3Fft::Window::kRectangular, &E_refined);
     for (size_t k = 0; k < kBlockSize; ++k) {
       s[k] = kScale * s_scratch[k + kFftLengthBy2];
@@ -175,7 +175,7 @@ void RunFilterUpdateTest(const Environment& env,
                    e_coarse.begin(),
                    [&](float a, float b) { return a - b * kScale; });
     std::for_each(e_coarse.begin(), e_coarse.end(),
-                  [](float& a) { a = rtc::SafeClamp(a, -32768.f, 32767.f); });
+                  [](float& a) { a = SafeClamp(a, -32768.f, 32767.f); });
     fft.ZeroPaddedFft(e_coarse, Aec3Fft::Window::kRectangular, &E_coarse);
 
     // Compute spectra for future use.

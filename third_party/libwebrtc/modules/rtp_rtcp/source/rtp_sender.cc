@@ -428,15 +428,15 @@ std::vector<std::unique_ptr<RtpPacketToSend>> RTPSender::GeneratePadding(
       max_packet_size_ - max_padding_fec_packet_header_;
   if (audio_configured_) {
     // Allow smaller padding packets for audio.
-    padding_bytes_in_packet = rtc::SafeClamp<size_t>(
-        bytes_left, kMinAudioPaddingLength,
-        rtc::SafeMin(max_payload_size, kMaxPaddingLength));
+    padding_bytes_in_packet =
+        SafeClamp<size_t>(bytes_left, kMinAudioPaddingLength,
+                          SafeMin(max_payload_size, kMaxPaddingLength));
   } else {
     // Always send full padding packets. This is accounted for by the
     // RtpPacketSender, which will make sure we don't send too much padding even
     // if a single packet is larger than requested.
     // We do this to avoid frequently sending small packets on higher bitrates.
-    padding_bytes_in_packet = rtc::SafeMin(max_payload_size, kMaxPaddingLength);
+    padding_bytes_in_packet = SafeMin(max_payload_size, kMaxPaddingLength);
   }
 
   while (bytes_left > 0) {

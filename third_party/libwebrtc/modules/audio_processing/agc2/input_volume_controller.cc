@@ -116,8 +116,8 @@ int GetSpeechLevelRmsErrorDb(float speech_level_dbfs,
   constexpr float kMaxSpeechLevelDbfs = 30.0f;
   RTC_DCHECK_GE(speech_level_dbfs, kMinSpeechLevelDbfs);
   RTC_DCHECK_LE(speech_level_dbfs, kMaxSpeechLevelDbfs);
-  speech_level_dbfs = rtc::SafeClamp<float>(
-      speech_level_dbfs, kMinSpeechLevelDbfs, kMaxSpeechLevelDbfs);
+  speech_level_dbfs = SafeClamp<float>(speech_level_dbfs, kMinSpeechLevelDbfs,
+                                       kMaxSpeechLevelDbfs);
 
   int rms_error_db = 0;
   if (speech_level_dbfs > target_range_max_dbfs) {
@@ -343,7 +343,7 @@ void MonoInputVolumeController::UpdateInputVolume(int rms_error_db) {
   // Prevent too large microphone input volume changes by clamping the RMS
   // error.
   rms_error_db =
-      rtc::SafeClamp(rms_error_db, -KMaxAbsRmsErrorDbfs, KMaxAbsRmsErrorDbfs);
+      SafeClamp(rms_error_db, -KMaxAbsRmsErrorDbfs, KMaxAbsRmsErrorDbfs);
   if (rms_error_db == 0) {
     return;
   }

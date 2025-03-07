@@ -29,10 +29,9 @@ void JitterBufferDelay::Set(std::optional<double> delay_seconds) {
 
 int JitterBufferDelay::GetMs() const {
   RTC_DCHECK_RUN_ON(&worker_thread_checker_);
-  return rtc::SafeClamp(
-      rtc::saturated_cast<int>(cached_delay_seconds_.value_or(kDefaultDelay) *
-                               1000),
-      0, kMaximumDelayMs);
+  return SafeClamp(rtc::saturated_cast<int>(
+                       cached_delay_seconds_.value_or(kDefaultDelay) * 1000),
+                   0, kMaximumDelayMs);
 }
 
 }  // namespace webrtc

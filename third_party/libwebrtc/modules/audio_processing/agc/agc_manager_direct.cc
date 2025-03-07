@@ -152,7 +152,7 @@ int GetSpeechLevelErrorDb(float speech_level_dbfs, float speech_probability) {
     return 0;
   }
 
-  const float speech_level = rtc::SafeClamp<float>(
+  const float speech_level = SafeClamp<float>(
       speech_level_dbfs, kMinSpeechLevelDbfs, kMaxSpeechLevelDbfs);
 
   return std::round(kOverrideTargetSpeechLevelDbfs - speech_level);
@@ -376,7 +376,7 @@ void MonoAgc::UpdateGain(int rms_error_db) {
 
   // Handle as much error as possible with the compressor first.
   int raw_compression =
-      rtc::SafeClamp(rms_error, kMinCompressionGain, max_compression_gain_);
+      SafeClamp(rms_error, kMinCompressionGain, max_compression_gain_);
 
   // Deemphasize the compression gain error. Move halfway between the current
   // target and the newly received target. This serves to soften perceptible
@@ -397,8 +397,8 @@ void MonoAgc::UpdateGain(int rms_error_db) {
   // raw rather than deemphasized compression here as we would otherwise
   // shrink the amount of slack the compressor provides.
   const int residual_gain =
-      rtc::SafeClamp(rms_error - raw_compression, -kMaxResidualGainChange,
-                     kMaxResidualGainChange);
+      SafeClamp(rms_error - raw_compression, -kMaxResidualGainChange,
+                kMaxResidualGainChange);
   RTC_DLOG(LS_INFO) << "[agc] rms_error=" << rms_error
                     << ", target_compression=" << target_compression_
                     << ", residual_gain=" << residual_gain;

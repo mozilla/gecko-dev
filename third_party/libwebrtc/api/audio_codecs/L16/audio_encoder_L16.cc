@@ -45,7 +45,7 @@ std::optional<AudioEncoderL16::Config> AudioEncoderL16::SdpToConfig(
   if (ptime_iter != format.parameters.end()) {
     const auto ptime = StringToNumber<int>(ptime_iter->second);
     if (ptime && *ptime > 0) {
-      config.frame_size_ms = rtc::SafeClamp(10 * (*ptime / 10), 10, 60);
+      config.frame_size_ms = SafeClamp(10 * (*ptime / 10), 10, 60);
     }
   }
   if (absl::EqualsIgnoreCase(format.name, "L16") && config.IsOk()) {

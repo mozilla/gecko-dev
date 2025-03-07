@@ -171,7 +171,7 @@ void SuppressionFilter::ApplyGain(
     for (int b = 0; b < e->NumBands(); ++b) {
       auto e_band = e->View(b, ch);
       for (size_t i = 0; i < kFftLengthBy2; ++i) {
-        e_band[i] = rtc::SafeClamp(e_band[i], -32768.f, 32767.f);
+        e_band[i] = SafeClamp(e_band[i], -32768.f, 32767.f);
       }
     }
   }

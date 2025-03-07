@@ -34,8 +34,7 @@ SimpleStringBuilder& SimpleStringBuilder::operator<<(char ch) {
 SimpleStringBuilder& SimpleStringBuilder::operator<<(absl::string_view str) {
   RTC_DCHECK_LT(size_ + str.length(), buffer_.size())
       << "Buffer size was insufficient";
-  const size_t chars_added =
-      rtc::SafeMin(str.length(), buffer_.size() - size_ - 1);
+  const size_t chars_added = SafeMin(str.length(), buffer_.size() - size_ - 1);
   memcpy(&buffer_[size_], str.data(), chars_added);
   size_ += chars_added;
   buffer_[size_] = '\0';
@@ -97,7 +96,7 @@ SimpleStringBuilder& SimpleStringBuilder::AppendFormat(const char* fmt, ...) {
   const int len =
       std::vsnprintf(&buffer_[size_], buffer_.size() - size_, fmt, args);
   if (len >= 0) {
-    const size_t chars_added = rtc::SafeMin(len, buffer_.size() - 1 - size_);
+    const size_t chars_added = SafeMin(len, buffer_.size() - 1 - size_);
     size_ += chars_added;
     RTC_DCHECK_EQ(len, chars_added) << "Buffer size was insufficient";
   } else {

@@ -18,7 +18,7 @@
 namespace webrtc {
 namespace {
 bool Limit(float* value, float min, float max) {
-  float clamped = rtc::SafeClamp(*value, min, max);
+  float clamped = SafeClamp(*value, min, max);
   clamped = std::isfinite(clamped) ? clamped : min;
   bool res = *value == clamped;
   *value = clamped;
@@ -26,14 +26,14 @@ bool Limit(float* value, float min, float max) {
 }
 
 bool Limit(size_t* value, size_t min, size_t max) {
-  size_t clamped = rtc::SafeClamp(*value, min, max);
+  size_t clamped = SafeClamp(*value, min, max);
   bool res = *value == clamped;
   *value = clamped;
   return res;
 }
 
 bool Limit(int* value, int min, int max) {
-  int clamped = rtc::SafeClamp(*value, min, max);
+  int clamped = SafeClamp(*value, min, max);
   bool res = *value == clamped;
   *value = clamped;
   return res;

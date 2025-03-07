@@ -141,7 +141,7 @@ void SubbandErleEstimator::UpdateBands(
             if (!use_min_erle_during_onsets_) {
               float alpha =
                   new_erle[k] < erle_during_onsets_[ch][k] ? 0.3f : 0.15f;
-              erle_during_onsets_[ch][k] = rtc::SafeClamp(
+              erle_during_onsets_[ch][k] = SafeClamp(
                   erle_during_onsets_[ch][k] +
                       alpha * (new_erle[k] - erle_during_onsets_[ch][k]),
                   min_erle_, max_erle_[k]);
@@ -159,8 +159,7 @@ void SubbandErleEstimator::UpdateBands(
       if (new_erle < erle) {
         alpha = low_render_energy ? 0.f : 0.1f;
       }
-      erle =
-          rtc::SafeClamp(erle + alpha * (new_erle - erle), min_erle, max_erle);
+      erle = SafeClamp(erle + alpha * (new_erle - erle), min_erle, max_erle);
     };
 
     for (size_t k = 1; k < kFftLengthBy2; ++k) {

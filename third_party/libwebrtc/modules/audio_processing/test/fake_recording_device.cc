@@ -87,8 +87,8 @@ class FakeRecordingDeviceLinear final : public FakeRecordingDeviceWorker {
     for (size_t c = 0; c < buffer->num_channels(); ++c) {
       for (size_t i = 0; i < buffer->num_frames(); ++i) {
         buffer->channels()[c][i] =
-            rtc::SafeClamp(buffer->channels()[c][i] * mic_level_ / divisor,
-                           kFloatSampleMin, kFloatSampleMax);
+            SafeClamp(buffer->channels()[c][i] * mic_level_ / divisor,
+                      kFloatSampleMin, kFloatSampleMax);
       }
     }
   }
@@ -125,8 +125,8 @@ class FakeRecordingDeviceAgc final : public FakeRecordingDeviceWorker {
     for (size_t c = 0; c < buffer->num_channels(); ++c) {
       for (size_t i = 0; i < buffer->num_frames(); ++i) {
         buffer->channels()[c][i] =
-            rtc::SafeClamp(buffer->channels()[c][i] * scaling_factor,
-                           kFloatSampleMin, kFloatSampleMax);
+            SafeClamp(buffer->channels()[c][i] * scaling_factor,
+                      kFloatSampleMin, kFloatSampleMax);
       }
     }
   }

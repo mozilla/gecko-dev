@@ -46,7 +46,7 @@ std::optional<AudioEncoderG722Config> AudioEncoderG722::SdpToConfig(
     auto ptime = StringToNumber<int>(ptime_iter->second);
     if (ptime && *ptime > 0) {
       const int whole_packets = *ptime / 10;
-      config.frame_size_ms = rtc::SafeClamp<int>(whole_packets * 10, 10, 60);
+      config.frame_size_ms = SafeClamp<int>(whole_packets * 10, 10, 60);
     }
   }
   if (!config.IsOk()) {

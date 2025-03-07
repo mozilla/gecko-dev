@@ -84,7 +84,7 @@ void AudioSamplesScaler::Process(AudioBuffer& audio_buffer) {
     for (float& sample : channel_view) {
       constexpr float kMinFloatS16Value = -32768.f;
       constexpr float kMaxFloatS16Value = 32767.f;
-      sample = rtc::SafeClamp(sample, kMinFloatS16Value, kMaxFloatS16Value);
+      sample = SafeClamp(sample, kMinFloatS16Value, kMaxFloatS16Value);
     }
   }
 }
