@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+const { TabStateFlusher } = ChromeUtils.importESModule(
+  "resource:///modules/sessionstore/TabStateFlusher.sys.mjs"
+);
+
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.tabs.groups.enabled", true]],
@@ -1936,17 +1940,15 @@ add_task(async function test_saveDisabledForUnimportantGroup() {
 });
 
 add_task(async function test_saveAndCloseGroup() {
-  let { tabgroupEditor, group } = await createTabGroupAndOpenEditPanel([
-    await addTab("about:mozilla"),
-  ]);
+  let tab = await addTab("about:mozilla");
+  let { tabgroupEditor, group } = await createTabGroupAndOpenEditPanel([tab]);
   let tabgroupPanel = tabgroupEditor.panel;
-  let tab = group.tabs[0];
+  await TabStateFlusher.flush(tab.linkedBrowser);
   let saveAndCloseGroupButton = tabgroupPanel.querySelector(
     "#tabGroupEditor_saveAndCloseGroup"
   );
 
-  let groupMatch = gBrowser.getTabGroupById(group.id);
-  Assert.ok(groupMatch, "Group exists in browser");
+  Assert.ok(gBrowser.getTabGroupById(group.id), "Group exists in browser");
 
   let events = [
     BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden"),
@@ -1956,14 +1958,38 @@ add_task(async function test_saveAndCloseGroup() {
   saveAndCloseGroupButton.click();
   await Promise.all(events);
 
-  groupMatch = gBrowser.getTabGroupById(group.id);
-  Assert.ok(!groupMatch, "Group was removed from browser");
-  let savedGroupMatch = SessionStore.getSavedTabGroup(group.id);
-  Assert.ok(savedGroupMatch, "Group is in savedGroups");
+  Assert.ok(
+    !gBrowser.getTabGroupById(group.id),
+    "Group was removed from browser"
+  );
+  Assert.ok(SessionStore.getSavedTabGroup(group.id), "Group is in savedGroups");
 
   SessionStore.forgetSavedTabGroup(group.id);
 
   BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function test_saveAndCloseGroupViaMiddleClick() {
+  let tab = await addTab("about:mozilla");
+  let group = gBrowser.addTabGroup([tab]);
+  await TabStateFlusher.flush(tab.linkedBrowser);
+
+  Assert.ok(gBrowser.getTabGroupById(group.id), "Group exists in browser");
+
+  let events = [
+    BrowserTestUtils.waitForEvent(group, "TabGroupSaved"),
+    BrowserTestUtils.waitForEvent(group, "TabGroupRemoved"),
+  ];
+  triggerMiddleClickOn(group.labelElement);
+  await Promise.all(events);
+
+  Assert.ok(
+    !gBrowser.getTabGroupById(group.id),
+    "Group was removed from browser"
+  );
+  Assert.ok(SessionStore.getSavedTabGroup(group.id), "Group is in savedGroups");
+
+  SessionStore.forgetSavedTabGroup(group.id);
 });
 
 add_task(async function test_pinningInteractionsWithTabGroups() {
