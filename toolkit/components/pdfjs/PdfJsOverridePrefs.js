@@ -32,4 +32,6 @@
     pref("pdfjs.enableSignatureEditor", false);
   #endif
 
+  pref("pdfjs.enableAltTextForEnglish", false);
+
 #endif
