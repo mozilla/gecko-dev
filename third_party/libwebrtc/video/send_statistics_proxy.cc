@@ -1241,6 +1241,26 @@ void SendStatisticsProxy::OnBitrateAllocationUpdated(
   bw_limited_layers_ = allocation.is_bw_limited();
   UpdateAdaptationStats();
 
+  // Store target bitrates per substream stats.
+  for (auto& [ssrc, substream] : stats_.substreams) {
+    std::optional<size_t> simulcast_index;
+    for (size_t i = 0; i < rtp_config_.ssrcs.size(); ++i) {
+      if (rtp_config_.ssrcs[i] == ssrc) {
+        simulcast_index = i;
+        break;
+      }
+    }
+    if (!simulcast_index.has_value()) {
+      substream.target_bitrate = std::nullopt;
+      continue;
+    }
+    substream.target_bitrate =
+        DataRate::BitsPerSec(allocation.GetSpatialLayerSum(*simulcast_index));
+    if (substream.target_bitrate == DataRate::Zero()) {
+      substream.target_bitrate = std::nullopt;
+    }
+  }
+
   if (spatial_layers != last_spatial_layer_use_) {
     // If the number of spatial layers has changed, the resolution change is
     // not due to quality limitations, it is because the configuration

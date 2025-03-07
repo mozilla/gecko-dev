@@ -2461,7 +2461,6 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::GetPerLayerVideoSenderInfos(
     common_info.quality_limitation_resolution_changes =
         stats.quality_limitation_resolution_changes;
     common_info.encoder_implementation_name = stats.encoder_implementation_name;
-    common_info.target_bitrate = stats.target_media_bitrate_bps;
     common_info.ssrc_groups = ssrc_groups_;
     common_info.frames = stats.frames;
     common_info.framerate_input = stats.input_frame_rate;
@@ -2544,6 +2543,7 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::GetPerLayerVideoSenderInfos(
     info.total_encoded_bytes_target = stream_stats.total_encoded_bytes_target;
     info.huge_frames_sent = stream_stats.huge_frames_sent;
     info.scalability_mode = stream_stats.scalability_mode;
+    info.target_bitrate = stream_stats.target_bitrate;
     infos.push_back(info);
   }
   return infos;

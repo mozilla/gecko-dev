@@ -44,6 +44,7 @@
 #include "api/stats/rtcstats_objects.h"
 #include "api/test/rtc_error_matchers.h"
 #include "api/transport/enums.h"
+#include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "api/video/recordable_encoded_frame.h"
@@ -2557,7 +2558,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCOutboundRtpStreamStats_Audio) {
   voice_media_info.senders[0].header_and_padding_bytes_sent = 12;
   voice_media_info.senders[0].retransmitted_bytes_sent = 30;
   voice_media_info.senders[0].nacks_received = 31;
-  voice_media_info.senders[0].target_bitrate = 32000;
+  voice_media_info.senders[0].target_bitrate = DataRate::BitsPerSec(32'000);
   voice_media_info.senders[0].codec_payload_type = 42;
   voice_media_info.senders[0].active = true;
 

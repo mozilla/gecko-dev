@@ -1807,7 +1807,10 @@ bool WebRtcVoiceSendChannel::GetStats(VoiceMediaSendInfo* info) {
     sinfo.packets_lost = stats.packets_lost;
     sinfo.fraction_lost = stats.fraction_lost;
     sinfo.nacks_received = stats.nacks_received;
-    sinfo.target_bitrate = stats.target_bitrate_bps;
+    sinfo.target_bitrate = stats.target_bitrate_bps > 0
+                               ? std::optional(webrtc::DataRate::BitsPerSec(
+                                     stats.target_bitrate_bps))
+                               : std::nullopt;
     sinfo.codec_name = stats.codec_name;
     sinfo.codec_payload_type = stats.codec_payload_type;
     sinfo.jitter_ms = stats.jitter_ms;

@@ -39,6 +39,7 @@
 #include "api/rtp_sender_interface.h"
 #include "api/scoped_refptr.h"
 #include "api/transport/rtp/rtp_source.h"
+#include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "api/video/recordable_encoded_frame.h"
@@ -382,7 +383,7 @@ struct MediaSenderInfo {
   // https://w3c.github.io/webrtc-stats/#dom-rtcoutboundrtpstreamstats-nackcount
   uint32_t nacks_received = 0;
   // https://w3c.github.io/webrtc-stats/#dom-rtcoutboundrtpstreamstats-targetbitrate
-  std::optional<double> target_bitrate;
+  std::optional<webrtc::DataRate> target_bitrate;
   int packets_lost = 0;
   float fraction_lost = 0.0f;
   int64_t rtt_ms = 0;

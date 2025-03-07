@@ -35,7 +35,7 @@ index e379d18527..c810498584 100644
  # Normally, we'd use 'if (!build_with_mozilla)', but that flag isn't
  # available yet.
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 40f0b3b215..e8eb1c80dc 100644
+index a1fa83a5a7..b33e3cfc0a 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -7,7 +7,7 @@

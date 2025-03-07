@@ -448,6 +448,7 @@ rtc_library("video_send_stream_api") {
     "../api:transport_api",
     "../api/adaptation:resource_adaptation_api",
     "../api/crypto:options",
+    "../api/units:data_rate",
     "../api/video:video_frame",
     "../api/video:video_rtp_headers",
     "../api/video:video_stream_encoder",

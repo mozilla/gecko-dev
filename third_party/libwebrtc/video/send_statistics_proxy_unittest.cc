@@ -1508,6 +1508,36 @@ TEST_F(SendStatisticsProxyTest,
       0u, statistics_proxy_->GetStats().quality_limitation_resolution_changes);
 }
 
+TEST_F(SendStatisticsProxyTest, OnBitrateAllocationUpdatedSetsTargetBitrates) {
+  // We only update target bitrates for substreams that exist and these are
+  // created lazily in various places... calling OnInactiveSsrc() is one way to
+  // ensure the stats are reported.
+  statistics_proxy_->OnInactiveSsrc(kFirstSsrc);
+  statistics_proxy_->OnInactiveSsrc(kSecondSsrc);
+
+  // Update target bitrates!
+  VideoBitrateAllocation allocation;
+  allocation.SetBitrate(0, 0, 123);
+  allocation.SetBitrate(1, 0, 321);
+  statistics_proxy_->OnBitrateAllocationUpdated(VideoCodec(), allocation);
+  EXPECT_EQ(statistics_proxy_->GetStats().substreams[kFirstSsrc].target_bitrate,
+            DataRate::BitsPerSec(123));
+  EXPECT_EQ(
+      statistics_proxy_->GetStats().substreams[kSecondSsrc].target_bitrate,
+      DataRate::BitsPerSec(321));
+
+  // 0 bitrate = no target.
+  allocation.SetBitrate(0, 0, 0);
+  allocation.SetBitrate(1, 0, 0);
+  statistics_proxy_->OnBitrateAllocationUpdated(VideoCodec(), allocation);
+  EXPECT_FALSE(statistics_proxy_->GetStats()
+                   .substreams[kFirstSsrc]
+                   .target_bitrate.has_value());
+  EXPECT_FALSE(statistics_proxy_->GetStats()
+                   .substreams[kSecondSsrc]
+                   .target_bitrate.has_value());
+}
+
 TEST_F(SendStatisticsProxyTest,
        QualityLimitationResolutionDoesNotUpdateForSpatialLayerChanges) {
   VideoCodec codec;

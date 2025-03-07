@@ -22,7 +22,7 @@ index 574d8cea6d..50c27e7242 100644
  #include "api/rtp_headers.h"
  #include "api/scoped_refptr.h"
 diff --git a/call/video_send_stream.h b/call/video_send_stream.h
-index 2f5ff4ad3c..f2f9561a03 100644
+index e94be2df91..cc9c98d09c 100644
 --- a/call/video_send_stream.h
 +++ b/call/video_send_stream.h
 @@ -21,6 +21,7 @@

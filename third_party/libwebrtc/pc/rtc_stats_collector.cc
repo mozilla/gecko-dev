@@ -739,9 +739,8 @@ CreateOutboundRTPStreamStatsFromVoiceSenderInfo(
   outbound_audio->transport_id = transport_id;
   outbound_audio->mid = mid;
   outbound_audio->kind = "audio";
-  if (voice_sender_info.target_bitrate.has_value() &&
-      *voice_sender_info.target_bitrate > 0) {
-    outbound_audio->target_bitrate = *voice_sender_info.target_bitrate;
+  if (voice_sender_info.target_bitrate.has_value()) {
+    outbound_audio->target_bitrate = voice_sender_info.target_bitrate->bps();
   }
   if (voice_sender_info.codec_payload_type.has_value()) {
     auto codec_param_it = voice_media_info.send_codecs.find(
@@ -791,9 +790,8 @@ CreateOutboundRTPStreamStatsFromVideoSenderInfo(
       static_cast<uint32_t>(video_sender_info.plis_received);
   if (video_sender_info.qp_sum.has_value())
     outbound_video->qp_sum = *video_sender_info.qp_sum;
-  if (video_sender_info.target_bitrate.has_value() &&
-      *video_sender_info.target_bitrate > 0) {
-    outbound_video->target_bitrate = *video_sender_info.target_bitrate;
+  if (video_sender_info.target_bitrate.has_value()) {
+    outbound_video->target_bitrate = video_sender_info.target_bitrate->bps();
   }
   outbound_video->frames_encoded = video_sender_info.frames_encoded;
   outbound_video->key_frames_encoded = video_sender_info.key_frames_encoded;
