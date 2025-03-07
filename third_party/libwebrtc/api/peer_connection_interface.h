@@ -1539,34 +1539,10 @@ class RTC_EXPORT PeerConnectionFactoryInterface
 
   // The preferred way to create a new peer connection. Simply provide the
   // configuration and a PeerConnectionDependencies structure.
-  // TODO(benwright): Make pure virtual once downstream mock PC factory classes
-  // are updated.
   virtual RTCErrorOr<rtc::scoped_refptr<PeerConnectionInterface>>
   CreatePeerConnectionOrError(
       const PeerConnectionInterface::RTCConfiguration& configuration,
-      PeerConnectionDependencies dependencies);
-  // Deprecated creator - does not return an error code on error.
-  // TODO(bugs.webrtc.org:12238): Deprecate and remove.
-  ABSL_DEPRECATED("Use CreatePeerConnectionOrError")
-  virtual rtc::scoped_refptr<PeerConnectionInterface> CreatePeerConnection(
-      const PeerConnectionInterface::RTCConfiguration& configuration,
-      PeerConnectionDependencies dependencies);
-
-  // Deprecated; `allocator` and `cert_generator` may be null, in which case
-  // default implementations will be used.
-  //
-  // `observer` must not be null.
-  //
-  // Note that this method does not take ownership of `observer`; it's the
-  // responsibility of the caller to delete it. It can be safely deleted after
-  // Close has been called on the returned PeerConnection, which ensures no
-  // more observer callbacks will be invoked.
-  ABSL_DEPRECATED("Use CreatePeerConnectionOrError")
-  virtual rtc::scoped_refptr<PeerConnectionInterface> CreatePeerConnection(
-      const PeerConnectionInterface::RTCConfiguration& configuration,
-      std::unique_ptr<cricket::PortAllocator> allocator,
-      std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator,
-      PeerConnectionObserver* observer);
+      PeerConnectionDependencies dependencies) = 0;
 
   // Returns the capabilities of an RTP sender of type `kind`.
   // If for some reason you pass in MEDIA_TYPE_DATA, returns an empty structure.

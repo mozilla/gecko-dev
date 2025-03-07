@@ -1373,9 +1373,7 @@ if (rtc_include_tests) {
       ":rtc_error",
       ":rtp_parameters",
       ":scoped_refptr",
-      "../p2p:port_allocator",
       "../rtc_base:refcount",
-      "../rtc_base:rtc_certificate_generator",
       "../test:test_support",
       "//third_party/abseil-cpp/absl/strings:string_view",
     ]

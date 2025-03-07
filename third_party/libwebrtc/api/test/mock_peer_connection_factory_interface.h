@@ -13,7 +13,6 @@
 
 #include <cstdint>
 #include <cstdio>
-#include <memory>
 #include <string>
 
 #include "absl/strings/string_view.h"
@@ -24,9 +23,7 @@
 #include "api/rtc_error.h"
 #include "api/rtp_parameters.h"
 #include "api/scoped_refptr.h"
-#include "p2p/base/port_allocator.h"
 #include "rtc_base/ref_counted_object.h"
-#include "rtc_base/rtc_certificate_generator.h"
 #include "test/gmock.h"
 
 namespace webrtc {
@@ -40,22 +37,10 @@ class MockPeerConnectionFactoryInterface
   }
 
   MOCK_METHOD(void, SetOptions, (const Options&), (override));
-  MOCK_METHOD(rtc::scoped_refptr<PeerConnectionInterface>,
-              CreatePeerConnection,
-              (const PeerConnectionInterface::RTCConfiguration&,
-               PeerConnectionDependencies),
-              (override));
   MOCK_METHOD(RTCErrorOr<rtc::scoped_refptr<PeerConnectionInterface>>,
               CreatePeerConnectionOrError,
               (const PeerConnectionInterface::RTCConfiguration&,
                PeerConnectionDependencies),
-              (override));
-  MOCK_METHOD(rtc::scoped_refptr<PeerConnectionInterface>,
-              CreatePeerConnection,
-              (const PeerConnectionInterface::RTCConfiguration&,
-               std::unique_ptr<cricket::PortAllocator>,
-               std::unique_ptr<rtc::RTCCertificateGeneratorInterface>,
-               PeerConnectionObserver*),
               (override));
   MOCK_METHOD(RtpCapabilities,
               GetRtpSenderCapabilities,
