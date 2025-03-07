@@ -4926,7 +4926,7 @@
 # Whether view transitions use webrender for live-capture
 - name: dom.viewTransitions.live-capture
   type: bool
-  value: true
+  value: false
   mirror: always
 
 # Is support for WebVR APIs enabled?
