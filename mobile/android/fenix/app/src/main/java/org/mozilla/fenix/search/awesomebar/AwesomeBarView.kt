@@ -20,6 +20,7 @@ import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.feature.awesomebar.provider.BookmarksStorageSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.CombinedHistorySuggestionProvider
+import mozilla.components.feature.awesomebar.provider.DEFAULT_SEARCH_TERMS_SUGGESTION_LIMIT
 import mozilla.components.feature.awesomebar.provider.HistoryStorageSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.SearchActionProvider
 import mozilla.components.feature.awesomebar.provider.SearchEngineSuggestionProvider
@@ -47,6 +48,7 @@ import org.mozilla.fenix.components.Core.Companion.METADATA_SHORTCUT_SUGGESTION_
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.containsQueryParameters
 import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.search.SearchEngineSource
 import org.mozilla.fenix.search.SearchFragmentState
 
@@ -180,6 +182,7 @@ class AwesomeBarView(
                 loadUrlUseCase = loadUrlUseCase,
                 icons = components.core.icons,
                 engine = engineForSpeculativeConnects,
+                maxNumberOfSuggestions = FxNimbus.features.topSitesSuggestions.value().maxSuggestions,
             )
 
         defaultTrendingSearchProvider =
@@ -191,7 +194,7 @@ class AwesomeBarView(
                     BrowsingMode.Private -> true
                 },
                 searchUseCase = searchUseCase,
-                limit = 4,
+                limit = FxNimbus.features.trendingSearches.value().maxSuggestions,
                 engine = engineForSpeculativeConnects,
                 icon = searchBitmap,
                 suggestionsHeader = components.core.store.state.search
@@ -321,6 +324,7 @@ class AwesomeBarView(
         if (activity.settings().shouldShowRecentSearchSuggestions) {
             getRecentSearchSuggestionsProvider(
                 searchEngineSource = state.searchEngineSource,
+                maxNumberOfSuggestions = FxNimbus.features.recentSearches.value().maxSuggestions,
             )?.let { providersToAdd.add(it) }
         }
 
@@ -504,6 +508,7 @@ class AwesomeBarView(
     @VisibleForTesting
     internal fun getRecentSearchSuggestionsProvider(
         searchEngineSource: SearchEngineSource,
+        maxNumberOfSuggestions: Int = DEFAULT_SEARCH_TERMS_SUGGESTION_LIMIT,
     ): AwesomeBar.SuggestionProvider? {
         val validSearchEngine = searchEngineSource.searchEngine ?: return null
 
@@ -511,6 +516,7 @@ class AwesomeBarView(
             historyStorage = components.core.historyStorage,
             searchUseCase = historySearchTermUseCase,
             searchEngine = validSearchEngine,
+            maxNumberOfSuggestions = maxNumberOfSuggestions,
             icon = getDrawable(activity, R.drawable.ic_history)?.toBitmap(),
             engine = engineForSpeculativeConnects,
             suggestionsHeader = activity.getString(R.string.recent_searches_header),

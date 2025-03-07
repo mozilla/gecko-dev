@@ -1147,7 +1147,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         isTrendingSuggestionSupported: Boolean,
     ) =
         trendingSearchSuggestionsEnabled && isTrendingSearchesVisible && isTrendingSuggestionSupported &&
-            (!browsingMode.isPrivate || shouldShowSearchSuggestionsInPrivate)
+            shouldShowSearchSuggestions && (!browsingMode.isPrivate || shouldShowSearchSuggestionsInPrivate)
 
     /**
      * Indicates if the user have enabled recent search in the search suggestions setting preference.

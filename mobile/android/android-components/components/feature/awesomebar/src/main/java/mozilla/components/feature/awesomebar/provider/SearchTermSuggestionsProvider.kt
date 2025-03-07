@@ -20,7 +20,7 @@ import java.util.UUID
 /**
  * Return 2 search term suggestions by default. Same as on desktop.
  */
-private const val DEFAULT_SUGGESTION_LIMIT = 2
+const val DEFAULT_SEARCH_TERMS_SUGGESTION_LIMIT = 2
 
 /**
  * A too big limit but which help ensure the SearchSuggestionProvider' suggestions which should be placed
@@ -58,7 +58,7 @@ class SearchTermSuggestionsProvider(
     private val searchUseCase: SearchUseCase,
     private val searchEngine: SearchEngine?,
     @androidx.annotation.IntRange(from = 0, to = SEARCH_TERMS_MAXIMUM_ALLOWED_SUGGESTIONS_LIMIT.toLong())
-    private val maxNumberOfSuggestions: Int = DEFAULT_SUGGESTION_LIMIT,
+    private val maxNumberOfSuggestions: Int = DEFAULT_SEARCH_TERMS_SUGGESTION_LIMIT,
     private val icon: Bitmap? = null,
     private val engine: Engine? = null,
     private val showEditSuggestion: Boolean = true,
