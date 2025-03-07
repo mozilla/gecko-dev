@@ -58,8 +58,8 @@ IvfVideoFrameGenerator::IvfVideoFrameGenerator(const Environment& env,
     : callback_(this),
       file_reader_(IvfFileReader::Create(FileWrapper::OpenReadOnly(file_name))),
       video_decoder_(CreateDecoder(env, file_reader_->GetVideoCodecType())),
-      width_(file_reader_->GetFrameWidth()),
-      height_(file_reader_->GetFrameHeight()),
+      original_resolution_({.width = file_reader_->GetFrameWidth(),
+                            .height = file_reader_->GetFrameHeight()}),
       fps_hint_(fps_hint) {
   RTC_CHECK(video_decoder_) << "No decoder found for file's video codec type";
   VideoDecoder::Settings decoder_settings;
@@ -110,12 +110,18 @@ FrameGeneratorInterface::VideoFrameData IvfVideoFrameGenerator::NextFrame() {
   MutexLock frame_lock(&frame_decode_lock_);
   rtc::scoped_refptr<VideoFrameBuffer> buffer =
       next_frame_->video_frame_buffer();
-  if (width_ != static_cast<size_t>(buffer->width()) ||
-      height_ != static_cast<size_t>(buffer->height())) {
+
+  // Set original resolution to resolution of decoded frame.
+  original_resolution_ = {.width = static_cast<size_t>(buffer->width()),
+                          .height = static_cast<size_t>(buffer->width())};
+
+  if (output_resolution_.has_value() &&
+      (output_resolution_->width != original_resolution_.width ||
+       output_resolution_->height != original_resolution_.height)) {
     // Video adapter has requested a down-scale. Allocate a new buffer and
     // return scaled version.
-    rtc::scoped_refptr<I420Buffer> scaled_buffer =
-        I420Buffer::Create(width_, height_);
+    rtc::scoped_refptr<I420Buffer> scaled_buffer = I420Buffer::Create(
+        output_resolution_->width, output_resolution_->height);
     scaled_buffer->ScaleFrom(*buffer->ToI420());
     buffer = scaled_buffer;
   }
@@ -139,13 +145,12 @@ void IvfVideoFrameGenerator::SkipNextFrame() {
 
 void IvfVideoFrameGenerator::ChangeResolution(size_t width, size_t height) {
   MutexLock lock(&lock_);
-  width_ = width;
-  height_ = height;
+  output_resolution_ = {.width = width, .height = height};
 }
 
 FrameGeneratorInterface::Resolution IvfVideoFrameGenerator::GetResolution()
     const {
-  return {.width = width_, .height = height_};
+  return output_resolution_.value_or(original_resolution_);
 }
 
 int32_t IvfVideoFrameGenerator::DecodedCallback::Decoded(

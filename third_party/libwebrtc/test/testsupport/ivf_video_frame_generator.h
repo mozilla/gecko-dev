@@ -67,8 +67,13 @@ class IvfVideoFrameGenerator : public FrameGeneratorInterface {
   std::unique_ptr<IvfFileReader> file_reader_;
   std::unique_ptr<VideoDecoder> video_decoder_;
 
-  size_t width_;
-  size_t height_;
+  // Resolution of IVF. Initially readed from IVF header and then set to
+  // resolution of decoded frame.
+  Resolution original_resolution_;
+  // Resolution of output frames. When set, the decoded frames scaled to
+  // `output_resolution_`. Otherwise the decoded resolution, which may vary from
+  // frame to frame, is preserved.
+  std::optional<Resolution> output_resolution_;
   std::optional<int> fps_hint_;
 
   // This lock is used to ensure that all API method will be called
