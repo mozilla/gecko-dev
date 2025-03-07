@@ -1,0 +1,73 @@
+diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
+--- a/expat/lib/xmlparse.c
++++ b/expat/lib/xmlparse.c
+@@ -764,6 +764,9 @@ struct XML_ParserStruct {
+   ACCOUNTING m_accounting;
+   ENTITY_STATS m_entity_stats;
+ #endif
++/* BEGIN MOZILLA CHANGE (Report opening tag of mismatched closing tag) */
++  const XML_Char* m_mismatch;
++/* END MOZILLA CHANGE */
+ };
+ 
+ #define MALLOC(parser, s) (parser->m_mem.malloc_fcn((s)))
+@@ -1189,6 +1192,10 @@ parserCreate(const XML_Char *encodingNam
+     parser->m_internalEncoding = XmlGetInternalEncoding();
+   }
+ 
++/* BEGIN MOZILLA CHANGE (Report opening tag of mismatched closing tag) */
++  parser->m_mismatch = NULL;
++/* END MOZILLA CHANGE */
++
+   return parser;
+ }
+ 
+@@ -2645,6 +2652,14 @@ XML_SetBillionLaughsAttackProtectionActi
+ }
+ #endif /* XML_GE == 1 */
+ 
++/* BEGIN MOZILLA CHANGE (Report opening tag of mismatched closing tag) */
++const XML_Char * XMLCALL
++MOZ_XML_GetMismatchedTag(XML_Parser parser)
++{
++  return parser->m_mismatch;
++}
++/* END MOZILLA CHANGE */
++
+ XML_Bool XMLCALL
+ XML_SetReparseDeferralEnabled(XML_Parser parser, XML_Bool enabled) {
+   if (parser != NULL && (enabled == XML_TRUE || enabled == XML_FALSE)) {
+@@ -3117,6 +3132,33 @@ doContent(XML_Parser parser, int startTa
+         len = XmlNameLength(enc, rawName);
+         if (len != tag->rawNameLength
+             || memcmp(tag->rawName, rawName, len) != 0) {
++/* BEGIN MOZILLA CHANGE (Report opening tag of mismatched closing tag) */
++          /* This code is copied from the |if (parser->m_endElementHandler)|
++             block below
++          */
++          const XML_Char *localPart;
++          const XML_Char *prefix;
++          XML_Char *uri;
++          localPart = tag->name.localPart;
++          if (parser->m_ns && localPart) {
++            /* localPart and prefix may have been overwritten in
++               tag->name.str, since this points to the binding->uri
++               buffer which gets reused; so we have to add them again
++            */
++            uri = (XML_Char *)tag->name.str + tag->name.uriLen;
++            /* don't need to check for space - already done in storeAtts() */
++            while (*localPart)
++              *uri++ = *localPart++;
++            prefix = tag->name.prefix;
++            if (parser->m_ns_triplets && prefix) {
++              *uri++ = parser->m_namespaceSeparator;
++              while (*prefix)
++                *uri++ = *prefix++;
++            }
++            *uri = XML_T('\0');
++          }
++          parser->m_mismatch = tag->name.str;
++/* END MOZILLA CHANGE */
+           *eventPP = rawName;
+           return XML_ERROR_TAG_MISMATCH;
+         }

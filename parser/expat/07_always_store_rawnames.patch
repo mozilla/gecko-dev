@@ -1,0 +1,86 @@
+diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
+--- a/expat/lib/xmlparse.c
++++ b/expat/lib/xmlparse.c
+@@ -491,6 +491,13 @@ static enum XML_Error doProlog(XML_Parse
+                                enum XML_Account account);
+ static enum XML_Error processInternalEntity(XML_Parser parser, ENTITY *entity,
+                                             XML_Bool betweenDecl);
++/* BEGIN MOZILLA CHANGE (Bug 1746996 - Ensure that storeRawNames is always called) */
++static enum XML_Error doContentInternal(XML_Parser parser, int startTagLevel,
++                                        const ENCODING *enc, const char *start,
++                                        const char *end, const char **endPtr,
++                                        XML_Bool haveMore,
++                                        enum XML_Account account);
++/* END MOZILLA CHANGE */
+ static enum XML_Error doContent(XML_Parser parser, int startTagLevel,
+                                 const ENCODING *enc, const char *start,
+                                 const char *end, const char **endPtr,
+@@ -2756,10 +2763,14 @@ contentProcessor(XML_Parser parser, cons
+   enum XML_Error result = doContent(
+       parser, 0, parser->m_encoding, start, end, endPtr,
+       (XML_Bool)! parser->m_parsingStatus.finalBuffer, XML_ACCOUNT_DIRECT);
++/* BEGIN MOZILLA CHANGE (Bug 1746996 - Ensure that storeRawNames is always called) */
++#if 0
+   if (result == XML_ERROR_NONE) {
+     if (! storeRawNames(parser))
+       return XML_ERROR_NO_MEMORY;
+   }
++#endif
++/* END MOZILLA CHANGE */
+   return result;
+ }
+ 
+@@ -2872,6 +2883,24 @@ externalEntityContentProcessor(XML_Parse
+       = doContent(parser, 1, parser->m_encoding, start, end, endPtr,
+                   (XML_Bool)! parser->m_parsingStatus.finalBuffer,
+                   XML_ACCOUNT_ENTITY_EXPANSION);
++/* BEGIN MOZILLA CHANGE (Bug 1746996 - Ensure that storeRawNames is always called) */
++#if 0
++  if (result == XML_ERROR_NONE) {
++    if (! storeRawNames(parser))
++      return XML_ERROR_NO_MEMORY;
++  }
++#endif
++/* END MOZILLA CHANGE */
++  return result;
++}
++
++static enum XML_Error
++doContent(XML_Parser parser, int startTagLevel, const ENCODING *enc,
++          const char *s, const char *end, const char **nextPtr,
++          XML_Bool haveMore, enum XML_Account account) {
++/* BEGIN MOZILLA CHANGE (Bug 1746996 - Ensure that storeRawNames is always called) */
++  enum XML_Error result = doContentInternal(parser, startTagLevel, enc, s, end,
++                                            nextPtr, haveMore, account);
+   if (result == XML_ERROR_NONE) {
+     if (! storeRawNames(parser))
+       return XML_ERROR_NO_MEMORY;
+@@ -2880,9 +2909,10 @@ externalEntityContentProcessor(XML_Parse
+ }
+ 
+ static enum XML_Error
+-doContent(XML_Parser parser, int startTagLevel, const ENCODING *enc,
+-          const char *s, const char *end, const char **nextPtr,
+-          XML_Bool haveMore, enum XML_Account account) {
++doContentInternal(XML_Parser parser, int startTagLevel, const ENCODING *enc,
++                  const char *s, const char *end, const char **nextPtr,
++                  XML_Bool haveMore, enum XML_Account account) {
++/* END MOZILLA CHANGE */
+   /* save one level of indirection */
+   DTD *const dtd = parser->m_dtd;
+ 
+@@ -6038,10 +6068,14 @@ internalEntityProcessor(XML_Parser parse
+                        parser->m_encoding, s, end, nextPtr,
+                        (XML_Bool)! parser->m_parsingStatus.finalBuffer,
+                        XML_ACCOUNT_DIRECT);
++/* BEGIN MOZILLA CHANGE (Bug 1746996 - Ensure that storeRawNames is always called) */
++#if 0
+     if (result == XML_ERROR_NONE) {
+       if (! storeRawNames(parser))
+         return XML_ERROR_NO_MEMORY;
+     }
++#endif
++/* END MOZILLA CHANGE */
+     return result;
+   }
+ }

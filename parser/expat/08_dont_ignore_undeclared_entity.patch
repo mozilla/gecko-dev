@@ -1,0 +1,33 @@
+diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
+--- a/expat/lib/xmlparse.c
++++ b/expat/lib/xmlparse.c
+@@ -3028,9 +3028,15 @@ doContentInternal(XML_Parser parser, int
+       } else if (! entity) {
+         if (parser->m_skippedEntityHandler)
+           parser->m_skippedEntityHandler(parser->m_handlerArg, name, 0);
++/* BEGIN MOZILLA CHANGE (Bug 35984 - Undeclared entities are ignored when external DTD not found) */
++#if 0
+         else if (parser->m_defaultHandler)
+           reportDefault(parser, enc, s, next);
+         break;
++#else
++        return XML_ERROR_UNDEFINED_ENTITY;
++#endif
++/* END MOZILLA CHANGE */
+       }
+       if (entity->open)
+         return XML_ERROR_RECURSIVE_ENTITY_REF;
+@@ -6229,7 +6235,13 @@ appendAttributeValue(XML_Parser parser, 
+         if ((pool == &parser->m_tempPool) && parser->m_defaultHandler)
+           reportDefault(parser, enc, ptr, next);
+         */
++/* BEGIN MOZILLA CHANGE (Bug 35984 - Undeclared entities are ignored when external DTD not found) */
++#if 0
+         break;
++#else
++        return XML_ERROR_UNDEFINED_ENTITY;
++#endif
++/* END MOZILLA CHANGE */
+       }
+       if (entity->open) {
+         if (enc == parser->m_encoding) {

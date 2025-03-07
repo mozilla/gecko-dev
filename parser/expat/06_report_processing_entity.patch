@@ -1,0 +1,17 @@
+diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
+--- a/expat/lib/xmlparse.c
++++ b/expat/lib/xmlparse.c
+@@ -2680,6 +2680,13 @@ MOZ_XML_GetMismatchedTag(XML_Parser pars
+ }
+ /* END MOZILLA CHANGE */
+ 
++/* BEGIN MOZILLA CHANGE (Report whether the parser is currently expanding an entity) */
++XML_Bool XMLCALL
++MOZ_XML_ProcessingEntityValue(XML_Parser parser) {
++  return parser->m_openInternalEntities != NULL;
++}
++/* END MOZILLA CHANGE */
++
+ XML_Bool XMLCALL
+ XML_SetReparseDeferralEnabled(XML_Parser parser, XML_Bool enabled) {
+   if (parser != NULL && (enabled == XML_TRUE || enabled == XML_FALSE)) {

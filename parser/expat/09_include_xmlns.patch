@@ -1,0 +1,140 @@
+diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
+--- a/expat/lib/xmlparse.c
++++ b/expat/lib/xmlparse.c
+@@ -3458,6 +3458,9 @@ storeAtts(XML_Parser parser, const ENCOD
+   int n;
+   XML_Char *uri;
+   int nPrefixes = 0;
++/* BEGIN MOZILLA CHANGE (Include xmlns attributes in attributes array) */
++  int nXMLNSDeclarations = 0;
++/* END MOZILLA CHANGE */
+   BINDING *binding;
+   const XML_Char *localPart;
+ 
+@@ -3615,7 +3618,15 @@ storeAtts(XML_Parser parser, const ENCOD
+                                            appAtts[attIndex], bindingsPtr);
+         if (result)
+           return result;
++/* BEGIN MOZILLA CHANGE (Include xmlns attributes in attributes array) */
++#if 0
+         --attIndex;
++#else
++        attIndex++;
++        nXMLNSDeclarations++;
++        (attId->name)[-1] = 3;
++#endif
++/* END MOZILLA CHANGE */
+       } else {
+         /* deal with other prefixed names later */
+         attIndex++;
+@@ -3647,6 +3658,12 @@ storeAtts(XML_Parser parser, const ENCOD
+                                              da->value, bindingsPtr);
+           if (result)
+             return result;
++/* BEGIN MOZILLA CHANGE (Include xmlns attributes in attributes array) */
++          (da->id->name)[-1] = 3;
++          nXMLNSDeclarations++;
++          appAtts[attIndex++] = da->id->name;
++          appAtts[attIndex++] = da->value;
++/* END MOZILLA CHANGE */
+         } else {
+           (da->id->name)[-1] = 2;
+           nPrefixes++;
+@@ -3665,7 +3682,13 @@ storeAtts(XML_Parser parser, const ENCOD
+   /* expand prefixed attribute names, check for duplicates,
+      and clear flags that say whether attributes were specified */
+   i = 0;
++/* BEGIN MOZILLA CHANGE (Include xmlns attributes in attributes array) */
++#if 0
+   if (nPrefixes) {
++#else
++  if (nPrefixes || nXMLNSDeclarations) {
++#endif
++/* END MOZILLA CHANGE */
+     int j; /* hash table index */
+     unsigned long version = parser->m_nsAttsVersion;
+ 
+@@ -3675,6 +3698,9 @@ storeAtts(XML_Parser parser, const ENCOD
+     }
+ 
+     unsigned int nsAttsSize = 1u << parser->m_nsAttsPower;
++/* BEGIN MOZILLA CHANGE (Include xmlns attributes in attributes array) */
++    if (nPrefixes) {
++/* END MOZILLA CHANGE */
+     unsigned char oldNsAttsPower = parser->m_nsAttsPower;
+     /* size of hash table must be at least 2 * (# of prefixed attributes) */
+     if ((nPrefixes << 1)
+@@ -3724,6 +3750,9 @@ storeAtts(XML_Parser parser, const ENCOD
+         parser->m_nsAtts[--j].version = version;
+     }
+     parser->m_nsAttsVersion = --version;
++/* BEGIN MOZILLA CHANGE (Include xmlns attributes in attributes array) */
++    }
++/* END MOZILLA CHANGE */
+ 
+     /* expand prefixed names and check for duplicates */
+     for (; i < attIndex; i += 2) {
+@@ -3823,10 +3852,63 @@ storeAtts(XML_Parser parser, const ENCOD
+         parser->m_nsAtts[j].hash = uriHash;
+         parser->m_nsAtts[j].uriName = s;
+ 
++/* BEGIN MOZILLA CHANGE (Include xmlns attributes in attributes array) */
++#if 0
+         if (! --nPrefixes) {
++#else
++        if (! --nPrefixes && ! nXMLNSDeclarations) {
++#endif
++/* END MOZILLA CHANGE */
+           i += 2;
+           break;
+         }
++/* BEGIN MOZILLA CHANGE (Include xmlns attributes in attributes array) */
++      } else if (s[-1] == 3) { /* xmlns attribute */
++        static const XML_Char xmlnsNamespace[] = {
++          ASCII_h, ASCII_t, ASCII_t, ASCII_p, ASCII_COLON, ASCII_SLASH, ASCII_SLASH,
++          ASCII_w, ASCII_w, ASCII_w, ASCII_PERIOD, ASCII_w, ASCII_3, ASCII_PERIOD,
++          ASCII_o, ASCII_r, ASCII_g, ASCII_SLASH, ASCII_2, ASCII_0, ASCII_0, ASCII_0,
++          ASCII_SLASH, ASCII_x, ASCII_m, ASCII_l, ASCII_n, ASCII_s, ASCII_SLASH, '\0'
++        };
++        static const XML_Char xmlnsPrefix[] = {
++          ASCII_x, ASCII_m, ASCII_l, ASCII_n, ASCII_s, '\0'
++        };
++
++        ((XML_Char *)s)[-1] = 0;  /* clear flag */
++        if (! poolAppendString(&parser->m_tempPool, xmlnsNamespace)
++            || ! poolAppendChar(&parser->m_tempPool, parser->m_namespaceSeparator))
++          return XML_ERROR_NO_MEMORY;
++        s += sizeof(xmlnsPrefix) / sizeof(xmlnsPrefix[0]) - 1;
++        if (*s == XML_T(':')) {
++          ++s;
++          do {  /* copies null terminator */
++            if (! poolAppendChar(&parser->m_tempPool, *s))
++              return XML_ERROR_NO_MEMORY;
++          } while (*s++);
++          if (parser->m_ns_triplets) { /* append namespace separator and prefix */
++            parser->m_tempPool.ptr[-1] = parser->m_namespaceSeparator;
++            if (! poolAppendString(&parser->m_tempPool, xmlnsPrefix)
++                || ! poolAppendChar(&parser->m_tempPool, '\0'))
++              return XML_ERROR_NO_MEMORY;
++          }
++        }
++        else {
++          /* xlmns attribute without a prefix. */
++          if (! poolAppendString(&parser->m_tempPool, xmlnsPrefix)
++              || ! poolAppendChar(&parser->m_tempPool, '\0'))
++            return XML_ERROR_NO_MEMORY;
++        }
++
++        /* store expanded name in attribute list */
++        s = poolStart(&parser->m_tempPool);
++        poolFinish(&parser->m_tempPool);
++        appAtts[i] = s;
++
++        if (! --nXMLNSDeclarations && ! nPrefixes) {
++          i += 2;
++          break;
++        }
++/* END MOZILLA CHANGE */
+       } else                     /* not prefixed */
+         ((XML_Char *)s)[-1] = 0; /* clear flag */
+     }

@@ -1,0 +1,218 @@
+diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
+--- a/expat/lib/xmlparse.c
++++ b/expat/lib/xmlparse.c
+@@ -444,16 +444,24 @@ typedef unsigned long long XmlBigCount;
+ typedef struct accounting {
+   XmlBigCount countBytesDirect;
+   XmlBigCount countBytesIndirect;
++/* BEGIN MOZILLA CHANGE (don't report debug information) */
++#if 0
+   unsigned long debugLevel;
++#endif
++/* END MOZILLA CHANGE */
+   float maximumAmplificationFactor; // >=1.0
+   unsigned long long activationThresholdBytes;
+ } ACCOUNTING;
+ 
+ typedef struct entity_stats {
++/* BEGIN MOZILLA CHANGE (don't report debug information) */
++#if 0
+   unsigned int countEverOpened;
+   unsigned int currentDepth;
+   unsigned int maximumDepthSeen;
+   unsigned long debugLevel;
++#endif
++/* END MOZILLA CHANGE */
+ } ENTITY_STATS;
+ #endif /* XML_GE == 1 */
+ 
+@@ -611,18 +619,26 @@ static void parserInit(XML_Parser parser
+ static float accountingGetCurrentAmplification(XML_Parser rootParser);
+ static void accountingReportStats(XML_Parser originParser, const char *epilog);
+ static void accountingOnAbort(XML_Parser originParser);
++/* BEGIN MOZILLA CHANGE (don't report debug information) */
++#if 0
+ static void accountingReportDiff(XML_Parser rootParser,
+                                  unsigned int levelsAwayFromRootParser,
+                                  const char *before, const char *after,
+                                  ptrdiff_t bytesMore, int source_line,
+                                  enum XML_Account account);
++#endif
++/* END MOZILLA CHANGE */
+ static XML_Bool accountingDiffTolerated(XML_Parser originParser, int tok,
+                                         const char *before, const char *after,
+                                         int source_line,
+                                         enum XML_Account account);
+ 
++/* BEGIN MOZILLA CHANGE (don't report debug information) */
++#if 0
+ static void entityTrackingReportStats(XML_Parser parser, ENTITY *entity,
+                                       const char *action, int sourceLine);
++#endif
++/* END MOZILLA CHANGE */
+ static void entityTrackingOnOpen(XML_Parser parser, ENTITY *entity,
+                                  int sourceLine);
+ static void entityTrackingOnClose(XML_Parser parser, ENTITY *entity,
+@@ -632,8 +648,12 @@ static XML_Parser getRootParserOf(XML_Pa
+                                   unsigned int *outLevelDiff);
+ #endif /* XML_GE == 1 */
+ 
++/* BEGIN MOZILLA CHANGE (don't report debug information) */
++#if 0
+ static unsigned long getDebugLevel(const char *variableName,
+                                    unsigned long defaultDebugLevel);
++#endif
++/* END MOZILLA CHANGE */
+ 
+ #define poolStart(pool) ((pool)->start)
+ #define poolLength(pool) ((pool)->ptr - (pool)->start)
+@@ -1292,15 +1312,23 @@ parserInit(XML_Parser parser, const XML_
+ 
+ #if XML_GE == 1
+   memset(&parser->m_accounting, 0, sizeof(ACCOUNTING));
++/* BEGIN MOZILLA CHANGE (don't report debug information) */
++#if 0
+   parser->m_accounting.debugLevel = getDebugLevel("EXPAT_ACCOUNTING_DEBUG", 0u);
++#endif
++/* END MOZILLA CHANGE */
+   parser->m_accounting.maximumAmplificationFactor
+       = EXPAT_BILLION_LAUGHS_ATTACK_PROTECTION_MAXIMUM_AMPLIFICATION_DEFAULT;
+   parser->m_accounting.activationThresholdBytes
+       = EXPAT_BILLION_LAUGHS_ATTACK_PROTECTION_ACTIVATION_THRESHOLD_DEFAULT;
+ 
+   memset(&parser->m_entity_stats, 0, sizeof(ENTITY_STATS));
++/* BEGIN MOZILLA CHANGE (don't report debug information) */
++#if 0
+   parser->m_entity_stats.debugLevel = getDebugLevel("EXPAT_ENTITY_DEBUG", 0u);
+ #endif
++/* END MOZILLA CHANGE */
++#endif
+ }
+ 
+ /* moves list of bindings to m_freeBindingList */
+@@ -8069,6 +8097,8 @@ accountingGetCurrentAmplification(XML_Pa
+ 
+ static void
+ accountingReportStats(XML_Parser originParser, const char *epilog) {
++/* BEGIN MOZILLA CHANGE (don't report debug information) */
++#if 0
+   const XML_Parser rootParser = getRootParserOf(originParser, NULL);
+   assert(! rootParser->m_parentParser);
+ 
+@@ -8084,6 +8114,8 @@ accountingReportStats(XML_Parser originP
+           (void *)rootParser, rootParser->m_accounting.countBytesDirect,
+           rootParser->m_accounting.countBytesIndirect,
+           (double)amplificationFactor, epilog);
++#endif
++/* END MOZILLA CHANGE */
+ }
+ 
+ static void
+@@ -8091,6 +8123,8 @@ accountingOnAbort(XML_Parser originParse
+   accountingReportStats(originParser, " ABORTING\n");
+ }
+ 
++/* BEGIN MOZILLA CHANGE (don't report debug information) */
++#if 0
+ static void
+ accountingReportDiff(XML_Parser rootParser,
+                      unsigned int levelsAwayFromRootParser, const char *before,
+@@ -8127,6 +8161,8 @@ accountingReportDiff(XML_Parser rootPars
+   }
+   fprintf(stderr, "\"\n");
+ }
++#endif
++/* END MOZILLA CHANGE */
+ 
+ static XML_Bool
+ accountingDiffTolerated(XML_Parser originParser, int tok, const char *before,
+@@ -8174,11 +8210,15 @@ accountingDiffTolerated(XML_Parser origi
+         || (amplificationFactor
+             <= rootParser->m_accounting.maximumAmplificationFactor);
+ 
++/* BEGIN MOZILLA CHANGE (don't report debug information) */
++#if 0
+   if (rootParser->m_accounting.debugLevel >= 2u) {
+     accountingReportStats(rootParser, "");
+     accountingReportDiff(rootParser, levelsAwayFromRootParser, before, after,
+                          bytesMore, source_line, account);
+   }
++#endif
++/* END MOZILLA CHANGE */
+ 
+   return tolerated;
+ }
+@@ -8197,6 +8237,8 @@ testingAccountingGetCountBytesIndirect(X
+   return parser->m_accounting.countBytesIndirect;
+ }
+ 
++/* BEGIN MOZILLA CHANGE (don't report debug information) */
++#if 0
+ static void
+ entityTrackingReportStats(XML_Parser rootParser, ENTITY *entity,
+                           const char *action, int sourceLine) {
+@@ -8220,9 +8262,13 @@ entityTrackingReportStats(XML_Parser roo
+       entity->is_param ? "%" : "&", entityName, action, entity->textLen,
+       sourceLine);
+ }
++#endif
++/* END MOZILLA CHANGE */
+ 
+ static void
+ entityTrackingOnOpen(XML_Parser originParser, ENTITY *entity, int sourceLine) {
++/* BEGIN MOZILLA CHANGE (don't report debug information) */
++#if 0
+   const XML_Parser rootParser = getRootParserOf(originParser, NULL);
+   assert(! rootParser->m_parentParser);
+ 
+@@ -8234,15 +8280,21 @@ entityTrackingOnOpen(XML_Parser originPa
+   }
+ 
+   entityTrackingReportStats(rootParser, entity, "OPEN ", sourceLine);
++#endif
++/* END MOZILLA CHANGE */
+ }
+ 
+ static void
+ entityTrackingOnClose(XML_Parser originParser, ENTITY *entity, int sourceLine) {
++/* BEGIN MOZILLA CHANGE (don't report debug information) */
++#if 0
+   const XML_Parser rootParser = getRootParserOf(originParser, NULL);
+   assert(! rootParser->m_parentParser);
+ 
+   entityTrackingReportStats(rootParser, entity, "CLOSE", sourceLine);
+   rootParser->m_entity_stats.currentDepth--;
++#endif
++/* END MOZILLA CHANGE */
+ }
+ 
+ static XML_Parser
+@@ -8260,6 +8312,8 @@ getRootParserOf(XML_Parser parser, unsig
+   return rootParser;
+ }
+ 
++/* BEGIN MOZILLA CHANGE (don't report debug information) */
++#if 0
+ const char *
+ unsignedCharToPrintable(unsigned char c) {
+   switch (c) {
+@@ -8781,9 +8835,13 @@ unsignedCharToPrintable(unsigned char c)
+   }
+   assert(0); /* never gets here */
+ }
++#endif
++/* END MOZILLA CHANGE */
+ 
+ #endif /* XML_GE == 1 */
+ 
++/* BEGIN MOZILLA CHANGE (don't report debug information) */
++#if 0
+ static unsigned long
+ getDebugLevel(const char *variableName, unsigned long defaultDebugLevel) {
+   const char *const valueOrNull = getenv(variableName);
+@@ -8802,3 +8860,5 @@ getDebugLevel(const char *variableName, 
+ 
+   return debugLevel;
+ }
++#endif
++/* END MOZILLA CHANGE */

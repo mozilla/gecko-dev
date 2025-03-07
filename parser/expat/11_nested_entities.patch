@@ -1,0 +1,33 @@
+diff --git a/expat/lib/xmlparse.c b/expat/lib/xmlparse.c
+--- a/expat/lib/xmlparse.c
++++ b/expat/lib/xmlparse.c
+@@ -6085,7 +6085,29 @@ processInternalEntity(XML_Parser parser,
+       entityTrackingOnClose(parser, entity, __LINE__);
+ #endif /* XML_GE == 1 */
+       entity->open = XML_FALSE;
++/* BEGIN MOZILLA CHANGE (Bug 569229 - Deal with parser interruption from nested entities) */
++#if 0
+       parser->m_openInternalEntities = openEntity->next;
++#else
++      if (parser->m_openInternalEntities == openEntity) {
++        parser->m_openInternalEntities = openEntity->next;
++      }
++      else {
++        /* openEntity should be closed, but it contains an inner entity that is
++           still open. Remove openEntity from the m_openInternalEntities linked
++           list by looking for the inner entity in the list that links to
++           openEntity and fixing up its 'next' member
++        */
++        OPEN_INTERNAL_ENTITY *innerOpenEntity = parser->m_openInternalEntities;
++        do {
++          if (innerOpenEntity->next == openEntity) {
++            innerOpenEntity->next = openEntity->next;
++            break;
++          }
++        } while ((innerOpenEntity = innerOpenEntity->next));
++      }
++#endif
++/* END MOZILLA CHANGE */
+       /* put openEntity back in list of free instances */
+       openEntity->next = parser->m_freeInternalEntities;
+       parser->m_freeInternalEntities = openEntity;
