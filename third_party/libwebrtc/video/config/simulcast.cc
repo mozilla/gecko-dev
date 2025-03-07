@@ -325,12 +325,6 @@ std::vector<webrtc::VideoStream> GetNormalSimulcastLayers(
           // Base heavy allocation increases TL0 bitrate from 40% to 60%.
           rate_factor = 0.4 / 0.6;
         }
-      } else if (num_temporal_layers > 3) {
-        rate_factor =
-            webrtc::SimulcastRateAllocator::GetTemporalRateAllocation(
-                3, 0, /*base_heavy_tl3_rate_alloc=*/false) /
-            webrtc::SimulcastRateAllocator::GetTemporalRateAllocation(
-                num_temporal_layers, 0, /*base_heavy_tl3_rate_alloc=*/false);
       }
 
       layers[s].max_bitrate_bps =
