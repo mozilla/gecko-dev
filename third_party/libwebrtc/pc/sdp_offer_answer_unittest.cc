@@ -8,6 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -50,12 +51,12 @@
 #include "media/base/stream_params.h"
 #include "p2p/base/transport_description.h"
 #include "pc/peer_connection_wrapper.h"
-#include "pc/rtp_parameters_conversion.h"
 #include "pc/session_description.h"
 #include "pc/test/fake_audio_capture_module.h"
 #include "pc/test/fake_rtc_certificate_generator.h"
 #include "pc/test/integration_test_helpers.h"
 #include "pc/test/mock_peer_connection_observers.h"
+#include "rtc_base/logging.h"
 #include "rtc_base/string_encode.h"
 #include "rtc_base/thread.h"
 #include "system_wrappers/include/metrics.h"
@@ -1667,6 +1668,79 @@ TEST_F(SdpOfferAnswerTest, ReducedSizeNotNegotiated) {
   EXPECT_FALSE(audio_send_param.rtcp.reduced_size);
   auto video_send_param = senders[1]->GetParameters();
   EXPECT_FALSE(video_send_param.rtcp.reduced_size);
+}
+
+TEST_F(SdpOfferAnswerTest, PayloadTypeMatchingWithSubsequentOfferAnswer) {
+  auto caller = CreatePeerConnection();
+  auto callee = CreatePeerConnection();
+
+  // 1. Restrict codecs and set a local description and remote description.
+  //    with a different payload type.
+  auto video_transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+  std::vector<RtpCodecCapability> codec_caps =
+      pc_factory_->GetRtpReceiverCapabilities(cricket::MEDIA_TYPE_VIDEO).codecs;
+  codec_caps.erase(std::remove_if(codec_caps.begin(), codec_caps.end(),
+                                  [](const RtpCodecCapability& codec) {
+                                    return !absl::EqualsIgnoreCase(codec.name,
+                                                                   "VP8");
+                                  }),
+                   codec_caps.end());
+  EXPECT_TRUE(video_transceiver->SetCodecPreferences(codec_caps).ok());
+
+  auto offer1 = caller->CreateOfferAndSetAsLocal();
+
+  // 2. Add additional supported but not offered codec before SRD
+  auto& contents = offer1->description()->contents();
+  ASSERT_EQ(contents.size(), 1u);
+  auto* media_description = contents[0].media_description();
+  ASSERT_TRUE(media_description);
+  std::vector<cricket::Codec> codecs = media_description->codecs();
+  ASSERT_EQ(codecs.size(), 1u);
+  ASSERT_NE(codecs[0].id, 127);
+  auto av1 = cricket::CreateVideoCodec(SdpVideoFormat("AV1", {}));
+  av1.id = 127;
+  codecs.insert(codecs.begin(), av1);
+  media_description->set_codecs(codecs);
+  EXPECT_TRUE(callee->SetRemoteDescription(std::move(offer1)));
+
+  auto answer1 = callee->CreateAnswerAndSetAsLocal();
+  EXPECT_TRUE(caller->SetRemoteDescription(std::move(answer1)));
+
+  // 3. sCP to reenable that codec. Payload type is not matched at this point.
+  codec_caps =
+      pc_factory_->GetRtpReceiverCapabilities(cricket::MEDIA_TYPE_VIDEO).codecs;
+  codec_caps.erase(
+      std::remove_if(codec_caps.begin(), codec_caps.end(),
+                     [](const RtpCodecCapability& codec) {
+                       return !(absl::EqualsIgnoreCase(codec.name, "VP8") ||
+                                absl::EqualsIgnoreCase(codec.name, "AV1"));
+                     }),
+      codec_caps.end());
+  EXPECT_TRUE(video_transceiver->SetCodecPreferences(codec_caps).ok());
+  auto offer2 = caller->CreateOffer();
+  auto& contents2 = offer2->description()->contents();
+  ASSERT_EQ(contents2.size(), 1u);
+  auto* media_description2 = contents2[0].media_description();
+  codecs = media_description2->codecs();
+  ASSERT_EQ(codecs.size(), 2u);
+  EXPECT_EQ(codecs[1].name, av1.name);
+  EXPECT_NE(codecs[1].id, av1.id);
+
+  // 4. O/A triggered by remote. This "locks in" the payload type.
+  auto offer3 = callee->CreateOfferAndSetAsLocal();
+  EXPECT_TRUE(caller->SetRemoteDescription(std::move(offer3)));
+  EXPECT_TRUE(caller->CreateAnswerAndSetAsLocal());
+
+  // 5. Subsequent offer has the payload type.
+  auto offer4 = caller->CreateOfferAndSetAsLocal();
+  auto& contents4 = offer4->description()->contents();
+  ASSERT_EQ(contents4.size(), 1u);
+  auto* media_description4 = contents4[0].media_description();
+  ASSERT_TRUE(media_description4);
+  codecs = media_description4->codecs();
+  ASSERT_EQ(codecs.size(), 2u);
+  EXPECT_EQ(codecs[1].name, av1.name);
+  EXPECT_EQ(codecs[1].id, av1.id);
 }
 
 class SdpOfferAnswerMungingTest : public SdpOfferAnswerTest {
