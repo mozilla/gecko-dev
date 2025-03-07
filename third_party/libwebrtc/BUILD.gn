@@ -138,7 +138,7 @@ config("library_impl_config") {
 # Contains the defines and includes in common.gypi that are duplicated both as
 # target_defaults and direct_dependent_settings.
 config("common_inherited_config") {
-  defines = []
+  defines = [ "PROTOBUF_ENABLE_DEBUG_LOGGING_MAY_LEAK_PII=0" ]
   cflags = []
   ldflags = []
 

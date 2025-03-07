@@ -541,6 +541,7 @@ template("rtc_test") {
         webrtc_root + "sdk/android:base_java",
         webrtc_root + "test:native_test_java",
         webrtc_root + "test:native_test_support",
+        "//third_party/jni_zero:jni_zero_java",
       ]
     }
 
@@ -1333,6 +1334,7 @@ if (is_android && !build_with_mozilla) {
                                "suppressed_configs",
                                "visibility",
                              ])
+      deps += [ "//third_party/jni_zero:jni_zero_java" ]
     }
   }
 }

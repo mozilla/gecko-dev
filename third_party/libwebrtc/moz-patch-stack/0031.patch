@@ -118,7 +118,7 @@ index 12d5e3d4fc..6c011fd453 100644
    # TODO(https://bugs.webrtc.org/14437):  Remove this section if general
    # Chromium fix resolves the problem.
 diff --git a/BUILD.gn b/BUILD.gn
-index 253f5d00e3..5f425ffdb0 100644
+index 57254354ab..802e2bee95 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -33,7 +33,7 @@ if (is_android) {
@@ -1310,7 +1310,7 @@ index 7cca46263c..ee2b94ed45 100644
      "../api/adaptation:resource_adaptation_api",
      "../api/environment",
 diff --git a/webrtc.gni b/webrtc.gni
-index 4c24147133..69c55610c9 100644
+index d6628dc52a..e635ff0866 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -35,6 +35,11 @@ if (is_mac) {
@@ -1410,7 +1410,7 @@ index 4c24147133..69c55610c9 100644
  # Make it possible to provide custom locations for some libraries (move these
  # up into declare_args should we need to actually use them for the GN build).
  rtc_libvpx_dir = "//third_party/libvpx"
-@@ -1198,7 +1208,7 @@ if (is_mac || is_ios) {
+@@ -1199,7 +1209,7 @@ if (is_mac || is_ios) {
    }
  }
  
