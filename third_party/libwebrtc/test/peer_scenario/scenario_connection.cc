@@ -31,6 +31,7 @@
 #include "call/rtp_packet_sink_interface.h"
 #include "media/base/rtp_utils.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
+#include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/port_allocator.h"
 #include "p2p/base/transport_description.h"
@@ -41,7 +42,9 @@
 #include "pc/rtp_transport_internal.h"
 #include "pc/session_description.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/crypto_random.h"
+#include "rtc_base/network.h"
 #include "rtc_base/rtc_certificate.h"
 #include "rtc_base/ssl_fingerprint.h"
 #include "rtc_base/ssl_identity.h"
@@ -93,6 +96,8 @@ class ScenarioIceConnectionImpl : public ScenarioIceConnection,
       RTC_GUARDED_BY(network_thread_);
   cricket::TransportDescription const transport_description_
       RTC_GUARDED_BY(signaling_thread_);
+  std::unique_ptr<rtc::NetworkManager> network_manager_;
+  rtc::BasicPacketSocketFactory packet_socket_factory_;
   std::unique_ptr<cricket::BasicPortAllocator> port_allocator_
       RTC_GUARDED_BY(network_thread_);
   PayloadTypePicker payload_type_picker_;
@@ -131,9 +136,11 @@ ScenarioIceConnectionImpl::ScenarioIceConnectionImpl(
           cricket::ConnectionRole::CONNECTIONROLE_PASSIVE,
           rtc::SSLFingerprint::CreateFromCertificate(*certificate_.get())
               .get()),
-      port_allocator_(
-          new cricket::BasicPortAllocator(manager_->network_manager(),
-                                          manager_->packet_socket_factory())),
+      network_manager_(manager_->ReleaseNetworkManager()),
+      packet_socket_factory_(manager_->socket_factory()),
+      port_allocator_(std::make_unique<cricket::BasicPortAllocator>(
+          network_manager_.get(),
+          &packet_socket_factory_)),
       jsep_controller_(
           new JsepTransportController(env,
                                       network_thread_,

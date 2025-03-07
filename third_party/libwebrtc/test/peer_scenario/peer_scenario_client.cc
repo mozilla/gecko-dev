@@ -9,37 +9,68 @@
  */
 #include "test/peer_scenario/peer_scenario_client.h"
 
+#include <cstdint>
+#include <functional>
 #include <limits>
+#include <map>
 #include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/container/inlined_vector.h"
 #include "absl/memory/memory.h"
-#include "api/audio_codecs/builtin_audio_decoder_factory.h"
-#include "api/audio_codecs/builtin_audio_encoder_factory.h"
+#include "api/audio_options.h"
+#include "api/candidate.h"
+#include "api/data_channel_interface.h"
 #include "api/environment/environment.h"
+#include "api/jsep.h"
+#include "api/make_ref_counted.h"
+#include "api/media_stream_interface.h"
+#include "api/peer_connection_interface.h"
+#include "api/rtc_error.h"
 #include "api/rtc_event_log/rtc_event_log_factory.h"
-#include "api/task_queue/default_task_queue_factory.h"
+#include "api/rtp_receiver_interface.h"
+#include "api/rtp_transceiver_interface.h"
+#include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
+#include "api/set_local_description_observer_interface.h"
+#include "api/set_remote_description_observer_interface.h"
 #include "api/test/create_time_controller.h"
+#include "api/test/network_emulation/network_emulation_interfaces.h"
+#include "api/test/network_emulation_manager.h"
 #include "api/transport/field_trial_based_config.h"
+#include "api/video/video_frame.h"
+#include "api/video/video_sink_interface.h"
+#include "api/video/video_source_interface.h"
 #include "api/video_codecs/scalability_mode.h"
+#include "api/video_codecs/sdp_video_format.h"
+#include "api/video_codecs/video_decoder.h"
+#include "api/video_codecs/video_decoder_factory.h"
 #include "api/video_codecs/video_decoder_factory_template.h"
 #include "api/video_codecs/video_decoder_factory_template_dav1d_adapter.h"
 #include "api/video_codecs/video_decoder_factory_template_libvpx_vp8_adapter.h"
 #include "api/video_codecs/video_decoder_factory_template_libvpx_vp9_adapter.h"
 #include "api/video_codecs/video_decoder_factory_template_open_h264_adapter.h"
+#include "api/video_codecs/video_encoder.h"
+#include "api/video_codecs/video_encoder_factory.h"
 #include "api/video_codecs/video_encoder_factory_template.h"
 #include "api/video_codecs/video_encoder_factory_template_libaom_av1_adapter.h"
 #include "api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h"
 #include "api/video_codecs/video_encoder_factory_template_libvpx_vp9_adapter.h"
 #include "api/video_codecs/video_encoder_factory_template_open_h264_adapter.h"
-#include "media/engine/webrtc_media_engine.h"
+#include "media/base/media_constants.h"
 #include "modules/audio_device/include/test_audio_device.h"
-#include "p2p/client/basic_port_allocator.h"
+#include "p2p/base/port_allocator.h"
+#include "pc/test/frame_generator_capturer_video_track_source.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/logging.h"
+#include "rtc_base/thread.h"
 #include "test/create_frame_generator_capturer.h"
 #include "test/fake_decoder.h"
 #include "test/fake_vp8_encoder.h"
 #include "test/frame_generator_capturer.h"
+#include "test/logging/log_writer.h"
 
 namespace webrtc {
 namespace test {
@@ -252,6 +283,8 @@ PeerScenarioClient::PeerScenarioClient(
   pcf_deps.network_thread = manager->network_thread();
   pcf_deps.signaling_thread = signaling_thread_;
   pcf_deps.worker_thread = worker_thread_.get();
+  pcf_deps.socket_factory = manager->socket_factory();
+  pcf_deps.network_manager = manager->ReleaseNetworkManager();
   pcf_deps.task_queue_factory =
       net->time_controller()->CreateTaskQueueFactory();
   pcf_deps.event_log_factory = std::make_unique<RtcEventLogFactory>();
@@ -293,10 +326,8 @@ PeerScenarioClient::PeerScenarioClient(
   pc_factory_->SetOptions(pc_options);
 
   PeerConnectionDependencies pc_deps(observer_.get());
-  pc_deps.allocator = std::make_unique<cricket::BasicPortAllocator>(
-      manager->network_manager(), manager->packet_socket_factory());
-  pc_deps.allocator->set_flags(pc_deps.allocator->flags() |
-                               cricket::PORTALLOCATOR_DISABLE_TCP);
+  config.rtc_config.port_allocator_config.flags |=
+      cricket::PORTALLOCATOR_DISABLE_TCP;
   peer_connection_ =
       pc_factory_
           ->CreatePeerConnectionOrError(config.rtc_config, std::move(pc_deps))
