@@ -281,6 +281,30 @@ TEST_F(FileUtilsTest, WriteReadDeleteFilesAndDirs) {
   EXPECT_FALSE(DirExists(temp_directory));
 }
 
+TEST_F(FileUtilsTest, DeleteNonEmptyDirectory) {
+  const std::string temp_directory =
+      OutputPathWithRandomDirectory() + Path("TempFileUtilsTestReadDirectory/");
+  CreateDir(temp_directory);
+  EXPECT_TRUE(DirExists(temp_directory));
+
+  // Add a file.
+  const std::string temp_filename = temp_directory + "TempFilenameTest";
+  WriteStringInFile("test\n", temp_filename);
+  EXPECT_TRUE(FileExists(temp_filename));
+
+  // Add a directory with one file.
+  const std::string temp_subdir = temp_directory + Path("subdir/");
+  EXPECT_TRUE(CreateDir(temp_subdir));
+  EXPECT_TRUE(DirExists(temp_subdir));
+  const std::string temp_filename2 = temp_subdir + "TempFilenameTest2";
+  WriteStringInFile("test2\n", temp_filename2);
+  EXPECT_TRUE(FileExists(temp_filename2));
+
+  // Checks.
+  EXPECT_TRUE(RemoveNonEmptyDir(temp_directory));
+  EXPECT_FALSE(DirExists(temp_directory));
+}
+
 TEST_F(FileUtilsTest, DirNameStripsFilename) {
   EXPECT_EQ(Path("/some/path"), DirName(Path("/some/path/file.txt")));
 }

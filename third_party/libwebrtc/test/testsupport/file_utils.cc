@@ -42,8 +42,11 @@
 #include <stdlib.h>
 
 #include <memory>
+#include <optional>
+#include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #if defined(WEBRTC_IOS)
 #include "test/testsupport/ios_file_utils.h"
@@ -219,6 +222,26 @@ bool RemoveDir(absl::string_view directory_name) {
 #else
   return rmdir(std::string(directory_name).c_str()) == 0;
 #endif
+}
+
+bool RemoveNonEmptyDir(absl::string_view directory_name) {
+  std::optional<std::vector<std::string>> dir_content =
+      ReadDirectory(directory_name);
+  if (dir_content.has_value()) {
+    for (const std::string& entry : *dir_content) {
+      if (DirExists(entry)) {
+        if (!RemoveNonEmptyDir(entry)) {
+          return false;
+        }
+      } else if (FileExists(entry)) {
+        if (!RemoveFile(entry)) {
+          return false;
+        }
+      }
+    }
+  }
+  // Directory should be emptied.
+  return RemoveDir(directory_name);
 }
 
 bool RemoveFile(absl::string_view file_name) {

@@ -90,6 +90,9 @@ bool CreateDir(absl::string_view directory_name);
 // Removes a directory, which must already be empty.
 bool RemoveDir(absl::string_view directory_name);
 
+// Removes all the files inside a non-empty directory and the directory itself.
+bool RemoveNonEmptyDir(absl::string_view directory_name);
+
 // Removes a file.
 bool RemoveFile(absl::string_view file_name);
 
