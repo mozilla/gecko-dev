@@ -384,8 +384,18 @@ bool DxgiDuplicatorController::DoDuplicateOne(Context* context,
 
 int64_t DxgiDuplicatorController::GetNumFramesCaptured(int monitor_id) const {
   int64_t min = INT64_MAX;
+  if (monitor_id < 0) {
+    for (const auto& duplicator : duplicators_) {
+      min = std::min(min, duplicator.GetNumFramesCaptured(monitor_id));
+    }
+    return min;
+  }
   for (const auto& duplicator : duplicators_) {
-    min = std::min(min, duplicator.GetNumFramesCaptured(monitor_id));
+    if (monitor_id >= duplicator.screen_count()) {
+      monitor_id -= duplicator.screen_count();
+    } else {
+      return duplicator.GetNumFramesCaptured(monitor_id);
+    }
   }
   return min;
 }
