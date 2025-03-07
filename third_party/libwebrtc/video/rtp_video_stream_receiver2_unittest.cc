@@ -1608,8 +1608,61 @@ TEST_F(RtpVideoStreamReceiver2Test, TransformFrame) {
       GetGenericVideoHeader(VideoFrameType::kVideoFrameKey);
   mock_on_complete_frame_callback_.AppendExpectedBitstream(data.data(),
                                                            data.size());
-  EXPECT_CALL(*mock_frame_transformer, Transform(_));
+  std::unique_ptr<TransformableFrameInterface> transformed_frame;
+  EXPECT_CALL(*mock_frame_transformer, Transform(_))
+      .WillOnce(testing::SaveArgByMove<0>(&transformed_frame));
   receiver->OnReceivedPayloadData(data, rtp_packet, video_header, 0);
+  EXPECT_TRUE(transformed_frame->ReceiveTime().has_value());
+  EXPECT_FALSE(transformed_frame->CaptureTime());
+  EXPECT_FALSE(transformed_frame->SenderCaptureTimeOffset());
+
+  EXPECT_CALL(*mock_frame_transformer,
+              UnregisterTransformedFrameSinkCallback(config_.rtp.remote_ssrc));
+  receiver = nullptr;
+}
+
+TEST_F(RtpVideoStreamReceiver2Test, TransformFrameWithAbsoluteCaptureTime) {
+  rtc::scoped_refptr<MockFrameTransformer> mock_frame_transformer =
+      rtc::make_ref_counted<testing::NiceMock<MockFrameTransformer>>();
+  EXPECT_CALL(*mock_frame_transformer,
+              RegisterTransformedFrameSinkCallback(_, config_.rtp.remote_ssrc));
+  auto receiver = std::make_unique<RtpVideoStreamReceiver2>(
+      env_, TaskQueueBase::Current(), &mock_transport_, nullptr, nullptr,
+      &config_, rtp_receive_statistics_.get(), nullptr, nullptr,
+      &nack_periodic_processor_, &mock_on_complete_frame_callback_, nullptr,
+      mock_frame_transformer);
+  receiver->AddReceiveCodec(kPayloadType, kVideoCodecGeneric, {},
+                            /*raw_payload=*/false);
+
+  constexpr int kId0 = 1;
+  RtpHeaderExtensionMap extension_map;
+  extension_map.Register<AbsoluteCaptureTimeExtension>(kId0);
+  RtpPacketReceived rtp_packet(&extension_map);
+  rtp_packet.SetPayloadType(kPayloadType);
+  rtc::CopyOnWriteBuffer data({'1', '2', '3', '4'});
+  rtp_packet.SetSequenceNumber(1);
+
+  Timestamp capture_time = Timestamp::Millis(1234);
+  TimeDelta sender_capture_time_offset = TimeDelta::Millis(56);
+  AbsoluteCaptureTime absolute_capture_time = {
+      .absolute_capture_timestamp = Int64MsToUQ32x32(capture_time.ms()),
+      .estimated_capture_clock_offset =
+          Int64MsToUQ32x32(sender_capture_time_offset.ms())};
+  rtp_packet.SetExtension<AbsoluteCaptureTimeExtension>(absolute_capture_time);
+
+  RTPVideoHeader video_header =
+      GetGenericVideoHeader(VideoFrameType::kVideoFrameKey);
+  mock_on_complete_frame_callback_.AppendExpectedBitstream(data.data(),
+                                                           data.size());
+
+  std::unique_ptr<TransformableFrameInterface> transformed_frame;
+  EXPECT_CALL(*mock_frame_transformer, Transform(_))
+      .WillOnce(testing::SaveArgByMove<0>(&transformed_frame));
+  receiver->OnReceivedPayloadData(data, rtp_packet, video_header, 0);
+  EXPECT_TRUE(transformed_frame->ReceiveTime().has_value());
+  EXPECT_EQ(transformed_frame->CaptureTime(), capture_time);
+  EXPECT_EQ(transformed_frame->SenderCaptureTimeOffset(),
+            sender_capture_time_offset);
 
   EXPECT_CALL(*mock_frame_transformer,
               UnregisterTransformedFrameSinkCallback(config_.rtp.remote_ssrc));

@@ -855,6 +855,9 @@ void RtpVideoStreamReceiver2::OnInsertedPacket(
     packet_infos.push_back(packet_info);
 
     frame_boundary = packet->is_last_packet_in_frame();
+
+    packet->video_header.absolute_capture_time =
+        packet_info.absolute_capture_time();
     if (packet->is_last_packet_in_frame()) {
       auto depacketizer_it = payload_type_map_.find(first_packet->payload_type);
       RTC_CHECK(depacketizer_it != payload_type_map_.end());

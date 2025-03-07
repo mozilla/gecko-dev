@@ -160,6 +160,15 @@ TEST(RtpVideoStreamReceiverFrameTransformerDelegateTest,
   RTPVideoHeader video_header;
   video_header.width = 1280u;
   video_header.height = 720u;
+
+  Timestamp capture_time = Timestamp::Millis(1234);
+  TimeDelta sender_capture_time_offset = TimeDelta::Millis(56);
+  AbsoluteCaptureTime absolute_capture_time = {
+      .absolute_capture_timestamp = Int64MsToUQ32x32(capture_time.ms()),
+      .estimated_capture_clock_offset =
+          Int64MsToUQ32x32(sender_capture_time_offset.ms())};
+  video_header.absolute_capture_time = absolute_capture_time;
+
   RTPVideoHeader::GenericDescriptorInfo& generic =
       video_header.generic.emplace();
   generic.frame_id = 10;
@@ -189,6 +198,10 @@ TEST(RtpVideoStreamReceiverFrameTransformerDelegateTest,
         EXPECT_THAT(metadata.GetDecodeTargetIndications(),
                     ElementsAre(DecodeTargetIndication::kSwitch));
         EXPECT_EQ(metadata.GetCsrcs(), csrcs);
+        ASSERT_TRUE(frame->ReceiveTime().has_value());
+        EXPECT_GE(frame->ReceiveTime()->us(), 0);
+        EXPECT_EQ(frame->CaptureTime(), capture_time);
+        EXPECT_EQ(frame->SenderCaptureTimeOffset(), sender_capture_time_offset);
       });
   // The delegate creates a transformable frame from the RtpFrameObject.
   delegate->TransformFrame(CreateRtpFrameObject(video_header, csrcs));

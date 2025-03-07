@@ -116,7 +116,6 @@ class TransformableVideoSenderFrame : public TransformableVideoFrameInterface {
   const RTPVideoHeader& GetHeader() const { return header_; }
   uint8_t GetPayloadType() const override { return payload_type_; }
   std::optional<VideoCodecType> GetCodecType() const { return codec_type_; }
-  Timestamp GetCaptureTime() const { return capture_time_; }
   std::optional<Timestamp> GetCaptureTimeIdentifier() const override {
     return presentation_timestamp_;
   }
@@ -135,6 +134,16 @@ class TransformableVideoSenderFrame : public TransformableVideoFrameInterface {
     }
     std::string mime_type = "video/";
     return mime_type + CodecTypeToPayloadString(*codec_type_);
+  }
+
+  std::optional<Timestamp> ReceiveTime() const override { return std::nullopt; }
+
+  std::optional<Timestamp> CaptureTime() const override {
+    return capture_time_;
+  }
+
+  std::optional<TimeDelta> SenderCaptureTimeOffset() const override {
+    return std::nullopt;
   }
 
   const std::string& GetRid() const override { return rid_; }
@@ -230,10 +239,11 @@ void RTPSenderVideoFrameTransformerDelegate::SendVideo(
       TransformableFrameInterface::Direction::kSender) {
     auto* transformed_video_frame =
         static_cast<TransformableVideoSenderFrame*>(transformed_frame.get());
+    RTC_CHECK(transformed_video_frame->CaptureTime().has_value());
     sender_->SendVideo(transformed_video_frame->GetPayloadType(),
                        transformed_video_frame->GetCodecType(),
                        transformed_video_frame->GetTimestamp(),
-                       transformed_video_frame->GetCaptureTime(),
+                       *transformed_video_frame->CaptureTime(),
                        transformed_video_frame->GetData(),
                        transformed_video_frame->GetPreTransformPayloadSize(),
                        transformed_video_frame->GetHeader(),

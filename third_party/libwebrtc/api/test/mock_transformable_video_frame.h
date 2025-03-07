@@ -18,6 +18,7 @@
 
 #include "api/array_view.h"
 #include "api/frame_transformer_interface.h"
+#include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "api/video/video_frame_metadata.h"
 #include "test/gmock.h"
@@ -47,6 +48,12 @@ class MockTransformableVideoFrame
   MOCK_METHOD(VideoFrameMetadata, Metadata, (), (const, override));
   MOCK_METHOD(std::optional<Timestamp>,
               GetPresentationTimestamp,
+              (),
+              (const, override));
+  MOCK_METHOD(std::optional<Timestamp>, ReceiveTime, (), (const, override));
+  MOCK_METHOD(std::optional<Timestamp>, CaptureTime, (), (const, override));
+  MOCK_METHOD(std::optional<TimeDelta>,
+              SenderCaptureTimeOffset,
               (),
               (const, override));
 };

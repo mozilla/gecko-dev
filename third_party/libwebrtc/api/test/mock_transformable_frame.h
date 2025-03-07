@@ -39,6 +39,12 @@ class MockTransformableFrame : public TransformableFrameInterface {
               (),
               (const, override));
   MOCK_METHOD(std::string, GetMimeType, (), (const, override));
+  MOCK_METHOD(std::optional<Timestamp>, ReceiveTime, (), (const, override));
+  MOCK_METHOD(std::optional<Timestamp>, CaptureTime, (), (const, override));
+  MOCK_METHOD(std::optional<TimeDelta>,
+              SenderCaptureTimeOffset,
+              (),
+              (const, override));
 };
 
 static_assert(!std::is_abstract_v<MockTransformableFrame>, "");

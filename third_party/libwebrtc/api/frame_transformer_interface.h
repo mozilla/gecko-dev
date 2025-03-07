@@ -77,6 +77,25 @@ class TransformableFrameInterface {
   // other PeerConnectionss.
   virtual Direction GetDirection() const { return Direction::kUnknown; }
   virtual std::string GetMimeType() const = 0;
+
+  // Timestamp at which the packet has been first seen on the network interface.
+  // Only defined for received frames.
+  virtual std::optional<Timestamp> ReceiveTime() const = 0;
+
+  // Timestamp at which the frame was captured in the capturer system.
+  // The timestamp is expressed in the capturer system's clock relative to the
+  // NTP epoch (January 1st 1970 00:00 UTC)
+  // Accessible only if the absolute capture timestamp header extension is
+  // enabled.
+  virtual std::optional<Timestamp> CaptureTime() const = 0;
+
+  // Offset between the sender system's clock and the capturer system's clock.
+  // Can be used to express the capture time in the local system's clock as
+  // long as the local system can determine the offset between its local clock
+  // and the sender system's clock.
+  // Accessible only if the absolute capture timestamp header extension is
+  // enabled.
+  virtual std::optional<TimeDelta> SenderCaptureTimeOffset() const = 0;
 };
 
 class TransformableVideoFrameInterface : public TransformableFrameInterface {
@@ -114,25 +133,6 @@ class TransformableAudioFrameInterface : public TransformableFrameInterface {
   // dBov. 127 represents digital silence. Only present on remote frames if
   // the audio level header extension was included.
   virtual std::optional<uint8_t> AudioLevel() const = 0;
-
-  // Timestamp at which the packet has been first seen on the network interface.
-  // Only defined for received audio packet.
-  virtual std::optional<Timestamp> ReceiveTime() const = 0;
-
-  // Timestamp at which the frame was captured in the capturer system.
-  // The timestamp is expressed in the capturer system's clock relative to the
-  // NTP epoch (January 1st 1970 00:00 UTC)
-  // Accessible only if the absolute capture timestamp header extension is
-  // enabled.
-  virtual std::optional<Timestamp> CaptureTime() const = 0;
-
-  // Offset between the sender system's clock and the capturer system's clock.
-  // Can be used to express the capture time in the local system's clock as
-  // long as the local system can determine the offset between its local clock
-  // and the sender system's clock.
-  // Accessible only if the absolute capture timestamp header extension is
-  // enabled.
-  virtual std::optional<TimeDelta> SenderCaptureTimeOffset() const = 0;
 };
 
 // Objects implement this interface to be notified with the transformed frame.
