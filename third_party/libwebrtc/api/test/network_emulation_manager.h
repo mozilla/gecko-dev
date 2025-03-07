@@ -19,6 +19,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/field_trials_view.h"
@@ -33,6 +34,7 @@
 #include "rtc_base/network.h"
 #include "rtc_base/network_constants.h"
 #include "rtc_base/socket_address.h"
+#include "rtc_base/socket_factory.h"
 #include "rtc_base/thread.h"
 
 namespace webrtc {
@@ -129,18 +131,36 @@ class EmulatedNetworkManagerInterface {
  public:
   virtual ~EmulatedNetworkManagerInterface() = default;
 
-  // Returns non-null pointer to thread that have to be used as network thread
+  // Returns thread that have to be used as network thread
   // for WebRTC to properly setup network emulation. Returned thread is owned
   // by EmulatedNetworkManagerInterface implementation.
-  virtual rtc::Thread* network_thread() = 0;
-  // Returns non-null pointer to network manager that have to be injected into
+  virtual absl::Nonnull<rtc::Thread*> network_thread() = 0;
+
+  // Returns network manager that have to be injected into
   // WebRTC to properly setup network emulation. Returned manager is owned by
   // EmulatedNetworkManagerInterface implementation.
-  virtual rtc::NetworkManager* network_manager() = 0;
-  // Returns non-null pointer to packet socket factory that have to be injected
+  // Deprecated in favor of injecting NetworkManager into PeerConnectionFactory
+  // instead of creating and injecting BasicPortAllocator into PeerConnection.
+  // TODO: bugs.webrtc.org/42232556 - Cleanup usages of this accessor in WebRTC,
+  // and then deprecate or remove it.
+  virtual absl::Nonnull<rtc::NetworkManager*> network_manager() = 0;
+
+  // Returns packet socket factory that have to be injected
   // into WebRTC to properly setup network emulation. Returned factory is owned
   // by EmulatedNetworkManagerInterface implementation.
-  virtual rtc::PacketSocketFactory* packet_socket_factory() = 0;
+  // Deprecated in favor of injecting SocketFactory into PeerConnectionFactory
+  // instead of creating and injecting BasicPortAllocator into PeerConnection.
+  // TODO: bugs.webrtc.org/42232556 - Cleanup usages of this accessor in WebRTC,
+  // and then deprecate or remove it.
+  virtual absl::Nonnull<rtc::PacketSocketFactory*> packet_socket_factory() = 0;
+
+  // Returns objects to pass to PeerConnectionFactoryDependencies.
+  virtual absl::Nonnull<rtc::SocketFactory*> socket_factory() = 0;
+  virtual absl::Nonnull<std::unique_ptr<rtc::NetworkManager>>
+  ReleaseNetworkManager() = 0;
+
+  // TODO: bugs.webrtc.org/42232556 - Cleanup usages of this accessor in WebRTC,
+  // and then deprecate or remove it.
   webrtc::webrtc_pc_e2e::PeerNetworkDependencies network_dependencies() {
     return {network_thread(), network_manager(), packet_socket_factory()};
   }
@@ -349,11 +369,11 @@ class NetworkEmulationManager {
   virtual void StopCrossTraffic(CrossTrafficGenerator* generator) = 0;
 
   // Creates EmulatedNetworkManagerInterface which can be used then to inject
-  // network emulation layer into PeerConnection. `endpoints` - are available
-  // network interfaces for PeerConnection. If endpoint is enabled, it will be
-  // immediately available for PeerConnection, otherwise user will be able to
-  // enable endpoint later to make it available for PeerConnection.
-  virtual EmulatedNetworkManagerInterface*
+  // network emulation layer into PeerConnectionFactory. `endpoints` are
+  // available network interfaces for PeerConnection. If endpoint is enabled, it
+  // will be immediately available for PeerConnection, otherwise user will be
+  // able to enable endpoint later to make it available for PeerConnection.
+  virtual absl::Nonnull<EmulatedNetworkManagerInterface*>
   CreateEmulatedNetworkManagerInterface(
       const std::vector<EmulatedEndpoint*>& endpoints) = 0;
 

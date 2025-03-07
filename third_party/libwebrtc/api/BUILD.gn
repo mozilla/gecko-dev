@@ -930,11 +930,13 @@ rtc_source_set("network_emulation_manager_api") {
     "../rtc_base:network",
     "../rtc_base:network_constants",
     "../rtc_base:socket_address",
+    "../rtc_base:socket_factory",
     "../rtc_base:threading",
     "test/network_emulation",
     "units:data_rate",
     "units:data_size",
     "units:timestamp",
+    "//third_party/abseil-cpp/absl/base:nullability",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
 }

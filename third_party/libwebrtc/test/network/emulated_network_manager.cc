@@ -15,35 +15,79 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
+#include "absl/memory/memory.h"
 #include "api/sequence_checker.h"
+#include "api/task_queue/task_queue_base.h"
 #include "api/test/network_emulation/network_emulation_interfaces.h"
 #include "api/test/time_controller.h"
 #include "p2p/base/basic_packet_socket_factory.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/network.h"
-#include "rtc_base/task_queue_for_test.h"
+#include "rtc_base/thread_annotations.h"
 #include "test/network/fake_network_socket_server.h"
 #include "test/network/network_emulation.h"
 
 namespace webrtc {
 namespace test {
 
+// Framework assumes that rtc::NetworkManager is called from network thread.
+class EmulatedNetworkManager::NetworkManagerImpl
+    : public rtc::NetworkManagerBase {
+ public:
+  explicit NetworkManagerImpl(
+      absl::Nonnull<rtc::Thread*> network_thread,
+      absl::Nonnull<EndpointsContainer*> endpoints_container)
+      : network_thread_(network_thread),
+        endpoints_container_(endpoints_container) {}
+
+  void StartUpdating() override;
+  void StopUpdating() override;
+
+  void UpdateNetworksOnce();
+  void MaybeSignalNetworksChanged();
+
+  // We don't support any address interfaces in the network emulation framework.
+  std::vector<const rtc::Network*> GetAnyAddressNetworks() override {
+    return {};
+  }
+
+ private:
+  const absl::Nonnull<rtc::Thread*> network_thread_;
+  const absl::Nonnull<const EndpointsContainer*> endpoints_container_;
+  bool sent_first_update_ RTC_GUARDED_BY(network_thread_) = false;
+  int start_count_ RTC_GUARDED_BY(network_thread_) = 0;
+};
+
 EmulatedNetworkManager::EmulatedNetworkManager(
     TimeController* time_controller,
-    TaskQueueForTest* task_queue,
+    TaskQueueBase* task_queue,
     EndpointsContainer* endpoints_container)
     : task_queue_(task_queue),
       endpoints_container_(endpoints_container),
-      sent_first_update_(false),
-      start_count_(0) {
-  auto socket_server =
-      std::make_unique<FakeNetworkSocketServer>(endpoints_container);
-  packet_socket_factory_ =
-      std::make_unique<rtc::BasicPacketSocketFactory>(socket_server.get());
-  // Since we pass ownership of the socket server to `network_thread_`, we must
-  // arrange that it outlives `packet_socket_factory_` which refers to it.
-  network_thread_ =
-      time_controller->CreateThread("net_thread", std::move(socket_server));
+      socket_server_(new FakeNetworkSocketServer(endpoints_container)),
+      network_thread_(
+          time_controller->CreateThread("net_thread",
+                                        absl::WrapUnique(socket_server_))),
+      packet_socket_factory_(socket_server_),
+      network_manager_(
+          std::make_unique<NetworkManagerImpl>(network_thread_.get(),
+                                               endpoints_container)),
+      network_manager_ptr_(network_manager_.get()) {}
+
+EmulatedNetworkManager::~EmulatedNetworkManager() = default;
+
+rtc::NetworkManager* EmulatedNetworkManager::network_manager() {
+  RTC_CHECK(network_manager_ != nullptr)
+      << "network_manager() can't be used together with ReleaseNetworkManager.";
+  return network_manager_.get();
+}
+
+absl::Nonnull<std::unique_ptr<rtc::NetworkManager>>
+EmulatedNetworkManager::ReleaseNetworkManager() {
+  RTC_CHECK(network_manager_ != nullptr)
+      << "ReleaseNetworkManager can be called at most once.";
+  return std::move(network_manager_);
 }
 
 void EmulatedNetworkManager::EnableEndpoint(EmulatedEndpointImpl* endpoint) {
@@ -51,7 +95,7 @@ void EmulatedNetworkManager::EnableEndpoint(EmulatedEndpointImpl* endpoint) {
       << "No such interface: " << endpoint->GetPeerLocalAddress().ToString();
   network_thread_->PostTask([this, endpoint]() {
     endpoint->Enable();
-    UpdateNetworksOnce();
+    network_manager_ptr_->UpdateNetworksOnce();
   });
 }
 
@@ -60,16 +104,14 @@ void EmulatedNetworkManager::DisableEndpoint(EmulatedEndpointImpl* endpoint) {
       << "No such interface: " << endpoint->GetPeerLocalAddress().ToString();
   network_thread_->PostTask([this, endpoint]() {
     endpoint->Disable();
-    UpdateNetworksOnce();
+    network_manager_ptr_->UpdateNetworksOnce();
   });
 }
 
-// Network manager interface. All these methods are supposed to be called from
-// the same thread.
-void EmulatedNetworkManager::StartUpdating() {
-  RTC_DCHECK_RUN_ON(network_thread_.get());
+void EmulatedNetworkManager::NetworkManagerImpl::StartUpdating() {
+  RTC_DCHECK_RUN_ON(network_thread_);
 
-  if (start_count_) {
+  if (start_count_ > 0) {
     // If network interfaces are already discovered and signal is sent,
     // we should trigger network signal immediately for the new clients
     // to start allocating ports.
@@ -81,13 +123,13 @@ void EmulatedNetworkManager::StartUpdating() {
   ++start_count_;
 }
 
-void EmulatedNetworkManager::StopUpdating() {
-  RTC_DCHECK_RUN_ON(network_thread_.get());
-  if (!start_count_)
+void EmulatedNetworkManager::NetworkManagerImpl::StopUpdating() {
+  RTC_DCHECK_RUN_ON(network_thread_);
+  if (start_count_ == 0)
     return;
 
   --start_count_;
-  if (!start_count_) {
+  if (start_count_ == 0) {
     sent_first_update_ = false;
   }
 }
@@ -99,8 +141,8 @@ void EmulatedNetworkManager::GetStats(
   });
 }
 
-void EmulatedNetworkManager::UpdateNetworksOnce() {
-  RTC_DCHECK_RUN_ON(network_thread_.get());
+void EmulatedNetworkManager::NetworkManagerImpl::UpdateNetworksOnce() {
+  RTC_DCHECK_RUN_ON(network_thread_);
 
   std::vector<std::unique_ptr<rtc::Network>> networks;
   for (std::unique_ptr<rtc::Network>& net :
@@ -117,8 +159,8 @@ void EmulatedNetworkManager::UpdateNetworksOnce() {
   }
 }
 
-void EmulatedNetworkManager::MaybeSignalNetworksChanged() {
-  RTC_DCHECK_RUN_ON(network_thread_.get());
+void EmulatedNetworkManager::NetworkManagerImpl::MaybeSignalNetworksChanged() {
+  RTC_DCHECK_RUN_ON(network_thread_);
   // If manager is stopped we don't need to signal anything.
   if (start_count_ == 0) {
     return;

@@ -15,49 +15,45 @@
 #include <memory>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "api/packet_socket_factory.h"
+#include "api/task_queue/task_queue_base.h"
 #include "api/test/network_emulation/network_emulation_interfaces.h"
 #include "api/test/network_emulation_manager.h"
 #include "api/test/time_controller.h"
+#include "p2p/base/basic_packet_socket_factory.h"
 #include "rtc_base/network.h"
 #include "rtc_base/socket_server.h"
-#include "rtc_base/task_queue_for_test.h"
-#include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
-#include "rtc_base/thread_annotations.h"
 #include "test/network/network_emulation.h"
 
 namespace webrtc {
 namespace test {
 
-// Framework assumes that rtc::NetworkManager is called from network thread.
-class EmulatedNetworkManager : public rtc::NetworkManagerBase,
-                               public sigslot::has_slots<>,
-                               public EmulatedNetworkManagerInterface {
+class EmulatedNetworkManager : public EmulatedNetworkManagerInterface {
  public:
-  EmulatedNetworkManager(TimeController* time_controller,
-                         TaskQueueForTest* task_queue,
-                         EndpointsContainer* endpoints_container);
+  EmulatedNetworkManager(
+      absl::Nonnull<TimeController*> time_controller,
+      absl::Nonnull<TaskQueueBase*> task_queue,
+      absl::Nonnull<EndpointsContainer*> endpoints_container);
+  ~EmulatedNetworkManager() override;
 
-  void EnableEndpoint(EmulatedEndpointImpl* endpoint);
-  void DisableEndpoint(EmulatedEndpointImpl* endpoint);
+  void EnableEndpoint(absl::Nonnull<EmulatedEndpointImpl*> endpoint);
+  void DisableEndpoint(absl::Nonnull<EmulatedEndpointImpl*> endpoint);
 
-  // NetworkManager interface. All these methods are supposed to be called from
-  // the same thread.
-  void StartUpdating() override;
-  void StopUpdating() override;
-
-  // We don't support any address interfaces in the network emulation framework.
-  std::vector<const rtc::Network*> GetAnyAddressNetworks() override {
-    return {};
+  absl::Nonnull<rtc::Thread*> network_thread() override {
+    return network_thread_.get();
   }
-
-  // EmulatedNetworkManagerInterface API
-  rtc::Thread* network_thread() override { return network_thread_.get(); }
-  rtc::NetworkManager* network_manager() override { return this; }
-  rtc::PacketSocketFactory* packet_socket_factory() override {
-    return packet_socket_factory_.get();
+  absl::Nonnull<rtc::NetworkManager*> network_manager() override;
+  absl::Nonnull<rtc::PacketSocketFactory*> packet_socket_factory() override {
+    return &packet_socket_factory_;
   }
+  absl::Nonnull<rtc::SocketFactory*> socket_factory() override {
+    return socket_server_;
+  }
+  absl::Nonnull<std::unique_ptr<rtc::NetworkManager>> ReleaseNetworkManager()
+      override;
+
   std::vector<EmulatedEndpoint*> endpoints() const override {
     return endpoints_container_->GetEndpoints();
   }
@@ -65,19 +61,24 @@ class EmulatedNetworkManager : public rtc::NetworkManagerBase,
       std::function<void(EmulatedNetworkStats)> stats_callback) const override;
 
  private:
-  void UpdateNetworksOnce();
-  void MaybeSignalNetworksChanged();
+  class NetworkManagerImpl;
 
-  TaskQueueForTest* const task_queue_;
-  const EndpointsContainer* const endpoints_container_;
+  const absl::Nonnull<TaskQueueBase*> task_queue_;
+  const absl::Nonnull<const EndpointsContainer*> endpoints_container_;
+
+  // Socket server is owned by the `network_thread_'
+  const absl::Nonnull<rtc::SocketServer*> socket_server_;
+
   // The `network_thread_` must outlive `packet_socket_factory_`, because they
-  // both refer to a socket server that is owned by `network_thread_`. Both
-  // pointers are assigned only in the constructor, but the way they are
-  // initialized unfortunately doesn't work with const std::unique_ptr<...>.
-  std::unique_ptr<rtc::Thread> network_thread_;
-  std::unique_ptr<rtc::PacketSocketFactory> packet_socket_factory_;
-  bool sent_first_update_ RTC_GUARDED_BY(network_thread_);
-  int start_count_ RTC_GUARDED_BY(network_thread_);
+  // both refer to the `socket_server_` that is owned by `network_thread_`.
+  const absl::Nonnull<std::unique_ptr<rtc::Thread>> network_thread_;
+  rtc::BasicPacketSocketFactory packet_socket_factory_;
+  absl::Nullable<std::unique_ptr<NetworkManagerImpl>> network_manager_;
+
+  // Keep pointer to the network manager when it is extracted to be injected
+  // into PeerConnectionFactory. That is brittle and may crash if a test would
+  // try to use emulated network after related PeerConnectionFactory is deleted.
+  const absl::Nonnull<NetworkManagerImpl*> network_manager_ptr_;
 };
 
 }  // namespace test

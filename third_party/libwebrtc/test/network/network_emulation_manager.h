@@ -21,6 +21,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "api/array_view.h"
 #include "api/test/network_emulation/cross_traffic.h"
 #include "api/test/network_emulation/network_emulation_interfaces.h"
@@ -80,7 +81,8 @@ class NetworkEmulationManagerImpl : public NetworkEmulationManager {
       std::unique_ptr<CrossTrafficGenerator> generator) override;
   void StopCrossTraffic(CrossTrafficGenerator* generator) override;
 
-  EmulatedNetworkManagerInterface* CreateEmulatedNetworkManagerInterface(
+  absl::Nonnull<EmulatedNetworkManagerInterface*>
+  CreateEmulatedNetworkManagerInterface(
       const std::vector<EmulatedEndpoint*>& endpoints) override;
 
   void GetStats(

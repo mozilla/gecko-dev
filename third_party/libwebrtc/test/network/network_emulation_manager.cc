@@ -19,6 +19,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "api/array_view.h"
 #include "api/field_trials_view.h"
 #include "api/task_queue/task_queue_factory.h"
@@ -31,6 +32,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/ip_address.h"
 #include "rtc_base/strings/string_builder.h"
+#include "rtc_base/task_queue_for_test.h"
 #include "rtc_base/task_utils/repeating_task.h"
 #include "test/network/cross_traffic.h"
 #include "test/network/emulated_network_manager.h"
@@ -298,7 +300,7 @@ void NetworkEmulationManagerImpl::StopCrossTraffic(
   });
 }
 
-EmulatedNetworkManagerInterface*
+absl::Nonnull<EmulatedNetworkManagerInterface*>
 NetworkEmulationManagerImpl::CreateEmulatedNetworkManagerInterface(
     const std::vector<EmulatedEndpoint*>& endpoints) {
   std::vector<EmulatedEndpointImpl*> endpoint_impls;
@@ -309,7 +311,7 @@ NetworkEmulationManagerImpl::CreateEmulatedNetworkManagerInterface(
   auto endpoints_container = std::make_unique<EndpointsContainer>(
       endpoint_impls, stats_gathering_mode_);
   auto network_manager = std::make_unique<EmulatedNetworkManager>(
-      time_controller_.get(), &task_queue_, endpoints_container.get());
+      time_controller_.get(), task_queue_.Get(), endpoints_container.get());
   for (auto* endpoint : endpoints) {
     // Associate endpoint with network manager.
     bool insertion_result =
