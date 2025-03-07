@@ -49,7 +49,7 @@ rtc_library("metric") {
     "metric.cc",
     "metric.h",
   ]
-  deps = [ "../../../api/units:timestamp" ]
+  deps = [ "../../units:timestamp" ]
 }
 
 rtc_library("metrics_logger") {
@@ -61,7 +61,6 @@ rtc_library("metrics_logger") {
   deps = [
     ":metric",
     ":metrics_accumulator",
-    "../..:array_view",
     "../../../rtc_base:macromagic",
     "../../../rtc_base/synchronization:mutex",
     "../../../system_wrappers",
@@ -120,7 +119,7 @@ rtc_library("chrome_perf_dashboard_metrics_exporter") {
   deps = [
     ":metric",
     ":metrics_exporter",
-    "../../../api:array_view",
+    "../..:array_view",
     "../../../test:fileutils",
     "../../../test:perf_test",
     "//third_party/abseil-cpp/absl/memory",
@@ -268,9 +267,9 @@ if (rtc_include_tests) {
       deps = [
         ":chrome_perf_dashboard_metrics_exporter",
         ":metric",
-        "../../../api/units:timestamp",
         "../../../test:fileutils",
         "../../../test:test_support",
+        "../../units:timestamp",
         "//third_party/catapult/tracing/tracing:histogram",
       ]
     }

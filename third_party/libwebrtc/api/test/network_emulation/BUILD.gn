@@ -45,7 +45,6 @@ rtc_library("network_emulation") {
   ]
 
   deps = [
-    "../..:array_view",
     "../../../rtc_base:checks",
     "../../../rtc_base:copy_on_write_buffer",
     "../../../rtc_base:ip_address",
@@ -53,7 +52,6 @@ rtc_library("network_emulation") {
     "../../../rtc_base:net_helpers",
     "../../../rtc_base:socket_address",
     "../../numerics",
-    "../../task_queue",
     "../../transport:ecn_marking",
     "../../units:data_rate",
     "../../units:data_size",
@@ -74,7 +72,6 @@ rtc_library("create_cross_traffic") {
   deps = [
     ":network_emulation",
     "../..:network_emulation_manager_api",
-    "../../../rtc_base/task_utils:repeating_task",
     "../../../test/network:emulated_network",
   ]
 }
