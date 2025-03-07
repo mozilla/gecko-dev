@@ -6511,6 +6511,22 @@ public class GeckoSession {
         }
         ensureResult().putStringArray("files", paths);
 
+        if (Type.FOLDER == type && uris[0] != null) {
+          GeckoBundle[] filesInWebKitDirectory = filesInWebKitDirectory = new GeckoBundle[0];
+          try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
+                && DocumentsContract.isTreeUri(uris[0])) {
+              filesInWebKitDirectory =
+                  IntentUtils.traverseTreeUri(context, uris[0]).stream()
+                      .map(f -> f.toGeckoBundle())
+                      .toArray(GeckoBundle[]::new);
+            }
+          } catch (final OutOfMemoryError e) {
+            Log.e(LOGTAG, "Cannot traverse child directories", e);
+          }
+          ensureResult().putBundleArray("filesInWebKitDirectory", filesInWebKitDirectory);
+        }
+
         return super.confirm();
       }
 
