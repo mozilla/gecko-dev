@@ -489,61 +489,19 @@ Result<FileId, QMResult> FileSystemDataManager::LockShared(
 // TODO: Improve reporting of failures, see bug 1840811.
 void FileSystemDataManager::UnlockShared(const EntryId& aEntryId,
                                          const FileId& aFileId, bool aAbort) {
-  const bool wasDeprecated = [&]() {
-    // Someone recreated the file and put an exclusive lock on it
-    if (mExclusiveLocks.Contains(aEntryId)) {
-      aAbort = true;
-    }
+  MOZ_ASSERT(!mExclusiveLocks.Contains(aEntryId));
+  MOZ_ASSERT(mSharedLocks.Contains(aEntryId));
 
-    auto entry = mDeprecatedLocks.Lookup(aEntryId);
-    if (!entry) {
-      return false;
-    }
+  auto entry = mSharedLocks.Lookup(aEntryId);
+  MOZ_ASSERT(entry);
 
-    auto& fileIdData = entry.Data();
-    auto fileIdIt = fileIdData.IndexOf(aFileId);
-    if (nsTArray<FileId>::NoIndex == fileIdIt) {
-      return false;
-    }
+  MOZ_ASSERT(entry.Data() > 0);
+  --entry.Data();
 
-    fileIdData.UnorderedRemoveElementAt(fileIdIt);
+  LOG_VERBOSE(("SharedUnlock %u", *entry));
 
-    if (fileIdData.IsEmpty()) {
-      entry.Remove();
-    }
-
-    return true;
-  }();
-
-  // Deprecated locks are per file. A file cannot be
-  // both in active use with a shared lock and deprecated,
-  // while entries can.
-  if (!wasDeprecated) {
-    MOZ_ASSERT(!mExclusiveLocks.Contains(aEntryId));
-
-    auto entry = mSharedLocks.Lookup(aEntryId);
-    if (!entry) {
-      return;
-    }
-
-    MOZ_ASSERT(entry.Data() > 0);
-    --entry.Data();
-
-    LOG_VERBOSE(("SharedUnlock %u", *entry));
-
-    if (0u == entry.Data()) {
-      entry.Remove();
-    }
-  }
-
-  // If underlying file does not exist but should close, abort instead.
-  if (!aAbort) {
-    QM_WARNONLY_TRY_UNWRAP(const Maybe<bool> doesFileExist,
-                           mDatabaseManager->DoesFileExist(aEntryId));
-    const bool exists = doesFileExist.isSome() && doesFileExist.ref();
-    if (!exists) {
-      aAbort = true;
-    }
+  if (0u == entry.Data()) {
+    entry.Remove();
   }
 
   // On error, usage tracking remains on to prevent writes until usage is
@@ -553,38 +511,6 @@ void FileSystemDataManager::UnlockShared(const EntryId& aEntryId,
   QM_TRY(
       MOZ_TO_RESULT(mDatabaseManager->MergeFileId(aEntryId, aFileId, aAbort)),
       QM_VOID);
-}
-
-void FileSystemDataManager::DeprecateSharedLocks(const EntryId& aEntryId,
-                                                 const FileId& aFileId) {
-  auto oldEntry = mSharedLocks.Lookup(aEntryId);
-  if (!oldEntry) {
-    return;
-  }
-
-  auto& deprecatedEntries = mDeprecatedLocks.LookupOrInsert(aEntryId);
-  MOZ_ASSERT(!deprecatedEntries.Contains(aFileId));
-  deprecatedEntries.AppendElement(aFileId);
-
-  MOZ_ASSERT(oldEntry.Data() >= 1);
-  if (oldEntry.Data() == 1) {
-    oldEntry.Remove();
-  } else {
-    --oldEntry.Data();
-  }
-}
-
-bool FileSystemDataManager::IsLockedWithDeprecatedSharedLock(
-    const EntryId& aEntryId, const FileId& aFileId) const {
-  MOZ_ASSERT(!aEntryId.IsEmpty());
-  MOZ_ASSERT(!aFileId.IsEmpty());
-
-  auto entry = mDeprecatedLocks.Lookup(aEntryId);
-  if (!entry) {
-    return false;
-  }
-
-  return nsTArray<FileId>::NoIndex != entry.Data().IndexOf(aFileId);
 }
 
 FileMode FileSystemDataManager::GetMode(bool aKeepData) const {

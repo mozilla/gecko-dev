@@ -63,15 +63,11 @@ class FileSystemDatabaseManagerVersion002
 
   nsresult RemoveFileId(const FileId& aFileId) override;
 
-  Result<std::pair<nsTArray<FileId>, Usage>, QMResult>
-  FindFilesWithoutDeprecatedLocksUnderEntry(
+  Result<Usage, QMResult> GetUsagesOfDescendants(
       const EntryId& aEntryId) const override;
 
-  Result<nsTArray<std::pair<EntryId, FileId>>, QMResult>
-  FindFileEntriesUnderDirectory(const EntryId& aEntryId) const override;
-
-  Result<Ok, QMResult> DeprecateSharedLocksForDirectory(
-      const FileSystemChildMetadata& aNewDesignation);
+  Result<nsTArray<FileId>, QMResult> FindFilesUnderEntry(
+      const EntryId& aEntryId) const override;
 };
 
 }  // namespace mozilla::dom::fs::data
