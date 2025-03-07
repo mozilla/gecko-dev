@@ -85,7 +85,7 @@ androidx-test-runner = "1.6.1"
 androidx-test-uiautomator = "2.3.0"
 junit = "5.11.4"
 mockito = "5.15.2"
-mockk = "1.13.16"
+mockk = "1.13.17"
 robolectric = "4.14.1"
 
 sentry = "8.3.0"
