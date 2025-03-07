@@ -88,11 +88,11 @@ int GetFrameSizeMs(const SdpAudioFormat& format) {
 int CalculateDefaultBitrate(int max_playback_rate, size_t num_channels) {
   const int bitrate = [&] {
     if (max_playback_rate <= 8000) {
-      return kOpusBitrateNbBps * rtc::dchecked_cast<int>(num_channels);
+      return kOpusBitrateNbBps * dchecked_cast<int>(num_channels);
     } else if (max_playback_rate <= 16000) {
-      return kOpusBitrateWbBps * rtc::dchecked_cast<int>(num_channels);
+      return kOpusBitrateWbBps * dchecked_cast<int>(num_channels);
     } else {
-      return kOpusBitrateFbBps * rtc::dchecked_cast<int>(num_channels);
+      return kOpusBitrateFbBps * dchecked_cast<int>(num_channels);
     }
   }();
   RTC_DCHECK_GE(bitrate, AudioEncoderMultiChannelOpusConfig::kMinBitrateBps);
@@ -344,7 +344,7 @@ AudioEncoder::EncodedInfo AudioEncoderMultiChannelOpusImpl::EncodeImpl(
         int status = WebRtcOpus_Encode(
             inst_, &input_buffer_[0],
             rtc::CheckedDivExact(input_buffer_.size(), config_.num_channels),
-            rtc::saturated_cast<int16_t>(max_encoded_bytes), encoded.data());
+            saturated_cast<int16_t>(max_encoded_bytes), encoded.data());
 
         RTC_CHECK_GE(status, 0);  // Fails only if fed invalid data.
 

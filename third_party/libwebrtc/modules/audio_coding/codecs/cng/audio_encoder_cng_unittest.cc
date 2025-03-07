@@ -305,8 +305,8 @@ TEST_F(AudioEncoderCngTest, EncodePassive) {
                   encoded_info_.encoded_bytes);
         EXPECT_EQ(expected_timestamp, encoded_info_.encoded_timestamp);
       }
-      expected_timestamp += rtc::checked_cast<uint32_t>(
-          kBlocksPerFrame * num_audio_samples_10ms_);
+      expected_timestamp +=
+          checked_cast<uint32_t>(kBlocksPerFrame * num_audio_samples_10ms_);
     } else {
       // Otherwise, expect no output.
       EXPECT_EQ(0u, encoded_info_.encoded_bytes);

@@ -165,7 +165,7 @@ void ScaleSignal(rtc::ArrayView<const int16_t> source_samples,
   RTC_DCHECK_EQ(source_samples.size(), output_samples.size());
   std::transform(source_samples.begin(), source_samples.end(),
                  output_samples.begin(), [gain_linear](int16_t x) -> int16_t {
-                   return rtc::saturated_cast<int16_t>(x * gain_linear);
+                   return saturated_cast<int16_t>(x * gain_linear);
                  });
 }
 

@@ -184,7 +184,7 @@ bool TimeStretch::SpeechDetection(int32_t vec1_energy,
   // (vec1_energy + vec2_energy) / 16 <= peak_index * background_noise_energy.
   // The two sides of the inequality will be denoted `left_side` and
   // `right_side`.
-  int32_t left_side = rtc::saturated_cast<int32_t>(
+  int32_t left_side = saturated_cast<int32_t>(
       (static_cast<int64_t>(vec1_energy) + vec2_energy) / 16);
   int32_t right_side;
   if (background_noise_.initialized()) {
@@ -196,8 +196,7 @@ bool TimeStretch::SpeechDetection(int32_t vec1_energy,
   int right_scale = 16 - WebRtcSpl_NormW32(right_side);
   right_scale = std::max(0, right_scale);
   left_side = left_side >> right_scale;
-  right_side =
-      rtc::dchecked_cast<int32_t>(peak_index) * (right_side >> right_scale);
+  right_side = dchecked_cast<int32_t>(peak_index) * (right_side >> right_scale);
 
   // Scale `left_side` properly before comparing with `right_side`.
   // (`scaling` is the scale factor before energy calculation, thus the scale

@@ -131,7 +131,7 @@ class PacketizationCallbackStubOldApi : public AudioPacketizationCallback {
 
   int last_payload_len_bytes() const {
     MutexLock lock(&mutex_);
-    return rtc::checked_cast<int>(last_payload_vec_.size());
+    return checked_cast<int>(last_payload_vec_.size());
   }
 
   AudioFrameType last_frame_type() const {
@@ -677,7 +677,7 @@ class AcmSenderBitExactnessOldApi : public ::testing::Test,
       std::unique_ptr<AudioEncoder> external_speech_encoder,
       int payload_type) {
     payload_type_ = payload_type;
-    frame_size_rtp_timestamps_ = rtc::checked_cast<uint32_t>(
+    frame_size_rtp_timestamps_ = checked_cast<uint32_t>(
         external_speech_encoder->Num10MsFramesInNextPacket() *
         external_speech_encoder->RtpTimestampRateHz() / 100);
     send_test_->RegisterExternalCodec(std::move(external_speech_encoder));
@@ -1069,7 +1069,7 @@ class AcmSetBitRateTest : public ::testing::Test {
     int nr_bytes = 0;
     while (std::unique_ptr<test::Packet> next_packet =
                send_test_->NextPacket()) {
-      nr_bytes += rtc::checked_cast<int>(next_packet->payload_length_bytes());
+      nr_bytes += checked_cast<int>(next_packet->payload_length_bytes());
     }
     EXPECT_LE(min_expected_total_bits, nr_bytes * 8);
     EXPECT_GE(max_expected_total_bits, nr_bytes * 8);

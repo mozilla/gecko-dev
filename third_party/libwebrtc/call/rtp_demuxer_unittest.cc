@@ -310,8 +310,7 @@ TEST_F(RtpDemuxerTest, OnRtpPacketCalledOnCorrectSinkByRsid) {
   }
 
   for (size_t i = 0; i < arraysize(rsids); i++) {
-    auto packet =
-        CreatePacketWithSsrcRsid(rtc::checked_cast<uint32_t>(i), rsids[i]);
+    auto packet = CreatePacketWithSsrcRsid(checked_cast<uint32_t>(i), rsids[i]);
     EXPECT_CALL(sinks[i], OnRtpPacket(SamePacketAs(*packet))).Times(1);
     EXPECT_TRUE(demuxer_.OnRtpPacket(*packet));
   }
@@ -325,8 +324,7 @@ TEST_F(RtpDemuxerTest, OnRtpPacketCalledOnCorrectSinkByMid) {
   }
 
   for (size_t i = 0; i < arraysize(mids); i++) {
-    auto packet =
-        CreatePacketWithSsrcMid(rtc::checked_cast<uint32_t>(i), mids[i]);
+    auto packet = CreatePacketWithSsrcMid(checked_cast<uint32_t>(i), mids[i]);
     EXPECT_CALL(sinks[i], OnRtpPacket(SamePacketAs(*packet))).Times(1);
     EXPECT_TRUE(demuxer_.OnRtpPacket(*packet));
   }
@@ -380,7 +378,7 @@ TEST_F(RtpDemuxerTest, PacketsDeliveredInRightOrder) {
   std::unique_ptr<RtpPacketReceived> packets[5];
   for (size_t i = 0; i < arraysize(packets); i++) {
     packets[i] = CreatePacketWithSsrc(ssrc);
-    packets[i]->SetSequenceNumber(rtc::checked_cast<uint16_t>(i));
+    packets[i]->SetSequenceNumber(checked_cast<uint16_t>(i));
   }
 
   InSequence sequence;

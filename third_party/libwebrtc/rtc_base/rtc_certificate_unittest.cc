@@ -68,7 +68,7 @@ class RTCCertificateTest : public ::testing::Test {
   // or later.
   scoped_refptr<RTCCertificate> GenerateCertificateWithExpires(
       uint64_t expires_s) const {
-    RTC_CHECK(IsValueInRangeForNumericType<time_t>(expires_s));
+    RTC_CHECK(webrtc::IsValueInRangeForNumericType<time_t>(expires_s));
 
     SSLIdentityParams params;
     params.common_name = kTestCertCommonName;

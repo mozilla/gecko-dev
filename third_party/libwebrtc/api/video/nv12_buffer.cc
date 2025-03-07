@@ -33,7 +33,7 @@ static const int kBufferAlignment = 64;
 int NV12DataSize(int width, int height, int stride_y, int stride_uv) {
   CheckValidDimensions(width, height, stride_y, stride_uv, stride_uv);
   int64_t h = height, y = stride_y, uv = stride_uv;
-  return rtc::checked_cast<int>(y * h + uv * ((h + 1) / 2));
+  return checked_cast<int>(y * h + uv * ((h + 1) / 2));
 }
 
 }  // namespace

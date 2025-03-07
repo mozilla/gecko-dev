@@ -66,7 +66,7 @@ class NetEqPcm16bQualityTest : public NetEqQualityTest {
                               payload);
       encoded_samples += kFrameSizeSamples;
     } while (info.encoded_bytes == 0);
-    return rtc::checked_cast<int>(info.encoded_bytes);
+    return checked_cast<int>(info.encoded_bytes);
   }
 
  private:

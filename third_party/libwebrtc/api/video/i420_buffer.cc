@@ -44,7 +44,7 @@ int I420DataSize(int width,
   // Do the size calculation using 64bit integers and use checked_cast to catch
   // overflow.
   int64_t h = height, y = stride_y, u = stride_u, v = stride_v;
-  return rtc::checked_cast<int>(y * h + (u + v) * ((h + 1) / 2));
+  return checked_cast<int>(y * h + (u + v) * ((h + 1) / 2));
 }
 
 }  // namespace

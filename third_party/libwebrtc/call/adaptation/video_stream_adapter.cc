@@ -66,7 +66,7 @@ bool CanDecreaseResolutionTo(int target_pixels,
                              const VideoStreamInputState& input_state,
                              const VideoSourceRestrictions& restrictions) {
   int max_pixels_per_frame =
-      rtc::dchecked_cast<int>(restrictions.max_pixels_per_frame().value_or(
+      dchecked_cast<int>(restrictions.max_pixels_per_frame().value_or(
           std::numeric_limits<int>::max()));
   return target_pixels < max_pixels_per_frame &&
          target_pixels_min >= input_state.min_pixels_per_frame();
@@ -76,7 +76,7 @@ bool CanIncreaseResolutionTo(int target_pixels,
                              const VideoSourceRestrictions& restrictions) {
   int max_pixels_wanted = GetIncreasedMaxPixelsWanted(target_pixels);
   int max_pixels_per_frame =
-      rtc::dchecked_cast<int>(restrictions.max_pixels_per_frame().value_or(
+      dchecked_cast<int>(restrictions.max_pixels_per_frame().value_or(
           std::numeric_limits<int>::max()));
   return max_pixels_wanted > max_pixels_per_frame;
 }
@@ -84,15 +84,14 @@ bool CanIncreaseResolutionTo(int target_pixels,
 bool CanDecreaseFrameRateTo(int max_frame_rate,
                             const VideoSourceRestrictions& restrictions) {
   const int fps_wanted = std::max(kMinFrameRateFps, max_frame_rate);
-  return fps_wanted <
-         rtc::dchecked_cast<int>(restrictions.max_frame_rate().value_or(
-             std::numeric_limits<int>::max()));
+  return fps_wanted < dchecked_cast<int>(restrictions.max_frame_rate().value_or(
+                          std::numeric_limits<int>::max()));
 }
 
 bool CanIncreaseFrameRateTo(int max_frame_rate,
                             const VideoSourceRestrictions& restrictions) {
   return max_frame_rate >
-         rtc::dchecked_cast<int>(restrictions.max_frame_rate().value_or(
+         dchecked_cast<int>(restrictions.max_frame_rate().value_or(
              std::numeric_limits<int>::max()));
 }
 

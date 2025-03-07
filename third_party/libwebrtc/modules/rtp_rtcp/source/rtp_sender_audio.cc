@@ -77,7 +77,7 @@ int32_t RTPSenderAudio::RegisterAudioPayload(absl::string_view payload_name,
     return 0;
   } else if (payload_name == "audio") {
     MutexLock lock(&send_audio_mutex_);
-    encoder_rtp_timestamp_frequency_ = rtc::dchecked_cast<int>(frequency);
+    encoder_rtp_timestamp_frequency_ = dchecked_cast<int>(frequency);
     return 0;
   }
   return 0;

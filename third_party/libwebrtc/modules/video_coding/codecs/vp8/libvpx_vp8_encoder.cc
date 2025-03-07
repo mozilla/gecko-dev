@@ -1377,7 +1377,7 @@ VideoEncoder::EncoderInfo LibvpxVp8Encoder::GetEncoderInfo() const {
         for (size_t ti = 0; ti < vpx_configs_[encoder_idx].ts_number_layers;
              ++ti) {
           RTC_DCHECK_GT(vpx_configs_[encoder_idx].ts_rate_decimator[ti], 0);
-          info.fps_allocation[si].push_back(rtc::saturated_cast<uint8_t>(
+          info.fps_allocation[si].push_back(saturated_cast<uint8_t>(
               EncoderInfo::kMaxFramerateFraction /
                   vpx_configs_[encoder_idx].ts_rate_decimator[ti] +
               0.5));

@@ -127,7 +127,7 @@ index 2b4ff128de..2ec8936f4f 100644
        return -1;
  #elif defined(WEBRTC_POSIX)
 diff --git a/system_wrappers/source/cpu_info.cc b/system_wrappers/source/cpu_info.cc
-index eff720371a..94aed09c48 100644
+index 7e53eb78fa..b47a9b4022 100644
 --- a/system_wrappers/source/cpu_info.cc
 +++ b/system_wrappers/source/cpu_info.cc
 @@ -12,7 +12,7 @@

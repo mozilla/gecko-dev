@@ -107,7 +107,7 @@ void AudioEgress::SendAudioData(std::unique_ptr<AudioFrame> audio_frame) {
         }
 
         encoder_context_.frame_rtp_timestamp_ +=
-            rtc::dchecked_cast<uint32_t>(audio_frame->samples_per_channel_);
+            dchecked_cast<uint32_t>(audio_frame->samples_per_channel_);
       });
 }
 

@@ -31,9 +31,9 @@ void TestGatedRecurrentLayer(
     rtc::ArrayView<const float> input_sequence,
     rtc::ArrayView<const float> expected_output_sequence) {
   const int input_sequence_length = rtc::CheckedDivExact(
-      rtc::dchecked_cast<int>(input_sequence.size()), gru.input_size());
+      dchecked_cast<int>(input_sequence.size()), gru.input_size());
   const int output_sequence_length = rtc::CheckedDivExact(
-      rtc::dchecked_cast<int>(expected_output_sequence.size()), gru.size());
+      dchecked_cast<int>(expected_output_sequence.size()), gru.size());
   ASSERT_EQ(input_sequence_length, output_sequence_length)
       << "The test data length is invalid.";
   // Feed the GRU layer and check the output at every step.

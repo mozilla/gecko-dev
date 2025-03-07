@@ -42,7 +42,7 @@ int I444DataSize(int width,
                  int stride_v) {
   CheckValidDimensions(width, height, stride_y, stride_u, stride_v);
   int64_t h = height, y = stride_y, u = stride_u, v = stride_v;
-  return rtc::checked_cast<int>(y * h + u * h + v * h);
+  return checked_cast<int>(y * h + u * h + v * h);
 }
 
 }  // namespace

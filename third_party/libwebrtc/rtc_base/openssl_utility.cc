@@ -248,8 +248,9 @@ bool LoadBuiltinSSLRootCertificates(SSL_CTX* ctx) {
   for (size_t i = 0; i < arraysize(kSSLCertCertificateList); i++) {
     const unsigned char* cert_buffer = kSSLCertCertificateList[i];
     size_t cert_buffer_len = kSSLCertCertificateSizeList[i];
-    X509* cert = d2i_X509(nullptr, &cert_buffer,
-                          checked_cast<long>(cert_buffer_len));  // NOLINT
+    X509* cert =
+        d2i_X509(nullptr, &cert_buffer,
+                 webrtc::checked_cast<long>(cert_buffer_len));  // NOLINT
     if (cert) {
       int return_value = X509_STORE_add_cert(SSL_CTX_get_cert_store(ctx), cert);
       if (return_value == 0) {

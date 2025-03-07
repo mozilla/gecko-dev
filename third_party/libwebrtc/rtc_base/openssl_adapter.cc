@@ -140,7 +140,7 @@ static int socket_write(BIO* b, const char* in, int inl) {
 }
 
 static int socket_puts(BIO* b, const char* str) {
-  return socket_write(b, str, rtc::checked_cast<int>(strlen(str)));
+  return socket_write(b, str, webrtc::checked_cast<int>(strlen(str)));
 }
 
 static long socket_ctrl(BIO* b, int cmd, long num, void* ptr) {  // NOLINT
@@ -364,7 +364,7 @@ int OpenSSLAdapter::BeginSSL() {
     if (!tls_alpn_string.empty()) {
       SSL_set_alpn_protos(
           ssl_, reinterpret_cast<const unsigned char*>(tls_alpn_string.data()),
-          rtc::dchecked_cast<unsigned>(tls_alpn_string.size()));
+          webrtc::dchecked_cast<unsigned>(tls_alpn_string.size()));
     }
   }
 
@@ -478,7 +478,7 @@ int OpenSSLAdapter::DoSslWrite(const void* pv, size_t cb, int* error) {
   RTC_DCHECK(error != nullptr);
 
   ssl_write_needs_read_ = false;
-  int ret = SSL_write(ssl_, pv, checked_cast<int>(cb));
+  int ret = SSL_write(ssl_, pv, webrtc::checked_cast<int>(cb));
   *error = SSL_get_error(ssl_, ret);
   switch (*error) {
     case SSL_ERROR_NONE:
@@ -572,7 +572,7 @@ int OpenSSLAdapter::Send(const void* pv, size_t cb) {
     pending_data_.SetData(static_cast<const uint8_t*>(pv), cb);
     // Since we're taking responsibility for sending this data, return its full
     // size. The user of this class can consider it sent.
-    return rtc::dchecked_cast<int>(cb);
+    return webrtc::dchecked_cast<int>(cb);
   }
   return ret;
 }
@@ -610,7 +610,7 @@ int OpenSSLAdapter::Recv(void* pv, size_t cb, int64_t* timestamp) {
   }
 
   ssl_read_needs_write_ = false;
-  int code = SSL_read(ssl_, pv, checked_cast<int>(cb));
+  int code = SSL_read(ssl_, pv, webrtc::checked_cast<int>(cb));
   int error = SSL_get_error(ssl_, code);
 
   switch (error) {

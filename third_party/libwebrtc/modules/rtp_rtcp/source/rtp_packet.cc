@@ -231,7 +231,7 @@ void RtpPacket::SetCsrcs(rtc::ArrayView<const uint32_t> csrcs) {
   RTC_DCHECK_LE(csrcs.size(), 0x0fu);
   RTC_DCHECK_LE(kFixedHeaderSize + 4 * csrcs.size(), capacity());
   payload_offset_ = kFixedHeaderSize + 4 * csrcs.size();
-  WriteAt(0, (data()[0] & 0xF0) | rtc::dchecked_cast<uint8_t>(csrcs.size()));
+  WriteAt(0, (data()[0] & 0xF0) | dchecked_cast<uint8_t>(csrcs.size()));
   size_t offset = kFixedHeaderSize;
   for (uint32_t csrc : csrcs) {
     ByteWriter<uint32_t>::WriteBigEndian(WriteAt(offset), csrc);
@@ -327,20 +327,20 @@ rtc::ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id, size_t length) {
   }
 
   if (profile_id == kOneByteExtensionProfileId) {
-    uint8_t one_byte_header = rtc::dchecked_cast<uint8_t>(id) << 4;
-    one_byte_header |= rtc::dchecked_cast<uint8_t>(length - 1);
+    uint8_t one_byte_header = dchecked_cast<uint8_t>(id) << 4;
+    one_byte_header |= dchecked_cast<uint8_t>(length - 1);
     WriteAt(extensions_offset + extensions_size_, one_byte_header);
   } else {
     // TwoByteHeaderExtension.
-    uint8_t extension_id = rtc::dchecked_cast<uint8_t>(id);
+    uint8_t extension_id = dchecked_cast<uint8_t>(id);
     WriteAt(extensions_offset + extensions_size_, extension_id);
-    uint8_t extension_length = rtc::dchecked_cast<uint8_t>(length);
+    uint8_t extension_length = dchecked_cast<uint8_t>(length);
     WriteAt(extensions_offset + extensions_size_ + 1, extension_length);
   }
 
-  const uint16_t extension_info_offset = rtc::dchecked_cast<uint16_t>(
+  const uint16_t extension_info_offset = dchecked_cast<uint16_t>(
       extensions_offset + extensions_size_ + extension_header_size);
-  const uint8_t extension_info_length = rtc::dchecked_cast<uint8_t>(length);
+  const uint8_t extension_info_length = dchecked_cast<uint8_t>(length);
   extension_entries_.emplace_back(id, extension_info_length,
                                   extension_info_offset);
 
@@ -371,7 +371,7 @@ void RtpPacket::PromoteToTwoByteHeaderExtension() {
     size_t read_index = extension_entry->offset;
     size_t write_index = read_index + write_read_delta;
     // Update offset.
-    extension_entry->offset = rtc::dchecked_cast<uint16_t>(write_index);
+    extension_entry->offset = dchecked_cast<uint16_t>(write_index);
     // Copy data. Use memmove since read/write regions may overlap.
     memmove(WriteAt(write_index), data() + read_index, extension_entry->length);
     // Rewrite id and length.
@@ -393,8 +393,8 @@ void RtpPacket::PromoteToTwoByteHeaderExtension() {
 uint16_t RtpPacket::SetExtensionLengthMaybeAddZeroPadding(
     size_t extensions_offset) {
   // Update header length field.
-  uint16_t extensions_words = rtc::dchecked_cast<uint16_t>(
-      (extensions_size_ + 3) / 4);  // Wrap up to 32bit.
+  uint16_t extensions_words =
+      dchecked_cast<uint16_t>((extensions_size_ + 3) / 4);  // Wrap up to 32bit.
   ByteWriter<uint16_t>::WriteBigEndian(WriteAt(extensions_offset - 2),
                                        extensions_words);
   // Fill extension padding place with zeroes.
@@ -426,7 +426,7 @@ bool RtpPacket::SetPadding(size_t padding_bytes) {
                         << " bytes left in buffer.";
     return false;
   }
-  padding_size_ = rtc::dchecked_cast<uint8_t>(padding_bytes);
+  padding_size_ = dchecked_cast<uint8_t>(padding_bytes);
   buffer_.SetSize(payload_offset_ + payload_size_ + padding_size_);
   if (padding_size_ > 0) {
     size_t padding_offset = payload_offset_ + payload_size_;
@@ -547,7 +547,7 @@ bool RtpPacket::ParseBuffer(const uint8_t* buffer, size_t size) {
 
         size_t offset =
             extension_offset + extensions_size_ + extension_header_length;
-        if (!rtc::IsValueInRangeForNumericType<uint16_t>(offset)) {
+        if (!IsValueInRangeForNumericType<uint16_t>(offset)) {
           RTC_DLOG(LS_WARNING) << "Oversized rtp header extension.";
           break;
         }

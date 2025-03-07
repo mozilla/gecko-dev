@@ -71,8 +71,8 @@ TEST_P(AudioEncoderFactoryTest, CanRunAllSupportedEncoders) {
         factory->Create(env, spec.format, {.payload_type = kTestPayloadType});
     EXPECT_TRUE(encoder);
     encoder->Reset();
-    const int num_samples = rtc::checked_cast<int>(
-        encoder->SampleRateHz() * encoder->NumChannels() / 100);
+    const int num_samples = checked_cast<int>(encoder->SampleRateHz() *
+                                              encoder->NumChannels() / 100);
     rtc::Buffer out;
     rtc::BufferT<int16_t> audio;
     audio.SetData(num_samples, [](rtc::ArrayView<int16_t> audio) {

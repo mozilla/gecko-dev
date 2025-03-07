@@ -107,7 +107,7 @@ void CreateSineWavFile(absl::string_view filepath,
   double phase = 0.0;
   std::vector<int16_t> samples(params.num_samples);
   for (size_t i = 0; i < params.num_samples; ++i) {
-    samples[i] = rtc::saturated_cast<int16_t>(32767.0f * std::sin(phase));
+    samples[i] = saturated_cast<int16_t>(32767.0f * std::sin(phase));
     phase += phase_step;
   }
 

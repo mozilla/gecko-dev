@@ -142,7 +142,7 @@ void AecDumpBasedSimulator::PrepareProcessStreamCall(
       if (msg.has_input_data()) {
         int16_t* fwd_frame_data = fwd_frame_.data.data();
         for (size_t k = 0; k < in_buf_->num_frames(); ++k) {
-          fwd_frame_data[k] = rtc::saturated_cast<int16_t>(
+          fwd_frame_data[k] = saturated_cast<int16_t>(
               fwd_frame_data[k] +
               static_cast<int16_t>(32767 *
                                    artificial_nearend_buf_->channels()[0][k]));

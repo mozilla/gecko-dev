@@ -223,7 +223,7 @@ int Expand::Process(AudioMultiVector* output) {
     //   >= 64 * fs_mult            => go from 1 to 0 in about 32 ms.
     // temp_shift = getbits(max_lag_) - 5.
     int temp_shift =
-        (31 - WebRtcSpl_NormW32(rtc::dchecked_cast<int32_t>(max_lag_))) - 5;
+        (31 - WebRtcSpl_NormW32(dchecked_cast<int32_t>(max_lag_))) - 5;
     int16_t mix_factor_increment = 256 >> temp_shift;
     if (stop_muting_) {
       mix_factor_increment = 0;
@@ -314,8 +314,8 @@ int Expand::Process(AudioMultiVector* output) {
                              : consecutive_expands_ + 1;
   expand_duration_samples_ += output->Size();
   // Clamp the duration counter at 2 seconds.
-  expand_duration_samples_ = std::min(expand_duration_samples_,
-                                      rtc::dchecked_cast<size_t>(fs_hz_ * 2));
+  expand_duration_samples_ =
+      std::min(expand_duration_samples_, dchecked_cast<size_t>(fs_hz_ * 2));
   return 0;
 }
 
@@ -743,8 +743,7 @@ void Expand::AnalyzeSignal(int16_t* random_vector) {
       // the division.
       // Shift the denominator from Q13 to Q5 before the division. The result of
       // the division will then be in Q20.
-      int16_t denom =
-          rtc::saturated_cast<int16_t>((distortion_lag * slope) >> 8);
+      int16_t denom = saturated_cast<int16_t>((distortion_lag * slope) >> 8);
       int temp_ratio = WebRtcSpl_DivW32W16((slope - 8192) << 12, denom);
       if (slope > 14746) {
         // slope > 1.8.

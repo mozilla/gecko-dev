@@ -316,8 +316,8 @@ TEST_P(RtcEventLogEncoderTest, RtcEventAudioNetworkAdaptationBitrate) {
   for (size_t i = 0; i < event_count_; ++i) {
     if (i == 0 || !force_repeated_fields_) {
       auto runtime_config = std::make_unique<AudioEncoderRuntimeConfig>();
-      const int bitrate_bps = rtc::checked_cast<int>(
-          prng_.Rand(0, std::numeric_limits<int32_t>::max()));
+      const int bitrate_bps =
+          checked_cast<int>(prng_.Rand(0, std::numeric_limits<int32_t>::max()));
       runtime_config->bitrate_bps = bitrate_bps;
       events[i] = std::make_unique<RtcEventAudioNetworkAdaptation>(
           std::move(runtime_config));
@@ -417,8 +417,8 @@ TEST_P(RtcEventLogEncoderTest, RtcEventAudioNetworkAdaptationAll) {
   for (size_t i = 0; i < event_count_; ++i) {
     if (i == 0 || !force_repeated_fields_) {
       auto runtime_config = std::make_unique<AudioEncoderRuntimeConfig>();
-      runtime_config->bitrate_bps = rtc::checked_cast<int>(
-          prng_.Rand(0, std::numeric_limits<int32_t>::max()));
+      runtime_config->bitrate_bps =
+          checked_cast<int>(prng_.Rand(0, std::numeric_limits<int32_t>::max()));
       runtime_config->frame_length_ms = prng_.Rand(1, 1000);
       runtime_config->uplink_packet_loss_fraction =
           std::pow(0.5f, prng_.Rand(1, 8));

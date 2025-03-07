@@ -234,8 +234,8 @@ class QualityTestVideoEncoder : public VideoEncoder,
       std::tie(min_bitrate_bps, max_bitrate_bps) =
           GetMinMaxBitratesBps(codec_settings_, si);
       double overshoot_factor = overshoot_factor_;
-      const uint32_t corrected_bitrate = rtc::checked_cast<uint32_t>(
-          overshoot_factor * spatial_layer_bitrate_bps);
+      const uint32_t corrected_bitrate =
+          checked_cast<uint32_t>(overshoot_factor * spatial_layer_bitrate_bps);
       if (corrected_bitrate < min_bitrate_bps) {
         overshoot_factor = min_bitrate_bps / spatial_layer_bitrate_bps;
       } else if (corrected_bitrate > max_bitrate_bps) {
@@ -246,8 +246,8 @@ class QualityTestVideoEncoder : public VideoEncoder,
         if (parameters.bitrate.HasBitrate(si, ti)) {
           overshot_allocation.SetBitrate(
               si, ti,
-              rtc::checked_cast<uint32_t>(
-                  overshoot_factor * parameters.bitrate.GetBitrate(si, ti)));
+              checked_cast<uint32_t>(overshoot_factor *
+                                     parameters.bitrate.GetBitrate(si, ti)));
         }
       }
     }

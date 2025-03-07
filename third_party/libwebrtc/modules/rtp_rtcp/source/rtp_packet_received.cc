@@ -42,7 +42,7 @@ void RtpPacketReceived::GetHeader(RTPHeader* header) const {
   header->timestamp = Timestamp();
   header->ssrc = Ssrc();
   std::vector<uint32_t> csrcs = Csrcs();
-  header->numCSRCs = rtc::dchecked_cast<uint8_t>(csrcs.size());
+  header->numCSRCs = dchecked_cast<uint8_t>(csrcs.size());
   for (size_t i = 0; i < csrcs.size(); ++i) {
     header->arrOfCSRCs[i] = csrcs[i];
   }

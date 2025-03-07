@@ -23,9 +23,9 @@ namespace webrtc {
 
 FineAudioBuffer::FineAudioBuffer(AudioDeviceBuffer* audio_device_buffer)
     : audio_device_buffer_(audio_device_buffer),
-      playout_samples_per_channel_10ms_(rtc::dchecked_cast<size_t>(
+      playout_samples_per_channel_10ms_(dchecked_cast<size_t>(
           audio_device_buffer->PlayoutSampleRate() * 10 / 1000)),
-      record_samples_per_channel_10ms_(rtc::dchecked_cast<size_t>(
+      record_samples_per_channel_10ms_(dchecked_cast<size_t>(
           audio_device_buffer->RecordingSampleRate() * 10 / 1000)),
       playout_channels_(audio_device_buffer->PlayoutChannels()),
       record_channels_(audio_device_buffer->RecordingChannels()) {

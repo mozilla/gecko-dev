@@ -78,9 +78,9 @@ void EncodeNetEqInput::CreatePacket() {
     info = encoder_->Encode(rtp_timestamp_, generator_->Generate(num_samples),
                             &packet_data_->payload);
 
-    rtp_timestamp_ += rtc::dchecked_cast<uint32_t>(
-        num_samples * encoder_->RtpTimestampRateHz() /
-        encoder_->SampleRateHz());
+    rtp_timestamp_ +=
+        dchecked_cast<uint32_t>(num_samples * encoder_->RtpTimestampRateHz() /
+                                encoder_->SampleRateHz());
     ++num_blocks;
   }
   packet_data_->header.timestamp = info.encoded_timestamp;

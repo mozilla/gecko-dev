@@ -91,9 +91,7 @@ class AudioIngress : public AudioMixer::Source {
   AudioMixer::Source::AudioFrameInfo GetAudioFrameWithInfo(
       int sampling_rate,
       AudioFrame* audio_frame) override;
-  int Ssrc() const override {
-    return rtc::dchecked_cast<int>(remote_ssrc_.load());
-  }
+  int Ssrc() const override { return dchecked_cast<int>(remote_ssrc_.load()); }
   int PreferredSampleRate() const override {
     std::optional<NetEq::DecoderFormat> decoder =
         neteq_->GetCurrentDecoderFormat();

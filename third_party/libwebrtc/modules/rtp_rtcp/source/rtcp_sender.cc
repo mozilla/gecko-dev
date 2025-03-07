@@ -740,7 +740,7 @@ TimeDelta RTCPSender::ComputeTimeUntilNextReport(DataRate send_bitrate) {
 
   // The interval between RTCP packets is varied randomly over the
   // range [1/2,3/2] times the calculated interval.
-  int min_interval_int = rtc::dchecked_cast<int>(min_interval.ms());
+  int min_interval_int = dchecked_cast<int>(min_interval.ms());
   TimeDelta time_to_next = TimeDelta::Millis(
       random_.Rand(min_interval_int * 1 / 2, min_interval_int * 3 / 2));
 

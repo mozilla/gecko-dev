@@ -40,8 +40,7 @@ int I010DataSize(int width,
                  int stride_v) {
   CheckValidDimensions(width, height, stride_y, stride_u, stride_v);
   int64_t h = height, y = stride_y, u = stride_u, v = stride_v;
-  return rtc::checked_cast<int>(kBytesPerPixel *
-                                (y * h + (u + v) * ((h + 1) / 2)));
+  return checked_cast<int>(kBytesPerPixel * (y * h + (u + v) * ((h + 1) / 2)));
 }
 
 }  // namespace

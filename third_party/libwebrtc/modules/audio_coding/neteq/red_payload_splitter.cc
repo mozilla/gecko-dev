@@ -130,7 +130,7 @@ bool RedPayloadSplitter::SplitRed(PacketList* packet_list) {
         new_packet.payload_type = new_header.payload_type;
         new_packet.sequence_number = red_packet.sequence_number;
         new_packet.priority.red_level =
-            rtc::dchecked_cast<int>((new_headers.size() - 1) - i);
+            dchecked_cast<int>((new_headers.size() - 1) - i);
         new_packet.payload.SetData(payload_ptr, payload_length);
         new_packets.push_front(std::move(new_packet));
         payload_ptr += payload_length;

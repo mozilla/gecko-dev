@@ -36,7 +36,7 @@ constexpr float kAttackFirstSubframeInterpolationPower = 8.0f;
 void InterpolateFirstSubframe(float last_factor,
                               float current_factor,
                               rtc::ArrayView<float> subframe) {
-  const int n = rtc::dchecked_cast<int>(subframe.size());
+  const int n = dchecked_cast<int>(subframe.size());
   constexpr float p = kAttackFirstSubframeInterpolationPower;
   for (int i = 0; i < n; ++i) {
     subframe[i] = std::pow(1.f - i / n, p) * (last_factor - current_factor) +

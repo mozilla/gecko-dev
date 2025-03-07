@@ -272,7 +272,7 @@ TimeDelta PacingController::ExpectedQueueTime() const {
 }
 
 size_t PacingController::QueueSizePackets() const {
-  return rtc::checked_cast<size_t>(packet_queue_.SizeInPackets());
+  return checked_cast<size_t>(packet_queue_.SizeInPackets());
 }
 
 const std::array<int, kNumMediaTypes>&

@@ -100,9 +100,8 @@ bool ResamplerHelper::MaybeResample(int desired_sample_rate_hz,
     audio_frame->samples_per_channel_ =
         static_cast<size_t>(samples_per_channel_int);
     audio_frame->sample_rate_hz_ = desired_sample_rate_hz;
-    RTC_DCHECK_EQ(
-        audio_frame->sample_rate_hz_,
-        rtc::dchecked_cast<int>(audio_frame->samples_per_channel_ * 100));
+    RTC_DCHECK_EQ(audio_frame->sample_rate_hz_,
+                  dchecked_cast<int>(audio_frame->samples_per_channel_ * 100));
     resampled_last_output_frame_ = true;
   } else {
     resampled_last_output_frame_ = false;

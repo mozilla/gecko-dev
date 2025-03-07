@@ -744,7 +744,7 @@ index 3745e9cba5..f68cfb94c1 100644
        device_names->push_back(rtc::ToUtf8(device.DeviceName));
      }
 diff --git a/modules/rtp_rtcp/source/rtcp_sender.cc b/modules/rtp_rtcp/source/rtcp_sender.cc
-index 55724a850d..6d3ca422cf 100644
+index d7ba03d335..5fa32af69b 100644
 --- a/modules/rtp_rtcp/source/rtcp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtcp_sender.cc
 @@ -210,7 +210,7 @@ void RTCPSender::SetRTCPStatus(RtcpMode new_method) {
@@ -834,7 +834,7 @@ index c8ca45f72c..a42dcfd1cf 100644
  // Subclasses must defined kId and kUri static constexpr members.
  class BaseRtpStringExtension {
 diff --git a/modules/rtp_rtcp/source/rtp_packet.cc b/modules/rtp_rtcp/source/rtp_packet.cc
-index fb9c3d677b..0ddd4bed7e 100644
+index bf8d5e46ae..2277fb95d7 100644
 --- a/modules/rtp_rtcp/source/rtp_packet.cc
 +++ b/modules/rtp_rtcp/source/rtp_packet.cc
 @@ -212,6 +212,10 @@ void RtpPacket::ZeroMutableExtensions() {
@@ -1425,7 +1425,7 @@ index 5ec1fd4a83..e46e050609 100644
  
    int64_t _lastProcessFrameTimeNanos RTC_GUARDED_BY(capture_checker_);
 diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-index b5c985be28..2d5729b304 100644
+index e976866891..bf4845a687 100644
 --- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 +++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 @@ -281,6 +281,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,

@@ -697,7 +697,7 @@ void ChannelReceive::OnRtpPacket(const RtpPacketReceived& packet) {
           AbsoluteCaptureTimeInterpolator::GetSource(header.ssrc,
                                                      header.arrOfCSRCs),
           header.timestamp,
-          rtc::saturated_cast<uint32_t>(packet_copy.payload_type_frequency()),
+          saturated_cast<uint32_t>(packet_copy.payload_type_frequency()),
           header.extension.absolute_capture_time);
 
   ReceivePacket(packet_copy.data(), packet_copy.size(), header,

@@ -160,7 +160,7 @@ void OpenFileAndWriteMessage(absl::string_view filename,
   FILE* file = fopen(std::string(filename).c_str(), "wb");
   ASSERT_TRUE(file != NULL);
 
-  int32_t size = rtc::checked_cast<int32_t>(msg.ByteSizeLong());
+  int32_t size = checked_cast<int32_t>(msg.ByteSizeLong());
   ASSERT_GT(size, 0);
   std::unique_ptr<uint8_t[]> array(new uint8_t[size]);
   ASSERT_TRUE(msg.SerializeToArray(array.get(), size));
@@ -673,12 +673,12 @@ void ApmTest::ProcessDelayVerificationTest(int delay_ms,
       SafeMin<size_t>(16u, frame_.samples_per_channel() / 10);
   const int expected_median =
       SafeClamp<int>(delay_ms - system_delay_ms, delay_min, delay_max);
-  const int expected_median_high = SafeClamp<int>(
-      expected_median + rtc::dchecked_cast<int>(96 / samples_per_ms), delay_min,
-      delay_max);
-  const int expected_median_low = SafeClamp<int>(
-      expected_median - rtc::dchecked_cast<int>(96 / samples_per_ms), delay_min,
-      delay_max);
+  const int expected_median_high =
+      SafeClamp<int>(expected_median + dchecked_cast<int>(96 / samples_per_ms),
+                     delay_min, delay_max);
+  const int expected_median_low =
+      SafeClamp<int>(expected_median - dchecked_cast<int>(96 / samples_per_ms),
+                     delay_min, delay_max);
   // Verify delay metrics.
   AudioProcessingStats stats = apm_->GetStatistics();
   ASSERT_TRUE(stats.delay_median_ms.has_value());

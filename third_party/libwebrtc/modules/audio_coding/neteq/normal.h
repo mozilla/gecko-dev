@@ -43,7 +43,7 @@ class Normal {
         expand_(expand),
         samples_per_ms_(rtc::CheckedDivExact(fs_hz_, 1000)),
         default_win_slope_Q14_(
-            rtc::dchecked_cast<uint16_t>((1 << 14) / samples_per_ms_)),
+            dchecked_cast<uint16_t>((1 << 14) / samples_per_ms_)),
         statistics_(statistics) {}
 
   virtual ~Normal() {}

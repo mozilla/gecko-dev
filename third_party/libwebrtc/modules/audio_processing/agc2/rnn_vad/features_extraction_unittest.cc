@@ -78,7 +78,7 @@ TEST(RnnVadTest, FeatureExtractionLowHighPitch) {
   FeaturesExtractor features_extractor(cpu_features);
   std::vector<float> samples(kNumTestDataSize);
   std::vector<float> feature_vector(kFeatureVectorSize);
-  ASSERT_EQ(kFeatureVectorSize, rtc::dchecked_cast<int>(feature_vector.size()));
+  ASSERT_EQ(kFeatureVectorSize, dchecked_cast<int>(feature_vector.size()));
   rtc::ArrayView<float, kFeatureVectorSize> feature_vector_view(
       feature_vector.data(), kFeatureVectorSize);
 

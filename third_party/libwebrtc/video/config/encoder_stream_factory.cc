@@ -335,7 +335,7 @@ std::vector<VideoStream> EncoderStreamFactory::CreateDefaultVideoStreams(
 
   int min_bitrate_bps =
       experimental_min_bitrate
-          ? rtc::saturated_cast<int>(experimental_min_bitrate->bps())
+          ? webrtc::saturated_cast<int>(experimental_min_bitrate->bps())
           : webrtc::kDefaultMinVideoBitrateBps;
   if (encoder_config.simulcast_layers[0].min_bitrate_bps > 0) {
     // Use set min bitrate.
@@ -498,8 +498,8 @@ Resolution EncoderStreamFactory::GetLayerResolutionFromScaleResolutionDownTo(
     rtc::VideoSinkWants wants;
     wants.is_active = true;
     wants.target_pixel_count = restrictions_->target_pixels_per_frame();
-    wants.max_pixel_count =
-        rtc::dchecked_cast<int>(restrictions_->max_pixels_per_frame().value_or(
+    wants.max_pixel_count = webrtc::dchecked_cast<int>(
+        restrictions_->max_pixels_per_frame().value_or(
             std::numeric_limits<int>::max()));
     wants.aggregates.emplace(rtc::VideoSinkWants::Aggregates());
     wants.resolution_alignment = encoder_info_requested_resolution_alignment_;
@@ -545,7 +545,7 @@ std::vector<Resolution> EncoderStreamFactory::GetStreamResolutions(
     if (encoder_config.HasScaleResolutionDownTo() &&
         restrictions_.has_value() &&
         restrictions_->max_pixels_per_frame().has_value()) {
-      int max_pixels = rtc::dchecked_cast<int>(
+      int max_pixels = webrtc::dchecked_cast<int>(
           restrictions_->max_pixels_per_frame().value());
       int prev_pixel_count =
           encoder_config.simulcast_layers[0]

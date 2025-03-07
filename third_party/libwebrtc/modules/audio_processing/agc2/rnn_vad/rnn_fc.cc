@@ -40,8 +40,8 @@ std::vector<float> PreprocessWeights(rtc::ArrayView<const int8_t> weights,
     return GetScaledParams(weights);
   }
   // Transpose, scale and cast.
-  const int input_size = rtc::CheckedDivExact(
-      rtc::dchecked_cast<int>(weights.size()), output_size);
+  const int input_size =
+      rtc::CheckedDivExact(dchecked_cast<int>(weights.size()), output_size);
   std::vector<float> w(weights.size());
   for (int o = 0; o < output_size; ++o) {
     for (int i = 0; i < input_size; ++i) {

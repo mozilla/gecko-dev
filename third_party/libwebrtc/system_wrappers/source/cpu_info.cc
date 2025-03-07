@@ -65,7 +65,7 @@ uint32_t CpuInfo::DetectNumberOfCores() {
   // the sandbox is initialized) and not thereafter.
   // For more information see crbug.com/176522.
   static const uint32_t logical_cpus =
-      static_cast<uint32_t>(internal::DetectNumberOfCores());
+      static_cast<uint32_t>(::internal::DetectNumberOfCores());
   return logical_cpus;
 }
 

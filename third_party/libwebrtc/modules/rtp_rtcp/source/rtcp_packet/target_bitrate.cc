@@ -113,7 +113,7 @@ void TargetBitrate::Create(uint8_t* buffer) const {
   buffer[0] = kBlockType;
   buffer[1] = 0;  // Reserved.
   uint16_t block_length_words =
-      rtc::dchecked_cast<uint16_t>((BlockLength() / 4) - 1);
+      dchecked_cast<uint16_t>((BlockLength() / 4) - 1);
   ByteWriter<uint16_t>::WriteBigEndian(&buffer[2], block_length_words);
 
   size_t index = kTargetBitrateHeaderSizeBytes;

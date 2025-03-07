@@ -77,7 +77,7 @@ void Dlrr::Create(uint8_t* buffer) const {
   buffer[0] = kBlockType;
   buffer[1] = kReserved;
   ByteWriter<uint16_t>::WriteBigEndian(
-      &buffer[2], rtc::dchecked_cast<uint16_t>(3 * sub_blocks_.size()));
+      &buffer[2], dchecked_cast<uint16_t>(3 * sub_blocks_.size()));
   // Create sub blocks.
   uint8_t* write_at = buffer + kBlockHeaderLength;
   for (const ReceiveTimeInfo& sub_block : sub_blocks_) {

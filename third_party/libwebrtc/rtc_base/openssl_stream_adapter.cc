@@ -225,7 +225,7 @@ static int stream_read(BIO* b, char* out, int outl) {
   StreamResult result = stream->Read(
       rtc::MakeArrayView(reinterpret_cast<uint8_t*>(out), outl), read, error);
   if (result == SR_SUCCESS) {
-    return checked_cast<int>(read);
+    return webrtc::checked_cast<int>(read);
   } else if (result == SR_BLOCK) {
     BIO_set_retry_read(b);
   }
@@ -244,7 +244,7 @@ static int stream_write(BIO* b, const char* in, int inl) {
       rtc::MakeArrayView(reinterpret_cast<const uint8_t*>(in), inl), written,
       error);
   if (result == SR_SUCCESS) {
-    return checked_cast<int>(written);
+    return webrtc::checked_cast<int>(written);
   } else if (result == SR_BLOCK) {
     BIO_set_retry_write(b);
   }
@@ -252,7 +252,7 @@ static int stream_write(BIO* b, const char* in, int inl) {
 }
 
 static int stream_puts(BIO* b, const char* str) {
-  return stream_write(b, str, checked_cast<int>(strlen(str)));
+  return stream_write(b, str, webrtc::checked_cast<int>(strlen(str)));
 }
 
 static long stream_ctrl(BIO* b, int cmd, long num, void* ptr) {
@@ -586,7 +586,8 @@ StreamResult OpenSSLStreamAdapter::Write(rtc::ArrayView<const uint8_t> data,
 
   ssl_write_needs_read_ = false;
 
-  int code = SSL_write(ssl_, data.data(), checked_cast<int>(data.size()));
+  int code =
+      SSL_write(ssl_, data.data(), webrtc::checked_cast<int>(data.size()));
   int ssl_error = SSL_get_error(ssl_, code);
   switch (ssl_error) {
     case SSL_ERROR_NONE:
@@ -643,7 +644,8 @@ StreamResult OpenSSLStreamAdapter::Read(rtc::ArrayView<uint8_t> data,
 
   ssl_read_needs_write_ = false;
 
-  const int code = SSL_read(ssl_, data.data(), checked_cast<int>(data.size()));
+  const int code =
+      SSL_read(ssl_, data.data(), webrtc::checked_cast<int>(data.size()));
   const int ssl_error = SSL_get_error(ssl_, code);
 
   switch (ssl_error) {

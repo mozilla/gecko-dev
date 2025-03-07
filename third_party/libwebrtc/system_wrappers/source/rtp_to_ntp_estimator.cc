@@ -139,7 +139,7 @@ NtpTime RtpToNtpEstimator::Estimate(uint32_t rtp_timestamp) const {
       static_cast<double>(unwrapper_.Unwrap(rtp_timestamp)) * params_->slope +
       params_->offset + 0.5f;
 
-  return NtpTime(rtc::saturated_cast<uint64_t>(estimated));
+  return NtpTime(saturated_cast<uint64_t>(estimated));
 }
 
 double RtpToNtpEstimator::EstimatedFrequencyKhz() const {

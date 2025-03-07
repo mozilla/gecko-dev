@@ -854,7 +854,7 @@ void WebRtcAecm_UpdateChannel(AecmCore* aecm,
         // right shift of 32 is undefined. To avoid that, we
         // do this check.
         tmpU32no1 =
-            rtc::dchecked_cast<uint32_t>(
+            dchecked_cast<uint32_t>(
                 shiftChFar >= 32 ? 0 : aecm->channelAdapt32[i] >> shiftChFar) *
             far_spectrum[i];
       }

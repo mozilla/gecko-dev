@@ -128,7 +128,7 @@ std::optional<int64_t> RateStatistics::Rate(int64_t now_ms) const {
   if (result > static_cast<float>(std::numeric_limits<int64_t>::max())) {
     return std::nullopt;
   }
-  return rtc::dchecked_cast<int64_t>(result);
+  return dchecked_cast<int64_t>(result);
 }
 
 void RateStatistics::EraseOld(int64_t now_ms) {

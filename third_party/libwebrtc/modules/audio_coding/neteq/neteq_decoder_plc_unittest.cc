@@ -75,7 +75,7 @@ class AudioDecoderPlc : public AudioDecoder {
     int dec_len = DecodeInternal(nullptr, 2 * 10 * sample_rate_hz_ / 1000,
                                  sample_rate_hz_, decoded.data(), &speech_type);
     concealment_audio->AppendData(decoded.data(), dec_len);
-    concealed_samples_ += rtc::checked_cast<size_t>(dec_len);
+    concealed_samples_ += checked_cast<size_t>(dec_len);
 
     if (!last_was_plc) {
       ++concealment_events_;

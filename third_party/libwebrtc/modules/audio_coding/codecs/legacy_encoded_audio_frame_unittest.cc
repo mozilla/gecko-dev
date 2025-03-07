@@ -152,7 +152,7 @@ TEST_P(SplitBySamplesTest, PayloadSizes) {
         ASSERT_EQ(value, payload[i]);
       }
 
-      expected_timestamp += rtc::checked_cast<uint32_t>(
+      expected_timestamp += checked_cast<uint32_t>(
           expected_split.frame_sizes[i] * samples_per_ms_);
     }
   }

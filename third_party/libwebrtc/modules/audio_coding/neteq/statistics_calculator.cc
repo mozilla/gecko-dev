@@ -159,7 +159,7 @@ void StatisticsCalculator::ExpandedVoiceSamples(size_t num_samples,
     return;
   }
   expanded_speech_samples_ += num_samples;
-  ConcealedSamplesCorrection(rtc::dchecked_cast<int>(num_samples), true);
+  ConcealedSamplesCorrection(dchecked_cast<int>(num_samples), true);
   lifetime_stats_.concealment_events += is_new_concealment_event;
 }
 
@@ -169,7 +169,7 @@ void StatisticsCalculator::ExpandedNoiseSamples(size_t num_samples,
     return;
   }
   expanded_noise_samples_ += num_samples;
-  ConcealedSamplesCorrection(rtc::dchecked_cast<int>(num_samples), false);
+  ConcealedSamplesCorrection(dchecked_cast<int>(num_samples), false);
   lifetime_stats_.concealment_events += is_new_concealment_event;
 }
 

@@ -23,7 +23,7 @@ void DownMixFrame(const AudioFrame& input, rtc::ArrayView<int16_t> output) {
   } else {
     const int16_t* const input_data = input.data();
     for (size_t n = 0; n < input.samples_per_channel_; ++n) {
-      output[n] = rtc::dchecked_cast<int16_t>(
+      output[n] = dchecked_cast<int16_t>(
           (int32_t{input_data[2 * n]} + int32_t{input_data[2 * n + 1]}) >> 1);
     }
   }
@@ -94,7 +94,7 @@ void ReMixFrame(const AudioFrame& input,
   // When downmixing is needed, and the input is stereo, average the channels.
   if (input.num_channels_ == 2) {
     for (size_t n = 0; n < input.samples_per_channel_; ++n) {
-      (*output)[n] = rtc::dchecked_cast<int16_t>(
+      (*output)[n] = dchecked_cast<int16_t>(
           (int32_t{input_data[2 * n]} + int32_t{input_data[2 * n + 1]}) >> 1);
     }
     return;

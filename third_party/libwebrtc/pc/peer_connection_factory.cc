@@ -330,11 +330,11 @@ std::unique_ptr<Call> PeerConnectionFactory::CreateCall_w(
                   env.field_trials().Lookup("WebRTC-PcFactoryDefaultBitrates"));
 
   call_config.bitrate_config.min_bitrate_bps =
-      rtc::saturated_cast<int>(min_bandwidth->bps());
+      saturated_cast<int>(min_bandwidth->bps());
   call_config.bitrate_config.start_bitrate_bps =
-      rtc::saturated_cast<int>(start_bandwidth->bps());
+      saturated_cast<int>(start_bandwidth->bps());
   call_config.bitrate_config.max_bitrate_bps =
-      rtc::saturated_cast<int>(max_bandwidth->bps());
+      saturated_cast<int>(max_bandwidth->bps());
 
   call_config.fec_controller_factory = fec_controller_factory_.get();
   call_config.network_state_predictor_factory =

@@ -40,7 +40,7 @@ std::optional<AudioEncoderG722Config> AudioEncoderG722::SdpToConfig(
   }
 
   AudioEncoderG722Config config;
-  config.num_channels = rtc::checked_cast<int>(format.num_channels);
+  config.num_channels = checked_cast<int>(format.num_channels);
   auto ptime_iter = format.parameters.find("ptime");
   if (ptime_iter != format.parameters.end()) {
     auto ptime = StringToNumber<int>(ptime_iter->second);
@@ -66,7 +66,7 @@ void AudioEncoderG722::AppendSupportedEncoders(
 AudioCodecInfo AudioEncoderG722::QueryAudioEncoder(
     const AudioEncoderG722Config& config) {
   RTC_DCHECK(config.IsOk());
-  return {16000, rtc::dchecked_cast<size_t>(config.num_channels),
+  return {16000, dchecked_cast<size_t>(config.num_channels),
           64000 * config.num_channels};
 }
 

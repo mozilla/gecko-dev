@@ -73,13 +73,13 @@ class WhiteNoiseGenerator {
  public:
   explicit WhiteNoiseGenerator(double amplitude_dbfs)
       : amplitude_(
-            rtc::saturated_cast<int16_t>(std::pow(10, amplitude_dbfs / 20) *
-                                         std::numeric_limits<int16_t>::max())),
+            saturated_cast<int16_t>(std::pow(10, amplitude_dbfs / 20) *
+                                    std::numeric_limits<int16_t>::max())),
         random_generator_(42) {}
 
   void GenerateNextFrame(rtc::ArrayView<int16_t> frame) {
     for (size_t i = 0; i < frame.size(); ++i) {
-      frame[i] = rtc::saturated_cast<int16_t>(
+      frame[i] = saturated_cast<int16_t>(
           random_generator_.Rand(-amplitude_, amplitude_));
     }
   }

@@ -137,7 +137,7 @@ bool ComfortNoiseDecoder::Generate(rtc::ArrayView<int16_t> out_data,
   }
 
   /* Calculate new scale factor in Q13 */
-  dec_used_scale_factor_ = rtc::checked_cast<int16_t>(
+  dec_used_scale_factor_ = checked_cast<int16_t>(
       WEBRTC_SPL_MUL_16_16_RSFT(dec_used_scale_factor_, Beta >> 2, 13) +
       WEBRTC_SPL_MUL_16_16_RSFT(dec_target_scale_factor_, BetaC >> 2, 13));
 

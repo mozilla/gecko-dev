@@ -659,12 +659,12 @@ TEST_P(DataChannelIntegrationTest, StressTestUnorderedSctpDataChannel) {
   EXPECT_THAT(
       WaitUntil(
           [&] { return caller()->data_observer()->received_message_count(); },
-          Eq(rtc::checked_cast<size_t>(kNumMessages))),
+          Eq(checked_cast<size_t>(kNumMessages))),
       IsRtcOk());
   EXPECT_THAT(
       WaitUntil(
           [&] { return callee()->data_observer()->received_message_count(); },
-          Eq(rtc::checked_cast<size_t>(kNumMessages))),
+          Eq(checked_cast<size_t>(kNumMessages))),
       IsRtcOk());
 
   // Sort and compare to make sure none of the messages were corrupted.

@@ -48,7 +48,7 @@ std::vector<int16_t> CreateInt16Sinusoid(int frequency_hz,
                                          size_t num_samples) {
   std::vector<int16_t> x(num_samples);
   for (size_t n = 0; n < num_samples; ++n) {
-    x[n] = rtc::saturated_cast<int16_t>(
+    x[n] = saturated_cast<int16_t>(
         amplitude * std::sin(2 * M_PI * n * frequency_hz / kSampleRateHz));
   }
   return x;

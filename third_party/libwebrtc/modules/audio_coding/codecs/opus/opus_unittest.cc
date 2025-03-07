@@ -448,7 +448,7 @@ void OpusTest::TestCbrEffect(bool cbr, int block_length_ms) {
       int32_t diff = std::abs((int32_t)encoded_bytes_ - prev_pkt_size);
       max_pkt_size_diff = std::max(max_pkt_size_diff, diff);
     }
-    prev_pkt_size = rtc::checked_cast<int32_t>(encoded_bytes_);
+    prev_pkt_size = checked_cast<int32_t>(encoded_bytes_);
   }
 
   if (cbr) {
@@ -919,7 +919,7 @@ TEST_P(OpusTest, OpusDecodeRepacketized) {
                           rtc::CheckedDivExact(speech_block.size(), channels_),
                           kMaxBytes, bitstream_);
     if (opus_repacketizer_cat(rp, bitstream_,
-                              rtc::checked_cast<opus_int32>(encoded_bytes_)) ==
+                              checked_cast<opus_int32>(encoded_bytes_)) ==
         OPUS_OK) {
       ++num_packets;
       if (num_packets == kPackets) {

@@ -113,7 +113,7 @@ std::unique_ptr<SSLIdentity> BoringSSLIdentity::CreateFromPEMChainStrings(
     absl::string_view certificate_chain) {
   bssl::UniquePtr<BIO> bio(
       BIO_new_mem_buf(certificate_chain.data(),
-                      rtc::dchecked_cast<int>(certificate_chain.size())));
+                      webrtc::dchecked_cast<int>(certificate_chain.size())));
   if (!bio) {
     return nullptr;
   }

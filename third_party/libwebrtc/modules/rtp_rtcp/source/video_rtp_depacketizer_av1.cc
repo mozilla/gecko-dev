@@ -319,7 +319,7 @@ bool CalculateObuSizes(ObuInfo* obu_info) {
   }
   obu_info->payload_offset = it;
   obu_info->prefix_size +=
-      WriteLeb128(rtc::dchecked_cast<uint64_t>(obu_info->payload_size),
+      WriteLeb128(dchecked_cast<uint64_t>(obu_info->payload_size),
                   obu_info->prefix.data() + obu_info->prefix_size);
   return true;
 }

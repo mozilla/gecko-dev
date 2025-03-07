@@ -86,7 +86,7 @@ int FakeDecodeFromFile::DecodeInternal(const uint8_t* encoded,
   const int total_samples_to_decode = samples_to_decode * (stereo_ ? 2 : 1);
   std::fill_n(decoded, total_samples_to_decode, 0);
   *speech_type = kComfortNoise;
-  return rtc::dchecked_cast<int>(total_samples_to_decode);
+  return dchecked_cast<int>(total_samples_to_decode);
 }
 
 void FakeDecodeFromFile::PrepareEncoded(uint32_t timestamp,
@@ -96,9 +96,9 @@ void FakeDecodeFromFile::PrepareEncoded(uint32_t timestamp,
   RTC_CHECK_GE(encoded.size(), 12);
   ByteWriter<uint32_t>::WriteLittleEndian(&encoded[0], timestamp);
   ByteWriter<uint32_t>::WriteLittleEndian(&encoded[4],
-                                          rtc::checked_cast<uint32_t>(samples));
+                                          checked_cast<uint32_t>(samples));
   ByteWriter<uint32_t>::WriteLittleEndian(
-      &encoded[8], rtc::checked_cast<uint32_t>(original_payload_size_bytes));
+      &encoded[8], checked_cast<uint32_t>(original_payload_size_bytes));
 }
 
 std::vector<AudioDecoder::ParseResult> FakeDecodeFromFile::ParsePayload(

@@ -1878,8 +1878,8 @@ VideoEncoder::EncoderInfo LibvpxVp9Encoder::GetEncoderInfo() const {
             num_temporal_layers_ <= 1 ? 1 : config_->ts_rate_decimator[ti];
         RTC_DCHECK_GT(decimator, 0);
         info.fps_allocation[si].push_back(
-            rtc::saturated_cast<uint8_t>(EncoderInfo::kMaxFramerateFraction *
-                                         (sl_fps_fraction / decimator)));
+            saturated_cast<uint8_t>(EncoderInfo::kMaxFramerateFraction *
+                                    (sl_fps_fraction / decimator)));
       }
     }
     if (profile_ == VP9Profile::kProfile0) {

@@ -856,8 +856,8 @@ void RtpVideoSender::OnBitrateUpdated(BitrateAllocationUpdate update,
         CalculateOverheadRate(update.target_bitrate, max_total_packet_size,
                               packet_overhead, Frequency::Hertz(framerate));
     // TODO(srte): We probably should not accept 0 payload bitrate here.
-    payload_bitrate_bps = rtc::saturated_cast<uint32_t>(payload_bitrate_bps -
-                                                        overhead_rate.bps());
+    payload_bitrate_bps =
+        saturated_cast<uint32_t>(payload_bitrate_bps - overhead_rate.bps());
   }
 
   // Get the encoder target rate. It is the estimated network rate -
@@ -865,7 +865,7 @@ void RtpVideoSender::OnBitrateUpdated(BitrateAllocationUpdate update,
   // TODO(srte): We should multiply with 255 here.
   encoder_target_rate_bps_ = fec_controller_->UpdateFecRates(
       payload_bitrate_bps, framerate,
-      rtc::saturated_cast<uint8_t>(update.packet_loss_ratio * 256),
+      saturated_cast<uint8_t>(update.packet_loss_ratio * 256),
       loss_mask_vector_, update.round_trip_time.ms());
   if (!fec_allowed_) {
     encoder_target_rate_bps_ = payload_bitrate_bps;

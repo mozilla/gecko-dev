@@ -66,7 +66,7 @@ class AudioEncoderCopyRedTest : public ::testing::Test {
         timestamp_,
         rtc::ArrayView<const int16_t>(audio_, num_audio_samples_10ms),
         &encoded_);
-    timestamp_ += rtc::checked_cast<uint32_t>(num_audio_samples_10ms);
+    timestamp_ += checked_cast<uint32_t>(num_audio_samples_10ms);
   }
 
   test::ScopedKeyValueConfig field_trials_;

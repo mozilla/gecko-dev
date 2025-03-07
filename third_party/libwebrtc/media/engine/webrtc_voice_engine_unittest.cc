@@ -809,17 +809,19 @@ class WebRtcVoiceEngineTestFake : public ::testing::TestWithParam<bool> {
     EXPECT_EQ(info.payload_bytes_received, stats.payload_bytes_received);
     EXPECT_EQ(info.header_and_padding_bytes_received,
               stats.header_and_padding_bytes_received);
-    EXPECT_EQ(rtc::checked_cast<unsigned int>(info.packets_received),
+    EXPECT_EQ(webrtc::checked_cast<unsigned int>(info.packets_received),
               stats.packets_received);
     EXPECT_EQ(info.packets_lost, stats.packets_lost);
     EXPECT_EQ(info.codec_name, stats.codec_name);
     EXPECT_EQ(info.codec_payload_type, stats.codec_payload_type);
-    EXPECT_EQ(rtc::checked_cast<unsigned int>(info.jitter_ms), stats.jitter_ms);
-    EXPECT_EQ(rtc::checked_cast<unsigned int>(info.jitter_buffer_ms),
+    EXPECT_EQ(webrtc::checked_cast<unsigned int>(info.jitter_ms),
+              stats.jitter_ms);
+    EXPECT_EQ(webrtc::checked_cast<unsigned int>(info.jitter_buffer_ms),
               stats.jitter_buffer_ms);
-    EXPECT_EQ(rtc::checked_cast<unsigned int>(info.jitter_buffer_preferred_ms),
-              stats.jitter_buffer_preferred_ms);
-    EXPECT_EQ(rtc::checked_cast<unsigned int>(info.delay_estimate_ms),
+    EXPECT_EQ(
+        webrtc::checked_cast<unsigned int>(info.jitter_buffer_preferred_ms),
+        stats.jitter_buffer_preferred_ms);
+    EXPECT_EQ(webrtc::checked_cast<unsigned int>(info.delay_estimate_ms),
               stats.delay_estimate_ms);
     EXPECT_EQ(info.audio_level, stats.audio_level);
     EXPECT_EQ(info.total_samples_received, stats.total_samples_received);
@@ -4111,7 +4113,7 @@ TEST(WebRtcVoiceEngineTest, CollectRecvCodecs) {
         if (absl::EqualsIgnoreCase(codec.name, format.name) &&
             codec.clockrate == format.clockrate_hz &&
             codec.channels == format.num_channels) {
-          return rtc::checked_cast<int>(i);
+          return webrtc::checked_cast<int>(i);
         }
       }
       return -1;
@@ -4198,7 +4200,7 @@ TEST(WebRtcVoiceEngineTest, CollectRecvCodecsWithLatePtAssignment) {
         if (absl::EqualsIgnoreCase(codec.name, format.name) &&
             codec.clockrate == format.clockrate_hz &&
             codec.channels == format.num_channels) {
-          return rtc::checked_cast<int>(i);
+          return webrtc::checked_cast<int>(i);
         }
       }
       return -1;

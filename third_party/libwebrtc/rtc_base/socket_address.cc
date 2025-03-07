@@ -115,7 +115,7 @@ void SocketAddress::SetResolvedIP(const IPAddress& ip) {
 }
 
 void SocketAddress::SetPort(int port) {
-  port_ = rtc::dchecked_cast<uint16_t>(port);
+  port_ = webrtc::dchecked_cast<uint16_t>(port);
 }
 
 uint32_t SocketAddress::ip() const {

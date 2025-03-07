@@ -138,7 +138,7 @@ template <>
 std::optional<int> ParseTypedParameter<int>(absl::string_view str) {
   int64_t value;
   if (sscanf(std::string(str).c_str(), "%" SCNd64, &value) == 1) {
-    if (rtc::IsValueInRangeForNumericType<int, int64_t>(value)) {
+    if (IsValueInRangeForNumericType<int, int64_t>(value)) {
       return static_cast<int>(value);
     }
   }
@@ -149,7 +149,7 @@ template <>
 std::optional<unsigned> ParseTypedParameter<unsigned>(absl::string_view str) {
   int64_t value;
   if (sscanf(std::string(str).c_str(), "%" SCNd64, &value) == 1) {
-    if (rtc::IsValueInRangeForNumericType<unsigned, int64_t>(value)) {
+    if (IsValueInRangeForNumericType<unsigned, int64_t>(value)) {
       return static_cast<unsigned>(value);
     }
   }

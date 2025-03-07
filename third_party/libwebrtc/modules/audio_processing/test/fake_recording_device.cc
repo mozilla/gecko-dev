@@ -76,7 +76,7 @@ class FakeRecordingDeviceLinear final : public FakeRecordingDeviceWorker {
     const float divisor =
         (undo_mic_level_ && *undo_mic_level_ > 0) ? *undo_mic_level_ : 255.f;
     for (size_t i = 0; i < number_of_samples; ++i) {
-      data[i] = rtc::saturated_cast<int16_t>(data[i] * mic_level_ / divisor);
+      data[i] = saturated_cast<int16_t>(data[i] * mic_level_ / divisor);
     }
   }
   void ModifyBufferFloat(ChannelBuffer<float>* buffer) override {
@@ -116,7 +116,7 @@ class FakeRecordingDeviceAgc final : public FakeRecordingDeviceWorker {
     const size_t number_of_samples = buffer.size();
     int16_t* data = buffer.data();
     for (size_t i = 0; i < number_of_samples; ++i) {
-      data[i] = rtc::saturated_cast<int16_t>(data[i] * scaling_factor);
+      data[i] = saturated_cast<int16_t>(data[i] * scaling_factor);
     }
   }
   void ModifyBufferFloat(ChannelBuffer<float>* buffer) override {

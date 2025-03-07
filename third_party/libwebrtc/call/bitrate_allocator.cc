@@ -284,8 +284,7 @@ std::map<BitrateAllocatorObserver*, int> NormalRateAllocation(
                               allocation[observer_config.observer];
     if (priority_margin > 0 && bitrate > 0) {
       int64_t extra_bitrate = std::min<int64_t>(priority_margin, bitrate);
-      allocation[observer_config.observer] +=
-          rtc::dchecked_cast<int>(extra_bitrate);
+      allocation[observer_config.observer] += dchecked_cast<int>(extra_bitrate);
       observers_capacities[observer_config.observer] -= extra_bitrate;
       bitrate -= extra_bitrate;
     }
@@ -494,7 +493,7 @@ void BitrateAllocator::OnNetworkEstimateChanged(TargetTransferRate msg) {
 
   int loss_ratio_255 = msg.network_estimate.loss_rate_ratio * 255;
   last_fraction_loss_ =
-      rtc::dchecked_cast<uint8_t>(SafeClamp(loss_ratio_255, 0, 255));
+      dchecked_cast<uint8_t>(SafeClamp(loss_ratio_255, 0, 255));
   last_rtt_ = msg.network_estimate.round_trip_time.ms();
   last_bwe_period_ms_ = msg.network_estimate.bwe_period.ms();
 

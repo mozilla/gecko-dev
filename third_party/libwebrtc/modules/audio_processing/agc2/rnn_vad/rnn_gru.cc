@@ -25,7 +25,7 @@ std::vector<float> PreprocessGruTensor(rtc::ArrayView<const int8_t> tensor_src,
                                        int output_size) {
   // Transpose, cast and scale.
   // `n` is the size of the first dimension of the 3-dim tensor `weights`.
-  const int n = rtc::CheckedDivExact(rtc::dchecked_cast<int>(tensor_src.size()),
+  const int n = rtc::CheckedDivExact(dchecked_cast<int>(tensor_src.size()),
                                      output_size * kNumGruGates);
   const int stride_src = kNumGruGates * output_size;
   const int stride_dst = n * output_size;

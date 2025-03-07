@@ -100,7 +100,7 @@ Packet CreateRedPayload(size_t num_payloads,
     *payload_ptr |= 0x80;
     ++payload_ptr;
     int this_offset =
-        rtc::checked_cast<int>((num_payloads - i - 1) * timestamp_offset);
+        checked_cast<int>((num_payloads - i - 1) * timestamp_offset);
     *payload_ptr = this_offset >> 6;
     ++payload_ptr;
     RTC_DCHECK_LE(kPayloadLength, 1023);  // Max length described by 10 bits.

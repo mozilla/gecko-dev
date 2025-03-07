@@ -40,7 +40,7 @@ std::optional<AudioEncoderG711::Config> AudioEncoderG711::SdpToConfig(
       (is_pcmu || is_pcma)) {
     Config config;
     config.type = is_pcmu ? Config::Type::kPcmU : Config::Type::kPcmA;
-    config.num_channels = rtc::dchecked_cast<int>(format.num_channels);
+    config.num_channels = dchecked_cast<int>(format.num_channels);
     config.frame_size_ms = 20;
     auto ptime_iter = format.parameters.find("ptime");
     if (ptime_iter != format.parameters.end()) {
@@ -68,7 +68,7 @@ void AudioEncoderG711::AppendSupportedEncoders(
 
 AudioCodecInfo AudioEncoderG711::QueryAudioEncoder(const Config& config) {
   RTC_DCHECK(config.IsOk());
-  return {8000, rtc::dchecked_cast<size_t>(config.num_channels),
+  return {8000, dchecked_cast<size_t>(config.num_channels),
           64000 * config.num_channels};
 }
 

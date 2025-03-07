@@ -38,7 +38,7 @@ void DumpEventToFile(const Event& event, FileWrapper* dump_file) {
   RTC_CHECK(dump_file->is_open());
   std::string dump_data;
   event.SerializeToString(&dump_data);
-  int32_t size = rtc::checked_cast<int32_t>(event.ByteSizeLong());
+  int32_t size = checked_cast<int32_t>(event.ByteSizeLong());
   dump_file->Write(&size, sizeof(size));
   dump_file->Write(dump_data.data(), dump_data.length());
 }
