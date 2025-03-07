@@ -74,23 +74,23 @@ ParseVideoSendStreamConfig(const Json::Value& json) {
   RtpGeneratorOptions::VideoSendStreamConfig config;
 
   // Parse video source settings.
-  if (!rtc::GetIntFromJsonObject(json, "duration_ms", &config.duration_ms)) {
+  if (!GetIntFromJsonObject(json, "duration_ms", &config.duration_ms)) {
     RTC_LOG(LS_WARNING) << "duration_ms not specified using default: "
                         << config.duration_ms;
   }
-  if (!rtc::GetIntFromJsonObject(json, "video_width", &config.video_width)) {
+  if (!GetIntFromJsonObject(json, "video_width", &config.video_width)) {
     RTC_LOG(LS_WARNING) << "video_width not specified using default: "
                         << config.video_width;
   }
-  if (!rtc::GetIntFromJsonObject(json, "video_height", &config.video_height)) {
+  if (!GetIntFromJsonObject(json, "video_height", &config.video_height)) {
     RTC_LOG(LS_WARNING) << "video_height not specified using default: "
                         << config.video_height;
   }
-  if (!rtc::GetIntFromJsonObject(json, "video_fps", &config.video_fps)) {
+  if (!GetIntFromJsonObject(json, "video_fps", &config.video_fps)) {
     RTC_LOG(LS_WARNING) << "video_fps not specified using default: "
                         << config.video_fps;
   }
-  if (!rtc::GetIntFromJsonObject(json, "num_squares", &config.num_squares)) {
+  if (!GetIntFromJsonObject(json, "num_squares", &config.num_squares)) {
     RTC_LOG(LS_WARNING) << "num_squares not specified using default: "
                         << config.num_squares;
   }
@@ -98,12 +98,12 @@ ParseVideoSendStreamConfig(const Json::Value& json) {
   // Parse RTP settings for this configuration.
   config.rtp.ssrcs.push_back(kDefaultSsrc);
   Json::Value rtp_json;
-  if (!rtc::GetValueFromJsonObject(json, "rtp", &rtp_json)) {
+  if (!GetValueFromJsonObject(json, "rtp", &rtp_json)) {
     RTC_LOG(LS_ERROR) << "video_streams must have an rtp section";
     return std::nullopt;
   }
-  if (!rtc::GetStringFromJsonObject(rtp_json, "payload_name",
-                                    &config.rtp.payload_name)) {
+  if (!GetStringFromJsonObject(rtp_json, "payload_name",
+                               &config.rtp.payload_name)) {
     RTC_LOG(LS_ERROR) << "rtp.payload_name must be specified";
     return std::nullopt;
   }
@@ -114,8 +114,8 @@ ParseVideoSendStreamConfig(const Json::Value& json) {
 
   config.rtp.payload_type =
       GetDefaultTypeForPayloadName(config.rtp.payload_name);
-  if (!rtc::GetIntFromJsonObject(rtp_json, "payload_type",
-                                 &config.rtp.payload_type)) {
+  if (!GetIntFromJsonObject(rtp_json, "payload_type",
+                            &config.rtp.payload_type)) {
     RTC_LOG(LS_WARNING)
         << "rtp.payload_type not specified using default for codec type"
         << config.rtp.payload_type;

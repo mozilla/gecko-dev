@@ -17,7 +17,7 @@
 #include "absl/strings/string_view.h"
 #include "rtc_base/string_encode.h"
 
-namespace rtc {
+namespace webrtc {
 
 bool GetStringFromJson(const Json::Value& in, std::string* out) {
   if (!in.isString()) {
@@ -293,4 +293,4 @@ std::string JsonValueToString(const Json::Value& json) {
   return output.substr(0, output.size() - 1);  // trim trailing newline
 }
 
-}  // namespace rtc
+}  // namespace webrtc
