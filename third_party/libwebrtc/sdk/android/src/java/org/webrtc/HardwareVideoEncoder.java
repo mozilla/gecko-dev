@@ -600,6 +600,7 @@ class HardwareVideoEncoder implements VideoEncoder {
           configBuffer = ByteBuffer.allocateDirect(info.size);
           configBuffer.put(outputBuffer);
         }
+        codec.releaseOutputBuffer(index, /* render= */ false);
         return;
       }
 
