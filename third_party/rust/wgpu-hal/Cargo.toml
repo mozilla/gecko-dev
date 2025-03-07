@@ -11,7 +11,7 @@
 
 [package]
 edition = "2021"
-rust-version = "1.76"
+rust-version = "1.82.0"
 name = "wgpu-hal"
 version = "24.0.0"
 authors = ["gfx-rs developers"]
@@ -81,6 +81,7 @@ gles = [
     "naga/glsl-out",
     "dep:arrayvec",
     "dep:bytemuck",
+    "dep:cfg-if",
     "dep:glow",
     "dep:glutin_wgl_sys",
     "dep:hashbrown",
@@ -89,10 +90,10 @@ gles = [
     "dep:libloading",
     "dep:log",
     "dep:ndk-sys",
+    "dep:objc",
     "dep:profiling",
     "dep:wasm-bindgen",
     "dep:web-sys",
-    "once_cell/std",
     "windows/Win32_Graphics_OpenGL",
     "windows/Win32_Graphics_Gdi",
     "windows/Win32_System_LibraryLoader",
@@ -160,7 +161,7 @@ optional = true
 default-features = false
 
 [dependencies.bitflags]
-version = "2.7"
+version = "2.9"
 
 [dependencies.bytemuck]
 version = "1.21"
@@ -169,6 +170,10 @@ features = [
     "extern_crate_alloc",
     "min_const_generics",
 ]
+optional = true
+
+[dependencies.cfg-if]
+version = "1"
 optional = true
 
 [dependencies.glow]
