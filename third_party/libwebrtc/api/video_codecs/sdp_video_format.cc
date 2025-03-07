@@ -218,6 +218,10 @@ const SdpVideoFormat SdpVideoFormat::H264() {
   return SdpVideoFormat(cricket::kH264CodecName, {});
 }
 
+const SdpVideoFormat SdpVideoFormat::H265() {
+  return SdpVideoFormat(cricket::kH265CodecName, {});
+}
+
 const SdpVideoFormat SdpVideoFormat::VP9Profile0() {
   return SdpVideoFormat(
       cricket::kVp9CodecName,

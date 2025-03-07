@@ -74,6 +74,7 @@ struct RTC_EXPORT SdpVideoFormat {
   // Well-known video codecs and their format parameters.
   static const SdpVideoFormat VP8();
   static const SdpVideoFormat H264();
+  static const SdpVideoFormat H265();
   static const SdpVideoFormat VP9Profile0();
   static const SdpVideoFormat VP9Profile1();
   static const SdpVideoFormat VP9Profile2();
