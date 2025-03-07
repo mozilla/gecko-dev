@@ -84,7 +84,7 @@ void ConfigureSimulcast(VideoCodec* codec_settings) {
       codec_settings->numberOfSimulcastStreams);
   VideoEncoder::EncoderInfo encoder_info;
   auto stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(encoder_info);
+      rtc::make_ref_counted<EncoderStreamFactory>(encoder_info);
   const std::vector<VideoStream> streams = stream_factory->CreateEncoderStreams(
       trials, codec_settings->width, codec_settings->height, encoder_config);
 

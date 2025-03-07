@@ -260,7 +260,7 @@ void FakeVideoSendStream::OnFrame(const webrtc::VideoFrame& frame) {
     } else {
       webrtc::VideoEncoder::EncoderInfo encoder_info;
       auto factory =
-          rtc::make_ref_counted<cricket::EncoderStreamFactory>(encoder_info);
+          rtc::make_ref_counted<webrtc::EncoderStreamFactory>(encoder_info);
 
       video_streams_ = factory->CreateEncoderStreams(
           env_.field_trials(), frame.width(), frame.height(), encoder_config_);
@@ -300,7 +300,7 @@ void FakeVideoSendStream::ReconfigureVideoEncoder(
   } else {
     webrtc::VideoEncoder::EncoderInfo encoder_info;
     auto factory =
-        rtc::make_ref_counted<cricket::EncoderStreamFactory>(encoder_info);
+        rtc::make_ref_counted<webrtc::EncoderStreamFactory>(encoder_info);
 
     video_streams_ = factory->CreateEncoderStreams(env_.field_trials(), width,
                                                    height, config);

@@ -9910,7 +9910,8 @@ class WebRtcVideoChannelSimulcastTest : public ::testing::Test {
       const webrtc::VideoEncoderConfig& encoder_config =
           stream->GetEncoderConfig();
       webrtc::VideoEncoder::EncoderInfo encoder_info;
-      auto factory = rtc::make_ref_counted<EncoderStreamFactory>(encoder_info);
+      auto factory =
+          rtc::make_ref_counted<webrtc::EncoderStreamFactory>(encoder_info);
       expected_streams = factory->CreateEncoderStreams(
           field_trials_, capture_width, capture_height, encoder_config);
       if (screenshare && conference_mode) {

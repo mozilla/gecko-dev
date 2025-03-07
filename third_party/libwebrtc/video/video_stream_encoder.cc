@@ -1035,7 +1035,7 @@ void VideoStreamEncoder::ReconfigureEncoder() {
         env_.field_trials(), last_frame_info_->width, last_frame_info_->height,
         encoder_config_);
   } else {
-    auto factory = rtc::make_ref_counted<cricket::EncoderStreamFactory>(
+    auto factory = rtc::make_ref_counted<EncoderStreamFactory>(
         encoder_->GetEncoderInfo(), latest_restrictions_);
 
     streams = factory->CreateEncoderStreams(

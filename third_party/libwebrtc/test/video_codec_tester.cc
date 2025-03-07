@@ -1297,7 +1297,7 @@ void ConfigureSimulcast(const FieldTrialsView& field_trials, VideoCodec* vc) {
   encoder_config.simulcast_layers.resize(num_spatial_layers);
   VideoEncoder::EncoderInfo encoder_info;
   auto stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(encoder_info);
+      rtc::make_ref_counted<EncoderStreamFactory>(encoder_info);
   const std::vector<VideoStream> streams = stream_factory->CreateEncoderStreams(
       field_trials, vc->width, vc->height, encoder_config);
   vc->numberOfSimulcastStreams = streams.size();
