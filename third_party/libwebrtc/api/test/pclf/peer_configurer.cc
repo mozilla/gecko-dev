@@ -32,6 +32,7 @@
 #include "api/scoped_refptr.h"
 #include "api/test/create_peer_connection_quality_test_frame_generator.h"
 #include "api/test/frame_generator_interface.h"
+#include "api/test/network_emulation_manager.h"
 #include "api/test/pclf/media_configuration.h"
 #include "api/test/pclf/media_quality_test_params.h"
 #include "api/test/peer_network_dependencies.h"
@@ -52,6 +53,14 @@ PeerConfigurer::PeerConfigurer(
           network_dependencies.network_thread,
           network_dependencies.network_manager,
           network_dependencies.packet_socket_factory)),
+      params_(std::make_unique<Params>()),
+      configurable_params_(std::make_unique<ConfigurableParams>()) {}
+
+PeerConfigurer::PeerConfigurer(EmulatedNetworkManagerInterface& network)
+    : components_(std::make_unique<InjectableComponents>(
+          network.network_thread(),
+          network.network_manager(),
+          network.packet_socket_factory())),
       params_(std::make_unique<Params>()),
       configurable_params_(std::make_unique<ConfigurableParams>()) {}
 

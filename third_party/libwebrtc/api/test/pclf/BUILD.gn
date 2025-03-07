@@ -98,6 +98,7 @@ rtc_library("peer_configurer") {
     ":media_configuration",
     ":media_quality_test_params",
     "../..:async_dns_resolver",
+    "../..:network_emulation_manager_api",
     "../../../api:create_peer_connection_quality_test_frame_generator",
     "../../../api:fec_controller_api",
     "../../../api:field_trials_view",

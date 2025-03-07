@@ -159,9 +159,9 @@ class EmulatedNetworkManagerInterface {
   virtual absl::Nonnull<std::unique_ptr<rtc::NetworkManager>>
   ReleaseNetworkManager() = 0;
 
-  // TODO: bugs.webrtc.org/42232556 - Cleanup usages of this accessor in WebRTC,
-  // and then deprecate or remove it.
-  webrtc::webrtc_pc_e2e::PeerNetworkDependencies network_dependencies() {
+  [[deprecated("bugs.webrtc.org/42232556")]]  //
+  webrtc::webrtc_pc_e2e::PeerNetworkDependencies
+  network_dependencies() {
     return {network_thread(), network_manager(), packet_socket_factory()};
   }
   // Returns list of endpoints that are associated with this instance. Pointers

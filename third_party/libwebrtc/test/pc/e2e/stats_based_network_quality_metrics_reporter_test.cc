@@ -47,17 +47,16 @@ using ::webrtc::webrtc_pc_e2e::PeerConfigurer;
 
 // Adds a peer with some audio and video (the client should not care about
 // details about audio and video configs).
-void AddDefaultAudioVideoPeer(
-    absl::string_view peer_name,
-    absl::string_view audio_stream_label,
-    absl::string_view video_stream_label,
-    const PeerNetworkDependencies& network_dependencies,
-    PeerConnectionE2EQualityTestFixture& fixture) {
+void AddDefaultAudioVideoPeer(absl::string_view peer_name,
+                              absl::string_view audio_stream_label,
+                              absl::string_view video_stream_label,
+                              EmulatedNetworkManagerInterface& network,
+                              PeerConnectionE2EQualityTestFixture& fixture) {
   AudioConfig audio{.stream_label = std::string(audio_stream_label),
                     .sync_group = std::string(peer_name)};
   VideoConfig video(std::string(video_stream_label), 320, 180, 15);
   video.sync_group = std::string(peer_name);
-  auto peer = std::make_unique<PeerConfigurer>(network_dependencies);
+  auto peer = std::make_unique<PeerConfigurer>(network);
   peer->SetName(peer_name);
   peer->SetAudioConfig(std::move(audio));
   peer->AddVideoConfig(std::move(video));
@@ -108,9 +107,9 @@ TEST(StatsBasedNetworkQualityMetricsReporterTest, DebugStatsAreCollected) {
       network_emulation->CreateEmulatedNetworkManagerInterface({bob_endpoint});
 
   AddDefaultAudioVideoPeer("alice", "alice_audio", "alice_video",
-                           alice_network->network_dependencies(), fixture);
-  AddDefaultAudioVideoPeer("bob", "bob_audio", "bob_video",
-                           bob_network->network_dependencies(), fixture);
+                           *alice_network, fixture);
+  AddDefaultAudioVideoPeer("bob", "bob_audio", "bob_video", *bob_network,
+                           fixture);
 
   auto network_stats_reporter =
       std::make_unique<StatsBasedNetworkQualityMetricsReporter>(
