@@ -416,6 +416,74 @@ void NegotiateVideoCodecLevelsForOffer(
 #endif
 }
 
+void NegotiateCodecs(const CodecList& local_codecs,
+                     const CodecList& offered_codecs,
+                     std::vector<Codec>* negotiated_codecs,
+                     bool keep_offer_order) {
+  for (const Codec& ours : local_codecs) {
+    std::optional<Codec> theirs =
+        FindMatchingCodec(local_codecs, offered_codecs, ours);
+    // Note that we intentionally only find one matching codec for each of our
+    // local codecs, in case the remote offer contains duplicate codecs.
+    if (theirs) {
+      Codec negotiated = ours;
+      NegotiatePacketization(ours, *theirs, &negotiated);
+      negotiated.IntersectFeedbackParams(*theirs);
+      if (negotiated.GetResiliencyType() == Codec::ResiliencyType::kRtx) {
+        const auto apt_it =
+            theirs->params.find(kCodecParamAssociatedPayloadType);
+        // webrtc::FindMatchingCodec shouldn't return something with no apt
+        // value.
+        RTC_DCHECK(apt_it != theirs->params.end());
+        negotiated.SetParam(kCodecParamAssociatedPayloadType, apt_it->second);
+
+        // We support parsing the declarative rtx-time parameter.
+        const auto rtx_time_it = theirs->params.find(kCodecParamRtxTime);
+        if (rtx_time_it != theirs->params.end()) {
+          negotiated.SetParam(kCodecParamRtxTime, rtx_time_it->second);
+        }
+      } else if (negotiated.GetResiliencyType() ==
+                 Codec::ResiliencyType::kRed) {
+        const auto red_it =
+            theirs->params.find(kCodecParamNotInNameValueFormat);
+        if (red_it != theirs->params.end()) {
+          negotiated.SetParam(kCodecParamNotInNameValueFormat, red_it->second);
+        }
+      }
+      if (absl::EqualsIgnoreCase(ours.name, kH264CodecName)) {
+        webrtc::H264GenerateProfileLevelIdForAnswer(ours.params, theirs->params,
+                                                    &negotiated.params);
+      }
+#ifdef RTC_ENABLE_H265
+      if (absl::EqualsIgnoreCase(ours.name, kH265CodecName)) {
+        webrtc::H265GenerateProfileTierLevelForAnswer(
+            ours.params, theirs->params, &negotiated.params);
+        NegotiateTxMode(ours, *theirs, &negotiated);
+      }
+#endif
+      negotiated.id = theirs->id;
+      negotiated.name = theirs->name;
+      negotiated_codecs->push_back(std::move(negotiated));
+    }
+  }
+  if (keep_offer_order) {
+    // RFC3264: Although the answerer MAY list the formats in their desired
+    // order of preference, it is RECOMMENDED that unless there is a
+    // specific reason, the answerer list formats in the same relative order
+    // they were present in the offer.
+    // This can be skipped when the transceiver has any codec preferences.
+    std::unordered_map<int, int> payload_type_preferences;
+    int preference = static_cast<int>(offered_codecs.size() + 1);
+    for (const Codec& codec : offered_codecs) {
+      payload_type_preferences[codec.id] = preference--;
+    }
+    absl::c_sort(*negotiated_codecs, [&payload_type_preferences](
+                                         const Codec& a, const Codec& b) {
+      return payload_type_preferences[a.id] > payload_type_preferences[b.id];
+    });
+  }
+}
+
 }  // namespace
 
 webrtc::RTCErrorOr<std::vector<Codec>> CodecVendor::GetNegotiatedCodecsForOffer(
@@ -517,6 +585,7 @@ webrtc::RTCErrorOr<Codecs> CodecVendor::GetNegotiatedCodecsForAnswer(
     webrtc::RtpTransceiverDirection offer_rtd,
     webrtc::RtpTransceiverDirection answer_rtd,
     const ContentInfo* current_content,
+    const std::vector<Codec> codecs_from_offer,
     const CodecList& codecs) {
   CodecList filtered_codecs;
 
@@ -575,75 +644,11 @@ webrtc::RTCErrorOr<Codecs> CodecVendor::GetNegotiatedCodecsForAnswer(
       }
     }
   }
-  return filtered_codecs.codecs();
-}
-
-void CodecVendor::NegotiateCodecs(const CodecList& local_codecs,
-                                  const CodecList& offered_codecs,
-                                  std::vector<Codec>* negotiated_codecs,
-                                  bool keep_offer_order) {
-  for (const Codec& ours : local_codecs) {
-    std::optional<Codec> theirs =
-        FindMatchingCodec(local_codecs, offered_codecs, ours);
-    // Note that we intentionally only find one matching codec for each of our
-    // local codecs, in case the remote offer contains duplicate codecs.
-    if (theirs) {
-      Codec negotiated = ours;
-      NegotiatePacketization(ours, *theirs, &negotiated);
-      negotiated.IntersectFeedbackParams(*theirs);
-      if (negotiated.GetResiliencyType() == Codec::ResiliencyType::kRtx) {
-        const auto apt_it =
-            theirs->params.find(kCodecParamAssociatedPayloadType);
-        // webrtc::FindMatchingCodec shouldn't return something with no apt
-        // value.
-        RTC_DCHECK(apt_it != theirs->params.end());
-        negotiated.SetParam(kCodecParamAssociatedPayloadType, apt_it->second);
-
-        // We support parsing the declarative rtx-time parameter.
-        const auto rtx_time_it = theirs->params.find(kCodecParamRtxTime);
-        if (rtx_time_it != theirs->params.end()) {
-          negotiated.SetParam(kCodecParamRtxTime, rtx_time_it->second);
-        }
-      } else if (negotiated.GetResiliencyType() ==
-                 Codec::ResiliencyType::kRed) {
-        const auto red_it =
-            theirs->params.find(kCodecParamNotInNameValueFormat);
-        if (red_it != theirs->params.end()) {
-          negotiated.SetParam(kCodecParamNotInNameValueFormat, red_it->second);
-        }
-      }
-      if (absl::EqualsIgnoreCase(ours.name, kH264CodecName)) {
-        webrtc::H264GenerateProfileLevelIdForAnswer(ours.params, theirs->params,
-                                                    &negotiated.params);
-      }
-#ifdef RTC_ENABLE_H265
-      if (absl::EqualsIgnoreCase(ours.name, kH265CodecName)) {
-        webrtc::H265GenerateProfileTierLevelForAnswer(
-            ours.params, theirs->params, &negotiated.params);
-        NegotiateTxMode(ours, *theirs, &negotiated);
-      }
-#endif
-      negotiated.id = theirs->id;
-      negotiated.name = theirs->name;
-      negotiated_codecs->push_back(std::move(negotiated));
-    }
-  }
-  if (keep_offer_order) {
-    // RFC3264: Although the answerer MAY list the formats in their desired
-    // order of preference, it is RECOMMENDED that unless there is a
-    // specific reason, the answerer list formats in the same relative order
-    // they were present in the offer.
-    // This can be skipped when the transceiver has any codec preferences.
-    std::unordered_map<int, int> payload_type_preferences;
-    int preference = static_cast<int>(offered_codecs.size() + 1);
-    for (const Codec& codec : offered_codecs) {
-      payload_type_preferences[codec.id] = preference--;
-    }
-    absl::c_sort(*negotiated_codecs, [&payload_type_preferences](
-                                         const Codec& a, const Codec& b) {
-      return payload_type_preferences[a.id] > payload_type_preferences[b.id];
-    });
-  }
+  std::vector<Codec> negotiated_codecs;
+  NegotiateCodecs(filtered_codecs, CodecList(codecs_from_offer),
+                  &negotiated_codecs,
+                  media_description_options.codec_preferences.empty());
+  return negotiated_codecs;
 }
 
 TypedCodecVendor::TypedCodecVendor(MediaEngineInterface* media_engine,

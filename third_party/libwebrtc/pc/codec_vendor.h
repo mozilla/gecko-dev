@@ -85,12 +85,9 @@ class CodecVendor {
       webrtc::RtpTransceiverDirection offer_rtd,
       webrtc::RtpTransceiverDirection answer_rtd,
       const ContentInfo* current_content,
+      std::vector<Codec> codecs_from_offer,
       const CodecList& codecs);
 
-  static void NegotiateCodecs(const CodecList& local_codecs,
-                              const CodecList& offered_codecs,
-                              std::vector<Codec>* negotiated_codecs,
-                              bool keep_offer_order);
   // Functions exposed for testing
   void set_audio_codecs(const CodecList& send_codecs,
                         const CodecList& recv_codecs);

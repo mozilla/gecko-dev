@@ -1410,20 +1410,18 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
   auto answer_rtd = NegotiateRtpTransceiverDirection(offer_rtd, wants_rtd);
 
   std::vector<Codec> codecs_to_include;
-  bool negotiate;
   if (media_description_options.codecs_to_include.empty()) {
     webrtc::RTCErrorOr<std::vector<Codec>> error_or_filtered_codecs =
         codec_vendor_->GetNegotiatedCodecsForAnswer(
             media_description_options, session_options, offer_rtd, answer_rtd,
-            current_content, CodecList(codecs));
+            current_content, offer_content_description->codecs(),
+            CodecList(codecs));
     if (!error_or_filtered_codecs.ok()) {
       return error_or_filtered_codecs.MoveError();
     }
     codecs_to_include = error_or_filtered_codecs.MoveValue();
-    negotiate = true;
   } else {
     codecs_to_include = media_description_options.codecs_to_include;
-    negotiate = false;  // Don't filter against remote codecs
   }
   // Determine if we have media codecs in common.
   bool has_usable_media_codecs =
@@ -1439,14 +1437,6 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
     answer_content = std::make_unique<AudioContentDescription>();
   } else {
     answer_content = std::make_unique<VideoContentDescription>();
-  }
-  if (negotiate) {
-    std::vector<Codec> negotiated_codecs;
-    CodecVendor::NegotiateCodecs(
-        CodecList(codecs_to_include),
-        CodecList(offer_content_description->codecs()), &negotiated_codecs,
-        media_description_options.codec_preferences.empty());
-    codecs_to_include = negotiated_codecs;
   }
   AssignCodecIdsAndLinkRed(pt_suggester_, media_description_options.mid,
                            codecs_to_include);
