@@ -13,10 +13,10 @@
 //! within the implementation.
 //!
 //! [`Handle`]: crate::arena::Handle
-//! [`NonZeroU32`]: core::num::NonZeroU32
+//! [`NonZeroU32`]: std::num::NonZeroU32
 #![allow(dead_code)]
 
-use core::num::NonZeroU32;
+use std::num::NonZeroU32;
 
 /// An unsigned 32-bit value known not to be [`u32::MAX`].
 ///
@@ -48,7 +48,7 @@ use core::num::NonZeroU32;
 /// around, the value unrepresentable in `NonMaxU32`, [`u32::MAX`], becomes the
 /// value unrepresentable in [`NonZeroU32`], `0`.)
 ///
-/// [`NonZeroU32`]: core::num::NonZeroU32
+/// [`NonZeroU32`]: std::num::NonZeroU32
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct NonMaxU32(NonZeroU32);
@@ -97,14 +97,14 @@ impl NonMaxU32 {
     }
 }
 
-impl core::fmt::Debug for NonMaxU32 {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl std::fmt::Debug for NonMaxU32 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.get().fmt(f)
     }
 }
 
-impl core::fmt::Display for NonMaxU32 {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl std::fmt::Display for NonMaxU32 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.get().fmt(f)
     }
 }
@@ -140,5 +140,6 @@ impl<'de> serde::Deserialize<'de> for NonMaxU32 {
 
 #[test]
 fn size() {
+    use core::mem::size_of;
     assert_eq!(size_of::<Option<NonMaxU32>>(), size_of::<u32>());
 }

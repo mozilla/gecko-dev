@@ -1,6 +1,7 @@
 use std::{
     borrow::Cow,
-    ffi, mem,
+    ffi,
+    mem::{self, size_of, size_of_val},
     num::NonZeroU32,
     ptr, slice,
     string::{String, ToString as _},
@@ -30,7 +31,7 @@ use crate::{
 };
 
 // this has to match Naga's HLSL backend, and also needs to be null-terminated
-const NAGA_LOCATION_SEMANTIC: &[u8] = c"LOC".to_bytes();
+const NAGA_LOCATION_SEMANTIC: &[u8] = b"LOC\0";
 
 impl super::Device {
     pub(super) fn new(
@@ -773,7 +774,7 @@ impl crate::Device for super::Device {
                 wgt::BindingType::Buffer { .. }
                 | wgt::BindingType::Texture { .. }
                 | wgt::BindingType::StorageTexture { .. }
-                | wgt::BindingType::AccelerationStructure { .. } => num_views += count,
+                | wgt::BindingType::AccelerationStructure => num_views += count,
                 wgt::BindingType::Sampler { .. } => has_sampler_in_group = true,
             }
         }
@@ -1514,7 +1515,7 @@ impl crate::Device for super::Device {
                         sampler_indexes.push(data.index);
                     }
                 }
-                wgt::BindingType::AccelerationStructure { .. } => {
+                wgt::BindingType::AccelerationStructure => {
                     let start = entry.resource_index as usize;
                     let end = start + entry.count as usize;
                     for data in &desc.acceleration_structures[start..end] {
@@ -1883,18 +1884,6 @@ impl crate::Device for super::Device {
             vertex_strides,
         })
     }
-
-    unsafe fn create_mesh_pipeline(
-        &self,
-        _desc: &crate::MeshPipelineDescriptor<
-            <Self::A as crate::Api>::PipelineLayout,
-            <Self::A as crate::Api>::ShaderModule,
-            <Self::A as crate::Api>::PipelineCache,
-        >,
-    ) -> Result<<Self::A as crate::Api>::RenderPipeline, crate::PipelineError> {
-        unreachable!()
-    }
-
     unsafe fn destroy_render_pipeline(&self, _pipeline: super::RenderPipeline) {
         self.counters.render_pipelines.sub(1);
     }

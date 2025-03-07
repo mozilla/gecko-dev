@@ -1,15 +1,10 @@
-use alloc::{
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
-use core::num::NonZeroU32;
+use std::num::NonZeroU32;
+
+use crate::front::wgsl::parse::ast;
+use crate::{Handle, Span};
 
 use crate::front::wgsl::error::Error;
 use crate::front::wgsl::lower::{ExpressionContext, Lowerer};
-use crate::front::wgsl::parse::ast;
-use crate::{Handle, Span};
 
 /// A cooked form of `ast::ConstructorType` that uses Naga types whenever
 /// possible.
@@ -305,7 +300,7 @@ impl<'source> Lowerer<'source, '_> {
                 Constructor::Type((_, &crate::TypeInner::Vector { size, scalar })),
             ) => {
                 ctx.convert_slice_to_common_leaf_scalar(
-                    core::slice::from_mut(&mut component),
+                    std::slice::from_mut(&mut component),
                     scalar,
                 )?;
                 expr = crate::Expression::Splat {

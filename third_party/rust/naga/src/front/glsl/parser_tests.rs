@@ -1,7 +1,3 @@
-use alloc::{borrow::ToOwned, vec};
-
-use pp_rs::token::PreprocessorError;
-
 use super::{
     ast::Profile,
     error::ExpectedToken,
@@ -10,9 +6,7 @@ use super::{
     Frontend, Options, Span,
 };
 use crate::ShaderStage;
-
-#[cfg(test)]
-use std::println;
+use pp_rs::token::PreprocessorError;
 
 #[test]
 fn version() {

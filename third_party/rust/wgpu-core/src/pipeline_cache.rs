@@ -1,3 +1,5 @@
+use core::mem::size_of;
+
 use thiserror::Error;
 use wgt::AdapterInfo;
 

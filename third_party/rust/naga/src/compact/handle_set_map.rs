@@ -1,5 +1,3 @@
-use alloc::vec::Vec;
-
 use crate::arena::{Arena, Handle, HandleSet, Range};
 
 type Index = crate::non_max_u32::NonMaxU32;
@@ -14,7 +12,7 @@ pub struct HandleMap<T> {
     new_index: Vec<Option<Index>>,
 
     /// This type is indexed by values of type `T`.
-    as_keys: core::marker::PhantomData<T>,
+    as_keys: std::marker::PhantomData<T>,
 }
 
 impl<T: 'static> HandleMap<T> {
@@ -36,7 +34,7 @@ impl<T: 'static> HandleMap<T> {
                     }
                 })
                 .collect(),
-            as_keys: core::marker::PhantomData,
+            as_keys: std::marker::PhantomData,
         }
     }
 
@@ -52,7 +50,7 @@ impl<T: 'static> HandleMap<T> {
     pub fn try_adjust(&self, old: Handle<T>) -> Option<Handle<T>> {
         log::trace!(
             "adjusting {} handle [{}] -> [{:?}]",
-            core::any::type_name::<T>(),
+            std::any::type_name::<T>(),
             old.index(),
             self.new_index[old.index()]
         );

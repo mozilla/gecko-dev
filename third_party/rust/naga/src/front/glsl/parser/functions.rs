@@ -1,5 +1,3 @@
-use alloc::{vec, vec::Vec};
-
 use crate::front::glsl::context::ExprPos;
 use crate::front::glsl::Span;
 use crate::Literal;

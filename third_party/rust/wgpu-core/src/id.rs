@@ -4,6 +4,7 @@ use core::{
     fmt::{self, Debug},
     hash::Hash,
     marker::PhantomData,
+    mem::size_of,
     num::NonZeroU64,
 };
 use wgt::WasmNotSendSync;

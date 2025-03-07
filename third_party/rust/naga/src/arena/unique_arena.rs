@@ -1,10 +1,10 @@
 //! The [`UniqueArena`] type and supporting definitions.
 
-use alloc::vec::Vec;
-use core::{fmt, hash, ops};
+use crate::{FastIndexSet, Span};
 
 use super::handle::{BadHandle, Handle, Index};
-use crate::{FastIndexSet, Span};
+
+use std::{fmt, hash, ops};
 
 /// An arena whose elements are guaranteed to be unique.
 ///
@@ -84,7 +84,7 @@ impl<T> UniqueArena<T> {
 #[cfg(feature = "compact")]
 pub struct UniqueArenaDrain<'a, T> {
     inner_elts: indexmap::set::Drain<'a, T>,
-    inner_spans: alloc::vec::Drain<'a, Span>,
+    inner_spans: std::vec::Drain<'a, Span>,
     index: Index,
 }
 
@@ -224,9 +224,7 @@ where
         D: serde::Deserializer<'de>,
     {
         let set = FastIndexSet::deserialize(deserializer)?;
-        let span_info = core::iter::repeat(Span::default())
-            .take(set.len())
-            .collect();
+        let span_info = std::iter::repeat(Span::default()).take(set.len()).collect();
 
         Ok(Self { set, span_info })
     }

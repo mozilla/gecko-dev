@@ -1,6 +1,5 @@
-use core::{fmt::Display, num::NonZeroU32, ops};
-
 use crate::arena::{Handle, HandleVec};
+use std::{fmt::Display, num::NonZeroU32, ops};
 
 /// A newtype struct where its only valid values are powers of 2
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -51,7 +50,7 @@ impl Alignment {
 }
 
 impl Display for Alignment {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.get().fmt(f)
     }
 }
@@ -234,8 +233,8 @@ impl Layouter {
                 }
                 Ti::Image { .. }
                 | Ti::Sampler { .. }
-                | Ti::AccelerationStructure { .. }
-                | Ti::RayQuery { .. }
+                | Ti::AccelerationStructure
+                | Ti::RayQuery
                 | Ti::BindingArray { .. } => TypeLayout {
                     size,
                     alignment: Alignment::ONE,

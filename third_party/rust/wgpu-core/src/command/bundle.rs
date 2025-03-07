@@ -85,6 +85,7 @@ use alloc::{
     vec::Vec,
 };
 use core::{
+    mem::size_of,
     num::{NonZeroU32, NonZeroU64},
     ops::Range,
 };

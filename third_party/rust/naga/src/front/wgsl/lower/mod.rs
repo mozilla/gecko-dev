@@ -1,9 +1,4 @@
-use alloc::{
-    borrow::ToOwned,
-    string::{String, ToString},
-    vec::Vec,
-};
-use core::num::NonZeroU32;
+use std::num::NonZeroU32;
 
 use crate::front::wgsl::error::{Error, ExpectedToken, InvalidAssignmentType};
 use crate::front::wgsl::index::Index;
@@ -787,7 +782,7 @@ impl<'source, 'temp, 'out> ExpressionContext<'source, 'temp, 'out> {
 }
 
 struct ArgumentContext<'ctx, 'source> {
-    args: core::slice::Iter<'ctx, Handle<ast::Expression<'source>>>,
+    args: std::slice::Iter<'ctx, Handle<ast::Expression<'source>>>,
     min_args: u32,
     args_used: u32,
     total_args: u32,
@@ -2040,18 +2035,10 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                     }
                 }
 
-                lowered_base.try_map(|base| match ctx.const_eval_expr_to_u32(index).ok() {
-                    Some(index) => Ok::<_, Error>(crate::Expression::AccessIndex { base, index }),
-                    None => {
-                        // When an abstract array value e is indexed by an expression
-                        // that is not a const-expression, then the array is concretized
-                        // before the index is applied.
-                        // https://www.w3.org/TR/WGSL/#array-access-expr
-                        // Also applies to vectors and matrices.
-                        let base = ctx.concretize(base)?;
-                        Ok(crate::Expression::Access { base, index })
-                    }
-                })?
+                lowered_base.map(|base| match ctx.const_eval_expr_to_u32(index).ok() {
+                    Some(index) => crate::Expression::AccessIndex { base, index },
+                    None => crate::Expression::Access { base, index },
+                })
             }
             ast::Expression::Member { base, ref field } => {
                 let mut lowered_base = self.expression_for_reference(base, ctx)?;
@@ -2170,37 +2157,13 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
 
         // Apply automatic conversions.
         match op {
+            // Shift operators require the right operand to be `u32` or
+            // `vecN<u32>`. We can let the validator sort out vector length
+            // issues, but the right operand must be, or convert to, a u32 leaf
+            // scalar.
             crate::BinaryOperator::ShiftLeft | crate::BinaryOperator::ShiftRight => {
-                // Shift operators require the right operand to be `u32` or
-                // `vecN<u32>`. We can let the validator sort out vector length
-                // issues, but the right operand must be, or convert to, a u32 leaf
-                // scalar.
                 right =
                     ctx.try_automatic_conversion_for_leaf_scalar(right, crate::Scalar::U32, span)?;
-
-                // Additionally, we must concretize the left operand if the right operand
-                // is not a const-expression.
-                // See https://www.w3.org/TR/WGSL/#overload-resolution-section.
-                //
-                // 2. Eliminate any candidate where one of its subexpressions resolves to
-                // an abstract type after feasible automatic conversions, but another of
-                // the candidate’s subexpressions is not a const-expression.
-                //
-                // We only have to explicitly do so for shifts as their operands may be
-                // of different types - for other binary ops this is achieved by finding
-                // the conversion consensus for both operands.
-                let expr_kind_tracker = match ctx.expr_type {
-                    ExpressionContextType::Runtime(ref ctx)
-                    | ExpressionContextType::Constant(Some(ref ctx)) => {
-                        &ctx.local_expression_kind_tracker
-                    }
-                    ExpressionContextType::Constant(None) | ExpressionContextType::Override => {
-                        &ctx.global_expression_kind_tracker
-                    }
-                };
-                if !expr_kind_tracker.is_const(right) {
-                    left = ctx.concretize(left)?;
-                }
             }
 
             // All other operators follow the same pattern: reconcile the
@@ -2571,14 +2534,6 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                                 .push(crate::Statement::Barrier(crate::Barrier::SUB_GROUP), span);
                             return Ok(None);
                         }
-                        "textureBarrier" => {
-                            ctx.prepare_args(arguments, 0, span).finish()?;
-
-                            let rctx = ctx.runtime_expression_ctx(span)?;
-                            rctx.block
-                                .push(crate::Statement::Barrier(crate::Barrier::TEXTURE), span);
-                            return Ok(None);
-                        }
                         "workgroupUniformLoad" => {
                             let mut args = ctx.prepare_args(arguments, 1, span);
                             let expr = args.next()?;
@@ -2747,30 +2702,6 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                             rctx.block
                                 .push(crate::Statement::RayQuery { query, fun }, span);
                             return Ok(None);
-                        }
-                        "getCommittedHitVertexPositions" => {
-                            let mut args = ctx.prepare_args(arguments, 1, span);
-                            let query = self.ray_query_pointer(args.next()?, ctx)?;
-                            args.finish()?;
-
-                            let _ = ctx.module.generate_vertex_return_type();
-
-                            crate::Expression::RayQueryVertexPositions {
-                                query,
-                                committed: true,
-                            }
-                        }
-                        "getCandidateHitVertexPositions" => {
-                            let mut args = ctx.prepare_args(arguments, 1, span);
-                            let query = self.ray_query_pointer(args.next()?, ctx)?;
-                            args.finish()?;
-
-                            let _ = ctx.module.generate_vertex_return_type();
-
-                            crate::Expression::RayQueryVertexPositions {
-                                query,
-                                committed: false,
-                            }
                         }
                         "rayQueryProceed" => {
                             let mut args = ctx.prepare_args(arguments, 1, span);
@@ -3384,10 +3315,8 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                 class,
             },
             ast::Type::Sampler { comparison } => crate::TypeInner::Sampler { comparison },
-            ast::Type::AccelerationStructure { vertex_return } => {
-                crate::TypeInner::AccelerationStructure { vertex_return }
-            }
-            ast::Type::RayQuery { vertex_return } => crate::TypeInner::RayQuery { vertex_return },
+            ast::Type::AccelerationStructure => crate::TypeInner::AccelerationStructure,
+            ast::Type::RayQuery => crate::TypeInner::RayQuery,
             ast::Type::BindingArray { base, size } => {
                 let base = self.resolve_ast_type(base, ctx)?;
                 let size = self.array_size(size, ctx)?;
@@ -3457,7 +3386,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
 
         match *resolve_inner!(ctx, pointer) {
             crate::TypeInner::Pointer { base, .. } => match ctx.module.types[base].inner {
-                crate::TypeInner::RayQuery { .. } => Ok(pointer),
+                crate::TypeInner::RayQuery => Ok(pointer),
                 ref other => {
                     log::error!("Pointer type to {:?} passed to ray query op", other);
                     Err(Error::InvalidRayQueryPointer(span))

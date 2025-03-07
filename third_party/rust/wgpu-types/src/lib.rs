@@ -17,6 +17,7 @@ extern crate alloc;
 use alloc::{string::String, vec, vec::Vec};
 use core::{
     hash::{Hash, Hasher},
+    mem::size_of,
     num::NonZeroU32,
     ops::Range,
 };
@@ -6495,24 +6496,12 @@ pub enum BindingType {
     /// var as: acceleration_structure;
     /// ```
     ///
-    /// or with vertex return enabled
-    /// ```rust,ignore
-    /// @group(0) @binding(0)
-    /// var as: acceleration_structure<vertex_return>;
-    /// ```
-    ///
     /// Example GLSL syntax:
     /// ```cpp,ignore
     /// layout(binding = 0)
     /// uniform accelerationStructureEXT as;
     /// ```
-    AccelerationStructure {
-        /// Whether this acceleration structure can be used to
-        /// create a ray query that has flag vertex return in the shader
-        ///
-        /// If enabled requires [`Features::EXPERIMENTAL_RAY_HIT_VERTEX_RETURN`]
-        vertex_return: bool,
-    },
+    AccelerationStructure,
 }
 
 impl BindingType {
@@ -7295,8 +7284,6 @@ bitflags::bitflags!(
         /// Use `BlasTriangleGeometry::transform_buffer` when building a BLAS (only allowed in
         /// BLAS creation)
         const USE_TRANSFORM = 1 << 5;
-        /// Allow retrieval of the vertices of the triangle hit by a ray.
-        const ALLOW_RAY_HIT_VERTEX_RETURN = 1 << 6;
     }
 );
 

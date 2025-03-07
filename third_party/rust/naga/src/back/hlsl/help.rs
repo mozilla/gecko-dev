@@ -26,18 +26,16 @@ int dim_1d = NagaDimensions1D(image_1d);
 ```
 */
 
-use alloc::format;
-use core::fmt::Write;
-
 use super::{
     super::FunctionCtx,
     writer::{
         ABS_FUNCTION, DIV_FUNCTION, EXTRACT_BITS_FUNCTION, INSERT_BITS_FUNCTION, MOD_FUNCTION,
         NEG_FUNCTION,
     },
-    BackendResult, WrappedType,
+    BackendResult,
 };
 use crate::{arena::Handle, proc::NameKey, ScalarKind};
+use std::fmt::Write;
 
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub(super) struct WrappedArrayLength {
@@ -939,7 +937,7 @@ impl<W: Write> super::Writer<'_, W> {
                     match module.types[ty].inner {
                         crate::TypeInner::Struct { .. } | crate::TypeInner::Array { .. } => {
                             let constructor = WrappedConstructor { ty };
-                            if self.wrapped.insert(WrappedType::Constructor(constructor)) {
+                            if self.wrapped.constructors.insert(constructor) {
                                 self.write_wrapped_constructor_function(module, constructor)?;
                             }
                         }
@@ -955,7 +953,7 @@ impl<W: Write> super::Writer<'_, W> {
                         } => {
                             if format.single_component() {
                                 let scalar: crate::Scalar = format.into();
-                                if self.wrapped.insert(WrappedType::ImageLoadScalar(scalar)) {
+                                if self.wrapped.image_load_scalars.insert(scalar) {
                                     self.write_loaded_scalar_to_storage_loaded_value(scalar)?;
                                 }
                             }
@@ -991,7 +989,7 @@ impl<W: Write> super::Writer<'_, W> {
         for (handle, _) in expressions.iter() {
             if let crate::Expression::ZeroValue(ty) = expressions[handle] {
                 let zero_value = WrappedZeroValue { ty };
-                if self.wrapped.insert(WrappedType::ZeroValue(zero_value)) {
+                if self.wrapped.zero_values.insert(zero_value) {
                     self.write_wrapped_zero_value_function(module, zero_value)?;
                 }
             }
@@ -1038,7 +1036,7 @@ impl<W: Write> super::Writer<'_, W> {
                             components,
                         };
 
-                        if !self.wrapped.insert(WrappedType::Math(wrapped)) {
+                        if !self.wrapped.math.insert(wrapped) {
                             continue;
                         }
 
@@ -1080,7 +1078,7 @@ impl<W: Write> super::Writer<'_, W> {
                             components,
                         };
 
-                        if !self.wrapped.insert(WrappedType::Math(wrapped)) {
+                        if !self.wrapped.math.insert(wrapped) {
                             continue;
                         }
 
@@ -1149,7 +1147,7 @@ impl<W: Write> super::Writer<'_, W> {
                             components,
                         };
 
-                        if !self.wrapped.insert(WrappedType::Math(wrapped)) {
+                        if !self.wrapped.math.insert(wrapped) {
                             continue;
                         }
 
@@ -1200,7 +1198,7 @@ impl<W: Write> super::Writer<'_, W> {
                 // find another solution for different bit-widths.
                 match (op, scalar) {
                     (crate::UnaryOperator::Negate, crate::Scalar::I32) => {
-                        if !self.wrapped.insert(WrappedType::UnaryOp(wrapped)) {
+                        if !self.wrapped.unary_op.insert(wrapped) {
                             continue;
                         }
 
@@ -1261,7 +1259,7 @@ impl<W: Write> super::Writer<'_, W> {
                             left_ty: left_wrapped_ty,
                             right_ty: right_wrapped_ty,
                         };
-                        if !self.wrapped.insert(WrappedType::BinaryOp(wrapped)) {
+                        if !self.wrapped.binary_op.insert(wrapped) {
                             continue;
                         }
 
@@ -1317,7 +1315,7 @@ impl<W: Write> super::Writer<'_, W> {
                             left_ty: left_wrapped_ty,
                             right_ty: right_wrapped_ty,
                         };
-                        if !self.wrapped.insert(WrappedType::BinaryOp(wrapped)) {
+                        if !self.wrapped.binary_op.insert(wrapped) {
                             continue;
                         }
 
@@ -1393,7 +1391,7 @@ impl<W: Write> super::Writer<'_, W> {
                         writable: storage_access.contains(crate::StorageAccess::STORE),
                     };
 
-                    if self.wrapped.insert(WrappedType::ArrayLength(wal)) {
+                    if self.wrapped.array_lengths.insert(wal) {
                         self.write_wrapped_array_length_function(wal)?;
                     }
                 }
@@ -1412,7 +1410,7 @@ impl<W: Write> super::Writer<'_, W> {
                         _ => unreachable!("we only query images"),
                     };
 
-                    if self.wrapped.insert(WrappedType::ImageQuery(wiq)) {
+                    if self.wrapped.image_queries.insert(wiq) {
                         self.write_wrapped_image_query_function(module, wiq, handle, func_ctx)?;
                     }
                 }
@@ -1441,7 +1439,7 @@ impl<W: Write> super::Writer<'_, W> {
                                 }
 
                                 let constructor = WrappedConstructor { ty };
-                                if writer.wrapped.insert(WrappedType::Constructor(constructor)) {
+                                if writer.wrapped.constructors.insert(constructor) {
                                     writer
                                         .write_wrapped_constructor_function(module, constructor)?;
                                 }
@@ -1450,7 +1448,7 @@ impl<W: Write> super::Writer<'_, W> {
                                 write_wrapped_constructor(writer, base, module)?;
 
                                 let constructor = WrappedConstructor { ty };
-                                if writer.wrapped.insert(WrappedType::Constructor(constructor)) {
+                                if writer.wrapped.constructors.insert(constructor) {
                                     writer
                                         .write_wrapped_constructor_function(module, constructor)?;
                                 }
@@ -1486,7 +1484,7 @@ impl<W: Write> super::Writer<'_, W> {
                                 let ty = base_ty_handle.unwrap();
                                 let access = WrappedStructMatrixAccess { ty, index };
 
-                                if self.wrapped.insert(WrappedType::StructMatrixAccess(access)) {
+                                if self.wrapped.struct_matrix_access.insert(access) {
                                     self.write_wrapped_struct_matrix_get_function(module, access)?;
                                     self.write_wrapped_struct_matrix_set_function(module, access)?;
                                     self.write_wrapped_struct_matrix_set_vec_function(
@@ -1715,7 +1713,7 @@ impl<W: Write> super::Writer<'_, W> {
                 }) = super::writer::get_inner_matrix_data(module, global.ty)
                 {
                     let entry = WrappedMatCx2 { columns };
-                    if self.wrapped.insert(WrappedType::MatCx2(entry)) {
+                    if self.wrapped.mat_cx2s.insert(entry) {
                         self.write_mat_cx2_typedef_and_functions(entry)?;
                     }
                 }
@@ -1733,7 +1731,7 @@ impl<W: Write> super::Writer<'_, W> {
                         }) = super::writer::get_inner_matrix_data(module, member.ty)
                         {
                             let entry = WrappedMatCx2 { columns };
-                            if self.wrapped.insert(WrappedType::MatCx2(entry)) {
+                            if self.wrapped.mat_cx2s.insert(entry) {
                                 self.write_mat_cx2_typedef_and_functions(entry)?;
                             }
                         }

@@ -1,9 +1,8 @@
-use crate::common;
+use std::borrow::Cow;
 
-use alloc::{borrow::Cow, format, string::String};
+use crate::proc::Alignment;
 
 use super::Error;
-use crate::proc::Alignment;
 
 impl crate::ScalarKind {
     pub(super) fn to_hlsl_cast(self) -> &'static str {
@@ -90,7 +89,7 @@ impl crate::TypeInner {
             crate::TypeInner::Vector { size, scalar } => Cow::Owned(format!(
                 "{}{}",
                 scalar.to_hlsl_str()?,
-                common::vector_size_str(size)
+                crate::back::vector_size_str(size)
             )),
             crate::TypeInner::Matrix {
                 columns,
@@ -99,8 +98,8 @@ impl crate::TypeInner {
             } => Cow::Owned(format!(
                 "{}{}x{}",
                 scalar.to_hlsl_str()?,
-                common::vector_size_str(columns),
-                common::vector_size_str(rows),
+                crate::back::vector_size_str(columns),
+                crate::back::vector_size_str(rows),
             )),
             crate::TypeInner::Array {
                 base,

@@ -1,11 +1,10 @@
-use core::fmt::Write;
-
 use super::{BackendResult, Error, Version, Writer};
 use crate::{
     back::glsl::{Options, WriterFlags},
     AddressSpace, Binding, Expression, Handle, ImageClass, ImageDimension, Interpolation,
     SampleLevel, Sampling, Scalar, ScalarKind, ShaderStage, StorageFormat, Type, TypeInner,
 };
+use std::fmt::Write;
 
 bitflags::bitflags! {
     /// Structure used to encode additions to GLSL that aren't supported by all versions.
@@ -463,7 +462,7 @@ impl<W> Writer<'_, W> {
             .functions
             .iter()
             .map(|(h, f)| (&f.expressions, &info[h]))
-            .chain(core::iter::once((
+            .chain(std::iter::once((
                 &entry_point.function.expressions,
                 info.get_entry_point(entry_point_idx as usize),
             )))
@@ -560,7 +559,7 @@ impl<W> Writer<'_, W> {
             .functions
             .iter()
             .map(|(_, f)| &f.body)
-            .chain(core::iter::once(&entry_point.function.body))
+            .chain(std::iter::once(&entry_point.function.body))
         {
             for (stmt, _) in blocks.span_iter() {
                 match *stmt {

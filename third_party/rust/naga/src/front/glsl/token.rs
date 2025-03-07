@@ -1,7 +1,5 @@
 pub use pp_rs::token::{Float, Integer, Location, Token as PPToken};
 
-use alloc::{string::String, vec::Vec};
-
 use super::ast::Precision;
 use crate::{Interpolation, Sampling, Span, Type};
 

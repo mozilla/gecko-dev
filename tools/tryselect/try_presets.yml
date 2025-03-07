@@ -369,10 +369,9 @@ webgpu:
     description: >-
         Runs the tests relevant to WebGPU.
     query:
-        - "'webgpu !cf !devedition !shippable !nofis"
+        - "'webgpu"
         - "source-test-mozlint-updatebot"
         - "source-test-vendor-rust"
-    full: true
 
 webrender:
     selector: fuzzy

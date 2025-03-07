@@ -1,25 +1,16 @@
-use alloc::{
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
-use core::{
-    fmt::{Display, Error as FmtError, Formatter, Write},
-    iter,
-};
-
 use super::{sampler as sm, Error, LocationMode, Options, PipelineOptions, TranslationInfo};
 use crate::{
     arena::{Handle, HandleSet},
     back::{self, Baked},
-    common,
     proc::{self, index, ExpressionKindTracker, NameKey, TypeResolution},
     valid, FastHashMap, FastHashSet,
 };
-
 #[cfg(test)]
-use core::ptr;
+use std::ptr;
+use std::{
+    fmt::{Display, Error as FmtError, Formatter, Write},
+    iter,
+};
 
 /// Shorthand result used internally by the backend
 type BackendResult = Result<(), Error>;
@@ -81,7 +72,7 @@ fn put_numeric_type(
                 "{}::{}{}",
                 NAMESPACE,
                 scalar.to_msl_name(),
-                common::vector_size_str(rows)
+                back::vector_size_str(rows)
             )
         }
         (scalar, &[rows, columns]) => {
@@ -90,8 +81,8 @@ fn put_numeric_type(
                 "{}::{}{}x{}",
                 NAMESPACE,
                 scalar.to_msl_name(),
-                common::vector_size_str(columns),
-                common::vector_size_str(rows)
+                back::vector_size_str(columns),
+                back::vector_size_str(rows)
             )
         }
         (_, _) => Ok(()), // not meaningful
@@ -111,13 +102,13 @@ const CLAMPED_LOD_LOAD_PREFIX: &str = "clamped_lod_e";
 
 /// Wrapper for identifier names for clamped level-of-detail values
 ///
-/// Values of this type implement [`core::fmt::Display`], formatting as
+/// Values of this type implement [`std::fmt::Display`], formatting as
 /// the name of the variable used to hold the cached clamped
 /// level-of-detail value for an `ImageLoad` expression.
 struct ClampedLod(Handle<crate::Expression>);
 
 impl Display for ClampedLod {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.0.write_prefixed(f, CLAMPED_LOD_LOAD_PREFIX)
     }
 }
@@ -132,14 +123,14 @@ impl Display for ClampedLod {
 ///
 /// If `global` is a [`Handle`] for a [`GlobalVariable`] that contains a
 /// runtime-sized array, then the value `ArraySize(global)` implements
-/// [`core::fmt::Display`], formatting as the name of the struct member carrying
+/// [`std::fmt::Display`], formatting as the name of the struct member carrying
 /// the number of elements in that runtime-sized array.
 ///
 /// [`GlobalVariable`]: crate::GlobalVariable
 struct ArraySizeMember(Handle<crate::GlobalVariable>);
 
 impl Display for ArraySizeMember {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.0.write_prefixed(f, "size")
     }
 }
@@ -290,16 +281,10 @@ impl Display for TypeContext<'_> {
             crate::TypeInner::Sampler { comparison: _ } => {
                 write!(out, "{NAMESPACE}::sampler")
             }
-            crate::TypeInner::AccelerationStructure { vertex_return } => {
-                if vertex_return {
-                    unimplemented!("metal does not support vertex ray hit return")
-                }
+            crate::TypeInner::AccelerationStructure => {
                 write!(out, "{RT_NAMESPACE}::instance_acceleration_structure")
             }
-            crate::TypeInner::RayQuery { vertex_return } => {
-                if vertex_return {
-                    unimplemented!("metal does not support vertex ray hit return")
-                }
+            crate::TypeInner::RayQuery => {
                 write!(out, "{RAY_QUERY_TYPE}")
             }
             crate::TypeInner::BindingArray { base, .. } => {
@@ -576,8 +561,8 @@ impl crate::Type {
             // handle types may be different, depending on the global var access, so we always inline them
             Ti::Image { .. }
             | Ti::Sampler { .. }
-            | Ti::AccelerationStructure { .. }
-            | Ti::RayQuery { .. }
+            | Ti::AccelerationStructure
+            | Ti::RayQuery
             | Ti::BindingArray { .. } => false,
         }
     }
@@ -1409,7 +1394,7 @@ impl<W: Write> Writer<W> {
             .to_msl_name();
         match context.resolve_type(arg) {
             &crate::TypeInner::Vector { size, .. } => {
-                let size = common::vector_size_str(size);
+                let size = back::vector_size_str(size);
                 write!(self.out, "{scalar}{size}(-1), {scalar}{size}(1)")?;
             }
             _ => {
@@ -2134,7 +2119,7 @@ impl<W: Write> Writer<W> {
                         // or metal will complain that select is ambiguous
                         match *inner {
                             crate::TypeInner::Vector { size, scalar } => {
-                                let size = common::vector_size_str(size);
+                                let size = back::vector_size_str(size);
                                 let name = scalar.to_msl_name();
                                 write!(self.out, "{name}{size}")?;
                             }
@@ -2262,7 +2247,7 @@ impl<W: Write> Writer<W> {
                             crate::TypeInner::Vector { size, .. } => write!(
                                 self.out,
                                 "{NAMESPACE}::float{size}({NAMESPACE}::half{size}(",
-                                size = common::vector_size_str(size),
+                                size = back::vector_size_str(size),
                             )?,
                             _ => unreachable!(
                                 "Correct TypeInner for QuantizeToF16 should be already validated"
@@ -2364,9 +2349,6 @@ impl<W: Write> Writer<W> {
                 if !is_scoped {
                     write!(self.out, ")")?;
                 }
-            }
-            crate::Expression::RayQueryVertexPositions { .. } => {
-                unimplemented!()
             }
             crate::Expression::RayQueryGetIntersection {
                 query,
@@ -3241,7 +3223,8 @@ impl<W: Write> Writer<W> {
                         }
 
                         self.put_block(lcase.next(), &case.body, context)?;
-                        if !case.fall_through && case.body.last().is_none_or(|s| !s.is_terminator())
+                        if !case.fall_through
+                            && case.body.last().map_or(true, |s| !s.is_terminator())
                         {
                             writeln!(self.out, "{}break;", lcase.next())?;
                         }
@@ -3825,12 +3808,12 @@ impl<W: Write> Writer<W> {
         let mut uses_ray_query = false;
         for (_, ty) in module.types.iter() {
             match ty.inner {
-                crate::TypeInner::AccelerationStructure { .. } => {
+                crate::TypeInner::AccelerationStructure => {
                     if options.lang_version < (2, 4) {
                         return Err(Error::UnsupportedRayTracing);
                     }
                 }
-                crate::TypeInner::RayQuery { .. } => {
+                crate::TypeInner::RayQuery => {
                     if options.lang_version < (2, 4) {
                         return Err(Error::UnsupportedRayTracing);
                     }
@@ -6529,12 +6512,6 @@ template <typename A>
             writeln!(
                 self.out,
                 "{level}{NAMESPACE}::simdgroup_barrier({NAMESPACE}::mem_flags::mem_threadgroup);",
-            )?;
-        }
-        if flags.contains(crate::Barrier::TEXTURE) {
-            writeln!(
-                self.out,
-                "{level}{NAMESPACE}::threadgroup_barrier({NAMESPACE}::mem_flags::mem_texture);",
             )?;
         }
         Ok(())

@@ -293,14 +293,6 @@ pub trait Flags: Sized + 'static {
         }
     }
 
-    /// Unsets all bits in the flags.
-    fn clear(&mut self)
-    where
-        Self: Sized,
-    {
-        *self = Self::empty();
-    }
-
     /// The bitwise and (`&`) of the bits in two flags values.
     #[must_use]
     fn intersection(self, other: Self) -> Self {

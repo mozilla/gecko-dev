@@ -1,12 +1,6 @@
-use alloc::{vec, vec::Vec};
-use core::iter;
-
-use spirv::{Op, Word, MAGIC_NUMBER};
-
 use super::{Instruction, LogicalLayout, PhysicalLayout};
-
-#[cfg(test)]
-use alloc::format;
+use spirv::{Op, Word, MAGIC_NUMBER};
+use std::iter;
 
 // https://github.com/KhronosGroup/SPIRV-Headers/pull/195
 const GENERATOR: Word = 28;
