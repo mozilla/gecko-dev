@@ -416,18 +416,27 @@ bool wasm::Eval(JSContext* cx, Handle<TypedArrayObject*> code,
     return false;
   }
 
+  MutableBytes bytecode = cx->new_<ShareableBytes>();
+  if (!bytecode) {
+    return false;
+  }
+
+  if (!bytecode->append((uint8_t*)code->dataPointerEither().unwrap(),
+                        code->byteLength().valueOr(0))) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+
   FeatureOptions options;
   SharedCompileArgs compileArgs = InitCompileArgs(cx, options, "wasm_eval");
   if (!compileArgs) {
     return false;
   }
 
-  BytecodeSource source((uint8_t*)code->dataPointerEither().unwrap(),
-                        code->byteLength().valueOr(0));
   UniqueChars error;
   UniqueCharsVector warnings;
-  SharedModule module = CompileBuffer(
-      *compileArgs, BytecodeBufferOrSource(source), &error, &warnings, nullptr);
+  SharedModule module =
+      CompileBuffer(*compileArgs, *bytecode, &error, &warnings, nullptr);
   if (!module) {
     if (error) {
       JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
@@ -463,8 +472,7 @@ struct MOZ_STACK_CLASS SerializeListener : JS::OptimizedEncodingListener {
   }
 };
 
-bool wasm::CompileAndSerialize(JSContext* cx,
-                               const BytecodeSource& bytecodeSource,
+bool wasm::CompileAndSerialize(JSContext* cx, const ShareableBytes& bytecode,
                                Bytes* serialized) {
   // The caller must check that code caching is available
   MOZ_ASSERT(CodeCachingAvailable(cx));
@@ -498,8 +506,7 @@ bool wasm::CompileAndSerialize(JSContext* cx,
   UniqueChars error;
   UniqueCharsVector warnings;
   SharedModule module =
-      CompileBuffer(*compileArgs, BytecodeBufferOrSource(bytecodeSource),
-                    &error, &warnings, &listener);
+      CompileBuffer(*compileArgs, bytecode, &error, &warnings, &listener);
   if (!module) {
     fprintf(stderr, "Compilation error: %s\n", error ? error.get() : "oom");
     return false;
@@ -1562,19 +1569,26 @@ WasmModuleObject* WasmModuleObject::create(JSContext* cx, const Module& module,
 }
 
 static bool GetBufferSource(JSContext* cx, JSObject* obj, unsigned errorNumber,
-                            BytecodeSource* bytecode) {
+                            MutableBytes* bytecode) {
+  *bytecode = cx->new_<ShareableBytes>();
+  if (!*bytecode) {
+    return false;
+  }
+
   JSObject* unwrapped = CheckedUnwrapStatic(obj);
 
   SharedMem<uint8_t*> dataPointer;
   size_t byteLength;
-  if (!unwrapped ||
-      !IsBufferSource(cx, unwrapped, /*allowShared*/ false,
-                      /*allowResizable*/ false, &dataPointer, &byteLength)) {
+  if (!unwrapped || !IsBufferSource(unwrapped, &dataPointer, &byteLength)) {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, errorNumber);
     return false;
   }
 
-  *bytecode = BytecodeSource(dataPointer.unwrap(), byteLength);
+  if (!(*bytecode)->append(dataPointer.unwrap(), byteLength)) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+
   return true;
 }
 
@@ -1634,6 +1648,12 @@ bool WasmModuleObject::construct(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
+  MutableBytes bytecode;
+  if (!GetBufferSource(cx, &callArgs[0].toObject(), JSMSG_WASM_BAD_BUF_ARG,
+                       &bytecode)) {
+    return false;
+  }
+
   FeatureOptions options;
   if (!options.init(cx, callArgs.get(1))) {
     return false;
@@ -1645,16 +1665,10 @@ bool WasmModuleObject::construct(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  BytecodeSource source;
-  if (!GetBufferSource(cx, &callArgs[0].toObject(), JSMSG_WASM_BAD_BUF_ARG,
-                       &source)) {
-    return false;
-  }
-
   UniqueChars error;
   UniqueCharsVector warnings;
-  SharedModule module = CompileBuffer(
-      *compileArgs, BytecodeBufferOrSource(source), &error, &warnings, nullptr);
+  SharedModule module =
+      CompileBuffer(*compileArgs, *bytecode, &error, &warnings, nullptr);
 
   if (!ReportCompileWarnings(cx, warnings)) {
     return false;
@@ -3995,7 +4009,11 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
   if (!mg.finishFuncDefs()) {
     return nullptr;
   }
-  SharedModule module = mg.finishModule(BytecodeBufferOrSource(), moduleMeta,
+  SharedBytes shareableBytes = js_new<ShareableBytes>();
+  if (!shareableBytes) {
+    return nullptr;
+  }
+  SharedModule module = mg.finishModule(*shareableBytes, moduleMeta,
                                         /*maybeCompleteTier2Listener=*/nullptr);
   if (!module) {
     return nullptr;
@@ -4317,7 +4335,7 @@ static bool ResolveCompile(JSContext* cx, const Module& module,
 }
 
 struct CompileBufferTask : PromiseHelperTask {
-  BytecodeBuffer bytecode;
+  MutableBytes bytecode;
   SharedCompileArgs compileArgs;
   UniqueChars error;
   UniqueCharsVector warnings;
@@ -4343,8 +4361,7 @@ struct CompileBufferTask : PromiseHelperTask {
   }
 
   void execute() override {
-    module = CompileBuffer(*compileArgs, BytecodeBufferOrSource(bytecode),
-                           &error, &warnings, nullptr);
+    module = CompileBuffer(*compileArgs, *bytecode, &error, &warnings, nullptr);
   }
 
   bool resolve(JSContext* cx, Handle<PromiseObject*> promise) override {
@@ -4382,7 +4399,7 @@ static bool EnsurePromiseSupport(JSContext* cx) {
 }
 
 static bool GetBufferSource(JSContext* cx, const CallArgs& callArgs,
-                            const char* name, BytecodeSource* bytecode) {
+                            const char* name, MutableBytes* bytecode) {
   if (!callArgs.requireAtLeast(cx, name, 1)) {
     return false;
   }
@@ -4431,9 +4448,7 @@ static bool WebAssembly_compile(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  BytecodeSource source;
-  if (!GetBufferSource(cx, callArgs, "WebAssembly.compile", &source) ||
-      !BytecodeBuffer::fromSource(source, &task->bytecode)) {
+  if (!GetBufferSource(cx, callArgs, "WebAssembly.compile", &task->bytecode)) {
     return RejectWithPendingException(cx, promise, callArgs);
   }
 
@@ -4532,9 +4547,8 @@ static bool WebAssembly_instantiate(JSContext* cx, unsigned argc, Value* vp) {
       return false;
     }
 
-    BytecodeSource source;
-    if (!GetBufferSource(cx, firstArg, JSMSG_WASM_BAD_BUF_MOD_ARG, &source) ||
-        !BytecodeBuffer::fromSource(source, &task->bytecode)) {
+    if (!GetBufferSource(cx, firstArg, JSMSG_WASM_BAD_BUF_MOD_ARG,
+                         &task->bytecode)) {
       return RejectWithPendingException(cx, promise, callArgs);
     }
 
@@ -4550,8 +4564,8 @@ static bool WebAssembly_instantiate(JSContext* cx, unsigned argc, Value* vp) {
 static bool WebAssembly_validate(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs callArgs = CallArgsFromVp(argc, vp);
 
-  BytecodeSource source;
-  if (!GetBufferSource(cx, callArgs, "WebAssembly.validate", &source)) {
+  MutableBytes bytecode;
+  if (!GetBufferSource(cx, callArgs, "WebAssembly.validate", &bytecode)) {
     return false;
   }
 
@@ -4561,7 +4575,7 @@ static bool WebAssembly_validate(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   UniqueChars error;
-  bool validated = Validate(cx, source, options, &error);
+  bool validated = Validate(cx, *bytecode, options, &error);
 
   // If the reason for validation failure was OOM (signalled by null error
   // message), report out-of-memory so that validate's return is always
@@ -4631,18 +4645,18 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer {
   const MutableCompileArgs compileArgs_;
 
   // Immutable after Env state:
-  MutableBytes envBytes_;
+  Bytes envBytes_;
   BytecodeRange codeSection_;
 
   // The code section vector is resized once during the Env state and filled
   // in chunk by chunk during the Code state, updating the end-pointer after
   // each chunk:
-  MutableBytes codeBytes_;
+  Bytes codeBytes_;
   uint8_t* codeBytesEnd_;
   ExclusiveBytesPtr exclusiveCodeBytesEnd_;
 
   // Immutable after Tail state:
-  MutableBytes tailBytes_;
+  Bytes tailBytes_;
   ExclusiveStreamEndData exclusiveStreamEnd_;
 
   // Written once before Closed state and read in Closed state on main thread:
@@ -4714,29 +4728,29 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer {
   bool consumeChunk(const uint8_t* begin, size_t length) override {
     switch (streamState_.lock().get()) {
       case Env: {
-        if (!envBytes_->append(begin, length)) {
+        if (!envBytes_.append(begin, length)) {
           return rejectAndDestroyBeforeHelperThreadStarted(StreamOOMCode);
         }
 
-        if (!StartsCodeSection(envBytes_->begin(), envBytes_->end(),
+        if (!StartsCodeSection(envBytes_.begin(), envBytes_.end(),
                                &codeSection_)) {
           return true;
         }
 
-        uint32_t extraBytes = envBytes_->length() - codeSection_.start;
+        uint32_t extraBytes = envBytes_.length() - codeSection_.start;
         if (extraBytes) {
-          envBytes_->shrinkTo(codeSection_.start);
+          envBytes_.shrinkTo(codeSection_.start);
         }
 
         if (codeSection_.size > MaxCodeSectionBytes) {
           return rejectAndDestroyBeforeHelperThreadStarted(StreamOOMCode);
         }
 
-        if (!codeBytes_->vector.resize(codeSection_.size)) {
+        if (!codeBytes_.resize(codeSection_.size)) {
           return rejectAndDestroyBeforeHelperThreadStarted(StreamOOMCode);
         }
 
-        codeBytesEnd_ = codeBytes_->begin();
+        codeBytesEnd_ = codeBytes_.begin();
         exclusiveCodeBytesEnd_.lock().get() = codeBytesEnd_;
 
         if (!StartOffThreadPromiseHelperTask(this)) {
@@ -4756,7 +4770,7 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer {
       }
       case Code: {
         size_t copyLength =
-            std::min<size_t>(length, codeBytes_->end() - codeBytesEnd_);
+            std::min<size_t>(length, codeBytes_.end() - codeBytesEnd_);
         memcpy(codeBytesEnd_, begin, copyLength);
         codeBytesEnd_ += copyLength;
 
@@ -4766,7 +4780,7 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer {
           codeStreamEnd.notify_one();
         }
 
-        if (codeBytesEnd_ != codeBytes_->end()) {
+        if (codeBytesEnd_ != codeBytes_.end()) {
           return true;
         }
 
@@ -4779,7 +4793,7 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer {
         return true;
       }
       case Tail: {
-        if (!tailBytes_->append(begin, length)) {
+        if (!tailBytes_.append(begin, length)) {
           return rejectAndDestroyAfterHelperThreadStarted(StreamOOMCode);
         }
 
@@ -4795,9 +4809,13 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer {
       JS::OptimizedEncodingListener* completeTier2Listener) override {
     switch (streamState_.lock().get()) {
       case Env: {
-        BytecodeBuffer bytecode(envBytes_, nullptr, nullptr);
-        module_ = CompileBuffer(*compileArgs_, BytecodeBufferOrSource(bytecode),
-                                &compileError_, &warnings_, nullptr);
+        SharedBytes bytecode = js_new<ShareableBytes>(std::move(envBytes_));
+        if (!bytecode) {
+          rejectAndDestroyBeforeHelperThreadStarted(StreamOOMCode);
+          return;
+        }
+        module_ = CompileBuffer(*compileArgs_, *bytecode, &compileError_,
+                                &warnings_, nullptr);
         setClosedAndDestroyBeforeHelperThreadStarted();
         return;
       }
@@ -4808,7 +4826,7 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer {
           auto streamEnd = exclusiveStreamEnd_.lock();
           MOZ_ASSERT(!streamEnd->reached);
           streamEnd->reached = true;
-          streamEnd->tailBytes = tailBytes_;
+          streamEnd->tailBytes = &tailBytes_;
           streamEnd->completeTier2Listener = completeTier2Listener;
           streamEnd.notify_one();
         }
@@ -4844,7 +4862,7 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer {
   // Called on a helper thread:
 
   void execute() override {
-    module_ = CompileStreaming(*compileArgs_, *envBytes_, *codeBytes_,
+    module_ = CompileStreaming(*compileArgs_, envBytes_, codeBytes_,
                                exclusiveCodeBytesEnd_, exclusiveStreamEnd_,
                                streamFailed_, &compileError_, &warnings_);
 
@@ -4896,25 +4914,6 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer {
         exclusiveStreamEnd_(mutexid::WasmStreamEnd),
         streamFailed_(false) {
     MOZ_ASSERT_IF(importObj_, instantiate_);
-  }
-
-  [[nodiscard]] bool init(JSContext* cx) {
-    envBytes_ = cx->new_<ShareableBytes>();
-    if (!envBytes_) {
-      return false;
-    }
-
-    codeBytes_ = js_new<ShareableBytes>();
-    if (!codeBytes_) {
-      return false;
-    }
-
-    tailBytes_ = js_new<ShareableBytes>();
-    if (!tailBytes_) {
-      return false;
-    }
-
-    return PromiseHelperTask::init(cx);
   }
 };
 

@@ -281,13 +281,14 @@ bool DebuggerSource::CallData::getBinary() {
     return false;
   }
 
-  const wasm::BytecodeSource& bytecode = instance.debug().bytecode();
+  const wasm::Bytes& bytecode = instance.debug().bytecode();
   RootedObject arr(cx, JS_NewUint8Array(cx, bytecode.length()));
   if (!arr) {
     return false;
   }
 
-  bytecode.copyTo((uint8_t*)arr->as<TypedArrayObject>().dataPointerUnshared());
+  memcpy(arr->as<TypedArrayObject>().dataPointerUnshared(), bytecode.begin(),
+         bytecode.length());
 
   args.rval().setObject(*arr);
   return true;

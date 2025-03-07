@@ -244,16 +244,6 @@ function toU8(array) {
     return Uint8Array.from(array);
 }
 
-function toSharedU8(array) {
-    let sab = new SharedArrayBuffer(array.length);
-    let view = new Uint8Array(sab);
-    for (const [i, b] of array.entries()) {
-        assertEq(b < 256, true, `expected byte at index ${i} but got ${b}`);
-        view[i] = b;
-    }
-    return view;
-}
-
 function varU32(u32) {
     assertEq(u32 >= 0, true, `varU32 input must be number between 0 and 2^32-1, got ${u32}`);
     assertEq(u32 < Math.pow(2,32), true, `varU32 input must be number between 0 and 2^32-1, got ${u32}`);

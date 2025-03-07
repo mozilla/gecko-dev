@@ -4167,9 +4167,9 @@ static bool DecodeModuleNameSubsection(Decoder& d,
     return d.fail("failed to read module name length");
   }
 
-  MOZ_ASSERT(d.currentOffset() >= nameSection.payload.start);
+  MOZ_ASSERT(d.currentOffset() >= nameSection.payloadOffset);
   moduleName.offsetInNamePayload =
-      d.currentOffset() - nameSection.payload.start;
+      d.currentOffset() - nameSection.payloadOffset;
 
   const uint8_t* bytes;
   if (!d.readBytes(moduleName.length, &bytes)) {
@@ -4229,9 +4229,9 @@ static bool DecodeFunctionNameSubsection(Decoder& d,
       return false;
     }
 
-    MOZ_ASSERT(d.currentOffset() >= nameSection.payload.start);
+    MOZ_ASSERT(d.currentOffset() >= nameSection.payloadOffset);
     funcName.offsetInNamePayload =
-        d.currentOffset() - nameSection.payload.start;
+        d.currentOffset() - nameSection.payloadOffset;
 
     if (!d.readBytes(funcName.length)) {
       return d.fail("unable to read function name bytes");
@@ -4310,8 +4310,10 @@ bool wasm::DecodeModuleTail(Decoder& d, CodeMetadata* codeMeta,
 
 // Validate algorithm.
 
-bool wasm::Validate(JSContext* cx, const BytecodeSource& bytecode,
+bool wasm::Validate(JSContext* cx, const ShareableBytes& bytecode,
                     const FeatureOptions& options, UniqueChars* error) {
+  Decoder d(bytecode.vector, 0, error);
+
   FeatureArgs features = FeatureArgs::build(cx, options);
   SharedCompileArgs compileArgs = CompileArgs::buildForValidation(features);
   if (!compileArgs) {
@@ -4323,28 +4325,16 @@ bool wasm::Validate(JSContext* cx, const BytecodeSource& bytecode,
   }
   MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
 
-  Decoder envDecoder(bytecode.envSpan(), bytecode.envRange().start, error);
-  if (!DecodeModuleEnvironment(envDecoder, codeMeta, moduleMeta)) {
+  if (!DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
     return false;
   }
 
-  if (bytecode.hasCodeSection()) {
-    Decoder codeDecoder(bytecode.codeSpan(), bytecode.codeRange().start, error);
-    if (!DecodeCodeSection(codeDecoder, codeMeta)) {
-      return false;
-    }
+  if (!DecodeCodeSection(d, codeMeta)) {
+    return false;
+  }
 
-    Decoder tailDecoder(bytecode.tailSpan(), bytecode.tailRange().start, error);
-    if (!DecodeModuleTail(tailDecoder, codeMeta, moduleMeta)) {
-      return false;
-    }
-  } else {
-    if (!DecodeCodeSection(envDecoder, codeMeta)) {
-      return false;
-    }
-    if (!DecodeModuleTail(envDecoder, codeMeta, moduleMeta)) {
-      return false;
-    }
+  if (!DecodeModuleTail(d, codeMeta, moduleMeta)) {
+    return false;
   }
 
   MOZ_ASSERT(!*error, "unreported error in decoding");

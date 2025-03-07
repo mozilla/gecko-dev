@@ -411,12 +411,12 @@ class Decoder {
         resilientMode_(resilientMode) {
     MOZ_ASSERT(begin <= end);
   }
-  explicit Decoder(BytecodeSpan span, size_t offsetInModule = 0,
+  explicit Decoder(const Bytes& bytes, size_t offsetInModule = 0,
                    UniqueChars* error = nullptr,
                    UniqueCharsVector* warnings = nullptr)
-      : beg_(span.data()),
-        end_(span.data() + span.size()),
-        cur_(span.data()),
+      : beg_(bytes.begin()),
+        end_(bytes.end()),
+        cur_(bytes.begin()),
         offsetInModule_(offsetInModule),
         error_(error),
         warnings_(warnings),

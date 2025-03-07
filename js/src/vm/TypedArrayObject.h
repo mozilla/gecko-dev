@@ -239,17 +239,7 @@ JSNative TypedArrayConstructorNative(Scalar::Type type);
 
 // In WebIDL terminology, a BufferSource is either an ArrayBuffer or a typed
 // array view. In either case, extract the dataPointer/byteLength.
-//
-// If [AllowShared] is true, then the buffer may be backed by a shared array
-//   buffer.
-// If [AllowResizable] is true, then the buffer may be backed by a resizable
-//   or growable array buffer.
-//
-// This function will ensure that the passed array buffer/view's data is
-// not inline and therefore will not move on GC. This is similar to
-// JS::EnsureNonInlineArrayBufferOrView.
-bool IsBufferSource(JSContext* cx, JSObject* object, bool allowShared,
-                    bool allowResizable, SharedMem<uint8_t*>* dataPointer,
+bool IsBufferSource(JSObject* object, SharedMem<uint8_t*>* dataPointer,
                     size_t* byteLength);
 
 inline Scalar::Type TypedArrayObject::type() const {

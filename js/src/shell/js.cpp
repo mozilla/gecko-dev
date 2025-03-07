@@ -7040,9 +7040,8 @@ static bool WasmCompileAndSerialize(JSContext* cx) {
     return false;
   }
 
-  wasm::BytecodeSource bytecodeSource(bytecode->begin(), bytecode->length());
   wasm::Bytes serialized;
-  if (!wasm::CompileAndSerialize(cx, bytecodeSource, &serialized)) {
+  if (!wasm::CompileAndSerialize(cx, *bytecode, &serialized)) {
     return false;
   }
 
@@ -7068,8 +7067,7 @@ static bool WasmCompileInSeparateProcess(JSContext* cx, unsigned argc,
   SharedMem<uint8_t*> bytecode;
   size_t numBytes;
   if (!args[0].isObject() ||
-      !IsBufferSource(cx, &args[0].toObject(), /*allowShared*/ false,
-                      /*allowResizable*/ false, &bytecode, &numBytes)) {
+      !IsBufferSource(&args[0].toObject(), &bytecode, &numBytes)) {
     RootedObject callee(cx, &args.callee());
     ReportUsageErrorASCII(cx, callee, "Argument must be a buffer source");
     return false;
@@ -8223,8 +8221,7 @@ class StreamCacheEntryObject : public NativeObject {
     SharedMem<uint8_t*> ptr;
     size_t numBytes;
     if (!args[0].isObject() ||
-        !IsBufferSource(cx, &args[0].toObject(), /*allowShared*/ true,
-                        /*allowResizable*/ true, &ptr, &numBytes)) {
+        !IsBufferSource(&args[0].toObject(), &ptr, &numBytes)) {
       RootedObject callee(cx, &args.callee());
       ReportUsageErrorASCII(cx, callee, "Argument must be an ArrayBuffer");
       return false;
@@ -8417,8 +8414,7 @@ static bool ConsumeBufferSource(JSContext* cx, JS::HandleObject obj,
 
   SharedMem<uint8_t*> dataPointer;
   size_t byteLength;
-  if (IsBufferSource(cx, obj, /*allowShared*/ true, /*allowResizable*/ true,
-                     &dataPointer, &byteLength)) {
+  if (IsBufferSource(obj, &dataPointer, &byteLength)) {
     Uint8Vector bytes;
     if (!bytes.resize(byteLength)) {
       JS_ReportOutOfMemory(cx);
