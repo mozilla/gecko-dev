@@ -149,7 +149,6 @@ public:
     stream->close();
     streams.erase(std::remove(streams.begin(), streams.end(), stream),
                   streams.end());
-    delete stream;
     return CUBEB_OK;
   }
   int start()
