@@ -1,307 +1,3290 @@
 From: Michael Froman <mjfroman@mac.com>
-Date: Fri, 7 Mar 2025 16:40:28 -0600
-Subject: (tmp-cherry-pick) Revert "IWYU stats related files" (6bbddf6261)
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Date: Fri, 7 Mar 2025 16:45:29 -0600
+Subject: (tmp-cherry-pick) Revert "more p2p cleanups" (995688c8e8)
 
-This reverts commit 48f271fba90d4a6d8699e813cd049014de502523.
+This reverts commit f30c044cf9bd06f91017c171d98690094ce6d88b.
 
-Reason for revert: Breaks downstream tests
+Reason for revert: breaks roll to chromium: https://ci.chromium.org/ui/p/chromium/builders/try/mac_chromium_compile_dbg_ng/2290104/overview
 
 Original change's description:
-> IWYU stats related files
+> more p2p cleanups
 >
-> caused Chromium compile failures:
->   https://chromium-review.googlesource.com/c/chromium/src/+/6289230
+> Move test code from p2p/base and rtc_base/ into p2p/test/
+> This p2p/base much less crowded and
+> clarifies that the rtc_base/nat* is in fact only test code.
 >
-> BUG=webrtc:42226242
+> BUG=webrtc:0
 >
-> Change-Id: I6a5179638e23bf94326b3f8948a167c20f66591a
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/378180
+> Change-Id: I4d14fae24cb0eff6783962f4b4483b560367ca5d
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/378900
+> Commit-Queue: Jonas Oreland <jonaso@webrtc.org>
 > Reviewed-by: Harald Alvestrand <hta@webrtc.org>
-> Commit-Queue: Philipp Hancke <phancke@meta.com>
-> Reviewed-by: Henrik Boström <hbos@webrtc.org>
-> Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#43989}
+> Auto-Submit: Jonas Oreland <jonaso@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#43995}
 
-Bug: webrtc:42226242
-Change-Id: I3e7458e0ae354dd58bbf704902e78500e94f5ae3
+Bug: webrtc:0
+Change-Id: I6c79fa85f53fdb9a1dacbe38911771f9a4289c76
 No-Presubmit: true
 No-Tree-Checks: true
 No-Try: true
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/379000
-Reviewed-by: Henrik Boström <hbos@webrtc.org>
-Reviewed-by: Harald Alvestrand <hta@webrtc.org>
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/379040
 Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Commit-Queue: Björn Terelius <terelius@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#43997}
+Owners-Override: Ilya Nikolaevskiy <ilnik@webrtc.org>
+Commit-Queue: Ilya Nikolaevskiy <ilnik@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#43999}
 ---
- api/stats/attribute.h        |  2 +-
- api/stats/rtc_stats_report.h |  3 +++
- pc/BUILD.gn                  |  7 -------
- pc/rtc_stats_collector.cc    | 23 +++--------------------
- stats/BUILD.gn               |  3 ---
- stats/attribute.cc           |  6 ------
- stats/rtc_stats.cc           |  4 ----
- stats/rtc_stats_report.cc    |  6 +-----
- stats/rtcstats_objects.cc    |  4 +---
- stats/test/rtc_test_stats.cc |  5 +----
- 10 files changed, 10 insertions(+), 53 deletions(-)
+ examples/stunserver/stunserver_main.cc        |   2 +-
+ examples/turnserver/turnserver_main.cc        |   2 +-
+ p2p/BUILD.gn                                  |  59 +-
+ p2p/base/fake_ice_transport.h                 | 505 ++++++++++++++++-
+ p2p/{test => base}/fake_packet_transport.h    |   6 +-
+ p2p/base/fake_port_allocator.h                | 280 +++++++++-
+ .../mock_active_ice_controller.h              |   6 +-
+ ...mock_dns_resolving_packet_socket_factory.h |   6 +-
+ p2p/{test => base}/mock_ice_agent.h           |   6 +-
+ p2p/{test => base}/mock_ice_controller.h      |   6 +-
+ p2p/base/mock_ice_transport.h                 |  74 ++-
+ p2p/base/p2p_transport_channel_unittest.cc    |  16 +-
+ .../packet_transport_internal_unittest.cc     |   2 +-
+ p2p/base/port_allocator_unittest.cc           |   2 +-
+ p2p/base/port_unittest.cc                     |  14 +-
+ p2p/base/regathering_controller_unittest.cc   |   6 +-
+ p2p/base/stun_port_unittest.cc                |   6 +-
+ p2p/{test => base}/stun_server.cc             |   2 +-
+ p2p/{test => base}/stun_server.h              |   6 +-
+ p2p/{test => base}/stun_server_unittest.cc    |   2 +-
+ p2p/{test => base}/test_stun_server.cc        |   2 +-
+ p2p/{test => base}/test_stun_server.h         |   8 +-
+ p2p/{test => base}/test_turn_customizer.h     |   6 +-
+ p2p/{test => base}/test_turn_server.h         |   8 +-
+ p2p/base/turn_port_unittest.cc                |   8 +-
+ p2p/{test => base}/turn_server.cc             |   4 +-
+ p2p/{test => base}/turn_server.h              |   6 +-
+ p2p/{test => base}/turn_server_unittest.cc    |   2 +-
+ ...wrapping_active_ice_controller_unittest.cc |   4 +-
+ p2p/client/basic_port_allocator_unittest.cc   |  12 +-
+ p2p/dtls/dtls_transport_unittest.cc           |   2 +-
+ p2p/dtls/fake_dtls_transport.h                |   2 +-
+ p2p/stunprober/stun_prober_unittest.cc        |   2 +-
+ p2p/test/fake_ice_transport.h                 | 516 ------------------
+ p2p/test/fake_port_allocator.h                | 291 ----------
+ p2p/test/mock_ice_transport.h                 |  86 ---
+ pc/channel_unittest.cc                        |   2 +-
+ pc/dtls_srtp_transport_integrationtest.cc     |   2 +-
+ pc/dtls_srtp_transport_unittest.cc            |   2 +-
+ pc/ice_transport_unittest.cc                  |   4 +-
+ pc/jsep_transport_controller_unittest.cc      |   2 +-
+ pc/jsep_transport_unittest.cc                 |   2 +-
+ pc/peer_connection_crypto_unittest.cc         |   2 +-
+ pc/peer_connection_factory_unittest.cc        |   2 +-
+ ...er_connection_header_extension_unittest.cc |   2 +-
+ pc/peer_connection_ice_unittest.cc            |   2 +-
+ pc/peer_connection_integrationtest.cc         |   4 +-
+ pc/peer_connection_interface_unittest.cc      |   2 +-
+ pc/peer_connection_media_unittest.cc          |   2 +-
+ pc/peer_connection_rampup_tests.cc            |   2 +-
+ pc/rtp_transport_unittest.cc                  |   2 +-
+ pc/slow_peer_connection_integration_test.cc   |   4 +-
+ pc/srtp_transport_unittest.cc                 |   2 +-
+ pc/test/integration_test_helpers.h            |   6 +-
+ pc/test/peer_connection_test_wrapper.cc       |   2 +-
+ rtc_base/BUILD.gn                             |   7 +
+ {p2p/test => rtc_base}/nat_server.cc          |   6 +-
+ {p2p/test => rtc_base}/nat_server.h           |   8 +-
+ {p2p/test => rtc_base}/nat_socket_factory.cc  |   4 +-
+ {p2p/test => rtc_base}/nat_socket_factory.h   |  10 +-
+ {p2p/test => rtc_base}/nat_types.cc           |   2 +-
+ {p2p/test => rtc_base}/nat_types.h            |   6 +-
+ {p2p/test => rtc_base}/nat_unittest.cc        |   6 +-
+ test/DEPS                                     |   2 +-
+ test/network/emulated_turn_server.cc          |   2 +-
+ test/network/emulated_turn_server.h           |   2 +-
+ 66 files changed, 1001 insertions(+), 1069 deletions(-)
+ rename p2p/{test => base}/fake_packet_transport.h (97%)
+ rename p2p/{test => base}/mock_active_ice_controller.h (95%)
+ rename p2p/{test => base}/mock_dns_resolving_packet_socket_factory.h (89%)
+ rename p2p/{test => base}/mock_ice_agent.h (93%)
+ rename p2p/{test => base}/mock_ice_controller.h (96%)
+ rename p2p/{test => base}/stun_server.cc (99%)
+ rename p2p/{test => base}/stun_server.h (95%)
+ rename p2p/{test => base}/stun_server_unittest.cc (99%)
+ rename p2p/{test => base}/test_stun_server.cc (97%)
+ rename p2p/{test => base}/test_stun_server.h (91%)
+ rename p2p/{test => base}/test_turn_customizer.h (92%)
+ rename p2p/{test => base}/test_turn_server.h (97%)
+ rename p2p/{test => base}/turn_server.cc (99%)
+ rename p2p/{test => base}/turn_server.h (99%)
+ rename p2p/{test => base}/turn_server_unittest.cc (98%)
+ delete mode 100644 p2p/test/fake_ice_transport.h
+ delete mode 100644 p2p/test/fake_port_allocator.h
+ delete mode 100644 p2p/test/mock_ice_transport.h
+ rename {p2p/test => rtc_base}/nat_server.cc (98%)
+ rename {p2p/test => rtc_base}/nat_server.h (96%)
+ rename {p2p/test => rtc_base}/nat_socket_factory.cc (99%)
+ rename {p2p/test => rtc_base}/nat_socket_factory.h (97%)
+ rename {p2p/test => rtc_base}/nat_types.cc (98%)
+ rename {p2p/test => rtc_base}/nat_types.h (93%)
+ rename {p2p/test => rtc_base}/nat_unittest.cc (99%)
 
-diff --git a/api/stats/attribute.h b/api/stats/attribute.h
-index 78fae20930..b5dd8d55f9 100644
---- a/api/stats/attribute.h
-+++ b/api/stats/attribute.h
-@@ -11,8 +11,8 @@
- #ifndef API_STATS_ATTRIBUTE_H_
- #define API_STATS_ATTRIBUTE_H_
+diff --git a/examples/stunserver/stunserver_main.cc b/examples/stunserver/stunserver_main.cc
+index 71b4113878..ecf6c81ff1 100644
+--- a/examples/stunserver/stunserver_main.cc
++++ b/examples/stunserver/stunserver_main.cc
+@@ -9,7 +9,7 @@
+  */
+ #include <iostream>
  
--#include <cstdint>
- #include <map>
+-#include "p2p/test/stun_server.h"
++#include "p2p/base/stun_server.h"
+ #include "rtc_base/async_udp_socket.h"
+ #include "rtc_base/socket_address.h"
+ #include "rtc_base/socket_server.h"
+diff --git a/examples/turnserver/turnserver_main.cc b/examples/turnserver/turnserver_main.cc
+index 1ba16298be..8db6162306 100644
+--- a/examples/turnserver/turnserver_main.cc
++++ b/examples/turnserver/turnserver_main.cc
+@@ -18,7 +18,7 @@
+ #include "examples/turnserver/read_auth_file.h"
+ #include "p2p/base/basic_packet_socket_factory.h"
+ #include "p2p/base/port_interface.h"
+-#include "p2p/test/turn_server.h"
++#include "p2p/base/turn_server.h"
+ #include "rtc_base/async_udp_socket.h"
+ #include "rtc_base/ip_address.h"
+ #include "rtc_base/physical_socket_server.h"
+diff --git a/p2p/BUILD.gn b/p2p/BUILD.gn
+index 3ecdabd11e..6dafc83b41 100644
+--- a/p2p/BUILD.gn
++++ b/p2p/BUILD.gn
+@@ -887,10 +887,7 @@ if (rtc_include_tests) {
+   rtc_library("fake_ice_transport") {
+     testonly = true
+     visibility = [ "*" ]
+-    sources = [
+-      "base/fake_ice_transport.h",
+-      "test/fake_ice_transport.h",
+-    ]
++    sources = [ "base/fake_ice_transport.h" ]
+     deps = [
+       ":candidate_pair_interface",
+       ":connection",
+@@ -925,10 +922,7 @@ if (rtc_include_tests) {
+   rtc_library("fake_port_allocator") {
+     testonly = true
+     visibility = [ "*" ]
+-    sources = [
+-      "base/fake_port_allocator.h",
+-      "test/fake_port_allocator.h",
+-    ]
++    sources = [ "base/fake_port_allocator.h" ]
+     deps = [
+       ":basic_packet_socket_factory",
+       ":connection",
+@@ -947,24 +941,17 @@ if (rtc_include_tests) {
+   rtc_library("p2p_test_utils") {
+     testonly = true
+     sources = [
++      "base/fake_packet_transport.h",
++      "base/mock_active_ice_controller.h",
++      "base/mock_dns_resolving_packet_socket_factory.h",
++      "base/mock_ice_agent.h",
++      "base/mock_ice_controller.h",
+       "base/mock_ice_transport.h",
++      "base/test_stun_server.cc",
++      "base/test_stun_server.h",
++      "base/test_turn_customizer.h",
++      "base/test_turn_server.h",
+       "dtls/fake_dtls_transport.h",
+-      "test/fake_packet_transport.h",
+-      "test/mock_active_ice_controller.h",
+-      "test/mock_dns_resolving_packet_socket_factory.h",
+-      "test/mock_ice_agent.h",
+-      "test/mock_ice_controller.h",
+-      "test/mock_ice_transport.h",
+-      "test/nat_server.cc",
+-      "test/nat_server.h",
+-      "test/nat_socket_factory.cc",
+-      "test/nat_socket_factory.h",
+-      "test/nat_types.cc",
+-      "test/nat_types.h",
+-      "test/test_stun_server.cc",
+-      "test/test_stun_server.h",
+-      "test/test_turn_customizer.h",
+-      "test/test_turn_server.h",
+     ]
+     deps = [
+       ":active_ice_controller_factory_interface",
+@@ -993,30 +980,23 @@ if (rtc_include_tests) {
+       "../api:turn_customizer",
+       "../api/crypto:options",
+       "../api/transport:stun_types",
+-      "../api/units:timestamp",
+       "../rtc_base:async_packet_socket",
+       "../rtc_base:async_udp_socket",
+-      "../rtc_base:async_udp_socket",
+       "../rtc_base:buffer",
+       "../rtc_base:checks",
+       "../rtc_base:copy_on_write_buffer",
+       "../rtc_base:gunit_helpers",
+       "../rtc_base:logging",
+-      "../rtc_base:macromagic",
+       "../rtc_base:network_route",
+       "../rtc_base:rtc_base_tests_utils",
+       "../rtc_base:socket",
+-      "../rtc_base:socket_adapters",
+       "../rtc_base:socket_address",
+-      "../rtc_base:socket_address_pair",
+-      "../rtc_base:socket_factory",
+       "../rtc_base:socket_server",
+       "../rtc_base:ssl",
+       "../rtc_base:ssl_adapter",
+       "../rtc_base:threading",
+       "../rtc_base:timeutils",
+       "../rtc_base/network:received_packet",
+-      "../rtc_base/synchronization:mutex",
+       "../rtc_base/third_party/sigslot",
+       "../test:test_support",
+       "//third_party/abseil-cpp/absl/strings:string_view",
+@@ -1038,19 +1018,18 @@ if (rtc_include_tests) {
+       "base/stun_dictionary_unittest.cc",
+       "base/stun_port_unittest.cc",
+       "base/stun_request_unittest.cc",
++      "base/stun_server_unittest.cc",
+       "base/tcp_port_unittest.cc",
+       "base/transport_description_factory_unittest.cc",
+       "base/transport_description_unittest.cc",
+       "base/turn_port_unittest.cc",
++      "base/turn_server_unittest.cc",
+       "base/wrapping_active_ice_controller_unittest.cc",
+       "client/basic_port_allocator_unittest.cc",
+       "dtls/dtls_ice_integrationtest.cc",
+       "dtls/dtls_stun_piggyback_controller_unittest.cc",
+       "dtls/dtls_transport_unittest.cc",
+       "dtls/dtls_utils_unittest.cc",
+-      "test/nat_unittest.cc",
+-      "test/stun_server_unittest.cc",
+-      "test/turn_server_unittest.cc",
+     ]
+     deps = [
+       ":async_stun_tcp_socket",
+@@ -1112,9 +1091,6 @@ if (rtc_include_tests) {
+       "../api/transport:stun_types",
+       "../api/units:time_delta",
+       "../rtc_base:async_packet_socket",
+-      "../rtc_base:async_packet_socket",
+-      "../rtc_base:async_tcp_socket",
+-      "../rtc_base:async_udp_socket",
+       "../rtc_base:buffer",
+       "../rtc_base:byte_buffer",
+       "../rtc_base:byte_order",
+@@ -1137,7 +1113,6 @@ if (rtc_include_tests) {
+       "../rtc_base:socket",
+       "../rtc_base:socket_adapters",
+       "../rtc_base:socket_address",
+-      "../rtc_base:socket_factory",
+       "../rtc_base:socket_server",
+       "../rtc_base:ssl",
+       "../rtc_base:ssl_adapter",
+@@ -1165,10 +1140,10 @@ if (rtc_include_tests) {
+ rtc_library("p2p_server_utils") {
+   testonly = true
+   sources = [
+-    "test/stun_server.cc",
+-    "test/stun_server.h",
+-    "test/turn_server.cc",
+-    "test/turn_server.h",
++    "base/stun_server.cc",
++    "base/stun_server.h",
++    "base/turn_server.cc",
++    "base/turn_server.h",
+   ]
+   deps = [
+     ":async_stun_tcp_socket",
+diff --git a/p2p/base/fake_ice_transport.h b/p2p/base/fake_ice_transport.h
+index 8527da6d21..ddb52385b2 100644
+--- a/p2p/base/fake_ice_transport.h
++++ b/p2p/base/fake_ice_transport.h
+@@ -1,5 +1,5 @@
+ /*
+- *  Copyright 2025 The WebRTC Project Authors. All rights reserved.
++ *  Copyright 2017 The WebRTC Project Authors. All rights reserved.
+  *
+  *  Use of this source code is governed by a BSD-style license
+  *  that can be found in the LICENSE file in the root of the source
+@@ -11,7 +11,506 @@
+ #ifndef P2P_BASE_FAKE_ICE_TRANSPORT_H_
+ #define P2P_BASE_FAKE_ICE_TRANSPORT_H_
+ 
+-// TODO(jonaso): Remove!
+-#include "p2p/test/fake_ice_transport.h"
++#include <cstddef>
++#include <map>
 +#include <memory>
- #include <optional>
- #include <string>
- #include <vector>
-diff --git a/api/stats/rtc_stats_report.h b/api/stats/rtc_stats_report.h
-index 7dfe4e81af..632226ef0d 100644
---- a/api/stats/rtc_stats_report.h
-+++ b/api/stats/rtc_stats_report.h
-@@ -24,6 +24,9 @@
- #include "api/scoped_refptr.h"
- #include "api/stats/rtc_stats.h"
- #include "api/units/timestamp.h"
-+// TODO(tommi): Remove this include after fixing iwyu issue in chromium.
-+// See: third_party/blink/renderer/platform/peerconnection/rtc_stats.cc
-+#include "rtc_base/ref_counted_object.h"
- #include "rtc_base/system/rtc_export.h"
++#include <optional>
++#include <string>
++#include <utility>
++
++#include "absl/algorithm/container.h"
++#include "absl/strings/string_view.h"
++#include "api/candidate.h"
++#include "api/ice_transport_interface.h"
++#include "api/sequence_checker.h"
++#include "api/task_queue/pending_task_safety_flag.h"
++#include "api/transport/enums.h"
++#include "api/units/time_delta.h"
++#include "p2p/base/candidate_pair_interface.h"
++#include "p2p/base/connection.h"
++#include "p2p/base/connection_info.h"
++#include "p2p/base/ice_transport_internal.h"
++#include "p2p/base/port.h"
++#include "p2p/base/transport_description.h"
++#include "rtc_base/async_packet_socket.h"
++#include "rtc_base/checks.h"
++#include "rtc_base/copy_on_write_buffer.h"
++#include "rtc_base/logging.h"
++#include "rtc_base/network/received_packet.h"
++#include "rtc_base/network/sent_packet.h"
++#include "rtc_base/network_route.h"
++#include "rtc_base/socket.h"
++#include "rtc_base/task_queue_for_test.h"
++#include "rtc_base/thread.h"
++#include "rtc_base/thread_annotations.h"
++#include "rtc_base/time_utils.h"
++
++namespace cricket {
++using ::webrtc::SafeTask;
++using ::webrtc::TimeDelta;
++
++// All methods must be called on the network thread (which is either the thread
++// calling the constructor, or the separate thread explicitly passed to the
++// constructor).
++class FakeIceTransport : public IceTransportInternal {
++ public:
++  explicit FakeIceTransport(absl::string_view name,
++                            int component,
++                            rtc::Thread* network_thread = nullptr)
++      : name_(name),
++        component_(component),
++        network_thread_(network_thread ? network_thread
++                                       : rtc::Thread::Current()) {
++    RTC_DCHECK(network_thread_);
++  }
++
++  // Must be called either on the network thread, or after the network thread
++  // has been shut down.
++  ~FakeIceTransport() override {
++    if (dest_ && dest_->dest_ == this) {
++      dest_->dest_ = nullptr;
++    }
++  }
++
++  // If async, will send packets by "Post"-ing to message queue instead of
++  // synchronously "Send"-ing.
++  void SetAsync(bool async) {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    async_ = async;
++  }
++  void SetAsyncDelay(int delay_ms) {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    async_delay_ms_ = delay_ms;
++  }
++
++  // SetWritable, SetReceiving and SetDestination are the main methods that can
++  // be used for testing, to simulate connectivity or lack thereof.
++  void SetWritable(bool writable) {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    set_writable(writable);
++  }
++  void SetReceiving(bool receiving) {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    set_receiving(receiving);
++  }
++
++  // Simulates the two transports connecting to each other.
++  // If `asymmetric` is true this method only affects this FakeIceTransport.
++  // If false, it affects `dest` as well.
++  void SetDestination(FakeIceTransport* dest, bool asymmetric = false) {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    if (dest == dest_) {
++      return;
++    }
++    RTC_DCHECK(!dest || !dest_)
++        << "Changing fake destination from one to another is not supported.";
++    if (dest) {
++      // This simulates the delivery of candidates.
++      dest_ = dest;
++      set_writable(true);
++      if (!asymmetric) {
++        dest->SetDestination(this, true);
++      }
++    } else {
++      // Simulates loss of connectivity, by asymmetrically forgetting dest_.
++      dest_ = nullptr;
++      set_writable(false);
++    }
++  }
++
++  void SetTransportState(webrtc::IceTransportState state,
++                         IceTransportState legacy_state) {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    transport_state_ = state;
++    legacy_transport_state_ = legacy_state;
++    SignalIceTransportStateChanged(this);
++  }
++
++  void SetConnectionCount(size_t connection_count) {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    size_t old_connection_count = connection_count_;
++    connection_count_ = connection_count;
++    if (connection_count) {
++      had_connection_ = true;
++    }
++    // In this fake transport channel, `connection_count_` determines the
++    // transport state.
++    if (connection_count_ < old_connection_count) {
++      SignalStateChanged(this);
++    }
++  }
++
++  void SetCandidatesGatheringComplete() {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    if (gathering_state_ != kIceGatheringComplete) {
++      gathering_state_ = kIceGatheringComplete;
++      SendGatheringStateEvent();
++    }
++  }
++
++  // Convenience functions for accessing ICE config and other things.
++  int receiving_timeout() const {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    return ice_config_.receiving_timeout_or_default();
++  }
++  bool gather_continually() const {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    return ice_config_.gather_continually();
++  }
++  const Candidates& remote_candidates() const {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    return remote_candidates_;
++  }
++
++  // Fake IceTransportInternal implementation.
++  const std::string& transport_name() const override { return name_; }
++  int component() const override { return component_; }
++  IceMode remote_ice_mode() const {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    return remote_ice_mode_;
++  }
++  const std::string& ice_ufrag() const { return ice_parameters_.ufrag; }
++  const std::string& ice_pwd() const { return ice_parameters_.pwd; }
++  const std::string& remote_ice_ufrag() const {
++    return remote_ice_parameters_.ufrag;
++  }
++  const std::string& remote_ice_pwd() const {
++    return remote_ice_parameters_.pwd;
++  }
++  const IceParameters& ice_parameters() const { return ice_parameters_; }
++  const IceParameters& remote_ice_parameters() const {
++    return remote_ice_parameters_;
++  }
++
++  IceTransportState GetState() const override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    if (legacy_transport_state_) {
++      return *legacy_transport_state_;
++    }
++
++    if (connection_count_ == 0) {
++      return had_connection_ ? IceTransportState::STATE_FAILED
++                             : IceTransportState::STATE_INIT;
++    }
++
++    if (connection_count_ == 1) {
++      return IceTransportState::STATE_COMPLETED;
++    }
++
++    return IceTransportState::STATE_CONNECTING;
++  }
++
++  webrtc::IceTransportState GetIceTransportState() const override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    if (transport_state_) {
++      return *transport_state_;
++    }
++
++    if (connection_count_ == 0) {
++      return had_connection_ ? webrtc::IceTransportState::kFailed
++                             : webrtc::IceTransportState::kNew;
++    }
++
++    if (connection_count_ == 1) {
++      return webrtc::IceTransportState::kCompleted;
++    }
++
++    return webrtc::IceTransportState::kConnected;
++  }
++
++  void SetIceRole(IceRole role) override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    role_ = role;
++  }
++  IceRole GetIceRole() const override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    return role_;
++  }
++  void SetIceParameters(const IceParameters& ice_params) override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    ice_parameters_ = ice_params;
++  }
++  void SetRemoteIceParameters(const IceParameters& params) override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    remote_ice_parameters_ = params;
++  }
++
++  void SetRemoteIceMode(IceMode mode) override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    remote_ice_mode_ = mode;
++  }
++
++  void MaybeStartGathering() override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    if (gathering_state_ == kIceGatheringNew) {
++      gathering_state_ = kIceGatheringGathering;
++      SendGatheringStateEvent();
++    }
++  }
++
++  IceGatheringState gathering_state() const override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    return gathering_state_;
++  }
++
++  void SetIceConfig(const IceConfig& config) override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    ice_config_ = config;
++  }
++
++  const IceConfig& config() const override { return ice_config_; }
++
++  void AddRemoteCandidate(const Candidate& candidate) override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    remote_candidates_.push_back(candidate);
++  }
++  void RemoveRemoteCandidate(const Candidate& candidate) override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    auto it = absl::c_find(remote_candidates_, candidate);
++    if (it == remote_candidates_.end()) {
++      RTC_LOG(LS_INFO) << "Trying to remove a candidate which doesn't exist.";
++      return;
++    }
++
++    remote_candidates_.erase(it);
++  }
++
++  void RemoveAllRemoteCandidates() override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    remote_candidates_.clear();
++  }
++
++  bool GetStats(IceTransportStats* ice_transport_stats) override {
++    CandidateStats candidate_stats;
++    ConnectionInfo candidate_pair_stats;
++    ice_transport_stats->candidate_stats_list.clear();
++    ice_transport_stats->candidate_stats_list.push_back(candidate_stats);
++    ice_transport_stats->connection_infos.clear();
++    ice_transport_stats->connection_infos.push_back(candidate_pair_stats);
++    return true;
++  }
++
++  std::optional<int> GetRttEstimate() override { return rtt_estimate_; }
++
++  const Connection* selected_connection() const override { return nullptr; }
++  std::optional<const CandidatePair> GetSelectedCandidatePair() const override {
++    return std::nullopt;
++  }
++
++  // Fake PacketTransportInternal implementation.
++  bool writable() const override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    return writable_;
++  }
++  bool receiving() const override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    return receiving_;
++  }
++  // If combine is enabled, every two consecutive packets to be sent with
++  // "SendPacket" will be combined into one outgoing packet.
++  void combine_outgoing_packets(bool combine) {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    combine_outgoing_packets_ = combine;
++  }
++  int SendPacket(const char* data,
++                 size_t len,
++                 const rtc::PacketOptions& options,
++                 int flags) override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    if (!dest_) {
++      return -1;
++    }
++
++    if (packet_send_filter_func_ &&
++        packet_send_filter_func_(data, len, options, flags)) {
++      RTC_DLOG(LS_INFO) << name_ << ": dropping packet len=" << len
++                        << ", data[0]: " << static_cast<uint8_t>(data[0]);
++    } else {
++      send_packet_.AppendData(data, len);
++      if (!combine_outgoing_packets_ || send_packet_.size() > len) {
++        rtc::CopyOnWriteBuffer packet(std::move(send_packet_));
++        if (async_) {
++          network_thread_->PostDelayedTask(
++              SafeTask(task_safety_.flag(),
++                       [this, packet] {
++                         RTC_DCHECK_RUN_ON(network_thread_);
++                         FakeIceTransport::SendPacketInternal(packet);
++                       }),
++              TimeDelta::Millis(async_delay_ms_));
++        } else {
++          SendPacketInternal(packet);
++        }
++      }
++    }
++    rtc::SentPacket sent_packet(options.packet_id, rtc::TimeMillis());
++    SignalSentPacket(this, sent_packet);
++    return static_cast<int>(len);
++  }
++
++  int SetOption(rtc::Socket::Option opt, int value) override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    socket_options_[opt] = value;
++    return true;
++  }
++  bool GetOption(rtc::Socket::Option opt, int* value) override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    auto it = socket_options_.find(opt);
++    if (it != socket_options_.end()) {
++      *value = it->second;
++      return true;
++    } else {
++      return false;
++    }
++  }
++
++  int GetError() override { return 0; }
++
++  rtc::CopyOnWriteBuffer last_sent_packet() {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    return last_sent_packet_;
++  }
++
++  std::optional<rtc::NetworkRoute> network_route() const override {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    return network_route_;
++  }
++  void SetNetworkRoute(std::optional<rtc::NetworkRoute> network_route) {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    network_route_ = network_route;
++    SendTask(network_thread_, [this] {
++      RTC_DCHECK_RUN_ON(network_thread_);
++      SignalNetworkRouteChanged(network_route_);
++    });
++  }
++
++  // If `func` return TRUE means that packet will be dropped.
++  void set_packet_send_filter(
++      absl::AnyInvocable<bool(const char* data,
++                              size_t len,
++                              const rtc::PacketOptions& options,
++                              int /* flags */)> func) {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    RTC_DLOG(LS_INFO) << this << ": "
++                      << ((func == nullptr) ? "Clearing" : "Setting")
++                      << " packet send filter func";
++    packet_send_filter_func_ = std::move(func);
++  }
++
++  // If `func` return TRUE means that packet will be dropped.
++  void set_packet_recv_filter(
++      absl::AnyInvocable<bool(const rtc::CopyOnWriteBuffer& packet,
++                              uint32_t time_ms)> func) {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    RTC_DLOG(LS_INFO) << this << ": "
++                      << ((func == nullptr) ? "Clearing" : "Setting")
++                      << " packet recv filter func";
++    packet_recv_filter_func_ = std::move(func);
++  }
++
++  void set_rtt_estimate(std::optional<int> value, bool set_async = false) {
++    rtt_estimate_ = value;
++    if (value && set_async) {
++      SetAsync(true);
++      SetAsyncDelay(*value / 2);
++    }
++  }
++
++ private:
++  void set_writable(bool writable)
++      RTC_EXCLUSIVE_LOCKS_REQUIRED(network_thread_) {
++    if (writable_ == writable) {
++      return;
++    }
++    RTC_LOG(LS_INFO) << "Change writable_ to " << writable;
++    writable_ = writable;
++    if (writable_) {
++      SignalReadyToSend(this);
++    }
++    SignalWritableState(this);
++  }
++
++  void set_receiving(bool receiving)
++      RTC_EXCLUSIVE_LOCKS_REQUIRED(network_thread_) {
++    if (receiving_ == receiving) {
++      return;
++    }
++    receiving_ = receiving;
++    SignalReceivingState(this);
++  }
++
++  void SendPacketInternal(const rtc::CopyOnWriteBuffer& packet)
++      RTC_EXCLUSIVE_LOCKS_REQUIRED(network_thread_) {
++    if (dest_) {
++      last_sent_packet_ = packet;
++      dest_->ReceivePacketInternal(packet);
++    }
++  }
++
++  void ReceivePacketInternal(const rtc::CopyOnWriteBuffer& packet) {
++    RTC_DCHECK_RUN_ON(network_thread_);
++    auto now = rtc::TimeMicros();
++    if (packet_recv_filter_func_ && packet_recv_filter_func_(packet, now)) {
++      RTC_DLOG(LS_INFO) << name_
++                        << ": dropping packet at receiver len=" << packet.size()
++                        << ", data[0]: "
++                        << static_cast<uint8_t>(packet.data()[0]);
++    } else {
++      NotifyPacketReceived(rtc::ReceivedPacket::CreateFromLegacy(
++          packet.data(), packet.size(), now));
++    }
++  }
++
++  const std::string name_;
++  const int component_;
++  FakeIceTransport* dest_ RTC_GUARDED_BY(network_thread_) = nullptr;
++  bool async_ RTC_GUARDED_BY(network_thread_) = false;
++  int async_delay_ms_ RTC_GUARDED_BY(network_thread_) = 0;
++  Candidates remote_candidates_ RTC_GUARDED_BY(network_thread_);
++  IceConfig ice_config_ RTC_GUARDED_BY(network_thread_);
++  IceRole role_ RTC_GUARDED_BY(network_thread_) = ICEROLE_UNKNOWN;
++  IceParameters ice_parameters_ RTC_GUARDED_BY(network_thread_);
++  IceParameters remote_ice_parameters_ RTC_GUARDED_BY(network_thread_);
++  IceMode remote_ice_mode_ RTC_GUARDED_BY(network_thread_) = ICEMODE_FULL;
++  size_t connection_count_ RTC_GUARDED_BY(network_thread_) = 0;
++  std::optional<webrtc::IceTransportState> transport_state_
++      RTC_GUARDED_BY(network_thread_);
++  std::optional<IceTransportState> legacy_transport_state_
++      RTC_GUARDED_BY(network_thread_);
++  IceGatheringState gathering_state_ RTC_GUARDED_BY(network_thread_) =
++      kIceGatheringNew;
++  bool had_connection_ RTC_GUARDED_BY(network_thread_) = false;
++  bool writable_ RTC_GUARDED_BY(network_thread_) = false;
++  bool receiving_ RTC_GUARDED_BY(network_thread_) = false;
++  bool combine_outgoing_packets_ RTC_GUARDED_BY(network_thread_) = false;
++  rtc::CopyOnWriteBuffer send_packet_ RTC_GUARDED_BY(network_thread_);
++  std::optional<rtc::NetworkRoute> network_route_
++      RTC_GUARDED_BY(network_thread_);
++  std::map<rtc::Socket::Option, int> socket_options_
++      RTC_GUARDED_BY(network_thread_);
++  rtc::CopyOnWriteBuffer last_sent_packet_ RTC_GUARDED_BY(network_thread_);
++  rtc::Thread* const network_thread_;
++  webrtc::ScopedTaskSafetyDetached task_safety_;
++  std::optional<int> rtt_estimate_;
++
++  // If filter func return TRUE means that packet will be dropped.
++  absl::AnyInvocable<bool(const char*, size_t, const rtc::PacketOptions&, int)>
++      packet_send_filter_func_ RTC_GUARDED_BY(network_thread_) = nullptr;
++  absl::AnyInvocable<bool(const rtc::CopyOnWriteBuffer&, uint64_t)>
++      packet_recv_filter_func_ RTC_GUARDED_BY(network_thread_) = nullptr;
++};
++
++class FakeIceTransportWrapper : public webrtc::IceTransportInterface {
++ public:
++  explicit FakeIceTransportWrapper(
++      std::unique_ptr<cricket::FakeIceTransport> internal)
++      : internal_(std::move(internal)) {}
++
++  cricket::IceTransportInternal* internal() override { return internal_.get(); }
++
++ private:
++  std::unique_ptr<cricket::FakeIceTransport> internal_;
++};
++
++}  // namespace cricket
  
- namespace webrtc {
-diff --git a/pc/BUILD.gn b/pc/BUILD.gn
-index 710f215602..332a87a7c6 100644
---- a/pc/BUILD.gn
-+++ b/pc/BUILD.gn
-@@ -950,27 +950,21 @@ rtc_source_set("rtc_stats_collector") {
-     "../api:candidate",
-     "../api:dtls_transport_interface",
-     "../api:libjingle_peerconnection_api",
--    "../api:make_ref_counted",
-     "../api:media_stream_interface",
-     "../api:rtc_stats_api",
-     "../api:rtp_parameters",
--    "../api:rtp_transceiver_direction",
-     "../api:scoped_refptr",
-     "../api:sequence_checker",
-     "../api/audio:audio_device",
-     "../api/audio:audio_processing_statistics",
--    "../api/environment",
-     "../api/task_queue:task_queue",
--    "../api/transport:enums",
-     "../api/units:time_delta",
--    "../api/units:timestamp",
-     "../api/video:video_rtp_headers",
-     "../api/video_codecs:scalability_mode",
-     "../call:call_interfaces",
-     "../common_video:common_video",
-     "../media:media_channel",
-     "../media:media_channel_impl",
--    "../media:stream_params",
-     "../modules/audio_device",
-     "../modules/rtp_rtcp:rtp_rtcp_format",
-     "../p2p:connection",
-@@ -978,7 +972,6 @@ rtc_source_set("rtc_stats_collector") {
-     "../p2p:ice_transport_internal",
-     "../p2p:p2p_constants",
-     "../p2p:port",
--    "../p2p:transport_description",
-     "../rtc_base:checks",
-     "../rtc_base:event_tracer",
-     "../rtc_base:ip_address",
-diff --git a/pc/rtc_stats_collector.cc b/pc/rtc_stats_collector.cc
-index ddffa1689a..1091462b64 100644
---- a/pc/rtc_stats_collector.cc
-+++ b/pc/rtc_stats_collector.cc
-@@ -13,13 +13,12 @@
- #include <stdint.h>
- #include <stdio.h>
+ #endif  // P2P_BASE_FAKE_ICE_TRANSPORT_H_
+diff --git a/p2p/test/fake_packet_transport.h b/p2p/base/fake_packet_transport.h
+similarity index 97%
+rename from p2p/test/fake_packet_transport.h
+rename to p2p/base/fake_packet_transport.h
+index c6f7bc0e44..79a6f25462 100644
+--- a/p2p/test/fake_packet_transport.h
++++ b/p2p/base/fake_packet_transport.h
+@@ -8,8 +8,8 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
  
--#include <algorithm>
- #include <cstdint>
+-#ifndef P2P_TEST_FAKE_PACKET_TRANSPORT_H_
+-#define P2P_TEST_FAKE_PACKET_TRANSPORT_H_
++#ifndef P2P_BASE_FAKE_PACKET_TRANSPORT_H_
++#define P2P_BASE_FAKE_PACKET_TRANSPORT_H_
+ 
  #include <map>
- #include <memory>
--#include <optional>
- #include <set>
  #include <string>
-+#include <type_traits>
- #include <utility>
+@@ -146,4 +146,4 @@ class FakePacketTransport : public PacketTransportInternal {
+ 
+ }  // namespace rtc
+ 
+-#endif  // P2P_TEST_FAKE_PACKET_TRANSPORT_H_
++#endif  // P2P_BASE_FAKE_PACKET_TRANSPORT_H_
+diff --git a/p2p/base/fake_port_allocator.h b/p2p/base/fake_port_allocator.h
+index 6a9a54033c..1b768a7ba6 100644
+--- a/p2p/base/fake_port_allocator.h
++++ b/p2p/base/fake_port_allocator.h
+@@ -1,5 +1,5 @@
+ /*
+- *  Copyright 2025 The WebRTC Project Authors. All rights reserved.
++ *  Copyright 2010 The WebRTC Project Authors. All rights reserved.
+  *
+  *  Use of this source code is governed by a BSD-style license
+  *  that can be found in the LICENSE file in the root of the source
+@@ -11,7 +11,281 @@
+ #ifndef P2P_BASE_FAKE_PORT_ALLOCATOR_H_
+ #define P2P_BASE_FAKE_PORT_ALLOCATOR_H_
+ 
+-// TODO(jonaso): Remove!
+-#include "p2p/test/fake_port_allocator.h"
++#include <memory>
++#include <string>
++#include <utility>
++#include <vector>
++
++#include "absl/memory/memory.h"
++#include "absl/strings/string_view.h"
++#include "p2p/base/basic_packet_socket_factory.h"
++#include "p2p/base/port_allocator.h"
++#include "p2p/base/udp_port.h"
++#include "rtc_base/memory/always_valid_pointer.h"
++#include "rtc_base/net_helpers.h"
++#include "rtc_base/net_test_helpers.h"
++#include "rtc_base/task_queue_for_test.h"
++#include "rtc_base/thread.h"
++
++namespace rtc {
++class SocketFactory;
++}
++
++namespace cricket {
++
++class TestUDPPort : public UDPPort {
++ public:
++  static TestUDPPort* Create(const PortParametersRef& args,
++                             uint16_t min_port,
++                             uint16_t max_port,
++                             bool emit_localhost_for_anyaddress) {
++    TestUDPPort* port = new TestUDPPort(args, min_port, max_port,
++                                        emit_localhost_for_anyaddress);
++    if (!port->Init()) {
++      delete port;
++      port = nullptr;
++    }
++    return port;
++  }
++
++  static std::unique_ptr<TestUDPPort> Create(
++      const PortParametersRef& args,
++      rtc::AsyncPacketSocket* socket,
++      bool emit_localhost_for_anyaddress) {
++    auto port = absl::WrapUnique(
++        new TestUDPPort(args, socket, emit_localhost_for_anyaddress));
++    if (!port->Init()) {
++      return nullptr;
++    }
++    return port;
++  }
++
++ protected:
++  TestUDPPort(const PortParametersRef& args,
++              uint16_t min_port,
++              uint16_t max_port,
++              bool emit_localhost_for_anyaddress)
++      : UDPPort(args,
++                webrtc::IceCandidateType::kHost,
++                min_port,
++                max_port,
++                emit_localhost_for_anyaddress) {}
++
++  TestUDPPort(const PortParametersRef& args,
++              rtc::AsyncPacketSocket* socket,
++              bool emit_localhost_for_anyaddress)
++      : UDPPort(args,
++                webrtc::IceCandidateType::kHost,
++                socket,
++                emit_localhost_for_anyaddress) {}
++};
++
++// A FakePortAllocatorSession can be used with either a real or fake socket
++// factory. It gathers a single loopback port, using IPv6 if available and
++// not disabled.
++class FakePortAllocatorSession : public PortAllocatorSession {
++ public:
++  FakePortAllocatorSession(PortAllocator* allocator,
++                           rtc::Thread* network_thread,
++                           rtc::PacketSocketFactory* factory,
++                           absl::string_view content_name,
++                           int component,
++                           absl::string_view ice_ufrag,
++                           absl::string_view ice_pwd,
++                           const webrtc::FieldTrialsView* field_trials)
++      : PortAllocatorSession(content_name,
++                             component,
++                             ice_ufrag,
++                             ice_pwd,
++                             allocator->flags()),
++        allocator_(allocator),
++        network_thread_(network_thread),
++        factory_(factory),
++        ipv4_network_("network",
++                      "unittest",
++                      rtc::IPAddress(INADDR_LOOPBACK),
++                      32),
++        ipv6_network_("network",
++                      "unittest",
++                      rtc::IPAddress(in6addr_loopback),
++                      64),
++        port_(),
++        port_config_count_(0),
++        stun_servers_(allocator->stun_servers()),
++        turn_servers_(allocator->turn_servers()),
++        field_trials_(field_trials) {
++    ipv4_network_.AddIP(rtc::IPAddress(INADDR_LOOPBACK));
++    ipv6_network_.AddIP(rtc::IPAddress(in6addr_loopback));
++  }
++
++  void SetCandidateFilter(uint32_t filter) override {
++    candidate_filter_ = filter;
++  }
++
++  void StartGettingPorts() override {
++    if (!port_) {
++      rtc::Network& network =
++          (rtc::HasIPv6Enabled() && (flags() & PORTALLOCATOR_ENABLE_IPV6))
++              ? ipv6_network_
++              : ipv4_network_;
++      port_.reset(TestUDPPort::Create({.network_thread = network_thread_,
++                                       .socket_factory = factory_,
++                                       .network = &network,
++                                       .ice_username_fragment = username(),
++                                       .ice_password = password(),
++                                       .field_trials = field_trials_},
++                                      0, 0, false));
++      RTC_DCHECK(port_);
++      port_->SetIceTiebreaker(allocator_->ice_tiebreaker());
++      port_->SubscribePortDestroyed(
++          [this](PortInterface* port) { OnPortDestroyed(port); });
++      AddPort(port_.get());
++    }
++    ++port_config_count_;
++    running_ = true;
++  }
++
++  void StopGettingPorts() override { running_ = false; }
++  bool IsGettingPorts() override { return running_; }
++  void ClearGettingPorts() override { is_cleared = true; }
++  bool IsCleared() const override { return is_cleared; }
++
++  void RegatherOnFailedNetworks() override {
++    SignalIceRegathering(this, IceRegatheringReason::NETWORK_FAILURE);
++  }
++
++  std::vector<PortInterface*> ReadyPorts() const override {
++    return ready_ports_;
++  }
++  std::vector<Candidate> ReadyCandidates() const override {
++    return candidates_;
++  }
++  void PruneAllPorts() override { port_->Prune(); }
++  bool CandidatesAllocationDone() const override { return allocation_done_; }
++
++  int port_config_count() { return port_config_count_; }
++
++  const ServerAddresses& stun_servers() const { return stun_servers_; }
++
++  const std::vector<RelayServerConfig>& turn_servers() const {
++    return turn_servers_;
++  }
++
++  uint32_t candidate_filter() const { return candidate_filter_; }
++
++  int transport_info_update_count() const {
++    return transport_info_update_count_;
++  }
++
++ protected:
++  void UpdateIceParametersInternal() override {
++    // Since this class is a fake and this method only is overridden for tests,
++    // we don't need to actually update the transport info.
++    ++transport_info_update_count_;
++  }
++
++ private:
++  void AddPort(cricket::Port* port) {
++    port->set_component(component());
++    port->set_generation(generation());
++    port->SignalPortComplete.connect(this,
++                                     &FakePortAllocatorSession::OnPortComplete);
++    port->PrepareAddress();
++    ready_ports_.push_back(port);
++    SignalPortReady(this, port);
++    port->KeepAliveUntilPruned();
++  }
++  void OnPortComplete(cricket::Port* port) {
++    const std::vector<Candidate>& candidates = port->Candidates();
++    candidates_.insert(candidates_.end(), candidates.begin(), candidates.end());
++    SignalCandidatesReady(this, candidates);
++
++    allocation_done_ = true;
++    SignalCandidatesAllocationDone(this);
++  }
++  void OnPortDestroyed(cricket::PortInterface* /* port */) {
++    // Don't want to double-delete port if it deletes itself.
++    port_.release();
++  }
++
++  PortAllocator* allocator_;
++  rtc::Thread* network_thread_;
++  rtc::PacketSocketFactory* factory_;
++  rtc::Network ipv4_network_;
++  rtc::Network ipv6_network_;
++  std::unique_ptr<cricket::Port> port_;
++  int port_config_count_;
++  std::vector<Candidate> candidates_;
++  std::vector<PortInterface*> ready_ports_;
++  bool allocation_done_ = false;
++  bool is_cleared = false;
++  ServerAddresses stun_servers_;
++  std::vector<RelayServerConfig> turn_servers_;
++  uint32_t candidate_filter_ = CF_ALL;
++  int transport_info_update_count_ = 0;
++  bool running_ = false;
++  const webrtc::FieldTrialsView* field_trials_;
++};
++
++class FakePortAllocator : public cricket::PortAllocator {
++ public:
++  FakePortAllocator(rtc::Thread* network_thread,
++                    rtc::PacketSocketFactory* factory,
++                    const webrtc::FieldTrialsView* field_trials)
++      : FakePortAllocator(network_thread, factory, nullptr, field_trials) {}
++
++  FakePortAllocator(rtc::Thread* network_thread,
++                    std::unique_ptr<rtc::PacketSocketFactory> factory,
++                    const webrtc::FieldTrialsView* field_trials)
++      : FakePortAllocator(network_thread,
++                          nullptr,
++                          std::move(factory),
++                          field_trials) {}
++
++  void SetNetworkIgnoreMask(int /* network_ignore_mask */) override {}
++
++  cricket::PortAllocatorSession* CreateSessionInternal(
++      absl::string_view content_name,
++      int component,
++      absl::string_view ice_ufrag,
++      absl::string_view ice_pwd) override {
++    return new FakePortAllocatorSession(
++        this, network_thread_, factory_.get(), std::string(content_name),
++        component, std::string(ice_ufrag), std::string(ice_pwd), field_trials_);
++  }
++
++  bool initialized() const { return initialized_; }
++
++  // For testing: Manipulate MdnsObfuscationEnabled()
++  bool MdnsObfuscationEnabled() const override {
++    return mdns_obfuscation_enabled_;
++  }
++  void SetMdnsObfuscationEnabledForTesting(bool enabled) {
++    mdns_obfuscation_enabled_ = enabled;
++  }
++
++ private:
++  FakePortAllocator(rtc::Thread* network_thread,
++                    rtc::PacketSocketFactory* factory,
++                    std::unique_ptr<rtc::PacketSocketFactory> owned_factory,
++                    const webrtc::FieldTrialsView* field_trials)
++      : network_thread_(network_thread),
++        factory_(std::move(owned_factory), factory),
++        field_trials_(field_trials) {
++    if (network_thread_ == nullptr) {
++      network_thread_ = rtc::Thread::Current();
++      Initialize();
++      return;
++    }
++    SendTask(network_thread_, [this] { Initialize(); });
++  }
++
++  rtc::Thread* network_thread_;
++  const webrtc::AlwaysValidPointerNoDefault<rtc::PacketSocketFactory> factory_;
++  const webrtc::FieldTrialsView* field_trials_;
++  bool mdns_obfuscation_enabled_ = false;
++};
++
++}  // namespace cricket
+ 
+ #endif  // P2P_BASE_FAKE_PORT_ALLOCATOR_H_
+diff --git a/p2p/test/mock_active_ice_controller.h b/p2p/base/mock_active_ice_controller.h
+similarity index 95%
+rename from p2p/test/mock_active_ice_controller.h
+rename to p2p/base/mock_active_ice_controller.h
+index 010bb9c1af..9344fad5e3 100644
+--- a/p2p/test/mock_active_ice_controller.h
++++ b/p2p/base/mock_active_ice_controller.h
+@@ -8,8 +8,8 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#ifndef P2P_TEST_MOCK_ACTIVE_ICE_CONTROLLER_H_
+-#define P2P_TEST_MOCK_ACTIVE_ICE_CONTROLLER_H_
++#ifndef P2P_BASE_MOCK_ACTIVE_ICE_CONTROLLER_H_
++#define P2P_BASE_MOCK_ACTIVE_ICE_CONTROLLER_H_
+ 
+ #include <memory>
+ 
+@@ -86,4 +86,4 @@ class MockActiveIceControllerFactory
+ 
+ }  // namespace cricket
+ 
+-#endif  // P2P_TEST_MOCK_ACTIVE_ICE_CONTROLLER_H_
++#endif  // P2P_BASE_MOCK_ACTIVE_ICE_CONTROLLER_H_
+diff --git a/p2p/test/mock_dns_resolving_packet_socket_factory.h b/p2p/base/mock_dns_resolving_packet_socket_factory.h
+similarity index 89%
+rename from p2p/test/mock_dns_resolving_packet_socket_factory.h
+rename to p2p/base/mock_dns_resolving_packet_socket_factory.h
+index ae3943bfd9..8f18e9b0e1 100644
+--- a/p2p/test/mock_dns_resolving_packet_socket_factory.h
++++ b/p2p/base/mock_dns_resolving_packet_socket_factory.h
+@@ -8,8 +8,8 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#ifndef P2P_TEST_MOCK_DNS_RESOLVING_PACKET_SOCKET_FACTORY_H_
+-#define P2P_TEST_MOCK_DNS_RESOLVING_PACKET_SOCKET_FACTORY_H_
++#ifndef P2P_BASE_MOCK_DNS_RESOLVING_PACKET_SOCKET_FACTORY_H_
++#define P2P_BASE_MOCK_DNS_RESOLVING_PACKET_SOCKET_FACTORY_H_
+ 
+ #include <functional>
+ #include <memory>
+@@ -50,4 +50,4 @@ class MockDnsResolvingPacketSocketFactory : public BasicPacketSocketFactory {
+ 
+ }  // namespace rtc
+ 
+-#endif  // P2P_TEST_MOCK_DNS_RESOLVING_PACKET_SOCKET_FACTORY_H_
++#endif  // P2P_BASE_MOCK_DNS_RESOLVING_PACKET_SOCKET_FACTORY_H_
+diff --git a/p2p/test/mock_ice_agent.h b/p2p/base/mock_ice_agent.h
+similarity index 93%
+rename from p2p/test/mock_ice_agent.h
+rename to p2p/base/mock_ice_agent.h
+index 7d2575682d..a1c0ebffbf 100644
+--- a/p2p/test/mock_ice_agent.h
++++ b/p2p/base/mock_ice_agent.h
+@@ -8,8 +8,8 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#ifndef P2P_TEST_MOCK_ICE_AGENT_H_
+-#define P2P_TEST_MOCK_ICE_AGENT_H_
++#ifndef P2P_BASE_MOCK_ICE_AGENT_H_
++#define P2P_BASE_MOCK_ICE_AGENT_H_
+ 
  #include <vector>
  
-@@ -29,56 +28,40 @@
- #include "api/audio/audio_device.h"
- #include "api/audio/audio_processing_statistics.h"
- #include "api/candidate.h"
--#include "api/data_channel_interface.h"
- #include "api/dtls_transport_interface.h"
--#include "api/environment/environment.h"
--#include "api/make_ref_counted.h"
- #include "api/media_stream_interface.h"
- #include "api/media_types.h"
- #include "api/rtp_parameters.h"
--#include "api/rtp_transceiver_direction.h"
--#include "api/scoped_refptr.h"
- #include "api/sequence_checker.h"
- #include "api/stats/rtc_stats.h"
--#include "api/stats/rtc_stats_collector_callback.h"
--#include "api/stats/rtc_stats_report.h"
- #include "api/stats/rtcstats_objects.h"
--#include "api/transport/enums.h"
- #include "api/units/time_delta.h"
--#include "api/units/timestamp.h"
- #include "api/video/video_content_type.h"
- #include "api/video_codecs/scalability_mode.h"
- #include "common_video/include/quality_limitation_reason.h"
- #include "media/base/media_channel.h"
--#include "media/base/stream_params.h"
-+#include "media/base/media_channel_impl.h"
- #include "modules/rtp_rtcp/include/report_block_data.h"
-+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+@@ -47,4 +47,4 @@ class MockIceAgent : public IceAgentInterface {
+ 
+ }  // namespace cricket
+ 
+-#endif  // P2P_TEST_MOCK_ICE_AGENT_H_
++#endif  // P2P_BASE_MOCK_ICE_AGENT_H_
+diff --git a/p2p/test/mock_ice_controller.h b/p2p/base/mock_ice_controller.h
+similarity index 96%
+rename from p2p/test/mock_ice_controller.h
+rename to p2p/base/mock_ice_controller.h
+index d43778690f..a4bb4de512 100644
+--- a/p2p/test/mock_ice_controller.h
++++ b/p2p/base/mock_ice_controller.h
+@@ -8,8 +8,8 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#ifndef P2P_TEST_MOCK_ICE_CONTROLLER_H_
+-#define P2P_TEST_MOCK_ICE_CONTROLLER_H_
++#ifndef P2P_BASE_MOCK_ICE_CONTROLLER_H_
++#define P2P_BASE_MOCK_ICE_CONTROLLER_H_
+ 
+ #include <memory>
+ #include <vector>
+@@ -92,4 +92,4 @@ class MockIceControllerFactory : public cricket::IceControllerFactoryInterface {
+ 
+ }  // namespace cricket
+ 
+-#endif  // P2P_TEST_MOCK_ICE_CONTROLLER_H_
++#endif  // P2P_BASE_MOCK_ICE_CONTROLLER_H_
+diff --git a/p2p/base/mock_ice_transport.h b/p2p/base/mock_ice_transport.h
+index fa26844bb3..a8c7f3dd81 100644
+--- a/p2p/base/mock_ice_transport.h
++++ b/p2p/base/mock_ice_transport.h
+@@ -1,5 +1,5 @@
+ /*
+- *  Copyright 2025 The WebRTC Project Authors. All rights reserved.
++ *  Copyright 2016 The WebRTC Project Authors. All rights reserved.
+  *
+  *  Use of this source code is governed by a BSD-style license
+  *  that can be found in the LICENSE file in the root of the source
+@@ -11,6 +11,76 @@
+ #ifndef P2P_BASE_MOCK_ICE_TRANSPORT_H_
+ #define P2P_BASE_MOCK_ICE_TRANSPORT_H_
+ 
+-#include "p2p/test/mock_ice_transport.h"
++#include <memory>
++#include <string>
++#include <vector>
++
++#include "p2p/base/ice_transport_internal.h"
++#include "test/gmock.h"
++
++namespace cricket {
++
++// Used in Chromium/remoting/protocol/channel_socket_adapter_unittest.cc
++class MockIceTransport : public IceTransportInternal {
++ public:
++  MockIceTransport() {
++    SignalReadyToSend(this);
++    SignalWritableState(this);
++  }
++
++  MOCK_METHOD(int,
++              SendPacket,
++              (const char* data,
++               size_t len,
++               const rtc::PacketOptions& options,
++               int flags),
++              (override));
++  MOCK_METHOD(int, SetOption, (rtc::Socket::Option opt, int value), (override));
++  MOCK_METHOD(int, GetError, (), (override));
++  MOCK_METHOD(cricket::IceRole, GetIceRole, (), (const, override));
++  MOCK_METHOD(bool,
++              GetStats,
++              (cricket::IceTransportStats * ice_transport_stats),
++              (override));
++
++  IceTransportState GetState() const override {
++    return IceTransportState::STATE_INIT;
++  }
++  webrtc::IceTransportState GetIceTransportState() const override {
++    return webrtc::IceTransportState::kNew;
++  }
++
++  const std::string& transport_name() const override { return transport_name_; }
++  int component() const override { return 0; }
++  void SetIceRole(IceRole /* role */) override {}
++  // The ufrag and pwd in `ice_params` must be set
++  // before candidate gathering can start.
++  void SetIceParameters(const IceParameters& /* ice_params */) override {}
++  void SetRemoteIceParameters(const IceParameters& /* ice_params */) override {}
++  void SetRemoteIceMode(IceMode /* mode */) override {}
++  void SetIceConfig(const IceConfig& config) override { ice_config_ = config; }
++  const IceConfig& config() const override { return ice_config_; }
++  std::optional<int> GetRttEstimate() override { return std::nullopt; }
++  const Connection* selected_connection() const override { return nullptr; }
++  std::optional<const CandidatePair> GetSelectedCandidatePair() const override {
++    return std::nullopt;
++  }
++  void MaybeStartGathering() override {}
++  void AddRemoteCandidate(const Candidate& /* candidate */) override {}
++  void RemoveRemoteCandidate(const Candidate& /* candidate */) override {}
++  void RemoveAllRemoteCandidates() override {}
++  IceGatheringState gathering_state() const override {
++    return IceGatheringState::kIceGatheringComplete;
++  }
++
++  bool receiving() const override { return true; }
++  bool writable() const override { return true; }
++
++ private:
++  std::string transport_name_;
++  IceConfig ice_config_;
++};
++
++}  // namespace cricket
+ 
+ #endif  // P2P_BASE_MOCK_ICE_TRANSPORT_H_
+diff --git a/p2p/base/p2p_transport_channel_unittest.cc b/p2p/base/p2p_transport_channel_unittest.cc
+index d1782dd226..9ef5b5f5f2 100644
+--- a/p2p/base/p2p_transport_channel_unittest.cc
++++ b/p2p/base/p2p_transport_channel_unittest.cc
+@@ -45,26 +45,24 @@
+ #include "p2p/base/candidate_pair_interface.h"
+ #include "p2p/base/connection.h"
  #include "p2p/base/connection_info.h"
++#include "p2p/base/fake_port_allocator.h"
+ #include "p2p/base/ice_controller_factory_interface.h"
+ #include "p2p/base/ice_controller_interface.h"
+ #include "p2p/base/ice_switch_reason.h"
  #include "p2p/base/ice_transport_internal.h"
++#include "p2p/base/mock_active_ice_controller.h"
++#include "p2p/base/mock_ice_controller.h"
  #include "p2p/base/p2p_constants.h"
+ #include "p2p/base/packet_transport_internal.h"
  #include "p2p/base/port.h"
--#include "p2p/base/transport_description.h"
- #include "pc/channel_interface.h"
- #include "pc/data_channel_utils.h"
--#include "pc/peer_connection_internal.h"
- #include "pc/rtc_stats_traversal.h"
- #include "pc/rtp_receiver_proxy.h"
- #include "pc/rtp_sender_proxy.h"
--#include "pc/rtp_transceiver.h"
--#include "pc/transport_stats.h"
- #include "pc/webrtc_sdp.h"
+ #include "p2p/base/port_allocator.h"
+ #include "p2p/base/port_interface.h"
+ #include "p2p/base/stun_dictionary.h"
++#include "p2p/base/stun_server.h"
++#include "p2p/base/test_stun_server.h"
++#include "p2p/base/test_turn_server.h"
+ #include "p2p/base/transport_description.h"
+ #include "p2p/client/basic_port_allocator.h"
+-#include "p2p/test/fake_port_allocator.h"
+-#include "p2p/test/mock_active_ice_controller.h"
+-#include "p2p/test/mock_ice_controller.h"
+-#include "p2p/test/nat_socket_factory.h"
+-#include "p2p/test/nat_types.h"
+-#include "p2p/test/stun_server.h"
+-#include "p2p/test/test_stun_server.h"
+-#include "p2p/test/test_turn_server.h"
+ #include "rtc_base/byte_buffer.h"
  #include "rtc_base/checks.h"
--#include "rtc_base/event.h"
+ #include "rtc_base/dscp.h"
+@@ -77,6 +75,8 @@
  #include "rtc_base/ip_address.h"
  #include "rtc_base/logging.h"
- #include "rtc_base/network_constants.h"
- #include "rtc_base/rtc_certificate.h"
- #include "rtc_base/socket_address.h"
--#include "rtc_base/ssl_certificate.h"
- #include "rtc_base/ssl_stream_adapter.h"
- #include "rtc_base/string_encode.h"
- #include "rtc_base/strings/string_builder.h"
--#include "rtc_base/synchronization/mutex.h"
--#include "rtc_base/thread.h"
- #include "rtc_base/time_utils.h"
- #include "rtc_base/trace_event.h"
+ #include "rtc_base/mdns_responder_interface.h"
++#include "rtc_base/nat_socket_factory.h"
++#include "rtc_base/nat_types.h"
+ #include "rtc_base/net_helper.h"
+ #include "rtc_base/net_helpers.h"
+ #include "rtc_base/network.h"
+diff --git a/p2p/base/packet_transport_internal_unittest.cc b/p2p/base/packet_transport_internal_unittest.cc
+index d0dba3b842..178c273e67 100644
+--- a/p2p/base/packet_transport_internal_unittest.cc
++++ b/p2p/base/packet_transport_internal_unittest.cc
+@@ -10,7 +10,7 @@
  
-diff --git a/stats/BUILD.gn b/stats/BUILD.gn
-index 487a630a15..22571a5336 100644
---- a/stats/BUILD.gn
-+++ b/stats/BUILD.gn
-@@ -24,8 +24,6 @@ rtc_library("rtc_stats") {
+ #include "p2p/base/packet_transport_internal.h"
  
-   deps = [
-     "../api:rtc_stats_api",
--    "../api:scoped_refptr",
--    "../api/units:timestamp",
-     "../rtc_base:checks",
-     "../rtc_base:macromagic",
-     "../rtc_base:stringutils",
-@@ -69,7 +67,6 @@ if (rtc_include_tests && !build_with_chromium) {
-       "../rtc_base:rtc_json",
-       "../test:test_main",
-       "../test:test_support",
--      "//third_party/jsoncpp",
-     ]
+-#include "p2p/test/fake_packet_transport.h"
++#include "p2p/base/fake_packet_transport.h"
+ #include "rtc_base/gunit.h"
+ #include "rtc_base/network/received_packet.h"
+ #include "rtc_base/third_party/sigslot/sigslot.h"
+diff --git a/p2p/base/port_allocator_unittest.cc b/p2p/base/port_allocator_unittest.cc
+index 4ce84bdcf5..1b5584e2e8 100644
+--- a/p2p/base/port_allocator_unittest.cc
++++ b/p2p/base/port_allocator_unittest.cc
+@@ -13,7 +13,7 @@
+ #include <memory>
  
-     if (is_android) {
-diff --git a/stats/attribute.cc b/stats/attribute.cc
-index 974b9fc5de..a6dd6309e4 100644
---- a/stats/attribute.cc
-+++ b/stats/attribute.cc
-@@ -10,13 +10,7 @@
- 
- #include "api/stats/attribute.h"
- 
--#include <cstdint>
--#include <cstdio>
--#include <map>
--#include <optional>
- #include <string>
--#include <type_traits>
--#include <vector>
- 
- #include "absl/types/variant.h"
+ #include "absl/strings/string_view.h"
+-#include "p2p/test/fake_port_allocator.h"
++#include "p2p/base/fake_port_allocator.h"
+ #include "rtc_base/thread.h"
+ #include "rtc_base/virtual_socket_server.h"
+ #include "test/gtest.h"
+diff --git a/p2p/base/port_unittest.cc b/p2p/base/port_unittest.cc
+index 183ba45339..14786ba545 100644
+--- a/p2p/base/port_unittest.cc
++++ b/p2p/base/port_unittest.cc
+@@ -39,17 +39,14 @@
+ #include "p2p/base/port_allocator.h"
+ #include "p2p/base/port_interface.h"
+ #include "p2p/base/stun_port.h"
++#include "p2p/base/stun_server.h"
+ #include "p2p/base/tcp_port.h"
++#include "p2p/base/test_stun_server.h"
++#include "p2p/base/test_turn_server.h"
+ #include "p2p/base/transport_description.h"
+ #include "p2p/base/turn_port.h"
++#include "p2p/base/turn_server.h"
+ #include "p2p/client/relay_port_factory_interface.h"
+-#include "p2p/test/nat_server.h"
+-#include "p2p/test/nat_socket_factory.h"
+-#include "p2p/test/nat_types.h"
+-#include "p2p/test/stun_server.h"
+-#include "p2p/test/test_stun_server.h"
+-#include "p2p/test/test_turn_server.h"
+-#include "p2p/test/turn_server.h"
  #include "rtc_base/arraysize.h"
-diff --git a/stats/rtc_stats.cc b/stats/rtc_stats.cc
-index 9553c76674..abf85023ea 100644
---- a/stats/rtc_stats.cc
-+++ b/stats/rtc_stats.cc
-@@ -11,11 +11,7 @@
- #include "api/stats/rtc_stats.h"
+ #include "rtc_base/async_packet_socket.h"
+ #include "rtc_base/buffer.h"
+@@ -60,6 +57,9 @@
+ #include "rtc_base/fake_clock.h"
+ #include "rtc_base/gunit.h"
+ #include "rtc_base/logging.h"
++#include "rtc_base/nat_server.h"
++#include "rtc_base/nat_socket_factory.h"
++#include "rtc_base/nat_types.h"
+ #include "rtc_base/net_helper.h"
+ #include "rtc_base/network.h"
+ #include "rtc_base/network/received_packet.h"
+diff --git a/p2p/base/regathering_controller_unittest.cc b/p2p/base/regathering_controller_unittest.cc
+index 78cacc88ad..8a7a7625fd 100644
+--- a/p2p/base/regathering_controller_unittest.cc
++++ b/p2p/base/regathering_controller_unittest.cc
+@@ -16,11 +16,11 @@
+ #include <vector>
  
- #include <cstdio>
+ #include "api/scoped_refptr.h"
++#include "p2p/base/fake_port_allocator.h"
++#include "p2p/base/mock_ice_transport.h"
+ #include "p2p/base/p2p_constants.h"
+ #include "p2p/base/port.h"
+-#include "p2p/test/fake_port_allocator.h"
+-#include "p2p/test/mock_ice_transport.h"
+-#include "p2p/test/stun_server.h"
++#include "p2p/base/stun_server.h"
+ #include "rtc_base/gunit.h"
+ #include "rtc_base/socket_address.h"
+ #include "rtc_base/thread.h"
+diff --git a/p2p/base/stun_port_unittest.cc b/p2p/base/stun_port_unittest.cc
+index fefacbba50..512061e795 100644
+--- a/p2p/base/stun_port_unittest.cc
++++ b/p2p/base/stun_port_unittest.cc
+@@ -27,11 +27,10 @@
+ #include "api/transport/stun.h"
+ #include "api/units/time_delta.h"
+ #include "p2p/base/basic_packet_socket_factory.h"
++#include "p2p/base/mock_dns_resolving_packet_socket_factory.h"
+ #include "p2p/base/port.h"
+ #include "p2p/base/stun_request.h"
+-#include "p2p/test/mock_dns_resolving_packet_socket_factory.h"
+-#include "p2p/test/nat_socket_factory.h"
+-#include "p2p/test/test_stun_server.h"
++#include "p2p/base/test_stun_server.h"
+ #include "rtc_base/async_packet_socket.h"
+ #include "rtc_base/crypto_random.h"
+ #include "rtc_base/dscp.h"
+@@ -40,6 +39,7 @@
+ #include "rtc_base/gunit.h"
+ #include "rtc_base/ip_address.h"
+ #include "rtc_base/mdns_responder_interface.h"
++#include "rtc_base/nat_socket_factory.h"
+ #include "rtc_base/net_helpers.h"
+ #include "rtc_base/network.h"
+ #include "rtc_base/network/received_packet.h"
+diff --git a/p2p/test/stun_server.cc b/p2p/base/stun_server.cc
+similarity index 99%
+rename from p2p/test/stun_server.cc
+rename to p2p/base/stun_server.cc
+index 5ef725bd1b..e37c5baf26 100644
+--- a/p2p/test/stun_server.cc
++++ b/p2p/base/stun_server.cc
+@@ -8,7 +8,7 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#include "p2p/test/stun_server.h"
++#include "p2p/base/stun_server.h"
+ 
+ #include <string>
+ #include <utility>
+diff --git a/p2p/test/stun_server.h b/p2p/base/stun_server.h
+similarity index 95%
+rename from p2p/test/stun_server.h
+rename to p2p/base/stun_server.h
+index c89c933066..f6a776c5f7 100644
+--- a/p2p/test/stun_server.h
++++ b/p2p/base/stun_server.h
+@@ -8,8 +8,8 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#ifndef P2P_TEST_STUN_SERVER_H_
+-#define P2P_TEST_STUN_SERVER_H_
++#ifndef P2P_BASE_STUN_SERVER_H_
++#define P2P_BASE_STUN_SERVER_H_
+ 
+ #include <stddef.h>
+ 
+@@ -65,4 +65,4 @@ class StunServer {
+ 
+ }  // namespace cricket
+ 
+-#endif  // P2P_TEST_STUN_SERVER_H_
++#endif  // P2P_BASE_STUN_SERVER_H_
+diff --git a/p2p/test/stun_server_unittest.cc b/p2p/base/stun_server_unittest.cc
+similarity index 99%
+rename from p2p/test/stun_server_unittest.cc
+rename to p2p/base/stun_server_unittest.cc
+index db07bdf762..a2ac300b80 100644
+--- a/p2p/test/stun_server_unittest.cc
++++ b/p2p/base/stun_server_unittest.cc
+@@ -8,7 +8,7 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#include "p2p/test/stun_server.h"
++#include "p2p/base/stun_server.h"
+ 
+ #include <string.h>
+ 
+diff --git a/p2p/test/test_stun_server.cc b/p2p/base/test_stun_server.cc
+similarity index 97%
+rename from p2p/test/test_stun_server.cc
+rename to p2p/base/test_stun_server.cc
+index 3812d3864b..2272ce0fb3 100644
+--- a/p2p/test/test_stun_server.cc
++++ b/p2p/base/test_stun_server.cc
+@@ -8,7 +8,7 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#include "p2p/test/test_stun_server.h"
++#include "p2p/base/test_stun_server.h"
+ 
+ #include <memory>
+ 
+diff --git a/p2p/test/test_stun_server.h b/p2p/base/test_stun_server.h
+similarity index 91%
+rename from p2p/test/test_stun_server.h
+rename to p2p/base/test_stun_server.h
+index de98ed75ef..7bf7dc1dba 100644
+--- a/p2p/test/test_stun_server.h
++++ b/p2p/base/test_stun_server.h
+@@ -8,13 +8,13 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#ifndef P2P_TEST_TEST_STUN_SERVER_H_
+-#define P2P_TEST_TEST_STUN_SERVER_H_
++#ifndef P2P_BASE_TEST_STUN_SERVER_H_
++#define P2P_BASE_TEST_STUN_SERVER_H_
+ 
+ #include <memory>
+ 
+ #include "api/transport/stun.h"
+-#include "p2p/test/stun_server.h"
++#include "p2p/base/stun_server.h"
+ #include "rtc_base/async_udp_socket.h"
+ #include "rtc_base/socket_address.h"
+ #include "rtc_base/socket_server.h"
+@@ -52,4 +52,4 @@ class TestStunServer : StunServer {
+ 
+ }  // namespace cricket
+ 
+-#endif  // P2P_TEST_TEST_STUN_SERVER_H_
++#endif  // P2P_BASE_TEST_STUN_SERVER_H_
+diff --git a/p2p/test/test_turn_customizer.h b/p2p/base/test_turn_customizer.h
+similarity index 92%
+rename from p2p/test/test_turn_customizer.h
+rename to p2p/base/test_turn_customizer.h
+index 26d8ab29a5..415b13fbf2 100644
+--- a/p2p/test/test_turn_customizer.h
++++ b/p2p/base/test_turn_customizer.h
+@@ -8,8 +8,8 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#ifndef P2P_TEST_TEST_TURN_CUSTOMIZER_H_
+-#define P2P_TEST_TEST_TURN_CUSTOMIZER_H_
++#ifndef P2P_BASE_TEST_TURN_CUSTOMIZER_H_
++#define P2P_BASE_TEST_TURN_CUSTOMIZER_H_
+ 
+ #include <memory>
+ 
+@@ -56,4 +56,4 @@ class TestTurnCustomizer : public webrtc::TurnCustomizer {
+ 
+ }  // namespace cricket
+ 
+-#endif  // P2P_TEST_TEST_TURN_CUSTOMIZER_H_
++#endif  // P2P_BASE_TEST_TURN_CUSTOMIZER_H_
+diff --git a/p2p/test/test_turn_server.h b/p2p/base/test_turn_server.h
+similarity index 97%
+rename from p2p/test/test_turn_server.h
+rename to p2p/base/test_turn_server.h
+index 25e0330302..4070372db2 100644
+--- a/p2p/test/test_turn_server.h
++++ b/p2p/base/test_turn_server.h
+@@ -8,8 +8,8 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#ifndef P2P_TEST_TEST_TURN_SERVER_H_
+-#define P2P_TEST_TEST_TURN_SERVER_H_
++#ifndef P2P_BASE_TEST_TURN_SERVER_H_
++#define P2P_BASE_TEST_TURN_SERVER_H_
+ 
+ #include <memory>
+ #include <string>
+@@ -20,7 +20,7 @@
+ #include "api/sequence_checker.h"
+ #include "api/transport/stun.h"
+ #include "p2p/base/basic_packet_socket_factory.h"
+-#include "p2p/test/turn_server.h"
++#include "p2p/base/turn_server.h"
+ #include "rtc_base/async_udp_socket.h"
+ #include "rtc_base/ssl_adapter.h"
+ #include "rtc_base/ssl_identity.h"
+@@ -158,4 +158,4 @@ class TestTurnServer : public TurnAuthInterface {
+ 
+ }  // namespace cricket
+ 
+-#endif  // P2P_TEST_TEST_TURN_SERVER_H_
++#endif  // P2P_BASE_TEST_TURN_SERVER_H_
+diff --git a/p2p/base/turn_port_unittest.cc b/p2p/base/turn_port_unittest.cc
+index 6cb8177b76..f081529281 100644
+--- a/p2p/base/turn_port_unittest.cc
++++ b/p2p/base/turn_port_unittest.cc
+@@ -45,15 +45,15 @@
+ #include "api/units/time_delta.h"
+ #include "p2p/base/basic_packet_socket_factory.h"
+ #include "p2p/base/connection.h"
++#include "p2p/base/mock_dns_resolving_packet_socket_factory.h"
+ #include "p2p/base/p2p_constants.h"
+ #include "p2p/base/port_allocator.h"
+ #include "p2p/base/stun_port.h"
++#include "p2p/base/test_turn_customizer.h"
++#include "p2p/base/test_turn_server.h"
+ #include "p2p/base/transport_description.h"
+ #include "p2p/base/turn_port.h"
+-#include "p2p/test/mock_dns_resolving_packet_socket_factory.h"
+-#include "p2p/test/test_turn_customizer.h"
+-#include "p2p/test/test_turn_server.h"
+-#include "p2p/test/turn_server.h"
++#include "p2p/base/turn_server.h"
+ #include "rtc_base/buffer.h"
+ #include "rtc_base/byte_buffer.h"
+ #include "rtc_base/checks.h"
+diff --git a/p2p/test/turn_server.cc b/p2p/base/turn_server.cc
+similarity index 99%
+rename from p2p/test/turn_server.cc
+rename to p2p/base/turn_server.cc
+index 0ed2c00e64..ae36312338 100644
+--- a/p2p/test/turn_server.cc
++++ b/p2p/base/turn_server.cc
+@@ -8,7 +8,7 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#include "p2p/test/turn_server.h"
++#include "p2p/base/turn_server.h"
+ 
+ #include <algorithm>
+ #include <memory>
+@@ -48,7 +48,7 @@ constexpr size_t kNonceSize = 48;
+ 
+ constexpr size_t TURN_CHANNEL_HEADER_SIZE = 4U;
+ 
+-// TODO(mallinath): Move these to a common place.
++// TODO(mallinath) - Move these to a common place.
+ bool IsTurnChannelData(uint16_t msg_type) {
+   // The first two bits of a channel data message are 0b01.
+   return ((msg_type & 0xC000) == 0x4000);
+diff --git a/p2p/test/turn_server.h b/p2p/base/turn_server.h
+similarity index 99%
+rename from p2p/test/turn_server.h
+rename to p2p/base/turn_server.h
+index 28ca520c80..73e53270a1 100644
+--- a/p2p/test/turn_server.h
++++ b/p2p/base/turn_server.h
+@@ -8,8 +8,8 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#ifndef P2P_TEST_TURN_SERVER_H_
+-#define P2P_TEST_TURN_SERVER_H_
++#ifndef P2P_BASE_TURN_SERVER_H_
++#define P2P_BASE_TURN_SERVER_H_
+ 
+ #include <list>
+ #include <map>
+@@ -372,4 +372,4 @@ class TurnServer : public sigslot::has_slots<> {
+ 
+ }  // namespace cricket
+ 
+-#endif  // P2P_TEST_TURN_SERVER_H_
++#endif  // P2P_BASE_TURN_SERVER_H_
+diff --git a/p2p/test/turn_server_unittest.cc b/p2p/base/turn_server_unittest.cc
+similarity index 98%
+rename from p2p/test/turn_server_unittest.cc
+rename to p2p/base/turn_server_unittest.cc
+index d8194a4471..4970f7082e 100644
+--- a/p2p/test/turn_server_unittest.cc
++++ b/p2p/base/turn_server_unittest.cc
+@@ -8,7 +8,7 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#include "p2p/test/turn_server.h"
++#include "p2p/base/turn_server.h"
+ 
+ #include <memory>
+ 
+diff --git a/p2p/base/wrapping_active_ice_controller_unittest.cc b/p2p/base/wrapping_active_ice_controller_unittest.cc
+index 1f2f39967b..b4811bd297 100644
+--- a/p2p/base/wrapping_active_ice_controller_unittest.cc
++++ b/p2p/base/wrapping_active_ice_controller_unittest.cc
+@@ -15,8 +15,8 @@
+ #include <vector>
+ 
+ #include "p2p/base/connection.h"
+-#include "p2p/test/mock_ice_agent.h"
+-#include "p2p/test/mock_ice_controller.h"
++#include "p2p/base/mock_ice_agent.h"
++#include "p2p/base/mock_ice_controller.h"
+ #include "rtc_base/fake_clock.h"
+ #include "rtc_base/gunit.h"
+ #include "rtc_base/thread.h"
+diff --git a/p2p/client/basic_port_allocator_unittest.cc b/p2p/client/basic_port_allocator_unittest.cc
+index 1d20818685..80ac2412d6 100644
+--- a/p2p/client/basic_port_allocator_unittest.cc
++++ b/p2p/client/basic_port_allocator_unittest.cc
+@@ -30,12 +30,9 @@
+ #include "p2p/base/port_interface.h"
+ #include "p2p/base/stun_port.h"
+ #include "p2p/base/stun_request.h"
+-#include "p2p/test/nat_server.h"
+-#include "p2p/test/nat_socket_factory.h"
+-#include "p2p/test/nat_types.h"
+-#include "p2p/test/stun_server.h"
+-#include "p2p/test/test_stun_server.h"
+-#include "p2p/test/test_turn_server.h"
++#include "p2p/base/stun_server.h"
++#include "p2p/base/test_stun_server.h"
++#include "p2p/base/test_turn_server.h"
+ #include "rtc_base/fake_clock.h"
+ #include "rtc_base/fake_mdns_responder.h"
+ #include "rtc_base/fake_network.h"
+@@ -43,6 +40,9 @@
+ #include "rtc_base/gunit.h"
+ #include "rtc_base/ip_address.h"
+ #include "rtc_base/logging.h"
++#include "rtc_base/nat_server.h"
++#include "rtc_base/nat_socket_factory.h"
++#include "rtc_base/nat_types.h"
+ #include "rtc_base/net_helper.h"
+ #include "rtc_base/net_test_helpers.h"
+ #include "rtc_base/network.h"
+diff --git a/p2p/dtls/dtls_transport_unittest.cc b/p2p/dtls/dtls_transport_unittest.cc
+index 6740648151..75a31bc472 100644
+--- a/p2p/dtls/dtls_transport_unittest.cc
++++ b/p2p/dtls/dtls_transport_unittest.cc
+@@ -30,11 +30,11 @@
+ #include "api/scoped_refptr.h"
+ #include "api/test/rtc_error_matchers.h"
+ #include "api/units/time_delta.h"
++#include "p2p/base/fake_ice_transport.h"
+ #include "p2p/base/packet_transport_internal.h"
+ #include "p2p/base/transport_description.h"
+ #include "p2p/dtls/dtls_transport_internal.h"
+ #include "p2p/dtls/dtls_utils.h"
+-#include "p2p/test/fake_ice_transport.h"
+ #include "rtc_base/buffer.h"
+ #include "rtc_base/byte_order.h"
+ #include "rtc_base/checks.h"
+diff --git a/p2p/dtls/fake_dtls_transport.h b/p2p/dtls/fake_dtls_transport.h
+index 4d70b8c837..4750ba63b2 100644
+--- a/p2p/dtls/fake_dtls_transport.h
++++ b/p2p/dtls/fake_dtls_transport.h
+@@ -23,10 +23,10 @@
+ #include "api/dtls_transport_interface.h"
+ #include "api/rtc_error.h"
+ #include "api/scoped_refptr.h"
++#include "p2p/base/fake_ice_transport.h"
+ #include "p2p/base/ice_transport_internal.h"
+ #include "p2p/base/packet_transport_internal.h"
+ #include "p2p/dtls/dtls_transport_internal.h"
+-#include "p2p/test/fake_ice_transport.h"
+ #include "rtc_base/async_packet_socket.h"
+ #include "rtc_base/buffer.h"
+ #include "rtc_base/checks.h"
+diff --git a/p2p/stunprober/stun_prober_unittest.cc b/p2p/stunprober/stun_prober_unittest.cc
+index 3167ad2946..1aa2be2844 100644
+--- a/p2p/stunprober/stun_prober_unittest.cc
++++ b/p2p/stunprober/stun_prober_unittest.cc
+@@ -16,7 +16,7 @@
+ #include <utility>
+ 
+ #include "p2p/base/basic_packet_socket_factory.h"
+-#include "p2p/test/test_stun_server.h"
++#include "p2p/base/test_stun_server.h"
+ #include "rtc_base/gunit.h"
+ #include "rtc_base/ip_address.h"
+ #include "rtc_base/ssl_adapter.h"
+diff --git a/p2p/test/fake_ice_transport.h b/p2p/test/fake_ice_transport.h
+deleted file mode 100644
+index 9b9df195c3..0000000000
+--- a/p2p/test/fake_ice_transport.h
++++ /dev/null
+@@ -1,516 +0,0 @@
+-/*
+- *  Copyright 2017 The WebRTC Project Authors. All rights reserved.
+- *
+- *  Use of this source code is governed by a BSD-style license
+- *  that can be found in the LICENSE file in the root of the source
+- *  tree. An additional intellectual property rights grant can be found
+- *  in the file PATENTS.  All contributing project authors may
+- *  be found in the AUTHORS file in the root of the source tree.
+- */
+-
+-#ifndef P2P_TEST_FAKE_ICE_TRANSPORT_H_
+-#define P2P_TEST_FAKE_ICE_TRANSPORT_H_
+-
+-#include <cstddef>
+-#include <map>
+-#include <memory>
+-#include <optional>
+-#include <string>
+-#include <utility>
+-
+-#include "absl/algorithm/container.h"
+-#include "absl/strings/string_view.h"
+-#include "api/candidate.h"
+-#include "api/ice_transport_interface.h"
+-#include "api/sequence_checker.h"
+-#include "api/task_queue/pending_task_safety_flag.h"
+-#include "api/transport/enums.h"
+-#include "api/units/time_delta.h"
+-#include "p2p/base/candidate_pair_interface.h"
+-#include "p2p/base/connection.h"
+-#include "p2p/base/connection_info.h"
+-#include "p2p/base/ice_transport_internal.h"
+-#include "p2p/base/port.h"
+-#include "p2p/base/transport_description.h"
+-#include "rtc_base/async_packet_socket.h"
+-#include "rtc_base/checks.h"
+-#include "rtc_base/copy_on_write_buffer.h"
+-#include "rtc_base/logging.h"
+-#include "rtc_base/network/received_packet.h"
+-#include "rtc_base/network/sent_packet.h"
+-#include "rtc_base/network_route.h"
+-#include "rtc_base/socket.h"
+-#include "rtc_base/task_queue_for_test.h"
+-#include "rtc_base/thread.h"
+-#include "rtc_base/thread_annotations.h"
+-#include "rtc_base/time_utils.h"
+-
+-namespace cricket {
+-using ::webrtc::SafeTask;
+-using ::webrtc::TimeDelta;
+-
+-// All methods must be called on the network thread (which is either the thread
+-// calling the constructor, or the separate thread explicitly passed to the
+-// constructor).
+-class FakeIceTransport : public IceTransportInternal {
+- public:
+-  explicit FakeIceTransport(absl::string_view name,
+-                            int component,
+-                            rtc::Thread* network_thread = nullptr)
+-      : name_(name),
+-        component_(component),
+-        network_thread_(network_thread ? network_thread
+-                                       : rtc::Thread::Current()) {
+-    RTC_DCHECK(network_thread_);
+-  }
+-
+-  // Must be called either on the network thread, or after the network thread
+-  // has been shut down.
+-  ~FakeIceTransport() override {
+-    if (dest_ && dest_->dest_ == this) {
+-      dest_->dest_ = nullptr;
+-    }
+-  }
+-
+-  // If async, will send packets by "Post"-ing to message queue instead of
+-  // synchronously "Send"-ing.
+-  void SetAsync(bool async) {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    async_ = async;
+-  }
+-  void SetAsyncDelay(int delay_ms) {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    async_delay_ms_ = delay_ms;
+-  }
+-
+-  // SetWritable, SetReceiving and SetDestination are the main methods that can
+-  // be used for testing, to simulate connectivity or lack thereof.
+-  void SetWritable(bool writable) {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    set_writable(writable);
+-  }
+-  void SetReceiving(bool receiving) {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    set_receiving(receiving);
+-  }
+-
+-  // Simulates the two transports connecting to each other.
+-  // If `asymmetric` is true this method only affects this FakeIceTransport.
+-  // If false, it affects `dest` as well.
+-  void SetDestination(FakeIceTransport* dest, bool asymmetric = false) {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    if (dest == dest_) {
+-      return;
+-    }
+-    RTC_DCHECK(!dest || !dest_)
+-        << "Changing fake destination from one to another is not supported.";
+-    if (dest) {
+-      // This simulates the delivery of candidates.
+-      dest_ = dest;
+-      set_writable(true);
+-      if (!asymmetric) {
+-        dest->SetDestination(this, true);
+-      }
+-    } else {
+-      // Simulates loss of connectivity, by asymmetrically forgetting dest_.
+-      dest_ = nullptr;
+-      set_writable(false);
+-    }
+-  }
+-
+-  void SetTransportState(webrtc::IceTransportState state,
+-                         IceTransportState legacy_state) {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    transport_state_ = state;
+-    legacy_transport_state_ = legacy_state;
+-    SignalIceTransportStateChanged(this);
+-  }
+-
+-  void SetConnectionCount(size_t connection_count) {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    size_t old_connection_count = connection_count_;
+-    connection_count_ = connection_count;
+-    if (connection_count) {
+-      had_connection_ = true;
+-    }
+-    // In this fake transport channel, `connection_count_` determines the
+-    // transport state.
+-    if (connection_count_ < old_connection_count) {
+-      SignalStateChanged(this);
+-    }
+-  }
+-
+-  void SetCandidatesGatheringComplete() {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    if (gathering_state_ != kIceGatheringComplete) {
+-      gathering_state_ = kIceGatheringComplete;
+-      SendGatheringStateEvent();
+-    }
+-  }
+-
+-  // Convenience functions for accessing ICE config and other things.
+-  int receiving_timeout() const {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    return ice_config_.receiving_timeout_or_default();
+-  }
+-  bool gather_continually() const {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    return ice_config_.gather_continually();
+-  }
+-  const Candidates& remote_candidates() const {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    return remote_candidates_;
+-  }
+-
+-  // Fake IceTransportInternal implementation.
+-  const std::string& transport_name() const override { return name_; }
+-  int component() const override { return component_; }
+-  IceMode remote_ice_mode() const {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    return remote_ice_mode_;
+-  }
+-  const std::string& ice_ufrag() const { return ice_parameters_.ufrag; }
+-  const std::string& ice_pwd() const { return ice_parameters_.pwd; }
+-  const std::string& remote_ice_ufrag() const {
+-    return remote_ice_parameters_.ufrag;
+-  }
+-  const std::string& remote_ice_pwd() const {
+-    return remote_ice_parameters_.pwd;
+-  }
+-  const IceParameters& ice_parameters() const { return ice_parameters_; }
+-  const IceParameters& remote_ice_parameters() const {
+-    return remote_ice_parameters_;
+-  }
+-
+-  IceTransportState GetState() const override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    if (legacy_transport_state_) {
+-      return *legacy_transport_state_;
+-    }
+-
+-    if (connection_count_ == 0) {
+-      return had_connection_ ? IceTransportState::STATE_FAILED
+-                             : IceTransportState::STATE_INIT;
+-    }
+-
+-    if (connection_count_ == 1) {
+-      return IceTransportState::STATE_COMPLETED;
+-    }
+-
+-    return IceTransportState::STATE_CONNECTING;
+-  }
+-
+-  webrtc::IceTransportState GetIceTransportState() const override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    if (transport_state_) {
+-      return *transport_state_;
+-    }
+-
+-    if (connection_count_ == 0) {
+-      return had_connection_ ? webrtc::IceTransportState::kFailed
+-                             : webrtc::IceTransportState::kNew;
+-    }
+-
+-    if (connection_count_ == 1) {
+-      return webrtc::IceTransportState::kCompleted;
+-    }
+-
+-    return webrtc::IceTransportState::kConnected;
+-  }
+-
+-  void SetIceRole(IceRole role) override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    role_ = role;
+-  }
+-  IceRole GetIceRole() const override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    return role_;
+-  }
+-  void SetIceParameters(const IceParameters& ice_params) override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    ice_parameters_ = ice_params;
+-  }
+-  void SetRemoteIceParameters(const IceParameters& params) override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    remote_ice_parameters_ = params;
+-  }
+-
+-  void SetRemoteIceMode(IceMode mode) override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    remote_ice_mode_ = mode;
+-  }
+-
+-  void MaybeStartGathering() override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    if (gathering_state_ == kIceGatheringNew) {
+-      gathering_state_ = kIceGatheringGathering;
+-      SendGatheringStateEvent();
+-    }
+-  }
+-
+-  IceGatheringState gathering_state() const override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    return gathering_state_;
+-  }
+-
+-  void SetIceConfig(const IceConfig& config) override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    ice_config_ = config;
+-  }
+-
+-  const IceConfig& config() const override { return ice_config_; }
+-
+-  void AddRemoteCandidate(const Candidate& candidate) override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    remote_candidates_.push_back(candidate);
+-  }
+-  void RemoveRemoteCandidate(const Candidate& candidate) override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    auto it = absl::c_find(remote_candidates_, candidate);
+-    if (it == remote_candidates_.end()) {
+-      RTC_LOG(LS_INFO) << "Trying to remove a candidate which doesn't exist.";
+-      return;
+-    }
+-
+-    remote_candidates_.erase(it);
+-  }
+-
+-  void RemoveAllRemoteCandidates() override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    remote_candidates_.clear();
+-  }
+-
+-  bool GetStats(IceTransportStats* ice_transport_stats) override {
+-    CandidateStats candidate_stats;
+-    ConnectionInfo candidate_pair_stats;
+-    ice_transport_stats->candidate_stats_list.clear();
+-    ice_transport_stats->candidate_stats_list.push_back(candidate_stats);
+-    ice_transport_stats->connection_infos.clear();
+-    ice_transport_stats->connection_infos.push_back(candidate_pair_stats);
+-    return true;
+-  }
+-
+-  std::optional<int> GetRttEstimate() override { return rtt_estimate_; }
+-
+-  const Connection* selected_connection() const override { return nullptr; }
+-  std::optional<const CandidatePair> GetSelectedCandidatePair() const override {
+-    return std::nullopt;
+-  }
+-
+-  // Fake PacketTransportInternal implementation.
+-  bool writable() const override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    return writable_;
+-  }
+-  bool receiving() const override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    return receiving_;
+-  }
+-  // If combine is enabled, every two consecutive packets to be sent with
+-  // "SendPacket" will be combined into one outgoing packet.
+-  void combine_outgoing_packets(bool combine) {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    combine_outgoing_packets_ = combine;
+-  }
+-  int SendPacket(const char* data,
+-                 size_t len,
+-                 const rtc::PacketOptions& options,
+-                 int flags) override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    if (!dest_) {
+-      return -1;
+-    }
+-
+-    if (packet_send_filter_func_ &&
+-        packet_send_filter_func_(data, len, options, flags)) {
+-      RTC_DLOG(LS_INFO) << name_ << ": dropping packet len=" << len
+-                        << ", data[0]: " << static_cast<uint8_t>(data[0]);
+-    } else {
+-      send_packet_.AppendData(data, len);
+-      if (!combine_outgoing_packets_ || send_packet_.size() > len) {
+-        rtc::CopyOnWriteBuffer packet(std::move(send_packet_));
+-        if (async_) {
+-          network_thread_->PostDelayedTask(
+-              SafeTask(task_safety_.flag(),
+-                       [this, packet] {
+-                         RTC_DCHECK_RUN_ON(network_thread_);
+-                         FakeIceTransport::SendPacketInternal(packet);
+-                       }),
+-              TimeDelta::Millis(async_delay_ms_));
+-        } else {
+-          SendPacketInternal(packet);
+-        }
+-      }
+-    }
+-    rtc::SentPacket sent_packet(options.packet_id, rtc::TimeMillis());
+-    SignalSentPacket(this, sent_packet);
+-    return static_cast<int>(len);
+-  }
+-
+-  int SetOption(rtc::Socket::Option opt, int value) override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    socket_options_[opt] = value;
+-    return true;
+-  }
+-  bool GetOption(rtc::Socket::Option opt, int* value) override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    auto it = socket_options_.find(opt);
+-    if (it != socket_options_.end()) {
+-      *value = it->second;
+-      return true;
+-    } else {
+-      return false;
+-    }
+-  }
+-
+-  int GetError() override { return 0; }
+-
+-  rtc::CopyOnWriteBuffer last_sent_packet() {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    return last_sent_packet_;
+-  }
+-
+-  std::optional<rtc::NetworkRoute> network_route() const override {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    return network_route_;
+-  }
+-  void SetNetworkRoute(std::optional<rtc::NetworkRoute> network_route) {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    network_route_ = network_route;
+-    SendTask(network_thread_, [this] {
+-      RTC_DCHECK_RUN_ON(network_thread_);
+-      SignalNetworkRouteChanged(network_route_);
+-    });
+-  }
+-
+-  // If `func` return TRUE means that packet will be dropped.
+-  void set_packet_send_filter(
+-      absl::AnyInvocable<bool(const char* data,
+-                              size_t len,
+-                              const rtc::PacketOptions& options,
+-                              int /* flags */)> func) {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    RTC_DLOG(LS_INFO) << this << ": "
+-                      << ((func == nullptr) ? "Clearing" : "Setting")
+-                      << " packet send filter func";
+-    packet_send_filter_func_ = std::move(func);
+-  }
+-
+-  // If `func` return TRUE means that packet will be dropped.
+-  void set_packet_recv_filter(
+-      absl::AnyInvocable<bool(const rtc::CopyOnWriteBuffer& packet,
+-                              uint32_t time_ms)> func) {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    RTC_DLOG(LS_INFO) << this << ": "
+-                      << ((func == nullptr) ? "Clearing" : "Setting")
+-                      << " packet recv filter func";
+-    packet_recv_filter_func_ = std::move(func);
+-  }
+-
+-  void set_rtt_estimate(std::optional<int> value, bool set_async = false) {
+-    rtt_estimate_ = value;
+-    if (value && set_async) {
+-      SetAsync(true);
+-      SetAsyncDelay(*value / 2);
+-    }
+-  }
+-
+- private:
+-  void set_writable(bool writable)
+-      RTC_EXCLUSIVE_LOCKS_REQUIRED(network_thread_) {
+-    if (writable_ == writable) {
+-      return;
+-    }
+-    RTC_LOG(LS_INFO) << "Change writable_ to " << writable;
+-    writable_ = writable;
+-    if (writable_) {
+-      SignalReadyToSend(this);
+-    }
+-    SignalWritableState(this);
+-  }
+-
+-  void set_receiving(bool receiving)
+-      RTC_EXCLUSIVE_LOCKS_REQUIRED(network_thread_) {
+-    if (receiving_ == receiving) {
+-      return;
+-    }
+-    receiving_ = receiving;
+-    SignalReceivingState(this);
+-  }
+-
+-  void SendPacketInternal(const rtc::CopyOnWriteBuffer& packet)
+-      RTC_EXCLUSIVE_LOCKS_REQUIRED(network_thread_) {
+-    if (dest_) {
+-      last_sent_packet_ = packet;
+-      dest_->ReceivePacketInternal(packet);
+-    }
+-  }
+-
+-  void ReceivePacketInternal(const rtc::CopyOnWriteBuffer& packet) {
+-    RTC_DCHECK_RUN_ON(network_thread_);
+-    auto now = rtc::TimeMicros();
+-    if (packet_recv_filter_func_ && packet_recv_filter_func_(packet, now)) {
+-      RTC_DLOG(LS_INFO) << name_
+-                        << ": dropping packet at receiver len=" << packet.size()
+-                        << ", data[0]: "
+-                        << static_cast<uint8_t>(packet.data()[0]);
+-    } else {
+-      NotifyPacketReceived(rtc::ReceivedPacket::CreateFromLegacy(
+-          packet.data(), packet.size(), now));
+-    }
+-  }
+-
+-  const std::string name_;
+-  const int component_;
+-  FakeIceTransport* dest_ RTC_GUARDED_BY(network_thread_) = nullptr;
+-  bool async_ RTC_GUARDED_BY(network_thread_) = false;
+-  int async_delay_ms_ RTC_GUARDED_BY(network_thread_) = 0;
+-  Candidates remote_candidates_ RTC_GUARDED_BY(network_thread_);
+-  IceConfig ice_config_ RTC_GUARDED_BY(network_thread_);
+-  IceRole role_ RTC_GUARDED_BY(network_thread_) = ICEROLE_UNKNOWN;
+-  IceParameters ice_parameters_ RTC_GUARDED_BY(network_thread_);
+-  IceParameters remote_ice_parameters_ RTC_GUARDED_BY(network_thread_);
+-  IceMode remote_ice_mode_ RTC_GUARDED_BY(network_thread_) = ICEMODE_FULL;
+-  size_t connection_count_ RTC_GUARDED_BY(network_thread_) = 0;
+-  std::optional<webrtc::IceTransportState> transport_state_
+-      RTC_GUARDED_BY(network_thread_);
+-  std::optional<IceTransportState> legacy_transport_state_
+-      RTC_GUARDED_BY(network_thread_);
+-  IceGatheringState gathering_state_ RTC_GUARDED_BY(network_thread_) =
+-      kIceGatheringNew;
+-  bool had_connection_ RTC_GUARDED_BY(network_thread_) = false;
+-  bool writable_ RTC_GUARDED_BY(network_thread_) = false;
+-  bool receiving_ RTC_GUARDED_BY(network_thread_) = false;
+-  bool combine_outgoing_packets_ RTC_GUARDED_BY(network_thread_) = false;
+-  rtc::CopyOnWriteBuffer send_packet_ RTC_GUARDED_BY(network_thread_);
+-  std::optional<rtc::NetworkRoute> network_route_
+-      RTC_GUARDED_BY(network_thread_);
+-  std::map<rtc::Socket::Option, int> socket_options_
+-      RTC_GUARDED_BY(network_thread_);
+-  rtc::CopyOnWriteBuffer last_sent_packet_ RTC_GUARDED_BY(network_thread_);
+-  rtc::Thread* const network_thread_;
+-  webrtc::ScopedTaskSafetyDetached task_safety_;
+-  std::optional<int> rtt_estimate_;
+-
+-  // If filter func return TRUE means that packet will be dropped.
+-  absl::AnyInvocable<bool(const char*, size_t, const rtc::PacketOptions&, int)>
+-      packet_send_filter_func_ RTC_GUARDED_BY(network_thread_) = nullptr;
+-  absl::AnyInvocable<bool(const rtc::CopyOnWriteBuffer&, uint64_t)>
+-      packet_recv_filter_func_ RTC_GUARDED_BY(network_thread_) = nullptr;
+-};
+-
+-class FakeIceTransportWrapper : public webrtc::IceTransportInterface {
+- public:
+-  explicit FakeIceTransportWrapper(
+-      std::unique_ptr<cricket::FakeIceTransport> internal)
+-      : internal_(std::move(internal)) {}
+-
+-  cricket::IceTransportInternal* internal() override { return internal_.get(); }
+-
+- private:
+-  std::unique_ptr<cricket::FakeIceTransport> internal_;
+-};
+-
+-}  // namespace cricket
+-
+-#endif  // P2P_TEST_FAKE_ICE_TRANSPORT_H_
+diff --git a/p2p/test/fake_port_allocator.h b/p2p/test/fake_port_allocator.h
+deleted file mode 100644
+index 546650bba1..0000000000
+--- a/p2p/test/fake_port_allocator.h
++++ /dev/null
+@@ -1,291 +0,0 @@
+-/*
+- *  Copyright 2010 The WebRTC Project Authors. All rights reserved.
+- *
+- *  Use of this source code is governed by a BSD-style license
+- *  that can be found in the LICENSE file in the root of the source
+- *  tree. An additional intellectual property rights grant can be found
+- *  in the file PATENTS.  All contributing project authors may
+- *  be found in the AUTHORS file in the root of the source tree.
+- */
+-
+-#ifndef P2P_TEST_FAKE_PORT_ALLOCATOR_H_
+-#define P2P_TEST_FAKE_PORT_ALLOCATOR_H_
+-
+-#include <memory>
+-#include <string>
+-#include <utility>
+-#include <vector>
+-
+-#include "absl/memory/memory.h"
+-#include "absl/strings/string_view.h"
+-#include "p2p/base/basic_packet_socket_factory.h"
+-#include "p2p/base/port_allocator.h"
+-#include "p2p/base/udp_port.h"
+-#include "rtc_base/memory/always_valid_pointer.h"
+-#include "rtc_base/net_helpers.h"
+-#include "rtc_base/net_test_helpers.h"
+-#include "rtc_base/task_queue_for_test.h"
+-#include "rtc_base/thread.h"
+-
+-namespace rtc {
+-class SocketFactory;
+-}
+-
+-namespace cricket {
+-
+-class TestUDPPort : public UDPPort {
+- public:
+-  static TestUDPPort* Create(const PortParametersRef& args,
+-                             uint16_t min_port,
+-                             uint16_t max_port,
+-                             bool emit_localhost_for_anyaddress) {
+-    TestUDPPort* port = new TestUDPPort(args, min_port, max_port,
+-                                        emit_localhost_for_anyaddress);
+-    if (!port->Init()) {
+-      delete port;
+-      port = nullptr;
+-    }
+-    return port;
+-  }
+-
+-  static std::unique_ptr<TestUDPPort> Create(
+-      const PortParametersRef& args,
+-      rtc::AsyncPacketSocket* socket,
+-      bool emit_localhost_for_anyaddress) {
+-    auto port = absl::WrapUnique(
+-        new TestUDPPort(args, socket, emit_localhost_for_anyaddress));
+-    if (!port->Init()) {
+-      return nullptr;
+-    }
+-    return port;
+-  }
+-
+- protected:
+-  TestUDPPort(const PortParametersRef& args,
+-              uint16_t min_port,
+-              uint16_t max_port,
+-              bool emit_localhost_for_anyaddress)
+-      : UDPPort(args,
+-                webrtc::IceCandidateType::kHost,
+-                min_port,
+-                max_port,
+-                emit_localhost_for_anyaddress) {}
+-
+-  TestUDPPort(const PortParametersRef& args,
+-              rtc::AsyncPacketSocket* socket,
+-              bool emit_localhost_for_anyaddress)
+-      : UDPPort(args,
+-                webrtc::IceCandidateType::kHost,
+-                socket,
+-                emit_localhost_for_anyaddress) {}
+-};
+-
+-// A FakePortAllocatorSession can be used with either a real or fake socket
+-// factory. It gathers a single loopback port, using IPv6 if available and
+-// not disabled.
+-class FakePortAllocatorSession : public PortAllocatorSession {
+- public:
+-  FakePortAllocatorSession(PortAllocator* allocator,
+-                           rtc::Thread* network_thread,
+-                           rtc::PacketSocketFactory* factory,
+-                           absl::string_view content_name,
+-                           int component,
+-                           absl::string_view ice_ufrag,
+-                           absl::string_view ice_pwd,
+-                           const webrtc::FieldTrialsView* field_trials)
+-      : PortAllocatorSession(content_name,
+-                             component,
+-                             ice_ufrag,
+-                             ice_pwd,
+-                             allocator->flags()),
+-        allocator_(allocator),
+-        network_thread_(network_thread),
+-        factory_(factory),
+-        ipv4_network_("network",
+-                      "unittest",
+-                      rtc::IPAddress(INADDR_LOOPBACK),
+-                      32),
+-        ipv6_network_("network",
+-                      "unittest",
+-                      rtc::IPAddress(in6addr_loopback),
+-                      64),
+-        port_(),
+-        port_config_count_(0),
+-        stun_servers_(allocator->stun_servers()),
+-        turn_servers_(allocator->turn_servers()),
+-        field_trials_(field_trials) {
+-    ipv4_network_.AddIP(rtc::IPAddress(INADDR_LOOPBACK));
+-    ipv6_network_.AddIP(rtc::IPAddress(in6addr_loopback));
+-  }
+-
+-  void SetCandidateFilter(uint32_t filter) override {
+-    candidate_filter_ = filter;
+-  }
+-
+-  void StartGettingPorts() override {
+-    if (!port_) {
+-      rtc::Network& network =
+-          (rtc::HasIPv6Enabled() && (flags() & PORTALLOCATOR_ENABLE_IPV6))
+-              ? ipv6_network_
+-              : ipv4_network_;
+-      port_.reset(TestUDPPort::Create({.network_thread = network_thread_,
+-                                       .socket_factory = factory_,
+-                                       .network = &network,
+-                                       .ice_username_fragment = username(),
+-                                       .ice_password = password(),
+-                                       .field_trials = field_trials_},
+-                                      0, 0, false));
+-      RTC_DCHECK(port_);
+-      port_->SetIceTiebreaker(allocator_->ice_tiebreaker());
+-      port_->SubscribePortDestroyed(
+-          [this](PortInterface* port) { OnPortDestroyed(port); });
+-      AddPort(port_.get());
+-    }
+-    ++port_config_count_;
+-    running_ = true;
+-  }
+-
+-  void StopGettingPorts() override { running_ = false; }
+-  bool IsGettingPorts() override { return running_; }
+-  void ClearGettingPorts() override { is_cleared = true; }
+-  bool IsCleared() const override { return is_cleared; }
+-
+-  void RegatherOnFailedNetworks() override {
+-    SignalIceRegathering(this, IceRegatheringReason::NETWORK_FAILURE);
+-  }
+-
+-  std::vector<PortInterface*> ReadyPorts() const override {
+-    return ready_ports_;
+-  }
+-  std::vector<Candidate> ReadyCandidates() const override {
+-    return candidates_;
+-  }
+-  void PruneAllPorts() override { port_->Prune(); }
+-  bool CandidatesAllocationDone() const override { return allocation_done_; }
+-
+-  int port_config_count() { return port_config_count_; }
+-
+-  const ServerAddresses& stun_servers() const { return stun_servers_; }
+-
+-  const std::vector<RelayServerConfig>& turn_servers() const {
+-    return turn_servers_;
+-  }
+-
+-  uint32_t candidate_filter() const { return candidate_filter_; }
+-
+-  int transport_info_update_count() const {
+-    return transport_info_update_count_;
+-  }
+-
+- protected:
+-  void UpdateIceParametersInternal() override {
+-    // Since this class is a fake and this method only is overridden for tests,
+-    // we don't need to actually update the transport info.
+-    ++transport_info_update_count_;
+-  }
+-
+- private:
+-  void AddPort(cricket::Port* port) {
+-    port->set_component(component());
+-    port->set_generation(generation());
+-    port->SignalPortComplete.connect(this,
+-                                     &FakePortAllocatorSession::OnPortComplete);
+-    port->PrepareAddress();
+-    ready_ports_.push_back(port);
+-    SignalPortReady(this, port);
+-    port->KeepAliveUntilPruned();
+-  }
+-  void OnPortComplete(cricket::Port* port) {
+-    const std::vector<Candidate>& candidates = port->Candidates();
+-    candidates_.insert(candidates_.end(), candidates.begin(), candidates.end());
+-    SignalCandidatesReady(this, candidates);
+-
+-    allocation_done_ = true;
+-    SignalCandidatesAllocationDone(this);
+-  }
+-  void OnPortDestroyed(cricket::PortInterface* /* port */) {
+-    // Don't want to double-delete port if it deletes itself.
+-    port_.release();
+-  }
+-
+-  PortAllocator* allocator_;
+-  rtc::Thread* network_thread_;
+-  rtc::PacketSocketFactory* factory_;
+-  rtc::Network ipv4_network_;
+-  rtc::Network ipv6_network_;
+-  std::unique_ptr<cricket::Port> port_;
+-  int port_config_count_;
+-  std::vector<Candidate> candidates_;
+-  std::vector<PortInterface*> ready_ports_;
+-  bool allocation_done_ = false;
+-  bool is_cleared = false;
+-  ServerAddresses stun_servers_;
+-  std::vector<RelayServerConfig> turn_servers_;
+-  uint32_t candidate_filter_ = CF_ALL;
+-  int transport_info_update_count_ = 0;
+-  bool running_ = false;
+-  const webrtc::FieldTrialsView* field_trials_;
+-};
+-
+-class FakePortAllocator : public cricket::PortAllocator {
+- public:
+-  FakePortAllocator(rtc::Thread* network_thread,
+-                    rtc::PacketSocketFactory* factory,
+-                    const webrtc::FieldTrialsView* field_trials)
+-      : FakePortAllocator(network_thread, factory, nullptr, field_trials) {}
+-
+-  FakePortAllocator(rtc::Thread* network_thread,
+-                    std::unique_ptr<rtc::PacketSocketFactory> factory,
+-                    const webrtc::FieldTrialsView* field_trials)
+-      : FakePortAllocator(network_thread,
+-                          nullptr,
+-                          std::move(factory),
+-                          field_trials) {}
+-
+-  void SetNetworkIgnoreMask(int /* network_ignore_mask */) override {}
+-
+-  cricket::PortAllocatorSession* CreateSessionInternal(
+-      absl::string_view content_name,
+-      int component,
+-      absl::string_view ice_ufrag,
+-      absl::string_view ice_pwd) override {
+-    return new FakePortAllocatorSession(
+-        this, network_thread_, factory_.get(), std::string(content_name),
+-        component, std::string(ice_ufrag), std::string(ice_pwd), field_trials_);
+-  }
+-
+-  bool initialized() const { return initialized_; }
+-
+-  // For testing: Manipulate MdnsObfuscationEnabled()
+-  bool MdnsObfuscationEnabled() const override {
+-    return mdns_obfuscation_enabled_;
+-  }
+-  void SetMdnsObfuscationEnabledForTesting(bool enabled) {
+-    mdns_obfuscation_enabled_ = enabled;
+-  }
+-
+- private:
+-  FakePortAllocator(rtc::Thread* network_thread,
+-                    rtc::PacketSocketFactory* factory,
+-                    std::unique_ptr<rtc::PacketSocketFactory> owned_factory,
+-                    const webrtc::FieldTrialsView* field_trials)
+-      : network_thread_(network_thread),
+-        factory_(std::move(owned_factory), factory),
+-        field_trials_(field_trials) {
+-    if (network_thread_ == nullptr) {
+-      network_thread_ = rtc::Thread::Current();
+-      Initialize();
+-      return;
+-    }
+-    SendTask(network_thread_, [this] { Initialize(); });
+-  }
+-
+-  rtc::Thread* network_thread_;
+-  const webrtc::AlwaysValidPointerNoDefault<rtc::PacketSocketFactory> factory_;
+-  const webrtc::FieldTrialsView* field_trials_;
+-  bool mdns_obfuscation_enabled_ = false;
+-};
+-
+-}  // namespace cricket
+-
+-#endif  // P2P_TEST_FAKE_PORT_ALLOCATOR_H_
+diff --git a/p2p/test/mock_ice_transport.h b/p2p/test/mock_ice_transport.h
+deleted file mode 100644
+index 547f2c23da..0000000000
+--- a/p2p/test/mock_ice_transport.h
++++ /dev/null
+@@ -1,86 +0,0 @@
+-/*
+- *  Copyright 2016 The WebRTC Project Authors. All rights reserved.
+- *
+- *  Use of this source code is governed by a BSD-style license
+- *  that can be found in the LICENSE file in the root of the source
+- *  tree. An additional intellectual property rights grant can be found
+- *  in the file PATENTS.  All contributing project authors may
+- *  be found in the AUTHORS file in the root of the source tree.
+- */
+-
+-#ifndef P2P_TEST_MOCK_ICE_TRANSPORT_H_
+-#define P2P_TEST_MOCK_ICE_TRANSPORT_H_
+-
+-#include <memory>
 -#include <string>
 -#include <vector>
- 
--#include "api/stats/attribute.h"
--#include "rtc_base/checks.h"
- #include "rtc_base/strings/string_builder.h"
- 
- namespace webrtc {
-diff --git a/stats/rtc_stats_report.cc b/stats/rtc_stats_report.cc
-index 2b054212d1..42d0a5b313 100644
---- a/stats/rtc_stats_report.cc
-+++ b/stats/rtc_stats_report.cc
-@@ -10,13 +10,9 @@
- 
- #include "api/stats/rtc_stats_report.h"
- 
--#include <memory>
--#include <string>
-+#include <type_traits>
- #include <utility>
- 
--#include "api/scoped_refptr.h"
--#include "api/stats/rtc_stats.h"
--#include "api/units/timestamp.h"
- #include "rtc_base/checks.h"
- #include "rtc_base/strings/string_builder.h"
- 
-diff --git a/stats/rtcstats_objects.cc b/stats/rtcstats_objects.cc
-index d101168e32..4a08133c0a 100644
---- a/stats/rtcstats_objects.cc
-+++ b/stats/rtcstats_objects.cc
-@@ -10,13 +10,11 @@
- 
- #include "api/stats/rtcstats_objects.h"
- 
--#include <memory>
--#include <string>
- #include <utility>
- 
- #include "api/stats/attribute.h"
- #include "api/stats/rtc_stats.h"
--#include "api/units/timestamp.h"
-+#include "rtc_base/checks.h"
- 
- namespace webrtc {
- 
-diff --git a/stats/test/rtc_test_stats.cc b/stats/test/rtc_test_stats.cc
-index 656d764213..834daeef72 100644
---- a/stats/test/rtc_test_stats.cc
-+++ b/stats/test/rtc_test_stats.cc
-@@ -10,11 +10,8 @@
- 
- #include "stats/test/rtc_test_stats.h"
- 
--#include <string>
 -
- #include "api/stats/attribute.h"
--#include "api/stats/rtc_stats.h"
--#include "api/units/timestamp.h"
-+#include "rtc_base/checks.h"
+-#include "p2p/base/ice_transport_internal.h"
+-#include "test/gmock.h"
+-
+-namespace cricket {
+-
+-// Used in Chromium/remoting/protocol/channel_socket_adapter_unittest.cc
+-class MockIceTransport : public IceTransportInternal {
+- public:
+-  MockIceTransport() {
+-    SignalReadyToSend(this);
+-    SignalWritableState(this);
+-  }
+-
+-  MOCK_METHOD(int,
+-              SendPacket,
+-              (const char* data,
+-               size_t len,
+-               const rtc::PacketOptions& options,
+-               int flags),
+-              (override));
+-  MOCK_METHOD(int, SetOption, (rtc::Socket::Option opt, int value), (override));
+-  MOCK_METHOD(int, GetError, (), (override));
+-  MOCK_METHOD(cricket::IceRole, GetIceRole, (), (const, override));
+-  MOCK_METHOD(bool,
+-              GetStats,
+-              (cricket::IceTransportStats * ice_transport_stats),
+-              (override));
+-
+-  IceTransportState GetState() const override {
+-    return IceTransportState::STATE_INIT;
+-  }
+-  webrtc::IceTransportState GetIceTransportState() const override {
+-    return webrtc::IceTransportState::kNew;
+-  }
+-
+-  const std::string& transport_name() const override { return transport_name_; }
+-  int component() const override { return 0; }
+-  void SetIceRole(IceRole /* role */) override {}
+-  // The ufrag and pwd in `ice_params` must be set
+-  // before candidate gathering can start.
+-  void SetIceParameters(const IceParameters& /* ice_params */) override {}
+-  void SetRemoteIceParameters(const IceParameters& /* ice_params */) override {}
+-  void SetRemoteIceMode(IceMode /* mode */) override {}
+-  void SetIceConfig(const IceConfig& config) override { ice_config_ = config; }
+-  const IceConfig& config() const override { return ice_config_; }
+-  std::optional<int> GetRttEstimate() override { return std::nullopt; }
+-  const Connection* selected_connection() const override { return nullptr; }
+-  std::optional<const CandidatePair> GetSelectedCandidatePair() const override {
+-    return std::nullopt;
+-  }
+-  void MaybeStartGathering() override {}
+-  void AddRemoteCandidate(const Candidate& /* candidate */) override {}
+-  void RemoveRemoteCandidate(const Candidate& /* candidate */) override {}
+-  void RemoveAllRemoteCandidates() override {}
+-  IceGatheringState gathering_state() const override {
+-    return IceGatheringState::kIceGatheringComplete;
+-  }
+-
+-  bool receiving() const override { return true; }
+-  bool writable() const override { return true; }
+-
+- private:
+-  std::string transport_name_;
+-  IceConfig ice_config_;
+-};
+-
+-}  // namespace cricket
+-
+-#endif  // P2P_TEST_MOCK_ICE_TRANSPORT_H_
+diff --git a/pc/channel_unittest.cc b/pc/channel_unittest.cc
+index 30d100ce31..5b244584e7 100644
+--- a/pc/channel_unittest.cc
++++ b/pc/channel_unittest.cc
+@@ -38,12 +38,12 @@
+ #include "media/base/rid_description.h"
+ #include "media/base/stream_params.h"
+ #include "p2p/base/candidate_pair_interface.h"
++#include "p2p/base/fake_packet_transport.h"
+ #include "p2p/base/ice_transport_internal.h"
+ #include "p2p/base/p2p_constants.h"
+ #include "p2p/base/packet_transport_internal.h"
+ #include "p2p/dtls/dtls_transport_internal.h"
+ #include "p2p/dtls/fake_dtls_transport.h"
+-#include "p2p/test/fake_packet_transport.h"
+ #include "pc/dtls_srtp_transport.h"
+ #include "pc/jsep_transport.h"
+ #include "pc/rtp_transport.h"
+diff --git a/pc/dtls_srtp_transport_integrationtest.cc b/pc/dtls_srtp_transport_integrationtest.cc
+index 3839bddc2f..20c60b4ec9 100644
+--- a/pc/dtls_srtp_transport_integrationtest.cc
++++ b/pc/dtls_srtp_transport_integrationtest.cc
+@@ -21,10 +21,10 @@
+ #include "api/units/time_delta.h"
+ #include "call/rtp_demuxer.h"
+ #include "media/base/fake_rtp.h"
++#include "p2p/base/fake_ice_transport.h"
+ #include "p2p/base/transport_description.h"
+ #include "p2p/dtls/dtls_transport.h"
+ #include "p2p/dtls/dtls_transport_internal.h"
+-#include "p2p/test/fake_ice_transport.h"
+ #include "pc/dtls_srtp_transport.h"
+ #include "pc/srtp_transport.h"
+ #include "pc/test/rtp_transport_test_util.h"
+diff --git a/pc/dtls_srtp_transport_unittest.cc b/pc/dtls_srtp_transport_unittest.cc
+index 9f2d05df23..6b3eee3607 100644
+--- a/pc/dtls_srtp_transport_unittest.cc
++++ b/pc/dtls_srtp_transport_unittest.cc
+@@ -18,10 +18,10 @@
  
- namespace webrtc {
+ #include "call/rtp_demuxer.h"
+ #include "media/base/fake_rtp.h"
++#include "p2p/base/fake_ice_transport.h"
+ #include "p2p/base/p2p_constants.h"
+ #include "p2p/dtls/dtls_transport_internal.h"
+ #include "p2p/dtls/fake_dtls_transport.h"
+-#include "p2p/test/fake_ice_transport.h"
+ #include "pc/rtp_transport.h"
+ #include "pc/srtp_transport.h"
+ #include "pc/test/rtp_transport_test_util.h"
+diff --git a/pc/ice_transport_unittest.cc b/pc/ice_transport_unittest.cc
+index 847908a0b2..a42c107072 100644
+--- a/pc/ice_transport_unittest.cc
++++ b/pc/ice_transport_unittest.cc
+@@ -16,8 +16,8 @@
+ #include "api/ice_transport_factory.h"
+ #include "api/make_ref_counted.h"
+ #include "api/scoped_refptr.h"
+-#include "p2p/test/fake_ice_transport.h"
+-#include "p2p/test/fake_port_allocator.h"
++#include "p2p/base/fake_ice_transport.h"
++#include "p2p/base/fake_port_allocator.h"
+ #include "rtc_base/internal/default_socket_server.h"
+ #include "test/gtest.h"
+ #include "test/scoped_key_value_config.h"
+diff --git a/pc/jsep_transport_controller_unittest.cc b/pc/jsep_transport_controller_unittest.cc
+index e2eb9caffe..a3a706d3bb 100644
+--- a/pc/jsep_transport_controller_unittest.cc
++++ b/pc/jsep_transport_controller_unittest.cc
+@@ -33,6 +33,7 @@
+ #include "api/units/time_delta.h"
+ #include "call/payload_type_picker.h"
+ #include "p2p/base/candidate_pair_interface.h"
++#include "p2p/base/fake_ice_transport.h"
+ #include "p2p/base/ice_transport_internal.h"
+ #include "p2p/base/p2p_constants.h"
+ #include "p2p/base/port_allocator.h"
+@@ -41,7 +42,6 @@
+ #include "p2p/dtls/dtls_transport_factory.h"
+ #include "p2p/dtls/dtls_transport_internal.h"
+ #include "p2p/dtls/fake_dtls_transport.h"
+-#include "p2p/test/fake_ice_transport.h"
+ #include "pc/dtls_transport.h"
+ #include "pc/rtp_transport_internal.h"
+ #include "pc/session_description.h"
+diff --git a/pc/jsep_transport_unittest.cc b/pc/jsep_transport_unittest.cc
+index a726d37118..8562712f79 100644
+--- a/pc/jsep_transport_unittest.cc
++++ b/pc/jsep_transport_unittest.cc
+@@ -28,13 +28,13 @@
+ #include "api/scoped_refptr.h"
+ #include "call/payload_type_picker.h"
+ #include "media/base/fake_rtp.h"
++#include "p2p/base/fake_ice_transport.h"
+ #include "p2p/base/ice_transport_internal.h"
+ #include "p2p/base/p2p_constants.h"
+ #include "p2p/base/packet_transport_internal.h"
+ #include "p2p/base/transport_description.h"
+ #include "p2p/dtls/dtls_transport_internal.h"
+ #include "p2p/dtls/fake_dtls_transport.h"
+-#include "p2p/test/fake_ice_transport.h"
+ #include "pc/dtls_srtp_transport.h"
+ #include "pc/rtp_transport.h"
+ #include "pc/srtp_transport.h"
+diff --git a/pc/peer_connection_crypto_unittest.cc b/pc/peer_connection_crypto_unittest.cc
+index 830c582f75..75af4cce3f 100644
+--- a/pc/peer_connection_crypto_unittest.cc
++++ b/pc/peer_connection_crypto_unittest.cc
+@@ -38,9 +38,9 @@
+ #include "api/video_codecs/video_encoder_factory_template_libvpx_vp9_adapter.h"
+ #include "api/video_codecs/video_encoder_factory_template_open_h264_adapter.h"
+ #include "p2p/base/basic_packet_socket_factory.h"
++#include "p2p/base/fake_port_allocator.h"
+ #include "p2p/base/transport_description.h"
+ #include "p2p/base/transport_info.h"
+-#include "p2p/test/fake_port_allocator.h"
+ #include "pc/media_protocol_names.h"
+ #include "pc/media_session.h"
+ #include "pc/peer_connection_wrapper.h"
+diff --git a/pc/peer_connection_factory_unittest.cc b/pc/peer_connection_factory_unittest.cc
+index d34004cd2f..9cdc469e9c 100644
+--- a/pc/peer_connection_factory_unittest.cc
++++ b/pc/peer_connection_factory_unittest.cc
+@@ -43,10 +43,10 @@
+ #include "api/video_codecs/video_encoder_factory_template_open_h264_adapter.h"
+ #include "media/base/fake_frame_source.h"
+ #include "modules/audio_processing/include/mock_audio_processing.h"
++#include "p2p/base/fake_port_allocator.h"
+ #include "p2p/base/port.h"
+ #include "p2p/base/port_allocator.h"
+ #include "p2p/base/port_interface.h"
+-#include "p2p/test/fake_port_allocator.h"
+ #include "pc/test/fake_audio_capture_module.h"
+ #include "pc/test/fake_video_track_source.h"
+ #include "pc/test/mock_peer_connection_observers.h"
+diff --git a/pc/peer_connection_header_extension_unittest.cc b/pc/peer_connection_header_extension_unittest.cc
+index 0abaf8ed6b..f4dff4e948 100644
+--- a/pc/peer_connection_header_extension_unittest.cc
++++ b/pc/peer_connection_header_extension_unittest.cc
+@@ -31,8 +31,8 @@
+ #include "api/task_queue/task_queue_factory.h"
+ #include "media/base/fake_media_engine.h"
+ #include "media/base/media_engine.h"
++#include "p2p/base/fake_port_allocator.h"
+ #include "p2p/base/port_allocator.h"
+-#include "p2p/test/fake_port_allocator.h"
+ #include "pc/peer_connection_wrapper.h"
+ #include "pc/session_description.h"
+ #include "pc/test/enable_fake_media.h"
+diff --git a/pc/peer_connection_ice_unittest.cc b/pc/peer_connection_ice_unittest.cc
+index 02fb1b33c2..cf7297cdb6 100644
+--- a/pc/peer_connection_ice_unittest.cc
++++ b/pc/peer_connection_ice_unittest.cc
+@@ -32,12 +32,12 @@
+ #include "api/test/rtc_error_matchers.h"
+ #include "api/units/time_delta.h"
+ #include "p2p/base/basic_packet_socket_factory.h"
++#include "p2p/base/fake_port_allocator.h"
+ #include "p2p/base/ice_transport_internal.h"
+ #include "p2p/base/p2p_constants.h"
+ #include "p2p/base/port_allocator.h"
+ #include "p2p/base/transport_description.h"
+ #include "p2p/base/transport_info.h"
+-#include "p2p/test/fake_port_allocator.h"
+ #include "pc/channel_interface.h"
+ #include "pc/dtls_transport.h"
+ #include "pc/media_session.h"
+diff --git a/pc/peer_connection_integrationtest.cc b/pc/peer_connection_integrationtest.cc
+index 746c387d3b..ce02e516e8 100644
+--- a/pc/peer_connection_integrationtest.cc
++++ b/pc/peer_connection_integrationtest.cc
+@@ -63,10 +63,10 @@
+ #include "p2p/base/port.h"
+ #include "p2p/base/port_allocator.h"
+ #include "p2p/base/port_interface.h"
++#include "p2p/base/test_stun_server.h"
++#include "p2p/base/test_turn_server.h"
+ #include "p2p/base/transport_description.h"
+ #include "p2p/base/transport_info.h"
+-#include "p2p/test/test_stun_server.h"
+-#include "p2p/test/test_turn_server.h"
+ #include "pc/media_session.h"
+ #include "pc/peer_connection.h"
+ #include "pc/peer_connection_factory.h"
+diff --git a/pc/peer_connection_interface_unittest.cc b/pc/peer_connection_interface_unittest.cc
+index 7c072daacb..4e3a1df98f 100644
+--- a/pc/peer_connection_interface_unittest.cc
++++ b/pc/peer_connection_interface_unittest.cc
+@@ -63,12 +63,12 @@
+ #include "media/base/media_config.h"
+ #include "media/base/stream_params.h"
+ #include "media/sctp/sctp_transport_internal.h"
++#include "p2p/base/fake_port_allocator.h"
+ #include "p2p/base/p2p_constants.h"
+ #include "p2p/base/port.h"
+ #include "p2p/base/port_allocator.h"
+ #include "p2p/base/transport_description.h"
+ #include "p2p/base/transport_info.h"
+-#include "p2p/test/fake_port_allocator.h"
+ #include "pc/audio_track.h"
+ #include "pc/media_session.h"
+ #include "pc/media_stream.h"
+diff --git a/pc/peer_connection_media_unittest.cc b/pc/peer_connection_media_unittest.cc
+index 24aaba618e..cdc9d0e22e 100644
+--- a/pc/peer_connection_media_unittest.cc
++++ b/pc/peer_connection_media_unittest.cc
+@@ -42,9 +42,9 @@
+ #include "media/base/media_engine.h"
+ #include "media/base/stream_params.h"
+ #include "p2p/base/basic_packet_socket_factory.h"
++#include "p2p/base/fake_port_allocator.h"
+ #include "p2p/base/p2p_constants.h"
+ #include "p2p/base/transport_info.h"
+-#include "p2p/test/fake_port_allocator.h"
+ #include "pc/channel_interface.h"
+ #include "pc/media_session.h"
+ #include "pc/peer_connection_wrapper.h"
+diff --git a/pc/peer_connection_rampup_tests.cc b/pc/peer_connection_rampup_tests.cc
+index e53290c8d0..7f5a6c2ec4 100644
+--- a/pc/peer_connection_rampup_tests.cc
++++ b/pc/peer_connection_rampup_tests.cc
+@@ -40,7 +40,7 @@
+ #include "api/video_codecs/video_encoder_factory_template_open_h264_adapter.h"
+ #include "p2p/base/basic_packet_socket_factory.h"
+ #include "p2p/base/port_interface.h"
+-#include "p2p/test/test_turn_server.h"
++#include "p2p/base/test_turn_server.h"
+ #include "pc/peer_connection.h"
+ #include "pc/peer_connection_wrapper.h"
+ #include "pc/test/fake_audio_capture_module.h"
+diff --git a/pc/rtp_transport_unittest.cc b/pc/rtp_transport_unittest.cc
+index ef616bb32f..0c50709301 100644
+--- a/pc/rtp_transport_unittest.cc
++++ b/pc/rtp_transport_unittest.cc
+@@ -17,7 +17,7 @@
+ #include "api/test/rtc_error_matchers.h"
+ #include "api/units/time_delta.h"
+ #include "call/rtp_demuxer.h"
+-#include "p2p/test/fake_packet_transport.h"
++#include "p2p/base/fake_packet_transport.h"
+ #include "pc/test/rtp_transport_test_util.h"
+ #include "rtc_base/buffer.h"
+ #include "rtc_base/containers/flat_set.h"
+diff --git a/pc/slow_peer_connection_integration_test.cc b/pc/slow_peer_connection_integration_test.cc
+index 5c6978b08e..2649f847f6 100644
+--- a/pc/slow_peer_connection_integration_test.cc
++++ b/pc/slow_peer_connection_integration_test.cc
+@@ -29,8 +29,8 @@
+ #include "api/units/time_delta.h"
+ #include "p2p/base/port_allocator.h"
+ #include "p2p/base/port_interface.h"
+-#include "p2p/test/stun_server.h"
+-#include "p2p/test/test_stun_server.h"
++#include "p2p/base/stun_server.h"
++#include "p2p/base/test_stun_server.h"
+ #include "pc/test/integration_test_helpers.h"
+ #include "pc/test/mock_peer_connection_observers.h"
+ #include "rtc_base/fake_clock.h"
+diff --git a/pc/srtp_transport_unittest.cc b/pc/srtp_transport_unittest.cc
+index 2cd55fc9a5..601adf1b14 100644
+--- a/pc/srtp_transport_unittest.cc
++++ b/pc/srtp_transport_unittest.cc
+@@ -18,8 +18,8 @@
  
+ #include "call/rtp_demuxer.h"
+ #include "media/base/fake_rtp.h"
++#include "p2p/base/fake_packet_transport.h"
+ #include "p2p/dtls/dtls_transport_internal.h"
+-#include "p2p/test/fake_packet_transport.h"
+ #include "pc/test/rtp_transport_test_util.h"
+ #include "pc/test/srtp_test_util.h"
+ #include "rtc_base/async_packet_socket.h"
+diff --git a/pc/test/integration_test_helpers.h b/pc/test/integration_test_helpers.h
+index b0b600b300..9aa72883d6 100644
+--- a/pc/test/integration_test_helpers.h
++++ b/pc/test/integration_test_helpers.h
+@@ -60,12 +60,12 @@
+ #include "api/video/video_rotation.h"
+ #include "logging/rtc_event_log/fake_rtc_event_log_factory.h"
+ #include "media/base/stream_params.h"
++#include "p2p/base/fake_ice_transport.h"
+ #include "p2p/base/ice_transport_internal.h"
+ #include "p2p/base/port.h"
+ #include "p2p/base/port_interface.h"
+-#include "p2p/test/fake_ice_transport.h"
+-#include "p2p/test/test_turn_customizer.h"
+-#include "p2p/test/test_turn_server.h"
++#include "p2p/base/test_turn_customizer.h"
++#include "p2p/base/test_turn_server.h"
+ #include "pc/peer_connection.h"
+ #include "pc/peer_connection_factory.h"
+ #include "pc/peer_connection_proxy.h"
+diff --git a/pc/test/peer_connection_test_wrapper.cc b/pc/test/peer_connection_test_wrapper.cc
+index b58459196b..e458794717 100644
+--- a/pc/test/peer_connection_test_wrapper.cc
++++ b/pc/test/peer_connection_test_wrapper.cc
+@@ -55,8 +55,8 @@
+ #include "api/video_codecs/video_encoder_factory_template_open_h264_adapter.h"
+ #include "media/engine/simulcast_encoder_adapter.h"
+ #include "p2p/base/basic_packet_socket_factory.h"
++#include "p2p/base/fake_port_allocator.h"
+ #include "p2p/base/port_allocator.h"
+-#include "p2p/test/fake_port_allocator.h"
+ #include "pc/test/fake_audio_capture_module.h"
+ #include "pc/test/fake_periodic_video_source.h"
+ #include "pc/test/fake_periodic_video_track_source.h"
+diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
+index c1641f7db6..ccdecd0832 100644
+--- a/rtc_base/BUILD.gn
++++ b/rtc_base/BUILD.gn
+@@ -1701,6 +1701,12 @@ rtc_library("rtc_base_tests_utils") {
+     "memory_stream.h",
+     "memory_usage.cc",
+     "memory_usage.h",
++    "nat_server.cc",
++    "nat_server.h",
++    "nat_socket_factory.cc",
++    "nat_socket_factory.h",
++    "nat_types.cc",
++    "nat_types.h",
+     "proxy_server.cc",
+     "proxy_server.h",
+     "server_socket_adapters.cc",
+@@ -2088,6 +2094,7 @@ if (rtc_include_tests) {
+         "ip_address_unittest.cc",
+         "memory_usage_unittest.cc",
+         "message_digest_unittest.cc",
++        "nat_unittest.cc",
+         "network_route_unittest.cc",
+         "network_unittest.cc",
+         "rolling_accumulator_unittest.cc",
+diff --git a/p2p/test/nat_server.cc b/rtc_base/nat_server.cc
+similarity index 98%
+rename from p2p/test/nat_server.cc
+rename to rtc_base/nat_server.cc
+index 67d44f5d1e..f21d404bd3 100644
+--- a/p2p/test/nat_server.cc
++++ b/rtc_base/nat_server.cc
+@@ -8,16 +8,16 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#include "p2p/test/nat_server.h"
++#include "rtc_base/nat_server.h"
+ 
+ #include <cstddef>
+ #include <cstdint>
+ #include <memory>
+ 
+ #include "api/array_view.h"
+-#include "p2p/test/nat_socket_factory.h"
+ #include "rtc_base/checks.h"
+ #include "rtc_base/logging.h"
++#include "rtc_base/nat_socket_factory.h"
+ #include "rtc_base/network/received_packet.h"
+ #include "rtc_base/socket_adapters.h"
+ #include "rtc_base/socket_address.h"
+@@ -75,7 +75,7 @@ bool AddrCmp::operator()(const SocketAddress& a1,
+ // a TCP connection to the NAT server.
+ class NATProxyServerSocket : public AsyncProxyServerSocket {
+  public:
+-  explicit NATProxyServerSocket(Socket* socket)
++  NATProxyServerSocket(Socket* socket)
+       : AsyncProxyServerSocket(socket, kNATEncodedIPv6AddressSize) {
+     BufferInput(true);
+   }
+diff --git a/p2p/test/nat_server.h b/rtc_base/nat_server.h
+similarity index 96%
+rename from p2p/test/nat_server.h
+rename to rtc_base/nat_server.h
+index 8a2143321c..d179efa567 100644
+--- a/p2p/test/nat_server.h
++++ b/rtc_base/nat_server.h
+@@ -8,14 +8,14 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#ifndef P2P_TEST_NAT_SERVER_H_
+-#define P2P_TEST_NAT_SERVER_H_
++#ifndef RTC_BASE_NAT_SERVER_H_
++#define RTC_BASE_NAT_SERVER_H_
+ 
+ #include <map>
+ #include <set>
+ 
+-#include "p2p/test/nat_types.h"
+ #include "rtc_base/async_udp_socket.h"
++#include "rtc_base/nat_types.h"
+ #include "rtc_base/proxy_server.h"
+ #include "rtc_base/socket_address_pair.h"
+ #include "rtc_base/socket_factory.h"
+@@ -126,4 +126,4 @@ class NATServer {
+ 
+ }  // namespace rtc
+ 
+-#endif  // P2P_TEST_NAT_SERVER_H_
++#endif  // RTC_BASE_NAT_SERVER_H_
+diff --git a/p2p/test/nat_socket_factory.cc b/rtc_base/nat_socket_factory.cc
+similarity index 99%
+rename from p2p/test/nat_socket_factory.cc
+rename to rtc_base/nat_socket_factory.cc
+index 88455ff6ae..66e4f84cd7 100644
+--- a/p2p/test/nat_socket_factory.cc
++++ b/rtc_base/nat_socket_factory.cc
+@@ -8,14 +8,14 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#include "p2p/test/nat_socket_factory.h"
++#include "rtc_base/nat_socket_factory.h"
+ 
+ #include "api/units/timestamp.h"
+-#include "p2p/test/nat_server.h"
+ #include "rtc_base/arraysize.h"
+ #include "rtc_base/buffer.h"
+ #include "rtc_base/checks.h"
+ #include "rtc_base/logging.h"
++#include "rtc_base/nat_server.h"
+ #include "rtc_base/virtual_socket_server.h"
+ 
+ namespace rtc {
+diff --git a/p2p/test/nat_socket_factory.h b/rtc_base/nat_socket_factory.h
+similarity index 97%
+rename from p2p/test/nat_socket_factory.h
+rename to rtc_base/nat_socket_factory.h
+index 9425dc3556..5adcaa5dfd 100644
+--- a/p2p/test/nat_socket_factory.h
++++ b/rtc_base/nat_socket_factory.h
+@@ -8,8 +8,8 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#ifndef P2P_TEST_NAT_SOCKET_FACTORY_H_
+-#define P2P_TEST_NAT_SOCKET_FACTORY_H_
++#ifndef RTC_BASE_NAT_SOCKET_FACTORY_H_
++#define RTC_BASE_NAT_SOCKET_FACTORY_H_
+ 
+ #include <stddef.h>
+ 
+@@ -19,9 +19,9 @@
+ #include <set>
+ 
+ #include "api/array_view.h"
+-#include "p2p/test/nat_server.h"
+-#include "p2p/test/nat_types.h"
+ #include "rtc_base/buffer.h"
++#include "rtc_base/nat_server.h"
++#include "rtc_base/nat_types.h"
+ #include "rtc_base/socket.h"
+ #include "rtc_base/socket_address.h"
+ #include "rtc_base/socket_factory.h"
+@@ -179,4 +179,4 @@ size_t UnpackAddressFromNAT(rtc::ArrayView<const uint8_t> buf,
+                             SocketAddress* remote_addr);
+ }  // namespace rtc
+ 
+-#endif  // P2P_TEST_NAT_SOCKET_FACTORY_H_
++#endif  // RTC_BASE_NAT_SOCKET_FACTORY_H_
+diff --git a/p2p/test/nat_types.cc b/rtc_base/nat_types.cc
+similarity index 98%
+rename from p2p/test/nat_types.cc
+rename to rtc_base/nat_types.cc
+index 250ea22772..9ca03608e8 100644
+--- a/p2p/test/nat_types.cc
++++ b/rtc_base/nat_types.cc
+@@ -8,7 +8,7 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#include "p2p/test/nat_types.h"
++#include "rtc_base/nat_types.h"
+ 
+ #include "rtc_base/checks.h"
+ 
+diff --git a/p2p/test/nat_types.h b/rtc_base/nat_types.h
+similarity index 93%
+rename from p2p/test/nat_types.h
+rename to rtc_base/nat_types.h
+index 7f3256629d..60e7fbd4b4 100644
+--- a/p2p/test/nat_types.h
++++ b/rtc_base/nat_types.h
+@@ -8,8 +8,8 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
+-#ifndef P2P_TEST_NAT_TYPES_H_
+-#define P2P_TEST_NAT_TYPES_H_
++#ifndef RTC_BASE_NAT_TYPES_H_
++#define RTC_BASE_NAT_TYPES_H_
+ 
+ namespace rtc {
+ 
+@@ -44,4 +44,4 @@ class NAT {
+ 
+ }  // namespace rtc
+ 
+-#endif  // P2P_TEST_NAT_TYPES_H_
++#endif  // RTC_BASE_NAT_TYPES_H_
+diff --git a/p2p/test/nat_unittest.cc b/rtc_base/nat_unittest.cc
+similarity index 99%
+rename from p2p/test/nat_unittest.cc
+rename to rtc_base/nat_unittest.cc
+index 5e1d2be3f4..a1cc1b5d49 100644
+--- a/p2p/test/nat_unittest.cc
++++ b/rtc_base/nat_unittest.cc
+@@ -17,14 +17,14 @@
+ 
+ #include "absl/memory/memory.h"
+ #include "api/test/rtc_error_matchers.h"
+-#include "p2p/test/nat_server.h"
+-#include "p2p/test/nat_socket_factory.h"
+-#include "p2p/test/nat_types.h"
+ #include "rtc_base/async_tcp_socket.h"
+ #include "rtc_base/async_udp_socket.h"
+ #include "rtc_base/buffer.h"
+ #include "rtc_base/ip_address.h"
+ #include "rtc_base/logging.h"
++#include "rtc_base/nat_server.h"
++#include "rtc_base/nat_socket_factory.h"
++#include "rtc_base/nat_types.h"
+ #include "rtc_base/net_helpers.h"
+ #include "rtc_base/net_test_helpers.h"
+ #include "rtc_base/network.h"
+diff --git a/test/DEPS b/test/DEPS
+index 17e2ff44f3..2ebbfcde24 100644
+--- a/test/DEPS
++++ b/test/DEPS
+@@ -85,7 +85,7 @@ specific_include_rules = {
+     "+benchmark",
+   ],
+   "emulated_turn_server\.(h|cc)": [
+-     "+p2p/test/turn_server.h",
++     "+p2p/base/turn_server.h",
+      "+p2p/base/port_interface.h",
+   ],
+   "wait_until\.cc": [
+diff --git a/test/network/emulated_turn_server.cc b/test/network/emulated_turn_server.cc
+index 3e8fa71981..70264abd42 100644
+--- a/test/network/emulated_turn_server.cc
++++ b/test/network/emulated_turn_server.cc
+@@ -22,7 +22,7 @@
+ #include "api/test/network_emulation/network_emulation_interfaces.h"
+ #include "api/test/network_emulation_manager.h"
+ #include "p2p/base/port_interface.h"
+-#include "p2p/test/turn_server.h"
++#include "p2p/base/turn_server.h"
+ #include "rtc_base/async_packet_socket.h"
+ #include "rtc_base/checks.h"
+ #include "rtc_base/copy_on_write_buffer.h"
+diff --git a/test/network/emulated_turn_server.h b/test/network/emulated_turn_server.h
+index aa91ecc35a..168e208a0c 100644
+--- a/test/network/emulated_turn_server.h
++++ b/test/network/emulated_turn_server.h
+@@ -19,7 +19,7 @@
+ #include "api/test/network_emulation/network_emulation_interfaces.h"
+ #include "api/test/network_emulation_manager.h"
+ #include "api/transport/stun.h"
+-#include "p2p/test/turn_server.h"
++#include "p2p/base/turn_server.h"
+ #include "rtc_base/async_packet_socket.h"
+ #include "rtc_base/socket_address.h"
+ #include "rtc_base/thread.h"
