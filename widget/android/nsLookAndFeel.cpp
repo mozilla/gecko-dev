@@ -262,9 +262,9 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aColorScheme,
     case ColorID::MozOddtreerow:
       aColor = NS_TRANSPARENT;
       break;
-    case ColorID::MozNativehyperlinktext:
-      aColor = NS_RGB(0, 0, 0xee);
-      break;
+    case ColorID::Linktext:
+    case ColorID::Visitedtext:
+    case ColorID::Activetext:
     case ColorID::Marktext:
     case ColorID::Mark:
     case ColorID::MozAutofillBackground:

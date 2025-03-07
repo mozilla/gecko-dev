@@ -194,16 +194,13 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aColorScheme,
       // Background color of odd list rows.
       aResult = NS_TRANSPARENT;
       break;
-    case ColorID::MozNativehyperlinktext:
-      // There appears to be no available system defined color. HARDCODING to
-      // the appropriate color.
-      aResult = NS_RGB(0x14, 0x4F, 0xAE);
-      break;
-    case ColorID::MozNativevisitedhyperlinktext:
+    case ColorID::Visitedtext:
       // Safari defaults to the MacOS color implementation for visited links,
       // which in turn uses systemPurpleColor, so we do the same here.
       aResult = GetColorFromUIColor([UIColor systemPurpleColor]);
       break;
+    case ColorID::Linktext:
+    case ColorID::Activetext:
     case ColorID::TargetTextBackground:
     case ColorID::TargetTextForeground:
       aResult = GetStandinForNativeColor(aID, aColorScheme);

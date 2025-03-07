@@ -328,18 +328,6 @@ pub enum SystemColor {
     #[parse(condition = "ParserContext::chrome_rules_enabled")]
     MozAutofillBackground,
 
-    /// Hyperlink color extracted from the system, not affected by the browser.anchor_color user
-    /// pref.
-    ///
-    /// There is no OS-specified safe background color for this text, but it is used regularly
-    /// within Windows and the Gnome DE on Dialog and Window colors.
-    #[css(skip)]
-    MozNativehyperlinktext,
-
-    /// As above, but visited link color.
-    #[css(skip)]
-    MozNativevisitedhyperlinktext,
-
     #[parse(aliases = "-moz-hyperlinktext")]
     Linktext,
     #[parse(aliases = "-moz-activehyperlinktext")]

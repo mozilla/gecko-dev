@@ -330,10 +330,10 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       aColor =
           GetColorFromNSColor(NSColor.controlAlternatingRowBackgroundColors[1]);
       break;
-    case ColorID::MozNativehyperlinktext:
+    case ColorID::Linktext:
       aColor = GetColorFromNSColor(NSColor.linkColor);
       break;
-    case ColorID::MozNativevisitedhyperlinktext:
+    case ColorID::Visitedtext:
       aColor = GetColorFromNSColor(NSColor.systemPurpleColor);
       break;
     case ColorID::MozHeaderbartext:
@@ -351,6 +351,7 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       // This has better contrast than the stand-in colors.
       aColor = GetColorFromNSColor(NSColor.windowBackgroundColor);
       return NS_OK;
+    case ColorID::Activetext:
     case ColorID::Marktext:
     case ColorID::Mark:
     case ColorID::SpellCheckerUnderline:

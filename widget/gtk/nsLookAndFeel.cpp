@@ -896,10 +896,10 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
     case ColorID::MozOddtreerow:
       aColor = mOddCellBackground;
       break;
-    case ColorID::MozNativehyperlinktext:
+    case ColorID::Linktext:
       aColor = mNativeHyperLinkText;
       break;
-    case ColorID::MozNativevisitedhyperlinktext:
+    case ColorID::Visitedtext:
       aColor = mNativeVisitedHyperLinkText;
       break;
     case ColorID::MozComboboxtext:
@@ -923,6 +923,7 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
     case ColorID::MozColheaderactivetext:
       aColor = mMozColHeaderActive.mFg;
       break;
+    case ColorID::Activetext:
     case ColorID::SpellCheckerUnderline:
     case ColorID::Mark:
     case ColorID::Marktext:
