@@ -11,9 +11,19 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <memory>
+#include <string>
+#include <utility>
+
 #include "absl/strings/string_view.h"
+#include "api/jsep.h"
+#include "api/make_ref_counted.h"
+#include "api/peer_connection_interface.h"
 #include "api/test/rtc_error_matchers.h"
 #include "pc/test/integration_test_helpers.h"
+#include "pc/test/mock_peer_connection_observers.h"
+#include "rtc_base/checks.h"
+#include "test/gmock.h"
 #include "test/wait_until.h"
 
 namespace webrtc {

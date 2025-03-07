@@ -9,6 +9,9 @@
  */
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 
 #include "api/scoped_refptr.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"

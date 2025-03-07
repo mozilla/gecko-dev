@@ -8,9 +8,13 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <cstddef>
+#include <cstdint>
 #include <optional>
 
+#include "api/array_view.h"
 #include "api/audio/audio_processing.h"
+#include "api/audio/echo_canceller3_config.h"
 #include "api/environment/environment_factory.h"
 #include "modules/audio_processing/aec3/echo_canceller3.h"
 #include "modules/audio_processing/audio_buffer.h"

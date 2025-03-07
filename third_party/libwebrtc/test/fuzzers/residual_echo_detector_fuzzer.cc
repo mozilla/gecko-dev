@@ -11,11 +11,13 @@
 #include <math.h>
 #include <string.h>
 
-#include <algorithm>
 #include <bitset>
+#include <cstdint>
 #include <vector>
 
+#include "api/audio/audio_processing.h"
 #include "api/audio/echo_detector_creator.h"
+#include "api/scoped_refptr.h"
 #include "rtc_base/checks.h"
 
 namespace webrtc {

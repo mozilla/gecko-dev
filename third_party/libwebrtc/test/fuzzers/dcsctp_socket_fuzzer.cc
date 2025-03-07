@@ -7,12 +7,13 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
+#include <cstddef>
+#include <cstdint>
+
+#include "api/array_view.h"
 #include "net/dcsctp/fuzzers/dcsctp_fuzzers.h"
-#include "net/dcsctp/public/dcsctp_message.h"
 #include "net/dcsctp/public/dcsctp_options.h"
-#include "net/dcsctp/public/dcsctp_socket.h"
 #include "net/dcsctp/socket/dcsctp_socket.h"
-#include "rtc_base/logging.h"
 
 namespace webrtc {
 

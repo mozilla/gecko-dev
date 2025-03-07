@@ -14,6 +14,7 @@
 
 #include "api/array_view.h"
 #include "api/environment/environment_factory.h"
+#include "api/media_types.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "modules/congestion_controller/include/receive_side_congestion_controller.h"

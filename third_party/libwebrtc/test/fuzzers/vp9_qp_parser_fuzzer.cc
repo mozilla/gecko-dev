@@ -8,6 +8,10 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <cstddef>
+#include <cstdint>
+
+#include "api/array_view.h"
 #include "modules/video_coding/utility/vp9_uncompressed_header_parser.h"
 
 namespace webrtc {

@@ -9,6 +9,8 @@
  */
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 
 #include "api/array_view.h"
 #include "modules/audio_coding/codecs/cng/webrtc_cng.h"

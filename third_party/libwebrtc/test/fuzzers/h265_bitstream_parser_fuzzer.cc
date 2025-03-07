@@ -9,6 +9,9 @@
  */
 #include <stdint.h>
 
+#include <cstddef>
+
+#include "api/array_view.h"
 #include "common_video/h265/h265_bitstream_parser.h"
 
 namespace webrtc {

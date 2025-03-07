@@ -11,7 +11,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <memory>
+
+#include "api/array_view.h"
 #include "api/transport/stun.h"
+#include "rtc_base/byte_buffer.h"
 
 namespace webrtc {
 void FuzzOneInput(const uint8_t* data, size_t size) {

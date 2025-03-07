@@ -11,11 +11,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <memory>
 #include <string>
 
+#include "rtc_base/buffer.h"
 #include "rtc_base/message_digest.h"
 #include "rtc_base/ssl_certificate.h"
-#include "rtc_base/string_encode.h"
 
 namespace webrtc {
 

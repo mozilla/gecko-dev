@@ -13,12 +13,17 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <limits>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 
+#include "api/array_view.h"
 #include "api/audio/audio_frame.h"
 #include "api/audio/audio_processing.h"
+#include "api/scoped_refptr.h"
 #include "modules/audio_processing/include/audio_frame_proxies.h"
 #include "rtc_base/checks.h"
+#include "test/fuzzers/fuzz_data_helper.h"
 
 namespace webrtc {
 namespace {

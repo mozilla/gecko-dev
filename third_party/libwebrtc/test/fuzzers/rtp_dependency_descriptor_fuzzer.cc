@@ -15,7 +15,7 @@
 #include <utility>
 
 #include "api/array_view.h"
-#include "common_video/generic_frame_descriptor/generic_frame_info.h"
+#include "api/transport/rtp/dependency_descriptor.h"
 #include "modules/rtp_rtcp/source/rtp_dependency_descriptor_extension.h"
 #include "rtc_base/checks.h"
 #include "test/fuzzers/fuzz_data_helper.h"

@@ -9,21 +9,27 @@
  */
 
 #include <bitset>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/base/nullability.h"
-#include "absl/memory/memory.h"
+#include "api/array_view.h"
 #include "api/audio/audio_processing.h"
 #include "api/audio/builtin_audio_processing_builder.h"
 #include "api/audio/echo_canceller3_factory.h"
+#include "api/audio/echo_control.h"
 #include "api/audio/echo_detector_creator.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
-#include "api/task_queue/default_task_queue_factory.h"
+#include "api/scoped_refptr.h"
 #include "api/task_queue/task_queue_base.h"
+#include "api/task_queue/task_queue_factory.h"
 #include "modules/audio_processing/aec_dump/aec_dump_factory.h"
 #include "rtc_base/arraysize.h"
-#include "rtc_base/numerics/safe_minmax.h"
+#include "rtc_base/checks.h"
 #include "system_wrappers/include/field_trial.h"
 #include "test/fuzzers/audio_processing_fuzzer_helper.h"
 #include "test/fuzzers/fuzz_data_helper.h"

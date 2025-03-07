@@ -10,6 +10,10 @@
 
 #include "test/fuzzers/fuzz_data_helper.h"
 
+#include <cstdint>
+
+#include "api/array_view.h"
+
 namespace webrtc {
 namespace test {
 

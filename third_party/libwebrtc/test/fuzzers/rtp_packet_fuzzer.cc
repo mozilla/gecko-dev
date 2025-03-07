@@ -9,12 +9,21 @@
  */
 
 #include <bitset>
+#include <cstddef>
+#include <cstdint>
 #include <optional>
+#include <string>
 #include <vector>
 
+#include "api/rtp_headers.h"
 #include "api/transport/rtp/corruption_detection_message.h"
-#include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
+#include "api/video/color_space.h"
+#include "api/video/video_content_type.h"
+#include "api/video/video_layers_allocation.h"
+#include "api/video/video_timing.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/corruption_detection_extension.h"
+#include "modules/rtp_rtcp/source/rtp_generic_frame_descriptor.h"
 #include "modules/rtp_rtcp/source/rtp_generic_frame_descriptor_extension.h"
 #include "modules/rtp_rtcp/source/rtp_header_extensions.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"

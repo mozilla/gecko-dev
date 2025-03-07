@@ -10,12 +10,17 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
-#include <limits>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
 
+#include "api/array_view.h"
 #include "api/audio/audio_processing.h"
 #include "api/audio/builtin_audio_processing_builder.h"
 #include "api/environment/environment_factory.h"
+#include "api/scoped_refptr.h"
 #include "rtc_base/checks.h"
 #include "test/fuzzers/fuzz_data_helper.h"
 

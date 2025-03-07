@@ -10,8 +10,12 @@
 
 #include "test/fuzzers/audio_encoder_fuzzer.h"
 
+#include <cstdint>
 #include <cstring>
+#include <memory>
 
+#include "api/array_view.h"
+#include "api/audio_codecs/audio_encoder.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/checks.h"
 #include "test/fuzzers/fuzz_data_helper.h"
