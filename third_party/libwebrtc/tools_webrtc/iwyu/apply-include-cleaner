@@ -136,8 +136,8 @@ do
   HAS_OUTPUT=$HAS_OUTPUT || [[ ! -z $OUTPUT ]]
 done
 
-echo "Finished. Check diff, compile, gn gen --check and git cl format"
-echo "before uploading."
+echo "Finished. Check diff, compile, gn gen --check (tools_webrtc/gn_check_autofix.py can fix most of the issues)"
+echo "and git cl format before uploading."
 
 # Return a non-zero exit code if running with "CHECK_MODE"
 # and there are changes to apply.
