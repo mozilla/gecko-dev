@@ -14,11 +14,8 @@
 #include <utility>
 #include <vector>
 
-#include "api/audio/audio_device.h"
-#include "api/audio_codecs/builtin_audio_decoder_factory.h"
-#include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/audio_options.h"
-#include "api/create_peerconnection_factory.h"
+#include "api/enable_media_with_defaults.h"
 #include "api/jsep.h"
 #include "api/make_ref_counted.h"
 #include "api/media_stream_interface.h"
@@ -42,10 +39,8 @@
 #include "api/video_codecs/video_encoder_factory_template_libvpx_vp9_adapter.h"
 #include "api/video_codecs/video_encoder_factory_template_open_h264_adapter.h"
 #include "p2p/base/basic_packet_socket_factory.h"
-#include "p2p/base/port_allocator.h"
 #include "p2p/base/port_interface.h"
 #include "p2p/base/test_turn_server.h"
-#include "p2p/client/basic_port_allocator.h"
 #include "pc/peer_connection.h"
 #include "pc/peer_connection_wrapper.h"
 #include "pc/test/fake_audio_capture_module.h"
@@ -157,30 +152,15 @@ class PeerConnectionRampUpTest : public ::testing::Test {
  public:
   PeerConnectionRampUpTest()
       : clock_(Clock::GetRealTimeClock()),
-        virtual_socket_server_(new rtc::VirtualSocketServer()),
-        firewall_socket_server_(
-            new rtc::FirewallSocketServer(virtual_socket_server_.get())),
-        firewall_socket_factory_(
-            new rtc::BasicPacketSocketFactory(firewall_socket_server_.get())),
-        network_thread_(new rtc::Thread(firewall_socket_server_.get())),
+        firewall_socket_server_(&virtual_socket_server_),
+        network_thread_(&firewall_socket_server_),
         worker_thread_(rtc::Thread::Create()) {
-    network_thread_->SetName("PCNetworkThread", this);
+    network_thread_.SetName("PCNetworkThread", this);
     worker_thread_->SetName("PCWorkerThread", this);
-    RTC_CHECK(network_thread_->Start());
+    RTC_CHECK(network_thread_.Start());
     RTC_CHECK(worker_thread_->Start());
 
-    virtual_socket_server_->set_bandwidth(kNetworkBandwidth / 8);
-    pc_factory_ = CreatePeerConnectionFactory(
-        network_thread_.get(), worker_thread_.get(), rtc::Thread::Current(),
-        rtc::scoped_refptr<AudioDeviceModule>(FakeAudioCaptureModule::Create()),
-        CreateBuiltinAudioEncoderFactory(), CreateBuiltinAudioDecoderFactory(),
-        std::make_unique<VideoEncoderFactoryTemplate<
-            LibvpxVp8EncoderTemplateAdapter, LibvpxVp9EncoderTemplateAdapter,
-            OpenH264EncoderTemplateAdapter, LibaomAv1EncoderTemplateAdapter>>(),
-        std::make_unique<VideoDecoderFactoryTemplate<
-            LibvpxVp8DecoderTemplateAdapter, LibvpxVp9DecoderTemplateAdapter,
-            OpenH264DecoderTemplateAdapter, Dav1dDecoderTemplateAdapter>>(),
-        nullptr /* audio_mixer */, nullptr /* audio_processing */);
+    virtual_socket_server_.set_bandwidth(kNetworkBandwidth / 8);
   }
 
   virtual ~PeerConnectionRampUpTest() {
@@ -196,30 +176,40 @@ class PeerConnectionRampUpTest : public ::testing::Test {
 
   std::unique_ptr<PeerConnectionWrapperForRampUpTest>
   CreatePeerConnectionWrapper(const RTCConfiguration& config) {
-    auto* fake_network_manager = new rtc::FakeNetworkManager();
-    fake_network_manager->AddInterface(kDefaultLocalAddress);
-    fake_network_managers_.emplace_back(fake_network_manager);
+    PeerConnectionFactoryDependencies pcf_deps;
+    pcf_deps.network_thread = network_thread();
+    pcf_deps.worker_thread = worker_thread_.get();
+    pcf_deps.signaling_thread = rtc::Thread::Current();
+    pcf_deps.socket_factory = &firewall_socket_server_;
+    auto network_manager = std::make_unique<rtc::FakeNetworkManager>();
+    network_manager->AddInterface(kDefaultLocalAddress);
+    pcf_deps.network_manager = std::move(network_manager);
+    pcf_deps.adm = FakeAudioCaptureModule::Create();
+    pcf_deps.video_encoder_factory =
+        std::make_unique<VideoEncoderFactoryTemplate<
+            LibvpxVp8EncoderTemplateAdapter, LibvpxVp9EncoderTemplateAdapter,
+            OpenH264EncoderTemplateAdapter, LibaomAv1EncoderTemplateAdapter>>();
+    pcf_deps.video_decoder_factory =
+        std::make_unique<VideoDecoderFactoryTemplate<
+            LibvpxVp8DecoderTemplateAdapter, LibvpxVp9DecoderTemplateAdapter,
+            OpenH264DecoderTemplateAdapter, Dav1dDecoderTemplateAdapter>>();
+    EnableMediaWithDefaults(pcf_deps);
+    scoped_refptr<PeerConnectionFactoryInterface> pc_factory =
+        CreateModularPeerConnectionFactory(std::move(pcf_deps));
 
     auto observer = std::make_unique<MockPeerConnectionObserver>();
     PeerConnectionDependencies dependencies(observer.get());
-    cricket::BasicPortAllocator* port_allocator =
-        new cricket::BasicPortAllocator(fake_network_manager,
-                                        firewall_socket_factory_.get());
-
-    port_allocator->set_step_delay(cricket::kDefaultStepDelay);
-    dependencies.allocator =
-        std::unique_ptr<cricket::BasicPortAllocator>(port_allocator);
     dependencies.tls_cert_verifier =
         std::make_unique<rtc::TestCertificateVerifier>();
 
-    auto result = pc_factory_->CreatePeerConnectionOrError(
+    auto result = pc_factory->CreatePeerConnectionOrError(
         config, std::move(dependencies));
     if (!result.ok()) {
       return nullptr;
     }
 
     return std::make_unique<PeerConnectionWrapperForRampUpTest>(
-        pc_factory_, result.MoveValue(), std::move(observer));
+        std::move(pc_factory), result.MoveValue(), std::move(observer));
   }
 
   void SetupOneWayCall() {
@@ -261,9 +251,9 @@ class PeerConnectionRampUpTest : public ::testing::Test {
   void CreateTurnServer(cricket::ProtocolType type,
                         const std::string& common_name = "test turn server") {
     rtc::Thread* thread = network_thread();
-    rtc::SocketFactory* factory = firewall_socket_server_.get();
+    rtc::SocketFactory* factory = &firewall_socket_server_;
     std::unique_ptr<cricket::TestTurnServer> turn_server;
-    SendTask(network_thread_.get(), [&] {
+    SendTask(network_thread(), [&] {
       static const rtc::SocketAddress turn_server_internal_address{
           kTurnInternalAddress, kTurnInternalPort};
       static const rtc::SocketAddress turn_server_external_address{
@@ -299,10 +289,10 @@ class PeerConnectionRampUpTest : public ::testing::Test {
         ImprovementDirection::kNeitherIsBetter);
   }
 
-  rtc::Thread* network_thread() { return network_thread_.get(); }
+  rtc::Thread* network_thread() { return &network_thread_; }
 
   rtc::FirewallSocketServer* firewall_socket_server() {
-    return firewall_socket_server_.get();
+    return &firewall_socket_server_;
   }
 
   PeerConnectionWrapperForRampUpTest* caller() { return caller_.get(); }
@@ -353,16 +343,12 @@ class PeerConnectionRampUpTest : public ::testing::Test {
   // the VirtualSocketServer. The first ramp down time is very noisy and the
   // second ramp up time can take up to 300 seconds, most likely due to a built
   // up queue.
-  std::unique_ptr<rtc::VirtualSocketServer> virtual_socket_server_;
-  std::unique_ptr<rtc::FirewallSocketServer> firewall_socket_server_;
-  std::unique_ptr<rtc::BasicPacketSocketFactory> firewall_socket_factory_;
+  rtc::VirtualSocketServer virtual_socket_server_;
+  rtc::FirewallSocketServer firewall_socket_server_;
 
-  std::unique_ptr<rtc::Thread> network_thread_;
+  rtc::Thread network_thread_;
   std::unique_ptr<rtc::Thread> worker_thread_;
-  // The `pc_factory` uses `network_thread_` & `worker_thread_`, so it must be
-  // destroyed first.
-  std::vector<std::unique_ptr<rtc::FakeNetworkManager>> fake_network_managers_;
-  rtc::scoped_refptr<PeerConnectionFactoryInterface> pc_factory_;
+
   std::unique_ptr<PeerConnectionWrapperForRampUpTest> caller_;
   std::unique_ptr<PeerConnectionWrapperForRampUpTest> callee_;
 };

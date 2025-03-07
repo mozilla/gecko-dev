@@ -98,10 +98,10 @@ index 0ab676a9cd..529246c354 100644
        }
      }
 diff --git a/pc/peer_connection_integrationtest.cc b/pc/peer_connection_integrationtest.cc
-index 7b6517c9e4..20b91f6892 100644
+index 20643c2f29..ce02e516e8 100644
 --- a/pc/peer_connection_integrationtest.cc
 +++ b/pc/peer_connection_integrationtest.cc
-@@ -4733,6 +4733,50 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
+@@ -4731,6 +4731,50 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
    EXPECT_LT(metrics::MinSample("WebRTC.Call.AbsCapture.Offset"), 2);
  }
  
@@ -153,10 +153,10 @@ index 7b6517c9e4..20b91f6892 100644
  
  }  // namespace webrtc
 diff --git a/pc/test/integration_test_helpers.h b/pc/test/integration_test_helpers.h
-index a23da7cfa3..8c68a4387c 100644
+index 0b7c8b5de0..9aa72883d6 100644
 --- a/pc/test/integration_test_helpers.h
 +++ b/pc/test/integration_test_helpers.h
-@@ -748,6 +748,30 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
+@@ -746,6 +746,30 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
      });
    }
  
@@ -187,7 +187,7 @@ index a23da7cfa3..8c68a4387c 100644
   private:
    // Constructor used by friend class PeerConnectionIntegrationBaseTest.
    explicit PeerConnectionIntegrationWrapper(const std::string& debug_name)
-@@ -870,29 +894,6 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
+@@ -868,29 +892,6 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
      return description;
    }
  

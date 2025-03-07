@@ -63,7 +63,6 @@
 #include "p2p/base/fake_ice_transport.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/port.h"
-#include "p2p/base/port_allocator.h"
 #include "p2p/base/port_interface.h"
 #include "p2p/base/test_turn_customizer.h"
 #include "p2p/base/test_turn_server.h"
@@ -645,9 +644,8 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   }
 
   rtc::FakeNetworkManager* network_manager() const {
-    return fake_network_manager_.get();
+    return fake_network_manager_;
   }
-  cricket::PortAllocator* port_allocator() const { return port_allocator_; }
 
   FakeRtcEventLogFactory* event_log_factory() const {
     return event_log_factory_;
@@ -1121,8 +1119,8 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
 
   std::string debug_name_;
 
-  std::unique_ptr<rtc::FakeNetworkManager> fake_network_manager_;
-  std::unique_ptr<rtc::BasicPacketSocketFactory> socket_factory_;
+  // Network manager is owned by the `peer_connection_factory_`.
+  rtc::FakeNetworkManager* fake_network_manager_ = nullptr;
   rtc::Thread* network_thread_;
 
   // Reference to the mDNS responder owned by `fake_network_manager_` after set.
@@ -1131,7 +1129,6 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   rtc::scoped_refptr<PeerConnectionInterface> peer_connection_;
   rtc::scoped_refptr<PeerConnectionFactoryInterface> peer_connection_factory_;
 
-  cricket::PortAllocator* port_allocator_;
   // Needed to keep track of number of frames sent.
   rtc::scoped_refptr<FakeAudioCaptureModule> fake_audio_capture_module_;
   // Needed to keep track of number of frames received.
@@ -1708,15 +1705,6 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
     PeerConnectionIntegrationWrapper* old = callee_.release();
     callee_.reset(wrapper);
     return old;
-  }
-
-  void SetPortAllocatorFlags(uint32_t caller_flags, uint32_t callee_flags) {
-    SendTask(network_thread(), [this, caller_flags] {
-      caller()->port_allocator()->set_flags(caller_flags);
-    });
-    SendTask(network_thread(), [this, callee_flags] {
-      callee()->port_allocator()->set_flags(callee_flags);
-    });
   }
 
   rtc::FirewallSocketServer* firewall() const { return fss_.get(); }

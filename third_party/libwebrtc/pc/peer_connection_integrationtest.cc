@@ -1910,6 +1910,7 @@ TEST_P(PeerConnectionIntegrationTest,
   PeerConnectionInterface::RTCConfiguration config;
   config.bundle_policy = PeerConnectionInterface::kBundlePolicyMaxBundle;
   config.rtcp_mux_policy = PeerConnectionInterface::kRtcpMuxPolicyRequire;
+  config.port_allocator_config.flags = kOnlyLocalPorts;
 
   ASSERT_TRUE(CreatePeerConnectionWrappersWithConfigAndDeps(
       config, std::move(caller_deps), config, std::move(callee_deps)));
@@ -1926,8 +1927,6 @@ TEST_P(PeerConnectionIntegrationTest,
       std::make_unique<FakeMdnsResponder>(network_thread()));
   callee()->SetMdnsResponder(
       std::make_unique<FakeMdnsResponder>(network_thread()));
-
-  SetPortAllocatorFlags(kOnlyLocalPorts, kOnlyLocalPorts);
 
   ConnectFakeSignaling();
   caller()->AddAudioVideoTracks();
@@ -1976,11 +1975,6 @@ class PeerConnectionIntegrationIceStatesTest
     return (port_allocator_flags_ & cricket::PORTALLOCATOR_ENABLE_IPV6);
   }
 
-  void SetPortAllocatorFlags() {
-    PeerConnectionIntegrationBaseTest::SetPortAllocatorFlags(
-        port_allocator_flags_, port_allocator_flags_);
-  }
-
   std::vector<SocketAddress> CallerAddresses() {
     std::vector<SocketAddress> addresses;
     addresses.push_back(SocketAddress("1.1.1.1", 0));
@@ -2013,6 +2007,8 @@ class PeerConnectionIntegrationIceStatesTest
     }
   }
 
+  uint32_t port_allocator_flags() const { return port_allocator_flags_; }
+
  private:
   uint32_t port_allocator_flags_;
   cricket::TestStunServer::StunServerPtr stun_server_;
@@ -2036,9 +2032,10 @@ TEST_P(PeerConnectionIntegrationIceStatesTestWithFakeClock,
     firewall()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, caller_address);
   }
 
-  ASSERT_TRUE(CreatePeerConnectionWrappers());
+  PeerConnectionInterface::RTCConfiguration config;
+  config.port_allocator_config.flags = port_allocator_flags();
+  ASSERT_TRUE(CreatePeerConnectionWrappersWithConfig(config, config));
   ConnectFakeSignaling();
-  SetPortAllocatorFlags();
   SetUpNetworkInterfaces();
   caller()->AddAudioVideoTracks();
   caller()->CreateAndSetAndSignalOffer();
@@ -2066,9 +2063,10 @@ TEST_P(PeerConnectionIntegrationIceStatesTestWithFakeClock,
 #define MAYBE_VerifyBestConnection VerifyBestConnection
 #endif
 TEST_P(PeerConnectionIntegrationIceStatesTest, MAYBE_VerifyBestConnection) {
-  ASSERT_TRUE(CreatePeerConnectionWrappers());
+  PeerConnectionInterface::RTCConfiguration config;
+  config.port_allocator_config.flags = port_allocator_flags();
+  ASSERT_TRUE(CreatePeerConnectionWrappersWithConfig(config, config));
   ConnectFakeSignaling();
-  SetPortAllocatorFlags();
   SetUpNetworkInterfaces();
   caller()->AddAudioVideoTracks();
   callee()->AddAudioVideoTracks();
