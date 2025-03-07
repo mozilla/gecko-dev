@@ -57,8 +57,6 @@ skip-if = [
 
 ["browser_feature_callout_panel.js"]
 
-["browser_foxdoodle_set_default.js"]
-
 ["browser_multistage_spotlight.js"]
 
 ["browser_multistage_spotlight_telemetry.js"]

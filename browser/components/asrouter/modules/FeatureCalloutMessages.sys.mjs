@@ -181,8 +181,7 @@ const MESSAGES = () => {
       },
       targeting:
         "(region in ['CA', 'US']) && isFxASignedIn && previousSessionEnd && !willShowDefaultPrompt && !activeNotifications && userPrefs.cfrFeatures && !(sync || {}).mobileDevices",
-      skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+      skip_in_tests: "it's not tested in automation",
     },
     {
       id: "DESKTOP_TO_MOBILE_ADOPTION_SIGNED_INTO_ACCOUNT_EU",
@@ -282,8 +281,7 @@ const MESSAGES = () => {
       },
       targeting:
         "(locale in ['de', 'en-CA', 'en-GB', 'en-US', 'fr']) && (region in ['DE', 'FR', 'GB']) && isFxASignedIn && previousSessionEnd && !willShowDefaultPrompt && !activeNotifications && userPrefs.cfrFeatures && !(sync || {}).mobileDevices",
-      skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+      skip_in_tests: "it's not tested in automation",
     },
     // Appears the first time a user uses the "save and close" action on a tab group,
     // anchored to the alltabs-button. Will only show if at least an hour has passed
@@ -344,8 +342,7 @@ const MESSAGES = () => {
       frequency: {
         lifetime: 1,
       },
-      skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+      skip_in_tests: "it's not tested in automation",
     },
     // Appears the first time a user uses the "save and close" action on a tab group,
     // if the alltabs-button has been removed. Anchored to the urlbar. Will only show
@@ -408,8 +405,7 @@ const MESSAGES = () => {
       frequency: {
         lifetime: 1,
       },
-      skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+      skip_in_tests: "it's not tested in automation",
     },
     // Appears the first time a user creates a tab group, after clicking the "Done"
     // button. Anchored to the alltabs-button. Will only show if the SAVE_TAB_GROUP
@@ -471,8 +467,7 @@ const MESSAGES = () => {
       frequency: {
         lifetime: 1,
       },
-      skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+      skip_in_tests: "it's not tested in automation",
     },
     // Appears the first time a user creates a tab group, after clicking the "Done"
     // button, if the alltabs-button has been removed. Anchored to the urlbar. Will
@@ -535,8 +530,7 @@ const MESSAGES = () => {
       frequency: {
         lifetime: 1,
       },
-      skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+      skip_in_tests: "it's not tested in automation",
     },
     {
       id: "FAKESPOT_CALLOUT_OPTED_OUT_SURVEY",
@@ -812,8 +806,7 @@ const MESSAGES = () => {
         id: "preferenceObserver",
         params: ["browser.shopping.experience2023.optedIn"],
       },
-      skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+      skip_in_tests: "it's not tested in automation",
     },
     {
       id: "ADDONS_STAFF_PICK_PT_2",
@@ -1464,7 +1457,7 @@ const MESSAGES = () => {
       trigger: { id: "shoppingProductPageWithSidebarClosed" },
       frequency: { lifetime: 1 },
       skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+        "it's not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       // "Callout 3" in the Fakespot Figma spec, but
@@ -1632,7 +1625,7 @@ const MESSAGES = () => {
         lifetime: 3,
       },
       skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+        "it's not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       // "Callout 3" in the Review Checker Integrated Sidebar Migration Figma spec
@@ -1887,7 +1880,7 @@ const MESSAGES = () => {
         lifetime: 3,
       },
       skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+        "it's not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       // "Callout 3" in the Review Checker Integrated Sidebar Migration Figma spec
@@ -2142,7 +2135,7 @@ const MESSAGES = () => {
         lifetime: 3,
       },
       skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+        "it's not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       // "Callout 4" in the Fakespot Figma spec, for rediscoverability experiment 2.
@@ -2220,7 +2213,7 @@ const MESSAGES = () => {
       },
       frequency: { lifetime: 1 },
       skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+        "it's not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       // "Callout 5" in the Fakespot Figma spec, for rediscoverability experiment 2.
@@ -2298,7 +2291,7 @@ const MESSAGES = () => {
       },
       frequency: { lifetime: 1 },
       skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+        "it's not tested in automation and might pop up unexpectedly during review checker tests",
     },
 
     // cookie banner reduction onboarding
@@ -2443,7 +2436,7 @@ const MESSAGES = () => {
       trigger: { id: "reviewCheckerSidebarClosedCallout" },
       frequency: { lifetime: 1 },
       skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+        "it's not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       // "Callout 4A" in the Reivew Checker Sidebar Migration Figma spec
@@ -2514,7 +2507,7 @@ const MESSAGES = () => {
       trigger: { id: "reviewCheckerSidebarClosedCallout" },
       frequency: { lifetime: 1 },
       skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+        "it's not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       // "Callout 4B" in the Review Checker Sidebar Migration Figma spec
@@ -2569,7 +2562,7 @@ const MESSAGES = () => {
       },
       frequency: { lifetime: 1 },
       skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+        "it's not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       // "Callout 5" in the Review Checker Sidebar Migration Figma spec
@@ -2640,7 +2633,7 @@ const MESSAGES = () => {
       },
       frequency: { lifetime: 1 },
       skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+        "it's not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       // "Callout 5" in the Review Checker Sidebar Migration Figma spec
@@ -2711,7 +2704,7 @@ const MESSAGES = () => {
       },
       frequency: { lifetime: 1 },
       skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+        "it's not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       // "Callout 6" in the Review Checker Figma spec
@@ -2782,7 +2775,7 @@ const MESSAGES = () => {
       },
       frequency: { lifetime: 1 },
       skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+        "it's not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       // "Callout 6" in the Review Checker Figma spec
@@ -2853,7 +2846,7 @@ const MESSAGES = () => {
       },
       frequency: { lifetime: 1 },
       skip_in_tests:
-        "not tested in automation and might pop up unexpectedly during review checker tests",
+        "it's not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       id: "FX_VIEW_DISCOVERABILITY_ALL_USERS",
@@ -3007,7 +3000,7 @@ const MESSAGES = () => {
       frequency: {
         lifetime: 1,
       },
-      skip_in_tests: "not tested in automation",
+      skip_in_tests: "it's not tested in automation",
       targeting:
         "!isMajorUpgrade && !willShowDefaultPrompt && !activeNotifications && previousSessionEnd && fxViewButtonAreaType != null && tabsClosedCount >= 5 && (currentDate|date - profileAgeCreated|date) / 86400000 >= 7 && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false",
       trigger: {

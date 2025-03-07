@@ -1358,7 +1358,7 @@ const BASE_MESSAGES = () => [
       delay: 1000,
       target: "fxa-toolbar-menu-button",
     },
-    skip_in_tests: "covered by browser_asrouter_toolbarbadge.js",
+    skip_in_tests: "it's covered by browser_asrouter_toolbarbadge.js",
     targeting:
       "source == 'newtab' && !hasAccessedFxAPanel && !usesFirefoxSync && isFxAEnabled && !isFxASignedIn",
     trigger: {
