@@ -296,11 +296,6 @@ windows11-64-2009-devedition-qr/opt:
         - web-platform-tests
         - windows11-2009-tests
 
-windows11-64-2009-asan-qr/opt:
-    build-platform: win64-asan/opt
-    test-sets:
-        - windows11-2009-tests
-
 windows11-64-2009-mingwclang-qr/debug:
     build-platform: win64-mingwclang/debug
     test-sets:
@@ -314,21 +309,6 @@ windows11-64-2009-mingwclang-qr/opt:
 
 ##
 # MacOS X platforms (matching /macosx.*/)
-
-macosx1100-64-qr/debug:
-    build-platform: macosx64/debug
-    build-signing-label: repackage-macosx64/debug
-    test-sets:
-        - macosx1100-64-jittests
-
-macosx1100-64-shippable-qr/opt:
-    build-platform: macosx64-shippable/opt
-    build-signing-label: repackage-macosx64-shippable/opt
-    test-sets:
-        - macosx1100-64-jittests
-        - macosx1100-64-qr-tests
-        # - macosx64-talos
-        # - browsertime-high-priority
 
 macosx1015-64-shippable-qr/opt:
     build-platform: macosx64-shippable/opt

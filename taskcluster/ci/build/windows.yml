@@ -1118,7 +1118,6 @@ win64-asan/opt:
         max-run-time: 7200
         env:
             PERFHERDER_EXTRA_OPTIONS: "opt asan"
-            MOZ_AUTOMATION_PACKAGE_TESTS: "1"
     run:
         actions: [get-secrets, build]
         options: [append-env-variables-from-configs]
