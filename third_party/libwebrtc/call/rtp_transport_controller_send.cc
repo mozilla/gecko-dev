@@ -396,6 +396,10 @@ void RtpTransportControllerSend::OnNetworkRouteChanged(
 
     env_.event_log().Log(std::make_unique<RtcEventRouteChange>(
         network_route.connected, network_route.packet_overhead));
+    if (transport_maybe_support_ecn_) {
+      sending_packets_as_ect1_ = true;
+      packet_router_.ConfigureForRfc8888Feedback(sending_packets_as_ect1_);
+    }
     NetworkRouteChange msg;
     msg.at_time = Timestamp::Millis(env_.clock().TimeInMilliseconds());
     msg.constraints = ConvertConstraints(bitrate_config, &env_.clock());
@@ -638,8 +642,9 @@ void RtpTransportControllerSend::NotifyBweOfPacedSentPacket(
 void RtpTransportControllerSend::
     EnableCongestionControlFeedbackAccordingToRfc8888() {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
-  transport_is_ecn_capable_ = true;
-  packet_router_.ConfigureForRfc8888Feedback(transport_is_ecn_capable_);
+  transport_maybe_support_ecn_ = true;
+  sending_packets_as_ect1_ = true;
+  packet_router_.ConfigureForRfc8888Feedback(sending_packets_as_ect1_);
 }
 
 void RtpTransportControllerSend::OnTransportFeedback(
@@ -674,15 +679,15 @@ void RtpTransportControllerSend::OnCongestionControlFeedback(
 
 void RtpTransportControllerSend::HandleTransportPacketsFeedback(
     const TransportPacketsFeedback& feedback) {
-  if (transport_is_ecn_capable_) {
+  if (sending_packets_as_ect1_) {
     // If transport does not support ECN, packets should not be sent as ECT(1).
     // TODO: bugs.webrtc.org/42225697 - adapt to ECN feedback and continue to
     // send packets as ECT(1) if transport is ECN capable.
-    transport_is_ecn_capable_ = false;
+    sending_packets_as_ect1_ = false;
     RTC_LOG(LS_INFO) << " Transport is "
                      << (feedback.transport_supports_ecn ? "" : " not ")
                      << " ECN capable. Stop sending ECT(1).";
-    packet_router_.ConfigureForRfc8888Feedback(transport_is_ecn_capable_);
+    packet_router_.ConfigureForRfc8888Feedback(sending_packets_as_ect1_);
   }
   if (controller_)
     PostUpdates(controller_->OnTransportPacketsFeedback(feedback));

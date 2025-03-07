@@ -276,9 +276,95 @@ TEST(L4STest, SendsEct1UntilFirstFeedback) {
   // Wait for first feedback where packets have been sent with ECT(1). Then
   // feedback for packets sent as not ECT since currently webrtc does not
   // implement adaptation to ECN.
-  s.WaitAndProcess(&seen_ect1_feedback, TimeDelta::Seconds(1));
+  EXPECT_TRUE(s.WaitAndProcess(&seen_ect1_feedback, TimeDelta::Seconds(1)));
   EXPECT_FALSE(seen_not_ect_feedback);
-  s.WaitAndProcess(&seen_not_ect_feedback, TimeDelta::Seconds(1));
+  EXPECT_TRUE(s.WaitAndProcess(&seen_not_ect_feedback, TimeDelta::Seconds(1)));
+}
+
+TEST(L4STest, SendsEct1AfterRouteChange) {
+  test::ScopedFieldTrials trials(
+      "WebRTC-RFC8888CongestionControlFeedback/Enabled/");
+  PeerScenario s(*test_info_);
+
+  PeerScenarioClient::Config config;
+  config.disable_encryption = true;
+  config.endpoints = {{0, {.type = rtc::AdapterType::ADAPTER_TYPE_WIFI}}};
+  PeerScenarioClient* caller = s.CreateClient(config);
+  // Callee has booth wifi and cellular adapters.
+  config.endpoints = {{0, {.type = rtc::AdapterType::ADAPTER_TYPE_WIFI}},
+                      {1, {.type = rtc::AdapterType::ADAPTER_TYPE_CELLULAR}}};
+  PeerScenarioClient* callee = s.CreateClient(config);
+
+  // Create network path from caller to callee.
+  auto caller_to_callee = s.net()->NodeBuilder().Build().node;
+  auto callee_to_caller_wifi = s.net()->NodeBuilder().Build().node;
+  auto callee_to_caller_cellular = s.net()->NodeBuilder().Build().node;
+  s.net()->CreateRoute(caller->endpoint(0), {caller_to_callee},
+                       callee->endpoint(0));
+  s.net()->CreateRoute(caller->endpoint(0), {caller_to_callee},
+                       callee->endpoint(1));
+  s.net()->CreateRoute(callee->endpoint(0), {callee_to_caller_wifi},
+                       caller->endpoint(0));
+  s.net()->CreateRoute(callee->endpoint(1), {callee_to_caller_cellular},
+                       caller->endpoint(0));
+
+  RtcpFeedbackCounter wifi_feedback_counter;
+  std::atomic<bool> seen_ect1_on_wifi_feedback = false;
+  std::atomic<bool> seen_not_ect_on_wifi_feedback = false;
+  callee_to_caller_wifi->router()->SetWatcher(
+      [&](const EmulatedIpPacket& packet) {
+        wifi_feedback_counter.Count(packet);
+        if (wifi_feedback_counter.ect1() > 0) {
+          seen_ect1_on_wifi_feedback = true;
+          RTC_LOG(LS_INFO) << " ect 1 feedback on wifi: "
+                           << wifi_feedback_counter.ect1();
+        }
+        if (wifi_feedback_counter.not_ect() > 0) {
+          seen_not_ect_on_wifi_feedback = true;
+          RTC_LOG(LS_INFO) << " not ect feedback on wifi: "
+                           << wifi_feedback_counter.not_ect();
+        }
+      });
+
+  auto signaling = s.ConnectSignaling(caller, callee, {caller_to_callee},
+                                      {callee_to_caller_wifi});
+  PeerScenarioClient::VideoSendTrackConfig video_conf;
+  video_conf.generator.squares_video->framerate = 15;
+
+  caller->CreateVideo("VIDEO_1", video_conf);
+  signaling.StartIceSignaling();
+
+  std::atomic<bool> offer_exchange_done(false);
+  signaling.NegotiateSdp([&](const SessionDescriptionInterface& answer) {
+    offer_exchange_done = true;
+  });
+  s.WaitAndProcess(&offer_exchange_done);
+
+  // Wait for first feedback where packets have been sent with ECT(1). Then
+  // feedback for packets sent as not ECT since currently webrtc does not
+  // implement adaptation to ECN.
+  EXPECT_TRUE(
+      s.WaitAndProcess(&seen_ect1_on_wifi_feedback, TimeDelta::Seconds(1)));
+  EXPECT_FALSE(seen_not_ect_on_wifi_feedback);
+  EXPECT_TRUE(
+      s.WaitAndProcess(&seen_not_ect_on_wifi_feedback, TimeDelta::Seconds(1)));
+
+  RtcpFeedbackCounter cellular_feedback_counter;
+  std::atomic<bool> seen_ect1_on_cellular_feedback = false;
+  callee_to_caller_cellular->router()->SetWatcher(
+      [&](const EmulatedIpPacket& packet) {
+        cellular_feedback_counter.Count(packet);
+        if (cellular_feedback_counter.ect1() > 0) {
+          seen_ect1_on_cellular_feedback = true;
+          RTC_LOG(LS_INFO) << " ect 1 feedback on cellular: "
+                           << cellular_feedback_counter.ect1();
+        }
+      });
+  // Disable callees wifi and expect that the connection switch to cellular and
+  // sends packets with ECT(1) again.
+  s.net()->DisableEndpoint(callee->endpoint(0));
+  EXPECT_TRUE(
+      s.WaitAndProcess(&seen_ect1_on_cellular_feedback, TimeDelta::Seconds(5)));
 }
 
 }  // namespace
