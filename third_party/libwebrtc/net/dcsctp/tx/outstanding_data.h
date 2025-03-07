@@ -101,7 +101,11 @@ class OutstandingData {
   // it?
   std::vector<std::pair<TSN, Data>> GetChunksToBeRetransmitted(size_t max_size);
 
-  size_t unacked_bytes() const { return unacked_bytes_; }
+  // How many inflight bytes there are, as sent on the wire as packets.
+  size_t unacked_packet_bytes() const { return unacked_packet_bytes_; }
+
+  // How many inflight bytes there are, counting only the payload.
+  size_t unacked_payload_bytes() const { return unacked_payload_bytes_; }
 
   // Returns the number of DATA chunks that are in-flight (not acked or nacked).
   size_t unacked_items() const { return unacked_items_; }
@@ -358,8 +362,10 @@ class OutstandingData {
   // `TSN=last_cumulative_tsn_ack_ + 1` and the following items are in strict
   // increasing TSN order. The last item has `TSN=highest_outstanding_tsn()`.
   std::deque<Item> outstanding_data_;
-  // The number of bytes that are in-flight (sent but not yet acked or nacked).
-  size_t unacked_bytes_ = 0;
+  // The number of bytes that are in-flight, counting only the payload.
+  size_t unacked_payload_bytes_ = 0;
+  // The number of bytes that are in-flight, as sent on the wire (as packets).
+  size_t unacked_packet_bytes_ = 0;
   // The number of DATA chunks that are in-flight (sent but not yet acked or
   // nacked).
   size_t unacked_items_ = 0;

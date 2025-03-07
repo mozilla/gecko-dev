@@ -1735,7 +1735,7 @@ void DcSctpSocket::HandleForwardTsnCommon(const AnyForwardTsnChunk& chunk) {
 }
 
 void DcSctpSocket::MaybeSendShutdownOrAck() {
-  if (tcb_->retransmission_queue().unacked_bytes() != 0) {
+  if (tcb_->retransmission_queue().unacked_items() != 0) {
     return;
   }
 
