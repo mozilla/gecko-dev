@@ -13,12 +13,21 @@
 
 #include <cstdint>
 
-namespace rtc {
+namespace webrtc {
 
 // Returns the actual system time, even if a clock is set for testing.
 // Useful for timeouts while using a test clock, or for logging.
 int64_t SystemTimeNanos();
 
-}  // namespace rtc
+}  // namespace webrtc
+
+// TODO(bugs.webrtc.org/4222596): Remove once Chrome has migrated.
+#define RTC_SYSTEM_TIME_IN_WEBRTC_NAMESPACE 1
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::SystemTimeNanos;
+}
 
 #endif  // RTC_BASE_SYSTEM_TIME_H_

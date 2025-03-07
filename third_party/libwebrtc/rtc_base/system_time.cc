@@ -40,7 +40,7 @@
 #include "rtc_base/system_time.h"
 #include "rtc_base/time_utils.h"
 
-namespace rtc {
+namespace webrtc {
 
 int64_t SystemTimeNanos() {
   int64_t ticks;
@@ -66,7 +66,7 @@ int64_t SystemTimeNanos() {
   // TODO(deadbeef): Do we need to handle the case when CLOCK_MONOTONIC is not
   // supported?
   clock_gettime(CLOCK_MONOTONIC, &ts);
-  ticks = kNumNanosecsPerSec * static_cast<int64_t>(ts.tv_sec) +
+  ticks = rtc::kNumNanosecsPerSec * static_cast<int64_t>(ts.tv_sec) +
           static_cast<int64_t>(ts.tv_nsec);
 #elif defined(WINUWP)
   ticks = WinUwpSystemTimeNanos();
@@ -92,7 +92,7 @@ int64_t SystemTimeNanos() {
   ticks = now + (num_wrap_timegettime << 32);
   // TODO(deadbeef): Calculate with nanosecond precision. Otherwise, we're
   // just wasting a multiply and divide when doing Time() on Windows.
-  ticks = ticks * kNumNanosecsPerMillisec;
+  ticks = ticks * rtc::kNumNanosecsPerMillisec;
 #pragma clang diagnostic pop
 #else
 #error Unsupported platform.
@@ -100,5 +100,5 @@ int64_t SystemTimeNanos() {
   return ticks;
 }
 
-}  // namespace rtc
+}  // namespace webrtc
 #endif  // WEBRTC_EXCLUDE_SYSTEM_TIME
