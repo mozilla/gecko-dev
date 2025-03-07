@@ -84,6 +84,7 @@ using ::testing::SaveArg;
 using ::testing::SizeIs;
 
 const int8_t kPayloadType = 96;
+const int8_t kPayloadType2 = 98;
 const uint32_t kSsrc1 = 12345;
 const uint32_t kSsrc2 = 23456;
 const uint32_t kRtxSsrc1 = 34567;
@@ -133,7 +134,8 @@ VideoSendStream::Config CreateVideoSendStreamConfig(
     Transport* transport,
     const std::vector<uint32_t>& ssrcs,
     const std::vector<uint32_t>& rtx_ssrcs,
-    int payload_type) {
+    int payload_type,
+    rtc::ArrayView<const int> payload_types) {
   VideoSendStream::Config config(transport);
   config.rtp.ssrcs = ssrcs;
   config.rtp.rtx.ssrcs = rtx_ssrcs;
@@ -145,6 +147,20 @@ VideoSendStream::Config CreateVideoSendStreamConfig(
   config.rtp.extensions.emplace_back(RtpDependencyDescriptorExtension::Uri(),
                                      kDependencyDescriptorExtensionId);
   config.rtp.extmap_allow_mixed = true;
+
+  if (!payload_types.empty()) {
+    RTC_CHECK_EQ(payload_types.size(), ssrcs.size());
+    for (size_t i = 0; i < ssrcs.size(); ++i) {
+      auto& stream_config = config.rtp.stream_configs.emplace_back();
+      stream_config.ssrc = ssrcs[i];
+      stream_config.payload_type = payload_types[i];
+      if (i < rtx_ssrcs.size()) {
+        auto& rtx = stream_config.rtx.emplace();
+        rtx.ssrc = rtx_ssrcs[i];
+        rtx.payload_type = payload_types[i] + 1;
+      }
+    }
+  }
   return config;
 }
 
@@ -157,6 +173,7 @@ class RtpVideoSenderTestFixture {
       const std::map<uint32_t, RtpPayloadState>& suspended_payload_states,
       FrameCountObserver* frame_count_observer,
       rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
+      const std::vector<int>& payload_types,
       const FieldTrialsView* field_trials = nullptr)
       : time_controller_(Timestamp::Millis(1000000)),
         env_(CreateEnvironment(&field_trials_,
@@ -166,7 +183,8 @@ class RtpVideoSenderTestFixture {
         config_(CreateVideoSendStreamConfig(&transport_,
                                             ssrcs,
                                             rtx_ssrcs,
-                                            payload_type)),
+                                            payload_type,
+                                            payload_types)),
         bitrate_config_(GetBitrateConfig()),
         transport_controller_(
             RtpTransportConfig{.env = env_, .bitrate_config = bitrate_config_}),
@@ -188,6 +206,22 @@ class RtpVideoSenderTestFixture {
         std::make_unique<FecControllerDefault>(env_), nullptr, CryptoOptions{},
         frame_transformer);
   }
+  RtpVideoSenderTestFixture(
+      const std::vector<uint32_t>& ssrcs,
+      const std::vector<uint32_t>& rtx_ssrcs,
+      int payload_type,
+      const std::map<uint32_t, RtpPayloadState>& suspended_payload_states,
+      FrameCountObserver* frame_count_observer,
+      rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
+      const FieldTrialsView* field_trials = nullptr)
+      : RtpVideoSenderTestFixture(ssrcs,
+                                  rtx_ssrcs,
+                                  payload_type,
+                                  suspended_payload_states,
+                                  frame_count_observer,
+                                  frame_transformer,
+                                  /*payload_types=*/{},
+                                  field_trials) {}
 
   RtpVideoSenderTestFixture(
       const std::vector<uint32_t>& ssrcs,
@@ -202,6 +236,7 @@ class RtpVideoSenderTestFixture {
                                   suspended_payload_states,
                                   frame_count_observer,
                                   /*frame_transformer=*/nullptr,
+                                  /*payload_types=*/{},
                                   field_trials) {}
 
   RtpVideoSenderTestFixture(
@@ -216,6 +251,7 @@ class RtpVideoSenderTestFixture {
                                   suspended_payload_states,
                                   /*frame_count_observer=*/nullptr,
                                   /*frame_transformer=*/nullptr,
+                                  /*payload_types=*/{},
                                   field_trials) {}
 
   ~RtpVideoSenderTestFixture() { SetSending(false); }
@@ -951,6 +987,79 @@ TEST(RtpVideoSenderTest,
       sent_packets[1].GetExtension<RtpDependencyDescriptorExtension>(&dd_s1));
   EXPECT_EQ(dd_s0.frame_number(), 1001);
   EXPECT_EQ(dd_s1.frame_number(), 1002);
+}
+
+TEST(RtpVideoSenderTest, MixedCodecSimulcastPayloadType) {
+  // When multiple payload types are set, verify that the payload type switches
+  // corresponding to the simulcast index.
+  RtpVideoSenderTestFixture test({kSsrc1, kSsrc2}, {kRtxSsrc1, kRtxSsrc2},
+                                 kPayloadType, {}, nullptr, nullptr,
+                                 {kPayloadType, kPayloadType2});
+  test.SetSending(true);
+
+  std::vector<uint16_t> rtp_sequence_numbers;
+  std::vector<RtpPacket> sent_packets;
+  EXPECT_CALL(test.transport(), SendRtp)
+      .Times(3)
+      .WillRepeatedly([&](rtc::ArrayView<const uint8_t> packet,
+                          const PacketOptions& options) -> bool {
+        RtpPacket& rtp_packet = sent_packets.emplace_back();
+        EXPECT_TRUE(rtp_packet.Parse(packet));
+        rtp_sequence_numbers.push_back(rtp_packet.SequenceNumber());
+        return true;
+      });
+
+  const uint8_t kPayload[1] = {'a'};
+  EncodedImage encoded_image;
+  encoded_image.SetEncodedData(
+      EncodedImageBuffer::Create(kPayload, sizeof(kPayload)));
+
+  CodecSpecificInfo codec_specific;
+  codec_specific.codecType = VideoCodecType::kVideoCodecVP8;
+
+  encoded_image.SetSimulcastIndex(0);
+  ASSERT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
+            EncodedImageCallback::Result::OK);
+  ASSERT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
+            EncodedImageCallback::Result::OK);
+  encoded_image.SetSimulcastIndex(1);
+  ASSERT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
+            EncodedImageCallback::Result::OK);
+
+  test.AdvanceTime(TimeDelta::Millis(33));
+  ASSERT_THAT(sent_packets, SizeIs(3));
+  EXPECT_EQ(sent_packets[0].PayloadType(), kPayloadType);
+  EXPECT_EQ(sent_packets[1].PayloadType(), kPayloadType);
+  EXPECT_EQ(sent_packets[2].PayloadType(), kPayloadType2);
+
+  // Verify that NACK is sent to the RTX payload type corresponding to the
+  // payload type.
+  rtcp::Nack nack1, nack2;
+  nack1.SetMediaSsrc(kSsrc1);
+  nack2.SetMediaSsrc(kSsrc2);
+  nack1.SetPacketIds({rtp_sequence_numbers[0], rtp_sequence_numbers[1]});
+  nack2.SetPacketIds({rtp_sequence_numbers[2]});
+  rtc::Buffer nack_buffer1 = nack1.Build();
+  rtc::Buffer nack_buffer2 = nack2.Build();
+
+  std::vector<RtpPacket> sent_rtx_packets;
+  EXPECT_CALL(test.transport(), SendRtp)
+      .Times(3)
+      .WillRepeatedly([&](rtc::ArrayView<const uint8_t> packet,
+                          const PacketOptions& options) {
+        RtpPacket& rtp_packet = sent_rtx_packets.emplace_back();
+        EXPECT_TRUE(rtp_packet.Parse(packet));
+        return true;
+      });
+  test.router()->DeliverRtcp(nack_buffer1.data(), nack_buffer1.size());
+  test.router()->DeliverRtcp(nack_buffer2.data(), nack_buffer2.size());
+
+  test.AdvanceTime(TimeDelta::Millis(33));
+
+  ASSERT_THAT(sent_rtx_packets, SizeIs(3));
+  EXPECT_EQ(sent_rtx_packets[0].PayloadType(), kPayloadType + 1);
+  EXPECT_EQ(sent_rtx_packets[1].PayloadType(), kPayloadType + 1);
+  EXPECT_EQ(sent_rtx_packets[2].PayloadType(), kPayloadType2 + 1);
 }
 
 TEST(RtpVideoSenderTest,

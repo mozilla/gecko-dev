@@ -4199,6 +4199,51 @@ TEST_P(PeerConnectionIntegrationTest, EndToEndRtpSenderVideoEncoderSelector) {
   EXPECT_TRUE(ExpectNewFrames(media_expectations));
 }
 
+TEST_P(PeerConnectionIntegrationTest,
+       EndToEndRtpSenderVideoEncoderSelectorSwitchCodec) {
+  ASSERT_TRUE(
+      CreateOneDirectionalPeerConnectionWrappers(/*caller_to_callee=*/true));
+  ConnectFakeSignaling();
+  // Add one-directional video, from caller to callee.
+  rtc::scoped_refptr<VideoTrackInterface> caller_track =
+      caller()->CreateLocalVideoTrack();
+  auto sender = caller()->AddTrack(caller_track);
+  PeerConnectionInterface::RTCOfferAnswerOptions options;
+  options.offer_to_receive_video = 0;
+  caller()->SetOfferAnswerOptions(options);
+  caller()->CreateAndSetAndSignalOffer();
+  ASSERT_THAT(
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
+      IsRtcOk());
+  ASSERT_EQ(callee()->pc()->GetReceivers().size(), 1u);
+
+  std::unique_ptr<MockEncoderSelector> encoder_selector =
+      std::make_unique<MockEncoderSelector>();
+  std::optional<SdpVideoFormat> next_format;
+  EXPECT_CALL(*encoder_selector, OnCurrentEncoder)
+      .WillOnce(::testing::Invoke([&](const SdpVideoFormat& format) {
+        EXPECT_EQ(format.name, "VP8");
+        next_format = SdpVideoFormat::VP9Profile0();
+      }))
+      .WillOnce(::testing::Invoke([&](const SdpVideoFormat& format) {
+        EXPECT_EQ(format.name, "VP9");
+      }));
+  EXPECT_CALL(*encoder_selector, OnAvailableBitrate)
+      .WillRepeatedly(
+          ::testing::Invoke([&](const DataRate& rate) { return next_format; }));
+
+  sender->SetEncoderSelector(std::move(encoder_selector));
+
+  // Expect video to be received in one direction.
+  MediaExpectations media_expectations;
+  media_expectations.CallerExpectsNoVideo();
+  media_expectations.CalleeExpectsSomeVideo();
+
+  EXPECT_TRUE(ExpectNewFrames(media_expectations));
+
+  caller()->pc()->Close();
+}
+
 int NacksReceivedCount(PeerConnectionIntegrationWrapper& pc) {
   rtc::scoped_refptr<const RTCStatsReport> report = pc.NewGetStats();
   auto sender_stats = report->GetStatsOfType<RTCOutboundRtpStreamStats>();

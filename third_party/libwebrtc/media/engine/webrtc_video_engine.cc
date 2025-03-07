@@ -783,6 +783,46 @@ int ParseReceiveBufferSize(const webrtc::FieldTrialsView& trials) {
   return size_bytes.Get();
 }
 
+webrtc::RTCError ResolveSendCodecs(
+    const VideoCodecSettings& current_codec,
+    const std::vector<VideoCodecSettings>& current_codecs,
+    const std::vector<webrtc::RtpEncodingParameters>& encodings,
+    const std::vector<VideoCodecSettings> negotiated_codecs,
+    std::vector<VideoCodecSettings>* resolved_codecs) {
+  RTC_DCHECK(resolved_codecs);
+  resolved_codecs->clear();
+  for (size_t i = 0; i < encodings.size(); i++) {
+    const std::optional<webrtc::RtpCodec>& requested_codec = encodings[i].codec;
+    std::optional<VideoCodecSettings> found_codec;
+    if (!requested_codec) {
+      found_codec = current_codec;
+    } else if (i < current_codecs.size()) {
+      const VideoCodecSettings& codec = current_codecs[i];
+      if (IsSameRtpCodecIgnoringLevel(codec.codec, *requested_codec)) {
+        found_codec = codec;
+      }
+    }
+    if (!found_codec) {
+      RTC_DCHECK(requested_codec);
+      auto matched_codec =
+          absl::c_find_if(negotiated_codecs, [&](auto negotiated_codec) {
+            return IsSameRtpCodecIgnoringLevel(negotiated_codec.codec,
+                                               *requested_codec);
+          });
+      if (matched_codec == negotiated_codecs.end()) {
+        return webrtc::RTCError(
+            webrtc::RTCErrorType::INVALID_MODIFICATION,
+            "Attempted to use an unsupported codec for layer " +
+                std::to_string(i));
+      }
+      found_codec = *matched_codec;
+    }
+    RTC_DCHECK(found_codec);
+    resolved_codecs->push_back(*found_codec);
+  }
+  return webrtc::RTCError::OK();
+}
+
 }  // namespace
 // --------------- WebRtcVideoEngine ---------------------------
 
@@ -1295,8 +1335,11 @@ bool WebRtcVideoSendChannel::ApplyChangedParams(
   if (changed_params.send_codec)
     send_codec() = changed_params.send_codec;
 
-  if (changed_params.send_codecs)
+  if (changed_params.send_codecs) {
     send_codecs_ = *changed_params.send_codecs;
+  } else {
+    send_codecs_.clear();
+  }
 
   if (changed_params.extmap_allow_mixed) {
     SetExtmapAllowMixed(*changed_params.extmap_allow_mixed);
@@ -1429,31 +1472,25 @@ webrtc::RTCError WebRtcVideoSendChannel::SetRtpSendParameters(
         break;
     }
 
-    // Since we validate that all layers have the same value, we can just check
-    // the first layer.
-    // TODO: https://issues.webrtc.org/362277533 - Support mixed-codec simulcast
-    if (parameters.encodings[0].codec && send_codec_ &&
-        !IsSameRtpCodecIgnoringLevel(send_codec_->codec,
-                                     *parameters.encodings[0].codec)) {
-      RTC_LOG(LS_VERBOSE) << "Trying to change codec to "
-                          << parameters.encodings[0].codec->name;
-      // Ignore level when matching negotiated codecs against the requested
-      // codec.
-      auto matched_codec =
-          absl::c_find_if(negotiated_codecs_, [&](auto negotiated_codec) {
-            return IsSameRtpCodecIgnoringLevel(negotiated_codec.codec,
-                                               *parameters.encodings[0].codec);
-          });
-      if (matched_codec == negotiated_codecs_.end()) {
-        return webrtc::InvokeSetParametersCallback(
-            callback, webrtc::RTCError(
-                          webrtc::RTCErrorType::INVALID_MODIFICATION,
-                          "Attempted to use an unsupported codec for layer 0"));
+    if (send_codec_ &&
+        std::any_of(parameters.encodings.begin(), parameters.encodings.end(),
+                    [](const auto& e) { return e.codec; })) {
+      std::vector<VideoCodecSettings> send_codecs;
+      auto error =
+          ResolveSendCodecs(*send_codec_, send_codecs_, parameters.encodings,
+                            negotiated_codecs_, &send_codecs);
+      if (!error.ok()) {
+        return webrtc::InvokeSetParametersCallback(callback, error);
       }
 
-      ChangedSenderParameters params;
-      params.send_codec = *matched_codec;
-      ApplyChangedParams(params);
+      if (send_codecs_ != send_codecs) {
+        ChangedSenderParameters params;
+        if (!send_codecs.empty()) {
+          params.send_codec = send_codecs[0];
+        }
+        params.send_codecs = send_codecs;
+        ApplyChangedParams(params);
+      }
     }
 
     SetPreferredDscp(new_dscp);
@@ -1993,7 +2030,9 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::SetCodec(
   parameters_.codec_settings = codec_settings;
 
   // Settings for mixed-codec simulcast.
-  if (!codec_settings_list.empty()) {
+  if (codec_settings_list.empty()) {
+    parameters_.config.rtp.stream_configs.clear();
+  } else {
     if (parameters_.config.rtp.ssrcs.size() == codec_settings_list.size()) {
       parameters_.config.rtp.stream_configs.resize(
           parameters_.config.rtp.ssrcs.size());
@@ -2072,7 +2111,8 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::SetSenderParameters(
   // Set codecs and options.
   if (params.send_codec) {
     SetCodec(*params.send_codec,
-             params.send_codecs.value_or(parameters_.codec_settings_list));
+             params.send_codecs.value_or(
+                 std::vector<cricket::VideoCodecSettings>()));
     recreate_stream = false;  // SetCodec has already recreated the stream.
   } else if (params.conference_mode && parameters_.codec_settings) {
     SetCodec(*parameters_.codec_settings, parameters_.codec_settings_list);

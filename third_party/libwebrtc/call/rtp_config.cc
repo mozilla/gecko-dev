@@ -239,4 +239,31 @@ std::optional<std::string> RtpConfig::GetRidForSsrc(uint32_t ssrc) const {
   return std::nullopt;
 }
 
+RtpStreamConfig RtpConfig::GetStreamConfig(size_t index) const {
+  // GetStreamConfig function usually returns stream_configs[index], but if
+  // stream_configs is not initialized (i.e., index >= stream_configs.size()),
+  // it creates and returns an RtpStreamConfig using fields such as ssrcs, rids,
+  // payload_name, and payload_type from RtpConfig.
+  RTC_DCHECK_LT(index, ssrcs.size());
+  if (index < stream_configs.size()) {
+    return stream_configs[index];
+  }
+  RtpStreamConfig stream_config;
+  stream_config.ssrc = ssrcs[index];
+  if (index < rids.size()) {
+    stream_config.rid = rids[index];
+  }
+  stream_config.payload_name = payload_name;
+  stream_config.payload_type = payload_type;
+  stream_config.raw_payload = raw_payload;
+  if (!rtx.ssrcs.empty()) {
+    RTC_DCHECK_EQ(ssrcs.size(), rtx.ssrcs.size());
+    auto& stream_config_rtx = stream_config.rtx.emplace();
+    stream_config_rtx.ssrc = rtx.ssrcs[index];
+    stream_config_rtx.payload_type = rtx.payload_type;
+  }
+
+  return stream_config;
+}
+
 }  // namespace webrtc
