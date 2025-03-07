@@ -128,10 +128,10 @@ index d119fdcecf..3ebfe1c742 100644
  
  }  // namespace webrtc
 diff --git a/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.h b/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.h
-index 3580d84402..e4a75a9734 100644
+index e44a62685e..0f50f92108 100644
 --- a/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.h
 +++ b/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.h
-@@ -60,6 +60,7 @@ class RTPSenderVideoFrameTransformerDelegate : public TransformedFrameCallback {
+@@ -67,6 +67,7 @@ class RTPSenderVideoFrameTransformerDelegate : public TransformedFrameCallback {
        RTPVideoFrameSenderInterface* sender,
        rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
        uint32_t ssrc,
@@ -139,7 +139,7 @@ index 3580d84402..e4a75a9734 100644
        TaskQueueFactory* send_transport_queue);
  
    void Init();
-@@ -108,6 +109,7 @@ class RTPSenderVideoFrameTransformerDelegate : public TransformedFrameCallback {
+@@ -115,6 +116,7 @@ class RTPSenderVideoFrameTransformerDelegate : public TransformedFrameCallback {
    RTPVideoFrameSenderInterface* sender_ RTC_GUARDED_BY(sender_lock_);
    rtc::scoped_refptr<FrameTransformerInterface> frame_transformer_;
    const uint32_t ssrc_;

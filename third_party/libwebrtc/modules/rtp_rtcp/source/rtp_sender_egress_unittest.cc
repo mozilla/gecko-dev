@@ -48,7 +48,6 @@ using ::testing::Eq;
 using ::testing::Field;
 using ::testing::InSequence;
 using ::testing::NiceMock;
-using ::testing::StrictMock;
 
 constexpr Timestamp kStartTime = Timestamp::Millis(123456789);
 constexpr int kDefaultPayloadType = 100;

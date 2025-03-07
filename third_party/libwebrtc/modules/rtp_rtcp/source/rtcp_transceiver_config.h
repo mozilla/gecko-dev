@@ -11,6 +11,9 @@
 #ifndef MODULES_RTP_RTCP_SOURCE_RTCP_TRANSCEIVER_CONFIG_H_
 #define MODULES_RTP_RTCP_SOURCE_RTCP_TRANSCEIVER_CONFIG_H_
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <string>
 
 #include "api/array_view.h"

@@ -10,39 +10,38 @@
 
 #include "modules/rtp_rtcp/source/rtp_sender.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
-#include "api/rtc_event_log/rtc_event.h"
 #include "api/rtp_packet_sender.h"
+#include "api/rtp_parameters.h"
 #include "api/units/frequency.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
-#include "api/video/video_codec_constants.h"
-#include "api/video/video_timing.h"
-#include "modules/rtp_rtcp/include/rtp_cvo.h"
-#include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
+#include "api/video/video_codec_type.h"
+#include "api/video/video_frame_type.h"
+#include "modules/rtp_rtcp/include/flexfec_sender.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/packet_sequencer.h"
 #include "modules/rtp_rtcp/source/rtp_format_video_generic.h"
-#include "modules/rtp_rtcp/source/rtp_generic_frame_descriptor.h"
-#include "modules/rtp_rtcp/source/rtp_generic_frame_descriptor_extension.h"
+#include "modules/rtp_rtcp/source/rtp_header_extension_size.h"
 #include "modules/rtp_rtcp/source/rtp_header_extensions.h"
-#include "modules/rtp_rtcp/source/rtp_packet_received.h"
+#include "modules/rtp_rtcp/source/rtp_packet_history.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
+#include "modules/rtp_rtcp/source/rtp_rtcp_interface.h"
 #include "modules/rtp_rtcp/source/rtp_sender_video.h"
 #include "modules/rtp_rtcp/source/video_fec_generator.h"
-#include "rtc_base/arraysize.h"
-#include "rtc_base/logging.h"
 #include "rtc_base/rate_limiter.h"
-#include "rtc_base/strings/string_builder.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
-#include "test/mock_transport.h"
 #include "test/time_controller/simulated_time_controller.h"
 
 namespace webrtc {
@@ -76,18 +75,14 @@ constexpr absl::string_view kMid = "mid";
 constexpr absl::string_view kRid = "f";
 constexpr bool kMarkerBit = true;
 
-using ::testing::_;
 using ::testing::AllOf;
 using ::testing::AtLeast;
-using ::testing::Contains;
 using ::testing::Each;
 using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
 using ::testing::Eq;
-using ::testing::Field;
 using ::testing::Gt;
 using ::testing::IsEmpty;
-using ::testing::NiceMock;
 using ::testing::Not;
 using ::testing::Pointee;
 using ::testing::Property;
@@ -376,7 +371,7 @@ TEST_F(RtpSenderTest, SendPadding) {
   EXPECT_CALL(mock_paced_sender_, EnqueuePackets);
   std::unique_ptr<RtpPacketToSend> media_packet =
       SendPacket(/*capture_time=*/env_.clock().CurrentTime(),
-                 /*payload_size=*/100);
+                 /*payload_length=*/100);
   sequencer_->Sequence(*media_packet);
 
   // Wait 50 ms before generating each padding packet.
@@ -409,7 +404,7 @@ TEST_F(RtpSenderTest, SendPadding) {
 
   std::unique_ptr<RtpPacketToSend> next_media_packet =
       SendPacket(/*capture_time=*/env_.clock().CurrentTime(),
-                 /*payload_size=*/100);
+                 /*payload_length=*/100);
 }
 
 TEST_F(RtpSenderTest, NoPaddingAsFirstPacketWithoutBweExtensions) {
@@ -520,7 +515,7 @@ TEST_F(RtpSenderTest, UpdatesTimestampsOnPlainRtxPadding) {
           Pointee(Property(&RtpPacketToSend::Timestamp, start_timestamp)),
           Pointee(Property(&RtpPacketToSend::capture_time, start_time))))));
   std::unique_ptr<RtpPacketToSend> media_packet =
-      SendPacket(start_time, /*payload_size=*/600);
+      SendPacket(start_time, /*payload_length=*/600);
   sequencer_->Sequence(*media_packet);
 
   // Advance time before sending padding.

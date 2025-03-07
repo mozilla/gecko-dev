@@ -53,7 +53,6 @@
 #include "modules/rtp_rtcp/source/rtcp_packet/tmmbn.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/tmmbr.h"
 #include "modules/rtp_rtcp/source/rtp_rtcp_config.h"
-#include "modules/rtp_rtcp/source/rtp_rtcp_impl2.h"
 #include "modules/rtp_rtcp/source/rtp_rtcp_interface.h"
 #include "modules/rtp_rtcp/source/tmmbr_help.h"
 #include "rtc_base/checks.h"
@@ -482,7 +481,7 @@ void RTCPSender::BuildTMMBR(const RtcpContext& ctx, PacketSender& sender) {
   bool tmmbr_owner = false;
 
   // holding mutex_rtcp_sender_ while calling RTCPreceiver which
-  // will accuire criticalSectionRTCPReceiver_ is a potental deadlock but
+  // will acquire criticalSectionRTCPReceiver_ is a potential deadlock but
   // since RTCPreceiver is not doing the reverse we should be fine
   std::vector<rtcp::TmmbItem> candidates =
       ctx.feedback_state_.receiver->BoundingSet(&tmmbr_owner);

@@ -30,10 +30,10 @@ index 25bf070cb7..c96a943f4a 100644
      // single 'timing frame'.
      std::optional<webrtc::TimingFrameInfo> timing_frame_info;
 diff --git a/modules/rtp_rtcp/source/rtcp_receiver.cc b/modules/rtp_rtcp/source/rtcp_receiver.cc
-index 21b6c9552f..9ee8248d61 100644
+index 3e710dfc1d..9f94e253c4 100644
 --- a/modules/rtp_rtcp/source/rtcp_receiver.cc
 +++ b/modules/rtp_rtcp/source/rtcp_receiver.cc
-@@ -385,6 +385,13 @@ RTCPReceiver::ConsumeReceivedXrReferenceTimeInfo() {
+@@ -384,6 +384,13 @@ RTCPReceiver::ConsumeReceivedXrReferenceTimeInfo() {
    return last_xr_rtis;
  }
  

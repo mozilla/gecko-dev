@@ -11,28 +11,31 @@
 #ifndef MODULES_RTP_RTCP_SOURCE_RTP_SENDER_VIDEO_H_
 #define MODULES_RTP_RTCP_SOURCE_RTP_SENDER_VIDEO_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <optional>
 #include <vector>
 
-#include "absl/strings/string_view.h"
 #include "api/array_view.h"
+#include "api/environment/environment.h"
 #include "api/frame_transformer_interface.h"
 #include "api/scoped_refptr.h"
-#include "api/sequence_checker.h"
-#include "api/task_queue/task_queue_base.h"
 #include "api/task_queue/task_queue_factory.h"
 #include "api/transport/rtp/dependency_descriptor.h"
+#include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
+#include "api/video/color_space.h"
+#include "api/video/encoded_image.h"
 #include "api/video/video_codec_type.h"
-#include "api/video/video_frame_type.h"
 #include "api/video/video_layers_allocation.h"
+#include "api/video/video_rotation.h"
+#include "api/video/video_timing.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/absolute_capture_time_sender.h"
 #include "modules/rtp_rtcp/source/active_decode_targets_helper.h"
-#include "modules/rtp_rtcp/source/rtp_rtcp_config.h"
 #include "modules/rtp_rtcp/source/rtp_sender.h"
 #include "modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.h"
 #include "modules/rtp_rtcp/source/rtp_video_header.h"
@@ -43,6 +46,7 @@
 #include "rtc_base/race_checker.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/thread_annotations.h"
+#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 

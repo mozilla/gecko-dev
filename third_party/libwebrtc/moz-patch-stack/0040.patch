@@ -187,10 +187,10 @@ index ca6e725cb5..ff84d262e9 100644
  static constexpr size_t kNumMediaTypes = 5;
  enum class RtpPacketMediaType : size_t {
 diff --git a/modules/rtp_rtcp/source/rtcp_receiver.cc b/modules/rtp_rtcp/source/rtcp_receiver.cc
-index 8a6aa824b3..7adcaca9b3 100644
+index ed4a9aa70e..fcbe871980 100644
 --- a/modules/rtp_rtcp/source/rtcp_receiver.cc
 +++ b/modules/rtp_rtcp/source/rtcp_receiver.cc
-@@ -166,6 +166,7 @@ RTCPReceiver::RTCPReceiver(const Environment& env,
+@@ -165,6 +165,7 @@ RTCPReceiver::RTCPReceiver(const Environment& env,
        rtp_rtcp_(owner),
        registered_ssrcs_(false, config),
        network_link_rtcp_observer_(config.network_link_rtcp_observer),
@@ -198,7 +198,7 @@ index 8a6aa824b3..7adcaca9b3 100644
        rtcp_intra_frame_observer_(config.intra_frame_callback),
        rtcp_loss_notification_observer_(config.rtcp_loss_notification_observer),
        network_state_estimate_observer_(config.network_state_estimate_observer),
-@@ -196,6 +197,7 @@ RTCPReceiver::RTCPReceiver(const Environment& env,
+@@ -195,6 +196,7 @@ RTCPReceiver::RTCPReceiver(const Environment& env,
        rtp_rtcp_(owner),
        registered_ssrcs_(true, config),
        network_link_rtcp_observer_(config.network_link_rtcp_observer),
@@ -206,7 +206,7 @@ index 8a6aa824b3..7adcaca9b3 100644
        rtcp_intra_frame_observer_(config.intra_frame_callback),
        rtcp_loss_notification_observer_(config.rtcp_loss_notification_observer),
        network_state_estimate_observer_(config.network_state_estimate_observer),
-@@ -809,6 +811,10 @@ bool RTCPReceiver::HandleBye(const CommonHeader& rtcp_block) {
+@@ -808,6 +810,10 @@ bool RTCPReceiver::HandleBye(const CommonHeader& rtcp_block) {
      return false;
    }
  
@@ -217,7 +217,7 @@ index 8a6aa824b3..7adcaca9b3 100644
    // Clear our lists.
    rtts_.erase(bye.sender_ssrc());
    EraseIf(received_report_blocks_, [&](const auto& elem) {
-@@ -1252,12 +1258,20 @@ std::vector<rtcp::TmmbItem> RTCPReceiver::TmmbrReceived() {
+@@ -1251,12 +1257,20 @@ std::vector<rtcp::TmmbItem> RTCPReceiver::TmmbrReceived() {
  }
  
  bool RTCPReceiver::RtcpRrTimeoutLocked(Timestamp now) {

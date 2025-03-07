@@ -58,7 +58,6 @@
 #include "rtc_base/arraysize.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/random.h"
-#include "rtc_base/time_utils.h"
 #include "system_wrappers/include/clock.h"
 #include "system_wrappers/include/ntp_time.h"
 #include "test/explicit_key_value_config.h"
