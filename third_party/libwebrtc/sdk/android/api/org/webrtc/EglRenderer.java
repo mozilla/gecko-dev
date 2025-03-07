@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -33,6 +32,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class EglRenderer implements VideoSink {
   private static final String TAG = "EglRenderer";
+  private static final UUID EMPTY_UUID = new UUID(0L, 0L); // All zeros
   private static final long LOG_INTERVAL_SEC = 4;
 
   public interface FrameListener { void onFrame(Bitmap frame); }
@@ -98,7 +98,7 @@ public class EglRenderer implements VideoSink {
 
   // An id to uniquely identify the renderer, used for when we're scheduling
   // frames for render.
-  private Optional<UUID> id = Optional.empty();
+  private UUID id = EMPTY_UUID;
 
   // `eglThread` is used for rendering, and is synchronized on `threadLock`.
   private final Object threadLock = new Object();
@@ -233,7 +233,7 @@ public class EglRenderer implements VideoSink {
       boolean usePresentationTimeStamp,
       boolean overwritePendingFrames) {
       if (overwritePendingFrames) {
-        id = Optional.of(UUID.randomUUID());
+        id = UUID.randomUUID();
       }
       init(eglThread, drawer, usePresentationTimeStamp);
   }
@@ -661,10 +661,10 @@ public class EglRenderer implements VideoSink {
               renderSwapBufferTimeNs += (System.nanoTime() - swapBuffersStartTimeNs);
             }
           };
-      if (id.isPresent()) {
-        eglThread.scheduleRenderUpdate(id.get(), renderUpdate);
-      } else {
+      if (id.equals(EMPTY_UUID)) {
         eglThread.scheduleRenderUpdate(renderUpdate);
+      } else {
+        eglThread.scheduleRenderUpdate(id, renderUpdate);
       }
     }
   }
