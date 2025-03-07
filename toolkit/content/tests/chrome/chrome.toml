@@ -137,6 +137,7 @@ skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1600194 # Bug 1929437 (secondary)
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1600194 # Bug 1929437 (secondary)
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1600194 # Bug 1929437
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov", # Bug 1944476
 ]
 
 ["test_bug792324.xhtml"]
