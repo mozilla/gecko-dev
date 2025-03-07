@@ -33,11 +33,14 @@ add_setup(async function () {
 });
 
 async function test_ml_alt_text_enabled(locale) {
+  const defaultBrowserMLPrefValue =
+    Services.prefs.getBoolPref("browser.ml.enable");
+
   await SpecialPowers.pushPrefEnv({
     set: [
       ["pdfjs.enableAltTextForEnglish", false],
       ["pdfjs.enableAltText", false],
-      ["browser.ml.enable", false],
+      ["browser.ml.enable", !defaultBrowserMLPrefValue],
     ],
   });
 
@@ -59,7 +62,10 @@ async function test_ml_alt_text_enabled(locale) {
 
   // In nightly the pref is true by default: but before opening the pdf, we set
   // it to false.
-  Assert.equal(Services.prefs.getBoolPref("browser.ml.enable"), false);
+  Assert.equal(
+    Services.prefs.getBoolPref("browser.ml.enable"),
+    !defaultBrowserMLPrefValue
+  );
   Assert.equal(Services.prefs.getBoolPref("pdfjs.enableAltText"), isEn);
   Assert.equal(
     Services.prefs.getBoolPref("pdfjs.enableAltTextForEnglish"),
