@@ -135,7 +135,7 @@ void SackChunk::SerializeTo(std::vector<uint8_t>& out) const {
 }
 
 std::string SackChunk::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "SACK, cum_ack_tsn=" << *cumulative_tsn_ack()
      << ", a_rwnd=" << a_rwnd();
   for (const GapAckBlock& gap : gap_ack_blocks_) {
@@ -145,8 +145,9 @@ std::string SackChunk::ToString() const {
   }
   if (!duplicate_tsns_.empty()) {
     sb << ", dup_tsns="
-       << webrtc::StrJoin(duplicate_tsns(), ",",
-                          [](rtc::StringBuilder& sb, TSN tsn) { sb << *tsn; });
+       << webrtc::StrJoin(
+              duplicate_tsns(), ",",
+              [](webrtc::StringBuilder& sb, TSN tsn) { sb << *tsn; });
   }
 
   return sb.Release();

@@ -107,7 +107,7 @@ void RunNarrowBandDetectionTest(size_t num_channels) {
 }
 
 std::string ProduceDebugText(size_t num_channels) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << "number of channels: " << num_channels;
   return ss.Release();
 }

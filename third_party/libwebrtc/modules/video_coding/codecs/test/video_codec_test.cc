@@ -172,7 +172,7 @@ std::string TestName() {
 
 std::string TestOutputPath() {
   std::string output_path =
-      (rtc::StringBuilder() << OutputPath() << TestName()).str();
+      (StringBuilder() << OutputPath() << TestName()).str();
   std::string output_dir = DirName(output_path);
   bool result = CreateDir(output_dir);
   RTC_CHECK(result) << "Cannot create " << output_dir;
@@ -618,7 +618,7 @@ TEST(VideoCodecTest, DISABLED_EncodeDecode) {
   for (int sidx = 0; sidx < num_spatial_layers; ++sidx) {
     for (int tidx = 0; tidx < num_temporal_layers; ++tidx) {
       std::string metric_name_prefix =
-          (rtc::StringBuilder() << "s" << sidx << "t" << tidx << "_").str();
+          (StringBuilder() << "s" << sidx << "t" << tidx << "_").str();
       stream = stats->Aggregate(
           {.layer_id = {{.spatial_idx = sidx, .temporal_idx = tidx}}});
       stream.LogMetrics(GetGlobalMetricsLogger(), TestName(),
@@ -628,10 +628,9 @@ TEST(VideoCodecTest, DISABLED_EncodeDecode) {
   }
 
   if (absl::GetFlag(FLAGS_write_csv)) {
-    stats->LogMetrics(
-        (rtc::StringBuilder() << TestOutputPath() << ".csv").str(),
-        stats->Slice(Filter{}, /*merge=*/false), /*metadata=*/
-        {{"test_name", TestName()}});
+    stats->LogMetrics((StringBuilder() << TestOutputPath() << ".csv").str(),
+                      stats->Slice(Filter{}, /*merge=*/false), /*metadata=*/
+                      {{"test_name", TestName()}});
   }
 }
 

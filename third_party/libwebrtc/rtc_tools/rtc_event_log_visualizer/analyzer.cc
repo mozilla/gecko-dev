@@ -84,7 +84,7 @@ namespace webrtc {
 namespace {
 
 std::string SsrcToString(uint32_t ssrc) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << "SSRC " << ssrc;
   return ss.Release();
 }
@@ -332,7 +332,7 @@ std::string GetCandidatePairLogDescriptionAsString(
   // represents a pair of a local server-reflexive candidate on a WiFi network
   // and a remote relay candidate using TCP as the relay protocol on a cell
   // network, when the candidate pair communicates over UDP using IPv4.
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << GetIceCandidateTypeAsString(config.local_candidate_type);
 
   if (config.local_candidate_type == IceCandidateType::kRelay) {

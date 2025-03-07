@@ -85,12 +85,12 @@ std::string RTCCodecStatsIDFromTransportAndCodecParameters(
     const std::string& transport_id,
     const RtpCodecParameters& codec_params) {
   char buf[1024];
-  rtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
   sb << 'C' << direction << transport_id << '_' << codec_params.payload_type;
   // TODO(https://crbug.com/webrtc/14420): If we stop supporting different FMTP
   // lines for the same PT and transport, which should be illegal SDP, then we
   // wouldn't need `fmtp` to be part of the ID here.
-  rtc::StringBuilder fmtp;
+  StringBuilder fmtp;
   if (WriteFmtpParameters(codec_params.parameters, &fmtp)) {
     sb << '_' << fmtp.Release();
   }
@@ -100,7 +100,7 @@ std::string RTCCodecStatsIDFromTransportAndCodecParameters(
 std::string RTCIceCandidatePairStatsIDFromConnectionInfo(
     const cricket::ConnectionInfo& info) {
   char buf[4096];
-  rtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
   sb << "CP" << info.local_candidate.id() << "_" << info.remote_candidate.id();
   return sb.str();
 }
@@ -109,7 +109,7 @@ std::string RTCTransportStatsIDFromTransportChannel(
     const std::string& transport_name,
     int channel_component) {
   char buf[1024];
-  rtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
   sb << 'T' << transport_name << channel_component;
   return sb.str();
 }
@@ -118,7 +118,7 @@ std::string RTCInboundRtpStreamStatsIDFromSSRC(const std::string& transport_id,
                                                cricket::MediaType media_type,
                                                uint32_t ssrc) {
   char buf[1024];
-  rtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
   sb << 'I' << transport_id
      << (media_type == cricket::MEDIA_TYPE_AUDIO ? 'A' : 'V') << ssrc;
   return sb.str();
@@ -128,7 +128,7 @@ std::string RTCOutboundRtpStreamStatsIDFromSSRC(const std::string& transport_id,
                                                 cricket::MediaType media_type,
                                                 uint32_t ssrc) {
   char buf[1024];
-  rtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
   sb << 'O' << transport_id
      << (media_type == cricket::MEDIA_TYPE_AUDIO ? 'A' : 'V') << ssrc;
   return sb.str();
@@ -138,7 +138,7 @@ std::string RTCRemoteInboundRtpStreamStatsIdFromSourceSsrc(
     cricket::MediaType media_type,
     uint32_t source_ssrc) {
   char buf[1024];
-  rtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
   sb << "RI" << (media_type == cricket::MEDIA_TYPE_AUDIO ? 'A' : 'V')
      << source_ssrc;
   return sb.str();
@@ -148,7 +148,7 @@ std::string RTCRemoteOutboundRTPStreamStatsIDFromSSRC(
     cricket::MediaType media_type,
     uint32_t source_ssrc) {
   char buf[1024];
-  rtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
   sb << "RO" << (media_type == cricket::MEDIA_TYPE_AUDIO ? 'A' : 'V')
      << source_ssrc;
   return sb.str();
@@ -158,7 +158,7 @@ std::string RTCMediaSourceStatsIDFromKindAndAttachment(
     cricket::MediaType media_type,
     int attachment_id) {
   char buf[1024];
-  rtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
   sb << 'S' << (media_type == cricket::MEDIA_TYPE_AUDIO ? 'A' : 'V')
      << attachment_id;
   return sb.str();
@@ -370,7 +370,7 @@ std::string GetCodecIdAndMaybeCreateCodecStats(
     codec_stats->channels = *codec_params.num_channels;
   }
 
-  rtc::StringBuilder fmtp;
+  StringBuilder fmtp;
   if (WriteFmtpParameters(codec_params.parameters, &fmtp)) {
     codec_stats->sdp_fmtp_line = fmtp.Release();
   }

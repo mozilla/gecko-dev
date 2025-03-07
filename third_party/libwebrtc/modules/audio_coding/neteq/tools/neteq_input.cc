@@ -19,7 +19,7 @@ NetEqInput::PacketData::PacketData() = default;
 NetEqInput::PacketData::~PacketData() = default;
 
 std::string NetEqInput::PacketData::ToString() const {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << "{"
         "time_ms: "
      << static_cast<int64_t>(time_ms)

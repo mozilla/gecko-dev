@@ -59,7 +59,7 @@ void AddIncomingStreamsRequestParameter::SerializeTo(
 }
 
 std::string AddIncomingStreamsRequestParameter::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "Add Incoming Streams Request, req_seq_nbr="
      << *request_sequence_number();
   return sb.Release();

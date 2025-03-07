@@ -118,7 +118,7 @@ std::string RTCStatsReport::ToJson() const {
   if (begin() == end()) {
     return "";
   }
-  rtc::StringBuilder sb;
+  StringBuilder sb;
   sb << "[";
   const char* separator = "";
   for (ConstIterator it = begin(); it != end(); ++it) {

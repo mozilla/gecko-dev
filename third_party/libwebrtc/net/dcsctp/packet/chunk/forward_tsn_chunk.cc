@@ -85,7 +85,7 @@ void ForwardTsnChunk::SerializeTo(std::vector<uint8_t>& out) const {
 }
 
 std::string ForwardTsnChunk::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "FORWARD-TSN, new_cumulative_tsn=" << *new_cumulative_tsn();
   for (const auto& skipped : skipped_streams()) {
     sb << ", skip " << skipped.stream_id.value() << ":" << *skipped.ssn;

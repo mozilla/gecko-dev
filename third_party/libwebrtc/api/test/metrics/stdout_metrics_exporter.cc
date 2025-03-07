@@ -30,7 +30,7 @@ int64_t IntegralPart(double value) {
 
 void AppendWithPrecision(double value,
                          int digits_after_comma,
-                         rtc::StringBuilder& out) {
+                         StringBuilder& out) {
   int64_t multiplier = std::lround(std::pow(10, digits_after_comma));
   int64_t integral_part = IntegralPart(value);
   double decimal_part = std::abs(value) - integral_part;
@@ -78,7 +78,7 @@ bool StdoutMetricsExporter::Export(rtc::ArrayView<const Metric> metrics) {
 }
 
 void StdoutMetricsExporter::PrintMetric(const Metric& metric) {
-  rtc::StringBuilder value_stream;
+  StringBuilder value_stream;
   value_stream << metric.test_case << " / " << metric.name << "= {mean=";
   if (metric.stats.mean.has_value()) {
     AppendWithPrecision(*metric.stats.mean, 8, value_stream);

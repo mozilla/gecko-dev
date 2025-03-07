@@ -172,7 +172,7 @@ void OpenFileAndWriteMessage(absl::string_view filename,
 }
 
 std::string ResourceFilePath(absl::string_view name, int sample_rate_hz) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   // Resource files are all stereo.
   ss << name << sample_rate_hz / 1000 << "_stereo";
   return test::ResourcePath(ss.str(), "pcm");
@@ -193,7 +193,7 @@ std::string OutputFilePath(absl::string_view name,
                            size_t num_reverse_input_channels,
                            size_t num_reverse_output_channels,
                            StreamDirection file_direction) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << name << "_i" << num_input_channels << "_" << input_rate / 1000 << "_ir"
      << num_reverse_input_channels << "_" << reverse_input_rate / 1000 << "_";
   if (num_output_channels == 1) {
@@ -2341,7 +2341,7 @@ std::string ProduceDebugText(int render_input_sample_rate_hz,
                              size_t render_output_num_channels,
                              size_t capture_input_num_channels,
                              size_t capture_output_num_channels) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << "Sample rates:"
         "\n Render input: "
      << render_input_sample_rate_hz

@@ -17,7 +17,7 @@ ColumnPrinter::~ColumnPrinter() = default;
 
 ColumnPrinter::ColumnPrinter(
     const char* headers,
-    std::function<void(rtc::SimpleStringBuilder&)> printer,
+    std::function<void(webrtc::SimpleStringBuilder&)> printer,
     size_t max_length)
     : headers_(headers), printer_(printer), max_length_(max_length) {}
 
@@ -29,7 +29,7 @@ ColumnPrinter ColumnPrinter::Fixed(const char* headers, std::string fields) {
 
 ColumnPrinter ColumnPrinter::Lambda(
     const char* headers,
-    std::function<void(rtc::SimpleStringBuilder&)> printer,
+    std::function<void(webrtc::SimpleStringBuilder&)> printer,
     size_t max_length) {
   return ColumnPrinter(headers, printer, max_length);
 }
@@ -59,7 +59,7 @@ void StatesPrinter::PrintHeaders() {
 void StatesPrinter::PrintRow() {
   // Note that this is run for null output to preserve side effects, this allows
   // setting break points etc.
-  rtc::SimpleStringBuilder sb(buffer_);
+  SimpleStringBuilder sb(buffer_);
   printers_[0].printer_(sb);
   for (size_t i = 1; i < printers_.size(); ++i) {
     sb << ' ';

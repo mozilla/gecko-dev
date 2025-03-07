@@ -401,7 +401,7 @@ index 6ba3292fca..5d3a731864 100644
    RTPHeader();
    RTPHeader(const RTPHeader& other);
 diff --git a/api/rtp_parameters.cc b/api/rtp_parameters.cc
-index 178aeb8b66..8db74fde2d 100644
+index dd5744218f..ced44047aa 100644
 --- a/api/rtp_parameters.cc
 +++ b/api/rtp_parameters.cc
 @@ -174,7 +174,8 @@ bool RtpExtension::IsSupportedForAudio(absl::string_view uri) {
@@ -834,7 +834,7 @@ index c8ca45f72c..a42dcfd1cf 100644
  // Subclasses must defined kId and kUri static constexpr members.
  class BaseRtpStringExtension {
 diff --git a/modules/rtp_rtcp/source/rtp_packet.cc b/modules/rtp_rtcp/source/rtp_packet.cc
-index 19372880b2..3192c27a49 100644
+index fb9c3d677b..0ddd4bed7e 100644
 --- a/modules/rtp_rtcp/source/rtp_packet.cc
 +++ b/modules/rtp_rtcp/source/rtp_packet.cc
 @@ -212,6 +212,10 @@ void RtpPacket::ZeroMutableExtensions() {
@@ -1425,7 +1425,7 @@ index 5ec1fd4a83..e46e050609 100644
  
    int64_t _lastProcessFrameTimeNanos RTC_GUARDED_BY(capture_checker_);
 diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-index e8b2bb68a0..6827996d49 100644
+index b5c985be28..2d5729b304 100644
 --- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 +++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 @@ -281,6 +281,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
@@ -1548,7 +1548,7 @@ index ccdecd0832..3293ee145c 100644
      # Dependency on chromium's logging (in //base).
      deps += [ "//base" ]
 diff --git a/rtc_base/logging.cc b/rtc_base/logging.cc
-index f0461f79e9..adf6deffa9 100644
+index 83dd1bc99f..f8ff475e5d 100644
 --- a/rtc_base/logging.cc
 +++ b/rtc_base/logging.cc
 @@ -44,6 +44,7 @@ static const int kMaxLogLineSize = 1024 - 60;
@@ -1594,7 +1594,7 @@ index f0461f79e9..adf6deffa9 100644
  // The list of logging streams currently configured.
  // Note: we explicitly do not clean this up, because of the uncertain ordering
 diff --git a/rtc_base/logging.h b/rtc_base/logging.h
-index 8131102944..3ac4edb454 100644
+index 5f3f200899..ebf3fabfce 100644
 --- a/rtc_base/logging.h
 +++ b/rtc_base/logging.h
 @@ -556,6 +556,12 @@ class LogMessage {
@@ -1613,7 +1613,7 @@ index 8131102944..3ac4edb454 100644
 @@ -611,6 +617,9 @@ class LogMessage {
  
    // The stringbuilder that buffers the formatted message before output
-   rtc::StringBuilder print_stream_;
+   webrtc::StringBuilder print_stream_;
 +
 +  static bool aec_debug_;
 +  static std::string aec_filename_base_;

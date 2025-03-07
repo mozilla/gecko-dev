@@ -1322,7 +1322,7 @@ std::string DefaultVideoQualityAnalyzer::ToMetricName(
     // TODO(titovartem): remove this special case.
     return stream_label;
   }
-  rtc::StringBuilder out;
+  StringBuilder out;
   out << stream_label << "_" << peers_->name(key.sender) << "_"
       << peers_->name(key.receiver);
   return out.str();

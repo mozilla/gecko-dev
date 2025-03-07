@@ -906,7 +906,7 @@ bool DcSctpSocket::HandleUnrecognizedChunk(
   RTC_DLOG(LS_VERBOSE) << log_prefix() << "Received unknown chunk: "
                        << static_cast<int>(descriptor.type);
   if (report_as_error) {
-    rtc::StringBuilder sb;
+    webrtc::StringBuilder sb;
     sb << "Received unknown chunk of type: "
        << static_cast<int>(descriptor.type) << " with report-error bit set";
     callbacks_.OnError(ErrorKind::kParseFailed, sb.str());
@@ -1037,7 +1037,7 @@ bool DcSctpSocket::ValidateHasTCB() {
 }
 
 void DcSctpSocket::ReportFailedToParseChunk(int chunk_type) {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "Failed to parse chunk of type: " << chunk_type;
   callbacks_.OnError(ErrorKind::kParseFailed, sb.str());
 }

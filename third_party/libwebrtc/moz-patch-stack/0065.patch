@@ -186,7 +186,7 @@ index 495f64bdb3..10a9caacdd 100644
  
    void ForceSpsPpsIdrIsH264Keyframe();
 diff --git a/video/receive_statistics_proxy.cc b/video/receive_statistics_proxy.cc
-index 90f3a11d56..55143aff12 100644
+index 47f53d4ef2..67770da4f0 100644
 --- a/video/receive_statistics_proxy.cc
 +++ b/video/receive_statistics_proxy.cc
 @@ -798,6 +798,11 @@ void ReceiveStatisticsProxy::OnDroppedFrames(uint32_t frames_dropped) {
@@ -214,7 +214,7 @@ index 7af28fd982..8d5e208d63 100644
                                     int current_delay_ms,
                                     int target_delay_ms,
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 4572758558..2149f7eaf8 100644
+index 783da43d2d..400100c1f5 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
 @@ -244,6 +244,7 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
@@ -272,7 +272,7 @@ index d1802f865a..145105d7a4 100644
        RTC_GUARDED_BY(packet_sequence_checker_);
    // h26x_packet_buffer_ is nullptr if codec list doens't contain H.264 or
 diff --git a/video/video_receive_stream2.cc b/video/video_receive_stream2.cc
-index 31d0348bd5..967c227a07 100644
+index a631cf3c7e..4555472ccb 100644
 --- a/video/video_receive_stream2.cc
 +++ b/video/video_receive_stream2.cc
 @@ -213,6 +213,7 @@ VideoReceiveStream2::VideoReceiveStream2(

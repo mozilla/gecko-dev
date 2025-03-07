@@ -75,7 +75,7 @@ TEST(RtcpPacketSdesTest, CreateWithTooManyChunks) {
   Sdes sdes;
   for (size_t i = 0; i < kMaxChunks; ++i) {
     uint32_t ssrc = kSenderSsrc + i;
-    rtc::StringBuilder oss;
+    StringBuilder oss;
     oss << "cname" << i;
     EXPECT_TRUE(sdes.AddCName(ssrc, oss.str()));
   }

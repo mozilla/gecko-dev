@@ -48,7 +48,7 @@ std::string LntfConfig::ToString() const {
 
 std::string NackConfig::ToString() const {
   char buf[1024];
-  rtc::SimpleStringBuilder ss(buf);
+  SimpleStringBuilder ss(buf);
   ss << "{rtp_history_ms: " << rtp_history_ms;
   ss << '}';
   return ss.str();
@@ -56,7 +56,7 @@ std::string NackConfig::ToString() const {
 
 std::string UlpfecConfig::ToString() const {
   char buf[1024];
-  rtc::SimpleStringBuilder ss(buf);
+  SimpleStringBuilder ss(buf);
   ss << "{ulpfec_payload_type: " << ulpfec_payload_type;
   ss << ", red_payload_type: " << red_payload_type;
   ss << ", red_rtx_payload_type: " << red_rtx_payload_type;
@@ -72,7 +72,7 @@ bool UlpfecConfig::operator==(const UlpfecConfig& other) const {
 
 std::string RtpStreamConfig::ToString() const {
   char buf[1024];
-  rtc::SimpleStringBuilder ss(buf);
+  SimpleStringBuilder ss(buf);
   ss << "{ssrc: " << ssrc;
   ss << ", rid: " << rid;
   ss << ", payload_name: " << payload_name;
@@ -87,7 +87,7 @@ std::string RtpStreamConfig::ToString() const {
 
 std::string RtpStreamConfig::Rtx::ToString() const {
   char buf[1024];
-  rtc::SimpleStringBuilder ss(buf);
+  SimpleStringBuilder ss(buf);
   ss << "{ssrc: " << ssrc;
   ss << ", payload_type: " << payload_type;
   ss << '}';
@@ -104,7 +104,7 @@ RtpConfig::Flexfec::~Flexfec() = default;
 
 std::string RtpConfig::ToString() const {
   char buf[2 * 1024];
-  rtc::SimpleStringBuilder ss(buf);
+  SimpleStringBuilder ss(buf);
   ss << "{ssrcs: [";
   for (size_t i = 0; i < ssrcs.size(); ++i) {
     ss << ssrcs[i];
@@ -168,7 +168,7 @@ RtpConfig::Rtx::~Rtx() = default;
 
 std::string RtpConfig::Rtx::ToString() const {
   char buf[1024];
-  rtc::SimpleStringBuilder ss(buf);
+  SimpleStringBuilder ss(buf);
   ss << "{ssrcs: [";
   for (size_t i = 0; i < ssrcs.size(); ++i) {
     ss << ssrcs[i];

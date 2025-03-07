@@ -411,7 +411,7 @@ int32_t ChannelSend::SendData(AudioFrameType frameType,
     // Asynchronously transform the payload before sending it. After the payload
     // is transformed, the delegate will call SendRtpAudio to send it.
     char buf[1024];
-    rtc::SimpleStringBuilder mime_type(buf);
+    SimpleStringBuilder mime_type(buf);
     mime_type << MediaTypeToString(cricket::MEDIA_TYPE_AUDIO) << "/"
               << encoder_format_.name;
     frame_transformer_delegate_->Transform(

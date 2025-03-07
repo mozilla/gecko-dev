@@ -344,7 +344,7 @@ std::unique_ptr<VideoDecoder> VideoQualityTest::CreateVideoDecoder(
     decoder = decoder_factory_->Create(env, format);
   }
   if (!params_.logging.encoded_frame_base_path.empty()) {
-    rtc::StringBuilder str;
+    StringBuilder str;
     str << receive_logs_++;
     std::string path =
         params_.logging.encoded_frame_base_path + "." + str.str() + ".recv.ivf";
@@ -369,7 +369,7 @@ std::unique_ptr<VideoEncoder> VideoQualityTest::CreateVideoEncoder(
   std::vector<FileWrapper> encoded_frame_dump_files;
   if (!params_.logging.encoded_frame_base_path.empty()) {
     char ss_buf[100];
-    rtc::SimpleStringBuilder sb(ss_buf);
+    SimpleStringBuilder sb(ss_buf);
     sb << send_logs_++;
     std::string prefix =
         params_.logging.encoded_frame_base_path + "." + sb.str() + ".send.";
@@ -472,7 +472,7 @@ VideoQualityTest::InjectionComponents::~InjectionComponents() = default;
 void VideoQualityTest::TestBody() {}
 
 std::string VideoQualityTest::GenerateGraphTitle() const {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << params_.video[0].codec;
   ss << " (" << params_.video[0].target_bitrate_bps / 1000 << "kbps";
   ss << ", " << params_.video[0].fps << " FPS";

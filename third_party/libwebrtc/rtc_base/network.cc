@@ -224,7 +224,7 @@ bool CompareNetworks(const std::unique_ptr<Network>& a,
 std::string MakeNetworkKey(absl::string_view name,
                            const IPAddress& prefix,
                            int prefix_length) {
-  rtc::StringBuilder ost;
+  webrtc::StringBuilder ost;
   ost << name << "%" << prefix.ToString() << "/" << prefix_length;
   return ost.Release();
 }
@@ -1251,7 +1251,7 @@ Network::GuessAdapterFromNetworkCost(int network_cost) {
 }
 
 std::string Network::ToString() const {
-  rtc::StringBuilder ss;
+  webrtc::StringBuilder ss;
   // Print out the first space-terminated token of the network desc, plus
   // the IP address.
   ss << "Net[" << description_.substr(0, description_.find(' ')) << ":"

@@ -219,13 +219,13 @@ void RunFilterUpdateTest(const Environment& env,
 }
 
 std::string ProduceDebugText(int filter_length_blocks) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << "Length: " << filter_length_blocks;
   return ss.Release();
 }
 
 std::string ProduceDebugText(size_t delay, int filter_length_blocks) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << "Delay: " << delay << ", ";
   ss << ProduceDebugText(filter_length_blocks);
   return ss.Release();

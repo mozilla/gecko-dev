@@ -125,7 +125,7 @@ void ExpectRateIs(const SamplesRateCounter& rate_couter, double expected_rate) {
 }
 
 std::string ToString(const std::vector<StatsSample>& values) {
-  rtc::StringBuilder out;
+  StringBuilder out;
   for (const auto& v : values) {
     out << "{ time_ms=" << v.time.ms() << "; value=" << v.value << "}, ";
   }

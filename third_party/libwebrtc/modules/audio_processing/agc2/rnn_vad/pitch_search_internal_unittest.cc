@@ -33,7 +33,7 @@ constexpr float kTestPitchStrengthHigh = 0.75f;
 template <class T>
 std::string PrintTestIndexAndCpuFeatures(
     const ::testing::TestParamInfo<T>& info) {
-  rtc::StringBuilder builder;
+  StringBuilder builder;
   builder << info.index << "_" << info.param.cpu_features.ToString();
   return builder.str();
 }

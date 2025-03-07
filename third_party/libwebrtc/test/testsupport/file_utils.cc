@@ -116,7 +116,7 @@ std::string TempFilename(absl::string_view dir, absl::string_view prefix) {
   RTC_DCHECK_NOTREACHED();
   return "";
 #else
-  rtc::StringBuilder os;
+  StringBuilder os;
   os << dir << "/" << prefix << "XXXXXX";
   std::string tempname = os.Release();
 
@@ -235,7 +235,7 @@ std::string ResourcePath(absl::string_view name, absl::string_view extension) {
 
 std::string JoinFilename(absl::string_view dir, absl::string_view name) {
   RTC_CHECK(!dir.empty()) << "Special cases not implemented.";
-  rtc::StringBuilder os;
+  StringBuilder os;
   os << dir;
   // If the directory path already ends with a path delimiter don't append it
   if (dir.back() != kPathDelimiter.back()) {

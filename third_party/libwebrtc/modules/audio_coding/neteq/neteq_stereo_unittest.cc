@@ -198,7 +198,7 @@ class NetEqStereoTest : public ::testing::TestWithParam<TestParameters> {
       EXPECT_EQ(num_channels_, output_multi_channel_.num_channels_);
       EXPECT_EQ(output_size_samples_,
                 output_multi_channel_.samples_per_channel_);
-      rtc::StringBuilder ss;
+      StringBuilder ss;
       ss << "Lap number " << k << ".";
       SCOPED_TRACE(ss.str());  // Print out the parameter values on failure.
       // Compare mono and multi-channel.

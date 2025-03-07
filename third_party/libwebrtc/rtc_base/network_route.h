@@ -75,7 +75,7 @@ struct NetworkRoute {
   int packet_overhead = 0;
 
   RTC_NO_INLINE inline std::string DebugString() const {
-    rtc::StringBuilder oss;
+    webrtc::StringBuilder oss;
     oss << "[ connected: " << connected << " local: [ " << local.adapter_id()
         << "/" << local.network_id() << " "
         << AdapterTypeToString(local.adapter_type())

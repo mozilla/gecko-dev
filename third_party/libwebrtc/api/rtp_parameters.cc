@@ -128,7 +128,7 @@ RtpParameters::~RtpParameters() = default;
 
 std::string RtpExtension::ToString() const {
   char buf[256];
-  rtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
   sb << "{uri: " << uri;
   sb << ", id: " << id;
   if (encrypt) {

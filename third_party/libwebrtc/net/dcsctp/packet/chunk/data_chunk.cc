@@ -86,7 +86,7 @@ void DataChunk::SerializeTo(std::vector<uint8_t>& out) const {
 }
 
 std::string DataChunk::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "DATA, type=" << (options().is_unordered ? "unordered" : "ordered")
      << "::"
      << (*options().is_beginning && *options().is_end ? "complete"

@@ -176,13 +176,13 @@ class RenderTransportVerificationProcessor : public BlockProcessor {
 };
 
 std::string ProduceDebugText(int sample_rate_hz) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << "Sample rate: " << sample_rate_hz;
   return ss.Release();
 }
 
 std::string ProduceDebugText(int sample_rate_hz, int variant) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << "Sample rate: " << sample_rate_hz << ", variant: " << variant;
   return ss.Release();
 }

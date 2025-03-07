@@ -48,7 +48,7 @@ struct FrameCombinerConfig {
 std::string ProduceDebugText(int sample_rate_hz,
                              int number_of_channels,
                              int number_of_sources) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << "Sample rate: " << sample_rate_hz << " ,";
   ss << "number of channels: " << number_of_channels << " ,";
   ss << "number of sources: " << number_of_sources;
@@ -56,7 +56,7 @@ std::string ProduceDebugText(int sample_rate_hz,
 }
 
 std::string ProduceDebugText(const FrameCombinerConfig& config) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << "Sample rate: " << config.sample_rate_hz << " ,";
   ss << "number of channels: " << config.number_of_channels << " ,";
   ss << "limiter active: " << (config.use_limiter ? "on" : "off") << " ,";

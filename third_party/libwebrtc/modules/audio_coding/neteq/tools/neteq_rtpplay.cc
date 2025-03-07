@@ -285,13 +285,13 @@ std::optional<std::string> CreateOptionalOutputFileName(
   }
   if (!basename.empty()) {
     // Override the automatic assignment.
-    rtc::StringBuilder sb(basename);
+    webrtc::StringBuilder sb(basename);
     sb << suffix;
     return sb.str();
   }
   if (!output_audio_filename.empty()) {
     // Automatically assign name.
-    rtc::StringBuilder sb(output_audio_filename);
+    webrtc::StringBuilder sb(output_audio_filename);
     sb << suffix;
     return sb.str();
   }

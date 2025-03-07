@@ -159,7 +159,7 @@ std::string ResourcePath(absl::string_view name, absl::string_view extension) {
 #else
   std::optional<std::string> path_opt = ProjectRootPath();
   RTC_DCHECK(path_opt);
-  rtc::StringBuilder os(*path_opt);
+  StringBuilder os(*path_opt);
   os << kResourcesDirName << kPathDelimiter << name << "." << extension;
   return os.Release();
 #endif

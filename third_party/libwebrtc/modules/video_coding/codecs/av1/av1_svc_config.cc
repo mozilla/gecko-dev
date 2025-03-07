@@ -42,7 +42,7 @@ int GetLimitedNumSpatialLayers(int width, int height) {
 std::optional<ScalabilityMode> BuildScalabilityMode(int num_temporal_layers,
                                                     int num_spatial_layers) {
   char name[20];
-  rtc::SimpleStringBuilder ss(name);
+  SimpleStringBuilder ss(name);
   ss << "L" << num_spatial_layers << "T" << num_temporal_layers;
   if (num_spatial_layers > 1) {
     ss << "_KEY";

@@ -51,7 +51,7 @@ void UnrecognizedChunkTypeCause::SerializeTo(std::vector<uint8_t>& out) const {
 }
 
 std::string UnrecognizedChunkTypeCause::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "Unrecognized Chunk Type, chunk_type=";
   if (!unrecognized_chunk_.empty()) {
     sb << static_cast<int>(unrecognized_chunk_[0]);

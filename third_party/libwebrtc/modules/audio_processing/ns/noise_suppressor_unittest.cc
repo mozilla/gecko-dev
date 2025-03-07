@@ -26,7 +26,7 @@ namespace {
 std::string ProduceDebugText(int sample_rate_hz,
                              size_t num_channels,
                              NsConfig::SuppressionLevel level) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << "Sample rate: " << sample_rate_hz << ", num_channels: " << num_channels
      << ", level: " << static_cast<int>(level);
   return ss.Release();

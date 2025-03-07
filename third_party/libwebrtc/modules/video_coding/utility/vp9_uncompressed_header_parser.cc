@@ -252,7 +252,7 @@ const Vp9InterpolationFilter kLiteralToType[4] = {
 
 std::string Vp9UncompressedHeader::ToString() const {
   char buf[1024];
-  rtc::SimpleStringBuilder oss(buf);
+  SimpleStringBuilder oss(buf);
 
   oss << "Vp9UncompressedHeader { " << "profile = " << profile;
 

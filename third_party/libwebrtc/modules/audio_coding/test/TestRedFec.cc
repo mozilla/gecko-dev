@@ -192,7 +192,7 @@ void TestRedFec::Run() {
 
 void TestRedFec::OpenOutFile(int16_t test_number) {
   std::string file_name;
-  rtc::StringBuilder file_stream;
+  StringBuilder file_stream;
   file_stream << webrtc::test::OutputPath();
   file_stream << "TestRedFec_outFile_";
   file_stream << test_number << ".pcm";

@@ -38,7 +38,7 @@ class LossBasedBweV2Test : public ::testing::TestWithParam<bool> {
  protected:
   std::string Config(bool enabled, bool valid) {
     char buffer[1024];
-    rtc::SimpleStringBuilder config_string(buffer);
+    SimpleStringBuilder config_string(buffer);
 
     config_string << "WebRTC-Bwe-LossBasedBweV2/";
 
@@ -79,7 +79,7 @@ class LossBasedBweV2Test : public ::testing::TestWithParam<bool> {
 
   std::string ShortObservationConfig(std::string custom_config) {
     char buffer[1024];
-    rtc::SimpleStringBuilder config_string(buffer);
+    SimpleStringBuilder config_string(buffer);
 
     config_string << "WebRTC-Bwe-LossBasedBweV2/"
                      "MinNumObservations:1,ObservationWindowSize:2,";

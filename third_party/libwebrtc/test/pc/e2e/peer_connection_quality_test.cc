@@ -473,7 +473,7 @@ std::string PeerConnectionE2EQualityTest::GetFieldTrials(
   if (run_params.enable_flex_fec_support) {
     default_field_trials.push_back(kFlexFecEnabledFieldTrials);
   }
-  rtc::StringBuilder sb;
+  StringBuilder sb;
   sb << field_trial::GetFieldTrialString();
   for (const absl::string_view& field_trial : default_field_trials) {
     sb << field_trial;

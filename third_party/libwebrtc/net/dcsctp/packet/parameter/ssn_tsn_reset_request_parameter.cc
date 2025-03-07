@@ -52,7 +52,7 @@ void SSNTSNResetRequestParameter::SerializeTo(std::vector<uint8_t>& out) const {
 }
 
 std::string SSNTSNResetRequestParameter::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "SSN/TSN Reset Request, req_seq_nbr=" << *request_sequence_number();
   return sb.Release();
 }

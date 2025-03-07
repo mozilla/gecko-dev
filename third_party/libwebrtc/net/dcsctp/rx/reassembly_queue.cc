@@ -116,7 +116,7 @@ void ReassemblyQueue::ResetStreamsAndLeaveDeferredReset(
     rtc::ArrayView<const StreamID> stream_ids) {
   RTC_DLOG(LS_VERBOSE) << log_prefix_ << "Resetting streams: ["
                        << webrtc::StrJoin(stream_ids, ",",
-                                          [](rtc::StringBuilder& sb,
+                                          [](webrtc::StringBuilder& sb,
                                              StreamID sid) { sb << *sid; })
                        << "]";
 
@@ -170,7 +170,7 @@ void ReassemblyQueue::AddReassembledMessage(
   RTC_DLOG(LS_VERBOSE) << log_prefix_ << "Assembled message from TSN=["
                        << webrtc::StrJoin(
                               tsns, ",",
-                              [](rtc::StringBuilder& sb, UnwrappedTSN tsn) {
+                              [](webrtc::StringBuilder& sb, UnwrappedTSN tsn) {
                                 sb << *tsn.Wrap();
                               })
                        << "], message; stream_id=" << *message.stream_id()

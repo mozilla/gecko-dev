@@ -476,7 +476,7 @@ class LogMessage {
   LogMessage& operator=(const LogMessage&) = delete;
 
   void AddTag(const char* tag);
-  rtc::StringBuilder& stream();
+  webrtc::StringBuilder& stream();
   // Returns the time at which this function was called for the first time.
   // The time will be used as the logging start time.
   // If this is not called externally, the LogMessage ctor also calls it, in
@@ -624,7 +624,7 @@ class LogMessage {
 #endif  // RTC_LOG_ENABLED()
 
   // The stringbuilder that buffers the formatted message before output
-  rtc::StringBuilder print_stream_;
+  webrtc::StringBuilder print_stream_;
 
   static bool aec_debug_;
   static std::string aec_filename_base_;

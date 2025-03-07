@@ -34,7 +34,7 @@ class DtmfToneGeneratorTest : public ::testing::Test {
     AudioMultiVector signal(channels);
 
     for (int event = 0; event <= 15; ++event) {
-      rtc::StringBuilder ss;
+      StringBuilder ss;
       ss << "Checking event " << event << " at sample rate " << fs_hz;
       SCOPED_TRACE(ss.str());
       const int kAttenuation = 0;
@@ -73,7 +73,7 @@ class DtmfToneGeneratorTest : public ::testing::Test {
       EXPECT_EQ(kNumSamples, tone_gen_.Generate(kNumSamples, &ref_signal));
       // Test every 5 steps (to save time).
       for (int attenuation = 1; attenuation <= 63; attenuation += 5) {
-        rtc::StringBuilder ss;
+        StringBuilder ss;
         ss << "Checking event " << event << " at sample rate " << fs_hz;
         ss << "; attenuation " << attenuation;
         SCOPED_TRACE(ss.str());

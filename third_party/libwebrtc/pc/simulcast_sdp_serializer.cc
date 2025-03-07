@@ -59,8 +59,8 @@ RTCError ParseError(absl::string_view message) {
 
 // These methods serialize simulcast according to the specification:
 // https://tools.ietf.org/html/draft-ietf-mmusic-sdp-simulcast-13#section-5.1
-rtc::StringBuilder& operator<<(rtc::StringBuilder& builder,
-                               const SimulcastLayer& simulcast_layer) {
+StringBuilder& operator<<(StringBuilder& builder,
+                          const SimulcastLayer& simulcast_layer) {
   if (simulcast_layer.is_paused) {
     builder << kSimulcastPausedStream;
   }
@@ -68,8 +68,8 @@ rtc::StringBuilder& operator<<(rtc::StringBuilder& builder,
   return builder;
 }
 
-rtc::StringBuilder& operator<<(
-    rtc::StringBuilder& builder,
+StringBuilder& operator<<(
+    StringBuilder& builder,
     const std::vector<SimulcastLayer>& layer_alternatives) {
   bool first = true;
   for (const SimulcastLayer& rid : layer_alternatives) {
@@ -82,8 +82,8 @@ rtc::StringBuilder& operator<<(
   return builder;
 }
 
-rtc::StringBuilder& operator<<(rtc::StringBuilder& builder,
-                               const SimulcastLayerList& simulcast_layers) {
+StringBuilder& operator<<(StringBuilder& builder,
+                          const SimulcastLayerList& simulcast_layers) {
   bool first = true;
   for (const auto& alternatives : simulcast_layers) {
     if (!first) {
@@ -183,7 +183,7 @@ webrtc::RTCError ParseRidPayloadList(const std::string& payload_list,
 
 std::string SimulcastSdpSerializer::SerializeSimulcastDescription(
     const cricket::SimulcastDescription& simulcast) const {
-  rtc::StringBuilder sb;
+  StringBuilder sb;
   std::string delimiter;
 
   if (!simulcast.send_layers().empty()) {
@@ -271,7 +271,7 @@ std::string SimulcastSdpSerializer::SerializeRidDescription(
   RTC_DCHECK(rid_description.direction == RidDirection::kSend ||
              rid_description.direction == RidDirection::kReceive);
 
-  rtc::StringBuilder builder;
+  StringBuilder builder;
   builder << rid_description.rid << kDelimiterSpace
           << (rid_description.direction == RidDirection::kSend
                   ? kSendDirection

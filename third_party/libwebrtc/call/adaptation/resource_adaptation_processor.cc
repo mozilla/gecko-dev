@@ -230,7 +230,7 @@ ResourceAdaptationProcessor::OnResourceUnderuse(
   // How can this stream be adapted up?
   Adaptation adaptation = stream_adapter_->GetAdaptationUp();
   if (adaptation.status() != Adaptation::Status::kValid) {
-    rtc::StringBuilder message;
+    StringBuilder message;
     message << "Not adapting up because VideoStreamAdapter returned "
             << Adaptation::StatusToString(adaptation.status());
     return MitigationResultAndLogMessage(MitigationResult::kRejectedByAdapter,
@@ -251,7 +251,7 @@ ResourceAdaptationProcessor::OnResourceUnderuse(
     // adaptation.
     if (absl::c_find(most_limited_resources, reason_resource) ==
         most_limited_resources.end()) {
-      rtc::StringBuilder message;
+      StringBuilder message;
       message << "Resource \"" << reason_resource->Name()
               << "\" was not the most limited resource.";
       return MitigationResultAndLogMessage(
@@ -263,7 +263,7 @@ ResourceAdaptationProcessor::OnResourceUnderuse(
       // before the adaptation is applied.
       UpdateResourceLimitations(reason_resource, adaptation.restrictions(),
                                 adaptation.counters());
-      rtc::StringBuilder message;
+      StringBuilder message;
       message << "Resource \"" << reason_resource->Name()
               << "\" was not the only most limited resource.";
       return MitigationResultAndLogMessage(
@@ -272,7 +272,7 @@ ResourceAdaptationProcessor::OnResourceUnderuse(
   }
   // Apply adaptation.
   stream_adapter_->ApplyAdaptation(adaptation, reason_resource);
-  rtc::StringBuilder message;
+  StringBuilder message;
   message << "Adapted up successfully. Unfiltered adaptations: "
           << stream_adapter_->adaptation_counters().ToString();
   return MitigationResultAndLogMessage(MitigationResult::kAdaptationApplied,
@@ -293,7 +293,7 @@ ResourceAdaptationProcessor::OnResourceOveruse(
                               restrictions.counters);
   }
   if (adaptation.status() != Adaptation::Status::kValid) {
-    rtc::StringBuilder message;
+    StringBuilder message;
     message << "Not adapting down because VideoStreamAdapter returned "
             << Adaptation::StatusToString(adaptation.status());
     return MitigationResultAndLogMessage(MitigationResult::kRejectedByAdapter,
@@ -303,7 +303,7 @@ ResourceAdaptationProcessor::OnResourceOveruse(
   UpdateResourceLimitations(reason_resource, adaptation.restrictions(),
                             adaptation.counters());
   stream_adapter_->ApplyAdaptation(adaptation, reason_resource);
-  rtc::StringBuilder message;
+  StringBuilder message;
   message << "Adapted down successfully. Unfiltered adaptations: "
           << stream_adapter_->adaptation_counters().ToString();
   return MitigationResultAndLogMessage(MitigationResult::kAdaptationApplied,

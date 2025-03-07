@@ -278,7 +278,7 @@ void TransmissionControlBlock::SendBufferedPackets(SctpPacket::Builder& builder,
 }
 
 std::string TransmissionControlBlock::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
 
   sb.AppendFormat(
       "verification_tag=%08x, last_cumulative_ack=%u, capabilities=",

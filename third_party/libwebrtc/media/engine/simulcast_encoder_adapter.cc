@@ -1005,7 +1005,7 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
   }
 
   if (!encoder_names.empty()) {
-    rtc::StringBuilder implementation_name_builder(" (");
+    StringBuilder implementation_name_builder(" (");
     implementation_name_builder << StrJoin(encoder_names, ", ");
     implementation_name_builder << ")";
     encoder_info.implementation_name += implementation_name_builder.Release();

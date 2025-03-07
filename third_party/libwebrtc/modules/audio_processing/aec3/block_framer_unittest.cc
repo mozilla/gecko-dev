@@ -188,7 +188,7 @@ void RunWronglyInsertOrderTest(int sample_rate_hz,
 #endif
 
 std::string ProduceDebugText(int sample_rate_hz, size_t num_channels) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << "Sample rate: " << sample_rate_hz;
   ss << ", number of channels: " << num_channels;
   return ss.Release();

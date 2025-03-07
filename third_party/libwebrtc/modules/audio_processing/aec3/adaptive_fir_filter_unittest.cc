@@ -44,7 +44,7 @@ namespace aec3 {
 namespace {
 
 std::string ProduceDebugText(size_t num_render_channels, size_t delay) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << "delay: " << delay << ", ";
   ss << "num_render_channels:" << num_render_channels;
   return ss.Release();

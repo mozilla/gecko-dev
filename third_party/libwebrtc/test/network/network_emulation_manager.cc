@@ -385,7 +385,7 @@ EmulatedTURNServerInterface* NetworkEmulationManagerImpl::CreateTURNServer(
   auto* client = CreateEndpoint(config.client_config);
   auto* peer = CreateEndpoint(config.client_config);
   char buf[128];
-  rtc::SimpleStringBuilder str(buf);
+  SimpleStringBuilder str(buf);
   str.AppendFormat("turn_server_%u",
                    static_cast<unsigned>(turn_servers_.size()));
   auto turn = std::make_unique<EmulatedTURNServer>(

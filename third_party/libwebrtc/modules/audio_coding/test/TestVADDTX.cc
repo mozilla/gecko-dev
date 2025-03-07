@@ -205,7 +205,7 @@ void TestWebRtcVadDtx::Test(bool new_outfile, bool expect_dtx_enabled) {
   if (new_outfile) {
     output_file_num_++;
   }
-  rtc::StringBuilder out_filename;
+  StringBuilder out_filename;
   out_filename << webrtc::test::OutputPath() << "testWebRtcVadDtx_outFile_"
                << output_file_num_ << ".pcm";
   Run(webrtc::test::ResourcePath("audio_coding/testfile32kHz", "pcm"), 32000, 1,

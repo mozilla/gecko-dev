@@ -136,7 +136,7 @@ int main(int argc, char* argv[]) {
       CalculateColorTransformationMatrix(aligned_reference_video, test_video);
 
   char buf[256];
-  rtc::SimpleStringBuilder string_builder(buf);
+  webrtc::SimpleStringBuilder string_builder(buf);
   for (int i = 0; i < 3; ++i) {
     string_builder << "\n";
     for (int j = 0; j < 4; ++j)

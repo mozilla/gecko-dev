@@ -19,7 +19,7 @@
 #include "api/array_view.h"
 #include "rtc_base/string_encode.h"
 
-namespace rtc {
+namespace webrtc {
 
 // This is a minimalistic string builder class meant to cover the most cases of
 // when you might otherwise be tempted to use a stringstream (discouraged for
@@ -165,6 +165,13 @@ class StringBuilder {
   std::string str_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::SimpleStringBuilder;
+using ::webrtc::StringBuilder;
 }  // namespace rtc
 
 #endif  // RTC_BASE_STRINGS_STRING_BUILDER_H_

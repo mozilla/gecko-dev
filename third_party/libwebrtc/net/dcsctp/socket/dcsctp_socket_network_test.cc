@@ -304,7 +304,7 @@ class SctpActor : public DcSctpSocketCallbacks {
 
  private:
   std::string log_prefix() const {
-    rtc::StringBuilder sb;
+    webrtc::StringBuilder sb;
     sb << log_prefix_;
     sb << rtc::TimeMillis();
     sb << ": ";

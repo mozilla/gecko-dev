@@ -120,7 +120,7 @@ void ConfigureSvc(VideoCodec* codec_settings) {
 
 std::string CodecSpecificToString(const VideoCodec& codec) {
   char buf[1024];
-  rtc::SimpleStringBuilder ss(buf);
+  SimpleStringBuilder ss(buf);
   switch (codec.codecType) {
     case kVideoCodecVP8:
       ss << "\nnum_temporal_layers: "
@@ -309,7 +309,7 @@ size_t VideoCodecTestFixtureImpl::Config::NumberOfSimulcastStreams() const {
 
 std::string VideoCodecTestFixtureImpl::Config::ToString() const {
   std::string codec_type = CodecTypeToPayloadString(codec_settings.codecType);
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << "test_name: " << test_name;
   ss << "\nfilename: " << filename;
   ss << "\nnum_frames: " << num_frames;
@@ -563,7 +563,7 @@ void VideoCodecTestFixtureImpl::AnalyzeAllFrames(
 
       // For perf dashboard.
       char modifier_buf[256];
-      rtc::SimpleStringBuilder modifier(modifier_buf);
+      SimpleStringBuilder modifier(modifier_buf);
       modifier << "_r" << rate_profile_idx << "_sl" << layer_stat.spatial_idx;
 
       auto PrintResultHelper = [&modifier, this](

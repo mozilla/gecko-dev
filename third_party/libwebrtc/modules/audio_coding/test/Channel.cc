@@ -219,7 +219,7 @@ Channel::Channel(int16_t chID)
   }
   if (chID >= 0) {
     _saveBitStream = true;
-    rtc::StringBuilder ss;
+    StringBuilder ss;
     ss.AppendFormat("bitStream_%d.dat", chID);
     _bitStreamFile = fopen(ss.str().c_str(), "wb");
   } else {

@@ -229,7 +229,7 @@ TEST_F(StatsEndToEndTest, GetStats) {
     }
 
     std::string CompoundKey(const char* name, uint32_t ssrc) {
-      rtc::StringBuilder oss;
+      StringBuilder oss;
       oss << name << "_" << ssrc;
       return oss.Release();
     }

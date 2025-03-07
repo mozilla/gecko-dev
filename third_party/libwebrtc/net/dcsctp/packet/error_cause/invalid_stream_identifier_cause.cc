@@ -52,7 +52,7 @@ void InvalidStreamIdentifierCause::SerializeTo(
 }
 
 std::string InvalidStreamIdentifierCause::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "Invalid Stream Identifier, stream_id=" << *stream_id_;
   return sb.Release();
 }

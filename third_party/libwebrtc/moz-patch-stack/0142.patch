@@ -36,7 +36,7 @@ index 59ee866f53..b062ca6563 100644
      ~VideoStreamFactoryInterface() override {}
    };
 diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
-index aaed88b59d..283e67fea6 100644
+index 8063df4e52..d2c4eaad91 100644
 --- a/video/video_stream_encoder.cc
 +++ b/video/video_stream_encoder.cc
 @@ -1030,6 +1030,7 @@ void VideoStreamEncoder::ReconfigureEncoder() {

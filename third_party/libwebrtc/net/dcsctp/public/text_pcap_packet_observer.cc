@@ -33,7 +33,7 @@ void TextPcapPacketObserver::PrintPacket(
     absl::string_view socket_name,
     dcsctp::TimeMs now,
     rtc::ArrayView<const uint8_t> payload) {
-  rtc::StringBuilder s;
+  webrtc::StringBuilder s;
   s << "\n" << prefix;
   int64_t remaining = *now % (24 * 60 * 60 * 1000);
   int hours = remaining / (60 * 60 * 1000);

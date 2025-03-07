@@ -747,7 +747,7 @@ void VideoStreamEncoderResourceManager::UpdateStatsAdaptationSettings() const {
 std::string VideoStreamEncoderResourceManager::ActiveCountsToString(
     const std::map<VideoAdaptationReason, VideoAdaptationCounters>&
         active_counts) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
 
   ss << "Downgrade counts: fps: {";
   for (auto& reason_count : active_counts) {

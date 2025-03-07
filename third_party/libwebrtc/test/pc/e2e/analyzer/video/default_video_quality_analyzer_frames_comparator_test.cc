@@ -132,7 +132,7 @@ void AssertFirstMetadataHasField(const SamplesStatsCounter& counter,
 }
 
 std::string ToString(const SamplesStatsCounter& counter) {
-  rtc::StringBuilder out;
+  StringBuilder out;
   for (const StatsSample& s : counter.GetTimedSamples()) {
     out << "{ time_ms=" << s.time.ms() << "; value=" << s.value << "}, ";
   }

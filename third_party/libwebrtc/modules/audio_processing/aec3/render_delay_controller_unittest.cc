@@ -29,7 +29,7 @@ namespace webrtc {
 namespace {
 
 std::string ProduceDebugText(int sample_rate_hz) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << "Sample rate: " << sample_rate_hz;
   return ss.Release();
 }
@@ -38,7 +38,7 @@ std::string ProduceDebugText(int sample_rate_hz,
                              size_t delay,
                              size_t num_render_channels,
                              size_t num_capture_channels) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << ProduceDebugText(sample_rate_hz) << ", Delay: " << delay
      << ", Num render channels: " << num_render_channels
      << ", Num capture channels: " << num_capture_channels;

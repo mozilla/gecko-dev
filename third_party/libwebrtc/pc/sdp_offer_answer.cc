@@ -205,7 +205,7 @@ bool CheckForRemoteIceRestart(const SessionDescriptionInterface* old_desc,
 std::string GetSetDescriptionErrorMessage(cricket::ContentSource source,
                                           SdpType type,
                                           const RTCError& error) {
-  rtc::StringBuilder oss;
+  StringBuilder oss;
   oss << "Failed to set " << (source == cricket::CS_LOCAL ? "local" : "remote")
       << " " << SdpTypeToString(type) << " sdp: ";
   RTC_DCHECK(!absl::StartsWith(error.message(), oss.str())) << error.message();
@@ -3218,7 +3218,7 @@ RTCError SdpOfferAnswerHandler::Rollback(SdpType desc_type) {
       state != PeerConnectionInterface::kHaveRemoteOffer) {
     LOG_AND_RETURN_ERROR(
         RTCErrorType::INVALID_STATE,
-        (rtc::StringBuilder("Called in wrong signalingState: ")
+        (StringBuilder("Called in wrong signalingState: ")
          << (PeerConnectionInterface::AsString(signaling_state())))
             .Release());
   }
@@ -3683,7 +3683,7 @@ RTCError SdpOfferAnswerHandler::ValidateSessionDescription(
       (source == cricket::CS_REMOTE && !ExpectSetRemoteDescription(type))) {
     LOG_AND_RETURN_ERROR(
         RTCErrorType::INVALID_STATE,
-        (rtc::StringBuilder("Called in wrong state: ")
+        (StringBuilder("Called in wrong state: ")
          << PeerConnectionInterface::AsString(signaling_state()))
             .Release());
   }
@@ -4103,7 +4103,7 @@ RTCError SdpOfferAnswerHandler::UpdateDataChannelTransport(
     RTC_LOG(LS_INFO) << "Rejected data channel transport with mid="
                      << content.mid();
 
-    rtc::StringBuilder sb;
+    StringBuilder sb;
     sb << "Rejected data channel transport with mid=" << content.mid();
     RTCError error(RTCErrorType::OPERATION_ERROR_WITH_DATA, sb.Release());
     error.set_error_detail(RTCErrorDetailType::DATA_CHANNEL_FAILURE);
@@ -4658,7 +4658,7 @@ const char* SdpOfferAnswerHandler::SessionErrorToString(
 
 std::string SdpOfferAnswerHandler::GetSessionErrorMsg() {
   RTC_DCHECK_RUN_ON(signaling_thread());
-  rtc::StringBuilder desc;
+  StringBuilder desc;
   desc << kSessionError << SessionErrorToString(session_error()) << ". ";
   desc << kSessionErrorDesc << session_error_desc() << ".";
   return desc.Release();
@@ -5152,7 +5152,7 @@ void SdpOfferAnswerHandler::RemoveUnusedChannels(
     error.set_error_detail(RTCErrorDetailType::DATA_CHANNEL_FAILURE);
     pc_->DestroyDataChannelTransport(error);
   } else if (data_info->rejected) {
-    rtc::StringBuilder sb;
+    StringBuilder sb;
     sb << "Rejected data channel with mid=" << data_info->mid() << ".";
 
     RTCError error(RTCErrorType::OPERATION_ERROR_WITH_DATA, sb.Release());

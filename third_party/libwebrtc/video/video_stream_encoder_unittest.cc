@@ -1635,7 +1635,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
       MutexLock lock(&mutex_);
       ++number_of_layers_allocations_;
       last_layers_allocation_ = allocation;
-      rtc::StringBuilder log;
+      StringBuilder log;
       for (const auto& layer : allocation.active_spatial_layers) {
         log << layer.width << "x" << layer.height << "@" << layer.frame_rate_fps
             << "[";

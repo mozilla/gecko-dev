@@ -59,7 +59,7 @@ void UserInitiatedAbortCause::SerializeTo(std::vector<uint8_t>& out) const {
 }
 
 std::string UserInitiatedAbortCause::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "User-Initiated Abort, reason=" << upper_layer_abort_reason_;
   return sb.Release();
 }

@@ -45,7 +45,7 @@ using ::testing::TestWithParam;
 using ::testing::Values;
 
 std::string FrameDependencyTemplateToString(const FrameDependencyTemplate& t) {
-  rtc::StringBuilder sb;
+  StringBuilder sb;
   sb << "S" << t.spatial_id << "T" << t.temporal_id;
   sb << ": dtis = ";
   for (const auto dtis : t.decode_target_indications) {

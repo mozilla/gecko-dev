@@ -128,7 +128,7 @@ TEST(SplTest, AddSubSatW32) {
           INT32_MIN, std::min<int64_t>(INT32_MAX, static_cast<int64_t>(a) + b));
       const int64_t diff = std::max<int64_t>(
           INT32_MIN, std::min<int64_t>(INT32_MAX, static_cast<int64_t>(a) - b));
-      rtc::StringBuilder ss;
+      webrtc::StringBuilder ss;
       ss << a << " +/- " << b << ": sum " << sum << ", diff " << diff;
       SCOPED_TRACE(ss.str());
       EXPECT_EQ(sum, WebRtcSpl_AddSatW32(a, b));

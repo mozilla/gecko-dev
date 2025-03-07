@@ -430,7 +430,7 @@ void Aec3ConfigFromJsonString(absl::string_view json_string,
 }
 
 std::string Aec3ConfigToJsonString(const EchoCanceller3Config& config) {
-  rtc::StringBuilder ost;
+  StringBuilder ost;
   ost << "{";
   ost << "\"aec3\": {";
   ost << "\"buffering\": {";

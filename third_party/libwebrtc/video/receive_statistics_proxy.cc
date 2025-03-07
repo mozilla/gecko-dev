@@ -103,7 +103,7 @@ void ReceiveStatisticsProxy::UpdateHistograms(
   RTC_DCHECK_RUN_ON(&main_thread_);
 
   char log_stream_buf[8 * 1024];
-  rtc::SimpleStringBuilder log_stream(log_stream_buf);
+  SimpleStringBuilder log_stream(log_stream_buf);
 
   int stream_duration_sec = (clock_->TimeInMilliseconds() - start_ms_) / 1000;
 

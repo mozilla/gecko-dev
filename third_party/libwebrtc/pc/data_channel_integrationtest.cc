@@ -701,7 +701,7 @@ TEST_P(DataChannelIntegrationTest, StressTestOpenCloseChannelNoDelay) {
     RTC_LOG(LS_INFO) << "Iteration " << (repeats + 1) << "/" << kIterations;
 
     for (size_t i = 0; i < kChannelCount; ++i) {
-      rtc::StringBuilder sb;
+      StringBuilder sb;
       sb << "channel-" << channel_id++;
       caller()->CreateDataChannel(sb.Release(), &init);
     }
@@ -788,7 +788,7 @@ TEST_P(DataChannelIntegrationTest, StressTestOpenCloseChannelWithDelay) {
     RTC_LOG(LS_INFO) << "Iteration " << (repeats + 1) << "/" << kIterations;
 
     for (size_t i = 0; i < kChannelCount; ++i) {
-      rtc::StringBuilder sb;
+      StringBuilder sb;
       sb << "channel-" << channel_id++;
       caller()->CreateDataChannel(sb.Release(), &init);
     }

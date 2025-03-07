@@ -79,7 +79,7 @@ VideoCodec::VideoCodec()
 
 std::string VideoCodec::ToString() const {
   char string_buf[2048];
-  rtc::SimpleStringBuilder ss(string_buf);
+  SimpleStringBuilder ss(string_buf);
 
   ss << "VideoCodec {" << "type: " << CodecTypeToPayloadString(codecType)
      << ", mode: "

@@ -160,7 +160,7 @@ SdpVideoFormat& SdpVideoFormat::operator=(SdpVideoFormat&&) = default;
 SdpVideoFormat::~SdpVideoFormat() = default;
 
 std::string SdpVideoFormat::ToString() const {
-  rtc::StringBuilder builder;
+  StringBuilder builder;
   builder << "Codec name: " << name << ", parameters: {";
   for (const auto& kv : parameters) {
     builder << " " << kv.first << "=" << kv.second;

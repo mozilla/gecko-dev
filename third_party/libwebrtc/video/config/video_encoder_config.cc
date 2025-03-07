@@ -32,7 +32,7 @@ VideoStream::~VideoStream() = default;
 
 std::string VideoStream::ToString() const {
   char buf[1024];
-  rtc::SimpleStringBuilder ss(buf);
+  SimpleStringBuilder ss(buf);
   ss << "{width: " << width;
   ss << ", height: " << height;
   ss << ", max_framerate: " << max_framerate;
@@ -68,7 +68,7 @@ VideoEncoderConfig::~VideoEncoderConfig() = default;
 
 std::string VideoEncoderConfig::ToString() const {
   char buf[1024];
-  rtc::SimpleStringBuilder ss(buf);
+  SimpleStringBuilder ss(buf);
   ss << "{codec_type: " << CodecTypeToPayloadString(codec_type);
   ss << ", content_type: ";
   switch (content_type) {

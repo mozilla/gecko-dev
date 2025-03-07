@@ -51,7 +51,7 @@ void ZeroChecksumAcceptableChunkParameter::SerializeTo(
 }
 
 std::string ZeroChecksumAcceptableChunkParameter::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "Zero Checksum Acceptable (" << *error_detection_method_ << ")";
   return sb.Release();
 }

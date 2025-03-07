@@ -56,7 +56,7 @@ void ProtocolViolationCause::SerializeTo(std::vector<uint8_t>& out) const {
 }
 
 std::string ProtocolViolationCause::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "Protocol Violation, additional_information="
      << additional_information_;
   return sb.Release();

@@ -49,7 +49,7 @@ void StaleCookieErrorCause::SerializeTo(std::vector<uint8_t>& out) const {
 }
 
 std::string StaleCookieErrorCause::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "Stale Cookie Error, staleness_us=" << staleness_us_;
   return sb.Release();
 }

@@ -39,7 +39,7 @@ VideoSourceRestrictions::VideoSourceRestrictions(
 }
 
 std::string VideoSourceRestrictions::ToString() const {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << "{";
   if (max_frame_rate_)
     ss << " max_fps=" << max_frame_rate_.value();

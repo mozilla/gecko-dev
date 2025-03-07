@@ -96,7 +96,7 @@ void IForwardTsnChunk::SerializeTo(std::vector<uint8_t>& out) const {
 }
 
 std::string IForwardTsnChunk::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "I-FORWARD-TSN, new_cumulative_tsn=" << *new_cumulative_tsn();
   return sb.Release();
 }

@@ -52,7 +52,7 @@ struct SetupMessage {
 
   std::string ToString() {
     char buffer[64];
-    rtc::SimpleStringBuilder sb(buffer);
+    webrtc::SimpleStringBuilder sb(buffer);
     sb << packet_size << "," << transfer_size;
 
     return sb.str();

@@ -668,7 +668,7 @@ class VideoCodecAnalyzer : public VideoCodecTester::VideoCodecStats {
     RTC_LOG(LS_INFO) << "Write metrics to " << csv_path;
     FILE* csv_file = fopen(csv_path.data(), "w");
     const std::string delimiter = ";";
-    rtc::StringBuilder header;
+    StringBuilder header;
     header
         << "timestamp_rtp;spatial_idx;temporal_idx;width;height;frame_size_"
            "bytes;keyframe;qp;encode_time_us;decode_time_us;psnr_y_db;psnr_u_"
@@ -679,7 +679,7 @@ class VideoCodecAnalyzer : public VideoCodecTester::VideoCodecStats {
     fwrite(header.str().c_str(), 1, header.size(), csv_file);
 
     for (const Frame& f : frames) {
-      rtc::StringBuilder row;
+      StringBuilder row;
       row << "\n" << f.timestamp_rtp;
       row << ";" << f.layer_id.spatial_idx;
       row << ";" << f.layer_id.temporal_idx;

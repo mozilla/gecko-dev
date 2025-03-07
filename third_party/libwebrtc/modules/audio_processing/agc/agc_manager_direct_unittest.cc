@@ -152,7 +152,7 @@ constexpr char kMinMicLevelFieldTrial[] =
 
 std::string GetAgcMinMicLevelExperimentFieldTrial(const std::string& value) {
   char field_trial_buffer[64];
-  rtc::SimpleStringBuilder builder(field_trial_buffer);
+  SimpleStringBuilder builder(field_trial_buffer);
   builder << kMinMicLevelFieldTrial << "/" << value << "/";
   return builder.str();
 }
@@ -163,7 +163,7 @@ std::string GetAgcMinMicLevelExperimentFieldTrialEnabled(
   RTC_DCHECK_GE(enabled_value, 0);
   RTC_DCHECK_LE(enabled_value, 255);
   char field_trial_buffer[64];
-  rtc::SimpleStringBuilder builder(field_trial_buffer);
+  SimpleStringBuilder builder(field_trial_buffer);
   builder << kMinMicLevelFieldTrial << "/Enabled-" << enabled_value << suffix
           << "/";
   return builder.str();

@@ -144,7 +144,7 @@ void ReconfigurationResponseParameter::SerializeTo(
 }
 
 std::string ReconfigurationResponseParameter::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "Re-configuration Response, resp_seq_nbr="
      << *response_sequence_number();
   return sb.Release();

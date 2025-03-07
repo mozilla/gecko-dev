@@ -136,7 +136,7 @@ void Receiver::Setup(NetEq* neteq,
 
   int playSampFreq;
   std::string file_name;
-  rtc::StringBuilder file_stream;
+  StringBuilder file_stream;
   file_stream << webrtc::test::OutputPath() << out_file_name << file_num
               << ".pcm";
   file_name = file_stream.str();

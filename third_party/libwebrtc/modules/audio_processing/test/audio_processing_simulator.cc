@@ -42,7 +42,7 @@ namespace {
 
 std::string GetIndexedOutputWavFilename(absl::string_view wav_name,
                                         int counter) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << wav_name.substr(0, wav_name.size() - 4) << "_" << counter
      << wav_name.substr(wav_name.size() - 4);
   return ss.Release();

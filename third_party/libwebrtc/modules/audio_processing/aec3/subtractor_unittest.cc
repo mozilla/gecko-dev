@@ -179,7 +179,7 @@ std::string ProduceDebugText(size_t num_render_channels,
                              size_t num_capture_channels,
                              size_t delay,
                              int filter_length_blocks) {
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << "delay: " << delay << ", ";
   ss << "filter_length_blocks:" << filter_length_blocks << ", ";
   ss << "num_render_channels:" << num_render_channels << ", ";

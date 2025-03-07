@@ -41,7 +41,7 @@ void ReceiverWithPacketLoss::Setup(NetEq* neteq,
   loss_rate_ = loss_rate;
   burst_length_ = burst_length;
   burst_lost_counter_ = burst_length_;  // To prevent first packet gets lost.
-  rtc::StringBuilder ss;
+  StringBuilder ss;
   ss << out_file_name << "_" << loss_rate_ << "_" << burst_length_ << "_";
   Receiver::Setup(neteq, rtpStream, ss.str(), channels, file_num);
 }

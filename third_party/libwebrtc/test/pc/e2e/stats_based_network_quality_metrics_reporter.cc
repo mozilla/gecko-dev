@@ -412,7 +412,7 @@ void StatsBasedNetworkQualityMetricsReporter::ReportStats(
 
 std::string StatsBasedNetworkQualityMetricsReporter::GetTestCaseName(
     absl::string_view network_label) const {
-  rtc::StringBuilder builder;
+  StringBuilder builder;
   builder << test_case_name_ << "/" << network_label.data();
   return builder.str();
 }
@@ -432,7 +432,7 @@ void StatsBasedNetworkQualityMetricsReporter::LogNetworkLayerStats(
   std::map<std::string, std::string> metric_metadata{
       {MetricMetadataKey::kPeerMetadataKey, peer_name},
       {MetricMetadataKey::kExperimentalTestNameMetadataKey, test_case_name_}};
-  rtc::StringBuilder log;
+  StringBuilder log;
   log << "Raw network layer statistic for [" << peer_name << "]:\n"
       << "Local IPs:\n";
   for (size_t i = 0; i < stats.endpoints_stats.local_addresses.size(); ++i) {

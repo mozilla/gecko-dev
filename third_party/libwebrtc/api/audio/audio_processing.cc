@@ -128,7 +128,7 @@ operator==(const AudioProcessing::Config::CaptureLevelAdjustment::
 
 std::string AudioProcessing::Config::ToString() const {
   char buf[2048];
-  rtc::SimpleStringBuilder builder(buf);
+  SimpleStringBuilder builder(buf);
   builder << "AudioProcessing::Config{ "
              "pipeline: { "
              "maximum_internal_processing_rate: "

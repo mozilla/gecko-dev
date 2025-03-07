@@ -515,7 +515,7 @@ aom_svc_ref_frame_config_t GetSvcRefFrameConfig(
   }
 
   char buf[256];
-  rtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
   sb << " spatial_id=" << settings.spatial_id;
   sb << "  ref_idx=[ ";
   for (auto r : ref_frame_config.ref_idx) {
@@ -618,7 +618,7 @@ aom_svc_params_t GetSvcParams(
   }
 
   char buf[512];
-  rtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
   sb << "GetSvcParams" << " layer bitrates kbps";
   for (int s = 0; s < svc_params.number_spatial_layers; ++s) {
     sb << " S" << s << "=[ ";

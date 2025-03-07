@@ -198,7 +198,7 @@ class ResultsLinePrinter {
                        absl::string_view units,
                        bool important) {
     MutexLock lock(&mutex_);
-    rtc::StringBuilder message;
+    StringBuilder message;
     message << (important ? "*" : "") << "RESULT " << graph_name << ": "
             << trace_name << "= " << prefix << values << suffix << " " << units;
     // <*>RESULT <graph_name>: <trace_name>= <value> <units>
@@ -268,7 +268,7 @@ void PrintResult(absl::string_view measurement,
                  absl::string_view units,
                  bool important,
                  ImproveDirection improve_direction) {
-  rtc::StringBuilder graph_name;
+  StringBuilder graph_name;
   graph_name << measurement << modifier;
   RTC_CHECK(std::isfinite(value))
       << "Expected finite value for graph " << graph_name.str()
@@ -286,7 +286,7 @@ void PrintResult(absl::string_view measurement,
                  absl::string_view units,
                  const bool important,
                  ImproveDirection improve_direction) {
-  rtc::StringBuilder graph_name;
+  StringBuilder graph_name;
   graph_name << measurement << modifier;
   GetPlottableCounterPrinter().AddCounter(graph_name.str(), trace, counter,
                                           units);
@@ -323,7 +323,7 @@ void PrintResultMeanAndError(absl::string_view measurement,
   RTC_CHECK(std::isfinite(mean));
   RTC_CHECK(std::isfinite(error));
 
-  rtc::StringBuilder graph_name;
+  StringBuilder graph_name;
   graph_name << measurement << modifier;
   GetPerfWriter().LogResultMeanAndError(graph_name.str(), trace, mean, error,
                                         units, important, improve_direction);
@@ -343,7 +343,7 @@ void PrintResultList(absl::string_view measurement,
     RTC_CHECK(std::isfinite(v));
   }
 
-  rtc::StringBuilder graph_name;
+  StringBuilder graph_name;
   graph_name << measurement << modifier;
   GetPerfWriter().LogResultList(graph_name.str(), trace, values, units,
                                 important, improve_direction);

@@ -89,7 +89,7 @@ void IDataChunk::SerializeTo(std::vector<uint8_t>& out) const {
 }
 
 std::string IDataChunk::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "I-DATA, type=" << (options().is_unordered ? "unordered" : "ordered")
      << "::"
      << (*options().is_beginning && *options().is_end ? "complete"

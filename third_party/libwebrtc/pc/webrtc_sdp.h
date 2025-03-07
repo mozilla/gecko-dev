@@ -35,10 +35,6 @@ namespace cricket {
 class Candidate;
 }  // namespace cricket
 
-namespace rtc {
-class StringBuilder;
-}  // namespace rtc
-
 namespace webrtc {
 class IceCandidateInterface;
 class JsepIceCandidate;
@@ -110,7 +106,7 @@ RTC_EXPORT bool ParseCandidate(absl::string_view message,
 // IsFmtpParam(). Returns true if the set of FMTP parameters is nonempty, false
 // otherwise.
 bool WriteFmtpParameters(const webrtc::CodecParameterMap& parameters,
-                         rtc::StringBuilder* os);
+                         StringBuilder* os);
 
 // Parses a string into an FMTP parameter set, in key-value format.
 bool ParseFmtpParameterSet(absl::string_view line_params,

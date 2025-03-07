@@ -89,7 +89,7 @@ namespace {
 
 std::string ToString(const EncodedImage& encoded_image) {
   char buffer[1024];
-  rtc::SimpleStringBuilder ss(buffer);
+  SimpleStringBuilder ss(buffer);
 
   ss << VideoFrameTypeToString(encoded_image._frameType)
      << ", size=" << encoded_image.size() << ", qp=" << encoded_image.qp_
@@ -113,7 +113,7 @@ std::string ToString(const EncodedImage& encoded_image) {
 [[maybe_unused]] std::string ToString(
     const CodecSpecificInfo& codec_specific_info) {
   char buffer[1024];
-  rtc::SimpleStringBuilder ss(buffer);
+  SimpleStringBuilder ss(buffer);
 
   ss << CodecTypeToPayloadString(codec_specific_info.codecType);
 

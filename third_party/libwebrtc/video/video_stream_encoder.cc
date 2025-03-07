@@ -1211,7 +1211,7 @@ void VideoStreamEncoder::ReconfigureEncoder() {
   }
 
   char log_stream_buf[4 * 1024];
-  rtc::SimpleStringBuilder log_stream(log_stream_buf);
+  SimpleStringBuilder log_stream(log_stream_buf);
   log_stream << "ReconfigureEncoder: simulcast streams: ";
   for (size_t i = 0; i < codec.numberOfSimulcastStreams; ++i) {
     std::optional<ScalabilityMode> scalability_mode =

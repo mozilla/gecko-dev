@@ -50,7 +50,7 @@ void NoUserDataCause::SerializeTo(std::vector<uint8_t>& out) const {
 }
 
 std::string NoUserDataCause::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "No User Data, tsn=" << *tsn_;
   return sb.Release();
 }

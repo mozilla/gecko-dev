@@ -26,7 +26,7 @@ namespace {
 
 std::string CodecRequiredParamsToString(
     const std::map<std::string, std::string>& codec_required_params) {
-  rtc::StringBuilder out;
+  StringBuilder out;
   for (const auto& entry : codec_required_params) {
     out << entry.first << "=" << entry.second << ";";
   }
@@ -35,7 +35,7 @@ std::string CodecRequiredParamsToString(
 
 std::string SupportedCodecsToString(
     rtc::ArrayView<const RtpCodecCapability> supported_codecs) {
-  rtc::StringBuilder out;
+  StringBuilder out;
   for (const auto& codec : supported_codecs) {
     out << codec.name;
     if (!codec.parameters.empty()) {

@@ -172,7 +172,7 @@ using ParameterizationType = std::tuple<Vp9TestParams, bool>;
 
 std::string ParamInfoToStr(
     const testing::TestParamInfo<ParameterizationType>& info) {
-  rtc::StringBuilder sb;
+  StringBuilder sb;
   sb << std::get<0>(info.param).scalability_mode << "_"
      << (std::get<1>(info.param) ? "WithIdentifier" : "WithoutIdentifier");
   return sb.str();

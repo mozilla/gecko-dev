@@ -158,7 +158,7 @@ DcSctpTransport::DcSctpTransport(
           }) {
   RTC_DCHECK_RUN_ON(network_thread_);
   static std::atomic<int> instance_count = 0;
-  rtc::StringBuilder sb;
+  StringBuilder sb;
   sb << debug_name_ << instance_count++;
   debug_name_ = sb.Release();
   ConnectTransportSignals();

@@ -154,7 +154,7 @@ void NetEqDecodingTest::DecodeAndCompare(
   uint64_t last_concealed_samples = 0;
   uint64_t last_total_samples_received = 0;
   while (packet_) {
-    rtc::StringBuilder ss;
+    StringBuilder ss;
     ss << "Lap number " << i++ << " in DecodeAndCompare while loop";
     SCOPED_TRACE(ss.str());  // Print out the parameter values on failure.
     ASSERT_NO_FATAL_FAILURE(Process());

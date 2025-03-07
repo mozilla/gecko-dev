@@ -81,7 +81,7 @@ void MissingMandatoryParameterCause::SerializeTo(
 }
 
 std::string MissingMandatoryParameterCause::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "Missing Mandatory Parameter, missing_parameter_types="
      << webrtc::StrJoin(missing_parameter_types_, ",");
   return sb.Release();

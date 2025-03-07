@@ -17,7 +17,7 @@
 namespace rtc {
 std::string ToString(const webrtc::SdpAudioFormat& saf) {
   char sb_buf[1024];
-  rtc::SimpleStringBuilder sb(sb_buf);
+  webrtc::SimpleStringBuilder sb(sb_buf);
   sb << "{name: " << saf.name;
   sb << ", clockrate_hz: " << saf.clockrate_hz;
   sb << ", num_channels: " << saf.num_channels;
@@ -32,7 +32,7 @@ std::string ToString(const webrtc::SdpAudioFormat& saf) {
 }
 std::string ToString(const webrtc::AudioCodecInfo& aci) {
   char sb_buf[1024];
-  rtc::SimpleStringBuilder sb(sb_buf);
+  webrtc::SimpleStringBuilder sb(sb_buf);
   sb << "{sample_rate_hz: " << aci.sample_rate_hz;
   sb << ", num_channels: " << aci.num_channels;
   sb << ", default_bitrate_bps: " << aci.default_bitrate_bps;
@@ -45,7 +45,7 @@ std::string ToString(const webrtc::AudioCodecInfo& aci) {
 }
 std::string ToString(const webrtc::AudioCodecSpec& acs) {
   char sb_buf[1024];
-  rtc::SimpleStringBuilder sb(sb_buf);
+  webrtc::SimpleStringBuilder sb(sb_buf);
   sb << "{format: " << ToString(acs.format);
   sb << ", info: " << ToString(acs.info);
   sb << "}";

@@ -443,7 +443,7 @@ static bool ParseFailed(std::string description, SdpParseError* error) {
 static bool ParseFailedExpectFieldNum(absl::string_view line,
                                       int expected_fields,
                                       SdpParseError* error) {
-  rtc::StringBuilder description;
+  StringBuilder description;
   description << "Expects " << expected_fields << " fields.";
   return ParseFailed(line, description.Release(), error);
 }
@@ -453,7 +453,7 @@ static bool ParseFailedExpectFieldNum(absl::string_view line,
 static bool ParseFailedExpectMinFieldNum(absl::string_view line,
                                          int expected_min_fields,
                                          SdpParseError* error) {
-  rtc::StringBuilder description;
+  StringBuilder description;
   description << "Expects at least " << expected_min_fields << " fields.";
   return ParseFailed(line, description.Release(), error);
 }
@@ -463,7 +463,7 @@ static bool ParseFailedExpectMinFieldNum(absl::string_view line,
 static bool ParseFailedGetValue(absl::string_view line,
                                 absl::string_view attribute,
                                 SdpParseError* error) {
-  rtc::StringBuilder description;
+  StringBuilder description;
   description << "Failed to get the value of attribute: " << attribute;
   return ParseFailed(line, description.Release(), error);
 }
@@ -477,7 +477,7 @@ static bool ParseFailedExpectLine(absl::string_view message,
                                   const char line_type,
                                   absl::string_view line_value,
                                   SdpParseError* error) {
-  rtc::StringBuilder description;
+  StringBuilder description;
   description << "Expect line: " << std::string(1, line_type) << "="
               << line_value;
   return ParseFailed(message, line_start, description.Release(), error);
@@ -536,13 +536,13 @@ static std::optional<absl::string_view> GetLine(absl::string_view message,
 // Init `os` to "`type`=`value`".
 static void InitLine(const char type,
                      absl::string_view value,
-                     rtc::StringBuilder* os) {
+                     StringBuilder* os) {
   os->Clear();
   *os << std::string(1, type) << kSdpDelimiterEqual << value;
 }
 
 // Init `os` to "a=`attribute`".
-static void InitAttrLine(absl::string_view attribute, rtc::StringBuilder* os) {
+static void InitAttrLine(absl::string_view attribute, StringBuilder* os) {
   InitLine(kLineTypeAttributes, attribute, os);
 }
 
@@ -550,7 +550,7 @@ static void InitAttrLine(absl::string_view attribute, rtc::StringBuilder* os) {
 static void AddAttributeLine(absl::string_view attribute,
                              int value,
                              std::string* message) {
-  rtc::StringBuilder os;
+  StringBuilder os;
   InitAttrLine(attribute, &os);
   os << kSdpDelimiterColon << value;
   AddLine(os.str(), message);
@@ -600,7 +600,7 @@ static bool AddSsrcLine(uint32_t ssrc_id,
                         std::string* message) {
   // RFC 5576
   // a=ssrc:<ssrc-id> <attribute>:<value>
-  rtc::StringBuilder os;
+  StringBuilder os;
   InitAttrLine(kAttributeSsrc, &os);
   os << kSdpDelimiterColon << ssrc_id << kSdpDelimiterSpace << attribute
      << kSdpDelimiterColon << value;
@@ -635,7 +635,7 @@ static bool GetSingleTokenValue(absl::string_view message,
     return false;
   }
   if (!absl::c_all_of(absl::string_view(*value), IsTokenChar)) {
-    rtc::StringBuilder description;
+    StringBuilder description;
     description << "Illegal character found in the value of " << attribute;
     return ParseFailed(message, description.Release(), error);
   }
@@ -654,7 +654,7 @@ static bool GetValueFromString(absl::string_view line,
                                T* t,
                                SdpParseError* error) {
   if (!rtc::FromString(s, t)) {
-    rtc::StringBuilder description;
+    StringBuilder description;
     description << "Invalid value: " << s << ".";
     return ParseFailed(line, description.Release(), error);
   }
@@ -815,7 +815,7 @@ static std::string GetRtcpLine(const std::vector<Candidate>& candidates) {
   // RFC 3605
   // rtcp-attribute =  "a=rtcp:" port  [nettype space addrtype space
   // connection-address] CRLF
-  rtc::StringBuilder os;
+  StringBuilder os;
   InitAttrLine(kAttributeRtcp, &os);
   os << kSdpDelimiterColon << rtcp_port << " " << kConnectionNettype << " "
      << addr_type << " " << rtcp_ip;
@@ -854,7 +854,7 @@ std::string SdpSerialize(const JsepSessionDescription& jdesc) {
   // RFC 4566
   // o=<username> <sess-id> <sess-version> <nettype> <addrtype>
   // <unicast-address>
-  rtc::StringBuilder os;
+  StringBuilder os;
   InitLine(kLineTypeOrigin, kSessionOriginUsername, &os);
   const std::string& session_id =
       jdesc.session_id().empty() ? kSessionOriginSessionId : jdesc.session_id();
@@ -1055,7 +1055,7 @@ bool ParseCandidate(absl::string_view message,
                            &attribute_candidate, &candidate_value) ||
       attribute_candidate != kAttributeCandidate) {
     if (is_raw) {
-      rtc::StringBuilder description;
+      StringBuilder description;
       description << "Expect line: " << kAttributeCandidate
                   << ":"
                      "<candidate-str>";
@@ -1323,11 +1323,11 @@ bool ParseExtmap(absl::string_view line,
 static void BuildSctpContentAttributes(
     std::string* message,
     const cricket::SctpDataContentDescription* data_desc) {
-  rtc::StringBuilder os;
+  StringBuilder os;
   if (data_desc->use_sctpmap()) {
     // draft-ietf-mmusic-sctp-sdp-04
     // a=sctpmap:sctpmap-number  protocol  [streams]
-    rtc::StringBuilder os;
+    StringBuilder os;
     InitAttrLine(kAttributeSctpmap, &os);
     os << kSdpDelimiterColon << data_desc->port() << kSdpDelimiterSpace
        << kDefaultSctpmapProtocol << kSdpDelimiterSpace
@@ -1351,7 +1351,7 @@ void BuildIceUfragPwd(const TransportInfo* transport_info,
                       std::string* message) {
   RTC_DCHECK(transport_info);
 
-  rtc::StringBuilder os;
+  StringBuilder os;
   // RFC 5245
   // ice-pwd-att           = "ice-pwd" ":" password
   // ice-ufrag-att         = "ice-ufrag" ":" ufrag
@@ -1373,7 +1373,7 @@ void BuildDtlsFingerprintSetup(const TransportInfo* transport_info,
                                std::string* message) {
   RTC_DCHECK(transport_info);
 
-  rtc::StringBuilder os;
+  StringBuilder os;
   // RFC 4572
   // fingerprint-attribute  =
   //   "fingerprint" ":" hash-func SP fingerprint
@@ -1406,7 +1406,7 @@ void BuildMediaLine(const cricket::MediaType media_type,
                     const ContentInfo* content_info,
                     const MediaContentDescription* media_desc,
                     std::string* message) {
-  rtc::StringBuilder os;
+  StringBuilder os;
 
   // RFC 4566
   // m=<media> <port> <proto> <fmt>
@@ -1482,7 +1482,7 @@ void BuildMediaDescription(const ContentInfo* content_info,
   if (!content_info) {
     return;
   }
-  rtc::StringBuilder os;
+  StringBuilder os;
   const MediaContentDescription* media_desc = content_info->media_description();
   RTC_DCHECK(media_desc);
 
@@ -1571,7 +1571,7 @@ void BuildRtpContentAttributes(const MediaContentDescription* media_desc,
                                int msid_signaling,
                                std::string* message) {
   SimulcastSdpSerializer serializer;
-  rtc::StringBuilder os;
+  StringBuilder os;
   // RFC 8285
   // a=extmap-allow-mixed
   // The attribute MUST be either on session level or media level. We support
@@ -1737,7 +1737,7 @@ void BuildRtpContentAttributes(const MediaContentDescription* media_desc,
 
 void BuildRtpHeaderExtensions(const RtpHeaderExtensions& extensions,
                               std::string* message) {
-  rtc::StringBuilder os;
+  StringBuilder os;
 
   // RFC 8285
   // a=extmap:<value>["/"<direction>] <URI> <extensionattributes>
@@ -1754,7 +1754,7 @@ void BuildRtpHeaderExtensions(const RtpHeaderExtensions& extensions,
   }
 }
 
-void WriteFmtpHeader(int payload_type, rtc::StringBuilder* os) {
+void WriteFmtpHeader(int payload_type, StringBuilder* os) {
   // fmtp header: a=fmtp:`payload_type` <parameters>
   // Add a=fmtp
   InitAttrLine(kAttributeFmtp, os);
@@ -1762,7 +1762,7 @@ void WriteFmtpHeader(int payload_type, rtc::StringBuilder* os) {
   *os << kSdpDelimiterColon << payload_type;
 }
 
-void WritePacketizationHeader(int payload_type, rtc::StringBuilder* os) {
+void WritePacketizationHeader(int payload_type, StringBuilder* os) {
   // packetization header: a=packetization:`payload_type` <packetization_format>
   // Add a=packetization
   InitAttrLine(kAttributePacketization, os);
@@ -1770,7 +1770,7 @@ void WritePacketizationHeader(int payload_type, rtc::StringBuilder* os) {
   *os << kSdpDelimiterColon << payload_type;
 }
 
-void WriteRtcpFbHeader(int payload_type, rtc::StringBuilder* os) {
+void WriteRtcpFbHeader(int payload_type, StringBuilder* os) {
   // rtcp-fb header: a=rtcp-fb:`payload_type`
   // <parameters>/<ccm <ccm_parameters>>
   // Add a=rtcp-fb
@@ -1786,7 +1786,7 @@ void WriteRtcpFbHeader(int payload_type, rtc::StringBuilder* os) {
 
 void WriteFmtpParameter(absl::string_view parameter_name,
                         absl::string_view parameter_value,
-                        rtc::StringBuilder* os) {
+                        StringBuilder* os) {
   if (parameter_name.empty()) {
     // RFC 2198 and RFC 4733 don't use key-value pairs.
     *os << parameter_value;
@@ -1805,7 +1805,7 @@ bool IsFmtpParam(absl::string_view name) {
 }
 
 bool WriteFmtpParameters(const webrtc::CodecParameterMap& parameters,
-                         rtc::StringBuilder* os) {
+                         StringBuilder* os) {
   bool empty = true;
   const char* delimiter = "";  // No delimiter before first parameter.
   for (const auto& entry : parameters) {
@@ -1825,7 +1825,7 @@ bool WriteFmtpParameters(const webrtc::CodecParameterMap& parameters,
 }
 
 void AddFmtpLine(const cricket::Codec& codec, std::string* message) {
-  rtc::StringBuilder os;
+  StringBuilder os;
   WriteFmtpHeader(codec.id, &os);
   os << kSdpDelimiterSpace;
   // Create FMTP line and check that it's nonempty.
@@ -1839,7 +1839,7 @@ void AddPacketizationLine(const cricket::Codec& codec, std::string* message) {
   if (!codec.packetization) {
     return;
   }
-  rtc::StringBuilder os;
+  StringBuilder os;
   WritePacketizationHeader(codec.id, &os);
   os << " " << *codec.packetization;
   AddLine(os.str(), message);
@@ -1847,7 +1847,7 @@ void AddPacketizationLine(const cricket::Codec& codec, std::string* message) {
 
 void AddRtcpFbLines(const cricket::Codec& codec, std::string* message) {
   for (const cricket::FeedbackParam& param : codec.feedback_params.params()) {
-    rtc::StringBuilder os;
+    StringBuilder os;
     WriteRtcpFbHeader(codec.id, &os);
     os << " " << param.id();
     if (!param.param().empty()) {
@@ -1884,7 +1884,7 @@ void BuildRtpmap(const MediaContentDescription* media_desc,
                  std::string* message) {
   RTC_DCHECK(message != NULL);
   RTC_DCHECK(media_desc != NULL);
-  rtc::StringBuilder os;
+  StringBuilder os;
   if (media_type == cricket::MEDIA_TYPE_VIDEO) {
     for (const cricket::Codec& codec : media_desc->codecs()) {
       // RFC 4566
@@ -1949,7 +1949,7 @@ void BuildRtpmap(const MediaContentDescription* media_desc,
   }
   if (media_desc->rtcp_fb_ack_ccfb()) {
     // RFC 8888 section 6
-    rtc::StringBuilder os;
+    StringBuilder os;
     InitAttrLine(kAttributeRtcpFb, &os);
     os << kSdpDelimiterColon;
     os << "* ack ccfb";
@@ -1960,7 +1960,7 @@ void BuildRtpmap(const MediaContentDescription* media_desc,
 void BuildCandidate(const std::vector<Candidate>& candidates,
                     bool include_ufrag,
                     std::string* message) {
-  rtc::StringBuilder os;
+  StringBuilder os;
 
   for (const Candidate& candidate : candidates) {
     // RFC 5245
@@ -2032,7 +2032,7 @@ void BuildCandidate(const std::vector<Candidate>& candidates,
 void BuildIceOptions(const std::vector<std::string>& transport_options,
                      std::string* message) {
   if (!transport_options.empty()) {
-    rtc::StringBuilder os;
+    StringBuilder os;
     InitAttrLine(kAttributeIceOption, &os);
     os << kSdpDelimiterColon << transport_options[0];
     for (size_t i = 1; i < transport_options.size(); ++i) {
@@ -3487,7 +3487,7 @@ bool ParseSsrcAttribute(absl::string_view line,
   std::string value;
   if (!rtc::tokenize_first(field2, kSdpDelimiterColonChar, &attribute,
                            &value)) {
-    rtc::StringBuilder description;
+    StringBuilder description;
     description << "Failed to get the ssrc attribute value from " << field2
                 << ". Expected format <attribute>:<value>.";
     return ParseFailed(line, description.Release(), error);
@@ -3647,7 +3647,7 @@ bool ParseRtpmapAttribute(absl::string_view line,
       if (!existing_codec.name.empty() && payload_type == existing_codec.id &&
           (!absl::EqualsIgnoreCase(encoding_name, existing_codec.name) ||
            clock_rate != existing_codec.clockrate)) {
-        rtc::StringBuilder description;
+        StringBuilder description;
         description
             << "Duplicate "
             << (payload_type < kFirstDynamicPayloadTypeLowerRange
@@ -3679,7 +3679,7 @@ bool ParseRtpmapAttribute(absl::string_view line,
       // channels.
       if (!existing_codec.name.empty() && payload_type == existing_codec.id &&
           (!absl::EqualsIgnoreCase(encoding_name, existing_codec.name))) {
-        rtc::StringBuilder description;
+        StringBuilder description;
         description
             << "Duplicate "
             << (payload_type < kFirstDynamicPayloadTypeLowerRange

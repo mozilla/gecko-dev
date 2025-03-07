@@ -31,7 +31,7 @@ index c06e7db330..fb10c44c64 100644
    deps = [
      ":audio_sender_interface",
 diff --git a/call/call.cc b/call/call.cc
-index 894e977262..691fb882a0 100644
+index 8dd70a5aee..691fb882a0 100644
 --- a/call/call.cc
 +++ b/call/call.cc
 @@ -514,19 +514,6 @@ class Call final : public webrtc::Call,
@@ -40,7 +40,7 @@ index 894e977262..691fb882a0 100644
  
 -std::string Call::Stats::ToString(int64_t time_ms) const {
 -  char buf[1024];
--  rtc::SimpleStringBuilder ss(buf);
+-  SimpleStringBuilder ss(buf);
 -  ss << "Call stats: " << time_ms << ", {";
 -  ss << "send_bw_bps: " << send_bandwidth_bps << ", ";
 -  ss << "recv_bw_bps: " << recv_bandwidth_bps << ", ";
@@ -85,7 +85,7 @@ index ae6eaf82d9..eb4dae0f95 100644
  
 diff --git a/call/call_basic_stats.cc b/call/call_basic_stats.cc
 new file mode 100644
-index 0000000000..74333a663b
+index 0000000000..1882dfefea
 --- /dev/null
 +++ b/call/call_basic_stats.cc
 @@ -0,0 +1,20 @@
@@ -97,7 +97,7 @@ index 0000000000..74333a663b
 +
 +std::string CallBasicStats::ToString(int64_t time_ms) const {
 +  char buf[1024];
-+  rtc::SimpleStringBuilder ss(buf);
++  SimpleStringBuilder ss(buf);
 +  ss << "Call stats: " << time_ms << ", {";
 +  ss << "send_bw_bps: " << send_bandwidth_bps << ", ";
 +  ss << "recv_bw_bps: " << recv_bandwidth_bps << ", ";

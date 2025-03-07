@@ -80,7 +80,7 @@ void IncomingSSNResetRequestParameter::SerializeTo(
 }
 
 std::string IncomingSSNResetRequestParameter::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "Incoming SSN Reset Request, req_seq_nbr="
      << *request_sequence_number();
   return sb.Release();

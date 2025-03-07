@@ -58,7 +58,7 @@ void SupportedExtensionsParameter::SerializeTo(
 }
 
 std::string SupportedExtensionsParameter::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "Supported Extensions (" << webrtc::StrJoin(chunk_types_, ", ") << ")";
   return sb.Release();
 }

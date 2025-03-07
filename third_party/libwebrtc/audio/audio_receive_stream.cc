@@ -49,7 +49,7 @@ namespace webrtc {
 
 std::string AudioReceiveStreamInterface::Config::Rtp::ToString() const {
   char ss_buf[1024];
-  rtc::SimpleStringBuilder ss(ss_buf);
+  SimpleStringBuilder ss(ss_buf);
   ss << "{remote_ssrc: " << remote_ssrc;
   ss << ", local_ssrc: " << local_ssrc;
   ss << ", nack: " << nack.ToString();
@@ -65,7 +65,7 @@ std::string AudioReceiveStreamInterface::Config::Rtp::ToString() const {
 
 std::string AudioReceiveStreamInterface::Config::ToString() const {
   char ss_buf[1024];
-  rtc::SimpleStringBuilder ss(ss_buf);
+  SimpleStringBuilder ss(ss_buf);
   ss << "{rtp: " << rtp.ToString();
   ss << ", rtcp_send_transport: "
      << (rtcp_send_transport ? "(Transport)" : "null");

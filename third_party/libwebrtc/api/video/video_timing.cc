@@ -89,7 +89,7 @@ std::string TimingFrameInfo::ToString() const {
   }
 
   char buf[1024];
-  rtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
 
   sb << rtp_timestamp << ',' << capture_time_ms << ',' << encode_start_ms << ','
      << encode_finish_ms << ',' << packetization_finish_ms << ','

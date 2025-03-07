@@ -82,7 +82,7 @@ bool RRSendQueue::IsConsistent() const {
     }
   }
   if (expected_active_streams != actual_active_streams) {
-    auto fn = [&](rtc::StringBuilder& sb, const auto& p) { sb << *p; };
+    auto fn = [&](webrtc::StringBuilder& sb, const auto& p) { sb << *p; };
     RTC_DLOG(LS_ERROR) << "Active streams mismatch, is=["
                        << webrtc::StrJoin(actual_active_streams, ",", fn)
                        << "], expected=["

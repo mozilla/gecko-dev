@@ -43,7 +43,7 @@ void StateCookieParameter::SerializeTo(std::vector<uint8_t>& out) const {
 }
 
 std::string StateCookieParameter::ToString() const {
-  rtc::StringBuilder sb;
+  webrtc::StringBuilder sb;
   sb << "State Cookie parameter (cookie_length=" << data_.size() << ")";
   return sb.Release();
 }

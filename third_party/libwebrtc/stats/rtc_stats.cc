@@ -40,7 +40,7 @@ bool RTCStats::operator!=(const RTCStats& other) const {
 }
 
 std::string RTCStats::ToJson() const {
-  rtc::StringBuilder sb;
+  StringBuilder sb;
   sb << "{\"type\":\"" << type()
      << "\","
         "\"id\":\""

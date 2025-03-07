@@ -19,7 +19,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/numerics/safe_minmax.h"
 
-namespace rtc {
+namespace webrtc {
 
 SimpleStringBuilder::SimpleStringBuilder(rtc::ArrayView<char> buffer)
     : buffer_(buffer) {
@@ -131,4 +131,4 @@ StringBuilder& StringBuilder::AppendFormat(const char* fmt, ...) {
   return *this;
 }
 
-}  // namespace rtc
+}  // namespace webrtc

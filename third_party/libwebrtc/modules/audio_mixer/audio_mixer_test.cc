@@ -78,7 +78,7 @@ class FilePlayingSource : public AudioMixer::Source {
   bool FileHasEnded() const { return file_has_ended_; }
 
   std::string ToString() const {
-    rtc::StringBuilder ss;
+    StringBuilder ss;
     ss << "{rate: " << sample_rate_hz_ << ", channels: " << number_of_channels_
        << ", samples_tot: " << wav_reader_->num_samples() << "}";
     return ss.Release();
