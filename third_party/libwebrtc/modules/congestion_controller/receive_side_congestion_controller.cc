@@ -87,13 +87,6 @@ void ReceiveSideCongestionController::PickEstimator(
 ReceiveSideCongestionController::ReceiveSideCongestionController(
     const Environment& env,
     TransportSequenceNumberFeedbackGenenerator::RtcpSender feedback_sender,
-    RembThrottler::RembSender remb_sender,
-    absl::Nullable<NetworkStateEstimator*> /* unused */)
-    : ReceiveSideCongestionController(env, feedback_sender, remb_sender) {}
-
-ReceiveSideCongestionController::ReceiveSideCongestionController(
-    const Environment& env,
-    TransportSequenceNumberFeedbackGenenerator::RtcpSender feedback_sender,
     RembThrottler::RembSender remb_sender)
     : env_(env),
       remb_throttler_(std::move(remb_sender), &env_.clock()),

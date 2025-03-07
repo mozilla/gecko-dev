@@ -40,13 +40,6 @@ class RemoteBitrateEstimator;
 // send our results back to the sender.
 class ReceiveSideCongestionController : public CallStatsObserver {
  public:
-  ABSL_DEPRECATED("Use the constructor without NetworkStateEstimator.")
-  ReceiveSideCongestionController(
-      const Environment& env,
-      TransportSequenceNumberFeedbackGenenerator::RtcpSender feedback_sender,
-      RembThrottler::RembSender remb_sender,
-      absl::Nullable<NetworkStateEstimator*> unused);
-
   ReceiveSideCongestionController(
       const Environment& env,
       TransportSequenceNumberFeedbackGenenerator::RtcpSender feedback_sender,
