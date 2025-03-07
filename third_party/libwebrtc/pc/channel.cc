@@ -137,7 +137,7 @@ BaseChannel::BaseChannel(
     absl::string_view mid,
     bool srtp_required,
     webrtc::CryptoOptions crypto_options,
-    UniqueRandomIdGenerator* ssrc_generator)
+    rtc::UniqueRandomIdGenerator* ssrc_generator)
     : media_send_channel_(std::move(send_media_channel_impl)),
       media_receive_channel_(std::move(receive_media_channel_impl)),
       worker_thread_(worker_thread),
@@ -856,7 +856,7 @@ VoiceChannel::VoiceChannel(
     absl::string_view mid,
     bool srtp_required,
     webrtc::CryptoOptions crypto_options,
-    UniqueRandomIdGenerator* ssrc_generator)
+    rtc::UniqueRandomIdGenerator* ssrc_generator)
     : BaseChannel(worker_thread,
                   network_thread,
                   signaling_thread,
@@ -998,7 +998,7 @@ VideoChannel::VideoChannel(
     absl::string_view mid,
     bool srtp_required,
     webrtc::CryptoOptions crypto_options,
-    UniqueRandomIdGenerator* ssrc_generator)
+    rtc::UniqueRandomIdGenerator* ssrc_generator)
     : BaseChannel(worker_thread,
                   network_thread,
                   signaling_thread,

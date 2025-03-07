@@ -248,7 +248,7 @@ class RtpTransmissionManager : public RtpSenderBase::SetStreamsObserver {
 
   cricket::MediaEngineInterface* media_engine() const;
 
-  rtc::UniqueRandomIdGenerator* ssrc_generator() const {
+  UniqueRandomIdGenerator* ssrc_generator() const {
     return context_->ssrc_generator();
   }
 

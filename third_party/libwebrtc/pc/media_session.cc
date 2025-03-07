@@ -169,7 +169,7 @@ StreamParams CreateStreamParamsForNewSenderWithSsrcs(
     const std::string& rtcp_cname,
     bool include_rtx_streams,
     bool include_flexfec_stream,
-    UniqueRandomIdGenerator* ssrc_generator,
+    rtc::UniqueRandomIdGenerator* ssrc_generator,
     const webrtc::FieldTrialsView& field_trials) {
   StreamParams result;
   result.id = sender.track_id;
@@ -264,7 +264,7 @@ void AddSimulcastToMediaDescription(
 // `current_params` - All currently known StreamParams of any media type.
 bool AddStreamParams(const std::vector<SenderOptions>& sender_options,
                      const std::string& rtcp_cname,
-                     UniqueRandomIdGenerator* ssrc_generator,
+                     rtc::UniqueRandomIdGenerator* ssrc_generator,
                      StreamParamsVec* current_streams,
                      MediaContentDescription* content_description,
                      const webrtc::FieldTrialsView& field_trials) {
@@ -374,7 +374,7 @@ RTCError CreateContentOffer(
     const MediaDescriptionOptions& media_description_options,
     const MediaSessionOptions& session_options,
     const RtpHeaderExtensions& rtp_extensions,
-    UniqueRandomIdGenerator* ssrc_generator,
+    rtc::UniqueRandomIdGenerator* ssrc_generator,
     StreamParamsVec* current_streams,
     MediaContentDescription* offer) {
   offer->set_rtcp_mux(session_options.rtcp_mux_enabled);
@@ -408,7 +408,7 @@ RTCError CreateMediaContentOffer(
     const MediaSessionOptions& session_options,
     const std::vector<Codec>& codecs,
     const RtpHeaderExtensions& rtp_extensions,
-    UniqueRandomIdGenerator* ssrc_generator,
+    rtc::UniqueRandomIdGenerator* ssrc_generator,
     StreamParamsVec* current_streams,
     MediaContentDescription* offer,
     const webrtc::FieldTrialsView& field_trials) {
@@ -597,7 +597,7 @@ bool SetCodecsInAnswer(const MediaContentDescription* offer,
                        const std::vector<Codec>& local_codecs,
                        const MediaDescriptionOptions& media_description_options,
                        const MediaSessionOptions& session_options,
-                       UniqueRandomIdGenerator* ssrc_generator,
+                       rtc::UniqueRandomIdGenerator* ssrc_generator,
                        StreamParamsVec* current_streams,
                        MediaContentDescription* answer,
                        const webrtc::FieldTrialsView& field_trials) {
@@ -625,7 +625,7 @@ bool CreateMediaContentAnswer(
     const MediaDescriptionOptions& media_description_options,
     const MediaSessionOptions& session_options,
     const RtpHeaderExtensions& local_rtp_extensions,
-    UniqueRandomIdGenerator* ssrc_generator,
+    rtc::UniqueRandomIdGenerator* ssrc_generator,
     bool enable_encrypted_rtp_header_extensions,
     StreamParamsVec* current_streams,
     bool bundle_enabled,

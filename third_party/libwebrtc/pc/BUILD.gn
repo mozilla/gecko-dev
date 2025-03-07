@@ -871,6 +871,7 @@ rtc_library("connection_context") {
     "../rtc_base:socket_server",
     "../rtc_base:threading",
     "../rtc_base:timeutils",
+    "../rtc_base:unique_id_generator",
     "../rtc_base/memory:always_valid_pointer",
   ]
 }

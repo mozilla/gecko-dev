@@ -1589,7 +1589,7 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
   rtc::Buffer rtp_packet_;
   rtc::Buffer rtcp_packet_;
   cricket::CandidatePairInterface* last_selected_candidate_pair_;
-  rtc::UniqueRandomIdGenerator ssrc_generator_;
+  webrtc::UniqueRandomIdGenerator ssrc_generator_;
   webrtc::test::ScopedKeyValueConfig field_trials_;
 };
 

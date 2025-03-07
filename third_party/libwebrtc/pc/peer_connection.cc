@@ -1194,7 +1194,7 @@ PeerConnection::AddTransceiver(
 
   // If RIDs were not provided, they are generated for simulcast scenario.
   if (parameters.encodings.size() > 1 && num_rids == 0) {
-    rtc::UniqueStringGenerator rid_generator;
+    UniqueStringGenerator rid_generator;
     for (RtpEncodingParameters& encoding : parameters.encodings) {
       encoding.rid = rid_generator.GenerateString();
     }

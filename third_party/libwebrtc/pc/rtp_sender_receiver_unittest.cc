@@ -522,7 +522,7 @@ class RtpSenderReceiverTest
   std::unique_ptr<VideoBitrateAllocatorFactory>
       video_bitrate_allocator_factory_;
   std::unique_ptr<cricket::FakeMediaEngine> media_engine_;
-  rtc::UniqueRandomIdGenerator ssrc_generator_;
+  UniqueRandomIdGenerator ssrc_generator_;
   cricket::FakeCall fake_call_;
   std::unique_ptr<cricket::VoiceMediaSendChannelInterface>
       voice_media_send_channel_;

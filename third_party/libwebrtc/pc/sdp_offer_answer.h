@@ -641,7 +641,7 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
 
   // MIDs will be generated using this generator which will keep track of
   // all the MIDs that have been seen over the life of the PeerConnection.
-  rtc::UniqueStringGenerator mid_generator_ RTC_GUARDED_BY(signaling_thread());
+  UniqueStringGenerator mid_generator_ RTC_GUARDED_BY(signaling_thread());
 
   // List of content names for which the remote side triggered an ICE restart.
   std::set<std::string> pending_ice_restarts_

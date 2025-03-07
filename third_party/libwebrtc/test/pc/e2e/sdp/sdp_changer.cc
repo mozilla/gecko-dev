@@ -306,7 +306,7 @@ LocalAndRemoteSdp SignalingInterceptor::PatchVp8Offer(
 
 LocalAndRemoteSdp SignalingInterceptor::PatchVp9Offer(
     std::unique_ptr<SessionDescriptionInterface> offer) {
-  rtc::UniqueRandomIdGenerator ssrcs_generator;
+  UniqueRandomIdGenerator ssrcs_generator;
   for (auto& content : offer->description()->contents()) {
     for (auto& stream : content.media_description()->streams()) {
       for (auto& ssrc : stream.ssrcs) {
