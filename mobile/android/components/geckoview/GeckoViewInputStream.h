@@ -9,18 +9,23 @@
 
 #include "mozilla/java/GeckoViewInputStreamWrappers.h"
 #include "mozilla/java/ContentInputStreamWrappers.h"
+#include "nsIAndroidContentInputStream.h"
 #include "nsIInputStream.h"
 
-class GeckoViewInputStream : public nsIInputStream {
+class GeckoViewInputStream : public nsIAndroidContentInputStream {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIINPUTSTREAM
+  NS_DECL_NSIANDROIDCONTENTINPUTSTREAM
 
+  GeckoViewInputStream() = default;
+
+  bool IsClosed() const;
+
+ protected:
   explicit GeckoViewInputStream(
       mozilla::java::GeckoViewInputStream::LocalRef aInstance)
       : mInstance(aInstance) {};
-  bool isClosed() const;
 
- protected:
   virtual ~GeckoViewInputStream() = default;
 
  private:
@@ -30,14 +35,18 @@ class GeckoViewInputStream : public nsIInputStream {
 
 class GeckoViewContentInputStream final : public GeckoViewInputStream {
  public:
-  static nsresult getInstance(const nsAutoCString& aUri,
+  enum class Allow {
+    All,
+    PDFOnly,
+  };
+  static nsresult GetInstance(const nsAutoCString& aUri, Allow aAllow,
                               nsIInputStream** aInstance);
   static bool isReadable(const nsAutoCString& aUri);
 
  private:
-  explicit GeckoViewContentInputStream(const nsAutoCString& aUri)
+  explicit GeckoViewContentInputStream(const nsAutoCString& aUri, bool aPDFOnly)
       : GeckoViewInputStream(mozilla::java::ContentInputStream::GetInstance(
-            mozilla::jni::StringParam(aUri))) {}
+            mozilla::jni::StringParam(aUri), aPDFOnly)) {}
 };
 
 #endif  // !GeckoViewInputStream_h__

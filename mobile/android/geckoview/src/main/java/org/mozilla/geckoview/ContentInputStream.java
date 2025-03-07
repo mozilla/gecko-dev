@@ -30,7 +30,7 @@ import org.mozilla.gecko.annotation.WrapForJNI;
 
   private AssetFileDescriptor mFd;
 
-  ContentInputStream(final @NonNull String aUri) {
+  ContentInputStream(final @NonNull String aUri, final boolean aPDFOnly) {
     final Uri uri = Uri.parse(aUri);
     final Context context = GeckoAppShell.getApplicationContext();
     final ContentResolver cr = context.getContentResolver();
@@ -44,7 +44,7 @@ import org.mozilla.gecko.annotation.WrapForJNI;
       }
       setInputStream(mFd.createInputStream());
 
-      if (!checkHeaders(HEADERS)) {
+      if (aPDFOnly && !checkHeaders(HEADERS)) {
         Log.e(LOGTAG, "Cannot open the uri: " + aUri + " (invalid header)");
         close();
       }
@@ -158,7 +158,8 @@ import org.mozilla.gecko.annotation.WrapForJNI;
 
   @WrapForJNI
   @AnyThread
-  private static @NonNull GeckoViewInputStream getInstance(final @NonNull String aUri) {
-    return new ContentInputStream(aUri);
+  private static @NonNull GeckoViewInputStream getInstance(
+      final @NonNull String aUri, final boolean aPDFOnly) {
+    return new ContentInputStream(aUri, aPDFOnly);
   }
 }

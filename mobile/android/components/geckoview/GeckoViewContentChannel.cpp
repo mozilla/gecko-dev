@@ -33,8 +33,9 @@ GeckoViewContentChannel::OpenContentStream(bool aAsync,
   }
 
   nsCOMPtr<nsIInputStream> inputStream;
-  rv = GeckoViewContentInputStream::getInstance(spec,
-                                                getter_AddRefs(inputStream));
+  rv = GeckoViewContentInputStream::GetInstance(
+      spec, GeckoViewContentInputStream::Allow::PDFOnly,
+      getter_AddRefs(inputStream));
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (NS_WARN_IF(!inputStream)) {

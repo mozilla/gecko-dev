@@ -5,9 +5,36 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "GeckoViewInputStream.h"
+
+#include "nsIURI.h"
 #include "nsStreamUtils.h"
 
-NS_IMPL_ISUPPORTS(GeckoViewInputStream, nsIInputStream);
+using namespace mozilla;
+
+NS_IMPL_ISUPPORTS(GeckoViewInputStream, nsIInputStream,
+                  nsIAndroidContentInputStream);
+
+NS_IMETHODIMP
+GeckoViewInputStream::Init(nsIURI* aUri) {
+  nsAutoCString scheme;
+  aUri->GetScheme(scheme);
+
+  if (!scheme.EqualsLiteral("content")) {
+    return NS_ERROR_FILE_INVALID_PATH;
+  }
+
+  nsAutoCString spec;
+  aUri->GetSpec(spec);
+
+  if (!java::ContentInputStream::IsReadable(jni::StringParam(spec))) {
+    return NS_ERROR_FILE_ACCESS_DENIED;
+  }
+
+  mInstance =
+      java::ContentInputStream::GetInstance(jni::StringParam(spec), false);
+
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 GeckoViewInputStream::Close() {
@@ -21,6 +48,10 @@ NS_IMETHODIMP
 GeckoViewInputStream::Available(uint64_t* aCount) {
   if (mClosed) {
     return NS_BASE_STREAM_CLOSED;
+  }
+
+  if (!mInstance) {
+    return NS_ERROR_NOT_INITIALIZED;
   }
 
   *aCount = static_cast<uint64_t>(mInstance->Available());
@@ -44,6 +75,10 @@ GeckoViewInputStream::ReadSegments(nsWriteSegmentFun writer, void* aClosure,
 
   if (mClosed) {
     return NS_BASE_STREAM_CLOSED;
+  }
+
+  if (!mInstance) {
+    return NS_ERROR_NOT_INITIALIZED;
   }
 
   auto bufferAddress =
@@ -90,18 +125,25 @@ GeckoViewInputStream::IsNonBlocking(bool* aNonBlocking) {
   return NS_OK;
 }
 
-bool GeckoViewInputStream::isClosed() const { return mInstance->IsClosed(); }
+bool GeckoViewInputStream::IsClosed() const {
+  if (!mInstance) {
+    return true;
+  }
+
+  return mInstance->IsClosed();
+}
 
 bool GeckoViewContentInputStream::isReadable(const nsAutoCString& aUri) {
   return mozilla::java::ContentInputStream::IsReadable(
       mozilla::jni::StringParam(aUri));
 }
 
-nsresult GeckoViewContentInputStream::getInstance(const nsAutoCString& aUri,
+nsresult GeckoViewContentInputStream::GetInstance(const nsAutoCString& aUri,
+                                                  Allow aAllow,
                                                   nsIInputStream** aInstance) {
   RefPtr<GeckoViewContentInputStream> instance =
-      new GeckoViewContentInputStream(aUri);
-  if (instance->isClosed()) {
+      new GeckoViewContentInputStream(aUri, aAllow == Allow::PDFOnly);
+  if (instance->IsClosed()) {
     return NS_ERROR_FILE_NOT_FOUND;
   }
   *aInstance = instance.forget().take();

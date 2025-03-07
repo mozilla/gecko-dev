@@ -45,5 +45,11 @@
         <service android:name=".XpcshellTestRunnerService$i7" android:enabled="true" android:exported="true" android:process=":xpcshell7"/>
         <service android:name=".XpcshellTestRunnerService$i8" android:enabled="true" android:exported="true" android:process=":xpcshell8"/>
         <service android:name=".XpcshellTestRunnerService$i9" android:enabled="true" android:exported="true" android:process=":xpcshell9"/>
+
+        <provider android:name="org.mozilla.geckoview.test_runner.TestRunnerContentProvider"
+                  android:authorities="org.mozilla.geckoview.test_runner.provider"
+                  android:grantUriPermissions="true"
+                  android:exported="false">
+        </provider>
     </application>
 </manifest>
