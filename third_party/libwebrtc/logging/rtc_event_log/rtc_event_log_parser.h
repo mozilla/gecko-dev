@@ -383,6 +383,9 @@ class ParsedRtcEventLog {
           UnconfiguredHeaderExtensions::kDontParse,
       bool allow_incomplete_log = false);
 
+  ParsedRtcEventLog(const ParsedRtcEventLog&) = delete;
+  ParsedRtcEventLog& operator=(const ParsedRtcEventLog&) = delete;
+
   ~ParsedRtcEventLog();
 
   // Clears previously parsed events and resets the ParsedRtcEventLogNew to an
