@@ -180,6 +180,9 @@ nsresult HTMLEditor::InitEditorContentAndSelection() {
     return NS_OK;
   }
 
+  // FIXME: This is odd to update the DOM for making users can put caret in
+  // empty table cells and list items.  We should make it possible without
+  // the hacky <br>.
   rv = InsertBRElementToEmptyListItemsAndTableCellsInRange(
       RawRangeBoundary(bodyOrDocumentElement, 0u),
       RawRangeBoundary(bodyOrDocumentElement,

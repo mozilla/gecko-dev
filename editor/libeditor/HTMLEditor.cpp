@@ -4430,12 +4430,20 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::PrepareToInsertLineBreak(
            EditorUtils::IsNewLinePreformatted(aContent);
   };
 
+  // If we're being initialized, we cannot normalize white-spaces because the
+  // normalizer may remove invisible `Text`, but it's not allowed during the
+  // initialization.
+  // FIXME: Anyway, we should not do this at initialization. This is required
+  // only for making users can put caret into empty table cells and list items.
+  const bool canNormalizeWhiteSpaces = mInitSucceeded;
+
   if (!aPointToInsert.IsInTextNode()) {
     if (NS_WARN_IF(
             !CanInsertLineBreak(*aPointToInsert.ContainerAs<nsIContent>()))) {
       return Err(NS_ERROR_FAILURE);
     }
-    if (!StaticPrefs::editor_white_space_normalization_blink_compatible()) {
+    if (!canNormalizeWhiteSpaces ||
+        !StaticPrefs::editor_white_space_normalization_blink_compatible()) {
       return aPointToInsert;
     }
     Result<EditorDOMPoint, nsresult> pointToInsertOrError =
@@ -4459,7 +4467,8 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::PrepareToInsertLineBreak(
   }
 
   Result<EditorDOMPoint, nsresult> pointToInsertOrError =
-      StaticPrefs::editor_white_space_normalization_blink_compatible()
+      canNormalizeWhiteSpaces &&
+              StaticPrefs::editor_white_space_normalization_blink_compatible()
           ? WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt(
                 *this, aPointToInsert,
                 {WhiteSpaceVisibilityKeeper::NormalizeOption::
