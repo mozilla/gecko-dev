@@ -10,7 +10,13 @@
 
 #include "api/stats/attribute.h"
 
+#include <cstdint>
+#include <cstdio>
+#include <map>
+#include <optional>
 #include <string>
+#include <type_traits>
+#include <vector>
 
 #include "absl/types/variant.h"
 #include "rtc_base/arraysize.h"

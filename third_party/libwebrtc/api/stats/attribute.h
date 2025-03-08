@@ -11,8 +11,8 @@
 #ifndef API_STATS_ATTRIBUTE_H_
 #define API_STATS_ATTRIBUTE_H_
 
+#include <cstdint>
 #include <map>
-#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
