@@ -131,6 +131,15 @@ class WhiteSpaceVisibilityKeeper final {
                              const Element& aSplittingBlockElement);
 
   /**
+   * Normalize surrounding white-spaces of aPointToSplit.  This may normalize
+   * 2 `Text` nodes if the point is surrounded by them.
+   * Note that this is designed only for the new normalizer.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<EditorDOMPoint, nsresult>
+  NormalizeWhiteSpacesToSplitAt(HTMLEditor& aHTMLEditor,
+                                const EditorDOMPoint& aPointToSplit);
+
+  /**
    * MergeFirstLineOfRightBlockElementIntoDescendantLeftBlockElement() merges
    * first line in aRightBlockElement into end of aLeftBlockElement which
    * is a descendant of aRightBlockElement.
@@ -346,6 +355,17 @@ class WhiteSpaceVisibilityKeeper final {
   ReplaceTextAndRemoveEmptyTextNodes(
       HTMLEditor& aHTMLEditor, const EditorDOMRangeInTexts& aRangeToReplace,
       const nsAString& aReplaceString);
+
+  /**
+   * Normalize surrounding white-spaces of aPointToSplit.
+   *
+   * @return The split point which you specified before.  Note that the result
+   *         may be different from aPointToSplit if this deletes some invisible
+   *         white-spaces.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<EditorDOMPoint, nsresult>
+  NormalizeWhiteSpacesToSplitTextNodeAt(
+      HTMLEditor& aHTMLEditor, const EditorDOMPointInText& aPointToSplit);
 
   /**
    * Delete leading or trailing invisible white-spaces around block boundaries

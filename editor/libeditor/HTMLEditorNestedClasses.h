@@ -686,6 +686,113 @@ struct MOZ_STACK_CLASS HTMLEditor::NormalizedStringToInsertText final {
   const uint32_t mNewLengthAfter = 0u;
 };
 
+/******************************************************************************
+ * ReplaceWhiteSpacesData stores normalized string to replace white-spaces in
+ * a `Text`.  If ReplaceLength() returns 0, this user needs to do nothing.
+ ******************************************************************************/
+
+struct MOZ_STACK_CLASS HTMLEditor::ReplaceWhiteSpacesData final {
+  ReplaceWhiteSpacesData() = default;
+  ReplaceWhiteSpacesData(const nsAString& aWhiteSpaces, uint32_t aStartOffset,
+                         uint32_t aReplaceLength)
+      : mNormalizedString(aWhiteSpaces),
+        mReplaceStartOffset(aStartOffset),
+        mReplaceEndOffset(aStartOffset + aReplaceLength) {
+    MOZ_ASSERT(ReplaceLength() >= mNormalizedString.Length());
+  }
+  ReplaceWhiteSpacesData(nsAutoString&& aWhiteSpaces, uint32_t aStartOffset,
+                         uint32_t aReplaceLength)
+      : mNormalizedString(std::forward<nsAutoString>(aWhiteSpaces)),
+        mReplaceStartOffset(aStartOffset),
+        mReplaceEndOffset(aStartOffset + aReplaceLength) {
+    MOZ_ASSERT(ReplaceLength() >= mNormalizedString.Length());
+  }
+
+  ReplaceWhiteSpacesData GetMinimizedData(const Text& aText) const {
+    if (!ReplaceLength()) {
+      return *this;
+    }
+    const nsTextFragment& textFragment = aText.TextFragment();
+    const auto minimizedReplaceStart = [&]() -> uint32_t {
+      if (mNormalizedString.IsEmpty()) {
+        return mReplaceStartOffset;
+      }
+      const uint32_t firstDiffCharOffset =
+          textFragment.FindFirstDifferentCharOffset(mNormalizedString,
+                                                    mReplaceStartOffset);
+      if (firstDiffCharOffset == nsTextFragment::kNotFound) {
+        // We don't need to insert new white-spaces,
+        return mReplaceStartOffset + mNormalizedString.Length();
+      }
+      return firstDiffCharOffset;
+    }();
+    const auto minimizedReplaceEnd = [&]() -> uint32_t {
+      if (mNormalizedString.IsEmpty()) {
+        return mReplaceEndOffset;
+      }
+      if (minimizedReplaceStart ==
+          mReplaceStartOffset + mNormalizedString.Length()) {
+        // Note that here may be invisible white-spaces before
+        // mReplaceEndOffset.  Then, this value may be larger than
+        // minimizedReplaceStart.
+        MOZ_ASSERT(mReplaceEndOffset >= minimizedReplaceStart);
+        return mReplaceEndOffset;
+      }
+      if (ReplaceLength() != mNormalizedString.Length()) {
+        // If we're deleting some invisible white-spaces, don't shrink the end
+        // of the replacing range because it may shrink mNormalizedString too
+        // much.
+        return mReplaceEndOffset;
+      }
+      const auto lastDiffCharOffset =
+          textFragment.RFindFirstDifferentCharOffset(mNormalizedString,
+                                                     mReplaceEndOffset);
+      MOZ_ASSERT(lastDiffCharOffset != nsTextFragment::kNotFound);
+      return lastDiffCharOffset == nsTextFragment::kNotFound
+                 ? mReplaceEndOffset
+                 : lastDiffCharOffset + 1u;
+    }();
+    if (minimizedReplaceStart == mReplaceStartOffset &&
+        minimizedReplaceEnd == mReplaceEndOffset) {
+      return *this;
+    }
+    const uint32_t precedingUnnecessaryLength =
+        minimizedReplaceStart - mReplaceStartOffset;
+    const uint32_t followingUnnecessaryLength =
+        mReplaceEndOffset - minimizedReplaceEnd;
+    return ReplaceWhiteSpacesData(
+        Substring(mNormalizedString, precedingUnnecessaryLength,
+                  mNormalizedString.Length() - (precedingUnnecessaryLength +
+                                                followingUnnecessaryLength)),
+        minimizedReplaceStart, minimizedReplaceEnd - minimizedReplaceStart);
+  }
+
+  [[nodiscard]] uint32_t ReplaceLength() const {
+    return mReplaceEndOffset - mReplaceStartOffset;
+  }
+  [[nodiscard]] uint32_t DeletingInvisibleWhiteSpaces() const {
+    return ReplaceLength() - mNormalizedString.Length();
+  }
+
+  [[nodiscard]] ReplaceWhiteSpacesData operator+(
+      const ReplaceWhiteSpacesData& aOther) const {
+    if (!ReplaceLength()) {
+      return aOther;
+    }
+    if (!aOther.ReplaceLength()) {
+      return *this;
+    }
+    MOZ_ASSERT(mReplaceEndOffset == aOther.mReplaceStartOffset);
+    return ReplaceWhiteSpacesData(
+        nsAutoString(mNormalizedString + aOther.mNormalizedString),
+        mReplaceStartOffset, aOther.mReplaceEndOffset);
+  }
+
+  nsAutoString mNormalizedString;
+  const uint32_t mReplaceStartOffset = 0u;
+  const uint32_t mReplaceEndOffset = 0u;
+};
+
 }  // namespace mozilla
 
 #endif  // #ifndef HTMLEditorNestedClasses_h
