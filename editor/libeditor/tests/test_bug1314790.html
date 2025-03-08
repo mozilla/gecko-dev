@@ -22,9 +22,6 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1314790
 <script class="testbody" type="application/javascript">
 SimpleTest.waitForExplicitFinish();
 SimpleTest.waitForFocus(function() {
-  const kNewWhiteSpaceNormalizerEnabled =
-    SpecialPowers.getBoolPref("editor.white_space_normalization.blink_compatible");
-
   let elm = document.getElementById("contenteditable1");
   elm.focus();
   window.getSelection().collapse(elm.childNodes[0], 0);
@@ -36,25 +33,21 @@ SimpleTest.waitForFocus(function() {
   sendString("apple pen");
 
   is(elm.childNodes[0].textContent, "pen pineapple",
-     "'pen pineapple' is first node");
+     "'pen pineapple' is first elment");
   is(elm.childNodes[1].textContent, "apple pen",
-     "'apple pen' is second node");
+     "'apple pen' is second elment");
 
   SpecialPowers.doCommand(window, "cmd_deleteWordBackward");
   SpecialPowers.doCommand(window, "cmd_deleteWordBackward");
   is(elm.childNodes[0].textContent, "pen pineapple",
-     "'pen pineapple' is first node");
+     "'pen pineapple' is first elment");
 
   SpecialPowers.doCommand(window, "cmd_deleteWordBackward");
   is(elm.childNodes[0].textContent, "pen pineapple",
-     "'pen pineapple' is first node");
+     "'pen pineapple' is first elment");
 
   SpecialPowers.doCommand(window, "cmd_deleteWordBackward");
-  is(
-    elm.childNodes[0].textContent,
-    kNewWhiteSpaceNormalizerEnabled ? "pen\u00A0" : "pen ",
-    "'pen ' is first node"
-  );
+  is(elm.childNodes[0].textContent, "pen ", "'pen ' is first elment");
 
   SimpleTest.finish();
 });

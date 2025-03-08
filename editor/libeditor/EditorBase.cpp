@@ -3244,67 +3244,6 @@ nsresult EditorBase::ScrollSelectionFocusIntoView() const {
   return NS_WARN_IF(Destroyed()) ? NS_ERROR_EDITOR_DESTROYED : NS_OK;
 }
 
-EditorDOMPoint EditorBase::ComputePointToInsertText(
-    const EditorDOMPoint& aPoint, InsertTextTo aInsertTextTo) const {
-  if (aInsertTextTo == InsertTextTo::SpecifiedPoint) {
-    return aPoint;
-  }
-
-  if (IsTextEditor()) {
-    // In some cases, the node may be the anonymous div element or a padding
-    // <br> element for empty last line.  Let's try to look for better insertion
-    // point in the nearest text node if there is.
-    return AsTextEditor()->FindBetterInsertionPoint(aPoint);
-  }
-  auto pointToInsert =
-      aPoint.GetPointInTextNodeIfPointingAroundTextNode<EditorDOMPoint>();
-  // If the candidate point is in a Text node which has only a preformatted
-  // linefeed, we should not insert text into the node because it may have
-  // been inserted by us and that's compatible behavior with Chrome.
-  if (pointToInsert.IsInTextNode() &&
-      HTMLEditUtils::TextHasOnlyOnePreformattedLinefeed(
-          *pointToInsert.ContainerAs<Text>())) {
-    if (pointToInsert.IsStartOfContainer()) {
-      if (Text* const previousText = Text::FromNodeOrNull(
-              pointToInsert.ContainerAs<Text>()->GetPreviousSibling())) {
-        pointToInsert = EditorDOMPoint::AtEndOf(*previousText);
-      } else {
-        pointToInsert = pointToInsert.ParentPoint();
-      }
-    } else {
-      MOZ_ASSERT(pointToInsert.IsEndOfContainer());
-      if (Text* const nextText = Text::FromNodeOrNull(
-              pointToInsert.ContainerAs<Text>()->GetNextSibling())) {
-        pointToInsert = EditorDOMPoint(nextText, 0u);
-      } else {
-        pointToInsert = pointToInsert.AfterContainer();
-      }
-    }
-  }
-  if (aInsertTextTo == InsertTextTo::AlwaysCreateNewTextNode) {
-    NS_WARNING_ASSERTION(!pointToInsert.IsInTextNode() ||
-                             pointToInsert.IsStartOfContainer() ||
-                             pointToInsert.IsEndOfContainer(),
-                         "aPointToInsert is \"AlwaysCreateNewTextNode\", but "
-                         "specified point middle of a `Text`");
-    if (!pointToInsert.IsInTextNode()) {
-      return pointToInsert;
-    }
-    return pointToInsert.IsStartOfContainer()
-               ? EditorDOMPoint(pointToInsert.ContainerAs<Text>())
-               : (pointToInsert.IsEndOfContainer()
-                      ? EditorDOMPoint::After(
-                            *pointToInsert.ContainerAs<Text>())
-                      : pointToInsert);
-  }
-  if (aInsertTextTo == InsertTextTo::ExistingTextNodeIfAvailableAndNotStart) {
-    return !(pointToInsert.IsInTextNode() && pointToInsert.IsStartOfContainer())
-               ? pointToInsert
-               : EditorDOMPoint(pointToInsert.ContainerAs<Text>());
-  }
-  return pointToInsert;
-}
-
 Result<InsertTextResult, nsresult> EditorBase::InsertTextWithTransaction(
     const nsAString& aStringToInsert, const EditorDOMPoint& aPointToInsert,
     InsertTextTo aInsertTextTo) {
@@ -3321,8 +3260,64 @@ Result<InsertTextResult, nsresult> EditorBase::InsertTextWithTransaction(
     return InsertTextResult();
   }
 
-  EditorDOMPoint pointToInsert =
-      ComputePointToInsertText(aPointToInsert, aInsertTextTo);
+  // In some cases, the node may be the anonymous div element or a padding
+  // <br> element for empty last line.  Let's try to look for better insertion
+  // point in the nearest text node if there is.
+  EditorDOMPoint pointToInsert = [&]() {
+    if (IsTextEditor()) {
+      return AsTextEditor()->FindBetterInsertionPoint(aPointToInsert);
+    }
+    auto pointToInsert =
+        aPointToInsert
+            .GetPointInTextNodeIfPointingAroundTextNode<EditorDOMPoint>();
+    // If the candidate point is in a Text node which has only a preformatted
+    // linefeed, we should not insert text into the node because it may have
+    // been inserted by us and that's compatible behavior with Chrome.
+    if (pointToInsert.IsInTextNode() &&
+        HTMLEditUtils::TextHasOnlyOnePreformattedLinefeed(
+            *pointToInsert.ContainerAs<Text>())) {
+      if (pointToInsert.IsStartOfContainer()) {
+        if (Text* const previousText = Text::FromNodeOrNull(
+                pointToInsert.ContainerAs<Text>()->GetPreviousSibling())) {
+          pointToInsert = EditorDOMPoint::AtEndOf(*previousText);
+        } else {
+          pointToInsert = pointToInsert.ParentPoint();
+        }
+      } else {
+        MOZ_ASSERT(pointToInsert.IsEndOfContainer());
+        if (Text* const nextText = Text::FromNodeOrNull(
+                pointToInsert.ContainerAs<Text>()->GetNextSibling())) {
+          pointToInsert = EditorDOMPoint(nextText, 0u);
+        } else {
+          pointToInsert = pointToInsert.AfterContainer();
+        }
+      }
+    }
+    if (aInsertTextTo == InsertTextTo::AlwaysCreateNewTextNode) {
+      NS_WARNING_ASSERTION(!pointToInsert.IsInTextNode() ||
+                               pointToInsert.IsStartOfContainer() ||
+                               pointToInsert.IsEndOfContainer(),
+                           "aPointToInsert is \"AlwaysCreateNewTextNode\", but "
+                           "specified point middle of a `Text`");
+      if (!pointToInsert.IsInTextNode()) {
+        return pointToInsert;
+      }
+      return pointToInsert.IsStartOfContainer()
+                 ? EditorDOMPoint(pointToInsert.ContainerAs<Text>())
+                 : (pointToInsert.IsEndOfContainer()
+                        ? EditorDOMPoint::After(
+                              *pointToInsert.ContainerAs<Text>())
+                        : pointToInsert);
+    }
+    if (aInsertTextTo == InsertTextTo::ExistingTextNodeIfAvailableAndNotStart) {
+      return !(pointToInsert.IsInTextNode() &&
+               pointToInsert.IsStartOfContainer())
+                 ? pointToInsert
+                 : EditorDOMPoint(pointToInsert.ContainerAs<Text>());
+    }
+    return pointToInsert;
+  }();
+
   if (ShouldHandleIMEComposition()) {
     if (!pointToInsert.IsInTextNode()) {
       // create a text node

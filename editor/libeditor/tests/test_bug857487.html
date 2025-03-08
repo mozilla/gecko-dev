@@ -58,11 +58,8 @@ editor.deleteTableRow(1);
 
 var table = document.getElementById("table");
 
-is(
-  table.innerHTML.replaceAll(/[ \n]/g, ""),
-  "<tbody><tr><td>a</td><td>b</td><td>c</td></tr><tr><td>g</td><td>h</td><td>i</td></tr></tbody>",
-  "editor.deleteTableRow(1) should delete the row containing the selection"
-);
+is(table.innerHTML == "\n    <tbody>\n      <tr>\n        <td>a</td>\n        <td>b</td>\n        <td>c</td>\n      </tr>\n      \n      <tr>\n        <td>g</td>\n        <td>h</td>\n        <td>i</td>\n      </tr>\n    </tbody>\n  ",
+   true, "editor.deleteTableRow(1) should delete the row containing the selection");
 
 </script>
 

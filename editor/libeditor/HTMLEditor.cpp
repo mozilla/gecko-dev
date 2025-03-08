@@ -6,7 +6,6 @@
 #include "HTMLEditor.h"
 #include "HTMLEditHelpers.h"
 #include "HTMLEditorInlines.h"
-#include "HTMLEditorNestedClasses.h"
 
 #include "AutoClonedRangeArray.h"
 #include "AutoSelectionRestorer.h"
@@ -2248,22 +2247,6 @@ nsresult HTMLEditor::InsertElementAtSelectionAsAction(
     NS_WARNING("HTMLEditUtils::GetBetterInsertionPointFor() failed");
     return NS_ERROR_FAILURE;
   }
-  if (StaticPrefs::editor_white_space_normalization_blink_compatible()) {
-    Result<EditorDOMPoint, nsresult> pointToInsertOrError =
-        WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt(
-            *this, pointToInsert,
-            {WhiteSpaceVisibilityKeeper::NormalizeOption::
-                 StopIfFollowingWhiteSpacesStartsWithNBSP});
-    if (MOZ_UNLIKELY(pointToInsertOrError.isErr())) {
-      NS_WARNING(
-          "WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt() failed");
-      return pointToInsertOrError.propagateErr();
-    }
-    pointToInsert = pointToInsertOrError.unwrap();
-    if (NS_WARN_IF(!pointToInsert.IsSetAndValidInComposedDoc())) {
-      return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
-    }
-  }
 
   if (aOptions.contains(InsertElementOption::SplitAncestorInlineElements)) {
     if (const RefPtr<Element> topmostInlineElement = Element::FromNodeOrNull(
@@ -4228,23 +4211,6 @@ Result<CaretPoint, nsresult> HTMLEditor::DeleteTextWithTransaction(
 }
 
 Result<InsertTextResult, nsresult> HTMLEditor::ReplaceTextWithTransaction(
-    dom::Text& aTextNode, const ReplaceWhiteSpacesData& aData) {
-  Result<InsertTextResult, nsresult> insertTextResultOrError =
-      ReplaceTextWithTransaction(aTextNode, aData.mReplaceStartOffset,
-                                 aData.ReplaceLength(),
-                                 aData.mNormalizedString);
-  if (MOZ_UNLIKELY(insertTextResultOrError.isErr()) ||
-      aData.mNewOffsetAfterReplace > aTextNode.TextDataLength()) {
-    return insertTextResultOrError;
-  }
-  InsertTextResult insertTextResult = insertTextResultOrError.unwrap();
-  insertTextResult.IgnoreCaretPointSuggestion();
-  EditorDOMPoint pointToPutCaret(&aTextNode, aData.mNewOffsetAfterReplace);
-  return InsertTextResult(std::move(insertTextResult),
-                          std::move(pointToPutCaret));
-}
-
-Result<InsertTextResult, nsresult> HTMLEditor::ReplaceTextWithTransaction(
     Text& aTextNode, uint32_t aOffset, uint32_t aLength,
     const nsAString& aStringToInsert) {
   MOZ_ASSERT(IsEditActionDataAvailable());
@@ -4345,57 +4311,6 @@ Result<InsertTextResult, nsresult> HTMLEditor::ReplaceTextWithTransaction(
       transaction->SuggestPointToPutCaret<EditorDOMPoint>());
 }
 
-Result<InsertTextResult, nsresult>
-HTMLEditor::InsertOrReplaceTextWithTransaction(
-    const EditorDOMPoint& aPointToInsert,
-    const NormalizedStringToInsertText& aData) {
-  MOZ_ASSERT(aPointToInsert.IsInContentNodeAndValid());
-  MOZ_ASSERT_IF(aData.ReplaceLength(), aPointToInsert.IsInTextNode());
-
-  Result<InsertTextResult, nsresult> insertTextResultOrError =
-      !aData.ReplaceLength()
-          ? InsertTextWithTransaction(aData.mNormalizedString, aPointToInsert,
-                                      InsertTextTo::SpecifiedPoint)
-          : ReplaceTextWithTransaction(
-                MOZ_KnownLive(*aPointToInsert.ContainerAs<Text>()),
-                aData.mReplaceStartOffset, aData.ReplaceLength(),
-                aData.mNormalizedString);
-  if (MOZ_UNLIKELY(insertTextResultOrError.isErr())) {
-    NS_WARNING(!aData.ReplaceLength()
-                   ? "HTMLEditor::InsertTextWithTransaction() failed"
-                   : "HTMLEditor::ReplaceTextWithTransaction() failed");
-    return insertTextResultOrError;
-  }
-  InsertTextResult insertTextResult = insertTextResultOrError.unwrap();
-  if (!aData.ReplaceLength()) {
-    auto pointToPutCaret = [&]() -> EditorDOMPoint {
-      return insertTextResult.HasCaretPointSuggestion()
-                 ? insertTextResult.UnwrapCaretPoint()
-                 : insertTextResult.EndOfInsertedTextRef();
-    }();
-    return InsertTextResult(std::move(insertTextResult),
-                            std::move(pointToPutCaret));
-  }
-  insertTextResult.IgnoreCaretPointSuggestion();
-  Text* const insertedTextNode =
-      insertTextResult.EndOfInsertedTextRef().GetContainerAs<Text>();
-  if (NS_WARN_IF(!insertedTextNode) ||
-      NS_WARN_IF(!insertedTextNode->IsInComposedDoc()) ||
-      NS_WARN_IF(!HTMLEditUtils::IsSimplyEditableNode(*insertedTextNode))) {
-    return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
-  }
-  const uint32_t expectedEndOffset = aData.EndOffsetOfInsertedText();
-  if (NS_WARN_IF(expectedEndOffset > insertedTextNode->TextDataLength())) {
-    return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
-  }
-  // We need to return end point of the insertion string instead of end of
-  // replaced following white-spaces.
-  EditorDOMPoint endOfNewString(insertedTextNode, expectedEndOffset);
-  EditorDOMPoint pointToPutCaret = endOfNewString;
-  return InsertTextResult(std::move(endOfNewString),
-                          CaretPoint(std::move(pointToPutCaret)));
-}
-
 Result<InsertTextResult, nsresult> HTMLEditor::InsertTextWithTransaction(
     const nsAString& aStringToInsert, const EditorDOMPoint& aPointToInsert,
     InsertTextTo aInsertTextTo) {
@@ -4430,31 +4345,12 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::PrepareToInsertLineBreak(
            EditorUtils::IsNewLinePreformatted(aContent);
   };
 
-  // If we're being initialized, we cannot normalize white-spaces because the
-  // normalizer may remove invisible `Text`, but it's not allowed during the
-  // initialization.
-  // FIXME: Anyway, we should not do this at initialization. This is required
-  // only for making users can put caret into empty table cells and list items.
-  const bool canNormalizeWhiteSpaces = mInitSucceeded;
-
   if (!aPointToInsert.IsInTextNode()) {
     if (NS_WARN_IF(
             !CanInsertLineBreak(*aPointToInsert.ContainerAs<nsIContent>()))) {
       return Err(NS_ERROR_FAILURE);
     }
-    if (!canNormalizeWhiteSpaces ||
-        !StaticPrefs::editor_white_space_normalization_blink_compatible()) {
-      return aPointToInsert;
-    }
-    Result<EditorDOMPoint, nsresult> pointToInsertOrError =
-        WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt(
-            *this, aPointToInsert,
-            {WhiteSpaceVisibilityKeeper::NormalizeOption::
-                 StopIfPrecedingWhiteSpacesEndsWithNBP});
-    if (NS_WARN_IF(pointToInsertOrError.isErr())) {
-      return pointToInsertOrError.propagateErr();
-    }
-    return pointToInsertOrError.unwrap();
+    return aPointToInsert;
   }
 
   // If the text node is not in an element node, we cannot insert a line break
@@ -4466,37 +4362,21 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::PrepareToInsertLineBreak(
     return Err(NS_ERROR_FAILURE);
   }
 
-  Result<EditorDOMPoint, nsresult> pointToInsertOrError =
-      canNormalizeWhiteSpaces &&
-              StaticPrefs::editor_white_space_normalization_blink_compatible()
-          ? WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt(
-                *this, aPointToInsert,
-                {WhiteSpaceVisibilityKeeper::NormalizeOption::
-                     StopIfPrecedingWhiteSpacesEndsWithNBP})
-          : aPointToInsert;
-  if (NS_WARN_IF(pointToInsertOrError.isErr())) {
-    return pointToInsertOrError.propagateErr();
-  }
-  const EditorDOMPoint pointToInsert = pointToInsertOrError.unwrap();
-  if (!pointToInsert.IsInTextNode()) {
-    return pointToInsert.ParentPoint();
-  }
-
-  if (pointToInsert.IsStartOfContainer()) {
+  if (aPointToInsert.IsStartOfContainer()) {
     // Insert before the text node.
-    return pointToInsert.ParentPoint();
+    return aPointToInsert.ParentPoint();
   }
 
-  if (pointToInsert.IsEndOfContainer()) {
+  if (aPointToInsert.IsEndOfContainer()) {
     // Insert after the text node.
-    return EditorDOMPoint::After(*pointToInsert.ContainerAs<Text>());
+    return EditorDOMPoint::After(*aPointToInsert.ContainerAs<Text>());
   }
 
-  MOZ_DIAGNOSTIC_ASSERT(pointToInsert.IsSetAndValid());
+  MOZ_DIAGNOSTIC_ASSERT(aPointToInsert.IsSetAndValid());
 
   // Unfortunately, we need to split the text node at the offset.
   Result<SplitNodeResult, nsresult> splitTextNodeResult =
-      SplitNodeWithTransaction(pointToInsert);
+      SplitNodeWithTransaction(aPointToInsert);
   if (MOZ_UNLIKELY(splitTextNodeResult.isErr())) {
     NS_WARNING("HTMLEditor::SplitNodeWithTransaction() failed");
     return splitTextNodeResult.propagateErr();
@@ -5432,16 +5312,10 @@ nsresult HTMLEditor::CollapseAdjacentTextNodes(nsRange& aRange) {
       continue;
     }
     Result<JoinNodesResult, nsresult> joinNodesResultOrError =
-        StaticPrefs::editor_white_space_normalization_blink_compatible()
-            ? JoinTextNodesWithNormalizeWhiteSpaces(
-                  MOZ_KnownLive(leftTextNode), MOZ_KnownLive(rightTextNode))
-            : JoinNodesWithTransaction(MOZ_KnownLive(leftTextNode),
-                                       MOZ_KnownLive(rightTextNode));
+        JoinNodesWithTransaction(MOZ_KnownLive(leftTextNode),
+                                 MOZ_KnownLive(rightTextNode));
     if (MOZ_UNLIKELY(joinNodesResultOrError.isErr())) {
-      NS_WARNING(
-          StaticPrefs::editor_white_space_normalization_blink_compatible()
-              ? "HTMLEditor::JoinTextNodesWithNormalizeWhiteSpaces() failed"
-              : "HTMLEditor::JoinNodesWithTransaction() failed");
+      NS_WARNING("HTMLEditor::JoinNodesWithTransaction() failed");
       return joinNodesResultOrError.unwrapErr();
     }
   }

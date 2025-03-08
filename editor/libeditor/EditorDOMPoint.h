@@ -632,48 +632,6 @@ class EditorDOMPointBase final {
   }
 
   /**
-   * SetToLastContentOf() sets this to the last child of aContainer or the last
-   * character of aContainer.
-   */
-  template <typename ContainerType>
-  void SetToLastContentOf(const ContainerType* aContainer) {
-    MOZ_ASSERT(aContainer);
-    mParent = const_cast<ContainerType*>(aContainer);
-    if (aContainer->IsContainerNode()) {
-      MOZ_ASSERT(aContainer->GetChildCount());
-      mChild = aContainer->GetLastChild();
-      mOffset = mozilla::Some(aContainer->GetChildCount() - 1u);
-    } else {
-      MOZ_ASSERT(aContainer->Length());
-      mChild = nullptr;
-      mOffset = mozilla::Some(aContainer->Length() - 1u);
-    }
-    mIsChildInitialized = true;
-    mInterlinePosition = InterlinePosition::Undefined;
-  }
-  template <typename ContainerType, template <typename> typename StrongPtr>
-  MOZ_NEVER_INLINE_DEBUG void SetToLastContentOf(
-      const StrongPtr<ContainerType>& aContainer) {
-    SetToLastContentOf(aContainer.get());
-  }
-  template <typename ContainerType>
-  MOZ_NEVER_INLINE_DEBUG static SelfType AtLastContentOf(
-      const ContainerType& aContainer,
-      InterlinePosition aInterlinePosition = InterlinePosition::Undefined) {
-    SelfType point;
-    point.SetToLastContentOf(&aContainer);
-    point.mInterlinePosition = aInterlinePosition;
-    return point;
-  }
-  template <typename ContainerType, template <typename> typename StrongPtr>
-  MOZ_NEVER_INLINE_DEBUG static SelfType AtLastContentOf(
-      const StrongPtr<ContainerType>& aContainer,
-      InterlinePosition aInterlinePosition = InterlinePosition::Undefined) {
-    MOZ_ASSERT(aContainer.get());
-    return AtLastContentOf(*aContainer.get(), aInterlinePosition);
-  }
-
-  /**
    * SetAfter() sets mChild to next sibling of aChild.
    */
   void SetAfter(const nsINode* aChild) {
@@ -769,13 +727,6 @@ class EditorDOMPointBase final {
     EditorDOMPointType result = this->template To<EditorDOMPointType>();
     result.RewindOffset();
     return result;
-  }
-  template <typename EditorDOMPointType = SelfType>
-  EditorDOMPointType PreviousPointOrParentPoint() const {
-    if (IsStartOfContainer()) {
-      return ParentPoint<EditorDOMPointType>();
-    }
-    return PreviousPoint<EditorDOMPointType>();
   }
 
   /**
@@ -958,7 +909,7 @@ class EditorDOMPointBase final {
     return !!maybeTextControl;
   }
 
-  [[nodiscard]] bool IsStartOfContainer() const {
+  bool IsStartOfContainer() const {
     // If we're referring the first point in the container:
     //   If mParent is not a container like a text node, mOffset is 0.
     //   If mChild is initialized and it's first child of mParent.
@@ -984,29 +935,7 @@ class EditorDOMPointBase final {
     return !mOffset.value();
   }
 
-  [[nodiscard]] bool IsMiddleOfContainer() const {
-    if (NS_WARN_IF(!mParent)) {
-      return false;
-    }
-    if (mParent->IsText()) {
-      return *mOffset && *mOffset < mParent->Length();
-    }
-    if (!mParent->HasChildren()) {
-      return false;
-    }
-    if (mIsChildInitialized) {
-      NS_WARNING_ASSERTION(
-          mOffset.isNothing() ||
-              (!mChild && *mOffset == mParent->GetChildCount()) ||
-              (mChild && mOffset == mParent->ComputeIndexOf(mChild)),
-          "mOffset does not match with current offset of mChild");
-      return mChild && mChild != mParent->GetFirstChild();
-    }
-    MOZ_ASSERT(mOffset.isSome());
-    return *mOffset && *mOffset < mParent->Length();
-  }
-
-  [[nodiscard]] bool IsEndOfContainer() const {
+  bool IsEndOfContainer() const {
     // If we're referring after the last point of the container:
     //   If mParent is not a container like text node, mOffset is same as the
     //   length of the container.
@@ -1268,26 +1197,15 @@ class EditorDOMPointBase final {
     return range.forget();
   }
 
-  [[nodiscard]] EditorDOMPointInText GetAsInText() const {
+  EditorDOMPointInText GetAsInText() const {
     return IsInTextNode() ? EditorDOMPointInText(ContainerAs<dom::Text>(),
                                                  Offset(), mInterlinePosition)
                           : EditorDOMPointInText();
   }
-  [[nodiscard]] EditorDOMPointInText AsInText() const {
+  MOZ_NEVER_INLINE_DEBUG EditorDOMPointInText AsInText() const {
     MOZ_ASSERT(IsInTextNode());
     return EditorDOMPointInText(ContainerAs<dom::Text>(), Offset(),
                                 mInterlinePosition);
-  }
-  [[nodiscard]] EditorRawDOMPointInText GetAsRawInText() const {
-    return IsInTextNode()
-               ? EditorRawDOMPointInText(ContainerAs<dom::Text>(), Offset(),
-                                         mInterlinePosition)
-               : EditorRawDOMPointInText();
-  }
-  [[nodiscard]] EditorRawDOMPointInText AsRawInText() const {
-    MOZ_ASSERT(IsInTextNode());
-    return EditorRawDOMPointInText(ContainerAs<dom::Text>(), Offset(),
-                                   mInterlinePosition);
   }
 
   template <typename A, typename B>
@@ -1416,8 +1334,7 @@ class EditorDOMRangeBase final {
   }
   explicit EditorDOMRangeBase(EditorDOMPointType&& aStart,
                               EditorDOMPointType&& aEnd)
-      : mStart(std::forward<EditorDOMPointType>(aStart)),
-        mEnd(std::forward<EditorDOMPointType>(aEnd)) {
+      : mStart(std::move(aStart)), mEnd(std::move(aEnd)) {
     MOZ_ASSERT_IF(mStart.IsSet(), mStart.IsSetAndValid());
     MOZ_ASSERT_IF(mEnd.IsSet(), mEnd.IsSetAndValid());
     MOZ_ASSERT_IF(mStart.IsSet() && mEnd.IsSet(),
@@ -1597,7 +1514,7 @@ class EditorDOMRangeBase final {
   template <typename OtherRangeType>
   bool operator==(const OtherRangeType& aOther) const {
     return (!IsPositioned() && !aOther.IsPositioned()) ||
-           (mStart == aOther.StartRef() && mEnd == aOther.EndRef());
+           (mStart == aOther.mStart && mEnd == aOther.mEnd);
   }
   template <typename OtherRangeType>
   bool operator!=(const OtherRangeType& aOther) const {
@@ -1651,10 +1568,6 @@ class EditorDOMRangeBase final {
       return nullptr;
     }
     return range.forget();
-  }
-  nsresult SetToRange(nsRange& aRange) const {
-    return aRange.SetStartAndEnd(mStart.ToRawRangeBoundary(),
-                                 mEnd.ToRawRangeBoundary());
   }
 
   friend std::ostream& operator<<(std::ostream& aStream,

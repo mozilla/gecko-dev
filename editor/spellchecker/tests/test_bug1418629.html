@@ -19,9 +19,6 @@
 <div id="edit1" contenteditable=true></div>
 
 <script>
-const kNewWhiteSpaceNormalizerEnabled =
-  SpecialPowers.getBoolPref("editor.white_space_normalization.blink_compatible");
-
 const { maybeOnSpellCheck } = SpecialPowers.ChromeUtils.importESModule(
   "resource://testing-common/AsyncSpellCheckTestHelper.sys.mjs"
 );
@@ -37,13 +34,9 @@ function getEditor(input) {
   return SpecialPowers.wrap(window).docShell.editor;
 }
 
-function isTextControl(input) {
-  return input instanceof HTMLInputElement ||
-         input instanceof HTMLTextAreaElement;
-}
-
 function resetEditableContent(input) {
-  if (isTextControl(input)) {
+  if (input instanceof HTMLInputElement ||
+      input instanceof HTMLTextAreaElement) {
     input.value = "";
     return;
   }
@@ -78,11 +71,7 @@ async function test_with_single_quote(input) {
           "don't run spellchecker during inputting word");
 
   synthesizeKey(" ");
-  is(
-    input.value || input.textContent,
-    kNewWhiteSpaceNormalizerEnabled && !isTextControl(input) ? "doesn\'\u00A0" : "doesn\' ",
-    `Typing white-space after "doesn'" should've succeeded`
-  );
+  is(input.value || input.textContent, "doesn\' ", "");
 
   await new Promise((resolve) => { maybeOnSpellCheck(input, resolve); });
   misspeltWords.push("doesn");

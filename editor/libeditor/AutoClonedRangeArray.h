@@ -320,8 +320,6 @@ class MOZ_STACK_CLASS AutoClonedRangeArray {
     mDirection = nsDirection::eDirNext;
   }
 
-  void RemoveCollapsedRanges();
-
   /**
    * If the points are same (i.e., mean a collapsed range) and in an empty block
    * element except the padding <br> element, this makes aStartPoint and
