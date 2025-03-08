@@ -632,6 +632,48 @@ class EditorDOMPointBase final {
   }
 
   /**
+   * SetToLastContentOf() sets this to the last child of aContainer or the last
+   * character of aContainer.
+   */
+  template <typename ContainerType>
+  void SetToLastContentOf(const ContainerType* aContainer) {
+    MOZ_ASSERT(aContainer);
+    mParent = const_cast<ContainerType*>(aContainer);
+    if (aContainer->IsContainerNode()) {
+      MOZ_ASSERT(aContainer->GetChildCount());
+      mChild = aContainer->GetLastChild();
+      mOffset = mozilla::Some(aContainer->GetChildCount() - 1u);
+    } else {
+      MOZ_ASSERT(aContainer->Length());
+      mChild = nullptr;
+      mOffset = mozilla::Some(aContainer->Length() - 1u);
+    }
+    mIsChildInitialized = true;
+    mInterlinePosition = InterlinePosition::Undefined;
+  }
+  template <typename ContainerType, template <typename> typename StrongPtr>
+  MOZ_NEVER_INLINE_DEBUG void SetToLastContentOf(
+      const StrongPtr<ContainerType>& aContainer) {
+    SetToLastContentOf(aContainer.get());
+  }
+  template <typename ContainerType>
+  MOZ_NEVER_INLINE_DEBUG static SelfType AtLastContentOf(
+      const ContainerType& aContainer,
+      InterlinePosition aInterlinePosition = InterlinePosition::Undefined) {
+    SelfType point;
+    point.SetToLastContentOf(&aContainer);
+    point.mInterlinePosition = aInterlinePosition;
+    return point;
+  }
+  template <typename ContainerType, template <typename> typename StrongPtr>
+  MOZ_NEVER_INLINE_DEBUG static SelfType AtLastContentOf(
+      const StrongPtr<ContainerType>& aContainer,
+      InterlinePosition aInterlinePosition = InterlinePosition::Undefined) {
+    MOZ_ASSERT(aContainer.get());
+    return AtLastContentOf(*aContainer.get(), aInterlinePosition);
+  }
+
+  /**
    * SetAfter() sets mChild to next sibling of aChild.
    */
   void SetAfter(const nsINode* aChild) {
@@ -727,6 +769,13 @@ class EditorDOMPointBase final {
     EditorDOMPointType result = this->template To<EditorDOMPointType>();
     result.RewindOffset();
     return result;
+  }
+  template <typename EditorDOMPointType = SelfType>
+  EditorDOMPointType PreviousPointOrParentPoint() const {
+    if (IsStartOfContainer()) {
+      return ParentPoint<EditorDOMPointType>();
+    }
+    return PreviousPoint<EditorDOMPointType>();
   }
 
   /**

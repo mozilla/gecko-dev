@@ -15,6 +15,8 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/OwningNonNull.h"
 #include "mozilla/Result.h"
+#include "mozilla/dom/Text.h"
+#include "nsTextFragment.h"
 
 namespace mozilla {
 
@@ -520,6 +522,168 @@ class MOZ_STACK_CLASS HTMLEditor::AutoListElementCreator final {
   MOZ_KNOWN_LIVE nsStaticAtom& mListTagName;
   MOZ_KNOWN_LIVE nsStaticAtom& mListItemTagName;
   const nsAutoString mBulletType;
+};
+
+/******************************************************************************
+ * NormalizedStringToInsertText stores normalized insertion string with
+ * normalized surrounding white-spaces if the insertion point is surrounded by
+ * collapsible white-spaces.  For deleting invisible (collapsed) white-spaces,
+ * this also stores the replace range and new white-space length before and
+ * after the inserting text.
+ ******************************************************************************/
+
+struct MOZ_STACK_CLASS HTMLEditor::NormalizedStringToInsertText final {
+  NormalizedStringToInsertText(
+      const nsAString& aStringToInsertWithoutSurroundingWhiteSpaces,
+      const EditorDOMPoint& aPointToInsert)
+      : mNormalizedString(aStringToInsertWithoutSurroundingWhiteSpaces),
+        mReplaceStartOffset(
+            aPointToInsert.IsInTextNode() ? aPointToInsert.Offset() : 0u),
+        mReplaceEndOffset(mReplaceStartOffset) {
+    MOZ_ASSERT(aStringToInsertWithoutSurroundingWhiteSpaces.Length() ==
+               InsertingTextLength());
+  }
+
+  NormalizedStringToInsertText(
+      const nsAString& aStringToInsertWithSurroundingWhiteSpaces,
+      uint32_t aInsertOffset, uint32_t aReplaceStartOffset,
+      uint32_t aReplaceLength,
+      uint32_t aNewPrecedingWhiteSpaceLengthBeforeInsertionString,
+      uint32_t aNewFollowingWhiteSpaceLengthAfterInsertionString)
+      : mNormalizedString(aStringToInsertWithSurroundingWhiteSpaces),
+        mReplaceStartOffset(aReplaceStartOffset),
+        mReplaceEndOffset(mReplaceStartOffset + aReplaceLength),
+        mReplaceLengthBefore(aInsertOffset - mReplaceStartOffset),
+        mReplaceLengthAfter(aReplaceLength - mReplaceLengthBefore),
+        mNewLengthBefore(aNewPrecedingWhiteSpaceLengthBeforeInsertionString),
+        mNewLengthAfter(aNewFollowingWhiteSpaceLengthAfterInsertionString) {
+    MOZ_ASSERT(aReplaceStartOffset <= aInsertOffset);
+    MOZ_ASSERT(aReplaceStartOffset + aReplaceLength >= aInsertOffset);
+    MOZ_ASSERT(aNewPrecedingWhiteSpaceLengthBeforeInsertionString +
+                   aNewFollowingWhiteSpaceLengthAfterInsertionString <
+               mNormalizedString.Length());
+    MOZ_ASSERT(mReplaceLengthBefore + mReplaceLengthAfter == ReplaceLength());
+    MOZ_ASSERT(mReplaceLengthBefore >= mNewLengthBefore);
+    MOZ_ASSERT(mReplaceLengthAfter >= mNewLengthAfter);
+  }
+
+  NormalizedStringToInsertText GetMinimizedData(const Text& aText) const {
+    if (mNormalizedString.IsEmpty() || !ReplaceLength()) {
+      return *this;
+    }
+    const nsTextFragment& textFragment = aText.TextFragment();
+    const uint32_t minimizedReplaceStart = [&]() {
+      const auto firstDiffCharOffset =
+          mNewLengthBefore ? textFragment.FindFirstDifferentCharOffset(
+                                 PrecedingWhiteSpaces(), mReplaceStartOffset)
+                           : nsTextFragment::kNotFound;
+      if (firstDiffCharOffset == nsTextFragment::kNotFound) {
+        return
+            // We don't need to insert new normalized white-spaces before the
+            // inserting string,
+            (mReplaceStartOffset + mReplaceLengthBefore)
+            // but keep extending the replacing range for deleting invisible
+            // white-spaces.
+            - DeletingPrecedingInvisibleWhiteSpaces();
+      }
+      return firstDiffCharOffset;
+    }();
+    const uint32_t minimizedReplaceEnd = [&]() {
+      const auto lastDiffCharOffset =
+          mNewLengthAfter ? textFragment.RFindFirstDifferentCharOffset(
+                                FollowingWhiteSpaces(), mReplaceEndOffset)
+                          : nsTextFragment::kNotFound;
+      if (lastDiffCharOffset == nsTextFragment::kNotFound) {
+        return
+            // We don't need to insert new normalized white-spaces after the
+            // inserting string,
+            (mReplaceEndOffset - mReplaceLengthAfter)
+            // but keep extending the replacing range for deleting invisible
+            // white-spaces.
+            + DeletingFollowingInvisibleWhiteSpaces();
+      }
+      return lastDiffCharOffset + 1u;
+    }();
+    if (minimizedReplaceStart == mReplaceStartOffset &&
+        minimizedReplaceEnd == mReplaceEndOffset) {
+      return *this;
+    }
+    const uint32_t newPrecedingWhiteSpaceLength =
+        mNewLengthBefore - (minimizedReplaceStart - mReplaceStartOffset);
+    const uint32_t newFollowingWhiteSpaceLength =
+        mNewLengthAfter - (mReplaceEndOffset - minimizedReplaceEnd);
+    return NormalizedStringToInsertText(
+        Substring(mNormalizedString,
+                  mNewLengthBefore - newPrecedingWhiteSpaceLength,
+                  mNormalizedString.Length() -
+                      (mNewLengthBefore - newPrecedingWhiteSpaceLength) -
+                      (mNewLengthAfter - newFollowingWhiteSpaceLength)),
+        OffsetToInsertText(), minimizedReplaceStart,
+        minimizedReplaceEnd - minimizedReplaceStart,
+        newPrecedingWhiteSpaceLength, newFollowingWhiteSpaceLength);
+  }
+
+  /**
+   * Return offset to insert the given text.
+   */
+  [[nodiscard]] uint32_t OffsetToInsertText() const {
+    return mReplaceStartOffset + mReplaceLengthBefore;
+  }
+
+  /**
+   * Return inserting text length not containing the surrounding white-spaces.
+   */
+  [[nodiscard]] uint32_t InsertingTextLength() const {
+    return mNormalizedString.Length() - mNewLengthBefore - mNewLengthAfter;
+  }
+
+  /**
+   * Return end offset of inserted string after replacing the text with
+   * mNormalizedString.
+   */
+  [[nodiscard]] uint32_t EndOffsetOfInsertedText() const {
+    return OffsetToInsertText() + InsertingTextLength();
+  }
+
+  /**
+   * Return the length to replace with mNormalizedString.  The result means that
+   * it's the length of surrounding white-spaces at the insertion point.
+   */
+  [[nodiscard]] uint32_t ReplaceLength() const {
+    return mReplaceEndOffset - mReplaceStartOffset;
+  }
+
+  [[nodiscard]] uint32_t DeletingPrecedingInvisibleWhiteSpaces() const {
+    return mReplaceLengthBefore - mNewLengthBefore;
+  }
+  [[nodiscard]] uint32_t DeletingFollowingInvisibleWhiteSpaces() const {
+    return mReplaceLengthAfter - mNewLengthAfter;
+  }
+
+  [[nodiscard]] nsDependentSubstring PrecedingWhiteSpaces() const {
+    return Substring(mNormalizedString, 0u, mNewLengthBefore);
+  }
+  [[nodiscard]] nsDependentSubstring FollowingWhiteSpaces() const {
+    return Substring(mNormalizedString,
+                     mNormalizedString.Length() - mNewLengthAfter);
+  }
+
+  // Normalizes string which should be inserted.
+  nsAutoString mNormalizedString;
+  // Start offset in the `Text` to replace.
+  const uint32_t mReplaceStartOffset;
+  // End offset in the `Text` to replace.
+  const uint32_t mReplaceEndOffset;
+  // If it needs to replace preceding and/or following white-spaces, these
+  // members store the length of white-spaces which should be replaced
+  // before/after the insertion point.
+  const uint32_t mReplaceLengthBefore = 0u;
+  const uint32_t mReplaceLengthAfter = 0u;
+  // If it needs to replace preceding and/or following white-spaces, these
+  // members store the new length of white-spaces before/after the insertion
+  // string.
+  const uint32_t mNewLengthBefore = 0u;
+  const uint32_t mNewLengthAfter = 0u;
 };
 
 }  // namespace mozilla

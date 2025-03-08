@@ -225,6 +225,8 @@ class WhiteSpaceVisibilityKeeper final {
   InsertLineBreak(LineBreakType aLineBreakType, HTMLEditor& aHTMLEditor,
                   const EditorDOMPoint& aPointToInsert);
 
+  using InsertTextFor = EditorBase::InsertTextFor;
+
   /**
    * Insert aStringToInsert to aPointToInsert and makes any needed adjustments
    * to white-spaces around the insertion point.
@@ -243,7 +245,7 @@ class WhiteSpaceVisibilityKeeper final {
     return WhiteSpaceVisibilityKeeper::
         InsertTextOrInsertOrUpdateCompositionString(
             aHTMLEditor, aStringToInsert, EditorDOMRange(aPointToInsert),
-            aInsertTextTo, TextIsCompositionString::No);
+            aInsertTextTo, InsertTextFor::NormalText);
   }
 
   /**
@@ -260,13 +262,14 @@ class WhiteSpaceVisibilityKeeper final {
    *                            collapsed and indicate the insertion point.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<InsertTextResult, nsresult>
-  InsertOrUpdateCompositionString(
-      HTMLEditor& aHTMLEditor, const nsAString& aCompositionString,
-      const EditorDOMRange& aCompositionStringRange) {
+  InsertOrUpdateCompositionString(HTMLEditor& aHTMLEditor,
+                                  const nsAString& aCompositionString,
+                                  const EditorDOMRange& aCompositionStringRange,
+                                  InsertTextFor aPurpose) {
+    MOZ_ASSERT(EditorBase::InsertingTextForComposition(aPurpose));
     return InsertTextOrInsertOrUpdateCompositionString(
         aHTMLEditor, aCompositionString, aCompositionStringRange,
-        HTMLEditor::InsertTextTo::ExistingTextNodeIfAvailable,
-        TextIsCompositionString::Yes);
+        HTMLEditor::InsertTextTo::ExistingTextNodeIfAvailable, aPurpose);
   }
 
   /**
@@ -344,7 +347,20 @@ class WhiteSpaceVisibilityKeeper final {
       HTMLEditor& aHTMLEditor, const EditorDOMRangeInTexts& aRangeToReplace,
       const nsAString& aReplaceString);
 
-  enum class TextIsCompositionString : bool { No, Yes };
+  /**
+   * Delete leading or trailing invisible white-spaces around block boundaries
+   * or collapsed white-spaces in a white-space sequence if aPoint is around
+   * them.
+   *
+   * @param aHTMLEditor The HTMLEditor.
+   * @param aPoint      Point must be in an editable content node.
+   * @return            If deleted some invisible white-spaces, returns the
+   *                    removed point.
+   *                    If this does nothing, returns unset point.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<EditorDOMPoint, nsresult>
+  EnsureNoInvisibleWhiteSpaces(HTMLEditor& aHTMLEditor,
+                               const EditorDOMPoint& aPoint);
 
   /**
    * Insert aStringToInsert to aRangeToBeReplaced.StartRef() with normalizing
@@ -361,12 +377,14 @@ class WhiteSpaceVisibilityKeeper final {
    * @param aInsertTextTo       Whether forcibly creates a new `Text` node in
    *                            specific condition or use existing `Text` if
    *                            available.
+   * @param aPurpose            Whether it's handling normal text input or
+   *                            updating composition.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<InsertTextResult, nsresult>
   InsertTextOrInsertOrUpdateCompositionString(
       HTMLEditor& aHTMLEditor, const nsAString& aStringToInsert,
       const EditorDOMRange& aRangeToBeReplaced, InsertTextTo aInsertTextTo,
-      TextIsCompositionString aTextIsCompositionString);
+      InsertTextFor aPurpose);
 };
 
 }  // namespace mozilla
