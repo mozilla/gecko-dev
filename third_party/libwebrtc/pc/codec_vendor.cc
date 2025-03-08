@@ -664,7 +664,13 @@ webrtc::RTCErrorOr<Codecs> CodecVendor::GetNegotiatedCodecsForAnswer(
     }
   }
   std::vector<Codec> negotiated_codecs;
-  NegotiateCodecs(filtered_codecs, CodecList(codecs_from_offer),
+  // An offer is external data, so needs to be checked before use.
+  auto checked_codecs_from_offer =
+      CodecList::CreateCodecList(codecs_from_offer);
+  if (!checked_codecs_from_offer.ok()) {
+    return checked_codecs_from_offer.MoveError();
+  }
+  NegotiateCodecs(filtered_codecs, checked_codecs_from_offer.value(),
                   &negotiated_codecs,
                   media_description_options.codec_preferences.empty());
   return negotiated_codecs;

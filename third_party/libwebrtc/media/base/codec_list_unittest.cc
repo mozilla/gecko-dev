@@ -16,6 +16,9 @@
 namespace cricket {
 namespace {
 
+using webrtc::RTCErrorOr;
+using webrtc::RTCErrorType;
+
 TEST(CodecList, StoreAndRecall) {
   CodecList empty_list(std::vector<Codec>{});
   EXPECT_TRUE(empty_list.empty());
@@ -24,6 +27,16 @@ TEST(CodecList, StoreAndRecall) {
   CodecList one_codec{{video_codec}};
   EXPECT_EQ(one_codec.size(), 1U);
   EXPECT_EQ(one_codec.codecs()[0], video_codec);
+}
+
+TEST(CodecList, RejectIllegalConstructorArguments) {
+  std::vector<Codec> apt_without_number{
+      CreateVideoCodec({webrtc::SdpVideoFormat{
+          "rtx", webrtc::CodecParameterMap{{"apt", "not-a-number"}}}})};
+  RTCErrorOr<CodecList> checked_codec_list =
+      CodecList::CreateCodecList(apt_without_number);
+  EXPECT_FALSE(checked_codec_list.ok());
+  EXPECT_EQ(checked_codec_list.error().type(), RTCErrorType::INVALID_PARAMETER);
 }
 
 #if GTEST_HAS_DEATH_TEST && !defined(WEBRTC_ANDROID)
@@ -39,7 +52,7 @@ TEST(CodecList, CrashOnIllegalConstructorArguments) {
       CreateVideoCodec({webrtc::SdpVideoFormat{
           "rtx", webrtc::CodecParameterMap{{"apt", "not-a-number"}}}})};
 #if RTC_DCHECK_IS_ON
-  EXPECT_DEATH(CodecList bad(apt_without_number), "FromString");
+  EXPECT_DEATH(CodecList bad(apt_without_number), "CheckInputConsistency");
 #else
   // Expect initialization to succeed.
   CodecList bad{apt_without_number};
