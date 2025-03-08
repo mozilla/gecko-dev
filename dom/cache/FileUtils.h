@@ -57,9 +57,11 @@ nsresult BodyMaybeUpdatePaddingSize(
 nsresult BodyDeleteFiles(const CacheDirectoryMetadata& aDirectoryMetadata,
                          nsIFile& aBaseDir, const nsTArray<nsID>& aIdList);
 
+// Traverse all cache directorys and do a cleanup, leaving only files that
+// belong to known body ids behind.
 nsresult BodyDeleteOrphanedFiles(
     const CacheDirectoryMetadata& aDirectoryMetadata, nsIFile& aBaseDir,
-    const nsTArray<nsID>& aKnownBodyIdList);
+    nsTHashSet<nsID>& aKnownBodyIds);
 
 // If aCanRemoveFiles is true, that means we are safe to touch the files which
 // can be accessed in other threads.

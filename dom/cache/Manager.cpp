@@ -149,11 +149,13 @@ class SetupAction final : public SyncDBAction {
                 return oldValue + deletionInfo.mDeletedPaddingSize;
               }));
 
-      // Clean up orphaned body objects
-      QM_TRY_INSPECT(const auto& knownBodyIdList, db::GetKnownBodyIds(*aConn));
+      // Clean up orphaned body objects.
+      QM_TRY_UNWRAP(auto knownBodyIds, db::GetKnownBodyIds(*aConn));
 
-      QM_TRY(MOZ_TO_RESULT(BodyDeleteOrphanedFiles(aDirectoryMetadata, *aDBDir,
-                                                   knownBodyIdList)));
+      // Note that this causes a scan of all cached files. See bug 1952550 that
+      // wants to reduce the probability to find the marker file above.
+      QM_TRY(MOZ_TO_RESULT(
+          BodyDeleteOrphanedFiles(aDirectoryMetadata, *aDBDir, knownBodyIds)));
 
       // Commit() explicitly here, because we want to ensure the padding file
       // has the correct content.
