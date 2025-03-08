@@ -146,10 +146,14 @@ Result<nsCOMPtr<nsISupports>, nsresult> BodyStartWriteStream(
   MOZ_DIAGNOSTIC_ASSERT(aClosure);
   MOZ_DIAGNOSTIC_ASSERT(aCallback);
 
-  QM_TRY_INSPECT(const auto& finalFile,
-                 BodyIdToFile(aBaseDir, aBodyId, BODY_FILE_FINAL));
-
+  // Check if the final file already exists, in which case we error out.
   {
+    QM_TRY_INSPECT(const auto& finalFile,
+                   // There's no need to create the cache directory in this
+                   // case since we're just checking.
+                   BodyIdToFile(aBaseDir, aBodyId, BODY_FILE_FINAL,
+                                /* aCreateDirIfNotExists */ false));
+
     QM_TRY_INSPECT(const bool& exists,
                    MOZ_TO_RESULT_INVOKE_MEMBER(*finalFile, Exists));
 
@@ -157,7 +161,10 @@ Result<nsCOMPtr<nsISupports>, nsresult> BodyStartWriteStream(
   }
 
   QM_TRY_INSPECT(const auto& tmpFile,
-                 BodyIdToFile(aBaseDir, aBodyId, BODY_FILE_TMP));
+                 // We do want to create and write to the file here, so we do
+                 // need to ensure the directory exists.
+                 BodyIdToFile(aBaseDir, aBodyId, BODY_FILE_TMP,
+                              /* aCreateDirIfNotExists */ true));
 
   QM_TRY_UNWRAP(nsCOMPtr<nsIOutputStream> fileStream,
                 CreateFileOutputStream(aDirectoryMetadata.mPersistenceType,
