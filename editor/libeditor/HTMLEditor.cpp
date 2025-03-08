@@ -6,6 +6,7 @@
 #include "HTMLEditor.h"
 #include "HTMLEditHelpers.h"
 #include "HTMLEditorInlines.h"
+#include "HTMLEditorNestedClasses.h"
 
 #include "AutoClonedRangeArray.h"
 #include "AutoSelectionRestorer.h"
@@ -4289,6 +4290,57 @@ Result<InsertTextResult, nsresult> HTMLEditor::ReplaceTextWithTransaction(
   return InsertTextResult(
       std::move(endOfInsertedText),
       transaction->SuggestPointToPutCaret<EditorDOMPoint>());
+}
+
+Result<InsertTextResult, nsresult>
+HTMLEditor::InsertOrReplaceTextWithTransaction(
+    const EditorDOMPoint& aPointToInsert,
+    const NormalizedStringToInsertText& aData) {
+  MOZ_ASSERT(aPointToInsert.IsInContentNodeAndValid());
+  MOZ_ASSERT_IF(aData.ReplaceLength(), aPointToInsert.IsInTextNode());
+
+  Result<InsertTextResult, nsresult> insertTextResultOrError =
+      !aData.ReplaceLength()
+          ? InsertTextWithTransaction(aData.mNormalizedString, aPointToInsert,
+                                      InsertTextTo::SpecifiedPoint)
+          : ReplaceTextWithTransaction(
+                MOZ_KnownLive(*aPointToInsert.ContainerAs<Text>()),
+                aData.mReplaceStartOffset, aData.ReplaceLength(),
+                aData.mNormalizedString);
+  if (MOZ_UNLIKELY(insertTextResultOrError.isErr())) {
+    NS_WARNING(!aData.ReplaceLength()
+                   ? "HTMLEditor::InsertTextWithTransaction() failed"
+                   : "HTMLEditor::ReplaceTextWithTransaction() failed");
+    return insertTextResultOrError;
+  }
+  InsertTextResult insertTextResult = insertTextResultOrError.unwrap();
+  if (!aData.ReplaceLength()) {
+    auto pointToPutCaret = [&]() -> EditorDOMPoint {
+      return insertTextResult.HasCaretPointSuggestion()
+                 ? insertTextResult.UnwrapCaretPoint()
+                 : insertTextResult.EndOfInsertedTextRef();
+    }();
+    return InsertTextResult(std::move(insertTextResult),
+                            std::move(pointToPutCaret));
+  }
+  insertTextResult.IgnoreCaretPointSuggestion();
+  Text* const insertedTextNode =
+      insertTextResult.EndOfInsertedTextRef().GetContainerAs<Text>();
+  if (NS_WARN_IF(!insertedTextNode) ||
+      NS_WARN_IF(!insertedTextNode->IsInComposedDoc()) ||
+      NS_WARN_IF(!HTMLEditUtils::IsSimplyEditableNode(*insertedTextNode))) {
+    return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+  }
+  const uint32_t expectedEndOffset = aData.EndOffsetOfInsertedText();
+  if (NS_WARN_IF(expectedEndOffset > insertedTextNode->TextDataLength())) {
+    return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+  }
+  // We need to return end point of the insertion string instead of end of
+  // replaced following white-spaces.
+  EditorDOMPoint endOfNewString(insertedTextNode, expectedEndOffset);
+  EditorDOMPoint pointToPutCaret = endOfNewString;
+  return InsertTextResult(std::move(endOfNewString),
+                          CaretPoint(std::move(pointToPutCaret)));
 }
 
 Result<InsertTextResult, nsresult> HTMLEditor::InsertTextWithTransaction(

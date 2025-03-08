@@ -1245,6 +1245,131 @@ Maybe<EditorLineBreakType> HTMLEditUtils::GetFollowingUnnecessaryLineBreak(
   return unnecessaryLineBreak;
 }
 
+uint32_t HTMLEditUtils::GetFirstVisibleCharOffset(const Text& aText) {
+  const nsTextFragment& textFragment = aText.TextFragment();
+  if (!textFragment.GetLength() || !EditorRawDOMPointInText(&aText, 0u)
+                                        .IsCharCollapsibleASCIISpaceOrNBSP()) {
+    return 0u;
+  }
+  const WSScanResult previousThingOfText =
+      WSRunScanner::ScanPreviousVisibleNodeOrBlockBoundary(
+          WSRunScanner::Scan::All, EditorRawDOMPoint(&aText),
+          BlockInlineCheck::UseComputedDisplayStyle);
+  if (!previousThingOfText.ReachedLineBoundary()) {
+    return 0u;
+  }
+  return HTMLEditUtils::GetInclusiveNextNonCollapsibleCharOffset(aText, 0u)
+      .valueOr(textFragment.GetLength());
+}
+
+uint32_t HTMLEditUtils::GetOffsetAfterLastVisibleChar(const Text& aText) {
+  const nsTextFragment& textFragment = aText.TextFragment();
+  if (!textFragment.GetLength()) {
+    return 0u;
+  }
+  if (!EditorRawDOMPointInText::AtLastContentOf(aText)
+           .IsCharCollapsibleASCIISpaceOrNBSP()) {
+    return textFragment.GetLength();
+  }
+  const WSScanResult nextThingOfText =
+      WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
+          WSRunScanner::Scan::All, EditorRawDOMPoint::After(aText),
+          BlockInlineCheck::UseComputedDisplayStyle);
+  if (!nextThingOfText.ReachedLineBoundary()) {
+    return textFragment.GetLength();
+  }
+  const Maybe<uint32_t> lastNonCollapsibleCharOffset =
+      HTMLEditUtils::GetPreviousNonCollapsibleCharOffset(
+          aText, textFragment.GetLength());
+  if (lastNonCollapsibleCharOffset.isNothing()) {
+    return 0u;
+  }
+  if (*lastNonCollapsibleCharOffset == textFragment.GetLength() - 1u) {
+    return textFragment.GetLength();
+  }
+  const uint32_t firstTrailingWhiteSpaceOffset =
+      *lastNonCollapsibleCharOffset + 1u;
+  MOZ_ASSERT(firstTrailingWhiteSpaceOffset < textFragment.GetLength());
+  if (nextThingOfText.ReachedBlockBoundary()) {
+    return firstTrailingWhiteSpaceOffset;
+  }
+  // If followed by <br> or preformatted line break, one white-space is
+  // rendered.
+  return firstTrailingWhiteSpaceOffset + 1u;
+}
+
+uint32_t HTMLEditUtils::GetInvisibleWhiteSpaceCount(
+    const Text& aText, uint32_t aOffset /* = 0u */,
+    uint32_t aLength /* = UINT32_MAX */) {
+  const nsTextFragment& textFragment = aText.TextFragment();
+  if (!aLength || textFragment.GetLength() <= aOffset) {
+    return 0u;
+  }
+  const uint32_t endOffset = static_cast<uint32_t>(
+      std::min(static_cast<uint64_t>(aOffset) + aLength,
+               static_cast<uint64_t>(textFragment.GetLength())));
+  const auto firstVisibleOffset = [&]() -> uint32_t {
+    // If the white-space sequence follows a preformatted linebreak, ASCII
+    // spaces at start are invisible.
+    if (aOffset &&
+        textFragment.CharAt(aOffset - 1u) == HTMLEditUtils::kNewLine) {
+      MOZ_ASSERT(EditorUtils::IsNewLinePreformatted(aText));
+      for (const uint32_t offset : IntegerRange(aOffset, endOffset)) {
+        if (textFragment.CharAt(offset) == HTMLEditUtils::kNBSP) {
+          return offset;
+        }
+      }
+      return endOffset;  // all white-spaces are invisible.
+    }
+    if (aOffset) {
+      return aOffset - 1u;
+    }
+    return HTMLEditUtils::GetFirstVisibleCharOffset(aText);
+  }();
+  if (firstVisibleOffset >= endOffset) {
+    return endOffset - aOffset;  // All white-spaces are invisible.
+  }
+  const auto afterLastVisibleOffset = [&]() -> uint32_t {
+    // If the white-spaces are followed by a preformatted line break, ASCII
+    // spaces at end are invisible.
+    if (endOffset < textFragment.GetLength() &&
+        textFragment.CharAt(endOffset) == HTMLEditUtils::kNewLine) {
+      MOZ_ASSERT(EditorUtils::IsNewLinePreformatted(aText));
+      for (const uint32_t offset : Reversed(IntegerRange(aOffset, endOffset))) {
+        if (textFragment.CharAt(offset) == HTMLEditUtils::kNBSP) {
+          return offset + 1u;
+        }
+      }
+      return aOffset;  // all white-spaces are invisible.
+    }
+    if (endOffset < textFragment.GetLength() - 1u) {
+      return endOffset;
+    }
+    return HTMLEditUtils::GetOffsetAfterLastVisibleChar(aText);
+  }();
+  if (aOffset >= afterLastVisibleOffset) {
+    return endOffset - aOffset;  // All white-spaces are invisible.
+  }
+  enum class PrevChar { NotChar, Space, NBSP };
+  PrevChar prevChar = PrevChar::NotChar;
+  uint32_t invisibleChars = 0u;
+  for (const uint32_t offset : IntegerRange(aOffset, endOffset)) {
+    if (textFragment.CharAt(offset) == HTMLEditUtils::kNBSP) {
+      prevChar = PrevChar::NBSP;
+      continue;
+    }
+    MOZ_ASSERT(
+        EditorRawDOMPointInText(&aText, offset).IsCharCollapsibleASCIISpace());
+    if (offset < firstVisibleOffset || offset >= afterLastVisibleOffset ||
+        // white-space after another white-space is invisible
+        prevChar == PrevChar::Space) {
+      invisibleChars++;
+    }
+    prevChar = PrevChar::Space;
+  }
+  return invisibleChars;
+}
+
 bool HTMLEditUtils::IsEmptyNode(nsPresContext* aPresContext,
                                 const nsINode& aNode,
                                 const EmptyCheckOptions& aOptions /* = {} */,

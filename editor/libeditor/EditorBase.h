@@ -1775,6 +1775,7 @@ class EditorBase : public nsIEditor,
    *                        available.
    */
   enum class InsertTextTo {
+    SpecifiedPoint,
     ExistingTextNodeIfAvailable,
     ExistingTextNodeIfAvailableAndNotStart,
     AlwaysCreateNewTextNode
@@ -1783,6 +1784,12 @@ class EditorBase : public nsIEditor,
   InsertTextWithTransaction(const nsAString& aStringToInsert,
                             const EditorDOMPoint& aPointToInsert,
                             InsertTextTo aInsertTextTo);
+
+  /**
+   * Compute insertion point from aPoint and aInsertTextTo.
+   */
+  [[nodiscard]] EditorDOMPoint ComputePointToInsertText(
+      const EditorDOMPoint& aPoint, InsertTextTo aInsertTextTo) const;
 
   /**
    * Insert aStringToInsert to aPointToInsert.
@@ -3055,8 +3062,10 @@ class EditorBase : public nsIEditor,
                                         // CollapseSelectionTo, DoReplaceText,
                                         // RangeUpdaterRef
   friend class SplitNodeTransaction;    // ToGenericNSResult
-  friend class WhiteSpaceVisibilityKeeper;  // AutoTransactionsConserveSelection
-  friend class nsIEditor;                   // mIsHTMLEditorClass
+  friend class
+      WhiteSpaceVisibilityKeeper;  // AutoTransactionsConserveSelection,
+                                   // ComputePointToInsertText
+  friend class nsIEditor;          // mIsHTMLEditorClass
 };
 
 }  // namespace mozilla

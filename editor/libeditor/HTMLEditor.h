@@ -844,6 +844,18 @@ class HTMLEditor final : public EditorBase,
                              uint32_t aLength,
                              const nsAString& aStringToInsert);
 
+  struct NormalizedStringToInsertText;
+
+  /**
+   * Insert text to aPointToInsert or replace text in the range stored by aData
+   * in the text node specified by aPointToInsert with the normalized string
+   * stored by aData.  So, aPointToInsert must be in a `Text` node if
+   * aData.ReplaceLength() is not 0.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<InsertTextResult, nsresult>
+  InsertOrReplaceTextWithTransaction(const EditorDOMPoint& aPointToInsert,
+                                     const NormalizedStringToInsertText& aData);
+
   /**
    * Insert aStringToInsert to aPointToInsert.  If the point is not editable,
    * this returns error.
@@ -2204,6 +2216,21 @@ class HTMLEditor final : public EditorBase,
       TreatEmptyTextNodes aTreatEmptyTextNodes,
       DeleteDirection aDeleteDirection, const Element& aEditingHost);
 
+  enum class NormalizeSurroundingWhiteSpaces : bool { No, Yes };
+  friend constexpr bool operator!(NormalizeSurroundingWhiteSpaces aValue) {
+    return !static_cast<bool>(aValue);
+  }
+
+  /**
+   * Return a normalized string.  If aPointToInsert is in a `Text` node,
+   * this returns a range in the `Text` to replace surrounding white-spaces at
+   * aPointToInsert with the normalized string if white-spaces are collapsible
+   * and aNormalizeSurroundingWhiteSpaces is "Yes".
+   */
+  NormalizedStringToInsertText NormalizeWhiteSpacesToInsertText(
+      const EditorDOMPoint& aPointToInsert, const nsAString& aStringToInsert,
+      NormalizeSurroundingWhiteSpaces aNormalizeSurroundingWhiteSpaces) const;
+
   /**
    * ExtendRangeToDeleteWithNormalizingWhiteSpaces() is a helper method of
    * DeleteTextAndNormalizeSurroundingWhiteSpaces().  This expands
@@ -2227,8 +2254,8 @@ class HTMLEditor final : public EditorBase,
    */
   void ExtendRangeToDeleteWithNormalizingWhiteSpaces(
       EditorDOMPointInText& aStartToDelete, EditorDOMPointInText& aEndToDelete,
-      nsAString& aNormalizedWhiteSpacesInStartNode,
-      nsAString& aNormalizedWhiteSpacesInEndNode) const;
+      nsString& aNormalizedWhiteSpacesInStartNode,
+      nsString& aNormalizedWhiteSpacesInEndNode) const;
 
   /**
    * CharPointType let the following helper methods of
@@ -2265,20 +2292,16 @@ class HTMLEditor final : public EditorBase,
    */
   class MOZ_STACK_CLASS CharPointData final {
    public:
+    CharPointData() = delete;
+
     static CharPointData InDifferentTextNode(CharPointType aCharPointType) {
-      CharPointData result;
-      result.mIsInDifferentTextNode = true;
-      result.mType = aCharPointType;
-      return result;
+      return {aCharPointType, true};
     }
     static CharPointData InSameTextNode(CharPointType aCharPointType) {
-      CharPointData result;
       // Let's mark this as in different text node if given one indicates
       // that there is end of text because it means that adjacent content
       // from point of text node view is another element.
-      result.mIsInDifferentTextNode = aCharPointType == CharPointType::TextEnd;
-      result.mType = aCharPointType;
-      return result;
+      return {aCharPointType, aCharPointType == CharPointType::TextEnd};
     }
 
     bool AcrossTextNodeBoundary() const { return mIsInDifferentTextNode; }
@@ -2289,7 +2312,8 @@ class HTMLEditor final : public EditorBase,
     CharPointType Type() const { return mType; }
 
    private:
-    CharPointData() = default;
+    CharPointData(CharPointType aType, bool aIsInDifferentTextNode)
+        : mType(aType), mIsInDifferentTextNode(aIsInDifferentTextNode) {}
 
     CharPointType mType;
     bool mIsInDifferentTextNode;
@@ -2306,12 +2330,24 @@ class HTMLEditor final : public EditorBase,
   CharPointData GetInclusiveNextCharPointDataForNormalizingWhiteSpaces(
       const EditorDOMPointInText& aPoint) const;
 
+  enum class Linefeed : bool { Collapsible, Preformatted };
+
+  /**
+   * Normalize all white-spaces in aResult. aPreviousCharPointData is used only
+   * when the first character of aResult is an ASCII space or an NBSP.
+   * aNextCharPointData is used only when the last character of aResult is an
+   * ASCII space or an NBSP.
+   */
+  static void NormalizeAllWhiteSpaceSequences(
+      nsString& aResult, const CharPointData& aPreviousCharPointData,
+      const CharPointData& aNextCharPointData, Linefeed aLinefeed);
+
   /**
    * GenerateWhiteSpaceSequence() generates white-space sequence which won't
    * be collapsed.
    *
    * @param aResult             [out] White space sequence which won't be
-   *                            collapsed, but wrapable.
+   *                            collapsed, but wrappable.
    * @param aLength             Length of generating white-space sequence.
    *                            Must be 1 or larger.
    * @param aPreviousCharPointData
@@ -2323,11 +2359,20 @@ class HTMLEditor final : public EditorBase,
    *                            different text nodes white-space.
    * @param aNextCharPointData  Specify the next char point where it'll be
    *                            inserted.  Same as aPreviousCharPointData,
-   *                            this must node indidate white-space in same
+   *                            this must node indicate white-space in same
    *                            text node.
    */
   static void GenerateWhiteSpaceSequence(
-      nsAString& aResult, uint32_t aLength,
+      nsString& aResult, uint32_t aLength,
+      const CharPointData& aPreviousCharPointData,
+      const CharPointData& aNextCharPointData);
+
+  /**
+   * Replace characters starting from aOffset in aResult with normalized
+   * white-space sequence.
+   */
+  static void ReplaceStringWithNormalizedWhiteSpaceSequence(
+      nsString& aResult, uint32_t aOffset, uint32_t aLength,
       const CharPointData& aPreviousCharPointData,
       const CharPointData& aNextCharPointData);
 
