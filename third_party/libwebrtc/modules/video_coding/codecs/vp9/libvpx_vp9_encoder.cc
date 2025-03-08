@@ -58,6 +58,7 @@
 #include "modules/video_coding/svc/scalable_video_controller_no_layering.h"
 #include "modules/video_coding/svc/svc_rate_allocator.h"
 #include "modules/video_coding/utility/framerate_controller_deprecated.h"
+#include "modules/video_coding/utility/simulcast_rate_allocator.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/containers/flat_map.h"
 #include "rtc_base/experiments/field_trial_list.h"
@@ -554,9 +555,17 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
       return WEBRTC_VIDEO_CODEC_ERR_SIMULCAST_PARAMETERS_NOT_SUPPORTED;
     }
     RTC_LOG(LS_INFO) << "Rewriting simulcast config to SVC.";
+    current_bitrate_allocation_ =
+        SimulcastRateAllocator(env_, codec_)
+            .Allocate(VideoBitrateAllocationParameters(
+                codec_.startBitrate * 1000, codec_.maxFramerate));
     simulcast_to_svc_converter_.emplace(codec_);
     codec_ = simulcast_to_svc_converter_->GetConfig();
   } else {
+    current_bitrate_allocation_ =
+        SvcRateAllocator(codec_, env_.field_trials())
+            .Allocate(VideoBitrateAllocationParameters(
+                codec_.startBitrate * 1000, codec_.maxFramerate));
     simulcast_to_svc_converter_ = std::nullopt;
   }
 
@@ -806,10 +815,8 @@ int LibvpxVp9Encoder::InitAndSetControlSettings() {
   RTC_DCHECK_EQ(performance_flags_by_spatial_index_.size(),
                 static_cast<size_t>(num_spatial_layers_));
 
-  SvcRateAllocator init_allocator(codec_, env_.field_trials());
-  current_bitrate_allocation_ =
-      init_allocator.Allocate(VideoBitrateAllocationParameters(
-          codec_.startBitrate * 1000, codec_.maxFramerate));
+  // `current_bitrate_allocation_` is set in InitEncode and may have used
+  // simulcast configuration.
   if (!SetSvcRates(current_bitrate_allocation_)) {
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
   }

@@ -1425,10 +1425,10 @@ index 5ec1fd4a83..e46e050609 100644
  
    int64_t _lastProcessFrameTimeNanos RTC_GUARDED_BY(capture_checker_);
 diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-index e976866891..bf4845a687 100644
+index a67d64e3ea..3d185a48c2 100644
 --- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 +++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-@@ -281,6 +281,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
+@@ -282,6 +282,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
        force_all_active_layers_(false),
        enable_svc_for_simulcast_(
            !env.field_trials().IsDisabled("WebRTC-VP9-SvcForSimulcast")),
@@ -1436,7 +1436,7 @@ index e976866891..bf4845a687 100644
        is_flexible_mode_(false),
        variable_framerate_controller_(variable_framerate_screenshare::kMinFps),
        quality_scaler_experiment_(ParseQualityScalerConfig(env.field_trials())),
-@@ -563,6 +564,7 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
+@@ -572,6 +573,7 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
  
    force_key_frame_ = true;
    pics_since_key_ = 0;
@@ -1444,7 +1444,7 @@ index e976866891..bf4845a687 100644
  
    scalability_mode_ = codec_.GetScalabilityMode();
    if (scalability_mode_.has_value()) {
-@@ -1121,6 +1123,14 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
+@@ -1128,6 +1130,14 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
      config_changed_ = false;
    }
  
@@ -1459,7 +1459,7 @@ index e976866891..bf4845a687 100644
    RTC_DCHECK_EQ(input_image.width(), raw_->d_w);
    RTC_DCHECK_EQ(input_image.height(), raw_->d_h);
  
-@@ -1243,6 +1253,48 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
+@@ -1250,6 +1260,48 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
    return WEBRTC_VIDEO_CODEC_OK;
  }
  
