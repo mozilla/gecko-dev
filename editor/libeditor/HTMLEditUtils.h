@@ -2742,6 +2742,11 @@ class HTMLEditUtils final {
   static bool IsSameCSSColorValue(const nsTSubstring<CharType>& aColorA,
                                   const nsTSubstring<CharType>& aColorB);
 
+  /**
+   * Return true if aColor is completely transparent.
+   */
+  [[nodiscard]] static bool IsTransparentCSSColor(const nsAString& aColor);
+
  private:
   static bool CanNodeContain(nsHTMLTag aParentTagId, nsHTMLTag aChildTagId);
   static bool IsContainerNode(nsHTMLTag aTagId);

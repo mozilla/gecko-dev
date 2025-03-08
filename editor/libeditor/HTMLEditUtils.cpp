@@ -3147,6 +3147,13 @@ bool HTMLEditUtils::IsSameCSSColorValue(const nsTSubstring<CharType>& aColorA,
   return colorA == colorB;
 }
 
+bool HTMLEditUtils::IsTransparentCSSColor(const nsAString& aColor) {
+  nsAutoString normalizedCSSColorValue;
+  return GetNormalizedCSSColorValue(aColor, ZeroAlphaColor::TransparentKeyword,
+                                    normalizedCSSColorValue) &&
+         normalizedCSSColorValue.EqualsASCII("transparent");
+}
+
 /******************************************************************************
  * SelectedTableCellScanner
  ******************************************************************************/
