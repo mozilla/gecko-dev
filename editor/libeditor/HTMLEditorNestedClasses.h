@@ -693,19 +693,53 @@ struct MOZ_STACK_CLASS HTMLEditor::NormalizedStringToInsertText final {
 
 struct MOZ_STACK_CLASS HTMLEditor::ReplaceWhiteSpacesData final {
   ReplaceWhiteSpacesData() = default;
+
+  /**
+   * @param aWhiteSpaces        The new white-spaces which we will replace the
+   *                            range with.
+   * @param aStartOffset        Replace start offset in the text node.
+   * @param aReplaceLength      Replace length in the text node.
+   * @param aOffsetAfterReplacing
+   *                            [optional] If the caller may want to put caret
+   *                            middle of the white-spaces, the offset may be
+   *                            changed by deleting some invisible white-spaces.
+   *                            Therefore, this may be set for the purpose.
+   */
   ReplaceWhiteSpacesData(const nsAString& aWhiteSpaces, uint32_t aStartOffset,
-                         uint32_t aReplaceLength)
+                         uint32_t aReplaceLength,
+                         uint32_t aOffsetAfterReplacing = UINT32_MAX)
       : mNormalizedString(aWhiteSpaces),
         mReplaceStartOffset(aStartOffset),
-        mReplaceEndOffset(aStartOffset + aReplaceLength) {
+        mReplaceEndOffset(aStartOffset + aReplaceLength),
+        mNewOffsetAfterReplace(aOffsetAfterReplacing) {
     MOZ_ASSERT(ReplaceLength() >= mNormalizedString.Length());
+    MOZ_ASSERT_IF(mNewOffsetAfterReplace != UINT32_MAX,
+                  mNewOffsetAfterReplace <=
+                      mReplaceStartOffset + mNormalizedString.Length());
   }
+
+  /**
+   * @param aWhiteSpaces        The new white-spaces which we will replace the
+   *                            range with.
+   * @param aStartOffset        Replace start offset in the text node.
+   * @param aReplaceLength      Replace length in the text node.
+   * @param aOffsetAfterReplacing
+   *                            [optional] If the caller may want to put caret
+   *                            middle of the white-spaces, the offset may be
+   *                            changed by deleting some invisible white-spaces.
+   *                            Therefore, this may be set for the purpose.
+   */
   ReplaceWhiteSpacesData(nsAutoString&& aWhiteSpaces, uint32_t aStartOffset,
-                         uint32_t aReplaceLength)
+                         uint32_t aReplaceLength,
+                         uint32_t aOffsetAfterReplacing = UINT32_MAX)
       : mNormalizedString(std::forward<nsAutoString>(aWhiteSpaces)),
         mReplaceStartOffset(aStartOffset),
-        mReplaceEndOffset(aStartOffset + aReplaceLength) {
+        mReplaceEndOffset(aStartOffset + aReplaceLength),
+        mNewOffsetAfterReplace(aOffsetAfterReplacing) {
     MOZ_ASSERT(ReplaceLength() >= mNormalizedString.Length());
+    MOZ_ASSERT_IF(mNewOffsetAfterReplace != UINT32_MAX,
+                  mNewOffsetAfterReplace <=
+                      mReplaceStartOffset + mNormalizedString.Length());
   }
 
   ReplaceWhiteSpacesData GetMinimizedData(const Text& aText) const {
@@ -764,7 +798,63 @@ struct MOZ_STACK_CLASS HTMLEditor::ReplaceWhiteSpacesData final {
         Substring(mNormalizedString, precedingUnnecessaryLength,
                   mNormalizedString.Length() - (precedingUnnecessaryLength +
                                                 followingUnnecessaryLength)),
-        minimizedReplaceStart, minimizedReplaceEnd - minimizedReplaceStart);
+        minimizedReplaceStart, minimizedReplaceEnd - minimizedReplaceStart,
+        mNewOffsetAfterReplace);
+  }
+
+  /**
+   * Return the normalized string before mNewOffsetAfterReplace.  So,
+   * mNewOffsetAfterReplace must not be UINT32_MAX and in the replaced range
+   * when this is called.
+   *
+   * @param aReplaceEndOffset   Specify the offset in the Text node of
+   *                            mNewOffsetAfterReplace before replacing with the
+   *                            data.
+   * @return The substring before mNewOffsetAfterReplace which is typically set
+   * for new caret position in the Text node or collapsed deleting range
+   * surrounded by the white-spaces.
+   */
+  [[nodiscard]] ReplaceWhiteSpacesData PreviousDataOfNewOffset(
+      uint32_t aReplaceEndOffset) const {
+    MOZ_ASSERT(mNewOffsetAfterReplace != UINT32_MAX);
+    MOZ_ASSERT(mReplaceStartOffset <= mNewOffsetAfterReplace);
+    MOZ_ASSERT(mReplaceEndOffset >= mNewOffsetAfterReplace);
+    MOZ_ASSERT(mReplaceStartOffset <= aReplaceEndOffset);
+    MOZ_ASSERT(mReplaceEndOffset >= aReplaceEndOffset);
+    if (!ReplaceLength() || aReplaceEndOffset == mReplaceStartOffset) {
+      return ReplaceWhiteSpacesData();
+    }
+    return ReplaceWhiteSpacesData(
+        Substring(mNormalizedString, 0u,
+                  mNewOffsetAfterReplace - mReplaceStartOffset),
+        mReplaceStartOffset, aReplaceEndOffset - mReplaceStartOffset);
+  }
+
+  /**
+   * Return the normalized string after mNewOffsetAfterReplace.  So,
+   * mNewOffsetAfterReplace must not be UINT32_MAX and in the replaced range
+   * when this is called.
+   *
+   * @param aReplaceStartOffset Specify the replace start offset with the
+   *                            normalized white-spaces.
+   * @return The substring after mNewOffsetAfterReplace which is typically set
+   * for new caret position in the Text node or collapsed deleting range
+   * surrounded by the white-spaces.
+   */
+  [[nodiscard]] ReplaceWhiteSpacesData NextDataOfNewOffset(
+      uint32_t aReplaceStartOffset) const {
+    MOZ_ASSERT(mNewOffsetAfterReplace != UINT32_MAX);
+    MOZ_ASSERT(mReplaceStartOffset <= mNewOffsetAfterReplace);
+    MOZ_ASSERT(mReplaceEndOffset >= mNewOffsetAfterReplace);
+    MOZ_ASSERT(mReplaceStartOffset <= aReplaceStartOffset);
+    MOZ_ASSERT(mReplaceEndOffset >= aReplaceStartOffset);
+    if (!ReplaceLength() || aReplaceStartOffset == mReplaceEndOffset) {
+      return ReplaceWhiteSpacesData();
+    }
+    return ReplaceWhiteSpacesData(
+        Substring(mNormalizedString,
+                  mNewOffsetAfterReplace - mReplaceStartOffset),
+        aReplaceStartOffset, mReplaceEndOffset - aReplaceStartOffset);
   }
 
   [[nodiscard]] uint32_t ReplaceLength() const {
@@ -783,14 +873,25 @@ struct MOZ_STACK_CLASS HTMLEditor::ReplaceWhiteSpacesData final {
       return *this;
     }
     MOZ_ASSERT(mReplaceEndOffset == aOther.mReplaceStartOffset);
+    MOZ_ASSERT_IF(
+        aOther.mNewOffsetAfterReplace != UINT32_MAX,
+        aOther.mNewOffsetAfterReplace >= DeletingInvisibleWhiteSpaces());
     return ReplaceWhiteSpacesData(
         nsAutoString(mNormalizedString + aOther.mNormalizedString),
-        mReplaceStartOffset, aOther.mReplaceEndOffset);
+        mReplaceStartOffset, aOther.mReplaceEndOffset,
+        aOther.mNewOffsetAfterReplace != UINT32_MAX
+            ? aOther.mNewOffsetAfterReplace - DeletingInvisibleWhiteSpaces()
+            : mNewOffsetAfterReplace);
   }
 
   nsAutoString mNormalizedString;
   const uint32_t mReplaceStartOffset = 0u;
   const uint32_t mReplaceEndOffset = 0u;
+  // If the caller specifies a point in a white-space sequence, some invisible
+  // white-spaces will be deleted with replacing them with normalized string.
+  // Then, they may want to keep the position for putting caret or something.
+  // So, this may store a specific offset in the text node after replacing.
+  const uint32_t mNewOffsetAfterReplace = UINT32_MAX;
 };
 
 }  // namespace mozilla

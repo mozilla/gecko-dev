@@ -1060,6 +1060,24 @@ Element* AutoClonedRangeArray::GetClosestAncestorAnyListElementOfRange() const {
   return nullptr;
 }
 
+void AutoClonedRangeArray::RemoveCollapsedRanges() {
+  for (const auto index : Reversed(IntegerRange(mRanges.Length()))) {
+    if (mRanges[index]->Collapsed()) {
+      mRanges.RemoveElementAt(index);
+    }
+  }
+  if (mAnchorFocusRange->Collapsed()) {
+    MOZ_ASSERT(!mRanges.Contains(mAnchorFocusRange.get()));
+    if (mRanges.IsEmpty()) {
+      RemoveAllRanges();
+    } else {
+      mAnchorFocusRange = mRanges.LastElement();
+    }
+  } else {
+    MOZ_ASSERT(mRanges.Contains(mAnchorFocusRange.get()));
+  }
+}
+
 /******************************************************************************
  * mozilla::AutoClonedSelectionRangeArray
  *****************************************************************************/

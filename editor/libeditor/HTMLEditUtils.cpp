@@ -406,10 +406,13 @@ bool HTMLEditUtils::IsVisibleElementEvenIfLeafNode(const nsIContent& aContent) {
           aContent, BlockInlineCheck::UseComputedDisplayStyle)) {
     return true;
   }
-  if (aContent.IsAnyOfHTMLElements(nsGkAtoms::applet, nsGkAtoms::iframe,
-                                   nsGkAtoms::img, nsGkAtoms::meter,
-                                   nsGkAtoms::progress, nsGkAtoms::select,
-                                   nsGkAtoms::textarea)) {
+  // <br> element may not have a frame, but it always affects surrounding
+  // content.  Therefore, it should be treated as visible.  The others which are
+  // checked here are replace elements which provide something visible content.
+  if (aContent.IsAnyOfHTMLElements(nsGkAtoms::applet, nsGkAtoms::br,
+                                   nsGkAtoms::iframe, nsGkAtoms::img,
+                                   nsGkAtoms::meter, nsGkAtoms::progress,
+                                   nsGkAtoms::select, nsGkAtoms::textarea)) {
     return true;
   }
   if (const HTMLInputElement* inputElement =
@@ -920,12 +923,6 @@ Element* HTMLEditUtils::GetElementOfImmediateBlockBoundary(
         return nextContent->AsElement();
       }
 
-      // If there is a visible content which generates something visible,
-      // stop scanning.
-      if (HTMLEditUtils::IsVisibleElementEvenIfLeafNode(*nextContent)) {
-        return nullptr;
-      }
-
       if (nextContent->IsHTMLElement(nsGkAtoms::br)) {
         // If aContent is a <br> element, another <br> element prevents the
         // block boundary special handling.
@@ -943,6 +940,12 @@ Element* HTMLEditUtils::GetElementOfImmediateBlockBoundary(
         // start of the text node are invisible.  In this case, we return
         // the found <br> element.
         return nextContent->AsElement();
+      }
+
+      // If there is a visible content which generates something visible,
+      // stop scanning.
+      if (HTMLEditUtils::IsVisibleElementEvenIfLeafNode(*nextContent)) {
+        return nullptr;
       }
 
       continue;
