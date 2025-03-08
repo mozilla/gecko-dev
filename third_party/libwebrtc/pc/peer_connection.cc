@@ -479,46 +479,28 @@ bool PeerConnectionInterface::RTCConfiguration::operator!=(
   return !(*this == o);
 }
 
-// TODO(bugs.webrtc.org/398857495): Change the `Create()` and `Initialize()`
-// methods together with `PeerConnectionFactory::CreatePeerConnectionOrError()`
-// so that:
-// * All configuration checking and setup of dependencies is done by the
-//   factory. This includes the `ParseAndValidateIceServersFromConfiguration()`
-//   step that's currently done in `Initialize()`.
-// * Either completely remove the `Create()` and `Initialize()` methods or
-//   change them so that they return void (can't fail).
-// This means that a `PeerConnection` instance can be constructed simply by
-// using the constructor and the config error checking is moved out of the
-// class.
 rtc::scoped_refptr<PeerConnection> PeerConnection::Create(
     const Environment& env,
     rtc::scoped_refptr<ConnectionContext> context,
     const PeerConnectionFactoryInterface::Options& options,
     std::unique_ptr<Call> call,
     const PeerConnectionInterface::RTCConfiguration& configuration,
-    PeerConnectionDependencies dependencies,
+    PeerConnectionDependencies& dependencies,
     const cricket::ServerAddresses& stun_servers,
     const std::vector<cricket::RelayServerConfig>& turn_servers) {
   RTC_DCHECK(cricket::IceConfig(configuration).IsValid().ok());
   RTC_DCHECK(dependencies.observer);
   RTC_DCHECK(dependencies.async_dns_resolver_factory);
-  RTC_CHECK(dependencies.allocator);
+  RTC_DCHECK(dependencies.allocator);
 
   bool is_unified_plan =
       configuration.sdp_semantics == SdpSemantics::kUnifiedPlan;
   bool dtls_enabled = DtlsEnabled(configuration, options, dependencies);
 
-  // Perf trace scope for the full initialization of a PeerConnection instance.
   TRACE_EVENT0("webrtc", "PeerConnection::Create");
-
-  // The PeerConnection constructor consumes some, but not all, dependencies.
-  auto pc = rtc::make_ref_counted<PeerConnection>(
+  return rtc::make_ref_counted<PeerConnection>(
       configuration, env, context, options, is_unified_plan, std::move(call),
-      dependencies, dtls_enabled);
-  pc->Initialize(std::move(dependencies.cert_generator),
-                 std::move(dependencies.video_bitrate_allocator_factory),
-                 stun_servers, turn_servers);
-  return pc;
+      dependencies, stun_servers, turn_servers, dtls_enabled);
 }
 
 PeerConnection::PeerConnection(
@@ -529,12 +511,15 @@ PeerConnection::PeerConnection(
     bool is_unified_plan,
     std::unique_ptr<Call> call,
     PeerConnectionDependencies& dependencies,
+    const cricket::ServerAddresses& stun_servers,
+    const std::vector<cricket::RelayServerConfig>& turn_servers,
     bool dtls_enabled)
     : env_(env),
       context_(context),
       options_(options),
       observer_(dependencies.observer),
       is_unified_plan_(is_unified_plan),
+      dtls_enabled_(dtls_enabled),
       configuration_(configuration),
       async_dns_resolver_factory_(
           std::move(dependencies.async_dns_resolver_factory)),
@@ -556,12 +541,45 @@ PeerConnection::PeerConnection(
       // Due to this constraint session id `session_id_` is max limited to
       // LLONG_MAX.
       session_id_(rtc::ToString(rtc::CreateRandomId64() & LLONG_MAX)),
-      dtls_enabled_(dtls_enabled),
       data_channel_controller_(this),
       message_handler_(signaling_thread()),
       weak_factory_(this) {
   // Field trials specific to the peerconnection should be owned by the `env`,
   RTC_DCHECK(dependencies.trials == nullptr);
+
+  transport_controller_copy_ =
+      InitializeNetworkThread(stun_servers, turn_servers);
+
+  if (call_ptr_) {
+    worker_thread()->BlockingCall([this, tc = transport_controller_copy_] {
+      RTC_DCHECK_RUN_ON(worker_thread());
+      call_->SetPayloadTypeSuggester(tc);
+    });
+  }
+
+  sdp_handler_ = SdpOfferAnswerHandler::Create(
+      this, configuration_, std::move(dependencies.cert_generator),
+      std::move(dependencies.video_bitrate_allocator_factory), context_.get(),
+      transport_controller_copy_);
+  rtp_manager_ = std::make_unique<RtpTransmissionManager>(
+      env_, IsUnifiedPlan(), context_.get(), &usage_pattern_, observer_,
+      legacy_stats_.get(), [this]() {
+        RTC_DCHECK_RUN_ON(signaling_thread());
+        sdp_handler_->UpdateNegotiationNeeded();
+      });
+  // Add default audio/video transceivers for Plan B SDP.
+  if (!IsUnifiedPlan()) {
+    rtp_manager_->transceivers()->Add(
+        RtpTransceiverProxyWithInternal<RtpTransceiver>::Create(
+            signaling_thread(),
+            rtc::make_ref_counted<RtpTransceiver>(cricket::MEDIA_TYPE_AUDIO,
+                                                  context_.get())));
+    rtp_manager_->transceivers()->Add(
+        RtpTransceiverProxyWithInternal<RtpTransceiver>::Create(
+            signaling_thread(),
+            rtc::make_ref_counted<RtpTransceiver>(cricket::MEDIA_TYPE_VIDEO,
+                                                  context_.get())));
+  }
 
   const int delay_ms = configuration_.report_usage_pattern_delay_ms
                            ? *configuration_.report_usage_pattern_delay_ms
@@ -633,61 +651,24 @@ PeerConnection::~PeerConnection() {
   data_channel_controller_.PrepareForShutdown();
 }
 
-void PeerConnection::Initialize(
-    std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator,
-    std::unique_ptr<webrtc::VideoBitrateAllocatorFactory>
-        video_bitrate_allocator_factory,
+JsepTransportController* PeerConnection::InitializeNetworkThread(
     const cricket::ServerAddresses& stun_servers,
     const std::vector<cricket::RelayServerConfig>& turn_servers) {
   RTC_DCHECK_RUN_ON(signaling_thread());
 
   NoteServerUsage(usage_pattern_, stun_servers, turn_servers);
-
-  // Network thread initialization.
-  transport_controller_copy_ =
-      network_thread()->BlockingCall([&, config = &configuration_] {
-        RTC_DCHECK_RUN_ON(network_thread());
-        RTC_DCHECK(network_thread_safety_->alive());
-        InitializePortAllocatorResult pa_result =
-            InitializePortAllocator_n(stun_servers, turn_servers, *config);
-        // Send information about IPv4/IPv6 status.
-        PeerConnectionAddressFamilyCounter address_family =
-            pa_result.enable_ipv6 ? kPeerConnection_IPv6 : kPeerConnection_IPv4;
-        RTC_HISTOGRAM_ENUMERATION("WebRTC.PeerConnection.IPMetrics",
-                                  address_family,
-                                  kPeerConnectionAddressFamilyCounter_Max);
-        return InitializeTransportController_n(*config);
-      });
-
-  if (call_ptr_) {
-    worker_thread()->BlockingCall([this, tc = transport_controller_copy_] {
-      RTC_DCHECK_RUN_ON(worker_thread());
-      call_->SetPayloadTypeSuggester(tc);
-    });
-  }
-
-  sdp_handler_ = SdpOfferAnswerHandler::Create(
-      this, configuration_, std::move(cert_generator),
-      std::move(video_bitrate_allocator_factory), context_.get(),
-      transport_controller_copy_);
-
-  rtp_manager_ = std::make_unique<RtpTransmissionManager>(
-      env_, IsUnifiedPlan(), context_.get(), &usage_pattern_, observer_,
-      legacy_stats_.get(), [this]() {
-        RTC_DCHECK_RUN_ON(signaling_thread());
-        sdp_handler_->UpdateNegotiationNeeded();
-      });
-  // Add default audio/video transceivers for Plan B SDP.
-  if (!IsUnifiedPlan()) {
-    rtp_manager_->transceivers()->Add(
-        RtpTransceiverProxyWithInternal<RtpTransceiver>::Create(
-            signaling_thread(), rtc::make_ref_counted<RtpTransceiver>(
-                                    cricket::MEDIA_TYPE_AUDIO, context())));
-    rtp_manager_->transceivers()->Add(
-        RtpTransceiverProxyWithInternal<RtpTransceiver>::Create(
-            signaling_thread(), rtc::make_ref_counted<RtpTransceiver>(
-                                    cricket::MEDIA_TYPE_VIDEO, context())));
-  }
+  return network_thread()->BlockingCall([&, config = &configuration_] {
+    RTC_DCHECK_RUN_ON(network_thread());
+    RTC_DCHECK(network_thread_safety_->alive());
+    InitializePortAllocatorResult pa_result =
+        InitializePortAllocator_n(stun_servers, turn_servers, *config);
+    // Send information about IPv4/IPv6 status.
+    PeerConnectionAddressFamilyCounter address_family =
+        pa_result.enable_ipv6 ? kPeerConnection_IPv6 : kPeerConnection_IPv4;
+    RTC_HISTOGRAM_ENUMERATION("WebRTC.PeerConnection.IPMetrics", address_family,
+                              kPeerConnectionAddressFamilyCounter_Max);
+    return InitializeTransportController_n(*config);
+  });
 }
 
 JsepTransportController* PeerConnection::InitializeTransportController_n(
