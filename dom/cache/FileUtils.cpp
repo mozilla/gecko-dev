@@ -59,7 +59,7 @@ enum BodyFileType { BODY_FILE_FINAL, BODY_FILE_TMP };
 
 Result<NotNull<nsCOMPtr<nsIFile>>, nsresult> BodyIdToFile(
     nsIFile& aBaseDir, const nsID& aId, BodyFileType aType,
-    bool aCreateDirIfNotExists = true);
+    bool aCreateDirIfNotExists = false);
 
 int64_t RoundUp(int64_t aX, int64_t aY);
 
@@ -205,10 +205,10 @@ void BodyCancelWrite(nsISupports& aCopyContext) {
 Result<int64_t, nsresult> BodyFinalizeWrite(nsIFile& aBaseDir,
                                             const nsID& aId) {
   QM_TRY_INSPECT(const auto& tmpFile,
-                 BodyIdToFile(aBaseDir, aId, BODY_FILE_TMP, false));
+                 BodyIdToFile(aBaseDir, aId, BODY_FILE_TMP));
 
   QM_TRY_INSPECT(const auto& finalFile,
-                 BodyIdToFile(aBaseDir, aId, BODY_FILE_FINAL, false));
+                 BodyIdToFile(aBaseDir, aId, BODY_FILE_FINAL));
 
   nsAutoString finalFileName;
   QM_TRY(MOZ_TO_RESULT(finalFile->GetLeafName(finalFileName)));
@@ -226,7 +226,7 @@ Result<int64_t, nsresult> BodyFinalizeWrite(nsIFile& aBaseDir,
 
 Result<int64_t, nsresult> GetBodyDiskSize(nsIFile& aBaseDir, const nsID& aId) {
   QM_TRY_INSPECT(const auto& finalFile,
-                 BodyIdToFile(aBaseDir, aId, BODY_FILE_FINAL, false));
+                 BodyIdToFile(aBaseDir, aId, BODY_FILE_FINAL));
 
   QM_TRY_INSPECT(const int64_t& fileSize,
                  MOZ_TO_RESULT_INVOKE_MEMBER(*finalFile, GetFileSize));
@@ -238,7 +238,7 @@ Result<MovingNotNull<nsCOMPtr<nsIInputStream>>, nsresult> BodyOpen(
     const CacheDirectoryMetadata& aDirectoryMetadata, nsIFile& aBaseDir,
     const nsID& aId, Maybe<CipherKey> aMaybeCipherKey) {
   QM_TRY_INSPECT(const auto& finalFile,
-                 BodyIdToFile(aBaseDir, aId, BODY_FILE_FINAL, false));
+                 BodyIdToFile(aBaseDir, aId, BODY_FILE_FINAL));
 
   QM_TRY_UNWRAP(nsCOMPtr<nsIInputStream> fileInputStream,
                 CreateFileInputStream(aDirectoryMetadata.mPersistenceType,
@@ -262,7 +262,7 @@ nsresult BodyMaybeUpdatePaddingSize(
   MOZ_DIAGNOSTIC_ASSERT(aPaddingSizeInOut);
 
   QM_TRY_INSPECT(const auto& bodyFile,
-                 BodyIdToFile(aBaseDir, aId, BODY_FILE_TMP, false));
+                 BodyIdToFile(aBaseDir, aId, BODY_FILE_TMP));
 
   QuotaManager* quotaManager = QuotaManager::Get();
   MOZ_DIAGNOSTIC_ASSERT(quotaManager);
@@ -297,7 +297,7 @@ nsresult BodyDeleteFiles(const CacheDirectoryMetadata& aDirectoryMetadata,
     bool exists;
 
     QM_TRY_INSPECT(const auto& finalFile,
-                   BodyIdToFile(aBaseDir, id, BODY_FILE_FINAL, false));
+                   BodyIdToFile(aBaseDir, id, BODY_FILE_FINAL));
     QM_TRY(MOZ_TO_RESULT(finalFile->Exists(&exists)));
     if (exists) {
       QM_TRY(MOZ_TO_RESULT(RemoveNsIFile(aDirectoryMetadata, *finalFile,
@@ -305,7 +305,7 @@ nsresult BodyDeleteFiles(const CacheDirectoryMetadata& aDirectoryMetadata,
     }
 
     QM_TRY_INSPECT(const auto& tempFile,
-                   BodyIdToFile(aBaseDir, id, BODY_FILE_TMP, false));
+                   BodyIdToFile(aBaseDir, id, BODY_FILE_TMP));
     QM_TRY(MOZ_TO_RESULT(tempFile->Exists(&exists)));
     if (exists) {
       QM_TRY(MOZ_TO_RESULT(RemoveNsIFile(aDirectoryMetadata, *tempFile,
