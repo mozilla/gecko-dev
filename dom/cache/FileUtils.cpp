@@ -262,7 +262,7 @@ nsresult BodyMaybeUpdatePaddingSize(
   MOZ_DIAGNOSTIC_ASSERT(aPaddingSizeInOut);
 
   QM_TRY_INSPECT(const auto& bodyFile,
-                 BodyIdToFile(aBaseDir, aId, BODY_FILE_TMP));
+                 BodyIdToFile(aBaseDir, aId, BODY_FILE_TMP, false));
 
   QuotaManager* quotaManager = QuotaManager::Get();
   MOZ_DIAGNOSTIC_ASSERT(quotaManager);
