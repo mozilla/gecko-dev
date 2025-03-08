@@ -113,10 +113,10 @@ index 72eb3fa9fc..fc5fa28d9d 100644
  }  // namespace voe
  }  // namespace webrtc
 diff --git a/call/audio_receive_stream.h b/call/audio_receive_stream.h
-index 9e64521796..e103122184 100644
+index 42502f5297..25010da77b 100644
 --- a/call/audio_receive_stream.h
 +++ b/call/audio_receive_stream.h
-@@ -21,6 +21,7 @@
+@@ -22,6 +22,7 @@
  #include "api/audio_codecs/audio_decoder_factory.h"
  #include "api/audio_codecs/audio_format.h"
  #include "api/call/transport.h"
@@ -124,7 +124,7 @@ index 9e64521796..e103122184 100644
  #include "api/crypto/crypto_options.h"
  #include "api/crypto/frame_decryptor_interface.h"
  #include "api/frame_transformer_interface.h"
-@@ -129,6 +130,8 @@ class AudioReceiveStreamInterface : public MediaReceiveStreamInterface {
+@@ -130,6 +131,8 @@ class AudioReceiveStreamInterface : public MediaReceiveStreamInterface {
        // See NackConfig for description.
        NackConfig nack;
        RtcpMode rtcp_mode = RtcpMode::kCompound;

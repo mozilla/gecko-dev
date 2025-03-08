@@ -32,6 +32,7 @@
 #include "absl/strings/string_view.h"
 #include "api/adaptation/resource.h"
 #include "api/audio/audio_frame.h"
+#include "api/audio/audio_mixer.h"
 #include "api/audio_codecs/audio_format.h"
 #include "api/crypto/frame_decryptor_interface.h"
 #include "api/environment/environment.h"
@@ -170,6 +171,10 @@ class FakeAudioReceiveStream final
   }
   std::vector<webrtc::RtpSource> GetSources() const override {
     return std::vector<webrtc::RtpSource>();
+  }
+  webrtc::AudioMixer::Source* source() override {
+    // TODO(b/397376626): Add a Fake AudioMixer::Source
+    return nullptr;
   }
 
  private:

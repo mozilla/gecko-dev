@@ -778,9 +778,13 @@ if (rtc_include_tests) {
   rtc_source_set("mock_call_interfaces") {
     testonly = true
 
-    sources = [ "test/mock_audio_send_stream.h" ]
+    sources = [
+      "test/mock_audio_receive_stream.h",
+      "test/mock_audio_send_stream.h",
+    ]
     deps = [
       ":call_interfaces",
+      "../api/audio:audio_mixer_api",
       "../test:test_support",
     ]
   }

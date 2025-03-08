@@ -866,6 +866,7 @@ if (rtc_include_tests) {
       "../api:scoped_refptr",
       "../api/adaptation:resource_adaptation_api",
       "../api/audio:audio_frame_api",
+      "../api/audio:audio_mixer_api",
       "../api/audio:audio_processing",
       "../api/audio_codecs:audio_codecs_api",
       "../api/crypto:frame_decryptor_interface",
