@@ -382,27 +382,29 @@ nsresult BodyDeleteOrphanedFiles(
   //  /morgue/01/{01fdddb2-884d-4c3d-95ba-0c8062f6c325}.final
   //  /morgue/02/{02fdddb2-884d-4c3d-95ba-0c8062f6c325}.tmp
 
+  Maybe<CacheDirectoryMetadata> dirMetaData = Some(aDirectoryMetadata);
+
   QM_TRY_INSPECT(const auto& dir,
                  CloneFileAndAppend(aBaseDir, kMorgueDirectory));
 
   // Iterate over all the intermediate morgue subdirs
   QM_TRY(quota::CollectEachFile(
       *dir,
-      [&aDirectoryMetadata, &aKnownBodyIds](
+      [&dirMetaData, &aKnownBodyIds](
           const nsCOMPtr<nsIFile>& subdir) -> Result<Ok, nsresult> {
         QM_TRY_INSPECT(const auto& dirEntryKind, GetDirEntryKind(*subdir));
 
         switch (dirEntryKind) {
           case nsIFileKind::ExistsAsDirectory: {
             const auto removeOrphanedFiles =
-                [&aDirectoryMetadata, &aKnownBodyIds](
+                [&dirMetaData, &aKnownBodyIds](
                     nsIFile& bodyFile,
                     const nsACString& leafName) -> Result<bool, nsresult> {
               // Finally, parse the uuid out of the name.  If it fails to parse,
               // then ignore the file.
-              auto cleanup = MakeScopeExit([&aDirectoryMetadata, &bodyFile] {
+              auto cleanup = MakeScopeExit([&dirMetaData, &bodyFile] {
                 DebugOnly<nsresult> result =
-                    RemoveNsIFile(aDirectoryMetadata, bodyFile);
+                    RemoveNsIFile(dirMetaData, bodyFile);
                 MOZ_ASSERT(NS_SUCCEEDED(result));
               });
 
@@ -423,7 +425,7 @@ nsresult BodyDeleteOrphanedFiles(
             // a warning in the reports is not desired).
             QM_TRY(QM_OR_ELSE_LOG_VERBOSE_IF(
                 // Expression.
-                MOZ_TO_RESULT(BodyTraverseFiles(aDirectoryMetadata, *subdir,
+                MOZ_TO_RESULT(BodyTraverseFiles(dirMetaData, *subdir,
                                                 removeOrphanedFiles,
                                                 /* aCanRemoveFiles */ true,
                                                 /* aTrackQuota */ true)),
@@ -437,9 +439,8 @@ nsresult BodyDeleteOrphanedFiles(
 
           case nsIFileKind::ExistsAsFile: {
             // If a file got in here somehow, try to remove it and move on
-            DebugOnly<nsresult> result =
-                RemoveNsIFile(aDirectoryMetadata, *subdir,
-                              /* aTrackQuota */ false);
+            DebugOnly<nsresult> result = RemoveNsIFile(dirMetaData, *subdir,
+                                                       /* aTrackQuota */ false);
             MOZ_ASSERT(NS_SUCCEEDED(result));
             break;
           }
