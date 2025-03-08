@@ -14,13 +14,10 @@
 namespace mozilla::dom::cache {
 
 template <typename Func>
-nsresult BodyTraverseFiles(
+nsresult BodyTraverseFilesForCleanup(
     const Maybe<CacheDirectoryMetadata>& aDirectoryMetadata, nsIFile& aBodyDir,
-    const Func& aHandleFileFunc, const bool aCanRemoveFiles,
-    const bool aTrackQuota) {
-  // XXX This assertion proves that we can remove aTrackQuota and just check
-  // aClientMetadata.isSome()
-  MOZ_DIAGNOSTIC_ASSERT_IF(aTrackQuota, aDirectoryMetadata);
+    const Func& aHandleFileFunc) {
+  MOZ_DIAGNOSTIC_ASSERT(aDirectoryMetadata.isSome());
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
   {
@@ -40,8 +37,8 @@ nsresult BodyTraverseFiles(
   FlippedOnce<true> isEmpty;
   QM_TRY(quota::CollectEachFile(
       aBodyDir,
-      [&isEmpty, &aDirectoryMetadata, aTrackQuota, &aHandleFileFunc,
-       aCanRemoveFiles](const nsCOMPtr<nsIFile>& file) -> Result<Ok, nsresult> {
+      [&isEmpty, &aDirectoryMetadata, &aHandleFileFunc](
+          const nsCOMPtr<nsIFile>& file) -> Result<Ok, nsresult> {
         QM_TRY_INSPECT(const auto& dirEntryKind, quota::GetDirEntryKind(*file));
 
         switch (dirEntryKind) {
@@ -60,25 +57,21 @@ nsresult BodyTraverseFiles(
             // Delete all tmp files regardless of known bodies. These are all
             // considered orphans.
             if (StringEndsWith(leafName, ".tmp"_ns)) {
-              if (aCanRemoveFiles) {
-                DebugOnly<nsresult> result =
-                    RemoveNsIFile(aDirectoryMetadata, *file, aTrackQuota);
-                MOZ_ASSERT(NS_SUCCEEDED(result));
-                return Ok{};
-              }
-            } else {
-              // Otherwise, it must be a .final file.
-              QM_WARNONLY_TRY_UNWRAP(
-                  const auto maybeEndingOk,
-                  OkIf(StringEndsWith(leafName, ".final"_ns)));
+              DebugOnly<nsresult> result = RemoveNsIFile(
+                  aDirectoryMetadata, *file, /* aTrackQuota */ true);
+              MOZ_ASSERT(NS_SUCCEEDED(result));
+              return Ok{};
+            }
+            // Otherwise, it must be a .final file.
+            QM_WARNONLY_TRY_UNWRAP(const auto maybeEndingOk,
+                                   OkIf(StringEndsWith(leafName, ".final"_ns)));
 
-              // If its not, try to remove it and move on.
-              if (!maybeEndingOk) {
-                DebugOnly<nsresult> result = RemoveNsIFile(
-                    aDirectoryMetadata, *file, /* aTrackQuota */ false);
-                MOZ_ASSERT(NS_SUCCEEDED(result));
-                return Ok{};
-              }
+            // If its not, try to remove it and move on.
+            if (!maybeEndingOk) {
+              DebugOnly<nsresult> result = RemoveNsIFile(
+                  aDirectoryMetadata, *file, /* aTrackQuota */ false);
+              MOZ_ASSERT(NS_SUCCEEDED(result));
+              return Ok{};
             }
 
             QM_TRY_INSPECT(const bool& fileDeleted,
@@ -99,7 +92,7 @@ nsresult BodyTraverseFiles(
         return Ok{};
       }));
 
-  if (isEmpty && aCanRemoveFiles) {
+  if (isEmpty) {
     DebugOnly<nsresult> result = RemoveNsIFileRecursively(
         aDirectoryMetadata, aBodyDir, /* aTrackQuota */ false);
     MOZ_ASSERT(NS_SUCCEEDED(result));

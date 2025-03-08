@@ -425,10 +425,8 @@ nsresult BodyDeleteOrphanedFiles(
             // a warning in the reports is not desired).
             QM_TRY(QM_OR_ELSE_LOG_VERBOSE_IF(
                 // Expression.
-                MOZ_TO_RESULT(BodyTraverseFiles(dirMetaData, *subdir,
-                                                removeOrphanedFiles,
-                                                /* aCanRemoveFiles */ true,
-                                                /* aTrackQuota */ true)),
+                MOZ_TO_RESULT(BodyTraverseFilesForCleanup(dirMetaData, *subdir,
+                                                          removeOrphanedFiles)),
                 // Predicate.
                 IsSpecificError<NS_ERROR_FILE_FS_CORRUPTED>,
                 // Fallback. We treat NS_ERROR_FILE_FS_CORRUPTED as if the
