@@ -130,6 +130,14 @@ class WhiteSpaceVisibilityKeeper final {
                              const EditorDOMPoint& aPointToSplit,
                              const Element& aSplittingBlockElement);
 
+  enum class NormalizeOption {
+    // If set, don't normalize following white-spaces if starts with an NBSP.
+    StopIfFollowingWhiteSpacesStartsWithNBSP,
+    // If set, don't normalize preceding white-spaces if ends with an NBSP.
+    StopIfPrecedingWhiteSpacesEndsWithNBP,
+  };
+  using NormalizeOptions = EnumSet<NormalizeOption>;
+
   /**
    * Normalize surrounding white-spaces of aPointToSplit.  This may normalize
    * 2 `Text` nodes if the point is surrounded by them.
@@ -137,7 +145,8 @@ class WhiteSpaceVisibilityKeeper final {
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<EditorDOMPoint, nsresult>
   NormalizeWhiteSpacesToSplitAt(HTMLEditor& aHTMLEditor,
-                                const EditorDOMPoint& aPointToSplit);
+                                const EditorDOMPoint& aPointToSplit,
+                                NormalizeOptions aOptions);
 
   /**
    * MergeFirstLineOfRightBlockElementIntoDescendantLeftBlockElement() merges
@@ -365,7 +374,8 @@ class WhiteSpaceVisibilityKeeper final {
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<EditorDOMPoint, nsresult>
   NormalizeWhiteSpacesToSplitTextNodeAt(
-      HTMLEditor& aHTMLEditor, const EditorDOMPointInText& aPointToSplit);
+      HTMLEditor& aHTMLEditor, const EditorDOMPointInText& aPointToSplit,
+      NormalizeOptions aOptions);
 
   /**
    * Delete leading or trailing invisible white-spaces around block boundaries

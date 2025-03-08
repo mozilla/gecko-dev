@@ -560,9 +560,9 @@ nsresult HTMLEditor::OnEndHandlingTopLevelEditSubActionInternal() {
         case EditSubAction::eInsertText:
         case EditSubAction::eInsertTextComingFromIME:
         case EditSubAction::eInsertLineBreak:
+        case EditSubAction::eInsertParagraphSeparator:
           return !StaticPrefs::
               editor_white_space_normalization_blink_compatible();
-        case EditSubAction::eInsertParagraphSeparator:
         case EditSubAction::ePasteHTMLContent:
         case EditSubAction::eInsertHTMLSource:
           return true;
@@ -2305,7 +2305,7 @@ HTMLEditor::InsertParagraphSeparatorAsSubAction(const Element& aEditingHost) {
 
 Result<CreateElementResult, nsresult> HTMLEditor::HandleInsertBRElement(
     const EditorDOMPoint& aPointToBreak, const Element& aEditingHost) {
-  MOZ_ASSERT(aPointToBreak.IsSet());
+  MOZ_ASSERT(aPointToBreak.IsInContentNode());
   MOZ_ASSERT(IsEditActionDataAvailable());
 
   const bool editingHostIsEmpty = HTMLEditUtils::IsEmptyNode(
@@ -2365,6 +2365,8 @@ Result<CreateElementResult, nsresult> HTMLEditor::HandleInsertBRElement(
     RefPtr<Element> linkNode =
         HTMLEditor::GetLinkElement(pointToBreak.GetContainer());
     if (linkNode) {
+      // FIXME: Normalize surrounding white-spaces before splitting the
+      // insertion point here.
       Result<SplitNodeResult, nsresult> splitLinkNodeResult =
           SplitNodeDeepWithTransaction(
               *linkNode, pointToBreak,
@@ -2714,6 +2716,26 @@ Result<CaretPoint, nsresult> HTMLEditor::HandleInsertParagraphInMailCiteElement(
 
     if (NS_WARN_IF(!pointToSplit.IsInContentNode())) {
       return Err(NS_ERROR_FAILURE);
+    }
+
+    if (StaticPrefs::editor_white_space_normalization_blink_compatible()) {
+      Result<EditorDOMPoint, nsresult> pointToSplitOrError =
+          WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt(
+              *this, pointToSplit,
+              {WhiteSpaceVisibilityKeeper::NormalizeOption::
+                   StopIfPrecedingWhiteSpacesEndsWithNBP,
+               WhiteSpaceVisibilityKeeper::NormalizeOption::
+                   StopIfFollowingWhiteSpacesStartsWithNBSP});
+      if (MOZ_UNLIKELY(pointToSplitOrError.isErr())) {
+        NS_WARNING(
+            "WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt() "
+            "failed");
+        return pointToSplitOrError.propagateErr();
+      }
+      pointToSplit = pointToSplitOrError.unwrap();
+      if (NS_WARN_IF(!pointToSplit.IsInContentNode())) {
+        return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+      }
     }
 
     Result<SplitNodeResult, nsresult> splitResult =
@@ -9005,6 +9027,7 @@ Result<SplitNodeResult, nsresult> HTMLEditor::HandleInsertParagraphInParagraph(
       if (pointToInsertBR.IsInContentNode() &&
           HTMLEditUtils::CanNodeContain(
               *pointToInsertBR.ContainerAs<nsIContent>(), *nsGkAtoms::br)) {
+        AutoTrackDOMPoint trackPointToSplit(RangeUpdaterRef(), &pointToSplit);
         Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
             InsertLineBreak(WithTransaction::Yes, LineBreakType::BRElement,
                             pointToInsertBR);
@@ -9020,6 +9043,10 @@ Result<SplitNodeResult, nsresult> HTMLEditor::HandleInsertParagraphInParagraph(
         // SplitParagraphWithTransaction.
         insertBRElementResult.IgnoreCaretPointSuggestion();
         brElement = &insertBRElementResult->BRElementRef();
+        trackPointToSplit.FlushAndStopTracking();
+        if (NS_WARN_IF(!pointToSplit.IsInContentNodeAndValidInComposedDoc())) {
+          return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+        }
       }
     }
   } else {
