@@ -2248,6 +2248,22 @@ nsresult HTMLEditor::InsertElementAtSelectionAsAction(
     NS_WARNING("HTMLEditUtils::GetBetterInsertionPointFor() failed");
     return NS_ERROR_FAILURE;
   }
+  if (StaticPrefs::editor_white_space_normalization_blink_compatible()) {
+    Result<EditorDOMPoint, nsresult> pointToInsertOrError =
+        WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt(
+            *this, pointToInsert,
+            {WhiteSpaceVisibilityKeeper::NormalizeOption::
+                 StopIfFollowingWhiteSpacesStartsWithNBSP});
+    if (MOZ_UNLIKELY(pointToInsertOrError.isErr())) {
+      NS_WARNING(
+          "WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt() failed");
+      return pointToInsertOrError.propagateErr();
+    }
+    pointToInsert = pointToInsertOrError.unwrap();
+    if (NS_WARN_IF(!pointToInsert.IsSetAndValidInComposedDoc())) {
+      return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+    }
+  }
 
   if (aOptions.contains(InsertElementOption::SplitAncestorInlineElements)) {
     if (const RefPtr<Element> topmostInlineElement = Element::FromNodeOrNull(
