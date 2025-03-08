@@ -1081,7 +1081,10 @@ SSL_CTX* OpenSSLStreamAdapter::SetupSSLContext() {
   SSL_CTX_set_permute_extensions(ctx, true);
 #endif
 
+#if defined(OPENSSL_IS_BORINGSSL) || (OPENSSL_VERSION_NUMBER >= 0x30000000L)
   SSL_CTX_set_options(ctx, SSL_OP_NO_TICKET);
+#endif
+
   return ctx;
 }
 
