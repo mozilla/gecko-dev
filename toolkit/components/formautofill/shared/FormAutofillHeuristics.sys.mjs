@@ -917,7 +917,20 @@ export const FormAutofillHeuristics = {
       fieldNames.push(...this.ADDRESS_FIELDNAMES);
     }
 
-    if (HTMLSelectElement.isInstance(element)) {
+    if (HTMLInputElement.isInstance(element) && element.type == "search") {
+      const FIELDNAMES_FOR_SEARCH_TYPE = [
+        "address-level1",
+        "address-level2",
+        "address-line1",
+        "address-line2",
+        "address-line3",
+        "street-address",
+        "postal-code",
+      ];
+      fieldNames = fieldNames.filter(name =>
+        FIELDNAMES_FOR_SEARCH_TYPE.includes(name)
+      );
+    } else if (HTMLSelectElement.isInstance(element)) {
       const FIELDNAMES_FOR_SELECT_ELEMENT = [
         "address-level1",
         "address-level2",
