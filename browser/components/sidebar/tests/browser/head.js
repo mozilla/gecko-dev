@@ -94,6 +94,18 @@ const extData = {
   },
 };
 
+// Ensure each test leaves the sidebar in its initial state when it completes
+const initialSidebarState = { ...SidebarController.getUIState(), command: "" };
+async function resetSidebarToInitialState() {
+  info(
+    `Restoring sidebar state from: ${JSON.stringify(SidebarController.getUIState())}, back to: ${JSON.stringify(initialSidebarState)}`
+  );
+  await SidebarController.initializeUIState(initialSidebarState);
+}
+registerCleanupFunction(async () => {
+  await resetSidebarToInitialState();
+});
+
 function waitForBrowserWindowActive(win) {
   // eslint-disable-next-line consistent-return
   return new Promise(resolve => {
