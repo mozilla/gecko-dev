@@ -71,13 +71,14 @@ RTCError CheckInputConsistency(const std::vector<Codec>& codecs) {
           LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_PARAMETER,
                                "Non-numeric argument to rtx apt parameter");
         }
-        // Not true:
-        // RTC_DCHECK(pt_to_index.count(associated_pt) == 1);
-        // TODO: https://issues.webrtc.org/384954756 - drop codecs before we get
-        // here
         if (pt_to_index.count(associated_pt) != 1) {
           RTC_LOG(LS_WARNING)
-              << "Surprising condition: RTX codec APT not found: " << codec;
+              << "Surprising condition: RTX codec APT not found: " << codec
+              << " points to a PT that occurs "
+              << pt_to_index.count(associated_pt) << " times";
+          LOG_AND_RETURN_ERROR(
+              RTCErrorType::INVALID_PARAMETER,
+              "PT pointed to by rtx apt parameter does not exist");
         }
         // const Codec& referred_codec = codecs[pt_to_index[associated_pt]];
         // Not true:
