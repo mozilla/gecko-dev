@@ -63,15 +63,15 @@ class CodecVendor {
   CodecVendor(MediaEngineInterface* media_engine, bool rtx_enabled);
 
  public:
-  void GetCodecsForOffer(
+  webrtc::RTCError GetCodecsForOffer(
       const std::vector<const ContentInfo*>& current_active_contents,
-      Codecs* audio_codecs,
-      Codecs* video_codecs) const;
-  void GetCodecsForAnswer(
+      CodecList& audio_codecs,
+      CodecList& video_codecs) const;
+  webrtc::RTCError GetCodecsForAnswer(
       const std::vector<const ContentInfo*>& current_active_contents,
       const SessionDescription& remote_offer,
-      Codecs* audio_codecs,
-      Codecs* video_codecs) const;
+      CodecList& audio_codecs,
+      CodecList& video_codecs) const;
 
   webrtc::RTCErrorOr<std::vector<Codec>> GetNegotiatedCodecsForOffer(
       const MediaDescriptionOptions& media_description_options,
@@ -93,13 +93,15 @@ class CodecVendor {
                         const CodecList& recv_codecs);
   void set_audio_codecs(const std::vector<Codec>& send_codecs,
                         const std::vector<Codec>& recv_codecs) {
-    set_audio_codecs(CodecList(send_codecs), CodecList(recv_codecs));
+    set_audio_codecs(CodecList::CreateFromTrustedData(send_codecs),
+                     CodecList::CreateFromTrustedData(recv_codecs));
   }
   void set_video_codecs(const CodecList& send_codecs,
                         const CodecList& recv_codecs);
   void set_video_codecs(const std::vector<Codec>& send_codecs,
                         const std::vector<Codec>& recv_codecs) {
-    set_video_codecs(CodecList(send_codecs), CodecList(recv_codecs));
+    set_video_codecs(CodecList::CreateFromTrustedData(send_codecs),
+                     CodecList::CreateFromTrustedData(recv_codecs));
   }
   CodecList audio_sendrecv_codecs() const;
   const CodecList& audio_send_codecs() const;

@@ -20,11 +20,11 @@ using webrtc::RTCErrorOr;
 using webrtc::RTCErrorType;
 
 TEST(CodecList, StoreAndRecall) {
-  CodecList empty_list(std::vector<Codec>{});
+  CodecList empty_list = CodecList::CreateFromTrustedData(std::vector<Codec>{});
   EXPECT_TRUE(empty_list.empty());
   EXPECT_TRUE(empty_list.codecs().empty());
   Codec video_codec = CreateVideoCodec({webrtc::SdpVideoFormat{"VP8"}});
-  CodecList one_codec{{video_codec}};
+  CodecList one_codec = CodecList::CreateFromTrustedData({{video_codec}});
   EXPECT_EQ(one_codec.size(), 1U);
   EXPECT_EQ(one_codec.codecs()[0], video_codec);
 }
@@ -34,7 +34,7 @@ TEST(CodecList, RejectIllegalConstructorArguments) {
       CreateVideoCodec({webrtc::SdpVideoFormat{
           "rtx", webrtc::CodecParameterMap{{"apt", "not-a-number"}}}})};
   RTCErrorOr<CodecList> checked_codec_list =
-      CodecList::CreateCodecList(apt_without_number);
+      CodecList::Create(apt_without_number);
   EXPECT_FALSE(checked_codec_list.ok());
   EXPECT_EQ(checked_codec_list.error().type(), RTCErrorType::INVALID_PARAMETER);
 }
@@ -42,9 +42,9 @@ TEST(CodecList, RejectIllegalConstructorArguments) {
 #if GTEST_HAS_DEATH_TEST && !defined(WEBRTC_ANDROID)
 TEST(CodecList, CrashOnIllegalConstructorArguments) {
   // This tests initializing a CodecList with a sequence that doesn't
-  // satisfy its expected invariants. Those invariants are only checked
-  // in debug mode.
-  // See CodecList::CheckConsistency for what checks are enabled.
+  // satisfy its expected invariants.
+  // Those invariants are only checked in debug mode.
+  // See CodecList::CheckInputConsistency for what checks are enabled.
   // Checks that can't be enabled log things instead.
   // Note: DCHECK is on in some release builds, so we can't use
   // EXPECT_DEBUG_DEATH here.
@@ -52,10 +52,12 @@ TEST(CodecList, CrashOnIllegalConstructorArguments) {
       CreateVideoCodec({webrtc::SdpVideoFormat{
           "rtx", webrtc::CodecParameterMap{{"apt", "not-a-number"}}}})};
 #if RTC_DCHECK_IS_ON
-  EXPECT_DEATH(CodecList bad(apt_without_number), "CheckInputConsistency");
+  EXPECT_DEATH(
+      CodecList bad = CodecList::CreateFromTrustedData(apt_without_number),
+      "CheckInputConsistency");
 #else
   // Expect initialization to succeed.
-  CodecList bad{apt_without_number};
+  CodecList bad = CodecList::CreateFromTrustedData(apt_without_number);
   EXPECT_EQ(bad.size(), 1U);
 #endif
 }

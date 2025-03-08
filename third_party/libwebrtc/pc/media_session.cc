@@ -780,11 +780,14 @@ MediaSessionDescriptionFactory::CreateOfferOrError(
   StreamParamsVec current_streams =
       GetCurrentStreamParams(current_active_contents);
 
-  Codecs offer_audio_codecs;
-  Codecs offer_video_codecs;
+  CodecList offer_audio_codecs;
+  CodecList offer_video_codecs;
   if (codec_vendor_) {
-    codec_vendor_->GetCodecsForOffer(current_active_contents,
-                                     &offer_audio_codecs, &offer_video_codecs);
+    RTCError error = codec_vendor_->GetCodecsForOffer(
+        current_active_contents, offer_audio_codecs, offer_video_codecs);
+    if (!error.ok()) {
+      return error;
+    }
   }
 
   AudioVideoRtpHeaderExtensions extensions_with_ids =
@@ -932,12 +935,15 @@ MediaSessionDescriptionFactory::CreateAnswerOrError(
   // Note that these lists may be further filtered for each m= section; this
   // step is done just to establish the payload type mappings shared by all
   // sections.
-  Codecs answer_audio_codecs;
-  Codecs answer_video_codecs;
+  CodecList answer_audio_codecs;
+  CodecList answer_video_codecs;
   if (codec_vendor_) {
-    codec_vendor_->GetCodecsForAnswer(current_active_contents, *offer,
-                                      &answer_audio_codecs,
-                                      &answer_video_codecs);
+    RTCError error = codec_vendor_->GetCodecsForAnswer(
+        current_active_contents, *offer, answer_audio_codecs,
+        answer_video_codecs);
+    if (!error.ok()) {
+      return error;
+    }
   }
 
   auto answer = std::make_unique<SessionDescription>();
@@ -1236,7 +1242,7 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForOffer(
     const ContentInfo* current_content,
     const SessionDescription* current_description,
     const RtpHeaderExtensions& header_extensions,
-    const std::vector<Codec>& codecs,
+    const CodecList& codecs,
     StreamParamsVec* current_streams,
     SessionDescription* session_description,
     IceCredentialsIterator* ice_credentials) const {
@@ -1246,9 +1252,9 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForOffer(
   std::vector<Codec> codecs_to_include;
   if (media_description_options.codecs_to_include.empty()) {
     webrtc::RTCErrorOr<std::vector<Codec>> error_or_filtered_codecs =
-        codec_vendor_->GetNegotiatedCodecsForOffer(
-            media_description_options, session_options, current_content,
-            CodecList(codecs));
+        codec_vendor_->GetNegotiatedCodecsForOffer(media_description_options,
+                                                   session_options,
+                                                   current_content, codecs);
     if (!error_or_filtered_codecs.ok()) {
       return error_or_filtered_codecs.MoveError();
     }
@@ -1372,7 +1378,7 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
     const ContentInfo* current_content,
     const SessionDescription* current_description,
     const TransportInfo* bundle_transport,
-    const std::vector<Codec>& codecs,
+    const CodecList& codecs,
     const RtpHeaderExtensions& header_extensions,
     StreamParamsVec* current_streams,
     SessionDescription* answer,
@@ -1413,8 +1419,7 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
     webrtc::RTCErrorOr<std::vector<Codec>> error_or_filtered_codecs =
         codec_vendor_->GetNegotiatedCodecsForAnswer(
             media_description_options, session_options, offer_rtd, answer_rtd,
-            current_content, offer_content_description->codecs(),
-            CodecList(codecs));
+            current_content, offer_content_description->codecs(), codecs);
     if (!error_or_filtered_codecs.ok()) {
       return error_or_filtered_codecs.MoveError();
     }

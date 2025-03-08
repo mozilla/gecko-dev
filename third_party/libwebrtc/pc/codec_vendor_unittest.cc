@@ -62,7 +62,7 @@ TEST(CodecVendorTest, TestSetAudioCodecs) {
   // (set to 1). This equals what happens when the send codecs are used in an
   // offer and the receive codecs are used in the following answer.
   const std::vector<Codec> sendrecv_codecs = MAKE_VECTOR(kAudioCodecsAnswer);
-  const std::vector<Codec> no_codecs;
+  CodecList no_codecs;
 
   RTC_CHECK_EQ(send_codecs[2].name, "iLBC")
       << "Please don't change shared test data!";
@@ -77,28 +77,31 @@ TEST(CodecVendorTest, TestSetAudioCodecs) {
   recv_codecs[2].name = "ilbc";
 
   // Test proper merge
-  codec_vendor.set_audio_codecs(send_codecs, recv_codecs);
+  codec_vendor.set_audio_codecs(CodecList::CreateFromTrustedData(send_codecs),
+                                CodecList::CreateFromTrustedData(recv_codecs));
   EXPECT_EQ(send_codecs, codec_vendor.audio_send_codecs().codecs());
   EXPECT_EQ(recv_codecs, codec_vendor.audio_recv_codecs().codecs());
   EXPECT_EQ(sendrecv_codecs, codec_vendor.audio_sendrecv_codecs().codecs());
 
   // Test empty send codecs list
-  codec_vendor.set_audio_codecs(no_codecs, recv_codecs);
-  EXPECT_EQ(no_codecs, codec_vendor.audio_send_codecs().codecs());
+  codec_vendor.set_audio_codecs(no_codecs,
+                                CodecList::CreateFromTrustedData(recv_codecs));
+  EXPECT_EQ(no_codecs.codecs(), codec_vendor.audio_send_codecs().codecs());
   EXPECT_EQ(recv_codecs, codec_vendor.audio_recv_codecs().codecs());
-  EXPECT_EQ(no_codecs, codec_vendor.audio_sendrecv_codecs().codecs());
+  EXPECT_EQ(no_codecs.codecs(), codec_vendor.audio_sendrecv_codecs().codecs());
 
   // Test empty recv codecs list
-  codec_vendor.set_audio_codecs(send_codecs, no_codecs);
+  codec_vendor.set_audio_codecs(CodecList::CreateFromTrustedData(send_codecs),
+                                no_codecs);
   EXPECT_EQ(send_codecs, codec_vendor.audio_send_codecs().codecs());
-  EXPECT_EQ(no_codecs, codec_vendor.audio_recv_codecs().codecs());
-  EXPECT_EQ(no_codecs, codec_vendor.audio_sendrecv_codecs().codecs());
+  EXPECT_EQ(no_codecs.codecs(), codec_vendor.audio_recv_codecs().codecs());
+  EXPECT_EQ(no_codecs.codecs(), codec_vendor.audio_sendrecv_codecs().codecs());
 
   // Test all empty codec lists
   codec_vendor.set_audio_codecs(no_codecs, no_codecs);
-  EXPECT_EQ(no_codecs, codec_vendor.audio_send_codecs().codecs());
-  EXPECT_EQ(no_codecs, codec_vendor.audio_recv_codecs().codecs());
-  EXPECT_EQ(no_codecs, codec_vendor.audio_sendrecv_codecs().codecs());
+  EXPECT_EQ(no_codecs, codec_vendor.audio_send_codecs());
+  EXPECT_EQ(no_codecs, codec_vendor.audio_recv_codecs());
+  EXPECT_EQ(no_codecs, codec_vendor.audio_sendrecv_codecs());
 }
 
 }  // namespace

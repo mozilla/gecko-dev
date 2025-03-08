@@ -25,16 +25,22 @@ class CodecList {
   using const_iterator = std::vector<Codec>::const_iterator;
   using value_type = Codec;
 
-  CodecList() {}
-  // Creates a codec list on trusted data.
-  explicit CodecList(const std::vector<Codec>& codecs) {
-    codecs_ = codecs;
-    CheckConsistency();
-  }
+  CodecList() = default;
+  // Copy and assign are available.
+  CodecList(const CodecList&) = default;
+  CodecList& operator=(const CodecList&) = default;
+  CodecList(CodecList&&) = default;
+  CodecList& operator=(CodecList&&) = default;
+  bool operator==(const CodecList& o) const { return codecs_ == o.codecs_; }
+
   // Creates a codec list on untrusted data. If successful, the
   // resulting CodecList satisfies all the CodecList invariants.
-  static webrtc::RTCErrorOr<CodecList> CreateCodecList(
-      const std::vector<Codec>& codecs);
+  static webrtc::RTCErrorOr<CodecList> Create(const std::vector<Codec>& codecs);
+  // Creates a codec list on trusted data. Only for use when
+  // the codec list is generated from internal code.
+  static CodecList CreateFromTrustedData(const std::vector<Codec>& codecs) {
+    return CodecList(codecs);
+  }
   // Vector-compatible API to access the codecs.
   iterator begin() { return codecs_.begin(); }
   iterator end() { return codecs_.end(); }
@@ -68,6 +74,12 @@ class CodecList {
   }
 
  private:
+  // Creates a codec list on trusted data.
+  explicit CodecList(const std::vector<Codec>& codecs) {
+    codecs_ = codecs;
+    CheckConsistency();
+  }
+
   std::vector<Codec> codecs_;
 };
 
