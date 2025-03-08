@@ -2734,8 +2734,11 @@ public:
     StringRef sref = E->getString();
     std::string s = sref.str();
 
+    bool isMozSrc = stringStartsWith(s, "moz-src:///");
+
     if (!stringStartsWith(s, "chrome://") &&
-        !stringStartsWith(s, "resource://")) {
+        !stringStartsWith(s, "resource://") &&
+        !isMozSrc) {
       return true;
     }
 
@@ -2746,7 +2749,13 @@ public:
     SourceLocation Loc = E->getStrTokenLoc(0);
     normalizeLocation(&Loc);
 
-    std::string symbol = std::string("URL_") + mangleURL(s);
+    std::string symbol;
+
+    if (isMozSrc) {
+      symbol = std::string("FILE_") + mangleFile(s.substr(11), FileType::Source);
+    } else {
+      symbol = std::string("URL_") + mangleURL(s);
+    }
 
     visitIdentifier("use", "file", StringRef(s), Loc, symbol, QualType(),
                     Context(), NotIdentifierToken | LocRangeEndValid);
