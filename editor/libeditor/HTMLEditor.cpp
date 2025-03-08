@@ -4414,7 +4414,9 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::PrepareToInsertLineBreak(
     }
     Result<EditorDOMPoint, nsresult> pointToInsertOrError =
         WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt(
-            *this, aPointToInsert);
+            *this, aPointToInsert,
+            {WhiteSpaceVisibilityKeeper::NormalizeOption::
+                 StopIfPrecedingWhiteSpacesEndsWithNBP});
     if (NS_WARN_IF(pointToInsertOrError.isErr())) {
       return pointToInsertOrError.propagateErr();
     }
@@ -4433,7 +4435,9 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::PrepareToInsertLineBreak(
   Result<EditorDOMPoint, nsresult> pointToInsertOrError =
       StaticPrefs::editor_white_space_normalization_blink_compatible()
           ? WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt(
-                *this, aPointToInsert)
+                *this, aPointToInsert,
+                {WhiteSpaceVisibilityKeeper::NormalizeOption::
+                     StopIfPrecedingWhiteSpacesEndsWithNBP})
           : aPointToInsert;
   if (NS_WARN_IF(pointToInsertOrError.isErr())) {
     return pointToInsertOrError.propagateErr();

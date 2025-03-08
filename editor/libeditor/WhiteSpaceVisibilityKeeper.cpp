@@ -47,7 +47,7 @@ Result<EditorDOMPoint, nsresult>
 WhiteSpaceVisibilityKeeper::PrepareToSplitBlockElement(
     HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPointToSplit,
     const Element& aSplittingBlockElement) {
-  if (NS_WARN_IF(!aPointToSplit.IsInContentNode()) ||
+  if (NS_WARN_IF(!aPointToSplit.IsInContentNodeAndValidInComposedDoc()) ||
       NS_WARN_IF(!HTMLEditUtils::IsSplittableNode(aSplittingBlockElement)) ||
       NS_WARN_IF(!EditorUtils::IsEditableContent(
           *aPointToSplit.ContainerAs<nsIContent>(), EditorType::HTML))) {
@@ -69,7 +69,8 @@ WhiteSpaceVisibilityKeeper::PrepareToSplitBlockElement(
     pointToSplit.Set(content);
   }
 
-  {
+  // TODO: Delete this block once we ship the new normalizer.
+  if (!StaticPrefs::editor_white_space_normalization_blink_compatible()) {
     AutoTrackDOMPoint tracker(aHTMLEditor.RangeUpdaterRef(), &pointToSplit);
 
     nsresult rv = WhiteSpaceVisibilityKeeper::
@@ -84,6 +85,21 @@ WhiteSpaceVisibilityKeeper::PrepareToSplitBlockElement(
           "MakeSureToKeepVisibleWhiteSpacesVisibleAfterSplit() failed");
       return Err(rv);
     }
+  } else {
+    // NOTE: Chrome does not normalize white-spaces at splitting `Text` when
+    // inserting a paragraph at least when the surrounding white-spaces being or
+    // end with an NBSP.
+    Result<EditorDOMPoint, nsresult> pointToSplitOrError =
+        WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt(
+            aHTMLEditor, pointToSplit,
+            {NormalizeOption::StopIfFollowingWhiteSpacesStartsWithNBSP,
+             NormalizeOption::StopIfPrecedingWhiteSpacesEndsWithNBP});
+    if (MOZ_UNLIKELY(pointToSplitOrError.isErr())) {
+      NS_WARNING(
+          "WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt() failed");
+      return pointToSplitOrError.propagateErr();
+    }
+    pointToSplit = pointToSplitOrError.unwrap();
   }
 
   if (NS_WARN_IF(!pointToSplit.IsInContentNode()) ||
@@ -821,7 +837,8 @@ Result<MoveNodeResult, nsresult> WhiteSpaceVisibilityKeeper::
 // static
 Result<EditorDOMPoint, nsresult>
 WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitTextNodeAt(
-    HTMLEditor& aHTMLEditor, const EditorDOMPointInText& aPointToSplit) {
+    HTMLEditor& aHTMLEditor, const EditorDOMPointInText& aPointToSplit,
+    NormalizeOptions aOptions) {
   MOZ_ASSERT(aPointToSplit.IsSetAndValid());
   MOZ_ASSERT(StaticPrefs::editor_white_space_normalization_blink_compatible());
 
@@ -855,13 +872,18 @@ WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitTextNodeAt(
 
   const HTMLEditor::ReplaceWhiteSpacesData replacePrecedingWhiteSpacesData =
       aPointToSplit.IsStartOfContainer() ||
-              // Chrome does not normalize the left `Text` at least when it ends
-              // with an NBSP.
-              aPointToSplit.IsPreviousCharNBSP()
+              (aOptions.contains(
+                   NormalizeOption::StopIfPrecedingWhiteSpacesEndsWithNBP) &&
+               aPointToSplit.IsPreviousCharNBSP())
           ? HTMLEditor::ReplaceWhiteSpacesData()
           : aHTMLEditor.GetPrecedingNormalizedStringToSplitAt(aPointToSplit);
   const HTMLEditor::ReplaceWhiteSpacesData replaceFollowingWhiteSpaceData =
-      aHTMLEditor.GetFollowingNormalizedStringToSplitAt(aPointToSplit);
+      aPointToSplit.IsEndOfContainer() ||
+              (aOptions.contains(
+                   NormalizeOption::StopIfFollowingWhiteSpacesStartsWithNBSP) &&
+               aPointToSplit.IsCharNBSP())
+          ? HTMLEditor::ReplaceWhiteSpacesData()
+          : aHTMLEditor.GetFollowingNormalizedStringToSplitAt(aPointToSplit);
   const HTMLEditor::ReplaceWhiteSpacesData replaceWhiteSpacesData =
       (replacePrecedingWhiteSpacesData + replaceFollowingWhiteSpaceData)
           .GetMinimizedData(*textNode);
@@ -904,7 +926,8 @@ WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitTextNodeAt(
 // static
 Result<EditorDOMPoint, nsresult>
 WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt(
-    HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPointToSplit) {
+    HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPointToSplit,
+    NormalizeOptions aOptions) {
   MOZ_ASSERT(aPointToSplit.IsSet());
   MOZ_ASSERT(StaticPrefs::editor_white_space_normalization_blink_compatible());
 
@@ -936,7 +959,7 @@ WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt(
   if (pointToSplit.IsInTextNode()) {
     Result<EditorDOMPoint, nsresult> pointToSplitOrError =
         WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitTextNodeAt(
-            aHTMLEditor, pointToSplit.AsInText());
+            aHTMLEditor, pointToSplit.AsInText(), aOptions);
     if (MOZ_UNLIKELY(pointToSplitOrError.isErr())) {
       NS_WARNING(
           "WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitTextNodeAt() "
@@ -981,11 +1004,9 @@ WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt(
             textNode->TextDataLength()) {
           break;
         }
-        // Chrome does not normalize preceding `Text` at least when it ends with
-        // an NBSP.
-        if (textNode->TextDataLength() &&
-            textNode->TextFragment().CharAt(textNode->TextLength() - 1u) ==
-                HTMLEditUtils::kNBSP) {
+        if (aOptions.contains(
+                NormalizeOption::StopIfPrecedingWhiteSpacesEndsWithNBP) &&
+            textNode->TextFragment().SafeLastChar() == HTMLEditUtils::kNBSP) {
           break;
         }
         precedingTextNodes.AppendElement(*textNode);
@@ -1021,6 +1042,11 @@ WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt(
             textNode->TextDataLength()) {
           break;
         }
+        if (aOptions.contains(
+                NormalizeOption::StopIfFollowingWhiteSpacesStartsWithNBSP) &&
+            textNode->TextFragment().SafeFirstChar() == HTMLEditUtils::kNBSP) {
+          break;
+        }
         followingTextNodes.AppendElement(*textNode);
         if (textNode->TextIsOnlyWhitespace() &&
             EditorUtils::IsWhiteSpacePreformatted(*textNode)) {
@@ -1045,7 +1071,7 @@ WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt(
   for (const auto& textNode : precedingTextNodes) {
     Result<EditorDOMPoint, nsresult> normalizeWhiteSpacesResultOrError =
         WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitTextNodeAt(
-            aHTMLEditor, EditorDOMPointInText::AtEndOf(textNode));
+            aHTMLEditor, EditorDOMPointInText::AtEndOf(textNode), aOptions);
     if (MOZ_UNLIKELY(normalizeWhiteSpacesResultOrError.isErr())) {
       NS_WARNING(
           "WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitTextNodeAt() "
@@ -1062,7 +1088,7 @@ WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt(
   for (const auto& textNode : followingTextNodes) {
     Result<EditorDOMPoint, nsresult> normalizeWhiteSpacesResultOrError =
         WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitTextNodeAt(
-            aHTMLEditor, EditorDOMPointInText(textNode, 0u));
+            aHTMLEditor, EditorDOMPointInText(textNode, 0u), aOptions);
     if (MOZ_UNLIKELY(normalizeWhiteSpacesResultOrError.isErr())) {
       NS_WARNING(
           "WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitTextNodeAt() "
@@ -1295,10 +1321,13 @@ WhiteSpaceVisibilityKeeper::InsertLineBreak(
       }
     }
   } else {
+    // Chrome does not normalize preceding white-spaces at least when it ends
+    // with an NBSP.
     Result<EditorDOMPoint, nsresult>
         normalizeSurroundingWhiteSpacesResultOrError =
             WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt(
-                aHTMLEditor, aPointToInsert);
+                aHTMLEditor, aPointToInsert,
+                {NormalizeOption::StopIfPrecedingWhiteSpacesEndsWithNBP});
     if (MOZ_UNLIKELY(normalizeSurroundingWhiteSpacesResultOrError.isErr())) {
       NS_WARNING(
           "WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt() failed");
