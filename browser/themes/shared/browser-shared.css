@@ -55,8 +55,21 @@ body {
     @media -moz-pref("sidebar.verticalTabs") {
       min-width: 732px;
 
+      /* If the Content Analysis icon is showing, we don't
+         want to collapse it, so make a little more room. */
+      &[contentanalysisactive] {
+        min-width: 768px;
+      }
+
       @media (-moz-platform: macos) {
         min-width: 670px;
+
+        /* If the Content Analysis icon is showing, we don't
+          want to collapse it, so make a little more room. */
+        /* stylelint-disable max-nesting-depth */
+        &[contentanalysisactive] {
+          min-width: 706px;
+        }
       }
     }
   }
