@@ -3483,10 +3483,9 @@ struct MOZ_STACK_CLASS nsGridContainerFrame::GridReflowInput {
         mCols(LogicalAxis::Inline),
         mRows(LogicalAxis::Block),
         mColFunctions(mGridStyle->mGridTemplateColumns,
-                      mGridStyle->mGridAutoColumns,
-                      aFrame->IsSubgrid(LogicalAxis::Inline)),
+                      mGridStyle->mGridAutoColumns, aFrame->IsColSubgrid()),
         mRowFunctions(mGridStyle->mGridTemplateRows, mGridStyle->mGridAutoRows,
-                      aFrame->IsSubgrid(LogicalAxis::Block)),
+                      aFrame->IsRowSubgrid()),
         mReflowInput(aReflowInput),
         mRenderingContext(aRenderingContext),
         mFrame(aFrame),
@@ -4466,8 +4465,8 @@ void nsGridContainerFrame::InitImplicitNamedAreas(
       AddImplicitNamedAreas(aTemplate.AsSubgrid()->line_names.AsSpan());
     }
   };
-  Add(aStyle->mGridTemplateColumns, IsSubgrid(LogicalAxis::Inline));
-  Add(aStyle->mGridTemplateRows, IsSubgrid(LogicalAxis::Block));
+  Add(aStyle->mGridTemplateColumns, IsColSubgrid());
+  Add(aStyle->mGridTemplateRows, IsRowSubgrid());
   if (areas && areas->count() == 0) {
     RemoveProperty(ImplicitNamedAreasProperty());
   }
@@ -7515,7 +7514,7 @@ LogicalSize nsGridContainerFrame::GridReflowInput::PercentageBasisFor(
     if (auto* uts = subgridFrame->GetUsedTrackSizes()) {
       auto subgridWM = subgridFrame->GetWritingMode();
       LogicalSize cbSize(subgridWM, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
-      if (!subgridFrame->IsSubgrid(LogicalAxis::Inline) &&
+      if (!subgridFrame->IsColSubgrid() &&
           uts->mCanResolveLineRangeSize[LogicalAxis::Inline]) {
         // NOTE: At this point aGridItem.mArea is in this->mFrame coordinates
         // and thus may have been transposed.  The range values in a non-
@@ -7527,7 +7526,7 @@ LogicalSize nsGridContainerFrame::GridReflowInput::PercentageBasisFor(
         cbSize.ISize(subgridWM) =
             range.ToLength(uts->mSizes[LogicalAxis::Inline]);
       }
-      if (!subgridFrame->IsSubgrid(LogicalAxis::Block) &&
+      if (!subgridFrame->IsRowSubgrid() &&
           uts->mCanResolveLineRangeSize[LogicalAxis::Block]) {
         auto rangeAxis = subgridWM.IsOrthogonalTo(mWM) ? LogicalAxis::Inline
                                                        : LogicalAxis::Block;
@@ -9125,7 +9124,7 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
         bSize = computedBSize;
       } else {
         const auto& rowSizes = gridRI.mRows.mSizes;
-        if (MOZ_LIKELY(!IsSubgrid(LogicalAxis::Block))) {
+        if (MOZ_LIKELY(!IsRowSubgrid())) {
           // Note: we can't use GridLineEdge here since we haven't calculated
           // the rows' mPosition yet (happens in AlignJustifyContent below).
           for (const auto& sz : rowSizes) {
@@ -9382,9 +9381,8 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
     // the ComputedGridTrackInfo and related properties
 
     const auto* subgrid = GetProperty(Subgrid::Prop());
-    const auto* subgridColRange = subgrid && IsSubgrid(LogicalAxis::Inline)
-                                      ? &subgrid->SubgridCols()
-                                      : nullptr;
+    const auto* subgridColRange =
+        subgrid && IsColSubgrid() ? &subgrid->SubgridCols() : nullptr;
 
     LineNameMap colLineNameMap(gridRI.mGridStyle, GetImplicitNamedAreas(),
                                gridRI.mColFunctions, nullptr, subgridColRange,
@@ -9412,21 +9410,19 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
     // taken by rvalue, but computing the size first prevents any changes in the
     // argument types of the constructor from breaking this.
     const uint32_t numColExplicitTracks =
-        IsSubgrid(LogicalAxis::Inline)
-            ? colTrackSizes.Length()
-            : gridRI.mColFunctions.NumExplicitTracks();
+        IsColSubgrid() ? colTrackSizes.Length()
+                       : gridRI.mColFunctions.NumExplicitTracks();
     ComputedGridTrackInfo* colInfo = new ComputedGridTrackInfo(
         gridRI.mColFunctions.mExplicitGridOffset, numColExplicitTracks, 0, col,
         std::move(colTrackPositions), std::move(colTrackSizes),
         std::move(colTrackStates), std::move(colRemovedRepeatTracks),
         gridRI.mColFunctions.mRepeatAutoStart,
         colLineNameMap.GetResolvedLineNamesForComputedGridTrackInfo(),
-        IsSubgrid(LogicalAxis::Inline), IsMasonry(LogicalAxis::Inline));
+        IsColSubgrid(), IsMasonry(LogicalAxis::Inline));
     SetProperty(GridColTrackInfo(), colInfo);
 
-    const auto* subgridRowRange = subgrid && IsSubgrid(LogicalAxis::Block)
-                                      ? &subgrid->SubgridRows()
-                                      : nullptr;
+    const auto* subgridRowRange =
+        subgrid && IsRowSubgrid() ? &subgrid->SubgridRows() : nullptr;
     LineNameMap rowLineNameMap(gridRI.mGridStyle, GetImplicitNamedAreas(),
                                gridRI.mRowFunctions, nullptr, subgridRowRange,
                                true);
@@ -9453,9 +9449,8 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
     // taken by rvalue, but computing the size first prevents any changes in the
     // argument types of the constructor from breaking this.
     const uint32_t numRowExplicitTracks =
-        IsSubgrid(LogicalAxis::Block)
-            ? rowTrackSizes.Length()
-            : gridRI.mRowFunctions.NumExplicitTracks();
+        IsRowSubgrid() ? rowTrackSizes.Length()
+                       : gridRI.mRowFunctions.NumExplicitTracks();
     // Row info has to accommodate fragmentation of the grid, which may happen
     // in later calls to Reflow. For now, presume that no more fragmentation
     // will occur.
@@ -9466,7 +9461,7 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
         std::move(rowRemovedRepeatTracks),
         gridRI.mRowFunctions.mRepeatAutoStart,
         rowLineNameMap.GetResolvedLineNamesForComputedGridTrackInfo(),
-        IsSubgrid(LogicalAxis::Block), IsMasonry(LogicalAxis::Block));
+        IsRowSubgrid(), IsMasonry(LogicalAxis::Block));
     SetProperty(GridRowTrackInfo(), rowInfo);
 
     if (prevInFlow) {
