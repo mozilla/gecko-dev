@@ -420,6 +420,7 @@ void NegotiateCodecs(const CodecList& local_codecs,
                      const CodecList& offered_codecs,
                      std::vector<Codec>* negotiated_codecs,
                      bool keep_offer_order) {
+  std::map<int, int> pt_mapping_table;
   for (const Codec& ours : local_codecs) {
     std::optional<Codec> theirs =
         FindMatchingCodec(local_codecs, offered_codecs, ours);
@@ -430,13 +431,6 @@ void NegotiateCodecs(const CodecList& local_codecs,
       NegotiatePacketization(ours, *theirs, &negotiated);
       negotiated.IntersectFeedbackParams(*theirs);
       if (negotiated.GetResiliencyType() == Codec::ResiliencyType::kRtx) {
-        const auto apt_it =
-            theirs->params.find(kCodecParamAssociatedPayloadType);
-        // webrtc::FindMatchingCodec shouldn't return something with no apt
-        // value.
-        RTC_DCHECK(apt_it != theirs->params.end());
-        negotiated.SetParam(kCodecParamAssociatedPayloadType, apt_it->second);
-
         // We support parsing the declarative rtx-time parameter.
         const auto rtx_time_it = theirs->params.find(kCodecParamRtxTime);
         if (rtx_time_it != theirs->params.end()) {
@@ -461,9 +455,34 @@ void NegotiateCodecs(const CodecList& local_codecs,
         NegotiateTxMode(ours, *theirs, &negotiated);
       }
 #endif
+      // Use their ID, if available.
+      pt_mapping_table.insert({negotiated.id, theirs->id});
       negotiated.id = theirs->id;
       negotiated.name = theirs->name;
       negotiated_codecs->push_back(std::move(negotiated));
+    }
+  }
+  // Fix up apt parameters that point to other PTs.
+  for (Codec& negotiated : *negotiated_codecs) {
+    if (negotiated.GetResiliencyType() == Codec::ResiliencyType::kRtx) {
+      // Change the apt value according to the pt mapping table.
+      // This avoids changing to apt values that don't exist any more.
+      std::string apt_str;
+      if (!negotiated.GetParam(kCodecParamAssociatedPayloadType, &apt_str)) {
+        RTC_LOG(LS_WARNING) << "No apt value";
+        continue;
+      }
+      int apt_value;
+      if (!rtc::FromString(apt_str, &apt_value)) {
+        RTC_LOG(LS_WARNING) << "Unconvertable apt value";
+        continue;
+      }
+      if (pt_mapping_table.count(apt_value) != 1) {
+        RTC_LOG(LS_WARNING) << "Unmapped apt value " << apt_value;
+        continue;
+      }
+      negotiated.SetParam(kCodecParamAssociatedPayloadType,
+                          pt_mapping_table.at(apt_value));
     }
   }
   if (keep_offer_order) {
@@ -775,12 +794,29 @@ void CodecVendor::GetCodecsForAnswer(
       }
     } else if (IsMediaContentOfType(&content, MEDIA_TYPE_VIDEO)) {
       CodecList offered_codecs(content.media_description()->codecs());
+      std::vector<Codec> pending_rtx_codecs;
       for (const Codec& offered_video_codec : offered_codecs) {
         if (!FindMatchingCodec(offered_codecs, filtered_offered_video_codecs,
                                offered_video_codec) &&
             FindMatchingCodec(offered_codecs, all_video_codecs(),
                               offered_video_codec)) {
+          // Special case: If it's an RTX codec, and the APT points to
+          // a codec that is not yet in the codec list, put it aside.
+          if (offered_video_codec.GetResiliencyType() ==
+                  Codec::ResiliencyType::kRtx &&
+              !GetAssociatedCodecForRtx(filtered_offered_video_codecs,
+                                        offered_video_codec)) {
+            pending_rtx_codecs.push_back(offered_video_codec);
+            continue;
+          }
           filtered_offered_video_codecs.push_back(offered_video_codec);
+        }
+      }
+      // If the associated codec showed up later in the codec list,
+      // append the corresponding RTX codec.
+      for (const Codec& codec : pending_rtx_codecs) {
+        if (GetAssociatedCodecForRtx(filtered_offered_video_codecs, codec)) {
+          filtered_offered_video_codecs.push_back(codec);
         }
       }
     }

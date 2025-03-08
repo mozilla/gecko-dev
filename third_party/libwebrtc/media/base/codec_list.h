@@ -52,6 +52,15 @@ class CodecList {
   // The function will CHECK or DCHECK on inconsistencies.
   void CheckConsistency();
 
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, const CodecList& list) {
+    absl::Format(&sink, "\n--- Codec list of size %d\n", list.size());
+    for (Codec codec : list) {
+      absl::Format(&sink, "%v\n", codec);
+    }
+    sink.Append("--- End\n");
+  }
+
  private:
   std::vector<Codec> codecs_;
 };

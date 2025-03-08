@@ -461,7 +461,6 @@ webrtc::RTCError AssignCodecIdsAndLinkRed(
           char buffer[100];
           rtc::SimpleStringBuilder param(buffer);
           param << codec_payload_type << "/" << codec_payload_type;
-          RTC_LOG(LS_ERROR) << "DEBUG: Setting RED param to " << param.str();
           codec.SetParam(kCodecParamNotInNameValueFormat, param.str());
         }
       }

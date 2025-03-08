@@ -86,6 +86,7 @@
 #include "rtc_base/ssl_fingerprint.h"
 #include "rtc_base/ssl_identity.h"
 #include "rtc_base/ssl_stream_adapter.h"
+#include "rtc_base/string_encode.h"
 #include "rtc_base/task_queue_for_test.h"
 #include "rtc_base/test_certificate_verifier.h"
 #include "rtc_base/time_utils.h"
@@ -100,9 +101,12 @@ namespace webrtc {
 namespace {
 
 using ::testing::AtLeast;
+using ::testing::Eq;
+using ::testing::Field;
 using ::testing::InSequence;
 using ::testing::MockFunction;
 using ::testing::NiceMock;
+using ::testing::NotNull;
 using ::testing::Return;
 
 class PeerConnectionIntegrationTest
@@ -4818,6 +4822,71 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
   ASSERT_NE(nullptr, offer);
   // The offer should be acceptable.
   EXPECT_TRUE(caller()->SetLocalDescriptionAndSendSdpMessage(std::move(offer)));
+}
+
+TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
+       SensibleRtxWithDuplicateCodecs) {
+  ASSERT_TRUE(CreatePeerConnectionWrappers());
+  caller()->AddVideoTrack();
+  // Copied from WPT test webrtc/protocol/rtx-codecs.https.html
+  std::string remote_offer_string =
+      "v=0\r\n"
+      "o=- 1878890426675213188 2 IN IP4 127.0.0.1\r\n"
+      "s=-\r\n"
+      "t=0 0\r\n"
+      "a=group:BUNDLE video\r\n"
+      "a=msid-semantic: WMS\r\n"
+      "m=video 9 UDP/TLS/RTP/SAVPF 96 97 98 99\r\n"
+      "c=IN IP4 0.0.0.0\r\n"
+      "a=rtcp:9 IN IP4 0.0.0.0\r\n"
+      "a=ice-ufrag:RGPK\r\n"
+      "a=ice-pwd:rAyHEAKC7ckxQgWaRZXukz+Z\r\n"
+      "a=ice-options:trickle\r\n"
+      "a=fingerprint:sha-256 "
+      "8C:29:0A:8F:11:06:BF:1C:58:B3:CA:E6:F1:F1:DC:99:4C:6C:89:E9:FF:BC:D4:38:"
+      "11:18:1F:40:19:C8:49:37\r\n"
+      "a=setup:actpass\r\n"
+      "a=mid:video\r\n"
+      "a=recvonly\r\n"
+      "a=rtcp-mux\r\n"
+      "a=rtpmap:96 VP8/90000\r\n"
+      "a=rtpmap:97 rtx/90000\r\n"
+      "a=fmtp:97 apt=98\r\n"
+      "a=rtpmap:98 VP8/90000\r\n"
+      "a=rtcp-fb:98 ccm fir\r\n"
+      "a=rtcp-fb:98 nack\r\n"
+      "a=rtcp-fb:98 nack pli\r\n"
+      "a=rtcp-fb:98 goog-remb\r\n"
+      "a=rtcp-fb:98 transport-cc\r\n"
+      "a=rtpmap:99 rtx/90000\r\n"
+      "a=fmtp:99 apt=96\r\n";
+  auto srd_observer =
+      rtc::make_ref_counted<MockSetSessionDescriptionObserver>();
+  std::unique_ptr<SessionDescriptionInterface> remote_offer =
+      CreateSessionDescription(SdpType::kOffer, remote_offer_string);
+  EXPECT_TRUE(caller()->SetRemoteDescription(std::move(remote_offer)));
+  // The resulting SDP answer should have one video codec with a correctly
+  // associated RTX codec.
+  std::unique_ptr<SessionDescriptionInterface> answer =
+      caller()->CreateAnswerForTest();
+  ASSERT_THAT(answer, NotNull());
+  RTC_LOG(LS_ERROR) << "Answer is " << *answer;
+  ASSERT_THAT(answer->description()->contents().size(), Eq(1));
+  auto codecs =
+      answer->description()->contents()[0].media_description()->codecs();
+  std::vector<int> apt_values;
+  for (const cricket::Codec& codec : codecs) {
+    if (codec.GetResiliencyType() == cricket::Codec::ResiliencyType::kRtx) {
+      const auto apt_it =
+          codec.params.find(cricket::kCodecParamAssociatedPayloadType);
+      int apt_value;
+      ASSERT_TRUE(rtc::FromString(apt_it->second, &apt_value));
+      apt_values.push_back(apt_value);
+    }
+  }
+  for (int apt : apt_values) {
+    EXPECT_THAT(codecs, Contains(Field("id", &cricket::Codec::id, apt)));
+  }
 }
 
 }  // namespace
