@@ -25,10 +25,7 @@ add_setup(async function setup() {
   registerCleanupFunction(async () => {
     SidebarController.hide();
   });
-  await SidebarController.initializeUIState({
-    launcherVisible: true,
-    command: "",
-  });
+  await SidebarController.initializeUIState({ launcherVisible: true });
 });
 
 add_task(async function test_integrated_sidebar() {

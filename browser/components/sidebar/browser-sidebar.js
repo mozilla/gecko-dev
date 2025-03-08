@@ -526,15 +526,7 @@ var SidebarController = {
   },
 
   getUIState() {
-    if (this.inPopup) {
-      return null;
-    }
-    let snapshot = this._state.getProperties();
-    // we don't persist the sidebar command when the panel is closed
-    if (!this._state.panelOpen) {
-      delete snapshot.command;
-    }
-    return snapshot;
+    return this.inPopup ? null : this._state.getProperties();
   },
 
   /**
@@ -547,23 +539,19 @@ var SidebarController = {
     if (!state) {
       return;
     }
-    const isValidSidebar = !state.command || this.sidebars.has(state.command);
-    if (!isValidSidebar) {
-      state.command = "";
-    }
-
     const hasOpenPanel =
-      state.panelOpen &&
       state.command &&
       this.sidebars.has(state.command) &&
       this.currentID !== state.command;
     if (hasOpenPanel) {
       // There's a panel to show, so ignore the contradictory hidden property.
       delete state.hidden;
+    } else {
+      delete state.command;
     }
     await this.promiseInitialized;
     await this.waitUntilStable(); // Finish currently scheduled tasks.
-    await this._state.loadInitialState(state);
+    this._state.loadInitialState(state);
     await this.waitUntilStable(); // Finish newly scheduled tasks.
     this.updateToolbarButton();
     this.uiStateInitialized = true;
@@ -864,12 +852,16 @@ var SidebarController = {
       document.getElementById("sidebar-main").hidden = true;
       return false;
     }
-    // Adopt the other window's UI state (it too could be a popup)
-    // We get the properties directly forom the SidebarState instance as in this case
-    // we need the command property even if no panel is currently open.
-    const sourceState = sourceController.inPopup
-      ? null
-      : sourceController._state?.getProperties();
+
+    // Set sidebar command even if hidden, so that we keep the same sidebar
+    // even if it's currently closed.
+    let commandID = sourceController._box.getAttribute("sidebarcommand");
+    if (commandID) {
+      this._box.setAttribute("sidebarcommand", commandID);
+    }
+
+    // Adopt the other window's UI state.
+    const sourceState = sourceController.getUIState();
     await this.initializeUIState(sourceState);
 
     return true;
@@ -917,15 +909,17 @@ var SidebarController = {
       return;
     }
 
-    let commandID = this._state.command;
+    let commandID = this._box.getAttribute("sidebarcommand");
     if (commandID && this.sidebars.has(commandID)) {
       this.showInitially(commandID);
     } else {
       this._box.removeAttribute("checked");
-      // Update the state, because the element it
+      // Remove the |sidebarcommand| attribute, because the element it
       // refers to no longer exists, so we should assume this sidebar
       // panel has been uninstalled. (249883)
-      this._state.command = "";
+      // We use setAttribute rather than removeAttribute so it persists
+      // correctly.
+      this._box.setAttribute("sidebarcommand", "");
       // On a startup in which the startup cache was invalidated (e.g. app update)
       // extensions will not be started prior to delayedLoad, thus the
       // sidebarcommand element will not exist yet.  Store the commandID so
@@ -976,7 +970,7 @@ var SidebarController = {
    * The ID of the current sidebar.
    */
   get currentID() {
-    return this.isOpen ? this._state.command : "";
+    return this.isOpen ? this._box.getAttribute("sidebarcommand") : "";
   },
 
   /**
@@ -1020,7 +1014,7 @@ var SidebarController = {
     // have a persisted command either, or the command doesn't exist anymore, then
     // fallback to a default sidebar.
     if (!commandID) {
-      commandID = this._state.command;
+      commandID = this._box.getAttribute("sidebarcommand");
     }
     if (!commandID || !this.sidebars.has(commandID)) {
       if (this.sidebarRevampEnabled && this.sidebars.size) {
@@ -1202,9 +1196,6 @@ var SidebarController = {
     }
   },
 
-  /**
-   * For sidebar.revamp=true only, handle the keyboard or sidebar-button command to toggle the sidebar state
-   */
   async handleToolbarButtonClick() {
     let initialExpandedValue = this._state.launcherExpanded;
     if (this.inPopup || this.uninitializing) {
@@ -1213,12 +1204,8 @@ var SidebarController = {
     if (this._animationEnabled && !window.gReduceMotion) {
       this._animateSidebarMain();
     }
-    const showLauncher = !this._state.launcherVisible;
 
-    this._state.updateVisibility(showLauncher, true);
-    if (showLauncher && this._state.command) {
-      this._show(this._state.command);
-    }
+    this._state.updateVisibility(!this._state.launcherVisible, true);
     if (this.sidebarRevampVisibility === "expand-on-hover") {
       this.toggleExpandOnHover(initialExpandedValue);
     }
@@ -1676,7 +1663,7 @@ var SidebarController = {
       this._box.hidden = this._splitter.hidden = false;
 
       this._box.setAttribute("checked", "true");
-      this._state.command = commandID;
+      this._box.setAttribute("sidebarcommand", commandID);
 
       let { icon, url, title, sourceL10nEl, contextMenuId } =
         this.sidebars.get(commandID);
@@ -1787,17 +1774,6 @@ var SidebarController = {
     if (triggerNode) {
       updateToggleControlLabel(triggerNode);
     }
-    let showLauncher = false;
-    if (
-      this.sidebarRevampEnabled &&
-      this.sidebarRevampVisibility !== "hide-sidebar"
-    ) {
-      showLauncher = true;
-    }
-    this._state.updateVisibility(
-      showLauncher,
-      false // onUserToggle param means "did the user click the sidebar-button", which is false here
-    );
     this.updateToolbarButton();
   },
 
@@ -1809,9 +1785,6 @@ var SidebarController = {
    */
   _recordPanelToggle(commandID, opened) {
     const sidebar = this.sidebars.get(commandID);
-    if (!sidebar) {
-      return;
-    }
     const isExtension = sidebar && Object.hasOwn(sidebar, "extensionId");
     const version = this.sidebarRevampEnabled ? "new" : "old";
     if (isExtension) {
@@ -2125,13 +2098,9 @@ XPCOMUtils.defineLazyPreferenceGetter(
         const forceExpand = isVerticalTabs && newValue === "always-show";
 
         // horizontal tabs and hide-sidebar = visible initially.
-        // vertical tab and hide-sidebar = not visible initially
-        let showLauncher = true;
-        if (newValue == "hide-sidebar" && isVerticalTabs) {
-          showLauncher = false;
-        }
+        // vertical tab and hide-sidebar = not visible initally.
         SidebarController._state.updateVisibility(
-          showLauncher,
+          (newValue != "hide-sidebar" && isVerticalTabs) || !isVerticalTabs,
           false,
           false,
           forceExpand

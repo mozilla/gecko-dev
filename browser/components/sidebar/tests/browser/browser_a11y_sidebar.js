@@ -84,7 +84,7 @@ add_task(async function test_keyboard_navigation() {
   info("Press Tab key.");
   EventUtils.synthesizeKey("KEY_Tab", {}, win);
   ok(isActiveElement(customizeButton), "Customize button is focused.");
-}).skip(); // Bug 1950504
+});
 
 add_task(async function test_menu_items_labeled() {
   const { document, SidebarController } = win;
