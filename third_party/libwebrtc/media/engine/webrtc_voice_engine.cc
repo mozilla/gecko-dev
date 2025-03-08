@@ -369,11 +369,10 @@ std::vector<Codec> LegacyCollectCodecs(
   std::vector<Codec> out;
 
   // Only generate CN payload types for these clockrates:
-  std::map<int, bool, std::greater<int>> generate_cn = {
-      {8000, false}, {16000, false}, {32000, false}};
+  std::map<int, bool, std::greater<int>> generate_cn = {{8000, false}};
   // Only generate telephone-event payload types for these clockrates:
-  std::map<int, bool, std::greater<int>> generate_dtmf = {
-      {8000, false}, {16000, false}, {32000, false}, {48000, false}};
+  std::map<int, bool, std::greater<int>> generate_dtmf = {{8000, false},
+                                                          {48000, false}};
 
   for (const auto& spec : specs) {
     cricket::Codec codec = CreateAudioCodec(spec.format);
@@ -1481,8 +1480,7 @@ bool WebRtcVoiceSendChannel::SetSendCodecs(
         if (cn_codec.channels != 1) {
           RTC_LOG(LS_WARNING)
               << "CN #channels " << cn_codec.channels << " not supported.";
-        } else if (cn_codec.clockrate != 8000 && cn_codec.clockrate != 16000 &&
-                   cn_codec.clockrate != 32000) {
+        } else if (cn_codec.clockrate != 8000) {
           RTC_LOG(LS_WARNING)
               << "CN frequency " << cn_codec.clockrate << " not supported.";
         } else {

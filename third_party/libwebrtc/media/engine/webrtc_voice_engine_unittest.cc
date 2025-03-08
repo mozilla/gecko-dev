@@ -4058,16 +4058,15 @@ TEST(WebRtcVoiceEngineTest, CollectRecvCodecs) {
     spec1.info.allow_comfort_noise = false;
     spec1.info.supports_network_adaption = true;
     specs.push_back(spec1);
-    webrtc::AudioCodecSpec spec2{{"codec2", 32000, 1}, {32000, 1, 32000}};
-    spec2.info.allow_comfort_noise = false;
+    webrtc::AudioCodecSpec spec2{{"codec2", 48000, 2, {{"param1", "value1"}}},
+                                 {48000, 2, 16000, 10000, 20000}};
+    // We do not support 48khz CN.
+    spec2.info.allow_comfort_noise = true;
     specs.push_back(spec2);
-    specs.push_back(webrtc::AudioCodecSpec{
-        {"codec3", 16000, 1, {{"param1", "value1b"}, {"param2", "value2"}}},
-        {16000, 1, 13300}});
     specs.push_back(
-        webrtc::AudioCodecSpec{{"codec4", 8000, 1}, {8000, 1, 64000}});
+        webrtc::AudioCodecSpec{{"codec3", 8000, 1}, {8000, 1, 64000}});
     specs.push_back(
-        webrtc::AudioCodecSpec{{"codec5", 8000, 2}, {8000, 1, 64000}});
+        webrtc::AudioCodecSpec{{"codec4", 8000, 2}, {8000, 1, 64000}});
 
     rtc::scoped_refptr<webrtc::MockAudioEncoderFactory> unused_encoder_factory =
         webrtc::MockAudioEncoderFactory::CreateUnusedFactory();
@@ -4085,7 +4084,7 @@ TEST(WebRtcVoiceEngineTest, CollectRecvCodecs) {
         mock_decoder_factory, nullptr, apm, nullptr, env.field_trials());
     engine.Init();
     auto codecs = engine.recv_codecs();
-    EXPECT_EQ(11u, codecs.size());
+    EXPECT_EQ(7u, codecs.size());
 
     // Rather than just ASSERTing that there are enough codecs, ensure that we
     // can check the actual values safely, to provide better test results.
@@ -4124,11 +4123,12 @@ TEST(WebRtcVoiceEngineTest, CollectRecvCodecs) {
     // unsigned and, thus, failed for -1.
     const int num_specs = static_cast<int>(specs.size());
     EXPECT_GE(find_codec({"cn", 8000, 1}), num_specs);
-    EXPECT_GE(find_codec({"cn", 16000, 1}), num_specs);
+    EXPECT_EQ(find_codec({"cn", 16000, 1}), -1);
     EXPECT_EQ(find_codec({"cn", 32000, 1}), -1);
+    EXPECT_EQ(find_codec({"cn", 48000, 1}), -1);
     EXPECT_GE(find_codec({"telephone-event", 8000, 1}), num_specs);
-    EXPECT_GE(find_codec({"telephone-event", 16000, 1}), num_specs);
-    EXPECT_GE(find_codec({"telephone-event", 32000, 1}), num_specs);
+    EXPECT_EQ(find_codec({"telephone-event", 16000, 1}), -1);
+    EXPECT_EQ(find_codec({"telephone-event", 32000, 1}), -1);
     EXPECT_GE(find_codec({"telephone-event", 48000, 1}), num_specs);
   }
 }
@@ -4145,16 +4145,15 @@ TEST(WebRtcVoiceEngineTest, CollectRecvCodecsWithLatePtAssignment) {
     spec1.info.allow_comfort_noise = false;
     spec1.info.supports_network_adaption = true;
     specs.push_back(spec1);
-    webrtc::AudioCodecSpec spec2{{"codec2", 32000, 1}, {32000, 1, 32000}};
-    spec2.info.allow_comfort_noise = false;
+    webrtc::AudioCodecSpec spec2{{"codec2", 48000, 2, {{"param1", "value1"}}},
+                                 {48000, 2, 16000, 10000, 20000}};
+    // We do not support 48khz CN.
+    spec2.info.allow_comfort_noise = true;
     specs.push_back(spec2);
-    specs.push_back(webrtc::AudioCodecSpec{
-        {"codec3", 16000, 1, {{"param1", "value1b"}, {"param2", "value2"}}},
-        {16000, 1, 13300}});
     specs.push_back(
-        webrtc::AudioCodecSpec{{"codec4", 8000, 1}, {8000, 1, 64000}});
+        webrtc::AudioCodecSpec{{"codec3", 8000, 1}, {8000, 1, 64000}});
     specs.push_back(
-        webrtc::AudioCodecSpec{{"codec5", 8000, 2}, {8000, 1, 64000}});
+        webrtc::AudioCodecSpec{{"codec4", 8000, 2}, {8000, 1, 64000}});
 
     rtc::scoped_refptr<webrtc::MockAudioEncoderFactory> unused_encoder_factory =
         webrtc::MockAudioEncoderFactory::CreateUnusedFactory();
@@ -4172,7 +4171,7 @@ TEST(WebRtcVoiceEngineTest, CollectRecvCodecsWithLatePtAssignment) {
         mock_decoder_factory, nullptr, apm, nullptr, env.field_trials());
     engine.Init();
     auto codecs = engine.recv_codecs();
-    EXPECT_EQ(11u, codecs.size());
+    EXPECT_EQ(7u, codecs.size());
 
     // Rather than just ASSERTing that there are enough codecs, ensure that we
     // can check the actual values safely, to provide better test results.
@@ -4211,11 +4210,12 @@ TEST(WebRtcVoiceEngineTest, CollectRecvCodecsWithLatePtAssignment) {
     // unsigned and, thus, failed for -1.
     const int num_specs = static_cast<int>(specs.size());
     EXPECT_GE(find_codec({"cn", 8000, 1}), num_specs);
-    EXPECT_GE(find_codec({"cn", 16000, 1}), num_specs);
+    EXPECT_EQ(find_codec({"cn", 16000, 1}), -1);
     EXPECT_EQ(find_codec({"cn", 32000, 1}), -1);
+    EXPECT_EQ(find_codec({"cn", 48000, 1}), -1);
     EXPECT_GE(find_codec({"telephone-event", 8000, 1}), num_specs);
-    EXPECT_GE(find_codec({"telephone-event", 16000, 1}), num_specs);
-    EXPECT_GE(find_codec({"telephone-event", 32000, 1}), num_specs);
+    EXPECT_EQ(find_codec({"telephone-event", 16000, 1}), -1);
+    EXPECT_EQ(find_codec({"telephone-event", 32000, 1}), -1);
     EXPECT_GE(find_codec({"telephone-event", 48000, 1}), num_specs);
   }
 }
