@@ -1268,15 +1268,26 @@ class EditorDOMPointBase final {
     return range.forget();
   }
 
-  EditorDOMPointInText GetAsInText() const {
+  [[nodiscard]] EditorDOMPointInText GetAsInText() const {
     return IsInTextNode() ? EditorDOMPointInText(ContainerAs<dom::Text>(),
                                                  Offset(), mInterlinePosition)
                           : EditorDOMPointInText();
   }
-  MOZ_NEVER_INLINE_DEBUG EditorDOMPointInText AsInText() const {
+  [[nodiscard]] EditorDOMPointInText AsInText() const {
     MOZ_ASSERT(IsInTextNode());
     return EditorDOMPointInText(ContainerAs<dom::Text>(), Offset(),
                                 mInterlinePosition);
+  }
+  [[nodiscard]] EditorRawDOMPointInText GetAsRawInText() const {
+    return IsInTextNode()
+               ? EditorRawDOMPointInText(ContainerAs<dom::Text>(), Offset(),
+                                         mInterlinePosition)
+               : EditorRawDOMPointInText();
+  }
+  [[nodiscard]] EditorRawDOMPointInText AsRawInText() const {
+    MOZ_ASSERT(IsInTextNode());
+    return EditorRawDOMPointInText(ContainerAs<dom::Text>(), Offset(),
+                                   mInterlinePosition);
   }
 
   template <typename A, typename B>
@@ -1405,7 +1416,8 @@ class EditorDOMRangeBase final {
   }
   explicit EditorDOMRangeBase(EditorDOMPointType&& aStart,
                               EditorDOMPointType&& aEnd)
-      : mStart(std::move(aStart)), mEnd(std::move(aEnd)) {
+      : mStart(std::forward<EditorDOMPointType>(aStart)),
+        mEnd(std::forward<EditorDOMPointType>(aEnd)) {
     MOZ_ASSERT_IF(mStart.IsSet(), mStart.IsSetAndValid());
     MOZ_ASSERT_IF(mEnd.IsSet(), mEnd.IsSetAndValid());
     MOZ_ASSERT_IF(mStart.IsSet() && mEnd.IsSet(),
@@ -1585,7 +1597,7 @@ class EditorDOMRangeBase final {
   template <typename OtherRangeType>
   bool operator==(const OtherRangeType& aOther) const {
     return (!IsPositioned() && !aOther.IsPositioned()) ||
-           (mStart == aOther.mStart && mEnd == aOther.mEnd);
+           (mStart == aOther.StartRef() && mEnd == aOther.EndRef());
   }
   template <typename OtherRangeType>
   bool operator!=(const OtherRangeType& aOther) const {
@@ -1639,6 +1651,10 @@ class EditorDOMRangeBase final {
       return nullptr;
     }
     return range.forget();
+  }
+  nsresult SetToRange(nsRange& aRange) const {
+    return aRange.SetStartAndEnd(mStart.ToRawRangeBoundary(),
+                                 mEnd.ToRawRangeBoundary());
   }
 
   friend std::ostream& operator<<(std::ostream& aStream,

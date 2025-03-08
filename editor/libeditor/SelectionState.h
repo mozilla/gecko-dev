@@ -408,7 +408,7 @@ class MOZ_STACK_CLASS AutoTrackDOMRange final {
     mEndPointTracker.emplace(aRangeUpdater,
                              const_cast<EditorDOMPoint*>(&aRange->EndRef()));
   }
-  AutoTrackDOMRange(RangeUpdater& aRangeUpdater, RefPtr<nsRange>* aRange)
+  AutoTrackDOMRange(RangeUpdater& aRangeUpdater, const RefPtr<nsRange>* aRange)
       : mStartPoint((*aRange)->StartRef()),
         mEndPoint((*aRange)->EndRef()),
         mRangeRefPtr(aRange),
@@ -416,7 +416,8 @@ class MOZ_STACK_CLASS AutoTrackDOMRange final {
     mStartPointTracker.emplace(aRangeUpdater, &mStartPoint);
     mEndPointTracker.emplace(aRangeUpdater, &mEndPoint);
   }
-  AutoTrackDOMRange(RangeUpdater& aRangeUpdater, OwningNonNull<nsRange>* aRange)
+  AutoTrackDOMRange(RangeUpdater& aRangeUpdater,
+                    const OwningNonNull<nsRange>* aRange)
       : mStartPoint((*aRange)->StartRef()),
         mEndPoint((*aRange)->EndRef()),
         mRangeRefPtr(nullptr),
@@ -499,8 +500,8 @@ class MOZ_STACK_CLASS AutoTrackDOMRange final {
   Maybe<AutoTrackDOMPoint> mEndPointTracker;
   EditorDOMPoint mStartPoint;
   EditorDOMPoint mEndPoint;
-  RefPtr<nsRange>* mRangeRefPtr;
-  OwningNonNull<nsRange>* mRangeOwningNonNull;
+  const RefPtr<nsRange>* mRangeRefPtr;
+  const OwningNonNull<nsRange>* mRangeOwningNonNull;
 };
 
 class MOZ_STACK_CLASS AutoTrackDOMMoveNodeResult final {

@@ -2241,6 +2241,14 @@ class HTMLEditor final : public EditorBase,
       NormalizeSurroundingWhiteSpaces aNormalizeSurroundingWhiteSpaces) const;
 
   /**
+   * Return normalized white-spaces of a white-space sequence which contains
+   * aPoint.  This returns new offset of aPoint.Offset() after replacing the
+   * white-space sequence with normalized white-spaces.
+   */
+  ReplaceWhiteSpacesData GetNormalizedStringAt(
+      const EditorDOMPointInText& aPoint) const;
+
+  /**
    * Return normalized white-spaces after aPointToSplit if there are some
    * collapsible white-spaces after the point.
    */
@@ -2253,6 +2261,13 @@ class HTMLEditor final : public EditorBase,
    */
   ReplaceWhiteSpacesData GetPrecedingNormalizedStringToSplitAt(
       const EditorDOMPointInText& aPointToSplit) const;
+
+  /**
+   * Return normalized surrounding white-spaces of the given range in aTextNode
+   * if there are some collapsible white-spaces.
+   */
+  ReplaceWhiteSpacesData GetSurroundingNormalizedStringToDelete(
+      const Text& aTextNode, uint32_t aOffset, uint32_t aLength) const;
 
   /**
    * ExtendRangeToDeleteWithNormalizingWhiteSpaces() is a helper method of
@@ -3607,6 +3622,13 @@ class HTMLEditor final : public EditorBase,
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   MaybeCollapseSelectionAtFirstEditableNode(
       bool aIgnoreIfSelectionInEditingHost) const;
+
+  /**
+   * Join aLeftText and aRightText with normalizing white-spaces at the joining
+   * point if it's required.  aRightText must be the next sibling of aLeftText.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<JoinNodesResult, nsresult>
+  JoinTextNodesWithNormalizeWhiteSpaces(Text& aLeftText, Text& aRightText);
 
   class BlobReader final {
     using AutoEditActionDataSetter = EditorBase::AutoEditActionDataSetter;

@@ -4209,9 +4209,19 @@ Result<CaretPoint, nsresult> HTMLEditor::DeleteTextWithTransaction(
 
 Result<InsertTextResult, nsresult> HTMLEditor::ReplaceTextWithTransaction(
     dom::Text& aTextNode, const ReplaceWhiteSpacesData& aData) {
-  return ReplaceTextWithTransaction(aTextNode, aData.mReplaceStartOffset,
-                                    aData.ReplaceLength(),
-                                    aData.mNormalizedString);
+  Result<InsertTextResult, nsresult> insertTextResultOrError =
+      ReplaceTextWithTransaction(aTextNode, aData.mReplaceStartOffset,
+                                 aData.ReplaceLength(),
+                                 aData.mNormalizedString);
+  if (MOZ_UNLIKELY(insertTextResultOrError.isErr()) ||
+      aData.mNewOffsetAfterReplace > aTextNode.TextDataLength()) {
+    return insertTextResultOrError;
+  }
+  InsertTextResult insertTextResult = insertTextResultOrError.unwrap();
+  insertTextResult.IgnoreCaretPointSuggestion();
+  EditorDOMPoint pointToPutCaret(&aTextNode, aData.mNewOffsetAfterReplace);
+  return InsertTextResult(std::move(insertTextResult),
+                          std::move(pointToPutCaret));
 }
 
 Result<InsertTextResult, nsresult> HTMLEditor::ReplaceTextWithTransaction(
@@ -5393,10 +5403,16 @@ nsresult HTMLEditor::CollapseAdjacentTextNodes(nsRange& aRange) {
       continue;
     }
     Result<JoinNodesResult, nsresult> joinNodesResultOrError =
-        JoinNodesWithTransaction(MOZ_KnownLive(leftTextNode),
-                                 MOZ_KnownLive(rightTextNode));
+        StaticPrefs::editor_white_space_normalization_blink_compatible()
+            ? JoinTextNodesWithNormalizeWhiteSpaces(
+                  MOZ_KnownLive(leftTextNode), MOZ_KnownLive(rightTextNode))
+            : JoinNodesWithTransaction(MOZ_KnownLive(leftTextNode),
+                                       MOZ_KnownLive(rightTextNode));
     if (MOZ_UNLIKELY(joinNodesResultOrError.isErr())) {
-      NS_WARNING("HTMLEditor::JoinNodesWithTransaction() failed");
+      NS_WARNING(
+          StaticPrefs::editor_white_space_normalization_blink_compatible()
+              ? "HTMLEditor::JoinTextNodesWithNormalizeWhiteSpaces() failed"
+              : "HTMLEditor::JoinNodesWithTransaction() failed");
       return joinNodesResultOrError.unwrapErr();
     }
   }
