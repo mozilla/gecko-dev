@@ -226,7 +226,7 @@ Result<int64_t, nsresult> BodyFinalizeWrite(nsIFile& aBaseDir,
 
 Result<int64_t, nsresult> GetBodyDiskSize(nsIFile& aBaseDir, const nsID& aId) {
   QM_TRY_INSPECT(const auto& finalFile,
-                 BodyIdToFile(aBaseDir, aId, BODY_FILE_FINAL));
+                 BodyIdToFile(aBaseDir, aId, BODY_FILE_FINAL, false));
 
   QM_TRY_INSPECT(const int64_t& fileSize,
                  MOZ_TO_RESULT_INVOKE_MEMBER(*finalFile, GetFileSize));
