@@ -867,6 +867,8 @@
   <string name="preferences_show_search_suggestions_in_private">Ehechauka tembiapo ñemigua</string>
   <!-- Preference title for switch preference to show trending search suggestions -->
   <string name="preferences_show_trending_search_suggestions">Ehechauka ñemoñe’ẽ ojehechavéva</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Ehechauka ojeheka ramóva</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Ehechauka kuatiajokoha ñemoñe’ẽ</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
@@ -1118,6 +1120,8 @@
   <string name="exceptions_empty_message_learn_more_link">Kuaave</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_1">Mba’ekuaarã aporekogua ha ñomongeta</string>
+  <!-- Preference switch for usage and technical data collection -->
+  <string name="preference_usage_data_2" tools:ignore="UnusedResources">Mba’ekuaarã aporekogua ha ñomongetarã</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Eikuaave</string>
   <!-- Preference description for usage and technical data collection -->
@@ -1322,6 +1326,8 @@
   <string name="studies_active">Myandy</string>
   <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
   <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s ikatu omohenda ha omongu’e kuaara’ã sapy’apy’a.</string>
+  <!-- Title of the Studies data preference -->
+  <string name="studies_title">Emohenda ha emongu’e mba’ekuaarã</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Kuaave</string>
   <!-- Dialog message shown after removing a study -->
@@ -2207,6 +2213,18 @@
   <string name="preference_doh_provider_custom_dialog_cancel">Heja</string>
   <!-- Add button text for provider textfield under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_add">Mbojuaju</string>
+  <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
+  <string name="preference_doh_exceptions">Oĩ’ỹva</string>
+  <!-- Description of "exceptions" for "DNS over HTTPS". The first parameter is the name of the application. (For example: Fenix) -->
+  <string name="preference_doh_exceptions_summary">%1$s ndoiporumo’ãi DNS hekorosãva ko’ã tenda ha tendatee’ípe.</string>
+  <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
+  <string name="preference_doh_exceptions_add">Embojuaju tenda</string>
+  <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_site">Tenda</string>
+  <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_placeholder">example.com</string>
+  <!-- Error displayed in the input field when adding invalid URLs for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_error">Oikoiteva’erã tendatee</string>
   <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
   <string name="preference_doh_exceptions_add_save">Ñongatu</string>
   <!-- Text displayed for removing all exceptions in "DNS over HTTPS" -->
@@ -2676,6 +2694,8 @@
   <string name="google_search_engine_suggestion_header">Google Jehekaha</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">Eheka %s ndive</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">Ojeheka ramóva</string>
   <!--
     Default browser experiment
 
@@ -3156,6 +3176,15 @@
   <string name="protection_panel_etp_toggle_enabled_description">Oĩramo ndoikoporãmbáiva ko tendápe, eñeha’ã eipe’a umi ñemo’ãha.</string>
   <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
   <string name="protection_panel_etp_toggle_disabled_description">Umi ñemo’ãha oñembotypáma. Roipota embojurujajey.</string>
+  <!-- Text for when no trackers have been blocked. -->
+  <string name="protection_panel_no_trackers_blocked">Ndojejuhúi tapykuehoha</string>
+  <!-- Link text to navigate to privacy and security settings from the protection panel. -->
+  <string name="protection_panel_privacy_and_security_settings">Ñemigua ha tekorosãrã ñemboheko</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the trackers blocked panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_total_num_trackers_blocked">Tapykuehoha jokopyre: %d</string>
   <!--
     Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
     %s is a placeholder for the name of the tracker category.
@@ -3313,6 +3342,8 @@
   <string name="debug_drawer_addresses_debug_locales_header">Ñe’ẽnguéra rysýi emyandy hag̃ua</string>
   <!-- The title of the header for the section for managing addresses. -->
   <string name="debug_drawer_addresses_management_header">Kundaharape ñangareko</string>
+  <!-- The title of the button in the debug drawer for adding a new address. -->
+  <string name="debug_drawer_add_new_address">Embojuaju kundaharape pyahu tenda’i poravopyrépe guarã</string>
   <!-- The title of the button for deleting in the debug drawer all addresses. -->
   <string name="debug_drawer_delete_all_addresses">Emboguepaite umi kundaharape</string>
   <!--

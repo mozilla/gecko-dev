@@ -710,6 +710,12 @@
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Agora não</string>
   <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Iniciar uma pesquisa rápida</string>
+  <!--
     Search Widget
 
     Content description for searching with a widget. The first parameter is the name of the application.
@@ -886,6 +892,8 @@
   <string name="preferences_search_browsing_history">Pesquisar no histórico de navegação</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">Pesquisar marcadores</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">Mostrar atalhos</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">Pesquisar separadores sincronizados</string>
   <!-- Preference for account settings -->
@@ -2598,6 +2606,8 @@
   <string name="quick_settings_sheet_secure_connection_2">A ligação é segura</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">A ligação não é segura</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">Esta página está armazenada no seu dispositivo.</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">Limpar cookies e dados de sites</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->

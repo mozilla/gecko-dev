@@ -659,12 +659,16 @@
   <string name="onboarding_term_of_service_line_three_link_text">ຈັດການ</string>
   <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
   <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">ຊ່ວຍພວກເຮົາພັດທະນາ Firefox</string>
+  <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">ເມື່ອທ່ານແບ່ງປັນວິທີທີ່ທ່ານຄົ້ນພົບ Firefox ແລະ ທີ່ທ່ານໃຊ້ມັນ, ທ່ານຊ່ວຍພວກເຮົາແນະນໍາຕົວທ່ອງເວັບຂອງພວກເຮົາໃຫ້ກັບຄົນຫຼາຍຂຶ້ນ.</string>
   <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">ພວກເຮົາໃຊ້ຂໍ້ມູນແນວໃດ</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">ຢືນຢັນ ແລະ ເລີ່ມໃຊ້ browser</string>
   <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
   <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">ຂັ້ນຕອນສຸດທ້າຍ</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">ຕົກລົງເຫັນດີ ແລະ ເລີ່ມຊອກຫາ</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">ເລືອກການຈັດວາງແຖບເຄື່ອງມື</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -849,6 +853,10 @@
   <string name="preferences_show_voice_search">ສະແດງການຄົ້ນຫາດ້ວຍສຽງ</string>
   <!-- Preference title for switch preference to show search suggestions also in private mode -->
   <string name="preferences_show_search_suggestions_in_private">ສະແດງໃນແຊສຊັນສ່ວນໂຕ</string>
+  <!-- Preference title for switch preference to show trending search suggestions -->
+  <string name="preferences_show_trending_search_suggestions">ສະແດງຄຳແນະນຳທີ່ກຳລັງມາແຮງ</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">ສະແດງການຄົ້ນຫາຫຼ້າສຸດ</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">ສະແດງຜົນການແນະນຳຄຣິບບອດ</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
@@ -906,6 +914,8 @@
   <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">ຕ້ອງການ</string>
   <!-- The title of the optional permissions section from addon's permissions screen -->
   <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">ທາງເລືອກ</string>
+  <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
+  <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">ອະນຸຍາດໃຫ້ສໍາລັບເວັບໄຊທ໌ທັງຫມົດ</string>
   <!-- Button caption to confirm the add-on collection configuration -->
   <string name="customize_addon_collection_ok">ໂອເຄ</string>
   <!-- Button caption to abort the add-on collection configuration -->
@@ -963,6 +973,14 @@
   <string name="wallpapers_onboarding_dialog_body_text">ເລືອກຮູບວໍເປເປີທີ່ບົ່ງບອກຄວາມເປັນໂຕຕົນຂອງທ່ານ.</string>
   <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
   <string name="wallpapers_onboarding_dialog_explore_more_button_text">ສຳຫຼວດຮູບພື້ນຫຼັງເພີ່ມເຕີມ</string>
+  <!--
+    Add-ons general availability nimbus message
+
+    Title of the Nimbus message for extension general availability
+  -->
+  <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">ສ່ວນຂະຫຍາຍໃໝ່ມີໃຫ້ແລ້ວ</string>
+  <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here -->
+  <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">ກວດເບິ່ງ 100+ ສ່ວນຂະຫຍາຍໃຫມ່ທີ່ຊ່ວຍໃຫ້ທ່ານສ້າງ Firefox ຂອງທ່ານເອງ.</string>
   <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
   <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">ລອງຣີສະຕາດສ່ວນຂະຫຍາຍ</string>
   <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->

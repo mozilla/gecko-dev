@@ -666,6 +666,12 @@
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Notre utilisation des données</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Confirmer et commencer la navigation</string>
+  <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Une dernière chose</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Partagez la manière dont vous avez découvert Firefox et que vous l’utilisez, avec les partenaires marketing de Mozilla. Ces données ne sont jamais vendues.</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Accepter et commencer la navigation</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Choisissez l’emplacement de la barre d’outils</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -870,6 +876,8 @@
   <string name="preferences_show_search_suggestions_in_private">Afficher au cours des sessions de navigation privée</string>
   <!-- Preference title for switch preference to show trending search suggestions -->
   <string name="preferences_show_trending_search_suggestions">Afficher les suggestions populaires</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Afficher les recherches récentes</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Afficher les suggestions du presse-papiers</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
@@ -2753,6 +2761,8 @@
   <string name="google_search_engine_suggestion_header">Recherche Google</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">Recherche %s</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">Recherches récentes</string>
   <!--
     Default browser experiment
 

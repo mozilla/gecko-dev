@@ -711,6 +711,12 @@
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">나중에</string>
   <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">빠른 검색 시작</string>
+  <!--
     Search Widget
 
     Content description for searching with a widget. The first parameter is the name of the application.
@@ -887,6 +893,8 @@
   <string name="preferences_search_browsing_history">방문 기록 검색</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">북마크 검색</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">바로 가기 표시</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">동기화된 탭 검색</string>
   <!-- Preference for account settings -->
@@ -2598,6 +2606,8 @@
   <string name="quick_settings_sheet_secure_connection_2">연결이 안전함</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">연결이 안전하지 않음</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">이 페이지는 사용자의 기기에 저장되었습니다.</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">쿠키 및 사이트 데이터 지우기</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->

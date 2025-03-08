@@ -876,6 +876,8 @@
   <string name="preferences_show_search_suggestions_in_private">於隱私瀏覽模式顯示</string>
   <!-- Preference title for switch preference to show trending search suggestions -->
   <string name="preferences_show_trending_search_suggestions">顯示熱門建議</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">顯示近期搜尋項目</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">顯示剪貼簿內容建議</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
@@ -2761,6 +2763,8 @@
   <string name="google_search_engine_suggestion_header">Google 搜尋</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">%s 搜尋</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">最近搜尋內容</string>
   <!--
     Default browser experiment
 
