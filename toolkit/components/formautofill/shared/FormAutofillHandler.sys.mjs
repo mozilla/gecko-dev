@@ -307,33 +307,36 @@ export class FormAutofillHandler {
     }
 
     // Insert <iframe> elements into the fieldDetails array, maintaining the element order.
-    const fieldDetailsIncludeIframe = [];
-    let index = 0;
-    const elements = formLike.rootElement.querySelectorAll(
-      "input, select, iframe"
-    );
-    for (const element of elements) {
-      if (fieldDetails[index]?.element == element) {
-        fieldDetailsIncludeIframe.push(fieldDetails[index]);
-        index++;
-      } else if (
-        element.localName == "iframe" &&
-        FormAutofillUtils.isFieldVisible(element)
-      ) {
-        // Add the <iframe> only if it is under the `formLike` element.
-        // While we use formLike.rootElement.querySelectorAll, it is still possible
-        // we find an <iframe> inside a <form> within this rootElement. In this
-        // case, we don't want to include the <iframe> in the field list.
-        if (
-          lazy.AutofillFormFactory.findRootForField(element) ==
-          formLike.rootElement
-        ) {
-          const iframeFd = lazy.FieldDetail.create(element, formLike, "iframe");
-          fieldDetailsIncludeIframe.push(iframeFd);
+    const elements = formLike.rootElement.querySelectorAll("iframe");
+
+    let startIndex = 0;
+
+    // eslint-disable-next-line no-labels
+    outer: for (const element of elements) {
+      if (FormAutofillUtils.isFieldVisible(element)) {
+        const iframeFd = lazy.FieldDetail.create(element, formLike, "iframe");
+
+        for (let index = startIndex; index < fieldDetails.length; index++) {
+          let position = element.compareDocumentPosition(
+            fieldDetails[index]?.element
+          );
+          if (
+            position &
+            (Node.DOCUMENT_POSITION_FOLLOWING |
+              Node.DOCUMENT_POSITION_CONTAINED_BY)
+          ) {
+            fieldDetails.splice(index, 0, iframeFd);
+            startIndex = index; // start from this index for later iframes
+            // eslint-disable-next-line no-labels
+            continue outer;
+          }
         }
+
+        fieldDetails.push(iframeFd);
       }
     }
-    return fieldDetailsIncludeIframe;
+
+    return fieldDetails;
   }
 
   /**
