@@ -2895,6 +2895,52 @@ WhiteSpaceVisibilityKeeper::InsertTextOrInsertOrUpdateCompositionString(
                    !pointToInsert.IsSetAndValidInComposedDoc())) {
       return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
     }
+    // If we're starting composition, we won't normalizing surrounding
+    // white-spaces until end of the composition.  Additionally, at that time,
+    // we need to assume all white-spaces of surrounding white-spaces are
+    // visible because canceling composition may cause previous white-space
+    // invisible temporarily. Therefore, we should normalize surrounding
+    // white-spaces to delete invisible white-spaces contained in the sequence.
+    // E.g., `NBSP SP SP NBSP`, in this case, one of the SP is invisible.
+    if (EditorBase::InsertingTextForStartingComposition(aPurpose) &&
+        pointToInsert.IsInTextNode()) {
+      const auto whiteSpaceOffset = [&]() -> Maybe<uint32_t> {
+        if (!pointToInsert.IsEndOfContainer() &&
+            pointToInsert.IsCharCollapsibleASCIISpaceOrNBSP()) {
+          return Some(pointToInsert.Offset());
+        }
+        if (!pointToInsert.IsStartOfContainer() &&
+            pointToInsert.IsPreviousCharCollapsibleASCIISpaceOrNBSP()) {
+          return Some(pointToInsert.Offset() - 1u);
+        }
+        return Nothing();
+      }();
+      if (whiteSpaceOffset.isSome()) {
+        Maybe<AutoTrackDOMPoint> trackPointToInsert;
+        if (pointToInsert.Offset() != *whiteSpaceOffset) {
+          trackPointToInsert.emplace(aHTMLEditor.RangeUpdaterRef(),
+                                     &pointToInsert);
+        }
+        Result<EditorDOMPoint, nsresult> pointToInsertOrError =
+            WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesAt(
+                aHTMLEditor,
+                EditorDOMPointInText(pointToInsert.ContainerAs<Text>(),
+                                     *whiteSpaceOffset));
+        if (MOZ_UNLIKELY(pointToInsertOrError.isErr())) {
+          NS_WARNING(
+              "WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesAt() failed");
+          return pointToInsertOrError.propagateErr();
+        }
+        if (trackPointToInsert.isSome()) {
+          trackPointToInsert.reset();
+        } else {
+          pointToInsert = pointToInsertOrError.unwrap();
+        }
+        if (NS_WARN_IF(!pointToInsert.IsInContentNodeAndValidInComposedDoc())) {
+          return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+        }
+      }
+    }
   }
 
   if (NS_WARN_IF(!pointToInsert.IsInContentNode())) {
@@ -2932,12 +2978,160 @@ WhiteSpaceVisibilityKeeper::InsertTextOrInsertOrUpdateCompositionString(
   Result<InsertTextResult, nsresult> insertOrReplaceTextResultOrError =
       aHTMLEditor.InsertOrReplaceTextWithTransaction(pointToInsert,
                                                      insertTextData);
-  NS_WARNING_ASSERTION(insertOrReplaceTextResultOrError.isOk(),
-                       "HTMLEditor::ReplaceTextWithTransaction() failed");
-  // TODO: We need to normalize surrounding white-spaces if this insertion ends
-  // a composition.  However, it requires more utility methods.  Therefore,
-  // it'll be implemented in a following patch.
-  return insertOrReplaceTextResultOrError;
+  if (MOZ_UNLIKELY(insertOrReplaceTextResultOrError.isErr())) {
+    NS_WARNING("HTMLEditor::ReplaceTextWithTransaction() failed");
+    return insertOrReplaceTextResultOrError;
+  }
+  // If the composition is committed, we should normalize surrounding
+  // white-spaces of the commit string.
+  if (aPurpose != InsertTextFor::CompositionEnd &&
+      aPurpose != InsertTextFor::CompositionStartAndEnd) {
+    return insertOrReplaceTextResultOrError;
+  }
+  InsertTextResult insertOrReplaceTextResult =
+      insertOrReplaceTextResultOrError.unwrap();
+  const EditorDOMPointInText endOfCommitString =
+      insertOrReplaceTextResult.EndOfInsertedTextRef().GetAsInText();
+  if (!endOfCommitString.IsSet() || endOfCommitString.IsContainerEmpty()) {
+    return std::move(insertOrReplaceTextResult);
+  }
+  if (NS_WARN_IF(endOfCommitString.Offset() <
+                 insertTextData.mNormalizedString.Length())) {
+    insertOrReplaceTextResult.IgnoreCaretPointSuggestion();
+    return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+  }
+  const EditorDOMPointInText startOfCommitString(
+      endOfCommitString.ContainerAs<Text>(),
+      endOfCommitString.Offset() - insertTextData.mNormalizedString.Length());
+  MOZ_ASSERT(insertOrReplaceTextResult.EndOfInsertedTextRef() ==
+             insertOrReplaceTextResult.CaretPointRef());
+  EditorDOMPoint pointToPutCaret = insertOrReplaceTextResult.UnwrapCaretPoint();
+  // First, normalize the trailing white-spaces if there is.  Note that its
+  // sequence may start from before the commit string.  In such case, the
+  // another call of NormalizeWhiteSpacesAt() won't update the DOM.
+  if (endOfCommitString.IsMiddleOfContainer()) {
+    nsresult rv = WhiteSpaceVisibilityKeeper::
+        NormalizeVisibleWhiteSpacesWithoutDeletingInvisibleWhiteSpaces(
+            aHTMLEditor, endOfCommitString.PreviousPoint());
+    if (NS_FAILED(rv)) {
+      NS_WARNING(
+          "WhiteSpaceVisibilityKeeper::"
+          "NormalizeVisibleWhiteSpacesWithoutDeletingInvisibleWhiteSpaces() "
+          "failed");
+      return Err(rv);
+    }
+    if (NS_WARN_IF(!pointToPutCaret.IsSetAndValidInComposedDoc())) {
+      return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+    }
+  }
+  // Finally, normalize the leading white-spaces if there is and not a part of
+  // the trailing white-spaces.
+  if (!startOfCommitString.IsStartOfContainer()) {
+    nsresult rv = WhiteSpaceVisibilityKeeper::
+        NormalizeVisibleWhiteSpacesWithoutDeletingInvisibleWhiteSpaces(
+            aHTMLEditor, startOfCommitString.PreviousPoint());
+    if (NS_FAILED(rv)) {
+      NS_WARNING(
+          "WhiteSpaceVisibilityKeeper::"
+          "NormalizeVisibleWhiteSpacesWithoutDeletingInvisibleWhiteSpaces() "
+          "failed");
+      return Err(rv);
+    }
+    if (NS_WARN_IF(!pointToPutCaret.IsSetAndValidInComposedDoc())) {
+      return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+    }
+  }
+  EditorDOMPoint endOfCommitStringAfterNormalized = pointToPutCaret;
+  return InsertTextResult(std::move(endOfCommitStringAfterNormalized),
+                          CaretPoint(std::move(pointToPutCaret)));
+}
+
+// static
+nsresult WhiteSpaceVisibilityKeeper::
+    NormalizeVisibleWhiteSpacesWithoutDeletingInvisibleWhiteSpaces(
+        HTMLEditor& aHTMLEditor, const EditorDOMPointInText& aPoint) {
+  MOZ_ASSERT(StaticPrefs::editor_white_space_normalization_blink_compatible());
+  MOZ_ASSERT(aPoint.IsSet());
+  MOZ_ASSERT(!aPoint.IsEndOfContainer());
+
+  if (EditorUtils::IsWhiteSpacePreformatted(*aPoint.ContainerAs<Text>())) {
+    return NS_OK;
+  }
+  Text& textNode = *aPoint.ContainerAs<Text>();
+  const bool isNewLinePreformatted =
+      EditorUtils::IsNewLinePreformatted(textNode);
+  const auto IsCollapsibleChar = [&](char16_t aChar) {
+    return aChar == HTMLEditUtils::kNewLine ? !isNewLinePreformatted
+                                            : nsCRT::IsAsciiSpace(aChar);
+  };
+  const auto IsCollapsibleCharOrNBSP = [&](char16_t aChar) {
+    return aChar == HTMLEditUtils::kNBSP || IsCollapsibleChar(aChar);
+  };
+  const auto whiteSpaceOffset = [&]() -> Maybe<uint32_t> {
+    if (IsCollapsibleCharOrNBSP(aPoint.Char())) {
+      return Some(aPoint.Offset());
+    }
+    if (!aPoint.IsAtLastContent() &&
+        IsCollapsibleCharOrNBSP(aPoint.NextChar())) {
+      return Some(aPoint.Offset() + 1u);
+    }
+    return Nothing();
+  }();
+  if (whiteSpaceOffset.isNothing()) {
+    return NS_OK;
+  }
+  const uint32_t firstOffset = [&]() {
+    for (const uint32_t offset : Reversed(IntegerRange(*whiteSpaceOffset))) {
+      if (!IsCollapsibleCharOrNBSP(textNode.TextFragment().CharAt(offset))) {
+        return offset + 1u;
+      }
+    }
+    return 0u;
+  }();
+  const uint32_t endOffset = [&]() {
+    for (const uint32_t offset :
+         IntegerRange(*whiteSpaceOffset + 1, textNode.TextDataLength())) {
+      if (!IsCollapsibleCharOrNBSP(textNode.TextFragment().CharAt(offset))) {
+        return offset;
+      }
+    }
+    return textNode.TextDataLength();
+  }();
+  nsAutoString normalizedString;
+  const char16_t precedingChar =
+      !firstOffset ? static_cast<char16_t>(0)
+                   : textNode.TextFragment().CharAt(firstOffset - 1u);
+  const char16_t followingChar =
+      endOffset == textNode.TextDataLength()
+          ? static_cast<char16_t>(0)
+          : textNode.TextFragment().CharAt(endOffset);
+  HTMLEditor::GenerateWhiteSpaceSequence(
+      normalizedString, endOffset - firstOffset,
+      !firstOffset ? HTMLEditor::CharPointData::InSameTextNode(
+                         HTMLEditor::CharPointType::TextEnd)
+                   : HTMLEditor::CharPointData::InSameTextNode(
+                         precedingChar == HTMLEditUtils::kNewLine
+                             ? HTMLEditor::CharPointType::PreformattedLineBreak
+                             : HTMLEditor::CharPointType::VisibleChar),
+      endOffset == textNode.TextDataLength()
+          ? HTMLEditor::CharPointData::InSameTextNode(
+                HTMLEditor::CharPointType::TextEnd)
+          : HTMLEditor::CharPointData::InSameTextNode(
+                followingChar == HTMLEditUtils::kNewLine
+                    ? HTMLEditor::CharPointType::PreformattedLineBreak
+                    : HTMLEditor::CharPointType::VisibleChar));
+  MOZ_ASSERT(normalizedString.Length() == endOffset - firstOffset);
+  const OwningNonNull<Text> text(textNode);
+  Result<InsertTextResult, nsresult> normalizeWhiteSpaceSequenceResultOrError =
+      aHTMLEditor.ReplaceTextWithTransaction(
+          text, firstOffset, endOffset - firstOffset, normalizedString);
+  if (MOZ_UNLIKELY(normalizeWhiteSpaceSequenceResultOrError.isErr())) {
+    NS_WARNING("HTMLEditor::ReplaceTextWithTransaction() failed");
+    return normalizeWhiteSpaceSequenceResultOrError.unwrapErr();
+  }
+  normalizeWhiteSpaceSequenceResultOrError.unwrap()
+      .IgnoreCaretPointSuggestion();
+  return NS_OK;
 }
 
 // static

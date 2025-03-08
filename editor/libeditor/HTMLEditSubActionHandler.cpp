@@ -1194,7 +1194,7 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
         NS_WARNING("HTMLEditor::InsertTextWithTransaction() failed");
         return insertEmptyTextResultOrError.propagateErr();
       }
-      const InsertTextResult insertEmptyTextResult =
+      InsertTextResult insertEmptyTextResult =
           insertEmptyTextResultOrError.unwrap();
       nsresult rv = EnsureNoFollowingUnnecessaryLineBreak(
           insertEmptyTextResult.EndOfInsertedTextRef());
@@ -1202,6 +1202,26 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
         NS_WARNING(
             "HTMLEditor::EnsureNoFollowingUnnecessaryLineBreak() failed");
         return Err(rv);
+      }
+      const EditorDOMPoint& endOfInsertedText =
+          insertEmptyTextResult.EndOfInsertedTextRef();
+      if (StaticPrefs::editor_white_space_normalization_blink_compatible() &&
+          endOfInsertedText.IsInTextNode() &&
+          !endOfInsertedText.IsStartOfContainer()) {
+        nsresult rv = WhiteSpaceVisibilityKeeper::
+            NormalizeVisibleWhiteSpacesWithoutDeletingInvisibleWhiteSpaces(
+                *this, endOfInsertedText.AsInText().PreviousPoint());
+        if (NS_FAILED(rv)) {
+          NS_WARNING(
+              "WhiteSpaceVisibilityKeeper::"
+              "NormalizeVisibleWhiteSpacesWithoutDeletingInvisibleWhiteSpaces()"
+              " failed");
+          return Err(rv);
+        }
+        if (NS_WARN_IF(
+                !endOfInsertedText.IsInContentNodeAndValidInComposedDoc())) {
+          return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+        }
       }
       // If we replaced non-empty composition string with an empty string,
       // its preceding character may be a collapsible ASCII white-space.

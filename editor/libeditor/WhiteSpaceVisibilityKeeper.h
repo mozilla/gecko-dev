@@ -321,6 +321,14 @@ class WhiteSpaceVisibilityKeeper final {
   }
 
   /**
+   * Normalize white-space sequence containing aPoint or starts from next to
+   * aPoint.  This assumes all white-spaces in the sequence is visible.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static nsresult
+  NormalizeVisibleWhiteSpacesWithoutDeletingInvisibleWhiteSpaces(
+      HTMLEditor& aHTMLEditor, const EditorDOMPointInText& aPoint);
+
+  /**
    * Delete previous white-space of aPoint.  This automatically keeps visibility
    * of white-spaces around aPoint. E.g., may remove invisible leading
    * white-spaces.
