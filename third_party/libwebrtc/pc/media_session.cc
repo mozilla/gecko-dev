@@ -425,50 +425,6 @@ RTCError CreateMediaContentOffer(
                             offer);
 }
 
-// Update the ID fields of the codec vector.
-// If any codec has an ID with value "kIdNotSet", use the payload type suggester
-// to assign and record a payload type for it.
-// If there is a RED codec without its fmtp parameter, give it the ID of the
-// first OPUS codec in the codec list.
-webrtc::RTCError AssignCodecIdsAndLinkRed(
-    webrtc::PayloadTypeSuggester* pt_suggester,
-    const std::string& mid,
-    std::vector<Codec>& codecs) {
-  int codec_payload_type = Codec::kIdNotSet;
-  for (cricket::Codec& codec : codecs) {
-    if (codec.id == Codec::kIdNotSet) {
-      // Add payload types to codecs, if needed
-      // This should only happen if WebRTC-PayloadTypesInTransport field trial
-      // is enabled.
-      RTC_CHECK(pt_suggester);
-      auto result = pt_suggester->SuggestPayloadType(mid, codec);
-      if (!result.ok()) {
-        return result.error();
-      }
-      codec.id = result.value();
-    }
-    // record first Opus codec id
-    if (absl::EqualsIgnoreCase(codec.name, kOpusCodecName) &&
-        codec_payload_type == Codec::kIdNotSet) {
-      codec_payload_type = codec.id;
-    }
-  }
-  if (codec_payload_type != Codec::kIdNotSet) {
-    for (cricket::Codec& codec : codecs) {
-      if (codec.type == Codec::Type::kAudio &&
-          absl::EqualsIgnoreCase(codec.name, kRedCodecName)) {
-        if (codec.params.empty()) {
-          char buffer[100];
-          rtc::SimpleStringBuilder param(buffer);
-          param << codec_payload_type << "/" << codec_payload_type;
-          codec.SetParam(kCodecParamNotInNameValueFormat, param.str());
-        }
-      }
-    }
-  }
-  return webrtc::RTCError::OK();
-}
-
 // Adds all extensions from `reference_extensions` to `offered_extensions` that
 // don't already exist in `offered_extensions` and ensures the IDs don't
 // collide. If an extension is added, it's also added to
@@ -1250,21 +1206,14 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForOffer(
              media_description_options.type == MEDIA_TYPE_VIDEO);
 
   std::vector<Codec> codecs_to_include;
-  if (media_description_options.codecs_to_include.empty()) {
-    webrtc::RTCErrorOr<std::vector<Codec>> error_or_filtered_codecs =
-        codec_vendor_->GetNegotiatedCodecsForOffer(media_description_options,
-                                                   session_options,
-                                                   current_content, codecs);
-    if (!error_or_filtered_codecs.ok()) {
-      return error_or_filtered_codecs.MoveError();
-    }
-    codecs_to_include = error_or_filtered_codecs.MoveValue();
-  } else {
-    // Ignore both the codecs argument and the Get*CodecsForOffer results.
-    codecs_to_include = media_description_options.codecs_to_include;
+  webrtc::RTCErrorOr<std::vector<Codec>> error_or_filtered_codecs =
+      codec_vendor_->GetNegotiatedCodecsForOffer(
+          media_description_options, session_options, current_content,
+          *pt_suggester_, codecs);
+  if (!error_or_filtered_codecs.ok()) {
+    return error_or_filtered_codecs.MoveError();
   }
-  AssignCodecIdsAndLinkRed(pt_suggester_, media_description_options.mid,
-                           codecs_to_include);
+  codecs_to_include = error_or_filtered_codecs.MoveValue();
   std::unique_ptr<MediaContentDescription> content_description;
   if (media_description_options.type == MEDIA_TYPE_AUDIO) {
     content_description = std::make_unique<AudioContentDescription>();
@@ -1415,18 +1364,15 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
   auto answer_rtd = NegotiateRtpTransceiverDirection(offer_rtd, wants_rtd);
 
   std::vector<Codec> codecs_to_include;
-  if (media_description_options.codecs_to_include.empty()) {
-    webrtc::RTCErrorOr<std::vector<Codec>> error_or_filtered_codecs =
-        codec_vendor_->GetNegotiatedCodecsForAnswer(
-            media_description_options, session_options, offer_rtd, answer_rtd,
-            current_content, offer_content_description->codecs(), codecs);
-    if (!error_or_filtered_codecs.ok()) {
-      return error_or_filtered_codecs.MoveError();
-    }
-    codecs_to_include = error_or_filtered_codecs.MoveValue();
-  } else {
-    codecs_to_include = media_description_options.codecs_to_include;
+  webrtc::RTCErrorOr<std::vector<Codec>> error_or_filtered_codecs =
+      codec_vendor_->GetNegotiatedCodecsForAnswer(
+          media_description_options, session_options, offer_rtd, answer_rtd,
+          current_content, offer_content_description->codecs(), *pt_suggester_,
+          codecs);
+  if (!error_or_filtered_codecs.ok()) {
+    return error_or_filtered_codecs.MoveError();
   }
+  codecs_to_include = error_or_filtered_codecs.MoveValue();
   // Determine if we have media codecs in common.
   bool has_usable_media_codecs =
       std::find_if(codecs_to_include.begin(), codecs_to_include.end(),
@@ -1442,8 +1388,6 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
   } else {
     answer_content = std::make_unique<VideoContentDescription>();
   }
-  AssignCodecIdsAndLinkRed(pt_suggester_, media_description_options.mid,
-                           codecs_to_include);
   // RFC 8888 support. Only answer with "ack ccfb" if offer has it and
   // experiment is enabled.
   if (offer_content_description->rtcp_fb_ack_ccfb()) {

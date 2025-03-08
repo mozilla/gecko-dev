@@ -15,6 +15,7 @@
 
 #include "api/rtc_error.h"
 #include "api/rtp_transceiver_direction.h"
+#include "call/payload_type.h"
 #include "media/base/codec.h"
 #include "media/base/codec_list.h"
 #include "media/base/media_engine.h"
@@ -77,6 +78,7 @@ class CodecVendor {
       const MediaDescriptionOptions& media_description_options,
       const MediaSessionOptions& session_options,
       const ContentInfo* current_content,
+      webrtc::PayloadTypeSuggester& pt_suggester,
       const CodecList& codecs);
 
   webrtc::RTCErrorOr<Codecs> GetNegotiatedCodecsForAnswer(
@@ -86,6 +88,7 @@ class CodecVendor {
       webrtc::RtpTransceiverDirection answer_rtd,
       const ContentInfo* current_content,
       std::vector<Codec> codecs_from_offer,
+      webrtc::PayloadTypeSuggester& pt_suggester,
       const CodecList& codecs);
 
   // Functions exposed for testing

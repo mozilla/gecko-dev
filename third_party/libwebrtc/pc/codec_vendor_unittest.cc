@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "call/payload_type.h"
 #include "media/base/codec.h"
 #include "media/base/codec_list.h"
 #include "media/base/media_constants.h"
