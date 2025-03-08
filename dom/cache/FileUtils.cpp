@@ -205,10 +205,10 @@ void BodyCancelWrite(nsISupports& aCopyContext) {
 Result<int64_t, nsresult> BodyFinalizeWrite(nsIFile& aBaseDir,
                                             const nsID& aId) {
   QM_TRY_INSPECT(const auto& tmpFile,
-                 BodyIdToFile(aBaseDir, aId, BODY_FILE_TMP));
+                 BodyIdToFile(aBaseDir, aId, BODY_FILE_TMP, false));
 
   QM_TRY_INSPECT(const auto& finalFile,
-                 BodyIdToFile(aBaseDir, aId, BODY_FILE_FINAL));
+                 BodyIdToFile(aBaseDir, aId, BODY_FILE_FINAL, false));
 
   nsAutoString finalFileName;
   QM_TRY(MOZ_TO_RESULT(finalFile->GetLeafName(finalFileName)));
