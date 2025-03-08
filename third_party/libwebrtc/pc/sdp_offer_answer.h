@@ -80,7 +80,9 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
   static std::unique_ptr<SdpOfferAnswerHandler> Create(
       PeerConnectionSdpMethods* pc,
       const PeerConnectionInterface::RTCConfiguration& configuration,
-      PeerConnectionDependencies& dependencies,
+      std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator,
+      std::unique_ptr<webrtc::VideoBitrateAllocatorFactory>
+          video_bitrate_allocator_factory,
       ConnectionContext* context,
       PayloadTypeSuggester* pt_suggester);
 
@@ -213,7 +215,9 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
   // once. Modifies dependencies.
   void Initialize(
       const PeerConnectionInterface::RTCConfiguration& configuration,
-      PeerConnectionDependencies& dependencies,
+      std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator,
+      std::unique_ptr<webrtc::VideoBitrateAllocatorFactory>
+          video_bitrate_allocator_factory,
       ConnectionContext* context,
       PayloadTypeSuggester* pt_suggester);
 

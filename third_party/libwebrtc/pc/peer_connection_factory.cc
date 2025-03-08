@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <utility>
+#include <vector>
 
 #include "absl/strings/match.h"
 #include "api/environment/environment.h"
@@ -28,6 +29,7 @@
 #include "p2p/base/port_allocator.h"
 #include "p2p/client/basic_port_allocator.h"
 #include "pc/audio_track.h"
+#include "pc/ice_server_parsing.h"
 #include "pc/local_audio_source.h"
 #include "pc/media_factory.h"
 #include "pc/media_stream.h"
@@ -220,6 +222,14 @@ PeerConnectionFactory::CreatePeerConnectionOrError(
     return err;
   }
 
+  cricket::ServerAddresses stun_servers;
+  std::vector<cricket::RelayServerConfig> turn_servers;
+  err = ParseAndValidateIceServersFromConfiguration(configuration, stun_servers,
+                                                    turn_servers);
+  if (!err.ok()) {
+    return err;
+  }
+
   if (!dependencies.observer) {
     RTC_LOG(LS_ERROR) << "PeerConnection initialized without a "
                          "PeerConnectionObserver";
@@ -285,11 +295,9 @@ PeerConnectionFactory::CreatePeerConnectionOrError(
                             std::move(network_controller_factory));
       });
 
-  auto result = PeerConnection::Create(env, context_, options_, std::move(call),
-                                       configuration, std::move(dependencies));
-  if (!result.ok()) {
-    return result.MoveError();
-  }
+  auto pc = PeerConnection::Create(env, context_, options_, std::move(call),
+                                   configuration, std::move(dependencies),
+                                   stun_servers, turn_servers);
   // We configure the proxy with a pointer to the network thread for methods
   // that need to be invoked there rather than on the signaling thread.
   // Internally, the proxy object has a member variable named `worker_thread_`
@@ -298,7 +306,7 @@ PeerConnectionFactory::CreatePeerConnectionOrError(
   // should still be clear (outside of macro expansion).
   rtc::scoped_refptr<PeerConnectionInterface> result_proxy =
       PeerConnectionProxy::Create(signaling_thread(), network_thread(),
-                                  result.MoveValue());
+                                  std::move(pc));
   return result_proxy;
 }
 

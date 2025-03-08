@@ -350,4 +350,33 @@ RTCError ParseIceServersOrError(
   return RTCError::OK();
 }
 
+RTCError ParseAndValidateIceServersFromConfiguration(
+    const PeerConnectionInterface::RTCConfiguration& configuration,
+    cricket::ServerAddresses& stun_servers,
+    std::vector<cricket::RelayServerConfig>& turn_servers) {
+  RTC_DCHECK(stun_servers.empty());
+  RTC_DCHECK(turn_servers.empty());
+  RTCError err = ParseIceServersOrError(configuration.servers, &stun_servers,
+                                        &turn_servers);
+  if (!err.ok()) {
+    return err;
+  }
+
+  // Restrict number of TURN servers.
+  if (turn_servers.size() > cricket::kMaxTurnServers) {
+    RTC_LOG(LS_WARNING) << "Number of configured TURN servers is "
+                        << turn_servers.size()
+                        << " which exceeds the maximum allowed number of "
+                        << cricket::kMaxTurnServers;
+    turn_servers.resize(cricket::kMaxTurnServers);
+  }
+
+  // Add the turn logging id to all turn servers
+  for (cricket::RelayServerConfig& turn_server : turn_servers) {
+    turn_server.turn_logging_id = configuration.turn_logging_id;
+  }
+
+  return RTCError::OK();
+}
+
 }  // namespace webrtc

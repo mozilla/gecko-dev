@@ -1422,17 +1422,23 @@ SdpOfferAnswerHandler::~SdpOfferAnswerHandler() {}
 std::unique_ptr<SdpOfferAnswerHandler> SdpOfferAnswerHandler::Create(
     PeerConnectionSdpMethods* pc,
     const PeerConnectionInterface::RTCConfiguration& configuration,
-    PeerConnectionDependencies& dependencies,
+    std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator,
+    std::unique_ptr<webrtc::VideoBitrateAllocatorFactory>
+        video_bitrate_allocator_factory,
     ConnectionContext* context,
     PayloadTypeSuggester* pt_suggester) {
   auto handler = absl::WrapUnique(new SdpOfferAnswerHandler(pc, context));
-  handler->Initialize(configuration, dependencies, context, pt_suggester);
+  handler->Initialize(configuration, std::move(cert_generator),
+                      std::move(video_bitrate_allocator_factory), context,
+                      pt_suggester);
   return handler;
 }
 
 void SdpOfferAnswerHandler::Initialize(
     const PeerConnectionInterface::RTCConfiguration& configuration,
-    PeerConnectionDependencies& dependencies,
+    std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator,
+    std::unique_ptr<webrtc::VideoBitrateAllocatorFactory>
+        video_bitrate_allocator_factory,
     ConnectionContext* context,
     PayloadTypeSuggester* pt_suggester) {
   RTC_DCHECK_RUN_ON(signaling_thread());
@@ -1462,7 +1468,7 @@ void SdpOfferAnswerHandler::Initialize(
   webrtc_session_desc_factory_ =
       std::make_unique<WebRtcSessionDescriptionFactory>(
           context, this, pc_->session_id(), pc_->dtls_enabled(),
-          std::move(dependencies.cert_generator), std::move(certificate),
+          std::move(cert_generator), std::move(certificate),
           [this](const rtc::scoped_refptr<rtc::RTCCertificate>& certificate) {
             RTC_DCHECK_RUN_ON(signaling_thread());
             transport_controller_s()->SetLocalCertificate(certificate);
@@ -1479,10 +1485,8 @@ void SdpOfferAnswerHandler::Initialize(
       pc_->GetCryptoOptions().srtp.enable_encrypted_rtp_header_extensions);
   webrtc_session_desc_factory_->set_is_unified_plan(IsUnifiedPlan());
 
-  if (dependencies.video_bitrate_allocator_factory) {
-    video_bitrate_allocator_factory_ =
-        std::move(dependencies.video_bitrate_allocator_factory);
-  } else {
+  video_bitrate_allocator_factory_ = std::move(video_bitrate_allocator_factory);
+  if (!video_bitrate_allocator_factory_) {
     video_bitrate_allocator_factory_ =
         CreateBuiltinVideoBitrateAllocatorFactory();
   }

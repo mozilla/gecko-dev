@@ -137,7 +137,6 @@ using cricket::TransportInfo;
 namespace webrtc {
 
 namespace {
-
 static const int REPORT_USAGE_PATTERN_DELAY_MS = 60000;
 
 uint32_t ConvertIceTransportTypeToCandidateFilter(
@@ -345,44 +344,16 @@ bool DtlsEnabled(const PeerConnectionInterface::RTCConfiguration& configuration,
   return (dependencies.cert_generator || !configuration.certificates.empty());
 }
 
-// Calls `ParseIceServersOrError` to extract ice server information from the
-// `configuration` and then validates the extracted configuration. For a
-// non-empty list of servers, usage gets recorded via `usage_pattern`.
-RTCError ParseAndValidateIceServersFromConfiguration(
-    const PeerConnectionInterface::RTCConfiguration& configuration,
-    cricket::ServerAddresses& stun_servers,
-    std::vector<cricket::RelayServerConfig>& turn_servers,
-    UsagePattern& usage_pattern) {
-  RTC_DCHECK(stun_servers.empty());
-  RTC_DCHECK(turn_servers.empty());
-  RTCError err = ParseIceServersOrError(configuration.servers, &stun_servers,
-                                        &turn_servers);
-  if (!err.ok()) {
-    return err;
-  }
-
-  // Restrict number of TURN servers.
-  if (turn_servers.size() > cricket::kMaxTurnServers) {
-    RTC_LOG(LS_WARNING) << "Number of configured TURN servers is "
-                        << turn_servers.size()
-                        << " which exceeds the maximum allowed number of "
-                        << cricket::kMaxTurnServers;
-    turn_servers.resize(cricket::kMaxTurnServers);
-  }
-
-  // Add the turn logging id to all turn servers
-  for (cricket::RelayServerConfig& turn_server : turn_servers) {
-    turn_server.turn_logging_id = configuration.turn_logging_id;
-  }
-
-  // Note if STUN or TURN servers were supplied.
+void NoteServerUsage(
+    UsagePattern& usage_pattern,
+    const cricket::ServerAddresses& stun_servers,
+    const std::vector<cricket::RelayServerConfig>& turn_servers) {
   if (!stun_servers.empty()) {
     usage_pattern.NoteUsageEvent(UsageEvent::STUN_SERVER_ADDED);
   }
   if (!turn_servers.empty()) {
     usage_pattern.NoteUsageEvent(UsageEvent::TURN_SERVER_ADDED);
   }
-  return RTCError::OK();
 }
 
 }  // namespace
@@ -519,13 +490,15 @@ bool PeerConnectionInterface::RTCConfiguration::operator!=(
 // This means that a `PeerConnection` instance can be constructed simply by
 // using the constructor and the config error checking is moved out of the
 // class.
-RTCErrorOr<rtc::scoped_refptr<PeerConnection>> PeerConnection::Create(
+rtc::scoped_refptr<PeerConnection> PeerConnection::Create(
     const Environment& env,
     rtc::scoped_refptr<ConnectionContext> context,
     const PeerConnectionFactoryInterface::Options& options,
     std::unique_ptr<Call> call,
     const PeerConnectionInterface::RTCConfiguration& configuration,
-    PeerConnectionDependencies dependencies) {
+    PeerConnectionDependencies dependencies,
+    const cricket::ServerAddresses& stun_servers,
+    const std::vector<cricket::RelayServerConfig>& turn_servers) {
   RTC_DCHECK(cricket::IceConfig(configuration).IsValid().ok());
   RTC_DCHECK(dependencies.observer);
   RTC_DCHECK(dependencies.async_dns_resolver_factory);
@@ -535,19 +508,21 @@ RTCErrorOr<rtc::scoped_refptr<PeerConnection>> PeerConnection::Create(
       configuration.sdp_semantics == SdpSemantics::kUnifiedPlan;
   bool dtls_enabled = DtlsEnabled(configuration, options, dependencies);
 
+  // Perf trace scope for the full initialization of a PeerConnection instance.
+  TRACE_EVENT0("webrtc", "PeerConnection::Create");
+
   // The PeerConnection constructor consumes some, but not all, dependencies.
   auto pc = rtc::make_ref_counted<PeerConnection>(
-      env, context, options, is_unified_plan, std::move(call), dependencies,
-      dtls_enabled);
-  RTCError init_error = pc->Initialize(configuration, std::move(dependencies));
-  if (!init_error.ok()) {
-    RTC_LOG(LS_ERROR) << "PeerConnection initialization failed";
-    return init_error;
-  }
+      configuration, env, context, options, is_unified_plan, std::move(call),
+      dependencies, dtls_enabled);
+  pc->Initialize(std::move(dependencies.cert_generator),
+                 std::move(dependencies.video_bitrate_allocator_factory),
+                 stun_servers, turn_servers);
   return pc;
 }
 
 PeerConnection::PeerConnection(
+    const PeerConnectionInterface::RTCConfiguration& configuration,
     const Environment& env,
     rtc::scoped_refptr<ConnectionContext> context,
     const PeerConnectionFactoryInterface::Options& options,
@@ -560,16 +535,22 @@ PeerConnection::PeerConnection(
       options_(options),
       observer_(dependencies.observer),
       is_unified_plan_(is_unified_plan),
+      configuration_(configuration),
       async_dns_resolver_factory_(
           std::move(dependencies.async_dns_resolver_factory)),
       port_allocator_(std::move(dependencies.allocator)),
       ice_transport_factory_(std::move(dependencies.ice_transport_factory)),
       tls_cert_verifier_(std::move(dependencies.tls_cert_verifier)),
       call_(std::move(call)),
+      network_thread_safety_(
+          PendingTaskSafetyFlag::CreateAttachedToTaskQueue(true,
+                                                           network_thread())),
       worker_thread_safety_(PendingTaskSafetyFlag::CreateAttachedToTaskQueue(
           /*alive=*/call_ != nullptr,
           worker_thread())),
       call_ptr_(call_.get()),
+      legacy_stats_(std::make_unique<LegacyStatsCollector>(this)),
+      stats_collector_(RTCStatsCollector::Create(this, env_)),
       // RFC 3264: The numeric value of the session id and version in the
       // o line MUST be representable with a "64 bit signed integer".
       // Due to this constraint session id `session_id_` is max limited to
@@ -581,6 +562,16 @@ PeerConnection::PeerConnection(
       weak_factory_(this) {
   // Field trials specific to the peerconnection should be owned by the `env`,
   RTC_DCHECK(dependencies.trials == nullptr);
+
+  const int delay_ms = configuration_.report_usage_pattern_delay_ms
+                           ? *configuration_.report_usage_pattern_delay_ms
+                           : REPORT_USAGE_PATTERN_DELAY_MS;
+  message_handler_.RequestUsagePatternReport(
+      [this]() {
+        RTC_DCHECK_RUN_ON(signaling_thread());
+        ReportUsagePattern();
+      },
+      delay_ms);
 }
 
 PeerConnection::~PeerConnection() {
@@ -642,33 +633,32 @@ PeerConnection::~PeerConnection() {
   data_channel_controller_.PrepareForShutdown();
 }
 
-RTCError PeerConnection::Initialize(
-    const PeerConnectionInterface::RTCConfiguration& configuration,
-    PeerConnectionDependencies dependencies) {
+void PeerConnection::Initialize(
+    std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator,
+    std::unique_ptr<webrtc::VideoBitrateAllocatorFactory>
+        video_bitrate_allocator_factory,
+    const cricket::ServerAddresses& stun_servers,
+    const std::vector<cricket::RelayServerConfig>& turn_servers) {
   RTC_DCHECK_RUN_ON(signaling_thread());
-  TRACE_EVENT0("webrtc", "PeerConnection::Initialize");
 
-  cricket::ServerAddresses stun_servers;
-  std::vector<cricket::RelayServerConfig> turn_servers;
-  RTCError parse_error = ParseAndValidateIceServersFromConfiguration(
-      configuration, stun_servers, turn_servers, usage_pattern_);
-  if (!parse_error.ok()) {
-    return parse_error;
-  }
+  NoteServerUsage(usage_pattern_, stun_servers, turn_servers);
 
   // Network thread initialization.
-  transport_controller_copy_ = network_thread()->BlockingCall([&] {
-    RTC_DCHECK_RUN_ON(network_thread());
-    network_thread_safety_ = PendingTaskSafetyFlag::Create();
-    InitializePortAllocatorResult pa_result =
-        InitializePortAllocator_n(stun_servers, turn_servers, configuration);
-    // Send information about IPv4/IPv6 status.
-    PeerConnectionAddressFamilyCounter address_family =
-        pa_result.enable_ipv6 ? kPeerConnection_IPv6 : kPeerConnection_IPv4;
-    RTC_HISTOGRAM_ENUMERATION("WebRTC.PeerConnection.IPMetrics", address_family,
-                              kPeerConnectionAddressFamilyCounter_Max);
-    return InitializeTransportController_n(configuration, dependencies);
-  });
+  transport_controller_copy_ =
+      network_thread()->BlockingCall([&, config = &configuration_] {
+        RTC_DCHECK_RUN_ON(network_thread());
+        RTC_DCHECK(network_thread_safety_->alive());
+        InitializePortAllocatorResult pa_result =
+            InitializePortAllocator_n(stun_servers, turn_servers, *config);
+        // Send information about IPv4/IPv6 status.
+        PeerConnectionAddressFamilyCounter address_family =
+            pa_result.enable_ipv6 ? kPeerConnection_IPv6 : kPeerConnection_IPv4;
+        RTC_HISTOGRAM_ENUMERATION("WebRTC.PeerConnection.IPMetrics",
+                                  address_family,
+                                  kPeerConnectionAddressFamilyCounter_Max);
+        return InitializeTransportController_n(*config);
+      });
+
   if (call_ptr_) {
     worker_thread()->BlockingCall([this, tc = transport_controller_copy_] {
       RTC_DCHECK_RUN_ON(worker_thread());
@@ -676,14 +666,10 @@ RTCError PeerConnection::Initialize(
     });
   }
 
-  configuration_ = configuration;
-
-  legacy_stats_ = std::make_unique<LegacyStatsCollector>(this);
-  stats_collector_ = RTCStatsCollector::Create(this, env_);
-
-  sdp_handler_ =
-      SdpOfferAnswerHandler::Create(this, configuration, dependencies,
-                                    context_.get(), transport_controller_copy_);
+  sdp_handler_ = SdpOfferAnswerHandler::Create(
+      this, configuration_, std::move(cert_generator),
+      std::move(video_bitrate_allocator_factory), context_.get(),
+      transport_controller_copy_);
 
   rtp_manager_ = std::make_unique<RtpTransmissionManager>(
       env_, IsUnifiedPlan(), context_.get(), &usage_pattern_, observer_,
@@ -691,35 +677,21 @@ RTCError PeerConnection::Initialize(
         RTC_DCHECK_RUN_ON(signaling_thread());
         sdp_handler_->UpdateNegotiationNeeded();
       });
-
   // Add default audio/video transceivers for Plan B SDP.
   if (!IsUnifiedPlan()) {
-    rtp_manager()->transceivers()->Add(
+    rtp_manager_->transceivers()->Add(
         RtpTransceiverProxyWithInternal<RtpTransceiver>::Create(
             signaling_thread(), rtc::make_ref_counted<RtpTransceiver>(
                                     cricket::MEDIA_TYPE_AUDIO, context())));
-    rtp_manager()->transceivers()->Add(
+    rtp_manager_->transceivers()->Add(
         RtpTransceiverProxyWithInternal<RtpTransceiver>::Create(
             signaling_thread(), rtc::make_ref_counted<RtpTransceiver>(
                                     cricket::MEDIA_TYPE_VIDEO, context())));
   }
-
-  int delay_ms = configuration.report_usage_pattern_delay_ms
-                     ? *configuration.report_usage_pattern_delay_ms
-                     : REPORT_USAGE_PATTERN_DELAY_MS;
-  message_handler_.RequestUsagePatternReport(
-      [this]() {
-        RTC_DCHECK_RUN_ON(signaling_thread());
-        ReportUsagePattern();
-      },
-      delay_ms);
-
-  return RTCError::OK();
 }
 
 JsepTransportController* PeerConnection::InitializeTransportController_n(
-    const RTCConfiguration& configuration,
-    const PeerConnectionDependencies& dependencies) {
+    const RTCConfiguration& configuration) {
   JsepTransportController::Config config;
   config.redetermine_role_on_ice_restart =
       configuration.redetermine_role_on_ice_restart;
@@ -1552,10 +1524,11 @@ RTCError PeerConnection::SetConfiguration(
   cricket::ServerAddresses stun_servers;
   std::vector<cricket::RelayServerConfig> turn_servers;
   validate_error = ParseAndValidateIceServersFromConfiguration(
-      configuration, stun_servers, turn_servers, usage_pattern_);
+      configuration, stun_servers, turn_servers);
   if (!validate_error.ok()) {
     return validate_error;
   }
+  NoteServerUsage(usage_pattern_, stun_servers, turn_servers);
 
   const RTCConfiguration& modified_config = validated_config.value();
   const bool needs_ice_restart =
