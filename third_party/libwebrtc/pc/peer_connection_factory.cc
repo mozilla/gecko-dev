@@ -23,6 +23,7 @@
 #include "api/units/data_rate.h"
 #include "call/rtp_transport_controller_send_factory.h"
 #include "media/base/media_engine.h"
+#include "p2p/base/basic_async_resolver_factory.h"
 #include "p2p/base/default_ice_transport_factory.h"
 #include "p2p/base/port_allocator.h"
 #include "p2p/client/basic_port_allocator.h"
@@ -207,6 +208,25 @@ PeerConnectionFactory::CreatePeerConnectionOrError(
     PeerConnectionDependencies dependencies) {
   RTC_DCHECK_RUN_ON(signaling_thread());
 
+  // TODO(https://crbug.com/webrtc/13528): Remove support for kPlanB.
+  if (configuration.sdp_semantics == SdpSemantics::kPlanB_DEPRECATED) {
+    RTC_LOG(LS_WARNING)
+        << "PeerConnection constructed with legacy SDP semantics!";
+  }
+
+  RTCError err = cricket::IceConfig(configuration).IsValid();
+  if (!err.ok()) {
+    RTC_LOG(LS_ERROR) << "Invalid ICE configuration: " << err.message();
+    return err;
+  }
+
+  if (!dependencies.observer) {
+    RTC_LOG(LS_ERROR) << "PeerConnection initialized without a "
+                         "PeerConnectionObserver";
+    return RTCError(RTCErrorType::INVALID_PARAMETER,
+                    "Attempt to create a PeerConnection without an observer");
+  }
+
   EnvironmentFactory env_factory(context_->env());
 
   // Field trials active for this PeerConnection is the first of:
@@ -230,6 +250,12 @@ PeerConnectionFactory::CreatePeerConnectionOrError(
         std::make_unique<rtc::RTCCertificateGenerator>(signaling_thread(),
                                                        network_thread());
   }
+
+  if (!dependencies.async_dns_resolver_factory) {
+    dependencies.async_dns_resolver_factory =
+        std::make_unique<BasicAsyncDnsResolverFactory>();
+  }
+
   if (!dependencies.allocator) {
     dependencies.allocator = std::make_unique<cricket::BasicPortAllocator>(
         context_->default_network_manager(), context_->default_socket_factory(),

@@ -70,7 +70,6 @@
 #include "media/base/stream_params.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
-#include "p2p/base/basic_async_resolver_factory.h"
 #include "p2p/base/connection_info.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/p2p_constants.h"
@@ -509,6 +508,17 @@ bool PeerConnectionInterface::RTCConfiguration::operator!=(
   return !(*this == o);
 }
 
+// TODO(bugs.webrtc.org/398857495): Change the `Create()` and `Initialize()`
+// methods together with `PeerConnectionFactory::CreatePeerConnectionOrError()`
+// so that:
+// * All configuration checking and setup of dependencies is done by the
+//   factory. This includes the `ParseAndValidateIceServersFromConfiguration()`
+//   step that's currently done in `Initialize()`.
+// * Either completely remove the `Create()` and `Initialize()` methods or
+//   change them so that they return void (can't fail).
+// This means that a `PeerConnection` instance can be constructed simply by
+// using the constructor and the config error checking is moved out of the
+// class.
 RTCErrorOr<rtc::scoped_refptr<PeerConnection>> PeerConnection::Create(
     const Environment& env,
     rtc::scoped_refptr<ConnectionContext> context,
@@ -516,44 +526,14 @@ RTCErrorOr<rtc::scoped_refptr<PeerConnection>> PeerConnection::Create(
     std::unique_ptr<Call> call,
     const PeerConnectionInterface::RTCConfiguration& configuration,
     PeerConnectionDependencies dependencies) {
-  // TODO(https://crbug.com/webrtc/13528): Remove support for kPlanB.
-  if (configuration.sdp_semantics == SdpSemantics::kPlanB_DEPRECATED) {
-    RTC_LOG(LS_WARNING)
-        << "PeerConnection constructed with legacy SDP semantics!";
-  }
-
-  RTCError config_error = cricket::IceConfig(configuration).IsValid();
-  if (!config_error.ok()) {
-    RTC_LOG(LS_ERROR) << "Invalid ICE configuration: "
-                      << config_error.message();
-    return config_error;
-  }
-
-  if (!dependencies.allocator) {
-    RTC_LOG(LS_ERROR)
-        << "PeerConnection initialized without a PortAllocator? "
-           "This shouldn't happen if using PeerConnectionFactory.";
-    return RTCError(
-        RTCErrorType::INVALID_PARAMETER,
-        "Attempt to create a PeerConnection without a PortAllocatorFactory");
-  }
-
-  if (!dependencies.observer) {
-    // TODO(deadbeef): Why do we do this?
-    RTC_LOG(LS_ERROR) << "PeerConnection initialized without a "
-                         "PeerConnectionObserver";
-    return RTCError(RTCErrorType::INVALID_PARAMETER,
-                    "Attempt to create a PeerConnection without an observer");
-  }
+  RTC_DCHECK(cricket::IceConfig(configuration).IsValid().ok());
+  RTC_DCHECK(dependencies.observer);
+  RTC_DCHECK(dependencies.async_dns_resolver_factory);
+  RTC_CHECK(dependencies.allocator);
 
   bool is_unified_plan =
       configuration.sdp_semantics == SdpSemantics::kUnifiedPlan;
   bool dtls_enabled = DtlsEnabled(configuration, options, dependencies);
-
-  if (!dependencies.async_dns_resolver_factory) {
-    dependencies.async_dns_resolver_factory =
-        std::make_unique<BasicAsyncDnsResolverFactory>();
-  }
 
   // The PeerConnection constructor consumes some, but not all, dependencies.
   auto pc = rtc::make_ref_counted<PeerConnection>(
