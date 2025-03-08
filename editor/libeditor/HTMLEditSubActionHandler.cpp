@@ -559,9 +559,9 @@ nsresult HTMLEditor::OnEndHandlingTopLevelEditSubActionInternal() {
           return !TopLevelEditSubActionDataRef().mDidNormalizeWhitespaces;
         case EditSubAction::eInsertText:
         case EditSubAction::eInsertTextComingFromIME:
+        case EditSubAction::eInsertLineBreak:
           return !StaticPrefs::
               editor_white_space_normalization_blink_compatible();
-        case EditSubAction::eInsertLineBreak:
         case EditSubAction::eInsertParagraphSeparator:
         case EditSubAction::ePasteHTMLContent:
         case EditSubAction::eInsertHTMLSource:
@@ -3227,6 +3227,163 @@ HTMLEditor::NormalizeWhiteSpacesToInsertText(
                      ? CharPointType::PreformattedLineBreak
                      : CharPointType::VisibleChar)),
       isNewLineCollapsible ? Linefeed::Collapsible : Linefeed::Preformatted);
+  return result;
+}
+
+HTMLEditor::ReplaceWhiteSpacesData
+HTMLEditor::GetFollowingNormalizedStringToSplitAt(
+    const EditorDOMPointInText& aPointToSplit) const {
+  MOZ_ASSERT(aPointToSplit.IsSet());
+
+  if (EditorUtils::IsWhiteSpacePreformatted(
+          *aPointToSplit.ContainerAs<Text>()) ||
+      aPointToSplit.IsEndOfContainer()) {
+    return ReplaceWhiteSpacesData();
+  }
+  const bool isNewLineCollapsible =
+      !EditorUtils::IsNewLinePreformatted(*aPointToSplit.ContainerAs<Text>());
+  const auto IsPreformattedLineBreak = [&](char16_t aChar) {
+    return !isNewLineCollapsible && aChar == HTMLEditUtils::kNewLine;
+  };
+  const auto IsCollapsibleChar = [&](char16_t aChar) {
+    return !IsPreformattedLineBreak(aChar) && nsCRT::IsAsciiSpace(aChar);
+  };
+  const auto IsCollapsibleCharOrNBSP = [&](char16_t aChar) {
+    return aChar == HTMLEditUtils::kNBSP || IsCollapsibleChar(aChar);
+  };
+  const char16_t followingChar = aPointToSplit.Char();
+  if (!IsCollapsibleCharOrNBSP(followingChar)) {
+    return ReplaceWhiteSpacesData();
+  }
+  const uint32_t followingWhiteSpaceLength = [&]() {
+    const auto nonWhiteSpaceOffset =
+        HTMLEditUtils::GetInclusiveNextNonCollapsibleCharOffset(
+            *aPointToSplit.ContainerAs<Text>(), aPointToSplit.Offset(),
+            {HTMLEditUtils::WalkTextOption::TreatNBSPsCollapsible});
+    MOZ_ASSERT(nonWhiteSpaceOffset.valueOr(
+                   aPointToSplit.ContainerAs<Text>()->TextDataLength()) >=
+               aPointToSplit.Offset());
+    return nonWhiteSpaceOffset.valueOr(
+               aPointToSplit.ContainerAs<Text>()->TextDataLength()) -
+           aPointToSplit.Offset();
+  }();
+  MOZ_ASSERT(followingWhiteSpaceLength);
+  if (NS_WARN_IF(!followingWhiteSpaceLength) ||
+      (followingWhiteSpaceLength == 1u &&
+       followingChar == HTMLEditUtils::kNBSP)) {
+    return ReplaceWhiteSpacesData();
+  }
+
+  const uint32_t followingInvisibleSpaceCount =
+      HTMLEditUtils::GetInvisibleWhiteSpaceCount(
+          *aPointToSplit.ContainerAs<Text>(), aPointToSplit.Offset(),
+          followingWhiteSpaceLength);
+  MOZ_ASSERT(followingWhiteSpaceLength >= followingInvisibleSpaceCount);
+  const uint32_t newFollowingWhiteSpaceLength =
+      followingWhiteSpaceLength - followingInvisibleSpaceCount;
+  nsAutoString followingWhiteSpaces;
+  if (newFollowingWhiteSpaceLength) {
+    followingWhiteSpaces.SetLength(newFollowingWhiteSpaceLength);
+    for (const auto offset : IntegerRange(newFollowingWhiteSpaceLength)) {
+      followingWhiteSpaces.SetCharAt(' ', offset);
+    }
+  }
+  ReplaceWhiteSpacesData result(std::move(followingWhiteSpaces),
+                                aPointToSplit.Offset(),
+                                followingWhiteSpaceLength);
+  if (!result.mNormalizedString.IsEmpty()) {
+    const nsTextFragment& textFragment =
+        aPointToSplit.ContainerAs<Text>()->TextFragment();
+    HTMLEditor::NormalizeAllWhiteSpaceSequences(
+        result.mNormalizedString,
+        CharPointData::InSameTextNode(CharPointType::TextEnd),
+        CharPointData::InSameTextNode(
+            result.mReplaceEndOffset >= textFragment.GetLength()
+                ? CharPointType::TextEnd
+                : (textFragment.CharAt(result.mReplaceEndOffset) ==
+                           HTMLEditUtils::kNewLine
+                       ? CharPointType::PreformattedLineBreak
+                       : CharPointType::VisibleChar)),
+        isNewLineCollapsible ? Linefeed::Collapsible : Linefeed::Preformatted);
+  }
+  return result;
+}
+
+HTMLEditor::ReplaceWhiteSpacesData
+HTMLEditor::GetPrecedingNormalizedStringToSplitAt(
+    const EditorDOMPointInText& aPointToSplit) const {
+  MOZ_ASSERT(aPointToSplit.IsSet());
+
+  if (EditorUtils::IsWhiteSpacePreformatted(
+          *aPointToSplit.ContainerAs<Text>()) ||
+      aPointToSplit.IsStartOfContainer()) {
+    return ReplaceWhiteSpacesData();
+  }
+  const bool isNewLineCollapsible =
+      !EditorUtils::IsNewLinePreformatted(*aPointToSplit.ContainerAs<Text>());
+  const auto IsPreformattedLineBreak = [&](char16_t aChar) {
+    return !isNewLineCollapsible && aChar == HTMLEditUtils::kNewLine;
+  };
+  const auto IsCollapsibleChar = [&](char16_t aChar) {
+    return !IsPreformattedLineBreak(aChar) && nsCRT::IsAsciiSpace(aChar);
+  };
+  const auto IsCollapsibleCharOrNBSP = [&](char16_t aChar) {
+    return aChar == HTMLEditUtils::kNBSP || IsCollapsibleChar(aChar);
+  };
+  const char16_t precedingChar = aPointToSplit.PreviousChar();
+  if (!IsCollapsibleCharOrNBSP(precedingChar)) {
+    return ReplaceWhiteSpacesData();
+  }
+  const uint32_t precedingWhiteSpaceLength = [&]() {
+    const auto nonWhiteSpaceOffset =
+        HTMLEditUtils::GetPreviousNonCollapsibleCharOffset(
+            *aPointToSplit.ContainerAs<Text>(), aPointToSplit.Offset(),
+            {HTMLEditUtils::WalkTextOption::TreatNBSPsCollapsible});
+    const uint32_t firstWhiteSpaceOffset =
+        nonWhiteSpaceOffset ? *nonWhiteSpaceOffset + 1u : 0u;
+    return aPointToSplit.Offset() - firstWhiteSpaceOffset;
+  }();
+  MOZ_ASSERT(precedingWhiteSpaceLength);
+  if (NS_WARN_IF(!precedingWhiteSpaceLength) ||
+      (precedingWhiteSpaceLength == 1u &&
+       precedingChar == HTMLEditUtils::kNBSP)) {
+    return ReplaceWhiteSpacesData();
+  }
+
+  const uint32_t precedingInvisibleWhiteSpaceCount =
+      HTMLEditUtils::GetInvisibleWhiteSpaceCount(
+          *aPointToSplit.ContainerAs<Text>(),
+          aPointToSplit.Offset() - precedingWhiteSpaceLength,
+          precedingWhiteSpaceLength);
+  MOZ_ASSERT(precedingWhiteSpaceLength >= precedingInvisibleWhiteSpaceCount);
+  const uint32_t newPrecedingWhiteSpaceLength =
+      precedingWhiteSpaceLength - precedingInvisibleWhiteSpaceCount;
+  nsAutoString precedingWhiteSpaces;
+  if (newPrecedingWhiteSpaceLength) {
+    precedingWhiteSpaces.SetLength(newPrecedingWhiteSpaceLength);
+    for (const auto offset : IntegerRange(newPrecedingWhiteSpaceLength)) {
+      precedingWhiteSpaces.SetCharAt(' ', offset);
+    }
+  }
+  ReplaceWhiteSpacesData result(
+      std::move(precedingWhiteSpaces),
+      aPointToSplit.Offset() - precedingWhiteSpaceLength,
+      precedingWhiteSpaceLength);
+  if (!result.mNormalizedString.IsEmpty()) {
+    const nsTextFragment& textFragment =
+        aPointToSplit.ContainerAs<Text>()->TextFragment();
+    HTMLEditor::NormalizeAllWhiteSpaceSequences(
+        result.mNormalizedString,
+        CharPointData::InSameTextNode(
+            !result.mReplaceStartOffset
+                ? CharPointType::TextEnd
+                : (textFragment.CharAt(result.mReplaceStartOffset - 1u) ==
+                           HTMLEditUtils::kNewLine
+                       ? CharPointType::PreformattedLineBreak
+                       : CharPointType::VisibleChar)),
+        CharPointData::InSameTextNode(CharPointType::TextEnd),
+        isNewLineCollapsible ? Linefeed::Collapsible : Linefeed::Preformatted);
+  }
   return result;
 }
 

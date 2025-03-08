@@ -856,6 +856,15 @@ class HTMLEditor final : public EditorBase,
   InsertOrReplaceTextWithTransaction(const EditorDOMPoint& aPointToInsert,
                                      const NormalizedStringToInsertText& aData);
 
+  struct ReplaceWhiteSpacesData;
+
+  /**
+   * Replace or insert white-spaces of aData to aTextNode.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<InsertTextResult, nsresult>
+  ReplaceTextWithTransaction(dom::Text& aTextNode,
+                             const ReplaceWhiteSpacesData& aData);
+
   /**
    * Insert aStringToInsert to aPointToInsert.  If the point is not editable,
    * this returns error.
@@ -2230,6 +2239,20 @@ class HTMLEditor final : public EditorBase,
   NormalizedStringToInsertText NormalizeWhiteSpacesToInsertText(
       const EditorDOMPoint& aPointToInsert, const nsAString& aStringToInsert,
       NormalizeSurroundingWhiteSpaces aNormalizeSurroundingWhiteSpaces) const;
+
+  /**
+   * Return normalized white-spaces after aPointToSplit if there are some
+   * collapsible white-spaces after the point.
+   */
+  ReplaceWhiteSpacesData GetFollowingNormalizedStringToSplitAt(
+      const EditorDOMPointInText& aPointToSplit) const;
+
+  /**
+   * Return normalized white-spaces before aPointToSplit if there are some
+   * collapsible white-spaces before the point.
+   */
+  ReplaceWhiteSpacesData GetPrecedingNormalizedStringToSplitAt(
+      const EditorDOMPointInText& aPointToSplit) const;
 
   /**
    * ExtendRangeToDeleteWithNormalizingWhiteSpaces() is a helper method of

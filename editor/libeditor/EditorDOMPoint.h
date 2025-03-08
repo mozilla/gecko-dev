@@ -958,7 +958,7 @@ class EditorDOMPointBase final {
     return !!maybeTextControl;
   }
 
-  bool IsStartOfContainer() const {
+  [[nodiscard]] bool IsStartOfContainer() const {
     // If we're referring the first point in the container:
     //   If mParent is not a container like a text node, mOffset is 0.
     //   If mChild is initialized and it's first child of mParent.
@@ -984,7 +984,29 @@ class EditorDOMPointBase final {
     return !mOffset.value();
   }
 
-  bool IsEndOfContainer() const {
+  [[nodiscard]] bool IsMiddleOfContainer() const {
+    if (NS_WARN_IF(!mParent)) {
+      return false;
+    }
+    if (mParent->IsText()) {
+      return *mOffset && *mOffset < mParent->Length();
+    }
+    if (!mParent->HasChildren()) {
+      return false;
+    }
+    if (mIsChildInitialized) {
+      NS_WARNING_ASSERTION(
+          mOffset.isNothing() ||
+              (!mChild && *mOffset == mParent->GetChildCount()) ||
+              (mChild && mOffset == mParent->ComputeIndexOf(mChild)),
+          "mOffset does not match with current offset of mChild");
+      return mChild && mChild != mParent->GetFirstChild();
+    }
+    MOZ_ASSERT(mOffset.isSome());
+    return *mOffset && *mOffset < mParent->Length();
+  }
+
+  [[nodiscard]] bool IsEndOfContainer() const {
     // If we're referring after the last point of the container:
     //   If mParent is not a container like text node, mOffset is same as the
     //   length of the container.
