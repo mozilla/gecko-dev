@@ -189,7 +189,7 @@ def set_treeherder_machine_platform(config, tasks):
         "macosx1100-64-shippable/opt": "osx-1100-shippable/opt",
         "macosx1400-64/opt": "osx-1300/opt",
         "macosx1400-64-shippable/opt": "osx-1400-shippable/opt",
-        "win64-asan/opt": "windows11-64-24h2-asan/opt",
+        "win64-asan/opt": "windows11-64/asan",
         "win64-aarch64/opt": "windows11-aarch64/opt",
     }
     for task in tasks:
