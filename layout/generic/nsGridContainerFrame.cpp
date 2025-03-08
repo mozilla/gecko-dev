@@ -9119,23 +9119,15 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
                                       SizingConstraint::NoConstraint);
     if (containBSize) {
       bSize = *containBSize;
-    } else {
-      if (IsMasonry(LogicalAxis::Block)) {
-        bSize = computedBSize;
-      } else {
-        const auto& rowSizes = gridRI.mRows.mSizes;
-        if (MOZ_LIKELY(!IsRowSubgrid())) {
-          // Note: we can't use GridLineEdge here since we haven't calculated
-          // the rows' mPosition yet (happens in AlignJustifyContent below).
-          for (const auto& sz : rowSizes) {
-            bSize += sz.mBase;
-          }
-          bSize += gridRI.mRows.SumOfGridGaps();
-        } else if (computedBSize == NS_UNCONSTRAINEDSIZE) {
-          bSize = gridRI.mRows.GridLineEdge(rowSizes.Length(),
-                                            GridLineSide::BeforeGridGap);
-        }
-      }
+    } else if (IsMasonry(LogicalAxis::Block)) {
+      bSize = computedBSize;
+    } else if (MOZ_LIKELY(!IsRowSubgrid())) {
+      // Note: we can't use GridLineEdge here since we haven't calculated
+      // the rows' mPosition yet (happens in AlignJustifyContent below).
+      bSize = gridRI.mRows.SumOfGridTracksAndGaps();
+    } else if (computedBSize == NS_UNCONSTRAINEDSIZE) {
+      const uint32_t numRows = gridRI.mRows.mSizes.Length();
+      bSize = gridRI.mRows.GridLineEdge(numRows, GridLineSide::BeforeGridGap);
     }
   } else {
     consumedBSize = CalcAndCacheConsumedBSize();
