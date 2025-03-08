@@ -708,6 +708,12 @@
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">現在不要</string>
   <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">開始快速搜尋</string>
+  <!--
     Search Widget
 
     Content description for searching with a widget. The first parameter is the name of the application.
@@ -884,6 +890,8 @@
   <string name="preferences_search_browsing_history">搜尋瀏覽紀錄</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">搜尋書籤</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">顯示捷徑</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">搜尋同步的分頁</string>
   <!-- Preference for account settings -->
@@ -2597,6 +2605,8 @@
   <string name="quick_settings_sheet_secure_connection_2">安全連線</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">連線不安全</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">此頁面位於您的裝置上。</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">清除 Cookie 與網站資料</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->

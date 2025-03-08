@@ -710,6 +710,12 @@
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Để sau</string>
   <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Bắt đầu tìm kiếm nhanh</string>
+  <!--
     Search Widget
 
     Content description for searching with a widget. The first parameter is the name of the application.
@@ -878,12 +884,16 @@
   <string name="preferences_show_search_suggestions_in_private">Hiển thị trong phiên riêng tư</string>
   <!-- Preference title for switch preference to show trending search suggestions -->
   <string name="preferences_show_trending_search_suggestions">Hiển thị đề xuất thịnh hành</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Hiển thị các tìm kiếm gần đây</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Hiển thị đề xuất từ bộ nhớ tạm</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
   <string name="preferences_search_browsing_history">Tìm kiếm lịch sử duyệt web</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">Tìm kiếm dấu trang</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">Hiển thị lối tắt</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">Tìm kiếm các thẻ đã đồng bộ hóa</string>
   <!-- Preference for account settings -->
@@ -2596,6 +2606,8 @@
   <string name="quick_settings_sheet_secure_connection_2">Kết nối an toàn</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">Kết nối không an toàn</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">Trang này được lưu trữ trên thiết bị của bạn.</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">Xóa cookie và dữ liệu trang web</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->
@@ -2762,6 +2774,8 @@
   <string name="google_search_engine_suggestion_header">Tìm kiếm trên Google</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">Tìm kiếm trên %s</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">Tìm kiếm gần đây</string>
   <!--
     Default browser experiment
 

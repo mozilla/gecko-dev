@@ -858,6 +858,8 @@
   <string name="preferences_search_browsing_history">തിരയൽ നാൾവഴിയിൽ തപ്പുക</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">അടയാളക്കുറിപ്പുകള്‍ തിരയുക</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">കുറുക്കുവഴികൾ കാണിക്കുക</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">സമന്വയിപ്പിച്ച ടാബുകൾ തിരയുക</string>
   <!-- Preference for account settings -->
@@ -1776,6 +1778,8 @@
   <string name="sync_add_new_device_connect_button">മറ്റൊരു ഉപകരണം ബന്ധിപ്പിക്കുക…</string>
   <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
   <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\n%2$s-ൽ നിന്നു് അയച്ചു 🦊മൊബൈൽ അന്വേഷിയന്ത്രം ഉപയോഗിച്ചു നോക്കുക: %3$s</string>
+  <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\n%2$s ൽ നിന്ന് അയച്ചു 🦊 %3$s</string>
   <!--
     Notifications
 
@@ -2098,10 +2102,18 @@
   <string name="preference_doh_add_site_description">വെബിടം ചേൎക്കുക</string>
   <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection">തനമിട്ട സംരക്ഷണം</string>
+  <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_1">താങ്ങൾ തിരഞ്ഞെടുക്കുന്ന ദാതാവിനെ ഉപയോഗിക്കുക</string>
+  <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_3">പറ്റുമെങ്കിൽ ഒരു പ്രാദേശിക ദാതാവിനെ ഉപയോഗിക്കുക. %1$s</string>
   <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection">കൂട്ടിയ സംരക്ഷണം</string>
+  <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_1">താങ്ങൾ തിരഞ്ഞെടുക്കുന്ന ദാതാവിനെ ഉപയോഗിക്കുക</string>
   <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection">ഉച്ചനില സംരക്ഷണം</string>
+  <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_1">താങ്ങൾ തിരഞ്ഞെടുക്കുന്ന ദാതാവുമാത്രം ഉപയോഗിക്കുക</string>
   <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
   <string name="preference_doh_off">അണച്ചതു്</string>
   <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
@@ -2780,6 +2792,8 @@
   <string name="translation_option_bottom_sheet_never_translate_in_language">ഒരിക്കലും %1$s-നു് വിവർത്തനം ചെയ്യരുതു്</string>
   <!-- Toggle switch label that allows a user to set the setting if they would like the browser to never translate the site the user is currently visiting. -->
   <string name="translation_option_bottom_sheet_never_translate_site">ഒരിക്കലും ഈ വെബ്സ്ഥാനിന്റെ വിവർത്തനം ചെയ്യരുതു്</string>
+  <!-- Toggle switch description that will appear under the "Never translate these sites" settings toggle switch to provide more information on how this setting interacts with other settings. -->
+  <string name="translation_option_bottom_sheet_switch_never_translate_site_description">മറ്റു എല്ലാ ക്രമീകരണങ്ങളെയും തള്ളാറുണ്ടു്</string>
   <!-- Button text for the button that will take the user to the translation settings dialog. -->
   <string name="translation_option_bottom_sheet_translation_settings">വിവർത്തന ക്രമീകരണങ്ങൾ</string>
   <!-- Button text for the button that will take the user to a website to learn more about how translations works in the given app. The first parameter is the name of the application, for example, "Fenix". -->
