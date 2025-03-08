@@ -238,7 +238,7 @@ Result<MovingNotNull<nsCOMPtr<nsIInputStream>>, nsresult> BodyOpen(
     const CacheDirectoryMetadata& aDirectoryMetadata, nsIFile& aBaseDir,
     const nsID& aId, Maybe<CipherKey> aMaybeCipherKey) {
   QM_TRY_INSPECT(const auto& finalFile,
-                 BodyIdToFile(aBaseDir, aId, BODY_FILE_FINAL));
+                 BodyIdToFile(aBaseDir, aId, BODY_FILE_FINAL, false));
 
   QM_TRY_UNWRAP(nsCOMPtr<nsIInputStream> fileInputStream,
                 CreateFileInputStream(aDirectoryMetadata.mPersistenceType,
