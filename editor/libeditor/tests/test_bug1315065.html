@@ -17,21 +17,23 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1315065
 /** Test for Bug 1315065 **/
 SimpleTest.waitForExplicitFinish();
 SimpleTest.waitForFocus(() => {
-  var editor = document.getElementsByTagName("div")[0];
+  const kNewWhiteSpaceNormalizerEnabled =
+    SpecialPowers.getBoolPref("editor.white_space_normalization.blink_compatible");
+  const editor = document.getElementsByTagName("div")[0];
   function initForBackspace(aSelectionCollapsedTo /* = 0 ~ 3 */) {
     editor.innerHTML = "<p id='p'>abc<br></p>";
-    var p = document.getElementById("p");
+    const p = document.getElementById("p");
     // FYI: We cannot inserting empty text nodes as expected with
     //      Node.appendChild() nor Node.insertBefore(). Therefore, let's use
     //      Range.insertNode() like actual web apps.
-    var selection = window.getSelection();
+    const selection = window.getSelection();
     selection.collapse(p, 1);
-    var range = selection.getRangeAt(0);
-    var emptyTextNode3 = document.createTextNode("");
+    const range = selection.getRangeAt(0);
+    const emptyTextNode3 = document.createTextNode("");
     range.insertNode(emptyTextNode3);
-    var emptyTextNode2 = document.createTextNode("");
+    const emptyTextNode2 = document.createTextNode("");
     range.insertNode(emptyTextNode2);
-    var emptyTextNode1 = document.createTextNode("");
+    const emptyTextNode1 = document.createTextNode("");
     range.insertNode(emptyTextNode1);
     is(p.childNodes.length, 5, "Failed to initialize the editor");
     is(p.childNodes.item(1), emptyTextNode1, "1st text node should be emptyTextNode1");
@@ -61,7 +63,7 @@ SimpleTest.waitForFocus(() => {
     editor.focus();
     initForBackspace(i);
     synthesizeKey("KEY_Backspace");
-    let p = document.getElementById("p");
+    const p = document.getElementById("p");
     ok(p, kDescription + ": <p> element shouldn't be removed by Backspace key press");
     is(p.tagName.toLowerCase(), "p", kDescription + ": <p> element shouldn't be removed by Backspace key press");
     // When Backspace key is pressed even in empty text nodes, Gecko should not remove empty text nodes for now
@@ -77,18 +79,18 @@ SimpleTest.waitForFocus(() => {
 
   function initForDelete(aSelectionCollapsedTo /* = 0 ~ 3 */) {
     editor.innerHTML = "<p id='p'>abc<br></p>";
-    var p = document.getElementById("p");
+    const p = document.getElementById("p");
     // FYI: We cannot inserting empty text nodes as expected with
     //      Node.appendChild() nor Node.insertBefore(). Therefore, let's use
     //      Range.insertNode() like actual web apps.
-    var selection = window.getSelection();
+    const selection = window.getSelection();
     selection.collapse(p, 0);
-    var range = selection.getRangeAt(0);
-    var emptyTextNode1 = document.createTextNode("");
+    const range = selection.getRangeAt(0);
+    const emptyTextNode1 = document.createTextNode("");
     range.insertNode(emptyTextNode1);
-    var emptyTextNode2 = document.createTextNode("");
+    const emptyTextNode2 = document.createTextNode("");
     range.insertNode(emptyTextNode2);
-    var emptyTextNode3 = document.createTextNode("");
+    const emptyTextNode3 = document.createTextNode("");
     range.insertNode(emptyTextNode3);
     is(p.childNodes.length, 5, "Failed to initialize the editor");
     is(p.childNodes.item(0), emptyTextNode3, "1st text node should be emptyTextNode3");
@@ -118,7 +120,7 @@ SimpleTest.waitForFocus(() => {
     editor.focus();
     initForDelete(i);
     synthesizeKey("KEY_Delete");
-    var p = document.getElementById("p");
+    const p = document.getElementById("p");
     ok(p, kDescription + ": <p> element shouldn't be removed by Delete key press");
     is(p.tagName.toLowerCase(), "p", kDescription + ": <p> element shouldn't be removed by Delete key press");
     if (i == 0) {
@@ -129,12 +131,16 @@ SimpleTest.waitForFocus(() => {
       is(p.childNodes.item(1).textContent, "", kDescription + ": 2nd empty text node should not be removed by pressing Delete key");
       is(p.childNodes.item(2).textContent, "", kDescription + ": 3rd empty text node should not be removed by pressing Delete key");
       is(p.childNodes.item(3).textContent, "bc", kDescription + ": 'a' should be removed by pressing Delete key");
-    } else {
+    } else if (!kNewWhiteSpaceNormalizerEnabled) {
       // If Delete key is pressed in an empty text node, it and following empty text nodes should be removed and the non-empty text node should be modified.
       // This is same behavior as Chromium, but different from Edge.  Edge removes all empty text nodes in this case.
-      var expectedEmptyTextNodes = 3 - i;
+      const expectedEmptyTextNodes = 3 - i;
       is(p.childNodes.length, expectedEmptyTextNodes + 2, kDescription + ": <p> should have only " + i + " children after pressing Delete key (" + i + " empty text nodes should be removed");
       is(p.childNodes.item(expectedEmptyTextNodes).textContent, "bc", kDescription + ": empty text nodes and 'a' should be removed by pressing Delete key");
+    } else {
+      is(p.childNodes.length, 2, `${kDescription}: <p> should have only 2 children after pressing Delete key`);
+      is(p.childNodes.item(0).textContent, "bc", `${kDescription}: Empty text nodes and 'a' should be removed by pressing Delete key`);
+      is(p.childNodes.item(1).nodeName, "BR", `${kDescription}: The <br> should be preserved since outside of the deleting range`);
     }
     editor.blur();
   }
