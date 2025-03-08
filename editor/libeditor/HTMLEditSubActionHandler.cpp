@@ -561,11 +561,10 @@ nsresult HTMLEditor::OnEndHandlingTopLevelEditSubActionInternal() {
         case EditSubAction::eInsertTextComingFromIME:
         case EditSubAction::eInsertLineBreak:
         case EditSubAction::eInsertParagraphSeparator:
-          return !StaticPrefs::
-              editor_white_space_normalization_blink_compatible();
         case EditSubAction::ePasteHTMLContent:
         case EditSubAction::eInsertHTMLSource:
-          return true;
+          return !StaticPrefs::
+              editor_white_space_normalization_blink_compatible();
         default:
           return false;
       }
