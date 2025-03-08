@@ -10,10 +10,39 @@
 
 #include "p2p/base/ice_transport_internal.h"
 
+#include <algorithm>
+
 #include "absl/strings/string_view.h"
 #include "p2p/base/p2p_constants.h"
 
 namespace cricket {
+namespace {
+
+// RTCConfiguration uses kUndefined (-1) to indicate unset optional parameters.
+std::optional<int> RTCConfigurationToIceConfigOptionalInt(
+    int rtc_configuration_parameter) {
+  if (rtc_configuration_parameter ==
+      webrtc::PeerConnectionInterface::RTCConfiguration::kUndefined) {
+    return std::nullopt;
+  }
+  return rtc_configuration_parameter;
+}
+
+ContinualGatheringPolicy GetContinualGatheringPolicy(
+    const webrtc::PeerConnectionInterface::RTCConfiguration& config) {
+  switch (config.continual_gathering_policy) {
+    case webrtc::PeerConnectionInterface::GATHER_ONCE:
+      return GATHER_ONCE;
+    case webrtc::PeerConnectionInterface::GATHER_CONTINUALLY:
+      return GATHER_CONTINUALLY;
+    default:
+      break;
+  }
+  RTC_DCHECK_NOTREACHED();
+  return GATHER_ONCE;
+}
+
+}  // namespace
 
 using webrtc::RTCError;
 using webrtc::RTCErrorType;
@@ -81,6 +110,32 @@ IceConfig::IceConfig(int receiving_timeout_ms,
           regather_on_failed_networks_interval_ms),
       receiving_switching_delay(receiving_switching_delay_ms) {}
 
+IceConfig::IceConfig(
+    const webrtc::PeerConnectionInterface::RTCConfiguration& config)
+    : receiving_timeout(RTCConfigurationToIceConfigOptionalInt(
+          config.ice_connection_receiving_timeout)),
+      backup_connection_ping_interval(RTCConfigurationToIceConfigOptionalInt(
+          config.ice_backup_candidate_pair_ping_interval)),
+      continual_gathering_policy(GetContinualGatheringPolicy(config)),
+      prioritize_most_likely_candidate_pairs(
+          config.prioritize_most_likely_ice_candidate_pairs),
+      stable_writable_connection_ping_interval(
+          config.stable_writable_connection_ping_interval_ms),
+      presume_writable_when_fully_relayed(
+          config.presume_writable_when_fully_relayed),
+      surface_ice_candidates_on_ice_transport_type_changed(
+          config.surface_ice_candidates_on_ice_transport_type_changed),
+      ice_check_interval_strong_connectivity(
+          config.ice_check_interval_strong_connectivity),
+      ice_check_interval_weak_connectivity(
+          config.ice_check_interval_weak_connectivity),
+      ice_check_min_interval(config.ice_check_min_interval),
+      ice_unwritable_timeout(config.ice_unwritable_timeout),
+      ice_unwritable_min_checks(config.ice_unwritable_min_checks),
+      ice_inactive_timeout(config.ice_inactive_timeout),
+      stun_keepalive_interval(config.stun_candidate_keepalive_interval),
+      network_preference(config.network_preference) {}
+
 IceConfig::~IceConfig() = default;
 
 int IceConfig::receiving_timeout_or_default() const {
@@ -121,6 +176,48 @@ int IceConfig::ice_inactive_timeout_or_default() const {
 }
 int IceConfig::stun_keepalive_interval_or_default() const {
   return stun_keepalive_interval.value_or(STUN_KEEPALIVE_INTERVAL);
+}
+
+webrtc::RTCError IceConfig::IsValid() const {
+  if (ice_check_interval_strong_connectivity_or_default() <
+      ice_check_interval_weak_connectivity.value_or(WEAK_PING_INTERVAL)) {
+    return RTCError(RTCErrorType::INVALID_PARAMETER,
+                    "Ping interval of candidate pairs is shorter when ICE is "
+                    "strongly connected than that when ICE is weakly "
+                    "connected");
+  }
+
+  if (receiving_timeout_or_default() <
+      std::max(ice_check_interval_strong_connectivity_or_default(),
+               ice_check_min_interval_or_default())) {
+    return RTCError(
+        RTCErrorType::INVALID_PARAMETER,
+        "Receiving timeout is shorter than the minimal ping interval.");
+  }
+
+  if (backup_connection_ping_interval_or_default() <
+      ice_check_interval_strong_connectivity_or_default()) {
+    return RTCError(RTCErrorType::INVALID_PARAMETER,
+                    "Ping interval of backup candidate pairs is shorter than "
+                    "that of general candidate pairs when ICE is strongly "
+                    "connected");
+  }
+
+  if (stable_writable_connection_ping_interval_or_default() <
+      ice_check_interval_strong_connectivity_or_default()) {
+    return RTCError(RTCErrorType::INVALID_PARAMETER,
+                    "Ping interval of stable and writable candidate pairs is "
+                    "shorter than that of general candidate pairs when ICE is "
+                    "strongly connected");
+  }
+
+  if (ice_unwritable_timeout_or_default() > ice_inactive_timeout_or_default()) {
+    return RTCError(RTCErrorType::INVALID_PARAMETER,
+                    "The timeout period for the writability state to become "
+                    "UNRELIABLE is longer than that to become TIMEOUT.");
+  }
+
+  return RTCError::OK();
 }
 
 IceTransportInternal::IceTransportInternal() {}

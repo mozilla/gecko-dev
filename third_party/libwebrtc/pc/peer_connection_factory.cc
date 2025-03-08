@@ -10,24 +10,19 @@
 
 #include "pc/peer_connection_factory.h"
 
-#include <type_traits>
+#include <cstdint>
+#include <cstdio>
 #include <utility>
 
 #include "absl/strings/match.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
-#include "api/fec_controller.h"
 #include "api/ice_transport_interface.h"
-#include "api/network_state_predictor.h"
-#include "api/packet_socket_factory.h"
-#include "api/rtc_event_log/rtc_event_log.h"
 #include "api/sequence_checker.h"
 #include "api/transport/bitrate_settings.h"
 #include "api/units/data_rate.h"
-#include "call/audio_state.h"
 #include "call/rtp_transport_controller_send_factory.h"
 #include "media/base/media_engine.h"
-#include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/base/default_ice_transport_factory.h"
 #include "p2p/base/port_allocator.h"
 #include "p2p/client/basic_port_allocator.h"
@@ -41,7 +36,6 @@
 #include "pc/peer_connection_factory_proxy.h"
 #include "pc/peer_connection_proxy.h"
 #include "pc/rtp_parameters_conversion.h"
-#include "pc/session_description.h"
 #include "pc/video_track.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/experiments/field_trial_parser.h"

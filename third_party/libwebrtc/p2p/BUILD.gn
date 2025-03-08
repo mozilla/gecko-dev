@@ -385,6 +385,7 @@ rtc_library("ice_transport_internal") {
     "../api:array_view",
     "../api:candidate",
     "../api:field_trials_view",
+    "../api:libjingle_peerconnection_api",
     "../api:rtc_error",
     "../api/transport:enums",
     "../api/transport:stun_types",

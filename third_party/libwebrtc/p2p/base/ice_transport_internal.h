@@ -24,6 +24,7 @@
 #include "api/array_view.h"
 #include "api/candidate.h"
 #include "api/field_trials_view.h"
+#include "api/peer_connection_interface.h"
 #include "api/rtc_error.h"
 #include "api/transport/enums.h"
 #include "api/transport/stun.h"
@@ -111,9 +112,6 @@ webrtc::RTCError VerifyCandidate(const Candidate& cand);
 webrtc::RTCError VerifyCandidates(const Candidates& candidates);
 
 // Information about ICE configuration.
-// TODO(deadbeef): Use std::optional to represent unset values, instead of
-// -1.
-//
 // TODO(bugs.webrtc.org/15609): Define a public API for this.
 struct RTC_EXPORT IceConfig {
   // The ICE connection receiving timeout value in milliseconds.
@@ -215,7 +213,15 @@ struct RTC_EXPORT IceConfig {
             bool presume_writable_when_fully_relayed,
             int regather_on_failed_networks_interval_ms,
             int receiving_switching_delay_ms);
+  // Construct an IceConfig object from an RTCConfiguration object.
+  // This will check the `config` settings and set the associated IceConfig
+  // member properties.
+  explicit IceConfig(
+      const webrtc::PeerConnectionInterface::RTCConfiguration& config);
   ~IceConfig();
+
+  // Checks if the current configuration values are consistent.
+  webrtc::RTCError IsValid() const;
 
   // Helper getters for parameters with implementation-specific default value.
   // By convention, parameters with default value are represented by

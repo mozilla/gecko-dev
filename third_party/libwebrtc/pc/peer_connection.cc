@@ -232,15 +232,6 @@ IceCandidatePairType GetIceCandidatePairCounter(
   return kIceCandidatePairMax;
 }
 
-std::optional<int> RTCConfigurationToIceConfigOptionalInt(
-    int rtc_configuration_parameter) {
-  if (rtc_configuration_parameter ==
-      PeerConnectionInterface::RTCConfiguration::kUndefined) {
-    return std::nullopt;
-  }
-  return rtc_configuration_parameter;
-}
-
 // Check if the changes of IceTransportsType motives an ice restart.
 bool NeedIceRestart(bool surface_ice_candidates_on_ice_transport_type_changed,
                     PeerConnectionInterface::IceTransportsType current,
@@ -259,61 +250,6 @@ bool NeedIceRestart(bool surface_ice_candidates_on_ice_transport_type_changed,
   // If surface_ice_candidates_on_ice_transport_type_changed is true and we
   // extend the filter, then no ice restart is needed.
   return (current_filter & modified_filter) != current_filter;
-}
-
-cricket::IceConfig ParseIceConfig(
-    const PeerConnectionInterface::RTCConfiguration& config) {
-  cricket::ContinualGatheringPolicy gathering_policy;
-  switch (config.continual_gathering_policy) {
-    case PeerConnectionInterface::GATHER_ONCE:
-      gathering_policy = cricket::GATHER_ONCE;
-      break;
-    case PeerConnectionInterface::GATHER_CONTINUALLY:
-      gathering_policy = cricket::GATHER_CONTINUALLY;
-      break;
-    default:
-      RTC_DCHECK_NOTREACHED();
-      gathering_policy = cricket::GATHER_ONCE;
-  }
-
-  cricket::IceConfig ice_config;
-  ice_config.receiving_timeout = RTCConfigurationToIceConfigOptionalInt(
-      config.ice_connection_receiving_timeout);
-  ice_config.prioritize_most_likely_candidate_pairs =
-      config.prioritize_most_likely_ice_candidate_pairs;
-  ice_config.backup_connection_ping_interval =
-      RTCConfigurationToIceConfigOptionalInt(
-          config.ice_backup_candidate_pair_ping_interval);
-  ice_config.continual_gathering_policy = gathering_policy;
-  ice_config.presume_writable_when_fully_relayed =
-      config.presume_writable_when_fully_relayed;
-  ice_config.surface_ice_candidates_on_ice_transport_type_changed =
-      config.surface_ice_candidates_on_ice_transport_type_changed;
-  ice_config.ice_check_interval_strong_connectivity =
-      config.ice_check_interval_strong_connectivity;
-  ice_config.ice_check_interval_weak_connectivity =
-      config.ice_check_interval_weak_connectivity;
-  ice_config.ice_check_min_interval = config.ice_check_min_interval;
-  ice_config.ice_unwritable_timeout = config.ice_unwritable_timeout;
-  ice_config.ice_unwritable_min_checks = config.ice_unwritable_min_checks;
-  ice_config.ice_inactive_timeout = config.ice_inactive_timeout;
-  ice_config.stun_keepalive_interval = config.stun_candidate_keepalive_interval;
-  ice_config.network_preference = config.network_preference;
-  ice_config.stable_writable_connection_ping_interval =
-      config.stable_writable_connection_ping_interval_ms;
-  ice_config.dtls_handshake_in_stun =
-      false;  // Filled in later based on field trial.
-  return ice_config;
-}
-
-// Ensures the configuration doesn't have any parameters with invalid values,
-// or values that conflict with other parameters.
-//
-// Returns RTCError::OK() if there are no issues.
-RTCError ValidateConfiguration(
-    const PeerConnectionInterface::RTCConfiguration& config) {
-  return cricket::P2PTransportChannel::ValidateIceConfig(
-      ParseIceConfig(config));
 }
 
 // Checks for valid pool size range and if a previous value has already been
@@ -388,7 +324,7 @@ RTCErrorOr<PeerConnectionInterface::RTCConfiguration> ApplyConfiguration(
                          "Modifying the configuration in an unsupported way.");
   }
 
-  RTCError err = ValidateConfiguration(modified_config);
+  RTCError err = cricket::IceConfig(modified_config).IsValid();
   if (!err.ok()) {
     return err;
   }
@@ -586,7 +522,7 @@ RTCErrorOr<rtc::scoped_refptr<PeerConnection>> PeerConnection::Create(
         << "PeerConnection constructed with legacy SDP semantics!";
   }
 
-  RTCError config_error = ValidateConfiguration(configuration);
+  RTCError config_error = cricket::IceConfig(configuration).IsValid();
   if (!config_error.ok()) {
     RTC_LOG(LS_ERROR) << "Invalid ICE configuration: "
                       << config_error.message();
@@ -918,7 +854,7 @@ JsepTransportController* PeerConnection::InitializeTransportController_n(
             }));
       });
 
-  auto ice_config = ParseIceConfig(configuration);
+  cricket::IceConfig ice_config(configuration);
   ice_config.dtls_handshake_in_stun =
       CanAttemptDtlsStunPiggybacking(configuration);
 
@@ -1649,7 +1585,7 @@ RTCError PeerConnection::SetConfiguration(
           configuration_.type, modified_config.type) ||
       modified_config.GetTurnPortPrunePolicy() !=
           configuration_.GetTurnPortPrunePolicy();
-  cricket::IceConfig ice_config = ParseIceConfig(modified_config);
+  cricket::IceConfig ice_config(modified_config);
   ice_config.dtls_handshake_in_stun =
       CanAttemptDtlsStunPiggybacking(modified_config);
 
