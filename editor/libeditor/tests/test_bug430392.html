@@ -21,6 +21,9 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=430392
 /** Test for Bug 430392 **/
 
 function test() {
+  const kNewWhiteSpaceNormalizerEnabled =
+    SpecialPowers.getBoolPref("editor.white_space_normalization.blink_compatible");
+
   var edit = document.getElementById("edit");
   var html = edit.innerHTML;
   var expectedText = edit.textContent;
@@ -40,9 +43,17 @@ function test() {
         getSelection().collapse(edit.firstChild, 0); // [] <span contenteditable=false>A</span> ; <span
         synthesizeKey("KEY_ArrowRight");             //  <span contenteditable=false>A</span>[] ; <span
         synthesizeKey("KEY_Enter");
+        info(`1st Enter: "${edit.innerHTML}"`);
+        // " <div><span contenteditable="false">A</span><br></div><div>[]&nbsp;; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></div> "
         synthesizeKey("KEY_Enter");
+        info(`2nd Enter: "${edit.innerHTML}"`);
+        // " <div><span contenteditable="false">A</span><br></div><div><br></div><div>[]&nbsp;; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></div> "
         synthesizeKey("KEY_Backspace");
+        info(`1st Backspace: "${edit.innerHTML}"`);
+        // " <div><span contenteditable="false">A</span><br></div><div>&nbsp;; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></div> "
         synthesizeKey("KEY_Backspace");
+        info(`2nd Backspace: "${edit.innerHTML}"`);
+        // " <div><span contenteditable="false">A</span>&nbsp;; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></div> "
       }, [
         "insertParagraph",
         "insertParagraph",
@@ -59,15 +70,26 @@ function test() {
         switch (aSeparator) {
           case "div":
           case "p":
+            if (kNewWhiteSpaceNormalizerEnabled) {
+              // The following white-space of "A" should be converted to an
+              // NBSP when it's wrapped in a new paragraph.  Then, it'll stay
+              // the start of the `Text` after `Backspace`es.  Therefore, it
+              // won't be back to an ASCII white-space.
+              return " A\u00A0; B ; C ";
+            }
             // After insertParagraph, the space after "A" becomes a preceding
             // white space in the paragraph.  Therefore, it's removed when
             // joining the block boundary by Backspace.
+            // XXX Shouldn't it become invisible, so, shouldn't be removed later.
             // So, this is actual expected result for the cases.
             return " A; B ; C ";
           case "br":
             // After insertLineBreak, the first white-space should be replaced
             // with &nbsp; and it should not be reconverted at Backspace.
             // Therefore, the actual expected result is " A&nbsp;; B ; C ".
+            if (kNewWhiteSpaceNormalizerEnabled) {
+              return " A\u00A0; B ; C ";
+            }
             return undefined;
         }
         throw new Error("handle all cases!");
@@ -79,9 +101,17 @@ function test() {
         getSelection().collapse(edit.firstChild, 0); // [] <span contenteditable=false>A</span> ; <span
         synthesizeKey("KEY_ArrowRight");             //  <span contenteditable=false>A</span>[] ; <span
         synthesizeKey("KEY_Enter", {shiftKey: true});
+        info(`1st Shift+Enter: "${edit.innerHTML}"`);
+        // " <span contenteditable="false">A</span><br>[]&nbsp;; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> "
         synthesizeKey("KEY_Enter", {shiftKey: true});
+        info(`2nd Shift+Enter: "${edit.innerHTML}"`);
+        // " <span contenteditable="false">A</span><br><br>[]&nbsp;; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> "
         synthesizeKey("KEY_Backspace");
+        info(`1st Backspace: "${edit.innerHTML}"`);
+        // " <span contenteditable="false">A</span><br>[]&nbsp;; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> "
         synthesizeKey("KEY_Backspace");
+        info(`2nd Backspace: "${edit.innerHTML}"`);
+        // " []&nbsp;; <span contenteditable="false">A</span><span contenteditable="false">B</span> ; <span contenteditable="false">C</span> "
       }, [
         "insertLineBreak",
         "insertLineBreak",
@@ -97,7 +127,7 @@ function test() {
       // <br> is inserted, the following white-space should be preserved as
       // an &nbsp;.  Then, it should not be reconverted to a white-space after
       // Backspace.
-      " ; AB ; C ",
+      kNewWhiteSpaceNormalizerEnabled ? " \u00A0; AB ; C " : " ; AB ; C ",
     ],
   ];
 
@@ -165,10 +195,18 @@ function test() {
       if (expectedFailText !== undefined) {
         todo_is(resultText, expectedText, `${arr[0]} should not change text (${sep})`);
         if (resultText !== expectedText && resultText !== expectedFailText) {
-          is(resultText, expectedFailText, `${arr[0]} changed to different failure (${sep})`);
+          is(
+            resultText.replaceAll(/\u00A0/g, "&nbsp;"),
+            expectedFailText.replaceAll(/\u00A0/g, "&nbsp;"),
+            `${arr[0]} changed to different failure (${sep})`
+          );
         }
       } else {
-        is(resultText, expectedText, `${arr[0]} should not change text (${sep})`);
+        is(
+          resultText.replaceAll(/\u00A0/g, "&nbsp;"),
+          expectedText.replaceAll(/\u00A0/g, "&nbsp;"),
+          `${arr[0]} should not change text (${sep})`
+        );
       }
       is(beforeinputTypes.length, arr[2].length, `${arr[0]}: number of beforeinput events should be ${arr[2].length} (${sep})`);
       for (let i = 0; i < Math.max(beforeinputTypes.length, arr[2].length); i++) {

@@ -8,6 +8,10 @@ var testPage =
   "</body>";
 
 add_task(async function () {
+  const kNewWhiteSpaceNormalizerEnabled = Services.prefs.getBoolPref(
+    "editor.white_space_normalization.blink_compatible"
+  );
+
   let tab = BrowserTestUtils.addTab(gBrowser);
   let browser = gBrowser.getBrowserForTab(tab);
 
@@ -275,16 +279,24 @@ add_task(async function () {
   await pastePromise;
 
   // The new content should now include an image.
-  await SpecialPowers.spawn(browser, [], () => {
-    var main = content.document.getElementById("main");
-    Assert.equal(
-      main.innerHTML,
-      '<i>Italic</i> <img id="img" tabindex="1" ' +
-        'src="http://example.org/browser/browser/base/content/test/general/moz.png">' +
-        "Test <b>Bold</b> After<b></b>",
-      "Paste after copy image"
-    );
-  });
+  await SpecialPowers.spawn(
+    browser,
+    [kNewWhiteSpaceNormalizerEnabled],
+    aNewWhiteSpaceNormalizerEnabled => {
+      var main = content.document.getElementById("main");
+      Assert.equal(
+        main.innerHTML,
+        aNewWhiteSpaceNormalizerEnabled
+          ? '<i>Italic</i>&nbsp;<img id="img" tabindex="1" ' +
+              'src="http://example.org/browser/browser/base/content/test/general/moz.png">' +
+              "Test <b>Bold</b> After<b></b>"
+          : '<i>Italic</i> <img id="img" tabindex="1" ' +
+              'src="http://example.org/browser/browser/base/content/test/general/moz.png">' +
+              "Test <b>Bold</b> After<b></b>",
+        "Paste after copy image"
+      );
+    }
+  );
 
   gBrowser.removeCurrentTab();
 });

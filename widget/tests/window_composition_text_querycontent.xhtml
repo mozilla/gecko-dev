@@ -161,7 +161,10 @@ const nsIDocShell = Ci.nsIDocShell;
 const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
-const kExpectInputBeforeCompositionEnd = SpecialPowers.getBoolPref("dom.input_events.dispatch_before_compositionend");
+const kExpectInputBeforeCompositionEnd =
+  SpecialPowers.getBoolPref("dom.input_events.dispatch_before_compositionend");
+const kNewWhiteSpaceNormalizerEnabled =
+  SpecialPowers.getBoolPref("editor.white_space_normalization.blink_compatible");
 
 function waitForTick() {
   return new Promise(resolve => { SimpleTest.executeSoon(resolve); });
@@ -6559,15 +6562,24 @@ function runBug1530649Test()
      caret: {start: 3, length: 0}});
   synthesizeComposition({type: "compositioncommit", data: "abc ", key: " "});
 
-  is(contenteditable.innerHTML, "abc <br>",
-     "runBug1530649Test: The trailing space shouldn't be removed");
+  is(
+    contenteditable.innerHTML,
+    kNewWhiteSpaceNormalizerEnabled ? "abc&nbsp;" : "abc <br>",
+    "runBug1530649Test: The trailing space shouldn't be removed"
+  );
 
   synthesizeCompositionChange(
     {composition: {string: "d", clauses: [{length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE}]},
      caret: {start: 1, length: 0}});
 
-  is(contenteditable.innerHTML, "abc d",
-     "runBug1530649Test: The new composition string shouldn't remove the last space");
+  is(
+    // It's fine to keep the preceding white-space as an NBSP until the composition ends
+    kNewWhiteSpaceNormalizerEnabled
+      ? contenteditable.innerHTML.replaceAll("&nbsp;", " ")
+      : contenteditable.innerHTML,
+    "abc d",
+    "runBug1530649Test: The new composition string shouldn't remove the last space"
+  );
 
   synthesizeComposition({type: "compositioncommitasis", key: "KEY_Enter"});
 
@@ -6705,8 +6717,11 @@ function runCommitCompositionWithSpaceKey()
   synthesizeComposition({type: "compositioncommit", data: "a"});
   synthesizeKey(" ");
 
-  is(contenteditable.innerHTML, "a <br>",
-     "runCommitCompositionWithSpaceKey: last single space should be kept");
+  is(
+    contenteditable.innerHTML,
+    kNewWhiteSpaceNormalizerEnabled ? "a&nbsp;" : "a <br>",
+    "runCommitCompositionWithSpaceKey: last single space should be kept"
+  );
 
   synthesizeCompositionChange({
     composition: {string: "b", clauses: [{length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE}]},
@@ -6714,8 +6729,11 @@ function runCommitCompositionWithSpaceKey()
   synthesizeComposition({type: "compositioncommit", data: "b"});
   synthesizeKey(" ");
 
-  is(contenteditable.innerHTML, "a b <br>",
-     "runCommitCompositionWithSpaceKey: inserting composition shouldn't remove last single space.");
+  is(
+    contenteditable.innerHTML,
+    kNewWhiteSpaceNormalizerEnabled ? "a b&nbsp;" : "a b <br>",
+    "runCommitCompositionWithSpaceKey: inserting composition shouldn't remove last single space."
+  );
 
   synthesizeCompositionChange({
     composition: {string: "c", clauses: [{length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE}]},
@@ -6723,21 +6741,30 @@ function runCommitCompositionWithSpaceKey()
   synthesizeComposition({type: "compositioncommit", data: "c"});
   synthesizeKey(" ");
 
-  is(contenteditable.innerHTML, "a b c <br>",
-     "runCommitCompositionWithSpaceKey: inserting composition shouldn't remove last single space.");
+  is(
+    contenteditable.innerHTML,
+    kNewWhiteSpaceNormalizerEnabled ? "a b c&nbsp;" : "a b c <br>",
+    "runCommitCompositionWithSpaceKey: inserting composition shouldn't remove last single space."
+  );
 
   contenteditable.innerHTML = "a";
   windowOfContenteditable.getSelection().collapse(contenteditable.firstChild, contenteditable.firstChild.length);
-  is(contenteditable.innerHTML, "a",
-     "runCommitCompositionWithSpaceKey: contenteditable should be initialized with text ending with a space and without following <br> element");
+  is(
+    contenteditable.innerHTML,
+    "a",
+    "runCommitCompositionWithSpaceKey: contenteditable should be initialized with text ending with a space and without following <br> element"
+  );
 
   synthesizeCompositionChange({
     composition: {string: "b", clauses: [{length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE}]},
   });
   synthesizeComposition({type: "compositioncommit", data: "b ", key: { key: " ", code: "Space" }});
 
-  is(contenteditable.innerHTML, "ab <br>",
-     "runCommitCompositionWithSpaceKey: contenteditable should end with a padding <br> element after inserting commit string ending with a space");
+  is(
+    contenteditable.innerHTML,
+    kNewWhiteSpaceNormalizerEnabled ? "ab&nbsp;" : "ab <br>",
+    "runCommitCompositionWithSpaceKey: contenteditable should end with a padding <br> element after inserting commit string ending with a space"
+  );
 }
 
 function runCSSTransformTest()
@@ -11303,7 +11330,7 @@ function runPaddingLineBreakTest() {
   });
   is(
     contenteditable.innerHTML,
-    "<p>a <br></p>",
+    kNewWhiteSpaceNormalizerEnabled ? "<p>a&nbsp;</p>" : "<p>a <br></p>",
     "Padding <br> should be inserted after composition string when it ends with a collapsible white-space"
   );
   synthesizeCompositionChange({
@@ -11328,14 +11355,18 @@ function runPaddingLineBreakTest() {
     composition: {string: "d", clauses: [{length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE}]},
   });
   is(
-    contenteditable.innerHTML,
+    // If the new normalizer is enabled, it's fine to keep the last white-space
+    // before composition stirng is an NBSP because it'll be normalized at end.
+    kNewWhiteSpaceNormalizerEnabled
+      ? contenteditable.innerHTML.replaceAll("&nbsp;", " ")
+      : contenteditable.innerHTML,
     "<p>abc d</p>",
     `The padding <br> should be deleted when the composition string, "d", is inserted`
   );
   synthesizeComposition({ type: "compositioncommit", data: "" });
   is(
     contenteditable.innerHTML,
-    "<p>abc <br></p>",
+    kNewWhiteSpaceNormalizerEnabled ? "<p>abc&nbsp;</p>" : "<p>abc <br></p>",
     "A padding <br> should be inserted if the composition string becomes empty and the previous character is a collapsible ASCII white-space"
   );
   synthesizeKey("z", {accelKey: true});
@@ -11344,6 +11375,31 @@ function runPaddingLineBreakTest() {
     "<p>abc <br></p>",
     "Undo should not delete the padding <br>"
   );
+
+  if (kNewWhiteSpaceNormalizerEnabled) {
+    contenteditable.innerHTML = "<p>abc&nbsp;</p>";
+    selection.collapse(contenteditable.querySelector("p").firstChild, "abc ".length);
+    synthesizeCompositionChange({
+      composition: {string: "d", clauses: [{length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE}]},
+    });
+    is(
+      contenteditable.innerHTML.replaceAll("&nbsp;", " "),
+      "<p>abc d</p>",
+      `The white-space should not become invislbe, but it's fine either an ASCII space or an NBSP`
+    );
+    synthesizeComposition({ type: "compositioncommit", data: "" });
+    is(
+      contenteditable.innerHTML,
+      "<p>abc&nbsp;</p>",
+      "The last white-space should be an NBSP if the composition string becomes empty and the previous character is a collapsible ASCII white-space"
+    );
+    synthesizeKey("z", {accelKey: true});
+    is(
+      contenteditable.innerHTML,
+      "<p>abc&nbsp;</p>",
+      "Undo should not delete the trailing white-space"
+    );
+  }
 
   contenteditable.innerHTML = "";
 }
