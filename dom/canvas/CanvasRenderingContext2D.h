@@ -731,8 +731,13 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
   // Report the fillRule has changed.
   void FillRuleChanged();
 
-  // Check if the target is in an error state.
-  bool HasErrorState(ErrorResult& aError);
+  /**
+   * Check if the target is in an error state. Functions that may need to
+   * access the transform or clip state with or without a target should call
+   * this first to verify that it's okay to access this state, as error targets
+   * should ignore it instead.
+   */
+  bool HasErrorState(ErrorResult& aError, bool aInitProvider = true);
   bool HasErrorState() {
     IgnoredErrorResult error;
     return HasErrorState(error);
