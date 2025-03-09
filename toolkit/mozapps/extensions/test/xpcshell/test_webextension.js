@@ -2,6 +2,12 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+// Non-extension add-ons are not supported on Android, but some tests install
+// non-extension add-ons, such as static themes, dictionaries, langpacks.
+const skipOnAndroid = () => ({
+  skip_if: () => AppConstants.platform === "android",
+});
+
 const ID = "webextension1@tests.mozilla.org";
 
 const profileDir = gProfD.clone();
@@ -434,7 +440,7 @@ add_task(async function developerShouldOverride() {
   await addon.uninstall();
 });
 
-add_task(async function test_invalid_developer_does_not_override() {
+add_task(skipOnAndroid(), async function test_invalid_developer_is_ignored() {
   for (const { type, manifestProps, files } of [
     {
       type: "dictionary",
@@ -520,7 +526,7 @@ add_task(async function authorNotString() {
   ExtensionTestUtils.failOnSchemaWarnings(true);
 });
 
-add_task(async function testThemeExtension() {
+add_task(skipOnAndroid(), async function testThemeExtension() {
   let addon = await promiseInstallWebExtension({
     manifest: {
       author: "Some author",
@@ -569,7 +575,7 @@ add_task(async function testThemeExtension() {
 });
 
 // Test that we can update from a webextension to a webextension-theme
-add_task(async function test_theme_upgrade() {
+add_task(skipOnAndroid(), async function test_theme_upgrade() {
   // First install a regular webextension
   let addon = await promiseInstallWebExtension({
     manifest: {
@@ -624,7 +630,7 @@ add_task(async function test_theme_upgrade() {
   Assert.equal(addon, null);
 });
 
-add_task(async function test_developer_properties() {
+add_task(skipOnAndroid(), async function test_developer_properties() {
   const name = "developer-name";
   const url = "https://example.org";
 

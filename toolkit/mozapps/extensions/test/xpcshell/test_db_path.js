@@ -10,6 +10,10 @@ let global = this;
 // if they include non-ascii characters (see bug 1428234 for an example of
 // a past bug with such paths)
 add_task(async function test_non_ascii_path() {
+  // Note: We can only change the profile directory location if
+  // do_get_profile() has not been called yet. On Android, this does not work
+  // because do_get_profile() is called before the test starts:
+  // https://searchfox.org/mozilla-central/rev/45d158e24489a6bad5a2d2d384b5083595c6c29c/testing/xpcshell/head.js#516-519
   const PROFILE_VAR = "XPCSHELL_TEST_PROFILE_DIR";
   let profileDir = PathUtils.join(
     Services.env.get(PROFILE_VAR),
