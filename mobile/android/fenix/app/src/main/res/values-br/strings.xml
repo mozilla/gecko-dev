@@ -659,6 +659,22 @@
   <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Evit sikour da wellaat ar merdeer, Firefox a gas roadennoù dielfennañ hag etreoberiañ da vMozilla. %1$s</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
   <string name="onboarding_term_of_service_line_three_link_text">Ardeiñ</string>
+  <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Sikourit ac’hanomp da vrudañ Firefox</string>
+  <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Pa rannit penaos ho peus graet anaoudegezh gant Firefox ha penaos e implijit anezhañ e sikourit ac\'hanomp da vrudañ ho merdeer.</string>
+  <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Rannañ nebeud a roadennoù gant kevelerien e teknologiezhioù marketing Mozilla. Ar roadennoù-mañ na vo morse gwerzhet na implijet evit diskouez deoc\'h bruderezhioù.</string>
+  <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+  <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Penaos e implijomp ar roadennoù</string>
+  <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Kadarnaat ha kregiñ da verdeiñ</string>
+  <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Un draig diwezhañ</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Rannit penaos ho peus graet anaoudegezh gant Firefox ha penaos ec\'h implijit anezhañ gant kevelerien marketing Mozilla. Ne vo morse gwerzhet ar roadennoù-mañ.</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Asantiñ ha kregiñ da verdeiñ</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Dibab ul lec’h barrenn-ostilhoù</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -669,10 +685,37 @@
   <string name="onboarding_customize_toolbar_top_option">Krec’h</string>
   <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_bottom_option">Traoñ</string>
+  <!-- Onboarding toolbar selection card content description for the main image. -->
+  <string name="onboarding_customize_toolbar_main_image_content_description">Skeudenn dalbenn vras er gwel diuzañ ar varrenn ostilhoù o tiskouez ur varrenn ostilhoù skeudennet.</string>
+  <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
+  <string name="onboarding_customize_toolbar_placement_bottom_content_description">Skeudenn ar varrenn-ostilhoù izelañ</string>
+  <string name="onboarding_customize_toolbar_placement_top_content_description">Skeudenn ar varrenn-ostilhoù uhelañ</string>
+  <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+  <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Ket bremañ</string>
+  <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
+  <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Dibab un neuz</string>
+  <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
+  <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Sellit ouzh ar web bravañ</string>
+  <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
+  <string name="onboarding_save_and_start_button">Enrollañ ha kregiñ da verdeiñ</string>
   <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_dark_option">Teñval</string>
   <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_light_option">Sklaer</string>
+  <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
+  <string name="onboarding_customize_theme_system_option">Reizhiad emgefreek</string>
+  <!-- Onboarding theme selection card content description for the main image. -->
+  <string name="onboarding_customize_theme_main_image_content_description">Skeudenn dalbenn vras er gwel diuzañ an neuz o tiskouez an arzourien skeudennet hag ostilhoù krouiñ.</string>
+  <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+  <string name="onboarding_customize_theme_content_description">Skeudenn an neuz %1$s</string>
+  <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+  <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Ket bremañ</string>
+  <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Lañsañ ur c\'hlask prim</string>
   <!--
     Search Widget
 
@@ -840,12 +883,18 @@
   <string name="preferences_show_voice_search">Diskouez ar cʼhlask dre vouezh</string>
   <!-- Preference title for switch preference to show search suggestions also in private mode -->
   <string name="preferences_show_search_suggestions_in_private">Diskouez er estezioù prevez</string>
+  <!-- Preference title for switch preference to show trending search suggestions -->
+  <string name="preferences_show_trending_search_suggestions">Diskouez an erbedadennoù brudet</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Diskouez ar c’hlaskoù diwezhañ</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Diskouez kinnigoù ar golver</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
   <string name="preferences_search_browsing_history">Klask er roll istor</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">Klask er sinedoù</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">Diskouez ar berradennoù</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">Klask en ivinelloù goubredet</string>
   <!-- Preference for account settings -->
@@ -866,6 +915,8 @@
   <string name="preferences_show_nonsponsored_suggestions">Alioù %1$s</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">Kaout alioù eus ar web hervez ho klaskoù</string>
+  <!-- Preference for link sharing -->
+  <string name="preferences_link_sharing">Rannañ an ereoù</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Digeriñ ereoù en arloadoù</string>
   <!-- Preference for open links in third party apps always open in apps option -->

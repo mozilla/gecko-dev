@@ -2183,6 +2183,12 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">Ikona preferencji wyjątku wzmocnionej ochrony przed śledzeniem</string>
+  <!--
+    DNS Over HTTPS (DoH)
+
+    Preference title for DNS over HTTPS settings
+  -->
+  <string name="preference_doh_title">DNS poprzez HTTPS</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Pomoc</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->

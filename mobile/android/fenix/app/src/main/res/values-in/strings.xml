@@ -361,6 +361,12 @@
   <string name="browser_tools_menu_handlebar_content_description">Tutup lembar menu alat</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">Tutup lembar menu tab ubahan</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
+  <string name="browser_menu_tools_description_with_translate_with_report_site_2">Tampilan Pembaca, Terjemahkan, Laporkan situs rusak, Cetak, Bagikan, Buka aplikasi</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+  <string name="browser_menu_tools_description_with_translate_without_report_site">Tampilan Pembaca, Terjemahkan, Cetak, Bagikan, Buka aplikasi</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
+  <string name="browser_menu_tools_description_with_report_site_2">Tampilan Pembaca, Laporkan situs rusak, Cetak, Bagikan, Buka aplikasi</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
   <string name="browser_menu_tools_description_without_report_site">Tampilan Pembaca, Cetak, Bagikan, Buka aplikasi</string>
   <!--
@@ -572,6 +578,8 @@
     Note: The word "Firefox" should NOT be translated
   -->
   <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Sesuaikan Firefox Anda dengan ekstensi</string>
+  <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Tambahkan ekstensi pihak ketiga untuk meningkatkan keamanan, produktivitas, dan lainnya.</string>
   <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
   <string name="onboarding_add_on_explore_more_extensions_2">Jelajahi lebih banyak ekstensi</string>
   <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->

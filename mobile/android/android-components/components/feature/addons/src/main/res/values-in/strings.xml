@@ -30,6 +30,8 @@
     %1$d will be replaced by an integer indicating the number of additional domains for which this web extension is requesting permission.
   -->
   <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">Mengakses data Anda pada %1$d domain lainnya</string>
+  <!-- When an add-on requires access to domains, this entry is used to describe the total number of domains. Underneath it will be the list of all the domains. %1$d is the number of all the domains that will be shown to the user as required. -->
+  <string name="mozac_feature_addons_permissions_all_domain_count_description" tools:ignore="PluralsCandidate">Mengakses data Anda untuk situs di domain %1$d</string>
   <!-- Content description for a permission item, for an installed add-on details page. %1$s will be replaced with the permission text name, %2$d will be replaced with the permission position in the list and %3$d will be replaced with the total number of permissions in the list.Taking as an example "Read and modify privacy settings" the whole text will read Read and modify privacy settings, 2 of 6. -->
   <string name="mozac_feature_addons_permissions_content_description_item">%1$s, %2$d dari %3$d</string>
   <!-- Description for tabs add-on permission. -->
@@ -80,8 +82,16 @@
   <string name="mozac_feature_addons_permissions_top_sites_description">Mengakses riwayat penjelajahan</string>
   <!-- Description for trialML permission. -->
   <string name="mozac_feature_addons_permissions_trial_ml_description">Unduh dan jalankan model AI di perangkat Anda</string>
+  <!-- Description for userScripts permission. -->
+  <string name="mozac_feature_addons_permissions_user_scripts_description">Izinkan skrip pihak ketiga yang belum diverifikasi untuk mengakses data Anda</string>
+  <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+  <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Skrip yang tidak diverifikasi dapat menimbulkan risiko keamanan dan privasi. Hanya jalankan skrip dari ekstensi atau sumber yang Anda percayai.</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">Perpanjang akses alat pengembang ke data Anda di dalam tab terbuka</string>
+  <!-- Description for text button that expands the list of domain permissions -->
+  <string name="mozac_feature_addons_permissions_show_all_sites">Tampilkan semua situs</string>
+  <!-- Description for text button that hides the majority of the list of domain permissions -->
+  <string name="mozac_feature_addons_permissions_show_fewer_sites">Tampilkan lebih sedikit situs</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">Versi</string>
   <!-- The author of an add-on. -->
