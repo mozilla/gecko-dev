@@ -7,6 +7,15 @@
 
 Services.prefs.setIntPref("extensions.autoDisableScopes", 0);
 
+if (AppConstants.platform == "android") {
+  // On desktop, the pref is not set, so the default (SCOPE_ALL) value is used.
+  // On mobile, extensions.enabledScopes is set (to 5) in geckoview-prefs.js
+  // For this test to behave consistently across platforms, force the default
+  // value to the same value as on desktop.
+  const defaultPrefs = Services.prefs.getDefaultBranch("");
+  defaultPrefs.setIntPref("extensions.enabledScopes", AddonManager.SCOPE_ALL);
+}
+
 const ID1 = getID(1);
 const ID2 = getID(2);
 const ID3 = getID(3);

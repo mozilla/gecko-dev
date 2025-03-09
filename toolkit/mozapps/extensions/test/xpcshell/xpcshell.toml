@@ -62,7 +62,6 @@ skip-if = ["os == 'android'"] # Non-extension add-ons are not supported on Andro
 ["test_badschema.js"]
 
 ["test_builtin_location.js"]
-skip-if = ["os == 'android'"] # bug 1748947 - Error: File resource://default-theme/ does not contain a valid manifest, see https://bugzilla.mozilla.org/show_bug.cgi?id=1748947#c4
 
 ["test_cacheflush.js"]
 
@@ -146,7 +145,6 @@ prefs = ["dom.security.https_first=false"]
 ["test_isReady.js"]
 
 ["test_loadManifest_isPrivileged.js"]
-skip-if = ["os == 'android'"] # bug 1748947 - Error: File resource://default-theme/ does not contain a valid manifest, see https://bugzilla.mozilla.org/show_bug.cgi?id=1748947#c4
 
 ["test_locale.js"]
 
@@ -204,7 +202,6 @@ tags = "webextensions"
 ["test_remote_pref_telemetry.js"]
 
 ["test_safemode.js"]
-skip-if = ["os == 'android'"] # bug 1748947 - Error: File resource://default-theme/ does not contain a valid manifest, see https://bugzilla.mozilla.org/show_bug.cgi?id=1748947#c4
 
 ["test_schema_change.js"]
 
@@ -223,16 +220,12 @@ head = "head_addons.js head_sideload.js"
 skip-if = [
   "os == 'linux'", # Bug 1613268
   "condprof", # Bug 1769184 - by design for now
-  "os == 'android'", # bug 1748947 - Error: File resource://default-theme/ does not contain a valid manifest, see https://bugzilla.mozilla.org/show_bug.cgi?id=1748947#c4
 ]
 
 ["test_sideloads.js"]
 
 ["test_sideloads_after_rebuild.js"]
-skip-if = [
-  "condprof", # Bug 1769184 - by design for now
-  "os == 'android'", # bug 1748947 - Error: File resource://default-theme/ does not contain a valid manifest, see https://bugzilla.mozilla.org/show_bug.cgi?id=1748947#c4
-]
+skip-if = ["condprof"] # Bug 1769184 - by design for now
 head = "head_addons.js head_sideload.js"
 
 ["test_signed_inject.js"]
@@ -261,7 +254,6 @@ head = "head_addons.js head_sideload.js"
 skip-if = [
   "os == 'linux'", # Bug 1613268
   "condprof", # Bug 1769184 - by design for now
-  "os == 'android'", # bug 1748947 - Error: File resource://default-theme/ does not contain a valid manifest, see https://bugzilla.mozilla.org/show_bug.cgi?id=1748947#c4
 ]
 
 ["test_startup_enable.js"]
@@ -270,7 +262,6 @@ skip-if = [
 
 ["test_startup_scan.js"]
 head = "head_addons.js head_sideload.js"
-skip-if = ["os == 'android'"] # bug 1748947 - Error: File resource://default-theme/ does not contain a valid manifest, see https://bugzilla.mozilla.org/show_bug.cgi?id=1748947#c4
 
 ["test_strictcompatibility.js"]
 head = "head_addons.js head_compat.js"
@@ -287,7 +278,6 @@ head = "head_addons.js head_system_addons.js"
 head = "head_addons.js head_system_addons.js"
 
 ["test_system_profile_location.js"]
-skip-if = ["os == 'android'"] # bug 1748947 - Error: File resource://default-theme/ does not contain a valid manifest, see https://bugzilla.mozilla.org/show_bug.cgi?id=1748947#c4
 
 ["test_system_repository.js"]
 head = "head_addons.js head_system_addons.js"
@@ -296,10 +286,7 @@ head = "head_addons.js head_system_addons.js"
 head = "head_addons.js head_system_addons.js"
 
 ["test_system_startupprefs.js"]
-skip-if = [
-  "condprof", # Bug 1769184 - by design for now
-  "os == 'android'", # bug 1748947 - Error: File resource://default-theme/ does not contain a valid manifest, see https://bugzilla.mozilla.org/show_bug.cgi?id=1748947#c4
-]
+skip-if = ["condprof"] # Bug 1769184 - by design for now
 head = "head_addons.js head_system_addons.js"
 
 ["test_system_update_blank.js"]
@@ -338,10 +325,7 @@ head = "head_addons.js head_system_addons.js"
 head = "head_addons.js head_system_addons.js"
 
 ["test_system_upgrades.js"]
-skip-if = [
-  "condprof", # Bug 1769184 - by design for now
-  "os == 'android'", # bug 1748947 - Error: File resource://default-theme/ does not contain a valid manifest, see https://bugzilla.mozilla.org/show_bug.cgi?id=1748947#c4
-]
+skip-if = ["condprof"] # Bug 1769184 - by design for now
 head = "head_addons.js head_system_addons.js"
 
 ["test_temporary.js"]
@@ -397,7 +381,6 @@ tags = "webextensions"
 ["test_upgrade.js"]
 head = "head_addons.js head_compat.js"
 run-sequentially = "Uses global XCurProcD dir."
-skip-if = ["os == 'android'"] # bug 1748947 - Error: File resource://default-theme/ does not contain a valid manifest, see https://bugzilla.mozilla.org/show_bug.cgi?id=1748947#c4
 
 ["test_upgrade_incompatible.js"]
 

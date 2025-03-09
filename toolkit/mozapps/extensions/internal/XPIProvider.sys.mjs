@@ -2661,12 +2661,14 @@ export var XPIProvider = {
         );
       }
 
-      // Keep version in sync with toolkit/mozapps/extensions/default-theme/manifest.json
-      this.maybeInstallBuiltinAddon(
-        "default-theme@mozilla.org",
-        "1.4.1",
-        "resource://default-theme/"
-      );
+      if (AppConstants.platform != "android") {
+        // Keep version in sync with toolkit/mozapps/extensions/default-theme/manifest.json
+        this.maybeInstallBuiltinAddon(
+          "default-theme@mozilla.org",
+          "1.4.1",
+          "resource://default-theme/"
+        );
+      }
 
       resolveProviderReady(Promise.all(this.startupPromises));
 
