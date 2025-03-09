@@ -88,7 +88,7 @@ class AddonManagerTest {
         // addon4 (ext4) and addon5 (ext5) are not featured extensions but they are installed.
         val addonsProvider: AddonsProvider = mock()
 
-        whenever(addonsProvider.getFeaturedAddons(anyBoolean(), eq(null), language = anyString())).thenReturn(listOf(Addon(id = "ext1"), Addon(id = "ext2"), Addon(id = "ext3")))
+        whenever(addonsProvider.getFeaturedAddons(anyBoolean(), eq(3L), language = anyString())).thenReturn(listOf(Addon(id = "ext1"), Addon(id = "ext2"), Addon(id = "ext3")))
 
         // Prepare engine
         val engine: Engine = mock()
@@ -399,6 +399,45 @@ class AddonManagerTest {
 
         addonsManager.getAddons(allowCache = false)
         verify(addonsProvider).getFeaturedAddons(eq(false), eq(null), language = anyString())
+        Unit
+    }
+
+    @Test
+    fun `getAddons - passes readTimeoutInSeconds parameter dependent on installed extensions`() = runTestOnMain {
+        val store = BrowserStore()
+
+        val engine: Engine = mock()
+        val callbackCaptor = argumentCaptor<((List<WebExtension>) -> Unit)>()
+        whenever(engine.listInstalledWebExtensions(callbackCaptor.capture(), any())).thenAnswer {
+            callbackCaptor.value.invoke(emptyList())
+        }
+        WebExtensionSupport.initialize(engine, store)
+
+        // Built-in extensions don't count as an installed extension, as they are not displayed to the user.
+        val ext1: WebExtension = mock()
+        whenever(ext1.id).thenReturn("ext1")
+        whenever(ext1.isEnabled()).thenReturn(true)
+        whenever(ext1.isBuiltIn()).thenReturn(true)
+        WebExtensionSupport.installedExtensions["ext1"] = ext1
+
+        val addonsProvider: AddonsProvider = mock()
+        whenever(addonsProvider.getFeaturedAddons(anyBoolean(), readTimeoutInSeconds = any(), language = anyString())).thenReturn(emptyList())
+        val addonsManager = AddonManager(store, mock(), addonsProvider, mock(), dispatcher)
+
+        addonsManager.getAddons()
+        verify(addonsProvider).getFeaturedAddons(eq(true), readTimeoutInSeconds = eq(null), language = anyString())
+        // ^ readTimeoutInSeconds is null, so the default is used.
+
+        // This counts as an installed extension
+        val ext2: WebExtension = mock()
+        whenever(ext2.id).thenReturn("ext2")
+        whenever(ext2.isEnabled()).thenReturn(true)
+        whenever(ext2.isBuiltIn()).thenReturn(false)
+        WebExtensionSupport.installedExtensions["ext2"] = ext2
+
+        addonsManager.getAddons()
+        verify(addonsProvider).getFeaturedAddons(eq(true), readTimeoutInSeconds = eq(3L), language = anyString())
+        // ^ readTimeoutInSeconds is now minimal to ensure quick loading (bug 1949963).
         Unit
     }
 

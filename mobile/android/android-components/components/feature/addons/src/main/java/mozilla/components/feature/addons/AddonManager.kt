@@ -39,6 +39,8 @@ import java.util.Collections.newSetFromMap
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
+internal const val SHORT_READ_TIMEOUT_IN_SECONDS = 3L
+
 /**
  * Provides access to installed and recommended [Addon]s and manages their states.
  *
@@ -95,6 +97,19 @@ class AddonManager(
                 pendingAddonActions.awaitAll()
             }
 
+            val readTimeoutInSeconds = if (installedExtensions.any { !it.value.isBuiltIn() }) {
+                // When the user has already installed any extension, they most likely want to
+                // manage an existing extension. To avoid excessive delays when the network is
+                // slow, choose a very conservative deadline.
+                SHORT_READ_TIMEOUT_IN_SECONDS
+            } else {
+                // When the set of installed extensions is empty, there is no criticial information
+                // that needs to be displayed sooner. Thus we can patiently wait until the featured
+                // extensions have been fetched (until the default DEFAULT_READ_TIMEOUT_IN_SECONDS
+                // timeout is reached).
+                null
+            }
+
             // Get all the featured add-ons not installed from provider.
             // NB: We're keeping translations only for the default locale.
             var featuredAddons = emptyList<Addon>()
@@ -102,7 +117,7 @@ class AddonManager(
                 val userLanguage = Locale.getDefault().language
                 val locales = listOf(userLanguage)
                 featuredAddons =
-                    addonsProvider.getFeaturedAddons(allowCache, language = userLanguage)
+                    addonsProvider.getFeaturedAddons(allowCache, readTimeoutInSeconds, language = userLanguage)
                         .filter { addon -> !installedExtensions.containsKey(addon.id) }
                         .map { addon -> addon.filterTranslations(locales) }
             } catch (throwable: Throwable) {
