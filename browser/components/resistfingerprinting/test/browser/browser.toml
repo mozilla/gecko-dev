@@ -98,6 +98,9 @@ skip-if = [
 ["browser_exslt_time_precision.js"]
 
 ["browser_exslt_timezone_load.js"]
+skip-if = [
+  "os == 'win' && os_version == '11.26100'", # Bug 1952711
+]
 
 ["browser_hwconcurrency_etp_iframes.js"]
 
