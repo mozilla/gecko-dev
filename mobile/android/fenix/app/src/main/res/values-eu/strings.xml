@@ -670,6 +670,10 @@
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Berretsi eta hasi nabigatzen</string>
   <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
   <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Azken gauza bat</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Partekatu Mozillaren marketin-bazkideekin nola aurkitu duzun Firefox eta erabili egiten duzula. Datu hauek inoiz ez dira saltzen.</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Onartu eta hasi nabigatzen</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Hautatu tresna-barraren kokapena</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -705,6 +709,12 @@
   <string name="onboarding_customize_theme_content_description">%1$s itxuraren irudia</string>
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Une honetan ez</string>
+  <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Hasi bilaketa azkarra</string>
   <!--
     Search Widget
 
@@ -872,12 +882,18 @@
   <string name="preferences_show_voice_search">Erakutsi ahots bidezko bilaketa</string>
   <!-- Preference title for switch preference to show search suggestions also in private mode -->
   <string name="preferences_show_search_suggestions_in_private">Erakutsi saio pribatuetan</string>
+  <!-- Preference title for switch preference to show trending search suggestions -->
+  <string name="preferences_show_trending_search_suggestions">Erakutsi joeren iradokizunak</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Erakutsi azken bilaketak</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Erakutsi arbeleko gomendioak</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
   <string name="preferences_search_browsing_history">Bilatu nabigatze-historia</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">Bilatu laster-markak</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">Erakutsi lasterbideak</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">Bilatu sinkronizatutako fitxak</string>
   <!-- Preference for account settings -->
@@ -898,6 +914,16 @@
   <string name="preferences_show_nonsponsored_suggestions">%1$s(r)en gomendioak</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">Eskuratu zure bilaketarekin erlazionatutako webean zeharreko gomendioak</string>
+  <!-- Preference for link sharing -->
+  <string name="preferences_link_sharing">Loturak partekatzea</string>
+  <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_title">Sartu %1$s deskarga-lotura WhatsApp-eko partekatzeetan</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">WhatsAppeko lotura bat partekatzen duzun bakoitzean gonbidatu zure lagunei nabigatze azkarrago eta seguruagoa probatzera %1$s(r)ekin.</string>
+  <!-- Snackbar message shown when user shares a link -->
+  <string name="link_shared_snackbar_message">Lotura partekatuta</string>
+  <!-- Snackbar action label shown when user shares a link -->
+  <string name="link_shared_snackbar_action">Kudeatu ezarpenak</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Ireki loturak aplikazioetan</string>
   <!-- Preference for open links in third party apps always open in apps option -->
@@ -1845,6 +1871,10 @@
   <string name="sync_add_new_device_learn_button">Fitxak bidaltzeari buruzko argibide gehiago…</string>
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">Konektatu beste gailu bat…</string>
+  <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\n%2$s 🦊 bidez bidalia. Probatu mugikorrerako nabigatzailea: %3$s</string>
+  <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\n%2$s 🦊 bidez bidalia %3$s</string>
   <!--
     Notifications
 
@@ -2183,6 +2213,94 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">Jarraipenaren babes hobetuaren salbuespenen hobespen-ikonoa</string>
+  <!--
+    DNS Over HTTPS (DoH)
+
+    Preference title for DNS over HTTPS settings
+  -->
+  <string name="preference_doh_title">HTTPS gaineko DNSa</string>
+  <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_summary">HTTPS gaineko DNSak domeinu-izenerako zure eskaera zifratutako konexio bidez bidaltzen du, DNS segurua hornituz eta zailagoa eginez beste inork jakitea zein den bisitatu behar duzun webgunea. %1$s</string>
+  <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+  <string name="preference_doh_learn_more">Argibide gehiago</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="preference_doh_up_description">Nabigatu gora</string>
+  <!-- Content description for the "Exceptions" button -->
+  <string name="preference_doh_exceptions_description">Salbuespenak</string>
+  <!-- Content description for the "Info" button -->
+  <string name="preference_doh_info_description">Informazioa</string>
+  <!-- Content description for the "Add Site" button -->
+  <string name="preference_doh_add_site_description">Gehitu gunea</string>
+  <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection">Babes lehenetsia</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">%1$s(e)k erabakitzen du noiz erabili DNS segurua zure pribatutasuna babesteko.</string>
+  <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_1">Erabili hautatzen duzun hornitzailea</string>
+  <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_2">Erabili zure DNS ebazle lehenetsia DNS seguruaren hornitzailearekin arazorik balego</string>
+  <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_3">Erabili hornitzaile lokala, ahal bada. %1$s</string>
+  <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_4">Desaktibatu VPNa, gurasoen kontrola edo enpresako politikak aktibo daudenean</string>
+  <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_5">Desaktibatu sareak %1$s(r)i esaten dionean ez lukeela DNS segurua erabili behar. %2$s</string>
+  <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection">Areagotutako babesa</string>
+  <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_summary">Zuk kontrolatzen duzu noiz erabili DNS segurua bai eta hornitzailea ere.</string>
+  <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_1">Erabili hautatzen duzun hornitzailea</string>
+  <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_2">Erabili zure DNS ebazle lehenetsia soilik DNS seguruarekin arazorik balego</string>
+  <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection">Babes maximoa</string>
+  <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_max_protection_summary">%1$s(e)k DNS segurua erabiliko du beti. Segurtasun arriskuaren abisua ikusiko duzu zure sistemaren DNSa erabili aurretik.</string>
+  <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_1">Erabili soilik hautatzen duzun hornitzailea</string>
+  <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_2">Abisatu beti DNS segurua ez badago erabilgarri</string>
+  <!-- Bullet point 3 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_3">DNS segurua ez badago erabilgarri guneak ez dira kargatuko edo ez dira ondo ibiliko</string>
+  <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off">Desaktibatuta</string>
+  <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off_summary">Erabili zure DNS ebazle lehenetsia</string>
+  <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
+  <string name="preference_doh_choose_provider">Aukeratu hornitzailea</string>
+  <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_default">(lehenetsia)</string>
+  <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_custom">Pertsonalizatua</string>
+  <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_title">Hornitzaile pertsonalizatua</string>
+  <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_textfield">Hornitzailea</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
+  <string name="preference_doh_provider_custom_dialog_error_https">URLak "https://" karaktereekin hasi behar du</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
+  <string name="preference_doh_provider_custom_dialog_error_invalid">URL baliogabea</string>
+  <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_cancel">Utzi</string>
+  <!-- Add button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_add">Gehitu</string>
+  <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
+  <string name="preference_doh_exceptions">Salbuespenak</string>
+  <!-- Description of "exceptions" for "DNS over HTTPS". The first parameter is the name of the application. (For example: Fenix) -->
+  <string name="preference_doh_exceptions_summary">%1$s(e)k ez du DNS segurua erabiliko gune hauetan eta beraien azpidomeinuetan.</string>
+  <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
+  <string name="preference_doh_exceptions_add">Gehitu gunea</string>
+  <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_site">Gunea</string>
+  <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_placeholder">adibidea.eus</string>
+  <!-- Error displayed in the input field when adding invalid URLs for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_error">Baliozko domeinua izan behar du</string>
+  <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_add_save">Gorde</string>
+  <!-- Text displayed for removing all exceptions in "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_remove_all_exceptions">Kendu salbuespen guztiak</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Laguntza</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -2488,6 +2606,8 @@
   <string name="quick_settings_sheet_secure_connection_2">Konexioa segurua da</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">Konexioa ez da segurua</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">Orri hau zure gailuan biltegiratuta dago.</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">Garbitu cookieak eta gunearen datuak</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->
@@ -2643,10 +2763,19 @@
     Search suggestions title for Firefox Suggest.
   -->
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefoxen iradokizunak</string>
+  <!-- Search suggestions title for trending searches. -->
+  <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">Bilaketa-joerak</string>
+  <!--
+    Search suggestions title for trending search suggestions.
+    %s is a placeholder for the name of the search engine providing the trending search suggestions.
+  -->
+  <string name="trending_searches_header_2">%s bilatzaileko joerak</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header">Google bilaketa</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">%s bilaketa</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">Azken bilaketak</string>
   <!--
     Default browser experiment
 
@@ -3097,6 +3226,14 @@
   <string name="download_language_file_dialog_positive_button_text_all_languages">Deskargatu eta itzuli</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
   <string name="download_language_file_dialog_negative_button_text">Utzi</string>
+  <!--
+    Unified Trust Panel
+
+    Text for the protection panel header when the site is secure.
+  -->
+  <string name="protection_panel_header_secure">Segurua</string>
+  <!-- Text for the protection panel header when the site is not secure. -->
+  <string name="protection_panel_header_not_secure">Ez-segurua</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Argi ibili gune honetan</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3121,6 +3258,46 @@
   <string name="protection_panel_etp_toggle_enabled_description">Zerbaitek apurtuta badirudi gune honetan, saiatu babesak desaktibatzen.</string>
   <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
   <string name="protection_panel_etp_toggle_disabled_description">Babesak desgaituta daude. Berriro ere aktibatzea gomendatzen dugu.</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the protection panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="protection_panel_num_trackers_blocked">Blokeatutako jarraipen-elementuak: %d</string>
+  <!-- Text for when no trackers have been blocked. -->
+  <string name="protection_panel_no_trackers_blocked">Ez da jarraipen-elementurik aurkitu</string>
+  <!-- Link text to navigate to privacy and security settings from the protection panel. -->
+  <string name="protection_panel_privacy_and_security_settings">Pribatutasun- eta segurtasun-ezarpenak</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the trackers blocked panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_total_num_trackers_blocked">Blokeatutako jarraipen-elementuak: %d</string>
+  <!--
+    Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
+    %s is a placeholder for the name of the tracker category.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
+  <!--
+    Description text for a dialog confirming whether the user wants to delete all data for current site.
+    %s is a placeholder for the base domain of website.
+  -->
+  <string name="clear_site_data_dialog_description">&lt;b&gt;%s&lt;/b&gt; webgunerako cookieak eta datuak kentzeak webguneetatik saioa amaitzea eta erosketa-orgak hustea eragin lezake.</string>
+  <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
+  <string name="clear_site_data_dialog_positive_button_text">Garbitu</string>
+  <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
+  <string name="clear_site_data_dialog_negative_button_text">Utzi</string>
+  <!-- Snackbar title shown when the site data has been cleared. -->
+  <string name="clear_site_data_snackbar">Cookieak eta guneetako datuak kenduta</string>
+  <!-- Text for the connection security panel when the site is secure. -->
+  <string name="connection_security_panel_secure">Konexio segurua</string>
+  <!-- Text for the connection security panel when the site is not secure. -->
+  <string name="connection_security_panel_not_secure">Konexio ez-segurua</string>
+  <!--
+    Text for the connection security panel to indicate who the certificate was verified by.
+    %s is a placeholder for the name of the certificate authority that verified the ticket
+  -->
+  <string name="connection_security_panel_verified_by">Egiaztatzailea: %s</string>
   <!--
     Debug drawer
 

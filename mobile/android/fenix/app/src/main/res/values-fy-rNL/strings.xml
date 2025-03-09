@@ -712,6 +712,12 @@
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">No net</string>
   <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">In flugge sykopdracht starte</string>
+  <!--
     Search Widget
 
     Content description for searching with a widget. The first parameter is the name of the application.

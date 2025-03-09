@@ -661,6 +661,8 @@
   <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">ຊ່ວຍພວກເຮົາພັດທະນາ Firefox</string>
   <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
   <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">ເມື່ອທ່ານແບ່ງປັນວິທີທີ່ທ່ານຄົ້ນພົບ Firefox ແລະ ທີ່ທ່ານໃຊ້ມັນ, ທ່ານຊ່ວຍພວກເຮົາແນະນໍາຕົວທ່ອງເວັບຂອງພວກເຮົາໃຫ້ກັບຄົນຫຼາຍຂຶ້ນ.</string>
+  <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">ແບ່ງປັນຂໍ້ມູນໜ້ອຍທີ່ສຸດກັບຄູ່ຮ່ວມງານດ້ານເທັກໂນໂລຍີການຕະຫຼາດຂອງ Mozilla. ຂໍ້ມູນນີ້ບໍ່ເຄີຍຖືກຂາຍ ຫຼື ໃຊ້ເພື່ອສະແດງໂຄສະນາໃຫ້ທ່ານເຫັນ.</string>
   <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">ພວກເຮົາໃຊ້ຂໍ້ມູນແນວໃດ</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
@@ -700,6 +702,12 @@
   <string name="onboarding_customize_theme_content_description">ຮູບພາບຂອງຮູບແບບສີສັນ %1$s</string>
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">ບໍ່ແມ່ນຕອນນີ້</string>
+  <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">ເລີ່ມການຄົ້ນຫາໄວ</string>
   <!--
     Search Widget
 
@@ -967,6 +975,8 @@
   <string name="wallpaper_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
   <!-- Text for classic wallpapers title. The first parameter is the Firefox name. -->
   <string name="wallpaper_classic_title">ຄລາດສິກ %s</string>
+  <!-- Text for artist series wallpapers title. "Artist series" represents a collection of artist collaborated wallpapers. -->
+  <string name="wallpaper_artist_series_title">ຊຸດສິນລະປິນ       </string>
   <!-- Wallpaper onboarding dialog header text. -->
   <string name="wallpapers_onboarding_dialog_title_text">ລອງເລືອກສີສັນທີທ່ານມັກ</string>
   <!-- Wallpaper onboarding dialog body text. -->
