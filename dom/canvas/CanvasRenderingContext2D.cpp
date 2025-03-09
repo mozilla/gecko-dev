@@ -1549,7 +1549,25 @@ bool CanvasRenderingContext2D::HasAnyClips() const {
   return false;
 }
 
-bool CanvasRenderingContext2D::HasErrorState(ErrorResult& aError) {
+bool CanvasRenderingContext2D::HasErrorState(ErrorResult& aError,
+                                             bool aInitProvider) {
+  // If there is no buffer provider, then attempt to initialize it to flush any
+  // error state. It also forces any backend resources (such as WebGL contexts)
+  // in the buffer provider to initialize as soon as possible, so that it may
+  // speed up initial page loads.
+  // It is normally beneficial to delay initialization of just the target until
+  // we encounter a drawing operation, since this may allow us to elide copying
+  // the old contents of the target to the new target if the drawing operation
+  // would overwrite the entire framebuffer contents.
+  // However, if there is no old target to copy from, there is no benefit to
+  // delaying it. It may incidentally delay creation of the buffer provider,
+  // which is an expensive operation that benefits from being scheduled as soon
+  // as possible. Thus, we only want to delay initialization of the target when
+  // a buffer provider already exists.
+  if (aInitProvider && !mBufferProvider && !EnsureTarget(aError)) {
+    return true;
+  }
+
   if (AlreadyShutDown()) {
     gfxCriticalNoteOnce << "Attempt to render into a Canvas2d after shutdown.";
     SetErrorState();
@@ -1581,7 +1599,7 @@ bool CanvasRenderingContext2D::EnsureTarget(ErrorResult& aError,
                                             const gfx::Rect* aCoveredRect,
                                             bool aWillClear,
                                             bool aSkipTransform) {
-  if (HasErrorState(aError)) {
+  if (HasErrorState(aError, false)) {
     return false;
   }
 
@@ -2239,7 +2257,7 @@ void CanvasRenderingContext2D::Save() {
 }
 
 void CanvasRenderingContext2D::Restore() {
-  if (MOZ_UNLIKELY(HasErrorState() || mStyleStack.Length() < 2)) {
+  if (MOZ_UNLIKELY(mStyleStack.Length() < 2 || HasErrorState())) {
     return;
   }
 
