@@ -10,7 +10,7 @@ async function openCreatePanel(tabgroupPanel, tab) {
   let panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
   gBrowser.addTabGroup([tab], {
     color: "cyan",
-    showCreateUI: true,
+    isUserCreated: true,
   });
   await panelShown;
 }

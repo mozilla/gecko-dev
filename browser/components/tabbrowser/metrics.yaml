@@ -79,6 +79,35 @@ browser.engagement:
         type: quantity
     expires: never
 
+  tab_group_create:
+    type: event
+    description: >
+      Recorded when the user creates a new tab group via
+      the tab context menu or through drag and drop.
+    notification_emails:
+      - dao@mozilla.com
+      - jswinarton@mozilla.com
+    bugs:
+      - https://bugzil.la/1938423
+    data_reviews:
+      - https://bugzil.la/1938423
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      source:
+        description: The means by which the tab group was created
+        type: string
+      tabs:
+        description: The number of tabs in the group when it was created
+        type: quantity
+      layout:
+        description: The layout of the tab strip when the group was created (either "horizontal" or "vertical")
+        type: string
+      id:
+        description: The ID of the created tab group
+        type: string
+    expires: never
+
 browser.ui.interaction:
   all_tabs_panel_dragstart_tab_event_count:
     type: counter
