@@ -141,6 +141,33 @@ class AddonManager(
     }
 
     /**
+     * Returns the [Addon] for an installed extension with the given ID.
+     *
+     * @param addonId The id of the installed add-on.
+     * @throws AddonManagerException in case of a problem reading from
+     * the [addonsProvider] or querying web extension state from the engine / store.
+     */
+    @Throws(AddonManagerException::class)
+    @Suppress("TooGenericExceptionCaught")
+    suspend fun getAddonByID(addonId: String): Addon? = withContext(ioDispatcher) {
+        try {
+            WebExtensionSupport.awaitInitialization()
+
+            // If there was a way to wait for a specific add-on, we would, but for now just await
+            // all pending add-on actions.
+            pendingAddonActions.awaitAll()
+
+            val addon = installedExtensions[addonId]?.let { extension ->
+                val installedState = toInstalledState(extension)
+                Addon.newFromWebExtension(extension, installedState)
+            }
+            return@withContext addon
+        } catch (throwable: Throwable) {
+            throw AddonManagerException(throwable)
+        }
+    }
+
+    /**
      * Installs an [Addon] from the provided [url].
      *
      *  @param url the url pointing to either a resources path for locating the extension

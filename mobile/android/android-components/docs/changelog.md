@@ -25,6 +25,9 @@ permalink: /changelog/
 * **ui-icons**
   * Adds a `mozac_ic_page_portrait_24` icon to be used as a security icon when browsing a local pdf. See [Bug 1920085](https://bugzilla.mozilla.org/show_bug.cgi?id=1920085).
 
+* **feature-addons**
+  * Added `AddonManager.getAddonByID` method to allow querying a specific add-on. This is more efficient than calling `AddonManager.getAddons()` and selecting a specific result. See [Bug 1949963](https://bugzilla.mozilla.org/show_bug.cgi?id=1949963).
+
 # 137.0
 * **support-ktx**
   * 🌟 Added `String.isContentUrl` method that checks if the string is a content URL. [Bug 1944084](https://bugzilla.mozilla.org/show_bug.cgi?id=1944084).

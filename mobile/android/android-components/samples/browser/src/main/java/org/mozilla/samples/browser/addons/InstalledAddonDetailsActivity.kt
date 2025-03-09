@@ -41,14 +41,12 @@ class InstalledAddonDetailsActivity : AppCompatActivity() {
         scope.launch {
             try {
                 val context = baseContext
-                val addons = context.components.addonManager.getAddons()
+                val latestAddon = context.components.addonManager.getAddonByID(addon.id)
                 scope.launch(Dispatchers.Main) {
-                    addons.find { addon.id == it.id }.let {
-                        if (it == null) {
-                            throw AddonManagerException(Exception("Addon ${addon.id} not found"))
-                        } else {
-                            bindUI(it)
-                        }
+                    if (latestAddon == null) {
+                        throw AddonManagerException(Exception("Addon ${addon.id} not found"))
+                    } else {
+                        bindUI(latestAddon)
                     }
                 }
             } catch (e: AddonManagerException) {

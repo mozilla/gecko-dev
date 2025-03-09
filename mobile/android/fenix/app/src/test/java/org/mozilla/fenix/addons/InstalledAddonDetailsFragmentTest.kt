@@ -263,7 +263,7 @@ class InstalledAddonDetailsFragmentTest {
     fun `GIVEN a not found addon WHEN binding THEN show an error message`() = runTestOnMain {
         val addon = mockAddon()
 
-        coEvery { addonManager.getAddons() } returns emptyList()
+        coEvery { addonManager.getAddonByID(any()) } returns null
         every { fragment.activity } returns mockk<HomeActivity>(relaxed = true)
         every { addon.isInstalled() } returns true
         every { fragment.provideAddonManager() } returns addonManager
@@ -290,7 +290,7 @@ class InstalledAddonDetailsFragmentTest {
     fun `GIVEN an addon WHEN binding THEN bind the UI`() = runTestOnMain {
         val addon = mockAddon()
 
-        coEvery { addonManager.getAddons() } returns listOf(addon)
+        coEvery { addonManager.getAddonByID(any()) } returns addon
         every { fragment.activity } returns mockk<HomeActivity>(relaxed = true)
         every { addon.isInstalled() } returns true
         every { fragment.provideAddonManager() } returns addonManager
