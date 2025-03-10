@@ -87,7 +87,9 @@ already_AddRefed<FOG> FOG::GetSingleton() {
             MOZ_ASSERT(idleService);
             Unused << idleService->RemoveIdleObserver(gFOG, kIdleSecs);
           }
-          if (!gInitializeCalled) {
+          bool initOnShutdown =
+              Preferences::GetBool("telemetry.fog.init_on_shutdown", true);
+          if (initOnShutdown && !gInitializeCalled) {
             gInitializeCalled = true;
             // Assuming default data path and application id.
             // Consumers using non defaults _must_ initialize FOG explicitly.

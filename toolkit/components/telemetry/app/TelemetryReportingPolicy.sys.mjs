@@ -636,6 +636,10 @@ var TelemetryReportingPolicyImpl = {
       return;
     }
 
+    // We're about to show the user the modal dialog.
+    // Make sure Glean won't initialize on shutdown, in case the user never interacts with the modal
+    Services.prefs.setBoolPref("telemetry.fog.init_on_shutdown", false);
+
     if (this._nimbusVariables.enabled && this._nimbusVariables.screens) {
       if (await this._notifyUserViaMessagingSystem()) {
         this._log.trace(
@@ -704,7 +708,11 @@ var TelemetryReportingPolicyImpl = {
       this._ensureUserIsNotifiedPromise = this._waitForUserIsNotified();
     }
 
-    return this._ensureUserIsNotifiedPromise;
+    return this._ensureUserIsNotifiedPromise.then(() => {
+      // The user has been notified and interacted with the modal.
+      // Glean can now init on shutdown if necessary.
+      Services.prefs.setBoolPref("telemetry.fog.init_on_shutdown", true);
+    });
   },
 
   /**
