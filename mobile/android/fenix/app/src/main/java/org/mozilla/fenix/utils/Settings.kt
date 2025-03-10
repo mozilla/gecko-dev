@@ -2406,4 +2406,12 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         key = appContext.getPreferenceKey(R.string.pref_key_doh_settings_enabled),
         default = false,
     )
+
+    /**
+     * Secret setting to indicate whether or not to show the tab strip.
+     */
+    var tabStripEnabled by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_tab_strip),
+        default = false,
+    )
 }

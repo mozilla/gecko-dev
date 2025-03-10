@@ -70,6 +70,7 @@ class ToolbarViewTest {
     @Test
     fun `GIVEN navbar isn't visible WHEN updateLayout is called THEN tab counter and menu are visible and initialized`() {
         every { testContext.settings().navigationToolbarEnabled } returns false
+        every { testContext.settings().tabStripEnabled } returns false
         toolbarView.updateButtonVisibility(mockk(relaxed = true), testContext.shouldAddNavigationBar())
 
         assertTrue(binding.menuButton.isVisible)
@@ -81,6 +82,7 @@ class ToolbarViewTest {
     @Test
     fun `GIVEN mode is landscape WHEN updateLayout is called THEN tab counter and menu are visible and initialized`() {
         every { testContext.settings().navigationToolbarEnabled } returns false
+        every { testContext.settings().tabStripEnabled } returns false
 
         toolbarView.updateButtonVisibility(mockk(relaxed = true), testContext.shouldAddNavigationBar(false))
 
@@ -104,6 +106,7 @@ class ToolbarViewTest {
         every { testContext.isLargeWindow() } returns true
 
         every { testContext.settings().navigationToolbarEnabled } returns false
+        every { testContext.settings().tabStripEnabled } returns false
 
         toolbarView.updateButtonVisibility(mockk(relaxed = true), testContext.shouldAddNavigationBar(false))
 
