@@ -794,6 +794,10 @@ pub const REG_TRAPNO: ::c_int = 20;
 pub const REG_OLDMASK: ::c_int = 21;
 pub const REG_CR2: ::c_int = 22;
 
+// From NDK's asm/auxvec.h
+pub const AT_SYSINFO_EHDR: ::c_ulong = 33;
+pub const AT_VECTOR_SIZE_ARCH: ::c_ulong = 3;
+
 cfg_if! {
     if #[cfg(libc_align)] {
         mod align;

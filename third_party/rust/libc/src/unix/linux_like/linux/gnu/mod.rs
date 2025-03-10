@@ -454,6 +454,55 @@ s! {
         pub aio_flags: ::__u32,
         pub aio_resfd: ::__u32,
     }
+
+    // netinet/tcp.h
+
+    pub struct tcp_info {
+        pub tcpi_state: u8,
+        pub tcpi_ca_state: u8,
+        pub tcpi_retransmits: u8,
+        pub tcpi_probes: u8,
+        pub tcpi_backoff: u8,
+        pub tcpi_options: u8,
+        /// This contains the bitfields `tcpi_snd_wscale` and `tcpi_rcv_wscale`.
+        /// Each is 4 bits.
+        pub tcpi_snd_rcv_wscale: u8,
+        pub tcpi_rto: u32,
+        pub tcpi_ato: u32,
+        pub tcpi_snd_mss: u32,
+        pub tcpi_rcv_mss: u32,
+        pub tcpi_unacked: u32,
+        pub tcpi_sacked: u32,
+        pub tcpi_lost: u32,
+        pub tcpi_retrans: u32,
+        pub tcpi_fackets: u32,
+        pub tcpi_last_data_sent: u32,
+        pub tcpi_last_ack_sent: u32,
+        pub tcpi_last_data_recv: u32,
+        pub tcpi_last_ack_recv: u32,
+        pub tcpi_pmtu: u32,
+        pub tcpi_rcv_ssthresh: u32,
+        pub tcpi_rtt: u32,
+        pub tcpi_rttvar: u32,
+        pub tcpi_snd_ssthresh: u32,
+        pub tcpi_snd_cwnd: u32,
+        pub tcpi_advmss: u32,
+        pub tcpi_reordering: u32,
+        pub tcpi_rcv_rtt: u32,
+        pub tcpi_rcv_space: u32,
+        pub tcpi_total_retrans: u32,
+    }
+
+    pub struct fanotify_event_info_pidfd {
+        pub hdr: ::fanotify_event_info_header,
+        pub pidfd: ::__s32,
+    }
+
+    pub struct fanotify_event_info_error {
+        pub hdr: ::fanotify_event_info_header,
+        pub error: ::__s32,
+        pub error_count: ::__u32,
+    }
 }
 
 impl siginfo_t {
@@ -1054,25 +1103,6 @@ pub const XSK_UNALIGNED_BUF_ADDR_MASK: ::c_ulonglong = (1 << XSK_UNALIGNED_BUF_O
 
 pub const XDP_PKT_CONTD: ::__u32 = 1 << 0;
 
-// elf.h
-pub const NT_PRSTATUS: ::c_int = 1;
-pub const NT_PRFPREG: ::c_int = 2;
-pub const NT_FPREGSET: ::c_int = 2;
-pub const NT_PRPSINFO: ::c_int = 3;
-pub const NT_PRXREG: ::c_int = 4;
-pub const NT_TASKSTRUCT: ::c_int = 4;
-pub const NT_PLATFORM: ::c_int = 5;
-pub const NT_AUXV: ::c_int = 6;
-pub const NT_GWINDOWS: ::c_int = 7;
-pub const NT_ASRS: ::c_int = 8;
-pub const NT_PSTATUS: ::c_int = 10;
-pub const NT_PSINFO: ::c_int = 13;
-pub const NT_PRCRED: ::c_int = 14;
-pub const NT_UTSNAME: ::c_int = 15;
-pub const NT_LWPSTATUS: ::c_int = 16;
-pub const NT_LWPSINFO: ::c_int = 17;
-pub const NT_PRFPXREG: ::c_int = 20;
-
 pub const ELFOSABI_ARM_AEABI: u8 = 64;
 
 // linux/sched.h
@@ -1405,7 +1435,6 @@ extern "C" {
     pub fn reallocarray(ptr: *mut ::c_void, nmemb: ::size_t, size: ::size_t) -> *mut ::c_void;
 
     pub fn ctermid(s: *mut ::c_char) -> *mut ::c_char;
-    pub fn ioctl(fd: ::c_int, request: ::c_ulong, ...) -> ::c_int;
     pub fn backtrace(buf: *mut *mut ::c_void, sz: ::c_int) -> ::c_int;
     pub fn glob64(
         pattern: *const ::c_char,
@@ -1541,6 +1570,16 @@ extern "C" {
 
     // Added in `glibc` 2.34
     pub fn close_range(first: ::c_uint, last: ::c_uint, flags: ::c_int) -> ::c_int;
+
+    pub fn mq_notify(mqdes: ::mqd_t, sevp: *const ::sigevent) -> ::c_int;
+
+    pub fn epoll_pwait2(
+        epfd: ::c_int,
+        events: *mut ::epoll_event,
+        maxevents: ::c_int,
+        timeout: *const ::timespec,
+        sigmask: *const ::sigset_t,
+    ) -> ::c_int;
 }
 
 cfg_if! {

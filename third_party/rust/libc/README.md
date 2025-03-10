@@ -11,10 +11,14 @@ This crate exports all underlying platform types, functions, and constants under
 the crate root, so all items are accessible as `libc::foo`. The types and values
 of all the exported APIs match the platform that libc is compiled for.
 
+Windows API bindings are not included in this crate. If you are looking for WinAPI
+bindings, consider using crates like [windows-sys].
+
 More detailed information about the design of this library can be found in its
 [associated RFC][rfc].
 
 [rfc]: https://github.com/rust-lang/rfcs/blob/HEAD/text/1291-promote-libc.md
+[windows-sys]: https://docs.rs/windows-sys
 
 ## v0.3 Roadmap
 

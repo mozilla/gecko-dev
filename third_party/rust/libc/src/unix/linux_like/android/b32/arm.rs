@@ -533,6 +533,9 @@ pub const REG_R15: ::c_int = 15;
 
 pub const NGREG: ::c_int = 18;
 
+// From NDK's asm/auxvec.h
+pub const AT_SYSINFO_EHDR: ::c_ulong = 33;
+
 f! {
     // Sadly, Android before 5.0 (API level 21), the accept4 syscall is not
     // exposed by the libc. As work-around, we implement it through `syscall`

@@ -57,6 +57,24 @@ macro_rules! expand_align {
                 pub fd: ::c_int,
                 pub pid: ::c_int,
             }
+
+            pub struct tpacket_rollover_stats {
+                __align: [::c_long; 0],
+                pub tp_all: ::__u64,
+                pub tp_huge: ::__u64,
+                pub tp_failed: ::__u64,
+            }
+
+            pub struct tpacket_hdr_v1 {
+                __align: [::c_long; 0],
+                pub block_status: ::__u32,
+                pub num_pkts: ::__u32,
+                pub offset_to_first_pkt: ::__u32,
+                pub blk_len: ::__u32,
+                pub seq_num: ::__u64,
+                pub ts_first_pkt: ::tpacket_bd_ts,
+                pub ts_last_pkt: ::tpacket_bd_ts,
+            }
         }
 
         s_no_extra_traits! {

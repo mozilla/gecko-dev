@@ -450,6 +450,11 @@ s! {
         pub tv_nsec: __syscall_slong_t,
     }
 
+    pub struct __timeval {
+        pub tv_sec: i32,
+        pub tv_usec: i32,
+    }
+
     pub struct __locale_data {
         pub _address: u8,
     }

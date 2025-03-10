@@ -348,6 +348,73 @@ s! {
         pub len: ::__u32,
         pub options: ::__u32,
     }
+
+    // netinet/tcp.h
+
+    pub struct tcp_info {
+        pub tcpi_state: u8,
+        pub tcpi_ca_state: u8,
+        pub tcpi_retransmits: u8,
+        pub tcpi_probes: u8,
+        pub tcpi_backoff: u8,
+        pub tcpi_options: u8,
+        /*
+         * FIXME(musl): when musl headers are more up to date
+        /// This contains the bitfields `tcpi_snd_wscale` and `tcpi_rcv_wscale`.
+        /// Each is 4 bits.
+        pub tcpi_snd_rcv_wscale: u8,
+        /// This contains the bitfields `tcpi_delivery_rate_app_limited` (1 bit) and
+        /// `tcpi_fastopen_client_fail` (2 bits).
+        pub tcpi_delivery_fastopen_bitfields: u8,
+        */
+        pub tcpi_rto: u32,
+        pub tcpi_ato: u32,
+        pub tcpi_snd_mss: u32,
+        pub tcpi_rcv_mss: u32,
+        pub tcpi_unacked: u32,
+        pub tcpi_sacked: u32,
+        pub tcpi_lost: u32,
+        pub tcpi_retrans: u32,
+        pub tcpi_fackets: u32,
+        pub tcpi_last_data_sent: u32,
+        pub tcpi_last_ack_sent: u32,
+        pub tcpi_last_data_recv: u32,
+        pub tcpi_last_ack_recv: u32,
+        pub tcpi_pmtu: u32,
+        pub tcpi_rcv_ssthresh: u32,
+        pub tcpi_rtt: u32,
+        pub tcpi_rttvar: u32,
+        pub tcpi_snd_ssthresh: u32,
+        pub tcpi_snd_cwnd: u32,
+        pub tcpi_advmss: u32,
+        pub tcpi_reordering: u32,
+        pub tcpi_rcv_rtt: u32,
+        pub tcpi_rcv_space: u32,
+        pub tcpi_total_retrans: u32,
+        pub tcpi_pacing_rate: u64,
+        pub tcpi_max_pacing_rate: u64,
+        pub tcpi_bytes_acked: u64,
+        pub tcpi_bytes_received: u64,
+        pub tcpi_segs_out: u32,
+        pub tcpi_segs_in: u32,
+        pub tcpi_notsent_bytes: u32,
+        pub tcpi_min_rtt: u32,
+        pub tcpi_data_segs_in: u32,
+        pub tcpi_data_segs_out: u32,
+        pub tcpi_delivery_rate: u64,
+        pub tcpi_busy_time: u64,
+        pub tcpi_rwnd_limited: u64,
+        pub tcpi_sndbuf_limited: u64,
+        pub tcpi_delivered: u32,
+        pub tcpi_delivered_ce: u32,
+        pub tcpi_bytes_sent: u64,
+        pub tcpi_bytes_retrans: u64,
+        pub tcpi_dsack_dups: u32,
+        pub tcpi_reord_seen: u32,
+        // FIXME(musl): to uncomment once CI musl is updated
+        //pub tcpi_rcv_ooopack: u32,
+        //pub tcpi_snd_wnd: u32,
+    }
 }
 
 s_no_extra_traits! {
@@ -564,6 +631,18 @@ pub const MAP_HUGE_2GB: ::c_int = 31 << MAP_HUGE_SHIFT;
 pub const MAP_HUGE_16GB: ::c_int = 34 << MAP_HUGE_SHIFT;
 
 pub const MS_RMT_MASK: ::c_ulong = 0x02800051;
+
+// include/utmpx.h
+pub const EMPTY: ::c_short = 0;
+pub const RUN_LVL: ::c_short = 1;
+pub const BOOT_TIME: ::c_short = 2;
+pub const NEW_TIME: ::c_short = 3;
+pub const OLD_TIME: ::c_short = 4;
+pub const INIT_PROCESS: ::c_short = 5;
+pub const LOGIN_PROCESS: ::c_short = 6;
+pub const USER_PROCESS: ::c_short = 7;
+pub const DEAD_PROCESS: ::c_short = 8;
+// musl does not define ACCOUNTING
 
 pub const SFD_CLOEXEC: ::c_int = 0x080000;
 
@@ -853,7 +932,6 @@ extern "C" {
         new_limit: *const ::rlimit,
         old_limit: *mut ::rlimit,
     ) -> ::c_int;
-    pub fn ioctl(fd: ::c_int, request: ::c_int, ...) -> ::c_int;
     pub fn gettimeofday(tp: *mut ::timeval, tz: *mut ::c_void) -> ::c_int;
     pub fn ptrace(request: ::c_int, ...) -> ::c_long;
     pub fn getpriority(which: ::c_int, who: ::id_t) -> ::c_int;
@@ -905,6 +983,17 @@ extern "C" {
 
     pub fn dirname(path: *mut ::c_char) -> *mut ::c_char;
     pub fn basename(path: *mut ::c_char) -> *mut ::c_char;
+
+    // Added in `musl` 1.1.24
+    pub fn posix_spawn_file_actions_addchdir_np(
+        actions: *mut ::posix_spawn_file_actions_t,
+        path: *const ::c_char,
+    ) -> ::c_int;
+    // Added in `musl` 1.1.24
+    pub fn posix_spawn_file_actions_addfchdir_np(
+        actions: *mut ::posix_spawn_file_actions_t,
+        fd: ::c_int,
+    ) -> ::c_int;
 }
 
 // Alias <foo> to <foo>64 to mimic glibc's LFS64 support

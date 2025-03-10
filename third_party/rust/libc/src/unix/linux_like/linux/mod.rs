@@ -16,6 +16,7 @@ pub type loff_t = ::c_longlong;
 pub type pthread_key_t = ::c_uint;
 pub type pthread_once_t = ::c_int;
 pub type pthread_spinlock_t = ::c_int;
+pub type __kernel_fsid_t = __c_anonymous__kernel_fsid_t;
 
 pub type __u8 = ::c_uchar;
 pub type __u16 = ::c_ushort;
@@ -56,6 +57,15 @@ pub type eventfd_t = u64;
 missing! {
     #[cfg_attr(feature = "extra_traits", derive(Debug))]
     pub enum fpos64_t {} // FIXME: fill this out with a struct
+}
+
+e! {
+    #[repr(u32)]
+    pub enum tpacket_versions {
+        TPACKET_V1,
+        TPACKET_V2,
+        TPACKET_V3,
+    }
 }
 
 s! {
@@ -140,11 +150,112 @@ s! {
         __val: [::c_int; 2],
     }
 
+    pub struct fanout_args {
+        #[cfg(target_endian = "little")]
+        pub id: ::__u16,
+        pub type_flags: ::__u16,
+        #[cfg(target_endian = "big")]
+        pub id: ::__u16,
+        pub max_num_members: ::__u32,
+    }
+
     pub struct packet_mreq {
         pub mr_ifindex: ::c_int,
         pub mr_type: ::c_ushort,
         pub mr_alen: ::c_ushort,
         pub mr_address: [::c_uchar; 8],
+    }
+
+    pub struct sockaddr_pkt {
+        pub spkt_family: ::c_ushort,
+        pub spkt_device: [::c_uchar; 14],
+        pub spkt_protocol: ::c_ushort,
+    }
+
+    pub struct tpacket_auxdata {
+        pub tp_status: ::__u32,
+        pub tp_len: ::__u32,
+        pub tp_snaplen: ::__u32,
+        pub tp_mac: ::__u16,
+        pub tp_net: ::__u16,
+        pub tp_vlan_tci: ::__u16,
+        pub tp_vlan_tpid: ::__u16,
+    }
+
+    pub struct tpacket_hdr {
+        pub tp_status: ::c_ulong,
+        pub tp_len: ::c_uint,
+        pub tp_snaplen: ::c_uint,
+        pub tp_mac: ::c_ushort,
+        pub tp_net: ::c_ushort,
+        pub tp_sec: ::c_uint,
+        pub tp_usec: ::c_uint,
+    }
+
+    pub struct tpacket_hdr_variant1 {
+        pub tp_rxhash: ::__u32,
+        pub tp_vlan_tci: ::__u32,
+        pub tp_vlan_tpid: ::__u16,
+        pub tp_padding: ::__u16,
+    }
+
+    pub struct tpacket2_hdr {
+        pub tp_status: ::__u32,
+        pub tp_len: ::__u32,
+        pub tp_snaplen: ::__u32,
+        pub tp_mac: ::__u16,
+        pub tp_net: ::__u16,
+        pub tp_sec: ::__u32,
+        pub tp_nsec: ::__u32,
+        pub tp_vlan_tci: ::__u16,
+        pub tp_vlan_tpid: ::__u16,
+        pub tp_padding: [::__u8; 4],
+    }
+
+    pub struct tpacket_req {
+        pub tp_block_size: ::c_uint,
+        pub tp_block_nr: ::c_uint,
+        pub tp_frame_size: ::c_uint,
+        pub tp_frame_nr: ::c_uint,
+    }
+
+    pub struct tpacket_req3 {
+        pub tp_block_size: ::c_uint,
+        pub tp_block_nr: ::c_uint,
+        pub tp_frame_size: ::c_uint,
+        pub tp_frame_nr: ::c_uint,
+        pub tp_retire_blk_tov: ::c_uint,
+        pub tp_sizeof_priv: ::c_uint,
+        pub tp_feature_req_word: ::c_uint,
+    }
+
+    pub struct tpacket_stats {
+        pub tp_packets: ::c_uint,
+        pub tp_drops: ::c_uint,
+    }
+
+    pub struct tpacket_stats_v3 {
+        pub tp_packets: ::c_uint,
+        pub tp_drops: ::c_uint,
+        pub tp_freeze_q_cnt: ::c_uint,
+    }
+
+    pub struct tpacket3_hdr {
+        pub tp_next_offset: ::__u32,
+        pub tp_sec: ::__u32,
+        pub tp_nsec: ::__u32,
+        pub tp_snaplen: ::__u32,
+        pub tp_len: ::__u32,
+        pub tp_status: ::__u32,
+        pub tp_mac: ::__u16,
+        pub tp_net: ::__u16,
+        pub hv1: ::tpacket_hdr_variant1,
+        pub tp_padding: [::__u8; 8],
+    }
+
+    pub struct tpacket_bd_ts {
+        pub ts_sec: ::c_uint,
+        pub ts_usec: ::c_uint,
     }
 
     pub struct cpu_set_t {
@@ -438,6 +549,20 @@ s! {
         pub sh_entsize: Elf64_Xword,
     }
 
+    pub struct __c_anonymous_elf32_rel {
+        pub r_offset: Elf32_Addr,
+        pub r_info: Elf32_Word,
+    }
+
+    pub struct __c_anonymous_elf64_rel {
+        pub r_offset: Elf64_Addr,
+        pub r_info: Elf64_Xword,
+    }
+
+    pub struct __c_anonymous__kernel_fsid_t {
+        pub val: [::c_int; 2],
+    }
+
     pub struct ucred {
         pub pid: ::pid_t,
         pub uid: ::uid_t,
@@ -503,6 +628,18 @@ s! {
     pub struct fanotify_response {
         pub fd: ::c_int,
         pub response: __u32,
+    }
+
+    pub struct fanotify_event_info_header {
+        pub info_type: __u8,
+        pub pad: __u8,
+        pub len: __u16,
+    }
+
+    pub struct fanotify_event_info_fid {
+        pub hdr: fanotify_event_info_header,
+        pub fsid: ::__kernel_fsid_t,
+        pub handle: [::c_uchar; 0],
     }
 
     pub struct sockaddr_vm {
@@ -889,6 +1026,27 @@ s_no_extra_traits! {
         pub sched_runtime: ::__u64,
         pub sched_deadline: ::__u64,
         pub sched_period: ::__u64,
+    }
+
+    #[cfg(libc_union)]
+    #[allow(missing_debug_implementations)]
+    pub union tpacket_req_u {
+        pub req: ::tpacket_req,
+        pub req3: ::tpacket_req3,
+    }
+
+    #[cfg(libc_union)]
+    #[allow(missing_debug_implementations)]
+    pub union tpacket_bd_header_u {
+        pub bh1: ::tpacket_hdr_v1,
+    }
+
+    #[cfg(libc_union)]
+    #[allow(missing_debug_implementations)]
+    pub struct tpacket_block_desc {
+        pub version: ::__u32,
+        pub offset_to_priv: ::__u32,
+        pub hdr: ::tpacket_bd_header_u,
     }
 }
 
@@ -1394,6 +1552,16 @@ cfg_if! {
                 self.sched_deadline.hash(state);
                 self.sched_period.hash(state);
             }
+        }
+    }
+}
+
+cfg_if! {
+    if #[cfg(all(any(target_env = "gnu", target_env = "musl", target_env = "ohos"),
+                 any(target_arch = "x86_64", target_arch = "x86")))] {
+        extern "C" {
+            pub fn iopl(level: ::c_int) -> ::c_int;
+            pub fn ioperm(from: ::c_ulong, num: ::c_ulong, turn_on: ::c_int) -> ::c_int;
         }
     }
 }
@@ -2825,12 +2993,83 @@ pub const CTRL_ATTR_MCAST_GRP_NAME: ::c_int = 1;
 pub const CTRL_ATTR_MCAST_GRP_ID: ::c_int = 2;
 
 // linux/if_packet.h
+pub const PACKET_HOST: ::c_uchar = 0;
+pub const PACKET_BROADCAST: ::c_uchar = 1;
+pub const PACKET_MULTICAST: ::c_uchar = 2;
+pub const PACKET_OTHERHOST: ::c_uchar = 3;
+pub const PACKET_OUTGOING: ::c_uchar = 4;
+pub const PACKET_LOOPBACK: ::c_uchar = 5;
+pub const PACKET_USER: ::c_uchar = 6;
+pub const PACKET_KERNEL: ::c_uchar = 7;
+
 pub const PACKET_ADD_MEMBERSHIP: ::c_int = 1;
 pub const PACKET_DROP_MEMBERSHIP: ::c_int = 2;
+pub const PACKET_RX_RING: ::c_int = 5;
+pub const PACKET_STATISTICS: ::c_int = 6;
+pub const PACKET_AUXDATA: ::c_int = 8;
+pub const PACKET_VERSION: ::c_int = 10;
+pub const PACKET_RESERVE: ::c_int = 12;
+pub const PACKET_TX_RING: ::c_int = 13;
+pub const PACKET_LOSS: ::c_int = 14;
+pub const PACKET_TIMESTAMP: ::c_int = 17;
+pub const PACKET_FANOUT: ::c_int = 18;
+pub const PACKET_QDISC_BYPASS: ::c_int = 20;
+
+pub const PACKET_FANOUT_HASH: ::c_uint = 0;
+pub const PACKET_FANOUT_LB: ::c_uint = 1;
+pub const PACKET_FANOUT_CPU: ::c_uint = 2;
+pub const PACKET_FANOUT_ROLLOVER: ::c_uint = 3;
+pub const PACKET_FANOUT_RND: ::c_uint = 4;
+pub const PACKET_FANOUT_QM: ::c_uint = 5;
+pub const PACKET_FANOUT_CBPF: ::c_uint = 6;
+pub const PACKET_FANOUT_EBPF: ::c_uint = 7;
+pub const PACKET_FANOUT_FLAG_ROLLOVER: ::c_uint = 0x1000;
+pub const PACKET_FANOUT_FLAG_UNIQUEID: ::c_uint = 0x2000;
+pub const PACKET_FANOUT_FLAG_DEFRAG: ::c_uint = 0x8000;
 
 pub const PACKET_MR_MULTICAST: ::c_int = 0;
 pub const PACKET_MR_PROMISC: ::c_int = 1;
 pub const PACKET_MR_ALLMULTI: ::c_int = 2;
+
+pub const TP_STATUS_KERNEL: ::__u32 = 0;
+pub const TP_STATUS_USER: ::__u32 = 1 << 0;
+pub const TP_STATUS_COPY: ::__u32 = 1 << 1;
+pub const TP_STATUS_LOSING: ::__u32 = 1 << 2;
+pub const TP_STATUS_CSUMNOTREADY: ::__u32 = 1 << 3;
+pub const TP_STATUS_VLAN_VALID: ::__u32 = 1 << 4;
+pub const TP_STATUS_BLK_TMO: ::__u32 = 1 << 5;
+pub const TP_STATUS_VLAN_TPID_VALID: ::__u32 = 1 << 6;
+pub const TP_STATUS_CSUM_VALID: ::__u32 = 1 << 7;
+
+pub const TP_STATUS_AVAILABLE: ::__u32 = 0;
+pub const TP_STATUS_SEND_REQUEST: ::__u32 = 1 << 0;
+pub const TP_STATUS_SENDING: ::__u32 = 1 << 1;
+pub const TP_STATUS_WRONG_FORMAT: ::__u32 = 1 << 2;
+
+pub const TP_STATUS_TS_SOFTWARE: ::__u32 = 1 << 29;
+pub const TP_STATUS_TS_SYS_HARDWARE: ::__u32 = 1 << 30;
+pub const TP_STATUS_TS_RAW_HARDWARE: ::__u32 = 1 << 31;
+
+pub const TP_FT_REQ_FILL_RXHASH: ::__u32 = 1;
+
+pub const TPACKET_ALIGNMENT: usize = 16;
+
+cfg_if! {
+    if #[cfg(libc_const_size_of)] {
+        pub const TPACKET_HDRLEN: usize = (
+            (::mem::size_of::<::tpacket_hdr>() + TPACKET_ALIGNMENT - 1)
+            & !(TPACKET_ALIGNMENT - 1)
+        ) + ::mem::size_of::<::sockaddr_ll>();
+        pub const TPACKET2_HDRLEN: usize = (
+            (::mem::size_of::<::tpacket2_hdr>() + TPACKET_ALIGNMENT - 1)
+            & !(TPACKET_ALIGNMENT - 1)
+        ) + ::mem::size_of::<::sockaddr_ll>();
+        pub const TPACKET3_HDRLEN: usize = (
+            (::mem::size_of::<::tpacket3_hdr>() + TPACKET_ALIGNMENT - 1)
+            & !(TPACKET_ALIGNMENT - 1)
+        ) + ::mem::size_of::<::sockaddr_ll>();
+    }
+}
 
 // linux/netfilter.h
 pub const NF_DROP: ::c_int = 0;
@@ -3980,6 +4219,13 @@ pub const NFT_CT_PROTO_DST: ::c_int = 12;
 pub const NFT_CT_LABELS: ::c_int = 13;
 pub const NFT_CT_PKTS: ::c_int = 14;
 pub const NFT_CT_BYTES: ::c_int = 15;
+pub const NFT_CT_AVGPKT: ::c_int = 16;
+pub const NFT_CT_ZONE: ::c_int = 17;
+pub const NFT_CT_EVENTMASK: ::c_int = 18;
+pub const NFT_CT_SRC_IP: ::c_int = 19;
+pub const NFT_CT_DST_IP: ::c_int = 20;
+pub const NFT_CT_SRC_IP6: ::c_int = 21;
+pub const NFT_CT_DST_IP6: ::c_int = 22;
 
 pub const NFT_LIMIT_PKTS: ::c_int = 0;
 pub const NFT_LIMIT_PKT_BYTES: ::c_int = 1;
@@ -4661,6 +4907,25 @@ pub const SCHED_FLAG_KEEP_PARAMS: ::c_int = 0x10;
 pub const SCHED_FLAG_UTIL_CLAMP_MIN: ::c_int = 0x20;
 pub const SCHED_FLAG_UTIL_CLAMP_MAX: ::c_int = 0x40;
 
+// elf.h
+pub const NT_PRSTATUS: ::c_int = 1;
+pub const NT_PRFPREG: ::c_int = 2;
+pub const NT_FPREGSET: ::c_int = 2;
+pub const NT_PRPSINFO: ::c_int = 3;
+pub const NT_PRXREG: ::c_int = 4;
+pub const NT_TASKSTRUCT: ::c_int = 4;
+pub const NT_PLATFORM: ::c_int = 5;
+pub const NT_AUXV: ::c_int = 6;
+pub const NT_GWINDOWS: ::c_int = 7;
+pub const NT_ASRS: ::c_int = 8;
+pub const NT_PSTATUS: ::c_int = 10;
+pub const NT_PSINFO: ::c_int = 13;
+pub const NT_PRCRED: ::c_int = 14;
+pub const NT_UTSNAME: ::c_int = 15;
+pub const NT_LWPSTATUS: ::c_int = 16;
+pub const NT_LWPSINFO: ::c_int = 17;
+pub const NT_PRFPXREG: ::c_int = 20;
+
 pub const SCHED_FLAG_KEEP_ALL: ::c_int = SCHED_FLAG_KEEP_POLICY | SCHED_FLAG_KEEP_PARAMS;
 
 pub const SCHED_FLAG_UTIL_CLAMP: ::c_int = SCHED_FLAG_UTIL_CLAMP_MIN | SCHED_FLAG_UTIL_CLAMP_MAX;
@@ -4796,6 +5061,10 @@ f! {
 
     pub fn SO_EE_OFFENDER(ee: *const ::sock_extended_err) -> *mut ::sockaddr {
         ee.offset(1) as *mut ::sockaddr
+    }
+
+    pub fn TPACKET_ALIGN(x: usize) -> usize {
+        (x + TPACKET_ALIGNMENT - 1) & !(TPACKET_ALIGNMENT - 1)
     }
 
     pub fn BPF_RVAL(code: ::__u32) -> ::__u32 {
@@ -5628,6 +5897,8 @@ extern "C" {
     ) -> ::ssize_t;
 
     pub fn klogctl(syslog_type: ::c_int, bufp: *mut ::c_char, len: ::c_int) -> ::c_int;
+
+    pub fn ioctl(fd: ::c_int, request: ::Ioctl, ...) -> ::c_int;
 }
 
 // LFS64 extensions

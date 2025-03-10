@@ -313,9 +313,36 @@ pub const ATF_PERM: ::c_int = 0x04;
 pub const ATF_PUBL: ::c_int = 0x08;
 pub const ATF_USETRAILERS: ::c_int = 0x10;
 
+pub const FNM_PERIOD: c_int = 1 << 2;
+pub const FNM_CASEFOLD: c_int = 1 << 4;
+pub const FNM_NOMATCH: c_int = 1;
+
 cfg_if! {
-    if #[cfg(any(target_os = "l4re", target_os = "espidf"))] {
-        // required libraries for L4Re and the ESP-IDF framework are linked externally, ATM
+    if #[cfg(any(
+        target_os = "macos",
+        target_os = "freebsd",
+        target_os = "android",
+        target_os = "openbsd",
+    ))] {
+        pub const FNM_PATHNAME: c_int = 1 << 1;
+        pub const FNM_NOESCAPE: c_int = 1 << 0;
+    } else {
+        pub const FNM_PATHNAME: c_int = 1 << 0;
+        pub const FNM_NOESCAPE: c_int = 1 << 1;
+    }
+}
+
+extern "C" {
+    pub static in6addr_loopback: in6_addr;
+    pub static in6addr_any: in6_addr;
+}
+
+cfg_if! {
+    if #[cfg(any(target_os = "l4re", target_os = "espidf", target_os = "nuttx"))] {
+        // required libraries are linked externally for these platforms:
+        // * L4Re
+        // * ESP-IDF
+        // * NuttX
     } else if #[cfg(feature = "std")] {
         // cargo build, don't pull in anything extra as the std dep
         // already pulls in all libs.
@@ -1572,6 +1599,10 @@ cfg_if! {
    }
 }
 
+extern "C" {
+    pub fn fnmatch(pattern: *const c_char, name: *const c_char, flags: c_int) -> c_int;
+}
+
 cfg_if! {
     if #[cfg(target_env = "newlib")] {
         mod newlib;
@@ -1612,6 +1643,9 @@ cfg_if! {
     } else if #[cfg(target_os = "hurd")] {
         mod hurd;
         pub use self::hurd::*;
+    } else if #[cfg(target_os = "nuttx")] {
+        mod nuttx;
+        pub use self::nuttx::*;
     } else {
         // Unknown target_os
     }

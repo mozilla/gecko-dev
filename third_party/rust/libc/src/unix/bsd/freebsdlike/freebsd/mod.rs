@@ -2894,6 +2894,7 @@ pub const POSIX_FADV_DONTNEED: ::c_int = 4;
 pub const POSIX_FADV_NOREUSE: ::c_int = 5;
 
 pub const POLLINIGNEOF: ::c_short = 0x2000;
+pub const POLLRDHUP: ::c_short = 0x4000;
 
 pub const EVFILT_READ: i16 = -1;
 pub const EVFILT_WRITE: i16 = -2;
@@ -3843,6 +3844,7 @@ pub const TCP_INFO: ::c_int = 32;
 pub const TCP_CONGESTION: ::c_int = 64;
 pub const TCP_CCALGOOPT: ::c_int = 65;
 pub const TCP_MAXUNACKTIME: ::c_int = 68;
+#[deprecated(since = "0.2.160", note = "Removed in FreeBSD 15")]
 pub const TCP_MAXPEAKRATE: ::c_int = 69;
 pub const TCP_IDLE_REDUCE: ::c_int = 70;
 pub const TCP_REMOTE_UDP_ENCAPS_PORT: ::c_int = 71;
@@ -4740,6 +4742,14 @@ pub const CPU_WHICH_PID: ::c_int = 2;
 pub const CPU_WHICH_CPUSET: ::c_int = 3;
 pub const CPU_WHICH_IRQ: ::c_int = 4;
 pub const CPU_WHICH_JAIL: ::c_int = 5;
+
+// net/route.h
+pub const RTF_LLDATA: ::c_int = 0x400;
+pub const RTF_FIXEDMTU: ::c_int = 0x80000;
+
+pub const RTM_VERSION: ::c_int = 5;
+
+pub const RTAX_MAX: ::c_int = 8;
 
 // sys/signal.h
 pub const SIGTHR: ::c_int = 32;

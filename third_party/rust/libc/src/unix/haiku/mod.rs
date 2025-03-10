@@ -2133,6 +2133,10 @@ extern "C" {
         >,
         data: *mut ::c_void,
     ) -> ::c_int;
+
+    pub fn arc4random() -> u32;
+    pub fn arc4random_uniform(upper_bound: u32) -> u32;
+    pub fn arc4random_buf(buf: *mut ::c_void, n: ::size_t);
 }
 
 #[link(name = "gnu")]

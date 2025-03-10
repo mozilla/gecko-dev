@@ -1916,6 +1916,62 @@ pub const RB_RESET: ::c_int = 0x08000;
 pub const RB_GOODRANDOM: ::c_int = 0x10000;
 pub const RB_UNHIBERNATE: ::c_int = 0x20000;
 
+// net/route.h
+pub const RTF_CLONING: ::c_int = 0x100;
+pub const RTF_MULTICAST: ::c_int = 0x200;
+pub const RTF_LLINFO: ::c_int = 0x400;
+pub const RTF_PROTO3: ::c_int = 0x2000;
+pub const RTF_ANNOUNCE: ::c_int = ::RTF_PROTO2;
+
+pub const RTF_CLONED: ::c_int = 0x10000;
+pub const RTF_CACHED: ::c_int = 0x20000;
+pub const RTF_MPATH: ::c_int = 0x40000;
+pub const RTF_MPLS: ::c_int = 0x100000;
+pub const RTF_LOCAL: ::c_int = 0x200000;
+pub const RTF_BROADCAST: ::c_int = 0x400000;
+pub const RTF_CONNECTED: ::c_int = 0x800000;
+pub const RTF_BFD: ::c_int = 0x1000000;
+pub const RTF_FMASK: ::c_int = ::RTF_LLINFO
+    | ::RTF_PROTO1
+    | ::RTF_PROTO2
+    | ::RTF_PROTO3
+    | ::RTF_BLACKHOLE
+    | ::RTF_REJECT
+    | ::RTF_STATIC
+    | ::RTF_MPLS
+    | ::RTF_BFD;
+
+pub const RTM_VERSION: ::c_int = 5;
+pub const RTM_RESOLVE: ::c_int = 0xb;
+pub const RTM_NEWADDR: ::c_int = 0xc;
+pub const RTM_DELADDR: ::c_int = 0xd;
+pub const RTM_IFINFO: ::c_int = 0xe;
+pub const RTM_IFANNOUNCE: ::c_int = 0xf;
+pub const RTM_DESYNC: ::c_int = 0x10;
+pub const RTM_INVALIDATE: ::c_int = 0x11;
+pub const RTM_BFD: ::c_int = 0x12;
+pub const RTM_PROPOSAL: ::c_int = 0x13;
+pub const RTM_CHGADDRATTR: ::c_int = 0x14;
+pub const RTM_80211INFO: ::c_int = 0x15;
+pub const RTM_SOURCE: ::c_int = 0x16;
+
+pub const RTA_SRC: ::c_int = 0x100;
+pub const RTA_SRCMASK: ::c_int = 0x200;
+pub const RTA_LABEL: ::c_int = 0x400;
+pub const RTA_BFD: ::c_int = 0x800;
+pub const RTA_DNS: ::c_int = 0x1000;
+pub const RTA_STATIC: ::c_int = 0x2000;
+pub const RTA_SEARCH: ::c_int = 0x4000;
+
+pub const RTAX_SRC: ::c_int = 8;
+pub const RTAX_SRCMASK: ::c_int = 9;
+pub const RTAX_LABEL: ::c_int = 10;
+pub const RTAX_BFD: ::c_int = 11;
+pub const RTAX_DNS: ::c_int = 12;
+pub const RTAX_STATIC: ::c_int = 13;
+pub const RTAX_SEARCH: ::c_int = 14;
+pub const RTAX_MAX: ::c_int = 15;
+
 const_fn! {
     {const} fn _ALIGN(p: usize) -> usize {
         (p + _ALIGNBYTES) & !_ALIGNBYTES

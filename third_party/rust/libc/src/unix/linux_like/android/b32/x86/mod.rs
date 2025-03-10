@@ -585,6 +585,11 @@ pub const REG_EFL: ::c_int = 16;
 pub const REG_UESP: ::c_int = 17;
 pub const REG_SS: ::c_int = 18;
 
+// From NDK's asm/auxvec.h
+pub const AT_SYSINFO: ::c_ulong = 32;
+pub const AT_SYSINFO_EHDR: ::c_ulong = 33;
+pub const AT_VECTOR_SIZE_ARCH: ::c_ulong = 3;
+
 // socketcall values from linux/net.h (only the needed ones, and not public)
 const SYS_ACCEPT4: ::c_int = 18;
 

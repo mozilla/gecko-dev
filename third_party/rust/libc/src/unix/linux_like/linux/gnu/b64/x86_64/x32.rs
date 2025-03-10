@@ -366,6 +366,7 @@ pub const SYS_memfd_secret: ::c_long = __X32_SYSCALL_BIT + 447;
 pub const SYS_process_mrelease: ::c_long = __X32_SYSCALL_BIT + 448;
 pub const SYS_futex_waitv: ::c_long = __X32_SYSCALL_BIT + 449;
 pub const SYS_set_mempolicy_home_node: ::c_long = __X32_SYSCALL_BIT + 450;
+pub const SYS_fchmodat2: ::c_long = __X32_SYSCALL_BIT + 452;
 pub const SYS_rt_sigaction: ::c_long = __X32_SYSCALL_BIT + 512;
 pub const SYS_rt_sigreturn: ::c_long = __X32_SYSCALL_BIT + 513;
 pub const SYS_ioctl: ::c_long = __X32_SYSCALL_BIT + 514;

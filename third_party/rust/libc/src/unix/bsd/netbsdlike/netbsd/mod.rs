@@ -401,11 +401,6 @@ s! {
         pub sdl_data: [::c_char; 12],
     }
 
-    pub struct mmsghdr {
-        pub msg_hdr: ::msghdr,
-        pub msg_len: ::c_uint,
-    }
-
     pub struct __exit_status {
         pub e_termination: u16,
         pub e_exit: u16,
@@ -1891,6 +1886,8 @@ pub const MNT_NOWAIT: ::c_int = 2;
 pub const MNT_LAZY: ::c_int = 3;
 
 //<sys/timex.h>
+pub const CLOCK_PROCESS_CPUTIME_ID: ::clockid_t = 2;
+pub const CLOCK_THREAD_CPUTIME_ID: ::clockid_t = 4;
 pub const NTP_API: ::c_int = 4;
 pub const MAXPHASE: ::c_long = 500000000;
 pub const MAXFREQ: ::c_long = 500000;
@@ -2427,6 +2424,33 @@ cfg_if! {
     }
 }
 
+// net/route.h
+pub const RTF_MASK: ::c_int = 0x80;
+pub const RTF_CONNECTED: ::c_int = 0x100;
+pub const RTF_ANNOUNCE: ::c_int = 0x20000;
+pub const RTF_SRC: ::c_int = 0x10000;
+pub const RTF_LOCAL: ::c_int = 0x40000;
+pub const RTF_BROADCAST: ::c_int = 0x80000;
+pub const RTF_UPDATING: ::c_int = 0x100000;
+pub const RTF_DONTCHANGEIFA: ::c_int = 0x200000;
+
+pub const RTM_VERSION: ::c_int = 4;
+pub const RTM_LOCK: ::c_int = 0x8;
+pub const RTM_IFANNOUNCE: ::c_int = 0x10;
+pub const RTM_IEEE80211: ::c_int = 0x11;
+pub const RTM_SETGATE: ::c_int = 0x12;
+pub const RTM_LLINFO_UPD: ::c_int = 0x13;
+pub const RTM_IFINFO: ::c_int = 0x14;
+pub const RTM_OCHGADDR: ::c_int = 0x15;
+pub const RTM_NEWADDR: ::c_int = 0x16;
+pub const RTM_DELADDR: ::c_int = 0x17;
+pub const RTM_CHGADDR: ::c_int = 0x18;
+
+pub const RTA_TAG: ::c_int = 0x100;
+
+pub const RTAX_TAG: ::c_int = 8;
+pub const RTAX_MAX: ::c_int = 9;
+
 const_fn! {
     {const} fn _ALIGN(p: usize) -> usize {
         (p + _ALIGNBYTES) & !_ALIGNBYTES
@@ -2673,6 +2697,11 @@ extern "C" {
         newp: *const ::c_void,
         newlen: ::size_t,
     ) -> ::c_int;
+    pub fn sysctlnametomib(
+        sname: *const ::c_char,
+        name: *mut ::c_int,
+        namelenp: *mut ::size_t,
+    ) -> ::c_int;
     #[link_name = "__kevent50"]
     pub fn kevent(
         kq: ::c_int,
@@ -2780,20 +2809,6 @@ extern "C" {
     pub fn dup3(src: ::c_int, dst: ::c_int, flags: ::c_int) -> ::c_int;
 
     pub fn kqueue1(flags: ::c_int) -> ::c_int;
-
-    pub fn sendmmsg(
-        sockfd: ::c_int,
-        msgvec: *mut ::mmsghdr,
-        vlen: ::c_uint,
-        flags: ::c_int,
-    ) -> ::c_int;
-    pub fn recvmmsg(
-        sockfd: ::c_int,
-        msgvec: *mut ::mmsghdr,
-        vlen: ::c_uint,
-        flags: ::c_int,
-        timeout: *mut ::timespec,
-    ) -> ::c_int;
 
     pub fn _lwp_self() -> lwpid_t;
     pub fn memmem(

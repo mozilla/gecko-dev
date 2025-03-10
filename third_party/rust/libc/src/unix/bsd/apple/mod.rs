@@ -56,6 +56,7 @@ pub type thread_inspect_t = ::mach_port_t;
 pub type thread_act_t = ::mach_port_t;
 pub type thread_act_array_t = *mut ::thread_act_t;
 pub type policy_t = ::c_int;
+pub type mach_error_t = ::kern_return_t;
 pub type mach_vm_address_t = u64;
 pub type mach_vm_offset_t = u64;
 pub type mach_vm_size_t = u64;
@@ -3617,6 +3618,7 @@ pub const F_PUNCHHOLE: ::c_int = 99;
 pub const F_TRIM_ACTIVE_FILE: ::c_int = 100;
 pub const F_SPECULATIVE_READ: ::c_int = 101;
 pub const F_GETPATH_NOFIRMLINK: ::c_int = 102;
+pub const F_TRANSFEREXTENTS: ::c_int = 110;
 
 pub const F_ALLOCATECONTIG: ::c_uint = 0x02;
 pub const F_ALLOCATEALL: ::c_uint = 0x04;
@@ -3787,6 +3789,19 @@ pub const PTHREAD_PROCESS_PRIVATE: ::c_int = 2;
 pub const PTHREAD_PROCESS_SHARED: ::c_int = 1;
 pub const PTHREAD_CREATE_JOINABLE: ::c_int = 1;
 pub const PTHREAD_CREATE_DETACHED: ::c_int = 2;
+pub const PTHREAD_INHERIT_SCHED: ::c_int = 1;
+pub const PTHREAD_EXPLICIT_SCHED: ::c_int = 2;
+pub const PTHREAD_CANCEL_ENABLE: ::c_int = 0x01;
+pub const PTHREAD_CANCEL_DISABLE: ::c_int = 0x00;
+pub const PTHREAD_CANCEL_DEFERRED: ::c_int = 0x02;
+pub const PTHREAD_CANCEL_ASYNCHRONOUS: ::c_int = 0x00;
+pub const PTHREAD_CANCELED: *mut ::c_void = 1 as *mut ::c_void;
+pub const PTHREAD_SCOPE_SYSTEM: ::c_int = 1;
+pub const PTHREAD_SCOPE_PROCESS: ::c_int = 2;
+pub const PTHREAD_PRIO_NONE: ::c_int = 0;
+pub const PTHREAD_PRIO_INHERIT: ::c_int = 1;
+pub const PTHREAD_PRIO_PROTECT: ::c_int = 2;
+
 #[cfg(target_arch = "aarch64")]
 pub const PTHREAD_STACK_MIN: ::size_t = 16384;
 #[cfg(not(target_arch = "aarch64"))]
@@ -4181,11 +4196,18 @@ pub const TCP_CONNECTION_INFO: ::c_int = 0x106;
 
 pub const SOL_LOCAL: ::c_int = 0;
 
+/// Retrieve peer credentials.
 pub const LOCAL_PEERCRED: ::c_int = 0x001;
+/// Retrieve peer PID.
 pub const LOCAL_PEERPID: ::c_int = 0x002;
+/// Retrieve effective peer PID.
 pub const LOCAL_PEEREPID: ::c_int = 0x003;
+/// Retrieve peer UUID.
 pub const LOCAL_PEERUUID: ::c_int = 0x004;
+/// Retrieve effective peer UUID.
 pub const LOCAL_PEEREUUID: ::c_int = 0x005;
+/// Retrieve peer audit token.
+pub const LOCAL_PEERTOKEN: ::c_int = 0x006;
 
 pub const SOL_SOCKET: ::c_int = 0xffff;
 
@@ -4522,6 +4544,8 @@ pub const NOTE_ABSOLUTE: u32 = 0x00000008;
 pub const NOTE_LEEWAY: u32 = 0x00000010;
 pub const NOTE_CRITICAL: u32 = 0x00000020;
 pub const NOTE_BACKGROUND: u32 = 0x00000040;
+pub const NOTE_MACH_CONTINUOUS_TIME: u32 = 0x00000080;
+pub const NOTE_MACHTIME: u32 = 0x00000100;
 pub const NOTE_TRACK: u32 = 0x00000001;
 pub const NOTE_TRACKERR: u32 = 0x00000002;
 pub const NOTE_CHILD: u32 = 0x00000004;
@@ -4916,22 +4940,11 @@ pub const XATTR_SHOWCOMPRESSION: ::c_int = 0x0020;
 pub const NET_RT_IFLIST2: ::c_int = 0x0006;
 
 // net/route.h
-pub const RTF_UP: ::c_int = 0x1;
-pub const RTF_GATEWAY: ::c_int = 0x2;
-pub const RTF_HOST: ::c_int = 0x4;
-pub const RTF_REJECT: ::c_int = 0x8;
-pub const RTF_DYNAMIC: ::c_int = 0x10;
-pub const RTF_MODIFIED: ::c_int = 0x20;
-pub const RTF_DONE: ::c_int = 0x40;
 pub const RTF_DELCLONE: ::c_int = 0x80;
 pub const RTF_CLONING: ::c_int = 0x100;
 pub const RTF_XRESOLVE: ::c_int = 0x200;
 pub const RTF_LLINFO: ::c_int = 0x400;
-pub const RTF_STATIC: ::c_int = 0x800;
-pub const RTF_BLACKHOLE: ::c_int = 0x1000;
 pub const RTF_NOIFREF: ::c_int = 0x2000;
-pub const RTF_PROTO2: ::c_int = 0x4000;
-pub const RTF_PROTO1: ::c_int = 0x8000;
 pub const RTF_PRCLONING: ::c_int = 0x10000;
 pub const RTF_WASCLONED: ::c_int = 0x20000;
 pub const RTF_PROTO3: ::c_int = 0x40000;
@@ -4950,13 +4963,6 @@ pub const RTF_GLOBAL: ::c_int = 0x40000000;
 pub const RTM_VERSION: ::c_int = 5;
 
 // Message types
-pub const RTM_ADD: ::c_int = 0x1;
-pub const RTM_DELETE: ::c_int = 0x2;
-pub const RTM_CHANGE: ::c_int = 0x3;
-pub const RTM_GET: ::c_int = 0x4;
-pub const RTM_LOSING: ::c_int = 0x5;
-pub const RTM_REDIRECT: ::c_int = 0x6;
-pub const RTM_MISS: ::c_int = 0x7;
 pub const RTM_LOCK: ::c_int = 0x8;
 pub const RTM_OLDADD: ::c_int = 0x9;
 pub const RTM_OLDDEL: ::c_int = 0xa;
@@ -4980,25 +4986,6 @@ pub const RTV_SSTHRESH: ::c_int = 0x20;
 pub const RTV_RTT: ::c_int = 0x40;
 pub const RTV_RTTVAR: ::c_int = 0x80;
 
-// Bitmask values for rtm_addrs.
-pub const RTA_DST: ::c_int = 0x1;
-pub const RTA_GATEWAY: ::c_int = 0x2;
-pub const RTA_NETMASK: ::c_int = 0x4;
-pub const RTA_GENMASK: ::c_int = 0x8;
-pub const RTA_IFP: ::c_int = 0x10;
-pub const RTA_IFA: ::c_int = 0x20;
-pub const RTA_AUTHOR: ::c_int = 0x40;
-pub const RTA_BRD: ::c_int = 0x80;
-
-// Index offsets for sockaddr array for alternate internal encoding.
-pub const RTAX_DST: ::c_int = 0;
-pub const RTAX_GATEWAY: ::c_int = 1;
-pub const RTAX_NETMASK: ::c_int = 2;
-pub const RTAX_GENMASK: ::c_int = 3;
-pub const RTAX_IFP: ::c_int = 4;
-pub const RTAX_IFA: ::c_int = 5;
-pub const RTAX_AUTHOR: ::c_int = 6;
-pub const RTAX_BRD: ::c_int = 7;
 pub const RTAX_MAX: ::c_int = 8;
 
 pub const KERN_PROCARGS2: ::c_int = 49;
@@ -5755,6 +5742,40 @@ extern "C" {
     pub fn mach_timebase_info(info: *mut ::mach_timebase_info) -> ::c_int;
     pub fn mach_host_self() -> mach_port_t;
     pub fn mach_thread_self() -> mach_port_t;
+    pub fn pthread_once(
+        once_control: *mut ::pthread_once_t,
+        init_routine: ::Option<unsafe extern "C" fn()>,
+    ) -> ::c_int;
+    pub fn pthread_attr_getinheritsched(
+        attr: *const ::pthread_attr_t,
+        inheritsched: *mut ::c_int,
+    ) -> ::c_int;
+    pub fn pthread_attr_getschedpolicy(
+        attr: *const ::pthread_attr_t,
+        policy: *mut ::c_int,
+    ) -> ::c_int;
+    pub fn pthread_attr_getscope(
+        attr: *const ::pthread_attr_t,
+        contentionscope: *mut ::c_int,
+    ) -> ::c_int;
+    pub fn pthread_attr_getstackaddr(
+        attr: *const ::pthread_attr_t,
+        stackaddr: *mut *mut ::c_void,
+    ) -> ::c_int;
+    pub fn pthread_attr_getdetachstate(
+        attr: *const ::pthread_attr_t,
+        detachstate: *mut ::c_int,
+    ) -> ::c_int;
+    pub fn pthread_attr_setinheritsched(
+        attr: *mut ::pthread_attr_t,
+        inheritsched: ::c_int,
+    ) -> ::c_int;
+    pub fn pthread_attr_setschedpolicy(attr: *mut ::pthread_attr_t, policy: ::c_int) -> ::c_int;
+    pub fn pthread_attr_setscope(attr: *mut ::pthread_attr_t, contentionscope: ::c_int) -> ::c_int;
+    pub fn pthread_attr_setstackaddr(
+        attr: *mut ::pthread_attr_t,
+        stackaddr: *mut ::c_void,
+    ) -> ::c_int;
     pub fn pthread_setname_np(name: *const ::c_char) -> ::c_int;
     pub fn pthread_getname_np(thread: ::pthread_t, name: *mut ::c_char, len: ::size_t) -> ::c_int;
     pub fn pthread_mach_thread_np(thread: ::pthread_t) -> ::mach_port_t;
@@ -6273,6 +6294,8 @@ extern "C" {
     pub fn copyfile_state_alloc() -> copyfile_state_t;
     pub fn copyfile_state_get(s: copyfile_state_t, flags: u32, dst: *mut ::c_void) -> ::c_int;
     pub fn copyfile_state_set(s: copyfile_state_t, flags: u32, src: *const ::c_void) -> ::c_int;
+
+    pub fn mach_error_string(error_value: ::mach_error_t) -> *mut ::c_char;
 
     // Added in macOS 10.13
     // ISO/IEC 9899:2011 ("ISO C11") K.3.7.4.1

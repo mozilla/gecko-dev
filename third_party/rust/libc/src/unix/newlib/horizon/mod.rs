@@ -21,6 +21,14 @@ pub type sbintime_t = ::c_longlong;
 pub type sigset_t = ::c_ulong;
 
 s! {
+    pub struct hostent {
+        pub h_name: *mut ::c_char,
+        pub h_aliases: *mut *mut ::c_char,
+        pub h_addrtype: u16,
+        pub h_length: u16,
+        pub h_addr_list: *mut *mut ::c_char,
+    }
+
     pub struct sockaddr {
         pub sa_family: ::sa_family_t,
         pub sa_data: [::c_char; 26usize],
@@ -35,6 +43,7 @@ s! {
         pub sin_family: ::sa_family_t,
         pub sin_port: ::in_port_t,
         pub sin_addr: ::in_addr,
+        pub sin_zero: [::c_char; 8],
     }
 
     pub struct sockaddr_in6 {

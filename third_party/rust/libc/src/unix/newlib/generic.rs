@@ -2,7 +2,10 @@
 
 s! {
     pub struct sigset_t {
+        #[cfg(target_os = "horizon")]
         __val: [::c_ulong; 16],
+        #[cfg(not(target_os = "horizon"))]
+        __val: u32,
     }
 
     pub struct stat {

@@ -349,8 +349,8 @@ user-login = "alexcrichton"
 user-name = "Alex Crichton"
 
 [[publisher.libc]]
-version = "0.2.154"
-when = "2024-04-29"
+version = "0.2.153"
+when = "2024-01-31"
 user-id = 51017
 user-login = "JohnTitor"
 user-name = "Yuki Okushi"
@@ -1184,6 +1184,17 @@ who = "Nick Fitzgerald <fitzgen@gmail.com>"
 criteria = "safe-to-deploy"
 version = "0.2.5"
 notes = "I am the author of this crate."
+
+[[audits.bytecode-alliance.audits.libc]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+delta = "0.2.153 -> 0.2.158"
+notes = "More platforms, more definitions, more headers, it's still just `libc`"
+
+[[audits.bytecode-alliance.audits.libc]]
+who = "Dan Gohman <dev@sunfishcode.online>"
+criteria = "safe-to-deploy"
+delta = "0.2.158 -> 0.2.161"
 
 [[audits.bytecode-alliance.audits.memoffset]]
 who = "Alex Crichton <alex@alexcrichton.com>"

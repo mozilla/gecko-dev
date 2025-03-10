@@ -1307,6 +1307,7 @@ pub const O_RDWR: ::c_int = 2;
 pub const O_NDELAY: ::c_int = 0x04;
 pub const O_APPEND: ::c_int = 8;
 pub const O_DSYNC: ::c_int = 0x40;
+pub const O_RSYNC: ::c_int = 0x8000;
 pub const O_CREAT: ::c_int = 256;
 pub const O_EXCL: ::c_int = 1024;
 pub const O_NOCTTY: ::c_int = 2048;
@@ -2168,7 +2169,7 @@ pub const PTHREAD_RWLOCK_INITIALIZER: pthread_rwlock_t = pthread_rwlock_t {
 pub const PTHREAD_MUTEX_NORMAL: ::c_int = 0;
 pub const PTHREAD_MUTEX_ERRORCHECK: ::c_int = 2;
 pub const PTHREAD_MUTEX_RECURSIVE: ::c_int = 4;
-pub const PTHREAD_MUTEX_DEFAULT: ::c_int = PTHREAD_MUTEX_NORMAL;
+pub const PTHREAD_MUTEX_DEFAULT: ::c_int = ::PTHREAD_MUTEX_NORMAL;
 
 pub const RTLD_NEXT: *mut ::c_void = -1isize as *mut ::c_void;
 pub const RTLD_DEFAULT: *mut ::c_void = -2isize as *mut ::c_void;
@@ -2846,6 +2847,7 @@ extern "C" {
     #[cfg_attr(target_os = "illumos", link_name = "_globfree_ext")]
     pub fn globfree(pglob: *mut ::glob_t);
 
+    pub fn posix_fallocate(fd: ::c_int, offset: ::off_t, len: ::off_t) -> ::c_int;
     pub fn posix_madvise(addr: *mut ::c_void, len: ::size_t, advice: ::c_int) -> ::c_int;
 
     pub fn shmat(shmid: ::c_int, shmaddr: *const ::c_void, shmflg: ::c_int) -> *mut ::c_void;

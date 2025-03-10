@@ -253,7 +253,7 @@ s! {
     }
 
     // b_struct__Sched_param.h
-    pub struct _Sched_param {
+    pub struct sched_param {
         pub sched_priority: ::c_int, /* scheduling priority */
         pub sched_ss_low_priority: ::c_int,    /* low scheduling priority */
         pub sched_ss_repl_period: ::_Timespec, /* replenishment period */
@@ -274,7 +274,7 @@ s! {
         pub threadAttrSchedpolicy     : ::c_int,
         pub threadAttrName            : *mut ::c_char,
         pub threadAttrOptions         : ::c_int,
-        pub threadAttrSchedparam      : ::_Sched_param,
+        pub threadAttrSchedparam      : ::sched_param,
     }
 
     // signal.h
@@ -613,6 +613,19 @@ pub const PTHREAD_MUTEX_DEFAULT: ::c_int = PTHREAD_MUTEX_NORMAL;
 pub const PTHREAD_STACK_MIN: usize = 4096;
 pub const _PTHREAD_SHARED_SEM_NAME_MAX: usize = 30;
 
+//sched.h
+pub const SCHED_FIFO: ::c_int = 0x01;
+pub const SCHED_RR: ::c_int = 0x02;
+pub const SCHED_OTHER: ::c_int = 0x04;
+pub const SCHED_SPORADIC: ::c_int = 0x08;
+pub const PRIO_PROCESS: ::c_uint = 0;
+pub const SCHED_FIFO_HIGH_PRI: ::c_int = 255;
+pub const SCHED_FIFO_LOW_PRI: ::c_int = 0;
+pub const SCHED_RR_HIGH_PRI: ::c_int = 255;
+pub const SCHED_RR_LOW_PRI: ::c_int = 0;
+pub const SCHED_SPORADIC_HIGH_PRI: ::c_int = 255;
+pub const SCHED_SPORADIC_LOW_PRI: ::c_int = 0;
+
 // ERRNO STUFF
 pub const ERROR: ::c_int = -1;
 pub const OK: ::c_int = 0;
@@ -782,6 +795,7 @@ pub const S_IFSOCK: ::c_int = 0xc000;
 pub const S_ISUID: ::c_int = 0x0800;
 pub const S_ISGID: ::c_int = 0x0400;
 pub const S_ISTXT: ::c_int = 0x0200;
+pub const S_ISVTX: ::c_int = 0o1000;
 pub const S_IRUSR: ::c_int = 0x0100;
 pub const S_IWUSR: ::c_int = 0x0080;
 pub const S_IXUSR: ::c_int = 0x0040;
@@ -1387,6 +1401,29 @@ extern "C" {
         value: *mut ::c_void,
     ) -> ::c_int;
 
+    //pthread.h
+    pub fn pthread_setschedparam(
+        native: ::pthread_t,
+        policy: ::c_int,
+        param: *const ::sched_param,
+    ) -> ::c_int;
+
+    //pthread.h
+    pub fn pthread_getschedparam(
+        native: ::pthread_t,
+        policy: *mut ::c_int,
+        param: *mut ::sched_param,
+    ) -> ::c_int;
+
+    //pthread.h
+    pub fn pthread_attr_setinheritsched(
+        attr: *mut ::pthread_attr_t,
+        inheritsched: ::c_int,
+    ) -> ::c_int;
+
+    //pthread.h
+    pub fn pthread_attr_setschedpolicy(attr: *mut ::pthread_attr_t, policy: ::c_int) -> ::c_int;
+
     // pthread.h
     pub fn pthread_attr_destroy(thread: *mut ::pthread_attr_t) -> ::c_int;
 
@@ -1399,6 +1436,7 @@ extern "C" {
         parent: ::Option<unsafe extern "C" fn()>,
         child: ::Option<unsafe extern "C" fn()>,
     ) -> ::c_int;
+
     // stat.h
     pub fn fstat(fildes: ::c_int, buf: *mut stat) -> ::c_int;
 
@@ -1753,6 +1791,31 @@ extern "C" {
     // dirent.h
     pub fn closedir(ptr: *mut ::DIR) -> ::c_int;
 
+    //sched.h
+    pub fn sched_get_priority_max(policy: ::c_int) -> ::c_int;
+
+    //sched.h
+    pub fn sched_get_priority_min(policy: ::c_int) -> ::c_int;
+
+    //sched.h
+    pub fn sched_setparam(pid: ::pid_t, param: *const ::sched_param) -> ::c_int;
+
+    //sched.h
+    pub fn sched_getparam(pid: ::pid_t, param: *mut ::sched_param) -> ::c_int;
+
+    //sched.h
+    pub fn sched_setscheduler(
+        pid: ::pid_t,
+        policy: ::c_int,
+        param: *const ::sched_param,
+    ) -> ::c_int;
+
+    //sched.h
+    pub fn sched_getscheduler(pid: ::pid_t) -> ::c_int;
+
+    //sched.h
+    pub fn sched_rr_get_interval(pid: ::pid_t, tp: *mut ::timespec) -> ::c_int;
+
     // sched.h
     pub fn sched_yield() -> ::c_int;
 
@@ -1811,6 +1874,10 @@ extern "C" {
     // taskLibCommon.h
     pub fn taskIdSelf() -> ::TASK_ID;
     pub fn taskDelay(ticks: ::_Vx_ticks_t) -> ::c_int;
+
+    // taskLib.h
+    pub fn taskNameSet(task_id: ::TASK_ID, task_name: *mut ::c_char) -> ::c_int;
+    pub fn taskNameGet(task_id: ::TASK_ID, buf_name: *mut ::c_char, bufsize: ::size_t) -> ::c_int;
 
     // rtpLibCommon.h
     pub fn rtpInfoGet(rtpId: ::RTP_ID, rtpStruct: *mut ::RTP_DESC) -> ::c_int;
@@ -1871,6 +1938,10 @@ extern "C" {
     ) -> ::c_int;
     pub fn mq_getattr(mqd: ::mqd_t, attr: *mut ::mq_attr) -> ::c_int;
     pub fn mq_setattr(mqd: ::mqd_t, newattr: *const ::mq_attr, oldattr: *mut ::mq_attr) -> ::c_int;
+
+    // vxCpuLib.h
+    pub fn vxCpuEnabledGet() -> ::cpuset_t; // Get set of running CPU's in the system
+    pub fn vxCpuConfiguredGet() -> ::cpuset_t; // Get set of Configured CPU's in the system
 }
 
 //Dummy functions, these don't really exist in VxWorks.
@@ -1971,6 +2042,12 @@ cfg_if! {
     } else if #[cfg(target_arch = "powerpc64")] {
         mod powerpc64;
         pub use self::powerpc64::*;
+    } else if #[cfg(target_arch = "riscv32")] {
+        mod riscv32;
+        pub use self::riscv32::*;
+    } else if #[cfg(target_arch = "riscv64")] {
+        mod riscv64;
+        pub use self::riscv64::*;
     } else {
         // Unknown target_arch
     }

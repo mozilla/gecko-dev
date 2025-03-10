@@ -417,6 +417,10 @@ pub const SYS_syscalls: ::c_long = 436;
 pub const PROT_BTI: ::c_int = 0x10;
 pub const PROT_MTE: ::c_int = 0x20;
 
+// From NDK's asm/auxvec.h
+pub const AT_SYSINFO_EHDR: ::c_ulong = 33;
+pub const AT_VECTOR_SIZE_ARCH: ::c_ulong = 2;
+
 cfg_if! {
     if #[cfg(libc_align)] {
         mod align;

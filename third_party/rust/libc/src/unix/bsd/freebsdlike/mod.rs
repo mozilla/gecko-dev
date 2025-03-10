@@ -1017,6 +1017,25 @@ pub const SO_TYPE: ::c_int = 0x1008;
 
 pub const LOCAL_PEERCRED: ::c_int = 1;
 
+// net/route.h
+pub const RTF_XRESOLVE: ::c_int = 0x200;
+pub const RTF_LLINFO: ::c_int = 0x400;
+pub const RTF_PROTO3: ::c_int = 0x40000;
+pub const RTF_PINNED: ::c_int = 0x100000;
+pub const RTF_LOCAL: ::c_int = 0x200000;
+pub const RTF_BROADCAST: ::c_int = 0x400000;
+pub const RTF_MULTICAST: ::c_int = 0x800000;
+
+pub const RTM_LOCK: ::c_int = 0x8;
+pub const RTM_RESOLVE: ::c_int = 0xb;
+pub const RTM_NEWADDR: ::c_int = 0xc;
+pub const RTM_DELADDR: ::c_int = 0xd;
+pub const RTM_IFINFO: ::c_int = 0xe;
+pub const RTM_NEWMADDR: ::c_int = 0xf;
+pub const RTM_DELMADDR: ::c_int = 0x10;
+pub const RTM_IFANNOUNCE: ::c_int = 0x11;
+pub const RTM_IEEE80211: ::c_int = 0x12;
+
 pub const SHUT_RD: ::c_int = 0;
 pub const SHUT_WR: ::c_int = 1;
 pub const SHUT_RDWR: ::c_int = 2;

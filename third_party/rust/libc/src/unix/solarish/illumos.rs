@@ -28,6 +28,8 @@ pub const EFD_SEMAPHORE: ::c_int = 0x1;
 pub const EFD_NONBLOCK: ::c_int = 0x800;
 pub const EFD_CLOEXEC: ::c_int = 0x80000;
 
+pub const POLLRDHUP: ::c_short = 0x4000;
+
 pub const TCP_KEEPIDLE: ::c_int = 34;
 pub const TCP_KEEPCNT: ::c_int = 35;
 pub const TCP_KEEPINTVL: ::c_int = 36;
@@ -55,6 +57,13 @@ pub const FILF_BYPASS: ::c_int = 0x4;
 pub const SOL_FILTER: ::c_int = 0xfffc;
 
 pub const MADV_PURGE: ::c_int = 9;
+
+pub const POSIX_FADV_NORMAL: ::c_int = 0;
+pub const POSIX_FADV_RANDOM: ::c_int = 1;
+pub const POSIX_FADV_SEQUENTIAL: ::c_int = 2;
+pub const POSIX_FADV_WILLNEED: ::c_int = 3;
+pub const POSIX_FADV_DONTNEED: ::c_int = 4;
+pub const POSIX_FADV_NOREUSE: ::c_int = 5;
 
 pub const B1000000: ::speed_t = 24;
 pub const B1152000: ::speed_t = 25;
@@ -96,8 +105,11 @@ extern "C" {
         stackaddr: *mut ::c_void,
     ) -> ::c_int;
 
+    pub fn posix_fadvise(fd: ::c_int, offset: ::off_t, len: ::off_t, advice: ::c_int) -> ::c_int;
     pub fn preadv(fd: ::c_int, iov: *const ::iovec, iovcnt: ::c_int, offset: ::off_t) -> ::ssize_t;
     pub fn pwritev(fd: ::c_int, iov: *const ::iovec, iovcnt: ::c_int, offset: ::off_t)
         -> ::ssize_t;
     pub fn getpagesizes2(pagesize: *mut ::size_t, nelem: ::c_int) -> ::c_int;
+
+    pub fn ptsname_r(fildes: ::c_int, name: *mut ::c_char, namelen: ::size_t) -> ::c_int;
 }

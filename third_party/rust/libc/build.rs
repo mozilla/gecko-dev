@@ -1,5 +1,5 @@
 use std::env;
-use std::process::Command;
+use std::process::{Command, Output};
 use std::str;
 
 // List of cfgs this build script is allowed to set. The list is needed to support check-cfg, as we
@@ -30,11 +30,17 @@ const ALLOWED_CFGS: &'static [&'static str] = &[
     "libc_thread_local",
     "libc_underscore_const_names",
     "libc_union",
+    "libc_ctest",
 ];
 
 // Extra values to allow for check-cfg.
 const CHECK_CFG_EXTRA: &'static [(&'static str, &'static [&'static str])] = &[
-    ("target_os", &["switch", "aix", "ohos", "hurd", "visionos"]),
+    (
+        "target_os",
+        &[
+            "switch", "aix", "ohos", "hurd", "rtems", "visionos", "nuttx",
+        ],
+    ),
     ("target_env", &["illumos", "wasi", "aix", "ohos"]),
     (
         "target_arch",
@@ -193,6 +199,41 @@ fn main() {
     }
 }
 
+/// Run `rustc --version` and capture the output, adjusting arguments as needed if `clippy-driver`
+/// is used instead.
+fn rustc_version_cmd(is_clippy_driver: bool) -> Output {
+    let rustc = env::var_os("RUSTC").expect("Failed to get rustc version: missing RUSTC env");
+
+    let mut cmd = match env::var_os("RUSTC_WRAPPER") {
+        Some(ref wrapper) if wrapper.is_empty() => Command::new(rustc),
+        Some(wrapper) => {
+            let mut cmd = Command::new(wrapper);
+            cmd.arg(rustc);
+            if is_clippy_driver {
+                cmd.arg("--rustc");
+            }
+
+            cmd
+        }
+        None => Command::new(rustc),
+    };
+
+    cmd.arg("--version");
+
+    let output = cmd.output().ok().expect("Failed to get rustc version");
+
+    if !output.status.success() {
+        panic!(
+            "failed to run rustc: {}",
+            String::from_utf8_lossy(output.stderr.as_slice())
+        );
+    }
+
+    output
+}
+
+/// Return the minor version of `rustc`, as well as a bool indicating whether or not the version
+/// is a nightly.
 fn rustc_minor_nightly() -> (u32, bool) {
     macro_rules! otry {
         ($e:expr) => {
@@ -203,29 +244,14 @@ fn rustc_minor_nightly() -> (u32, bool) {
         };
     }
 
-    let rustc = env::var_os("RUSTC").expect("Failed to get rustc version: missing RUSTC env");
-    let mut cmd = match env::var_os("RUSTC_WRAPPER").as_ref() {
-        Some(wrapper) if !wrapper.is_empty() => {
-            let mut cmd = Command::new(wrapper);
-            cmd.arg(rustc);
-            cmd
-        }
-        _ => Command::new(rustc),
-    };
+    let mut output = rustc_version_cmd(false);
 
-    let output = cmd
-        .arg("--version")
-        .output()
-        .ok()
-        .expect("Failed to get rustc version");
-    if !output.status.success() {
-        panic!(
-            "failed to run rustc: {}",
-            String::from_utf8_lossy(output.stderr.as_slice())
-        );
+    if otry!(str::from_utf8(&output.stdout).ok()).starts_with("clippy") {
+        output = rustc_version_cmd(true);
     }
 
     let version = otry!(str::from_utf8(&output.stdout).ok());
+
     let mut pieces = version.split('.');
 
     if pieces.next() != Some("rustc 1") {

@@ -245,14 +245,14 @@ pub const AT_SYMLINK_FOLLOW: c_int = 0x2;
 pub const AT_REMOVEDIR: c_int = 0x4;
 pub const UTIME_OMIT: c_long = 0xfffffffe;
 pub const UTIME_NOW: c_long = 0xffffffff;
-pub const S_IFIFO: mode_t = 49152;
+pub const S_IFIFO: mode_t = 0o1_0000;
 pub const S_IFCHR: mode_t = 8192;
 pub const S_IFBLK: mode_t = 24576;
 pub const S_IFDIR: mode_t = 16384;
 pub const S_IFREG: mode_t = 32768;
 pub const S_IFLNK: mode_t = 40960;
 pub const S_IFSOCK: mode_t = 49152;
-pub const S_IFMT: mode_t = 57344;
+pub const S_IFMT: mode_t = 0o17_0000;
 pub const S_IRWXO: mode_t = 0x7;
 pub const S_IXOTH: mode_t = 0x1;
 pub const S_IWOTH: mode_t = 0x2;
@@ -372,16 +372,26 @@ pub const _SC_PAGE_SIZE: ::c_int = _SC_PAGESIZE;
 pub const _SC_IOV_MAX: c_int = 60;
 pub const _SC_SYMLOOP_MAX: c_int = 173;
 
-#[allow(unused_unsafe)] // `addr_of!(EXTERN_STATIC)` is now safe; remove `unsafe` when MSRV >= 1.82
-pub static CLOCK_MONOTONIC: clockid_t = unsafe { clockid_t(ptr_addr_of!(_CLOCK_MONOTONIC)) };
-#[allow(unused_unsafe)]
-pub static CLOCK_PROCESS_CPUTIME_ID: clockid_t =
-    unsafe { clockid_t(ptr_addr_of!(_CLOCK_PROCESS_CPUTIME_ID)) };
-#[allow(unused_unsafe)]
-pub static CLOCK_REALTIME: clockid_t = unsafe { clockid_t(ptr_addr_of!(_CLOCK_REALTIME)) };
-#[allow(unused_unsafe)]
-pub static CLOCK_THREAD_CPUTIME_ID: clockid_t =
-    unsafe { clockid_t(ptr_addr_of!(_CLOCK_THREAD_CPUTIME_ID)) };
+cfg_if! {
+    if #[cfg(libc_ctest)] {
+        // skip these constants when this is active because `ctest` currently
+        // panics on parsing the constants below
+    } else {
+        // `addr_of!(EXTERN_STATIC)` is now safe; remove `unsafe` when MSRV >= 1.82
+        #[allow(unused_unsafe)]
+        pub static CLOCK_MONOTONIC: clockid_t =
+            unsafe { clockid_t(ptr_addr_of!(_CLOCK_MONOTONIC)) };
+        #[allow(unused_unsafe)]
+        pub static CLOCK_PROCESS_CPUTIME_ID: clockid_t =
+            unsafe { clockid_t(ptr_addr_of!(_CLOCK_PROCESS_CPUTIME_ID)) };
+        #[allow(unused_unsafe)]
+        pub static CLOCK_REALTIME: clockid_t =
+            unsafe { clockid_t(ptr_addr_of!(_CLOCK_REALTIME)) };
+        #[allow(unused_unsafe)]
+        pub static CLOCK_THREAD_CPUTIME_ID: clockid_t =
+            unsafe { clockid_t(ptr_addr_of!(_CLOCK_THREAD_CPUTIME_ID)) };
+    }
+}
 
 pub const ABDAY_1: ::nl_item = 0x20000;
 pub const ABDAY_2: ::nl_item = 0x20001;
@@ -868,4 +878,11 @@ extern "C" {
     pub fn arc4random_uniform(a: u32) -> u32;
 
     pub fn __errno_location() -> *mut ::c_int;
+}
+
+cfg_if! {
+    if #[cfg(target_env = "p2")] {
+        mod p2;
+        pub use self::p2::*;
+    }
 }

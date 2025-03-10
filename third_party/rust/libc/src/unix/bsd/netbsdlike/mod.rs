@@ -92,6 +92,11 @@ s! {
         pub piod_addr: *mut ::c_void,
         pub piod_len: ::size_t,
     }
+
+    pub struct mmsghdr {
+        pub msg_hdr: ::msghdr,
+        pub msg_len: ::c_uint,
+    }
 }
 
 pub const D_T_FMT: ::nl_item = 0;
@@ -848,6 +853,20 @@ extern "C" {
     pub fn dirname(path: *mut ::c_char) -> *mut ::c_char;
     pub fn basename(path: *mut ::c_char) -> *mut ::c_char;
     pub fn getentropy(buf: *mut ::c_void, buflen: ::size_t) -> ::c_int;
+
+    pub fn sendmmsg(
+        sockfd: ::c_int,
+        mmsg: *mut ::mmsghdr,
+        vlen: ::c_uint,
+        flags: ::c_int,
+    ) -> ::c_int;
+    pub fn recvmmsg(
+        sockfd: ::c_int,
+        mmsg: *mut ::mmsghdr,
+        vlen: ::c_uint,
+        flags: ::c_int,
+        timeout: *mut ::timespec,
+    ) -> ::c_int;
 }
 
 cfg_if! {
