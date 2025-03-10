@@ -775,11 +775,14 @@ function prompt(aActor, aBrowser, aRequest) {
         aActor.denyRequest(aRequest);
       } else if (
         aTopic == "shown" &&
-        audioOutputDevices.length > 1 &&
-        !notification.wasDismissed
+        !notification.wasDismissed &&
+        reqAudioOutput
       ) {
-        // Focus the list on first show so that arrow keys select the speaker.
-        doc.getElementById("webRTC-selectSpeaker-richlistbox").focus();
+        let focusElement =
+          audioOutputDevices.length > 1
+            ? doc.getElementById("webRTC-selectSpeaker-richlistbox") // Focus the list on first show so that arrow keys select the speaker.
+            : doc.querySelector("button.popup-notification-primary-button"); // Or if the list is hidden (only 1 device), focus the primary button.
+        focusElement.focus();
       }
 
       if (aTopic != "showing") {
