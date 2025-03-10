@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-03-05T15:19:16.010797+00:00'
+updated_at: '2025-03-07T18:54:25.418364+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -2617,6 +2617,20 @@ modules:
     peers: []
     machine_name: core_push_subscriptions
 
+  - machine_name: core_quota_manager
+    name: 'Core: Quota Manager'
+    description: Centralized quota tracked storage management and implementation of
+      StorageManager.
+    includes:
+      - dom/quota/**/*
+      - dom/simpledb/**/*
+    excludes: []
+    owners:
+      - *janv
+    peers:
+      - *asuth
+      - *jstutte
+    meta:
   - name: 'Core: Sandboxing (Linux)'
     description: Sandboxing for the Linux platform
     includes:
@@ -4561,5 +4575,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 780bce4fdea260f5d0a447e37a511568a485779f
-  export: 70c3cb29d528fbba8c6a91cfefc53a87a9c6fea8
+  config: c50edff26d9ce06c7e7f0855e54c0c98bd169470
+  export: 15298ba93e80b7f56222906aba4f794543bac763
