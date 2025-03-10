@@ -16158,13 +16158,13 @@
   # Whether win32k is disabled for compatible plugins.
 -   name: security.sandbox.gmp.win32k-disable
     type: RelaxedAtomicBool
-    value: @IS_NIGHTLY_BUILD@
+    value: true
     mirror: always
 
   # Whether ACG is enabled (dynamic code blocked) for compatible plugins.
 -   name: security.sandbox.gmp.acg.enabled
     type: RelaxedAtomicBool
-    value: @IS_NIGHTLY_BUILD@
+    value: true
     mirror: always
 
   # Whether win32k is disabled for socket processes.
