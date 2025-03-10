@@ -2111,7 +2111,8 @@ const ContentTiles = props => {
       },
       installedAddons: props.installedAddons,
       message_id: props.messageId,
-      handleAction: props.handleAction
+      handleAction: props.handleAction,
+      layout: content.position
     }), ["theme", "single-select"].includes(tile.type) && tile.data && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_SingleSelect__WEBPACK_IMPORTED_MODULE_3__.SingleSelect, {
       content: {
         tiles: tile
@@ -2243,7 +2244,8 @@ const InstallButton = props => {
 const AddonsPicker = props => {
   const {
     content,
-    installedAddons
+    installedAddons,
+    layout
   } = props;
   if (!content) {
     return null;
@@ -2271,6 +2273,16 @@ const AddonsPicker = props => {
     });
     _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_1__.AboutWelcomeUtils.sendActionTelemetry(message_id, source_id);
   }
+  function handleAuthorClick(event, authorId) {
+    event.stopPropagation();
+    _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_1__.AboutWelcomeUtils.handleUserAction({
+      type: "OPEN_URL",
+      data: {
+        args: `https://addons.mozilla.org/firefox/user/${authorId}/`,
+        where: "tab"
+      }
+    });
+  }
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "addons-picker-container"
   }, content.tiles.data.map(({
@@ -2279,6 +2291,7 @@ const AddonsPicker = props => {
     type,
     description,
     icon,
+    author,
     install_label,
     install_complete_label
   }, index) => addonName ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
@@ -2291,7 +2304,43 @@ const AddonsPicker = props => {
     src: icon,
     role: "presentation",
     alt: ""
+  })), layout === "split" ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "addon-rows-container"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "addon-row"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "addon-author-details"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_2__.Localized, {
+    text: addonName
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "addon-title"
+  })), author && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "addon-author"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_2__.Localized, {
+    text: author.byLine
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
+    className: "addon-by-line"
+  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    href: "#",
+    onClick: e => {
+      handleAuthorClick(e, author.id);
+    },
+    className: "author-link"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", null, author.name)))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(InstallButton, {
+    key: id,
+    addonId: id,
+    handleAction: handleAction,
+    index: index,
+    installedAddons: installedAddons,
+    install_label: install_label,
+    install_complete_label: install_complete_label
   })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "addon-row"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_2__.Localized, {
+    text: description
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "addon-description"
+  })))) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "addon-details"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_2__.Localized, {
     text: addonName
@@ -2309,7 +2358,7 @@ const AddonsPicker = props => {
     installedAddons: installedAddons,
     install_label: install_label,
     install_complete_label: install_complete_label
-  })) : null));
+  }))) : null));
 };
 
 /***/ }),

@@ -70,7 +70,7 @@ export const InstallButton = props => {
 };
 
 export const AddonsPicker = props => {
-  const { content, installedAddons } = props;
+  const { content, installedAddons, layout } = props;
 
   if (!content) {
     return null;
@@ -91,6 +91,17 @@ export const AddonsPicker = props => {
     AboutWelcomeUtils.sendActionTelemetry(message_id, source_id);
   }
 
+  function handleAuthorClick(event, authorId) {
+    event.stopPropagation();
+    AboutWelcomeUtils.handleUserAction({
+      type: "OPEN_URL",
+      data: {
+        args: `https://addons.mozilla.org/firefox/user/${authorId}/`,
+        where: "tab",
+      },
+    });
+  }
+
   return (
     <div className={"addons-picker-container"}>
       {content.tiles.data.map(
@@ -101,6 +112,7 @@ export const AddonsPicker = props => {
             type,
             description,
             icon,
+            author,
             install_label,
             install_complete_label,
           },
@@ -118,23 +130,70 @@ export const AddonsPicker = props => {
                   alt=""
                 />
               </div>
-              <div className="addon-details">
-                <Localized text={addonName}>
-                  <div className="addon-title" />
-                </Localized>
-                <Localized text={description}>
-                  <div className="addon-description" />
-                </Localized>
-              </div>
-              <InstallButton
-                key={id}
-                addonId={id}
-                handleAction={handleAction}
-                index={index}
-                installedAddons={installedAddons}
-                install_label={install_label}
-                install_complete_label={install_complete_label}
-              />
+
+              {layout === "split" ? (
+                <div className="addon-rows-container">
+                  <div className="addon-row">
+                    <div className="addon-author-details">
+                      <Localized text={addonName}>
+                        <div className="addon-title" />
+                      </Localized>
+
+                      {author && (
+                        <div className="addon-author">
+                          <Localized text={author.byLine}>
+                            <span className="addon-by-line" />
+                          </Localized>
+                          <button
+                            href="#"
+                            onClick={e => {
+                              handleAuthorClick(e, author.id);
+                            }}
+                            className="author-link"
+                          >
+                            <span>{author.name}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <InstallButton
+                      key={id}
+                      addonId={id}
+                      handleAction={handleAction}
+                      index={index}
+                      installedAddons={installedAddons}
+                      install_label={install_label}
+                      install_complete_label={install_complete_label}
+                    />
+                  </div>
+
+                  <div className="addon-row">
+                    <Localized text={description}>
+                      <div className="addon-description" />
+                    </Localized>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="addon-details">
+                    <Localized text={addonName}>
+                      <div className="addon-title" />
+                    </Localized>
+                    <Localized text={description}>
+                      <div className="addon-description" />
+                    </Localized>
+                  </div>
+                  <InstallButton
+                    key={id}
+                    addonId={id}
+                    handleAction={handleAction}
+                    index={index}
+                    installedAddons={installedAddons}
+                    install_label={install_label}
+                    install_complete_label={install_complete_label}
+                  />
+                </>
+              )}
             </div>
           ) : null
       )}

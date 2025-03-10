@@ -78,6 +78,13 @@ html {
   .onboardingContainer {
     min-height: $break-point-medium;
     min-width: fit-content;
+
+    // Change the height at which the scrollbar appears
+    // for the addons picker since its content is
+    // much taller than other onboarding content
+    &:has(.addons-picker-container) {
+      min-height: 1080px;
+    }
   }
 }
 
@@ -747,6 +754,7 @@ html {
             margin-block: 10px 35px;
             text-align: initial;
             align-items: initial;
+            max-width: 400px;
 
             &:empty {
               margin: 0;
@@ -1016,7 +1024,10 @@ html {
             flex-grow: 0;
             padding-inline: 110px;
             margin-block: auto;
-            max-width: 400px;
+
+            @media only screen and (width <= 800px) {
+              padding-block: 20px;
+            }
           }
 
           .action-buttons {
@@ -1045,6 +1056,127 @@ html {
             img {
               width: 30%;
             }
+          }
+        }
+
+        .addons-picker-container {
+          background: none;
+
+          .addon-container {
+            display: flex;
+            flex-flow: row wrap;
+            border: 1px solid var(--in-content-border-color);
+            box-shadow: 0 1px 2px 0 var(--in-content-border-color);
+            border-radius: 4px;
+            margin-block: 0 16px;
+            text-align: start;
+            padding: 16px;
+            max-width: 800px;
+
+            .rtamo-icon {
+              img {
+                margin-inline: 0 16px;
+              }
+            }
+
+            .addon-rows-container {
+              flex-grow: 1;
+              display: flex;
+              flex-direction: column;
+
+              .addon-row {
+                display: flex;
+                flex-grow: 1;
+                justify-content: space-between;
+
+                .install-button-wrapper {
+                  display: block;
+
+                  button {
+                    padding-inline: 16px;
+                    font-size: 12px;
+                    padding-block: 0;
+                    background-color: var(--in-content-button-background);
+                    color: var(--in-content-button-text-color);
+                    min-width: 0;
+
+                    &:hover {
+                      background-color: var(--in-content-button-background-hover);
+                    }
+
+                    &:active {
+                      background-color: var(--in-content-button-background-active);
+                    }
+                  }
+                }
+
+
+                &:not(:last-child) {
+                  margin-block: 0 12px;
+                }
+
+                .addon-author-details {
+                  margin-block: 0 4px;
+
+                  .addon-title {
+                    font-size: 16px;
+                    font-weight: 600;
+                  }
+
+                  .addon-author {
+                    font-size: 12px;
+                    margin-block: 2px 0;
+
+                    .author-link {
+                      background: none;
+                      padding: 0;
+                      font-weight: normal;
+                      min-width: auto;
+                      min-height: auto;
+                      margin: 0;
+                      text-align: start;
+
+                      @include text-link-styles;
+                    }
+
+                    .addon-by-line {
+                      margin-inline: 0 4px;
+                    }
+                  }
+                }
+
+                .addon-description {
+                  font-size: 14px;
+                }
+              }
+            }
+          }
+
+          .loader {
+            width: 1em;
+            height: 1em;
+            border: 3px solid var(--in-content-primary-button-text-color);
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+            justify-self: center;
+          }
+
+          @keyframes rotation {
+            0% {
+              transform: rotate(0deg);
+            }
+
+            100% {
+              transform: rotate(360deg);
+            }
+          }
+
+          .loaderContainer {
+            display: flex;
+            padding: 1.5px 37.5px;
+            margin: auto;
           }
         }
 
@@ -1125,6 +1257,7 @@ html {
             }
 
             .section-main {
+              height: auto;
               margin: auto;
               margin-top: 0;
               border-radius: 0 0 8px 8px;

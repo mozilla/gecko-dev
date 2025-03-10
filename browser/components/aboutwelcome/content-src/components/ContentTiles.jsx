@@ -133,6 +133,7 @@ export const ContentTiles = props => {
                 installedAddons={props.installedAddons}
                 message_id={props.messageId}
                 handleAction={props.handleAction}
+                layout={content.position}
               />
             )}
             {["theme", "single-select"].includes(tile.type) && tile.data && (
