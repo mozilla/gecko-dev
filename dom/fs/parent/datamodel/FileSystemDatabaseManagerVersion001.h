@@ -136,6 +136,8 @@ class FileSystemDatabaseManagerVersion001 : public FileSystemDatabaseManager {
   nsresult UpdateCachedQuotaUsage(const FileId& aFileId, Usage aOldUsage,
                                   Usage aNewUsage) const;
 
+  Result<bool, QMResult> RemoveDirectoryImpl(const EntryId& aEntryId);
+
   nsresult ClearDestinationIfNotLocked(
       const FileSystemConnection& aConnection,
       const FileSystemDataManager* const aDataManager,
