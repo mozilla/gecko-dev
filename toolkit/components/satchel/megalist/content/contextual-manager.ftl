@@ -364,7 +364,7 @@ passwords-add-manually = Add manually
 passwords-discard-changes-heading-and-message =
   .heading = Close without saving?
   .message = Your changes won’t be saved.
-passwords-discard-changes-confirm-button = Confirm
+passwords-discard-changes-close-button = Close
 passwords-discard-changes-go-back-button = Go back
 
 ## Payments
