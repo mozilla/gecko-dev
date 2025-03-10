@@ -1182,12 +1182,6 @@ var gSync = {
       document,
       "PanelUI-fxa-menu-connect-device-button"
     );
-    const syncSetupEl = PanelMultiView.getViewNode(
-      document,
-      isNewSyncSetupFlowEnabled
-        ? "PanelUI-fxa-menu-setup-sync-container"
-        : "PanelUI-fxa-menu-setup-sync-button"
-    );
     const syncNowButtonEl = PanelMultiView.getViewNode(
       document,
       "PanelUI-fxa-menu-syncnow-button"
@@ -1213,14 +1207,13 @@ var gSync = {
       "PanelUI-fxa-menu-profiles-separator"
     );
 
-    // Reset UI elements to default state
+    // Reset FxA/Sync UI elements to default, which is signed out
     cadButtonEl.setAttribute("disabled", true);
     cadButtonEl.hidden = isNewSyncSetupFlowEnabled;
     syncNowButtonEl.hidden = true;
     signedInContainer.hidden = true;
     fxaMenuAccountButtonEl.classList.remove("subviewbutton-nav");
     fxaMenuAccountButtonEl.removeAttribute("closemenu");
-    syncSetupEl.removeAttribute("hidden");
     menuHeaderDescriptionEl.hidden = false;
 
     // The Firefox Account toolbar currently handles 3 different states for
@@ -1289,12 +1282,32 @@ var gSync = {
         signedInContainer.hidden = false;
         cadButtonEl.removeAttribute("disabled");
 
+        // Due to bug 1951719, we toggle both old and new sync setup
+        // elements as some platforms had a delay during sign-in/out
+        // that there were some scenarios where both showed up or the
+        // incorrect one
+        const oldSyncSetupEl = PanelMultiView.getViewNode(
+          document,
+          "PanelUI-fxa-menu-setup-sync-button"
+        );
+        const newSyncSetupEl = PanelMultiView.getViewNode(
+          document,
+          "PanelUI-fxa-menu-setup-sync-container"
+        );
+
         if (state.syncEnabled) {
           syncNowButtonEl.removeAttribute("hidden");
-          syncSetupEl.hidden = true;
-        } else if (this._shouldShowSyncOffIndicator()) {
-          let fxaButton = document.getElementById("fxa-toolbar-menu-button");
-          fxaButton?.setAttribute("badge-status", "sync-disabled");
+          oldSyncSetupEl.setAttribute("hidden", "true");
+          newSyncSetupEl.setAttribute("hidden", "true");
+        } else {
+          if (this._shouldShowSyncOffIndicator()) {
+            let fxaButton = document.getElementById("fxa-toolbar-menu-button");
+            fxaButton?.setAttribute("badge-status", "sync-disabled");
+          }
+          // Show the sync element depending on if the user is enrolled or not
+          isNewSyncSetupFlowEnabled
+            ? newSyncSetupEl.removeAttribute("hidden")
+            : oldSyncSetupEl.removeAttribute("hidden");
         }
 
         // Reposition profiles elements
