@@ -2246,8 +2246,8 @@ pub extern "C" fn wr_transaction_set_document_view(txn: &mut Transaction, doc_re
 }
 
 #[no_mangle]
-pub extern "C" fn wr_transaction_generate_frame(txn: &mut Transaction, id: u64, present: bool, reasons: RenderReasons) {
-    txn.generate_frame(id, present, reasons);
+pub extern "C" fn wr_transaction_generate_frame(txn: &mut Transaction, id: u64, reasons: RenderReasons) {
+    txn.generate_frame(id, reasons);
 }
 
 #[no_mangle]

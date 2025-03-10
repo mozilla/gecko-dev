@@ -17,7 +17,7 @@ use webrender::api::*;
 use webrender::render_api::*;
 use webrender::api::units::*;
 use webrender::api::FillRule;
-use crate::wrench::{FontDescriptor, Wrench, WrenchThing, DisplayList};
+use crate::wrench::{FontDescriptor, Wrench, WrenchThing};
 use crate::yaml_helper::{StringEnum, YamlHelper, make_perspective};
 use yaml_rust::{Yaml, YamlLoader};
 use crate::PLATFORM_DEFAULT_FACE_NAME;
@@ -322,7 +322,7 @@ pub struct YamlFrameReader {
     aux_dir: PathBuf,
     frame_count: u32,
 
-    display_lists: Vec<DisplayList>,
+    display_lists: Vec<(PipelineId, BuiltDisplayList)>,
 
     watch_source: bool,
     list_resources: bool,
@@ -447,23 +447,13 @@ impl YamlFrameReader {
 
         if let Some(pipelines) = yaml["pipelines"].as_vec() {
             for pipeline in pipelines {
-                let pipeline_id = pipeline["id"].as_pipeline_id().unwrap();
-                let mut builder = DisplayListBuilder::new(pipeline_id);
-                self.build_pipeline(wrench, &mut builder, pipeline_id, false, pipeline);
+                self.build_pipeline(wrench, pipeline["id"].as_pipeline_id().unwrap(), pipeline);
             }
         }
 
-        let mut builder = DisplayListBuilder::new(wrench.root_pipeline_id);
-
-        if let Some(frames) = yaml["frames"].as_vec() {
-            for frame in frames {
-                self.build_pipeline(wrench, &mut builder, wrench.root_pipeline_id, true, frame);
-            }
-        } else {
-            let root_stacking_context = &yaml["root"];
-            assert_ne!(*root_stacking_context, Yaml::BadValue);
-            self.build_pipeline(wrench, &mut builder, wrench.root_pipeline_id, true, root_stacking_context);
-        }
+        let root_stacking_context = &yaml["root"];
+        assert_ne!(*root_stacking_context, Yaml::BadValue);
+        self.build_pipeline(wrench, wrench.root_pipeline_id, root_stacking_context);
 
         // If replaying the same frame during interactive use, the frame gets rebuilt,
         // but the external image handler has already been consumed by the renderer.
@@ -475,15 +465,9 @@ impl YamlFrameReader {
     fn build_pipeline(
         &mut self,
         wrench: &mut Wrench,
-        builder: &mut DisplayListBuilder,
         pipeline_id: PipelineId,
-        send_transaction: bool,
         yaml: &Yaml
     ) {
-        // By default, present if send_transaction is set to true. Can be overridden
-        // by a field in the pipeline's root.
-        let present = yaml["present"].as_bool().unwrap_or(send_transaction);
-
         // Don't allow referencing clips between pipelines for now.
         self.user_clip_id_map.clear();
         self.user_clipchain_id_map.clear();
@@ -491,6 +475,7 @@ impl YamlFrameReader {
         self.spatial_id_stack.clear();
         self.spatial_id_stack.push(SpatialId::root_scroll_node(pipeline_id));
 
+        let mut builder = DisplayListBuilder::new(pipeline_id);
         builder.begin();
         let mut info = CommonItemProperties {
             clip_rect: LayoutRect::zero(),
@@ -498,14 +483,8 @@ impl YamlFrameReader {
             spatial_id: SpatialId::new(0, PipelineId::dummy()),
             flags: PrimitiveFlags::default(),
         };
-        self.add_stacking_context_from_yaml(builder, wrench, yaml, IsRoot(true), &mut info);
-        let (pipeline, payload) = builder.end();
-        self.display_lists.push(DisplayList {
-            pipeline,
-            payload,
-            present,
-            send_transaction,
-        });
+        self.add_stacking_context_from_yaml(&mut builder, wrench, yaml, IsRoot(true), &mut info);
+        self.display_lists.push(builder.end());
 
         assert_eq!(self.spatial_id_stack.len(), 1);
     }
@@ -2160,7 +2139,7 @@ impl WrenchThing for YamlFrameReader {
         if should_build_yaml || wrench.should_rebuild_display_lists() {
             wrench.begin_frame();
             wrench.send_lists(
-                &mut self.frame_count,
+                self.frame_count,
                 self.display_lists.clone(),
                 &self.scroll_offsets,
             );
@@ -2168,6 +2147,7 @@ impl WrenchThing for YamlFrameReader {
             wrench.refresh();
         }
 
+        self.frame_count += 1;
         self.frame_count
     }
 
