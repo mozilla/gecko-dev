@@ -1922,7 +1922,6 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
       "chrome://global/skin/in-content/info-pages.css"_ns,
       "chrome://layoutdebug/content/layoutdebug.xhtml"_ns,
       "chrome://mozapps/content/downloads/unknownContentType.xhtml"_ns,
-      "chrome://mozapps/content/handling/permissionDialog.xhtml"_ns,
       "chrome://mozapps/content/preferences/changemp.xhtml"_ns,
       "chrome://mozapps/content/profile/createProfileWizard.xhtml"_ns,
       "chrome://mozapps/content/profile/profileDowngrade.xhtml"_ns,
