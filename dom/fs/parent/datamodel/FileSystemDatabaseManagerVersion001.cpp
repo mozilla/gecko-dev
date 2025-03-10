@@ -1168,9 +1168,10 @@ FileSystemDatabaseManagerVersion001::FindFilesWithoutDeprecatedLocksUnderEntry(
                      stmt.GetFileIdByColumn(/* Column */ 0u));
 
       // FileId equals EntryId for version 001
-      if (!mDataManager->IsLockedWithDeprecatedSharedLock(fileId.Value())) {
-        QM_TRY_INSPECT(const DebugOnly<bool>& isLocked,
-                       mDataManager->IsLocked(fileId.Value()));
+      if (!mDataManager->IsLockedWithDeprecatedSharedLock(fileId.Value(),
+                                                          fileId)) {
+        QM_TRY_UNWRAP(DebugOnly<bool> isLocked,
+                      mDataManager->IsLocked(fileId.Value()));
         MOZ_ASSERT(!isLocked);
         descendants.AppendElement(fileId);
 
@@ -1186,7 +1187,7 @@ FileSystemDatabaseManagerVersion001::FindFilesWithoutDeprecatedLocksUnderEntry(
   return std::make_pair(std::move(descendants), usage);
 }
 
-Result<nsTArray<EntryId>, QMResult>
+Result<nsTArray<std::pair<EntryId, FileId>>, QMResult>
 FileSystemDatabaseManagerVersion001::FindFileEntriesUnderDirectory(
     const EntryId& aEntryId) const {
   return Err(QMResult(NS_ERROR_NOT_IMPLEMENTED));
@@ -1319,6 +1320,16 @@ nsresult FileSystemDatabaseManagerVersion001::ClearDestinationIfNotLocked(
     if (exists) {
       QM_TRY_INSPECT(const EntryId& destId,
                      FindEntryId(aConnection, aNewDesignation, false));
+
+      MOZ_ASSERT(aDataManager);
+      QM_TRY_UNWRAP(const bool isLocked,
+                    IsAnyDescendantLocked(mConnection, *aDataManager, destId));
+
+      // XXX If there are any locked file entries, we exit here.
+      // There has been talk that the spec might allow unconditional
+      // overwrites in the future.
+      QM_TRY(OkIf(!isLocked),
+             Err(QMResult(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR)));
 
       QM_TRY_UNWRAP(DebugOnly<bool> isRemoved,
                     MOZ_TO_RESULT(RemoveDirectoryImpl(destId)));
