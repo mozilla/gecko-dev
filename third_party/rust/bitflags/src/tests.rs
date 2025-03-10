@@ -1,4 +1,5 @@
 mod all;
+mod bitflags_match;
 mod bits;
 mod complement;
 mod contains;
