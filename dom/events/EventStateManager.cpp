@@ -363,15 +363,6 @@ void OverOutElementsWrapper::ContentRemoved(nsIContent& aContent) {
                                    ? sMouseBoundaryLog
                                    : sPointerBoundaryLog;
 
-  if (!StaticPrefs::
-          dom_events_mouse_pointer_boundary_keep_enter_targets_after_over_target_removed()) {
-    MOZ_LOG(logModule, LogLevel::Info,
-            ("The last \"over\" event target (%p) is removed",
-             mDeepestEnterEventTarget.get()));
-    StoreOverEventTargetAndDeepestEnterEventTarget(nullptr);
-    return;
-  }
-
   if (mDispatchingOverEventTarget &&
       (mDeepestEnterEventTarget == mDispatchingOverEventTarget ||
        nsContentUtils::ContentIsFlattenedTreeDescendantOf(
@@ -522,12 +513,9 @@ void OverOutElementsWrapper::DidDispatchOverAndEnterEvent(
   // dispatching "mouseover" and "mouseenter" events and the target gets back
   // under the deepest enter event target, we should restore the "mouseover"
   // target.
-  if ((!StaticPrefs::
-           dom_events_mouse_pointer_boundary_keep_enter_targets_after_over_target_removed() &&
-       !mDeepestEnterEventTarget) ||
-      (!LastOverEventTargetIsOutEventTarget() && mDeepestEnterEventTarget &&
-       nsContentUtils::ContentIsFlattenedTreeDescendantOf(
-           aOriginalOverTargetInComposedDoc, mDeepestEnterEventTarget))) {
+  if (!LastOverEventTargetIsOutEventTarget() && mDeepestEnterEventTarget &&
+      nsContentUtils::ContentIsFlattenedTreeDescendantOf(
+          aOriginalOverTargetInComposedDoc, mDeepestEnterEventTarget)) {
     StoreOverEventTargetAndDeepestEnterEventTarget(
         aOriginalOverTargetInComposedDoc);
     LogModule* const logModule = mType == BoundaryEventType::Mouse
@@ -5590,43 +5578,6 @@ void EventStateManager::GenerateMouseEnterExit(WidgetMouseEvent* aMouseEvent) {
       break;
     }
     case ePointerUp: {
-      if (!StaticPrefs::
-              dom_events_mouse_pointer_boundary_keep_enter_targets_after_over_target_removed()) {
-        // In the legacy mode, we should do nothing if the event has not been
-        // dispatched yet (i.e., called by PreHandleEvent).
-        // On the other hand, if the event was dispatched (i.e., called by
-        // PostEventHandler), we need to dispatch "pointerout" and
-        // "pointerleave" events because the pointer will be removed
-        // (invalidated) by the "pointerup" operation.
-        if (!aMouseEvent->mFlags.mDispatchedAtLeastOnce) {
-          break;
-        }
-        MOZ_ASSERT(!aMouseEvent->InputSourceSupportsHover());
-        // Get the target content target (pointermove target == pointerover
-        // target)
-        nsCOMPtr<nsIContent> targetElement = GetEventTargetContent(aMouseEvent);
-        if (!targetElement) {
-          // We're always over the document root, even if we're only
-          // over dead space in a page (whose frame is not associated with
-          // any content) or in print preview dead space
-          targetElement = mDocument->GetRootElement();
-        }
-        if (targetElement) {
-          // XXX It's odd to override the `pointerout` event target with the
-          // content under the pointer or something because it may have never
-          // received `pointerover` event.  I think that this was required for
-          // digitizer which supports hover state (bug 985511).  However, this
-          // is now not called at ePointerUp if the device supports hover.
-          RefPtr<OverOutElementsWrapper> helper =
-              GetWrapperByEventID(aMouseEvent);
-          if (helper) {
-            helper->OverrideOverEventTarget(targetElement);
-          }
-          NotifyMouseOut(aMouseEvent, nullptr);
-        }
-        break;
-      }
-
       if (aMouseEvent->mFlags.mDispatchedAtLeastOnce) {
         // If we've already dispatched the pointerup event caused by
         // non-hoverable input device like touch, we need to synthesize

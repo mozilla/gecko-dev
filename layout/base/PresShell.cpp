@@ -8836,9 +8836,7 @@ nsresult PresShell::EventHandler::DispatchEvent(
     // new mouse/pointer boundary event feature.  However, they stop dispatching
     // "pointermove" in the same case.  Therefore, for now, we should do this
     // only for eMouseMove.
-    if (StaticPrefs::
-            dom_events_mouse_pointer_boundary_keep_enter_targets_after_over_target_removed() &&
-        eventContent && aEvent->mMessage == eMouseMove &&
+    if (eventContent && aEvent->mMessage == eMouseMove &&
         (!eventContent->IsInComposedDoc() ||
          eventContent->OwnerDoc() != mPresShell->GetDocument())) {
       const OverOutElementsWrapper* const boundaryEventTargets =
