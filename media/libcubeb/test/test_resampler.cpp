@@ -7,12 +7,21 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif // NOMINMAX
+#include "cubeb/cubeb.h"
+#include "cubeb_audio_dump.h"
+#include "cubeb_log.h"
+#include "cubeb_resampler.h"
+// #define ENABLE_NORMAL_LOG
+// #define ENABLE_VERBOSE_LOG
 #include "common.h"
 #include "cubeb_resampler_internal.h"
 #include "gtest/gtest.h"
 #include <algorithm>
+#include <cmath>
 #include <iostream>
+#include <queue>
 #include <stdio.h>
+#include <thread>
 
 /* Windows cmath USE_MATH_DEFINE thing... */
 const float PI = 3.14159265359f;
@@ -1160,5 +1169,388 @@ TEST(cubeb, individual_methods)
   ASSERT_EQ(frames_needed2, 0u);
 }
 
+struct sine_wave_state {
+  float frequency;
+  int sample_rate;
+  size_t count = 0;
+  sine_wave_state(float freq, int rate) : frequency(freq), sample_rate(rate) {}
+};
+
+long
+data_cb(cubeb_stream * stream, void * user_ptr, void const * input_buffer,
+        void * output_buffer, long nframes)
+{
+  sine_wave_state * state = static_cast<sine_wave_state *>(user_ptr);
+  float * out = static_cast<float *>(output_buffer);
+  double phase_increment = 2.0f * M_PI * state->frequency / state->sample_rate;
+
+  for (int i = 0; i < nframes; i++) {
+    float sample = sin(phase_increment * state->count);
+    state->count++;
+    out[i] = sample * 0.8;
+  }
+  return nframes;
+}
+
+// This implements 4.6.2 from "Standard for Digitizing Waveform Recorders"
+// (in particular Annex A), then returns the estimated amplitude, phase, and the
+// sum of squared error relative to a sine wave sampled at `sample_rate` and of
+// frequency `frequency`. This is also described in "Numerical methods for
+// engineers" chapter 19.1, and explained at
+// https://www.youtube.com/watch?v=afQszl_OwKo and videos of the same series.
+// In practice here we're sending a perfect 1khz sine wave into a good
+// resampler, and despite the resampling ratio being quite extreme sometimes,
+// we're expecting a very good fit.
+float
+fit_sine(const std::vector<float> & signal, float sample_rate, float frequency,
+         float & out_amplitude, float & out_phase)
+{
+  // The formulation below is exact for samples spanning an integer number of
+  // periods. It can be important for `signal` to be trimmed to an integer
+  // number of periods if it doesn't contain a lot of periods.
+  double phase_incr = 2.0 * M_PI * frequency / sample_rate;
+
+  double sum_cos = 0.0;
+  double sum_sin = 0.0;
+  for (size_t i = 0; i < signal.size(); ++i) {
+    double c = std::cos(phase_incr * static_cast<double>(i));
+    double s = std::sin(phase_incr * static_cast<double>(i));
+    sum_cos += signal[i] * c;
+    sum_sin += signal[i] * s;
+  }
+
+  double amplitude = 2.0f * std::sqrt(sum_cos * sum_cos + sum_sin * sum_sin) /
+                     static_cast<double>(signal.size());
+  double phi = std::atan2(sum_cos, sum_sin);
+
+  out_amplitude = amplitude;
+  out_phase = phi;
+
+  // Compute sum of squared errors relative to the fitted sine wave
+  double sse = 0.0;
+  for (size_t i = 0; i < signal.size(); ++i) {
+    // Use known amplitude here instead instead of the from the fitted function.
+    double fit = 0.8 * std::sin(phase_incr * i + phi);
+    double diff = signal[i] - fit;
+    sse += diff * diff;
+  }
+
+  return sse;
+}
+
+// Finds the offset of the start of an input_freq sine wave sampled at
+// target_rate in data. Remove the leading silence from data.
+size_t
+find_sine_start(const std::vector<float> & data, float input_freq,
+                float target_rate)
+{
+  const size_t POINTS = 10;
+  size_t skipped = 0;
+
+  while (skipped + POINTS < data.size()) {
+    double phase = 0;
+    double phase_increment = 2.0f * M_PI * input_freq / target_rate;
+    bool fits_sine = true;
+
+    for (size_t i = 0; i < POINTS; i++) {
+      float expected = sin(phase) * 0.8;
+      float actual = data[skipped + i];
+      if (fabs(expected - actual) > 0.1) {
+        // doesn't fit a sine, skip to next start point
+        fits_sine = false;
+        break;
+      }
+      phase += phase_increment;
+      if (phase > 2.0f * M_PI) {
+        phase -= 2.0f * M_PI;
+      }
+    }
+
+    if (!fits_sine) {
+      skipped++;
+      continue;
+    }
+
+    // Found the start of the sine wave
+    size_t sine_start = skipped;
+    return sine_start;
+  }
+
+  return skipped;
+}
+
+// This class tracks the monotonicity of a certain value, and reports if it
+// increases too much monotonically.
+struct monotonic_state {
+  explicit monotonic_state(const char * what, int source_rate, int target_rate,
+                           int block_size)
+      : what(what), source_rate(source_rate), target_rate(target_rate),
+        block_size(block_size)
+  {
+  }
+  ~monotonic_state()
+  {
+    float ratio =
+        static_cast<float>(source_rate) / static_cast<float>(target_rate);
+    // Only report if there has been a meaningful increase in buffering. Do
+    // not warn if the buffering was constant and small.
+    if (monotonic && max_value && max_value != max_step) {
+      printf("%s is monotonically increasing, max: %zu, max_step: %zu, "
+             "in: %dHz, out: "
+             "%dHz, block_size: %d, ratio: %lf\n",
+             what, max_value, max_step, source_rate, target_rate, block_size,
+             ratio);
+    }
+    // Arbitrary limit: if more than this number of frames has been buffered,
+    // print a message.
+    constexpr int BUFFER_SIZE_THRESHOLD = 20;
+    if (max_value > BUFFER_SIZE_THRESHOLD) {
+      printf("%s, unexpected large max buffering value, max: %zu, max_step: "
+             "%zu, in: %dHz, out: %dHz, block_size: %d, ratio: %lf\n",
+             what, max_value, max_step, source_rate, target_rate, block_size,
+             ratio);
+    }
+  }
+  void set_new_value(size_t new_value)
+  {
+    if (new_value < value) {
+      monotonic = false;
+    } else {
+      max_step = std::max(max_step, new_value - value);
+    }
+    value = new_value;
+    max_value = std::max(value, max_value);
+  }
+  // Textual representation of this measurement
+  const char * what;
+  // Resampler parameters for this test case
+  int source_rate = 0;
+  int target_rate = 0;
+  int block_size = 0;
+  // Current buffering value
+  size_t value = 0;
+  // Max buffering value increment
+  size_t max_step = 0;
+  // Max buffering value observerd
+  size_t max_value = 0;
+  // Whether the value has only increased or not
+  bool monotonic = true;
+};
+
+// Setting this to 1 dumps a bunch of wave file to the local directory for
+// manual inspection of the resampled output
+constexpr int DUMP_OUTPUT = 0;
+
+// Source and target sample-rates in Hz, typical values.
+const int rates[] = {16000, 32000, 44100, 48000, 96000, 192000, 384000};
+// Block size in frames, except the first element, that is in millisecond
+// Power of two are typical on Windows WASAPI IAudioClient3, macOS,
+// Linux Pipewire and Jack. 10ms is typical on Windows IAudioClient and
+// IAudioClient2. 96, 192 are not uncommon on some Android devices.
+constexpr int WASAPI_MS_BLOCK = 10;
+const int block_sizes[] = {WASAPI_MS_BLOCK, 96, 128, 192, 256, 512, 1024, 2048};
+// Enough iterations to catch rounding/drift issues, but not too many to avoid
+// having a test that is too long to run.
+constexpr int ITERATION_COUNT = 1000;
+// 1 kHz input sine wave
+const float input_freq = 1000.0f;
+
+struct ThreadPool {
+  std::vector<std::thread> workers;
+  std::queue<std::function<void()>> tasks;
+  std::mutex queue_mutex;
+  std::condition_variable condition;
+  bool stop;
+
+  ThreadPool(size_t threads) : stop(false)
+  {
+    for (size_t i = 0; i < threads; ++i) {
+      workers.emplace_back([this] {
+        while (true) {
+          std::function<void()> task;
+          {
+            std::unique_lock<std::mutex> lock(queue_mutex);
+            condition.wait(lock, [this] { return stop || !tasks.empty(); });
+            if (stop && tasks.empty())
+              return;
+            task = std::move(tasks.front());
+            tasks.pop();
+          }
+          task();
+        }
+      });
+    }
+  }
+
+  void enqueue(std::function<void()> task)
+  {
+    {
+      std::unique_lock<std::mutex> lock(queue_mutex);
+      tasks.push(std::move(task));
+    }
+    condition.notify_one();
+  }
+
+  ~ThreadPool()
+  {
+    {
+      std::unique_lock<std::mutex> lock(queue_mutex);
+      stop = true;
+    }
+    condition.notify_all();
+    for (std::thread & worker : workers) {
+      worker.join();
+    }
+  }
+};
+
+static void
+run_test(int source_rate, int target_rate, int block_size)
+{
+  int effective_block_size = block_size;
+  // special case: Windows/WASAPI works in blocks of 10ms regardless of
+  // the rate.
+  if (effective_block_size == WASAPI_MS_BLOCK) {
+    effective_block_size = target_rate / 100; // 10ms
+  }
+  sine_wave_state state(input_freq, source_rate);
+  cubeb_stream_params out_params = {};
+  out_params.channels = 1;
+  out_params.rate = target_rate;
+  out_params.format = CUBEB_SAMPLE_FLOAT32NE;
+
+  cubeb_audio_dump_session_t session = nullptr;
+  cubeb_audio_dump_stream_t dump_stream = nullptr;
+  if constexpr (DUMP_OUTPUT) {
+    cubeb_audio_dump_init(&session);
+    char buf[256];
+    snprintf(buf, 256, "test-%dHz-to-%dhz-%d-block.wav", source_rate,
+             target_rate, effective_block_size);
+    cubeb_audio_dump_stream_init(session, &dump_stream, out_params, buf);
+    cubeb_audio_dump_start(session);
+  }
+  cubeb_resampler * resampler = cubeb_resampler_create(
+      nullptr, nullptr, &out_params, source_rate, data_cb, &state,
+      CUBEB_RESAMPLER_QUALITY_DEFAULT, CUBEB_RESAMPLER_RECLOCK_NONE);
+  ASSERT_NE(resampler, nullptr);
+
+  std::vector<float> data(effective_block_size * out_params.channels);
+  int i = ITERATION_COUNT;
+  // For now this only tests the output side (out_... measurements).
+  //  We could expect the resampler to be symmetrical, but we could
+  //  test both sides at once.
+  // - ..._in is the input buffer of the resampler, containing
+  // unresampled  frames
+  // - ..._out is the output buffer, containing resampled frames.
+  monotonic_state in_in_max("in_in", source_rate, target_rate,
+                            effective_block_size);
+  monotonic_state in_out_max("in_out", source_rate, target_rate,
+                             effective_block_size);
+  monotonic_state out_in_max("out_in", source_rate, target_rate,
+                             effective_block_size);
+  monotonic_state out_out_max("out_out", source_rate, target_rate,
+                              effective_block_size);
+
+  std::vector<float> resampled;
+  resampled.reserve(ITERATION_COUNT * effective_block_size *
+                    out_params.channels);
+  while (i--) {
+    int64_t got = cubeb_resampler_fill(resampler, nullptr, nullptr, data.data(),
+                                       effective_block_size);
+    ASSERT_EQ(got, effective_block_size);
+    cubeb_resampler_stats stats = cubeb_resampler_stats_get(resampler);
+
+    resampled.insert(resampled.end(), data.begin(), data.end());
+
+    in_in_max.set_new_value(stats.input_input_buffer_size);
+    in_out_max.set_new_value(stats.input_output_buffer_size);
+    out_in_max.set_new_value(stats.output_input_buffer_size);
+    out_out_max.set_new_value(stats.output_output_buffer_size);
+  }
+
+  cubeb_resampler_destroy(resampler);
+
+  // Example of an error, off by one every block or so, resulting in a
+  // silent sample. This is enough to make all the tests fail.
+  //
+  // for (uint32_t i = 0; i < resampled.size(); i++) {
+  //   if (!(i % (effective_block_size))) {
+  //     resampled[i] = 0.0;
+  //   }
+  // }
+
+  // This roughly finds the start of the sine wave and strips it from
+  // data.
+  size_t skipped = 0;
+  skipped = find_sine_start(resampled, input_freq, target_rate);
+
+  resampled.erase(resampled.begin(), resampled.begin() + skipped);
+
+  if constexpr (DUMP_OUTPUT) {
+    cubeb_audio_dump_write(dump_stream, resampled.data(), resampled.size());
+  }
+
+  float amplitude = 0;
+  float phase = 0;
+
+  // Fit our resampled sine wave, get an MSE value
+  double sse = fit_sine(resampled, target_rate, input_freq, amplitude, phase);
+  double mse = sse / resampled.size();
+
+  // Code to print JSON to plot externally
+  // printf("\t[%d,%d,%d,%.10e,%lf,%lf],\n", source_rate, target_rate,
+  //        effective_block_size, mse, amplitude, phase);
+
+  // Value found after running the tests on Linux x64
+  ASSERT_LT(mse, 3.22e-07);
+
+  if constexpr (DUMP_OUTPUT) {
+    cubeb_audio_dump_stop(session);
+    cubeb_audio_dump_stream_shutdown(session, dump_stream);
+    cubeb_audio_dump_shutdown(session);
+  }
+}
+
+// This tests checks three things:
+// - Whenever resampling from a source rate to a target rate with a certain
+//  block size, the correct number of frames is provided back from the
+//  resampler, to the backend.
+// - While resampling, internal buffers are kept under control and aren't
+// growing unbounded.
+// - The output signal is a 1khz sine (as is the input)
+TEST(cubeb, resampler_typical_uses)
+{
+  cubeb * ctx;
+  common_init(&ctx, "Cubeb resampler test");
+
+  size_t concurrency = std::max(1u, std::thread::hardware_concurrency());
+  std::condition_variable cv;
+  std::mutex mutex;
+  size_t task_count = 0;
+  ThreadPool pool(concurrency);
+
+  for (int source_rate : rates) {
+    for (int target_rate : rates) {
+      for (int block_size : block_sizes) {
+        {
+          std::unique_lock<std::mutex> lock(mutex);
+          ++task_count;
+        }
+        pool.enqueue([&, source_rate, target_rate, block_size] {
+          run_test(source_rate, target_rate, block_size);
+          {
+            std::unique_lock<std::mutex> lock(mutex);
+            --task_count;
+          }
+          cv.notify_one();
+        });
+      }
+    }
+  }
+
+  std::unique_lock<std::mutex> lock(mutex);
+  cv.wait(lock, [&] { return task_count == 0; });
+  cubeb_destroy(ctx);
+}
 #undef NOMINMAX
 #undef DUMP_ARRAYS
