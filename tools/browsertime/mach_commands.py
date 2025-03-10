@@ -62,6 +62,12 @@ if py3_minor > 7:
     NUMPY_VERSION = "1.23.5"
     PILLOW_VERSION = "9.2.0"
     OPENCV_VERSION = "4.6.0.66"
+if py3_minor > 11:
+    NUMPY_VERSION = "2.2.3"
+    PILLOW_VERSION = "11.1.0"
+    SCIPY_VERSION = "1.15.2"
+    PYSSIM_VERSION = "0.7"
+    OPENCV_VERSION = "4.11.0.86"
 
 MIN_NODE_VERSION = "16.0.0"
 
