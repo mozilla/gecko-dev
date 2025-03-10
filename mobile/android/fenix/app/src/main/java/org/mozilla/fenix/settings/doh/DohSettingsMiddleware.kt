@@ -2,22 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+package org.mozilla.fenix.settings.doh
+
 import androidx.navigation.NavController
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.HomeActivity
-import org.mozilla.fenix.settings.doh.BackClicked
-import org.mozilla.fenix.settings.doh.DohSettingsAction
-import org.mozilla.fenix.settings.doh.DohSettingsDestinations
-import org.mozilla.fenix.settings.doh.DohSettingsProvider
-import org.mozilla.fenix.settings.doh.DohSettingsRootAction
-import org.mozilla.fenix.settings.doh.DohSettingsState
-import org.mozilla.fenix.settings.doh.DohUrlValidator
-import org.mozilla.fenix.settings.doh.ExceptionsAction
-import org.mozilla.fenix.settings.doh.Init
-import org.mozilla.fenix.settings.doh.LearnMoreClicked
-import org.mozilla.fenix.settings.doh.UrlValidationException
 
 internal class DohSettingsMiddleware(
     private val getNavController: () -> NavController,

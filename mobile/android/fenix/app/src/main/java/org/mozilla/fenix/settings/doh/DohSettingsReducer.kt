@@ -2,12 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import org.mozilla.fenix.settings.doh.CustomProviderErrorState
-import org.mozilla.fenix.settings.doh.DohSettingsAction
-import org.mozilla.fenix.settings.doh.DohSettingsRootAction
-import org.mozilla.fenix.settings.doh.DohSettingsState
-import org.mozilla.fenix.settings.doh.ExceptionsAction
-import org.mozilla.fenix.settings.doh.ProtectionLevel
+package org.mozilla.fenix.settings.doh
 
 internal fun dohSettingsReducer(state: DohSettingsState, action: DohSettingsAction) =
     when (action) {

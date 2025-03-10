@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.settings.doh
 
-import DohSettingsMiddleware
 import androidx.navigation.NavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.support.test.libstate.ext.waitUntilIdle

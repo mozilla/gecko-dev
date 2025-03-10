@@ -5,7 +5,6 @@
 package org.mozilla.fenix.settings.doh
 
 import androidx.navigation.NavController
-import dohSettingsReducer
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.Reducer
 import mozilla.components.lib.state.UiStore
