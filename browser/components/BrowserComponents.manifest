@@ -27,6 +27,7 @@ category browser-window-domcontentloaded resource:///modules/CustomizableUI.sys.
 
 category browser-window-delayed-startup resource:///modules/ContentAnalysis.sys.mjs ContentAnalysis.initialize
 category browser-window-delayed-startup resource:///modules/HomePage.sys.mjs HomePage.delayedStartup
+category browser-window-delayed-startup moz-src:///browser/components/genai/LinkPreview.sys.mjs LinkPreview.init
 category browser-window-delayed-startup resource:///modules/ReportBrokenSite.sys.mjs ReportBrokenSite.init
 category browser-window-delayed-startup moz-src:///browser/components/search/SearchUIUtils.sys.mjs SearchUIUtils.init
 

@@ -2359,6 +2359,12 @@ var XULBrowserWindow = {
    *   passed on to LinkTargetDisplay.
    */
   setOverLink(url, options = undefined) {
+    window.dispatchEvent(
+      new CustomEvent("OverLink", {
+        detail: { url },
+      })
+    );
+
     if (url) {
       url = Services.textToSubURI.unEscapeURIForUI(url);
 
