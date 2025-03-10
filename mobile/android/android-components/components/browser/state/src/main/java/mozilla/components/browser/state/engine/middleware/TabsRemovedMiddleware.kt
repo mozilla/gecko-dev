@@ -7,6 +7,8 @@ package mozilla.components.browser.state.engine.middleware
 import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.CustomTabListAction
 import mozilla.components.browser.state.action.EngineAction
@@ -24,6 +26,29 @@ import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 
+@VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+internal class SessionsPendingDeletion {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    var sessions: MutableMap<String, EngineSession> = mutableMapOf()
+    private var mutex = Mutex()
+
+    suspend fun add(id: String, session: EngineSession) = mutex.withLock {
+        sessions[id] = session
+    }
+
+    suspend fun remove(id: String) = mutex.withLock {
+        sessions.remove(id)
+    }
+
+    suspend fun removeAll(callback: (EngineSession) -> Unit) = mutex.withLock {
+        val keys = sessions.keys.toList()
+        for (key in keys) {
+            sessions[key]?.also(callback)
+            sessions.remove(key)
+        }
+    }
+}
+
 /**
  * [Middleware] responsible for closing and unlinking [EngineSession] instances whenever tabs get
  * removed.
@@ -32,7 +57,7 @@ internal class TabsRemovedMiddleware(
     private val scope: CoroutineScope,
 ) : Middleware<BrowserState, BrowserAction> {
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    var sessionsPendingDeletion: MutableMap<String, EngineSession> = mutableMapOf()
+    val sessionsPendingDeletion = SessionsPendingDeletion()
 
     @Suppress("ComplexMethod")
     override fun invoke(
@@ -97,22 +122,21 @@ internal class TabsRemovedMiddleware(
             it.register(object : EngineSession.Observer {
                 override fun onStateUpdated(state: EngineSessionState) {
                     context.store.dispatch(UndoAction.UpdateEngineStateForRecoverableTab(sessionState.id, state))
-                    sessionsPendingDeletion.remove(sessionState.id)
+                    scope.launch {
+                        sessionsPendingDeletion.remove(sessionState.id)
+                    }
                     it.close()
                 }
             })
-
-            sessionsPendingDeletion[sessionState.id] = it
+            scope.launch {
+                sessionsPendingDeletion.add(sessionState.id, it)
+            }
         }
     }
 
-    private fun clearSessionsPendingDeletion() {
-        sessionsPendingDeletion.keys.toList().forEach { id ->
-            scope.launch {
-                sessionsPendingDeletion[id]?.close()
-            }
-
-            sessionsPendingDeletion.remove(id)
+    private fun clearSessionsPendingDeletion() = scope.launch {
+        sessionsPendingDeletion.removeAll {
+            it.close()
         }
     }
 }
