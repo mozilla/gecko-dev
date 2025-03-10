@@ -9,6 +9,8 @@
 
 #include <cstdlib>
 
+#include "jsmath.h"
+
 #include "gc/Allocator.h"
 #include "gc/Memory.h"
 #include "gc/Nursery.h"
@@ -649,15 +651,16 @@ END_TEST(testBufferAllocator_predicatesOnOtherAllocs)
 BEGIN_TEST(testBufferAllocator_stress) {
   AutoLeaveZeal leaveZeal(cx);
 
+  unsigned seed = unsigned(GenerateRandomSeed());
+  fprintf(stderr, "Random seed: 0x%x\n", seed);
+  std::srand(seed);
+
   Rooted<PlainObject*> holder(
       cx, NewPlainObjectWithAllocKind(cx, gc::AllocKind::OBJECT2));
   CHECK(holder);
 
   JS::NonIncrementalGC(cx, JS::GCOptions::Shrink, JS::GCReason::API);
   Zone* zone = cx->zone();
-
-  fprintf(stderr, "heap == %zu, malloc == %zu\n", zone->gcHeapSize.bytes(),
-          zone->mallocHeapSize.bytes());
 
   size_t initialGCHeapSize = zone->gcHeapSize.bytes();
   size_t initialMallocHeapSize = zone->mallocHeapSize.bytes();
@@ -714,9 +717,6 @@ BEGIN_TEST(testBufferAllocator_stress) {
 
   JS::PrepareForFullGC(cx);
   JS::NonIncrementalGC(cx, JS::GCOptions::Shrink, JS::GCReason::API);
-
-  fprintf(stderr, "heap == %zu, malloc == %zu\n", zone->gcHeapSize.bytes(),
-          zone->mallocHeapSize.bytes());
 
   CHECK(zone->gcHeapSize.bytes() == initialGCHeapSize);
   CHECK(zone->mallocHeapSize.bytes() == initialMallocHeapSize);
