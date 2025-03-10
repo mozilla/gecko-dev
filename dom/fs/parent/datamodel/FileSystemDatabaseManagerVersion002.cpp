@@ -599,7 +599,7 @@ Result<EntryId, QMResult> FileSystemDatabaseManagerVersion002::GetEntryId(
 
 Result<FileId, QMResult> FileSystemDatabaseManagerVersion002::EnsureFileId(
     const EntryId& aEntryId) {
-  QM_TRY_UNWRAP(bool exists, DoesFileExist(mConnection, aEntryId));
+  QM_TRY_UNWRAP(const bool exists, DoesFileExist(aEntryId));
   if (!exists) {
     return Err(QMResult(NS_ERROR_DOM_NOT_FOUND_ERR));
   }
@@ -636,7 +636,7 @@ Result<FileId, QMResult> FileSystemDatabaseManagerVersion002::EnsureFileId(
 Result<FileId, QMResult>
 FileSystemDatabaseManagerVersion002::EnsureTemporaryFileId(
     const EntryId& aEntryId) {
-  QM_TRY_UNWRAP(bool exists, DoesFileExist(mConnection, aEntryId));
+  QM_TRY_UNWRAP(const bool exists, DoesFileExist(aEntryId));
   if (!exists) {
     return Err(QMResult(NS_ERROR_DOM_NOT_FOUND_ERR));
   }
