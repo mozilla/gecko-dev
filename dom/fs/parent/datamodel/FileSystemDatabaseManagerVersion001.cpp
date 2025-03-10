@@ -1172,6 +1172,12 @@ FileSystemDatabaseManagerVersion001::FindFilesUnderEntry(
   return descendants;
 }
 
+Result<nsTArray<EntryId>, QMResult>
+FileSystemDatabaseManagerVersion001::FindFileEntriesUnderDirectory(
+    const EntryId& aEntryId) const {
+  return Err(QMResult(NS_ERROR_NOT_IMPLEMENTED));
+}
+
 nsresult FileSystemDatabaseManagerVersion001::SetUsageTracking(
     const FileId& aFileId, bool aTracked) {
   auto onMissingFile = [this, &aFileId](const auto& aRv) {

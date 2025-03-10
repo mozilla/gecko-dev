@@ -832,4 +832,37 @@ FileSystemDatabaseManagerVersion002::FindFilesUnderEntry(
   return descendants;
 }
 
+Result<nsTArray<EntryId>, QMResult>
+FileSystemDatabaseManagerVersion002::FindFileEntriesUnderDirectory(
+    const EntryId& aEntryId) const {
+  const nsLiteralCString descendantsQuery =
+      "WITH RECURSIVE traceChildren(handle, parent) AS ( "
+      "SELECT handle, parent FROM Entries WHERE handle = :handle "
+      "UNION "
+      "SELECT Entries.handle, Entries.parent FROM traceChildren, Entries "
+      "WHERE traceChildren.handle = Entries.parent ) "
+      "SELECT handle FROM traceChildren INNER JOIN Files USING(handle) "
+      ";"_ns;
+
+  nsTArray<EntryId> descendants;
+  {
+    QM_TRY_UNWRAP(ResultStatement stmt,
+                  ResultStatement::Create(mConnection, descendantsQuery));
+    QM_TRY(QM_TO_RESULT(stmt.BindEntryIdByName("handle"_ns, aEntryId)));
+
+    while (true) {
+      QM_TRY_INSPECT(const bool& moreResults, stmt.ExecuteStep());
+      if (!moreResults) {
+        break;
+      }
+
+      QM_TRY_INSPECT(const EntryId& entryId,
+                     stmt.GetEntryIdByColumn(/* Column */ 0u));
+      descendants.AppendElement(entryId);
+    }
+  }
+
+  return descendants;
+}
+
 }  // namespace mozilla::dom::fs::data
