@@ -3238,11 +3238,6 @@ criteria = "safe-to-deploy"
 version = "0.1.3"
 notes = "This crate is written and maintained by Mozilla employees."
 
-[[audits.memtest]]
-who = "Brian Tsoi <brian.s.tsoi@gmail.com>"
-criteria = "safe-to-deploy"
-delta = "0.1.3 -> 0.3.0"
-
 [[audits.metal]]
 who = "Jim Blandy <jimb@red-bean.com>"
 criteria = "safe-to-deploy"
