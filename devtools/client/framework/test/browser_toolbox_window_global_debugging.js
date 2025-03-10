@@ -1,8 +1,10 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const TEST_URL =
-  "data:text/html,<script>window.someInlineSource = () => {}</script>";
+// Note: adding Date.now to the function name to generate a unique test URL to
+// allow running the test with --repeat / --verify.
+const TEST_URL = `data:text/html,<script>window.someInlineSource${Date.now()} = () => {}</script>`;
+
 add_task(async function () {
   // Ensure debugging the content processes
   await pushPref("devtools.browsertoolbox.scope", "everything");
