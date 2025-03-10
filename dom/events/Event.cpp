@@ -620,7 +620,7 @@ WidgetEvent* Event::WidgetEventPtr() { return mEvent; }
 // static
 Maybe<CSSDoublePoint> Event::GetScreenCoords(
     nsPresContext* aPresContext, WidgetEvent* aEvent,
-    const LayoutDeviceDoublePoint& aWidgetRelativePoint) {
+    const LayoutDeviceDoublePoint& aWidgetOrScreenRelativePoint) {
   if (PointerLockManager::IsLocked()) {
     return Some(EventStateManager::sLastScreenPoint);
   }
@@ -633,7 +633,10 @@ Maybe<CSSDoublePoint> Event::GetScreenCoords(
   // seem incorrect, but it is needed to maintain legacy functionality.
   const WidgetGUIEvent* guiEvent = aEvent->AsGUIEvent();
   if (MOZ_UNLIKELY(!aPresContext) || !(guiEvent && guiEvent->mWidget)) {
-    return Some(CSSDoublePoint(aWidgetRelativePoint.x, aWidgetRelativePoint.y));
+    // XXX aPresContext is usually available.  Then, we can know the latest
+    // scale of the document.  Should we apply it?
+    return Some(CSSDoublePoint(aWidgetOrScreenRelativePoint.x,
+                               aWidgetOrScreenRelativePoint.y));
   }
 
   // (Potentially) transform the point from the coordinate space of an
@@ -643,7 +646,7 @@ Maybe<CSSDoublePoint> Event::GetScreenCoords(
   // transform, and then round the result back to an integer point.
   const LayoutDeviceIntPoint topLevelPoint = LayoutDeviceIntPoint::Round(
       guiEvent->mWidget->WidgetToTopLevelWidgetTransform().TransformPoint(
-          aWidgetRelativePoint));
+          aWidgetOrScreenRelativePoint));
   const CSSPoint pt = CSSPixel::FromAppUnits(
       LayoutDevicePixel::ToAppUnits(
           topLevelPoint, aPresContext->DeviceContext()->AppUnitsPerDevPixel()) +
@@ -656,10 +659,10 @@ Maybe<CSSDoublePoint> Event::GetScreenCoords(
 // static
 CSSDoublePoint Event::GetPageCoords(
     nsPresContext* aPresContext, WidgetEvent* aEvent,
-    const LayoutDeviceDoublePoint& aWidgetRelativePoint,
+    const LayoutDeviceDoublePoint& aWidgetOrScreenRelativePoint,
     const CSSDoublePoint& aDefaultClientPoint) {
   const CSSDoublePoint clientCoords = Event::GetClientCoords(
-      aPresContext, aEvent, aWidgetRelativePoint, aDefaultClientPoint);
+      aPresContext, aEvent, aWidgetOrScreenRelativePoint, aDefaultClientPoint);
 
   // If there is some scrolling, add scroll info to client point.
   const CSSPoint scrollPoint = CSSPixel::FromAppUnits([&]() {
@@ -677,7 +680,7 @@ CSSDoublePoint Event::GetPageCoords(
 // static
 CSSDoublePoint Event::GetClientCoords(
     nsPresContext* aPresContext, WidgetEvent* aEvent,
-    const LayoutDeviceDoublePoint& aWidgetRelativePoint,
+    const LayoutDeviceDoublePoint& aWidgetOrScreenRelativePoint,
     const CSSDoublePoint& aDefaultClientPoint) {
   if (PointerLockManager::IsLocked()) {
     return EventStateManager::sLastClientPoint;
@@ -701,7 +704,7 @@ CSSDoublePoint Event::GetClientCoords(
   }
   const CSSPoint pt =
       CSSPixel::FromAppUnits(nsLayoutUtils::GetEventCoordinatesRelativeTo(
-          aEvent, LayoutDeviceIntPoint::Round(aWidgetRelativePoint),
+          aEvent, LayoutDeviceIntPoint::Round(aWidgetOrScreenRelativePoint),
           RelativeTo{rootFrame}));
   return CSSDoublePoint(pt.x, pt.y);
 }
@@ -733,10 +736,10 @@ nsIFrame* Event::GetPrimaryFrameOfEventTarget(const nsPresContext& aPresContext,
 // static
 CSSDoublePoint Event::GetOffsetCoords(
     nsPresContext* aPresContext, WidgetEvent* aEvent,
-    const LayoutDeviceDoublePoint& aWidgetRelativePoint,
+    const LayoutDeviceDoublePoint& aWidgetOrScreenRelativePoint,
     const CSSDoublePoint& aDefaultClientPoint) {
   if (!aEvent->mTarget) {
-    return GetPageCoords(aPresContext, aEvent, aWidgetRelativePoint,
+    return GetPageCoords(aPresContext, aEvent, aWidgetOrScreenRelativePoint,
                          aDefaultClientPoint);
   }
   if (!nsIContent::FromEventTarget(aEvent->mTarget) || !aPresContext) {
@@ -749,7 +752,7 @@ CSSDoublePoint Event::GetOffsetCoords(
   }
   MOZ_ASSERT(aPresContext->PresShell()->GetRootFrame());
   const CSSDoublePoint clientCoords = GetClientCoords(
-      aPresContext, aEvent, aWidgetRelativePoint, aDefaultClientPoint);
+      aPresContext, aEvent, aWidgetOrScreenRelativePoint, aDefaultClientPoint);
   nsPoint ptInAppUnits = CSSPixel::ToAppUnits(CSSPoint(
       static_cast<float>(clientCoords.x), static_cast<float>(clientCoords.y)));
   if (nsLayoutUtils::TransformPoint(
