@@ -710,6 +710,12 @@
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">ھازىر ئەمەس</string>
   <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">تېز ئىزدەشنى باشلايدۇ</string>
+  <!--
     Search Widget
 
     Content description for searching with a widget. The first parameter is the name of the application.
@@ -886,6 +892,8 @@
   <string name="preferences_search_browsing_history">زىيارەت تارىخىنى ئىزدە</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">خەتكۈچ ئىزدەيدۇ</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">تېزلەتمىنى كۆرسىتىدۇ</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">قەدەمداش بەتكۈچنى ئىزدەيدۇ</string>
   <!-- Preference for account settings -->

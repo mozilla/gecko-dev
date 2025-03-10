@@ -5,6 +5,11 @@
     The %1$s will be replaced by the number of opened tabs
   -->
   <string name="mozac_tab_counter_open_tab_tray">Tab Terbuka: %1$s. Ketuk untuk beralih tab.</string>
+  <!--
+    Message announced to the user when tab tray is selected used by a11y services
+    The %1$s will be replaced by the number of opened tabs
+  -->
+  <string name="mozac_open_tab_counter_tab_tray">Tab Non-pribadi Terbuka: %1$s. Ketuk untuk beralih tab.</string>
   <!-- Browser menu button that creates a new tab -->
   <string name="mozac_browser_menu_new_tab">Tab baru</string>
   <!-- Browser menu button that creates a private tab -->

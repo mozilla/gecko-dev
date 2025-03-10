@@ -709,6 +709,12 @@
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Ոչ հիմա</string>
   <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Սկսեք արագ որոնում</string>
+  <!--
     Search Widget
 
     Content description for searching with a widget. The first parameter is the name of the application.
@@ -877,12 +883,16 @@
   <string name="preferences_show_search_suggestions_in_private">Ցուցադրել գաղտնի աշխատաշրջաններում</string>
   <!-- Preference title for switch preference to show trending search suggestions -->
   <string name="preferences_show_trending_search_suggestions">Ցուցադրել թրենդային առաջարկները</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Ցուցադրել վերջին որոնումները</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Ցուցադրել սեղմատախտակի առաջարկները</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
   <string name="preferences_search_browsing_history">Որոնել դիտարկումների պատմությունում</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">Որոնել էջանիշերում</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">Ցուցադրել դյուրացումները</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">Որոնել համաժամեցված ներդիրներում</string>
   <!-- Preference for account settings -->
@@ -2594,6 +2604,8 @@
   <string name="quick_settings_sheet_secure_connection_2">Կապակցումն անվտանգ է</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">Կապակցումն անվտանգ չէ</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">Այս էջը պահվում է ձեր սարքում:</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">Մաքրել թխուկները և կայքի տվյալները</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->
@@ -2760,6 +2772,8 @@
   <string name="google_search_engine_suggestion_header">Google-ի որոնում</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">%s որոնում</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">Վերջին որոնումները</string>
   <!--
     Default browser experiment
 

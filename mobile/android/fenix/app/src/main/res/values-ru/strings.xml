@@ -1363,7 +1363,7 @@
   <!-- Description for studies -->
   <string name="studies_description_3">Опробуйте функции и идеи перед тем, как они станут доступны для всех и каждого.</string>
   <!-- Title of the Studies data preference -->
-  <string name="studies_title">Установите и запускайте исследования</string>
+  <string name="studies_title">Устанавливать и запускать исследования</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Узнать больше</string>
   <!-- Dialog message shown after removing a study -->
