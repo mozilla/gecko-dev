@@ -24,6 +24,10 @@ bitflags! {
 bitflags! {
     /// `SPLICE_F_*` constants for use with [`splice`], [`vmsplice`], and
     /// [`tee`].
+    ///
+    /// [`splice`]: crate::pipe::splice
+    /// [`vmsplice`]: crate::pipe::splice
+    /// [`tee`]: crate::pipe::tee
     #[repr(transparent)]
     #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
     pub struct SpliceFlags: c::c_uint {

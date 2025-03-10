@@ -15,7 +15,7 @@ use {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/isatty.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/isatty.html
 /// [Linux]: https://man7.org/linux/man-pages/man3/isatty.3.html
 #[inline]
 pub fn isatty<Fd: AsFd>(fd: Fd) -> bool {
@@ -30,11 +30,11 @@ pub fn isatty<Fd: AsFd>(fd: Fd) -> bool {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/ttyname.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/ttyname.html
 /// [Linux]: https://man7.org/linux/man-pages/man3/ttyname.3.html
 #[cfg(not(any(target_os = "fuchsia", target_os = "wasi")))]
 #[cfg(all(feature = "alloc", feature = "procfs"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "procfs")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "procfs")))]
 #[doc(alias = "ttyname_r")]
 #[inline]
 pub fn ttyname<Fd: AsFd, B: Into<Vec<u8>>>(dirfd: Fd, reuse: B) -> io::Result<CString> {
@@ -64,16 +64,16 @@ fn _ttyname(dirfd: BorrowedFd<'_>, mut buffer: Vec<u8>) -> io::Result<CString> {
 
                 // SAFETY:
                 // - “ttyname_r stores this pathname in the buffer buf”
-                // - [POSIX definition 3.271: Pathname]: “A string that is used
-                //   to identify a file.”
+                // - [POSIX definition 3.271: Pathname]: “A string that is
+                //   used to identify a file.”
                 // - [POSIX definition 3.375: String]: “A contiguous sequence
                 //   of bytes terminated by and including the first null byte.”
                 //
                 // Thus, there will be a single NUL byte at the end of the
                 // string.
                 //
-                // [POSIX definition 3.271: Pathname]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_271
-                // [POSIX definition 3.375: String]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_375
+                // [POSIX definition 3.271: Pathname]: https://pubs.opengroup.org/onlinepubs/9799919799/basedefs/V1_chap03.html#tag_03_271
+                // [POSIX definition 3.375: String]: https://pubs.opengroup.org/onlinepubs/9799919799/basedefs/V1_chap03.html#tag_03_375
                 unsafe {
                     return Ok(CString::from_vec_with_nul_unchecked(buffer));
                 }

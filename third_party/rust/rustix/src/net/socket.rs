@@ -32,7 +32,7 @@ pub use backend::net::addr::SocketAddrUnix;
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#socket
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/socket.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/socket.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/socket.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/socket.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-socket
@@ -41,7 +41,7 @@ pub use backend::net::addr::SocketAddrUnix;
 /// [OpenBSD]: https://man.openbsd.org/socket.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=socket&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/socket
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Creating-a-Socket.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Creating-a-Socket.html
 #[inline]
 pub fn socket(
     domain: AddressFamily,
@@ -75,7 +75,7 @@ pub fn socket(
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#socket
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/socket.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/socket.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/socket.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/socket.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-socket
@@ -84,7 +84,7 @@ pub fn socket(
 /// [OpenBSD]: https://man.openbsd.org/socket.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=socket&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/socket
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Creating-a-Socket.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Creating-a-Socket.html
 #[doc(alias("socket"))]
 #[inline]
 pub fn socket_with(
@@ -112,7 +112,7 @@ pub fn socket_with(
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#bind
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/bind.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/bind.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/bind.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/bind.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-bind
@@ -121,7 +121,7 @@ pub fn socket_with(
 /// [OpenBSD]: https://man.openbsd.org/bind.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=bind&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/bind
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Setting-Address.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Setting-Address.html
 pub fn bind<Fd: AsFd>(sockfd: Fd, addr: &SocketAddr) -> io::Result<()> {
     _bind(sockfd.as_fd(), addr)
 }
@@ -149,7 +149,7 @@ fn _bind(sockfd: BorrowedFd<'_>, addr: &SocketAddr) -> io::Result<()> {
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#bind
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/bind.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/bind.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/bind.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/bind.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-bind
@@ -158,7 +158,7 @@ fn _bind(sockfd: BorrowedFd<'_>, addr: &SocketAddr) -> io::Result<()> {
 /// [OpenBSD]: https://man.openbsd.org/bind.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=bind&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/bind
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Setting-Address.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Setting-Address.html
 #[doc(alias = "bind")]
 pub fn bind_any<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrAny) -> io::Result<()> {
     _bind_any(sockfd.as_fd(), addr)
@@ -192,7 +192,7 @@ fn _bind_any(sockfd: BorrowedFd<'_>, addr: &SocketAddrAny) -> io::Result<()> {
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#bind
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/bind.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/bind.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/bind.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/bind.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-bind
@@ -201,7 +201,7 @@ fn _bind_any(sockfd: BorrowedFd<'_>, addr: &SocketAddrAny) -> io::Result<()> {
 /// [OpenBSD]: https://man.openbsd.org/bind.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=bind&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/bind
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Setting-Address.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Setting-Address.html
 #[inline]
 #[doc(alias = "bind")]
 pub fn bind_v4<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrV4) -> io::Result<()> {
@@ -225,7 +225,7 @@ pub fn bind_v4<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrV4) -> io::Result<()> {
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#bind
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/bind.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/bind.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/bind.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/bind.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-bind
@@ -234,7 +234,7 @@ pub fn bind_v4<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrV4) -> io::Result<()> {
 /// [OpenBSD]: https://man.openbsd.org/bind.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=bind&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/bind
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Setting-Address.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Setting-Address.html
 #[inline]
 #[doc(alias = "bind")]
 pub fn bind_v6<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrV6) -> io::Result<()> {
@@ -258,7 +258,7 @@ pub fn bind_v6<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrV6) -> io::Result<()> {
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#bind
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/bind.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/bind.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/bind.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/bind.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-bind
@@ -267,7 +267,7 @@ pub fn bind_v6<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrV6) -> io::Result<()> {
 /// [OpenBSD]: https://man.openbsd.org/bind.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=bind&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/bind
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Setting-Address.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Setting-Address.html
 #[cfg(unix)]
 #[inline]
 #[doc(alias = "bind")]
@@ -309,7 +309,7 @@ pub fn bind_xdp<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrXdp) -> io::Result<()> {
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#connect
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/connect.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/connect.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/connect.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/connect.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-connect
@@ -318,7 +318,7 @@ pub fn bind_xdp<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrXdp) -> io::Result<()> {
 /// [OpenBSD]: https://man.openbsd.org/connect.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=connect&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/connect
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Connecting.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Connecting.html
 /// [`Errno::WOULDBLOCK`]: io::Errno::WOULDBLOCK
 pub fn connect<Fd: AsFd>(sockfd: Fd, addr: &SocketAddr) -> io::Result<()> {
     _connect(sockfd.as_fd(), addr)
@@ -347,7 +347,7 @@ fn _connect(sockfd: BorrowedFd<'_>, addr: &SocketAddr) -> io::Result<()> {
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#connect
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/connect.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/connect.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/connect.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/connect.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-connect
@@ -356,7 +356,7 @@ fn _connect(sockfd: BorrowedFd<'_>, addr: &SocketAddr) -> io::Result<()> {
 /// [OpenBSD]: https://man.openbsd.org/connect.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=connect&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/connect
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Connecting.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Connecting.html
 #[doc(alias = "connect")]
 pub fn connect_any<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrAny) -> io::Result<()> {
     _connect_any(sockfd.as_fd(), addr)
@@ -390,7 +390,7 @@ fn _connect_any(sockfd: BorrowedFd<'_>, addr: &SocketAddrAny) -> io::Result<()> 
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#connect
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/connect.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/connect.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/connect.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/connect.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-connect
@@ -399,7 +399,7 @@ fn _connect_any(sockfd: BorrowedFd<'_>, addr: &SocketAddrAny) -> io::Result<()> 
 /// [OpenBSD]: https://man.openbsd.org/connect.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=connect&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/connect
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Connecting.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Connecting.html
 #[inline]
 #[doc(alias = "connect")]
 pub fn connect_v4<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrV4) -> io::Result<()> {
@@ -423,7 +423,7 @@ pub fn connect_v4<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrV4) -> io::Result<()> {
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#connect
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/connect.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/connect.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/connect.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/connect.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-connect
@@ -432,7 +432,7 @@ pub fn connect_v4<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrV4) -> io::Result<()> {
 /// [OpenBSD]: https://man.openbsd.org/connect.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=connect&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/connect
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Connecting.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Connecting.html
 #[inline]
 #[doc(alias = "connect")]
 pub fn connect_v6<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrV6) -> io::Result<()> {
@@ -456,7 +456,7 @@ pub fn connect_v6<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrV6) -> io::Result<()> {
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#connect
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/connect.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/connect.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/connect.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/connect.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-connect
@@ -465,7 +465,7 @@ pub fn connect_v6<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrV6) -> io::Result<()> {
 /// [OpenBSD]: https://man.openbsd.org/connect.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=connect&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/connect
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Connecting.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Connecting.html
 #[cfg(unix)]
 #[inline]
 #[doc(alias = "connect")]
@@ -473,8 +473,8 @@ pub fn connect_unix<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrUnix) -> io::Result<(
     backend::net::syscalls::connect_unix(sockfd.as_fd(), addr)
 }
 
-/// `connect(sockfd, {.sa_family = AF_UNSPEC}, sizeof(struct sockaddr))`
-/// — Dissolve the socket's association.
+/// `connect(sockfd, {.sa_family = AF_UNSPEC}, sizeof(struct sockaddr))`—
+/// Dissolve the socket's association.
 ///
 /// On UDP sockets, BSD platforms report [`Errno::AFNOSUPPORT`] or
 /// [`Errno::INVAL`] even if the disconnect was successful.
@@ -493,7 +493,7 @@ pub fn connect_unix<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrUnix) -> io::Result<(
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#connect
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/connect.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/connect.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/connect.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/connect.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-connect
@@ -502,7 +502,7 @@ pub fn connect_unix<Fd: AsFd>(sockfd: Fd, addr: &SocketAddrUnix) -> io::Result<(
 /// [OpenBSD]: https://man.openbsd.org/connect.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=connect&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/connect
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Connecting.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Connecting.html
 /// [`Errno::AFNOSUPPORT`]: io::Errno::AFNOSUPPORT
 /// [`Errno::INVAL`]: io::Errno::INVAL
 #[inline]
@@ -527,7 +527,7 @@ pub fn connect_unspec<Fd: AsFd>(sockfd: Fd) -> io::Result<()> {
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#listen
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/listen.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/listen.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/listen.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/listen.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-listen
@@ -536,7 +536,7 @@ pub fn connect_unspec<Fd: AsFd>(sockfd: Fd) -> io::Result<()> {
 /// [OpenBSD]: https://man.openbsd.org/listen.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=listen&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/listen
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Listening.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Listening.html
 #[inline]
 pub fn listen<Fd: AsFd>(sockfd: Fd, backlog: i32) -> io::Result<()> {
     backend::net::syscalls::listen(sockfd.as_fd(), backlog)
@@ -564,7 +564,7 @@ pub fn listen<Fd: AsFd>(sockfd: Fd, backlog: i32) -> io::Result<()> {
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#acceptthank-you-for-calling-port-3490.
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/accept.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/accept.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/accept.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/accept.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-accept
@@ -573,7 +573,7 @@ pub fn listen<Fd: AsFd>(sockfd: Fd, backlog: i32) -> io::Result<()> {
 /// [OpenBSD]: https://man.openbsd.org/accept.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=accept&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/accept
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Accepting-Connections.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Accepting-Connections.html
 #[inline]
 pub fn accept<Fd: AsFd>(sockfd: Fd) -> io::Result<OwnedFd> {
     backend::net::syscalls::accept(sockfd.as_fd())
@@ -630,7 +630,7 @@ pub fn accept_with<Fd: AsFd>(sockfd: Fd, flags: SocketFlags) -> io::Result<Owned
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#acceptthank-you-for-calling-port-3490.
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/accept.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/accept.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/accept.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/accept.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-accept
@@ -639,7 +639,7 @@ pub fn accept_with<Fd: AsFd>(sockfd: Fd, flags: SocketFlags) -> io::Result<Owned
 /// [OpenBSD]: https://man.openbsd.org/accept.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=accept&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/accept
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Accepting-Connections.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Accepting-Connections.html
 #[inline]
 #[doc(alias = "accept")]
 pub fn acceptfrom<Fd: AsFd>(sockfd: Fd) -> io::Result<(OwnedFd, Option<SocketAddrAny>)> {
@@ -693,7 +693,7 @@ pub fn acceptfrom_with<Fd: AsFd>(
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#close-and-shutdownget-outta-my-face
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/shutdown.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/shutdown.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/shutdown.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/shutdown.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-shutdown
@@ -702,7 +702,7 @@ pub fn acceptfrom_with<Fd: AsFd>(
 /// [OpenBSD]: https://man.openbsd.org/shutdown.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=shutdown&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/shutdown
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Closing-a-Socket.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Closing-a-Socket.html
 #[inline]
 pub fn shutdown<Fd: AsFd>(sockfd: Fd, how: Shutdown) -> io::Result<()> {
     backend::net::syscalls::shutdown(sockfd.as_fd(), how)
@@ -722,7 +722,7 @@ pub fn shutdown<Fd: AsFd>(sockfd: Fd, how: Shutdown) -> io::Result<()> {
 ///  - [illumos]
 ///  - [glibc]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/getsockname.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/getsockname.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/getsockname.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/getsockname.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-getsockname
@@ -731,7 +731,7 @@ pub fn shutdown<Fd: AsFd>(sockfd: Fd, how: Shutdown) -> io::Result<()> {
 /// [OpenBSD]: https://man.openbsd.org/getsockname.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=getsockname&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/getsockname
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Reading-Address.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Reading-Address.html
 #[inline]
 pub fn getsockname<Fd: AsFd>(sockfd: Fd) -> io::Result<SocketAddrAny> {
     backend::net::syscalls::getsockname(sockfd.as_fd())
@@ -754,7 +754,7 @@ pub fn getsockname<Fd: AsFd>(sockfd: Fd) -> io::Result<SocketAddrAny> {
 ///  - [glibc]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/system-calls-or-bust.html#getpeernamewho-are-you
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/getpeername.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/getpeername.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/getpeername.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/getpeername.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-getpeername
@@ -763,7 +763,7 @@ pub fn getsockname<Fd: AsFd>(sockfd: Fd) -> io::Result<SocketAddrAny> {
 /// [OpenBSD]: https://man.openbsd.org/getpeername.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=getpeername&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/getpeername
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Who-is-Connected.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Who-is-Connected.html
 #[inline]
 pub fn getpeername<Fd: AsFd>(sockfd: Fd) -> io::Result<Option<SocketAddrAny>> {
     backend::net::syscalls::getpeername(sockfd.as_fd())

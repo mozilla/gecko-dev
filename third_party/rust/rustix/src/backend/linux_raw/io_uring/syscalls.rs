@@ -8,7 +8,7 @@
 use crate::backend::conv::{by_mut, c_uint, pass_usize, ret_c_uint, ret_owned_fd};
 use crate::fd::{BorrowedFd, OwnedFd};
 use crate::io;
-use crate::io_uring::{io_uring_params, IoringEnterFlags, IoringRegisterOp};
+use crate::io_uring::{io_uring_params, IoringEnterFlags, IoringRegisterFlags, IoringRegisterOp};
 use core::ffi::c_void;
 
 #[inline]
@@ -33,6 +33,23 @@ pub(crate) unsafe fn io_uring_register(
         __NR_io_uring_register,
         fd,
         c_uint(opcode as u32),
+        arg,
+        c_uint(nr_args)
+    ))
+}
+
+#[inline]
+pub(crate) unsafe fn io_uring_register_with(
+    fd: BorrowedFd<'_>,
+    opcode: IoringRegisterOp,
+    flags: IoringRegisterFlags,
+    arg: *const c_void,
+    nr_args: u32,
+) -> io::Result<u32> {
+    ret_c_uint(syscall_readonly!(
+        __NR_io_uring_register,
+        fd,
+        c_uint((opcode as u32) | bitflags_bits!(flags)),
         arg,
         c_uint(nr_args)
     ))

@@ -9,7 +9,7 @@ use backend::fs::types::Advice;
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/posix_fadvise.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/posix_fadvise.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/posix_fadvise.2.html
 #[inline]
 #[doc(alias = "posix_fadvise")]

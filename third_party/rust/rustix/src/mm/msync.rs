@@ -31,7 +31,7 @@ pub use backend::mm::types::MsyncFlags;
 ///  - [illumos]
 ///  - [glibc]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/msync.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/msync.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/msync.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/msync.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=msync&sektion=2
@@ -39,7 +39,7 @@ pub use backend::mm::types::MsyncFlags;
 /// [OpenBSD]: https://man.openbsd.org/msync.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=msync&section=2
 /// [illumos]: https://illumos.org/man/3C/msync
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Memory_002dmapped-I_002fO.html#index-msync
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Memory_002dmapped-I_002fO.html#index-msync
 #[inline]
 pub unsafe fn msync(addr: *mut c_void, len: usize, flags: MsyncFlags) -> io::Result<()> {
     backend::mm::syscalls::msync(addr, len, flags)

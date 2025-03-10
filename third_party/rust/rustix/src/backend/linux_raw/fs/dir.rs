@@ -234,7 +234,7 @@ impl Dir {
 
     /// `fchdir(self)`
     #[cfg(feature = "process")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "process")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "process")))]
     #[inline]
     pub fn chdir(&self) -> io::Result<()> {
         fchdir(&self.fd)

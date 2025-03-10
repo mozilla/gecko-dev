@@ -344,6 +344,13 @@ pub(crate) fn set_socket_recv_buffer_size(fd: BorrowedFd<'_>, size: usize) -> io
     setsockopt(fd, c::SOL_SOCKET, c::SO_RCVBUF, size)
 }
 
+#[cfg(any(linux_kernel, target_os = "fuchsia", target_os = "redox"))]
+#[inline]
+pub(crate) fn set_socket_recv_buffer_size_force(fd: BorrowedFd<'_>, size: usize) -> io::Result<()> {
+    let size: c::c_int = size.try_into().map_err(|_| io::Errno::INVAL)?;
+    setsockopt(fd, c::SOL_SOCKET, c::SO_RCVBUFFORCE, size)
+}
+
 #[inline]
 pub(crate) fn get_socket_recv_buffer_size(fd: BorrowedFd<'_>) -> io::Result<usize> {
     getsockopt(fd, c::SOL_SOCKET, c::SO_RCVBUF).map(|size: u32| size as usize)
@@ -369,6 +376,7 @@ pub(crate) fn get_socket_send_buffer_size(fd: BorrowedFd<'_>) -> io::Result<usiz
     target_os = "emscripten",
     target_os = "espidf",
     target_os = "haiku",
+    target_os = "hurd",
     target_os = "netbsd",
     target_os = "nto",
     target_os = "vita",
@@ -914,9 +922,10 @@ pub(crate) fn set_tcp_congestion(fd: BorrowedFd<'_>, value: &str) -> io::Result<
 ))]
 #[inline]
 pub(crate) fn get_tcp_congestion(fd: BorrowedFd<'_>) -> io::Result<String> {
+    const OPTLEN: c::socklen_t = 16;
+
     let level = c::IPPROTO_TCP;
     let optname = c::TCP_CONGESTION;
-    const OPTLEN: c::socklen_t = 16;
     let mut value = MaybeUninit::<[MaybeUninit<u8>; OPTLEN as usize]>::uninit();
     let mut optlen = OPTLEN;
     getsockopt_raw(fd, level, optname, &mut value, &mut optlen)?;

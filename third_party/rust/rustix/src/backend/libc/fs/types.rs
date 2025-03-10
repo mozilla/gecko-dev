@@ -40,7 +40,7 @@ bitflags! {
         const SYMLINK_NOFOLLOW = bitcast!(c::AT_SYMLINK_NOFOLLOW);
 
         /// `AT_EACCESS`
-        #[cfg(not(any(target_os = "emscripten", target_os = "android")))]
+        #[cfg(not(target_os = "android"))]
         const EACCESS = bitcast!(c::AT_EACCESS);
 
         /// `AT_REMOVEDIR`
@@ -162,7 +162,7 @@ impl Mode {
     /// `Mode`.
     #[inline]
     pub const fn from_raw_mode(st_mode: RawMode) -> Self {
-        Self::from_bits_truncate(st_mode)
+        Self::from_bits_truncate(st_mode & !c::S_IFMT as RawMode)
     }
 
     /// Construct an `st_mode` value from a `Mode`.
@@ -270,6 +270,7 @@ bitflags! {
         #[cfg(any(
             linux_kernel,
             netbsdlike,
+            solarish,
             target_os = "emscripten",
             target_os = "wasi",
         ))]
@@ -562,7 +563,7 @@ impl FileType {
 #[cfg(not(any(
     apple,
     netbsdlike,
-    solarish,
+    target_os = "solaris",
     target_os = "dragonfly",
     target_os = "espidf",
     target_os = "haiku",
@@ -796,7 +797,6 @@ bitflags! {
 
 #[cfg(not(any(
     netbsdlike,
-    solarish,
     target_os = "espidf",
     target_os = "nto",
     target_os = "redox",
@@ -812,6 +812,7 @@ bitflags! {
         /// `FALLOC_FL_KEEP_SIZE`
         #[cfg(not(any(
             bsd,
+            solarish,
             target_os = "aix",
             target_os = "haiku",
             target_os = "hurd",
@@ -821,6 +822,7 @@ bitflags! {
         /// `FALLOC_FL_PUNCH_HOLE`
         #[cfg(not(any(
             bsd,
+            solarish,
             target_os = "aix",
             target_os = "haiku",
             target_os = "hurd",
@@ -830,6 +832,7 @@ bitflags! {
         /// `FALLOC_FL_NO_HIDE_STALE`
         #[cfg(not(any(
             bsd,
+            solarish,
             target_os = "aix",
             target_os = "emscripten",
             target_os = "fuchsia",
@@ -843,6 +846,7 @@ bitflags! {
         /// `FALLOC_FL_COLLAPSE_RANGE`
         #[cfg(not(any(
             bsd,
+            solarish,
             target_os = "aix",
             target_os = "haiku",
             target_os = "hurd",
@@ -853,6 +857,7 @@ bitflags! {
         /// `FALLOC_FL_ZERO_RANGE`
         #[cfg(not(any(
             bsd,
+            solarish,
             target_os = "aix",
             target_os = "haiku",
             target_os = "hurd",
@@ -863,6 +868,7 @@ bitflags! {
         /// `FALLOC_FL_INSERT_RANGE`
         #[cfg(not(any(
             bsd,
+            solarish,
             target_os = "aix",
             target_os = "haiku",
             target_os = "hurd",
@@ -873,6 +879,7 @@ bitflags! {
         /// `FALLOC_FL_UNSHARE_RANGE`
         #[cfg(not(any(
             bsd,
+            solarish,
             target_os = "aix",
             target_os = "haiku",
             target_os = "hurd",

@@ -97,6 +97,7 @@ macro_rules! cmsg_aligned_space {
     }};
 }
 
+/// Helper function for [`cmsg_space`].
 #[doc(hidden)]
 pub const fn __cmsg_space(len: usize) -> usize {
     // Add `align_of::<c::cmsghdr>()` so that we can align the user-provided
@@ -106,6 +107,7 @@ pub const fn __cmsg_space(len: usize) -> usize {
     __cmsg_aligned_space(len)
 }
 
+/// Helper function for [`cmsg_aligned_space`].
 #[doc(hidden)]
 pub const fn __cmsg_aligned_space(len: usize) -> usize {
     // Convert `len` to `u32` for `CMSG_SPACE`. This would be `try_into()` if
@@ -591,6 +593,11 @@ impl FusedIterator for AncillaryDrain<'_> {}
 
 /// `sendmsg(msghdr)`—Sends a message on a socket.
 ///
+/// This function is for use on connected sockets, as it doesn't have
+/// a way to specify an address. See the [`sendmsg_v4`], [`sendmsg_v6`]
+/// [`sendmsg_unix`], [`sendmsg_xdp`], and [`sendmsg_any`] to send
+/// messages on unconnected sockets.
+///
 /// # References
 ///  - [POSIX]
 ///  - [Linux]
@@ -601,7 +608,7 @@ impl FusedIterator for AncillaryDrain<'_> {}
 ///  - [DragonFly BSD]
 ///  - [illumos]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/sendmsg.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/sendmsg.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/sendmsg.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/sendmsg.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=sendmsg&sektion=2
@@ -631,7 +638,7 @@ pub fn sendmsg(
 ///  - [DragonFly BSD]
 ///  - [illumos]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/sendmsg.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/sendmsg.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/sendmsg.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/sendmsg.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=sendmsg&sektion=2
@@ -662,7 +669,7 @@ pub fn sendmsg_v4(
 ///  - [DragonFly BSD]
 ///  - [illumos]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/sendmsg.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/sendmsg.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/sendmsg.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/sendmsg.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=sendmsg&sektion=2
@@ -694,7 +701,7 @@ pub fn sendmsg_v6(
 ///  - [DragonFly BSD]
 ///  - [illumos]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/sendmsg.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/sendmsg.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/sendmsg.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/sendmsg.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=sendmsg&sektion=2
@@ -744,7 +751,7 @@ pub fn sendmsg_xdp(
 ///  - [DragonFly BSD]
 ///  - [illumos]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/sendmsg.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/sendmsg.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/sendmsg.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/sendmsg.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=sendmsg&sektion=2
@@ -791,7 +798,7 @@ pub fn sendmsg_any(
 ///  - [DragonFly BSD]
 ///  - [illumos]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/recvmsg.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/recvmsg.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/recvmsg.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/recvmsg.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=recvmsg&sektion=2
@@ -942,7 +949,7 @@ mod messages {
             let msghdr = {
                 let mut h = msghdr::zero_msghdr();
                 h.msg_control = buf.as_mut_ptr().cast();
-                h.msg_controllen = buf.len().try_into().expect("buffer too large for msghdr");
+                h.msg_controllen = buf.len().try_into().unwrap();
                 h
             };
 

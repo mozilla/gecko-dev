@@ -17,7 +17,7 @@ use crate::fs::Access;
 #[cfg(not(any(
     apple,
     netbsdlike,
-    solarish,
+    target_os = "solaris",
     target_os = "dragonfly",
     target_os = "espidf",
     target_os = "haiku",
@@ -29,7 +29,6 @@ use crate::fs::Advice;
 use crate::fs::AtFlags;
 #[cfg(not(any(
     netbsdlike,
-    solarish,
     target_os = "dragonfly",
     target_os = "espidf",
     target_os = "nto",
@@ -80,7 +79,7 @@ use {
     crate::backend::conv::nonnegative_ret,
     crate::fs::{copyfile_state_t, CloneFlags, CopyfileFlags},
 };
-#[cfg(any(apple, linux_kernel))]
+#[cfg(any(apple, linux_kernel, target_os = "hurd"))]
 use {crate::fs::XattrFlags, core::mem::size_of, core::ptr::null_mut};
 #[cfg(linux_kernel)]
 use {
@@ -348,7 +347,7 @@ pub(crate) fn linkat(
     new_path: &CStr,
     flags: AtFlags,
 ) -> io::Result<()> {
-    // macOS <= 10.9 lacks `linkat`.
+    // macOS ≤ 10.9 lacks `linkat`.
     #[cfg(target_os = "macos")]
     unsafe {
         weak! {
@@ -405,7 +404,7 @@ pub(crate) fn unlink(path: &CStr) -> io::Result<()> {
 
 #[cfg(not(any(target_os = "espidf", target_os = "redox")))]
 pub(crate) fn unlinkat(dirfd: BorrowedFd<'_>, path: &CStr, flags: AtFlags) -> io::Result<()> {
-    // macOS <= 10.9 lacks `unlinkat`.
+    // macOS ≤ 10.9 lacks `unlinkat`.
     #[cfg(target_os = "macos")]
     unsafe {
         weak! {
@@ -458,7 +457,7 @@ pub(crate) fn renameat(
     new_dirfd: BorrowedFd<'_>,
     new_path: &CStr,
 ) -> io::Result<()> {
-    // macOS <= 10.9 lacks `renameat`.
+    // macOS ≤ 10.9 lacks `renameat`.
     #[cfg(target_os = "macos")]
     unsafe {
         weak! {
@@ -596,14 +595,9 @@ pub(crate) fn stat(path: &CStr) -> io::Result<Stat> {
         )
     ))]
     {
-        match crate::fs::statx(
-            crate::fs::CWD,
-            path,
-            AtFlags::empty(),
-            StatxFlags::BASIC_STATS,
-        ) {
+        match crate::fs::statx(CWD, path, AtFlags::empty(), StatxFlags::BASIC_STATS) {
             Ok(x) => statx_to_stat(x),
-            Err(io::Errno::NOSYS) => statat_old(crate::fs::CWD, path, AtFlags::empty()),
+            Err(io::Errno::NOSYS) => statat_old(CWD, path, AtFlags::empty()),
             Err(err) => Err(err),
         }
     }
@@ -637,13 +631,13 @@ pub(crate) fn lstat(path: &CStr) -> io::Result<Stat> {
     ))]
     {
         match crate::fs::statx(
-            crate::fs::CWD,
+            CWD,
             path,
             AtFlags::SYMLINK_NOFOLLOW,
             StatxFlags::BASIC_STATS,
         ) {
             Ok(x) => statx_to_stat(x),
-            Err(io::Errno::NOSYS) => statat_old(crate::fs::CWD, path, AtFlags::SYMLINK_NOFOLLOW),
+            Err(io::Errno::NOSYS) => statat_old(CWD, path, AtFlags::SYMLINK_NOFOLLOW),
             Err(err) => Err(err),
         }
     }
@@ -744,7 +738,7 @@ pub(crate) fn accessat(
     access: Access,
     flags: AtFlags,
 ) -> io::Result<()> {
-    // macOS <= 10.9 lacks `faccessat`.
+    // macOS ≤ 10.9 lacks `faccessat`.
     #[cfg(target_os = "macos")]
     unsafe {
         weak! {
@@ -1196,7 +1190,7 @@ pub(crate) fn copy_file_range(
 #[cfg(not(any(
     apple,
     netbsdlike,
-    solarish,
+    target_os = "solaris",
     target_os = "dragonfly",
     target_os = "espidf",
     target_os = "haiku",
@@ -1614,7 +1608,6 @@ fn futimens_old(fd: BorrowedFd<'_>, times: &Timestamps) -> io::Result<()> {
 #[cfg(not(any(
     apple,
     netbsdlike,
-    solarish,
     target_os = "dragonfly",
     target_os = "espidf",
     target_os = "nto",
@@ -2239,7 +2232,7 @@ struct Attrlist {
     forkattr: Attrgroup,
 }
 
-#[cfg(any(apple, linux_kernel))]
+#[cfg(any(apple, linux_kernel, target_os = "hurd"))]
 pub(crate) fn getxattr(path: &CStr, name: &CStr, value: &mut [u8]) -> io::Result<usize> {
     let value_ptr = value.as_mut_ptr();
 
@@ -2255,8 +2248,8 @@ pub(crate) fn getxattr(path: &CStr, name: &CStr, value: &mut [u8]) -> io::Result
 
     #[cfg(apple)]
     {
-        // Passing an empty to slice to getxattr leads to ERANGE on macOS. Pass null
-        // instead.
+        // Passing an empty to slice to `getxattr` leads to `ERANGE` on macOS.
+        // Pass null instead.
         let ptr = if value.is_empty() {
             core::ptr::null_mut()
         } else {
@@ -2275,7 +2268,7 @@ pub(crate) fn getxattr(path: &CStr, name: &CStr, value: &mut [u8]) -> io::Result
     }
 }
 
-#[cfg(any(apple, linux_kernel))]
+#[cfg(any(apple, linux_kernel, target_os = "hurd"))]
 pub(crate) fn lgetxattr(path: &CStr, name: &CStr, value: &mut [u8]) -> io::Result<usize> {
     let value_ptr = value.as_mut_ptr();
 
@@ -2291,8 +2284,8 @@ pub(crate) fn lgetxattr(path: &CStr, name: &CStr, value: &mut [u8]) -> io::Resul
 
     #[cfg(apple)]
     {
-        // Passing an empty to slice to getxattr leads to ERANGE on macOS. Pass null
-        // instead.
+        // Passing an empty to slice to `getxattr` leads to `ERANGE` on macOS.
+        // Pass null instead.
         let ptr = if value.is_empty() {
             core::ptr::null_mut()
         } else {
@@ -2312,7 +2305,7 @@ pub(crate) fn lgetxattr(path: &CStr, name: &CStr, value: &mut [u8]) -> io::Resul
     }
 }
 
-#[cfg(any(apple, linux_kernel))]
+#[cfg(any(apple, linux_kernel, target_os = "hurd"))]
 pub(crate) fn fgetxattr(fd: BorrowedFd<'_>, name: &CStr, value: &mut [u8]) -> io::Result<usize> {
     let value_ptr = value.as_mut_ptr();
 
@@ -2328,8 +2321,8 @@ pub(crate) fn fgetxattr(fd: BorrowedFd<'_>, name: &CStr, value: &mut [u8]) -> io
 
     #[cfg(apple)]
     {
-        // Passing an empty to slice to getxattr leads to ERANGE on macOS. Pass null
-        // instead.
+        // Passing an empty to slice to `getxattr` leads to `ERANGE` on macOS.
+        // Pass null instead.
         let ptr = if value.is_empty() {
             core::ptr::null_mut()
         } else {
@@ -2348,7 +2341,7 @@ pub(crate) fn fgetxattr(fd: BorrowedFd<'_>, name: &CStr, value: &mut [u8]) -> io
     }
 }
 
-#[cfg(any(apple, linux_kernel))]
+#[cfg(any(apple, linux_kernel, target_os = "hurd"))]
 pub(crate) fn setxattr(
     path: &CStr,
     name: &CStr,
@@ -2379,7 +2372,7 @@ pub(crate) fn setxattr(
     }
 }
 
-#[cfg(any(apple, linux_kernel))]
+#[cfg(any(apple, linux_kernel, target_os = "hurd"))]
 pub(crate) fn lsetxattr(
     path: &CStr,
     name: &CStr,
@@ -2410,7 +2403,7 @@ pub(crate) fn lsetxattr(
     }
 }
 
-#[cfg(any(apple, linux_kernel))]
+#[cfg(any(apple, linux_kernel, target_os = "hurd"))]
 pub(crate) fn fsetxattr(
     fd: BorrowedFd<'_>,
     name: &CStr,
@@ -2441,7 +2434,7 @@ pub(crate) fn fsetxattr(
     }
 }
 
-#[cfg(any(apple, linux_kernel))]
+#[cfg(any(apple, linux_kernel, target_os = "hurd"))]
 pub(crate) fn listxattr(path: &CStr, list: &mut [c::c_char]) -> io::Result<usize> {
     #[cfg(not(apple))]
     unsafe {
@@ -2459,7 +2452,7 @@ pub(crate) fn listxattr(path: &CStr, list: &mut [c::c_char]) -> io::Result<usize
     }
 }
 
-#[cfg(any(apple, linux_kernel))]
+#[cfg(any(apple, linux_kernel, target_os = "hurd"))]
 pub(crate) fn llistxattr(path: &CStr, list: &mut [c::c_char]) -> io::Result<usize> {
     #[cfg(not(apple))]
     unsafe {
@@ -2477,7 +2470,7 @@ pub(crate) fn llistxattr(path: &CStr, list: &mut [c::c_char]) -> io::Result<usiz
     }
 }
 
-#[cfg(any(apple, linux_kernel))]
+#[cfg(any(apple, linux_kernel, target_os = "hurd"))]
 pub(crate) fn flistxattr(fd: BorrowedFd<'_>, list: &mut [c::c_char]) -> io::Result<usize> {
     let fd = borrowed_fd(fd);
 
@@ -2492,7 +2485,7 @@ pub(crate) fn flistxattr(fd: BorrowedFd<'_>, list: &mut [c::c_char]) -> io::Resu
     }
 }
 
-#[cfg(any(apple, linux_kernel))]
+#[cfg(any(apple, linux_kernel, target_os = "hurd"))]
 pub(crate) fn removexattr(path: &CStr, name: &CStr) -> io::Result<()> {
     #[cfg(not(apple))]
     unsafe {
@@ -2505,7 +2498,7 @@ pub(crate) fn removexattr(path: &CStr, name: &CStr) -> io::Result<()> {
     }
 }
 
-#[cfg(any(apple, linux_kernel))]
+#[cfg(any(apple, linux_kernel, target_os = "hurd"))]
 pub(crate) fn lremovexattr(path: &CStr, name: &CStr) -> io::Result<()> {
     #[cfg(not(apple))]
     unsafe {
@@ -2522,7 +2515,7 @@ pub(crate) fn lremovexattr(path: &CStr, name: &CStr) -> io::Result<()> {
     }
 }
 
-#[cfg(any(apple, linux_kernel))]
+#[cfg(any(apple, linux_kernel, target_os = "hurd"))]
 pub(crate) fn fremovexattr(fd: BorrowedFd<'_>, name: &CStr) -> io::Result<()> {
     let fd = borrowed_fd(fd);
 
@@ -2548,4 +2541,40 @@ fn test_sizes() {
     assert_eq_size!([c::timespec; 2], Timestamps);
     #[cfg(fix_y2038)]
     assert!(core::mem::size_of::<[c::timespec; 2]>() < core::mem::size_of::<Timestamps>());
+}
+
+#[inline]
+#[cfg(linux_kernel)]
+pub(crate) fn inotify_init1(flags: super::inotify::CreateFlags) -> io::Result<OwnedFd> {
+    // SAFETY: `inotify_init1` has no safety preconditions.
+    unsafe { ret_owned_fd(c::inotify_init1(bitflags_bits!(flags))) }
+}
+
+#[inline]
+#[cfg(linux_kernel)]
+pub(crate) fn inotify_add_watch(
+    inot: BorrowedFd<'_>,
+    path: &CStr,
+    flags: super::inotify::WatchFlags,
+) -> io::Result<i32> {
+    // SAFETY: The fd and path we are passing is guaranteed valid by the
+    // type system.
+    unsafe {
+        ret_c_int(c::inotify_add_watch(
+            borrowed_fd(inot),
+            c_str(path),
+            flags.bits(),
+        ))
+    }
+}
+
+#[inline]
+#[cfg(linux_kernel)]
+pub(crate) fn inotify_rm_watch(inot: BorrowedFd<'_>, wd: i32) -> io::Result<()> {
+    // Android's `inotify_rm_watch` takes `u32` despite that
+    // `inotify_add_watch` expects a `i32`.
+    #[cfg(target_os = "android")]
+    let wd = wd as u32;
+    // SAFETY: The fd is valid and closing an arbitrary wd is valid.
+    unsafe { ret(c::inotify_rm_watch(borrowed_fd(inot), wd)) }
 }

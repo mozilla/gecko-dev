@@ -217,9 +217,10 @@ impl Opcode {
         number: u8,
         data_size: usize,
     ) -> Self {
-        if data_size > RawOpcode::MAX as usize {
-            panic!("data size is too large");
-        }
+        assert!(
+            data_size <= RawOpcode::MAX as usize,
+            "data size is too large"
+        );
 
         Self::old(platform::compose_opcode(
             direction,

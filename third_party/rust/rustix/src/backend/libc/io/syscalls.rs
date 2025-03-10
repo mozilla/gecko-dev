@@ -201,6 +201,11 @@ pub(crate) unsafe fn close(raw_fd: RawFd) {
     let _ = c::close(raw_fd as c::c_int);
 }
 
+#[cfg(feature = "try_close")]
+pub(crate) unsafe fn try_close(raw_fd: RawFd) -> io::Result<()> {
+    ret(c::close(raw_fd as c::c_int))
+}
+
 #[inline]
 pub(crate) unsafe fn ioctl(
     fd: BorrowedFd<'_>,

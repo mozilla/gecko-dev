@@ -3,7 +3,7 @@
 //! # Safety
 //!
 //! `mmap` and related functions manipulate raw pointers and have special
-//! semantics and are wildly unsafe.
+//! semantics.
 #![allow(unsafe_code)]
 
 use crate::{backend, io};
@@ -52,7 +52,16 @@ impl MapFlags {
 ///
 /// # Safety
 ///
-/// Raw pointers and lots of special semantics.
+/// If `ptr` is not null, it must be aligned to the applicable page size, and
+/// the range of memory starting at `ptr` and extending for `len` bytes,
+/// rounded up to the applicable page size, must be valid to mutate using
+/// `ptr`'s provenance.
+///
+/// If there exist any Rust references referring to the memory region, or if
+/// you subsequently create a Rust reference referring to the resulting region,
+/// it is your responsibility to ensure that the Rust reference invariants are
+/// preserved, including ensuring that the memory is not mutated in a way that
+/// a Rust reference would not expect.
 ///
 /// # References
 ///  - [POSIX]
@@ -65,7 +74,7 @@ impl MapFlags {
 ///  - [illumos]
 ///  - [glibc]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/mmap.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/mmap.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/mmap.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/mmap.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=mmap&sektion=2
@@ -73,7 +82,7 @@ impl MapFlags {
 /// [OpenBSD]: https://man.openbsd.org/mmap.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=mmap&section=2
 /// [illumos]: https://illumos.org/man/2/mmap
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Memory_002dmapped-I_002fO.html#index-mmap
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Memory_002dmapped-I_002fO.html#index-mmap
 #[inline]
 pub unsafe fn mmap<Fd: AsFd>(
     ptr: *mut c_void,
@@ -93,7 +102,10 @@ pub unsafe fn mmap<Fd: AsFd>(
 ///
 /// # Safety
 ///
-/// Raw pointers and lots of special semantics.
+/// If `ptr` is not null, it must be aligned to the applicable page size, and
+/// the range of memory starting at `ptr` and extending for `len` bytes,
+/// rounded up to the applicable page size, must be valid to mutate with
+/// `ptr`'s provenance.
 ///
 /// # References
 ///  - [POSIX]
@@ -106,7 +118,7 @@ pub unsafe fn mmap<Fd: AsFd>(
 ///  - [illumos]
 ///  - [glibc]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/mmap.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/mmap.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/mmap.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/mmap.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=mmap&sektion=2
@@ -114,7 +126,7 @@ pub unsafe fn mmap<Fd: AsFd>(
 /// [OpenBSD]: https://man.openbsd.org/mmap.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=mmap&section=2
 /// [illumos]: https://illumos.org/man/2/mmap
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Memory_002dmapped-I_002fO.html#index-mmap
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Memory_002dmapped-I_002fO.html#index-mmap
 #[inline]
 #[doc(alias = "mmap")]
 pub unsafe fn mmap_anonymous(
@@ -130,7 +142,10 @@ pub unsafe fn mmap_anonymous(
 ///
 /// # Safety
 ///
-/// Raw pointers and lots of special semantics.
+/// `ptr` must be aligned to the applicable page size, and the range of memory
+/// starting at `ptr` and extending for `len` bytes, rounded up to the
+/// applicable page size, must be valid to mutate with `ptr`'s provenance. And
+/// there must be no Rust references referring to that memory.
 ///
 /// # References
 ///  - [POSIX]
@@ -143,7 +158,7 @@ pub unsafe fn mmap_anonymous(
 ///  - [illumos]
 ///  - [glibc]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/munmap.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/munmap.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/munmap.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/munmap.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=munmap&sektion=2
@@ -151,7 +166,7 @@ pub unsafe fn mmap_anonymous(
 /// [OpenBSD]: https://man.openbsd.org/munmap.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=munmap&section=2
 /// [illumos]: https://illumos.org/man/2/munmap
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Memory_002dmapped-I_002fO.html#index-munmap
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Memory_002dmapped-I_002fO.html#index-munmap
 #[inline]
 pub unsafe fn munmap(ptr: *mut c_void, len: usize) -> io::Result<()> {
     backend::mm::syscalls::munmap(ptr, len)
@@ -165,7 +180,15 @@ pub unsafe fn munmap(ptr: *mut c_void, len: usize) -> io::Result<()> {
 ///
 /// # Safety
 ///
-/// Raw pointers and lots of special semantics.
+/// `old_address` must be aligned to the applicable page size, and the range of
+/// memory starting at `old_address` and extending for `old_size` bytes,
+/// rounded up to the applicable page size, must be valid to mutate with
+/// `old_address`'s provenance. If `MremapFlags::MAY_MOVE` is set in `flags`,
+/// there must be no Rust references referring to that the memory.
+///
+/// If `new_size` is less than `old_size`, than there must be no Rust
+/// references referring to the memory starting at offset `new_size` and ending
+/// at `old_size`.
 ///
 /// # References
 ///  - [Linux]
@@ -190,7 +213,16 @@ pub unsafe fn mremap(
 ///
 /// # Safety
 ///
-/// Raw pointers and lots of special semantics.
+/// `old_address` and `new_address` must be aligned to the applicable page
+/// size, the range of memory starting at `old_address` and extending for
+/// `old_size` bytes, rounded up to the applicable page size, must be valid to
+/// mutate with `old_address`'s provenance, and the range of memory starting at
+/// `new_address` and extending for `new_size` bytes, rounded up to the
+/// applicable page size, must be valid to mutate with `new_address`'s
+/// provenance.
+///
+/// There must be no Rust references referring to either of those memory
+/// regions.
 ///
 /// # References
 ///  - [Linux]
@@ -214,7 +246,9 @@ pub unsafe fn mremap_fixed(
 ///
 /// # Safety
 ///
-/// Raw pointers and lots of special semantics.
+/// The range of memory starting at `ptr` and extending for `len` bytes,
+/// rounded up to the applicable page size, must be valid to read with `ptr`'s
+/// provenance.
 ///
 /// # References
 ///  - [POSIX]
@@ -226,7 +260,7 @@ pub unsafe fn mremap_fixed(
 ///  - [DragonFly BSD]
 ///  - [illumos]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/mprotect.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/mprotect.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/mprotect.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/mprotect.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=mprotect&sektion=2
@@ -241,17 +275,16 @@ pub unsafe fn mprotect(ptr: *mut c_void, len: usize, flags: MprotectFlags) -> io
 
 /// `mlock(ptr, len)`—Lock memory into RAM.
 ///
-/// # Safety
-///
-/// This function operates on raw pointers, but it should only be used on
-/// memory which the caller owns. Technically, locking memory shouldn't violate
-/// any invariants, but since unlocking it can violate invariants, this
-/// function is also unsafe for symmetry.
-///
 /// Some implementations implicitly round the memory region out to the nearest
 /// page boundaries, so this function may lock more memory than explicitly
 /// requested if the memory isn't page-aligned. Other implementations fail if
 /// the memory isn't page-aligned.
+///
+/// # Safety
+///
+/// The range of memory starting at `ptr`, rounded down to the applicable page
+/// boundary, and extending for `len` bytes, rounded up to the applicable page
+/// size, must be valid to read with `ptr`'s provenance.
 ///
 /// # References
 ///  - [POSIX]
@@ -264,7 +297,7 @@ pub unsafe fn mprotect(ptr: *mut c_void, len: usize, flags: MprotectFlags) -> io
 ///  - [illumos]
 ///  - [glibc]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/mlock.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/mlock.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/mlock.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/mlock.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=mlock&sektion=2
@@ -272,7 +305,7 @@ pub unsafe fn mprotect(ptr: *mut c_void, len: usize, flags: MprotectFlags) -> io
 /// [OpenBSD]: https://man.openbsd.org/mlock.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=mlock&section=2
 /// [illumos]: https://illumos.org/man/3C/mlock
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Page-Lock-Functions.html#index-mlock
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Page-Lock-Functions.html#index-mlock
 #[inline]
 pub unsafe fn mlock(ptr: *mut c_void, len: usize) -> io::Result<()> {
     backend::mm::syscalls::mlock(ptr, len)
@@ -282,23 +315,22 @@ pub unsafe fn mlock(ptr: *mut c_void, len: usize) -> io::Result<()> {
 ///
 /// `mlock_with` is the same as [`mlock`] but adds an additional flags operand.
 ///
-/// # Safety
-///
-/// This function operates on raw pointers, but it should only be used on
-/// memory which the caller owns. Technically, locking memory shouldn't violate
-/// any invariants, but since unlocking it can violate invariants, this
-/// function is also unsafe for symmetry.
-///
 /// Some implementations implicitly round the memory region out to the nearest
 /// page boundaries, so this function may lock more memory than explicitly
 /// requested if the memory isn't page-aligned.
+///
+/// # Safety
+///
+/// The range of memory starting at `ptr`, rounded down to the applicable page
+/// boundary, and extending for `len` bytes, rounded up to the applicable page
+/// size, must be valid to read with `ptr`'s provenance.
 ///
 /// # References
 ///  - [Linux]
 ///  - [glibc]
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man2/mlock2.2.html
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Page-Lock-Functions.html#index-mlock2
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Page-Lock-Functions.html#index-mlock2
 #[cfg(linux_kernel)]
 #[inline]
 #[doc(alias = "mlock2")]
@@ -308,15 +340,15 @@ pub unsafe fn mlock_with(ptr: *mut c_void, len: usize, flags: MlockFlags) -> io:
 
 /// `munlock(ptr, len)`—Unlock memory.
 ///
-/// # Safety
-///
-/// This function operates on raw pointers, but it should only be used on
-/// memory which the caller owns, to avoid compromising the `mlock` invariants
-/// of other unrelated code in the process.
-///
 /// Some implementations implicitly round the memory region out to the nearest
 /// page boundaries, so this function may unlock more memory than explicitly
 /// requested if the memory isn't page-aligned.
+///
+/// # Safety
+///
+/// The range of memory starting at `ptr`, rounded down to the applicable page
+/// boundary, and extending for `len` bytes, rounded up to the applicable page
+/// size, must be valid to read with `ptr`'s provenance.
 ///
 /// # References
 ///  - [POSIX]
@@ -329,7 +361,7 @@ pub unsafe fn mlock_with(ptr: *mut c_void, len: usize, flags: MlockFlags) -> io:
 ///  - [illumos]
 ///  - [glibc]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/munlock.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/munlock.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/munlock.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/munlock.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=munlock&sektion=2
@@ -337,7 +369,7 @@ pub unsafe fn mlock_with(ptr: *mut c_void, len: usize, flags: MlockFlags) -> io:
 /// [OpenBSD]: https://man.openbsd.org/munlock.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=munlock&section=2
 /// [illumos]: https://illumos.org/man/3C/munlock
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Page-Lock-Functions.html#index-munlock
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Page-Lock-Functions.html#index-munlock
 #[inline]
 pub unsafe fn munlock(ptr: *mut c_void, len: usize) -> io::Result<()> {
     backend::mm::syscalls::munlock(ptr, len)
@@ -361,14 +393,14 @@ pub unsafe fn munlock(ptr: *mut c_void, len: usize) -> io::Result<()> {
 ///  - [illumos]
 ///  - [glibc]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/mlockall.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/mlockall.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/mlockall.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=mlockall&sektion=2
 /// [NetBSD]: https://man.netbsd.org/mlockall.2
 /// [OpenBSD]: https://man.openbsd.org/mlockall.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=mlockall&section=2
 /// [illumos]: https://illumos.org/man/3C/mlockall
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Page-Lock-Functions.html#index-mlockall
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Page-Lock-Functions.html#index-mlockall
 #[cfg(any(linux_kernel, freebsdlike, netbsdlike))]
 #[inline]
 pub fn mlockall(flags: MlockAllFlags) -> io::Result<()> {
@@ -394,14 +426,14 @@ pub fn mlockall(flags: MlockAllFlags) -> io::Result<()> {
 ///  - [illumos]
 ///  - [glibc]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/munlockall.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/munlockall.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/munlockall.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=munlockall&sektion=2
 /// [NetBSD]: https://man.netbsd.org/munlockall.2
 /// [OpenBSD]: https://man.openbsd.org/munlockall.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=munlockall&section=2
 /// [illumos]: https://illumos.org/man/3C/munlockall
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Page-Lock-Functions.html#index-munlockall
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Page-Lock-Functions.html#index-munlockall
 #[cfg(any(linux_kernel, freebsdlike, netbsdlike))]
 #[inline]
 pub fn munlockall() -> io::Result<()> {

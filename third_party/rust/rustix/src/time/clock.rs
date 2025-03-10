@@ -17,7 +17,7 @@ pub use crate::clockid::{ClockId, DynamicClockId};
 ///  - [DragonFly BSD]
 ///  - [illumos]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/clock_getres.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/clock_getres.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/clock_getres.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=clock_getres&sektion=2
 /// [NetBSD]: https://man.netbsd.org/clock_getres.2
@@ -47,7 +47,7 @@ pub fn clock_getres(id: ClockId) -> Timespec {
 ///  - [DragonFly BSD]
 ///  - [illumos]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/clock_gettime.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/clock_gettime.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/clock_gettime.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=clock_getres&sektion=2
 /// [NetBSD]: https://man.netbsd.org/clock_getres.2
@@ -67,7 +67,7 @@ pub fn clock_gettime(id: ClockId) -> Timespec {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/clock_gettime.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/clock_gettime.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/clock_gettime.2.html
 #[cfg(not(target_os = "wasi"))]
 #[inline]
@@ -90,7 +90,7 @@ pub fn clock_gettime_dynamic(id: DynamicClockId<'_>) -> io::Result<Timespec> {
 ///  - [DragonFly BSD]
 ///  - [illumos]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/clock_settime.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/clock_settime.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/clock_settime.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=clock_settime&sektion=2
 /// [NetBSD]: https://man.netbsd.org/clock_settime.2

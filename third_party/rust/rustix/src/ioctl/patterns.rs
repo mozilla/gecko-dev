@@ -197,6 +197,51 @@ unsafe impl<'a, Opcode: CompileTimeOpcode, T> Ioctl for Updater<'a, Opcode, T> {
     }
 }
 
+/// Implements an `ioctl` that passes an integer into the `ioctl`.
+pub struct IntegerSetter<Opcode> {
+    /// The value to pass in.
+    value: usize,
+
+    /// The opcode.
+    _opcode: PhantomData<Opcode>,
+}
+
+impl<Opcode: CompileTimeOpcode> IntegerSetter<Opcode> {
+    /// Create a new integer `Ioctl` helper.
+    ///
+    /// # Safety
+    ///
+    /// - `Opcode` must provide a valid opcode.
+    /// - For this opcode, it must expect an integer.
+    /// - The integer is in the valid range for this opcode.
+    #[inline]
+    pub unsafe fn new(value: usize) -> Self {
+        Self {
+            value,
+            _opcode: PhantomData,
+        }
+    }
+}
+
+unsafe impl<Opcode: CompileTimeOpcode> Ioctl for IntegerSetter<Opcode> {
+    type Output = ();
+
+    const IS_MUTATING: bool = false;
+    const OPCODE: self::Opcode = Opcode::OPCODE;
+
+    fn as_ptr(&mut self) -> *mut c::c_void {
+        // TODO: strict provenance
+        self.value as *mut c::c_void
+    }
+
+    unsafe fn output_from_ptr(
+        _out: IoctlOutput,
+        _extract_output: *mut c::c_void,
+    ) -> Result<Self::Output> {
+        Ok(())
+    }
+}
+
 /// Trait for something that provides an `ioctl` opcode at compile time.
 pub trait CompileTimeOpcode {
     /// The opcode.

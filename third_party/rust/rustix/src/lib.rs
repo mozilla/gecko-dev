@@ -1,3 +1,6 @@
+// wasip2 conditionally gates stdlib APIs.
+// https://github.com/rust-lang/rust/issues/130323
+#![cfg_attr(all(target_os = "wasi", target_env = "p2"), feature(wasip2))]
 //! `rustix` provides efficient memory-safe and [I/O-safe] wrappers to
 //! POSIX-like, Unix-like, Linux, and Winsock syscall-like APIs, with
 //! configurable backends.
@@ -71,6 +74,7 @@
 //!  - Provide y2038 compatibility, on platforms which support this.
 //!  - Correct selected platform bugs, such as behavioral differences when
 //!    running under seccomp.
+//!  - Use `timespec` for timestamps instead of `timeval`.
 //!
 //! Things they don't do include:
 //!  - Detecting whether functions are supported at runtime, except in specific
@@ -100,7 +104,7 @@
 #![allow(stable_features)]
 #![cfg_attr(linux_raw, deny(unsafe_code))]
 #![cfg_attr(rustc_attrs, feature(rustc_attrs))]
-#![cfg_attr(doc_cfg, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![cfg_attr(all(wasi_ext, target_os = "wasi", feature = "std"), feature(wasi_ext))]
 #![cfg_attr(core_ffi_c, feature(core_ffi_c))]
 #![cfg_attr(core_c_str, feature(core_c_str))]
@@ -126,6 +130,9 @@
     any(target_os = "redox", target_os = "wasi", not(feature = "all-apis")),
     allow(unused_imports)
 )]
+
+#[cfg(all(feature = "rustc-dep-of-std", feature = "alloc"))]
+extern crate rustc_std_workspace_alloc as alloc;
 
 #[cfg(all(feature = "alloc", not(feature = "rustc-dep-of-std")))]
 extern crate alloc;
@@ -193,63 +200,62 @@ pub mod fd {
 
 // The public API modules.
 #[cfg(feature = "event")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "event")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "event")))]
 pub mod event;
-#[cfg(not(windows))]
 pub mod ffi;
 #[cfg(not(windows))]
 #[cfg(feature = "fs")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "fs")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "fs")))]
 pub mod fs;
 pub mod io;
 #[cfg(linux_kernel)]
 #[cfg(feature = "io_uring")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "io_uring")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "io_uring")))]
 pub mod io_uring;
 pub mod ioctl;
 #[cfg(not(any(windows, target_os = "espidf", target_os = "vita", target_os = "wasi")))]
 #[cfg(feature = "mm")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "mm")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "mm")))]
 pub mod mm;
 #[cfg(linux_kernel)]
 #[cfg(feature = "mount")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "mount")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "mount")))]
 pub mod mount;
 #[cfg(not(any(target_os = "redox", target_os = "wasi")))]
 #[cfg(feature = "net")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "net")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "net")))]
 pub mod net;
 #[cfg(not(any(windows, target_os = "espidf")))]
 #[cfg(feature = "param")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "param")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "param")))]
 pub mod param;
 #[cfg(not(windows))]
 #[cfg(any(feature = "fs", feature = "mount", feature = "net"))]
 #[cfg_attr(
-    doc_cfg,
+    docsrs,
     doc(cfg(any(feature = "fs", feature = "mount", feature = "net")))
 )]
 pub mod path;
 #[cfg(feature = "pipe")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "pipe")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "pipe")))]
 #[cfg(not(any(windows, target_os = "wasi")))]
 pub mod pipe;
 #[cfg(not(windows))]
 #[cfg(feature = "process")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "process")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "process")))]
 pub mod process;
 #[cfg(feature = "procfs")]
 #[cfg(linux_kernel)]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "procfs")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "procfs")))]
 pub mod procfs;
 #[cfg(not(windows))]
 #[cfg(not(target_os = "wasi"))]
 #[cfg(feature = "pty")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "pty")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "pty")))]
 pub mod pty;
 #[cfg(not(windows))]
 #[cfg(feature = "rand")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "rand")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "rand")))]
 pub mod rand;
 #[cfg(not(any(
     windows,
@@ -259,27 +265,27 @@ pub mod rand;
     target_os = "wasi"
 )))]
 #[cfg(feature = "shm")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "shm")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "shm")))]
 pub mod shm;
 #[cfg(not(windows))]
 #[cfg(feature = "stdio")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "stdio")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "stdio")))]
 pub mod stdio;
 #[cfg(feature = "system")]
 #[cfg(not(any(windows, target_os = "wasi")))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "system")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "system")))]
 pub mod system;
 #[cfg(not(any(windows, target_os = "vita")))]
 #[cfg(feature = "termios")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "termios")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "termios")))]
 pub mod termios;
 #[cfg(not(windows))]
 #[cfg(feature = "thread")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "thread")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "thread")))]
 pub mod thread;
 #[cfg(not(any(windows, target_os = "espidf")))]
 #[cfg(feature = "time")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "time")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "time")))]
 pub mod time;
 
 // "runtime" is also a public API module, but it's only for libc-like users.
@@ -287,7 +293,7 @@ pub mod time;
 #[cfg(feature = "runtime")]
 #[cfg(linux_raw)]
 #[cfg_attr(not(document_experimental_runtime_api), doc(hidden))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "runtime")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "runtime")))]
 pub mod runtime;
 
 // Temporarily provide some mount functions for use in the fs module for
@@ -312,7 +318,7 @@ pub(crate) mod mount;
         target_arch = "x86",
     )
 ))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "fs")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "fs")))]
 pub(crate) mod fs;
 
 // Similarly, declare `path` as a non-public module if needed.
@@ -353,13 +359,13 @@ mod prctl;
 #[cfg(not(any(windows, target_os = "espidf", target_os = "wasi")))]
 #[cfg(any(feature = "process", feature = "runtime", all(bsd, feature = "event")))]
 mod signal;
-#[cfg(not(windows))]
 #[cfg(any(
     feature = "fs",
     feature = "process",
     feature = "runtime",
     feature = "thread",
     feature = "time",
+    all(feature = "event", any(bsd, linux_kernel, windows, target_os = "wasi")),
     all(
         linux_raw,
         not(feature = "use-libc-auxv"),

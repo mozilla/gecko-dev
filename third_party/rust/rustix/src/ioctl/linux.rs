@@ -84,8 +84,8 @@ mod consts {
 }
 
 #[cfg(not(any(
-    // These have no ioctl opcodes defined in linux_raw_sys
-    // so can't use that as a known-good value for this test.
+    // These have no ioctl opcodes defined in linux_raw_sys so we can't use
+    // that as a known-good value for this test.
     target_arch = "sparc",
     target_arch = "sparc64"
 )))]

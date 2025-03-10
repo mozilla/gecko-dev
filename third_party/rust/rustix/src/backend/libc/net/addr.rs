@@ -74,9 +74,15 @@ impl SocketAddrUnix {
         })
     }
 
-    fn init() -> c::sockaddr_un {
+    const fn init() -> c::sockaddr_un {
         c::sockaddr_un {
-            #[cfg(any(bsd, target_os = "aix", target_os = "haiku", target_os = "nto"))]
+            #[cfg(any(
+                bsd,
+                target_os = "aix",
+                target_os = "haiku",
+                target_os = "nto",
+                target_os = "hurd",
+            ))]
             sun_len: 0,
             #[cfg(target_os = "vita")]
             ss_len: 0,
@@ -188,16 +194,16 @@ impl Hash for SocketAddrUnix {
 
 #[cfg(unix)]
 impl fmt::Debug for SocketAddrUnix {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(path) = self.path() {
-            path.fmt(fmt)
+            path.fmt(f)
         } else {
             #[cfg(linux_kernel)]
             if let Some(name) = self.abstract_name() {
-                return name.fmt(fmt);
+                return name.fmt(f);
             }
 
-            "(unnamed)".fmt(fmt)
+            "(unnamed)".fmt(f)
         }
     }
 }
@@ -210,7 +216,13 @@ pub type SocketAddrStorage = c::sockaddr_storage;
 #[inline]
 pub(crate) fn offsetof_sun_path() -> usize {
     let z = c::sockaddr_un {
-        #[cfg(any(bsd, target_os = "aix", target_os = "haiku", target_os = "nto"))]
+        #[cfg(any(
+            bsd,
+            target_os = "aix",
+            target_os = "haiku",
+            target_os = "hurd",
+            target_os = "nto",
+        ))]
         sun_len: 0_u8,
         #[cfg(target_os = "vita")]
         ss_len: 0,
@@ -219,6 +231,7 @@ pub(crate) fn offsetof_sun_path() -> usize {
             target_os = "aix",
             target_os = "espidf",
             target_os = "haiku",
+            target_os = "hurd",
             target_os = "nto",
             target_os = "vita"
         ))]
@@ -228,6 +241,7 @@ pub(crate) fn offsetof_sun_path() -> usize {
             target_os = "aix",
             target_os = "espidf",
             target_os = "haiku",
+            target_os = "hurd",
             target_os = "nto",
             target_os = "vita"
         )))]

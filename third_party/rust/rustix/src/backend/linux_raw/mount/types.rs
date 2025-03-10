@@ -223,9 +223,8 @@ bitflags! {
         /// `MOVE_MOUNT__MASK`
         const MOVE_MOUNT_SET_GROUP = linux_raw_sys::general::MOVE_MOUNT_SET_GROUP;
 
-        // TODO: add when Linux 6.5 is released
-        // /// `MOVE_MOUNT_BENEATH`
-        // const MOVE_MOUNT_BENEATH = linux_raw_sys::general::MOVE_MOUNT_BENEATH;
+        /// `MOVE_MOUNT_BENEATH` (since Linux 6.5)
+        const MOVE_MOUNT_BENEATH = c::MOVE_MOUNT_BENEATH;
 
         /// `MOVE_MOUNT__MASK`
         const MOVE_MOUNT__MASK = linux_raw_sys::general::MOVE_MOUNT__MASK;

@@ -2,7 +2,12 @@ use crate::{backend, io};
 
 pub use backend::event::poll_fd::{PollFd, PollFlags};
 
-/// `poll(self.fds, timeout)`
+/// `poll(self.fds, timeout)`—Wait for events on lists of file descriptors.
+///
+/// On macOS, `poll` doesn't work on fds for /dev/tty or /dev/null, however
+/// [`select`] is available and does work on these fds.
+///
+/// [`select`]: crate::event::select()
 ///
 /// # References
 ///  - [Beej's Guide to Network Programming]
@@ -17,7 +22,7 @@ pub use backend::event::poll_fd::{PollFd, PollFlags};
 ///  - [illumos]
 ///
 /// [Beej's Guide to Network Programming]: https://beej.us/guide/bgnet/html/split/slightly-advanced-techniques.html#poll
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/poll.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/poll.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/poll.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/poll.2.html
 /// [Winsock]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-wsapoll

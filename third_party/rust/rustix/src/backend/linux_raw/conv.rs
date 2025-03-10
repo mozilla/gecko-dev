@@ -107,14 +107,14 @@ pub(super) fn pass_usize<'a, Num: ArgNumber>(t: usize) -> ArgReg<'a, Num> {
 
 impl<'a, Num: ArgNumber, T> From<*mut T> for ArgReg<'a, Num> {
     #[inline]
-    fn from(c: *mut T) -> ArgReg<'a, Num> {
+    fn from(c: *mut T) -> Self {
         raw_arg(c.cast())
     }
 }
 
 impl<'a, Num: ArgNumber, T> From<*const T> for ArgReg<'a, Num> {
     #[inline]
-    fn from(c: *const T) -> ArgReg<'a, Num> {
+    fn from(c: *const T) -> Self {
         let mut_ptr = c as *mut T;
         raw_arg(mut_ptr.cast())
     }
@@ -162,7 +162,7 @@ impl<'a, Num: ArgNumber> From<BorrowedFd<'a>> for ArgReg<'a, Num> {
 pub(super) unsafe fn raw_fd<'a, Num: ArgNumber>(fd: RawFd) -> ArgReg<'a, Num> {
     // Use `no_fd` when passing `-1` is intended.
     #[cfg(feature = "fs")]
-    debug_assert!(fd == crate::fs::CWD.as_raw_fd() || fd >= 0);
+    debug_assert!(fd == crate::fs::CWD.as_raw_fd() || fd == crate::fs::ABS.as_raw_fd() || fd >= 0);
 
     // Don't pass the `io_uring_register_files_skip` sentry value this way.
     #[cfg(feature = "io_uring")]
@@ -790,11 +790,19 @@ impl<'a, Num: ArgNumber> From<(crate::net::SocketType, crate::net::SocketFlags)>
 }
 
 #[cfg(feature = "thread")]
-impl<'a, Num: ArgNumber> From<(crate::thread::FutexOperation, crate::thread::FutexFlags)>
-    for ArgReg<'a, Num>
+impl<'a, Num: ArgNumber>
+    From<(
+        crate::backend::thread::futex::Operation,
+        crate::thread::futex::Flags,
+    )> for ArgReg<'a, Num>
 {
     #[inline]
-    fn from(pair: (crate::thread::FutexOperation, crate::thread::FutexFlags)) -> Self {
+    fn from(
+        pair: (
+            crate::backend::thread::futex::Operation,
+            crate::thread::futex::Flags,
+        ),
+    ) -> Self {
         c_uint(pair.0 as u32 | pair.1.bits())
     }
 }

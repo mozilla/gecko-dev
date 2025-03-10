@@ -9,7 +9,6 @@ use crate::{backend, io};
 use backend::fd::{AsFd, BorrowedFd};
 #[cfg(not(any(
     netbsdlike,
-    solarish,
     target_os = "dragonfly",
     target_os = "espidf",
     target_os = "nto",
@@ -59,8 +58,8 @@ pub struct Timestamps {
 }
 
 impl fmt::Debug for Timestamps {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("Timestamps")
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Timestamps")
             .field("last_access.tv_sec", &self.last_access.tv_sec)
             .field("last_access.tv_nsec", &self.last_access.tv_nsec)
             .field("last_modification.tv_sec", &self.last_modification.tv_sec)
@@ -91,7 +90,7 @@ pub const NFS_SUPER_MAGIC: FsWord = backend::c::NFS_SUPER_MAGIC as FsWord;
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/lseek.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/lseek.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/lseek.2.html
 #[inline]
 #[doc(alias = "lseek")]
@@ -109,7 +108,7 @@ pub fn seek<Fd: AsFd>(fd: Fd, pos: SeekFrom) -> io::Result<u64> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/lseek.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/lseek.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/lseek.2.html
 #[inline]
 #[doc(alias = "lseek")]
@@ -126,7 +125,7 @@ pub fn tell<Fd: AsFd>(fd: Fd) -> io::Result<u64> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/fchmod.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/fchmod.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/fchmod.2.html
 #[cfg(not(target_os = "wasi"))]
 #[inline]
@@ -140,7 +139,7 @@ pub fn fchmod<Fd: AsFd>(fd: Fd, mode: Mode) -> io::Result<()> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/fchown.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/fchown.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/fchown.2.html
 #[cfg(not(target_os = "wasi"))]
 #[inline]
@@ -157,7 +156,7 @@ pub fn fchown<Fd: AsFd>(fd: Fd, owner: Option<Uid>, group: Option<Gid>) -> io::R
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/fstat.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/fstat.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/fstat.2.html
 /// [`Mode::from_raw_mode`]: Mode::from_raw_mode
 /// [`FileType::from_raw_mode`]: crate::fs::FileType::from_raw_mode
@@ -202,7 +201,7 @@ pub fn fstatfs<Fd: AsFd>(fd: Fd) -> io::Result<StatFs> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/fstatvfs.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/fstatvfs.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/fstatvfs.2.html
 #[cfg(not(any(target_os = "haiku", target_os = "redox", target_os = "wasi")))]
 #[inline]
@@ -216,7 +215,7 @@ pub fn fstatvfs<Fd: AsFd>(fd: Fd) -> io::Result<StatVfs> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/futimens.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/futimens.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/utimensat.2.html
 #[cfg(not(any(target_os = "espidf", target_os = "vita")))]
 #[inline]
@@ -236,12 +235,11 @@ pub fn futimens<Fd: AsFd>(fd: Fd, times: &Timestamps) -> io::Result<()> {
 ///  - [Linux `fallocate`]
 ///  - [Linux `posix_fallocate`]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/posix_fallocate.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/posix_fallocate.html
 /// [Linux `fallocate`]: https://man7.org/linux/man-pages/man2/fallocate.2.html
 /// [Linux `posix_fallocate`]: https://man7.org/linux/man-pages/man3/posix_fallocate.3.html
 #[cfg(not(any(
     netbsdlike,
-    solarish,
     target_os = "dragonfly",
     target_os = "espidf",
     target_os = "nto",
@@ -294,7 +292,7 @@ pub(crate) fn _is_file_read_write(fd: BorrowedFd<'_>) -> io::Result<(bool, bool)
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/fsync.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/fsync.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/fsync.2.html
 /// [`fcntl_fullfsync`]: https://docs.rs/rustix/*/x86_64-apple-darwin/rustix/fs/fn.fcntl_fullfsync.html
 #[inline]
@@ -309,7 +307,7 @@ pub fn fsync<Fd: AsFd>(fd: Fd) -> io::Result<()> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/fdatasync.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/fdatasync.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/fdatasync.2.html
 #[cfg(not(any(
     apple,
@@ -330,7 +328,7 @@ pub fn fdatasync<Fd: AsFd>(fd: Fd) -> io::Result<()> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/ftruncate.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/ftruncate.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/ftruncate.2.html
 #[inline]
 pub fn ftruncate<Fd: AsFd>(fd: Fd, length: u64) -> io::Result<()> {

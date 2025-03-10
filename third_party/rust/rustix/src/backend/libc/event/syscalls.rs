@@ -1,29 +1,58 @@
 //! libc syscalls supporting `rustix::event`.
 
 use crate::backend::c;
+#[cfg(any(linux_kernel, solarish, target_os = "redox"))]
+use crate::backend::conv::ret;
 use crate::backend::conv::ret_c_int;
-#[cfg(any(apple, netbsdlike, target_os = "dragonfly", target_os = "solaris"))]
-use crate::backend::conv::ret_owned_fd;
-use crate::event::PollFd;
-#[cfg(any(linux_kernel, bsd, solarish, target_os = "espidf"))]
-use crate::fd::OwnedFd;
-use crate::io;
-#[cfg(any(bsd, solarish))]
-use {crate::backend::conv::borrowed_fd, crate::fd::BorrowedFd, core::mem::MaybeUninit};
+#[cfg(feature = "alloc")]
+#[cfg(any(linux_kernel, solarish, target_os = "redox"))]
+use crate::backend::conv::ret_u32;
 #[cfg(solarish)]
-use {
-    crate::backend::conv::ret, crate::event::port::Event, crate::utils::as_mut_ptr,
-    core::ptr::null_mut,
-};
+use crate::event::port::Event;
 #[cfg(any(
     linux_kernel,
     target_os = "freebsd",
     target_os = "illumos",
     target_os = "espidf"
 ))]
-use {crate::backend::conv::ret_owned_fd, crate::event::EventfdFlags};
+use crate::event::EventfdFlags;
+#[cfg(any(bsd, linux_kernel, target_os = "wasi"))]
+use crate::event::FdSetElement;
+use crate::event::PollFd;
+use crate::io;
+#[cfg(solarish)]
+use crate::utils::as_mut_ptr;
+#[cfg(any(linux_kernel, solarish, target_os = "redox"))]
+use crate::utils::as_ptr;
+#[cfg(any(
+    all(feature = "alloc", bsd),
+    solarish,
+    all(feature = "alloc", any(linux_kernel, target_os = "redox")),
+))]
+use core::mem::MaybeUninit;
+#[cfg(any(bsd, linux_kernel, target_os = "wasi"))]
+use core::ptr::null;
+#[cfg(any(bsd, linux_kernel, solarish, target_os = "redox", target_os = "wasi"))]
+use core::ptr::null_mut;
+#[cfg(any(
+    linux_kernel,
+    solarish,
+    target_os = "redox",
+    all(feature = "alloc", bsd)
+))]
+use {crate::backend::conv::borrowed_fd, crate::fd::BorrowedFd};
+#[cfg(any(
+    linux_kernel,
+    solarish,
+    target_os = "freebsd",
+    target_os = "illumos",
+    target_os = "espidf",
+    target_os = "redox",
+    all(feature = "alloc", bsd)
+))]
+use {crate::backend::conv::ret_owned_fd, crate::fd::OwnedFd};
 #[cfg(all(feature = "alloc", bsd))]
-use {crate::event::kqueue::Event, crate::utils::as_ptr, core::ptr::null};
+use {crate::event::kqueue::Event, crate::utils::as_ptr};
 
 #[cfg(any(
     linux_kernel,
@@ -98,6 +127,137 @@ pub(crate) fn poll(fds: &mut [PollFd<'_>], timeout: c::c_int) -> io::Result<usiz
 
     ret_c_int(unsafe { c::poll(fds.as_mut_ptr().cast(), nfds, timeout) })
         .map(|nready| nready as usize)
+}
+
+#[cfg(any(bsd, linux_kernel))]
+pub(crate) unsafe fn select(
+    nfds: i32,
+    readfds: Option<&mut [FdSetElement]>,
+    writefds: Option<&mut [FdSetElement]>,
+    exceptfds: Option<&mut [FdSetElement]>,
+    timeout: Option<&crate::timespec::Timespec>,
+) -> io::Result<i32> {
+    let len = crate::event::fd_set_num_elements_for_bitvector(nfds);
+
+    let readfds = match readfds {
+        Some(readfds) => {
+            assert!(readfds.len() >= len);
+            readfds.as_mut_ptr()
+        }
+        None => null_mut(),
+    };
+    let writefds = match writefds {
+        Some(writefds) => {
+            assert!(writefds.len() >= len);
+            writefds.as_mut_ptr()
+        }
+        None => null_mut(),
+    };
+    let exceptfds = match exceptfds {
+        Some(exceptfds) => {
+            assert!(exceptfds.len() >= len);
+            exceptfds.as_mut_ptr()
+        }
+        None => null_mut(),
+    };
+
+    let timeout_data;
+    let timeout_ptr = match timeout {
+        Some(timeout) => {
+            // Convert from `Timespec` to `c::timeval`.
+            timeout_data = c::timeval {
+                tv_sec: timeout.tv_sec.try_into().map_err(|_| io::Errno::OVERFLOW)?,
+                tv_usec: ((timeout.tv_nsec + 999) / 1000) as _,
+            };
+            &timeout_data
+        }
+        None => null(),
+    };
+
+    // On Apple platforms, use the specially mangled `select` which doesn't
+    // have an `FD_SETSIZE` limitation.
+    #[cfg(apple)]
+    {
+        extern "C" {
+            #[link_name = "select$DARWIN_EXTSN$NOCANCEL"]
+            fn select(
+                nfds: c::c_int,
+                readfds: *mut FdSetElement,
+                writefds: *mut FdSetElement,
+                errorfds: *mut FdSetElement,
+                timeout: *const c::timeval,
+            ) -> c::c_int;
+        }
+
+        ret_c_int(select(nfds, readfds, writefds, exceptfds, timeout_ptr))
+    }
+
+    // Otherwise just use the normal `select`.
+    #[cfg(not(apple))]
+    {
+        ret_c_int(c::select(
+            nfds,
+            readfds.cast(),
+            writefds.cast(),
+            exceptfds.cast(),
+            timeout_ptr as *mut c::timeval,
+        ))
+    }
+}
+
+// WASI uses a count + array instead of a bitvector.
+#[cfg(target_os = "wasi")]
+pub(crate) unsafe fn select(
+    nfds: i32,
+    readfds: Option<&mut [FdSetElement]>,
+    writefds: Option<&mut [FdSetElement]>,
+    exceptfds: Option<&mut [FdSetElement]>,
+    timeout: Option<&crate::timespec::Timespec>,
+) -> io::Result<i32> {
+    let len = crate::event::fd_set_num_elements_for_fd_array(nfds as usize);
+
+    let readfds = match readfds {
+        Some(readfds) => {
+            assert!(readfds.len() >= len);
+            readfds.as_mut_ptr()
+        }
+        None => null_mut(),
+    };
+    let writefds = match writefds {
+        Some(writefds) => {
+            assert!(writefds.len() >= len);
+            writefds.as_mut_ptr()
+        }
+        None => null_mut(),
+    };
+    let exceptfds = match exceptfds {
+        Some(exceptfds) => {
+            assert!(exceptfds.len() >= len);
+            exceptfds.as_mut_ptr()
+        }
+        None => null_mut(),
+    };
+
+    let timeout_data;
+    let timeout_ptr = match timeout {
+        Some(timeout) => {
+            // Convert from `Timespec` to `c::timeval`.
+            timeout_data = c::timeval {
+                tv_sec: timeout.tv_sec.try_into().map_err(|_| io::Errno::OVERFLOW)?,
+                tv_usec: ((timeout.tv_nsec + 999) / 1000) as _,
+            };
+            &timeout_data
+        }
+        None => null(),
+    };
+
+    ret_c_int(c::select(
+        nfds,
+        readfds.cast(),
+        writefds.cast(),
+        exceptfds.cast(),
+        timeout_ptr as *mut c::timeval,
+    ))
 }
 
 #[cfg(solarish)]
@@ -182,10 +342,87 @@ pub(crate) fn port_send(
     unsafe { ret(c::port_send(borrowed_fd(port), events, userdata)) }
 }
 
-#[cfg(not(any(windows, target_os = "redox", target_os = "wasi")))]
+#[cfg(not(any(target_os = "redox", target_os = "wasi")))]
 pub(crate) fn pause() {
-    let r = unsafe { libc::pause() };
+    let r = unsafe { c::pause() };
     let errno = libc_errno::errno().0;
     debug_assert_eq!(r, -1);
-    debug_assert_eq!(errno, libc::EINTR);
+    debug_assert_eq!(errno, c::EINTR);
+}
+
+#[inline]
+#[cfg(any(linux_kernel, solarish, target_os = "redox"))]
+pub(crate) fn epoll_create(flags: super::epoll::CreateFlags) -> io::Result<OwnedFd> {
+    unsafe { ret_owned_fd(c::epoll_create1(bitflags_bits!(flags))) }
+}
+
+#[inline]
+#[cfg(any(linux_kernel, solarish, target_os = "redox"))]
+pub(crate) fn epoll_add(
+    epoll: BorrowedFd<'_>,
+    source: BorrowedFd<'_>,
+    event: &crate::event::epoll::Event,
+) -> io::Result<()> {
+    // We use our own `Event` struct instead of libc's because
+    // ours preserves pointer provenance instead of just using a `u64`,
+    // and we have tests elsewhere for layout equivalence.
+    unsafe {
+        ret(c::epoll_ctl(
+            borrowed_fd(epoll),
+            c::EPOLL_CTL_ADD,
+            borrowed_fd(source),
+            // The event is read-only even though libc has a non-const pointer.
+            as_ptr(event) as *mut c::epoll_event,
+        ))
+    }
+}
+
+#[inline]
+#[cfg(any(linux_kernel, solarish, target_os = "redox"))]
+pub(crate) fn epoll_mod(
+    epoll: BorrowedFd<'_>,
+    source: BorrowedFd<'_>,
+    event: &crate::event::epoll::Event,
+) -> io::Result<()> {
+    unsafe {
+        ret(c::epoll_ctl(
+            borrowed_fd(epoll),
+            c::EPOLL_CTL_MOD,
+            borrowed_fd(source),
+            // The event is read-only even though libc has a non-const pointer.
+            as_ptr(event) as *mut c::epoll_event,
+        ))
+    }
+}
+
+#[inline]
+#[cfg(any(linux_kernel, solarish, target_os = "redox"))]
+pub(crate) fn epoll_del(epoll: BorrowedFd<'_>, source: BorrowedFd<'_>) -> io::Result<()> {
+    unsafe {
+        ret(c::epoll_ctl(
+            borrowed_fd(epoll),
+            c::EPOLL_CTL_DEL,
+            borrowed_fd(source),
+            null_mut(),
+        ))
+    }
+}
+
+#[inline]
+#[cfg(feature = "alloc")]
+#[cfg(any(linux_kernel, solarish, target_os = "redox"))]
+pub(crate) fn epoll_wait(
+    epoll: BorrowedFd<'_>,
+    events: &mut [MaybeUninit<crate::event::epoll::Event>],
+    timeout: c::c_int,
+) -> io::Result<usize> {
+    unsafe {
+        ret_u32(c::epoll_wait(
+            borrowed_fd(epoll),
+            events.as_mut_ptr().cast::<c::epoll_event>(),
+            events.len().try_into().unwrap_or(i32::MAX),
+            timeout,
+        ))
+        .map(|i| i.try_into().unwrap_or(usize::MAX))
+    }
 }

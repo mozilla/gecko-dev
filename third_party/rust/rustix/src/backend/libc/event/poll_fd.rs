@@ -40,10 +40,14 @@ bitflags! {
         #[cfg(not(target_os = "espidf"))]
         const NVAL = c::POLLNVAL;
         /// `POLLRDHUP`
-        #[cfg(all(
-            linux_kernel,
-            not(any(target_arch = "sparc", target_arch = "sparc64"))),
-        )]
+        #[cfg(any(
+            target_os = "freebsd",
+            target_os = "illumos",
+            all(
+                linux_kernel,
+                not(any(target_arch = "sparc", target_arch = "sparc64"))
+            ),
+        ))]
         const RDHUP = c::POLLRDHUP;
 
         /// <https://docs.rs/bitflags/*/bitflags/#externally-defined-flags>
@@ -63,8 +67,8 @@ pub struct PollFd<'fd> {
 }
 
 impl<'fd> fmt::Debug for PollFd<'fd> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("PollFd")
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("PollFd")
             .field("fd", &self.pollfd.fd)
             .field("events", &self.pollfd.events)
             .field("revents", &self.pollfd.revents)

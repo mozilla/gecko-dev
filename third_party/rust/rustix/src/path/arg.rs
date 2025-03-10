@@ -3,7 +3,8 @@
 //! This module defines the `Arg` trait and implements it for several common
 //! string types. This allows users to pass any of these string types directly
 //! to rustix APIs with string arguments, and it allows rustix to implement
-//! NUL-termination without the need for copying where possible.
+//! NUL-termination without the need for copying or dynamic allocation where
+//! possible.
 
 use crate::ffi::CStr;
 use crate::io;
@@ -90,9 +91,9 @@ pub trait Arg {
 }
 
 /// Runs a closure on `arg` where `A` is mapped to a `&CStr`
-pub fn option_into_with_c_str<T, F, A: Arg>(arg: Option<A>, f: F) -> io::Result<T>
+pub fn option_into_with_c_str<T, F, A>(arg: Option<A>, f: F) -> io::Result<T>
 where
-    A: Sized,
+    A: Arg + Sized,
     F: FnOnce(Option<&CStr>) -> io::Result<T>,
 {
     if let Some(arg) = arg {
@@ -1032,7 +1033,7 @@ where
     // `openat` to open the files under it, which will avoid this, and is often
     // faster in the OS as well.
 
-    // Test with >= so that we have room for the trailing NUL.
+    // Test with `>=` so that we have room for the trailing NUL.
     if bytes.len() >= SMALL_PATH_BUFFER_SIZE {
         return with_c_str_slow_path(bytes, f);
     }
@@ -1076,11 +1077,11 @@ where
 
     #[cfg(not(feature = "alloc"))]
     {
-        #[cfg(all(libc, not(target_os = "wasi")))]
+        #[cfg(all(libc, not(any(target_os = "hurd", target_os = "wasi"))))]
         const LARGE_PATH_BUFFER_SIZE: usize = libc::PATH_MAX as usize;
         #[cfg(linux_raw)]
         const LARGE_PATH_BUFFER_SIZE: usize = linux_raw_sys::general::PATH_MAX as usize;
-        #[cfg(target_os = "wasi")]
+        #[cfg(any(target_os = "hurd", target_os = "wasi"))]
         const LARGE_PATH_BUFFER_SIZE: usize = 4096 as usize; // TODO: upstream this
 
         // Taken from

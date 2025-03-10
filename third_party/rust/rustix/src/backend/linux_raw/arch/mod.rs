@@ -32,6 +32,7 @@
 #[cfg_attr(target_arch = "mips64r6", path = "mips64r6.rs")]
 #[cfg_attr(target_arch = "powerpc64", path = "powerpc64.rs")]
 #[cfg_attr(target_arch = "riscv64", path = "riscv64.rs")]
+#[cfg_attr(target_arch = "s390x", path = "s390x.rs")]
 #[cfg_attr(target_arch = "x86", path = "x86.rs")]
 #[cfg_attr(target_arch = "x86_64", path = "x86_64.rs")]
 pub(in crate::backend) mod asm;
@@ -47,6 +48,7 @@ pub(in crate::backend) mod asm;
     target_arch = "mips64r6",
     target_arch = "powerpc64",
     target_arch = "riscv64",
+    target_arch = "s390x",
     target_arch = "x86_64",
 ))]
 pub(in crate::backend) use self::asm as choose;

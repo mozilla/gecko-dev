@@ -17,11 +17,11 @@ use {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/chdir.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/chdir.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/chdir.2.html
 #[inline]
 #[cfg(feature = "fs")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "fs")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "fs")))]
 pub fn chdir<P: path::Arg>(path: P) -> io::Result<()> {
     path.into_with_c_str(backend::process::syscalls::chdir)
 }
@@ -32,7 +32,7 @@ pub fn chdir<P: path::Arg>(path: P) -> io::Result<()> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/fchdir.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/fchdir.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/fchdir.2.html
 #[cfg(not(target_os = "fuchsia"))]
 #[inline]
@@ -40,7 +40,7 @@ pub fn fchdir<Fd: AsFd>(fd: Fd) -> io::Result<()> {
     backend::process::syscalls::fchdir(fd.as_fd())
 }
 
-/// `getCWD`—Return the current working directory.
+/// `getcwd`—Return the current working directory.
 ///
 /// If `reuse` already has available capacity, reuse it if possible.
 ///
@@ -48,11 +48,11 @@ pub fn fchdir<Fd: AsFd>(fd: Fd) -> io::Result<()> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/getcwd.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/getcwd.html
 /// [Linux]: https://man7.org/linux/man-pages/man3/getcwd.3.html
 #[cfg(all(feature = "alloc", feature = "fs"))]
 #[cfg(not(target_os = "wasi"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "fs")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "fs")))]
 #[inline]
 pub fn getcwd<B: Into<Vec<u8>>>(reuse: B) -> io::Result<CString> {
     _getcwd(reuse.into())
@@ -73,14 +73,14 @@ fn _getcwd(mut buffer: Vec<u8>) -> io::Result<CString> {
             }
             Ok(_) => {
                 // SAFETY:
-                // - "These functions return a null-terminated string"
-                // - [POSIX definition 3.375: String]: "A contiguous sequence
-                //   of bytes terminated by and including the first null byte."
+                // - “These functions return a null-terminated string”
+                // - [POSIX definition 3.375: String]: “A contiguous sequence
+                //   of bytes terminated by and including the first null byte.”
                 //
                 // Thus, there will be a single NUL byte at the end of the
                 // string.
                 //
-                // [POSIX definition 3.375: String]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_375
+                // [POSIX definition 3.375: String]: https://pubs.opengroup.org/onlinepubs/9799919799/basedefs/V1_chap03.html#tag_03_375
                 unsafe {
                     buffer.set_len(
                         CStr::from_ptr(buffer.as_ptr().cast())

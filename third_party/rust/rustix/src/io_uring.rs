@@ -35,10 +35,12 @@ use linux_raw_sys::net;
 pub use crate::event::epoll::{
     Event as EpollEvent, EventData as EpollEventData, EventFlags as EpollEventFlags,
 };
-pub use crate::fs::{Advice, AtFlags, Mode, OFlags, RenameFlags, ResolveFlags, Statx, StatxFlags};
+pub use crate::fs::{
+    Advice, AtFlags, Mode, OFlags, RenameFlags, ResolveFlags, Statx, StatxFlags, XattrFlags,
+};
 pub use crate::io::ReadWriteFlags;
 pub use crate::net::{RecvFlags, SendFlags, SocketFlags};
-pub use crate::timespec::Timespec;
+pub use crate::timespec::{Nsecs, Secs, Timespec};
 pub use linux_raw_sys::general::sigset_t;
 
 pub use net::{__kernel_sockaddr_storage as sockaddr_storage, msghdr, sockaddr, socklen_t};
@@ -113,6 +115,30 @@ pub unsafe fn io_uring_register<Fd: AsFd>(
     nr_args: u32,
 ) -> io::Result<u32> {
     backend::io_uring::syscalls::io_uring_register(fd.as_fd(), opcode, arg, nr_args)
+}
+
+/// `io_uring_register_with(fd, opcode, flags, arg, nr_args)`—Register files or
+/// user buffers for asynchronous I/O.
+///
+/// # Safety
+///
+/// io_uring operates on raw pointers and raw file descriptors. Users are
+/// responsible for ensuring that memory and resources are only accessed in
+/// valid ways.
+///
+/// # References
+///  - [Linux]
+///
+/// [Linux]: https://man.archlinux.org/man/io_uring_register.2.en
+#[inline]
+pub unsafe fn io_uring_register_with<Fd: AsFd>(
+    fd: Fd,
+    opcode: IoringRegisterOp,
+    flags: IoringRegisterFlags,
+    arg: *const c_void,
+    nr_args: u32,
+) -> io::Result<u32> {
+    backend::io_uring::syscalls::io_uring_register_with(fd.as_fd(), opcode, flags, arg, nr_args)
 }
 
 /// `io_uring_enter(fd, to_submit, min_complete, flags, arg, size)`—Initiate
@@ -258,6 +284,19 @@ pub enum IoringRegisterOp {
 
     /// `IORING_REGISTER_FILE_ALLOC_RANGE`
     RegisterFileAllocRange = sys::IORING_REGISTER_FILE_ALLOC_RANGE as _,
+}
+
+bitflags::bitflags! {
+    /// `IORING_REGISTER_*` flags for use with [`io_uring_register_with`].
+    #[repr(transparent)]
+    #[derive(Default, Copy, Clone, Eq, PartialEq, Hash, Debug)]
+    pub struct IoringRegisterFlags: u32 {
+        /// `IORING_REGISTER_USE_REGISTERED_RING`
+        const USE_REGISTERED_RING = sys::IORING_REGISTER_USE_REGISTERED_RING as u32;
+
+        /// <https://docs.rs/bitflags/*/bitflags/#externally-defined-flags>
+        const _ = !0;
+    }
 }
 
 /// `IORING_OP_*` constants for use with [`io_uring_sqe`].
@@ -505,6 +544,15 @@ bitflags::bitflags! {
         /// `IORING_SETUP_DEFER_TASKRUN`
         const DEFER_TASKRUN = sys::IORING_SETUP_DEFER_TASKRUN;
 
+        /// `IORING_SETUP_NO_MMAP`
+        const NO_MMAP = sys::IORING_SETUP_NO_MMAP;
+
+        /// `IORING_SETUP_REGISTERED_FD_ONLY`
+        const REGISTERED_FD_ONLY = sys::IORING_SETUP_REGISTERED_FD_ONLY;
+
+        /// `IORING_SETUP_NO_SQARRAY`
+        const NO_SQARRAY = sys::IORING_SETUP_NO_SQARRAY;
+
         /// <https://docs.rs/bitflags/*/bitflags/#externally-defined-flags>
         const _ = !0;
     }
@@ -705,6 +753,9 @@ bitflags::bitflags! {
 
         /// `IORING_FEAT_LINKED_FILE`
         const LINKED_FILE = sys::IORING_FEAT_LINKED_FILE;
+
+        /// `IORING_FEAT_REG_REG_RING`
+        const REG_REG_RING = sys::IORING_FEAT_REG_REG_RING;
 
         /// <https://docs.rs/bitflags/*/bitflags/#externally-defined-flags>
         const _ = !0;
@@ -1008,10 +1059,10 @@ impl Default for io_uring_user_data {
 }
 
 impl core::fmt::Debug for io_uring_user_data {
-    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         // SAFETY: Just format as a `u64`, since formatting doesn't preserve
         // provenance, and we don't have a discriminant.
-        unsafe { self.u64_.fmt(fmt) }
+        unsafe { self.u64_.fmt(f) }
     }
 }
 
@@ -1122,6 +1173,7 @@ pub union op_flags_union {
     pub rename_flags: RenameFlags,
     pub unlink_flags: AtFlags,
     pub hardlink_flags: AtFlags,
+    pub xattr_flags: XattrFlags,
     pub msg_ring_flags: IoringMsgringFlags,
 }
 
@@ -1444,103 +1496,108 @@ impl Default for register_or_sqe_op_or_sqe_flags_union {
     }
 }
 
-/// Check that our custom structs and unions have the same layout as the
-/// kernel's versions.
-#[test]
-fn io_uring_layouts() {
-    use sys as c;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    assert_eq_size!(io_uring_ptr, u64);
+    /// Check that our custom structs and unions have the same layout as the
+    /// kernel's versions.
+    #[test]
+    fn io_uring_layouts() {
+        use sys as c;
 
-    check_renamed_type!(off_or_addr2_union, io_uring_sqe__bindgen_ty_1);
-    check_renamed_type!(addr_or_splice_off_in_union, io_uring_sqe__bindgen_ty_2);
-    check_renamed_type!(addr3_or_cmd_union, io_uring_sqe__bindgen_ty_6);
-    check_renamed_type!(op_flags_union, io_uring_sqe__bindgen_ty_3);
-    check_renamed_type!(buf_union, io_uring_sqe__bindgen_ty_4);
-    check_renamed_type!(splice_fd_in_or_file_index_union, io_uring_sqe__bindgen_ty_5);
-    check_renamed_type!(addr_len_struct, io_uring_sqe__bindgen_ty_5__bindgen_ty_1);
-    check_renamed_type!(
-        register_or_sqe_op_or_sqe_flags_union,
-        io_uring_restriction__bindgen_ty_1
-    );
+        assert_eq_size!(io_uring_ptr, u64);
 
-    check_renamed_type!(addr3_struct, io_uring_sqe__bindgen_ty_6__bindgen_ty_1);
-    check_renamed_type!(cmd_op_struct, io_uring_sqe__bindgen_ty_1__bindgen_ty_1);
+        check_renamed_type!(off_or_addr2_union, io_uring_sqe__bindgen_ty_1);
+        check_renamed_type!(addr_or_splice_off_in_union, io_uring_sqe__bindgen_ty_2);
+        check_renamed_type!(addr3_or_cmd_union, io_uring_sqe__bindgen_ty_6);
+        check_renamed_type!(op_flags_union, io_uring_sqe__bindgen_ty_3);
+        check_renamed_type!(buf_union, io_uring_sqe__bindgen_ty_4);
+        check_renamed_type!(splice_fd_in_or_file_index_union, io_uring_sqe__bindgen_ty_5);
+        check_renamed_type!(addr_len_struct, io_uring_sqe__bindgen_ty_5__bindgen_ty_1);
+        check_renamed_type!(
+            register_or_sqe_op_or_sqe_flags_union,
+            io_uring_restriction__bindgen_ty_1
+        );
 
-    check_type!(io_uring_sqe);
-    check_struct_field!(io_uring_sqe, opcode);
-    check_struct_field!(io_uring_sqe, flags);
-    check_struct_field!(io_uring_sqe, ioprio);
-    check_struct_field!(io_uring_sqe, fd);
-    check_struct_renamed_field!(io_uring_sqe, off_or_addr2, __bindgen_anon_1);
-    check_struct_renamed_field!(io_uring_sqe, addr_or_splice_off_in, __bindgen_anon_2);
-    check_struct_field!(io_uring_sqe, len);
-    check_struct_renamed_field!(io_uring_sqe, op_flags, __bindgen_anon_3);
-    check_struct_field!(io_uring_sqe, user_data);
-    check_struct_renamed_field!(io_uring_sqe, buf, __bindgen_anon_4);
-    check_struct_field!(io_uring_sqe, personality);
-    check_struct_renamed_field!(io_uring_sqe, splice_fd_in_or_file_index, __bindgen_anon_5);
-    check_struct_renamed_field!(io_uring_sqe, addr3_or_cmd, __bindgen_anon_6);
+        check_renamed_type!(addr3_struct, io_uring_sqe__bindgen_ty_6__bindgen_ty_1);
+        check_renamed_type!(cmd_op_struct, io_uring_sqe__bindgen_ty_1__bindgen_ty_1);
 
-    check_type!(io_uring_restriction);
-    check_struct_field!(io_uring_restriction, opcode);
-    check_struct_renamed_field!(
-        io_uring_restriction,
-        register_or_sqe_op_or_sqe_flags,
-        __bindgen_anon_1
-    );
-    check_struct_field!(io_uring_restriction, resv);
-    check_struct_field!(io_uring_restriction, resv2);
+        check_type!(io_uring_sqe);
+        check_struct_field!(io_uring_sqe, opcode);
+        check_struct_field!(io_uring_sqe, flags);
+        check_struct_field!(io_uring_sqe, ioprio);
+        check_struct_field!(io_uring_sqe, fd);
+        check_struct_renamed_field!(io_uring_sqe, off_or_addr2, __bindgen_anon_1);
+        check_struct_renamed_field!(io_uring_sqe, addr_or_splice_off_in, __bindgen_anon_2);
+        check_struct_field!(io_uring_sqe, len);
+        check_struct_renamed_field!(io_uring_sqe, op_flags, __bindgen_anon_3);
+        check_struct_field!(io_uring_sqe, user_data);
+        check_struct_renamed_field!(io_uring_sqe, buf, __bindgen_anon_4);
+        check_struct_field!(io_uring_sqe, personality);
+        check_struct_renamed_field!(io_uring_sqe, splice_fd_in_or_file_index, __bindgen_anon_5);
+        check_struct_renamed_field!(io_uring_sqe, addr3_or_cmd, __bindgen_anon_6);
 
-    check_struct!(io_uring_cqe, user_data, res, flags, big_cqe);
-    check_struct!(
-        io_uring_params,
-        sq_entries,
-        cq_entries,
-        flags,
-        sq_thread_cpu,
-        sq_thread_idle,
-        features,
-        wq_fd,
-        resv,
-        sq_off,
-        cq_off
-    );
-    check_struct!(
-        io_sqring_offsets,
-        head,
-        tail,
-        ring_mask,
-        ring_entries,
-        flags,
-        dropped,
-        array,
-        resv1,
-        resv2
-    );
-    check_struct!(
-        io_cqring_offsets,
-        head,
-        tail,
-        ring_mask,
-        ring_entries,
-        overflow,
-        cqes,
-        flags,
-        resv1,
-        resv2
-    );
-    check_struct!(io_uring_recvmsg_out, namelen, controllen, payloadlen, flags);
-    check_struct!(io_uring_probe, last_op, ops_len, resv, resv2, ops);
-    check_struct!(io_uring_probe_op, op, resv, flags, resv2);
-    check_struct!(io_uring_files_update, offset, resv, fds);
-    check_struct!(io_uring_rsrc_register, nr, flags, resv2, data, tags);
-    check_struct!(io_uring_rsrc_update, offset, resv, data);
-    check_struct!(io_uring_rsrc_update2, offset, resv, data, tags, nr, resv2);
-    check_struct!(io_uring_getevents_arg, sigmask, sigmask_sz, pad, ts);
-    check_struct!(iovec, iov_base, iov_len);
-    check_struct!(open_how, flags, mode, resolve);
-    check_struct!(io_uring_buf_reg, ring_addr, ring_entries, bgid, pad, resv);
-    check_struct!(io_uring_buf, addr, len, bid, resv);
-    check_struct!(io_uring_sync_cancel_reg, addr, fd, flags, timeout, pad);
+        check_type!(io_uring_restriction);
+        check_struct_field!(io_uring_restriction, opcode);
+        check_struct_renamed_field!(
+            io_uring_restriction,
+            register_or_sqe_op_or_sqe_flags,
+            __bindgen_anon_1
+        );
+        check_struct_field!(io_uring_restriction, resv);
+        check_struct_field!(io_uring_restriction, resv2);
+
+        check_struct!(io_uring_cqe, user_data, res, flags, big_cqe);
+        check_struct!(
+            io_uring_params,
+            sq_entries,
+            cq_entries,
+            flags,
+            sq_thread_cpu,
+            sq_thread_idle,
+            features,
+            wq_fd,
+            resv,
+            sq_off,
+            cq_off
+        );
+        check_struct!(
+            io_sqring_offsets,
+            head,
+            tail,
+            ring_mask,
+            ring_entries,
+            flags,
+            dropped,
+            array,
+            resv1,
+            resv2
+        );
+        check_struct!(
+            io_cqring_offsets,
+            head,
+            tail,
+            ring_mask,
+            ring_entries,
+            overflow,
+            cqes,
+            flags,
+            resv1,
+            resv2
+        );
+        check_struct!(io_uring_recvmsg_out, namelen, controllen, payloadlen, flags);
+        check_struct!(io_uring_probe, last_op, ops_len, resv, resv2, ops);
+        check_struct!(io_uring_probe_op, op, resv, flags, resv2);
+        check_struct!(io_uring_files_update, offset, resv, fds);
+        check_struct!(io_uring_rsrc_register, nr, flags, resv2, data, tags);
+        check_struct!(io_uring_rsrc_update, offset, resv, data);
+        check_struct!(io_uring_rsrc_update2, offset, resv, data, tags, nr, resv2);
+        check_struct!(io_uring_getevents_arg, sigmask, sigmask_sz, pad, ts);
+        check_struct!(iovec, iov_base, iov_len);
+        check_struct!(open_how, flags, mode, resolve);
+        check_struct!(io_uring_buf_reg, ring_addr, ring_entries, bgid, pad, resv);
+        check_struct!(io_uring_buf, addr, len, bid, resv);
+        check_struct!(io_uring_sync_cancel_reg, addr, fd, flags, timeout, pad);
+    }
 }

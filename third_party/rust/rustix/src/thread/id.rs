@@ -35,7 +35,7 @@ pub fn gettid() -> Pid {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/setuid.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/setuid.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/setuid.2.html
 /// [linux_notes]: https://man7.org/linux/man-pages/man2/setuid.2.html#NOTES
 #[inline]
@@ -83,7 +83,7 @@ pub fn set_thread_res_uid(ruid: Uid, euid: Uid, suid: Uid) -> io::Result<()> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/setgid.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/setgid.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/setgid.2.html
 /// [linux_notes]: https://man7.org/linux/man-pages/man2/setgid.2.html#NOTES
 #[inline]

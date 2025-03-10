@@ -22,7 +22,7 @@ use libc_errno::errno;
 ///  - [illumos]
 ///  - [glibc]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/errno.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/errno.html
 /// [Linux]: https://man7.org/linux/man-pages/man3/errno.3.html
 /// [Winsock]: https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?errno
@@ -30,8 +30,7 @@ use libc_errno::errno;
 /// [OpenBSD]: https://man.openbsd.org/errno.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=errno&section=2
 /// [illumos]: https://illumos.org/man/3C/errno
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Error-Codes.html
-/// [`std::io::Error`]: Result
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Error-Codes.html
 #[repr(transparent)]
 #[doc(alias = "errno")]
 #[derive(Eq, PartialEq, Hash, Copy, Clone)]

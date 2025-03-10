@@ -44,7 +44,7 @@ use compat::statx as _statx;
 ///             let present = (r.stx_attributes_mask & mountroot_flag) > 0;
 ///             Ok(present.then(|| r.stx_attributes & mountroot_flag > 0))
 ///         }
-///         Err(e) if e == rustix::io::Errno::NOSYS => Ok(None),
+///         Err(rustix::io::Errno::NOSYS) => Ok(None),
 ///         Err(e) => Err(e.into()),
 ///     }
 /// }

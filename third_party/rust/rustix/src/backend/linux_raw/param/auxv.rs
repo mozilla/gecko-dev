@@ -32,6 +32,10 @@ use linux_raw_sys::general::{
 #[cfg(feature = "alloc")]
 use {alloc::borrow::Cow, alloc::vec};
 
+// TODO: Fix linux-raw-sys to define EM_CURRENT for s390x.
+#[cfg(target_arch = "s390x")]
+const EM_CURRENT: u16 = 22; // EM_S390
+
 #[cfg(feature = "param")]
 #[inline]
 pub(crate) fn page_size() -> usize {
@@ -145,7 +149,7 @@ pub(in super::super) fn sysinfo_ehdr() -> *const Elf_Ehdr {
     let mut ehdr = SYSINFO_EHDR.load(Relaxed);
 
     if ehdr.is_null() {
-        // Use `maybe_init_auxv` to to read the aux vectors if it can, but do
+        // Use `maybe_init_auxv` to read the aux vectors if it can, but do
         // nothing if it can't. If it can't, then we'll get a null pointer
         // here, which our callers are prepared to deal with.
         maybe_init_auxv();
@@ -204,9 +208,9 @@ static RANDOM: AtomicPtr<[u8; 16]> = AtomicPtr::new(null_mut());
 
 const PR_GET_AUXV: c::c_int = 0x4155_5856;
 
-/// Use Linux >= 6.4's `PR_GET_AUXV` to read the aux records, into a provided
+/// Use Linux ≥ 6.4's `PR_GET_AUXV` to read the aux records, into a provided
 /// statically-sized buffer. Return:
-///  - `Ok(...)` if the buffer is big enough.
+///  - `Ok(…)` if the buffer is big enough.
 ///  - `Err(Ok(len))` if we need a buffer of length `len`.
 ///  - `Err(Err(err))` if we failed with `err`.
 #[cold]
@@ -228,10 +232,10 @@ fn pr_get_auxv_static(buffer: &mut [u8; 512]) -> Result<&mut [u8], crate::io::Re
     Err(Ok(len))
 }
 
-/// Use Linux >= 6.4's `PR_GET_AUXV` to read the aux records, using a provided
+/// Use Linux ≥ 6.4's `PR_GET_AUXV` to read the aux records, using a provided
 /// statically-sized buffer if possible, or a dynamically allocated buffer
 /// otherwise. Return:
-///  - Ok(...) on success.
+///  - Ok(…) on success.
 ///  - Err(err) on failure.
 #[cfg(feature = "alloc")]
 #[cold]
@@ -270,9 +274,7 @@ fn init_auxv() {
 /// must be prepared for initialization to be skipped.
 #[cold]
 fn maybe_init_auxv() {
-    if let Ok(()) = init_auxv_impl() {
-        return;
-    }
+    let _ = init_auxv_impl();
 }
 
 /// If we don't have "use-explicitly-provided-auxv" or "use-libc-auxv", we

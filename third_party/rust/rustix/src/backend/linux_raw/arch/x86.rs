@@ -357,6 +357,7 @@ pub(in crate::backend) unsafe fn syscall4_readonly(
     a3: ArgReg<'_, A3>,
 ) -> RetReg<R0> {
     let r0;
+    // See the comments in `syscall4`.
     asm!(
         "xchg esi, {a3}",
         "int $$0x80",

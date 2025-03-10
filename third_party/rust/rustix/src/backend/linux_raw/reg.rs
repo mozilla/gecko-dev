@@ -206,7 +206,7 @@ impl<Num: RetNumber> FromAsm for RetReg<Num> {
 
 #[repr(transparent)]
 pub(super) struct SyscallNumber<'a> {
-    nr: usize,
+    pub(super) nr: usize,
     _phantom: PhantomData<&'a ()>,
 }
 

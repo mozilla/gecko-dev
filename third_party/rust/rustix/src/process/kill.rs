@@ -9,7 +9,7 @@ pub use crate::signal::Signal;
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/kill.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/kill.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/kill.2.html
 #[inline]
 #[doc(alias = "kill")]
@@ -27,7 +27,7 @@ pub fn kill_process(pid: Pid, sig: Signal) -> io::Result<()> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/kill.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/kill.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/kill.2.html
 #[inline]
 #[doc(alias = "kill")]
@@ -42,7 +42,7 @@ pub fn kill_process_group(pid: Pid, sig: Signal) -> io::Result<()> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/kill.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/kill.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/kill.2.html
 #[inline]
 #[doc(alias = "kill")]
@@ -57,7 +57,7 @@ pub fn kill_current_process_group(sig: Signal) -> io::Result<()> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/kill.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/kill.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/kill.2.html
 #[inline]
 #[doc(alias = "kill")]
@@ -72,7 +72,7 @@ pub fn test_kill_process(pid: Pid) -> io::Result<()> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/kill.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/kill.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/kill.2.html
 #[inline]
 #[doc(alias = "kill")]
@@ -88,7 +88,7 @@ pub fn test_kill_process_group(pid: Pid) -> io::Result<()> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/kill.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/kill.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/kill.2.html
 #[inline]
 #[doc(alias = "kill")]

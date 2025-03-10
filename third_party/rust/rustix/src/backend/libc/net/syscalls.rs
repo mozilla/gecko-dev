@@ -526,8 +526,8 @@ pub(crate) fn acceptfrom_with(
     }
 }
 
-/// Darwin lacks `accept4`, but does have `accept`. We define
-/// `SocketFlags` to have no flags, so we can discard it here.
+/// Darwin lacks `accept4`, but does have `accept`. We define `SocketFlags` to
+/// have no flags, so we can discard it here.
 #[cfg(any(
     apple,
     windows,
@@ -541,8 +541,8 @@ pub(crate) fn accept_with(sockfd: BorrowedFd<'_>, _flags: SocketFlags) -> io::Re
     accept(sockfd)
 }
 
-/// Darwin lacks `accept4`, but does have `accept`. We define
-/// `SocketFlags` to have no flags, so we can discard it here.
+/// Darwin lacks `accept4`, but does have `accept`. We define `SocketFlags` to
+/// have no flags, so we can discard it here.
 #[cfg(any(
     apple,
     windows,

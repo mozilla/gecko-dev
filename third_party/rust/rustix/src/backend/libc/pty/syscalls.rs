@@ -6,7 +6,13 @@ use crate::fd::BorrowedFd;
 use crate::io;
 #[cfg(all(
     feature = "alloc",
-    any(apple, linux_like, target_os = "freebsd", target_os = "fuchsia")
+    any(
+        apple,
+        linux_like,
+        target_os = "freebsd",
+        target_os = "fuchsia",
+        target_os = "illumos"
+    )
 ))]
 use {
     crate::ffi::{CStr, CString},
@@ -26,7 +32,13 @@ pub(crate) fn openpt(flags: OpenptFlags) -> io::Result<OwnedFd> {
 
 #[cfg(all(
     feature = "alloc",
-    any(apple, linux_like, target_os = "freebsd", target_os = "fuchsia")
+    any(
+        apple,
+        linux_like,
+        target_os = "freebsd",
+        target_os = "fuchsia",
+        target_os = "illumos"
+    )
 ))]
 #[inline]
 pub(crate) fn ptsname(fd: BorrowedFd<'_>, mut buffer: Vec<u8>) -> io::Result<CString> {
@@ -38,7 +50,7 @@ pub(crate) fn ptsname(fd: BorrowedFd<'_>, mut buffer: Vec<u8>) -> io::Result<CSt
 
     loop {
         // On platforms with `ptsname_r`, use it.
-        #[cfg(any(linux_like, target_os = "fuchsia"))]
+        #[cfg(any(linux_like, target_os = "fuchsia", target_os = "illumos"))]
         let r = unsafe { c::ptsname_r(borrowed_fd(fd), buffer.as_mut_ptr().cast(), buffer.len()) };
 
         // FreeBSD 12 doesn't have `ptsname_r`.

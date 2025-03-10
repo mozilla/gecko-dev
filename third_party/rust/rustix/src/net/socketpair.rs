@@ -16,7 +16,7 @@ use crate::{backend, io};
 ///  - [illumos]
 ///  - [glibc]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/socketpair.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/socketpair.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/socketpair.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/socketpair.2.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=socketpair&sektion=2
@@ -24,7 +24,7 @@ use crate::{backend, io};
 /// [OpenBSD]: https://man.openbsd.org/socketpair.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=socketpair&section=2
 /// [illumos]: https://illumos.org/man/3SOCKET/socketpair
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Socket-Pairs.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Socket-Pairs.html
 #[inline]
 pub fn socketpair(
     domain: AddressFamily,

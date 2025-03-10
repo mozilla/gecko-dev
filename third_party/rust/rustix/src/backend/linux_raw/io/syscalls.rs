@@ -241,6 +241,12 @@ pub(crate) unsafe fn close(fd: RawFd) {
     syscall_readonly!(__NR_close, raw_fd(fd)).decode_void();
 }
 
+#[cfg(feature = "try_close")]
+#[inline]
+pub(crate) unsafe fn try_close(fd: RawFd) -> io::Result<()> {
+    ret(syscall_readonly!(__NR_close, raw_fd(fd)))
+}
+
 #[inline]
 pub(crate) unsafe fn ioctl(
     fd: BorrowedFd<'_>,
@@ -271,7 +277,7 @@ pub(crate) fn is_read_write(fd: BorrowedFd<'_>) -> io::Result<(bool, bool)> {
         match unsafe {
             crate::backend::net::syscalls::recv(
                 fd,
-                buf.as_mut_ptr() as *mut u8,
+                buf.as_mut_ptr().cast::<u8>(),
                 1,
                 RecvFlags::PEEK | RecvFlags::DONTWAIT,
             )

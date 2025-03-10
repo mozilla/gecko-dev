@@ -5,7 +5,7 @@
 //! # Safety
 //!
 //! These files performs raw system calls, and sometimes passes them
-//! uninitialized memory buffers. The signatures in this file are currently
+//! uninitialized memory buffers. The signatures in this module are currently
 //! manually maintained and must correspond with the signatures of the actual
 //! Linux syscalls.
 //!

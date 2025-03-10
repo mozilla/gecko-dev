@@ -54,7 +54,7 @@ pub(crate) fn pipe_with(flags: PipeFlags) -> io::Result<(OwnedFd, OwnedFd)> {
 
 #[cfg(linux_kernel)]
 #[inline]
-pub fn splice(
+pub(crate) fn splice(
     fd_in: BorrowedFd<'_>,
     off_in: Option<&mut u64>,
     fd_out: BorrowedFd<'_>,
@@ -79,7 +79,7 @@ pub fn splice(
 
 #[cfg(linux_kernel)]
 #[inline]
-pub unsafe fn vmsplice(
+pub(crate) unsafe fn vmsplice(
     fd: BorrowedFd<'_>,
     bufs: &[IoSliceRaw<'_>],
     flags: SpliceFlags,
@@ -94,7 +94,7 @@ pub unsafe fn vmsplice(
 
 #[cfg(linux_kernel)]
 #[inline]
-pub fn tee(
+pub(crate) fn tee(
     fd_in: BorrowedFd<'_>,
     fd_out: BorrowedFd<'_>,
     len: usize,
@@ -112,14 +112,17 @@ pub fn tee(
 
 #[cfg(linux_kernel)]
 #[inline]
-pub(crate) fn fcntl_getpipe_sz(fd: BorrowedFd<'_>) -> io::Result<usize> {
+pub(crate) fn fcntl_getpipe_size(fd: BorrowedFd<'_>) -> io::Result<usize> {
     unsafe { ret_c_int(c::fcntl(borrowed_fd(fd), c::F_GETPIPE_SZ)).map(|size| size as usize) }
 }
 
 #[cfg(linux_kernel)]
 #[inline]
-pub(crate) fn fcntl_setpipe_sz(fd: BorrowedFd<'_>, size: usize) -> io::Result<()> {
+pub(crate) fn fcntl_setpipe_size(fd: BorrowedFd<'_>, size: usize) -> io::Result<()> {
     let size: c::c_int = size.try_into().map_err(|_| io::Errno::PERM)?;
 
-    unsafe { ret(c::fcntl(borrowed_fd(fd), c::F_SETPIPE_SZ, size)) }
+    unsafe {
+        let _ = ret_c_int(c::fcntl(borrowed_fd(fd), c::F_SETPIPE_SZ, size))?;
+    }
+    Ok(())
 }

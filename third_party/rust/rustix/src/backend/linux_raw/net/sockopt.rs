@@ -350,6 +350,12 @@ pub(crate) fn set_socket_recv_buffer_size(fd: BorrowedFd<'_>, size: usize) -> io
 }
 
 #[inline]
+pub(crate) fn set_socket_recv_buffer_size_force(fd: BorrowedFd<'_>, size: usize) -> io::Result<()> {
+    let size: c::c_int = size.try_into().map_err(|_| io::Errno::INVAL)?;
+    setsockopt(fd, c::SOL_SOCKET, c::SO_RCVBUFFORCE, size)
+}
+
+#[inline]
 pub(crate) fn get_socket_recv_buffer_size(fd: BorrowedFd<'_>) -> io::Result<usize> {
     getsockopt(fd, c::SOL_SOCKET, c::SO_RCVBUF).map(|size: u32| size as usize)
 }
@@ -709,7 +715,7 @@ pub(crate) fn set_tcp_keepidle(fd: BorrowedFd<'_>, duration: Duration) -> io::Re
 #[inline]
 pub(crate) fn get_tcp_keepidle(fd: BorrowedFd<'_>) -> io::Result<Duration> {
     let secs: c::c_uint = getsockopt(fd, c::IPPROTO_TCP, c::TCP_KEEPIDLE)?;
-    Ok(Duration::from_secs(secs as u64))
+    Ok(Duration::from_secs(secs.into()))
 }
 
 #[inline]
@@ -721,7 +727,7 @@ pub(crate) fn set_tcp_keepintvl(fd: BorrowedFd<'_>, duration: Duration) -> io::R
 #[inline]
 pub(crate) fn get_tcp_keepintvl(fd: BorrowedFd<'_>) -> io::Result<Duration> {
     let secs: c::c_uint = getsockopt(fd, c::IPPROTO_TCP, c::TCP_KEEPINTVL)?;
-    Ok(Duration::from_secs(secs as u64))
+    Ok(Duration::from_secs(secs.into()))
 }
 
 #[inline]
@@ -755,9 +761,10 @@ pub(crate) fn set_tcp_congestion(fd: BorrowedFd<'_>, value: &str) -> io::Result<
 #[cfg(feature = "alloc")]
 #[inline]
 pub(crate) fn get_tcp_congestion(fd: BorrowedFd<'_>) -> io::Result<String> {
+    const OPTLEN: c::socklen_t = 16;
+
     let level = c::IPPROTO_TCP;
     let optname = c::TCP_CONGESTION;
-    const OPTLEN: c::socklen_t = 16;
     let mut value = MaybeUninit::<[MaybeUninit<u8>; OPTLEN as usize]>::uninit();
     let mut optlen = OPTLEN;
     getsockopt_raw(fd, level, optname, &mut value, &mut optlen)?;

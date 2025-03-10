@@ -69,7 +69,7 @@ pub enum ClockId {
     #[doc(alias = "CLOCK_REALTIME_ALARM")]
     RealtimeAlarm = bitcast!(c::CLOCK_REALTIME_ALARM),
 
-    /// `CLOCK_TAI`, available on Linux >= 3.10
+    /// `CLOCK_TAI`, available on Linux ≥ 3.10
     #[cfg(all(linux_kernel, feature = "linux_4_11"))]
     #[doc(alias = "CLOCK_TAI")]
     Tai = bitcast!(c::CLOCK_TAI),
@@ -142,7 +142,7 @@ pub enum DynamicClockId<'a> {
     #[doc(alias = "CLOCK_REALTIME_ALARM")]
     RealtimeAlarm,
 
-    /// `CLOCK_TAI`, available on Linux >= 3.10
+    /// `CLOCK_TAI`, available on Linux ≥ 3.10
     #[cfg(linux_kernel)]
     #[doc(alias = "CLOCK_TAI")]
     Tai,

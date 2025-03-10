@@ -358,7 +358,7 @@ pub(crate) fn fallocate(
 
 #[inline]
 pub(crate) fn fadvise(fd: BorrowedFd<'_>, pos: u64, len: u64, advice: Advice) -> io::Result<()> {
-    // On ARM, the arguments are reordered so that the len and pos argument
+    // On ARM, the arguments are reordered so that the `len` and `pos` argument
     // pairs are aligned. And ARM has a custom syscall code for this.
     #[cfg(target_arch = "arm")]
     unsafe {

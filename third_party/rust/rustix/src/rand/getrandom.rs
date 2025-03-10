@@ -1,3 +1,5 @@
+//! Wrappers for `getrandom`.
+
 #![allow(unsafe_code)]
 
 use crate::buffer::split_init;
@@ -10,6 +12,9 @@ pub use backend::rand::types::GetRandomFlags;
 ///
 /// This is a very low-level API which may be difficult to use correctly. Most
 /// users should prefer to use [`getrandom`] or [`rand`] APIs instead.
+///
+/// This takes a `&mut [u8]` which Rust requires to contain initialized memory.
+/// To use an uninitialized buffer, use [`getrandom_uninit`].
 ///
 /// [`getrandom`]: https://crates.io/crates/getrandom
 /// [`rand`]: https://crates.io/crates/rand
@@ -35,7 +40,7 @@ pub fn getrandom_uninit(
 ) -> io::Result<(&mut [u8], &mut [MaybeUninit<u8>])> {
     // Get number of initialized bytes.
     let length = unsafe {
-        backend::rand::syscalls::getrandom(buf.as_mut_ptr() as *mut u8, buf.len(), flags)
+        backend::rand::syscalls::getrandom(buf.as_mut_ptr().cast::<u8>(), buf.len(), flags)
     };
 
     // Split into the initialized and uninitialized portions.

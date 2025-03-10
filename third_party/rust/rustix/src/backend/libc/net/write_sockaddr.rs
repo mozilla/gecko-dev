@@ -32,6 +32,7 @@ pub(crate) fn encode_sockaddr_v4(v4: &SocketAddrV4) -> c::sockaddr_in {
             target_os = "aix",
             target_os = "espidf",
             target_os = "haiku",
+            target_os = "hurd",
             target_os = "nto",
             target_os = "vita",
         ))]
@@ -62,6 +63,7 @@ pub(crate) fn encode_sockaddr_v6(v6: &SocketAddrV6) -> c::sockaddr_in6 {
         target_os = "aix",
         target_os = "espidf",
         target_os = "haiku",
+        target_os = "hurd",
         target_os = "nto",
         target_os = "vita"
     ))]
@@ -80,6 +82,7 @@ pub(crate) fn encode_sockaddr_v6(v6: &SocketAddrV6) -> c::sockaddr_in6 {
         target_os = "aix",
         target_os = "espidf",
         target_os = "haiku",
+        target_os = "hurd",
         target_os = "nto",
         target_os = "vita"
     )))]

@@ -2,7 +2,7 @@ use crate::backend::c;
 use bitflags::bitflags;
 
 bitflags! {
-    /// `MSG_*` flags for use with [`send`], [`send_to`], and related
+    /// `MSG_*` flags for use with [`send`], [`sendto`], and related
     /// functions.
     ///
     /// [`send`]: crate::net::send
@@ -19,6 +19,7 @@ bitflags! {
             target_os = "espidf",
             target_os = "nto",
             target_os = "haiku",
+            target_os = "hurd",
             target_os = "vita",
         )))]
         const CONFIRM = bitcast!(c::MSG_CONFIRM);
@@ -27,9 +28,15 @@ bitflags! {
         /// `MSG_DONTWAIT`
         #[cfg(not(windows))]
         const DONTWAIT = bitcast!(c::MSG_DONTWAIT);
+        /// Deprecated alias for [`EOR`].
+        ///
+        /// [`EOR`]: Self::EOR
+        #[cfg(not(windows))]
+        #[deprecated(note = "`rustix::net::SendFlags::EOT` is renamed to `rustix::net::SendFlags::EOR`.")]
+        const EOT = bitcast!(c::MSG_EOR);
         /// `MSG_EOR`
         #[cfg(not(windows))]
-        const EOT = bitcast!(c::MSG_EOR);
+        const EOR = bitcast!(c::MSG_EOR);
         /// `MSG_MORE`
         #[cfg(not(any(
             bsd,
@@ -37,6 +44,7 @@ bitflags! {
             windows,
             target_os = "aix",
             target_os = "haiku",
+            target_os = "hurd",
             target_os = "nto",
             target_os = "vita",
         )))]
@@ -84,6 +92,7 @@ bitflags! {
             target_os = "aix",
             target_os = "espidf",
             target_os = "haiku",
+            target_os = "hurd",
             target_os = "nto",
             target_os = "vita",
         )))]

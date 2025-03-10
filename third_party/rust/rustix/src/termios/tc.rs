@@ -9,12 +9,17 @@ pub use crate::pid::Pid;
 ///
 /// Also known as the `TCGETS` (or `TCGETS2` on Linux) operation with `ioctl`.
 ///
+/// On Linux, this uses `TCGETS2`. If that fails in a way that indicates that
+/// the host doesn't support it, this falls back to the old `TCGETS`, manually
+/// initializes the fields that `TCGETS` doesn't initialize, and fails with
+/// `io::Errno::RANGE` if the input or output speeds cannot be supported.
+///
 /// # References
 ///  - [POSIX `tcgetattr`]
 ///  - [Linux `ioctl_tty`]
 ///  - [Linux `termios`]
 ///
-/// [POSIX `tcgetattr`]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/tcgetattr.html
+/// [POSIX `tcgetattr`]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/tcgetattr.html
 /// [Linux `ioctl_tty`]: https://man7.org/linux/man-pages/man4/tty_ioctl.4.html
 /// [Linux `termios`]: https://man7.org/linux/man-pages/man3/termios.3.html
 #[cfg(not(any(windows, target_os = "espidf", target_os = "wasi")))]
@@ -54,7 +59,7 @@ pub fn tcgetwinsize<Fd: AsFd>(fd: Fd) -> io::Result<Winsize> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/tcgetpgrp.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/tcgetpgrp.html
 /// [Linux]: https://man7.org/linux/man-pages/man3/tcgetpgrp.3.html
 #[cfg(not(any(windows, target_os = "wasi")))]
 #[inline]
@@ -71,7 +76,7 @@ pub fn tcgetpgrp<Fd: AsFd>(fd: Fd) -> io::Result<Pid> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/tcsetpgrp.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/tcsetpgrp.html
 /// [Linux]: https://man7.org/linux/man-pages/man3/tcsetpgrp.3.html
 #[cfg(not(any(windows, target_os = "wasi")))]
 #[inline]
@@ -82,14 +87,18 @@ pub fn tcsetpgrp<Fd: AsFd>(fd: Fd, pid: Pid) -> io::Result<()> {
 
 /// `tcsetattr(fd)`—Set terminal attributes.
 ///
-/// Also known as the `TCSETS` (or `TCSETS2 on Linux) operation with `ioctl`.
+/// Also known as the `TCSETS` (or `TCSETS2` on Linux) operation with `ioctl`.
+///
+/// On Linux, this uses `TCSETS2`. If that fails in a way that indicates that
+/// the host doesn't support it, this falls back to the old `TCSETS`, and fails
+/// with `io::Errno::RANGE` if the input or output speeds cannot be supported.
 ///
 /// # References
 ///  - [POSIX `tcsetattr`]
 ///  - [Linux `ioctl_tty`]
 ///  - [Linux `termios`]
 ///
-/// [POSIX `tcsetattr`]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/tcsetattr.html
+/// [POSIX `tcsetattr`]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/tcsetattr.html
 /// [Linux `ioctl_tty`]: https://man7.org/linux/man-pages/man4/tty_ioctl.4.html
 /// [Linux `termios`]: https://man7.org/linux/man-pages/man3/termios.3.html
 #[cfg(not(target_os = "espidf"))]
@@ -120,7 +129,7 @@ pub fn tcsetattr<Fd: AsFd>(
 ///  - [Linux `ioctl_tty`]
 ///  - [Linux `termios`]
 ///
-/// [POSIX `tcsendbreak`]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/tcsendbreak.html
+/// [POSIX `tcsendbreak`]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/tcsendbreak.html
 /// [Linux `ioctl_tty`]: https://man7.org/linux/man-pages/man4/tty_ioctl.4.html
 /// [Linux `termios`]: https://man7.org/linux/man-pages/man3/termios.3.html
 #[inline]
@@ -136,7 +145,7 @@ pub fn tcsendbreak<Fd: AsFd>(fd: Fd) -> io::Result<()> {
 ///  - [Linux `ioctl_tty`]
 ///  - [Linux `termios`]
 ///
-/// [POSIX `tcsetattr`]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/tcdrain.html
+/// [POSIX `tcsetattr`]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/tcdrain.html
 /// [Linux `ioctl_tty`]: https://man7.org/linux/man-pages/man4/tty_ioctl.4.html
 /// [Linux `termios`]: https://man7.org/linux/man-pages/man3/termios.3.html
 #[cfg(not(target_os = "espidf"))]
@@ -153,7 +162,7 @@ pub fn tcdrain<Fd: AsFd>(fd: Fd) -> io::Result<()> {
 ///  - [Linux `ioctl_tty`]
 ///  - [Linux `termios`]
 ///
-/// [POSIX `tcflush`]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/tcflush.html
+/// [POSIX `tcflush`]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/tcflush.html
 /// [Linux `ioctl_tty`]: https://man7.org/linux/man-pages/man4/tty_ioctl.4.html
 /// [Linux `termios`]: https://man7.org/linux/man-pages/man3/termios.3.html
 #[cfg(not(target_os = "espidf"))]
@@ -170,7 +179,7 @@ pub fn tcflush<Fd: AsFd>(fd: Fd, queue_selector: QueueSelector) -> io::Result<()
 ///  - [Linux `ioctl_tty`]
 ///  - [Linux `termios`]
 ///
-/// [POSIX `tcflow`]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/tcflow.html
+/// [POSIX `tcflow`]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/tcflow.html
 /// [Linux `ioctl_tty`]: https://man7.org/linux/man-pages/man4/tty_ioctl.4.html
 /// [Linux `termios`]: https://man7.org/linux/man-pages/man3/termios.3.html
 #[cfg(not(target_os = "espidf"))]
@@ -187,7 +196,7 @@ pub fn tcflow<Fd: AsFd>(fd: Fd, action: Action) -> io::Result<()> {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/tcgetsid.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/tcgetsid.html
 /// [Linux]: https://man7.org/linux/man-pages/man3/tcgetsid.3.html
 #[inline]
 #[doc(alias = "TIOCGSID")]

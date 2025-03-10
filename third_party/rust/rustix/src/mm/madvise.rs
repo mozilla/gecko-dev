@@ -32,7 +32,7 @@ pub use backend::mm::types::Advice;
 ///  - [illumos]
 ///  - [glibc]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/posix_madvise.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/posix_madvise.html
 /// [Linux `madvise`]: https://man7.org/linux/man-pages/man2/madvise.2.html
 /// [Linux `posix_madvise`]: https://man7.org/linux/man-pages/man3/posix_madvise.3.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/madvise.2.html
@@ -41,7 +41,7 @@ pub use backend::mm::types::Advice;
 /// [OpenBSD]: https://man.openbsd.org/madvise.2
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=madvise&section=2
 /// [illumos]: https://illumos.org/man/3C/madvise
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Memory_002dmapped-I_002fO.html#index-madvise
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Memory_002dmapped-I_002fO.html#index-madvise
 #[inline]
 #[doc(alias = "posix_madvise")]
 pub unsafe fn madvise(addr: *mut c_void, len: usize, advice: Advice) -> io::Result<()> {

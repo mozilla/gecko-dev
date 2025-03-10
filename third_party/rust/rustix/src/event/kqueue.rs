@@ -196,8 +196,8 @@ pub enum EventFilter {
         /// The signal number we waited on.
         signal: Signal,
 
-        /// The number of times the signal has been
-        /// received since the last call to kevent.
+        /// The number of times the signal has been received since the last
+        /// call to kevent.
         times: usize,
     },
 

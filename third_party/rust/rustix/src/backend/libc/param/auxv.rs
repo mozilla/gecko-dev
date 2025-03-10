@@ -46,10 +46,8 @@ pub(crate) fn linux_hwcap() -> (usize, usize) {
 ))]
 #[inline]
 pub(crate) fn linux_minsigstksz() -> usize {
-    // FIXME: reuse const from libc when available?
-    const AT_MINSIGSTKSZ: c::c_ulong = 51;
     if let Some(libc_getauxval) = getauxval.get() {
-        unsafe { libc_getauxval(AT_MINSIGSTKSZ) as usize }
+        unsafe { libc_getauxval(c::AT_MINSIGSTKSZ) as usize }
     } else {
         0
     }

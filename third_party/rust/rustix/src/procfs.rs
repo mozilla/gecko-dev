@@ -228,7 +228,8 @@ fn is_mountpoint(file: BorrowedFd<'_>) -> bool {
 fn proc_opendirat<P: crate::path::Arg, Fd: AsFd>(dirfd: Fd, path: P) -> io::Result<OwnedFd> {
     // We don't add `PATH` here because that disables `DIRECTORY`. And we don't
     // add `NOATIME` for the same reason as the comment in `open_and_check_file`.
-    let oflags = OFlags::NOFOLLOW | OFlags::DIRECTORY | OFlags::CLOEXEC | OFlags::NOCTTY;
+    let oflags =
+        OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::DIRECTORY | OFlags::CLOEXEC | OFlags::NOCTTY;
     openat(dirfd, path, oflags, Mode::empty()).map_err(|_err| io::Errno::NOTSUP)
 }
 
@@ -244,7 +245,7 @@ fn proc_opendirat<P: crate::path::Arg, Fd: AsFd>(dirfd: Fd, path: P) -> io::Resu
 fn proc() -> io::Result<(BorrowedFd<'static>, &'static Stat)> {
     static PROC: StaticFd = StaticFd::new();
 
-    // `OnceBox` is "racey" in that the initialization function may run
+    // `OnceBox` is “racy” in that the initialization function may run
     // multiple times. We're ok with that, since the initialization function
     // has no side effects.
     PROC.get_or_try_init(|| {
@@ -308,7 +309,7 @@ fn proc_self() -> io::Result<(BorrowedFd<'static>, &'static Stat)> {
 ///  - [Linux]
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man5/proc.5.html
-#[cfg_attr(doc_cfg, doc(cfg(feature = "procfs")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "procfs")))]
 pub fn proc_self_fd() -> io::Result<BorrowedFd<'static>> {
     static PROC_SELF_FD: StaticFd = StaticFd::new();
 
@@ -377,7 +378,7 @@ fn proc_self_fdinfo() -> io::Result<(BorrowedFd<'static>, &'static Stat)> {
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man5/proc.5.html
 #[inline]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "procfs")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "procfs")))]
 pub fn proc_self_fdinfo_fd<Fd: AsFd>(fd: Fd) -> io::Result<OwnedFd> {
     _proc_self_fdinfo(fd.as_fd())
 }
@@ -405,7 +406,7 @@ fn _proc_self_fdinfo(fd: BorrowedFd<'_>) -> io::Result<OwnedFd> {
 /// [Linux]: https://man7.org/linux/man-pages/man5/proc.5.html
 /// [Linux pagemap]: https://www.kernel.org/doc/Documentation/vm/pagemap.txt
 #[inline]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "procfs")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "procfs")))]
 pub fn proc_self_pagemap() -> io::Result<OwnedFd> {
     proc_self_file(cstr!("pagemap"))
 }
@@ -420,7 +421,7 @@ pub fn proc_self_pagemap() -> io::Result<OwnedFd> {
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man5/proc.5.html
 #[inline]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "procfs")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "procfs")))]
 pub fn proc_self_maps() -> io::Result<OwnedFd> {
     proc_self_file(cstr!("maps"))
 }
@@ -435,7 +436,7 @@ pub fn proc_self_maps() -> io::Result<OwnedFd> {
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man5/proc.5.html
 #[inline]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "procfs")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "procfs")))]
 pub fn proc_self_status() -> io::Result<OwnedFd> {
     proc_self_file(cstr!("status"))
 }
@@ -488,8 +489,18 @@ fn open_and_check_file(
     let mut found_file = false;
     let mut found_dot = false;
 
+    // Open a new fd, so that if we're called on multiple threads, they don't
+    // share a seek position.
+    let oflags =
+        OFlags::RDONLY | OFlags::CLOEXEC | OFlags::NOFOLLOW | OFlags::NOCTTY | OFlags::DIRECTORY;
+    let dir = openat(dir, cstr!("."), oflags, Mode::empty()).map_err(|_err| io::Errno::NOTSUP)?;
+    let check_dir_stat = fstat(&dir)?;
+    if check_dir_stat.st_dev != dir_stat.st_dev || check_dir_stat.st_ino != dir_stat.st_ino {
+        return Err(io::Errno::NOTSUP);
+    }
+
     // Position the directory iteration at the start.
-    seek(dir, SeekFrom::Start(0))?;
+    seek(&dir, SeekFrom::Start(0))?;
 
     let mut buf = [MaybeUninit::uninit(); 2048];
     let mut iter = RawDir::new(dir, &mut buf);

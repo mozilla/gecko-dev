@@ -8,7 +8,7 @@ use crate::backend;
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/stdlib.h.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/basedefs/stdlib.h.html
 /// [Linux]: https://man7.org/linux/man-pages/man3/exit.3.html
 pub const EXIT_SUCCESS: i32 = backend::c::EXIT_SUCCESS;
 
@@ -20,7 +20,7 @@ pub const EXIT_SUCCESS: i32 = backend::c::EXIT_SUCCESS;
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/stdlib.h.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/basedefs/stdlib.h.html
 /// [Linux]: https://man7.org/linux/man-pages/man3/exit.3.html
 pub const EXIT_FAILURE: i32 = backend::c::EXIT_FAILURE;
 

@@ -20,8 +20,8 @@ pub(super) const fn compose_opcode(
 
 // `IOC_VOID`
 pub const NONE: RawOpcode = 0x2000_0000;
-// `IOC_OUT` ("out" is from the perspective of the kernel)
+// `IOC_OUT` (“out” is from the perspective of the kernel)
 pub const READ: RawOpcode = 0x4000_0000;
-// `IOC_IN`
+// `IOC_IN` (“in” is from the perspective of the kernel)
 pub const WRITE: RawOpcode = 0x8000_0000;
 pub const IOCPARAM_MASK: RawOpcode = 0x1FFF;

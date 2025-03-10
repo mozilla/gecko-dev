@@ -38,8 +38,8 @@ pub(crate) unsafe fn fork() -> io::Result<Fork> {
     let mut child_pid = MaybeUninit::<RawPid>::uninit();
 
     // Unix `fork` only returns the child PID in the parent; we'd like it in
-    // the child too, so set `CLONE_CHILD_SETTID` and pass in the address of
-    // a memory location to store it to in the child.
+    // the child too, so set `CLONE_CHILD_SETTID` and pass in the address of a
+    // memory location to store it to in the child.
     //
     // Architectures differ on the order of the parameters.
     #[cfg(target_arch = "x86_64")]
@@ -60,6 +60,7 @@ pub(crate) unsafe fn fork() -> io::Result<Fork> {
         target_arch = "mips64r6",
         target_arch = "powerpc64",
         target_arch = "riscv64",
+        target_arch = "s390x",
         target_arch = "x86"
     ))]
     let pid = ret_c_int(syscall_readonly!(

@@ -152,13 +152,13 @@ impl Hash for SocketAddrUnix {
 }
 
 impl fmt::Debug for SocketAddrUnix {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(path) = self.path() {
-            path.fmt(fmt)
+            path.fmt(f)
         } else if let Some(name) = self.abstract_name() {
-            name.fmt(fmt)
+            name.fmt(f)
         } else {
-            "(unnamed)".fmt(fmt)
+            "(unnamed)".fmt(f)
         }
     }
 }

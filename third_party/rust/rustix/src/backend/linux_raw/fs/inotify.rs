@@ -1,15 +1,12 @@
-//! inotify support for working with inotifies
+//! inotify support for working with inotify objects.
 
 use crate::backend::c;
-use crate::backend::fs::syscalls;
-use crate::fd::{BorrowedFd, OwnedFd};
-use crate::io;
 use bitflags::bitflags;
 
 bitflags! {
-    /// `IN_*` for use with [`inotify_init`].
+    /// `IN_*` for use with [`inotify::init`].
     ///
-    /// [`inotify_init`]: crate::fs::inotify::inotify_init
+    /// [`inotify::init`]: crate::fs::inotify::init
     #[repr(transparent)]
     #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
     pub struct CreateFlags: c::c_uint {
@@ -24,9 +21,9 @@ bitflags! {
 }
 
 bitflags! {
-    /// `IN*` for use with [`inotify_add_watch`].
+    /// `IN*` for use with [`inotify::add_watch`].
     ///
-    /// [`inotify_add_watch`]: crate::fs::inotify::inotify_add_watch
+    /// [`inotify::add_watch`]: crate::fs::inotify::add_watch
     #[repr(transparent)]
     #[derive(Default, Copy, Clone, Eq, PartialEq, Hash, Debug)]
     pub struct WatchFlags: c::c_uint {
@@ -80,39 +77,48 @@ bitflags! {
     }
 }
 
-/// `inotify_init1(flags)`—Creates a new inotify object.
-///
-/// Use the [`CreateFlags::CLOEXEC`] flag to prevent the resulting file
-/// descriptor from being implicitly passed across `exec` boundaries.
-#[doc(alias = "inotify_init1")]
-#[inline]
-pub fn inotify_init(flags: CreateFlags) -> io::Result<OwnedFd> {
-    syscalls::inotify_init1(flags)
-}
+bitflags! {
+    /// `IN*` for use with [`inotify::Reader`].
+    ///
+    /// [`inotify::Reader`]: crate::fs::inotify::InotifyReader
+    #[repr(transparent)]
+    #[derive(Default, Copy, Clone, Eq, PartialEq, Hash, Debug)]
+    pub struct ReadFlags: c::c_uint {
+        /// `IN_ACCESS`
+        const ACCESS = linux_raw_sys::general::IN_ACCESS;
+        /// `IN_ATTRIB`
+        const ATTRIB = linux_raw_sys::general::IN_ATTRIB;
+        /// `IN_CLOSE_NOWRITE`
+        const CLOSE_NOWRITE = linux_raw_sys::general::IN_CLOSE_NOWRITE;
+        /// `IN_CLOSE_WRITE`
+        const CLOSE_WRITE = linux_raw_sys::general::IN_CLOSE_WRITE;
+        /// `IN_CREATE`
+        const CREATE = linux_raw_sys::general::IN_CREATE;
+        /// `IN_DELETE`
+        const DELETE = linux_raw_sys::general::IN_DELETE;
+        /// `IN_DELETE_SELF`
+        const DELETE_SELF = linux_raw_sys::general::IN_DELETE_SELF;
+        /// `IN_MODIFY`
+        const MODIFY = linux_raw_sys::general::IN_MODIFY;
+        /// `IN_MOVE_SELF`
+        const MOVE_SELF = linux_raw_sys::general::IN_MOVE_SELF;
+        /// `IN_MOVED_FROM`
+        const MOVED_FROM = linux_raw_sys::general::IN_MOVED_FROM;
+        /// `IN_MOVED_TO`
+        const MOVED_TO = linux_raw_sys::general::IN_MOVED_TO;
+        /// `IN_OPEN`
+        const OPEN = linux_raw_sys::general::IN_OPEN;
 
-/// `inotify_add_watch(self, path, flags)`—Adds a watch to inotify.
-///
-/// This registers or updates a watch for the filesystem path `path` and
-/// returns a watch descriptor corresponding to this watch.
-///
-/// Note: Due to the existence of hardlinks, providing two different paths to
-/// this method may result in it returning the same watch descriptor. An
-/// application should keep track of this externally to avoid logic errors.
-#[inline]
-pub fn inotify_add_watch<P: crate::path::Arg>(
-    inot: BorrowedFd<'_>,
-    path: P,
-    flags: WatchFlags,
-) -> io::Result<i32> {
-    path.into_with_c_str(|path| syscalls::inotify_add_watch(inot, path, flags))
-}
+        /// `IN_IGNORED`
+        const IGNORED = linux_raw_sys::general::IN_IGNORED;
+        /// `IN_ISDIR`
+        const ISDIR = linux_raw_sys::general::IN_ISDIR;
+        /// `IN_Q_OVERFLOW`
+        const QUEUE_OVERFLOW = linux_raw_sys::general::IN_Q_OVERFLOW;
+        /// `IN_UNMOUNT`
+        const UNMOUNT = linux_raw_sys::general::IN_UNMOUNT;
 
-/// `inotify_rm_watch(self, wd)`—Removes a watch from this inotify.
-///
-/// The watch descriptor provided should have previously been returned by
-/// [`inotify_add_watch`] and not previously have been removed.
-#[doc(alias = "inotify_rm_watch")]
-#[inline]
-pub fn inotify_remove_watch(inot: BorrowedFd<'_>, wd: i32) -> io::Result<()> {
-    syscalls::inotify_rm_watch(inot, wd)
+        /// <https://docs.rs/bitflags/*/bitflags/#externally-defined-flags>
+        const _ = !0;
+    }
 }

@@ -1,8 +1,11 @@
+//! Wrappers for netdevice ioctls.
+
 #![allow(unsafe_code)]
 
 use crate::backend::io::syscalls::ioctl;
 use crate::fd::AsFd;
 use crate::io;
+use core::ptr::addr_of_mut;
 use core::{slice, str};
 use linux_raw_sys::ctypes::c_char;
 use linux_raw_sys::ioctl::SIOCGIFINDEX;
@@ -32,7 +35,7 @@ pub(crate) fn name_to_index(fd: impl AsFd, if_name: &str) -> io::Result<u32> {
     };
     unsafe { ifreq.ifr_ifrn.ifrn_name[..if_name_bytes.len()].copy_from_slice(if_name_bytes) };
 
-    unsafe { ioctl(fd.as_fd(), SIOCGIFINDEX, &mut ifreq as *mut ifreq as _) }?;
+    unsafe { ioctl(fd.as_fd(), SIOCGIFINDEX, addr_of_mut!(ifreq).cast()) }?;
     let index = unsafe { ifreq.ifr_ifru.ifru_ivalue };
     Ok(index as u32)
 }
@@ -46,7 +49,7 @@ pub(crate) fn index_to_name(fd: impl AsFd, index: u32) -> io::Result<String> {
         },
     };
 
-    unsafe { ioctl(fd.as_fd(), SIOCGIFNAME, &mut ifreq as *mut ifreq as _) }?;
+    unsafe { ioctl(fd.as_fd(), SIOCGIFNAME, addr_of_mut!(ifreq).cast()) }?;
 
     if let Some(nul_byte) = unsafe { ifreq.ifr_ifrn.ifrn_name }
         .iter()

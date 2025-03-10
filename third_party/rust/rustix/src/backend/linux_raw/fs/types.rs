@@ -130,7 +130,7 @@ impl Mode {
     /// `Mode`.
     #[inline]
     pub const fn from_raw_mode(st_mode: RawMode) -> Self {
-        Self::from_bits_truncate(st_mode)
+        Self::from_bits_truncate(st_mode & !linux_raw_sys::general::S_IFMT)
     }
 
     /// Construct an `st_mode` value from a `Mode`.
@@ -742,7 +742,7 @@ pub type RawMode = linux_raw_sys::general::__kernel_mode_t;
 pub type RawMode = c::c_uint;
 
 /// `dev_t`
-// Within the kernel the dev_t is 32-bit, but userspace uses a 64-bit field.
+// Within the kernel the `dev_t` is 32-bit, but userspace uses a 64-bit field.
 pub type Dev = u64;
 
 /// `__fsword_t`

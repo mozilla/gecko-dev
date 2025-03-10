@@ -135,7 +135,7 @@ pub(crate) fn socketpair(
 
 #[inline]
 pub(crate) fn accept(fd: BorrowedFd<'_>) -> io::Result<OwnedFd> {
-    #[cfg(not(target_arch = "x86"))]
+    #[cfg(not(any(target_arch = "x86", target_arch = "s390x")))]
     unsafe {
         let fd = ret_owned_fd(syscall_readonly!(__NR_accept, fd, zero(), zero()))?;
         Ok(fd)
@@ -148,6 +148,11 @@ pub(crate) fn accept(fd: BorrowedFd<'_>) -> io::Result<OwnedFd> {
             slice_just_addr::<ArgReg<'_, SocketArg>, _>(&[fd.into(), zero(), zero()])
         ))?;
         Ok(fd)
+    }
+    #[cfg(target_arch = "s390x")]
+    {
+        // accept is not available on s390x
+        accept_with(fd, SocketFlags::empty())
     }
 }
 
@@ -171,7 +176,7 @@ pub(crate) fn accept_with(fd: BorrowedFd<'_>, flags: SocketFlags) -> io::Result<
 
 #[inline]
 pub(crate) fn acceptfrom(fd: BorrowedFd<'_>) -> io::Result<(OwnedFd, Option<SocketAddrAny>)> {
-    #[cfg(not(target_arch = "x86"))]
+    #[cfg(not(any(target_arch = "x86", target_arch = "s390x")))]
     unsafe {
         let mut addrlen = core::mem::size_of::<sockaddr>() as socklen_t;
         let mut storage = MaybeUninit::<sockaddr>::uninit();
@@ -203,6 +208,11 @@ pub(crate) fn acceptfrom(fd: BorrowedFd<'_>) -> io::Result<(OwnedFd, Option<Sock
             fd,
             maybe_read_sockaddr_os(&storage.assume_init(), addrlen.try_into().unwrap()),
         ))
+    }
+    #[cfg(target_arch = "s390x")]
+    {
+        // accept is not available on s390x
+        acceptfrom_with(fd, SocketFlags::empty())
     }
 }
 
@@ -468,6 +478,7 @@ pub(crate) fn send(fd: BorrowedFd<'_>, buf: &[u8], flags: SendFlags) -> io::Resu
         target_arch = "mips64",
         target_arch = "mips64r6",
         target_arch = "riscv64",
+        target_arch = "s390x",
         target_arch = "x86",
         target_arch = "x86_64",
     )))]
@@ -479,6 +490,7 @@ pub(crate) fn send(fd: BorrowedFd<'_>, buf: &[u8], flags: SendFlags) -> io::Resu
         target_arch = "mips64",
         target_arch = "mips64r6",
         target_arch = "riscv64",
+        target_arch = "s390x",
         target_arch = "x86_64",
     ))]
     unsafe {
@@ -672,6 +684,7 @@ pub(crate) unsafe fn recv(
         target_arch = "mips64",
         target_arch = "mips64r6",
         target_arch = "riscv64",
+        target_arch = "s390x",
         target_arch = "x86",
         target_arch = "x86_64",
     )))]
@@ -683,6 +696,7 @@ pub(crate) unsafe fn recv(
         target_arch = "mips64",
         target_arch = "mips64r6",
         target_arch = "riscv64",
+        target_arch = "s390x",
         target_arch = "x86_64",
     ))]
     {

@@ -24,27 +24,27 @@ impl Errno {
 }
 
 impl fmt::Display for Errno {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "std")]
         {
-            std::io::Error::from(*self).fmt(fmt)
+            std::io::Error::from(*self).fmt(f)
         }
         #[cfg(not(feature = "std"))]
         {
-            write!(fmt, "os error {}", self.raw_os_error())
+            write!(f, "os error {}", self.raw_os_error())
         }
     }
 }
 
 impl fmt::Debug for Errno {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "std")]
         {
-            std::io::Error::from(*self).fmt(fmt)
+            std::io::Error::from(*self).fmt(f)
         }
         #[cfg(not(feature = "std"))]
         {
-            write!(fmt, "os error {}", self.raw_os_error())
+            write!(f, "os error {}", self.raw_os_error())
         }
     }
 }

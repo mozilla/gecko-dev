@@ -227,9 +227,8 @@ bitflags! {
         /// `MOVE_MOUNT__MASK`
         const MOVE_MOUNT_SET_GROUP = 0x0000_0100;
 
-        // TODO: add when Linux 6.5 is released
-        // /// `MOVE_MOUNT_BENEATH`
-        // const MOVE_MOUNT_BENEATH = 0x0000_0200;
+        /// `MOVE_MOUNT_BENEATH` (since Linux 6.5)
+        const MOVE_MOUNT_BENEATH = 0x0000_0200;
 
         /// `MOVE_MOUNT__MASK`
         const MOVE_MOUNT__MASK = 0x0000_0377;

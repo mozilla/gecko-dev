@@ -17,7 +17,7 @@ use crate::ffi::CStr;
 ///  - [Linux `sysconf`]
 ///  - [Linux `getpagesize`]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/sysconf.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/sysconf.html
 /// [Linux `sysconf`]: https://man7.org/linux/man-pages/man3/sysconf.3.html
 /// [Linux `getpagesize`]: https://man7.org/linux/man-pages/man2/getpagesize.2.html
 #[inline]
@@ -34,7 +34,7 @@ pub fn page_size() -> usize {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/sysconf.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/sysconf.html
 /// [Linux]: https://man7.org/linux/man-pages/man3/sysconf.3.html
 #[cfg(not(any(target_os = "vita", target_os = "wasi")))]
 #[inline]

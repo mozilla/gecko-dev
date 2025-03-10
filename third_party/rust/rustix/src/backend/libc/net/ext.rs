@@ -83,6 +83,7 @@ pub(crate) const fn sockaddr_in6_new(
         target_os = "aix",
         target_os = "espidf",
         target_os = "haiku",
+        target_os = "hurd",
         target_os = "nto",
         target_os = "vita"
     ))]
@@ -99,6 +100,7 @@ pub(crate) const fn sockaddr_in6_new(
             target_os = "aix",
             target_os = "espidf",
             target_os = "haiku",
+            target_os = "hurd",
             target_os = "nto",
             target_os = "vita"
         ))]

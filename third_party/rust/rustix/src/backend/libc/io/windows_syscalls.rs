@@ -1,6 +1,8 @@
 //! Windows system calls in the `io` module.
 
 use crate::backend::c;
+#[cfg(feature = "try_close")]
+use crate::backend::conv::ret;
 use crate::backend::conv::{borrowed_fd, ret_c_int};
 use crate::backend::fd::LibcFd;
 use crate::fd::{BorrowedFd, RawFd};
@@ -9,6 +11,11 @@ use crate::ioctl::{IoctlOutput, RawOpcode};
 
 pub(crate) unsafe fn close(raw_fd: RawFd) {
     let _ = c::close(raw_fd as LibcFd);
+}
+
+#[cfg(feature = "try_close")]
+pub(crate) unsafe fn try_close(raw_fd: RawFd) -> io::Result<()> {
+    ret(c::close(raw_fd as LibcFd))
 }
 
 #[inline]

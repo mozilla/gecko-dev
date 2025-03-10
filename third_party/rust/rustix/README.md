@@ -16,8 +16,8 @@
 </div>
 
 `rustix` provides efficient memory-safe and [I/O-safe] wrappers to POSIX-like,
-Unix-like, Linux, and Winsock syscall-like APIs, with configurable backends.
-It uses Rust references, slices, and return values instead of raw pointers, and
+Unix-like, Linux, and Winsock syscall-like APIs, with configurable backends. It
+uses Rust references, slices, and return values instead of raw pointers, and
 [I/O safety types] instead of raw file descriptors, providing memory safety,
 [I/O safety], and [provenance]. It uses `Result`s for reporting errors,
 [`bitflags`] instead of bare integer flags, an [`Arg`] trait with optimizations
@@ -46,14 +46,14 @@ more portable APIs built on this functionality, see the [`cap-std`], [`memfd`],
    Windows, and is portable to many OS's.
 
 The linux_raw backend is enabled by default on platforms which support it. To
-enable the libc backend instead, either enable the "use-libc" cargo feature,
-or set the `RUSTFLAGS` environment variable to `--cfg=rustix_use_libc` when
+enable the libc backend instead, either enable the "use-libc" cargo feature, or
+set the `RUSTFLAGS` environment variable to `--cfg=rustix_use_libc` when
 building.
 
 ## Cargo features
 
-The modules [`rustix::io`], [`rustix::fd`], and [`rustix::ffi`] are enabled
-by default. The rest of the API is conditional with cargo feature flags:
+The modules [`rustix::io`], [`rustix::fd`], and [`rustix::ffi`] are enabled by
+default. The rest of the API is conditional with cargo feature flags:
 
 | Name       | Description                                                    |
 | ---------- | -------------------------------------------------------------- |

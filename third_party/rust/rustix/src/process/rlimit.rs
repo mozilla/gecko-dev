@@ -6,7 +6,7 @@ pub use backend::process::types::Resource;
 
 /// `struct rlimit`—Current and maximum values used in [`getrlimit`],
 /// [`setrlimit`], and [`prlimit`].
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Rlimit {
     /// Current effective, “soft”, limit.
     pub current: Option<u64>,
@@ -20,7 +20,7 @@ pub struct Rlimit {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/getrlimit.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/getrlimit.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/getrlimit.2.html
 #[inline]
 pub fn getrlimit(resource: Resource) -> Rlimit {
@@ -33,7 +33,7 @@ pub fn getrlimit(resource: Resource) -> Rlimit {
 ///  - [POSIX]
 ///  - [Linux]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/setrlimit.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/setrlimit.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/setrlimit.2.html
 #[inline]
 pub fn setrlimit(resource: Resource, new: Rlimit) -> io::Result<()> {

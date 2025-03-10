@@ -22,7 +22,7 @@ use backend::c;
 #[inline]
 #[doc(alias = "TIOCEXCL")]
 pub fn ioctl_tiocexcl<Fd: AsFd>(fd: Fd) -> io::Result<()> {
-    // SAFETY: TIOCEXCL is a no-argument setter opcode.
+    // SAFETY: `TIOCEXCL` is a no-argument setter opcode.
     unsafe {
         let ctl = ioctl::NoArg::<ioctl::BadOpcode<{ c::TIOCEXCL as _ }>>::new();
         ioctl::ioctl(fd, ctl)
@@ -45,7 +45,7 @@ pub fn ioctl_tiocexcl<Fd: AsFd>(fd: Fd) -> io::Result<()> {
 #[inline]
 #[doc(alias = "TIOCNXCL")]
 pub fn ioctl_tiocnxcl<Fd: AsFd>(fd: Fd) -> io::Result<()> {
-    // SAFETY: TIOCNXCL is a no-argument setter opcode.
+    // SAFETY: `TIOCNXCL` is a no-argument setter opcode.
     unsafe {
         let ctl = ioctl::NoArg::<ioctl::BadOpcode<{ c::TIOCNXCL as _ }>>::new();
         ioctl::ioctl(fd, ctl)

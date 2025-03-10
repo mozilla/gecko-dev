@@ -5,7 +5,7 @@ use super::types::RawCpuSet;
 use crate::backend::c;
 #[cfg(not(any(target_os = "wasi", target_os = "fuchsia")))]
 use crate::backend::conv::borrowed_fd;
-#[cfg(feature = "fs")]
+#[cfg(any(target_os = "linux", feature = "fs"))]
 use crate::backend::conv::c_str;
 #[cfg(all(feature = "alloc", feature = "fs", not(target_os = "wasi")))]
 use crate::backend::conv::ret_discarded_char_ptr;
@@ -28,7 +28,7 @@ use crate::backend::conv::{ret, ret_c_int};
 use crate::fd::BorrowedFd;
 #[cfg(target_os = "linux")]
 use crate::fd::{AsRawFd, OwnedFd, RawFd};
-#[cfg(feature = "fs")]
+#[cfg(any(target_os = "linux", feature = "fs"))]
 use crate::ffi::CStr;
 #[cfg(feature = "fs")]
 use crate::fs::Mode;
@@ -380,7 +380,7 @@ pub(crate) fn prlimit(pid: Option<Pid>, limit: Resource, new: Rlimit) -> io::Res
     }
 }
 
-/// Convert a Rust [`Rlimit`] to a C `c::rlimit`.
+/// Convert a C `c::rlimit` to a Rust `Rlimit`.
 #[cfg(not(any(
     target_os = "espidf",
     target_os = "fuchsia",
@@ -402,7 +402,7 @@ fn rlimit_from_libc(lim: c::rlimit) -> Rlimit {
     Rlimit { current, maximum }
 }
 
-/// Convert a C `c::rlimit` to a Rust `Rlimit`.
+/// Convert a Rust [`Rlimit`] to a C `c::rlimit`.
 #[cfg(not(any(
     target_os = "espidf",
     target_os = "fuchsia",
@@ -585,8 +585,8 @@ fn _waitid_pidfd(fd: BorrowedFd<'_>, options: WaitidOptions) -> io::Result<Optio
 unsafe fn cvt_waitid_status(status: MaybeUninit<c::siginfo_t>) -> Option<WaitidStatus> {
     let status = status.assume_init();
     // `si_pid` is supposedly the better way to check that the struct has been
-    // filled, e.g. the Linux manpage says about the `WNOHANG` case “zero out
-    // the si_pid field before the call and check for a nonzero value”.
+    // filled, e.g. the Linux manual page says about the `WNOHANG` case “zero
+    // out the si_pid field before the call and check for a nonzero value”.
     // But e.g. NetBSD/OpenBSD don't have it exposed in the libc crate for now,
     // and some platforms don't have it at all. For simplicity, always check
     // `si_signo`. We have zero-initialized the whole struct, and all kernels
@@ -723,6 +723,17 @@ pub(crate) fn pidfd_getfd(
             bitflags_bits!(flags),
         ))
     }
+}
+
+#[cfg(target_os = "linux")]
+pub(crate) fn pivot_root(new_root: &CStr, put_old: &CStr) -> io::Result<()> {
+    syscall! {
+        fn pivot_root(
+            new_root: *const c::c_char,
+            put_old: *const c::c_char
+        ) via SYS_pivot_root -> c::c_int
+    }
+    unsafe { ret(pivot_root(c_str(new_root), c_str(put_old))) }
 }
 
 #[cfg(all(feature = "alloc", not(target_os = "wasi")))]

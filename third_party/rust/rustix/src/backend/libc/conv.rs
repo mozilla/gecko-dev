@@ -13,7 +13,7 @@ use crate::io;
 #[cfg(not(windows))]
 #[inline]
 pub(super) fn c_str(c: &CStr) -> *const c::c_char {
-    c.as_ptr()
+    c.as_ptr().cast()
 }
 
 #[cfg(not(any(windows, target_os = "espidf", target_os = "vita", target_os = "wasi")))]
@@ -70,7 +70,11 @@ pub(super) fn ret_c_int(raw: c::c_int) -> io::Result<c::c_int> {
     }
 }
 
-#[cfg(any(linux_kernel, all(target_os = "redox", feature = "event")))]
+#[cfg(any(
+    linux_kernel,
+    all(solarish, feature = "event"),
+    all(target_os = "redox", feature = "event")
+))]
 #[inline]
 pub(super) fn ret_u32(raw: c::c_int) -> io::Result<u32> {
     if raw == -1 {
@@ -226,6 +230,7 @@ pub(crate) fn msg_iov_len(len: usize) -> c::c_int {
     target_os = "emscripten",
     target_os = "fuchsia",
     target_os = "haiku",
+    target_os = "hurd",
     target_os = "nto",
 ))]
 #[inline]
@@ -244,6 +249,7 @@ pub(crate) fn msg_control_len(len: usize) -> c::socklen_t {
     target_os = "espidf",
     target_os = "fuchsia",
     target_os = "haiku",
+    target_os = "hurd",
     target_os = "nto",
     target_os = "redox",
     target_os = "vita",

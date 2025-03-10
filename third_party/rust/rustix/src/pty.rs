@@ -13,7 +13,13 @@ use crate::fs::OFlags;
 use crate::{backend, io};
 #[cfg(all(
     feature = "alloc",
-    any(apple, linux_like, target_os = "freebsd", target_os = "fuchsia")
+    any(
+        apple,
+        linux_like,
+        target_os = "freebsd",
+        target_os = "fuchsia",
+        target_os = "illumos"
+    )
 ))]
 use {crate::ffi::CString, alloc::vec::Vec};
 
@@ -74,7 +80,7 @@ impl From<OpenptFlags> for OFlags {
 ///  - [OpenBSD]
 ///  - [illumos]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/posix_openpt.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/posix_openpt.html
 /// [Linux]: https://man7.org/linux/man-pages/man3/posix_openpt.3.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/posix_openpt.3.html
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=posix_openpt&sektion=2
@@ -110,12 +116,18 @@ pub fn openpt(flags: OpenptFlags) -> io::Result<OwnedFd> {
 ///  - [Linux]
 ///  - [glibc]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/ptsname.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/ptsname.html
 /// [Linux]: https://man7.org/linux/man-pages/man3/ptsname.3.html
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Allocation.html#index-ptsname
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Allocation.html#index-ptsname
 #[cfg(all(
     feature = "alloc",
-    any(apple, linux_like, target_os = "freebsd", target_os = "fuchsia")
+    any(
+        apple,
+        linux_like,
+        target_os = "freebsd",
+        target_os = "fuchsia",
+        target_os = "illumos"
+    )
 ))]
 #[inline]
 #[doc(alias = "ptsname_r")]
@@ -130,9 +142,9 @@ pub fn ptsname<Fd: AsFd, B: Into<Vec<u8>>>(fd: Fd, reuse: B) -> io::Result<CStri
 ///  - [Linux]
 ///  - [glibc]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/unlockpt.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/unlockpt.html
 /// [Linux]: https://man7.org/linux/man-pages/man3/unlockpt.3.html
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Allocation.html#index-unlockpt
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Allocation.html#index-unlockpt
 #[inline]
 pub fn unlockpt<Fd: AsFd>(fd: Fd) -> io::Result<()> {
     backend::pty::syscalls::unlockpt(fd.as_fd())
@@ -141,7 +153,7 @@ pub fn unlockpt<Fd: AsFd>(fd: Fd) -> io::Result<()> {
 /// `grantpt(fd)`—Grant access to the user side of a pseudoterminal.
 ///
 /// On Linux, calling this function has no effect, as the kernel is expected to
-/// grant the appropriate access. On all other platorms, this function has
+/// grant the appropriate access. On all other platforms, this function has
 /// unspecified behavior if the calling process has a [`Signal::Child`] signal
 /// handler installed.
 ///
@@ -150,9 +162,9 @@ pub fn unlockpt<Fd: AsFd>(fd: Fd) -> io::Result<()> {
 ///  - [Linux]
 ///  - [glibc]
 ///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/grantpt.html
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/grantpt.html
 /// [Linux]: https://man7.org/linux/man-pages/man3/grantpt.3.html
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Allocation.html#index-grantpt
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Allocation.html#index-grantpt
 /// [`Signal::Child`]: crate::process::Signal::Child
 #[inline]
 pub fn grantpt<Fd: AsFd>(fd: Fd) -> io::Result<()> {
@@ -170,7 +182,7 @@ pub fn grantpt<Fd: AsFd>(fd: Fd) -> io::Result<()> {
     }
 }
 
-/// `ioctl(fd, TIOCGPTPEER)`—Open the user side of a pseduoterminal.
+/// `ioctl(fd, TIOCGPTPEER)`—Open the user side of a pseudoterminal.
 ///
 /// This function is currently only implemented on Linux.
 ///

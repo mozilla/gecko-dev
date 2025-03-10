@@ -3,7 +3,7 @@
 //! On mipsisa32r6el, Linux indicates success or failure using `$a3` rather
 //! than by returning a negative error code as most other architectures do.
 //!
-//! Mips-family platforms have a special calling convention for `__NR_pipe`,
+//! MIPS-family platforms have a special calling convention for `__NR_pipe`,
 //! however we use `__NR_pipe2` instead to avoid having to implement it.
 
 use crate::backend::reg::{

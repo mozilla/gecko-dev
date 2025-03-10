@@ -220,7 +220,7 @@ impl Dir {
     /// `fchdir(self)`
     #[cfg(feature = "process")]
     #[cfg(not(any(target_os = "fuchsia", target_os = "vita", target_os = "wasi")))]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "process")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "process")))]
     #[inline]
     pub fn chdir(&self) -> io::Result<()> {
         fchdir(unsafe { BorrowedFd::borrow_raw(c::dirfd(self.libc_dir.as_ptr())) })

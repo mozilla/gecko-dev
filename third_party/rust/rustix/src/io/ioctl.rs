@@ -21,7 +21,7 @@ use backend::fd::AsFd;
 #[doc(alias = "FIOCLEX")]
 #[doc(alias = "FD_CLOEXEC")]
 pub fn ioctl_fioclex<Fd: AsFd>(fd: Fd) -> io::Result<()> {
-    // SAFETY: FIOCLEX is a no-argument setter opcode.
+    // SAFETY: `FIOCLEX` is a no-argument setter opcode.
     unsafe {
         let ctl = ioctl::NoArg::<ioctl::BadOpcode<{ c::FIOCLEX }>>::new();
         ioctl::ioctl(fd, ctl)
@@ -41,7 +41,7 @@ pub fn ioctl_fioclex<Fd: AsFd>(fd: Fd) -> io::Result<()> {
 #[inline]
 #[doc(alias = "FIONBIO")]
 pub fn ioctl_fionbio<Fd: AsFd>(fd: Fd, value: bool) -> io::Result<()> {
-    // SAFETY: FIONBIO is a pointer setter opcode.
+    // SAFETY: `FIONBIO` is a pointer setter opcode.
     unsafe {
         let ctl = ioctl::Setter::<ioctl::BadOpcode<{ c::FIONBIO }>, c::c_int>::new(value.into());
         ioctl::ioctl(fd, ctl)
@@ -69,7 +69,7 @@ pub fn ioctl_fionbio<Fd: AsFd>(fd: Fd, value: bool) -> io::Result<()> {
 #[inline]
 #[doc(alias = "FIONREAD")]
 pub fn ioctl_fionread<Fd: AsFd>(fd: Fd) -> io::Result<u64> {
-    // SAFETY: FIONREAD is a getter opcode that gets a c_int.
+    // SAFETY: `FIONREAD` is a getter opcode that gets a `c_int`.
     unsafe {
         let ctl = ioctl::Getter::<ioctl::BadOpcode<{ c::FIONREAD }>, c::c_int>::new();
         ioctl::ioctl(fd, ctl).map(|n| n as u64)

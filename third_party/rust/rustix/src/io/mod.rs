@@ -18,7 +18,7 @@ mod is_read_write;
 #[cfg(not(windows))]
 mod read_write;
 
-pub use close::close;
+pub use close::*;
 #[cfg(not(windows))]
 pub use dup::*;
 pub use errno::{retry_on_intr, Errno, Result};

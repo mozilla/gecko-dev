@@ -126,7 +126,7 @@ impl Termios {
     /// constant value.
     #[inline]
     pub fn output_speed(&self) -> u32 {
-        // On Linux and BSDs, `input_speed` is the arbitrary integer speed.
+        // On Linux and BSDs, `output_speed` is the arbitrary integer speed.
         #[cfg(any(linux_kernel, bsd))]
         {
             debug_assert!(u32::try_from(self.output_speed).is_ok());
@@ -810,15 +810,17 @@ pub mod speed {
     /// `u32`.
     ///
     /// On BSD platforms, integer speed values are already the same as their
-    /// encoded values, and on Linux platforms, we use `TCGETS2`/`TCSETS2`
-    /// and the `c_ispeed`/`c_ospeed`` fields, except that on Linux on
-    /// PowerPC on QEMU, `TCGETS2`/`TCSETS2` don't set `c_ispeed`/`c_ospeed`.
+    /// encoded values.
+    ///
+    /// On Linux on PowerPC, `TCGETS`/`TCSETS` support the `c_ispeed` and
+    /// `c_ospeed` fields.
+    ///
+    /// On Linux on architectures other than PowerPC, `TCGETS`/`TCSETS` don't
+    /// support the `c_ispeed` and `c_ospeed` fields, so we have to fall back
+    /// to `TCGETS2`/`TCSETS2` to support them.
     #[cfg(not(any(
         bsd,
-        all(
-            linux_kernel,
-            not(any(target_arch = "powerpc", target_arch = "powerpc64"))
-        )
+        all(linux_kernel, any(target_arch = "powerpc", target_arch = "powerpc64"))
     )))]
     pub(crate) const fn decode(encoded_speed: c::speed_t) -> Option<u32> {
         match encoded_speed {
@@ -1113,6 +1115,7 @@ impl core::ops::IndexMut<SpecialCodeIndex> for SpecialCodes {
 }
 
 /// Indices for use with [`Termios::special_codes`].
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct SpecialCodeIndex(usize);
 
 #[rustfmt::skip]
@@ -1179,6 +1182,104 @@ impl SpecialCodeIndex {
 
     /// `VEOL2`
     pub const VEOL2: Self = Self(c::VEOL2 as usize);
+
+    /// `VSWTCH`
+    #[cfg(any(solarish, target_os = "haiku", target_os = "nto"))]
+    pub const VSWTCH: Self = Self(c::VSWTCH as usize);
+
+    /// `VDSUSP`
+    #[cfg(any(bsd, solarish, target_os = "aix", target_os = "hurd", target_os = "nto"))]
+    pub const VDSUSP: Self = Self(c::VDSUSP as usize);
+
+    /// `VSTATUS`
+    #[cfg(any(bsd, solarish, target_os = "hurd"))]
+    pub const VSTATUS: Self = Self(c::VSTATUS as usize);
+
+    /// `VERASE2`
+    #[cfg(any(freebsdlike, solarish))]
+    pub const VERASE2: Self = Self(c::VERASE2 as usize);
+}
+
+impl core::fmt::Debug for SpecialCodeIndex {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match *self {
+            Self::VINTR => write!(f, "VINTR"),
+            Self::VQUIT => write!(f, "VQUIT"),
+            Self::VERASE => write!(f, "VERASE"),
+            Self::VKILL => write!(f, "VKILL"),
+            #[cfg(not(any(
+                solarish,
+                all(linux_kernel, any(target_arch = "sparc", target_arch = "sparc64"))
+            )))]
+            Self::VEOF => write!(f, "VEOF"),
+            #[cfg(not(any(
+                solarish,
+                all(linux_kernel, any(target_arch = "sparc", target_arch = "sparc64"))
+            )))]
+            Self::VTIME => write!(f, "VTIME"),
+            #[cfg(not(any(
+                solarish,
+                all(linux_kernel, any(target_arch = "sparc", target_arch = "sparc64"))
+            )))]
+            Self::VMIN => write!(f, "VMIN"),
+
+            // On Solarish platforms, and Linux on SPARC, `VMIN` and `VTIME`
+            // have the same value as `VEOF` and `VEOL`.
+            #[cfg(any(
+                solarish,
+                all(linux_kernel, any(target_arch = "sparc", target_arch = "sparc64"))
+            ))]
+            Self::VMIN => write!(f, "VMIN/VEOF"),
+            #[cfg(any(
+                solarish,
+                all(linux_kernel, any(target_arch = "sparc", target_arch = "sparc64"))
+            ))]
+            Self::VTIME => write!(f, "VTIME/VEOL"),
+
+            #[cfg(not(any(
+                bsd,
+                solarish,
+                target_os = "aix",
+                target_os = "haiku",
+                target_os = "hurd",
+                target_os = "nto",
+            )))]
+            Self::VSWTC => write!(f, "VSWTC"),
+            Self::VSTART => write!(f, "VSTART"),
+            Self::VSTOP => write!(f, "VSTOP"),
+            Self::VSUSP => write!(f, "VSUSP"),
+            #[cfg(not(any(
+                solarish,
+                all(linux_kernel, any(target_arch = "sparc", target_arch = "sparc64"))
+            )))]
+            Self::VEOL => write!(f, "VEOL"),
+            #[cfg(not(target_os = "haiku"))]
+            Self::VREPRINT => write!(f, "VREPRINT"),
+            #[cfg(not(any(target_os = "aix", target_os = "haiku")))]
+            Self::VDISCARD => write!(f, "VDISCARD"),
+            #[cfg(not(any(target_os = "aix", target_os = "haiku")))]
+            Self::VWERASE => write!(f, "VWERASE"),
+            #[cfg(not(target_os = "haiku"))]
+            Self::VLNEXT => write!(f, "VLNEXT"),
+            Self::VEOL2 => write!(f, "VEOL2"),
+            #[cfg(any(solarish, target_os = "haiku", target_os = "nto"))]
+            Self::VSWTCH => write!(f, "VSWTCH"),
+            #[cfg(any(
+                bsd,
+                solarish,
+                target_os = "aix",
+                target_os = "hurd",
+                target_os = "nto"
+            ))]
+            Self::VDSUSP => write!(f, "VDSUSP"),
+            #[cfg(any(bsd, solarish, target_os = "hurd"))]
+            Self::VSTATUS => write!(f, "VSTATUS"),
+            #[cfg(any(freebsdlike, solarish))]
+            Self::VERASE2 => write!(f, "VERASE2"),
+
+            _ => write!(f, "unknown"),
+        }
+    }
 }
 
 /// `TCSA*` values for use with [`tcsetattr`].
@@ -1292,7 +1393,7 @@ fn termios_layouts() {
 
     #[cfg(not(linux_raw))]
     {
-        // On Mips, Sparc, and Android, the libc lacks the ospeed and ispeed
+        // On MIPS, SPARC, and Android, the libc lacks the ospeed and ispeed
         // fields.
         #[cfg(all(
             not(all(

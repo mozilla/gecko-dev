@@ -23,7 +23,7 @@ use crate::fd::{AsRawFd, BorrowedFd};
 #[inline]
 #[doc(alias = "BLKSSZGET")]
 pub fn ioctl_blksszget<Fd: AsFd>(fd: Fd) -> io::Result<u32> {
-    // SAFETY: BLZSSZGET is a getter opcode that gets a u32.
+    // SAFETY: `BLZSSZGET` is a getter opcode that gets a u32.
     unsafe {
         let ctl = ioctl::Getter::<ioctl::BadOpcode<{ c::BLKSSZGET }>, c::c_uint>::new();
         ioctl::ioctl(fd, ctl)
@@ -35,7 +35,7 @@ pub fn ioctl_blksszget<Fd: AsFd>(fd: Fd) -> io::Result<u32> {
 #[inline]
 #[doc(alias = "BLKPBSZGET")]
 pub fn ioctl_blkpbszget<Fd: AsFd>(fd: Fd) -> io::Result<u32> {
-    // SAFETY: BLKPBSZGET is a getter opcode that gets a u32.
+    // SAFETY: `BLKPBSZGET` is a getter opcode that gets a u32.
     unsafe {
         let ctl = ioctl::Getter::<ioctl::BadOpcode<{ c::BLKPBSZGET }>, c::c_uint>::new();
         ioctl::ioctl(fd, ctl)
@@ -44,7 +44,7 @@ pub fn ioctl_blkpbszget<Fd: AsFd>(fd: Fd) -> io::Result<u32> {
 
 /// `ioctl(fd, FICLONE, src_fd)`—Share data between open files.
 ///
-/// This ioctl is not available on Sparc platforms
+/// This ioctl is not available on SPARC platforms.
 ///
 /// # References
 ///  - [Linux]
@@ -62,7 +62,7 @@ pub fn ioctl_ficlone<Fd: AsFd, SrcFd: AsFd>(fd: Fd, src_fd: SrcFd) -> io::Result
 #[inline]
 #[doc(alias = "EXT4_IOC_RESIZE_FS")]
 pub fn ext4_ioc_resize_fs<Fd: AsFd>(fd: Fd, blocks: u64) -> io::Result<()> {
-    // SAFETY: EXT4_IOC_RESIZE_FS is a pointer setter opcode.
+    // SAFETY: `EXT4_IOC_RESIZE_FS` is a pointer setter opcode.
     unsafe {
         let ctl = ioctl::Setter::<ioctl::BadOpcode<{ backend::fs::EXT4_IOC_RESIZE_FS }>, u64>::new(
             blocks,
@@ -95,7 +95,9 @@ unsafe impl ioctl::Ioctl for Ficlone<'_> {
 
 #[cfg(linux_kernel)]
 bitflags! {
-    /// `FS_*` constants for use with [`ioctl_getflags`][crate::io::ioctl::ioctl_getflags].
+    /// `FS_*` constants for use with [`ioctl_getflags`].
+    ///
+    /// [`ioctl_getflags`]: crate::fs::ioctl::ioctl_getflags
     pub struct IFlags: c::c_uint {
         /// `FS_APPEND_FL`
         const APPEND = linux_raw_sys::general::FS_APPEND_FL;
