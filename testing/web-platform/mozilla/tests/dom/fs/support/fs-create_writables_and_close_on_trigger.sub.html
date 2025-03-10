@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+  <title>Create a file and keep it locked until a trigger is received</title>
+  <head>
+    <script src="/resources/testharness.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const channelName = params.get("channel");
+      if (!channelName) {
+        // On irrecoverable errors, window is closed: parent should check this.
+        window.close();
+
+        throw new Error("Unknown channel name");
+      }
+
+      const channel = new BroadcastChannel(channelName);
+      const dirHandleName = "dusty-dir-handle-" + channelName;
+      const fileHandleName = "funky-file-handle-" + channelName;
+
+      var writable = null;
+
+      window.addEventListener("message", async ev => {
+        if (ev.data === "cleanup") {
+          if (writable && !writable.getWriter().closed) {
+            await writable.abort();
+            writable = null;
+          }
+        }
+
+        channel.postMessage("first done");
+      });
+
+      window.addEventListener("load", async () => {
+        try {
+          const rootDir = await navigator.storage.getDirectory();
+          const opts = { create: false };
+          const subDir = await rootDir.getDirectoryHandle(dirHandleName, opts);
+          const file = await subDir.getFileHandle(fileHandleName, opts);
+
+          writable = await file.createWritable({});
+
+          const encoder = new TextEncoder();
+          const writeBuffer = encoder.encode("Hello from the first tab!");
+          await writable.write(writeBuffer);
+
+          channel.onmessage = async ev => {
+            let message = "200 OK";
+            if (ev.data === "trigger") {
+              try {
+                await writable.close();
+                writable = null;
+              } catch (err) {
+                message = err.message;
+              }
+              channel.postMessage(message);
+            }
+          };
+
+          channel.postMessage("First window ready!");
+        } catch (err) {
+          channel.postMessage(err.message);
+        }
+      });
+    </script>
+  </body>
+</html>
