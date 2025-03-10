@@ -45,8 +45,6 @@ class _MachCommand:
         "decl_order",
         # Whether to disable automatic logging to last_log.json for the command.
         "no_auto_log",
-        # Whether to hide this command from help.
-        "hidden",
     )
 
     def __init__(
@@ -61,7 +59,6 @@ class _MachCommand:
         virtualenv_name=None,
         ok_if_tests_disabled=False,
         no_auto_log=False,
-        hidden=False,
     ):
         self.name = name
         self.subcommand = subcommand
@@ -73,7 +70,6 @@ class _MachCommand:
         self.argument_group_names = []
         self.virtualenv_name = virtualenv_name
         self.order = order
-        self.hidden = hidden
         if ok_if_tests_disabled and category != "testing":
             raise ValueError(
                 "ok_if_tests_disabled should only be set for " "`testing` mach commands"
