@@ -436,7 +436,6 @@ skip-if = [
 ["browser_webconsole_external_script_errors.js"]
 
 ["browser_webconsole_file_uri.js"]
-skip-if = ["true"] # Bug 1404382
 
 ["browser_webconsole_filter_buttons_overflow.js"]
 

@@ -3,75 +3,68 @@
 
 "use strict";
 
-// XXX Remove this when the file is migrated to the new frontend.
-/* eslint-disable no-undef */
-
 // See Bug 595223.
 
-const PREF = "devtools.webconsole.persistlog";
 const TEST_FILE = "test-network.html";
 
 var hud;
 
 add_task(async function () {
-  Services.prefs.setBoolPref(PREF, true);
+  // Display network requests
+  await pushPref("devtools.webconsole.filter.net", true);
+
+  await addTab("about:blank");
+  hud = await openConsole();
+  await clearOutput(hud);
 
   const jar = getJar(getRootDirectory(gTestPath));
   const dir = jar
     ? extractJarToTmp(jar)
     : getChromeDir(getResolvedURI(gTestPath));
-
   dir.append(TEST_FILE);
   const uri = Services.io.newFileURI(dir);
 
-  // Open tab with correct remote type so we don't switch processes when we load
-  // the file:// URI, otherwise we won't get the same web console.
-  const remoteType = E10SUtils.getRemoteTypeForURI(
-    uri.spec,
-    gMultiProcessBrowser,
-    gFissionBrowser
+  const onConsoleMessage = waitForMessageByType(
+    hud,
+    "running network console logging tests",
+    ".console-api"
   );
-  await loadTab("about:blank", remoteType);
+  const onHTMLFileMessage = waitForMessageByType(
+    hud,
+    "test-network.html",
+    ".network"
+  );
+  const onImageFileMessage = waitForMessageByType(
+    hud,
+    "test-image.png",
+    ".network"
+  );
+  const onJSFileMessage = waitForMessageByType(
+    hud,
+    "testscript.js?foo",
+    ".network"
+  );
 
-  hud = await openConsole();
-  await clearOutput(hud);
+  navigateTo(uri.spec);
 
-  await navigateTo(uri.spec);
+  await onConsoleMessage;
+  ok(true, "console message is displayed");
 
-  await testMessages();
+  let message = await onHTMLFileMessage;
+  ok(
+    message.node.querySelector(".url").innerText.startsWith("file://"),
+    "HTML file request is displayed"
+  );
 
-  Services.prefs.clearUserPref(PREF);
-  hud = null;
+  message = await onImageFileMessage;
+  ok(
+    message.node.querySelector(".url").innerText.startsWith("file://"),
+    "image file request is displayed"
+  );
+
+  message = await onJSFileMessage;
+  ok(
+    message.node.querySelector(".url").innerText.startsWith("file://"),
+    "JS file request is displayed"
+  );
 });
-
-function testMessages() {
-  return waitForMessagesByType({
-    webconsole: hud,
-    messages: [
-      {
-        text: "running network console logging tests",
-        typeSelector: ".console-api",
-        category: CATEGORY_WEBDEV,
-        severity: SEVERITY_LOG,
-      },
-      {
-        text: "test-network.html",
-        typeSelector: ".network",
-        category: CATEGORY_NETWORK,
-        severity: SEVERITY_LOG,
-      },
-      {
-        text: "test-image.png",
-        typeSelector: ".network",
-        category: CATEGORY_NETWORK,
-        severity: SEVERITY_LOG,
-      },
-      {
-        text: "testscript.js",
-        typeSelector: ".network",
-        category: CATEGORY_NETWORK,
-        severity: SEVERITY_LOG,
-      },
-    ],
-  });
-}
