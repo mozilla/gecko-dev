@@ -231,6 +231,7 @@ enum SelectorMatchingResult {
 }
 
 impl From<SelectorMatchingResult> for KleeneValue {
+    #[inline]
     fn from(value: SelectorMatchingResult) -> Self {
         match value {
             SelectorMatchingResult::Matched => KleeneValue::True,
@@ -702,9 +703,7 @@ fn hover_and_active_quirk_applies<Impl: SelectorImpl>(
     context: &MatchingContext<Impl>,
     rightmost: SubjectOrPseudoElement,
 ) -> bool {
-    if context.quirks_mode() != QuirksMode::Quirks {
-        return false;
-    }
+    debug_assert_eq!(context.quirks_mode(), QuirksMode::Quirks);
 
     if context.is_nested() {
         return false;
@@ -811,8 +810,8 @@ fn matches_complex_selector_internal<E>(
     mut selector_iter: SelectorIter<E::Impl>,
     element: &E,
     context: &mut MatchingContext<E::Impl>,
-    rightmost: SubjectOrPseudoElement,
-    first_subject_compound: SubjectOrPseudoElement,
+    mut rightmost: SubjectOrPseudoElement,
+    mut first_subject_compound: SubjectOrPseudoElement,
 ) -> SelectorMatchingResult
 where
     E: Element,
@@ -841,62 +840,50 @@ where
         }
     };
 
-    let combinator = selector_iter.next_sequence();
-    if let Some(c) = combinator {
-        if context.featureless() && !c.is_pseudo_element() {
-            // A featureless element shouldn't match any further combinator.
-            // TODO(emilio): Maybe we could avoid the compound matching more eagerly.
-            return SelectorMatchingResult::NotMatchedGlobally;
+    let Some(combinator) = selector_iter.next_sequence() else {
+        return match matches_compound_selector {
+            KleeneValue::True => SelectorMatchingResult::Matched,
+            KleeneValue::Unknown => SelectorMatchingResult::Unknown,
+            KleeneValue::False => SelectorMatchingResult::NotMatchedAndRestartFromClosestLaterSibling,
         }
-        if c.is_sibling() && context.needs_selector_flags() {
-            element.apply_selector_flags(ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS);
-        }
+    };
+
+    let is_pseudo_combinator = combinator.is_pseudo_element();
+    if context.featureless() && !is_pseudo_combinator {
+        // A featureless element shouldn't match any further combinator.
+        // TODO(emilio): Maybe we could avoid the compound matching more eagerly.
+        return SelectorMatchingResult::NotMatchedGlobally;
     }
 
-    // We don't short circuit unknown here, since the rest of the selector
-    // to the left of this compound may return false.
+    let is_sibling_combinator = combinator.is_sibling();
+    if is_sibling_combinator && context.needs_selector_flags() {
+        // We need the flags even if we don't match.
+        element.apply_selector_flags(ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS);
+    }
+
     if matches_compound_selector == KleeneValue::False {
+        // We don't short circuit unknown here, since the rest of the selector
+        // to the left of this compound may still return false.
         return SelectorMatchingResult::NotMatchedAndRestartFromClosestLaterSibling;
     }
 
-    let combinator = match combinator {
-        None => {
-            return match matches_compound_selector {
-                KleeneValue::True => SelectorMatchingResult::Matched,
-                KleeneValue::Unknown => SelectorMatchingResult::Unknown,
-                KleeneValue::False => unreachable!(),
-            }
-        },
-        Some(c) => c,
-    };
-
-    let (candidate_not_found, rightmost, first_subject_compound) = match combinator {
-        Combinator::NextSibling | Combinator::LaterSibling => (
-            SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant,
-            SubjectOrPseudoElement::No,
-            SubjectOrPseudoElement::No,
-        ),
-        Combinator::Child |
-        Combinator::Descendant |
-        Combinator::SlotAssignment |
-        Combinator::Part => (
-            SelectorMatchingResult::NotMatchedGlobally,
-            SubjectOrPseudoElement::No,
-            SubjectOrPseudoElement::No,
-        ),
-        Combinator::PseudoElement => (
-            SelectorMatchingResult::NotMatchedGlobally,
-            rightmost,
-            first_subject_compound,
-        ),
-    };
+    if !is_pseudo_combinator {
+        rightmost = SubjectOrPseudoElement::No;
+        first_subject_compound = SubjectOrPseudoElement::No;
+    }
 
     // Stop matching :visited as soon as we find a link, or a combinator for
     // something that isn't an ancestor.
-    let mut visited_handling = if combinator.is_sibling() {
+    let mut visited_handling = if is_sibling_combinator {
         VisitedHandlingMode::AllLinksUnvisited
     } else {
         context.visited_handling()
+    };
+
+    let candidate_not_found = if is_sibling_combinator {
+        SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant
+    } else {
+        SelectorMatchingResult::NotMatchedGlobally
     };
 
     let mut element = element.clone();
@@ -923,35 +910,29 @@ where
             })
         });
 
+        // Return the status immediately if it is one of the global states.
         match result {
-            SelectorMatchingResult::Matched | SelectorMatchingResult::Unknown => {
-                // Return the status immediately.
-                debug_assert!(
-                    matches_compound_selector.to_bool(true),
-                    "Compound didn't match?"
-                );
-                if result == SelectorMatchingResult::Matched &&
-                    matches_compound_selector.to_bool(false)
-                {
-                    // Matches without question
-                    return result;
+            SelectorMatchingResult::Matched => {
+                debug_assert!(matches_compound_selector.to_bool(true), "Compound didn't match?");
+                if !matches_compound_selector.to_bool(false) {
+                    return SelectorMatchingResult::Unknown;
                 }
-                // Something returned unknown, so return unknown.
-                return SelectorMatchingResult::Unknown;
-            }
+                return result;
+            },
+            SelectorMatchingResult::Unknown |
             SelectorMatchingResult::NotMatchedGlobally => return result,
             _ => {},
         }
 
-        if featureless {
-            // A featureless element didn't match the selector, we can stop matching now rather
-            // than looking at following elements for our combinator.
-            return SelectorMatchingResult::NotMatchedGlobally;
-        }
-
         match combinator {
-            Combinator::NextSibling => return result,
-            Combinator::PseudoElement | Combinator::Child => {
+            Combinator::Descendant => {
+                // The Descendant combinator and the status is
+                // NotMatchedAndRestartFromClosestLaterSibling or
+                // NotMatchedAndRestartFromClosestDescendant, or the LaterSibling combinator and
+                // the status is NotMatchedAndRestartFromClosestDescendant, we can continue to
+                // matching on the next candidate element.
+            },
+            Combinator::Child => {
                 // Upgrade the failure status to NotMatchedAndRestartFromClosestDescendant.
                 return SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant;
             }
@@ -962,18 +943,20 @@ where
                 if matches!(result, SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant) {
                     return result;
                 }
+            },
+            Combinator::NextSibling | Combinator::PseudoElement | Combinator::Part | Combinator::SlotAssignment => {
+                // NOTE(emilio): Conceptually, PseudoElement / Part / SlotAssignment should return
+                // `candidate_not_found`, but it doesn't matter in practice since they don't have
+                // sibling / descendant combinators to the right of them. This hopefully saves one
+                // branch.
+                return result;
             }
-            _ => {
-                // The Descendant combinator and the status is
-                // NotMatchedAndRestartFromClosestLaterSibling or
-                // NotMatchedAndRestartFromClosestDescendant, or the
-                // LaterSibling combinator and the status is
-                // NotMatchedAndRestartFromClosestDescendant, we can continue to
-                // matching on the next candidate element.
-                //
-                // TODO(emilio): is this sound with Combinator::Part and others? It seems we could
-                // early reject if we haven't matched rather than keeping going?
-            }
+        }
+
+        if featureless {
+            // A featureless element didn't match the selector, we can stop matching now rather
+            // than looking at following elements for our combinator.
+            return candidate_not_found;
         }
     }
 }
