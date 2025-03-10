@@ -119,11 +119,8 @@ class FileSystemDatabaseManagerVersion001 : public FileSystemDatabaseManager {
 
   virtual nsresult RemoveFileId(const FileId& aFileId);
 
-  virtual Result<Usage, QMResult> GetUsagesOfDescendants(
-      const EntryId& aEntryId) const;
-
-  virtual Result<nsTArray<FileId>, QMResult> FindFilesUnderEntry(
-      const EntryId& aEntryId) const;
+  virtual Result<std::pair<nsTArray<FileId>, Usage>, QMResult>
+  FindFilesWithoutDeprecatedLocksUnderEntry(const EntryId& aEntryId) const;
 
   virtual Result<nsTArray<EntryId>, QMResult> FindFileEntriesUnderDirectory(
       const EntryId& aEntryId) const;
