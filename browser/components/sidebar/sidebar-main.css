@@ -47,7 +47,6 @@
 
   > moz-button {
     --button-icon-fill: var(--toolbarbutton-icon-fill);
-    --button-attention-dot-color: light-dark(#53b93a, #73d25d);
   }
 
   > moz-button:not(.tools-overflow) {

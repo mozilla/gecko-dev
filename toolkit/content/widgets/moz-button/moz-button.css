@@ -178,24 +178,3 @@ button {
     pointer-events: none;
   }
 }
-
-.button-badge {
-  display: block;
-  position: absolute;
-  box-shadow: none;
-  margin-block-end: var(--space-xlarge);
-  margin-inline-start: var(--space-xlarge);
-  min-width: 8px;
-  min-height: 8px;
-  -moz-context-properties: fill;
-  background: url(chrome://browser/skin/notification-fill-12.svg) no-repeat center;
-  background-size: auto;
-  background-size: 12px;
-  fill: var(--attention-dot-color);
-}
-
-@media not ((prefers-contrast) or (forced-colors)) {
-  .button-badge {
-    fill: var(--button-attention-dot-color, var(--attention-dot-color));
-  }
-}
