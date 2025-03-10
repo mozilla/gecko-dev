@@ -506,7 +506,7 @@ bool ClassEmitter::emitBodyScope(ClassBodyScope::ParserData* scopeBindings) {
 
 bool ClassEmitter::emitClass(TaggedParserAtomIndex name,
                              TaggedParserAtomIndex nameForAnonymousClass,
-                             bool hasNameOnStack) {
+                             bool hasNameOnStack, uint8_t membersCount) {
   MOZ_ASSERT(propertyState_ == PropertyState::Start);
   MOZ_ASSERT(classState_ == ClassState::Start ||
              classState_ == ClassState::Scope ||
@@ -521,7 +521,7 @@ bool ClassEmitter::emitClass(TaggedParserAtomIndex name,
   hasNameOnStack_ = hasNameOnStack;
   isDerived_ = false;
 
-  if (!bce_->emit2(JSOp::NewInit, 0)) {
+  if (!bce_->emit2(JSOp::NewInit, membersCount)) {
     //              [stack] HOMEOBJ
     return false;
   }
