@@ -530,7 +530,7 @@ os-integration:
 async-event-dispatching:
     description: "{description} with async parent process event dispatching"
     component: "Remote Protocol::Agent"
-    expiration: "2025-04-01"
+    expiration: "2025-10-01"
     suffix: "async"
     mozinfo: "remote_async"
     replace:
