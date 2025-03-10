@@ -27,8 +27,8 @@ add_task(async function () {
     files: {
       "content-script.js": function () {
         browser.test.notifyPass("contentScriptRan");
-      }
-    }
+      },
+    },
   });
 
   await extension.startup();
@@ -55,9 +55,7 @@ add_task(async function () {
   const [contentScript] = contentScripts;
   Assert.stringContains(contentScript.title, "Addon with content script");
 
-  info(
-    "Assert that watchTargets works for the existing content script"
-  );
+  info("Assert that watchTargets works for the existing content script");
   const targets = [];
   const destroyedTargets = [];
   const onAvailable = async ({ targetFront }) => {
@@ -86,21 +84,38 @@ add_task(async function () {
     onDestroyed,
   });
 
-  is (targets.length, 1, "watchTargets notifies about a unique target");
-  is(targets[0], contentScript, "watchTargets reports the same target instance");
+  is(targets.length, 1, "watchTargets notifies about a unique target");
+  is(
+    targets[0],
+    contentScript,
+    "watchTargets reports the same target instance"
+  );
 
   await reloadBrowser();
 
-  await waitFor(() => destroyedTargets.length == 1, "Wait for content script target to be destroyed on navigation");
-  await waitFor(() => targets.length == 2, "Wait for a new content script target to be created on navigation");
+  await waitFor(
+    () => destroyedTargets.length == 1,
+    "Wait for content script target to be destroyed on navigation"
+  );
+  await waitFor(
+    () => targets.length == 2,
+    "Wait for a new content script target to be created on navigation"
+  );
 
   is(destroyedTargets[0], contentScript, "the previous target is destroyed");
   is(targets.length, 2, "a new target is notified");
-  Assert.stringContains(targets[1].title, "Addon with content script", "the new target is still about the same content script");
+  Assert.stringContains(
+    targets[1].title,
+    "Addon with content script",
+    "the new target is still about the same content script"
+  );
 
   await extension.unload();
 
-  await waitFor(() => destroyedTargets.length == 2, "Content scripts are destroyed on extension destruction");
+  await waitFor(
+    () => destroyedTargets.length == 2,
+    "Content scripts are destroyed on extension destruction"
+  );
 
   targetCommand.unwatchTargets({
     types: [TYPES.CONTENT_SCRIPT],
@@ -116,7 +131,9 @@ add_task(async function () {
 // Cover the special codepath used by VS.Code which listens to CONTENT SCRIPT targets
 // on a parent process watcher.
 add_task(async function () {
-  info("Test TargetCommand against content scripts via multiprocess descriptor");
+  info(
+    "Test TargetCommand against content scripts via multiprocess descriptor"
+  );
 
   await pushPref("devtools.browsertoolbox.scope", "everything");
 
@@ -133,8 +150,8 @@ add_task(async function () {
     files: {
       "content-script.js": function () {
         browser.test.notifyPass("contentScriptRan");
-      }
-    }
+      },
+    },
   });
 
   await extension.startup();
@@ -190,5 +207,4 @@ add_task(async function () {
   await extension.unload();
 
   BrowserTestUtils.removeTab(tab);
-
 });

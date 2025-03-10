@@ -40,9 +40,8 @@ add_task(async function test_NavigationBetweenTwoDomains_NoDestroy() {
 
   const tab = await addTab(COM_PAGE_URL);
 
-  const { hooks, commands, targetCommand } = await watchServiceWorkerTargets(
-    tab
-  );
+  const { hooks, commands, targetCommand } =
+    await watchServiceWorkerTargets(tab);
 
   // We expect onAvailable to have been called one time, for the only service
   // worker target available in the test page.
@@ -153,9 +152,8 @@ add_task(async function test_NavigationToPageWithExistingWorker() {
   await onBrowserLoaded;
   await waitForRegistrationReady(tab, ORG_PAGE_URL, ORG_WORKER_URL);
 
-  const { hooks, commands, targetCommand } = await watchServiceWorkerTargets(
-    tab
-  );
+  const { hooks, commands, targetCommand } =
+    await watchServiceWorkerTargets(tab);
 
   // We expect onAvailable to have been called one time, for the only service
   // worker target available in the test page.

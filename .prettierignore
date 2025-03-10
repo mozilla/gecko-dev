@@ -1178,11 +1178,11 @@ services/fxaccounts/FxAccountsPairingChannel.sys.mjs
 servo/
 
 # Rust/Cargo output from running `cargo` directly
-target/
-servo/ports/geckolib/target/
-dom/base/rust/target/
-servo/components/style/target/
-dom/webgpu/tests/cts/vendor/target/
+/target/
+/servo/ports/geckolib/target/
+/dom/base/rust/target/
+/servo/components/style/target/
+/dom/webgpu/tests/cts/vendor/target/
 
 # Test files that we don't want to lint (preprocessed, minified etc)
 testing/condprofile/condprof/tests/profile

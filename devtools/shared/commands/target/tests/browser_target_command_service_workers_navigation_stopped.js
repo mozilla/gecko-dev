@@ -21,9 +21,8 @@ add_task(async function test_NavigationToPageWithExistingStoppedWorker() {
 
   await stopServiceWorker(COM_WORKER_URL);
 
-  const { hooks, commands, targetCommand } = await watchServiceWorkerTargets(
-    tab
-  );
+  const { hooks, commands, targetCommand } =
+    await watchServiceWorkerTargets(tab);
 
   // Let some time to watch target to eventually regress and revive the worker
   await wait(1000);

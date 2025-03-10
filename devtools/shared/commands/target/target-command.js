@@ -298,7 +298,7 @@ class TargetCommand extends EventEmitter {
       // When debugging Web Extension, workaround the fallback document by automatically selected any incoming target
       // as soon as we are currently selecting that fallback document.
       (this.descriptorFront.isWebExtensionDescriptor &&
-      this.#selectedTargetFront?.isFallbackExtensionDocument);
+        this.#selectedTargetFront?.isFallbackExtensionDocument);
 
     if (autoSelectTarget) {
       await this.selectTarget(targetFront);
@@ -405,7 +405,9 @@ class TargetCommand extends EventEmitter {
         // When debugging Web Extension we don't want to immediately fallback to the top level target, which is the fallback document.
         // Instead, try to lookup for the background page.
         if (this.descriptorFront.isWebExtensionDescriptor) {
-          const backgroundPageTargetFront = [...this._targets].find(target => !target.isFallbackExtensionDocument);
+          const backgroundPageTargetFront = [...this._targets].find(
+            target => !target.isFallbackExtensionDocument
+          );
           if (backgroundPageTargetFront) {
             fallbackTarget = backgroundPageTargetFront;
           }
@@ -599,7 +601,10 @@ class TargetCommand extends EventEmitter {
         SHOW_CONTENT_SCRIPTS_PREF,
         false
       );
-      if (showContentScripts && this.hasTargetWatcherSupport(TargetCommand.TYPES.CONTENT_SCRIPT)) {
+      if (
+        showContentScripts &&
+        this.hasTargetWatcherSupport(TargetCommand.TYPES.CONTENT_SCRIPT)
+      ) {
         types.push(TargetCommand.TYPES.CONTENT_SCRIPT);
       }
     } else if (
@@ -617,7 +622,9 @@ class TargetCommand extends EventEmitter {
         // Except for CONTENT_SCRIPT targets, as their scripts are already debuggable
         // via the content process targets.
         if (!this.listenForContentScripts) {
-          types = TargetCommand.ALL_TYPES.filter(t => t != TargetCommand.TYPES.CONTENT_SCRIPT);
+          types = TargetCommand.ALL_TYPES.filter(
+            t => t != TargetCommand.TYPES.CONTENT_SCRIPT
+          );
         } else {
           types = TargetCommand.ALL_TYPES;
         }
@@ -907,7 +914,11 @@ class TargetCommand extends EventEmitter {
     this._pendingWatchTargetInitialization.delete(onAvailable);
 
     try {
-      if (onSelected && this.selectedTargetFront && types.includes(this.selectedTargetFront.targetType)) {
+      if (
+        onSelected &&
+        this.selectedTargetFront &&
+        types.includes(this.selectedTargetFront.targetType)
+      ) {
         await onSelected({
           targetFront: this.selectedTargetFront,
         });
@@ -915,11 +926,7 @@ class TargetCommand extends EventEmitter {
     } catch (e) {
       // Prevent throwing when onSelected handler throws on one target
       // (this may make test to fail when closing the toolbox quickly after opening)
-      console.error(
-        "Exception when calling onSelected handler",
-        e.message,
-        e
-      );
+      console.error("Exception when calling onSelected handler", e.message, e);
     }
   }
 
