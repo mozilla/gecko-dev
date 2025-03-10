@@ -7,7 +7,6 @@ package org.mozilla.fenix.collections
 import android.os.Handler
 import android.os.Looper
 import android.text.InputFilter
-import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
@@ -272,13 +271,11 @@ class CollectionCreationView(
         }
     }
 
-    fun onKey(keyCode: Int, event: KeyEvent): Boolean {
-        return if (event.action == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
-            interactor.onBackPressed(step)
-            true
-        } else {
-            false
-        }
+    /**
+     * Call this function to handle user action of swiping back or pressing the system back button.
+     */
+    fun handleOnBackPressed() {
+        interactor.onBackPressed(step)
     }
 
     companion object {

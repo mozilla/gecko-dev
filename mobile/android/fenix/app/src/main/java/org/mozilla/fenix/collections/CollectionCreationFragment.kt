@@ -9,6 +9,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.ComponentDialog
+import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
@@ -89,10 +91,15 @@ class CollectionCreationFragment : DialogFragment() {
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        val dialog = super.onCreateDialog(savedInstanceState)
-        dialog.setOnKeyListener { _, keyCode, event ->
-            collectionCreationView.onKey(keyCode, event)
+        return ComponentDialog(requireContext(), this.theme).apply {
+            onBackPressedDispatcher.addCallback(
+                owner = this,
+                onBackPressedCallback = object : OnBackPressedCallback(true) {
+                    override fun handleOnBackPressed() {
+                        collectionCreationView.handleOnBackPressed()
+                    }
+                },
+            )
         }
-        return dialog
     }
 }
