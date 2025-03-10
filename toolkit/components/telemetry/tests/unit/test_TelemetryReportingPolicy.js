@@ -44,6 +44,9 @@ const ON_TRAIN_ROLLOUT_ENABLED_PREF =
 const ON_TRAIN_ROLLOUT_POPULATION_PREF =
   "browser.preonboarding.onTrainRolloutPopulation";
 
+const ON_TRAIN_ROLLOUT_ENROLLMENT_PREF =
+  "browser.preonboarding.enrolledInOnTrainRollout";
+
 const ON_TRAIN_TEST_RECIPE = {
   slug: "new-onboarding-experience-on-train-rollout-phase-1",
   bucketConfig: {
@@ -704,13 +707,18 @@ add_task(
   }
 );
 
-const getOnTrainRolloutModalStub = async shouldEnroll => {
+const getOnTrainRolloutModalStub = async ({
+  shouldEnroll,
+  isFirstRun,
+  isEnrolled,
+}) => {
   Services.prefs.setBoolPref(ON_TRAIN_ROLLOUT_ENABLED_PREF, true);
   Services.prefs.setIntPref(
     ON_TRAIN_ROLLOUT_POPULATION_PREF,
     ON_TRAIN_TEST_RECIPE.bucketConfig.count
   );
-  Services.prefs.clearUserPref("browser.preonboarding.enabled");
+  Services.prefs.setBoolPref(ON_TRAIN_ROLLOUT_ENROLLMENT_PREF, isEnrolled);
+  Services.prefs.setBoolPref(TelemetryUtils.Preferences.FirstRun, isFirstRun);
 
   const testIDs = await ExperimentManager.generateTestIds(ON_TRAIN_TEST_RECIPE);
   let experimentId = shouldEnroll ? testIDs.treatment : testIDs.notInExperiment;
@@ -729,6 +737,7 @@ const getOnTrainRolloutModalStub = async shouldEnroll => {
     fakeResetAcceptedPolicy();
     Services.prefs.clearUserPref(ON_TRAIN_ROLLOUT_ENABLED_PREF);
     Services.prefs.clearUserPref(ON_TRAIN_ROLLOUT_POPULATION_PREF);
+    Services.prefs.clearUserPref(ON_TRAIN_ROLLOUT_ENROLLMENT_PREF);
   };
 
   return { modalStub, doCleanup };
@@ -744,7 +753,11 @@ add_task(
       return;
     }
 
-    const { modalStub, doCleanup } = await getOnTrainRolloutModalStub(true);
+    const { modalStub, doCleanup } = await getOnTrainRolloutModalStub({
+      shouldEnroll: true,
+      isFirstRun: true,
+      isEnrolled: false,
+    });
 
     Assert.equal(
       modalStub.callCount,
@@ -766,7 +779,11 @@ add_task(
       return;
     }
 
-    const { modalStub, doCleanup } = await getOnTrainRolloutModalStub(false);
+    const { modalStub, doCleanup } = await getOnTrainRolloutModalStub({
+      shouldEnroll: false,
+      isFirstRun: true,
+      isEnrolled: false,
+    });
 
     Assert.equal(
       modalStub.callCount,
@@ -788,12 +805,68 @@ add_task(
       return;
     }
 
-    const { modalStub, doCleanup } = await getOnTrainRolloutModalStub(true);
+    const { modalStub, doCleanup } = await getOnTrainRolloutModalStub({
+      shouldEnroll: true,
+      isFirstRun: true,
+      isEnrolled: false,
+    });
 
     Assert.equal(
       modalStub.callCount,
       0,
       "showModal is not invoked on unsupported OS even if on-train rollouts are enabled and user would otherwise be enrolled"
+    );
+
+    doCleanup();
+  }
+);
+
+add_task(
+  skipIfNotBrowser(),
+  async function test_onTrainRollout_subsequent_startup_after_enrolled() {
+    if (!ON_TRAIN_ROLLOUT_SUPPORTED_PLATFORM) {
+      info(
+        "Skipping supported OS test because current platform is not Linux, Mac, or Win MSIX"
+      );
+      return;
+    }
+
+    const { modalStub, doCleanup } = await getOnTrainRolloutModalStub({
+      shouldEnroll: true,
+      isFirstRun: false,
+      isEnrolled: true,
+    });
+
+    Assert.equal(
+      modalStub.callCount,
+      1,
+      "showModal is invoked on subsequent startup if user was enrolled on first startup but did not interact with modal"
+    );
+
+    doCleanup();
+  }
+);
+
+add_task(
+  skipIfNotBrowser(),
+  async function test_onTrainRollout_subsequent_startup_not_enrolled() {
+    if (!ON_TRAIN_ROLLOUT_SUPPORTED_PLATFORM) {
+      info(
+        "Skipping supported OS test because current platform is not Linux, Mac, or Win MSIX"
+      );
+      return;
+    }
+
+    const { modalStub, doCleanup } = await getOnTrainRolloutModalStub({
+      shouldEnroll: true,
+      isFirstRun: false,
+      isEnrolled: false,
+    });
+
+    Assert.equal(
+      modalStub.callCount,
+      0,
+      "showModal is not invoked on subsequent startup if user was not enrolled on first startup"
     );
 
     doCleanup();

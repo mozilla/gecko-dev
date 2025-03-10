@@ -721,6 +721,8 @@ var TelemetryReportingPolicyImpl = {
   },
 
   async _configureFromOnTrainRollout() {
+    const ENROLLMENT_PREF = "browser.preonboarding.enrolledInOnTrainRollout";
+
     const platformSupported =
       AppConstants.platform == "linux" ||
       AppConstants.platform == "macosx" ||
@@ -730,23 +732,33 @@ var TelemetryReportingPolicyImpl = {
       return;
     }
 
-    const count = this._nimbusVariables.onTrainRolloutPopulation;
-    if (!count) {
-      this._log.trace(
-        `_configureFromOnTrainRollout: User not enrolled in on-train rollout - population is 0, not setting preferences`
-      );
-      return;
-    }
-    const bucketConfig = {
-      count,
-      namespace: "firefox-desktop-preonboarding-on-train-rollout-1",
-      randomizationUnit: "normandy_id",
-      start: 0,
-      total: 10000,
-    };
+    let enrolled;
+    // Only enroll new users
+    if (this.isFirstRun()) {
+      const count = this._nimbusVariables.onTrainRolloutPopulation;
+      if (!count) {
+        this._log.trace(
+          `_configureFromOnTrainRollout: User not enrolled in on-train rollout - population is 0, not setting preferences`
+        );
+        return;
+      }
+      const bucketConfig = {
+        count,
+        namespace: "firefox-desktop-preonboarding-on-train-rollout-1",
+        randomizationUnit: "normandy_id",
+        start: 0,
+        total: 10000,
+      };
 
-    const enrolled =
-      await lazy.ExperimentManager.isInBucketAllocation(bucketConfig);
+      enrolled =
+        await lazy.ExperimentManager.isInBucketAllocation(bucketConfig);
+
+      if (enrolled) {
+        Services.prefs.setBoolPref(ENROLLMENT_PREF, enrolled);
+      }
+    } else {
+      enrolled = Services.prefs.getBoolPref(ENROLLMENT_PREF, false);
+    }
 
     if (enrolled) {
       const preonboardingMessage =
