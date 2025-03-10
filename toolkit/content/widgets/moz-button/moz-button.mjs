@@ -53,6 +53,7 @@ export default class MozButton extends MozLitElement {
     iconSrc: { type: String },
     hasVisibleLabel: { type: Boolean, state: true },
     accessKey: { type: String, mapped: true, fluent: true },
+    attention: { type: Boolean },
   };
 
   static queries = {
@@ -67,6 +68,7 @@ export default class MozButton extends MozLitElement {
     this.size = "default";
     this.disabled = false;
     this.hasVisibleLabel = !!this.label;
+    this.attention = false;
   }
 
   // Delegate clicks on host to the button element.
@@ -110,6 +112,9 @@ export default class MozButton extends MozLitElement {
         >
           ${this.iconSrc
             ? html`<img src=${this.iconSrc} role="presentation" />`
+            : ""}
+          ${this.type.includes("icon") && this.iconSrc && this.attention
+            ? html`<span class="button-badge"></span>`
             : ""}
           <label
             is="moz-label"

@@ -53,6 +53,7 @@ const Template = ({
   accesskey,
   clickHandler,
   showOuterPadding,
+  attention,
 }) => html`
   <style>
     .show-outer-padding {
@@ -68,6 +69,7 @@ const Template = ({
     ?disabled=${disabled}
     iconSrc=${ifDefined(iconSrc)}
     accesskey=${ifDefined(accesskey)}
+    attention=${attention}
     class=${classMap({ "show-outer-padding": showOuterPadding })}
   ></moz-button>
 `;
@@ -80,6 +82,7 @@ Default.args = {
   iconSrc: "",
   disabled: false,
   showOuterPadding: false,
+  attention: false,
 };
 export const DefaultSmall = Template.bind({});
 DefaultSmall.args = {
@@ -135,4 +138,10 @@ export const Toolbar = Template.bind({});
 Toolbar.args = {
   ...Default.args,
   showOuterPadding: true,
+};
+export const Badged = Template.bind({});
+Badged.args = {
+  ...Icon.args,
+  type: "icon",
+  attention: true,
 };
