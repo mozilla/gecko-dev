@@ -4,9 +4,7 @@
 
 package org.mozilla.fenix.components.metrics
 
-import android.app.Activity
 import android.app.Application
-import android.os.Bundle
 import androidx.annotation.VisibleForTesting
 import com.adjust.sdk.Adjust
 import com.adjust.sdk.AdjustConfig
@@ -60,7 +58,7 @@ class AdjustMetricsService(
             AdjustConfig.ENVIRONMENT_PRODUCTION,
             true,
         )
-        config.setPreinstallTrackingEnabled(true)
+        config.enablePreinstallTracking()
 
         val timerId = AdjustAttribution.adjustAttributionTime.start()
         config.setOnAttributionChangedListener {
@@ -86,14 +84,13 @@ class AdjustMetricsService(
             triggerPing()
         }
 
-        config.setLogLevel(LogLevel.SUPRESS)
-        Adjust.onCreate(config)
-        Adjust.setEnabled(true)
-        application.registerActivityLifecycleCallbacks(AdjustLifecycleCallbacks())
+        config.setLogLevel(LogLevel.SUPPRESS)
+        Adjust.initSdk(config)
+        Adjust.enable()
     }
 
     override fun stop() {
-        Adjust.setEnabled(false)
+        Adjust.disable()
         Adjust.gdprForgetMe(application.applicationContext)
     }
 
@@ -130,25 +127,5 @@ class AdjustMetricsService(
                 Pings.adjustAttribution.submit()
             }
         }
-    }
-
-    private class AdjustLifecycleCallbacks : Application.ActivityLifecycleCallbacks {
-        override fun onActivityResumed(activity: Activity) {
-            Adjust.onResume()
-        }
-
-        override fun onActivityPaused(activity: Activity) {
-            Adjust.onPause()
-        }
-
-        override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) { /* noop */ }
-
-        override fun onActivityStarted(activity: Activity) { /* noop */ }
-
-        override fun onActivityStopped(activity: Activity) { /* noop */ }
-
-        override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) { /* noop */ }
-
-        override fun onActivityDestroyed(activity: Activity) { /* noop */ }
     }
 }
