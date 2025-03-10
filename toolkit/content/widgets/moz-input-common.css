@@ -53,6 +53,10 @@
       display: inline;
       margin-inline-end: var(--space-xsmall);
     }
+
+    :host([disabled]) & {
+      color: var(--text-color-disabled);
+    }
   }
 
   /* Input */
