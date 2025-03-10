@@ -81,7 +81,20 @@ fn get_memtest_kinds() -> anyhow::Result<Vec<MemtestKind>> {
         .collect();
     remaining.shuffle(&mut thread_rng());
 
-    Ok([specified, remaining].concat())
+    let mut kinds = [specified, remaining].concat();
+
+    // The Block Move Test requires special care. It only performs timeout checking during its
+    // starting and ending phase. To avoid violating the timeout limit, we only run it if it is the
+    // first test, where we are certain it has enough time to run.
+    let block_move_idx = kinds
+        .iter()
+        .position(|k| matches!(k, MemtestKind::BlockMove))
+        .expect("BlockMove should exist in MemtestKind::ALL");
+    if block_move_idx != 0 {
+        kinds.remove(block_move_idx);
+    }
+
+    Ok(kinds)
 }
 
 /// Encapsulated logic for launching and interacting with a memory testing process.

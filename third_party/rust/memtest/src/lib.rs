@@ -9,7 +9,6 @@ use {
     std::{
         error::Error,
         fmt,
-        mem::size_of_val,
         time::{Duration, Instant},
     },
 };
@@ -18,7 +17,7 @@ mod memtest;
 mod prelude;
 
 pub use memtest::{
-    MemtestError, MemtestFailure, MemtestKind, MemtestOutcome, ParseMemtestKindError,
+    MemtestError, MemtestFailure, MemtestKind, MemtestOutcome, MemtestResult, ParseMemtestKindError,
 };
 
 #[derive(Debug)]
@@ -67,7 +66,7 @@ pub struct MemtestReportList {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MemtestReport {
     pub test_kind: MemtestKind,
-    pub outcome: Result<MemtestOutcome, MemtestError>,
+    pub outcome: Result<MemtestOutcome, MemtestError<TimeoutError>>,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -104,6 +103,14 @@ struct TimeoutCheckerState {
     completed_iter: u64,
     checkpoint: u64,
 }
+
+/// This is an enum instead of an empty struct so that the serial representation shows
+/// "TimeoutError" instead of "null"
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TimeoutError {
+    TimeoutError,
+}
+use TimeoutError::TimeoutError as Timeout;
 
 impl MemtestRunner {
     /// Create a MemtestRunner containing all test kinds in random order
@@ -150,7 +157,7 @@ impl MemtestRunner {
         // the memory region and try again
         let _working_set_resize_guard = if self.allow_working_set_resize {
             Some(
-                replace_set_size(size_of_val(memory))
+                replace_set_size(std::mem::size_of_val(memory))
                     .context("Failed to replace process working set size")?,
             )
         } else {
@@ -177,24 +184,8 @@ impl MemtestRunner {
         let mut timed_out = false;
 
         for test_kind in &self.test_kinds {
-            let test = match test_kind {
-                MemtestKind::OwnAddressBasic => memtest::test_own_address_basic,
-                MemtestKind::OwnAddressRepeat => memtest::test_own_address_repeat,
-                MemtestKind::RandomVal => memtest::test_random_val,
-                MemtestKind::Xor => memtest::test_xor,
-                MemtestKind::Sub => memtest::test_sub,
-                MemtestKind::Mul => memtest::test_mul,
-                MemtestKind::Div => memtest::test_div,
-                MemtestKind::Or => memtest::test_or,
-                MemtestKind::And => memtest::test_and,
-                MemtestKind::SeqInc => memtest::test_seq_inc,
-                MemtestKind::SolidBits => memtest::test_solid_bits,
-                MemtestKind::Checkerboard => memtest::test_checkerboard,
-                MemtestKind::BlockSeq => memtest::test_block_seq,
-            };
-
             let test_result = if timed_out {
-                Err(MemtestError::Timeout)
+                Err(MemtestError::Observer(Timeout))
             } else if self.allow_multithread {
                 std::thread::scope(|scope| {
                     let num_threads = num_cpus::get();
@@ -202,7 +193,8 @@ impl MemtestRunner {
 
                     let mut handles = vec![];
                     for chunk in memory.chunks_exact_mut(chunk_size) {
-                        let handle = scope.spawn(|| test(chunk, TimeoutChecker::new(deadline)));
+                        let handle =
+                            scope.spawn(|| test_kind.run(chunk, TimeoutChecker::new(deadline)));
                         handles.push(handle);
                     }
 
@@ -218,16 +210,18 @@ impl MemtestRunner {
                             use {MemtestError::*, MemtestOutcome::*};
                             match (acc, result) {
                                 (Err(Other(e)), _) | (_, Err(Other(e))) => Err(Other(e)),
-                                (Err(Timeout), _) | (_, Err(Timeout)) => Err(Timeout),
+                                (Err(Observer(Timeout)), _) | (_, Err(Observer(Timeout))) => {
+                                    Err(Observer(Timeout))
+                                }
                                 (Ok(Fail(f)), _) | (_, Ok(Fail(f))) => Ok(Fail(f)),
                                 _ => Ok(Pass),
                             }
                         })
                 })
             } else {
-                test(memory, TimeoutChecker::new(deadline))
+                test_kind.run(memory, TimeoutChecker::new(deadline))
             };
-            timed_out = matches!(test_result, Err(MemtestError::Timeout));
+            timed_out = matches!(test_result, Err(MemtestError::Observer(Timeout)));
 
             if matches!(test_result, Ok(MemtestOutcome::Fail(_))) && self.allow_early_termination {
                 reports.push(MemtestReport::new(*test_kind, test_result));
@@ -316,7 +310,7 @@ impl MemtestReportList {
 }
 
 impl MemtestReport {
-    fn new(test_kind: MemtestKind, outcome: Result<MemtestOutcome, MemtestError>) -> MemtestReport {
+    fn new(test_kind: MemtestKind, outcome: MemtestResult<TimeoutChecker>) -> MemtestReport {
         MemtestReport { test_kind, outcome }
     }
 }
@@ -328,6 +322,10 @@ impl TimeoutChecker {
             state: None,
         }
     }
+}
+
+impl memtest::TestObserver for TimeoutChecker {
+    type Error = TimeoutError;
 
     /// Initialize TimeoutCheckerState
     /// This function should be called in the beginning of a memtest.
@@ -359,7 +357,7 @@ impl TimeoutChecker {
     // It is important to ensure that the "early return" hot path is inlined. This results in a
     // 100% improvement in performance.
     #[inline(always)]
-    fn check(&mut self) -> Result<(), MemtestError> {
+    fn check(&mut self) -> Result<(), Self::Error> {
         let state = self
             .state
             .as_mut()
@@ -375,10 +373,10 @@ impl TimeoutChecker {
 }
 
 impl TimeoutCheckerState {
-    fn on_checkpoint(&mut self, deadline: Instant) -> Result<(), MemtestError> {
+    fn on_checkpoint(&mut self, deadline: Instant) -> Result<(), TimeoutError> {
         let current_time = Instant::now();
         if current_time >= deadline {
-            return Err(MemtestError::Timeout);
+            return Err(Timeout);
         }
 
         self.trace_progress();
@@ -435,6 +433,14 @@ impl TimeoutCheckerState {
         lhs_nanos / rhs_nanos
     }
 }
+
+impl fmt::Display for TimeoutError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Error for TimeoutError {}
 
 #[cfg(windows)]
 mod windows {
