@@ -224,6 +224,7 @@ KeyShortcuts.prototype = {
   destroy() {
     this.target.removeEventListener("keydown", this);
     this.keys.clear();
+    this.eventEmitter.off();
   },
 
   doesEventMatchShortcut(event, shortcut) {
