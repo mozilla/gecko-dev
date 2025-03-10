@@ -258,7 +258,7 @@ impl PtraceDumper {
         src: usize,
         length: usize,
     ) -> Result<Vec<u8>, crate::errors::DumperError> {
-        let length = std::num::NonZeroUsize::new(length).ok_or_else(|| {
+        let length = std::num::NonZeroUsize::new(length).ok_or(
             crate::errors::DumperError::CopyFromProcessError(CopyFromProcessError {
                 src,
                 child: pid,
@@ -268,8 +268,8 @@ impl PtraceDumper {
                 // as EINVAL could also come from the syscalls that actually read
                 // memory as well which could be confusing
                 source: nix::errno::Errno::EINVAL,
-            })
-        })?;
+            }),
+        )?;
 
         let mut mem = MemReader::new(pid);
         Ok(mem.read_to_vec(src, length)?)

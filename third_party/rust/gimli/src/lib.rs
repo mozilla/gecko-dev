@@ -9,15 +9,15 @@
 //! Cargo features that can be enabled with `gimli`:
 //!
 //! * `std`: Enabled by default. Use the `std` library. Disabling this feature
-//! allows using `gimli` in embedded environments that do not have access to
-//! `std`. Note that even when `std` is disabled, `gimli` still requires an
-//! implementation of the `alloc` crate.
+//!   allows using `gimli` in embedded environments that do not have access to
+//!   `std`. Note that even when `std` is disabled, `gimli` still requires an
+//!   implementation of the `alloc` crate.
 //!
 //! * `read`: Enabled by default. Enables the `read` module. Use of `std` is
-//! optional.
+//!   optional.
 //!
 //! * `write`: Enabled by default. Enables the `write` module. Always uses
-//! the `std` library.
+//!   the `std` library.
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 // Selectively enable rust 2018 warnings

@@ -13,7 +13,7 @@
 edition = "2018"
 rust-version = "1.60"
 name = "gimli"
-version = "0.30.0"
+version = "0.31.0"
 include = [
     "/CHANGELOG.md",
     "/Cargo.toml",
@@ -24,7 +24,7 @@ include = [
 ]
 description = "A library for reading and writing the DWARF debugging format."
 documentation = "https://docs.rs/gimli"
-readme = "./README.md"
+readme = "README.md"
 keywords = [
     "DWARF",
     "debug",

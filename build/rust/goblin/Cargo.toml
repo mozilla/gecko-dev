@@ -1,6 +1,6 @@
 [package]
 name = "goblin"
-version = "0.7.999"
+version = "0.8.999"
 edition = "2018"
 license = "MIT OR Apache-2.0"
 
@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 path = "lib.rs"
 
 [dependencies.goblin]
-version = "0.8.0"
+version = "0.9.0"
 
 default-features = false
 

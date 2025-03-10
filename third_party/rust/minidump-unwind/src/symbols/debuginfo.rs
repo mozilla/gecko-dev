@@ -301,7 +301,7 @@ mod object_section_info {
     #[repr(transparent)]
     pub struct ObjectSectionInfo<'a, O>(pub &'a O);
 
-    impl<'a, O> std::ops::Deref for ObjectSectionInfo<'a, O> {
+    impl<O> std::ops::Deref for ObjectSectionInfo<'_, O> {
         type Target = O;
 
         fn deref(&self) -> &Self::Target {

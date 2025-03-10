@@ -3,9 +3,30 @@ All notable changes to this project will be documented in this file.
 
 Before 1.0, this project does not adhere to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-Goblin is now 0.8, which means we will try our best to ease breaking changes. Tracking issue is here: https://github.com/m4b/goblin/issues/97
+Goblin is now 0.9, which means we will try our best to ease breaking changes. Tracking issue is here: https://github.com/m4b/goblin/issues/97
 
-## [0.8.1]  - 2024-04-27
+## [0.9.2]  - 2024-10-26
+### Fixed
+pe: fix PE with zero `raw_data_size` of section, thanks @ideeockus: https://github.com/m4b/goblin/pull/396
+### Added
+pe: allow parsing pe::Header without dos stubs, `Header::parse_without_dos`, thanks @ideeockus: https://github.com/m4b/goblin/pull/396
+
+## [0.9.1]  - 2024-10-24
+### (hot) Fix
+pe: fix parsing of tls in certain cases (issue: https://github.com/m4b/goblin/issues/424), thanks @kkent030315: https://github.com/m4b/goblin/pull/425
+
+## [0.9.0]  - 2024-10-20
+### Added, Breaking
+pe: add TE (terse executable) support, big thanks @Javagedes: https://github.com/m4b/goblin/pull/397
+pe: add support for codeview PDB 2.0, thanks @joschock: https://github.com/m4b/goblin/pull/409
+pe: parse TLS in data directories, thanks @kkent030315: https://github.com/m4b/goblin/pull/404
+
+## [0.8.2]  - 2024-04-29
+Everything in 0.8.1 except TE support in https://github.com/m4b/goblin/pull/397 was reverted,
+due to it being technically a breaking change.
+0.8.1 was yanked from crates.
+
+## [0.8.1]  - 2024-04-27 (YANKED)
 ### Docs
 pe: document pe header, thanks @JohnScience: https://github.com/m4b/goblin/pull/399
 pe, elf: fix doc warnings, thanks @5225225: https://github.com/m4b/goblin/pull/395

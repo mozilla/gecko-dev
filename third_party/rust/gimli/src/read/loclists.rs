@@ -6,7 +6,7 @@ use crate::constants;
 use crate::endianity::Endianity;
 use crate::read::{
     lists::ListsHeader, DebugAddr, EndianSlice, Error, Expression, Range, RawRange, Reader,
-    ReaderOffset, ReaderOffsetId, Result, Section,
+    ReaderAddress, ReaderOffset, ReaderOffsetId, Result, Section,
 };
 
 /// The raw contents of the `.debug_loc` section.
@@ -593,7 +593,8 @@ impl<R: Reader> LocListIter<R> {
         &mut self,
         raw_loc: RawLocListEntry<R>,
     ) -> Result<Option<LocationListEntry<R>>> {
-        let mask = !0 >> (64 - self.raw.encoding.address_size * 8);
+        let address_size = self.raw.encoding.address_size;
+        let mask = u64::ones_sized(address_size);
         let tombstone = if self.raw.encoding.version <= 4 {
             mask - 1
         } else {
@@ -620,13 +621,13 @@ impl<R: Reader> LocListIter<R> {
                 data,
             } => {
                 let begin = self.get_address(begin)?;
-                let end = begin.wrapping_add(length) & mask;
+                let end = begin.wrapping_add_sized(length, address_size);
                 (Range { begin, end }, data)
             }
             RawLocListEntry::DefaultLocation { data } => (
                 Range {
                     begin: 0,
-                    end: u64::max_value(),
+                    end: u64::MAX,
                 },
                 data,
             ),
@@ -645,7 +646,7 @@ impl<R: Reader> LocListIter<R> {
                 length,
                 data,
             } => {
-                let end = begin.wrapping_add(length) & mask;
+                let end = begin.wrapping_add_sized(length, address_size);
                 (Range { begin, end }, data)
             }
         };
@@ -880,7 +881,7 @@ mod tests {
             Ok(Some(LocationListEntry {
                 range: Range {
                     begin: 0,
-                    end: u64::max_value(),
+                    end: u64::MAX,
                 },
                 data: Expression(EndianSlice::new(&[10, 0, 0, 0], LittleEndian)),
             }))
@@ -1144,7 +1145,7 @@ mod tests {
             Ok(Some(LocationListEntry {
                 range: Range {
                     begin: 0,
-                    end: u64::max_value(),
+                    end: u64::MAX,
                 },
                 data: Expression(EndianSlice::new(&[10, 0, 0, 0], LittleEndian)),
             }))

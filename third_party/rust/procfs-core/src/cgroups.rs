@@ -99,6 +99,7 @@ impl crate::FromBufRead for ProcessCGroups {
             let hierarchy = from_str!(u32, expect!(s.next(), "hierarchy"));
             let controllers = expect!(s.next(), "controllers")
                 .split(',')
+                .filter(|s| !s.is_empty())
                 .map(|s| s.to_owned())
                 .collect();
             let pathname = expect!(s.next(), "path").to_owned();

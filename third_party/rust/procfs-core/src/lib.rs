@@ -351,6 +351,12 @@ pub use cgroups::*;
 mod cpuinfo;
 pub use cpuinfo::*;
 
+mod crypto;
+pub use crypto::*;
+
+mod devices;
+pub use devices::*;
+
 mod diskstats;
 pub use diskstats::*;
 
@@ -377,6 +383,9 @@ mod pressure;
 pub use pressure::*;
 
 pub mod process;
+
+mod kpageflags;
+pub use kpageflags::*;
 
 pub mod sys;
 pub use sys::kernel::Version as KernelVersion;

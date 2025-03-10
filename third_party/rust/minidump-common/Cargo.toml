@@ -12,9 +12,10 @@
 [package]
 edition = "2018"
 name = "minidump-common"
-version = "0.22.1"
+version = "0.24.0"
 authors = ["Ted Mielczarek <ted@mielczarek.org>"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

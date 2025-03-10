@@ -1015,144 +1015,166 @@ pub struct Snmp {
     pub udp_lite_ignored_multi: u64,
 }
 
+/// A /proc/net/snmp section
+///
+/// A section represents two lines, 1x header and 1x data
+/// Each line has a prefix [ip, icmp, icmpmsg, tcp, udp, udplite]
+/// Eg.
+///     Tcp: RtoAlgorithm RtoMin RtoMax MaxConn ActiveOpens PassiveOpens AttemptFails EstabResets CurrEstab InSegs OutSegs RetransSegs InErrs OutRsts InCsumErrors
+///     Tcp: 1 200 120000 -1 177 14 0 6 4 11155 10083 18 0 94 0
+#[derive(Debug)]
+struct SnmpSection {
+    prefix: String,
+    values: HashMap<String, String>,
+}
+
+impl<'a> SnmpSection {
+    fn new(hdr: String, data: String) -> ProcResult<Self> {
+        let mut hdr = hdr.trim_end().split_whitespace();
+        let mut data = data.trim_end().split_whitespace();
+        let prefix = expect!(hdr.next()).to_owned();
+        expect!(data.next());
+        let mut values = HashMap::new();
+
+        for hdr in hdr {
+            values.insert(hdr.to_owned(), expect!(data.next()).to_owned());
+        }
+
+        Ok(Self { prefix, values })
+    }
+}
+
+/// An iterator over the /proc/net/snmp sections using `BufRead`.
+#[derive(Debug)]
+struct SnmpSections<B> {
+    buf: B,
+}
+
+impl<B: BufRead> Iterator for SnmpSections<B> {
+    type Item = ProcResult<SnmpSection>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut hdr = String::new();
+        match self.buf.read_line(&mut hdr) {
+            Ok(0) => None,
+            Ok(_n) => {
+                let mut data = String::new();
+                match self.buf.read_line(&mut data) {
+                    Ok(_n) => Some(SnmpSection::new(hdr, data)),
+                    Err(e) => Some(Err(e.into())),
+                }
+            }
+            Err(e) => Some(Err(e.into())),
+        }
+    }
+}
+
 impl super::FromBufRead for Snmp {
     fn from_buf_read<R: BufRead>(r: R) -> ProcResult<Self> {
-        fn next_group<R: BufRead>(lines: &mut std::io::Lines<R>, prefix: &str) -> ProcResult<String> {
-            if cfg!(test) {
-                let line = lines.next().unwrap()?;
-                if !line.starts_with(prefix) {
-                    return Err(build_internal_error!(format!(
-                        "`{}` section not found in /proc/net/snmp",
-                        prefix
-                    )));
-                }
-                let line = lines.next().unwrap()?;
-                if !line.starts_with(prefix) {
-                    return Err(build_internal_error!(format!(
-                        "`{}` section not found in /proc/net/snmp",
-                        prefix
-                    )));
-                }
-                return Ok(line);
-            } else {
-                Ok(lines.skip(1).next().unwrap()?)
+        let mut map = HashMap::new();
+        let sections = SnmpSections { buf: r };
+        for section in sections.flatten() {
+            let p = &section.prefix;
+            for (hdr, v) in &section.values {
+                map.insert(format!("{p}{hdr}"), v.to_owned());
             }
         }
-        fn expect_none(line: Option<&str>, msg: &str) -> ProcResult<()> {
-            if cfg!(test) {
-                match line {
-                    Some(..) => Err(build_internal_error!(format!("`{}` section is not consumed", msg))),
-                    None => Ok(()),
-                }
-            } else {
-                Ok(())
-            }
-        }
-
-        let mut lines = r.lines();
-
-        let ip = next_group(&mut lines, "Ip:")?;
-        let mut ip = ip.split_whitespace().skip(1);
-        let icmp = next_group(&mut lines, "Icmp:")?;
-        let mut icmp = icmp.split_whitespace().skip(1);
-        let _ = next_group(&mut lines, "IcmpMsg:")?;
-        let tcp = next_group(&mut lines, "Tcp:")?;
-        let mut tcp = tcp.split_whitespace().skip(1);
-        let udp = next_group(&mut lines, "Udp:")?;
-        let mut udp = udp.split_whitespace().skip(1);
-        let udp_lite = next_group(&mut lines, "UdpLite:")?;
-        let mut udp_lite = udp_lite.split_whitespace().skip(1);
 
         let snmp = Snmp {
             // Ip
-            ip_forwarding: expect!(IpForwarding::from_u8(from_str!(u8, expect!(ip.next())))),
-            ip_default_ttl: from_str!(u32, expect!(ip.next())),
-            ip_in_receives: from_str!(u64, expect!(ip.next())),
-            ip_in_hdr_errors: from_str!(u64, expect!(ip.next())),
-            ip_in_addr_errors: from_str!(u64, expect!(ip.next())),
-            ip_forw_datagrams: from_str!(u64, expect!(ip.next())),
-            ip_in_unknown_protos: from_str!(u64, expect!(ip.next())),
-            ip_in_discards: from_str!(u64, expect!(ip.next())),
-            ip_in_delivers: from_str!(u64, expect!(ip.next())),
-            ip_out_requests: from_str!(u64, expect!(ip.next())),
-            ip_out_discards: from_str!(u64, expect!(ip.next())),
-            ip_out_no_routes: from_str!(u64, expect!(ip.next())),
-            ip_reasm_timeout: from_str!(u64, expect!(ip.next())),
-            ip_reasm_reqds: from_str!(u64, expect!(ip.next())),
-            ip_reasm_oks: from_str!(u64, expect!(ip.next())),
-            ip_reasm_fails: from_str!(u64, expect!(ip.next())),
-            ip_frag_oks: from_str!(u64, expect!(ip.next())),
-            ip_frag_fails: from_str!(u64, expect!(ip.next())),
-            ip_frag_creates: from_str!(u64, expect!(ip.next())),
+            ip_forwarding: expect!(IpForwarding::from_u8(from_str!(
+                u8,
+                &expect!(map.remove("Ip:Forwarding"))
+            ))),
+            ip_default_ttl: from_str!(u32, &expect!(map.remove("Ip:DefaultTTL"))),
+            ip_in_receives: from_str!(u64, &expect!(map.remove("Ip:InReceives"))),
+            ip_in_hdr_errors: from_str!(u64, &expect!(map.remove("Ip:InHdrErrors"))),
+            ip_in_addr_errors: from_str!(u64, &expect!(map.remove("Ip:InAddrErrors"))),
+            ip_forw_datagrams: from_str!(u64, &expect!(map.remove("Ip:ForwDatagrams"))),
+            ip_in_unknown_protos: from_str!(u64, &expect!(map.remove("Ip:InUnknownProtos"))),
+            ip_in_discards: from_str!(u64, &expect!(map.remove("Ip:InDiscards"))),
+            ip_in_delivers: from_str!(u64, &expect!(map.remove("Ip:InDelivers"))),
+            ip_out_requests: from_str!(u64, &expect!(map.remove("Ip:OutRequests"))),
+            ip_out_discards: from_str!(u64, &expect!(map.remove("Ip:OutDiscards"))),
+            ip_out_no_routes: from_str!(u64, &expect!(map.remove("Ip:OutNoRoutes"))),
+            ip_reasm_timeout: from_str!(u64, &expect!(map.remove("Ip:ReasmTimeout"))),
+            ip_reasm_reqds: from_str!(u64, &expect!(map.remove("Ip:ReasmReqds"))),
+            ip_reasm_oks: from_str!(u64, &expect!(map.remove("Ip:ReasmOKs"))),
+            ip_reasm_fails: from_str!(u64, &expect!(map.remove("Ip:ReasmFails"))),
+            ip_frag_oks: from_str!(u64, &expect!(map.remove("Ip:FragOKs"))),
+            ip_frag_fails: from_str!(u64, &expect!(map.remove("Ip:FragFails"))),
+            ip_frag_creates: from_str!(u64, &expect!(map.remove("Ip:FragCreates"))),
+            //ip_out_transmits: from_str!(u64, &expect!(map.remove("Ip:OutTransmits"))),
             // Icmp
-            icmp_in_msgs: from_str!(u64, expect!(icmp.next())),
-            icmp_in_errors: from_str!(u64, expect!(icmp.next())),
-            icmp_in_csum_errors: from_str!(u64, expect!(icmp.next())),
-            icmp_in_dest_unreachs: from_str!(u64, expect!(icmp.next())),
-            icmp_in_time_excds: from_str!(u64, expect!(icmp.next())),
-            icmp_in_parm_probs: from_str!(u64, expect!(icmp.next())),
-            icmp_in_src_quenchs: from_str!(u64, expect!(icmp.next())),
-            icmp_in_redirects: from_str!(u64, expect!(icmp.next())),
-            icmp_in_echos: from_str!(u64, expect!(icmp.next())),
-            icmp_in_echo_reps: from_str!(u64, expect!(icmp.next())),
-            icmp_in_timestamps: from_str!(u64, expect!(icmp.next())),
-            icmp_in_timestamp_reps: from_str!(u64, expect!(icmp.next())),
-            icmp_in_addr_masks: from_str!(u64, expect!(icmp.next())),
-            icmp_in_addr_mask_reps: from_str!(u64, expect!(icmp.next())),
-            icmp_out_msgs: from_str!(u64, expect!(icmp.next())),
-            icmp_out_errors: from_str!(u64, expect!(icmp.next())),
-            icmp_out_dest_unreachs: from_str!(u64, expect!(icmp.next())),
-            icmp_out_time_excds: from_str!(u64, expect!(icmp.next())),
-            icmp_out_parm_probs: from_str!(u64, expect!(icmp.next())),
-            icmp_out_src_quenchs: from_str!(u64, expect!(icmp.next())),
-            icmp_out_redirects: from_str!(u64, expect!(icmp.next())),
-            icmp_out_echos: from_str!(u64, expect!(icmp.next())),
-            icmp_out_echo_reps: from_str!(u64, expect!(icmp.next())),
-            icmp_out_timestamps: from_str!(u64, expect!(icmp.next())),
-            icmp_out_timestamp_reps: from_str!(u64, expect!(icmp.next())),
-            icmp_out_addr_masks: from_str!(u64, expect!(icmp.next())),
-            icmp_out_addr_mask_reps: from_str!(u64, expect!(icmp.next())),
+            icmp_in_msgs: from_str!(u64, &expect!(map.remove("Icmp:InMsgs"))),
+            icmp_in_errors: from_str!(u64, &expect!(map.remove("Icmp:InErrors"))),
+            icmp_in_csum_errors: from_str!(u64, &expect!(map.remove("Icmp:InCsumErrors"))),
+            icmp_in_dest_unreachs: from_str!(u64, &expect!(map.remove("Icmp:InDestUnreachs"))),
+            icmp_in_time_excds: from_str!(u64, &expect!(map.remove("Icmp:InTimeExcds"))),
+            icmp_in_parm_probs: from_str!(u64, &expect!(map.remove("Icmp:InParmProbs"))),
+            icmp_in_src_quenchs: from_str!(u64, &expect!(map.remove("Icmp:InSrcQuenchs"))),
+            icmp_in_redirects: from_str!(u64, &expect!(map.remove("Icmp:InRedirects"))),
+            icmp_in_echos: from_str!(u64, &expect!(map.remove("Icmp:InEchos"))),
+            icmp_in_echo_reps: from_str!(u64, &expect!(map.remove("Icmp:InEchoReps"))),
+            icmp_in_timestamps: from_str!(u64, &expect!(map.remove("Icmp:InTimestamps"))),
+            icmp_in_timestamp_reps: from_str!(u64, &expect!(map.remove("Icmp:InTimestampReps"))),
+            icmp_in_addr_masks: from_str!(u64, &expect!(map.remove("Icmp:InAddrMasks"))),
+            icmp_in_addr_mask_reps: from_str!(u64, &expect!(map.remove("Icmp:InAddrMaskReps"))),
+            icmp_out_msgs: from_str!(u64, &expect!(map.remove("Icmp:OutMsgs"))),
+            icmp_out_errors: from_str!(u64, &expect!(map.remove("Icmp:OutErrors"))),
+            //icmp_out_rate_limit_global: from_str!(u64, &expect!(map.remove("Icmp:OutRateLimitGlobal"))),
+            //icmp_out_rate_limit_host: from_str!(u64, &expect!(map.remove("Icmp:OutRateLimitHost"))),
+            icmp_out_dest_unreachs: from_str!(u64, &expect!(map.remove("Icmp:OutDestUnreachs"))),
+            icmp_out_time_excds: from_str!(u64, &expect!(map.remove("Icmp:OutTimeExcds"))),
+            icmp_out_parm_probs: from_str!(u64, &expect!(map.remove("Icmp:OutParmProbs"))),
+            icmp_out_src_quenchs: from_str!(u64, &expect!(map.remove("Icmp:OutSrcQuenchs"))),
+            icmp_out_redirects: from_str!(u64, &expect!(map.remove("Icmp:OutRedirects"))),
+            icmp_out_echos: from_str!(u64, &expect!(map.remove("Icmp:OutEchos"))),
+            icmp_out_echo_reps: from_str!(u64, &expect!(map.remove("Icmp:OutEchoReps"))),
+            icmp_out_timestamps: from_str!(u64, &expect!(map.remove("Icmp:OutTimestamps"))),
+            icmp_out_timestamp_reps: from_str!(u64, &expect!(map.remove("Icmp:OutTimestampReps"))),
+            icmp_out_addr_masks: from_str!(u64, &expect!(map.remove("Icmp:OutAddrMasks"))),
+            icmp_out_addr_mask_reps: from_str!(u64, &expect!(map.remove("Icmp:OutAddrMaskReps"))),
             // Tcp
-            tcp_rto_algorithm: expect!(TcpRtoAlgorithm::from_u8(from_str!(u8, expect!(tcp.next())))),
-            tcp_rto_min: from_str!(u64, expect!(tcp.next())),
-            tcp_rto_max: from_str!(u64, expect!(tcp.next())),
-            tcp_max_conn: from_str!(i64, expect!(tcp.next())),
-            tcp_active_opens: from_str!(u64, expect!(tcp.next())),
-            tcp_passive_opens: from_str!(u64, expect!(tcp.next())),
-            tcp_attempt_fails: from_str!(u64, expect!(tcp.next())),
-            tcp_estab_resets: from_str!(u64, expect!(tcp.next())),
-            tcp_curr_estab: from_str!(u64, expect!(tcp.next())),
-            tcp_in_segs: from_str!(u64, expect!(tcp.next())),
-            tcp_out_segs: from_str!(u64, expect!(tcp.next())),
-            tcp_retrans_segs: from_str!(u64, expect!(tcp.next())),
-            tcp_in_errs: from_str!(u64, expect!(tcp.next())),
-            tcp_out_rsts: from_str!(u64, expect!(tcp.next())),
-            tcp_in_csum_errors: from_str!(u64, expect!(tcp.next())),
+            tcp_rto_algorithm: expect!(TcpRtoAlgorithm::from_u8(from_str!(
+                u8,
+                &expect!(map.remove("Tcp:RtoAlgorithm"))
+            ))),
+            tcp_rto_min: from_str!(u64, &expect!(map.remove("Tcp:RtoMin"))),
+            tcp_rto_max: from_str!(u64, &expect!(map.remove("Tcp:RtoMax"))),
+            tcp_max_conn: from_str!(i64, &expect!(map.remove("Tcp:MaxConn"))),
+            tcp_active_opens: from_str!(u64, &expect!(map.remove("Tcp:ActiveOpens"))),
+            tcp_passive_opens: from_str!(u64, &expect!(map.remove("Tcp:PassiveOpens"))),
+            tcp_attempt_fails: from_str!(u64, &expect!(map.remove("Tcp:AttemptFails"))),
+            tcp_estab_resets: from_str!(u64, &expect!(map.remove("Tcp:EstabResets"))),
+            tcp_curr_estab: from_str!(u64, &expect!(map.remove("Tcp:CurrEstab"))),
+            tcp_in_segs: from_str!(u64, &expect!(map.remove("Tcp:InSegs"))),
+            tcp_out_segs: from_str!(u64, &expect!(map.remove("Tcp:OutSegs"))),
+            tcp_retrans_segs: from_str!(u64, &expect!(map.remove("Tcp:RetransSegs"))),
+            tcp_in_errs: from_str!(u64, &expect!(map.remove("Tcp:InErrs"))),
+            tcp_out_rsts: from_str!(u64, &expect!(map.remove("Tcp:OutRsts"))),
+            tcp_in_csum_errors: from_str!(u64, &expect!(map.remove("Tcp:InCsumErrors"))),
             // Udp
-            udp_in_datagrams: from_str!(u64, expect!(udp.next())),
-            udp_no_ports: from_str!(u64, expect!(udp.next())),
-            udp_in_errors: from_str!(u64, expect!(udp.next())),
-            udp_out_datagrams: from_str!(u64, expect!(udp.next())),
-            udp_rcvbuf_errors: from_str!(u64, expect!(udp.next())),
-            udp_sndbuf_errors: from_str!(u64, expect!(udp.next())),
-            udp_in_csum_errors: from_str!(u64, expect!(udp.next())),
-            udp_ignored_multi: from_str!(u64, expect!(udp.next())),
+            udp_in_datagrams: from_str!(u64, &expect!(map.remove("Udp:InDatagrams"))),
+            udp_no_ports: from_str!(u64, &expect!(map.remove("Udp:NoPorts"))),
+            udp_in_errors: from_str!(u64, &expect!(map.remove("Udp:InErrors"))),
+            udp_out_datagrams: from_str!(u64, &expect!(map.remove("Udp:OutDatagrams"))),
+            udp_rcvbuf_errors: from_str!(u64, &expect!(map.remove("Udp:RcvbufErrors"))),
+            udp_sndbuf_errors: from_str!(u64, &expect!(map.remove("Udp:SndbufErrors"))),
+            udp_in_csum_errors: from_str!(u64, &expect!(map.remove("Udp:InCsumErrors"))),
+            udp_ignored_multi: from_str!(u64, &expect!(map.remove("Udp:IgnoredMulti"))),
+            //udp_mem_errors: from_str!(u64, &expect!(map.remove("Udp:MemErrors"))),
             // UdpLite
-            udp_lite_in_datagrams: from_str!(u64, expect!(udp_lite.next())),
-            udp_lite_no_ports: from_str!(u64, expect!(udp_lite.next())),
-            udp_lite_in_errors: from_str!(u64, expect!(udp_lite.next())),
-            udp_lite_out_datagrams: from_str!(u64, expect!(udp_lite.next())),
-            udp_lite_rcvbuf_errors: from_str!(u64, expect!(udp_lite.next())),
-            udp_lite_sndbuf_errors: from_str!(u64, expect!(udp_lite.next())),
-            udp_lite_in_csum_errors: from_str!(u64, expect!(udp_lite.next())),
-            udp_lite_ignored_multi: from_str!(u64, expect!(udp_lite.next())),
+            udp_lite_in_datagrams: from_str!(u64, &expect!(map.remove("UdpLite:InDatagrams"))),
+            udp_lite_no_ports: from_str!(u64, &expect!(map.remove("UdpLite:NoPorts"))),
+            udp_lite_in_errors: from_str!(u64, &expect!(map.remove("UdpLite:InErrors"))),
+            udp_lite_out_datagrams: from_str!(u64, &expect!(map.remove("UdpLite:OutDatagrams"))),
+            udp_lite_rcvbuf_errors: from_str!(u64, &expect!(map.remove("UdpLite:RcvbufErrors"))),
+            udp_lite_sndbuf_errors: from_str!(u64, &expect!(map.remove("UdpLite:SndbufErrors"))),
+            udp_lite_in_csum_errors: from_str!(u64, &expect!(map.remove("UdpLite:InCsumErrors"))),
+            udp_lite_ignored_multi: from_str!(u64, &expect!(map.remove("UdpLite:IgnoredMulti"))),
+            //udp_lite_mem_errors: from_str!(u64, &expect!(map.remove("UdpLite:MemErrors"))),
         };
-
-        expect_none(ip.next(), "Ip")?;
-        expect_none(icmp.next(), "Icmp")?;
-        expect_none(tcp.next(), "Tcp")?;
-        expect_none(udp.next(), "Udp")?;
-        expect_none(udp_lite.next(), "UdpLite")?;
 
         Ok(snmp)
     }
@@ -1645,5 +1667,65 @@ mod tests {
     #[test]
     fn test_tcpstate_from() {
         assert_eq!(TcpState::from_u8(0xA).unwrap(), TcpState::Listen);
+    }
+
+    #[test]
+    fn test_snmp_debian_6_8_12() {
+        // Sample from Debian 6.8.12-1
+        let data = r#"Ip: Forwarding DefaultTTL InReceives InHdrErrors InAddrErrors ForwDatagrams InUnknownProtos InDiscards InDelivers OutRequests OutDiscards OutNoRoutes ReasmTimeout ReasmReqds ReasmOKs ReasmFails FragOKs FragFails FragCreates OutTransmits
+Ip: 1 64 58881328 0 1 0 0 0 58879082 12449667 9745 1855 0 4 2 0 0 0 0 12449667
+Icmp: InMsgs InErrors InCsumErrors InDestUnreachs InTimeExcds InParmProbs InSrcQuenchs InRedirects InEchos InEchoReps InTimestamps InTimestampReps InAddrMasks InAddrMaskReps OutMsgs OutErrors OutRateLimitGlobal OutRateLimitHost OutDestUnreachs OutTimeExcds OutParmProbs OutSrcQuenchs OutRedirects OutEchos OutEchoReps OutTimestamps OutTimestampReps OutAddrMasks OutAddrMaskReps
+Icmp: 16667 83 0 16667 0 0 0 0 0 0 0 0 0 0 21854 0 2 81 21854 0 0 0 0 0 0 0 0 0 0
+IcmpMsg: InType3 OutType3
+IcmpMsg: 16667 21854
+Tcp: RtoAlgorithm RtoMin RtoMax MaxConn ActiveOpens PassiveOpens AttemptFails EstabResets CurrEstab InSegs OutSegs RetransSegs InErrs OutRsts InCsumErrors
+Tcp: 1 200 120000 -1 88170 33742 29003 4952 9 5129401 4676076 3246 60 40857 0
+Udp: InDatagrams NoPorts InErrors OutDatagrams RcvbufErrors SndbufErrors InCsumErrors IgnoredMulti MemErrors
+Udp: 48327329 21522 6981741 9605045 6981727 9497 14 478236 0
+UdpLite: InDatagrams NoPorts InErrors OutDatagrams RcvbufErrors SndbufErrors InCsumErrors IgnoredMulti MemErrors
+UdpLite: 0 0 0 0 0 0 0 0 0
+"#;
+
+        let r = std::io::Cursor::new(data.as_bytes());
+        use crate::FromRead;
+        let res = Snmp::from_read(r).unwrap();
+        assert_eq!(res.ip_forwarding, IpForwarding::Forwarding);
+        assert_eq!(res.ip_in_receives, 58881328);
+        assert_eq!(res.ip_in_delivers, 58879082);
+        assert_eq!(res.ip_out_requests, 12449667);
+        assert_eq!(res.ip_out_no_routes, 1855);
+        assert_eq!(res.tcp_rto_algorithm, TcpRtoAlgorithm::Other);
+        assert_eq!(res.tcp_rto_min, 200);
+        assert_eq!(res.tcp_rto_max, 120000);
+        assert_eq!(res.tcp_max_conn, -1);
+        assert_eq!(res.tcp_curr_estab, 9);
+        assert_eq!(res.tcp_in_segs, 5129401);
+        assert_eq!(res.tcp_out_segs, 4676076);
+        assert_eq!(res.udp_in_datagrams, 48327329);
+        assert_eq!(res.udp_in_csum_errors, 14);
+        assert_eq!(res.udp_no_ports, 21522);
+        assert_eq!(res.udp_out_datagrams, 9605045);
+        println!("{res:?}");
+    }
+
+    #[test]
+    fn test_snmp_missing_icmp_msg() {
+        // https://github.com/eminence/procfs/issues/310
+        let data = r#"Ip: Forwarding DefaultTTL InReceives InHdrErrors InAddrErrors ForwDatagrams InUnknownProtos InDiscards InDelivers OutRequests OutDiscards OutNoRoutes ReasmTimeout ReasmReqds ReasmOKs ReasmFails FragOKs FragFails FragCreates OutTransmits
+Ip: 2 64 12063 0 1 0 0 0 11952 8953 0 0 0 0 0 0 0 0 0 8953
+Icmp: InMsgs InErrors InCsumErrors InDestUnreachs InTimeExcds InParmProbs InSrcQuenchs InRedirects InEchos InEchoReps InTimestamps InTimestampReps InAddrMasks InAddrMaskReps OutMsgs OutErrors OutRateLimitGlobal OutRateLimitHost OutDestUnreachs OutTimeExcds OutParmProbs OutSrcQuenchs OutRedirects OutEchos OutEchoReps OutTimestamps OutTimestampReps OutAddrMasks OutAddrMaskReps
+Icmp: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+Tcp: RtoAlgorithm RtoMin RtoMax MaxConn ActiveOpens PassiveOpens AttemptFails EstabResets CurrEstab InSegs OutSegs RetransSegs InErrs OutRsts InCsumErrors
+Tcp: 1 200 120000 -1 177 14 0 6 4 11155 10083 18 0 94 0
+Udp: InDatagrams NoPorts InErrors OutDatagrams RcvbufErrors SndbufErrors InCsumErrors IgnoredMulti MemErrors
+Udp: 2772 0 0 1890 0 0 0 745 0
+UdpLite: InDatagrams NoPorts InErrors OutDatagrams RcvbufErrors SndbufErrors InCsumErrors IgnoredMulti MemErrors
+UdpLite: 0 0 0 0 0 0 0 0 0
+"#;
+
+        let r = std::io::Cursor::new(data.as_bytes());
+        use crate::FromRead;
+        let res = Snmp::from_read(r).unwrap();
+        println!("{res:?}");
     }
 }

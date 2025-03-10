@@ -48,8 +48,6 @@ pub struct Encoding {
     /// The size of an address.
     pub address_size: u8,
 
-    // The size of a segment selector.
-    // TODO: pub segment_size: u8,
     /// Whether the DWARF format is 32- or 64-bit.
     pub format: Format,
 

@@ -67,6 +67,12 @@ pub struct LineProgram {
     /// For version 5, this controls whether to emit `DW_LNCT_MD5`.
     pub file_has_md5: bool,
 
+    /// True if the file entries have embedded source code.
+    ///
+    /// For version <= 4, this is ignored.
+    /// For version 5, this controls whether to emit `DW_LNCT_LLVM_source`.
+    pub file_has_source: bool,
+
     prev_row: LineRow,
     row: LineRow,
     // TODO: this probably should be either rows or sequences instead
@@ -119,6 +125,7 @@ impl LineProgram {
             file_has_timestamp: false,
             file_has_size: false,
             file_has_md5: false,
+            file_has_source: false,
         };
         // For all DWARF versions, directory index 0 is comp_dir.
         // For version <= 4, the entry is implicit. We still add
@@ -153,6 +160,7 @@ impl LineProgram {
             file_has_timestamp: false,
             file_has_size: false,
             file_has_md5: false,
+            file_has_source: false,
         }
     }
 
@@ -592,7 +600,8 @@ impl LineProgram {
             let count = 2
                 + if self.file_has_timestamp { 1 } else { 0 }
                 + if self.file_has_size { 1 } else { 0 }
-                + if self.file_has_md5 { 1 } else { 0 };
+                + if self.file_has_md5 { 1 } else { 0 }
+                + if self.file_has_source { 1 } else { 0 };
             w.write_u8(count)?;
             w.write_uleb128(u64::from(constants::DW_LNCT_path.0))?;
             let file_form = self.comp_file.0.form();
@@ -610,6 +619,10 @@ impl LineProgram {
             if self.file_has_md5 {
                 w.write_uleb128(u64::from(constants::DW_LNCT_MD5.0))?;
                 w.write_uleb128(constants::DW_FORM_data16.0.into())?;
+            }
+            if self.file_has_source {
+                w.write_uleb128(u64::from(constants::DW_LNCT_LLVM_source.0))?;
+                w.write_uleb128(constants::DW_FORM_string.0.into())?;
             }
 
             // File name entries.
@@ -631,6 +644,20 @@ impl LineProgram {
                 }
                 if self.file_has_md5 {
                     w.write(&info.md5)?;
+                }
+                if self.file_has_source {
+                    // Note: An empty DW_LNCT_LLVM_source is interpreted as missing
+                    // source code. Included source code should always be
+                    // terminated by a "\n" line ending.
+                    let empty_str = LineString::String(Vec::new());
+                    let source = info.source.as_ref().unwrap_or(&empty_str);
+                    source.write(
+                        w,
+                        constants::DW_FORM_string,
+                        self.encoding,
+                        debug_line_str_offsets,
+                        debug_str_offsets,
+                    )?;
                 }
                 Ok(())
             };
@@ -937,7 +964,7 @@ mod id {
 pub use self::id::*;
 
 /// Extra information for file in a `LineProgram`.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct FileInfo {
     /// The implementation defined timestamp of the last modification of the file,
     /// or 0 if not available.
@@ -950,6 +977,15 @@ pub struct FileInfo {
     ///
     /// Only used if version >= 5 and `LineProgram::file_has_md5` is `true`.
     pub md5: [u8; 16],
+
+    /// Optionally some embedded sourcecode.
+    ///
+    /// Only used if version >= 5 and `LineProgram::file_has_source` is `true`.
+    ///
+    /// NOTE: This currently only supports the `LineString::String` variant,
+    /// since we're encoding the string with `DW_FORM_string`.
+    /// Other variants will result in an `LineStringFormMismatch` error.
+    pub source: Option<LineString>,
 }
 
 define_section!(
@@ -999,6 +1035,15 @@ mod convert {
                                 timestamp: comp_file.timestamp(),
                                 size: comp_file.size(),
                                 md5: *comp_file.md5(),
+                                source: match comp_file.source() {
+                                    Some(source) => Some(LineString::from(
+                                        source,
+                                        dwarf,
+                                        line_strings,
+                                        strings,
+                                    )?),
+                                    None => None,
+                                },
                             }),
                         )
                     }
@@ -1040,6 +1085,7 @@ mod convert {
                 program.file_has_timestamp = from_header.file_has_timestamp();
                 program.file_has_size = from_header.file_has_size();
                 program.file_has_md5 = from_header.file_has_md5();
+                program.file_has_source = from_header.file_has_source();
                 for from_file in from_header.file_names().iter().skip(file_skip) {
                     let from_name =
                         LineString::from(from_file.path_name(), dwarf, line_strings, strings)?;
@@ -1052,6 +1098,12 @@ mod convert {
                         timestamp: from_file.timestamp(),
                         size: from_file.size(),
                         md5: *from_file.md5(),
+                        source: match from_file.source() {
+                            Some(source) => {
+                                Some(LineString::from(source, dwarf, line_strings, strings)?)
+                            }
+                            None => None,
+                        },
                     });
                     files.push(program.add_file(from_name, from_dir, from_info));
                 }
@@ -1074,13 +1126,14 @@ mod convert {
                             Some(val) => address = Some(val),
                             None => return Err(ConvertError::InvalidAddress),
                         }
-                        from_row.execute(read::LineInstruction::SetAddress(0), &mut from_program);
+                        from_row
+                            .execute(read::LineInstruction::SetAddress(0), &mut from_program)?;
                     }
                     read::LineInstruction::DefineFile(_) => {
                         return Err(ConvertError::UnsupportedLineInstruction);
                     }
                     _ => {
-                        if from_row.execute(instruction, &mut from_program) {
+                        if from_row.execute(instruction, &mut from_program)? {
                             if !program.in_sequence() {
                                 program.begin_sequence(address);
                                 address = None;
@@ -1190,6 +1243,13 @@ mod tests {
                             program.file_has_md5 = true;
                         }
 
+                        // Note: Embedded source code is an accepted extension
+                        // that will become part of DWARF v6. We're using the LLVM extension
+                        // here for v5.
+                        if encoding.version >= 5 {
+                            program.file_has_source = true;
+                        }
+
                         let dir_id = program.add_directory(dir2.clone());
                         assert_eq!(&dir2, program.get_directory(dir_id));
                         assert_eq!(dir_id, program.add_directory(dir2.clone()));
@@ -1202,8 +1262,11 @@ mod tests {
                             } else {
                                 [0; 16]
                             },
+                            source: (encoding.version >= 5)
+                                .then(|| LineString::String(b"the source code\n".to_vec())),
                         };
-                        let file_id = program.add_file(file2.clone(), dir_id, Some(file_info));
+                        let file_id =
+                            program.add_file(file2.clone(), dir_id, Some(file_info.clone()));
                         assert_eq!((&file2, dir_id), program.get_file(file_id));
                         assert_eq!(file_info, *program.get_file_info(file_id));
 
@@ -1213,7 +1276,7 @@ mod tests {
                         assert_ne!(file_info, *program.get_file_info(file_id));
                         assert_eq!(
                             file_id,
-                            program.add_file(file2.clone(), dir_id, Some(file_info))
+                            program.add_file(file2.clone(), dir_id, Some(file_info.clone()))
                         );
                         assert_eq!(file_info, *program.get_file_info(file_id));
 

@@ -62,8 +62,8 @@ user-login = "martinthomson"
 user-name = "Martin Thomson"
 
 [[publisher.breakpad-symbols]]
-version = "0.22.1"
-when = "2024-09-05"
+version = "0.24.0"
+when = "2025-01-06"
 user-id = 72814
 user-login = "gabrielesvelto"
 user-name = "Gabriele Svelto"
@@ -237,8 +237,8 @@ user-login = "joshtriplett"
 user-name = "Josh Triplett"
 
 [[publisher.framehop]]
-version = "0.12.1"
-when = "2024-06-04"
+version = "0.13.0"
+when = "2024-07-24"
 user-id = 20227
 user-login = "mstange"
 user-name = "Markus Stange"
@@ -391,22 +391,22 @@ user-login = "seanmonstar"
 user-name = "Sean McArthur"
 
 [[publisher.minidump]]
-version = "0.22.1"
-when = "2024-09-05"
+version = "0.24.0"
+when = "2025-01-06"
 user-id = 72814
 user-login = "gabrielesvelto"
 user-name = "Gabriele Svelto"
 
 [[publisher.minidump-common]]
-version = "0.22.1"
-when = "2024-09-05"
+version = "0.24.0"
+when = "2025-01-06"
 user-id = 72814
 user-login = "gabrielesvelto"
 user-name = "Gabriele Svelto"
 
 [[publisher.minidump-unwind]]
-version = "0.22.1"
-when = "2024-09-05"
+version = "0.24.0"
+when = "2025-01-06"
 user-id = 72814
 user-login = "gabrielesvelto"
 user-name = "Gabriele Svelto"
@@ -1168,6 +1168,12 @@ version = "0.3.27"
 who = "Pat Hickey <phickey@fastly.com>"
 criteria = "safe-to-deploy"
 version = "0.3.27"
+
+[[audits.bytecode-alliance.audits.gimli]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+delta = "0.29.0 -> 0.31.0"
+notes = "Various updates here and there, nothing too major, what you'd expect from a DWARF parsing crate."
 
 [[audits.bytecode-alliance.audits.heck]]
 who = "Alex Crichton <alex@alexcrichton.com>"

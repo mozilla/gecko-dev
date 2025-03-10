@@ -2023,6 +2023,12 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.3.1 -> 0.3.3"
 
+[[audits.error-graph]]
+who = "Chris Martin <cmartin@mozilla.com>"
+criteria = "safe-to-deploy"
+version = "0.1.1"
+notes = "This code was written and reviewed by Mozilla employees"
+
 [[audits.extend]]
 who = "Ben Dean-Kawamura <bdk@mozilla.com>"
 criteria = "safe-to-deploy"
@@ -2033,6 +2039,12 @@ notes = "Inspected the crate and noted that the impl block comes directly from t
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "1.1.2 -> 1.2.0"
+
+[[audits.failspot]]
+who = "Chris Martin <cmartin@mozilla.com>"
+criteria = "safe-to-deploy"
+version = "0.2.0"
+notes = "This code was written and reviewed by Mozilla employees"
 
 [[audits.fallible_collections]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
@@ -2445,6 +2457,12 @@ Unsafe code blocks are sound. Minimal dependencies used. No use of
 side-effectful std functions.
 """
 
+[[audits.gimli]]
+who = "Chris Martin <cmartin@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.30.0 -> 0.29.0"
+notes = "No unsafe code, mostly algorithms and parsing. Very unlikely to cause security issues."
+
 [[audits.gleam]]
 who = "Jamie Nicol <jnicol@mozilla.com>"
 criteria = "safe-to-deploy"
@@ -2495,6 +2513,12 @@ who = "Alex Franchuk <afranchuk@mozilla.com>"
 criteria = "safe-to-deploy"
 delta = "0.8.1 -> 0.8.2"
 notes = "Removes the TE feature/functionality, otherwise no meaningful changes."
+
+[[audits.goblin]]
+who = "Chris Martin <cmartin@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.8.2 -> 0.9.2"
+notes = "Doesn't use any unsafe code, mostly parsing and arithmetic."
 
 [[audits.gpu-alloc]]
 who = "Teodor Tanasoaia <ttanasoaia@mozilla.com>"
@@ -3351,6 +3375,12 @@ criteria = "safe-to-deploy"
 delta = "0.8.9 -> 0.10.1"
 notes = "Crate written and reviewed by mozilla employees."
 
+[[audits.minidump-writer]]
+who = "Chris Martin <cmartin@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.10.1 -> 0.10.2"
+notes = "This patch was written and reviewed by Mozilla employees"
+
 [[audits.miniz_oxide]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
@@ -4096,6 +4126,12 @@ version = "0.16.0-RC1"
 who = "Gabriele Svelto <gsvelto@mozilla.com>"
 criteria = "safe-to-deploy"
 delta = "0.16.0-RC1 -> 0.16.0"
+
+[[audits.procfs-core]]
+who = "Chris Martin <cmartin@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.16.0 -> 0.17.0"
+notes = "Lots of code, but nothing unsafe and mostly parsing various text formats output by /proc files"
 
 [[audits.profiling]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"

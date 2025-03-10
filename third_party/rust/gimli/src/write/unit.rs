@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 use std::ops::{Deref, DerefMut};
-use std::{slice, usize};
+use std::slice;
 
 use crate::common::{
     DebugAbbrevOffset, DebugInfoOffset, DebugLineOffset, DebugMacinfoOffset, DebugMacroOffset,

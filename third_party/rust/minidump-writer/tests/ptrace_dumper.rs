@@ -1,13 +1,20 @@
 //! All of these tests are specific to ptrace
 #![cfg(any(target_os = "linux", target_os = "android"))]
 
-use minidump_writer::ptrace_dumper::PtraceDumper;
-use nix::sys::mman::{mmap, MapFlags, ProtFlags};
-use nix::sys::signal::Signal;
-use std::convert::TryInto;
-use std::io::{BufRead, BufReader};
-use std::mem::size_of;
-use std::os::unix::process::ExitStatusExt;
+use {
+    error_graph::ErrorList,
+    minidump_writer::ptrace_dumper::PtraceDumper,
+    nix::{
+        sys::mman::{mmap, MapFlags, ProtFlags},
+        sys::signal::Signal,
+    },
+    std::{
+        convert::TryInto,
+        io::{BufRead, BufReader},
+        mem::size_of,
+        os::unix::process::ExitStatusExt,
+    },
+};
 
 mod common;
 use common::*;
@@ -22,6 +29,13 @@ macro_rules! disabled_on_ci_and_android {
         }
     };
 }
+
+macro_rules! assert_no_soft_errors(($n: ident, $e: expr) => {{
+    let mut $n = ErrorList::default();
+    let __result = $e;
+    assert!($n.is_empty(), "{:?}", $n);
+    __result
+}});
 
 #[test]
 fn test_setup() {
@@ -91,14 +105,21 @@ fn test_thread_list_from_parent() {
     let num_of_threads = 5;
     let mut child = start_child_and_wait_for_threads(num_of_threads);
     let pid = child.id() as i32;
-    let mut dumper = PtraceDumper::new(
-        pid,
-        minidump_writer::minidump_writer::STOP_TIMEOUT,
-        Default::default(),
+
+    let mut dumper = assert_no_soft_errors!(
+        soft_errors,
+        PtraceDumper::new_report_soft_errors(
+            pid,
+            minidump_writer::minidump_writer::STOP_TIMEOUT,
+            Default::default(),
+            &mut soft_errors,
+        )
     )
     .expect("Couldn't init dumper");
+
     assert_eq!(dumper.threads.len(), num_of_threads);
-    dumper.suspend_threads().expect("Could not suspend threads");
+
+    assert_no_soft_errors!(soft_errors, dumper.suspend_threads(&mut soft_errors));
 
     // let mut matching_threads = 0;
     for (idx, curr_thread) in dumper.threads.iter().enumerate() {
@@ -146,7 +167,7 @@ fn test_thread_list_from_parent() {
             0
         }; */
     }
-    dumper.resume_threads().expect("Failed to resume threads");
+    assert_no_soft_errors!(soft_errors, dumper.resume_threads(&mut soft_errors));
     child.kill().expect("Failed to kill process");
 
     // Reap child
@@ -272,14 +293,20 @@ fn test_sanitize_stack_copy() {
     let heap_addr = usize::from_str_radix(output.next().unwrap().trim_start_matches("0x"), 16)
         .expect("unable to parse mmap_addr");
 
-    let mut dumper = PtraceDumper::new(
-        pid,
-        minidump_writer::minidump_writer::STOP_TIMEOUT,
-        Default::default(),
+    let mut dumper = assert_no_soft_errors!(
+        soft_errors,
+        PtraceDumper::new_report_soft_errors(
+            pid,
+            minidump_writer::minidump_writer::STOP_TIMEOUT,
+            Default::default(),
+            &mut soft_errors,
+        )
     )
     .expect("Couldn't init dumper");
     assert_eq!(dumper.threads.len(), num_of_threads);
-    dumper.suspend_threads().expect("Could not suspend threads");
+
+    assert_no_soft_errors!(soft_errors, dumper.suspend_threads(&mut soft_errors));
+
     let thread_info = dumper
         .get_thread_info_by_index(0)
         .expect("Couldn't find thread_info");
@@ -374,7 +401,8 @@ fn test_sanitize_stack_copy() {
 
     assert_eq!(simulated_stack[0..size_of::<usize>()], defaced);
 
-    dumper.resume_threads().expect("Failed to resume threads");
+    assert_no_soft_errors!(soft_errors, dumper.resume_threads(&mut soft_errors));
+
     child.kill().expect("Failed to kill process");
 
     // Reap child

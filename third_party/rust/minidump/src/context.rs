@@ -140,7 +140,7 @@ pub struct CpuRegisters<'a, T: ?Sized> {
     context: &'a T,
 }
 
-impl<'a, T> Iterator for CpuRegisters<'a, T>
+impl<T> Iterator for CpuRegisters<'_, T>
 where
     T: CpuContext,
 {

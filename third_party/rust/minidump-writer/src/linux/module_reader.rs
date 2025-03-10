@@ -36,7 +36,7 @@ impl<'buf> From<&'buf [u8]> for ProcessMemory<'buf> {
     }
 }
 
-impl<'buf> From<ProcessReader> for ProcessMemory<'buf> {
+impl From<ProcessReader> for ProcessMemory<'_> {
     fn from(value: ProcessReader) -> Self {
         Self::Process(value)
     }
@@ -207,7 +207,7 @@ impl<'a> DynIter<'a> {
     }
 }
 
-impl<'a> Iterator for DynIter<'a> {
+impl Iterator for DynIter<'_> {
     type Item = Result<elf::dynamic::Dyn, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -427,9 +427,9 @@ impl<'buf> ModuleReader<'buf> {
         let name = self
             .module_memory
             .read(strtab_offset + name_offset, strtab_size - name_offset)?;
-        return CStr::from_bytes_until_nul(&name)
+        CStr::from_bytes_until_nul(&name)
             .map(|s| s.to_string_lossy().into_owned())
-            .map_err(|_| Error::StrTabNoNulByte);
+            .map_err(|_| Error::StrTabNoNulByte)
     }
 
     fn section_offset(&self, header: &elf::SectionHeader) -> u64 {

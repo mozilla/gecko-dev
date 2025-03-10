@@ -1,30 +1,32 @@
 #![cfg(any(target_os = "linux", target_os = "android"))]
 #![allow(unused_imports, unused_variables)]
 
-use minidump::*;
-use minidump_common::format::{GUID, MINIDUMP_STREAM_TYPE::*};
-use minidump_writer::{
-    app_memory::AppMemory,
-    crash_context::CrashContext,
-    errors::*,
-    maps_reader::{MappingEntry, MappingInfo, SystemMappingInfo},
-    minidump_writer::MinidumpWriter,
-    module_reader::{BuildId, ReadFromModule},
-    ptrace_dumper::PtraceDumper,
-    Pid,
-};
-use nix::{errno::Errno, sys::signal::Signal};
-use procfs_core::process::MMPermissions;
-use std::collections::HashSet;
-
-use std::{
-    io::{BufRead, BufReader},
-    os::unix::process::ExitStatusExt,
-    process::{Command, Stdio},
+use {
+    common::*,
+    minidump::*,
+    minidump_common::format::{GUID, MINIDUMP_STREAM_TYPE::*},
+    minidump_writer::{
+        app_memory::AppMemory,
+        crash_context::CrashContext,
+        errors::*,
+        maps_reader::{MappingEntry, MappingInfo, SystemMappingInfo},
+        minidump_writer::MinidumpWriter,
+        module_reader::{BuildId, ReadFromModule},
+        ptrace_dumper::PtraceDumper,
+        Pid,
+    },
+    nix::{errno::Errno, sys::signal::Signal},
+    procfs_core::process::MMPermissions,
+    serde_json::json,
+    std::{
+        collections::HashSet,
+        io::{BufRead, BufReader},
+        os::unix::process::ExitStatusExt,
+        process::{Command, Stdio},
+    },
 };
 
 mod common;
-use common::*;
 
 #[derive(Debug, PartialEq)]
 enum Context {
@@ -299,6 +301,10 @@ contextual_test! {
 
 contextual_test! {
     fn skip_if_requested(context: Context) {
+        let expected_errors = vec![
+            json!("PrincipalMappingNotReferenced"),
+        ];
+
         let num_of_threads = 1;
         let mut child = start_child_and_wait_for_threads(num_of_threads);
         let pid = child.id() as i32;
@@ -331,7 +337,9 @@ contextual_test! {
         assert_eq!(waitres.code(), None);
         assert_eq!(status, Signal::SIGKILL as i32);
 
-        assert!(res.is_err());
+        // Ensure the MozSoftErrors stream contains the expected errors
+        let dump = Minidump::read_path(tmpfile.path()).expect("failed to read minidump");
+        assert_soft_errors_in_minidump(&dump, &expected_errors);
     }
 }
 
@@ -790,6 +798,7 @@ fn memory_info_list_stream() {
         .dump(&mut tmpfile)
         .expect("cound not write minidump");
     child.kill().expect("Failed to kill process");
+    child.wait().expect("Failed to wait on killed process");
 
     // Ensure the minidump has a MemoryInfoListStream present and has at least one entry.
     let dump = Minidump::read_path(tmpfile.path()).expect("failed to read minidump");

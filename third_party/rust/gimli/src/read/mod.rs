@@ -64,22 +64,22 @@
 //! * Basic familiarity with DWARF is assumed.
 //!
 //! * The [`Dwarf`](./struct.Dwarf.html) type contains the commonly used DWARF
-//! sections. It has methods that simplify access to debugging data that spans
-//! multiple sections. Use of this type is optional, but recommended.
+//!   sections. It has methods that simplify access to debugging data that spans
+//!   multiple sections. Use of this type is optional, but recommended.
 //!
 //! * The [`DwarfPackage`](./struct.Dwarf.html) type contains the DWARF
-//! package (DWP) sections. It has methods to find a DWARF object (DWO)
-//! within the package.
+//!   package (DWP) sections. It has methods to find a DWARF object (DWO)
+//!   within the package.
 //!
 //! * Each section gets its own type. Consider these types the entry points to
-//! the library:
+//!   the library:
 //!
 //!   * [`DebugAbbrev`](./struct.DebugAbbrev.html): The `.debug_abbrev` section.
 //!
 //!   * [`DebugAddr`](./struct.DebugAddr.html): The `.debug_addr` section.
 //!
 //!   * [`DebugAranges`](./struct.DebugAranges.html): The `.debug_aranges`
-//!   section.
+//!     section.
 //!
 //!   * [`DebugFrame`](./struct.DebugFrame.html): The `.debug_frame` section.
 //!
@@ -94,10 +94,10 @@
 //!   * [`DebugLocLists`](./struct.DebugLocLists.html): The `.debug_loclists` section.
 //!
 //!   * [`DebugPubNames`](./struct.DebugPubNames.html): The `.debug_pubnames`
-//!   section.
+//!     section.
 //!
 //!   * [`DebugPubTypes`](./struct.DebugPubTypes.html): The `.debug_pubtypes`
-//!   section.
+//!     section.
 //!
 //!   * [`DebugRanges`](./struct.DebugRanges.html): The `.debug_ranges` section.
 //!
@@ -118,15 +118,15 @@
 //!   * [`EhFrameHdr`](./struct.EhFrameHdr.html): The `.eh_frame_hdr` section.
 //!
 //! * Each section type exposes methods for accessing the debugging data encoded
-//! in that section. For example, the [`DebugInfo`](./struct.DebugInfo.html)
-//! struct has the [`units`](./struct.DebugInfo.html#method.units) method for
-//! iterating over the compilation units defined within it.
+//!   in that section. For example, the [`DebugInfo`](./struct.DebugInfo.html)
+//!   struct has the [`units`](./struct.DebugInfo.html#method.units) method for
+//!   iterating over the compilation units defined within it.
 //!
 //! * Offsets into a section are strongly typed: an offset into `.debug_info` is
-//! the [`DebugInfoOffset`](./struct.DebugInfoOffset.html) type. It cannot be
-//! used to index into the [`DebugLine`](./struct.DebugLine.html) type because
-//! `DebugLine` represents the `.debug_line` section. There are similar types
-//! for offsets relative to a compilation unit rather than a section.
+//!   the [`DebugInfoOffset`](./struct.DebugInfoOffset.html) type. It cannot be
+//!   used to index into the [`DebugLine`](./struct.DebugLine.html) type because
+//!   `DebugLine` represents the `.debug_line` section. There are similar types
+//!   for offsets relative to a compilation unit rather than a section.
 //!
 //! ## Using with `FallibleIterator`
 //!
@@ -275,6 +275,7 @@ pub type EndianBuf<'input, Endian> = EndianSlice<'input, Endian>;
 
 /// An error that occurred when parsing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Error {
     /// An I/O error occurred while reading.
     Io,
@@ -386,6 +387,11 @@ pub enum Error {
     UnknownCallFrameInstruction(constants::DwCfa),
     /// The end of an address range was before the beginning.
     InvalidAddressRange,
+    /// An address calculation overflowed.
+    ///
+    /// This is returned in cases where the address is expected to be
+    /// larger than a previous address, but the calculation overflowed.
+    AddressOverflow,
     /// Encountered a call frame instruction in a context in which it is not
     /// valid.
     CfiInstructionInInvalidContext,
@@ -543,6 +549,7 @@ impl Error {
             Error::InvalidAddressRange => {
                 "The end of an address range must not be before the beginning."
             }
+            Error::AddressOverflow => "An address calculation overflowed.",
             Error::CfiInstructionInInvalidContext => {
                 "Encountered a call frame instruction in a context in which it is not valid."
             }

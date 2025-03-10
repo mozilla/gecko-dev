@@ -2022,7 +2022,6 @@ mod tests {
     use crate::leb128;
     use crate::read::{EndianSlice, Error, Result, UnitOffset};
     use crate::test_util::GimliSectionMethods;
-    use core::usize;
     use test_assembler::{Endian, Section};
 
     fn encoding4() -> Encoding {

@@ -94,3 +94,38 @@ pub fn start_child_and_return(args: &[&str]) -> Child {
         .spawn()
         .expect("failed to execute child")
 }
+
+#[allow(unused)]
+pub fn read_minidump_soft_errors_or_panic<'a, T>(
+    dump: &minidump::Minidump<'a, T>,
+) -> serde_json::Value
+where
+    T: std::ops::Deref<Target = [u8]> + 'a,
+{
+    let contents = std::str::from_utf8(
+        dump.get_raw_stream(minidump_common::format::MINIDUMP_STREAM_TYPE::MozSoftErrors.into())
+            .expect("missing soft error stream"),
+    )
+    .expect("expected utf-8 stream");
+
+    serde_json::from_str(contents).expect("expected json")
+}
+
+#[allow(unused)]
+pub fn assert_soft_errors_in_minidump<'a, 'b, T, I>(
+    dump: &minidump::Minidump<'a, T>,
+    expected_errors: I,
+) where
+    T: std::ops::Deref<Target = [u8]> + 'a,
+    I: IntoIterator<Item = &'b serde_json::Value>,
+{
+    let actual_json = read_minidump_soft_errors_or_panic(dump);
+    let actual_errors = actual_json.as_array().unwrap();
+
+    // Ensure that every error we expect is in the actual list somewhere
+    for expected_error in expected_errors {
+        assert!(actual_errors
+            .iter()
+            .any(|actual_error| actual_error == expected_error));
+    }
+}

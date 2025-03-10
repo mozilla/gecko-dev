@@ -1,15 +1,22 @@
-use crate::{
-    mem_writer::{Buffer, MemoryArrayWriter, MemoryWriterError},
-    minidump_format::MDRawDirectory,
+use {
+    crate::{
+        mem_writer::{Buffer, MemoryArrayWriter, MemoryWriterError},
+        minidump_format::MDRawDirectory,
+        serializers::*,
+    },
+    std::io::{Error, Seek, Write},
 };
-use std::io::{Error, Seek, Write};
 
 pub type DumpBuf = Buffer;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, serde::Serialize)]
 pub enum FileWriterError {
     #[error("IO error")]
-    IOError(#[from] Error),
+    IOError(
+        #[from]
+        #[serde(serialize_with = "serialize_io_error")]
+        Error,
+    ),
     #[error("Failed to write to memory")]
     MemoryWriterError(#[from] MemoryWriterError),
 }

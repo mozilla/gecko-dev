@@ -5,8 +5,8 @@ use crate::common::{
 use crate::constants;
 use crate::endianity::Endianity;
 use crate::read::{
-    lists::ListsHeader, DebugAddr, EndianSlice, Error, Reader, ReaderOffset, ReaderOffsetId,
-    Result, Section,
+    lists::ListsHeader, DebugAddr, EndianSlice, Error, Reader, ReaderAddress, ReaderOffset,
+    ReaderOffsetId, Result, Section,
 };
 
 /// The raw contents of the `.debug_ranges` section.
@@ -527,7 +527,8 @@ impl<R: Reader> RngListIter<R> {
     /// The raw range should have been obtained from `next_raw`.
     #[doc(hidden)]
     pub fn convert_raw(&mut self, raw_range: RawRngListEntry<R::Offset>) -> Result<Option<Range>> {
-        let mask = !0 >> (64 - self.raw.encoding.address_size * 8);
+        let address_size = self.raw.encoding.address_size;
+        let mask = u64::ones_sized(address_size);
         let tombstone = if self.raw.encoding.version <= 4 {
             mask - 1
         } else {
@@ -550,7 +551,7 @@ impl<R: Reader> RngListIter<R> {
             }
             RawRngListEntry::StartxLength { begin, length } => {
                 let begin = self.get_address(begin)?;
-                let end = begin.wrapping_add(length) & mask;
+                let end = begin.wrapping_add_sized(length, address_size);
                 Range { begin, end }
             }
             RawRngListEntry::AddressOrOffsetPair { begin, end }
@@ -564,7 +565,7 @@ impl<R: Reader> RngListIter<R> {
             }
             RawRngListEntry::StartEnd { begin, end } => Range { begin, end },
             RawRngListEntry::StartLength { begin, length } => {
-                let end = begin.wrapping_add(length) & mask;
+                let end = begin.wrapping_add_sized(length, address_size);
                 Range { begin, end }
             }
         };
@@ -624,7 +625,7 @@ impl RawRange {
 }
 
 /// An address range from the `.debug_ranges`, `.debug_rnglists`, or `.debug_aranges` sections.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Range {
     /// The beginning address of the range.
     pub begin: u64,
@@ -637,9 +638,8 @@ impl Range {
     /// Add a base address to this range.
     #[inline]
     pub(crate) fn add_base_address(&mut self, base_address: u64, address_size: u8) {
-        let mask = !0 >> (64 - address_size * 8);
-        self.begin = base_address.wrapping_add(self.begin) & mask;
-        self.end = base_address.wrapping_add(self.end) & mask;
+        self.begin = base_address.wrapping_add_sized(self.begin, address_size);
+        self.end = base_address.wrapping_add_sized(self.end, address_size);
     }
 }
 

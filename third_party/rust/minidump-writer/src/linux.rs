@@ -15,6 +15,7 @@ pub mod minidump_writer;
 pub mod module_reader;
 pub mod ptrace_dumper;
 pub(crate) mod sections;
+mod serializers;
 pub mod thread_info;
 
 pub use maps_reader::LINUX_GATE_LIBRARY_NAME;

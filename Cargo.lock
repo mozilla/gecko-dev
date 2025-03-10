@@ -581,9 +581,9 @@ dependencies = [
 
 [[package]]
 name = "breakpad-symbols"
-version = "0.22.1"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6aeaa2a7f839cbb61c2f59ad6e51cc3fd2c24aa2103cb24e6be143bcc114aa24"
+checksum = "05cc04995b4f6f26dc9cc5989e93e42c373def047b4b057aaf8f48400b971d1e"
 dependencies = [
  "async-trait",
  "cachemap2",
@@ -612,7 +612,7 @@ dependencies = [
 name = "buildid_reader"
 version = "0.1.0"
 dependencies = [
- "goblin 0.8.2",
+ "goblin 0.8.999",
  "libc",
  "log",
  "scroll",
@@ -1793,6 +1793,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "error-graph"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b920e777967421aa5f9bf34f842c0ab6ba19b3bdb4a082946093860f5858879"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "error-support"
 version = "0.1.0"
 source = "git+https://github.com/mozilla/application-services?rev=f7947a60b3e9957b97229d6dd08b458532e79c1c#f7947a60b3e9957b97229d6dd08b458532e79c1c"
@@ -1845,6 +1854,12 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "failspot"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c942e64b20ecd39933d5ff938ca4fdb6ef0d298cc3855b231179a5ef0b24948d"
 
 [[package]]
 name = "fallible-iterator"
@@ -2119,9 +2134,9 @@ dependencies = [
 
 [[package]]
 name = "framehop"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fd28d2036d4fd99e3629487baca659e5af1c5d554e320168613be79028610fc"
+checksum = "33e8ad8f843eb89b4ec8270be4d5840dc6b81ca1a1c1e036b17e94076f36eed4"
 dependencies = [
  "arrayvec",
  "cfg-if",
@@ -2369,9 +2384,9 @@ dependencies = [
 
 [[package]]
 name = "gimli"
-version = "0.30.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2e1d97fbe9722ba9bbd0c97051c2956e726562b61f86a25a4360398a40edfc9"
+checksum = "32085ea23f3234fc7846555e85283ba4de91e21016dc0455a16286d87a292d64"
 dependencies = [
  "fallible-iterator",
  "stable_deref_trait",
@@ -2649,16 +2664,16 @@ dependencies = [
 
 [[package]]
 name = "goblin"
-version = "0.7.999"
+version = "0.8.999"
 dependencies = [
- "goblin 0.8.2",
+ "goblin 0.9.2",
 ]
 
 [[package]]
 name = "goblin"
-version = "0.8.2"
+version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b363a30c165f666402fe6a3024d3bec7ebc898f96a4a23bd1c99f8dbf3f4f47"
+checksum = "53ab3f32d1d77146981dea5d6b1e8fe31eedcb7013e5e00d6ccd1259a4b4d923"
 dependencies = [
  "log",
  "plain",
@@ -3900,9 +3915,9 @@ dependencies = [
 
 [[package]]
 name = "minidump"
-version = "0.22.1"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cee91aa51259518a08a12c18b5754e45135f89f1d9d7d6aae76ce93b92686698"
+checksum = "e03e301d414a75655d4ce80e6e3690fbfe70814b67c496c64c826ba558d18ec9"
 dependencies = [
  "debugid",
  "encoding_rs",
@@ -3945,9 +3960,9 @@ dependencies = [
 
 [[package]]
 name = "minidump-common"
-version = "0.22.1"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0cd8a9fb054833d2f402e82e256aeef544e595e45fe8fca2de6d03ed605f6647"
+checksum = "5273687f49325b3977f7d372a1bbe2e528694d18128de8dcac78d134448e83b4"
 dependencies = [
  "bitflags 2.8.0",
  "debugid",
@@ -3960,9 +3975,9 @@ dependencies = [
 
 [[package]]
 name = "minidump-unwind"
-version = "0.22.1"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "efde3c09258c297c0f6761f04d97771ef82a59a6734e7ba0e6e2ef961fb3cbb3"
+checksum = "c30454f5703c77433b4059bf5e196266b800b14223c55793ee636e49c8f9160e"
 dependencies = [
  "async-trait",
  "breakpad-symbols",
@@ -3978,15 +3993,17 @@ dependencies = [
 
 [[package]]
 name = "minidump-writer"
-version = "0.10.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c75ff36a030d76801ed7ec3ea4ae45f12c0f1297f3447790288194274e9aa98"
+checksum = "6e9370e1f326cb4385f78355d8a0f68f429e9002fd3ca53fff9b43fded234473"
 dependencies = [
  "bitflags 2.8.0",
  "byteorder",
  "cfg-if",
  "crash-context",
- "goblin 0.8.2",
+ "error-graph",
+ "failspot",
+ "goblin 0.9.2",
  "libc",
  "log",
  "mach2",
@@ -3996,8 +4013,10 @@ dependencies = [
  "nix 0.29.0",
  "procfs-core",
  "scroll",
+ "serde",
+ "serde_json",
  "tempfile",
- "thiserror 1.999.999",
+ "thiserror 2.0.9",
 ]
 
 [[package]]
@@ -5128,7 +5147,7 @@ dependencies = [
 name = "process_reader"
 version = "0.1.0"
 dependencies = [
- "goblin 0.7.999",
+ "goblin 0.9.2",
  "libc",
  "mach2",
  "memoffset 0.9.0",
@@ -5151,12 +5170,13 @@ dependencies = [
 
 [[package]]
 name = "procfs-core"
-version = "0.16.0"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d3554923a69f4ce04c4a754260c338f505ce22642d3830e049a399fc2059a29"
+checksum = "239df02d8349b06fc07398a3a1697b06418223b1c7725085e801e7c0fc6a12ec"
 dependencies = [
  "bitflags 2.8.0",
  "hex",
+ "serde",
 ]
 
 [[package]]
@@ -6855,7 +6875,7 @@ dependencies = [
  "cargo_metadata",
  "fs-err",
  "glob",
- "goblin 0.8.2",
+ "goblin 0.8.999",
  "heck",
  "once_cell",
  "paste",

@@ -80,6 +80,7 @@ impl MemoryPageFlags {
 }
 
 /// A Page Frame Number, representing a 4 kiB physical memory page
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Pfn(pub u64);
 

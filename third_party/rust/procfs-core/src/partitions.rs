@@ -18,7 +18,7 @@ pub struct PartitionEntry {
     /// Number of 1024 byte blocks
     pub blocks: u64,
     /// Device name
-    pub name: String
+    pub name: String,
 }
 
 impl super::FromBufRead for Vec<PartitionEntry> {
@@ -37,9 +37,9 @@ impl super::FromBufRead for Vec<PartitionEntry> {
 
             let partition_entry = PartitionEntry {
                 major,
-		minor,
-		blocks,
-		name
+                minor,
+                blocks,
+                name,
             };
 
             vec.push(partition_entry);
@@ -48,7 +48,6 @@ impl super::FromBufRead for Vec<PartitionEntry> {
         Ok(vec)
     }
 }
-
 
 #[test]
 fn test_partitions() {

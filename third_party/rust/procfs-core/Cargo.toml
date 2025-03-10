@@ -13,8 +13,13 @@
 edition = "2018"
 rust-version = "1.48"
 name = "procfs-core"
-version = "0.16.0"
+version = "0.17.0"
 authors = ["Andrew Chin <achin@eminence32.net>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Data structures and parsing for the linux procfs pseudo-filesystem"
 documentation = "https://docs.rs/procfs-core/"
 readme = "README.md"
@@ -33,6 +38,10 @@ repository = "https://github.com/eminence/procfs"
 
 [package.metadata.docs.rs]
 all-features = true
+
+[lib]
+name = "procfs_core"
+path = "src/lib.rs"
 
 [dependencies.backtrace]
 version = "0.3"

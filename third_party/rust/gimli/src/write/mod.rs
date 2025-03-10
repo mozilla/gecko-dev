@@ -6,10 +6,10 @@
 //! in memory, and then writing it all at once. It supports two major use cases:
 //!
 //! * Use the [`DwarfUnit`](./struct.DwarfUnit.html) type when writing DWARF
-//! for a single compilation unit.
+//!   for a single compilation unit.
 //!
 //! * Use the [`Dwarf`](./struct.Dwarf.html) type when writing DWARF for multiple
-//! compilation units.
+//!   compilation units.
 //!
 //! The module also supports reading in DWARF debugging information and writing it out
 //! again, possibly after modifying it. Create a [`read::Dwarf`](../read/struct.Dwarf.html)

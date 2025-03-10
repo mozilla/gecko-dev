@@ -49,6 +49,13 @@ bitflags! {
 /// This data is taken from the `/proc/[pid]/mountinfo` file.
 pub struct MountInfos(pub Vec<MountInfo>);
 
+impl MountInfos {
+    /// Returns an borrowed iterator.
+    pub fn iter(&self) -> std::slice::Iter<'_, MountInfo> {
+        self.into_iter()
+    }
+}
+
 impl crate::FromBufRead for MountInfos {
     fn from_buf_read<R: BufRead>(r: R) -> ProcResult<Self> {
         let lines = r.lines();

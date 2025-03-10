@@ -1,7 +1,5 @@
 use alloc::vec::Vec;
-use core::fmt;
 use core::num::{NonZeroU64, Wrapping};
-use core::result;
 
 use crate::common::{
     DebugLineOffset, DebugLineStrOffset, DebugStrOffset, DebugStrOffsetsIndex, Encoding, Format,
@@ -9,7 +7,9 @@ use crate::common::{
 };
 use crate::constants;
 use crate::endianity::Endianity;
-use crate::read::{AttributeValue, EndianSlice, Error, Reader, ReaderOffset, Result, Section};
+use crate::read::{
+    AttributeValue, EndianSlice, Error, Reader, ReaderAddress, ReaderOffset, Result, Section,
+};
 
 /// The `DebugLine` struct contains the source location to instruction mapping
 /// found in the `.debug_line` section.
@@ -240,7 +240,7 @@ where
                 Err(err) => return Err(err),
                 Ok(None) => return Ok(None),
                 Ok(Some(instruction)) => {
-                    if self.row.execute(instruction, &mut self.program) {
+                    if self.row.execute(instruction, &mut self.program)? {
                         if self.row.tombstone {
                             // Perform any reset that was required for the tombstone row.
                             // Normally this is done when `next_row` is called again, but for
@@ -276,10 +276,10 @@ where
     /// >   1. Add a signed integer to the line register.
     /// >
     /// >   2. Modify the operation pointer by incrementing the address and
-    /// >   op_index registers as described below.
+    /// >      op_index registers as described below.
     /// >
     /// >   3. Append a row to the matrix using the current values of the state
-    /// >   machine registers.
+    /// >      machine registers.
     /// >
     /// >   4. Set the basic_block register to “false.”
     /// >
@@ -516,58 +516,6 @@ where
     }
 }
 
-impl<R, Offset> fmt::Display for LineInstruction<R, Offset>
-where
-    R: Reader<Offset = Offset>,
-    Offset: ReaderOffset,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> result::Result<(), fmt::Error> {
-        match *self {
-            LineInstruction::Special(opcode) => write!(f, "Special opcode {}", opcode),
-            LineInstruction::Copy => write!(f, "{}", constants::DW_LNS_copy),
-            LineInstruction::AdvancePc(advance) => {
-                write!(f, "{} by {}", constants::DW_LNS_advance_pc, advance)
-            }
-            LineInstruction::AdvanceLine(increment) => {
-                write!(f, "{} by {}", constants::DW_LNS_advance_line, increment)
-            }
-            LineInstruction::SetFile(file) => {
-                write!(f, "{} to {}", constants::DW_LNS_set_file, file)
-            }
-            LineInstruction::SetColumn(column) => {
-                write!(f, "{} to {}", constants::DW_LNS_set_column, column)
-            }
-            LineInstruction::NegateStatement => write!(f, "{}", constants::DW_LNS_negate_stmt),
-            LineInstruction::SetBasicBlock => write!(f, "{}", constants::DW_LNS_set_basic_block),
-            LineInstruction::ConstAddPc => write!(f, "{}", constants::DW_LNS_const_add_pc),
-            LineInstruction::FixedAddPc(advance) => {
-                write!(f, "{} by {}", constants::DW_LNS_fixed_advance_pc, advance)
-            }
-            LineInstruction::SetPrologueEnd => write!(f, "{}", constants::DW_LNS_set_prologue_end),
-            LineInstruction::SetEpilogueBegin => {
-                write!(f, "{}", constants::DW_LNS_set_epilogue_begin)
-            }
-            LineInstruction::SetIsa(isa) => write!(f, "{} to {}", constants::DW_LNS_set_isa, isa),
-            LineInstruction::UnknownStandard0(opcode) => write!(f, "Unknown {}", opcode),
-            LineInstruction::UnknownStandard1(opcode, arg) => {
-                write!(f, "Unknown {} with operand {}", opcode, arg)
-            }
-            LineInstruction::UnknownStandardN(opcode, ref args) => {
-                write!(f, "Unknown {} with operands {:?}", opcode, args)
-            }
-            LineInstruction::EndSequence => write!(f, "{}", constants::DW_LNE_end_sequence),
-            LineInstruction::SetAddress(address) => {
-                write!(f, "{} to {}", constants::DW_LNE_set_address, address)
-            }
-            LineInstruction::DefineFile(_) => write!(f, "{}", constants::DW_LNE_define_file),
-            LineInstruction::SetDiscriminator(discr) => {
-                write!(f, "{} to {}", constants::DW_LNE_set_discriminator, discr)
-            }
-            LineInstruction::UnknownExtended(opcode, _) => write!(f, "Unknown {}", opcode),
-        }
-    }
-}
-
 /// Deprecated. `OpcodesIter` has been renamed to `LineInstructions`.
 #[deprecated(note = "OpcodesIter has been renamed to LineInstructions, use that instead.")]
 pub type OpcodesIter<R> = LineInstructions<R>;
@@ -631,7 +579,7 @@ pub type LineNumberRow = LineRow;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LineRow {
     tombstone: bool,
-    address: Wrapping<u64>,
+    address: u64,
     op_index: Wrapping<u64>,
     file: u64,
     line: Wrapping<u64>,
@@ -652,7 +600,7 @@ impl LineRow {
             // "At the beginning of each sequence within a line number program, the
             // state of the registers is:" -- Section 6.2.2
             tombstone: false,
-            address: Wrapping(0),
+            address: 0,
             op_index: Wrapping(0),
             file: 1,
             line: Wrapping(1),
@@ -676,7 +624,7 @@ impl LineRow {
     /// generated by the compiler."
     #[inline]
     pub fn address(&self) -> u64 {
-        self.address.0
+        self.address
     }
 
     /// > An unsigned integer representing the index of an operation within a VLIW
@@ -800,21 +748,21 @@ impl LineRow {
         &mut self,
         instruction: LineInstruction<R>,
         program: &mut Program,
-    ) -> bool
+    ) -> Result<bool>
     where
         Program: LineProgram<R>,
         R: Reader,
     {
-        match instruction {
+        Ok(match instruction {
             LineInstruction::Special(opcode) => {
-                self.exec_special_opcode(opcode, program.header());
+                self.exec_special_opcode(opcode, program.header())?;
                 true
             }
 
             LineInstruction::Copy => true,
 
             LineInstruction::AdvancePc(operation_advance) => {
-                self.apply_operation_advance(operation_advance, program.header());
+                self.apply_operation_advance(operation_advance, program.header())?;
                 false
             }
 
@@ -846,13 +794,16 @@ impl LineRow {
             LineInstruction::ConstAddPc => {
                 let adjusted = self.adjust_opcode(255, program.header());
                 let operation_advance = adjusted / program.header().line_encoding.line_range;
-                self.apply_operation_advance(u64::from(operation_advance), program.header());
+                self.apply_operation_advance(u64::from(operation_advance), program.header())?;
                 false
             }
 
             LineInstruction::FixedAddPc(operand) => {
-                self.address += Wrapping(u64::from(operand));
-                self.op_index.0 = 0;
+                if !self.tombstone {
+                    let address_size = program.header().address_size();
+                    self.address = self.address.add_sized(u64::from(operand), address_size)?;
+                    self.op_index.0 = 0;
+                }
                 false
             }
 
@@ -879,8 +830,13 @@ impl LineRow {
             LineInstruction::SetAddress(address) => {
                 let tombstone_address = !0 >> (64 - program.header().encoding.address_size * 8);
                 self.tombstone = address == tombstone_address;
-                self.address.0 = address;
-                self.op_index.0 = 0;
+                if !self.tombstone {
+                    if address < self.address {
+                        return Err(Error::InvalidAddressRange);
+                    }
+                    self.address = address;
+                    self.op_index.0 = 0;
+                }
                 false
             }
 
@@ -899,7 +855,7 @@ impl LineRow {
             | LineInstruction::UnknownStandard1(_, _)
             | LineInstruction::UnknownStandardN(_, _)
             | LineInstruction::UnknownExtended(_, _) => false,
-        }
+        })
     }
 
     /// Perform any reset that was required after copying the previous row.
@@ -940,7 +896,11 @@ impl LineRow {
         &mut self,
         operation_advance: u64,
         header: &LineProgramHeader<R>,
-    ) {
+    ) -> Result<()> {
+        if self.tombstone {
+            return Ok(());
+        }
+
         let operation_advance = Wrapping(operation_advance);
 
         let minimum_instruction_length = u64::from(header.line_encoding.minimum_instruction_length);
@@ -950,15 +910,19 @@ impl LineRow {
             u64::from(header.line_encoding.maximum_operations_per_instruction);
         let maximum_operations_per_instruction = Wrapping(maximum_operations_per_instruction);
 
-        if maximum_operations_per_instruction.0 == 1 {
-            self.address += minimum_instruction_length * operation_advance;
+        let address_advance = if maximum_operations_per_instruction.0 == 1 {
             self.op_index.0 = 0;
+            minimum_instruction_length * operation_advance
         } else {
             let op_index_with_advance = self.op_index + operation_advance;
-            self.address += minimum_instruction_length
-                * (op_index_with_advance / maximum_operations_per_instruction);
             self.op_index = op_index_with_advance % maximum_operations_per_instruction;
-        }
+            minimum_instruction_length
+                * (op_index_with_advance / maximum_operations_per_instruction)
+        };
+        self.address = self
+            .address
+            .add_sized(address_advance.0, header.address_size())?;
+        Ok(())
     }
 
     #[inline]
@@ -967,7 +931,11 @@ impl LineRow {
     }
 
     /// Section 6.2.5.1
-    fn exec_special_opcode<R: Reader>(&mut self, opcode: u8, header: &LineProgramHeader<R>) {
+    fn exec_special_opcode<R: Reader>(
+        &mut self,
+        opcode: u8,
+        header: &LineProgramHeader<R>,
+    ) -> Result<()> {
         let adjusted_opcode = self.adjust_opcode(opcode, header);
 
         let line_range = header.line_encoding.line_range;
@@ -979,7 +947,8 @@ impl LineRow {
         self.apply_line_advance(line_base + i64::from(line_advance));
 
         // Step 2
-        self.apply_operation_advance(u64::from(operation_advance), header);
+        self.apply_operation_advance(u64::from(operation_advance), header)?;
+        Ok(())
     }
 }
 
@@ -1224,6 +1193,13 @@ where
             .any(|x| x.content_type == constants::DW_LNCT_MD5)
     }
 
+    /// Return true if the file name entry format contains a source field.
+    pub fn file_has_source(&self) -> bool {
+        self.file_name_entry_format
+            .iter()
+            .any(|x| x.content_type == constants::DW_LNCT_LLVM_source)
+    }
+
     /// Get the list of source files that appear in this header's line program.
     pub fn file_names(&self) -> &[FileEntry<R, Offset>] {
         &self.file_names[..]
@@ -1293,7 +1269,7 @@ where
         }
 
         if version >= 5 {
-            address_size = rest.read_u8()?;
+            address_size = rest.read_address_size()?;
             let segment_selector_size = rest.read_u8()?;
             if segment_selector_size != 0 {
                 return Err(Error::UnsupportedSegmentSize);
@@ -1380,6 +1356,7 @@ where
                 timestamp: 0,
                 size: 0,
                 md5: [0; 16],
+                source: None,
             });
 
             file_name_entry_format = Vec::new();
@@ -1579,6 +1556,7 @@ where
     timestamp: u64,
     size: u64,
     md5: [u8; 16],
+    source: Option<AttributeValue<R, Offset>>,
 }
 
 impl<R, Offset> FileEntry<R, Offset>
@@ -1598,6 +1576,7 @@ where
             timestamp,
             size,
             md5: [0; 16],
+            source: None,
         };
 
         Ok(entry)
@@ -1667,6 +1646,16 @@ where
     pub fn md5(&self) -> &[u8; 16] {
         &self.md5
     }
+
+    /// The source code of this file. (UTF-8 source text string with "\n" line
+    /// endings).
+    ///
+    /// Note: For DWARF v5 files this may return an empty attribute that
+    /// indicates that no source code is available, which this function
+    /// represents as Some(<zero-length attr>).
+    pub fn source(&self) -> Option<AttributeValue<R, Offset>> {
+        self.source.clone()
+    }
 }
 
 /// The format of a component of an include directory or file name entry.
@@ -1686,8 +1675,8 @@ impl FileEntryFormat {
         let mut path_count = 0;
         for _ in 0..format_count {
             let content_type = input.read_uleb128()?;
-            let content_type = if content_type > u64::from(u16::max_value()) {
-                constants::DwLnct(u16::max_value())
+            let content_type = if content_type > u64::from(u16::MAX) {
+                constants::DwLnct(u16::MAX)
             } else {
                 constants::DwLnct(content_type as u16)
             };
@@ -1733,6 +1722,7 @@ fn parse_file_v5<R: Reader>(
     let mut timestamp = 0;
     let mut size = 0;
     let mut md5 = [0; 16];
+    let mut source = None;
 
     for format in formats {
         let value = parse_attribute(input, encoding, format.form)?;
@@ -1760,6 +1750,9 @@ fn parse_file_v5<R: Reader>(
                     }
                 }
             }
+            constants::DW_LNCT_LLVM_source => {
+                source = Some(value);
+            }
             // Ignore unknown content types.
             _ => {}
         }
@@ -1771,6 +1764,7 @@ fn parse_file_v5<R: Reader>(
         timestamp,
         size,
         md5,
+        source,
     })
 }
 
@@ -1886,8 +1880,6 @@ mod tests {
     use crate::endianity::LittleEndian;
     use crate::read::{EndianSlice, Error};
     use crate::test_util::GimliSectionMethods;
-    use core::u64;
-    use core::u8;
     use test_assembler::{Endian, Label, LabelMaker, Section};
 
     #[test]
@@ -1986,6 +1978,7 @@ mod tests {
                 timestamp: 0,
                 size: 0,
                 md5: [0; 16],
+                source: None,
             },
             FileEntry {
                 path_name: AttributeValue::String(EndianSlice::new(b"bar.h", LittleEndian)),
@@ -1993,6 +1986,7 @@ mod tests {
                 timestamp: 0,
                 size: 0,
                 md5: [0; 16],
+                source: None,
             },
         ];
         assert_eq!(header.file_names(), &expected_file_names);
@@ -2151,6 +2145,7 @@ mod tests {
                     timestamp: 0,
                     size: 0,
                     md5: [0; 16],
+                    source: None,
                 },
                 FileEntry {
                     path_name: AttributeValue::String(EndianSlice::new(b"bar.rs", LittleEndian)),
@@ -2158,6 +2153,7 @@ mod tests {
                     timestamp: 0,
                     size: 0,
                     md5: [0; 16],
+                    source: None,
                 },
             ],
             include_directories: vec![],
@@ -2404,6 +2400,7 @@ mod tests {
                 timestamp: 1,
                 size: 2,
                 md5: [0; 16],
+                source: None,
             }),
         );
 
@@ -2427,6 +2424,7 @@ mod tests {
             timestamp: 0,
             size: 0,
             md5: [0; 16],
+            source: None,
         };
 
         let mut header = make_test_header(EndianSlice::new(&[], LittleEndian));
@@ -2451,7 +2449,7 @@ mod tests {
         let mut program = IncompleteLineProgram { header };
         let is_new_row = registers.execute(opcode, &mut program);
 
-        assert_eq!(is_new_row, expect_new_row);
+        assert_eq!(is_new_row, Ok(expect_new_row));
         assert_eq!(registers, expected_registers);
     }
 
@@ -2504,7 +2502,7 @@ mod tests {
         let opcode = LineInstruction::Special(52);
 
         let mut expected_registers = initial_registers;
-        expected_registers.address.0 += 3;
+        expected_registers.address += 3;
 
         assert_exec_opcode(header, initial_registers, opcode, expected_registers, true);
     }
@@ -2518,7 +2516,7 @@ mod tests {
         let opcode = LineInstruction::Special(55);
 
         let mut expected_registers = initial_registers;
-        expected_registers.address.0 += 3;
+        expected_registers.address += 3;
         expected_registers.line.0 += 3;
 
         assert_exec_opcode(header, initial_registers, opcode, expected_registers, true);
@@ -2534,7 +2532,7 @@ mod tests {
         let opcode = LineInstruction::Special(49);
 
         let mut expected_registers = initial_registers;
-        expected_registers.address.0 += 3;
+        expected_registers.address += 3;
         expected_registers.line.0 -= 3;
 
         assert_exec_opcode(header, initial_registers, opcode, expected_registers, true);
@@ -2563,7 +2561,7 @@ mod tests {
         let header = make_test_header(EndianSlice::new(&[], LittleEndian));
 
         let mut initial_registers = LineRow::new(&header);
-        initial_registers.address.0 = 1337;
+        initial_registers.address = 1337;
         initial_registers.line.0 = 42;
 
         let opcode = LineInstruction::Copy;
@@ -2580,23 +2578,33 @@ mod tests {
         let opcode = LineInstruction::AdvancePc(42);
 
         let mut expected_registers = initial_registers;
-        expected_registers.address.0 += 42;
+        expected_registers.address += 42;
 
         assert_exec_opcode(header, initial_registers, opcode, expected_registers, false);
     }
 
     #[test]
-    fn test_exec_advance_pc_overflow() {
-        let header = make_test_header(EndianSlice::new(&[], LittleEndian));
+    fn test_exec_advance_pc_overflow_32() {
+        let mut header = make_test_header(EndianSlice::new(&[], LittleEndian));
+        header.encoding.address_size = 4;
+        let mut registers = LineRow::new(&header);
+        registers.address = u32::MAX.into();
         let opcode = LineInstruction::AdvancePc(42);
+        let mut program = IncompleteLineProgram { header };
+        let result = registers.execute(opcode, &mut program);
+        assert_eq!(result, Err(Error::AddressOverflow));
+    }
 
-        let mut initial_registers = LineRow::new(&header);
-        initial_registers.address.0 = u64::MAX;
-
-        let mut expected_registers = initial_registers;
-        expected_registers.address.0 = 41;
-
-        assert_exec_opcode(header, initial_registers, opcode, expected_registers, false);
+    #[test]
+    fn test_exec_advance_pc_overflow_64() {
+        let mut header = make_test_header(EndianSlice::new(&[], LittleEndian));
+        header.encoding.address_size = 8;
+        let mut registers = LineRow::new(&header);
+        registers.address = u64::MAX;
+        let opcode = LineInstruction::AdvancePc(42);
+        let mut program = IncompleteLineProgram { header };
+        let result = registers.execute(opcode, &mut program);
+        assert_eq!(result, Err(Error::AddressOverflow));
     }
 
     #[test]
@@ -2729,9 +2737,20 @@ mod tests {
         let opcode = LineInstruction::ConstAddPc;
 
         let mut expected_registers = initial_registers;
-        expected_registers.address.0 += 20;
+        expected_registers.address += 20;
 
         assert_exec_opcode(header, initial_registers, opcode, expected_registers, false);
+    }
+
+    #[test]
+    fn test_exec_const_add_pc_overflow() {
+        let header = make_test_header(EndianSlice::new(&[], LittleEndian));
+        let mut registers = LineRow::new(&header);
+        registers.address = u64::MAX;
+        let opcode = LineInstruction::ConstAddPc;
+        let mut program = IncompleteLineProgram { header };
+        let result = registers.execute(opcode, &mut program);
+        assert_eq!(result, Err(Error::AddressOverflow));
     }
 
     #[test]
@@ -2744,10 +2763,22 @@ mod tests {
         let opcode = LineInstruction::FixedAddPc(10);
 
         let mut expected_registers = initial_registers;
-        expected_registers.address.0 += 10;
+        expected_registers.address += 10;
         expected_registers.op_index.0 = 0;
 
         assert_exec_opcode(header, initial_registers, opcode, expected_registers, false);
+    }
+
+    #[test]
+    fn test_exec_fixed_add_pc_overflow() {
+        let header = make_test_header(EndianSlice::new(&[], LittleEndian));
+        let mut registers = LineRow::new(&header);
+        registers.address = u64::MAX;
+        registers.op_index.0 = 1;
+        let opcode = LineInstruction::FixedAddPc(10);
+        let mut program = IncompleteLineProgram { header };
+        let result = registers.execute(opcode, &mut program);
+        assert_eq!(result, Err(Error::AddressOverflow));
     }
 
     #[test]
@@ -2826,7 +2857,7 @@ mod tests {
         let opcode = LineInstruction::SetAddress(3030);
 
         let mut expected_registers = initial_registers;
-        expected_registers.address.0 = 3030;
+        expected_registers.address = 3030;
 
         assert_exec_opcode(header, initial_registers, opcode, expected_registers, false);
     }
@@ -2839,9 +2870,20 @@ mod tests {
 
         let mut expected_registers = initial_registers;
         expected_registers.tombstone = true;
-        expected_registers.address.0 = !0;
 
         assert_exec_opcode(header, initial_registers, opcode, expected_registers, false);
+    }
+
+    #[test]
+    fn test_exec_set_address_backwards() {
+        let header = make_test_header(EndianSlice::new(&[], LittleEndian));
+        let mut registers = LineRow::new(&header);
+        registers.address = 1;
+        let opcode = LineInstruction::SetAddress(0);
+
+        let mut program = IncompleteLineProgram { header };
+        let result = registers.execute(opcode, &mut program);
+        assert_eq!(result, Err(Error::InvalidAddressRange));
     }
 
     #[test]
@@ -2855,10 +2897,11 @@ mod tests {
             timestamp: 0,
             size: 0,
             md5: [0; 16],
+            source: None,
         };
 
         let opcode = LineInstruction::DefineFile(file);
-        let is_new_row = row.execute(opcode, &mut program);
+        let is_new_row = row.execute(opcode, &mut program).unwrap();
 
         assert!(!is_new_row);
         assert_eq!(Some(&file), program.header().file_names.last());
@@ -2916,6 +2959,10 @@ mod tests {
                 timestamp: 0,
                 size: 0,
                 md5: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+                source: Some(AttributeValue::String(EndianSlice::new(
+                    b"foobar",
+                    LittleEndian,
+                ))),
             },
             FileEntry {
                 path_name: AttributeValue::String(EndianSlice::new(b"file2", LittleEndian)),
@@ -2925,6 +2972,10 @@ mod tests {
                 md5: [
                     11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
                 ],
+                source: Some(AttributeValue::String(EndianSlice::new(
+                    b"quux",
+                    LittleEndian,
+                ))),
             },
         ];
 
@@ -2967,21 +3018,25 @@ mod tests {
                 .append_bytes(b"dir1\0")
                 .append_bytes(b"dir2\0")
                 // File entry format count.
-                .D8(3)
+                .D8(4)
                 .uleb(constants::DW_LNCT_path.0 as u64)
                 .uleb(constants::DW_FORM_string.0 as u64)
                 .uleb(constants::DW_LNCT_directory_index.0 as u64)
                 .uleb(constants::DW_FORM_data1.0 as u64)
                 .uleb(constants::DW_LNCT_MD5.0 as u64)
                 .uleb(constants::DW_FORM_data16.0 as u64)
+                .uleb(constants::DW_LNCT_LLVM_source.0 as u64)
+                .uleb(constants::DW_FORM_string.0 as u64)
                 // File count.
                 .D8(2)
                 .append_bytes(b"file1\0")
                 .D8(0)
                 .append_bytes(&expected_file_names[0].md5)
+                .append_bytes(b"foobar\0")
                 .append_bytes(b"file2\0")
                 .D8(1)
                 .append_bytes(&expected_file_names[1].md5)
+                .append_bytes(b"quux\0")
                 .mark(&header_end)
                 // Dummy line program data.
                 .append_bytes(expected_program)
@@ -3033,6 +3088,10 @@ mod tests {
                     FileEntryFormat {
                         content_type: constants::DW_LNCT_MD5,
                         form: constants::DW_FORM_data16,
+                    },
+                    FileEntryFormat {
+                        content_type: constants::DW_LNCT_LLVM_source,
+                        form: constants::DW_FORM_string,
                     }
                 ]
             );

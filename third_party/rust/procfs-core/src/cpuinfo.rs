@@ -110,7 +110,11 @@ impl CpuInfo {
 
     /// Get the content of a specific field associated to a CPU
     ///
-    /// Returns None if the requested cpu index is not found.
+    /// If the field is not found in the set of CPU-specific fields, then
+    /// it is returned from the set of common fields.
+    ///
+    /// Returns None if the requested cpu index is not found, or if the field
+    /// is not found.
     pub fn get_field(&self, cpu_num: usize, field_name: &str) -> Option<&str> {
         self.cpus.get(cpu_num).and_then(|cpu_fields| {
             cpu_fields

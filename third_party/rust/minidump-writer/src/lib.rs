@@ -14,8 +14,19 @@ cfg_if::cfg_if! {
     }
 }
 
+pub mod dir_section;
+pub mod mem_writer;
 pub mod minidump_cpu;
 pub mod minidump_format;
 
-pub mod dir_section;
-pub mod mem_writer;
+mod serializers;
+
+failspot::failspot_name! {
+    pub enum FailSpotName {
+        StopProcess,
+        FillMissingAuxvInfo,
+        ThreadName,
+        SuspendThreads,
+        CpuInfoFileOpen,
+    }
+}

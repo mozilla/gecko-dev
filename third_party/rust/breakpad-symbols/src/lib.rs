@@ -715,7 +715,6 @@ impl<T, E> CachedAsyncResult<T, E> {
 /// [simple]: struct.SimpleSymbolSupplier.html
 /// [get_symbol]: struct.Symbolizer.html#method.get_symbol_at_address
 /// [fill_symbol]: struct.Symbolizer.html#method.fill_symbol
-
 pub struct Symbolizer {
     /// Symbol supplier for locating symbols.
     supplier: Box<dyn SymbolSupplier + Send + Sync + 'static>,

@@ -363,9 +363,9 @@ pub enum IndexSectionId {
 }
 
 impl IndexSectionId {
-    /// Returns the ELF section name for this kind, when found in a .dwo or .dwp file.
-    pub fn dwo_name(self) -> &'static str {
-        let section_id = match self {
+    /// Returns the corresponding `SectionId`.
+    pub fn section_id(self) -> SectionId {
+        match self {
             IndexSectionId::DebugAbbrev => SectionId::DebugAbbrev,
             IndexSectionId::DebugInfo => SectionId::DebugInfo,
             IndexSectionId::DebugLine => SectionId::DebugLine,
@@ -376,8 +376,12 @@ impl IndexSectionId {
             IndexSectionId::DebugRngLists => SectionId::DebugRngLists,
             IndexSectionId::DebugStrOffsets => SectionId::DebugStrOffsets,
             IndexSectionId::DebugTypes => SectionId::DebugTypes,
-        };
-        section_id.dwo_name().unwrap()
+        }
+    }
+
+    /// Returns the ELF section name for this kind, when found in a .dwo or .dwp file.
+    pub fn dwo_name(self) -> &'static str {
+        self.section_id().dwo_name().unwrap()
     }
 }
 

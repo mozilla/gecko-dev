@@ -936,51 +936,6 @@ where
     }
 }
 
-#[cfg(feature = "object")]
-mod object {
-    use super::{ModuleSectionInfo, Range};
-    use object::read::{Object, ObjectSection, ObjectSegment};
-
-    impl<'data: 'file, 'file, O, D> ModuleSectionInfo<D> for &'file O
-    where
-        O: Object<'data>,
-        D: From<&'data [u8]>,
-    {
-        fn base_svma(&self) -> u64 {
-            if let Some(text_segment) = self.segments().find(|s| s.name() == Ok(Some("__TEXT"))) {
-                // This is a mach-O image. "Relative addresses" are relative to the
-                // vmaddr of the __TEXT segment.
-                return text_segment.address();
-            }
-
-            // For PE binaries, relative_address_base() returns the image base address.
-            // Otherwise it returns zero. This gives regular ELF images a base address of zero,
-            // which is what we want.
-            self.relative_address_base()
-        }
-
-        fn section_svma_range(&mut self, name: &[u8]) -> Option<Range<u64>> {
-            let section = self.section_by_name_bytes(name)?;
-            Some(section.address()..section.address() + section.size())
-        }
-
-        fn section_data(&mut self, name: &[u8]) -> Option<D> {
-            let section = self.section_by_name_bytes(name)?;
-            section.data().ok().map(|data| data.into())
-        }
-
-        fn segment_svma_range(&mut self, name: &[u8]) -> Option<Range<u64>> {
-            let segment = self.segments().find(|s| s.name_bytes() == Ok(Some(name)))?;
-            Some(segment.address()..segment.address() + segment.size())
-        }
-
-        fn segment_data(&mut self, name: &[u8]) -> Option<D> {
-            let segment = self.segments().find(|s| s.name_bytes() == Ok(Some(name)))?;
-            segment.data().ok().map(|data| data.into())
-        }
-    }
-}
-
 impl<D: Deref<Target = [u8]>> Module<D> {
     pub fn new(
         name: String,

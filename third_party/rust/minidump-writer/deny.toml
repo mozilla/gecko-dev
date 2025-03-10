@@ -20,5 +20,4 @@ deny = [
 skip-tree = []
 
 [licenses]
-allow = ["MIT", "Apache-2.0"]
-exceptions = [{ allow = ["Unicode-DFS-2016"], name = "unicode-ident" }]
+allow = ["MIT", "Apache-2.0", "Unicode-3.0"]

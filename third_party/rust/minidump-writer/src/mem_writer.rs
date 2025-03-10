@@ -1,14 +1,31 @@
-use crate::minidump_format::{MDLocationDescriptor, MDRVA};
-use scroll::ctx::{SizeWith, TryIntoCtx};
+use {
+    crate::{
+        minidump_format::{MDLocationDescriptor, MDRVA},
+        serializers::*,
+    },
+    scroll::ctx::{SizeWith, TryIntoCtx},
+};
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, serde::Serialize)]
 pub enum MemoryWriterError {
     #[error("IO error when writing to DumpBuf")]
-    IOError(#[from] std::io::Error),
+    IOError(
+        #[from]
+        #[serde(serialize_with = "serialize_io_error")]
+        std::io::Error,
+    ),
     #[error("Failed integer conversion")]
-    TryFromIntError(#[from] std::num::TryFromIntError),
+    TryFromIntError(
+        #[from]
+        #[serde(skip)]
+        std::num::TryFromIntError,
+    ),
     #[error("Failed to write to buffer")]
-    Scroll(#[from] scroll::Error),
+    Scroll(
+        #[from]
+        #[serde(serialize_with = "serialize_scroll_error")]
+        scroll::Error,
+    ),
 }
 
 type WriteResult<T> = std::result::Result<T, MemoryWriterError>;

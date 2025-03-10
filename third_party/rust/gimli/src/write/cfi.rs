@@ -212,8 +212,7 @@ impl CommonInformationEntry {
 
         if encoding.version >= 4 {
             w.write_u8(encoding.address_size)?;
-            // TODO: segment_selector_size
-            w.write_u8(0)?;
+            w.write_u8(0)?; // segment_selector_size
         }
 
         w.write_uleb128(self.code_alignment_factor.into())?;

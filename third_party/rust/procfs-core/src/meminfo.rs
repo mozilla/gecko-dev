@@ -139,7 +139,7 @@ pub struct Meminfo {
     pub shmem: Option<u64>,
     /// In-kernel data structures cache.
     pub slab: u64,
-    /// Part of Slab, that cannot be reclaimed on memory pressure.
+    /// Part of Slab, that can be reclaimed on memory pressure.
     ///
     /// (since Linux 2.6.19)
     pub s_reclaimable: Option<u64>,

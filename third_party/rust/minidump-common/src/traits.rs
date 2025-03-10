@@ -39,7 +39,7 @@ pub trait Module {
 
 /// Implement Module for 2-tuples of (&str, DebugId) for convenience.
 /// `breakpad-symbols`' `Symbolizer::get_symbol_at_address` uses this.
-impl<'a> Module for (&'a str, DebugId) {
+impl Module for (&str, DebugId) {
     fn base_address(&self) -> u64 {
         0
     }

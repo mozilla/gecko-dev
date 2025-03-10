@@ -1052,7 +1052,10 @@ DwLnct(u16) {
     DW_LNCT_timestamp = 0x3,
     DW_LNCT_size = 0x4,
     DW_LNCT_MD5 = 0x5,
+    // DW_LNCT_source = 0x6,
     DW_LNCT_lo_user = 0x2000,
+    // We currently only implement the LLVM embedded source code extension for DWARF v5.
+    DW_LNCT_LLVM_source = 0x2001,
     DW_LNCT_hi_user = 0x3fff,
 });
 

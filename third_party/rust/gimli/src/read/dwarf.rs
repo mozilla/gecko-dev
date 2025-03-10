@@ -399,9 +399,9 @@ impl<R: Reader> Dwarf<R> {
     /// - an inline `DW_FORM_string` string
     /// - a `DW_FORM_strp` reference to an offset into the `.debug_str` section
     /// - a `DW_FORM_strp_sup` reference to an offset into a supplementary
-    /// object file
+    ///   object file
     /// - a `DW_FORM_line_strp` reference to an offset into the `.debug_line_str`
-    /// section
+    ///   section
     /// - a `DW_FORM_strx` index into the `.debug_str_offsets` entries for the unit
     ///
     /// then return the attribute's string value. Returns an error if the attribute
@@ -739,7 +739,7 @@ impl<R: Clone> Dwarf<R> {
         // parent file.
         self.ranges
             .set_debug_ranges(parent.ranges.debug_ranges().clone());
-        self.sup = parent.sup.clone();
+        self.sup.clone_from(&parent.sup);
     }
 }
 

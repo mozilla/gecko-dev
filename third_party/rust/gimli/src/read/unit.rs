@@ -2,7 +2,6 @@
 
 use core::cell::Cell;
 use core::ops::{Range, RangeFrom, RangeTo};
-use core::{u16, u8};
 
 use crate::common::{
     DebugAbbrevOffset, DebugAddrBase, DebugAddrIndex, DebugInfoOffset, DebugLineOffset,
@@ -575,7 +574,7 @@ where
     // reader.
     if 2 <= version && version <= 4 {
         abbrev_offset = parse_debug_abbrev_offset(&mut rest, format)?;
-        address_size = rest.read_u8()?;
+        address_size = rest.read_address_size()?;
         // Before DWARF5, all units in the .debug_info section are compilation
         // units, and all units in the .debug_types section are type units.
         unit_type = match unit_offset {
@@ -584,7 +583,7 @@ where
         };
     } else if version == 5 {
         unit_type = parse_unit_type(&mut rest)?;
-        address_size = rest.read_u8()?;
+        address_size = rest.read_address_size()?;
         abbrev_offset = parse_debug_abbrev_offset(&mut rest, format)?;
     } else {
         return Err(Error::UnknownVersion(u64::from(version)));
@@ -1849,7 +1848,7 @@ where
             AttributeValue::Data8(data) => data as i64,
             AttributeValue::Sdata(data) => data,
             AttributeValue::Udata(data) => {
-                if data > i64::max_value() as u64 {
+                if data > i64::MAX as u64 {
                     // Maybe we should emit a warning here
                     return None;
                 }
@@ -4197,28 +4196,24 @@ mod tests {
         )] = &[
             (AttributeValue::Data1(1), Some(1), Some(1)),
             (
-                AttributeValue::Data1(core::u8::MAX),
-                Some(u64::from(std::u8::MAX)),
+                AttributeValue::Data1(u8::MAX),
+                Some(u64::from(u8::MAX)),
                 Some(-1),
             ),
             (AttributeValue::Data2(1), Some(1), Some(1)),
             (
-                AttributeValue::Data2(core::u16::MAX),
-                Some(u64::from(std::u16::MAX)),
+                AttributeValue::Data2(u16::MAX),
+                Some(u64::from(u16::MAX)),
                 Some(-1),
             ),
             (AttributeValue::Data4(1), Some(1), Some(1)),
             (
-                AttributeValue::Data4(core::u32::MAX),
-                Some(u64::from(std::u32::MAX)),
+                AttributeValue::Data4(u32::MAX),
+                Some(u64::from(u32::MAX)),
                 Some(-1),
             ),
             (AttributeValue::Data8(1), Some(1), Some(1)),
-            (
-                AttributeValue::Data8(core::u64::MAX),
-                Some(core::u64::MAX),
-                Some(-1),
-            ),
+            (AttributeValue::Data8(u64::MAX), Some(u64::MAX), Some(-1)),
             (AttributeValue::Sdata(1), Some(1), Some(1)),
             (AttributeValue::Sdata(-1), None, Some(-1)),
             (AttributeValue::Udata(1), Some(1), Some(1)),

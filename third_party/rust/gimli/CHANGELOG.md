@@ -2,6 +2,60 @@
 
 --------------------------------------------------------------------------------
 
+## 0.31.0
+
+Released 2024/07/16.
+
+### Breaking changes
+
+* Deleted support for segment selectors.
+  [#720](https://github.com/gimli-rs/gimli/pull/720)
+
+* Added `read::FileEntry::source` and deleted `Copy` implementation.
+  [#728](https://github.com/gimli-rs/gimli/pull/728)
+
+* Changed `read::LineRow::execute` to return a `Result`.
+  [#731](https://github.com/gimli-rs/gimli/pull/731)
+
+* Deleted `Display` implementation for `read::LineInstruction`.
+  [#734](https://github.com/gimli-rs/gimli/pull/734)
+
+* Changed `read::Error` to be non-exhaustive.
+
+### Changed
+
+* Fixed `Hash` implementation for `read::EndianReader`.
+  [#723](https://github.com/gimli-rs/gimli/pull/723)
+
+* Changed `read::EhFrameHdr::parse` to validate the FDE count encoding.
+  [#725](https://github.com/gimli-rs/gimli/pull/725)
+
+* Changed address overflow to be an error for `read::UnwindTableRow`,
+  `read::LineRow`, and `read::ArangeEntry`.
+  [#730](https://github.com/gimli-rs/gimli/pull/730)
+  [#731](https://github.com/gimli-rs/gimli/pull/731)
+  [#732](https://github.com/gimli-rs/gimli/pull/732)
+
+* Changed wrapping addition for 32-bit addresses to wrap at 32 bits instead of
+  at 64 bits.
+  [#733](https://github.com/gimli-rs/gimli/pull/733)
+
+* Added earlier validation of address sizes.
+  [#733](https://github.com/gimli-rs/gimli/pull/733)
+
+### Added
+
+* Added `read::IndexSectionId::section_id`.
+  [#719](https://github.com/gimli-rs/gimli/pull/719)
+
+* Added `read::FrameDescriptionEntry::end_address`.
+  [#727](https://github.com/gimli-rs/gimli/pull/727)
+
+* Added support for `DW_LNCT_LLVM_source`.
+  [#728](https://github.com/gimli-rs/gimli/pull/728)
+
+--------------------------------------------------------------------------------
+
 ## 0.30.0
 
 Released 2024/05/26.

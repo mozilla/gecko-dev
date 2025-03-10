@@ -26,7 +26,7 @@ Add to your `Cargo.toml`
 
 ```toml
 [dependencies]
-goblin = "0.8"
+goblin = "0.9"
 ```
 
 ### Features
@@ -97,6 +97,7 @@ Here are some things you could do with this crate (or help to implement so they 
 * mach32 - 32-bit mach-o `repr(C)` struct defs
 * pe32 - 32-bit PE `repr(C)` struct defs
 * pe64 - 64-bit PE `repr(C)` struct defs
++ te - Terse Executable (TE) `repr(C)` struct defs
 * archive - a Unix Archive parser
 * endian_fd - parses according to the endianness in the binary
 * std - to allow `no_std` environments
@@ -124,6 +125,7 @@ In lexicographic order:
 - [@glandium]
 - [@h33p]
 - [@ibabushkin]
+- [@ideeockus]
 - [@jackcmay]
 - [@jan-auer]
 - [@Javagedes]
@@ -132,6 +134,7 @@ In lexicographic order:
 - [@Jhynjhiruu]
 - [@johannst]
 - [@JohnScience]
+- [@joschock]
 - [@jrmuizel]
 - [@jsgf]
 - [@keith]
@@ -207,6 +210,7 @@ In lexicographic order:
 [@glandium]: https://github.com/glandium
 [@h33p]: https://github.com/h33p
 [@ibabushkin]: https://github.com/ibabushkin
+[@ideeockus]: https://github.com/ideeockus
 [@jackcmay]: https://github.com/jackcmay
 [@jan-auer]: https://github.com/jan-auer
 [@Javagedes]: https://github.com/Javagedes
@@ -214,6 +218,7 @@ In lexicographic order:
 [@Jhynjhiruu]: https://github.com/Jhynjhiruu
 [@JohnScience]: https://github.com/JohnScience
 [@johannst]: https://github.com/johannst
+[@joschock]: https://github.com/joschock
 [@jdub]: https://github.com/jdub
 [@jrmuizel]: https://github.com/jrmuizel
 [@jsgf]: https://github.com/jsgf

@@ -601,7 +601,7 @@ pub enum UnifiedMemoryList<'a> {
     Memory(MinidumpMemoryList<'a>),
     Memory64(MinidumpMemory64List<'a>),
 }
-impl<'a> Default for UnifiedMemoryList<'a> {
+impl Default for UnifiedMemoryList<'_> {
     fn default() -> Self {
         Self::Memory(Default::default())
     }
@@ -1998,7 +1998,7 @@ impl<'a> MinidumpMemory<'a> {
     }
 }
 
-impl<'a> MinidumpMemory64<'a> {
+impl MinidumpMemory64<'_> {
     /// Write a human-readable description of this `MinidumpMemory64` to `f`.
     ///
     /// This is very verbose, it is the format used by `minidump_dump`.
@@ -2184,7 +2184,7 @@ impl<'mdmp, Descriptor> MinidumpMemoryListBase<'mdmp, Descriptor> {
     }
 }
 
-impl<'mdmp> MinidumpMemoryList<'mdmp> {
+impl MinidumpMemoryList<'_> {
     /// Write a human-readable description of this `MinidumpMemoryList` to `f`.
     ///
     /// This is very verbose, it is the format used by `minidump_dump`.
@@ -2205,7 +2205,7 @@ impl<'mdmp> MinidumpMemoryList<'mdmp> {
     }
 }
 
-impl<'mdmp> MinidumpMemory64List<'mdmp> {
+impl MinidumpMemory64List<'_> {
     /// Write a human-readable description of this `MinidumpMemory64List` to `f`.
     ///
     /// This is very verbose, it is the format used by `minidump_dump`.
@@ -2281,7 +2281,7 @@ impl<'mdmp> UnifiedMemoryList<'mdmp> {
     }
 }
 
-impl<'a, Descriptor> Default for MinidumpMemoryListBase<'a, Descriptor> {
+impl<Descriptor> Default for MinidumpMemoryListBase<'_, Descriptor> {
     fn default() -> Self {
         Self::new()
     }
@@ -2406,7 +2406,7 @@ impl<'a> MinidumpStream<'a> for MinidumpMemoryInfoList<'a> {
     }
 }
 
-impl<'a> Default for MinidumpMemoryInfoList<'a> {
+impl Default for MinidumpMemoryInfoList<'_> {
     fn default() -> Self {
         Self::new()
     }
@@ -2476,7 +2476,7 @@ impl<'mdmp> MinidumpMemoryInfoList<'mdmp> {
     }
 }
 
-impl<'a> MinidumpMemoryInfo<'a> {
+impl MinidumpMemoryInfo<'_> {
     /// Write a human-readable description.
     pub fn print<T: Write>(&self, f: &mut T) -> io::Result<()> {
         write!(
@@ -2567,7 +2567,7 @@ impl<'a> MinidumpStream<'a> for MinidumpLinuxMaps<'a> {
     }
 }
 
-impl<'a> Default for MinidumpLinuxMaps<'a> {
+impl Default for MinidumpLinuxMaps<'_> {
     fn default() -> Self {
         Self::new()
     }
@@ -2637,7 +2637,7 @@ impl<'mdmp> MinidumpLinuxMaps<'mdmp> {
     }
 }
 
-impl<'a> MinidumpLinuxMapInfo<'a> {
+impl MinidumpLinuxMapInfo<'_> {
     /// Write a human-readable description of this.
     pub fn print<T: Write>(&self, f: &mut T) -> io::Result<()> {
         write!(
@@ -2692,7 +2692,7 @@ impl<'a> MinidumpLinuxMapInfo<'a> {
     }
 }
 
-impl<'a> Default for UnifiedMemoryInfoList<'a> {
+impl Default for UnifiedMemoryInfoList<'_> {
     fn default() -> Self {
         Self::Info(MinidumpMemoryInfoList::default())
     }
@@ -2811,7 +2811,7 @@ macro_rules! unified_memory_forward {
     };
 }
 
-impl<'a> UnifiedMemoryInfo<'a> {
+impl UnifiedMemoryInfo<'_> {
     unified_memory_forward! {
         /// Write a human-readable description.
         pub fn print<T: Write>(&self, f: &mut T) -> io::Result<()>;
@@ -3148,7 +3148,7 @@ impl<'a> MinidumpStream<'a> for MinidumpThreadInfoList {
     }
 }
 
-impl<'a> MinidumpStream<'a> for MinidumpSystemInfo {
+impl MinidumpStream<'_> for MinidumpSystemInfo {
     const STREAM_TYPE: u32 = MINIDUMP_STREAM_TYPE::SystemInfoStream as u32;
 
     fn read(
@@ -3537,7 +3537,7 @@ impl RawMiscInfo {
     );
 }
 
-impl<'a> MinidumpStream<'a> for MinidumpMiscInfo {
+impl MinidumpStream<'_> for MinidumpMiscInfo {
     const STREAM_TYPE: u32 = MINIDUMP_STREAM_TYPE::MiscInfoStream as u32;
 
     fn read(
@@ -3667,7 +3667,7 @@ impl RawMacCrashInfo {
     );
 }
 
-impl<'a> MinidumpStream<'a> for MinidumpMacCrashInfo {
+impl MinidumpStream<'_> for MinidumpMacCrashInfo {
     const STREAM_TYPE: u32 = MINIDUMP_STREAM_TYPE::MozMacosCrashInfoStream as u32;
 
     fn read(
@@ -3826,7 +3826,7 @@ impl MinidumpMacCrashInfo {
     }
 }
 
-impl<'a> MinidumpStream<'a> for MinidumpMacBootargs {
+impl MinidumpStream<'_> for MinidumpMacBootargs {
     const STREAM_TYPE: u32 = MINIDUMP_STREAM_TYPE::MozMacosBootargsStream as u32;
 
     fn read(
@@ -4145,7 +4145,7 @@ impl MinidumpMiscInfo {
     }
 }
 
-impl<'a> MinidumpStream<'a> for MinidumpBreakpadInfo {
+impl MinidumpStream<'_> for MinidumpBreakpadInfo {
     const STREAM_TYPE: u32 = MINIDUMP_STREAM_TYPE::BreakpadInfoStream as u32;
 
     fn read(

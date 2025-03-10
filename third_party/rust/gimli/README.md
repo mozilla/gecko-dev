@@ -30,7 +30,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-gimli = "0.30.0"
+gimli = "0.31.0"
 ```
 
 The minimum supported Rust version is:

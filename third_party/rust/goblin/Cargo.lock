@@ -74,7 +74,7 @@ checksum = "06ea2b9bc92be3c2baa9334a323ebca2d6f074ff852cd1d7b11064035cd3868f"
 
 [[package]]
 name = "goblin"
-version = "0.8.2"
+version = "0.9.2"
 dependencies = [
  "log",
  "plain",

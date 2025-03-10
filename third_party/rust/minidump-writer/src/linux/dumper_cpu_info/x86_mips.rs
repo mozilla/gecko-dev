@@ -1,7 +1,11 @@
-use crate::errors::CpuInfoError;
-use crate::minidump_format::*;
-use std::io::{BufRead, BufReader};
-use std::path;
+use {
+    crate::{errors::CpuInfoError, minidump_format::*},
+    failspot::failspot,
+    std::{
+        io::{BufRead, BufReader},
+        path,
+    },
+};
 
 type Result<T> = std::result::Result<T, CpuInfoError>;
 
@@ -43,6 +47,11 @@ pub fn write_cpu_information(sys_info: &mut MDRawSystemInfo) -> Result<()> {
     } else {
         MDCPUArchitecture::PROCESSOR_ARCHITECTURE_AMD64
     } as u16;
+
+    failspot!(
+        CpuInfoFileOpen
+        bail(std::io::Error::other("test requested cpuinfo file failure"))
+    );
 
     let cpuinfo_file = std::fs::File::open(path::PathBuf::from("/proc/cpuinfo"))?;
 
