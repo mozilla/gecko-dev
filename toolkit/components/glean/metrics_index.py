@@ -224,11 +224,14 @@ test_pings = [
 # Map of app ids to lists of pings files for that app.
 # Necessary to ensure different apps don't store data for unsent pings.
 # Use the app id conjugation passed to initializeFOG (dotted.case).
-pings_by_app_id = {
+pings_by_app_or_lib_id = {
     "firefox.desktop": gecko_pings + firefox_desktop_pings + test_pings,
     "firefox.desktop.background.update": gecko_pings
     + background_update_pings
     + test_pings,
+    # Not an _actual_ app ID in use,
+    # but needed to differentiate ping registration in geckoview builds
+    "gecko": gecko_pings + test_pings,
 }
 
 # The list of all Glean pings.yaml files, relative to the top src dir.

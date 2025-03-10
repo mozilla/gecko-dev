@@ -189,9 +189,9 @@ def main(cpp_fd, *args):
         from os import path
 
         sys.path.append(path.join(path.dirname(__file__), path.pardir, path.pardir))
-        from metrics_index import pings_by_app_id
+        from metrics_index import pings_by_app_or_lib_id
 
-        for app_id, ping_yamls in pings_by_app_id.items():
+        for app_id, ping_yamls in pings_by_app_or_lib_id.items():
             input_files = [Path(path.join(topsrcdir, x)) for x in ping_yamls]
             ping_objs, _ = parse_with_options(input_files, options)
             ping_names_by_app_id[app_id] = sorted(ping_objs["pings"].keys())
