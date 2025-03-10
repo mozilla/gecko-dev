@@ -259,6 +259,9 @@ class CommandAction(argparse.Action):
             for command in sorted(r.commands_by_category[category]):
                 handler = r.command_handlers[command]
 
+                if handler.hidden:
+                    continue
+
                 # Instantiate a handler class to see if it should be filtered
                 # out for the current context or not. Condition functions can be
                 # applied to the command's decorator.

@@ -6,6 +6,8 @@ subsuite = "mach"
 ["test_conditions.py"]
 skip-if = ["true"]
 
+["test_definitions.py"]
+
 ["test_config.py"]
 
 ["test_decorators.py"]
