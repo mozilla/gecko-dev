@@ -44,19 +44,14 @@ class Onboarding {
 
     const getDocumentReady = async () => {
       new Promise(resolve => {
-        this.doc.addEventListener(
-          "readystatechange",
-          function onReadyStateChange() {
-            if (this.doc.readyState != "complete") {
-              return;
-            }
-            this.doc.removeEventListener(
-              "readystatechange",
-              onReadyStateChange
-            );
-            resolve();
+        const onReadyStateChange = () => {
+          if (this.doc.readyState != "complete") {
+            return;
           }
-        );
+          this.doc.removeEventListener("readystatechange", onReadyStateChange);
+          resolve();
+        };
+        this.doc.addEventListener("readystatechange", onReadyStateChange);
       });
     };
 

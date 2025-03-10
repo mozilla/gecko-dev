@@ -139,8 +139,8 @@ add_task(async function test_showOnboarding_notOptedIn() {
           "message is shown"
         );
 
-        ok(
-          content.document.querySelector(".FS_OPT_IN"),
+        await ContentTaskUtils.waitForCondition(
+          () => content.document.querySelector(".FS_OPT_IN"),
           "Rendered correct message"
         );
       });
