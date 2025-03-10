@@ -20,7 +20,7 @@ var { getScriptGlobals } = require("./utils");
 // When updating EXTRA_SCRIPTS or MAPPINGS, be sure to also update the
 // 'support-files' config in `tools/lint/eslint.yml`.
 
-// These are scripts not loaded from browser.xhtml or global-scripts.inc
+// These are scripts not loaded from browser-main.js or global-scripts.js
 // but via other includes.
 const EXTRA_SCRIPTS = [
   "browser/components/downloads/content/downloads.js",

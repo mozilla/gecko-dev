@@ -718,13 +718,13 @@ module.exports = {
 
   get globalScriptPaths() {
     return [
-      path.join(this.rootDir, "browser", "base", "content", "browser.xhtml"),
+      path.join(this.rootDir, "browser", "base", "content", "browser-main.js"),
       path.join(
         this.rootDir,
         "browser",
         "base",
         "content",
-        "global-scripts.inc"
+        "global-scripts.js"
       ),
     ];
   },
