@@ -1015,6 +1015,31 @@ nsresult PrototypeDocumentContentSink::ExecuteScript(
   JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
   NS_ENSURE_TRUE(xpc::Scriptability::Get(global).Allowed(), NS_OK);
 
+  if (!aScript->mOutOfLine) {
+    // Check if CSP allows loading of inline scripts.
+    if (nsCOMPtr<nsIContentSecurityPolicy> csp = mDocument->GetCsp()) {
+      nsAutoJSString content;
+      JS::Rooted<JSString*> decompiled(cx,
+                                       JS_DecompileScript(cx, scriptObject));
+      if (NS_WARN_IF(!decompiled || !content.init(cx, decompiled))) {
+        JS_ClearPendingException(cx);
+      }
+
+      bool allowInlineScript = false;
+      rv = csp->GetAllowsInline(
+          nsIContentSecurityPolicy::SCRIPT_SRC_ELEM_DIRECTIVE,
+          /* aHasUnsafeHash */ false, /* aNonce */ u""_ns,
+          /* aParserCreated */ true,
+          /* aTriggeringElement */ nullptr,
+          /* nsICSPEventListener */ nullptr,
+          /* aContentOfPseudoScript */ content, aScript->mLineNo,
+          /* aColumnNumber */ 0, &allowInlineScript);
+      if (NS_FAILED(rv) || !allowInlineScript) {
+        return NS_OK;
+      }
+    }
+  }
+
   // On failure, ~AutoScriptEntry will handle exceptions, so
   // there is no need to manually check the return value.
   JS::Rooted<JS::Value> rval(cx);
