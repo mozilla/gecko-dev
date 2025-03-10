@@ -1,3 +1,7 @@
+# Version 2.1.1
+
+- Remove support for 128-bit targets, as they are not supported by rustc yet. (#87)
+
 # Version 2.1.0
 
 - Change the RNG algorithm and the way that the seed is computed. This will cause

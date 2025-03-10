@@ -13,9 +13,14 @@
 edition = "2018"
 rust-version = "1.36"
 name = "fastrand"
-version = "2.1.0"
+version = "2.1.1"
 authors = ["Stjepan Glavina <stjepang@gmail.com>"]
+build = false
 exclude = ["/.*"]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A simple and fast random number generator"
 readme = "README.md"
 keywords = [
@@ -36,6 +41,22 @@ rustdoc-args = [
     "docsrs",
 ]
 
+[lib]
+name = "fastrand"
+path = "src/lib.rs"
+
+[[test]]
+name = "char"
+path = "tests/char.rs"
+
+[[test]]
+name = "smoke"
+path = "tests/smoke.rs"
+
+[[bench]]
+name = "bench"
+path = "benches/bench.rs"
+
 [dev-dependencies.getrandom]
 version = "0.2"
 
@@ -54,14 +75,14 @@ js = [
 ]
 std = ["alloc"]
 
-[target."cfg(all(any(target_arch = \"wasm32\", target_arch = \"wasm64\"), target_os = \"unknown\"))".dependencies.getrandom]
+[target.'cfg(all(any(target_arch = "wasm32", target_arch = "wasm64"), target_os = "unknown"))'.dependencies.getrandom]
 version = "0.2"
 features = ["js"]
 optional = true
 
-[target."cfg(all(any(target_arch = \"wasm32\", target_arch = \"wasm64\"), target_os = \"unknown\"))".dev-dependencies.getrandom]
+[target.'cfg(all(any(target_arch = "wasm32", target_arch = "wasm64"), target_os = "unknown"))'.dev-dependencies.getrandom]
 version = "0.2"
 features = ["js"]
 
-[target."cfg(all(any(target_arch = \"wasm32\", target_arch = \"wasm64\"), target_os = \"unknown\"))".dev-dependencies.wasm-bindgen-test]
+[target.'cfg(all(any(target_arch = "wasm32", target_arch = "wasm64"), target_os = "unknown"))'.dev-dependencies.wasm-bindgen-test]
 version = "0.3"

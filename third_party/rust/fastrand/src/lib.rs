@@ -619,14 +619,6 @@ impl Rng {
         gen_mod_u64,
         "Generates a random `usize` in the given range."
     );
-    #[cfg(target_pointer_width = "128")]
-    rng_integer!(
-        usize,
-        usize,
-        gen_u128,
-        gen_mod_u128,
-        "Generates a random `usize` in the given range."
-    );
 
     /// Generates a random `char` in range A-Z.
     #[inline]
