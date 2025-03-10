@@ -334,6 +334,18 @@ features:
           download-link: "[Download Link]"
           show-snackbar: true
 
+  SetupChecklist:
+    description: A feature on the home page that allows the user to track onboarding setup progress.
+    variables:
+      enabled:
+        type: Boolean
+        description: If true, the setup checklist will be enabled.
+        default: false
+      setup-checklist-type:
+        type: SetupChecklistType
+        description: The collection used for the setup checklist.
+        default: collection-1
+
   search-extra-params:
     description: A feature that provides additional args for search.
     variables:
@@ -812,3 +824,11 @@ types:
           description: The onboarding panel where users can choose their total cookie protection settings
         privacy-notice:
           description: The onboarding panel where users can tap to view our privacy notice.
+
+    SetupChecklistType:
+      description: An enum to represent the different experiment branches for the setup checklist.
+      variants:
+        collection-1:
+          description: The collection for the setup checklist that has 3 items.
+        collection-2:
+          description: The collection for the setup checklist that has 6 items.
