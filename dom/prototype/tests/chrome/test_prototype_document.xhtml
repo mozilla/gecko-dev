@@ -68,6 +68,26 @@ add_task(async function test_prototype_document_form() {
   await load(browser, "form.xhtml");
   is(browser.contentDocument.getElementById("input").value, "test", "input value should persist after reload");
 });
+
+add_task(async function test_csp_inline_script() {
+  let browser = document.getElementById("browser");
+
+  let {promise, resolve} = Promise.withResolvers();
+  function onConsoleMessage({message}) {
+    if (message && /Content-Security-Policy:.*?script-src-elem.*?\/csp.xhtml/.test(message.toString())) {
+      ok(true, `Got console message: ${message}`);
+      resolve(message);
+    }
+  }
+
+  Services.console.registerListener(onConsoleMessage);
+
+  await load(browser, "csp.xhtml");
+  ok(browser.contentDocument.loadedFromPrototype, "csp.xhtml should load from prototype.");
+  ok(await promise, "Inline script got blocked by CSP");
+
+  Services.console.unregisterListener(onConsoleMessage);
+});
 ]]></script>
 </body>
 </window>
