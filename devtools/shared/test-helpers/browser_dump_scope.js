@@ -35,7 +35,7 @@ add_task(async function testSyncStack() {
   const testScope1 = scopes[1];
   assertScopeInformation(testScope1);
 
-  let scope = testScope1.scope;
+  let scope = testScope1.blocks[0];
   is(typeof scope.a, "object", "Object type is correct");
   is(scope.a.prop, "1", "Object property value is correct");
 
@@ -52,7 +52,7 @@ add_task(async function testSyncStack() {
   const testScope2 = scopes[0];
   assertScopeInformation(testScope2);
 
-  scope = testScope2.scope;
+  scope = testScope2.blocks[0];
   is(typeof scope.d, "object", "Object type is correct");
   is(scope.d.prop, "-1", "Object property value is correct");
 
@@ -97,13 +97,13 @@ add_task(async function testAsyncStack() {
 
   const testScope1 = scopes[2];
   assertScopeInformation(testScope1);
-  is(testScope1.scope.asyncA, "1", "Async frame value is correct");
+  is(testScope1.blocks[0].asyncA, "1", "Async frame value is correct");
   const testScope2 = scopes[1];
   assertScopeInformation(testScope2);
-  is(testScope2.scope.asyncB, "2", "Async frame value is correct");
+  is(testScope2.blocks[0].asyncB, "2", "Async frame value is correct");
   const testScope3 = scopes[0];
   assertScopeInformation(testScope3);
-  is(testScope3.scope.asyncC, "3", "Async frame value is correct");
+  is(testScope3.blocks[0].asyncC, "3", "Async frame value is correct");
 });
 
 function cyclicReference() {
@@ -120,16 +120,24 @@ add_task(async function testCyclicReference() {
 
   const testScope = scopes[0];
   assertScopeInformation(testScope);
-  is(typeof testScope.scope.a, "object", "Cyclic object type is correct");
+  is(typeof testScope.blocks[0].a, "object", "Cyclic object type is correct");
 
   // Note that the actual way cyclic references are handled could change in the
   // future. If we decide to start handling them as references, this test should
   // simply be updated!
-  is(typeof testScope.scope.a.b, "object", "Cyclic object type is correct");
-  is(typeof testScope.scope.a.b.a, "object", "Cyclic object type is correct");
-  is(typeof testScope.scope.a.b.a.b, "object", "Cyclic object type is correct");
+  is(typeof testScope.blocks[0].a.b, "object", "Cyclic object type is correct");
   is(
-    testScope.scope.a.b.a.b.a,
+    typeof testScope.blocks[0].a.b.a,
+    "object",
+    "Cyclic object type is correct"
+  );
+  is(
+    typeof testScope.blocks[0].a.b.a.b,
+    "object",
+    "Cyclic object type is correct"
+  );
+  is(
+    testScope.blocks[0].a.b.a.b.a,
     "Object (max depth)",
     "Cyclic object value is correct"
   );
@@ -152,32 +160,63 @@ add_task(async function testMaxDepth() {
 
   const testScope = scopes[0];
   assertScopeInformation(testScope);
-  is(typeof testScope.scope.obj, "object", "Max depth object type is correct");
   is(
-    typeof testScope.scope.obj.a0,
+    typeof testScope.blocks[0].obj,
     "object",
     "Max depth object type is correct"
   );
   is(
-    typeof testScope.scope.obj.a0.a1,
+    typeof testScope.blocks[0].obj.a0,
     "object",
     "Max depth object type is correct"
   );
   is(
-    typeof testScope.scope.obj.a0.a1.a2,
+    typeof testScope.blocks[0].obj.a0.a1,
     "object",
     "Max depth object type is correct"
   );
   is(
-    typeof testScope.scope.obj.a0.a1.a2.a3,
+    typeof testScope.blocks[0].obj.a0.a1.a2,
+    "object",
+    "Max depth object type is correct"
+  );
+  is(
+    typeof testScope.blocks[0].obj.a0.a1.a2.a3,
     "string",
     "Max depth object type is correct"
   );
   is(
-    testScope.scope.obj.a0.a1.a2.a3,
+    testScope.blocks[0].obj.a0.a1.a2.a3,
     "Object (max depth)",
     "Max depth object value is correct"
   );
+});
+
+function nestedInABlock() {
+  /* eslint-disable no-unused-vars */
+  const outerBlock = "outerBlock";
+
+  {
+    const innerBlock = "innerBlock";
+    return dumpScope({ saveAsFile: false });
+  }
+  /* eslint-enable no-unused-vars */
+}
+
+add_task(async function testBlockNesting() {
+  const scopes = await nestedInABlock();
+  is(scopes.length, 2, "dumpScope returned 2 frames");
+
+  // Test frame for nestedInABlock
+  const testScope1 = scopes[0];
+  assertScopeInformation(testScope1);
+
+  const block1 = testScope1.blocks[0];
+  is(typeof block1.innerBlock, "string", "innerBlock type is correct");
+  is(block1.innerBlock, "innerBlock", "innerBlock value is correct");
+  const block2 = testScope1.blocks[1];
+  is(typeof block2.outerBlock, "string", "outerBlock type is correct");
+  is(block2.outerBlock, "outerBlock", "outerBlock value is correct");
 });
 
 /**
@@ -190,5 +229,8 @@ function assertScopeInformation(scopeInfo) {
   );
   is(typeof scopeInfo.details.columnNumber, "number");
   is(typeof scopeInfo.details.lineNumber, "number");
-  is(typeof scopeInfo.scope, "object");
+  ok(Array.isArray(scopeInfo.blocks));
+  for (const block of scopeInfo.blocks) {
+    is(typeof block, "object");
+  }
 }

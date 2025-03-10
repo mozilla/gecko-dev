@@ -215,10 +215,7 @@ function serializeFrame(frame) {
     return null;
   }
 
-  const env = frame.environment;
-  const names = env.names();
-
-  const scope = {};
+  const blocks = [];
   const obj = {
     frame: frameLocation,
     // Details will be used to build the filename for the JSON file.
@@ -227,12 +224,19 @@ function serializeFrame(frame) {
       frameScriptUrl,
       lineNumber,
     },
-    scope,
+    blocks,
   };
 
-  // Serialize each variable found in the current frame.
-  for (const name of names) {
-    scope[name] = serialize(env.getVariable(name), 0);
+  let env = frame.environment;
+  while (env && env.type == "declarative" && env.scopeKind != null) {
+    const scope = {};
+    const names = env.names();
+    // Serialize each variable found in the current frame.
+    for (const name of names) {
+      scope[name] = serialize(env.getVariable(name), 0);
+    }
+    blocks.push(scope);
+    env = env.parent;
   }
   return obj;
 }
