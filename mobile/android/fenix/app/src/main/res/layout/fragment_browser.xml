@@ -88,15 +88,12 @@
                 android:layout_height="wrap_content"
                 android:elevation="@dimen/browser_fragment_toolbar_elevation"/>
 
-            <mozilla.components.feature.prompts.login.LoginSelectBar
-                android:id="@+id/loginSelectBar"
+            <ViewStub
+                android:id="@+id/loginSelectBarStub"
+                android:inflatedId="@+id/loginSelectBar"
+                android:layout="@layout/login_select_bar"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/layer1"
-                android:elevation="@dimen/browser_fragment_above_toolbar_panels_elevation"
-                android:outlineProvider="none"
-                android:visibility="gone"
-                tools:ignore="MozMultipleConstraintLayoutsAndCustomViews" />
+                android:layout_height="wrap_content" />
 
             <mozilla.components.feature.prompts.login.SuggestStrongPasswordBar
                 android:id="@+id/suggestStrongPasswordBar"

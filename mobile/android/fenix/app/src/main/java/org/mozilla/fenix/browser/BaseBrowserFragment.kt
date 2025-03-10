@@ -85,6 +85,7 @@ import mozilla.components.compose.cfr.CFRPopupProperties
 import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.concept.engine.permission.SitePermissions
 import mozilla.components.concept.engine.prompt.ShareData
+import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.feature.accounts.push.SendTabUseCases
 import mozilla.components.feature.contextmenu.ContextMenuCandidate
@@ -99,6 +100,7 @@ import mozilla.components.feature.privatemode.feature.SecureWindowFeature
 import mozilla.components.feature.prompts.PromptFeature
 import mozilla.components.feature.prompts.PromptFeature.Companion.PIN_REQUEST
 import mozilla.components.feature.prompts.address.AddressDelegate
+import mozilla.components.feature.prompts.concept.AutocompletePrompt
 import mozilla.components.feature.prompts.creditcard.CreditCardDelegate
 import mozilla.components.feature.prompts.dialog.FullScreenNotificationToast
 import mozilla.components.feature.prompts.dialog.GestureNavUtils
@@ -106,6 +108,7 @@ import mozilla.components.feature.prompts.file.AndroidPhotoPicker
 import mozilla.components.feature.prompts.identitycredential.DialogColors
 import mozilla.components.feature.prompts.identitycredential.DialogColorsProvider
 import mozilla.components.feature.prompts.login.LoginDelegate
+import mozilla.components.feature.prompts.login.LoginSelectBar
 import mozilla.components.feature.prompts.login.PasswordGeneratorDialogColors
 import mozilla.components.feature.prompts.login.PasswordGeneratorDialogColorsProvider
 import mozilla.components.feature.prompts.login.SuggestStrongPasswordDelegate
@@ -161,6 +164,7 @@ import org.mozilla.fenix.browser.tabstrip.TabStrip
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.AutofillBarsIntegration
 import org.mozilla.fenix.components.Components
+import org.mozilla.fenix.components.FenixAutocompletePrompt
 import org.mozilla.fenix.components.FindInPageIntegration
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.accounts.FxaWebChannelIntegration
@@ -259,6 +263,8 @@ abstract class BaseBrowserFragment :
 
     private var _binding: FragmentBrowserBinding? = null
     internal val binding get() = _binding!!
+
+    lateinit var loginSelectBar: AutocompletePrompt<Login>
 
     private lateinit var browserFragmentStore: BrowserFragmentStore
     private lateinit var browserAnimator: BrowserAnimator
@@ -597,7 +603,6 @@ abstract class BaseBrowserFragment :
         )
 
         autofillBarsIntegration = AutofillBarsIntegration(
-            loginsBar = binding.loginSelectBar,
             passwordBar = binding.suggestStrongPasswordBar,
             addressBar = binding.addressSelectBar,
             creditCardBar = binding.creditCardSelectBar,
@@ -925,6 +930,17 @@ abstract class BaseBrowserFragment :
             )
         }
 
+        loginSelectBar = FenixAutocompletePrompt(
+            viewProvider = {
+                view.findViewById(R.id.loginSelectBar) ?: (binding.loginSelectBarStub.inflate() as LoginSelectBar)
+            },
+            toolbarPositionProvider = {
+                requireContext().settings().toolbarPosition
+            },
+            onShow = ::onAutocompleteBarShow,
+            onHide = ::onAutocompleteBarHide,
+        )
+
         promptsFeature.set(
             feature = PromptFeature(
                 activity = activity,
@@ -973,7 +989,7 @@ abstract class BaseBrowserFragment :
                 },
                 loginDelegate = object : LoginDelegate {
                     override val loginPickerView
-                        get() = binding.loginSelectBar
+                        get() = loginSelectBar
                     override val onManageLogins = {
                         browserAnimator.captureEngineViewAndDrawStatically {
                             val directions =
@@ -1233,6 +1249,16 @@ abstract class BaseBrowserFragment :
             },
             operation = { },
         )
+    }
+
+    private fun onAutocompleteBarShow() {
+        removeBottomToolbarDivider(browserToolbarView.view)
+        updateNavbarDivider()
+    }
+
+    private fun onAutocompleteBarHide() {
+        restoreBottomToolbarDivider(browserToolbarView.view)
+        updateNavbarDivider()
     }
 
     /**

@@ -10,7 +10,6 @@ import mozilla.components.feature.prompts.address.AddressSelectBar
 import mozilla.components.feature.prompts.concept.ExpandablePrompt
 import mozilla.components.feature.prompts.concept.ToggleablePrompt
 import mozilla.components.feature.prompts.creditcard.CreditCardSelectBar
-import mozilla.components.feature.prompts.login.LoginSelectBar
 import mozilla.components.feature.prompts.login.SuggestStrongPasswordBar
 import org.mozilla.fenix.browser.AutofillSelectBarBehavior
 import org.mozilla.fenix.utils.Settings
@@ -22,7 +21,6 @@ import org.mozilla.fenix.utils.Settings
  */
 @Suppress("LongParameterList")
 class AutofillBarsIntegration(
-    loginsBar: LoginSelectBar,
     passwordBar: SuggestStrongPasswordBar,
     addressBar: AddressSelectBar,
     creditCardBar: CreditCardSelectBar,
@@ -31,8 +29,6 @@ class AutofillBarsIntegration(
     private val onAutofillBarHidden: () -> Unit,
 ) {
     init {
-        loginsBar.toggleablePromptListener = loginsBar.createToggleListener()
-        loginsBar.expandablePromptListener = loginsBar.createExpandedListener()
         passwordBar.toggleablePromptListener = passwordBar.createToggleListener()
         addressBar.toggleablePromptListener = addressBar.createToggleListener()
         addressBar.expandablePromptListener = addressBar.createExpandedListener()
