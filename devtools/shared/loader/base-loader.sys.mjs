@@ -29,7 +29,7 @@ ChromeUtils.defineESModuleGetters(
 );
 
 const VENDOR_URI = "resource://devtools/client/shared/vendor/";
-const REACT_ESM_MODULES = [
+const REACT_ESM_MODULES = new Set([
   VENDOR_URI + "react-dev.js",
   VENDOR_URI + "react.js",
   VENDOR_URI + "react-dom-dev.js",
@@ -41,7 +41,7 @@ const REACT_ESM_MODULES = [
   VENDOR_URI + "react-prop-types.js",
   VENDOR_URI + "react-test-renderer.js",
   VENDOR_URI + "react-test-renderer-shallow.js",
-];
+]);
 
 // Define some shortcuts.
 function* getOwnIdentifiers(x) {
@@ -352,7 +352,7 @@ export function Require(loader, requirer) {
     // Also all these modules but the react-dom-factories should have their "default"
     // imported.
     let importDefault = false;
-    if (REACT_ESM_MODULES.includes(uri)) {
+    if (REACT_ESM_MODULES.has(uri)) {
       // All CommonJS modules are still importing the .js/CommonJS version,
       // but we hack these require() call to load the ESM version.
       uri = uri.replace(/.js$/, ".mjs");

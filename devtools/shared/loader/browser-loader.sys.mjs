@@ -45,7 +45,7 @@ const BROWSER_BASED_DIRS = [
 const COMMON_LIBRARY_DIRS = ["resource://devtools/client/shared/vendor"];
 
 const VENDOR_URI = "resource://devtools/client/shared/vendor/";
-const REACT_ESM_MODULES = [
+const REACT_ESM_MODULES = new Set([
   VENDOR_URI + "react-dev.js",
   VENDOR_URI + "react.js",
   VENDOR_URI + "react-dom-dev.js",
@@ -57,7 +57,7 @@ const REACT_ESM_MODULES = [
   VENDOR_URI + "react-prop-types.js",
   VENDOR_URI + "react-test-renderer.js",
   VENDOR_URI + "react-test-renderer-shallow.js",
-];
+]);
 
 // Any directory that matches the following regular expression
 // is also considered as browser based module directory.
@@ -175,7 +175,7 @@ function BrowserLoaderBuilder({
       // Load all React modules as ES Modules, in the Browser Loader global.
       // For this we have to ensure using ChromeUtils.importESModule with `global:"current"`,
       // but executed from the Loader global scope. `syncImport` does that.
-      if (REACT_ESM_MODULES.includes(uri)) {
+      if (REACT_ESM_MODULES.has(uri)) {
         uri = uri.replace(/.js$/, ".mjs");
         const moduleExports = syncImport(uri);
         return moduleExports.default || moduleExports;
