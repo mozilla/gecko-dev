@@ -1286,7 +1286,7 @@
           for (let group of draggedTab._dragData.expandedTabGroups) {
             group.collapsed = false;
           }
-          this.#keepTabSizeLocked = true;
+          this.#keepTabSizeLocked = false;
           this._unlockTabSizing();
         }
         delete draggedTab._dragData;
