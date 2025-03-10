@@ -50,6 +50,7 @@ dependencies {
     implementation project(':feature-session')
     implementation project(':service-nimbus')
     implementation project(':support-base')
+    implementation project(':support-remotesettings')
     implementation project(':support-ktx')
 
     implementation libs.androidx.work.runtime

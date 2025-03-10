@@ -68,6 +68,7 @@ dependencies {
     implementation project(':feature-tabs')
 
     implementation project(':service-location')
+    implementation project(':support-remotesettings')
     implementation project(':support-rusthttp')
 
     implementation project(':ui-icons')

@@ -7,6 +7,7 @@ package org.mozilla.samples.compose.browser
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import mozilla.appservices.remotesettings.RemoteSettingsServer
 import mozilla.components.browser.engine.gecko.GeckoEngine
 import mozilla.components.browser.engine.gecko.fetch.GeckoViewFetchClient
 import mozilla.components.browser.state.engine.EngineMiddleware
@@ -21,6 +22,7 @@ import mozilla.components.feature.search.region.RegionMiddleware
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.service.location.LocationService
+import mozilla.components.support.remotesettings.RemoteSettingsService
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.samples.compose.browser.app.AppStore
 
@@ -52,8 +54,12 @@ class Components(
 
     val locationService by lazy { LocationService.default() }
 
+    val remoteSettingsService: RemoteSettingsService by lazy {
+        RemoteSettingsService(context, RemoteSettingsServer.Prod)
+    }
+
     val fxSuggestStorage: FxSuggestStorage by lazy {
-        FxSuggestStorage(context)
+        FxSuggestStorage(context, remoteSettingsService)
     }
 
     val fxSuggestIngestionScheduler: FxSuggestIngestionScheduler by lazy {

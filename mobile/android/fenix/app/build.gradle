@@ -638,6 +638,7 @@ dependencies {
 
     implementation project(':support-webextensions')
     implementation project(':support-base')
+    implementation project(':support-remotesettings')
     implementation project(':support-rusterrors')
     implementation project(':support-images')
     implementation project(':support-ktx')

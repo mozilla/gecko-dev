@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.NotificationManagerCompat
 import com.google.android.play.core.review.ReviewManagerFactory
+import mozilla.appservices.remotesettings.RemoteSettingsServer
 import mozilla.components.feature.addons.AddonManager
 import mozilla.components.feature.addons.amo.AMOAddonsProvider
 import mozilla.components.feature.addons.migration.DefaultSupportedAddonsChecker
@@ -21,6 +22,7 @@ import mozilla.components.lib.crash.store.CrashMiddleware
 import mozilla.components.lib.publicsuffixlist.PublicSuffixList
 import mozilla.components.support.base.android.NotificationsDelegate
 import mozilla.components.support.base.worker.Frequency
+import mozilla.components.support.remotesettings.RemoteSettingsService
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.FeatureFlags
@@ -247,7 +249,18 @@ class Components(private val context: Context) {
         }
     }
 
-    val fxSuggest by lazyMonitored { FxSuggest(context) }
+    val remoteSettingsService = lazyMonitored {
+        RemoteSettingsService(
+            context,
+            if (context.settings().useProductionRemoteSettingsServer) {
+                RemoteSettingsServer.Prod
+            } else {
+                RemoteSettingsServer.Stage
+            },
+        )
+    }
+
+    val fxSuggest by lazyMonitored { FxSuggest(context, remoteSettingsService.value) }
 
     val distributionIdManager by lazyMonitored {
         DistributionIdManager(
