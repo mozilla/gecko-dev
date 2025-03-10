@@ -543,7 +543,7 @@ function isDocumentReady(document) {
     return true;
   }
 
-  // A document might stay forever in unitialized state.
+  // A document might stay forever in uninitialized state.
   // If the target actor is not currently loading a document,
   // assume the document is ready.
   const webProgress = document.defaultView.docShell.QueryInterface(

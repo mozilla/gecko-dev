@@ -88,6 +88,21 @@ const getAsyncParentFrame = frame => {
  * Serialize any arbitrary object to a JSON-serializable object
  */
 function serialize(dbgObj, depth) {
+  // If the variable is initialized after calling dumpScope.
+  if (dbgObj?.uninitialized) {
+    return "(uninitialized)";
+  }
+
+  // If for any reason SpiderMonkey could not preserve the arguments.
+  if (dbgObj?.missingArguments) {
+    return "(missing arguments)";
+  }
+
+  // If the variable was optimized out by SpiderMonkey.
+  if (dbgObj?.optimizedOut) {
+    return "(optimized out)";
+  }
+
   if (dbgObj?.unsafeDereference) {
     if (dbgObj.isClassConstructor) {
       return "Class " + dbgObj.name;
