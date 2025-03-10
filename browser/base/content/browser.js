@@ -4171,7 +4171,7 @@ var CanvasPermissionPromptHelper = {
       browser = aSubject;
     }
 
-    if (gBrowser.selectedBrowser !== browser) {
+    if (browser?.ownerGlobal !== window) {
       // Must belong to some other window.
       return;
     }
