@@ -1614,8 +1614,7 @@ export class CommandLineHandler {
       cmdLine.removeArguments(0, cmdLine.length - 1);
       cmdLine.preventDefault = true;
 
-      let process = SelectableProfileService.getExecutableProcess();
-      process.runw(false, args, args.length);
+      SelectableProfileService.execProcess(args);
     }
   }
 }
