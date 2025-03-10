@@ -1,4 +1,3 @@
-use std::env;
 use std::ffi::OsStr;
 use std::fs::{self, File, OpenOptions};
 use std::io;
@@ -40,7 +39,7 @@ fn create_unlinked(path: &Path) -> io::Result<File> {
     // shadow this to decrease the lifetime. It can't live longer than `tmp`.
     let mut path = path;
     if !path.is_absolute() {
-        let cur_dir = env::current_dir()?;
+        let cur_dir = std::env::current_dir()?;
         tmp = cur_dir.join(path);
         path = &tmp;
     }
@@ -83,8 +82,7 @@ fn create_unix(dir: &Path) -> io::Result<File> {
         OsStr::new(".tmp"),
         OsStr::new(""),
         crate::NUM_RAND_CHARS,
-        None,
-        |path, _| create_unlinked(&path),
+        |path| create_unlinked(&path),
     )
 }
 

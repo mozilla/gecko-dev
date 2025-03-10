@@ -1,11 +1,10 @@
 #![deny(rust_2018_idioms)]
 
-use std::env;
 use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
-use tempfile::{tempdir, Builder, NamedTempFile, TempPath};
+use tempfile::{env, tempdir, Builder, NamedTempFile, TempPath};
 
 fn exists<P: AsRef<Path>>(path: P) -> bool {
     std::fs::metadata(path.as_ref()).is_ok()
@@ -16,6 +15,13 @@ fn test_prefix() {
     let tmpfile = NamedTempFile::with_prefix("prefix").unwrap();
     let name = tmpfile.path().file_name().unwrap().to_str().unwrap();
     assert!(name.starts_with("prefix"));
+}
+
+#[test]
+fn test_suffix() {
+    let tmpfile = NamedTempFile::with_suffix("suffix").unwrap();
+    let name = tmpfile.path().file_name().unwrap().to_str().unwrap();
+    assert!(name.ends_with("suffix"));
 }
 
 #[test]
@@ -276,10 +282,10 @@ fn test_write_after_close() {
 
 #[test]
 fn test_change_dir() {
-    env::set_current_dir(env::temp_dir()).unwrap();
+    std::env::set_current_dir(env::temp_dir()).unwrap();
     let tmpfile = NamedTempFile::new_in(".").unwrap();
-    let path = env::current_dir().unwrap().join(tmpfile.path());
-    env::set_current_dir("/").unwrap();
+    let path = std::env::current_dir().unwrap().join(tmpfile.path());
+    std::env::set_current_dir("/").unwrap();
     drop(tmpfile);
     assert!(!exists(path))
 }
@@ -347,6 +353,23 @@ fn test_keep() {
 }
 
 #[test]
+fn test_builder_keep() {
+    let mut tmpfile = Builder::new().keep(true).tempfile().unwrap();
+    write!(tmpfile, "abcde").unwrap();
+    let path = tmpfile.path().to_owned();
+    drop(tmpfile);
+
+    {
+        // Try opening it again.
+        let mut f = File::open(&path).unwrap();
+        let mut buf = String::new();
+        f.read_to_string(&mut buf).unwrap();
+        assert_eq!("abcde", buf);
+    }
+    std::fs::remove_file(&path).unwrap();
+}
+
+#[test]
 fn test_make() {
     let tmpfile = Builder::new().make(|path| File::create(path)).unwrap();
 
@@ -398,53 +421,71 @@ fn test_make_uds() {
 #[cfg(unix)]
 #[test]
 fn test_make_uds_conflict() {
+    use std::io::ErrorKind;
     use std::os::unix::net::UnixListener;
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::sync::Arc;
 
-    // Check that retries happen correctly by racing N different threads.
+    let sockets = std::iter::repeat_with(|| {
+        Builder::new()
+            .prefix("tmp")
+            .suffix(".sock")
+            .rand_bytes(1)
+            .make(|path| UnixListener::bind(path))
+    })
+    .take_while(|r| match r {
+        Ok(_) => true,
+        Err(e) if matches!(e.kind(), ErrorKind::AddrInUse | ErrorKind::AlreadyExists) => false,
+        Err(e) => panic!("unexpected error {e}"),
+    })
+    .collect::<Result<Vec<_>, _>>()
+    .unwrap();
 
-    const NTHREADS: usize = 20;
+    // Number of sockets we can create. Depends on whether or not the filesystem is case sensitive.
 
-    // The number of times our callback was called.
-    let tries = Arc::new(AtomicUsize::new(0));
+    #[cfg(target_os = "macos")]
+    const NUM_FILES: usize = 36;
+    #[cfg(not(target_os = "macos"))]
+    const NUM_FILES: usize = 62;
 
-    let mut threads = Vec::with_capacity(NTHREADS);
-
-    for _ in 0..NTHREADS {
-        let tries = tries.clone();
-        threads.push(std::thread::spawn(move || {
-            // Ensure that every thread uses the same seed so we are guaranteed
-            // to retry. Note that fastrand seeds are thread-local.
-            fastrand::seed(42);
-
-            Builder::new()
-                .prefix("tmp")
-                .suffix(".sock")
-                .rand_bytes(12)
-                .make(|path| {
-                    tries.fetch_add(1, Ordering::Relaxed);
-                    UnixListener::bind(path)
-                })
-        }));
-    }
-
-    // Join all threads, but don't drop the temp file yet. Otherwise, we won't
-    // get a deterministic number of `tries`.
-    let sockets: Vec<_> = threads
-        .into_iter()
-        .map(|thread| thread.join().unwrap().unwrap())
-        .collect();
-
-    // Number of tries is exactly equal to (n*(n+1))/2.
-    assert_eq!(
-        tries.load(Ordering::Relaxed),
-        (NTHREADS * (NTHREADS + 1)) / 2
-    );
+    assert_eq!(sockets.len(), NUM_FILES);
 
     for socket in sockets {
         assert!(socket.path().exists());
     }
+}
+
+/// Make sure we re-seed with system randomness if we run into a conflict.
+#[test]
+fn test_reseed() {
+    // Deterministic seed.
+    fastrand::seed(42);
+
+    let mut attempts = 0;
+    let _files: Vec<_> = std::iter::repeat_with(|| {
+        Builder::new()
+            .make(|path| {
+                attempts += 1;
+                File::options().write(true).create_new(true).open(path)
+            })
+            .unwrap()
+    })
+    .take(5)
+    .collect();
+
+    assert_eq!(5, attempts);
+    attempts = 0;
+
+    // Re-seed to cause a conflict.
+    fastrand::seed(42);
+
+    let _f = Builder::new()
+        .make(|path| {
+            attempts += 1;
+            File::options().write(true).create_new(true).open(path)
+        })
+        .unwrap();
+
+    // We expect exactly three conflict before we re-seed with system randomness.
+    assert_eq!(4, attempts);
 }
 
 // Issue #224.

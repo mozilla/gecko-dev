@@ -10,7 +10,6 @@
 
 #![deny(rust_2018_idioms)]
 
-use std::env;
 use std::fs;
 use std::path::Path;
 use std::sync::mpsc::channel;
@@ -32,6 +31,12 @@ fn test_prefix() {
     let tmpfile = TempDir::with_prefix_in("prefix", ".").unwrap();
     let name = tmpfile.path().file_name().unwrap().to_str().unwrap();
     assert!(name.starts_with("prefix"));
+}
+
+fn test_suffix() {
+    let tmpfile = TempDir::with_suffix_in("suffix", ".").unwrap();
+    let name = tmpfile.path().file_name().unwrap().to_str().unwrap();
+    assert!(name.ends_with("suffix"));
 }
 
 fn test_customnamed() {
@@ -149,7 +154,7 @@ where
     F: FnOnce(),
 {
     let tmpdir = TempDir::new().unwrap();
-    assert!(env::set_current_dir(tmpdir.path()).is_ok());
+    assert!(std::env::set_current_dir(tmpdir.path()).is_ok());
 
     f();
 }
@@ -164,13 +169,23 @@ fn pass_as_asref_path() {
     }
 }
 
+fn test_keep() {
+    let tmpdir = Builder::new().keep(true).tempdir().unwrap();
+    let path = tmpdir.path().to_owned();
+    drop(tmpdir);
+    assert!(path.exists());
+    fs::remove_dir(path).unwrap();
+}
+
 #[test]
 fn main() {
     in_tmpdir(test_tempdir);
     in_tmpdir(test_prefix);
+    in_tmpdir(test_suffix);
     in_tmpdir(test_customnamed);
     in_tmpdir(test_rm_tempdir);
     in_tmpdir(test_rm_tempdir_close);
     in_tmpdir(dont_double_panic);
     in_tmpdir(pass_as_asref_path);
+    in_tmpdir(test_keep);
 }

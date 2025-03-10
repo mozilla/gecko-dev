@@ -1,6 +1,6 @@
 [package]
 name = "wasi"
-version = "0.10.0+wasi-snapshot-preview999"
+version = "0.11.999"
 edition = "2018"
 license = "MPL-2.0"
 
@@ -8,7 +8,7 @@ license = "MPL-2.0"
 path = "lib.rs"
 
 [dependencies.wasi]
-version = "0.11"
+version = "0.13.0"
 default-features = false
 
 [features]

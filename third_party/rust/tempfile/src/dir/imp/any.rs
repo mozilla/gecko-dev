@@ -7,7 +7,11 @@ fn not_supported<T>(msg: &str) -> io::Result<T> {
     Err(io::Error::new(io::ErrorKind::Other, msg))
 }
 
-pub fn create(path: PathBuf, permissions: Option<&std::fs::Permissions>) -> io::Result<TempDir> {
+pub fn create(
+    path: PathBuf,
+    permissions: Option<&std::fs::Permissions>,
+    keep: bool,
+) -> io::Result<TempDir> {
     if permissions.map_or(false, |p| p.readonly()) {
         return not_supported("changing permissions is not supported on this platform");
     }
@@ -15,5 +19,6 @@ pub fn create(path: PathBuf, permissions: Option<&std::fs::Permissions>) -> io::
         .with_err_path(|| &path)
         .map(|_| TempDir {
             path: path.into_boxed_path(),
+            keep,
         })
 }

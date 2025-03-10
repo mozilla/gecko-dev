@@ -17,16 +17,24 @@ use std::{fmt, io};
 use crate::error::IoResultExt;
 use crate::Builder;
 
+#[cfg(doc)]
+use crate::env;
+
 /// Create a new temporary directory.
 ///
-/// The `tempdir` function creates a directory in the file system
-/// and returns a [`TempDir`].
-/// The directory will be automatically deleted when the `TempDir`s
+/// The `tempdir` function creates a directory in the file system and returns a
+/// [`TempDir`]. The directory will be automatically deleted when the `TempDir`'s
 /// destructor is run.
 ///
 /// # Resource Leaking
 ///
 /// See [the resource leaking][resource-leaking] docs on `TempDir`.
+///
+/// # Security
+///
+/// Temporary directories are created with the default permissions unless otherwise
+/// specified via [`Builder::permissions`]. Depending on your platform, this may make
+/// them world-readable.
 ///
 /// # Errors
 ///
@@ -37,15 +45,9 @@ use crate::Builder;
 /// ```
 /// use tempfile::tempdir;
 /// use std::fs::File;
-/// use std::io::{self, Write};
+/// use std::io::Write;
 ///
-/// # fn main() {
-/// #     if let Err(_) = run() {
-/// #         ::std::process::exit(1);
-/// #     }
-/// # }
-/// # fn run() -> Result<(), io::Error> {
-/// // Create a directory inside of `std::env::temp_dir()`
+/// // Create a directory inside of `env::temp_dir()`
 /// let tmp_dir = tempdir()?;
 ///
 /// let file_path = tmp_dir.path().join("my-temporary-note.txt");
@@ -56,8 +58,7 @@ use crate::Builder;
 /// // `tmp_file` will be deleted here.
 /// drop(tmp_file);
 /// tmp_dir.close()?;
-/// # Ok(())
-/// # }
+/// # Ok::<(), std::io::Error>(())
 /// ```
 ///
 /// [`TempDir`]: struct.TempDir.html
@@ -86,14 +87,8 @@ pub fn tempdir() -> io::Result<TempDir> {
 /// ```
 /// use tempfile::tempdir_in;
 /// use std::fs::File;
-/// use std::io::{self, Write};
+/// use std::io::Write;
 ///
-/// # fn main() {
-/// #     if let Err(_) = run() {
-/// #         ::std::process::exit(1);
-/// #     }
-/// # }
-/// # fn run() -> Result<(), io::Error> {
 /// // Create a directory inside of the current directory.
 /// let tmp_dir = tempdir_in(".")?;
 ///
@@ -105,8 +100,7 @@ pub fn tempdir() -> io::Result<TempDir> {
 /// // `tmp_file` will be deleted here.
 /// drop(tmp_file);
 /// tmp_dir.close()?;
-/// # Ok(())
-/// # }
+/// # Ok::<(), std::io::Error>(())
 /// ```
 ///
 /// [`TempDir`]: struct.TempDir.html
@@ -123,7 +117,7 @@ pub fn tempdir_in<P: AsRef<Path>>(dir: P) -> io::Result<TempDir> {
 /// `TempDir` creates a new directory with a randomly generated name.
 ///
 /// The default constructor, [`TempDir::new()`], creates directories in
-/// the location returned by [`std::env::temp_dir()`], but `TempDir`
+/// the location returned by [`env::temp_dir()`], but `TempDir`
 /// can be configured to manage a temporary directory in any location
 /// by constructing with a [`Builder`].
 ///
@@ -158,12 +152,9 @@ pub fn tempdir_in<P: AsRef<Path>>(dir: P) -> io::Result<TempDir> {
 /// use std::io::Write;
 /// use tempfile::TempDir;
 ///
-/// # use std::io;
-/// # fn run() -> Result<(), io::Error> {
-/// // Create a directory inside of `std::env::temp_dir()`
+/// // Create a directory inside of `env::temp_dir()`
 /// let tmp_dir = TempDir::new()?;
-/// # Ok(())
-/// # }
+/// # Ok::<(), std::io::Error>(())
 /// ```
 ///
 /// Create a temporary directory with a prefix in its name:
@@ -173,13 +164,10 @@ pub fn tempdir_in<P: AsRef<Path>>(dir: P) -> io::Result<TempDir> {
 /// use std::io::Write;
 /// use tempfile::Builder;
 ///
-/// # use std::io;
-/// # fn run() -> Result<(), io::Error> {
-/// // Create a directory inside of `std::env::temp_dir()`,
+/// // Create a directory inside of `env::temp_dir()`,
 /// // whose name will begin with 'example'.
 /// let tmp_dir = Builder::new().prefix("example").tempdir()?;
-/// # Ok(())
-/// # }
+/// # Ok::<(), std::io::Error>(())
 /// ```
 ///
 /// [`File`]: http://doc.rust-lang.org/std/fs/struct.File.html
@@ -190,11 +178,11 @@ pub fn tempdir_in<P: AsRef<Path>>(dir: P) -> io::Result<TempDir> {
 /// [`TempDir::new()`]: struct.TempDir.html#method.new
 /// [`TempDir::path()`]: struct.TempDir.html#method.path
 /// [`TempDir`]: struct.TempDir.html
-/// [`std::env::temp_dir()`]: https://doc.rust-lang.org/std/env/fn.temp_dir.html
 /// [`std::fs`]: http://doc.rust-lang.org/std/fs/index.html
 /// [`std::process::exit()`]: http://doc.rust-lang.org/std/process/fn.exit.html
 pub struct TempDir {
     path: Box<Path>,
+    keep: bool,
 }
 
 impl TempDir {
@@ -216,9 +204,7 @@ impl TempDir {
     /// use std::io::Write;
     /// use tempfile::TempDir;
     ///
-    /// # use std::io;
-    /// # fn run() -> Result<(), io::Error> {
-    /// // Create a directory inside of `std::env::temp_dir()`
+    /// // Create a directory inside of `env::temp_dir()`
     /// let tmp_dir = TempDir::new()?;
     ///
     /// let file_path = tmp_dir.path().join("my-temporary-note.txt");
@@ -227,8 +213,7 @@ impl TempDir {
     ///
     /// // `tmp_dir` goes out of scope, the directory as well as
     /// // `tmp_file` will be deleted here.
-    /// # Ok(())
-    /// # }
+    /// # Ok::<(), std::io::Error>(())
     /// ```
     ///
     /// [`Builder`]: struct.Builder.html
@@ -251,15 +236,12 @@ impl TempDir {
     /// use std::io::Write;
     /// use tempfile::TempDir;
     ///
-    /// # use std::io;
-    /// # fn run() -> Result<(), io::Error> {
     /// // Create a directory inside of the current directory
     /// let tmp_dir = TempDir::new_in(".")?;
     /// let file_path = tmp_dir.path().join("my-temporary-note.txt");
     /// let mut tmp_file = File::create(file_path)?;
     /// writeln!(tmp_file, "Brian was here. Briefly.")?;
-    /// # Ok(())
-    /// # }
+    /// # Ok::<(), std::io::Error>(())
     /// ```
     pub fn new_in<P: AsRef<Path>>(dir: P) -> io::Result<TempDir> {
         Builder::new().tempdir_in(dir)
@@ -280,17 +262,66 @@ impl TempDir {
     /// use std::io::Write;
     /// use tempfile::TempDir;
     ///
-    /// # use std::io;
-    /// # fn run() -> Result<(), io::Error> {
     /// // Create a directory inside of the current directory
     /// let tmp_dir = TempDir::with_prefix("foo-")?;
     /// let tmp_name = tmp_dir.path().file_name().unwrap().to_str().unwrap();
     /// assert!(tmp_name.starts_with("foo-"));
-    /// # Ok(())
-    /// # }
+    /// # Ok::<(), std::io::Error>(())
     /// ```
     pub fn with_prefix<S: AsRef<OsStr>>(prefix: S) -> io::Result<TempDir> {
         Builder::new().prefix(&prefix).tempdir()
+    }
+
+    /// Attempts to make a temporary directory with the specified suffix inside of
+    /// `env::temp_dir()`. The directory and everything inside it will be automatically
+    /// deleted once the returned `TempDir` is destroyed.
+    ///
+    /// # Errors
+    ///
+    /// If the directory can not be created, `Err` is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::fs::{self, File};
+    /// use std::io::Write;
+    /// use tempfile::TempDir;
+    ///
+    /// // Create a directory inside of the current directory
+    /// let tmp_dir = TempDir::with_suffix("-foo")?;
+    /// let tmp_name = tmp_dir.path().file_name().unwrap().to_str().unwrap();
+    /// assert!(tmp_name.ends_with("-foo"));
+    /// # Ok::<(), std::io::Error>(())
+    /// ```
+    pub fn with_suffix<S: AsRef<OsStr>>(suffix: S) -> io::Result<TempDir> {
+        Builder::new().suffix(&suffix).tempdir()
+    }
+    /// Attempts to make a temporary directory with the specified prefix inside
+    /// the specified directory. The directory and everything inside it will be
+    /// automatically deleted once the returned `TempDir` is destroyed.
+    ///
+    /// # Errors
+    ///
+    /// If the directory can not be created, `Err` is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::fs::{self, File};
+    /// use std::io::Write;
+    /// use tempfile::TempDir;
+    ///
+    /// // Create a directory inside of the current directory
+    /// let tmp_dir = TempDir::with_suffix_in("-foo", ".")?;
+    /// let tmp_name = tmp_dir.path().file_name().unwrap().to_str().unwrap();
+    /// assert!(tmp_name.ends_with("-foo"));
+    /// # Ok::<(), std::io::Error>(())
+    /// ```
+    pub fn with_suffix_in<S: AsRef<OsStr>, P: AsRef<Path>>(
+        suffix: S,
+        dir: P,
+    ) -> io::Result<TempDir> {
+        Builder::new().suffix(&suffix).tempdir_in(dir)
     }
 
     /// Attempts to make a temporary directory with the specified prefix inside
@@ -308,14 +339,11 @@ impl TempDir {
     /// use std::io::Write;
     /// use tempfile::TempDir;
     ///
-    /// # use std::io;
-    /// # fn run() -> Result<(), io::Error> {
     /// // Create a directory inside of the current directory
     /// let tmp_dir = TempDir::with_prefix_in("foo-", ".")?;
     /// let tmp_name = tmp_dir.path().file_name().unwrap().to_str().unwrap();
     /// assert!(tmp_name.starts_with("foo-"));
-    /// # Ok(())
-    /// # }
+    /// # Ok::<(), std::io::Error>(())
     /// ```
     pub fn with_prefix_in<S: AsRef<OsStr>, P: AsRef<Path>>(
         prefix: S,
@@ -333,8 +361,6 @@ impl TempDir {
     /// ```
     /// use tempfile::TempDir;
     ///
-    /// # use std::io;
-    /// # fn run() -> Result<(), io::Error> {
     /// let tmp_path;
     ///
     /// {
@@ -349,8 +375,7 @@ impl TempDir {
     ///
     /// // Temp directory should be deleted by now
     /// assert_eq!(tmp_path.exists(), false);
-    /// # Ok(())
-    /// # }
+    /// # Ok::<(), std::io::Error>(())
     /// ```
     #[must_use]
     pub fn path(&self) -> &path::Path {
@@ -371,8 +396,6 @@ impl TempDir {
     /// use std::fs;
     /// use tempfile::TempDir;
     ///
-    /// # use std::io;
-    /// # fn run() -> Result<(), io::Error> {
     /// let tmp_dir = TempDir::new()?;
     ///
     /// // Persist the temporary directory to disk,
@@ -381,8 +404,7 @@ impl TempDir {
     ///
     /// // Delete the temporary directory ourselves.
     /// fs::remove_dir_all(tmp_path)?;
-    /// # Ok(())
-    /// # }
+    /// # Ok::<(), std::io::Error>(())
     /// ```
     #[must_use]
     pub fn into_path(self) -> PathBuf {
@@ -416,9 +438,7 @@ impl TempDir {
     /// use std::io::Write;
     /// use tempfile::TempDir;
     ///
-    /// # use std::io;
-    /// # fn run() -> Result<(), io::Error> {
-    /// // Create a directory inside of `std::env::temp_dir()`.
+    /// // Create a directory inside of `env::temp_dir()`.
     /// let tmp_dir = TempDir::new()?;
     /// let file_path = tmp_dir.path().join("my-temporary-note.txt");
     /// let mut tmp_file = File::create(file_path)?;
@@ -431,8 +451,7 @@ impl TempDir {
     /// // succeeded.
     /// drop(tmp_file);
     /// tmp_dir.close()?;
-    /// # Ok(())
-    /// # }
+    /// # Ok::<(), std::io::Error>(())
     /// ```
     pub fn close(mut self) -> io::Result<()> {
         let result = remove_dir_all(self.path()).with_err_path(|| self.path());
@@ -464,15 +483,18 @@ impl fmt::Debug for TempDir {
 
 impl Drop for TempDir {
     fn drop(&mut self) {
-        let _ = remove_dir_all(self.path());
+        if !self.keep {
+            let _ = remove_dir_all(self.path());
+        }
     }
 }
 
 pub(crate) fn create(
     path: PathBuf,
     permissions: Option<&std::fs::Permissions>,
+    keep: bool,
 ) -> io::Result<TempDir> {
-    imp::create(path, permissions)
+    imp::create(path, permissions, keep)
 }
 
 mod imp;
