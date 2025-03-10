@@ -6,6 +6,7 @@ package org.mozilla.fenix.settings.doh
 
 import androidx.annotation.VisibleForTesting
 import mozilla.components.concept.engine.Engine
+import org.mozilla.fenix.utils.Settings
 
 internal interface DohSettingsProvider {
     fun getProtectionLevels(): List<ProtectionLevel>
@@ -20,6 +21,7 @@ internal interface DohSettingsProvider {
 
 internal class DefaultDohSettingsProvider(
     val engine: Engine,
+    val settings: Settings,
 ) : DohSettingsProvider {
     override fun getProtectionLevels(): List<ProtectionLevel> {
         return listOf(
@@ -31,19 +33,19 @@ internal class DefaultDohSettingsProvider(
     }
 
     // Bug 1946867 - Load DoH Provider List from Gecko instead of hardcoding
-    private val dohDefaultProviderUrl = engine.settings.dohDefaultProviderUrl
+    private val dohDefaultProviderUrl = settings.dohDefaultProviderUrl
 
     private val cloudflare = Provider.BuiltIn(
         url = cloudflareUri,
         name = "Cloudflare",
-        default = dohDefaultProviderUrl.isNullOrBlank() || dohDefaultProviderUrl == cloudflareUri,
+        default = dohDefaultProviderUrl.isBlank() || dohDefaultProviderUrl == cloudflareUri,
     )
     private val nextDns = Provider.BuiltIn(
         url = nextDnsUri,
         name = "NextDNS",
         default = dohDefaultProviderUrl == nextDnsUri,
     )
-    private val providerUrl = engine.settings.dohProviderUrl
+    private val providerUrl = settings.dohProviderUrl
     private val custom = Provider.Custom(
         url = if (providerUrl != cloudflareUri && providerUrl != nextDnsUri) {
             providerUrl
@@ -59,7 +61,7 @@ internal class DefaultDohSettingsProvider(
     )
 
     override fun getSelectedProtectionLevel(): ProtectionLevel {
-        return when (engine.settings.dohSettingsMode) {
+        return when (settings.getDohSettingsMode()) {
             Engine.DohSettingsMode.DEFAULT -> ProtectionLevel.Default
             Engine.DohSettingsMode.INCREASED -> ProtectionLevel.Increased
             Engine.DohSettingsMode.MAX -> ProtectionLevel.Max
@@ -68,13 +70,13 @@ internal class DefaultDohSettingsProvider(
     }
 
     override fun getSelectedProvider(): Provider? {
-        return when (engine.settings.dohSettingsMode) {
+        return when (settings.getDohSettingsMode()) {
             Engine.DohSettingsMode.OFF, Engine.DohSettingsMode.DEFAULT -> {
                 null
             }
 
             else -> {
-                when (engine.settings.dohProviderUrl) {
+                when (settings.dohProviderUrl) {
                     cloudflareUri -> cloudflare
                     nextDnsUri -> nextDns
                     "" -> getDefaultProviders().first()
@@ -85,33 +87,32 @@ internal class DefaultDohSettingsProvider(
     }
 
     override fun getExceptions(): List<String> {
-        return engine.settings.dohExceptionsList
+        return settings.dohExceptionsList.toList()
     }
 
     override fun setProtectionLevel(protectionLevel: ProtectionLevel, provider: Provider?) {
-        engine.settings.dohSettingsMode = when (protectionLevel) {
-            is ProtectionLevel.Off -> Engine.DohSettingsMode.OFF
-            is ProtectionLevel.Default -> Engine.DohSettingsMode.DEFAULT
-            is ProtectionLevel.Increased -> {
-                require(provider != null) { "Provider must not be null for Increased protection level" }
-                engine.settings.dohProviderUrl = provider.url
-                Engine.DohSettingsMode.INCREASED
-            }
-
-            is ProtectionLevel.Max -> {
-                require(provider != null) { "Provider must not be null for Max protection level" }
-                engine.settings.dohProviderUrl = provider.url
-                Engine.DohSettingsMode.MAX
-            }
+        if (protectionLevel is ProtectionLevel.Increased || protectionLevel is ProtectionLevel.Max) {
+            requireNotNull(provider) { "Provider must not be null for Increased/Max protection level" }
+            settings.dohProviderUrl = provider.url
+            engine.settings.dohProviderUrl = provider.url
         }
+
+        val newMode = protectionLevel.toDohSettingsMode()
+        // Update the app layer
+        settings.setDohSettingsMode(newMode)
+        engine.settings.dohSettingsMode = newMode
     }
 
     override fun setCustomProvider(url: String) {
+        // Update the app layer
+        settings.dohProviderUrl = url
         // validate the url, maybe throw some "known expectations" that we can handle in the middleware
         engine.settings.dohProviderUrl = url
     }
 
     override fun setExceptions(exceptions: List<String>) {
+        // Update the app layer
+        settings.dohExceptionsList = exceptions.toSet()
         engine.settings.dohExceptionsList = exceptions
     }
 

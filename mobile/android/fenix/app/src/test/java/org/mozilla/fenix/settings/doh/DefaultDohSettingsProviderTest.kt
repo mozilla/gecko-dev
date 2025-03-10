@@ -4,6 +4,9 @@
 
 package org.mozilla.fenix.settings.doh
 
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.Engine
 import mozilla.components.support.test.fakes.engine.FakeEngine
@@ -12,6 +15,7 @@ import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.mozilla.fenix.utils.Settings
 
 class DefaultDohSettingsProviderTest {
     // Non-default values for testing
@@ -19,15 +23,27 @@ class DefaultDohSettingsProviderTest {
         DefaultSettings(
             dohSettingsMode = Engine.DohSettingsMode.INCREASED,
             dohProviderUrl = DefaultDohSettingsProvider.nextDnsUri,
-            dohDefaultProviderUrl = DefaultDohSettingsProvider.nextDnsUri,
+            dohDefaultProviderUrl = DefaultDohSettingsProvider.cloudflareUri,
             dohExceptionsList = listOf("example.com", "example2.com", "example3.com"),
         )
     private val fakeEngine = FakeEngine(expectedSettings = settings)
+    private val appSettings: Settings = mockk(relaxed = true)
     private lateinit var settingsProvider: DefaultDohSettingsProvider
 
     @Before
     fun setUp() {
-        settingsProvider = DefaultDohSettingsProvider(engine = fakeEngine)
+        settingsProvider = DefaultDohSettingsProvider(
+            engine = fakeEngine,
+            settings = appSettings,
+        )
+        every { appSettings.getDohSettingsMode() } returns Engine.DohSettingsMode.INCREASED
+        every { appSettings.dohProviderUrl } returns DefaultDohSettingsProvider.nextDnsUri
+        every { appSettings.dohDefaultProviderUrl } returns DefaultDohSettingsProvider.cloudflareUri
+        every { appSettings.dohExceptionsList } returns setOf(
+            "example.com",
+            "example2.com",
+            "example3.com",
+        )
     }
 
     @Test
@@ -55,7 +71,7 @@ class DefaultDohSettingsProviderTest {
         val selectedProvider = settingsProvider.getSelectedProvider()
 
         // Verify that the selected provider is what is available in the settings
-        assertEquals(settings.dohDefaultProviderUrl, selectedProvider?.url)
+        assertEquals(settings.dohProviderUrl, selectedProvider?.url)
     }
 
     @Test
@@ -68,11 +84,14 @@ class DefaultDohSettingsProviderTest {
     }
 
     @Test
-    fun `WHEN protection level is set to Off, the engine DoH settings mode is updated`() {
+    fun `WHEN protection level is set to Off, the app layer and engine's DoH settings mode is updated`() {
         // When we call setProtectionLevel to Off
         settingsProvider.setProtectionLevel(protectionLevel = ProtectionLevel.Off, provider = null)
 
-        // Then verify that the DoH settings mode is Off
+        // Then verify that the DoH settings mode is Off in the app layer
+        verify { appSettings.setDohSettingsMode(ProtectionLevel.Off.toDohSettingsMode()) }
+
+        // Then verify that the DoH settings mode is Off in the engine
         assertTrue(
             "Expected DoH settings mode to be Off",
             fakeEngine.settings.dohSettingsMode == Engine.DohSettingsMode.OFF,
@@ -80,14 +99,17 @@ class DefaultDohSettingsProviderTest {
     }
 
     @Test
-    fun `WHEN protection level is set to Default, the engine DoH settings mode is updated`() {
+    fun `WHEN protection level is set to Default, the app layer and engine's DoH settings mode is updated`() {
         // When we call setProtectionLevel to Default
         settingsProvider.setProtectionLevel(
             protectionLevel = ProtectionLevel.Default,
             provider = null,
         )
 
-        // Then verify that the DoH settings mode is Default
+        // Then verify that the DoH settings mode is Off in the app layer
+        verify { appSettings.setDohSettingsMode(ProtectionLevel.Default.toDohSettingsMode()) }
+
+        // Then verify that the DoH settings mode is Default in the engine
         assertTrue(
             "Expected DoH settings mode to be Default",
             fakeEngine.settings.dohSettingsMode == Engine.DohSettingsMode.DEFAULT,
@@ -95,7 +117,7 @@ class DefaultDohSettingsProviderTest {
     }
 
     @Test
-    fun `WHEN protection level is set to Increased, the engine DoH settings mode is set to increased with the supplied provider`() {
+    fun `WHEN protection level is set to Increased, the app layer and engine's DoH settings mode is set to increased with the supplied provider`() {
         // When we call setProtectionLevel to Increased
         val dohProvider = Provider.Custom(url = "https://foo.bar")
         settingsProvider.setProtectionLevel(
@@ -103,7 +125,11 @@ class DefaultDohSettingsProviderTest {
             provider = dohProvider,
         )
 
-        // Then verify that the DoH settings mode is off
+        // Then verify that the DoH settings are updated accordingly in the app layer
+        verify { appSettings.setDohSettingsMode(ProtectionLevel.Increased.toDohSettingsMode()) }
+        verify { appSettings.dohProviderUrl = dohProvider.url }
+
+        // Then verify that the DoH setting are updated accordingly in the engine
         assertTrue(
             "Expected DoH settings mode to be Increased",
             fakeEngine.settings.dohSettingsMode == Engine.DohSettingsMode.INCREASED,
@@ -116,7 +142,7 @@ class DefaultDohSettingsProviderTest {
     }
 
     @Test
-    fun `WHEN protection level is set to Max, the engine DoH settings mode is set to increased with the supplied provider`() {
+    fun `WHEN protection level is set to Max, the app layer and engine's DoH settings mode is set to increased with the supplied provider`() {
         // When we call setProtectionLevel to Max
         val dohProvider = Provider.Custom(url = "https://foo.bar")
         settingsProvider.setProtectionLevel(
@@ -124,7 +150,11 @@ class DefaultDohSettingsProviderTest {
             provider = dohProvider,
         )
 
-        // Then verify that the DoH settings mode is off
+        // Then verify that the DoH settings are updated accordingly in the app layer
+        verify { appSettings.setDohSettingsMode(ProtectionLevel.Max.toDohSettingsMode()) }
+        verify { appSettings.dohProviderUrl = dohProvider.url }
+
+        // Then verify that the DoH setting are updated accordingly in the engine
         assertTrue(
             "Expected DoH settings mode to be Max",
             fakeEngine.settings.dohSettingsMode == Engine.DohSettingsMode.MAX,
@@ -161,14 +191,17 @@ class DefaultDohSettingsProviderTest {
     }
 
     @Test
-    fun `WHEN setCustomProvider is called with a url, the engine DoH provider url is also updated`() {
+    fun `WHEN setCustomProvider is called with a url, the app layer and engine's DoH provider url is also updated`() {
         // When setCustomProvider is called with a url
         val customUrl = "https://foo.bar"
         settingsProvider.setCustomProvider(
             url = customUrl,
         )
 
-        // Then verify that the engine DoH provider url is also updated
+        // Then verify that the engine DoH provider url is also updated in the app layer
+        verify { appSettings.dohProviderUrl = customUrl }
+
+        // Then verify that the engine DoH provider url is also updated in the engine
         assertTrue(
             "Expected exceptions should match",
             customUrl == fakeEngine.settings.dohProviderUrl,
@@ -176,14 +209,18 @@ class DefaultDohSettingsProviderTest {
     }
 
     @Test
-    fun `WHEN exceptions are set, the engine DoH settings exceptions are also updated`() {
+    fun `WHEN exceptions are set, the app layer and engine's DoH settings exceptions are also updated`() {
         // When excepts are set
         val dohExceptions = listOf("foo.bar", "foo2.bar", "foo3.bar", "foo4.bar", "foo5.bar")
         settingsProvider.setExceptions(
             exceptions = dohExceptions,
         )
 
-        // Then verify that the engine DoH settings exceptions are also updated
+        // Then verify that the engine DoH settings exceptions are also updated in the app layer
+        verify { appSettings.dohExceptionsList = dohExceptions.toSet() }
+
+        // Then verify that the engine DoH settings exceptions are also updated in the engine
+        every { appSettings.dohExceptionsList } returns dohExceptions.toSet()
         assertTrue(
             "Expected exceptions should match",
             dohExceptions == settingsProvider.getExceptions(),

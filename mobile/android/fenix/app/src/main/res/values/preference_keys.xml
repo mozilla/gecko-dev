@@ -202,6 +202,10 @@
 
     <!-- DNS Over HTTPS Settings -->
     <string name="pref_key_doh_settings" translatable="false">pref_key_doh_settings</string>
+    <string name="pref_key_doh_settings_mode" translatable="false">pref_key_doh_settings_mode</string>
+    <string name="pref_key_doh_provider_uri" translatable="false">pref_key_doh_provider_uri</string>
+    <string name="pref_key_doh_default_provider_uri" translatable="false">pref_key_doh_default_provider_uri</string>
+    <string name="pref_key_doh_exceptions_list_string" translatable="false">pref_key_doh_exceptions_list_string</string>
 
     <!-- Tracking Protection Settings -->
     <string name="pref_key_etp_learn_more" translatable="false">pref_key_etp_learn_more</string>

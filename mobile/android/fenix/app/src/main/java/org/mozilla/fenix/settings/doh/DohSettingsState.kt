@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.settings.doh
 
+import mozilla.components.concept.engine.Engine
 import mozilla.components.lib.state.State
 
 /**
@@ -33,10 +34,23 @@ internal data class DohSettingsState(
  * Represents the protection level for DoH settings.
  */
 internal sealed class ProtectionLevel {
-    data object Default : ProtectionLevel()
-    data object Increased : ProtectionLevel()
-    data object Max : ProtectionLevel()
-    data object Off : ProtectionLevel()
+    abstract fun toDohSettingsMode(): Engine.DohSettingsMode
+
+    data object Default : ProtectionLevel() {
+        override fun toDohSettingsMode() = Engine.DohSettingsMode.DEFAULT
+    }
+
+    data object Increased : ProtectionLevel() {
+        override fun toDohSettingsMode() = Engine.DohSettingsMode.INCREASED
+    }
+
+    data object Max : ProtectionLevel() {
+        override fun toDohSettingsMode() = Engine.DohSettingsMode.MAX
+    }
+
+    data object Off : ProtectionLevel() {
+        override fun toDohSettingsMode() = Engine.DohSettingsMode.OFF
+    }
 }
 
 internal sealed class Provider {

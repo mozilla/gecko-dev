@@ -154,6 +154,31 @@ class Settings(private val appContext: Context) : PreferencesHolder {
             ASK_TO_ALLOW_INT -> AutoplayAction.BLOCKED
             else -> throw InvalidParameterException("$this is not a valid SitePermissionsRules.AutoplayAction")
         }
+
+        /**
+         * DoH setting is set to "Default", corresponds to TRR_MODE_OFF (0) from GeckoView
+         */
+        private const val DOH_SETTINGS_DEFAULT = 0
+
+        /**
+         * DoH setting is set to "Increased", corresponds to TRR_MODE_FIRST (2) from GeckoView
+         */
+        private const val DOH_SETTINGS_INCREASED = 2
+
+        /**
+         * DoH setting is set to "Max", corresponds to TRR_MODE_ONLY (3) from GeckoView
+         */
+        private const val DOH_SETTINGS_MAX = 3
+
+        /**
+         * DoH is disabled, corresponds to TRR_MODE_DISABLED (5) from GeckoView
+         */
+        private const val DOH_SETTINGS_OFF = 5
+
+        /**
+         * Bug 1946867 - Currently "hardcoded" to the DoH TRR URI of Cloudflare
+         */
+        private const val CLOUDFLARE_URI = "mozilla.cloudflare-dns.com"
     }
 
     @VisibleForTesting
@@ -2406,6 +2431,69 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         key = appContext.getPreferenceKey(R.string.pref_key_doh_settings_enabled),
         default = false,
     )
+
+    /**
+     * Stores the current DoH mode as an integer preference.
+     * - 0: Default mode
+     * - 2: Increased protection
+     * - 3: Maximum protection
+     * - 5: DoH is disabled
+     */
+    private var trrMode by intPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_doh_settings_mode),
+        default = DOH_SETTINGS_DEFAULT,
+    )
+
+    /**
+     * Stores the URI of the custom DoH provider selected by the user.
+     * Defaults to an empty string if no provider is set.
+     */
+    var dohProviderUrl by stringPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_doh_provider_uri),
+        default = "",
+    )
+
+    /**
+     * Stores the URI of the default DoH provider.
+     * Bug 1946867 - Currently "hardcoded" to "mozilla.cloudflare-dns.com"
+     */
+    val dohDefaultProviderUrl by stringPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_doh_default_provider_uri),
+        default = CLOUDFLARE_URI,
+    )
+
+    /**
+     * Stores a set of domains that are excluded from using DNS over HTTPS.
+     */
+    var dohExceptionsList by stringSetPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_doh_exceptions_list_string),
+        default = emptySet(),
+    )
+
+    /**
+     * Retrieves the current DohSettingsMode based on trrMode
+     */
+    fun getDohSettingsMode(): Engine.DohSettingsMode {
+        return when (trrMode) {
+            DOH_SETTINGS_DEFAULT -> Engine.DohSettingsMode.DEFAULT
+            DOH_SETTINGS_INCREASED -> Engine.DohSettingsMode.INCREASED
+            DOH_SETTINGS_MAX -> Engine.DohSettingsMode.MAX
+            DOH_SETTINGS_OFF -> Engine.DohSettingsMode.OFF
+            else -> Engine.DohSettingsMode.DEFAULT
+        }
+    }
+
+    /**
+     * Updates trrMode by converting the given DohSettingsMode
+     */
+    fun setDohSettingsMode(mode: Engine.DohSettingsMode) {
+        trrMode = when (mode) {
+            Engine.DohSettingsMode.DEFAULT -> DOH_SETTINGS_DEFAULT
+            Engine.DohSettingsMode.INCREASED -> DOH_SETTINGS_INCREASED
+            Engine.DohSettingsMode.MAX -> DOH_SETTINGS_MAX
+            Engine.DohSettingsMode.OFF -> DOH_SETTINGS_OFF
+        }
+    }
 
     /**
      * Secret setting to indicate whether or not to show the tab strip.
