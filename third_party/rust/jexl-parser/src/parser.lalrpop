@@ -1,0 +1,172 @@
+use std::str::FromStr;
+
+use crate::ast::{Expression, OpCode};
+
+grammar;
+
+pub Expression: Box<Expression> = Expr00;
+
+Expr00: Box<Expression> = {
+    <left: Expression> <operation: Op10> <right: Expr10> => Box::new(Expression::BinaryOperation { left, right, operation }),
+    Expr10,
+};
+
+Expr10: Box<Expression> = {
+    <left: Expr10> <operation: Op20> <right: Expr20> => Box::new(Expression::BinaryOperation { left, right, operation }),
+    Expr20,
+};
+
+Expr20: Box<Expression> = {
+    <left: Expr20> <operation: Op30> <right: Expr30> => Box::new(Expression::BinaryOperation { left, right, operation }),
+    Expr30,
+};
+
+Expr30: Box<Expression> = {
+    <left: Expr30> <operation: Op40> <right: Expr40> => Box::new(Expression::BinaryOperation { left, right, operation }),
+    Expr40,
+};
+
+Expr40: Box<Expression> = {
+    <left: Expr40> <operation: Op50> <right: Expr50> => Box::new(Expression::BinaryOperation { left, right, operation }),
+    Expr50,
+};
+
+Expr50: Box<Expression> = {
+    <left: Expr50> "?" <truthy: Expr60> ":" <falsy: Expr60> => Box::new(Expression::Conditional {left, truthy, falsy}),
+    Expr60,
+}
+
+Expr60: Box<Expression> = {
+    <subject: Expr60> "|" <name: Identifier> <args: Args?> => Box::new(Expression::Transform{name, subject, args}),
+    Expr70
+};
+
+
+/// Expression for dereferencing.
+/// Used for dereferencing object literals, array literals, and the context
+/// There are two types of operations here:
+/// - Either a `dot` operation, taking an expression on the left hand side, and an identifier on the right hand side (a string without the quotations)
+/// - Or an `index` operation, taking an expression on the left hand side, and another expression inside square ("[]") brackets.
+///
+/// # Examples:
+/// 
+/// Assume our context is the following
+/// ```
+///{
+///  "foo":
+///  {
+///     "bar": [{"baz": 1}, {"bobo": [13, 12]}]
+//   }
+// }
+/// ```
+///
+/// `foo.bar == [{"baz": 1}, {"bobo": [13, 12]]`
+/// `foo.bar[0] == {"baz": 1}`
+/// `foo.bar[1].bobo[0] == 13`
+/// `[1, 2, 3][1] == 2`
+Expr70: Box<Expression> = {
+    <subject: Expr70> <index: Index> => Box::new(Expression::IndexOperation{subject, index}),
+    <subject: Expr70> "." <ident: Identifier>  => Box::new(Expression::DotOperation{subject, ident}),
+    Expr80
+};
+
+Expr80: Box<Expression> = {
+    Number => Box::new(Expression::Number(<>)),
+    Boolean => Box::new(Expression::Boolean(<>)),
+    String => Box::new(Expression::String(<>)),
+    Array => Box::new(Expression::Array(<>)),
+    Object => Box::new(Expression::Object(<>)),
+    Null => Box::new(Expression::Null),
+    Identifier => Box::new(Expression::Identifier(<>)),
+    "(" <Expression> ")",
+};
+
+Args: Vec<Box<Expression>> = {
+    "(" <Comma<Expression>> ")"
+};
+
+Op10: OpCode = {
+    "&&" => OpCode::And,
+    "||" => OpCode::Or,
+};
+
+Op20: OpCode = {
+    "==" => OpCode::Equal,
+    "!=" => OpCode::NotEqual,
+    ">=" => OpCode::GreaterEqual,
+    "<=" => OpCode::LessEqual,
+    ">" => OpCode::Greater,
+    "<" => OpCode::Less,
+    "in" => OpCode::In,
+};
+
+Op30: OpCode = {
+    "+" => OpCode::Add,
+    "-" => OpCode::Subtract,
+};
+
+Op40: OpCode = {
+    "*" => OpCode::Multiply,
+    "//" => OpCode::FloorDivide,
+    "/" => OpCode::Divide,
+};
+
+Op50: OpCode = {
+    "%" => OpCode::Modulus,
+    "^" => OpCode::Exponent,
+};
+
+Number: f64 = {
+    r"[0-9]+" => f64::from_str(<>).unwrap(),
+    r"[0-9]+\.[0-9]*" => f64::from_str(<>).unwrap(),
+    r"\.[0-9]+" => f64::from_str(<>).unwrap(),
+};
+
+String: String = {
+    <s: r#""([^"\\]*(\\")?)*""#> => s[1..s.len() - 1].to_string().replace("\\\"", "\""),
+    <s: r#"'([^'\\]*(\\')?)*'"#> => s[1..s.len() - 1].to_string().replace("\\'", "'"),
+};
+
+Null: Option<Box<Expression>> = {
+    "null" => None,
+}
+
+Identifier: String = {
+    r#"[a-zA-Z_][a-zA-Z0-9_]*"# => <>.to_string()
+}
+
+Index: Box<Expression> = {
+    "[" "." <ident: Identifier> <op: Op20> <right: Expr80> "]" => Box::new(Expression::Filter {ident, op, right}),
+    "[" <Expression> "]",
+}
+
+
+Boolean: bool = {
+    "true" => true,
+    "false" => false,
+}
+
+Comma<T>: Vec<T> = {
+    <v: (<T> ",")*> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            let mut v = v;
+            v.push(e);
+            v
+        }
+    }
+};
+
+Array: Vec<Box<Expression>> = {
+    "[" <Comma<Expression>> "]"
+}
+
+Object: Vec<(String, Box<Expression>)> = {
+    "{" <Comma<(<ObjectIdentifier> ":" <Expression>)>> "}",
+    "{}" => vec![],
+}
+
+ObjectIdentifier: String = {
+    String, 
+    Identifier
+}

@@ -209,6 +209,9 @@ pub struct SearchEngineDefinition {
     /// If the number is not specified, other methods of sorting may be relied
     /// upon (e.g. alphabetical).
     pub order_hint: Option<u32>,
+
+    /// The url used for reporting clicks.
+    pub click_url: Option<String>,
 }
 
 /// Details of the search engines to display to the user, generated as a result

@@ -18,6 +18,7 @@ main_thread = [
   "SearchEngineSelector.clear_search_config",
   "SearchEngineSelector.filter_engine_configuration",
   "SearchEngineSelector.set_search_config",
+  "SearchEngineSelector.set_config_overrides",
 ]
 
 [suggest.async_wrappers]

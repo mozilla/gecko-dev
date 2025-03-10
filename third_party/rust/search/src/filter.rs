@@ -4,6 +4,7 @@
 
 //! This module defines the functions for managing the filtering of the configuration.
 
+use crate::configuration_overrides_types::JSONOverridesRecord;
 use crate::environment_matching::matches_user_environment;
 use crate::{
     error::Error, JSONDefaultEnginesRecord, JSONEngineBase, JSONEngineRecord, JSONEngineUrl,
@@ -94,6 +95,16 @@ impl SearchEngineDefinition {
         }
     }
 
+    fn merge_override(&mut self, override_record: &JSONOverridesRecord) {
+        self.partner_code = override_record.partner_code.clone();
+        self.urls.merge(&override_record.urls);
+        self.click_url = Some(override_record.click_url.clone());
+
+        if let Some(telemetry_suffix) = &override_record.telemetry_suffix {
+            self.telemetry_suffix = telemetry_suffix.clone();
+        }
+    }
+
     pub(crate) fn from_configuration_details(
         identifier: &str,
         base: JSONEngineBase,
@@ -111,6 +122,7 @@ impl SearchEngineDefinition {
             partner_code: base.partner_code.unwrap_or_default(),
             telemetry_suffix: String::new(),
             urls: base.urls.into(),
+            click_url: None,
         };
 
         engine_definition.merge_variant(variant);
@@ -132,13 +144,25 @@ pub(crate) trait Filter {
     fn filter_records(
         &self,
         user_environment: &SearchUserEnvironment,
+        overrides: Option<Vec<JSONOverridesRecord>>,
     ) -> Result<FilterRecordsResult, Error>;
+}
+
+fn apply_overrides(engines: &mut [SearchEngineDefinition], overrides: &[JSONOverridesRecord]) {
+    for override_record in overrides {
+        for engine in engines.iter_mut() {
+            if engine.identifier == override_record.identifier {
+                engine.merge_override(override_record);
+            }
+        }
+    }
 }
 
 impl Filter for Vec<RemoteSettingsRecord> {
     fn filter_records(
         &self,
         user_environment: &SearchUserEnvironment,
+        overrides: Option<Vec<JSONOverridesRecord>>,
     ) -> Result<FilterRecordsResult, Error> {
         let mut engines = Vec::new();
         let mut default_engines_record = None;
@@ -146,7 +170,7 @@ impl Filter for Vec<RemoteSettingsRecord> {
 
         for record in self {
             // TODO: Bug 1947241 - Find a way to avoid having to serialise the records
-            // back to strings and then deserilise them into the records that we want.
+            // back to strings and then deserialise them into the records that we want.
             let stringified = serde_json::to_string(&record.fields)?;
             match record.fields.get("recordType") {
                 Some(val) if *val == "engine" => {
@@ -171,6 +195,10 @@ impl Filter for Vec<RemoteSettingsRecord> {
             }
         }
 
+        if let Some(overrides_data) = &overrides {
+            apply_overrides(&mut engines, overrides_data);
+        }
+
         Ok(FilterRecordsResult {
             engines,
             default_engines_record,
@@ -183,6 +211,7 @@ impl Filter for Vec<JSONSearchConfigurationRecords> {
     fn filter_records(
         &self,
         user_environment: &SearchUserEnvironment,
+        overrides: Option<Vec<JSONOverridesRecord>>,
     ) -> Result<FilterRecordsResult, Error> {
         let mut engines = Vec::new();
         let mut default_engines_record = None;
@@ -206,6 +235,10 @@ impl Filter for Vec<JSONSearchConfigurationRecords> {
             }
         }
 
+        if let Some(overrides_data) = &overrides {
+            apply_overrides(&mut engines, overrides_data);
+        }
+
         Ok(FilterRecordsResult {
             engines,
             default_engines_record: default_engines_record.cloned(),
@@ -213,17 +246,17 @@ impl Filter for Vec<JSONSearchConfigurationRecords> {
         })
     }
 }
-
 pub(crate) fn filter_engine_configuration_impl(
     user_environment: SearchUserEnvironment,
     configuration: &impl Filter,
+    overrides: Option<Vec<JSONOverridesRecord>>,
 ) -> Result<RefinedSearchConfig, Error> {
     let mut user_environment = user_environment.clone();
     user_environment.locale = user_environment.locale.to_lowercase();
     user_environment.region = user_environment.region.to_lowercase();
     user_environment.version = user_environment.version.to_lowercase();
 
-    let filtered_result = configuration.filter_records(&user_environment);
+    let filtered_result = configuration.filter_records(&user_environment, overrides);
 
     filtered_result.map(|result| {
         let (default_engine_id, default_private_engine_id) = determine_default_engines(
@@ -382,6 +415,52 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
+    fn test_merge_override() {
+        let mut test_engine = SearchEngineDefinition {
+            identifier: "test".to_string(),
+            partner_code: "partner-code".to_string(),
+            telemetry_suffix: "original-telemetry-suffix".to_string(),
+            ..Default::default()
+        };
+
+        let override_record = JSONOverridesRecord {
+            identifier: "test".to_string(),
+            partner_code: "override-partner-code".to_string(),
+            click_url: "https://example.com/click-url".to_string(),
+            telemetry_suffix: None,
+            urls: JSONEngineUrls {
+                search: Some(JSONEngineUrl {
+                    base: Some("https://example.com/override-search".to_string()),
+                    method: None,
+                    params: None,
+                    search_term_param_name: None,
+                }),
+                ..Default::default()
+            },
+        };
+
+        test_engine.merge_override(&override_record);
+
+        assert_eq!(
+            test_engine.partner_code, "override-partner-code",
+            "Should override the partner code"
+        );
+        assert_eq!(
+            test_engine.click_url,
+            Some("https://example.com/click-url".to_string()),
+            "Should override the click url"
+        );
+        assert_eq!(
+            test_engine.urls.search.base, "https://example.com/override-search",
+            "Should override search url"
+        );
+        assert_eq!(
+            test_engine.telemetry_suffix, "original-telemetry-suffix",
+            "Should not override telemetry suffix when telemetry suffix is supplied as None"
+        );
+    }
+
+    #[test]
     fn test_from_configuration_details_fallsback_to_defaults() {
         // This test doesn't use `..Default::default()` as we want to
         // be explicit about `JSONEngineBase` and handling `None`
@@ -442,7 +521,8 @@ mod tests {
                     suggestions: None,
                     trending: None,
                     search_form: None
-                }
+                },
+                click_url: None
             }
         )
     }
@@ -593,7 +673,8 @@ mod tests {
                         }],
                         search_term_param_name: None,
                     }),
-                }
+                },
+                click_url: None
             }
         )
     }
@@ -719,7 +800,8 @@ mod tests {
                         }],
                         search_term_param_name: None,
                     }),
-                }
+                },
+                click_url: None
             }
         )
     }
@@ -904,7 +986,8 @@ mod tests {
                         }],
                         search_term_param_name: None,
                     }),
-                }
+                },
+                click_url: None
             }
         )
     }

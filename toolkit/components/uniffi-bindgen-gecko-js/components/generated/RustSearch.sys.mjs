@@ -396,7 +396,7 @@ export class SearchEngineSelector {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                29, // search:uniffi_search_fn_constructor_searchengineselector_new
+                30, // search:uniffi_search_fn_constructor_searchengineselector_new
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);}
@@ -446,6 +446,30 @@ export class SearchEngineSelector {
     }
 
     /**
+     * setConfigOverrides
+     */
+    setConfigOverrides(overrides) {
+        const liftResult = (result) => undefined;
+        const liftError = (data) => FfiConverterTypeSearchApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterString.checkType(overrides)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("overrides");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callSync(
+                27, // search:uniffi_search_fn_method_searchengineselector_set_config_overrides
+                FfiConverterTypeSearchEngineSelector.lower(this),
+                FfiConverterString.lower(overrides),
+            )
+        }
+        return handleRustResult(functionCall(), liftResult, liftError);
+    }
+
+    /**
      * Sets the search configuration from the given string. If the configuration
      * string is unchanged since the last update, the cached configuration is
      * reused to avoid unnecessary reprocessing. This helps optimize performance,
@@ -465,7 +489,7 @@ export class SearchEngineSelector {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                27, // search:uniffi_search_fn_method_searchengineselector_set_search_config
+                28, // search:uniffi_search_fn_method_searchengineselector_set_search_config
                 FfiConverterTypeSearchEngineSelector.lower(this),
                 FfiConverterString.lower(configuration),
             )
@@ -506,7 +530,7 @@ export class SearchEngineSelector {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                28, // search:uniffi_search_fn_method_searchengineselector_use_remote_settings_server
+                29, // search:uniffi_search_fn_method_searchengineselector_use_remote_settings_server
                 FfiConverterTypeSearchEngineSelector.lower(this),
                 FfiConverterTypeRemoteSettingsService.lower(service),
                 FfiConverterBool.lower(applyEngineOverrides),
@@ -959,7 +983,7 @@ export class FfiConverterTypeRefinedSearchConfig extends FfiConverterArrayBuffer
  * A definition for an individual search engine to be presented to the user.
  */
 export class SearchEngineDefinition {
-    constructor({ aliases, charset, classification, identifier, name, optional, partnerCode, telemetrySuffix, urls, orderHint } = { aliases: undefined, charset: undefined, classification: undefined, identifier: undefined, name: undefined, optional: undefined, partnerCode: undefined, telemetrySuffix: undefined, urls: undefined, orderHint: undefined }) {
+    constructor({ aliases, charset, classification, identifier, name, optional, partnerCode, telemetrySuffix, urls, orderHint, clickUrl } = { aliases: undefined, charset: undefined, classification: undefined, identifier: undefined, name: undefined, optional: undefined, partnerCode: undefined, telemetrySuffix: undefined, urls: undefined, orderHint: undefined, clickUrl: undefined }) {
         try {
             FfiConverterSequencestring.checkType(aliases)
         } catch (e) {
@@ -1040,6 +1064,14 @@ export class SearchEngineDefinition {
             }
             throw e;
         }
+        try {
+            FfiConverterOptionalstring.checkType(clickUrl)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("clickUrl");
+            }
+            throw e;
+        }
         /**
          * A list of aliases for this engine.
          * @type {Array.<string>}
@@ -1105,6 +1137,11 @@ export class SearchEngineDefinition {
          * @type {?number}
          */
         this.orderHint = orderHint;
+        /**
+         * The url used for reporting clicks.
+         * @type {?string}
+         */
+        this.clickUrl = clickUrl;
     }
 
     equals(other) {
@@ -1118,7 +1155,8 @@ export class SearchEngineDefinition {
             this.partnerCode == other.partnerCode &&
             this.telemetrySuffix == other.telemetrySuffix &&
             this.urls.equals(other.urls) &&
-            this.orderHint == other.orderHint
+            this.orderHint == other.orderHint &&
+            this.clickUrl == other.clickUrl
         )
     }
 }
@@ -1137,6 +1175,7 @@ export class FfiConverterTypeSearchEngineDefinition extends FfiConverterArrayBuf
             telemetrySuffix: FfiConverterString.read(dataStream),
             urls: FfiConverterTypeSearchEngineUrls.read(dataStream),
             orderHint: FfiConverterOptionalu32.read(dataStream),
+            clickUrl: FfiConverterOptionalstring.read(dataStream),
         });
     }
     static write(dataStream, value) {
@@ -1150,6 +1189,7 @@ export class FfiConverterTypeSearchEngineDefinition extends FfiConverterArrayBuf
         FfiConverterString.write(dataStream, value.telemetrySuffix);
         FfiConverterTypeSearchEngineUrls.write(dataStream, value.urls);
         FfiConverterOptionalu32.write(dataStream, value.orderHint);
+        FfiConverterOptionalstring.write(dataStream, value.clickUrl);
     }
 
     static computeSize(value) {
@@ -1164,6 +1204,7 @@ export class FfiConverterTypeSearchEngineDefinition extends FfiConverterArrayBuf
         totalSize += FfiConverterString.computeSize(value.telemetrySuffix);
         totalSize += FfiConverterTypeSearchEngineUrls.computeSize(value.urls);
         totalSize += FfiConverterOptionalu32.computeSize(value.orderHint);
+        totalSize += FfiConverterOptionalstring.computeSize(value.clickUrl);
         return totalSize
     }
 
@@ -1249,6 +1290,14 @@ export class FfiConverterTypeSearchEngineDefinition extends FfiConverterArrayBuf
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart(".orderHint");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(value.clickUrl);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".clickUrl");
             }
             throw e;
         }

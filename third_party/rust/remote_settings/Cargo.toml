@@ -33,7 +33,6 @@ license = "MPL-2.0"
 
 [features]
 default = []
-jexl = ["dep:jexl-eval"]
 signatures = [
     "dep:canonical_json",
     "dep:rc_crypto",
@@ -66,7 +65,6 @@ path = "../support/firefox-versioning"
 
 [dependencies.jexl-eval]
 version = "0.3.0"
-optional = true
 
 [dependencies.rc_crypto]
 path = "../support/rc_crypto"
