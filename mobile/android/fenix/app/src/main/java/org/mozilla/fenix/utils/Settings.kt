@@ -15,6 +15,7 @@ import android.view.accessibility.AccessibilityManager
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.Companion.PRIVATE
 import androidx.lifecycle.LifecycleOwner
+import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.Engine.HttpsOnlyMode
 import mozilla.components.concept.engine.EngineSession.CookieBannerHandlingMode
 import mozilla.components.feature.sitepermissions.SitePermissionsRules
