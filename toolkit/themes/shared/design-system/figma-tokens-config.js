@@ -65,20 +65,25 @@ function getNestedSystemColor(token) {
  * @returns {object | undefined} - The nested brand color object with `light` and `dark` properties, or `undefined` if not found.
  */
 function getNestedBrandColor(token) {
-  let current = token;
-  while (
-    !(typeof current === "object" && current.light && current.dark) &&
-    !(typeof current === "string")
-  ) {
-    current = current.brand || current.default;
-    if (!current) {
-      return undefined;
+  const stack = [token];
+  while (stack.length) {
+    const node = stack.pop();
+    if (typeof node === "string") {
+      return { light: node, dark: node };
+    }
+    if (typeof node === "object") {
+      if (node.light && node.dark) {
+        return node;
+      }
+      if (node.brand) {
+        stack.push(node.brand);
+      }
+      if (node.default) {
+        stack.push(node.default);
+      }
     }
   }
-  if (typeof current === "string") {
-    return { light: current, dark: current };
-  }
-  return current;
+  return undefined;
 }
 
 function figmaFormatTransform(token) {
