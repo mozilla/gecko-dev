@@ -299,6 +299,11 @@ void DocAccessibleParent::ShutdownOrPrepareForMove(RemoteAccessible* aAcc) {
 
 mozilla::ipc::IPCResult DocAccessibleParent::ProcessHideEvent(
     const uint64_t& aRootID, const bool& aFromUser) {
+  AUTO_PROFILER_MARKER_TEXT("DocAccessibleParent::ProcessHideEvent", A11Y, {},
+                            ""_ns);
+  PerfStats::AutoMetricRecording<PerfStats::Metric::A11Y_ProcessHideEvent>
+      autoRecording;
+  // DO NOT ADD CODE ABOVE THIS BLOCK: THIS CODE IS MEASURING TIMINGS.
   ACQUIRE_ANDROID_LOCK
 
   MOZ_ASSERT(CheckDocTree());

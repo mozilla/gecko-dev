@@ -69,6 +69,7 @@
 #include "mozilla/BasicEvents.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/FloatingPoint.h"
+#include "mozilla/PerfStats.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/ScrollContainerFrame.h"
@@ -3341,6 +3342,10 @@ AccGroupInfo* LocalAccessible::GetOrCreateGroupInfo() {
 void LocalAccessible::SendCache(uint64_t aCacheDomain,
                                 CacheUpdateType aUpdateType,
                                 bool aAppendEventData) {
+  PerfStats::AutoMetricRecording<PerfStats::Metric::A11Y_SendCache>
+      autoRecording;
+  // DO NOT ADD CODE ABOVE THIS BLOCK: THIS CODE IS MEASURING TIMINGS.
+
   if (!IPCAccessibilityActive() || !Document()) {
     return;
   }

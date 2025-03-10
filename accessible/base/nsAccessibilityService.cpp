@@ -1534,6 +1534,10 @@ mozilla::Monitor& nsAccessibilityService::GetAndroidMonitor() {
 bool nsAccessibilityService::Init(uint64_t aCacheDomains) {
   AUTO_PROFILER_MARKER_UNTYPED("nsAccessibilityService::Init", A11Y, {});
   // DO NOT ADD CODE ABOVE HERE: THIS CODE IS MEASURING TIMINGS.
+  PerfStats::AutoMetricRecording<
+      PerfStats::Metric::A11Y_AccessibilityServiceInit>
+      autoRecording;
+  // DO NOT ADD CODE ABOVE THIS BLOCK: THIS CODE IS MEASURING TIMINGS.
 
   // Initialize accessible document manager.
   if (!DocManager::Init()) return false;
