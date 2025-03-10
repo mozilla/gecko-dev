@@ -401,6 +401,11 @@ class HTMLEditor final : public EditorBase,
   bool IsCSSEnabled() const { return mIsCSSPrefChecked; }
 
   /**
+   * Return true when editing host is not plaintext-only.
+   */
+  [[nodiscard]] bool IsStyleEditable() const;
+
+  /**
    * Enable/disable object resizers for <img> elements, <table> elements,
    * absolute positioned elements (required absolute position editor enabled).
    */
@@ -418,7 +423,9 @@ class HTMLEditor final : public EditorBase,
     mIsObjectResizingEnabled = aEnable;
     RefreshEditingUI();
   }
-  bool IsObjectResizerEnabled() const { return mIsObjectResizingEnabled; }
+  bool IsObjectResizerEnabled() const {
+    return mIsObjectResizingEnabled && IsStyleEditable();
+  }
 
   Element* GetResizerTarget() const { return mResizedObject; }
 
@@ -441,7 +448,7 @@ class HTMLEditor final : public EditorBase,
     RefreshEditingUI();
   }
   bool IsInlineTableEditorEnabled() const {
-    return mIsInlineTableEditingEnabled;
+    return mIsInlineTableEditingEnabled && IsStyleEditable();
   }
 
   /**
@@ -464,7 +471,7 @@ class HTMLEditor final : public EditorBase,
     RefreshEditingUI();
   }
   bool IsAbsolutePositionEditorEnabled() const {
-    return mIsAbsolutelyPositioningEnabled;
+    return mIsAbsolutelyPositioningEnabled && IsStyleEditable();
   }
 
   /**

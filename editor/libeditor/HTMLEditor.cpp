@@ -486,6 +486,19 @@ void HTMLEditor::PreDestroy() {
   PreDestroyInternal();
 }
 
+bool HTMLEditor::IsStyleEditable() const {
+  if (IsInDesignMode()) {
+    return true;
+  }
+  if (IsPlaintextMailComposer()) {
+    return false;
+  }
+  const Element* const editingHost = ComputeEditingHost(LimitInBodyElement::No);
+  // Let's return true if there is no focused editing host for the backward
+  // compatibility.
+  return !editingHost || !editingHost->IsContentEditablePlainTextOnly();
+}
+
 NS_IMETHODIMP HTMLEditor::GetDocumentCharacterSet(nsACString& aCharacterSet) {
   nsresult rv = GetDocumentCharsetInternal(aCharacterSet);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),

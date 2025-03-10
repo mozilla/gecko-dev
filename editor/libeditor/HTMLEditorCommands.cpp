@@ -52,7 +52,8 @@ bool StateUpdatingCommandBase::IsCommandEnabled(Command aCommand,
   if (!htmlEditor) {
     return false;
   }
-  if (!htmlEditor->IsModifiable() || !htmlEditor->IsSelectionEditable()) {
+  if (!htmlEditor->IsModifiable() || !htmlEditor->IsSelectionEditable() ||
+      !htmlEditor->IsStyleEditable()) {
     return false;
   }
   if (aCommand == Command::FormatAbsolutePosition) {
@@ -356,7 +357,8 @@ bool RemoveListCommand::IsCommandEnabled(Command aCommand,
   if (!htmlEditor) {
     return false;
   }
-  if (!htmlEditor->IsModifiable() || !htmlEditor->IsSelectionEditable()) {
+  if (!htmlEditor->IsModifiable() || !htmlEditor->IsSelectionEditable() ||
+      !htmlEditor->IsStyleEditable()) {
     return false;
   }
 
@@ -401,7 +403,8 @@ bool IndentCommand::IsCommandEnabled(Command aCommand,
   if (!htmlEditor) {
     return false;
   }
-  return htmlEditor->IsModifiable() && htmlEditor->IsSelectionEditable();
+  return htmlEditor->IsModifiable() && htmlEditor->IsSelectionEditable() &&
+         htmlEditor->IsStyleEditable();
 }
 
 nsresult IndentCommand::DoCommand(Command aCommand, EditorBase& aEditorBase,
@@ -434,7 +437,8 @@ bool OutdentCommand::IsCommandEnabled(Command aCommand,
   if (!htmlEditor) {
     return false;
   }
-  return htmlEditor->IsModifiable() && htmlEditor->IsSelectionEditable();
+  return htmlEditor->IsModifiable() && htmlEditor->IsSelectionEditable() &&
+         htmlEditor->IsStyleEditable();
 }
 
 nsresult OutdentCommand::DoCommand(Command aCommand, EditorBase& aEditorBase,
@@ -467,7 +471,8 @@ bool MultiStateCommandBase::IsCommandEnabled(Command aCommand,
     return false;
   }
   // should be disabled sometimes, like if the current selection is an image
-  return htmlEditor->IsModifiable() && htmlEditor->IsSelectionEditable();
+  return htmlEditor->IsModifiable() && htmlEditor->IsSelectionEditable() &&
+         htmlEditor->IsStyleEditable();
 }
 
 nsresult MultiStateCommandBase::DoCommand(Command aCommand,
@@ -966,7 +971,8 @@ bool DecreaseZIndexCommand::IsCommandEnabled(Command aCommand,
   if (!htmlEditor) {
     return false;
   }
-  if (!htmlEditor->IsAbsolutePositionEditorEnabled()) {
+  if (!htmlEditor->IsAbsolutePositionEditorEnabled() ||
+      !htmlEditor->IsStyleEditable()) {
     return false;
   }
   RefPtr<Element> positionedElement = htmlEditor->GetPositionedElement();
@@ -1008,7 +1014,8 @@ bool IncreaseZIndexCommand::IsCommandEnabled(Command aCommand,
   if (!htmlEditor) {
     return false;
   }
-  if (!htmlEditor->IsAbsolutePositionEditorEnabled()) {
+  if (!htmlEditor->IsAbsolutePositionEditorEnabled() ||
+      !htmlEditor->IsStyleEditable()) {
     return false;
   }
   return !!htmlEditor->GetPositionedElement();
@@ -1047,7 +1054,8 @@ bool RemoveStylesCommand::IsCommandEnabled(Command aCommand,
     return false;
   }
   // test if we have any styles?
-  return htmlEditor->IsModifiable() && htmlEditor->IsSelectionEditable();
+  return htmlEditor->IsModifiable() && htmlEditor->IsSelectionEditable() &&
+         htmlEditor->IsStyleEditable();
 }
 
 nsresult RemoveStylesCommand::DoCommand(Command aCommand,
@@ -1085,7 +1093,8 @@ bool IncreaseFontSizeCommand::IsCommandEnabled(Command aCommand,
     return false;
   }
   // test if we are at max size?
-  return htmlEditor->IsModifiable() && htmlEditor->IsSelectionEditable();
+  return htmlEditor->IsModifiable() && htmlEditor->IsSelectionEditable() &&
+         htmlEditor->IsStyleEditable();
 }
 
 nsresult IncreaseFontSizeCommand::DoCommand(Command aCommand,
@@ -1121,7 +1130,8 @@ bool DecreaseFontSizeCommand::IsCommandEnabled(Command aCommand,
     return false;
   }
   // test if we are at min size?
-  return htmlEditor->IsModifiable() && htmlEditor->IsSelectionEditable();
+  return htmlEditor->IsModifiable() && htmlEditor->IsSelectionEditable() &&
+         htmlEditor->IsStyleEditable();
 }
 
 nsresult DecreaseFontSizeCommand::DoCommand(Command aCommand,
@@ -1213,7 +1223,8 @@ bool InsertTagCommand::IsCommandEnabled(Command aCommand,
   if (!htmlEditor) {
     return false;
   }
-  return htmlEditor->IsModifiable() && htmlEditor->IsSelectionEditable();
+  return htmlEditor->IsModifiable() && htmlEditor->IsSelectionEditable() &&
+         htmlEditor->IsStyleEditable();
 }
 
 // corresponding STATE_ATTRIBUTE is: src (img) and href (a)
