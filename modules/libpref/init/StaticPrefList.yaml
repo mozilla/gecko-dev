@@ -4142,7 +4142,7 @@
 # request for HTTPS-Only and HTTPS-First
 - name: dom.security.https_only_fire_http_request_background_timer_ms
   type: RelaxedAtomicUint32
-  value: 1500
+  value: 2200
   mirror: always
 
 # If true, tries to break upgrade downgrade cycles where https-only tries
