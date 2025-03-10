@@ -18,7 +18,7 @@ const dbgL10n = new LocalizationHelper(
   "devtools/client/locales/debugger.properties"
 );
 const Frames = createFactory(
-  require("resource://devtools/client/debugger/src/components/SecondaryPanes/Frames/index.js")
+  require("resource://devtools/client/debugger/src/components/SecondaryPanes/Frames/Frames.js")
     .Frames
 );
 const {
