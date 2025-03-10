@@ -116,6 +116,9 @@ export class SearchEngineSelector {
       this.#selector.setSearchConfig(
         JSON.stringify({ data: this._configuration })
       );
+      this.#selector.setConfigOverrides(
+        JSON.stringify({ data: this._configurationOverrides })
+      );
     }
 
     return this._configuration;
@@ -261,6 +264,13 @@ export class SearchEngineSelector {
    */
   _onConfigurationOverridesUpdated({ data: { current } }) {
     this._configurationOverrides = current;
+
+    if (lazy.SearchUtils.rustSelectorFeatureGate) {
+      this.#selector.setConfigOverrides(
+        JSON.stringify({ data: this._configurationOverrides })
+      );
+    }
+
     lazy.logConsole.debug("Search configuration overrides updated remotely");
     if (this._changeListener) {
       this._changeListener();
@@ -323,7 +333,8 @@ export class SearchEngineSelector {
     );
 
     if (!lazy.SearchUtils.rustSelectorFeatureGate) {
-      // Legacy JavaScript based engine selection.
+      lazy.logConsole.debug("Using JavaScript based engine selector");
+
       appName = appName.toLowerCase();
       version = version.toLowerCase();
       locale = locale.toLowerCase();
@@ -427,7 +438,8 @@ export class SearchEngineSelector {
       return result;
     }
 
-    // Rust based engine selector.
+    lazy.logConsole.debug("Using Rust based engine selector");
+
     let refinedSearchConfig = this.#selector.filterEngineConfiguration(
       new lazy.SearchUserEnvironment({
         locale,

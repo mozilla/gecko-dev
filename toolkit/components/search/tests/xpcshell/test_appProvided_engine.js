@@ -62,14 +62,13 @@ let CONFIG = [
     base: {
       classification: "unknown",
       name: "override name",
+      partnerCode: "old-pc",
       urls: {
         search: {
           base: "https://www.example.com/search",
           params: [
-            {
-              name: "old_param",
-              value: "old_value",
-            },
+            { name: "old_param", value: "old_value" },
+            { name: "pc", value: "{partnerCode}" },
           ],
           searchTermParamName: "q",
         },
@@ -90,9 +89,13 @@ const TEST_CONFIG_OVERRIDE = [
     identifier: "override",
     urls: {
       search: {
-        params: [{ name: "new_param", value: "new_value" }],
+        params: [
+          { name: "new_param", value: "new_value" },
+          { name: "pc", value: "{partnerCode}" },
+        ],
       },
     },
+    partnerCode: "new_partner_code",
     telemetrySuffix: "tsfx",
     clickUrl: "https://example.org/somewhere",
   },
@@ -214,14 +217,18 @@ add_task(async function test_engine_remote_override() {
   Assert.equal(
     engine.telemetryId,
     "override",
-    "Should have the overridden telemetry suffix"
+    "Should not have a telemetry suffix - overrides not applied yet"
   );
   Assert.equal(
     engine.getSubmission("test").uri.spec,
-    "https://www.example.com/search?old_param=old_value&q=test",
-    "Should have the overridden URL"
+    "https://www.example.com/search?old_param=old_value&pc=old-pc&q=test",
+    "Should not have overridden URL - overrides not applied yet"
   );
-  Assert.equal(engine.clickUrl, null, "Should not have a click URL");
+  Assert.equal(
+    engine.clickUrl,
+    null,
+    "Should not have a click URL - overrides not applied yet"
+  );
 
   // Now apply and test the overrides.
   await SearchTestUtils.updateRemoteSettingsConfig(
@@ -240,7 +247,7 @@ add_task(async function test_engine_remote_override() {
   );
   Assert.equal(
     engine.getSubmission("test").uri.spec,
-    "https://www.example.com/search?new_param=new_value&q=test",
+    "https://www.example.com/search?new_param=new_value&pc=new_partner_code&q=test",
     "Should have the overridden URL"
   );
   Assert.equal(

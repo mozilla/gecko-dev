@@ -18,10 +18,15 @@ const TEST_CONFIG = [
               name: "old_param",
               value: "old_value",
             },
+            {
+              name: "old_code",
+              value: "{partnerCode}",
+            },
           ],
           searchTermParamName: "q",
         },
       },
+      partnerCode: "old_partner_code",
     },
     variants: [
       {
@@ -49,9 +54,13 @@ const TEST_CONFIG_OVERRIDE = [
     identifier: "aol",
     urls: {
       search: {
-        params: [{ name: "new_param", value: "new_value" }],
+        params: [
+          { name: "new_param", value: "new_value" },
+          { name: "new_code", value: "{partnerCode}" },
+        ],
       },
     },
+    partnerCode: "new_partner_code",
     telemetrySuffix: "tsfx",
     clickUrl: "https://aol.url",
   },
@@ -72,4 +81,7 @@ add_task(async function test_engine_selector() {
   Assert.equal(engines[0].clickUrl, "https://aol.url");
   Assert.equal(engines[0].urls.search.params[0].name, "new_param");
   Assert.equal(engines[0].urls.search.params[0].value, "new_value");
+  Assert.equal(engines[0].urls.search.params[1].name, "new_code");
+  Assert.equal(engines[0].urls.search.params[1].value, "{partnerCode}");
+  Assert.equal(engines[0].partnerCode, "new_partner_code");
 });

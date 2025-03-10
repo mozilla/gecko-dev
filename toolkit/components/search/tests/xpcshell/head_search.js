@@ -654,6 +654,7 @@ async function assertSelectorEnginesEqualsExpected(
           partnerCode: "",
           telemetrySuffix: "",
           orderHint: null,
+          clickUrl: null,
           ...expectedEngines[i],
         };
         expectedEngines[i].classification =
