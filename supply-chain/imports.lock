@@ -356,8 +356,8 @@ user-login = "JohnTitor"
 user-name = "Yuki Okushi"
 
 [[publisher.linux-raw-sys]]
-version = "0.4.12"
-when = "2023-11-30"
+version = "0.4.14"
+when = "2024-05-17"
 user-id = 6825
 user-login = "sunfishcode"
 user-name = "Dan Gohman"
