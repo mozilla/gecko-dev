@@ -3958,6 +3958,26 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
 
   StartupTimeline::Record(StartupTimeline::MAIN);
 
+  // On Windows, to get working console arrangements so help/version/etc
+  // print something, we need to initialize the native app support.
+  nsresult rv = NS_CreateNativeAppSupport(getter_AddRefs(mNativeApp));
+  if (NS_FAILED(rv)) return 1;
+
+  // Handle --*version arguments early to avoid initializing full XPCOM.
+  // Note: we *cannot* handle --help here, as it requires more components
+  // to be initialized.
+  if (CheckArg("v") || CheckArg("version")) {
+    DumpVersion();
+    *aExitFlag = true;
+    return 0;
+  }
+
+  if (CheckArg("full-version")) {
+    DumpFullVersion();
+    *aExitFlag = true;
+    return 0;
+  }
+
   if (CheckForUserMismatch()) {
     return 1;
   }
@@ -4062,7 +4082,6 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
   }
 #endif
 
-  nsresult rv;
   ArgResult ar;
 
 #ifdef DEBUG
@@ -4416,27 +4435,12 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
     mOriginToForceQUIC.Assign(origin);
   }
 
-  // On Windows, to get working console arrangements so help/version/etc
-  // print something, we need to initialize the native app support.
-  rv = NS_CreateNativeAppSupport(getter_AddRefs(mNativeApp));
-  if (NS_FAILED(rv)) return 1;
-
-  // Handle --help, --full-version and --version command line arguments.
-  // They should return quickly, so we deal with them here.
+  // Handle --help command line argument.
+  // It should return rather quickly, so we deal with it here.
+  // Note: we *cannot* handle the argument as early as --*version because it
+  // requires ScopedXPCOMStartup and other components be registered.
   if (CheckArg("h") || CheckArg("help") || CheckArg("?")) {
     DumpHelp();
-    *aExitFlag = true;
-    return 0;
-  }
-
-  if (CheckArg("v") || CheckArg("version")) {
-    DumpVersion();
-    *aExitFlag = true;
-    return 0;
-  }
-
-  if (CheckArg("full-version")) {
-    DumpFullVersion();
     *aExitFlag = true;
     return 0;
   }
