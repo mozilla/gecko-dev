@@ -1,0 +1,27 @@
+{
+  "include": ["*.mjs", "types/*.ts"],
+
+  "compilerOptions": {
+    "checkJs": true,
+    "noEmit": true,
+    "target": "es2024",
+    "types": ["gecko"],
+
+    // prettier-ignore
+    "paths": {
+      "resource://gre/modules/SearchEngine.sys.mjs": ["./SearchEngine.sys.mjs"],
+      "resource://gre/modules/SearchEngineSelector.sys.mjs": ["./SearchEngineSelector.sys.mjs"],
+      // "resource://services-settings/RemoteSettingsClient.sys.mjs": ["../../../services/settings/RemoteSettingsClient.sys.mjs"],
+
+      // External.
+      "resource://gre/modules/XPCOMUtils.sys.mjs": ["../../../js/xpconnect/loader/XPCOMUtils.sys.mjs"],
+      "resource://gre/modules/UniFFI.sys.mjs": ["../uniffi-js/js/UniFFI.sys.mjs"],
+      // "resource://gre/modules/Rust*.sys.mjs": ["../uniffi-bindgen-gecko-js/components/generated/Rust*.sys.mjs"],
+
+      // Catch-all redirect for all other modules.
+      "resource://gre/modules/*.sys.mjs": ["./types/globals.ts"],
+      "resource://services-settings/*.sys.mjs": ["./types/globals.ts"],
+      "./*": ["./"]
+   }
+  }
+}

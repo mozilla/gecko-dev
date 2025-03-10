@@ -112,7 +112,13 @@ class LoadListener {
     callback.onRedirectVerifyCallback(Cr.NS_OK);
   }
 
-  // nsIInterfaceRequestor
+  /**
+   * nsIInterfaceRequestor
+   *
+   * @template {nsIID} T
+   * @param {T} iid
+   * @returns {nsQIResult<T>}
+   */
   getInterface(iid) {
     return this.QueryInterface(iid);
   }

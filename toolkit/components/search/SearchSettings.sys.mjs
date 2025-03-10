@@ -769,7 +769,7 @@ export class SearchSettings {
         engine._iconMapObj = {};
 
         for (let [sizeStr, icon] of Object.entries(oldIconMap)) {
-          let sizeObj = {};
+          let sizeObj;
           try {
             sizeObj = JSON.parse(sizeStr);
           } catch {}

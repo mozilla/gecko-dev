@@ -1137,7 +1137,7 @@ export class SearchService {
    * Used in #parseSubmissionMap
    *
    * @typedef {object} submissionMapEntry
-   * @property {nsISearchEngine} engine
+   * @property {SearchEngine} engine
    *   The search engine.
    * @property {string} termsParameterName
    *   The search term parameter name.
@@ -1339,9 +1339,7 @@ export class SearchService {
       lazy.SearchUtils.BROWSER_SEARCH_PREF + "experiment",
       "",
       () => {
-        Services.search.wrappedJSObject._maybeReloadEngines(
-          Ci.nsISearchService.CHANGE_REASON_EXPERIMENT
-        );
+        this._maybeReloadEngines(Ci.nsISearchService.CHANGE_REASON_EXPERIMENT);
       }
     );
   }
@@ -3029,7 +3027,7 @@ export class SearchService {
    *   If true, sets the default engine for private browsing mode, otherwise
    *   sets the default engine for the normal mode. Note, this function does not
    *   check the "separatePrivateDefault" preference - that is up to the caller.
-   * @param {nsISearchEngine} newEngine
+   * @param {SearchEngine} newEngine
    *   The search engine to select
    * @param {nsISearchService.DefaultEngineChangeReason} changeSource
    *   The source of the change of engine.
@@ -3242,9 +3240,9 @@ export class SearchService {
    *
    * @param {boolean} isPrivate
    *   True if this is a event about a private engine.
-   * @param {SearchEngine} [previousEngine]
+   * @param {nsISearchEngine} [previousEngine]
    *   The previously default search engine.
-   * @param {SearchEngine} [newEngine]
+   * @param {nsISearchEngine} [newEngine]
    *   The new default search engine.
    * @param {number} changeSource
    *   The source of the change of default.
