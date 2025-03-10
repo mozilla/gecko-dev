@@ -97,7 +97,7 @@ function promiseBrowserLoaded(browser, url, redirectUrl) {
   });
 }
 
-class ContentPage {
+export class ContentPage {
   constructor(
     remote = gRemoteContentScripts,
     remoteSubframes = REMOTE_CONTENT_SUBFRAMES,

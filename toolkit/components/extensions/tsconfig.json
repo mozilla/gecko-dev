@@ -8,6 +8,13 @@
     "types": ["gecko"],
     "incremental": true,
 
+    "plugins": [
+      {
+        "transform": "../../../tools/ts/plugins/checkRootJs.js",
+        "transformProgram": true
+      }
+    ],
+
     // prettier-ignore
     "paths": {
       "resource://gre/modules/ConduitsParent.sys.mjs": ["./ConduitsParent.sys.mjs"],
@@ -40,12 +47,10 @@
       "resource://testing-common/ExtensionTestCommon.sys.mjs": ["./ExtensionTestCommon.sys.mjs"],
 
       // External.
+      "resource://devtools/server/actors/descriptors/webextension.js": ["../../../devtools/server/actors/descriptors/webextension.js"],
       "resource://gre/modules/addons/crypto-utils.sys.mjs": ["../../mozapps/extensions/internal/crypto-utils.sys.mjs"],
       "resource://gre/modules/XPCOMUtils.sys.mjs": ["../../../js/xpconnect/loader/XPCOMUtils.sys.mjs"],
-      "resource://devtools/server/actors/descriptors/webextension.js": ["./types/globals.ts"],
-
-      // Types for external modules which need fixing, but we don't wanna touch.
-      "resource://testing-common/XPCShellContentUtils.sys.mjs": ["./types/XPCShellContentUtils.sys.d.mts"],
+      "resource://testing-common/XPCShellContentUtils.sys.mjs": ["../../../testing/modules/XPCShellContentUtils.sys.mjs"],
 
       // Catch-all redirect for all other modules.
       "resource://gre/modules/*.sys.mjs": ["./types/globals.ts"],

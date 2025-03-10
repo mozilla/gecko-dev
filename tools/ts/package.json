@@ -8,11 +8,13 @@
     "jsonc-parser": "3.3.1",
     "peggy": "4.2.0",
     "print-diff": "2.0.0",
+    "ts-patch": "3.3.0",
     "typescript": "5.7.3",
     "webidl2": "24.4.1",
     "yaml": "2.7.0"
   },
   "scripts": {
+    "prepare": "ts-patch install -s",
     "postinstall": "npm explore @typescript/dom-lib-generator -- tsc --typeRoots ../../@types",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   }
