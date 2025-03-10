@@ -860,7 +860,6 @@ static bool atomics_notify(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-#ifdef NIGHTLY_BUILD
 /**
  * Atomics.pause ( [ N ] )
  *
@@ -887,7 +886,6 @@ static bool atomics_pause(JSContext* cx, unsigned argc, Value* vp) {
   args.rval().setUndefined();
   return true;
 }
-#endif
 
 /* static */
 bool js::FutexThread::initialize() {
@@ -1117,9 +1115,7 @@ const JSFunctionSpec AtomicsMethods[] = {
     JS_FN("wait", atomics_wait, 4, 0),
     JS_FN("notify", atomics_notify, 3, 0),
     JS_FN("wake", atomics_notify, 3, 0),  // Legacy name
-#ifdef NIGHTLY_BUILD
     JS_INLINABLE_FN("pause", atomics_pause, 0, 0, AtomicsPause),
-#endif
     JS_FS_END,
 };
 
