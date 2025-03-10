@@ -1861,8 +1861,10 @@ class D3DVsyncSource final : public VsyncSource {
             }
           }
         }
-      }
-      if (!SUCCEEDED(hr)) {
+      } else {
+        // To mitigate bug 1924932 we only want to use DwmFlush if WaitForVBlank
+        // is disabled, WaitForVBlank is the standard since Vista so we should
+        // probably remove this option entirely.
         hr = DwmFlush();
       }
       if (!SUCCEEDED(hr)) {
