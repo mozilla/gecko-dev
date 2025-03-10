@@ -1,0 +1,16 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * add.org/adhd-facts - mobile menu is permanently open
+ * Bug #1943920 - https://bugzilla.mozilla.org/show_bug.cgi?id=1943920
+ * WebCompat issue #147170 - https://webcompat.com/issues/147170
+ *
+ * The site is using a faulty -moz-transform rule, which we can unset.
+ */
+[class*="Modal_overlay"][class*="Modal_positionContentCenter"]:has(
+    [class*="after-open"]
+  ) {
+  justify-content: unset;
+}

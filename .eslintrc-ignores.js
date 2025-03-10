@@ -82,8 +82,7 @@ module.exports = [
   "browser/extensions/formautofill/phonenumberutils/PhoneNumberMetaData.sys.mjs",
 
   // JS files using the #include pre-processor macro, leading to syntax errors.
-  "browser/extensions/webcompat/data/injections.js",
-  "browser/extensions/webcompat/data/ua_overrides.js",
+  "browser/extensions/webcompat/run.js",
 
   // Ignore devtools debugger files which aren't intended for linting.
   "devtools/client/debugger/bin/",

@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Web Compatibility Interventions",
   "description": "Urgent post-release fixes for web compatibility.",
-  "version": "136.7.0",
+  "version": "137.6.0",
   "browser_specific_settings": {
     "gecko": {
       "id": "webcompat@mozilla.org",
@@ -56,6 +56,14 @@
         "paths": [["systemManufacturer"]]
       }
     },
+    "testUtils": {
+      "schema": "experiment-apis/testUtils.json",
+      "parent": {
+        "scopes": ["addon_parent"],
+        "script": "experiment-apis/testUtils.js",
+        "paths": [["testUtils"]]
+      }
+    },
     "trackingProtection": {
       "schema": "experiment-apis/trackingProtection.json",
       "parent": {
@@ -69,6 +77,7 @@
   "content_security_policy": "script-src 'self' 'sha256-PeZc2H1vv7M8NXqlFyNbN4y4oM6wXmYEbf73m+Aqpak='; default-src 'self'; base-uri moz-extension://*; object-src 'none'",
 
   "permissions": [
+    "cookies",
     "mozillaAddons",
     "scripting",
     "tabs",
@@ -85,14 +94,11 @@
       "lib/ua_helpers.js",
       "lib/intervention_helpers.js",
       "lib/requestStorageAccess_helper.js",
-      "data/injections.js",
       "data/shims.js",
-      "data/ua_overrides.js",
       "lib/about_compat_broker.js",
       "lib/custom_functions.js",
-      "lib/injections.js",
+      "lib/interventions.js",
       "lib/shims.js",
-      "lib/ua_overrides.js",
       "run.js"
     ]
   },
@@ -107,6 +113,7 @@
     "shims/blogger.js",
     "shims/bloggerAccount.js",
     "shims/bmauth.js",
+    "shims/botd.mjs",
     "shims/branch.js",
     "shims/chartbeat.js",
     "shims/crave-ca.js",
@@ -139,6 +146,7 @@
     "shims/kinja.js",
     "shims/live-test-shim.js",
     "shims/maxmind-geoip.js",
+    "shims/messengerLogin.js",
     "shims/microsoftLogin.js",
     "shims/microsoftVirtualAssistant.js",
     "shims/moat.js",

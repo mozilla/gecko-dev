@@ -272,10 +272,12 @@ class Shim {
     this.manager?.onShimStateChanged(this.id);
     if (!this.enabled) {
       await this._unregisterContentScripts();
-      return this._revokeRequestsInETP();
+      await this._revokeRequestsInETP();
+      return browser.testUtils.shimsInactive();
     }
     await this._registerContentScripts();
-    return this._allowRequestsInETP();
+    await this._allowRequestsInETP();
+    return browser.testUtils.shimsActive();
   }
 
   async _registerContentScripts() {
@@ -545,6 +547,8 @@ class Shim {
 
 class Shims {
   constructor(availableShims) {
+    browser.testUtils.shimsInactive();
+
     if (!browser.trackingProtection) {
       console.error("Required experimental add-on APIs for shims unavailable");
       return;
@@ -935,7 +939,8 @@ class Shims {
       message !== "optIn" &&
       message !== "embedClicked" &&
       message !== "smartblockEmbedReplaced" &&
-      message !== "smartblockGetFluentString"
+      message !== "smartblockGetFluentString" &&
+      message !== "checkFacebookLoginStatus"
     ) {
       return undefined;
     }
@@ -990,6 +995,16 @@ class Shims {
         shimId,
         new URL(url).hostname
       );
+    } else if (message === "checkFacebookLoginStatus") {
+      // Verify that the user is logged in to Facebook by checking the c_user
+      // cookie.
+      let cookie = await browser.cookies.get({
+        url: "https://www.facebook.com",
+        name: "c_user",
+      });
+
+      // If the cookie is found, the user is logged in to Facebook.
+      return cookie != null;
     }
 
     return undefined;

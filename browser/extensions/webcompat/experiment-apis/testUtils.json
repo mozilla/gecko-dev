@@ -1,0 +1,36 @@
+[
+  {
+    "namespace": "testUtils",
+    "description": "experimental API extension to let tests know the addon's status",
+    "functions": [
+      {
+        "name": "interventionsActive",
+        "type": "function",
+        "description": "Mark for tests that the webcompat interventions are now active.",
+        "parameters": [],
+        "async": true
+      },
+      {
+        "name": "interventionsInactive",
+        "type": "function",
+        "description": "Mark for tests that the webcompat interventions are now inactive.",
+        "parameters": [],
+        "async": true
+      },
+      {
+        "name": "shimsActive",
+        "type": "function",
+        "description": "Mark for tests that the SmartBlock shims are now active.",
+        "parameters": [],
+        "async": true
+      },
+      {
+        "name": "shimsInactive",
+        "type": "function",
+        "description": "Mark for tests that the SmartBlock shims are now inactive.",
+        "parameters": [],
+        "async": true
+      }
+    ]
+  }
+]

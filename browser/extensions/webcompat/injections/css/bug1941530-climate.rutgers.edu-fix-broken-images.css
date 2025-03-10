@@ -1,0 +1,15 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * climate.rutgers.edu/snowcover - images are sized as too thin to see
+ * Bug #1941530 - https://bugzilla.mozilla.org/show_bug.cgi?id=1941530
+ * WebCompat issue #145677 - https://webcompat.com/issues/145677
+ *
+ * There are 100%-width SVG images with broken viewboxes which are not
+ * given a size by non-Chromium browsers. We fix it by unsetting the width.
+ */
+.u--svg-inside object {
+  width: revert-layer;
+}

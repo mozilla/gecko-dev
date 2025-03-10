@@ -24,3 +24,14 @@ Object.defineProperty(window.wrappedJSObject, "PictureInPictureWindow", {
     return class {};
   }, window),
 });
+
+Object.defineProperty(
+  Document.wrappedJSObject.prototype,
+  "pictureInPictureElement",
+  {
+    get: exportFunction(function () {
+      return null;
+    }, window),
+    set: exportFunction(function () {}, window),
+  }
+);

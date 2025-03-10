@@ -1,0 +1,15 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * www.aliexpress.com - scrollbars which should be hidden are not hidden
+ * Bug #1926506 - https://bugzilla.mozilla.org/show_bug.cgi?id=1926506
+ * WebCompat issue #143067 - https://github.com/webcompat/web-bugs/issues/143067
+ *
+ * They are using non-standard webkit-scrollbar CSS to hide scrollbars.
+ * We can use scrollbar-width instead to hide them.
+ */
+.aec-scrollview {
+  scrollbar-width: none;
+}

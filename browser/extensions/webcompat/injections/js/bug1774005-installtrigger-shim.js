@@ -20,7 +20,7 @@ console.info(
 
 Object.defineProperty(window.wrappedJSObject, "InstallTrigger", {
   get: exportFunction(function () {
-    return "This property has been shimed for Web Compatibility reasons.";
+    return "This property has been shimmed for Web Compatibility reasons.";
   }, window),
   set: exportFunction(function (_) {}, window),
 });

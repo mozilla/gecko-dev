@@ -1,0 +1,15 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * cacaushow.org.br - login popup is mostly off-screen
+ * Bug #1948047 - https://bugzilla.mozilla.org/show_bug.cgi?id=1948047
+ *
+ * This site is using the non-standard CSS webkit-fill-available to give
+ * their popups their height. We can use standard CSS instead to fix it.
+ */
+app-root .visibility,
+app-root .visibility.container {
+  height: fit-content;
+}
