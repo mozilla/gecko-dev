@@ -1,23 +1,20 @@
 <!DOCTYPE HTML>
 <html>
-<!--
-https://bugzilla.mozilla.org/show_bug.cgi?id=1303957
--->
 <head>
   <meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Test for Bug 1303957</title>
+  <title>Test getCoalescedEvents() while a button is pressed</title>
   <script src="/tests/SimpleTest/EventUtils.js"></script>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css">
 </head>
 <body>
 <!-- DO NOT PUT any text before the test target to avoid fractional coordinates! -->
 <div id="target0" style="width: 50px; height: 50px; background: green"></div>
-<script type="text/javascript">
-/** Test for Bug 1303957 **/
-SimpleTest.waitForExplicitFinish();
+<script>
+"use strict";
 
+SimpleTest.waitForExplicitFinish();
 SimpleTest.waitForFocus(async () => {
   await SpecialPowers.pushPrefEnv({"set": [
     ["dom.events.coalesce.mousemove", true],
@@ -70,8 +67,8 @@ SimpleTest.waitForFocus(async () => {
         is(coalescedEvent.eventPhase, Event.NONE, "getCoalescedEvents()[" + i + "].eventPhase");
         is(coalescedEvent.cancelable, false, "getCoalescedEvents()[" + i + "].cancelable");
         is(coalescedEvent.bubbles, false, "getCoalescedEvents()[" + i + "].bubbles");
-        is(coalescedEvent.buttons, 0, `getCoalescedEvents()[${i}].buttons should be 0`);
-        is(coalescedEvent.pressure, 0, `getCoalescedEvents()[${i}].pressure should be 0 when buttons is 0`);
+        is(coalescedEvent.buttons, 1, `getCoalescedEvents()[${i}].buttons should be 1`);
+        is(coalescedEvent.pressure, 0.5, `getCoalescedEvents()[${i}].pressure should be 0.5 when buttons is not 0`);
 
         ok(
           isExpectedOffset(coalescedEvent.offsetX, prevOffsetX),
@@ -108,10 +105,10 @@ SimpleTest.waitForFocus(async () => {
   info(`target0.getBoundingClientRect()={${target0.getBoundingClientRect().x}, ${target0.getBoundingClientRect().y}}`);
 
   info("Synthesizing mouse moves....");
-  synthesizeMouse(target0, 5, 5, {type: "mousemove"});
-  synthesizeMouse(target0, 10, 10, {type: "mousemove"});
-  synthesizeMouse(target0, 15, 15, {type: "mousemove"});
-  synthesizeMouse(target0, 20, 20, {type: "mousemove"});
+  synthesizeMouse(target0, 5, 5, {type: "mousemove", buttons: 1});
+  synthesizeMouse(target0, 10, 10, {type: "mousemove", buttons: 1});
+  synthesizeMouse(target0, 15, 15, {type: "mousemove", buttons: 1});
+  synthesizeMouse(target0, 20, 20, {type: "mousemove", buttons: 1});
   utils.restoreNormalRefresh();
   await waitForPointerMove;
 

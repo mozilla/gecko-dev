@@ -50,6 +50,8 @@ void CoalescedMouseData::Coalesce(const WidgetMouseEvent& aEvent,
             aEvent);
 
     event->mMessage = ePointerMove;
+    event->mPressure =
+        aEvent.mPressure == 0.0f && aEvent.mButtons ? 0.5f : 0.0f;
     event->mFlags.mBubbles = false;
     event->mFlags.mCancelable = false;
   }
