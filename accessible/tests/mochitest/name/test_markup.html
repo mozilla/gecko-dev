@@ -20,6 +20,11 @@
           src="markup.js"></script>
 
   <script type="application/javascript">
+    // Bug 721336 - Use sync XHR system requests
+    SpecialPowers.pushPrefEnv({
+      set: [["network.xhr.block_sync_system_requests", false]]
+    });
+
     // gA11yEventDumpID = "eventdump";
     // gDumpToConsole = true;
     // gA11yEventDumpToConsole = true;

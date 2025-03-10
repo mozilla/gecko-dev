@@ -1574,6 +1574,8 @@ add_setup(async function () {
       ["extensions.InstallTriggerImpl.enabled", true],
       // Relax the user input requirements while running this test.
       ["xpinstall.userActivation.required", false],
+      // Bug 721336 - Use sync XHR system requests
+      ["network.xhr.block_sync_system_requests", false],
     ],
   });
 

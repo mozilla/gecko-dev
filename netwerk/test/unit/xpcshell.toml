@@ -67,6 +67,7 @@ requesttimeoutfactor = 2
 requesttimeoutfactor = 2
 
 ["test_XHR_redirects.js"]
+prefs = ["network.xhr.block_sync_system_requests=false"] # Bug 721336
 
 ["test_about_networking.js"]
 
@@ -1096,8 +1097,10 @@ skip-if = [
 ["test_redirect_failure.js"]
 
 ["test_redirect_from_script.js"]
+prefs = ["network.xhr.block_sync_system_requests=false"] # Bug 721336
 
 ["test_redirect_from_script_after-open_passing.js"]
+prefs = ["network.xhr.block_sync_system_requests=false"] # Bug 721336
 
 ["test_redirect_history.js"]
 
@@ -1110,6 +1113,7 @@ skip-if = [
 ["test_redirect_veto.js"]
 
 ["test_reentrancy.js"]
+prefs = ["network.xhr.block_sync_system_requests=false"] # Bug 721336
 
 ["test_referrer.js"]
 
@@ -1390,3 +1394,4 @@ skip-if = [
 ]
 
 ["test_xmlhttprequest.js"]
+prefs = ["network.xhr.block_sync_system_requests=false"] # Bug 721336

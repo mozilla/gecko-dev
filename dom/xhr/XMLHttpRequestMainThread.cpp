@@ -2692,6 +2692,12 @@ nsresult XMLHttpRequestMainThread::InitiateFetch(
   nsresult rv;
   nsCOMPtr<nsIInputStream> uploadStream = std::move(aUploadStream);
 
+  if (IsSystemXHR() && mFlagSynchronous &&
+      StaticPrefs::network_xhr_block_sync_system_requests()) {
+    mState = XMLHttpRequest_Binding::DONE;
+    return NS_ERROR_DOM_NETWORK_ERR;
+  }
+
   if (!uploadStream) {
     RefPtr<PreloaderBase> preload = FindPreload();
     if (preload) {
