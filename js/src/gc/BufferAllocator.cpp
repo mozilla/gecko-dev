@@ -2234,14 +2234,14 @@ bool BufferAllocator::sweepLargeTenured(LargeBuffer* header) {
 
 void BufferAllocator::freeLarge(void* alloc) {
   auto* header = GetHeaderFromAlloc<LargeBuffer>(alloc);
-  MOZ_ASSERT(header->isInList());
   MOZ_ASSERT(header->zone == zone);
 
   if (!header->isNurseryOwned && majorState == State::Sweeping &&
       !header->allocatedDuringCollection) {
-    // TODO: Can we assert that this allocation is marked?
     return;  // Large allocations are currently being swept.
   }
+
+  MOZ_ASSERT(header->isInList());
 
   if (header->isNurseryOwned) {
     largeNurseryAllocs.ref().remove(header);
@@ -2268,14 +2268,14 @@ bool BufferAllocator::shrinkLarge(void* alloc, size_t newBytes) {
   return false;
 #else
   auto* header = GetHeaderFromAlloc<LargeBuffer>(alloc);
-  MOZ_ASSERT(header->isInList());
   MOZ_ASSERT(header->zone == zone);
 
   if (!header->isNurseryOwned && majorState == State::Sweeping &&
       !header->allocatedDuringCollection) {
-    // TODO: Can we assert that this allocation is marked?
     return false;  // Large allocations are currently being swept.
   }
+
+  MOZ_ASSERT(header->isInList());
 
   newBytes = RoundUp(newBytes + sizeof(LargeBuffer), PageSize);
   size_t oldBytes = header->bytesIncludingHeader;
