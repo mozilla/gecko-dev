@@ -203,8 +203,14 @@ nsresult RehashDirectory(const FileSystemConnection& aConnection,
       ";"_ns;
 
   const nsLiteralCString updateFileMappingsQuery =
-      "UPDATE FileIds SET handle = hash "
-      "FROM ( SELECT handle, hash FROM ParentChildHash ) AS replacement "
+      "UPDATE FileIds "
+      "SET handle = CASE WHEN replacement.isMain IS NULL THEN NULL "
+      "ELSE replacement.hash END "
+      "FROM ( SELECT ParentChildHash.handle AS handle, "
+      "ParentChildHash.hash AS hash, "
+      "MainFiles.handle AS isMain "
+      "FROM ParentChildHash LEFT JOIN MainFiles "
+      "ON ParentChildHash.handle = MainFiles.handle ) AS replacement "
       "WHERE FileIds.handle = replacement.handle "
       ";"_ns;
 
@@ -514,10 +520,19 @@ Result<EntryId, QMResult> FileSystemDatabaseManagerVersion002::RenameEntry(
   FileSystemChildMetadata newDesignation(parentId, aNewName);
 
   if (isFile) {
+    mDataManager->DeprecateSharedLocks(entryId);
+
     const ContentType type = DetermineContentType(aNewName);
     QM_TRY(
         QM_TO_RESULT(RehashFile(mConnection, entryId, newDesignation, type)));
+
   } else {
+    QM_TRY_INSPECT(const auto& descendants,
+                   FindFileEntriesUnderDirectory(entryId));
+    for (const auto& descendantEntryId : descendants) {
+      mDataManager->DeprecateSharedLocks(descendantEntryId);
+    }
+
     QM_TRY(QM_TO_RESULT(RehashDirectory(mConnection, entryId, newDesignation)));
   }
 
@@ -557,10 +572,18 @@ Result<EntryId, QMResult> FileSystemDatabaseManagerVersion002::MoveEntry(
                                        aNewDesignation, isFile)));
 
   if (isFile) {
+    mDataManager->DeprecateSharedLocks(entryId);
+
     const ContentType type = DetermineContentType(aNewDesignation.childName());
     QM_TRY(
         QM_TO_RESULT(RehashFile(mConnection, entryId, aNewDesignation, type)));
   } else {
+    QM_TRY_INSPECT(const auto& descendants,
+                   FindFileEntriesUnderDirectory(entryId));
+    for (const auto& descendantEntryId : descendants) {
+      mDataManager->DeprecateSharedLocks(descendantEntryId);
+    }
+
     QM_TRY(
         QM_TO_RESULT(RehashDirectory(mConnection, entryId, aNewDesignation)));
   }
