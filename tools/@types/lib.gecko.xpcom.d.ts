@@ -11395,26 +11395,40 @@ interface nsISearchParseSubmissionResult extends nsISupports {
   readonly termsParameterName: string;
 }
 
-interface nsISearchService extends nsISupports {
-  readonly ERROR_DOWNLOAD_FAILURE?: 1;
-  readonly ERROR_DUPLICATE_ENGINE?: 2;
-  readonly ERROR_ENGINE_CORRUPTED?: 3;
-  readonly CHANGE_REASON_UNKNOWN?: 0;
-  readonly CHANGE_REASON_USER?: 1;
-  readonly CHANGE_REASON_USER_PRIVATE_SPLIT?: 2;
-  readonly CHANGE_REASON_USER_SEARCHBAR?: 3;
-  readonly CHANGE_REASON_USER_SEARCHBAR_CONTEXT?: 4;
-  readonly CHANGE_REASON_ADDON_INSTALL?: 5;
-  readonly CHANGE_REASON_ADDON_UNINSTALL?: 6;
-  readonly CHANGE_REASON_CONFIG?: 7;
-  readonly CHANGE_REASON_LOCALE?: 8;
-  readonly CHANGE_REASON_REGION?: 9;
-  readonly CHANGE_REASON_EXPERIMENT?: 10;
-  readonly CHANGE_REASON_ENTERPRISE?: 11;
-  readonly CHANGE_REASON_UITOUR?: 12;
-  readonly CHANGE_REASON_ENGINE_UPDATE?: 13;
-  readonly CHANGE_REASON_USER_PRIVATE_PREF_ENABLED?: 14;
+}  // global
 
+declare enum nsISearchService_OpenSearchInstallErrors {
+  ERROR_DOWNLOAD_FAILURE = 1,
+  ERROR_DUPLICATE_ENGINE = 2,
+  ERROR_ENGINE_CORRUPTED = 3,
+}
+
+declare enum nsISearchService_DefaultEngineChangeReason {
+  CHANGE_REASON_UNKNOWN = 0,
+  CHANGE_REASON_USER = 1,
+  CHANGE_REASON_USER_PRIVATE_SPLIT = 2,
+  CHANGE_REASON_USER_SEARCHBAR = 3,
+  CHANGE_REASON_USER_SEARCHBAR_CONTEXT = 4,
+  CHANGE_REASON_ADDON_INSTALL = 5,
+  CHANGE_REASON_ADDON_UNINSTALL = 6,
+  CHANGE_REASON_CONFIG = 7,
+  CHANGE_REASON_LOCALE = 8,
+  CHANGE_REASON_REGION = 9,
+  CHANGE_REASON_EXPERIMENT = 10,
+  CHANGE_REASON_ENTERPRISE = 11,
+  CHANGE_REASON_UITOUR = 12,
+  CHANGE_REASON_ENGINE_UPDATE = 13,
+  CHANGE_REASON_USER_PRIVATE_PREF_ENABLED = 14,
+}
+
+declare global {
+
+namespace nsISearchService {
+  type OpenSearchInstallErrors = nsISearchService_OpenSearchInstallErrors;
+  type DefaultEngineChangeReason = nsISearchService_DefaultEngineChangeReason;
+}
+
+interface nsISearchService extends nsISupports, Enums<typeof nsISearchService_OpenSearchInstallErrors & typeof nsISearchService_DefaultEngineChangeReason> {
   init(): Promise<any>;
   readonly promiseInitialized: Promise<any>;
   readonly isInitialized: boolean;
@@ -15984,7 +15998,7 @@ interface nsIXPCComponents_Interfaces {
   nsISearchSubmission: nsJSIID<nsISearchSubmission>;
   nsISearchEngine: nsJSIID<nsISearchEngine>;
   nsISearchParseSubmissionResult: nsJSIID<nsISearchParseSubmissionResult>;
-  nsISearchService: nsJSIID<nsISearchService>;
+  nsISearchService: nsJSIID<nsISearchService, typeof nsISearchService_OpenSearchInstallErrors & typeof nsISearchService_DefaultEngineChangeReason>;
   nsIToolkitShellService: nsJSIID<nsIToolkitShellService>;
   nsITerminatorTest: nsJSIID<nsITerminatorTest>;
   nsIXULStore: nsJSIID<nsIXULStore>;

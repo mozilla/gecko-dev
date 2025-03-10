@@ -225,25 +225,29 @@ interface nsISearchParseSubmissionResult : nsISupports
 [scriptable, uuid(0301834b-2630-440e-8b98-db8dc55f34b9)]
 interface nsISearchService : nsISupports
 {
-  const unsigned long ERROR_DOWNLOAD_FAILURE = 0x1;
-  const unsigned long ERROR_DUPLICATE_ENGINE = 0x2;
-  const unsigned long ERROR_ENGINE_CORRUPTED = 0x3;
+  cenum OpenSearchInstallErrors : 8 {
+    ERROR_DOWNLOAD_FAILURE = 0x1,
+    ERROR_DUPLICATE_ENGINE = 0x2,
+    ERROR_ENGINE_CORRUPTED = 0x3,
+  };
 
-  const unsigned short CHANGE_REASON_UNKNOWN = 0x0;
-  const unsigned short CHANGE_REASON_USER = 0x1;
-  const unsigned short CHANGE_REASON_USER_PRIVATE_SPLIT = 0x2;
-  const unsigned short CHANGE_REASON_USER_SEARCHBAR = 0x3;
-  const unsigned short CHANGE_REASON_USER_SEARCHBAR_CONTEXT = 0x4;
-  const unsigned short CHANGE_REASON_ADDON_INSTALL = 0x5;
-  const unsigned short CHANGE_REASON_ADDON_UNINSTALL = 0x6;
-  const unsigned short CHANGE_REASON_CONFIG = 0x7;
-  const unsigned short CHANGE_REASON_LOCALE = 0x8;
-  const unsigned short CHANGE_REASON_REGION = 0x9;
-  const unsigned short CHANGE_REASON_EXPERIMENT = 0xA;
-  const unsigned short CHANGE_REASON_ENTERPRISE = 0xB;
-  const unsigned short CHANGE_REASON_UITOUR = 0xC;
-  const unsigned short CHANGE_REASON_ENGINE_UPDATE = 0xD;
-  const unsigned short CHANGE_REASON_USER_PRIVATE_PREF_ENABLED = 0xE;
+  cenum DefaultEngineChangeReason : 8 {
+    CHANGE_REASON_UNKNOWN = 0x0,
+    CHANGE_REASON_USER = 0x1,
+    CHANGE_REASON_USER_PRIVATE_SPLIT = 0x2,
+    CHANGE_REASON_USER_SEARCHBAR = 0x3,
+    CHANGE_REASON_USER_SEARCHBAR_CONTEXT = 0x4,
+    CHANGE_REASON_ADDON_INSTALL = 0x5,
+    CHANGE_REASON_ADDON_UNINSTALL = 0x6,
+    CHANGE_REASON_CONFIG = 0x7,
+    CHANGE_REASON_LOCALE = 0x8,
+    CHANGE_REASON_REGION = 0x9,
+    CHANGE_REASON_EXPERIMENT = 0xA,
+    CHANGE_REASON_ENTERPRISE = 0xB,
+    CHANGE_REASON_UITOUR = 0xC,
+    CHANGE_REASON_ENGINE_UPDATE = 0xD,
+    CHANGE_REASON_USER_PRIVATE_PREF_ENABLED = 0xE,
+  };
 
   /**
    * Start asynchronous initialization.

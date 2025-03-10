@@ -3031,7 +3031,7 @@ export class SearchService {
    *   check the "separatePrivateDefault" preference - that is up to the caller.
    * @param {nsISearchEngine} newEngine
    *   The search engine to select
-   * @param {REASON_CHANGE_MAP} changeSource
+   * @param {nsISearchService.DefaultEngineChangeReason} changeSource
    *   The source of the change of engine.
    */
   #setEngineDefault(privateMode, newEngine, changeSource) {
