@@ -33,6 +33,8 @@ add_setup(async function () {
 });
 
 async function test_ml_alt_text_enabled(locale) {
+  // The pref may have been set by another test, so we need to clear it.
+  Services.prefs.clearUserPref("browser.ml.enable");
   const defaultBrowserMLPrefValue =
     Services.prefs.getBoolPref("browser.ml.enable");
 
