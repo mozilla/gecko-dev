@@ -336,21 +336,23 @@ async function assertContextualOptinVisibility({ visible }) {
 }
 
 function moveLastDismissedTimeEalier(lastDismissedTime, days) {
-  let date = new Date(lastDismissedTime * 1000);
-  date.setDate(date.getDate() - days);
   UrlbarPrefs.set(
     "quicksuggest.contextualOptIn.lastDismissedTime",
-    date.getTime() / 1000
+    subtractDays(lastDismissedTime, days)
   );
 }
 
 function moveFirstImpressionTimeEalier(firstImpressionTime, days) {
-  let date = new Date(firstImpressionTime * 1000);
-  date.setDate(date.getDate() - days);
   UrlbarPrefs.set(
     "quicksuggest.contextualOptIn.firstImpressionTime",
-    date.getTime() / 1000
+    subtractDays(firstImpressionTime, days)
   );
+}
+
+function subtractDays(timeInSeconds, days) {
+  // Subtract an extra 60s just to make sure the returned time is at least
+  // `days` ago.
+  return timeInSeconds - days * 24 * 60 * 60 - 60;
 }
 
 add_task(async function nimbus() {
