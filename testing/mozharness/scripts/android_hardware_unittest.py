@@ -235,31 +235,13 @@ class AndroidHardwareTest(
             dirs["abs_blob_upload_dir"], self.test_suite
         )
 
-        # LambdaTest provides a list of recommended ports via env var:
-        #     UserPorts=port/27045,port/27046,port/27047,port/27048,port/27049
-        # These are only for android, so no need to put in mozprofile
-        # NOTE: mozprofile.DEFAULT_PORTS has http:8888.
-        DEFAULT_PORTS = {"http": 8854, "https": 4454, "ws": 9988, "wss": 4454}
-        ports = [p.split("/")[-1] for p in os.environ.get("UserPorts", "").split(",")]
-        if len(ports) > 3:
-            DEFAULT_PORTS = {
-                "http": ports[0],
-                "https": ports[1],
-                "ws": ports[2],
-                "wss": ports[3],
-            }
-
         str_format_values = {
             "device_serial": self.device_serial,
             "remote_webserver": c["remote_webserver"],
             "xre_path": self.xre_path,
             "utility_path": self.xre_path,
-            "http_port": DEFAULT_PORTS[
-                "http"
-            ],  # starting http port  to use for the mochitest server
-            "ssl_port": DEFAULT_PORTS[
-                "https"
-            ],  # starting ssl port to use for the server
+            "http_port": "8854",  # starting http port  to use for the mochitest server
+            "ssl_port": "4454",  # starting ssl port to use for the server
             "certs_path": os.path.join(dirs["abs_work_dir"], "tests/certs"),
             # TestingMixin._download_and_extract_symbols() will set
             # self.symbols_path when downloading/extracting.

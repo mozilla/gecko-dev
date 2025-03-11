@@ -116,13 +116,13 @@ class BrowsertimeAndroid(PerftestAndroid, Browsertime):
                 )
                 activity = "mozilla.telemetry.glean.debug.GleanDebugActivity"
 
-            # all hardware we test on is android 11+
-            args_list.extend(
-                [
-                    '--firefox.geckodriverArgs="--android-storage"',
-                    '--firefox.geckodriverArgs="app"',
-                ]
-            )
+            if int(self.device.shell_output("getprop ro.build.version.release")) > 11:
+                args_list.extend(
+                    [
+                        '--firefox.geckodriverArgs="--android-storage"',
+                        '--firefox.geckodriverArgs="app"',
+                    ]
+                )
 
             args_list.extend(
                 [
