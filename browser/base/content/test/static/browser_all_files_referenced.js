@@ -108,6 +108,10 @@ var gExceptionPaths = [
 
   // The picture-in-picture add-on.
   "resource://builtin-addons/pictureinpicture/",
+
+  // The newtab add-on
+  "resource://newtab/",
+  "chrome://newtab/",
 ];
 
 // These are not part of the omni.ja file, so we find them only when running
