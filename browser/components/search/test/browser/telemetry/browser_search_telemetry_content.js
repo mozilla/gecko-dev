@@ -38,6 +38,7 @@ add_task(async function test_context_menu() {
   // Let's reset the Telemetry data.
   Services.telemetry.clearScalars();
   Services.telemetry.clearEvents();
+  Services.fog.testResetFOG();
   let search_hist =
     TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
 
@@ -90,11 +91,26 @@ add_task(async function test_context_menu() {
     1
   );
 
-  // Make sure SEARCH_COUNTS contains identical values.
+  // Make sure SAP telemetry has also been incremented.
   TelemetryTestUtils.assertKeyedHistogramSum(
     search_hist,
     "other-MozSearch.contextmenu",
     1
+  );
+  let sapEvent = Glean.sap.counts.testGetValue();
+  Assert.equal(
+    sapEvent.length,
+    1,
+    "Should have recorded an event for the SAP search"
+  );
+  Assert.deepEqual(
+    sapEvent[0].extra,
+    {
+      provider_id: "other",
+      provider_name: "MozSearch",
+      source: "contextmenu",
+    },
+    "Should have the expected event telemetry data"
   );
 
   contextMenu.hidePopup();
@@ -151,11 +167,26 @@ add_task(async function test_about_newtab() {
     "This search must only increment one entry in the scalar."
   );
 
-  // Make sure SEARCH_COUNTS contains identical values.
+  // Make sure SAP telemetry has also been incremented.
   TelemetryTestUtils.assertKeyedHistogramSum(
     search_hist,
     "other-MozSearch.newtab",
     1
+  );
+  let sapEvent = Glean.sap.counts.testGetValue();
+  Assert.equal(
+    sapEvent.length,
+    1,
+    "Should have recorded an event for the SAP search"
+  );
+  Assert.deepEqual(
+    sapEvent[0].extra,
+    {
+      provider_id: "other",
+      provider_name: "MozSearch",
+      source: "newtab",
+    },
+    "Should have the expected event telemetry data"
   );
 
   // Also also check Glean events.

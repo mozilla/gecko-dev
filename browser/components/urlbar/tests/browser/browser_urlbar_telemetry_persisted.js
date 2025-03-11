@@ -100,11 +100,18 @@ function assertScalarDoesNotExist(scalar) {
 // A user making a search after making a search should result
 // in the telemetry being recorded.
 add_task(async function search_after_search() {
-  let search_hist =
-    TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
+  clearSAPTelemetry();
 
   const tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
   await searchForString(SEARCH_STRING, tab);
+
+  assertSAPTelemetry({
+    id: "Example",
+    name: "Example",
+    source: "urlbar",
+    count: 1,
+  });
+  clearSAPTelemetry();
 
   // Scalar should not exist from a blank page, only when a search
   // is conducted from a default SERP.
@@ -115,12 +122,12 @@ add_task(async function search_after_search() {
   await searchForString(SEARCH_STRING, tab);
   assertScalarSearchEnter(1);
 
-  // Check search counts.
-  TelemetryTestUtils.assertKeyedHistogramSum(
-    search_hist,
-    "Example.urlbar-persisted",
-    1
-  );
+  assertSAPTelemetry({
+    id: "Example",
+    name: "Example",
+    source: "urlbar-persisted",
+    count: 1,
+  });
 
   BrowserTestUtils.removeTab(tab);
 });
@@ -128,11 +135,18 @@ add_task(async function search_after_search() {
 // A user going to a tab that contains a SERP should
 // trigger the telemetry when conducting a search.
 add_task(async function switch_to_tab_and_search() {
-  let search_hist =
-    TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
+  clearSAPTelemetry();
 
   const tab1 = await BrowserTestUtils.openNewForegroundTab(gBrowser);
   await searchForString(SEARCH_STRING, tab1);
+
+  assertSAPTelemetry({
+    id: "Example",
+    name: "Example",
+    source: "urlbar",
+    count: 1,
+  });
+  clearSAPTelemetry();
 
   const tab2 = await BrowserTestUtils.openNewForegroundTab(gBrowser);
   await gotoUrl("https://test1.example.com/", tab2);
@@ -141,12 +155,12 @@ add_task(async function switch_to_tab_and_search() {
   await searchForString(SEARCH_STRING, tab1);
   assertScalarSearchEnter(1);
 
-  // Check search count.
-  TelemetryTestUtils.assertKeyedHistogramSum(
-    search_hist,
-    "Example.urlbar-persisted",
-    1
-  );
+  assertSAPTelemetry({
+    id: "Example",
+    name: "Example",
+    source: "urlbar-persisted",
+    count: 1,
+  });
 
   BrowserTestUtils.removeTab(tab1);
   BrowserTestUtils.removeTab(tab2);
@@ -155,13 +169,20 @@ add_task(async function switch_to_tab_and_search() {
 // A user going back to a SERP and doing another search should
 // record urlbar-persisted telemetry.
 add_task(async function search_and_go_back_and_search_again() {
-  let search_hist =
-    TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
+  clearSAPTelemetry();
 
   const tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
 
   let serpUrl = await searchForString(SEARCH_STRING, tab);
   await gotoUrl("https://test2.example.com/", tab);
+
+  assertSAPTelemetry({
+    id: "Example",
+    name: "Example",
+    source: "urlbar",
+    count: 1,
+  });
+  clearSAPTelemetry();
 
   // Go back to the SERP.
   await goBack(tab.linkedBrowser, serpUrl);
@@ -171,12 +192,12 @@ add_task(async function search_and_go_back_and_search_again() {
   await searchForString(SEARCH_STRING, tab);
   assertScalarSearchEnter(1);
 
-  // Check search count.
-  TelemetryTestUtils.assertKeyedHistogramSum(
-    search_hist,
-    "Example.urlbar-persisted",
-    1
-  );
+  assertSAPTelemetry({
+    id: "Example",
+    name: "Example",
+    source: "urlbar-persisted",
+    count: 1,
+  });
 
   BrowserTestUtils.removeTab(tab);
 });

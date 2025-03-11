@@ -208,6 +208,18 @@ class BrowserSearchTelemetryHandler {
         Glean.sap.deprecatedCounts[countIdSource].add();
       }
 
+      Glean.sap.counts.record({
+        source,
+        provider_id: engine.isAppProvided ? engine.id : "other",
+        provider_name: engine.name,
+        // If the partner code is an empty string (not specified), then we
+        // simply pass undefined, because this field will then not be reported in
+        // Glean. Unfortunately the XPCOM interfaces force us to have an empty
+        // string rather than undefined.
+        partner_code:
+          engine.partnerCode === "" ? undefined : engine.partnerCode,
+      });
+
       // Dispatch the search signal to other handlers.
       switch (source) {
         case "urlbar":

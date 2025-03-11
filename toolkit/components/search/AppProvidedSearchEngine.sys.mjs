@@ -432,6 +432,8 @@ export class AppProvidedSearchEngine extends SearchEngine {
    */
   #prevEngineInfo = null;
 
+  #partnerCode = "";
+
   /**
    * @param {object} options
    *   The options for this search engine.
@@ -541,6 +543,14 @@ export class AppProvidedSearchEngine extends SearchEngine {
   }
 
   /**
+   * @type {string}
+   *   The partner code being used by this search engine in the Search URL.
+   */
+  get partnerCode() {
+    return this.#partnerCode;
+  }
+
+  /**
    * Returns the icon URL for the search engine closest to the preferred width.
    *
    * @param {number} preferredWidth
@@ -638,6 +648,7 @@ export class AppProvidedSearchEngine extends SearchEngine {
     this._name = engineConfig.name.trim();
     this._definedAliases =
       engineConfig.aliases?.map(alias => `@${alias}`) ?? [];
+    this.#partnerCode = engineConfig.partnerCode;
 
     for (const [type, urlData] of Object.entries(engineConfig.urls)) {
       if (urlData) {

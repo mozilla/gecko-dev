@@ -132,6 +132,46 @@ newtab.search.ad:
       - newtab
 
 sap:
+  counts:
+    type: event
+    description: >
+      Recorded search counts when a user initiates a search from a search access
+      point (SAP). It does not guarantee that the search engine result page was
+      loaded successfully (use SERP telemetry).
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1938929
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1938929
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    extra_keys:
+      source:
+        description: >
+          The search access point from which the user initiated the search.
+          Possible values are:
+          `abouthome`, `contextmenu`, `newtab`, `searchbar`, `system`, `urlbar`,
+          `urlbar-handoff`, `urlbar-persisted`, `urlbar-searchmode`, `webextension`
+        type: string
+      provider_id:
+        description: >
+          The identifier of the search engine provider that is being used for the
+          search. Note this may be different to the identifier of the provider in
+          SERP reports. For user installed engines, this will be the string `other`.
+        type: string
+      provider_name:
+        description: >
+          The name of the search engine provider that is being used for the search.
+        type: string
+      partner_code:
+        description: >
+          The partner code, if defined/known, that is being used for the search.
+          Not all search engines have partner codes.
+        type: string
+
   deprecated_counts:
     type: labeled_counter
     description: >

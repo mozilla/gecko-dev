@@ -16,6 +16,7 @@ interface GleanImpl {
   }
 
   sap: {
+    counts: GleanEvent;
     deprecatedCounts: Record<string, GleanCounter>;
   }
 

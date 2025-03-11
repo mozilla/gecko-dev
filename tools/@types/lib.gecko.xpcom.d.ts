@@ -11387,6 +11387,7 @@ interface nsISearchEngine extends nsISupports {
   readonly searchUrlDomain: string;
   readonly clickUrl: string;
   readonly searchForm: string;
+  readonly partnerCode: string;
 }
 
 interface nsISearchParseSubmissionResult extends nsISupports {

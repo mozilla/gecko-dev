@@ -102,6 +102,22 @@ add_task(async function test_abouthome_activitystream_simpleQuery() {
     1
   );
 
+  let sapEvent = Glean.sap.counts.testGetValue();
+  Assert.equal(
+    sapEvent.length,
+    1,
+    "Should have recorded an event for the SAP search"
+  );
+  Assert.deepEqual(
+    sapEvent[0].extra,
+    {
+      provider_id: "other",
+      provider_name: "MozSearch",
+      source: "abouthome",
+    },
+    "Should have the expected event telemetry data"
+  );
+
   // Also check Glean events.
   const record = Glean.newtabSearch.issued.testGetValue();
   Assert.ok(!!record, "Must have recorded a search issuance");

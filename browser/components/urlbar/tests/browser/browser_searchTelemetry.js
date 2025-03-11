@@ -190,14 +190,12 @@ async function compareCounts(clickCallback) {
 
   let engine = await Services.search.getDefault();
 
-  let histogramKey = `other-${engine.name}.urlbar`;
-  let histogram = Services.telemetry.getKeyedHistogramById("SEARCH_COUNTS");
-  histogram.clear();
+  clearSAPTelemetry();
 
   gURLBar.focus();
   await clickCallback();
 
-  TelemetryTestUtils.assertKeyedHistogramSum(histogram, histogramKey, 1);
+  assertSAPTelemetry({ name: engine.name, source: "urlbar", count: 1 });
 }
 
 /**

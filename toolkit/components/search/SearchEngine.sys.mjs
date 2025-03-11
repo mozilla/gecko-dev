@@ -970,6 +970,14 @@ export class SearchEngine {
   }
 
   /**
+   * @type {string}
+   *   The partner code being used by this search engine in the Search URL.
+   */
+  get partnerCode() {
+    return "";
+  }
+
+  /**
    * Loads engine settings (_metaData) from the list of settings, finding
    * the appropriate details for this engine.
    *

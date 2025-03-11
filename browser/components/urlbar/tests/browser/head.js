@@ -402,3 +402,52 @@ async function focusSwitcher(win = window) {
     () => win.document.activeElement == switcher
   );
 }
+
+/**
+ * Clears the SAP telemetry probes (SEARCH_COUNTS and all of Glean).
+ */
+function clearSAPTelemetry() {
+  TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
+  Services.fog.testResetFOG();
+}
+
+/**
+ * Asserts that the SAP telemetry is reported correctly. You may need to call
+ * `clearSAPTelemetry` before running the test, if you want empty counts.
+ *
+ * @param {object} expected
+ * @param {string} expected.name
+ * @param {string} expected.source
+ * @param {number} expected.count
+ * @param {?string} [expected.id]
+ */
+function assertSAPTelemetry({ id = null, name, source, count }) {
+  let histogram = Services.telemetry.getKeyedHistogramById("SEARCH_COUNTS");
+
+  let histogramKey = `${id ? "" : "other-"}${name}.${source}`;
+
+  TelemetryTestUtils.assertKeyedHistogramSum(histogram, histogramKey, count);
+  // Also ensure no other keys were set.
+  let snapshot = histogram.snapshot();
+  Assert.deepEqual(
+    Object.keys(snapshot),
+    [histogramKey],
+    "Should have only the expected key in the histogram"
+  );
+
+  let sapEvent = Glean.sap.counts.testGetValue();
+  Assert.equal(
+    sapEvent.length,
+    count,
+    "Should have recorded an event for the SAP search"
+  );
+  Assert.deepEqual(
+    sapEvent[0].extra,
+    {
+      provider_id: id ?? "other",
+      provider_name: name,
+      source,
+    },
+    "Should have the expected event telemetry data"
+  );
+}

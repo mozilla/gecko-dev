@@ -198,6 +198,11 @@ interface nsISearchEngine : nsISupports
    */
   readonly attribute AString searchForm;
 
+  /**
+   * The partner code being used by this search engine in the Search URL.
+   * @return {string}
+   */
+  readonly attribute AUTF8String partnerCode;
 };
 
 [scriptable, uuid(0dc93e51-a7bf-4a16-862d-4b3469ff6206)]

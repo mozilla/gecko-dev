@@ -9,22 +9,12 @@ add_setup(async function () {
     url: getRootDirectory(gTestPath) + "testEngine.xml",
     setAsDefault: true,
   });
+  TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
+  Services.fog.testResetFOG();
 });
 
 add_task(async function test() {
   let histogramKey = "other-" + engine.name + ".contextmenu";
-  let numSearchesBefore = 0;
-
-  try {
-    let hs = Services.telemetry
-      .getKeyedHistogramById("SEARCH_COUNTS")
-      .snapshot();
-    if (histogramKey in hs) {
-      numSearchesBefore = hs[histogramKey].sum;
-    }
-  } catch (ex) {
-    // No searches performed yet, not a problem, |numSearchesBefore| is 0.
-  }
 
   let tabs = [];
   let tabsLoadedDeferred = new Deferred();
@@ -85,8 +75,27 @@ add_task(async function test() {
     let hs = Services.telemetry
       .getKeyedHistogramById("SEARCH_COUNTS")
       .snapshot();
-    return histogramKey in hs && hs[histogramKey].sum == numSearchesBefore + 2;
+    return histogramKey in hs && hs[histogramKey].sum == 2;
   }, "The histogram must contain the correct search count");
+
+  let sapEvent = Glean.sap.counts.testGetValue();
+  Assert.equal(
+    sapEvent.length,
+    2,
+    "Should have recorded the correct number of searches"
+  );
+  Assert.deepEqual(
+    sapEvent.map(e => e.extra),
+    [
+      {
+        provider_id: "other",
+        provider_name: "Foo",
+        source: "contextmenu",
+      },
+      { provider_id: "other", provider_name: "Foo", source: "contextmenu" },
+    ],
+    "Should have the expected event telemetry data"
+  );
 });
 
 function Deferred() {
