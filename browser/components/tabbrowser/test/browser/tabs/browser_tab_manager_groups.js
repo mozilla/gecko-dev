@@ -244,8 +244,8 @@ add_task(async function test_tabGroupsView() {
   group1 = gBrowser.getTabGroupById(savedGroupId);
   Assert.ok(group1, "Group 1 has been restored");
 
-  gBrowser.removeTabGroup(group1);
-  gBrowser.removeTabGroup(group2);
+  await gBrowser.removeTabGroup(group1);
+  await gBrowser.removeTabGroup(group2);
   forgetSavedTabGroups();
 });
 
