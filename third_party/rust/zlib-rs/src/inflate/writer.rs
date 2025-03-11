@@ -2,6 +2,7 @@ use core::fmt;
 use core::mem::MaybeUninit;
 use core::ops::Range;
 
+use crate::cpu_features::CpuFeatures;
 use crate::weak_slice::WeakSliceMut;
 
 pub struct Writer<'a> {
@@ -77,10 +78,34 @@ impl<'a> Writer<'a> {
 
     #[inline(always)]
     pub fn extend_from_window(&mut self, window: &super::window::Window, range: Range<usize>) {
-        #[cfg(target_arch = "x86_64")]
-        if crate::cpu_features::is_enabled_avx512() {
-            return self.extend_from_window_help::<core::arch::x86_64::__m512i>(window, range);
+        self.extend_from_window_with_features::<{ CpuFeatures::NONE }>(window, range)
+    }
+
+    pub fn extend_from_window_with_features<const FEATURES: usize>(
+        &mut self,
+        window: &super::window::Window,
+        range: Range<usize>,
+    ) {
+        match FEATURES {
+            #[cfg(target_arch = "x86_64")]
+            CpuFeatures::AVX2 => {
+                self.extend_from_window_help::<core::arch::x86_64::__m256i>(window, range)
+            }
+            _ => self.extend_from_window_runtime_dispatch(window, range),
         }
+    }
+
+    fn extend_from_window_runtime_dispatch(
+        &mut self,
+        window: &super::window::Window,
+        range: Range<usize>,
+    ) {
+        // NOTE: the dynamic check for avx512 makes avx2 slower. Measure this carefully before re-enabling
+        //
+        //        #[cfg(target_arch = "x86_64")]
+        //        if crate::cpu_features::is_enabled_avx512() {
+        //            return self.extend_from_window_help::<core::arch::x86_64::__m512i>(window, range);
+        //        }
 
         #[cfg(target_arch = "x86_64")]
         if crate::cpu_features::is_enabled_avx2() {
@@ -138,10 +163,31 @@ impl<'a> Writer<'a> {
 
     #[inline(always)]
     pub fn copy_match(&mut self, offset_from_end: usize, length: usize) {
-        #[cfg(target_arch = "x86_64")]
-        if crate::cpu_features::is_enabled_avx512() {
-            return self.copy_match_help::<core::arch::x86_64::__m512i>(offset_from_end, length);
+        self.copy_match_with_features::<{ CpuFeatures::NONE }>(offset_from_end, length)
+    }
+
+    #[inline(always)]
+    pub fn copy_match_with_features<const FEATURES: usize>(
+        &mut self,
+        offset_from_end: usize,
+        length: usize,
+    ) {
+        match FEATURES {
+            #[cfg(target_arch = "x86_64")]
+            CpuFeatures::AVX2 => {
+                self.copy_match_help::<core::arch::x86_64::__m256i>(offset_from_end, length)
+            }
+            _ => self.copy_match_runtime_dispatch(offset_from_end, length),
         }
+    }
+
+    fn copy_match_runtime_dispatch(&mut self, offset_from_end: usize, length: usize) {
+        // NOTE: the dynamic check for avx512 makes avx2 slower. Measure this carefully before re-enabling
+        //
+        //        #[cfg(target_arch = "x86_64")]
+        //        if crate::cpu_features::is_enabled_avx512() {
+        //            return self.copy_match_help::<core::arch::x86_64::__m512i>(offset_from_end, length);
+        //        }
 
         #[cfg(target_arch = "x86_64")]
         if crate::cpu_features::is_enabled_avx2() {

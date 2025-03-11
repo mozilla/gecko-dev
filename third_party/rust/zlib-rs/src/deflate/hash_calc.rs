@@ -3,28 +3,15 @@ use crate::deflate::{State, HASH_SIZE, STD_MIN_MATCH};
 #[derive(Debug, Clone, Copy)]
 pub enum HashCalcVariant {
     Standard,
-    /// # Safety
-    ///
-    /// This variant should only be used on supported systems, checked at runtime. See
-    /// [`Crc32HashCalc`].
-    Crc32,
     Roll,
 }
 
 impl HashCalcVariant {
-    #[cfg(test)]
-    pub fn for_compression_level(level: usize) -> Self {
-        let max_chain_length = crate::deflate::algorithm::CONFIGURATION_TABLE[level].max_chain;
-        Self::for_max_chain_length(max_chain_length as usize)
-    }
-
     /// Use rolling hash for deflate_slow algorithm with level 9. It allows us to
     /// properly lookup different hash chains to speed up longest_match search.
-    pub fn for_max_chain_length(max_chain_length: usize) -> Self {
+    pub fn for_max_chain_length(max_chain_length: u16) -> Self {
         if max_chain_length > 1024 {
             HashCalcVariant::Roll
-        } else if Crc32HashCalc::is_supported() {
-            HashCalcVariant::Crc32
         } else {
             HashCalcVariant::Standard
         }
@@ -104,10 +91,10 @@ impl RollHashCalc {
     pub fn quick_insert_string(state: &mut State, string: usize) -> u16 {
         let val = state.window.filled()[string + Self::HASH_CALC_OFFSET] as u32;
 
-        state.ins_h = Self::hash_calc(state.ins_h as u32, val) as usize;
-        state.ins_h &= Self::HASH_CALC_MASK as usize;
+        state.ins_h = Self::hash_calc(state.ins_h, val);
+        state.ins_h &= Self::HASH_CALC_MASK;
 
-        let hm = state.ins_h;
+        let hm = state.ins_h as usize;
 
         let head = state.head.as_slice()[hm];
         if head != string as u16 {
@@ -124,108 +111,9 @@ impl RollHashCalc {
         for (i, val) in slice.iter().copied().enumerate() {
             let idx = string as u16 + i as u16;
 
-            state.ins_h = Self::hash_calc(state.ins_h as u32, val as u32) as usize;
-            state.ins_h &= Self::HASH_CALC_MASK as usize;
-            let hm = state.ins_h;
-
-            let head = state.head.as_slice()[hm];
-            if head != idx {
-                state.prev.as_mut_slice()[idx as usize & state.w_mask] = head;
-                state.head.as_mut_slice()[hm] = idx;
-            }
-        }
-    }
-}
-
-/// # Safety
-///
-/// The methods of this struct can only be executed if the system has platform support, otherwise
-/// the result is UB. Use [`Self::is_supported()`] to check at runtime whether the system has
-/// support before executing any methods.
-pub struct Crc32HashCalc;
-
-impl Crc32HashCalc {
-    fn is_supported() -> bool {
-        #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-        return crate::cpu_features::is_enabled_sse42();
-
-        // NOTE: more recent versions of zlib-ng no longer use the crc instructions on aarch64
-        #[cfg(target_arch = "aarch64")]
-        return crate::cpu_features::is_enabled_crc();
-
-        #[allow(unreachable_code)]
-        false
-    }
-
-    const HASH_CALC_OFFSET: usize = 0;
-
-    const HASH_CALC_MASK: u32 = (HASH_SIZE - 1) as u32;
-
-    #[cfg(target_arch = "x86")]
-    #[target_feature(enable = "sse4.2")]
-    unsafe fn hash_calc(h: u32, val: u32) -> u32 {
-        unsafe { core::arch::x86::_mm_crc32_u32(h, val) }
-    }
-
-    #[cfg(target_arch = "x86_64")]
-    #[target_feature(enable = "sse4.2")]
-    unsafe fn hash_calc(h: u32, val: u32) -> u32 {
-        unsafe { core::arch::x86_64::_mm_crc32_u32(h, val) }
-    }
-
-    #[cfg(target_arch = "aarch64")]
-    #[target_feature(enable = "neon")]
-    unsafe fn hash_calc(h: u32, val: u32) -> u32 {
-        unsafe { crate::crc32::acle::__crc32w(h, val) }
-    }
-
-    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))]
-    unsafe fn hash_calc(_h: u32, _val: u32) -> u32 {
-        assert!(!Self::is_supported());
-        unimplemented!("there is no hardware support on this platform")
-    }
-
-    #[cfg_attr(target_arch = "aarch64", target_feature(enable = "neon"))]
-    #[cfg_attr(target_arch = "x86", target_feature(enable = "sse4.2"))]
-    #[cfg_attr(target_arch = "x86_64", target_feature(enable = "sse4.2"))]
-    pub unsafe fn update_hash(h: u32, val: u32) -> u32 {
-        (unsafe { Self::hash_calc(h, val) }) & Self::HASH_CALC_MASK
-    }
-
-    #[cfg_attr(target_arch = "aarch64", target_feature(enable = "neon"))]
-    #[cfg_attr(target_arch = "x86", target_feature(enable = "sse4.2"))]
-    #[cfg_attr(target_arch = "x86_64", target_feature(enable = "sse4.2"))]
-    pub unsafe fn quick_insert_string(state: &mut State, string: usize) -> u16 {
-        let slice = &state.window.filled()[string + Self::HASH_CALC_OFFSET..];
-        let val = u32::from_le_bytes(slice[..4].try_into().unwrap());
-
-        let hm = unsafe { Self::update_hash(0, val) } as usize;
-
-        let head = state.head.as_slice()[hm];
-        if head != string as u16 {
-            state.prev.as_mut_slice()[string & state.w_mask] = head;
-            state.head.as_mut_slice()[hm] = string as u16;
-        }
-
-        head
-    }
-
-    #[cfg_attr(target_arch = "aarch64", target_feature(enable = "neon"))]
-    #[cfg_attr(target_arch = "x86", target_feature(enable = "sse4.2"))]
-    #[cfg_attr(target_arch = "x86_64", target_feature(enable = "sse4.2"))]
-    pub unsafe fn insert_string(state: &mut State, string: usize, count: usize) {
-        let slice = &state.window.filled()[string + Self::HASH_CALC_OFFSET..];
-
-        // it can happen that insufficient bytes are initialized
-        // .take(count) generates worse assembly
-        let slice = &slice[..Ord::min(slice.len(), count + 3)];
-
-        for (i, w) in slice.windows(4).enumerate() {
-            let idx = string as u16 + i as u16;
-
-            let val = u32::from_le_bytes(w.try_into().unwrap());
-
-            let hm = unsafe { Self::update_hash(0, val) } as usize;
+            state.ins_h = Self::hash_calc(state.ins_h, val as u32);
+            state.ins_h &= Self::HASH_CALC_MASK;
+            let hm = state.ins_h as usize;
 
             let head = state.head.as_slice()[hm];
             if head != idx {
@@ -239,48 +127,6 @@ impl Crc32HashCalc {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    #[cfg_attr(
-        not(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")),
-        ignore = "no crc32 hardware support on this platform"
-    )]
-    fn crc32_hash_calc() {
-        if !Crc32HashCalc::is_supported() {
-            return;
-        }
-
-        unsafe {
-            if cfg!(target_arch = "x86") || cfg!(target_arch = "x86_64") {
-                assert_eq!(Crc32HashCalc::hash_calc(0, 807411760), 2423125009);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 540024864), 1452438466);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 538980384), 435552201);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 807411760), 2423125009);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 540024864), 1452438466);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 538980384), 435552201);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 807411760), 2423125009);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 540024864), 1452438466);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 538980384), 435552201);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 807411760), 2423125009);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 540024864), 1452438466);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 538980384), 435552201);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 807411760), 2423125009);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 170926112), 500028708);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 537538592), 3694129053);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 538970672), 373925026);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 538976266), 4149335727);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 538976288), 1767342659);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 941629472), 4090502627);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 775430176), 1744703325);
-            } else {
-                assert_eq!(Crc32HashCalc::hash_calc(0, 807411760), 2067507791);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 540024864), 2086141925);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 538980384), 716394180);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 775430176), 1396070634);
-                assert_eq!(Crc32HashCalc::hash_calc(0, 941629472), 637105634);
-            }
-        }
-    }
 
     #[test]
     fn roll_hash_calc() {

@@ -14,6 +14,7 @@ mod writer;
 
 use crate::allocate::Allocator;
 use crate::c_api::internal_state;
+use crate::cpu_features::CpuFeatures;
 use crate::{
     adler32::adler32,
     c_api::{gz_header, z_checksum, z_size, z_stream, Z_DEFLATED},
@@ -1856,7 +1857,28 @@ impl State<'_> {
     }
 }
 
-fn inflate_fast_help(state: &mut State, _start: usize) {
+fn inflate_fast_help(state: &mut State, start: usize) {
+    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+    if crate::cpu_features::is_enabled_avx2() {
+        // SAFETY: we've verified the target features
+        return unsafe { inflate_fast_help_avx2(state, start) };
+    }
+
+    inflate_fast_help_vanilla(state, start);
+}
+
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+#[target_feature(enable = "avx2")]
+unsafe fn inflate_fast_help_avx2(state: &mut State, start: usize) {
+    inflate_fast_help_impl::<{ CpuFeatures::AVX2 }>(state, start);
+}
+
+fn inflate_fast_help_vanilla(state: &mut State, start: usize) {
+    inflate_fast_help_impl::<{ CpuFeatures::NONE }>(state, start);
+}
+
+#[inline(always)]
+fn inflate_fast_help_impl<const FEATURES: usize>(state: &mut State, _start: usize) {
     let mut bit_reader = BitReader::new(&[]);
     core::mem::swap(&mut bit_reader, &mut state.bit_reader);
 
@@ -1988,23 +2010,32 @@ fn inflate_fast_help(state: &mut State, _start: usize) {
                                     // window, and part of it has wrapped around to the start. Copy
                                     // the end section here, the start section will be copied below.
                                     len -= op as u16;
-                                    writer.extend_from_window(&state.window, from..from + op);
+                                    writer.extend_from_window_with_features::<FEATURES>(
+                                        &state.window,
+                                        from..from + op,
+                                    );
                                     from = 0;
                                     op = window_next;
                                 }
                             }
 
                             let copy = Ord::min(op, len as usize);
-                            writer.extend_from_window(&state.window, from..from + copy);
+                            writer.extend_from_window_with_features::<FEATURES>(
+                                &state.window,
+                                from..from + copy,
+                            );
 
                             if op < len as usize {
                                 // here we need some bytes from the output itself
-                                writer.copy_match(dist as usize, len as usize - op);
+                                writer.copy_match_with_features::<FEATURES>(
+                                    dist as usize,
+                                    len as usize - op,
+                                );
                             }
                         } else if extra_safe {
                             todo!()
                         } else {
-                            writer.copy_match(dist as usize, len as usize)
+                            writer.copy_match_with_features::<FEATURES>(dist as usize, len as usize)
                         }
                     } else if (op & 64) == 0 {
                         // 2nd level distance code
@@ -2121,8 +2152,9 @@ pub fn init(stream: &mut z_stream, config: InflateConfig) -> ReturnCode {
         return ReturnCode::MemError;
     };
 
-    unsafe { state_allocation.write(state) };
-    stream.state = state_allocation as *mut internal_state;
+    // FIXME: write is stable for NonNull since 1.80.0
+    unsafe { state_allocation.as_ptr().write(state) };
+    stream.state = state_allocation.as_ptr() as *mut internal_state;
 
     // SAFETY: we've correctly initialized the stream to be an InflateStream
     let ret = if let Some(stream) = unsafe { InflateStream::from_stream_mut(stream) } {
@@ -2470,7 +2502,7 @@ pub unsafe fn copy<'a>(
     if !state.window.is_empty() {
         let Some(window) = state.window.clone_in(&source.alloc) else {
             // SAFETY: state_allocation is not used again.
-            source.alloc.deallocate(state_allocation, 1);
+            source.alloc.deallocate(state_allocation.as_ptr(), 1);
             return ReturnCode::MemError;
         };
 
@@ -2478,11 +2510,11 @@ pub unsafe fn copy<'a>(
     }
 
     // write the cloned state into state_ptr
-    unsafe { state_allocation.write(copy) };
+    unsafe { state_allocation.as_ptr().write(copy) }; // FIXME: write is stable for NonNull since 1.80.0
 
     // insert the state_ptr into `dest`
     let field_ptr = unsafe { core::ptr::addr_of_mut!((*dest.as_mut_ptr()).state) };
-    unsafe { core::ptr::write(field_ptr as *mut *mut State, state_allocation) };
+    unsafe { core::ptr::write(field_ptr as *mut *mut State, state_allocation.as_ptr()) };
 
     // update the writer; it cannot be cloned so we need to use some shennanigans
     let field_ptr = unsafe { core::ptr::addr_of_mut!((*dest.as_mut_ptr()).state.writer) };

@@ -49,7 +49,7 @@ pub fn deflate_slow(stream: &mut DeflateStream, flush: DeflateFlush) -> BlockSta
         };
 
         // Find the longest match, discarding those <= prev_length.
-        state.prev_match = state.match_start as u16;
+        state.prev_match = state.match_start;
         match_len = STD_MIN_MATCH - 1;
         dist = state.strstart as isize - hash_head as isize;
 
@@ -76,7 +76,7 @@ pub fn deflate_slow(stream: &mut DeflateStream, flush: DeflateFlush) -> BlockSta
 
         // If there was a match at the previous step and the current
         // match is not better, output the previous match:
-        if state.prev_length >= STD_MIN_MATCH && match_len <= state.prev_length {
+        if state.prev_length as usize >= STD_MIN_MATCH && match_len <= state.prev_length as usize {
             let max_insert = state.strstart + state.lookahead - STD_MIN_MATCH;
             /* Do not insert strings in hash table beyond this. */
 
@@ -84,7 +84,7 @@ pub fn deflate_slow(stream: &mut DeflateStream, flush: DeflateFlush) -> BlockSta
 
             bflush = state.tally_dist(
                 state.strstart - 1 - state.prev_match as usize,
-                state.prev_length - STD_MIN_MATCH,
+                state.prev_length as usize - STD_MIN_MATCH,
             );
 
             /* Insert in hash table all strings up to the end of the match.
@@ -93,9 +93,9 @@ pub fn deflate_slow(stream: &mut DeflateStream, flush: DeflateFlush) -> BlockSta
              * the hash table.
              */
             state.prev_length -= 1;
-            state.lookahead -= state.prev_length;
+            state.lookahead -= state.prev_length as usize;
 
-            let mov_fwd = state.prev_length - 1;
+            let mov_fwd = state.prev_length as usize - 1;
             if max_insert > state.strstart {
                 let insert_cnt = Ord::min(mov_fwd, max_insert - state.strstart);
                 state.insert_string(state.strstart + 1, insert_cnt);
@@ -118,7 +118,7 @@ pub fn deflate_slow(stream: &mut DeflateStream, flush: DeflateFlush) -> BlockSta
                 flush_block_only(stream, false);
             }
 
-            stream.state.prev_length = match_len;
+            stream.state.prev_length = match_len as u16;
             stream.state.strstart += 1;
             stream.state.lookahead -= 1;
             if stream.avail_out == 0 {
@@ -127,7 +127,7 @@ pub fn deflate_slow(stream: &mut DeflateStream, flush: DeflateFlush) -> BlockSta
         } else {
             // There is no previous match to compare with, wait for
             // the next step to decide.
-            state.prev_length = match_len;
+            state.prev_length = match_len as u16;
             state.match_available = true;
             match_available = true;
             state.strstart += 1;

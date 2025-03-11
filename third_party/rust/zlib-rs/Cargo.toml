@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.75"
 name = "zlib-rs"
-version = "0.4.1"
+version = "0.4.2"
 build = false
 publish = true
 autolib = false
@@ -44,6 +44,9 @@ default-features = false
 
 [dev-dependencies.crc32fast]
 version = "1.3.2"
+
+[dev-dependencies.memoffset]
+version = "0.9.1"
 
 [dev-dependencies.quickcheck]
 version = "1.0.3"

@@ -53,7 +53,7 @@ pub fn deflate_fast(stream: &mut DeflateStream, flush: DeflateFlush) -> BlockSta
 
             // bflush = zng_tr_tally_dist(s, s->strstart - s->match_start, match_len - STD_MIN_MATCH);
             bflush = state.tally_dist(
-                state.strstart - state.match_start,
+                state.strstart - state.match_start as usize,
                 match_len - STD_MIN_MATCH,
             );
 

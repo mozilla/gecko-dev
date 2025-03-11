@@ -80,7 +80,7 @@ impl<'a> Pending<'a> {
     pub(crate) fn new_in(alloc: &Allocator<'a>, len: usize) -> Option<Self> {
         let ptr = alloc.allocate_slice_raw::<MaybeUninit<u8>>(len)?;
         // SAFETY: freshly allocated buffer
-        let buf = unsafe { WeakSliceMut::from_raw_parts_mut(ptr, len) };
+        let buf = unsafe { WeakSliceMut::from_raw_parts_mut(ptr.as_ptr(), len) };
 
         Some(Self {
             buf,

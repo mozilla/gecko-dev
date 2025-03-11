@@ -712,7 +712,7 @@ pub unsafe extern "C-unwind" fn inflateReset(strm: *mut z_stream) -> i32 {
 ///
 /// - [`Z_OK`] if success
 /// - [`Z_STREAM_ERROR`] if the source stream state was inconsistent, or if the `windowBits`
-///     parameter is invalid
+///   parameter is invalid
 ///
 /// # Safety
 ///
@@ -788,8 +788,8 @@ pub unsafe extern "C-unwind" fn inflateSetDictionary(
 /// - The `text`, `time`, `xflags`, and `os` fields are filled in with the gzip header contents.
 /// - `hcrc` is set to true if there is a header CRC. (The header CRC was valid if done is set to one.)
 /// - If `extra` is not `NULL`, then `extra_max` contains the maximum number of bytes to write to extra.
-///     Once `done` is `true`, `extra_len` contains the actual extra field length,
-///     and `extra` contains the extra field, or that field truncated if `extra_max` is less than `extra_len`.
+///   Once `done` is `true`, `extra_len` contains the actual extra field length,
+///   and `extra` contains the extra field, or that field truncated if `extra_max` is less than `extra_len`.
 /// - If `name` is not `NULL`, then up to `name_max` characters are written there, terminated with a zero unless the length is greater than `name_max`.
 /// - If `comment` is not `NULL`, then up to `comm_max` characters are written there, terminated with a zero unless the length is greater than `comm_max`.
 ///
