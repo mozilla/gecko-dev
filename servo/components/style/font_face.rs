@@ -491,18 +491,6 @@ pub fn parse_font_face_block(
 #[cfg(feature = "servo")]
 pub struct FontFace<'a>(&'a FontFaceRuleData);
 
-#[cfg(feature = "servo")]
-impl Iterator for EffectiveSources {
-    type Item = Source;
-    fn next(&mut self) -> Option<Source> {
-        self.0.pop()
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.0.len(), Some(self.0.len()))
-    }
-}
-
 struct FontFaceRuleParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
     rule: &'a mut FontFaceRuleData,
