@@ -1148,10 +1148,10 @@ void StyleSheet::FixUpAfterInnerClone() {
         RefPtr<StyleLockedImportRule> import =
             Servo_CssRules_GetImportRuleAt(rules, i, &line, &column).Consume();
         MOZ_ASSERT(import);
-        auto* sheet =
-            const_cast<StyleSheet*>(Servo_ImportRule_GetSheet(import));
-        MOZ_ASSERT(sheet);
-        AppendStyleSheetSilently(*sheet);
+        if (auto* sheet =
+                const_cast<StyleSheet*>(Servo_ImportRule_GetSheet(import))) {
+          AppendStyleSheetSilently(*sheet);
+        }
         break;
       }
       case StyleCssRuleType::LayerStatement:
