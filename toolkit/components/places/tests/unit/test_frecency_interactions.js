@@ -34,9 +34,6 @@ const VIEWTIME_IF_MANY_KEYPRESSES_THRESHOLD =
 const SAMPLED_VISITS_THRESHOLD = Services.prefs.getIntPref(
   "places.frecency.pages.alternative.numSampledVisits"
 );
-const INTERACTIONS_THRESHOLD = Services.prefs.getIntPref(
-  "places.frecency.pages.alternative.interactions.numInteractions"
-);
 const MAX_VISIT_GAP = Services.prefs.getIntPref(
   "places.frecency.pages.alternative.interactions.maxVisitGapSeconds"
 );
@@ -461,12 +458,13 @@ add_task(async function max_samples_threshold() {
   }
 });
 
-add_task(async function max_interactions_threshold() {
+// Verify that the number of interactions contributing to alternative frecency
+// is as expected. Avoid using actual visits, ensuring all interactions are
+// treated as virtual visits. Each virtual visit should increase the alternative
+// frecency score until the threshold is exceeded. Interactions are deliberately
+// inserted sequentially in the past, as the date can affect the score.
+add_task(async function max_interesting_interactions() {
   const today = new Date();
-  const yesterday = new Date();
-  const twoDaysAgo = new Date();
-  yesterday.setDate(today.getDate() - 1);
-  twoDaysAgo.setDate(today.getDate() - 2);
 
   let url = "https://testdomain1.moz.org/";
   await insertIntoMozPlaces({
@@ -480,37 +478,37 @@ add_task(async function max_interactions_threshold() {
   await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
   Assert.equal(page.alt_frecency, null, "Alt frecency is null");
 
-  info("Insert un-interesting interactions.");
-  for (let i = 0; i < INTERACTIONS_THRESHOLD; ++i) {
+  info("Insert interesting interactions until threshold is met.");
+  for (let i = 0; i < SAMPLED_VISITS_THRESHOLD; ++i) {
+    let pageBefore = await getPageWithUrl(url);
     await insertIntoMozPlacesMetadata(page.id, {
-      total_view_time: VIEWTIME_THRESHOLD - 1,
-      created_at: yesterday.getTime() + i,
+      total_view_time: VIEWTIME_THRESHOLD,
+      created_at: today.getTime() - i,
     });
+    await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
+    let pageAfter = await getPageWithUrl(url);
+    Assert.greater(
+      pageAfter.alt_frecency,
+      // The first run, alt frecency will be null.
+      pageBefore.alt_frecency ?? 0,
+      "Alt frecency has increased."
+    );
   }
 
-  // Alt frecency shouldn't change because the un-interesting interactions
-  // don't count as virtual visits.
-  await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
-  page = await getPageWithUrl(url);
-  Assert.equal(page.alt_frecency, null, "Alt frecency is null");
-
-  info("Insert an interesting interaction older than all interactions.");
+  info("Insert an interesting interaction beyond the threshold.");
+  let pageBefore = await getPageWithUrl(url);
   await insertIntoMozPlacesMetadata(page.id, {
     total_view_time: VIEWTIME_THRESHOLD,
-    created_at: twoDaysAgo.getTime(),
+    // Choose a time that would make this below all other existing interactions.
+    created_at: today.getTime() - 100,
   });
-
-  // Alt frecency should still change despite the interesting interaction is
-  // older than all existing interactions, all of which are un-interesting.
   await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
-  page = await getPageWithUrl(url);
-  Assert.notEqual(page.alt_frecency, null, "Alt frecency is null");
-
-  info("Insert an interesting interaction newer than all interactions.");
-  await insertIntoMozPlacesMetadata(page.id, {
-    total_view_time: VIEWTIME_THRESHOLD,
-    created_at: today.getTime(),
-  });
+  let pageAfter = await getPageWithUrl(url);
+  Assert.equal(
+    pageBefore.alt_frecency,
+    pageAfter.alt_frecency,
+    "Alt frecency is the same."
+  );
 
   await PlacesUtils.history.clear();
 });
