@@ -31,7 +31,7 @@ class SnapTestsBase:
     _INSTANCE = None
 
     def __init__(self, exp):
-        self._INSTANCE = os.environ.get("TEST_SNAP_INSTANCE", "firefox")
+        self._INSTANCE = os.environ.get("TEST_SNAP_INSTANCE")
 
         self._PROFILE_PATH = "~/snap/{}/common/.mozilla/firefox/".format(self._INSTANCE)
         self._LIB_PATH = r"/snap/{}/current/usr/lib/firefox/libxul.so".format(
@@ -65,6 +65,7 @@ class SnapTestsBase:
             prefix="snap-tests",
             dir=os.path.expanduser(self._PROFILE_PATH),
         )
+
         driver_service = Service(
             executable_path=self._EXE_PATH,
             log_output=os.path.join(
@@ -377,7 +378,7 @@ class SnapTests(SnapTestsBase):
         super(SnapTests, self).__init__(exp)
 
     def test_snap_core_base(self, exp):
-        assert self.snap_core_base() in ["22", "24"]
+        assert self.snap_core_base() in ["22", "24"], "Core base should be 22 or 24"
 
     def test_about_support(self, exp):
         self.open_tab("about:support")

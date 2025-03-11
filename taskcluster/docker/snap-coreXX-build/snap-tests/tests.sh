@@ -63,6 +63,12 @@ mkdir -p ~/.config/pip/ && cat > ~/.config/pip/pip.conf <<EOF
 break-system-packages = true
 EOF
 
+export TEST_SNAP_INSTANCE=${TEST_SNAP_INSTANCE:-firefox}
+SNAP_PROFILE_PATH="$HOME/snap/${TEST_SNAP_INSTANCE}/common/.mozilla/firefox/"
+if [ ! -d "${SNAP_PROFILE_PATH}" ]; then
+  mkdir -p "${SNAP_PROFILE_PATH}"
+fi
+
 python3 -m pip install --user -r requirements.txt
 
 # Required otherwise copy/paste does not work
