@@ -150,7 +150,40 @@ class ProviderQuickSuggestContextualOptIn extends UrlbarProvider {
   }
 
   isActive(queryContext) {
-    return this.#shouldDisplayContextualOptIn(queryContext);
+    if (!this.#shouldDisplayContextualOptIn(queryContext)) {
+      return false;
+    }
+
+    // Evaluate impressions in order to dismiss.
+    let firstImpressionTime = lazy.UrlbarPrefs.get(
+      "quicksuggest.contextualOptIn.firstImpressionTime"
+    );
+    if (!firstImpressionTime) {
+      return true;
+    }
+
+    let impressionCount = lazy.UrlbarPrefs.get(
+      "quicksuggest.contextualOptIn.impressionCount"
+    );
+    let impressionLimit = lazy.UrlbarPrefs.get(
+      "quicksuggest.contextualOptIn.impressionLimit"
+    );
+
+    if (impressionCount < impressionLimit) {
+      return true;
+    }
+
+    let daysLimit = lazy.UrlbarPrefs.get(
+      "quicksuggest.contextualOptIn.impressionDaysLimit"
+    );
+    let timeLimit = daysLimit * 24 * 60 * 60;
+    if (Date.now() / 1000 - firstImpressionTime < timeLimit) {
+      return true;
+    }
+
+    this.#dismiss();
+
+    return false;
   }
 
   getPriority() {
@@ -213,41 +246,20 @@ class ProviderQuickSuggestContextualOptIn extends UrlbarProvider {
     let impressionCount = lazy.UrlbarPrefs.get(
       "quicksuggest.contextualOptIn.impressionCount"
     );
-    let impressionLimit = lazy.UrlbarPrefs.get(
-      "quicksuggest.contextualOptIn.impressionLimit"
+    lazy.UrlbarPrefs.set(
+      "quicksuggest.contextualOptIn.impressionCount",
+      impressionCount + 1
     );
-
-    impressionCount += 1;
-    if (impressionCount >= impressionLimit) {
-      this.#dismiss();
-      return;
-    }
 
     let firstImpressionTime = lazy.UrlbarPrefs.get(
       "quicksuggest.contextualOptIn.firstImpressionTime"
     );
-
-    if (firstImpressionTime) {
-      let days = lazy.UrlbarPrefs.get(
-        "quicksuggest.contextualOptIn.impressionDaysLimit"
-      );
-
-      let time = days * 24 * 60 * 60;
-      if (Date.now() / 1000 - firstImpressionTime > time) {
-        this.#dismiss();
-        return;
-      }
-    } else {
+    if (!firstImpressionTime) {
       lazy.UrlbarPrefs.set(
         "quicksuggest.contextualOptIn.firstImpressionTime",
         Date.now() / 1000
       );
     }
-
-    lazy.UrlbarPrefs.set(
-      "quicksuggest.contextualOptIn.impressionCount",
-      impressionCount
-    );
   }
 
   onEngagement(queryContext, controller, details) {
