@@ -9,6 +9,7 @@ package org.mozilla.gecko;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.credentials.CreateCredentialException;
 import android.credentials.CreateCredentialRequest;
 import android.credentials.CreateCredentialResponse;
@@ -142,6 +143,13 @@ public class WebAuthnCredentialManager {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
       return GeckoResult.fromException(new WebAuthnUtils.Exception("NOT_SUPPORTED_ERR"));
     }
+    final Context context = GeckoAppShell.getApplicationContext();
+    // Some vendors disabled Credential Manager on Android 14+ devices.
+    // https://issuetracker.google.com/issues/349310440
+    if (!context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CREDENTIALS)) {
+      Log.w(LOGTAG, "Credential Manager is disabled on this device");
+      return GeckoResult.fromException(new WebAuthnUtils.Exception("NOT_SUPPORTED_ERR"));
+    }
 
     final Bundle requestBundle =
         getRequestBundleForMakeCredential(
@@ -166,7 +174,6 @@ public class WebAuthnCredentialManager {
             .setOrigin(credentialBundle.getString("origin"))
             .build();
 
-    final Context context = GeckoAppShell.getApplicationContext();
     final CredentialManager manager =
         (CredentialManager) context.getSystemService(Context.CREDENTIAL_SERVICE);
     if (manager == null) {
