@@ -316,6 +316,13 @@ impl<P, LP> GenericInset<P, LP> {
     pub fn auto() -> Self {
         Self::Auto
     }
+
+    /// Return true if it is 'auto'.
+    #[inline]
+    #[cfg(feature = "servo")]
+    pub fn is_auto(&self) -> bool {
+        matches!(self, Self::Auto)
+    }
 }
 
 pub use self::GenericInset as Inset;
