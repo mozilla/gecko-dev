@@ -46,10 +46,20 @@ function getFontPreviewData(font, doc, options) {
   // It should be safe to only add the quotes when the font has some spaces (generic family
   // names don't have spaces, https://developer.mozilla.org/en-US/docs/Web/CSS/font-family#generic-name)
   // We also don't want to add quotes if there are already some
-  if (FONT_NEED_WRAPPING_QUOTES_REGEX.test(font.trim())) {
-    font = `"${font}"`;
+  // `font` is the declaration value, so it can have multiple parts,
+  // e.g: `"Menlo", MonoLisa, monospace`
+  const fontParts = [];
+  // We could use the parser to properly handle complex values, for example css variable,
+  // but ideally this function would only receive computed values (see Bug 1952821).
+  // If we'd get `var(--x)` here, we'd have to resolve it somehow, so it'd be simpler to
+  // get the computed value directly.
+  for (let f of font.split(",")) {
+    if (FONT_NEED_WRAPPING_QUOTES_REGEX.test(f.trim())) {
+      f = `"${f}"`;
+    }
+    fontParts.push(f);
   }
-  const fontValue = `${fontStyle} ${previewFontSize}px ${font}, serif`;
+  const fontValue = `${fontStyle} ${previewFontSize}px ${fontParts.join(", ")}, serif`;
 
   // Get the correct preview text measurements and set the canvas dimensions
   ctx.font = fontValue;

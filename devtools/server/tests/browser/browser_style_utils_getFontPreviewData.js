@@ -159,5 +159,22 @@ add_task(async function () {
       `40px "Font Awesome 5 Brands", serif`,
       "Expected font style was used in the canvas"
     );
+
+    // Check multiple font
+    is(
+      getFontPreviewData(`Menlo, monospace`, content.document).ctx.font,
+      `40px Menlo, monospace, serif`,
+      "Expected font style was used in the canvas"
+    );
+
+    // Check multiple font some with quotes, some not
+    is(
+      getFontPreviewData(
+        `Menlo Bold, "Fira Code", 'Mono Lisa', monospace`,
+        content.document
+      ).ctx.font,
+      `40px "Menlo Bold", "Fira Code", "Mono Lisa", monospace, serif`,
+      "Expected font style was used in the canvas"
+    );
   });
 });
