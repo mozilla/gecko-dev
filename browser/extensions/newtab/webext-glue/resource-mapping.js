@@ -46,6 +46,10 @@ this.resourceMapping = class extends ExtensionAPI {
     }
 
     Components.manager.addBootstrappedManifestLocation(this.#manifest);
+    let redirector = Cc[
+      "@mozilla.org/network/protocol/about;1?what=newtab"
+    ].getService(Ci.nsIAboutModule).wrappedJSObject;
+    redirector.builtInAddonInitialized();
   }
 
   onShutdown() {

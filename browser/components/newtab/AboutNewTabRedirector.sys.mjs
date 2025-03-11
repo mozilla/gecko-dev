@@ -29,7 +29,6 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  AddonManagerPrivate: "resource://gre/modules/AddonManager.sys.mjs",
   BasePromiseWorker: "resource://gre/modules/PromiseWorker.sys.mjs",
 });
 
@@ -60,8 +59,6 @@ const IS_PRIVILEGED_PROCESS =
 const PREF_SEPARATE_PRIVILEGEDABOUT_CONTENT_PROCESS =
   "browser.tabs.remote.separatePrivilegedContentProcess";
 const PREF_ACTIVITY_STREAM_DEBUG = "browser.newtabpage.activity-stream.debug";
-
-const BUILTIN_ADDON_ID = "newtab@mozilla.org";
 
 /**
  * The AboutHomeStartupCacheChild is responsible for connecting the
@@ -495,10 +492,7 @@ export class AboutNewTabRedirectorParent extends BaseAboutNewTabRedirector {
       matches: ["about:home*", "about:newtab*"],
       remoteTypes: ["privilegedabout"],
     });
-
-    if (AppConstants.BROWSER_NEWTAB_AS_ADDON) {
-      this.#waitForBuiltInAddonInitialized();
-    }
+    this.wrappedJSObject = this;
   }
 
   /**
@@ -510,15 +504,7 @@ export class AboutNewTabRedirectorParent extends BaseAboutNewTabRedirector {
    *   Resolves when the built-in addon has initialized and all suspended
    *   channels are resumed.
    */
-  async #waitForBuiltInAddonInitialized() {
-    let addon = WebExtensionPolicy.getByID(BUILTIN_ADDON_ID);
-    if (!addon?.readyPromise) {
-      await lazy.AddonManagerPrivate.databaseReady;
-      addon = WebExtensionPolicy.getByID(BUILTIN_ADDON_ID);
-    }
-
-    await addon.readyPromise;
-
+  builtInAddonInitialized() {
     this.#addonInitialized = true;
 
     for (let suspendedChannel of this.#suspendedChannels) {
