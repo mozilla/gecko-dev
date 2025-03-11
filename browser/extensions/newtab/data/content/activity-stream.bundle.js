@@ -10110,7 +10110,7 @@ function InterestPicker({
   const [focusedIndex, setFocusedIndex] = (0,external_React_namespaceObject.useState)(0);
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
   const visibleSections = prefs[PREF_VISIBLE_SECTIONS]?.split(",").map(item => item.trim()).filter(item => item);
-  const following = prefs[PREF_FOLLOWED_SECTIONS] ? prefs[PREF_FOLLOWED_SECTIONS].split(",") : [];
+  const following = prefs[PREF_FOLLOWED_SECTIONS]?.split(",").map(item => item.trim()).filter(item => item) || [];
   const handleIntersection = (0,external_React_namespaceObject.useCallback)(() => {
     dispatch(actionCreators.AlsoToMain({
       type: actionTypes.INLINE_SELECTION_IMPRESSION,
@@ -10158,7 +10158,7 @@ function InterestPicker({
         // add section to visible sections and place after the inline picker
         // subtract 1 from the rank so that it is normalized with array index
         visibleSections.splice(receivedFeedRank - 1, 0, topic);
-        dispatch(actionCreators.SetPref(PREF_VISIBLE_SECTIONS, visibleSections.join(",")));
+        dispatch(actionCreators.SetPref(PREF_VISIBLE_SECTIONS, visibleSections.join(", ")));
       }
     } else {
       updatedTopics = updatedTopics.filter(t => t !== topic);
@@ -10172,7 +10172,7 @@ function InterestPicker({
         position: receivedFeedRank
       }
     }));
-    dispatch(actionCreators.SetPref(PREF_FOLLOWED_SECTIONS, updatedTopics.join(",")));
+    dispatch(actionCreators.SetPref(PREF_FOLLOWED_SECTIONS, updatedTopics.join(", ")));
   }
   return /*#__PURE__*/external_React_default().createElement("section", {
     className: "inline-selection-wrapper ds-section",

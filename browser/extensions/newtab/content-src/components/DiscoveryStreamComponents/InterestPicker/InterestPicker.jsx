@@ -26,10 +26,10 @@ function InterestPicker({ title, subtitle, interests, receivedFeedRank }) {
   const visibleSections = prefs[PREF_VISIBLE_SECTIONS]?.split(",")
     .map(item => item.trim())
     .filter(item => item);
-
-  const following = prefs[PREF_FOLLOWED_SECTIONS]
-    ? prefs[PREF_FOLLOWED_SECTIONS].split(",")
-    : [];
+  const following =
+    prefs[PREF_FOLLOWED_SECTIONS]?.split(",")
+      .map(item => item.trim())
+      .filter(item => item) || [];
 
   const handleIntersection = useCallback(() => {
     dispatch(
@@ -89,7 +89,7 @@ function InterestPicker({ title, subtitle, interests, receivedFeedRank }) {
         // add section to visible sections and place after the inline picker
         // subtract 1 from the rank so that it is normalized with array index
         visibleSections.splice(receivedFeedRank - 1, 0, topic);
-        dispatch(ac.SetPref(PREF_VISIBLE_SECTIONS, visibleSections.join(",")));
+        dispatch(ac.SetPref(PREF_VISIBLE_SECTIONS, visibleSections.join(", ")));
       }
     } else {
       updatedTopics = updatedTopics.filter(t => t !== topic);
@@ -105,7 +105,7 @@ function InterestPicker({ title, subtitle, interests, receivedFeedRank }) {
         },
       })
     );
-    dispatch(ac.SetPref(PREF_FOLLOWED_SECTIONS, updatedTopics.join(",")));
+    dispatch(ac.SetPref(PREF_FOLLOWED_SECTIONS, updatedTopics.join(", ")));
   }
   return (
     <section
