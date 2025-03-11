@@ -1598,6 +1598,10 @@ void CycleCollectedJSRuntime::JSObjectsTenured(JS::GCContext* aGCContext) {
       mNurseryObjects.InfallibleAppend(cache);
     }
   }
+
+  if (!mFinalizeRunnable) {
+    FinalizeDeferredThings(FinalizeIncrementally);
+  }
 }
 
 void CycleCollectedJSRuntime::NurseryWrapperAdded(nsWrapperCache* aCache) {
