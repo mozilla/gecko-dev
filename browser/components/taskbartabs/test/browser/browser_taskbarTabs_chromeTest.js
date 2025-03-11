@@ -65,28 +65,7 @@ function checkHamburgerMenu(win) {
 }
 
 add_task(async function testWindowChrome() {
-  let extraOptions = Cc["@mozilla.org/hash-property-bag;1"].createInstance(
-    Ci.nsIWritablePropertyBag2
-  );
-  extraOptions.setPropertyAsBool("taskbartab", true);
-
-  let args = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
-  args.appendElement(null);
-  args.appendElement(extraOptions);
-  args.appendElement(null);
-
-  // Simulate opening a taskbar tab window
-  let win = Services.ww.openWindow(
-    null,
-    AppConstants.BROWSER_CHROME_URL,
-    "_blank",
-    "chrome,dialog=no,titlebar,close,toolbar,location,personalbar=no,status,menubar=no,resizable,minimizable,scrollbars",
-    args
-  );
-  await new Promise(resolve => {
-    win.addEventListener("load", resolve, { once: true });
-  });
-  await win.delayedStartupPromise;
+  let win = await openTaskbarTabWindow();
 
   checkWindowChrome(win);
   checkHamburgerMenu(win);

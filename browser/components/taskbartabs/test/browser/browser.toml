@@ -1,4 +1,5 @@
 [DEFAULT]
+support-files = ["head.js"]
 
 ["browser_taskbarTabs_chromeTest.js"]
 run-if = ["os == 'win'"]
