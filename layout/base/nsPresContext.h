@@ -1133,11 +1133,6 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   void ForceReflowForFontInfoUpdate(bool aNeedsReframe);
   void ForceReflowForFontInfoUpdateFromStyle();
 
-  /**
-   * Checks for MozAfterPaint listeners on the document
-   */
-  bool MayHavePaintEventListener();
-
   void InvalidatePaintedLayers();
 
   uint32_t GetNextFrameRateMultiplier() const {

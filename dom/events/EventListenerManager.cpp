@@ -139,7 +139,6 @@ uint32_t EventListenerManager::sMainThreadCreatedCount = 0;
 
 EventListenerManagerBase::EventListenerManagerBase()
     : mMayHaveDOMActivateEventListener(false),
-      mMayHavePaintEventListener(false),
       mMayHaveMutationListeners(false),
       mMayHaveCapturingListeners(false),
       mMayHaveSystemGroupListeners(false),
@@ -359,12 +358,6 @@ void EventListenerManager::AddEventListenerInternal(
     }
 
     switch (resolvedEventMessage) {
-      case eAfterPaint:
-        mMayHavePaintEventListener = true;
-        if (nsPIDOMWindowInner* window = GetInnerWindowForTarget()) {
-          window->SetHasPaintEventListeners();
-        }
-        break;
       case eLegacyDOMActivate:
         mMayHaveDOMActivateEventListener = true;
         if (nsPIDOMWindowInner* window = GetInnerWindowForTarget()) {

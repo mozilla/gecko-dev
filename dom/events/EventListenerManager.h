@@ -153,7 +153,6 @@ class EventListenerManagerBase {
 
   EventMessage mNoListenerForEvents[3];
   uint16_t mMayHaveDOMActivateEventListener : 1;
-  uint16_t mMayHavePaintEventListener : 1;
   uint16_t mMayHaveMutationListeners : 1;
   uint16_t mMayHaveCapturingListeners : 1;
   uint16_t mMayHaveSystemGroupListeners : 1;
@@ -540,12 +539,6 @@ class EventListenerManager final : public EventListenerManagerBase {
   bool MayHaveDOMActivateListeners() const {
     return mMayHaveDOMActivateEventListener;
   }
-
-  /**
-   * Returns true if there may be a paint event listener registered,
-   * false if there definitely isn't.
-   */
-  bool MayHavePaintEventListener() const { return mMayHavePaintEventListener; }
 
   /**
    * Returns true if there may be a touch event listener registered,

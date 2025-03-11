@@ -436,18 +436,6 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
 
   /**
    * Call this to indicate that some node (this window, its document,
-   * or content in that document) has a paint event listener.
-   */
-  void SetHasPaintEventListeners() { mMayHavePaintEventListener = true; }
-
-  /**
-   * Call this to check whether some node (this window, its document,
-   * or content in that document) has a paint event listener.
-   */
-  bool HasPaintEventListeners() { return mMayHavePaintEventListener; }
-
-  /**
-   * Call this to indicate that some node (this window, its document,
    * or content in that document) has a touch event listener.
    */
   void SetHasTouchEventListeners() {
@@ -675,7 +663,6 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
   bool mIsDocumentLoaded;
   bool mIsHandlingResizeEvent;
   bool mMayHaveDOMActivateEventListeners;
-  bool mMayHavePaintEventListener;
   bool mMayHaveTouchEventListener;
   bool mMayHaveSelectionChangeEventListener;
   bool mMayHaveFormSelectEventListener;

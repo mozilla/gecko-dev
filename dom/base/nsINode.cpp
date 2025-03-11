@@ -3600,9 +3600,6 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
         if (elm->MayHaveDOMActivateListeners()) {
           window->SetHasDOMActivateEventListeners();
         }
-        if (elm->MayHavePaintEventListener()) {
-          window->SetHasPaintEventListeners();
-        }
         if (elm->MayHaveTouchEventListener()) {
           window->SetHasTouchEventListeners();
         }
