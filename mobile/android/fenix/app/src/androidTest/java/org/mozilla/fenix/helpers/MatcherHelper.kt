@@ -89,6 +89,11 @@ object MatcherHelper {
         return mDevice.findObject(UiSelector().resourceId(resourceId).textContains(text))
     }
 
+    fun itemWithPackageNameAndDescription(packageName: String, description: String): UiObject {
+        Log.i(TAG, "Looking for item with package name: $packageName and description: $description")
+        return mDevice.findObject(UiSelector().packageName(packageName).descriptionContains(description))
+    }
+
     fun assertUIObjectExists(
         vararg appItems: UiObject,
         exists: Boolean = true,

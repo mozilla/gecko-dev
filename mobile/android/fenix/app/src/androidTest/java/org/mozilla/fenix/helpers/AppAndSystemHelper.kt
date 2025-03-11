@@ -49,7 +49,9 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.Constants.PackageName.PIXEL_LAUNCHER
 import org.mozilla.fenix.helpers.Constants.PackageName.YOUTUBE_APP
 import org.mozilla.fenix.helpers.Constants.TAG
+import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
+import org.mozilla.fenix.helpers.MatcherHelper.itemWithPackageNameAndDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
 import org.mozilla.fenix.helpers.NetworkConnectionStatusHelper.checkActiveNetworkState
@@ -499,6 +501,16 @@ object AppAndSystemHelper {
         Log.i(TAG, "denyPermission: Trying to click the negative camera system permission button.")
         itemWithResId("com.android.permissioncontroller:id/permission_deny_button").click()
         Log.i(TAG, "denyPermission: Clicked the negative camera system permission button.")
+    }
+
+    fun verifySystemPhotoAndVideoPickerExists() {
+        assertUIObjectExists(itemWithResId("com.google.android.providers.media.module:id/bottom_sheet"))
+    }
+
+    fun closeSystemPhotoAndVideoPicker() {
+        Log.i(TAG, "closeSystemPhotoAndVideoPicker: Trying to click the system photo picker close button")
+        itemWithPackageNameAndDescription("com.google.android.providers.media.module", "Cancel").click()
+        Log.i(TAG, "closeSystemPhotoAndVideoPicker: Clicked the system photo picker close button")
     }
 
     fun clickSystemHomeScreenShortcutAddButton() {
