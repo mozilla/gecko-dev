@@ -20,7 +20,8 @@ export class DSLinkMenu extends React.PureComponent {
       // Additionally, show these menu options for all section cards.
       if (
         this.props.pocket_button_enabled &&
-        (this.props.saveToPocketCard || this.props.isSectionsCard)
+        (this.props.saveToPocketCard || this.props.isSectionsCard) &&
+        this.props.card_type !== "spoc"
       ) {
         pocketMenuOptions = ["CheckSavedToPocket"];
       }
