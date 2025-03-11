@@ -499,7 +499,7 @@ subprojects { project ->
                     include '**/*.kt'
                     exclude '**/thirdparty/**'
                 }
-                ktlint('0.49.1')
+                ktlint("${libs.versions.ktlint.get()}")
             }
         }
     }
