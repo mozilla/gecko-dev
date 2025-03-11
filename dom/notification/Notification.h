@@ -8,10 +8,9 @@
 #define mozilla_dom_notification_h__
 
 #include "mozilla/DOMEventTargetHelper.h"
+#include "mozilla/dom/DOMTypes.h"
 #include "mozilla/dom/NotificationBinding.h"
 #include "mozilla/dom/notification/NotificationChild.h"
-#include "mozilla/dom/WorkerPrivate.h"
-#include "mozilla/dom/quota/QuotaCommon.h"
 
 #include "nsISupports.h"
 

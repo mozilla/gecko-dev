@@ -8,28 +8,18 @@
 
 #include <utility>
 
-#include "mozilla/BasePrincipal.h"
-#include "mozilla/Components.h"
 #include "mozilla/Encoding.h"
-#include "mozilla/EventStateManager.h"
 #include "mozilla/HoldDropJSObjects.h"
-#include "mozilla/JSONStringWriteFuncs.h"
 #include "mozilla/OwningNonNull.h"
 #include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/Unused.h"
 #include "mozilla/dom/BindingUtils.h"
-#include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/Promise-inl.h"
-#include "mozilla/dom/PromiseWorkerProxy.h"
-#include "mozilla/dom/QMResult.h"
 #include "mozilla/dom/RootedDictionary.h"
 #include "mozilla/dom/ServiceWorkerGlobalScopeBinding.h"
-#include "mozilla/dom/ServiceWorkerUtils.h"
 #include "mozilla/dom/WorkerRunnable.h"
 #include "mozilla/dom/WorkerScope.h"
-#include "mozilla/dom/quota/ResultExtensions.h"
 #include "mozilla/glean/DomNotificationMetrics.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundUtils.h"
@@ -38,21 +28,10 @@
 #include "NotificationUtils.h"
 #include "nsContentPermissionHelper.h"
 #include "nsContentUtils.h"
-#include "nsFocusManager.h"
-#include "nsIAlertsService.h"
 #include "nsIContentPermissionPrompt.h"
-#include "nsILoadContext.h"
-#include "nsINotificationStorage.h"
-#include "nsIPermission.h"
-#include "nsIPermissionManager.h"
 #include "nsIScriptError.h"
-#include "nsIServiceWorkerManager.h"
 #include "nsNetUtil.h"
-#include "nsProxyRelease.h"
-#include "nsServiceManagerUtils.h"
 #include "nsStructuredCloneContainer.h"
-#include "nsThreadUtils.h"
-#include "nsXULAppAPI.h"
 
 namespace mozilla::dom {
 
@@ -144,31 +123,6 @@ class GetPermissionRunnable final : public WorkerMainThreadRunnable {
 };
 
 }  // anonymous namespace
-
-// Subclass that can be directly dispatched to child workers from the main
-// thread.
-class NotificationWorkerRunnable : public MainThreadWorkerRunnable {
- protected:
-  explicit NotificationWorkerRunnable(
-      WorkerPrivate* aWorkerPrivate,
-      const char* aName = "NotificationWorkerRunnable")
-      : MainThreadWorkerRunnable(aName) {}
-
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
-    aWorkerPrivate->AssertIsOnWorkerThread();
-    // WorkerScope might start dying at the moment. And WorkerRunInternal()
-    // should not be executed once WorkerScope is dying, since
-    // WorkerRunInternal() might access resources which already been freed
-    // during WorkerRef::Notify().
-    if (aWorkerPrivate->GlobalScope() &&
-        !aWorkerPrivate->GlobalScope()->IsDying()) {
-      WorkerRunInternal(aWorkerPrivate);
-    }
-    return true;
-  }
-
-  virtual void WorkerRunInternal(WorkerPrivate* aWorkerPrivate) = 0;
-};
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(NotificationPermissionRequest,
                                    ContentPermissionRequestBase, mCallback)
