@@ -36,5 +36,4 @@ DevToolsModules(
 MOCHITEST_CHROME_MANIFESTS += ["test/chrome/chrome.toml"]
 BROWSER_CHROME_MANIFESTS += [
     "test/browser/browser.toml",
-    "test/node/stubs/reps/stubs.toml",
 ]

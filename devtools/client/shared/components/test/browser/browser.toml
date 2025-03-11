@@ -7,8 +7,3 @@ support-files = [
 ]
 
 ["browser_notification_box_basic.js"]
-
-["browser_reps_stubs.js"]
-skip-if = [
-  "!fission", # we need specific iframe targets for some evaluation
-]
