@@ -4099,6 +4099,57 @@ class ADBDevice(ADBCommand):
                 break
         return package_name
 
+    def install_app_baseline_profile(self, apk_path, replace=False, timeout=None):
+        """Installs an app on the device. Utilize profgen to first extract out the
+        .dm profile and use `adb install-multiple` to properly install the apk along
+        with the generated baseline profile.
+
+        :param str apk_path: The apk file name to be installed.
+        :param bool replace: If True, replace existing application.
+        :param int timeout: The maximum time in
+            seconds for any spawned adb process to complete before
+            throwing an ADBTimeoutError.
+            This timeout is per adb call. The total time spent
+            may exceed this value. If it is not specified, the value
+            set in the ADB constructor is used.
+        :return: string - name of installed package.
+        :raises: :exc:`ADBTimeoutError`
+                 :exc:`ADBError`
+        """
+        # dm files will always share the same stem as the apk file.
+        dm_path = apk_path[:-3] + "dm"
+        command = [
+            "profgen",
+            "extractProfile",
+            "--apk",
+            apk_path,
+            "--output-dex-metadata",
+            dm_path,
+            "--profile-format",
+            "V0_1_5_S",
+        ]
+        subprocess.run(command, check=True)
+        dump_packages = "dumpsys package packages"
+        packages_before = set(self.shell_output(dump_packages, attempts=3).split("\n"))
+        cmd = ["install-multiple"]
+        if replace:
+            cmd.append("-r")
+        cmd.append(apk_path)
+        cmd.append(dm_path)
+        data = self.command_output(cmd, timeout=timeout)
+        if data.find("Success") == -1:
+            raise ADBError(f"install failed for {apk_path}. Got: {data}")
+        packages_after = set(self.shell_output(dump_packages, attempts=3).split("\n"))
+        packages_diff = packages_after - packages_before
+        package_name = None
+        re_pkg = re.compile(r"\s+pkg=Package{[^ ]+ (.*)}")
+        for diff in packages_diff:
+            match = re_pkg.match(diff)
+            if match:
+                package_name = match.group(1)
+                break
+        return package_name
+
     def is_app_installed(self, app_name, timeout=None):
         """Returns True if an app is installed on the device.
 

@@ -206,6 +206,13 @@ class AndroidDevice(Layer):
                     download_file(apk, target)
                     self.info("Installing downloaded APK")
                     self.device.install_app(str(target))
+            elif "fenix" in self.app_name:
+                self.info("Installing Fenix APK with baseline profile")
+                self.device.install_app_baseline_profile(apk, replace=True)
+                output = self.device.shell_output(
+                    f"dumpsys package dexopt | grep -A 1 {self.app_name}"
+                )
+                self.info(output)
             else:
                 self.device.install_app(apk, replace=True)
             self.info("Done.")

@@ -37,6 +37,10 @@ class FakeDevice:
         if apk not in self.apps:
             self.apps.append(apk)
 
+    def install_app_baseline_profile(self, apk, replace=True):
+        if apk not in self.apps:
+            self.apps.append(apk)
+
     def is_app_installed(self, app_name):
         return True
 

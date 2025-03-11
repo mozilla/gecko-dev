@@ -20,10 +20,17 @@ class FakeDevice:
     def __init__(self, **args):
         self.apps = []
 
+    def shell_output(self, *args, **kwargs):
+        return "A Fake Device"
+
     def uninstall_app(self, apk_name):
         return True
 
     def install_app(self, apk, replace=True):
+        if apk not in self.apps:
+            self.apps.append(apk)
+
+    def install_app_baseline_profile(self, apk, replace=True):
         if apk not in self.apps:
             self.apps.append(apk)
 
