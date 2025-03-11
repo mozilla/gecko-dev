@@ -241,6 +241,12 @@ class TranslationsRobot(private val composeTestRule: ComposeTestRule) {
         Log.i(TAG, "clickTranslateToLanguage: Clicked the $translateToLanguage \"Translate to\" dropdown option.")
     }
 
+    fun clickGoBackTranslationSheetButton() {
+        Log.i(TAG, "clickGoBackTranslationSheetButton: Trying to click the \"Navigate back\" translation sheet button")
+        composeTestRule.onNodeWithContentDescription("Navigate back").performClick()
+        Log.i(TAG, "clickGoBackTranslationSheetButton: Clicked the \"Navigate back\" translation sheet button")
+    }
+
     class Transition(private val composeTestRule: ComposeTestRule) {
         @OptIn(ExperimentalTestApi::class)
         fun clickTranslateButton(pageWasNotPreviouslyTranslated: Boolean = true, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {

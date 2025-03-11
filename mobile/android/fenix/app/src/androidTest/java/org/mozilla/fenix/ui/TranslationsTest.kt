@@ -298,6 +298,7 @@ class TranslationsTest : TestSetup() {
             verifyAlwaysOfferToTranslateOptionIsChecked(isChecked = true)
             clickAlwaysOfferToTranslateOption()
             verifyAlwaysOfferToTranslateOptionIsChecked(isChecked = false)
+            clickGoBackTranslationSheetButton()
         }.swipeCloseTranslationsSheet {
             verifyPageContent(firstTestPage.content)
         }
