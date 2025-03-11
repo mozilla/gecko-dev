@@ -115,8 +115,8 @@ pub struct UrlExtraData(usize);
 
 /// Extra data that the backend may need to resolve url values.
 #[cfg(feature = "servo")]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct UrlExtraData(pub Arc<::url::Url>);
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
+pub struct UrlExtraData(#[ignore_malloc_size_of = "Arc"] pub Arc<::url::Url>);
 
 #[cfg(feature = "servo")]
 impl UrlExtraData {

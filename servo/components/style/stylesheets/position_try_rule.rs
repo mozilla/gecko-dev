@@ -15,6 +15,7 @@ use crate::shared_lock::{
 use crate::str::CssStringWriter;
 use crate::values::DashedIdent;
 use cssparser::SourceLocation;
+#[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use servo_arc::Arc;
 use style_traits::{CssWriter, ToCss};
