@@ -593,6 +593,25 @@ class CallRefMetricsPatch {
 using CallRefMetricsPatchVector =
     Vector<CallRefMetricsPatch, 0, SystemAllocPolicy>;
 
+class AllocSitePatch {
+ private:
+  uint32_t patchOffset_;
+  static constexpr uint32_t NO_OFFSET = UINT32_MAX;
+
+ public:
+  explicit AllocSitePatch() : patchOffset_(NO_OFFSET) {}
+
+  bool hasPatchOffset() const { return patchOffset_ != NO_OFFSET; }
+  uint32_t patchOffset() const { return patchOffset_; }
+  void setPatchOffset(uint32_t offset) {
+    MOZ_ASSERT(!hasPatchOffset());
+    MOZ_ASSERT(offset != NO_OFFSET);
+    patchOffset_ = offset;
+  }
+};
+
+using AllocSitePatchVector = Vector<AllocSitePatch, 0, SystemAllocPolicy>;
+
 // On trap, the bytecode offset to be reported in callstacks is saved.
 
 struct TrapData {

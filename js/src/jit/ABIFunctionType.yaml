@@ -163,7 +163,13 @@
   args: [General, Int32, Int32]
 
 - ret: General
+  args: [General, Int32, Int32, General]
+
+- ret: General
   args: [General, Int32, Int32, General, Int32]
+
+- ret: General
+  args: [General, Int32, Int32, Int32, General, Int32]
 
 - name: General_GeneralGeneralInt32Int32
   ret: General
@@ -199,6 +205,9 @@
 
 - ret: Int32
   args: [General, General, Int32, Int32, Int32, Int32]
+
+- ret: Int32
+  args: [General, General, Int32, Int32, Int32, Int32, Int32]
 
 - ret: Int32
   args: [General, General, Int32, Int32, Int32, General, Int32]

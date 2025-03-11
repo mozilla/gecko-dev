@@ -69,8 +69,6 @@ struct TypeDefInstanceData {
   // arrays.
   GCPtr<Shape*> shape;
   const JSClass* clasp;
-  // The allocation site for GC types. This is used for pre-tenuring.
-  alignas(8) gc::AllocSite allocSite;
   // Only valid for structs.
   gc::AllocKind allocKind;
 
@@ -96,9 +94,6 @@ struct TypeDefInstanceData {
   }
   static constexpr size_t offsetOfSuperTypeVector() {
     return offsetof(TypeDefInstanceData, superTypeVector);
-  }
-  static constexpr size_t offsetOfAllocSite() {
-    return offsetof(TypeDefInstanceData, allocSite);
   }
   static constexpr size_t offsetOfArrayElemSize() {
     return offsetof(TypeDefInstanceData, arrayElemSize);

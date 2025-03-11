@@ -1177,7 +1177,7 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   // NOTE: keep the field sequence here in sync with the sequence in the
   // declaration of CodeMetadata.
 
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeMetadata, 1136);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeMetadata, 1176);
   // Serialization doesn't handle asm.js or debug enabled modules
   MOZ_RELEASE_ASSERT(mode == MODE_SIZE || !item->isAsmJS());
 
@@ -1239,6 +1239,7 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   MOZ_TRY(CodePodVector(coder, &item->funcDefRanges));
   MOZ_TRY(CodePodVector(coder, &item->funcDefFeatureUsages));
   MOZ_TRY(CodePodVector(coder, &item->funcDefCallRefs));
+  MOZ_TRY(CodePodVector(coder, &item->funcDefAllocSites));
 
   // Serialize stats, taking care not to be holding the lock when the actual
   // serialization/deserialization happens.
@@ -1269,6 +1270,7 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   MOZ_TRY(CodePod(coder, &item->tagsOffsetStart));
   MOZ_TRY(CodePod(coder, &item->instanceDataLength));
   MOZ_TRY(CodePod(coder, &item->numCallRefMetrics));
+  MOZ_TRY(CodePod(coder, &item->numAllocSites));
 
   if constexpr (mode == MODE_DECODE) {
     // Initialize debugging state to disabled

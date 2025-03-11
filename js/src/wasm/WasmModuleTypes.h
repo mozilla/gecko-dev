@@ -250,6 +250,19 @@ struct CallRefMetricsRange {
   WASM_CHECK_CACHEABLE_POD(begin, length);
 };
 
+struct AllocSitesRange {
+  explicit AllocSitesRange() {}
+  explicit AllocSitesRange(uint32_t begin, uint32_t length)
+      : begin(begin), length(length) {}
+
+  uint32_t begin = 0;
+  uint32_t length = 0;
+
+  void offsetBy(uint32_t offset) { begin += offset; }
+
+  WASM_CHECK_CACHEABLE_POD(begin, length);
+};
+
 // A compact plain data summary of CallRefMetrics for use by our function
 // compilers. See CallRefMetrics in WasmInstanceData.h for more information.
 //
@@ -352,6 +365,10 @@ WASM_DECLARE_CACHEABLE_POD(CallRefMetricsRange);
 
 using CallRefMetricsRangeVector =
     Vector<CallRefMetricsRange, 0, SystemAllocPolicy>;
+
+WASM_DECLARE_CACHEABLE_POD(AllocSitesRange);
+
+using AllocSitesRangeVector = Vector<AllocSitesRange, 0, SystemAllocPolicy>;
 
 enum class BranchHint : uint8_t { Unlikely = 0, Likely = 1, Invalid = 2 };
 

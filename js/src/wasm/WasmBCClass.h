@@ -1745,8 +1745,12 @@ struct BaseCompiler final {
                              TrapMachineInsn tmi);
   };
 
-  // Load a pointer to the TypeDefInstanceData for a given type index
-  RegPtr loadTypeDefInstanceData(uint32_t typeIndex);
+  // Load a pointer to the AllocSite for current bytecode offset
+  RegPtr loadAllocSiteInstanceData(uint32_t allocSiteIndex);
+
+  // Gets alloc site allociated with current instruction
+  uint32_t readAllocSiteIndex();
+
   // Load a pointer to the SuperTypeVector for a given type index
   RegPtr loadSuperTypeVector(uint32_t typeIndex);
 
@@ -1755,15 +1759,17 @@ struct BaseCompiler final {
   // allocated and must be freed.
   template <bool ZeroFields>
   bool emitStructAlloc(uint32_t typeIndex, RegRef* object,
-                       bool* isOutlineStruct, RegPtr* outlineBase);
+                       bool* isOutlineStruct, RegPtr* outlineBase,
+                       uint32_t allocSiteIndex);
   // Emits allocation code for a dynamically-sized GC array.
   template <bool ZeroFields>
   bool emitArrayAlloc(uint32_t typeIndex, RegRef object, RegI32 numElements,
-                      uint32_t elemSize);
+                      uint32_t elemSize, uint32_t allocSiteIndex);
   // Emits allocation code for a fixed-size GC array.
   template <bool ZeroFields>
   bool emitArrayAllocFixed(uint32_t typeIndex, RegRef object,
-                           uint32_t numElements, uint32_t elemSize);
+                           uint32_t numElements, uint32_t elemSize,
+                           uint32_t allocSiteIndex);
 
   template <typename NullCheckPolicy>
   RegPtr emitGcArrayGetData(RegRef rp);

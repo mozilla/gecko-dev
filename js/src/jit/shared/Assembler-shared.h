@@ -650,6 +650,7 @@ class AssemblerShared {
   wasm::TryNoteVector tryNotes_;
   wasm::CodeRangeUnwindInfoVector codeRangesUnwind_;
   wasm::CallRefMetricsPatchVector callRefMetricsPatches_;
+  wasm::AllocSitePatchVector allocSitesPatches_;
 
 #ifdef DEBUG
   // To facilitate figuring out which part of SM created each instruction as
@@ -734,6 +735,9 @@ class AssemblerShared {
   void append(wasm::CallRefMetricsPatch patch) {
     enoughMemory_ &= callRefMetricsPatches_.append(patch);
   }
+  void append(wasm::AllocSitePatch patch) {
+    enoughMemory_ &= allocSitesPatches_.append(patch);
+  }
 
   wasm::CallSites& callSites() { return callSites_; }
   wasm::CallSiteTargetVector& callSiteTargets() { return callSiteTargets_; }
@@ -746,6 +750,7 @@ class AssemblerShared {
   wasm::CallRefMetricsPatchVector& callRefMetricsPatches() {
     return callRefMetricsPatches_;
   }
+  wasm::AllocSitePatchVector& allocSitesPatches() { return allocSitesPatches_; }
 };
 
 // AutoCreatedBy pushes and later pops a who-created-these-insns? tag into the

@@ -2878,17 +2878,22 @@ class MWasmRefIsSubtypeOfConcrete : public MBinaryInstruction,
 class MWasmNewStructObject : public MBinaryInstruction,
                              public NoTypePolicy::Data {
  private:
+  uint32_t typeDefIndex_;
+  size_t offsetOfTypeDefData_;
   bool isOutline_;
   bool zeroFields_;
   gc::AllocKind allocKind_;
   const wasm::StructType& structType_;
   wasm::TrapSiteDesc trapSiteDesc_;
 
-  MWasmNewStructObject(MDefinition* instance, MDefinition* typeDefData,
+  MWasmNewStructObject(MDefinition* instance, MDefinition* allocSite,
+                       uint32_t typeDefIndex, size_t offsetOfTypeDefData,
                        const wasm::StructType& structType_, bool isOutline,
                        bool zeroFields, gc::AllocKind allocKind,
                        const wasm::TrapSiteDesc& trapSiteDesc)
-      : MBinaryInstruction(classOpcode, instance, typeDefData),
+      : MBinaryInstruction(classOpcode, instance, allocSite),
+        typeDefIndex_(typeDefIndex),
+        offsetOfTypeDefData_(offsetOfTypeDefData),
         isOutline_(isOutline),
         zeroFields_(zeroFields),
         allocKind_(allocKind),
@@ -2900,7 +2905,7 @@ class MWasmNewStructObject : public MBinaryInstruction,
  public:
   INSTRUCTION_HEADER(WasmNewStructObject)
   TRIVIAL_NEW_WRAPPERS
-  NAMED_OPERANDS((0, instance), (1, typeDefData))
+  NAMED_OPERANDS((0, instance), (1, allocSite))
 
   AliasSet getAliasSet() const override {
     if (js::SupportDifferentialTesting()) {
@@ -2909,6 +2914,8 @@ class MWasmNewStructObject : public MBinaryInstruction,
     }
     return AliasSet::None();
   }
+  uint32_t typeDefIndex() const { return typeDefIndex_; }
+  size_t offsetOfTypeDefData() const { return offsetOfTypeDefData_; }
   bool isOutline() const { return isOutline_; }
   bool zeroFields() const { return zeroFields_; }
   gc::AllocKind allocKind() const { return allocKind_; }
@@ -2919,14 +2926,19 @@ class MWasmNewStructObject : public MBinaryInstruction,
 class MWasmNewArrayObject : public MTernaryInstruction,
                             public NoTypePolicy::Data {
  private:
+  uint32_t typeDefIndex_;
+  size_t offsetOfTypeDefData_;
   uint32_t elemSize_;
   bool zeroFields_;
   wasm::TrapSiteDesc trapSiteDesc_;
 
   MWasmNewArrayObject(MDefinition* instance, MDefinition* numElements,
-                      MDefinition* typeDefData, uint32_t elemSize,
+                      MDefinition* allocSite, uint32_t typeDefIndex,
+                      size_t offsetOfTypeDefData, uint32_t elemSize,
                       bool zeroFields, const wasm::TrapSiteDesc& trapSiteDesc)
-      : MTernaryInstruction(classOpcode, instance, numElements, typeDefData),
+      : MTernaryInstruction(classOpcode, instance, numElements, allocSite),
+        typeDefIndex_(typeDefIndex),
+        offsetOfTypeDefData_(offsetOfTypeDefData),
         elemSize_(elemSize),
         zeroFields_(zeroFields),
         trapSiteDesc_(trapSiteDesc) {
@@ -2936,7 +2948,7 @@ class MWasmNewArrayObject : public MTernaryInstruction,
  public:
   INSTRUCTION_HEADER(WasmNewArrayObject)
   TRIVIAL_NEW_WRAPPERS
-  NAMED_OPERANDS((0, instance), (1, numElements), (2, typeDefData))
+  NAMED_OPERANDS((0, instance), (1, numElements), (2, allocSite))
 
   AliasSet getAliasSet() const override {
     if (js::SupportDifferentialTesting()) {
@@ -2945,6 +2957,8 @@ class MWasmNewArrayObject : public MTernaryInstruction,
     }
     return AliasSet::None();
   }
+  uint32_t typeDefIndex() const { return typeDefIndex_; }
+  size_t offsetOfTypeDefData() const { return offsetOfTypeDefData_; }
   uint32_t elemSize() const { return elemSize_; }
   bool zeroFields() const { return zeroFields_; }
   const wasm::TrapSiteDesc& trapSiteDesc() const { return trapSiteDesc_; }

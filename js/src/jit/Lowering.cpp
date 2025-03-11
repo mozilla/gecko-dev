@@ -8396,18 +8396,18 @@ void LIRGenerator::visitWasmRefIsSubtypeOfConcrete(
 }
 
 void LIRGenerator::visitWasmNewStructObject(MWasmNewStructObject* ins) {
-  LWasmNewStructObject* lir = new (alloc())
-      LWasmNewStructObject(useFixed(ins->instance(), InstanceReg),
-                           useRegister(ins->typeDefData()), temp(), temp());
+  LWasmNewStructObject* lir = new (alloc()) LWasmNewStructObject(
+      useFixed(ins->instance(), InstanceReg), useRegister(ins->allocSite()),
+      temp(), ins->typeDefIndex());
   define(lir, ins);
   assignWasmSafepoint(lir);
 }
 
 void LIRGenerator::visitWasmNewArrayObject(MWasmNewArrayObject* ins) {
-  LWasmNewArrayObject* lir = new (alloc())
-      LWasmNewArrayObject(useFixed(ins->instance(), InstanceReg),
-                          useRegisterOrConstant(ins->numElements()),
-                          useRegister(ins->typeDefData()), temp(), temp());
+  LWasmNewArrayObject* lir = new (alloc()) LWasmNewArrayObject(
+      useFixed(ins->instance(), InstanceReg),
+      useRegisterOrConstant(ins->numElements()), useRegister(ins->allocSite()),
+      temp(), temp(), ins->typeDefIndex());
   define(lir, ins);
   assignWasmSafepoint(lir);
 }

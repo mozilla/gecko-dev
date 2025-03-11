@@ -65,14 +65,17 @@ using FuncCompileInputVector = Vector<FuncCompileInput, 8, SystemAllocPolicy>;
 struct FuncCompileOutput {
   FuncCompileOutput(
       uint32_t index, FeatureUsage featureUsage,
-      CallRefMetricsRange callRefMetricsRange = CallRefMetricsRange())
+      CallRefMetricsRange callRefMetricsRange = CallRefMetricsRange(),
+      AllocSitesRange allocSitesRange = AllocSitesRange())
       : index(index),
         featureUsage(featureUsage),
-        callRefMetricsRange(callRefMetricsRange) {}
+        callRefMetricsRange(callRefMetricsRange),
+        allocSitesRange(allocSitesRange) {}
 
   uint32_t index;
   FeatureUsage featureUsage;
   CallRefMetricsRange callRefMetricsRange;
+  AllocSitesRange allocSitesRange;
 };
 
 using FuncCompileOutputVector = Vector<FuncCompileOutput, 8, SystemAllocPolicy>;
@@ -95,6 +98,7 @@ struct CompiledCode {
   TryNoteVector tryNotes;
   CodeRangeUnwindInfoVector codeRangeUnwindInfos;
   CallRefMetricsPatchVector callRefMetricsPatches;
+  AllocSitePatchVector allocSitesPatches;
   FuncIonPerfSpewerVector funcIonSpewers;
   FuncBaselinePerfSpewerVector funcBaselineSpewers;
   FeatureUsage featureUsage;
@@ -114,6 +118,7 @@ struct CompiledCode {
     tryNotes.clear();
     codeRangeUnwindInfos.clear();
     callRefMetricsPatches.clear();
+    allocSitesPatches.clear();
     funcIonSpewers.clear();
     funcBaselineSpewers.clear();
     featureUsage = FeatureUsage::None;
@@ -125,8 +130,9 @@ struct CompiledCode {
            callSites.empty() && callSiteTargets.empty() && trapSites.empty() &&
            symbolicAccesses.empty() && codeLabels.empty() && tryNotes.empty() &&
            stackMaps.empty() && codeRangeUnwindInfos.empty() &&
-           callRefMetricsPatches.empty() && funcIonSpewers.empty() &&
-           funcBaselineSpewers.empty() && featureUsage == FeatureUsage::None;
+           callRefMetricsPatches.empty() && allocSitesPatches.empty() &&
+           funcIonSpewers.empty() && funcBaselineSpewers.empty() &&
+           featureUsage == FeatureUsage::None;
   }
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
@@ -196,6 +202,7 @@ struct CompileTask : public HelperThreadTask {
 class MOZ_STACK_CLASS ModuleGenerator {
   using CompileTaskVector = Vector<CompileTask, 0, SystemAllocPolicy>;
   using CodeOffsetVector = Vector<jit::CodeOffset, 0, SystemAllocPolicy>;
+
   // Encapsulates the macro assembler state so that we can create a new one for
   // each code block. Not heap allocated because the macro assembler is a
   // 'stack class'.
@@ -226,6 +233,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   BytecodeRangeVector funcDefRanges_;
   FeatureUsageVector funcDefFeatureUsages_;
   CallRefMetricsRangeVector funcDefCallRefMetrics_;
+  AllocSitesRangeVector funcDefAllocSites_;
   FuncImportVector funcImports_;
   UniqueLinkData sharedStubsLinkData_;
   UniqueCodeBlock sharedStubsCodeBlock_;
@@ -248,6 +256,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   uint32_t lastPatchedCallSite_;
   uint32_t startOfUnpatchedCallsites_;
   uint32_t numCallRefMetrics_;
+  uint32_t numAllocSites_;
 
   // Parallel compilation
   bool parallel_;

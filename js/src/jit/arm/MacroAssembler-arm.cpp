@@ -342,6 +342,8 @@ BufferOffset MacroAssemblerARM::ma_movPatchable(Imm32 imm_, Register dest,
                                                 Assembler::Condition c) {
   int32_t imm = imm_.value;
   if (ARMFlags::HasMOVWT()) {
+    AutoForbidPoolsAndNops afp(this,
+                               /* max number of instructions in scope = */ 2);
     BufferOffset offset = as_movw(dest, Imm16(imm & 0xffff), c);
     as_movt(dest, Imm16(imm >> 16 & 0xffff), c);
     return offset;

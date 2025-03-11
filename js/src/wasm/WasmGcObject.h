@@ -244,7 +244,8 @@ class WasmArrayObject : public WasmGcObject,
   template <bool ZeroFields>
   static MOZ_ALWAYS_INLINE WasmArrayObject* createArrayOOL(
       JSContext* cx, wasm::TypeDefInstanceData* typeDefData,
-      js::gc::Heap initialHeap, uint32_t numElements, uint32_t storageBytes);
+      js::gc::AllocSite* allocSite, js::gc::Heap initialHeap,
+      uint32_t numElements, uint32_t storageBytes);
 
   // Creates a new array object with inline storage. Reports an error on OOM.
   // The element type, shape, class pointer, alloc site and alloc kind are taken
@@ -254,14 +255,16 @@ class WasmArrayObject : public WasmGcObject,
   template <bool ZeroFields>
   static MOZ_ALWAYS_INLINE WasmArrayObject* createArrayIL(
       JSContext* cx, wasm::TypeDefInstanceData* typeDefData,
-      js::gc::Heap initialHeap, uint32_t numElements, uint32_t storageBytes);
+      js::gc::AllocSite* allocSite, js::gc::Heap initialHeap,
+      uint32_t numElements, uint32_t storageBytes);
 
   // This selects one of the above two routines, depending on how much storage
   // is required for the given type and number of elements.
   template <bool ZeroFields>
   static MOZ_ALWAYS_INLINE WasmArrayObject* createArray(
       JSContext* cx, wasm::TypeDefInstanceData* typeDefData,
-      js::gc::Heap initialHeap, uint32_t numElements);
+      js::gc::AllocSite* allocSite, js::gc::Heap initialHeap,
+      uint32_t numElements);
 
   // JIT accessors
   static constexpr size_t offsetOfNumElements() {
@@ -378,14 +381,14 @@ class WasmStructObject : public WasmGcObject,
   template <bool ZeroFields>
   static MOZ_ALWAYS_INLINE WasmStructObject* createStructIL(
       JSContext* cx, wasm::TypeDefInstanceData* typeDefData,
-      js::gc::Heap initialHeap);
+      gc::AllocSite* allocSite, js::gc::Heap initialHeap);
 
   // Same as ::createStructIL, except it is assumed and debug-asserted that
   // `typeDefData` refers to a type that does need OOL storage.
   template <bool ZeroFields>
   static MOZ_ALWAYS_INLINE WasmStructObject* createStructOOL(
       JSContext* cx, wasm::TypeDefInstanceData* typeDefData,
-      js::gc::Heap initialHeap);
+      gc::AllocSite* allocSite, js::gc::Heap initialHeap);
 
   // Given the total number of data bytes required (including alignment
   // holes), return the number of inline and outline bytes required.

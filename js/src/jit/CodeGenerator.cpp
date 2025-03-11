@@ -19937,8 +19937,9 @@ void CodeGenerator::visitWasmRefIsSubtypeOfConcreteAndBranch(
 }
 
 void CodeGenerator::callWasmStructAllocFun(
-    LInstruction* lir, wasm::SymbolicAddress fun, Register typeDefData,
-    Register output, const wasm::TrapSiteDesc& trapSiteDesc) {
+    LInstruction* lir, wasm::SymbolicAddress fun, Register typeDefIndex,
+    Register allocSite, Register output,
+    const wasm::TrapSiteDesc& trapSiteDesc) {
   MOZ_ASSERT(fun == wasm::SymbolicAddress::StructNewIL_true ||
              fun == wasm::SymbolicAddress::StructNewIL_false ||
              fun == wasm::SymbolicAddress::StructNewOOL_true ||
@@ -19958,7 +19959,8 @@ void CodeGenerator::callWasmStructAllocFun(
 
   masm.setupWasmABICall();
   masm.passABIArg(InstanceReg);
-  masm.passABIArg(typeDefData);
+  masm.passABIArg(typeDefIndex);
+  masm.passABIArg(allocSite);
   int32_t instanceOffset = masm.framePushed() - framePushedAfterInstance;
   CodeOffset offset =
       masm.callWithABI(trapSiteDesc.bytecodeOffset, fun,
@@ -19983,15 +19985,20 @@ void CodeGenerator::visitWasmNewStructObject(LWasmNewStructObject* lir) {
   MOZ_ASSERT(gen->compilingWasm());
 
   MWasmNewStructObject* mir = lir->mir();
+  uint32_t typeDefIndex = mir->typeDefIndex();
 
-  Register typeDefData = ToRegister(lir->typeDefData());
+  Register allocSite = ToRegister(lir->allocSite());
   Register output = ToRegister(lir->output());
+  Register temp = ToRegister(lir->temp0());
 
   if (mir->isOutline()) {
     wasm::SymbolicAddress fun = mir->zeroFields()
                                     ? wasm::SymbolicAddress::StructNewOOL_true
                                     : wasm::SymbolicAddress::StructNewOOL_false;
-    callWasmStructAllocFun(lir, fun, typeDefData, output, mir->trapSiteDesc());
+
+    masm.move32(Imm32(typeDefIndex), temp);
+    callWasmStructAllocFun(lir, fun, temp, allocSite, output,
+                           mir->trapSiteDesc());
   } else {
     wasm::SymbolicAddress fun = mir->zeroFields()
                                     ? wasm::SymbolicAddress::StructNewIL_true
@@ -20001,16 +20008,17 @@ void CodeGenerator::visitWasmNewStructObject(LWasmNewStructObject* lir) {
     MOZ_ASSERT(instance == InstanceReg);
 
     auto* ool = new (alloc()) LambdaOutOfLineCode([=](OutOfLineCode& ool) {
-      callWasmStructAllocFun(lir, fun, typeDefData, output,
+      masm.move32(Imm32(typeDefIndex), temp);
+      callWasmStructAllocFun(lir, fun, temp, allocSite, output,
                              mir->trapSiteDesc());
       masm.jump(ool.rejoin());
     });
     addOutOfLineCode(ool, lir->mir());
 
-    Register temp1 = ToRegister(lir->temp0());
-    Register temp2 = ToRegister(lir->temp1());
-    masm.wasmNewStructObject(instance, output, typeDefData, temp1, temp2,
-                             ool->entry(), mir->allocKind(), mir->zeroFields());
+    size_t offsetOfTypeDefData = mir->offsetOfTypeDefData();
+    masm.wasmNewStructObject(instance, output, allocSite, temp,
+                             offsetOfTypeDefData, ool->entry(),
+                             mir->allocKind(), mir->zeroFields());
 
     masm.bind(ool->rejoin());
   }
@@ -20018,7 +20026,7 @@ void CodeGenerator::visitWasmNewStructObject(LWasmNewStructObject* lir) {
 
 void CodeGenerator::callWasmArrayAllocFun(
     LInstruction* lir, wasm::SymbolicAddress fun, Register numElements,
-    Register typeDefData, Register output,
+    Register typeDefIndex, Register allocSite, Register output,
     const wasm::TrapSiteDesc& trapSiteDesc) {
   MOZ_ASSERT(fun == wasm::SymbolicAddress::ArrayNew_true ||
              fun == wasm::SymbolicAddress::ArrayNew_false);
@@ -20034,7 +20042,8 @@ void CodeGenerator::callWasmArrayAllocFun(
   masm.setupWasmABICall();
   masm.passABIArg(InstanceReg);
   masm.passABIArg(numElements);
-  masm.passABIArg(typeDefData);
+  masm.passABIArg(typeDefIndex);
+  masm.passABIArg(allocSite);
   int32_t instanceOffset = masm.framePushed() - framePushedAfterInstance;
   CodeOffset offset =
       masm.callWithABI(trapSiteDesc.bytecodeOffset, fun,
@@ -20059,11 +20068,12 @@ void CodeGenerator::visitWasmNewArrayObject(LWasmNewArrayObject* lir) {
   MOZ_ASSERT(gen->compilingWasm());
 
   MWasmNewArrayObject* mir = lir->mir();
+  uint32_t typeDefIndex = mir->typeDefIndex();
 
-  Register typeDefData = ToRegister(lir->typeDefData());
+  Register allocSite = ToRegister(lir->allocSite());
   Register output = ToRegister(lir->output());
-  Register temp1 = ToRegister(lir->temp0());
-  Register temp2 = ToRegister(lir->temp1());
+  Register temp0 = ToRegister(lir->temp0());
+  Register temp1 = ToRegister(lir->temp1());
 
   wasm::SymbolicAddress fun = mir->zeroFields()
                                   ? wasm::SymbolicAddress::ArrayNew_true
@@ -20078,8 +20088,9 @@ void CodeGenerator::visitWasmNewArrayObject(LWasmNewArrayObject* lir) {
         storageBytes.value() > WasmArrayObject_MaxInlineBytes) {
       // Too much array data to store inline. Immediately perform an instance
       // call to handle the out-of-line storage (or the trap).
+      masm.move32(Imm32(typeDefIndex), temp0);
       masm.move32(Imm32(numElements), temp1);
-      callWasmArrayAllocFun(lir, fun, temp1, typeDefData, output,
+      callWasmArrayAllocFun(lir, fun, temp1, temp0, allocSite, output,
                             mir->trapSiteDesc());
     } else {
       // storageBytes is small enough to be stored inline in WasmArrayObject.
@@ -20089,16 +20100,18 @@ void CodeGenerator::visitWasmNewArrayObject(LWasmNewArrayObject* lir) {
       MOZ_ASSERT(instance == InstanceReg);
 
       auto* ool = new (alloc()) LambdaOutOfLineCode([=](OutOfLineCode& ool) {
+        masm.move32(Imm32(typeDefIndex), temp0);
         masm.move32(Imm32(numElements), temp1);
-        callWasmArrayAllocFun(lir, fun, temp1, typeDefData, output,
+        callWasmArrayAllocFun(lir, fun, temp1, temp0, allocSite, output,
                               mir->trapSiteDesc());
         masm.jump(ool.rejoin());
       });
       addOutOfLineCode(ool, lir->mir());
 
-      masm.wasmNewArrayObjectFixed(instance, output, typeDefData, temp1, temp2,
-                                   ool->entry(), numElements,
-                                   storageBytes.value(), mir->zeroFields());
+      size_t offsetOfTypeDefData = mir->offsetOfTypeDefData();
+      masm.wasmNewArrayObjectFixed(
+          instance, output, allocSite, temp0, temp1, offsetOfTypeDefData,
+          ool->entry(), numElements, storageBytes.value(), mir->zeroFields());
 
       masm.bind(ool->rejoin());
     }
@@ -20110,14 +20123,18 @@ void CodeGenerator::visitWasmNewArrayObject(LWasmNewArrayObject* lir) {
     Register numElements = ToRegister(lir->numElements());
 
     auto* ool = new (alloc()) LambdaOutOfLineCode([=](OutOfLineCode& ool) {
-      callWasmArrayAllocFun(lir, fun, numElements, typeDefData, output,
+      masm.move32(Imm32(typeDefIndex), temp0);
+      callWasmArrayAllocFun(lir, fun, numElements, temp0, allocSite, output,
                             mir->trapSiteDesc());
       masm.jump(ool.rejoin());
     });
     addOutOfLineCode(ool, lir->mir());
 
-    masm.wasmNewArrayObject(instance, output, numElements, typeDefData, temp1,
-                            ool->entry(), mir->elemSize(), mir->zeroFields());
+    size_t offsetOfTypeDefData = mir->offsetOfTypeDefData();
+
+    masm.wasmNewArrayObject(instance, output, numElements, allocSite, temp1,
+                            offsetOfTypeDefData, ool->entry(), mir->elemSize(),
+                            mir->zeroFields());
 
     masm.bind(ool->rejoin());
   }

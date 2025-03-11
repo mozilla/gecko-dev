@@ -53,6 +53,7 @@ bool CompiledCode::swap(MacroAssembler& masm) {
   tryNotes.swap(masm.tryNotes());
   codeRangeUnwindInfos.swap(masm.codeRangeUnwindInfos());
   callRefMetricsPatches.swap(masm.callRefMetricsPatches());
+  allocSitesPatches.swap(masm.allocSitesPatches());
   codeLabels.swap(masm.codeLabels());
   return true;
 }
@@ -90,6 +91,7 @@ ModuleGenerator::ModuleGenerator(const CodeMetadata& codeMeta,
       lastPatchedCallSite_(0),
       startOfUnpatchedCallsites_(0),
       numCallRefMetrics_(0),
+      numAllocSites_(0),
       parallel_(false),
       outstanding_(0),
       currentTask_(nullptr),
@@ -433,6 +435,31 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
 #endif
   }
 
+  if (compilingTier1()) {
+    // All the AllocSites from this batch of functions will start indexing
+    // at our current length.
+    uint32_t startOfAllocSites = numAllocSites_;
+
+    for (const FuncCompileOutput& func : code.funcs) {
+      // We only compile defined functions, not imported functions
+      MOZ_ASSERT(func.index >= codeMeta_->numFuncImports);
+      uint32_t funcDefIndex = func.index - codeMeta_->numFuncImports;
+
+      MOZ_ASSERT(func.allocSitesRange.begin + func.allocSitesRange.length <=
+                 code.allocSitesPatches.length());
+      funcDefAllocSites_[funcDefIndex] = func.allocSitesRange;
+      funcDefAllocSites_[funcDefIndex].offsetBy(startOfAllocSites);
+    }
+  } else {
+    MOZ_ASSERT(funcDefAllocSites_.empty());
+    MOZ_ASSERT(code.allocSitesPatches.empty());
+#ifdef DEBUG
+    for (const FuncCompileOutput& func : code.funcs) {
+      MOZ_ASSERT(func.allocSitesRange.length == 0);
+    }
+#endif
+  }
+
   // Grab the perf spewers that were generated for these functions.
   if (!funcIonSpewers_.appendAll(std::move(code.funcIonSpewers)) ||
       !funcBaselineSpewers_.appendAll(std::move(code.funcBaselineSpewers))) {
@@ -511,6 +538,27 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
     }
 
     masm_->patchMove32(offset, Imm32(int32_t(callRefMetricOffset)));
+  }
+
+  // Use numAllocSites_ to patch bytecode specific AllocSite to its index in
+  // the map.
+  for (const AllocSitePatch& patch : code.allocSitesPatches) {
+    uint32_t index = numAllocSites_;
+    numAllocSites_ += 1;
+    if (!patch.hasPatchOffset()) {
+      continue;
+    }
+
+    CodeOffset offset = CodeOffset(patch.patchOffset());
+    offset.offsetBy(offsetInModule);
+
+    // Compute the offset of the AllocSite, and patch it. This may overflow,
+    // in which case we report an OOM.
+    if (index > INT32_MAX / sizeof(gc::AllocSite)) {
+      return false;
+    }
+    uintptr_t allocSiteOffset = uintptr_t(index) * sizeof(gc::AllocSite);
+    masm_->patchMove32(offset, Imm32(allocSiteOffset));
   }
 
   for (const CodeLabel& codeLabel : code.codeLabels) {
@@ -956,6 +1004,11 @@ bool ModuleGenerator::prepareTier1() {
     return false;
   }
 
+  // Initialize function definition alloc site ranges
+  if (!funcDefAllocSites_.resize(codeMeta_->numFuncDefs())) {
+    return false;
+  }
+
   // Initialize function import metadata
   if (!funcImports_.resize(codeMeta_->numFuncImports)) {
     return false;
@@ -1226,8 +1279,18 @@ SharedModule ModuleGenerator::finishModule(
   // Transfer the function definition feature usages
   codeMeta->funcDefFeatureUsages = std::move(funcDefFeatureUsages_);
   codeMeta->funcDefCallRefs = std::move(funcDefCallRefMetrics_);
+  codeMeta->funcDefAllocSites = std::move(funcDefAllocSites_);
   MOZ_ASSERT_IF(mode() != CompileMode::LazyTiering, numCallRefMetrics_ == 0);
   codeMeta->numCallRefMetrics = numCallRefMetrics_;
+
+  if (tier() == Tier::Baseline) {
+    codeMeta->numAllocSites = numAllocSites_;
+  } else {
+    MOZ_ASSERT(numAllocSites_ == 0);
+    // Even if funcDefAllocSites were not created, e.g. single tier of
+    // optimized compilation, the AllocSite array will exist.
+    codeMeta->numAllocSites = codeMeta->numTypes();
+  }
 
   if (mode() == CompileMode::LazyTiering) {
     codeMeta->callRefHints = MutableCallRefHints(
@@ -1459,6 +1522,7 @@ size_t CompiledCode::sizeOfExcludingThis(
          tryNotes.sizeOfExcludingThis(mallocSizeOf) +
          codeRangeUnwindInfos.sizeOfExcludingThis(mallocSizeOf) +
          callRefMetricsPatches.sizeOfExcludingThis(mallocSizeOf) +
+         allocSitesPatches.sizeOfExcludingThis(mallocSizeOf) +
          codeLabels.sizeOfExcludingThis(mallocSizeOf);
 }
 
