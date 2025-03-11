@@ -24,7 +24,7 @@ fn get_paths() -> Vec<ResourceId> {
         "toolkit/global/textActions.ftl",
         "toolkit/printing/printUI.ftl",
         "toolkit/updates/history.ftl",
-        "toolkit/featuregates/features.ftl",
+        "toolkit/firefoxlabs/features.ftl",
     ];
 
     paths.into_iter().map(ResourceId::from).collect()
