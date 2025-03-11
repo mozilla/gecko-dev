@@ -838,7 +838,7 @@
       display: flex;
     }
 
-    #tabbrowser-tabs[movingtab] &:is(:active,[multiselected]) {
+    #tabbrowser-tabs[movingtab]:not([movingtab-createGroup],[movingtab-ungroup]) .tabbrowser-tab:is(:active,[multiselected]) > .tab-stack > .tab-background > & {
       display: flex;
       background-color: light-dark(var(--dragover-tab-group-color), var(--dragover-tab-group-color-invert));
       border-radius: 1px;
