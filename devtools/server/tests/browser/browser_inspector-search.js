@@ -253,6 +253,13 @@ add_task(async function () {
           expected: [{ node: inspectee.querySelector("p"), type: "xpath" }],
         },
         {
+          desc: "Search for XPath via strict equal text",
+          search: "//*[text()='Heading 1']",
+          expected: [
+            { node: inspectee.querySelector("h1#pseudo"), type: "xpath" },
+          ],
+        },
+        {
           desc: "Search for XPath matching text node",
           search: "//strong/text()",
           expected: [

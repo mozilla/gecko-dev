@@ -243,7 +243,7 @@ class WalkerSearch {
           this._addResult(entry.node, "attributeValue", results);
         }
       }
-    } else {
+    } else if (this.index.data.has(attributeName)) {
       for (const entry of this.index.data.get(attributeName)) {
         if (entry.type !== "attributeName") {
           continue;
