@@ -174,12 +174,38 @@ body,
   display: flex;
   align-items: center;
   margin-inline-start: 3px;
-  margin-inline-end: 3px;
 }
 
 #user-agent-input {
   margin-inline-start: 3px;
   flex: 1;
+}
+
+/* Override the styles of .devtools-dropdown-button
+ * to center the arrow icons while not having any label displayed on the button */
+#user-agent-selector {
+  padding-inline: 0;
+  border-radius: 0;
+  background-position: center center !important;
+  width: 2em;
+}
+
+.user-agent-selector-item .label::before {
+  /* Dim the color of user agent icons */
+  color: var(--theme-icon-dimmed-color);
+}
+.user-agent-selector-item.separator {
+  padding-bottom: 0.5em !important;
+  border-block-end: 1px solid var(--theme-toolbar-separator) !important;
+  margin-bottom: 0.25em !important;
+}
+
+/* Display the browser version in a light way */
+.user-agent-browser-version {
+  color: var(--theme-text-color-alt);
+  font-family: var(--monospace-font-family);
+  margin-inline-start: 4px;
+  font-size: 0.8em;
 }
 
 @media (max-width: 520px) {

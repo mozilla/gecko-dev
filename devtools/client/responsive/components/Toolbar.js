@@ -75,10 +75,28 @@ class Toolbar extends PureComponent {
   }
 
   renderUserAgent() {
-    const { onChangeUserAgent, showUserAgentInput } = this.props;
+    const { onChangeUserAgent, showUserAgentInput, viewport, devices } =
+      this.props;
 
     if (!showUserAgentInput) {
       return null;
+    }
+
+    const selectedDeviceName = viewport.device;
+    let selectedDeviceUserAgent = null;
+    if (selectedDeviceName) {
+      // Find the matching device by name
+      for (const type of devices.types) {
+        for (const device of devices[type]) {
+          if (device.name == selectedDeviceName) {
+            selectedDeviceUserAgent = device.userAgent;
+            break;
+          }
+        }
+        if (selectedDeviceUserAgent) {
+          break;
+        }
+      }
     }
 
     return createElement(
@@ -86,6 +104,8 @@ class Toolbar extends PureComponent {
       null,
       UserAgentInput({
         onChangeUserAgent,
+        selectedDeviceName,
+        selectedDeviceUserAgent,
       }),
       dom.div({ className: "devtools-separator" })
     );

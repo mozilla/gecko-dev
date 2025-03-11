@@ -466,11 +466,14 @@ async function testMenuItems(toolWindow, button, testFn) {
         // Handle MenuButton popups (device selector and network throttling).
         if (
           button.id === "device-selector" ||
+          button.id == "user-agent-selector" ||
           button.id === "network-throttling"
         ) {
           let popupId;
           if (button.id === "device-selector") {
             popupId = "#device-selector-menu";
+          } else if (button.id === "user-agent-selector") {
+            popupId = "#user-agent-selector-menu";
           } else {
             popupId = "#network-throttling-menu";
           }
