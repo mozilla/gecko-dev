@@ -60,26 +60,15 @@ class SettingsPrivacyTest : TestSetup() {
                 isUsageAndTechnicalDataEnabled = true,
                 isDailyUsagePingEnabled = true,
                 studiesSummary = "On",
+                isAutomaticallySendCrashReportsEnabled = false,
             )
             clickUsageAndTechnicalDataToggle()
-            verifyUsageAndTechnicalDataToggle(false)
-            verifyDailyUsagePingToggle(true)
-
-            // Automatically turned off as telemetry was turned off.
             verifyDataCollectionView(
                 isUsageAndTechnicalDataEnabled = false,
                 isDailyUsagePingEnabled = true,
                 studiesSummary = "Off",
+                isAutomaticallySendCrashReportsEnabled = false,
             )
-            clickUsageAndTechnicalDataToggle()
-            verifyUsageAndTechnicalDataToggle(true)
-            verifyDailyUsagePingToggle(true)
-
-            clickStudiesOption()
-            verifyStudiesToggle(true)
-            // Turning to false
-            clickStudiesToggle()
-            verifyStudiesToggle(false)
         }
     }
 

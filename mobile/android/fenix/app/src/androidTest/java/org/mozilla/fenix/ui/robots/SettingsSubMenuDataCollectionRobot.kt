@@ -35,20 +35,26 @@ class SettingsSubMenuDataCollectionRobot {
         isUsageAndTechnicalDataEnabled: Boolean,
         isDailyUsagePingEnabled: Boolean,
         studiesSummary: String,
+        isAutomaticallySendCrashReportsEnabled: Boolean,
     ) {
         assertUIObjectExists(
             goBackButton(),
             itemContainingText(getStringResource(R.string.preferences_data_collection)),
-            itemContainingText(getStringResource(R.string.preference_usage_data_1)),
+            itemContainingText(getStringResource(R.string.preference_usage_data_2)),
             itemContainingText(getStringResource(R.string.preferences_usage_data_description_1)),
-            itemContainingText(getStringResource(R.string.preferences_daily_usage_ping_title)),
-        )
-        verifyDailyUsagePingToggle(isDailyUsagePingEnabled)
-        verifyUsageAndTechnicalDataToggle(isUsageAndTechnicalDataEnabled)
-        assertUIObjectExists(
+            itemContainingText(getStringResource(R.string.preference_usage_data_learn_more)),
             itemContainingText(getStringResource(R.string.studies_title)),
             itemContainingText(studiesSummary),
+            itemContainingText(getStringResource(R.string.preferences_daily_usage_ping_title)),
+            itemContainingText(getStringResource(R.string.preferences_daily_usage_ping_description)),
+            itemContainingText(getStringResource(R.string.preferences_daily_usage_ping_learn_more)),
+            itemContainingText(getStringResource(R.string.preferences_automatically_send_crashes_title)),
+            itemContainingText(getStringResource(R.string.preferences_automatically_send_crashes_description)),
+            itemContainingText(getStringResource(R.string.onboarding_preferences_dialog_crash_reporting_learn_more)),
         )
+        verifyUsageAndTechnicalDataToggle(isUsageAndTechnicalDataEnabled)
+        verifyDailyUsagePingToggle(isDailyUsagePingEnabled)
+        verifyAutomaticallySendCrashReportsToggle(isAutomaticallySendCrashReportsEnabled)
     }
 
     fun verifyUsageAndTechnicalDataToggle(enabled: Boolean) {
@@ -74,6 +80,26 @@ class SettingsSubMenuDataCollectionRobot {
     fun verifyDailyUsagePingToggle(enabled: Boolean) {
         Log.i(TAG, "verifyDailyUsagePingToggle: Trying to verify that the \"Daily usage ping\" toggle is checked: $enabled")
         onView(withText(R.string.preferences_daily_usage_ping_title))
+            .check(
+                matches(
+                    hasCousin(
+                        allOf(
+                            withClassName(endsWith("Switch")),
+                            if (enabled) {
+                                isChecked()
+                            } else {
+                                isNotChecked()
+                            },
+                        ),
+                    ),
+                ),
+            )
+        Log.i(TAG, "verifyDailyUsagePingToggle: Verified that the \"Daily usage ping\" toggle is checked: $enabled")
+    }
+
+    fun verifyAutomaticallySendCrashReportsToggle(enabled: Boolean) {
+        Log.i(TAG, "verifyDailyUsagePingToggle: Trying to verify that the \"Automatically send crash reports\" toggle is checked: $enabled")
+        onView(withText(R.string.preferences_automatically_send_crashes_title))
             .check(
                 matches(
                     hasCousin(
