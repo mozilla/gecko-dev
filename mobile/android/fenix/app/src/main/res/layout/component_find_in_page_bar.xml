@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ This Source Code Form is subject to the terms of the Mozilla Public
+  ~ License, v. 2.0. If a copy of the MPL was not distributed with this
+  ~ file, You can obtain one at https://mozilla.org/MPL/2.0/.
+  -->
+
+<mozilla.components.feature.findinpage.view.FindInPageBar xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="56dp"
+    android:background="?attr/layer1"
+    android:clickable="true"
+    android:focusable="true"
+    android:visibility="gone"
+    app:findInPageButtonsTint="?attr/textPrimary"
+    app:findInPageNoMatchesTextColor="?attr/textCritical"
+    app:findInPageResultCountTextColor="?attr/textPrimary" />

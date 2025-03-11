@@ -94,6 +94,7 @@ import mozilla.components.feature.downloads.DownloadsFeature
 import mozilla.components.feature.downloads.manager.FetchDownloadManager
 import mozilla.components.feature.downloads.temporary.CopyDownloadFeature
 import mozilla.components.feature.downloads.temporary.ShareResourceFeature
+import mozilla.components.feature.findinpage.view.FindInPageBar
 import mozilla.components.feature.intent.ext.EXTRA_SESSION_ID
 import mozilla.components.feature.media.fullscreen.MediaSessionFullscreenFeature
 import mozilla.components.feature.privatemode.feature.SecureWindowFeature
@@ -536,7 +537,9 @@ abstract class BaseBrowserFragment :
             settings = context.settings(),
             readerModeController = readerMenuController,
             sessionFeature = sessionFeature,
-            findInPageLauncher = { findInPageIntegration.withFeature { it.launch() } },
+            findInPageLauncher = {
+                launchFindInPageFeature(view, store)
+            },
             browserAnimator = browserAnimator,
             customTabSessionId = customTabSessionId,
             openInFenixIntent = openInFenixIntent,
@@ -637,29 +640,12 @@ abstract class BaseBrowserFragment :
             view = view,
         )
 
-        findInPageIntegration.set(
-            feature = FindInPageIntegration(
-                store = store,
-                appStore = requireComponents.appStore,
-                sessionId = customTabSessionId,
-                view = binding.findInPageView,
-                engineView = binding.engineView,
-                toolbarsHideCallback = {
-                    expandBrowserView()
-                },
-                toolbarsResetCallback = {
-                    onUpdateToolbarForConfigurationChange(browserToolbarView)
-                    collapseBrowserView()
-                },
-            ),
-            owner = this,
-            view = view,
-        )
-
         findInPageBinding.set(
             feature = FindInPageBinding(
                 appStore = context.components.appStore,
-                onFindInPageLaunch = { findInPageIntegration.withFeature { it.launch() } },
+                onFindInPageLaunch = {
+                    launchFindInPageFeature(view = view, store = store)
+                },
             ),
             owner = this,
             view = view,
@@ -2736,5 +2722,29 @@ abstract class BaseBrowserFragment :
             val directions = BrowserFragmentDirections.actionLoginsListFragment()
             navController.navigate(directions)
         }
+    }
+
+    private fun launchFindInPageFeature(view: View, store: BrowserStore) {
+        val findInPageBar = view.findViewById(R.id.findInPageView)
+            ?: (binding.findInPageViewStub.inflate() as FindInPageBar)
+        findInPageIntegration.set(
+            feature = FindInPageIntegration(
+                store = store,
+                appStore = requireComponents.appStore,
+                sessionId = customTabSessionId,
+                view = findInPageBar,
+                engineView = binding.engineView,
+                toolbarsHideCallback = {
+                    expandBrowserView()
+                },
+                toolbarsResetCallback = {
+                    onUpdateToolbarForConfigurationChange(browserToolbarView)
+                    collapseBrowserView()
+                },
+            ),
+            owner = this,
+            view = view,
+        )
+        findInPageIntegration.withFeature { it.launch() }
     }
 }

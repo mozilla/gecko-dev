@@ -36,18 +36,13 @@
                     android:visibility="gone" />
             </mozilla.components.ui.widgets.VerticalSwipeRefreshLayout>
 
-            <mozilla.components.feature.findinpage.view.FindInPageBar
-                android:id="@+id/findInPageView"
+            <ViewStub
+                android:id="@+id/findInPageViewStub"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="wrap_content"
                 android:layout_gravity="bottom"
-                android:background="?attr/layer1"
-                android:clickable="true"
-                android:focusable="true"
-                android:visibility="gone"
-                app:findInPageNoMatchesTextColor="?attr/textCritical"
-                app:findInPageButtonsTint="?attr/textPrimary"
-                app:findInPageResultCountTextColor="?attr/textPrimary" />
+                android:inflatedId="@+id/findInPageView"
+                android:layout="@layout/component_find_in_page_bar" />
 
             <include
                 android:id="@+id/viewDynamicDownloadDialog"
