@@ -264,7 +264,7 @@ let JSWINDOWACTORS = {
       "https://www.google.com/recaptcha/api2/*",
       "https://www.google.com/recaptcha/enterprise/*",
       // CF Turnstile
-      "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/if/ov2/av0/rcv/*",
+      "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/*/turnstile/if/ov2/av0/rcv/*",
       // DataDome Captcha
       "https://geo.captcha-delivery.com/captcha/*",
       // hCaptcha
