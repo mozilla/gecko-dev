@@ -81,7 +81,7 @@ fn get_safearea_inset_right(device: &Device, url_data: &UrlExtraData) -> Variabl
 
 #[cfg(feature = "gecko")]
 fn get_content_preferred_color_scheme(device: &Device, url_data: &UrlExtraData) -> VariableValue {
-    use crate::gecko::media_features::PrefersColorScheme;
+    use crate::queries::values::PrefersColorScheme;
     let prefers_color_scheme = unsafe {
         crate::gecko_bindings::bindings::Gecko_MediaFeatures_PrefersColorScheme(
             device.document(),
