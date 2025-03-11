@@ -49,10 +49,9 @@ skip-if = ["condprof"] # Bug 1769184 - by design for now
 ["test_addonStartup.js"]
 
 ["test_addon_manager_telemetry_events.js"]
-skip-if = ["os == 'android'"]
 
 ["test_amo_stats_telemetry.js"]
-skip-if = ["os == 'android'"]
+skip-if = ["os == 'android'"] # bug 1866520 - missing Glean version of stats telemetry
 
 ["test_aom_startup.js"]
 skip-if = ["os == 'android'"] # Non-extension add-ons are not supported on Android, but test installs static theme.

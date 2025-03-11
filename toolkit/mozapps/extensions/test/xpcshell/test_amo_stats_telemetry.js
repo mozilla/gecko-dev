@@ -63,6 +63,8 @@ add_task(async function test_ping_payload_and_environment() {
     await extension.startup();
   }
 
+  // Note: This returns null on Android because toolkit.telemetry.unified=false
+  // and there is no equivalent Glean telemetry to compare with (bug 1866520).
   const { payload, environment } = TelemetryController.getCurrentPingData();
 
   // Important: `payload.info.addons` is being used for AMO usage stats.
