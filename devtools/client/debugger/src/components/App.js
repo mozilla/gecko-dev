@@ -100,9 +100,12 @@ class App extends Component {
       L10N.getStr("sources.search.alt.key"),
     ].forEach(key => shortcuts.on(key, this.toggleQuickOpenModal));
 
-    shortcuts.on(L10N.getStr("gotoLineModal.key3"), e =>
-      this.toggleQuickOpenModal(e, ":")
-    );
+    [
+      L10N.getStr("gotoLineModal.key3"),
+      // For consistency with sourceeditor and codemirror5 shortcuts, map
+      // sourceeditor jumpToLine command key.
+      `CmdOrCtrl+${L10N.getStr("jumpToLine.commandkey")}`,
+    ].forEach(key => shortcuts.on(key, this.toggleJumpToLine));
 
     shortcuts.on(
       L10N.getStr("projectTextSearch.key"),
@@ -126,7 +129,10 @@ class App extends Component {
       L10N.getStr("sources.search.alt.key"),
     ].forEach(key => shortcuts.off(key, this.toggleQuickOpenModal));
 
-    shortcuts.off(L10N.getStr("gotoLineModal.key3"), this.toggleQuickOpenModal);
+    [
+      L10N.getStr("gotoLineModal.key3"),
+      `CmdOrCtrl+${L10N.getStr("jumpToLine.commandkey")}`,
+    ].forEach(key => shortcuts.off(key, this.toggleJumpToLine));
 
     shortcuts.off(
       L10N.getStr("projectTextSearch.key"),
@@ -175,6 +181,10 @@ class App extends Component {
   isHorizontal() {
     return this.props.orientation === "horizontal";
   }
+
+  toggleJumpToLine = e => {
+    this.toggleQuickOpenModal(e, ":");
+  };
 
   toggleQuickOpenModal = (e, query) => {
     const { quickOpenEnabled, openQuickOpen, closeQuickOpen } = this.props;
