@@ -37,5 +37,3 @@ function createProfile() {
   gParams.SetInt(1, Ci.nsIToolkitProfileService.createNewProfile);
   window.close();
 }
-
-window.addEventListener("load", () => init());

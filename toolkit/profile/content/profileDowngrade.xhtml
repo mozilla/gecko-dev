@@ -3,15 +3,14 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<?csp default-src chrome:; style-src chrome: 'unsafe-inline'; ?>
-
 <!DOCTYPE window>
 
 <window xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         xmlns:html="http://www.w3.org/1999/xhtml"
         prefwidth="min-width"
         data-l10n-id="profiledowngrade-window2"
-        data-l10n-attrs="title,style">
+        data-l10n-attrs="title,style"
+        onload="init()">
 <linkset>
   <html:link rel="stylesheet" href="chrome://global/skin/global.css" />
   <html:link
