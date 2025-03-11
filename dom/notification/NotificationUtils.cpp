@@ -206,14 +206,11 @@ nsresult UnpersistNotification(nsIPrincipal* aPrincipal, const nsString& aId) {
   return NS_ERROR_FAILURE;
 }
 
-void UnregisterNotification(nsIPrincipal* aPrincipal, const nsString& aId,
-                            CloseMode aCloseMode) {
+void UnregisterNotification(nsIPrincipal* aPrincipal, const nsString& aId) {
   // XXX: unpersist only when explicitly closed, bug 1095073
   UnpersistNotification(aPrincipal, aId);
   if (nsCOMPtr<nsIAlertsService> alertService = components::Alerts::Service()) {
-    alertService->CloseAlert(
-        aId,
-        /* aContextClosed */ aCloseMode == CloseMode::InactiveGlobal);
+    alertService->CloseAlert(aId, /* aContextClosed */ false);
   }
 }
 
