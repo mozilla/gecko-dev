@@ -191,8 +191,17 @@ async function testBrowserFrames() {
   const { TYPES } = targetCommand;
   await targetCommand.startListening();
 
+  async function getAllFrameTargets() {
+    const targets = await targetCommand.getAllTargets([TYPES.FRAME]);
+
+    // Some extensions may be running and lead to the creation
+    // of some unexpected addon targets.
+    return targets.filter(t => !t.addonId);
+  }
+
   // Very naive sanity check against getAllTargets([frame])
-  const frames = await targetCommand.getAllTargets([TYPES.FRAME]);
+  const frames = await getAllFrameTargets();
+
   const hasBrowserDocument = frames.find(
     frameTarget => frameTarget.url == window.location.href
   );
@@ -206,7 +215,8 @@ async function testBrowserFrames() {
   ok(hasAboutBlankDocument, "retrieve the target for the about:blank tab");
 
   // Check that calling getAllTargets([frame]) return the same target instances
-  const frames2 = await targetCommand.getAllTargets([TYPES.FRAME]);
+  const frames2 = await getAllFrameTargets();
+
   is(frames2.length, frames.length, "retrieved the same number of frames");
 
   function sortFronts(f1, f2) {
@@ -241,9 +251,12 @@ async function testBrowserFrames() {
       PID_REGEXP.test(targetFront.processID),
       `Target has processID of expected shape (${targetFront.processID})`
     );
-    targets.push(targetFront);
+    if (!targetFront.addonId) {
+      targets.push(targetFront);
+    }
   };
   await targetCommand.watchTargets({ types: [TYPES.FRAME], onAvailable });
+
   is(
     targets.length,
     frames.length,
@@ -284,7 +297,7 @@ async function testBrowserFrames() {
       "tab's WindowGlobal/BrowsingContext is detached and has no parent, but we report them as children of the top level target"
     );
 
-    const frames3 = await targetCommand.getAllTargets([TYPES.FRAME]);
+    const frames3 = await getAllFrameTargets();
     const hasTabDocument = frames3.find(target => target.url == url);
     ok(hasTabDocument, "retrieve the target for tab via getAllTargets");
 
