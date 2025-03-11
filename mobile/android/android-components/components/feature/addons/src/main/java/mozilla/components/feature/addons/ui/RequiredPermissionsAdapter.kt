@@ -7,9 +7,11 @@ package mozilla.components.feature.addons.ui
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewGroup.MarginLayoutParams
 import android.widget.TextView
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.widget.AppCompatCheckBox
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
@@ -19,6 +21,7 @@ private const val VIEW_HOLDER_TYPE_PERMISSION = 0
 private const val VIEW_HOLDER_TYPE_PERMISSION_DOMAIN = 1
 private const val VIEW_HOLDER_TYPE_SHOW_HIDE_SITES = 2
 private const val VIEW_HOLDER_TYPE_OPT_IN_PERMISSION = 3
+private const val VIEW_HOLDER_TYPE_EXTRA_WARNING = 4
 
 private const val DOMAINS_CONTRACTED_SUBLIST_SIZE = 5
 
@@ -59,6 +62,14 @@ sealed class RequiredPermissionsListItem {
     class ShowHideDomainAction(
         val isShowAction: Boolean,
     ) : RequiredPermissionsListItem()
+
+    /**
+     * A warning message to be displayed.
+     * @param warningText - The text to show in a warning card.
+     */
+    class ExtraWarningItem(
+        val warningText: String,
+    ) : RequiredPermissionsListItem()
 }
 
 /**
@@ -86,6 +97,10 @@ private class DiffCallback : DiffUtil.ItemCallback<RequiredPermissionsListItem>(
                 newItem is RequiredPermissionsListItem.ShowHideDomainAction ->
                 oldItem.isShowAction == newItem.isShowAction
 
+            oldItem is RequiredPermissionsListItem.ExtraWarningItem &&
+                newItem is RequiredPermissionsListItem.ExtraWarningItem ->
+                oldItem.warningText == newItem.warningText
+
             else -> false
         }
     }
@@ -111,6 +126,10 @@ private class DiffCallback : DiffUtil.ItemCallback<RequiredPermissionsListItem>(
                 newItem is RequiredPermissionsListItem.ShowHideDomainAction ->
                 oldItem.isShowAction == newItem.isShowAction
 
+            oldItem is RequiredPermissionsListItem.ExtraWarningItem &&
+                newItem is RequiredPermissionsListItem.ExtraWarningItem ->
+                oldItem.warningText == newItem.warningText
+
             else -> false
         }
     }
@@ -124,6 +143,7 @@ private class DiffCallback : DiffUtil.ItemCallback<RequiredPermissionsListItem>(
  * @property onPermissionOptInChanged Whether the opt in state changed.
  * @property domains The list of domains to be displayed as URL's
  * @property domainsHeaderText The text header above the list of domains to display
+ * @property extraPermissionWarning The text to display in a warning bar, if any.
  */
 class RequiredPermissionsAdapter(
     private val permissions: List<String>,
@@ -131,6 +151,7 @@ class RequiredPermissionsAdapter(
     private val onPermissionOptInChanged: (Boolean) -> Unit,
     private val domains: Set<String>,
     private val domainsHeaderText: String,
+    private val extraPermissionWarning: String?,
 ) :
     ListAdapter<RequiredPermissionsListItem, ViewHolder>(DiffCallback()) {
 
@@ -217,12 +238,43 @@ class RequiredPermissionsAdapter(
         }
     }
 
+    /**
+     * ViewHolder for displaying an extra warning item
+     */
+    class ExtraWarningViewHolder(itemView: View) : ViewHolder(itemView) {
+        private val messageBarWarningView: View = itemView.findViewById(R.id.add_on_messagebar_warning)
+        private val warningTextView: TextView = itemView.findViewById(R.id.add_on_messagebar_warning_text)
+        private val learnMoreLinkTextView: TextView =
+            itemView.findViewById(R.id.add_on_messagebar_warning_learn_more_link)
+
+        /**
+         * bind [RequiredPermissionsListItem.DomainItem] data to view
+         */
+        fun bind(item: RequiredPermissionsListItem.ExtraWarningItem) {
+            // Align message-bar with the edges of the checkbox row.
+            (messageBarWarningView.layoutParams as MarginLayoutParams).let {
+                it.marginStart = 0
+                it.marginEnd = 0
+            }
+
+            // mozac_feature_addons_message_bars.xml contains multiple views;
+            // display the warning bar and hide the rest.
+
+            // Show the warning message-bar.
+            messageBarWarningView.isVisible = true
+            // The extra warning doesn't have any "learn more" link.
+            learnMoreLinkTextView.isVisible = false
+            warningTextView.text = item.warningText
+        }
+    }
+
     override fun getItemViewType(position: Int): Int {
         return when (displayList[position]) {
             is RequiredPermissionsListItem.PermissionItem -> VIEW_HOLDER_TYPE_PERMISSION
             is RequiredPermissionsListItem.OptInPermissionItem -> VIEW_HOLDER_TYPE_OPT_IN_PERMISSION
             is RequiredPermissionsListItem.DomainItem -> VIEW_HOLDER_TYPE_PERMISSION_DOMAIN
             is RequiredPermissionsListItem.ShowHideDomainAction -> VIEW_HOLDER_TYPE_SHOW_HIDE_SITES
+            is RequiredPermissionsListItem.ExtraWarningItem -> VIEW_HOLDER_TYPE_EXTRA_WARNING
         }
     }
 
@@ -264,6 +316,15 @@ class RequiredPermissionsAdapter(
                     ),
             )
 
+            VIEW_HOLDER_TYPE_EXTRA_WARNING -> ExtraWarningViewHolder(
+                LayoutInflater.from(viewGroup.context)
+                    .inflate(
+                        R.layout.mozac_feature_addons_message_bars,
+                        viewGroup,
+                        false,
+                    ),
+            )
+
             else -> throw IllegalArgumentException("Unrecognized viewType for Permissions Adapter")
         }
     }
@@ -292,6 +353,10 @@ class RequiredPermissionsAdapter(
                     item,
                     ::toggleDomainSection,
                 )
+            }
+
+            is RequiredPermissionsListItem.ExtraWarningItem -> {
+                (viewHolder as ExtraWarningViewHolder).bind(item)
             }
         }
     }
@@ -371,6 +436,9 @@ class RequiredPermissionsAdapter(
                     RequiredPermissionsListItem.PermissionItem(it),
                 )
             }
+        }
+        if (extraPermissionWarning != null) {
+            displayList.add(RequiredPermissionsListItem.ExtraWarningItem(extraPermissionWarning))
         }
     }
 }

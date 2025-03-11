@@ -2,22 +2,22 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_height="wrap_content"
-    android:layout_width="wrap_content" >
+    android:layout_width="wrap_content">
 
     <androidx.core.widget.NestedScrollView
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:paddingBottom="125dp"
-        android:clipToPadding="false" >
+        android:clipToPadding="false">
 
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="?android:windowBackground"
-            android:orientation="vertical" >
+            android:orientation="vertical">
 
             <androidx.appcompat.widget.AppCompatImageView
                 android:id="@+id/icon"
@@ -38,7 +38,7 @@
                 android:layout_alignParentTop="true"
                 android:layout_marginStart="3dp"
                 android:layout_marginTop="16dp"
-                android:layout_marginEnd="11dp"
+                android:layout_marginEnd="16dp"
                 android:layout_toEndOf="@id/icon"
                 android:paddingStart="5dp"
                 android:paddingTop="4dp"
@@ -55,6 +55,7 @@
                 android:layout_below="@id/title"
                 android:layout_alignStart="@id/title"
                 android:layout_marginTop="16dp"
+                android:layout_marginEnd="16dp"
                 android:paddingStart="5dp"
                 android:paddingTop="4dp"
                 android:paddingEnd="5dp"
@@ -68,6 +69,7 @@
                 android:layout_below="@id/optional_or_required_text"
                 android:layout_alignStart="@id/optional_or_required_text"
                 android:layout_marginStart="0dp"
+                android:layout_marginEnd="16dp"
                 android:paddingStart="5dp"
                 android:paddingEnd="5dp"
                 android:paddingTop="4dp"
@@ -84,7 +86,7 @@
         android:background="?android:windowBackground"
         android:elevation="12dp"
         android:paddingStart="48dp"
-        android:paddingEnd="16dp" >
+        android:paddingEnd="16dp">
 
         <androidx.appcompat.widget.AppCompatCheckBox
             android:id="@+id/allow_in_private_browsing"

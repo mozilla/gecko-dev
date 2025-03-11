@@ -237,6 +237,12 @@ class PermissionsDialogFragment : AddonDialogFragment() {
         val allowedInPrivateBrowsing =
             rootView.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
 
+        var extraPermissionWarning: String? = null
+        if (isUserScriptsPermission) {
+            extraPermissionWarning = requireContext()
+                .getString(R.string.mozac_feature_addons_permissions_user_scripts_extra_warning)
+        }
+
         permissionsRecyclerView.adapter = RequiredPermissionsAdapter(
             permissions = listPermissions,
             permissionRequiresOptIn = isUserScriptsPermission,
@@ -249,6 +255,7 @@ class PermissionsDialogFragment : AddonDialogFragment() {
                     R.string.mozac_feature_addons_permissions_all_domain_count_description,
                     displayDomainList.size,
                 ),
+            extraPermissionWarning = extraPermissionWarning,
         )
         permissionsRecyclerView.layoutManager = LinearLayoutManager(context)
 

@@ -741,7 +741,7 @@ class PermissionsDialogFragmentTest {
         val allowButton = dialog.findViewById<Button>(R.id.allow_button)
         val denyButton = dialog.findViewById<Button>(R.id.deny_button)
 
-        assertEquals(recyclerAdapter.getItemCount(), 1)
+        assertEquals(recyclerAdapter.getItemCount(), 2)
 
         val firstItem = recyclerAdapter.getItemAtPosition(0)
         assertTrue(
@@ -783,6 +783,16 @@ class PermissionsDialogFragmentTest {
         permissionOptInCheckbox.performClick()
         assertTrue(permissionOptInCheckbox.isChecked)
         assertTrue(allowButton.isEnabled)
+
+        val secondItem = recyclerAdapter.getItemAtPosition(1)
+        assertTrue(
+            secondItem is RequiredPermissionsListItem.ExtraWarningItem &&
+                secondItem.warningText.equals(
+                    testContext.getString(
+                        R.string.mozac_feature_addons_permissions_user_scripts_extra_warning,
+                    ),
+                ),
+        )
     }
 
     @Test
