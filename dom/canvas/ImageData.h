@@ -15,6 +15,7 @@
 #include "mozilla/dom/TypedArray.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsISupports.h"
+#include "nsWrapperCache.h"
 
 class JSObject;
 class nsIGlobalObject;
@@ -31,22 +32,19 @@ class GlobalObject;
 template <typename T>
 class Optional;
 
-class ImageData final : public nsISupports {
+// ImageData extends nsWrapperCache only to support nursery allocated wrapper.
+class ImageData final : public nsISupports, public nsWrapperCache {
  public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(ImageData)
-
-  const uint32_t mWidth;
-  const uint32_t mHeight;
-
- private:
-  JS::Heap<JSObject*> mData;
-
- public:
-  ImageData(uint32_t aWidth, uint32_t aHeight, JSObject& aData)
-      : mWidth(aWidth), mHeight(aHeight), mData(&aData) {
+  ImageData(nsISupports* aOwner, uint32_t aWidth, uint32_t aHeight,
+            JSObject& aData)
+      : mOwner(aOwner), mWidth(aWidth), mHeight(aHeight), mData(&aData) {
     HoldData();
   }
+
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS(ImageData)
+
+  nsISupports* GetParentObject() const { return mOwner; }
 
   static already_AddRefed<ImageData> Constructor(const GlobalObject& aGlobal,
                                                  const uint32_t aWidth,
@@ -65,8 +63,7 @@ class ImageData final : public nsISupports {
   }
   JSObject* GetDataObject() const { return mData; }
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
-                  JS::MutableHandle<JSObject*> aReflector);
+  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   //[Serializable] implementation
   static already_AddRefed<ImageData> ReadStructuredClone(
@@ -81,6 +78,13 @@ class ImageData final : public nsISupports {
 
   ImageData() = delete;
   ~ImageData() { DropData(); }
+
+  nsCOMPtr<nsISupports> mOwner;
+
+  const uint32_t mWidth;
+  const uint32_t mHeight;
+
+  JS::Heap<JSObject*> mData;
 };
 
 }  // namespace dom
