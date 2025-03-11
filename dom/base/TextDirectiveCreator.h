@@ -303,14 +303,13 @@ class TextDirectiveCreator final {
    * @brief Find all occurrences of `aSearchQuery` in the partial document.
    *
    * This method uses `nsFind` to perform a case-insensitive search for
-   * `aSearchQuery` in the document up to the end of `mInputRange`. It is not
-   * necessary to continue searching after the end of our input range.
+   * `aSearchQuery` in the document up to `aSearchEnd`.
    *
    * @return List of `nsRange`s which have the case-insensitive-same content as
-   *         `mInputRange`.
+   *         `aSearchQuery`.
    */
   Result<nsTArray<RefPtr<nsRange>>, ErrorResult> FindAllMatchingRanges(
-      const nsString& aSearchQuery);
+      const nsString& aSearchQuery, const RangeBoundary& aSearchEnd);
 
   /**
    * @brief Creates a list of matches which match against every candidate.

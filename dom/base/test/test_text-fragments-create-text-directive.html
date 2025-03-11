@@ -214,6 +214,15 @@
           content: "Text with display:none content",
           textDirective: "text=Text%20with%20content"
         },
+        {
+          name: "Range-based text directive needs prefix",
+          startContainer: abc.firstChild,
+          startOffset: 12,
+          endContainer: foo.firstChild,
+          endOffset: 3,
+          content: "abc def ghi jkl abc. def ghi\n  foo",
+          textDirective: "text=ghi-,abc,foo"
+        },
       ]) {
         const range = document.createRange();
         range.setStart(testCase.startContainer, testCase.startOffset);
@@ -240,7 +249,7 @@
         );
 
         is(
-          range.toString(), ranges[0].toString(),
+          ranges[0].toString(), range.toString(),
           `${testCase.name}: Ranges have the same content '${ranges[0].toString()}'`
         );
         ok(

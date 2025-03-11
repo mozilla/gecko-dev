@@ -801,7 +801,8 @@ TextDirectiveCreator::FindAllMatchingCandidates() {
       return rangeContent.propagateErr();
     }
     Result<nsTArray<RefPtr<nsRange>>, ErrorResult> maybeRangeMatches =
-        FindAllMatchingRanges(rangeContent.unwrap());
+        FindAllMatchingRanges(rangeContent.unwrap(),
+                              mTextDirective.StartRange()->EndRef());
     if (MOZ_UNLIKELY(maybeRangeMatches.isErr())) {
       return maybeRangeMatches.propagateErr();
     }
@@ -827,7 +828,8 @@ TextDirectiveCreator::FindAllMatchingCandidates() {
     return startRangeContent.propagateErr();
   }
   Result<nsTArray<RefPtr<nsRange>>, ErrorResult> maybeStartRangeMatches =
-      FindAllMatchingRanges(startRangeContent.unwrap());
+      FindAllMatchingRanges(startRangeContent.unwrap(),
+                            mTextDirective.StartRange()->EndRef());
   if (MOZ_UNLIKELY(maybeStartRangeMatches.isErr())) {
     return maybeStartRangeMatches.propagateErr();
   }
@@ -843,7 +845,8 @@ TextDirectiveCreator::FindAllMatchingCandidates() {
     return endRangeContent.propagateErr();
   }
   Result<nsTArray<RefPtr<nsRange>>, ErrorResult> maybeEndRangeMatches =
-      FindAllMatchingRanges(endRangeContent.unwrap());
+      FindAllMatchingRanges(endRangeContent.unwrap(),
+                            mTextDirective.EndRange()->EndRef());
   if (MOZ_UNLIKELY(maybeEndRangeMatches.isErr())) {
     return maybeEndRangeMatches.propagateErr();
   }
@@ -857,6 +860,7 @@ TextDirectiveCreator::FindAllMatchingCandidates() {
   for (auto& element : endRangeMatchesArray) {
     endRangeMatches.Push(element.get());
   }
+  endRangeMatches.Push(mTextDirective.EndRange());
 
   size_t counter = 0;
   for (const auto& matchStartRange : startRangeMatches) {
@@ -882,13 +886,13 @@ TextDirectiveCreator::FindAllMatchingCandidates() {
 }
 
 Result<nsTArray<RefPtr<nsRange>>, ErrorResult>
-TextDirectiveCreator::FindAllMatchingRanges(const nsString& aSearchQuery) {
+TextDirectiveCreator::FindAllMatchingRanges(const nsString& aSearchQuery,
+                                            const RangeBoundary& aSearchEnd) {
   MOZ_ASSERT(!aSearchQuery.IsEmpty());
   ErrorResult rv;
   nsContentUtils::NodeIndexCache nodeIndexCache;
   RangeBoundary documentStart{&mDocument, 0u};
-  RefPtr<nsRange> searchRange =
-      nsRange::Create(documentStart, mInputRange->EndRef(), rv);
+  RefPtr<nsRange> searchRange = nsRange::Create(documentStart, aSearchEnd, rv);
   if (rv.Failed()) {
     return Err(std::move(rv));
   }
