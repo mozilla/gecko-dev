@@ -8,7 +8,6 @@ use crate::parser::{Parse, ParserContext};
 use crate::values::generics::box_::PositionProperty;
 use crate::values::generics::Optional;
 use crate::values::DashedIdent;
-#[cfg(feature = "gecko")]
 use crate::Zero;
 use cssparser::Parser;
 use std::fmt::Write;
@@ -156,13 +155,10 @@ impl<LengthPercentage: Parse> Parse for LengthPercentageOrAuto<LengthPercentage>
 pub enum GenericSize<LengthPercent> {
     LengthPercentage(LengthPercent),
     Auto,
-    #[cfg(feature = "gecko")]
     #[animation(error)]
     MaxContent,
-    #[cfg(feature = "gecko")]
     #[animation(error)]
     MinContent,
-    #[cfg(feature = "gecko")]
     #[animation(error)]
     FitContent,
     #[cfg(feature = "gecko")]
@@ -173,6 +169,7 @@ pub enum GenericSize<LengthPercent> {
     WebkitFillAvailable,
     #[animation(error)]
     Stretch,
+    #[cfg(feature = "gecko")]
     #[animation(error)]
     #[css(function = "fit-content")]
     FitContentFunction(LengthPercent),
@@ -235,13 +232,10 @@ impl<LengthPercentage> Size<LengthPercentage> {
 pub enum GenericMaxSize<LengthPercent> {
     LengthPercentage(LengthPercent),
     None,
-    #[cfg(feature = "gecko")]
     #[animation(error)]
     MaxContent,
-    #[cfg(feature = "gecko")]
     #[animation(error)]
     MinContent,
-    #[cfg(feature = "gecko")]
     #[animation(error)]
     FitContent,
     #[cfg(feature = "gecko")]
@@ -252,6 +246,7 @@ pub enum GenericMaxSize<LengthPercent> {
     WebkitFillAvailable,
     #[animation(error)]
     Stretch,
+    #[cfg(feature = "gecko")]
     #[animation(error)]
     #[css(function = "fit-content")]
     FitContentFunction(LengthPercent),

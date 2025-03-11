@@ -182,8 +182,23 @@ impl MaxSize {
     #[inline]
     pub fn to_used_value(&self, percentage_basis: Au) -> Option<Au> {
         match *self {
-            GenericMaxSize::None => None,
-            GenericMaxSize::LengthPercentage(ref lp) => Some(lp.to_used_value(percentage_basis)),
+            Self::None | Self::MinContent | Self::MaxContent | Self::FitContent | Self::Stretch => {
+                None
+            },
+            Self::LengthPercentage(ref lp) => Some(lp.to_used_value(percentage_basis)),
+            Self::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
+        }
+     }
+
+     /// Convert the computed value into used value if there is enough information.
+     #[inline]
+     pub fn maybe_to_used_value(&self, percentage_basis: Option<Au>) -> Option<Au> {
+         match *self {
+            Self::None | Self::MinContent | Self::MaxContent | Self::FitContent | Self::Stretch => {
+                None
+            },
+            Self::LengthPercentage(ref lp) => lp.maybe_to_used_value(percentage_basis),
+            Self::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
         }
     }
 }
@@ -194,8 +209,24 @@ impl Size {
     #[cfg(feature = "servo")]
     pub fn to_used_value(&self, percentage_basis: Au) -> Option<Au> {
         match *self {
-            GenericSize::Auto => None,
-            GenericSize::LengthPercentage(ref lp) => Some(lp.to_used_value(percentage_basis)),
+            Self::Auto | Self::MinContent | Self::MaxContent | Self::FitContent | Self::Stretch => {
+                None
+            },
+            Self::LengthPercentage(ref lp) => Some(lp.to_used_value(percentage_basis)),
+            Self::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
+        }
+     }
+
+     /// Convert the computed value into used value if there is enough information.
+     #[inline]
+     #[cfg(feature = "servo")]
+     pub fn maybe_to_used_value(&self, percentage_basis: Option<Au>) -> Option<Au> {
+         match *self {
+            Self::Auto | Self::MinContent | Self::MaxContent | Self::FitContent | Self::Stretch => {
+                None
+            },
+            Self::LengthPercentage(ref lp) => lp.maybe_to_used_value(percentage_basis),
+            Self::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
         }
     }
 
@@ -205,15 +236,13 @@ impl Size {
         match *self {
             Self::Auto => false,
             Self::LengthPercentage(ref lp) => lp.is_definitely_zero(),
-            #[cfg(feature = "gecko")]
             Self::MinContent |
             Self::MaxContent |
             Self::FitContent |
-            Self::MozAvailable |
-            Self::WebkitFillAvailable |
             Self::Stretch |
-            Self::FitContentFunction(_) |
             Self::AnchorSizeFunction(_) => false,
+            #[cfg(feature = "gecko")]
+            Self::MozAvailable | Self::WebkitFillAvailable | Self::FitContentFunction(_)=> false,
         }
     }
 }
