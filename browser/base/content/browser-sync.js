@@ -2204,6 +2204,9 @@ var gSync = {
       console.error("Failed to disconnect.", e);
     });
 
+    // Clear the attached clients list upon successfully disconnecting
+    this._attachedClients = null;
+
     return true;
   },
 
@@ -2469,20 +2472,25 @@ var gSync = {
         "identity.fxaccounts.toolbar.pxiToolbarEnabled.relayEnabled",
         false
       );
-    if (this.hasClientForId(FX_RELAY_OAUTH_CLIENT_ID)) {
-      let myServicesRelayPanelEl = PanelMultiView.getViewNode(
-        document,
-        "PanelUI-services-menu-relay-button"
-      );
-      let servicesContainerEl = PanelMultiView.getViewNode(
-        document,
-        "PanelUI-fxa-menu-services"
-      );
-      myServicesRelayPanelEl.hidden = false;
-      relayPanelEl.hidden = true;
-      servicesContainerEl.hidden = false;
+    let myServicesRelayPanelEl = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-services-menu-relay-button"
+    );
+    let servicesContainerEl = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-services"
+    );
+    if (this.isSignedIn) {
+      const hasRelayClient = this.hasClientForId(FX_RELAY_OAUTH_CLIENT_ID);
+      relayPanelEl.hidden = hasRelayClient;
+      // Right now only relay is under "my services" so if we don't have, we turn it off
+      myServicesRelayPanelEl.hidden = !hasRelayClient;
+      servicesContainerEl.hidden = !hasRelayClient;
     } else {
       relayPanelEl.hidden = !relayEnabled;
+      // We'll never show my services when signed out
+      myServicesRelayPanelEl.hidden = true;
+      servicesContainerEl.hidden = true;
     }
 
     // VPN checks
