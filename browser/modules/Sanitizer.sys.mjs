@@ -425,9 +425,12 @@ export var Sanitizer = {
       return;
     }
 
-    let newContext =
-      context == "clearOnShutdown" ? "clearOnShutdown_v2" : "clearHistory";
-
+    // Get all the old pref values to migrate to the new ones
+    let cookies = Services.prefs.getBoolPref(`privacy.${context}.cookies`);
+    let cache = Services.prefs.getBoolPref(`privacy.${context}.cache`);
+    let siteSettings = Services.prefs.getBoolPref(
+      `privacy.${context}.siteSettings`
+    );
     let formData = Services.prefs.getBoolPref(`privacy.${context}.formdata`);
     // Bug 1888466 lead to splitting the clearhistory v2 history, formdata and downloads pref into history and formdata
     // so we have to now check for both the old pref and the new pref
@@ -445,38 +448,31 @@ export var Sanitizer = {
         `privacy.${formDataContext}.historyFormDataAndDownloads`
       );
       formData = history;
-    } else {
-      // migrate from v1 (old dialog) to v3 (latest version of new dialog)
-      // hasMigratedToNewPrefs3 == false and hasMigratedToNewPrefs2 == false
-
-      // Get all the old pref values to migrate to the new ones
-      let cookies = Services.prefs.getBoolPref(`privacy.${context}.cookies`);
-      let cache = Services.prefs.getBoolPref(`privacy.${context}.cache`);
-      let siteSettings = Services.prefs.getBoolPref(
-        `privacy.${context}.siteSettings`
-      );
-
-      // We set cookiesAndStorage to true if cookies are enabled for clearing
-      // regardless of what sessions and offlineApps are set to
-      // This is because cookie clearing behaviour takes precedence over sessions and offlineApps clearing.
-      Services.prefs.setBoolPref(
-        `privacy.${newContext}.cookiesAndStorage`,
-        cookies
-      );
-
-      // cache, siteSettings and formdata follow the old dialog prefs
-      Services.prefs.setBoolPref(`privacy.${newContext}.cache`, cache);
-
-      Services.prefs.setBoolPref(
-        `privacy.${newContext}.siteSettings`,
-        siteSettings
-      );
     }
+
+    let newContext =
+      context == "clearOnShutdown" ? "clearOnShutdown_v2" : "clearHistory";
+
+    // We set cookiesAndStorage to true if cookies are enabled for clearing
+    // regardless of what sessions and offlineApps are set to
+    // This is because cookie clearing behaviour takes precedence over sessions and offlineApps clearing.
+    Services.prefs.setBoolPref(
+      `privacy.${newContext}.cookiesAndStorage`,
+      cookies
+    );
 
     // we set browsingHistoryAndDownloads to true if history is enabled for clearing, regardless of what downloads is set to.
     Services.prefs.setBoolPref(
       `privacy.${newContext}.browsingHistoryAndDownloads`,
       history
+    );
+
+    // cache, siteSettings and formdata follow the old dialog prefs
+    Services.prefs.setBoolPref(`privacy.${newContext}.cache`, cache);
+
+    Services.prefs.setBoolPref(
+      `privacy.${newContext}.siteSettings`,
+      siteSettings
     );
 
     Services.prefs.setBoolPref(`privacy.${newContext}.formdata`, formData);
