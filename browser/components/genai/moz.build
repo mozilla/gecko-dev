@@ -18,6 +18,8 @@ MOZ_SRC_FILES += [
 FINAL_TARGET_FILES.actors += [
     "GenAIChild.sys.mjs",
     "GenAIParent.sys.mjs",
+    "LinkPreviewChild.sys.mjs",
+    "LinkPreviewParent.sys.mjs",
 ]
 
 JAR_MANIFESTS += ["jar.mn"]

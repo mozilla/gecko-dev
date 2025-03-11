@@ -640,6 +640,17 @@ let JSWINDOWACTORS = {
     messageManagerGroups: ["browsers"],
   },
 
+  LinkPreview: {
+    parent: {
+      esModuleURI: "resource:///actors/LinkPreviewParent.sys.mjs",
+    },
+    child: {
+      esModuleURI: "resource:///actors/LinkPreviewChild.sys.mjs",
+    },
+    includeChrome: true,
+    enablePreference: "browser.ml.linkPreview.enabled",
+  },
+
   PageInfo: {
     child: {
       esModuleURI: "resource:///actors/PageInfoChild.sys.mjs",

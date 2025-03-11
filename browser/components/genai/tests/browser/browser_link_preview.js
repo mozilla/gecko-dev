@@ -76,3 +76,28 @@ add_task(async function test_no_event_triggered_when_disabled_with_alt_key() {
   stub.restore();
   Services.prefs.clearUserPref("browser.ml.linkPreview.enabled");
 });
+
+/**
+ * Test that page data is fetched.
+ */
+add_task(async function test_fetch_page_data() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.linkPreview.enabled", true]],
+  });
+  const actor =
+    window.browsingContext.currentWindowContext.getActor("LinkPreview");
+  const result = await actor.fetchPageData(
+    "https://example.com/browser/toolkit/components/reader/tests/browser/readerModeArticle.html"
+  );
+
+  ok(result.article, "article should be populated");
+  is(result.article.byline, "by Jane Doe", "byline should be correct");
+  is(result.article.title, "Article title", "title should be correct");
+  ok(result.metaInfo, "metaInfo should be populated");
+  is(
+    result.metaInfo.description,
+    "This is the article description.",
+    "description should be correct"
+  );
+  is(result.metaInfo["html:title"], "Article title", "title should be correct");
+});

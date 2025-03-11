@@ -148,7 +148,7 @@ export const LinkPreview = {
     const win = event.currentTarget;
     const url = event.detail.url;
 
-    // Store the current overLink in the per-window state object
+    // Store the current overLink in the per-window state object.
     const stateObject = this._windowStates.get(win);
     stateObject.overLink = url;
 
@@ -163,16 +163,19 @@ export const LinkPreview = {
    *
    * @param {Window} win - The window context in which the link preview may occur.
    */
-  _maybeLinkPreview(win) {
-    // Retrieve the overLink from the per-window state object
+  async _maybeLinkPreview(win) {
     const stateObject = this._windowStates.get(win);
     const url = stateObject.overLink;
 
     if (url && this.keyboardComboActive) {
-      // Process the link preview
       console.log(`Previewing link: ${url}`);
+      const browsingContext = win.browsingContext;
+      const actor = browsingContext.currentWindowGlobal.getActor("LinkPreview");
+      //TODO: use result from sendQuery below for link preview rendering
+      //TODO: figure out how to get read duration data from Reader mode
+      const result = await actor.fetchPageData(url);
+      console.log(result);
     } else {
-      // Handle unhover event
       console.log("Link preview canceled");
     }
   },
