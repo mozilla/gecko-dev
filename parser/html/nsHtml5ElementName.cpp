@@ -312,7 +312,7 @@ staticJArray<int32_t, int32_t> nsHtml5ElementName::ELEMENT_HASHES = {
     ELEMENT_HASHES_DATA, std::size(ELEMENT_HASHES_DATA)};
 void nsHtml5ElementName::initializeStatics() {
   ELT_ANNOTATION_XML = new nsHtml5ElementName(
-      nsGkAtoms::annotation_xml_, nsGkAtoms::annotation_xml_,
+      nsGkAtoms::annotation_xml, nsGkAtoms::annotation_xml,
       NS_NewHTMLUnknownElement, NS_NewSVGUnknownElement,
       nsHtml5TreeBuilder::ANNOTATION_XML | SCOPING_AS_MATHML);
   ELT_BIG = new nsHtml5ElementName(
@@ -663,7 +663,7 @@ void nsHtml5ElementName::initializeStatics() {
       nsGkAtoms::clippath, nsGkAtoms::clipPath, NS_NewHTMLUnknownElement,
       NS_NewSVGClipPathElement, nsHtml5TreeBuilder::OTHER);
   ELT_MGLYPH = new nsHtml5ElementName(
-      nsGkAtoms::mglyph_, nsGkAtoms::mglyph_, NS_NewHTMLUnknownElement,
+      nsGkAtoms::mglyph, nsGkAtoms::mglyph, NS_NewHTMLUnknownElement,
       NS_NewSVGUnknownElement, nsHtml5TreeBuilder::MGLYPH_OR_MALIGNMARK);
   ELT_MATH = new nsHtml5ElementName(
       nsGkAtoms::math, nsGkAtoms::math, NS_NewHTMLUnknownElement,
@@ -695,7 +695,7 @@ void nsHtml5ElementName::initializeStatics() {
       NS_NewSVGUnknownElement,
       nsHtml5TreeBuilder::LI | SPECIAL | OPTIONAL_END_TAG);
   ELT_MI = new nsHtml5ElementName(
-      nsGkAtoms::mi_, nsGkAtoms::mi_, NS_NewHTMLUnknownElement,
+      nsGkAtoms::mi, nsGkAtoms::mi, NS_NewHTMLUnknownElement,
       NS_NewSVGUnknownElement,
       nsHtml5TreeBuilder::MI_MO_MN_MS_MTEXT | SCOPING_AS_MATHML);
   ELT_LINK = new nsHtml5ElementName(
@@ -706,7 +706,7 @@ void nsHtml5ElementName::initializeStatics() {
                                     NS_NewHTMLElement, NS_NewSVGUnknownElement,
                                     nsHtml5TreeBuilder::OTHER);
   ELT_MALIGNMARK = new nsHtml5ElementName(
-      nsGkAtoms::malignmark_, nsGkAtoms::malignmark_, NS_NewHTMLUnknownElement,
+      nsGkAtoms::malignmark, nsGkAtoms::malignmark, NS_NewHTMLUnknownElement,
       NS_NewSVGUnknownElement, nsHtml5TreeBuilder::MGLYPH_OR_MALIGNMARK);
   ELT_MASK = new nsHtml5ElementName(
       nsGkAtoms::mask, nsGkAtoms::mask, NS_NewHTMLUnknownElement,
@@ -778,7 +778,7 @@ void nsHtml5ElementName::initializeStatics() {
               ADDRESS_OR_ARTICLE_OR_ASIDE_OR_DETAILS_OR_DIALOG_OR_DIR_OR_FIGCAPTION_OR_FIGURE_OR_FOOTER_OR_HEADER_OR_HGROUP_OR_MAIN_OR_NAV_OR_SEARCH_OR_SECTION_OR_SUMMARY |
           SPECIAL);
   ELT_MN = new nsHtml5ElementName(
-      nsGkAtoms::mn_, nsGkAtoms::mn_, NS_NewHTMLUnknownElement,
+      nsGkAtoms::mn, nsGkAtoms::mn, NS_NewHTMLUnknownElement,
       NS_NewSVGUnknownElement,
       nsHtml5TreeBuilder::MI_MO_MN_MS_MTEXT | SCOPING_AS_MATHML);
   ELT_KEYGEN = new nsHtml5ElementName(
@@ -816,7 +816,7 @@ void nsHtml5ElementName::initializeStatics() {
       nsGkAtoms::audio, nsGkAtoms::audio, NS_NewHTMLAudioElement,
       NS_NewSVGUnknownElement, nsHtml5TreeBuilder::OTHER);
   ELT_MO = new nsHtml5ElementName(
-      nsGkAtoms::mo_, nsGkAtoms::mo_, NS_NewHTMLUnknownElement,
+      nsGkAtoms::mo, nsGkAtoms::mo, NS_NewHTMLUnknownElement,
       NS_NewSVGUnknownElement,
       nsHtml5TreeBuilder::MI_MO_MN_MS_MTEXT | SCOPING_AS_MATHML);
   ELT_VIDEO = new nsHtml5ElementName(
@@ -923,7 +923,7 @@ void nsHtml5ElementName::initializeStatics() {
               ADDRESS_OR_ARTICLE_OR_ASIDE_OR_DETAILS_OR_DIALOG_OR_DIR_OR_FIGCAPTION_OR_FIGURE_OR_FOOTER_OR_HEADER_OR_HGROUP_OR_MAIN_OR_NAV_OR_SEARCH_OR_SECTION_OR_SUMMARY |
           SPECIAL);
   ELT_MS = new nsHtml5ElementName(
-      nsGkAtoms::ms_, nsGkAtoms::ms_, NS_NewHTMLUnknownElement,
+      nsGkAtoms::ms, nsGkAtoms::ms, NS_NewHTMLUnknownElement,
       NS_NewSVGUnknownElement,
       nsHtml5TreeBuilder::MI_MO_MN_MS_MTEXT | SCOPING_AS_MATHML);
   ELT_NOFRAMES = new nsHtml5ElementName(
@@ -981,7 +981,7 @@ void nsHtml5ElementName::initializeStatics() {
       NS_NewHTMLUnknownElement, NS_NewSVGLinearGradientElement,
       nsHtml5TreeBuilder::OTHER);
   ELT_MTEXT = new nsHtml5ElementName(
-      nsGkAtoms::mtext_, nsGkAtoms::mtext_, NS_NewHTMLUnknownElement,
+      nsGkAtoms::mtext, nsGkAtoms::mtext, NS_NewHTMLUnknownElement,
       NS_NewSVGUnknownElement,
       nsHtml5TreeBuilder::MI_MO_MN_MS_MTEXT | SCOPING_AS_MATHML);
   ELT_NOSCRIPT = new nsHtml5ElementName(
