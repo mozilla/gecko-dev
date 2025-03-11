@@ -17,14 +17,17 @@
             log("violated-directive=" + e.violatedDirective);
         });
 
-        var ws = new WebSocket("ws://{{domains[www1]}}:{{ports[http][0]}}/echo");
+        try {
+            var ws = new WebSocket("ws://{{domains[www1]}}:{{ports[http][0]}}/echo");
 
-        if (ws.readyState == WebSocket.CLOSING || ws.readyState == WebSocket.CLOSED) {
-          log("blocked");
+            if (ws.readyState == WebSocket.CLOSING || ws.readyState == WebSocket.CLOSED) {
+                log("blocked");
             } else {
-          log("allowed");
+                log("allowed");
+            }
+        } catch (e) {
+            log("blocked");
         }
-
 
     </script>
     <div id="log"></div>
