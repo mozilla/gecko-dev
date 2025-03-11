@@ -847,7 +847,7 @@
   <!-- Preference for gestures based actions -->
   <string name="preferences_gestures">Poteze</string>
   <!-- Preference for settings related to visual options -->
-  <string name="preferences_customize">Prilagodi</string>
+  <string name="preferences_customize">Prilagoditev</string>
   <!-- Preference description for banner about signing in -->
   <string name="preferences_sign_in_description_2">Prijavite se in sinhronizirajte zavihke, zaznamke, gesla in še kaj.</string>
   <!-- Preference shown instead of account display name while account profile information isn't available yet. -->
