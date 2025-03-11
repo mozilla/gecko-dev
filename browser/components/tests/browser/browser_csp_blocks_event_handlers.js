@@ -9,7 +9,7 @@ add_task(async function test_blocks_event_handlers() {
   let main = document.documentElement;
 
   registerCleanupFunction(() => {
-    delete window.dont_run_me;
+    delete window.run_me;
     main.removeAttribute("onclick");
   });
 
@@ -19,8 +19,9 @@ add_task(async function test_blocks_event_handlers() {
     `No telemetry should have been recorded yet for cspViolationInternalPage`
   );
 
-  window.dont_run_me = function () {
-    ok(false, "Should not run!");
+  let ran = false;
+  window.run_me = function () {
+    ran = true;
   };
 
   let violationPromise = BrowserTestUtils.waitForEvent(
@@ -28,7 +29,7 @@ add_task(async function test_blocks_event_handlers() {
     "securitypolicyviolation"
   );
 
-  main.setAttribute("onclick", "dont_run_me()");
+  main.setAttribute("onclick", "run_me()");
 
   // The document is not meant to be clicked.
   AccessibilityUtils.setEnv({
@@ -36,6 +37,11 @@ add_task(async function test_blocks_event_handlers() {
   });
   main.click();
   AccessibilityUtils.resetEnv();
+
+  let reportOnly = Services.prefs.getBoolPref(
+    "security.browser_xhtml_csp.report-only"
+  );
+  is(ran, reportOnly, "Should only run in report-only mode");
 
   let violation = await violationPromise;
   is(
@@ -46,6 +52,11 @@ add_task(async function test_blocks_event_handlers() {
   ok(
     violation.sourceFile.endsWith("browser_csp_blocks_event_handlers.js"),
     "sourceFile matches"
+  );
+  is(
+    violation.disposition,
+    reportOnly ? "report" : "enforce",
+    "disposition matches"
   );
 
   let testValue = Glean.security.cspViolationInternalPage.testGetValue();
@@ -69,9 +80,9 @@ add_task(async function test_blocks_event_handlers() {
     undefined,
     "violation's `blockeduridetails` is correct"
   );
-  is(extra.linenumber, "31", "violation's `linenumber` is correct");
+  is(extra.linenumber, "32", "violation's `linenumber` is correct");
   is(extra.columnnumber, "8", "violation's `columnnumber` is correct");
-  is(extra.sample, "dont_run_me()", "violation's sample is correct");
+  is(extra.sample, "run_me()", "violation's sample is correct");
 });
 
 add_task(async function test_pref_disable() {
@@ -90,6 +101,42 @@ add_task(async function test_pref_disable() {
   main.click();
 
   ok(ran, "Event listener in new window should run");
+
+  await BrowserTestUtils.closeWindow(win);
+  await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function test_pref_report_only() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["security.browser_xhtml_csp.report-only", true]],
+  });
+
+  Services.fog.testResetFOG();
+
+  let win = await BrowserTestUtils.openNewBrowserWindow();
+
+  let ran = false;
+  win.run_me_2 = function () {
+    ran = true;
+  };
+
+  let violationPromise = BrowserTestUtils.waitForEvent(
+    win.document,
+    "securitypolicyviolation"
+  );
+
+  let main = win.document.documentElement;
+  main.setAttribute("onclick", "run_me_2()");
+  main.click();
+
+  await violationPromise;
+
+  ok(ran, "Event listener in new window should run");
+
+  let testValue = Glean.security.cspViolationInternalPage.testGetValue();
+  let extra = testValue[0].extra;
+  is(extra.directive, "script-src-attr", "violation's `directive` is correct");
+  is(extra.sample, "run_me_2()", "violation's `sample` is correct");
 
   await BrowserTestUtils.closeWindow(win);
   await SpecialPowers.popPrefEnv();
