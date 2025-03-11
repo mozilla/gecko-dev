@@ -323,8 +323,9 @@ pref("media.videocontrols.keyboard-tab-to-all-controls", true);
   #endif
 
   // 770 = DTLS 1.0, 771 = DTLS 1.2, 772 = DTLS 1.3
+  // TODO(bug 1952950) Re-enable this once 1952706 lands everywhere.
   pref("media.peerconnection.dtls.version.min", 771);
-  pref("media.peerconnection.dtls.version.max", 772);
+  pref("media.peerconnection.dtls.version.max", 771);
 
 #if defined(XP_MACOSX)
   pref("media.getusermedia.audio.processing.platform.enabled", true);
