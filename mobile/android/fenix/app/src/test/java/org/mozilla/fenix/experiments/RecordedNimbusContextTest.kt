@@ -6,6 +6,7 @@ package org.mozilla.fenix.experiments
 
 import android.os.Build
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
@@ -18,6 +19,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.experiments.nimbus.internal.validateEventQueries
+import org.mozilla.fenix.GleanMetrics.Pings
 import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.GleanMetrics.NimbusSystem as GleanNimbus
@@ -74,6 +76,11 @@ class RecordedNimbusContextTest {
 
     @Test
     fun `GIVEN an instance of RecordedNimbusContext WHEN record called THEN the value recorded to Glean should match the expected value`() {
+        var recordedValue: JsonElement? = null
+        Pings.nimbus.testBeforeNextSubmit {
+            recordedValue = GleanNimbus.recordedNimbusContext.testGetValue()
+        }
+
         val recordedContext = RecordedNimbusContext.createForTest()
         recordedContext.setEventQueryValues(
             mapOf(
@@ -81,8 +88,6 @@ class RecordedNimbusContextTest {
             ),
         )
         recordedContext.record()
-
-        val recordedValue = GleanNimbus.recordedNimbusContext.testGetValue()
 
         assertNotNull(recordedValue)
         assertEquals(

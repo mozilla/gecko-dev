@@ -247,3 +247,16 @@ broken-site-report:
     - https://phabricator.services.mozilla.com/D232122#8037249
   notification_emails:
     - twisniewski@mozilla.com
+
+nimbus:
+  description: |
+    This ping is submitted by Nimbus code after the enrollment workflow has completed.
+  include_client_id: true
+  send_if_empty: true
+  bugs:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1951125
+  data_reviews:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1951125
+  notification_emails:
+    - chumphreys@mozilla.com
+    - project-nimbus@mozilla.com
