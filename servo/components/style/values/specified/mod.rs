@@ -44,7 +44,7 @@ pub use self::box_::{
     ContainerName, ContainerType, ContentVisibility, Display, Float, LineClamp, Overflow,
     OverflowAnchor, OverflowClipBox, OverscrollBehavior, Perspective, PositionProperty, Resize,
     ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop, ScrollSnapStrictness, ScrollSnapType,
-    ScrollbarGutter, TouchAction, VerticalAlign, WillChange, Zoom,
+    ScrollbarGutter, TouchAction, VerticalAlign, WillChange, WillChangeBits, Zoom,
 };
 pub use self::color::{
     Color, ColorOrAuto, ColorPropertyValue, ColorScheme, ForcedColorAdjust, PrintColorAdjust,

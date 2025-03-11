@@ -33,7 +33,7 @@ ${helpers.predefined_type(
     "Length",
     "computed::Length::zero()",
     parse_method="parse_non_negative",
-    engines="gecko",
+    engines="gecko servo",
     spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-clip-margin",
     affects="overflow",
 )}

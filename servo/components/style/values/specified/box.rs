@@ -969,7 +969,7 @@ pub struct WillChange {
     /// A bitfield with the kind of change that the value will create, based
     /// on the above field.
     #[css(skip)]
-    bits: WillChangeBits,
+    pub bits: WillChangeBits,
 }
 
 impl WillChange {
@@ -1023,10 +1023,6 @@ bitflags! {
     }
 }
 
-#[cfg(feature="servo")]
-fn change_bits_for_longhand(longhand: LonghandId) -> WillChangeBits { WillChangeBits::empty() }
-
-#[cfg(feature = "gecko")]
 fn change_bits_for_longhand(longhand: LonghandId) -> WillChangeBits {
     match longhand {
         LonghandId::Opacity => WillChangeBits::OPACITY,

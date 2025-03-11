@@ -9,6 +9,7 @@ ${helpers.predefined_type(
     "TextOverflow",
     "computed::TextOverflow::get_initial_value()",
     engines="gecko servo",
+    servo_pref="layout.legacy_layout",
     animation_type="discrete",
     boxed=True,
     spec="https://drafts.csswg.org/css-ui/#propdef-text-overflow",
