@@ -76,6 +76,7 @@ class DeviceManagerDx final {
   unsigned GetCompositorFeatureLevel() const;
   bool TextureSharingWorks();
   bool IsWARP();
+  bool IsWARPLocked() MOZ_REQUIRES(mDeviceLock);
   bool CanUseNV12();
   bool CanUseP010();
   bool CanUseP016();
