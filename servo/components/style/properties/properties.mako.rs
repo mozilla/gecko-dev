@@ -1886,9 +1886,9 @@ impl ComputedValues {
     ///
     /// Usage example:
     /// let top_color =
-    ///   style.resolve_color(style.get_border().clone_border_top_color());
+    ///   style.resolve_color(&style.get_border().clone_border_top_color());
     #[inline]
-    pub fn resolve_color(&self, color: computed::Color) -> crate::color::AbsoluteColor {
+    pub fn resolve_color(&self, color: &computed::Color) -> crate::color::AbsoluteColor {
         let current_color = self.get_inherited_text().clone_color();
         color.resolve_to_absolute(&current_color)
     }

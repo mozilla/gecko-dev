@@ -16,7 +16,7 @@ impl ToResolvedValue for computed::Color {
 
     #[inline]
     fn to_resolved_value(self, context: &Context) -> Self::ResolvedValue {
-        context.style.resolve_color(self)
+        context.style.resolve_color(&self)
     }
 
     #[inline]
