@@ -42,6 +42,8 @@ ChromeUtils.defineESModuleGetters(modules["windowglobal-in-root"], {
 
 // eslint-disable-next-line mozilla/lazy-getter-object-name
 ChromeUtils.defineESModuleGetters(modules.windowglobal, {
+  _configuration:
+    "chrome://remote/content/webdriver-bidi/modules/windowglobal/_configuration.sys.mjs",
   browsingContext:
     "chrome://remote/content/webdriver-bidi/modules/windowglobal/browsingContext.sys.mjs",
   input:

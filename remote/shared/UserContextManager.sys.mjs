@@ -167,9 +167,9 @@ export class UserContextManagerClass {
 
     for (const tab of lazy.TabManager.tabs) {
       if (
-        tab.hasAttribute("usercontextid") &&
-        (!internalId ||
-          parseInt(tab.getAttribute("usercontextid"), 10) == internalId)
+        (tab.hasAttribute("usercontextid") &&
+          parseInt(tab.getAttribute("usercontextid"), 10) == internalId) ||
+        (!tab.hasAttribute("usercontextid") && internalId === 0)
       ) {
         tabs.push(tab);
       }

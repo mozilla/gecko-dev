@@ -247,7 +247,7 @@ class ScriptModule extends RootBiDiModule {
 
     const preloadScriptDataItem = {
       category: "preload-script",
-      moduleName: "script",
+      moduleName: "_configuration",
       values: [
         {
           ...preloadScript,
@@ -699,7 +699,7 @@ class ScriptModule extends RootBiDiModule {
     const preloadScript = this.#preloadScriptMap.get(script);
     const sessionDataItem = {
       category: "preload-script",
-      moduleName: "script",
+      moduleName: "_configuration",
       values: [
         {
           ...preloadScript,

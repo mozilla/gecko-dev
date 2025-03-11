@@ -32,35 +32,7 @@ const EvaluationStatus = {
 };
 
 class ScriptModule extends WindowGlobalBiDiModule {
-  #observerListening;
-  #preloadScripts;
-
-  constructor(messageHandler) {
-    super(messageHandler);
-
-    // Set of structs with an item named expression, which is a string,
-    // and an item named sandbox which is a string or null.
-    this.#preloadScripts = new Set();
-  }
-
-  destroy() {
-    this.#preloadScripts = null;
-
-    this.#stopObserving();
-  }
-
-  observe(subject, topic) {
-    if (topic !== "document-element-inserted") {
-      return;
-    }
-
-    const window = subject?.defaultView;
-
-    // Ignore events without a window and those from other tabs.
-    if (window === this.messageHandler.window) {
-      this.#evaluatePreloadScripts();
-    }
-  }
+  destroy() {}
 
   #buildExceptionDetails(
     exception,
@@ -229,60 +201,11 @@ class ScriptModule extends WindowGlobalBiDiModule {
     });
   };
 
-  #evaluatePreloadScripts() {
-    let resolveBlockerPromise;
-    const blockerPromise = new Promise(resolve => {
-      resolveBlockerPromise = resolve;
-    });
-
-    // Block script parsing.
-    this.messageHandler.window.document.blockParsing(blockerPromise);
-    for (const script of this.#preloadScripts.values()) {
-      const {
-        arguments: commandArguments,
-        functionDeclaration,
-        sandbox,
-      } = script;
-      const realm = this.messageHandler.getRealm({ sandboxName: sandbox });
-      const deserializedArguments = commandArguments.map(arg =>
-        this.deserialize(arg, realm, {
-          emitScriptMessage: this.#emitScriptMessage,
-        })
-      );
-      const rv = realm.executeInGlobalWithBindings(
-        functionDeclaration,
-        deserializedArguments
-      );
-
-      if ("throw" in rv) {
-        const exception = this.#toRawObject(rv.throw);
-        realm.reportError(lazy.stringify(exception), rv.stack);
-      }
-    }
-
-    // Continue script parsing.
-    resolveBlockerPromise();
-  }
-
   #getSource(realm) {
     return {
       realm: realm.id,
       context: this.messageHandler.context,
     };
-  }
-
-  #startObserving() {
-    if (!this.#observerListening) {
-      Services.obs.addObserver(this, "document-element-inserted");
-      this.#observerListening = true;
-    }
-  }
-
-  #stopObserving() {
-    if (this.#observerListening) {
-      Services.obs.removeObserver(this, "document-element-inserted");
-      this.#observerListening = false;
-    }
   }
 
   #toRawObject(maybeDebuggerObject) {
@@ -476,17 +399,38 @@ class ScriptModule extends WindowGlobalBiDiModule {
    * Internal commands
    */
 
-  _applySessionData(params) {
-    if (params.category === "preload-script") {
-      this.#preloadScripts = new Set();
-      for (const item of params.sessionData) {
-        if (this.messageHandler.matchesContext(item.contextDescriptor)) {
-          this.#preloadScripts.add(item.value);
-        }
-      }
+  _applySessionData() {}
 
-      if (this.#preloadScripts.size) {
-        this.#startObserving();
+  /**
+   * Evaluate a provided list of preload scripts in the current window global.
+   *
+   * @param {object} options
+   * @param {Array<string>} options.scripts
+   *     The list of scripts to evaluate.
+   */
+  _evaluatePreloadScripts(options) {
+    const { scripts } = options;
+
+    for (const script of scripts) {
+      const {
+        arguments: commandArguments,
+        functionDeclaration,
+        sandbox,
+      } = script;
+      const realm = this.messageHandler.getRealm({ sandboxName: sandbox });
+      const deserializedArguments = commandArguments.map(arg =>
+        this.deserialize(arg, realm, {
+          emitScriptMessage: this.#emitScriptMessage,
+        })
+      );
+      const rv = realm.executeInGlobalWithBindings(
+        functionDeclaration,
+        deserializedArguments
+      );
+
+      if ("throw" in rv) {
+        const exception = this.#toRawObject(rv.throw);
+        realm.reportError(lazy.stringify(exception), rv.stack);
       }
     }
   }

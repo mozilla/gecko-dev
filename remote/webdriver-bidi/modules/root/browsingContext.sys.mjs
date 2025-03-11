@@ -31,6 +31,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ProgressListener: "chrome://remote/content/shared/Navigate.sys.mjs",
   PromptListener:
     "chrome://remote/content/shared/listeners/PromptListener.sys.mjs",
+  SessionDataMethod:
+    "chrome://remote/content/shared/messagehandler/sessiondata/SessionData.sys.mjs",
   setDefaultAndAssertSerializationOptions:
     "chrome://remote/content/webdriver-bidi/RemoteValue.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
@@ -155,6 +157,20 @@ const WaitCondition = {
   Interactive: "interactive",
   Complete: "complete",
 };
+
+/**
+ * Used as an argument for browsingContext._updateNavigableViewport command
+ * to represent an object which holds viewport settings which should be applied.
+ *
+ * @typedef ViewportOverride
+ *
+ * @property {number|null} devicePixelRatio
+ *     A value to override device pixel ratio, or `null` to reset it to
+ *     the original value.
+ * @property {Viewport|null} viewport
+ *     Dimensions to set the viewport to, or `null` to reset it
+ *     to the original dimensions.
+ */
 
 class BrowsingContextModule extends RootBiDiModule {
   #contextListener;
@@ -1386,7 +1402,7 @@ class BrowsingContextModule extends RootBiDiModule {
    * Set the top-level browsing context's viewport to a given dimension.
    *
    * @param {object=} options
-   * @param {string} options.context
+   * @param {string=} options.context
    *     Id of the browsing context.
    * @param {(number|null)=} options.devicePixelRatio
    *     A value to override device pixel ratio, or `null` to reset it to
@@ -1395,6 +1411,8 @@ class BrowsingContextModule extends RootBiDiModule {
    * @param {(Viewport|null)=} options.viewport
    *     Dimensions to set the viewport to, or `null` to reset it
    *     to the original dimensions.
+   * @param {Array<string>=} options.userContexts
+   *     Optional list of user context ids.
    *
    * @throws {InvalidArgumentError}
    *     Raised if an argument is of an invalid type or value.
@@ -1402,7 +1420,12 @@ class BrowsingContextModule extends RootBiDiModule {
    *     Raised when the command is called on Android.
    */
   async setViewport(options = {}) {
-    const { context: contextId, devicePixelRatio, viewport } = options;
+    const {
+      context: contextId = null,
+      devicePixelRatio,
+      viewport,
+      userContexts: userContextIds = null,
+    } = options;
 
     if (lazy.AppInfo.isAndroid) {
       // Bug 1840084: Add Android support for modifying the viewport.
@@ -1411,96 +1434,153 @@ class BrowsingContextModule extends RootBiDiModule {
       );
     }
 
-    lazy.assert.string(
-      contextId,
-      lazy.pprint`Expected "context" to be a string, got ${contextId}`
-    );
+    const userContexts = new Set();
 
-    const context = this.#getBrowsingContext(contextId);
-    lazy.assert.topLevel(
-      context,
-      lazy.pprint`Browsing context with id ${contextId} is not top-level`
-    );
+    if (contextId !== null) {
+      lazy.assert.string(
+        contextId,
+        lazy.pprint`Expected "context" to be a string, got ${contextId}`
+      );
+    } else if (userContextIds !== null) {
+      lazy.assert.isNonEmptyArray(
+        userContextIds,
+        lazy.pprint`Expected "userContexts" to be a non-empty array, got ${userContextIds}`
+      );
 
-    const browser = context.embedderElement;
-    const currentHeight = browser.clientHeight;
-    const currentWidth = browser.clientWidth;
+      for (const userContextId of userContextIds) {
+        lazy.assert.string(
+          userContextId,
+          lazy.pprint`Expected elements of "userContexts" to be a string, got ${userContextId}`
+        );
 
-    let targetHeight, targetWidth;
-    if (viewport === undefined) {
-      // Don't modify the viewport's size.
-      targetHeight = currentHeight;
-      targetWidth = currentWidth;
-    } else if (viewport === null) {
-      // Reset viewport to the original dimensions.
-      targetHeight = browser.parentElement.clientHeight;
-      targetWidth = browser.parentElement.clientWidth;
+        const internalId =
+          lazy.UserContextManager.getInternalIdById(userContextId);
 
-      browser.style.removeProperty("height");
-      browser.style.removeProperty("width");
+        if (internalId === null) {
+          throw new lazy.error.NoSuchUserContextError(
+            `User context with id: ${userContextId} doesn't exist`
+          );
+        }
+
+        userContexts.add(internalId);
+      }
     } else {
+      throw new lazy.error.InvalidArgumentError(
+        `At least one of "context" or "userContexts" arguments should be provided`
+      );
+    }
+
+    if (contextId !== null && userContextIds !== null) {
+      throw new lazy.error.InvalidArgumentError(
+        `Providing both "contexts" and "userContexts" arguments is not supported`
+      );
+    }
+
+    if (viewport !== undefined && viewport !== null) {
       lazy.assert.object(
         viewport,
         lazy.pprint`Expected "viewport" to be an object, got ${viewport}`
       );
 
       const { height, width } = viewport;
-      targetHeight = lazy.assert.positiveInteger(
+      lazy.assert.positiveInteger(
         height,
         lazy.pprint`Expected viewport's "height" to be a positive integer, got ${height}`
       );
-      targetWidth = lazy.assert.positiveInteger(
+      lazy.assert.positiveInteger(
         width,
         lazy.pprint`Expected viewport's "width" to be a positive integer, got ${width}`
       );
 
-      if (targetHeight > MAX_WINDOW_SIZE || targetWidth > MAX_WINDOW_SIZE) {
+      if (height > MAX_WINDOW_SIZE || width > MAX_WINDOW_SIZE) {
         throw new lazy.error.UnsupportedOperationError(
           `"width" or "height" cannot be larger than ${MAX_WINDOW_SIZE} px`
         );
       }
-
-      browser.style.setProperty("height", targetHeight + "px");
-      browser.style.setProperty("width", targetWidth + "px");
     }
 
-    if (devicePixelRatio !== undefined) {
-      if (devicePixelRatio !== null) {
-        lazy.assert.number(
-          devicePixelRatio,
-          lazy.pprint`Expected "devicePixelRatio" to be a number or null, got ${devicePixelRatio}`
-        );
-        lazy.assert.that(
-          devicePixelRatio => devicePixelRatio > 0,
-          lazy.pprint`Expected "devicePixelRatio" to be greater than 0, got ${devicePixelRatio}`
-        )(devicePixelRatio);
+    if (devicePixelRatio !== undefined && devicePixelRatio !== null) {
+      lazy.assert.number(
+        devicePixelRatio,
+        lazy.pprint`Expected "devicePixelRatio" to be a number or null, got ${devicePixelRatio}`
+      );
+      lazy.assert.that(
+        value => value > 0,
+        lazy.pprint`Expected "devicePixelRatio" to be greater than 0, got ${devicePixelRatio}`
+      )(devicePixelRatio);
+    }
 
-        context.overrideDPPX = devicePixelRatio;
-      } else {
-        // Will reset to use the global default scaling factor.
-        context.overrideDPPX = 0;
+    const navigables = new Set();
+    if (contextId !== null) {
+      const navigable = this.#getBrowsingContext(contextId);
+      lazy.assert.topLevel(
+        navigable,
+        `Browsing context with id ${contextId} is not top-level`
+      );
+
+      navigables.add(navigable);
+    }
+
+    const viewportOverride = {
+      devicePixelRatio,
+      viewport,
+    };
+
+    const sessionDataItems = [];
+    if (userContextIds !== null) {
+      for (const userContext of userContexts) {
+        // Prepare the list of navigables to update.
+        lazy.UserContextManager.getTabsForUserContext(userContext).forEach(
+          tab => {
+            const contentBrowser = lazy.TabManager.getBrowserForTab(tab);
+            navigables.add(contentBrowser.browsingContext);
+          }
+        );
+        sessionDataItems.push({
+          category: "viewport-overrides",
+          moduleName: "_configuration",
+          values: [viewportOverride],
+          contextDescriptor: {
+            type: lazy.ContextDescriptorType.UserContext,
+            id: userContext,
+          },
+          method: lazy.SessionDataMethod.Add,
+        });
+      }
+    } else {
+      for (const navigable of navigables) {
+        sessionDataItems.push({
+          category: "viewport-overrides",
+          moduleName: "_configuration",
+          values: [viewportOverride],
+          contextDescriptor: {
+            type: lazy.ContextDescriptorType.TopBrowsingContext,
+            id: navigable.browserId,
+          },
+          method: lazy.SessionDataMethod.Add,
+        });
       }
     }
 
-    if (targetHeight !== currentHeight || targetWidth !== currentWidth) {
-      if (!context.isActive) {
-        // Force a synchronous update of the remote browser dimensions so that
-        // background tabs get resized.
-        browser.ownerDocument.synchronouslyUpdateRemoteBrowserDimensions(
-          /* aIncludeInactive = */ true
-        );
-      }
-      // Wait until the viewport has been resized
-      await this._forwardToWindowGlobal(
-        "_awaitViewportDimensions",
-        context.id,
-        {
-          height: targetHeight,
-          width: targetWidth,
-        },
-        { retryOnAbort: true }
+    if (sessionDataItems.length) {
+      // TODO: Bug 1953079. Saving the viewport overrides in the session data works fine
+      // with one session, but when we start supporting multiple BiDi session, we will
+      // have to rethink this approach.
+      await this.messageHandler.updateSessionData(sessionDataItems);
+    }
+
+    const commands = [];
+
+    for (const navigable of navigables) {
+      commands.push(
+        this._updateNavigableViewport({
+          navigable,
+          viewportOverride,
+        })
       );
     }
+
+    await Promise.all(commands);
   }
 
   /**
@@ -2063,6 +2143,76 @@ class BrowsingContextModule extends RootBiDiModule {
       for (const { value } of filteredSessionData) {
         this.#subscribeEvent(value);
       }
+    }
+  }
+
+  /**
+   * Update the viewport of the navigable.
+   *
+   * @param {object} options
+   * @param {BrowsingContext} options.navigable
+   *     Navigable whose viewport should be updated.
+   * @param {ViewportOverride} options.viewportOverride
+   *     Object which holds viewport settings
+   *     which should be applied.
+   */
+  async _updateNavigableViewport(options) {
+    const { navigable, viewportOverride } = options;
+    const { devicePixelRatio, viewport } = viewportOverride;
+
+    const browser = navigable.embedderElement;
+    const currentHeight = browser.clientHeight;
+    const currentWidth = browser.clientWidth;
+
+    let targetHeight, targetWidth;
+    if (viewport === undefined) {
+      // Don't modify the viewport's size.
+      targetHeight = currentHeight;
+      targetWidth = currentWidth;
+    } else if (viewport === null) {
+      // Reset viewport to the original dimensions.
+      targetHeight = browser.parentElement.clientHeight;
+      targetWidth = browser.parentElement.clientWidth;
+
+      browser.style.removeProperty("height");
+      browser.style.removeProperty("width");
+    } else {
+      const { height, width } = viewport;
+
+      targetHeight = height;
+      targetWidth = width;
+
+      browser.style.setProperty("height", targetHeight + "px");
+      browser.style.setProperty("width", targetWidth + "px");
+    }
+
+    if (devicePixelRatio !== undefined) {
+      if (devicePixelRatio !== null) {
+        navigable.overrideDPPX = devicePixelRatio;
+      } else {
+        // Will reset to use the global default scaling factor.
+        navigable.overrideDPPX = 0;
+      }
+    }
+
+    if (targetHeight !== currentHeight || targetWidth !== currentWidth) {
+      if (!navigable.isActive) {
+        // Force a synchronous update of the remote browser dimensions so that
+        // background tabs get resized.
+        browser.ownerDocument.synchronouslyUpdateRemoteBrowserDimensions(
+          /* aIncludeInactive = */ true
+        );
+      }
+      // Wait until the viewport has been resized
+      await this._forwardToWindowGlobal(
+        "_awaitViewportDimensions",
+        navigable.id,
+        {
+          height: targetHeight,
+          width: targetWidth,
+        },
+        { retryOnAbort: true }
+      );
     }
   }
 
