@@ -53,8 +53,9 @@ namespace mozilla {
 namespace net {
 
 // Http2Session has multiple inheritance of things that implement nsISupports
-NS_IMPL_ADDREF(Http2Session)
-NS_IMPL_RELEASE(Http2Session)
+NS_IMPL_ADDREF_INHERITED(Http2Session, nsAHttpConnection)
+NS_IMPL_RELEASE_INHERITED(Http2Session, nsAHttpConnection)
+
 NS_INTERFACE_MAP_BEGIN(Http2Session)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY_CONCRETE(Http2Session)

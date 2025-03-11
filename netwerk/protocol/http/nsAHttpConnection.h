@@ -31,16 +31,14 @@ class nsHttpResponseHead;
 //-----------------------------------------------------------------------------
 
 // 5a66aed7-eede-468b-ac2b-e5fb431fcc5c
-#define NS_AHTTPCONNECTION_IID                       \
-  {                                                  \
-    0x5a66aed7, 0xeede, 0x468b, {                    \
-      0xac, 0x2b, 0xe5, 0xfb, 0x43, 0x1f, 0xcc, 0x5c \
-    }                                                \
-  }
+#define NS_AHTTPCONNECTION_IID \
+  {0x5a66aed7, 0xeede, 0x468b, {0xac, 0x2b, 0xe5, 0xfb, 0x43, 0x1f, 0xcc, 0x5c}}
 
 class nsAHttpConnection : public nsISupports {
  public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_AHTTPCONNECTION_IID)
+
+  NS_DECL_THREADSAFE_ISUPPORTS
 
   //-------------------------------------------------------------------------
   // NOTE: these methods may only be called on the socket thread.
@@ -174,6 +172,12 @@ class nsAHttpConnection : public nsISupports {
   virtual bool GetEchConfigUsed() = 0;
   virtual PRIntervalTime LastWriteTime() = 0;
   virtual void SetCloseReason(ConnectionCloseReason aReason) = 0;
+
+  friend class DeleteAHttpConnection;
+  void DeleteSelfOnSocketThread();
+
+ protected:
+  virtual ~nsAHttpConnection();
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpConnection, NS_AHTTPCONNECTION_IID)

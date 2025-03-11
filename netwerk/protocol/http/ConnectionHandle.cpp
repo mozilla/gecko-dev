@@ -30,8 +30,6 @@ ConnectionHandle::~ConnectionHandle() {
   }
 }
 
-NS_IMPL_ISUPPORTS0(ConnectionHandle)
-
 nsresult ConnectionHandle::OnHeadersAvailable(nsAHttpTransaction* trans,
                                               nsHttpRequestHead* req,
                                               nsHttpResponseHead* resp,

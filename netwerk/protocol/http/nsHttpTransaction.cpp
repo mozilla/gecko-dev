@@ -142,29 +142,6 @@ void nsHttpTransaction::SetClassOfService(ClassOfService cos) {
   }
 }
 
-class ReleaseOnSocketThread final : public mozilla::Runnable {
- public:
-  explicit ReleaseOnSocketThread(nsTArray<nsCOMPtr<nsISupports>>&& aDoomed)
-      : Runnable("ReleaseOnSocketThread"), mDoomed(std::move(aDoomed)) {}
-
-  NS_IMETHOD
-  Run() override {
-    mDoomed.Clear();
-    return NS_OK;
-  }
-
-  void Dispatch() {
-    nsCOMPtr<nsIEventTarget> sts =
-        do_GetService("@mozilla.org/network/socket-transport-service;1");
-    Unused << sts->Dispatch(this, nsIEventTarget::DISPATCH_NORMAL);
-  }
-
- private:
-  virtual ~ReleaseOnSocketThread() = default;
-
-  nsTArray<nsCOMPtr<nsISupports>> mDoomed;
-};
-
 nsHttpTransaction::~nsHttpTransaction() {
   LOG(("Destroying nsHttpTransaction @%p\n", this));
 
@@ -189,17 +166,6 @@ nsHttpTransaction::~nsHttpTransaction() {
   delete mResponseHead;
   delete mChunkedDecoder;
   ReleaseBlockingTransaction();
-
-  nsTArray<nsCOMPtr<nsISupports>> arrayToRelease;
-  if (mConnection) {
-    arrayToRelease.AppendElement(mConnection.forget());
-  }
-
-  if (!arrayToRelease.IsEmpty()) {
-    RefPtr<ReleaseOnSocketThread> r =
-        new ReleaseOnSocketThread(std::move(arrayToRelease));
-    r->Dispatch();
-  }
 }
 
 nsresult nsHttpTransaction::Init(
@@ -2993,6 +2959,10 @@ class DeleteHttpTransaction : public Runnable {
 
 void nsHttpTransaction::DeleteSelfOnConsumerThread() {
   LOG(("nsHttpTransaction::DeleteSelfOnConsumerThread [this=%p]\n", this));
+
+  if (mConnection && OnSocketThread()) {
+    mConnection = nullptr;
+  }
 
   bool val;
   if (!mConsumerTarget ||

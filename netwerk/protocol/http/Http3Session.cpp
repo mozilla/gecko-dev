@@ -57,8 +57,8 @@ const uint32_t MAX_PTO_COUNTS = 16;
 
 const uint32_t TRANSPORT_ERROR_STATELESS_RESET = 20;
 
-NS_IMPL_ADDREF(Http3Session)
-NS_IMPL_RELEASE(Http3Session)
+NS_IMPL_ADDREF_INHERITED(Http3Session, nsAHttpConnection)
+NS_IMPL_RELEASE_INHERITED(Http3Session, nsAHttpConnection)
 NS_INTERFACE_MAP_BEGIN(Http3Session)
   NS_INTERFACE_MAP_ENTRY(nsAHttpConnection)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)

@@ -139,6 +139,7 @@ UNIFIED_SOURCES += [
     "InterceptedHttpChannel.cpp",
     "MockHttpAuth.cpp",
     "NetworkMarker.cpp",
+    "nsAHttpConnection.cpp",
     "nsCORSListenerProxy.cpp",
     "nsHttp.cpp",
     "nsHttpActivityDistributor.cpp",
