@@ -1731,8 +1731,12 @@ nsresult WebSocketImpl::Init(nsIGlobalObject* aWindowGlobal, JSContext* aCx,
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (NS_CP_REJECTED(shouldLoad)) {
-      // Disallowed by content policy
-      return NS_ERROR_CONTENT_BLOCKED;
+      // Disallowed by content policy, but we should not throw an exception.
+      mDisconnectingOrDisconnected = true;
+      mWebSocket->SetReadyState(WebSocket::CLOSED);
+      mCloseEventCode = nsIWebSocketChannel::CLOSE_POLICY_VIOLATION;
+      mCloseEventReason = u""_ns;
+      return NS_OK;
     }
 
     // If the HTTPS-Only mode is enabled, we need to upgrade the websocket
