@@ -67,6 +67,8 @@
         <!-- Action -->
         <!-- Primary button, Snackbar, Floating action button, Chip selected -->
         <item name="actionPrimary">@color/fx_mobile_action_color_primary</item>
+        <!-- Primary button in a disabled state -->
+        <item name="actionPrimaryDisabled">@color/fx_mobile_action_color_primary_disabled</item>
 
         <!-- Text -->
         <!-- Primary text -->
@@ -83,6 +85,8 @@
         <item name="textOnColorPrimary">@color/fx_mobile_text_color_oncolor_primary</item>
         <!-- Action Primary text -->
         <item name="textActionPrimary">@color/fx_mobile_text_color_action_primary</item>
+        <!-- Action Primary disabled text -->
+        <item name="textActionPrimaryDisabled">@color/fx_mobile_text_color_action_primary_disabled</item>
 
         <!-- Icon -->
         <!-- Secondary icon -->
@@ -267,6 +271,8 @@
         <!-- Action -->
         <!-- Primary button, Snackbar, Floating action button, Chip selected -->
         <item name="actionPrimary">@color/fx_mobile_private_action_color_primary</item>
+        <!-- Primary button in a disabled state -->
+        <item name="actionPrimaryDisabled">@color/fx_mobile_private_action_color_primary_disabled</item>
 
         <!-- Text -->
         <!-- Primary text -->
@@ -283,6 +289,8 @@
         <item name="textOnColorPrimary">@color/fx_mobile_private_text_color_oncolor_primary</item>
         <!-- Action Primary text -->
         <item name="textActionPrimary">@color/fx_mobile_private_text_color_action_primary</item>
+        <!-- Action Primary disabled text -->
+        <item name="textActionPrimaryDisabled">@color/fx_mobile_private_text_color_action_primary_disabled</item>
 
         <!-- Icon -->
         <!-- Secondary icon -->

@@ -20,6 +20,8 @@
     <!-- Action -->
     <!-- Primary button, Snackbar, Floating action button, Chip selected -->
     <attr name="actionPrimary" format="reference" />
+    <!-- Primary button in a disabled state -->
+    <attr name="actionPrimaryDisabled" format="reference" />
 
     <!-- Text -->
     <!-- Primary text -->
@@ -36,6 +38,8 @@
     <attr name="textOnColorPrimary" format="reference" />
     <!-- Action Primary text -->
     <attr name="textActionPrimary" format="reference" />
+    <!-- Action Primary disabled text -->
+    <attr name="textActionPrimaryDisabled" format="reference" />
 
     <!-- Icon -->
     <!-- Secondary icon -->

@@ -275,11 +275,11 @@ class WebExtensionPromptFeature(
                 gravity = Gravity.BOTTOM,
                 shouldWidthMatchParent = true,
                 confirmButtonBackgroundColor = ThemeManager.resolveAttribute(
-                    R.attr.accent,
+                    R.attr.actionPrimary,
                     context,
                 ),
                 confirmButtonTextColor = ThemeManager.resolveAttribute(
-                    R.attr.textOnColorPrimary,
+                    R.attr.textActionPrimary,
                     context,
                 ),
                 confirmButtonRadius =
@@ -414,11 +414,11 @@ class WebExtensionPromptFeature(
                     gravity = Gravity.BOTTOM,
                     shouldWidthMatchParent = true,
                     confirmButtonBackgroundColor = ThemeManager.resolveAttribute(
-                        R.attr.accent,
+                        R.attr.actionPrimary,
                         context,
                     ),
                     confirmButtonTextColor = ThemeManager.resolveAttribute(
-                        R.attr.textOnColorPrimary,
+                        R.attr.textActionPrimary,
                         context,
                     ),
                     confirmButtonRadius =

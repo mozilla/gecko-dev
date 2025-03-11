@@ -37,7 +37,7 @@
     <!-- Primary button, Snackbar, Floating action button, Chip selected -->
     <color name="fx_mobile_action_color_primary">@color/photonInk20</color>
     <!-- Primary button in a disabled state-->
-    <color name="fx_mobile_action_color_primary_disabled" tools:ignore="UnusedResources">@color/photonInk20A20</color>
+    <color name="fx_mobile_action_color_primary_disabled">@color/photonInk20A20</color>
     <!-- Secondary button -->
     <color name="fx_mobile_action_color_secondary">@color/photonLightGrey30</color>
     <!-- Filter -->
@@ -93,7 +93,7 @@
     <!-- Action Primary text -->
     <color name="fx_mobile_text_color_action_primary">@color/photonLightGrey05</color>
     <!-- Action Primary disabled text -->
-    <color name="fx_mobile_text_color_action_primary_disabled" tools:ignore="UnusedResources">@color/photonDarkGrey90A50</color>
+    <color name="fx_mobile_text_color_action_primary_disabled">@color/photonDarkGrey90A50</color>
     <!-- Action Secondary text -->
     <color name="fx_mobile_text_color_action_secondary">@color/photonDarkGrey90</color>
     <!-- Action Tertiary text -->
@@ -185,6 +185,8 @@
     <!-- Action -->
     <!-- Primary button, Snackbar, Floating action button, Chip selected -->
     <color name="fx_mobile_private_action_color_primary">@color/photonViolet60</color>
+    <!-- Primary button in a disabled state -->
+    <color name="fx_mobile_private_action_color_primary_disabled">@color/photonInk20A20</color>
     <!-- Secondary button -->
     <color name="fx_mobile_private_action_color_secondary" tools:ignore="UnusedResources">@color/photonDarkGrey05</color>
     <!-- Filter -->
@@ -229,6 +231,8 @@
     <color name="fx_mobile_private_text_color_oncolor_secondary" tools:ignore="UnusedResources">@color/photonLightGrey40</color>
     <!-- Action Primary text -->
     <color name="fx_mobile_private_text_color_action_primary">@color/photonLightGrey05</color>
+    <!-- Action Primary disabled text -->
+    <color name="fx_mobile_private_text_color_action_primary_disabled">@color/photonLightGrey05A40</color>
     <!-- Action Secondary text -->
     <color name="fx_mobile_private_text_color_action_secondary" tools:ignore="UnusedResources">@color/photonLightGrey05</color>
     <!-- Action Tertiary text -->
