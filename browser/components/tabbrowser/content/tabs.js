@@ -2759,8 +2759,6 @@
       this.removeAttribute("movingtab-ungroup");
       this.#setDragOverGroupColor(null);
       this.#clearDragOverCreateGroupTimer();
-
-      this._handleTabSelect();
     }
 
     /**

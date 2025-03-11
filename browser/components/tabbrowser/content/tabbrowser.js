@@ -5929,7 +5929,9 @@
         this.selectedTab.focus();
       }
 
-      this.tabContainer._handleTabSelect(true);
+      if (aTab.selected) {
+        this.tabContainer._handleTabSelect(true);
+      }
 
       if (aTab.pinned) {
         this.tabContainer._positionPinnedTabs();
