@@ -450,27 +450,6 @@ var dataProviders = {
     done(data);
   },
 
-  async experimentalFeatures(done) {
-    if (AppConstants.MOZ_BUILD_APP != "browser") {
-      done();
-      return;
-    }
-    let { FeatureGate } = ChromeUtils.importESModule(
-      "resource://featuregates/FeatureGate.sys.mjs"
-    );
-
-    let gates = await FeatureGate.all();
-    done(
-      gates.map(gate => {
-        return [
-          gate.title,
-          gate.preference,
-          Services.prefs.getBoolPref(gate.preference),
-        ];
-      })
-    );
-  },
-
   async legacyUserStylesheets(done) {
     if (AppConstants.platform == "android") {
       done({ active: false, types: [] });

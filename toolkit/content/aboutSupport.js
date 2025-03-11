@@ -381,33 +381,6 @@ var snapshotFormatters = {
     }
   },
 
-  async experimentalFeatures(data) {
-    if (!data) {
-      return;
-    }
-    let titleL10nIds = data.map(([titleL10nId]) => titleL10nId);
-    let titleL10nObjects = await document.l10n.formatMessages(titleL10nIds);
-    if (titleL10nObjects.length != data.length) {
-      throw Error("Missing localized title strings in experimental features");
-    }
-    for (let i = 0; i < titleL10nObjects.length; i++) {
-      let localizedTitle = titleL10nObjects[i].attributes.find(
-        a => a.name == "label"
-      ).value;
-      data[i] = [localizedTitle, data[i][1], data[i][2]];
-    }
-
-    $.append(
-      $("experimental-features-tbody"),
-      data.map(function ([title, pref, value]) {
-        return $.new("tr", [
-          $.new("td", `${title} (${pref})`, "pref-name"),
-          $.new("td", value, "pref-value"),
-        ]);
-      })
-    );
-  },
-
   environmentVariables(data) {
     if (!data) {
       return;

@@ -74,7 +74,6 @@ js_source_path = [
     "../toolkit/actors",
     "../toolkit/components/extensions",
     "../toolkit/components/extensions/parent",
-    "../toolkit/components/featuregates",
     "../toolkit/components/ml/content/backends/ONNXPipeline.mjs",
     "../toolkit/mozapps/extensions",
     "../toolkit/components/prompts/src",

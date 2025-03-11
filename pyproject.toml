@@ -63,7 +63,6 @@ exclude = [
   "testing/runtimes/writeruntimes.py",
   "testing/tools/iceserver/iceserver.py",
   "testing/tools/websocketprocessbridge/websocketprocessbridge.py",
-  "toolkit/components/featuregates",
   "toolkit/content/tests/chrome/file_about_networking_wsh.py",
   "toolkit/library/build/dependentlibs.py",
   "toolkit/mozapps",

@@ -822,24 +822,6 @@ memory:
 
 
 environment:
-  experimental_features:
-    type: string_list
-    description: >
-      Specifies the enabled experimental features from
-      about:preferences#experimental.
-    notification_emails:
-      - crash-reporting-wg@mozilla.org
-      - stability@mozilla.org
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1830098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1830098
-    data_sensitivity:
-      - technical
-    expires: never
-    send_in_pings:
-      - crash
-
   headless_mode:
     type: boolean
     description: >

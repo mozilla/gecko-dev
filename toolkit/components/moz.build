@@ -134,7 +134,7 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] not in ("android", "windows"):
     DIRS += ["aboutwebauthn"]
 
 if CONFIG["MOZ_BUILD_APP"] == "browser":
-    DIRS += ["featuregates", "messaging-system", "normandy"]
+    DIRS += ["messaging-system", "normandy"]
 
 DIRS += ["nimbus"]
 

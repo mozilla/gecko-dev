@@ -975,10 +975,6 @@ add_task(async function test_glean_crash_ping() {
     ]);
     Assert.equal(Glean.dllBlocklist.initFailed.testGetValue(), true);
     Assert.equal(Glean.dllBlocklist.user32LoadedBefore.testGetValue(), true);
-    Assert.deepEqual(Glean.environment.experimentalFeatures.testGetValue(), [
-      "feature 1",
-      "feature 2",
-    ]);
     Assert.equal(Glean.environment.headlessMode.testGetValue(), true);
     Assert.deepEqual(Glean.environment.nimbusEnrollments.testGetValue(), [
       "foo:control",
@@ -1022,7 +1018,6 @@ add_task(async function test_glean_crash_ping() {
       BlockedDllList: "Foo.dll;bar.dll;rawr.dll",
       BlocklistInitFailed: "1",
       EventLoopNestingLevel: 5,
-      ExperimentalFeatures: "feature 1,feature 2",
       FontName: "Helvetica",
       GPUProcessLaunchCount: 10,
       HeadlessMode: "1",

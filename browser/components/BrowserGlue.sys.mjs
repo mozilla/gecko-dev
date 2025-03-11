@@ -37,7 +37,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   DownloadsViewableInternally:
     "resource:///modules/DownloadsViewableInternally.sys.mjs",
   ExtensionsUI: "resource:///modules/ExtensionsUI.sys.mjs",
-  FeatureGate: "resource://featuregates/FeatureGate.sys.mjs",
   FirefoxBridgeExtensionUtils:
     "resource:///modules/FirefoxBridgeExtensionUtils.sys.mjs",
   // FilePickerCrashed is used by the `listeners` object below.
@@ -2387,8 +2386,6 @@ BrowserGlue.prototype = {
     if (AppConstants.MOZ_CRASHREPORTER) {
       lazy.UnsubmittedCrashHandler.init();
       lazy.UnsubmittedCrashHandler.scheduleCheckForUnsubmittedCrashReports();
-      lazy.FeatureGate.annotateCrashReporter();
-      lazy.FeatureGate.observePrefChangesForCrashReportAnnotation();
     }
 
     if (AppConstants.ASAN_REPORTER) {

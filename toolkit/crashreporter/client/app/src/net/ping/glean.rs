@@ -111,9 +111,8 @@ pub fn set_crash_ping_metrics(
             user32_loaded_before: bool = "User32BeforeBlocklist"
         }
         environment {
-            experimental_features: (string_list ',') = "ExperimentalFeatures"
-            nimbus_enrollments: (string_list ',') = "NimbusEnrollments"
             headless_mode: bool = "HeadlessMode"
+            nimbus_enrollments: (string_list ',') = "NimbusEnrollments"
             uptime: seconds = "UptimeTS"
         }
         memory {

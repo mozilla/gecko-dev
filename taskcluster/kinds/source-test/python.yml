@@ -534,28 +534,6 @@ condprof:
             - 'testing/condprofile/condprof**'
             - 'testing/condprofile/setup.py'
 
-featuregates:
-    description: featuregates Python unit tests
-    platform:
-        - linux1804-64/opt
-        - windows11-64/opt
-    python-version: [3]
-    treeherder:
-        symbol: fg
-    run:
-        using: python-test
-        subsuite: featuregates
-    fetches:
-        toolchain:
-            by-platform:
-                linux1804-64/opt:
-                    - linux64-node
-                windows11-64/opt:
-                    - win64-node
-    when:
-        files-changed:
-            - 'toolkit/components/featuregates/**'
-
 skip-fails:
     description: testing/skip-fails unit tests
     always-target: false

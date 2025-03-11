@@ -40,7 +40,6 @@ import mozilla.components.support.ktx.android.content.isMainProcess
 import mozilla.telemetry.glean.private.BooleanMetricType
 import mozilla.telemetry.glean.private.ObjectMetricType
 import mozilla.telemetry.glean.private.QuantityMetricType
-import mozilla.telemetry.glean.private.StringListMetricType
 import mozilla.telemetry.glean.private.StringMetricType
 import java.io.File
 import java.io.FileOutputStream
@@ -149,9 +148,6 @@ class GleanCrashReporterService(
                     // Overrides the original `startup` parameter to `Ping` when present
                     GleanCrash.startup.setIfNonNull(extras["StartupCrash"])
 
-                    GleanEnvironment.experimentalFeatures.setExperimentalFeaturesIfNonNull(
-                        extras["ExperimentalFeatures"],
-                    )
                     GleanEnvironment.headlessMode.setIfNonNull(extras["HeadlessMode"])
 
                     GleanMemory.availableCommit.setIfNonNull(extras["AvailablePageFile"])
@@ -178,15 +174,6 @@ class GleanCrashReporterService(
 
                 private fun QuantityMetricType.setIfNonNull(element: JsonElement?) {
                     element?.jsonPrimitive?.long?.let(::set)
-                }
-
-                private fun StringListMetricType.setExperimentalFeaturesIfNonNull(
-                    element: JsonElement?,
-                ) {
-                    element?.let {
-                        // Split on commas
-                        set(it.jsonPrimitive.content.split(',').filter(String::isNotEmpty))
-                    }
                 }
 
                 private fun ObjectMetricType<AsyncShutdownTimeoutObject>.setAsyncShutdownTimeoutIfNonNull(

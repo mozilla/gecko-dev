@@ -639,7 +639,6 @@ class GleanCrashReporterServiceTest {
                 "Version": "123.0.0",
                 "StartupCrash": "1",
                 "TotalPhysicalMemory": 100,
-                "ExperimentalFeatures": "expa,expb",
                 "AsyncShutdownTimeout": "{\"phase\":\"abcd\",\"conditions\":[{\"foo\":\"bar\"}],\"brokenAddBlockers\":[\"foo\"]}",
                 "QuotaManagerShutdownTimeout": "line1\nline2\nline3",
                 "StackTraces": $stackTracesAnnotation
@@ -677,10 +676,6 @@ class GleanCrashReporterServiceTest {
                 assertEquals("beta", GleanCrash.appChannel.testGetValue())
                 assertEquals("123.0.0", GleanCrash.appDisplayVersion.testGetValue())
                 assertEquals(100L, GleanMemory.totalPhysical.testGetValue())
-                assertEquals(
-                    listOf("expa", "expb"),
-                    GleanEnvironment.experimentalFeatures.testGetValue(),
-                )
                 assertEquals(
                     JsonObject(
                         mapOf(

@@ -11,7 +11,6 @@ test-manifest-toml:
         - 'testing/mozbase/manifestparser/tests/'
         - 'testing/raptor/raptor/tests/'
         - 'third_party/rust/'
-        - 'toolkit/components/featuregates/test/python/data/'
         - '**/.*ruff.toml'
         - '**/Cargo.toml'
         - '**/Cross.toml'

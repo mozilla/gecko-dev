@@ -326,12 +326,6 @@ EventLoopNestingLevel:
   ping: true
   skip_if: "0"
 
-ExperimentalFeatures:
-  description: >
-    Comma-separated list of enabled experimental features from about:preferences#experimental.
-  type: string
-  ping: true
-
 FontName:
   description: >
     Set before attempting to load a font to help diagnose crashes during loading.

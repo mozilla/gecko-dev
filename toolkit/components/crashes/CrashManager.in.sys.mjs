@@ -869,7 +869,6 @@ CrashManager.prototype = Object.freeze({
         user32LoadedBefore: t(bool, "User32BeforeBlocklist"),
       },
       environment: {
-        experimentalFeatures: t(comma_list, cap),
         headlessMode: t(bool, cap),
         nimbusEnrollments: t(comma_list, cap),
         uptime: t(seconds, "UptimeTS"),
