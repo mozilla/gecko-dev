@@ -79,12 +79,12 @@ skip-if = ["devedition"]
 ["test_skip_locked_environment.js"]
 
 ["test_snap.js"]
-snap = true
+environment = ["SNAP_NAME=firefox", "SNAP_INSTANCE_NAME=firefox"]
 run-if = ["os == 'linux'"]
 skip-if = ["appname == 'thunderbird'"]
 
 ["test_snap_empty.js"]
-snap = true
+environment = ["SNAP_NAME=firefox", "SNAP_INSTANCE_NAME=firefox"]
 run-if = ["os == 'linux'"]
 skip-if = ["appname == 'thunderbird'"]
 
