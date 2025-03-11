@@ -1998,11 +1998,11 @@ impl ComputedValues {
 
     /// Serializes the computed value of this property as a string.
     pub fn computed_value_to_string(&self, property: PropertyDeclarationId) -> String {
-        let context = resolved::Context {
-            style: self,
-        };
         match property {
             PropertyDeclarationId::Longhand(id) => {
+                let context = resolved::Context {
+                    style: self,
+                };
                 let mut s = String::new();
                 self.computed_or_resolved_value(
                     id,
