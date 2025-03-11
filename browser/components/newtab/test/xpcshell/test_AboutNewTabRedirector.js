@@ -22,17 +22,6 @@ const BLANK_TAB_URI = Services.io.newURI(
 const PARENT_INSTANCE = new AboutNewTabRedirectorParent();
 const CHILD_INSTANCE = new AboutNewTabRedirectorChild();
 
-// The dummy channel lets us create an nsILoadInfo, which newChannel expects.
-const DUMMY_CHANNEL = NetUtil.newChannel({
-  uri: "http://localhost",
-  loadUsingSystemPrincipal: true,
-});
-
-const DEFAULT_URL_CHANNEL = Services.io.newChannelFromURIWithLoadInfo(
-  Services.io.newURI(PARENT_INSTANCE.defaultURL),
-  DUMMY_CHANNEL.loadInfo
-);
-
 /**
  * Tests that both the parent and child implementations return the blank tab
  * document at chrome://browser/content/blanktab.html via getChromeURI.
@@ -60,6 +49,17 @@ add_task(async function test_chromeURI() {
  */
 add_task(async function test_parent_newChannel() {
   Services.prefs.setBoolPref(BUILTIN_NEWTAB_ENABLED_PREF, true);
+
+  // The dummy channel lets us create an nsILoadInfo, which newChannel expects.
+  const DUMMY_CHANNEL = NetUtil.newChannel({
+    uri: "http://localhost",
+    loadUsingSystemPrincipal: true,
+  });
+
+  const DEFAULT_URL_CHANNEL = Services.io.newChannelFromURIWithLoadInfo(
+    Services.io.newURI(PARENT_INSTANCE.defaultURL),
+    DUMMY_CHANNEL.loadInfo
+  );
 
   // We expect the parent instance to return the defaultURL for about:home
   // and about:newtab (if enabled).
