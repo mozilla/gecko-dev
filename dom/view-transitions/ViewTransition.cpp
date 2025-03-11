@@ -769,6 +769,9 @@ void ViewTransition::SetupTransitionPseudoElements() {
     mViewTransitionRoot = nullptr;
     return;
   }
+  if (mDocument->DevToolsAnonymousAndShadowEventsEnabled()) {
+    mViewTransitionRoot->QueueDevtoolsAnonymousEvent(/* aIsRemove = */ false);
+  }
   if (PresShell* ps = mDocument->GetPresShell()) {
     ps->ContentAppended(mViewTransitionRoot);
   }
@@ -1360,13 +1363,16 @@ void ViewTransition::ClearActiveTransition(bool aIsDocumentHidden) {
   // see SetupTransitionPseudoElements).
   if (mViewTransitionRoot) {
     nsAutoScriptBlocker scriptBlocker;
+    if (mDocument->DevToolsAnonymousAndShadowEventsEnabled()) {
+      mViewTransitionRoot->QueueDevtoolsAnonymousEvent(/* aIsRemove = */ true);
+    }
     if (PresShell* ps = mDocument->GetPresShell()) {
       ps->ContentWillBeRemoved(mViewTransitionRoot, nullptr);
     }
     mViewTransitionRoot->UnbindFromTree();
     mViewTransitionRoot = nullptr;
 
-    // If the doucment is being destroyed, we cannot get the animation data
+    // If the document is being destroyed, we cannot get the animation data
     // (e.g. it may crash when using nsINode::GetBoolFlag()), so we have to skip
     // this case. It's fine because those animations should still be stopped and
     // removed if no frame there.
