@@ -449,8 +449,12 @@ bool Platform::Protect(char* aAddr, size_t aSize, Access aAccess) {
 }
 
 void* Platform::FindFreeAddressSpace(size_t aSize) {
-  void* memory = mmap(nullptr, aSize, PROT_NONE,
-                      MAP_ANONYMOUS | MAP_NORESERVE | MAP_PRIVATE, -1, 0);
+#ifndef __FreeBSD__
+  constexpr int flags = MAP_ANONYMOUS | MAP_NORESERVE | MAP_PRIVATE;
+#else
+  constexpr int flags = MAP_ANONYMOUS | MAP_PRIVATE;
+#endif
+  void* memory = mmap(nullptr, aSize, PROT_NONE, flags, -1, 0);
   if (memory == MAP_FAILED) {
     return nullptr;
   }
