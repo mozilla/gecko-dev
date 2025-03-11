@@ -49,6 +49,28 @@ SanitizerElementNamespace CanonicalName::ToSanitizerElementNamespace() const {
   return result;
 }
 
+CanonicalElementWithAttributes CanonicalElementWithAttributes::Clone() const {
+  CanonicalElementWithAttributes elem(CanonicalName::Clone());
+
+  if (mAttributes) {
+    ListSet<CanonicalName> attributes;
+    for (const auto& attr : mAttributes->Values()) {
+      attributes.InsertNew(attr.Clone());
+    }
+    elem.mAttributes = Some(std::move(attributes));
+  }
+
+  if (mRemoveAttributes) {
+    ListSet<CanonicalName> attributes;
+    for (const auto& attr : mRemoveAttributes->Values()) {
+      attributes.InsertNew(attr.Clone());
+    }
+    elem.mRemoveAttributes = Some(std::move(attributes));
+  }
+
+  return elem;
+}
+
 nsTArray<OwningStringOrSanitizerAttributeNamespace> ToSanitizerAttributes(
     const ListSet<CanonicalName>& aList) {
   nsTArray<OwningStringOrSanitizerAttributeNamespace> attributes;

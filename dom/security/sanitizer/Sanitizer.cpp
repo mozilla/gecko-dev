@@ -10,6 +10,7 @@
 #include "mozilla/dom/DocumentFragment.h"
 #include "mozilla/dom/HTMLTemplateElement.h"
 #include "mozilla/dom/SanitizerBinding.h"
+#include "mozilla/dom/SanitizerDefaultConfig.h"
 #include "nsContentUtils.h"
 #include "nsGenericHTMLElement.h"
 #include "nsIContentInlines.h"
@@ -52,12 +53,20 @@ already_AddRefed<Sanitizer> Sanitizer::New(nsIGlobalObject* aGlobal,
   return sanitizer.forget();
 }
 
+// https://wicg.github.io/sanitizer-api/#sanitizer-constructor
 /* static */
 already_AddRefed<Sanitizer> Sanitizer::New(nsIGlobalObject* aGlobal,
                                            const SanitizerPresets aConfig,
                                            ErrorResult& aRv) {
+  // Step 1. If configuration is a SanitizerPresets string, then:
   RefPtr<Sanitizer> sanitizer = new Sanitizer(aGlobal);
-  // TODO: Default config
+
+  // Step 1.1. Assert: configuration is default.
+  MOZ_ASSERT(aConfig == SanitizerPresets::Default);
+
+  // Step 1.2. Set configuration to the built-in safe default configuration.
+  sanitizer->SetDefaultConfig();
+
   return sanitizer.forget();
 }
 
@@ -70,6 +79,54 @@ already_AddRefed<Sanitizer> Sanitizer::Constructor(
     return New(global, aConfig.GetAsSanitizerConfig(), aRv);
   }
   return New(global, aConfig.GetAsSanitizerPresets(), aRv);
+}
+
+void Sanitizer::SetDefaultConfig() {
+  MOZ_ASSERT(mElements.IsEmpty() && mAttributes.IsEmpty());
+
+  // TODO: Obviously get rid of these obnoxious copies.
+  // i.e. with some kind of copy-on-write scheme for the default config.
+
+  for (nsStaticAtom* name : kDefaultHTMLElements) {
+    mElements.InsertNew(CanonicalElementWithAttributes(
+        CanonicalName(name, nsGkAtoms::nsuri_xhtml)));
+  }
+
+  for (size_t i = 0; i < std::size(kHTMLElementWithAttributes); i++) {
+    CanonicalName elementName(kHTMLElementWithAttributes[i],
+                              nsGkAtoms::nsuri_xhtml);
+
+    ListSet<CanonicalName> attributes;
+    while (kHTMLElementWithAttributes[++i]) {
+      attributes.InsertNew(
+          CanonicalName(kHTMLElementWithAttributes[i], nullptr));
+    }
+
+    // TODO: Optimization: Encode the index instead of the element name.
+    mElements.Get(elementName)->mAttributes = Some(std::move(attributes));
+  }
+
+  for (nsStaticAtom* name : kDefaultMathMLElements) {
+    mElements.InsertNew(CanonicalElementWithAttributes(
+        CanonicalName(name, nsGkAtoms::nsuri_mathml)));
+  }
+
+  for (size_t i = 0; i < std::size(kMathMLElementWithAttributes); i++) {
+    CanonicalName elementName(kMathMLElementWithAttributes[i],
+                              nsGkAtoms::nsuri_mathml);
+
+    ListSet<CanonicalName> attributes;
+    while (kMathMLElementWithAttributes[++i]) {
+      attributes.InsertNew(
+          CanonicalName(kMathMLElementWithAttributes[i], nullptr));
+    }
+
+    mElements.Get(elementName)->mAttributes = Some(std::move(attributes));
+  }
+
+  for (nsStaticAtom* name : kDefaultAttributes) {
+    mAttributes.InsertNew(CanonicalName(name, nullptr));
+  }
 }
 
 // https://wicg.github.io/sanitizer-api/#sanitizer-set-a-configuration
@@ -683,11 +740,8 @@ void Sanitizer::SanitizeAttributes(Element* aChild,
                                    const CanonicalName& aElementName,
                                    bool aSafe) {
   // TODO: Replace this with a hashmap.
-  const CanonicalElementWithAttributes* elementWithAttributes = nullptr;
-  if (auto index = mElements.Values().IndexOf(aElementName);
-      index != mElements.Values().NoIndex) {
-    elementWithAttributes = &mElements.Values()[index];
-  }
+  const CanonicalElementWithAttributes* elementWithAttributes =
+      mElements.Get(aElementName);
 
   // https://wicg.github.io/sanitizer-api/#sanitize-core
   // Substeps of

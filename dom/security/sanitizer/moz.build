@@ -12,7 +12,7 @@ with Files("**"):
 MOCHITEST_MANIFESTS += ["tests/mochitest/mochitest.toml"]
 
 
-EXPORTS.mozilla.dom += ["Sanitizer.h", "SanitizerTypes.h"]
+EXPORTS.mozilla.dom += ["Sanitizer.h", "SanitizerDefaultConfig.h", "SanitizerTypes.h"]
 
 UNIFIED_SOURCES += ["Sanitizer.cpp", "SanitizerTypes.cpp"]
 

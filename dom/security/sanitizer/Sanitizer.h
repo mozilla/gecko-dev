@@ -86,6 +86,7 @@ class Sanitizer final : public nsISupports, public nsWrapperCache {
  private:
   ~Sanitizer() = default;
 
+  void SetDefaultConfig();
   void SetConfig(const SanitizerConfig& aConfig, ErrorResult& aRv);
 
   void SanitizeChildren(nsINode* aNode, bool aSafe);

@@ -16,6 +16,8 @@ class CanonicalName {
   CanonicalName(CanonicalName&&) = default;
   CanonicalName(RefPtr<nsAtom> aLocalName, RefPtr<nsAtom> aNamespace)
       : mLocalName(std::move(aLocalName)), mNamespace(std::move(aNamespace)) {}
+  CanonicalName(nsStaticAtom* aLocalName, nsStaticAtom* aNamespace)
+      : mLocalName(aLocalName), mNamespace(aNamespace) {}
   ~CanonicalName() = default;
 
   bool operator==(const CanonicalName& aOther) const {
@@ -24,6 +26,8 @@ class CanonicalName {
 
   SanitizerElementNamespace ToSanitizerElementNamespace() const;
   SanitizerAttributeNamespace ToSanitizerAttributeNamespace() const;
+
+  CanonicalName Clone() const { return CanonicalName(mLocalName, mNamespace); }
 
  protected:
   RefPtr<nsAtom> mLocalName;
@@ -35,6 +39,8 @@ class CanonicalName {
 template <typename ValueType>
 class ListSet {
  public:
+  ListSet() = default;
+
   void Insert(ValueType&& aValue) {
     if (Contains(aValue)) {
       return;
@@ -42,11 +48,23 @@ class ListSet {
 
     mValues.AppendElement(std::move(aValue));
   }
+  void InsertNew(ValueType&& aValue) {
+    MOZ_ASSERT(!Contains(aValue));
+    mValues.AppendElement(std::move(aValue));
+  }
   void Remove(const CanonicalName& aValue) { mValues.RemoveElement(aValue); }
   bool Contains(const CanonicalName& aValue) const {
     return mValues.Contains(aValue);
   }
   bool IsEmpty() const { return mValues.IsEmpty(); }
+
+  ValueType* Get(const CanonicalName& aValue) {
+    auto index = mValues.IndexOf(aValue);
+    if (index == mValues.NoIndex) {
+      return nullptr;
+    }
+    return &mValues[index];
+  }
 
   const nsTArray<ValueType>& Values() const { return mValues; }
 
@@ -61,6 +79,8 @@ class CanonicalElementWithAttributes : public CanonicalName {
 
   SanitizerElementNamespaceWithAttributes
   ToSanitizerElementNamespaceWithAttributes() const;
+
+  CanonicalElementWithAttributes Clone() const;
 
   Maybe<ListSet<CanonicalName>> mAttributes;
   Maybe<ListSet<CanonicalName>> mRemoveAttributes;
