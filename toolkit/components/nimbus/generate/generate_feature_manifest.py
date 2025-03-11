@@ -34,6 +34,30 @@ ALLOWED_ISEARLYSTARTUP_FEATURE_IDS = {
     "upgradeDialog",
 }
 
+DISALLOWED_PREFS = {
+    # Disabling either of these prefs will cause unenrollment from all active
+    # enrollments, which will then cause the pref to reset.
+    "app.shield.optoutstudies.enabled": (
+        "disabling Nimbus causes immediate unenrollment"
+    ),
+    "datareporting.healthreport.uploadEnabled": (
+        "disabling telemetry causes immediate unenrollment"
+    ),
+    # Changing the Remote Settings endpoint will cause unenrollment from the recipe.
+    "services.settings.server": (
+        "changing the Remote Settings endpoint will break clients"
+    ),
+    "messaging-system.rsexperimentloader.collection": (
+        "changing the Nimbus collection will break clients"
+    ),
+    "nimbus.debug": "internal Nimbus preference for QA",
+    # This pref controls the return value of xpc::IsInAutomation(), which is
+    # used by code to check if we are in a test.
+    "security.turn_off_all_security_so_that_viruses_can_take_over_this_computer": (
+        "this pref is automation-only and is unsafe to enable outside tests"
+    ),
+}
+
 
 def write_fm_headers(fd):
     fd.write(HEADER_LINE)
@@ -72,12 +96,15 @@ def validate_feature_manifest(schema_path, manifest_path, manifest):
                 raise Exception("isEarlyStartup is deprecated")
 
             for variable, variable_def in feature.get("variables", {}).items():
-                set_pref = variable_def.get("setPref")
-
-                if isinstance(set_pref, dict):
-                    set_pref = set_pref.get("pref")
+                set_pref = variable_def.get("setPref", {}).get("pref")
 
                 if set_pref is not None:
+                    reason = DISALLOWED_PREFS.get(set_pref)
+                    if reason:
+                        raise Exception(
+                            f"Pref {set_pref} cannot be controlled by Nimbus: {reason}"
+                        )
+
                     if set_pref in set_prefs:
                         other_feature = set_prefs[set_pref][0]
                         other_variable = set_prefs[set_pref][1]
