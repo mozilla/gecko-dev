@@ -1802,7 +1802,6 @@ pub enum Overflow {
     Hidden,
     Scroll,
     Auto,
-    #[cfg(feature = "gecko")]
     Clip,
 }
 
@@ -1818,7 +1817,6 @@ impl Parse for Overflow {
             "hidden" => Self::Hidden,
             "scroll" => Self::Scroll,
             "auto" | "overlay" => Self::Auto,
-            #[cfg(feature = "gecko")]
             "clip" => Self::Clip,
             #[cfg(feature = "gecko")]
             "-moz-hidden-unscrollable" if static_prefs::pref!("layout.css.overflow-moz-hidden-unscrollable.enabled") => {
@@ -1841,7 +1839,6 @@ impl Overflow {
         match *self {
             Self::Hidden | Self::Scroll | Self::Auto => *self,
             Self::Visible => Self::Auto,
-            #[cfg(feature = "gecko")]
             Self::Clip => Self::Hidden,
         }
     }
