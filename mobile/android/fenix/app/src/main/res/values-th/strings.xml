@@ -1364,12 +1364,6 @@
   <string name="studies_title">ติดตั้งและเรียกใช้การศึกษา</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">เรียนรู้เพิ่มเติม</string>
-  <!-- Dialog message shown after removing a study -->
-  <string name="studies_restart_app" moz:removedIn="137">แอปพลิเคชันจะปิดตัวเพื่อนำการเปลี่ยนแปลงไปใช้</string>
-  <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="137">ตกลง</string>
-  <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="137">ยกเลิก</string>
   <!--
     Sessions
 
@@ -2603,6 +2597,8 @@
   <string name="quick_settings_sheet_secure_connection_2">การเชื่อมต่อปลอดภัย</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">การเชื่อมต่อไม่ปลอดภัย</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">หน้านี้ถูกจัดเก็บไว้ในอุปกรณ์ของคุณ</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">ล้างคุกกี้และข้อมูลไซต์</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->
@@ -2769,6 +2765,8 @@
   <string name="google_search_engine_suggestion_header">ค้นหาด้วย Google</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">ค้นหาด้วย %s</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">คำค้นหาล่าสุด</string>
   <!--
     Default browser experiment
 

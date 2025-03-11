@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:moz="http://mozac.org/tools">
+<resources>
   <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
   <string name="app_name_private_5">Pribado %s</string>
   <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
@@ -101,10 +101,6 @@
   <string name="close_tabs_after_one_week">Pagkatapos sang isa ka semana</string>
   <!-- Option for auto closing tabs that will auto close tabs after one month -->
   <string name="close_tabs_after_one_month">Pagkatapos sang isa ka bulan</string>
-  <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="137">Sige</string>
-  <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="137">Kanselahon</string>
   <!-- Text for the new tab button to indicate adding a new private tab in the tab -->
   <string name="tab_drawer_fab_content">Pribado</string>
   <!-- Text for the new tab button to indicate syncing command on the synced tabs page -->

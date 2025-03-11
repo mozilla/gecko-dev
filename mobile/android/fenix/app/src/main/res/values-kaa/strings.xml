@@ -727,12 +727,6 @@
   <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s waqtı-waqtı menen izleniwlerdi ornatıwı hám júrgiziwi múmkin.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Tolıǵıraq úyreniw</string>
-  <!-- Dialog message shown after removing a study -->
-  <string name="studies_restart_app" moz:removedIn="137">Ózgerislerdi qollanıw ushın baǵdarlama jabıladı</string>
-  <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="137">MAQUL</string>
-  <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="137">Biykarlaw</string>
   <!--
     Sessions
 
