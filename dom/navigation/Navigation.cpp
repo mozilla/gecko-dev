@@ -107,7 +107,8 @@ void Navigation::UpdateCurrentEntry(
 bool Navigation::HasEntriesAndEventsDisabled() const {
   Document* doc = mWindow->GetDoc();
   return !doc->IsCurrentActiveDocument() ||
-         (NS_IsAboutBlank(doc->GetDocumentURI()) && doc->IsInitialDocument()) ||
+         (NS_IsAboutBlankAllowQueryAndFragment(doc->GetDocumentURI()) &&
+          doc->IsInitialDocument()) ||
          doc->GetPrincipal()->GetIsNullPrincipal();
 }
 
