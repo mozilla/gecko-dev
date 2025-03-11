@@ -1246,6 +1246,9 @@ html {
   min-height: 610px;
   min-width: fit-content;
 }
+.welcome-container .onboardingContainer:has(.addons-picker-container) {
+  min-height: 1080px;
+}
 
 .onboardingContainer {
   --grey-subtitle-1: #696977;
@@ -1847,6 +1850,7 @@ html {
   margin-block: 10px 35px;
   text-align: initial;
   align-items: initial;
+  max-width: 400px;
 }
 .onboardingContainer .screen[pos=split] .section-main .main-content .welcome-text:empty {
   margin: 0;
@@ -2065,7 +2069,11 @@ html {
   flex-grow: 0;
   padding-inline: 110px;
   margin-block: auto;
-  max-width: 400px;
+}
+@media only screen and (width <= 800px) {
+  .onboardingContainer .screen[pos=split][fullscreen] .section-main .main-content .main-content-inner {
+    padding-block: 20px;
+  }
 }
 .onboardingContainer .screen[pos=split][fullscreen] .section-main .main-content .action-buttons {
   position: static;
@@ -2088,6 +2096,117 @@ html {
 }
 .onboardingContainer .screen[pos=split][fullscreen] .section-secondary .hero-image img {
   width: 30%;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container {
+  background: none;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container {
+  display: flex;
+  flex-flow: row wrap;
+  border: 1px solid var(--in-content-border-color);
+  box-shadow: 0 1px 2px 0 var(--in-content-border-color);
+  border-radius: 4px;
+  margin-block: 0 16px;
+  text-align: start;
+  padding: 16px;
+  max-width: 800px;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .rtamo-icon img {
+  margin-inline: 0 16px;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .addon-rows-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .addon-rows-container .addon-row {
+  display: flex;
+  flex-grow: 1;
+  justify-content: space-between;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .addon-rows-container .addon-row .install-button-wrapper {
+  display: block;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .addon-rows-container .addon-row .install-button-wrapper button {
+  padding-inline: 16px;
+  font-size: 12px;
+  padding-block: 0;
+  background-color: var(--in-content-button-background);
+  color: var(--in-content-button-text-color);
+  min-width: 0;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .addon-rows-container .addon-row .install-button-wrapper button:hover {
+  background-color: var(--in-content-button-background-hover);
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .addon-rows-container .addon-row .install-button-wrapper button:active {
+  background-color: var(--in-content-button-background-active);
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .addon-rows-container .addon-row:not(:last-child) {
+  margin-block: 0 12px;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .addon-rows-container .addon-row .addon-author-details {
+  margin-block: 0 4px;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .addon-rows-container .addon-row .addon-author-details .addon-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .addon-rows-container .addon-row .addon-author-details .addon-author {
+  font-size: 12px;
+  margin-block: 2px 0;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .addon-rows-container .addon-row .addon-author-details .addon-author .author-link {
+  background: none;
+  padding: 0;
+  font-weight: normal;
+  min-width: auto;
+  min-height: auto;
+  margin: 0;
+  text-align: start;
+  background: none;
+  text-decoration: underline;
+  cursor: pointer;
+  color: var(--link-color);
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .addon-rows-container .addon-row .addon-author-details .addon-author .author-link:hover {
+  color: var(--link-color-hover);
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .addon-rows-container .addon-row .addon-author-details .addon-author .author-link:active {
+  color: var(--link-color-active);
+}
+@media (prefers-contrast) {
+  .onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .addon-rows-container .addon-row .addon-author-details .addon-author .author-link:active {
+    text-decoration: none;
+  }
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .addon-rows-container .addon-row .addon-author-details .addon-author .addon-by-line {
+  margin-inline: 0 4px;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .addon-rows-container .addon-row .addon-description {
+  font-size: 14px;
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .loader {
+  width: 1em;
+  height: 1em;
+  border: 3px solid var(--in-content-primary-button-text-color);
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  box-sizing: border-box;
+  animation: rotation 1s linear infinite;
+  justify-self: center;
+}
+@keyframes rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+.onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .loaderContainer {
+  display: flex;
+  padding: 1.5px 37.5px;
+  margin: auto;
 }
 @media only screen and (width <= 800px) {
   .onboardingContainer .screen[pos=split][fullscreen] .section-main,
@@ -2171,6 +2290,7 @@ html {
     border-radius: 8px 8px 0 0;
   }
   .onboardingContainer .screen[pos=split]:where(:not([no-rdm]))[reverse-split] .section-main {
+    height: auto;
     margin: auto;
     margin-top: 0;
     border-radius: 0 0 8px 8px;
@@ -2357,6 +2477,7 @@ html {
   border-radius: 8px 8px 0 0;
 }
 [narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm]))[reverse-split] .section-main {
+  height: auto;
   margin: auto;
   margin-top: 0;
   border-radius: 0 0 8px 8px;
