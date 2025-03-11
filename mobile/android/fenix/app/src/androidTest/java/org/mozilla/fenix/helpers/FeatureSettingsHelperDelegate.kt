@@ -49,6 +49,7 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
         isMicrosurveyEnabled = settings.microsurveyFeatureEnabled,
         isSetAsDefaultBrowserPromptEnabled = settings.setAsDefaultBrowserPromptForExistingUsersEnabled,
         shouldUseBottomToolbar = settings.shouldUseBottomToolbar,
+        onboardingFeatureEnabled = settings.onboardingFeatureEnabled,
     )
 
     /**
@@ -84,6 +85,7 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
     override var isMicrosurveyEnabled: Boolean by updatedFeatureFlags::isMicrosurveyEnabled
     override var isSetAsDefaultBrowserPromptEnabled: Boolean by updatedFeatureFlags::isSetAsDefaultBrowserPromptEnabled
     override var shouldUseBottomToolbar: Boolean by updatedFeatureFlags::shouldUseBottomToolbar
+    override var onboardingFeatureEnabled: Boolean by updatedFeatureFlags::onboardingFeatureEnabled
 
     override fun applyFlagUpdates() {
         Log.i(TAG, "applyFlagUpdates: Trying to apply the updated feature flags: $updatedFeatureFlags")
@@ -120,6 +122,7 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
         settings.shouldUseBottomToolbar = featureFlags.shouldUseBottomToolbar
         setETPPolicy(featureFlags.etpPolicy)
         setPermissions(PhoneFeature.LOCATION, featureFlags.isLocationPermissionEnabled)
+        settings.onboardingFeatureEnabled = featureFlags.onboardingFeatureEnabled
     }
 }
 
@@ -144,6 +147,7 @@ private data class FeatureFlags(
     var isMicrosurveyEnabled: Boolean,
     var isSetAsDefaultBrowserPromptEnabled: Boolean,
     var shouldUseBottomToolbar: Boolean,
+    var onboardingFeatureEnabled: Boolean,
 )
 
 internal fun getETPPolicy(settings: Settings): ETPPolicy {

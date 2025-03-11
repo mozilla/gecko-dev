@@ -1884,18 +1884,28 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Returns whether onboarding should be shown to the user.
      *
+     * @param featureEnabled Boolean to indicate whether the feature is enabled.
      * @param hasUserBeenOnboarded Boolean to indicate whether the user has been onboarded.
      * @param isLauncherIntent Boolean to indicate whether the app was launched on tapping on the
      * app icon.
      */
-    fun shouldShowOnboarding(hasUserBeenOnboarded: Boolean, isLauncherIntent: Boolean): Boolean {
-        return if (!hasUserBeenOnboarded && isLauncherIntent) {
+    fun shouldShowOnboarding(
+        featureEnabled: Boolean = onboardingFeatureEnabled,
+        hasUserBeenOnboarded: Boolean,
+        isLauncherIntent: Boolean,
+    ): Boolean {
+        return if (featureEnabled && !hasUserBeenOnboarded && isLauncherIntent) {
             FxNimbus.features.junoOnboarding.recordExposure()
             true
         } else {
             false
         }
     }
+
+    /**
+     * Indicates if the onboarding feature is enabled.
+     */
+    var onboardingFeatureEnabled = FeatureFlags.onboardingFeatureEnabled
 
     /**
      * Indicates if the marketing onboarding card should be shown to the user.

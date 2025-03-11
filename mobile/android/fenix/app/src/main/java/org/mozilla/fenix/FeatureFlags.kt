@@ -87,4 +87,12 @@ object FeatureFlags {
      * Enables the tab swipe to dismiss rewrite.
      */
     const val swipeToDismiss2 = true
+
+    /**
+     * Disables the Onboarding feature for debug builds by default. Set this to `true` if you need
+     * to access the Onboarding feature for development purposes.
+     *
+     * ⚠️ DO NOT MODIFY THIS FLAG IN PRODUCTION.
+     */
+    val onboardingFeatureEnabled = !Config.channel.isDebug
 }

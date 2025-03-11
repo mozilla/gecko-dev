@@ -200,6 +200,7 @@ class HomeActivityIntentTestRule internal constructor(
         isMicrosurveyEnabled: Boolean = settings.microsurveyFeatureEnabled,
         isSetAsDefaultBrowserPromptEnabled: Boolean = settings.setAsDefaultBrowserPromptForExistingUsersEnabled,
         shouldUseBottomToolbar: Boolean = settings.shouldUseBottomToolbar,
+        onboardingFeatureEnabled: Boolean = true,
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
         this.isHomeOnboardingDialogEnabled = isHomeOnboardingDialogEnabled
         this.isPocketEnabled = isPocketEnabled
@@ -221,6 +222,7 @@ class HomeActivityIntentTestRule internal constructor(
         this.isMicrosurveyEnabled = isMicrosurveyEnabled
         this.isSetAsDefaultBrowserPromptEnabled = isSetAsDefaultBrowserPromptEnabled
         this.shouldUseBottomToolbar = shouldUseBottomToolbar
+        this.onboardingFeatureEnabled = onboardingFeatureEnabled
     }
 
     private val longTapUserPreference = getLongPressTimeout()

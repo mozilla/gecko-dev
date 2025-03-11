@@ -832,22 +832,11 @@ class SettingsTest {
     }
 
     @Test
-    fun `GIVEN hasUserBeenOnboarded is false and isLauncherIntent is false THEN shouldShowOnboarding returns false`() {
+    fun `GIVEN feature is disabled, hasUserBeenOnboarded is true and isLauncherIntent is true THEN shouldShowOnboarding returns false`() {
         val settings = spyk(settings)
 
         val actual = settings.shouldShowOnboarding(
-            hasUserBeenOnboarded = false,
-            isLauncherIntent = false,
-        )
-
-        assertFalse(actual)
-    }
-
-    @Test
-    fun `GIVEN hasUserBeenOnboarded is true THEN shouldShowOnboarding returns false`() {
-        val settings = spyk(settings)
-
-        val actual = settings.shouldShowOnboarding(
+            featureEnabled = false,
             hasUserBeenOnboarded = true,
             isLauncherIntent = true,
         )
@@ -856,10 +845,37 @@ class SettingsTest {
     }
 
     @Test
-    fun `GIVEN hasUserBeenOnboarded is false and isLauncherIntent is true THEN shouldShowOnboarding returns true`() {
+    fun `GIVEN feature is enabled, hasUserBeenOnboarded is false and isLauncherIntent is false THEN shouldShowOnboarding returns false`() {
         val settings = spyk(settings)
 
         val actual = settings.shouldShowOnboarding(
+            featureEnabled = true,
+            hasUserBeenOnboarded = false,
+            isLauncherIntent = false,
+        )
+
+        assertFalse(actual)
+    }
+
+    @Test
+    fun `GIVEN feature is enabled, hasUserBeenOnboarded is true THEN shouldShowOnboarding returns false`() {
+        val settings = spyk(settings)
+
+        val actual = settings.shouldShowOnboarding(
+            featureEnabled = true,
+            hasUserBeenOnboarded = true,
+            isLauncherIntent = true,
+        )
+
+        assertFalse(actual)
+    }
+
+    @Test
+    fun `GIVEN feature is enabled, hasUserBeenOnboarded is false and isLauncherIntent is true THEN shouldShowOnboarding returns true`() {
+        val settings = spyk(settings)
+
+        val actual = settings.shouldShowOnboarding(
+            featureEnabled = true,
             hasUserBeenOnboarded = false,
             isLauncherIntent = true,
         )
