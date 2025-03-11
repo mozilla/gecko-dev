@@ -3,10 +3,12 @@ test-manifest-toml:
     description: ManifestParser TOML linter.
     exclude:
         - 'dom/canvas/test/webgl-conf/mochitest-errata.toml'
+        - 'gradle/libs.versions.toml'
         - 'intl/icu/source/test/testdata/codepointtrie/'
         - 'python/mozbuild/mozbuild/test/'
         - 'mobile/android/bors.toml'
         - 'mobile/android/fenix/bors.toml'
+        - 'testing/cppunittest.toml'  # Tries to unquote entries - bug 1953009
         - 'testing/marionette/harness/marionette_harness/tests/unit-tests.toml'
         - 'testing/mozbase/manifestparser/tests/'
         - 'testing/raptor/raptor/tests/'
