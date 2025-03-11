@@ -30,12 +30,16 @@ add_task(async function () {
 
   // Ensure updating Unified Search Button icon by user interaction before
   // appmenu test.
-  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
-  BrowserTestUtils.removeTab(tab);
-  await BrowserTestUtils.waitForCondition(
-    () =>
-      document.getElementById("searchmode-switcher-icon").style.listStyleImage
-  );
+  if (
+    Services.prefs.getBoolPref("browser.urlbar.scotchBonnet.enableOverride")
+  ) {
+    let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+    BrowserTestUtils.removeTab(tab);
+    await BrowserTestUtils.waitForCondition(
+      () =>
+        document.getElementById("searchmode-switcher-icon").style.listStyleImage
+    );
+  }
 
   let textBoxRect = gURLBar
     .querySelector("moz-input-box")
