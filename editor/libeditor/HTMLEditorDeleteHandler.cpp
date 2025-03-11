@@ -1065,7 +1065,7 @@ class MOZ_STACK_CLASS HTMLEditor::AutoDeleteRangesHandler final {
        * `MergeFirstLineOfRightBlockElementIntoDescendantLeftBlockElement()`,
        * `MergeFirstLineOfRightBlockElementIntoAncestorLeftBlockElement()` and
        * `MergeFirstLineOfRightBlockElementIntoLeftBlockElement()` handle it
-       * with the `if` block of their main blocks.
+       * with the `if` block of the main lambda of them.
        */
       bool CanMergeLeftAndRightBlockElements() const {
         if (!IsSet()) {
@@ -1080,13 +1080,16 @@ class MOZ_STACK_CLASS HTMLEditor::AutoDeleteRangesHandler final {
         if (mPointContainingTheOtherBlockElement.GetContainer() ==
             mLeftBlockElement) {
           return mNewListElementTagNameOfRightListElement.isSome() &&
-                 !mRightBlockElement->GetChildCount();
+                 mRightBlockElement->GetChildCount();
         }
         MOZ_ASSERT(!mPointContainingTheOtherBlockElement.IsSet());
         // `MergeFirstLineOfRightBlockElementIntoLeftBlockElement()`
         return mNewListElementTagNameOfRightListElement.isSome() ||
-               mLeftBlockElement->NodeInfo()->NameAtom() ==
-                   mRightBlockElement->NodeInfo()->NameAtom();
+               (mLeftBlockElement->NodeInfo()->NameAtom() ==
+                    mRightBlockElement->NodeInfo()->NameAtom() &&
+                EditorUtils::GetComputedWhiteSpaceStyles(*mLeftBlockElement) ==
+                    EditorUtils::GetComputedWhiteSpaceStyles(
+                        *mRightBlockElement));
       }
 
       OwningNonNull<nsIContent> mInclusiveDescendantOfLeftBlockElement;
@@ -6937,13 +6940,29 @@ HTMLEditor::AutoMoveOneLineHandler::CanMoveOrDeleteSomethingInLine(
     }
   }
 
+  EditorRawDOMPoint startPoint(oneLineRange->StartRef());
+  EditorRawDOMPoint endPoint(oneLineRange->EndRef());
+  // If the range contains only block start boundaries, there is no content to
+  // move.
+  if (nsIContent* const startContent = startPoint.GetChild()) {
+    if (HTMLEditUtils::IsBlockElement(
+            *startContent, BlockInlineCheck::UseComputedDisplayOutsideStyle)) {
+      const WSScanResult prevThing =
+          WSRunScanner::ScanPreviousVisibleNodeOrBlockBoundary(
+              WSRunScanner::Scan::All, endPoint,
+              BlockInlineCheck::UseComputedDisplayOutsideStyle);
+      if (prevThing.ReachedCurrentBlockBoundary() &&
+          prevThing.ElementPtr()->IsInclusiveDescendantOf(startContent)) {
+        return false;
+      }
+    }
+  }
+
   nsINode* commonAncestor = oneLineRange->GetClosestCommonInclusiveAncestor();
   // Currently, we move non-editable content nodes too.
-  EditorRawDOMPoint startPoint(oneLineRange->StartRef());
   if (!startPoint.IsEndOfContainer()) {
     return true;
   }
-  EditorRawDOMPoint endPoint(oneLineRange->EndRef());
   if (!endPoint.IsStartOfContainer()) {
     return true;
   }
