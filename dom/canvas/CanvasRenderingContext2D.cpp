@@ -6307,7 +6307,7 @@ already_AddRefed<ImageData> CanvasRenderingContext2D::GetImageData(
     return nullptr;
   }
   MOZ_ASSERT(array);
-  return MakeAndAddRef<ImageData>(GetParentObject(), w, h, *array);
+  return MakeAndAddRef<ImageData>(w, h, *array);
 }
 
 static IntRect ClipImageDataTransfer(IntRect& aSrc, const IntPoint& aDestOffset,
@@ -6650,7 +6650,7 @@ static already_AddRefed<ImageData> CreateImageData(
     return nullptr;
   }
 
-  return do_AddRef(new ImageData(aContext->GetParentObject(), aW, aH, *darray));
+  return do_AddRef(new ImageData(aW, aH, *darray));
 }
 
 already_AddRefed<ImageData> CanvasRenderingContext2D::CreateImageData(

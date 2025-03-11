@@ -3041,8 +3041,13 @@ struct DeferredFinalizerImpl {
   static bool DeferredFinalize(uint32_t aSlice, void* aData) {
     MOZ_ASSERT(aSlice > 0, "nonsensical/useless call with aSlice == 0");
     SmartPtrArray* pointers = static_cast<SmartPtrArray*>(aData);
+    uint32_t oldLen = pointers->Length();
+    if (oldLen < aSlice) {
+      aSlice = oldLen;
+    }
+    uint32_t newLen = oldLen - aSlice;
     pointers->PopLastN(aSlice);
-    if (pointers->IsEmpty()) {
+    if (newLen == 0) {
       delete pointers;
       return true;
     }
