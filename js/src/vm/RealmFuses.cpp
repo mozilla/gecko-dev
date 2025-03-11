@@ -6,6 +6,8 @@
 #include "vm/RealmFuses.h"
 
 #include "builtin/MapObject.h"
+#include "builtin/WeakMapObject.h"
+#include "builtin/WeakSetObject.h"
 #include "vm/GlobalObject.h"
 #include "vm/NativeObject.h"
 #include "vm/ObjectOperations.h"
@@ -358,4 +360,60 @@ bool js::OptimizeSetObjectIteratorFuse::checkInvariant(JSContext* cx) {
     return false;
   }
   return IsSelfHostedFunctionWithName(v, cx->names().SetIteratorNext);
+}
+
+bool js::OptimizeMapPrototypeSetFuse::checkInvariant(JSContext* cx) {
+  auto* proto = cx->global()->maybeGetPrototype(JSProto_Map);
+  if (!proto) {
+    // No proto, invariant still holds
+    return true;
+  }
+  Value v;
+  if (!ObjectHasDataProperty(&proto->as<NativeObject>(),
+                             NameToId(cx->names().set), &v)) {
+    return false;
+  }
+  return IsNativeFunction(v, MapObject::set);
+}
+
+bool js::OptimizeSetPrototypeAddFuse::checkInvariant(JSContext* cx) {
+  auto* proto = cx->global()->maybeGetPrototype(JSProto_Set);
+  if (!proto) {
+    // No proto, invariant still holds
+    return true;
+  }
+  Value v;
+  if (!ObjectHasDataProperty(&proto->as<NativeObject>(),
+                             NameToId(cx->names().add), &v)) {
+    return false;
+  }
+  return IsNativeFunction(v, SetObject::add);
+}
+
+bool js::OptimizeWeakMapPrototypeSetFuse::checkInvariant(JSContext* cx) {
+  auto* proto = cx->global()->maybeGetPrototype(JSProto_WeakMap);
+  if (!proto) {
+    // No proto, invariant still holds
+    return true;
+  }
+  Value v;
+  if (!ObjectHasDataProperty(&proto->as<NativeObject>(),
+                             NameToId(cx->names().set), &v)) {
+    return false;
+  }
+  return IsNativeFunction(v, WeakMapObject::set);
+}
+
+bool js::OptimizeWeakSetPrototypeAddFuse::checkInvariant(JSContext* cx) {
+  auto* proto = cx->global()->maybeGetPrototype(JSProto_WeakSet);
+  if (!proto) {
+    // No proto, invariant still holds
+    return true;
+  }
+  Value v;
+  if (!ObjectHasDataProperty(&proto->as<NativeObject>(),
+                             NameToId(cx->names().add), &v)) {
+    return false;
+  }
+  return IsNativeFunction(v, WeakSetObject::add);
 }

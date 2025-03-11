@@ -1172,6 +1172,12 @@ JSObject* GenericCreatePrototype(JSContext* cx, JSProtoKey key) {
   return GlobalObject::createBlankPrototype(cx, cx->global(), &T::protoClass_);
 }
 
+inline bool GenericFinishInitWithPrototypeFuseProperty(JSContext* cx,
+                                                       HandleObject ctor,
+                                                       HandleObject proto) {
+  return JSObject::setHasFuseProperty(cx, proto);
+}
+
 inline JSProtoKey StandardProtoKeyOrNull(const JSObject* obj) {
   return JSCLASS_CACHED_PROTO_KEY(obj->getClass());
 }

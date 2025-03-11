@@ -186,6 +186,34 @@ struct OptimizeSetObjectIteratorFuse final : public RealmFuse {
   virtual bool checkInvariant(JSContext* cx) override;
 };
 
+// This fuse is popped when the `Map.prototype.set` property is mutated.
+struct OptimizeMapPrototypeSetFuse final : public RealmFuse {
+  virtual const char* name() override { return "OptimizeMapPrototypeSetFuse"; }
+  virtual bool checkInvariant(JSContext* cx) override;
+};
+
+// This fuse is popped when the `Set.prototype.add` property is mutated.
+struct OptimizeSetPrototypeAddFuse final : public RealmFuse {
+  virtual const char* name() override { return "OptimizeSetPrototypeAddFuse"; }
+  virtual bool checkInvariant(JSContext* cx) override;
+};
+
+// This fuse is popped when the `WeakMap.prototype.set` property is mutated.
+struct OptimizeWeakMapPrototypeSetFuse final : public RealmFuse {
+  virtual const char* name() override {
+    return "OptimizeWeakMapPrototypeSetFuse";
+  }
+  virtual bool checkInvariant(JSContext* cx) override;
+};
+
+// This fuse is popped when the `WeakSet.prototype.add` property is mutated.
+struct OptimizeWeakSetPrototypeAddFuse final : public RealmFuse {
+  virtual const char* name() override {
+    return "OptimizeWeakSetPrototypeAddFuse";
+  }
+  virtual bool checkInvariant(JSContext* cx) override;
+};
+
 #define FOR_EACH_REALM_FUSE(FUSE)                                              \
   FUSE(OptimizeGetIteratorFuse, optimizeGetIteratorFuse)                       \
   FUSE(OptimizeArrayIteratorPrototypeFuse, optimizeArrayIteratorPrototypeFuse) \
@@ -201,7 +229,11 @@ struct OptimizeSetObjectIteratorFuse final : public RealmFuse {
   FUSE(ObjectPrototypeHasNoReturnProperty, objectPrototypeHasNoReturnProperty) \
   FUSE(OptimizeArraySpeciesFuse, optimizeArraySpeciesFuse)                     \
   FUSE(OptimizeMapObjectIteratorFuse, optimizeMapObjectIteratorFuse)           \
-  FUSE(OptimizeSetObjectIteratorFuse, optimizeSetObjectIteratorFuse)
+  FUSE(OptimizeSetObjectIteratorFuse, optimizeSetObjectIteratorFuse)           \
+  FUSE(OptimizeMapPrototypeSetFuse, optimizeMapPrototypeSetFuse)               \
+  FUSE(OptimizeSetPrototypeAddFuse, optimizeSetPrototypeAddFuse)               \
+  FUSE(OptimizeWeakMapPrototypeSetFuse, optimizeWeakMapPrototypeSetFuse)       \
+  FUSE(OptimizeWeakSetPrototypeAddFuse, optimizeWeakSetPrototypeAddFuse)
 
 struct RealmFuses {
   RealmFuses() = default;

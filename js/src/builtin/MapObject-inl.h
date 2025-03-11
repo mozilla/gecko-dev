@@ -68,6 +68,33 @@ template <JSProtoKey ProtoKey>
     return false;
   }
 
+  // Ensure the 'add' or 'set' method on the prototype is unchanged. Use a fast
+  // path based on fuses.
+  switch (ProtoKey) {
+    case JSProto_Map:
+      if (cx->realm()->realmFuses.optimizeMapPrototypeSetFuse.intact()) {
+        return true;
+      }
+      break;
+    case JSProto_Set:
+      if (cx->realm()->realmFuses.optimizeSetPrototypeAddFuse.intact()) {
+        return true;
+      }
+      break;
+    case JSProto_WeakMap:
+      if (cx->realm()->realmFuses.optimizeWeakMapPrototypeSetFuse.intact()) {
+        return true;
+      }
+      break;
+    case JSProto_WeakSet:
+      if (cx->realm()->realmFuses.optimizeWeakSetPrototypeAddFuse.intact()) {
+        return true;
+      }
+      break;
+    default:
+      MOZ_CRASH("Unexpected ProtoKey");
+  }
+
   // Look up the 'add' or 'set' property on the prototype object.
   auto* nproto = &proto->as<NativeObject>();
   PropertyName* propName = isSet ? cx->names().add : cx->names().set;
@@ -79,11 +106,7 @@ template <JSProtoKey ProtoKey>
   // Get the property value and ensure it's the canonical 'add' or 'set'
   // function.
   Value propVal = nproto->getSlot(prop->slot());
-  if (!IsNativeFunction(propVal, addOrSetNative)) {
-    return false;
-  }
-
-  return true;
+  return IsNativeFunction(propVal, addOrSetNative);
 }
 
 }  // namespace js

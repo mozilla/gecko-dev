@@ -316,6 +316,10 @@ static void MaybePopMapPrototypeFuses(JSContext* cx, NativeObject* obj,
     obj->realm()->realmFuses.optimizeMapObjectIteratorFuse.popFuse(
         cx, obj->realm()->realmFuses);
   }
+  if (id.isAtom(cx->names().set)) {
+    obj->realm()->realmFuses.optimizeMapPrototypeSetFuse.popFuse(
+        cx, obj->realm()->realmFuses);
+  }
 }
 
 static void MaybePopMapIteratorPrototypeFuses(JSContext* cx, NativeObject* obj,
@@ -339,6 +343,10 @@ static void MaybePopSetPrototypeFuses(JSContext* cx, NativeObject* obj,
     obj->realm()->realmFuses.optimizeSetObjectIteratorFuse.popFuse(
         cx, obj->realm()->realmFuses);
   }
+  if (id.isAtom(cx->names().add)) {
+    obj->realm()->realmFuses.optimizeSetPrototypeAddFuse.popFuse(
+        cx, obj->realm()->realmFuses);
+  }
 }
 
 static void MaybePopSetIteratorPrototypeFuses(JSContext* cx, NativeObject* obj,
@@ -349,6 +357,28 @@ static void MaybePopSetIteratorPrototypeFuses(JSContext* cx, NativeObject* obj,
   }
   if (id.isAtom(cx->names().next)) {
     obj->realm()->realmFuses.optimizeSetObjectIteratorFuse.popFuse(
+        cx, obj->realm()->realmFuses);
+  }
+}
+
+static void MaybePopWeakMapPrototypeFuses(JSContext* cx, NativeObject* obj,
+                                          jsid id) {
+  if (obj != obj->global().maybeGetPrototype(JSProto_WeakMap)) {
+    return;
+  }
+  if (id.isAtom(cx->names().set)) {
+    obj->realm()->realmFuses.optimizeWeakMapPrototypeSetFuse.popFuse(
+        cx, obj->realm()->realmFuses);
+  }
+}
+
+static void MaybePopWeakSetPrototypeFuses(JSContext* cx, NativeObject* obj,
+                                          jsid id) {
+  if (obj != obj->global().maybeGetPrototype(JSProto_WeakSet)) {
+    return;
+  }
+  if (id.isAtom(cx->names().add)) {
+    obj->realm()->realmFuses.optimizeWeakSetPrototypeAddFuse.popFuse(
         cx, obj->realm()->realmFuses);
   }
 }
@@ -374,6 +404,12 @@ static void MaybePopFuses(JSContext* cx, NativeObject* obj, jsid id) {
 
   // Handle writes to %SetIteratorPrototype% fuse properties.
   MaybePopSetIteratorPrototypeFuses(cx, obj, id);
+
+  // Handle writes to WeakMap.prototype fuse properties.
+  MaybePopWeakMapPrototypeFuses(cx, obj, id);
+
+  // Handle writes to WeakSet.prototype fuse properties.
+  MaybePopWeakSetPrototypeFuses(cx, obj, id);
 }
 
 // static

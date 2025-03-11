@@ -357,6 +357,7 @@ const ClassSpec WeakMapObject::classSpec_ = {
     nullptr,
     WeakMapObject::methods,
     WeakMapObject::properties,
+    GenericFinishInitWithPrototypeFuseProperty,
 };
 
 const JSClass WeakMapObject::class_ = {
