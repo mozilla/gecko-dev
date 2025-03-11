@@ -855,8 +855,7 @@ void ViewTransition::Activate() {
     return;
   }
 
-  // TODO(emilio): Step 2: Set rendering suppression for view transitions to
-  // false.
+  mDocument->SetRenderingSuppressedForViewTransitions(false);
 
   // Step 3: If transition's initial snapshot containing block size is not
   // equal to the snapshot containing block size, then skip the view transition
@@ -1057,8 +1056,7 @@ static nsAtom* DocumentScopedTransitionNameFor(nsIFrame* aFrame) {
 
 // https://drafts.csswg.org/css-view-transitions/#capture-the-old-state
 Maybe<SkipTransitionReason> ViewTransition::CaptureOldState() {
-  // TODO(emilio): Seems this should hold but intermittently fails in some
-  // tests: MOZ_ASSERT(mNamedElements.IsEmpty());
+  MOZ_ASSERT(mNamedElements.IsEmpty());
 
   // Steps 1/2 are variable declarations.
   // Step 3: Let usedTransitionNames be a new set of strings.
@@ -1173,8 +1171,7 @@ void ViewTransition::Setup() {
     return SkipTransition(*skipReason);
   }
 
-  // TODO Step 3: Set document's rendering suppression for view transitions to
-  // true.
+  mDocument->SetRenderingSuppressedForViewTransitions(true);
 
   // Step 4: Queue a global task on the DOM manipulation task source, given
   // transition's relevant global object, to perform the following steps:
@@ -1410,7 +1407,7 @@ void ViewTransition::SkipTransition(
   }
 
   // Step 4: Set rendering suppression for view transitions to false.
-  // TODO(emilio): We don't have that flag yet.
+  mDocument->SetRenderingSuppressedForViewTransitions(false);
 
   // Step 5: If document's active view transition is transition, Clear view
   // transition transition.

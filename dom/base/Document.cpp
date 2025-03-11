@@ -1329,6 +1329,7 @@ Document::Document(const char* aContentType)
       mUpgradeInsecureRequests(false),
       mUpgradeInsecurePreloads(false),
       mDevToolsWatchingDOMMutations(false),
+      mRenderingSuppressedForViewTransitions(false),
       mBidiEnabled(false),
       mMayNeedFontPrefsUpdate(true),
       mMathMLEnabled(false),
@@ -18059,8 +18060,19 @@ already_AddRefed<ViewTransition> Document::StartViewTransition(
 
 void Document::ClearActiveViewTransition() { mActiveViewTransition = nullptr; }
 
+void Document::SetRenderingSuppressedForViewTransitions(bool aValue) {
+  if (mRenderingSuppressedForViewTransitions == aValue) {
+    return;
+  }
+  mRenderingSuppressedForViewTransitions = aValue;
+  if (aValue) {
+    return;
+  }
+  EnsureViewTransitionOperationsHappen();
+}
+
 void Document::PerformPendingViewTransitionOperations() {
-  if (mActiveViewTransition) {
+  if (mActiveViewTransition && !RenderingSuppressedForViewTransitions()) {
     mActiveViewTransition->PerformPendingOperations();
   }
   EnumerateSubDocuments([](Document& aDoc) {

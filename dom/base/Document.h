@@ -3476,7 +3476,11 @@ class Document : public nsINode,
   bool Hidden() const { return mVisibilityState != VisibilityState::Visible; }
   dom::VisibilityState VisibilityState() const { return mVisibilityState; }
 
- public:
+  bool RenderingSuppressedForViewTransitions() const {
+    return mRenderingSuppressedForViewTransitions;
+  }
+  void SetRenderingSuppressedForViewTransitions(bool);
+
   void GetSelectedStyleSheetSet(nsAString& aSheetSet);
   void SetSelectedStyleSheetSet(const nsAString& aSheetSet);
   void GetLastStyleSheetSet(nsAString& aSheetSet) {
@@ -4690,6 +4694,9 @@ class Document : public nsINode,
   bool mUpgradeInsecureRequests : 1;
   bool mUpgradeInsecurePreloads : 1;
   bool mDevToolsWatchingDOMMutations : 1;
+
+  // https://drafts.csswg.org/css-view-transitions-1/#document-rendering-suppression-for-view-transitions
+  bool mRenderingSuppressedForViewTransitions : 1;
 
   // True if BIDI is enabled.
   bool mBidiEnabled : 1;
