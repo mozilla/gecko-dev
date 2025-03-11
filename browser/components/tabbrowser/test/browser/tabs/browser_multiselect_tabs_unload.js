@@ -308,6 +308,66 @@ add_task(async function test_unload_all_tabs() {
   await BrowserTestUtils.removeTab(tab1);
 });
 
+add_task(async function test_unload_all_tabs_no_firefox_view() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.tabs.unloadTabInContextMenu", true]],
+  });
+
+  // Remove Firefox View tab and button from toolbar
+  gBrowser.removeTab(FirefoxViewHandler.tab);
+  const firefoxViewPlacement = CustomizableUI.getPlacementOfWidget(
+    "firefox-view-button"
+  );
+  CustomizableUI.removeWidgetFromArea("firefox-view-button");
+
+  let originalTab = gBrowser.selectedTab;
+  let [tab1, tab2, tab3] = await addBrowserTabs(3);
+
+  let menuItemUnload = document.getElementById("context_unloadTab");
+
+  await triggerClickOn(tab1, { ctrlKey: true });
+  await triggerClickOn(tab2, { ctrlKey: true });
+  await triggerClickOn(tab3, { ctrlKey: true });
+  updateTabContextMenu(originalTab);
+  ok(!menuItemUnload.hidden, "Unload Tab is visible");
+  is(
+    JSON.parse(menuItemUnload.getAttribute("data-l10n-args")).tabCount,
+    4,
+    "showing 4 tabs on menu item"
+  );
+  {
+    let menu = await openTabMenuFor(originalTab);
+    let menuHiddenPromise = BrowserTestUtils.waitForPopupEvent(menu, "hidden");
+    menu.activateItem(menuItemUnload);
+    await menuHiddenPromise;
+  }
+  await TestUtils.waitForCondition(
+    () =>
+      !originalTab.linkedPanel &&
+      !tab1.linkedPanel &&
+      !tab2.linkedPanel &&
+      !tab3.linkedPanel,
+    "Wait for all tabs to be unloaded"
+  );
+  ok(
+    !FirefoxViewHandler.tab,
+    "Should not open Firefox View (since the button is hidden)"
+  );
+
+  await BrowserTestUtils.removeTab(gBrowser.selectedTab);
+  // restore Firefox View since other tests expect it
+  CustomizableUI.addWidgetToArea(
+    "firefox-view-button",
+    firefoxViewPlacement.area,
+    firefoxViewPlacement.position
+  );
+  FirefoxViewHandler.openTab();
+
+  await BrowserTestUtils.removeTab(tab3);
+  await BrowserTestUtils.removeTab(tab2);
+  await BrowserTestUtils.removeTab(tab1);
+});
+
 add_task(async function test_pref_off_does_not_show_unload_menu_item() {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.tabs.unloadTabInContextMenu", false]],
