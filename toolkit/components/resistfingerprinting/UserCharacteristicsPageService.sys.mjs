@@ -728,14 +728,14 @@ export class UserCharacteristicsPageService {
   async populateClientInfo() {
     const buildID = Services.appinfo.appBuildID;
     const buildDate =
-      new Date(
+      Date.UTC(
         buildID.slice(0, 4),
         buildID.slice(4, 6) - 1,
         buildID.slice(6, 8),
         buildID.slice(8, 10),
         buildID.slice(10, 12),
         buildID.slice(12, 14)
-      ).getTime() / 1000;
+      ) / 1000;
 
     Glean.characteristics.version.set(Services.appinfo.version);
     Glean.characteristics.channel.set(AppConstants.MOZ_UPDATE_CHANNEL);
