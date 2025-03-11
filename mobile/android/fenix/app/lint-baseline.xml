@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="6" by="lint 8.8.0" type="baseline" client="gradle" dependencies="false" name="AGP (8.8.0)" variant="all" version="8.8.0">
+<issues format="6" by="lint 8.9.0" type="baseline" client="gradle" dependencies="false" name="AGP (8.9.0)" variant="all" version="8.9.0">
 
     <issue
         id="ScrollViewSize"
@@ -169,8 +169,8 @@
     <issue
         id="AppBundleLocaleChanges"
         message="Found dynamic locale changes, but did not find corresponding Play Core library calls for downloading languages and splitting by language is not disabled in the `bundle` configuration"
-        errorLine1="        config.setLocale(Locale(&quot;en&quot;))"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="        config.setLocale(Locale.Builder().setLanguage(&quot;en&quot;).build())"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/fenix/ext/Context.kt"
             line="81"
@@ -197,28 +197,6 @@
             file="src/main/java/org/mozilla/fenix/library/history/HistoryFragment.kt"
             line="503"
             column="101"/>
-    </issue>
-
-    <issue
-        id="IntentFilterUniqueDataAttributes"
-        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
-        errorLine1="                &lt;data android:scheme=&quot;${deepLinkScheme}&quot;"
-        errorLine2="                ^">
-        <location
-            file="src/main/AndroidManifest.xml"
-            line="139"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="IntentFilterUniqueDataAttributes"
-        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
-        errorLine1="                &lt;data android:scheme=&quot;${deepLinkScheme}&quot;"
-        errorLine2="                ^">
-        <location
-            file="src/main/AndroidManifest.xml"
-            line="141"
-            column="17"/>
     </issue>
 
     <issue
@@ -409,6 +387,28 @@
     </issue>
 
     <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;${deepLinkScheme}&quot;"
+        errorLine2="                ^">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="177"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;${deepLinkScheme}&quot;"
+        errorLine2="                ^">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="179"
+            column="17"/>
+    </issue>
+
+    <issue
         id="NonConstantResourceId"
         message="Resource IDs will be non-final by default in Android Gradle Plugin version 8.0, avoid using them in const fields"
         errorLine1="        const val LAYOUT_ID = R.layout.about_list_item"
@@ -448,7 +448,7 @@
         errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/fenix/library/bookmarks/viewholders/BookmarkNodeViewHolder.kt"
-            line="119"
+            line="125"
             column="31"/>
     </issue>
 
@@ -565,17 +565,6 @@
     <issue
         id="NonConstantResourceId"
         message="Resource IDs will be non-final by default in Android Gradle Plugin version 8.0, avoid using them in const fields"
-        errorLine1="        const val LAYOUT_ID = R.layout.collections_list_item"
-        errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/collections/SaveCollectionListAdapter.kt"
-            line="63"
-            column="31"/>
-    </issue>
-
-    <issue
-        id="NonConstantResourceId"
-        message="Resource IDs will be non-final by default in Android Gradle Plugin version 8.0, avoid using them in const fields"
         errorLine1="        const val LAYOUT_ID = R.layout.top_placeholder_item"
         errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -591,7 +580,7 @@
         errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/fenix/home/topsites/TopSiteItemViewHolder.kt"
-            line="201"
+            line="183"
             column="31"/>
     </issue>
 
@@ -624,8 +613,19 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="191"
+            line="195"
             column="13"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;259dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/ic_high_five.xml"
+            line="6"
+            column="20"/>
     </issue>
 
     <issue
@@ -833,7 +833,7 @@
         errorLine2="                                              ~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/fenix/components/appstate/AppStoreReducer.kt"
-            line="80"
+            line="79"
             column="47"/>
     </issue>
 
@@ -844,7 +844,7 @@
         errorLine2="                        ~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/fenix/browser/BrowserFragment.kt"
-            line="266"
+            line="258"
             column="25"/>
     </issue>
 
@@ -855,7 +855,7 @@
         errorLine2="        ~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/fenix/browser/BrowserFragment.kt"
-            line="703"
+            line="639"
             column="9"/>
     </issue>
 
@@ -960,89 +960,12 @@
 
     <issue
         id="ModifierParameter"
-        message="Optional Modifier parameter should have a default value of `Modifier`"
-        errorLine1="    modifier: Modifier = Modifier.fillMaxWidth(),"
-        errorLine2="    ~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/compose/button/Button.kt"
-            line="110"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="ModifierParameter"
-        message="Optional Modifier parameter should have a default value of `Modifier`"
-        errorLine1="    modifier: Modifier = Modifier.fillMaxWidth(),"
-        errorLine2="    ~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/compose/button/Button.kt"
-            line="159"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="ModifierParameter"
-        message="Optional Modifier parameter should have a default value of `Modifier`"
-        errorLine1="    modifier: Modifier = Modifier.fillMaxWidth(),"
-        errorLine2="    ~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/compose/button/Button.kt"
-            line="196"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="ModifierParameter"
-        message="Optional Modifier parameter should have a default value of `Modifier`"
-        errorLine1="    modifier: Modifier = Modifier.fillMaxWidth(),"
-        errorLine2="    ~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/compose/button/Button.kt"
-            line="233"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="ModifierParameter"
-        message="Modifier parameter should be the first optional parameter"
-        errorLine1="    modifier: Modifier = Modifier,"
-        errorLine2="    ~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/compose/list/ListItem.kt"
-            line="86"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="ModifierParameter"
         message="Modifier parameter should be the first optional parameter"
         errorLine1="    modifier: Modifier = Modifier,"
         errorLine2="    ~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/fenix/components/menu/compose/MenuItem.kt"
             line="78"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="ModifierParameter"
-        message="Modifier parameter should be the first optional parameter"
-        errorLine1="    modifier: Modifier = Modifier,"
-        errorLine2="    ~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/components/menu/compose/MenuItem.kt"
-            line="176"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="ModifierParameter"
-        message="Optional Modifier parameter should have a default value of `Modifier`"
-        errorLine1="    modifier: Modifier = Modifier.fillMaxWidth(),"
-        errorLine2="    ~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/compose/TextField.kt"
-            line="91"
             column="5"/>
     </issue>
 
@@ -1086,7 +1009,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/fenix/home/mozonline/PrivacyContentDisplayActivity.kt"
-            line="32"
+            line="34"
             column="9"/>
     </issue>
 
@@ -1097,7 +1020,7 @@
         errorLine2="         ~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="379"
+            line="383"
             column="10"/>
     </issue>
 
@@ -1108,7 +1031,7 @@
         errorLine2="                             ~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="55"
+            line="59"
             column="30"/>
     </issue>
 
@@ -1197,17 +1120,6 @@
         <location
             file="src/main/java/org/mozilla/fenix/library/history/HistoryView.kt"
             line="140"
-            column="9"/>
-    </issue>
-
-    <issue
-        id="NotifyDataSetChanged"
-        message="It will always be more efficient to use more specific change events if you can. Rely on `notifyDataSetChanged` as a last resort."
-        errorLine1="        notifyDataSetChanged()"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/collections/SaveCollectionListAdapter.kt"
-            line="49"
             column="9"/>
     </issue>
 
@@ -1979,7 +1891,7 @@
         errorLine2="                ^">
         <location
             file="src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt"
-            line="383"
+            line="384"
             column="17"/>
     </issue>
 
@@ -1990,7 +1902,7 @@
         errorLine2="                                                         ^">
         <location
             file="src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt"
-            line="383"
+            line="384"
             column="58"/>
     </issue>
 
@@ -2001,7 +1913,7 @@
         errorLine2="                ^">
         <location
             file="src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt"
-            line="393"
+            line="394"
             column="17"/>
     </issue>
 
@@ -2012,7 +1924,7 @@
         errorLine2="                                                         ^">
         <location
             file="src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt"
-            line="393"
+            line="394"
             column="58"/>
     </issue>
 
@@ -2023,7 +1935,7 @@
         errorLine2="                ^">
         <location
             file="src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt"
-            line="399"
+            line="400"
             column="17"/>
     </issue>
 
@@ -2034,7 +1946,7 @@
         errorLine2="                                                         ^">
         <location
             file="src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt"
-            line="399"
+            line="400"
             column="58"/>
     </issue>
 
