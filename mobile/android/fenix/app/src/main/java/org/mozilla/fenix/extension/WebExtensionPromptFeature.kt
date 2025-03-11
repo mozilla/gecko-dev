@@ -282,6 +282,14 @@ class WebExtensionPromptFeature(
                     R.attr.textActionPrimary,
                     context,
                 ),
+                confirmButtonDisabledBackgroundColor = ThemeManager.resolveAttribute(
+                    R.attr.actionPrimaryDisabled,
+                    context,
+                ),
+                confirmButtonDisabledTextColor = ThemeManager.resolveAttribute(
+                    R.attr.textActionPrimaryDisabled,
+                    context,
+                ),
                 confirmButtonRadius =
                 (context.resources.getDimensionPixelSize(R.dimen.tab_corner_radius)).toFloat(),
                 learnMoreLinkTextColor = ThemeManager.resolveAttribute(
