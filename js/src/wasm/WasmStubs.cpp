@@ -860,12 +860,10 @@ static void GenerateJitEntryLoadInstance(MacroAssembler& masm) {
 // JSJit frame iteration.
 //
 // Note: the caller must ensure InstanceReg is valid.
-static void GenerateJitEntryThrow(MacroAssembler& masm, unsigned frameSize) {
+static void GenerateJitEntryThrow(MacroAssembler& masm) {
   AssertExpectedSP(masm);
 
-  MOZ_ASSERT(masm.framePushed() == frameSize);
-
-  masm.freeStack(frameSize);
+  MOZ_ASSERT(masm.framePushed() == 0);
   MoveSPForJitABI(masm);
 
   masm.loadPtr(Address(InstanceReg, Instance::offsetOfCx()), ScratchIonEntry);
@@ -897,6 +895,8 @@ static void GenerateBigIntInitialization(MacroAssembler& masm,
   MOZ_ASSERT(input.reg != scratch);
 #endif
 
+  MOZ_ASSERT(masm.framePushed() == 0);
+
   // We need to avoid clobbering other argument registers and the input.
   AllocatableRegisterSet regs(RegisterSet::Volatile());
   LiveRegisterSet save(regs.asLiveSet());
@@ -918,7 +918,7 @@ static void GenerateBigIntInitialization(MacroAssembler& masm,
   ignore.add(scratch);
   masm.PopRegsInMaskIgnore(save, ignore);
 
-  masm.branchTest32(Assembler::Zero, scratch, scratch, fail);
+  masm.branchTestPtr(Assembler::Zero, scratch, scratch, fail);
   masm.initializeBigInt64(Scalar::BigInt64, scratch, input);
 }
 
@@ -953,6 +953,14 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
 
   MOZ_ASSERT(masm.framePushed() == 0);
 
+  if (funcType.hasUnexposableArgOrRet()) {
+    GenerateJitEntryLoadInstance(masm);
+    CallSymbolicAddress(masm, !fe.hasEagerStubs(),
+                        SymbolicAddress::ReportV128JSCall);
+    GenerateJitEntryThrow(masm);
+    return FinishOffsets(masm, offsets);
+  }
+
   // Avoid overlapping aligned stack arguments area with ExitFooterFrame.
   const unsigned AlignedExitFooterFrameSize =
       AlignBytes(ExitFooterFrame::Size(), WasmStackAlignment);
@@ -985,13 +993,6 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
                 Address(FramePointer, -int32_t(ExitFooterFrame::Size())));
 
   GenerateJitEntryLoadInstance(masm);
-
-  if (funcType.hasUnexposableArgOrRet()) {
-    CallSymbolicAddress(masm, !fe.hasEagerStubs(),
-                        SymbolicAddress::ReportV128JSCall);
-    GenerateJitEntryThrow(masm, frameSize);
-    return FinishOffsets(masm, offsets);
-  }
 
   FloatRegister scratchF = ABINonArgDoubleReg;
   Register scratchG = ScratchIonEntry;
@@ -1230,6 +1231,10 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
   GenPrintf(DebugChannel::Function, masm, "wasm-function[%d]; returns ",
             fe.funcIndex());
 
+  // Pop frame.
+  masm.moveToStackPtr(FramePointer);
+  masm.setFramePushed(0);
+
   // Store the return value in the JSReturnOperand.
   Label exception;
   const ValTypeVector& results = funcType.results();
@@ -1263,7 +1268,7 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
       }
       case ValType::I64: {
         GenPrintI64(DebugChannel::Function, masm, ReturnReg64);
-        MOZ_ASSERT(masm.framePushed() == frameSize);
+        MOZ_ASSERT(masm.framePushed() == 0);
         GenerateBigIntInitialization(masm, 0, ReturnReg64, scratchG, fe,
                                      &exception);
         masm.boxNonDouble(JSVAL_TYPE_BIGINT, scratchG, JSReturnOperand);
@@ -1280,10 +1285,6 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
       }
     }
   }
-
-  // Pop frame.
-  masm.moveToStackPtr(FramePointer);
-  masm.setFramePushed(0);
 
   GenPrintf(DebugChannel::Function, masm, "\n");
 
@@ -1340,13 +1341,14 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
                       &rejoinBeforeCall);
 
     MOZ_ASSERT(masm.framePushed() == frameSize);
+    masm.freeStack(frameSize);
     hasFallThroughForException = true;
   }
 
   if (exception.used() || hasFallThroughForException) {
     masm.bind(&exception);
-    masm.setFramePushed(frameSize);
-    GenerateJitEntryThrow(masm, frameSize);
+    MOZ_ASSERT(masm.framePushed() == 0);
+    GenerateJitEntryThrow(masm);
   }
 
   return FinishOffsets(masm, offsets);
