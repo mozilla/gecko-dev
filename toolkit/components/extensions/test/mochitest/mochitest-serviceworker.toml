@@ -16,8 +16,8 @@ prefs = [
 ]
 dupe-manifest = true
 
-["test_verify_sw_mode.html"]
-# `test_verify_sw_mode.html` should be the first one, even if it breaks the
+["test__verify_sw_mode.html"]
+# `test__verify_sw_mode.html` should be the first one, even if it breaks the
 # alphabetical order.
 
 ["test_ext_scripting_contentScripts.html"]
