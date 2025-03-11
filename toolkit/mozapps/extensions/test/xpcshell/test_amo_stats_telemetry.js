@@ -16,7 +16,7 @@ AddonTestUtils.createAppInfo(
   "42"
 );
 
-add_task(async function setup() {
+add_setup(async () => {
   // We need to set this pref to `true` in order to collect add-ons Telemetry
   // data (which is considered extended data and disabled in CI).
   const overridePreReleasePref = "toolkit.telemetry.testing.overridePreRelease";

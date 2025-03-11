@@ -29,11 +29,6 @@ const FAKE_INSTALL_TELEMETRY_INFO = {
   method: "fake-install-method",
 };
 
-add_setup(() => {
-  do_get_profile();
-  Services.fog.initializeFOG();
-});
-
 function getTelemetryEvents(includeMethods = EVENT_METHODS) {
   ok(SHOULD_TEST_NON_GLEAN_TELEMETRY, "Expecting telemetry events");
   const snapshot = Services.telemetry.snapshotEvents(
@@ -85,7 +80,10 @@ function assertNoTelemetryEvents() {
   Assert.deepEqual(filteredEvents, [], "Got no AMTelemetry events as expected");
 }
 
-add_task(async function setup() {
+add_setup(async () => {
+  do_get_profile();
+  Services.fog.initializeFOG();
+
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9.2");
 
   // Thunderbird doesn't have one or more of the probes used in this test.
