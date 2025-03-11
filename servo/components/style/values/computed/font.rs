@@ -1190,7 +1190,7 @@ pub type FontStretchFixedPoint = FixedPoint<u16, FONT_STRETCH_FRACTION_BITS>;
 #[derive(
     Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToResolvedValue,
 )]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "servo", derive(Deserialize, Hash, Serialize))]
 #[repr(C)]
 pub struct FontStretch(pub FontStretchFixedPoint);
 
