@@ -20,6 +20,11 @@ function init() {
 
   process();
   document.addEventListener("dialogaccept", setPassword);
+  pw1.addEventListener("input", () => {
+    setPasswordStrength();
+    checkPasswords();
+  });
+  document.getElementById("pw2").addEventListener("input", checkPasswords);
 }
 
 function process() {
@@ -218,3 +223,5 @@ function checkPasswords() {
     ok.setAttribute("disabled", "true");
   }
 }
+
+window.addEventListener("load", init);
