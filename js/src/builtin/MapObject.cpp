@@ -176,6 +176,9 @@ bool GlobalObject::initMapIteratorProto(JSContext* cx,
       !DefineToStringTag(cx, proto, cx->names().Map_Iterator_)) {
     return false;
   }
+  if (!JSObject::setHasFuseProperty(cx, proto)) {
+    return false;
+  }
   global->initBuiltinProto(ProtoKind::MapIteratorProto, proto);
   return true;
 }
@@ -419,7 +422,11 @@ const JSFunctionSpec MapObject::staticMethods[] = {
   // The initial value of the @@iterator property is the same function object
   // as the initial value of the "entries" property.
   RootedId iteratorId(cx, PropertyKey::Symbol(cx->wellKnownSymbols().iterator));
-  return NativeDefineDataProperty(cx, nativeProto, iteratorId, entriesFn, 0);
+  if (!NativeDefineDataProperty(cx, nativeProto, iteratorId, entriesFn, 0)) {
+    return false;
+  }
+
+  return JSObject::setHasFuseProperty(cx, nativeProto);
 }
 
 void MapObject::trace(JSTracer* trc, JSObject* obj) {
@@ -743,6 +750,19 @@ bool MapObject::tryOptimizeCtorWithIterable(JSContext* cx,
     return true;
   }
 
+  // Fast path for `new Map(map)`.
+  if (IsMapObjectWithDefaultIterator(iterable, cx)) {
+    auto* iterableMap = &iterable->as<MapObject>();
+    auto addEntry = [cx, this](auto& entry) {
+      return setWithHashableKey(cx, entry.key, entry.value);
+    };
+    if (!Table(iterableMap).forEachEntry(addEntry)) {
+      return false;
+    }
+    *optimized = true;
+    return true;
+  }
+
   return true;
 }
 
@@ -1052,6 +1072,9 @@ bool GlobalObject::initSetIteratorProto(JSContext* cx,
       !DefineToStringTag(cx, proto, cx->names().Set_Iterator_)) {
     return false;
   }
+  if (!JSObject::setHasFuseProperty(cx, proto)) {
+    return false;
+  }
   global->initBuiltinProto(ProtoKind::SetIteratorProto, proto);
   return true;
 }
@@ -1257,7 +1280,11 @@ const JSPropertySpec SetObject::staticProperties[] = {
   // 23.2.3.11 Set.prototype[@@iterator]()
   // See above.
   RootedId iteratorId(cx, PropertyKey::Symbol(cx->wellKnownSymbols().iterator));
-  return NativeDefineDataProperty(cx, nativeProto, iteratorId, valuesFn, 0);
+  if (!NativeDefineDataProperty(cx, nativeProto, iteratorId, valuesFn, 0)) {
+    return false;
+  }
+
+  return JSObject::setHasFuseProperty(cx, nativeProto);
 }
 
 bool SetObject::keys(JS::MutableHandle<GCVector<JS::Value>> keys) {
@@ -1450,6 +1477,22 @@ bool SetObject::tryOptimizeCtorWithIterable(JSContext* cx,
       }
     }
 
+    *optimized = true;
+    return true;
+  }
+
+  // Fast path for `new Set(set)`.
+  if (IsSetObjectWithDefaultIterator(iterable, cx)) {
+    auto* iterableSet = &iterable->as<SetObject>();
+    if (!IsSetObjectWithDefaultIterator(iterableSet, cx)) {
+      return true;
+    }
+    auto addEntry = [cx, this](auto& entry) {
+      return addHashableValue(cx, entry);
+    };
+    if (!Table(iterableSet).forEachEntry(addEntry)) {
+      return false;
+    }
     *optimized = true;
     return true;
   }

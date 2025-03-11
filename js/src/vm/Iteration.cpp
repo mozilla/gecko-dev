@@ -21,6 +21,7 @@
 #include "jstypes.h"
 
 #include "builtin/Array.h"
+#include "builtin/MapObject.h"
 #include "builtin/SelfHostingDefines.h"
 #include "ds/Sort.h"
 #include "gc/GC.h"
@@ -2382,3 +2383,54 @@ template bool js::IsArrayWithDefaultIterator<MustBePacked::No>(JSObject* obj,
                                                                JSContext* cx);
 template bool js::IsArrayWithDefaultIterator<MustBePacked::Yes>(JSObject* obj,
                                                                 JSContext* cx);
+
+template <typename ObjectT, JSProtoKey ProtoKey>
+static bool IsMapOrSetObjectWithDefaultIterator(JSObject* objArg,
+                                                JSContext* cx) {
+  if (!objArg->is<ObjectT>()) {
+    return false;
+  }
+  auto* obj = &objArg->as<ObjectT>();
+
+  // Ensure {Map,Set}.prototype[@@iterator] and %{Map,Set}IteratorPrototype%
+  // haven't been mutated in a way that affects the iterator protocol.
+  //
+  // Note: this doesn't guard against `return` properties on the iterator
+  // prototype, so this should only be used in places where we don't have to
+  // call `IteratorClose`.
+  if constexpr (std::is_same_v<ObjectT, MapObject>) {
+    if (!obj->realm()->realmFuses.optimizeMapObjectIteratorFuse.intact()) {
+      return false;
+    }
+  } else {
+    static_assert(std::is_same_v<ObjectT, SetObject>);
+    if (!obj->realm()->realmFuses.optimizeSetObjectIteratorFuse.intact()) {
+      return false;
+    }
+  }
+
+  // Ensure the object has the builtin prototype as proto.
+  GlobalObject& global = obj->global();
+  JSObject* proto = global.maybeGetPrototype(ProtoKey);
+  if (!proto || obj->staticPrototype() != proto) {
+    return false;
+  }
+
+  // Ensure the Map or Set object doesn't have an own @@iterator property.
+  // Most Maps and Sets have no own properties so we have a fast path for this
+  // case.
+  if (obj->empty()) {
+    return true;
+  }
+  if (obj->containsPure(PropertyKey::Symbol(cx->wellKnownSymbols().iterator))) {
+    return false;
+  }
+  return true;
+}
+bool js::IsMapObjectWithDefaultIterator(JSObject* obj, JSContext* cx) {
+  return IsMapOrSetObjectWithDefaultIterator<MapObject, JSProto_Map>(obj, cx);
+}
+
+bool js::IsSetObjectWithDefaultIterator(JSObject* obj, JSContext* cx) {
+  return IsMapOrSetObjectWithDefaultIterator<SetObject, JSProto_Set>(obj, cx);
+}

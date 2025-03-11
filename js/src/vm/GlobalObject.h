@@ -262,8 +262,10 @@ class GlobalObject : public NativeObject {
                 "GlobalObjectData should be stored in a fixed slot for "
                 "performance reasons");
 
+ public:
   using ProtoKind = GlobalObjectData::ProtoKind;
 
+ private:
   GlobalObjectData* maybeData() {
     Value v = getReservedSlot(GLOBAL_DATA_SLOT);
     return static_cast<GlobalObjectData*>(v.toPrivate());
@@ -291,9 +293,6 @@ class GlobalObject : public NativeObject {
 
   bool hasBuiltinProto(ProtoKind kind) const {
     return bool(data().builtinProtos[kind]);
-  }
-  JSObject* maybeBuiltinProto(ProtoKind kind) const {
-    return data().builtinProtos[kind];
   }
   JSObject& getBuiltinProto(ProtoKind kind) const {
     MOZ_ASSERT(hasBuiltinProto(kind));
@@ -727,6 +726,10 @@ class GlobalObject : public NativeObject {
                                            Handle<GlobalObject*> global);
 
  public:
+  JSObject* maybeBuiltinProto(ProtoKind kind) const {
+    return data().builtinProtos[kind];
+  }
+
   NativeObject* maybeGetIteratorPrototype() {
     if (!hasPrototype(JSProto_Iterator)) {
       return nullptr;

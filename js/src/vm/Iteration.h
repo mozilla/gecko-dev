@@ -818,6 +818,9 @@ enum class MustBePacked { No, Yes };
 template <MustBePacked Packed>
 bool IsArrayWithDefaultIterator(JSObject* obj, JSContext* cx);
 
+bool IsMapObjectWithDefaultIterator(JSObject* obj, JSContext* cx);
+bool IsSetObjectWithDefaultIterator(JSObject* obj, JSContext* cx);
+
 // Typed arrays and classes with an enumerate hook can have extra properties not
 // included in the shape's property map or the object's dense elements.
 static inline bool ClassCanHaveExtraEnumeratedProperties(const JSClass* clasp) {
