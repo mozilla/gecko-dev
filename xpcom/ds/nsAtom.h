@@ -296,4 +296,10 @@ class nsDependentAtomString : public nsDependentString {
 // param.
 void ToLowerCaseASCII(RefPtr<nsAtom>& aAtom);
 
+// MOZ_DBG support
+inline std::ostream& operator<<(std::ostream& aStream, const nsAtom& aAtom) {
+  return aStream << (aAtom.IsDynamic() ? "nsDynamicAtom" : "nsStaticAtom")
+                 << " { " << nsAtomCString(&aAtom) << " }";
+}
+
 #endif  // nsAtom_h
