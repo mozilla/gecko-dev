@@ -931,21 +931,27 @@ clang_search_path = bootstrap_search_path("clang/bin")
 
 
 @depends(
-    bootstrap_search_path("rustc/bin", when="MOZ_AUTOMATION"),
+    bootstrap_path("rustc/bin", when="MOZ_AUTOMATION"),
     original_path,
 )
 @imports("os")
 @imports(_from="os", _import="environ")
 def rust_search_path(rust_path, original_path):
-    result = list(rust_path or original_path)
-    # Also add the rustup install directory for cargo/rustc.
+    result = []
+    # The order we search for a rust compiler is:
+    # - bootstrap directory (only used by CI at the moment)
+    # - rustup install directory ($CARGO_HOME/bin)
+    # - $PATH
     cargo_home = environ.get("CARGO_HOME", "")
     if cargo_home:
         cargo_home = os.path.abspath(cargo_home)
     else:
         cargo_home = os.path.expanduser(os.path.join("~", ".cargo"))
     rustup_path = os.path.join(cargo_home, "bin")
-    result.insert(0, rustup_path)
+    if rust_path:
+        result.append(rust_path)
+    result.append(rustup_path)
+    result.extend(original_path)
     return result
 
 
