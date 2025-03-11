@@ -28,12 +28,12 @@ extern crate serde;
 extern crate servo_arc;
 #[cfg(feature = "servo")]
 extern crate servo_atoms;
-#[cfg(feature = "servo")]
-extern crate servo_url;
 extern crate thin_vec;
 extern crate to_shmem;
 #[macro_use]
 extern crate to_shmem_derive;
+#[cfg(feature = "servo")]
+ extern crate url;
 
 use cssparser::{CowRcStr, Token};
 use selectors::parser::SelectorParseErrorKind;
