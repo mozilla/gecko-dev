@@ -1,0 +1,12 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+browser.jar:
+%   resource builtin-addons %builtin-addons/  contentaccessible=yes
+    builtin-addons/pictureinpicture/manifest.json (manifest.json)
+    builtin-addons/pictureinpicture/run.js (run.js)
+    builtin-addons/pictureinpicture/data/ (data/**)
+    builtin-addons/pictureinpicture/experiment-apis/ (experiment-apis/**)
+    builtin-addons/pictureinpicture/lib/ (lib/**)
+    builtin-addons/pictureinpicture/video-wrappers/ (video-wrappers/**)

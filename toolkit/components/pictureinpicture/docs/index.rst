@@ -276,17 +276,7 @@ The scripts located at ``video-wrappers/mock-wrapper.js`` will therefore run whe
 
 Registering the new wrapper in ``moz.build``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-We should update `browser/extensions/pictureinpicture/moz.build <https://searchfox.org/mozilla-central/source/browser/extensions/pictureinpicture/moz.build>`_ by adding the path of the newly created wrapper:
-
-.. code-block:: js
-
-    FINAL_TARGET_FILES.features["pictureinpicture@mozilla.org"]["video-wrappers"] += [
-        "video-wrappers/mock-wrapper.js",
-        "video-wrappers/netflix.js",
-        "video-wrappers/youtube.js",
-    ]
-
-As expected for any ``moz.build`` file, order matters. Registered paths should be listed in alphabetical order. Otherwise, the build will fail.
+Any wrapper in the `video-wrappers` folder will be automatically included.
 
 Adding a new video control method
 ---------------------------------

@@ -105,6 +105,9 @@ var gExceptionPaths = [
 
   // The profile avatars are directly referenced.
   "chrome://browser/content/profiles/assets/",
+
+  // The picture-in-picture add-on.
+  "resource://builtin-addons/pictureinpicture/",
 ];
 
 // These are not part of the omni.ja file, so we find them only when running
