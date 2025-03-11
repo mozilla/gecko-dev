@@ -54,7 +54,7 @@ void HTMLFormAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
     for (uint32_t i = 0; i < length; i++) {
       if (LocalAccessible* acc = mDoc->GetAccessible(controls->Item(i))) {
         if (acc->IsTextField() && !acc->IsPassword()) {
-          if (!acc->Elm()->HasAttr(nsGkAtoms::list_) &&
+          if (!acc->Elm()->HasAttr(nsGkAtoms::list) &&
               !acc->Elm()->AttrValueIs(kNameSpaceID_None,
                                        nsGkAtoms::autocomplete, nsGkAtoms::OFF,
                                        eIgnoreCase)) {
@@ -290,7 +290,7 @@ role HTMLTextFieldAccessible::NativeRole() const {
     return roles::PASSWORD_TEXT;
   }
   dom::Element* el = mContent->AsElement();
-  if (el->HasAttr(nsGkAtoms::list_)) {
+  if (el->HasAttr(nsGkAtoms::list)) {
     return roles::EDITCOMBOBOX;
   }
   if (const nsAttrValue* attr = el->GetParsedAttr(nsGkAtoms::type)) {
@@ -367,7 +367,7 @@ void HTMLTextFieldAccessible::Value(nsString& aValue) const {
 }
 
 bool HTMLTextFieldAccessible::AttributeChangesState(nsAtom* aAttribute) {
-  if (aAttribute == nsGkAtoms::readonly || aAttribute == nsGkAtoms::list_ ||
+  if (aAttribute == nsGkAtoms::readonly || aAttribute == nsGkAtoms::list ||
       aAttribute == nsGkAtoms::autocomplete) {
     return true;
   }
@@ -409,7 +409,7 @@ uint64_t HTMLTextFieldAccessible::NativeState() const {
   }
 
   // Expose autocomplete state if it has associated autocomplete list.
-  if (mContent->AsElement()->HasAttr(nsGkAtoms::list_)) {
+  if (mContent->AsElement()->HasAttr(nsGkAtoms::list)) {
     return state | states::SUPPORTS_AUTOCOMPLETION | states::HASPOPUP;
   }
 

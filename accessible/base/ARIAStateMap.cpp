@@ -84,7 +84,7 @@ bool aria::MapToState(EStateRule aRule, dom::Element* aElement,
     case eARIAAutoComplete: {
       static const EnumTypeData data = {
           nsGkAtoms::aria_autocomplete,
-          {nsGkAtoms::inlinevalue, nsGkAtoms::list_, nsGkAtoms::both, nullptr},
+          {nsGkAtoms::inlinevalue, nsGkAtoms::list, nsGkAtoms::both, nullptr},
           {states::SUPPORTS_AUTOCOMPLETION,
            states::HASPOPUP | states::SUPPORTS_AUTOCOMPLETION,
            states::HASPOPUP | states::SUPPORTS_AUTOCOMPLETION},

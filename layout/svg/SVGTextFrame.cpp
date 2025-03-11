@@ -2928,7 +2928,7 @@ void SVGTextFrame::HandleAttributeChangeInDescendant(Element* aElement,
   if (aElement->IsSVGElement(nsGkAtoms::textPath)) {
     if (aNameSpaceID == kNameSpaceID_None &&
         (aAttribute == nsGkAtoms::startOffset ||
-         aAttribute == nsGkAtoms::path || aAttribute == nsGkAtoms::side_)) {
+         aAttribute == nsGkAtoms::path || aAttribute == nsGkAtoms::side)) {
       NotifyGlyphMetricsChange(false);
     } else if ((aNameSpaceID == kNameSpaceID_XLink ||
                 aNameSpaceID == kNameSpaceID_None) &&

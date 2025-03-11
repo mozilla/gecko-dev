@@ -317,7 +317,7 @@ void HyperTextAccessible::SetMathMLXMLRoles(AccAttributes* aAttributes) {
             }
             if (NS_MATHML_EMBELLISH_IS_SEPARATOR(embellishData.flags)) {
               aAttributes->SetAttribute(nsGkAtoms::xmlroles,
-                                        nsGkAtoms::separator_);
+                                        nsGkAtoms::separator);
             }
           }
         }
@@ -391,7 +391,7 @@ void HyperTextAccessible::SetMathMLXMLRoles(AccAttributes* aAttributes) {
             for (child = child->GetNextSibling(); child;
                  child = child->GetNextSibling()) {
               if (!child->IsMathMLElement()) continue;
-              if (child->IsMathMLElement(nsGkAtoms::mprescripts_)) {
+              if (child->IsMathMLElement(nsGkAtoms::mprescripts)) {
                 postscript = false;
                 subscript = true;
                 continue;
@@ -970,7 +970,7 @@ Relation HyperTextAccessible::RelationByType(RelationType aType) const {
         if (parent) {
           nsIContent* parentContent = parent->GetContent();
           if (parentContent &&
-              parentContent->IsMathMLElement(nsGkAtoms::mroot_)) {
+              parentContent->IsMathMLElement(nsGkAtoms::mroot)) {
             // Add a relation pointing to the parent <mroot>.
             rel.AppendTarget(parent);
           }
@@ -978,7 +978,7 @@ Relation HyperTextAccessible::RelationByType(RelationType aType) const {
       }
       break;
     case RelationType::NODE_PARENT_OF:
-      if (HasOwnContent() && mContent->IsMathMLElement(nsGkAtoms::mroot_)) {
+      if (HasOwnContent() && mContent->IsMathMLElement(nsGkAtoms::mroot)) {
         LocalAccessible* base = LocalChildAt(0);
         LocalAccessible* index = LocalChildAt(1);
         if (base && index) {

@@ -387,7 +387,7 @@ using namespace mozilla::a11y;
   // and are instructed by the ARIA map to use the native host role.
   roleAtom = [self ARIARole];
 
-  if (roleAtom == nsGkAtoms::log_) {
+  if (roleAtom == nsGkAtoms::log) {
     return @"AXApplicationLog";
   }
 

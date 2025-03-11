@@ -41,7 +41,7 @@ nsresult nsMathMLmspaceFrame::AttributeChanged(int32_t aNameSpaceID,
     } else if (aAttribute == nsGkAtoms::height) {
       mHeight.mState = Attribute::ParsingState::Dirty;
       hasDirtyAttributes = true;
-    } else if (aAttribute == nsGkAtoms::depth_) {
+    } else if (aAttribute == nsGkAtoms::depth) {
       mDepth.mState = Attribute::ParsingState::Dirty;
       hasDirtyAttributes = true;
     }
@@ -98,7 +98,7 @@ nsresult nsMathMLmspaceFrame::Place(DrawTarget* aDrawTarget,
   nscoord height =
       CalculateAttributeValue(nsGkAtoms::height, mHeight, 0, fontSizeInflation);
   nscoord depth =
-      CalculateAttributeValue(nsGkAtoms::depth_, mDepth, 0, fontSizeInflation);
+      CalculateAttributeValue(nsGkAtoms::depth, mDepth, 0, fontSizeInflation);
 
   mBoundingMetrics = nsBoundingMetrics();
   mBoundingMetrics.width = width;

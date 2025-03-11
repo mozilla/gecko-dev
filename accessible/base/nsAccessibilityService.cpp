@@ -1464,11 +1464,11 @@ LocalAccessible* nsAccessibilityService::CreateAccessible(
       }
 
       // Fall back to text when encountering Content MathML.
-      if (!newAcc && !content->IsAnyOfMathMLElements(
-                         nsGkAtoms::annotation_, nsGkAtoms::annotation_xml_,
-                         nsGkAtoms::mpadded_, nsGkAtoms::mphantom_,
-                         nsGkAtoms::maligngroup_, nsGkAtoms::malignmark_,
-                         nsGkAtoms::mspace_, nsGkAtoms::semantics_)) {
+      if (!newAcc &&
+          !content->IsAnyOfMathMLElements(
+              nsGkAtoms::annotation, nsGkAtoms::annotation_xml,
+              nsGkAtoms::mpadded, nsGkAtoms::mphantom, nsGkAtoms::maligngroup,
+              nsGkAtoms::malignmark, nsGkAtoms::mspace, nsGkAtoms::semantics)) {
         newAcc = new HyperTextAccessible(content, document);
       }
     } else if (content->IsGeneratedContentContainerForMarker()) {

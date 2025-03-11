@@ -62,7 +62,7 @@ role HTMLTableCellAccessible::NativeRole() const {
   // this role to be returned if this is a valid cell. An invalid cell (e.g. if
   // the table has role="none") won't use this class, so it will get a generic
   // role, since the markup map doesn't specify a role.
-  if (mContent->IsMathMLElement(nsGkAtoms::mtd_)) {
+  if (mContent->IsMathMLElement(nsGkAtoms::mtd)) {
     return roles::MATHML_CELL;
   }
   return roles::CELL;
@@ -369,7 +369,7 @@ void HTMLTableAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
 already_AddRefed<AccAttributes> HTMLTableAccessible::NativeAttributes() {
   RefPtr<AccAttributes> attributes = AccessibleWrap::NativeAttributes();
 
-  if (mContent->IsMathMLElement(nsGkAtoms::mtable_)) {
+  if (mContent->IsMathMLElement(nsGkAtoms::mtable)) {
     GetAccService()->MarkupAttributes(this, attributes);
   }
 
@@ -440,7 +440,9 @@ bool HTMLTableAccessible::IsProbablyLayoutTable() {
     }
 #else
 #  define RETURN_LAYOUT_ANSWER(isLayout, heuristic) \
-    { return isLayout; }
+    {                                               \
+      return isLayout;                              \
+    }
 #endif
 
   MOZ_ASSERT(!IsDefunct(), "Table accessible should not be defunct");
@@ -457,7 +459,7 @@ bool HTMLTableAccessible::IsProbablyLayoutTable() {
   }
 
   dom::Element* el = Elm();
-  if (el->IsMathMLElement(nsGkAtoms::mtable_)) {
+  if (el->IsMathMLElement(nsGkAtoms::mtable)) {
     RETURN_LAYOUT_ANSWER(false, "MathML matrix");
   }
 

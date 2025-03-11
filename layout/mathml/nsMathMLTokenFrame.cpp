@@ -35,7 +35,7 @@ nsMathMLTokenFrame::InheritAutomaticData(nsIFrame* aParent) {
 
 eMathMLFrameType nsMathMLTokenFrame::GetMathMLFrameType() {
   // treat everything other than <mi> as ordinary...
-  if (!mContent->IsMathMLElement(nsGkAtoms::mi_)) {
+  if (!mContent->IsMathMLElement(nsGkAtoms::mi)) {
     return eMathMLFrameType_Ordinary;
   }
 
@@ -71,7 +71,7 @@ void nsMathMLTokenFrame::MarkTextFramesAsTokenMathML() {
       }
     }
   }
-  if (mContent->IsMathMLElement(nsGkAtoms::mi_) && childCount == 1) {
+  if (mContent->IsMathMLElement(nsGkAtoms::mi) && childCount == 1) {
     nsAutoString data;
     nsContentUtils::GetNodeTextContent(mContent, false, data);
 

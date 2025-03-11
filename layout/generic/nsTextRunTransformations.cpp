@@ -275,7 +275,7 @@ static LanguageSpecificCasingBehavior GetCasingFor(const nsAtom* aLang) {
   if (aLang == nsGkAtoms::ga) {
     return eLSCB_Irish;
   }
-  if (aLang == nsGkAtoms::lt_) {
+  if (aLang == nsGkAtoms::lt) {
     return eLSCB_Lithuanian;
   }
 

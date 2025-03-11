@@ -7,107 +7,107 @@
 
 MARKUPMAP(math, New_HyperText, roles::MATHML_MATH)
 
-MARKUPMAP(mi_, New_HyperText, roles::MATHML_IDENTIFIER)
+MARKUPMAP(mi, New_HyperText, roles::MATHML_IDENTIFIER)
 
-MARKUPMAP(mn_, New_HyperText, roles::MATHML_NUMBER)
+MARKUPMAP(mn, New_HyperText, roles::MATHML_NUMBER)
 
-MARKUPMAP(mo_, New_HyperText, roles::MATHML_OPERATOR,
-          AttrFromDOM(accent_, accent_), AttrFromDOM(fence_, fence_),
-          AttrFromDOM(separator_, separator_), AttrFromDOM(largeop_, largeop_))
+MARKUPMAP(mo, New_HyperText, roles::MATHML_OPERATOR,
+          AttrFromDOM(accent, accent), AttrFromDOM(fence, fence),
+          AttrFromDOM(separator, separator), AttrFromDOM(largeop, largeop))
 
-MARKUPMAP(mtext_, New_HyperText, roles::MATHML_TEXT)
+MARKUPMAP(mtext, New_HyperText, roles::MATHML_TEXT)
 
-MARKUPMAP(ms_, New_HyperText, roles::MATHML_STRING_LITERAL)
+MARKUPMAP(ms, New_HyperText, roles::MATHML_STRING_LITERAL)
 
-MARKUPMAP(mglyph_, New_HyperText, roles::MATHML_GLYPH)
+MARKUPMAP(mglyph, New_HyperText, roles::MATHML_GLYPH)
 
-MARKUPMAP(mrow_, New_HyperText, roles::MATHML_ROW)
+MARKUPMAP(mrow, New_HyperText, roles::MATHML_ROW)
 
-MARKUPMAP(mfrac_, New_HyperText, roles::MATHML_FRACTION,
-          AttrFromDOM(bevelled_, bevelled_),
-          AttrFromDOM(linethickness_, linethickness_))
+MARKUPMAP(mfrac, New_HyperText, roles::MATHML_FRACTION,
+          AttrFromDOM(bevelled, bevelled),
+          AttrFromDOM(linethickness, linethickness))
 
-MARKUPMAP(msqrt_, New_HyperText, roles::MATHML_SQUARE_ROOT)
+MARKUPMAP(msqrt, New_HyperText, roles::MATHML_SQUARE_ROOT)
 
-MARKUPMAP(mroot_, New_HyperText, roles::MATHML_ROOT)
+MARKUPMAP(mroot, New_HyperText, roles::MATHML_ROOT)
 
-MARKUPMAP(mfenced_, New_HyperText, roles::MATHML_ROW)
+MARKUPMAP(mfenced, New_HyperText, roles::MATHML_ROW)
 
-MARKUPMAP(menclose_, New_HyperText, roles::MATHML_ENCLOSED,
-          AttrFromDOM(notation_, notation_))
+MARKUPMAP(menclose, New_HyperText, roles::MATHML_ENCLOSED,
+          AttrFromDOM(notation, notation))
 
-MARKUPMAP(mstyle_, New_HyperText, roles::MATHML_STYLE)
+MARKUPMAP(mstyle, New_HyperText, roles::MATHML_STYLE)
 
-MARKUPMAP(msub_, New_HyperText, roles::MATHML_SUB)
+MARKUPMAP(msub, New_HyperText, roles::MATHML_SUB)
 
-MARKUPMAP(msup_, New_HyperText, roles::MATHML_SUP)
+MARKUPMAP(msup, New_HyperText, roles::MATHML_SUP)
 
-MARKUPMAP(msubsup_, New_HyperText, roles::MATHML_SUB_SUP)
+MARKUPMAP(msubsup, New_HyperText, roles::MATHML_SUB_SUP)
 
-MARKUPMAP(munder_, New_HyperText, roles::MATHML_UNDER,
-          AttrFromDOM(accentunder_, accentunder_), AttrFromDOM(align, align))
+MARKUPMAP(munder, New_HyperText, roles::MATHML_UNDER,
+          AttrFromDOM(accentunder, accentunder), AttrFromDOM(align, align))
 
-MARKUPMAP(mover_, New_HyperText, roles::MATHML_OVER,
-          AttrFromDOM(accent_, accent_), AttrFromDOM(align, align))
+MARKUPMAP(mover, New_HyperText, roles::MATHML_OVER, AttrFromDOM(accent, accent),
+          AttrFromDOM(align, align))
 
-MARKUPMAP(munderover_, New_HyperText, roles::MATHML_UNDER_OVER,
-          AttrFromDOM(accent_, accent_),
-          AttrFromDOM(accentunder_, accentunder_), AttrFromDOM(align, align))
+MARKUPMAP(munderover, New_HyperText, roles::MATHML_UNDER_OVER,
+          AttrFromDOM(accent, accent), AttrFromDOM(accentunder, accentunder),
+          AttrFromDOM(align, align))
 
-MARKUPMAP(mmultiscripts_, New_HyperText, roles::MATHML_MULTISCRIPTS)
+MARKUPMAP(mmultiscripts, New_HyperText, roles::MATHML_MULTISCRIPTS)
 
 MARKUPMAP(
-    mtable_,
+    mtable,
     [](Element* aElement, LocalAccessible* aContext) -> LocalAccessible* {
       return new HTMLTableAccessible(aElement, aContext->Document());
     },
     roles::MATHML_TABLE, AttrFromDOM(align, align),
-    AttrFromDOM(columnlines_, columnlines_), AttrFromDOM(rowlines_, rowlines_))
+    AttrFromDOM(columnlines, columnlines), AttrFromDOM(rowlines, rowlines))
 
 MARKUPMAP(
-    mlabeledtr_,
+    mlabeledtr,
     [](Element* aElement, LocalAccessible* aContext) -> LocalAccessible* {
       return new HTMLTableRowAccessible(aElement, aContext->Document());
     },
     roles::MATHML_LABELED_ROW)
 
 MARKUPMAP(
-    mtr_,
+    mtr,
     [](Element* aElement, LocalAccessible* aContext) -> LocalAccessible* {
       return new HTMLTableRowAccessible(aElement, aContext->Document());
     },
     roles::MATHML_TABLE_ROW)
 
 MARKUPMAP(
-    mtd_,
+    mtd,
     [](Element* aElement, LocalAccessible* aContext) -> LocalAccessible* {
       return new HTMLTableCellAccessible(aElement, aContext->Document());
     },
     0)
 
-MARKUPMAP(maction_, New_HyperText, roles::MATHML_ACTION,
-          AttrFromDOM(actiontype_, actiontype_),
-          AttrFromDOM(selection_, selection_))
+MARKUPMAP(maction, New_HyperText, roles::MATHML_ACTION,
+          AttrFromDOM(actiontype, actiontype),
+          AttrFromDOM(selection, selection))
 
-MARKUPMAP(merror_, New_HyperText, roles::MATHML_ERROR)
+MARKUPMAP(merror, New_HyperText, roles::MATHML_ERROR)
 
-MARKUPMAP(mstack_, New_HyperText, roles::MATHML_STACK,
-          AttrFromDOM(align, align), AttrFromDOM(position, position))
-
-MARKUPMAP(mlongdiv_, New_HyperText, roles::MATHML_LONG_DIVISION,
-          AttrFromDOM(longdivstyle_, longdivstyle_))
-
-MARKUPMAP(msgroup_, New_HyperText, roles::MATHML_STACK_GROUP,
-          AttrFromDOM(position, position), AttrFromDOM(shift_, shift_))
-
-MARKUPMAP(msrow_, New_HyperText, roles::MATHML_STACK_ROW,
+MARKUPMAP(mstack, New_HyperText, roles::MATHML_STACK, AttrFromDOM(align, align),
           AttrFromDOM(position, position))
 
-MARKUPMAP(mscarries_, New_HyperText, roles::MATHML_STACK_CARRIES,
-          AttrFromDOM(location_, location_), AttrFromDOM(position, position))
+MARKUPMAP(mlongdiv, New_HyperText, roles::MATHML_LONG_DIVISION,
+          AttrFromDOM(longdivstyle, longdivstyle))
 
-MARKUPMAP(mscarry_, New_HyperText, roles::MATHML_STACK_CARRY,
-          AttrFromDOM(crossout_, crossout_))
+MARKUPMAP(msgroup, New_HyperText, roles::MATHML_STACK_GROUP,
+          AttrFromDOM(position, position), AttrFromDOM(shift, shift))
 
-MARKUPMAP(msline_, New_HyperText, roles::MATHML_STACK_LINE,
+MARKUPMAP(msrow, New_HyperText, roles::MATHML_STACK_ROW,
+          AttrFromDOM(position, position))
+
+MARKUPMAP(mscarries, New_HyperText, roles::MATHML_STACK_CARRIES,
+          AttrFromDOM(location, location), AttrFromDOM(position, position))
+
+MARKUPMAP(mscarry, New_HyperText, roles::MATHML_STACK_CARRY,
+          AttrFromDOM(crossout, crossout))
+
+MARKUPMAP(msline, New_HyperText, roles::MATHML_STACK_LINE,
           AttrFromDOM(position, position))

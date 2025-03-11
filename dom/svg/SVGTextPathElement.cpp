@@ -55,7 +55,7 @@ SVGElement::EnumInfo SVGTextPathElement::sEnumInfo[4] = {
     // from SVGTextPathElement:
     {nsGkAtoms::method, sMethodMap, TEXTPATH_METHODTYPE_ALIGN},
     {nsGkAtoms::spacing, sSpacingMap, TEXTPATH_SPACINGTYPE_EXACT},
-    {nsGkAtoms::side_, sSideMap, TEXTPATH_SIDETYPE_LEFT}};
+    {nsGkAtoms::side, sSideMap, TEXTPATH_SIDETYPE_LEFT}};
 
 SVGElement::StringInfo SVGTextPathElement::sStringInfo[2] = {
     {nsGkAtoms::href, kNameSpaceID_None, true},

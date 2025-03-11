@@ -172,7 +172,7 @@ nsresult nsTableCellFrame::AttributeChanged(int32_t aNameSpaceID,
 
   const nsAtom* colSpanAttribute =
       MOZ_UNLIKELY(mContent->AsElement()->IsMathMLElement())
-          ? nsGkAtoms::columnspan_
+          ? nsGkAtoms::columnspan
           : nsGkAtoms::colspan;
   if (aAttribute == nsGkAtoms::rowspan || aAttribute == colSpanAttribute) {
     nsLayoutUtils::PostRestyleEvent(mContent->AsElement(), RestyleHint{0},
@@ -587,7 +587,7 @@ int32_t nsTableCellFrame::GetColSpan() {
   if (!Style()->IsPseudoOrAnonBox()) {
     dom::Element* elem = mContent->AsElement();
     const nsAttrValue* attr = elem->GetParsedAttr(
-        MOZ_UNLIKELY(elem->IsMathMLElement()) ? nsGkAtoms::columnspan_
+        MOZ_UNLIKELY(elem->IsMathMLElement()) ? nsGkAtoms::columnspan
                                               : nsGkAtoms::colspan);
     // Note that we don't need to check the tag name, because only table cells
     // (including MathML <mtd>) and table headers parse the "colspan" attribute

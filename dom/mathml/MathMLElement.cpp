@@ -87,15 +87,15 @@ bool MathMLElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
   MOZ_ASSERT(IsMathMLElement());
 
   if (aNamespaceID == kNameSpaceID_None) {
-    if (aAttribute == nsGkAtoms::mathcolor_ ||
-        aAttribute == nsGkAtoms::mathbackground_) {
+    if (aAttribute == nsGkAtoms::mathcolor ||
+        aAttribute == nsGkAtoms::mathbackground) {
       return aResult.ParseColor(aValue);
     }
     if (aAttribute == nsGkAtoms::tabindex) {
       return aResult.ParseIntValue(aValue);
     }
-    if (mNodeInfo->Equals(nsGkAtoms::mtd_)) {
-      if (aAttribute == nsGkAtoms::columnspan_) {
+    if (mNodeInfo->Equals(nsGkAtoms::mtd)) {
+      if (aAttribute == nsGkAtoms::columnspan) {
         aResult.ParseClampedNonNegativeInt(aValue, 1, 1, MAX_COLSPAN);
         return true;
       }
@@ -113,11 +113,11 @@ bool MathMLElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
 // https://mathml-refresh.github.io/mathml-core/#global-attributes
 static Element::MappedAttributeEntry sGlobalAttributes[] = {
     {nsGkAtoms::dir},
-    {nsGkAtoms::mathbackground_},
-    {nsGkAtoms::mathcolor_},
-    {nsGkAtoms::mathsize_},
-    {nsGkAtoms::scriptlevel_},
-    {nsGkAtoms::displaystyle_},
+    {nsGkAtoms::mathbackground},
+    {nsGkAtoms::mathcolor},
+    {nsGkAtoms::mathsize},
+    {nsGkAtoms::scriptlevel},
+    {nsGkAtoms::displaystyle},
     {nullptr}};
 
 bool MathMLElement::IsAttributeMapped(const nsAtom* aAttribute) const {
@@ -127,18 +127,18 @@ bool MathMLElement::IsAttributeMapped(const nsAtom* aAttribute) const {
 
   return FindAttributeDependence(aAttribute, globalMap) ||
          ((!StaticPrefs::mathml_legacy_mathvariant_attribute_disabled() ||
-           mNodeInfo->Equals(nsGkAtoms::mi_)) &&
-          aAttribute == nsGkAtoms::mathvariant_) ||
-         (mNodeInfo->Equals(nsGkAtoms::mtable_) &&
+           mNodeInfo->Equals(nsGkAtoms::mi)) &&
+          aAttribute == nsGkAtoms::mathvariant) ||
+         (mNodeInfo->Equals(nsGkAtoms::mtable) &&
           aAttribute == nsGkAtoms::width);
 }
 
 nsMapRuleToAttributesFunc MathMLElement::GetAttributeMappingFunction() const {
-  if (mNodeInfo->Equals(nsGkAtoms::mtable_)) {
+  if (mNodeInfo->Equals(nsGkAtoms::mtable)) {
     return &MapMTableAttributesInto;
   }
   if (StaticPrefs::mathml_legacy_mathvariant_attribute_disabled() &&
-      mNodeInfo->Equals(nsGkAtoms::mi_)) {
+      mNodeInfo->Equals(nsGkAtoms::mi)) {
     return &MapMiAttributesInto;
   }
   return &MapGlobalMathMLAttributesInto;
@@ -385,7 +385,7 @@ void MathMLElement::MapMiAttributesInto(MappedDeclarationsBuilder& aBuilder) {
   // mathvariant
   // https://w3c.github.io/mathml-core/#dfn-mathvariant
   if (!aBuilder.PropertyIsSet(eCSSProperty_text_transform)) {
-    const nsAttrValue* value = aBuilder.GetAttr(nsGkAtoms::mathvariant_);
+    const nsAttrValue* value = aBuilder.GetAttr(nsGkAtoms::mathvariant);
     if (value && value->Type() == nsAttrValue::eString) {
       auto str = value->GetStringValue();
       str.CompressWhitespace();
@@ -424,7 +424,7 @@ void MathMLElement::MapGlobalMathMLAttributesInto(
     MappedDeclarationsBuilder& aBuilder) {
   // scriptlevel
   // https://w3c.github.io/mathml-core/#dfn-scriptlevel
-  const nsAttrValue* value = aBuilder.GetAttr(nsGkAtoms::scriptlevel_);
+  const nsAttrValue* value = aBuilder.GetAttr(nsGkAtoms::scriptlevel);
   if (value && value->Type() == nsAttrValue::eString &&
       !aBuilder.PropertyIsSet(eCSSProperty_math_depth)) {
     auto str = value->GetStringValue();
@@ -452,15 +452,14 @@ void MathMLElement::MapGlobalMathMLAttributesInto(
         }
       }
       if (reportParseError) {
-        ReportParseErrorNoTag(str, nsGkAtoms::scriptlevel_,
-                              aBuilder.Document());
+        ReportParseErrorNoTag(str, nsGkAtoms::scriptlevel, aBuilder.Document());
       }
     }
   }
 
   // mathsize
   // https://w3c.github.io/mathml-core/#dfn-mathsize
-  value = aBuilder.GetAttr(nsGkAtoms::mathsize_);
+  value = aBuilder.GetAttr(nsGkAtoms::mathsize);
   if (value && value->Type() == nsAttrValue::eString &&
       !aBuilder.PropertyIsSet(eCSSProperty_font_size)) {
     auto str = value->GetStringValue();
@@ -486,7 +485,7 @@ void MathMLElement::MapGlobalMathMLAttributesInto(
     // "monospace" | "initial" | "tailed" | "looped" | "stretched"
     // default: normal (except on <mi>)
     //
-    value = aBuilder.GetAttr(nsGkAtoms::mathvariant_);
+    value = aBuilder.GetAttr(nsGkAtoms::mathvariant);
     if (value && value->Type() == nsAttrValue::eString &&
         !aBuilder.PropertyIsSet(eCSSProperty__moz_math_variant)) {
       auto str = value->GetStringValue();
@@ -571,7 +570,7 @@ void MathMLElement::MapGlobalMathMLAttributesInto(
 
   // mathbackground
   // https://w3c.github.io/mathml-core/#dfn-mathbackground
-  value = aBuilder.GetAttr(nsGkAtoms::mathbackground_);
+  value = aBuilder.GetAttr(nsGkAtoms::mathbackground);
   if (value) {
     nscolor color;
     if (value->GetColorValue(color)) {
@@ -581,7 +580,7 @@ void MathMLElement::MapGlobalMathMLAttributesInto(
 
   // mathcolor
   // https://w3c.github.io/mathml-core/#dfn-mathcolor
-  value = aBuilder.GetAttr(nsGkAtoms::mathcolor_);
+  value = aBuilder.GetAttr(nsGkAtoms::mathcolor);
   nscolor color;
   if (value && value->GetColorValue(color)) {
     aBuilder.SetColorValueIfUnset(eCSSProperty_color, color);
@@ -606,7 +605,7 @@ void MathMLElement::MapGlobalMathMLAttributesInto(
 
   // displaystyle
   // https://mathml-refresh.github.io/mathml-core/#dfn-displaystyle
-  value = aBuilder.GetAttr(nsGkAtoms::displaystyle_);
+  value = aBuilder.GetAttr(nsGkAtoms::displaystyle);
   if (value && value->Type() == nsAttrValue::eString &&
       !aBuilder.PropertyIsSet(eCSSProperty_math_style)) {
     auto str = value->GetStringValue();

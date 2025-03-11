@@ -121,7 +121,7 @@ class CacheKey {
   // The difference between the layout viewport and the visual viewport in app
   // units. This is stored as a two-element (x, y) array and is unscaled by zoom
   // or resolution.
-  static constexpr nsStaticAtom* VisualViewportOffset = nsGkAtoms::voffset_;
+  static constexpr nsStaticAtom* VisualViewportOffset = nsGkAtoms::voffset;
   // AccAttributes, CacheDomain::ARIA
   // ARIA attributes that are exposed as object attributes; i.e. returned in
   // Accessible::Attributes.

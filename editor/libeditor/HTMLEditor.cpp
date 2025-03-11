@@ -3435,7 +3435,7 @@ Element* HTMLEditor::GetInclusiveAncestorByTagNameInternal(
       if (HTMLEditUtils::IsNamedAnchor(element)) {
         return element;
       }
-    } else if (&aTagName == nsGkAtoms::list_) {
+    } else if (&aTagName == nsGkAtoms::list) {
       // Match "ol", "ul", or "dl" for lists
       if (HTMLEditUtils::IsAnyListElement(element)) {
         return element;

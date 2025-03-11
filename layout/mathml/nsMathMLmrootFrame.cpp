@@ -45,7 +45,7 @@ void nsMathMLmrootFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
 }
 
 bool nsMathMLmrootFrame::ShouldUseRowFallback() {
-  bool isRootWithIndex = GetContent()->IsMathMLElement(nsGkAtoms::mroot_);
+  bool isRootWithIndex = GetContent()->IsMathMLElement(nsGkAtoms::mroot);
   if (!isRootWithIndex) {
     return false;
   }
@@ -59,7 +59,7 @@ bool nsMathMLmrootFrame::ShouldUseRowFallback() {
 }
 
 bool nsMathMLmrootFrame::IsMrowLike() {
-  bool isRootWithIndex = GetContent()->IsMathMLElement(nsGkAtoms::mroot_);
+  bool isRootWithIndex = GetContent()->IsMathMLElement(nsGkAtoms::mroot);
   if (isRootWithIndex) {
     return false;
   }
@@ -70,7 +70,7 @@ NS_IMETHODIMP
 nsMathMLmrootFrame::InheritAutomaticData(nsIFrame* aParent) {
   nsMathMLContainerFrame::InheritAutomaticData(aParent);
 
-  bool isRootWithIndex = GetContent()->IsMathMLElement(nsGkAtoms::mroot_);
+  bool isRootWithIndex = GetContent()->IsMathMLElement(nsGkAtoms::mroot);
   if (!isRootWithIndex) {
     mPresentationData.flags |= NS_MATHML_STRETCH_ALL_CHILDREN_VERTICALLY;
   }
@@ -80,7 +80,7 @@ nsMathMLmrootFrame::InheritAutomaticData(nsIFrame* aParent) {
 
 NS_IMETHODIMP
 nsMathMLmrootFrame::TransmitAutomaticData() {
-  bool isRootWithIndex = GetContent()->IsMathMLElement(nsGkAtoms::mroot_);
+  bool isRootWithIndex = GetContent()->IsMathMLElement(nsGkAtoms::mroot);
   if (isRootWithIndex) {
     // 1. The REC says:
     //    The <mroot> element increments scriptlevel by 2, and sets displaystyle
@@ -170,7 +170,7 @@ nsresult nsMathMLmrootFrame::Place(DrawTarget* aDrawTarget,
     return PlaceAsMrow(aDrawTarget, aFlags, aDesiredSize);
   }
 
-  const bool isRootWithIndex = GetContent()->IsMathMLElement(nsGkAtoms::mroot_);
+  const bool isRootWithIndex = GetContent()->IsMathMLElement(nsGkAtoms::mroot);
   nsBoundingMetrics bmSqr, bmBase, bmIndex;
   nsIFrame *baseFrame = nullptr, *indexFrame = nullptr;
   nsMargin baseMargin, indexMargin;

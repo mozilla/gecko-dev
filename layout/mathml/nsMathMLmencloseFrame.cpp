@@ -148,7 +148,7 @@ void nsMathMLmencloseFrame::InitNotations() {
 
   nsAutoString value;
 
-  if (mContent->AsElement()->GetAttr(nsGkAtoms::notation_, value)) {
+  if (mContent->AsElement()->GetAttr(nsGkAtoms::notation, value)) {
     // parse the notation attribute
     nsWhitespaceTokenizer tokenizer(value);
 
@@ -596,7 +596,7 @@ nscoord nsMathMLmencloseFrame::FixInterFrameSpacing(
 nsresult nsMathMLmencloseFrame::AttributeChanged(int32_t aNameSpaceID,
                                                  nsAtom* aAttribute,
                                                  int32_t aModType) {
-  if (aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::notation_) {
+  if (aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::notation) {
     InitNotations();
     PresShell()->FrameNeedsReflow(this, IntrinsicDirty::FrameAndAncestors,
                                   NS_FRAME_IS_DIRTY);

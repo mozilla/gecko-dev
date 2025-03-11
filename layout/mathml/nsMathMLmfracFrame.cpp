@@ -122,7 +122,7 @@ nsresult nsMathMLmfracFrame::AttributeChanged(int32_t aNameSpaceID,
                                               nsAtom* aAttribute,
                                               int32_t aModType) {
   if (aNameSpaceID == kNameSpaceID_None &&
-      nsGkAtoms::linethickness_ == aAttribute) {
+      nsGkAtoms::linethickness == aAttribute) {
     // The thickness changes, so a repaint of the bar is needed.
     InvalidateFrame();
     // The thickness affects vertical offsets.
@@ -198,7 +198,7 @@ nsresult nsMathMLmfracFrame::Place(DrawTarget* aDrawTarget,
 
   // see if the linethickness attribute is there
   nsAutoString value;
-  mContent->AsElement()->GetAttr(nsGkAtoms::linethickness_, value);
+  mContent->AsElement()->GetAttr(nsGkAtoms::linethickness, value);
   mLineThickness =
       CalcLineThickness(presContext, mComputedStyle, value, onePixel,
                         defaultRuleThickness, fontSizeInflation);

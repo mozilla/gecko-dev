@@ -158,7 +158,7 @@ nsStaticAtom* nsAccUtils::NormalizeARIAToken(const AttrArray* aAttrs,
 
   if (aAttr == nsGkAtoms::aria_current) {
     static AttrArray::AttrValuesArray tokens[] = {
-        nsGkAtoms::page, nsGkAtoms::step, nsGkAtoms::location_,
+        nsGkAtoms::page, nsGkAtoms::step, nsGkAtoms::location,
         nsGkAtoms::date, nsGkAtoms::time, nsGkAtoms::_true,
         nullptr};
     int32_t idx =

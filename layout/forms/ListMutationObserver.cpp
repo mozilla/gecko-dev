@@ -15,7 +15,7 @@ ListMutationObserver::~ListMutationObserver() = default;
 
 void ListMutationObserver::Attach(bool aRepaint) {
   nsAutoString id;
-  if (InputElement().GetAttr(nsGkAtoms::list_, id)) {
+  if (InputElement().GetAttr(nsGkAtoms::list, id)) {
     Unlink();
     RefPtr<nsAtom> idAtom = NS_AtomizeMainThread(id);
     ResetToID(InputElement(), idAtom);

@@ -51,7 +51,7 @@ nsRangeFrame::nsRangeFrame(ComputedStyle* aStyle, nsPresContext* aPresContext)
 void nsRangeFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
                         nsIFrame* aPrevInFlow) {
   nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
-  if (InputElement().HasAttr(nsGkAtoms::list_)) {
+  if (InputElement().HasAttr(nsGkAtoms::list)) {
     mListMutationObserver = new ListMutationObserver(*this);
   }
 }
@@ -595,7 +595,7 @@ nsresult nsRangeFrame::AttributeChanged(int32_t aNameSpaceID,
     } else if (aAttribute == nsGkAtoms::orient) {
       PresShell()->FrameNeedsReflow(this, IntrinsicDirty::None,
                                     NS_FRAME_IS_DIRTY);
-    } else if (aAttribute == nsGkAtoms::list_) {
+    } else if (aAttribute == nsGkAtoms::list) {
       const bool isRemoval = aModType == MutationEvent_Binding::REMOVAL;
       if (mListMutationObserver) {
         mListMutationObserver->Detach();
