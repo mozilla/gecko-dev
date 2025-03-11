@@ -1,0 +1,18 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<androidx.appcompat.widget.AppCompatCheckBox
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/permission_opt_in_item"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:paddingStart="4dp"
+    android:paddingEnd="4dp"
+    android:paddingTop="8dp"
+    android:layout_marginTop="4dp"
+    tools:text="@string/mozac_feature_addons_permissions_user_scripts_description"
+    android:textColor="?android:attr/textColorPrimary"
+    android:gravity="center_vertical"
+    android:drawablePadding="8dp" />

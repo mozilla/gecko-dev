@@ -201,6 +201,11 @@ class PermissionsDialogFragment : AddonDialogFragment() {
             hostPermissions.wildcards + hostPermissions.sites
         }
 
+        // "userScripts" can only be requested without other permissions, and
+        // only with forOptionalPermissions=true. This is enforced at the Gecko
+        // layer, in ext-permissions.js (via OptionalOnlyPermission).
+        val isUserScriptsPermission = permissions.size == 1 && permissions[0] == "userScripts"
+
         val listPermissions = buildPermissionsList(allUrlsPermissionFound)
         rootView.findViewById<TextView>(R.id.optional_or_required_text).text =
             buildOptionalOrRequiredText(
@@ -219,6 +224,10 @@ class PermissionsDialogFragment : AddonDialogFragment() {
 
         permissionsRecyclerView.adapter = RequiredPermissionsAdapter(
             permissions = listPermissions,
+            permissionRequiresOptIn = isUserScriptsPermission,
+            onPermissionOptInChanged = { enabled ->
+                setButtonEnabled(positiveButton, enabled)
+            },
             domains = displayDomainList,
             domainsHeaderText = requireContext()
                 .getString(
@@ -244,6 +253,12 @@ class PermissionsDialogFragment : AddonDialogFragment() {
         positiveButton.setOnClickListener {
             onPositiveButtonClicked?.invoke(addon, allowedInPrivateBrowsing.isChecked)
             dismiss()
+        }
+
+        if (isUserScriptsPermission) {
+            // "userScripts" permission requires double-confirmation.
+            // Disable "Allow" button until the user confirmed via opt-in.
+            setButtonEnabled(positiveButton, false)
         }
 
         if (positiveButtonBackgroundColor != DEFAULT_VALUE) {
@@ -340,6 +355,10 @@ class PermissionsDialogFragment : AddonDialogFragment() {
         }
 
         return optionalOrRequiredText
+    }
+
+    internal fun setButtonEnabled(button: Button, enabled: Boolean) {
+        button.isEnabled = enabled
     }
 
     companion object {
