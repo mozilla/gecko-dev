@@ -131,6 +131,46 @@ newtab.search.ad:
     send_in_pings:
       - newtab
 
+sap:
+  deprecated_counts:
+    type: labeled_counter
+    description: >
+      This is deprecated metric that should not be incoporated into dashboards.
+      Use the `sap.counts` event instead.
+
+      This metric has been added to Glean to aid transition of
+      histograms and allow the legacy telemetry SEARCH_COUNTS to continue to be
+      recorded.
+
+      Records search counts for search access points. The format is:
+      <engine-name>.<search-access-point>. For the urlbar when in search mode,
+      the format is <engine name>.urlbar-searchmode. For the urlbar when an
+      internal @engine shortcut is used, the format is: <engine-name>.alias.
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram SEARCH_COUNTS.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1089670
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1475571
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1482158
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1499193
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1545172
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1572500
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1654680
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1089670
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1475571
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1482158
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1499193
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1545172
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1572500
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1654680
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: h#SEARCH_COUNTS
+
 serp:
   impression:
     type: event

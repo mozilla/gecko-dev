@@ -66,6 +66,10 @@ This telemetry is handled by `BrowserSearchTelemetry.sys.mjs`_.
 SEARCH_COUNTS - SAP usage
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+  Note: This probe is reflected into the Glean probe ``sap.deprecated_counts``,
+  which should not be used for ongoing measurements. Use the new ``sap.counts``
+  event instead.
+
   This histogram tracks search engines and Search Access Points. It is augmented
   by multiple SAPs, including the urlbar.
   It's a keyed histogram, the keys are strings made up of search engine names

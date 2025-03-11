@@ -15,6 +15,10 @@ interface GleanImpl {
     click: GleanEvent;
   }
 
+  sap: {
+    deprecatedCounts: Record<string, GleanCounter>;
+  }
+
   serp: {
     impression: GleanEvent;
     engagement: GleanEvent;

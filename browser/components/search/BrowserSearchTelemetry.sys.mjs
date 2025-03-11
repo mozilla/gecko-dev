@@ -195,7 +195,6 @@ class BrowserSearchTelemetryHandler {
 
       const countIdPrefix = `${engine.telemetryId}.`;
       const countIdSource = countIdPrefix + source;
-      let histogram = Services.telemetry.getKeyedHistogramById("SEARCH_COUNTS");
 
       if (
         details.alias &&
@@ -204,9 +203,9 @@ class BrowserSearchTelemetryHandler {
       ) {
         // This is a keyword search using an AppProvided engine.
         // Record the source as "alias", not "urlbar".
-        histogram.add(countIdPrefix + "alias");
+        Glean.sap.deprecatedCounts[countIdPrefix + "alias"].add();
       } else {
-        histogram.add(countIdSource);
+        Glean.sap.deprecatedCounts[countIdSource].add();
       }
 
       // Dispatch the search signal to other handlers.
