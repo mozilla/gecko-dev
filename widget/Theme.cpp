@@ -652,13 +652,14 @@ void Theme::PaintRadioControl(PaintBackendData& aPaintData,
   }
 
   if (aState.HasState(ElementState::CHECKED)) {
+    // See bug 1951930 and bug 1941755 for some discussion on this chunk of code.
+    const CSSCoord kInnerBorderWidth = 2.0f;
     LayoutDeviceRect rect(aRect);
-    // Make the inner white dot take ~half of the checkbox (snapped to device
-    // pixels).
-    rect.Deflate(std::max(LayoutDeviceIntCoord(1),
-                          (LayoutDeviceCoord(rect.width) * 0.25f).Truncated()));
-    PaintStrokedCircle(aPaintData, rect, checkColor, sTransparent, 0,
-                       aDpiRatio);
+    auto width = LayoutDeviceCoord(
+        ThemeDrawing::SnapBorderWidth(kInnerBorderWidth, aDpiRatio));
+    rect.Deflate(width);
+    PaintStrokedCircle(aPaintData, rect, backgroundColor, checkColor,
+                       kInnerBorderWidth, aDpiRatio);
   }
 
   if (aState.HasState(ElementState::FOCUSRING)) {
