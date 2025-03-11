@@ -134,6 +134,8 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
   // https://drafts.csswg.org/css-view-transitions/#viewtransition-named-elements
   using NamedElements = nsClassHashtable<nsAtomHashKey, CapturedElement>;
   NamedElements mNamedElements;
+  // mNamedElements is an unordered map, we need to keep the tree order.
+  AutoTArray<RefPtr<nsAtom>, 8> mNames;
 
   // https://drafts.csswg.org/css-view-transitions/#viewtransition-initial-snapshot-containing-block-size
   nsSize mInitialSnapshotContainingBlockSize;
