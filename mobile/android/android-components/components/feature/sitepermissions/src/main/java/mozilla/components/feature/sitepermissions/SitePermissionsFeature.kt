@@ -499,10 +499,10 @@ class SitePermissionsFeature(
     internal fun handleNoRuledFlow(
         permissionFromStorage: SitePermissions?,
         permissionRequest: PermissionRequest,
-        host: String,
+        origin: String,
     ): SitePermissionsDialogFragment? {
         return if (shouldShowPrompt(permissionRequest, permissionFromStorage)) {
-            createPrompt(permissionRequest, host)
+            createPrompt(permissionRequest, origin)
         } else {
             val status = if (permissionFromStorage.isGranted(permissionRequest)) {
                 permissionRequest.grant()
@@ -671,9 +671,9 @@ class SitePermissionsFeature(
     }
 
     private fun PermissionRequest.toSitePermissions(
-        host: String,
+        origin: String,
         status: SitePermissions.Status,
-        initialSitePermission: SitePermissions = getInitialSitePermissions(host),
+        initialSitePermission: SitePermissions = getInitialSitePermissions(origin),
         permissions: List<Permission> = this.permissions,
     ): SitePermissions {
         var sitePermissions = initialSitePermission
@@ -685,14 +685,14 @@ class SitePermissionsFeature(
 
     @VisibleForTesting
     internal fun getInitialSitePermissions(
-        host: String,
+        origin: String,
     ): SitePermissions {
         val rules = sitePermissionsRules
         return rules?.toSitePermissions(
-            host,
+            origin,
             savedAt = System.currentTimeMillis(),
         )
-            ?: SitePermissions(host, savedAt = System.currentTimeMillis())
+            ?: SitePermissions(origin, savedAt = System.currentTimeMillis())
     }
 
     private fun PermissionRequest.isForAutoplay() =
@@ -773,17 +773,17 @@ class SitePermissionsFeature(
     @VisibleForTesting
     internal fun createPrompt(
         permissionRequest: PermissionRequest,
-        host: String,
+        origin: String,
     ): SitePermissionsDialogFragment {
         return if (!permissionRequest.containsVideoAndAudioSources()) {
             val permission = permissionRequest.permissions.first()
-            handlingSingleContentPermissions(permissionRequest, permission, host).also {
+            handlingSingleContentPermissions(permissionRequest, permission, origin).also {
                 emitPermissionDialogDisplayed(permission)
             }
         } else {
             createSinglePermissionPrompt(
                 context,
-                host,
+                origin,
                 permissionRequest,
                 R.string.mozac_feature_sitepermissions_camera_and_microphone,
                 iconsR.drawable.mozac_ic_microphone_24,
@@ -801,13 +801,13 @@ class SitePermissionsFeature(
     internal fun handlingSingleContentPermissions(
         permissionRequest: PermissionRequest,
         permission: Permission,
-        host: String,
+        origin: String,
     ): SitePermissionsDialogFragment {
         return when (permission) {
             is ContentGeoLocation -> {
                 createSinglePermissionPrompt(
                     context,
-                    host,
+                    origin,
                     permissionRequest,
                     R.string.mozac_feature_sitepermissions_location_title,
                     iconsR.drawable.mozac_ic_location_24,
@@ -819,7 +819,7 @@ class SitePermissionsFeature(
             is ContentNotification -> {
                 createSinglePermissionPrompt(
                     context,
-                    host,
+                    origin,
                     permissionRequest,
                     R.string.mozac_feature_sitepermissions_notification_title,
                     iconsR.drawable.mozac_ic_notification_24,
@@ -831,7 +831,7 @@ class SitePermissionsFeature(
             is ContentAudioCapture, is ContentAudioMicrophone -> {
                 createSinglePermissionPrompt(
                     context,
-                    host,
+                    origin,
                     permissionRequest,
                     R.string.mozac_feature_sitepermissions_microfone_title,
                     iconsR.drawable.mozac_ic_microphone_24,
@@ -843,7 +843,7 @@ class SitePermissionsFeature(
             is ContentVideoCamera, is ContentVideoCapture -> {
                 createSinglePermissionPrompt(
                     context,
-                    host,
+                    origin,
                     permissionRequest,
                     R.string.mozac_feature_sitepermissions_camera_title,
                     iconsR.drawable.mozac_ic_camera_24,
@@ -855,7 +855,7 @@ class SitePermissionsFeature(
             is ContentPersistentStorage -> {
                 createSinglePermissionPrompt(
                     context,
-                    host,
+                    origin,
                     permissionRequest,
                     R.string.mozac_feature_sitepermissions_persistent_storage_title,
                     iconsR.drawable.mozac_ic_storage_24,
@@ -866,7 +866,7 @@ class SitePermissionsFeature(
             is ContentMediaKeySystemAccess -> {
                 createSinglePermissionPrompt(
                     context,
-                    host,
+                    origin,
                     permissionRequest,
                     R.string.mozac_feature_sitepermissions_media_key_system_access_title,
                     iconsR.drawable.mozac_ic_link_24,
@@ -877,7 +877,7 @@ class SitePermissionsFeature(
             is ContentCrossOriginStorageAccess -> {
                 createContentCrossOriginStorageAccessPermissionPrompt(
                     context = context,
-                    host = host,
+                    origin = origin,
                     permissionRequest = permissionRequest,
                     showDoNotAskAgainCheckBox = false,
                     shouldSelectRememberChoice = true,
@@ -891,7 +891,7 @@ class SitePermissionsFeature(
     @VisibleForTesting
     internal fun createSinglePermissionPrompt(
         context: Context,
-        host: String,
+        origin: String,
         permissionRequest: PermissionRequest,
         @StringRes titleId: Int,
         @DrawableRes iconId: Int,
@@ -899,7 +899,7 @@ class SitePermissionsFeature(
         shouldSelectRememberChoice: Boolean,
         isNotificationRequest: Boolean = false,
     ): SitePermissionsDialogFragment {
-        val title = context.getString(titleId, host)
+        val title = context.getString(titleId, origin)
 
         val currentSessionId: String = store.state.findTabOrCustomTabOrSelectedTab(sessionId)?.id
             ?: throw IllegalStateException("Unable to find session for $sessionId or selected session")
@@ -919,7 +919,7 @@ class SitePermissionsFeature(
     @VisibleForTesting
     internal fun createContentCrossOriginStorageAccessPermissionPrompt(
         context: Context,
-        host: String,
+        origin: String,
         permissionRequest: PermissionRequest,
         showDoNotAskAgainCheckBox: Boolean,
         shouldSelectRememberChoice: Boolean,
@@ -929,12 +929,12 @@ class SitePermissionsFeature(
 
         val title = context.getString(
             R.string.mozac_feature_sitepermissions_storage_access_title,
-            host.stripDefaultPort(),
+            origin.stripDefaultPort(),
             currentSession.content.url.stripDefaultPort(),
         )
         val message = context.getString(
             R.string.mozac_feature_sitepermissions_storage_access_message,
-            host.stripDefaultPort(),
+            origin.stripDefaultPort(),
         )
         val negativeButtonText = context.getString(R.string.mozac_feature_sitepermissions_storage_access_not_allow)
 

@@ -1134,7 +1134,7 @@ class SitePermissionsFeatureTest {
     @Test
     fun `GIVEN a ContentStorageAccess request WHEN handlingSingleContentPermissions is called THEN create a specific prompt`() {
         // given
-        val host = "https://mozilla.org"
+        val origin = "https://mozilla.org"
         val permission = ContentCrossOriginStorageAccess(id = "permission")
         val permissionRequest: PermissionRequest = mock {
             whenever(permissions).thenReturn(listOf(permission))
@@ -1142,12 +1142,12 @@ class SitePermissionsFeatureTest {
         }
 
         // when
-        sitePermissionFeature.handlingSingleContentPermissions(permissionRequest, permission, host)
+        sitePermissionFeature.handlingSingleContentPermissions(permissionRequest, permission, origin)
 
         // then
         verify(sitePermissionFeature).createContentCrossOriginStorageAccessPermissionPrompt(
             context = testContext,
-            host,
+            origin,
             permissionRequest,
             false,
             true,
@@ -1157,7 +1157,7 @@ class SitePermissionsFeatureTest {
     @Test
     fun `GIVEN a ContentStorageAccess request WHEN createContentStorageAccessPermissionPrompt is called THEN create a specific SitePermissionsDialogFragment`() {
         // given
-        val host = "https://mozilla.org"
+        val origin = "https://mozilla.org:443"
         val permission = ContentCrossOriginStorageAccess(id = "permission")
         val permissionRequest: PermissionRequest = mock {
             whenever(permissions).thenReturn(listOf(permission))
@@ -1167,7 +1167,7 @@ class SitePermissionsFeatureTest {
         // when
         val dialog = sitePermissionFeature.createContentCrossOriginStorageAccessPermissionPrompt(
             testContext,
-            host,
+            origin,
             permissionRequest,
             false,
             true,
@@ -1178,7 +1178,7 @@ class SitePermissionsFeatureTest {
         assertEquals(
             testContext.getString(
                 R.string.mozac_feature_sitepermissions_storage_access_title,
-                host.stripDefaultPort(),
+                origin.stripDefaultPort(),
                 selectedTab.content.url.stripDefaultPort(),
             ),
             dialog.title,
@@ -1192,7 +1192,7 @@ class SitePermissionsFeatureTest {
         assertEquals(
             testContext.getString(
                 R.string.mozac_feature_sitepermissions_storage_access_message,
-                host.stripDefaultPort(),
+                origin.stripDefaultPort(),
             ),
             dialog.message,
         )
