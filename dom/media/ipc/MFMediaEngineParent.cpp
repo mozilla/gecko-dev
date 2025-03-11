@@ -285,18 +285,21 @@ void MFMediaEngineParent::NotifyError(MF_MEDIA_ENGINE_ERR aError,
       // We ignore these two because we fetch data by ourselves.
       return;
     case MF_MEDIA_ENGINE_ERR_DECODE: {
-      MediaResult error(NS_ERROR_DOM_MEDIA_DECODE_ERR, "Decoder error");
+      MediaResult error(NS_ERROR_DOM_MEDIA_DECODE_ERR,
+                        nsPrintfCString("Decoder error (hr=%lx)", aResult));
       Unused << SendNotifyError(error);
       return;
     }
     case MF_MEDIA_ENGINE_ERR_SRC_NOT_SUPPORTED: {
-      MediaResult error(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
-                        "Source not supported");
+      MediaResult error(
+          NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
+          nsPrintfCString("Source not supported (hr=%lx)", aResult));
       Unused << SendNotifyError(error);
       return;
     }
     case MF_MEDIA_ENGINE_ERR_ENCRYPTED: {
-      MediaResult error(NS_ERROR_DOM_MEDIA_FATAL_ERR, "Encrypted error");
+      MediaResult error(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                        nsPrintfCString("Encrypted error (hr=%lx)", aResult));
       Unused << SendNotifyError(error);
       return;
     }
