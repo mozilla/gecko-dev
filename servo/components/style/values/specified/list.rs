@@ -7,6 +7,8 @@
 #[cfg(feature = "gecko")]
 use crate::counter_style::{CounterStyle, CounterStyleParsingFlags};
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "servo")]
+use crate::properties::longhands::list_style_type::SpecifiedValue as ListStyleType;
 use cssparser::{Parser, Token};
 use style_traits::{ParseError, StyleParseErrorKind};
 
