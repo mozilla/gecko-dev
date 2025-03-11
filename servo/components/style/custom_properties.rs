@@ -2085,41 +2085,19 @@ fn substitute_one_reference<'a>(
     computed_context: &computed::Context,
     references: &mut std::iter::Peekable<std::slice::Iter<VarOrEnvReference>>,
 ) -> Result<Substitution<'a>, ()> {
-    let registration;
     if reference.is_var {
-        registration = stylist.get_custom_property_registration(&reference.name);
+        let registration = stylist.get_custom_property_registration(&reference.name);
         if let Some(v) = custom_properties.get(registration, &reference.name) {
             #[cfg(debug_assertions)]
             debug_assert!(v.is_parsed(registration), "Should be already computed");
-            if registration.syntax.is_universal() {
-                // Skip references that are inside the outer variable (in fallback for example).
-                while references
-                    .next_if(|next_ref| next_ref.end <= reference.end)
-                    .is_some()
-                {}
-            } else {
-                // We need to validate the fallback if any, since invalid fallback should
-                // invalidate the whole variable.
-                if let Some(ref fallback) = reference.fallback {
-                    let _ = do_substitute_chunk(
-                        css,
-                        fallback.start.get(),
-                        reference.end - 1, // Don't include the closing parenthesis.
-                        fallback.first_token_type,
-                        fallback.last_token_type,
-                        url_data,
-                        custom_properties,
-                        registration,
-                        stylist,
-                        computed_context,
-                        references,
-                    )?;
-                }
-            }
+            // Skip references that are inside the outer variable (in fallback for example).
+            while references
+                .next_if(|next_ref| next_ref.end <= reference.end)
+                .is_some()
+            {}
             return Ok(Substitution::Computed(v.clone()));
         }
     } else {
-        registration = PropertyRegistrationData::unregistered();
         let device = stylist.device();
         if let Some(v) = device.environment().get(&reference.name, device, url_data) {
             while references
@@ -2142,7 +2120,7 @@ fn substitute_one_reference<'a>(
         fallback.last_token_type,
         url_data,
         custom_properties,
-        registration,
+        PropertyRegistrationData::unregistered(),
         stylist,
         computed_context,
         references,
