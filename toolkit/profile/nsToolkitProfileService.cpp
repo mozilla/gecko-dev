@@ -200,8 +200,7 @@ nsresult RemoveProfileFiles(nsIFile* aRootDir, nsIFile* aLocalDir,
   // Retry loop if something was not deleted
   if (undeletedFiles.Length() > 0) {
     uint32_t retries = 1;
-    // XXX: Until bug 1716291 is fixed we just make one retry
-    while (undeletedFiles.Length() > 0 && retries <= 1) {
+    while (undeletedFiles.Length() > 0 && retries <= 10) {
       Unused << PR_Sleep(PR_MillisecondsToInterval(10 * retries));
       for (auto&& file :
            std::exchange(undeletedFiles, nsTArray<nsCOMPtr<nsIFile>>{})) {
@@ -213,8 +212,6 @@ nsresult RemoveProfileFiles(nsIFile* aRootDir, nsIFile* aLocalDir,
     }
   }
 
-#ifdef DEBUG
-  // XXX: Until bug 1716291 is fixed, we do not want to spam release
   if (undeletedFiles.Length() > 0) {
     NS_WARNING("Unable to remove all files from the profile directory:");
     // Log the file names of those we could not remove
@@ -225,9 +222,7 @@ nsresult RemoveProfileFiles(nsIFile* aRootDir, nsIFile* aLocalDir,
       }
     }
   }
-#endif
-  // XXX: Activate this assert once bug 1716291 is fixed
-  // MOZ_ASSERT(undeletedFiles.Length() == 0);
+  MOZ_ASSERT(undeletedFiles.Length() == 0);
 
   // Now we can unlock the profile safely.
   lock->Unlock();
