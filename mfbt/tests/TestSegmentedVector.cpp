@@ -110,6 +110,23 @@ void TestBasics() {
 
   // Verify the contents are what we expect.
   CheckContents(v, 700);
+
+  // Verify PopLastN can take larger than .Length() value as an argument.
+  v.PopLastN(1000);
+  MOZ_RELEASE_ASSERT(v.Length() == 0);
+  MOZ_RELEASE_ASSERT(v.IsEmpty());
+
+  // Fill the vector again.
+  for (i = 0; i < 1000; ++i) {
+    v.InfallibleAppend(std::move(i));
+  }
+  MOZ_RELEASE_ASSERT(!v.IsEmpty());
+  MOZ_RELEASE_ASSERT(v.Length() == 1000);
+
+  // Verify that calling PopLastN with Length() empties the vector.
+  v.PopLastN(v.Length());
+  MOZ_RELEASE_ASSERT(v.Length() == 0);
+  MOZ_RELEASE_ASSERT(v.IsEmpty());
 }
 
 void TestMoveAndSwap() {
