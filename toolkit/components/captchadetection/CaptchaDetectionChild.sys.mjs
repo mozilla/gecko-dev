@@ -173,10 +173,6 @@ class CFTurnstileHandler extends CaptchaHandler {
     });
   }
 
-  static matchesRegex = new RegExp(
-    "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/.+?/turnstile/if/ov2/av0/rcv/"
-  );
-
   static matches(document) {
     if (Cu.isInAutomation) {
       return (
@@ -186,7 +182,9 @@ class CFTurnstileHandler extends CaptchaHandler {
       );
     }
 
-    return CFTurnstileHandler.matchesRegex.test(document.location.href);
+    return document.location.href.startsWith(
+      "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/if/ov2/av0/rcv/"
+    );
   }
 
   #mutationHandler(_mutations, observer) {
