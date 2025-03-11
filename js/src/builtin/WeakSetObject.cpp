@@ -174,6 +174,46 @@ WeakSetObject* WeakSetObject::create(JSContext* cx,
   return NewObjectWithClassProto<WeakSetObject>(cx, proto);
 }
 
+// static
+bool WeakSetObject::tryOptimizeCtorWithIterable(JSContext* cx,
+                                                Handle<WeakSetObject*> obj,
+                                                Handle<Value> iterableVal,
+                                                bool* optimized) {
+  MOZ_ASSERT(!iterableVal.isNullOrUndefined());
+  MOZ_ASSERT(!*optimized);
+
+  if (!CanOptimizeMapOrSetCtorWithIterable<JSProto_WeakSet>(WeakSetObject::add,
+                                                            obj, cx)) {
+    return true;
+  }
+
+  if (!iterableVal.isObject()) {
+    return true;
+  }
+  JSObject* iterable = &iterableVal.toObject();
+
+  // Fast path for `new WeakSet(array)`.
+  if (IsOptimizableArrayForMapOrSetCtor<MapOrSet::Set>(iterable, cx)) {
+    RootedValue keyVal(cx);
+    Rooted<ArrayObject*> array(cx, &iterable->as<ArrayObject>());
+    uint32_t len = array->getDenseInitializedLength();
+
+    for (uint32_t index = 0; index < len; index++) {
+      keyVal.set(array->getDenseElement(index));
+      MOZ_ASSERT(!keyVal.isMagic(JS_ELEMENTS_HOLE));
+
+      if (!AddWeakSetEntryImpl(cx, obj, keyVal)) {
+        return false;
+      }
+    }
+
+    *optimized = true;
+    return true;
+  }
+
+  return true;
+}
+
 bool WeakSetObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   // Based on our "Set" implementation instead of the more general ES6 steps.
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -194,21 +234,11 @@ bool WeakSetObject::construct(JSContext* cx, unsigned argc, Value* vp) {
 
   if (!args.get(0).isNullOrUndefined()) {
     Handle<Value> iterable = args[0];
-    bool optimized = IsOptimizableInitForMapOrSet<JSProto_WeakSet>(
-        WeakSetObject::add, obj, iterable, cx);
-    if (optimized) {
-      RootedValue keyVal(cx);
-      Rooted<ArrayObject*> array(cx, &iterable.toObject().as<ArrayObject>());
-      uint32_t len = array->getDenseInitializedLength();
-      for (uint32_t index = 0; index < len; index++) {
-        keyVal.set(array->getDenseElement(index));
-        MOZ_ASSERT(!keyVal.isMagic(JS_ELEMENTS_HOLE));
-
-        if (!AddWeakSetEntryImpl(cx, obj, keyVal)) {
-          return false;
-        }
-      }
-    } else {
+    bool optimized = false;
+    if (!tryOptimizeCtorWithIterable(cx, obj, iterable, &optimized)) {
+      return false;
+    }
+    if (!optimized) {
       FixedInvokeArgs<1> args2(cx);
       args2[0].set(iterable);
 

@@ -48,6 +48,10 @@ class WeakMapObject : public WeakCollectionObject {
 
   [[nodiscard]] static bool construct(JSContext* cx, unsigned argc, Value* vp);
 
+  [[nodiscard]] static bool tryOptimizeCtorWithIterable(
+      JSContext* cx, Handle<WeakMapObject*> obj, Handle<Value> iterableVal,
+      bool* optimized);
+
   [[nodiscard]] static MOZ_ALWAYS_INLINE bool is(HandleValue v);
 
   [[nodiscard]] static MOZ_ALWAYS_INLINE bool has_impl(JSContext* cx,

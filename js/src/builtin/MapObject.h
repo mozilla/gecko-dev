@@ -200,6 +200,10 @@ class MapObject : public OrderedHashMapObject {
   [[nodiscard]] bool setWithHashableKey(JSContext* cx, const HashableValue& key,
                                         const Value& value);
 
+  [[nodiscard]] bool tryOptimizeCtorWithIterable(JSContext* cx,
+                                                 const Value& iterableVal,
+                                                 bool* optimized);
+
   static bool finishInit(JSContext* cx, HandleObject ctor, HandleObject proto);
 
   static void trace(JSTracer* trc, JSObject* obj);
@@ -325,6 +329,10 @@ class SetObject : public OrderedHashSetObject {
 
   [[nodiscard]] bool addHashableValue(JSContext* cx,
                                       const HashableValue& value);
+
+  [[nodiscard]] bool tryOptimizeCtorWithIterable(JSContext* cx,
+                                                 const Value& iterableVal,
+                                                 bool* optimized);
 
   static bool finishInit(JSContext* cx, HandleObject ctor, HandleObject proto);
 

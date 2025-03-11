@@ -246,6 +246,53 @@ JS_PUBLIC_API bool JS::SetWeakMapEntry(JSContext* cx, HandleObject mapObj,
   return SetWeakMapEntryImpl(cx, mapObj.as<WeakMapObject>(), key, val);
 }
 
+// static
+bool WeakMapObject::tryOptimizeCtorWithIterable(JSContext* cx,
+                                                Handle<WeakMapObject*> obj,
+                                                Handle<Value> iterableVal,
+                                                bool* optimized) {
+  MOZ_ASSERT(!iterableVal.isNullOrUndefined());
+  MOZ_ASSERT(!*optimized);
+
+  if (!CanOptimizeMapOrSetCtorWithIterable<JSProto_WeakMap>(WeakMapObject::set,
+                                                            obj, cx)) {
+    return true;
+  }
+
+  if (!iterableVal.isObject()) {
+    return true;
+  }
+  JSObject* iterable = &iterableVal.toObject();
+
+  // Fast path for `new WeakMap(array)`.
+  if (IsOptimizableArrayForMapOrSetCtor<MapOrSet::Map>(iterable, cx)) {
+    RootedValue keyVal(cx);
+    RootedValue value(cx);
+    Rooted<ArrayObject*> array(cx, &iterable->as<ArrayObject>());
+    uint32_t len = array->getDenseInitializedLength();
+
+    for (uint32_t index = 0; index < len; index++) {
+      Value element = array->getDenseElement(index);
+      MOZ_ASSERT(IsPackedArray(&element.toObject()));
+
+      auto* elementArray = &element.toObject().as<ArrayObject>();
+      keyVal.set(elementArray->getDenseElement(0));
+      value.set(elementArray->getDenseElement(1));
+      MOZ_ASSERT(!keyVal.isMagic(JS_ELEMENTS_HOLE));
+      MOZ_ASSERT(!value.isMagic(JS_ELEMENTS_HOLE));
+
+      if (!SetWeakMapEntryImpl(cx, obj, keyVal, value)) {
+        return false;
+      }
+    }
+
+    *optimized = true;
+    return true;
+  }
+
+  return true;
+}
+
 /* static */
 bool WeakMapObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -269,28 +316,11 @@ bool WeakMapObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   // Steps 5-6, 11.
   if (!args.get(0).isNullOrUndefined()) {
     Handle<Value> iterable = args[0];
-    bool optimized = IsOptimizableInitForMapOrSet<JSProto_WeakMap>(
-        WeakMapObject::set, obj, iterable, cx);
-    if (optimized) {
-      RootedValue keyVal(cx);
-      RootedValue value(cx);
-      Rooted<ArrayObject*> array(cx, &iterable.toObject().as<ArrayObject>());
-      uint32_t len = array->getDenseInitializedLength();
-      for (uint32_t index = 0; index < len; index++) {
-        Value element = array->getDenseElement(index);
-        MOZ_ASSERT(IsPackedArray(&element.toObject()));
-
-        auto* elementArray = &element.toObject().as<ArrayObject>();
-        keyVal.set(elementArray->getDenseElement(0));
-        value.set(elementArray->getDenseElement(1));
-        MOZ_ASSERT(!keyVal.isMagic(JS_ELEMENTS_HOLE));
-        MOZ_ASSERT(!value.isMagic(JS_ELEMENTS_HOLE));
-
-        if (!SetWeakMapEntryImpl(cx, obj, keyVal, value)) {
-          return false;
-        }
-      }
-    } else {
+    bool optimized = false;
+    if (!tryOptimizeCtorWithIterable(cx, obj, iterable, &optimized)) {
+      return false;
+    }
+    if (!optimized) {
       FixedInvokeArgs<1> args2(cx);
       args2[0].set(iterable);
 
