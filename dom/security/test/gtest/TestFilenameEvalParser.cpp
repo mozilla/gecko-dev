@@ -184,63 +184,26 @@ TEST(FilenameEvalParser, UserChromeJS)
     ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
     ASSERT_TRUE(ret.second.isNothing());
   }
-  {
-    constexpr auto str =
-        "chrome://tabmix-resource/content/bootstrap/Overlays.jsm"_ns;
+
+  const nsCString files[] = {
+      "chrome://tabmix-resource/content/bootstrap/Overlays.jsm"_ns,
+      "chrome://tabmixplus/content/utils.js"_ns,
+      "chrome://searchwp/content/searchbox.js"_ns,
+      "chrome://userscripts/content/Geckium_toolbarButtonCreator.uc.js"_ns,
+      "chrome://userchromejs/content/boot.sys.mjs"_ns,
+      "chrome://user_chrome_files/content/user_chrome/toolbars.js"_ns,
+      "chrome://custombuttons/content/depopupnode.js"_ns,
+      "chrome://custombuttons-context/content/button.js"_ns,
+      "chrome://tabgroups-resource/content/modules/utils/Overlays.jsm"_ns,
+      "resource://usl-ucjs/UserScriptLoaderParent.jsm"_ns,
+      "resource://cpmanager-legacy/CPManager.jsm"_ns,
+      "resource://sfm-ucjs/SaveFolderModokiParent.mjs"_ns};
+
+  for (auto& name : files) {
     FilenameTypeAndDetails ret =
-        nsContentSecurityUtils::FilenameToFilenameType(str, false);
+        nsContentSecurityUtils::FilenameToFilenameType(name, false);
     ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
-    ASSERT_EQ(ret.second.value(), str);
-  }
-  {
-    constexpr auto str = "chrome://tabmixplus/content/utils.js"_ns;
-    FilenameTypeAndDetails ret =
-        nsContentSecurityUtils::FilenameToFilenameType(str, false);
-    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
-    ASSERT_EQ(ret.second.value(), str);
-  }
-  {
-    constexpr auto str = "chrome://searchwp/content/searchbox.js"_ns;
-    FilenameTypeAndDetails ret =
-        nsContentSecurityUtils::FilenameToFilenameType(str, false);
-    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
-    ASSERT_EQ(ret.second.value(), str);
-  }
-  {
-    constexpr auto str =
-        "chrome://userscripts/content/Geckium_toolbarButtonCreator.uc.js"_ns;
-    FilenameTypeAndDetails ret =
-        nsContentSecurityUtils::FilenameToFilenameType(str, false);
-    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
-    ASSERT_EQ(ret.second.value(), str);
-  }
-  {
-    constexpr auto str = "chrome://userchromejs/content/boot.sys.mjs"_ns;
-    FilenameTypeAndDetails ret =
-        nsContentSecurityUtils::FilenameToFilenameType(str, false);
-    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
-    ASSERT_EQ(ret.second.value(), str);
-  }
-  {
-    constexpr auto str = "resource://usl-ucjs/UserScriptLoaderParent.jsm"_ns;
-    FilenameTypeAndDetails ret =
-        nsContentSecurityUtils::FilenameToFilenameType(str, false);
-    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
-    ASSERT_EQ(ret.second.value(), str);
-  }
-  {
-    constexpr auto str = "resource://cpmanager-legacy/CPManager.jsm"_ns;
-    FilenameTypeAndDetails ret =
-        nsContentSecurityUtils::FilenameToFilenameType(str, false);
-    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
-    ASSERT_EQ(ret.second.value(), str);
-  }
-  {
-    constexpr auto str = "resource://sfm-ucjs/SaveFolderModokiParent.mjs"_ns;
-    FilenameTypeAndDetails ret =
-        nsContentSecurityUtils::FilenameToFilenameType(str, false);
-    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
-    ASSERT_EQ(ret.second.value(), str);
+    ASSERT_EQ(ret.second.value(), name);
   }
 }
 

@@ -344,8 +344,11 @@ FilenameTypeAndDetails nsContentSecurityUtils::FilenameToFilenameType(
   if (StringBeginsWith(fileName, "chrome://"_ns)) {
     if (StringBeginsWith(fileName, "chrome://userscripts/"_ns) ||
         StringBeginsWith(fileName, "chrome://userchromejs/"_ns) ||
+        StringBeginsWith(fileName, "chrome://user_chrome_files/"_ns) ||
         StringBeginsWith(fileName, "chrome://tabmix"_ns) ||
-        StringBeginsWith(fileName, "chrome://searchwp/"_ns)) {
+        StringBeginsWith(fileName, "chrome://searchwp/"_ns) ||
+        StringBeginsWith(fileName, "chrome://custombuttons"_ns) ||
+        StringBeginsWith(fileName, "chrome://tabgroups-resource/"_ns)) {
       return FilenameTypeAndDetails(kSuspectedUserChromeJS,
                                     Some(StripQueryRef(fileName)));
     }
