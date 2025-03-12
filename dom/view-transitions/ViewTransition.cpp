@@ -659,10 +659,12 @@ void ViewTransition::SetupTransitionPseudoElements() {
 #endif
   // Step 3: For each transitionName -> capturedElement of transition’s named
   // elements:
-  for (nsAtom* transitionName : mNames) {
+  for (auto& entry : mNamedElements) {
     // We don't need to notify while constructing the tree.
     constexpr bool kNotify = false;
-    CapturedElement& capturedElement = *mNamedElements.Get(transitionName);
+
+    nsAtom* transitionName = entry.GetKey();
+    CapturedElement& capturedElement = *entry.GetData();
     // Let group be a new ::view-transition-group(), with its view transition
     // name set to transitionName.
     RefPtr<Element> group = MakePseudo(
@@ -1121,7 +1123,6 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureOldState() {
     auto capture =
         MakeUnique<CapturedElement>(f, mInitialSnapshotContainingBlockSize);
     mNamedElements.InsertOrUpdate(name, std::move(capture));
-    mNames.AppendElement(name);
     f->RemoveStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION);
   }
 
@@ -1154,7 +1155,6 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureNewState() {
     }
     auto& capturedElement = mNamedElements.LookupOrInsertWith(
         name, [&] { return MakeUnique<CapturedElement>(); });
-    mNames.AppendElement(name);
     capturedElement->mNewElement = aFrame->GetContent()->AsElement();
     capturedElement->mNewSnapshotSize =
         aFrame->InkOverflowRectRelativeToSelf().Size();
@@ -1335,7 +1335,6 @@ void ViewTransition::ClearNamedElements() {
     }
   }
   mNamedElements.Clear();
-  mNames.Clear();
 }
 
 static void ClearViewTransitionsAnimationData(Element* aRoot) {
