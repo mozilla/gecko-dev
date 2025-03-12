@@ -13,6 +13,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   InterruptKind: "resource://gre/modules/RustSuggest.sys.mjs",
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
+  Region: "resource://gre/modules/Region.sys.mjs",
   RemoteSettingsConfig2: "resource://gre/modules/RustRemoteSettings.sys.mjs",
   RemoteSettingsContext: "resource://gre/modules/RustRemoteSettings.sys.mjs",
   RemoteSettingsServer: "resource://gre/modules/RustRemoteSettings.sys.mjs",
@@ -437,6 +438,14 @@ export class SuggestBackendRust extends SuggestBackend {
       return null;
     }
 
+    let customTargetingAttributes = {
+      form_factor: "desktop",
+    };
+    if (lazy.Region.home) {
+      // We assume `QuickSuggest` init already awaited `Region.init()`.
+      customTargetingAttributes.country = lazy.Region.home;
+    }
+
     let rsService;
     try {
       rsService = lazy.RemoteSettingsService.init(
@@ -450,6 +459,15 @@ export class SuggestBackendRust extends SuggestBackend {
             channel: AppConstants.IS_ESR
               ? "esr"
               : AppConstants.MOZ_UPDATE_CHANNEL,
+            appVersion: Services.appinfo.version,
+            appBuild: Services.appinfo.appBuildID,
+            architecture: Services.sysinfo.get("arch"),
+            locale: Services.locale.appLocaleAsBCP47,
+            os: AppConstants.platform,
+            osVersion: Services.sysinfo.get("version"),
+            customTargetingAttributes: JSON.stringify(
+              customTargetingAttributes
+            ),
           }),
         })
       );

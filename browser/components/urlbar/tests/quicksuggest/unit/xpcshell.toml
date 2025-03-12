@@ -38,6 +38,8 @@ skip-if = ["true"] # Bug 1880214
 
 ["test_quicksuggest_relevanceRanking.js"]
 
+["test_quicksuggest_remoteSettingsFilter.js"]
+
 ["test_quicksuggest_scoreMap.js"]
 
 ["test_quicksuggest_topPicks.js"]
