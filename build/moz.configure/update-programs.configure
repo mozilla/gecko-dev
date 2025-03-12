@@ -57,6 +57,56 @@ set_config(
     depends_if("--enable-unverified-updates")(lambda _: True),
 )
 
+# Mac elevated updates without production signing
+# ==============================================================
+
+option(
+    "--enable-mac-elevated-updates-with-generic-certs",
+    when=target_is_osx,
+    default=False,
+    help="Allow local developer-signed builds to perform elevated updates on macOS",
+)
+
+
+def mac_prod_requirements_string(identifier):
+    return (
+        f'identifier "{identifier}" and anchor apple generic and '
+        "certificate 1[field.1.2.840.113635.100.6.2.6] and "
+        "certificate leaf[field.1.2.840.113635.100.6.1.13] and "
+        'certificate leaf[subject.OU] = "43AQ936H96"'
+    )
+
+
+def mac_relaxed_requirements_string(identifier):
+    return f'identifier "{identifier}" and anchor apple generic'
+
+
+@depends("--enable-mac-elevated-updates-with-generic-certs", when=target_is_osx)
+def smauthorizedclients_requirements(enabled):
+    bundle_id_env_var = "$(MOZ_MACBUNDLE_ID)"
+    if enabled:
+        return mac_relaxed_requirements_string(bundle_id_env_var)
+    else:
+        return mac_prod_requirements_string(bundle_id_env_var)
+
+
+set_config("MOZ_SMAUTHORIZEDCLIENTS_REQUIREMENTS", smauthorizedclients_requirements)
+
+
+@depends("--enable-mac-elevated-updates-with-generic-certs", when=target_is_osx)
+def smprivilegedexec_requirements(enabled):
+    updater_id = "org.mozilla.updater"
+    if enabled:
+        return mac_relaxed_requirements_string(updater_id)
+    else:
+        return mac_prod_requirements_string(updater_id)
+
+
+set_config("MOZ_SMPRIVILEGEDEXECUTABLES_REQUIREMENTS", smprivilegedexec_requirements)
+
+# MAR channel ID configuration
+# ==============================================================
+
 option(env="MAR_CHANNEL_ID", nargs=1, help="MAR channel identifier")
 
 set_config(
