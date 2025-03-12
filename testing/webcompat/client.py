@@ -1186,15 +1186,19 @@ class Client:
 
     async def test_nicochannel_like_site(self, url, shouldPass=True):
         CONSENT = self.css(".MuiDialog-container button.MuiButton-containedPrimary")
+        PREMIUM = self.text(
+            "視聴するには、会員プランまたはレンタルプランを購入してください"
+        )
         BLOCKED = self.text("このブラウザはサポートされていません。")
         PLAY = self.css(".nfcp-overlay-play-lg")
 
         await self.navigate(url)
 
         while True:
-            consent, blocked, play = self.await_first_element_of(
+            consent, premium, blocked, play = self.await_first_element_of(
                 [
                     CONSENT,
+                    PREMIUM,
                     BLOCKED,
                     PLAY,
                 ],
@@ -1207,7 +1211,7 @@ class Client:
             self.await_element_hidden(CONSENT)
             continue
         if shouldPass:
-            assert play
+            assert play or premium
         else:
             assert blocked
 
