@@ -11,7 +11,7 @@
  */
 
 [Exposed=(Window,Worker),
- Serializable]
+ Serializable,  ProbablyShortLivingWrapper]
 interface ImageData {
  [Throws]
  constructor(unsigned long sw, unsigned long sh);

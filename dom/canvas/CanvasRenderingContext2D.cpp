@@ -6307,7 +6307,7 @@ already_AddRefed<ImageData> CanvasRenderingContext2D::GetImageData(
     return nullptr;
   }
   MOZ_ASSERT(array);
-  return MakeAndAddRef<ImageData>(w, h, *array);
+  return do_AddRef(new ImageData(GetParentObject(), w, h, array));
 }
 
 static IntRect ClipImageDataTransfer(IntRect& aSrc, const IntPoint& aDestOffset,
@@ -6644,13 +6644,13 @@ static already_AddRefed<ImageData> CreateImageData(
   }
 
   // Create the fast typed array; it's initialized to 0 by default.
-  JSObject* darray =
-      Uint8ClampedArray::Create(aCx, aContext, len.value(), aError);
+  JS::Rooted<JSObject*> darray(
+      aCx, Uint8ClampedArray::Create(aCx, aContext, len.value(), aError));
   if (aError.Failed()) {
     return nullptr;
   }
 
-  return do_AddRef(new ImageData(aW, aH, *darray));
+  return do_AddRef(new ImageData(aContext->GetParentObject(), aW, aH, darray));
 }
 
 already_AddRefed<ImageData> CanvasRenderingContext2D::CreateImageData(
