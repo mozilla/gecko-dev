@@ -120,6 +120,7 @@ import org.mozilla.fenix.ext.getIntentSource
 import org.mozilla.fenix.ext.getNavDirections
 import org.mozilla.fenix.ext.hasTopDestination
 import org.mozilla.fenix.ext.nav
+import org.mozilla.fenix.ext.openSetDefaultBrowserOption
 import org.mozilla.fenix.ext.recordEventInNimbus
 import org.mozilla.fenix.ext.setNavigationIcon
 import org.mozilla.fenix.ext.settings
@@ -446,8 +447,11 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                 navigateToHome(navHost.navController)
             }
 
-            if (!shouldStartOnHome() && shouldNavigateToBrowserOnColdStart(savedInstanceState)) {
-                navigateToBrowserOnColdStart()
+            if (shouldNavigateToBrowserOnColdStart(savedInstanceState)) {
+                if (!shouldStartOnHome()) {
+                    navigateToBrowserOnColdStart()
+                }
+                maybeShowSetAsDefaultBrowserPrompt()
             } else {
                 StartOnHome.enterHomeScreen.record(NoExtras())
             }
@@ -588,6 +592,24 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         )
 
         StartupTimeline.onActivityCreateEndHome(this) // DO NOT MOVE ANYTHING BELOW HERE.
+    }
+
+    @VisibleForTesting
+    internal fun maybeShowSetAsDefaultBrowserPrompt(
+        shouldShowSetAsDefaultPrompt: Boolean = settings().shouldShowSetAsDefaultPrompt,
+        isDefaultBrowser: Boolean = BrowsersCache.all(applicationContext).isDefaultBrowser,
+        isTheCorrectBuildVersion: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q,
+    ) {
+        if (shouldShowSetAsDefaultPrompt && !isDefaultBrowser && isTheCorrectBuildVersion) {
+            // This is to avoid disk read violations on some devices such as samsung and pixel for android 9/10
+            components.strictMode.resetAfter(StrictMode.allowThreadDiskReads()) {
+                components.appStore.dispatch(AppAction.UpdateWasNativeDefaultBrowserPromptShown(true))
+                openSetDefaultBrowserOption().also {
+                    Metrics.setAsDefaultBrowserNativePromptShown.record()
+                    settings().setAsDefaultPromptCalled()
+                }
+            }
+        }
     }
 
     /**

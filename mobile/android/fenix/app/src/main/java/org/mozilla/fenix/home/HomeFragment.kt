@@ -10,9 +10,7 @@ import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.os.StrictMode
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -95,14 +93,12 @@ import mozilla.components.lib.state.ext.consumeFlow
 import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
-import mozilla.components.support.utils.BrowsersCache
 import mozilla.components.ui.colors.PhotonColors
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.GleanMetrics.HomeScreen
 import org.mozilla.fenix.GleanMetrics.Homepage
-import org.mozilla.fenix.GleanMetrics.Metrics
 import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.GleanMetrics.PrivateBrowsingShortcutCfr
 import org.mozilla.fenix.HomeActivity
@@ -135,7 +131,6 @@ import org.mozilla.fenix.ext.containsQueryParameters
 import org.mozilla.fenix.ext.hideToolbar
 import org.mozilla.fenix.ext.isToolbarAtBottom
 import org.mozilla.fenix.ext.nav
-import org.mozilla.fenix.ext.openSetDefaultBrowserOption
 import org.mozilla.fenix.ext.recordEventInNimbus
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.scaleToBottomOfView
@@ -1174,17 +1169,6 @@ class HomeFragment : Fragment() {
 
         homeViewModel.sessionToDelete = null
 
-        // Determine if we should show the "Set as Default Browser" prompt
-        if (requireContext().settings().shouldShowSetAsDefaultPrompt &&
-            !BrowsersCache.all(requireContext().applicationContext).isDefaultBrowser &&
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-        ) {
-            // This is to avoid disk read violations on some devices such as samsung and pixel for android 9/10
-            requireComponents.strictMode.resetAfter(StrictMode.allowThreadDiskReads()) {
-                showSetAsDefaultBrowserPrompt()
-            }
-        }
-
         requireComponents.appStore.state.wasLastTabClosedPrivate?.also {
             showUndoSnackbar(requireContext().tabClosedUndoMessage(it))
             requireComponents.appStore.dispatch(AppAction.TabStripAction.UpdateLastTabClosed(null))
@@ -1763,15 +1747,6 @@ class HomeFragment : Fragment() {
                         )
                     }
                 }
-        }
-    }
-
-    @VisibleForTesting
-    internal fun showSetAsDefaultBrowserPrompt() {
-        requireComponents.appStore.dispatch(AppAction.UpdateWasNativeDefaultBrowserPromptShown(true))
-        activity?.openSetDefaultBrowserOption().also {
-            Metrics.setAsDefaultBrowserNativePromptShown.record()
-            requireContext().settings().setAsDefaultPromptCalled()
         }
     }
 
