@@ -114,4 +114,8 @@ interface GleanImpl {
     historymenu: Record<string, GleanCounter>;
     other: Record<string, GleanCounter>;
   }
+
+  searchbar: {
+    selectedResultMethod: Record<string, GleanCounter>;
+  }
 }
