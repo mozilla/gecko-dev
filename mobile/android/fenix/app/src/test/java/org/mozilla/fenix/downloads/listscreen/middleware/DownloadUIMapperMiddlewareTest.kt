@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.downloads.listscreen
+package org.mozilla.fenix.downloads.listscreen.middleware
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.state.BrowserState
@@ -14,11 +14,15 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.downloads.listscreen.middleware.DownloadUIMapperMiddleware
+import org.mozilla.fenix.downloads.fake.FakeDateTimeProvider
+import org.mozilla.fenix.downloads.listscreen.store.CreatedTime
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIStore
 import org.mozilla.fenix.downloads.listscreen.store.FileItem
+import org.mozilla.fenix.downloads.listscreen.store.HeaderItem
 import java.io.File
+import java.time.LocalDate
+import java.time.ZoneOffset
 
 @RunWith(AndroidJUnit4::class)
 class DownloadUIMapperMiddlewareTest {
@@ -33,7 +37,7 @@ class DownloadUIMapperMiddlewareTest {
         val downloads = mapOf(
             "1" to DownloadState(
                 id = "1",
-                createdTime = 1,
+                createdTime = LocalDate.of(2025, 3, 1).toEpochMilli(),
                 url = "url",
                 fileName = "1.pdf",
                 status = DownloadState.Status.COMPLETED,
@@ -43,7 +47,7 @@ class DownloadUIMapperMiddlewareTest {
             ),
             "2" to DownloadState(
                 id = "2",
-                createdTime = 2,
+                createdTime = LocalDate.of(2025, 4, 12).toEpochMilli(),
                 url = "url",
                 fileName = "2.pdf",
                 status = DownloadState.Status.FAILED,
@@ -52,7 +56,7 @@ class DownloadUIMapperMiddlewareTest {
             ),
             "3" to DownloadState(
                 id = "3",
-                createdTime = 3,
+                createdTime = LocalDate.of(2025, 5, 31).toEpochMilli(),
                 url = "url",
                 fileName = "3.pdf",
                 status = DownloadState.Status.COMPLETED,
@@ -78,6 +82,7 @@ class DownloadUIMapperMiddlewareTest {
                     browserStore = browserStore,
                     scope = scope,
                     ioDispatcher = dispatcher,
+                    dateTimeProvider = FakeDateTimeProvider(LocalDate.of(2025, 5, 31)),
                 ),
             ),
         )
@@ -85,26 +90,31 @@ class DownloadUIMapperMiddlewareTest {
         dispatcher.scheduler.advanceUntilIdle()
         downloadsStore.waitUntilIdle()
 
-        val expectedList = listOf(
-            FileItem(
-                id = "3",
-                url = "url",
-                fileName = "3.pdf",
-                filePath = "downloads/3.pdf",
-                formattedSize = "0",
-                contentType = "text/plain",
-                status = DownloadState.Status.COMPLETED,
-            ),
-            FileItem(
-                id = "1",
-                url = "url",
-                fileName = "1.pdf",
-                filePath = "downloads/1.pdf",
-                formattedSize = "0",
-                contentType = "application/pdf",
-                status = DownloadState.Status.COMPLETED,
-            ),
-        )
+        val expectedList =
+            listOf(
+                HeaderItem(CreatedTime.TODAY),
+                FileItem(
+                    id = "3",
+                    url = "url",
+                    fileName = "3.pdf",
+                    filePath = "downloads/3.pdf",
+                    formattedSize = "0",
+                    contentType = "text/plain",
+                    status = DownloadState.Status.COMPLETED,
+                    createdTime = CreatedTime.TODAY,
+                ),
+                HeaderItem(CreatedTime.OLDER),
+                FileItem(
+                    id = "1",
+                    url = "url",
+                    fileName = "1.pdf",
+                    filePath = "downloads/1.pdf",
+                    formattedSize = "0",
+                    contentType = "application/pdf",
+                    status = DownloadState.Status.COMPLETED,
+                    createdTime = CreatedTime.OLDER,
+                ),
+            )
 
         assertEquals(expectedList, downloadsStore.state.itemsToDisplay)
 
@@ -160,6 +170,7 @@ class DownloadUIMapperMiddlewareTest {
         downloadsStore.waitUntilIdle()
 
         val expectedList = listOf(
+            HeaderItem(CreatedTime.OLDER),
             FileItem(
                 id = "1",
                 url = "url",
@@ -168,11 +179,16 @@ class DownloadUIMapperMiddlewareTest {
                 formattedSize = "0.10 KB",
                 contentType = "application/pdf",
                 status = DownloadState.Status.COMPLETED,
+                createdTime = CreatedTime.OLDER,
             ),
         )
 
         assertEquals(expectedList, downloadsStore.state.itemsToDisplay)
 
         file1.delete()
+    }
+
+    private fun LocalDate.toEpochMilli(): Long {
+        return atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     }
 }

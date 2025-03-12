@@ -12,6 +12,7 @@ import org.junit.Assert.assertNotSame
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.fenix.downloads.listscreen.store.CreatedTime
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIAction
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIStore
@@ -30,6 +31,7 @@ class DownloadUIStoreTest {
         formattedSize = "77",
         contentType = "jpg",
         status = DownloadState.Status.COMPLETED,
+        createdTime = CreatedTime.OLDER,
     )
     private val newFileItem = FileItem(
         id = "1",
@@ -39,6 +41,7 @@ class DownloadUIStoreTest {
         formattedSize = "77",
         contentType = "jpg",
         status = DownloadState.Status.COMPLETED,
+        createdTime = CreatedTime.OLDER,
     )
 
     @Test

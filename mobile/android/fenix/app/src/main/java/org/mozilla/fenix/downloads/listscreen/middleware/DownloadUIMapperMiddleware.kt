@@ -18,10 +18,13 @@ import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.ext.flow
+import org.mozilla.fenix.downloads.listscreen.store.CreatedTime
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIAction
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
 import org.mozilla.fenix.downloads.listscreen.store.FileItem
 import java.io.File
+import java.time.Instant
+import java.time.ZoneId
 
 /**
  * Middleware for loading and mapping download items from the browser store.
@@ -29,11 +32,13 @@ import java.io.File
  * @param browserStore [BrowserStore] instance to get the download items from.
  * @param scope The [CoroutineScope] that will be used to launch coroutines.
  * @param ioDispatcher The [CoroutineDispatcher] that will be used for IO operations.
+ * @param dateTimeProvider The [DateTimeProvider] that will be used to get the current date.
  */
 class DownloadUIMapperMiddleware(
     private val browserStore: BrowserStore,
     private val scope: CoroutineScope,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val dateTimeProvider: DateTimeProvider = DateTimeProviderImpl(),
 ) : Middleware<DownloadUIState, DownloadUIAction> {
 
     override fun invoke(
@@ -78,7 +83,31 @@ class DownloadUIMapperMiddleware(
             formattedSize = contentLength?.toMegabyteOrKilobyteString() ?: "0",
             contentType = contentType,
             status = status,
+            createdTime = categorizeTime(createdTime),
         )
+
+    private fun categorizeTime(epochMillis: Long): CreatedTime {
+        val currentDate = dateTimeProvider.currentLocalDate()
+        val inputDate = Instant.ofEpochMilli(epochMillis)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+
+        return when {
+            inputDate.isEqual(currentDate) -> CreatedTime.TODAY
+            inputDate.isEqual(currentDate.minusDays(1)) -> CreatedTime.YESTERDAY
+            inputDate.isAfter(currentDate.minusDays(NUM_DAYS_IN_LAST_7_DAYS_PERIOD)) -> CreatedTime.LAST_7_DAYS
+            inputDate.isAfter(currentDate.minusDays(NUM_DAYS_IN_LAST_30_DAYS_PERIOD)) -> CreatedTime.LAST_30_DAYS
+            else -> CreatedTime.OLDER
+        }
+    }
+
+    /**
+     * Constants for [DownloadUIMapperMiddleware].
+     */
+    companion object {
+        private const val NUM_DAYS_IN_LAST_7_DAYS_PERIOD = 7L
+        private const val NUM_DAYS_IN_LAST_30_DAYS_PERIOD = 30L
+    }
 }
 
 /**

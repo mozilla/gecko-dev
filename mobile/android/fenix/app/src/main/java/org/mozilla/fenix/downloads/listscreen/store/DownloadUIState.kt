@@ -5,7 +5,6 @@
 package org.mozilla.fenix.downloads.listscreen.store
 
 import mozilla.components.lib.state.State
-import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState.Mode
 
 /**
  * The state of the Download screen.
@@ -23,9 +22,18 @@ data class DownloadUIState(
 ) : State {
 
     /**
-     * The list of items to display, excluding any items that are pending deletion.
+     * The ungrouped list of items to display, excluding any items that are pending deletion.
      */
-    val itemsToDisplay = items.filter { it.id !in pendingDeletionIds }
+    val itemsNotPendingDeletion = items.filter { it.id !in pendingDeletionIds }
+
+    /**
+     * The list of items to display grouped by the created time of the item.
+     */
+    val itemsToDisplay: List<DownloadListItem> = itemsNotPendingDeletion
+        .groupBy { it.createdTime }
+        .flatMap { (key, value) ->
+            listOf(HeaderItem(key)) + value
+        }
 
     /**
      * Whether or not the state is in an empty state.

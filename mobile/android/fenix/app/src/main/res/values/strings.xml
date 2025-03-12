@@ -1324,6 +1324,17 @@
     <string name="download_multi_select_title">%1$d selected</string>
     <!-- Text for the button to remove a single download item -->
     <string name="download_delete_item_1">Remove</string>
+    <!-- Time period headers for downloads -->
+    <!-- Text for the header that groups the downloads for today -->
+    <string name="download_time_period_today">Today</string>
+    <!-- Text for the header that groups the downloads for yesterday -->
+    <string name="download_time_period_yesterday">Yesterday</string>
+    <!-- Text for the header that groups the downloads the past 7 days -->
+    <string name="download_time_period_last_7_days">Last 7 days</string>
+    <!-- Text for the header that groups the downloads the past 30 days -->
+    <string name="download_time_period_last_30_days">Last 30 days</string>
+    <!-- Text for the header that groups the downloads older than other groups -->
+    <string name="download_time_period_older">Older</string>
 
     <!-- WebCompat Reporter -->
     <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->

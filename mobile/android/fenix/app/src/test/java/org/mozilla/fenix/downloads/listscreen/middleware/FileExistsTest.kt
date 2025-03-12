@@ -10,6 +10,7 @@ import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import org.mozilla.fenix.downloads.listscreen.store.CreatedTime
 import org.mozilla.fenix.downloads.listscreen.store.FileItem
 import java.io.File
 
@@ -38,6 +39,7 @@ class FileExistsTest {
             formattedSize = "71 Mb",
             contentType = "Image/png",
             status = DownloadState.Status.COMPLETED,
+            createdTime = CreatedTime.OLDER,
         )
         val item2 = FileItem(
             id = "71",
@@ -47,6 +49,7 @@ class FileExistsTest {
             formattedSize = "71 Mb",
             contentType = "Image/png",
             status = DownloadState.Status.COMPLETED,
+            createdTime = CreatedTime.OLDER,
         )
         val item3 = FileItem(
             id = "71",
@@ -56,6 +59,7 @@ class FileExistsTest {
             formattedSize = "71 Mb",
             contentType = "Image/png",
             status = DownloadState.Status.COMPLETED,
+            createdTime = CreatedTime.OLDER,
         )
 
         val testList = mutableListOf(item1, item2, item3)
@@ -93,6 +97,7 @@ class FileExistsTest {
             formattedSize = "71 Mb",
             contentType = "text/plain",
             status = DownloadState.Status.COMPLETED,
+            createdTime = CreatedTime.OLDER,
         )
         val item2 = FileItem(
             id = "72",
@@ -102,6 +107,7 @@ class FileExistsTest {
             formattedSize = "71 Mb",
             contentType = "text/plain",
             status = DownloadState.Status.COMPLETED,
+            createdTime = CreatedTime.OLDER,
         )
         val item3 = FileItem(
             id = "73",
@@ -111,6 +117,7 @@ class FileExistsTest {
             formattedSize = "71 Mb",
             contentType = "text/plain",
             status = DownloadState.Status.COMPLETED,
+            createdTime = CreatedTime.OLDER,
         )
 
         val testList = mutableListOf(item1, item2, item3)

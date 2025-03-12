@@ -8,6 +8,7 @@ import mozilla.components.browser.state.state.content.DownloadState
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mozilla.fenix.R
+import org.mozilla.fenix.downloads.listscreen.store.CreatedTime
 import org.mozilla.fenix.downloads.listscreen.store.FileItem
 
 class FileItemToIconMapperTest {
@@ -21,6 +22,7 @@ class FileItemToIconMapperTest {
             formattedSize = "",
             contentType = "image/png",
             status = DownloadState.Status.COMPLETED,
+            createdTime = CreatedTime.TODAY,
         )
 
         assertEquals(R.drawable.ic_file_type_image, fileItem.getIcon())

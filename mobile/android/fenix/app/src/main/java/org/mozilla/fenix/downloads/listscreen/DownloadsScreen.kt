@@ -8,14 +8,16 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
@@ -40,6 +42,7 @@ import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.list.ExpandableListHeader
 import org.mozilla.fenix.compose.list.SelectableListItem
 import org.mozilla.fenix.compose.menu.DropdownMenu
 import org.mozilla.fenix.compose.menu.MenuItem
@@ -47,10 +50,12 @@ import org.mozilla.fenix.compose.snackbar.AcornSnackbarHostState
 import org.mozilla.fenix.compose.snackbar.SnackbarHost
 import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.compose.text.Text
+import org.mozilla.fenix.downloads.listscreen.store.CreatedTime
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIAction
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIStore
 import org.mozilla.fenix.downloads.listscreen.store.FileItem
+import org.mozilla.fenix.downloads.listscreen.store.HeaderItem
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -100,47 +105,69 @@ fun DownloadsScreen(
 @OptIn(ExperimentalFoundationApi::class)
 private fun DownloadsContent(
     state: DownloadUIState,
+    modifier: Modifier = Modifier,
     onClick: (FileItem) -> Unit,
     onSelectionChange: (FileItem, Boolean) -> Unit,
     onDeleteClick: (FileItem) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     val haptics = LocalHapticFeedback.current
 
     LazyColumn(
         modifier = modifier,
+        contentPadding = PaddingValues(vertical = FirefoxTheme.layout.space.static200),
     ) {
-        items(
+        itemsIndexed(
             items = state.itemsToDisplay,
-            key = { it.id },
-        ) { downloadItem ->
-            FileListItem(
-                fileItem = downloadItem,
-                isSelected = state.mode.selectedItems.contains(downloadItem),
-                isMenuIconVisible = state.isNormalMode,
-                onDeleteClick = onDeleteClick,
-                modifier = modifier
-                    .animateItem()
-                    .combinedClickable(
-                        onClick = {
-                            if (state.isNormalMode) {
-                                onClick(downloadItem)
-                            } else {
-                                onSelectionChange(
-                                    downloadItem,
-                                    !state.mode.selectedItems.contains(downloadItem),
-                                )
-                            }
-                        },
-                        onLongClick = {
-                            if (state.isNormalMode) {
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onSelectionChange(downloadItem, true)
-                            }
-                        },
+            contentType = { _, item -> item::class },
+            key = { _, item ->
+                when (item) {
+                    is HeaderItem -> item.createdTime
+                    is FileItem -> item.id
+                }
+            },
+        ) { index, listItem ->
+            when (listItem) {
+                is HeaderItem -> {
+                    HeaderListItem(
+                        headerItem = listItem,
+                        modifier = Modifier.animateItem(),
                     )
-                    .testTag("${DownloadsListTestTag.DOWNLOADS_LIST_ITEM}.${downloadItem.fileName}"),
-            )
+                }
+
+                is FileItem -> {
+                    FileListItem(
+                        fileItem = listItem,
+                        isSelected = state.mode.selectedItems.contains(listItem),
+                        isMenuIconVisible = state.isNormalMode,
+                        onDeleteClick = onDeleteClick,
+                        modifier = modifier
+                            .animateItem()
+                            .combinedClickable(
+                                onClick = {
+                                    if (state.isNormalMode) {
+                                        onClick(listItem)
+                                    } else {
+                                        onSelectionChange(
+                                            listItem,
+                                            !state.mode.selectedItems.contains(listItem),
+                                        )
+                                    }
+                                },
+                                onLongClick = {
+                                    if (state.isNormalMode) {
+                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onSelectionChange(listItem, true)
+                                    }
+                                },
+                            )
+                            .testTag("${DownloadsListTestTag.DOWNLOADS_LIST_ITEM}.${listItem.fileName}"),
+                    )
+
+                    if (index == state.itemsToDisplay.lastIndex || state.itemsToDisplay[index + 1] is HeaderItem) {
+                        Spacer(modifier = Modifier.height(FirefoxTheme.layout.space.static200))
+                    }
+                }
+            }
         }
     }
 }
@@ -194,6 +221,18 @@ private fun FileListItem(
 }
 
 @Composable
+private fun HeaderListItem(
+    headerItem: HeaderItem,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        ExpandableListHeader(
+            headerText = stringResource(id = headerItem.createdTime.stringRes),
+        )
+    }
+}
+
+@Composable
 private fun NoDownloadsText(modifier: Modifier = Modifier) {
     Text(
         text = stringResource(id = R.string.download_empty_message_1),
@@ -218,6 +257,7 @@ private class DownloadsScreenPreviewModelParameterProvider :
                         contentType = "application/pdf",
                         status = DownloadState.Status.COMPLETED,
                         filePath = "/path/to/file1",
+                        createdTime = CreatedTime.TODAY,
                     ),
                     FileItem(
                         id = "2",
@@ -227,6 +267,7 @@ private class DownloadsScreenPreviewModelParameterProvider :
                         contentType = "image/png",
                         status = DownloadState.Status.COMPLETED,
                         filePath = "/path/to/file1",
+                        createdTime = CreatedTime.TODAY,
                     ),
                     FileItem(
                         id = "3",
@@ -236,6 +277,7 @@ private class DownloadsScreenPreviewModelParameterProvider :
                         contentType = "application/zip",
                         status = DownloadState.Status.COMPLETED,
                         filePath = "/path/to/file1",
+                        createdTime = CreatedTime.OLDER,
                     ),
                 ),
                 mode = DownloadUIState.Mode.Normal,
