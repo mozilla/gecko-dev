@@ -48,9 +48,7 @@ fn get_byte_from_lit(lit: &syn::Lit) -> u8 {
 
 fn get_byte_from_expr_lit(expr: &syn::Expr) -> u8 {
     match *expr {
-        syn::Expr::Lit(syn::ExprLit { ref lit, .. }) => {
-            get_byte_from_lit(lit)
-        }
+        syn::Expr::Lit(syn::ExprLit { ref lit, .. }) => get_byte_from_lit(lit),
         _ => unreachable!(),
     }
 }
@@ -63,15 +61,17 @@ fn parse_pat_to_table<'a>(
     table: &mut [u8; 256],
 ) {
     match pat {
-        &syn::Pat::Lit(syn::PatLit { ref lit, .. }) => {
+        syn::Pat::Lit(syn::PatLit { ref lit, .. }) => {
             let value = get_byte_from_lit(lit);
             if table[value as usize] == 0 {
                 table[value as usize] = case_id;
             }
         }
-        &syn::Pat::Range(syn::PatRange { ref start, ref end, .. }) => {
-            let lo = get_byte_from_expr_lit(&start.as_ref().unwrap());
-            let hi = get_byte_from_expr_lit(&end.as_ref().unwrap());
+        syn::Pat::Range(syn::PatRange {
+            ref start, ref end, ..
+        }) => {
+            let lo = get_byte_from_expr_lit(start.as_ref().unwrap());
+            let hi = get_byte_from_expr_lit(end.as_ref().unwrap());
             for value in lo..hi {
                 if table[value as usize] == 0 {
                     table[value as usize] = case_id;
@@ -81,14 +81,14 @@ fn parse_pat_to_table<'a>(
                 table[hi as usize] = case_id;
             }
         }
-        &syn::Pat::Wild(_) => {
+        syn::Pat::Wild(_) => {
             for byte in table.iter_mut() {
                 if *byte == 0 {
                     *byte = case_id;
                 }
             }
         }
-        &syn::Pat::Ident(syn::PatIdent { ref ident, .. }) => {
+        syn::Pat::Ident(syn::PatIdent { ref ident, .. }) => {
             assert_eq!(*wildcard, None);
             *wildcard = Some(ident);
             for byte in table.iter_mut() {
@@ -97,7 +97,7 @@ fn parse_pat_to_table<'a>(
                 }
             }
         }
-        &syn::Pat::Or(syn::PatOr { ref cases, .. }) => {
+        syn::Pat::Or(syn::PatOr { ref cases, .. }) => {
             for case in cases {
                 parse_pat_to_table(case, case_id, wildcard, table);
             }

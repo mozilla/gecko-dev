@@ -21,8 +21,8 @@ use crate::values::specified::url::SpecifiedUrl;
 use crate::values::specified::{Angle, NonNegativePercentage};
 use cssparser::UnicodeRange;
 use cssparser::{
-    AtRuleParser, CowRcStr, DeclarationParser, Parser, QualifiedRuleParser, RuleBodyItemParser,
-    RuleBodyParser, SourceLocation,
+    AtRuleParser, CowRcStr, DeclarationParser, Parser, ParserState, QualifiedRuleParser,
+    RuleBodyItemParser, RuleBodyParser, SourceLocation,
 };
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
@@ -633,6 +633,7 @@ macro_rules! font_face_descriptors_common {
                &mut self,
                name: CowRcStr<'i>,
                input: &mut Parser<'i, 't>,
+               _declaration_start: &ParserState,
             ) -> Result<(), ParseError<'i>> {
                 match_ignore_ascii_case! { &*name,
                     $(

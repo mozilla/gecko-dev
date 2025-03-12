@@ -16,7 +16,7 @@ use crate::Atom;
 use cssparser::{
     AtRuleParser, DeclarationParser, QualifiedRuleParser, RuleBodyItemParser, RuleBodyParser,
 };
-use cssparser::{CowRcStr, Parser, SourceLocation, Token};
+use cssparser::{CowRcStr, Parser, ParserState, SourceLocation, Token};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use std::mem;
@@ -397,6 +397,7 @@ macro_rules! counter_style_descriptors {
                 &mut self,
                 name: CowRcStr<'i>,
                 input: &mut Parser<'i, 't>,
+                _declaration_start: &ParserState,
             ) -> Result<(), ParseError<'i>> {
                 match_ignore_ascii_case! { &*name,
                     $(

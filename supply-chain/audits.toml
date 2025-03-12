@@ -1459,6 +1459,13 @@ criteria = "safe-to-deploy"
 delta = "0.33.0 -> 0.34.0"
 notes = "I'm the publisher of the crate, and either myself or other Mozilla folks have been authors or reviewers of all the changes."
 
+[[audits.cssparser]]
+who = "Nicolas Chevobbe <chevobbe.nicolas@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.34.0 -> 0.34.1@git:958a3f098acb92ddacdce18a7ef2c4a87ac3326f"
+importable = false
+notes = "Emilio is the publisher of the crate, and he or other Mozilla employees have been authors or reviewers of all the changes."
+
 [[audits.cssparser-color]]
 who = "Emilio Cobos Álvarez <emilio@crisal.io>"
 criteria = "safe-to-deploy"
@@ -1478,6 +1485,12 @@ to a match expression.
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.6.0 -> 0.6.1"
+
+[[audits.cssparser-macros]]
+who = "Nicolas Chevobbe <chevobbe.nicolas@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.6.1 -> 0.6.1@git:958a3f098acb92ddacdce18a7ef2c4a87ac3326f"
+importable = false
 
 [[audits.cssparser-macros]]
 who = "Emilio Cobos Álvarez <emilio@crisal.io>"

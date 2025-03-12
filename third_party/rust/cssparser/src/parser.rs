@@ -76,7 +76,7 @@ pub enum BasicParseErrorKind<'i> {
     QualifiedRuleInvalid,
 }
 
-impl<'i> fmt::Display for BasicParseErrorKind<'i> {
+impl fmt::Display for BasicParseErrorKind<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             BasicParseErrorKind::UnexpectedToken(token) => {
@@ -176,7 +176,7 @@ impl<'i, T> ParseErrorKind<'i, T> {
     }
 }
 
-impl<'i, E: fmt::Display> fmt::Display for ParseErrorKind<'i, E> {
+impl<E: fmt::Display> fmt::Display for ParseErrorKind<'_, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ParseErrorKind::Basic(ref basic) => basic.fmt(f),
@@ -218,13 +218,13 @@ impl<'i, T> ParseError<'i, T> {
     }
 }
 
-impl<'i, E: fmt::Display> fmt::Display for ParseError<'i, E> {
+impl<E: fmt::Display> fmt::Display for ParseError<'_, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.kind.fmt(f)
     }
 }
 
-impl<'i, E: fmt::Display + fmt::Debug> std::error::Error for ParseError<'i, E> {}
+impl<E: fmt::Display + fmt::Debug> std::error::Error for ParseError<'_, E> {}
 
 /// The owned input for a parser.
 pub struct ParserInput<'i> {
@@ -360,10 +360,8 @@ impl Delimiters {
             table
         };
 
-        match byte {
-            None => Delimiter::None,
-            Some(b) => TABLE[b as usize],
-        }
+        assert_eq!(TABLE[0], Delimiter::None);
+        TABLE[byte.unwrap_or(0) as usize]
     }
 }
 

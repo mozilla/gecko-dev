@@ -24,8 +24,8 @@ use crate::values::specified::Color as SpecifiedColor;
 use crate::values::specified::NonNegativeInteger;
 use crate::values::DashedIdent;
 use cssparser::{
-    AtRuleParser, CowRcStr, DeclarationParser, Parser, QualifiedRuleParser, RuleBodyItemParser,
-    RuleBodyParser, SourceLocation,
+    AtRuleParser, CowRcStr, DeclarationParser, Parser, ParserState, QualifiedRuleParser,
+    RuleBodyItemParser, RuleBodyParser, SourceLocation,
 };
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
@@ -245,6 +245,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for FontPaletteValuesDeclarationParser<'a
         &mut self,
         name: CowRcStr<'i>,
         input: &mut Parser<'i, 't>,
+        _declaration_start: &ParserState,
     ) -> Result<(), ParseError<'i>> {
         match_ignore_ascii_case! { &*name,
             "font-family" => {

@@ -24,9 +24,9 @@ pub trait EncodingSupport {
 ///
 /// * `css_bytes`: A byte string.
 /// * `protocol_encoding`: The encoding label, if any, defined by HTTP or equivalent protocol.
-///     (e.g. via the `charset` parameter of the `Content-Type` header.)
+///   (e.g. via the `charset` parameter of the `Content-Type` header.)
 /// * `environment_encoding`: An optional `Encoding` object for the [environment encoding]
-///     (https://drafts.csswg.org/css-syntax/#environment-encoding), if any.
+///   (https://drafts.csswg.org/css-syntax/#environment-encoding), if any.
 ///
 /// Returns the encoding to use.
 pub fn stylesheet_encoding<E>(

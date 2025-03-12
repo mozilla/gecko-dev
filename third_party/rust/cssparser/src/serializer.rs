@@ -55,7 +55,7 @@ where
     Ok(())
 }
 
-impl<'a> ToCss for Token<'a> {
+impl ToCss for Token<'_> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
     where
         W: fmt::Write,
@@ -311,7 +311,7 @@ where
     }
 }
 
-impl<'a, W> fmt::Write for CssStringWriter<'a, W>
+impl<W> fmt::Write for CssStringWriter<'_, W>
 where
     W: fmt::Write,
 {
@@ -466,6 +466,9 @@ pub enum TokenSerializationType {
     Other,
 }
 
+#[cfg(feature = "malloc_size_of")]
+malloc_size_of::malloc_size_of_is_0!(TokenSerializationType);
+
 impl TokenSerializationType {
     /// Return a value that represents the absence of a token, e.g. before the start of the input.
     #[deprecated(
@@ -539,7 +542,7 @@ impl TokenSerializationType {
     }
 }
 
-impl<'a> Token<'a> {
+impl Token<'_> {
     /// Categorize a token into a type that determines when `/**/` needs to be inserted
     /// between two tokens when serialized next to each other without whitespace in between.
     ///

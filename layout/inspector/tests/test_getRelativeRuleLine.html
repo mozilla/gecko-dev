@@ -26,6 +26,30 @@
      }
   </style>
   <style>#test { color: red; }</style><!-- This tests stylesheet caching -->
+  <style>
+    #test {
+      color: tomato;
+
+      &:where(*) {
+        color: gold;
+
+        &:not(.foo) {
+          color: plum;
+        }
+
+        color: salmon;
+      }
+
+      color: blanchedalmond;
+      color: snow;
+
+      & > span {
+        color: cornflowerblue;
+      }
+
+      color: seagreen;
+    }
+  </style><!-- This tests nesting -->
   <script>
   const InspectorUtils = SpecialPowers.InspectorUtils;
 
@@ -36,12 +60,26 @@
     { sheetNo: 2, ruleNo: 0, lineNo: 1, columnNo: 1 },
     { sheetNo: 3, ruleNo: 0, lineNo: 5, columnNo: 6 },
     { sheetNo: 4, ruleNo: 0, lineNo: 1, columnNo: 1 },
+    { sheetNo: 5, ruleNo: 0, lineNo: 2, columnNo: 5 },
+    { sheetNo: 5, ruleNo: [0, 0], lineNo: 5, columnNo: 7 },
+    { sheetNo: 5, ruleNo: [0, 0, 0], lineNo: 8, columnNo: 9 },
+    { sheetNo: 5, ruleNo: [0, 0, 1], lineNo: 12, columnNo: 9 },
+    { sheetNo: 5, ruleNo: [0, 1], lineNo: 15, columnNo: 7 },
+    { sheetNo: 5, ruleNo: [0, 2], lineNo: 18, columnNo: 7 },
+    { sheetNo: 5, ruleNo: [0, 3], lineNo: 22, columnNo: 7 },
   ];
 
   function doTest() {
     for (let test of tests) {
       let sheet = document.styleSheets[test.sheetNo];
-      let rule = sheet.cssRules[test.ruleNo];
+      let rule;
+      if (Array.isArray(test.ruleNo)) {
+        for(const index of test.ruleNo) {
+          rule = (rule ? rule : sheet).cssRules[index];
+        }
+      } else {
+        rule = sheet.cssRules[test.ruleNo];
+      }
       let line = InspectorUtils.getRelativeRuleLine(rule);
       let column = InspectorUtils.getRuleColumn(rule);
       info("testing sheet " + test.sheetNo + ", rule " + test.ruleNo);

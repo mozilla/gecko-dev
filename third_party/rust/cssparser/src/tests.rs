@@ -773,7 +773,7 @@ where
     }
 }
 
-impl<'a> ToJson for CowRcStr<'a> {
+impl ToJson for CowRcStr<'_> {
     fn to_json(&self) -> Value {
         let s: &str = self;
         s.to_json()
@@ -849,6 +849,7 @@ impl<'i> DeclarationParser<'i> for JsonParser {
         &mut self,
         name: CowRcStr<'i>,
         input: &mut Parser<'i, 't>,
+        _declaration_start: &ParserState,
     ) -> Result<Value, ParseError<'i, ()>> {
         let mut value = vec![];
         let mut important = false;
@@ -946,7 +947,7 @@ impl<'i> QualifiedRuleParser<'i> for JsonParser {
     }
 }
 
-impl<'i> RuleBodyItemParser<'i, Value, ()> for JsonParser {
+impl RuleBodyItemParser<'_, Value, ()> for JsonParser {
     fn parse_qualified(&self) -> bool {
         true
     }

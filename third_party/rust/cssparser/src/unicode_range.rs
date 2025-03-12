@@ -104,7 +104,7 @@ fn parse_concatenated(text: &[u8]) -> Result<UnicodeRange, ()> {
         Some((&b'+', text)) => text,
         _ => return Err(()),
     };
-    let (first_hex_value, hex_digit_count) = consume_hex(&mut text);
+    let (first_hex_value, hex_digit_count) = consume_hex(&mut text, 6)?;
     let question_marks = consume_question_marks(&mut text);
     let consumed = hex_digit_count + question_marks;
     if consumed == 0 || consumed > 6 {
@@ -124,7 +124,7 @@ fn parse_concatenated(text: &[u8]) -> Result<UnicodeRange, ()> {
             end: first_hex_value,
         });
     } else if let Some((&b'-', mut text)) = text.split_first() {
-        let (second_hex_value, hex_digit_count) = consume_hex(&mut text);
+        let (second_hex_value, hex_digit_count) = consume_hex(&mut text, 6)?;
         if hex_digit_count > 0 && hex_digit_count <= 6 && text.is_empty() {
             return Ok(UnicodeRange {
                 start: first_hex_value,
@@ -135,19 +135,23 @@ fn parse_concatenated(text: &[u8]) -> Result<UnicodeRange, ()> {
     Err(())
 }
 
-fn consume_hex(text: &mut &[u8]) -> (u32, usize) {
+// Consume hex digits, but return an error if more than digit_limit are found.
+fn consume_hex(text: &mut &[u8], digit_limit: usize) -> Result<(u32, usize), ()> {
     let mut value = 0;
     let mut digits = 0;
     while let Some((&byte, rest)) = text.split_first() {
         if let Some(digit_value) = (byte as char).to_digit(16) {
+            if digits == digit_limit {
+                return Err(());
+            }
             value = value * 0x10 + digit_value;
             digits += 1;
-            *text = rest
+            *text = rest;
         } else {
             break;
         }
     }
-    (value, digits)
+    Ok((value, digits))
 }
 
 fn consume_question_marks(text: &mut &[u8]) -> usize {

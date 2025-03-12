@@ -36,8 +36,7 @@ use crate::values::{CssUrl, CustomIdent, DashedIdent, KeyframesName};
 use crate::{Atom, Namespace, Prefix};
 use cssparser::{
     AtRuleParser, BasicParseError, BasicParseErrorKind, CowRcStr, DeclarationParser, Parser,
-    ParserState, QualifiedRuleParser, RuleBodyItemParser, RuleBodyParser, SourceLocation,
-    SourcePosition,
+    ParserState, QualifiedRuleParser, RuleBodyItemParser, RuleBodyParser, SourcePosition,
 };
 use selectors::parser::{ParseRelative, SelectorList};
 use servo_arc::Arc;
@@ -542,9 +541,8 @@ impl<'a, 'i> NestedRuleParser<'a, 'i> {
         &mut self,
         input: &mut Parser<'i, '_>,
         rule_type: CssRuleType,
-        source_location: SourceLocation,
     ) -> Arc<Locked<CssRules>> {
-        let rules = self.parse_nested(input, rule_type, /* wants_first_declaration_block = */ false, source_location).rules;
+        let rules = self.parse_nested(input, rule_type, /* wants_first_declaration_block = */ false).rules;
         CssRules::new(rules, &self.shared_lock)
     }
 
@@ -553,7 +551,6 @@ impl<'a, 'i> NestedRuleParser<'a, 'i> {
         input: &mut Parser<'i, '_>,
         rule_type: CssRuleType,
         wants_first_declaration_block: bool,
-        source_location: SourceLocation,
     ) -> NestedParseResult {
         debug_assert!(!self.wants_first_declaration_block, "Should've flushed previous declarations");
         self.nest_for_rule(rule_type, |parser| {
@@ -578,7 +575,7 @@ impl<'a, 'i> NestedRuleParser<'a, 'i> {
                     },
                 }
             }
-            parser.flush_declarations(source_location);
+            parser.flush_declarations();
             debug_assert!(
                 !parser.wants_first_declaration_block,
                 "Flushing declarations should take care of this."
@@ -638,7 +635,7 @@ impl<'a, 'i> NestedRuleParser<'a, 'i> {
     }
 
     #[inline]
-    fn flush_declarations(&mut self, source_location: SourceLocation) {
+    fn flush_declarations(&mut self) {
         let parser = &mut **self;
         let wants_first_declaration_block = parser.wants_first_declaration_block;
         parser.wants_first_declaration_block = false;
@@ -646,6 +643,7 @@ impl<'a, 'i> NestedRuleParser<'a, 'i> {
         if !parser.declaration_parser_state.has_parsed_declarations() {
             return;
         }
+        let source_location = parser.declaration_parser_state.first_declaration_start();
         let declarations = parser.declaration_parser_state.take_declarations();
         if wants_first_declaration_block {
             debug_assert!(parser.first_declaration_block.is_empty(), "How?");
@@ -772,7 +770,7 @@ impl<'a, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'i> {
             return Err(input.new_error(BasicParseErrorKind::AtRuleInvalid(prelude.name().into())));
         }
         let source_location = start.source_location();
-        self.flush_declarations(source_location);
+        self.flush_declarations();
         let rule = match prelude {
             AtRulePrelude::FontFace => self.nest_for_rule(CssRuleType::FontFace, |p| {
                 CssRule::FontFace(Arc::new(p.shared_lock.wrap(
@@ -808,7 +806,7 @@ impl<'a, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'i> {
             AtRulePrelude::Media(media_queries) => {
                 CssRule::Media(Arc::new(MediaRule {
                     media_queries,
-                    rules: self.parse_nested_rules(input, CssRuleType::Media, source_location),
+                    rules: self.parse_nested_rules(input, CssRuleType::Media),
                     source_location,
                 }))
             },
@@ -817,7 +815,7 @@ impl<'a, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'i> {
                     self.nest_for_rule(CssRuleType::Style, |p| condition.eval(&p.context));
                 CssRule::Supports(Arc::new(SupportsRule {
                     condition,
-                    rules: self.parse_nested_rules(input, CssRuleType::Supports, source_location),
+                    rules: self.parse_nested_rules(input, CssRuleType::Supports),
                     enabled,
                     source_location,
                 }))
@@ -845,7 +843,7 @@ impl<'a, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'i> {
                         source_location,
                     }
                 } else {
-                    let result = self.parse_nested(input, CssRuleType::Page, true, source_location);
+                    let result = self.parse_nested(input, CssRuleType::Page, true);
                     PageRule {
                         selectors,
                         rules: CssRules::new(result.rules, self.shared_lock),
@@ -866,7 +864,7 @@ impl<'a, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'i> {
                 }
                 CssRule::Document(Arc::new(DocumentRule {
                     condition,
-                    rules: self.parse_nested_rules(input, CssRuleType::Document, source_location),
+                    rules: self.parse_nested_rules(input, CssRuleType::Document),
                     source_location,
                 }))
             },
@@ -874,7 +872,7 @@ impl<'a, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'i> {
                 let source_location = start.source_location();
                 CssRule::Container(Arc::new(ContainerRule {
                     condition,
-                    rules: self.parse_nested_rules(input, CssRuleType::Container, source_location),
+                    rules: self.parse_nested_rules(input, CssRuleType::Container),
                     source_location,
                 }))
             },
@@ -885,7 +883,7 @@ impl<'a, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'i> {
                 };
                 CssRule::LayerBlock(Arc::new(LayerBlockRule {
                     name,
-                    rules: self.parse_nested_rules(input, CssRuleType::LayerBlock, source_location),
+                    rules: self.parse_nested_rules(input, CssRuleType::LayerBlock),
                     source_location,
                 }))
             },
@@ -906,13 +904,13 @@ impl<'a, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'i> {
             AtRulePrelude::Scope(bounds) => {
                 CssRule::Scope(Arc::new(ScopeRule {
                     bounds,
-                    rules: self.parse_nested_rules(input, CssRuleType::Scope, source_location),
+                    rules: self.parse_nested_rules(input, CssRuleType::Scope),
                     source_location,
                 }))
             },
             AtRulePrelude::StartingStyle => {
                 CssRule::StartingStyle(Arc::new(StartingStyleRule {
-                    rules: self.parse_nested_rules(input, CssRuleType::StartingStyle, source_location),
+                    rules: self.parse_nested_rules(input, CssRuleType::StartingStyle),
                     source_location,
                 }))
             },
@@ -953,7 +951,7 @@ impl<'a, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'i> {
             },
             _ => return Err(()),
         };
-        self.flush_declarations(source_location);
+        self.flush_declarations();
         self.rules.push(rule);
         Ok(())
     }
@@ -988,8 +986,8 @@ impl<'a, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'i> {
         if reporting_errors {
             self.handle_error_reporting_selectors_pre(start, &selectors);
         }
-        self.flush_declarations(source_location);
-        let result = self.parse_nested(input, CssRuleType::Style, true, source_location);
+        self.flush_declarations();
+        let result = self.parse_nested(input, CssRuleType::Style, true);
         if reporting_errors {
             self.handle_error_reporting_selectors_post();
         }
@@ -1017,10 +1015,11 @@ impl<'a, 'i> DeclarationParser<'i> for NestedRuleParser<'a, 'i> {
         &mut self,
         name: CowRcStr<'i>,
         input: &mut Parser<'i, 't>,
+        declaration_start: &ParserState,
     ) -> Result<(), ParseError<'i>> {
         let top = &mut **self;
         top.declaration_parser_state
-            .parse_value(&top.context, name, input)
+            .parse_value(&top.context, name, input, declaration_start)
     }
 }
 
