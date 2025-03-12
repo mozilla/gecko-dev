@@ -34,6 +34,21 @@
   const DIRECTION_BACKWARD = -1;
 
   /**
+   * @param {MozTabbrowserTab|MozTabbrowserTabGroup} element
+   * @returns {boolean}
+   *   `true` if element is a `<tab>`
+   */
+  const isTab = element => !!(element?.tagName == "tab");
+
+  /**
+   * @param {MozTabbrowserTab|MozTextLabel} element
+   * @returns {boolean}
+   *   `true` if element is the `<label>` in a `<tab-group>`
+   */
+  const isTabGroupLabel = element =>
+    !!element?.classList?.contains("tab-group-label");
+
+  /**
    * Updates the User Context UI indicators if the browser is in a non-default context
    */
   function updateUserContextUIIndicator() {
@@ -5675,10 +5690,6 @@
      * in the current window, in which case this will do nothing.
      */
     replaceTabsWithWindow(contextTab, aOptions = {}) {
-      if (this.isTabGroupLabel(contextTab)) {
-        return this.replaceTabWithWindow(contextTab, aOptions);
-      }
-
       let tabs;
       if (contextTab.multiselected) {
         tabs = this.selectedTabs;
@@ -5785,24 +5796,6 @@
       return newWindow;
     }
 
-    /**
-     * @param {MozTabbrowserTab|MozTabbrowserTabGroup} element
-     * @returns {boolean}
-     *   `true` if element is a `<tab>`
-     */
-    isTab(element) {
-      return !!(element?.tagName == "tab");
-    }
-
-    /**
-     * @param {MozTabbrowserTab|MozTextLabel} element
-     * @returns {boolean}
-     *   `true` if element is the `<label>` in a `<tab-group>`
-     */
-    isTabGroupLabel(element) {
-      return !!element?.classList?.contains("tab-group-label");
-    }
-
     _updateTabsAfterInsert() {
       for (let i = 0; i < this.tabs.length; i++) {
         this.tabs[i]._tPos = i;
@@ -5840,7 +5833,7 @@
      *   a tab group, since pinned tabs are presently not allowed in tab groups.
      */
     moveTabTo(aTab, aIndex, { forceUngrouped = false } = {}) {
-      if (this.isTab(aTab)) {
+      if (isTab(aTab)) {
         // Don't allow mixing pinned and unpinned tabs.
         if (aTab.pinned) {
           aIndex = Math.min(aIndex, this.pinnedTabCount - 1);
@@ -5852,7 +5845,7 @@
         }
       } else {
         forceUngrouped = true;
-        if (this.isTabGroupLabel(aTab)) {
+        if (isTabGroupLabel(aTab)) {
           aTab = aTab.group;
         }
       }
@@ -5910,7 +5903,7 @@
      * @param {boolean} moveBefore
      */
     #moveTabNextTo(tab, targetElement, moveBefore = false) {
-      if (this.isTabGroupLabel(tab)) {
+      if (isTabGroupLabel(tab)) {
         tab = tab.group;
         if (targetElement?.group) {
           targetElement = targetElement.group;
@@ -5968,7 +5961,7 @@
      */
     #handleTabMove(aTab, moveActionCallback) {
       let wasFocused = document.activeElement == this.selectedTab;
-      let oldPosition = this.isTab(aTab) && aTab.elementIndex;
+      let oldPosition = isTab(aTab) && aTab.elementIndex;
 
       moveActionCallback();
 
@@ -5993,7 +5986,7 @@
       }
       // Pinning/unpinning vertical tabs, and moving tabs into tab groups, both bypass moveTabTo.
       // We still want to check whether its worth dispatching an event.
-      if (this.isTab(aTab) && oldPosition != aTab.elementIndex) {
+      if (isTab(aTab) && oldPosition != aTab.elementIndex) {
         let evt = document.createEvent("UIEvents");
         evt.initUIEvent("TabMove", true, false, window, oldPosition);
         aTab.dispatchEvent(evt);

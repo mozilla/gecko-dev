@@ -269,25 +269,24 @@ var gBrowserInit = {
       // Remove the speculative focus from the urlbar to let the url be formatted.
       gURLBar.removeAttribute("focused");
 
-      // Wait for the next paint event, otherwise focus gets confused because
-      // the browser swaps out while tabs are switching asynchronously.
-      addEventListener(
-        "MozAfterPaint",
-        () => {
-          if (gBrowser.isTabGroupLabel(tabToAdopt)) {
-            gBrowser.adoptTabGroup(tabToAdopt.group, 0);
-            gBrowser.removeTab(gBrowser.selectedTab);
-          } else {
-            gBrowser.swapBrowsersAndCloseOther(
-              gBrowser.selectedTab,
-              tabToAdopt
-            );
-          }
+      let swapBrowsers = () => {
+        try {
+          gBrowser.swapBrowsersAndCloseOther(gBrowser.selectedTab, tabToAdopt);
+        } catch (e) {
+          console.error(e);
+        }
 
-          this._clearTabToAdopt();
-        },
-        { once: true }
-      );
+        // Clear the reference to the tab once its adoption has been completed.
+        this._clearTabToAdopt();
+      };
+      if (tabToAdopt.linkedBrowser.isRemoteBrowser) {
+        // For remote browsers, wait for the paint event, otherwise the tabs
+        // are not yet ready and focus gets confused because the browser swaps
+        // out while tabs are switching.
+        addEventListener("MozAfterPaint", swapBrowsers, { once: true });
+      } else {
+        swapBrowsers();
+      }
     }
 
     // Wait until chrome is painted before executing code not critical to making the window visible
