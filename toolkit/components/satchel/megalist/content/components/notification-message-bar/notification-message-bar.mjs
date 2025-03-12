@@ -111,20 +111,20 @@ class NotificationMessageBar extends MozLitElement {
     return html`${notificationShell({
       onDismiss: this.#handleDismiss,
       messageHandler: this.messageHandler,
-      dataL10nId: "passwords-import-success-heading",
-      messageL10nId: "passwords-import-success-message",
+      dataL10nId: "contextual-manager-passwords-import-success-heading",
+      messageL10nId: "contextual-manager-passwords-import-success-message",
       messageL10nArgs: this.notification.l10nArgs,
       type: "success",
       link: {
         url: this.notification.url,
-        dataL10nId: "passwords-import-detailed-report",
+        dataL10nId: "contextual-manager-passwords-import-detailed-report",
       },
       primaryAction: {
         type: "primary",
         telemetryType: "dismiss",
         telemetryId: this.notification.id,
         slot: "actions",
-        dataL10nId: "passwords-import-success-button",
+        dataL10nId: "contextual-manager-passwords-import-success-button",
         onClick: this.onDismiss,
       },
       notificationId: this.notification.id,
@@ -135,23 +135,25 @@ class NotificationMessageBar extends MozLitElement {
     return html`${notificationShell({
       onDismiss: this.#handleDismiss,
       messageHandler: this.messageHandler,
-      dataL10nId: "passwords-import-error-heading-and-message",
+      dataL10nId:
+        "contextual-manager-passwords-import-error-heading-and-message",
       type: "error",
       link: {
         url: this.notification.url,
-        dataL10nId: "passwords-import-learn-more",
+        dataL10nId: "contextual-manager-passwords-import-learn-more",
       },
       primaryAction: {
         type: "primary",
         telemetryType: "import",
         telemetryId: this.notification.id,
-        dataL10nId: "passwords-import-error-button-try-again",
+        dataL10nId:
+          "contextual-manager-passwords-import-error-button-try-again",
         onClick: () => this.messageHandler(this.notification.commands.onRetry),
       },
       secondaryAction: {
         telemetryType: "dismiss",
         telemetryId: this.notification.id,
-        dataL10nId: "passwords-import-error-button-cancel",
+        dataL10nId: "contextual-manager-passwords-import-error-button-cancel",
         onClick: this.onDismiss,
       },
       notificationId: this.notification.id,
@@ -162,14 +164,14 @@ class NotificationMessageBar extends MozLitElement {
     return html`
       ${notificationShell({
         onDismiss: this.#handleDismiss,
-        dataL10nId: "passwords-export-success-heading",
+        dataL10nId: "contextual-manager-passwords-export-success-heading",
         type: "success",
         primaryAction: {
           type: "primary",
           telemetryType: "dismiss",
           telemetryId: this.notification.id,
           slot: "actions",
-          dataL10nId: "passwords-export-success-button",
+          dataL10nId: "contextual-manager-passwords-export-success-button",
           onClick: this.onDismiss,
         },
         notificationId: this.notification.id,
@@ -181,7 +183,7 @@ class NotificationMessageBar extends MozLitElement {
     return html`
       ${notificationShell({
         onDismiss: this.#handleDismiss,
-        dataL10nId: "passwords-add-password-success-heading",
+        dataL10nId: "contextual-manager-passwords-add-password-success-heading",
         dataL10nArgs: JSON.stringify(this.notification.l10nArgs),
         type: "success",
         primaryAction: {
@@ -189,7 +191,8 @@ class NotificationMessageBar extends MozLitElement {
           telemetryType: "nav_record",
           telemetryId: this.notification.id,
           slot: "actions",
-          dataL10nId: "passwords-add-password-success-button",
+          dataL10nId:
+            "contextual-manager-passwords-add-password-success-button",
           onClick: () => {
             this.#dispatchViewLoginEvent(this.notification.guid);
             this.onDismiss();
@@ -204,7 +207,8 @@ class NotificationMessageBar extends MozLitElement {
     return html`
       ${notificationShell({
         onDismiss: this.#handleDismiss,
-        dataL10nId: "passwords-password-already-exists-error-heading",
+        dataL10nId:
+          "contextual-manager-passwords-password-already-exists-error-heading",
         dataL10nArgs: JSON.stringify(this.notification.l10nArgs),
         type: "warning",
         primaryAction: {
@@ -212,7 +216,8 @@ class NotificationMessageBar extends MozLitElement {
           telemetryType: "nav_record",
           telemetryId: this.notification.id,
           slot: "actions",
-          dataL10nId: "passwords-password-already-exists-error-button",
+          dataL10nId:
+            "contextual-manager-passwords-password-already-exists-error-button",
           onClick: () => {
             this.#dispatchViewLoginEvent(this.notification.guid);
             this.onDismiss();
@@ -227,7 +232,8 @@ class NotificationMessageBar extends MozLitElement {
     return html`
       ${notificationShell({
         onDismiss: this.#handleDismiss,
-        dataL10nId: "passwords-update-password-success-heading",
+        dataL10nId:
+          "contextual-manager-passwords-update-password-success-heading",
         dataL10nAttrs: "heading",
         type: "success",
         primaryAction: {
@@ -235,7 +241,8 @@ class NotificationMessageBar extends MozLitElement {
           telemetryType: "dismiss",
           telemetryId: this.notification.id,
           slot: "actions",
-          dataL10nId: "passwords-update-password-success-button",
+          dataL10nId:
+            "contextual-manager-passwords-update-password-success-button",
           onClick: this.onDismiss,
         },
         notificationId: this.notification.id,
@@ -247,7 +254,8 @@ class NotificationMessageBar extends MozLitElement {
     return html`
       ${notificationShell({
         onDismiss: this.#handleDismiss,
-        dataL10nId: "passwords-delete-password-success-heading",
+        dataL10nId:
+          "contextual-manager-passwords-delete-password-success-heading",
         dataL10nArgs: JSON.stringify(this.notification.l10nArgs),
         dataL10nAttrs: "heading",
         type: "success",
@@ -256,7 +264,8 @@ class NotificationMessageBar extends MozLitElement {
           telemetryType: "dismiss",
           telemetryId: this.notification.id,
           slot: "actions",
-          dataL10nId: "passwords-delete-password-success-button",
+          dataL10nId:
+            "contextual-manager-passwords-delete-password-success-button",
           onClick: this.onDismiss,
         },
         notificationId: this.notification.id,
@@ -267,13 +276,14 @@ class NotificationMessageBar extends MozLitElement {
   #renderDiscardChanges() {
     return html`${notificationShell({
       onDismiss: this.#handleDismiss,
-      dataL10nId: "passwords-discard-changes-heading-and-message",
+      dataL10nId:
+        "contextual-manager-passwords-discard-changes-heading-and-message",
       type: "warning",
       primaryAction: {
         type: "destructive",
         telemetryType: "confirm_discard_changes",
         telemetryId: this.notification.id,
-        dataL10nId: "passwords-discard-changes-close-button",
+        dataL10nId: "contextual-manager-passwords-discard-changes-close-button",
         onClick: () => {
           this.messageHandler("Cancel", {}, this.notification.passwordIndex);
           this.messageHandler("ConfirmDiscardChanges", {
@@ -286,7 +296,8 @@ class NotificationMessageBar extends MozLitElement {
       secondaryAction: {
         telemetryType: "dismiss",
         telemetryId: this.notification.id,
-        dataL10nId: "passwords-discard-changes-go-back-button",
+        dataL10nId:
+          "contextual-manager-passwords-discard-changes-go-back-button",
         onClick: this.onDismiss,
       },
       notificationId: this.notification.id,
@@ -298,17 +309,19 @@ class NotificationMessageBar extends MozLitElement {
       ${notificationShell({
         dismissable: false,
         messageHandler: this.messageHandler,
-        dataL10nId: "passwords-breached-origin-heading-and-message",
+        dataL10nId:
+          "contextual-manager-passwords-breached-origin-heading-and-message",
         type: "error",
         link: {
           url: this.notification.url,
-          dataL10nId: "passwords-breached-origin-link-message",
+          dataL10nId:
+            "contextual-manager-passwords-breached-origin-link-message",
         },
         primaryAction: {
           telemetryType: "change_record",
           telemetryId: this.notification.id,
           slot: "actions",
-          dataL10nId: "passwords-change-password-button",
+          dataL10nId: "contextual-manager-passwords-change-password-button",
           onClick: this.notification.onButtonClick,
         },
         notificationId: this.notification.id,
@@ -320,13 +333,14 @@ class NotificationMessageBar extends MozLitElement {
     return html`
       ${notificationShell({
         dismissable: false,
-        dataL10nId: "passwords-no-username-heading-and-message",
+        dataL10nId:
+          "contextual-manager-passwords-no-username-heading-and-message",
         type: "info",
         primaryAction: {
           telemetryType: "change_record",
           telemetryId: this.notification.id,
           slot: "actions",
-          dataL10nId: "passwords-add-username-button",
+          dataL10nId: "contextual-manager-passwords-add-username-button",
           onClick: this.notification.onButtonClick,
         },
         notificationId: this.notification.id,
@@ -339,17 +353,19 @@ class NotificationMessageBar extends MozLitElement {
       ${notificationShell({
         dismissable: false,
         messageHandler: this.messageHandler,
-        dataL10nId: "passwords-vulnerable-password-heading-and-message",
+        dataL10nId:
+          "contextual-manager-passwords-vulnerable-password-heading-and-message",
         type: "warning",
         link: {
           url: this.notification.url,
-          dataL10nId: "passwords-vulnerabe-password-link-message",
+          dataL10nId:
+            "contextual-manager-passwords-vulnerable-password-link-message",
         },
         primaryAction: {
           telemetryType: "change_record",
           telemetryId: this.notification.id,
           slot: "actions",
-          dataL10nId: "passwords-change-password-button",
+          dataL10nId: "contextual-manager-passwords-change-password-button",
           onClick: this.notification.onButtonClick,
         },
         notificationId: this.notification.id,

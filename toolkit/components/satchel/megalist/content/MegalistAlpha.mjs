@@ -323,7 +323,7 @@ export class MegalistAlpha extends MozLitElement {
             class="passwords-list"
             role="listbox"
             tabindex="0"
-            data-l10n-id="passwords-list-label"
+            data-l10n-id="contextual-manager-passwords-list-label"
             @keypress=${e => {
               if (e.key === "ArrowDown") {
                 e.preventDefault();
@@ -374,15 +374,18 @@ export class MegalistAlpha extends MozLitElement {
     };
 
     return html`
-      <moz-card class="alert-card" data-l10n-id="passwords-alert-card">
+      <moz-card
+        class="alert-card"
+        data-l10n-id="contextual-manager-passwords-alert-card"
+      >
         <moz-button
           type="icon ghost"
           iconSrc="chrome://browser/skin/back.svg"
-          data-l10n-id="passwords-alert-back-button"
+          data-l10n-id="contextual-manager-passwords-alert-back-button"
           @click=${() => (this.viewMode = VIEW_MODES.LIST)}
         >
         </moz-button>
-        <ul data-l10n-id="passwords-alert-list">
+        <ul data-l10n-id="contextual-manager-passwords-alert-list">
           ${alerts.map(({ displayAlert, notification }) =>
             when(
               displayAlert,
@@ -435,14 +438,18 @@ export class MegalistAlpha extends MozLitElement {
           />
           <strong
             class="no-logins-card-heading"
-            data-l10n-id="passwords-no-passwords-header"
+            data-l10n-id="contextual-manager-passwords-no-passwords-header"
           ></strong>
-          <p data-l10n-id="passwords-no-passwords-message"></p>
-          <p data-l10n-id="passwords-no-passwords-get-started-message"></p>
+          <p
+            data-l10n-id="contextual-manager-passwords-no-passwords-message"
+          ></p>
+          <p
+            data-l10n-id="contextual-manager-passwords-no-passwords-get-started-message"
+          ></p>
           <div class="no-logins-card-buttons">
             <moz-button
               class="empty-state-import-from-browser"
-              data-l10n-id="passwords-command-import-from-browser"
+              data-l10n-id="contextual-manager-passwords-command-import-from-browser"
               type="primary"
               @click=${() => {
                 this.#sendCommand("ImportFromBrowser");
@@ -451,7 +458,7 @@ export class MegalistAlpha extends MozLitElement {
             ></moz-button>
             <moz-button
               class="empty-state-import-from-file"
-              data-l10n-id="passwords-command-import"
+              data-l10n-id="contextual-manager-passwords-command-import"
               @click=${() => {
                 this.#sendCommand("Import");
                 this.#recordToolbarAction("import_file", "empty_state_card");
@@ -459,7 +466,7 @@ export class MegalistAlpha extends MozLitElement {
             ></moz-button>
             <moz-button
               class="empty-state-add-password"
-              data-l10n-id="passwords-add-manually"
+              data-l10n-id="contextual-manager-passwords-add-manually"
               @click=${() => this.#onAddButtonClick("empty_state_card")}
             ></moz-button>
           </div>
@@ -471,12 +478,12 @@ export class MegalistAlpha extends MozLitElement {
   renderEmptySearchResults() {
     return html` <moz-card
       class="empty-state-card"
-      data-l10n-id="passwords-no-passwords-found-header"
+      data-l10n-id="contextual-manager-passwords-no-passwords-found-header"
     >
       <div
         id="no-results-message"
         class="empty-search-results"
-        data-l10n-id="passwords-no-passwords-found-message"
+        data-l10n-id="contextual-manager-passwords-no-passwords-found-message"
       ></div>
     </moz-card>`;
   }
@@ -554,7 +561,7 @@ export class MegalistAlpha extends MozLitElement {
         <input
           class="search"
           type="search"
-          data-l10n-id="filter-input"
+          data-l10n-id="contextual-manager-filter-input"
           .value=${this.searchText}
           aria-describedby=${describedBy}
           @input=${e => this.#onInputChange(e)}
@@ -571,7 +578,10 @@ export class MegalistAlpha extends MozLitElement {
 
   renderRadioButtons() {
     return html`
-      <div data-l10n-id="passwords-radiogroup-label" role="radiogroup">
+      <div
+        data-l10n-id="contextual-manager-passwords-radiogroup-label"
+        role="radiogroup"
+      >
         <input
           @change=${this.#onRadioButtonChange}
           checked
@@ -582,7 +592,7 @@ export class MegalistAlpha extends MozLitElement {
         />
         <label
           for="allLogins"
-          data-l10n-id="passwords-radiobutton-all"
+          data-l10n-id="contextual-manager-passwords-radiobutton-all"
           data-l10n-args=${JSON.stringify({ total: this.header.value.total })}
         ></label>
 
@@ -595,7 +605,7 @@ export class MegalistAlpha extends MozLitElement {
         />
         <label
           for="alerts"
-          data-l10n-id="passwords-radiobutton-alerts"
+          data-l10n-id="contextual-manager-passwords-radiobutton-alerts"
           data-l10n-args=${JSON.stringify({ total: this.header.value.alerts })}
         ></label>
       </div>
@@ -610,22 +620,22 @@ export class MegalistAlpha extends MozLitElement {
         iconSrc="chrome://global/skin/icons/more.svg"
         aria-expanded="false"
         aria-haspopup="menu"
-        data-l10n-id="menu-more-options-button"
+        data-l10n-id="contextual-manager-menu-more-options-button"
         id="more-options-menubutton"
       ></moz-button>
       <panel-list
         role="menu"
         aria-labelledby="more-options-menubutton"
-        data-l10n-id="more-options-popup"
+        data-l10n-id="contextual-manager-more-options-popup"
       >
         <panel-item
           action="add-password"
-          data-l10n-id="passwords-command-create"
+          data-l10n-id="contextual-manager-passwords-command-create"
           @click=${() => this.#onAddButtonClick("toolbar")}
         ></panel-item>
         <panel-item
           action="import-from-browser"
-          data-l10n-id="passwords-command-import-from-browser"
+          data-l10n-id="contextual-manager-passwords-command-import-from-browser"
           @click=${() => {
             this.#sendCommand("ImportFromBrowser");
             this.#recordToolbarAction("import_browser", "toolbar");
@@ -633,7 +643,7 @@ export class MegalistAlpha extends MozLitElement {
         ></panel-item>
         <panel-item
           action="import-from-file"
-          data-l10n-id="passwords-command-import"
+          data-l10n-id="contextual-manager-passwords-command-import"
           @click=${() => {
             this.#sendCommand("Import");
             this.#recordToolbarAction("import_file", "toolbar");
@@ -641,7 +651,7 @@ export class MegalistAlpha extends MozLitElement {
         ></panel-item>
         <panel-item
           action="export-logins"
-          data-l10n-id="passwords-command-export"
+          data-l10n-id="contextual-manager-passwords-command-export"
           @click=${() => {
             this.#sendCommand("Export");
             this.#recordToolbarAction("export", "toolbar");
@@ -649,7 +659,7 @@ export class MegalistAlpha extends MozLitElement {
         ></panel-item>
         <panel-item
           action="remove-all-logins"
-          data-l10n-id="passwords-command-remove-all"
+          data-l10n-id="contextual-manager-passwords-command-remove-all"
           @click=${() => {
             this.#sendCommand("RemoveAll");
             this.#recordToolbarAction("remove_all", "toolbar");
@@ -659,7 +669,7 @@ export class MegalistAlpha extends MozLitElement {
         <hr />
         <panel-item
           action="open-preferences"
-          data-l10n-id="passwords-command-settings"
+          data-l10n-id="contextual-manager-passwords-command-settings"
           @click=${() => {
             const command = this.header.commands.find(
               command => command.id === "Settings"
@@ -670,7 +680,7 @@ export class MegalistAlpha extends MozLitElement {
         ></panel-item>
         <panel-item
           action="open-help"
-          data-l10n-id="passwords-command-help"
+          data-l10n-id="contextual-manager-passwords-command-help"
           @click=${() => {
             const command = this.header.commands.find(
               command => command.id === "Help"

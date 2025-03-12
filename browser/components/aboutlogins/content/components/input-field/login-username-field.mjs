@@ -31,7 +31,7 @@ class LoginUsernameField extends MozLitElement {
         disabled: this.readonly,
         required: this.required,
         labelL10nId: "login-item-username-label",
-        noteL10nId: "passwords-username-tooltip",
+        noteL10nId: "contextual-manager-passwords-username-tooltip",
       })}
     `;
   }

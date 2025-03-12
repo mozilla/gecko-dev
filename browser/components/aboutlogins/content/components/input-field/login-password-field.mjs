@@ -70,7 +70,7 @@ class LoginPasswordField extends MozLitElement {
         onFocus: this.handleFocus,
         onBlur: this.handleBlur,
         labelL10nId: "login-item-password-label",
-        noteL10nId: "passwords-password-tooltip",
+        noteL10nId: "contextual-manager-passwords-password-tooltip",
       })}
       <moz-button
         data-l10n-id=${this.visible

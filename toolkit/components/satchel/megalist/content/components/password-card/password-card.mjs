@@ -165,8 +165,8 @@ export class PasswordCard extends MozLitElement {
 
   renderOriginField() {
     const dataL10nId = this.origin.breached
-      ? "origin-login-line-with-alert"
-      : "origin-login-line";
+      ? "contextual-manager-origin-login-line-with-alert"
+      : "contextual-manager-origin-login-line";
     return html`
       <login-line
         tabindex="-1"
@@ -176,7 +176,7 @@ export class PasswordCard extends MozLitElement {
         data-l10n-args=${JSON.stringify({ url: this.origin.value })}
         inputType="text"
         lineType="origin"
-        labelL10nId="passwords-origin-label"
+        labelL10nId="contextual-manager-passwords-origin-label"
         .value=${this.origin.value}
         .favIcon=${this.origin.valueIcon}
         ?alert=${this.origin.breached}
@@ -191,8 +191,8 @@ export class PasswordCard extends MozLitElement {
 
   renderUsernameField() {
     const dataL10nId = !this.username.value.length
-      ? "username-login-line-with-alert"
-      : "username-login-line";
+      ? "contextual-manager-username-login-line-with-alert"
+      : "contextual-manager-username-login-line";
     return html`
       <login-line
         tabindex="-1"
@@ -202,7 +202,7 @@ export class PasswordCard extends MozLitElement {
         data-l10n-args=${JSON.stringify({ username: this.username.value })}
         inputType="text"
         lineType="username"
-        labelL10nId="passwords-username-label"
+        labelL10nId="contextual-manager-passwords-username-label"
         .value=${this.username.value}
         .onLineClick=${() => {
           this.#onCopyButtonClick(this.username.lineIndex);
@@ -219,7 +219,7 @@ export class PasswordCard extends MozLitElement {
     return html`
       <concealed-login-line
         class="line-item"
-        labelL10nId="passwords-password-label"
+        labelL10nId="contextual-manager-passwords-password-label"
         .value=${this.password.value}
         .visible=${!this.password.concealed}
         ?alert=${this.password.vulnerable}
@@ -249,7 +249,7 @@ export class PasswordCard extends MozLitElement {
   renderButton() {
     return html`<div class="edit-line-container" role="option">
       <moz-button
-        data-l10n-id="edit-login-button"
+        data-l10n-id="contextual-manager-edit-login-button"
         class="edit-button"
         @click=${this.onEditButtonClick}
       ></moz-button>
@@ -262,10 +262,13 @@ export class PasswordCard extends MozLitElement {
     }
 
     return html`
-      <moz-message-bar type="warning" data-l10n-id="view-alert-heading">
+      <moz-message-bar
+        type="warning"
+        data-l10n-id="contextual-manager-view-alert-heading"
+      >
         <moz-button
           class="view-alert-button"
-          data-l10n-id="view-alert-button"
+          data-l10n-id="contextual-manager-view-alert-button"
           slot="actions"
           type="icon"
           iconSrc="chrome://browser/skin/forward.svg"

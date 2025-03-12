@@ -90,58 +90,66 @@ export class LoginDataSource extends DataSourceBase {
     super(...args);
     // Wait for Fluent to provide strings before loading data
     this.localizeStrings({
-      headerLabel: { id: "passwords-section-label" },
-      expandSection: { id: "passwords-expand-section-tooltip" },
-      collapseSection: { id: "passwords-collapse-section-tooltip" },
-      originLabel: { id: "passwords-origin-label" },
-      usernameLabel: { id: "passwords-username-label" },
-      passwordLabel: { id: "passwords-password-label" },
-      passwordsDisabled: { id: "passwords-disabled" },
+      headerLabel: { id: "contextual-manager-passwords-section-label" },
+      expandSection: {
+        id: "contextual-manager-passwords-expand-section-tooltip",
+      },
+      collapseSection: {
+        id: "contextual-manager-passwords-collapse-section-tooltip",
+      },
+      originLabel: { id: "contextual-manager-passwords-origin-label" },
+      usernameLabel: { id: "contextual-manager-passwords-username-label" },
+      passwordLabel: { id: "contextual-manager-passwords-password-label" },
+      passwordsDisabled: { id: "contextual-manager-passwords-disabled" },
       revealPasswordOSAuthDialogPrompt: {
         id: this.getPlatformFtl(
-          "passwords-reveal-password-os-auth-dialog-message"
+          "contextual-manager-passwords-reveal-password-os-auth-dialog-message"
         ),
       },
       copyPasswordOSAuthDialogPrompt: {
         id: this.getPlatformFtl(
-          "passwords-copy-password-os-auth-dialog-message"
+          "contextual-manager-passwords-copy-password-os-auth-dialog-message"
         ),
       },
       editPasswordOSAuthDialogPrompt: {
         id: this.getPlatformFtl(
-          "passwords-edit-password-os-auth-dialog-message"
+          "contextual-manager-passwords-edit-password-os-auth-dialog-message"
         ),
       },
-      passwordOSAuthDialogCaption: { id: "passwords-os-auth-dialog-caption" },
+      passwordOSAuthDialogCaption: {
+        id: "contextual-manager-passwords-os-auth-dialog-caption",
+      },
       passwordsImportFilePickerTitle: {
-        id: "passwords-import-file-picker-title",
+        id: "contextual-manager-passwords-import-file-picker-title",
       },
       passwordsImportFilePickerImportButton: {
-        id: "passwords-import-file-picker-import-button",
+        id: "contextual-manager-passwords-import-file-picker-import-button",
       },
       passwordsImportFilePickerCsvFilterTitle: {
-        id: "passwords-import-file-picker-csv-filter-title",
+        id: "contextual-manager-passwords-import-file-picker-csv-filter-title",
       },
       passwordsImportFilePickerTsvFilterTitle: {
-        id: "passwords-import-file-picker-tsv-filter-title",
+        id: "contextual-manager-passwords-import-file-picker-tsv-filter-title",
       },
       exportPasswordsOSReauthMessage: {
-        id: this.getPlatformFtl("passwords-export-os-auth-dialog-message"),
+        id: this.getPlatformFtl(
+          "contextual-manager-passwords-export-os-auth-dialog-message"
+        ),
       },
       passwordsExportFilePickerTitle: {
-        id: "passwords-export-file-picker-title",
+        id: "contextual-manager-passwords-export-file-picker-title",
       },
       passwordsExportFilePickerDefaultFileName: {
-        id: "passwords-export-file-picker-default-filename",
+        id: "contextual-manager-passwords-export-file-picker-default-filename",
       },
       passwordsExportFilePickerExportButton: {
-        id: "passwords-export-file-picker-export-button",
+        id: "contextual-manager-passwords-export-file-picker-export-button",
       },
       passwordsExportFilePickerCsvFilterTitle: {
-        id: "passwords-export-file-picker-csv-filter-title",
+        id: "contextual-manager-passwords-export-file-picker-csv-filter-title",
       },
       dismissBreachCommandLabel: {
-        id: "passwords-dismiss-breach-alert-command",
+        id: "contextual-manager-passwords-dismiss-breach-alert-command",
       },
     }).then(strings => {
       const copyCommand = { id: "Copy", label: "command-copy" };
@@ -484,13 +492,16 @@ export class LoginDataSource extends DataSourceBase {
   async #removeAllPasswords() {
     const { total } = this.#header.value;
     const messageId = this.#isPasswordSyncEnabled()
-      ? "passwords-remove-all-message-sync"
-      : "passwords-remove-all-message";
+      ? "contextual-manager-passwords-remove-all-message-sync"
+      : "contextual-manager-passwords-remove-all-message";
 
     const confirmed = await this.#showWindowPrompt(
-      { id: "passwords-remove-all-title", args: { total } },
+      { id: "contextual-manager-passwords-remove-all-title", args: { total } },
       { id: messageId, args: { total } },
-      { id: "passwords-remove-all-confirm-button", args: { total } }
+      {
+        id: "contextual-manager-passwords-remove-all-confirm-button",
+        args: { total },
+      }
     );
 
     if (confirmed) {
@@ -545,9 +556,9 @@ export class LoginDataSource extends DataSourceBase {
     }
 
     const confirmed = await this.#showWindowPrompt(
-      { id: "export-passwords-dialog-title" },
-      { id: "export-passwords-dialog-message" },
-      { id: "export-passwords-dialog-confirm-button" }
+      { id: "contextual-manager-export-passwords-dialog-title" },
+      { id: "contextual-manager-export-passwords-dialog-message" },
+      { id: "contextual-manager-export-passwords-dialog-confirm-button" }
     );
 
     if (confirmed) {
