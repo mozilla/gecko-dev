@@ -2791,6 +2791,18 @@ nsString Console::GetDumpMessage(JSContext* aCx, MethodName aMethodName,
       message.AppendLiteral(" ");
     }
 
+    if (string.EqualsLiteral("({})")) {
+      // ({}) is a generic serialization, possibly from XPC_WN_Shared_ToSource.
+      // Such a serialization is rather unhelpful, so try .toString() instead.
+      // When the input is a Components.Exception instance, the result will
+      // contain the error message, code and stack, which eases debugging.
+      JS::Rooted<JSString*> jsString2(aCx, JS::ToString(aCx, v));
+      nsAutoJSString string2;
+      if (jsString2 && string2.init(aCx, jsString2)) {
+        message.Append(string2);
+        continue;
+      }
+    }
     message.Append(string);
   }
 
