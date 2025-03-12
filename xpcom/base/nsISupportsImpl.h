@@ -533,6 +533,9 @@ class InterfaceNeedsThreadSafeRefCnt : public std::false_type {};
   nsrefcnt count =                                                            \
       mRefCnt.decr(static_cast<void*>(this),                                  \
                    _class::NS_CYCLE_COLLECTION_INNERCLASS::GetParticipant()); \
+  if (count == 0) {                                                           \
+    NS_CycleCollectableHasRefCntZero();                                       \
+  }                                                                           \
   NS_LOG_RELEASE(this, count, #_class);                                       \
   return count;
 
@@ -558,6 +561,7 @@ class InterfaceNeedsThreadSafeRefCnt : public std::false_type {};
       _last;                                                                   \
       mRefCnt.decr(static_cast<void*>(this),                                   \
                    _class::NS_CYCLE_COLLECTION_INNERCLASS::GetParticipant());  \
+      NS_CycleCollectableHasRefCntZero();                                      \
       if (shouldDelete) {                                                      \
         mRefCnt.stabilizeForDeletion();                                        \
         DeleteCycleCollectable();                                              \
@@ -635,7 +639,7 @@ class InterfaceNeedsThreadSafeRefCnt : public std::false_type {};
                                                                                \
  protected:                                                                    \
   nsAutoRefCnt mRefCnt;                                                        \
-  _owning public:
+ _owning public:
 
 /**
  * Use this macro to declare and implement the AddRef & Release methods for a
@@ -957,6 +961,9 @@ void ProxyDeleteVoid(const char* aRunnableName,
     NS_ASSERT_OWNINGTHREAD(_class);                                          \
     nsISupports* base = NS_CYCLE_COLLECTION_CLASSNAME(_class)::Upcast(this); \
     nsrefcnt count = mRefCnt.decr(base);                                     \
+    if (count == 0) {                                                        \
+      NS_CycleCollectableHasRefCntZero();                                    \
+    }                                                                        \
     NS_LOG_RELEASE(this, count, #_class);                                    \
     return count;                                                            \
   }                                                                          \
@@ -979,6 +986,7 @@ void ProxyDeleteVoid(const char* aRunnableName,
       mRefCnt.incr(base);                                                    \
       _last;                                                                 \
       mRefCnt.decr(base);                                                    \
+      NS_CycleCollectableHasRefCntZero();                                    \
       if (shouldDelete) {                                                    \
         mRefCnt.stabilizeForDeletion();                                      \
         DeleteCycleCollectable();                                            \
@@ -1003,6 +1011,7 @@ void ProxyDeleteVoid(const char* aRunnableName,
       mRefCnt.incr(base);                                                    \
       _last;                                                                 \
       mRefCnt.decr(base);                                                    \
+      NS_CycleCollectableHasRefCntZero();                                    \
       if (shouldDelete) {                                                    \
         mRefCnt.stabilizeForDeletion();                                      \
         DeleteCycleCollectable();                                            \
@@ -1038,6 +1047,7 @@ void ProxyDeleteVoid(const char* aRunnableName,
         MOZ_ASSERT(mRefCnt.get() > 0);                                       \
         return mRefCnt.get();                                                \
       }                                                                      \
+      NS_CycleCollectableHasRefCntZero();                                    \
       if (shouldDelete) {                                                    \
         mRefCnt.stabilizeForDeletion();                                      \
         DeleteCycleCollectable();                                            \

@@ -563,6 +563,9 @@ void CycleCollectedJSContext::AfterProcessTask(uint32_t aRecursionDepth) {
   // This should be a fast test so that it won't affect the next task
   // processing.
   MaybePokeGC();
+
+  mRuntime->FinalizeDeferredThings(CycleCollectedJSRuntime::FinalizeNow);
+  nsCycleCollector_maybeDoDeferredDeletion();
 }
 
 void CycleCollectedJSContext::AfterProcessMicrotasks() {
