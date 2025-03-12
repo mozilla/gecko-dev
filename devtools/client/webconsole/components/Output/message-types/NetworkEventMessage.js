@@ -191,6 +191,39 @@ function NetworkEventMessage({
     },
   };
 
+  // The Tabbox element can be rendered in the Browser Console, which will not
+  // have a toolbox store available. In this configuration, use the regular
+  // TabboxPanel component instead of the ConnectedTabboxPanel.
+  const createTabboxElement = function () {
+    const toolboxStore = serviceContainer.getToolboxStore();
+    const tabboxPanelProps = {
+      connector,
+      activeTabId: networkMessageActiveTabId,
+      request: networkMessageUpdate,
+      sourceMapURLService: serviceContainer.sourceMapURLService,
+      openLink: serviceContainer.openLink,
+      selectTab: tabId => {
+        dispatch(actions.selectNetworkMessageTab(tabId));
+      },
+      openNetworkDetails: enabled => {
+        if (!enabled) {
+          dispatch(actions.messageClose(id));
+        }
+      },
+      hideToggleButton: true,
+      showMessagesView: false,
+      targetSearchResult: null,
+    };
+
+    return toolboxStore
+      ? createElement(
+          ToolboxProvider,
+          { store: serviceContainer.getToolboxStore() },
+          createElement(TabboxPanel.ConnectedTabboxPanel, tabboxPanelProps)
+        )
+      : createElement(TabboxPanel.TabboxPanel, tabboxPanelProps);
+  };
+
   // Only render the attachment if the network-event is
   // actually opened (performance optimization) and its not disabled.
   const attachment =
@@ -200,28 +233,7 @@ function NetworkEventMessage({
       {
         className: "network-info network-monitor",
       },
-      createElement(
-        ToolboxProvider,
-        { store: serviceContainer.getToolboxStore() },
-        createElement(TabboxPanel, {
-          connector,
-          activeTabId: networkMessageActiveTabId,
-          request: networkMessageUpdate,
-          sourceMapURLService: serviceContainer.sourceMapURLService,
-          openLink: serviceContainer.openLink,
-          selectTab: tabId => {
-            dispatch(actions.selectNetworkMessageTab(tabId));
-          },
-          openNetworkDetails: enabled => {
-            if (!enabled) {
-              dispatch(actions.messageClose(id));
-            }
-          },
-          hideToggleButton: true,
-          showMessagesView: false,
-          targetSearchResult: null,
-        })
-      )
+      createTabboxElement()
     );
 
   const request = { url, method };

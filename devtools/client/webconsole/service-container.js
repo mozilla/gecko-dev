@@ -51,6 +51,7 @@ function setupServiceContainer({
     requestData: (id, type) =>
       webConsoleUI.networkDataProvider.requestData(id, type),
     createElement: nodename => webConsoleWrapper.createElement(nodename),
+    getToolboxStore: () => null,
   };
 
   if (toolbox) {

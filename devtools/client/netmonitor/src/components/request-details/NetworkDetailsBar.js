@@ -26,6 +26,7 @@ loader.lazyGetter(this, "CustomRequestPanel", function () {
 loader.lazyGetter(this, "TabboxPanel", function () {
   return createFactory(
     require("resource://devtools/client/netmonitor/src/components/TabboxPanel.js")
+      .ConnectedTabboxPanel
   );
 });
 
