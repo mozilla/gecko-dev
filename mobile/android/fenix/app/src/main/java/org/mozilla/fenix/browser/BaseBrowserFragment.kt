@@ -52,7 +52,6 @@ import com.google.android.material.snackbar.Snackbar.LENGTH_LONG
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
@@ -339,7 +338,6 @@ abstract class BaseBrowserFragment :
 
     @VisibleForTesting
     internal var browserInitialized: Boolean = false
-    private var initUIJob: Job? = null
 
     @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
     internal var webAppToolbarShouldBeVisible = true
@@ -2070,7 +2068,6 @@ abstract class BaseBrowserFragment :
     @CallSuper
     override fun onStop() {
         super.onStop()
-        initUIJob?.cancel()
         currentStartDownloadDialog?.dismiss()
 
         requireComponents.core.store.state.findTabOrCustomTabOrSelectedTab(customTabSessionId)
