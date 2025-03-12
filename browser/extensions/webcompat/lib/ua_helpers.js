@@ -63,7 +63,10 @@ var UAHelpers = {
     return `${ua} Gecko/${version}`;
   },
   addChrome(ua = navigator.userAgent, version = "130.0.0.0") {
-    return `${ua} AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Mobile Safari/537.36`;
+    const isMobile =
+      navigator.userAgent.includes("Mobile") ||
+      navigator.userAgent.includes("Tablet");
+    return `${ua} AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} ${isMobile ? "Mobile " : ""}Safari/537.36`;
   },
   safari(config = {}) {
     const version = config.version || "18.1";
