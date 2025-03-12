@@ -270,22 +270,26 @@ var gBrowserInit = {
       gURLBar.removeAttribute("focused");
 
       let swapBrowsers = () => {
-        try {
+        if (gBrowser.isTabGroupLabel(tabToAdopt)) {
+          gBrowser.adoptTabGroup(tabToAdopt.group, 0);
+          gBrowser.removeTab(gBrowser.selectedTab);
+        } else {
           gBrowser.swapBrowsersAndCloseOther(gBrowser.selectedTab, tabToAdopt);
-        } catch (e) {
-          console.error(e);
         }
 
         // Clear the reference to the tab once its adoption has been completed.
         this._clearTabToAdopt();
       };
-      if (tabToAdopt.linkedBrowser.isRemoteBrowser) {
+      if (
+        gBrowser.isTab(tabToAdopt) &&
+        !tabToAdopt.linkedBrowser.isRemoteBrowser
+      ) {
+        swapBrowsers();
+      } else {
         // For remote browsers, wait for the paint event, otherwise the tabs
         // are not yet ready and focus gets confused because the browser swaps
         // out while tabs are switching.
         addEventListener("MozAfterPaint", swapBrowsers, { once: true });
-      } else {
-        swapBrowsers();
       }
     }
 
