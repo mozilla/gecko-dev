@@ -1367,12 +1367,6 @@
   <string name="studies_title">Studije instalěrowaś a pśewjasć</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Dalšne informacije</string>
-  <!-- Dialog message shown after removing a study -->
-  <string name="studies_restart_app" moz:removedIn="137">Nałoženje se skóńcyjo, aby se změny wustatkowali</string>
-  <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="137">W pórěźe</string>
-  <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="137">Pśetergnuś</string>
   <!--
     Sessions
 

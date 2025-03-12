@@ -463,8 +463,30 @@
   <string name="onboarding_first_screen_title">ยินดีต้อนรับสู่ %1$s</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">เร็ว ส่วนตัว ไม่มีการรบกวน</string>
+  <!--
+    New Onboarding flow first screen 'terms of use' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">เมื่อดำเนินการต่อ แสดงว่าคุณยอมรับ%1$s</string>
+  <!--
+    New Onboarding flow first screen 'terms of use link'
+
+    Text for the link used in onboarding_first_screen_terms_of_use_text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">เงื่อนไขการใช้งาน Firefox</string>
+  <!--
+    New Onboarding flow first screen 'privacy notice' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
+  -->
+  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox ห่วงใยเกี่ยวกับความเป็นส่วนตัวของคุณ เรียนรู้เพิ่มเติมใน%1$sของเรา</string>
+  <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
+  <string name="onboarding_first_screen_privacy_notice_link">ประกาศความเป็นส่วนตัว</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">เริ่มต้นใช้งาน</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue">ยินยอมและดำเนินต่อ</string>
   <!--
     Onboarding second screen: Title
 

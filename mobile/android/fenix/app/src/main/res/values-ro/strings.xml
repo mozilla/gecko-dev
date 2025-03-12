@@ -499,8 +499,6 @@
   <string name="opening_screen_homepage_summary">Deschide pe pagina de start</string>
   <!-- Summary for homepage preference indicating always opening the last-open tab when re-opening the app -->
   <string name="opening_screen_last_tab_summary">Deschide ultima filă</string>
-  <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="137">OK</string>
   <!--
     Sessions
 

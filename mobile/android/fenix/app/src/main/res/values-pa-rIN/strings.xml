@@ -672,6 +672,10 @@
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">ਅਸੀਂ ਤੁਹਾਡੇ ਡਾਟੇ ਨੂੰ ਕਿਵੇਂ ਵਰਤਦੇ ਹਾਂ</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">ਤਸਦੀਕ ਕਰੋ ਅਤੇ ਬਰਾਊਜ਼ ਕਰਨਾ ਸ਼ੁਰੂ ਕਰੋ</string>
+  <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">ਇੱਕ ਆਖਰੀ ਗੱਲ</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">ਸਹਿਮਤ ਅਤੇ ਬਰਾਊਜ਼ ਕਰਨਾ ਸ਼ੁਰੂ ਕਰੋ</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">ਟੂਲਬਾਰ ਦੀ ਥਾਂ ਚੁਣੋ</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -707,6 +711,12 @@
   <string name="onboarding_customize_theme_content_description">%1$s ਥੀਮ ਦਾ ਚਿੱਤਰ</string>
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">ਹੁਣੇ ਨਹੀਂ</string>
+  <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">ਫ਼ੌਰੀ ਖੋਜ ਨਾਲ ਸ਼ੁਰੂ ਕਰੋ</string>
   <!--
     Search Widget
 
@@ -877,12 +887,16 @@
   <string name="preferences_show_search_suggestions_in_private">ਪ੍ਰਾਈਵੇਟ ਸ਼ੈਸ਼ਨਾਂ ਵਿੱਚ ਵੇਖਾਓ</string>
   <!-- Preference title for switch preference to show trending search suggestions -->
   <string name="preferences_show_trending_search_suggestions">ਸੁਝਾਆਵਾਂ ਦੇ ਰੁਝਾਨਾਂ ਨੂੰ ਵੇਖੋ</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">ਸੱਜਰੀਆਂ ਖੋਜਾਂ ਨੂੰ ਵੇਖਾਓ</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">ਕਲਿੱਪਬੋਰਡ ਸੁਝਾਅ ਵੇਖਾਓ</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
   <string name="preferences_search_browsing_history">ਬਰਾਊਜ਼ਿੰਗ ਅਤੀਤ ਖੋਜੋ</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">ਬੁੱਕਮਾਰਕ ਖੋਜੋ</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">ਸ਼ਾਰਟਕੱਟਾਂ ਨੂੰ ਵੇਖਾਓ</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">ਸਿੰਕ ਕੀਤੀਆਂ ਟੈਬਾਂ ਨੂੰ ਖੋਲ੍ਹੋ</string>
   <!-- Preference for account settings -->
@@ -903,6 +917,14 @@
   <string name="preferences_show_nonsponsored_suggestions">%1$s ਵਲੋਂ ਸੁਝਾਅ</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">ਆਪਣੀ ਖੋਜ ਨਾਲ ਸੰਬੰਧਿਤ ਵੈੱਬ ਤੋਂ ਸੁਝਾਅ ਲਵੋ</string>
+  <!-- Preference for link sharing -->
+  <string name="preferences_link_sharing">ਲਿੰਕ ਸਾਂਝਾ ਕਰਨਾ</string>
+  <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_title">WhatsApp ਸ਼ੇਅਰ ਉੱਤੇ %1$s ਡਾਊਨਲੋਡ ਲਿੰਕ ਸਮੇਤ</string>
+  <!-- Snackbar message shown when user shares a link -->
+  <string name="link_shared_snackbar_message">ਸਾਂਝਾ ਕੀਤਾ ਲਿੰਕ</string>
+  <!-- Snackbar action label shown when user shares a link -->
+  <string name="link_shared_snackbar_action">ਸੈਟਿੰਗਾਂ ਦਾ ਇੰਤਜ਼ਾਮ ਕਰੋ</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">ਲਿੰਕ ਐਪਾਂ ਵਿੱਚ ਖੋਲ੍ਹੋ</string>
   <!-- Preference for open links in third party apps always open in apps option -->
@@ -1345,12 +1367,6 @@
   <string name="studies_title">ਅਧਿਐਨ ਇੰਸਟਾਲ ਕਰੋ ਅਤੇ ਚਲਾਓ</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">ਹੋਰ ਸਿੱਖੋ</string>
-  <!-- Dialog message shown after removing a study -->
-  <string name="studies_restart_app" moz:removedIn="137">ਤਬਦੀਲੀਆਂ ਲਾਗੂ ਕਰਨ ਲਈ ਐਪਲੀਕੇਸ਼ਨ ਬੰਦ ਹੋਵੇਗੀ</string>
-  <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="137">ਠੀਕ ਹੈ</string>
-  <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="137">ਰੱਦ ਕਰੋ</string>
   <!--
     Sessions
 
@@ -2189,6 +2205,68 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">ਵਾਧਾ ਕੀਤੀ ਟਰੈਕਿੰਗ ਰੋਧੀ ਛੋਟ ਪਸੰਦ ਆਈਕਾਨ</string>
+  <!--
+    DNS Over HTTPS (DoH)
+
+    Preference title for DNS over HTTPS settings
+  -->
+  <string name="preference_doh_title">HTTPS ਉੱਤੇ DNS</string>
+  <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+  <string name="preference_doh_learn_more">ਹੋਰ ਜਾਣੋ</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="preference_doh_up_description">ਉੱਤੇ ਜਾਓ</string>
+  <!-- Content description for the "Exceptions" button -->
+  <string name="preference_doh_exceptions_description">ਛੋਟਾਂ</string>
+  <!-- Content description for the "Info" button -->
+  <string name="preference_doh_info_description">ਜਾਣਕਾਰੀ</string>
+  <!-- Content description for the "Add Site" button -->
+  <string name="preference_doh_add_site_description">ਸਾਈਟ ਨੂੰ ਜੋੜੋ</string>
+  <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection">ਮੂਲ ਸੁਰੱਖਿਆ</string>
+  <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection">ਵਾਧਾ ਕੀਤੀ ਸੁਰੱਖਿਆ</string>
+  <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_summary">ਕਦੋਂ ਸੁਰੱਖਿਅਤ DNS ਵਰਤਣਾ ਹੈ ਅਤੇ ਕਿਹੜਾ ਪੂਰਕ ਵਰਤਣਾ ਹੈ, ਤੁਸੀਂ ਕੰਟਰੋਲ ਕਰ ਸਕਦੇ ਹੋ।</string>
+  <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_1">ਤੁਹਾਡੇ ਵਲੋਂ ਚੁਣਿਆ ਪੂਰਕ ਵਰਤੋਂ</string>
+  <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_2">ਜੇ ਸੁਰੱਖਿਅਤ DNS ਨਾਲ ਸਮੱਸਿਆ ਆ ਰਹੀ ਹੋਵੇ ਤਾਂ ਆਪਣੇ ਮੂਲ DNS ਹੱਲਕਰਤਾ ਨੂੰ ਹੀ ਵਰਤੋਂ।</string>
+  <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection">ਵੱਧ ਤੋਂ ਵੱਧ ਸੁਰੱਖਿਆ</string>
+  <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_max_protection_summary">%1$s ਹਮੇਸ਼ਾ ਸੁਰੱਖਿਅਤ DNS ਵਰਤੇਗਾ। ਜਦੋਂ ਅਸੀਂ ਤੁਹਾਡੇ ਸਿਸਟਮ DNS ਨੂੰ ਵਰਤਾਂਗੇ ਤਾਂ ਤੁਸੀਂ ਸੁਰੱਖਿਆ ਖ਼ਤਰੇ ਦੀ ਚੇਤਾਵਨੀ ਵੇਖੋਗੇ।</string>
+  <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_1">ਸਿਰਫ਼ ਤੁਹਾਡੇ ਵਲੋਂ ਚੁਣੇ ਪੂਰਕ ਨੂੰ ਹੀ ਵਰਤੋਂ</string>
+  <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_2">ਜੇ ਸੁਰੱਖਿਅਤ DNS ਮੌਜੂਦ ਨਾ ਹੋਵੇ ਤਾਂ ਹਮੇਸ਼ਾ ਸਾਵਧਾਨ ਕਰੋ</string>
+  <!-- Bullet point 3 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_3">ਜੇ ਸੁਰੱਖਿਅਤ DNS ਮੌਜੂਦ ਨਹੀਂ ਹੁੰਦੇ ਤਾਂ ਸਾਈਟ ਲੋਡ ਨਹੀਂ ਹੁੰਦੀਆਂ ਜਾਂ ਠੀਕ ਤਰ੍ਹਾਂ ਕੰਮ ਨਹੀਂ ਕਰਦੀਆਂ</string>
+  <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off">ਬੰਦ</string>
+  <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off_summary">ਤੁਹਾਡੇ ਮੂਲ DNS ਹੱਲਕਰਤਾ ਵਰਤੋਂ</string>
+  <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
+  <string name="preference_doh_choose_provider">ਪੂਰਕ ਨੂੰ ਚੁਣੋ</string>
+  <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_default">(ਡਿਫਾਲਟ)</string>
+  <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_custom">ਚੁਣਿੰਦਾ</string>
+  <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_title">ਚੁਣਿੰਦਾ ਪੂਰਕ</string>
+  <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_textfield">ਪੂਰਕ</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
+  <string name="preference_doh_provider_custom_dialog_error_https">URL “https://” ਨਾਲ ਸ਼ੁਰੂ ਹੋਣੇ ਚਾਹੀਦੇ ਹਨ</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
+  <string name="preference_doh_provider_custom_dialog_error_invalid">ਅਢੁੱਕਵਾਂ URL</string>
+  <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_cancel">ਰੱਦ ਕਰੋ</string>
+  <!-- Add button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_add">ਜੋੜੋ</string>
+  <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
+  <string name="preference_doh_exceptions">ਛੋਟਾਂ</string>
+  <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
+  <string name="preference_doh_exceptions_add">ਸਾਈਟ ਨੂੰ ਜੋੜੋ</string>
   <!-- About page link text to open support link -->
   <string name="about_support">ਸਹਿਯੋਗ</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
