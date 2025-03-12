@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import json
+import os
 import re
 import sys
 
@@ -56,12 +57,13 @@ def mocks():
         status=200,
     )
 
+    proxy_url = os.environ.get("TASKCLUSTER_PROXY_URL", "http://taskcluster")
+    secrets = (
+        f"https://firefox-ci-tc.services.mozilla.com/secrets/*|{proxy_url}/secrets/*"
+    )
     responses.add(
         responses.GET,
-        re.compile(
-            "https://firefox-ci-tc.services.mozilla.com/secrets/*|"
-            "http://taskcluster/secrets/*"
-        ),
+        re.compile(secrets),
         body=json.dumps(
             {
                 "secret": {
