@@ -494,7 +494,7 @@ export const PREFS_CONFIG = new Map([
     "newtabAdSize.leaderboard.position",
     {
       title:
-        "position for leaderboard spoc - should corralate to a row in DS grid",
+        "position for leaderboard spoc - should correlate to a row in DS grid",
       value: "3",
     },
   ],
@@ -509,8 +509,15 @@ export const PREFS_CONFIG = new Map([
     "newtabAdSize.billboard.position",
     {
       title:
-        "position for billboard spoc - should corralate to a row in DS grid",
+        "position for billboard spoc - should correlate to a row in DS grid",
       value: "3",
+    },
+  ],
+  [
+    "newtabAdSize.mediumRectangle",
+    {
+      title: "Boolean flag to turn the medium (MREC) ad size on and off",
+      value: false,
     },
   ],
   [

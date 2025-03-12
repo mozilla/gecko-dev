@@ -612,6 +612,16 @@ function _extends() { _extends = Object.assign ? Object.assign.bind() : function
 
 
 
+
+// Pref Constants
+const PREF_AD_SIZE_MEDIUM_RECTANGLE = "newtabAdSize.mediumRectangle";
+const PREF_AD_SIZE_BILLBOARD = "newtabAdSize.billboard";
+const PREF_AD_SIZE_LEADERBOARD = "newtabAdSize.leaderboard";
+const PREF_CONTEXTUAL_CONTENT_SELECTED_FEED = "discoverystream.contextualContent.selectedFeed";
+const PREF_CONTEXTUAL_CONTENT_FEEDS = "discoverystream.contextualContent.feeds";
+const PREF_SECTIONS_ENABLED = "discoverystream.sections.enabled";
+const PREF_SPOC_PLACEMENTS = "discoverystream.placements.spocs";
+const PREF_SPOC_COUNTS = "discoverystream.placements.spocs.counts";
 const Row = props => /*#__PURE__*/external_React_default().createElement("tr", _extends({
   className: "message-item"
 }, props), props.children);
@@ -763,7 +773,7 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
   }
   toggleTBRFeed(e) {
     const feed = e.target.value;
-    const selectedFeed = "discoverystream.contextualContent.selectedFeed";
+    const selectedFeed = PREF_CONTEXTUAL_CONTENT_SELECTED_FEED;
     this.props.dispatch(actionCreators.SetPref(selectedFeed, feed));
   }
   idleDaily() {
@@ -789,37 +799,72 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       pressed,
       id
     } = e.target;
-    const billboardEnabled = this.props.otherPrefs["newtabAdSize.billboard"];
-    const leaderboardEnabled = this.props.otherPrefs["newtabAdSize.leaderboard"];
-    let spocValue;
-    let spocCount;
-    if (id === "billboard") {
-      this.props.dispatch(actionCreators.SetPref("newtabAdSize.billboard", pressed));
-      if (pressed) {
-        spocValue = `newtab_spocs, newtab_billboard${leaderboardEnabled ? ", newtab_leaderboard" : ""}`;
-        spocCount = `6,1${leaderboardEnabled ? ",1" : ""}`;
-      } else {
-        spocValue = `newtab_spocs${leaderboardEnabled ? ", newtab_leaderboard" : ""}`;
-        spocCount = `6${leaderboardEnabled ? ",1" : ""}`;
-      }
-    } else if (id === "leaderboard") {
-      this.props.dispatch(actionCreators.SetPref("newtabAdSize.leaderboard", pressed));
-      if (pressed) {
-        spocValue = `newtab_spocs, newtab_leaderboard${billboardEnabled ? ", newtab_billboard" : ""}`;
-        spocCount = `6,1${billboardEnabled ? ",1" : ""}`;
-      } else {
-        spocValue = `newtab_spocs${billboardEnabled ? ", newtab_billboard" : ""}`;
-        spocCount = `6${billboardEnabled ? ",1" : ""}`;
-      }
+
+    // Set the active pref to true/false
+    switch (id) {
+      case "newtab_billboard":
+        // Update boolean pref for billboard ad size
+        this.props.dispatch(actionCreators.SetPref(PREF_AD_SIZE_BILLBOARD, pressed));
+        break;
+      case "newtab_leaderboard":
+        // Update boolean pref for billboard ad size
+        this.props.dispatch(actionCreators.SetPref(PREF_AD_SIZE_LEADERBOARD, pressed));
+        break;
+      case "newtab_rectangle":
+        // Update boolean pref for mediumRectangle (MREC) ad size
+        this.props.dispatch(actionCreators.SetPref(PREF_AD_SIZE_MEDIUM_RECTANGLE, pressed));
+        break;
     }
-    this.props.dispatch(actionCreators.SetPref("discoverystream.placements.spocs", spocValue));
-    this.props.dispatch(actionCreators.SetPref("discoverystream.placements.spocs.counts", spocCount));
+
+    // Note: The counts array is passively updated whenever the placements array is updated.
+    // The default pref values for each are:
+    // PREF_SPOC_PLACEMENTS: "newtab_spocs"
+    // PREF_SPOC_COUNTS: "6"
+    const generateSpocPrefValues = () => {
+      const placements = this.props.otherPrefs[PREF_SPOC_PLACEMENTS]?.split(",").map(item => item.trim()).filter(item => item) || [];
+      const counts = this.props.otherPrefs[PREF_SPOC_COUNTS]?.split(",").map(item => item.trim()).filter(item => item) || [];
+
+      // Confirm that the IAB type will have a count value of "1"
+      const supportIABAdTypes = ["newtab_leaderboard", "newtab_rectangle", "newtab_billboard"];
+      let countValue;
+      if (supportIABAdTypes.includes(id)) {
+        countValue = "1"; // Default count value for all IAB ad types
+      } else {
+        throw new Error("IAB ad type not supported");
+      }
+      if (pressed) {
+        // If pressed is true, add the id to the placements array
+        if (!placements.includes(id)) {
+          placements.push(id);
+          counts.push(countValue);
+        }
+      } else {
+        // If pressed is false, remove the id from the placements array
+        const index = placements.indexOf(id);
+        if (index !== -1) {
+          placements.splice(index, 1);
+          counts.splice(index, 1);
+        }
+      }
+      return {
+        placements: placements.join(", "),
+        counts: counts.join(", ")
+      };
+    };
+    const {
+      placements,
+      counts
+    } = generateSpocPrefValues();
+
+    // Update prefs with new values
+    this.props.dispatch(actionCreators.SetPref(PREF_SPOC_PLACEMENTS, placements));
+    this.props.dispatch(actionCreators.SetPref(PREF_SPOC_COUNTS, counts));
   }
   handleSectionsToggle(e) {
     const {
       pressed
     } = e.target;
-    this.props.dispatch(actionCreators.SetPref("discoverystream.sections.enabled", pressed));
+    this.props.dispatch(actionCreators.SetPref(PREF_SECTIONS_ENABLED, pressed));
     this.props.dispatch(actionCreators.SetPref("discoverystream.sections.cards.enabled", pressed));
     this.props.dispatch(actionCreators.SetPref("discoverystream.sections.cards.thumbsUpDown.enabled", pressed));
   }
@@ -966,14 +1011,16 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       layout
     } = this.props.state.DiscoveryStream;
     const personalized = this.props.otherPrefs["discoverystream.personalization.enabled"];
-    const selectedFeed = this.props.otherPrefs["discoverystream.contextualContent.selectedFeed"];
-    const sectionsEnabled = this.props.otherPrefs["discoverystream.sections.enabled"];
-    const TBRFeeds = this.props.otherPrefs["discoverystream.contextualContent.feeds"].split(",").map(s => s.trim()).filter(item => item);
+    const selectedFeed = this.props.otherPrefs[PREF_CONTEXTUAL_CONTENT_SELECTED_FEED];
+    const sectionsEnabled = this.props.otherPrefs[PREF_SECTIONS_ENABLED];
+    const TBRFeeds = this.props.otherPrefs[PREF_CONTEXTUAL_CONTENT_FEEDS].split(",").map(s => s.trim()).filter(item => item);
 
     // Prefs for IAB Banners
-    const billboardsEnabled = this.props.otherPrefs["newtabAdSize.billboard"];
-    const leaderboardEnabled = this.props.otherPrefs["newtabAdSize.leaderboard"];
-    const spocPlacements = this.props.otherPrefs["discoverystream.placements.spocs"];
+    const mediumRectangleEnabled = this.props.otherPrefs[PREF_AD_SIZE_MEDIUM_RECTANGLE];
+    const billboardsEnabled = this.props.otherPrefs[PREF_AD_SIZE_BILLBOARD];
+    const leaderboardEnabled = this.props.otherPrefs[PREF_AD_SIZE_LEADERBOARD];
+    const spocPlacements = this.props.otherPrefs[PREF_SPOC_PLACEMENTS];
+    const mediumRectangleEnabledPressed = mediumRectangleEnabled && spocPlacements.includes("newtab_rectangle");
     const billboardPressed = billboardsEnabled && spocPlacements.includes("newtab_billboard");
     const leaderboardPressed = leaderboardEnabled && spocPlacements.includes("newtab_leaderboard");
     return /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("button", {
@@ -1019,17 +1066,24 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     }, /*#__PURE__*/external_React_default().createElement("summary", null, "IAB Banner Ad Sizes"), /*#__PURE__*/external_React_default().createElement("div", {
       className: "toggle-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
-      id: "leaderboard",
+      id: "newtab_leaderboard",
       pressed: leaderboardPressed || null,
       onToggle: this.toggleIABBanners,
       label: "Enable IAB Leaderboard"
     })), /*#__PURE__*/external_React_default().createElement("div", {
       className: "toggle-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
-      id: "billboard",
+      id: "newtab_billboard",
       pressed: billboardPressed || null,
       onToggle: this.toggleIABBanners,
       label: "Enable IAB Billboard"
+    })), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "toggle-wrapper"
+    }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+      id: "newtab_rectangle",
+      pressed: mediumRectangleEnabledPressed || null,
+      onToggle: this.toggleIABBanners,
+      label: "Enable IAB Medium Rectangle (MREC)"
     }))), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, prefToggles.map(pref => /*#__PURE__*/external_React_default().createElement(Row, {
       key: pref
     }, /*#__PURE__*/external_React_default().createElement("td", null, /*#__PURE__*/external_React_default().createElement(TogglePrefCheckbox, {
@@ -4084,7 +4138,7 @@ const PREF_FAKESPOT_CATEGROY = "discoverystream.contextualContent.fakespot.defau
 const PREF_FAKESPOT_FOOTER = "discoverystream.contextualContent.fakespot.footerCopy";
 const PREF_FAKESPOT_CTA_COPY = "discoverystream.contextualContent.fakespot.ctaCopy";
 const PREF_FAKESPOT_CTA_URL = "discoverystream.contextualContent.fakespot.ctaUrl";
-const PREF_CONTEXTUAL_CONTENT_SELECTED_FEED = "discoverystream.contextualContent.selectedFeed";
+const ListFeed_PREF_CONTEXTUAL_CONTENT_SELECTED_FEED = "discoverystream.contextualContent.selectedFeed";
 function ListFeed({
   type,
   firstVisibleTimestamp,
@@ -4099,7 +4153,7 @@ function ListFeed({
   const footerCopy = prefs[PREF_FAKESPOT_FOOTER];
   const ctaCopy = prefs[PREF_FAKESPOT_CTA_COPY];
   const ctaUrl = prefs[PREF_FAKESPOT_CTA_URL];
-  const isFakespot = prefs[PREF_CONTEXTUAL_CONTENT_SELECTED_FEED] === "fakespot";
+  const isFakespot = prefs[ListFeed_PREF_CONTEXTUAL_CONTENT_SELECTED_FEED] === "fakespot";
   // Todo: need to remove ads while using default recommendations, remove this line once API has been updated.
   let listFeedRecs = selectedFakespotFeed ? recs.filter(rec => rec.category === selectedFakespotFeed) : recs;
   function handleCtaClick() {

@@ -915,7 +915,7 @@ newtabSpocsCache:
 newtabAdSizingExperiment:
   description: >-
     Change the default ad size and UI for certain ad formats.
-  owner: achurchwell@mozilla.com, sdowne@mozilla.com
+  owner: achurchwell@mozilla.com, sdowne@mozilla.com, mcrawford@mozilla.com
   hasExposure: false
   variables:
     variantA:
@@ -960,6 +960,13 @@ newtabAdSizingExperiment:
         pref: browser.newtabpage.activity-stream.newtabAdSize.billboard.position
       description: >-
         Billboard row position.
+    medium_rectangle:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.newtabAdSize.mediumRectangle
+      description: >-
+        Medium rectangle (MREC) ad size and UI.
 
 newtabInlineTopicSelection:
   description: >-
