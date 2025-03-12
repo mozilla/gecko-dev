@@ -3,7 +3,6 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const Immutable = require("resource://devtools/client/shared/vendor/immutable.js");
 const {
   immutableUpdate,
   assert,
@@ -117,7 +116,7 @@ handlers[actions.TAKE_CENSUS_DIFF_END] = function (diffing, action) {
     census: {
       report: action.report,
       parentMap: action.parentMap,
-      expanded: Immutable.Set(),
+      expanded: new Set(),
       inverted: action.inverted,
       filter: action.filter,
       display: action.display,
@@ -142,7 +141,8 @@ handlers[actions.EXPAND_DIFFING_CENSUS_NODE] = function (diffing, { node }) {
   assert(diffing.census.report, "Should have a census report");
   assert(diffing.census.expanded, "Should have a census's expanded set");
 
-  const expanded = diffing.census.expanded.add(node.id);
+  const expanded = new Set(diffing.census.expanded);
+  expanded.add(node.id);
   const census = immutableUpdate(diffing.census, { expanded });
   return immutableUpdate(diffing, { census });
 };
@@ -157,7 +157,8 @@ handlers[actions.COLLAPSE_DIFFING_CENSUS_NODE] = function (diffing, { node }) {
   assert(diffing.census.report, "Should have a census report");
   assert(diffing.census.expanded, "Should have a census's expanded set");
 
-  const expanded = diffing.census.expanded.delete(node.id);
+  const expanded = new Set(diffing.census.expanded);
+  expanded.delete(node.id);
   const census = immutableUpdate(diffing.census, { expanded });
   return immutableUpdate(diffing, { census });
 };

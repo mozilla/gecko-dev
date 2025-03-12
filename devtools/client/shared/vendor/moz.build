@@ -12,7 +12,6 @@ DIRS += [
 DevToolsModules(
     'fluent-react.js',
     'fuzzaldrin-plus.js',
-    'immutable.js',
     'md5.js',
     'react-dom-factories.mjs',
     'react-redux.js',

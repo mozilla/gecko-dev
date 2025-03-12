@@ -49,7 +49,6 @@ const { L10N } = require("resource://devtools/client/memory/utils.js");
 
 var models = require("resource://devtools/client/memory/models.js");
 
-var Immutable = require("resource://devtools/client/shared/vendor/immutable.js");
 var React = require("resource://devtools/client/shared/vendor/react.js");
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 var ReactDOM = require("resource://devtools/client/shared/vendor/react-dom.js");

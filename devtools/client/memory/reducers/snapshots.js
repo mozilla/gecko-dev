@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const Immutable = require("resource://devtools/client/shared/vendor/immutable.js");
 const {
   immutableUpdate,
   assert,
@@ -86,7 +85,7 @@ handlers[actions.TAKE_CENSUS_END] = function (
   const census = {
     report,
     parentMap,
-    expanded: Immutable.Set(),
+    expanded: new Set(),
     display,
     filter,
     state: censusState.SAVED,
@@ -172,7 +171,8 @@ handlers[actions.EXPAND_CENSUS_NODE] = function (snapshots, { id, node }) {
     assert(snapshot.census.report, "Should have a census report");
     assert(snapshot.census.expanded, "Should have a census's expanded set");
 
-    const expanded = snapshot.census.expanded.add(node.id);
+    const expanded = new Set(snapshot.census.expanded);
+    expanded.add(node.id);
     const census = immutableUpdate(snapshot.census, { expanded });
     return immutableUpdate(snapshot, { census });
   });
@@ -188,7 +188,8 @@ handlers[actions.COLLAPSE_CENSUS_NODE] = function (snapshots, { id, node }) {
     assert(snapshot.census.report, "Should have a census report");
     assert(snapshot.census.expanded, "Should have a census's expanded set");
 
-    const expanded = snapshot.census.expanded.delete(node.id);
+    const expanded = new Set(snapshot.census.expanded);
+    expanded.delete(node.id);
     const census = immutableUpdate(snapshot.census, { expanded });
     return immutableUpdate(snapshot, { census });
   });
@@ -337,7 +338,7 @@ handlers[actions.FETCH_DOMINATOR_TREE_END] = function (
     const dominatorTree = immutableUpdate(snapshot.dominatorTree, {
       state: dominatorTreeState.LOADED,
       root,
-      expanded: Immutable.Set(),
+      expanded: new Set(),
       focused,
     });
 
@@ -360,7 +361,8 @@ handlers[actions.EXPAND_DOMINATOR_TREE_NODE] = function (
       "Should have the dominator tree's expanded set"
     );
 
-    const expanded = snapshot.dominatorTree.expanded.add(node.nodeId);
+    const expanded = new Set(snapshot.dominatorTree.expanded);
+    expanded.add(node.nodeId);
     const dominatorTree = immutableUpdate(snapshot.dominatorTree, { expanded });
     return immutableUpdate(snapshot, { dominatorTree });
   });
@@ -381,7 +383,8 @@ handlers[actions.COLLAPSE_DOMINATOR_TREE_NODE] = function (
       "Should have the dominator tree's expanded set"
     );
 
-    const expanded = snapshot.dominatorTree.expanded.delete(node.nodeId);
+    const expanded = new Set(snapshot.dominatorTree.expanded);
+    expanded.delete(node.nodeId);
     const dominatorTree = immutableUpdate(snapshot.dominatorTree, { expanded });
     return immutableUpdate(snapshot, { dominatorTree });
   });
