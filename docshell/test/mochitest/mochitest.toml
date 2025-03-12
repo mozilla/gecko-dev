@@ -54,6 +54,7 @@ support-files = [
   "url1_historyframe.html",
   "url2_historyframe.html",
 ]
+prefs=["privacy.restrict3rdpartystorage.heuristic.window_open=false"]
 
 ["test_anchor_scroll_after_document_open.html"]
 

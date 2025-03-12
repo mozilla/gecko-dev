@@ -9,9 +9,7 @@
     SimpleTest.waitForExplicitFinish();
 
     async function runTest() {
-      await SimpleTest.enableLegacyUnpartitionedStorage();
-
-      let bc = new BroadcastChannel("bug1747033");
+      let bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("bug1747033");
       new Promise(resolve => {
         bc.addEventListener("message", ({ data: { historyLength } }) => {
           is(historyLength, 1, "Correct length for first normal load.");

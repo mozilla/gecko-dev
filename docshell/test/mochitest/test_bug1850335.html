@@ -15,9 +15,7 @@
     }
 
     async function runTest() {
-      await SimpleTest.enableLegacyUnpartitionedStorage();
-
-      let bc = new BroadcastChannel("bug1850335");
+      let bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("bug1850335");
 
       // Load the first page.
       let waitForPage1 = waitForMessage(bc);

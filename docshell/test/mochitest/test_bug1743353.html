@@ -9,9 +9,7 @@
     SimpleTest.waitForExplicitFinish();
 
     async function runTest() {
-      await SimpleTest.enableLegacyUnpartitionedStorage();
-
-      let bc = new BroadcastChannel("bug1743353");
+      let bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("bug1743353");
       new Promise((resolve) => {
         bc.addEventListener("message", () => {
           resolve();
