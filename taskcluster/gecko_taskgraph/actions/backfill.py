@@ -382,6 +382,8 @@ def filter_raptor_jobs(full_task_graph, label_to_taskid, project):
             continue
         if "macosx1400" in entry.attributes.get("test_platform", ""):
             continue
+        if "macosx1500" in entry.attributes.get("test_platform", ""):
+            continue
         if "browsertime" not in entry.attributes.get("raptor_try_name", ""):
             continue
         if "shippable" not in entry.attributes.get("test_platform", ""):

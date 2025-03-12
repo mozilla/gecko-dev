@@ -189,6 +189,8 @@ def set_treeherder_machine_platform(config, tasks):
         "macosx1100-64-shippable/opt": "osx-1100-shippable/opt",
         "macosx1400-64/opt": "osx-1300/opt",
         "macosx1400-64-shippable/opt": "osx-1400-shippable/opt",
+        "macosx1500-64/opt": "osx-1500/opt",
+        "macosx1500-64-shippable/opt": "osx-1500-shippable/opt",
         "win64-asan/opt": "windows11-64/asan",
         "win64-aarch64/opt": "windows11-aarch64/opt",
     }
@@ -388,6 +390,11 @@ def setup_browsertime(config, tasks):
                     "macosx64-aarch64-geckodriver",
                     "macosx64-aarch64-node",
                 ],
+                "macosx1500.*": [
+                    "browsertime",
+                    "macosx64-aarch64-geckodriver",
+                    "macosx64-aarch64-node",
+                ],
                 "windows.*aarch64.*": [
                     "browsertime",
                     "win32-geckodriver",
@@ -408,6 +415,7 @@ def setup_browsertime(config, tasks):
                 "linux.*": ["linux64-ffmpeg-4.4.1"],
                 "macosx1470.*": ["mac64-ffmpeg-4.4.1"],
                 "macosx1400.*": ["mac64-ffmpeg-4.4.1"],
+                "macosx1500.*": ["mac64-ffmpeg-4.4.1"],
                 "windows.*aarch64.*": ["win64-ffmpeg-4.4.1"],
                 "windows.*-32.*": ["win64-ffmpeg-4.4.1"],
                 "windows.*-64.*": ["win64-ffmpeg-4.4.1"],
@@ -431,6 +439,10 @@ def setup_browsertime(config, tasks):
                 "mac-cft-cd-arm-backup",
                 "mac-cft-cd-arm-stable",
             ],
+            "macosx1500.*": [
+                "mac-cft-cd-arm-backup",
+                "mac-cft-cd-arm-stable",
+            ],
             "windows.*-64.*": [
                 "win64-cft-cd-backup",
                 "win64-cft-cd-stable",
@@ -441,6 +453,7 @@ def setup_browsertime(config, tasks):
             "linux.*": ["linux64-cft-cd-canary"],
             "macosx1400.*": ["mac-cft-cd-arm-canary"],
             "macosx1470.*": ["mac-cft-cd-canary"],
+            "macosx1500.*": ["mac-cft-cd-arm-canary"],
             "windows.*-64.*": ["win64-cft-cd-canary"],
             "android.*": ["linux64-cft-cd-canary"],
         }
@@ -761,6 +774,8 @@ def handle_tier(config, tasks):
                 "macosx1100-64-qr/debug",
                 "macosx1400-64-shippable-qr/opt",
                 "macosx1400-64-qr/debug",
+                "macosx1500-64-shippable-qr/opt",
+                "macosx1500-64-qr/debug",
                 "android-em-7.0-x86_64-shippable/opt",
                 "android-em-7.0-x86_64-shippable-lite/opt",
                 "android-em-7.0-x86_64/debug",
