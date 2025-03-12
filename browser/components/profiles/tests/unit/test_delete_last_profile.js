@@ -32,8 +32,9 @@ add_task(async function test_delete_last_profile() {
     "Show profile selector is enabled"
   );
 
+  let updated = updateNotified();
   await SelectableProfileService.deleteCurrentProfile();
-  await updateNotified();
+  await updated;
 
   profiles = await SelectableProfileService.getAllProfiles();
   Assert.equal(profiles.length, 1, "Only 1 profile exists after deleting");
