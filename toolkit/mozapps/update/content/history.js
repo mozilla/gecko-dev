@@ -92,3 +92,5 @@ var gUpdateHistory = {
     return date.toLocaleString(undefined, dtOptions);
   },
 };
+
+window.addEventListener("load", () => gUpdateHistory.onLoad());
