@@ -151,6 +151,12 @@ nsresult ConvertToI420(Image* aImage, uint8_t* aDestY, int aDestStrideY,
           static_cast<uint8_t*>(map.GetData()), map.GetStride(), aDestY,
           aDestStrideY, aDestU, aDestStrideU, aDestV, aDestStrideV,
           aImage->GetSize().width, aImage->GetSize().height));
+    case SurfaceFormat::R8G8B8A8:
+    case SurfaceFormat::R8G8B8X8:
+      return MapRv(libyuv::ABGRToI420(
+          static_cast<uint8_t*>(map.GetData()), map.GetStride(), aDestY,
+          aDestStrideY, aDestU, aDestStrideU, aDestV, aDestStrideV,
+          aImage->GetSize().width, aImage->GetSize().height));
     case SurfaceFormat::R5G6B5_UINT16:
       return MapRv(libyuv::RGB565ToI420(
           static_cast<uint8_t*>(map.GetData()), map.GetStride(), aDestY,

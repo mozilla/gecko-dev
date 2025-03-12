@@ -13,6 +13,7 @@
 #include "GMPService.h"
 #include "GMPVideoHost.h"
 #include "ImageContainer.h"
+#include "ImageConversion.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "nsServiceManagerUtils.h"
 #include "prsystem.h"
@@ -25,7 +26,9 @@ static GMPVideoCodecMode ToGMPVideoCodecMode(Usage aUsage) {
       return kGMPRealtimeVideo;
     case Usage::Record:
     default:
-      return kGMPNonRealtimeVideo;
+      // ParamValidationExt in OpenH264 rejects all other codec modes besides
+      // realtime and screensharing.
+      return kGMPScreensharing;
   }
 }
 
@@ -195,25 +198,37 @@ RefPtr<MediaDataEncoder::EncodePromise> GMPVideoEncoder::Encode(
                                           __func__);
   }
 
-  const VideoData* sample(aSample->As<const VideoData>());
-  const layers::PlanarYCbCrImage* image = sample->mImage->AsPlanarYCbCrImage();
-  const layers::PlanarYCbCrData* yuv = image->GetData();
-  const gfx::IntSize ySize = yuv->YDataSize();
-  const gfx::IntSize cbCrSize = yuv->CbCrDataSize();
-  const int32_t yStride = yuv->mYStride;
-  const int32_t cbCrStride = yuv->mCbCrStride;
-
-  CheckedInt32 yBufSize = CheckedInt32(yStride) * ySize.height;
-  MOZ_RELEASE_ASSERT(yBufSize.isValid());
-
-  CheckedInt32 cbCrBufSize = CheckedInt32(cbCrStride) * cbCrSize.height;
-  MOZ_RELEASE_ASSERT(cbCrBufSize.isValid());
-
   GMPUniquePtr<GMPVideoi420Frame> frame(static_cast<GMPVideoi420Frame*>(ftmp));
-  err = frame->CreateFrame(yBufSize.value(), yuv->mYChannel,
-                           cbCrBufSize.value(), yuv->mCbChannel,
-                           cbCrBufSize.value(), yuv->mCrChannel, ySize.width,
-                           ySize.height, yStride, cbCrStride, cbCrStride);
+  const VideoData* sample(aSample->As<const VideoData>());
+  const uint64_t timestamp = sample->mTime.ToMicroseconds();
+
+  gfx::IntSize ySize;
+  gfx::IntSize cbCrSize;
+  int32_t yStride;
+  int32_t cbCrStride;
+
+  if (const layers::PlanarYCbCrImage* planarImage =
+          sample->mImage->AsPlanarYCbCrImage()) {
+    const layers::PlanarYCbCrData* yuv = planarImage->GetData();
+    ySize = yuv->YDataSize();
+    cbCrSize = yuv->CbCrDataSize();
+    yStride = yuv->mYStride;
+    cbCrStride = yuv->mCbCrStride;
+  } else {
+    ySize = sample->mImage->GetSize();
+    cbCrSize = gfx::ChromaSize(ySize, gfx::ChromaSubsampling::HALF_WIDTH);
+    yStride = ySize.width;
+    cbCrStride = cbCrSize.width;
+  }
+
+  GMP_LOG_DEBUG(
+      "[%p] GMPVideoEncoder::Encode -- request encode of frame @ %" PRIu64
+      " y %dx%d stride=%d cbCr %dx%d stride=%d",
+      this, timestamp, ySize.width, ySize.height, yStride, cbCrSize.width,
+      cbCrSize.height, cbCrStride);
+
+  err = frame->CreateEmptyFrame(ySize.width, ySize.height, yStride, cbCrStride,
+                                cbCrStride);
   if (NS_WARN_IF(err != GMPNoErr)) {
     GMP_LOG_ERROR(
         "[%p] GMPVideoEncoder::Encode -- failed to allocate frame data", this);
@@ -221,7 +236,19 @@ RefPtr<MediaDataEncoder::EncodePromise> GMPVideoEncoder::Encode(
                                           __func__);
   }
 
-  uint64_t timestamp = sample->mTime.ToMicroseconds();
+  uint8_t* yDest = frame->Buffer(GMPPlaneType::kGMPYPlane);
+  uint8_t* uDest = frame->Buffer(GMPPlaneType::kGMPUPlane);
+  uint8_t* vDest = frame->Buffer(GMPPlaneType::kGMPVPlane);
+
+  nsresult rv = ConvertToI420(sample->mImage, yDest, yStride, uDest, cbCrStride,
+                              vDest, cbCrStride);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    GMP_LOG_ERROR("[%p] GMPVideoEncoder::Encode -- failed to convert to I420",
+                  this);
+    return EncodePromise::CreateAndReject(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                                          __func__);
+  }
+
   frame->SetTimestamp(timestamp);
 
   AutoTArray<GMPVideoFrameType, 1> frameType;
@@ -235,12 +262,6 @@ RefPtr<MediaDataEncoder::EncodePromise> GMPVideoEncoder::Encode(
     return EncodePromise::CreateAndReject(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                                           __func__);
   }
-
-  GMP_LOG_DEBUG(
-      "[%p] GMPVideoEncoder::Encode -- request encode of frame @ %" PRIu64
-      " y %dx%d stride=%u cbCr %dx%d stride=%u",
-      this, timestamp, ySize.width, ySize.height, yStride, cbCrSize.width,
-      cbCrSize.height, cbCrStride);
 
   RefPtr<EncodePromise::Private> promise = new EncodePromise::Private(__func__);
   mPendingEncodes.InsertOrUpdate(timestamp, promise);
