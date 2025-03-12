@@ -657,14 +657,14 @@ void ViewTransition::SetupTransitionPseudoElements() {
   mViewTransitionRoot->SetProperty(nsGkAtoms::restylableAnonymousNode,
                                    reinterpret_cast<void*>(true));
 #endif
+
+  MOZ_ASSERT(mNames.Length() == mNamedElements.Count());
   // Step 3: For each transitionName -> capturedElement of transition’s named
   // elements:
-  for (auto& entry : mNamedElements) {
+  for (nsAtom* transitionName : mNames) {
     // We don't need to notify while constructing the tree.
     constexpr bool kNotify = false;
-
-    nsAtom* transitionName = entry.GetKey();
-    CapturedElement& capturedElement = *entry.GetData();
+    CapturedElement& capturedElement = *mNamedElements.Get(transitionName);
     // Let group be a new ::view-transition-group(), with its view transition
     // name set to transitionName.
     RefPtr<Element> group = MakePseudo(
@@ -1123,6 +1123,7 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureOldState() {
     auto capture =
         MakeUnique<CapturedElement>(f, mInitialSnapshotContainingBlockSize);
     mNamedElements.InsertOrUpdate(name, std::move(capture));
+    mNames.AppendElement(name);
     f->RemoveStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION);
   }
 
@@ -1153,8 +1154,14 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureNewState() {
           SkipTransitionReason::DuplicateTransitionNameCapturingNewState);
       return false;
     }
-    auto& capturedElement = mNamedElements.LookupOrInsertWith(
-        name, [&] { return MakeUnique<CapturedElement>(); });
+    bool wasPresent = true;
+    auto& capturedElement = mNamedElements.LookupOrInsertWith(name, [&] {
+      wasPresent = false;
+      return MakeUnique<CapturedElement>();
+    });
+    if (!wasPresent) {
+      mNames.AppendElement(name);
+    }
     capturedElement->mNewElement = aFrame->GetContent()->AsElement();
     capturedElement->mNewSnapshotSize =
         aFrame->InkOverflowRectRelativeToSelf().Size();
@@ -1335,6 +1342,7 @@ void ViewTransition::ClearNamedElements() {
     }
   }
   mNamedElements.Clear();
+  mNames.Clear();
 }
 
 static void ClearViewTransitionsAnimationData(Element* aRoot) {
