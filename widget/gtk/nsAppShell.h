@@ -30,6 +30,7 @@ class nsAppShell : public nsBaseAppShell {
 #ifdef MOZ_ENABLE_DBUS
   void StartDBusListening();
   void StopDBusListening();
+  void RegisterHostApp();
 
   static void DBusSessionSleepCallback(GDBusProxy* aProxy, gchar* aSenderName,
                                        gchar* aSignalName,
@@ -59,6 +60,7 @@ class nsAppShell : public nsBaseAppShell {
   unsigned mTag = 0;
 
 #ifdef MOZ_ENABLE_DBUS
+  uint32_t mDBusID = 0;
   RefPtr<GDBusProxy> mLogin1Proxy;
   RefPtr<GCancellable> mLogin1ProxyCancellable;
   RefPtr<GDBusProxy> mTimedate1Proxy;
