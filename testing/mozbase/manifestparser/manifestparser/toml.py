@@ -50,13 +50,18 @@ def parse_toml_str(contents):
     """
     Parse TOML contents using toml
     """
-    import toml
+    try:
+        from tomllib import TOMLDecodeError
+        from tomllib import loads as TOMLloads
+    except ImportError:
+        from toml import TomlDecodeError as TOMLDecodeError
+        from toml import loads as TOMLloads
 
     error = None
     manifest = None
     try:
-        manifest = toml.loads(contents)
-    except toml.TomlDecodeError as pe:
+        manifest = TOMLloads(contents)
+    except TOMLDecodeError as pe:
         error = str(pe)
     return error, manifest
 
