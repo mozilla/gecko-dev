@@ -45,7 +45,7 @@ def test_nw_prefs(perms):
     proxy_check = (
         "'http': 'PROXY mochi.test:8888'",
         "'https': 'PROXY mochi.test:4443'",
-        "'ws': 'PROXY mochi.test:4443'",
+        "'ws': 'PROXY mochi.test:9988'",
         "'wss': 'PROXY mochi.test:4443'",
     )
     assert all(c in user_prefs[1][1] for c in proxy_check)

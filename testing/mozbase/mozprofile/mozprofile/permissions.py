@@ -26,7 +26,7 @@ __all__ = [
 ]
 
 # http://hg.mozilla.org/mozilla-central/file/b871dfb2186f/build/automation.py.in#l28
-DEFAULT_PORTS = {"http": "8888", "https": "4443", "ws": "4443", "wss": "4443"}
+DEFAULT_PORTS = {"http": "8888", "https": "4443", "ws": "9988", "wss": "4443"}
 
 
 class LocationError(Exception):
