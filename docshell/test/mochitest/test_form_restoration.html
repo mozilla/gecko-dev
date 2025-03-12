@@ -21,7 +21,7 @@
     }
 
     async function startTest(aTestFun) {
-      let bc = new BroadcastChannel("form_restoration");
+      let bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("form_restoration");
 
       let promise = waitForMessage(bc);
       window.open("file_form_restoration_no_store.html", "", "noopener");
