@@ -21,9 +21,9 @@
 </linkset>
 
 # All JS files which are needed by browser.xhtml and other top level windows to
-# support MacOS specific features *must* go into the global-scripts.js file so
+# support MacOS specific features *must* go into the global-scripts.inc file so
 # that they can be shared with browser.xhtml.
-<script src="chrome://browser/content/global-scripts.js"></script>
+#include global-scripts.inc
 
 <script src="chrome://browser/content/nonbrowser-mac.js"></script>
 
