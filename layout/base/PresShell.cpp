@@ -773,7 +773,6 @@ bool PresShell::AccessibleCaretEnabled(nsIDocShell* aDocShell) {
 PresShell::PresShell(Document* aDocument)
     : mDocument(aDocument),
       mViewManager(nullptr),
-      mLastSelectionForToString(nullptr),
       mAutoWeakFrames(nullptr),
 #ifdef ACCESSIBILITY
       mDocAccessible(nullptr),
@@ -1540,8 +1539,7 @@ bool PresShell::FixUpFocus() {
 
 void PresShell::SelectionWillTakeFocus() {
   if (mSelection) {
-    FrameSelectionWillTakeFocus(*mSelection,
-                                CanMoveLastSelectionForToString::No);
+    FrameSelectionWillTakeFocus(*mSelection);
   }
 }
 
@@ -1586,20 +1584,11 @@ void PresShell::FrameSelectionWillLoseFocus(nsFrameSelection& aFrameSelection) {
   }
 
   if (mSelection) {
-    FrameSelectionWillTakeFocus(*mSelection,
-                                CanMoveLastSelectionForToString::No);
+    FrameSelectionWillTakeFocus(*mSelection);
   }
 }
 
-void PresShell::FrameSelectionWillTakeFocus(
-    nsFrameSelection& aFrameSelection,
-    CanMoveLastSelectionForToString aCanMoveLastSelectionForToString) {
-  if (StaticPrefs::dom_selection_mimic_chrome_tostring_enabled()) {
-    if (aCanMoveLastSelectionForToString ==
-        CanMoveLastSelectionForToString::Yes) {
-      UpdateLastSelectionForToString(&aFrameSelection);
-    }
-  }
+void PresShell::FrameSelectionWillTakeFocus(nsFrameSelection& aFrameSelection) {
   if (mFocusedFrameSelection == &aFrameSelection) {
 #ifdef XP_MACOSX
     // FIXME: Mac needs to update the global selection cache, even if the
@@ -1624,14 +1613,6 @@ void PresShell::FrameSelectionWillTakeFocus(
       nsISelectionController::SELECTION_ON) {
     aFrameSelection.SetDisplaySelection(nsISelectionController::SELECTION_ON);
     RepaintNormalSelectionWhenSafe(aFrameSelection);
-  }
-}
-
-void PresShell::UpdateLastSelectionForToString(
-    const nsFrameSelection* aFrameSelection) {
-  MOZ_ASSERT(StaticPrefs::dom_selection_mimic_chrome_tostring_enabled());
-  if (mLastSelectionForToString != aFrameSelection) {
-    mLastSelectionForToString = aFrameSelection;
   }
 }
 
