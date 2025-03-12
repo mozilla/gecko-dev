@@ -727,6 +727,7 @@
     "interventions": [
       {
         "platforms": ["all"],
+        "skip_if": ["InstallTrigger_defined"],
         "content_scripts": {
           "all_frames": true,
           "js": ["bug1774005-installtrigger-shim.js"]
@@ -1782,6 +1783,7 @@
     "interventions": [
       {
         "platforms": ["all"],
+        "skip_if": ["InstallTrigger_undefined"],
         "content_scripts": {
           "all_frames": true,
           "js": ["bug1859617-installtrigger-removal-shim.js"]

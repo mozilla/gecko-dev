@@ -16,7 +16,6 @@ def get_elem_height(client):
     )
 
 
-@pytest.mark.only_platforms("android")
 @pytest.mark.asyncio
 @pytest.mark.with_interventions
 async def test_enabled(client):
@@ -24,9 +23,9 @@ async def test_enabled(client):
     assert get_elem_height(client) > HEIGHT_CUTOFF
 
 
-@pytest.mark.only_platforms("android")
 @pytest.mark.asyncio
 @pytest.mark.without_interventions
 async def test_disabled(client):
+    await client.ensure_InstallTrigger_undefined()
     await client.navigate(URL)
     assert get_elem_height(client) < HEIGHT_CUTOFF

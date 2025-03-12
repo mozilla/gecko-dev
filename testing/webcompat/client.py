@@ -1178,6 +1178,12 @@ class Client:
         yield
         fastclick_preload_script.stop()
 
+    async def ensure_InstallTrigger_defined(self):
+        return await self.make_preload_script("window.InstallTrigger = function() {}")
+
+    async def ensure_InstallTrigger_undefined(self):
+        return await self.make_preload_script("delete InstallTrigger")
+
     async def test_nicochannel_like_site(self, url, shouldPass=True):
         CONSENT = self.css(".MuiDialog-container button.MuiButton-containedPrimary")
         BLOCKED = self.text("このブラウザはサポートされていません。")
