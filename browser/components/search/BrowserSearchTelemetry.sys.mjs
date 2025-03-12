@@ -124,9 +124,7 @@ class BrowserSearchTelemetryHandler {
       category = "enter";
     }
     if (source == "searchbar") {
-      Services.telemetry
-        .getHistogramById("FX_SEARCHBAR_SELECTED_RESULT_METHOD")
-        .add(category);
+      Glean.searchbar.selectedResultMethod[category].add(1);
     }
   }
 

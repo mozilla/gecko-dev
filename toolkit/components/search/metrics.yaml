@@ -481,3 +481,24 @@ browser.searchinit:
     expires: 145
     unit: updates
     telemetry_mirror: BROWSER_SEARCHINIT_INSECURE_OPENSEARCH_UPDATE_COUNT
+
+search:
+  suggestions_latency:
+    type: labeled_timing_distribution
+    description: >
+      Records the latencies (ms) of search suggestions fetches per search
+      engine. Keys in this histogram are search engine IDs for built-in search
+      engines and 'other' for non-built-in search engines.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SEARCH_SUGGESTIONS_LATENCY_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1743885
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1743885
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - adw@mozilla.com
+    expires: never
+    telemetry_mirror: SEARCH_SUGGESTIONS_LATENCY_MS

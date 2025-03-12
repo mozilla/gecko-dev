@@ -1878,3 +1878,27 @@ urlbar.searchmode:
       - fx-search-telemetry@mozilla.com
     expires: never
     telemetry_mirror: URLBAR_SEARCHMODE_OTHER
+
+searchbar:
+  selected_result_method:
+    type: labeled_counter
+    description: >
+      The input method the user used to select a result in the searchbar.
+      'enter' => The user hit the Enter key without choosing a result in the
+      popup. 'enterSelection' => The user chose a result and then hit the Enter
+      key. 'click' => The user clicked a result with the mouse.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram FX_SEARCHBAR_SELECTED_RESULT_METHOD.
+    labels:
+      - enter
+      - enterSelection
+      - click
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1334615
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1334615
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: h#FX_SEARCHBAR_SELECTED_RESULT_METHOD
