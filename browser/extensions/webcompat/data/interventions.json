@@ -2586,6 +2586,23 @@
       }
     ]
   },
+  "1905069": {
+    "label": "one.geekie.com.br",
+    "bugs": {
+      "1905069": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://one.geekie.com.br/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "js": ["bug1905069-one.geekie.com.br-chrome-shims.js"]
+        }
+      }
+    ]
+  },
   "1905607": {
     "label": "10play.com.au",
     "bugs": {
