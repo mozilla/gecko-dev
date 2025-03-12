@@ -5284,19 +5284,42 @@ void Element::RegUnRegAccessKey(bool aDoReg) {
   }
 }
 
+// https://wicg.github.io/sanitizer-api/#shadowroot-sethtml
 void Element::SetHTML(const nsAString& aInnerHTML,
                       const SetHTMLOptions& aOptions, ErrorResult& aError) {
-  // Throw for disallowed elements
-  if (IsHTMLElement(nsGkAtoms::script)) {
-    aError.ThrowTypeError("This does not work on <script> elements");
+  // Step 1. Set and filter HTML using this (as target), this (as context
+  // element), html, options, and true.
+
+  // https://wicg.github.io/sanitizer-api/#set-and-filter-html
+  // Step 1. If safe and contextElement’s local name is "script" and
+  // contextElement’s namespace is the HTML namespace or the SVG namespace, then
+  // return.
+  if (IsHTMLElement(nsGkAtoms::script) || IsSVGElement(nsGkAtoms::script)) {
+    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "DOM"_ns,
+                                    OwnerDoc(), nsContentUtils::eDOM_PROPERTIES,
+                                    "SetHTMLScript");
     return;
   }
-  if (IsHTMLElement(nsGkAtoms::object)) {
-    aError.ThrowTypeError("This does not work on <object> elements");
+
+  // Step 2. Let sanitizer be the result of calling get a sanitizer instance
+  // from options with options and safe.
+  nsCOMPtr<nsIGlobalObject> global = GetOwnerGlobal();
+  if (!global) {
+    aError.ThrowInvalidStateError("Missing owner global.");
     return;
   }
-  if (IsHTMLElement(nsGkAtoms::iframe)) {
-    aError.ThrowTypeError("This does not work on <iframe> elements");
+
+  RefPtr<Sanitizer> sanitizer;
+  if (aOptions.mSanitizer.IsSanitizer()) {
+    sanitizer = aOptions.mSanitizer.GetAsSanitizer();
+  } else if (aOptions.mSanitizer.IsSanitizerConfig()) {
+    sanitizer = Sanitizer::New(
+        global, aOptions.mSanitizer.GetAsSanitizerConfig(), aError);
+  } else {
+    sanitizer = Sanitizer::New(
+        global, aOptions.mSanitizer.GetAsSanitizerPresets(), aError);
+  }
+  if (aError.Failed()) {
     return;
   }
 
@@ -5341,6 +5364,12 @@ void Element::SetHTML(const nsAString& aInnerHTML,
     parseContext = shadowRoot->GetHost();
   }
 
+  // Step 3. Let newChildren be the result of the HTML fragment parsing
+  // algorithm steps given contextElement, html, and true.
+  // Step 4. Let fragment be a new DocumentFragment whose node document is
+  // contextElement’s node document.
+  // Step 5. For each node in newChildren, append node to fragment.
+
   // We MUST NOT cause any requests during parsing, so we'll
   // create an inert Document and parse into a new DocumentFragment.
   RefPtr<Document> inertDoc;
@@ -5361,7 +5390,8 @@ void Element::SetHTML(const nsAString& aInnerHTML,
                                                contextLocalName,
                                                contextNameSpaceID, false, true);
 
-  } else if (doc->IsXMLDocument()) {
+  } else {
+    MOZ_ASSERT(doc->IsXMLDocument());
     inertDoc = nsContentUtils::CreateInertXMLDocument(nullptr);
     if (!inertDoc) {
       aError = NS_ERROR_FAILURE;
@@ -5390,31 +5420,13 @@ void Element::SetHTML(const nsAString& aInnerHTML,
 
   int32_t oldChildCount = static_cast<int32_t>(target->GetChildCount());
 
-  nsCOMPtr<nsIGlobalObject> global = GetOwnerGlobal();
-  if (!global) {
-    aError.ThrowInvalidStateError("Missing owner global.");
-    return;
-  }
-
-  RefPtr<Sanitizer> sanitizer;
-  if (aOptions.mSanitizer.IsSanitizer()) {
-    sanitizer = aOptions.mSanitizer.GetAsSanitizer();
-  } else if (aOptions.mSanitizer.IsSanitizerConfig()) {
-    sanitizer = Sanitizer::New(
-        global, aOptions.mSanitizer.GetAsSanitizerConfig(), aError);
-  } else {
-    sanitizer = Sanitizer::New(
-        global, aOptions.mSanitizer.GetAsSanitizerPresets(), aError);
-  }
-  if (aError.Failed()) {
-    return;
-  }
-
+  // Step 6. Run sanitize on fragment using sanitizer and safe.
   sanitizer->SanitizeFragment(fragment, /* aSafe */ true, aError);
   if (aError.Failed()) {
     return;
   }
 
+  // Step 7. Replace all with fragment within target.
   target->AppendChild(*fragment, aError);
   if (aError.Failed()) {
     return;
