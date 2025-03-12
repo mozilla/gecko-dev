@@ -88,7 +88,24 @@ XPCOMUtils.defineLazyServiceGetter(
   "nsIMLUtils"
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "PIPELINE_OVERRIDE_OPTIONS",
+  "browser.ml.overridePipelineOptions",
+  "{}"
+);
+
 const ONE_GiB = 1024 * 1024 * 1024;
+
+const SAFE_OVERRIDE_OPTIONS = [
+  "dtype",
+  "logLevel",
+  "modelRevision",
+  "numThreads",
+  "processorRevision",
+  "timeoutMS",
+  "tokenizerRevision",
+];
 
 /**
  * The engine child is responsible for the life cycle and instantiation of the local
@@ -151,8 +168,9 @@ export class MLEngineChild extends JSProcessActorChild {
         logLevel: lazy.LOG_LEVEL,
       });
 
-      // And then overwrite with the ones passed in the message
-      options.updateOptions(pipelineOptions);
+      const updatedPipelineOptions =
+        this.getUpdatedPipelineOptions(pipelineOptions);
+      options.updateOptions(updatedPipelineOptions);
       const engineId = options.engineId;
       this.#engineStatuses.set(engineId, "INITIALIZING");
 
@@ -280,6 +298,26 @@ export class MLEngineChild extends JSProcessActorChild {
       }
     }
     return statusMap;
+  }
+
+  /**
+   * @param {PipelineOptions} pipelineOptions - options that we want to safely override
+   * @returns {object} - updated pipeline options
+   */
+  getUpdatedPipelineOptions(pipelineOptions) {
+    const overrideOptionsByFeature = JSON.parse(lazy.PIPELINE_OVERRIDE_OPTIONS);
+    const overrideOptions = {};
+    if (overrideOptionsByFeature.hasOwnProperty(pipelineOptions.featureId)) {
+      for (let key of Object.keys(
+        overrideOptionsByFeature[pipelineOptions.featureId]
+      )) {
+        if (SAFE_OVERRIDE_OPTIONS.includes(key)) {
+          overrideOptions[key] =
+            overrideOptionsByFeature[pipelineOptions.featureId][key];
+        }
+      }
+    }
+    return { ...pipelineOptions, ...overrideOptions };
   }
 }
 

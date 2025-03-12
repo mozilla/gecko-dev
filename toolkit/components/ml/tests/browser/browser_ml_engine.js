@@ -1085,3 +1085,151 @@ add_task(async function test_ml_engine_blessed_model() {
 
   await cleanup();
 });
+
+add_task(
+  async function test_override_ml_engine_pipeline_options_in_allow_list() {
+    const { cleanup, remoteClients } = await setup();
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        [
+          "browser.ml.overridePipelineOptions",
+          '{"about-inference": {"modelRevision": "v0.2.0"}}',
+        ],
+      ],
+    });
+
+    info("Get the engine");
+    const engineInstance = await createEngine({
+      taskName: "moz-echo",
+      featureId: "about-inference",
+    });
+
+    info("Check the inference process is running");
+    Assert.equal(await checkForRemoteType("inference"), true);
+
+    info("Run the inference");
+    const inferencePromise = engineInstance.run({ data: "This gets echoed." });
+
+    info("Wait for the pending downloads.");
+    await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+
+    Assert.equal(
+      (await inferencePromise).output.echo,
+      "This gets echoed.",
+      "The text get echoed exercising the whole flow."
+    );
+
+    Assert.equal(
+      (await inferencePromise).output.modelRevision,
+      "v0.2.0",
+      "The config options goes through and overrides."
+    );
+
+    ok(
+      !EngineProcess.areAllEnginesTerminated(),
+      "The engine process is still active."
+    );
+
+    await EngineProcess.destroyMLEngine();
+    await cleanup();
+  }
+);
+
+add_task(async function test_override_ml_pipeline_options_not_in_allow_list() {
+  const { cleanup, remoteClients } = await setup();
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [
+        "browser.ml.overridePipelineOptions",
+        '{"about-inferences": {"modelRevision": "v0.2.0"}}',
+      ],
+    ],
+  });
+
+  info("Get the engine");
+  const engineInstance = await createEngine({
+    taskName: "moz-echo",
+    featureId: "about-inference",
+  });
+  info("Check the inference process is running");
+  Assert.equal(await checkForRemoteType("inference"), true);
+
+  info("Run the inference");
+  const inferencePromise = engineInstance.run({ data: "This gets echoed." });
+
+  info("Wait for the pending downloads.");
+  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+
+  Assert.equal(
+    (await inferencePromise).output.echo,
+    "This gets echoed.",
+    "The text get echoed exercising the whole flow."
+  );
+
+  Assert.equal(
+    (await inferencePromise).output.modelRevision,
+    "main",
+    "The config options goes through and overrides."
+  );
+
+  ok(
+    !EngineProcess.areAllEnginesTerminated(),
+    "The engine process is still active."
+  );
+
+  await EngineProcess.destroyMLEngine();
+  await cleanup();
+});
+
+add_task(async function test_override_ml_pipeline_options_unsafe_options() {
+  const { cleanup, remoteClients } = await setup();
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [
+        "browser.ml.overridePipelineOptions",
+        '{"about-inference": {"modelRevision": "v0.2.0", "modelId": "unsafe-model-id"}}',
+      ],
+    ],
+  });
+
+  info("Get the engine");
+  const engineInstance = await createEngine({
+    taskName: "moz-echo",
+    featureId: "about-inference",
+  });
+
+  info("Check the inference process is running");
+  Assert.equal(await checkForRemoteType("inference"), true);
+
+  info("Run the inference");
+  const inferencePromise = engineInstance.run({ data: "This gets echoed." });
+
+  info("Wait for the pending downloads.");
+  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+
+  Assert.equal(
+    (await inferencePromise).output.echo,
+    "This gets echoed.",
+    "The text get echoed exercising the whole flow."
+  );
+
+  Assert.equal(
+    (await inferencePromise).output.modelRevision,
+    "v0.2.0",
+    "The config options goes through and overrides."
+  );
+
+  Assert.equal(
+    (await inferencePromise).output.modelId,
+    "mozilla/distilvit",
+    "The config should not override."
+  );
+
+  ok(
+    !EngineProcess.areAllEnginesTerminated(),
+    "The engine process is still active."
+  );
+
+  await EngineProcess.destroyMLEngine();
+  await cleanup();
+});

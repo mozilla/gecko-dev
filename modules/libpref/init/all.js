@@ -3682,6 +3682,8 @@ pref("browser.ml.maximumMemoryPressure", 80);
 pref("browser.ml.queueWaitTimeout", 60);
 // Queue wait checks interval in seconds
 pref("browser.ml.queueWaitInterval", 1);
+// Allowed overrides for various ml features
+pref("browser.ml.overridePipelineOptions", "{}");
 
 
 // When a user cancels this number of authentication dialogs coming from
