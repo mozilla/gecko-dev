@@ -804,7 +804,7 @@ bool FontList::AppendShmBlock(uint32_t aSizeNeeded) {
     MOZ_CRASH("failed to create shared memory");
     return false;
   }
-  auto [readOnly, newShm] = std::move(handle).Map().FreezeWithMutableMapping();
+  auto [newShm, readOnly] = std::move(handle).Map().Freeze();
   if (!newShm || !newShm.Address()) {
     MOZ_CRASH("failed to map shared memory");
     return false;

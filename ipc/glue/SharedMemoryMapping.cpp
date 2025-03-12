@@ -164,15 +164,10 @@ FreezableMapping::Mapping(FreezableHandle&& aHandle, uint64_t aOffset,
   MapSubregion(mHandle, aOffset, aSize, aFixedAddress, false);
 }
 
-ReadOnlyHandle FreezableMapping::Freeze() && {
-  return std::move(*this).Unmap().Freeze();
-}
-
-std::tuple<ReadOnlyHandle, MutableMapping>
-FreezableMapping::FreezeWithMutableMapping() && {
+std::tuple<MutableMapping, ReadOnlyHandle> FreezableMapping::Freeze() && {
   auto handle = std::move(mHandle);
-  return std::make_tuple(std::move(handle).Freeze(),
-                         ConvertMappingTo<Type::Mutable>(std::move(*this)));
+  return std::make_tuple(ConvertMappingTo<Type::Mutable>(std::move(*this)),
+                         std::move(handle).Freeze());
 }
 
 FreezableHandle FreezableMapping::Unmap() && {

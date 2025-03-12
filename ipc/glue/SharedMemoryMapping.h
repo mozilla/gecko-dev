@@ -222,16 +222,11 @@ struct Mapping<Type::Freezable> : MappingData<false> {
 
   /**
    * Freeze the shared memory region.
-   */
-  ReadOnlyHandle Freeze() &&;
-
-  /**
-   * Freeze the shared memory region.
    *
    * The returned Mapping will still be valid and writable until it is deleted,
    * however no new writable mappings can be created.
    */
-  std::tuple<ReadOnlyHandle, MutableMapping> FreezeWithMutableMapping() &&;
+  std::tuple<MutableMapping, ReadOnlyHandle> Freeze() &&;
 
   /**
    * Unmap the shared memory, returning the freezable handle.

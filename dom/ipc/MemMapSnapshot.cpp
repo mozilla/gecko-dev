@@ -32,7 +32,7 @@ Result<Ok, nsresult> MemMapSnapshot::Init(size_t aSize) {
 Result<ReadOnlySharedMemoryHandle, nsresult> MemMapSnapshot::Finalize() {
   MOZ_ASSERT(mMem);
 
-  auto readOnlyHandle = std::move(mMem).Freeze();
+  auto [_, readOnlyHandle] = std::move(mMem).Freeze();
   if (NS_WARN_IF(!readOnlyHandle)) {
     return Err(NS_ERROR_FAILURE);
   }
