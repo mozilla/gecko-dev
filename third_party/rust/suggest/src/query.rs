@@ -69,14 +69,6 @@ impl SuggestionQuery {
         }
     }
 
-    pub fn amp_mobile(keyword: &str) -> Self {
-        Self {
-            keyword: keyword.into(),
-            providers: vec![SuggestionProvider::AmpMobile],
-            ..Self::default()
-        }
-    }
-
     pub fn amo(keyword: &str) -> Self {
         Self {
             keyword: keyword.into(),

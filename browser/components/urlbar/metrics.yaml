@@ -946,14 +946,14 @@ suggest:
     time_unit: microsecond
     labels:
       - icon
-      - data
+      - amp
+      - wikipedia
       - amo-suggestions
       - pocket-suggestions
       - yelp-suggestions
       - mdn-suggestions
       - weather
       - configuration
-      - amp-mobile-suggestions
       - fakespot-suggestions
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1908397
@@ -972,14 +972,14 @@ suggest:
     time_unit: microsecond
     labels:
       - icon
-      - data
+      - amp
+      - wikipedia
       - amo-suggestions
       - pocket-suggestions
       - yelp-suggestions
       - mdn-suggestions
       - weather
       - configuration
-      - amp-mobile-suggestions
       - fakespot-suggestions
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1908397
@@ -998,7 +998,6 @@ suggest:
     time_unit: microsecond
     labels:
       - amp
-      - ampmobile
       - wikipedia
       - amo
       - pocket

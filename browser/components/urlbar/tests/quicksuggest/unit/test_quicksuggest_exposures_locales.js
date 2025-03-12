@@ -24,11 +24,13 @@ const REMOTE_SETTINGS_RECORDS = [
     },
   },
   {
-    type: "data",
-    attachment: [
-      QuickSuggestTestUtils.ampRemoteSettings(),
-      QuickSuggestTestUtils.wikipediaRemoteSettings(),
-    ],
+    collection: QuickSuggestTestUtils.RS_COLLECTION.AMP,
+    type: QuickSuggestTestUtils.RS_TYPE.AMP,
+    attachment: [QuickSuggestTestUtils.ampRemoteSettings()],
+  },
+  {
+    type: QuickSuggestTestUtils.RS_TYPE.WIKIPEDIA,
+    attachment: [QuickSuggestTestUtils.wikipediaRemoteSettings()],
   },
 ];
 

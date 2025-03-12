@@ -16,11 +16,6 @@ const TIMESTAMP_TEMPLATE: &str = "%YYYYMMDDHH%";
 /// 2 bytes shorter than [`TIMESTAMP_TEMPLATE`].
 const TIMESTAMP_LENGTH: usize = 10;
 
-/// Suggestion Types for Amp
-pub(crate) enum AmpSuggestionType {
-    Mobile,
-    Desktop,
-}
 /// A suggestion from the database to show in the address bar.
 #[derive(Clone, Debug, PartialEq, uniffi::Enum)]
 pub enum Suggestion {

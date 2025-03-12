@@ -157,40 +157,6 @@ pub fn caltech_suggestion(full_keyword: &str) -> Suggestion {
     }
 }
 
-pub fn a1a_amp_mobile() -> JsonValue {
-    json!({
-        "id": 300,
-        "advertiser": "A1A Car Wash",
-        "iab_category": "2 - Auto",
-        "keywords": ["a1a", "ca", "car", "car wash"],
-        "title": "A1A Car Wash",
-        "url": "https://www.a1a-wash.biz",
-        "icon": "200",
-        "impression_url": "https://example.com/impression_url",
-        "click_url": "https://example.com/click_url",
-        "score": 0.3
-    })
-}
-
-pub fn a1a_suggestion(full_keyword: &str, fts_match_info: Option<FtsMatchInfo>) -> Suggestion {
-    Suggestion::Amp {
-        title: "A1A Car Wash".into(),
-        url: "https://www.a1a-wash.biz".into(),
-        raw_url: "https://www.a1a-wash.biz".into(),
-        icon: None,
-        icon_mimetype: None,
-        block_id: 300,
-        advertiser: "A1A Car Wash".into(),
-        iab_category: "2 - Auto".into(),
-        impression_url: "https://example.com/impression_url".into(),
-        click_url: "https://example.com/click_url".into(),
-        raw_click_url: "https://example.com/click_url".into(),
-        score: 0.3,
-        full_keyword: full_keyword.to_string(),
-        fts_match_info,
-    }
-}
-
 pub fn relay_amo() -> JsonValue {
     json!({
         "title": "Firefox Relay",

@@ -3,24 +3,32 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-use std::fmt;
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+};
 
 use rusqlite::{
     types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef},
     Result as RusqliteResult,
 };
 
-use crate::rs::SuggestRecordType;
+use crate::rs::{Collection, SuggestRecordType};
+
+#[cfg(test)]
+use serde_json::Value as JsonValue;
+
+#[cfg(test)]
+use crate::testing::{MockAttachment, MockIcon, MockRecord};
 
 /// Record types from these providers will be ingested when consumers do not
 /// specify providers in `SuggestIngestionConstraints`.
-pub(crate) const DEFAULT_INGEST_PROVIDERS: [SuggestionProvider; 6] = [
+pub(crate) const DEFAULT_INGEST_PROVIDERS: [SuggestionProvider; 5] = [
     SuggestionProvider::Amp,
     SuggestionProvider::Wikipedia,
     SuggestionProvider::Amo,
     SuggestionProvider::Yelp,
     SuggestionProvider::Mdn,
-    SuggestionProvider::AmpMobile,
 ];
 
 /// A provider is a source of search suggestions.
@@ -34,9 +42,8 @@ pub enum SuggestionProvider {
     Yelp = 5,
     Mdn = 6,
     Weather = 7,
-    AmpMobile = 8,
-    Fakespot = 9,
-    Exposure = 10,
+    Fakespot = 8,
+    Exposure = 9,
 }
 
 impl fmt::Display for SuggestionProvider {
@@ -49,7 +56,6 @@ impl fmt::Display for SuggestionProvider {
             Self::Yelp => write!(f, "yelp"),
             Self::Mdn => write!(f, "mdn"),
             Self::Weather => write!(f, "weather"),
-            Self::AmpMobile => write!(f, "ampmobile"),
             Self::Fakespot => write!(f, "fakespot"),
             Self::Exposure => write!(f, "exposure"),
         }
@@ -67,7 +73,7 @@ impl FromSql for SuggestionProvider {
 }
 
 impl SuggestionProvider {
-    pub fn all() -> [Self; 10] {
+    pub fn all() -> [Self; 9] {
         [
             Self::Amp,
             Self::Wikipedia,
@@ -76,7 +82,6 @@ impl SuggestionProvider {
             Self::Yelp,
             Self::Mdn,
             Self::Weather,
-            Self::AmpMobile,
             Self::Fakespot,
             Self::Exposure,
         ]
@@ -92,32 +97,115 @@ impl SuggestionProvider {
             5 => Some(Self::Yelp),
             6 => Some(Self::Mdn),
             7 => Some(Self::Weather),
-            8 => Some(Self::AmpMobile),
-            9 => Some(Self::Fakespot),
-            10 => Some(Self::Exposure),
+            8 => Some(Self::Fakespot),
+            9 => Some(Self::Exposure),
             _ => None,
         }
     }
 
-    pub(crate) fn record_types(&self) -> Vec<SuggestRecordType> {
+    /// The collection that stores the provider's primary record.
+    pub(crate) fn primary_collection(&self) -> Collection {
         match self {
-            Self::Amp => vec![SuggestRecordType::AmpWikipedia],
-            Self::Wikipedia => vec![SuggestRecordType::AmpWikipedia],
-            Self::Amo => vec![SuggestRecordType::Amo],
-            Self::Pocket => vec![SuggestRecordType::Pocket],
-            Self::Yelp => vec![SuggestRecordType::Yelp, SuggestRecordType::Geonames],
-            Self::Mdn => vec![SuggestRecordType::Mdn],
-            Self::Weather => vec![SuggestRecordType::Weather, SuggestRecordType::Geonames],
-            Self::AmpMobile => vec![SuggestRecordType::AmpMobile],
-            Self::Fakespot => vec![SuggestRecordType::Fakespot],
-            Self::Exposure => vec![SuggestRecordType::Exposure],
+            Self::Amp => Collection::Amp,
+            Self::Fakespot => Collection::Fakespot,
+            _ => Collection::Other,
         }
+    }
+
+    /// The provider's primary record type.
+    pub(crate) fn primary_record_type(&self) -> SuggestRecordType {
+        match self {
+            Self::Amp => SuggestRecordType::Amp,
+            Self::Wikipedia => SuggestRecordType::Wikipedia,
+            Self::Amo => SuggestRecordType::Amo,
+            Self::Pocket => SuggestRecordType::Pocket,
+            Self::Yelp => SuggestRecordType::Yelp,
+            Self::Mdn => SuggestRecordType::Mdn,
+            Self::Weather => SuggestRecordType::Weather,
+            Self::Fakespot => SuggestRecordType::Fakespot,
+            Self::Exposure => SuggestRecordType::Exposure,
+        }
+    }
+
+    /// Other record types and their collections that the provider depends on.
+    fn secondary_record_types(&self) -> Option<HashMap<Collection, HashSet<SuggestRecordType>>> {
+        match self {
+            Self::Amp => Some(HashMap::from([(
+                Collection::Amp,
+                HashSet::from([SuggestRecordType::Icon]),
+            )])),
+            Self::Wikipedia => Some(HashMap::from([(
+                Collection::Other,
+                HashSet::from([SuggestRecordType::Icon]),
+            )])),
+            Self::Yelp => Some(HashMap::from([(
+                Collection::Other,
+                HashSet::from([SuggestRecordType::Icon, SuggestRecordType::Geonames]),
+            )])),
+            Self::Weather => Some(HashMap::from([(
+                Collection::Other,
+                HashSet::from([SuggestRecordType::Geonames]),
+            )])),
+            Self::Fakespot => Some(HashMap::from([(
+                Collection::Fakespot,
+                HashSet::from([SuggestRecordType::Icon]),
+            )])),
+            _ => None,
+        }
+    }
+
+    /// All record types and their collections that the provider depends on,
+    /// including primary and secondary records.
+    pub(crate) fn record_types_by_collection(
+        &self,
+    ) -> HashMap<Collection, HashSet<SuggestRecordType>> {
+        let mut rts = self.secondary_record_types().unwrap_or_default();
+        rts.entry(self.primary_collection())
+            .or_default()
+            .insert(self.primary_record_type());
+        rts
     }
 }
 
 impl ToSql for SuggestionProvider {
     fn to_sql(&self) -> RusqliteResult<ToSqlOutput<'_>> {
         Ok(ToSqlOutput::from(*self as u8))
+    }
+}
+
+#[cfg(test)]
+impl SuggestionProvider {
+    pub fn record(&self, record_id: &str, attachment: JsonValue) -> MockRecord {
+        self.full_record(record_id, None, Some(MockAttachment::Json(attachment)))
+    }
+
+    pub fn empty_record(&self, record_id: &str) -> MockRecord {
+        self.full_record(record_id, None, None)
+    }
+
+    pub fn full_record(
+        &self,
+        record_id: &str,
+        inline_data: Option<JsonValue>,
+        attachment: Option<MockAttachment>,
+    ) -> MockRecord {
+        MockRecord {
+            collection: self.primary_collection(),
+            record_type: self.primary_record_type(),
+            id: record_id.to_string(),
+            inline_data,
+            attachment,
+        }
+    }
+
+    pub fn icon(&self, icon: MockIcon) -> MockRecord {
+        MockRecord {
+            collection: self.primary_collection(),
+            record_type: SuggestRecordType::Icon,
+            id: format!("icon-{}", icon.id),
+            inline_data: None,
+            attachment: Some(MockAttachment::Icon(icon)),
+        }
     }
 }
 

@@ -315,7 +315,13 @@ export class RemoteSettingsServer {
             ? lazy.HTTP_404
             : {
                 body: {
-                  metadata: null,
+                  metadata: {
+                    bucket,
+                    signature: {
+                      signature: "",
+                      x5u: "",
+                    },
+                  },
                   timestamp: this.#lastModified,
                   changes: records,
                 },

@@ -17,7 +17,8 @@ add_setup(async function () {
   await initQuickSuggestPingTest({
     remoteSettingsRecords: [
       {
-        type: "data",
+        collection: QuickSuggestTestUtils.RS_COLLECTION.AMP,
+        type: QuickSuggestTestUtils.RS_TYPE.AMP,
         attachment: [SUGGESTION],
       },
     ],

@@ -494,15 +494,16 @@ mod tests {
     fn weather_provider_config() -> anyhow::Result<()> {
         before_each();
         let store = TestStore::new(MockRemoteSettingsClient::default().with_record(
-            "weather",
-            "weather-1",
-            json!({
-                "min_keyword_length": 3,
-                "keywords": ["ab", "xyz", "weather"],
-                "max_keyword_length": "weather".len(),
-                "max_keyword_word_count": 1,
-                "score": 0.24
-            }),
+            SuggestionProvider::Weather.record(
+                "weather-1",
+                json!({
+                    "min_keyword_length": 3,
+                    "keywords": ["ab", "xyz", "weather"],
+                    "max_keyword_length": "weather".len(),
+                    "max_keyword_word_count": 1,
+                    "score": 0.24
+                }),
+            ),
         ));
         store.ingest(SuggestIngestionConstraints {
             providers: Some(vec![SuggestionProvider::Weather]),
@@ -523,16 +524,17 @@ mod tests {
         before_each();
 
         let store = TestStore::new(MockRemoteSettingsClient::default().with_record(
-            "weather",
-            "weather-1",
-            json!({
-                // min_keyword_length > 0 means prefixes are allowed.
-                "min_keyword_length": 5,
-                "keywords": ["ab", "xyz", "cdefg", "weather"],
-                "max_keyword_length": "weather".len(),
-                "max_keyword_word_count": 1,
-                "score": 0.24
-            }),
+            SuggestionProvider::Weather.record(
+                "weather-1",
+                json!({
+                    // min_keyword_length > 0 means prefixes are allowed.
+                    "min_keyword_length": 5,
+                    "keywords": ["ab", "xyz", "cdefg", "weather"],
+                    "max_keyword_length": "weather".len(),
+                    "max_keyword_word_count": 1,
+                    "score": 0.24
+                }),
+            ),
         ));
 
         store.ingest(SuggestIngestionConstraints {
@@ -600,16 +602,17 @@ mod tests {
         before_each();
 
         let store = TestStore::new(MockRemoteSettingsClient::default().with_record(
-            "weather",
-            "weather-1",
-            json!({
-                // min_keyword_length == 0 means prefixes are not allowed.
-                "min_keyword_length": 0,
-                "keywords": ["weather"],
-                "max_keyword_length": "weather".len(),
-                "max_keyword_word_count": 1,
-                "score": 0.24
-            }),
+            SuggestionProvider::Weather.record(
+                "weather-1",
+                json!({
+                    // min_keyword_length == 0 means prefixes are not allowed.
+                    "min_keyword_length": 0,
+                    "keywords": ["weather"],
+                    "max_keyword_length": "weather".len(),
+                    "max_keyword_word_count": 1,
+                    "score": 0.24
+                }),
+            ),
         ));
 
         store.ingest(SuggestIngestionConstraints {
@@ -645,21 +648,22 @@ mod tests {
         before_each();
 
         let mut store = geoname::tests::new_test_store();
-        store.client_mut().add_record(
-            "weather",
-            "weather-1",
-            json!({
-                // Include a keyword that's a prefix of another keyword --
-                // "weather" and "weather near me" -- so that when a test
-                // matches both we can verify only one suggestion is returned,
-                // not two.
-                "keywords": ["ab", "xyz", "weather", "weather near me"],
-                "min_keyword_length": 5,
-                "max_keyword_length": "weather".len(),
-                "max_keyword_word_count": 1,
-                "score": 0.24
-            }),
-        );
+        store
+            .client_mut()
+            .add_record(SuggestionProvider::Weather.record(
+                "weather-1",
+                json!({
+                    // Include a keyword that's a prefix of another keyword --
+                    // "weather" and "weather near me" -- so that when a test
+                    // matches both we can verify only one suggestion is returned,
+                    // not two.
+                    "keywords": ["ab", "xyz", "weather", "weather near me"],
+                    "min_keyword_length": 5,
+                    "max_keyword_length": "weather".len(),
+                    "max_keyword_word_count": 1,
+                    "score": 0.24
+                }),
+            ));
 
         store.ingest(SuggestIngestionConstraints {
             providers: Some(vec![SuggestionProvider::Weather]),
@@ -1480,8 +1484,7 @@ mod tests {
         // metrics so the other values don't matter.
         let mut store = TestStore::new(
             MockRemoteSettingsClient::default()
-                .with_record(
-                    "weather",
+                .with_record(SuggestionProvider::Weather.record(
                     "weather-0",
                     json!({
                         "max_keyword_length": 10,
@@ -1490,9 +1493,8 @@ mod tests {
                         "score": 0.24,
                         "keywords": []
                     }),
-                )
-                .with_record(
-                    "weather",
+                ))
+                .with_record(SuggestionProvider::Weather.record(
                     "weather-1",
                     json!({
                         "max_keyword_length": 20,
@@ -1501,7 +1503,7 @@ mod tests {
                         "score": 0.24,
                         "keywords": []
                     }),
-                ),
+                )),
         );
 
         store.ingest(SuggestIngestionConstraints {
@@ -1519,7 +1521,7 @@ mod tests {
         // Delete the first record. The metrics should change.
         store
             .client_mut()
-            .delete_record("quicksuggest", "weather-0");
+            .delete_record(SuggestionProvider::Weather.empty_record("weather-0"));
         store.ingest(SuggestIngestionConstraints {
             providers: Some(vec![SuggestionProvider::Weather]),
             ..SuggestIngestionConstraints::all_providers()
@@ -1532,17 +1534,18 @@ mod tests {
         })?;
 
         // Add a new record. The metrics should change again.
-        store.client_mut().add_record(
-            "weather",
-            "weather-3",
-            json!({
-                "max_keyword_length": 15,
-                "max_keyword_word_count": 3,
-                "min_keyword_length": 3,
-                "score": 0.24,
-                "keywords": []
-            }),
-        );
+        store
+            .client_mut()
+            .add_record(SuggestionProvider::Weather.record(
+                "weather-3",
+                json!({
+                    "max_keyword_length": 15,
+                    "max_keyword_word_count": 3,
+                    "min_keyword_length": 3,
+                    "score": 0.24,
+                    "keywords": []
+                }),
+            ));
         store.ingest(SuggestIngestionConstraints {
             providers: Some(vec![SuggestionProvider::Weather]),
             ..SuggestIngestionConstraints::all_providers()

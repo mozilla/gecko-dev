@@ -13,7 +13,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
   InterruptKind: "resource://gre/modules/RustSuggest.sys.mjs",
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
-  RemoteSettingsServer: "resource://gre/modules/RustSuggest.sys.mjs",
+  RemoteSettingsConfig2: "resource://gre/modules/RustRemoteSettings.sys.mjs",
+  RemoteSettingsContext: "resource://gre/modules/RustRemoteSettings.sys.mjs",
+  RemoteSettingsServer: "resource://gre/modules/RustRemoteSettings.sys.mjs",
+  RemoteSettingsService: "resource://gre/modules/RustRemoteSettings.sys.mjs",
   SuggestIngestionConstraints: "resource://gre/modules/RustSuggest.sys.mjs",
   SuggestStoreBuilder: "resource://gre/modules/RustSuggest.sys.mjs",
   Suggestion: "resource://gre/modules/RustSuggest.sys.mjs",
@@ -328,11 +331,27 @@ export class SuggestBackendRust extends SuggestBackend {
     this.#ingestAll();
   }
 
+  /**
+   * @returns {string}
+   *   The path of `suggest.sqlite`, where the Rust component stores ingested
+   *   suggestions. It also stores dismissed suggestions, which is why we keep
+   *   this file in the profile directory, but desktop doesn't currently use the
+   *   Rust component for that.
+   */
   get #storeDataPath() {
     return PathUtils.join(
       Services.dirsvc.get("ProfD", Ci.nsIFile).path,
       SUGGEST_DATA_STORE_BASENAME
     );
+  }
+
+  /**
+   * @returns {string}
+   *   The path of the directory that should contain the remote settings cache
+   *   used internally by the Rust component.
+   */
+  get #remoteSettingsStoragePath() {
+    return Services.dirsvc.get("ProfLD", Ci.nsIFile).path;
   }
 
   /**
@@ -361,25 +380,8 @@ export class SuggestBackendRust extends SuggestBackend {
   }
 
   #init() {
-    // If the RS config hasn't been set, bail. `this.#store` will remain null,
-    // effectively disabling Rust suggestions.
-    if (!this.#remoteSettingsServer) {
-      return;
-    }
-
-    // Initialize the store.
-    this.logger.info("Initializing SuggestStore", {
-      path: this.#storeDataPath,
-    });
-    let builder = lazy.SuggestStoreBuilder.init()
-      .dataPath(this.#storeDataPath)
-      .loadExtension(AppConstants.SQLITE_LIBRARY_FILENAME, "sqlite3_fts5_init")
-      .remoteSettingsServer(this.#remoteSettingsServer)
-      .remoteSettingsBucketName(this.#remoteSettingsBucketName);
-    try {
-      this.#store = builder.build();
-    } catch (error) {
-      this.logger.error("Error initializing SuggestStore", error);
+    this.#store = this.#makeStore();
+    if (!this.#store) {
       return;
     }
 
@@ -390,12 +392,21 @@ export class SuggestBackendRust extends SuggestBackend {
     );
     this.logger.debug("Last ingest time (seconds)", lastIngestSecs);
 
-    // Interrupt any ongoing ingests (WRITE) and queries (READ) on shutdown.
-    // Note that `interrupt()` runs on the main thread and is not async; see
-    // toolkit/components/uniffi-bindgen-gecko-js/config.toml
-    this.#shutdownBlocker = () =>
+    // Add our shutdown blocker.
+    this.#shutdownBlocker = () => {
+      // Interrupt any ongoing ingests (WRITE) and queries (READ).
+      // `interrupt()` runs on the main thread and is not async; see
+      // toolkit/components/uniffi-bindgen-gecko-js/config.toml
       this.#store?.interrupt(lazy.InterruptKind.READ_WRITE);
-    lazy.AsyncShutdown.profileBeforeChange.addBlocker(
+
+      // Null the store so it's destroyed now instead of later when `this` is
+      // collected. The store's Sqlite DBs are synced when dropped (its DB and
+      // its RS client's DB), which causes a `LateWriteObserver` test failure if
+      // it happens too late during shutdown.
+      this.#store = null;
+      this.#shutdownBlocker = null;
+    };
+    lazy.AsyncShutdown.profileChangeTeardown.addBlocker(
       "QuickSuggest: Interrupt the Rust component",
       this.#shutdownBlocker
     );
@@ -414,13 +425,73 @@ export class SuggestBackendRust extends SuggestBackend {
     this.#ingestAll();
   }
 
+  #makeStore() {
+    this.logger.info("Creating SuggestStore", {
+      server: this.#remoteSettingsServer,
+      bucketName: this.#remoteSettingsBucketName,
+      dataPath: this.#storeDataPath,
+      storagePath: this.#remoteSettingsStoragePath,
+    });
+
+    if (!this.#remoteSettingsServer) {
+      return null;
+    }
+
+    let rsService;
+    try {
+      rsService = lazy.RemoteSettingsService.init(
+        this.#remoteSettingsStoragePath,
+        new lazy.RemoteSettingsConfig2({
+          server: this.#remoteSettingsServer,
+          bucketName: this.#remoteSettingsBucketName,
+          appContext: new lazy.RemoteSettingsContext({
+            appName: Services.appinfo.name || "",
+            appId: Services.appinfo.ID || "",
+            channel: AppConstants.IS_ESR
+              ? "esr"
+              : AppConstants.MOZ_UPDATE_CHANNEL,
+          }),
+        })
+      );
+    } catch (error) {
+      this.logger.error("Error creating RemoteSettingsService", error);
+      return null;
+    }
+
+    let builder;
+    try {
+      builder = lazy.SuggestStoreBuilder.init()
+        .dataPath(this.#storeDataPath)
+        .remoteSettingsService(rsService)
+        .loadExtension(
+          AppConstants.SQLITE_LIBRARY_FILENAME,
+          "sqlite3_fts5_init"
+        );
+    } catch (error) {
+      this.logger.error("Error creating SuggestStoreBuilder", error);
+      return null;
+    }
+
+    let store;
+    try {
+      store = builder.build();
+    } catch (error) {
+      this.logger.error("Error creating SuggestStore", error);
+      return null;
+    }
+
+    return store;
+  }
+
   #uninit() {
     this.#store = null;
     this.#providerConstraintsByIngestedSuggestionType.clear();
     this.#configsBySuggestionType.clear();
     lazy.timerManager.unregisterTimer(INGEST_TIMER_ID);
 
-    lazy.AsyncShutdown.profileBeforeChange.removeBlocker(this.#shutdownBlocker);
+    lazy.AsyncShutdown.profileChangeTeardown.removeBlocker(
+      this.#shutdownBlocker
+    );
     this.#shutdownBlocker = null;
   }
 

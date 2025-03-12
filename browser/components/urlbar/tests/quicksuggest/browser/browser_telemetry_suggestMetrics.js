@@ -5,7 +5,8 @@ const lazy = {};
 
 const EXPECTED_INGEST_LABELS = [
   // Remote settings `type` field values for the default providers
-  "data",
+  QuickSuggestTestUtils.RS_TYPE.AMP,
+  QuickSuggestTestUtils.RS_TYPE.WIKIPEDIA,
   "amo-suggestions",
   "yelp-suggestions",
   "mdn-suggestions",
@@ -24,7 +25,8 @@ const EXPECTED_QUERY_LABELS = [
 
 const REMOTE_SETTINGS_RECORDS = [
   {
-    type: "data",
+    collection: QuickSuggestTestUtils.RS_COLLECTION.AMP,
+    type: QuickSuggestTestUtils.RS_TYPE.AMP,
     attachment: [QuickSuggestTestUtils.ampRemoteSettings()],
   },
 ];
@@ -108,7 +110,8 @@ add_task(async function ingest_changed() {
 
   await QuickSuggestTestUtils.setRemoteSettingsRecords([
     {
-      type: "data",
+      collection: QuickSuggestTestUtils.RS_COLLECTION.AMP,
+      type: QuickSuggestTestUtils.RS_TYPE.AMP,
       attachment: [
         QuickSuggestTestUtils.ampRemoteSettings({
           keywords: ["a new keyword"],
@@ -131,18 +134,20 @@ add_task(async function ingest_changed() {
   );
   checkLabeledTimingDistributionMetricIncreased(
     "suggest.ingestTime",
-    "data",
+    QuickSuggestTestUtils.RS_TYPE.AMP,
     oldIngestTimeValues,
     newIngestTimeValues
   );
   checkLabeledTimingDistributionMetricIncreased(
     "suggest.ingestDownloadTime",
-    "data",
+    QuickSuggestTestUtils.RS_TYPE.AMP,
     oldIngestDownloadTimeValues,
     newIngestDownloadTimeValues
   );
 
-  for (let label of EXPECTED_INGEST_LABELS.filter(l => l != "data")) {
+  for (let label of EXPECTED_INGEST_LABELS.filter(
+    l => l != QuickSuggestTestUtils.RS_TYPE.AMP
+  )) {
     checkLabeledTimingDistributionMetricUnchanged(
       "suggest.ingestTime",
       label,

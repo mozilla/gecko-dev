@@ -4,7 +4,7 @@
  */
 
 use std::{
-    collections::{hash_map::Entry, BTreeSet, HashMap, HashSet},
+    collections::{hash_map::Entry, HashMap, HashSet},
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -12,7 +12,7 @@ use std::{
 use error_support::{breadcrumb, handle_error};
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
-use remote_settings::{self, RemoteSettingsConfig, RemoteSettingsServer, RemoteSettingsService};
+use remote_settings::{self, RemoteSettingsError, RemoteSettingsServer, RemoteSettingsService};
 
 use serde::de::DeserializeOwned;
 
@@ -24,10 +24,9 @@ use crate::{
     metrics::{MetricsContext, SuggestIngestionMetrics, SuggestQueryMetrics},
     provider::{SuggestionProvider, SuggestionProviderConstraints, DEFAULT_INGEST_PROVIDERS},
     rs::{
-        Client, Collection, DownloadedExposureRecord, Record, RemoteSettingsClient,
-        SuggestAttachment, SuggestRecord, SuggestRecordId, SuggestRecordType,
+        Client, Collection, DownloadedExposureRecord, Record, SuggestAttachment, SuggestRecord,
+        SuggestRecordId, SuggestRecordType, SuggestRemoteSettingsClient,
     },
-    suggestion::AmpSuggestionType,
     QueryWithMetricsResult, Result, SuggestApiResult, Suggestion, SuggestionQuery,
 };
 
@@ -42,6 +41,7 @@ pub struct SuggestStoreBuilder(Mutex<SuggestStoreBuilderInner>);
 struct SuggestStoreBuilderInner {
     data_path: Option<String>,
     remote_settings_server: Option<RemoteSettingsServer>,
+    remote_settings_service: Option<Arc<RemoteSettingsService>>,
     remote_settings_bucket_name: Option<String>,
     extensions_to_load: Vec<Sqlite3Extension>,
 }
@@ -82,10 +82,9 @@ impl SuggestStoreBuilder {
 
     pub fn remote_settings_service(
         self: Arc<Self>,
-        _rs_service: Arc<RemoteSettingsService>,
+        rs_service: Arc<RemoteSettingsService>,
     ) -> Arc<Self> {
-        // When #6607 lands, this will set the remote settings service.
-        // For now, it just exists so we can move consumers over to the new API ahead of time.
+        self.0.lock().remote_settings_service = Some(rs_service);
         self
     }
 
@@ -114,15 +113,17 @@ impl SuggestStoreBuilder {
             .data_path
             .clone()
             .ok_or_else(|| Error::SuggestStoreBuilder("data_path not specified".to_owned()))?;
-
-        let client = RemoteSettingsClient::new(
-            inner.remote_settings_server.clone(),
-            inner.remote_settings_bucket_name.clone(),
-            None,
-        )?;
-
+        let rs_service = inner.remote_settings_service.clone().ok_or_else(|| {
+            Error::RemoteSettings(RemoteSettingsError::Other {
+                reason: "remote_settings_service_not_specified".to_string(),
+            })
+        })?;
         Ok(Arc::new(SuggestStore {
-            inner: SuggestStoreInner::new(data_path, extensions_to_load, client),
+            inner: SuggestStoreInner::new(
+                data_path,
+                extensions_to_load,
+                SuggestRemoteSettingsClient::new(&rs_service)?,
+            ),
         }))
     }
 }
@@ -169,30 +170,19 @@ pub enum InterruptKind {
 ///    on the first launch.
 #[derive(uniffi::Object)]
 pub struct SuggestStore {
-    inner: SuggestStoreInner<RemoteSettingsClient>,
+    inner: SuggestStoreInner<SuggestRemoteSettingsClient>,
 }
 
 #[uniffi::export]
 impl SuggestStore {
     /// Creates a Suggest store.
     #[handle_error(Error)]
-    #[uniffi::constructor(default(settings_config = None))]
+    #[uniffi::constructor()]
     pub fn new(
         path: &str,
-        settings_config: Option<RemoteSettingsConfig>,
+        remote_settings_service: Arc<RemoteSettingsService>,
     ) -> SuggestApiResult<Self> {
-        let client = match settings_config {
-            Some(settings_config) => RemoteSettingsClient::new(
-                settings_config.server,
-                settings_config.bucket_name,
-                settings_config.server_url,
-                // Note: collection name is ignored, since we fetch from multiple collections
-                // (fakespot-suggest-products and quicksuggest).  No consumer sets it to a
-                // non-default value anyways.
-            )?,
-            None => RemoteSettingsClient::new(None, None, None)?,
-        };
-
+        let client = SuggestRemoteSettingsClient::new(&remote_settings_service)?;
         Ok(Self {
             inner: SuggestStoreInner::new(path.to_owned(), vec![], client),
         })
@@ -350,7 +340,6 @@ impl SuggestIngestionConstraints {
                 SuggestionProvider::Yelp,
                 SuggestionProvider::Mdn,
                 SuggestionProvider::Weather,
-                SuggestionProvider::AmpMobile,
                 SuggestionProvider::Fakespot,
                 SuggestionProvider::Exposure,
             ]),
@@ -425,12 +414,7 @@ impl<S> SuggestStoreInner<S> {
         for provider in unique_providers {
             let new_suggestions = metrics.measure_query(provider.to_string(), || {
                 reader.read(|dao| match provider {
-                    SuggestionProvider::Amp => {
-                        dao.fetch_amp_suggestions(&query, AmpSuggestionType::Desktop)
-                    }
-                    SuggestionProvider::AmpMobile => {
-                        dao.fetch_amp_suggestions(&query, AmpSuggestionType::Mobile)
-                    }
+                    SuggestionProvider::Amp => dao.fetch_amp_suggestions(&query),
                     SuggestionProvider::Wikipedia => dao.fetch_wikipedia_suggestions(&query),
                     SuggestionProvider::Amo => dao.fetch_amo_suggestions(&query),
                     SuggestionProvider::Pocket => dao.fetch_pocket_suggestions(&query),
@@ -545,28 +529,24 @@ where
 
         // Figure out which record types we're ingesting and group them by
         // collection. A record type may be used by multiple providers, but we
-        // want to ingest each one at most once.
-        let mut record_types_by_collection = HashMap::<Collection, BTreeSet<_>>::new();
-        for p in constraints
+        // want to ingest each one at most once. We always ingest some types
+        // like global config.
+        let mut record_types_by_collection = HashMap::from([(
+            Collection::Other,
+            HashSet::from([SuggestRecordType::GlobalConfig]),
+        )]);
+        for provider in constraints
             .providers
             .as_ref()
             .unwrap_or(&DEFAULT_INGEST_PROVIDERS.to_vec())
             .iter()
         {
-            for t in p.record_types() {
+            for (collection, provider_rts) in provider.record_types_by_collection() {
                 record_types_by_collection
-                    .entry(t.collection())
+                    .entry(collection)
                     .or_default()
-                    .insert(t);
+                    .extend(provider_rts.into_iter());
             }
-        }
-
-        // Always ingest these record types.
-        for rt in [SuggestRecordType::Icon, SuggestRecordType::GlobalConfig] {
-            record_types_by_collection
-                .entry(rt.collection())
-                .or_default()
-                .insert(rt);
         }
 
         // Create a single write scope for all DB operations
@@ -578,8 +558,7 @@ where
         // For each collection, fetch all records
         for (collection, record_types) in record_types_by_collection {
             breadcrumb!("Ingesting collection {}", collection.name());
-            let records =
-                write_scope.write(|dao| self.settings_client.get_records(collection, dao))?;
+            let records = self.settings_client.get_records(collection)?;
 
             // For each record type in that collection, calculate the changes and pass them to
             // [Self::ingest_records]
@@ -655,18 +634,18 @@ where
         context: &mut MetricsContext,
     ) -> Result<()> {
         match &record.payload {
-            SuggestRecord::AmpWikipedia => {
+            SuggestRecord::Amp => {
                 self.download_attachment(dao, record, context, |dao, record_id, suggestions| {
-                    dao.insert_amp_wikipedia_suggestions(
+                    dao.insert_amp_suggestions(
                         record_id,
                         suggestions,
                         constraints.amp_matching_uses_fts(),
                     )
                 })?;
             }
-            SuggestRecord::AmpMobile => {
+            SuggestRecord::Wikipedia => {
                 self.download_attachment(dao, record, context, |dao, record_id, suggestions| {
-                    dao.insert_amp_mobile_suggestions(record_id, suggestions)
+                    dao.insert_wikipedia_suggestions(record_id, suggestions)
                 })?;
             }
             SuggestRecord::Icon => {
@@ -776,7 +755,7 @@ where
                 Ok(!dao.is_exposure_suggestion_ingested(&record.id)?
                     && constraints.matches_exposure_record(r))
             }
-            SuggestRecord::AmpWikipedia => {
+            SuggestRecord::Amp => {
                 Ok(constraints.amp_matching_uses_fts()
                     && !dao.is_amp_fts_data_ingested(&record.id)?)
             }
@@ -847,16 +826,15 @@ where
             .expect("Error performing checkpoint");
     }
 
-    pub fn ingest_records_by_type(&self, ingest_record_type: SuggestRecordType) {
+    pub fn ingest_records_by_type(
+        &self,
+        collection: Collection,
+        ingest_record_type: SuggestRecordType,
+    ) {
         let writer = &self.dbs().unwrap().writer;
         let mut context = MetricsContext::default();
         let ingested_records = writer.read(|dao| dao.get_ingested_records()).unwrap();
-        let records = writer
-            .write(|dao| {
-                self.settings_client
-                    .get_records(ingest_record_type.collection(), dao)
-            })
-            .unwrap();
+        let records = self.settings_client.get_records(collection).unwrap();
 
         let changes = RecordChanges::new(
             records
@@ -870,7 +848,7 @@ where
             .write(|dao| {
                 self.process_changes(
                     dao,
-                    ingest_record_type.collection(),
+                    collection,
                     changes,
                     &SuggestIngestionConstraints::default(),
                     &mut context,
@@ -1047,8 +1025,8 @@ pub(crate) mod tests {
 
         let store = TestStore::new(
             MockRemoteSettingsClient::default()
-                .with_record("data", "1234", json![los_pollos_amp()])
-                .with_icon(los_pollos_icon()),
+                .with_record(SuggestionProvider::Amp.record("1234", json![los_pollos_amp()]))
+                .with_record(SuggestionProvider::Amp.icon(los_pollos_icon())),
         );
         store.ingest(SuggestIngestionConstraints::all_providers());
         assert_eq!(
@@ -1063,11 +1041,10 @@ pub(crate) mod tests {
     fn ingest_empty_only() -> anyhow::Result<()> {
         before_each();
 
-        let mut store = TestStore::new(MockRemoteSettingsClient::default().with_record(
-            "data",
-            "1234",
-            json![los_pollos_amp()],
-        ));
+        let mut store = TestStore::new(
+            MockRemoteSettingsClient::default()
+                .with_record(SuggestionProvider::Amp.record("1234", json![los_pollos_amp()])),
+        );
         // suggestions_table_empty returns true before the ingestion is complete
         assert!(store.read(|dao| dao.suggestions_table_empty())?);
         // This ingestion should run, since the DB is empty
@@ -1080,10 +1057,10 @@ pub(crate) mod tests {
 
         // This ingestion should not run since the DB is no longer empty
         store.client_mut().update_record(
-            "data",
-            "1234",
-            json!([los_pollos_amp(), good_place_eats_amp()]),
+            SuggestionProvider::Amp
+                .record("1234", json!([los_pollos_amp(), good_place_eats_amp()])),
         );
+
         store.ingest(SuggestIngestionConstraints {
             empty_only: true,
             ..SuggestIngestionConstraints::all_providers()
@@ -1103,12 +1080,11 @@ pub(crate) mod tests {
         let store = TestStore::new(
             MockRemoteSettingsClient::default()
                 .with_record(
-                    "data",
-                    "1234",
-                    json!([los_pollos_amp(), good_place_eats_amp()]),
+                    SuggestionProvider::Amp
+                        .record("1234", json!([los_pollos_amp(), good_place_eats_amp()])),
                 )
-                .with_icon(los_pollos_icon())
-                .with_icon(good_place_eats_icon()),
+                .with_record(SuggestionProvider::Amp.icon(los_pollos_icon()))
+                .with_record(SuggestionProvider::Amp.icon(good_place_eats_icon())),
         );
         // This ingestion should run, since the DB is empty
         store.ingest(SuggestIngestionConstraints::all_providers());
@@ -1126,11 +1102,12 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn ingest_full_keywords() -> anyhow::Result<()> {
+    fn ingest_amp_full_keywords() -> anyhow::Result<()> {
         before_each();
 
         let store = TestStore::new(MockRemoteSettingsClient::default()
-            .with_record("data", "1234", json!([
+            .with_record(
+                SuggestionProvider::Amp.record("1234", json!([
                 // AMP attachment with full keyword data
                 los_pollos_amp().merge(json!({
                     "keywords": ["lo", "los", "los p", "los pollos", "los pollos h", "los pollos hermanos"],
@@ -1143,27 +1120,9 @@ pub(crate) mod tests {
                 })),
                 // AMP attachment without full keyword data
                 good_place_eats_amp(),
-                // Wikipedia attachment with full keyword data.  We should ignore the full
-                // keyword data for Wikipedia suggestions
-                california_wiki(),
-                // california_wiki().merge(json!({
-                //     "keywords": ["cal", "cali", "california"],
-                //     "full_keywords": [("california institute of technology", 3)],
-                // })),
-            ]))
-            .with_record("amp-mobile-suggestions", "2468", json!([
-                // Amp mobile attachment with full keyword data
-                a1a_amp_mobile().merge(json!({
-                    "keywords": ["a1a", "ca", "car", "car wash"],
-                    "full_keywords": [
-                        ("A1A Car Wash", 1),
-                        ("car wash", 3),
-                    ],
-                })),
-            ]))
-            .with_icon(los_pollos_icon())
-            .with_icon(good_place_eats_icon())
-            .with_icon(california_icon())
+            ])))
+            .with_record(SuggestionProvider::Amp.icon(los_pollos_icon()))
+            .with_record(SuggestionProvider::Amp.icon(good_place_eats_icon()))
         );
         store.ingest(SuggestIngestionConstraints::all_providers());
 
@@ -1175,22 +1134,41 @@ pub(crate) mod tests {
 
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::amp("la")),
-            // Good place eats did not have full keywords, so this one is calculated with the
-            // keywords.rs code
+            // Good place eats did not have full keywords, so this one is
+            // calculated at runtime
             vec![good_place_eats_suggestion("lasagna", None)],
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn ingest_wikipedia_full_keywords() -> anyhow::Result<()> {
+        before_each();
+
+        let store = TestStore::new(
+            MockRemoteSettingsClient::default()
+                .with_record(SuggestionProvider::Wikipedia.record(
+                    "1234",
+                    json!([
+                        // Wikipedia attachment with full keyword data.  We should ignore the full
+                        // keyword data for Wikipedia suggestions
+                        california_wiki(),
+                        // california_wiki().merge(json!({
+                        //     "keywords": ["cal", "cali", "california"],
+                        //     "full_keywords": [("california institute of technology", 3)],
+                        // })),
+                    ]),
+                ))
+                .with_record(SuggestionProvider::Wikipedia.icon(california_icon())),
+        );
+        store.ingest(SuggestIngestionConstraints::all_providers());
 
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::wikipedia("cal")),
             // Even though this had a full_keywords field, we should ignore it since it's a
             // wikipedia suggestion and use the keywords.rs code instead
             vec![california_suggestion("california")],
-        );
-
-        assert_eq!(
-            store.fetch_suggestions(SuggestionQuery::amp_mobile("a1a")),
-            // This keyword comes from the provided full_keywords list.
-            vec![a1a_suggestion("A1A Car Wash", None)],
         );
 
         Ok(())
@@ -1207,14 +1185,14 @@ pub(crate) mod tests {
                 //     keywords (i.e. it was the result of keyword expansion).
                 //   * There's a `los pollos ` keyword with an extra space
                 .with_record(
-                    "data",
+                    SuggestionProvider::Amp.record(
                     "1234",
                     los_pollos_amp().merge(json!({
                         "keywords": ["los", "los pollos", "los pollos ", "los pollos hermanos", "chicken"],
                         "full_keywords": [("los pollos", 3), ("los pollos hermanos", 2)],
                     }))
-                )
-                .with_icon(los_pollos_icon()),
+                ))
+                .with_record(SuggestionProvider::Amp.icon(los_pollos_icon())),
         );
         store.ingest(SuggestIngestionConstraints::all_providers());
         assert_eq!(
@@ -1253,15 +1231,14 @@ pub(crate) mod tests {
         let store = TestStore::new(
             MockRemoteSettingsClient::default()
                 // Make sure there's full keywords to match against
-                .with_record(
-                    "data",
+                .with_record(SuggestionProvider::Amp.record(
                     "1234",
                     los_pollos_amp().merge(json!({
                         "keywords": ["los", "los pollos", "los pollos ", "los pollos hermanos"],
                         "full_keywords": [("los pollos", 3), ("los pollos hermanos", 1)],
                     })),
-                )
-                .with_icon(los_pollos_icon()),
+                ))
+                .with_record(SuggestionProvider::Amp.icon(los_pollos_icon())),
         );
         store.ingest(SuggestIngestionConstraints::amp_with_fts());
         assert_eq!(
@@ -1291,8 +1268,8 @@ pub(crate) mod tests {
 
         let store = TestStore::new(
             MockRemoteSettingsClient::default()
-                .with_record("data", "1234", los_pollos_amp())
-                .with_icon(los_pollos_icon()),
+                .with_record(SuggestionProvider::Amp.record("1234", los_pollos_amp()))
+                .with_record(SuggestionProvider::Amp.icon(los_pollos_icon())),
         );
         store.ingest(SuggestIngestionConstraints::amp_with_fts());
         assert_eq!(
@@ -1325,8 +1302,8 @@ pub(crate) mod tests {
         let store = TestStore::new(
             MockRemoteSettingsClient::default()
                 // This record contains just one JSON object, rather than an array of them
-                .with_record("data", "1234", los_pollos_amp())
-                .with_icon(los_pollos_icon()),
+                .with_record(SuggestionProvider::Amp.record("1234", los_pollos_amp()))
+                .with_record(SuggestionProvider::Amp.icon(los_pollos_icon())),
         );
         store.ingest(SuggestIngestionConstraints::all_providers());
         assert_eq!(
@@ -1342,29 +1319,31 @@ pub(crate) mod tests {
     fn reingest_amp_suggestions() -> anyhow::Result<()> {
         before_each();
 
-        let mut store = TestStore::new(MockRemoteSettingsClient::default().with_record(
-            "data",
-            "1234",
-            json!([los_pollos_amp(), good_place_eats_amp()]),
-        ));
+        let mut store = TestStore::new(
+            MockRemoteSettingsClient::default().with_record(
+                SuggestionProvider::Amp
+                    .record("1234", json!([los_pollos_amp(), good_place_eats_amp()])),
+            ),
+        );
         // Ingest once
         store.ingest(SuggestIngestionConstraints::all_providers());
         // Update the snapshot with new suggestions: Los pollos has a new name and Good place eats
         // is now serving Penne
-        store.client_mut().update_record(
-            "data",
-            "1234",
-            json!([
-                los_pollos_amp().merge(json!({
-                    "title": "Los Pollos Hermanos - Now Serving at 14 Locations!",
-                })),
-                good_place_eats_amp().merge(json!({
-                    "keywords": ["pe", "pen", "penne", "penne for your thoughts"],
-                    "title": "Penne for Your Thoughts",
-                    "url": "https://penne.biz",
-                }))
-            ]),
-        );
+        store
+            .client_mut()
+            .update_record(SuggestionProvider::Amp.record(
+                "1234",
+                json!([
+                    los_pollos_amp().merge(json!({
+                        "title": "Los Pollos Hermanos - Now Serving at 14 Locations!",
+                    })),
+                    good_place_eats_amp().merge(json!({
+                        "keywords": ["pe", "pen", "penne", "penne for your thoughts"],
+                        "title": "Penne for Your Thoughts",
+                        "url": "https://penne.biz",
+                    }))
+                ]),
+            ));
         store.ingest(SuggestIngestionConstraints::all_providers());
 
         assert!(matches!(
@@ -1388,15 +1367,14 @@ pub(crate) mod tests {
         // Ingest with FTS enabled, this will populate the FTS table
         let store = TestStore::new(
             MockRemoteSettingsClient::default()
-                .with_record(
-                    "data",
+                .with_record(SuggestionProvider::Amp.record(
                     "data-1",
                     json!([los_pollos_amp().merge(json!({
                         "keywords": ["los", "los pollos", "los pollos ", "los pollos hermanos"],
                         "full_keywords": [("los pollos", 3), ("los pollos hermanos", 1)],
                     }))]),
-                )
-                .with_icon(los_pollos_icon()),
+                ))
+                .with_record(SuggestionProvider::Amp.icon(los_pollos_icon())),
         );
         // Ingest without FTS
         store.ingest(SuggestIngestionConstraints::amp_without_fts());
@@ -1432,12 +1410,11 @@ pub(crate) mod tests {
         let mut store = TestStore::new(
             MockRemoteSettingsClient::default()
                 .with_record(
-                    "data",
-                    "1234",
-                    json!([los_pollos_amp(), good_place_eats_amp()]),
+                    SuggestionProvider::Amp
+                        .record("1234", json!([los_pollos_amp(), good_place_eats_amp()])),
                 )
-                .with_icon(los_pollos_icon())
-                .with_icon(good_place_eats_icon()),
+                .with_record(SuggestionProvider::Amp.icon(los_pollos_icon()))
+                .with_record(SuggestionProvider::Amp.icon(good_place_eats_icon())),
         );
         // This ingestion should run, since the DB is empty
         store.ingest(SuggestIngestionConstraints::all_providers());
@@ -1447,24 +1424,23 @@ pub(crate) mod tests {
         //  - Good place eats gets new data only
         store
             .client_mut()
-            .update_record(
-                "data",
+            .update_record(SuggestionProvider::Amp.record(
                 "1234",
                 json!([
                     los_pollos_amp().merge(json!({"icon": "1000"})),
                     good_place_eats_amp()
                 ]),
-            )
-            .delete_icon(los_pollos_icon())
-            .add_icon(MockIcon {
+            ))
+            .delete_record(SuggestionProvider::Amp.icon(los_pollos_icon()))
+            .add_record(SuggestionProvider::Amp.icon(MockIcon {
                 id: "1000",
                 data: "new-los-pollos-icon",
                 ..los_pollos_icon()
-            })
-            .update_icon(MockIcon {
+            }))
+            .update_record(SuggestionProvider::Amp.icon(MockIcon {
                 data: "new-good-place-eats-icon",
                 ..good_place_eats_icon()
-            });
+            }));
         store.ingest(SuggestIngestionConstraints::all_providers());
 
         assert!(matches!(
@@ -1487,11 +1463,10 @@ pub(crate) mod tests {
 
         let mut store = TestStore::new(
             MockRemoteSettingsClient::default()
-                .with_record("amo-suggestions", "data-1", json!([relay_amo()]))
+                .with_record(SuggestionProvider::Amo.record("data-1", json!([relay_amo()])))
                 .with_record(
-                    "amo-suggestions",
-                    "data-2",
-                    json!([dark_mode_amo(), foxy_guestures_amo()]),
+                    SuggestionProvider::Amo
+                        .record("data-2", json!([dark_mode_amo(), foxy_guestures_amo()])),
                 ),
         );
 
@@ -1514,15 +1489,14 @@ pub(crate) mod tests {
         // third, and add the fourth.
         store
             .client_mut()
-            .update_record("amo-suggestions", "data-1", json!([relay_amo()]))
-            .update_record(
-                "amo-suggestions",
+            .update_record(SuggestionProvider::Amo.record("data-1", json!([relay_amo()])))
+            .update_record(SuggestionProvider::Amo.record(
                 "data-2",
                 json!([
                     dark_mode_amo().merge(json!({"title": "Updated second suggestion"})),
                     new_tab_override_amo(),
                 ]),
-            );
+            ));
         store.ingest(SuggestIngestionConstraints::all_providers());
 
         assert_eq!(
@@ -1552,10 +1526,12 @@ pub(crate) mod tests {
 
         let mut store = TestStore::new(
             MockRemoteSettingsClient::default()
-                .with_record("data", "data-1", json!([los_pollos_amp()]))
-                .with_record("data", "data-2", json!([good_place_eats_amp()]))
-                .with_icon(los_pollos_icon())
-                .with_icon(good_place_eats_icon()),
+                .with_record(SuggestionProvider::Amp.record("data-1", json!([los_pollos_amp()])))
+                .with_record(
+                    SuggestionProvider::Amp.record("data-2", json!([good_place_eats_amp()])),
+                )
+                .with_record(SuggestionProvider::Amp.icon(los_pollos_icon()))
+                .with_record(SuggestionProvider::Amp.icon(good_place_eats_icon())),
         );
         store.ingest(SuggestIngestionConstraints::all_providers());
         assert_eq!(
@@ -1570,8 +1546,8 @@ pub(crate) mod tests {
         // recognize that they're missing and delete them.
         store
             .client_mut()
-            .delete_record("quicksuggest", "data-1")
-            .delete_icon(good_place_eats_icon());
+            .delete_record(SuggestionProvider::Amp.empty_record("data-1"))
+            .delete_record(SuggestionProvider::Amp.icon(good_place_eats_icon()));
         store.ingest(SuggestIngestionConstraints::all_providers());
 
         assert_eq!(store.fetch_suggestions(SuggestionQuery::amp("lo")), vec![]);
@@ -1591,10 +1567,12 @@ pub(crate) mod tests {
 
         let store = TestStore::new(
             MockRemoteSettingsClient::default()
-                .with_record("data", "data-1", json!([los_pollos_amp()]))
-                .with_record("data", "data-2", json!([good_place_eats_amp()]))
-                .with_icon(los_pollos_icon())
-                .with_icon(good_place_eats_icon()),
+                .with_record(SuggestionProvider::Amp.record("data-1", json!([los_pollos_amp()])))
+                .with_record(
+                    SuggestionProvider::Amp.record("data-2", json!([good_place_eats_amp()])),
+                )
+                .with_record(SuggestionProvider::Amp.icon(los_pollos_icon()))
+                .with_record(SuggestionProvider::Amp.icon(good_place_eats_icon())),
         );
         store.ingest(SuggestIngestionConstraints::all_providers());
         assert!(store.count_rows("suggestions") > 0);
@@ -1617,32 +1595,27 @@ pub(crate) mod tests {
         let store = TestStore::new(
             MockRemoteSettingsClient::default()
                 .with_record(
-                    "data",
-                    "data-1",
-                    json!([
-                        good_place_eats_amp(),
-                        california_wiki(),
-                        caltech_wiki(),
-                        multimatch_wiki(),
-                    ]),
+                    SuggestionProvider::Amp.record("data-1", json!([good_place_eats_amp(),])),
+                )
+                .with_record(SuggestionProvider::Wikipedia.record(
+                    "wikipedia-1",
+                    json!([california_wiki(), caltech_wiki(), multimatch_wiki(),]),
+                ))
+                .with_record(
+                    SuggestionProvider::Amo
+                        .record("data-2", json!([relay_amo(), multimatch_amo(),])),
                 )
                 .with_record(
-                    "amo-suggestions",
-                    "data-2",
-                    json!([relay_amo(), multimatch_amo(),]),
+                    SuggestionProvider::Pocket
+                        .record("data-3", json!([burnout_pocket(), multimatch_pocket(),])),
                 )
-                .with_record(
-                    "pocket-suggestions",
-                    "data-3",
-                    json!([burnout_pocket(), multimatch_pocket(),]),
-                )
-                .with_record("yelp-suggestions", "data-4", json!([ramen_yelp(),]))
-                .with_record("mdn-suggestions", "data-5", json!([array_mdn(),]))
-                .with_icon(good_place_eats_icon())
-                .with_icon(california_icon())
-                .with_icon(caltech_icon())
-                .with_icon(yelp_favicon())
-                .with_icon(multimatch_wiki_icon()),
+                .with_record(SuggestionProvider::Yelp.record("data-4", json!([ramen_yelp(),])))
+                .with_record(SuggestionProvider::Mdn.record("data-5", json!([array_mdn(),])))
+                .with_record(SuggestionProvider::Amp.icon(good_place_eats_icon()))
+                .with_record(SuggestionProvider::Wikipedia.icon(california_icon()))
+                .with_record(SuggestionProvider::Wikipedia.icon(caltech_icon()))
+                .with_record(SuggestionProvider::Yelp.icon(yelp_favicon()))
+                .with_record(SuggestionProvider::Wikipedia.icon(multimatch_wiki_icon())),
         );
 
         store.ingest(SuggestIngestionConstraints::all_providers());
@@ -2033,8 +2006,7 @@ pub(crate) mod tests {
             // where the scores are manually set.  We will test that the fetched suggestions are in
             // the correct order.
             MockRemoteSettingsClient::default()
-                .with_record(
-                    "data",
+                .with_record(SuggestionProvider::Amp.record(
                     "data-1",
                     json!([
                         los_pollos_amp().merge(json!({
@@ -2045,13 +2017,15 @@ pub(crate) mod tests {
                             "keywords": ["amp wiki match"],
                             "score": 0.1,
                         })),
-                        california_wiki().merge(json!({
-                            "keywords": ["amp wiki match", "pocket wiki match"],
-                        })),
                     ]),
-                )
-                .with_record(
-                    "pocket-suggestions",
+                ))
+                .with_record(SuggestionProvider::Wikipedia.record(
+                    "wikipedia-1",
+                    json!([california_wiki().merge(json!({
+                        "keywords": ["amp wiki match", "pocket wiki match"],
+                    })),]),
+                ))
+                .with_record(SuggestionProvider::Pocket.record(
                     "data-3",
                     json!([
                         burnout_pocket().merge(json!({
@@ -2063,10 +2037,10 @@ pub(crate) mod tests {
                             "score": 0.88,
                         })),
                     ]),
-                )
-                .with_icon(los_pollos_icon())
-                .with_icon(good_place_eats_icon())
-                .with_icon(california_icon()),
+                ))
+                .with_record(SuggestionProvider::Amp.icon(los_pollos_icon()))
+                .with_record(SuggestionProvider::Amp.icon(good_place_eats_icon()))
+                .with_record(SuggestionProvider::Wikipedia.icon(california_icon())),
         );
 
         store.ingest(SuggestIngestionConstraints::all_providers());
@@ -2110,37 +2084,6 @@ pub(crate) mod tests {
         Ok(())
     }
 
-    // Tests querying multiple suggestions with multiple keywords with same prefix keyword
-    #[test]
-    fn query_with_amp_mobile_provider() -> anyhow::Result<()> {
-        before_each();
-
-        // Use the exact same data for both the Amp and AmpMobile record
-        let store = TestStore::new(
-            MockRemoteSettingsClient::default()
-                .with_record(
-                    "amp-mobile-suggestions",
-                    "amp-mobile-1",
-                    json!([good_place_eats_amp()]),
-                )
-                .with_record("data", "data-1", json!([good_place_eats_amp()]))
-                // This icon is shared by both records which is kind of weird and probably not how
-                // things would work in practice, but it's okay for the tests.
-                .with_icon(good_place_eats_icon()),
-        );
-        store.ingest(SuggestIngestionConstraints::all_providers());
-        // The query results should be exactly the same for both the Amp and AmpMobile data
-        assert_eq!(
-            store.fetch_suggestions(SuggestionQuery::amp_mobile("las")),
-            vec![good_place_eats_suggestion("lasagna", None)]
-        );
-        assert_eq!(
-            store.fetch_suggestions(SuggestionQuery::amp("las")),
-            vec![good_place_eats_suggestion("lasagna", None)]
-        );
-        Ok(())
-    }
-
     /// Tests ingesting malformed Remote Settings records that we understand,
     /// but that are missing fields, or aren't in the format we expect.
     #[test]
@@ -2149,13 +2092,31 @@ pub(crate) mod tests {
 
         let store = TestStore::new(
             MockRemoteSettingsClient::default()
-                // Amp/Wikipedia record without an attachment.
-                .with_record_but_no_attachment("data", "data-1")
+                // Amp record without an attachment.
+                .with_record(SuggestionProvider::Amp.empty_record("data-1"))
+                // Wikipedia record without an attachment.
+                .with_record(SuggestionProvider::Wikipedia.empty_record("wikipedia-1"))
                 // Icon record without an attachment.
-                .with_record_but_no_attachment("icon", "icon-1")
+                .with_record(MockRecord {
+                    collection: Collection::Amp,
+                    record_type: SuggestRecordType::Icon,
+                    id: "icon-1".to_string(),
+                    inline_data: None,
+                    attachment: None,
+                })
                 // Icon record with an ID that's not `icon-{id}`, so suggestions in
                 // the data attachment won't be able to reference it.
-                .with_record("icon", "bad-icon-id", json!("i-am-an-icon")),
+                .with_record(MockRecord {
+                    collection: Collection::Amp,
+                    record_type: SuggestRecordType::Icon,
+                    id: "bad-icon-id".to_string(),
+                    inline_data: None,
+                    attachment: Some(MockAttachment::Icon(MockIcon {
+                        id: "bad-icon-id",
+                        data: "",
+                        mimetype: "image/png",
+                    })),
+                }),
         );
 
         store.ingest(SuggestIngestionConstraints::all_providers());
@@ -2181,9 +2142,9 @@ pub(crate) mod tests {
 
         let store = TestStore::new(
             MockRemoteSettingsClient::default()
-                .with_record("data", "data-1", json!([los_pollos_amp()]))
-                .with_record("yelp-suggestions", "yelp-1", json!([ramen_yelp()]))
-                .with_icon(los_pollos_icon()),
+                .with_record(SuggestionProvider::Amp.record("data-1", json!([los_pollos_amp()])))
+                .with_record(SuggestionProvider::Yelp.record("yelp-1", json!([ramen_yelp()])))
+                .with_record(SuggestionProvider::Amp.icon(los_pollos_icon())),
         );
 
         let constraints = SuggestIngestionConstraints {
@@ -2214,10 +2175,11 @@ pub(crate) mod tests {
         let store = TestStore::new(
             MockRemoteSettingsClient::default()
                 // valid record
-                .with_record("data", "data-1", json!([good_place_eats_amp()]))
-                // This attachment is missing the `title` field and is invalid
                 .with_record(
-                    "data",
+                    SuggestionProvider::Amp.record("data-1", json!([good_place_eats_amp()])),
+                )
+                // This attachment is missing the `title` field and is invalid
+                .with_record(SuggestionProvider::Amp.record(
                     "data-2",
                     json!([{
                             "id": 1,
@@ -2230,8 +2192,8 @@ pub(crate) mod tests {
                             "click_url": "https://example.com/click_url",
                             "score": 0.3
                     }]),
-                )
-                .with_icon(good_place_eats_icon()),
+                ))
+                .with_record(SuggestionProvider::Amp.icon(good_place_eats_icon())),
         );
 
         store.ingest(SuggestIngestionConstraints::all_providers());
@@ -2251,11 +2213,10 @@ pub(crate) mod tests {
     fn query_mdn() -> anyhow::Result<()> {
         before_each();
 
-        let store = TestStore::new(MockRemoteSettingsClient::default().with_record(
-            "mdn-suggestions",
-            "mdn-1",
-            json!([array_mdn()]),
-        ));
+        let store = TestStore::new(
+            MockRemoteSettingsClient::default()
+                .with_record(SuggestionProvider::Mdn.record("mdn-1", json!([array_mdn()]))),
+        );
         store.ingest(SuggestIngestionConstraints::all_providers());
         // prefix
         assert_eq!(
@@ -2289,13 +2250,9 @@ pub(crate) mod tests {
     fn query_no_yelp_icon_data() -> anyhow::Result<()> {
         before_each();
 
-        let store = TestStore::new(
-            MockRemoteSettingsClient::default().with_record(
-                "yelp-suggestions",
-                "yelp-1",
-                json!([ramen_yelp()]),
-            ), // Note: yelp_favicon() is missing
-        );
+        let store = TestStore::new(MockRemoteSettingsClient::default().with_record(
+            SuggestionProvider::Yelp.record("yelp-1", json!([ramen_yelp()])), // Note: yelp_favicon() is missing
+        ));
         store.ingest(SuggestIngestionConstraints::all_providers());
         assert!(matches!(
             store.fetch_suggestions(SuggestionQuery::yelp("ramen")).as_slice(),
@@ -2309,15 +2266,18 @@ pub(crate) mod tests {
     fn fetch_global_config() -> anyhow::Result<()> {
         before_each();
 
-        let store = TestStore::new(MockRemoteSettingsClient::default().with_inline_record(
-            "configuration",
-            "configuration-1",
-            json!({
+        let store = TestStore::new(MockRemoteSettingsClient::default().with_record(MockRecord {
+            collection: Collection::Other,
+            record_type: SuggestRecordType::GlobalConfig,
+            id: "configuration-1".to_string(),
+            inline_data: Some(json!({
                 "configuration": {
                     "show_less_frequently_cap": 3,
                 },
-            }),
-        ));
+            })),
+            attachment: None,
+        }));
+
         store.ingest(SuggestIngestionConstraints::all_providers());
         assert_eq!(
             store.fetch_global_config(),
@@ -2365,15 +2325,16 @@ pub(crate) mod tests {
         before_each();
 
         let store = TestStore::new(MockRemoteSettingsClient::default().with_record(
-            "weather",
-            "weather-1",
-            json!({
-                "min_keyword_length": 3,
-                "score": 0.24,
-                "max_keyword_length": 1,
-                "max_keyword_word_count": 1,
-                "keywords": []
-            }),
+            SuggestionProvider::Weather.record(
+                "weather-1",
+                json!({
+                    "min_keyword_length": 3,
+                    "score": 0.24,
+                    "max_keyword_length": 1,
+                    "max_keyword_word_count": 1,
+                    "keywords": []
+                }),
+            ),
         ));
         store.ingest(SuggestIngestionConstraints::all_providers());
 
@@ -2398,45 +2359,37 @@ pub(crate) mod tests {
 
         let store = TestStore::new(
             MockRemoteSettingsClient::default()
-                .with_record(
-                    "data",
+                .with_record(SuggestionProvider::Amp.record(
                     "data-1",
-                    json!([
-                        good_place_eats_amp().merge(json!({"keywords": ["cats"]})),
-                        california_wiki().merge(json!({"keywords": ["cats"]})),
-                    ]),
-                )
-                .with_record(
-                    "amo-suggestions",
+                    json!([good_place_eats_amp().merge(json!({"keywords": ["cats"]})),]),
+                ))
+                .with_record(SuggestionProvider::Wikipedia.record(
+                    "wikipedia-1",
+                    json!([california_wiki().merge(json!({"keywords": ["cats"]})),]),
+                ))
+                .with_record(SuggestionProvider::Amo.record(
                     "amo-1",
                     json!([relay_amo().merge(json!({"keywords": ["cats"]})),]),
-                )
-                .with_record(
-                    "pocket-suggestions",
+                ))
+                .with_record(SuggestionProvider::Pocket.record(
                     "pocket-1",
                     json!([burnout_pocket().merge(json!({
                         "lowConfidenceKeywords": ["cats"],
                     }))]),
-                )
-                .with_record(
-                    "mdn-suggestions",
+                ))
+                .with_record(SuggestionProvider::Mdn.record(
                     "mdn-1",
                     json!([array_mdn().merge(json!({"keywords": ["cats"]})),]),
-                )
-                .with_record(
-                    "amp-mobile-suggestions",
-                    "amp-mobile-1",
-                    json!([a1a_amp_mobile().merge(json!({"keywords": ["cats"]})),]),
-                )
-                .with_icon(good_place_eats_icon())
-                .with_icon(caltech_icon()),
+                ))
+                .with_record(SuggestionProvider::Amp.icon(good_place_eats_icon()))
+                .with_record(SuggestionProvider::Wikipedia.icon(caltech_icon())),
         );
         store.ingest(SuggestIngestionConstraints::all_providers());
 
         // A query for cats should return all suggestions
         let query = SuggestionQuery::all_providers("cats");
         let results = store.fetch_suggestions(query.clone());
-        assert_eq!(results.len(), 6);
+        assert_eq!(results.len(), 5);
 
         for result in results {
             store
@@ -2449,7 +2402,7 @@ pub(crate) mod tests {
 
         // Clearing the dismissals should cause them to be returned again
         store.inner.clear_dismissed_suggestions()?;
-        assert_eq!(store.fetch_suggestions(query.clone()).len(), 6);
+        assert_eq!(store.fetch_suggestions(query.clone()).len(), 5);
 
         Ok(())
     }
@@ -2460,12 +2413,11 @@ pub(crate) mod tests {
 
         let store = TestStore::new(
             MockRemoteSettingsClient::default()
-                .with_record(
-                    "fakespot-suggestions",
+                .with_record(SuggestionProvider::Fakespot.record(
                     "fakespot-1",
                     json!([snowglobe_fakespot(), simpsons_fakespot()]),
-                )
-                .with_icon(fakespot_amazon_icon()),
+                ))
+                .with_record(SuggestionProvider::Fakespot.icon(fakespot_amazon_icon())),
         );
         store.ingest(SuggestIngestionConstraints::all_providers());
         assert_eq!(
@@ -2524,8 +2476,7 @@ pub(crate) mod tests {
 
         let store = TestStore::new(
             MockRemoteSettingsClient::default()
-                .with_record(
-                    "fakespot-suggestions",
+                .with_record(SuggestionProvider::Fakespot.record(
                     "fakespot-1",
                     json!([
                         // Snow normally returns the snowglobe first.  Test using the keyword field
@@ -2533,8 +2484,8 @@ pub(crate) mod tests {
                         snowglobe_fakespot(),
                         simpsons_fakespot().merge(json!({"keywords": "snow"})),
                     ]),
-                )
-                .with_icon(fakespot_amazon_icon()),
+                ))
+                .with_record(SuggestionProvider::Fakespot.icon(fakespot_amazon_icon())),
         );
         store.ingest(SuggestIngestionConstraints::all_providers());
         assert_eq!(
@@ -2557,12 +2508,11 @@ pub(crate) mod tests {
 
         let store = TestStore::new(
             MockRemoteSettingsClient::default()
-                .with_record(
-                    "fakespot-suggestions",
+                .with_record(SuggestionProvider::Fakespot.record(
                     "fakespot-1",
                     json!([snowglobe_fakespot(), simpsons_fakespot()]),
-                )
-                .with_icon(fakespot_amazon_icon()),
+                ))
+                .with_record(SuggestionProvider::Fakespot.icon(fakespot_amazon_icon())),
         );
         store.ingest(SuggestIngestionConstraints::all_providers());
         assert_eq!(
@@ -2596,25 +2546,25 @@ pub(crate) mod tests {
 
         let mut store = TestStore::new(
             MockRemoteSettingsClient::default()
-                .with_record(
-                    "fakespot-suggestions",
+                .with_record(SuggestionProvider::Fakespot.record(
                     "fakespot-1",
                     json!([snowglobe_fakespot(), simpsons_fakespot()]),
-                )
-                .with_icon(fakespot_amazon_icon()),
+                ))
+                .with_record(SuggestionProvider::Fakespot.icon(fakespot_amazon_icon())),
         );
         store.ingest(SuggestIngestionConstraints::all_providers());
 
         // Update the snapshot so that:
         //   - The Simpsons entry is deleted
         //   - Snow globes now use sea glass instead of glitter
-        store.client_mut().update_record(
-            "fakespot-suggestions",
-            "fakespot-1",
-            json!([
+        store
+            .client_mut()
+            .update_record(SuggestionProvider::Fakespot.record(
+                "fakespot-1",
+                json!([
                 snowglobe_fakespot().merge(json!({"title": "Make Your Own Sea Glass Snow Globes"}))
             ]),
-        );
+            ));
         store.ingest(SuggestIngestionConstraints::all_providers());
 
         assert_eq!(
@@ -2647,15 +2597,14 @@ pub(crate) mod tests {
             MockRemoteSettingsClient::default()
                 // This record is in the fakespot-suggest-products collection
                 .with_record(
-                    "fakespot-suggestions",
-                    "fakespot-1",
-                    json!([snowglobe_fakespot()]),
+                    SuggestionProvider::Fakespot
+                        .record("fakespot-1", json!([snowglobe_fakespot()])),
                 )
-                // This record is in the quicksuggest collection, but it has a fakespot record ID
+                // This record is in the Amp collection, but it has a fakespot record ID
                 // for some reason.
-                .with_record("data", "fakespot-1", json![los_pollos_amp()])
-                .with_icon(los_pollos_icon())
-                .with_icon(fakespot_amazon_icon()),
+                .with_record(SuggestionProvider::Amp.record("fakespot-1", json![los_pollos_amp()]))
+                .with_record(SuggestionProvider::Amp.icon(los_pollos_icon()))
+                .with_record(SuggestionProvider::Fakespot.icon(fakespot_amazon_icon())),
         );
         store.ingest(SuggestIngestionConstraints::all_providers());
         assert_eq!(
@@ -2673,8 +2622,8 @@ pub(crate) mod tests {
         // Test deleting one of the records
         store
             .client_mut()
-            .delete_record("quicksuggest", "fakespot-1")
-            .delete_icon(los_pollos_icon());
+            .delete_record(SuggestionProvider::Amp.empty_record("fakespot-1"))
+            .delete_record(SuggestionProvider::Amp.icon(los_pollos_icon()));
         store.ingest(SuggestIngestionConstraints::all_providers());
         // FIXME(Bug 1912283): this setup currently deletes both suggestions, since
         // `drop_suggestions` only checks against record ID.
@@ -2702,8 +2651,8 @@ pub(crate) mod tests {
                 .map(String::as_str)
                 .collect::<HashSet<_>>(),
             HashSet::from([
-                "quicksuggest:icon-fakespot-amazon",
-                "fakespot-suggest-products:fakespot-1"
+                "fakespot-suggest-products:fakespot-1",
+                "fakespot-suggest-products:icon-fakespot-amazon",
             ]),
         );
         Ok(())
@@ -2715,13 +2664,12 @@ pub(crate) mod tests {
 
         let store = TestStore::new(
             MockRemoteSettingsClient::default()
-                .with_full_record(
-                    "exposure-suggestions",
+                .with_record(SuggestionProvider::Exposure.full_record(
                     "exposure-0",
                     Some(json!({
                         "suggestion_type": "aaa",
                     })),
-                    Some(json!({
+                    Some(MockAttachment::Json(json!({
                         "keywords": [
                             "aaa keyword",
                             "both keyword",
@@ -2729,22 +2677,21 @@ pub(crate) mod tests {
                             ["choco", ["bo", "late"]],
                             ["dup", ["licate 1", "licate 2"]],
                         ],
-                    })),
-                )
-                .with_full_record(
-                    "exposure-suggestions",
+                    }))),
+                ))
+                .with_record(SuggestionProvider::Exposure.full_record(
                     "exposure-1",
                     Some(json!({
                         "suggestion_type": "bbb",
                     })),
-                    Some(json!({
+                    Some(MockAttachment::Json(json!({
                         "keywords": [
                             "bbb keyword",
                             "both keyword",
                             ["common prefix", [" bbb"]],
                         ],
-                    })),
-                ),
+                    }))),
+                )),
         );
         store.ingest(SuggestIngestionConstraints {
             providers: Some(vec![SuggestionProvider::Exposure]),
@@ -2992,32 +2939,30 @@ pub(crate) mod tests {
 
         let mut store = TestStore::new(
             MockRemoteSettingsClient::default()
-                .with_full_record(
-                    "exposure-suggestions",
+                .with_record(SuggestionProvider::Exposure.full_record(
                     "exposure-0",
                     Some(json!({
                         "suggestion_type": "aaa",
                     })),
-                    Some(json!({
+                    Some(MockAttachment::Json(json!({
                         "keywords": [
                             "record 0 keyword",
                             ["sug", ["gest"]],
                         ],
-                    })),
-                )
-                .with_full_record(
-                    "exposure-suggestions",
+                    }))),
+                ))
+                .with_record(SuggestionProvider::Exposure.full_record(
                     "exposure-1",
                     Some(json!({
                         "suggestion_type": "aaa",
                     })),
-                    Some(json!({
+                    Some(MockAttachment::Json(json!({
                         "keywords": [
                             "record 1 keyword",
                             ["sug", ["arplum"]],
                         ],
-                    })),
-                ),
+                    }))),
+                )),
         );
         store.ingest(SuggestIngestionConstraints {
             providers: Some(vec![SuggestionProvider::Exposure]),
@@ -3056,7 +3001,7 @@ pub(crate) mod tests {
         // Delete the first record.
         store
             .client_mut()
-            .delete_record(Collection::Quicksuggest.name(), "exposure-0");
+            .delete_record(SuggestionProvider::Exposure.empty_record("exposure-0"));
         store.ingest(SuggestIngestionConstraints {
             providers: Some(vec![SuggestionProvider::Exposure]),
             provider_constraints: Some(SuggestionProviderConstraints {
@@ -3106,26 +3051,24 @@ pub(crate) mod tests {
         // Create suggestions with types "aaa" and "bbb".
         let store = TestStore::new(
             MockRemoteSettingsClient::default()
-                .with_full_record(
-                    "exposure-suggestions",
+                .with_record(SuggestionProvider::Exposure.full_record(
                     "exposure-0",
                     Some(json!({
                         "suggestion_type": "aaa",
                     })),
-                    Some(json!({
+                    Some(MockAttachment::Json(json!({
                         "keywords": ["aaa keyword", "both keyword"],
-                    })),
-                )
-                .with_full_record(
-                    "exposure-suggestions",
+                    }))),
+                ))
+                .with_record(SuggestionProvider::Exposure.full_record(
                     "exposure-1",
                     Some(json!({
                         "suggestion_type": "bbb",
                     })),
-                    Some(json!({
+                    Some(MockAttachment::Json(json!({
                         "keywords": ["bbb keyword", "both keyword"],
-                    })),
-                ),
+                    }))),
+                )),
         );
 
         // Ingest but don't pass in any provider constraints. The records will
@@ -3232,15 +3175,16 @@ pub(crate) mod tests {
         before_each();
 
         // Create an exposure suggestion and ingest it.
-        let mut store = TestStore::new(MockRemoteSettingsClient::default().with_full_record(
-            "exposure-suggestions",
-            "exposure-0",
-            Some(json!({
-                "suggestion_type": "aaa",
-            })),
-            Some(json!({
-                "keywords": ["old keyword"],
-            })),
+        let mut store = TestStore::new(MockRemoteSettingsClient::default().with_record(
+            SuggestionProvider::Exposure.full_record(
+                "exposure-0",
+                Some(json!({
+                    "suggestion_type": "aaa",
+                })),
+                Some(MockAttachment::Json(json!({
+                    "keywords": ["old keyword"],
+                }))),
+            ),
         ));
         store.ingest(SuggestIngestionConstraints {
             providers: Some(vec![SuggestionProvider::Exposure]),
@@ -3252,16 +3196,17 @@ pub(crate) mod tests {
         });
 
         // Add a new record of the same exposure type.
-        store.client_mut().add_full_record(
-            "exposure-suggestions",
-            "exposure-1",
-            Some(json!({
-                "suggestion_type": "aaa",
-            })),
-            Some(json!({
-                "keywords": ["new keyword"],
-            })),
-        );
+        store
+            .client_mut()
+            .add_record(SuggestionProvider::Exposure.full_record(
+                "exposure-1",
+                Some(json!({
+                    "suggestion_type": "aaa",
+                })),
+                Some(MockAttachment::Json(json!({
+                    "keywords": ["new keyword"],
+                }))),
+            ));
 
         // Ingest, but don't ingest the exposure type. The store will download
         // the new record but shouldn't ingest its attachment.

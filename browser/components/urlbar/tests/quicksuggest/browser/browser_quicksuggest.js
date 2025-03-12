@@ -41,11 +41,18 @@ add_setup(async function () {
   await PlacesUtils.bookmarks.eraseEverything();
   await UrlbarTestUtils.formHistory.clear();
 
+  let isAmp = suggestion => suggestion.iab_category == "22 - Shopping";
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
     remoteSettingsRecords: [
       {
-        type: "data",
-        attachment: REMOTE_SETTINGS_RESULTS,
+        collection: QuickSuggestTestUtils.RS_COLLECTION.AMP,
+        type: QuickSuggestTestUtils.RS_TYPE.AMP,
+        attachment: REMOTE_SETTINGS_RESULTS.filter(isAmp),
+      },
+      {
+        collection: QuickSuggestTestUtils.RS_COLLECTION.OTHER,
+        type: QuickSuggestTestUtils.RS_TYPE.WIKIPEDIA,
+        attachment: REMOTE_SETTINGS_RESULTS.filter(s => !isAmp(s)),
       },
     ],
     merinoSuggestions: [],

@@ -98,11 +98,18 @@ async function ensureQuickSuggestInit({ ...args } = {}) {
   return lazy.QuickSuggestTestUtils.ensureQuickSuggestInit({
     remoteSettingsRecords: [
       {
-        type: "data",
+        collection: lazy.QuickSuggestTestUtils.RS_COLLECTION.AMP,
+        type: lazy.QuickSuggestTestUtils.RS_TYPE.AMP,
         attachment: [
           lazy.QuickSuggestTestUtils.ampRemoteSettings({
             keywords: ["amp", "amp and wikipedia"],
           }),
+        ],
+      },
+      {
+        collection: lazy.QuickSuggestTestUtils.RS_COLLECTION.OTHER,
+        type: lazy.QuickSuggestTestUtils.RS_TYPE.WIKIPEDIA,
+        attachment: [
           lazy.QuickSuggestTestUtils.wikipediaRemoteSettings({
             keywords: ["wikipedia", "amp and wikipedia"],
           }),

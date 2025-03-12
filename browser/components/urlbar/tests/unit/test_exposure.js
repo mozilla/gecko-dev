@@ -10,21 +10,26 @@ ChromeUtils.defineESModuleGetters(this, {
     "resource:///modules/UrlbarProviderQuickSuggest.sys.mjs",
 });
 
-const REMOTE_SETTINGS_RESULTS = [
-  QuickSuggestTestUtils.ampRemoteSettings({
-    keywords: ["amp", "amp and wikipedia"],
-  }),
-  QuickSuggestTestUtils.wikipediaRemoteSettings({
-    keywords: ["wikipedia", "amp and wikipedia"],
-  }),
-];
-
 add_setup(async function setup() {
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
     remoteSettingsRecords: [
       {
-        type: "data",
-        attachment: REMOTE_SETTINGS_RESULTS,
+        collection: QuickSuggestTestUtils.RS_COLLECTION.AMP,
+        type: QuickSuggestTestUtils.RS_TYPE.AMP,
+        attachment: [
+          QuickSuggestTestUtils.ampRemoteSettings({
+            keywords: ["amp", "amp and wikipedia"],
+          }),
+        ],
+      },
+      {
+        collection: QuickSuggestTestUtils.RS_COLLECTION.OTHER,
+        type: QuickSuggestTestUtils.RS_TYPE.WIKIPEDIA,
+        attachment: [
+          QuickSuggestTestUtils.wikipediaRemoteSettings({
+            keywords: ["wikipedia", "amp and wikipedia"],
+          }),
+        ],
       },
     ],
     prefs: [

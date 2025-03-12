@@ -232,7 +232,7 @@ add_task(async function shutdown() {
   let spy = sandbox.spy(QuickSuggest.rustBackend._test_store, "interrupt");
 
   Services.prefs.setBoolPref("toolkit.asyncshutdown.testing", true);
-  AsyncShutdown.profileBeforeChange._trigger();
+  AsyncShutdown.profileChangeTeardown._trigger();
 
   let calls = spy.getCalls();
   Assert.equal(

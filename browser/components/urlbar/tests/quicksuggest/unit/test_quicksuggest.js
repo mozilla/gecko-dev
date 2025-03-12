@@ -168,22 +168,8 @@ add_setup(async function init() {
 
   UrlbarPrefs.set("scotchBonnet.enableOverride", false);
 
-  const testDataTypeResults = [
-    Object.assign({}, REMOTE_SETTINGS_RESULTS[0], { title: "test-data-type" }),
-  ];
-
-  await QuickSuggestTestUtils.ensureQuickSuggestInit({
-    remoteSettingsRecords: [
-      {
-        type: "data",
-        attachment: REMOTE_SETTINGS_RESULTS,
-      },
-      {
-        type: "test-data-type",
-        attachment: testDataTypeResults,
-      },
-    ],
-  });
+  await QuickSuggestTestUtils.ensureQuickSuggestInit();
+  await resetRemoteSettingsData();
 });
 
 add_task(async function telemetryType_sponsored() {
@@ -1438,12 +1424,7 @@ async function doSponsoredPriorityTest({
     quickSuggestSponsoredPriority: true,
   });
 
-  await QuickSuggestTestUtils.setRemoteSettingsRecords([
-    {
-      type: "data",
-      attachment: remoteSettingsData,
-    },
-  ]);
+  await resetRemoteSettingsData(remoteSettingsData);
   await QuickSuggestTestUtils.setConfig(remoteSettingsConfig);
 
   await check_results({
@@ -1455,12 +1436,7 @@ async function doSponsoredPriorityTest({
   });
 
   await cleanUpNimbusEnable();
-  await QuickSuggestTestUtils.setRemoteSettingsRecords([
-    {
-      type: "data",
-      attachment: REMOTE_SETTINGS_RESULTS,
-    },
-  ]);
+  await resetRemoteSettingsData();
   await QuickSuggestTestUtils.setConfig(QuickSuggestTestUtils.DEFAULT_CONFIG);
 }
 
@@ -1912,4 +1888,20 @@ async function doAmpMatchingStrategyTest({
   }
 
   sandbox.restore();
+}
+
+async function resetRemoteSettingsData(data = REMOTE_SETTINGS_RESULTS) {
+  let isAmp = suggestion => suggestion.iab_category == "22 - Shopping";
+  await QuickSuggestTestUtils.setRemoteSettingsRecords([
+    {
+      collection: QuickSuggestTestUtils.RS_COLLECTION.AMP,
+      type: QuickSuggestTestUtils.RS_TYPE.AMP,
+      attachment: data.filter(isAmp),
+    },
+    {
+      collection: QuickSuggestTestUtils.RS_COLLECTION.OTHER,
+      type: QuickSuggestTestUtils.RS_TYPE.WIKIPEDIA,
+      attachment: data.filter(s => !isAmp(s)),
+    },
+  ]);
 }

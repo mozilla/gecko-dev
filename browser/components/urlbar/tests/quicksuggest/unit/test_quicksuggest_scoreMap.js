@@ -25,7 +25,8 @@ const { DEFAULT_SUGGESTION_SCORE } = UrlbarProviderQuickSuggest;
 
 const REMOTE_SETTINGS_RECORDS = [
   {
-    type: "data",
+    collection: QuickSuggestTestUtils.RS_COLLECTION.AMP,
+    type: QuickSuggestTestUtils.RS_TYPE.AMP,
     attachment: [
       // sponsored without score
       QuickSuggestTestUtils.ampRemoteSettings({
@@ -51,6 +52,12 @@ const REMOTE_SETTINGS_RECORDS = [
         url: "https://example.com/sponsored-with-score",
         title: "Sponsored with score",
       }),
+    ],
+  },
+  {
+    collection: QuickSuggestTestUtils.RS_COLLECTION.OTHER,
+    type: QuickSuggestTestUtils.RS_TYPE.WIKIPEDIA,
+    attachment: [
       // nonsponsored without score
       QuickSuggestTestUtils.wikipediaRemoteSettings({
         score: undefined,
@@ -95,10 +102,11 @@ const REMOTE_SETTINGS_RECORDS = [
 const ADM_RECORD = REMOTE_SETTINGS_RECORDS[0];
 const SPONSORED_WITHOUT_SCORE = ADM_RECORD.attachment[0];
 const SPONSORED_WITH_SCORE = ADM_RECORD.attachment[1];
-const NONSPONSORED_WITHOUT_SCORE = ADM_RECORD.attachment[2];
-const NONSPONSORED_WITH_SCORE = ADM_RECORD.attachment[3];
+const WIKIPEDIA_RECORD = REMOTE_SETTINGS_RECORDS[1];
+const NONSPONSORED_WITHOUT_SCORE = WIKIPEDIA_RECORD.attachment[0];
+const NONSPONSORED_WITH_SCORE = WIKIPEDIA_RECORD.attachment[1];
 
-const ADDON_RECORD = REMOTE_SETTINGS_RECORDS[1];
+const ADDON_RECORD = REMOTE_SETTINGS_RECORDS[2];
 const ADDON_WITH_SCORE = ADDON_RECORD.attachment[0];
 
 const MERINO_SPONSORED_SUGGESTION = {

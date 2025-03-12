@@ -235,14 +235,14 @@ malloc_size_of_derive = { path = "xpcom/rust/malloc_size_of_derive" }
 objc = { git = "https://github.com/glandium/rust-objc", rev = "4de89f5aa9851ceca4d40e7ac1e2759410c04324" }
 
 # application-services overrides to make updating them all simpler.
-interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "f7947a60b3e9957b97229d6dd08b458532e79c1c" }
-relevancy = { git = "https://github.com/mozilla/application-services", rev = "f7947a60b3e9957b97229d6dd08b458532e79c1c" }
-search = { git = "https://github.com/mozilla/application-services", rev = "f7947a60b3e9957b97229d6dd08b458532e79c1c" }
-sql-support = { git = "https://github.com/mozilla/application-services", rev = "f7947a60b3e9957b97229d6dd08b458532e79c1c" }
-suggest = { git = "https://github.com/mozilla/application-services", rev = "f7947a60b3e9957b97229d6dd08b458532e79c1c" }
-sync15 = { git = "https://github.com/mozilla/application-services", rev = "f7947a60b3e9957b97229d6dd08b458532e79c1c" }
-tabs = { git = "https://github.com/mozilla/application-services", rev = "f7947a60b3e9957b97229d6dd08b458532e79c1c" }
-viaduct = { git = "https://github.com/mozilla/application-services", rev = "f7947a60b3e9957b97229d6dd08b458532e79c1c" }
-webext-storage = { git = "https://github.com/mozilla/application-services", rev = "f7947a60b3e9957b97229d6dd08b458532e79c1c" }
+interrupt-support = { git = "https://github.com/mozilla/application-services", branch = "desktop-138" }
+relevancy = { git = "https://github.com/mozilla/application-services", branch = "desktop-138" }
+search = { git = "https://github.com/mozilla/application-services", branch = "desktop-138" }
+sql-support = { git = "https://github.com/mozilla/application-services", branch = "desktop-138" }
+suggest = { git = "https://github.com/mozilla/application-services", branch = "desktop-138" }
+sync15 = { git = "https://github.com/mozilla/application-services", branch = "desktop-138" }
+tabs = { git = "https://github.com/mozilla/application-services", branch = "desktop-138" }
+viaduct = { git = "https://github.com/mozilla/application-services", branch = "desktop-138" }
+webext-storage = { git = "https://github.com/mozilla/application-services", branch = "desktop-138" }
 
 allocator-api2 = { path = "third_party/rust/allocator-api2" }

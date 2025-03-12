@@ -5,7 +5,7 @@
 mod client;
 mod data;
 
-pub use client::{MockIcon, MockRemoteSettingsClient};
+pub use client::{MockAttachment, MockIcon, MockRecord, MockRemoteSettingsClient};
 pub use data::*;
 
 use crate::Suggestion;

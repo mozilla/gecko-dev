@@ -20,6 +20,9 @@ use std::{
 use tempfile::TempDir;
 
 use crate::{SuggestIngestionConstraints, SuggestStore};
+use remote_settings::{RemoteSettingsConfig2, RemoteSettingsContext, RemoteSettingsService};
+
+use std::sync::Arc;
 
 pub mod client;
 pub mod geoname;
@@ -76,8 +79,15 @@ fn new_store() -> SuggestStore {
     let (starter_dir, starter_db_path) = starter.get_or_insert_with(|| {
         let temp_dir = tempfile::tempdir().unwrap();
         let db_path = temp_dir.path().join(unique_db_filename());
-        let store =
-            SuggestStore::new(&db_path.to_string_lossy(), None).expect("Error building store");
+        let rs_config = RemoteSettingsConfig2 {
+            bucket_name: None,
+            server: None,
+            app_context: Some(RemoteSettingsContext::default()),
+        };
+        let remote_settings_service =
+            Arc::new(RemoteSettingsService::new("".to_string(), rs_config).unwrap());
+        let store = SuggestStore::new(&db_path.to_string_lossy(), remote_settings_service)
+            .expect("Error building store");
         store
             .ingest(SuggestIngestionConstraints::all_providers())
             .expect("Error during ingestion");
@@ -86,8 +96,16 @@ fn new_store() -> SuggestStore {
     });
 
     let db_path = starter_dir.path().join(unique_db_filename());
+    let rs_config = RemoteSettingsConfig2 {
+        bucket_name: None,
+        server: None,
+        app_context: Some(RemoteSettingsContext::default()),
+    };
+    let remote_settings_service =
+        Arc::new(RemoteSettingsService::new("".to_string(), rs_config).unwrap());
     std::fs::copy(starter_db_path, &db_path).expect("Error copying starter DB file");
-    SuggestStore::new(&db_path.to_string_lossy(), None).expect("Error building store")
+    SuggestStore::new(&db_path.to_string_lossy(), remote_settings_service)
+        .expect("Error building store")
 }
 
 /// Cleanup the temp directory created for SuggestStore instances used in the benchmarks.

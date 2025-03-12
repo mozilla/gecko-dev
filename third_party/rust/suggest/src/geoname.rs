@@ -396,7 +396,7 @@ struct GeonameInsertStatement<'conn>(rusqlite::Statement<'conn>);
 impl<'conn> GeonameInsertStatement<'conn> {
     fn new(conn: &'conn Connection) -> Result<Self> {
         Ok(Self(conn.prepare(
-            "INSERT INTO geonames(
+            "INSERT OR REPLACE INTO geonames(
                  id,
                  record_id,
                  name,
@@ -437,7 +437,7 @@ struct GeonameAlternateInsertStatement<'conn>(rusqlite::Statement<'conn>);
 impl<'conn> GeonameAlternateInsertStatement<'conn> {
     fn new(conn: &'conn Connection) -> Result<Self> {
         Ok(Self(conn.prepare(
-            "INSERT INTO geonames_alternates(
+            "INSERT OR REPLACE INTO geonames_alternates(
                  name,
                  geoname_id,
                  iso_language
@@ -460,7 +460,7 @@ struct GeonameMetricsInsertStatement<'conn>(rusqlite::Statement<'conn>);
 impl<'conn> GeonameMetricsInsertStatement<'conn> {
     pub(crate) fn new(conn: &'conn Connection) -> Result<Self> {
         Ok(Self(conn.prepare(
-            "INSERT INTO geonames_metrics(
+            "INSERT OR REPLACE INTO geonames_metrics(
                  record_id,
                  max_name_length,
                  max_name_word_count
@@ -487,204 +487,221 @@ impl<'conn> GeonameMetricsInsertStatement<'conn> {
 pub(crate) mod tests {
     use super::*;
     use crate::{
-        provider::SuggestionProvider, store::tests::TestStore, testing::*,
+        provider::SuggestionProvider,
+        rs::{Collection, SuggestRecordType},
+        store::tests::TestStore,
+        testing::*,
         SuggestIngestionConstraints,
     };
+    use serde_json::Value as JsonValue;
 
     pub(crate) const LONG_NAME: &str = "aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll mmm nnn ooo ppp qqq rrr sss ttt uuu vvv www x yyy zzz";
 
+    pub(crate) fn geoname_mock_record(id: &str, json: JsonValue) -> MockRecord {
+        MockRecord {
+            collection: Collection::Other,
+            record_type: SuggestRecordType::Geonames,
+            id: id.to_string(),
+            inline_data: None,
+            attachment: Some(MockAttachment::Json(json)),
+        }
+    }
+
     pub(crate) fn new_test_store() -> TestStore {
-        TestStore::new(MockRemoteSettingsClient::default().with_record(
-            "geonames",
-            "geonames-0",
-            json!({
-                "max_alternate_name_length": LONG_NAME.len(),
-                "max_alternate_name_word_count": LONG_NAME.split_whitespace().collect::<Vec<_>>().len(),
-                "geonames": [
-                    // Waterloo, AL
-                    {
-                        "id": 1,
-                        "name": "Waterloo",
-                        "latitude": "34.91814",
-                        "longitude": "-88.0642",
-                        "feature_class": "P",
-                        "feature_code": "PPL",
-                        "country_code": "US",
-                        "admin1_code": "AL",
-                        "population": 200,
-                        "alternate_names": ["waterloo"],
-                        "alternate_names_2": [
-                            { "name": "waterloo" },
-                        ],
-                    },
-                    // AL
-                    {
-                        "id": 2,
-                        "name": "Alabama",
-                        "latitude": "32.75041",
-                        "longitude": "-86.75026",
-                        "feature_class": "A",
-                        "feature_code": "ADM1",
-                        "country_code": "US",
-                        "admin1_code": "AL",
-                        "population": 4530315,
-                        "alternate_names": ["al", "alabama"],
-                        "alternate_names_2": [
-                            { "name": "alabama" },
-                            { "name": "al", "iso_language": "abbr" },
-                        ],
-                    },
-                    // Waterloo, IA
-                    {
-                        "id": 3,
-                        "name": "Waterloo",
-                        "latitude": "42.49276",
-                        "longitude": "-92.34296",
-                        "feature_class": "P",
-                        "feature_code": "PPLA2",
-                        "country_code": "US",
-                        "admin1_code": "IA",
-                        "population": 68460,
-                        "alternate_names": ["waterloo"],
-                        "alternate_names_2": [
-                            { "name": "waterloo" },
-                        ],
-                    },
-                    // IA
-                    {
-                        "id": 4,
-                        "name": "Iowa",
-                        "latitude": "42.00027",
-                        "longitude": "-93.50049",
-                        "feature_class": "A",
-                        "feature_code": "ADM1",
-                        "country_code": "US",
-                        "admin1_code": "IA",
-                        "population": 2955010,
-                        "alternate_names": ["ia", "iowa"],
-                        "alternate_names_2": [
-                            { "name": "iowa" },
-                            { "name": "ia", "iso_language": "abbr" },
-                        ],
-                    },
-                    // Waterloo (Lake, not a city or region)
-                    {
-                        "id": 5,
-                        "name": "waterloo lake",
-                        "latitude": "31.25044",
-                        "longitude": "-99.25061",
-                        "feature_class": "H",
-                        "feature_code": "LK",
-                        "country_code": "US",
-                        "admin1_code": "TX",
-                        "population": 0,
-                        "alternate_names_2": [
-                            { "name": "waterloo lake" },
-                            { "name": "waterloo", "iso_language": "en" },
-                        ],
-                    },
-                    // New York City
-                    {
-                        "id": 6,
-                        "name": "New York City",
-                        "latitude": "40.71427",
-                        "longitude": "-74.00597",
-                        "feature_class": "P",
-                        "feature_code": "PPL",
-                        "country_code": "US",
-                        "admin1_code": "NY",
-                        "population": 8804190,
-                        "alternate_names_2": [
-                            { "name": "new york city" },
-                            { "name": "new york", "iso_language": "en" },
-                            { "name": "nyc", "iso_language": "abbr" },
-                            { "name": "ny", "iso_language": "abbr" },
-                        ],
-                    },
-                    // Rochester, NY
-                    {
-                        "id": 7,
-                        "name": "Rochester",
-                        "latitude": "43.15478",
-                        "longitude": "-77.61556",
-                        "feature_class": "P",
-                        "feature_code": "PPLA2",
-                        "country_code": "US",
-                        "admin1_code": "NY",
-                        "population": 209802,
-                        "alternate_names_2": [
-                            { "name": "rochester" },
-                            { "name": "roc", "iso_language": "iata" },
-                        ],
-                    },
-                    // NY state
-                    {
-                        "id": 8,
-                        "name": "New York",
-                        "latitude": "43.00035",
-                        "longitude": "-75.4999",
-                        "feature_class": "A",
-                        "feature_code": "ADM1",
-                        "country_code": "US",
-                        "admin1_code": "NY",
-                        "population": 19274244,
-                        "alternate_names_2": [
-                            { "name": "new york" },
-                            { "name": "ny", "iso_language": "abbr" },
-                        ],
-                    },
-                    // Waco, TX: Has a surprising IATA airport code that's a
-                    // common English word and not a prefix of the city name
-                    {
-                        "id": 9,
-                        "name": "Waco",
-                        "latitude": "31.54933",
-                        "longitude": "-97.14667",
-                        "feature_class": "P",
-                        "feature_code": "PPLA2",
-                        "country_code": "US",
-                        "admin1_code": "TX",
-                        "population": 132356,
-                        "alternate_names_2": [
-                            { "name": "waco" },
-                            { "name": "act", "iso_language": "iata" },
-                        ],
-                    },
-                    // TX
-                    {
-                        "id": 10,
-                        "name": "Texas",
-                        "latitude": "31.25044",
-                        "longitude": "-99.25061",
-                        "feature_class": "A",
-                        "feature_code": "ADM1",
-                        "country_code": "US",
-                        "admin1_code": "TX",
-                        "population": 22875689,
-                        "alternate_names_2": [
-                            { "name": "texas" },
-                            { "name": "tx", "iso_language": "abbr" },
-                        ],
-                    },
-                    // Made-up city with a long name
-                    {
-                        "id": 999,
-                        "name": "Long Name",
-                        "latitude": "38.06084",
-                        "longitude": "-97.92977",
-                        "feature_class": "P",
-                        "feature_code": "PPLA2",
-                        "country_code": "US",
-                        "admin1_code": "NY",
-                        "population": 2,
-                        "alternate_names_2": [
-                            { "name": "long name" },
-                            { "name": LONG_NAME, "iso_language": "en" },
-                        ],
-                    },
-                ],
-            }),
-        ))
+        TestStore::new(
+            MockRemoteSettingsClient::default()
+                .with_record(geoname_mock_record("geonames-0", geonames_data())),
+        )
+    }
+
+    fn geonames_data() -> serde_json::Value {
+        json!({
+            "max_alternate_name_length": LONG_NAME.len(),
+            "max_alternate_name_word_count": LONG_NAME.split_whitespace().collect::<Vec<_>>().len(),
+            "geonames": [
+                // Waterloo, AL
+                {
+                    "id": 1,
+                    "name": "Waterloo",
+                    "latitude": "34.91814",
+                    "longitude": "-88.0642",
+                    "feature_class": "P",
+                    "feature_code": "PPL",
+                    "country_code": "US",
+                    "admin1_code": "AL",
+                    "population": 200,
+                    "alternate_names": ["waterloo"],
+                    "alternate_names_2": [
+                        { "name": "waterloo" },
+                    ],
+                },
+                // AL
+                {
+                    "id": 2,
+                    "name": "Alabama",
+                    "latitude": "32.75041",
+                    "longitude": "-86.75026",
+                    "feature_class": "A",
+                    "feature_code": "ADM1",
+                    "country_code": "US",
+                    "admin1_code": "AL",
+                    "population": 4530315,
+                    "alternate_names": ["al", "alabama"],
+                    "alternate_names_2": [
+                        { "name": "alabama" },
+                        { "name": "al", "iso_language": "abbr" },
+                    ],
+                },
+                // Waterloo, IA
+                {
+                    "id": 3,
+                    "name": "Waterloo",
+                    "latitude": "42.49276",
+                    "longitude": "-92.34296",
+                    "feature_class": "P",
+                    "feature_code": "PPLA2",
+                    "country_code": "US",
+                    "admin1_code": "IA",
+                    "population": 68460,
+                    "alternate_names": ["waterloo"],
+                    "alternate_names_2": [
+                        { "name": "waterloo" },
+                    ],
+                },
+                // IA
+                {
+                    "id": 4,
+                    "name": "Iowa",
+                    "latitude": "42.00027",
+                    "longitude": "-93.50049",
+                    "feature_class": "A",
+                    "feature_code": "ADM1",
+                    "country_code": "US",
+                    "admin1_code": "IA",
+                    "population": 2955010,
+                    "alternate_names": ["ia", "iowa"],
+                    "alternate_names_2": [
+                        { "name": "iowa" },
+                        { "name": "ia", "iso_language": "abbr" },
+                    ],
+                },
+                // Waterloo (Lake, not a city or region)
+                {
+                    "id": 5,
+                    "name": "waterloo lake",
+                    "latitude": "31.25044",
+                    "longitude": "-99.25061",
+                    "feature_class": "H",
+                    "feature_code": "LK",
+                    "country_code": "US",
+                    "admin1_code": "TX",
+                    "population": 0,
+                    "alternate_names_2": [
+                        { "name": "waterloo lake" },
+                        { "name": "waterloo", "iso_language": "en" },
+                    ],
+                },
+                // New York City
+                {
+                    "id": 6,
+                    "name": "New York City",
+                    "latitude": "40.71427",
+                    "longitude": "-74.00597",
+                    "feature_class": "P",
+                    "feature_code": "PPL",
+                    "country_code": "US",
+                    "admin1_code": "NY",
+                    "population": 8804190,
+                    "alternate_names_2": [
+                        { "name": "new york city" },
+                        { "name": "new york", "iso_language": "en" },
+                        { "name": "nyc", "iso_language": "abbr" },
+                        { "name": "ny", "iso_language": "abbr" },
+                    ],
+                },
+                // Rochester, NY
+                {
+                    "id": 7,
+                    "name": "Rochester",
+                    "latitude": "43.15478",
+                    "longitude": "-77.61556",
+                    "feature_class": "P",
+                    "feature_code": "PPLA2",
+                    "country_code": "US",
+                    "admin1_code": "NY",
+                    "population": 209802,
+                    "alternate_names_2": [
+                        { "name": "rochester" },
+                        { "name": "roc", "iso_language": "iata" },
+                    ],
+                },
+                // NY state
+                {
+                    "id": 8,
+                    "name": "New York",
+                    "latitude": "43.00035",
+                    "longitude": "-75.4999",
+                    "feature_class": "A",
+                    "feature_code": "ADM1",
+                    "country_code": "US",
+                    "admin1_code": "NY",
+                    "population": 19274244,
+                    "alternate_names_2": [
+                        { "name": "new york" },
+                        { "name": "ny", "iso_language": "abbr" },
+                    ],
+                },
+                // Waco, TX: Has a surprising IATA airport code that's a
+                // common English word and not a prefix of the city name
+                {
+                    "id": 9,
+                    "name": "Waco",
+                    "latitude": "31.54933",
+                    "longitude": "-97.14667",
+                    "feature_class": "P",
+                    "feature_code": "PPLA2",
+                    "country_code": "US",
+                    "admin1_code": "TX",
+                    "population": 132356,
+                    "alternate_names_2": [
+                        { "name": "waco" },
+                        { "name": "act", "iso_language": "iata" },
+                    ],
+                },
+                // TX
+                {
+                    "id": 10,
+                    "name": "Texas",
+                    "latitude": "31.25044",
+                    "longitude": "-99.25061",
+                    "feature_class": "A",
+                    "feature_code": "ADM1",
+                    "country_code": "US",
+                    "admin1_code": "TX",
+                    "population": 22875689,
+                    "alternate_names_2": [
+                        { "name": "texas" },
+                        { "name": "tx", "iso_language": "abbr" },
+                    ],
+                },
+                // Made-up city with a long name
+                {
+                    "id": 999,
+                    "name": "Long Name",
+                    "latitude": "38.06084",
+                    "longitude": "-97.92977",
+                    "feature_class": "P",
+                    "feature_code": "PPLA2",
+                    "country_code": "US",
+                    "admin1_code": "NY",
+                    "population": 2,
+                    "alternate_names_2": [
+                        { "name": "long name" },
+                        { "name": LONG_NAME, "iso_language": "en" },
+                    ],
+                },
+            ],
+        })
     }
 
     pub(crate) fn waterloo_al() -> Geoname {
@@ -1288,24 +1305,22 @@ pub(crate) mod tests {
         // metrics so the other values don't matter.
         let mut store = TestStore::new(
             MockRemoteSettingsClient::default()
-                .with_record(
-                    "geonames",
+                .with_record(geoname_mock_record(
                     "geonames-0",
                     json!({
                         "max_alternate_name_length": 10,
                         "max_alternate_name_word_count": 5,
                         "geonames": []
                     }),
-                )
-                .with_record(
-                    "geonames",
+                ))
+                .with_record(geoname_mock_record(
                     "geonames-1",
                     json!({
                         "max_alternate_name_length": 20,
                         "max_alternate_name_word_count": 2,
                         "geonames": []
                     }),
-                ),
+                )),
         );
 
         // Ingest weather to also ingest geonames.
@@ -1324,7 +1339,7 @@ pub(crate) mod tests {
         // Delete the first record. The metrics should change.
         store
             .client_mut()
-            .delete_record("quicksuggest", "geonames-0");
+            .delete_record(geoname_mock_record("geonames-0", json!({})));
         store.ingest(SuggestIngestionConstraints {
             providers: Some(vec![SuggestionProvider::Weather]),
             ..SuggestIngestionConstraints::all_providers()
@@ -1337,15 +1352,14 @@ pub(crate) mod tests {
         })?;
 
         // Add a new record. The metrics should change again.
-        store.client_mut().add_record(
-            "geonames",
+        store.client_mut().add_record(geoname_mock_record(
             "geonames-3",
             json!({
                 "max_alternate_name_length": 15,
                 "max_alternate_name_word_count": 3,
                 "geonames": []
             }),
-        );
+        ));
         store.ingest(SuggestIngestionConstraints {
             providers: Some(vec![SuggestionProvider::Weather]),
             ..SuggestIngestionConstraints::all_providers()
@@ -1394,7 +1408,7 @@ pub(crate) mod tests {
         // Delete the record.
         store
             .client_mut()
-            .delete_record("quicksuggest", "geonames-0");
+            .delete_record(geoname_mock_record("geonames-0", json!({})));
         store.ingest(SuggestIngestionConstraints {
             providers: Some(vec![SuggestionProvider::Weather]),
             ..SuggestIngestionConstraints::all_providers()
@@ -1421,6 +1435,91 @@ pub(crate) mod tests {
 
             Ok(())
         })?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn geonames_reingest() -> anyhow::Result<()> {
+        before_each();
+
+        // Create the store with the test data and ingest.
+        let mut store = new_test_store();
+        store.ingest(SuggestIngestionConstraints {
+            providers: Some(vec![SuggestionProvider::Weather]),
+            ..SuggestIngestionConstraints::all_providers()
+        });
+
+        // Get the table counts.
+        let (geonames_count, alternates_count) = store.read(|dao| {
+            Ok((
+                dao.conn.query_row_and_then(
+                    "SELECT count(*) FROM geonames",
+                    [],
+                    |row| -> Result<i64> { Ok(row.get(0)?) },
+                )?,
+                dao.conn.query_row_and_then(
+                    "SELECT count(*) FROM geonames_alternates",
+                    [],
+                    |row| -> Result<i64> { Ok(row.get(0)?) },
+                )?,
+            ))
+        })?;
+
+        assert_ne!(geonames_count, 0);
+        assert_ne!(alternates_count, 0);
+
+        // Delete the record and add a new record with a new ID that has the
+        // same data.
+        store
+            .client_mut()
+            .delete_record(geoname_mock_record("geonames-0", json!({})))
+            .add_record(geoname_mock_record("geonames-1", geonames_data()));
+
+        // Ingest again.
+        store.ingest(SuggestIngestionConstraints {
+            providers: Some(vec![SuggestionProvider::Weather]),
+            ..SuggestIngestionConstraints::all_providers()
+        });
+
+        // Make sure we have a match.
+        store.read(|dao| {
+            assert_eq!(
+                dao.fetch_geonames("waterloo", false, None, None)?,
+                vec![
+                    GeonameMatch {
+                        geoname: waterloo_ia(),
+                        match_type: GeonameMatchType::Name,
+                        prefix: false,
+                    },
+                    GeonameMatch {
+                        geoname: waterloo_al(),
+                        match_type: GeonameMatchType::Name,
+                        prefix: false,
+                    },
+                ],
+            );
+            Ok(())
+        })?;
+
+        // Get the table counts again. They should be the same as before.
+        let (new_geonames_count, new_alternates_count) = store.read(|dao| {
+            Ok((
+                dao.conn.query_row_and_then(
+                    "SELECT count(*) FROM geonames",
+                    [],
+                    |row| -> Result<i64> { Ok(row.get(0)?) },
+                )?,
+                dao.conn.query_row_and_then(
+                    "SELECT count(*) FROM geonames_alternates",
+                    [],
+                    |row| -> Result<i64> { Ok(row.get(0)?) },
+                )?,
+            ))
+        })?;
+
+        assert_eq!(geonames_count, new_geonames_count);
+        assert_eq!(alternates_count, new_alternates_count);
 
         Ok(())
     }

@@ -6,7 +6,8 @@ use std::sync::OnceLock;
 
 use crate::{
     benchmarks::{client::RemoteSettingsBenchmarkClient, unique_db_filename, BenchmarkWithInput},
-    rs::SuggestRecordType,
+    provider::SuggestionProvider,
+    rs::{Collection, SuggestRecordType},
     store::SuggestStoreInner,
     SuggestIngestionConstraints,
 };
@@ -14,6 +15,7 @@ use crate::{
 pub struct IngestBenchmark {
     temp_dir: tempfile::TempDir,
     client: RemoteSettingsBenchmarkClient,
+    collection: Collection,
     record_type: SuggestRecordType,
     reingest: bool,
 }
@@ -31,11 +33,24 @@ fn get_benchmark_client() -> RemoteSettingsBenchmarkClient {
 }
 
 impl IngestBenchmark {
-    pub fn new(record_type: SuggestRecordType, reingest: bool) -> Self {
+    pub fn new(provider: SuggestionProvider, reingest: bool) -> Self {
+        Self::new_with_record_type(
+            provider.primary_collection(),
+            provider.primary_record_type(),
+            reingest,
+        )
+    }
+
+    pub fn new_with_record_type(
+        collection: Collection,
+        record_type: SuggestRecordType,
+        reingest: bool,
+    ) -> Self {
         let temp_dir = tempfile::tempdir().unwrap();
         Self {
             client: get_benchmark_client(),
             temp_dir,
+            collection,
             record_type,
             reingest,
         }
@@ -58,7 +73,7 @@ impl BenchmarkWithInput for IngestBenchmark {
         let store = SuggestStoreInner::new(data_path, vec![], self.client.clone());
         store.ensure_db_initialized();
         if self.reingest {
-            store.ingest_records_by_type(self.record_type);
+            store.ingest_records_by_type(self.collection, self.record_type);
             store.force_reingest();
         }
         InputType(store)
@@ -66,7 +81,7 @@ impl BenchmarkWithInput for IngestBenchmark {
 
     fn benchmarked_code(&self, _: &Self::GlobalInput, input: Self::IterationInput) {
         let InputType(store) = input;
-        store.ingest_records_by_type(self.record_type);
+        store.ingest_records_by_type(self.collection, self.record_type);
     }
 }
 
@@ -74,84 +89,104 @@ impl BenchmarkWithInput for IngestBenchmark {
 pub fn all_benchmarks() -> Vec<(&'static str, IngestBenchmark)> {
     vec![
         (
-            "ingest-icon",
-            IngestBenchmark::new(SuggestRecordType::Icon, false),
+            "ingest-icon-amp",
+            IngestBenchmark::new_with_record_type(Collection::Amp, SuggestRecordType::Icon, false),
         ),
         (
-            "ingest-again-icon",
-            IngestBenchmark::new(SuggestRecordType::Icon, true),
+            "ingest-again-icon-amp",
+            IngestBenchmark::new_with_record_type(Collection::Amp, SuggestRecordType::Icon, true),
         ),
         (
-            "ingest-amp-wikipedia",
-            IngestBenchmark::new(SuggestRecordType::AmpWikipedia, false),
+            "ingest-icon-other",
+            IngestBenchmark::new_with_record_type(
+                Collection::Other,
+                SuggestRecordType::Icon,
+                false,
+            ),
         ),
         (
-            "ingest-again-amp-wikipedia",
-            IngestBenchmark::new(SuggestRecordType::AmpWikipedia, true),
+            "ingest-again-icon-other",
+            IngestBenchmark::new_with_record_type(Collection::Other, SuggestRecordType::Icon, true),
+        ),
+        (
+            "ingest-amp",
+            IngestBenchmark::new(SuggestionProvider::Amp, false),
+        ),
+        (
+            "ingest-again-amp",
+            IngestBenchmark::new(SuggestionProvider::Amp, true),
+        ),
+        (
+            "ingest-wikipedia",
+            IngestBenchmark::new(SuggestionProvider::Wikipedia, false),
+        ),
+        (
+            "ingest-again-wikipedia",
+            IngestBenchmark::new(SuggestionProvider::Wikipedia, true),
         ),
         (
             "ingest-amo",
-            IngestBenchmark::new(SuggestRecordType::Amo, false),
+            IngestBenchmark::new(SuggestionProvider::Amo, false),
         ),
         (
             "ingest-again-amo",
-            IngestBenchmark::new(SuggestRecordType::Amo, true),
+            IngestBenchmark::new(SuggestionProvider::Amo, true),
         ),
         (
             "ingest-pocket",
-            IngestBenchmark::new(SuggestRecordType::Pocket, false),
+            IngestBenchmark::new(SuggestionProvider::Pocket, false),
         ),
         (
             "ingest-again-pocket",
-            IngestBenchmark::new(SuggestRecordType::Pocket, true),
+            IngestBenchmark::new(SuggestionProvider::Pocket, true),
         ),
         (
             "ingest-yelp",
-            IngestBenchmark::new(SuggestRecordType::Yelp, false),
+            IngestBenchmark::new(SuggestionProvider::Yelp, false),
         ),
         (
             "ingest-again-yelp",
-            IngestBenchmark::new(SuggestRecordType::Yelp, true),
+            IngestBenchmark::new(SuggestionProvider::Yelp, true),
         ),
         (
             "ingest-mdn",
-            IngestBenchmark::new(SuggestRecordType::Mdn, false),
+            IngestBenchmark::new(SuggestionProvider::Mdn, false),
         ),
         (
             "ingest-again-mdn",
-            IngestBenchmark::new(SuggestRecordType::Mdn, true),
+            IngestBenchmark::new(SuggestionProvider::Mdn, true),
         ),
         (
             "ingest-weather",
-            IngestBenchmark::new(SuggestRecordType::Weather, false),
+            IngestBenchmark::new(SuggestionProvider::Weather, false),
         ),
         (
             "ingest-again-weather",
-            IngestBenchmark::new(SuggestRecordType::Weather, true),
+            IngestBenchmark::new(SuggestionProvider::Weather, true),
         ),
         (
             "ingest-global-config",
-            IngestBenchmark::new(SuggestRecordType::GlobalConfig, false),
+            IngestBenchmark::new_with_record_type(
+                Collection::Other,
+                SuggestRecordType::GlobalConfig,
+                false,
+            ),
         ),
         (
             "ingest-again-global-config",
-            IngestBenchmark::new(SuggestRecordType::GlobalConfig, true),
-        ),
-        (
-            "ingest-amp-mobile",
-            IngestBenchmark::new(SuggestRecordType::AmpMobile, false),
-        ),
-        (
-            "ingest-again-amp-mobile",
-            IngestBenchmark::new(SuggestRecordType::AmpMobile, true),
+            IngestBenchmark::new_with_record_type(
+                Collection::Other,
+                SuggestRecordType::GlobalConfig,
+                true,
+            ),
         ),
         (
             "ingest-fakespot",
-            IngestBenchmark::new(SuggestRecordType::Fakespot, false),
+            IngestBenchmark::new(SuggestionProvider::Fakespot, false),
         ),
         (
             "ingest-again-fakespot",
-            IngestBenchmark::new(SuggestRecordType::Fakespot, true),
+            IngestBenchmark::new(SuggestionProvider::Fakespot, true),
         ),
     ]
 }

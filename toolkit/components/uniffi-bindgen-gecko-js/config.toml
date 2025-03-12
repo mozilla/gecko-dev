@@ -34,6 +34,7 @@ main_thread = [
   "SuggestStoreBuilder.load_extension",
   "SuggestStoreBuilder.remote_settings_bucket_name",
   "SuggestStoreBuilder.remote_settings_server",
+  "SuggestStoreBuilder.remote_settings_service",
   "SuggestStoreBuilder.build",
 ]
 
@@ -54,6 +55,7 @@ enable = true
 # These are exceptions to the async wrapping.  These functions must not be `await`ed.
 main_thread = [
   "RemoteSettings.new",
+  "RemoteSettingsService.new",
 ]
 
 [error_support.async_wrappers]

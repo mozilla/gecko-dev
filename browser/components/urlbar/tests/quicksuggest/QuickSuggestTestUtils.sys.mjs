@@ -130,6 +130,20 @@ class _QuickSuggestTestUtils {
     }
   }
 
+  get RS_COLLECTION() {
+    return {
+      AMP: "quicksuggest-amp",
+      OTHER: "quicksuggest-other",
+    };
+  }
+
+  get RS_TYPE() {
+    return {
+      AMP: "amp",
+      WIKIPEDIA: "wikipedia",
+    };
+  }
+
   get DEFAULT_CONFIG() {
     // Return a clone so callers can modify it.
     return Cu.cloneInto(DEFAULT_CONFIG, this);
@@ -148,7 +162,7 @@ class _QuickSuggestTestUtils {
    *     - `record.attachment` - Optional. This should be the attachment itself
    *       and not its metadata. It should be a JSONable object.
    *     - `record.collection` - Optional. The name of the RS collection that
-   *       the record should be added to. Defaults to "quicksuggest".
+   *       the record should be added to. Defaults to "quicksuggest-other".
    * @param {Array} options.merinoSuggestions
    *   Array of Merino suggestion objects. If given, this function will start
    *   the mock Merino server and set `quicksuggest.dataCollection.enabled` to
@@ -189,19 +203,6 @@ class _QuickSuggestTestUtils {
     this.#log("ensureQuickSuggestInit", "Awaiting ExperimentAPI.ready");
     await lazy.ExperimentAPI.ready();
 
-    // Make a Map from collection name to the array of records that should be
-    // added to that collection.
-    let recordsByCollection = remoteSettingsRecords.reduce((memo, record) => {
-      let collection = record.collection || "quicksuggest";
-      let records = memo.get(collection);
-      if (!records) {
-        records = [];
-        memo.set(collection, records);
-      }
-      records.push(record);
-      return memo;
-    }, new Map());
-
     // Set up the local remote settings server.
     this.#log("ensureQuickSuggestInit", "Preparing remote settings server");
     if (!this.#remoteSettingsServer) {
@@ -209,11 +210,13 @@ class _QuickSuggestTestUtils {
     }
 
     this.#remoteSettingsServer.removeRecords();
-    for (let [collection, records] of recordsByCollection.entries()) {
+    for (let [collection, records] of this.#recordsByCollection(
+      remoteSettingsRecords
+    )) {
       await this.#remoteSettingsServer.addRecords({ collection, records });
     }
     await this.#remoteSettingsServer.addRecords({
-      collection: "quicksuggest",
+      collection: this.RS_COLLECTION.OTHER,
       records: [{ type: "configuration", configuration: config }],
     });
 
@@ -299,10 +302,15 @@ class _QuickSuggestTestUtils {
    */
   async setRemoteSettingsRecords(records, { forceSync = true } = {}) {
     this.#log("setRemoteSettingsRecords", "Started");
-    await this.#remoteSettingsServer.setRecords({
-      collection: "quicksuggest",
-      records,
-    });
+
+    this.#remoteSettingsServer.removeRecords();
+    for (let [collection, recs] of this.#recordsByCollection(records)) {
+      await this.#remoteSettingsServer.addRecords({
+        collection,
+        records: recs,
+      });
+    }
+
     if (forceSync) {
       this.#log("setRemoteSettingsRecords", "Forcing sync");
       await this.forceSync();
@@ -324,7 +332,7 @@ class _QuickSuggestTestUtils {
     let type = "configuration";
     this.#remoteSettingsServer.removeRecords({ type });
     await this.#remoteSettingsServer.addRecords({
-      collection: "quicksuggest",
+      collection: this.RS_COLLECTION.OTHER,
       records: [{ type, configuration: config }],
     });
     this.#log("setConfig", "Forcing sync");
@@ -1306,6 +1314,33 @@ class _QuickSuggestTestUtils {
 
   #log(fnName, msg) {
     this.info?.(`QuickSuggestTestUtils.${fnName} ${msg}`);
+  }
+
+  #recordsByCollection(records) {
+    // Make a Map from collection name to the array of records that should be
+    // added to that collection.
+    let recordsByCollection = records.reduce((memo, record) => {
+      let collection = record.collection || this.RS_COLLECTION.OTHER;
+      let recs = memo.get(collection);
+      if (!recs) {
+        recs = [];
+        memo.set(collection, recs);
+      }
+      recs.push(record);
+      return memo;
+    }, new Map());
+
+    // Make sure the two main collections, "quicksuggest-amp" and
+    // "quicksuggest-other", are present. Otherwise the Rust component will log
+    // 404 errors because it expects them to exist. The errors are harmless but
+    // annoying.
+    for (let collection of Object.values(this.RS_COLLECTION)) {
+      if (!recordsByCollection.has(collection)) {
+        recordsByCollection.set(collection, []);
+      }
+    }
+
+    return recordsByCollection;
   }
 
   #remoteSettingsServer;

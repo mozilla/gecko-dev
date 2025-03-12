@@ -198,6 +198,11 @@ impl RemoteSettingsClient {
     pub fn get_attachment(&self, record: &RemoteSettingsRecord) -> ApiResult<Vec<u8>> {
         self.internal.get_attachment(record)
     }
+
+    #[handle_error(Error)]
+    pub fn sync(&self) -> ApiResult<()> {
+        self.internal.sync()
+    }
 }
 
 impl RemoteSettingsClient {

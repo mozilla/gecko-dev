@@ -22,7 +22,7 @@ const REMOTE_SETTINGS_RECORDS = [
     },
   },
   {
-    type: "data",
+    type: QuickSuggestTestUtils.RS_TYPE.WIKIPEDIA,
     attachment: [QuickSuggestTestUtils.wikipediaRemoteSettings()],
   },
 ];
@@ -31,7 +31,11 @@ add_setup(async function () {
   // Add many exposure and AMP suggestions that have the "maxresults" keyword.
   let maxResults = UrlbarPrefs.get("maxRichResults");
   Assert.greater(maxResults, 0, "This test expects maxRichResults to be > 0");
-  let ampRecord = { type: "data", attachment: [] };
+  let ampRecord = {
+    collection: QuickSuggestTestUtils.RS_COLLECTION.AMP,
+    type: QuickSuggestTestUtils.RS_TYPE.AMP,
+    attachment: [],
+  };
   REMOTE_SETTINGS_RECORDS.push(ampRecord);
   for (let i = 0; i < maxResults; i++) {
     ampRecord.attachment.push(

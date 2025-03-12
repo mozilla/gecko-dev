@@ -39,17 +39,12 @@ add_setup(async () => {
 
   // Set up the remote settings client with the test data.
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
-    remoteSettingsRecords: [
-      {
-        type: "data",
-        attachment: REMOTE_SETTINGS_RESULTS,
-      },
-    ],
     prefs: [
       ["suggest.quicksuggest.nonsponsored", true],
       ["suggest.quicksuggest.sponsored", true],
     ],
   });
+  await resetRemoteSettingsData();
 
   Assert.equal(
     typeof DEFAULT_SUGGESTION_SCORE,
@@ -81,12 +76,7 @@ add_task(async function merinoDisabled() {
 
   UrlbarPrefs.set("merino.endpointURL", mockEndpointUrl);
 
-  await QuickSuggestTestUtils.setRemoteSettingsRecords([
-    {
-      type: "data",
-      attachment: REMOTE_SETTINGS_RESULTS,
-    },
-  ]);
+  await resetRemoteSettingsData();
 });
 
 // Tests with Merino enabled but with data collection disabled. Results should
@@ -108,12 +98,7 @@ add_task(async function dataCollectionDisabled() {
     matches: [],
   });
 
-  await QuickSuggestTestUtils.setRemoteSettingsRecords([
-    {
-      type: "data",
-      attachment: REMOTE_SETTINGS_RESULTS,
-    },
-  ]);
+  await resetRemoteSettingsData();
 });
 
 // When the Merino suggestion has a higher score than the remote settings
@@ -550,4 +535,14 @@ async function doUnmanagedTest({ pref, suggestion }) {
 
 function merinoClient() {
   return QuickSuggest.getFeature("SuggestBackendMerino")?.client;
+}
+
+async function resetRemoteSettingsData() {
+  await QuickSuggestTestUtils.setRemoteSettingsRecords([
+    {
+      collection: QuickSuggestTestUtils.RS_COLLECTION.AMP,
+      type: QuickSuggestTestUtils.RS_TYPE.AMP,
+      attachment: REMOTE_SETTINGS_RESULTS,
+    },
+  ]);
 }
