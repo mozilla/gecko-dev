@@ -670,3 +670,43 @@ add_task(async function flexible_space_context_menu() {
   gCustomizeMode.removeFromArea(lastSpring);
   ok(!lastSpring.parentNode, "Spring should have been removed successfully.");
 });
+
+// Right-click on the downloads button should show a context
+// menu with options specific to downloads.
+add_task(async function downloads_button_context() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.download.autohideButton", false]],
+  });
+  let contextMenu = document.getElementById("toolbar-context-menu");
+  let shownPromise = popupShown(contextMenu);
+  CustomizableUI.addWidgetToArea("downloads-button", "nav-bar");
+  let downloadsButton = document.getElementById("downloads-button");
+  EventUtils.synthesizeMouse(downloadsButton, 2, 2, {
+    type: "contextmenu",
+    button: 2,
+  });
+  await shownPromise;
+
+  let expectedEntries = [
+    [".customize-context-moveToPanel", true],
+    ["#toolbar-context-autohide-downloads-button", true],
+    [".customize-context-removeFromToolbar", true],
+    ["---"],
+    ["#toolbar-context-always-open-downloads-panel", true],
+    ["---"],
+  ];
+  if (!isOSX) {
+    expectedEntries.push(["#toggle_toolbar-menubar", true]);
+  }
+  expectedEntries.push(
+    ["#toggle_PersonalToolbar", true],
+    ["---"],
+    [".viewCustomizeToolbar", true]
+  );
+  checkContextMenu(contextMenu, expectedEntries);
+
+  let hiddenPromise = popupHidden(contextMenu);
+  contextMenu.hidePopup();
+  await hiddenPromise;
+  await SpecialPowers.popPrefEnv();
+});
