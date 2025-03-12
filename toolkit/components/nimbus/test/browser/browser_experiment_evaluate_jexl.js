@@ -4,12 +4,6 @@ const { EnrollmentsContext, RemoteSettingsExperimentLoader } =
   ChromeUtils.importESModule(
     "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
   );
-const { ExperimentManager } = ChromeUtils.importESModule(
-  "resource://nimbus/lib/ExperimentManager.sys.mjs"
-);
-const { ExperimentFakes } = ChromeUtils.importESModule(
-  "resource://testing-common/NimbusTestUtils.sys.mjs"
-);
 
 add_setup(async function setup() {
   await SpecialPowers.pushPrefEnv({

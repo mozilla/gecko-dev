@@ -3,16 +3,6 @@
 
 "use strict";
 
-const { ExperimentAPI } = ChromeUtils.importESModule(
-  "resource://nimbus/ExperimentAPI.sys.mjs"
-);
-const { ExperimentFakes } = ChromeUtils.importESModule(
-  "resource://testing-common/NimbusTestUtils.sys.mjs"
-);
-const { ExperimentManager } = ChromeUtils.importESModule(
-  "resource://nimbus/lib/ExperimentManager.sys.mjs"
-);
-
 const EXPERIMENT_VALUE = "experiment-value";
 const ROLLOUT_VALUE = "rollout-value";
 const ROLLOUT = "rollout";

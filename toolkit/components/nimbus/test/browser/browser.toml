@@ -12,6 +12,8 @@ skip-if = [
 
 ["browser_experiment_single_feature_enrollment.js"]
 
+["browser_experimentapi_child.js"]
+
 ["browser_experimentstore_load.js"]
 
 ["browser_experimentstore_load_single_feature.js"]

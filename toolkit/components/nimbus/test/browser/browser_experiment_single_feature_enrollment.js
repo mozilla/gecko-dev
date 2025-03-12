@@ -3,13 +3,6 @@
 
 "use strict";
 
-const { ExperimentFakes } = ChromeUtils.importESModule(
-  "resource://testing-common/NimbusTestUtils.sys.mjs"
-);
-const { ExperimentAPI } = ChromeUtils.importESModule(
-  "resource://nimbus/ExperimentAPI.sys.mjs"
-);
-
 const SINGLE_FEATURE_RECIPE = {
   appId: "firefox-desktop",
   appName: "firefox_desktop",

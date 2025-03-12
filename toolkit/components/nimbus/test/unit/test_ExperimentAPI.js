@@ -14,41 +14,6 @@ const COLLECTION_ID_PREF = "messaging-system.rsexperimentloader.collection_id";
 /**
  * #getExperiment
  */
-add_task(async function test_getExperiment_fromChild_slug() {
-  const sandbox = sinon.createSandbox();
-  const manager = ExperimentFakes.manager();
-  const expected = ExperimentFakes.experiment("foo");
-
-  // NB: We are not setting ExperimentAPI._manager here to manager or
-  // manager.store to a child store because we are simulating synchronization
-  // between a parent store and child store.
-  sandbox.stub(ExperimentAPI, "_store").get(() => ExperimentFakes.childStore());
-
-  await manager.onStartup();
-
-  await manager.store.addEnrollment(expected);
-
-  // Wait to sync to child
-  await TestUtils.waitForCondition(
-    () => ExperimentAPI.getExperiment({ slug: "foo" }),
-    "Wait for child to sync"
-  );
-
-  Assert.equal(
-    ExperimentAPI.getExperiment({ slug: "foo" }).slug,
-    expected.slug,
-    "should return an experiment by slug"
-  );
-
-  Assert.deepEqual(
-    ExperimentAPI.getExperiment({ slug: "foo" }).branch,
-    expected.branch,
-    "should return the right branch by slug"
-  );
-
-  sandbox.restore();
-});
-
 add_task(async function test_getExperiment_fromParent_slug() {
   const sandbox = sinon.createSandbox();
   const manager = ExperimentFakes.manager();
@@ -167,55 +132,6 @@ add_task(function test_getExperimentMetaData_safe() {
   );
 
   Assert.ok(exposureStub.notCalled, "Not called for this feature");
-
-  sandbox.restore();
-});
-
-add_task(async function test_getExperiment_feature() {
-  const sandbox = sinon.createSandbox();
-  const manager = ExperimentFakes.manager();
-  const expected = ExperimentFakes.experiment("foo", {
-    branch: {
-      slug: "treatment",
-      ratio: 1,
-      features: [{ featureId: "cfr", value: {} }],
-      feature: {
-        featureId: "unused-feature-id-for-legacy-support",
-        enabled: false,
-        value: {},
-      },
-    },
-  });
-
-  await manager.onStartup();
-
-  // NB: We are not setting ExperimentAPI._manager here to manager or
-  // manager.store to a child store because we are simulating synchronization
-  // between a parent store and child store.
-  sandbox.stub(ExperimentAPI, "_store").get(() => ExperimentFakes.childStore());
-  let exposureStub = sandbox.stub(ExperimentAPI, "recordExposureEvent");
-
-  await manager.store.addEnrollment(expected);
-
-  // Wait to sync to child
-  await TestUtils.waitForCondition(
-    () => ExperimentAPI.getExperiment({ featureId: "cfr" }),
-    "Wait for child to sync"
-  );
-
-  Assert.equal(
-    ExperimentAPI.getExperiment({ featureId: "cfr" }).slug,
-    expected.slug,
-    "should return an experiment by featureId"
-  );
-
-  Assert.deepEqual(
-    ExperimentAPI.getExperiment({ featureId: "cfr" }).branch,
-    expected.branch,
-    "should return the right branch by featureId"
-  );
-
-  Assert.ok(exposureStub.notCalled, "Not called by default");
 
   sandbox.restore();
 });

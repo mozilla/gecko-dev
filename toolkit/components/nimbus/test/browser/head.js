@@ -9,6 +9,7 @@ const { sinon } = ChromeUtils.importESModule(
 );
 
 ChromeUtils.defineESModuleGetters(this, {
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   ExperimentTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
   ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
@@ -36,3 +37,28 @@ add_setup(function () {
     sandbox.restore();
   });
 });
+
+async function setupTest() {
+  await ExperimentAPI.ready();
+  await ExperimentAPI._rsLoader.finishedUpdating();
+
+  await ExperimentAPI._rsLoader.remoteSettingsClients.experiments.db.importChanges(
+    {},
+    Date.now(),
+    [],
+    { clear: true }
+  );
+
+  await ExperimentAPI._rsLoader.updateRecipes("test");
+
+  return async function cleanup() {
+    const store = ExperimentAPI._manager.store;
+
+    store._store._saver.disarm();
+    if (store._store._saver.isRunning) {
+      await store._store._saver._runningPromise;
+    }
+
+    await IOUtils.remove(store._store.path);
+  };
+}
