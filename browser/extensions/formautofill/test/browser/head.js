@@ -85,19 +85,19 @@ const ADDRESS_FORM_WITH_PAGE_NAVIGATION_BUTTONS =
 const FORM_IFRAME_SANDBOXED_URL =
   "https://example.org" + HTTP_TEST_PATH + "autocomplete_iframe_sandboxed.html";
 const FORMS_WITH_DYNAMIC_FORM_CHANGE =
-  "https://example.org" + HTTP_TEST_PATH + "dynamic_form_changes.html";
+  "https://example.org" + HTTP_TEST_PATH + "dynamic_forms.html";
 const FORM_WITH_USER_INITIATED_FORM_CHANGE =
   "https://example.org" +
   HTTP_TEST_PATH +
-  "form_change_on_user_interaction.html";
+  "dynamic_form_changing_on_user_interaction.html";
 const FORMLESS_FIELDS_WITH_DYNAMIC_FORM_CHANGE_AFTER_NODE_MUTATIONS =
   "https://example.org" +
   HTTP_TEST_PATH +
-  "dynamic_formless_changes_node_mutations.html";
+  "dynamic_formless_fields_updated_due_to_node_mutations.html";
 const FORMLESS_FIELDS_WITH_DYNAMIC_FORM_CHANGE_AFTER_VISIBILITY_STATE_CHANGE =
   "https://example.org" +
   HTTP_TEST_PATH +
-  "dynamic_formless_changes_element_visiblity_state.html";
+  "dynamic_formless_fields_updated_due_to_visiblity_state_change.html";
 const CREDITCARD_FORM_URL =
   "https://example.org" +
   HTTP_TEST_PATH +

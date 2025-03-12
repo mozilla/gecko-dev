@@ -30,8 +30,6 @@
 import { FormAutofill } from "resource://autofill/FormAutofill.sys.mjs";
 import { FormAutofillUtils } from "resource://gre/modules/shared/FormAutofillUtils.sys.mjs";
 
-const { FIELD_STATES } = FormAutofillUtils;
-
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -62,7 +60,7 @@ ChromeUtils.defineLazyGetter(lazy, "log", () =>
 const { ENABLED_AUTOFILL_ADDRESSES_PREF, ENABLED_AUTOFILL_CREDITCARDS_PREF } =
   FormAutofill;
 
-const { ADDRESSES_COLLECTION_NAME, CREDITCARDS_COLLECTION_NAME } =
+const { ADDRESSES_COLLECTION_NAME, CREDITCARDS_COLLECTION_NAME, FIELD_STATES } =
   FormAutofillUtils;
 
 let gMessageObservers = new Set();
@@ -344,6 +342,8 @@ export class FormAutofillParent extends JSWindowActorParent {
         break;
       }
       case "FormAutofill:FillFieldsOnFormChange": {
+        // TODO bug 1953231: The parent should introduce profile ids, so that
+        // the child can simply send a profile id instead of the whole profile data
         const { elementId, profile } = data;
         this.onFillOnFormChange(elementId, profile);
         break;
@@ -578,7 +578,8 @@ export class FormAutofillParent extends JSWindowActorParent {
    *
    * @param {string} elementId element id of focused element that triggered
    *                           the initial autocompletion process
-   * @param {object} profile
+   * @param {object} profile that was used for the previous autofill action
+   *                         causing the form change
    */
   async onFillOnFormChange(elementId, profile) {
     const section = this.getSectionByElementId(elementId);
@@ -590,10 +591,14 @@ export class FormAutofillParent extends JSWindowActorParent {
       fields,
       profile
     );
-
-    // Todo: P7. Add telemetry to capture the fields that were filled on dynamic form change
-
-    result.forEach((value, key) => this.filledResult.set(key, value));
+    result.forEach((value, key) => {
+      const filledField = this.filledResult.get(key);
+      const isFilledOnFieldsUpdate =
+        !filledField || filledField.filledState != FIELD_STATES.AUTO_FILLED;
+      this.filledResult.set(key, value);
+      value.isFilledOnFieldsUpdate = isFilledOnFieldsUpdate;
+    });
+    section.onFilledOnFieldsUpdate(result);
 
     // For testing only
     Services.obs.notifyObservers(
@@ -1222,7 +1227,10 @@ export class FormAutofillParent extends JSWindowActorParent {
       profile
     );
 
-    result.forEach((value, key) => this.filledResult.set(key, value));
+    result.forEach((value, key) => {
+      this.filledResult.set(key, value);
+      value.isFilledOnFieldsUpdate = false;
+    });
     section.onFilled(result);
 
     // For testing only

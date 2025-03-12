@@ -6,10 +6,10 @@ support-files = [
   "../fixtures/autocomplete_iframe.html",
   "../fixtures/autocomplete_iframe_sandboxed.html",
   "../fixtures/autocomplete_simple_basic.html",
-  "../fixtures/dynamic_form_changes.html",
-  "../fixtures/form_change_on_user_interaction.html",
-  "../fixtures/dynamic_formless_changes_node_mutations.html",
-  "../fixtures/dynamic_formless_changes_element_visiblity_state.html",
+  "../fixtures/dynamic_forms.html",
+  "../fixtures/dynamic_formless_fields_updated_due_to_node_mutations.html",
+  "../fixtures/dynamic_formless_fields_updated_due_to_visiblity_state_change.html",
+  "../fixtures/dynamic_form_changing_on_user_interaction.html",
   "../fixtures/page_navigation.html",
   "./empty.html",
   "../fixtures/**",
@@ -61,7 +61,11 @@ skip-if = [
 
 ["browser_dropdown_layout.js"]
 
-["browser_dynamic_form_change_detection.js"]
+["browser_dynamic_form_autocompletion.js"]
+
+["browser_dynamic_form_detection.js"]
+
+["browser_dynamic_form_telemetry.js"]
 
 ["browser_editAddressDialog.js"]
 skip-if = [
@@ -73,8 +77,6 @@ skip-if = [
 ["browser_fathom_cc.js"]
 
 ["browser_fillclear_events.js"]
-
-["browser_fill_on_dynamic_form_change_detection.js"]
 
 ["browser_form_changes.js"]
 

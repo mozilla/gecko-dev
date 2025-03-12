@@ -920,6 +920,89 @@ address:
         type: string
     telemetry_mirror: Address_Filled_AddressForm
 
+  filled_on_fields_update_address_form:
+    type: event
+    description: >
+      Recorded when a previous autofill action for the address form causes an immediate fields update
+      which triggers another autofill action including for the new/updated fields.
+      Possible values are `filled`, `filled_on_fields_update`, `user_filled` or `unavailable`.
+      Unlike the other address form interaction events, this doesn't need a `address_form` and `address_form_ext`
+      event because it's only collected in Glean (not mirror to Legacy).
+    data_sensitivity:
+      - interaction
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1837161
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1837161
+    notification_emails:
+      - autofill@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          flow id of an interaction session with an address form
+        type: string
+      street_address:
+        description: >
+          street address result
+        type: string
+      address_line1:
+        description: >
+          address_line1 result
+        type: string
+      address_line2:
+        description: >
+          address_line2 result
+        type: string
+      address_line3:
+        description: >
+          address_line3 result
+        type: string
+      address_level1:
+        description: >
+          address_level1 result
+        type: string
+      address_level2:
+        description: >
+          address_level2 result
+        type: string
+      postal_code:
+        description: >
+          postal_code result
+        type: string
+      country:
+        description: >
+          country result
+        type: string
+      name:
+        description: >
+          name result
+        type: string
+      given_name:
+        description: >
+          given_name result
+        type: string
+      additional_name:
+        description: >
+          additional_name result
+        type: string
+      family_name:
+        description: >
+          family_name result
+        type: string
+      email:
+        description: >
+          email result
+        type: string
+      organization:
+        description: >
+          organization result
+        type: string
+      tel:
+        description: >
+          tel result
+        type: string
+
   filled_modified_address_form:
     type: event
     description: >
@@ -1463,6 +1546,44 @@ creditcard:
     expires: never
     extra_keys: *creditcard_detected_extra
     telemetry_mirror: Creditcard_Filled_CcFormV2
+
+  filled_on_fields_update_cc_form_v2:
+    type: event
+    description: >
+      Recorded when a previous autofill action for the credit card form causes an immediate fields update
+      which triggers another autofill action including for the new/updated fields.
+      Possible values are `filled`, `filled_on_fields_update`, `user_filled` or `unavailable`.
+    data_sensitivity:
+      - interaction
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1837161
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1837161
+    notification_emails:
+      - autofill@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: Flow id of an interaction session with a credit card form
+        type: string
+      cc_name:
+        description: Credit card cardholder name field result
+        type: string
+      cc_number:
+        description: Credit card number field result
+        type: string
+      cc_type:
+        description: Credit card type result
+        type: string
+      cc_exp:
+        description: Credit card expiration date result
+        type: string
+      cc_exp_month:
+        description: Credit card expiration month result
+        type: string
+      cc_exp_year:
+        description: Credit card expiration year result
+        type: string
 
   filled_modified_cc_form_v2:
     type: event

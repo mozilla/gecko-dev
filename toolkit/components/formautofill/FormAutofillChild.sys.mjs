@@ -184,8 +184,6 @@ export class FormAutofillChild extends JSWindowActorChild {
     const handler = this.#getHandlerByElementId(ids[0]);
     this.#handlerWaitingForFillOnFormChangeComplete.delete(handler);
 
-    // Todo: P6. Re-fill cleared fields with autofillState == AUTOFILL
-
     return result;
   }
 
@@ -800,7 +798,7 @@ export class FormAutofillChild extends JSWindowActorChild {
   /**
    * Caches necessary data in handler.fillOnFormChangeData in order to fill any fields that
    * are additonally detected after a form changed dynamically. This data is cleared after
-   * a predefined threshold (see lazy.FormAutofill.fillOnDynamicFormChangeTimeout).
+   * a predefined timeout threshold (see lazy.FormAutofill.fillOnDynamicFormChangeTimeout).
    * The timeout gets cancelled early and the data cleared if a "click" or "keydown" event
    * is dispatched on the form.
    */
@@ -810,6 +808,11 @@ export class FormAutofillChild extends JSWindowActorChild {
     }
 
     const handler = this.#getHandlerByElementId(elementIds[0]);
+
+    // TODO bug 1953231:
+    // FormAutofillParent should keep of which profile is used for which section, e.g. by introducing profile
+    // ids. It's not ideal that we are cachine the whole used profile data in the child and then send it back to
+    // the parent when filling after a form change. The parent should let the child know what profile to use.
     handler.fillOnFormChangeData.previouslyUsedProfile = profile;
     handler.fillOnFormChangeData.previouslyFocusedId = focusedId;
     handler.fillOnFormChangeData.isWithinDynamicFormChangeThreshold = true;
