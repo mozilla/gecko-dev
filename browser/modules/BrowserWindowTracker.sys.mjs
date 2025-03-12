@@ -183,6 +183,8 @@ export const BrowserWindowTracker = {
    *   browsing is enabled this option will be ignored!
    * @param {boolean} [options.allowPopups]: true if popup windows are
    *   permitted.
+   * @param {boolean} [options.allowTaskbarTabs] true if taskbar tab windows
+   *  are permitted.
    *
    * @returns {Window | null} The current top/selected window.
    *  Can return null on MacOS when there is no open window.
@@ -192,6 +194,8 @@ export const BrowserWindowTracker = {
       if (
         !win.closed &&
         (options.allowPopups || win.toolbar.visible) &&
+        (options.allowTaskbarTabs ||
+          !win.document.documentElement.hasAttribute("taskbartab")) &&
         (!("private" in options) ||
           lazy.PrivateBrowsingUtils.permanentPrivateBrowsing ||
           lazy.PrivateBrowsingUtils.isWindowPrivate(win) == options.private)
