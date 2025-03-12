@@ -30,6 +30,7 @@ import mozilla.components.lib.state.Store
 import mozilla.components.support.base.android.DefaultPowerManagerInfoProvider
 import mozilla.components.support.base.android.StartForegroundService
 import mozilla.components.support.base.log.logger.Logger
+import java.io.File
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -130,7 +131,10 @@ class DownloadMiddleware(
 
     private fun restoreDownloads(store: Store<BrowserState, BrowserAction>) = scope.launch {
         downloadStorage.getDownloadsList().forEach { download ->
-            if (!store.state.downloads.containsKey(download.id) && !download.private) {
+            if (!File(download.filePath).exists()) {
+                downloadStorage.remove(download)
+                logger.debug("Removed deleted download ${download.fileName} from the storage")
+            } else if (!store.state.downloads.containsKey(download.id) && !download.private) {
                 store.dispatch(DownloadAction.RestoreDownloadStateAction(download))
                 logger.debug("Download restored from the storage ${download.fileName}")
             }

@@ -7,6 +7,7 @@ package mozilla.components.feature.downloads
 import android.app.DownloadManager.EXTRA_DOWNLOAD_ID
 import android.content.Context
 import android.content.Intent
+import android.os.Environment
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.DownloadAction
@@ -38,6 +39,7 @@ import org.mockito.Mockito.reset
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
+import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class DownloadMiddlewareTest {
@@ -256,7 +258,19 @@ class DownloadMiddlewareTest {
             middleware = listOf(downloadMiddleware),
         )
 
-        val download = DownloadState("https://mozilla.org/download")
+        val tempFile = File.createTempFile(
+            "test",
+            "tmp",
+            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path),
+        )
+
+        val download = DownloadState(
+            id = "1",
+            url = tempFile.toURI().toURL().toString(),
+            fileName = tempFile.name,
+        )
+
+        assertEquals(download.fileName, tempFile.name)
         whenever(downloadStorage.getDownloadsList()).thenReturn(listOf(download))
 
         assertTrue(store.state.downloads.isEmpty())
@@ -267,6 +281,8 @@ class DownloadMiddlewareTest {
         store.waitUntilIdle()
 
         assertEquals(download, store.state.downloads.values.first())
+        verify(downloadStorage, never()).remove(download)
+        tempFile.delete()
     }
 
     @Test
@@ -604,4 +620,43 @@ class DownloadMiddlewareTest {
         downloadMiddleware.closeDownloadResponse(store, tab.id)
         verify(response).close()
     }
+
+    @Test
+    fun `when restoring downloads, if the file is deleted, the download is deleted`() =
+        runTestOnMain {
+            val downloadStorage = mock<DownloadStorage>()
+            val downloadMiddleware = DownloadMiddleware(
+                applicationContext = mock(),
+                AbstractFetchDownloadService::class.java,
+                coroutineContext = dispatcher,
+                downloadStorage = downloadStorage,
+            )
+            val store = BrowserStore(
+                initialState = BrowserState(),
+                middleware = listOf(downloadMiddleware),
+            )
+
+            val tempFile = File.createTempFile(
+                "test",
+                "tmp",
+                File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path),
+            )
+            val download = DownloadState(
+                id = "1",
+                url = tempFile.toURI().toURL().toString(),
+                fileName = tempFile.name,
+            )
+            assertEquals(download.filePath, tempFile.path)
+            whenever(downloadStorage.getDownloadsList()).thenReturn(listOf(download))
+
+            assertTrue(store.state.downloads.isEmpty())
+            tempFile.delete()
+
+            store.dispatch(DownloadAction.RestoreDownloadsStateAction).joinBlocking()
+
+            dispatcher.scheduler.advanceUntilIdle()
+            store.waitUntilIdle()
+
+            verify(downloadStorage).remove(download)
+        }
 }
