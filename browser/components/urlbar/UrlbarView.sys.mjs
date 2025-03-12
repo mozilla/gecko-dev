@@ -19,6 +19,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource:///modules/UrlbarProviderGlobalActions.sys.mjs",
   UrlbarProviderQuickSuggest:
     "resource:///modules/UrlbarProviderQuickSuggest.sys.mjs",
+  UrlbarProviderQuickSuggestContextualOptIn:
+    "resource:///modules/UrlbarProviderQuickSuggestContextualOptIn.sys.mjs",
   UrlbarProviderRecentSearches:
     "resource:///modules/UrlbarProviderRecentSearches.sys.mjs",
   UrlbarProviderTopSites: "resource:///modules/UrlbarProviderTopSites.sys.mjs",
@@ -3660,9 +3662,17 @@ class QueryContextCache {
       // doesn't necessarily imply top sites since there are other queries that
       // use it too, like search mode. If any result is from the top-sites
       // provider, assume the context is top sites.
+      // However, if contextual opt-in message is shown, disable the cache. The
+      // message might hide when beginning of query, this cache will be shown
+      // for a moment.
       if (
         queryContext.results?.some(
           r => r.providerName == lazy.UrlbarProviderTopSites.name
+        ) &&
+        !queryContext.results.some(
+          r =>
+            r.providerName ==
+            lazy.UrlbarProviderQuickSuggestContextualOptIn.name
         )
       ) {
         this.#topSitesContext = queryContext;
