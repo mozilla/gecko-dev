@@ -29,7 +29,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
     var testCount = 0; // Used by the test files.
     var loadCount = 0;
     var goneBack = false;
-    var bc = new BroadcastChannel("bug1379762");
+    var bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("bug1379762");
     bc.onmessage = (messageEvent) => {
       let message = messageEvent.data;
       if (message == "init") {

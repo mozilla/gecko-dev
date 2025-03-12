@@ -34,7 +34,7 @@
       SpecialPowers.loadChromeScript(online ? onlineFn : offlineFn);
     }
 
-    var bc = new BroadcastChannel("online_offline_bfcache");
+    var bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("online_offline_bfcache");
     var pageshowCount = 0;
     var offlineCount = 0;
     var onlineCount = 0;

@@ -23,7 +23,7 @@
      *     been successfully added to BFCache.
      */
 
-    var bc = new BroadcastChannel("ship_beforeunload");
+    var bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("ship_beforeunload");
     var pageshowCount = 0;
     var beforeUnloadFired = false;
     bc.onmessage = function(event) {

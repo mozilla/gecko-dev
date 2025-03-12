@@ -9,7 +9,7 @@
     SimpleTest.waitForExplicitFinish();
 
     let hasLoadedInitialOnce = false;
-    let bc = new BroadcastChannel("test_meta_refresh");
+    let bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("test_meta_refresh");
     bc.onmessage = function(event) {
       info(event.data.load || event.data);
       if (event.data.load == "initial") {

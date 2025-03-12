@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="/tests/SimpleTest/test.css"/>
   <script>
     SimpleTest.waitForExplicitFinish();
-    var bc = new BroadcastChannel("bug1583110");
+    var bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("bug1583110");
     var pageshowCount = 0;
     bc.onmessage = function(event) {
       ok(event.data.type == "pageshow");

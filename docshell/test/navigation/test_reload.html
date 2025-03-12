@@ -8,7 +8,7 @@
   <script>
     SimpleTest.waitForExplicitFinish();
     let pageshowCount = 0;
-    let bc = new BroadcastChannel("test_reload");
+    let bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("test_reload");
     bc.onmessage = function(event) {
       info("MessageEvent: " + event.data);
       if (event.data == "pageshow") {

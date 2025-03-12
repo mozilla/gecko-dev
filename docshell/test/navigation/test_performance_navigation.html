@@ -17,7 +17,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=145971
 <pre id="test">
 <script type="application/javascript">
 var testWindow;
-var bc = new BroadcastChannel("bug145971");
+var bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("bug145971");
 bc.onmessage = function(msgEvent) {
   var result = msgEvent.data.result;
   if (result == undefined) {

@@ -21,7 +21,7 @@
    */
 
   SimpleTest.waitForExplicitFinish();
-  var bc = new BroadcastChannel("evict_from_bfcache");
+  var bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("evict_from_bfcache");
   var pageshowCount = 0;
   bc.onmessage = function(event) {
     if (event.data.type == "pageshow") {

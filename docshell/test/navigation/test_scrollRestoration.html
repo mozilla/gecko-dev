@@ -39,7 +39,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
 
     var bc1, currentCase = 0;
     function test1() {
-      bc1 = new BroadcastChannel("bug1155730_part1");
+      bc1 = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("bug1155730_part1");
       bc1.onmessage = (msgEvent) => {
         var msg = msgEvent.data;
         var command = msg.command;
@@ -65,7 +65,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
     var bc2, bc2navigate;
     function test2() {
       currentCase = 0;
-      bc2 = new BroadcastChannel("bug1155730_part2");
+      bc2 = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("bug1155730_part2");
       bc2.onmessage = (msgEvent) => {
         var msg = msgEvent.data;
         var command = msg.command;
@@ -94,7 +94,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
         }
       }
 
-      bc2navigate = new BroadcastChannel("navigate");
+      bc2navigate = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("navigate");
       bc2navigate.onmessage = (event) => {
         if (event.data.command == "loaded") {
           bc2navigate.postMessage({command: "back"})
@@ -107,7 +107,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
     var bc3, bc3navigate;
     function test3() {
       currentCase = 0;
-      bc3 = new BroadcastChannel("bug1155730_part3");
+      bc3 = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("bug1155730_part3");
       bc3.onmessage = (msgEvent) => {
         var msg = msgEvent.data;
         var command = msg.command;
@@ -131,7 +131,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
         }
       }
 
-      bc3navigate = new BroadcastChannel("navigate");
+      bc3navigate = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("navigate");
       bc3navigate.onmessage = (event) => {
         if (event.data.command == "loaded") {
           is(event.data.scrollRestoration, 'auto', "correct scroll restoration");
@@ -150,7 +150,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
     var scrollYCounter = 0;
     function test4() {
       currentCase = 0;
-      bc4a = new BroadcastChannel("bfcached");
+      bc4a = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("bfcached");
       bc4a.onmessage = (msgEvent) => {
         var msg = msgEvent.data;
         var command = msg.command;
@@ -167,7 +167,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
         }
       }
 
-      bc4b = new BroadcastChannel("notbfcached");
+      bc4b = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("notbfcached");
       bc4b.onmessage = (event) => {
         var msg = event.data;
         var command = msg.command;

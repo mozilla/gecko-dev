@@ -8,7 +8,7 @@
     <script type="application/javascript">
     // Since BFCache in parent requires no opener, use BroadcastChannel
     // to communicate with file_same_url.html.
-    let bc = new BroadcastChannel("test_same_url");
+    let bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("test_same_url");
     async function test() {
         var promise;
         let historyLength;

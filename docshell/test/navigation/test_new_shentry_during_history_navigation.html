@@ -51,7 +51,7 @@
     }
 
     async function testBfcache() {
-      let bc = new BroadcastChannel("new_shentry_during_history_navigation");
+      let bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("new_shentry_during_history_navigation");
       let pageshowCount = 0;
       bc.onmessage = function(event) {
         if (event.data.type == "pageshow") {

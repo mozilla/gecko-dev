@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="/tests/SimpleTest/test.css"/>
   <script>
     SimpleTest.waitForExplicitFinish();
-    let bc = new BroadcastChannel("navigation_type");
+    let bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("navigation_type");
     let pageshowCount = 0;
     bc.onmessage = function(event) {
       if (event.data == "closed") {
