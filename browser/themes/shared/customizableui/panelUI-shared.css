@@ -141,16 +141,6 @@ menupopup {
   }
 }
 
-:root[taskbartab] {
-  #appMenu-new-tab-button2,
-  #appMenu-new-window-button2,
-  #appMenu-new-private-window-button2,
-  #appMenu-new-private-window-button2 + toolbarseparator,
-  #appMenu-bookmarks-button {
-    display: none;
-  }
-}
-
 #PanelUI-menu-button[badge-status="addon-alert"],
 #PanelUI-menu-button[badge-status="fxa-needs-authentication"],
 #fxa-toolbar-menu-button[badge-status="login_failed"] {
