@@ -30,6 +30,7 @@ const TYPES = {
   string_list: "GleanStringList",
   timespan: "GleanTimespan",
   timing_distribution: "GleanTimingDistribution",
+  labeled_timing_distribution: "Record<string, GleanTimingDistribution>",
   memory_distribution: "GleanMemoryDistribution",
   uuid: "GleanUuid",
   url: "GleanUrl",
