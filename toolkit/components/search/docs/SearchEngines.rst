@@ -63,7 +63,8 @@ tool created by Apple.
 The OpenSearch Protocol was created and launched by A9.com in 2005. OpenSearch
 was added to Firefox version 2 in the year 2006. As of today in 2022, OpenSearch
 is a collection of formats for sharing of search results. The code is stable but
-unchanged for many years.
+unchanged for many years. Note that Amazon took down A9.com in 2019, but a copy
+of the OpenSearch documentation can still be found on archive.org.
 
 See the `OpenSearch Documentation`_  for more information on the OpenSearch formats.
 

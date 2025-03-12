@@ -18,7 +18,7 @@ import java.util.Locale
 // constructing the strings manually.
 
 // Supported OpenSearch parameters
-// See http://opensearch.a9.com/spec/1.1/querysyntax/#core
+// See https://web.archive.org/web/20060203040832/http://opensearch.a9.com/spec/1.1/querysyntax/#core
 private const val OS_PARAM_USER_DEFINED = OS_SEARCH_ENGINE_TERMS_PARAM
 private const val OS_PARAM_INPUT_ENCODING = "{" + "inputEncoding" + "}"
 private const val OS_PARAM_LANGUAGE = "{" + "language" + "}"

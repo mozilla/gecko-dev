@@ -25,7 +25,7 @@ ChromeUtils.defineLazyGetter(lazy, "logConsole", () => {
 });
 
 // Supported OpenSearch parameters
-// See http://opensearch.a9.com/spec/1.1/querysyntax/#core
+// See https://web.archive.org/web/20060203040832/http://opensearch.a9.com/spec/1.1/querysyntax/#core
 const OS_PARAM_INPUT_ENCODING = "inputEncoding";
 const OS_PARAM_LANGUAGE = "language";
 const OS_PARAM_OUTPUT_ENCODING = "outputEncoding";
@@ -121,7 +121,7 @@ export class QueryParameter {
 /**
  * Perform OpenSearch parameter substitution on a parameter value.
  *
- * @see http://opensearch.a9.com/spec/1.1/querysyntax/#core
+ * @see https://web.archive.org/web/20060203040832/http://opensearch.a9.com/spec/1.1/querysyntax/#core
  *
  * @param {string} paramValue
  *   The OpenSearch search parameters.
@@ -194,7 +194,7 @@ export class EngineURL {
    *   must contain the string "{searchTerms}", to indicate where the user
    *   entered search terms should be inserted.
    *
-   * @see http://opensearch.a9.com/spec/1.1/querysyntax/#urltag
+   * @see https://web.archive.org/web/20060203040832/http://opensearch.a9.com/spec/1.1/querysyntax/#urltag
    *
    * @throws NS_ERROR_NOT_IMPLEMENTED if aType is unsupported.
    */
