@@ -1322,6 +1322,7 @@
       minmax(var(--tab-pinned-min-width-expanded), auto)
     );
     display: grid;
+    padding-inline: var(--tab-pinned-container-margin-inline-expanded);
   }
 
   &:not([scrolledtostart])::part(overflow-start-indicator),
@@ -1370,10 +1371,6 @@
   #tabbrowser-tabs[expanded] > & {
     .tab-background {
       margin-inline: var(--tab-pinned-margin-inline-expanded);
-    }
-
-    &::part(items-wrapper) {
-      padding-inline: var(--tab-pinned-container-margin-inline-expanded);
     }
   }
 }
