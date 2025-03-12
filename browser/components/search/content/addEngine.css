@@ -24,3 +24,10 @@ hbox {
   direction: ltr;
   text-align: match-parent;
 }
+
+.dialogRow {
+  --grid-padding: 16px;
+  margin-block: 0 var(--grid-padding);
+  display: flex;
+  flex-direction: column;
+}

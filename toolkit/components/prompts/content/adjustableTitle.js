@@ -182,6 +182,10 @@ const AdjustableTitle = {
       attributeFilter: ["headertitle"],
     });
   },
+
+  hide() {
+    this._containerEl.style.display = "none";
+  },
 };
 
 document.addEventListener(

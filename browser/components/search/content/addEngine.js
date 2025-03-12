@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* globals AdjustableTitle */
+
 let gAddEngineDialog = {
   _form: null,
   _name: null,
@@ -35,10 +37,19 @@ let gAddEngineDialog = {
       this._name.value = uri.host;
       this.onFormInput();
 
-      document.getElementById("engineUrlLabel").remove();
-      document.getElementById("engineUrl").remove();
-      document.getElementById("suggestUrlLabel").remove();
-      document.getElementById("suggestUrl").remove();
+      document.getElementById("engineUrlRow").remove();
+      document.getElementById("suggestUrlRow").remove();
+      let title = { raw: document.title };
+      document.documentElement.setAttribute(
+        "headertitle",
+        JSON.stringify(title)
+      );
+      document.documentElement.style.setProperty(
+        "--icon-url",
+        'url("chrome://browser/skin/preferences/category-search.svg")'
+      );
+    } else {
+      AdjustableTitle.hide();
     }
 
     this._name.addEventListener("input", this.onNameInput.bind(this));

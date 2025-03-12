@@ -10,9 +10,12 @@
   xmlns:html="http://www.w3.org/1999/xhtml"
   data-l10n-id="add-engine-window"
   data-l10n-attrs="title, style"
+  headerparent="add-engine-dialog"
+  neediconheader="true"
   persist="width height"
 >
   <dialog
+    id="add-engine-dialog"
     buttons="accept,cancel"
     buttondisabledaccept="true"
     data-l10n-id="add-engine-dialog"
@@ -30,60 +33,69 @@
     </linkset>
 
     <script src="chrome://browser/content/search/addEngine.js" />
+    <script src="chrome://global/content/adjustableTitle.js" />
 
     <separator class="thin" />
 
     <html:form id="addEngineForm">
-      <html:span
-        id="engineNameExists"
-        hidden="hidden"
-        data-l10n-id="engine-name-exists"
-      />
-      <html:label
-        id="engineNameLabel"
-        for="engineName"
-        data-l10n-id="add-engine-name"
-      />
-      <hbox>
-        <html:input id="engineName" type="text" required="required" />
-      </hbox>
-
-      <html:label
-        id="engineUrlLabel"
-        for="engineUrl"
-        data-l10n-id="add-engine-url"
-      />
-      <hbox>
-        <html:input
-          id="engineUrl"
-          type="url"
-          required="required"
-          pattern="https?:.*%s.*"
+      <html:div class="dialogRow">
+        <html:span
+          id="engineNameExists"
+          hidden="hidden"
+          data-l10n-id="engine-name-exists"
         />
-      </hbox>
+        <html:label
+          id="engineNameLabel"
+          for="engineName"
+          data-l10n-id="add-engine-name"
+        />
+        <hbox>
+          <html:input id="engineName" type="text" required="required" />
+        </hbox>
+      </html:div>
 
-      <html:label
-        id="suggestUrlLabel"
-        for="suggestUrl"
-        data-l10n-id="add-engine-suggest-url"
-      />
-      <hbox>
-        <html:input id="suggestUrl" type="url" pattern="https?:.*%s.*" />
-      </hbox>
+      <html:div class="dialogRow" id="engineUrlRow">
+        <html:label
+          id="engineUrlLabel"
+          for="engineUrl"
+          data-l10n-id="add-engine-url"
+        />
+        <hbox>
+          <html:input
+            id="engineUrl"
+            type="url"
+            required="required"
+            pattern="https?:.*%s.*"
+          />
+        </hbox>
+      </html:div>
 
-      <html:span
-        id="engineAliasExists"
-        hidden="hidden"
-        data-l10n-id="engine-keyword-exists"
-      />
-      <html:label
-        id="engineAliasLabel"
-        for="engineAlias"
-        data-l10n-id="add-engine-keyword"
-      />
-      <hbox>
-        <html:input id="engineAlias" type="text" />
-      </hbox>
+      <html:div class="dialogRow" id="suggestUrlRow">
+        <html:label
+          id="suggestUrlLabel"
+          for="suggestUrl"
+          data-l10n-id="add-engine-suggest-url"
+        />
+        <hbox>
+          <html:input id="suggestUrl" type="url" pattern="https?:.*%s.*" />
+        </hbox>
+      </html:div>
+
+      <html:div class="dialogRow">
+        <html:span
+          id="engineAliasExists"
+          hidden="hidden"
+          data-l10n-id="engine-keyword-exists"
+        />
+        <html:label
+          id="engineAliasLabel"
+          for="engineAlias"
+          data-l10n-id="add-engine-keyword"
+        />
+        <hbox>
+          <html:input id="engineAlias" type="text" />
+        </hbox>
+      </html:div>
     </html:form>
   </dialog>
 </window>

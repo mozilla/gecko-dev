@@ -85,6 +85,11 @@ async function addEngine(browser, selector, name, alias) {
   let [dialogWin] = await dialogLoaded;
   await window.gDialogBox.dialog._dialogReady;
   info("Dialog opened.");
+  Assert.equal(
+    dialogWin.document.getElementById("titleContainer").style.display,
+    "",
+    "Adjustable title is displayed."
+  );
 
   fillTextField("engineName", name, dialogWin);
   fillTextField("engineAlias", alias, dialogWin);
