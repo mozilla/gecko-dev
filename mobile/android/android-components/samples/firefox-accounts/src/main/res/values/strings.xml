@@ -7,6 +7,7 @@
     <string name="sign_in_webview">FxA sign in: webview</string>
     <string name="sign_in_customtabs">FxA sign in: custom tab</string>
     <string name="sign_in_pair">FxA sign in: pair</string>
+    <!-- %1$s is the account's display name. -->
     <string name="signed_in">Signed in: %1$s</string>
     <string name="log_out">FxA Log Out</string>
     <string name="logged_out">Logged out!</string>

@@ -3,15 +3,15 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <resources>
-    <!-- Title of a dialog for a notification permission request. -->
+    <!-- Title of a dialog for a notification permission request. %1$s is the domain name of the website. -->
     <string name="mozac_feature_sitepermissions_notification_title">Allow %1$s to send notifications?</string>
-    <!-- Title of a dialog for a camera permission request. -->
+    <!-- Title of a dialog for a camera permission request. %1$s is the domain name of the website. -->
     <string name="mozac_feature_sitepermissions_camera_title">Allow %1$s to use your camera?</string>
-    <!-- Title of a dialog for a microphone permission request. -->
+    <!-- Title of a dialog for a microphone permission request. %1$s is the domain name of the website. -->
     <string name="mozac_feature_sitepermissions_microfone_title">Allow %1$s to use your microphone?</string>
-    <!-- Title of a dialog for a location permission request. -->
+    <!-- Title of a dialog for a location permission request. %1$s is the domain name of the website. -->
     <string name="mozac_feature_sitepermissions_location_title">Allow %1$s to use your location?</string>
-    <!-- Title of a dialog for a camera and microphone permission request. -->
+    <!-- Title of a dialog for a camera and microphone permission request. %1$s is the domain name of the website. -->
     <string name="mozac_feature_sitepermissions_camera_and_microphone">Allow %1$s to use your camera and microphone?</string>
     <!-- Option in a dialog for requesting a microphone permission, this option will give access to
          the first microphone-->
