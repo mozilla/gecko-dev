@@ -273,7 +273,7 @@ class NotificationMessageBar extends MozLitElement {
         type: "destructive",
         telemetryType: "confirm_discard_changes",
         telemetryId: this.notification.id,
-        dataL10nId: "passwords-discard-changes-close-button",
+        dataL10nId: "passwords-discard-changes-confirm-button",
         onClick: () => {
           this.messageHandler("Cancel", {}, this.notification.passwordIndex);
           this.messageHandler("ConfirmDiscardChanges", {
