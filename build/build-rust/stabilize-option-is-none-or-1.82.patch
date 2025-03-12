@@ -1,0 +1,75 @@
+Stabilizes `Option::is_none_or` for our not-quite-Rust-1.82 build for sanitizers.
+
+This patch is consolidated from [`rust`#129086](https://github.com/rust-lang/rust/pull/129086).
+
+diff --git a/compiler/rustc_const_eval/src/lib.rs b/compiler/rustc_const_eval/src/lib.rs
+index 780404212c..d825a47bfd 100644
+--- a/compiler/rustc_const_eval/src/lib.rs
++++ b/compiler/rustc_const_eval/src/lib.rs
+@@ -6,7 +6,6 @@
+ #![feature(box_patterns)]
+ #![feature(decl_macro)]
+ #![feature(if_let_guard)]
+-#![feature(is_none_or)]
+ #![feature(let_chains)]
+ #![feature(never_type)]
+ #![feature(rustdoc_internals)]
+diff --git a/compiler/rustc_hir_typeck/src/lib.rs b/compiler/rustc_hir_typeck/src/lib.rs
+index 758a1cefe6..9ec101196a 100644
+--- a/compiler/rustc_hir_typeck/src/lib.rs
++++ b/compiler/rustc_hir_typeck/src/lib.rs
+@@ -5,7 +5,6 @@
+ #![feature(box_patterns)]
+ #![feature(control_flow_enum)]
+ #![feature(if_let_guard)]
+-#![feature(is_none_or)]
+ #![feature(let_chains)]
+ #![feature(never_type)]
+ #![feature(try_blocks)]
+diff --git a/library/core/src/option.rs b/library/core/src/option.rs
+index 6c89c81018..9c6819bc58 100644
+--- a/library/core/src/option.rs
++++ b/library/core/src/option.rs
+@@ -656,8 +656,6 @@
+     /// # Examples
+     ///
+     /// ```
+-    /// #![feature(is_none_or)]
+-    ///
+     /// let x: Option<u32> = Some(2);
+     /// assert_eq!(x.is_none_or(|x| x > 1), true);
+     ///
+@@ -669,7 +667,7 @@
+     /// ```
+     #[must_use]
+     #[inline]
+-    #[unstable(feature = "is_none_or", issue = "126383")]
++    #[stable(feature = "is_none_or", since = "CURRENT_RUSTC_VERSION")]
+     pub fn is_none_or(self, f: impl FnOnce(T) -> bool) -> bool {
+         match self {
+             None => true,
+diff --git a/src/tools/miri/src/lib.rs b/src/tools/miri/src/lib.rs
+index 966d38508f..7a11e353f9 100644
+--- a/src/tools/miri/src/lib.rs
++++ b/src/tools/miri/src/lib.rs
+@@ -12,7 +12,6 @@
+ #![feature(let_chains)]
+ #![feature(trait_upcasting)]
+ #![feature(strict_overflow_ops)]
+-#![feature(is_none_or)]
+ // Configure clippy and other lints
+ #![allow(
+     clippy::collapsible_else_if,
+diff --git a/src/tools/rust-analyzer/crates/hir-ty/src/display.rs b/src/tools/rust-analyzer/crates/hir-ty/src/display.rs
+index a433ecfd77..f6f90faa4e 100644
+--- a/src/tools/rust-analyzer/crates/hir-ty/src/display.rs
++++ b/src/tools/rust-analyzer/crates/hir-ty/src/display.rs
+@@ -1462,7 +1462,7 @@
+                     // otherwise, if the arg is equal to the param default, hide it (unless the
+                     // default is an error which can happen for the trait Self type)
+                     #[allow(unstable_name_collisions)]
+-                    default_parameters.get(i).is_none_or(|default_parameter| {
++                    IsNoneOr::is_none_or(default_parameters.get(i), |default_parameter| {
+                         // !is_err(default_parameter.skip_binders())
+                         //     &&
+                         arg != &default_parameter.clone().substitute(Interner, &parameters)
