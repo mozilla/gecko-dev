@@ -6,7 +6,6 @@ loader: taskgraph.loader.transform:loader
 
 transforms:
     - gecko_taskgraph.transforms.release:run_on_releases
-    - gecko_taskgraph.transforms.release_deps:transforms
     - gecko_taskgraph.transforms.release_flatpak_push:transforms
     - gecko_taskgraph.transforms.task:transforms
 
@@ -19,9 +18,9 @@ task-defaults:
     run-on-releases: [beta, release, release-rc]
     shipping-phase: ship
     treeherder:
-        platform: linux64/opt
         kind: build
         tier: 2
+        symbol: Flatpak(push)
     worker-type: pushflatpak
     worker:
         implementation: push-flatpak
@@ -30,10 +29,18 @@ task-defaults:
                 beta: beta
                 release: stable
                 default: mock
+    shipping-product: firefox
+    flathub-scope: "flathub:firefox"
 
 tasks:
-    firefox:
-        shipping-product: firefox
-        flathub-scope: "flathub:firefox"
+    firefox-linux64:
         treeherder:
-            symbol: Flatpak(push)
+            platform: linux64-shippable/opt
+        dependencies:
+            repackage-flatpak: repackage-flatpak-linux64-shippable/opt
+
+    firefox-linux64-aarch64:
+        treeherder:
+            platform: linux64-aarch64-shippable/opt
+        dependencies:
+            repackage-flatpak: repackage-flatpak-linux64-aarch64-shippable/opt

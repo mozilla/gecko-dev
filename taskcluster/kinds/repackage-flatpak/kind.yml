@@ -23,6 +23,7 @@ only-for-build-platforms:
     - linux64/opt
     - linux64-shippable/opt
     - linux64-aarch64/opt
+    - linux64-aarch64-shippable/opt
 
 tasks:
     repackage-flatpak:
