@@ -73,3 +73,7 @@ async function expectFocusAfterKey(
   );
   ok(true, friendlyExpected + " focused after " + aKey + " pressed");
 }
+
+registerCleanupFunction(async () => {
+  await SidebarController.initializeUIState({ command: "" });
+});

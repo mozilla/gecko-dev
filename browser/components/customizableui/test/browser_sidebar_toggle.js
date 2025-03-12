@@ -27,7 +27,14 @@ var showSidebar = async function (win = window) {
 
 var hideSidebar = async function (win = window) {
   let button = win.document.getElementById("sidebar-button");
+  let box = win.document.getElementById("sidebar-box");
+
   EventUtils.synthesizeMouseAtCenter(button, {}, win);
+  await BrowserTestUtils.waitForMutationCondition(
+    box,
+    { attributes: true, attributeFilter: ["hidden"] },
+    () => box.hidden
+  );
   ok(!win.SidebarController.isOpen, "Sidebar is closed");
   ok(!button.hasAttribute("checked"), "Toolbar button isn't checked");
 };
@@ -74,7 +81,16 @@ add_task(async function () {
     }
   }
   let otherWin = await BrowserTestUtils.openNewBrowserWindow();
+  info("Waiting for the sidebar to initialize in the new browser window");
+  await BrowserTestUtils.waitForCondition(
+    () => otherWin.SidebarController.uiStateInitialized,
+    "The uiStateInitialized is true in the new window"
+  );
   if (!sidebarRevampEnabled) {
+    ok(
+      !otherWin.SidebarController.isOpen,
+      "The sidebar panel isn't open in the new window"
+    );
     await showSidebar(otherWin);
     is(
       otherWin.SidebarController.currentID,
