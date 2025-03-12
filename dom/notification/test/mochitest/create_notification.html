@@ -10,10 +10,7 @@
 // https://github.com/BenoitZugmeyer/eslint-plugin-html/issues/139
 (async () => {
   await NotificationTest.allowNotifications();
-
-  let swr = await navigator.serviceWorker.register("notification_empty_sw.js");
-  await navigator.serviceWorker.ready;
-  await swr.showNotification("This is a title", {
+  new Notification("This is a title", {
     body: "This is a notification body",
     tag: "sometag",
   });

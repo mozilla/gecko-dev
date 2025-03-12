@@ -15,22 +15,14 @@ namespace mozilla::dom::notification {
 
 enum class CloseMode;
 
-enum class AlertTopic : uint8_t {
-  Disable,
-  Settings,
-  Click,
-  Show,
-  Finished,
-};
-
 class NotificationParent final : public PNotificationParent,
-                                 public nsISupports,
-                                 public SupportsWeakPtr {
+                                 public nsIObserver {
   using IPCResult = mozilla::ipc::IPCResult;
 
  public:
   // Threadsafe to pass the class from PBackground to main thread
   NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSIOBSERVER
 
   NotificationParent(NotNull<nsIPrincipal*> aPrincipal,
                      NotNull<nsIPrincipal*> aEffectiveStoragePrincipal,
@@ -43,7 +35,6 @@ class NotificationParent final : public PNotificationParent,
         mScope(aScope),
         mOptions(aNotification.options()) {};
 
-  nsresult HandleAlertTopic(AlertTopic aTopic);
   IPCResult RecvShow(ShowResolver&& aResolver);
   IPCResult RecvClose();
 
@@ -51,13 +42,16 @@ class NotificationParent final : public PNotificationParent,
       Endpoint<PNotificationParent>&& aParentEndpoint,
       PBackgroundParent::CreateNotificationParentResolver&& aResolver);
 
+  void ActorDestroy(ActorDestroyReason aWhy) override;
+
  private:
   ~NotificationParent() = default;
 
   nsresult Show();
   nsresult FireClickEvent();
+  nsresult FireCloseEvent();
 
-  void Unregister();
+  void Unregister(CloseMode aCloseMode);
 
   Maybe<NotificationParent::ShowResolver> mResolver;
 

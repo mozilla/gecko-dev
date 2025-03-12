@@ -39,8 +39,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=782211
 
     const storageGet = (origin) => {
       const { promise, resolve } = Promise.withResolvers();
-      const scope = new URL("/tests/dom/notification/test/mochitest/", origin).toString();
-      notificationStorage.get(origin, scope, "", notifications => {
+      notificationStorage.get(origin, "", "", notifications => {
         resolve(notifications.map(({ id }) => id));
       });
       return promise;
@@ -144,10 +143,6 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=782211
 
     async function showNotifications() {
       await MockAlertsService.register();
-
-      // The windows below will register service workers but unregistering each would be tricky.
-      // Let's clean it up here for all.
-      SimpleTest.registerCleanupFunction(() => SpecialPowers.removeAllServiceWorkerData());
 
       // Load two frames with the same origin that create notification with the same tag.
       // Both pages should generate notifications with the same name, and thus the second
