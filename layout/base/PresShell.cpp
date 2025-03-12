@@ -10227,7 +10227,6 @@ bool PresShell::DoReflow(nsIFrame* target, bool aInterruptible,
   LogicalSize reflowSize(wm, size.ISize(wm), NS_UNCONSTRAINEDSIZE);
   ReflowInput reflowInput(mPresContext, target, rcx.get(), reflowSize,
                           ReflowInput::InitFlag::CallerWillInit);
-  reflowInput.mOrthogonalLimit = size.BSize(wm);
 
   if (isRoot) {
     reflowInput.Init(mPresContext);

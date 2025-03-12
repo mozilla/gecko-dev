@@ -231,15 +231,6 @@ struct ReflowInput : public SizeComputationInput {
   // This takes on an arbitrary value the first time a block is reflowed
   nscoord mBlockDelta = 0;
 
-  // If a ReflowInput finds itself initialized with an unconstrained
-  // inline-size, it will look up its parentReflowInput chain for a reflow input
-  // with an orthogonal writing mode and a non-NS_UNCONSTRAINEDSIZE value for
-  // orthogonal limit; when it finds such a reflow input, it will use its
-  // orthogonal-limit value to constrain inline-size.
-  // This is initialized to NS_UNCONSTRAINEDSIZE (so it will be ignored),
-  // but reset to a suitable value for the reflow root by PresShell.
-  nscoord mOrthogonalLimit = NS_UNCONSTRAINEDSIZE;
-
   // Physical accessors for the private fields. They are needed for
   // compatibility with not-yet-updated code. New code should use the accessors
   // for logical coordinates, unless the code really works on physical

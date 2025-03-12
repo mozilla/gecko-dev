@@ -1463,6 +1463,19 @@ class nsLayoutUtils {
   static bool IsViewportScrollbarFrame(nsIFrame* aFrame);
 
   /**
+   * Use only for paddings / widths / heights, since it clamps negative calc()
+   * to 0.
+   */
+  template <typename LengthPercentageLike>
+  static mozilla::Maybe<nscoord> GetAbsoluteSize(
+      const LengthPercentageLike& aSize) {
+    if (!aSize.ConvertsToLength()) {
+      return mozilla::Nothing();
+    }
+    return mozilla::Some(std::max(0, aSize.ToLength()));
+  }
+
+  /**
    * Get the contribution of aFrame to its containing block's intrinsic
    * size for the given physical axis.  This considers the child's intrinsic
    * width, its 'width', 'min-width', and 'max-width' properties (or 'height'
