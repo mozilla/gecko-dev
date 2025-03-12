@@ -511,22 +511,6 @@ draw-snapshot:
             extra-options:
                 - "--setpref=reftest.use-draw-snapshot=true"
 
-os-integration:
-    description: >-
-        {description} limited to tests identified as good candidates for validating the test environment.
-    component: Release Engineering::Firefox-CI Administration
-    expiration: never
-    suffix: osint
-    when:
-        $eval: >-
-            "debug" in task["test-platform"]
-            && !("macosx" in task["test-platform"])
-            && !("android-hw" in task["test-platform"])
-    merge:
-        worker:
-            env:
-                MOZHARNESS_TEST_TAG: ["os_integration"]
-
 async-event-dispatching:
     description: "{description} with async parent process event dispatching"
     component: "Remote Protocol::Agent"

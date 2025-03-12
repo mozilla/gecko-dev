@@ -50,7 +50,6 @@ xpcshell:
         - no-fission
         - msix
         - geckoview-no-fission-ship
-        - os-integration
         - inc-origin-init
     instance-size:
         by-variant:
@@ -58,7 +57,6 @@ xpcshell:
             default: large-noscratch
     run-on-projects:
         by-variant:
-            os-integration: []  # this variant only runs as a cron task
             conditioned_profile:
                 by-test-platform:
                     .*-asan.*: []
@@ -109,7 +107,6 @@ xpcshell:
                     default: built-projects
     chunks:
         by-variant:
-            os-integration: dynamic
             inc-origin-init: dynamic
             default:
                 by-test-platform:

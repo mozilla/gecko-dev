@@ -1,0 +1,40 @@
+---
+# This file contains rules for which configurations should run as part of the
+# "os-integration" suite. Each list item is a set of kwargs that will be passed
+# into the `attrmatch` utility function. As long as a task's attributes satisfy
+# at least *one* of the kwarg sets, it will be selected.
+#
+# For each key, if it is a string the task's attribute must match exactly. If
+# it is a list, the task's attribute must be a value contained in the list.
+# For more information, see the `attrmatch` function in:
+# https://searchfox.org/mozilla-central/source/third_party/python/taskcluster_taskgraph/taskgraph/util/attributes.py
+
+- kind: test
+  test_platform:
+      - android-em-7.0-x86_64-qr/debug
+      - linux1804-64-qr/debug
+      - linux2204-64-wayland/debug
+      - windows10-64-2009-qr/debug
+      - windows11-64-24h2/debug
+  unittest_suite:
+      - mochitest-browser-chrome
+      - mochitest-chrome
+      - mochitest-media
+      - mochitest-plain
+      - xpcshell
+  unittest_variant:
+      - null
+      - 1proc
+      - msix
+
+- kind: test
+  test_platform: android-em-7.0-x86_64-qr/debug-isolated-process
+  unittest_suite: xpcshell
+
+- kind: test
+  test_platform: windows11-64-24h2-asan/opt
+  unittest_suite: mochitest-browser-chrome
+
+- kind: source-test
+  job_try_name:
+      - mozbase

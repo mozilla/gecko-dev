@@ -295,8 +295,8 @@ class DefaultLoader(BaseManifestLoader):
             "jsreftest",
             "reftest",
             "reftest-qr",
-        ] and json.loads(mozinfo["tag"]):
-            filters.extend([tags([x]) for x in json.loads(mozinfo["tag"])])
+        ] and (mozinfo_tags := json.loads(mozinfo["tag"])):
+            filters.extend([tags([x]) for x in mozinfo_tags])
 
         # Compute  the active tests.
         m = TestManifest()

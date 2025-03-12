@@ -13,6 +13,7 @@ import requests
 from redo import retry
 from taskgraph import create
 from taskgraph.target_tasks import register_target_task
+from taskgraph.util.attributes import attrmatch
 from taskgraph.util.parameterization import resolve_timestamps
 from taskgraph.util.taskcluster import (
     find_task_id,
@@ -20,9 +21,11 @@ from taskgraph.util.taskcluster import (
     get_task_definition,
     parse_time,
 )
+from taskgraph.util.yaml import load_yaml
 
 from gecko_taskgraph import GECKO, try_option_syntax
 from gecko_taskgraph.util.attributes import (
+    is_try,
     match_run_on_hg_branches,
     match_run_on_projects,
 )
@@ -1436,7 +1439,6 @@ def target_tasks_weekly_release_perf(full_task_graph, parameters, graph_config):
                 if "youtube-playback" in try_name:
                     return True
         elif accept_raptor_android_build(platform):
-
             if "browsertime" and "geckoview" in try_name:
                 return False
 
@@ -1676,22 +1678,32 @@ def target_tasks_android_l10n_sync(full_task_graph, parameters, graph_config):
 
 @register_target_task("os-integration")
 def target_tasks_os_integration(full_task_graph, parameters, graph_config):
-    labels = []
+    candidate_attrs = load_yaml(
+        os.path.join(GECKO, "taskcluster", "kinds", "test", "os-integration.yml")
+    )
 
+    labels = []
     for label, task in full_task_graph.tasks.items():
-        if task.attributes.get("unittest_variant") != "os-integration":
+        if task.kind not in ("test", "source-test"):
             continue
 
-        index = label.index("-osint")
-        base_label = label[:index]
-        if base_label not in full_task_graph.tasks:
-            base_label += "-1"
-        base_task = full_task_graph.tasks[base_label]
+        if not any(attrmatch(task.attributes, **c) for c in candidate_attrs):
+            continue
 
-        if (
-            filter_for_project(base_task, parameters)
-            and filter_for_hg_branch(base_task, parameters)
-            and filter_tests_without_manifests(base_task, parameters)
+        # Only run hardware tasks if scheduled from try. We do this because
+        # the `cron` task is designed to provide a base for testing worker images,
+        # which isn't something that impacts our hardware pools.
+        if not is_try(parameters) and (
+            task.attributes.get("build_platform") == "macosx64" or "android-hw" in label
         ):
-            labels.append(label)
+            continue
+
+        if not (
+            filter_for_project(task, parameters)
+            and filter_for_hg_branch(task, parameters)
+            and filter_tests_without_manifests(task, parameters)
+        ):
+            continue
+
+        labels.append(label)
     return labels

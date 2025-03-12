@@ -419,10 +419,9 @@ def run_remaining_transforms(config, tasks):
         ("worker", None),
         ("confirm_failure", None),
         ("pernosco", lambda t: t["build-platform"].startswith("linux64")),
+        ("os_integration", None),
         # These transforms should run last as there is never any difference in
         # configuration from one chunk to another (other than chunk number).
-        # Although the os-integration transforms setup an index route that
-        # depends on the chunk number.
         ("chunk", None),
     )
 
