@@ -48,9 +48,6 @@ bool GMPEncoderModule::Supports(const EncoderConfig& aConfig) const {
   }
   if (aConfig.mCodecSpecific && aConfig.mCodecSpecific->is<H264Specific>()) {
     const auto& codecSpecific = aConfig.mCodecSpecific->as<H264Specific>();
-    if (codecSpecific.mFormat != H264BitStreamFormat::ANNEXB) {
-      return false;
-    }
     if (codecSpecific.mProfile != H264_PROFILE_UNKNOWN &&
         codecSpecific.mProfile != H264_PROFILE_BASE &&
         !HaveGMPFor("encode-video"_ns, {"moz-h264-advanced"_ns})) {

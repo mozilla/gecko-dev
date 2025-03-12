@@ -6,6 +6,7 @@
 
 #include "GMPVideoEncoder.h"
 
+#include "AnnexB.h"
 #include "ErrorList.h"
 #include "H264.h"
 #include "GMPLog.h"
@@ -136,7 +137,22 @@ void GMPVideoEncoder::InitComplete(GMPVideoEncoderProxy* aGMP,
   codec.mMode = ToGMPVideoCodecMode(mConfig.mUsage);
   codec.mWidth = mConfig.mSize.width;
   codec.mHeight = mConfig.mSize.height;
-  codec.mStartBitrate = mConfig.mBitrate / 1000;
+
+  // A bitrate need to be set here, attempt to make an educated guess if none is
+  // provided.
+  if (mConfig.mBitrate) {
+    codec.mStartBitrate = mConfig.mBitrate / 1000;
+  } else {
+    int32_t longDimension = std::max(mConfig.mSize.width, mConfig.mSize.height);
+    if (longDimension < 720) {
+      codec.mStartBitrate = 2000;
+    } else if (longDimension < 1080) {
+      codec.mStartBitrate = 4000;
+    } else {
+      codec.mStartBitrate = 8000;
+    }
+  }
+
   codec.mMinBitrate = mConfig.mMinBitrate / 1000;
   codec.mMaxBitrate = mConfig.mMaxBitrate ? mConfig.mMaxBitrate / 1000
                                           : codec.mStartBitrate * 2;
@@ -386,6 +402,34 @@ void GMPVideoEncoder::Encoded(GMPVideoEncodedFrame* aEncodedFrame,
                 ", temporal layer %d",
                 this, output->mKeyframe ? "key" : "", timestamp,
                 maybeTemporalLayerId);
+
+  if (mConfig.mCodecSpecific) {
+    const H264Specific& specific = mConfig.mCodecSpecific->as<H264Specific>();
+    if (specific.mFormat == H264BitStreamFormat::AVC) {
+      const uint8_t kExtraData[] = {
+          1 /* version */,
+          static_cast<uint8_t>(specific.mProfile),
+          0 /* profile compat (0) */,
+          static_cast<uint8_t>(specific.mLevel),
+          0xfc | 3 /* nal size - 1 */,
+          0xe0 /* num SPS (0) */,
+          0 /* num PPS (0) */
+      };
+
+      auto extraData = MakeRefPtr<MediaByteBuffer>();
+      extraData->AppendElements(kExtraData, std::size(kExtraData));
+
+      if (NS_WARN_IF(!AnnexB::ConvertSampleToAVCC(output, extraData))) {
+        GMP_LOG_ERROR(
+            "[%p] GMPVideoEncoder::Encoded -- failed to convert to AVCC", this);
+        promise->Reject(NS_ERROR_DOM_MEDIA_FATAL_ERR, __func__);
+        Teardown(
+            MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, "Convert AVCC failed"_ns),
+            __func__);
+        return;
+      }
+    }
+  }
 
   EncodedData encodedDataSet(1);
   encodedDataSet.AppendElement(std::move(output));
