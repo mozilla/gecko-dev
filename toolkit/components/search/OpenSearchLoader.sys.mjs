@@ -54,9 +54,9 @@ const MOZSEARCH_LOCALNAME = "SearchPlugin";
  *   The character set to use for encoding query values.
  * @property {string} [searchForm]
  *   Non-standard. The search form URL.
- * @property {string} [UpdateUrl]
+ * @property {string} [updateURL]
  *   Non-standard. The update URL for the engine.
- * @property {number} [UpdateInterval]
+ * @property {number} [updateInterval]
  *   Non-standard. The update interval for the engine.
  * @property {OpenSearchURL[]} urls
  *   An array of URLs associated with the engine.
@@ -224,10 +224,9 @@ function parseXML(xmlData) {
  *
  * @param {Element} xmlDocument
  *   The document to examine.
- * @returns {OpenSearchProperties}
- *   The properties of the OpenSearch engine.
  */
 function processXMLDocument(xmlDocument) {
+  /** @type {OpenSearchProperties} */
   let result = { name: "", urls: [], images: [] };
 
   for (let i = 0; i < xmlDocument.children.length; ++i) {
