@@ -51,7 +51,7 @@ export function getExpressionResultGripAndFront(expression) {
 
   const expressionResultReturn = value.exception || value.result;
   const valueGrip = getGrip(expressionResultReturn);
-  if (!valueGrip || isUnavailable(valueGrip)) {
+  if (valueGrip == null || isUnavailable(valueGrip)) {
     return { expressionResultGrip: UNAVAILABLE_GRIP };
   }
 

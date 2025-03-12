@@ -18,6 +18,21 @@ add_task(async function () {
   invokeInTab("firstCall");
   await waitForPaused(dbg);
 
+  await addExpression(dbg, "!true");
+  is(getWatchExpressionLabel(dbg, 1), "!true");
+  is(getWatchExpressionValue(dbg, 1), "false");
+  await deleteExpression(dbg, "!true");
+
+  await addExpression(dbg, "1-1");
+  is(getWatchExpressionLabel(dbg, 1), "1-1");
+  is(getWatchExpressionValue(dbg, 1), "0");
+  await deleteExpression(dbg, "1-1");
+
+  await addExpression(dbg, "String()");
+  is(getWatchExpressionLabel(dbg, 1), "String()");
+  is(getWatchExpressionValue(dbg, 1), '""');
+  await deleteExpression(dbg, "String()");
+
   await addExpression(dbg, "f");
   is(getWatchExpressionLabel(dbg, 1), "f");
   is(getWatchExpressionValue(dbg, 1), "(unavailable)");
