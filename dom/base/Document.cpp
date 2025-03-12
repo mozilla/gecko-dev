@@ -16958,7 +16958,8 @@ WindowContext* Document::GetWindowContextForPageUseCounters() const {
 }
 
 void Document::UpdateIntersections(TimeStamp aNowTime) {
-  if (!mIntersectionObservers.IsEmpty()) {
+  if (!mIntersectionObservers.IsEmpty() &&
+      !RenderingSuppressedForViewTransitions()) {
     DOMHighResTimeStamp time = 0;
     if (nsPIDOMWindowInner* win = GetInnerWindow()) {
       if (Performance* perf = win->GetPerformance()) {
@@ -18068,6 +18069,7 @@ void Document::SetRenderingSuppressedForViewTransitions(bool aValue) {
   if (aValue) {
     return;
   }
+  MaybeScheduleFrameRequestCallbacks();
   EnsureViewTransitionOperationsHappen();
 }
 
