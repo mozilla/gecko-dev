@@ -718,10 +718,6 @@
       "1821439": {
         "issue": "broken-login",
         "matches": ["*://islamionline.islamicbank.ps/*"]
-      },
-      "1930429": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://*.ambrahealth.com/*"]
       }
     },
     "interventions": [
