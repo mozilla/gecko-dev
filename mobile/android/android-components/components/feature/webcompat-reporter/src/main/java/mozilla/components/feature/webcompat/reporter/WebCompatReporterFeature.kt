@@ -62,4 +62,13 @@ object WebCompatReporterFeature {
             },
         )
     }
+
+    /**
+     * Fully uninstalls the webcompat-reporter extension.
+     *
+     * @param runtime a [WebExtensionRuntime].
+     */
+    fun uninstall(runtime: WebExtensionRuntime) {
+        extensionController.uninstall(runtime)
+    }
 }

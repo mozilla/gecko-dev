@@ -235,4 +235,20 @@ class BuiltInWebExtensionControllerTest {
         controller.disconnectPort(session)
         verify(extension, times(1)).disconnectPort(eq(defaultPort), eq(session))
     }
+
+    @Test
+    fun `uninstall an extension`() {
+        val engine: Engine = mock()
+        val extension: WebExtension = mock()
+        val controller = BuiltInWebExtensionController(extensionId, extensionUrl, defaultPort)
+
+        // Nothing should be called when the extension hasn't been installed.
+        controller.uninstall(engine)
+        verify(engine, never()).uninstallWebExtension(eq(extension), any(), any())
+
+        // Now pretend the extension was previously installed and loaded by the runtime.
+        WebExtensionSupport.installedExtensions[extensionId] = extension
+        controller.uninstall(engine)
+        verify(engine, times(1)).uninstallWebExtension(eq(extension), any(), any())
+    }
 }

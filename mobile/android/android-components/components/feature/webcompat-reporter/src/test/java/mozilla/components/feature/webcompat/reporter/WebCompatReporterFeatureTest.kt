@@ -87,6 +87,18 @@ class WebCompatReporterFeatureTest {
         assertEquals(productNameMessage.toString(), message.value.toString())
     }
 
+    @Test
+    fun `uninstall delegates the call to the controller`() {
+        val engine: Engine = mock()
+        val controller: BuiltInWebExtensionController = mock()
+        val reporterFeature = spy(WebCompatReporterFeature)
+        reporterFeature.extensionController = controller
+
+        reporterFeature.uninstall(engine)
+
+        verify(controller).uninstall(eq(engine), any(), any())
+    }
+
     private fun installFeatureForTest(
         engine: Engine,
         controller: BuiltInWebExtensionController,

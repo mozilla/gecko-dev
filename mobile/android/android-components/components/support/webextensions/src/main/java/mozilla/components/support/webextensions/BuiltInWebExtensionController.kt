@@ -75,6 +75,36 @@ class BuiltInWebExtensionController(
     }
 
     /**
+     * Uninstalls the web extension, unless the extension wasn't installed.
+     *
+     * @param runtime the [WebExtensionRuntime] needed to uninstall the extension.
+     * @param onSuccess (optional) callback invoked when the extension was uninstalled successfully.
+     * @param onError (optional) callback invoked when there was an error uninstalling the extension.
+     */
+    fun uninstall(
+        runtime: WebExtensionRuntime,
+        onSuccess: (() -> Unit) = { },
+        onError: ((Throwable) -> Unit) = { _ -> },
+    ) {
+        // We need to retrieve the list of installed extensions from `WebExtensionSupport` because
+        // `WebExtensionController.installedBuiltInExtensions` is only used for extensions installed
+        // via the `install()` method above.
+        WebExtensionSupport.installedExtensions[extensionId]?.let { extension ->
+            runtime.uninstallWebExtension(
+                extension,
+                onSuccess = {
+                    logger.debug("Successfully uninstalled extension: ${extension.id}")
+                    onSuccess()
+                },
+                onError = { _, throwable ->
+                    logger.error("Failed to uninstall extension: ${extension.id}", throwable)
+                    onError(throwable)
+                },
+            )
+        }
+    }
+
+    /**
      * Registers a content message handler for the provided session. Currently only one
      * handler can be registered per session. An existing handler will be replaced and
      * there is no need to unregister.
