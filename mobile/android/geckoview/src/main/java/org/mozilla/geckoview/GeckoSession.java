@@ -6641,6 +6641,32 @@ public class GeckoSession {
       }
     }
 
+    /** CertificateRequest represents a request for a client authentication certificate. */
+    class CertificateRequest extends BasePrompt {
+      /** The host requesting the certificate. */
+      public final @NonNull String host;
+
+      protected CertificateRequest(
+          final @NonNull String id, final Observer observer, final String host) {
+        super(id, null, observer);
+        this.host = host;
+      }
+
+      /**
+       * Complete the request by responding with the alias of the selected certificate (or null if
+       * none was selected).
+       *
+       * @param alias The alias of the certificate selected (may be null).
+       * @return A {@link PromptResponse} which can be used to complete the {@link GeckoResult}
+       *     associated with this prompt.
+       */
+      @UiThread
+      public @NonNull PromptResponse confirm(final @Nullable String alias) {
+        ensureResult().putString("alias", alias);
+        return super.confirm();
+      }
+    }
+
     /** Request containing information required to resolve Autocomplete prompt requests. */
     class AutocompleteRequest<T extends Autocomplete.Option<?>> extends BasePrompt {
       /**
@@ -6909,6 +6935,20 @@ public class GeckoSession {
     default @Nullable GeckoResult<PromptResponse> onAddressSave(
         @NonNull final GeckoSession session,
         @NonNull final AutocompleteRequest<Autocomplete.AddressSaveOption> request) {
+      return null;
+    }
+
+    /**
+     * Handle a request for a client authentication certificate. This will occur when a host
+     * requests one during the TLS handshake.
+     *
+     * @param session The {@link GeckoSession} that triggered the request.
+     * @param request The {@link CertificateRequest} containing the request details.
+     * @return A {@link GeckoResult} resolving to a {@link PromptResponse}.
+     */
+    @UiThread
+    default @Nullable GeckoResult<PromptResponse> onRequestCertificate(
+        @NonNull final GeckoSession session, @NonNull final CertificateRequest request) {
       return null;
     }
 

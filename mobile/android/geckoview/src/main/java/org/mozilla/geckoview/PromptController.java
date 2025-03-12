@@ -25,6 +25,7 @@ import org.mozilla.geckoview.GeckoSession.PromptDelegate.BasePrompt;
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.BasePrompt.Observer;
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.BeforeUnloadPrompt;
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.ButtonPrompt;
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.CertificateRequest;
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.ChoicePrompt;
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.ColorPrompt;
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.DateTimePrompt;
@@ -250,6 +251,21 @@ import org.mozilla.geckoview.GeckoSession.PromptDelegate.TextPrompt;
     public GeckoResult<PromptResponse> callDelegate(
         final AuthPrompt prompt, final GeckoSession session, final PromptDelegate delegate) {
       return delegate.onAuthPrompt(session, prompt);
+    }
+  }
+
+  private static final class CertificateHandler implements PromptHandler<CertificateRequest> {
+    @Override
+    public CertificateRequest newPrompt(final GeckoBundle info, final Observer observer) {
+      return new CertificateRequest(info.getString("id"), observer, info.getString("host"));
+    }
+
+    @Override
+    public GeckoResult<PromptResponse> callDelegate(
+        final CertificateRequest prompt,
+        final GeckoSession session,
+        final PromptDelegate delegate) {
+      return delegate.onRequestCertificate(session, prompt);
     }
   }
 
@@ -742,6 +758,7 @@ import org.mozilla.geckoview.GeckoSession.PromptDelegate.TextPrompt;
     sPromptHandlers.register(new ButtonHandler(), "button");
     sPromptHandlers.register(new TextHandler(), "text");
     sPromptHandlers.register(new AuthHandler(), "auth");
+    sPromptHandlers.register(new CertificateHandler(), "certificate");
     sPromptHandlers.register(new ChoiceHandler(), "choice");
     sPromptHandlers.register(new ColorHandler(), "color");
     sPromptHandlers.register(new DateTimeHandler(), "datetime");

@@ -18,6 +18,7 @@ extern crate libloading;
 #[macro_use]
 extern crate log;
 extern crate pkcs11_bindings;
+extern crate rand;
 #[macro_use]
 extern crate rsclientcerts;
 extern crate sha2;
@@ -29,11 +30,15 @@ use rsclientcerts::manager::{ManagerProxy, SlotType};
 use std::sync::Mutex;
 use std::thread;
 
+#[cfg(target_os = "android")]
+mod backend_android;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 mod backend_macos;
 #[cfg(all(target_os = "windows", not(target_arch = "aarch64")))]
 mod backend_windows;
 
+#[cfg(target_os = "android")]
+use crate::backend_android::Backend;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 use crate::backend_macos::Backend;
 #[cfg(all(target_os = "windows", not(target_arch = "aarch64")))]
@@ -111,6 +116,13 @@ extern "C" fn C_Initialize(_pInitArgs: CK_VOID_PTR) -> CK_RV {
     // This will fail if this has already been called, but this isn't a problem because either way,
     // logging has been initialized.
     let _ = env_logger::try_init();
+
+    #[cfg(target_os = "android")]
+    {
+        android_logger::init_once(
+            android_logger::Config::default().with_max_level(log::LevelFilter::Trace),
+        );
+    }
 
     let mechanisms = if static_prefs::pref!("security.osclientcerts.assume_rsa_pss_support") {
         vec![CKM_ECDSA, CKM_RSA_PKCS, CKM_RSA_PKCS_PSS]

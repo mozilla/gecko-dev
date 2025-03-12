@@ -89,6 +89,7 @@ extern crate ipcclientcerts;
 extern crate trust_anchors;
 
 #[cfg(any(
+    target_os = "android",
     target_os = "macos",
     target_os = "ios",
     all(target_os = "windows", not(target_arch = "aarch64"))

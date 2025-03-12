@@ -373,4 +373,12 @@ interface nsIX509CertDB : nsISupports {
   void asyncHasThirdPartyRoots(in nsIAsyncBoolCallback callback);
 
   unsigned long countTrustObjects();
+
+  /**
+   * On Android, returns the client authentication certificate corresponding to
+   * the given alias that was previously returned by a call to
+   * `KeyChain.choosePrivateKeyAlias`.
+   */
+  [must_use]
+  nsIX509Cert getAndroidCertificateFromAlias(in AString alias);
 };

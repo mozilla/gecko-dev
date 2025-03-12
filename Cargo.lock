@@ -4851,13 +4851,16 @@ dependencies = [
 name = "osclientcerts"
 version = "0.1.4"
 dependencies = [
+ "android_logger",
  "byteorder",
  "core-foundation 0.9.999",
+ "digest",
  "env_logger",
  "lazy_static",
  "libloading",
  "log",
  "pkcs11-bindings",
+ "rand",
  "rsclientcerts",
  "sha2",
  "static_prefs",

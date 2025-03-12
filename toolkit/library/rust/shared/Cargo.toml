@@ -111,7 +111,7 @@ fallible_collections = { version = "0.4", features = ["rust_1_57"] }
 
 libz-rs-sys = { version = "0.4.1", features = ["custom-prefix"], optional = true }
 
-[target.'cfg(any(target_os = "macos",target_os = "ios", all(target_os = "windows", not(target_arch = "aarch64"))))'.dependencies]
+[target.'cfg(any(target_os = "android", target_os = "macos", target_os = "ios", all(target_os = "windows", not(target_arch = "aarch64"))))'.dependencies]
 osclientcerts = { path = "../../../../security/manager/ssl/osclientcerts" }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]

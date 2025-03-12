@@ -44,6 +44,7 @@ import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.feature.prompts.address.AddressDelegate
 import mozilla.components.feature.prompts.address.AddressPicker
+import mozilla.components.feature.prompts.certificate.CertificatePicker
 import mozilla.components.feature.prompts.concept.AutocompletePrompt
 import mozilla.components.feature.prompts.concept.PasswordPromptView
 import mozilla.components.feature.prompts.creditcard.CreditCardDelegate
@@ -103,6 +104,7 @@ class PromptFeatureTest {
     private lateinit var loginPicker: LoginPicker
     private lateinit var creditCardPicker: CreditCardPicker
     private lateinit var addressPicker: AddressPicker
+    private lateinit var certificatePicker: CertificatePicker
 
     private val tabId = "test-tab"
     private fun tab(): TabSessionState? {
@@ -126,6 +128,7 @@ class PromptFeatureTest {
         loginPicker = mock()
         creditCardPicker = mock()
         addressPicker = mock()
+        certificatePicker = mock()
         fragmentManager = mockFragmentManager()
     }
 
@@ -3296,6 +3299,31 @@ class PromptFeatureTest {
         feature.onAndroidPhotoPickerResult(uris)
 
         verify(feature.filePicker).onAndroidPhotoPickerResult(uris)
+    }
+
+    @Test
+    fun `GIVEN a CertificateRequest prompt THEN handleCertificateRequest(promptRequest) is called`() {
+        val feature = spy(
+            PromptFeature(
+                mock<Activity>(),
+                store,
+                customTabId = "custom-tab",
+                fragmentManager = fragmentManager,
+                tabsUseCases = mock(),
+                isCreditCardAutofillEnabled = { true },
+                fileUploadsDirCleaner = mock(),
+                onNeedToRequestPermissions = { },
+            ),
+        )
+        feature.certificatePicker = certificatePicker
+        feature.start()
+        val certificateRequest = PromptRequest.CertificateRequest("exmaple.com", { })
+
+        store.dispatch(ContentAction.UpdatePromptRequestAction("custom-tab", certificateRequest))
+            .joinBlocking()
+
+        verify(feature).onPromptRequested(store.state.customTabs.first())
+        verify(certificatePicker).handleCertificateRequest(certificateRequest)
     }
 
     private fun mockFragmentManager(): FragmentManager {

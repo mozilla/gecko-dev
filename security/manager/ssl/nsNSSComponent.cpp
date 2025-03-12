@@ -1934,10 +1934,8 @@ static inline void CopyCertificatesTo(UniqueCERTCertList& from,
 }
 
 // Lists all private keys on all modules and returns a list of any corresponding
-// client certificates. Returns null if no such certificates can be found. Also
-// returns null if an error is encountered, because this is called as part of
-// the client auth data callback, and NSS ignores any errors returned by the
-// callback.
+// client certificates. Returns an empty list if no such certificates can be
+// found. Returns null if an error is encountered.
 UniqueCERTCertList FindClientCertificatesWithPrivateKeys() {
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
           ("FindClientCertificatesWithPrivateKeys"));
@@ -2048,10 +2046,6 @@ UniqueCERTCertList FindClientCertificatesWithPrivateKeys() {
          !CERT_LIST_END(n, certsWithPrivateKeys); n = CERT_LIST_NEXT(n)) {
       MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("    %s", n->cert->subjectName));
     }
-  }
-
-  if (CERT_LIST_EMPTY(certsWithPrivateKeys)) {
-    return nullptr;
   }
 
   return certsWithPrivateKeys;

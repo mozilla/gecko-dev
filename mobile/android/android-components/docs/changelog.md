@@ -28,6 +28,9 @@ permalink: /changelog/
 * **feature-addons**
   * Added `AddonManager.getAddonByID` method to allow querying a specific add-on. This is more efficient than calling `AddonManager.getAddons()` and selecting a specific result. See [Bug 1949963](https://bugzilla.mozilla.org/show_bug.cgi?id=1949963).
 
+* **feature-prompts**
+  * Added support for selecting a client authentication certificate using `CertificatePicker`. [Bug 1813930](https://bugzilla.mozilla.org/show_bug.cgi?id=1813930).
+
 # 137.0
 * **support-ktx**
   * 🌟 Added `String.isContentUrl` method that checks if the string is a content URL. [Bug 1944084](https://bugzilla.mozilla.org/show_bug.cgi?id=1944084).

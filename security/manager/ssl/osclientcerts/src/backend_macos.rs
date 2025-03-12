@@ -624,18 +624,7 @@ impl Key {
                 // concatenation of r and s, the coordinates of the point on
                 // the curve. r and s must be 0-padded to be coordinate_width
                 // total bytes.
-                let (r, s) = read_ec_sig_point(signature.bytes())?;
-                if r.len() > coordinate_width || s.len() > coordinate_width {
-                    return Err(error_here!(ErrorType::InvalidInput));
-                }
-                let mut signature_value = Vec::with_capacity(2 * coordinate_width);
-                let r_padding = vec![0; coordinate_width - r.len()];
-                signature_value.extend(r_padding);
-                signature_value.extend_from_slice(r);
-                let s_padding = vec![0; coordinate_width - s.len()];
-                signature_value.extend(s_padding);
-                signature_value.extend_from_slice(s);
-                signature_value
+                der_ec_sig_to_raw(signature.bytes(), coordinate_width)?
             }
             KeyType::RSA => signature.bytes().to_vec(),
         };

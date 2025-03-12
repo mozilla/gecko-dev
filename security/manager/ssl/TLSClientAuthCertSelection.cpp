@@ -49,6 +49,10 @@
 #include "secerr.h"
 #include "sslerr.h"
 
+#ifdef MOZ_WIDGET_ANDROID
+#  include "mozilla/java/ClientAuthCertificateManagerWrappers.h"
+#endif  // MOZ_WIDGET_ANDROID
+
 using namespace mozilla;
 using namespace mozilla::pkix;
 using namespace mozilla::psm;
@@ -530,6 +534,27 @@ void SelectClientAuthCertificate::DispatchContinuation(
   nsTArray<nsTArray<uint8_t>> selectedCertChainBytes;
   // Attempt to find a pre-built certificate chain corresponding to the
   // selected certificate.
+  // On Android, there are no pre-built certificate chains, so use what the OS
+  // says is the issuer certificate chain.
+#ifdef MOZ_WIDGET_ANDROID
+  if (jni::IsAvailable()) {
+    jni::ByteArray::LocalRef certBytes = jni::ByteArray::New(
+        reinterpret_cast<const int8_t*>(selectedCertBytes.Elements()),
+        selectedCertBytes.Length());
+    jni::ObjectArray::LocalRef issuersBytes =
+        java::ClientAuthCertificateManager::GetCertificateIssuersBytes(
+            certBytes);
+    if (issuersBytes) {
+      for (size_t i = 0; i < issuersBytes->Length(); i++) {
+        jni::ByteArray::LocalRef issuer = issuersBytes->GetElement(i);
+        nsTArray<uint8_t> issuerBytes(
+            reinterpret_cast<uint8_t*>(issuer->GetElements().Elements()),
+            issuer->Length());
+        selectedCertChainBytes.AppendElement(std::move(issuerBytes));
+      }
+    }
+  }
+#else
   for (const auto& clientCertificateChain : mPotentialClientCertificateChains) {
     if (clientCertificateChain.Length() > 0 &&
         clientCertificateChain[0] == selectedCertBytes) {
@@ -539,6 +564,7 @@ void SelectClientAuthCertificate::DispatchContinuation(
       break;
     }
   }
+#endif  // MOZ_WIDGET_ANDROID
   mContinuation->SetSelectedClientAuthData(std::move(selectedCertBytes),
                                            std::move(selectedCertChainBytes));
   nsCOMPtr<nsIEventTarget> socketThread(
@@ -647,13 +673,6 @@ SelectClientAuthCertificate::Run() {
   MOZ_ASSERT(NS_IsMainThread());
 
   nsTArray<uint8_t> selectedCertBytes;
-  if (!mPotentialClientCertificates ||
-      CERT_LIST_EMPTY(mPotentialClientCertificates)) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-            ("no potential client certificates available"));
-    DispatchContinuation(std::move(selectedCertBytes));
-    return NS_OK;
-  }
 
   // find valid user cert and key pair
   if (nsGetUserCertChoice() == UserCertChoice::Auto) {
@@ -860,18 +879,30 @@ SECStatus SSLGetClientAuthDataHook(void* arg, PRFileDesc* socket,
   // implications, so search for them here (on the socket thread).
   UniqueCERTCertList potentialClientCertificates(
       FindClientCertificatesWithPrivateKeys());
+  if (!potentialClientCertificates) {
+    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+            ("[%p] FindClientCertificatesWithPrivateKeys() returned null (out "
+             "of memory?)",
+             socket));
+    return SECSuccess;
+  }
 
   nsTArray<nsTArray<nsTArray<uint8_t>>> potentialClientCertificateChains;
+
+  // On Android, gathering potential client certificates and filtering them by
+  // issuer is handled by the OS, so `potentialClientCertificates` is expected
+  // to be empty here.
+#ifndef MOZ_WIDGET_ANDROID
   FilterPotentialClientCertificatesByCANames(potentialClientCertificates,
                                              caNames, enterpriseCertificates,
                                              potentialClientCertificateChains);
-  if (!potentialClientCertificates ||
-      CERT_LIST_EMPTY(potentialClientCertificates)) {
+  if (CERT_LIST_EMPTY(potentialClientCertificates)) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
             ("[%p] no client certificates available after filtering by CA",
              socket));
     return SECSuccess;
   }
+#endif  // MOZ_WIDGET_ANDROID
   nsCOMPtr<nsIRunnable> selectClientAuthCertificate(
       new SelectClientAuthCertificate(
           std::move(authInfo), std::move(serverCert),

@@ -14,6 +14,14 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PromptUtils: "resource://gre/modules/PromptUtils.sys.mjs",
 });
 
+import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
+
+if (AppConstants.platform == "android") {
+  ChromeUtils.defineESModuleGetters(lazy, {
+    GeckoViewPrompter: "resource://gre/modules/GeckoViewPrompter.sys.mjs",
+  });
+}
+
 // Given a loadContext (CanonicalBrowsingContext), attempts to return a
 // TabDialogBox for the browser corresponding to loadContext.
 function getTabDialogBoxForLoadContext(loadContext) {
@@ -39,6 +47,34 @@ ClientAuthDialogService.prototype = {
     loadContext,
     callback
   ) {
+    // On Android, the OS implements the prompt. However, we have to plumb the
+    // relevant information through to the frontend, which will return the
+    // alias of the certificate, or null if none was selected.
+    if (AppConstants.platform == "android") {
+      const prompt = new lazy.GeckoViewPrompter(
+        loadContext.topFrameElement.ownerGlobal
+      );
+      prompt.asyncShowPrompt(
+        { type: "certificate", host: hostname },
+        result => {
+          let certDB = Cc["@mozilla.org/security/x509certdb;1"].getService(
+            Ci.nsIX509CertDB
+          );
+          let certificate = null;
+          if (result.alias) {
+            try {
+              certificate = certDB.getAndroidCertificateFromAlias(result.alias);
+            } catch (e) {
+              console.error("couldn't get certificate from alias", e);
+            }
+          }
+          callback.certificateChosen(certificate, false);
+        }
+      );
+
+      return;
+    }
+
     const clientAuthAskURI = "chrome://pippki/content/clientauthask.xhtml";
     let retVals = { cert: null, rememberDecision: false };
     let args = lazy.PromptUtils.objectToPropBag({

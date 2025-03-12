@@ -38,6 +38,7 @@ import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.PromptDelegate
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.AutocompleteRequest
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.BeforeUnloadPrompt
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.CertificateRequest
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.DateTimePrompt.Type.DATE
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.DateTimePrompt.Type.DATETIME_LOCAL
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.DateTimePrompt.Type.MONTH
@@ -169,6 +170,25 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
                 ),
             )
         }
+        return geckoResult
+    }
+
+    override fun onRequestCertificate(
+        session: GeckoSession,
+        request: CertificateRequest,
+    ): GeckoResult<PromptResponse> {
+        val geckoResult = GeckoResult<PromptResponse>()
+
+        val onComplete: (String?) -> Unit = {
+            geckoResult.complete(request.confirm(it))
+        }
+
+        geckoEngineSession.notifyObservers {
+            onPromptRequest(
+                PromptRequest.CertificateRequest(request.host, onComplete),
+            )
+        }
+
         return geckoResult
     }
 

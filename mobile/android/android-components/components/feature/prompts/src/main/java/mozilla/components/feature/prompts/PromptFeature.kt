@@ -27,6 +27,7 @@ import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.prompt.PromptRequest.Alert
 import mozilla.components.concept.engine.prompt.PromptRequest.Authentication
 import mozilla.components.concept.engine.prompt.PromptRequest.BeforeUnload
+import mozilla.components.concept.engine.prompt.PromptRequest.CertificateRequest
 import mozilla.components.concept.engine.prompt.PromptRequest.Color
 import mozilla.components.concept.engine.prompt.PromptRequest.Confirm
 import mozilla.components.concept.engine.prompt.PromptRequest.Dismissible
@@ -54,6 +55,7 @@ import mozilla.components.concept.storage.LoginValidationDelegate
 import mozilla.components.feature.prompts.address.AddressDelegate
 import mozilla.components.feature.prompts.address.AddressPicker
 import mozilla.components.feature.prompts.address.DefaultAddressDelegate
+import mozilla.components.feature.prompts.certificate.CertificatePicker
 import mozilla.components.feature.prompts.creditcard.CreditCardDelegate
 import mozilla.components.feature.prompts.creditcard.CreditCardPicker
 import mozilla.components.feature.prompts.creditcard.CreditCardSaveDialogFragment
@@ -370,6 +372,9 @@ class PromptFeature private constructor(
     )
 
     @VisibleForTesting(otherwise = PRIVATE)
+    internal var certificatePicker = CertificatePicker(container)
+
+    @VisibleForTesting(otherwise = PRIVATE)
     internal var loginPicker =
         with(loginDelegate) {
             loginPickerView?.let {
@@ -632,6 +637,10 @@ class PromptFeature private constructor(
         lastPromptRequest = promptRequest
 
         when (promptRequest) {
+            is CertificateRequest -> {
+                certificatePicker.handleCertificateRequest(promptRequest)
+            }
+
             is File -> {
                 emitPromptDisplayedFact(promptName = "FilePrompt")
                 filePicker.handleFileRequest(promptRequest)
@@ -1232,6 +1241,7 @@ class PromptFeature private constructor(
             is Color,
             is Authentication,
             is BeforeUnload,
+            is CertificateRequest,
             is SaveLoginPrompt,
             is SelectLoginPrompt,
             is SelectCreditCard,

@@ -1810,8 +1810,10 @@ bool LoadOSClientCertsModule() {
 // Corresponds to Rust cfg(any(
 //  target_os = "macos",
 //  target_os = "ios",
-//  all(target_os = "windows", not(target_arch = "aarch64"))))]
-#if defined(__APPLE__) || (defined WIN32 && !defined(__aarch64__))
+//  all(target_os = "windows", not(target_arch = "aarch64")),
+//  target_os = "android"))]
+#if defined(__APPLE__) || (defined WIN32 && !defined(__aarch64__)) || \
+    defined(MOZ_WIDGET_ANDROID)
   return LoadUserModuleFromXul(kOSClientCertsModuleName.get(),
                                OSClientCerts_C_GetFunctionList);
 #else

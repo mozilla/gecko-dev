@@ -61,6 +61,10 @@
 #  include "mozilla/arm.h"
 #endif
 
+#ifdef MOZ_WIDGET_ANDROID
+#  include "mozilla/java/ClientAuthCertificateManagerWrappers.h"
+#endif  // MOZ_WIDGET_ANDROID
+
 using namespace mozilla;
 using namespace mozilla::psm;
 using namespace mozilla::ipc;
@@ -1929,4 +1933,74 @@ void DoSign(size_t cert_len, const uint8_t* cert, size_t data_len,
   }
   cb(signature.data().Length(), signature.data().Elements(), ctx);
 }
+
+#ifdef MOZ_WIDGET_ANDROID
+// Similar to `DoFindObjects`, this function implements searching for client
+// authentication certificates on Android. When a TLS server requests a client
+// auth certificate, the backend will forward that request to the frontend,
+// which calls KeyChain.choosePrivateKeyAlias. The user can choose a
+// certificate, which causes it to become available for use. The
+// `ClientAuthCertificateManager` singleton keeps track of these certificates.
+// This function is called by osclientcerts when the backend looks for new
+// certificates and keys. It gets a list of all known client auth certificates
+// from `ClientAuthCertificateManager` and returns them via the callback.
+void AndroidDoFindObjects(FindObjectsCallback cb, void* ctx) {
+  if (!jni::IsAvailable()) {
+    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+            ("AndroidDoFindObjects: JNI not available"));
+    return;
+  }
+  jni::ObjectArray::LocalRef clientAuthCertificates =
+      java::ClientAuthCertificateManager::GetClientAuthCertificates();
+  for (size_t i = 0; i < clientAuthCertificates->Length(); i++) {
+    java::ClientAuthCertificateManager::ClientAuthCertificate::LocalRef
+        clientAuthCertificate = clientAuthCertificates->GetElement(i);
+    jni::ByteArray::LocalRef der = clientAuthCertificate->GetCertificateBytes();
+    jni::ByteArray::LocalRef keyParameters =
+        clientAuthCertificate->GetKeyParameters();
+    cb(kIPCClientCertsObjectTypeCert, der->Length(),
+       reinterpret_cast<uint8_t*>(der->GetElements().Elements()), 0, nullptr,
+       kIPCClientCertsSlotTypeModern, ctx);
+    cb(clientAuthCertificate->GetType(), keyParameters->Length(),
+       reinterpret_cast<uint8_t*>(keyParameters->GetElements().Elements()),
+       der->Length(), reinterpret_cast<uint8_t*>(der->GetElements().Elements()),
+       kIPCClientCertsSlotTypeModern, ctx);
+    jni::ObjectArray::LocalRef issuersBytes =
+        clientAuthCertificate->GetIssuersBytes();
+    if (issuersBytes) {
+      for (size_t i = 0; i < issuersBytes->Length(); i++) {
+        jni::ByteArray::LocalRef issuer = issuersBytes->GetElement(i);
+        cb(kIPCClientCertsObjectTypeCert, issuer->Length(),
+           reinterpret_cast<uint8_t*>(issuer->GetElements().Elements()), 0,
+           nullptr, kIPCClientCertsSlotTypeModern, ctx);
+      }
+    }
+  }
+}
+
+// Similar to `DoSign`, this function implements signing for client
+// authentication certificates on Android. `ClientAuthCertificateManager` keeps
+// track of any available client auth certificates and does the actual work of
+// signing - this function just passes in the appropriate parameters.
+void AndroidDoSign(size_t certLen, const uint8_t* cert, size_t dataLen,
+                   const uint8_t* data, const char* algorithm, SignCallback cb,
+                   void* ctx) {
+  if (!jni::IsAvailable()) {
+    MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("AndroidDoSign: JNI not available"));
+    return;
+  }
+  jni::ByteArray::LocalRef certBytes =
+      jni::ByteArray::New(reinterpret_cast<const int8_t*>(cert), certLen);
+  jni::ByteArray::LocalRef dataBytes =
+      jni::ByteArray::New(reinterpret_cast<const int8_t*>(data), dataLen);
+  jni::String::LocalRef algorithmStr = jni::StringParam(algorithm);
+  jni::ByteArray::LocalRef signature = java::ClientAuthCertificateManager::Sign(
+      certBytes, dataBytes, algorithmStr);
+  if (signature) {
+    cb(signature->Length(),
+       reinterpret_cast<const uint8_t*>(signature->GetElements().Elements()),
+       ctx);
+  }
+}
+#endif  // MOZ_WIDGET_ANDROID
 }  // extern "C"

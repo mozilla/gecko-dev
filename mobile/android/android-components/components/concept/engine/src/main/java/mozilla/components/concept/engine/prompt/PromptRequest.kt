@@ -99,6 +99,17 @@ sealed class PromptRequest(
     ) : PromptRequest(shouldDismissOnLoad = false), Dismissible
 
     /**
+     * Value type that represents a request for a client authentication certificate prompt.
+     * @property host the domain (or IP address) that requested the certificate.
+     * @property onComplete callback that is called with the chosen certificate alias (or null if
+     * none was chosen) when the user deals with the prompt.
+     */
+    data class CertificateRequest(
+        val host: String,
+        val onComplete: (String?) -> Unit,
+    ) : PromptRequest()
+
+    /**
      * Value type that represents a request for a save credit card prompt.
      * @property creditCard the [CreditCardEntry] to save or update.
      * @property onConfirm callback that is called when the user confirms the save credit card request.
