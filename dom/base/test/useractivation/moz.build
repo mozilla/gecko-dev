@@ -11,3 +11,7 @@ MOCHITEST_MANIFESTS += [
 MOCHITEST_CHROME_MANIFESTS += [
     "chrome.toml",
 ]
+
+BROWSER_CHROME_MANIFESTS += [
+    "browser.toml",
+]
