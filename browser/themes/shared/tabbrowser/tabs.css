@@ -451,25 +451,10 @@
   /* stylelint-disable-next-line media-query-no-invalid */
   @media -moz-pref("browser.tabs.fadeOutUnloadedTabs") {
     &[pending] {
+      filter: grayscale(100%);
       opacity: 0.5;
       /* Fade the favicon out */
-      transition-property: opacity;
-      transition-duration: 1s;
-    }
-    &:not([pending]) {
-      /* When loading the tab, just show the favicon without a transition.
-        The favicon turns into the "loading" state anyway, so we don't want
-        to interfere with that. */
-      transition: none;
-    }
-  }
-
-  /* stylelint-disable-next-line media-query-no-invalid */
-  @media -moz-pref("browser.tabs.grayscaleUnloadedTabs") {
-    &[pending] {
-      filter: grayscale(100%);
-      /* Fade the favicon out */
-      transition-property: filter;
+      transition-property: filter, opacity;
       transition-duration: 1s;
     }
     &:not([pending]) {
