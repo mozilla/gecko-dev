@@ -80,7 +80,6 @@ class Store {
    *
    * @param {string} [fromKey]
    * @param {string} [toKey]
-   * @returns {Promise<Array<[string, *]>>}
    */
   async getAllEntries(fromKey, toKey) {
     await this.lazyInit();

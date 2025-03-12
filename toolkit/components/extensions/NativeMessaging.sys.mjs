@@ -238,7 +238,7 @@ export class NativeApp extends EventEmitter {
   /**
    * @param {BaseContext} context The scope from where `message` originates.
    * @param {*} message A message from the extension, meant for a native app.
-   * @returns {ArrayBuffer} An ArrayBuffer that can be sent to the native app.
+   * @returns {ArrayBufferLike} An ArrayBuffer that can be sent to the native app.
    */
   static encodeMessage(context, message) {
     message = context.jsonStringify(message);
