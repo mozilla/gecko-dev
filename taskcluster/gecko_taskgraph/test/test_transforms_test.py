@@ -102,7 +102,10 @@ def test_split_variants(monkeypatch, run_full_config_transform, make_test_task):
     )
     tasks = list(run_split_variants(input_task))
     assert len(tasks) == 1
-    assert tasks[0] == input_task
+
+    expected = input_task
+    expected["attributes"]["unittest_variant"] = None
+    assert tasks[0] == expected
 
     # test variants are split into expected tasks
     input_task = make_test_task(
@@ -113,7 +116,10 @@ def test_split_variants(monkeypatch, run_full_config_transform, make_test_task):
     )
     tasks = list(run_split_variants(input_task))
     assert len(tasks) == 3
-    assert tasks[0] == make_test_task()
+
+    expected = make_test_task()
+    expected["attributes"]["unittest_variant"] = None
+    assert tasks[0] == expected
     assert tasks[1] == make_expected("foo")
 
     expected = make_expected("bar")
@@ -147,7 +153,7 @@ def test_split_variants(monkeypatch, run_full_config_transform, make_test_task):
     )
     tasks = list(run_split_variants(input_task))
     assert len(tasks) == 2
-    assert "unittest_variant" not in tasks[0]["attributes"]
+    assert tasks[0]["attributes"]["unittest_variant"] is None
     assert tasks[1]["attributes"]["unittest_variant"] == "foo"
 
     # test 'run-without-variants=False'

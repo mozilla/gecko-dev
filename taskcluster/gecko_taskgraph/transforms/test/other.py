@@ -819,7 +819,7 @@ def disable_try_only_platforms(config, tasks):
 @transforms.add
 def ensure_spi_disabled_on_all_but_spi(config, tasks):
     for task in tasks:
-        variant = task["attributes"].get("unittest_variant", "")
+        variant = task["attributes"].get("unittest_variant") or ""
         has_no_setpref = (
             "gtest",
             "cppunit",

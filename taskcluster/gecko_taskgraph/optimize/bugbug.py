@@ -297,8 +297,8 @@ class DisperseGroups(OptimizationStrategy):
 
         # Build the test configuration key.
         key = test_platform
-        if "unittest_variant" in task.attributes:
-            key += "-" + task.attributes["unittest_variant"]
+        if variant := task.attributes.get("unittest_variant"):
+            key += "-" + variant
 
         important_manifests = set(test_manifests) & set(importance)
         for manifest in important_manifests:

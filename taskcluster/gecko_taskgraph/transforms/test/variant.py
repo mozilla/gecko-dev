@@ -122,7 +122,9 @@ def split_variants(config, tasks):
         variants = remove_expired(variants, expired_variants)
 
         if task.pop("run-without-variant"):
-            yield deepcopy(task)
+            taskv = deepcopy(task)
+            taskv["attributes"]["unittest_variant"] = None
+            yield taskv
 
         for name in variants:
             # Apply composite variants (joined by '+') in order.
