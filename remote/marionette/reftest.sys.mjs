@@ -609,8 +609,8 @@ reftest.Runner = class {
       (maxDifference === 0 && allowedDiff[0] == 0) ||
       (maxDifference >= allowedDiff[0] &&
         maxDifference <= allowedDiff[1] &&
-        (pixelsDifferent >= allowedPixels[0] ||
-          pixelsDifferent <= allowedPixels[1]))
+        pixelsDifferent >= allowedPixels[0] &&
+        pixelsDifferent <= allowedPixels[1])
     );
   }
 
