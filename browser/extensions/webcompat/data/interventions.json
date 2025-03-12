@@ -803,10 +803,6 @@
   "1784199": {
     "label": "Sites based on Entrata Platform",
     "bugs": {
-      "1898912": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://*.7streetbrownstones.com/*"]
-      },
       "1898995": {
         "issue": "firefox-blocked-completely",
         "matches": ["*://*.aptsovation.com/*"]
