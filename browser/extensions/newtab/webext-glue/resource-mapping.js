@@ -19,7 +19,7 @@ XPCOMUtils.defineLazyServiceGetter(
 const ResourceSubstitution = "newtab";
 
 this.resourceMapping = class extends ExtensionAPI {
-  #manifest = null;
+  #chromeHandle = null;
 
   onStartup() {
     if (!AppConstants.BROWSER_NEWTAB_AS_ADDON) {
@@ -37,15 +37,19 @@ this.resourceMapping = class extends ExtensionAPI {
       rootURI,
       Ci.nsISubstitutingProtocolHandler.ALLOW_CONTENT_ACCESS
     );
-    if (this.extension.rootURI instanceof Ci.nsIJARURI) {
-      this.#manifest = this.extension.rootURI.JARFile.QueryInterface(
-        Ci.nsIFileURL
-      ).file;
-    } else if (this.extension.rootURI instanceof Ci.nsIFileURL) {
-      this.#manifest = this.extension.rootURI.file;
-    }
 
-    Components.manager.addBootstrappedManifestLocation(this.#manifest);
+    let aomStartup = Cc[
+      "@mozilla.org/addons/addon-manager-startup;1"
+    ].getService(Ci.amIAddonManagerStartup);
+    const manifestURI = Services.io.newURI(
+      "manifest.json",
+      null,
+      this.extension.rootURI
+    );
+    this.#chromeHandle = aomStartup.registerChrome(manifestURI, [
+      ["content", "newtab", "data/content", "contentaccessible=yes"],
+    ]);
+
     let redirector = Cc[
       "@mozilla.org/network/protocol/about;1?what=newtab"
     ].getService(Ci.nsIAboutModule).wrappedJSObject;
@@ -59,7 +63,7 @@ this.resourceMapping = class extends ExtensionAPI {
     }
 
     resProto.setSubstitution(ResourceSubstitution, null);
-    Components.manager.removeBootstrappedManifestLocation(this.#manifest);
-    this.#manifest = null;
+    this.#chromeHandle.destruct();
+    this.#chromeHandle = null;
   }
 };

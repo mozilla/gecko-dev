@@ -825,7 +825,6 @@ AddonManagerStartup::RegisterChrome(nsIURI* manifestURI,
     } else if (type.EqualsLiteral("content")) {
       if (vals.Length() == 3 &&
           vals[2].EqualsLiteral("contentaccessible=yes")) {
-        NS_ENSURE_TRUE(xpc::IsInAutomation(), NS_ERROR_INVALID_ARG);
         vals.RemoveElementAt(2);
         content.AppendElement(ContentEntry(
             std::move(vals), nsChromeRegistry::CONTENT_ACCESSIBLE));
