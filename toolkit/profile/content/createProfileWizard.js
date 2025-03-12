@@ -42,6 +42,16 @@ function initWizard() {
       .getElementById("createProfile")
       .addEventListener("pageshow", initSecondWizardPage);
     setDisplayToDefaultFolder();
+    document.getElementById("profileName").addEventListener("input", event => {
+      updateProfileName(event.target.value);
+    });
+    document
+      .getElementById("create-profile-choose-folder")
+      .addEventListener("command", () => chooseProfileFolder());
+    document.getElementById("useDefault").addEventListener("command", () => {
+      setDisplayToDefaultFolder();
+      updateProfileDisplay();
+    });
   } catch (e) {
     window.close();
     throw e;
@@ -268,3 +278,5 @@ function onFinish(event) {
     dialogParams.objects.insertElementAt(profileLock, 0);
   }
 }
+
+window.addEventListener("load", initWizard);

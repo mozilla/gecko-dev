@@ -3,6 +3,7 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<?csp default-src chrome:; style-src chrome: 'unsafe-inline'; ?>
 <!DOCTYPE wizard>
 
 <window
@@ -11,7 +12,6 @@
   xmlns:html="http://www.w3.org/1999/xhtml"
   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
-  onload="initWizard();"
   data-l10n-attrs="style"
   aria-describedby="profile-creation-explanation-1 profile-creation-explanation-2 profile-creation-explanation-3 profile-creation-explanation-4"
   aria-labelledby="wizard-header-label"
@@ -78,7 +78,6 @@
         id="profileName"
         data-l10n-id="profile-default-name"
         data-l10n-attrs="value"
-        oninput="updateProfileName(this.value);"
         aria-describedby="profile-creation-intro finishText"
         aria-labelledby="profile-prompt"
       />
@@ -96,15 +95,14 @@
 
       <hbox>
         <button
+          id="create-profile-choose-folder"
           data-l10n-id="create-profile-choose-folder"
-          oncommand="chooseProfileFolder();"
           aria-describedby="profile-directory-explanation profileDisplay"
         />
 
         <button
           id="useDefault"
           data-l10n-id="create-profile-use-default"
-          oncommand="setDisplayToDefaultFolder(); updateProfileDisplay();"
           disabled="true"
         />
       </hbox>
