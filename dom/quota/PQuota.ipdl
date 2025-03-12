@@ -148,6 +148,9 @@ parent:
   async InitializePersistentStorage()
       returns(BoolResponse response);
 
+  async InitializeAllTemporaryOrigins()
+      returns(BoolResponse response);
+
   async InitializeTemporaryGroup(PrincipalInfo principalInfo)
       returns(BoolResponse response);
 

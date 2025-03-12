@@ -119,6 +119,19 @@ interface nsIQuotaManagerService : nsISupports
   initTemporaryStorage();
 
   /**
+   * Initializes all temporary origins. Only used in tests to verify the
+   * initialization of all temporary origins.
+   *
+   * Calling this method only makes sense when lazy origin initialization is
+   * enabled, as initTemporaryStorage does not initialize origins in that case.
+   *
+   * If the dom.quotaManager.testing preference is not set to true, this call
+   * will be a no-op.
+   */
+  [must_use] nsIQuotaRequest
+  initializeAllTemporaryOrigins();
+
+  /**
    * Initializes temporary origin directories for the given group. This can be
    * used in tests to verify group initialization.
    *

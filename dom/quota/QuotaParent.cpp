@@ -487,6 +487,28 @@ mozilla::ipc::IPCResult Quota::RecvInitializePersistentStorage(
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult Quota::RecvInitializeAllTemporaryOrigins(
+    InitializeAllTemporaryOriginsResolver&& aResolver) {
+  AssertIsOnBackgroundThread();
+
+  if (NS_WARN_IF(!StaticPrefs::dom_quotaManager_testing())) {
+    return IPC_FAIL(this, "QuotaManager is not in testing mode!");
+  }
+
+  QM_TRY(MOZ_TO_RESULT(!QuotaManager::IsShuttingDown()),
+         ResolveBoolResponseAndReturn(aResolver));
+
+  QM_TRY_UNWRAP(const NotNull<RefPtr<QuotaManager>> quotaManager,
+                QuotaManager::GetOrCreate(),
+                ResolveBoolResponseAndReturn(aResolver));
+
+  quotaManager->InitializeAllTemporaryOrigins()->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      BoolPromiseResolveOrRejectCallback(this, std::move(aResolver)));
+
+  return IPC_OK();
+}
+
 mozilla::ipc::IPCResult Quota::RecvInitializeTemporaryGroup(
     const PrincipalInfo& aPrincipalInfo,
     InitializeTemporaryOriginResolver&& aResolve) {

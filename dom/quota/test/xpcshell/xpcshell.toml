@@ -79,6 +79,13 @@ skip-if = ["true"] # The group is now always empty, so metadata can't differ any
 ["test_initTemporaryStorage.js"]
 skip-if = ["condprof"] # frequent perma fail, then goes away.
 
+["test_initializeAllTemporaryOrigins.js"]
+# The test cannot function correctly with incremental origin initialization
+# enabled  because incremental origin initialization automatically triggers
+# lazy initialization of all temporary origins after temporary storage
+# initialization is complete.
+skip-if = ["inc_origin_init"]
+
 ["test_initializePersistentClient.js"]
 
 ["test_initializePersistentOrigin.js"]

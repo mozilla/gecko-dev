@@ -785,6 +785,27 @@ QuotaManagerService::InitTemporaryStorage(nsIQuotaRequest** _retval) {
 }
 
 NS_IMETHODIMP
+QuotaManagerService::InitializeAllTemporaryOrigins(nsIQuotaRequest** _retval) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(nsContentUtils::IsCallerChrome());
+
+  if (NS_WARN_IF(!StaticPrefs::dom_quotaManager_testing())) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  QM_TRY(MOZ_TO_RESULT(EnsureBackgroundActor()));
+
+  RefPtr<Request> request = new Request();
+
+  mBackgroundActor->SendInitializeAllTemporaryOrigins()->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      BoolResponsePromiseResolveOrRejectCallback(request));
+
+  request.forget(_retval);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 QuotaManagerService::InitializeTemporaryGroup(nsIPrincipal* aPrincipal,
                                               nsIQuotaRequest** _retval) {
   MOZ_ASSERT(NS_IsMainThread());
