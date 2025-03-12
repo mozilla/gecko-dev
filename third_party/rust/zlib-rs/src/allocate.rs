@@ -4,7 +4,6 @@ use core::{
     alloc::Layout,
     ffi::{c_uint, c_void},
     marker::PhantomData,
-    ptr::NonNull,
 };
 
 #[cfg(feature = "rust-allocator")]
@@ -246,21 +245,33 @@ impl Allocator<'_> {
         ptr
     }
 
-    pub fn allocate_raw<T>(&self) -> Option<NonNull<T>> {
-        NonNull::new(self.allocate_layout(Layout::new::<T>()).cast())
+    pub fn allocate_raw<T>(&self) -> Option<*mut T> {
+        let ptr = self.allocate_layout(Layout::new::<T>());
+
+        if ptr.is_null() {
+            None
+        } else {
+            Some(ptr as *mut T)
+        }
     }
 
-    pub fn allocate_slice_raw<T>(&self, len: usize) -> Option<NonNull<T>> {
-        NonNull::new(self.allocate_layout(Layout::array::<T>(len).ok()?).cast())
+    pub fn allocate_slice_raw<T>(&self, len: usize) -> Option<*mut T> {
+        let ptr = self.allocate_layout(Layout::array::<T>(len).ok()?);
+
+        if ptr.is_null() {
+            None
+        } else {
+            Some(ptr.cast())
+        }
     }
 
-    pub fn allocate_zeroed(&self, len: usize) -> Option<NonNull<u8>> {
+    pub fn allocate_zeroed(&self, len: usize) -> *mut u8 {
         #[cfg(feature = "rust-allocator")]
         if self.zalloc == Allocator::RUST.zalloc {
             // internally, we want to align allocations to 64 bytes (in part for SIMD reasons)
             let layout = Layout::from_size_align(len, 64).unwrap();
 
-            return NonNull::new(unsafe { std::alloc::System.alloc_zeroed(layout) });
+            return unsafe { std::alloc::System.alloc_zeroed(layout) };
         }
 
         #[cfg(feature = "c-allocator")]
@@ -274,18 +285,24 @@ impl Allocator<'_> {
 
             let ptr = alloc.allocate_layout(Layout::array::<u8>(len).ok().unwrap());
 
-            return NonNull::new(ptr.cast());
+            if ptr.is_null() {
+                return core::ptr::null_mut();
+            }
+
+            return ptr.cast();
         }
 
         // create the allocation (contents are uninitialized)
         let ptr = self.allocate_layout(Layout::array::<u8>(len).ok().unwrap());
 
-        let ptr = NonNull::new(ptr)?;
+        if ptr.is_null() {
+            return core::ptr::null_mut();
+        }
 
         // zero all contents (thus initializing the buffer)
-        unsafe { core::ptr::write_bytes(ptr.as_ptr(), 0, len) };
+        unsafe { core::ptr::write_bytes(ptr, 0, len) };
 
-        Some(ptr.cast())
+        ptr.cast()
     }
 
     /// # Panics
@@ -356,11 +373,11 @@ mod tests {
                 _marker: PhantomData,
             };
 
-            let ptr = allocator.allocate_raw::<T>().unwrap().as_ptr();
+            let ptr = allocator.allocate_raw::<T>().unwrap();
             assert_eq!(ptr as usize % core::mem::align_of::<T>(), 0);
             unsafe { allocator.deallocate(ptr, 1) }
 
-            let ptr = allocator.allocate_slice_raw::<T>(10).unwrap().as_ptr();
+            let ptr = allocator.allocate_slice_raw::<T>(10).unwrap();
             assert_eq!(ptr as usize % core::mem::align_of::<T>(), 0);
             unsafe { allocator.deallocate(ptr, 10) }
         }
@@ -411,15 +428,15 @@ mod tests {
 
     fn test_allocate_zeroed_help(allocator: Allocator) {
         let len = 42;
-        let Some(buf) = allocator.allocate_zeroed(len) else {
-            return;
-        };
+        let buf = allocator.allocate_zeroed(len);
 
-        let slice = unsafe { core::slice::from_raw_parts_mut(buf.as_ptr(), len) };
+        if !buf.is_null() {
+            let slice = unsafe { core::slice::from_raw_parts_mut(buf, len) };
 
-        assert_eq!(slice.iter().sum::<u8>(), 0);
+            assert_eq!(slice.iter().sum::<u8>(), 0);
+        }
 
-        unsafe { allocator.deallocate(buf.as_ptr(), len) };
+        unsafe { allocator.deallocate(buf, len) };
     }
 
     #[test]
