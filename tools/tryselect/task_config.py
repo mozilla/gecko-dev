@@ -7,13 +7,12 @@ Templates provide a way of modifying the task definition of selected tasks.
 They are added to 'try_task_config.json' and processed by the transforms.
 """
 
-
 import json
 import os
 import pathlib
 import subprocess
 import sys
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 from argparse import SUPPRESS, Action
 from textwrap import dedent
 
@@ -41,7 +40,8 @@ class ParameterConfig:
             action = parser.add_argument(*cli, **kwargs)
             self.dests.add(action.dest)
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def arguments(self):
         pass
 
@@ -51,6 +51,19 @@ class ParameterConfig:
 
     def validate(self, **kwargs):
         pass
+
+
+class TargetTasksMethod(ParameterConfig):
+    arguments = [
+        [
+            ["--target-tasks-method"],
+            {"help": "Custom target tasks method to use."},
+        ],
+    ]
+
+    def get_parameters(self, target_tasks_method: str, **kwargs):
+        if target_tasks_method:
+            return {"target_tasks_method": target_tasks_method}
 
 
 class TryConfig(ParameterConfig):
@@ -660,5 +673,6 @@ all_task_configs = {
     "pernosco": Pernosco,
     "rebuild": Rebuild,
     "routes": Routes,
+    "target-tasks-method": TargetTasksMethod,
     "worker-overrides": WorkerOverrides,
 }

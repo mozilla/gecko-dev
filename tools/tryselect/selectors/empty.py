@@ -9,7 +9,6 @@ from ..push import generate_try_task_config, push_to_try
 
 class EmptyParser(BaseTryParser):
     name = "empty"
-    common_groups = ["push"]
     task_configs = [
         "artifact",
         "browsertime",
@@ -19,6 +18,7 @@ class EmptyParser(BaseTryParser):
         "gecko-profile",
         "pernosco",
         "routes",
+        "target-tasks-method",
         "worker-overrides",
     ]
 
@@ -33,6 +33,9 @@ def run(
     push_to_vcs=False,
 ):
     msg = 'No try selector specified, use "Add New Jobs" to select tasks.'
+    if try_config_params and (method := try_config_params.get("target_tasks_method")):
+        msg = f"Selecting tasks with the '{method}' target method."
+
     return push_to_try(
         "empty",
         message.format(msg=msg),

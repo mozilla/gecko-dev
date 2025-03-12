@@ -9,32 +9,116 @@
 # For more information, see the `attrmatch` function in:
 # https://searchfox.org/mozilla-central/source/third_party/python/taskcluster_taskgraph/taskgraph/util/attributes.py
 
+### Unittests
 - kind: test
   test_platform:
+      - android-em-7.0-x86_64-lite-qr/opt
       - android-em-7.0-x86_64-qr/debug
       - linux1804-64-qr/debug
-      - linux2204-64-wayland/debug
+      - macosx1015-64-qr/debug
+      - macosx1100-aarch64-qr/debug
+      - macosx1470-64/debug
       - windows10-64-2009-qr/debug
+      - windows11-32-24h2/opt
+      - windows11-32-24h2/debug
+      - windows11-64-24h2/opt
       - windows11-64-24h2/debug
-  unittest_suite:
+  unittest_suite: &unittest-suites
+      - marionette
       - mochitest-browser-chrome
+      - mochitest-browser-media
       - mochitest-chrome
       - mochitest-media
       - mochitest-plain
+      - mochitest-remote
+      - mochitest-webgl1-core
+      - mochitest-webgpu
       - xpcshell
   unittest_variant:
       - null
       - 1proc
       - msix
+      - no-fission
+      - socketprocess
+      - xorigin
 
+# android isolated-process
 - kind: test
   test_platform: android-em-7.0-x86_64-qr/debug-isolated-process
   unittest_suite: xpcshell
+  unittest_variant: null
+
+# linux wayland
+- kind: test
+  test_platform:
+      - linux2204-64-wayland/opt
+      - linux2204-64-wayland/debug
+  unittest_suite:
+      - mochitest-browser-media
+      - mochitest-plain
+      - mochitest-remote
+      - mochitest-webgl1-core
+      - mochitest-webgpu
+  unittest_variant: null
+
+# asan
+- kind: test
+  test_platform:
+      - linux1804-64-asan-qr/opt
+  unittest_suite: *unittest-suites
+  unittest_variant:
+      - null
 
 - kind: test
-  test_platform: windows11-64-24h2-asan/opt
-  unittest_suite: mochitest-browser-chrome
+  test_platform:
+      - windows11-64-24h2-asan/opt
+  unittest_suite: *unittest-suites
+  unittest_variant:
+      - null
 
+### Performance tests
+- kind: perftest
+  perftest_name:
+      - service-worker
+      - startup-geckoview
+
+- kind: test
+  test_platform: &perf-platforms
+      - android-em-7.0-x86_64-shippable-qr/opt
+      - linux1804-64-shippable-qr/opt
+      - macosx1400-64-shippable-qr/opt
+      - macosx1470-64-shippable/opt
+      - windows10-64-shippable-qr/opt
+      - windows11-64-24h2-shippable/opt
+      - windows11-64-shippable-qr/opt
+  unittest_suite: raptor
+  raptor_try_name:
+      - browsertime-benchmark-custom-car-speedometer3
+      - browsertime-benchmark-firefox-speedometer3
+      - browsertime-responsiveness-firefox-reddit-billgates-ama
+      - browsertime-youtube-playback-firefox-youtube-playback-widevine-h264-sfr
+      - browsertime-youtube-playback-firefox-youtube-playback-widevine-hfr
+      - browsertime-youtube-playback-firefox-youtube-playback-widevine-vp9-sfr
+      - browsertime-tp6-essential-firefox-amazon
+
+- kind: test
+  test_platform: *perf-platforms
+  unittest_suite: talos
+  talos_try_name:
+      - xperf
+      - other
+      - webgl
+
+### Source tests
 - kind: source-test
   job_try_name:
+      - condprof
+      - featuregates
+      - firefox-ci
       - mozbase
+      - mozbuild
+      - mozharness
+      - skip-fails
+      - taskgraph-tests
+      - telemetry-python
+      - tryselect

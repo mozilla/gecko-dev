@@ -1684,26 +1684,32 @@ def target_tasks_os_integration(full_task_graph, parameters, graph_config):
 
     labels = []
     for label, task in full_task_graph.tasks.items():
-        if task.kind not in ("test", "source-test"):
+        if task.kind not in ("test", "source-test", "perftest"):
             continue
 
+        # Match tasks against attribute sets defined in os-integration.yml.
         if not any(attrmatch(task.attributes, **c) for c in candidate_attrs):
             continue
 
-        # Only run hardware tasks if scheduled from try. We do this because
-        # the `cron` task is designed to provide a base for testing worker images,
-        # which isn't something that impacts our hardware pools.
-        if not is_try(parameters) and (
-            task.attributes.get("build_platform") == "macosx64" or "android-hw" in label
-        ):
-            continue
+        if not is_try(parameters):
+            # Only run hardware tasks if scheduled from try. We do this because
+            # the `cron` task is designed to provide a base for testing worker
+            # images, which isn't something that impacts our hardware pools.
+            if (
+                task.attributes.get("build_platform") == "macosx64"
+                or "android-hw" in label
+            ):
+                continue
 
-        if not (
-            filter_for_project(task, parameters)
-            and filter_for_hg_branch(task, parameters)
-            and filter_tests_without_manifests(task, parameters)
-        ):
-            continue
+            # Perform additional filtering for non-try repos. We don't want to
+            # limit what can be scheduled on try as os-integration tests are still
+            # useful for manual verification of things.
+            if not (
+                filter_for_project(task, parameters)
+                and filter_for_hg_branch(task, parameters)
+                and filter_tests_without_manifests(task, parameters)
+            ):
+                continue
 
         labels.append(label)
     return labels
