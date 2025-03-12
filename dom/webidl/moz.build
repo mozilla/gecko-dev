@@ -1199,6 +1199,7 @@ GENERATED_EVENTS_WEBIDL_FILES = [
     "MediaStreamTrackEvent.webidl",
     "MIDIConnectionEvent.webidl",
     "NavigationCurrentEntryChangeEvent.webidl",
+    "NotificationEvent.webidl",
     "OfflineAudioCompletionEvent.webidl",
     "PageTransitionEvent.webidl",
     "PerformanceEntryEvent.webidl",
