@@ -251,15 +251,7 @@ export class ReviewCheckerManager {
       delete selectedBrowser.isDistinctProductPageVisit;
     }
 
-    // If we have previously handled the location we should not do it again.
-    if (selectedBrowser.isDistinctProductPageVisit) {
-      return;
-    }
-
     this.#didAutoOpenForOptedInUser = false;
-
-    // Record the location change.
-    lazy.ShoppingUtils.onLocationChange(aLocationURI, aFlags);
 
     let isSupportedSite = lazy.isSupportedSiteURL(aLocationURI);
     let isProductURL = lazy.isProductURL(aLocationURI);
@@ -268,10 +260,22 @@ export class ReviewCheckerManager {
       this.hideSidebar();
     }
 
-    // Only auto-open the sidebar for locations that are products.
-    if (!isProductURL) {
+    // If we have previously handled the location we should not do it again.
+    if (selectedBrowser.isDistinctProductPageVisit) {
       return;
     }
+
+    // Only auto-open the sidebar for a product page navigation.
+    let isProductPageNavigation = lazy.ShoppingUtils.isProductPageNavigation(
+      aLocationURI,
+      aFlags
+    );
+    if (!isProductPageNavigation) {
+      return;
+    }
+
+    // Record a product exposure for the location change.
+    lazy.ShoppingUtils.recordExposure(aLocationURI, aFlags);
 
     let shouldAutoOpen;
     if (this.optedIn) {

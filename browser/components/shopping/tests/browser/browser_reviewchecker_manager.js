@@ -354,3 +354,44 @@ add_task(async function test_auto_close_disabled_unsupported_site_rc_sidebar() {
 
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(async function test_sidebar_stays_closed_when_scrolling() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.shopping.experience2023.optedIn", 1],
+      ["browser.shopping.experience2023.autoOpen.enabled", true],
+      ["browser.shopping.experience2023.autoOpen.userEnabled", true],
+    ],
+  });
+
+  const PRODUCT_TEST_URL_WITH_PCS = PRODUCT_TEST_URL + "pcs=1";
+  const PRODUCT_TEST_URL_WITH_TH = PRODUCT_TEST_URL + "th=1";
+
+  let shownPromise = BrowserTestUtils.waitForEvent(window, "SidebarShown");
+  await BrowserTestUtils.withNewTab(PRODUCT_TEST_URL, async browser => {
+    await shownPromise;
+
+    await SpecialPowers.spawn(browser, [PRODUCT_TEST_URL_WITH_PCS], testUrl => {
+      content.history.pushState(null, "", testUrl);
+    });
+
+    // Sidebar should be shown for a product url
+    assertSidebarState(true);
+
+    // Close the sidebar.
+    SidebarController.hide();
+
+    // Sidebar should be closed.
+    assertSidebarState(false);
+
+    // Mimic scrolling on Amazon.
+    await SpecialPowers.spawn(browser, [PRODUCT_TEST_URL_WITH_TH], testUrl => {
+      content.history.pushState(null, "", testUrl);
+    });
+
+    // Sidebar should have stayed closed.
+    assertSidebarState(false);
+  });
+
+  await SpecialPowers.popPrefEnv();
+});
