@@ -56,7 +56,7 @@ void xpc::SelfHostedShmem::InitFromParent(ContentType aXdr) {
   void* address = mapping.Address();
   memcpy(address, aXdr.Elements(), aXdr.LengthBytes());
 
-  std::tie(std::ignore, mHandle) = std::move(mapping).Freeze();
+  mHandle = std::move(mapping).Freeze();
   mMem = mHandle.Map();
 }
 

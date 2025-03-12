@@ -109,8 +109,7 @@ static ipc::ReadOnlySharedMemoryHandle CopyToShmem(const CompiledData* aData) {
   }
 
   memcpy(buffer, mapped_hyph_compiled_data_ptr(aData), size);
-  auto [_, readOnlyHandle] = std::move(map).Freeze();
-  return std::move(readOnlyHandle);
+  return std::move(map).Freeze();
 }
 
 static ipc::ReadOnlySharedMemoryHandle LoadFromURI(nsIURI* aURI,
@@ -161,13 +160,7 @@ static ipc::ReadOnlySharedMemoryHandle LoadFromURI(nsIURI* aURI,
       return nullptr;
     }
 
-    auto [_, readOnlyHandle] = std::move(map).Freeze();
-
-    if (!readOnlyHandle) {
-      return nullptr;
-    }
-
-    return std::move(readOnlyHandle);
+    return std::move(map).Freeze();
   }
 
   // Read from the URI into a temporary buffer, compile it, then copy the

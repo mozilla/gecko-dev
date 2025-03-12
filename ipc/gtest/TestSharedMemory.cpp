@@ -226,10 +226,20 @@ TEST(IPCSharedMemoryMapping, FreezableFreeze)
   auto handle = shared_memory::CreateFreezable(1);
 
   auto mapping = std::move(handle).Map();
-  auto [m, roHandle] = std::move(mapping).Freeze();
+  auto roHandle = std::move(mapping).Freeze();
   ASSERT_SHMEM(mapping, 0);
-  ASSERT_SHMEM(m, 1);
   ASSERT_SHMEM(roHandle, 1);
+}
+
+TEST(IPCSharedMemoryMapping, FreezableFreezeWithMutableMapping)
+{
+  auto handle = shared_memory::CreateFreezable(1);
+
+  auto mapping = std::move(handle).Map();
+  auto [roHandle, m] = std::move(mapping).FreezeWithMutableMapping();
+  ASSERT_SHMEM(mapping, 0);
+  ASSERT_SHMEM(roHandle, 1);
+  ASSERT_SHMEM(m, 1);
 }
 
 TEST(IPCSharedMemoryMapping, FreezableUnmap)
@@ -258,7 +268,7 @@ TEST(IPCSharedMemory, FreezeAndMapRW)
   *mem = 'A';
 
   // Freeze
-  auto [rwMapping, roHandle] = std::move(mapping).Freeze();
+  auto [roHandle, rwMapping] = std::move(mapping).FreezeWithMutableMapping();
   ASSERT_TRUE(rwMapping);
   ASSERT_TRUE(roHandle);
 
@@ -287,7 +297,7 @@ TEST(IPCSharedMemory, FreezeAndReprotect)
   *mem = 'A';
 
   // Freeze
-  auto [rwMapping, roHandle] = std::move(mapping).Freeze();
+  auto [roHandle, rwMapping] = std::move(mapping).FreezeWithMutableMapping();
   ASSERT_TRUE(rwMapping);
   ASSERT_TRUE(roHandle);
 
@@ -364,8 +374,7 @@ TEST(IPCSharedMemory, WinUnfreeze)
   *mem = 'A';
 
   // Freeze
-  auto [rwMapping, roHandle] = std::move(mapping).Freeze();
-  ASSERT_TRUE(rwMapping);
+  auto roHandle = std::move(mapping).Freeze();
   ASSERT_TRUE(roHandle);
 
   // Extract handle.
@@ -387,7 +396,8 @@ TEST(IPCSharedMemory, ROCopyAndWrite)
   auto handle = ipc::shared_memory::CreateFreezable(1);
   ASSERT_TRUE(handle);
 
-  auto [rwMapping, roHandle] = std::move(handle).Map().Freeze();
+  auto [roHandle, rwMapping] =
+      std::move(handle).Map().FreezeWithMutableMapping();
   ASSERT_TRUE(rwMapping);
   ASSERT_TRUE(roHandle);
 
@@ -412,7 +422,8 @@ TEST(IPCSharedMemory, ROCopyAndRewrite)
   auto handle = ipc::shared_memory::CreateFreezable(1);
   ASSERT_TRUE(handle);
 
-  auto [rwMapping, roHandle] = std::move(handle).Map().Freeze();
+  auto [roHandle, rwMapping] =
+      std::move(handle).Map().FreezeWithMutableMapping();
   ASSERT_TRUE(rwMapping);
   ASSERT_TRUE(roHandle);
 

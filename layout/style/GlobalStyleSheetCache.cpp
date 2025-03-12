@@ -393,7 +393,7 @@ void GlobalStyleSheetCache::InitSharedSheetsInParent() {
 
   // Finished writing into the shared memory.  Freeze it, so that a process
   // can't confuse other processes by changing the UA style sheet contents.
-  auto [_, readOnlyHandle] = std::move(mapping).Freeze();
+  auto readOnlyHandle = std::move(mapping).Freeze();
   if (NS_WARN_IF(!readOnlyHandle)) {
     return;
   }
