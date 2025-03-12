@@ -79,9 +79,9 @@ class SVGMotionSMILAnimationFunction final : public SMILAnimationFunction {
   void RebuildPathAndVerticesFromMpathElem(dom::SVGMPathElement* aMpathElem);
   void RebuildPathAndVerticesFromPathAttr();
   void RebuildPathAndVerticesFromBasicAttrs(const nsIContent* aContextElem);
-  bool GenerateValuesForPathAndPoints(Path* aPath, bool aIsKeyPoints,
-                                      FallibleTArray<double>& aPointDistances,
-                                      SMILValueArray& aResult);
+  nsresult GenerateValuesForPathAndPoints(
+      Path* aPath, bool aIsKeyPoints, FallibleTArray<double>& aPointDistances,
+      SMILValueArray& aResult);
 
   // Members
   // -------

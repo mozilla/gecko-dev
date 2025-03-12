@@ -272,7 +272,7 @@ void SVGMotionSMILAnimationFunction::RebuildPathAndVertices(
   mIsPathStale = false;
 }
 
-bool SVGMotionSMILAnimationFunction::GenerateValuesForPathAndPoints(
+nsresult SVGMotionSMILAnimationFunction::GenerateValuesForPathAndPoints(
     Path* aPath, bool aIsKeyPoints, FallibleTArray<double>& aPointDistances,
     SMILValueArray& aResult) {
   MOZ_ASSERT(aResult.IsEmpty(), "outparam is non-empty");
@@ -280,16 +280,22 @@ bool SVGMotionSMILAnimationFunction::GenerateValuesForPathAndPoints(
   // If we're using "keyPoints" as our list of input distances, then we need
   // to de-normalize from the [0, 1] scale to the [0, totalPathLen] scale.
   double distanceMultiplier = aIsKeyPoints ? aPath->ComputeLength() : 1.0;
+  if (!std::isfinite(distanceMultiplier)) {
+    return NS_ERROR_FAILURE;
+  }
   const uint32_t numPoints = aPointDistances.Length();
   for (uint32_t i = 0; i < numPoints; ++i) {
     double curDist = aPointDistances[i] * distanceMultiplier;
+    if (!std::isfinite(curDist)) {
+      return NS_ERROR_FAILURE;
+    }
     if (!aResult.AppendElement(SVGMotionSMILType::ConstructSMILValue(
                                    aPath, curDist, mRotateType, mRotateAngle),
                                fallible)) {
-      return false;
+      return NS_ERROR_OUT_OF_MEMORY;
     }
   }
-  return true;
+  return NS_OK;
 }
 
 nsresult SVGMotionSMILAnimationFunction::GetValues(const SMILAttr& aSMILAttr,
@@ -308,14 +314,9 @@ nsresult SVGMotionSMILAnimationFunction::GetValues(const SMILAttr& aSMILAttr,
 
   // Now: Make the actual list of SMILValues (using keyPoints, if set)
   bool isUsingKeyPoints = !mKeyPoints.IsEmpty();
-  bool success = GenerateValuesForPathAndPoints(
+  return GenerateValuesForPathAndPoints(
       mPath, isUsingKeyPoints, isUsingKeyPoints ? mKeyPoints : mPathVertices,
       aResult);
-  if (!success) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  return NS_OK;
 }
 
 void SVGMotionSMILAnimationFunction::CheckValueListDependentAttrs(
