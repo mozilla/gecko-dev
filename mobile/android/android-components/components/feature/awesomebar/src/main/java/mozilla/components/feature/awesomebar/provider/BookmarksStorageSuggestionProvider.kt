@@ -64,12 +64,11 @@ class BookmarksStorageSuggestionProvider(
     }
 
     override suspend fun onInputChanged(text: String): List<AwesomeBar.Suggestion> {
-        bookmarksStorage.cancelReads(text)
-
         if (text.isEmpty()) {
             return emptyList()
         }
 
+        bookmarksStorage.cancelReads(text)
         val suggestions = when (resultsUriFilter) {
             null -> getBookmarksSuggestions(text)
             else -> getFilteredBookmarksSuggestions(text, resultsUriFilter)

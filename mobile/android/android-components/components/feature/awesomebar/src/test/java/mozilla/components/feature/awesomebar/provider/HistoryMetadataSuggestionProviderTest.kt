@@ -63,17 +63,17 @@ class HistoryMetadataSuggestionProviderTest {
     }
 
     @Test
-    fun `provider cleanups all previous read operations when text is empty`() = runTest {
+    fun `WHEN onInputChanged is called THEN do not cancel any read operations until after sanity check`() = runTest {
         val provider = HistoryMetadataSuggestionProvider(mock(), mock())
 
         provider.onInputChanged("")
 
         verify(provider.historyStorage, never()).cancelReads()
-        verify(provider.historyStorage).cancelReads("")
+        verify(provider.historyStorage, never()).cancelReads("")
     }
 
     @Test
-    fun `provider cleanups all previous read operations when text is not empty`() = runTest {
+    fun `WHEN onInputChanged is called with non empty text THEN cancel all previous read operations with the same input`() = runTest {
         val storage: HistoryMetadataStorage = mock()
         doReturn(listOf(historyEntry)).`when`(storage).queryHistoryMetadata(anyString(), anyInt())
         val provider = HistoryMetadataSuggestionProvider(storage, mock())

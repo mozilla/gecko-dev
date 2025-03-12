@@ -138,7 +138,7 @@ class SearchTermSuggestionsProviderTest {
     }
 
     @Test
-    fun `GIVEN an empty input AND should show empty query WHEN querying suggestions THEN do not cleanup read operations for the empty query`() = runTest {
+    fun `GIVEN an empty input AND should not show empty query WHEN querying suggestions THEN do not cleanup read operations for the empty query`() = runTest {
         val provider = SearchTermSuggestionsProvider(storage, mock(), searchEngine)
 
         provider.onInputChanged("")
@@ -155,6 +155,26 @@ class SearchTermSuggestionsProviderTest {
 
         verify(storage, never()).cancelReads()
         verify(storage).cancelReads("")
+    }
+
+    @Test
+    fun `GIVEN an non empty input AND should show non empty query WHEN querying suggestions THEN cleanup read operations for the non empty query`() = runTest {
+        val provider = SearchTermSuggestionsProvider(storage, mock(), searchEngine, showSuggestionsOnlyWhenEmpty = false)
+
+        provider.onInputChanged("test")
+
+        verify(storage, never()).cancelReads()
+        verify(storage).cancelReads("test")
+    }
+
+    @Test
+    fun `GIVEN an non empty input AND should not show non empty query WHEN querying suggestions THEN do not cleanup read operations for the non empty query`() = runTest {
+        val provider = SearchTermSuggestionsProvider(storage, mock(), searchEngine, showSuggestionsOnlyWhenEmpty = true)
+
+        provider.onInputChanged("test")
+
+        verify(storage, never()).cancelReads()
+        verify(storage, never()).cancelReads("test")
     }
 
     @Test

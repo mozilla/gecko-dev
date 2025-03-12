@@ -14,6 +14,7 @@ import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.support.ktx.android.net.sameHostWithoutMobileSubdomainAs
+import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import mozilla.components.support.utils.StorageUtils.levenshteinDistance
@@ -58,17 +59,18 @@ class BookmarksStorageSuggestionProviderTest {
     }
 
     @Test
-    fun `Provider cleanups all previous read operations when text is empty`() = runTest {
+    fun `WHEN onInputChanged is called THEN do not cancel any read operations until after sanity check`() = runTest {
         val provider = BookmarksStorageSuggestionProvider(mock(), mock())
 
         provider.onInputChanged("")
 
         verify(provider.bookmarksStorage, never()).cancelReads()
-        verify(provider.bookmarksStorage).cancelReads("")
+        verify(provider.bookmarksStorage, never()).cancelReads("")
+        verify(provider.bookmarksStorage, never()).cancelReads(any())
     }
 
     @Test
-    fun `Provider cleanups all previous read operations when text is not empty`() = runTest {
+    fun `WHEN onInputChanged is called with empty text THEN canel read operations with the same input`() = runTest {
         val storage = spy(bookmarks)
         val provider = BookmarksStorageSuggestionProvider(storage, mock())
         storage.addItem("Mobile", newItem.url!!, newItem.title!!, null)

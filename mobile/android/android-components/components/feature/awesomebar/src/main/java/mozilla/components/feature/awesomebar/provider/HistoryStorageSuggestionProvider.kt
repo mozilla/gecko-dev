@@ -64,12 +64,11 @@ class HistoryStorageSuggestionProvider(
     }
 
     override suspend fun onInputChanged(text: String): List<AwesomeBar.Suggestion> {
-        historyStorage.cancelReads(text)
-
         if (text.isEmpty()) {
             return emptyList()
         }
 
+        historyStorage.cancelReads(text)
         val suggestions = when (resultsUriFilter) {
             null -> getHistorySuggestions(text)
             else -> getFilteredHistorySuggestions(text, resultsUriFilter)
