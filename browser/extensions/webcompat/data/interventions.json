@@ -2509,6 +2509,23 @@
       }
     ]
   },
+  "1902406": {
+    "label": "sp.hi.co.kr",
+    "bugs": {
+      "1902406": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://sp.hi.co.kr/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1902406-sp.hi.co.kr-window-chrome-shim.js"]
+        }
+      }
+    ]
+  },
   "1902411": {
     "label": "agent.foundi.info",
     "bugs": {
