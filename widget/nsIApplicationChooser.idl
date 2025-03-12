@@ -27,7 +27,7 @@ interface nsIApplicationChooser : nsISupports
   * @param      title    The title for the file widget
   *
   */
-  void init(in mozIDOMWindowProxy parent, in ACString title);
+  void init(in mozIDOMWindowProxy parent, in AUTF8String title);
 
   /**
    * Open application chooser dialog.
