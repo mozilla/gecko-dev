@@ -461,7 +461,7 @@ bool Code::createManyLazyEntryStubs(const WriteGuard& guard,
   WasmMacroAssembler masm(alloc);
 
   const FuncExportVector& funcExports = tierCodeBlock.funcExports;
-  uint8_t* segmentBase = tierCodeBlock.segment->base();
+  uint8_t* codeBase = tierCodeBlock.base();
 
   CodeRangeVector codeRanges;
   DebugOnly<uint32_t> numExpectedRanges = 0;
@@ -471,7 +471,7 @@ bool Code::createManyLazyEntryStubs(const WriteGuard& guard,
     // Exports that don't support a jit entry get only the interp entry.
     numExpectedRanges += (funcType.canHaveJitEntry() ? 2 : 1);
     void* calleePtr =
-        segmentBase + tierCodeBlock.codeRange(fe).funcUncheckedCallEntry();
+        codeBase + tierCodeBlock.codeRange(fe).funcUncheckedCallEntry();
     Maybe<ImmPtr> callee;
     callee.emplace(calleePtr, ImmPtr::NoCheckToken());
     if (!GenerateEntryStubs(masm, funcExportIndex, fe, funcType, callee,
