@@ -815,10 +815,6 @@
         "issue": "firefox-blocked-completely",
         "matches": ["*://*.arboretumapartments.com/*"]
       },
-      "1898956": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://*.avanabayview.com/*"]
-      },
       "1898964": {
         "issue": "firefox-blocked-completely",
         "matches": ["*://*.breakpointeandcoronado.com/*"]
