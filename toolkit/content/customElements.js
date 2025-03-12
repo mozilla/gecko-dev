@@ -839,6 +839,10 @@
             "chrome://global/content/elements/moz-input-folder.mjs",
           ],
           [
+            "moz-input-password",
+            "chrome://global/content/elements/moz-input-password.mjs",
+          ],
+          [
             "moz-input-search",
             "chrome://global/content/elements/moz-input-search.mjs",
           ],

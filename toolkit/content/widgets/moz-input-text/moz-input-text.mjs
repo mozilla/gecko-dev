@@ -43,11 +43,13 @@ export default class MozInputText extends MozBaseInputElement {
     this.value = e.target.value;
   }
 
-  inputTemplate(classes, styles, inputValue) {
+  inputTemplate(options = {}) {
+    let { type = "text", classes, styles, inputValue } = options;
+
     return html`
       <input
         id="input"
-        type="text"
+        type=${type}
         class=${ifDefined(classes)}
         style=${ifDefined(styles)}
         name=${this.name}

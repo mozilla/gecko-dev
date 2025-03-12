@@ -155,7 +155,7 @@ export default class MozInputFolder extends MozInputText {
 
     return html`
       <div class="container">
-        ${super.inputTemplate(classes, styles, inputValue)}
+        ${super.inputTemplate({ classes, styles, inputValue })}
         <moz-button
           id="choose-folder-button"
           data-l10n-id="choose-folder-button"
