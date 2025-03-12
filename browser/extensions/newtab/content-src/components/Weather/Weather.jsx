@@ -6,10 +6,38 @@ import { connect } from "react-redux";
 import { LinkMenu } from "content-src/components/LinkMenu/LinkMenu";
 import { LocationSearch } from "content-src/components/Weather/LocationSearch";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
-import React from "react";
+import { useIntersectionObserver } from "../../lib/utils";
+import React, { useState } from "react";
 
 const VISIBLE = "visible";
 const VISIBILITY_CHANGE_EVENT = "visibilitychange";
+
+function WeatherPlaceholder() {
+  const [isSeen, setIsSeen] = useState(false);
+
+  // We are setting up a visibility and intersection event
+  // so animations don't happen with headless automation.
+  // The animations causes tests to fail beause they never stop,
+  // and many tests wait until everything has stopped before passing.
+  const ref = useIntersectionObserver(() => setIsSeen(true), 1);
+
+  const isSeenClassName = isSeen ? `placeholder-seen` : ``;
+
+  return (
+    <div
+      className={`weather weather-placeholder ${isSeenClassName}`}
+      ref={el => {
+        ref.current = [el];
+      }}
+    >
+      <div className="placeholder-image placeholder-fill" />
+      <div className="placeholder-context">
+        <div className="placeholder-header placeholder-fill" />
+        <div className="placeholder-description placeholder-fill" />
+      </div>
+    </div>
+  );
+}
 
 export class _Weather extends React.PureComponent {
   constructor(props) {
@@ -187,34 +215,23 @@ export class _Weather extends React.PureComponent {
     // Check if weather should be rendered
     const isWeatherEnabled = this.props.Prefs.values["system.showWeather"];
 
-    if (!isWeatherEnabled || !this.props.Weather.initialized) {
+    if (!isWeatherEnabled) {
       return false;
+    }
+
+    if (!this.props.Weather.initialized) {
+      return <WeatherPlaceholder />;
     }
 
     const { showContextMenu } = this.state;
 
     const { props } = this;
 
-    const {
-      className,
-      index,
-      dispatch,
-      eventSource,
-      shouldSendImpressionStats,
-      Prefs,
-      Weather,
-    } = props;
+    const { dispatch, Prefs, Weather } = props;
 
     const WEATHER_SUGGESTION = Weather.suggestions?.[0];
-    const isContextMenuOpen = this.state.activeCard === index;
 
-    const outerClassName = [
-      "weather",
-      className,
-      isContextMenuOpen && !Weather.searchActive && "active",
-      props.placeholder && "placeholder",
-      Weather.searchActive && "search",
-    ]
+    const outerClassName = ["weather", Weather.searchActive && "search"]
       .filter(v => v)
       .join(" ");
 
@@ -222,20 +239,20 @@ export class _Weather extends React.PureComponent {
 
     // Note: The temperature units/display options will become secondary menu items
     const WEATHER_SOURCE_CONTEXT_MENU_OPTIONS = [
-      ...(this.props.Prefs.values["weather.locationSearchEnabled"]
+      ...(Prefs.values["weather.locationSearchEnabled"]
         ? ["ChangeWeatherLocation"]
         : []),
-      ...(this.props.Prefs.values["weather.temperatureUnits"] === "f"
+      ...(Prefs.values["weather.temperatureUnits"] === "f"
         ? ["ChangeTempUnitCelsius"]
         : ["ChangeTempUnitFahrenheit"]),
-      ...(this.props.Prefs.values["weather.display"] === "simple"
+      ...(Prefs.values["weather.display"] === "simple"
         ? ["ChangeWeatherDisplayDetailed"]
         : ["ChangeWeatherDisplaySimple"]),
       "HideWeather",
       "OpenLearnMoreURL",
     ];
     const WEATHER_SOURCE_ERROR_CONTEXT_MENU_OPTIONS = [
-      ...(this.props.Prefs.values["weather.locationSearchEnabled"]
+      ...(Prefs.values["weather.locationSearchEnabled"]
         ? ["ChangeWeatherLocation"]
         : []),
       "HideWeather",
@@ -254,15 +271,15 @@ export class _Weather extends React.PureComponent {
           {showContextMenu ? (
             <LinkMenu
               dispatch={dispatch}
-              index={index}
-              source={eventSource}
+              index={0}
+              source="WEATHER"
               onUpdate={this.onUpdate}
               options={contextOpts}
               site={{
                 url: "https://support.mozilla.org/kb/customize-items-on-firefox-new-tab-page",
               }}
               link="https://support.mozilla.org/kb/customize-items-on-firefox-new-tab-page"
-              shouldSendImpressionStats={shouldSendImpressionStats}
+              shouldSendImpressionStats={false}
             />
           ) : null}
         </button>
@@ -292,10 +309,10 @@ export class _Weather extends React.PureComponent {
                   <span className="weatherTemperature">
                     {
                       WEATHER_SUGGESTION.current_conditions.temperature[
-                        this.props.Prefs.values["weather.temperatureUnits"]
+                        Prefs.values["weather.temperatureUnits"]
                       ]
                     }
-                    &deg;{this.props.Prefs.values["weather.temperatureUnits"]}
+                    &deg;{Prefs.values["weather.temperatureUnits"]}
                   </span>
                 </div>
                 <div className="weatherCityRow">
@@ -310,11 +327,11 @@ export class _Weather extends React.PureComponent {
                       <span>
                         {
                           WEATHER_SUGGESTION.forecast.high[
-                            this.props.Prefs.values["weather.temperatureUnits"]
+                            Prefs.values["weather.temperatureUnits"]
                           ]
                         }
                         &deg;
-                        {this.props.Prefs.values["weather.temperatureUnits"]}
+                        {Prefs.values["weather.temperatureUnits"]}
                       </span>
                       {/* Spacer / Bullet */}
                       <span>&bull;</span>
@@ -322,11 +339,11 @@ export class _Weather extends React.PureComponent {
                       <span>
                         {
                           WEATHER_SUGGESTION.forecast.low[
-                            this.props.Prefs.values["weather.temperatureUnits"]
+                            Prefs.values["weather.temperatureUnits"]
                           ]
                         }
                         &deg;
-                        {this.props.Prefs.values["weather.temperatureUnits"]}
+                        {Prefs.values["weather.temperatureUnits"]}
                       </span>
                     </div>
                     <span className="weatherTextSummary">

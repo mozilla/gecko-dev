@@ -28,6 +28,9 @@ export class _LinkMenu extends React.PureComponent {
       isPrivateBrowsingEnabled,
       siteInfo,
       platform,
+      dispatch,
+      options,
+      shouldSendImpressionStats,
       userEvent = ac.UserEvent,
     } = props;
 
@@ -35,9 +38,9 @@ export class _LinkMenu extends React.PureComponent {
     const propOptions =
       site.isDefault && !site.searchTopSite && !site.sponsored_position
         ? DEFAULT_SITE_MENU_OPTIONS
-        : props.options;
+        : options;
 
-    const options = propOptions
+    const linkMenuOptions = propOptions
       .map(o =>
         LinkMenuOptions[o](
           site,
@@ -62,7 +65,7 @@ export class _LinkMenu extends React.PureComponent {
                 action.data
               );
             }
-            props.dispatch(action);
+            dispatch(action);
             if (eventName) {
               const userEventData = Object.assign(
                 {
@@ -73,10 +76,10 @@ export class _LinkMenu extends React.PureComponent {
                 },
                 siteInfo
               );
-              props.dispatch(userEvent(userEventData));
+              dispatch(userEvent(userEventData));
             }
-            if (impression && props.shouldSendImpressionStats) {
-              props.dispatch(impression);
+            if (impression && shouldSendImpressionStats) {
+              dispatch(impression);
             }
           };
         }
@@ -86,9 +89,9 @@ export class _LinkMenu extends React.PureComponent {
     // This is for accessibility to support making each item tabbable.
     // We want to know which item is the first and which item
     // is the last, so we can close the context menu accordingly.
-    options[0].first = true;
-    options[options.length - 1].last = true;
-    return options;
+    linkMenuOptions[0].first = true;
+    linkMenuOptions[linkMenuOptions.length - 1].last = true;
+    return linkMenuOptions;
   }
 
   render() {
