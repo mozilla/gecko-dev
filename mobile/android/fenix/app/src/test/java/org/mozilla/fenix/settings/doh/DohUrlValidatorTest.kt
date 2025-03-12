@@ -55,6 +55,14 @@ class DohUrlValidatorTest {
     }
 
     @Test
+    fun `WHEN url contains trailing spaces THEN the validator should simply drop them`() {
+        assertEquals(
+            DohUrlValidator.validate("https://example.com  "),
+            "https://example.com",
+        )
+    }
+
+    @Test
     fun `WHEN dropScheme is called with a url already without a scheme THEN no change should occur`() {
         val url = "foo.bar"
         assertEquals(

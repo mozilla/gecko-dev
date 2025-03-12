@@ -28,7 +28,7 @@ object DohUrlValidator {
             throw UrlValidationException.NonHttpsUrlException
         }
         return try {
-            val uri = URI.create(url)
+            val uri = URI.create(url.trim())
             when {
                 uri.scheme != "https" -> throw UrlValidationException.NonHttpsUrlException
                 uri.host.isNullOrBlank() || !uri.isAbsolute -> throw UrlValidationException.InvalidUrlException
