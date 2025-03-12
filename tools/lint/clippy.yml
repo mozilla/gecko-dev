@@ -15,7 +15,6 @@ clippy:
         - modules/libpref/init/static_prefs/
         - mozglue/static/rust/
         - netwerk/base/mozurl/
-        - netwerk/test/http3server/
         - security/manager/ssl/data_storage/
         - servo/components/selectors/
         - servo/components/servo_arc/
