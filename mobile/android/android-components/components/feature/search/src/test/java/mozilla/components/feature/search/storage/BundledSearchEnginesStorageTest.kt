@@ -204,7 +204,7 @@ class BundledSearchEnginesStorageTest {
         )
 
         assertEquals(
-            listOf("google-b-vv", "bing", "ddg", "ebay", "wikipedia"),
+            listOf("google-b-vv", "bing-vivo", "ddg", "ebay", "wikipedia"),
             searchEngines,
         )
     }
@@ -221,7 +221,7 @@ class BundledSearchEnginesStorageTest {
         assertEquals(
             listOf(
                 "google-b-vv",
-                "bing",
+                "bing-vivo",
                 "ddg",
                 "ecosia",
                 "qwant",
@@ -242,7 +242,7 @@ class BundledSearchEnginesStorageTest {
         )
 
         assertEquals(
-            listOf("google-b-vv", "bing", "ddg", "wikipedia-es", "ebay-es"),
+            listOf("google-b-vv", "bing-vivo", "ddg", "wikipedia-es", "ebay-es"),
             searchEngines,
         )
     }
@@ -257,7 +257,7 @@ class BundledSearchEnginesStorageTest {
         )
 
         assertEquals(
-            listOf("google-b-vv", "bing", "ddg", "wikipedia-it", "ebay-it"),
+            listOf("google-b-vv", "bing-vivo", "ddg", "wikipedia-it", "ebay-it"),
             searchEngines,
         )
     }
@@ -274,7 +274,7 @@ class BundledSearchEnginesStorageTest {
         assertEquals(
             listOf(
                 "google-b-vv",
-                "bing",
+                "bing-vivo",
                 "ddg",
                 "ecosia",
                 "qwant",
@@ -297,7 +297,7 @@ class BundledSearchEnginesStorageTest {
         assertEquals(
             listOf(
                 "google-b-vv",
-                "bing",
+                "bing-vivo",
                 "ddg",
                 "qwant",
                 "wikipedia-fr",
@@ -319,7 +319,7 @@ class BundledSearchEnginesStorageTest {
         assertEquals(
             listOf(
                 "google-b-vv",
-                "bing",
+                "bing-vivo",
                 "ddg",
                 "mercadolibre-mx",
                 "wikipedia-es",
@@ -338,7 +338,7 @@ class BundledSearchEnginesStorageTest {
         )
 
         assertEquals(
-            listOf("google-b-vv", "bing", "ddg", "wikipedia"),
+            listOf("google-b-vv", "bing-vivo", "ddg", "wikipedia"),
             searchEngines,
         )
     }
@@ -353,7 +353,7 @@ class BundledSearchEnginesStorageTest {
         )
 
         assertEquals(
-            listOf("google-b-vv", "bing", "ddg", "wikipedia"),
+            listOf("google-b-vv", "bing-vivo", "ddg", "wikipedia"),
             searchEngines,
         )
     }
