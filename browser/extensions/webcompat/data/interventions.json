@@ -2280,6 +2280,23 @@
       }
     ]
   },
+  "1898946": {
+    "label": "transcrib.io",
+    "bugs": {
+      "1898946": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://transcrib.io/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1898946-transcrib.io-chrome-shim.js"]
+        }
+      }
+    ]
+  },
   "1898952": {
     "label": "digits.t-mobile.com",
     "bugs": {
