@@ -6,6 +6,7 @@
     "noEmit": true,
     "target": "es2024",
     "types": ["gecko"],
+    "incremental": true,
 
     // prettier-ignore
     "paths": {
