@@ -1165,64 +1165,6 @@ class SettingsTest {
     }
 
     @Test
-    fun `GIVEN trending searches is enabled, visible and search engine supports it THEN should show trending searches`() {
-        val settings = spyk(settings)
-        every { settings.trendingSearchSuggestionsEnabled } returns true
-        every { settings.isTrendingSearchesVisible } returns true
-        every { settings.shouldShowSearchSuggestionsInPrivate } returns true
-
-        assertTrue(settings.shouldShowTrendingSearchSuggestions(BrowsingMode.Private, true))
-        assertTrue(settings.shouldShowTrendingSearchSuggestions(BrowsingMode.Normal, true))
-
-        every { settings.trendingSearchSuggestionsEnabled } returns false
-        every { settings.isTrendingSearchesVisible } returns true
-        every { settings.shouldShowSearchSuggestionsInPrivate } returns true
-
-        assertFalse(settings.shouldShowTrendingSearchSuggestions(BrowsingMode.Private, true))
-        assertFalse(settings.shouldShowTrendingSearchSuggestions(BrowsingMode.Normal, true))
-
-        every { settings.trendingSearchSuggestionsEnabled } returns true
-        every { settings.isTrendingSearchesVisible } returns false
-        every { settings.shouldShowSearchSuggestionsInPrivate } returns true
-
-        assertFalse(settings.shouldShowTrendingSearchSuggestions(BrowsingMode.Private, true))
-        assertFalse(settings.shouldShowTrendingSearchSuggestions(BrowsingMode.Normal, true))
-
-        every { settings.trendingSearchSuggestionsEnabled } returns false
-        every { settings.isTrendingSearchesVisible } returns false
-        every { settings.shouldShowSearchSuggestionsInPrivate } returns true
-
-        assertFalse(settings.shouldShowTrendingSearchSuggestions(BrowsingMode.Private, true))
-        assertFalse(settings.shouldShowTrendingSearchSuggestions(BrowsingMode.Normal, true))
-    }
-
-    @Test
-    fun `GIVEN search engine does not supports trending search THEN should not show trending searches`() {
-        val settings = spyk(settings)
-        every { settings.trendingSearchSuggestionsEnabled } returns true
-        every { settings.isTrendingSearchesVisible } returns true
-        every { settings.shouldShowSearchSuggestionsInPrivate } returns true
-
-        assertFalse(settings.shouldShowTrendingSearchSuggestions(BrowsingMode.Private, false))
-        assertFalse(settings.shouldShowTrendingSearchSuggestions(BrowsingMode.Normal, false))
-    }
-
-    @Test
-    fun `GIVEN is private tab THEN should show trending searches only if allowed`() {
-        val settings = spyk(settings)
-        every { settings.trendingSearchSuggestionsEnabled } returns true
-        every { settings.isTrendingSearchesVisible } returns true
-        every { settings.shouldShowSearchSuggestionsInPrivate } returns true
-
-        assertTrue(settings.shouldShowTrendingSearchSuggestions(BrowsingMode.Private, true))
-        assertTrue(settings.shouldShowTrendingSearchSuggestions(BrowsingMode.Normal, true))
-
-        every { settings.shouldShowSearchSuggestionsInPrivate } returns false
-        assertFalse(settings.shouldShowTrendingSearchSuggestions(BrowsingMode.Private, true))
-        assertTrue(settings.shouldShowTrendingSearchSuggestions(BrowsingMode.Normal, true))
-    }
-
-    @Test
     fun `GIVEN recent search is enable THEN should show recent searches only if recent search is visible`() {
         val settings = spyk(settings)
         every { settings.recentSearchSuggestionsEnabled } returns true

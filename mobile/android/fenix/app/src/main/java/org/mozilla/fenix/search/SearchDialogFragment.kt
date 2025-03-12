@@ -479,16 +479,12 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
         observeClipboardState()
         observeSuggestionProvidersState()
 
-        val browsingMode = (requireActivity() as HomeActivity).browsingModeManager.mode
-        if (view.context.settings().shouldShowTrendingOrRecentSearchSuggestions(
-                browsingMode = browsingMode,
-                isTrendingSuggestionSupported = requireComponents.core.store.state.search
-                    .selectedOrDefaultSearchEngine?.trendingUrl != null,
-            ) && (
-                store.state.query.isNotEmpty() ||
-                    FxNimbus.features.searchSuggestionsOnHomepage.value().enabled
-                )
-        ) {
+        val shouldShowSuggestions = store.state.run {
+            (showTrendingSearches || showRecentSearches || showShortcutsSuggestions) &&
+                (query.isNotEmpty() || FxNimbus.features.searchSuggestionsOnHomepage.value().enabled)
+        }
+
+        if (shouldShowSuggestions) {
             binding.awesomeBar.isVisible = true
         } else {
             observeAwesomeBarState()

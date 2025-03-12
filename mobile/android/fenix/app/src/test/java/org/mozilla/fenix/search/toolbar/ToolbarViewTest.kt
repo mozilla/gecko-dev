@@ -91,6 +91,9 @@ class ToolbarViewTest {
         showAllSessionSuggestions = false,
         showSponsoredSuggestions = false,
         showNonSponsoredSuggestions = false,
+        showTrendingSearches = false,
+        showRecentSearches = false,
+        showShortcutsSuggestions = false,
         searchAccessPoint = MetricsUtils.Source.NONE,
     )
 

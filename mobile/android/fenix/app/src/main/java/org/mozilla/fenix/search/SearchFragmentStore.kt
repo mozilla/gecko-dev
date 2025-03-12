@@ -104,6 +104,9 @@ sealed class SearchEngineSource {
  * AwesomeBar. Always `false` in private mode, or when a non-default engine is selected.
  * @property showNonSponsoredSuggestions Whether or not to show Firefox Suggest search suggestions for web content
  * in the AwesomeBar. Always `false` in private mode, or when a non-default engine is selected.
+ * @property showTrendingSearches Whether the setting for showing trending searches is enabled or disabled.
+ * @property showRecentSearches Whether the setting for showing recent searches is enabled or disabled.
+ * @property showShortcutsSuggestions Whether the setting for showing shortcuts suggestions is enabled or disabled.
  * @property tabId The ID of the current tab.
  * @property pastedText The text pasted from the long press toolbar menu.
  * @property searchAccessPoint The source of the performed search.
@@ -132,6 +135,9 @@ data class SearchFragmentState(
     val showAllSessionSuggestions: Boolean,
     val showSponsoredSuggestions: Boolean,
     val showNonSponsoredSuggestions: Boolean,
+    val showTrendingSearches: Boolean,
+    val showRecentSearches: Boolean,
+    val showShortcutsSuggestions: Boolean,
     val tabId: String?,
     val pastedText: String? = null,
     val searchAccessPoint: MetricsUtils.Source,
@@ -187,6 +193,14 @@ fun createInitialSearchFragmentState(
             settings.enableFxSuggest && settings.showSponsoredSuggestions,
         showNonSponsoredSuggestions = activity.browsingModeManager.mode == BrowsingMode.Normal &&
             settings.enableFxSuggest && settings.showNonSponsoredSuggestions,
+        showTrendingSearches = shouldShowTrendingSearchSuggestions(
+            browsingMode = activity.browsingModeManager.mode,
+            settings = settings,
+            isTrendingSuggestionSupported =
+            components.core.store.state.search.selectedOrDefaultSearchEngine?.trendingUrl != null,
+        ),
+        showRecentSearches = settings.shouldShowRecentSearchSuggestions,
+        showShortcutsSuggestions = settings.shouldShowShortcutSuggestions,
         tabId = tabId,
         pastedText = pastedText,
         searchAccessPoint = searchAccessPoint,
@@ -284,6 +298,13 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
                 showNonSponsoredSuggestions = action.browsingMode == BrowsingMode.Normal &&
                     action.settings.enableFxSuggest && action.settings.showNonSponsoredSuggestions,
                 showAllSessionSuggestions = true,
+                showTrendingSearches = shouldShowTrendingSearchSuggestions(
+                    browsingMode = action.browsingMode,
+                    settings = action.settings,
+                    isTrendingSuggestionSupported = action.engine.trendingUrl != null,
+                ),
+                showRecentSearches = action.settings.shouldShowRecentSearchSuggestions,
+                showShortcutsSuggestions = action.settings.shouldShowShortcutSuggestions,
             )
         is SearchFragmentAction.SearchShortcutEngineSelected ->
             state.copy(
@@ -322,6 +343,13 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
                 },
                 showSponsoredSuggestions = false,
                 showNonSponsoredSuggestions = false,
+                showTrendingSearches = shouldShowTrendingSearchSuggestions(
+                    browsingMode = action.browsingMode,
+                    settings = action.settings,
+                    isTrendingSuggestionSupported = action.engine.trendingUrl != null,
+                ),
+                showRecentSearches = action.settings.shouldShowRecentSearchSuggestions,
+                showShortcutsSuggestions = action.settings.shouldShowShortcutSuggestions,
             )
         is SearchFragmentAction.SearchHistoryEngineSelected ->
             state.copy(
@@ -340,6 +368,9 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
                 showAllSessionSuggestions = false,
                 showSponsoredSuggestions = false,
                 showNonSponsoredSuggestions = false,
+                showTrendingSearches = false,
+                showRecentSearches = false,
+                showShortcutsSuggestions = false,
             )
         is SearchFragmentAction.SearchBookmarksEngineSelected ->
             state.copy(
@@ -358,6 +389,9 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
                 showAllSessionSuggestions = false,
                 showSponsoredSuggestions = false,
                 showNonSponsoredSuggestions = false,
+                showTrendingSearches = false,
+                showRecentSearches = false,
+                showShortcutsSuggestions = false,
             )
         is SearchFragmentAction.SearchTabsEngineSelected ->
             state.copy(
@@ -376,6 +410,9 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
                 showAllSessionSuggestions = true,
                 showSponsoredSuggestions = false,
                 showNonSponsoredSuggestions = false,
+                showTrendingSearches = false,
+                showRecentSearches = false,
+                showShortcutsSuggestions = false,
             )
         is SearchFragmentAction.UpdateQuery ->
             state.copy(query = action.query)
@@ -427,3 +464,19 @@ internal fun shouldShowSearchSuggestions(
     BrowsingMode.Private ->
         settings.shouldShowSearchSuggestions && settings.shouldShowSearchSuggestionsInPrivate
 }
+
+/**
+ * Returns true if trending search suggestions should be shown to the user.
+ *
+ * @param browsingMode Current browsing mode: normal or private.
+ * @param settings Persistence layer containing user option's for showing search suggestions.
+ * @param isTrendingSuggestionSupported is true when trending URL is available.
+ */
+@VisibleForTesting
+internal fun shouldShowTrendingSearchSuggestions(
+    browsingMode: BrowsingMode,
+    settings: Settings,
+    isTrendingSuggestionSupported: Boolean,
+) =
+    settings.trendingSearchSuggestionsEnabled && settings.isTrendingSearchesVisible &&
+        isTrendingSuggestionSupported && shouldShowSearchSuggestions(browsingMode, settings)

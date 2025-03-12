@@ -1166,16 +1166,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
-     * Returns true if trending search suggestions should be shown to the user.
-     */
-    fun shouldShowTrendingSearchSuggestions(
-        browsingMode: BrowsingMode,
-        isTrendingSuggestionSupported: Boolean,
-    ) =
-        trendingSearchSuggestionsEnabled && isTrendingSearchesVisible && isTrendingSuggestionSupported &&
-            shouldShowSearchSuggestions && (!browsingMode.isPrivate || shouldShowSearchSuggestionsInPrivate)
-
-    /**
      * Indicates if the user have enabled recent search in the search suggestions setting preference.
      */
     @VisibleForTesting
@@ -1189,16 +1179,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      */
     val shouldShowRecentSearchSuggestions: Boolean
         get() = recentSearchSuggestionsEnabled && isRecentSearchesVisible
-
-    /**
-     * Returns true if trending searches or recent searches should be shown to the user.
-     */
-    fun shouldShowTrendingOrRecentSearchSuggestions(
-        browsingMode: BrowsingMode,
-        isTrendingSuggestionSupported: Boolean,
-    ) =
-        shouldShowTrendingSearchSuggestions(browsingMode, isTrendingSuggestionSupported) ||
-            shouldShowRecentSearchSuggestions || shouldShowShortcutSuggestions
 
     var showSearchSuggestionsInPrivateOnboardingFinished by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_show_search_suggestions_in_private_onboarding),

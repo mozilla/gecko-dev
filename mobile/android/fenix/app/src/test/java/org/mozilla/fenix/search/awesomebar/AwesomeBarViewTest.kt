@@ -1317,6 +1317,7 @@ class AwesomeBarViewTest {
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
             showSearchTermHistory = false,
+            showRecentSearches = false,
         )
         val result = awesomeBarView.getProvidersToAdd(state)
 
@@ -1329,6 +1330,7 @@ class AwesomeBarViewTest {
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
             showSearchTermHistory = true,
+            showRecentSearches = false,
         )
         val result = awesomeBarView.getProvidersToAdd(state)
 
@@ -1452,12 +1454,12 @@ class AwesomeBarViewTest {
 
     @Test
     fun `GIVEN should show trending searches WHEN configuring providers THEN add the trending search provider`() {
-        every { activity.settings() } returns mockk(relaxed = true) {
-            every { shouldShowTrendingSearchSuggestions(any(), any()) } returns true
-        }
+        val settings: Settings = mockk(relaxed = true)
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
-            searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
+            showTrendingSearches = true,
         )
+
         val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(1, result.filterIsInstance<TrendingSearchProvider>().size)
@@ -1465,38 +1467,38 @@ class AwesomeBarViewTest {
 
     @Test
     fun `GIVEN should not show trending searches WHEN configuring providers THEN don't add the trending search provider`() {
-        every { activity.settings() } returns mockk(relaxed = true) {
-            every { shouldShowTrendingSearchSuggestions(any(), any()) } returns false
-        }
+        val settings: Settings = mockk(relaxed = true)
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
-            searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
+            showTrendingSearches = false,
         )
+
         val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(0, result.filterIsInstance<TrendingSearchProvider>().size)
     }
 
     @Test
-    fun `GIVEN should show shortcut suggestions WHEN configuring providers THEN add the top sites provider and top sites suggestion providers`() {
-        every { activity.settings() } returns mockk(relaxed = true) {
-            every { shouldShowShortcutSuggestions } returns true
-        }
+    fun `GIVEN should show shortcuts suggestions WHEN configuring providers THEN add the top sites provider and top sites suggestion providers`() {
+        val settings: Settings = mockk(relaxed = true)
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
-            searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
+            showShortcutsSuggestions = true,
         )
+
         val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(1, result.filterIsInstance<TopSitesSuggestionProvider>().size)
     }
 
     @Test
-    fun `GIVEN should not show shortcut suggestions WHEN configuring providers THEN don't add the top sites provider`() {
-        every { activity.settings() } returns mockk(relaxed = true) {
-            every { shouldShowShortcutSuggestions } returns false
-        }
+    fun `GIVEN should not show shortcuts suggestions WHEN configuring providers THEN don't add the top sites provider`() {
+        val settings: Settings = mockk(relaxed = true)
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
-            searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
+            showShortcutsSuggestions = false,
         )
+
         val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(0, result.filterIsInstance<TopSitesSuggestionProvider>().size)
@@ -1504,28 +1506,32 @@ class AwesomeBarViewTest {
 
     @Test
     fun `GIVEN should show recent searches WHEN configuring providers THEN add the recent search suggestions provider`() {
-        every { activity.settings() } returns mockk(relaxed = true) {
-            every { shouldShowRecentSearchSuggestions } returns true
-        }
+        val settings: Settings = mockk(relaxed = true)
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
+            showSearchTermHistory = false,
+            showRecentSearches = true,
         )
+
         val result = awesomeBarView.getProvidersToAdd(state)
 
-        assertEquals(2, result.filterIsInstance<SearchTermSuggestionsProvider>().size)
+        assertEquals(1, result.filterIsInstance<SearchTermSuggestionsProvider>().size)
     }
 
     @Test
     fun `GIVEN should not show recent searches WHEN configuring providers THEN don't add the recent search suggestions provider`() {
-        every { activity.settings() } returns mockk(relaxed = true) {
-            every { shouldShowRecentSearchSuggestions } returns false
-        }
+        val settings: Settings = mockk(relaxed = true)
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
+            showSearchTermHistory = false,
+            showRecentSearches = false,
         )
+
         val result = awesomeBarView.getProvidersToAdd(state)
 
-        assertEquals(1, result.filterIsInstance<SearchTermSuggestionsProvider>().size)
+        assertEquals(0, result.filterIsInstance<SearchTermSuggestionsProvider>().size)
     }
 }
 
@@ -1547,6 +1553,9 @@ private fun getSearchProviderState(
     searchEngineSource: SearchEngineSource = SearchEngineSource.None,
     showSponsoredSuggestions: Boolean = true,
     showNonSponsoredSuggestions: Boolean = true,
+    showTrendingSearches: Boolean = true,
+    showRecentSearches: Boolean = true,
+    showShortcutsSuggestions: Boolean = true,
 ) = SearchProviderState(
     showSearchShortcuts = showSearchShortcuts,
     showSearchTermHistory = showSearchTermHistory,
@@ -1561,5 +1570,8 @@ private fun getSearchProviderState(
     showAllSessionSuggestions = showAllSessionSuggestions,
     showSponsoredSuggestions = showSponsoredSuggestions,
     showNonSponsoredSuggestions = showNonSponsoredSuggestions,
+    showTrendingSearches = showTrendingSearches,
+    showRecentSearches = showRecentSearches,
+    showShortcutsSuggestions = showShortcutsSuggestions,
     searchEngineSource = searchEngineSource,
 )

@@ -302,7 +302,6 @@ class AwesomeBarView(
         state: SearchProviderState,
     ): MutableSet<AwesomeBar.SuggestionProvider> {
         val providersToAdd = mutableSetOf<AwesomeBar.SuggestionProvider>()
-        val browsingMode = activity.browsingModeManager.mode
 
         when (state.searchEngineSource) {
             is SearchEngineSource.History -> {
@@ -321,7 +320,7 @@ class AwesomeBarView(
             )?.let { providersToAdd.add(it) }
         }
 
-        if (activity.settings().shouldShowRecentSearchSuggestions) {
+        if (state.showRecentSearches) {
             getRecentSearchSuggestionsProvider(
                 searchEngineSource = state.searchEngineSource,
                 maxNumberOfSuggestions = FxNimbus.features.recentSearches.value().maxSuggestions,
@@ -412,15 +411,11 @@ class AwesomeBarView(
 
         providersToAdd.add(searchEngineSuggestionProvider)
 
-        if (activity.settings().shouldShowShortcutSuggestions) {
+        if (state.showShortcutsSuggestions) {
             providersToAdd.add(defaultTopSitesSuggestionProvider)
         }
 
-        if (activity.settings().shouldShowTrendingSearchSuggestions(
-                browsingMode = browsingMode,
-                isTrendingSuggestionSupported = state.searchEngineSource.searchEngine?.trendingUrl != null,
-            )
-        ) {
+        if (state.showTrendingSearches) {
             providersToAdd.add(defaultTrendingSearchProvider)
         }
 
@@ -670,6 +665,9 @@ class AwesomeBarView(
         val showAllSessionSuggestions: Boolean,
         val showSponsoredSuggestions: Boolean,
         val showNonSponsoredSuggestions: Boolean,
+        val showTrendingSearches: Boolean,
+        val showRecentSearches: Boolean,
+        val showShortcutsSuggestions: Boolean,
         val searchEngineSource: SearchEngineSource,
     )
 
@@ -740,5 +738,8 @@ fun SearchFragmentState.toSearchProviderState() = AwesomeBarView.SearchProviderS
     showAllSessionSuggestions = showAllSessionSuggestions,
     showSponsoredSuggestions = showSponsoredSuggestions,
     showNonSponsoredSuggestions = showNonSponsoredSuggestions,
+    showTrendingSearches = showTrendingSearches,
+    showRecentSearches = showRecentSearches,
+    showShortcutsSuggestions = showShortcutsSuggestions,
     searchEngineSource = searchEngineSource,
 )
