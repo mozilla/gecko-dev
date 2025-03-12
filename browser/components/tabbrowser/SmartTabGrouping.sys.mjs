@@ -50,8 +50,11 @@ export const SUGGEST_OTHER_TABS_METHODS = {
 export const DIM_REDUCTION_METHODS = {};
 const MISSING_ANCHOR_IN_CLUSTER_PENALTY = 0.2;
 const NEAREST_NEIGHBOR_DEFAULT_THRESHOLD = 0.2;
-const DISSIMILAR_TAB_LABEL = "None";
 const MAX_NN_GROUPED_TABS = 4;
+
+const DISSIMILAR_TAB_LABEL = "none";
+const ADULT_TAB_LABEL = "adult content";
+const LABELS_TO_EXCLUDE = [DISSIMILAR_TAB_LABEL, ADULT_TAB_LABEL];
 
 const ML_TASK_FEATURE_EXTRACTION = "feature-extraction";
 const ML_TASK_TEXT2TEXT = "text2text-generation";
@@ -626,6 +629,40 @@ export class SmartTabGroupingManager {
   }
 
   /**
+   * One artifact of the LLM output is that sometimes words are duplicated
+   * This function cuts the phrase when it sees the first duplicate word.
+   * @param {string} phrase Input phrase
+   * @returns {string} phrase cut before any duplicate word
+   */
+  static cutAtDuplicateWords(phrase) {
+    if (!phrase.length) {
+      return phrase;
+    }
+    const wordsSet = new Set();
+    const wordList = phrase.split(" ");
+    for (let i = 0; i < wordList.length; i++) {
+      const lowerWord = wordList[i].toLowerCase();
+      if (wordsSet.has(lowerWord)) {
+        return wordList.slice(0, i).join(" ");
+      }
+      wordsSet.add(lowerWord);
+    }
+    return phrase;
+  }
+
+  /**
+   * Postprocessing of raw output from Topic Model ML Engine
+   * @param {string | undefined} topic Raw topic phrase from topic model or undefined in case of an error
+   */
+  static processTopicModelResult(topic) {
+    let basicResult = (topic || "").trim();
+    if (LABELS_TO_EXCLUDE.includes(basicResult.toLowerCase())) {
+      return "";
+    }
+    return SmartTabGroupingManager.cutAtDuplicateWords(basicResult);
+  }
+
+  /**
    * Add titles to a cluster in a SmartTabGroupingResult using generative tehniques
    * Currently this function only works with a single target group, and a separate
    * item that represents all other ungrouped tabs.
@@ -665,11 +702,9 @@ export class SmartTabGroupingManager {
     genLabelResults.forEach((genResult, genResultIndex) => {
       groupingResult.clusterRepresentations[
         genResultIndex
-      ].predictedTopicLabel = (
-        (genResult.generated_text || "").trim() === DISSIMILAR_TAB_LABEL
-          ? ""
-          : genResult.generated_text || ""
-      ).trim();
+      ].predictedTopicLabel = SmartTabGroupingManager.processTopicModelResult(
+        genResult.generated_text
+      );
     });
   }
 

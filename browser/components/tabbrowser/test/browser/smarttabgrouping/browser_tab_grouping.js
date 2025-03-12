@@ -203,3 +203,53 @@ add_task(async function testAnchorClustering() {
   // Print / log score info here when testing
   SimpleTest.waitForExplicitFinish();
 });
+
+add_task(function processTopicModelResult() {
+  const input_phrases = [
+    "",
+    "None", // Target of model if uncertain
+    " Adult Content", // This is a common target of the model on inapproprate content
+    " Zoom Room zoom",
+    " Cats are great",
+    " Cats",
+    "Dogs!!!",
+  ];
+  const output_phrases = [
+    "",
+    "",
+    "",
+    "Zoom Room",
+    "Cats are great",
+    "Cats",
+    "Dogs!!!",
+  ];
+  for (let i = 0; i < input_phrases.length; i++) {
+    Assert.equal(
+      SmartTabGroupingManager.processTopicModelResult(input_phrases[i]),
+      output_phrases[i]
+    );
+  }
+});
+
+add_task(function testDuplicateWords() {
+  const input_phrases = [
+    "",
+    " ",
+    "Ask me about my cat",
+    "Ask me about my cat cat cat",
+    "Zoom Room zoom",
+  ];
+  const output_phrases = [
+    "",
+    "",
+    "Ask me about my cat",
+    "Ask me about my cat",
+    "Zoom Room",
+  ];
+  for (let i = 0; i < input_phrases.length; i++) {
+    Assert.equal(
+      SmartTabGroupingManager.cutAtDuplicateWords(input_phrases[i]),
+      output_phrases[i]
+    );
+  }
+});
