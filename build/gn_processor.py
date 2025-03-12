@@ -15,7 +15,6 @@ from pathlib import Path
 from shutil import which
 
 import mozpack.path as mozpath
-import six
 from mozbuild.bootstrap import bootstrap_toolchain
 from mozbuild.dirutils import mkdir
 from mozbuild.frontend.sandbox import alphabetical_sorted
@@ -297,7 +296,7 @@ def process_gn_config(
         return path
 
     # Process all targets from the given gn project and its dependencies.
-    for target_fullname, spec in six.iteritems(targets):
+    for target_fullname, spec in targets.items():
         target_path, target_name = target_info(target_fullname)
         context_attrs = {}
 
@@ -307,7 +306,7 @@ def process_gn_config(
         if spec["type"] in ("static_library", "shared_library", "source_set", "action"):
             if name.startswith("lib"):
                 name = name[3:]
-            context_attrs["LIBRARY_NAME"] = six.ensure_text(name)
+            context_attrs["LIBRARY_NAME"] = str(name)
         else:
             raise Exception(
                 "The following GN target type is not currently "
@@ -404,7 +403,7 @@ def process_gn_config(
             ]
             for f in flags:
                 # the result may be a string or a list.
-                if isinstance(f, six.string_types):
+                if isinstance(f, str):
                     context_attrs.setdefault(var, []).append(f)
                 else:
                     context_attrs.setdefault(var, []).extend(f)
@@ -489,7 +488,7 @@ def find_common_attrs(config_attributes):
     def make_difference(reference, input_attrs):
         # Modifies `input_attrs` so that after calling this function it contains
         # no parts it has in common with in `reference`.
-        for k, input_value in list(six.iteritems(input_attrs)):
+        for k, input_value in list(input_attrs.items()):
             common_value = reference.get(k)
             if common_value:
                 if isinstance(input_value, list):
@@ -722,7 +721,7 @@ def generate_gn_config(
         )
 
     gn_args = "--args=%s" % " ".join(
-        ["%s=%s" % (k, str_for_arg(v)) for k, v in six.iteritems(input_variables)]
+        ["%s=%s" % (k, str_for_arg(v)) for k, v in input_variables.items()]
     )
     with tempfile.TemporaryDirectory() as tempdir:
         # On Mac, `tempdir` starts with /var which is a symlink to /private/var.
