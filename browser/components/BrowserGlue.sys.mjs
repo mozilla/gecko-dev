@@ -173,7 +173,7 @@ let JSPROCESSACTORS = {
     },
 
     enablePreference: "accessibility.blockautorefresh",
-    onPreferenceChanged: (prefName, prevValue, isEnabled) => {
+    onPreferenceChanged: isEnabled => {
       lazy.BrowserWindowTracker.orderedWindows.forEach(win => {
         for (let browser of win.gBrowser.browsers) {
           try {
@@ -571,26 +571,23 @@ let JSWINDOWACTORS = {
     },
     allFrames: true,
     onAddActor(register, unregister) {
+      let isRegistered = false;
+
       // Register the actor if we have a provider set and not yet registered
-      const maybeRegister = (val, prev) => {
-        if (val) {
-          if (!prev) {
+      const maybeRegister = () => {
+        if (Services.prefs.getCharPref("browser.ml.chat.provider", "")) {
+          if (!isRegistered) {
             register();
+            isRegistered = true;
           }
-        } else {
+        } else if (isRegistered) {
           unregister();
+          isRegistered = false;
         }
       };
 
-      // Detect pref changes and handle initial value
-      XPCOMUtils.defineLazyPreferenceGetter(
-        this,
-        "_pref",
-        "browser.ml.chat.provider",
-        "",
-        (_pref, prev, val) => maybeRegister(val, prev)
-      );
-      maybeRegister(this._pref);
+      Services.prefs.addObserver("browser.ml.chat.provider", maybeRegister);
+      maybeRegister();
     },
   },
 

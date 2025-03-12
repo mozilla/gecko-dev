@@ -9,7 +9,6 @@
  */
 
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
-import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 /**
  * Fission-compatible JSProcess implementations.
@@ -312,47 +311,38 @@ let JSWINDOWACTORS = {
     messageManagerGroups: ["browsers"],
     // Cookie banners can be shown in sub-frames so we need to include them.
     allFrames: true,
-    // Holds lazy pref getters.
-    _prefs: {},
-    // Remember current register state to avoid duplicate calls to register /
-    // unregister.
-    _isRegistered: false,
     onAddActor(register, unregister) {
-      // Register / unregister on pref changes.
-      let onPrefChange = () => {
-        if (
-          this._prefs["cookiebanners.bannerClicking.enabled"] &&
-          (this._prefs["cookiebanners.service.mode"] != 0 ||
-            this._prefs["cookiebanners.service.mode.privateBrowsing"] != 0)
-        ) {
-          if (!this._isRegistered) {
+      let isRegistered = false;
+
+      const maybeRegister = () => {
+        const isEnabled = Services.prefs.getBoolPref(
+          "cookiebanners.bannerClicking.enabled",
+          false
+        );
+        const mode = Services.prefs.getIntPref("cookiebanners.service.mode", 0);
+        const privateBrowsing = Services.prefs.getIntPref(
+          "cookiebanners.service.mode.privateBrowsing"
+        );
+        if (isEnabled && (mode != 0 || privateBrowsing != 0)) {
+          if (!isRegistered) {
             register();
-            this._isRegistered = true;
+            isRegistered = true;
           }
-        } else if (this._isRegistered) {
+        } else if (isRegistered) {
           unregister();
-          this._isRegistered = false;
+          isRegistered = false;
         }
       };
 
-      // Add lazy pref getters with pref observers so we can dynamically enable
-      // or disable the actor.
       [
         "cookiebanners.bannerClicking.enabled",
         "cookiebanners.service.mode",
         "cookiebanners.service.mode.privateBrowsing",
       ].forEach(prefName => {
-        XPCOMUtils.defineLazyPreferenceGetter(
-          this._prefs,
-          prefName,
-          prefName,
-          null,
-          onPrefChange
-        );
+        Services.prefs.addObserver(prefName, maybeRegister);
       });
 
-      // Check initial state.
-      onPrefChange();
+      maybeRegister();
     },
   },
 
@@ -774,24 +764,22 @@ export var ActorManagerParent = {
       // If enablePreference is set, only register the actor while the
       // preference is set to true.
       if (actor.enablePreference) {
-        let actorNameProp = actorName + "_Preference";
-        XPCOMUtils.defineLazyPreferenceGetter(
-          this,
-          actorNameProp,
-          actor.enablePreference,
-          false,
-          (prefName, prevValue, isEnabled) => {
-            if (isEnabled) {
-              register(actorName, actor);
-            } else {
-              unregister(actorName, actor);
-            }
-            if (actor.onPreferenceChanged) {
-              actor.onPreferenceChanged(prefName, prevValue, isEnabled);
-            }
+        Services.prefs.addObserver(actor.enablePreference, () => {
+          const isEnabled = Services.prefs.getBoolPref(
+            actor.enablePreference,
+            false
+          );
+          if (isEnabled) {
+            register(actorName, actor);
+          } else {
+            unregister(actorName, actor);
           }
-        );
-        if (!this[actorNameProp]) {
+          if (actor.onPreferenceChanged) {
+            actor.onPreferenceChanged(isEnabled);
+          }
+        });
+
+        if (!Services.prefs.getBoolPref(actor.enablePreference, false)) {
           continue;
         }
       }
