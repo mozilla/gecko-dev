@@ -5002,6 +5002,15 @@ var SessionStoreInternal = {
 
     lazy.DevToolsShim.restoreDevToolsSession(lastSessionState);
 
+    // When the deferred session was created, open tab groups were converted to saved groups.
+    // Now that they have been restored, they need to be removed from the saved groups list.
+    let groupsToRemove = this._savedGroups.filter(
+      group => group.removeAfterRestore
+    );
+    for (let group of groupsToRemove) {
+      this.forgetSavedTabGroup(group.id);
+    }
+
     // Set data that persists between sessions
     this._recentCrashes =
       (lastSessionState.session && lastSessionState.session.recentCrashes) || 0;
@@ -6971,9 +6980,6 @@ var SessionStoreInternal = {
    * defaultState will be restored at startup. state will be passed into
    * LastSession and will be kept in case the user explicitly wants
    * to restore the previous session (publicly exposed as restoreLastSession).
-   * Note that restoreLastSession will not restore any grouped tabs that were
-   * present at last shutdown, as they will have been converted to saved
-   * groups.
    *
    * @param state
    *        The startupState, presumably from SessionStartup.state
@@ -7027,8 +7033,7 @@ var SessionStoreInternal = {
           // We don't want to increment tIndex here.
           continue;
         } else if (window.tabs[tIndex].groupId) {
-          // Convert any open groups into saved groups
-          // and remove them from the session.
+          // Convert any open groups into saved groups.
           let groupStateToSave = window.groups.find(
             groupState => groupState.id == window.tabs[tIndex].groupId
           );
@@ -7036,12 +7041,13 @@ var SessionStoreInternal = {
           if (!groupToSave) {
             groupToSave =
               lazy.TabGroupState.savedInClosedWindow(groupStateToSave);
+            // If the session is manually restored, these groups will be removed from the saved groups list
+            // to prevent duplication.
+            groupToSave.removeAfterRestore = true;
             groupsToSave.set(groupStateToSave.id, groupToSave);
           }
-          let [tabToAdd] = window.tabs.splice(tIndex, 1);
+          let tabToAdd = window.tabs[tIndex];
           groupToSave.tabs.push(this._formatTabStateForSavedGroup(tabToAdd));
-          // We don't want to increment tIndex here.
-          continue;
         } else if (!window.tabs[tIndex].hidden && PERSIST_SESSIONS) {
           // Add any previously open tabs that aren't pinned or hidden to the recently closed tabs list
           // which we want to persist between sessions; if the session is manually restored, they will
