@@ -56,6 +56,7 @@ object CustomAttributeProvider : JexlAttributeProvider {
                 "install_referrer_response_utm_campaign" to settings.utmCampaign,
                 "install_referrer_response_utm_term" to settings.utmTerm,
                 "install_referrer_response_utm_content" to settings.utmContent,
+                "number_of_app_launches" to settings.numberOfAppLaunches,
                 // This camelCase attribute is a boolean value represented as a string.
                 // This is left for backwards compatibility.
                 "isFirstRun" to isFirstRun.toString(),
