@@ -188,12 +188,12 @@ impl MaxSize {
             Self::LengthPercentage(ref lp) => Some(lp.to_used_value(percentage_basis)),
             Self::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
         }
-     }
+    }
 
-     /// Convert the computed value into used value if there is enough information.
-     #[inline]
-     pub fn maybe_to_used_value(&self, percentage_basis: Option<Au>) -> Option<Au> {
-         match *self {
+    /// Convert the computed value into used value if there is enough information.
+    #[inline]
+    pub fn maybe_to_used_value(&self, percentage_basis: Option<Au>) -> Option<Au> {
+        match *self {
             Self::None | Self::MinContent | Self::MaxContent | Self::FitContent | Self::Stretch => {
                 None
             },
@@ -215,13 +215,13 @@ impl Size {
             Self::LengthPercentage(ref lp) => Some(lp.to_used_value(percentage_basis)),
             Self::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
         }
-     }
+    }
 
-     /// Convert the computed value into used value if there is enough information.
-     #[inline]
-     #[cfg(feature = "servo")]
-     pub fn maybe_to_used_value(&self, percentage_basis: Option<Au>) -> Option<Au> {
-         match *self {
+    /// Convert the computed value into used value if there is enough information.
+    #[inline]
+    #[cfg(feature = "servo")]
+    pub fn maybe_to_used_value(&self, percentage_basis: Option<Au>) -> Option<Au> {
+        match *self {
             Self::Auto | Self::MinContent | Self::MaxContent | Self::FitContent | Self::Stretch => {
                 None
             },
@@ -242,7 +242,7 @@ impl Size {
             Self::Stretch |
             Self::AnchorSizeFunction(_) => false,
             #[cfg(feature = "gecko")]
-            Self::MozAvailable | Self::WebkitFillAvailable | Self::FitContentFunction(_)=> false,
+            Self::MozAvailable | Self::WebkitFillAvailable | Self::FitContentFunction(_) => false,
         }
     }
 }
@@ -487,11 +487,11 @@ impl Sub for CSSPixelLength {
 }
 
 impl SubAssign for CSSPixelLength {
-     #[inline]
-     fn sub_assign(&mut self, other: Self) {
-         self.0 -= other.0;
-     }
- }
+    #[inline]
+    fn sub_assign(&mut self, other: Self) {
+        self.0 -= other.0;
+    }
+}
 
 impl From<CSSPixelLength> for Au {
     #[inline]
