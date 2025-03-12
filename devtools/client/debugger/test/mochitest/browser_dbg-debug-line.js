@@ -39,7 +39,7 @@ add_task(async function () {
 
   info("Ensuring there's no zombie debug line");
   is(
-    findAllElements(dbg, "debugLine").length,
+    findAllElements(dbg, "pausedLine").length,
     0,
     "Debug line no longer exists!"
   );

@@ -411,22 +411,24 @@ async function _assertDebugLine(dbg, line, column) {
     return;
   }
 
+  // Consider pausing on error also as being paused
   ok(
-    lineInfo?.wrapClass.includes("new-debug-line"),
+    lineInfo?.wrapClass.includes("paused-line") ||
+      lineInfo?.wrapClass.includes("new-debug-line-error"),
     `Line ${line} is not highlighted as paused`
   );
 
-  const debugLine =
-    findElement(dbg, "debugLine") || findElement(dbg, "debugErrorLine");
+  const pausedLine =
+    findElement(dbg, "pausedLine") || findElement(dbg, "debugErrorLine");
 
   is(
-    findAllElements(dbg, "debugLine").length +
+    findAllElements(dbg, "pausedLine").length +
       findAllElements(dbg, "debugErrorLine").length,
     1,
     "There is only one line"
   );
 
-  ok(isVisibleInEditor(dbg, debugLine), "debug line is visible");
+  ok(isVisibleInEditor(dbg, pausedLine), "debug line is visible");
 
   const markedSpans = lineInfo.handle.markedSpans;
   if (markedSpans && markedSpans.length && !isWasmBinarySource(source)) {
@@ -1936,7 +1938,7 @@ const selectors = {
   highlightLine: isCm6Enabled
     ? ".cm-content > .highlight-line"
     : ".CodeMirror-code > .highlight-line",
-  debugLine: ".new-debug-line",
+  pausedLine: ".paused-line",
   debugErrorLine: ".new-debug-line-error",
   codeMirror: isCm6Enabled ? ".cm-editor" : ".CodeMirror",
   resume: ".resume.active",

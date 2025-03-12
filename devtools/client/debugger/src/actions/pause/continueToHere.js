@@ -25,10 +25,10 @@ export function continueToHere(location) {
       return;
     }
 
-    const debugLine = selectedFrame.location.line;
+    const pausedLine = selectedFrame.location.line;
     // If the user selects a line to continue to,
     // it must be different than the currently paused line.
-    if (!column && debugLine == line) {
+    if (!column && pausedLine == line) {
       return;
     }
 
