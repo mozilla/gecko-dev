@@ -3293,9 +3293,8 @@ void nsWindow::RecomputeBounds(MayChangeCsdMargin aMayChangeCsdMargin) {
   const auto oldBounds = mBounds;
   const auto oldMargin = mClientMargin;
   const auto frameBounds = GetFrameBounds(toplevel);
-  const bool decorated = IsTopLevelWidget() &&
-                         mSizeMode != nsSizeMode_Fullscreen &&
-                         gtk_window_get_decorated(GTK_WINDOW(mShell));
+  const bool decorated =
+      IsTopLevelWidget() && mSizeMode != nsSizeMode_Fullscreen && !mUndecorated;
   const auto toplevelBounds = GetBounds(toplevel);
 
   mBounds = frameBounds;
