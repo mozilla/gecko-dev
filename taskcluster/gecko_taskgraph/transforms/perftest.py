@@ -357,3 +357,11 @@ def apply_perftest_tier_optimization(config, jobs):
         job["optimization"] = {"skip-unless-backstop": None}
         job["treeherder"]["tier"] = max(job["treeherder"]["tier"], 2)
         yield job
+
+
+@transforms.add
+def set_perftest_attributes(config, jobs):
+    for job in jobs:
+        attributes = job.setdefault("attributes", {})
+        attributes["perftest_name"] = job["name"]
+        yield job

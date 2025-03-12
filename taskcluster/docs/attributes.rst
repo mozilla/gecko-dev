@@ -316,6 +316,9 @@ batch
 =====
 Used by `perftest` to indicates that a task can be run as a batch.
 
+perftest_name
+=============
+Used by `perftest` to indicate the test name being run.
 
 enable-full-crashsymbols
 ========================
