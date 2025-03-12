@@ -57,7 +57,7 @@ module.exports = class RequestListColumnWaterfall extends Component {
 
   // FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1774507
   UNSAFE_componentWillReceiveProps(nextProps) {
-    if (nextProps.isVisible && nextProps.item.totalTime) {
+    if (nextProps.isVisible && typeof nextProps.item.totalTime === "number") {
       const { connector, item } = nextProps;
       fetchNetworkUpdatePacket(connector.requestData, item, ["eventTimings"]);
     }
