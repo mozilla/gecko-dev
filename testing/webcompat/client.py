@@ -1327,16 +1327,19 @@ class Client:
         if element is None:
             return False
 
-        return self.session.execute_script(
-            """
-              const e = arguments[0],
-                    s = window.getComputedStyle(e),
-                    v = s.visibility === "visible",
-                    o = Math.abs(parseFloat(s.opacity));
-              return e.getClientRects().length > 0 && v && (isNaN(o) || o === 1.0);
-          """,
-            args=[element],
-        )
+        try:
+            return self.session.execute_script(
+                """
+                  const e = arguments[0],
+                  s = window.getComputedStyle(e),
+                  v = s.visibility === "visible",
+                  o = Math.abs(parseFloat(s.opacity));
+                  return e.getClientRects().length > 0 && v && (isNaN(o) || o === 1.0);
+              """,
+                args=[element],
+            )
+        except webdriver.error.StaleElementReferenceException:
+            return False
 
     def is_one_solid_color(self, element, max_fuzz=8):
         # max_fuzz is needed as screenshots can have slight color bleeding/fringing

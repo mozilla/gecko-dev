@@ -30,6 +30,8 @@ SHIMS_PREF = "extensions.webcompat.enable_shims"
 STRICT_ETP_PREF = "privacy.trackingprotection.enabled"
 UA_OVERRIDES_PREF = "extensions.webcompat.perform_ua_overrides"
 SYSTEM_ADDON_UPDATES_PREF = "extensions.systemAddon.update.enabled"
+DOWNLOAD_TO_TEMP_PREF = "browser.download.start_downloads_in_tmp_dir"
+DELETE_DOWNLOADS_PREF = "browser.helperApps.deleteTempFileOnExit"
 
 
 class WebDriver:
@@ -109,6 +111,11 @@ class FirefoxWebDriver(WebDriver):
         # prevent "allow notifications for?" popups by setting the
         # default permission for notificaitons to PERM_DENY_ACTION.
         prefs[NOTIFICATIONS_PERMISSIONS_PREF] = 2
+
+        # if any downloads happen, put them in a temporary folder.
+        prefs[DOWNLOAD_TO_TEMP_PREF] = True
+        # also delete those files afterward.
+        prefs[DELETE_DOWNLOADS_PREF] = True
 
         fx_options = {"prefs": prefs}
 
