@@ -2509,6 +2509,21 @@
       }
     ]
   },
+  "1902382": {
+    "label": "flash.puffin.com",
+    "bugs": {
+      "1902382": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://flash.puffin.com/store/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1902397": {
     "label": "e-src.net",
     "bugs": {
