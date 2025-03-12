@@ -850,8 +850,19 @@ impl<'le> GeckoElement<'le> {
     /// This logic is duplicated in Gecko's nsIContent::IsRootOfNativeAnonymousSubtree.
     #[inline]
     fn is_root_of_native_anonymous_subtree(&self) -> bool {
-        use crate::gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS_ROOT;
-        return self.flags() & NODE_IS_NATIVE_ANONYMOUS_ROOT != 0;
+        return self.flags() & structs::NODE_IS_NATIVE_ANONYMOUS_ROOT != 0;
+    }
+
+    /// Whether the element is in an anonymous subtree. Note that this includes UA widgets!
+    #[inline]
+    fn in_native_anonymous_subtree(&self) -> bool {
+        (self.flags() & structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE) != 0
+    }
+
+    /// Whether the element has been in a UA widget
+    #[inline]
+    fn in_ua_widget(&self) -> bool {
+        (self.flags() & structs::NODE_HAS_BEEN_IN_UA_WIDGET) != 0
     }
 
     fn css_transitions_info(&self) -> FxHashMap<OwnedPropertyDeclarationId, Arc<AnimationValue>> {
@@ -1420,17 +1431,12 @@ impl<'le> TElement for GeckoElement<'le> {
     /// pseudo-elements).
     #[inline]
     fn matches_user_and_content_rules(&self) -> bool {
-        use crate::gecko_bindings::structs::{
-            NODE_HAS_BEEN_IN_UA_WIDGET, NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE,
-        };
-        let flags = self.flags();
-        (flags & NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE) == 0 ||
-            (flags & NODE_HAS_BEEN_IN_UA_WIDGET) != 0
+        !self.in_native_anonymous_subtree() || self.in_ua_widget()
     }
 
     #[inline]
     fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
-        if self.matches_user_and_content_rules() {
+        if !self.in_native_anonymous_subtree() {
             return None;
         }
 
@@ -1902,14 +1908,17 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     #[inline]
     fn pseudo_element_originating_element(&self) -> Option<Self> {
         debug_assert!(self.is_pseudo_element());
-        debug_assert!(!self.matches_user_and_content_rules());
+        debug_assert!(self.in_native_anonymous_subtree());
+        if self.in_ua_widget() {
+            return self.containing_shadow_host();
+        }
         let mut current = *self;
         loop {
-            if current.is_root_of_native_anonymous_subtree() {
-                return current.traversal_parent();
-            }
-
+            let anon_root = current.is_root_of_native_anonymous_subtree();
             current = current.traversal_parent()?;
+            if anon_root {
+                return Some(current);
+            }
         }
     }
 
