@@ -27,9 +27,9 @@
         &lt;br&gt;&lt;br&gt;
         &lt;label&gt;വെബ്‌സൈറ്റുകൾ സർട്ടിഫിക്കറ്റുകൾ വഴി അവരുടെ ഐഡന്റിറ്റി തെളിയിക്കുന്നു. %1$s നെ&lt;b&gt;%2$s&lt;/b&gt; വിശ്വസിയ്ക്കുന്നില്ല, കാരണം അതിന്റെ സർ‌ട്ടിഫിക്കറ്റ് നൽ‌കുന്നയാൾ‌ ഒന്നുകിൽ അജ്ഞാതനാണ് അല്ലെങ്കിൽ സർ‌ട്ടിഫിക്കറ്റ് സ്വയം ഒപ്പിട്ടതാണ്, അതുമല്ലെങ്കിൽ‌ സെർ‌വർ‌ ശരിയായ ഇന്റർ‌മീഡിയറ്റ് സർ‌ട്ടിഫിക്കറ്റുകൾ‌ അയയ്‌ക്കുന്നില്ല.&lt;/label&gt;</string>
   <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_back">തിരികെ പോകുക (ശുപാർശചെയ്യുന്നു)</string>
+  <string name="mozac_browser_errorpages_security_bad_cert_back">തിരിച്ചു് (ശുപാൎശചെയ്തതു്)</string>
   <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">അപകടസാധ്യത സ്വീകരിച്ച് തുടരുക</string>
+  <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">അപകടസാധ്യത ഉൾക്കൊണ്ടുകൊണ്ടു തുടരുക</string>
   <!-- The document title and heading of the error page shown when a website uses HSTS. -->
   <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">ഈ വെബ്സ്ഥാനത്തിനൊരു സുരക്ഷിതമായ സമ്പർക്കത്തിന്റെ ആവശ്യമുണ്ടു്.</string>
   <!-- The error message shown when a website uses HSTS. -->
@@ -50,10 +50,10 @@
   <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
   <string name="mozac_browser_errorpages_net_interrupt_title">കണക്ഷൻ തടസ്സപ്പെട്ടു</string>
   <!-- The error message shown when the user's network connection is interrupted while connecting to a website. -->
-  <string name="mozac_browser_errorpages_net_interrupt_message">&lt;p&gt; ബ്രൗസർ വിജയകരമായി കണക്റ്റുചെയ്തു, പക്ഷേ വിവരങ്ങൾ കൈമാറുമ്പോൾ കണക്ഷൻ തടസ്സപ്പെട്ടു. ദയവായി വീണ്ടും ശ്രമിക്കുക.&lt;/p&gt;
+  <string name="mozac_browser_errorpages_net_interrupt_message">&lt;p&gt; അന്വേഷിയന്ത്രം വിജയകരമായി ബന്ധപ്പെട്ടു, പക്ഷേ വിവരങ്ങൾ കൈമാറുന്നതിനിടയിൽ സമ്പൎക്കം തടസ്സപ്പെട്ടു. ദയവായി വീണ്ടും ശ്രമിക്കുക.&lt;/p&gt;
       &lt;ul&gt;
-        &lt;li&gt;സൈറ്റ് താൽ‌ക്കാലികമായി ലഭ്യമല്ല അല്ലെങ്കിൽ‌ വളരെ തിരക്കിലാണ്. അല്പ സമയത്തിന് ശേഷം വീണ്ടും ശ്രമിക്കുക.&lt;/li&gt;
-        &lt;li&gt;നിങ്ങൾക്ക് പേജുകളൊന്നും ലോഡുചെയ്യാൻ കഴിയുന്നില്ലെങ്കിൽ നിങ്ങളുടെ ഉപകരണത്തിന്റെ ഡാറ്റയോ വൈഫൈ കണക്ഷനോ പരിശോധിക്കുക.&lt;/li&gt;
+        &lt;li&gt;വെബിടം താൽ‌ക്കാലികമായി ലഭ്യമല്ല അല്ലെങ്കിൽ‌ വളരെ തിരക്കിലാണ്. കുറച്ചു് സമയത്തിന് ശേഷം വീണ്ടും ശ്രമിക്കുക.&lt;/li&gt;
+        &lt;li&gt;നിങ്ങൾക്ക് താളുകളൊന്നും കഴിയുന്നില്ലെങ്കിൽ നിങ്ങളുടെ ഉപകരണത്തിന്റെ ഡാറ്റയോ വൈഫൈ സമ്പൎക്കമോ പരിശോധിക്കുക.&lt;/li&gt;
       &lt;/ul&gt;</string>
   <!-- The document title and heading of the error page shown when a website takes too long to load. -->
   <string name="mozac_browser_errorpages_net_timeout_title">കണക്ഷന്റെ സമയം കഴിഞ്ഞിരിക്കുന്നു</string>

@@ -1635,7 +1635,7 @@
   <!-- Text for the button to navigate to sync authentication -->
   <string name="bookmark_empty_list_guest_cta">Prijava v Sync</string>
   <!-- Description for the bookmark list empty state when you're signed into sync. -->
-  <string name="bookmark_empty_list_authenticated_description">Shranjujte spletna mesta med brskanjem. Uporabili bomo tudi zaznamkež iz drugih sinhroniziranih naprav.</string>
+  <string name="bookmark_empty_list_authenticated_description">Shranjujte spletna mesta med brskanjem. Uporabili bomo tudi zaznamke iz drugih sinhroniziranih naprav.</string>
   <!-- Description for the bookmark list empty state when you're in an empty folder. -->
   <string name="bookmark_empty_list_folder_description">Med brskanjem dodajajte zaznamke, da boste lahko svoja priljubljena spletna mesta našli pozneje.</string>
   <!-- Description for the add new folder button when selecting a folder. -->

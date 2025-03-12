@@ -681,6 +681,8 @@
   <string name="onboarding_customize_toolbar_top_option">ເທິງ</string>
   <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_bottom_option">ລຸ່ມ</string>
+  <!-- Onboarding toolbar selection card content description for the main image. -->
+  <string name="onboarding_customize_toolbar_main_image_content_description">ຮູບພາບສ່ວນຫົວໃຫຍ່ຂອງມຸມເບິ່ງການເລືອກແຖບເຄື່ອງມືສະແດງແຖບເຄື່ອງມືທີ່ສະແດງໃຫ້ເຫັນ.</string>
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">ຮູບພາບຂອງແຖບເຄື່ອງມືດ້ານລຸ່ມ</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">ຮູບພາບຂອງແຖບເຄື່ອງມືເທິງ</string>
@@ -886,6 +888,8 @@
   <string name="preferences_show_nonsponsored_suggestions">ຄຳແນະນຳຈາກ %1$s</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">ຮັບຄຳແນະນຳຈາກເວັບທີ່ກ່ຽວຂ້ອງກັບການຄົ້ນຫາຂອງທ່ານ</string>
+  <!-- Preference for link sharing -->
+  <string name="preferences_link_sharing">ການແບ່ງປັນລິ້ງ</string>
   <!-- Snackbar message shown when user shares a link -->
   <string name="link_shared_snackbar_message">ແບ່ງປັນລິ້ງແລ້ວ</string>
   <!-- Snackbar action label shown when user shares a link -->
@@ -991,6 +995,8 @@
   <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">ສ່ວນຂະຫຍາຍໃໝ່ມີໃຫ້ແລ້ວ</string>
   <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here -->
   <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">ກວດເບິ່ງ 100+ ສ່ວນຂະຫຍາຍໃຫມ່ທີ່ຊ່ວຍໃຫ້ທ່ານສ້າງ Firefox ຂອງທ່ານເອງ.</string>
+  <!-- Button text of the Nimbus message for extensions general availability. -->
+  <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">ສຳຫຼວດສ່ວນຂະຫຍາຍ</string>
   <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
   <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">ລອງຣີສະຕາດສ່ວນຂະຫຍາຍ</string>
   <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
@@ -1380,6 +1386,8 @@
   <string name="webcompat_reporter_label_whats_broken" moz:removedIn="136" tools:ignore="UnusedResources">ຂໍ້ຜິດພາດແມ່ນຫຍັງ? (ທາງເລືອກ)</string>
   <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
   <string name="webcompat_reporter_choose_reason">ເລືອກເຫດຜົນ</string>
+  <!-- The error message of the dropdown, prompting the user to select a high-level reason why the site is broken. -->
+  <string name="webcompat_reporter_choose_reason_error">ກະລຸນາເລືອກເຫດຜົນ</string>
   <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
   <string name="webcompat_reporter_label_description">ອະທິບາຍບັນຫາ (ທາງເລືອກ)</string>
   <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
@@ -1404,6 +1412,8 @@
   <string name="webcompat_reporter_reason_content">ປຸ່ມ, ການເຊື່ອມຕໍ່, ແລະ ເນື້ອຫາອື່ນໆ</string>
   <!-- Broken site reason text for sign in or sign out -->
   <string name="webcompat_reporter_reason_account">ເຂົ້າສູ່ລະບົບ ຫຼື ອອກຈາກລະບົບ</string>
+  <!-- Broken site reason text for ad blocker -->
+  <string name="webcompat_reporter_reason_ad_blocker">ຕົວບລັອກໂຄສະນາ</string>
   <!--
     Crashes
 
@@ -1416,18 +1426,30 @@
   <string name="tab_crash_close">ປິດແທັບ</string>
   <!-- Restore tab button text on the tab crash page -->
   <string name="tab_crash_restore">ກູ້ຄືນແທັບ</string>
+  <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox) -->
+  <string name="unsubmitted_crash_dialog_title">%s ຈຳເປັນຕ້ອງປິດ ແລະ ເປີດໃໝ່</string>
+  <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+  <string name="unsubmitted_crash_dialog_checkbox_label">ສົ່ງລາຍງານການຂັດຂ້ອງໂດຍອັດຕະໂນມັດ</string>
+  <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+  <string name="unsubmitted_crash_dialog_negative_button">ປິດ</string>
+  <!-- Unsubmitted crash dialog positive button to submit crash report -->
+  <string name="unsubmitted_crash_dialog_positive_button">ສົ່ງລາຍງານການຂັດຂ້ອງ</string>
   <!--
     Bookmarks
 
     Confirmation message for a dialog confirming if the user wants to delete the selected folder
   -->
   <string name="bookmark_delete_folder_confirmation_dialog">ທ່ານແນ່ໃຈບໍ່ວ່າທ່ານຕ້ອງການລຶບໂຟລເດີນີ້?</string>
+  <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items. -->
+  <string name="bookmark_delete_folders_confirmation_dialog">ທ່ານແນ່ໃຈແລ້ວບໍ່ວ່າຕ້ອງການລຶບລາຍການທີ່ເລືອກ?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
   <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s ຈະລຶບລາຍການທີ່ໄດ້ເລືອກໄວ້</string>
   <!-- Text for the cancel button on delete bookmark dialog -->
   <string name="bookmark_delete_negative">ຍົກເລີກ</string>
   <!-- Screen title for adding a bookmarks folder -->
   <string name="bookmark_add_folder">ເພີ່ມໂຟລເດີ</string>
+  <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+  <string name="bookmark_saved_in_folder_snackbar">ບັນທຶກໄວ້ໃນ “%s”</string>
   <!-- Snackbar edit button shown after a bookmark has been created. -->
   <string name="edit_bookmark_snackbar_action">ແກ້ໄຂ</string>
   <!-- Bookmark menu move button -->
@@ -1494,8 +1516,22 @@
   <string name="bookmark_undo_deletion">ເອົາກັບຄືນ</string>
   <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
   <string name="bookmark_delete_single_item">%s ລຶບແລ້ວ</string>
+  <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
+  <string name="bookmark_delete_multiple_items">ລາຍການທີ່ລຶບແລ້ວ: %s</string>
   <!-- Text for the button to search all bookmarks -->
   <string name="bookmark_search">ປ້ອນຄຳທີ່ຕ້ອງການຄົ້ນຫາ</string>
+  <!-- Content description for the bookmark list new folder navigation bar button -->
+  <string name="bookmark_add_new_folder_button_content_description">ເພີ່ມໂຟນເດີໃໝ່</string>
+  <!-- Content description for the bookmark screen delete bookmark navigation bar button -->
+  <string name="bookmark_delete_bookmark_content_description">ລຶບບຸກມາກ</string>
+  <!-- Content description for the bookmark screen delete bookmark folder navigation bar button -->
+  <string name="bookmark_delete_folder_content_description">ລຶບໂຟນເດີ</string>
+  <!-- Content description for bookmark search floating action button -->
+  <string name="bookmark_search_button_content_description">ຊອກຫາບຸກມາກ</string>
+  <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
+  <string name="bookmark_item_menu_button_content_description">ເມນູລາຍການສຳລັບ %s</string>
+  <!-- Title for the bookmark list empty state -->
+  <string name="bookmark_empty_list_title">ບໍ່ທັນມີບຸກມາກເທື່ອ</string>
   <!--
     Site Permissions
 

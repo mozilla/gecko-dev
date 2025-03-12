@@ -462,7 +462,7 @@
   -->
   <string name="onboarding_first_screen_title">Benvenuto in %1$s</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
-  <string name="onboarding_first_screen_subtitle">Veloce. Privato. Nessuna distrazione.</string>
+  <string name="onboarding_first_screen_subtitle">Veloce. Riservato. Nessuna distrazione.</string>
   <!--
     New Onboarding flow first screen 'terms of use' text
 
