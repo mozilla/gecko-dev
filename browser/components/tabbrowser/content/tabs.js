@@ -742,23 +742,18 @@
       // node to deliver the `dragend` event.  See bug 1345473.
       dt.addElement(tab);
 
-      let expandedTabGroups;
+      let expandGroupOnDrop;
       if (tab.multiselected) {
         this.#moveTogetherSelectedTabs(tab);
       } else if (
         isTabGroupLabel(tab) &&
+        !tab.group.collapsed &&
         gBrowser.visibleTabs.length > tab.group.tabs.length
       ) {
-        expandedTabGroups = gBrowser.tabGroups.filter(
-          group => !group.collapsed
-        );
-        if (expandedTabGroups.length) {
-          this._lockTabSizing();
-          this.#keepTabSizeLocked = true;
-        }
-        for (let group of expandedTabGroups) {
-          group.collapsed = true;
-        }
+        this._lockTabSizing();
+        this.#keepTabSizeLocked = true;
+        tab.group.collapsed = true;
+        expandGroupOnDrop = true;
       }
 
       // Create a canvas to which we capture the current tab.
@@ -862,7 +857,7 @@
         ),
         fromTabList,
         tabGroupCreationColor: gBrowser.tabGroupMenu.nextUnusedColor,
-        expandedTabGroups,
+        expandGroupOnDrop,
       };
 
       event.stopPropagation();
@@ -1001,11 +996,12 @@
         : "translateX(" + Math.round(newMargin) + "px)";
     }
 
-    #expandGroupsAfterDragDrop(dragData) {
-      if (dragData?.expandedTabGroups?.length) {
-        for (let group of dragData.expandedTabGroups) {
-          group.collapsed = false;
-        }
+    #expandGroupOnDrop(draggedTab) {
+      if (
+        isTabGroupLabel(draggedTab) &&
+        draggedTab._dragData?.expandGroupOnDrop
+      ) {
+        draggedTab.group.collapsed = false;
         this.#keepTabSizeLocked = false;
         this._unlockTabSizing();
       }
@@ -1285,7 +1281,7 @@
       }
 
       if (draggedTab) {
-        this.#expandGroupsAfterDragDrop(draggedTab._dragData);
+        this.#expandGroupOnDrop(draggedTab);
         delete draggedTab._dragData;
       }
     }
@@ -1303,7 +1299,7 @@
 
       this._finishMoveTogetherSelectedTabs(draggedTab);
       this._finishAnimateTabMove();
-      this.#expandGroupsAfterDragDrop(draggedTab._dragData);
+      this.#expandGroupOnDrop(draggedTab);
 
       if (
         dt.mozUserCancelled ||
