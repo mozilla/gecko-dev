@@ -80,6 +80,21 @@ function startup() {
 
   document.addEventListener("dialogaccept", dialogClosing);
   document.addEventListener("dialogcancel", dialogClosing);
+  document
+    .getElementById("newbutton")
+    .addEventListener("command", CreateProfileWizard);
+  document
+    .getElementById("renbutton")
+    .addEventListener("command", RenameProfile);
+  document
+    .getElementById("delbutton")
+    .addEventListener("command", ConfirmDelete);
+  document
+    .getElementById("profiles")
+    .addEventListener("dblclick", event => onProfilesDblClick(event));
+  document
+    .getElementById("profiles")
+    .addEventListener("keypress", event => onProfilesKey(event));
 }
 
 function dialogClosing(event) {
@@ -379,3 +394,5 @@ function ConfirmDelete() {
 
   return true;
 }
+
+window.addEventListener("load", startup);

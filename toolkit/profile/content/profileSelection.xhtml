@@ -6,6 +6,8 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<?csp default-src chrome:; style-src chrome: 'unsafe-inline'; ?>
+
 <!DOCTYPE window>
 
 <window
@@ -16,7 +18,6 @@
   orient="vertical"
   prefwidth="min-width"
   style="min-width: 30em"
-  onload="startup();"
 >
   <dialog
     id="profileWindow"
@@ -61,31 +62,13 @@
 
     <hbox class="indent">
       <vbox id="managebuttons">
-        <button
-          id="newbutton"
-          data-l10n-id="profile-selection-new-button"
-          oncommand="CreateProfileWizard();"
-        />
-        <button
-          id="renbutton"
-          data-l10n-id="profile-selection-rename-button"
-          oncommand="RenameProfile();"
-        />
-        <button
-          id="delbutton"
-          data-l10n-id="profile-selection-delete-button"
-          oncommand="ConfirmDelete();"
-        />
+        <button id="newbutton" data-l10n-id="profile-selection-new-button" />
+        <button id="renbutton" data-l10n-id="profile-selection-rename-button" />
+        <button id="delbutton" data-l10n-id="profile-selection-delete-button" />
       </vbox>
 
       <vbox id="profilesContainer">
-        <richlistbox
-          id="profiles"
-          class="theme-listbox"
-          seltype="single"
-          ondblclick="onProfilesDblClick(event)"
-          onkeypress="onProfilesKey(event);"
-        >
+        <richlistbox id="profiles" class="theme-listbox" seltype="single">
         </richlistbox>
 
         <!-- Bug 257777 -->
