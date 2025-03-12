@@ -286,7 +286,10 @@
       // the tab. If no tabs exist outside the group, create a new one and
       // select it.
       const group = event.target;
-      if (gBrowser.selectedTab.group === group) {
+      if (
+        gBrowser.selectedTab.group === group &&
+        !this.hasAttribute("movingtab")
+      ) {
         gBrowser.selectedTab =
           gBrowser._findTabToBlurTo(
             gBrowser.selectedTab,
@@ -743,17 +746,18 @@
       dt.addElement(tab);
 
       let expandGroupOnDrop;
-      if (tab.multiselected) {
-        this.#moveTogetherSelectedTabs(tab);
-      } else if (
-        isTabGroupLabel(tab) &&
-        !tab.group.collapsed &&
-        gBrowser.visibleTabs.length > tab.group.tabs.length
-      ) {
-        this._lockTabSizing();
-        this.#keepTabSizeLocked = true;
-        tab.group.collapsed = true;
-        expandGroupOnDrop = true;
+      if (!fromTabList) {
+        this.toggleAttribute("movingtab", true);
+        gNavToolbox.toggleAttribute("movingtab", true);
+
+        if (tab.multiselected) {
+          this.#moveTogetherSelectedTabs(tab);
+        } else if (isTabGroupLabel(tab) && !tab.group.collapsed) {
+          this._lockTabSizing();
+          this.#keepTabSizeLocked = true;
+          tab.group.collapsed = true;
+          expandGroupOnDrop = true;
+        }
       }
 
       // Create a canvas to which we capture the current tab.
@@ -2115,14 +2119,6 @@
       let dragData = draggedTab._dragData;
       let movingTabs = dragData.movingTabs;
 
-      if (!this.hasAttribute("movingtab")) {
-        this.toggleAttribute("movingtab", true);
-        gNavToolbox.toggleAttribute("movingtab", true);
-        if (!draggedTab.multiselected) {
-          this.selectedItem = draggedTab;
-        }
-      }
-
       dragData.animLastScreenX ??= dragData.screenX;
       dragData.animLastScreenY ??= dragData.screenY;
 
@@ -2306,14 +2302,6 @@
       let draggedTab = event.dataTransfer.mozGetDataAt(TAB_DROP_TYPE, 0);
       let dragData = draggedTab._dragData;
       let movingTabs = dragData.movingTabs;
-
-      if (!this.hasAttribute("movingtab")) {
-        this.toggleAttribute("movingtab", true);
-        gNavToolbox.toggleAttribute("movingtab", true);
-        if (!draggedTab.multiselected) {
-          this.selectedItem = draggedTab;
-        }
-      }
 
       dragData.animLastScreenPos ??= this.verticalMode
         ? dragData.screenY
