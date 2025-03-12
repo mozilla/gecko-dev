@@ -4,8 +4,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![deny(warnings)]
-
 use base64::prelude::*;
 use neqo_bin::server::{HttpServer, ServerRunner};
 use neqo_common::{event::Provider, qdebug, qtrace, Datagram, Header};
@@ -138,7 +136,7 @@ impl Http3TestServer {
         for (expires, sessions) in self.sessions_to_close.iter_mut() {
             if *expires <= now {
                 for s in sessions.iter_mut() {
-                    mem::drop(s.close_session(0, ""));
+                    drop(s.close_session(0, ""));
                 }
             }
         }
@@ -766,7 +764,7 @@ impl Http3ProxyServer {
 
     #[cfg(not(target_os = "android"))]
     async fn fetch_url(
-        request: hyper::Request<Body>,
+        request: Request<Body>,
         out_header: &mut Vec<Header>,
         out_body: &mut Vec<u8>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -802,7 +800,7 @@ impl Http3ProxyServer {
         request_headers: &Vec<Header>,
         request_body: Vec<u8>,
     ) {
-        let mut request: hyper::Request<Body> = Request::default();
+        let mut request: Request<Body> = Request::default();
         let mut path = String::new();
         for hdr in request_headers.iter() {
             match hdr.name() {
@@ -1081,7 +1079,7 @@ fn new_runner(
 
     let server: Box<dyn HttpServer> = match server_type {
         ServerType::Http3 => Box::new(Http3TestServer::new(
-            neqo_http3::Http3Server::new(
+            Http3Server::new(
                 Instant::now(),
                 &[" HTTP2 Test Cert"],
                 PROTOCOLS,
@@ -1112,7 +1110,7 @@ fn new_runner(
         ServerType::Http3NoResponse => Box::new(NonRespondingServer::default()),
         ServerType::Http3Ech => {
             let mut server = Box::new(Http3TestServer::new(
-                neqo_http3::Http3Server::new(
+                Http3Server::new(
                     Instant::now(),
                     &[" HTTP2 Test Cert"],
                     PROTOCOLS,
@@ -1141,7 +1139,7 @@ fn new_runner(
                 (" HTTP2 Test Cert", -1)
             };
             let server = Box::new(Http3ProxyServer::new(
-                neqo_http3::Http3Server::new(
+                Http3Server::new(
                     Instant::now(),
                     &[server_config.0],
                     PROTOCOLS,
