@@ -2797,13 +2797,16 @@ mozilla::ipc::IPCResult ContentChild::RecvNotifyProcessPriorityChanged(
                       "ipc:process-priority-changed", nullptr);
   if (StaticPrefs::
           dom_memory_foreground_content_processes_have_larger_page_cache()) {
+#ifdef MOZ_MEMORY
     if (mProcessPriority >= hal::PROCESS_PRIORITY_FOREGROUND) {
       // Note: keep this in sync with the JS shell (js/src/shell/js.cpp).
       moz_set_max_dirty_page_modifier(4);
-    } else if (mProcessPriority == hal::PROCESS_PRIORITY_BACKGROUND) {
+    }
+#endif
+    if (mProcessPriority == hal::PROCESS_PRIORITY_BACKGROUND) {
+#ifdef MOZ_MEMORY
       moz_set_max_dirty_page_modifier(-2);
 
-#if defined(MOZ_MEMORY)
       if (StaticPrefs::dom_memory_memory_pressure_on_background() == 1) {
         jemalloc_free_dirty_pages();
       }
@@ -2815,9 +2818,10 @@ mozilla::ipc::IPCResult ContentChild::RecvNotifyProcessPriorityChanged(
         nsCOMPtr<nsIObserverService> obsServ = services::GetObserverService();
         obsServ->NotifyObservers(nullptr, "memory-pressure", u"low-memory");
       }
-
+#ifdef MOZ_MEMORY
     } else {
       moz_set_max_dirty_page_modifier(0);
+#endif
     }
   }
 

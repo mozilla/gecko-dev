@@ -2971,7 +2971,9 @@ static bool SetMallocMaxDirtyPageModifier(JSContext* cx, unsigned argc,
     return false;
   }
 
+#ifdef MOZ_MEMORY
   moz_set_max_dirty_page_modifier(value);
+#endif
 
   args.rval().setUndefined();
   return true;
