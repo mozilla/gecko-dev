@@ -255,7 +255,8 @@ export class MLEngineParent extends JSProcessActorParent {
         this.checkTaskName(message.json.taskName);
         return MLEngineParent.getInferenceOptions(
           message.json.featureId,
-          message.json.taskName
+          message.json.taskName,
+          message.json.modelId
         );
       case "MLEngine:Removed":
         if (!message.json.replacement) {
@@ -426,38 +427,46 @@ export class MLEngineParent extends JSProcessActorParent {
    *
    * @param {string} featureId - id of the feature
    * @param {string} taskName - name of the inference task
+   * @param {string|null} modelId - name of the model id
    * @returns {Promise<ModelRevisionRecord>}
    */
-  static async getInferenceOptions(featureId, taskName) {
+
+  static async getInferenceOptions(featureId, taskName, modelId) {
     const client = MLEngineParent.#getRemoteClient(
       RS_INFERENCE_OPTIONS_COLLECTION
     );
 
-    let records = featureId ? await client.get({ filters: { featureId } }) : [];
-
-    // if the featureId is not in our settings, we fallback to the task name
-    if (records.length === 0) {
-      records = await client.get({
-        filters: {
-          taskName,
-        },
-      });
+    const filters = featureId ? { featureId } : { taskName };
+    if (modelId) {
+      filters.modelId = modelId;
     }
 
-    // if we get more than one entry we error out
+    let records = await client.get({ filters });
+
+    // If no records found and we searched by featureId, retry with taskName
+    if (records.length === 0 && featureId) {
+      const fallbackFilters = { taskName };
+      if (modelId) {
+        fallbackFilters.modelId = modelId;
+      }
+      records = await client.get({ filters: fallbackFilters });
+    }
+
+    // Handle case where multiple records exist
     if (records.length > 1) {
       throw new Error(
-        `Found more than one inference options record for ${featureId} and ${taskName}`
+        `Found more than one inference options record for ${featureId} and ${taskName}, and no matching modelId in pipelineOptions`
       );
     }
 
-    // if the task name is not in our settings, we just set the onnx runtime filename.
+    // If still no records, return default runtime options
     if (records.length === 0) {
       return {
         runtimeFilename:
           MLEngineParent.WASM_FILENAME[MLEngineParent.DEFAULT_BACKEND],
       };
     }
+
     const options = records[0];
     return {
       modelRevision: options.modelRevision,

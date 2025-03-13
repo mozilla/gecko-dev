@@ -240,10 +240,11 @@ export class MLEngineChild extends JSProcessActorChild {
    *
    * @returns {Promise<object>}
    */
-  getInferenceOptions(featureId, taskName) {
+  getInferenceOptions(featureId, taskName, modelId) {
     return this.sendQuery("MLEngine:GetInferenceOptions", {
       featureId,
       taskName,
+      modelId,
     });
   }
 
@@ -375,7 +376,8 @@ class EngineDispatcher {
 
     let remoteSettingsOptions = await this.mlEngineChild.getInferenceOptions(
       this.#featureId,
-      this.#taskName
+      this.#taskName,
+      pipelineOptions.modelId ?? null
     );
 
     // Merge the RemoteSettings inference options with the pipeline options provided.
