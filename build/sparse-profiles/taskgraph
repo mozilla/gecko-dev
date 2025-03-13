@@ -65,6 +65,7 @@ glob:testing/web-platform/*.py
 path:gradle/
 path:mobile/android/config/
 glob:**/*.gradle
+glob:**/gradle.properties
 
 # for action-task building
 path:.taskcluster.yml

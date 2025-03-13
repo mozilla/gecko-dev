@@ -232,8 +232,10 @@ linux64-android-gradle-dependencies:
         sparse-profile: null
         resources:
             - '*.gradle'
+            - 'gradle.properties'
             - 'gradle/**'
             - 'mobile/android/**/*.gradle'
+            - 'mobile/android/**/gradle.properties'
             - 'mobile/android/android-components/plugins/dependencies/src/main/java/ApplicationServices.kt'
             - 'mobile/android/android-components/plugins/dependencies/src/main/java/DependenciesPlugin.kt'
             - 'mobile/android/config/mozconfigs/android-arm-gradle-dependencies/**'
@@ -265,8 +267,10 @@ linux64-android-gradle-dependencies-lite:
         sparse-profile: null
         resources:
             - '*.gradle'
+            - 'gradle.properties'
             - 'gradle/**'
             - 'mobile/android/**/*.gradle'
+            - 'mobile/android/**/gradle.properties'
             - 'mobile/android/android-components/plugins/dependencies/src/main/java/ApplicationServices.kt'
             - 'mobile/android/android-components/plugins/dependencies/src/main/java/DependenciesPlugin.kt'
             - 'mobile/android/config/mozconfigs/android-arm-gradle-dependencies/**'
