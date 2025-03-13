@@ -2615,6 +2615,12 @@ static void AccumulateTelemetryCallback(JSMetric id, uint32_t sample) {
     case JSMetric::DESERIALIZE_US:
       glean::performance_clone_deserialize::time.AccumulateRawDuration(
           TimeDuration::FromMicroseconds(sample));
+      // GLAM EXPERIMENT
+      // This metric is temporary, disabled by default, and will be enabled only
+      // for the purpose of experimenting with client-side sampling of data for
+      // GLAM use. See Bug 1947604 for more information.
+      glean::glam_experiment::time.AccumulateRawDuration(
+          TimeDuration::FromMicroseconds(sample));
       break;
 #endif  // MOZ_WIDGET_ANDROID
     case JSMetric::GC_MS:

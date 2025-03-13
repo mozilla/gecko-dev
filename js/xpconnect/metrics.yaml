@@ -977,3 +977,24 @@ script.preloader:
       - plawless@mozilla.com
     expires: never
     telemetry_mirror: SCRIPT_PRELOADER_MAINTHREAD_RECOMPILE
+
+glam_experiment:
+  time:
+    type: timing_distribution
+    disabled: true
+    time_unit: microsecond
+    description: >
+      Duplicate of:
+      `performance.clone.deserialize.time`
+
+      Intended for the purpose of testing client side sampling of data. This
+      metric is disabled by default and will be enabled only for the purpose
+      of the experiment. See Bug 1947604 for more information.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947604
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1717631#c4
+    notification_emails:
+      - tlong@mozilla.com
+      - efilho@mozilla.com
+    expires: 146
