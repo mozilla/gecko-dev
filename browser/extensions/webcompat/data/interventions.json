@@ -2721,11 +2721,11 @@
     ]
   },
   "1912923": {
-    "label": "livelesson.class.com",
+    "label": "class.com",
     "bugs": {
-      "1912923": {
+      "1951358": {
         "issue": "firefox-blocked-completely",
-        "matches": ["*://livelesson.class.com/class/*"]
+        "matches": ["*://*.class.com/*"]
       }
     },
     "interventions": [
