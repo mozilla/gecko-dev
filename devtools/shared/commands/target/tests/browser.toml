@@ -54,6 +54,9 @@ skip-if = [
 ]
 
 ["browser_target_command_service_workers_navigation.js"]
+skip-if = [
+  "os == 'linux'", # Bug 1767781
+]
 
 ["browser_target_command_service_workers_navigation_stopped.js"]
 skip-if = [
