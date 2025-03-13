@@ -364,3 +364,45 @@ power.battery:
     notification_emails:
       - florian@mozilla.com
     expires: never
+
+glam_experiment:
+  cpu_time_bogus_values:
+    type: counter
+    disabled: true
+    description: >
+      Duplicate of:
+      `power.cpu_time_bogus_values`
+
+      Intended for the purpose of testing client side sampling of data. This
+      metric is disabled by default and will be enabled only for the purpose
+      of the experiment. See Bug 1947604 for more information.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947604
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1755733
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - tlong@mozilla.com
+      - efilho@mozilla.com
+    expires: 146
+  total_cpu_time_ms:
+    type: counter
+    disabled: true
+    description: >
+      Duplicate of:
+      `power.total_cpu_time_ms`
+
+      Intended for the purpose of testing client side sampling of data. This
+      metric is disabled by default and will be enabled only for the purpose
+      of the experiment. See Bug 1947604 for more information.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947604
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1736040
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - tlong@mozilla.com
+      - efilho@mozilla.com
+    expires: 146
