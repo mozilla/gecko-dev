@@ -315,7 +315,7 @@ export class LlamaPipeline {
         statusText: Progress.ProgressStatusText.DONE,
       });
 
-      return output;
+      return { done: true, finalOutput: output, ok: true, metrics: [] };
     } catch (error) {
       port?.postMessage({ done: true, ok: false, error });
 

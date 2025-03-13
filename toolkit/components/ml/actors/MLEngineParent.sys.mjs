@@ -48,8 +48,8 @@ export class MLEngineParent extends JSProcessActorParent {
    */
   static #remoteClients = {};
 
-  /** @type {Promise<WasmRecord> | null} */
-  static #wasmRecord = null;
+  /** @type {Record<string, Promise<WasmRecord> | null>} */
+  static #wasmRecord = {};
 
   /**
    * Locks to prevent race conditions when creating engines.
@@ -136,7 +136,7 @@ export class MLEngineParent extends JSProcessActorParent {
   static mockRemoteSettings(remoteClients) {
     lazy.console.log("Mocking remote settings in MLEngineParent.");
     MLEngineParent.#remoteClients = remoteClients;
-    MLEngineParent.#wasmRecord = null;
+    MLEngineParent.#wasmRecord = {};
   }
 
   /**
@@ -145,7 +145,7 @@ export class MLEngineParent extends JSProcessActorParent {
   static removeMocks() {
     lazy.console.log("Removing mocked remote client in MLEngineParent.");
     MLEngineParent.#remoteClients = {};
-    MLEngineParent.#wasmRecord = null;
+    MLEngineParent.#wasmRecord = {};
   }
 
   /**
@@ -492,10 +492,11 @@ export class MLEngineParent extends JSProcessActorParent {
    */
   static async getWasmArrayBuffer(backend) {
     const client = MLEngineParent.#getRemoteClient(RS_RUNTIME_COLLECTION);
+    backend = backend || MLEngineParent.DEFAULT_BACKEND;
 
-    if (!MLEngineParent.#wasmRecord) {
+    if (!MLEngineParent.#wasmRecord[backend]) {
       // Place the records into a promise to prevent any races.
-      MLEngineParent.#wasmRecord = MLEngineParent.#getWasmArrayRecord(
+      MLEngineParent.#wasmRecord[backend] = MLEngineParent.#getWasmArrayRecord(
         client,
         backend
       );
@@ -503,14 +504,14 @@ export class MLEngineParent extends JSProcessActorParent {
 
     let wasmRecord;
     try {
-      wasmRecord = await MLEngineParent.#wasmRecord;
+      wasmRecord = await MLEngineParent.#wasmRecord[backend];
       if (!wasmRecord) {
         return Promise.reject(
           "Error: Unable to get the ML engine from Remote Settings."
         );
       }
     } catch (error) {
-      MLEngineParent.#wasmRecord = null;
+      MLEngineParent.#wasmRecord[backend] = null;
       throw error;
     }
 
