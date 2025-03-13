@@ -127,7 +127,8 @@ export class MarionetteReftestChild extends JSWindowActorChild {
 
   paintComplete({ useRemote, ignoreThrottledAnimations, once }) {
     lazy.logger.debug("Waiting for rendering");
-    let windowUtils = this.document.defaultView.windowUtils;
+    let win = this.document.defaultView;
+    let windowUtils = win.windowUtils;
     let painted = false;
     return new Promise(resolve => {
       let maybeResolve = () => {
@@ -140,21 +141,20 @@ export class MarionetteReftestChild extends JSWindowActorChild {
 
         if (windowUtils.isMozAfterPaintPending && (!once || !painted)) {
           lazy.logger.debug("isMozAfterPaintPending: true");
-          this.document.defaultView.addEventListener(
+          win.windowRoot.addEventListener(
             "MozAfterPaint",
             () => {
+              lazy.logger.debug("MozAfterPaint fired");
               painted = true;
               maybeResolve();
             },
-            {
-              once: true,
-            }
+            { once: true }
           );
         } else {
           // resolve at the start of the next frame in case of leftover paints
           lazy.logger.debug("isMozAfterPaintPending: false");
-          this.document.defaultView.requestAnimationFrame(() => {
-            this.document.defaultView.requestAnimationFrame(resolve);
+          win.requestAnimationFrame(() => {
+            win.requestAnimationFrame(resolve);
           });
         }
       };
@@ -200,8 +200,6 @@ export class MarionetteReftestChild extends JSWindowActorChild {
     );
     let anyPendingPaintsGeneratedInDescendants = false;
 
-    let windowUtils = this.document.defaultView.windowUtils;
-
     function flushWindow(win) {
       let utils = win.windowUtils;
       let afterPaintWasPending = utils.isMozAfterPaintPending;
@@ -232,11 +230,13 @@ export class MarionetteReftestChild extends JSWindowActorChild {
         }
       }
     }
-    flushWindow(this.document.defaultView);
+
+    let thisWin = this.document.defaultView;
+    flushWindow(thisWin);
 
     if (
       anyPendingPaintsGeneratedInDescendants &&
-      !windowUtils.isMozAfterPaintPending
+      !thisWin.windowUtils.isMozAfterPaintPending
     ) {
       lazy.logger.error(
         "Descendant frame generated a MozAfterPaint event, " +
