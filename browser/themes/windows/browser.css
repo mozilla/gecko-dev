@@ -34,15 +34,20 @@
     }
 
     /* stylelint-disable-next-line media-query-no-invalid */
-    @media (-moz-windows-mica) or -moz-pref("browser.theme.windows.accent-color-in-tabs.enabled") {
-      &:not([lwtheme]) #TabsToolbar {
+    @media -moz-pref("browser.theme.windows.accent-color-in-tabs.enabled") {
+      &:not([lwtheme]) .browser-toolbox-background {
         /* These colors match the Linux/HCM default button colors. We need to
-         * override these on the tabs toolbar because the accent color is
-         * arbitrary, so the hardcoded colors from browser-custom-colors might
-         * not provide sufficient contrast. */
+         * override these on the toolbox-like elements because the accent color
+         * is arbitrary, so the hardcoded brand colors from browser-colors.css
+         * might not provide sufficient contrast. */
         --toolbarbutton-icon-fill: currentColor;
         --toolbarbutton-hover-background: color-mix(in srgb, currentColor 17%, transparent);
         --toolbarbutton-active-background: color-mix(in srgb, currentColor 30%, transparent);
+        --toolbar-field-color: currentColor;
+        --urlbar-box-bgcolor: var(--button-background-color-hover);
+        --urlbar-box-focus-bgcolor: var(--button-background-color);
+        --urlbar-box-hover-bgcolor: var(--button-background-color-hover);
+        --urlbar-box-active-bgcolor: var(--button-background-color-active);
       }
     }
 
