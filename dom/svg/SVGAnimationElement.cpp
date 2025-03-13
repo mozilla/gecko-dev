@@ -259,14 +259,13 @@ void SVGAnimationElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
           UpdateHrefTarget(xlinkHref->GetStringValue());
         }
       }
-    } else if (!HasAttr(kNameSpaceID_None, nsGkAtoms::href) &&
-               SupportsXLinkHref()) {
+    } else if (!HasAttr(nsGkAtoms::href) && SupportsXLinkHref()) {
       mHrefTarget.Unlink();
       AnimationTargetChanged();
     }  // else: we unset xlink:href, but we still have href attribute, so keep
        // mHrefTarget linking to href.
-  } else if (!(aNamespaceID == kNameSpaceID_XLink &&
-               HasAttr(nsGkAtoms::href))) {
+  } else if (aNamespaceID == kNameSpaceID_None ||
+             (!HasAttr(nsGkAtoms::href) && SupportsXLinkHref())) {
     // Note: "href" takes priority over xlink:href. So if "xlink:href" is being
     // set here, we only let that update our target if "href" is *unset*.
     MOZ_ASSERT(aValue->Type() == nsAttrValue::eString,
