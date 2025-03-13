@@ -6021,7 +6021,7 @@ purge_result_t ArenaCollection::MayPurgeStep(bool aPeekOnly,
     if (!found) {
       return purge_result_t::WantsLater;
     }
-    if (aPeekOnly && found) {
+    if (aPeekOnly) {
       return purge_result_t::NeedsMore;
     }
   }
