@@ -20,8 +20,6 @@
 #include "mozilla/dom/Document.h"
 #include "nsContentUtils.h"
 
-#define AVG2(a, b) (((a) + (b) + 1) >> 1)
-
 namespace mozilla {
 
 using dom::Document;
@@ -329,5 +327,3 @@ bool PreferenceSheet::AffectedByPref(const nsACString& aPref) {
 }
 
 }  // namespace mozilla
-
-#undef AVG2
