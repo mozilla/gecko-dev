@@ -150,6 +150,10 @@ class SuspendMiddlewareTest {
         assertNull(killStore.state.findTabOrCustomTab(tab.id)?.engineState?.engineSession)
         assertEquals(state, killStore.state.findTabOrCustomTab(tab.id)?.engineState?.engineSessionState)
 
-        assertEquals(suspendStore.state, killStore.state)
+        // KillEngineSessionAction adds to recentlyKilledTabs, while SuspendEngineSessionAction does not
+        assertEquals(
+            suspendStore.state.copy(recentlyKilledTabs = LinkedHashSet()),
+            killStore.state.copy(recentlyKilledTabs = LinkedHashSet()),
+        )
     }
 }

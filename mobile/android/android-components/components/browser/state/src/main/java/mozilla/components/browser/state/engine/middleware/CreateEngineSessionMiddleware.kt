@@ -39,6 +39,7 @@ internal class CreateEngineSessionMiddleware(
             if (engineState?.initializing == false && engineState.engineSession == null && !engineState.crashed) {
                 context.dispatch(EngineAction.UpdateEngineSessionInitializingAction(action.tabId, true))
                 createEngineSession(context.store, action)
+                next(action)
             } else {
                 // Initialization is in progress by a pending CreateEngineSessionAction. Let's
                 // schedule dispatching the follow-up action when the engine session is ready.

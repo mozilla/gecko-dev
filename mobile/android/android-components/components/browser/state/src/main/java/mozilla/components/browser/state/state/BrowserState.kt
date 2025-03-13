@@ -38,6 +38,7 @@ import java.util.Locale
  * @property translationEngine Holds translation state that applies to the browser.
  * @property distributionId Holds the distribution Id from [Distribution]
  * @property desktopMode Whether or not browsing is in desktop mode by default for any newly opened tabs.
+ * @property recentlyKilledTabs The list of recently killed tabs (limited to 50).
  */
 data class BrowserState(
     val tabs: List<TabSessionState> = emptyList(),
@@ -60,4 +61,5 @@ data class BrowserState(
     val translationEngine: TranslationsBrowserState = TranslationsBrowserState(),
     val distributionId: String? = null,
     val desktopMode: Boolean = false,
+    val recentlyKilledTabs: LinkedHashSet<String> = LinkedHashSet(),
 ) : State

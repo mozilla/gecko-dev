@@ -34,7 +34,10 @@ internal class SuspendMiddleware(
     ) {
         when (action) {
             is EngineAction.SuspendEngineSessionAction -> suspend(context, action.tabId)
-            is EngineAction.KillEngineSessionAction -> suspend(context, action.tabId)
+            is EngineAction.KillEngineSessionAction -> {
+                next(action)
+                suspend(context, action.tabId)
+            }
             else -> next(action)
         }
     }

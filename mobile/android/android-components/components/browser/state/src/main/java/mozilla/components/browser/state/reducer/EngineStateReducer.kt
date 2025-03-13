@@ -10,72 +10,95 @@ import mozilla.components.browser.state.state.EngineState
 import mozilla.components.browser.state.state.SessionState
 
 internal object EngineStateReducer {
+    // Maximum number of recently killed tabs to retain in memory.
+    // When this limit is exceeded, the oldest entry is removed to maintain a fixed size.
+    private const val MAX_RECENTLY_KILLED_TABS = 50
+
     /**
      * [EngineAction] Reducer function for modifying a specific [EngineState]
      * of a [SessionState].
      */
-    fun reduce(state: BrowserState, action: EngineAction): BrowserState = when (action) {
-        is EngineAction.LinkEngineSessionAction -> state.copyWithEngineState(action.tabId) {
-            it.copy(
-                engineSession = action.engineSession,
-                timestamp = action.timestamp,
-            )
-        }
-        is EngineAction.UnlinkEngineSessionAction -> state.copyWithEngineState(action.tabId) {
-            it.copy(
-                engineSession = null,
-                engineObserver = null,
-            )
-        }
-        is EngineAction.UpdateEngineSessionObserverAction -> state.copyWithEngineState(action.tabId) {
-            it.copy(engineObserver = action.engineSessionObserver)
-        }
-        is EngineAction.UpdateEngineSessionStateAction -> state.copyWithEngineState(action.tabId) { engineState ->
-            if (engineState.crashed) {
-                // We ignore state updates for a crashed engine session. We want to keep the last state until
-                // this tab gets restored (or closed).
-                engineState
-            } else {
-                engineState.copy(engineSessionState = action.engineSessionState)
+    @Suppress("LongMethod")
+    fun reduce(state: BrowserState, action: EngineAction): BrowserState {
+        return when (action) {
+            is EngineAction.LinkEngineSessionAction -> state.copyWithEngineState(action.tabId) {
+                it.copy(
+                    engineSession = action.engineSession,
+                    timestamp = action.timestamp,
+                )
             }
-        }
-        is EngineAction.UpdateEngineSessionInitializingAction -> state.copyWithEngineState(action.tabId) {
-            it.copy(initializing = action.initializing)
-        }
-        is EngineAction.OptimizedLoadUrlTriggeredAction -> {
-            state
-        }
-        is EngineAction.SaveToPdfExceptionAction,
-        is EngineAction.SaveToPdfCompleteAction,
-        -> {
-            throw IllegalStateException(
-                "You need to add a middleware to handle this action in your BrowserStore. ($action)",
-            )
-        }
-        is EngineAction.SuspendEngineSessionAction,
-        is EngineAction.CreateEngineSessionAction,
-        is EngineAction.LoadDataAction,
-        is EngineAction.LoadUrlAction,
-        is EngineAction.ReloadAction,
-        is EngineAction.GoBackAction,
-        is EngineAction.GoForwardAction,
-        is EngineAction.GoToHistoryIndexAction,
-        is EngineAction.ToggleDesktopModeAction,
-        is EngineAction.ExitFullScreenModeAction,
-        is EngineAction.SaveToPdfAction,
-        is EngineAction.PrintContentAction,
-        is EngineAction.PrintContentCompletedAction,
-        is EngineAction.PrintContentExceptionAction,
-        is EngineAction.KillEngineSessionAction,
-        is EngineAction.ClearDataAction,
-        -> {
-            throw IllegalStateException("You need to add EngineMiddleware to your BrowserStore. ($action)")
-        }
-        is EngineAction.PurgeHistoryAction -> {
-            state.copy(
-                tabs = purgeEngineStates(state.tabs),
-                customTabs = purgeEngineStates(state.customTabs),
-            )
+            is EngineAction.UnlinkEngineSessionAction -> state.copyWithEngineState(action.tabId) {
+                it.copy(
+                    engineSession = null,
+                    engineObserver = null,
+                )
+            }
+            is EngineAction.UpdateEngineSessionObserverAction -> state.copyWithEngineState(action.tabId) {
+                it.copy(engineObserver = action.engineSessionObserver)
+            }
+            is EngineAction.UpdateEngineSessionStateAction -> state.copyWithEngineState(action.tabId) { engineState ->
+                if (engineState.crashed) {
+                    // We ignore state updates for a crashed engine session. We want to keep the last state until
+                    // this tab gets restored (or closed).
+                    engineState
+                } else {
+                    engineState.copy(engineSessionState = action.engineSessionState)
+                }
+            }
+            is EngineAction.UpdateEngineSessionInitializingAction -> state.copyWithEngineState(action.tabId) {
+                it.copy(initializing = action.initializing)
+            }
+            is EngineAction.OptimizedLoadUrlTriggeredAction -> {
+                state
+            }
+            is EngineAction.SaveToPdfExceptionAction,
+            is EngineAction.SaveToPdfCompleteAction,
+            -> {
+                throw IllegalStateException(
+                    "You need to add a middleware to handle this action in your BrowserStore. ($action)",
+                )
+            }
+            is EngineAction.SuspendEngineSessionAction,
+            is EngineAction.LoadDataAction,
+            is EngineAction.LoadUrlAction,
+            is EngineAction.ReloadAction,
+            is EngineAction.GoBackAction,
+            is EngineAction.GoForwardAction,
+            is EngineAction.GoToHistoryIndexAction,
+            is EngineAction.ToggleDesktopModeAction,
+            is EngineAction.ExitFullScreenModeAction,
+            is EngineAction.SaveToPdfAction,
+            is EngineAction.PrintContentAction,
+            is EngineAction.PrintContentCompletedAction,
+            is EngineAction.PrintContentExceptionAction,
+            is EngineAction.ClearDataAction,
+            -> {
+                throw IllegalStateException("You need to add EngineMiddleware to your BrowserStore. ($action)")
+            }
+            is EngineAction.PurgeHistoryAction -> {
+                state.copy(
+                    tabs = purgeEngineStates(state.tabs),
+                    customTabs = purgeEngineStates(state.customTabs),
+                )
+            }
+            is EngineAction.KillEngineSessionAction -> {
+                val updatedKilledTabs = LinkedHashSet(state.recentlyKilledTabs)
+                updatedKilledTabs.add(action.tabId)
+
+                // Enforce max size of 50 recently killed tabs
+                if (updatedKilledTabs.size > MAX_RECENTLY_KILLED_TABS) {
+                    val oldestEntry = updatedKilledTabs.first()
+                    updatedKilledTabs.remove(oldestEntry)
+                }
+
+                state.copy(recentlyKilledTabs = updatedKilledTabs)
+            }
+            is EngineAction.CreateEngineSessionAction -> {
+                if (state.recentlyKilledTabs.isEmpty()) return state
+                val updatedKilledTabs = LinkedHashSet(state.recentlyKilledTabs)
+                updatedKilledTabs.remove(action.tabId)
+                state.copy(recentlyKilledTabs = updatedKilledTabs)
+            }
         }
     }
 }

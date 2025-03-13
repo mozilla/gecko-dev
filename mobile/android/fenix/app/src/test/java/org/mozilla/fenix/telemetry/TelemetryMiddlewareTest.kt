@@ -92,6 +92,8 @@ class TelemetryMiddlewareTest {
         every { engine.disableExtensionProcessSpawning() } just runs
         every { engine.getSupportedTranslationLanguages(any(), any()) } just runs
         every { engine.isTranslationsEngineSupported(any(), any()) } just runs
+        every { engine.createSession(any(), any()) } returns mockk(relaxed = true)
+
         store = BrowserStore(
             middleware = listOf(telemetryMiddleware) + EngineMiddleware.create(engine),
             initialState = BrowserState(),
@@ -423,6 +425,98 @@ class TelemetryMiddlewareTest {
         ShadowLooper.idleMainLooper()
 
         assertNotNull(Events.formDataFailure.testGetValue())
+    }
+
+    @Test
+    fun `GIVEN an existing tab WHEN it reloads THEN telemetry is sent`() {
+        val tabId = "test-tab-id"
+
+        store.dispatch(TabListAction.AddTabAction(createTab(id = tabId, url = "https://firefox.com")))
+            .joinBlocking()
+
+        store.dispatch(
+            EngineAction.KillEngineSessionAction(tabId),
+        ).joinBlocking()
+        assertTrue(store.state.recentlyKilledTabs.contains(tabId))
+
+        store.dispatch(
+            EngineAction.CreateEngineSessionAction(tabId),
+        ).joinBlocking()
+
+        ShadowLooper.idleMainLooper()
+
+        val recordedEvents = EngineMetrics.reloaded.testGetValue()
+        assertNotNull(recordedEvents)
+        assertEquals(1, recordedEvents!!.size)
+
+        assertFalse(store.state.recentlyKilledTabs.contains(tabId))
+    }
+
+    @Test
+    fun `GIVEN a tab that was not recently killed WHEN it reloads THEN telemetry is NOT sent`() {
+        val tabId = "test-tab-id"
+
+        store.dispatch(
+            TabListAction.AddTabAction(createTab(id = tabId, url = "https://firefox.com")),
+        ).joinBlocking()
+
+        store.dispatch(
+            EngineAction.CreateEngineSessionAction(tabId),
+        ).joinBlocking()
+
+        ShadowLooper.idleMainLooper()
+
+        val recordedEvents = EngineMetrics.reloaded.testGetValue()
+        assertTrue(recordedEvents.isNullOrEmpty())
+    }
+
+    @Test
+    fun `GIVEN a tab that is killed multiple times WHEN checking recentlyKilledTabs THEN it only appears once`() {
+        val tabId = "test-tab-id"
+
+        store.dispatch(EngineAction.KillEngineSessionAction(tabId)).joinBlocking()
+        store.dispatch(EngineAction.KillEngineSessionAction(tabId)).joinBlocking()
+
+        assertEquals(1, store.state.recentlyKilledTabs.count { it == tabId })
+    }
+
+    @Test
+    fun `GIVEN more than 50 tabs are killed WHEN checking recentlyKilledTabs THEN it does not exceed 50`() {
+        repeat(51) { i ->
+            store.dispatch(EngineAction.KillEngineSessionAction("tab-$i")).joinBlocking()
+        }
+
+        assertEquals(50, store.state.recentlyKilledTabs.size)
+    }
+
+    @Test
+    fun `GIVEN 50 killed tabs WHEN another killed tab is reloaded THEN oldest tab is removed and reloaded tab is recorded`() {
+        val oldestTabId = "tab-id-0"
+        val newTabId = "new-tab-id"
+
+        // Fill recentlyKilledTabs with 50 entries and verify max limit is reached
+        repeat(50) { i ->
+            val tabId = "tab-id-$i"
+            store.dispatch(TabListAction.AddTabAction(createTab(id = tabId, url = "https://example.com/$i"))).joinBlocking()
+            store.dispatch(EngineAction.KillEngineSessionAction(tabId)).joinBlocking()
+        }
+        assertTrue(store.state.recentlyKilledTabs.contains(oldestTabId))
+        assertEquals(50, store.state.recentlyKilledTabs.size)
+
+        // Kill one more tab and verify oldest tab is removed
+        store.dispatch(TabListAction.AddTabAction(createTab(id = newTabId, url = "https://example.com/$newTabId"))).joinBlocking()
+        store.dispatch(EngineAction.KillEngineSessionAction(newTabId)).joinBlocking()
+        assertFalse(store.state.recentlyKilledTabs.contains(oldestTabId))
+        assertTrue(store.state.recentlyKilledTabs.contains(newTabId))
+        assertEquals(50, store.state.recentlyKilledTabs.size)
+
+        // Verify the reload of the newest tab was recorded
+        val recordedEventsBefore = EngineMetrics.reloaded.testGetValue()?.size ?: 0
+        store.dispatch(EngineAction.CreateEngineSessionAction(newTabId)).joinBlocking()
+        ShadowLooper.idleMainLooper()
+        val recordedEventsAfter = EngineMetrics.reloaded.testGetValue()
+        assertNotNull(recordedEventsAfter)
+        assertEquals(recordedEventsBefore + 1, recordedEventsAfter!!.size)
     }
 
     @Test

@@ -9960,6 +9960,17 @@ engine_tab:
     notification_emails:
       - android-probes@mozilla.com
     expires: never
+  reloaded:
+    type: event
+    description: |
+      A tab was reloaded by the engine.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1938133
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D240795
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
 
 app_exit_info:
   process_exited:
