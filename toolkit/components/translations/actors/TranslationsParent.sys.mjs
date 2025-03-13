@@ -3155,7 +3155,8 @@ export class TranslationsParent extends JSWindowActorParent {
       TranslationsParent.isInAutomation() &&
       !TranslationsParent.#isTranslationsEngineMocked
     ) {
-      return null;
+      // In automation assume English is the language, but don't be confident.
+      return { confident: false, language: "en", languages: [] };
     }
     return this.sendQuery("Translations:IdentifyLanguage").catch(error => {
       if (this.#isDestroyed) {
