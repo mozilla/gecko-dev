@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script id="worker1" type="javascript/worker">
+        function timeout(cmd) {
+           const timer = new Promise((resolve, reject) => {
+              const id = setTimeout(() => {
+                 clearTimeout(id)
+                 reject(new Error('Promise timed out!'))
+              }, 750)
+           })
+           return Promise.race([cmd, timer])
+        }
+
+        self.onmessage = async function (e) {
+           let bitmap
+           setInterval(async () => {
+              self.close()
+              try { bitmap = await timeout(self.createImageBitmap(bitmap, 29, 6, 0, 24, {})) } catch (e) {}
+           }, 1293)
+        }
+    </script>
+    <script>
+        window.addEventListener("load", async () => {
+            const blob = new Blob([document.querySelector('#worker1').textContent], {type: "text/javascript"})
+            new Worker(window.URL.createObjectURL(blob)).postMessage([], {})
+        })
+    </script>
+</head>
+</html>

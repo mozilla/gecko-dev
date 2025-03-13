@@ -5638,6 +5638,16 @@ int32_t WorkerPrivate::SetTimeout(JSContext* aCx, TimeoutHandler* aHandler,
     MOZ_DIAGNOSTIC_ASSERT(globalScope);
     auto* timeoutManager = globalScope->GetTimeoutManager();
     int32_t timerId = -1;
+    WorkerStatus status;
+    {
+      MutexAutoLock lock(mMutex);
+      status = mStatus;
+    }
+    // If the worker is trying to call setTimeout/setInterval and the
+    // worker itself which has initiated the close process.
+    if (status >= Closing) {
+      return timeoutManager->GetTimeoutId(aReason);
+    }
     bool hadTimeouts = timeoutManager->HasTimeouts();
     nsresult rv = timeoutManager->SetTimeout(aHandler, aTimeout, aIsInterval,
                                              aReason, &timerId);
