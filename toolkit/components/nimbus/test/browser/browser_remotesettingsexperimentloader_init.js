@@ -13,7 +13,6 @@ function getRecipe(slug) {
       namespace: "mochitest",
       randomizationUnit: "normandy_id",
     },
-    targeting: "!(experiment.slug in activeExperiments)",
   });
 }
 
@@ -31,16 +30,10 @@ add_task(async function test_double_feature_enrollment() {
   );
 
   let recipe1 = getRecipe("foo" + Math.random());
-  let recipe2 = getRecipe("foo" + Math.random());
+  let recipe2 = getRecipe("bar" + Math.random());
 
-  let enrollPromise1 = ExperimentFakes.waitForExperimentUpdate(
-    ExperimentAPI,
-    recipe1.slug
-  );
-
-  ExperimentManager.enroll(recipe1, "test_double_feature_enrollment");
-  await enrollPromise1;
-  ExperimentManager.enroll(recipe2, "test_double_feature_enrollment");
+  await ExperimentManager.enroll(recipe1, "test_double_feature_enrollment");
+  await ExperimentManager.enroll(recipe2, "test_double_feature_enrollment");
 
   Assert.equal(
     ExperimentManager.store.getAllActiveExperiments().length,
@@ -48,8 +41,9 @@ add_task(async function test_double_feature_enrollment() {
     "1 active experiment"
   );
 
-  await BrowserTestUtils.waitForCondition(
-    () => sendFailureTelemetryStub.callCount === 1,
+  Assert.equal(
+    sendFailureTelemetryStub.callCount,
+    1,
     "Expected to fail one of the recipes"
   );
 
