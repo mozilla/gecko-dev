@@ -43,24 +43,18 @@ const HEADER = `/* This Source Code Form is subject to the terms of the Mozilla 
 
 const GPERF_DELIM = "%%\n";
 
-function download() {
-  let req = new XMLHttpRequest();
-  req.open("GET", SOURCE, false); // doing the request synchronously
-  try {
-    req.send();
-  } catch (e) {
-    throw new Error(`ERROR: problem downloading '${SOURCE}': ${e}`);
-  }
-
-  if (req.status != 200) {
+async function download() {
+  var resp = await fetch(SOURCE);
+  if (resp.status != 200) {
     throw new Error(
-      "ERROR: problem downloading '" + SOURCE + "': status " + req.status
+      "ERROR: problem downloading '" + SOURCE + "': status " + resp.status
     );
   }
 
+  let text = await resp.text();
   let resultDecoded;
   try {
-    resultDecoded = atob(req.responseText);
+    resultDecoded = atob(text);
   } catch (e) {
     throw new Error(
       "ERROR: could not decode data as base64 from '" + SOURCE + "': " + e
@@ -479,7 +473,7 @@ async function main(args) {
     false
   );
   // download and parse the raw json file from the Chromium source
-  let rawdata = download();
+  let rawdata = await download();
   // get just the hosts with mode: "force-https"
   let hosts = getHosts(rawdata);
   // add hosts in the current list to the new list (avoiding duplicates)
