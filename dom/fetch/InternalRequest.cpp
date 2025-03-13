@@ -30,8 +30,6 @@ SafeRefPtr<InternalRequest> InternalRequest::GetRequestConstructorCopy(
       MakeSafeRefPtr<InternalRequest>(mURLList.LastElement(), mFragment);
   copy->SetMethod(mMethod);
   copy->mHeaders = new InternalHeaders(*mHeaders);
-  copy->mTriggeringPrincipalOverride = mTriggeringPrincipalOverride;
-  copy->mNeverTaint = mNeverTaint;
   copy->SetUnsafeRequest();
   copy->mBodyStream = mBodyStream;
   copy->mBodyLength = mBodyLength;
@@ -106,8 +104,6 @@ InternalRequest::InternalRequest(const InternalRequest& aOther,
     : mMethod(aOther.mMethod),
       mURLList(aOther.mURLList.Clone()),
       mHeaders(new InternalHeaders(*aOther.mHeaders)),
-      mTriggeringPrincipalOverride(aOther.mTriggeringPrincipalOverride),
-      mNeverTaint(aOther.mNeverTaint),
       mBodyLength(InternalResponse::UNKNOWN_BODY_SIZE),
       mContentPolicyType(aOther.mContentPolicyType),
       mInternalPriority(aOther.mInternalPriority),
@@ -135,6 +131,7 @@ InternalRequest::InternalRequest(const InternalRequest& aOther,
       mInterceptionRedirectChain(aOther.mInterceptionRedirectChain),
       mInterceptionFromThirdParty(aOther.mInterceptionFromThirdParty) {
   // NOTE: does not copy body stream... use the fallible Clone() for that
+
   if (aOther.GetInterceptionTriggeringPrincipalInfo()) {
     mInterceptionTriggeringPrincipalInfo =
         MakeUnique<mozilla::ipc::PrincipalInfo>(

@@ -646,19 +646,14 @@ nsresult FetchDriver::HttpFetch(
     nsCOMPtr<nsIPrincipal> principal = mPrincipal;
     if (principal->IsSystemPrincipal() &&
         mRequest->GetTriggeringPrincipalOverride()) {
-      rv = NS_NewChannelWithTriggeringPrincipal(
-          getter_AddRefs(chan), uri, mPrincipal,
-          mRequest->GetTriggeringPrincipalOverride(), secFlags,
-          mRequest->ContentPolicyType(), mCookieJarSettings,
-          mPerformanceStorage, mLoadGroup, nullptr, /* aCallbacks */
-          loadFlags, ios);
-    } else {
-      rv = NS_NewChannel(getter_AddRefs(chan), uri, mPrincipal, secFlags,
-                         mRequest->ContentPolicyType(), mCookieJarSettings,
-                         mPerformanceStorage, mLoadGroup,
-                         nullptr, /* aCallbacks */
-                         loadFlags, ios);
+      principal = mRequest->GetTriggeringPrincipalOverride();
     }
+
+    rv =
+        NS_NewChannel(getter_AddRefs(chan), uri, principal, secFlags,
+                      mRequest->ContentPolicyType(), mCookieJarSettings,
+                      mPerformanceStorage, mLoadGroup, nullptr, /* aCallbacks */
+                      loadFlags, ios);
   }
   NS_ENSURE_SUCCESS(rv, rv);
 

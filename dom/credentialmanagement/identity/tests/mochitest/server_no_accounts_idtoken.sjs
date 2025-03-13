@@ -37,6 +37,13 @@ function handleRequest(request, response) {
     return;
   }
   if (
+    !request.hasHeader("Referer") ||
+    request.getHeader("Referer") != "https://example.com/"
+  ) {
+    response.setStatusLine(request.httpVersion, 400, "Bad Request");
+    return;
+  }
+  if (
     !request.hasHeader("Origin") ||
     request.getHeader("Origin") != "https://example.com"
   ) {

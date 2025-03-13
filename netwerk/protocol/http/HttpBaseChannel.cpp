@@ -3271,16 +3271,6 @@ bool HttpBaseChannel::ShouldBlockOpaqueResponse() const {
     }
   }
 
-  // Exclude no_cors web-identity
-  if (extContentPolicyType == ExtContentPolicy::TYPE_WEB_IDENTITY) {
-    if (securityMode ==
-        nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT) {
-      printf("Allowing ORB for web-identity\n");
-      LOGORB("No block: System web-identity");
-      return false;
-    }
-  }
-
   uint32_t httpsOnlyStatus = mLoadInfo->GetHttpsOnlyStatus();
   if (httpsOnlyStatus & nsILoadInfo::HTTPS_ONLY_BYPASS_ORB) {
     LOGORB("No block: HTTPS_ONLY_BYPASS_ORB");
