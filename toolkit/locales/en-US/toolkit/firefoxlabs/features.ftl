@@ -34,3 +34,8 @@ experimental-features-group-customize-browsing =
 experimental-features-contextual-password-manager =
     .label = Passwords in the sidebar
 experimental-features-contextual-password-manager-description = Access your passwords right from the sidebar. No more searching around or resetting passwords when you’re trying to sign in. To use this feature, select passwords in the sidebar. Then go to your general settings and under browser layout, select show sidebar. Then, customize your sidebar by selecting passwords. If you try it, <a data-l10n-name="connect">let us know what you think</a>.
+
+# New Tab Custom Wallpapers
+experimental-features-custom-wallpaper =
+    .label = Choose a custom wallpaper or color for New Tab
+experimental-features-custom-wallpaper-description = Upload your own wallpaper or pick a custom color for your New Tab background.
