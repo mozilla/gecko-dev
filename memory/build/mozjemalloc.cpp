@@ -1724,14 +1724,14 @@ class ArenaCollection {
   // Execute at most one request.
   // Returns a purge_result_t with the following meaning:
   // Done:       Purge has completed for all arenas.
-  // NeedsMore:  There is at least one arena that needs to be purged now.
+  // NeedsMore:  There may be some arenas that needs to be purged now.
   // WantsLater: There is at least one arena that might want a purge later,
   //             according to aReuseGraceMS.
   //
   // Parameters:
-  // aPeekOnly: If true, check only if there is work to do without doing it.
-  // uint32_t:  aReuseGraceMS is the time to wait with purge after a
-  //            significant re-use happened for an arena.
+  // aPeekOnly:     If true, check only if there is work to do without doing it.
+  // aReuseGraceMS: The time to wait with purge after a
+  //                significant re-use happened for an arena.
   //
   // Note that this executes at most one call to arena_t::Purge for at most
   // one arena, which will purge at most one chunk from that arena. This is the

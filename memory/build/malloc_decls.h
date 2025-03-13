@@ -164,17 +164,19 @@ MALLOC_DECL(moz_enable_deferred_purge, bool, bool)
 // Execute at most one purge.
 // Returns a purge_result_t with the following meaning:
 // Done:       Purge has completed for all arenas.
-// NeedsMore:  There is at least one arena that needs to be purged now.
+// NeedsMore:  There may be an arena that needs to be purged now.  The caller
+//             may call moz_may_purge_one_now again.
 // WantsLater: There is at least one arena that might want a purge later,
-//             according to aReuseGraceMS passed.
+//             according to aReuseGraceMS passed.  But none requesting purge
+//             now.
 // Parameters:
 // bool:      If the bool parameter aPeekOnly is true, it won't process
 //            any purge but just return if some is needed now or wanted later.
 // uint32_t:  aReuseGraceMS is the time to wait with purge after a significant
 //            re-use happened for an arena.
-// The cost of calling this when there is no pending purge is minimal: a mutex
-// lock/unlock and an isEmpty check. Note that the mutex is never held during
-// expensive operations and guards only that list.
+// The cost of calling this when there is no pending purge is: a mutex
+// lock/unlock and iterating the list of purges. The mutex is never held during
+// expensive operations.
 MALLOC_DECL(moz_may_purge_one_now, purge_result_t, bool, uint32_t)
 
 #  endif
