@@ -447,6 +447,10 @@ add_task(async function test_vertical_tabs_overflow() {
     "vertical-tabs-newtab-button",
     1
   );
+
+  while (gBrowser.tabs.length > 1) {
+    await BrowserTestUtils.removeTab(gBrowser.tabs.at(-1));
+  }
 });
 
 add_task(async function test_vertical_tabs_expanded() {
@@ -513,6 +517,48 @@ add_task(async function test_vertical_tabs_min_width() {
     "Tab min-width is set to 'auto' when vertical tabs are enabled."
   );
 
+  info("Collapse sidebar and tabs");
+  await SidebarController.initializeUIState({ launcherExpanded: false });
+
+  const collapsedStateValues = [
+    SidebarController.getUIState().launcherExpanded,
+    SidebarController.sidebarMain.expanded,
+    gBrowser.tabContainer.hasAttribute("expanded"),
+  ];
+  for (const val of collapsedStateValues) {
+    is(val, false, "Launcher is collapsed.");
+  }
+
+  let tabs = [
+    gBrowser.selectedTab,
+    BrowserTestUtils.addTab(gBrowser, "about:blank"),
+  ];
+  gBrowser.pinTab(tabs[1]);
+  let verticalPinnedTabsContainer = document.querySelector(
+    "#vertical-pinned-tabs-container"
+  );
+  ok(
+    BrowserTestUtils.isVisible(verticalPinnedTabsContainer),
+    "Vertical pinned tabs container is visible"
+  );
+  is(
+    verticalPinnedTabsContainer.children.length,
+    1,
+    "One tab is pinned in vertical pinned tabs container"
+  );
+  is(
+    verticalPinnedTabsContainer.getBoundingClientRect().width,
+    gBrowser.tabContainer.getBoundingClientRect().width,
+    "Vertical pinned tabs container should be the same width as the tab strip"
+  );
+
+  is(
+    Math.round(tabs[0].getBoundingClientRect().width),
+    Math.round(tabs[1].getBoundingClientRect().width),
+    "Vertical pinned tabs should be the same width as the unpinned tabs"
+  );
+  gBrowser.unpinTab(tabs[1]);
+
   // Switch to horizontal tabs
   await SpecialPowers.pushPrefEnv({
     set: [["sidebar.verticalTabs", false]],
@@ -529,5 +575,9 @@ add_task(async function test_vertical_tabs_min_width() {
     "Tab min-width is set based on the browser.tabs.tabMinWidth pref in horizontal tabs mode."
   );
 
+  // clean up extra tabs
+  while (gBrowser.tabs.length > 1) {
+    await BrowserTestUtils.removeTab(gBrowser.tabs.at(-1));
+  }
   await SpecialPowers.popPrefEnv();
 });
