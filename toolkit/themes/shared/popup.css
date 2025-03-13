@@ -96,9 +96,6 @@ menupopup {
   @media (-moz-windows-mica-popups) {
     appearance: auto;
     -moz-default-appearance: menupopup;
-    /* The blur behind doesn't blur all that much, add a semi-transparent
-     * background to improve contrast */
-    --panel-background: light-dark(rgba(255, 255, 255, .5), rgba(0, 0, 0, .5));
     /* The mica backdrop takes care of our shadow, border, and border-radius */
     --panel-border-color: transparent;
     --panel-shadow-margin: 0px;

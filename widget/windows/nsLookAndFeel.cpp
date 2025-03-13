@@ -167,7 +167,7 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
     return NS_OK;
   }
 
-  // Titlebar and menu hover colors are color-scheme aware.
+  // Titlebar and menu colors are color-scheme aware.
   switch (aID) {
     case ColorID::Activecaption:
       aColor = mTitlebarColors.Get(aScheme, true).mBg;
@@ -190,8 +190,8 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
     case ColorID::MozMenuhover:
       MOZ_ASSERT(UseNonNativeMenuColors(aScheme));
       if (WinUtils::MicaPopupsEnabled()) {
-        aColor = aScheme == ColorScheme::Dark ? NS_RGBA(255, 255, 255, 15)
-                                              : NS_RGBA(0, 0, 0, 15);
+        aColor = aScheme == ColorScheme::Dark ? NS_RGBA(255, 255, 255, 30)
+                                              : NS_RGBA(0, 0, 0, 30);
       } else {
         aColor = aScheme == ColorScheme::Dark ? *GenericDarkColor(aID)
                                               : NS_RGB(0xe0, 0xe0, 0xe6);
@@ -210,6 +210,20 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
         aColor = NS_TRANSPARENT;
       }
       return NS_OK;
+    case ColorID::Menu: {
+      if (UseNonNativeMenuColors(aScheme)) {
+        if (WinUtils::MicaPopupsEnabled()) {
+          aColor = aScheme == ColorScheme::Dark ? NS_RGBA(0, 0, 0, 153)
+                                                : NS_RGBA(255, 255, 255, 153);
+        } else {
+          aColor = aScheme == ColorScheme::Dark ? *GenericDarkColor(aID)
+                                                : NS_RGB(0xf9, 0xf9, 0xfb);
+        }
+      } else {
+        aColor = GetColorForSysColorIndex(COLOR_MENU);
+      }
+      return NS_OK;
+    }
     default:
       break;
   }
@@ -300,13 +314,6 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       break;
     case ColorID::Infotext:
       idx = COLOR_INFOTEXT;
-      break;
-    case ColorID::Menu:
-      if (UseNonNativeMenuColors(aScheme)) {
-        aColor = NS_RGB(0xf9, 0xf9, 0xfb);
-        return NS_OK;
-      }
-      idx = COLOR_MENU;
       break;
     case ColorID::Menutext:
       if (UseNonNativeMenuColors(aScheme)) {
