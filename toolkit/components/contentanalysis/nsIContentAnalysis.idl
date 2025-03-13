@@ -245,6 +245,10 @@ interface nsIContentAnalysisRequest : nsISupports
   // The WindowGlobalParent that was the source of the data in the request, or
   // null if unknown.
   readonly attribute WindowGlobalParent sourceWindowGlobal;
+
+  // What to multiply the timeout for this request by. Only needed if there are
+  // requests with multiple userActionIds that are logically grouped together.
+  attribute uint32_t timeoutMultiplier;
 };
 
 [scriptable, builtinclass, uuid(cb09fc88-118c-411b-aa89-2e1bc5e3eba6)]
