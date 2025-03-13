@@ -1635,8 +1635,10 @@ bool DMABufSurfaceYUV::CreateEGLImage(GLContext* aGLContext, int aPlane) {
              "EGLImage is already created!");
   MOZ_ASSERT(aGLContext, "Missing GLContext!");
 
-  const auto& gle = gl::GLContextEGL::Cast(aGLContext);
-  const auto& egl = gle->mEgl;
+  if (!aGLContext->IsExtensionSupported(gl::GLContext::OES_EGL_image)) {
+    LOGDMABUF(("DMABufSurfaceYUV::CreateEGLImage(): no OES_EGL_image."));
+    return false;
+  }
 
   MutexAutoLock lockFD(mSurfaceLock);
   if (!OpenFileDescriptorForPlane(lockFD, aPlane)) {
@@ -1670,6 +1672,8 @@ bool DMABufSurfaceYUV::CreateEGLImage(GLContext* aGLContext, int aPlane) {
 #undef ADD_PLANE_ATTRIBS_NV12
   attribs.AppendElement(LOCAL_EGL_NONE);
 
+  const auto& gle = gl::GLContextEGL::Cast(aGLContext);
+  const auto& egl = gle->mEgl;
   mEGLImage[aPlane] =
       egl->fCreateImage(LOCAL_EGL_NO_CONTEXT, LOCAL_EGL_LINUX_DMA_BUF_EXT,
                         nullptr, attribs.Elements());
