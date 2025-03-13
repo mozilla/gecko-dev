@@ -2398,6 +2398,13 @@ void Document::AccumulateJSTelemetry(
   if (!timers.protectTime.IsZero()) {
     glean::javascript_pageload::protect_time.AccumulateRawDuration(
         timers.protectTime);
+    // GLAM EXPERIMENT
+    // This metric is temporary, disabled by default, and will be enabled only
+    // for the purpose of experimenting with client-side sampling of data for
+    // GLAM use. See Bug 1947604 for more information.
+    glean::glam_experiment::protect_time.AccumulateRawDuration(
+        timers.protectTime);
+    // END GLAM EXPERIMENT
   }
 }
 
@@ -16698,6 +16705,12 @@ void Document::ReportLCP() {
 
   mozilla::glean::perf::largest_contentful_paint.AccumulateRawDuration(
       lcpTime - timing->GetNavigationStartTimeStamp());
+  // GLAM EXPERIMENT
+  // This metric is temporary, disabled by default, and will be enabled only
+  // for the purpose of experimenting with client-side sampling of data for
+  // GLAM use. See Bug 1947604 for more information.
+  mozilla::glean::glam_experiment::largest_contentful_paint
+      .AccumulateRawDuration(lcpTime - timing->GetNavigationStartTimeStamp());
 
   if (!GetChannel()) {
     return;
