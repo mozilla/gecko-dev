@@ -19,6 +19,7 @@ if (arguments.length != 2) {
 }
 
 Services.prefs.setBoolPref("security.osclientcerts.autoload", false);
+Services.prefs.setBoolPref("network.xhr.block_sync_system_requests", false);
 
 var { NetUtil } = ChromeUtils.importESModule(
   "resource://gre/modules/NetUtil.sys.mjs"
