@@ -1319,8 +1319,7 @@ def install(command_context, **kwargs):
 
 def _get_android_run_parser():
     parser = argparse.ArgumentParser()
-    group = parser.add_argument_group("The compiled program")
-    group.add_argument("url", nargs="?", default=None, help="URL to open")
+    group = parser.add_argument_group("Compiled Program Environment Options")
     group.add_argument(
         "--app",
         default="org.mozilla.geckoview_example",
@@ -1420,20 +1419,16 @@ def _get_android_run_parser():
         default=False,
         help="Select an existing process to debug.",
     )
+
+    group = parser.add_argument_group("Compiled Program Options")
+    group.add_argument("url", nargs="?", default=None, help="URL to open")
+
     return parser
 
 
 def _get_jsshell_run_parser():
     parser = argparse.ArgumentParser()
-    group = parser.add_argument_group("the compiled program")
-    group.add_argument(
-        "params",
-        nargs="...",
-        default=[],
-        help="Command-line arguments to be passed through to the program. Not "
-        "specifying a --profile or -P option will result in a temporary profile "
-        "being used.",
-    )
+    group = parser.add_argument_group("Compiled Program Environment Options")
 
     group = parser.add_argument_group("debugging")
     group.add_argument(
@@ -1462,20 +1457,31 @@ def _get_jsshell_run_parser():
         help=argparse.SUPPRESS,
     )
 
+    group = parser.add_argument_group("Compiled Program Options")
+    group.add_argument(
+        "params",
+        nargs="*",
+        default=[],
+        metavar="[--] params...",
+        help="Command-line arguments to be passed through to the program. "
+        "Omitting --profile or -P results in a temporary profile being used.",
+    )
+    # Trick ArgumentParser into displaying an advice to access program help
+    group.add_argument(
+        "fake_help",
+        nargs="*",
+        default=[],
+        metavar="-- --help",
+        help="Display the program help.",
+    )
+
     return parser
 
 
 def _get_desktop_run_parser():
+
     parser = argparse.ArgumentParser()
-    group = parser.add_argument_group("the compiled program")
-    group.add_argument(
-        "params",
-        nargs="...",
-        default=[],
-        help="Command-line arguments to be passed through to the program. Not "
-        "specifying a --profile or -P option will result in a temporary profile "
-        "being used.",
-    )
+    group = parser.add_argument_group("Compiled Program Environment Options")
     group.add_argument("--packaged", action="store_true", help="Run a packaged build.")
     group.add_argument(
         "--app", help="Path to executable to run (default: output of ./mach build)"
@@ -1530,7 +1536,7 @@ def _get_desktop_run_parser():
         "option.",
     )
 
-    group = parser.add_argument_group("debugging")
+    group = parser.add_argument_group("Debugging")
     group.add_argument(
         "--debug",
         action="store_true",
@@ -1577,6 +1583,25 @@ def _get_desktop_run_parser():
         "--show-dump-stats", action="store_true", help="Show stats when doing dumps."
     )
 
+    group = parser.add_argument_group("Compiled Program Options")
+    group.add_argument(
+        "params",
+        nargs="*",
+        default=[],
+        metavar="[--] params...",
+        help="Command-line arguments to be passed through to the program. "
+        "Omitting --profile or -P results in a temporary profile being used.",
+    )
+
+    # Trick ArgumentParser into displaying an advice to access program help
+    group.add_argument(
+        "fake_help",
+        nargs="*",
+        default=[],
+        metavar="-- --help",
+        help="Display the program help.",
+    )
+
     return parser
 
 
@@ -1598,6 +1623,10 @@ def setup_run_parser():
 )
 def run(command_context, **kwargs):
     """Run the compiled program."""
+    # Get rid of fake_help artifact
+    fake_help = kwargs.pop("fake_help")
+    assert not fake_help
+
     if conditions.is_android(command_context):
         return _run_android(command_context, **kwargs)
     if conditions.is_jsshell(command_context):
