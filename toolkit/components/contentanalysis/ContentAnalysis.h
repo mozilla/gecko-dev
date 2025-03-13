@@ -349,6 +349,8 @@ class ContentAnalysis final : public nsIContentAnalysis,
         const nsTArray<ContentAnalysis::ContentAnalysisRequestArray>& aRequests,
         nsIContentAnalysisCallback* aCallback);
 
+    bool HasResponded() const { return mResponded; }
+
    private:
     MultipartRequestCallback() = default;
     virtual ~MultipartRequestCallback();

@@ -391,9 +391,10 @@ nsresult ContentAnalysisTest::SendRequestsCancelAndExpectResponse(
           // asynchronously.  We need to wait for that.
           // (In the case of this test, nothing actually needs to be expanded.)
           if (aCancelMechanism == CancelMechanism::eCancelByRequestToken) {
-            nsAutoCString requestToken;
-            MOZ_ALWAYS_SUCCEEDS(requests[0]->GetRequestToken(requestToken));
-            if (!requestToken.IsEmpty()) {
+            if (rawRequestObserver->GetRequests().size() > 0) {
+              nsAutoCString requestToken;
+              MOZ_ALWAYS_SUCCEEDS(requests[0]->GetRequestToken(requestToken));
+              EXPECT_FALSE(requestToken.IsEmpty());
               MOZ_ALWAYS_SUCCEEDS(
                   contentAnalysis->CancelRequestsByRequestToken(requestToken));
               hasCanceledRequest = true;
@@ -446,6 +447,10 @@ void SendRequestAndExpectResponse(
         MOZ_ALWAYS_SUCCEEDS(response->GetRequestToken(requestToken));
         MOZ_ALWAYS_SUCCEEDS(request->GetRequestToken(originalRequestToken));
         EXPECT_EQ(originalRequestToken, requestToken);
+        nsCString userActionId, originalUserActionId;
+        MOZ_ALWAYS_SUCCEEDS(response->GetUserActionId(userActionId));
+        MOZ_ALWAYS_SUCCEEDS(request->GetUserActionId(originalUserActionId));
+        EXPECT_EQ(originalUserActionId, userActionId);
         gotResponse = true;
       },
       [&gotResponse, timedOut](nsresult error) {
@@ -819,8 +824,7 @@ TEST_F(ContentAnalysisTest,
       obsServ->RemoveObserver(rawRequestObserver, "dlp-request-sent-raw"));
 }
 
-TEST_F(ContentAnalysisTest,
-       CheckAssignedUserActionIdCanCancelAndHaveSameUserActionId) {
+TEST_F(ContentAnalysisTest, CheckAssignedUserActionIdCanCancel) {
   nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
   nsString allow1(L"allowMe");
   RefPtr<nsIContentAnalysisRequest> request1 = new ContentAnalysisRequest(
@@ -837,23 +841,11 @@ TEST_F(ContentAnalysisTest,
       false, EmptyCString(), uri,
       nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
   nsTArray<RefPtr<nsIContentAnalysisRequest>> requests{request1, request2};
-  nsCOMPtr<nsIObserverService> obsServ =
-      mozilla::services::GetObserverService();
-  auto rawRequestObserver = MakeRefPtr<RawRequestObserver>();
-  MOZ_ALWAYS_SUCCEEDS(
-      obsServ->AddObserver(rawRequestObserver, "dlp-request-sent-raw", false));
 
   nsresult rv = SendRequestsCancelAndExpectResponse(
       mContentAnalysis, requests, CancelMechanism::eCancelByUserActionId,
       false /* aExpectFailure */);
   EXPECT_EQ(rv, NS_OK);
-
-  auto rawRequests = rawRequestObserver->GetRequests();
-  EXPECT_EQ(static_cast<size_t>(2), rawRequests.size());
-  EXPECT_EQ(rawRequests[0].user_action_id(), rawRequests[1].user_action_id());
-
-  MOZ_ALWAYS_SUCCEEDS(
-      obsServ->RemoveObserver(rawRequestObserver, "dlp-request-sent-raw"));
 }
 
 static nsCString GenerateUUID() {
@@ -861,8 +853,7 @@ static nsCString GenerateUUID() {
   return nsCString(id.ToString().get());
 }
 
-TEST_F(ContentAnalysisTest,
-       CheckGivenUserActionIdCanCancelAndHaveSameUserActionId) {
+TEST_F(ContentAnalysisTest, CheckGivenUserActionIdCanCancel) {
   nsCString userActionId = GenerateUUID();
   nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
 
@@ -883,23 +874,10 @@ TEST_F(ContentAnalysisTest,
       nsIContentAnalysisRequest::OperationType::eClipboard, nullptr, nullptr,
       nsCString(userActionId));
   nsTArray<RefPtr<nsIContentAnalysisRequest>> requests{request1, request2};
-  nsCOMPtr<nsIObserverService> obsServ =
-      mozilla::services::GetObserverService();
-  auto rawRequestObserver = MakeRefPtr<RawRequestObserver>();
-  MOZ_ALWAYS_SUCCEEDS(
-      obsServ->AddObserver(rawRequestObserver, "dlp-request-sent-raw", false));
   nsresult rv = SendRequestsCancelAndExpectResponse(
       mContentAnalysis, requests, CancelMechanism::eCancelByUserActionId,
       false /* aExpectFailure */);
   EXPECT_EQ(rv, NS_OK);
-
-  auto rawRequests = rawRequestObserver->GetRequests();
-  EXPECT_EQ(static_cast<size_t>(2), rawRequests.size());
-  EXPECT_EQ(rawRequests[0].user_action_id(), rawRequests[1].user_action_id());
-  EXPECT_EQ(rawRequests[0].user_action_id(), userActionId.get());
-
-  MOZ_ALWAYS_SUCCEEDS(
-      obsServ->RemoveObserver(rawRequestObserver, "dlp-request-sent-raw"));
 }
 
 TEST_F(ContentAnalysisTest, CheckGivenUserActionIdsMustMatch) {
