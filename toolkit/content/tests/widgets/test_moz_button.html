@@ -138,13 +138,13 @@
           width: "--button-size-icon",
           height: "--button-size-icon",
           backgroundColor: "transparent",
-          fill: "--button-text-color",
+          fill: "currentColor",
         });
         assertButtonPropertiesMatch(six, {
           width: "--button-size-icon",
           height: "--button-size-icon",
           backgroundColor: "transparent",
-          fill: "--button-text-color",
+          fill: "currentColor",
         });
         assertButtonPropertiesMatch(seven, {
           backgroundColor: "--button-background-color",
@@ -228,16 +228,16 @@
         let [four, five, six, seven, eight, nine, ten] = buttons;
         await Promise.all(buttons.map(btn => btn.updateComplete));
 
-        function verifyBackgroundIcon(button) {
+        function verifyBackgroundIcon(button, fill) {
           let img = button.shadowRoot.querySelector("img");
           ok(!img, "button does not use an img element to display an icon");
           assertButtonPropertiesMatch(button, {
-            fill: "--button-text-color",
+            fill,
             backgroundSize: "--icon-size-default",
           });
         }
 
-        function verifyImageIcon(button) {
+        function verifyImageIcon(button, fill) {
           let img = button.shadowRoot.querySelector("img");
           ok(img, "button uses an inner img element to display an icon");
           is(
@@ -246,31 +246,31 @@
             "button displays the expected icon"
           );
           assertButtonPropertiesMatch(img, {
-            fill: "--button-text-color",
+            fill,
             width: "--icon-size-default",
             height: "--icon-size-default",
           });
         }
 
-        verifyBackgroundIcon(four);
-        verifyBackgroundIcon(five);
-        verifyBackgroundIcon(six);
+        verifyBackgroundIcon(four, "--button-text-color");
+        verifyBackgroundIcon(five, "currentColor");
+        verifyBackgroundIcon(six, "currentColor");
 
-        verifyImageIcon(seven);
-        verifyImageIcon(eight);
-        verifyImageIcon(nine);
-        verifyImageIcon(ten);
+        verifyImageIcon(seven, "--button-text-color");
+        verifyImageIcon(eight, "--button-text-color");
+        verifyImageIcon(nine, "currentColor");
+        verifyImageIcon(ten, "currentColor");
         is(ten.buttonEl.innerText, "Edit", "ten's label is correct");
 
         nine.textContent = "With text";
         // Ensure we've painted before checking styles
         await new Promise(resolve => requestAnimationFrame(resolve));
-        verifyImageIcon(nine);
+        verifyImageIcon(nine, "currentColor");
 
         nine.textContent = "";
         // Ensure we've painted before checking styles
         await new Promise(resolve => requestAnimationFrame(resolve));
-        verifyImageIcon(nine);
+        verifyImageIcon(nine, "currentColor");
       });
 
       add_task(async function testAccesskey() {

@@ -15,7 +15,9 @@ button {
   /* HTML button gets `font: -moz-button` from UA styles,
    * but we want it to match the root font styling. */
   font: inherit;
-  color: var(--button-text-color);
+  /* Overridden on button-background, but still need to unset to not get the
+   * UA styles */
+  color: inherit;
   width: 100%;
 
   &:focus-visible {
@@ -34,6 +36,7 @@ button {
   border: var(--button-border);
   border-radius: var(--button-border-radius);
   background-color: var(--button-background-color);
+  color: var(--button-text-color);
   padding: var(--button-padding);
   font-weight: var(--button-font-weight);
   /* Ensure font-size isn't overridden by widget styling (e.g. in forms.css) */
