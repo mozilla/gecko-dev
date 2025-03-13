@@ -10,9 +10,9 @@
 #include "nsHashtablesFwd.h"
 #include "nsIPrincipal.h"
 #include "nsTArray.h"
-#include "nsTHashSet.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/dom/NameSpaceConstants.h"
+#include "mozilla/dom/StaticAtomSet.h"
 
 class nsIContent;
 class nsIGlobalObject;
@@ -106,21 +106,6 @@ class nsTreeSanitizer {
    */
   bool mLogRemovals;
 
-  /**
-   * We have various tables of static atoms for elements and attributes.
-   */
-  class AtomsTable : public nsTHashSet<const nsStaticAtom*> {
-   public:
-    explicit AtomsTable(uint32_t aLength)
-        : nsTHashSet<const nsStaticAtom*>(aLength) {}
-
-    bool Contains(nsAtom* aAtom) {
-      // Because this table only contains static atoms, if aAtom isn't
-      // static we can immediately fail.
-      return aAtom->IsStatic() && GetEntry(aAtom->AsStatic());
-    }
-  };
-
   void SanitizeChildren(nsINode* aRoot);
 
   /**
@@ -157,7 +142,7 @@ class nsTreeSanitizer {
    */
   struct AllowedAttributes {
     // The whitelist of permitted local names to use.
-    AtomsTable* mNames = nullptr;
+    mozilla::dom::StaticAtomSet* mNames = nullptr;
     // The local names of URL-valued attributes for URL checking.
     const nsStaticAtom* const* mURLs = nullptr;
     // Whether XLink attributes are allowed.
@@ -239,37 +224,37 @@ class nsTreeSanitizer {
   /**
    * The whitelist of HTML elements.
    */
-  static AtomsTable* sElementsHTML;
+  static mozilla::dom::StaticAtomSet* sElementsHTML;
 
   /**
    * The whitelist of non-presentational HTML attributes.
    */
-  static AtomsTable* sAttributesHTML;
+  static mozilla::dom::StaticAtomSet* sAttributesHTML;
 
   /**
    * The whitelist of presentational HTML attributes.
    */
-  static AtomsTable* sPresAttributesHTML;
+  static mozilla::dom::StaticAtomSet* sPresAttributesHTML;
 
   /**
    * The whitelist of SVG elements.
    */
-  static AtomsTable* sElementsSVG;
+  static mozilla::dom::StaticAtomSet* sElementsSVG;
 
   /**
    * The whitelist of SVG attributes.
    */
-  static AtomsTable* sAttributesSVG;
+  static mozilla::dom::StaticAtomSet* sAttributesSVG;
 
   /**
    * The whitelist of SVG elements.
    */
-  static AtomsTable* sElementsMathML;
+  static mozilla::dom::StaticAtomSet* sElementsMathML;
 
   /**
    * The whitelist of MathML attributes.
    */
-  static AtomsTable* sAttributesMathML;
+  static mozilla::dom::StaticAtomSet* sAttributesMathML;
 
   /**
    * Reusable null principal for URL checks.
