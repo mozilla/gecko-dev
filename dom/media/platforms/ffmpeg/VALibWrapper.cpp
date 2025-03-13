@@ -125,7 +125,7 @@ RefPtr<VADisplayHolder> VADisplayHolder::GetSingleton() {
 
 void VADisplayHolder::MaybeDestroy() {
   StaticMutexAutoLock lock(sDisplayHolderMutex);
-  MOZ_ASSERT(int32_t(mRefCnt) > 0, "dup release");
+  MOZ_ASSERT(int32_t(mRefCnt) >= 0, "dup release");
   if (mRefCnt == 0) {
     // No new reference added before the lock was taken.
     sDisplayHolder = nullptr;
