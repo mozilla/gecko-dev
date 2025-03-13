@@ -50,6 +50,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import mozilla.components.compose.base.annotation.LightDarkPreview
+import mozilla.components.compose.base.modifier.rightClickable
 import mozilla.components.feature.top.sites.TopSite
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.ContextualMenu
@@ -292,6 +293,10 @@ private fun TopSiteItem(
     onTopSitesItemBound: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    val onLongClick = {
+        onTopSiteLongClick(topSite)
+        menuExpanded = true
+    }
 
     Box(
         modifier = Modifier
@@ -306,10 +311,12 @@ private fun TopSiteItem(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                     onClick = { onTopSiteClick(topSite) },
-                    onLongClick = {
-                        onTopSiteLongClick(topSite)
-                        menuExpanded = true
-                    },
+                    onLongClick = onLongClick,
+                )
+                .rightClickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onRightClick = onLongClick,
                 )
                 .width(TOP_SITES_ITEM_SIZE.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
