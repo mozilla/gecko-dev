@@ -84,6 +84,9 @@ mfcdm:
       key_system:
         description: The key system was being used when the error or crash happened
         type: string
+      platform_error_code:
+        description: The platform specific error code, eg. HResult on Windows
+        type: quantity
     expires: 140
     telemetry_mirror: Mfcdm_Error_Gecko
 
