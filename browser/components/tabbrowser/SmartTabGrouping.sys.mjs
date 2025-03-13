@@ -9,12 +9,12 @@ import {
 } from "chrome://global/content/ml/NLPUtils.sys.mjs";
 
 import {
-  kmeansPlusPlus,
   computeCentroidFrom2DArray,
-  euclideanDistance,
-  silhouetteCoefficients,
-  getAccuracyStats,
   computeRandScore,
+  euclideanDistance,
+  getAccuracyStats,
+  kmeansPlusPlus,
+  silhouetteCoefficients,
 } from "chrome://global/content/ml/ClusterAlgos.sys.mjs";
 
 const lazy = {};
@@ -86,6 +86,13 @@ const SMART_TAB_GROUPING_CONFIG = {
     suggestOtherTabsMethod: SUGGEST_OTHER_TABS_METHODS.NEAREST_NEIGHBOR,
   },
 };
+
+const TAB_URLS_TO_EXCLUDE = [
+  "about:newtab",
+  "about:home",
+  "about:privatebrowsing",
+  "chrome://browser/content/blanktab.html",
+];
 
 /**
  * For a given set of clusters represented by indices, returns the index of the cluster
@@ -195,6 +202,31 @@ export class SmartTabGroupingManager {
     return suggestedTabs;
   }
 
+  /**
+   * Get tabs that need to be included in suggestions
+   * @param {array} allTabs all tabs that are part of the window
+   * @param {array} groupedIndices indices of tabs that are already part of the group
+   * @param {array} alreadyGroupedIndices indices of tabs that are part of other groups
+   * @returns {array} tabs indices to be considered for suggestions
+   */
+  getTabsToSuggest(allTabs, groupedIndices, alreadyGroupedIndices) {
+    // tabs to be excluded
+    // indices of all tabs that should be excluded (with duplicates)
+    const tabURLIndicesToExclude = allTabs
+      .map((at, index) => (TAB_URLS_TO_EXCLUDE.includes(at.url) ? index : -1))
+      .filter(index => index !== -1);
+    const excludedTabIndices = [
+      ...groupedIndices,
+      ...alreadyGroupedIndices,
+      ...tabURLIndicesToExclude,
+    ];
+
+    // tabs to be included
+    return allTabs
+      .map((_, index) => index)
+      .filter(i => !excludedTabIndices.includes(i));
+  }
+
   /*
    * Generates similar tabs a grouped list of tabs
    * @param {array} allTabs all tabs that are part of the window
@@ -220,11 +252,12 @@ export class SmartTabGroupingManager {
       );
     }
 
-    // get tabs that need to be assigned
-    const groupedTabIndices = groupedIndices.concat(alreadyGroupedIndices);
-    const tabsToAssignIndices = allTabs
-      .map((_, index) => index)
-      .filter(i => !groupedTabIndices.includes(i));
+    // tabs that need to be assigned after filtering
+    const tabsToAssignIndices = this.getTabsToSuggest(
+      tabData,
+      groupedIndices,
+      alreadyGroupedIndices
+    );
 
     let closestTabs = [];
     const similarTabsIndices = [];
