@@ -1,0 +1,49 @@
+From bac4171073399352e5bd0ba541820e2a9b3f37d7 Mon Sep 17 00:00:00 2001
+From: Devon Loehr <DKLoehr@users.noreply.github.com>
+Date: Sat, 22 Feb 2025 03:46:08 -0500
+Subject: [PATCH] Remove xbegin and _xend (#126952)
+
+`intrin.h` contains declarations for both `xbegin` and `_xend`, but they
+should already be included transitively from `rtmintrin.h` via
+`immintrin.h` and/or `x86intrin.h`. Having them in both places causes
+problems if both headers are included.
+
+Furthermore, the `intrin.h` declaration of `xbegin` seems to be bugged
+anyway, since it's missing its leading underscore.
+
+Fixes #95133
+---
+ clang/lib/Headers/intrin.h     |  2 --
+ clang/test/Headers/no-xend.cpp | 10 ++++++++++
+ 2 files changed, 10 insertions(+), 2 deletions(-)
+ create mode 100644 clang/test/Headers/no-xend.cpp
+
+diff --git a/clang/lib/Headers/intrin.h b/clang/lib/Headers/intrin.h
+index 376046aeeaf5e..3dd1eb45817d4 100644
+--- a/clang/lib/Headers/intrin.h
++++ b/clang/lib/Headers/intrin.h
+@@ -162,8 +162,6 @@ void _Store_HLERelease(long volatile *, long);
+ void _Store64_HLERelease(__int64 volatile *, __int64);
+ void _StorePointer_HLERelease(void *volatile *, void *);
+ void _WriteBarrier(void);
+-unsigned __int32 xbegin(void);
+-void _xend(void);
+ 
+ /* These additional intrinsics are turned on in x64/amd64/x86_64 mode. */
+ #if defined(__x86_64__) && !defined(__arm64ec__)
+diff --git a/clang/test/Headers/no-xend.cpp b/clang/test/Headers/no-xend.cpp
+new file mode 100644
+index 0000000000000..b2fb1de011557
+--- /dev/null
++++ b/clang/test/Headers/no-xend.cpp
+@@ -0,0 +1,10 @@
++// RUN: %clang_cc1 -triple x86_64-pc-win32 \
++// RUN:     -fms-extensions -fms-compatibility -fms-compatibility-version=17.00 \
++// RUN:     -ffreestanding -fsyntax-only -Werror -Wsystem-headers \
++// RUN:     -isystem %S/Inputs/include %s
++
++#include <immintrin.h>
++
++#pragma clang attribute push(__attribute__((target("avx"))), apply_to=function)
++#include <intrin.h>
++#pragma clang attribute pop

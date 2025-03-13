@@ -8,6 +8,7 @@
         "fuzzing_ccov_build_clang_12.patch",
         "revert-llvmorg-16-init-11301-g163bb6d64e5f_clang_20.patch",
         "revert-llvmorg-15-init-13446-g7524fe962e47.patch",
+        "llvmorg-21-init-2651-gbac417107339.patch",
         "android-hardware-buffer-header-workaround.patch",
         "arm64e-hack.patch",
         "compiler-rt-rss-limit-heap-profile.patch"
