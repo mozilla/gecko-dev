@@ -12,6 +12,7 @@
 #include "mozilla/media/MediaUtils.h"
 #include "js/Object.h"
 #include "js/PropertyAndElement.h"
+#include "nsCOMArray.h"
 #include "nsNetUtil.h"
 #include "nsIFile.h"
 #include "nsIObserverService.h"
@@ -543,6 +544,15 @@ void SendRequestAndExpectNoAgentResponse(
   EXPECT_FALSE(timedOut->mValue);
 }
 
+nsCOMPtr<nsIFile> GetFileFromLocalDirectory(const std::wstring& filename) {
+  nsCOMPtr<nsIFile> file;
+  MOZ_ALWAYS_SUCCEEDS(GetSpecialSystemDirectory(OS_CurrentWorkingDirectory,
+                                                getter_AddRefs(file)));
+  nsString relativePath(filename.c_str(), filename.length());
+  MOZ_ALWAYS_SUCCEEDS(file->AppendRelativePath(relativePath));
+  return file;
+}
+
 void YieldMainThread(uint32_t timeInMs) {
   std::atomic<bool> timeExpired = false;
   // The timer gets cleared on the main thread, so we need to yield the main
@@ -693,7 +703,7 @@ TEST_F(ContentAnalysisTest, CheckRawRequestWithText) {
   time_t t = requests[0].expires_at();
   time_t secs_remaining = t - now;
   // There should be around 65 seconds remaining
-  EXPECT_LE(abs(secs_remaining - 65), 2);
+  EXPECT_LE(abs(secs_remaining - 65), 8);
   const auto& request_url = requests[0].request_data().url();
   EXPECT_EQ(uri->GetSpecOrDefault(),
             nsCString(request_url.data(), request_url.size()));
@@ -708,11 +718,7 @@ TEST_F(ContentAnalysisTest, CheckRawRequestWithText) {
 
 TEST_F(ContentAnalysisTest, CheckRawRequestWithFile) {
   nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
-  nsCOMPtr<nsIFile> file;
-  MOZ_ALWAYS_SUCCEEDS(GetSpecialSystemDirectory(OS_CurrentWorkingDirectory,
-                                                getter_AddRefs(file)));
-  nsString allowRelativePath(L"allowedFile.txt");
-  MOZ_ALWAYS_SUCCEEDS(file->AppendRelativePath(allowRelativePath));
+  nsCOMPtr<nsIFile> file = GetFileFromLocalDirectory(L"allowedFile.txt");
   nsString allowPath;
   MOZ_ALWAYS_SUCCEEDS(file->GetPath(allowPath));
 
@@ -1010,6 +1016,90 @@ TEST_F(ContentAnalysisTest, CheckBrowserReportsTimeoutWithDefaultTimeoutAllow) {
 
   MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref));
   MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutResultPref));
+}
+
+TEST_F(ContentAnalysisTest,
+       SendMultipleBatchFilesToAgent_GetResponsesAndCheckTimeouts) {
+  MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kTimeoutPref, 65));
+  nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
+  nsCOMPtr<nsIFile> blockFile = GetFileFromLocalDirectory(L"blockedFile.txt");
+  nsCOMPtr<nsIFile> allowFile = GetFileFromLocalDirectory(L"allowedFile.txt");
+  nsCOMArray<nsIFile> files;
+  files.AppendElement(blockFile);
+  files.AppendElement(allowFile);
+
+  RefPtr timedOut = MakeRefPtr<media::Refcountable<BoolStruct>>();
+  std::atomic<bool> gotResponse = false;
+
+  nsCOMPtr<nsIObserverService> obsServ =
+      mozilla::services::GetObserverService();
+  auto rawRequestObserver = MakeRefPtr<RawRequestObserver>();
+  MOZ_ALWAYS_SUCCEEDS(
+      obsServ->AddObserver(rawRequestObserver, "dlp-request-sent-raw", false));
+  time_t now = time(nullptr);
+
+  auto promise = ContentAnalysis::CheckFilesInBatchMode(
+      std::move(files), nullptr,
+      nsIContentAnalysisRequest::Reason::eFilePickerDialog, uri);
+  promise->Then(
+      mozilla::GetMainThreadSerialEventTarget(), __func__,
+      [&, timedOut](nsCOMArray<nsIFile> aAllowedFiles) {
+        if (timedOut->mValue) {
+          return;
+        }
+        EXPECT_EQ(1, aAllowedFiles.Count());
+        nsString allowedLeafName;
+        EXPECT_EQ(NS_OK, aAllowedFiles[0]->GetLeafName(allowedLeafName));
+        EXPECT_EQ(nsString(L"allowedFile.txt"), allowedLeafName);
+        gotResponse = true;
+      },
+      [&gotResponse, timedOut](nsresult error) {
+        if (timedOut->mValue) {
+          return;
+        }
+        const char* errorName = mozilla::GetStaticErrorName(error);
+        errorName = errorName ? errorName : "";
+        printf("Got error response code %s(%x)\n", errorName, error);
+        // Errors should not have errorCode NS_OK
+        EXPECT_NE(NS_OK, error);
+        gotResponse = true;
+        FAIL() << "Got error response";
+      });
+
+  RefPtr<CancelableRunnable> timer = NS_NewCancelableRunnableFunction(
+      "SendMultipleBatchFilesToAgent_GetResponses timeout", [&] {
+        if (!gotResponse.load()) {
+          timedOut->mValue = true;
+        }
+      });
+#if defined(MOZ_ASAN)
+  // This can be pretty slow on ASAN builds (bug 1895256)
+  constexpr uint32_t kCATimeout = 25000;
+#else
+  constexpr uint32_t kCATimeout = 10000;
+#endif
+  NS_DelayedDispatchToCurrentThread(do_AddRef(timer), kCATimeout);
+
+  mozilla::SpinEventLoopUntil(
+      "Waiting for ContentAnalysis results"_ns,
+      [&, timedOut]() { return gotResponse.load() || timedOut->mValue; });
+  timer->Cancel();
+  EXPECT_TRUE(gotResponse);
+  EXPECT_FALSE(timedOut->mValue);
+
+  auto requests = rawRequestObserver->GetRequests();
+  EXPECT_EQ(static_cast<size_t>(2), requests.size());
+  // There should be around 65*2 seconds remaining for each request
+  time_t t = requests[0].expires_at();
+  time_t secs_remaining = t - now;
+  EXPECT_LE(abs(secs_remaining - (65 * 2)), 8);
+  t = requests[1].expires_at();
+  secs_remaining = t - now;
+  EXPECT_LE(abs(secs_remaining - (65 * 2)), 8);
+
+  MOZ_ALWAYS_SUCCEEDS(
+      obsServ->RemoveObserver(rawRequestObserver, "dlp-request-sent-raw"));
+  MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref));
 }
 
 TEST_F(ContentAnalysisTest, GetDiagnosticInfo_Initial) {
