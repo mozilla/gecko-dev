@@ -5,6 +5,7 @@
 
 "use strict";
 
+const ABOUT_BLANK = "about:blank";
 const CONTENT_PAGE = "https://example.com";
 
 ChromeUtils.defineESModuleGetters(this, {
@@ -724,4 +725,33 @@ add_task(async function test_settings_auto_close_disabled() {
     });
   });
   await SpecialPowers.popPrefEnv();
+});
+
+/**
+ * Tests that about:blank is treated as an unsupported site
+ * and renders the loading state as a result.
+ */
+add_task(async function test_about_blank_unsupported() {
+  await BrowserTestUtils.withNewTab(ABOUT_BLANK, async function () {
+    await SidebarController.show("viewReviewCheckerSidebar");
+
+    await withReviewCheckerSidebar(async () => {
+      let shoppingContainer = await ContentTaskUtils.waitForCondition(
+        () =>
+          content.document.querySelector("shopping-container")?.wrappedJSObject,
+        "Review Checker is loaded"
+      );
+
+      await shoppingContainer.updateComplete;
+
+      let loadingState = await ContentTaskUtils.waitForCondition(
+        () => shoppingContainer.loadingEl,
+        "Loading state found"
+      );
+
+      Assert.ok(loadingState, "Loading state found");
+    });
+  });
+
+  SidebarController.hide();
 });

@@ -8,6 +8,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 const ABOUT_SHOPPING_SIDEBAR = "about:shoppingsidebar";
+const ABOUT_BLANK = "about:blank";
 
 /**
  * When a Review Checker sidebar panel is open ReviewCheckerParent
@@ -57,13 +58,22 @@ export class ReviewCheckerParent extends JSWindowActorParent {
     this.topBrowserWindow = undefined;
   }
 
-  updateCurrentURL(uri, flags) {
+  /**
+   * Returns true if a URL is ignored by ReviewChecker.
+   *
+   * @param {string} url the url that we want to validate.
+   */
+  static isIgnoredURL(url) {
     // about:shoppingsidebar is only used for testing with fake data.
-    if (!uri || uri.spec == ABOUT_SHOPPING_SIDEBAR) {
-      return;
+    return url == ABOUT_SHOPPING_SIDEBAR || url == ABOUT_BLANK;
+  }
+
+  updateCurrentURL(uri, flags) {
+    if (ReviewCheckerParent.isIgnoredURL(uri.spec)) {
+      uri = null;
     }
     this.sendAsyncMessage("ReviewChecker:UpdateCurrentURL", {
-      url: uri.spec,
+      url: uri?.spec,
       isReload: !!(flags & Ci.nsIWebProgressListener.LOCATION_CHANGE_RELOAD),
     });
   }
@@ -71,11 +81,10 @@ export class ReviewCheckerParent extends JSWindowActorParent {
   getCurrentURL() {
     let { selectedBrowser } = this.topBrowserWindow.gBrowser;
     let uri = selectedBrowser.currentURI;
-    // about:shoppingsidebar is only used for testing with fake data.
-    if (!uri || uri.spec == ABOUT_SHOPPING_SIDEBAR) {
+    if (ReviewCheckerParent.isIgnoredURL(uri.spec)) {
       return null;
     }
-    return uri.spec;
+    return uri?.spec;
   }
 
   showNewPositionCard() {
