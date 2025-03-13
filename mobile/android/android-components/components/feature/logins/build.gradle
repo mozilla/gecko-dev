@@ -26,12 +26,6 @@ android {
         }
     }
 
-    packagingOptions {
-        resources {
-            excludes += ['META-INF/proguard/androidx-annotations.pro']
-        }
-    }
-
     sourceSets {
         androidTest.assets.srcDirs += files("$projectDir/schemas".toString())
     }

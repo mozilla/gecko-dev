@@ -33,12 +33,6 @@ android {
         compose true
     }
 
-    packagingOptions {
-        resources {
-            excludes += ['META-INF/proguard/androidx-annotations.pro']
-        }
-    }
-
     namespace 'mozilla.components.browser.state'
 
 }

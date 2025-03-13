@@ -167,11 +167,9 @@ subprojects {
                     }
                 }
 
-                packagingOptions {
+                packaging {
                     resources {
-                        excludes += ['META-INF/LICENSE.md', 'META-INF/LICENSE-notice.md']
-
-                        pickFirsts += ['win32-x86-64/attach_hotspot_windows.dll', 'win32-x86/attach_hotspot_windows.dll']
+                        excludes += ["META-INF/LICENSE.md", "META-INF/LICENSE-notice.md"]
                     }
                 }
 

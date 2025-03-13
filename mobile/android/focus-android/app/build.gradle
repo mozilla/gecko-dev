@@ -175,12 +175,10 @@ android {
         focusNightly.root = 'src/focusNightly'
         klarNightly.root = 'src/klarNightly'
     }
-    packagingOptions {
-        resources {
-            pickFirsts += ['META-INF/atomicfu.kotlin_module', 'META-INF/proguard/coroutines.pro']
-        }
+
+    packaging {
         jniLibs {
-            useLegacyPackaging true
+            useLegacyPackaging = true
         }
     }
 

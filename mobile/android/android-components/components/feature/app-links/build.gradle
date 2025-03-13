@@ -23,12 +23,6 @@ android {
         }
     }
 
-    packagingOptions {
-        resources {
-            excludes += ['META-INF/proguard/androidx-annotations.pro']
-        }
-    }
-
     namespace 'mozilla.components.feature.app.links'
 }
 

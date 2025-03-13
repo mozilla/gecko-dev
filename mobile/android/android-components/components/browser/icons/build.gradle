@@ -24,12 +24,6 @@ android {
         }
     }
 
-    packagingOptions {
-        resources {
-            excludes += ['META-INF/proguard/androidx-annotations.pro']
-        }
-    }
-
     sourceSets {
         androidTest {
             // Use the same resources as the unit tests

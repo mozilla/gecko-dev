@@ -255,7 +255,7 @@ android {
         // Profiler issues require us to temporarily package native code compressed to
         // match the previous APK packaging.
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1865634
-        packagingOptions {
+        packaging {
             jniLibs {
                 it.useLegacyPackaging = true
             }
@@ -272,13 +272,12 @@ android {
         lintConfig file("lint.xml")
         baseline file("lint-baseline.xml")
     }
-    packagingOptions {
+    packaging {
         resources {
-            excludes += ['MANIFEST.MF', 'META-INF/atomicfu.kotlin_module', 'META-INF/AL2.0',
-                         'META-INF/LGPL2.1', 'META-INF/LICENSE.md', 'META-INF/LICENSE-notice.md']
+            excludes += ["META-INF/LICENSE.md", "META-INF/LICENSE-notice.md"]
         }
         jniLibs {
-            useLegacyPackaging true
+            useLegacyPackaging = true
         }
     }
 
