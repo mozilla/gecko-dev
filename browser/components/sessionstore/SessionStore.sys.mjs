@@ -1846,8 +1846,10 @@ var SessionStoreInternal = {
         this.saveStateDelayed(win);
         break;
       case "TabGroupRemoveRequested":
-        this.onTabGroupRemoveRequested(win, target);
-        this._notifyOfClosedObjectsChange();
+        if (!aEvent.detail?.skipSessionStore) {
+          this.onTabGroupRemoveRequested(win, target);
+          this._notifyOfClosedObjectsChange();
+        }
         break;
       case "oop-browser-crashed":
       case "oop-browser-buildid-mismatch":

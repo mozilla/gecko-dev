@@ -38,7 +38,7 @@ add_task(async function test_tabGroupsUndo() {
     tabGroup,
     "TabGroupRemoved"
   );
-  gBrowser.removeTabGroup(tabGroup);
+  await gBrowser.removeTabGroup(tabGroup);
   await removePromise;
 
   await TabStateFlusher.flushWindow(window);
@@ -97,7 +97,7 @@ add_task(async function test_tabGroupsUndo() {
     savedTabGroup,
     "TabGroupRemoved"
   );
-  gBrowser.removeTabGroup(savedTabGroup);
+  await gBrowser.removeTabGroup(savedTabGroup);
   await removePromise;
 
   await TabStateFlusher.flushWindow(window);
