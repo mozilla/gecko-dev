@@ -5,8 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "Sanitizer.h"
-#include "mozilla/ClearOnShutdown.h"
-#include "mozilla/StaticPtr.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DocumentFragment.h"
@@ -31,14 +29,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Sanitizer)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
-
-// Map[ElementName -> ?Set[Attributes]]
-using ElementsWithAttributes =
-    nsTHashMap<const nsStaticAtom*, UniquePtr<StaticAtomSet>>;
-
-StaticAutoPtr<ElementsWithAttributes> sDefaultHTMLElements;
-StaticAutoPtr<ElementsWithAttributes> sDefaultMathMLElements;
-StaticAutoPtr<StaticAtomSet> sDefaultAttributes;
 
 JSObject* Sanitizer::WrapObject(JSContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
@@ -92,60 +82,51 @@ already_AddRefed<Sanitizer> Sanitizer::Constructor(
 }
 
 void Sanitizer::SetDefaultConfig() {
-  MOZ_ASSERT(NS_IsMainThread());
-  AssertNoLists();
+  MOZ_ASSERT(mElements.IsEmpty() && mAttributes.IsEmpty());
 
-  mIsDefaultConfig = true;
+  // TODO: Obviously get rid of these obnoxious copies.
+  // i.e. with some kind of copy-on-write scheme for the default config.
 
-  if (sDefaultHTMLElements) {
-    // Already initialized.
-    return;
-  }
-
-  sDefaultHTMLElements =
-      new ElementsWithAttributes(std::size(kDefaultHTMLElements));
-  size_t i = 0;
   for (nsStaticAtom* name : kDefaultHTMLElements) {
-    UniquePtr<StaticAtomSet> attributes = nullptr;
-
-    // Walkthrough the element specific attribute list in lockstep.
-    // The last "name" in the array is a nullptr sentinel.
-    if (name == kHTMLElementWithAttributes[i]) {
-      attributes = MakeUnique<StaticAtomSet>();
-      while (kHTMLElementWithAttributes[++i]) {
-        attributes->Insert(kHTMLElementWithAttributes[i]);
-      }
-      i++;
-    }
-
-    sDefaultHTMLElements->InsertOrUpdate(name, std::move(attributes));
+    mElements.InsertNew(CanonicalElementWithAttributes(
+        CanonicalName(name, nsGkAtoms::nsuri_xhtml)));
   }
 
-  sDefaultMathMLElements =
-      new ElementsWithAttributes(std::size(kDefaultMathMLElements));
-  i = 0;
+  for (size_t i = 0; i < std::size(kHTMLElementWithAttributes); i++) {
+    CanonicalName elementName(kHTMLElementWithAttributes[i],
+                              nsGkAtoms::nsuri_xhtml);
+
+    ListSet<CanonicalName> attributes;
+    while (kHTMLElementWithAttributes[++i]) {
+      attributes.InsertNew(
+          CanonicalName(kHTMLElementWithAttributes[i], nullptr));
+    }
+
+    // TODO: Optimization: Encode the index instead of the element name.
+    mElements.Get(elementName)->mAttributes = Some(std::move(attributes));
+  }
+
   for (nsStaticAtom* name : kDefaultMathMLElements) {
-    UniquePtr<StaticAtomSet> attributes = nullptr;
+    mElements.InsertNew(CanonicalElementWithAttributes(
+        CanonicalName(name, nsGkAtoms::nsuri_mathml)));
+  }
 
-    if (name == kMathMLElementWithAttributes[i]) {
-      attributes = MakeUnique<StaticAtomSet>();
-      while (kMathMLElementWithAttributes[++i]) {
-        attributes->Insert(kMathMLElementWithAttributes[i]);
-      }
-      i++;
+  for (size_t i = 0; i < std::size(kMathMLElementWithAttributes); i++) {
+    CanonicalName elementName(kMathMLElementWithAttributes[i],
+                              nsGkAtoms::nsuri_mathml);
+
+    ListSet<CanonicalName> attributes;
+    while (kMathMLElementWithAttributes[++i]) {
+      attributes.InsertNew(
+          CanonicalName(kMathMLElementWithAttributes[i], nullptr));
     }
 
-    sDefaultMathMLElements->InsertOrUpdate(name, std::move(attributes));
+    mElements.Get(elementName)->mAttributes = Some(std::move(attributes));
   }
 
-  sDefaultAttributes = new StaticAtomSet(std::size(kDefaultAttributes));
   for (nsStaticAtom* name : kDefaultAttributes) {
-    sDefaultAttributes->Insert(name);
+    mAttributes.InsertNew(CanonicalName(name, nullptr));
   }
-
-  ClearOnShutdown(&sDefaultHTMLElements);
-  ClearOnShutdown(&sDefaultMathMLElements);
-  ClearOnShutdown(&sDefaultAttributes);
 }
 
 // https://wicg.github.io/sanitizer-api/#sanitizer-set-a-configuration
@@ -270,60 +251,7 @@ void Sanitizer::SetConfig(const SanitizerConfig& aConfig, ErrorResult& aRv) {
   }
 }
 
-// Turn the lazy default config into real lists that can be
-// modified or queried via get().
-void Sanitizer::MaybeMaterializeDefaultConfig() {
-  if (!mIsDefaultConfig) {
-    return;
-  }
-  mIsDefaultConfig = false;
-
-  AssertNoLists();
-
-  size_t i = 0;
-  for (nsStaticAtom* name : kDefaultHTMLElements) {
-    CanonicalElementWithAttributes element(
-        CanonicalName(name, nsGkAtoms::nsuri_xhtml));
-
-    if (name == kHTMLElementWithAttributes[i]) {
-      ListSet<CanonicalName> attributes;
-      while (kHTMLElementWithAttributes[++i]) {
-        attributes.InsertNew(
-            CanonicalName(kHTMLElementWithAttributes[i], nullptr));
-      }
-      i++;
-      element.mAttributes = Some(std::move(attributes));
-    }
-
-    mElements.InsertNew(std::move(element));
-  }
-
-  i = 0;
-  for (nsStaticAtom* name : kDefaultMathMLElements) {
-    CanonicalElementWithAttributes element(
-        CanonicalName(name, nsGkAtoms::nsuri_mathml));
-
-    if (name == kMathMLElementWithAttributes[i]) {
-      ListSet<CanonicalName> attributes;
-      while (kMathMLElementWithAttributes[++i]) {
-        attributes.InsertNew(
-            CanonicalName(kMathMLElementWithAttributes[i], nullptr));
-      }
-      i++;
-      element.mAttributes = Some(std::move(attributes));
-    }
-
-    mElements.InsertNew(std::move(element));
-  }
-
-  for (nsStaticAtom* name : kDefaultAttributes) {
-    mAttributes.InsertNew(CanonicalName(name, nullptr));
-  }
-}
-
 void Sanitizer::Get(SanitizerConfig& aConfig) {
-  MaybeMaterializeDefaultConfig();
-
   nsTArray<OwningStringOrSanitizerElementNamespaceWithAttributes> elements;
   for (const CanonicalElementWithAttributes& canonical : mElements.Values()) {
     elements.AppendElement()->SetAsSanitizerElementNamespaceWithAttributes() =
@@ -483,8 +411,6 @@ static CanonicalElementWithAttributes CanonicalizeElementWithAttributes(
 // https://wicg.github.io/sanitizer-api/#sanitizerconfig-allow-an-element
 template <typename SanitizerElementWithAttributes>
 void Sanitizer::AllowElement(const SanitizerElementWithAttributes& aElement) {
-  MaybeMaterializeDefaultConfig();
-
   // Step 1. Set element to the result of canonicalize a sanitizer element with
   // attributes with element.
   CanonicalElementWithAttributes element =
@@ -509,8 +435,6 @@ template void Sanitizer::AllowElement(
 // https://wicg.github.io/sanitizer-api/#sanitizer-remove-an-element
 template <typename SanitizerElement>
 void Sanitizer::RemoveElement(const SanitizerElement& aElement) {
-  MaybeMaterializeDefaultConfig();
-
   // Step 1. Set element to the result of canonicalize a sanitizer element with
   // element.
   CanonicalName element = CanonicalizeElement(aElement);
@@ -531,8 +455,6 @@ template void Sanitizer::RemoveElement(
 // https://wicg.github.io/sanitizer-api/#sanitizer-replace-an-element-with-its-children
 template <typename SanitizerElement>
 void Sanitizer::ReplaceElementWithChildren(const SanitizerElement& aElement) {
-  MaybeMaterializeDefaultConfig();
-
   // Step 1. Set element to the result of canonicalize a sanitizer element with
   // element.
   CanonicalName element = CanonicalizeElement(aElement);
@@ -553,8 +475,6 @@ template void Sanitizer::ReplaceElementWithChildren(
 // https://wicg.github.io/sanitizer-api/#sanitizer-allow-an-attribute
 template <typename SanitizerAttribute>
 void Sanitizer::AllowAttribute(const SanitizerAttribute& aAttribute) {
-  MaybeMaterializeDefaultConfig();
-
   // Step 1. Set attribute to the result of canonicalize a sanitizer attribute
   // with attribute.
   CanonicalName attribute = CanonicalizeAttribute(aAttribute);
@@ -572,8 +492,6 @@ template void Sanitizer::AllowAttribute(
 // https://wicg.github.io/sanitizer-api/#sanitizer-remove-an-attribute
 template <typename SanitizerAttribute>
 void Sanitizer::RemoveAttribute(const SanitizerAttribute& aAttribute) {
-  MaybeMaterializeDefaultConfig();
-
   // Step 1. Set attribute to the result of canonicalize a sanitizer attribute
   // with attribute.
   CanonicalName attribute = CanonicalizeAttribute(aAttribute);
@@ -588,17 +506,8 @@ void Sanitizer::RemoveAttribute(const SanitizerAttribute& aAttribute) {
 template void Sanitizer::RemoveAttribute(
     const StringOrSanitizerAttributeNamespace&);
 
-void Sanitizer::SetComments(bool aAllow) {
-  // The sanitize algorithm optimized for the default config supports
-  // comments both being allowed and disallowed.
-  mComments = aAllow;
-}
-
-void Sanitizer::SetDataAttributes(bool aAllow) {
-  // Same as above for data-attributes.
-  mDataAttributes = aAllow;
-}
-
+void Sanitizer::SetComments(bool aAllow) { mComments = aAllow; }
+void Sanitizer::SetDataAttributes(bool aAllow) { mDataAttributes = aAllow; }
 void Sanitizer::RemoveUnsafe() {}
 
 // https://wicg.github.io/sanitizer-api/#sanitize
@@ -624,12 +533,7 @@ RefPtr<DocumentFragment> Sanitizer::SanitizeFragment(
 
   // Step 3. Call sanitize core on node, configuration, and with
   // handleJavascriptNavigationUrls set to safe.
-  if (mIsDefaultConfig) {
-    AssertNoLists();
-    SanitizeChildren<true>(aFragment, aSafe);
-  } else {
-    SanitizeChildren<false>(aFragment, aSafe);
-  }
+  SanitizeChildren(aFragment, aSafe);
 
   return aFragment.forget();
 }
@@ -644,22 +548,7 @@ static RefPtr<nsAtom> ToNamespace(int32_t aNamespaceID) {
   return atom;
 }
 
-// https://wicg.github.io/sanitizer-api/#built-in-safe-baseline-configuration
-// The "removeElements" list.
-static bool IsUnsafeElement(nsAtom* aLocalName, int32_t aNamespaceID) {
-  if (aNamespaceID == kNameSpaceID_XHTML) {
-    return aLocalName == nsGkAtoms::script || aLocalName == nsGkAtoms::frame ||
-           aLocalName == nsGkAtoms::iframe || aLocalName == nsGkAtoms::object ||
-           aLocalName == nsGkAtoms::embed;
-  }
-  if (aNamespaceID == kNameSpaceID_SVG) {
-    return aLocalName == nsGkAtoms::script || aLocalName == nsGkAtoms::use;
-  }
-  return false;
-}
-
 // https://wicg.github.io/sanitizer-api/#sanitize-core
-template <bool IsDefaultConfig>
 void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
   // Step 1. Let current be node.
 
@@ -693,19 +582,17 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
     // local name and namespace.
     nsAtom* nameAtom = child->NodeInfo()->NameAtom();
     int32_t namespaceID = child->NodeInfo()->NamespaceID();
-    // Make sure this is optimized away for the default config.
-    Maybe<CanonicalName> elementName;
-    if constexpr (!IsDefaultConfig) {
-      elementName.emplace(nameAtom, ToNamespace(namespaceID));
-    }
+    CanonicalName elementName(nameAtom, ToNamespace(namespaceID));
 
     // Optimization: Remove unsafe elements before doing anything else.
     // https://wicg.github.io/sanitizer-api/#built-in-safe-baseline-configuration
-    //
-    // The default config's "elements" allow list does not contain any unsafe
-    // elements so we can skip this.
-    if constexpr (!IsDefaultConfig) {
-      if (aSafe && IsUnsafeElement(nameAtom, namespaceID)) {
+    if (aSafe) {
+      if ((namespaceID == kNameSpaceID_XHTML &&
+           (nameAtom == nsGkAtoms::script || nameAtom == nsGkAtoms::frame ||
+            nameAtom == nsGkAtoms::iframe || nameAtom == nsGkAtoms::object ||
+            nameAtom == nsGkAtoms::embed)) ||
+          (namespaceID == kNameSpaceID_SVG &&
+           (nameAtom == nsGkAtoms::script || nameAtom == nsGkAtoms::use))) {
         // TODO: Complex removal
         child->RemoveFromParent();
         continue;
@@ -715,62 +602,35 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
     // Step 2.4.2. If configuration["removeElements"] contains elementName, or
     // if configuration["elements"] is not empty and does not contain
     // elementName, then remove child.
-    StaticAtomSet* elementAttributes = nullptr;
-    if constexpr (!IsDefaultConfig) {
-      if (mRemoveElements.Contains(*elementName) ||
-          (!mElements.IsEmpty() && !mElements.Contains(*elementName))) {
-        // TODO: Do the more complex remove node stuff from nsTreeSanitizer.
-        child->RemoveFromParent();
-        continue;
-      }
-    } else {
-      bool found = false;
-      if (nameAtom->IsStatic()) {
-        const nsStaticAtom* nameStatic = nameAtom->AsStatic();
-        ElementsWithAttributes* elements =
-            namespaceID == kNameSpaceID_XHTML    ? sDefaultHTMLElements
-            : namespaceID == kNameSpaceID_MathML ? sDefaultMathMLElements
-                                                 : nullptr;
-        if (elements) {
-          if (auto lookup = elements->Lookup(nameStatic)) {
-            found = true;
-            // This is the nullptr for elements without specific allowed
-            // attributes.
-            elementAttributes = lookup->get();
-          }
-        }
-      }
-      if (!found) {
-        child->RemoveFromParent();
-        continue;
-      }
-      MOZ_ASSERT(!IsUnsafeElement(nameAtom, namespaceID));
+    if (mRemoveElements.Contains(elementName) ||
+        (!mElements.IsEmpty() && !mElements.Contains(elementName))) {
+      // TODO: Do the more complex remove node stuff from nsTreeSanitizer.
+      child->RemoveFromParent();
+      continue;
     }
 
     // Step 2.4.3. If configuration["replaceWithChildrenElements"] contains
     // elementName:
-    if constexpr (!IsDefaultConfig) {
-      if (mReplaceWithChildrenElements.Contains(*elementName)) {
-        // Note: This follows nsTreeSanitizer by first inserting the
-        // child's children in place of the current child and then
-        // continueing the sanitization from the first inserted grandchild.
-        nsCOMPtr<nsIContent> parent = child->GetParent();
-        nsCOMPtr<nsIContent> firstChild = child->GetFirstChild();
-        nsCOMPtr<nsIContent> newChild = firstChild;
-        for (; newChild; newChild = child->GetFirstChild()) {
-          ErrorResult rv;
-          parent->InsertBefore(*newChild, child, rv);
-          if (rv.Failed()) {
-            break;
-          }
+    if (mReplaceWithChildrenElements.Contains(elementName)) {
+      // Note: This follows nsTreeSanitizer by first inserting the
+      // child's children in place of the current child and then
+      // continueing the sanitization from the first inserted grandchild.
+      nsCOMPtr<nsIContent> parent = child->GetParent();
+      nsCOMPtr<nsIContent> firstChild = child->GetFirstChild();
+      nsCOMPtr<nsIContent> newChild = firstChild;
+      for (; newChild; newChild = child->GetFirstChild()) {
+        ErrorResult rv;
+        parent->InsertBefore(*newChild, child, rv);
+        if (rv.Failed()) {
+          break;
         }
-
-        child->RemoveFromParent();
-        if (firstChild) {
-          next = firstChild;
-        }
-        continue;
       }
+
+      child->RemoveFromParent();
+      if (firstChild) {
+        next = firstChild;
+      }
+      continue;
     }
 
     // Step 2.4.4. If elementName equals «[ "name" → "template", "namespace" →
@@ -782,32 +642,22 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
       // TODO: The <template>'s content can't be accessed after sanitizing,
       // because nsINode::WrapObject throws NS_ERROR_UNEXPECTED.
       RefPtr<DocumentFragment> frag = templateEl->Content();
-      SanitizeChildren<IsDefaultConfig>(frag, aSafe);
+      SanitizeChildren(frag, aSafe);
     }
 
     // Step 2.4.5. If child is a shadow host, then call sanitize core on child’s
     // shadow root with configuration and handleJavascriptNavigationUrls.
     if (RefPtr<ShadowRoot> shadow = child->GetShadowRoot()) {
-      SanitizeChildren<IsDefaultConfig>(shadow, aSafe);
+      SanitizeChildren(shadow, aSafe);
     }
 
     // Step 2.4.6.
-    if constexpr (!IsDefaultConfig) {
-      SanitizeAttributes(child->AsElement(), *elementName, aSafe);
-    } else {
-      SanitizeDefaultConfigAttributes(child->AsElement(), elementAttributes,
-                                      aSafe);
-    }
+    SanitizeAttributes(child->AsElement(), elementName, aSafe);
 
     // XXX: Recursion missing from the spec ?!?
     // TODO: Optimization: Remove recusion similar to nsTreeSanitizer
-    SanitizeChildren<IsDefaultConfig>(child, aSafe);
+    SanitizeChildren(child, aSafe);
   }
-}
-
-static inline bool IsDataAttribute(nsAtom* aName, int32_t aNamespaceID) {
-  return StringBeginsWith(nsDependentAtomString(aName), u"data-"_ns) &&
-         aNamespaceID == kNameSpaceID_None;
 }
 
 // https://wicg.github.io/sanitizer-api/#sanitize-core
@@ -889,8 +739,6 @@ static bool RemoveJavascriptNavigationURLAttribute(Element* aElement,
 void Sanitizer::SanitizeAttributes(Element* aChild,
                                    const CanonicalName& aElementName,
                                    bool aSafe) {
-  MOZ_ASSERT(!mIsDefaultConfig);
-
   // TODO: Replace this with a hashmap.
   const CanonicalElementWithAttributes* elementWithAttributes =
       mElements.Get(aElementName);
@@ -942,7 +790,9 @@ void Sanitizer::SanitizeAttributes(Element* aChild,
     else if ((!mAttributes.IsEmpty() && !mAttributes.Contains(attrName)) &&
              !(elementWithAttributes && elementWithAttributes->mAttributes &&
                elementWithAttributes->mAttributes->Contains(attrName)) &&
-             !(mDataAttributes && IsDataAttribute(attrLocalName, attrNs))) {
+             !(StringBeginsWith(nsDependentAtomString(attrLocalName),
+                                u"data-"_ns) &&
+               attrNs == kNameSpaceID_None && mDataAttributes)) {
       remove = true;
     }
 
@@ -951,70 +801,6 @@ void Sanitizer::SanitizeAttributes(Element* aChild,
       remove =
           RemoveJavascriptNavigationURLAttribute(aChild, attrLocalName, attrNs);
     }
-
-    if (remove) {
-      aChild->UnsetAttr(attr->NamespaceID(), attr->LocalName(), false);
-
-      // XXX Copied from nsTreeSanitizer.
-      // In case the attribute removal shuffled the attribute order, start the
-      // loop again.
-      --count;
-      i = count;  // i will be decremented immediately thanks to the for loop
-    }
-  }
-}
-
-void Sanitizer::SanitizeDefaultConfigAttributes(
-    Element* aChild, StaticAtomSet* aElementAttributes, bool aSafe) {
-  MOZ_ASSERT(mIsDefaultConfig);
-
-  // https://wicg.github.io/sanitizer-api/#sanitize-core
-  // Substeps of
-  //  Step 2.4.6. For each attribute in child’s attribute list:
-  int32_t count = int32_t(aChild->GetAttrCount());
-  for (int32_t i = count - 1; i >= 0; --i) {
-    // Step 1. Let attrName be a SanitizerAttributeNamespace with attribute’s
-    // local name and namespace.
-    const nsAttrName* attr = aChild->GetAttrNameAt(i);
-    RefPtr<nsAtom> attrLocalName = attr->LocalName();
-    int32_t attrNs = attr->NamespaceID();
-
-    // Step 2. If configuration["removeAttributes"] contains attrName, then
-    // Remove attribute from child.
-    // Step 3. If configuration["elements"]["removeAttributes"] contains
-    // attrName, then remove attribute from child.
-    //
-    // Note: Empty/missing for the default config.
-
-    // Step 4. If all of the following are false, then remove attribute from
-    // child.
-    // - configuration["attributes"] exists and contains attrName
-    // - configuration["elements"]["attributes"] contains attrName
-    // - "data-" is a code unit prefix of local name and namespace is null and
-    // configuration["dataAttributes"] is true
-    bool remove = false;
-    // Note: All attributes allowed by the default config are in the "null"
-    // namespace.
-    if (attrNs != kNameSpaceID_None ||
-        (!sDefaultAttributes->Contains(attrLocalName) &&
-         !(aElementAttributes && aElementAttributes->Contains(attrLocalName)) &&
-         !(mDataAttributes && IsDataAttribute(attrLocalName, attrNs)))) {
-      remove = true;
-    }
-
-    // Step 5. If handleJavascriptNavigationUrls:
-    else if (aSafe) {
-      // TODO: This can be further optimized, because the default config
-      // at the moment only allows <a href>.
-      remove =
-          RemoveJavascriptNavigationURLAttribute(aChild, attrLocalName, attrNs);
-    }
-
-    // The default config attribute allow lists don't contain event
-    // handler attributes.
-    MOZ_ASSERT_IF(!remove,
-                  !nsContentUtils::IsEventAttributeName(
-                      attrLocalName, EventNameType_All & ~EventNameType_XUL));
 
     if (remove) {
       aChild->UnsetAttr(attr->NamespaceID(), attr->LocalName(), false);
