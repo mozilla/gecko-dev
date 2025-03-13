@@ -395,16 +395,18 @@ export class TabsPanel extends TabsListBase {
     muteButton.tab = tab;
     row.appendChild(muteButton);
 
-    let closeButton = doc.createXULElement("toolbarbutton");
-    closeButton.classList.add(
-      "all-tabs-close-button",
-      "all-tabs-secondary-button",
-      "subviewbutton"
-    );
-    closeButton.setAttribute("closemenu", "none");
-    doc.l10n.setAttributes(closeButton, "tabbrowser-manager-close-tab");
-    closeButton.tab = tab;
-    row.appendChild(closeButton);
+    if (!tab.pinned) {
+      let closeButton = doc.createXULElement("toolbarbutton");
+      closeButton.classList.add(
+        "all-tabs-close-button",
+        "all-tabs-secondary-button",
+        "subviewbutton"
+      );
+      closeButton.setAttribute("closemenu", "none");
+      doc.l10n.setAttributes(closeButton, "tabbrowser-manager-close-tab");
+      closeButton.tab = tab;
+      row.appendChild(closeButton);
+    }
 
     this._setRowAttributes(row, tab);
 

@@ -48,7 +48,8 @@ add_task(async function test_tab_manager_close_middle_click() {
 add_task(async function test_tab_manager_close_button() {
   let win = await BrowserTestUtils.openNewBrowserWindow();
   win.gTabsPanel.init();
-  await addTabTo(win.gBrowser, URL1);
+  let pinnedTab = await addTabTo(win.gBrowser, URL1);
+  win.gBrowser.pinTab(pinnedTab);
   await addTabTo(win.gBrowser, URL2);
   await addTabTo(win.gBrowser, URL3);
   await addTabTo(win.gBrowser, URL4);
@@ -64,10 +65,22 @@ add_task(async function test_tab_manager_close_button() {
   await allTabsPopupShownPromise;
 
   let list = win.document.getElementById("allTabsMenu-allTabsView-tabs");
+
+  let pinnedTabRow = list.firstElementChild;
+  Assert.ok(pinnedTabRow.tab.pinned, "first item is for the pinned tab");
+  Assert.ok(
+    !pinnedTabRow.querySelector(".all-tabs-close-button"),
+    "row for pinned tab doesn't have a close button"
+  );
+
+  // Disable the tab closing animation so tabs are removed immediately. This simplifies the test.
+  win.gReduceMotionOverride = true;
   while (win.gBrowser.tabs.length > 1) {
     let row = list.lastElementChild;
+    Assert.ok(!row.tab.pinned, "Tab for last row is not pinned");
     let tabClosing = BrowserTestUtils.waitForTabClosing(row.tab);
-    let closeButton = row.lastElementChild;
+    let closeButton = row.querySelector(".all-tabs-close-button");
+    Assert.ok(closeButton, "row for last tab has a close button");
     EventUtils.synthesizeMouseAtCenter(closeButton, { button: 1 }, win);
     await tabClosing;
     Assert.ok(true, "Closed a tab with the close button.");
