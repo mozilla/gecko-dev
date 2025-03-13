@@ -7,7 +7,10 @@
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
-
+ChromeUtils.defineESModuleGetters(lazy, {
+  LinkPreviewModel:
+    "moz-src:///browser/components/genai/LinkPreviewModel.sys.mjs",
+});
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "gLinkPreviewEnabled",
@@ -175,8 +178,11 @@ export const LinkPreview = {
       //TODO: figure out how to get read duration data from Reader mode
       const result = await actor.fetchPageData(url);
       console.log(result);
-    } else {
-      console.log("Link preview canceled");
+      console.log("Generating text AI...");
+      lazy.LinkPreviewModel.generateTextAI(result.article.textContent, {
+        onError: console.error,
+        onText: console.log,
+      });
     }
   },
 };
