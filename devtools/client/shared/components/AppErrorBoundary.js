@@ -43,6 +43,7 @@ class AppErrorBoundary extends Component {
       children: PropTypes.any.isRequired,
       panel: PropTypes.any.isRequired,
       componentName: PropTypes.string.isRequired,
+      openLink: PropTypes.func,
     };
   }
 
@@ -151,6 +152,9 @@ class AppErrorBoundary extends Component {
         "appErrorBoundary.description",
         this.props.panel
       );
+
+      const href = this.getBugLink();
+
       return div(
         {
           className: `app-error-panel`,
@@ -159,8 +163,11 @@ class AppErrorBoundary extends Component {
         a(
           {
             className: "error-panel-file-button",
-            href: this.getBugLink(),
+            href,
             target: "_blank",
+            onClick: this.props.openLink
+              ? e => this.props.openLink(href, e)
+              : null,
           },
           FILE_BUG_BUTTON
         ),
