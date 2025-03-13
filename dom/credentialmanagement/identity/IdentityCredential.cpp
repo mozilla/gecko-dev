@@ -1211,34 +1211,62 @@ IdentityCredential::CheckRootManifest(nsIPrincipal* aPrincipal,
         NS_ERROR_INVALID_ARG, __func__);
   }
   manifestURIString.AppendLiteral("/.well-known/web-identity");
-  nsCOMPtr<nsIURI> manifestURI;
-  rv = NS_NewURI(getter_AddRefs(manifestURI), manifestURIString, nullptr);
-  if (NS_FAILED(rv)) {
+
+  // Create the global
+  RefPtr<NullPrincipal> nullPrincipal =
+      NullPrincipal::CreateWithInheritedAttributes(aPrincipal);
+  nsIXPConnect* xpc = nsContentUtils::XPConnect();
+  MOZ_ASSERT(xpc, "This should never be null!");
+  nsCOMPtr<nsIGlobalObject> global;
+  AutoJSAPI jsapi;
+  jsapi.Init();
+  JSContext* cx = jsapi.cx();
+  JS::Rooted<JSObject*> sandbox(cx);
+  rv = xpc->CreateSandbox(cx, nullPrincipal, sandbox.address());
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IdentityCredential::ValidationPromise::CreateAndReject(rv, __func__);
+  }
+  MOZ_ASSERT(JS_IsGlobalObject(sandbox));
+  global = xpc::NativeGlobal(sandbox);
+  if (NS_WARN_IF(!global)) {
     return IdentityCredential::ValidationPromise::CreateAndReject(
-        NS_ERROR_INVALID_ARG, __func__);
+        NS_ERROR_FAILURE, __func__);
   }
 
-  return IdentityNetworkHelpers::FetchWellKnownHelper(manifestURI, aPrincipal)
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [aProvider](const IdentityProviderWellKnown& manifest) {
-            // Make sure there is only one provider URL
-            if (manifest.mProvider_urls.Length() != 1) {
-              return IdentityCredential::ValidationPromise::CreateAndResolve(
-                  false, __func__);
-            }
+  // Create a new request
+  constexpr auto fragment = ""_ns;
+  auto internalRequest =
+      MakeSafeRefPtr<InternalRequest>(manifestURIString, fragment);
+  internalRequest->SetCredentialsMode(RequestCredentials::Omit);
+  internalRequest->SetReferrerPolicy(ReferrerPolicy::No_referrer);
+  internalRequest->SetMode(RequestMode::Cors);
+  internalRequest->SetCacheMode(RequestCache::No_cache);
+  internalRequest->SetHeaders(new InternalHeaders(HeadersGuardEnum::Request));
+  internalRequest->OverrideContentPolicyType(
+      nsContentPolicyType::TYPE_WEB_IDENTITY);
+  RefPtr<Request> request =
+      new Request(global, std::move(internalRequest), nullptr);
 
-            // Resolve whether or not that provider URL is the one we were
-            // passed as an argument.
-            bool correctURL =
-                manifest.mProvider_urls[0] == aProvider.mConfigURL.Value();
-            return IdentityCredential::ValidationPromise::CreateAndResolve(
-                correctURL, __func__);
-          },
-          [](nsresult error) {
-            return IdentityCredential::ValidationPromise::CreateAndReject(
-                error, __func__);
-          });
+  return FetchJSONStructure<IdentityProviderWellKnown>(request)->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [aProvider](const IdentityProviderWellKnown& manifest) {
+        // Make sure there is only one provider URL
+        if (manifest.mProvider_urls.Length() != 1) {
+          return IdentityCredential::ValidationPromise::CreateAndResolve(
+              false, __func__);
+        }
+
+        // Resolve whether or not that provider URL is the one we were
+        // passed as an argument.
+        bool correctURL =
+            manifest.mProvider_urls[0] == aProvider.mConfigURL.Value();
+        return IdentityCredential::ValidationPromise::CreateAndResolve(
+            correctURL, __func__);
+      },
+      [](nsresult error) {
+        return IdentityCredential::ValidationPromise::CreateAndReject(error,
+                                                                      __func__);
+      });
 }
 
 // static
@@ -1248,13 +1276,44 @@ IdentityCredential::FetchInternalManifest(
   MOZ_ASSERT(XRE_IsParentProcess());
   // Build the URL
   nsCString configLocation = aProvider.mConfigURL.Value();
-  nsCOMPtr<nsIURI> manifestURI;
-  nsresult rv = NS_NewURI(getter_AddRefs(manifestURI), configLocation, nullptr);
-  if (NS_FAILED(rv)) {
-    return IdentityCredential::GetManifestPromise::CreateAndReject(
-        NS_ERROR_INVALID_ARG, __func__);
+
+  // Create the global
+  RefPtr<NullPrincipal> nullPrincipal =
+      NullPrincipal::CreateWithInheritedAttributes(aPrincipal);
+  nsIXPConnect* xpc = nsContentUtils::XPConnect();
+  MOZ_ASSERT(xpc, "This should never be null!");
+  nsCOMPtr<nsIGlobalObject> global;
+  AutoJSAPI jsapi;
+  jsapi.Init();
+  JSContext* cx = jsapi.cx();
+  JS::Rooted<JSObject*> sandbox(cx);
+  nsresult rv = xpc->CreateSandbox(cx, nullPrincipal, sandbox.address());
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IdentityCredential::GetManifestPromise::CreateAndReject(rv,
+                                                                   __func__);
   }
-  return IdentityNetworkHelpers::FetchConfigHelper(manifestURI, aPrincipal);
+  MOZ_ASSERT(JS_IsGlobalObject(sandbox));
+  global = xpc::NativeGlobal(sandbox);
+  if (NS_WARN_IF(!global)) {
+    return IdentityCredential::GetManifestPromise::CreateAndReject(
+        NS_ERROR_FAILURE, __func__);
+  }
+
+  // Create a new request
+  constexpr auto fragment = ""_ns;
+  auto internalRequest =
+      MakeSafeRefPtr<InternalRequest>(configLocation, fragment);
+  internalRequest->SetRedirectMode(RequestRedirect::Error);
+  internalRequest->SetCredentialsMode(RequestCredentials::Omit);
+  internalRequest->SetReferrerPolicy(ReferrerPolicy::No_referrer);
+  internalRequest->SetMode(RequestMode::Cors);
+  internalRequest->SetCacheMode(RequestCache::No_cache);
+  internalRequest->SetHeaders(new InternalHeaders(HeadersGuardEnum::Request));
+  internalRequest->OverrideContentPolicyType(
+      nsContentPolicyType::TYPE_WEB_IDENTITY);
+  RefPtr<Request> request =
+      new Request(global, std::move(internalRequest), nullptr);
+  return FetchJSONStructure<IdentityProviderAPIConfig>(request);
 }
 
 // static
@@ -1278,20 +1337,72 @@ IdentityCredential::FetchAccountList(
     return IdentityCredential::GetAccountListPromise::CreateAndReject(rv,
                                                                       __func__);
   }
+  nsCString configLocation;
+  rv = idpURI->GetSpec(configLocation);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IdentityCredential::GetAccountListPromise::CreateAndReject(rv,
+                                                                      __func__);
+  }
+
+  // Build the principal to use for this connection
+  // This is an expanded principal! It has the cookies of the IDP because it
+  // subsumes the constituent principals. It also has no serializable origin,
+  // so it won't send an Origin header even though this is a CORS mode
+  // request. It accomplishes this without being a SystemPrincipal too.
   nsCOMPtr<nsIPrincipal> idpPrincipal = BasePrincipal::CreateContentPrincipal(
       idpURI, aPrincipal->OriginAttributesRef());
+  nsCOMPtr<nsIPrincipal> nullPrincipal =
+      NullPrincipal::CreateWithInheritedAttributes(aPrincipal);
+  AutoTArray<nsCOMPtr<nsIPrincipal>, 2> allowList = {idpPrincipal,
+                                                     nullPrincipal};
+  RefPtr<ExpandedPrincipal> expandedPrincipal =
+      ExpandedPrincipal::Create(allowList, aPrincipal->OriginAttributesRef());
 
-  return IdentityNetworkHelpers::FetchAccountsHelper(idpURI, idpPrincipal)
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [aManifest](const IdentityProviderAccountList& accountList) {
-            return IdentityCredential::GetAccountListPromise::CreateAndResolve(
-                std::make_tuple(aManifest, accountList), __func__);
-          },
-          [](nsresult error) {
-            return IdentityCredential::GetAccountListPromise::CreateAndReject(
-                error, __func__);
-          });
+  // Create the global
+  nsIXPConnect* xpc = nsContentUtils::XPConnect();
+  MOZ_ASSERT(xpc, "This should never be null!");
+  nsCOMPtr<nsIGlobalObject> global;
+  AutoJSAPI jsapi;
+  jsapi.Init();
+  JSContext* cx = jsapi.cx();
+  JS::Rooted<JSObject*> sandbox(cx);
+  rv = xpc->CreateSandbox(cx, expandedPrincipal, sandbox.address());
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IdentityCredential::GetAccountListPromise::CreateAndReject(rv,
+                                                                      __func__);
+  }
+  MOZ_ASSERT(JS_IsGlobalObject(sandbox));
+  global = xpc::NativeGlobal(sandbox);
+  if (NS_WARN_IF(!global)) {
+    return IdentityCredential::GetAccountListPromise::CreateAndReject(
+        NS_ERROR_FAILURE, __func__);
+  }
+
+  // Create a new request
+  constexpr auto fragment = ""_ns;
+  auto internalRequest =
+      MakeSafeRefPtr<InternalRequest>(configLocation, fragment);
+  internalRequest->SetRedirectMode(RequestRedirect::Error);
+  internalRequest->SetCredentialsMode(RequestCredentials::Include);
+  internalRequest->SetReferrerPolicy(ReferrerPolicy::No_referrer);
+  internalRequest->SetMode(RequestMode::Cors);
+  internalRequest->SetCacheMode(RequestCache::No_cache);
+  internalRequest->SetHeaders(new InternalHeaders(HeadersGuardEnum::Request));
+  internalRequest->OverrideContentPolicyType(
+      nsContentPolicyType::TYPE_WEB_IDENTITY);
+  RefPtr<Request> request =
+      new Request(global, std::move(internalRequest), nullptr);
+
+  return FetchJSONStructure<IdentityProviderAccountList>(request)->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [aManifest](const IdentityProviderAccountList& accountList) {
+        return IdentityCredential::GetAccountListPromise::CreateAndResolve(
+            std::make_tuple(aManifest, accountList), __func__);
+      },
+      [](nsresult error) {
+        return IdentityCredential::GetAccountListPromise::CreateAndReject(
+            error, __func__);
+      });
 }
 
 // static
@@ -1319,7 +1430,30 @@ RefPtr<IdentityCredential::GetTokenPromise> IdentityCredential::FetchToken(
     return IdentityCredential::GetTokenPromise::CreateAndReject(rv, __func__);
   }
 
+  // Create the global
+  nsIXPConnect* xpc = nsContentUtils::XPConnect();
+  MOZ_ASSERT(xpc, "This should never be null!");
+  nsCOMPtr<nsIGlobalObject> global;
+  AutoJSAPI jsapi;
+  jsapi.Init();
+  JSContext* cx = jsapi.cx();
+  JS::Rooted<JSObject*> sandbox(cx);
+  rv = xpc->CreateSandbox(cx, aPrincipal, sandbox.address());
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IdentityCredential::GetTokenPromise::CreateAndReject(rv, __func__);
+  }
+  MOZ_ASSERT(JS_IsGlobalObject(sandbox));
+  global = xpc::NativeGlobal(sandbox);
+  if (NS_WARN_IF(!global)) {
+    return IdentityCredential::GetTokenPromise::CreateAndReject(
+        NS_ERROR_FAILURE, __func__);
+  }
+
   // Create a new request
+  constexpr auto fragment = ""_ns;
+  auto internalRequest =
+      MakeSafeRefPtr<InternalRequest>(tokenLocation, fragment);
+  internalRequest->SetMethod("POST"_ns);
   URLParams bodyValue;
   bodyValue.Set("account_id"_ns, NS_ConvertUTF16toUTF8(aAccount.mId));
   bodyValue.Set("client_id"_ns, aProvider.mClientId.Value());
@@ -1327,22 +1461,45 @@ RefPtr<IdentityCredential::GetTokenPromise> IdentityCredential::FetchToken(
     bodyValue.Set("nonce"_ns, aProvider.mNonce.Value());
   }
   bodyValue.Set("disclosure_text_shown"_ns, "false"_ns);
-  bodyValue.Set("is_auto_selected"_ns, "false"_ns);
   nsAutoCString bodyCString;
   bodyValue.Serialize(bodyCString, true);
+  nsCOMPtr<nsIInputStream> streamBody;
+  rv = NS_NewCStringInputStream(getter_AddRefs(streamBody), bodyCString);
+  if (NS_FAILED(rv)) {
+    return IdentityCredential::GetTokenPromise::CreateAndReject(
+        NS_ERROR_FAILURE, __func__);
+  }
 
-  return IdentityNetworkHelpers::FetchTokenHelper(idpURI, bodyCString,
-                                                  aPrincipal)
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [aAccount](const IdentityProviderToken& token) {
-            return IdentityCredential::GetTokenPromise::CreateAndResolve(
-                std::make_tuple(token, aAccount), __func__);
-          },
-          [](nsresult error) {
-            return IdentityCredential::GetTokenPromise::CreateAndReject(
-                error, __func__);
-          });
+  IgnoredErrorResult error;
+  RefPtr<InternalHeaders> internalHeaders =
+      new InternalHeaders(HeadersGuardEnum::Request);
+  internalHeaders->Set("Content-Type"_ns,
+                       "application/x-www-form-urlencoded"_ns, error);
+  if (NS_WARN_IF(error.Failed())) {
+    return IdentityCredential::GetTokenPromise::CreateAndReject(
+        NS_ERROR_FAILURE, __func__);
+  }
+  internalRequest->SetHeaders(internalHeaders);
+  internalRequest->SetBody(streamBody, bodyCString.Length());
+  internalRequest->SetRedirectMode(RequestRedirect::Error);
+  internalRequest->SetCredentialsMode(RequestCredentials::Include);
+  internalRequest->SetReferrerPolicy(ReferrerPolicy::Strict_origin);
+  internalRequest->SetMode(RequestMode::Cors);
+  internalRequest->SetCacheMode(RequestCache::No_cache);
+  internalRequest->OverrideContentPolicyType(
+      nsContentPolicyType::TYPE_WEB_IDENTITY);
+  RefPtr<Request> request =
+      new Request(global, std::move(internalRequest), nullptr);
+  return FetchJSONStructure<IdentityProviderToken>(request)->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [aAccount](const IdentityProviderToken& token) {
+        return IdentityCredential::GetTokenPromise::CreateAndResolve(
+            std::make_tuple(token, aAccount), __func__);
+      },
+      [](nsresult error) {
+        return IdentityCredential::GetTokenPromise::CreateAndReject(error,
+                                                                    __func__);
+      });
 }
 
 // static
@@ -1408,8 +1565,7 @@ IdentityCredential::FetchMetadata(nsIPrincipal* aPrincipal,
       nsContentPolicyType::TYPE_WEB_IDENTITY);
   RefPtr<Request> request =
       new Request(global, std::move(internalRequest), nullptr);
-  return IdentityNetworkHelpers::FetchJSONStructure<
-      IdentityProviderClientMetadata>(request);
+  return FetchJSONStructure<IdentityProviderClientMetadata>(request);
 }
 
 // static
