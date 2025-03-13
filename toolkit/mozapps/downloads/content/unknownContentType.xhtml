@@ -4,11 +4,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-<?csp default-src chrome:; img-src moz-icon:; style-src chrome: 'unsafe-inline'; ?>
-
 <window id="unknownContentTypeWindow"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         xmlns:html="http://www.w3.org/1999/xhtml"
+        onload="dialog.initDialog();" onunload="if (dialog) dialog.onCancel();"
 #ifdef XP_WIN
         style="min-width: 36em;"
 #else
@@ -70,7 +69,7 @@
           <deck id="modeDeck" flex="1">
             <hbox id="openHandlerBox" flex="1" align="center">
               <menulist id="openHandler" flex="1" native="true">
-                <menupopup id="openHandlerPopup">
+                <menupopup id="openHandlerPopup" oncommand="dialog.openHandlerCommand();">
                   <menuitem id="defaultHandler" default="true" crop="end"/>
                   <menuitem id="otherHandler" hidden="true" crop="start"/>
                   <menuseparator/>
@@ -79,7 +78,7 @@
               </menulist>
             </hbox>
             <hbox flex="1" align="center">
-              <button id="chooseButton"
+              <button id="chooseButton" oncommand="dialog.chooseApp();"
                       data-l10n-id="unknowncontenttype-choose-handler"/>
             </hbox>
           </deck>
@@ -90,6 +89,7 @@
       <separator class="thin"/>
       <hbox class="small-indent">
         <checkbox id="rememberChoice" data-l10n-id="unknowncontenttype-remember-choice"
+                  oncommand="dialog.toggleRememberChoice(event.target);"
                   native="true"/>
       </hbox>
 
