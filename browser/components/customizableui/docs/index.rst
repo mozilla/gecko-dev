@@ -18,3 +18,4 @@ delegated to modules like ``CustomizableWidgets`` and ``CustomizeMode``.
    panelmultiview
    search-widget-tracker
    toolbar-context-menu
+   customize-mode
