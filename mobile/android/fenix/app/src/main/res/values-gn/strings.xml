@@ -1119,11 +1119,11 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Kuaave</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1">Mba’ekuaarã aporekogua ha ñomongeta</string>
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Mba’ekuaarã aporekogua ha ñomongeta</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_2" tools:ignore="UnusedResources">Mba’ekuaarã aporekogua ha ñomongetarã</string>
+  <string name="preference_usage_data_2">Mba’ekuaarã aporekogua ha ñomongetarã</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Eikuaave</string>
+  <string name="preference_usage_data_learn_more">Eikuaave</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Emoherakuã mba’ekuaarã apopy, jeporu, hardware ha kundahára mboava Mozilla ndive orepytyvõ hag̃ua oikoporãvévo %1$s</string>
   <!-- Preference switch for marketing data collection -->

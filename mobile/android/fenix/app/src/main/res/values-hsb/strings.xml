@@ -1141,15 +1141,15 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Dalše informacije</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1">Techniske daty a daty interakcije</string>
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Techniske daty a daty interakcije</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_2" tools:ignore="UnusedResources">Techniske daty a daty interakcije pósłać</string>
+  <string name="preference_usage_data_2">Techniske daty a daty interakcije pósłać</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Dalše informacije</string>
+  <string name="preference_usage_data_learn_more">Dalše informacije</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Dźěli wukon, wužiće, hardware a přiměrjenja wašeho wobhladowaka z Mozilla, zo by nam pomhała, %1$s; polěpšić</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
-  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Daty wo wašim graće, wašej hardwarowej konfiguraciji a wo wužiću nam pomhaja, funkcije, wukon a stabilnosć Firefox polěpšić.</string>
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Daty wo wašim graće, wašej hardwarowej konfiguraciji a wo wužiću nam pomhaja, funkcije, wukon a stabilnosć Firefox polěpšić.</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Marketingowe daty</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->

@@ -669,6 +669,8 @@
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">ຢືນຢັນ ແລະ ເລີ່ມໃຊ້ browser</string>
   <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
   <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">ຂັ້ນຕອນສຸດທ້າຍ</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">ແບ່ງປັນວິທີທີ່ທ່ານຄົ້ນພົບ Firefox, ແລະ ທີ່ທ່ານໃຊ້ມັນ, ກັບຄູ່ຮ່ວມການຕະຫຼາດຂອງ Mozilla. ຂໍ້ມູນນີ້ບໍ່ເຄີຍຖືກຂາຍ.</string>
   <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">ຕົກລົງເຫັນດີ ແລະ ເລີ່ມຊອກຫາ</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
@@ -1058,6 +1060,16 @@
   <!-- %s is the device name -->
   <string name="fxa_tab_received_from_notification_name">ແທັບຈາກ %s</string>
   <!--
+    Close Synced Tabs
+
+    The title for a notification shown when the user closes tabs that are currently
+    open on this device from another device that's signed in to the same Mozilla account.
+    %1$s is a placeholder for the app name; %2$d is the number of tabs closed.
+  -->
+  <string name="fxa_tabs_closed_notification_title">ແຖບ %1$s ປິດແລ້ວ: %2$d</string>
+  <!-- The body for a "closed synced tabs" notification. -->
+  <string name="fxa_tabs_closed_text">ເບິ່ງແຖບທີ່ປິດບໍ່ດົນມານີ້</string>
+  <!--
     Advanced Preferences
 
     Preference for tracking protection exceptions
@@ -1070,7 +1082,7 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
+  <string name="preference_usage_data_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">ແບ່ງປັນຂໍ້ມູນປະສິດທິພາບ, ການໃຊ້ງານ, ຮາດແວ ແລະ ການປັບແຕ່ງໃນບຣາວເຊີຂອງທ່ານກັບ Mozilla ເພື່ອຊ່ວຍພວກເຮົາສ້າງ %1$s ໃຫ້ດີຂື້ນກ່ວາເກົ່າ</string>
   <!-- Preference switch for marketing data collection -->

@@ -1112,15 +1112,15 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Ulteriuras infurmaziuns</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1">Datas tecnicas e d’interacziun</string>
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Datas tecnicas e d’interacziun</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_2" tools:ignore="UnusedResources">Trametter datas tecnicas e d’interacziun</string>
+  <string name="preference_usage_data_2">Trametter datas tecnicas e d’interacziun</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Ulteriuras infurmaziuns</string>
+  <string name="preference_usage_data_learn_more">Ulteriuras infurmaziuns</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Cundivida datas davart prestaziun, utilisaziun, hardware e persunalisaziun da tes navigatur cun Mozilla per gidar a meglierar %1$s</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
-  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Datas davart tes apparat, la configuraziun da la hardware e l’utilisaziun, ans gidan a meglierar funcziuns, la prestaziun e la stabilitad da Firefox.</string>
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Datas davart tes apparat, la configuraziun da la hardware e l’utilisaziun, ans gidan a meglierar funcziuns, la prestaziun e la stabilitad da Firefox.</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Datas da marketing</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->

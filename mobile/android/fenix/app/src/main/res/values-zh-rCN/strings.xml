@@ -1138,15 +1138,15 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">详细了解</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1">技术和交互数据</string>
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">技术和交互数据</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_2" tools:ignore="UnusedResources">发送技术和交互数据</string>
+  <string name="preference_usage_data_2">发送技术和交互数据</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">详细了解</string>
+  <string name="preference_usage_data_learn_more">详细了解</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">与 Mozilla 分享使用浏览器时的工作性能、使用方式、硬件设备以及有关自定义的数据，帮助我们改进 %1$s，让它变得更好</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
-  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">与您的设备、硬件配置、使用方式相关的数据，有助于我们改进 Firefox 的功能、性能、稳定性。</string>
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">与您的设备、硬件配置、使用方式相关的数据，有助于我们改进 Firefox 的功能、性能、稳定性。</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">营销数据</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->

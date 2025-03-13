@@ -1010,7 +1010,7 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Les meir</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Les meir</string>
+  <string name="preference_usage_data_learn_more">Les meir</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Deler data om yting, bruksmønster, maskinvare og tilpassingar i nettlesaren din med Mozilla, for å hjelpe oss å gjere %1$s betre</string>
   <!-- Preference switch for marketing data collection -->
@@ -2035,6 +2035,26 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">Ikon for unntaksinnstillingar for utvida vern mot sporing</string>
+  <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+  <string name="preference_doh_learn_more">Les meir</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="preference_doh_up_description">Naviger opp</string>
+  <!-- Content description for the "Exceptions" button -->
+  <string name="preference_doh_exceptions_description">Unntak</string>
+  <!-- Content description for the "Info" button -->
+  <string name="preference_doh_info_description">Info</string>
+  <!-- Content description for the "Add Site" button -->
+  <string name="preference_doh_add_site_description">Legg til nettstad</string>
+  <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection">Standardvern</string>
+  <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_cancel">Avbryt</string>
+  <!-- Add button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_add">Legg til</string>
+  <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
+  <string name="preference_doh_exceptions">Unntak</string>
+  <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_site">Nettstad</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Brukarstøtte</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -2973,6 +2993,8 @@
   <string name="protection_panel_etp_toggle_label">Utvida sporingsvern</string>
   <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
   <string name="protection_panel_etp_toggle_disabled_description">Vern er AV. Vi føreslår att du slår det på igjen.</string>
+  <!-- Text for when no trackers have been blocked. -->
+  <string name="protection_panel_no_trackers_blocked">Fann ingen sporarar</string>
   <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
   <string name="clear_site_data_dialog_positive_button_text">Tøm</string>
   <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->

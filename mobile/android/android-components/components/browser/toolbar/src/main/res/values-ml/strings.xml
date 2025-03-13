@@ -11,7 +11,7 @@
   <!-- Content description: For the tracking protection toolbar icon, it is set when the site has tracking protection disabled. -->
   <string name="mozac_browser_toolbar_content_description_tracking_protection_off_for_a_site1">ഈ വെബുസ്ഥാനത്തിനു് പിന്തുടർച്ച സംരക്ഷണം ഇപ്പോൾ അണച്ചിരിക്കുന്നു</string>
   <!-- Content description: For the site security information icon (the site security icon). -->
-  <string name="mozac_browser_toolbar_content_description_site_info">സൈറ്റ് വിവരങ്ങള്‍</string>
+  <string name="mozac_browser_toolbar_content_description_site_info">വെബിടവിവരങ്ങൾ</string>
   <!-- Announcement made by the screen reader when the progress bar is shown and a page is loading -->
   <string name="mozac_browser_toolbar_progress_loading">ലഭ്യമാക്കുന്നു</string>
   <!-- Content description: For the autoplay toolbar icon, it is set when the auto play permission is blocking content playing. -->

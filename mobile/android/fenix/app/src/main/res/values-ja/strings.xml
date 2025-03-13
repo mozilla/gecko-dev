@@ -1114,15 +1114,15 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">詳細情報</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1">技術データと対話データ</string>
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">技術データと対話データ</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_2" tools:ignore="UnusedResources">技術データと対話データを送信する</string>
+  <string name="preference_usage_data_2">技術データと対話データを送信する</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">詳細情報</string>
+  <string name="preference_usage_data_learn_more">詳細情報</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">パフォーマンス情報、使用状況、ハードウェア情報、設定を Mozilla に送信して %1$s の改善に役立てます</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
-  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">端末、ハードウェア構成、アプリの使用状況に関するデータは、Firefox の機能やパフォーマンス、安定性の向上に役立てられます。</string>
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">端末、ハードウェア構成、アプリの使用状況に関するデータは、Firefox の機能やパフォーマンス、安定性の向上に役立てられます。</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">マーケティングデータ</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->

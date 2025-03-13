@@ -13,7 +13,7 @@
   <!-- Title of the crash reporter notification for background process crashes. %1$s will be replaced with the name of the app (e.g. Firefox Focus). -->
   <string name="mozac_lib_crash_background_process_notification_title">പൊറുക്കണം. %1$s-ൽ ഒരു പ്രശ്നം ഉണ്ടായി.</string>
   <!-- Label of a notification action/button that will send the crash report to Mozilla. -->
-  <string name="mozac_lib_crash_notification_action_report">റിപ്പോര്‍ട്ട്</string>
+  <string name="mozac_lib_crash_notification_action_report">വിവരം അറിയിക്കുക</string>
   <!-- Label of notification showing that the crash report service is running. %1$s will be replaced with the name of the organization (e.g. Mozilla). -->
   <string name="mozac_lib_send_crash_report_in_progress">തകരാ‍ർ വിവരണം %1$s ലേക്ക് അയയ്ക്കുന്നു</string>
   <!-- Label of notification showing that the crash handling service is gathering the crash data. -->

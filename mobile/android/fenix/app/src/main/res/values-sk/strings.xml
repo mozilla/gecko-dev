@@ -1140,15 +1140,15 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Ďalšie informácie</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1">Technické údaje a údaje o interakciách</string>
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Technické údaje a údaje o interakciách</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_2" tools:ignore="UnusedResources">Odosielať technické údaje a údaje o interakciách</string>
+  <string name="preference_usage_data_2">Odosielať technické údaje a údaje o interakciách</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Ďalšie informácie</string>
+  <string name="preference_usage_data_learn_more">Ďalšie informácie</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Zdieľa údaje o výkonnosti, využívaní funkcií, hardvérovej konfigurácii a prispôsobení prehliadača s Mozillou s cieľom urobiť %1$s lepším</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
-  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Údaje o vašom zariadení, konfigurácii hardvéru a používaní nám pomáhajú zlepšovať funkcie, výkon a stabilitu Firefoxu.</string>
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Údaje o vašom zariadení, konfigurácii hardvéru a používaní nám pomáhajú zlepšovať funkcie, výkon a stabilitu Firefoxu.</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Marketingové údaje</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->

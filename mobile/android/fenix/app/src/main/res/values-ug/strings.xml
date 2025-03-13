@@ -1140,15 +1140,15 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">تەپسىلاتى</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1">تېخنىكىلىق ۋە تەسىرلىشىش سانلىق مەلۇماتى</string>
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">تېخنىكىلىق ۋە تەسىرلىشىش سانلىق مەلۇماتى</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_2" tools:ignore="UnusedResources">تېخنىكىلىق ۋە تەسىرلىشىش سانلىق مەلۇماتىنى يوللايدۇ</string>
+  <string name="preference_usage_data_2">تېخنىكىلىق ۋە تەسىرلىشىش سانلىق مەلۇماتىنى يوللايدۇ</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">تەپسىلاتى</string>
+  <string name="preference_usage_data_learn_more">تەپسىلاتى</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">تور كۆرگۈ ئىشلىتىش جەريانىدىكى ئىش ئۈنۈمى، ئىشلىتىش ئۇسۇلى، قاتتىق دېتال ۋە خاسلاشتۇرۇلغان سانلىق مەلۇماتنى Mozilla بىلەن ھەمبەھىرلەپ، %1$s نى ياخشىلىشىمىزغا ياردەم بېرىڭ</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
-  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">ئۈسكۈنە، قاتتىق دېتال سەپلىمىسى ۋە ئىشلىتىش ھەققىدىكى سانلىق مەلۇمات، Firefox نىڭ ئىقتىدارى، ئۈنۈمى ۋە مۇقىملىقىنى ياخشىلىشىمىزغا ياردەم بېرىدۇ.</string>
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">ئۈسكۈنە، قاتتىق دېتال سەپلىمىسى ۋە ئىشلىتىش ھەققىدىكى سانلىق مەلۇمات، Firefox نىڭ ئىقتىدارى، ئۈنۈمى ۋە مۇقىملىقىنى ياخشىلىشىمىزغا ياردەم بېرىدۇ.</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">بازارچىلىق سانلىق مەلۇماتلىرى</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->

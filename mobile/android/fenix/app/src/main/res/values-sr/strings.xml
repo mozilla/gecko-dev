@@ -991,9 +991,9 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Сазнајте више</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1">Технички и интеракцијски подаци</string>
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Технички и интеракцијски подаци</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Сазнајте више</string>
+  <string name="preference_usage_data_learn_more">Сазнајте више</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Делите податке о перформансама, употреби, хардверу и прилагођавањима вашег прегледача с Mozilla-ом како бисте нам помогли у побољшавању апликације %1$s</string>
   <!-- Preference switch for marketing data collection -->

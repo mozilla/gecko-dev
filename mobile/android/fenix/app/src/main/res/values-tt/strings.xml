@@ -845,7 +845,7 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Күбрәк белү</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Күбрәк белү</string>
+  <string name="preference_usage_data_learn_more">Күбрәк белү</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Маркетинг мәгълүматлары</string>
   <!-- Title for studies preferences -->
