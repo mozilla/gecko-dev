@@ -1937,6 +1937,12 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   // Return true if we should queue a 'timeupdate' event runner to main thread.
   bool ShouldQueueTimeupdateAsyncTask(TimeupdateType aType) const;
 
+  // In order to avoid the back-button intervention resulting in history
+  // entries with autoplayed videos from being skipped, we make sure that an
+  // entry which has played a video is considered to have been interacted
+  // with. See bug 1946547.
+  void MaybeMarkSHEntryAsUserInteracted();
+
 #ifdef MOZ_WMF_CDM
   // It's used to record telemetry probe for WMFCDM playback.
   bool mIsUsingWMFCDM = false;

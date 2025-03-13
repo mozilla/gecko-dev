@@ -34,4 +34,6 @@ https_first_disabled = true
 
 ["browser_autoplay_policy_web_audio_with_gum.js"]
 
+["browser_autoplay_userinteraction.js"]
+
 ["browser_autoplay_videoDocument.js"]
