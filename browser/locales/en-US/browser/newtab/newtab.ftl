@@ -124,6 +124,11 @@ newtab-menu-section-block = Block
 # e.g. Following the travel section of stories.
 newtab-menu-section-unfollow = Unfollow topic
 
+## Context menu options for sponsored stories and new ad formats on New Tab.
+
+newtab-menu-manage-sponsored-content = Manage sponsored content
+newtab-menu-our-sponsors-and-your-privacy = Our sponsors and your privacy
+
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
 
 newtab-privacy-modal-button-done = Done

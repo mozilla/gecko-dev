@@ -490,4 +490,17 @@ export const LinkMenuOptions = {
       },
     }),
   }),
+  ManageSponsoredContent: () => ({
+    id: "newtab-menu-manage-sponsored-content",
+    action: ac.OnlyToMain({ type: at.SETTINGS_OPEN }),
+  }),
+  OurSponsorsAndYourPrivacy: () => ({
+    id: "newtab-menu-our-sponsors-and-your-privacy",
+    action: ac.OnlyToMain({
+      type: at.OPEN_LINK,
+      data: {
+        url: "https://support.mozilla.org/kb/pocket-sponsored-stories-new-tabs",
+      },
+    }),
+  }),
 };

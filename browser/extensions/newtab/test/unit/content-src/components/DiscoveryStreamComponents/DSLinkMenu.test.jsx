@@ -31,6 +31,7 @@ describe("<DSLinkMenu>", () => {
     const ValidDSLinkMenuProps = {
       site: {},
       pocket_button_enabled: true,
+      card_type: "organic",
     };
 
     beforeEach(() => {
@@ -67,50 +68,7 @@ describe("<DSLinkMenu>", () => {
       ].forEach(prop => assert.property(linkMenuProps, prop));
     });
 
-    it("should pass through the correct menu options to LinkMenu", () => {
-      wrapper
-        .find(ContextMenuButton)
-        .simulate("click", { preventDefault: () => {} });
-      const linkMenuProps = wrapper.find(LinkMenu).props();
-      assert.deepEqual(linkMenuProps.options, [
-        "CheckBookmark",
-        "CheckArchiveFromPocket",
-        "Separator",
-        "OpenInNewWindow",
-        "OpenInPrivateWindow",
-        "Separator",
-        "BlockUrl",
-      ]);
-    });
-
-    it("should pass through the correct menu options to LinkMenu for spocs", () => {
-      wrapper = shallow(
-        <DSLinkMenu
-          {...ValidDSLinkMenuProps}
-          flightId="1234"
-          showPrivacyInfo={true}
-        />
-      );
-      wrapper
-        .find(ContextMenuButton)
-        .simulate("click", { preventDefault: () => {} });
-      const linkMenuProps = wrapper.find(LinkMenu).props();
-      assert.deepEqual(linkMenuProps.options, [
-        "CheckBookmark",
-        "CheckArchiveFromPocket",
-        "Separator",
-        "OpenInNewWindow",
-        "OpenInPrivateWindow",
-        "Separator",
-        "BlockUrl",
-        "ShowPrivacyInfo",
-      ]);
-    });
-
-    it("should pass through the correct menu options to LinkMenu for save to Pocket button", () => {
-      wrapper = shallow(
-        <DSLinkMenu {...ValidDSLinkMenuProps} saveToPocketCard={true} />
-      );
+    it("should pass through the correct menu options to LinkMenu for recommended stories if Pocket is enabled", () => {
       wrapper
         .find(ContextMenuButton)
         .simulate("click", { preventDefault: () => {} });
@@ -127,7 +85,7 @@ describe("<DSLinkMenu>", () => {
       ]);
     });
 
-    it("should pass through the correct menu options to LinkMenu if Pocket is disabled", () => {
+    it("should pass through the correct menu options to LinkMenu for recommended stories if Pocket is disabled", () => {
       wrapper = shallow(
         <DSLinkMenu {...ValidDSLinkMenuProps} pocket_button_enabled={false} />
       );
@@ -137,12 +95,26 @@ describe("<DSLinkMenu>", () => {
       const linkMenuProps = wrapper.find(LinkMenu).props();
       assert.deepEqual(linkMenuProps.options, [
         "CheckBookmark",
-        "CheckArchiveFromPocket",
         "Separator",
         "OpenInNewWindow",
         "OpenInPrivateWindow",
         "Separator",
         "BlockUrl",
+      ]);
+    });
+
+    it("should pass through the correct menu options to LinkMenu for SPOCs", () => {
+      wrapper = shallow(
+        <DSLinkMenu {...ValidDSLinkMenuProps} card_type="spoc" />
+      );
+      wrapper
+        .find(ContextMenuButton)
+        .simulate("click", { preventDefault: () => {} });
+      const linkMenuProps = wrapper.find(LinkMenu).props();
+      assert.deepEqual(linkMenuProps.options, [
+        "BlockUrl",
+        "ManageSponsoredContent",
+        "OurSponsorsAndYourPrivacy",
       ]);
     });
   });

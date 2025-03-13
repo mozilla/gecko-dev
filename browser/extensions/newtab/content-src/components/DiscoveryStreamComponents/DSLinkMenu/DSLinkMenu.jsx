@@ -10,33 +10,33 @@ import React from "react";
 export class DSLinkMenu extends React.PureComponent {
   render() {
     const { index, dispatch } = this.props;
-    let pocketMenuOptions = [];
-    let TOP_STORIES_CONTEXT_MENU_OPTIONS = [
-      "OpenInNewWindow",
-      "OpenInPrivateWindow",
-    ];
-    if (!this.props.isRecentSave) {
-      // Show Pocket context menu options if applicable.
-      // Additionally, show these menu options for all section cards.
-      if (
-        this.props.pocket_button_enabled &&
-        (this.props.saveToPocketCard || this.props.isSectionsCard) &&
-        this.props.card_type !== "spoc"
-      ) {
-        pocketMenuOptions = ["CheckSavedToPocket"];
-      }
+    let TOP_STORIES_CONTEXT_MENU_OPTIONS;
+
+    // Sponsored stories have their own context menu options.
+    if (this.props.card_type === "spoc") {
+      TOP_STORIES_CONTEXT_MENU_OPTIONS = [
+        "BlockUrl",
+        "ManageSponsoredContent",
+        "OurSponsorsAndYourPrivacy",
+      ];
+      // Recommended stories have a different context menu.
+    } else {
+      // If Pocket is enabled, insert extra menu options after the bookmark.
+      const saveToPocketOptions = this.props.pocket_button_enabled
+        ? ["CheckArchiveFromPocket", "CheckSavedToPocket"]
+        : [];
+
       TOP_STORIES_CONTEXT_MENU_OPTIONS = [
         "CheckBookmark",
-        "CheckArchiveFromPocket",
-        ...pocketMenuOptions,
+        ...saveToPocketOptions,
         "Separator",
         "OpenInNewWindow",
         "OpenInPrivateWindow",
         "Separator",
         "BlockUrl",
-        ...(this.props.showPrivacyInfo ? ["ShowPrivacyInfo"] : []),
       ];
     }
+
     const type = this.props.type || "DISCOVERY_STREAM";
     const title = this.props.title || this.props.source;
 
