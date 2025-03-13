@@ -798,7 +798,6 @@ _MANIFEST_JSON_DATA = {
                 "devtools": "browser/chrome/fr/locale/fr/devtools/client/",
                 "devtools-shared": "browser/chrome/fr/locale/fr/devtools/shared/",
                 "formautofill": "browser/features/formautofill@mozilla.org/fr/locale/fr/",
-                "report-site-issue": "browser/features/webcompat-reporter@mozilla.org/fr/locale/fr/",
                 "alerts": "chrome/fr/locale/fr/alerts/",
                 "autoconfig": "chrome/fr/locale/fr/autoconfig/",
                 "global": "chrome/fr/locale/fr/global/",
