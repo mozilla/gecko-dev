@@ -159,19 +159,20 @@ namespace mozilla::layers {
 
 using namespace mozilla::gfx;
 
+#ifdef MOZ_MEMORY
 static bool sAllocAsjustmentTaskCancelled = false;
 static bool sIncreasedDirtyPageThreshold = false;
 
-void ResetDirtyPageModifier();
+static void ResetDirtyPageModifier();
 
-void ScheduleResetMaxDirtyPageModifier() {
+static void ScheduleResetMaxDirtyPageModifier() {
   NS_DelayedDispatchToCurrentThread(
       NewRunnableFunction("ResetDirtyPageModifier", &ResetDirtyPageModifier),
       100  // In ms.
   );
 }
 
-void NeedIncreasedMaxDirtyPageModifier() {
+static void NeedIncreasedMaxDirtyPageModifier() {
   if (sIncreasedDirtyPageThreshold) {
     sAllocAsjustmentTaskCancelled = true;
     return;
@@ -183,7 +184,7 @@ void NeedIncreasedMaxDirtyPageModifier() {
   ScheduleResetMaxDirtyPageModifier();
 }
 
-void ResetDirtyPageModifier() {
+static void ResetDirtyPageModifier() {
   if (!sIncreasedDirtyPageThreshold) {
     return;
   }
@@ -201,12 +202,14 @@ void ResetDirtyPageModifier() {
     renderThread->NotifyIdle();
   }
 
-#if defined(MOZ_MEMORY)
   jemalloc_free_excess_dirty_pages();
-#endif
 
   sIncreasedDirtyPageThreshold = false;
 }
+#else
+// Don't bother doing anything of the memory allocator doesn't support this.
+static void NeedIncreasedMaxDirtyPageModifier() {}
+#endif
 
 LazyLogModule gWebRenderBridgeParentLog("WebRenderBridgeParent");
 #define LOG(...) \
