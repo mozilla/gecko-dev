@@ -27,6 +27,8 @@ module.exports = {
     `${projectRoot}/browser/components/asrouter/content/**/*.stories.mjs`,
     // Backup components stories
     `${projectRoot}/browser/components/backup/content/**/*.stories.mjs`,
+    // Settings components stories
+    `${projectRoot}/browser/components/preferences/widgets/**/*.stories.mjs`,
     // Reader View components stories
     `${projectRoot}/toolkit/components/reader/**/*.stories.mjs`,
     // megalist components stories

@@ -9,6 +9,8 @@ export class SettingGroup extends MozLitElement {
   static properties = {
     config: { type: Object },
     groupId: { type: String },
+    // getSetting should be Preferences.getSetting from preferencesBindings.js
+    getSetting: { type: Function },
   };
 
   createRenderRoot() {
@@ -16,12 +18,11 @@ export class SettingGroup extends MozLitElement {
   }
 
   itemTemplate(item) {
-    let setting = window.Preferences.getSetting(item.id);
+    let setting = this.getSetting(item.id);
     if (!setting.visible) {
       return "";
     }
     return html`<setting-control
-      .settingId=${item.id}
       .setting=${setting}
       .config=${item}
     ></setting-control>`;
@@ -54,7 +55,7 @@ export class SettingGroup extends MozLitElement {
   }
 
   xulItemTemplate(item) {
-    let setting = window.Preferences.getSetting(item.id);
+    let setting = this.getSetting(item.id);
     if (!setting.visible) {
       return "";
     }
@@ -69,7 +70,10 @@ export class SettingGroup extends MozLitElement {
     if (!this.config) {
       return "";
     }
-    if (Services.prefs.getBoolPref("settings.revamp.design", false)) {
+    if (
+      window.IS_STORYBOOK ||
+      Services.prefs.getBoolPref("settings.revamp.design", false)
+    ) {
       return html`<moz-fieldset data-l10n-id=${ifDefined(this.config.l10nId)}
         >${this.config.items.map(item => this.itemTemplate(item))}</moz-fieldset
       >`;

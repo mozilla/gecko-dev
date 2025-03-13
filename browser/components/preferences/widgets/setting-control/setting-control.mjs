@@ -6,8 +6,9 @@ import { html, ifDefined } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
 export class SettingControl extends MozLitElement {
+  #lastSetting;
+
   static properties = {
-    settingId: { type: String },
     setting: { type: Object },
     config: { type: Object },
     value: {},
@@ -22,11 +23,11 @@ export class SettingControl extends MozLitElement {
   };
 
   willUpdate(changedProperties) {
-    if (changedProperties.has("settingId")) {
-      if (this.setting && this.setting.id != this.settingId) {
-        this.setting.off("change", this.onSettingChange);
+    if (changedProperties.has("setting")) {
+      if (this.#lastSetting) {
+        this.#lastSetting.off("change", this.onSettingChange);
       }
-      this.setting = window.Preferences.getSetting(this.settingId);
+      this.#lastSetting = this.setting;
       this.value = this.getValue();
       this.setting.on("change", this.onSettingChange);
     }

@@ -366,6 +366,7 @@ function initSettingGroup(id) {
   let group = document.querySelector(`setting-group[groupid=${id}]`);
   if (group && SETTINGS_CONFIG[id]) {
     group.config = SETTINGS_CONFIG[id];
+    group.getSetting = Preferences.getSetting.bind(Preferences);
   }
 }
 
