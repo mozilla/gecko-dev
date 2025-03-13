@@ -425,16 +425,6 @@ interface nsIWindowsShellService : nsIShellService
   boolean checkBrowserUserChoiceHashes();
 
   /*
-   * Retrieves the application-defined, explicit Application User Model ID
-   * for the current process. This function is only to be used on
-   * Windows for testing purposes
-   *
-   * @return string AUMID
-   * @throws NS_ERROR_FAILURE when the AUMID cannot be fetched
-   */
-  AString checkCurrentProcessAUMIDForTesting();
-
-  /*
    * Determines whether or not Firefox is the "Default Handler", i.e.,
    * is registered to handle, the given file extension (like ".pdf")
    * or protocol (like "https").

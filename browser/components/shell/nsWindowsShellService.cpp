@@ -378,21 +378,6 @@ nsWindowsShellService::CheckBrowserUserChoiceHashes(bool* aResult) {
 }
 
 NS_IMETHODIMP
-nsWindowsShellService::CheckCurrentProcessAUMIDForTesting(
-    nsAString& aRetAumid) {
-  PWSTR id;
-  HRESULT hr = GetCurrentProcessExplicitAppUserModelID(&id);
-  if (FAILED(hr)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  aRetAumid.Assign(id);
-  CoTaskMemFree(id);
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsWindowsShellService::CanSetDefaultBrowserUserChoice(bool* aResult) {
   *aResult = false;
 // If the WDBA is not available, this could never succeed.

@@ -91,9 +91,6 @@ skip-if = [
 run-if = ["os == 'win'"]
 tags = "os_integration"
 
-["browser_processAUMID.js"]
-run-if = ["os == 'win'"]
-
 ["browser_setDefaultBrowser.js"]
 tags = "os_integration"
 

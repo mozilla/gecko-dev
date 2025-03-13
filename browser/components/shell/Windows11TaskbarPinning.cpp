@@ -17,7 +17,6 @@
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WinHeaderOnlyUtils.h"
 #include "mozilla/widget/WinTaskbar.h"
-#include "WinUtils.h"
 
 #include "mozilla/Logging.h"
 
@@ -214,27 +213,21 @@ Win11PinToTaskBarResult PinCurrentAppToTaskbarWin11(
                                     primaryAumid = nsString(primaryAumid)](
                                        Win11PinToTaskBarResultStatus status) {
           // Set AUMID back and ensure the icon is set correctly
-          if (!widget::WinUtils::HasPackageIdentity()) {
-            HRESULT hr =
-                SetCurrentProcessExplicitAppUserModelID(primaryAumid.get());
-            if (FAILED(hr)) {
-              TASKBAR_PINNING_LOG(LogLevel::Debug,
-                                  "Taskbar: reverting AUMID after pinning "
-                                  "operation failed. HRESULT = 0x%lx",
-                                  hr);
-            }
+          HRESULT hr =
+              SetCurrentProcessExplicitAppUserModelID(primaryAumid.get());
+          if (FAILED(hr)) {
+            TASKBAR_PINNING_LOG(LogLevel::Debug,
+                                "Taskbar: reverting AUMID after pinning "
+                                "operation failed. HRESULT = 0x%lx",
+                                hr);
           }
           resultStatus = status;
           event.Set();
         };
 
-        // Set the process to have the AUMID of the shortcut we want to pin,
-        // this is only necessary for Win32 builds
-        if (!widget::WinUtils::HasPackageIdentity()) {
-          hr = SetCurrentProcessExplicitAppUserModelID(aumid.get());
-          if (FAILED(hr)) {
-            return CompletedOperations(Win11PinToTaskBarResultStatus::Failed);
-          }
+        hr = SetCurrentProcessExplicitAppUserModelID(aumid.get());
+        if (FAILED(hr)) {
+          return CompletedOperations(Win11PinToTaskBarResultStatus::Failed);
         }
 
         ComPtr<ITaskbarManager> taskbar;
@@ -271,15 +264,13 @@ Win11PinToTaskBarResult PinCurrentAppToTaskbarWin11(
               [&event, &resultStatus,
                primaryAumid](Win11PinToTaskBarResultStatus status) -> HRESULT {
             // Set AUMID back and ensure the icon is set correctly
-            if (!widget::WinUtils::HasPackageIdentity()) {
-              HRESULT hr =
-                  SetCurrentProcessExplicitAppUserModelID(primaryAumid.get());
-              if (FAILED(hr)) {
-                TASKBAR_PINNING_LOG(LogLevel::Debug,
-                                    "Taskbar: reverting AUMID after pinning "
-                                    "operation failed. HRESULT = 0x%lx",
-                                    hr);
-              }
+            HRESULT hr =
+                SetCurrentProcessExplicitAppUserModelID(primaryAumid.get());
+            if (FAILED(hr)) {
+              TASKBAR_PINNING_LOG(LogLevel::Debug,
+                                  "Taskbar: reverting AUMID after pinning "
+                                  "operation failed. HRESULT = 0x%lx",
+                                  hr);
             }
             resultStatus = status;
             event.Set();
