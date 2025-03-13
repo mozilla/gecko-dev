@@ -12,9 +12,7 @@ skip-if = ["socketprocess_networking"] # Bug 1759035
 ["test_purge_trackers.js"]
 run-sequentially = "very high failure rate in parallel"
 skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && !fission && !socketprocess_networking", # Bug 1760085
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan && !fission && !socketprocess_networking", # Bug 1760085
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan && !fission && socketprocess_networking", # Bug 1760085
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'" # Bug 1760085
   "win10_2009", # Bug 1718292
   "win11_2009", # Bug 1797751
 ]
