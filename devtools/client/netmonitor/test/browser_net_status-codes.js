@@ -121,6 +121,9 @@ add_task(async function () {
       const requestsListStatus = requestItem.querySelector(".status-code");
       EventUtils.sendMouseEvent({ type: "mouseover" }, requestsListStatus);
       await waitUntil(() => requestsListStatus.title);
+      await waitUntil(() =>
+        requestItem.querySelector(".requests-list-timings-total")
+      );
     }
 
     info("Verifying requests contain correct information.");
