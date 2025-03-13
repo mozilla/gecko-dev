@@ -160,136 +160,125 @@ add_task(async function dismiss() {
   await assertContextualOptinVisibility({ visible: false });
 });
 
-add_task(async function dismiss_by_impression_count() {
+add_task(async function dismiss_by_impressions_count_fisrt() {
   info("Setup");
+  const IMPRESSION_LIMIT = 5;
+  const IMPRESSION_DAYS_LIMIT = 10;
   UrlbarPrefs.set("quicksuggest.dataCollection.enabled", false);
   UrlbarPrefs.set("quicksuggest.contextualOptIn", true);
   UrlbarPrefs.set("quicksuggest.contextualOptIn.dismissedCount", 0);
   UrlbarPrefs.set("quicksuggest.contextualOptIn.lastDismissedTime", 0);
   UrlbarPrefs.set("quicksuggest.contextualOptIn.impressionCount", 0);
-  UrlbarPrefs.set("quicksuggest.contextualOptIn.impressionLimit", 3);
-
-  info(
-    "Contextual opt-in result should show until reaching to impressionLimit"
+  UrlbarPrefs.set(
+    "quicksuggest.contextualOptIn.impressionLimit",
+    IMPRESSION_LIMIT
   );
-  for (let i = 0; i < 2; i++) {
-    await UrlbarTestUtils.promiseAutocompleteResultPopup({
-      window,
-      value: "",
-    });
-    let { result } = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
-    Assert.equal(
-      result.providerName,
-      "UrlbarProviderQuickSuggestContextualOptIn"
-    );
-    await UrlbarTestUtils.promisePopupClose(window, () => gURLBar.blur());
+  UrlbarPrefs.set("quicksuggest.contextualOptIn.firstImpressionTime", 0);
+  UrlbarPrefs.set(
+    "quicksuggest.contextualOptIn.impressionDaysLimit",
+    IMPRESSION_DAYS_LIMIT
+  );
 
-    Assert.equal(
-      UrlbarPrefs.get("quicksuggest.contextualOptIn.impressionCount"),
-      i + 1
-    );
-    Assert.equal(
-      UrlbarPrefs.get("quicksuggest.contextualOptIn.dismissedCount"),
-      0
-    );
+  info("Make impressions more than limit");
+  for (let i = 0; i < IMPRESSION_LIMIT + 1; i++) {
+    await makeImpression();
   }
-
-  info(
-    "Contextual opt-in result should be dismissed when reaching to impressionLimit"
-  );
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: "",
-  });
-  await UrlbarTestUtils.promisePopupClose(window, () => gURLBar.blur());
-  Assert.equal(
-    UrlbarPrefs.get("quicksuggest.contextualOptIn.dismissedCount"),
-    1
-  );
   Assert.equal(
     UrlbarPrefs.get("quicksuggest.contextualOptIn.impressionCount"),
-    0
+    IMPRESSION_LIMIT + 1
   );
 
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: "",
-  });
-  let { result } = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
-  Assert.notEqual(
-    result.providerName,
-    "UrlbarProviderQuickSuggestContextualOptIn"
-  );
-  await UrlbarTestUtils.promisePopupClose(window);
-});
+  info("Contextual opt-in result should show since no day passed");
+  await assertContextualOptinVisibility({ visible: true });
 
-add_task(async function dismiss_by_past_days_after_first_impression() {
-  info("Setup");
-  UrlbarPrefs.set("quicksuggest.dataCollection.enabled", false);
-  UrlbarPrefs.set("quicksuggest.contextualOptIn", true);
-  UrlbarPrefs.set("quicksuggest.contextualOptIn.dismissedCount", 0);
-  UrlbarPrefs.set("quicksuggest.contextualOptIn.lastDismissedTime", 0);
-  UrlbarPrefs.set("quicksuggest.contextualOptIn.impressionCount", 0);
-  UrlbarPrefs.set("quicksuggest.contextualOptIn.firstImpressionTime", 0);
-  UrlbarPrefs.set("quicksuggest.contextualOptIn.impressionDaysLimit", 5);
-
-  info("Show the contextual opt-in message, but not interacte to it");
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: "",
-  });
-  let result = (await UrlbarTestUtils.getDetailsOfResultAt(window, 0)).result;
-  Assert.equal(
-    result.providerName,
-    "UrlbarProviderQuickSuggestContextualOptIn"
-  );
-  await UrlbarTestUtils.promisePopupClose(window, () => gURLBar.blur());
-  Assert.ok(
-    UrlbarPrefs.get("quicksuggest.contextualOptIn.firstImpressionTime")
-  );
-
-  info("Simulate 4 days later");
+  info("Simulate IMPRESSION_DAYS_LIMIT - 1 days later");
   moveFirstImpressionTimeEalier(
     UrlbarPrefs.get("quicksuggest.contextualOptIn.firstImpressionTime"),
-    4
+    IMPRESSION_DAYS_LIMIT - 1
   );
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: "",
-  });
-  await UrlbarTestUtils.promisePopupClose(window, () => gURLBar.blur());
+  await assertContextualOptinVisibility({ visible: true });
   Assert.equal(
     UrlbarPrefs.get("quicksuggest.contextualOptIn.dismissedCount"),
     0,
     "Still not dismissed"
   );
 
-  info("Simulate 1 more day later (total 5 days)");
+  info("Simulate 1 more day later (total IMPRESSION_DAYS_LIMIT days)");
   moveFirstImpressionTimeEalier(
     UrlbarPrefs.get("quicksuggest.contextualOptIn.firstImpressionTime"),
     1
   );
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: "",
-  });
-  await UrlbarTestUtils.promisePopupClose(window, () => gURLBar.blur());
+  // `assertContextualOptinVisibility` shows the urlbar result. As this calls
+  // `isActive()` internally, the impressions will be evaluate and dismiss if needed.
+  await assertContextualOptinVisibility({ visible: false });
   Assert.equal(
     UrlbarPrefs.get("quicksuggest.contextualOptIn.dismissedCount"),
     1,
     "Dismissed"
   );
+});
 
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: "",
-  });
-  result = (await UrlbarTestUtils.getDetailsOfResultAt(window, 0)).result;
-  Assert.notEqual(
-    result.providerName,
-    "UrlbarProviderQuickSuggestContextualOptIn"
+add_task(async function dismiss_by_impressions_elapsed_days_fisrt() {
+  info("Setup");
+  const IMPRESSION_LIMIT = 5;
+  const IMPRESSION_DAYS_LIMIT = 10;
+  UrlbarPrefs.set("quicksuggest.dataCollection.enabled", false);
+  UrlbarPrefs.set("quicksuggest.contextualOptIn", true);
+  UrlbarPrefs.set("quicksuggest.contextualOptIn.dismissedCount", 0);
+  UrlbarPrefs.set("quicksuggest.contextualOptIn.lastDismissedTime", 0);
+  UrlbarPrefs.set("quicksuggest.contextualOptIn.impressionCount", 0);
+  UrlbarPrefs.set(
+    "quicksuggest.contextualOptIn.impressionLimit",
+    IMPRESSION_LIMIT
   );
-  await UrlbarTestUtils.promisePopupClose(window);
+  UrlbarPrefs.set("quicksuggest.contextualOptIn.firstImpressionTime", 0);
+  UrlbarPrefs.set(
+    "quicksuggest.contextualOptIn.impressionDaysLimit",
+    IMPRESSION_DAYS_LIMIT
+  );
+
+  info("Make first impression");
+  await makeImpression();
+
+  info("Simulate more than impressionDaysLimit days later");
+  moveFirstImpressionTimeEalier(
+    UrlbarPrefs.get("quicksuggest.contextualOptIn.firstImpressionTime"),
+    IMPRESSION_DAYS_LIMIT + 1
+  );
+  await assertContextualOptinVisibility({ visible: true });
+  Assert.equal(
+    UrlbarPrefs.get("quicksuggest.contextualOptIn.dismissedCount"),
+    0,
+    "Still not dismissed"
+  );
+
+  info("Make impressions to the limit - 1");
+  for (let i = 0; i < IMPRESSION_LIMIT - 2; i++) {
+    await makeImpression();
+  }
+  Assert.equal(
+    UrlbarPrefs.get("quicksuggest.contextualOptIn.impressionCount"),
+    IMPRESSION_LIMIT - 1
+  );
+  await assertContextualOptinVisibility({ visible: true });
+  Assert.equal(
+    UrlbarPrefs.get("quicksuggest.contextualOptIn.dismissedCount"),
+    0,
+    "Still not dismissed"
+  );
+
+  info("Make impressions to the limit");
+  await makeImpression();
+  Assert.equal(
+    UrlbarPrefs.get("quicksuggest.contextualOptIn.impressionCount"),
+    IMPRESSION_LIMIT
+  );
+  await assertContextualOptinVisibility({ visible: false });
+  Assert.equal(
+    UrlbarPrefs.get("quicksuggest.contextualOptIn.dismissedCount"),
+    1,
+    "Dismissed"
+  );
 });
 
 async function doDismiss() {
@@ -351,6 +340,19 @@ function moveFirstImpressionTimeEalier(firstImpressionTime, days) {
     "quicksuggest.contextualOptIn.firstImpressionTime",
     date.getTime() / 1000
   );
+}
+
+async function makeImpression() {
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "",
+  });
+  let { result } = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
+  Assert.equal(
+    result.providerName,
+    "UrlbarProviderQuickSuggestContextualOptIn"
+  );
+  await UrlbarTestUtils.promisePopupClose(window, () => gURLBar.blur());
 }
 
 add_task(async function nimbus() {
