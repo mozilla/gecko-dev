@@ -181,11 +181,12 @@ class NotificationRobot {
         // In case it fails, retry max 3x the swipe action on download system notifications
         for (i in 1..RETRY_COUNT) {
             Log.i(TAG, "swipeDownloadNotification: Started try #$i")
-            if (SDK_INT == Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                expandNotificationMessage(notificationItem)
-                assertUIObjectExists(itemContainingText(appName), waitingTime = waitingTimeShort)
-            }
             try {
+                if (SDK_INT == Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    expandNotificationMessage(notificationItem)
+                    assertUIObjectExists(itemContainingText(appName), waitingTime = waitingTimeShort)
+                }
+
                 var retries = 0
                 while (itemContainingText(appName).exists() && retries++ < 3) {
                     // Swipe left the download system notification
