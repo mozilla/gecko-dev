@@ -202,6 +202,173 @@ if (AppConstants.MOZ_UPDATER) {
   }
 }
 
+Preferences.addSetting({
+  id: "useAutoScroll",
+  pref: "general.autoScroll",
+});
+Preferences.addSetting({
+  id: "useSmoothScrolling",
+  pref: "general.smoothScroll",
+});
+Preferences.addSetting({
+  id: "useOverlayScrollbars",
+  pref: "widget.gtk.overlay-scrollbars.enabled",
+  visible: () => AppConstants.MOZ_WIDGET_GTK,
+});
+Preferences.addSetting({
+  id: "useOnScreenKeyboard",
+  pref: "ui.osk.enabled",
+  visible: () => AppConstants.platform == "win",
+});
+Preferences.addSetting({
+  id: "useCursorNavigation",
+  pref: "accessibility.browsewithcaret",
+});
+Preferences.addSetting({
+  id: "useFullKeyboardNavigation",
+  pref: "accessibility.tabfocus",
+  visible: () => AppConstants.platform == "macosx",
+  /**
+   * Returns true if any full keyboard nav is enabled and false otherwise, caching
+   * the current value to enable proper pref restoration if the checkbox is
+   * never changed.
+   *
+   * accessibility.tabfocus
+   * - an integer controlling the focusability of:
+   *     1  text controls
+   *     2  form elements
+   *     4  links
+   *     7  all of the above
+   */
+  get(prefVal) {
+    this._storedFullKeyboardNavigation = prefVal;
+    return prefVal == 7;
+  },
+  /**
+   * Returns the value of the full keyboard nav preference represented by UI,
+   * preserving the preference's "hidden" value if the preference is
+   * unchanged and represents a value not strictly allowed in UI.
+   */
+  set(checked) {
+    if (checked) {
+      return 7;
+    }
+    if (this._storedFullKeyboardNavigation != 7) {
+      // 1/2/4 values set via about:config should persist
+      return this._storedFullKeyboardNavigation;
+    }
+    // When the checkbox is unchecked, default to just text controls.
+    return 1;
+  },
+});
+Preferences.addSetting({
+  id: "alwaysUnderlineLinks",
+  pref: "layout.css.always_underline_links",
+});
+Preferences.addSetting({
+  id: "searchStartTyping",
+  pref: "accessibility.typeaheadfind",
+});
+Preferences.addSetting({
+  id: "pictureInPictureToggleEnabled",
+  pref: "media.videocontrols.picture-in-picture.video-toggle.enabled",
+  visible: () =>
+    Services.prefs.getBoolPref(
+      "media.videocontrols.picture-in-picture.enabled"
+    ),
+  onUserChange(checked) {
+    if (!checked) {
+      Glean.pictureinpictureSettings.disableSettings.record();
+    }
+  },
+});
+Preferences.addSetting({
+  id: "mediaControlToggleEnabled",
+  pref: "media.hardwaremediakeys.enabled",
+  // For media control toggle button, we support it on Windows, macOS and
+  // gtk-based Linux.
+  visible: () =>
+    AppConstants.platform == "win" ||
+    AppConstants.platform == "macosx" ||
+    AppConstants.MOZ_WIDGET_GTK,
+});
+Preferences.addSetting({
+  id: "cfrRecommendations",
+  pref: "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons",
+});
+Preferences.addSetting({
+  id: "cfrRecommendations-features",
+  pref: "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features",
+});
+
+let SETTINGS_CONFIG = {
+  browsing: {
+    items: [
+      {
+        id: "useAutoScroll",
+        l10nId: "browsing-use-autoscroll",
+      },
+      {
+        id: "useSmoothScrolling",
+        l10nId: "browsing-use-smooth-scrolling",
+      },
+      {
+        id: "useOverlayScrollbars",
+        l10nId: "browsing-gtk-use-non-overlay-scrollbars",
+      },
+      {
+        id: "useOnScreenKeyboard",
+        l10nId: "browsing-use-onscreen-keyboard",
+      },
+      {
+        id: "useCursorNavigation",
+        l10nId: "browsing-use-cursor-navigation",
+      },
+      {
+        id: "useFullKeyboardNavigation",
+        l10nId: "browsing-use-full-keyboard-navigation",
+      },
+      {
+        id: "alwaysUnderlineLinks",
+        l10nId: "browsing-always-underline-links",
+      },
+      {
+        id: "searchStartTyping",
+        l10nId: "browsing-search-on-start-typing",
+      },
+      {
+        id: "pictureInPictureToggleEnabled",
+        l10nId: "browsing-picture-in-picture-toggle-enabled",
+        supportPage: "picture-in-picture",
+      },
+      {
+        id: "mediaControlToggleEnabled",
+        l10nId: "browsing-media-control",
+        supportPage: "media-keyboard-control",
+      },
+      {
+        id: "cfrRecommendations",
+        l10nId: "browsing-cfr-recommendations",
+        supportPage: "extensionrecommendations",
+        subcategory: "cfraddons",
+      },
+      {
+        id: "cfrRecommendations-features",
+        l10nId: "browsing-cfr-features",
+        supportPage: "extensionrecommendations",
+        subcategory: "cfrfeatures",
+      },
+    ],
+  },
+};
+
+function initSettingGroup(id) {
+  let group = document.querySelector(`setting-group[groupid=${id}]`);
+  if (group && SETTINGS_CONFIG[id]) {
+    group.config = SETTINGS_CONFIG[id];
+  }
+}
+
 ChromeUtils.defineLazyGetter(this, "gIsPackagedApp", () => {
   return Services.sysinfo.getProperty("isPackagedApp");
 });
@@ -340,22 +507,7 @@ var gMainPane = {
 
     gMainPane.initTranslations();
 
-    if (
-      Services.prefs.getBoolPref(
-        "media.videocontrols.picture-in-picture.enabled"
-      )
-    ) {
-      document.getElementById("pictureInPictureBox").hidden = false;
-      setEventListener(
-        "pictureInPictureToggleEnabled",
-        "command",
-        function (event) {
-          if (!event.target.checked) {
-            Glean.pictureinpictureSettings.disableSettings.record();
-          }
-        }
-      );
-    }
+    initSettingGroup("browsing");
 
     if (AppConstants.platform == "win") {
       // Functionality for "Show tabs in taskbar" on Windows 7 and up.
@@ -549,16 +701,6 @@ var gMainPane = {
         .setAttribute("style", "display: none !important");
     } else {
       setEventListener("manage-profiles", "command", gMainPane.manageProfiles);
-    }
-
-    // For media control toggle button, we support it on Windows, macOS and
-    // gtk-based Linux.
-    if (
-      AppConstants.platform == "win" ||
-      AppConstants.platform == "macosx" ||
-      AppConstants.MOZ_WIDGET_GTK
-    ) {
-      document.getElementById("mediaControlBox").hidden = false;
     }
 
     // Initializes the fonts dropdowns displayed in this pane.
@@ -801,18 +943,6 @@ var gMainPane = {
       document.getElementById("defaultFont"),
       element => FontBuilder.readFontSelection(element)
     );
-    if (AppConstants.platform == "macosx") {
-      // We only expose this control on macOS, so don't try
-      // to add listeners if it doesn't exist.
-      Preferences.addSyncFromPrefListener(
-        document.getElementById("useFullKeyboardNavigation"),
-        () => this.readUseFullKeyboardNavigation()
-      );
-      Preferences.addSyncToPrefListener(
-        document.getElementById("useFullKeyboardNavigation"),
-        () => this.writeUseFullKeyboardNavigation()
-      );
-    }
     Preferences.addSyncFromPrefListener(
       document.getElementById("checkSpelling"),
       () => this.readCheckSpelling()
@@ -2263,49 +2393,6 @@ var gMainPane = {
     );
 
     migrationWizardDialog.showModal();
-  },
-
-  /**
-   * Stores the original value of the tabfocus preference to enable proper
-   * restoration if unchanged (since we're mapping an int pref onto a checkbox).
-   */
-  _storedFullKeyboardNavigation: Preferences.get("accessibility.tabfocus"),
-
-  /**
-   * Returns true if any full keyboard nav is enabled and false otherwise, caching
-   * the current value to enable proper pref restoration if the checkbox is
-   * never changed.
-   *
-   * accessibility.tabfocus
-   * - an integer controlling the focusability of:
-   *     1  text controls
-   *     2  form elements
-   *     4  links
-   *     7  all of the above
-   */
-  readUseFullKeyboardNavigation() {
-    var pref = Preferences.get("accessibility.tabfocus");
-    this._storedFullKeyboardNavigation = pref.value;
-
-    return pref.value == 7;
-  },
-
-  /**
-   * Returns the value of the full keyboard nav preference represented by UI,
-   * preserving the preference's "hidden" value if the preference is
-   * unchanged and represents a value not strictly allowed in UI.
-   */
-  writeUseFullKeyboardNavigation() {
-    var checkbox = document.getElementById("useFullKeyboardNavigation");
-    if (checkbox.checked) {
-      return 7;
-    }
-    if (this._storedFullKeyboardNavigation != 7) {
-      // 1/2/4 values set via about:config should persist
-      return this._storedFullKeyboardNavigation;
-    }
-    // When the checkbox is unchecked, default to just text controls.
-    return 1;
   },
 
   /**

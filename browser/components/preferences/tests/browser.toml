@@ -177,6 +177,8 @@ skip-if = ["true"]
 
 ["browser_permissions_urlFieldHidden.js"]
 
+["browser_pip_settings.js"]
+
 ["browser_primaryPassword.js"]
 
 ["browser_privacy_cookieBannerHandling.js"]

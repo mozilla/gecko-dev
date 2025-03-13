@@ -767,76 +767,7 @@
 <groupbox id="browsingGroup" data-category="paneGeneral" hidden="true">
   <label class="search-header" hidden="true"><html:h2 data-l10n-id="browsing-title"/></label>
 
-  <checkbox id="useAutoScroll"
-            data-l10n-id="browsing-use-autoscroll"
-            preference="general.autoScroll"/>
-  <checkbox id="useSmoothScrolling"
-            data-l10n-id="browsing-use-smooth-scrolling"
-            preference="general.smoothScroll"/>
-#ifdef MOZ_WIDGET_GTK
-  <checkbox id="useOverlayScrollbars"
-            data-l10n-id="browsing-gtk-use-non-overlay-scrollbars"
-            preference="widget.gtk.overlay-scrollbars.enabled"/>
-#endif
-#ifdef XP_WIN
-  <checkbox id="useOnScreenKeyboard"
-            data-l10n-id="browsing-use-onscreen-keyboard"
-            preference="ui.osk.enabled"/>
-#endif
-  <checkbox id="useCursorNavigation"
-            data-l10n-id="browsing-use-cursor-navigation"
-            preference="accessibility.browsewithcaret"/>
-#ifdef XP_MACOSX
-  <checkbox id="useFullKeyboardNavigation"
-            data-l10n-id="browsing-use-full-keyboard-navigation"
-            preference="accessibility.tabfocus" />
-#endif
-  <checkbox id="alwaysUnderlineLinks"
-            data-l10n-id="browsing-always-underline-links"
-            preference="layout.css.always_underline_links"/>
-  <checkbox id="searchStartTyping"
-            data-l10n-id="browsing-search-on-start-typing"
-            preference="accessibility.typeaheadfind"/>
-  <hbox id="pictureInPictureBox" align="center" hidden="true">
-    <checkbox id="pictureInPictureToggleEnabled"
-            class="tail-with-learn-more"
-            data-l10n-id="browsing-picture-in-picture-toggle-enabled"
-            preference="media.videocontrols.picture-in-picture.video-toggle.enabled"/>
-    <html:a is="moz-support-link"
-          data-l10n-id="browsing-picture-in-picture-learn-more"
-          support-page="picture-in-picture"
-    />
-  </hbox>
-  <hbox id="mediaControlBox" align="center" hidden="true">
-    <checkbox id="mediaControlToggleEnabled"
-            class="tail-with-learn-more"
-            data-l10n-id="browsing-media-control"
-            preference="media.hardwaremediakeys.enabled"/>
-    <html:a is="moz-support-link"
-          data-l10n-id="browsing-media-control-learn-more"
-          support-page="media-keyboard-control"
-    />
-  </hbox>
-  <hbox align="center" data-subcategory="cfraddons">
-    <checkbox id="cfrRecommendations"
-            class="tail-with-learn-more"
-            data-l10n-id="browsing-cfr-recommendations"
-            preference="browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons"/>
-    <html:a is="moz-support-link"
-          data-l10n-id="browsing-cfr-recommendations-learn-more"
-          support-page="extensionrecommendations"
-    />
-  </hbox>
-  <hbox align="center" data-subcategory="cfrfeatures">
-    <checkbox id="cfrRecommendations-features"
-            class="tail-with-learn-more"
-            data-l10n-id="browsing-cfr-features"
-            preference="browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features"/>
-    <html:a is="moz-support-link"
-          data-l10n-id="browsing-cfr-recommendations-learn-more"
-          support-page="extensionrecommendations"
-    />
-  </hbox>
+  <html:setting-group groupid="browsing"/>
 </groupbox>
 
 <hbox id="networkProxyCategory"
