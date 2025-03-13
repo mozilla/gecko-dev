@@ -215,11 +215,14 @@ class Message extends Component {
       return null;
     }
 
+    const timestamp = this.props.timeStamp || Date.now();
+
     return dom.span(
       {
         className: "timestamp devtools-monospace",
+        title: l10n.dateString(timestamp),
       },
-      l10n.timestampString(this.props.timeStamp || Date.now())
+      l10n.timestampString(timestamp)
     );
   }
 

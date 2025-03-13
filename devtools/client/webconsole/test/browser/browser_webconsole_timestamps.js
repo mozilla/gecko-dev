@@ -46,10 +46,10 @@ add_task(async function () {
   await prefChanged;
   observer.destroy();
 
-  ok(
-    message.node.querySelector(".timestamp"),
-    "Messages should have timestamp"
-  );
+  const timestampElement = message.node.querySelector(".timestamp");
+  ok(timestampElement, "Messages should have timestamp");
+
+  ok(timestampElement.getAttribute("title"), "Timestamp should have a title");
 
   Services.prefs.clearUserPref(PREF_MESSAGE_TIMESTAMP);
 });

@@ -9,13 +9,15 @@ const helper = new LocalizationHelper(
   "devtools/client/locales/webconsole.properties"
 );
 
+let dateFormatter;
+
 const l10n = {
   /**
    * Generates a formatted timestamp string for displaying in console messages.
    *
    * @param integer [milliseconds]
    *        Optional, allows you to specify the timestamp in milliseconds since
-   *        the UNIX epoch.
+   *        the UNIX epoch. If not provided, the current timestamp will be used.
    * @return string
    *         The timestamp formatted for display.
    */
@@ -27,6 +29,23 @@ const l10n = {
     milliseconds = d.getMilliseconds();
     const parameters = [hours, minutes, seconds, milliseconds];
     return l10n.getFormatStr("timestampFormat", parameters);
+  },
+
+  /**
+   * Generates a formatted date string for displaying in console messages.
+   *
+   * @param integer [milliseconds]
+   *        Optional, allows you to specify the timestamp in milliseconds since
+   *        the UNIX epoch from which the date will be derived. If not provided,
+   *        the current timestamp will be used.
+   * @returns string
+   *          The date formatted for display.
+   */
+  dateString(milliseconds) {
+    if (!dateFormatter) {
+      dateFormatter = new Intl.DateTimeFormat();
+    }
+    return dateFormatter.format(milliseconds || Date.now());
   },
 
   /**
