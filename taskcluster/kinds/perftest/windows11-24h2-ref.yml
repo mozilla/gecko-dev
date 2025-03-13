@@ -84,7 +84,7 @@ ml-llama-summarizer-perf:
     attributes:
         batch: false
         cron: false
-    run-on-projects: [autoland, mozilla-central]
+    run-on-projects: []
     run:
         command: >-
             mkdir -p $MOZ_FETCHES_DIR/../artifacts &&

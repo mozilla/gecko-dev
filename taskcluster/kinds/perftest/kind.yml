@@ -22,8 +22,6 @@ tasks-from:
     - android.yml
     - linux.yml
     - macosx.yml
-    - windows11.yml
-    - windows11-ref.yml
     - windows11-24h2.yml
     - windows11-24h2-ref.yml
 
