@@ -81,8 +81,8 @@
     --button-text-color-destructive-active: var(--button-text-color-destructive);
     --button-text-color-destructive-disabled: var(--button-text-color-destructive);
     --button-text-color-ghost: inherit;
-    --button-text-color-ghost-hover: var(--button-text-color-hover);
-    --button-text-color-ghost-active: var(--button-text-color-active);
+    --button-text-color-ghost-hover: inherit;
+    --button-text-color-ghost-active: inherit;
     --button-text-color-ghost-disabled: inherit;
     --button-text-color-primary-hover: var(--button-text-color-primary);
     --button-text-color-primary-active: var(--button-text-color-primary-hover);
@@ -213,6 +213,8 @@
 
       /** Button **/
       --button-border-color: var(--button-text-color);
+      --button-text-color-ghost-hover: var(--button-text-color-hover);
+      --button-text-color-ghost-active: var(--button-text-color-active);
 
       /** Icon **/
       --icon-color: var(--text-color);
@@ -281,6 +283,8 @@
       --button-text-color-destructive-hover: var(--button-text-color-primary-hover);
       --button-text-color-destructive-active: var(--button-text-color-primary-active);
       --button-text-color-destructive-disabled: var(--button-text-color-primary-disabled);
+      --button-text-color-ghost-hover: var(--button-text-color-hover);
+      --button-text-color-ghost-active: var(--button-text-color-active);
       --button-text-color-primary: ButtonFace;
       --button-text-color-primary-hover: SelectedItemText;
 

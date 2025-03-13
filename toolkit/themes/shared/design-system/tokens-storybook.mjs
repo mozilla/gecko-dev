@@ -506,7 +506,11 @@ export const storybookTables = {
       name: "--button-text-color-ghost",
     },
     {
-      value: { default: "var(--button-text-color-active)" },
+      value: {
+        default: "inherit",
+        prefersContrast: "var(--button-text-color-active)",
+        forcedColors: "var(--button-text-color-active)",
+      },
       name: "--button-text-color-ghost-active",
     },
     {
@@ -520,7 +524,11 @@ export const storybookTables = {
       name: "--button-text-color-ghost-disabled",
     },
     {
-      value: { default: "var(--button-text-color-hover)" },
+      value: {
+        default: "inherit",
+        prefersContrast: "var(--button-text-color-hover)",
+        forcedColors: "var(--button-text-color-hover)",
+      },
       name: "--button-text-color-ghost-hover",
     },
     {
@@ -1069,7 +1077,9 @@ export const variableLookupTable = {
     },
   },
   "button-text-color-ghost-active": {
-    default: "var(--button-text-color-active)",
+    default: "inherit",
+    prefersContrast: "var(--button-text-color-active)",
+    forcedColors: "var(--button-text-color-active)",
   },
   "button-text-color-ghost-disabled": {
     default: "inherit",
@@ -1079,7 +1089,9 @@ export const variableLookupTable = {
     },
   },
   "button-text-color-ghost-hover": {
-    default: "var(--button-text-color-hover)",
+    default: "inherit",
+    prefersContrast: "var(--button-text-color-hover)",
+    forcedColors: "var(--button-text-color-hover)",
   },
   "button-text-color-hover": {
     default: "var(--button-text-color)",

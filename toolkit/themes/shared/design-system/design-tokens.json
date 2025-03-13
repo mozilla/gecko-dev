@@ -488,7 +488,9 @@
           },
           "active": {
             "value": {
-              "default": "{button.text.color.active}"
+              "default": "inherit",
+              "prefersContrast": "{button.text.color.active}",
+              "forcedColors": "{button.text.color.active}"
             }
           },
           "disabled": {
@@ -502,7 +504,9 @@
           },
           "hover": {
             "value": {
-              "default": "{button.text.color.hover}"
+              "default": "inherit",
+              "prefersContrast": "{button.text.color.hover}",
+              "forcedColors": "{button.text.color.hover}"
             }
           }
         },

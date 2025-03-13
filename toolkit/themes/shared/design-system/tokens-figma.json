@@ -265,8 +265,8 @@
     "forcedColors": "inherit"
   },
   "button/text/color/ghost/active": {
-    "light": "#15141aff",
-    "dark": "#fbfbfeff",
+    "light": "inherit",
+    "dark": "inherit",
     "forcedColors": "SelectedItem"
   },
   "button/text/color/ghost/disabled": {
@@ -275,8 +275,8 @@
     "forcedColors": "inherit"
   },
   "button/text/color/ghost/hover": {
-    "light": "#15141aff",
-    "dark": "#fbfbfeff",
+    "light": "inherit",
+    "dark": "inherit",
     "forcedColors": "SelectedItem"
   },
   "button/text/color/hover": {
