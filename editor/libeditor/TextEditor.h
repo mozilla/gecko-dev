@@ -259,6 +259,10 @@ class TextEditor final : public EditorBase,
     }
   }
 
+  /**
+   * Return the `Text` node in the anonymous <div>.  Note that the anonymous
+   * <div> can have only one `Text` for the storage of the value of this editor.
+   */
   dom::Text* GetTextNode() {
     MOZ_DIAGNOSTIC_ASSERT(GetRoot());
     MOZ_DIAGNOSTIC_ASSERT(GetRoot()->GetFirstChild());

@@ -527,9 +527,7 @@ Result<EditActionResult, nsresult> TextEditor::SetTextWithoutTransaction(
 
   MaybeDoAutoPasswordMasking();
 
-  RefPtr<Element> anonymousDivElement = GetRoot();
-  RefPtr<Text> textNode =
-      Text::FromNodeOrNull(anonymousDivElement->GetFirstChild());
+  const RefPtr<Text> textNode = GetTextNode();
   MOZ_ASSERT(textNode);
 
   // We can use this fast path only when:
@@ -624,8 +622,8 @@ Result<EditActionResult, nsresult> TextEditor::HandleDeleteSelectionInternal(
         return Err(NS_ERROR_FAILURE);
       }
 
-      if (const Text* theTextNode = AsTextEditor()->GetTextNode()) {
-        rangesToDelete.EnsureRangesInTextNode(*theTextNode);
+      if (const Text* const textNode = GetTextNode()) {
+        rangesToDelete.EnsureRangesInTextNode(*textNode);
       }
 
       Result<CaretPoint, nsresult> caretPointOrError =
@@ -706,7 +704,7 @@ TextEditor::ComputeValueFromTextNodeAndBRElement(nsAString& aValue) const {
     return EditActionResult::HandledResult();
   }
 
-  Text* textNode = Text::FromNodeOrNull(anonymousDivElement->GetFirstChild());
+  const Text* const textNode = GetTextNode();
   MOZ_ASSERT(textNode);
 
   if (!textNode->Length()) {

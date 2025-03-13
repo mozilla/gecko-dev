@@ -480,56 +480,23 @@ already_AddRefed<Element> TextEditor::GetInputEventTargetElement() const {
 }
 
 bool TextEditor::IsEmpty() const {
-  // Even if there is no padding <br> element for empty editor, we should be
-  // detected as empty editor if all the children are text nodes and these
-  // have no content.
-  Element* anonymousDivElement = GetRoot();
-  if (!anonymousDivElement) {
-    return true;  // Don't warn it, this is possible, e.g., 997805.html
-  }
-
-  MOZ_ASSERT(anonymousDivElement->GetFirstChild() &&
-             anonymousDivElement->GetFirstChild()->IsText());
-
-  // Only when there is non-empty text node, we are not empty.
-  return !anonymousDivElement->GetFirstChild()->Length();
+  const Text* const textNode = GetTextNode();
+  MOZ_DIAGNOSTIC_ASSERT_IF(textNode,
+                           !Text::FromNodeOrNull(textNode->GetNextSibling()));
+  return !textNode || !textNode->TextDataLength();
 }
 
 NS_IMETHODIMP TextEditor::GetTextLength(uint32_t* aCount) {
   MOZ_ASSERT(aCount);
 
-  // initialize out params
-  *aCount = 0;
-
-  // special-case for empty document, to account for the padding <br> element
-  // for empty editor.
-  // XXX This should be overridden by `HTMLEditor` and we should return the
-  //     first text node's length from `TextEditor` instead.  The following
-  //     code is too expensive.
-  if (IsEmpty()) {
-    return NS_OK;
-  }
-
-  Element* rootElement = GetRoot();
-  if (NS_WARN_IF(!rootElement)) {
+  if (NS_WARN_IF(!GetRoot())) {
     return NS_ERROR_FAILURE;
   }
 
-  uint32_t totalLength = 0;
-  PostContentIterator postOrderIter;
-  DebugOnly<nsresult> rvIgnored = postOrderIter.Init(rootElement);
-  NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
-                       "PostContentIterator::Init() failed, but ignored");
-  EditorType editorType = GetEditorType();
-  for (; !postOrderIter.IsDone(); postOrderIter.Next()) {
-    nsINode* currentNode = postOrderIter.GetCurrentNode();
-    if (currentNode && currentNode->IsText() &&
-        EditorUtils::IsEditableContent(*currentNode->AsText(), editorType)) {
-      totalLength += currentNode->Length();
-    }
-  }
-
-  *aCount = totalLength;
+  const Text* const textNode = GetTextNode();
+  MOZ_DIAGNOSTIC_ASSERT_IF(textNode,
+                           !Text::FromNodeOrNull(textNode->GetNextSibling()));
+  *aCount = textNode ? textNode->TextDataLength() : 0u;
   return NS_OK;
 }
 
@@ -947,11 +914,10 @@ nsresult TextEditor::SetUnmaskRangeInternal(uint32_t aStart, uint32_t aLength,
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  Element* rootElement = GetRoot();
-  if (NS_WARN_IF(!rootElement)) {
+  if (NS_WARN_IF(!GetRoot())) {
     return NS_ERROR_NOT_INITIALIZED;
   }
-  Text* text = Text::FromNodeOrNull(rootElement->GetFirstChild());
+  Text* const text = GetTextNode();
   if (!text || !text->Length()) {
     // There is no anonymous text node in the editor.
     return aStart > 0 && aStart != UINT32_MAX ? NS_ERROR_INVALID_ARG : NS_OK;
@@ -965,8 +931,8 @@ nsresult TextEditor::SetUnmaskRangeInternal(uint32_t aStart, uint32_t aLength,
     // If aStart is middle of a surrogate pair, expand it to include the
     // preceding high surrogate because the caller may want to show a
     // character before the character at `aStart + 1`.
-    const nsTextFragment* textFragment = text->GetText();
-    if (textFragment->IsLowSurrogateFollowingHighSurrogateAt(aStart)) {
+    const nsTextFragment& textFragment = text->TextFragment();
+    if (textFragment.IsLowSurrogateFollowingHighSurrogateAt(aStart)) {
       mPasswordMaskData->mUnmaskedStart = aStart - 1;
       // If caller collapses the range, keep it.  Otherwise, expand the length.
       if (aLength > 0) {
@@ -981,7 +947,7 @@ nsresult TextEditor::SetUnmaskRangeInternal(uint32_t aStart, uint32_t aLength,
     // the following low surrogate because the caller may want to show a
     // character after the character at `aStart + aLength`.
     if (UnmaskedEnd() < valueLength &&
-        textFragment->IsLowSurrogateFollowingHighSurrogateAt(UnmaskedEnd())) {
+        textFragment.IsLowSurrogateFollowingHighSurrogateAt(UnmaskedEnd())) {
       mPasswordMaskData->mUnmaskedLength++;
     }
     // If it's first time to mask the unmasking characters with timer, create
