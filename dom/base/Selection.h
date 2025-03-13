@@ -514,7 +514,9 @@ class Selection final : public nsSupportsWeakReference,
    */
   enum class FlushFrames { No, Yes };
   MOZ_CAN_RUN_SCRIPT
-  void Stringify(nsAString& aResult, FlushFrames = FlushFrames::Yes);
+  void Stringify(nsAString& aResult,
+                 CallerType aCallerType = CallerType::System,
+                 FlushFrames = FlushFrames::Yes);
 
   /**
    * Indicates whether the node is part of the selection. If partlyContained
