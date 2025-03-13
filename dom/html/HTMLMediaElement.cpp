@@ -4643,6 +4643,8 @@ already_AddRefed<Promise> HTMLMediaElement::Play(ErrorResult& aRv) {
     mAllowedToPlayPromise.ResolveIfExists(true, __func__);
     PlayInternal(handlingUserInput);
     UpdateCustomPolicyAfterPlayed();
+
+    MaybeMarkSHEntryAsUserInteracted();
   } else {
     AUTOPLAY_LOG("reject MediaElement %p to play", this);
     AsyncRejectPendingPlayPromises(NS_ERROR_DOM_MEDIA_NOT_ALLOWED_ERR);
@@ -6383,6 +6385,8 @@ void HTMLMediaElement::RunAutoplay() {
   DispatchAsyncEvent(u"play"_ns);
 
   DispatchAsyncEvent(u"playing"_ns);
+
+  MaybeMarkSHEntryAsUserInteracted();
 }
 
 bool HTMLMediaElement::IsActuallyInvisible() const {
@@ -8096,6 +8100,15 @@ void HTMLMediaElement::NodeInfoChanged(Document* aOldDoc) {
   }
 
   nsGenericHTMLElement::NodeInfoChanged(aOldDoc);
+}
+
+void HTMLMediaElement::MaybeMarkSHEntryAsUserInteracted() {
+  if (media::AutoplayPolicy::GetAutoplayPolicy(*this) ==
+      dom::AutoplayPolicy::Allowed) {
+    // Only mark entries when autoplay is allowed for both audio and video,
+    // i.e. when AutoplayPolicy is not Blocked or Allowed_muted.
+    OwnerDoc()->SetSHEntryHasUserInteraction(true);
+  }
 }
 
 #ifdef MOZ_WMF_CDM

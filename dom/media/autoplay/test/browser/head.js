@@ -69,6 +69,9 @@ function loadAutoplayVideo(browser, args) {
     } else {
       ok(false, "Invalid 'mode' arg");
     }
+    if (args.muted) {
+      video.muted = true;
+    }
     video.src = "gizmo.mp4";
     content.document.body.appendChild(video);
   });
