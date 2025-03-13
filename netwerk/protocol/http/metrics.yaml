@@ -2905,3 +2905,26 @@ http3:
       - received
       - sent
     telemetry_mirror: HTTP3_RECEIVED_SENT_DGRAMS
+
+glam_experiment:
+  sub_complete_load_net:
+    type: timing_distribution
+    disabled: true
+    time_unit: millisecond
+    description: >
+      Duplicate of:
+      `network.sub_complete_load_net`
+
+      Intended for the purpose of testing client side sampling of data. This
+      metric is disabled by default and will be enabled only for the purpose
+      of the experiment. See Bug 1947604 for more information.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947604
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1877839
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - tlong@mozilla.com
+      - efilho@mozilla.com
+    expires: 146

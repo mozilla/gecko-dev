@@ -1423,6 +1423,14 @@ nsresult nsHtml5StreamParser::OnStopRequest(
                "OnDataFinished after OnStopRequest");
     glean::networking::http_content_html5parser_ondatafinished_to_onstop_delay
         .AccumulateRawDuration(delta);
+    // GLAM EXPERIMENT
+    // This metric is temporary, disabled by default, and will be enabled only
+    // for the purpose of experimenting with client-side sampling of data for
+    // GLAM use. See Bug 1947604 for more information.
+    glean::glam_experiment::
+        http_content_html5parser_ondatafinished_to_onstop_delay
+            .AccumulateRawDuration(delta);
+    // END GLAM EXPERIMENT
   }
   return NS_OK;
 }

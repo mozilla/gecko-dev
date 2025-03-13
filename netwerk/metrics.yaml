@@ -3019,3 +3019,47 @@ sts:
     telemetry_mirror: STS_POLL_BLOCK_TIME
     no_lint:
       - COMMON_PREFIX
+
+glam_experiment:
+  http_content_html5parser_ondatafinished_to_onstop_delay:
+    type: timing_distribution
+    disabled: true
+    time_unit: millisecond
+    description: >
+      Duplicate of:
+      `networking.http_content_html5parser_ondatafinished_to_onstop_delay`
+
+      Intended for the purpose of testing client side sampling of data. This
+      metric is disabled by default and will be enabled only for the purpose
+      of the experiment. See Bug 1947604 for more information.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947604
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1857926
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902188
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - tlong@mozilla.com
+      - efilho@mozilla.com
+    expires: 146
+  os_socket_limit_reached:
+    type: counter
+    disabled: true
+    description: >
+      Duplicate of:
+      `networking.os_socket_limit_reached`
+
+      Intended for the purpose of testing client side sampling of data. This
+      metric is disabled by default and will be enabled only for the purpose
+      of the experiment. See Bug 1947604 for more information.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947604
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901855#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - tlong@mozilla.com
+      - efilho@mozilla.com
+    expires: 146

@@ -412,6 +412,12 @@ bool nsSocketTransportService::CanAttachSocket() {
     static bool reported_socket_limit_reached = false;
     if (!reported_socket_limit_reached) {
       mozilla::glean::networking::os_socket_limit_reached.Add(1);
+      // GLAM EXPERIMENT
+      // This metric is temporary, disabled by default, and will be enabled only
+      // for the purpose of experimenting with client-side sampling of data for
+      // GLAM use. See Bug 1947604 for more information.
+      glean::glam_experiment::os_socket_limit_reached.Add(1);
+      // END GLAM EXPERIMENT
       reported_socket_limit_reached = true;
     }
     SOCKET_LOG(
