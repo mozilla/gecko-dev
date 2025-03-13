@@ -389,5 +389,6 @@
     --theme-contrast-background: Mark;
     --theme-contrast-background-alpha: var(--theme-contrast-background);
     --theme-contrast-color: MarkText;
+    --theme-contrast-border: SelectedItem;
   }
 }

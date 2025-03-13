@@ -111,6 +111,11 @@
   /* Use the translucent yellow background, because we want the text selection
      background (CodeMirror-selected) to show through this. */
   background-color: var(--theme-contrast-background-alpha);
+
+  :root[forced-colors-active] & {
+    border-bottom-width: 2px;
+    color: var(--theme-contrast-color);
+  }
 }
 
 /* CodeMirror 5 search addon input */
@@ -333,6 +338,12 @@
   border-radius: 2px;
   /* Override cm6 inline */
   background-color: transparent !important;
+}
+
+/* Make the outline a bit more visible in High Contrast Mode */
+:root[forced-colors-active] .cm-matchhighlight {
+  outline-width: 2px;
+  outline-offset: 2px;
 }
 
 .cm-non-printable-char {
