@@ -261,7 +261,8 @@ gfx::Matrix SVGGeometryElement::LocalTransform() const {
 float SVGGeometryElement::GetPathLengthScale(PathLengthScaleForType aFor) {
   MOZ_ASSERT(aFor == eForTextPath || aFor == eForStroking, "Unknown enum");
   if (mPathLength.IsExplicitlySet()) {
-    float authorsPathLengthEstimate = mPathLength.GetAnimValue();
+    float zoom = UserSpaceMetrics::GetZoom(this);
+    float authorsPathLengthEstimate = mPathLength.GetAnimValue() * zoom;
     if (authorsPathLengthEstimate >= 0) {
       RefPtr<Path> path = GetOrBuildPathForMeasuring();
       if (!path) {
