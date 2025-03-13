@@ -1014,13 +1014,11 @@ bool RunIdleMemoryCleanup(TimeStamp aDeadline, uint32_t aWantsLaterDelay) {
   uint32_t reuseGracePeriod =
       StaticPrefs::memory_lazypurge_reuse_grace_period();
 
-  purge_result_t result = purge_result_t::NeedsMore;
-  while (result == purge_result_t::NeedsMore) {
+  purge_result_t result;
+  do {
     result = moz_may_purge_one_now(/* aPeekOnly */ false, reuseGracePeriod);
-    if (!aDeadline.IsNull() && TimeStamp::Now() > aDeadline) {
-      break;
-    }
-  }
+  } while ((result == purge_result_t::NeedsMore) &&
+           (aDeadline.IsNull() || TimeStamp::Now() <= aDeadline));
 
   switch (result) {
     case purge_result_t::Done:
