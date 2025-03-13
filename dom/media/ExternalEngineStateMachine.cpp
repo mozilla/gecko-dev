@@ -1356,16 +1356,10 @@ void ExternalEngineStateMachine::ReportTelemetry(const MediaResult& aError) {
   if (!mKeySystem.IsEmpty()) {
     extraData.keySystem = Some(mKeySystem);
   }
-  if (auto platformErrorCode = aError.GetPlatformErrorCode()) {
-    extraData.platformErrorCode = platformErrorCode;
-  }
   glean::mfcdm::error.Record(Some(extraData));
   if (MOZ_LOG_TEST(gMediaDecoderLog, LogLevel::Debug)) {
     nsPrintfCString logMessage{"MFCDM Error event, error=%s",
                                aError.ErrorName().get()};
-    if (auto platformErrorCode = aError.GetPlatformErrorCode()) {
-      logMessage.Append(nsPrintfCString{", hr=%x", *platformErrorCode});
-    }
     if (mInfo) {
       if (mInfo->HasAudio()) {
         logMessage.Append(
