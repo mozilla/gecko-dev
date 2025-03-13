@@ -26,7 +26,6 @@ import androidx.appcompat.R as appcompatR
 
 @RunWith(AndroidJUnit4::class)
 class SimpleRedirectDialogFragmentTest {
-    private val webUrl = "https://example.com"
     private val themeResId = appcompatR.style.Theme_AppCompat_Light
 
     @Test
@@ -48,6 +47,7 @@ class SimpleRedirectDialogFragmentTest {
 
         val fragment = spy(
             SimpleRedirectDialogFragment.newInstance(
+                dialogTitleString = "Open in another app",
                 themeResId = themeResId,
                 showCheckbox = true,
             ),
@@ -86,7 +86,12 @@ class SimpleRedirectDialogFragmentTest {
         val onConfirm = { onConfirmCalled = true }
         val onCancel = { onCancelCalled = true }
 
-        val fragment = spy(SimpleRedirectDialogFragment.newInstance(themeResId = themeResId))
+        val fragment = spy(
+            SimpleRedirectDialogFragment.newInstance(
+                dialogTitleString = "Open in another app",
+                themeResId = themeResId,
+            ),
+        )
         doNothing().`when`(fragment).dismiss()
 
         doReturn(testContext).`when`(fragment).requireContext()
@@ -113,7 +118,12 @@ class SimpleRedirectDialogFragmentTest {
         val onConfirm = { onConfirmCalled = true }
         val onCancel = { onCancelCalled = true }
 
-        val fragment = spy(SimpleRedirectDialogFragment.newInstance(themeResId = themeResId))
+        val fragment = spy(
+            SimpleRedirectDialogFragment.newInstance(
+                dialogTitleString = "Open in another app",
+                themeResId = themeResId,
+            ),
+        )
         doNothing().`when`(fragment).dismiss()
 
         doReturn(testContext).`when`(fragment).requireContext()

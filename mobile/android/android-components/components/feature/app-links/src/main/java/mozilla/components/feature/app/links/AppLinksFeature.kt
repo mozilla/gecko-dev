@@ -136,10 +136,10 @@ class AppLinksFeature(
         )
 
         return SimpleRedirectDialogFragment.newInstance(
-            dialogTitleText = if (isPrivate) {
-                R.string.mozac_feature_applinks_confirm_dialog_title
+            dialogTitleString = if (isPrivate) {
+                context.getString(R.string.mozac_feature_applinks_confirm_dialog_title)
             } else {
-                R.string.mozac_feature_applinks_normal_confirm_dialog_title
+                context.getString(R.string.mozac_feature_applinks_normal_confirm_dialog_title)
             },
             dialogMessageString = if (isPrivate) {
                 url

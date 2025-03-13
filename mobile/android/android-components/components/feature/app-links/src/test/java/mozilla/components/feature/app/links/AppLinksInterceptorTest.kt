@@ -793,9 +793,9 @@ class AppLinksInterceptorTest {
         val mockComponentName: ComponentName = mock()
         whenever(mockAppIntent.component).thenReturn(mockComponentName)
         whenever(mockComponentName.packageName).thenReturn("com.zxing.app")
-        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any())
+        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any(), any())
 
-        appLinksInterceptor.handleIntent(tab, intentUrl, mockAppIntent, mock())
+        appLinksInterceptor.handleIntent(tab, intentUrl, mockAppIntent, mock(), "")
 
         verify(mockDialog).showNow(eq(mockFragmentManager), anyString())
         verify(mockOpenRedirect, never()).invoke(any(), anyBoolean(), any())
@@ -820,9 +820,9 @@ class AppLinksInterceptorTest {
         val mockMarketIntent: Intent = mock()
         val mockComponentName: ComponentName = mock()
         whenever(mockComponentName.packageName).thenReturn("com.zxing.app")
-        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any())
+        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any(), any())
 
-        appLinksInterceptor.handleIntent(tab, intentUrl, null, mockMarketIntent)
+        appLinksInterceptor.handleIntent(tab, intentUrl, null, mockMarketIntent, "")
 
         verify(mockDialog).showNow(eq(mockFragmentManager), anyString())
         verify(mockOpenRedirect, never()).invoke(any(), anyBoolean(), any())
@@ -844,7 +844,7 @@ class AppLinksInterceptorTest {
         appLinksInterceptor.updateFragmentManger(mockFragmentManager)
 
         val tab = createTab(webUrl)
-        appLinksInterceptor.handleIntent(tab, intentUrl, mock(), mock())
+        appLinksInterceptor.handleIntent(tab, intentUrl, mock(), mock(), "")
 
         verify(mockDialog, never()).showNow(eq(mockFragmentManager), anyString())
     }
@@ -877,7 +877,7 @@ class AppLinksInterceptorTest {
         whenever(appIntent.component).thenReturn(componentName)
         whenever(componentName.packageName).thenReturn("com.zxing.app")
 
-        appLinksInterceptor.handleIntent(tab, intentUrl, appIntent, null)
+        appLinksInterceptor.handleIntent(tab, intentUrl, appIntent, null, "")
 
         verify(mockDialog, never()).showNow(eq(mockFragmentManager), anyString())
     }
@@ -910,7 +910,7 @@ class AppLinksInterceptorTest {
         whenever(appIntent.component).thenReturn(componentName)
         whenever(componentName.packageName).thenReturn("com.zxing.app")
 
-        appLinksInterceptor.handleIntent(tab, intentUrl, appIntent, null)
+        appLinksInterceptor.handleIntent(tab, intentUrl, appIntent, null, "")
 
         verify(mockDialog, never()).showNow(eq(mockFragmentManager), anyString())
     }
@@ -942,9 +942,9 @@ class AppLinksInterceptorTest {
         val componentName: ComponentName = mock()
         whenever(appIntent.component).thenReturn(componentName)
         whenever(componentName.packageName).thenReturn("com.zxing.app")
-        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any())
+        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any(), any())
 
-        appLinksInterceptor.handleIntent(tab, intentUrl, appIntent, null)
+        appLinksInterceptor.handleIntent(tab, intentUrl, appIntent, null, "")
 
         verify(mockDialog).showNow(eq(mockFragmentManager), anyString())
         verify(mockOpenRedirect, never()).invoke(any(), anyBoolean(), any())
@@ -977,9 +977,9 @@ class AppLinksInterceptorTest {
         val componentName: ComponentName = mock()
         whenever(appIntent.component).thenReturn(componentName)
         whenever(componentName.packageName).thenReturn("com.zxing.app")
-        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any())
+        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any(), any())
 
-        appLinksInterceptor.handleIntent(tab, intentUrl, appIntent, null)
+        appLinksInterceptor.handleIntent(tab, intentUrl, appIntent, null, "")
 
         verify(mockDialog).showNow(eq(mockFragmentManager), anyString())
         verify(mockOpenRedirect, never()).invoke(any(), anyBoolean(), any())
@@ -1012,9 +1012,9 @@ class AppLinksInterceptorTest {
         val mockComponentName: ComponentName = mock()
         whenever(mockAppIntent.component).thenReturn(mockComponentName)
         whenever(mockComponentName.packageName).thenReturn("com.zxing.app")
-        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any())
+        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any(), any())
 
-        appLinksInterceptor.handleIntent(tabSessionState, intentUrl, mockAppIntent, mock())
+        appLinksInterceptor.handleIntent(tabSessionState, intentUrl, mockAppIntent, mock(), "")
 
         verify(mockDialog).showNow(eq(mockFragmentManager), anyString())
         verify(mockOpenRedirect, never()).invoke(any(), anyBoolean(), any())
@@ -1047,9 +1047,9 @@ class AppLinksInterceptorTest {
         val mockComponentName: ComponentName = mock()
         whenever(mockAppIntent.component).thenReturn(mockComponentName)
         whenever(mockComponentName.packageName).thenReturn("com.zxing.app")
-        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any())
+        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any(), any())
 
-        appLinksInterceptor.handleIntent(tabSessionState, intentUrl, mockAppIntent, mock())
+        appLinksInterceptor.handleIntent(tabSessionState, intentUrl, mockAppIntent, mock(), "")
 
         verify(mockDialog).showNow(eq(mockFragmentManager), anyString())
         verify(mockOpenRedirect, never()).invoke(any(), anyBoolean(), any())
@@ -1082,15 +1082,15 @@ class AppLinksInterceptorTest {
         val componentName: ComponentName = mock()
         whenever(appIntent.component).thenReturn(componentName)
         whenever(componentName.packageName).thenReturn("com.zxing.app")
-        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any())
+        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any(), any())
 
-        appLinksInterceptor.handleIntent(tabSessionState, intentUrl, appIntent, null)
+        appLinksInterceptor.handleIntent(tabSessionState, intentUrl, appIntent, null, "")
 
         verify(mockDialog).showNow(eq(mockFragmentManager), anyString())
 
-        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(false, "")
+        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(false, "", "")
         doReturn(mockDialog).`when`(mockFragmentManager).findFragmentByTag(RedirectDialogFragment.FRAGMENT_TAG)
-        appLinksInterceptor.handleIntent(tabSessionState, intentUrl, mock(), mock())
+        appLinksInterceptor.handleIntent(tabSessionState, intentUrl, mock(), mock(), "")
         verify(mockDialog, times(1)).showNow(mockFragmentManager, RedirectDialogFragment.FRAGMENT_TAG)
     }
 

@@ -166,7 +166,13 @@ class AppLinksInterceptor(
                 launchFromInterceptor &&
                 result is RequestInterceptor.InterceptionResponse.AppIntent
             ) {
-                handleIntent(tabSessionState, uri, redirect.appIntent, redirect.marketplaceIntent)
+                handleIntent(
+                    tabSessionState,
+                    uri,
+                    redirect.appIntent,
+                    redirect.marketplaceIntent,
+                    redirect.appName,
+                )
                 // We can avoid loading the page only if openInApp settings is set to Always
                 return if (shouldPrompt()) null else result
             }
@@ -243,6 +249,7 @@ class AppLinksInterceptor(
         url: String,
         appIntent: Intent?,
         marketingIntent: Intent?,
+        appName: String,
     ) {
         var isAuthenticationFlow = false
 
@@ -284,7 +291,7 @@ class AppLinksInterceptor(
         }
 
         if (!fragmentManager.isStateSaved) {
-            getOrCreateDialog(isPrivate, url).apply {
+            getOrCreateDialog(isPrivate, url, appName).apply {
                 onConfirmRedirect = { isCheckboxTicked ->
                     if (isCheckboxTicked) {
                         checkboxCheckedAction()
@@ -297,15 +304,31 @@ class AppLinksInterceptor(
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun getOrCreateDialog(isPrivate: Boolean, url: String): RedirectDialogFragment {
+    internal fun getOrCreateDialog(
+        isPrivate: Boolean,
+        url: String,
+        targetAppName: String,
+    ): RedirectDialogFragment {
         if (dialog != null) {
             return dialog
         }
 
-        val dialogTitle = if (isPrivate) {
-            R.string.mozac_feature_applinks_confirm_dialog_title
-        } else {
-            R.string.mozac_feature_applinks_normal_confirm_dialog_title
+        val dialogTitle = when {
+            isPrivate && targetAppName.isNotBlank() -> {
+                context.getString(R.string.mozac_feature_applinks_confirm_dialog_title_with_app_name, targetAppName)
+            }
+            isPrivate -> {
+                context.getString(R.string.mozac_feature_applinks_confirm_dialog_title)
+            }
+            targetAppName.isNotBlank() -> {
+                context.getString(
+                    R.string.mozac_feature_applinks_normal_confirm_dialog_title_with_app_name,
+                    targetAppName,
+                )
+            }
+            else -> {
+                context.getString(R.string.mozac_feature_applinks_normal_confirm_dialog_title)
+            }
         }
 
         val dialogMessage = if (isPrivate) {
@@ -318,7 +341,7 @@ class AppLinksInterceptor(
         }
 
         return SimpleRedirectDialogFragment.newInstance(
-            dialogTitleText = dialogTitle,
+            dialogTitleString = dialogTitle,
             dialogMessageString = dialogMessage,
             showCheckbox = if (isPrivate) false else showCheckbox,
             maxSuccessiveDialogMillisLimit = MAX_SUCCESSIVE_DIALOG_MILLIS_LIMIT,
