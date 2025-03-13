@@ -12,6 +12,7 @@ const FONT_PREVIEW_FILLSTYLE = "black";
 const FONT_PREVIEW_OFFSET = 4;
 // Factor used to resize the canvas in order to get better text quality.
 const FONT_PREVIEW_OVERSAMPLING_FACTOR = 2;
+const FONT_NEED_WRAPPING_QUOTES_REGEX = /^[^'"].* /;
 
 /**
  * Helper function for getting an image preview of the given font.
@@ -23,8 +24,10 @@ const FONT_PREVIEW_OVERSAMPLING_FACTOR = 2;
  * @param options {object}
  *        Object with options 'previewText' and 'previewFontSize'
  *
- * @return dataUrl
- *         The data URI of the font preview image
+ * @return {Object} An object with the following properties:
+ *         - dataUrl {string}: The data URI of the font preview image
+ *         - size {Number}: The optimal width of preview image
+ *         - ctx {CanvasRenderingContext2D}: The canvas context (returned for tests)
  */
 function getFontPreviewData(font, doc, options) {
   options = options || {};
@@ -36,7 +39,17 @@ function getFontPreviewData(font, doc, options) {
 
   const canvas = doc.createElementNS(XHTML_NS, "canvas");
   const ctx = canvas.getContext("2d");
-  const fontValue = `${fontStyle} ${previewFontSize}px "${font}", serif`;
+
+  // We want to wrap some font in quotes so font family like `Font Awesome 5 Brands` are
+  // properly applied, but we don't want to wrap all fonts, otherwise generic family names
+  // (e.g. `monospace`) wouldn't work.
+  // It should be safe to only add the quotes when the font has some spaces (generic family
+  // names don't have spaces, https://developer.mozilla.org/en-US/docs/Web/CSS/font-family#generic-name)
+  // We also don't want to add quotes if there are already some
+  if (FONT_NEED_WRAPPING_QUOTES_REGEX.test(font.trim())) {
+    font = `"${font}"`;
+  }
+  const fontValue = `${fontStyle} ${previewFontSize}px ${font}, serif`;
 
   // Get the correct preview text measurements and set the canvas dimensions
   ctx.font = fontValue;
@@ -87,6 +100,7 @@ function getFontPreviewData(font, doc, options) {
   return {
     dataURL,
     size: textWidth + FONT_PREVIEW_OFFSET * 2,
+    ctx,
   };
 }
 
