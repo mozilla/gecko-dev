@@ -895,3 +895,23 @@ pdfjs.signature:
       notification_emails:
         - pdfjs-team@mozilla.com
       expires: never
+
+glam_experiment:
+  used:
+    type: counter
+    disabled: true
+    description: >
+      Duplicate of:
+      `pdfjs.used`
+
+      Intended for the purpose of testing client side sampling of data. This
+      metric is disabled by default and will be enabled only for the purpose
+      of the experiment. See Bug 1947604 for more information.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947604
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1566882#c2
+    notification_emails:
+      - tlong@mozilla.com
+      - efilho@mozilla.com
+    expires: 146
