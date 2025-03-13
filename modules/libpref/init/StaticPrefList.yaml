@@ -18525,16 +18525,17 @@
   value: 2
   mirror: always
 
-# Whether we use the mica backdrop. Off by default for now.
+# Whether we use the mica backdrop for top level windows. Off by default for
+# now.
 - name: widget.windows.mica
   type: bool
   value: false
   mirror: always
 
-# Whether we use the mica backdrop for popups. Off by default for now.
+# Whether we use the mica backdrop for popups when available.
 - name: widget.windows.mica.popups
   type: RelaxedAtomicBool
-  value: false
+  value: true
   mirror: always
 
 # Whether we expand the client area into the taskbar hidden edge on maximized
