@@ -1428,14 +1428,19 @@ struct arena_t {
 
   // Purge some dirty pages.
   //
-  // If this arena has more than mMaxDirty dirty pages or aForce is
-  // true, then purge one run of dirty pages.
+  // When this is called the caller has already tested ShouldStartPurge()
+  // (possibly on another thread asychronously) or is passing aForce = true.
+  // However because it's called without the lock it will recheck
+  // ShouldContinuePurge() (or aForce is true) before doing any work.
+  //
+  // It may purge a number of runs within a single chunk before returning.  It
+  // will return true if there's more work to do in other chunks (aForce ||
+  // ShouldContinuePurge()).
+  //
+  // To release more pages from other chunks then it's best to call Purge
+  // in a loop, looping when it returns true.
   //
   // This must be called without the mLock held (it'll take the lock).
-  //
-  // To release more than a single run of pages then it's best to call Purge
-  // in a loop.  It returns true if mNumDirty > mMaxDirty so that the
-  // caller knows if the loop should continue.
   //
   bool Purge(bool aForce = false) MOZ_EXCLUDES(mLock);
 
