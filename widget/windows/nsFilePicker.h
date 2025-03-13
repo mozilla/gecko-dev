@@ -99,7 +99,8 @@ class nsFilePicker final : public nsBaseWinFilePicker {
       const nsString& aInitialDir);
 
   void ClearFiles();
-  using ContentAnalysisResponse = mozilla::MozPromise<bool, nsresult, true>;
+  using ContentAnalysisResponse =
+      mozilla::MozPromise<nsCOMArray<nsIFile>, nsresult, true>;
   RefPtr<ContentAnalysisResponse> CheckContentAnalysisService();
 
  protected:

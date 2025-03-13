@@ -3487,7 +3487,11 @@ ContentAnalysis::CheckFilesInBatchMode(
     uri = aURI;
   }
   for (auto* file : aFiles) {
+#ifdef XP_WIN
     nsString pathString(file->NativePath());
+#else
+    nsString pathString = NS_ConvertUTF8toUTF16(file->NativePath());
+#endif
 
     RefPtr<nsIContentAnalysisRequest> request =
         new mozilla::contentanalysis::ContentAnalysisRequest(
