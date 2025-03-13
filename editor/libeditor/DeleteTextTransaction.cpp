@@ -11,6 +11,7 @@
 #include "SelectionState.h"
 
 #include "mozilla/Assertions.h"
+#include "mozilla/TextEditor.h"
 #include "mozilla/dom/Selection.h"
 
 #include "nsDebug.h"
@@ -26,8 +27,12 @@ using namespace dom;
 already_AddRefed<DeleteTextTransaction> DeleteTextTransaction::MaybeCreate(
     EditorBase& aEditorBase, Text& aTextNode, uint32_t aOffset,
     uint32_t aLengthToDelete) {
-  RefPtr<DeleteTextTransaction> transaction = new DeleteTextTransaction(
-      aEditorBase, aTextNode, aOffset, aLengthToDelete);
+  RefPtr<DeleteTextTransaction> transaction =
+      aEditorBase.IsTextEditor()
+          ? new DeleteTextTransaction(aEditorBase, aTextNode, aOffset,
+                                      aLengthToDelete)
+          : new DeleteTextFromTextNodeTransaction(aEditorBase, aTextNode,
+                                                  aOffset, aLengthToDelete);
   return transaction.forget();
 }
 
@@ -80,20 +85,19 @@ DeleteTextTransaction::DeleteTextTransaction(EditorBase& aEditorBase,
                                              Text& aTextNode, uint32_t aOffset,
                                              uint32_t aLengthToDelete)
     : DeleteContentTransactionBase(aEditorBase),
-      mTextNode(&aTextNode),
       mOffset(aOffset),
       mLengthToDelete(aLengthToDelete) {
-  NS_ASSERTION(mTextNode->Length() >= aOffset + aLengthToDelete,
-               "Trying to delete more characters than in node");
+  MOZ_ASSERT(aTextNode.TextDataLength() >= aOffset + aLengthToDelete);
 }
 
 std::ostream& operator<<(std::ostream& aStream,
                          const DeleteTextTransaction& aTransaction) {
-  aStream << "{ mTextNode=" << aTransaction.mTextNode.get();
-  if (aTransaction.mTextNode) {
-    aStream << " (" << *aTransaction.mTextNode << ")";
+  const auto* transactionForHTMLEditor =
+      aTransaction.GetAsDeleteTextFromTextNodeTransaction();
+  if (transactionForHTMLEditor) {
+    return aStream << *transactionForHTMLEditor;
   }
-  aStream << ", mOffset=" << aTransaction.mOffset
+  aStream << "{ mOffset=" << aTransaction.mOffset
           << ", mLengthToDelete=" << aTransaction.mLengthToDelete
           << ", mDeletedText=\""
           << NS_ConvertUTF16toUTF8(aTransaction.mDeletedText).get() << "\""
@@ -102,17 +106,20 @@ std::ostream& operator<<(std::ostream& aStream,
 }
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(DeleteTextTransaction,
-                                   DeleteContentTransactionBase, mTextNode)
+                                   DeleteContentTransactionBase)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DeleteTextTransaction)
 NS_INTERFACE_MAP_END_INHERITING(DeleteContentTransactionBase)
 
-bool DeleteTextTransaction::CanDoIt() const {
-  if (NS_WARN_IF(!mTextNode) || NS_WARN_IF(!mEditorBase)) {
-    return false;
+Text* DeleteTextTransaction::GetTextNode() const {
+  if (MOZ_UNLIKELY(!mEditorBase)) {
+    return nullptr;
   }
-  return mEditorBase->IsTextEditor() ||
-         HTMLEditUtils::IsSimplyEditableNode(*mTextNode);
+  if (TextEditor* const textEditor = mEditorBase->GetAsTextEditor()) {
+    return textEditor->GetTextNode();
+  }
+  MOZ_ASSERT(GetAsDeleteTextFromTextNodeTransaction());
+  return GetAsDeleteTextFromTextNodeTransaction()->mTextNode;
 }
 
 NS_IMETHODIMP DeleteTextTransaction::DoTransaction() {
@@ -120,39 +127,52 @@ NS_IMETHODIMP DeleteTextTransaction::DoTransaction() {
           ("%p DeleteTextTransaction::%s this=%s", this, __FUNCTION__,
            ToString(*this).c_str()));
 
-  if (NS_WARN_IF(!CanDoIt())) {
+  if (NS_WARN_IF(!mEditorBase)) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  const RefPtr<Text> textNode = GetTextNode();
+  if (NS_WARN_IF(!textNode) ||
+      (mEditorBase->IsHTMLEditor() &&
+       NS_WARN_IF(!HTMLEditUtils::IsSimplyEditableNode(*textNode)))) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
   // Get the text that we're about to delete
   IgnoredErrorResult error;
-  mTextNode->SubstringData(mOffset, mLengthToDelete, mDeletedText, error);
+  textNode->SubstringData(mOffset, mLengthToDelete, mDeletedText, error);
   if (MOZ_UNLIKELY(error.Failed())) {
     NS_WARNING("Text::SubstringData() failed");
     return error.StealNSResult();
   }
 
-  OwningNonNull<EditorBase> editorBase = *mEditorBase;
-  OwningNonNull<Text> textNode = *mTextNode;
-  editorBase->DoDeleteText(textNode, mOffset, mLengthToDelete, error);
+  const OwningNonNull<EditorBase> editorBase = *mEditorBase;
+  editorBase->DoDeleteText(*textNode, mOffset, mLengthToDelete, error);
   if (MOZ_UNLIKELY(error.Failed())) {
     NS_WARNING("EditorBase::DoDeleteText() failed");
     return error.StealNSResult();
   }
 
-  editorBase->RangeUpdaterRef().SelAdjDeleteText(textNode, mOffset,
+  editorBase->RangeUpdaterRef().SelAdjDeleteText(*textNode, mOffset,
                                                  mLengthToDelete);
   return NS_OK;
 }
 
 EditorDOMPoint DeleteTextTransaction::SuggestPointToPutCaret() const {
-  if (NS_WARN_IF(!mTextNode) || NS_WARN_IF(!mTextNode->IsInComposedDoc()) ||
-      NS_WARN_IF(mTextNode->TextDataLength() < mOffset)) {
+  if (NS_WARN_IF(!mEditorBase)) {
     return EditorDOMPoint();
   }
-  EditorDOMPoint candidatePoint(mTextNode, mOffset);
+  Text* const textNode = GetTextNode();
+  if (NS_WARN_IF(!textNode) ||
+      (mEditorBase->IsHTMLEditor() &&
+       NS_WARN_IF(!HTMLEditUtils::IsSimplyEditableNode(*textNode)))) {
+    return EditorDOMPoint();
+  }
+  if (NS_WARN_IF(textNode->TextDataLength() < mOffset)) {
+    return EditorDOMPoint();
+  }
+  EditorDOMPoint candidatePoint(textNode, mOffset);
   if (!candidatePoint.IsInNativeAnonymousSubtreeInTextControl() &&
-      !HTMLEditUtils::IsSimplyEditableNode(*mTextNode)) {
+      !HTMLEditUtils::IsSimplyEditableNode(*textNode)) {
     return EditorDOMPoint();
   }
   return candidatePoint;
@@ -165,12 +185,17 @@ NS_IMETHODIMP DeleteTextTransaction::UndoTransaction() {
           ("%p DeleteTextTransaction::%s this=%s", this, __FUNCTION__,
            ToString(*this).c_str()));
 
-  if (NS_WARN_IF(!CanDoIt())) {
+  if (NS_WARN_IF(!mEditorBase)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-  RefPtr<EditorBase> editorBase = mEditorBase;
-  RefPtr<Text> textNode = mTextNode;
-  ErrorResult error;
+  const RefPtr<Text> textNode = GetTextNode();
+  if (NS_WARN_IF(!textNode) ||
+      (mEditorBase->IsHTMLEditor() &&
+       NS_WARN_IF(!HTMLEditUtils::IsSimplyEditableNode(*textNode)))) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  const OwningNonNull<EditorBase> editorBase = *mEditorBase;
+  IgnoredErrorResult error;
   editorBase->DoInsertText(*textNode, mOffset, mDeletedText, error);
   NS_WARNING_ASSERTION(!error.Failed(), "EditorBase::DoInsertText() failed");
   return error.StealNSResult();
@@ -179,7 +204,9 @@ NS_IMETHODIMP DeleteTextTransaction::UndoTransaction() {
 NS_IMETHODIMP DeleteTextTransaction::RedoTransaction() {
   MOZ_LOG(GetLogModule(), LogLevel::Info,
           ("%p DeleteTextTransaction::%s this=%s", this, __FUNCTION__,
-           ToString(*this).c_str()));
+           !mEditorBase || mEditorBase->IsTextEditor()
+               ? ToString(*this).c_str()
+               : ToString(*GetAsDeleteTextFromTextNodeTransaction()).c_str()));
   nsresult rv = DoTransaction();
   if (NS_FAILED(rv)) {
     NS_WARNING("DeleteTextTransaction::DoTransaction() failed");
@@ -188,7 +215,7 @@ NS_IMETHODIMP DeleteTextTransaction::RedoTransaction() {
   if (!mEditorBase || !mEditorBase->AllowsTransactionsToChangeSelection()) {
     return NS_OK;
   }
-  OwningNonNull<EditorBase> editorBase = *mEditorBase;
+  const OwningNonNull<EditorBase> editorBase = *mEditorBase;
   rv = editorBase->CollapseSelectionTo(SuggestPointToPutCaret());
   if (NS_FAILED(rv)) {
     NS_WARNING("EditorBase::CollapseSelectionTo() failed");
@@ -196,5 +223,39 @@ NS_IMETHODIMP DeleteTextTransaction::RedoTransaction() {
   }
   return NS_OK;
 }
+
+/******************************************************************************
+ * mozilla::DeleteTextFromTextNodeTransaction
+ ******************************************************************************/
+
+DeleteTextFromTextNodeTransaction::DeleteTextFromTextNodeTransaction(
+    EditorBase& aEditorBase, Text& aTextNode, uint32_t aOffset,
+    uint32_t aLengthToDelete)
+    : DeleteTextTransaction(aEditorBase, aTextNode, aOffset, aLengthToDelete),
+      mTextNode(&aTextNode) {
+  MOZ_ASSERT(aEditorBase.IsHTMLEditor());
+  MOZ_ASSERT(mTextNode->TextDataLength() >= aOffset + aLengthToDelete);
+}
+
+std::ostream& operator<<(
+    std::ostream& aStream,
+    const DeleteTextFromTextNodeTransaction& aTransaction) {
+  aStream << "{ mTextNode=" << aTransaction.mTextNode.get();
+  if (aTransaction.mTextNode) {
+    aStream << " (" << *aTransaction.mTextNode << ")";
+  }
+  aStream << ", mOffset=" << aTransaction.mOffset
+          << ", mLengthToDelete=" << aTransaction.mLengthToDelete
+          << ", mDeletedText=\""
+          << NS_ConvertUTF16toUTF8(aTransaction.mDeletedText).get() << "\""
+          << ", mEditorBase=" << aTransaction.mEditorBase.get() << " }";
+  return aStream;
+}
+
+NS_IMPL_CYCLE_COLLECTION_INHERITED(DeleteTextFromTextNodeTransaction,
+                                   DeleteTextTransaction, mTextNode)
+
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DeleteTextFromTextNodeTransaction)
+NS_INTERFACE_MAP_END_INHERITING(DeleteTextTransaction)
 
 }  // namespace mozilla

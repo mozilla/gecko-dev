@@ -9,6 +9,7 @@
 #include "mozilla/EditorBase.h"  // mEditorBase
 #include "mozilla/Logging.h"
 #include "mozilla/SelectionState.h"  // RangeUpdater
+#include "mozilla/TextEditor.h"      // TextEditor
 #include "mozilla/ToString.h"
 #include "mozilla/dom/Selection.h"  // Selection local var
 #include "mozilla/dom/Text.h"       // mTextNode
@@ -28,58 +29,76 @@ already_AddRefed<InsertTextTransaction> InsertTextTransaction::Create(
     const EditorDOMPointInText& aPointToInsert) {
   MOZ_ASSERT(aPointToInsert.IsSetAndValid());
   RefPtr<InsertTextTransaction> transaction =
-      new InsertTextTransaction(aEditorBase, aStringToInsert, aPointToInsert);
+      aEditorBase.IsTextEditor()
+          ? new InsertTextTransaction(aEditorBase, aStringToInsert,
+                                      aPointToInsert)
+          : new InsertTextIntoTextNodeTransaction(aEditorBase, aStringToInsert,
+                                                  aPointToInsert);
   return transaction.forget();
 }
 
 InsertTextTransaction::InsertTextTransaction(
     EditorBase& aEditorBase, const nsAString& aStringToInsert,
     const EditorDOMPointInText& aPointToInsert)
-    : mTextNode(aPointToInsert.ContainerAs<Text>()),
-      mOffset(aPointToInsert.Offset()),
+    : mEditorBase(&aEditorBase),
       mStringToInsert(aStringToInsert),
-      mEditorBase(&aEditorBase) {}
+      mOffset(aPointToInsert.Offset()) {}
 
 std::ostream& operator<<(std::ostream& aStream,
                          const InsertTextTransaction& aTransaction) {
-  aStream << "{ mTextNode=" << aTransaction.mTextNode.get();
-  if (aTransaction.mTextNode) {
-    aStream << " (" << *aTransaction.mTextNode << ")";
+  const auto* transactionForHTMLEditor =
+      aTransaction.GetAsInsertTextIntoTextNodeTransaction();
+  if (transactionForHTMLEditor) {
+    return aStream << *transactionForHTMLEditor;
   }
-  aStream << ", mOffset=" << aTransaction.mOffset << ", mStringToInsert=\""
+  aStream << "{ mOffset=" << aTransaction.mOffset << ", mStringToInsert=\""
           << NS_ConvertUTF16toUTF8(aTransaction.mStringToInsert).get() << "\""
           << ", mEditorBase=" << aTransaction.mEditorBase.get() << " }";
   return aStream;
 }
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(InsertTextTransaction, EditTransactionBase,
-                                   mEditorBase, mTextNode)
+                                   mEditorBase)
 
 NS_IMPL_ADDREF_INHERITED(InsertTextTransaction, EditTransactionBase)
 NS_IMPL_RELEASE_INHERITED(InsertTextTransaction, EditTransactionBase)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(InsertTextTransaction)
 NS_INTERFACE_MAP_END_INHERITING(EditTransactionBase)
 
+Text* InsertTextTransaction::GetTextNode() const {
+  if (MOZ_UNLIKELY(!mEditorBase)) {
+    return nullptr;
+  }
+  if (TextEditor* const textEditor = mEditorBase->GetAsTextEditor()) {
+    return textEditor->GetTextNode();
+  }
+  MOZ_ASSERT(GetAsInsertTextIntoTextNodeTransaction());
+  return GetAsInsertTextIntoTextNodeTransaction()->mTextNode;
+}
+
 NS_IMETHODIMP InsertTextTransaction::DoTransaction() {
   MOZ_LOG(GetLogModule(), LogLevel::Info,
           ("%p InsertTextTransaction::%s this=%s", this, __FUNCTION__,
            ToString(*this).c_str()));
 
-  if (NS_WARN_IF(!mEditorBase) || NS_WARN_IF(!mTextNode)) {
+  if (NS_WARN_IF(!mEditorBase)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  OwningNonNull<EditorBase> editorBase = *mEditorBase;
-  OwningNonNull<Text> textNode = *mTextNode;
+  const RefPtr<Text> textNode = GetTextNode();
+  if (NS_WARN_IF(!textNode)) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
 
+  const OwningNonNull<EditorBase> editorBase = *mEditorBase;
   ErrorResult error;
-  editorBase->DoInsertText(textNode, mOffset, mStringToInsert, error);
+  editorBase->DoInsertText(*textNode, mOffset, mStringToInsert, error);
   if (error.Failed()) {
     NS_WARNING("EditorBase::DoInsertText() failed");
     return error.StealNSResult();
   }
 
-  editorBase->RangeUpdaterRef().SelAdjInsertText(textNode, mOffset,
+  editorBase->RangeUpdaterRef().SelAdjInsertText(*textNode, mOffset,
                                                  mStringToInsert.Length());
   return NS_OK;
 }
@@ -89,13 +108,18 @@ NS_IMETHODIMP InsertTextTransaction::UndoTransaction() {
           ("%p InsertTextTransaction::%s this=%s", this, __FUNCTION__,
            ToString(*this).c_str()));
 
-  if (NS_WARN_IF(!mEditorBase) || NS_WARN_IF(!mTextNode)) {
+  if (NS_WARN_IF(!mEditorBase)) {
     return NS_ERROR_NOT_INITIALIZED;
   }
-  OwningNonNull<EditorBase> editorBase = *mEditorBase;
-  OwningNonNull<Text> textNode = *mTextNode;
+
+  const RefPtr<Text> textNode = GetTextNode();
+  if (NS_WARN_IF(!textNode)) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  const OwningNonNull<EditorBase> editorBase = *mEditorBase;
   ErrorResult error;
-  editorBase->DoDeleteText(textNode, mOffset, mStringToInsert.Length(), error);
+  editorBase->DoDeleteText(*textNode, mOffset, mStringToInsert.Length(), error);
   NS_WARNING_ASSERTION(!error.Failed(), "EditorBase::DoDeleteText() failed");
   return error.StealNSResult();
 }
@@ -103,7 +127,9 @@ NS_IMETHODIMP InsertTextTransaction::UndoTransaction() {
 NS_IMETHODIMP InsertTextTransaction::RedoTransaction() {
   MOZ_LOG(GetLogModule(), LogLevel::Info,
           ("%p InsertTextTransaction::%s this=%s", this, __FUNCTION__,
-           ToString(*this).c_str()));
+           !mEditorBase || mEditorBase->IsTextEditor()
+               ? ToString(*this).c_str()
+               : ToString(*GetAsInsertTextIntoTextNodeTransaction()).c_str()));
   nsresult rv = DoTransaction();
   if (NS_FAILED(rv)) {
     NS_WARNING("InsertTextTransaction::DoTransaction() failed");
@@ -165,12 +191,45 @@ NS_IMETHODIMP InsertTextTransaction::Merge(nsITransaction* aOtherTransaction,
   return NS_OK;
 }
 
-/* ============ private methods ================== */
-
 bool InsertTextTransaction::IsSequentialInsert(
     InsertTextTransaction& aOtherTransaction) const {
-  return aOtherTransaction.mTextNode == mTextNode &&
+  return aOtherTransaction.GetTextNode() == GetTextNode() &&
          aOtherTransaction.mOffset == mOffset + mStringToInsert.Length();
 }
+
+/******************************************************************************
+ * mozilla::InsertTextIntoTextNodeTransaction
+ ******************************************************************************/
+
+InsertTextIntoTextNodeTransaction::InsertTextIntoTextNodeTransaction(
+    EditorBase& aEditorBase, const nsAString& aStringToInsert,
+    const EditorDOMPointInText& aPointToInsert)
+    : InsertTextTransaction(aEditorBase, aStringToInsert, aPointToInsert),
+      mTextNode(aPointToInsert.ContainerAs<Text>()) {
+  MOZ_ASSERT(aEditorBase.IsHTMLEditor());
+}
+
+std::ostream& operator<<(
+    std::ostream& aStream,
+    const InsertTextIntoTextNodeTransaction& aTransaction) {
+  aStream << "{ mTextNode=" << aTransaction.mTextNode.get();
+  if (aTransaction.mTextNode) {
+    aStream << " (" << *aTransaction.mTextNode << ")";
+  }
+  aStream << ", mOffset=" << aTransaction.mOffset << ", mStringToInsert=\""
+          << NS_ConvertUTF16toUTF8(aTransaction.mStringToInsert).get() << "\""
+          << ", mEditorBase=" << aTransaction.mEditorBase.get() << " }";
+  return aStream;
+}
+
+NS_IMPL_CYCLE_COLLECTION_INHERITED(InsertTextIntoTextNodeTransaction,
+                                   InsertTextTransaction, mTextNode)
+
+NS_IMPL_ADDREF_INHERITED(InsertTextIntoTextNodeTransaction,
+                         InsertTextTransaction)
+NS_IMPL_RELEASE_INHERITED(InsertTextIntoTextNodeTransaction,
+                          InsertTextTransaction)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(InsertTextIntoTextNodeTransaction)
+NS_INTERFACE_MAP_END_INHERITING(InsertTextTransaction)
 
 }  // namespace mozilla

@@ -5217,7 +5217,7 @@ Result<CaretPoint, nsresult> EditorBase::DeleteRangesWithTransaction(
        Reversed(deleteSelectionTransaction->ChildTransactions())) {
     if (DeleteTextTransaction* deleteTextTransaction =
             transactionBase->GetAsDeleteTextTransaction()) {
-      deleteContent = deleteTextTransaction->GetText();
+      deleteContent = deleteTextTransaction->GetTextNode();
       deleteCharOffset = deleteTextTransaction->Offset();
       break;
     }

@@ -68,6 +68,11 @@ class EditTransactionBase : public nsITransaction {
  protected:
   virtual ~EditTransactionBase() = default;
 
+  NS_DECL_GETASTRANSACTION_BASE(CompositionInTextNodeTransaction)
+  NS_DECL_GETASTRANSACTION_BASE(DeleteTextFromTextNodeTransaction)
+  NS_DECL_GETASTRANSACTION_BASE(InsertTextIntoTextNodeTransaction)
+  NS_DECL_GETASTRANSACTION_BASE(ReplaceTextInTextNodeTransaction)
+
   static LogModule* GetLogModule();
 };
 

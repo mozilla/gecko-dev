@@ -23,7 +23,7 @@ namespace mozilla {
 /**
  * A transaction that removes text from a content node.
  */
-class DeleteTextTransaction final : public DeleteContentTransactionBase {
+class DeleteTextTransaction : public DeleteContentTransactionBase {
  protected:
   DeleteTextTransaction(EditorBase& aEditorBase, dom::Text& aTextNode,
                         uint32_t aOffset, uint32_t aLengthToDelete);
@@ -36,7 +36,7 @@ class DeleteTextTransaction final : public DeleteContentTransactionBase {
    * @param aEditorBase         The provider of basic editing operations.
    * @param aTextNode           The content node to remove text from.
    * @param aOffset             The location in aElement to begin the deletion.
-   * @param aLenthToDelete      The length to delete.
+   * @param aLengthToDelete     The length to delete.
    */
   static already_AddRefed<DeleteTextTransaction> MaybeCreate(
       EditorBase& aEditorBase, dom::Text& aTextNode, uint32_t aOffset,
@@ -56,12 +56,6 @@ class DeleteTextTransaction final : public DeleteContentTransactionBase {
   static already_AddRefed<DeleteTextTransaction> MaybeCreateForNextCharacter(
       EditorBase& aEditorBase, dom::Text& aTextNode, uint32_t aOffset);
 
-  /**
-   * CanDoIt() returns true if there are enough members and can modify the
-   * text.  Otherwise, false.
-   */
-  bool CanDoIt() const;
-
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DeleteTextTransaction,
                                            DeleteContentTransactionBase)
   NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr) override;
@@ -73,7 +67,7 @@ class DeleteTextTransaction final : public DeleteContentTransactionBase {
 
   EditorDOMPoint SuggestPointToPutCaret() const final;
 
-  dom::Text* GetText() const { return mTextNode; }
+  dom::Text* GetTextNode() const;
   uint32_t Offset() const { return mOffset; }
   uint32_t LengthToDelete() const { return mLengthToDelete; }
 
@@ -81,10 +75,7 @@ class DeleteTextTransaction final : public DeleteContentTransactionBase {
                                   const DeleteTextTransaction& aTransaction);
 
  protected:
-  // The CharacterData node to operate upon.
-  RefPtr<dom::Text> mTextNode;
-
-  // The offset into mTextNode where the deletion is to take place.
+  // The offset into the text node where the deletion is to take place.
   uint32_t mOffset;
 
   // The length to delete.
@@ -92,6 +83,35 @@ class DeleteTextTransaction final : public DeleteContentTransactionBase {
 
   // The text that was deleted.
   nsString mDeletedText;
+};
+
+/**
+ * Private class for DeleteTextTransaction when it needs to handle a transaction
+ * of `HTMLEditor`.
+ */
+class DeleteTextFromTextNodeTransaction final : public DeleteTextTransaction {
+ public:
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DeleteTextFromTextNodeTransaction,
+                                           DeleteTextTransaction)
+  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr) override;
+
+  friend std::ostream& operator<<(
+      std::ostream& aStream,
+      const DeleteTextFromTextNodeTransaction& aTransaction);
+
+ private:
+  DeleteTextFromTextNodeTransaction(EditorBase& aEditorBase,
+                                    dom::Text& aTextNode, uint32_t aOffset,
+                                    uint32_t aLengthToDelete);
+  virtual ~DeleteTextFromTextNodeTransaction() = default;
+
+  NS_DECL_EDITTRANSACTIONBASE_GETASMETHODS_OVERRIDE(
+      DeleteTextFromTextNodeTransaction)
+
+  // The CharacterData node to operate upon.
+  RefPtr<dom::Text> mTextNode;
+
+  friend class DeleteTextTransaction;
 };
 
 }  // namespace mozilla

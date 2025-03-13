@@ -9,6 +9,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/SelectionState.h"   // RangeUpdater
 #include "mozilla/TextComposition.h"  // TextComposition
+#include "mozilla/TextEditor.h"       // TextEditor
 #include "mozilla/ToString.h"
 #include "mozilla/dom/Selection.h"   // local var
 #include "mozilla/dom/Text.h"        // mTextNode
@@ -48,30 +49,34 @@ already_AddRefed<CompositionTransaction> CompositionTransaction::Create(
     pointToInsert = aPointToInsert;
   }
   RefPtr<CompositionTransaction> transaction =
-      new CompositionTransaction(aEditorBase, aStringToInsert, pointToInsert);
+      aEditorBase.IsTextEditor()
+          ? new CompositionTransaction(aEditorBase, aStringToInsert,
+                                       pointToInsert)
+          : new CompositionInTextNodeTransaction(aEditorBase, aStringToInsert,
+                                                 pointToInsert);
   return transaction.forget();
 }
 
 CompositionTransaction::CompositionTransaction(
     EditorBase& aEditorBase, const nsAString& aStringToInsert,
     const EditorDOMPointInText& aPointToInsert)
-    : mTextNode(aPointToInsert.ContainerAs<Text>()),
-      mOffset(aPointToInsert.Offset()),
+    : mOffset(aPointToInsert.Offset()),
       mReplaceLength(aEditorBase.GetComposition()->XPLengthInTextNode()),
       mRanges(aEditorBase.GetComposition()->GetRanges()),
       mStringToInsert(aStringToInsert),
       mEditorBase(&aEditorBase),
       mFixed(false) {
-  MOZ_ASSERT(mTextNode->TextLength() >= mOffset);
+  MOZ_ASSERT(aPointToInsert.ContainerAs<Text>()->TextDataLength() >= mOffset);
 }
 
 std::ostream& operator<<(std::ostream& aStream,
                          const CompositionTransaction& aTransaction) {
-  aStream << "{ mTextNode=" << aTransaction.mTextNode.get();
-  if (aTransaction.mTextNode) {
-    aStream << " (" << *aTransaction.mTextNode << ")";
+  const auto* transactionForHTMLEditor =
+      aTransaction.GetAsCompositionInTextNodeTransaction();
+  if (transactionForHTMLEditor) {
+    return aStream << *transactionForHTMLEditor;
   }
-  aStream << ", mOffset=" << aTransaction.mOffset
+  aStream << "{ mOffset=" << aTransaction.mOffset
           << ", mReplaceLength=" << aTransaction.mReplaceLength
           << ", mRanges={ Length()=" << aTransaction.mRanges->Length() << " }"
           << ", mStringToInsert=\""
@@ -81,7 +86,7 @@ std::ostream& operator<<(std::ostream& aStream,
 }
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(CompositionTransaction, EditTransactionBase,
-                                   mEditorBase, mTextNode)
+                                   mEditorBase)
 // mRangeList can't lead to cycles
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(CompositionTransaction)
@@ -89,12 +94,27 @@ NS_INTERFACE_MAP_END_INHERITING(EditTransactionBase)
 NS_IMPL_ADDREF_INHERITED(CompositionTransaction, EditTransactionBase)
 NS_IMPL_RELEASE_INHERITED(CompositionTransaction, EditTransactionBase)
 
+Text* CompositionTransaction::GetTextNode() const {
+  if (MOZ_UNLIKELY(!mEditorBase)) {
+    return nullptr;
+  }
+  if (TextEditor* const textEditor = mEditorBase->GetAsTextEditor()) {
+    return textEditor->GetTextNode();
+  }
+  MOZ_ASSERT(GetAsCompositionInTextNodeTransaction());
+  return GetAsCompositionInTextNodeTransaction()->mTextNode;
+}
+
 NS_IMETHODIMP CompositionTransaction::DoTransaction() {
   MOZ_LOG(GetLogModule(), LogLevel::Info,
           ("%p CompositionTransaction::%s this=%s", this, __FUNCTION__,
            ToString(*this).c_str()));
 
-  if (NS_WARN_IF(!mEditorBase) || NS_WARN_IF(!mTextNode)) {
+  if (NS_WARN_IF(!mEditorBase)) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  const RefPtr<Text> textNode = GetTextNode();
+  if (NS_WARN_IF(!textNode)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
@@ -103,18 +123,17 @@ NS_IMETHODIMP CompositionTransaction::DoTransaction() {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  OwningNonNull<EditorBase> editorBase = *mEditorBase;
-  OwningNonNull<Text> textNode = *mTextNode;
+  const OwningNonNull<EditorBase> editorBase = *mEditorBase;
 
   // Advance caret: This requires the presentation shell to get the selection.
   if (mReplaceLength == 0) {
-    ErrorResult error;
-    editorBase->DoInsertText(textNode, mOffset, mStringToInsert, error);
+    IgnoredErrorResult error;
+    editorBase->DoInsertText(*textNode, mOffset, mStringToInsert, error);
     if (error.Failed()) {
       NS_WARNING("EditorBase::DoInsertText() failed");
       return error.StealNSResult();
     }
-    editorBase->RangeUpdaterRef().SelAdjInsertText(textNode, mOffset,
+    editorBase->RangeUpdaterRef().SelAdjInsertText(*textNode, mOffset,
                                                    mStringToInsert.Length());
   } else {
     // If composition string is split to multiple text nodes, we should put
@@ -128,8 +147,8 @@ NS_IMETHODIMP CompositionTransaction::DoTransaction() {
     //       here is outdated and it will cause inserting composition string
     //       **before** the proper point from point of view of the users.
     uint32_t replaceableLength = textNode->TextLength() - mOffset;
-    ErrorResult error;
-    editorBase->DoReplaceText(textNode, mOffset, mReplaceLength,
+    IgnoredErrorResult error;
+    editorBase->DoReplaceText(*textNode, mOffset, mReplaceLength,
                               mStringToInsert, error);
     if (error.Failed()) {
       NS_WARNING("EditorBase::DoReplaceText() failed");
@@ -140,11 +159,11 @@ NS_IMETHODIMP CompositionTransaction::DoTransaction() {
     // this transaction will remove whole composition string.  Therefore,
     // selection should be restored at start of composition string.
     // XXX Perhaps, this is a bug of our selection managemnt at undoing.
-    editorBase->RangeUpdaterRef().SelAdjDeleteText(textNode, mOffset,
+    editorBase->RangeUpdaterRef().SelAdjDeleteText(*textNode, mOffset,
                                                    replaceableLength);
     // But some ranges which after the composition string should be restored
     // as-is.
-    editorBase->RangeUpdaterRef().SelAdjInsertText(textNode, mOffset,
+    editorBase->RangeUpdaterRef().SelAdjInsertText(*textNode, mOffset,
                                                    mStringToInsert.Length());
 
     if (replaceableLength < mReplaceLength) {
@@ -179,7 +198,7 @@ NS_IMETHODIMP CompositionTransaction::DoTransaction() {
       "CompositionTransaction::SetSelectionForRanges() failed");
 
   if (TextComposition* composition = editorBase->GetComposition()) {
-    composition->OnUpdateCompositionInEditor(mStringToInsert, textNode,
+    composition->OnUpdateCompositionInEditor(mStringToInsert, *textNode,
                                              mOffset);
   }
 
@@ -191,14 +210,17 @@ NS_IMETHODIMP CompositionTransaction::UndoTransaction() {
           ("%p CompositionTransaction::%s this=%s", this, __FUNCTION__,
            ToString(*this).c_str()));
 
-  if (MOZ_UNLIKELY(NS_WARN_IF(!mEditorBase) || NS_WARN_IF(!mTextNode))) {
+  if (NS_WARN_IF(!mEditorBase)) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  const RefPtr<Text> textNode = GetTextNode();
+  if (NS_WARN_IF(!textNode)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  OwningNonNull<EditorBase> editorBase = *mEditorBase;
-  OwningNonNull<Text> textNode = *mTextNode;
+  const OwningNonNull<EditorBase> editorBase = *mEditorBase;
   IgnoredErrorResult error;
-  editorBase->DoDeleteText(textNode, mOffset, mStringToInsert.Length(), error);
+  editorBase->DoDeleteText(*textNode, mOffset, mStringToInsert.Length(), error);
   if (MOZ_UNLIKELY(error.Failed())) {
     NS_WARNING("EditorBase::DoDeleteText() failed");
     return error.StealNSResult();
@@ -267,11 +289,14 @@ void CompositionTransaction::MarkFixed() { mFixed = true; }
 /* ============ private methods ================== */
 
 nsresult CompositionTransaction::SetSelectionForRanges() {
-  if (NS_WARN_IF(!mEditorBase) || NS_WARN_IF(!mTextNode)) {
+  if (NS_WARN_IF(!mEditorBase)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-  OwningNonNull<EditorBase> editorBase = *mEditorBase;
-  OwningNonNull<Text> textNode = *mTextNode;
+  const RefPtr<Text> textNode = GetTextNode();
+  if (NS_WARN_IF(!textNode)) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  const OwningNonNull<EditorBase> editorBase = *mEditorBase;
   RefPtr<TextRangeArray> ranges = mRanges;
   nsresult rv = SetIMESelection(editorBase, textNode, mOffset,
                                 mStringToInsert.Length(), ranges);
@@ -431,5 +456,41 @@ nsresult CompositionTransaction::SetIMESelection(
 
   return rv;
 }
+
+/******************************************************************************
+ * mozilla::CompositionInTextNodeTransaction
+ ******************************************************************************/
+
+CompositionInTextNodeTransaction::CompositionInTextNodeTransaction(
+    EditorBase& aEditorBase, const nsAString& aStringToInsert,
+    const EditorDOMPointInText& aPointToInsert)
+    : CompositionTransaction(aEditorBase, aStringToInsert, aPointToInsert),
+      mTextNode(aPointToInsert.ContainerAs<Text>()) {
+  MOZ_ASSERT(aEditorBase.IsHTMLEditor());
+}
+
+std::ostream& operator<<(std::ostream& aStream,
+                         const CompositionInTextNodeTransaction& aTransaction) {
+  aStream << "{ mTextNode=" << aTransaction.mTextNode.get();
+  if (aTransaction.mTextNode) {
+    aStream << " (" << *aTransaction.mTextNode << ")";
+  }
+  aStream << ", mOffset=" << aTransaction.mOffset
+          << ", mReplaceLength=" << aTransaction.mReplaceLength
+          << ", mRanges={ Length()=" << aTransaction.mRanges->Length() << " }"
+          << ", mStringToInsert=\""
+          << NS_ConvertUTF16toUTF8(aTransaction.mStringToInsert).get() << "\""
+          << ", mEditorBase=" << aTransaction.mEditorBase.get() << " }";
+  return aStream;
+}
+
+NS_IMPL_CYCLE_COLLECTION_INHERITED(CompositionInTextNodeTransaction,
+                                   CompositionTransaction, mTextNode)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(CompositionInTextNodeTransaction)
+NS_INTERFACE_MAP_END_INHERITING(CompositionTransaction)
+NS_IMPL_ADDREF_INHERITED(CompositionInTextNodeTransaction,
+                         CompositionTransaction)
+NS_IMPL_RELEASE_INHERITED(CompositionInTextNodeTransaction,
+                          CompositionTransaction)
 
 }  // namespace mozilla
