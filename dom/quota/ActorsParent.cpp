@@ -4006,6 +4006,8 @@ nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
     return NS_OK;
   }
 
+  NotifyOriginInitializationStarted(*this);
+
   // We need to initialize directories of all clients if they exists and also
   // get the total usage to initialize the quota.
 

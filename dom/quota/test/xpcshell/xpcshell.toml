@@ -112,6 +112,8 @@ skip-if = ["inc_origin_init"]
 
 ["test_originWithCaret.js"]
 
+["test_originInitializationStarted.js"]
+
 ["test_orpahnedQuotaObject.js"]
 
 ["test_persist.js"]

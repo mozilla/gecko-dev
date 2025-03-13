@@ -50,4 +50,12 @@ void NotifyClientDirectoryOpeningStarted(QuotaManager& aQuotaManager) {
   NotifyObserversOnMainThread("QuotaManager::ClientDirectoryOpeningStarted");
 }
 
+void NotifyOriginInitializationStarted(QuotaManager& aQuotaManager) {
+  if (!StaticPrefs::dom_quotaManager_testing()) {
+    return;
+  }
+
+  NotifyObserversOnMainThread("QuotaManager::OriginInitializationStarted");
+}
+
 }  // namespace mozilla::dom::quota
