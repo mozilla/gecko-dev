@@ -25,10 +25,6 @@ https://searchfox.org/mozilla-central/source/netwerk/test/perf/perftest.toml and
 registered under **PERFTESTS_MANIFESTS** in `moz.build` files such as
 https://searchfox.org/mozilla-central/source/netwerk/test/moz.build#17
 
-If you launch `./mach perftest` without any parameters, you will get a full list
-of available tests, and you can pick and run one. Adding `--push-to-try` will
-run it on try.
-
 The framework loads perf tests and reads its metadata, that can be declared
 within the test. We have a parser that is currently able to recognize and load
 **xpcshell** tests and **browsertime** tests, and a runner for each one of those.

@@ -12,16 +12,7 @@ This runner can be executed in two different ways:
 - by executing this module directly
 
 When the module is executed directly, if the --on-try option is used,
-it will fetch arguments from Tascluster's parameters, that were
-populated via a local --push-to-try call.
-
-The --push-to-try flow is:
-
-- a user calls ./mach perftest --push-to-try --option1 --option2
-- a new push to try commit is made and includes all options in its parameters
-- a generic TC job triggers the perftest by calling this module with --on-try
-- run_test() grabs the parameters artifact and converts them into args for
-  perftest
+it will fetch arguments from Tascluster's parameters.
 """
 import json
 import logging
@@ -120,8 +111,7 @@ def run_tests(mach_cmd, kwargs, client_args):
     """This tests runner can be used directly via main or via Mach.
 
     When the --on-try option is used, the test runner looks at the
-    `PERFTEST_OPTIONS` environment variable that contains all options passed by
-    the user via a ./mach perftest --push-to-try call.
+    `PERFTEST_OPTIONS` environment variable.
     """
     on_try = kwargs.pop("on_try", False)
 

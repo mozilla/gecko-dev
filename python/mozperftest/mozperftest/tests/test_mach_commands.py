@@ -12,7 +12,6 @@ from pathlib import Path
 from unittest import mock
 
 import mozunit
-import pytest
 from mach.registrar import Registrar
 
 Registrar.categories = {"testing": []}
@@ -154,59 +153,6 @@ def test_hooks_state(venv, env):
 
 @mock.patch("mozperftest.MachEnvironment", new=_TestMachEnvironment)
 @mock.patch("mozbuild.base.MachCommandBase.activate_virtualenv")
-@mock.patch("tryselect.push.push_to_try")
-def test_push_command(push_to_try, venv):
-    with _get_command() as (cmd, command_context), silence(command_context):
-        cmd(
-            command_context,
-            tests=[EXAMPLE_TEST],
-            flavor="desktop-browser",
-            push_to_try=True,
-            try_platform="linux",
-        )
-        push_to_try.assert_called()
-        # XXX add assertions
-
-
-@mock.patch("mozperftest.MachEnvironment", new=_TestMachEnvironment)
-@mock.patch("mozbuild.base.MachCommandBase.activate_virtualenv")
-@mock.patch("tryselect.push.push_to_try")
-def test_push_command_unknown_platforms(push_to_try, venv):
-    # full stop when a platform is unknown
-    with _get_command() as (cmd, command_context), pytest.raises(NotImplementedError):
-        cmd(
-            command_context,
-            tests=[EXAMPLE_TEST],
-            flavor="desktop-browser",
-            push_to_try=True,
-            try_platform=["solaris", "linux", "mac"],
-        )
-
-
-@mock.patch("mozperftest.MachEnvironment", new=_TestMachEnvironment)
-@mock.patch("mozbuild.base.MachCommandBase.activate_virtualenv")
-@mock.patch("tryselect.push.push_to_try")
-def test_push_command_several_platforms(push_to_try, venv):
-    with running_on_try(False), _get_command() as (
-        cmd,
-        command_context,
-    ):  # , silence(command_context):
-        cmd(
-            command_context,
-            tests=[EXAMPLE_TEST],
-            flavor="desktop-browser",
-            push_to_try=True,
-            try_platform=["linux", "mac"],
-        )
-        push_to_try.assert_called()
-        name, args, kwargs = push_to_try.mock_calls[0]
-        params = kwargs["try_task_config"]["parameters"]["try_task_config"]
-        assert "perftest-linux-try-browsertime" in params["tasks"]
-        assert "perftest-macosx-try-browsertime" in params["tasks"]
-
-
-@mock.patch("mozperftest.MachEnvironment", new=_TestMachEnvironment)
-@mock.patch("mozbuild.base.MachCommandBase.activate_virtualenv")
 def test_doc_flavor(mocked_func):
     with _get_command() as (cmd, command_context), silence(command_context):
         cmd(command_context, tests=[EXAMPLE_TEST], flavor="doc")
@@ -249,45 +195,28 @@ def test_test_runner_coverage(*mocked):
             sys.meta_path = old
 
 
-def fzf_selection(*args):
-    try:
-        full_path = args[-1][-1]["path"]
-    except IndexError:
-        return []
+@mock.patch("mozperftest.MachEnvironment", new=_TestMachEnvironment)
+@mock.patch("mozbuild.base.MachCommandBase.activate_virtualenv")
+@mock.patch("mozperftest.runner.run_tests")
+def test_help_nothing_selected(*kwargs):
+    from mozperftest.runner import run_tests
 
-    path = Path(full_path.replace(str(ROOT), ""))
-    return [f"[bt][sometag] {path.name} in {path.parent}"]
+    with _get_command() as (cmd, command_context), silence():
+        cmd(command_context, tests=[])
 
-
-def resolve_tests(tests=None):
-    if tests is None:
-        tests = [{"path": str(EXAMPLE_TEST)}]
-
-    def _resolve(*args, **kw):
-        return tests
-
-    return _resolve
+    run_tests.assert_not_called()
 
 
 @mock.patch("mozperftest.MachEnvironment", new=_TestMachEnvironment)
 @mock.patch("mozbuild.base.MachCommandBase.activate_virtualenv")
-@mock.patch("mozperftest.fzf.fzf.select", new=fzf_selection)
-@mock.patch("moztest.resolve.TestResolver.resolve_tests", new=resolve_tests())
-def test_fzf_flavor(*mocked):
-    with running_on_try(False), _get_command() as (
-        cmd,
-        command_context,
-    ):  # , silence():
-        cmd(command_context, flavor="desktop-browser")
+@mock.patch("mozperftest.runner.run_tests")
+def test_help_help_selected(*kwargs):
+    from mozperftest.runner import run_tests
 
+    with _get_command() as (cmd, command_context), silence():
+        cmd(command_context, tests=["help"])
 
-@mock.patch("mozperftest.MachEnvironment", new=_TestMachEnvironment)
-@mock.patch("mozbuild.base.MachCommandBase.activate_virtualenv")
-@mock.patch("mozperftest.fzf.fzf.select", new=fzf_selection)
-@mock.patch("moztest.resolve.TestResolver.resolve_tests", new=resolve_tests([]))
-def test_fzf_nothing_selected(*mocked):
-    with running_on_try(False), _get_command() as (cmd, command_context), silence():
-        cmd(command_context, flavor="desktop-browser")
+    run_tests.assert_not_called()
 
 
 @mock.patch("mozperftest.MachEnvironment", new=_TestMachEnvironment)

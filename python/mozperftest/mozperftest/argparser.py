@@ -66,11 +66,6 @@ class Options:
             "help": "Script containing hooks. Can be a path or a URL.",
         },
         "--verbose": {"action": "store_true", "default": False, "help": "Verbose mode"},
-        "--push-to-try": {
-            "action": "store_true",
-            "default": False,
-            "help": "Pushin the test to try",
-        },
         "--try-platform": {
             "nargs": "*",
             "type": str,

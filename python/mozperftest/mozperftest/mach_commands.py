@@ -1,9 +1,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-import json
 import os
-import pathlib
 import sys
 from functools import partial
 
@@ -53,50 +51,20 @@ def run_perftest(command_context, **kwargs):
     # original parser that brought us there
     original_parser = get_parser()
 
-    from pathlib import Path
-
     from mozperftest.script import ParseError, ScriptInfo, ScriptType
 
-    # user selection with fuzzy UI
-    from mozperftest.utils import ON_TRY
-
-    if not ON_TRY and kwargs.get("tests", []) == []:
-        from moztest.resolve import TestResolver
-
-        from mozperftest.fzf.fzf import select
-
-        resolver = command_context._spawn(TestResolver)
-        test_objects = list(resolver.resolve_tests(paths=None, flavor="perftest"))
-        selected = select(test_objects)
-
-        def full_path(selection):
-            __, script_name, __, location = selection.split(" ")
-            return str(
-                Path(
-                    command_context.topsrcdir.rstrip(os.sep),
-                    location.strip(os.sep),
-                    script_name,
-                )
-            )
-
-        kwargs["tests"] = [full_path(s) for s in selected]
-
-        if kwargs["tests"] == []:
-            print("\nNo selection. Bye!")
-            return
+    # Refer people to the --help command if they are lost
+    if not kwargs["tests"] or kwargs["tests"] == ["help"]:
+        print("No test selected!\n")
+        print("See `./mach perftest --help` for more info\n")
+        return
 
     if len(kwargs["tests"]) > 1:
         print("\nSorry no support yet for multiple local perftest")
         return
 
-    # Make sure the default artifacts directory exists
-    default_artifact_location = pathlib.Path(command_context.topsrcdir, "artifacts")
-    default_artifact_location.mkdir(parents=True, exist_ok=True)
-
-    sel = "\n".join(kwargs["tests"])
-    print("\nGood job! Best selection.\n%s" % sel)
     # if the script is xpcshell, we can force the flavor here
-    # XXX on multi-selection,  what happens if we have seeveral flavors?
+    # XXX on multi-selection,  what happens if we have several flavors?
     try:
         script_info = ScriptInfo(kwargs["tests"][0])
     except ParseError as e:
@@ -113,59 +81,6 @@ def run_perftest(command_context, **kwargs):
             # we set the value only if not provided (so "mobile-browser"
             # can be picked)
             kwargs["flavor"] = "desktop-browser"
-
-    push_to_try = kwargs.pop("push_to_try", False)
-    if push_to_try:
-        sys.path.append(str(Path(command_context.topsrcdir, "tools", "tryselect")))
-
-        from tryselect.push import push_to_try
-
-        perftest_parameters = {}
-        args = script_info.update_args(**original_parser.get_user_args(kwargs))
-        platform = args.pop("try_platform", "linux")
-        if isinstance(platform, str):
-            platform = [platform]
-
-        platform = ["%s-%s" % (plat, script_info.script_type.name) for plat in platform]
-
-        for plat in platform:
-            if plat not in _TRY_PLATFORMS:
-                # we can extend platform support here: linux, win, macOs
-                # by adding more jobs in taskcluster/kinds/perftest/kind.yml
-                # then picking up the right one here
-                raise NotImplementedError(
-                    "%r doesn't exist or is not yet supported" % plat
-                )
-
-        def relative(path):
-            if path.startswith(command_context.topsrcdir):
-                return path[len(command_context.topsrcdir) :].lstrip(os.sep)
-            return path
-
-        for name, value in args.items():
-            # ignore values that are set to default
-            new_val = value
-            if original_parser.get_default(name) == value:
-                continue
-            if name == "tests":
-                new_val = [relative(path) for path in value]
-            perftest_parameters[name] = new_val
-
-        parameters = {
-            "try_task_config": {
-                "tasks": [_TRY_PLATFORMS[plat] for plat in platform],
-                "perftest-options": perftest_parameters,
-            },
-            "try_mode": "try_task_config",
-        }
-
-        task_config = {"parameters": parameters, "version": 2}
-        if args.get("verbose"):
-            print("Pushing run to try...")
-            print(json.dumps(task_config, indent=4, sort_keys=True))
-
-        push_to_try("perftest", "perftest", try_task_config=task_config)
-        return
 
     from mozperftest.runner import run_tests
 
