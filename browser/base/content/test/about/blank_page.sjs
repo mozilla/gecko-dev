@@ -25,6 +25,7 @@ function handleRequest(request, response) {
 
   const status = parseInt(params.status);
   const message = params.message;
+  const header = params.header;
 
   // Set default if missing parameters
   if (!status || !message) {
@@ -33,6 +34,15 @@ function handleRequest(request, response) {
     return;
   }
 
+  if (header === "hide") {
+    response.setStatusLine(request.httpVersion, status, message);
+    return;
+  }
+  if (header === "lie") {
+    response.setStatusLine(request.httpVersion, status, message);
+    response.setHeader("Content-Length", "100", false);
+    return;
+  }
   response.setStatusLine(request.httpVersion, status, message);
   response.setHeader("Content-Length", "0", false);
 }
