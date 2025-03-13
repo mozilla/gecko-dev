@@ -294,12 +294,16 @@ class ContentAnalysis final : public nsIContentAnalysis,
       const nsACString& aRequestToken);
   nsresult CreateClientIfNecessary(bool aForceCreate = false);
 
+  // Actually send the request to the client and get a response (or error).
+  // Note that the response may be for a different request!
   static Result<std::shared_ptr<content_analysis::sdk::ContentAnalysisResponse>,
                 nsresult>
   DoAnalyzeRequest(
       nsCString&& aUserActionId,
       content_analysis::sdk::ContentAnalysisRequest&& aRequest,
       const std::shared_ptr<content_analysis::sdk::Client>& aClient);
+  // Map of request token to user action id.
+  DataMutex<nsTHashMap<nsCString, nsCString>> mRequestTokenToUserActionIdMap;
   void IssueResponse(ContentAnalysisResponse* response,
                      nsCString&& aUserActionId, bool aAutoAcknowledge);
   void NotifyResponseObservers(ContentAnalysisResponse* aResponse,

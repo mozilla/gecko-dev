@@ -1230,7 +1230,9 @@ NS_IMPL_ISUPPORTS(ContentAnalysisDiagnosticInfo,
 NS_IMPL_ISUPPORTS(ContentAnalysis, nsIContentAnalysis, ContentAnalysis);
 
 ContentAnalysis::ContentAnalysis()
-    : mCaClientPromise(
+    : mRequestTokenToUserActionIdMap(
+          "ContentAnalysis::mRequestTokenToUserActionIdMap"),
+      mCaClientPromise(
           new ClientPromise::Private("ContentAnalysis::ContentAnalysis")),
       mSetByEnterprise(false) {}
 
@@ -1798,7 +1800,7 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
       })
       ->Then(
           GetMainThreadSerialEventTarget(), __func__,
-          [userActionId, aAutoAcknowledge](
+          [aAutoAcknowledge](
               std::shared_ptr<content_analysis::sdk::ContentAnalysisResponse>
                   aResponse) mutable {
             AssertIsOnMainThread();
@@ -1813,6 +1815,24 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
               // May be shutting down
               return;
             }
+
+            // Note that the response we got may be for a different request, so
+            // look up the user action id again.
+            Maybe<nsCString> maybeUserActionId;
+            {
+              auto map = owner->mRequestTokenToUserActionIdMap.Lock();
+              maybeUserActionId =
+                  map->Extract(nsCString(aResponse->request_token()));
+            }
+            if (maybeUserActionId.isNothing()) {
+              LOGE(
+                  "RunAnalyzeRequestTask could not find userActionId for "
+                  "request token %s",
+                  aResponse->request_token().c_str());
+              // We have no hope of doing anything useful, so just early return.
+              return;
+            }
+            nsCString userActionId = maybeUserActionId.valueOr(nsCString());
 
             RefPtr<ContentAnalysisResponse> response =
                 ContentAnalysisResponse::FromProtobuf(std::move(*aResponse),
@@ -1836,7 +1856,10 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
                 response, std::move(userActionId), aAutoAcknowledge);
           },
           [userActionId, requestToken](nsresult rv) mutable {
-            LOGD("RunAnalyzeRequestTask failed to get client a second time");
+            LOGD(
+                "RunAnalyzeRequestTask failed to get client a second time for "
+                "requestToken=%s, userActionId=%s",
+                requestToken.get(), userActionId.get());
             RefPtr<ContentAnalysis> owner = GetContentAnalysisFromService();
             if (!owner) {
               // May be shutting down
@@ -1887,8 +1910,21 @@ ContentAnalysis::DoAnalyzeRequest(
   // Run request, then dispatch back to main thread to resolve
   // aCallback
   content_analysis::sdk::ContentAnalysisResponse pbResponse;
+  {
+    // Insert this into the map before calling Send() because another thread
+    // calling Send() may get a response before our Send() call finishes.
+    auto map = owner->mRequestTokenToUserActionIdMap.Lock();
+    map->InsertOrUpdate(nsCString(aRequest.request_token()), aUserActionId);
+  }
   int err = aClient->Send(aRequest, &pbResponse);
   if (err != 0) {
+    LOGE("DoAnalyzeRequest got err=%d for request_token=%s, user_action_id=%s",
+         err, aRequest.request_token().c_str(), aUserActionId.get());
+    {
+      auto map = owner->mRequestTokenToUserActionIdMap.Lock();
+      map->Remove(nsCString(aRequest.request_token()));
+    }
+
     return Err(NS_ERROR_FAILURE);
   }
   return std::make_shared<content_analysis::sdk::ContentAnalysisResponse>(
