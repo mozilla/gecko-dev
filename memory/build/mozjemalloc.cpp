@@ -1281,15 +1281,22 @@ struct arena_t {
   Atomic<uint64_t> mLastSignificantReuseNS;
 
  public:
-  // A flag that indicates if arena is (or will be) in mOutstandingPurges.
-  // When set true a thread has committed to adding a purge request for this
-  // arena. Cleared only by Purge when we know we are completely done.
-  // This is necessary to avoid accessing the list (and list lock) on
-  // every call to ShouldStartPurge();
-  bool mIsDeferredPurgePending MOZ_GUARDED_BY(mLock);
+  // A flag that indicates if arena will be Purge()'d.
+  //
+  // It is set either when a thread commits to adding it to mOutstandingPurges
+  // or when imitating a Purge.  Cleared only by Purge when we know we are
+  // completely done.  This is used to avoid accessing the list (and list lock)
+  // on every call to ShouldStartPurge() and to avoid deleting arenas that
+  // another thread is purging.
+  bool mIsPurgePending MOZ_GUARDED_BY(mLock);
+
   // A mirror of ArenaCollection::mIsDeferredPurgeEnabled, here only to
   // optimize memory reads in ShouldStartPurge().
   bool mIsDeferredPurgeEnabled MOZ_GUARDED_BY(mLock);
+
+  // True if the arena is in the process of being destroyed, and needs to be
+  // released after a concurrent purge completes.
+  bool mMustDeleteAfterPurge MOZ_GUARDED_BY(mLock) = false;
 
  private:
   // Size/address-ordered tree of this arena's available runs.  This tree
@@ -1437,6 +1444,9 @@ struct arena_t {
 
     // The only chunks with dirty pages are busy being purged by other threads.
     Busy,
+
+    // The arena needs to be destroyed by the caller.
+    Dying,
   };
 
   // Purge some dirty pages.
@@ -1596,7 +1606,10 @@ class ArenaCollection {
 
   void DisposeArena(arena_t* aArena) MOZ_EXCLUDES(mLock) {
     // This will not call MayPurge but only unlink the element in case.
-    RemoveFromOutstandingPurges(aArena);
+    // It returns true if we successfully removed the item from the list,
+    // meaning we have exclusive access to it and can delete it.
+    bool delete_now = RemoveFromOutstandingPurges(aArena);
+
     {
       MutexAutoLock lock(mLock);
       Tree& tree =
@@ -1605,7 +1618,29 @@ class ArenaCollection {
       MOZ_RELEASE_ASSERT(tree.Search(aArena), "Arena not in tree");
       tree.Remove(aArena);
       mNumOperationsDisposedArenas += aArena->Operations();
+    }
+    {
+      MutexAutoLock lock(aArena->mLock);
+      if (!aArena->mIsPurgePending) {
+        // If no purge was pending then we have exclusive access to the
+        // arena and must delete it.
+        delete_now = true;
+      } else if (!delete_now) {
+        // The remaining possibility, when we failed to remove the arena from
+        // the list (because a purging thread alredy did so) then that thread
+        // will be the last thread holding the arena and is now responsible for
+        // deleting it.
+        aArena->mMustDeleteAfterPurge = true;
 
+        // Not that it's not possible to have checked the list of pending purges
+        // BEFORE the arena was added to the list because that would mean that
+        // an operation on the arena (free or realloc) was running concurrently
+        // with deletion, which would be a memory error and the assertions in
+        // the destructor help check for that.
+      }
+    }
+
+    if (delete_now) {
       delete aArena;
     }
   }
@@ -1732,8 +1767,9 @@ class ArenaCollection {
   // Set aside a new purge request for aArena.
   void AddToOutstandingPurges(arena_t* aArena) MOZ_EXCLUDES(mPurgeListLock);
 
-  // Remove an unhandled purge request for aArena.
-  void RemoveFromOutstandingPurges(arena_t* aArena)
+  // Remove an unhandled purge request for aArena.  Returns true if the arena
+  // was in the list.
+  bool RemoveFromOutstandingPurges(arena_t* aArena)
       MOZ_EXCLUDES(mPurgeListLock);
 
   // Execute all outstanding purge requests, if any.
@@ -1796,12 +1832,11 @@ class ArenaCollection {
   uint64_t mNumOperationsDisposedArenas = 0;
 
   // Linked list of outstanding purges. This list has no particular order.
-  // It is ok for an arena to be in this list even if mIsDeferredPurgePending
-  // is false, it will just cause an extra round of a (most likely no-op)
-  // purge.
-  // It is not ok to not be in this list but have mIsDeferredPurgePending
-  // set to true, as this would prevent any future purges for this arena
-  // (except for the short, controlled moment during MayPurgeStep).
+  // It is ok for an arena to be in this list even if mIsPurgePending is false,
+  // it will just cause an extra round of a (most likely no-op) purge.
+  // It is not ok to not be in this list but have mIsPurgePending set to true,
+  // as this would prevent any future purges for this arena (except for during
+  // MayPurgeStep or Purge).
   DoublyLinkedList<arena_t> mOutstandingPurges MOZ_GUARDED_BY(mPurgeListLock);
   // Flag if we should defer purge to later. Only ever set when holding the
   // collection lock. Read only during arena_t ctor.
@@ -3459,6 +3494,11 @@ arena_t::PurgeResult arena_t::Purge(PurgeCondition aCond) {
   {
     MaybeMutexAutoLock lock(mLock);
 
+    if (mMustDeleteAfterPurge) {
+      mIsPurgePending = false;
+      return Dying;
+    }
+
 #ifdef MOZ_DEBUG
     size_t ndirty = 0;
     for (auto* chunk : mChunksDirty.iter()) {
@@ -3469,7 +3509,7 @@ arena_t::PurgeResult arena_t::Purge(PurgeCondition aCond) {
 #endif
 
     if (!ShouldContinuePurge(aCond)) {
-      mIsDeferredPurgePending = false;
+      mIsPurgePending = false;
       return Done;
     }
 
@@ -3492,7 +3532,7 @@ arena_t::PurgeResult arena_t::Purge(PurgeCondition aCond) {
       // other chunks then either other calls to Purge() (in other threads) will
       // handle it or we rely on ShouldStartPurge() returning true at some point
       // in the future.
-      mIsDeferredPurgePending = false;
+      mIsPurgePending = false;
       return Busy;
     }
     MOZ_ASSERT(chunk->ndirty > 0);
@@ -3524,13 +3564,19 @@ arena_t::PurgeResult arena_t::Purge(PurgeCondition aCond) {
       MaybeMutexAutoLock lock(purge_info.mArena.mLock);
       MOZ_ASSERT(chunk->mIsPurging);
 
+      if (purge_info.mArena.mMustDeleteAfterPurge) {
+        chunk->mIsPurging = false;
+        purge_info.mArena.mIsPurgePending = false;
+        return Dying;
+      }
+
       continue_purge_chunk = purge_info.FindDirtyPages(purged_once);
       continue_purge_arena = purge_info.mArena.ShouldContinuePurge(aCond);
 
       // The code below will exit returning false if these are both false, so
       // clear mIsDeferredPurgeNeeded while we still hold the lock.
       if (!continue_purge_chunk && !continue_purge_arena) {
-        purge_info.mArena.mIsDeferredPurgePending = false;
+        purge_info.mArena.mIsPurgePending = false;
       }
     }
     if (!continue_purge_chunk) {
@@ -3555,12 +3601,17 @@ arena_t::PurgeResult arena_t::Purge(PurgeCondition aCond) {
 #endif
 
     arena_chunk_t* chunk_to_release = nullptr;
-
+    bool is_dying;
     {
       // Phase 2: Mark the pages with their final state (madvised or
       // decommitted) and fix up any other bookkeeping.
       MaybeMutexAutoLock lock(purge_info.mArena.mLock);
       MOZ_ASSERT(chunk->mIsPurging);
+
+      // We can't early exit if the arena is dying, we have to finish the purge
+      // (which restores the state so the destructor will check it) and maybe
+      // release the old spare arena.
+      is_dying = purge_info.mArena.mMustDeleteAfterPurge;
 
       auto [cpc, ctr] = purge_info.UpdatePagesAndCounts();
       continue_purge_chunk = cpc;
@@ -3570,7 +3621,7 @@ arena_t::PurgeResult arena_t::Purge(PurgeCondition aCond) {
       if (!continue_purge_chunk || !continue_purge_arena) {
         // We're going to stop purging here so update the chunk's bookkeeping.
         purge_info.FinishPurgingInChunk(true);
-        purge_info.mArena.mIsDeferredPurgePending = false;
+        purge_info.mArena.mIsPurgePending = false;
       }
     }  // MaybeMutexAutoLock
 
@@ -3578,6 +3629,9 @@ arena_t::PurgeResult arena_t::Purge(PurgeCondition aCond) {
     // parameter is used to return that chunk.
     if (chunk_to_release) {
       chunk_dealloc((void*)chunk_to_release, kChunkSize, ARENA_CHUNK);
+    }
+    if (is_dying) {
+      return Dying;
     }
     purged_once = true;
   }
@@ -4710,10 +4764,10 @@ inline purge_action_t arena_t::ShouldStartPurge() {
     if (!mIsDeferredPurgeEnabled) {
       return purge_action_t::PurgeNow;
     }
-    if (mIsDeferredPurgePending) {
+    if (mIsPurgePending) {
       return purge_action_t::None;
     }
-    mIsDeferredPurgePending = true;
+    mIsPurgePending = true;
     return purge_action_t::Queue;
   }
   return purge_action_t::None;
@@ -4730,8 +4784,14 @@ inline void arena_t::MayDoOrQueuePurge(purge_action_t aAction) {
       gArenas.AddToOutstandingPurges(this);
       break;
     case purge_action_t::PurgeNow:
-      while (Purge(PurgeIfThreshold) == arena_t::PurgeResult::Continue) {
-      }
+      PurgeResult pr;
+      do {
+        pr = Purge(PurgeIfThreshold);
+      } while (pr == arena_t::PurgeResult::Continue);
+      // Arenas cannot die here because the caller is still using the arena, if
+      // they did it'd be a use-after-free: the arena is destroyed but then used
+      // afterwards.
+      MOZ_RELEASE_ASSERT(pr != arena_t::PurgeResult::Dying);
       break;
     case purge_action_t::None:
       // do nothing.
@@ -4935,7 +4995,7 @@ arena_t::arena_t(arena_params_t* aParams, bool aIsPrivate) {
   }
 
   mLastSignificantReuseNS = GetTimestampNS();
-  mIsDeferredPurgePending = false;
+  mIsPurgePending = false;
   mIsDeferredPurgeEnabled = gArenas.IsDeferredPurgeEnabled();
 
   MOZ_RELEASE_ASSERT(mLock.Init(doLock));
@@ -6012,7 +6072,7 @@ inline void ArenaCollection::AddToOutstandingPurges(arena_t* aArena) {
   }
 }
 
-inline void ArenaCollection::RemoveFromOutstandingPurges(arena_t* aArena) {
+inline bool ArenaCollection::RemoveFromOutstandingPurges(arena_t* aArena) {
   MOZ_ASSERT(aArena);
 
   // We cannot trust the caller to know whether the element was already removed
@@ -6020,14 +6080,16 @@ inline void ArenaCollection::RemoveFromOutstandingPurges(arena_t* aArena) {
   MutexAutoLock lock(mPurgeListLock);
   if (mOutstandingPurges.ElementProbablyInList(aArena)) {
     mOutstandingPurges.remove(aArena);
+    return true;
   }
+  return false;
 }
 
 purge_result_t ArenaCollection::MayPurgeSteps(
     bool aPeekOnly, uint32_t aReuseGraceMS,
     const Maybe<std::function<bool()>>& aKeepGoing) {
-  // If we'd want to allow to call this from non-main threads, we would need
-  // to ensure that arenas cannot be disposed while here, see bug 1364359.
+  // This only works on the main thread because it may process main-thread-only
+  // arenas.
   MOZ_ASSERT(IsOnMainThreadWeak());
 
   arena_t* found = nullptr;
@@ -6081,6 +6143,8 @@ purge_result_t ArenaCollection::MayPurgeSteps(
       // to increase the probability to find it fast.
       mOutstandingPurges.pushFront(found);
     }
+  } else if (pr == arena_t::PurgeResult::Dying) {
+    delete found;
   }
 
   // Even if there is no other arena that needs work, let the caller just call
@@ -6097,7 +6161,15 @@ void ArenaCollection::MayPurgeAll(PurgeCondition aCond) {
     // So we do what we can even if called from another thread.
     if (!arena->IsMainThreadOnly() || IsOnMainThreadWeak()) {
       RemoveFromOutstandingPurges(arena);
-      while (arena->Purge(aCond) == arena_t::PurgeResult::Continue);
+      arena_t::PurgeResult pr;
+      do {
+        pr = arena->Purge(aCond);
+      } while (pr == arena_t::PurgeResult::Continue);
+
+      // No arena can die here because we're holding the arena collection lock.
+      // Arenas are removed from the collection before setting their mDying
+      // flag.
+      MOZ_RELEASE_ASSERT(pr != arena_t::PurgeResult::Dying);
     }
   }
 }
