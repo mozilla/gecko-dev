@@ -29,7 +29,6 @@
 #if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
 #  include "mozilla/gfx/gfxVars.h"
 #  include "mozilla/layers/DMABUFSurfaceImage.h"
-#  include "mozilla/widget/DMABufLibWrapper.h"
 #  include "FFmpegVideoFramePool.h"
 #  include "va/va.h"
 #endif
@@ -75,13 +74,6 @@
 #  include "ffvpx/hwcontext_d3d11va.h"
 #endif
 
-// Forward declare from va.h
-#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
-typedef int VAStatus;
-#  define VA_EXPORT_SURFACE_READ_ONLY 0x0001
-#  define VA_EXPORT_SURFACE_SEPARATE_LAYERS 0x0004
-#  define VA_STATUS_SUCCESS 0x00000000
-#endif
 // Use some extra HW frames for potential rendering lags.
 // AV1 and VP9 can have maximum 8 frames for reference frames, so 1 base + 8
 // references.
@@ -242,31 +234,9 @@ AVCodec* FFmpegVideoDecoder<LIBAV_VER>::FindVAAPICodec() {
   return nullptr;
 }
 
-template <int V>
-class VAAPIDisplayHolder {};
-
-template <>
-class VAAPIDisplayHolder<LIBAV_VER>;
-
-template <>
-class VAAPIDisplayHolder<LIBAV_VER> {
- public:
-  VAAPIDisplayHolder(VADisplay aDisplay, int aDRMFd)
-      : mDisplay(aDisplay), mDRMFd(aDRMFd) {};
-  ~VAAPIDisplayHolder() {
-    VALibWrapper::sFuncs.vaTerminate(mDisplay);
-    close(mDRMFd);
-  }
-
- private:
-  VADisplay mDisplay;
-  int mDRMFd;
-};
-
 static void VAAPIDisplayReleaseCallback(struct AVHWDeviceContext* hwctx) {
-  auto displayHolder =
-      static_cast<VAAPIDisplayHolder<LIBAV_VER>*>(hwctx->user_opaque);
-  delete displayHolder;
+  auto displayHolder = static_cast<VADisplayHolder*>(hwctx->user_opaque);
+  displayHolder->Release();
 }
 
 bool FFmpegVideoDecoder<LIBAV_VER>::CreateVAAPIDeviceContext() {
@@ -282,22 +252,14 @@ bool FFmpegVideoDecoder<LIBAV_VER>::CreateVAAPIDeviceContext() {
   AVHWDeviceContext* hwctx = (AVHWDeviceContext*)mVAAPIDeviceContext->data;
   AVVAAPIDeviceContext* vactx = (AVVAAPIDeviceContext*)hwctx->hwctx;
 
-  int drmFd = widget::GetDMABufDevice()->OpenDRMFd();
-  mDisplay = VALibWrapper::sFuncs.vaGetDisplayDRM(drmFd);
-  if (!mDisplay) {
-    FFMPEG_LOG("  Can't get DRM VA-API display.");
+  RefPtr displayHolder = VADisplayHolder::GetSingleton();
+  if (!displayHolder) {
     return false;
   }
 
-  hwctx->user_opaque = new VAAPIDisplayHolder<LIBAV_VER>(mDisplay, drmFd);
+  mDisplay = displayHolder->mDisplay;
+  hwctx->user_opaque = displayHolder.forget().take();
   hwctx->free = VAAPIDisplayReleaseCallback;
-
-  int major, minor;
-  int status = VALibWrapper::sFuncs.vaInitialize(mDisplay, &major, &minor);
-  if (status != VA_STATUS_SUCCESS) {
-    FFMPEG_LOG("  vaInitialize failed.");
-    return false;
-  }
 
   vactx->display = mDisplay;
   if (mLib->av_hwdevice_ctx_init(mVAAPIDeviceContext) < 0) {
