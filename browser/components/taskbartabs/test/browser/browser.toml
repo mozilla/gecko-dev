@@ -4,4 +4,9 @@ support-files = ["head.js"]
 ["browser_taskbarTabs_chromeTest.js"]
 run-if = ["os == 'win'"]
 
+["browser_taskbarTabs_uriNewTabTest.js"]
+support-files = [
+  "dummy_page.html",
+]
+
 ["browser_taskbarTabs_windowTracker.js"]

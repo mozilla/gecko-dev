@@ -474,11 +474,17 @@ export const URILoadingHelper = {
     } else {
       w = this.getTargetWindow(window, { forceNonPrivate });
     }
-    // We don't want to open tabs in popups, so try to find a non-popup window in
-    // that case.
-    if ((where == "tab" || where == "tabshifted") && w && !w.toolbar.visible) {
+    // We don't want to open tabs in popups or taskbar tab windows,
+    // so try to find a regular Firefox window in that case.
+    if (
+      (where == "tab" || where == "tabshifted") &&
+      w &&
+      (!w.toolbar.visible ||
+        w.document.documentElement.hasAttribute("taskbartab"))
+    ) {
       w = this.getTargetWindow(window, {
         skipPopups: true,
+        skipTaskbarTabs: true,
         forceNonPrivate,
       });
       relatedToCurrent = false;
@@ -633,10 +639,14 @@ export const URILoadingHelper = {
    * @param {Window} window - The current window.
    * @param {Object} params - Parameters for selecting the window.
    * @param {boolean} params.skipPopups - Require a non-popup window.
+   * @param {boolean} params.skipTaskbarTabs - Require a non-taskbartab window.
    * @param {boolean} params.forceNonPrivate - Require a non-private window.
    * @returns {Window | null} A matching browser window or null if none matched.
    */
-  getTargetWindow(window, { skipPopups, forceNonPrivate } = {}) {
+  getTargetWindow(
+    window,
+    { skipPopups, skipTaskbarTabs, forceNonPrivate } = {}
+  ) {
     let { top } = window;
     // If this is called in a browser window, use that window regardless of
     // whether it's the frontmost window, since commands can be executed in
@@ -645,6 +655,8 @@ export const URILoadingHelper = {
       top.document.documentElement.getAttribute("windowtype") ==
         "navigator:browser" &&
       (!skipPopups || top.toolbar.visible) &&
+      (!skipTaskbarTabs ||
+        !top.document.documentElement.hasAttribute("taskbartab")) &&
       (!forceNonPrivate || !PrivateBrowsingUtils.isWindowPrivate(top))
     ) {
       return top;
@@ -653,6 +665,7 @@ export const URILoadingHelper = {
     return lazy.BrowserWindowTracker.getTopWindow({
       private: !forceNonPrivate && PrivateBrowsingUtils.isWindowPrivate(window),
       allowPopups: !skipPopups,
+      allowTaskbarTabs: !skipTaskbarTabs,
     });
   },
 

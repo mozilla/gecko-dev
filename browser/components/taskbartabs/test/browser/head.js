@@ -9,7 +9,7 @@
  * @param {Tab} tab
  *        The tab that the web app should open with,
  *        about:blank will be opened if this value is null.
- * @returns {Window}
+ * @returns {Promise}
  *        The web app window object.
  */
 async function openTaskbarTabWindow(tab = null) {
