@@ -898,11 +898,11 @@ class BrowserRobot {
             waitingTime = waitingTimeLong,
         )
 
-    fun verifyOpenLinkInAnotherAppPrompt() {
+    fun verifyOpenLinkInAnotherAppPrompt(appName: String) {
         assertUIObjectExists(
             itemWithResId("$packageName:id/parentPanel"),
             itemContainingText(
-                getStringResource(R.string.mozac_feature_applinks_normal_confirm_dialog_title),
+                getStringResource(R.string.mozac_feature_applinks_normal_confirm_dialog_title_with_app_name, appName),
             ),
             itemContainingText(
                 getStringResource(R.string.mozac_feature_applinks_normal_confirm_dialog_message),
@@ -910,13 +910,13 @@ class BrowserRobot {
         )
     }
 
-    fun verifyPrivateBrowsingOpenLinkInAnotherAppPrompt(url: String, pageObject: UiObject) {
+    fun verifyPrivateBrowsingOpenLinkInAnotherAppPrompt(appName: String, url: String, pageObject: UiObject) {
         for (i in 1..RETRY_COUNT) {
             try {
                 Log.i(TAG, "verifyPrivateBrowsingOpenLinkInAnotherAppPrompt: Started try #$i")
                 assertUIObjectExists(
                     itemContainingText(
-                        getStringResource(R.string.mozac_feature_applinks_confirm_dialog_title),
+                        getStringResource(R.string.mozac_feature_applinks_confirm_dialog_title_with_app_name, appName),
                     ),
                     itemContainingText(url),
                 )

@@ -136,7 +136,7 @@ class SettingsAdvancedTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(externalLinksPage.url) {
             clickPageObject(youTubeSchemaLink)
-            verifyOpenLinkInAnotherAppPrompt()
+            verifyOpenLinkInAnotherAppPrompt(appName = "YouTube")
             clickPageObject(itemWithResIdAndText("android:id/button2", "CANCEL"))
             verifyUrl(externalLinksPage.url.toString())
         }
@@ -166,7 +166,7 @@ class SettingsAdvancedTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(externalLinksPage.url) {
             clickPageObject(youTubeSchemaLink)
-            verifyOpenLinkInAnotherAppPrompt()
+            verifyOpenLinkInAnotherAppPrompt(appName = "YouTube")
             waitForAppWindowToBeUpdated()
             clickPageObject(itemWithResIdAndText("android:id/button1", "OPEN"))
             mDevice.waitForIdle()
@@ -202,6 +202,7 @@ class SettingsAdvancedTest : TestSetup() {
         }.enterURLAndEnterToBrowser(externalLinksPage.url) {
             clickPageObject(youTubeSchemaLink)
             verifyPrivateBrowsingOpenLinkInAnotherAppPrompt(
+                appName = "YouTube",
                 url = "youtube",
                 pageObject = youTubeSchemaLink,
             )
@@ -237,6 +238,7 @@ class SettingsAdvancedTest : TestSetup() {
         }.enterURLAndEnterToBrowser(externalLinksPage.url) {
             clickPageObject(youTubeSchemaLink)
             verifyPrivateBrowsingOpenLinkInAnotherAppPrompt(
+                appName = "YouTube",
                 url = "youtube",
                 pageObject = youTubeSchemaLink,
             )
