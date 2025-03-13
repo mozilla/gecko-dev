@@ -316,6 +316,8 @@ tags = "os_integration"
 
 ["browser_tab_groups_restore_closed_in_open_window.js"]
 
+["browser_tab_groups_restore_closed_many_tabs.js"]
+
 ["browser_tab_groups_restore_multiple.js"]
 
 ["browser_tab_groups_restore_saved.js"]
