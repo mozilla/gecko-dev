@@ -1127,3 +1127,16 @@ skip script test262/built-ins/Temporal/ZonedDateTime/from/argument-string-limits
 skip script test262/built-ins/Temporal/ZonedDateTime/prototype/equals/argument-string-limits.js
 skip script test262/built-ins/Temporal/ZonedDateTime/prototype/since/argument-string-limits.js
 skip script test262/built-ins/Temporal/ZonedDateTime/prototype/until/argument-string-limits.js
+
+# See Bug 1950425, skip tests for calendars disabled in release or beta
+skip-if(release_or_beta) script non262/Temporal/Intl/defaults.js
+skip-if(release_or_beta) script test262/staging/sm/Temporal/PlainMonthDay/from-chinese-leap-month-common.js
+skip-if(release_or_beta) script test262/staging/sm/Temporal/PlainMonthDay/from-chinese.js
+skip-if(release_or_beta) script test262/staging/Intl402/Temporal/old/non-iso-calendars.js
+skip-if(release_or_beta) script test262/intl402/Temporal/PlainYearMonth/from/reference-day-chinese.js
+skip-if(release_or_beta) script test262/intl402/Temporal/PlainDate/prototype/until/until-across-lunisolar-leap-months.js
+skip-if(release_or_beta) script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/dateStyle.js
+skip-if(release_or_beta) script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/dateStyle.js
+skip-if(release_or_beta) script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/dateStyle.js
+skip-if(release_or_beta) script test262/intl402/Temporal/PlainMonthDay/prototype/toLocaleString/dateStyle.js
+skip-if(release_or_beta) script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/dateStyle.js

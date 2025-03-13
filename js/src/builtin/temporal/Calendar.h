@@ -76,19 +76,39 @@ enum class CalendarId : int32_t {
 inline constexpr auto availableCalendars = {
     CalendarId::ISO8601,
     CalendarId::Buddhist,
+// See Bug 1950425, this calendar is only available on Nightly due to
+// inconsistencies between ICU4X and ICU4C.
+#ifdef NIGHTLY_BUILD
     CalendarId::Chinese,
+#endif
     CalendarId::Coptic,
+// See Bug 1950425, this calendar is only available on Nightly due to
+// inconsistencies between ICU4X and ICU4C.
+#ifdef NIGHTLY_BUILD
     CalendarId::Dangi,
+#endif
     CalendarId::Ethiopian,
     CalendarId::EthiopianAmeteAlem,
     CalendarId::Gregorian,
     CalendarId::Hebrew,
     CalendarId::Indian,
+// See Bug 1950425, this calendar is only available on Nightly due to
+// inconsistencies between ICU4X and ICU4C.
+#ifdef NIGHTLY_BUILD
     CalendarId::Islamic,
+#endif
     CalendarId::IslamicCivil,
+// See Bug 1950425, this calendar is only available on Nightly due to
+// inconsistencies between ICU4X and ICU4C.
+#ifdef NIGHTLY_BUILD
     CalendarId::IslamicRGSA,
+#endif
     CalendarId::IslamicTabular,
+// See Bug 1950425, this calendar is only available on Nightly due to
+// inconsistencies between ICU4X and ICU4C.
+#ifdef NIGHTLY_BUILD
     CalendarId::IslamicUmmAlQura,
+#endif
     CalendarId::Japanese,
     CalendarId::Persian,
     CalendarId::ROC,
