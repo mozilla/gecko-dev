@@ -86,6 +86,9 @@
 #include "mozilla/dom/StorageManagerBinding.h"
 #include "mozilla/dom/TextDecoderBinding.h"
 #include "mozilla/dom/TextEncoderBinding.h"
+#include "mozilla/dom/TrustedHTML.h"
+#include "mozilla/dom/TrustedScript.h"
+#include "mozilla/dom/TrustedScriptURL.h"
 #include "mozilla/dom/URLBinding.h"
 #include "mozilla/dom/URLSearchParamsBinding.h"
 #include "mozilla/dom/XMLHttpRequest.h"
@@ -973,6 +976,12 @@ bool xpc::GlobalProperties::Parse(JSContext* cx, JS::HandleObject obj) {
       TextDecoder = true;
     } else if (JS_LinearStringEqualsLiteral(nameStr, "TextEncoder")) {
       TextEncoder = true;
+    } else if (JS_LinearStringEqualsLiteral(nameStr, "TrustedHTML")) {
+      TrustedHTML = true;
+    } else if (JS_LinearStringEqualsLiteral(nameStr, "TrustedScript")) {
+      TrustedScript = true;
+    } else if (JS_LinearStringEqualsLiteral(nameStr, "TrustedScriptURL")) {
+      TrustedScriptURL = true;
     } else if (JS_LinearStringEqualsLiteral(nameStr, "URL")) {
       URL = true;
     } else if (JS_LinearStringEqualsLiteral(nameStr, "URLSearchParams")) {
@@ -1074,6 +1083,9 @@ bool xpc::GlobalProperties::Define(JSContext* cx, JS::HandleObject obj) {
   DEFINE_WEBIDL_INTERFACE_OR_NAMESPACE(Selection)
   DEFINE_WEBIDL_INTERFACE_OR_NAMESPACE(TextDecoder)
   DEFINE_WEBIDL_INTERFACE_OR_NAMESPACE(TextEncoder)
+  DEFINE_WEBIDL_INTERFACE_OR_NAMESPACE(TrustedHTML)
+  DEFINE_WEBIDL_INTERFACE_OR_NAMESPACE(TrustedScript)
+  DEFINE_WEBIDL_INTERFACE_OR_NAMESPACE(TrustedScriptURL)
   DEFINE_WEBIDL_INTERFACE_OR_NAMESPACE(URL)
   DEFINE_WEBIDL_INTERFACE_OR_NAMESPACE(URLSearchParams)
   DEFINE_WEBIDL_INTERFACE_OR_NAMESPACE(WebSocket)

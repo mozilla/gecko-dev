@@ -2214,6 +2214,9 @@ struct GlobalProperties {
   bool Selection : 1;
   bool TextDecoder : 1;
   bool TextEncoder : 1;
+  bool TrustedHTML : 1;
+  bool TrustedScript : 1;
+  bool TrustedScriptURL : 1;
   bool URL : 1;
   bool URLSearchParams : 1;
   bool XMLHttpRequest : 1;
