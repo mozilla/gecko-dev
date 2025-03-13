@@ -58,6 +58,7 @@ const OBJECT_WITH_URL_CLASSNAMES = new Set([
   "CSSImportRule",
   "CSSStyleSheet",
   "Location",
+  "TrustedScriptURL"
 ]);
 
 /**
@@ -286,6 +287,51 @@ const previewers = {
   "Temporal.Duration": [
     function(objectActor, grip, depth) {
       temporalPreviewer(Temporal.Duration, objectActor, grip);
+      return true;
+    },
+  ],
+
+  TrustedHTML: [
+    function(objectActor, grip, depth) {
+      const text = TrustedHTML.prototype.toString.call(
+        // In worker objectActor.safeRawObj is considered unsafe and is null
+        objectActor.safeRawObj || objectActor.rawObj
+      );
+
+      grip.preview = {
+        kind: "ObjectWithText",
+        text: objectActor.createValueGrip(text, depth)
+      };
+      return true;
+    },
+  ],
+
+  TrustedScript: [
+    function(objectActor, grip, depth) {
+      const text = TrustedScript.prototype.toString.call(
+        // In worker objectActor.safeRawObj is considered unsafe and is null
+        objectActor.safeRawObj || objectActor.rawObj
+      );
+
+      grip.preview = {
+        kind: "ObjectWithText",
+        text: objectActor.createValueGrip(text, depth)
+      };
+      return true;
+    },
+  ],
+
+  TrustedScriptURL: [
+    function(objectActor, grip, depth) {
+      const url = TrustedScriptURL.prototype.toString.call(
+        // In worker objectActor.safeRawObj is considered unsafe and is null
+        objectActor.safeRawObj || objectActor.rawObj
+      );
+
+      grip.preview = {
+        kind: "ObjectWithURL",
+        url: objectActor.createValueGrip(url, depth)
+      };
       return true;
     },
   ],

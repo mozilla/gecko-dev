@@ -792,6 +792,8 @@ skip-if = [
   "http2",
 ]
 
+["browser_webconsole_trusted_types.js"]
+
 ["browser_webconsole_uncaught_exception.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
