@@ -543,19 +543,6 @@ static void replace_moz_dispose_arena(arena_id_t aArenaId) {
   return gMallocTable.moz_dispose_arena(aArenaId);
 }
 
-static void replace_moz_set_max_dirty_page_modifier(int32_t aModifier) {
-  return gMallocTable.moz_set_max_dirty_page_modifier(aModifier);
-}
-
-static bool replace_moz_enable_deferred_purge(bool aEnable) {
-  return gMallocTable.moz_enable_deferred_purge(aEnable);
-}
-
-static purge_result_t replace_moz_may_purge_one_now(bool aPeekOnly,
-                                                    uint32_t aReuseGraceMS) {
-  return gMallocTable.moz_may_purge_one_now(aPeekOnly, aReuseGraceMS);
-}
-
 // Must come after all the replace_* funcs
 void replace_init(malloc_table_t* aMallocTable, ReplaceMallocBridge** aBridge) {
   gMallocTable = *aMallocTable;
