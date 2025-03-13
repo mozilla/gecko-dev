@@ -434,7 +434,8 @@ var gSearchResultsPane = {
 
       if (
         nodeObject.localName == "label" ||
-        nodeObject.localName == "description"
+        nodeObject.localName == "description" ||
+        nodeObject.localName.startsWith("moz-")
       ) {
         accessKeyTextNodes.push(...simpleTextNodes);
       }

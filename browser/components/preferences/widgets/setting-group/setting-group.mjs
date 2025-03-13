@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { html, ifDefined } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
 export class SettingGroup extends MozLitElement {
@@ -12,6 +13,18 @@ export class SettingGroup extends MozLitElement {
 
   createRenderRoot() {
     return this;
+  }
+
+  itemTemplate(item) {
+    let setting = window.Preferences.getSetting(item.id);
+    if (!setting.visible) {
+      return "";
+    }
+    return html`<setting-control
+      .settingId=${item.id}
+      .setting=${setting}
+      .config=${item}
+    ></setting-control>`;
   }
 
   xulCheckboxTemplate(item, setting) {
@@ -55,6 +68,11 @@ export class SettingGroup extends MozLitElement {
   render() {
     if (!this.config) {
       return "";
+    }
+    if (Services.prefs.getBoolPref("settings.revamp.design", false)) {
+      return html`<moz-fieldset data-l10n-id=${ifDefined(this.config.l10nId)}
+        >${this.config.items.map(item => this.itemTemplate(item))}</moz-fieldset
+      >`;
     }
     return this.config.items.map(item => this.xulItemTemplate(item));
   }
