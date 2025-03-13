@@ -132,13 +132,6 @@ skip-if = ["inc_origin_init"]
 
 ["test_simpledb.js"]
 
-["test_shutdownDuringAllTemporaryOriginsInitialization.js"]
-# The test cannot function correctly with incremental origin initialization
-# enabled  because incremental origin initialization automatically triggers
-# lazy initialization of all temporary origins after temporary storage
-# initialization is complete.
-skip-if = ["inc_origin_init"]
-
 ["test_specialOrigins.js"]
 
 ["test_storagePressure.js"]
