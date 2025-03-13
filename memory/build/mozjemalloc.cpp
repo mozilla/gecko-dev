@@ -1162,6 +1162,8 @@ uint64_t GetTimestampNS() {
       .count();
 }
 
+enum PurgeCondition { PurgeIfThreshold, PurgeUnconditional };
+
 struct arena_t {
 #if defined(MOZ_DIAGNOSTIC_ASSERT_ENABLED)
   uint32_t mMagic;
@@ -1429,20 +1431,20 @@ struct arena_t {
   // Purge some dirty pages.
   //
   // When this is called the caller has already tested ShouldStartPurge()
-  // (possibly on another thread asychronously) or is passing aForce = true.
-  // However because it's called without the lock it will recheck
-  // ShouldContinuePurge() (or aForce is true) before doing any work.
+  // (possibly on another thread asychronously) or is passing
+  // PurgeUnconditional.  However because it's called without the lock it will
+  // recheck ShouldContinuePurge() before doing any work.
   //
   // It may purge a number of runs within a single chunk before returning.  It
-  // will return true if there's more work to do in other chunks (aForce ||
-  // ShouldContinuePurge()).
+  // will return true if there's more work to do in other chunks
+  // (ShouldContinuePurge()).
   //
   // To release more pages from other chunks then it's best to call Purge
   // in a loop, looping when it returns true.
   //
   // This must be called without the mLock held (it'll take the lock).
   //
-  bool Purge(bool aForce = false) MOZ_EXCLUDES(mLock);
+  bool Purge(PurgeCondition aCond) MOZ_EXCLUDES(mLock);
 
   class PurgeInfo {
    private:
@@ -1512,8 +1514,8 @@ struct arena_t {
 
   // Check the EffectiveHalfMaxDirty threshold to decide if we continue purge.
   // This threshold is lower than ShouldStartPurge to have some hysteresis.
-  bool ShouldContinuePurge(bool aForce = false) MOZ_REQUIRES(mLock) {
-    return (mNumDirty > ((aForce) ? 0 : mMaxDirty >> 1));
+  bool ShouldContinuePurge(PurgeCondition aCond) MOZ_REQUIRES(mLock) {
+    return (mNumDirty > ((aCond == PurgeUnconditional) ? 0 : mMaxDirty >> 1));
   }
 
   // Update the last significant reuse timestamp.
@@ -1709,7 +1711,7 @@ class ArenaCollection {
       }
     }
     if (ret != aEnable) {
-      MayPurgeAll(false);
+      MayPurgeAll(PurgeIfThreshold);
     }
     return ret;
   }
@@ -1724,7 +1726,7 @@ class ArenaCollection {
       MOZ_EXCLUDES(mPurgeListLock);
 
   // Execute all outstanding purge requests, if any.
-  void MayPurgeAll(bool aForce);
+  void MayPurgeAll(PurgeCondition aCond);
 
   // Purge some dirty memory, based on purge requests, returns true if there are
   // more to process.
@@ -3438,7 +3440,7 @@ size_t arena_t::ExtraCommitPages(size_t aReqPages, size_t aRemainingPages) {
 }
 #endif
 
-bool arena_t::Purge(bool aForce) {
+bool arena_t::Purge(PurgeCondition aCond) {
   arena_chunk_t* chunk;
 
   // The first critical section will find a chunk and mark dirty pages in it as
@@ -3455,7 +3457,7 @@ bool arena_t::Purge(bool aForce) {
     MOZ_ASSERT(ndirty <= mNumDirty);
 #endif
 
-    if (!ShouldContinuePurge(aForce)) {
+    if (!ShouldContinuePurge(aCond)) {
       mIsDeferredPurgePending = false;
       return false;
     }
@@ -3512,7 +3514,7 @@ bool arena_t::Purge(bool aForce) {
       MOZ_ASSERT(chunk->mIsPurging);
 
       continue_purge_chunk = purge_info.FindDirtyPages(purged_once);
-      continue_purge_arena = purge_info.mArena.ShouldContinuePurge(aForce);
+      continue_purge_arena = purge_info.mArena.ShouldContinuePurge(aCond);
 
       // The code below will exit returning false if these are both false, so
       // clear mIsDeferredPurgeNeeded while we still hold the lock.
@@ -3552,7 +3554,7 @@ bool arena_t::Purge(bool aForce) {
       auto [cpc, ctr] = purge_info.UpdatePagesAndCounts();
       continue_purge_chunk = cpc;
       chunk_to_release = ctr;
-      continue_purge_arena = purge_info.mArena.ShouldContinuePurge(aForce);
+      continue_purge_arena = purge_info.mArena.ShouldContinuePurge(aCond);
 
       if (!continue_purge_chunk || !continue_purge_arena) {
         // We're going to stop purging here so update the chunk's bookkeeping.
@@ -4717,7 +4719,7 @@ inline void arena_t::MayDoOrQueuePurge(purge_action_t aAction) {
       gArenas.AddToOutstandingPurges(this);
       break;
     case purge_action_t::PurgeNow:
-      while (Purge()) {
+      while (Purge(PurgeIfThreshold)) {
       }
       break;
     case purge_action_t::None:
@@ -5871,13 +5873,13 @@ inline void MozJemalloc::jemalloc_purge_freed_pages() {
 
 inline void MozJemalloc::jemalloc_free_dirty_pages(void) {
   if (malloc_initialized) {
-    gArenas.MayPurgeAll(true);
+    gArenas.MayPurgeAll(PurgeUnconditional);
   }
 }
 
 inline void MozJemalloc::jemalloc_free_excess_dirty_pages(void) {
   if (malloc_initialized) {
-    gArenas.MayPurgeAll(false);
+    gArenas.MayPurgeAll(PurgeIfThreshold);
   }
 }
 
@@ -6047,7 +6049,7 @@ purge_result_t ArenaCollection::MayPurgeSteps(
 
   bool more_pages;
   do {
-    more_pages = found->Purge(false);
+    more_pages = found->Purge(PurgeIfThreshold);
   } while (more_pages && aKeepGoing && (*aKeepGoing)());
 
   if (more_pages) {
@@ -6071,14 +6073,14 @@ purge_result_t ArenaCollection::MayPurgeSteps(
   return purge_result_t::NeedsMore;
 }
 
-void ArenaCollection::MayPurgeAll(bool aForce) {
+void ArenaCollection::MayPurgeAll(PurgeCondition aCond) {
   MutexAutoLock lock(mLock);
   for (auto* arena : iter()) {
     // Arenas that are not IsMainThreadOnly can be purged from any thread.
     // So we do what we can even if called from another thread.
     if (!arena->IsMainThreadOnly() || IsOnMainThreadWeak()) {
       RemoveFromOutstandingPurges(arena);
-      while (arena->Purge(aForce));
+      while (arena->Purge(aCond));
     }
   }
 }
