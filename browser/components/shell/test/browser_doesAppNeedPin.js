@@ -2,8 +2,13 @@
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 ChromeUtils.defineESModuleGetters(this, {
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+});
+
+registerCleanupFunction(() => {
+  ExperimentAPI._store._deleteForTests("shellService");
 });
 
 let defaultValue;
@@ -41,6 +46,8 @@ add_task(async function restore_default() {
     info("No default pin value set, so nothing to test");
     return;
   }
+
+  ExperimentAPI._store._deleteForTests("shellService");
 
   Assert.equal(
     await ShellService.doesAppNeedPin(),

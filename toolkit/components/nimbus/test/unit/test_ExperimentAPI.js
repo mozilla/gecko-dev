@@ -107,10 +107,8 @@ add_task(function test_getExperimentMetaData_safe() {
   const sandbox = sinon.createSandbox();
   let exposureStub = sandbox.stub(ExperimentAPI, "recordExposureEvent");
 
-  sandbox.stub(ExperimentAPI._manager.store, "get").throws();
-  sandbox
-    .stub(ExperimentAPI._manager.store, "getExperimentForFeature")
-    .throws();
+  sandbox.stub(ExperimentAPI._store, "get").throws();
+  sandbox.stub(ExperimentAPI._store, "getExperimentForFeature").throws();
 
   try {
     let metadata = ExperimentAPI.getExperimentMetaData({ slug: "foo" });
@@ -119,7 +117,7 @@ add_task(function test_getExperimentMetaData_safe() {
     Assert.ok(false, "Error should be caught in ExperimentAPI");
   }
 
-  Assert.ok(ExperimentAPI._manager.store.get.calledOnce, "Sanity check");
+  Assert.ok(ExperimentAPI._store.get.calledOnce, "Sanity check");
 
   try {
     let metadata = ExperimentAPI.getExperimentMetaData({ featureId: "foo" });
@@ -129,7 +127,7 @@ add_task(function test_getExperimentMetaData_safe() {
   }
 
   Assert.ok(
-    ExperimentAPI._manager.store.getExperimentForFeature.calledOnce,
+    ExperimentAPI._store.getExperimentForFeature.calledOnce,
     "Sanity check"
   );
 
@@ -140,9 +138,7 @@ add_task(function test_getExperimentMetaData_safe() {
 
 add_task(async function test_getExperiment_safe() {
   const sandbox = sinon.createSandbox();
-  sandbox
-    .stub(ExperimentAPI._manager.store, "getExperimentForFeature")
-    .throws();
+  sandbox.stub(ExperimentAPI._store, "getExperimentForFeature").throws();
 
   try {
     Assert.equal(
@@ -167,7 +163,7 @@ add_task(async function test_getExperiment_featureAccess() {
     },
   });
   const stub = sandbox
-    .stub(ExperimentAPI._manager.store, "getExperimentForFeature")
+    .stub(ExperimentAPI._store, "getExperimentForFeature")
     .returns(expected);
 
   let { branch } = ExperimentAPI.getExperiment({ featureId: "cfr" });
@@ -189,7 +185,7 @@ add_task(async function test_getExperiment_featureAccess_backwardsCompat() {
     },
   });
   const stub = sandbox
-    .stub(ExperimentAPI._manager.store, "getExperimentForFeature")
+    .stub(ExperimentAPI._store, "getExperimentForFeature")
     .returns(expected);
 
   let { branch } = ExperimentAPI.getExperiment({ featureId: "cfr" });
@@ -326,6 +322,7 @@ add_task(async function test_getAllBranches_Failure() {
  */
 add_task(async function test_addEnrollment_eventEmit_add() {
   const sandbox = sinon.createSandbox();
+  const slugStub = sandbox.stub();
   const featureStub = sandbox.stub();
   const experiment = ExperimentFakes.experiment("foo", {
     branch: {
@@ -341,10 +338,17 @@ add_task(async function test_addEnrollment_eventEmit_add() {
   await store.init();
   await ExperimentAPI.ready();
 
+  store.on("update:foo", slugStub);
   store.on("featureUpdate:purple", featureStub);
 
   await store.addEnrollment(experiment);
 
+  Assert.equal(
+    slugStub.callCount,
+    1,
+    "should call 'update' callback for slug when experiment is added"
+  );
+  Assert.equal(slugStub.firstCall.args[1].slug, experiment.slug);
   Assert.equal(
     featureStub.callCount,
     1,
@@ -353,6 +357,7 @@ add_task(async function test_addEnrollment_eventEmit_add() {
   Assert.equal(featureStub.firstCall.args[0], "featureUpdate:purple");
   Assert.equal(featureStub.firstCall.args[1], "experiment-updated");
 
+  store.off("update:foo", slugStub);
   store.off("featureUpdate:purple", featureStub);
 
   manager.unenroll(experiment.slug);
@@ -363,6 +368,7 @@ add_task(async function test_addEnrollment_eventEmit_add() {
 
 add_task(async function test_updateExperiment_eventEmit_add_and_update() {
   const sandbox = sinon.createSandbox();
+  const slugStub = sandbox.stub();
   const featureStub = sandbox.stub();
   const experiment = ExperimentFakes.experiment("foo", {
     branch: {
@@ -380,6 +386,7 @@ add_task(async function test_updateExperiment_eventEmit_add_and_update() {
 
   await store.addEnrollment(experiment);
 
+  store.on("update:foo", slugStub);
   store._onFeatureUpdate("purple", featureStub);
 
   store.updateExperiment(experiment.slug, experiment);
@@ -390,10 +397,12 @@ add_task(async function test_updateExperiment_eventEmit_add_and_update() {
   );
   // Called twice, once when attaching the event listener (because there is an
   // existing experiment with that name) and 2nd time for the update event
+  Assert.equal(slugStub.firstCall.args[1].slug, experiment.slug);
   Assert.equal(featureStub.callCount, 2, "Called twice for feature");
   Assert.equal(featureStub.firstCall.args[0], "featureUpdate:purple");
   Assert.equal(featureStub.firstCall.args[1], "experiment-updated");
 
+  store.off("update:foo", slugStub);
   store._offFeatureUpdate("featureUpdate:purple", featureStub);
 
   manager.unenroll(experiment.slug);
@@ -402,6 +411,7 @@ add_task(async function test_updateExperiment_eventEmit_add_and_update() {
 
 add_task(async function test_updateExperiment_eventEmit_off() {
   const sandbox = sinon.createSandbox();
+  const slugStub = sandbox.stub();
   const featureStub = sandbox.stub();
   const experiment = ExperimentFakes.experiment("foo", {
     branch: {
@@ -417,14 +427,17 @@ add_task(async function test_updateExperiment_eventEmit_off() {
   await store.init();
   await ExperimentAPI.ready();
 
+  store.on("update:foo", slugStub);
   store.on("featureUpdate:purple", featureStub);
 
   await store.addEnrollment(experiment);
 
+  store.off("update:foo", slugStub);
   store.off("featureUpdate:purple", featureStub);
 
   store.updateExperiment(experiment.slug, experiment);
 
+  Assert.equal(slugStub.callCount, 1, "Called only once before `off`");
   Assert.equal(featureStub.callCount, 1, "Called only once before `off`");
 
   manager.unenroll(experiment.slug);
@@ -464,9 +477,7 @@ add_task(async function test_getActiveBranch() {
 
 add_task(async function test_getActiveBranch_safe() {
   const sandbox = sinon.createSandbox();
-  sandbox
-    .stub(ExperimentAPI._manager.store, "getAllActiveExperiments")
-    .throws();
+  sandbox.stub(ExperimentAPI._store, "getAllActiveExperiments").throws();
 
   try {
     Assert.equal(
