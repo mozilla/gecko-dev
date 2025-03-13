@@ -325,18 +325,16 @@ var allowlist = [
   {
     file: "resource://gre/localization/en-US/netwerk/necko.ftl",
   },
+
+  // A QA and dev debug tool.
+  { file: "chrome://browser/content/places/interactionsViewer.html" },
 ];
 
 if (AppConstants.NIGHTLY_BUILD) {
   allowlist.push(
-    ...[
-      // This is nightly-only debug tool.
-      { file: "chrome://browser/content/places/interactionsViewer.html" },
-
-      // A debug tool that is only available in Nightly builds, and is accessed
-      // directly by developers via the chrome URI (bug 1888491)
-      { file: "chrome://browser/content/backup/debug.html" },
-    ]
+    // A debug tool that is only available in Nightly builds, and is accessed
+    // directly by developers via the chrome URI (bug 1888491)
+    { file: "chrome://browser/content/backup/debug.html" }
   );
 }
 

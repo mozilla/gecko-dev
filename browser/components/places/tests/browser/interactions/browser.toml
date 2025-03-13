@@ -3,6 +3,7 @@ prefs = [
   "browser.places.interactions.enabled=true",
   "browser.places.interactions.log=true",
   "browser.places.interactions.scrolling_timeout_ms=50",
+  "browser.places.interactions.viewer.enabled=true",
   "general.smoothScroll=false",
 ]
 
@@ -20,7 +21,6 @@ support-files = [
 ["browser_interactions_disabledHistory.js"]
 
 ["browser_interactions_export.js"]
-run-if = ["nightly_build"] # Interactions viewer is only available on Nightly.
 
 ["browser_interactions_referrer.js"]
 
