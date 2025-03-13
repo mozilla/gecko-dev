@@ -69,8 +69,9 @@ import mozilla.components.support.base.feature.PermissionsFeature
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.content.isPermissionGranted
 import mozilla.components.support.ktx.kotlin.getOrigin
-import mozilla.components.support.ktx.kotlin.stripDefaultPort
+import mozilla.components.support.ktx.kotlin.tryGetHostFromUrl
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.filterChanged
+import java.net.URL
 import java.security.InvalidParameterException
 import mozilla.components.ui.icons.R as iconsR
 
@@ -889,6 +890,18 @@ class SitePermissionsFeature(
     }
 
     @VisibleForTesting
+    internal fun trimOriginHttpsSchemeAndPort(origin: String): String {
+        // Since Gecko scopes permissions to origins (like "https://www.example.com:443"), we want
+        // all permission checks to use origins, not just hostnames like "www.example.com". Only
+        // when we format the origin for the permission prompt UI here do we trim the HTTPS scheme
+        // or default HTTP ports 80 and 443. Any other scheme or port is unusual, so show them!
+        val url = URL(origin)
+        val scheme = if (url.protocol == "https") { "" } else { "${url.protocol}://" }
+        val port = if (url.port == url.defaultPort) { "" } else { ":${url.port}" }
+        return "$scheme${url.host}$port"
+    }
+
+    @VisibleForTesting
     internal fun createSinglePermissionPrompt(
         context: Context,
         origin: String,
@@ -899,7 +912,8 @@ class SitePermissionsFeature(
         shouldSelectRememberChoice: Boolean,
         isNotificationRequest: Boolean = false,
     ): SitePermissionsDialogFragment {
-        val title = context.getString(titleId, origin)
+        val trimmedOrigin = trimOriginHttpsSchemeAndPort(origin)
+        val title = context.getString(titleId, trimmedOrigin)
 
         val currentSessionId: String = store.state.findTabOrCustomTabOrSelectedTab(sessionId)?.id
             ?: throw IllegalStateException("Unable to find session for $sessionId or selected session")
@@ -924,17 +938,18 @@ class SitePermissionsFeature(
         showDoNotAskAgainCheckBox: Boolean,
         shouldSelectRememberChoice: Boolean,
     ): SitePermissionsDialogFragment {
+        val trimmedOrigin = trimOriginHttpsSchemeAndPort(origin)
         val currentSession = store.state.findTabOrCustomTabOrSelectedTab(sessionId)
             ?: throw IllegalStateException("Unable to find session for $sessionId or selected session")
 
         val title = context.getString(
             R.string.mozac_feature_sitepermissions_storage_access_title,
-            origin.stripDefaultPort(),
-            currentSession.content.url.stripDefaultPort(),
+            trimmedOrigin,
+            currentSession.content.url.tryGetHostFromUrl(),
         )
         val message = context.getString(
             R.string.mozac_feature_sitepermissions_storage_access_message,
-            origin.stripDefaultPort(),
+            trimmedOrigin,
         )
         val negativeButtonText = context.getString(R.string.mozac_feature_sitepermissions_storage_access_not_allow)
 

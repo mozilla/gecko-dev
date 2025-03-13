@@ -31,7 +31,7 @@ import org.mozilla.fenix.ui.robots.navigationToolbar
 class SitePermissionsTest : TestSetup() {
     /* Test page created and handled by the Mozilla mobile test-eng team */
     private val testPage = "https://mozilla-mobile.github.io/testapp/permissions"
-    private val testPageSubstring = "https://mozilla-mobile.github.io:443"
+    private val testPageHost = "mozilla-mobile.github.io"
     private val cameraManager = appContext.getSystemService(Context.CAMERA_SERVICE) as CameraManager
     private val micManager = appContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
@@ -76,7 +76,7 @@ class SitePermissionsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartAudioVideoButton {
-            verifyAudioVideoPermissionPrompt(testPageSubstring)
+            verifyAudioVideoPermissionPrompt(testPageHost)
         }.clickPagePermissionButton(false) {
             verifyPageContent("Camera and Microphone not allowed")
         }.clickStartAudioVideoButton {
@@ -95,7 +95,7 @@ class SitePermissionsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartAudioVideoButton {
-            verifyAudioVideoPermissionPrompt(testPageSubstring)
+            verifyAudioVideoPermissionPrompt(testPageHost)
             selectRememberPermissionDecision()
         }.clickPagePermissionButton(false) {
             verifyPageContent("Camera and Microphone not allowed")
@@ -118,7 +118,7 @@ class SitePermissionsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartAudioVideoButton {
-            verifyAudioVideoPermissionPrompt(testPageSubstring)
+            verifyAudioVideoPermissionPrompt(testPageHost)
             selectRememberPermissionDecision()
         }.clickPagePermissionButton(true) {
             verifyPageContent("Camera and Microphone allowed")
@@ -140,7 +140,7 @@ class SitePermissionsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartMicrophoneButton {
-            verifyMicrophonePermissionPrompt(testPageSubstring)
+            verifyMicrophonePermissionPrompt(testPageHost)
         }.clickPagePermissionButton(false) {
             verifyPageContent("Microphone not allowed")
         }.clickStartMicrophoneButton {
@@ -158,7 +158,7 @@ class SitePermissionsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartMicrophoneButton {
-            verifyMicrophonePermissionPrompt(testPageSubstring)
+            verifyMicrophonePermissionPrompt(testPageHost)
             selectRememberPermissionDecision()
         }.clickPagePermissionButton(false) {
             verifyPageContent("Microphone not allowed")
@@ -180,7 +180,7 @@ class SitePermissionsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartMicrophoneButton {
-            verifyMicrophonePermissionPrompt(testPageSubstring)
+            verifyMicrophonePermissionPrompt(testPageHost)
             selectRememberPermissionDecision()
         }.clickPagePermissionButton(true) {
             verifyPageContent("Microphone allowed")
@@ -202,7 +202,7 @@ class SitePermissionsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartCameraButton {
-            verifyCameraPermissionPrompt(testPageSubstring)
+            verifyCameraPermissionPrompt(testPageHost)
         }.clickPagePermissionButton(false) {
             verifyPageContent("Camera not allowed")
         }.clickStartCameraButton {
@@ -220,7 +220,7 @@ class SitePermissionsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartCameraButton {
-            verifyCameraPermissionPrompt(testPageSubstring)
+            verifyCameraPermissionPrompt(testPageHost)
             selectRememberPermissionDecision()
         }.clickPagePermissionButton(false) {
             verifyPageContent("Camera not allowed")
@@ -242,7 +242,7 @@ class SitePermissionsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartCameraButton {
-            verifyCameraPermissionPrompt(testPageSubstring)
+            verifyCameraPermissionPrompt(testPageHost)
             selectRememberPermissionDecision()
         }.clickPagePermissionButton(true) {
             verifyPageContent("Camera allowed")
@@ -262,14 +262,14 @@ class SitePermissionsTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
         }.clickOpenNotificationButton {
-            verifyNotificationsPermissionPrompt(testPageSubstring)
+            verifyNotificationsPermissionPrompt(testPageHost)
         }.clickPagePermissionButton(false) {
             verifyPageContent("Notifications not allowed")
         }.openThreeDotMenu {
         }.refreshPage {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickOpenNotificationButton {
-            verifyNotificationsPermissionPrompt(testPageSubstring, true)
+            verifyNotificationsPermissionPrompt(testPageHost, true)
         }
     }
 
@@ -279,7 +279,7 @@ class SitePermissionsTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
         }.clickOpenNotificationButton {
-            verifyNotificationsPermissionPrompt(testPageSubstring)
+            verifyNotificationsPermissionPrompt(testPageHost)
         }.clickPagePermissionButton(true) {
             verifyPageContent("Notifications allowed")
         }
@@ -294,7 +294,7 @@ class SitePermissionsTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
         }.clickGetLocationButton {
-            verifyLocationPermissionPrompt(testPageSubstring)
+            verifyLocationPermissionPrompt(testPageHost)
         }.clickPagePermissionButton(true) {
             verifyPageContent("${mockLocationUpdatesRule.latitude}")
             verifyPageContent("${mockLocationUpdatesRule.longitude}")
@@ -307,7 +307,7 @@ class SitePermissionsTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
         }.clickGetLocationButton {
-            verifyLocationPermissionPrompt(testPageSubstring)
+            verifyLocationPermissionPrompt(testPageHost)
         }.clickPagePermissionButton(false) {
             verifyPageContent("User denied geolocation prompt")
         }

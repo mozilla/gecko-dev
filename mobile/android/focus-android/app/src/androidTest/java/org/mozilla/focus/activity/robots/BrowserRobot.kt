@@ -140,16 +140,16 @@ class BrowserRobot {
 
     fun clickGetCameraButton() = clickPageObject(webPageItemContainingText("Open camera"))
 
-    fun verifyCameraPermissionPrompt(url: String) {
+    fun verifyCameraPermissionPrompt(host: String) {
         assertTrue(
-            mDevice.findObject(UiSelector().text("Allow $url to use your camera?"))
+            mDevice.findObject(UiSelector().text("Allow $host to use your camera?"))
                 .waitForExists(waitingTime),
         )
     }
 
-    fun verifyLocationPermissionPrompt(url: String) {
+    fun verifyLocationPermissionPrompt(host: String) {
         assertTrue(
-            mDevice.findObject(UiSelector().text("Allow $url to use your location?"))
+            mDevice.findObject(UiSelector().text("Allow $host to use your location?"))
                 .waitForExists(waitingTime),
         )
     }

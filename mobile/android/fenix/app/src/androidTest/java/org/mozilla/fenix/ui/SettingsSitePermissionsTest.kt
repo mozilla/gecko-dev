@@ -34,8 +34,8 @@ import org.mozilla.fenix.ui.robots.navigationToolbar
 class SettingsSitePermissionsTest : TestSetup() {
     /* Test page created and handled by the Mozilla mobile test-eng team */
     private val permissionsTestPage = "https://mozilla-mobile.github.io/testapp/v2.0/permissions"
-    private val permissionsTestPageHost = "https://mozilla-mobile.github.io"
-    private val testPageSubstring = "https://mozilla-mobile.github.io:443"
+    private val permissionsTestPageOrigin = "https://mozilla-mobile.github.io"
+    private val permissionsTestPageHost = "mozilla-mobile.github.io"
 
     @get:Rule
     val activityTestRule = AndroidComposeTestRule(
@@ -307,7 +307,7 @@ class SettingsSitePermissionsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(permissionsTestPage.toUri()) {
         }.clickStartCameraButton {
             grantSystemPermission()
-            verifyCameraPermissionPrompt(testPageSubstring)
+            verifyCameraPermissionPrompt(permissionsTestPageHost)
             pressBack()
         }
         browserScreen {
@@ -333,7 +333,7 @@ class SettingsSitePermissionsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(permissionsTestPage.toUri()) {
         }.clickStartMicrophoneButton {
             grantSystemPermission()
-            verifyMicrophonePermissionPrompt(testPageSubstring)
+            verifyMicrophonePermissionPrompt(permissionsTestPageHost)
             pressBack()
         }
         browserScreen {
@@ -358,7 +358,7 @@ class SettingsSitePermissionsTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(permissionsTestPage.toUri()) {
         }.clickGetLocationButton {
-            verifyLocationPermissionPrompt(testPageSubstring)
+            verifyLocationPermissionPrompt(permissionsTestPageHost)
             pressBack()
         }
         browserScreen {
@@ -383,7 +383,7 @@ class SettingsSitePermissionsTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(permissionsTestPage.toUri()) {
         }.clickOpenNotificationButton {
-            verifyNotificationsPermissionPrompt(testPageSubstring)
+            verifyNotificationsPermissionPrompt(permissionsTestPageHost)
             pressBack()
         }
         browserScreen {
@@ -408,7 +408,7 @@ class SettingsSitePermissionsTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(permissionsTestPage.toUri()) {
         }.clickRequestPersistentStorageAccessButton {
-            verifyPersistentStoragePermissionPrompt(testPageSubstring)
+            verifyPersistentStoragePermissionPrompt(permissionsTestPageHost)
             pressBack()
         }
         browserScreen {
@@ -433,7 +433,7 @@ class SettingsSitePermissionsTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(permissionsTestPage.toUri()) {
         }.clickRequestDRMControlledContentAccessButton {
-            verifyDRMContentPermissionPrompt(testPageSubstring)
+            verifyDRMContentPermissionPrompt(permissionsTestPageHost)
             pressBack()
             browserScreen {
             }.openThreeDotMenu {
@@ -472,13 +472,13 @@ class SettingsSitePermissionsTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(permissionsTestPage.toUri()) {
         }.clickOpenNotificationButton {
-            verifyNotificationsPermissionPrompt(testPageSubstring)
+            verifyNotificationsPermissionPrompt(permissionsTestPageHost)
         }.clickPagePermissionButton(true) {
         }.openThreeDotMenu {
         }.openSettings {
         }.openSettingsSubMenuSiteSettings {
         }.openExceptions {
-            verifyExceptionCreated(permissionsTestPageHost, true)
+            verifyExceptionCreated(permissionsTestPageOrigin, true)
             clickClearPermissionsOnAllSites()
             verifyClearPermissionsDialog()
             clickCancel()
@@ -494,14 +494,14 @@ class SettingsSitePermissionsTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(permissionsTestPage.toUri()) {
         }.clickOpenNotificationButton {
-            verifyNotificationsPermissionPrompt(testPageSubstring)
+            verifyNotificationsPermissionPrompt(permissionsTestPageHost)
         }.clickPagePermissionButton(true) {
         }.openThreeDotMenu {
         }.openSettings {
         }.openSettingsSubMenuSiteSettings {
         }.openExceptions {
-            verifyExceptionCreated(permissionsTestPageHost, true)
-            openSiteExceptionsDetails(permissionsTestPageHost)
+            verifyExceptionCreated(permissionsTestPageOrigin, true)
+            openSiteExceptionsDetails(permissionsTestPageOrigin)
             clickClearPermissionsForOneSite()
             verifyClearPermissionsForOneSiteDialog()
             clickCancel()
@@ -517,14 +517,14 @@ class SettingsSitePermissionsTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(permissionsTestPage.toUri()) {
         }.clickOpenNotificationButton {
-            verifyNotificationsPermissionPrompt(testPageSubstring)
+            verifyNotificationsPermissionPrompt(permissionsTestPageHost)
         }.clickPagePermissionButton(true) {
         }.openThreeDotMenu {
         }.openSettings {
         }.openSettingsSubMenuSiteSettings {
         }.openExceptions {
-            verifyExceptionCreated(permissionsTestPageHost, true)
-            openSiteExceptionsDetails(permissionsTestPageHost)
+            verifyExceptionCreated(permissionsTestPageOrigin, true)
+            openSiteExceptionsDetails(permissionsTestPageOrigin)
             verifyPermissionSettingSummary("Notification", "Allowed")
             openChangePermissionSettingsMenu("Notification")
             clickClearOnePermissionForOneSite()
@@ -534,7 +534,7 @@ class SettingsSitePermissionsTest : TestSetup() {
             verifyPermissionSettingSummary("Notification", "Ask to allow")
             pressBack()
             // This should be changed to false, when https://bugzilla.mozilla.org/show_bug.cgi?id=1826297 is fixed
-            verifyExceptionCreated(permissionsTestPageHost, true)
+            verifyExceptionCreated(permissionsTestPageOrigin, true)
         }
     }
 }

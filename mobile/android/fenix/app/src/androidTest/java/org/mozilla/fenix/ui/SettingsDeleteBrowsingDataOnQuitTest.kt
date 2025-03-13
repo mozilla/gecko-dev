@@ -201,7 +201,7 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
     @Test
     fun deleteSitePermissionsOnQuitTest() {
         val testPage = "https://mozilla-mobile.github.io/testapp/permissions"
-        val testPageSubstring = "https://mozilla-mobile.github.io:443"
+        val testPageHost = "mozilla-mobile.github.io"
 
         homeScreen {
         }.openThreeDotMenu {
@@ -214,7 +214,7 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
             verifyPageContent("Open microphone")
         }.clickStartMicrophoneButton {
-            verifyMicrophonePermissionPrompt(testPageSubstring)
+            verifyMicrophonePermissionPrompt(testPageHost)
             selectRememberPermissionDecision()
         }.clickPagePermissionButton(false) {
             verifyPageContent("Microphone not allowed")
@@ -228,7 +228,7 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
             verifyPageContent("Open microphone")
         }.clickStartMicrophoneButton {
-            verifyMicrophonePermissionPrompt(testPageSubstring)
+            verifyMicrophonePermissionPrompt(testPageHost)
         }
     }
 
