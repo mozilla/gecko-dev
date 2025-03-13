@@ -23,7 +23,7 @@
     position: relative;
     z-index: var(--browser-area-z-index-sidebar);
 
-    &[positionend] {
+    &[sidebar-positionend] {
       padding-inline: 0;
       margin-inline-start: var(--space-small);
     }
@@ -95,7 +95,7 @@
     margin-inline-start: calc(-1 * var(--splitter-width));
     position: relative;
 
-    #sidebar-box[positionend] + & {
+    #sidebar-box[sidebar-positionend] + & {
       border-inline-width: 1px 0;
       margin-inline: 0 calc(-1 * var(--splitter-width));
     }
@@ -234,26 +234,32 @@ sidebar-main,
 
 /* Expand on hover */
 
-#sidebar-wrapper {
-  display: contents;
-
-  &.expandOnHover {
-    position: absolute;
-    display: flex;
+:root[sidebar-expand-on-hover] {
+  #sidebar-main {
+    border-radius: inherit;
+    background-color: inherit;
+    position: relative;
     inset: 0;
     inset-inline-end: unset;
-    z-index: var(--browser-area-z-index-sidebar-wrapper);
 
-    &:not([positionend]):hover {
-      border-start-end-radius: var(--border-radius-medium);
-      border-end-end-radius: var(--border-radius-medium);
-      border-inline-end: 0.01px solid var(--chrome-content-separator-color);
-    }
+    /* We only want to apply these styles in two scenarios:
+      * When the sidebar is expanded AND hovered
+      * When the sidebar is in the process of moving from expanded to collapsed
+    */
+    &[sidebar-launcher-expanded]:hover,
+    &[sidebar-ongoing-animations]:not([sidebar-launcher-expanded]) {
+      z-index: var(--browser-area-z-index-sidebar-wrapper);
+      position: absolute;
+      color: var(--toolbox-textcolor);
+      background-color: var(--toolbox-bgcolor);
 
-    &[positionend]:hover {
-      border-start-start-radius: var(--border-radius-medium);
-      border-start-end-radius: var(--border-radius-medium);
-      border-inline-start: 0.01px solid var(--chrome-content-separator-color);
+      &:not([sidebar-positionend]) {
+        border-inline-end: 0.01px solid var(--sidebar-border-color);
+      }
+
+      &[sidebar-positionend] {
+        border-inline-start: 0.01px solid var(--sidebar-border-color);
+      }
     }
 
     :root[lwtheme] & {
@@ -268,24 +274,80 @@ sidebar-main,
       }
     }
 
-    &:hover,
-    &.ongoing-animations {
-      color: var(--toolbox-textcolor);
-      background-color: var(--toolbox-bgcolor);
-    }
-
-    #sidebar-main {
-      border-radius: inherit;
-      background-color: inherit;
-
-      &:hover {
-        box-shadow: var(--content-area-shadow);
-      }
-    }
-
-    &[positionend] {
+    &[sidebar-positionend] {
       inset-inline-start: unset;
       inset-inline-end: 0;
     }
   }
+
+  #sidebar-launcher-splitter[sidebar-launcher-expanded] {
+    display: none;
+  }
+
+  /* We add margin to compensate for the launcher width to the element next to it.
+  The element next to it can be the sidebar box or the tabbox,
+  depending on whether the sidebar box is expanded */
+  #tabbrowser-tabbox {
+    &:not([sidebar-positionend]) {
+      &:not([sidebar-panel-open]) {
+        margin-inline-start: 0;
+      }
+
+      &[sidebar-launcher-expanded][sidebar-launcher-hovered]:not([sidebar-panel-open]),
+      &[sidebar-ongoing-animations]:not([sidebar-launcher-expanded], [sidebar-panel-open]) {
+        margin-inline-start: var(--sidebar-launcher-collapsed-width);
+      }
+    }
+
+    &[sidebar-positionend] {
+      &:not([sidebar-panel-open]) {
+        margin-inline-end: 0;
+      }
+
+      &[sidebar-launcher-expanded][sidebar-launcher-hovered]:not([sidebar-panel-open]),
+      &[sidebar-ongoing-animations]:not([sidebar-panel-open], [sidebar-launcher-expanded]) {
+        margin-inline-end: var(--sidebar-launcher-collapsed-width);
+      }
+    }
+  }
+
+  #sidebar-box {
+    &:not([sidebar-positionend]) {
+      &[sidebar-panel-open] {
+        margin-inline-start: 0;
+      }
+
+      &[sidebar-panel-open][sidebar-launcher-hovered][sidebar-launcher-expanded],
+      &[sidebar-ongoing-animations][sidebar-panel-open] {
+        margin-inline-start: var(--sidebar-launcher-collapsed-width);
+      }
+    }
+
+    &[sidebar-positionend] {
+      &[sidebar-panel-open] {
+        margin-inline-end: 0;
+      }
+
+      &[sidebar-panel-open][sidebar-launcher-hovered][sidebar-launcher-expanded],
+      &[sidebar-ongoing-animations][sidebar-panel-open] {
+        margin-inline-end: var(--sidebar-launcher-collapsed-width);
+      }
+    }
+  }
 }
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media -moz-pref("sidebar.visibility", "expand-on-hover") {
+    /* We need these rules to apply at all times when the sidebar.visibility
+    pref is set to "expand-on-hover" as opposed to when the "sidebar-expand-on-hover" attribute
+    has been added to root. There are certain scenarios when that attribute is temporarily
+    removed from root such as when toggling the sidebar to expand with the toolbar button. */
+    #sidebar-box {
+      --sidebar-border-color: light-dark(rgb(207, 207, 216), rgb(82, 82, 94));
+      > #sidebar {
+        box-shadow: none;
+        margin-block-start: 1px;
+        border: 0.5px solid var(--sidebar-border-color);
+      }
+    }
+  }

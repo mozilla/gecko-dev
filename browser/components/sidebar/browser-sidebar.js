@@ -260,6 +260,8 @@ var SidebarController = {
   _mainResizeObserverAdded: false,
   _mainResizeObserver: null,
   _ongoingAnimations: [],
+  _launcherMouseOverListenerAdded: false,
+  _launcherMouseOutListenerAdded: false,
 
   /**
    * @type {MutationObserver | null}
@@ -298,13 +300,6 @@ var SidebarController = {
       this._sidebarMain = document.querySelector("sidebar-main");
     }
     return this._sidebarMain;
-  },
-
-  get sidebarWrapper() {
-    if (!this._sidebarWrapper) {
-      this._sidebarWrapper = document.getElementById("sidebar-wrapper");
-    }
-    return this._sidebarWrapper;
   },
 
   get contentArea() {
@@ -521,7 +516,7 @@ var SidebarController = {
       this._state.launcherDragActive = true;
     }
     if (this._state.visibilitySetting === "expand-on-hover") {
-      this.setLauncherInlineMargin();
+      this.setLauncherCollapsedWidth();
     }
   },
 
@@ -712,7 +707,7 @@ var SidebarController = {
   reversePosition() {
     Services.prefs.setBoolPref(this.POSITION_START_PREF, !this._positionStart);
     if (this.sidebarRevampVisibility === "expand-on-hover") {
-      this.setLauncherInlineMargin();
+      this.setLauncherCollapsedWidth();
     }
   },
 
@@ -723,78 +718,37 @@ var SidebarController = {
   setPosition() {
     // First reset all ordinals to match DOM ordering.
     let contentArea = document.getElementById("tabbrowser-tabbox");
-    if (this.sidebarRevampVisibility !== "expand-on-hover") {
-      let flattenedSidebarEls = [...this.sidebarWrapper.children, contentArea];
-      flattenedSidebarEls.forEach((node, i) => {
-        if (node.id !== "sidebar-wrapper") {
-          node.style.order = i + 1;
-        }
-      });
-    } else {
-      let browser = document.getElementById("browser");
-      [...browser.children].forEach((node, i) => {
-        node.style.order = i + 1;
-      });
-      [...this.sidebarWrapper.children].forEach((node, i) => {
-        node.style.order = i + 1;
-      });
-    }
+    let browser = document.getElementById("browser");
+    [...browser.children].forEach((node, i) => {
+      node.style.order = i + 1;
+    });
     let sidebarContainer = document.getElementById("sidebar-main");
     let sidebarMain = document.querySelector("sidebar-main");
     if (!this._positionStart) {
-      // DOM ordering is:     sidebar-main | launcher-splitter | sidebar-box | splitter | after-splitter | tabbrowser-tabbox
-      // Want to display as:  tabbrowser-tabbox | after-splitter |  splitter |  sidebar-box  | launcher-splitter | sidebar-main
-      if (this.sidebarRevampVisibility === "expand-on-hover") {
-        // First switch order of sidebar-wrapper and tabbrowser-tabbox
-        let wrapperOrdinal = this.sidebarWrapper.style.order;
-        this.sidebarWrapper.style.order = contentArea.style.order;
-        contentArea.style.order = wrapperOrdinal;
-
-        // Next swap sidebar-main and after-splitter
-        let afterSplitter = document.getElementById("after-splitter");
-        let mainOrdinal = parseInt(this.sidebarContainer.style.order);
-        this.sidebarContainer.style.order = parseInt(afterSplitter.style.order);
-        afterSplitter.style.order = mainOrdinal;
-
-        // Then swap launcher-splitter and splitter
-        const launcherSplitterOrdinal = parseInt(
-          this._launcherSplitter.style.order
-        );
-        this._launcherSplitter.style.order = parseInt(
-          this._splitter.style.order
-        );
-        this._splitter.style.order = launcherSplitterOrdinal;
-      } else {
-        // First switch order of sidebar-main and tabbrowser-tabbox
-        let mainOrdinal = this.sidebarContainer.style.order;
-        this.sidebarContainer.style.order = parseInt(contentArea.style.order);
-        contentArea.style.order = mainOrdinal;
-        // Then swap launcher-splitter and after-splitter
-        let afterSplitter = document.getElementById("after-splitter");
-        let afterSplitterOrdinal = afterSplitter.style.order;
-        afterSplitter.style.order = this._launcherSplitter.style.order;
-        this._launcherSplitter.style.order = afterSplitterOrdinal;
-        // Last swap splitter and sidebar-box
-        let splitterOrdinal = this._splitter.style.order;
-        this._splitter.style.order = this._box.style.order;
-        this._box.style.order = splitterOrdinal;
-      }
-
-      // Indicate we've switched ordering to the box
-      this._box.toggleAttribute("positionend", true);
-      sidebarMain.toggleAttribute("positionend", true);
-      sidebarContainer.toggleAttribute("positionend", true);
-      this.toolbarButton &&
-        this.toolbarButton.toggleAttribute("positionend", true);
-      this.sidebarWrapper.toggleAttribute("positionend", true);
-    } else {
-      this._box.toggleAttribute("positionend", false);
-      sidebarMain.toggleAttribute("positionend", false);
-      sidebarContainer.toggleAttribute("positionend", false);
-      this.toolbarButton &&
-        this.toolbarButton.toggleAttribute("positionend", false);
-      this.sidebarWrapper.toggleAttribute("positionend", false);
+      // DOM ordering is:     sidebar-main | launcher-splitter | sidebar-box | splitter | tabbrowser-tabbox
+      // Want to display as:  tabbrowser-tabbox | splitter |  sidebar-box  | launcher-splitter | sidebar-main
+      // First switch order of sidebar-main and tabbrowser-tabbox
+      let mainOrdinal = this.sidebarContainer.style.order;
+      this.sidebarContainer.style.order = contentArea.style.order;
+      contentArea.style.order = mainOrdinal;
+      // Then swap launcher-splitter and splitter
+      let splitterOrdinal = this._splitter.style.order;
+      this._splitter.style.order = this._launcherSplitter.style.order;
+      this._launcherSplitter.style.order = splitterOrdinal;
     }
+    // Indicate we've switched ordering to the box
+    this._box.toggleAttribute("sidebar-positionend", !this._positionStart);
+    sidebarMain.toggleAttribute("sidebar-positionend", !this._positionStart);
+    contentArea.toggleAttribute("sidebar-positionend", !this._positionStart);
+    sidebarContainer.toggleAttribute(
+      "sidebar-positionend",
+      !this._positionStart
+    );
+    this.toolbarButton &&
+      this.toolbarButton.toggleAttribute(
+        "sidebar-positionend",
+        !this._positionStart
+      );
 
     this.hideSwitcherPanel();
 
@@ -1072,9 +1026,16 @@ var SidebarController = {
 
   async _animateSidebarMain() {
     let tabbox = document.getElementById("tabbrowser-tabbox");
-    let animatingElements = [this.sidebarContainer, this._box, this._splitter];
-    if (this.sidebarRevampVisibility !== "expand-on-hover") {
-      animatingElements.push(tabbox);
+    let animatingElements;
+    if (document.documentElement.hasAttribute("sidebar-expand-on-hover")) {
+      animatingElements = [this.sidebarContainer];
+    } else {
+      animatingElements = [
+        this.sidebarContainer,
+        this._box,
+        this._splitter,
+        tabbox,
+      ];
     }
     let resetElements = () => {
       for (let el of animatingElements) {
@@ -1085,7 +1046,12 @@ var SidebarController = {
           el.style.display =
             "";
       }
-      this.sidebarWrapper.classList.remove("ongoing-animations");
+      this.sidebarContainer.toggleAttribute(
+        "sidebar-ongoing-animations",
+        false
+      );
+      this._box.toggleAttribute("sidebar-ongoing-animations", false);
+      tabbox.toggleAttribute("sidebar-ongoing-animations", false);
     };
     if (this._ongoingAnimations.length) {
       this._ongoingAnimations.forEach(a => a.cancel());
@@ -1104,10 +1070,9 @@ var SidebarController = {
     });
 
     const options = {
-      duration:
-        this.sidebarRevampVisibility === "expand-on-hover"
-          ? this._animationExpandOnHoverDurationMs
-          : this._animationDurationMs,
+      duration: document.documentElement.hasAttribute("sidebar-expand-on-hover")
+        ? this._animationExpandOnHoverDurationMs
+        : this._animationDurationMs,
       easing: "ease-in-out",
     };
     let animations = [];
@@ -1194,7 +1159,9 @@ var SidebarController = {
       );
     }
     this._ongoingAnimations = animations;
-    this.sidebarWrapper.classList.add("ongoing-animations");
+    this.sidebarContainer.toggleAttribute("sidebar-ongoing-animations", true);
+    this._box.toggleAttribute("sidebar-ongoing-animations", true);
+    tabbox.toggleAttribute("sidebar-ongoing-animations", true);
     await Promise.allSettled(animations.map(a => a.finished));
     if (this._ongoingAnimations === animations) {
       this._ongoingAnimations = [];
@@ -1209,6 +1176,9 @@ var SidebarController = {
     let initialExpandedValue = this._state.launcherExpanded;
     if (this.inPopup || this.uninitializing) {
       return;
+    }
+    if (this.sidebarRevampVisibility === "expand-on-hover") {
+      this.toggleExpandOnHover(initialExpandedValue);
     }
     if (this._animationEnabled && !window.gReduceMotion) {
       this._animateSidebarMain();
@@ -1919,43 +1889,74 @@ var SidebarController = {
     this.sidebarMain.requestUpdate();
   },
 
-  onMouseOver() {
-    SidebarController._state.launcherHoverActive = true;
-    SidebarController.sidebarMain.addEventListener(
-      "mouseout",
-      SidebarController.onMouseOut,
-      { once: true }
-    );
-    if (SidebarController._animationEnabled && !window.gReduceMotion) {
-      SidebarController._animateSidebarMain();
+  onMouseOver(e) {
+    if (!SidebarController.sidebarContainer.matches(":hover")) {
+      // Don't fire mouseout if hovered over element outside of the launcher
+      e.stopPropagation();
+    } else {
+      const contentArea = document.getElementById("tabbrowser-tabbox");
+      SidebarController._box.toggleAttribute("sidebar-launcher-hovered", true);
+      contentArea.toggleAttribute("sidebar-launcher-hovered", true);
+      SidebarController._state.launcherHoverActive = true;
+      if (!SidebarController._launcherMouseOutListenerAdded) {
+        SidebarController.sidebarContainer.addEventListener(
+          "mouseout",
+          SidebarController.onMouseOut
+        );
+        SidebarController._launcherMouseOutListenerAdded = true;
+      }
+      if (SidebarController._animationEnabled && !window.gReduceMotion) {
+        if (SidebarController._ongoingAnimations.length) {
+          SidebarController._ongoingAnimations.forEach(a => a.cancel());
+          SidebarController._ongoingAnimations = [];
+        }
+        SidebarController._animateSidebarMain();
+      }
+      SidebarController._state.launcherExpanded = true;
+      SidebarController.sidebarContainer.removeEventListener(
+        "mouseover",
+        SidebarController.onMouseOver
+      );
+      SidebarController._launcherMouseOverListenerAdded = false;
     }
-    SidebarController._state.updateVisibility(true, false, false, true);
-    SidebarController.sidebarMain.removeEventListener(
-      "mouseover",
-      SidebarController.onMouseOver
-    );
   },
 
-  onMouseOut() {
-    SidebarController._state.launcherHoverActive = false;
-    SidebarController.sidebarMain.addEventListener(
-      "mouseover",
-      SidebarController.onMouseOver,
-      { once: true }
-    );
-    if (SidebarController._animationEnabled && !window.gReduceMotion) {
-      SidebarController._animateSidebarMain();
+  onMouseOut(e) {
+    if (SidebarController.sidebarContainer.matches(":hover")) {
+      // Don't fire mouseout if hovered over launcher child element
+      e.stopPropagation();
+    } else {
+      const contentArea = document.getElementById("tabbrowser-tabbox");
+      SidebarController._box.toggleAttribute("sidebar-launcher-hovered", false);
+      contentArea.toggleAttribute("sidebar-launcher-hovered", false);
+      SidebarController._state.launcherHoverActive = false;
+      if (!SidebarController._launcherMouseOverListenerAdded) {
+        SidebarController.sidebarContainer.addEventListener(
+          "mouseover",
+          SidebarController.onMouseOver
+        );
+        SidebarController._launcherMouseOverListenerAdded = true;
+      }
+      if (SidebarController._animationEnabled && !window.gReduceMotion) {
+        if (SidebarController._ongoingAnimations.length) {
+          SidebarController._ongoingAnimations.forEach(a => a.cancel());
+          SidebarController._ongoingAnimations = [];
+        }
+        SidebarController._animateSidebarMain();
+      }
+      SidebarController._state.launcherExpanded = false;
+      SidebarController.sidebarContainer.removeEventListener(
+        "mouseout",
+        SidebarController.onMouseOut
+      );
+      SidebarController._launcherMouseOutListenerAdded = false;
     }
-    SidebarController._state.updateVisibility(true, false, false, false);
-    SidebarController.sidebarMain.removeEventListener(
-      "mouseout",
-      SidebarController.onMouseOut
-    );
   },
 
-  async setLauncherInlineMargin() {
+  async setLauncherCollapsedWidth() {
+    let browserEl = document.getElementById("browser");
     let collapsedWidth;
-    if (this._state.launcherExpanded) {
+    if (this.getUIState().launcherExpanded) {
       this._state.launcherExpanded = false;
       await this.sidebarMain.updateComplete;
       collapsedWidth = await new Promise(resolve => {
@@ -1967,40 +1968,30 @@ var SidebarController = {
       collapsedWidth = this._getRects([this.sidebarMain])[0][1].width;
     }
 
-    this._state.collapsedLauncherWidth = collapsedWidth;
-
-    // Make sure sidebar doesn't overlay content area outline
-    const CONTENT_AREA_OUTLINE_WIDTH = 1;
-
-    if (this._positionStart) {
-      this.contentArea.style.marginInlineStart = `${this._state.collapsedLauncherWidth + CONTENT_AREA_OUTLINE_WIDTH}px`;
-      this.contentArea.style.marginInlineEnd = "";
-    } else {
-      this.contentArea.style.marginInlineEnd = `${this._state.collapsedLauncherWidth + CONTENT_AREA_OUTLINE_WIDTH}px`;
-      this.contentArea.style.marginInlineStart = "";
-    }
+    browserEl.style.setProperty(
+      "--sidebar-launcher-collapsed-width",
+      `${collapsedWidth}px`
+    );
   },
 
-  async toggleExpandOnHover(isEnabled) {
-    this.setPosition();
+  async toggleExpandOnHover(isEnabled, isDragEnded) {
+    document.documentElement.toggleAttribute(
+      "sidebar-expand-on-hover",
+      isEnabled
+    );
     if (isEnabled) {
-      this.sidebarWrapper.classList.add("expandOnHover");
       if (!this._state) {
         this._state = new this.SidebarState(this);
       }
+      this.sidebarContainer.addEventListener("mouseover", this.onMouseOver);
 
       await this.sidebarMain.updateComplete;
       await this._waitForOngoingAnimations();
-      await this.setLauncherInlineMargin();
-
-      this.sidebarMain.addEventListener("mouseover", this.onMouseOver, {
-        once: true,
-      });
+      if (!isDragEnded) {
+        await this.setLauncherCollapsedWidth();
+      }
     } else {
-      this.sidebarWrapper.classList.remove("expandOnHover");
-      this.sidebarMain.removeEventListener("mouseover", this.onMouseOver);
-      this.contentArea.style.marginInlineStart = "";
-      this.contentArea.style.marginInlineEnd = "";
+      this.sidebarContainer.removeEventListener("mouseover", this.onMouseOver);
     }
   },
 

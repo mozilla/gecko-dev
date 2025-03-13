@@ -32,9 +32,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
  * @property {number} launcherWidth
  *   Current width of the sidebar launcher.
  * @property {number} expandedLauncherWidth
- *   Width that the sidebar launcher should expand to.
- * @property {number} collapsedLauncherWidth
- *   Width that the sidebar launcher should collapse to.
  */
 
 const LAUNCHER_MINIMUM_WIDTH = 100;
@@ -57,8 +54,6 @@ export class SidebarState {
     launcherExpanded: false,
     launcherDragActive: false,
     launcherHoverActive: false,
-    collapsedLauncherWidth: undefined,
-    command: undefined,
   };
   #previousLauncherExpanded = undefined;
 
@@ -218,10 +213,6 @@ export class SidebarState {
       expandedLauncherWidth: convertToInt(this.expandedLauncherWidth),
       launcherExpanded: this.launcherExpanded,
       launcherVisible: this.launcherVisible,
-      collapsedLauncherWidth:
-        typeof this.collapsedLauncherWidth === "number"
-          ? Math.round(this.collapsedLauncherWidth)
-          : this.collapsedLauncherWidth,
     };
   }
 
@@ -249,12 +240,20 @@ export class SidebarState {
         ? this.#previousLauncherExpanded
         : false;
     }
+
+    const mainEl = this.#controller.sidebarContainer;
+    const boxEl = this.#controller._box;
+    const contentAreaEl =
+      this.#controllerGlobal.document.getElementById("tabbrowser-tabbox");
+    mainEl.toggleAttribute("sidebar-panel-open", open);
+    boxEl.toggleAttribute("sidebar-panel-open", open);
+    contentAreaEl.toggleAttribute("sidebar-panel-open", open);
   }
 
   get panelWidth() {
     // Use the value from `style`. This is a more accurate user preference, as
     // opposed to what the resize observer gives us.
-    return convertToInt(this.#panelEl.style.width);
+    return convertToInt(this.#panelEl?.style.width);
   }
 
   set panelWidth(width) {
@@ -358,7 +357,16 @@ export class SidebarState {
     // Marking the tab container element as expanded or not simplifies the CSS logic
     // and selectors considerably.
     const { tabContainer } = this.#controllerGlobal.gBrowser;
+    const mainEl = this.#controller.sidebarContainer;
+    const splitterEl = this.#controller._launcherSplitter;
+    const boxEl = this.#controller._box;
+    const contentAreaEl =
+      this.#controllerGlobal.document.getElementById("tabbrowser-tabbox");
     tabContainer.toggleAttribute("expanded", expanded);
+    mainEl.toggleAttribute("sidebar-launcher-expanded", expanded);
+    splitterEl.toggleAttribute("sidebar-launcher-expanded", expanded);
+    boxEl.toggleAttribute("sidebar-launcher-expanded", expanded);
+    contentAreaEl.toggleAttribute("sidebar-launcher-expanded", expanded);
     this.#controller.updateToolbarButton();
     if (!this.launcherDragActive) {
       this.#updateLauncherWidth();
@@ -373,6 +381,12 @@ export class SidebarState {
     this.#props.launcherDragActive = active;
     if (active) {
       this.#launcherEl.toggleAttribute("customWidth", true);
+      if (
+        this.launcherExpanded &&
+        this.#controller.sidebarRevampVisibility === "expand-on-hover"
+      ) {
+        this.#controller.toggleExpandOnHover(false);
+      }
     } else if (this.launcherWidth < LAUNCHER_MINIMUM_WIDTH) {
       // Snap back to collapsed state when the new width is too narrow.
       this.launcherExpanded = false;
@@ -382,7 +396,12 @@ export class SidebarState {
     } else {
       // Store the user-preferred launcher width.
       this.expandedLauncherWidth = this.launcherWidth;
+      if (this.#controller.sidebarRevampVisibility === "expand-on-hover") {
+        this.#controller.toggleExpandOnHover(true, true);
+      }
     }
+    const rootEl = this.#controllerGlobal.document.documentElement;
+    rootEl.toggleAttribute("sidebar-launcher-drag-active", active);
   }
 
   get launcherHoverActive() {
@@ -416,14 +435,6 @@ export class SidebarState {
   set expandedLauncherWidth(width) {
     this.#props.expandedLauncherWidth = width;
     this.#updateLauncherWidth();
-  }
-
-  get collapsedLauncherWidth() {
-    return this.#props.collapsedLauncherWidth;
-  }
-
-  set collapsedLauncherWidth(width) {
-    this.#props.collapsedLauncherWidth = width;
   }
 
   /**
