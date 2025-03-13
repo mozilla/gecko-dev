@@ -6369,6 +6369,7 @@ main section {
   align-items: center;
 }
 .ds-card .meta .source img {
+  border-radius: var(--border-radius-small);
   margin-inline-end: var(--space-small);
 }
 .ds-card .meta .source span {
