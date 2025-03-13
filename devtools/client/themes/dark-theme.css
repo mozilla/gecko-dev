@@ -267,12 +267,6 @@ div.CodeMirror span.eval-text {
   color: var(--grey-40);
 }
 
-.cm-s-mozilla .CodeMirror-gutters,
-.cm-editor .cm-gutters { /* vertical line next to line numbers */
-  border-right-color: var(--theme-toolbar-background);
-  background-color: var(--theme-sidebar-background);
-}
-
 .CodeMirror-Tern-fname {
   color: #f7f7f7;
 }

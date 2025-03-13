@@ -4,13 +4,15 @@
 
 
 :root {
-  --breakpoint-active-color: rgba(44,187,15,.2);
-  --breakpoint-active-color-hover: rgba(44,187,15,.5);
-}
+  --breakpoint-active-color: light-dark(rgba(44,187,15,.2), rgba(0,255,175,.4));
+  --breakpoint-active-color-hover: light-dark(rgba(44,187,15,.5), rgba(0,255,175,.7););
+  --gutter-background-color: var(--theme-sidebar-background);
+  --gutter-border-color: light-dark(var(--theme-splitter-color), var(--theme-toolbar-background));
 
-.theme-dark:root {
-  --breakpoint-active-color: rgba(0,255,175,.4);
-  --breakpoint-active-color-hover: rgba(0,255,175,.7);
+  &[forced-colors-active] {
+    /* overriding variable in HCM so the border is actually visible (see Bug 1953376) */
+    --gutter-border-color: var(--theme-splitter-color);
+  }
 }
 
 /* We don't want the focus style to be displayed on the CodeMirror scrollbars.
@@ -94,6 +96,12 @@
 
 .CodeMirror-gutters {
   cursor: default;
+}
+
+.cm-s-mozilla .CodeMirror-gutters,
+.cm-editor .cm-gutters { /* vertical line next to line numbers */
+  border-right-color: var(--gutter-border-color);
+  background-color: var(--gutter-background-color);
 }
 
 .cm-trailingspace {

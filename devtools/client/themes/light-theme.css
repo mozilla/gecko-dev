@@ -252,12 +252,6 @@ div.CodeMirror span.eval-text {
   color: var(--grey-50);
 }
 
-.cm-s-mozilla .CodeMirror-gutters,
-.cm-editor .cm-gutters { /* vertical line next to line numbers */
-  border-right-color: var(--theme-splitter-color);
-  background-color: var(--theme-sidebar-background);
-}
-
 .CodeMirror-hints,
 .CodeMirror-Tern-tooltip {
   box-shadow: 0 0 4px rgba(128, 128, 128, .5);
