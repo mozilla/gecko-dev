@@ -289,6 +289,9 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_dbg-sources-project-search.js"]
 
 ["browser_dbg-state-based-panels.js"]
+skip-if = [
+ "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1783639
+]
 
 ["browser_dbg-step-in-navigate.js"]
 
