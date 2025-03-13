@@ -293,6 +293,13 @@ export class MultiProgressAggregator {
   #seenTypes;
 
   /**
+   * Total number of objects seen, irrespective of method
+   *
+   * @type {integer}
+   */
+  #totalObjectsSeen = 0;
+
+  /**
    * The status of text seen so far.
    *
    * @type {Set<string>}
@@ -326,11 +333,19 @@ export class MultiProgressAggregator {
       }
 
       if (data.statusText == ProgressStatusText.SIZE_ESTIMATE) {
+        if (data.type != ProgressType.LOAD_FROM_CACHE) {
+          // We consider a downloaded object seen when we have the size estimate (object started downloading)
+          this.#totalObjectsSeen += 1;
+        }
         this.#combinedTotal += data.total ?? 0;
       }
 
       if (data.statusText == ProgressStatusText.DONE) {
         this.#remainingEvents -= 1;
+        if (data.type == ProgressType.LOAD_FROM_CACHE) {
+          // We consider a cached (not downloaded) object seen when loaded
+          this.#totalObjectsSeen += 1;
+        }
       }
 
       this.#combinedLoaded += data.currentLoaded ?? 0;
@@ -345,6 +360,7 @@ export class MultiProgressAggregator {
           statusText = ProgressStatusText.DONE;
         }
 
+        data = { ...data, totalObjectsSeen: this.#totalObjectsSeen };
         this.progressCallback(
           new ProgressAndStatusCallbackParams({
             type: data.type,

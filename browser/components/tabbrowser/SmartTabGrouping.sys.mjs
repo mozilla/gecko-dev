@@ -22,6 +22,8 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   NLP: "resource://gre/modules/NLP.sys.mjs",
   MLEngineParent: "resource://gre/actors/MLEngineParent.sys.mjs",
+  MultiProgressAggregator: "chrome://global/content/ml/Utils.sys.mjs",
+  Progress: "chrome://global/content/ml/Utils.sys.mjs",
 });
 
 const EMBED_TEXT_KEY = "combined_text";
@@ -46,6 +48,9 @@ export const SUGGEST_OTHER_TABS_METHODS = {
   KMEANS_WITH_ANCHOR: "KMEANS_WITH_ANCHOR",
   NEAREST_NEIGHBOR: "NEAREST_NEIGHBOR",
 };
+
+const EXPECTED_TOPIC_MODEL_OBJECTS = 6;
+const EXPECTED_EMBEDDING_MODEL_OBJECTS = 4;
 
 export const DIM_REDUCTION_METHODS = {};
 const MISSING_ANCHOR_IN_CLUSTER_PENALTY = 0.2;
@@ -397,9 +402,10 @@ export class SmartTabGroupingManager {
   /**
    * Creates an ML engine for a given config.
    * @param {*} engineConfig
+   * @param {function} progressCallback
    * @returns MLEngine
    */
-  async _createMLEngine(engineConfig) {
+  async _createMLEngine(engineConfig, progressCallback) {
     const {
       featureId,
       engineId,
@@ -418,7 +424,7 @@ export class SmartTabGroupingManager {
       modelId,
       modelRevision,
     };
-    return await createEngine(initData);
+    return await createEngine(initData, progressCallback);
   }
 
   /**
@@ -647,6 +653,69 @@ export class SmartTabGroupingManager {
       tabs,
       config: this.config,
     });
+  }
+
+  /***
+   * Utility function that loads all required engines for Smart Tab Grouping and any dependent models
+   * @param {(progress: { percentage: number }) => void} progressCallback callback function to call.
+   * Callback passes a dict with percentage indicating best effort 0.0-100.0 progress in model download.
+   */
+  async preloadAllModels(progressCallback) {
+    let previousProgress = -1;
+    const expectedObjects =
+      EXPECTED_TOPIC_MODEL_OBJECTS + EXPECTED_EMBEDDING_MODEL_OBJECTS;
+    // TODO - Find a way to get these fields. Add as a transformers js callback or within remotesettings
+
+    const UPDATE_THRESHOLD_PERCENTAGE = 0.5;
+    const ONE_MB = 1024 * 1024;
+    const START_THRESHOLD_BYTES = ONE_MB;
+
+    const mutliProgressAggregator = new lazy.MultiProgressAggregator({
+      progressCallback: ({ progress, totalLoaded, metadata }) => {
+        if (totalLoaded < START_THRESHOLD_BYTES) {
+          progress = 0.0;
+        } else {
+          const numObjSeen = metadata.totalObjectsSeen || 0;
+          if (numObjSeen > 0 && numObjSeen < expectedObjects) {
+            // When starting to download we may still be getting configs and not have all the data
+            progress *= numObjSeen / expectedObjects;
+          }
+          if (progress > 100) {
+            progress = 100;
+          }
+        }
+        if (
+          Math.abs(previousProgress - progress) > UPDATE_THRESHOLD_PERCENTAGE
+        ) {
+          // Update only once changes are above a threshold to avoid throttling the UI with events.
+          progressCallback({
+            percentage: progress,
+          });
+          previousProgress = progress;
+        }
+      },
+      watchedTypes: [
+        lazy.Progress.ProgressType.DOWNLOAD,
+        lazy.Progress.ProgressType.LOAD_FROM_CACHE,
+      ],
+    });
+
+    const [topicEngine, embeddingEngine] = await Promise.all([
+      this._createMLEngine(
+        this.config.topicGeneration,
+        mutliProgressAggregator?.aggregateCallback.bind(
+          mutliProgressAggregator
+        ) || null
+      ),
+      this._createMLEngine(
+        this.config.embedding,
+        mutliProgressAggregator?.aggregateCallback.bind(
+          mutliProgressAggregator
+        ) || null
+      ),
+    ]);
+    this.topicEngine = topicEngine;
+    this.embeddingEngine = embeddingEngine;
   }
 
   /**

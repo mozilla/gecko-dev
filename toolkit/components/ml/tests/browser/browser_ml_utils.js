@@ -267,6 +267,8 @@ add_task(async function test_multi_aggregator() {
 
   let expectedTotalLoaded = 0;
 
+  let taskIdsWithDataSet = new Set();
+
   const aggregator = new MultiProgressAggregator({
     progressCallback: data => {
       currentData = data;
@@ -299,6 +301,7 @@ add_task(async function test_multi_aggregator() {
         statusText: currentData?.statusText,
         type: currentData?.type,
         id: currentData?.id,
+        totalObjectsSeen: currentData?.metadata?.totalObjectsSeen,
         numDone,
         numCalls,
       },
@@ -306,6 +309,7 @@ add_task(async function test_multi_aggregator() {
         statusText: ProgressStatusText.INITIATE,
         type: taskTypes[i],
         id: taskIds[i],
+        totalObjectsSeen: taskIdsWithDataSet.size,
         numDone: 0,
         numCalls: expectedNumCalls,
       },
@@ -324,17 +328,20 @@ add_task(async function test_multi_aggregator() {
     Assert.ok(currentData, "Received data should be defined");
 
     expectedTotalToLoad += taskSizes[i];
+    taskIdsWithDataSet.add(taskIds[i]);
 
     Assert.deepEqual(
       {
         numDone,
         numCalls,
         total: currentData.total,
+        totalObjectsSeen: currentData?.metadata?.totalObjectsSeen,
       },
       {
         numDone: 0,
         total: expectedTotalToLoad,
         numCalls: expectedNumCalls,
+        totalObjectsSeen: taskIdsWithDataSet.size,
       },
       "Data received after size estimate should be correct."
     );
@@ -364,6 +371,7 @@ add_task(async function test_multi_aggregator() {
         numDone,
         numCalls,
         total: currentData?.total,
+        totalObjectsSeen: currentData?.metadata?.totalObjectsSeen,
         currentLoaded: currentData?.currentLoaded,
         totalLoaded: currentData?.totalLoaded,
       },
@@ -371,6 +379,7 @@ add_task(async function test_multi_aggregator() {
         numDone: 0,
         numCalls: expectedNumCalls,
         total: expectedTotalToLoad,
+        totalObjectsSeen: taskIdsWithDataSet.size,
         currentLoaded: chunkSizes[chunkIndex],
         totalLoaded: expectedTotalLoaded,
       },
