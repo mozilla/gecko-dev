@@ -76,7 +76,7 @@
 
 #selection-size {
   border: var(--border-width) solid var(--in-content-border-color);
-  box-shadow: var(--shadow-30);
+  box-shadow: var(--box-shadow-popup);
 }
 
 .buttons-wrapper,

@@ -11,17 +11,21 @@ h1 {
 .certificate-tabs {
   display: flex;
   text-align: center;
-  border-bottom: 1px solid var(--in-content-border-color);
-  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color-card);
+  border-radius: 4px 4px 0 0;
+  border-bottom: 1px solid var(--border-color-card);
+  box-shadow: var(--box-shadow-card);
 }
 
 .info-groups {
   display: none;
   outline: none;
   background-color: var(--background-color-box);
-  box-shadow: var(--card-shadow);
+  box-shadow: var(--box-shadow-card);
   margin-bottom: 2em;
-  border-radius: 0 0 4px 4px;
+  border: 1px solid var(--border-color-card);
+  border-top: none;
+  border-radius: var(--border-radius-small) var(--border-radius-small) 0 0;
 }
 
 .info-groups.selected {
@@ -61,7 +65,7 @@ h1 {
 }
 
 .tab:hover {
-  border-bottom-color: var(--in-content-border-color);
+  border-bottom-color: var(--border-color-card);
 }
 
 .tab.selected {

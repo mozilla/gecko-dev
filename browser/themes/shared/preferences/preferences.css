@@ -618,7 +618,7 @@ html|dialog,
 .dialogBox {
   border: 1px solid transparent;
   border-radius: 8px;
-  box-shadow: 0 2px 6px 0 rgba(0,0,0,0.3);
+  box-shadow: var(--box-shadow-popup);
 }
 
 .dialogBox {

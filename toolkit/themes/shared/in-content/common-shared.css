@@ -76,13 +76,7 @@
   --yellow-60-a30: rgba(215, 182, 0, 0.3);
   --yellow-90: #3e2800;
 
-  --shadow-10: 0 1px 4px var(--grey-90-a10);
-  --shadow-30: 0 4px 16px var(--grey-90-a10);
-
   --card-padding: 16px;
-  --card-shadow: var(--shadow-10);
-  --card-outline-color: var(--grey-30);
-  --card-shadow-hover: var(--card-shadow), 0 0 0 5px var(--card-outline-color);
 
   -moz-theme: non-native;
   accent-color: var(--color-accent-primary);
@@ -119,8 +113,6 @@
     --in-content-danger-button-background-active: #ffdfe7;
 
     --in-content-table-background: rgb(35, 34, 43);
-
-    --card-outline-color: var(--grey-60);
 
     --dialog-warning-text-color: var(--red-40);
 
@@ -1120,9 +1112,9 @@ input[type="text"][warning]:enabled:not(:focus) {
 .card {
   background: var(--background-color-box);
   /* Needed for high-contrast where the border will appear. */
-  border: 1px solid transparent;
+  border: 1px solid var(--border-color-card);
   border-radius: 4px;
-  box-shadow: var(--card-shadow);
+  box-shadow: var(--box-shadow-card);
   margin: 0 0 8px;
   /* Remove the border from the overall padding. */
   padding: calc(var(--card-padding) - 1px);
@@ -1130,7 +1122,7 @@ input[type="text"][warning]:enabled:not(:focus) {
 }
 
 .card:not(.card-no-hover):hover {
-  box-shadow: var(--card-shadow-hover);
+  box-shadow: var(--box-shadow-card-hover);
 }
 
 .card-heading-image {

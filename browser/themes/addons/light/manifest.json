@@ -10,7 +10,7 @@
   "name": "Light",
   "description": "A theme with a light color scheme.",
   "author": "Mozilla",
-  "version": "1.3",
+  "version": "1.3.1",
 
   "icons": { "32": "icon.svg" },
 
@@ -29,11 +29,11 @@
       "popup_highlight_text": "#15141a",
       "sidebar": "rgb(255, 255, 255)",
       "sidebar_text": "rgb(21, 20, 26)",
-      "sidebar_border": "rgb(240, 240, 244)",
+      "sidebar_border": "rgba(21, 20, 26, 0.1)",
       "tab_line": "transparent",
       "toolbar": "#f9f9fb",
       "toolbar_top_separator": "transparent",
-      "toolbar_bottom_separator": "rgb(240, 240, 244)",
+      "toolbar_bottom_separator": "rgba(21, 20, 26, 0.1)",
       "toolbar_field": "rgba(0, 0, 0, .05)",
       "toolbar_field_text": "rgb(21, 20, 26)",
       "toolbar_field_border": "transparent",

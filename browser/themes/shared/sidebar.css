@@ -68,7 +68,7 @@
   @media -moz-pref("sidebar.revamp") {
     border-radius: var(--border-radius-medium);
     box-shadow: var(--content-area-shadow);
-    border: 0.5px solid var(--sidebar-border-color);
+    outline: 0.5px solid var(--sidebar-border-color);
     background-color: var(--sidebar-background-color);
     color: var(--sidebar-text-color);
   }

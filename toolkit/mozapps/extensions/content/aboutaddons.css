@@ -218,6 +218,7 @@ message-bar-stack > * {
 .addon.card {
   margin-bottom: 16px;
   transition: opacity 150ms, box-shadow 150ms;
+  overflow: hidden;
 }
 
 addon-list:not([type="theme"]) addon-card:not([expanded]):not([panelopen]) > .addon.card[active="false"]:not(:focus-within):not(:hover) {
@@ -225,12 +226,16 @@ addon-list:not([type="theme"]) addon-card:not([expanded]):not([panelopen]) > .ad
 }
 
 .addon.card:hover {
-  box-shadow: var(--card-shadow);
+  box-shadow: var(--box-shadow-card);
 }
 
 addon-card:not([expanded]) > .addon.card:hover {
-  box-shadow: var(--card-shadow-hover);
+  box-shadow: var(--box-shadow-card-hover);
   cursor: pointer;
+
+  & .addon-name-link {
+    color: var(--link-color);
+  }
 }
 
 addon-card[expanded] .addon.card {

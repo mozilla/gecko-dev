@@ -249,7 +249,7 @@ td:first-of-type {
 
 /** Default **/
 
-.default-preview {
+.default-preview, .shadow-preview {
   height: 50px;
   width: 100px;
   background-color: var(--button-background-color);
@@ -336,4 +336,15 @@ td:first-of-type {
     opacity: 0.5;
     border-radius: 3px;
   }
+}
+
+/* Shadow */
+
+.shadow-preview {
+  border: none;
+  background: var(--background-color-box);
+}
+
+.hcm-theme .shadow-preview {
+  background: #000000;
 }

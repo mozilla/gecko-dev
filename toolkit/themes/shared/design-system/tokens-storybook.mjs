@@ -218,6 +218,14 @@ export const storybookTables = {
     { value: { prefersContrast: "var(--text-color)" }, name: "--border-color" },
     {
       value: {
+        default: "color-mix(in srgb, currentColor 10%, transparent)",
+        prefersContrast: "color-mix(in srgb, currentColor 41%, transparent)",
+        forcedColors: "CanvasText",
+      },
+      name: "--border-color-card",
+    },
+    {
+      value: {
         brand: {
           light: "var(--color-gray-30)",
           dark: "var(--color-gray-70)",
@@ -370,9 +378,6 @@ export const storybookTables = {
     { value: "var(--border-radius-small)", name: "--button-border-radius" },
   ],
   "border-width": [{ value: "1px", name: "--border-width" }],
-  "box-shadow": [
-    { value: "0 1px 4px var(--color-black-a10)", name: "--box-shadow-10" },
-  ],
   border: [
     {
       value: "var(--border-width) solid var(--button-border-color)",
@@ -603,7 +608,6 @@ export const storybookTables = {
   ],
   margin: [{ value: "var(--space-small)", name: "--checkbox-margin-inline" }],
   color: [
-    { value: "rgba(0, 0, 0, 0.1)", name: "--color-black-a10" },
     { value: "#73a7f3", name: "--color-blue-30" },
     { value: "#0060df", name: "--color-blue-50" },
     { value: "#0250bb", name: "--color-blue-60" },
@@ -810,6 +814,64 @@ export const storybookTables = {
     { value: "calc(6 * var(--space-xsmall))", name: "--space-xlarge" },
     { value: "calc(8 * var(--space-xsmall))", name: "--space-xxlarge" },
   ],
+  "box-shadow": [
+    {
+      value:
+        "0 0.125px 0.25px var(--box-shadow-color-darker-layer-1), 0 1px 2px var(--box-shadow-color-darker-layer-2)",
+      name: "--box-shadow-level-1",
+    },
+    {
+      value:
+        "0 0.25px 0.75px var(--box-shadow-color-lighter-layer-1), 0 2px 6px var(--box-shadow-color-lighter-layer-2)",
+      name: "--box-shadow-level-2",
+    },
+    {
+      value:
+        "0 0.375px 1.5px var(--box-shadow-color-lighter-layer-1), 0 3px 12px var(--box-shadow-color-lighter-layer-2)",
+      name: "--box-shadow-level-3",
+    },
+    {
+      value:
+        "0 0.5px 2px var(--box-shadow-color-lighter-layer-1), 0 4px 16px var(--box-shadow-color-lighter-layer-2)",
+      name: "--box-shadow-level-4",
+    },
+    { value: "var(--box-shadow-level-1)", name: "--box-shadow-tab" },
+    { value: "var(--box-shadow-level-2)", name: "--box-shadow-card" },
+    { value: "var(--box-shadow-level-4)", name: "--box-shadow-card-hover" },
+    { value: "var(--box-shadow-level-3)", name: "--box-shadow-popup" },
+    {
+      value: {
+        light: "rgba(0, 0, 0, 0.1)",
+        dark: "rgba(0, 0, 0, 0.4)",
+        default: "light-dark(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4))",
+      },
+      name: "--box-shadow-color-darker-layer-1",
+    },
+    {
+      value: {
+        light: "rgba(0, 0, 0, 0.2)",
+        dark: "rgba(0, 0, 0, 0.8)",
+        default: "light-dark(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.8))",
+      },
+      name: "--box-shadow-color-darker-layer-2",
+    },
+    {
+      value: {
+        light: "rgba(0, 0, 0, 0.05)",
+        dark: "rgba(0, 0, 0, 0.2)",
+        default: "light-dark(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.2))",
+      },
+      name: "--box-shadow-color-lighter-layer-1",
+    },
+    {
+      value: {
+        light: "rgba(0, 0, 0, 0.1)",
+        dark: "rgba(0, 0, 0, 0.4)",
+        default: "light-dark(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4))",
+      },
+      name: "--box-shadow-color-lighter-layer-2",
+    },
+  ],
 };
 
 export const variableLookupTable = {
@@ -862,6 +924,11 @@ export const variableLookupTable = {
     default: "light-dark(var(--color-yellow-05), var(--color-yellow-80))",
   },
   "border-color": { prefersContrast: "var(--text-color)" },
+  "border-color-card": {
+    default: "color-mix(in srgb, currentColor 10%, transparent)",
+    prefersContrast: "color-mix(in srgb, currentColor 41%, transparent)",
+    forcedColors: "CanvasText",
+  },
   "border-color-deemphasized": {
     brand: {
       light: "var(--color-gray-30)",
@@ -900,7 +967,6 @@ export const variableLookupTable = {
   "border-radius-small": "4px",
   "border-radius-medium": "8px",
   "border-width": "1px",
-  "box-shadow-10": "0 1px 4px var(--color-black-a10)",
   "button-background-color": {
     forcedColors: "ButtonFace",
     brand: { default: "color-mix(in srgb, currentColor 7%, transparent)" },
@@ -1114,7 +1180,6 @@ export const variableLookupTable = {
   },
   "checkbox-margin-inline": "var(--space-small)",
   "checkbox-size": "var(--size-item-small)",
-  "color-black-a10": "rgba(0, 0, 0, 0.1)",
   "color-blue-30": "#73a7f3",
   "color-blue-50": "#0060df",
   "color-blue-60": "#0250bb",
@@ -1282,6 +1347,38 @@ export const variableLookupTable = {
   "space-large": "calc(4 * var(--space-xsmall))",
   "space-xlarge": "calc(6 * var(--space-xsmall))",
   "space-xxlarge": "calc(8 * var(--space-xsmall))",
+  "box-shadow-level-1":
+    "0 0.125px 0.25px var(--box-shadow-color-darker-layer-1), 0 1px 2px var(--box-shadow-color-darker-layer-2)",
+  "box-shadow-level-2":
+    "0 0.25px 0.75px var(--box-shadow-color-lighter-layer-1), 0 2px 6px var(--box-shadow-color-lighter-layer-2)",
+  "box-shadow-level-3":
+    "0 0.375px 1.5px var(--box-shadow-color-lighter-layer-1), 0 3px 12px var(--box-shadow-color-lighter-layer-2)",
+  "box-shadow-level-4":
+    "0 0.5px 2px var(--box-shadow-color-lighter-layer-1), 0 4px 16px var(--box-shadow-color-lighter-layer-2)",
+  "box-shadow-tab": "var(--box-shadow-level-1)",
+  "box-shadow-card": "var(--box-shadow-level-2)",
+  "box-shadow-card-hover": "var(--box-shadow-level-4)",
+  "box-shadow-popup": "var(--box-shadow-level-3)",
+  "box-shadow-color-darker-layer-1": {
+    light: "rgba(0, 0, 0, 0.1)",
+    dark: "rgba(0, 0, 0, 0.4)",
+    default: "light-dark(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4))",
+  },
+  "box-shadow-color-darker-layer-2": {
+    light: "rgba(0, 0, 0, 0.2)",
+    dark: "rgba(0, 0, 0, 0.8)",
+    default: "light-dark(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.8))",
+  },
+  "box-shadow-color-lighter-layer-1": {
+    light: "rgba(0, 0, 0, 0.05)",
+    dark: "rgba(0, 0, 0, 0.2)",
+    default: "light-dark(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.2))",
+  },
+  "box-shadow-color-lighter-layer-2": {
+    light: "rgba(0, 0, 0, 0.1)",
+    dark: "rgba(0, 0, 0, 0.4)",
+    default: "light-dark(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4))",
+  },
   "table-row-background-color": { default: "var(--background-color-canvas)" },
   "table-row-background-color-alternate": {
     forcedColors: "var(--background-color-canvas)",

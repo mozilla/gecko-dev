@@ -306,6 +306,7 @@
   margin: 0 3vw;
   padding: 0;
   overflow-x: auto;
+  outline: 0.5px solid var(--border-color-card);
 
   /* Ensure that dialog boxes are pixel-snapped, to keep their internal layout
    * consistent, regardless of whether the surrounding layout places them at a
@@ -315,7 +316,7 @@
   will-change: transform;
 
   &:not(.spotlightBox) {
-    box-shadow: 0 2px 14px 0 rgba(0, 0, 0, 0.2);
+    box-shadow: var(--box-shadow-popup);
     border-radius: 8px;
   }
 
@@ -324,7 +325,7 @@
    * the window behind it, which looks jarring.
    */
   @media (prefers-contrast) {
-    outline: 1px solid WindowText;
+    outline-color: WindowText;
   }
 
   &[resizable="true"] {

@@ -35,10 +35,11 @@
   --urlbar-icon-fill-opacity: 0.9;
   @media (prefers-contrast) {
     --urlbar-icon-fill-opacity: 1;
+    --sidebar-border-color: var(--border-color-card);
   }
 
-  --content-area-shadow: 0 2px 6px 0 light-dark(rgba(0,0,0,.2), rgba(0,0,0,.8));
-  --chrome-content-separator-color: light-dark(rgba(0,0,0,.3), rgba(255,255,255,.3));
+  --content-area-shadow: var(--box-shadow-card);
+  --chrome-content-separator-color: var(--border-color-card);
 
   /* stylelint-disable-next-line media-query-no-invalid */
   @media not -moz-pref("sidebar.revamp") {
@@ -152,6 +153,6 @@
 
     --sidebar-background-color: light-dark(white, rgb(28, 27, 34));
     --sidebar-text-color: light-dark(rgb(21, 20, 26), rgb(249, 249, 250));
-    --sidebar-border-color: light-dark(rgb(240, 240, 244), rgb(82, 82, 94));
+    --sidebar-border-color: var(--border-color-card);
   }
 }

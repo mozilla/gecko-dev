@@ -39,6 +39,11 @@
     "dark": "#00000000",
     "forcedColors": "CanvasText"
   },
+  "border/color/card": {
+    "light": "color-mix(in srgb, currentColor 10%, transparent)",
+    "dark": "color-mix(in srgb, currentColor 10%, transparent)",
+    "forcedColors": "CanvasText"
+  },
   "border/color/deemphasized": {
     "light": "#bac2caff",
     "dark": "#5b5b66ff",
@@ -304,7 +309,6 @@
     "dark": "#15141aff",
     "forcedColors": "SelectedItemText"
   },
-  "color/black/a10": "#0000001a",
   "color/blue/30": "#73a7f3ff",
   "color/blue/50": "#0060dfff",
   "color/blue/60": "#0250bbff",

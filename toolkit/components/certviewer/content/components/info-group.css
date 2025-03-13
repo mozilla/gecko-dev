@@ -8,7 +8,7 @@
   grid-gap: 0 2em;
   padding: 1.75em 30px;
   align-items: center;
-  border-top: 1px solid var(--in-content-border-color);
+  border-top: 1px solid var(--border-color-card);
 }
 
 :host(:first-of-type) {

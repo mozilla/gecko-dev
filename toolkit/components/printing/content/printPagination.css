@@ -6,7 +6,6 @@
   /* in-content/common.css variables */
   --blue-50: #0a84ff;
   --grey-90-a10: rgba(12, 12, 13, 0.1);
-  --shadow-30: 0 4px 16px var(--grey-90-a10);
   --border-active-shadow: var(--blue-50);
 }
 
@@ -26,7 +25,7 @@
   align-items: center;
   display: flex;
   justify-content: center;
-  box-shadow: var(--shadow-30);
+  box-shadow: var(--box-shadow-card);
   color: var(--toolbar-color);
   background-color: var(--toolbar-bgcolor);
   border-radius: 6px;

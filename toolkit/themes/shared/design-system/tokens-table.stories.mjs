@@ -45,6 +45,7 @@ const THEMED_TABLES = [
   "attention-dot",
   "background-color",
   "border",
+  "box-shadow",
   "border-color",
   "opacity",
   "text-color",
@@ -221,6 +222,7 @@ class TokensTable extends LitElement {
     "min-height": this.spaceAndSizeTemplate,
     outline: this.outlineTemplate,
     padding: this.paddingTemplate,
+    "box-shadow": this.shadowTemplate,
     size: this.spaceAndSizeTemplate,
     space: this.spaceAndSizeTemplate,
     "text-color": this.fontTemplate,
@@ -295,6 +297,13 @@ class TokensTable extends LitElement {
     // 0 is a valid value
     if (value == undefined) {
       return "N/A";
+    }
+
+    if (
+      category.match("box-shadow") &&
+      tokenName.startsWith("--box-shadow-color")
+    ) {
+      category = "color";
     }
 
     let templateFn = this.TEMPLATES[category]?.bind(this);
@@ -390,10 +399,20 @@ class TokensTable extends LitElement {
     `;
   }
 
+  shadowTemplate(_, value) {
+    return html`
+      <div
+        class="shadow-preview"
+        style="box-shadow: ${HCM_MAP[value] ?? value};"
+      ></div>
+    `;
+  }
+
   getDisplayProperty(category) {
     switch (category) {
       case "attention-dot":
       case "color":
+      case "box-shadow":
         return "background-color";
       case "text-color":
         return "color";
