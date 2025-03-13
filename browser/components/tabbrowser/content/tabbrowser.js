@@ -2980,18 +2980,12 @@
       group.dispatchEvent(
         new CustomEvent("TabGroupCreate", {
           bubbles: true,
-          detail: { isUserCreated },
+          detail: {
+            isUserCreated,
+            telemetryUserCreateSource,
+          },
         })
       );
-
-      if (isUserCreated) {
-        Glean.browserEngagement.tabGroupCreate.record({
-          id,
-          layout: this.tabContainer.verticalMode ? "vertical" : "horizontal",
-          source: telemetryUserCreateSource,
-          tabs: group.tabs.length,
-        });
-      }
 
       return group;
     }

@@ -108,6 +108,62 @@ browser.engagement:
         type: string
     expires: never
 
+  tab_group_expand_or_collapse:
+    type: event
+    description: >
+      Recorded when a tab group is expanded or collapsed.
+    notification_emails:
+      - dao@mozilla.com
+      - jswinarton@mozilla.com
+    bugs:
+      - https://bugzil.la/1938397
+    data_reviews:
+      - https://bugzil.la/1938397
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      total_collapsed:
+        description: The total number of active groups in all windows that are collapsed
+        type: quantity
+      total_expanded:
+        description: The total number of active groups in all windows that are expanded
+        type: quantity
+    expires: never
+
+  tab_group_modify:
+    type: event
+    description: >
+      Recorded when the number of tabs in a tab group are modified.
+    notification_emails:
+      - dao@mozilla.com
+      - jswinarton@mozilla.com
+    bugs:
+      - https://bugzil.la/1938397
+    data_reviews:
+      - https://bugzil.la/1938397
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      tabs_per_active_group_max:
+        description: The number of open tabs in the largest tab group in any window
+        type: quantity
+      tabs_per_active_group_min:
+        description: The number of open tabs in the smallest tab group in any window
+        type: quantity
+      tabs_per_active_group_median:
+        description: The median number of open tabs in tab groups in all windows
+        type: quantity
+      tabs_per_active_group_average:
+        description: The average number of open tabs in tab groups in all windows
+        type: quantity
+      tabs_inside_groups:
+        description: The total number of tabs within tab groups in all windows
+        type: quantity
+      tabs_outside_groups:
+        description: The total number of tabs not in groups in all windows
+        type: quantity
+    expires: never
+
 browser.ui.interaction:
   all_tabs_panel_dragstart_tab_event_count:
     type: counter
