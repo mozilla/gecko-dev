@@ -61,6 +61,7 @@ __webpack_require__.d(__webpack_exports__, {
   GlobalWorkerOptions: () => (/* reexport */ GlobalWorkerOptions),
   ImageKind: () => (/* reexport */ util_ImageKind),
   InvalidPDFException: () => (/* reexport */ InvalidPDFException),
+  MathClamp: () => (/* reexport */ MathClamp),
   OPS: () => (/* reexport */ OPS),
   OutputScale: () => (/* reexport */ OutputScale),
   PDFDataRangeTransport: () => (/* reexport */ PDFDataRangeTransport),
@@ -851,6 +852,9 @@ function _isValidExplicitDest(validRef, validName, dest) {
   }
   return true;
 }
+function MathClamp(v, min, max) {
+  return Math.min(Math.max(v, min), max);
+}
 function toHexUtil(arr) {
   if (Uint8Array.prototype.toHex) {
     return arr.toHex();
@@ -1233,7 +1237,9 @@ function setLayerDimensions(div, viewport, mustFlip = false, mustRotate = true) 
 }
 class OutputScale {
   constructor() {
-    const pixelRatio = window.devicePixelRatio || 1;
+    const {
+      pixelRatio
+    } = OutputScale;
     this.sx = pixelRatio;
     this.sy = pixelRatio;
   }
@@ -1242,6 +1248,28 @@ class OutputScale {
   }
   get symmetric() {
     return this.sx === this.sy;
+  }
+  limitCanvas(width, height, maxPixels, maxDim) {
+    let maxAreaScale = Infinity,
+      maxWidthScale = Infinity,
+      maxHeightScale = Infinity;
+    if (maxPixels > 0) {
+      maxAreaScale = Math.sqrt(maxPixels / (width * height));
+    }
+    if (maxDim !== -1) {
+      maxWidthScale = maxDim / width;
+      maxHeightScale = maxDim / height;
+    }
+    const maxScale = Math.min(maxAreaScale, maxWidthScale, maxHeightScale);
+    if (this.sx > maxScale || this.sy > maxScale) {
+      this.sx = maxScale;
+      this.sy = maxScale;
+      return true;
+    }
+    return false;
+  }
+  static get pixelRatio() {
+    return globalThis.devicePixelRatio || 1;
   }
 }
 const SupportedImageMimeTypes = ["image/apng", "image/avif", "image/bmp", "image/gif", "image/jpeg", "image/png", "image/svg+xml", "image/webp", "image/x-icon"];
@@ -1464,9 +1492,6 @@ function bindEvents(obj, element, names) {
   for (const name of names) {
     element.addEventListener(name, obj[name].bind(obj));
   }
-}
-function opacityToHex(opacity) {
-  return Math.round(Math.min(255, Math.max(1, 255 * opacity))).toString(16).padStart(2, "0");
 }
 class IdManager {
   #id = 0;
@@ -3529,13 +3554,12 @@ class AltText {
     if (!tooltip.parentNode) {
       button.append(tooltip);
     }
-    const element = this.#editor.getImageForAltText();
+    const element = this.#editor.getElementForAltText();
     element?.setAttribute("aria-describedby", tooltip.id);
   }
 }
 
 ;// ./src/display/touch_manager.js
-
 
 class TouchManager {
   #container;
@@ -3573,7 +3597,7 @@ class TouchManager {
     });
   }
   get MIN_TOUCH_DISTANCE_TO_PINCH() {
-    return shadow(this, "MIN_TOUCH_DISTANCE_TO_PINCH", 35 / (window.devicePixelRatio || 1));
+    return 35 / OutputScale.pixelRatio;
   }
   #onTouchStart(evt) {
     if (this.#isPinchingDisabled?.()) {
@@ -4065,20 +4089,20 @@ class AnnotationEditor {
     if (this._mustFixPosition) {
       switch (rotation) {
         case 0:
-          x = Math.max(0, Math.min(pageWidth - width, x));
-          y = Math.max(0, Math.min(pageHeight - height, y));
+          x = MathClamp(x, 0, pageWidth - width);
+          y = MathClamp(y, 0, pageHeight - height);
           break;
         case 90:
-          x = Math.max(0, Math.min(pageWidth - height, x));
-          y = Math.min(pageHeight, Math.max(width, y));
+          x = MathClamp(x, 0, pageWidth - height);
+          y = MathClamp(y, width, pageHeight);
           break;
         case 180:
-          x = Math.min(pageWidth, Math.max(width, x));
-          y = Math.min(pageHeight, Math.max(height, y));
+          x = MathClamp(x, width, pageWidth);
+          y = MathClamp(y, height, pageHeight);
           break;
         case 270:
-          x = Math.min(pageWidth, Math.max(height, x));
-          y = Math.max(0, Math.min(pageHeight - width, y));
+          x = MathClamp(x, height, pageWidth);
+          y = MathClamp(y, 0, pageHeight - width);
           break;
       }
     }
@@ -4460,27 +4484,31 @@ class AnnotationEditor {
     return this.#altText?.hasData() ?? false;
   }
   render() {
-    this.div = document.createElement("div");
-    this.div.setAttribute("data-editor-rotation", (360 - this.rotation) % 360);
-    this.div.className = this.name;
-    this.div.setAttribute("id", this.id);
-    this.div.tabIndex = this.#disabled ? -1 : 0;
+    const div = this.div = document.createElement("div");
+    div.setAttribute("data-editor-rotation", (360 - this.rotation) % 360);
+    div.className = this.name;
+    div.setAttribute("id", this.id);
+    div.tabIndex = this.#disabled ? -1 : 0;
+    div.setAttribute("role", "application");
+    if (this.defaultL10nId) {
+      div.setAttribute("data-l10n-id", this.defaultL10nId);
+    }
     if (!this._isVisible) {
-      this.div.classList.add("hidden");
+      div.classList.add("hidden");
     }
     this.setInForeground();
     this.#addFocusListeners();
     const [parentWidth, parentHeight] = this.parentDimensions;
     if (this.parentRotation % 180 !== 0) {
-      this.div.style.maxWidth = `${(100 * parentHeight / parentWidth).toFixed(2)}%`;
-      this.div.style.maxHeight = `${(100 * parentWidth / parentHeight).toFixed(2)}%`;
+      div.style.maxWidth = `${(100 * parentHeight / parentWidth).toFixed(2)}%`;
+      div.style.maxHeight = `${(100 * parentWidth / parentHeight).toFixed(2)}%`;
     }
     const [tx, ty] = this.getInitialTranslation();
     this.translate(tx, ty);
-    bindEvents(this, this.div, ["pointerdown"]);
+    bindEvents(this, div, ["keydown", "pointerdown"]);
     if (this.isResizable && this._uiManager._supportsPinchToZoom) {
       this.#touchManager ||= new TouchManager({
-        container: this.div,
+        container: div,
         isPinchingDisabled: () => !this.isSelected,
         onPinchStart: this.#touchPinchStartCallback.bind(this),
         onPinching: this.#touchPinchCallback.bind(this),
@@ -4489,7 +4517,7 @@ class AnnotationEditor {
       });
     }
     this._uiManager._editorUndoBar?.hide();
-    return this.div;
+    return div;
   }
   #touchPinchStartCallback() {
     this.#savedDimensions = {
@@ -4813,7 +4841,6 @@ class AnnotationEditor {
     if (this.isResizable) {
       this.#createResizers();
       this.#resizersDiv.classList.remove("hidden");
-      bindEvents(this, this.div, ["keydown"]);
     }
   }
   get toolbarPosition() {
@@ -4952,8 +4979,8 @@ class AnnotationEditor {
   disableEditing() {}
   enableEditing() {}
   enterInEditMode() {}
-  getImageForAltText() {
-    return null;
+  getElementForAltText() {
+    return this.div;
   }
   get contentDiv() {
     return this.div;
@@ -7120,7 +7147,7 @@ function getImageSmoothingEnabled(transform, interpolate) {
   const scale = Util.singularValueDecompose2dScale(transform);
   scale[0] = Math.fround(scale[0]);
   scale[1] = Math.fround(scale[1]);
-  const actualScale = Math.fround((globalThis.devicePixelRatio || 1) * PixelsPerInch.PDF_TO_CSS_UNITS);
+  const actualScale = Math.fround(OutputScale.pixelRatio * PixelsPerInch.PDF_TO_CSS_UNITS);
   return scale[0] <= actualScale && scale[1] <= actualScale;
 }
 const LINE_CAP_STYLES = ["butt", "round", "square"];
@@ -9801,7 +9828,7 @@ class TextLayer {
       throw new Error('No "textContentSource" parameter specified.');
     }
     this.#container = this.#rootContainer = container;
-    this.#scale = viewport.scale * (globalThis.devicePixelRatio || 1);
+    this.#scale = viewport.scale * OutputScale.pixelRatio;
     this.#rotation = viewport.rotation;
     this.#layoutTextParams = {
       div: null,
@@ -9857,7 +9884,7 @@ class TextLayer {
     viewport,
     onBefore = null
   }) {
-    const scale = viewport.scale * (globalThis.devicePixelRatio || 1);
+    const scale = viewport.scale * OutputScale.pixelRatio;
     const rotation = viewport.rotation;
     if (rotation !== this.#rotation) {
       onBefore?.();
@@ -10202,6 +10229,7 @@ function getDocument(src = {}) {
   const cMapUrl = getFactoryUrlProp(src.cMapUrl);
   const cMapPacked = src.cMapPacked !== false;
   const CMapReaderFactory = src.CMapReaderFactory || DOMCMapReaderFactory;
+  const iccUrl = getFactoryUrlProp(src.iccUrl);
   const standardFontDataUrl = getFactoryUrlProp(src.standardFontDataUrl);
   const StandardFontDataFactory = src.StandardFontDataFactory || DOMStandardFontDataFactory;
   const wasmUrl = getFactoryUrlProp(src.wasmUrl);
@@ -10252,7 +10280,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "5.0.299",
+    apiVersion: "5.0.365",
     data,
     password,
     disableAutoFetch,
@@ -10273,6 +10301,7 @@ function getDocument(src = {}) {
       useWasm,
       useWorkerFetch,
       cMapUrl,
+      iccUrl,
       standardFontDataUrl,
       wasmUrl
     }
@@ -11882,8 +11911,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "5.0.299";
-const build = "dea35aed4";
+const version = "5.0.365";
+const build = "8791b2474";
 
 ;// ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -16412,6 +16441,7 @@ class HighlightEditor extends AnnotationEditor {
     this.#methodOfCreation = params.methodOfCreation || "";
     this.#text = params.text || "";
     this._isDraggable = false;
+    this.defaultL10nId = "pdfjs-editor-highlight-editor";
     if (params.highlightId > -1) {
       this.#isFreeHighlight = true;
       this.#createFreeOutlines(params);
@@ -18257,10 +18287,10 @@ class InkDrawOutline extends Outline {
       }
     }
     const [marginX, marginY] = this.#getMarginComponents();
-    bbox[0] = Math.min(1, Math.max(0, bbox[0] - marginX));
-    bbox[1] = Math.min(1, Math.max(0, bbox[1] - marginY));
-    bbox[2] = Math.min(1, Math.max(0, bbox[2] + marginX));
-    bbox[3] = Math.min(1, Math.max(0, bbox[3] + marginY));
+    bbox[0] = MathClamp(bbox[0] - marginX, 0, 1);
+    bbox[1] = MathClamp(bbox[1] - marginY, 0, 1);
+    bbox[2] = MathClamp(bbox[2] + marginX, 0, 1);
+    bbox[3] = MathClamp(bbox[3] + marginY, 0, 1);
     bbox[2] -= bbox[0];
     bbox[3] -= bbox[1];
   }
@@ -18531,6 +18561,7 @@ class InkEditor extends DrawingEditor {
       name: "inkEditor"
     });
     this._willKeepAspectRatio = true;
+    this.defaultL10nId = "pdfjs-editor-ink-editor";
   }
   static initialize(l10n, uiManager) {
     AnnotationEditor.initialize(l10n, uiManager);
@@ -19392,6 +19423,7 @@ class SignatureEditor extends DrawingEditor {
     this._willKeepAspectRatio = true;
     this.#signatureData = params.signatureData || null;
     this.#description = null;
+    this.defaultL10nId = "pdfjs-editor-signature-editor";
   }
   static initialize(l10n, uiManager) {
     AnnotationEditor.initialize(l10n, uiManager);
@@ -19448,7 +19480,6 @@ class SignatureEditor extends DrawingEditor {
       baseY = this.y;
     }
     super.render();
-    this.div.setAttribute("role", "figure");
     if (this._drawId === null) {
       if (this.#signatureData) {
         const {
@@ -19554,6 +19585,7 @@ class SignatureEditor extends DrawingEditor {
     } = this.#signatureData = data;
     this.#isExtracted = outline instanceof ContourDrawOutline;
     this.#description = description;
+    this.div.setAttribute("aria-description", description);
     let drawingOptions;
     if (this.#isExtracted) {
       drawingOptions = SignatureEditor.getDefaultDrawingOptions();
@@ -19730,6 +19762,7 @@ class StampEditor extends AnnotationEditor {
     });
     this.#bitmapUrl = params.bitmapUrl;
     this.#bitmapFile = params.bitmapFile;
+    this.defaultL10nId = "pdfjs-editor-stamp-editor";
   }
   static initialize(l10n, uiManager) {
     AnnotationEditor.initialize(l10n, uiManager);
@@ -19956,7 +19989,6 @@ class StampEditor extends AnnotationEditor {
     }
     super.render();
     this.div.hidden = true;
-    this.div.setAttribute("role", "figure");
     this.addAltTextButton();
     if (!this.#missingCanvas) {
       if (this.#bitmap) {
@@ -20046,7 +20078,7 @@ class StampEditor extends AnnotationEditor {
       action: "inserted_image"
     });
     if (this.#bitmapFileName) {
-      canvas.setAttribute("aria-label", this.#bitmapFileName);
+      this.div.setAttribute("aria-description", this.#bitmapFileName);
     }
   }
   copyCanvas(maxDataDimension, maxPreviewDimension, createImageData = false) {
@@ -20176,9 +20208,6 @@ class StampEditor extends AnnotationEditor {
     const ctx = canvas.getContext("2d");
     ctx.filter = this._uiManager.hcmFilter;
     ctx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height, 0, 0, scaledWidth, scaledHeight);
-  }
-  getImageForAltText() {
-    return this.#canvas;
   }
   #serializeBitmap(toUrl) {
     if (toUrl) {
@@ -21272,8 +21301,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "5.0.299";
-const pdfjsBuild = "dea35aed4";
+const pdfjsVersion = "5.0.365";
+const pdfjsBuild = "8791b2474";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;
@@ -21290,6 +21319,7 @@ var __webpack_exports__FeatureTest = __webpack_exports__.FeatureTest;
 var __webpack_exports__GlobalWorkerOptions = __webpack_exports__.GlobalWorkerOptions;
 var __webpack_exports__ImageKind = __webpack_exports__.ImageKind;
 var __webpack_exports__InvalidPDFException = __webpack_exports__.InvalidPDFException;
+var __webpack_exports__MathClamp = __webpack_exports__.MathClamp;
 var __webpack_exports__OPS = __webpack_exports__.OPS;
 var __webpack_exports__OutputScale = __webpack_exports__.OutputScale;
 var __webpack_exports__PDFDataRangeTransport = __webpack_exports__.PDFDataRangeTransport;
@@ -21324,4 +21354,4 @@ var __webpack_exports__setLayerDimensions = __webpack_exports__.setLayerDimensio
 var __webpack_exports__shadow = __webpack_exports__.shadow;
 var __webpack_exports__stopEvent = __webpack_exports__.stopEvent;
 var __webpack_exports__version = __webpack_exports__.version;
-export { __webpack_exports__AbortException as AbortException, __webpack_exports__AnnotationEditorLayer as AnnotationEditorLayer, __webpack_exports__AnnotationEditorParamsType as AnnotationEditorParamsType, __webpack_exports__AnnotationEditorType as AnnotationEditorType, __webpack_exports__AnnotationEditorUIManager as AnnotationEditorUIManager, __webpack_exports__AnnotationLayer as AnnotationLayer, __webpack_exports__AnnotationMode as AnnotationMode, __webpack_exports__AnnotationType as AnnotationType, __webpack_exports__ColorPicker as ColorPicker, __webpack_exports__DOMSVGFactory as DOMSVGFactory, __webpack_exports__DrawLayer as DrawLayer, __webpack_exports__FeatureTest as FeatureTest, __webpack_exports__GlobalWorkerOptions as GlobalWorkerOptions, __webpack_exports__ImageKind as ImageKind, __webpack_exports__InvalidPDFException as InvalidPDFException, __webpack_exports__OPS as OPS, __webpack_exports__OutputScale as OutputScale, __webpack_exports__PDFDataRangeTransport as PDFDataRangeTransport, __webpack_exports__PDFDateString as PDFDateString, __webpack_exports__PDFWorker as PDFWorker, __webpack_exports__PasswordResponses as PasswordResponses, __webpack_exports__PermissionFlag as PermissionFlag, __webpack_exports__PixelsPerInch as PixelsPerInch, __webpack_exports__RenderingCancelledException as RenderingCancelledException, __webpack_exports__ResponseException as ResponseException, __webpack_exports__SignatureExtractor as SignatureExtractor, __webpack_exports__SupportedImageMimeTypes as SupportedImageMimeTypes, __webpack_exports__TextLayer as TextLayer, __webpack_exports__TouchManager as TouchManager, __webpack_exports__Util as Util, __webpack_exports__VerbosityLevel as VerbosityLevel, __webpack_exports__XfaLayer as XfaLayer, __webpack_exports__build as build, __webpack_exports__createValidAbsoluteUrl as createValidAbsoluteUrl, __webpack_exports__fetchData as fetchData, __webpack_exports__getDocument as getDocument, __webpack_exports__getFilenameFromUrl as getFilenameFromUrl, __webpack_exports__getPdfFilenameFromUrl as getPdfFilenameFromUrl, __webpack_exports__getUuid as getUuid, __webpack_exports__getXfaPageViewport as getXfaPageViewport, __webpack_exports__isDataScheme as isDataScheme, __webpack_exports__isPdfFile as isPdfFile, __webpack_exports__isValidExplicitDest as isValidExplicitDest, __webpack_exports__noContextMenu as noContextMenu, __webpack_exports__normalizeUnicode as normalizeUnicode, __webpack_exports__setLayerDimensions as setLayerDimensions, __webpack_exports__shadow as shadow, __webpack_exports__stopEvent as stopEvent, __webpack_exports__version as version };
+export { __webpack_exports__AbortException as AbortException, __webpack_exports__AnnotationEditorLayer as AnnotationEditorLayer, __webpack_exports__AnnotationEditorParamsType as AnnotationEditorParamsType, __webpack_exports__AnnotationEditorType as AnnotationEditorType, __webpack_exports__AnnotationEditorUIManager as AnnotationEditorUIManager, __webpack_exports__AnnotationLayer as AnnotationLayer, __webpack_exports__AnnotationMode as AnnotationMode, __webpack_exports__AnnotationType as AnnotationType, __webpack_exports__ColorPicker as ColorPicker, __webpack_exports__DOMSVGFactory as DOMSVGFactory, __webpack_exports__DrawLayer as DrawLayer, __webpack_exports__FeatureTest as FeatureTest, __webpack_exports__GlobalWorkerOptions as GlobalWorkerOptions, __webpack_exports__ImageKind as ImageKind, __webpack_exports__InvalidPDFException as InvalidPDFException, __webpack_exports__MathClamp as MathClamp, __webpack_exports__OPS as OPS, __webpack_exports__OutputScale as OutputScale, __webpack_exports__PDFDataRangeTransport as PDFDataRangeTransport, __webpack_exports__PDFDateString as PDFDateString, __webpack_exports__PDFWorker as PDFWorker, __webpack_exports__PasswordResponses as PasswordResponses, __webpack_exports__PermissionFlag as PermissionFlag, __webpack_exports__PixelsPerInch as PixelsPerInch, __webpack_exports__RenderingCancelledException as RenderingCancelledException, __webpack_exports__ResponseException as ResponseException, __webpack_exports__SignatureExtractor as SignatureExtractor, __webpack_exports__SupportedImageMimeTypes as SupportedImageMimeTypes, __webpack_exports__TextLayer as TextLayer, __webpack_exports__TouchManager as TouchManager, __webpack_exports__Util as Util, __webpack_exports__VerbosityLevel as VerbosityLevel, __webpack_exports__XfaLayer as XfaLayer, __webpack_exports__build as build, __webpack_exports__createValidAbsoluteUrl as createValidAbsoluteUrl, __webpack_exports__fetchData as fetchData, __webpack_exports__getDocument as getDocument, __webpack_exports__getFilenameFromUrl as getFilenameFromUrl, __webpack_exports__getPdfFilenameFromUrl as getPdfFilenameFromUrl, __webpack_exports__getUuid as getUuid, __webpack_exports__getXfaPageViewport as getXfaPageViewport, __webpack_exports__isDataScheme as isDataScheme, __webpack_exports__isPdfFile as isPdfFile, __webpack_exports__isValidExplicitDest as isValidExplicitDest, __webpack_exports__noContextMenu as noContextMenu, __webpack_exports__normalizeUnicode as normalizeUnicode, __webpack_exports__setLayerDimensions as setLayerDimensions, __webpack_exports__shadow as shadow, __webpack_exports__stopEvent as stopEvent, __webpack_exports__version as version };

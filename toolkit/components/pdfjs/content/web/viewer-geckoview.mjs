@@ -51,7 +51,62 @@ __webpack_require__.d(__webpack_exports__, {
   PDFViewerApplicationOptions: () => (/* reexport */ AppOptions)
 });
 
+;// ./web/pdfjs.js
+const {
+  AbortException,
+  AnnotationEditorLayer,
+  AnnotationEditorParamsType,
+  AnnotationEditorType,
+  AnnotationEditorUIManager,
+  AnnotationLayer,
+  AnnotationMode,
+  AnnotationType,
+  build,
+  ColorPicker,
+  createValidAbsoluteUrl,
+  DOMSVGFactory,
+  DrawLayer,
+  FeatureTest,
+  fetchData,
+  getDocument,
+  getFilenameFromUrl,
+  getPdfFilenameFromUrl,
+  getUuid,
+  getXfaPageViewport,
+  GlobalWorkerOptions,
+  ImageKind,
+  InvalidPDFException,
+  isDataScheme,
+  isPdfFile,
+  isValidExplicitDest,
+  MathClamp,
+  noContextMenu,
+  normalizeUnicode,
+  OPS,
+  OutputScale,
+  PasswordResponses,
+  PDFDataRangeTransport,
+  PDFDateString,
+  PDFWorker,
+  PermissionFlag,
+  PixelsPerInch,
+  RenderingCancelledException,
+  ResponseException,
+  setLayerDimensions,
+  shadow,
+  SignatureExtractor,
+  stopEvent,
+  SupportedImageMimeTypes,
+  TextLayer,
+  TouchManager,
+  Util,
+  VerbosityLevel,
+  version,
+  XfaLayer
+} = globalThis.pdfjsLib;
+
 ;// ./web/ui_utils.js
+
 const DEFAULT_SCALE_VALUE = "auto";
 const DEFAULT_SCALE = 1.0;
 const DEFAULT_SCALE_DELTA = 1.1;
@@ -408,9 +463,6 @@ const animationStarted = new Promise(function (resolve) {
   window.requestAnimationFrame(resolve);
 });
 const docStyle = document.documentElement.style;
-function clamp(v, min, max) {
-  return Math.min(Math.max(v, min), max);
-}
 class ProgressBar {
   #classList = null;
   #disableAutoFetchTimeout = null;
@@ -425,7 +477,7 @@ class ProgressBar {
     return this.#percent;
   }
   set percent(val) {
-    this.#percent = clamp(val, 0, 100);
+    this.#percent = MathClamp(val, 0, 100);
     if (isNaN(val)) {
       this.#classList.add("indeterminate");
       return;
@@ -797,6 +849,10 @@ const defaultOptions = {
     value: false,
     kind: OptionKind.API
   },
+  iccUrl: {
+    value: "resource://pdf.js/web/iccs/",
+    kind: OptionKind.API
+  },
   isEvalSupported: {
     value: true,
     kind: OptionKind.API
@@ -895,59 +951,6 @@ class AppOptions {
     }
   }
 }
-
-;// ./web/pdfjs.js
-const {
-  AbortException,
-  AnnotationEditorLayer,
-  AnnotationEditorParamsType,
-  AnnotationEditorType,
-  AnnotationEditorUIManager,
-  AnnotationLayer,
-  AnnotationMode,
-  AnnotationType,
-  build,
-  ColorPicker,
-  createValidAbsoluteUrl,
-  DOMSVGFactory,
-  DrawLayer,
-  FeatureTest,
-  fetchData,
-  getDocument,
-  getFilenameFromUrl,
-  getPdfFilenameFromUrl,
-  getUuid,
-  getXfaPageViewport,
-  GlobalWorkerOptions,
-  ImageKind,
-  InvalidPDFException,
-  isDataScheme,
-  isPdfFile,
-  isValidExplicitDest,
-  noContextMenu,
-  normalizeUnicode,
-  OPS,
-  OutputScale,
-  PasswordResponses,
-  PDFDataRangeTransport,
-  PDFDateString,
-  PDFWorker,
-  PermissionFlag,
-  PixelsPerInch,
-  RenderingCancelledException,
-  ResponseException,
-  setLayerDimensions,
-  shadow,
-  SignatureExtractor,
-  stopEvent,
-  SupportedImageMimeTypes,
-  TextLayer,
-  TouchManager,
-  Util,
-  VerbosityLevel,
-  version,
-  XfaLayer
-} = globalThis.pdfjsLib;
 
 ;// ./web/pdf_link_service.js
 
@@ -5254,6 +5257,7 @@ class DrawLayerBuilder {
 ;// ./web/pdf_page_detail_view.js
 
 
+
 class PDFPageDetailView extends BasePDFPageView {
   #detailArea = null;
   renderingCancelled = false;
@@ -5337,7 +5341,7 @@ class PDFPageDetailView extends BasePDFPageView {
     } = this.pageView;
     const visibleWidth = visibleArea.maxX - visibleArea.minX;
     const visibleHeight = visibleArea.maxY - visibleArea.minY;
-    const visiblePixels = visibleWidth * visibleHeight * (window.devicePixelRatio || 1) ** 2;
+    const visiblePixels = visibleWidth * visibleHeight * OutputScale.pixelRatio ** 2;
     const maxDetailToVisibleLinearRatio = Math.sqrt(maxCanvasPixels / visiblePixels);
     const maxOverflowScale = (maxDetailToVisibleLinearRatio - 1) / 2;
     let overflowScale = Math.min(1, maxOverflowScale);
@@ -5401,11 +5405,11 @@ class PDFPageDetailView extends BasePDFPageView {
     } = viewport;
     const area = this.#detailArea;
     const {
-      devicePixelRatio = 1
-    } = window;
-    const transform = [devicePixelRatio, 0, 0, devicePixelRatio, -area.minX * devicePixelRatio, -area.minY * devicePixelRatio];
-    canvas.width = area.width * devicePixelRatio;
-    canvas.height = area.height * devicePixelRatio;
+      pixelRatio
+    } = OutputScale;
+    const transform = [pixelRatio, 0, 0, pixelRatio, -area.minX * pixelRatio, -area.minY * pixelRatio];
+    canvas.width = area.width * pixelRatio;
+    canvas.height = area.height * pixelRatio;
     const {
       style
     } = canvas;
@@ -6622,27 +6626,7 @@ class PDFPageView extends BasePDFPageView {
       height
     } = this.viewport;
     const outputScale = this.outputScale = new OutputScale();
-    if (this.maxCanvasPixels > 0 || this.maxCanvasDim !== -1) {
-      let maxAreaScale = Infinity,
-        maxWidthScale = Infinity,
-        maxHeightScale = Infinity;
-      if (this.maxCanvasPixels > 0) {
-        const pixelsInViewport = width * height;
-        maxAreaScale = Math.sqrt(this.maxCanvasPixels / pixelsInViewport);
-      }
-      if (this.maxCanvasDim !== -1) {
-        maxWidthScale = this.maxCanvasDim / width;
-        maxHeightScale = this.maxCanvasDim / height;
-      }
-      const maxScale = Math.min(maxAreaScale, maxWidthScale, maxHeightScale);
-      if (outputScale.sx > maxScale || outputScale.sy > maxScale) {
-        outputScale.sx = maxScale;
-        outputScale.sy = maxScale;
-        this.#needsRestrictedScaling = true;
-      } else {
-        this.#needsRestrictedScaling = false;
-      }
-    }
+    this.#needsRestrictedScaling = outputScale.limitCanvas(width, height, this.maxCanvasPixels, this.maxCanvasDim);
   }
   cancelRendering({
     keepAnnotationLayer = false,
@@ -7031,7 +7015,7 @@ class PDFViewer {
   #supportsPinchToZoom = true;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "5.0.299";
+    const viewerVersion = "5.0.365";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -8107,7 +8091,7 @@ class PDFViewer {
     const visiblePages = currentlyVisiblePages || this._getVisiblePages();
     const scrollAhead = this.#getScrollAhead(visiblePages);
     const preRenderExtra = this._spreadMode !== SpreadMode.NONE && this._scrollMode !== ScrollMode.HORIZONTAL;
-    const ignoreDetailViews = this.#scrollTimeoutId !== null && visiblePages.views.some(page => page.detailView?.renderingCancelled);
+    const ignoreDetailViews = this.#scaleTimeoutId !== null || this.#scrollTimeoutId !== null && visiblePages.views.some(page => page.detailView?.renderingCancelled);
     const pageView = this.renderingQueue.getHighestPriority(visiblePages, this._pages, scrollAhead, preRenderExtra, ignoreDetailViews);
     if (pageView) {
       this.#ensurePdfPageLoaded(pageView).then(() => {
@@ -8938,6 +8922,7 @@ const PDFViewerApplication = {
     }
     const signatureManager = AppOptions.get("enableSignatureEditor") && appConfig.addSignatureDialog ? new SignatureManager(appConfig.addSignatureDialog, appConfig.editSignatureDialog, appConfig.annotationEditorParams?.editorSignatureAddSignature || null, this.overlayManager, l10n, externalServices.createSignatureStorage(eventBus, abortSignal), eventBus) : null;
     const enableHWA = AppOptions.get("enableHWA"),
+      maxCanvasPixels = AppOptions.get("maxCanvasPixels"),
       maxCanvasDim = AppOptions.get("maxCanvasDim");
     const pdfViewer = new PDFViewer({
       container,
@@ -8961,7 +8946,7 @@ const PDFViewerApplication = {
       enableNewAltTextWhenAddingImage: AppOptions.get("enableNewAltTextWhenAddingImage"),
       imageResourcesPath: AppOptions.get("imageResourcesPath"),
       enablePrintAutoRotate: AppOptions.get("enablePrintAutoRotate"),
-      maxCanvasPixels: AppOptions.get("maxCanvasPixels"),
+      maxCanvasPixels,
       maxCanvasDim,
       enableDetailCanvas: AppOptions.get("enableDetailCanvas"),
       enablePermissions: AppOptions.get("enablePermissions"),
@@ -8982,6 +8967,7 @@ const PDFViewerApplication = {
         eventBus,
         renderingQueue: pdfRenderingQueue,
         linkService: pdfLinkService,
+        maxCanvasPixels,
         maxCanvasDim,
         pageColors,
         abortSignal,
@@ -9902,7 +9888,7 @@ const PDFViewerApplication = {
       if (evt) {
         pdfViewer.refresh();
       }
-      const mediaQueryList = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+      const mediaQueryList = window.matchMedia(`(resolution: ${OutputScale.pixelRatio}dppx)`);
       mediaQueryList.addEventListener("change", addWindowResolutionChange, {
         once: true,
         signal
@@ -10271,12 +10257,17 @@ function onWheel(evt) {
     }
   }
 }
-function closeSecondaryToolbar(evt) {
+function closeSecondaryToolbar({
+  target
+}) {
   if (!this.secondaryToolbar?.isOpen) {
     return;
   }
-  const appConfig = this.appConfig;
-  if (this.pdfViewer.containsElement(evt.target) || appConfig.toolbar?.container.contains(evt.target) && !appConfig.secondaryToolbar?.toggleButton.contains(evt.target)) {
+  const {
+    toolbar,
+    secondaryToolbar
+  } = this.appConfig;
+  if (this.pdfViewer.containsElement(target) || toolbar?.container.contains(target) && !secondaryToolbar?.toolbar.contains(target) && !secondaryToolbar?.toggleButton.contains(target)) {
     this.secondaryToolbar.close();
   }
 }
@@ -10567,8 +10558,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "5.0.299";
-const pdfjsBuild = "dea35aed4";
+const pdfjsVersion = "5.0.365";
+const pdfjsBuild = "8791b2474";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;

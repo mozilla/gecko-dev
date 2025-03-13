@@ -187,7 +187,7 @@ See https://github.com/adobe-type-tools/cmap-resources
                       <span data-l10n-id="pdfjs-editor-signature-button-label">Add signature</span>
                     </button>
                     <div class="editorParamsToolbar hidden doorHangerRight menu" id="editorSignatureParamsToolbar">
-                      <div id="addSignatureDoorHanger" class="menuContainer">
+                      <div id="addSignatureDoorHanger" class="menuContainer" role="region" data-l10n-id="pdfjs-editor-add-signature-container">
                         <button id="editorSignatureAddSignature" class="toolbarButton labeled" type="button" title="Add new signature" tabindex="0" data-l10n-id="pdfjs-editor-signature-add-signature-button">
                           <span data-l10n-id="pdfjs-editor-signature-add-signature-button-label" class="editorParamsLabel">Add new signature</span>
                         </button>
@@ -654,7 +654,7 @@ See https://github.com/adobe-type-tools/cmap-resources
                   <input id="addSignatureFilePicker" type="file"></input>
                 </div>
               </div>
-              <div id="addSignatureControls" disabled>
+              <div id="addSignatureControls">
                 <div id="horizontalContainer">
                   <div id="addSignatureDescriptionContainer">
                     <label for="addSignatureDescription" data-l10n-id="pdfjs-editor-add-signature-description-label">Description (alt text)</span></label>
@@ -666,7 +666,7 @@ See https://github.com/adobe-type-tools/cmap-resources
                   <button id="clearSignatureButton" type="button" data-l10n-id="pdfjs-editor-add-signature-clear-button" tabindex="0"><span data-l10n-id="pdfjs-editor-add-signature-clear-button-label">Clear signature</span></button>
                 </div>
                 <div id="addSignatureSaveContainer">
-                  <input type="checkbox" id="addSignatureSaveCheckbox" checked="true" tabindex="0"></input>
+                  <input type="checkbox" id="addSignatureSaveCheckbox" checked="true"></input>
                   <label for="addSignatureSaveCheckbox" data-l10n-id="pdfjs-editor-add-signature-save-checkbox">Save signature</label>
                   <span></span>
                   <span id="addSignatureSaveWarning" data-l10n-id="pdfjs-editor-add-signature-save-warning-message">You’ve reached the limit of 5 saved signatures. Remove one to save more.</span>
