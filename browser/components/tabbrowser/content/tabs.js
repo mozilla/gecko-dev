@@ -708,6 +708,14 @@
         this.#maxTabsPerRow = tabsPerRow;
       }
 
+      if (tab.multiselected) {
+        for (let multiselectedTab of gBrowser.selectedTabs.filter(
+          t => t.pinned != tab.pinned
+        )) {
+          gBrowser.removeFromMultiSelectedTabs(multiselectedTab);
+        }
+      }
+
       let dataTransferOrderedTabs;
       if (!fromTabList) {
         let selectedTabs = gBrowser.selectedTabs;
@@ -844,9 +852,7 @@
             : this.arrowScrollbox.scrollPosition,
         screenX: event.screenX,
         screenY: event.screenY,
-        movingTabs: (tab.multiselected ? gBrowser.selectedTabs : [tab]).filter(
-          t => t.pinned == tab.pinned
-        ),
+        movingTabs: tab.multiselected ? gBrowser.selectedTabs : [tab],
         fromTabList,
         tabGroupCreationColor: gBrowser.tabGroupMenu.nextUnusedColor,
       };
