@@ -32,6 +32,7 @@ enum class AnnotationType : uint8_t {
   U32 = 2,      // C/C++'s uint32_t or Rust's u32
   U64 = 3,      // C/C++'s uint64_t or Rust's u64
   USize = 4,    // C/C++'s size_t or Rust's usize
+  Object = 5,   // Not able to be read/written from the C++ API.
 };
 
 // Type of each annotation
@@ -41,7 +42,13 @@ ${types}
 
 // Allowlist of crash annotations that can be included in a crash ping
 const Annotation kCrashPingAllowedList[] = {
-${allowedlist}
+${pingallowedlist}
+};
+
+// Allowlist of crash annotations that can be included in a crash report
+// (excludes those in kCrashPingAllowedList).
+const Annotation kCrashReportAllowedList[] = {
+${reportallowedlist}
 };
 
 // Annotations which should be skipped when they have specific values
@@ -83,14 +90,24 @@ static inline const char* AnnotationToString(Annotation aAnnotation) {
 Maybe<Annotation> AnnotationFromString(const nsACString& aValue);
 
 /**
- * Checks if the given crash annotation is allowed for inclusion in the crash
+ * Checks if the given crash annotation is allowed for inclusion in a crash
  * ping.
  *
  * @param aAnnotation the crash annotation to be checked
- * @return true if the annotation can be included in the crash ping, false
+ * @return true if the annotation can be included in a crash ping, false
  *         otherwise
  */
 bool IsAnnotationAllowedForPing(Annotation aAnnotation);
+
+/**
+ * Checks if the given crash annotation is allowed for inclusion in a crash
+ * report.
+ *
+ * @param aAnnotation the crash annotation to be checked
+ * @return true if the annotation can be included in a crash report, false
+ *         otherwise
+ */
+bool IsAnnotationAllowedForReport(Annotation aAnnotation);
 
 /**
  * Checks if the annotation should be included. Some annotations are skipped if

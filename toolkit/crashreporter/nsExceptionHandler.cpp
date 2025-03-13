@@ -422,8 +422,7 @@ static void CreateFileFromPath(const xpstring& path, nsIFile** file) {
       DependentPathString(path.c_str(), path.size()), file);
 }
 
-[[nodiscard]]
-static std::optional<xpstring> CreatePathFromFile(nsIFile* file) {
+[[nodiscard]] static std::optional<xpstring> CreatePathFromFile(nsIFile* file) {
   AutoPathString path;
 #ifdef XP_WIN
   nsresult rv = file->GetPath(path);
@@ -1415,6 +1414,9 @@ static void WriteAnnotationsForMainProcessCrash(PlatformWriter& pw,
         case AnnotationType::USize:
           writer.Write(
               key, static_cast<uint64_t>(*reinterpret_cast<size_t*>(address)));
+          break;
+        case AnnotationType::Object:
+          // Object annotations are only produced later by minidump-analyzer.
           break;
       }
     }
@@ -3216,6 +3218,9 @@ static void AddSharedAnnotations(AnnotationTable& aAnnotations) {
 #endif
           }
           break;
+        case AnnotationType::Object:
+          // Object annotations are only produced later by minidump-analyzer.
+          break;
       }
 
       if (!value.IsEmpty() && aAnnotations[key].IsEmpty() &&
@@ -3292,6 +3297,9 @@ static void AddChildProcessAnnotations(
           value.AppendInt(*reinterpret_cast<const size_t*>(buffer));
 #endif
         }
+        break;
+      case AnnotationType::Object:
+        // Object annotations are only produced later by minidump-analyzer.
         break;
     }
 

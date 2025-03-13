@@ -31,12 +31,23 @@ Maybe<Annotation> AnnotationFromString(const nsACString& aValue) {
   return Some(static_cast<Annotation>(elem - begin(kAnnotationStrings)));
 }
 
-bool IsAnnotationAllowedForPing(Annotation aAnnotation) {
+template <size_t N>
+static bool AnnotationInList(Annotation aAnnotation,
+                             const Annotation (&aList)[N]) {
   const auto* elem = find_if(
-      begin(kCrashPingAllowedList), end(kCrashPingAllowedList),
+      begin(aList), end(aList),
       [&aAnnotation](Annotation aElement) { return aElement == aAnnotation; });
 
-  return elem != end(kCrashPingAllowedList);
+  return elem != end(aList);
+}
+
+bool IsAnnotationAllowedForPing(Annotation aAnnotation) {
+  return AnnotationInList(aAnnotation, kCrashPingAllowedList);
+}
+
+bool IsAnnotationAllowedForReport(Annotation aAnnotation) {
+  return AnnotationInList(aAnnotation, kCrashPingAllowedList) ||
+         AnnotationInList(aAnnotation, kCrashReportAllowedList);
 }
 
 bool ShouldIncludeAnnotation(Annotation aAnnotation, const char* aValue) {

@@ -1837,11 +1837,28 @@ nsXULAppInfo::RemoveCrashReportAnnotation(const nsACString& key) {
 }
 
 NS_IMETHODIMP
+nsXULAppInfo::IsAnnotationValid(const nsACString& aValue, bool* aIsValid) {
+  auto annotation = CrashReporter::AnnotationFromString(aValue);
+  *aIsValid = annotation.isSome();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsXULAppInfo::IsAnnotationAllowedForPing(const nsACString& aValue,
                                          bool* aIsAllowed) {
   auto annotation = CrashReporter::AnnotationFromString(aValue);
   NS_ENSURE_TRUE(annotation.isSome(), NS_ERROR_INVALID_ARG);
   *aIsAllowed = CrashReporter::IsAnnotationAllowedForPing(*annotation);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULAppInfo::IsAnnotationAllowedForReport(const nsACString& aValue,
+                                           bool* aIsAllowed) {
+  auto annotation = CrashReporter::AnnotationFromString(aValue);
+  NS_ENSURE_TRUE(annotation.isSome(), NS_ERROR_INVALID_ARG);
+  *aIsAllowed = CrashReporter::IsAnnotationAllowedForReport(*annotation);
 
   return NS_OK;
 }

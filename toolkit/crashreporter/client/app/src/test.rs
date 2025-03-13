@@ -65,24 +65,10 @@ impl<T: std::fmt::Display> std::fmt::Display for FluentArg<T> {
 fn gui_interact<G, I, R>(gui: G, interact: I) -> R
 where
     G: FnOnce() -> R,
-    I: FnOnce(Interact) + Send + 'static,
+    I: FnOnce(&Interact) + Send + 'static,
 {
-    let i = Interact::hook();
-    let handle = {
-        let i = i.clone();
-        ::std::thread::spawn(move || {
-            i.wait_for_ready();
-            interact(i);
-        })
-    };
-    let ret = gui();
-    // In case the gui failed before launching.
-    i.cancel();
-    // If the gui failed, it's possible the interact thread hit a panic. However we can't check
-    // whether `R` is in a failure state, so we ignore the result of joining the thread. If there
-    // is an error, a backtrace will show the thread's panic message.
-    let _ = handle.join();
-    ret
+    let _spawned = Interact::spawn(interact);
+    gui()
 }
 
 const MOCK_MINIDUMP_EXTRA: &str = r#"{
@@ -244,7 +230,7 @@ impl GuiTest {
     /// Run the test as configured, using the given function to interact with the GUI.
     ///
     /// Returns the final result of the application logic.
-    pub fn try_run<F: FnOnce(Interact) + Send + 'static>(
+    pub fn try_run<F: FnOnce(&Interact) + Send + 'static>(
         &mut self,
         interact: F,
     ) -> anyhow::Result<bool> {
@@ -280,7 +266,7 @@ impl GuiTest {
     ///
     /// Panics if the application logic returns an error (which would normally be displayed to the
     /// user).
-    pub fn run<F: FnOnce(Interact) + Send + 'static>(&mut self, interact: F) {
+    pub fn run<F: FnOnce(&Interact) + Send + 'static>(&mut self, interact: F) {
         if let Err(e) = self.try_run(interact) {
             panic!(
                 "gui failure:{}",
@@ -935,12 +921,7 @@ fn details_window() {
              BuildID: 1234\n\
              ProductName: Bar\n\
              ReleaseChannel: release\n\
-             SomeNestedJson: {\"foo\":\"bar\"}\n\
              SubmittedFrom: Client\n\
-             TelemetryClientId: telemetry_client\n\
-             TelemetryProfileGroupId: telemetry_profile_group\n\
-             TelemetryServerURL: https://telemetry.example.com\n\
-             TelemetrySessionId: telemetry_session\n\
              Throttleable: 1\n\
              URL: https://url.example.com\n\
              Vendor: FooCorp\n\

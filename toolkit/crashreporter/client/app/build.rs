@@ -6,7 +6,7 @@ use std::{env, path::Path};
 
 fn main() {
     windows_manifest();
-    crash_ping_annotations();
+    crash_annotations();
     set_mock_cfg();
     set_glean_metrics_file();
     generate_buildid_section();
@@ -35,8 +35,8 @@ fn windows_manifest() {
     println!("cargo:rerun-if-changed=build.rs");
 }
 
-/// Generate crash ping annotation information from the yaml definition file.
-fn crash_ping_annotations() {
+/// Generate crash annotation information from the yaml definition file.
+fn crash_annotations() {
     use std::fs::File;
     use std::io::{BufWriter, Write};
     use yaml_rust::{Yaml, YamlLoader};
@@ -46,7 +46,7 @@ fn crash_ping_annotations() {
         .unwrap();
     println!("cargo:rerun-if-changed={}", crash_annotations.display());
 
-    let crash_ping_file = Path::new(&env::var("OUT_DIR").unwrap()).join("ping_annotations.rs");
+    let crash_ping_file = Path::new(&env::var("OUT_DIR").unwrap()).join("crash_annotations.rs");
 
     let yaml = std::fs::read_to_string(crash_annotations).unwrap();
     let Yaml::Hash(entries) = YamlLoader::load_from_str(&yaml)
@@ -58,23 +58,33 @@ fn crash_ping_annotations() {
         panic!("unexpected crash annotations root type");
     };
 
-    let ping_annotations = entries.into_iter().filter_map(|(k, v)| {
-        v["ping"]
-            .as_bool()
-            .unwrap_or(false)
-            .then(|| k.into_string().unwrap())
-    });
+    let mut ping_annotations = phf_codegen::Set::new();
+    let mut report_annotations = phf_codegen::Set::new();
 
-    let mut phf_set = phf_codegen::Set::new();
-    for annotation in ping_annotations {
-        phf_set.entry(annotation);
+    for (k, v) in entries {
+        let scope = v["scope"].as_str().unwrap_or("client");
+        match scope {
+            "ping" => {
+                ping_annotations.entry(k.into_string().unwrap());
+            }
+            "report" => {
+                report_annotations.entry(k.into_string().unwrap());
+            }
+            _ => (),
+        }
     }
 
     let mut file = BufWriter::new(File::create(&crash_ping_file).unwrap());
     writeln!(
         &mut file,
         "static PING_ANNOTATIONS: phf::Set<&'static str> = {};",
-        phf_set.build()
+        ping_annotations.build(),
+    )
+    .unwrap();
+    writeln!(
+        &mut file,
+        "static REPORT_ANNOTATIONS: phf::Set<&'static str> = {};",
+        report_annotations.build(),
     )
     .unwrap();
 }

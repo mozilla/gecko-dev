@@ -2,15 +2,21 @@
 #
 # Mandatory fields for each entry are:
 # - description: A string describing the annotation
-# - type: the annotation type, currently `string`, `boolean`, `u32`, `u64` or
-#   `usize`. Note that `boolean` values are stringified to `1` for
-#   true and `0` for false.
+# - type: the annotation type, currently `string`, `boolean`, `u32`, `u64`,
+#   `usize`, or `object`. `boolean` values are stringified to `1` for true and
+#   `0` for false. `object` types are a JSON object (not serialized), and may
+#   only be used for client-scoped annotations. They are only used internally
+#   by the crash reporting machinery; these values can't be accessed by the
+#   C++/JS APIs.
 #
 # Additionally a field can have the following optional fields:
 # - altname: A string that will be used when writing out the annotation to the
 #   .extra file instead of the annotation name
-# - ping: A boolean that indicates whether the annotation is allowed for
-#   inclusion in the crash ping, if not specified this defaults to false
+# - scope: A string that indicates the scope of the annotation. Valid values
+# include:
+#   - "client": annotations which are never sent remotely (the default if unspecified),
+#   - "report": annotations which are sent in reports, and
+#   - "ping": annotations which are sent in pings and reports.
 # - skip_if: A string that will cause the annotation not to be included in the
 #   crash report if the contents match it.
 
@@ -18,47 +24,56 @@ AbortMessage:
   description: >
     Message passed to NS_DebugBreak().
   type: string
+  scope: report
 
 Accessibility:
   description: >
     Set to "Active" by the accessibility service when it is active.
   type: string
+  scope: report
 
 AccessibilityClient:
   description: >
     Accessibility client ID.
   type: string
+  scope: report
 
 AccessibilityInProcClient:
   description: >
     Hexadecimal mask of in-process accessibility consumers, see
     accessible/windows/msaa/Compatibility.h for the mappings.
   type: string
+  scope: report
 
 AdapterDeviceID:
   description: >
     Graphics adapter name.
   type: string
+  scope: report
 
 AdapterDriverVendor:
   description: >
     Graphics adapter driver vendor.
   type: string
+  scope: report
 
 AdapterDriverVersion:
   description: >
     Graphics adapter driver version.
   type: string
+  scope: report
 
 AdapterSubsysID:
   description: >
     Graphics adapter subsystem ID.
   type: string
+  scope: report
 
 AdapterVendorID:
   description: >
     Graphics adapter vendor name.
   type: string
+  scope: report
 
 additional_minidumps:
   description: >
@@ -67,64 +82,76 @@ additional_minidumps:
     "browser" entry for crash fa909194-737b-4b93-b8da-da110ac785e0 implies the
     existence of the fa909194-737b-4b93-b8da-da110ac785e0-browser.dmp file.
   type: string
+  scope: report
 
 Addons:
   description: >
     List of currently enabled add-ons.
   type: string
+  scope: report
   altname: Add-ons
 
 Android_Board:
   description: >
     The name of the underlying board used by the Android device. e.g. "k68v1_64"
   type: string
+  scope: report
 
 Android_Brand:
   description: >
     The consumer-visible brand associated with this Android device. e.g. "vivo"
   type: string
+  scope: report
 
 Android_CPU_ABI:
   description: >
     The Android primary CPU ABI being used. e.g. "arm64-v8a"
   type: string
+  scope: report
 
 Android_CPU_ABI2:
   description: >
     The Android secondary CPU ABI being used. e.g. "armeabi-v7a"
   type: string
+  scope: report
 
 Android_Device:
   description: >
     Android device name. e.g. "1907"
   type: string
+  scope: report
 
 Android_Display:
   description: >
     End-user visible display name of the build id for the Android build.
     e.g. "SP1A.210812.003 release-keys"
   type: string
+  scope: report
 
 Android_Fingerprint:
   description: >
     A string that uniquely identifies the Android build. e.g.
     "vivo/1907/1907:12/SP1A.210812.003/compiler03091510:user/release-keys"
   type: string
+  scope: report
 
 Android_Hardware:
   description: >
     The name of the Android hardware from "/proc". e.g. "mt6768"
   type: string
+  scope: report
 
 Android_Manufacturer:
   description: >
     Android device manufacturer. e.g. "vivo"
   type: string
+  scope: report
 
 Android_Model:
   description: >
     End-user visible Android device model name. e.g. "vivo 1907"
   type: string
+  scope: report
 
 Android_PackageName:
   description: >
@@ -132,6 +159,7 @@ Android_PackageName:
     application on the device, Google Play Store, and third-party Android
     stores. e.g. "com.example.referencebrowser"
   type: string
+  scope: report
 
 Android_Version:
   description: >
@@ -139,17 +167,20 @@ Android_Version:
     development codename, or the string "REL" if this is a release build.
     e.g. "31 (REL)"
   type: string
+  scope: report
 
 AppInitDLLs:
   description: >
     List of DLLs loaded when launching any application on Windows, this
     reflects the contents of the AppInit_DLLs registry key.
   type: string
+  scope: report
 
 ApplicationBuildID:
   description: >
     Product application's build ID.
   type: string
+  scope: report
 
 AsyncShutdownTimeout:
   description: >
@@ -157,7 +188,7 @@ AsyncShutdownTimeout:
     and the browser was crashed instead of waiting for shutdown to finish. The
     condition that caused the hang is contained in the annotation.
   type: string
-  ping: true
+  scope: ping
 
 AvailablePageFile:
   description: >
@@ -169,7 +200,7 @@ AvailablePageFile:
       Committed_AS > CommittedLimit, this value is set to 0.
     - Not available on other platforms.
   type: usize
-  ping: true
+  scope: ping
 
 AvailablePhysicalMemory:
   description: >
@@ -180,7 +211,7 @@ AvailablePhysicalMemory:
     - Under Linux, populated with /proc/meminfo's MemFree.
     - Not available on other platforms.
   type: usize
-  ping: true
+  scope: ping
 
 AvailableSwapMemory:
   description: >
@@ -190,7 +221,7 @@ AvailableSwapMemory:
     - Under Linux, populated with /proc/meminfo's SwapFree.
     - Not available on other platforms.
   type: usize
-  ping: true
+  scope: ping
 
 AvailableVirtualMemory:
   description: >
@@ -200,30 +231,31 @@ AvailableVirtualMemory:
     - Not available on other platforms.
     - For macOS, see AvailableSwapMemory, AvailablePhysicalMemory and PurgeablePhysicalMemory.
   type: usize
-  ping: true
+  scope: ping
 
 BackgroundTaskMode:
   description: >
     True if the app was invoked in background task mode via `--backgroundtask ...`, false otherwise.
   type: boolean
+  scope: report
 
 BackgroundTaskName:
   description: >
     If the app was invoked in background task mode via `--backgroundtask <task name>`, the string "task name".
   type: string
-  ping: true
+  scope: ping
 
 BlockedDllList:
   description: >
     Comma-separated list of blocked DLLS, Windows-only
   type: string
-  ping: true
+  scope: ping
 
 BlocklistInitFailed:
   description: >
     Set to 1 if the DLL blocklist could not be initialized.
   type: boolean
-  ping: true
+  scope: ping
   skip_if: "0"
 
 Breadcrumbs:
@@ -231,85 +263,104 @@ Breadcrumbs:
     Trail of events that occurred before a report. this will consist of multiple breadcrumbs with
     timestamp, message, category, level, type and data in JSON format.
   type: string
+  scope: report
 
 BuildID:
   description: >
     Application build ID, the format is YYYYMMDDHHMMSS.
   type: string
-  ping: true
+  scope: ping
 
 ContentSandboxCapabilities:
   description: >
     List of capabilities of the content process sandbox.
   type: u32
+  scope: report
 
 ContentSandboxEnabled:
   description: >
     Set to 1 when content process sandboxing is enabled.
   type: boolean
+  scope: report
 
 ContentSandboxCapable:
   description: >
     Set to 1 if the client is capable of content sandboxing.
   type: boolean
+  scope: report
 
 ContentSandboxLevel:
   description: >
     Content sandbox level.
   type: u32
+  scope: report
 
 ContentSandboxWin32kState:
   description: >
     Content sandbox Win32k state
   type: string
+  scope: report
 
 GpuSandboxLevel:
   description: >
     GPU sandbox level.
   type: u32
+  scope: report
 
 CPUMicrocodeVersion:
   description: >
     Version of the CPU microcode.
   type: string
+  scope: report
+
+Comments:
+  description: >
+    The user comments for a crash, recorded by the crash reporter client.
+  type: string
+  scope: report
 
 CrashTime:
   description: >
     Crash time in seconds since the Epoch.
   type: string
-  ping: true
+  scope: ping
 
 CycleCollector:
   description: >
     Reason why the cycle collector crashed.
   type: string
+  scope: report
 
 DesktopEnvironment:
   description: >
     Desktop environment used on Linux, e.g. GNOME, KDE, XFCE, etc.
   type: string
+  scope: report
 
 DeviceResetReason:
   description: >
     Reason why a DirectX device has been reset, Windows only.
   type: u32
+  scope: report
 
 DOMFissionEnabled:
   description: >
     Set to 1 when DOM fission is enabled, and subframes are potentially loaded
     in a separate process.
   type: boolean
-  ping: true
+  scope: ping
 
 DOMIPCEnabled:
   description: >
     Set to 1 when a tab is running in a content process
   type: boolean
+  scope: report
 
 DumperError:
   description: >
     Error message of the minidump writer, in case there was an error during dumping.
   type: string
+  scope: report
 
 EMCheckCompatibility:
   description: >
@@ -317,91 +368,103 @@ EMCheckCompatibility:
     annotation should be a boolean, but historically it's been set by JavaScript
     code as a string, so keep it as such for the time being.
   type: string
+  scope: report
 
 EventLoopNestingLevel:
   description: >
     Present only if higher than 0, indicates that we're running in a nested
     event loop and indicates the nesting level.
   type: u32
-  ping: true
+  scope: ping
   skip_if: "0"
 
 FontName:
   description: >
     Set before attempting to load a font to help diagnose crashes during loading.
   type: string
-  ping: true
+  scope: ping
 
 GMPLibraryPath:
   description: >
     Holds the path to the GMP plugin library.
   type: string
+  scope: report
 
 GMPPlugin:
   description: >
     Set to 1 if the GMP plugin is enabled.
   type: boolean
+  scope: report
 
 GPUProcessLaunchCount:
   description: >
     Number of times the GPU process was launched.
   type: u32
-  ping: true
+  scope: ping
 
 GPUProcessStatus:
   description: >
     Status of the GPU process, can be set to "Running" or "Destroyed"
   type: string
+  scope: report
 
 GraphicsCompileShader:
   description: >
     Name of the shader we are in the process of compiling, if applicable. See
     file names in gfx/wr/webrender/res/* for the possible values.
   type: string
+  scope: report
 
 GraphicsCriticalError:
   description: >
     Information of a critical error that occurred within the graphics code.
   type: string
+  scope: report
 
 GraphicsDrawShader:
   description: >
     Name of the shader that is currently bound for a draw call, if applicable.
     See file names in gfx/wr/webrender/res/* for the possible values.
   type: string
+  scope: report
 
 GraphicsNumActiveRenderers:
   description: >
     Number of webrender renderer instances that are not in a paused state.
   type: usize
+  scope: report
 
 GraphicsNumRenderers:
   description: >
     Total number of webrender renderer instances.
   type: usize
+  scope: report
 
 GraphicsStartupTest:
   description: >
     Set to 1 by the graphics driver crash guard when it's activated.
   type: boolean
+  scope: report
 
 HeadlessMode:
   description: >
     True if the app was invoked in headless mode via `--headless ...` or `--backgroundtask ...`, false otherwise.
   type: boolean
-  ping: true
+  scope: ping
 
 PHCKind:
   description: >
     The allocation kind, if the crash involved a bad access of a special PHC
     allocation.
   type: string
+  scope: report
 
 PHCBaseAddress:
   description: >
     The allocation's base address, if the crash involved a bad access of a
     special PHC allocation. Encoded as a decimal address.
   type: string
+  scope: report
 
 PHCUsableSize:
   description: >
@@ -410,6 +473,7 @@ PHCUsableSize:
   # A 32-bit integer is enough because the maximum usable size of a special PHC
   # allocation is far less than 2 GiB.
   type: u32
+  scope: report
 
 PHCAllocStack:
   description: >
@@ -417,6 +481,7 @@ PHCAllocStack:
     of a special PHC allocation. Encoded as a comma-separated list of decimal
     addresses.
   type: string
+  scope: report
 
 PHCFreeStack:
   description: >
@@ -424,143 +489,165 @@ PHCFreeStack:
     of a special PHC allocation. Encoded as a comma-separated list of decimal
     addresses.
   type: string
+  scope: report
 
 HasDeviceTouchScreen:
   description: >
     Set to 1 if the device had a touch-screen, this only applies to Firefox
     desktop as on mobile devices we assume a touch-screen is always present.
   type: boolean
+  scope: report
 
 InstallTime:
   description: >
     The time when Firefox was installed expressed as seconds since the Epoch
   type: string # This should be u64 but we currently handle it as a string
+  scope: report
 
 ipc_channel_error:
   description: >
     Set before a content process crashes because of an IPC channel error, holds
     a description of the error.
   type: string
-  ping: true
+  scope: ping
 
 IpcCreatePipeCloExecErrno:
   description: >
     errno value retrieved after failing to set the O_CLOEXEC flag on a pipe
     used for IPC.
   type: u32
+  scope: report
 
 IpcCreatePipeFcntlErrno:
   description: >
     errno value retrieved after a call to fcntl() on a pipe used for IPC failed.
   type: u32
+  scope: report
 
 IpcCreatePipeSocketPairErrno:
   description: >
     errno value retrieved after a socketpair() call failed while creating an IPC
     transport object.
   type: u32
+  scope: report
 
 IPCFatalErrorMsg:
   description: >
     Describes a fatal error that occurred during IPC operation.
   type: string
+  scope: report
 
 IPCFatalErrorProtocol:
   description: >
     Name of the protocol used by IPC when a fatal error occurred.
   type: string
+  scope: report
 
 IPCMessageLargeBufferShmemFailureSize:
   description: >
     Size of failed shmem allocations which led to data being sent inline in the
     IPC message that caused a crash because it was too large.
   type: u32
+  scope: report
 
 IPCMessageName:
   description: >
     Name of the IPC message that caused a crash because it was too large.
   type: string
+  scope: report
 
 IPCMessageSize:
   description: >
     Size of the IPC message that caused a crash because it was too large.
   type: u32
+  scope: report
 
 IPCReadErrorReason:
   description: >
     Reason why reading an object via IPC failed.
   type: string
+  scope: report
 
 IPCShutdownState:
   description: >
     IPC shutdown state, can be set to either "RecvShutdown" or
     "SendFinishShutdown" by a content process while it's shutting down.
   type: string
+  scope: report
 
 IPCSystemError:
   description: >
     Description of the last system error that occurred during IPC operation.
   type: u32
+  scope: report
 
 Hang:
   description: >
     Set if the crash was the result of a hang, with a value which describes the
     type of hang (e.g. "ui" or "shutdown").
   type: string
-  ping: true
+  scope: ping
 
 IsGarbageCollecting:
   description: >
     If true then the JavaScript garbage collector was running when the crash
     occurred.
   type: boolean
-  ping: true
+  scope: ping
   skip_if: "0"
 
 IsWayland:
   description: >
     If true then the Wayland windowing system was in use.
   type: boolean
+  scope: report
 
 IsWebRenderResourcePathOverridden:
   description: >
     If true then the WebRender resources (i.e. shaders) are loaded from a user specified path.
   type: boolean
+  scope: report
 
 JavaException:
   description: >
     JSON structured Java stack trace, only present on Firefox for Android if we encounter an
     uncaught Java exception.
   type: string
+  scope: report
 
 JavaStackTrace:
   description: >
     Java stack trace, only present on Firefox for Android if we encounter an
     uncaught Java exception.
   type: string
+  scope: report
 
 JSActorMessage:
   description: >
     If an actor is currently treating a message, this is the name of the message.
     Otherwise, empty.
   type: string
+  scope: report
 
 JSActorName:
   description: >
     If an actor is currently treating a message, this is the name of the actor.
     Otherwise, empty.
   type: string
+  scope: report
 
 JSLargeAllocationFailure:
   description: >
     A large allocation couldn't be satisfied, check the JSOutOfMemory
     description for the possible values of this annotation.
   type: string
+  scope: report
 
 JSModuleLoadError:
   description: >
     The error raised when attempting to import a critical JS module from C++
   type: string
+  scope: report
 
 JSOutOfMemory:
   description: >
@@ -571,6 +658,7 @@ JSOutOfMemory:
     free some memory, and the last that the GC had managed to free enough memory
     to satisfy the allocation.
   type: string
+  scope: report
 
 
 LastInteractionDuration:
@@ -578,12 +666,13 @@ LastInteractionDuration:
     How long the user had been inactive in seconds if the user was inactive
     at crash.  The value is not set if the user state was active.
   type: u64
-  ping: true
+  scope: ping
 
 LastStartupWasCrash:
   description: >
     True if the last startup was detected to have been a crash.
   type: boolean
+  scope: report
 
 MacMemoryPressure:
   description: >
@@ -593,24 +682,28 @@ MacMemoryPressure:
     "Warning" or "Critical" mapping to the system memory pressure levels,
     or "Unexpected" for an unexpected level. This is a Mac-specific annotation.
   type: string
+  scope: report
 
 MacMemoryPressureNormalTime:
   description: >
     The time when the memory pressure state last transitioned to 'Normal'
     expressed as seconds since the Epoch.
   type: string
+  scope: report
 
 MacMemoryPressureWarningTime:
   description: >
     The time when the memory pressure state last transitioned to 'Warning'
     expressed as seconds since the Epoch.
   type: string
+  scope: report
 
 MacMemoryPressureCriticalTime:
   description: >
     The time when the memory pressure state last transitioned to 'Critical'
     expressed as seconds since the Epoch.
   type: string
+  scope: report
 
 MacMemoryPressureSysctl:
   description: >
@@ -619,29 +712,34 @@ MacMemoryPressureSysctl:
     pressure level the system is in at the time of the crash. The expected
     values are one of 4 (Critical), 2 (Warning), or 1 (Normal).
   type: u32
+  scope: report
 
 MacAvailableMemorySysctl:
   description: >
     The value of the available memory sysctl 'kern.memorystatus_level'.
     Expected to be a percentage integer value.
   type: u32
+  scope: report
 
 Marionette:
   description: >
     Set to 1 when Marionette (WebDriver Classic) is enabled.
   type: boolean
+  scope: report
 
 MemtestOutput:
   description: >
     The output of memory tests done by the crash reporter client after a crash
     in a JSON format
   type: string
+  scope: report
 
 LinuxUnderMemoryPressure:
   description: >
     Set to true if the memory pressure watcher was under memory pressure when
     the crash occurred.
   type: boolean
+  scope: report
 
 LauncherProcessState:
   description: >
@@ -649,20 +747,21 @@ LauncherProcessState:
     match with one of the values in the
     mozilla::LauncherRegistryInfo::EnableState enum
   type: u32
+  scope: report
 
 LowPhysicalMemoryEvents:
   description: >
     Number of times the available memory tracker has detected that free
     physical memory is running low. This is a Windows-specific annotation.
   type: u32
-  ping: true
+  scope: ping
   skip_if: "0"
 
 MainThreadRunnableName:
   description: >
     Name of the currently executing nsIRunnable on the main thread.
   type: string
-  ping: true
+  scope: ping
 
 ModuleSignatureInfo:
   description: >
@@ -670,67 +769,73 @@ ModuleSignatureInfo:
     present in the system. The format of this object is:
     { "Vendor1": [ "Module1", "Module2", ...], "Vendor2": [ "Module3", ... ] }
   type: string
+  scope: report
 
 MozCrashReason:
   description: >
     Plaintext description of why Firefox crashed, this is usually set by
     assertions and the like.
   type: string
-  ping: true
+  scope: ping
 
 NimbusEnrollments:
   description: >
     A comma-separated string that specifies the active Nimbus experiments and
     rollouts, as well as their branches.
   type: string
-  ping: true
+  scope: ping
 
 Notes:
   description: >
     Miscellaneous notes that can be appended to a crash.
   type: string
+  scope: report
 
 OOMAllocationSize:
   description: >
     Size of the allocation that caused an out-of-memory condition.
   type: usize
-  ping: true
+  scope: ping
   skip_if: "0"
 
 PluginFilename:
   description: >
     Plugin filename, only the process holding the plugin has this annotation.
   type: string
+  scope: report
 
 PluginName:
   description: >
     Display name of a plugin, only the process holding the plugin has this
     annotation.
   type: string
+  scope: report
 
 PluginVersion:
   description: >
     Version of a plugin, only the process holding the plugin has this
     annotation.
   type: string
+  scope: report
 
 ProcessType:
   description: >
     Type of the process that crashed, the possible values are defined in
     GeckoProcessTypes.h.
   type: string
+  scope: report
 
 ProductName:
   description: >
     Application name (e.g. Firefox).
   type: string
-  ping: true
+  scope: ping
 
 ProductID:
   description: >
     Application UUID (e.g. ec8030f7-c20a-464f-9b0e-13a3a9e97384).
   type: string
-  ping: true
+  scope: ping
 
 ProfileDirectory:
   description: >
@@ -742,7 +847,7 @@ ProfilerChildShutdownPhase:
     When a child process shuts down, this describes if the profiler is running,
     and the point the profiler shutdown sequence has reached.
   type: string
-  ping: true
+  scope: ping
 
 PurgeablePhysicalMemory:
   description: >
@@ -750,7 +855,7 @@ PurgeablePhysicalMemory:
     be deallocated by the system in case of memory pressure. Populated from
     vm_statistics64_data_t::purgeable_count * vm_page_size.
   type: usize
-  ping: true
+  scope: ping
 
 QuotaManagerShutdownTimeout:
   description: >
@@ -781,46 +886,50 @@ QuotaManagerShutdownTimeout:
     In addition, intermediate steps are recorded for change events after shutdown
     started. These include the time difference and the type of object.
   type: string
-  ping: true
+  scope: ping
 
 QuotaManagerStorageIsNetworkResource:
   description: >
     On Windows, this indicates if QM's base dir lives on a network resource.
     It is the direct result of the Win32 API function PathIsNetworkPath.
   type: boolean
+  scope: report
 
 RDDProcessStatus:
   description: >
     Status of the RDD process, can be set to "Running" or "Destroyed"
   type: string
+  scope: report
 
 ReleaseChannel:
   description: >
     Application release channel (e.g. default, beta, ...)
   type: string
-  ping: true
+  scope: ping
 
 RemoteAgent:
   description: >
     Set to 1 when the Remote Agent (WebDriver BiDi) is enabled.
   type: boolean
+  scope: report
 
 RemoteType:
   description: >
     Type of the content process, can be set to "web", "file" or "extension".
   type: string
-  ping: true
+  scope: ping
 
 SafeMode:
   description: >
     Set to 1 if the browser was started in safe mode.
   type: boolean
+  scope: report
 
 SecondsSinceLastCrash:
   description: >
     Time in seconds since the last crash occurred.
   type: u64
-  ping: true
+  scope: ping
 
 ServerURL:
   description: >
@@ -833,31 +942,40 @@ ShutdownProgress:
     "profile-change-teardown", "profile-before-change", "xpcom-will-shutdown" or
     "xpcom-shutdown".
   type: string
-  ping: true
+  scope: ping
 
 ShutdownReason:
   description: >
     One out of "Unknown", "AppClose", "AppRestart", "OSForceClose",
     "OSSessionEnd" or "OSShutdown".
   type: string
-  ping: true
+  scope: ping
+
+StackTraces:
+  description: >
+    Stack traces extracted from the crash minidump, if available. These are
+    sent in pings, however they are extracted and transformed into a different
+    format. The field in the extra file is meant only for client use.
+  type: object
 
 StartupCacheValid:
   description: >
     True if the startup cache was deemed valid and usable. Will be false if the
     last session used a different browser version or had a startup cache.
   type: boolean
+  scope: report
 
 StartupCrash:
   description: >
     If set to 1 then this crash occurred during startup.
   type: boolean
-  ping: true
+  scope: ping
 
 StartupTime:
   description: >
     The time when Firefox was launched expressed in seconds since the Epoch.
   type: u64
+  scope: report
 
 StorageConnectionNotClosed:
   description: >
@@ -865,6 +983,7 @@ StorageConnectionNotClosed:
     closed during shutdown. The annotation holds the filename of the database
     associated with the connection.
   type: string
+  scope: report
 
 SubmittedFrom:
   description: >
@@ -876,6 +995,7 @@ SubmittedFrom:
     * CrashedTab: the user sent the crash from a crashed tab page
     * Client: the user sent the crash using the crash reporter client
   type: string
+  scope: report
 
 SystemMemoryUsePercentage:
   description: >
@@ -883,7 +1003,7 @@ SystemMemoryUsePercentage:
     populated with the contents of the MEMORYSTATUSEX's structure dwMemoryLoad
     field.
   type: u32
-  ping: true
+  scope: ping
 
 TelemetryClientId:
   description: >
@@ -899,6 +1019,7 @@ TelemetryEnvironment:
   description: >
     The telemetry environment in JSON format.
   type: string
+  scope: report
 
 TelemetryServerURL:
   description: >
@@ -915,27 +1036,31 @@ TestKey:
   description: >
     Annotation used in tests.
   type: string
+  scope: report
 
 TestUnicode:
   description: >
     Annotation used in tests.
   type: string
+  scope: report
 
 TestBoolean:
   description: >
     Annotation used in tests.
   type: boolean
+  scope: report
 
 TestInteger:
   description: >
     Annotation used in tests.
   type: u32
+  scope: report
 
 TextureUsage:
   description: >
     Amount of memory in bytes consumed by textures.
   type: usize
-  ping: true
+  scope: ping
   skip_if: "0"
 
 Throttleable:
@@ -945,6 +1070,7 @@ Throttleable:
     this annotation within Gecko code, it's only supposed to be used by the
     crash reporting machinery.
   type: boolean
+  scope: report
 
 TotalPageFile:
   description: >
@@ -955,7 +1081,7 @@ TotalPageFile:
       typically cannot be extended, so that's a hard limit.
     - Not available on other systems.
   type: usize
-  ping: true
+  scope: ping
 
 TotalPhysicalMemory:
   description: >
@@ -966,7 +1092,7 @@ TotalPhysicalMemory:
     - Under Linux, populated with /proc/meminfo's "MemTotal".
     - Not available on other systems.
   type: usize
-  ping: true
+  scope: ping
 
 TotalVirtualMemory:
   description: >
@@ -975,75 +1101,83 @@ TotalVirtualMemory:
       ullTotalVirtual field.
     - Not available on other platforms.
   type: usize
-  ping: true
+  scope: ping
 
 UnknownNetAddrSocketFamily:
   description: >
     An unknown network address family was requested to Necko. The value is the
     requested family number.
   type: u32
+  scope: report
 
 UptimeTS:
   description: >
     Uptime in seconds. This annotation uses a string instead of an integer
     because it has a fractional component.
   type: string # This is a floating-point number but we treat it as a string
-  ping: true
+  scope: ping
 
 URL:
   description: >
     URL being loaded.
   type: string
+  scope: report
 
 URLSegments:
   description: >
     The offsets of the nsStandardURL segments that fail a sanity check
   type: string
+  scope: report
 
 User32BeforeBlocklist:
   description: >
     Set to 1 if user32.dll was loaded before we could install the DLL blocklist.
   type: boolean
-  ping: true
+  scope: ping
   skip_if: "0"
 
 useragent_locale:
   description: >
     User-agent locale.
   type: string
+  scope: report
 
 UtilityProcessStatus:
   description: >
     Status of the Utility process, can be set to "Running" or "Destroyed"
   type: string
+  scope: report
 
 UtilityActorsName:
   description: >
     Comma-separated list of IPC actors name running on this Utility process instance
   type: string
-  ping: true
+  scope: ping
 
 Vendor:
   description: >
     Application vendor (e.g. Mozilla).
   type: string
+  scope: report
 
 Version:
   description: >
     Product version.
   type: string
-  ping: true
+  scope: ping
 
 VRProcessStatus:
   description: >
     Status of the VR process, can be set to "Running" or "Destroyed"
   type: string
+  scope: report
 
 WasmLibrarySandboxMallocFailed:
   description: >
     Set to 1 if a rlbox wasm library sandbox ran out of memory, causing a
     malloc inside the sandbox to fail.
   type: boolean
+  scope: report
 
 WindowsFileDialogErrorCode:
   description: >
@@ -1051,7 +1185,7 @@ WindowsFileDialogErrorCode:
     file-dialog utility process. MozCrashReason is expected to provide context
     for the value.
   type: u32 # This is an HRESULT which is defined as signed, but we don't want to print it as a signed integer
-  ping: true
+  scope: ping
 
 WindowsPackageFamilyName:
   description: >
@@ -1061,19 +1195,20 @@ WindowsPackageFamilyName:
     The package family name is only included when it is likely to have been produced by Mozilla: it
     starts "Mozilla." or "MozillaCorporation.".
   type: string
-  ping: true
+  scope: ping
 
 WindowsErrorReporting:
   description: >
     Set to 1 if this crash was intercepted via the Windows Error Reporting
     runtime exception module.
   type: boolean
-  ping: true
+  scope: ping
 
 Winsock_LSP:
   description: >
     Information on winsock LSPs injected in our networking stack.
   type: string
+  scope: report
 
 XPCOMSpinEventLoopStack:
   description: >
@@ -1083,3 +1218,4 @@ XPCOMSpinEventLoopStack:
     annotation may refer to the parent process that killed it, look out for
     the prefix ("default" means parent) and see bug 1741131 for details.
   type: string
+  scope: report

@@ -95,18 +95,59 @@ impl UI {
     }
 }
 
-/// Test interaction hook.
+/// Test interaction interface.
 #[derive(Clone)]
 pub struct Interact {
     state: Arc<State>,
 }
 
+/// Spawned test interaction.
+pub struct SpawnedInteract {
+    interact: Interact,
+    handle: ::std::mem::ManuallyDrop<::std::thread::JoinHandle<()>>,
+}
+
+impl Drop for SpawnedInteract {
+    fn drop(&mut self) {
+        self.interact.cancel();
+        if unsafe { ::std::mem::ManuallyDrop::take(&mut self.handle) }
+            .join()
+            .is_err()
+        {
+            if !std::thread::panicking() {
+                // Make sure this thread panics so we see the panic from the interact thread.
+                panic!("interact thread panicked");
+            }
+        }
+    }
+}
+
 impl Interact {
+    /// Spawn a thread which runs interactions according with the test UI.
+    ///
+    /// The returned `SpawnedInteract` should be dropped after the test UI is run.
+    ///
+    /// # Panic Safety
+    /// If a panic occurs in the interact thread, it will not be re-thrown (we assume that the
+    /// panic handler will still show the thread's panic message when the test completes).
+    pub fn spawn<F: FnOnce(&Self) + Send + 'static>(f: F) -> SpawnedInteract {
+        let interact = Self::hook();
+        let handle = ::std::thread::spawn(cc! { (interact) move || {
+            interact.wait_for_ready();
+            f(&interact);
+
+        }});
+        SpawnedInteract {
+            interact,
+            handle: ::std::mem::ManuallyDrop::new(handle),
+        }
+    }
+
     /// Create an interaction hook for the test UI.
     ///
     /// This should be done before running the UI, and must be done on the same thread that
     /// later runs it.
-    pub fn hook() -> Self {
+    fn hook() -> Interact {
         let v = Interact {
             state: Default::default(),
         };
@@ -118,7 +159,7 @@ impl Interact {
     }
 
     /// Wait for the render thread to be ready for interaction.
-    pub fn wait_for_ready(&self) {
+    fn wait_for_ready(&self) {
         let mut guard = self.state.interface.lock().unwrap();
         while guard.is_none() && !self.state.cancel.load(Relaxed) {
             guard = self.state.waiting_for_interface.wait(guard).unwrap();
@@ -126,7 +167,7 @@ impl Interact {
     }
 
     /// Cancel an Interact (which causes `wait_for_ready` to always return).
-    pub fn cancel(&self) {
+    fn cancel(&self) {
         let _guard = self.state.interface.lock().unwrap();
         self.state.cancel.store(true, Relaxed);
         self.state.waiting_for_interface.notify_all();
