@@ -190,7 +190,7 @@ void AltSvcMapping::ProcessHeader(
 
   auto doUpdateAltSvcMapping = [&](AltSvcMapping* aMapping) {
     if (aTransConnInfo) {
-      if (aTransConnInfo->HasEchConfig()) {
+      if (!aTransConnInfo->GetEchConfig().IsEmpty()) {
         LOG(("Server has ECH, use HTTPS RR to connect instead"));
         return;
       }

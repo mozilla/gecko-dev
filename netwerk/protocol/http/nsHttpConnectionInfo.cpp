@@ -26,19 +26,19 @@
 #include "nsProxyInfo.h"
 #include "prnetdb.h"
 
-static nsresult ComputeHash(uint32_t aAlgorithm, const uint8_t* aInput,
-                            uint32_t aLen, nsAutoCString& aResult) {
-  nsCOMPtr<nsICryptoHash> hasher;
-  nsresult rv = NS_NewCryptoHash(aAlgorithm, getter_AddRefs(hasher));
-
+static nsresult SHA256(const char* aPlainText, nsAutoCString& aResult) {
+  nsresult rv;
+  nsCOMPtr<nsICryptoHash> hasher =
+      do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
   if (NS_FAILED(rv)) {
     LOG(("nsHttpDigestAuth: no crypto hash!\n"));
     return rv;
   }
-
-  rv = hasher->Update(aInput, aLen);
+  rv = hasher->Init(nsICryptoHash::SHA256);
   NS_ENSURE_SUCCESS(rv, rv);
-  return hasher->Finish(true, aResult);
+  rv = hasher->Update((unsigned char*)aPlainText, strlen(aPlainText));
+  NS_ENSURE_SUCCESS(rv, rv);
+  return hasher->Finish(false, aResult);
 }
 
 namespace mozilla {
@@ -202,12 +202,9 @@ void nsHttpConnectionInfo::BuildHashKey() {
     mHashKey.Append(ProxyUsername());
     mHashKey.Append(':');
     const char* password = ProxyPassword();
-    uint32_t len = strlen(password);
-    if (len > 0) {
+    if (strlen(password) > 0) {
       nsAutoCString digestedPassword;
-      nsresult rv = ComputeHash(nsICryptoHash::SHA256,
-                                reinterpret_cast<const uint8_t*>(password), len,
-                                digestedPassword);
+      nsresult rv = SHA256(password, digestedPassword);
       if (rv == NS_OK) {
         mHashKey.Append(digestedPassword);
       }
@@ -263,20 +260,6 @@ void nsHttpConnectionInfo::BuildHashKey() {
     mHashKey.AppendLiteral("{wId");
     mHashKey.AppendInt(mWebTransportId, 16);
     mHashKey.AppendLiteral("}");
-  }
-
-  // Make sure when echConfig is changed, we don't reuse the old connection.
-  if (!mEchConfig.IsEmpty()) {
-    nsAutoCString digestedEch;
-    nsresult rv =
-        ComputeHash(nsICryptoHash::SHA1,
-                    reinterpret_cast<const uint8_t*>(mEchConfig.BeginReading()),
-                    mEchConfig.Length(), digestedEch);
-    if (NS_SUCCEEDED(rv)) {
-      mHashKey.AppendLiteral("{ech");
-      mHashKey.Append(digestedEch);
-      mHashKey.AppendLiteral("}");
-    }
   }
 
   nsAutoCString originAttributes;
@@ -571,13 +554,6 @@ void nsHttpConnectionInfo::SetWebTransport(bool aWebTransport) {
 void nsHttpConnectionInfo::SetWebTransportId(uint64_t id) {
   if (mWebTransportId != id) {
     mWebTransportId = id;
-    RebuildHashKey();
-  }
-}
-
-void nsHttpConnectionInfo::SetEchConfig(const nsACString& aEchConfig) {
-  if (!mEchConfig.Equals(aEchConfig)) {
-    mEchConfig = aEchConfig;
     RebuildHashKey();
   }
 }
