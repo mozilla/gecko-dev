@@ -431,8 +431,14 @@ void SheetLoadData::SetLoadCompleted() {
   mIsLoading = false;
   // Belts and suspenders just in case.
   if (MOZ_LIKELY(!mLoadStart.IsNull())) {
+    TimeDuration rawDuration = TimeStamp::Now() - mLoadStart;
     glean::performance_pageload::async_sheet_load.AccumulateRawDuration(
-        TimeStamp::Now() - mLoadStart);
+        rawDuration);
+    // GLAM EXPERIMENT
+    // This metric is temporary, disabled by default, and will be enabled only
+    // for the purpose of experimenting with client-side sampling of data for
+    // GLAM use. See Bug 1947604 for more information.
+    glean::glam_experiment::async_sheet_load.AccumulateRawDuration(rawDuration);
   }
 }
 

@@ -29,3 +29,27 @@ performance.pageload:
       - emilio@mozilla.com
       - perf-telemetry-alerts@mozilla.com
     expires: 141
+
+glam_experiment:
+  async_sheet_load:
+    type: timing_distribution
+    disabled: true
+    time_unit: millisecond
+    description: >
+      Duplicate of:
+      `performance.pageload.async_sheet_load`
+
+      Intended for the purpose of testing client side sampling of data. This
+      metric is disabled by default and will be enabled only for the purpose
+      of the experiment. See Bug 1947604 for more information.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947604
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1892660
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912186
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - tlong@mozilla.com
+      - efilho@mozilla.com
+    expires: 141
