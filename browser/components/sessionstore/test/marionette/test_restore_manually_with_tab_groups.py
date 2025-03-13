@@ -30,6 +30,7 @@ class TestSessionRestoreWithTabGroups(SessionStoreTestCase):
                         inline("""<div">ipsum</div>"""),
                         inline("""<div">dolor</div>"""),
                         inline("""<div">sit</div>"""),
+                        inline("""<div">amet</div>"""),
                     ),
                 ]
             ),
@@ -39,10 +40,12 @@ class TestSessionRestoreWithTabGroups(SessionStoreTestCase):
         self.wait_for_windows(
             self.all_windows, "Not all requested windows have been opened"
         )
+
         self.marionette.execute_async_script(
             """
             let resolve = arguments[0];
-            gBrowser.addTabGroup([gBrowser.tabs[2], gBrowser.tabs[3]], { id: "group-left-open", label: "open" });
+            gBrowser.addTabGroup([gBrowser.tabs[3], gBrowser.tabs[4]], { id: "group-left-open-1", label: "open-1" });
+            gBrowser.addTabGroup([gBrowser.tabs[2]], { id: "group-left-open-2", label: "open-2" });
             let closedGroup = gBrowser.addTabGroup([gBrowser.tabs[1]], { id:"group-closed", label: "closed" });
             gBrowser.removeTabGroup(closedGroup);
 
@@ -56,10 +59,13 @@ class TestSessionRestoreWithTabGroups(SessionStoreTestCase):
         self.marionette.set_context("chrome")
         self.assertEqual(
             self.marionette.execute_script(
-                "return !SessionStore.getWindowState(gBrowser.ownerGlobal).windows[0].closedGroups.find(group => group.id == 'group-left-open')"
+                """
+                let closedGroupIds = SessionStore.getWindowState(gBrowser.ownerGlobal).windows[0].closedGroups.map(g => g.id);
+                return !(closedGroupIds.includes("group-left-open-1") && closedGroupIds.includes("group-left-open-2"));
+                """
             ),
             True,
-            "Group that was left open is NOT in closedGroups",
+            "Groups that were left open are NOT in closedGroups",
         )
 
         self.assertEqual(
@@ -80,14 +86,16 @@ class TestSessionRestoreWithTabGroups(SessionStoreTestCase):
 
         self.assertEqual(
             self.marionette.execute_script("return SessionStore.savedGroups.length"),
-            1,
-            msg="There is one saved group",
+            2,
+            msg="There are two saved groups",
         )
 
         self.assertEqual(
-            self.marionette.execute_script("return SessionStore.savedGroups[0].id"),
-            "group-left-open",
-            msg="The open group from last session is now saved",
+            self.marionette.execute_script(
+                "return SessionStore.savedGroups.map(g => g.id)"
+            ),
+            ["group-left-open-1", "group-left-open-2"],
+            msg="The open groups from last session are now saved",
         )
 
         self.assertEqual(
@@ -100,10 +108,10 @@ class TestSessionRestoreWithTabGroups(SessionStoreTestCase):
 
         self.assertEqual(
             self.marionette.execute_script(
-                "return SessionStore.savedGroups[0].tabs.length"
+                "return SessionStore.savedGroups.map(g => g.tabs.length)"
             ),
-            2,
-            msg="Saved group has 2 tabs",
+            [2, 1],
+            msg="Saved groups have 1 and 2 tabs respectively",
         )
 
         self.marionette.execute_script(
@@ -111,22 +119,23 @@ class TestSessionRestoreWithTabGroups(SessionStoreTestCase):
             SessionStore.restoreLastSession();
         """
         )
-        self.wait_for_tabcount(1, "Waiting for 1 tab")
+        self.wait_for_tabcount(4, "Waiting for 4 tabs")
 
         self.assertEqual(
             self.marionette.execute_script("return gBrowser.tabs.length"),
-            1,
-            msg="1 tab was restored",
+            4,
+            msg="4 tabs was restored",
+        )
+        self.assertEqual(
+            self.marionette.execute_script("return gBrowser.tabGroups.length"),
+            2,
+            msg="2 tab groups were restored",
         )
 
         self.assertEqual(
             self.marionette.execute_script("return SessionStore.savedGroups?.length"),
-            True,
-            msg="We still have one saved group",
-        )
-
-        self.marionette.execute_script(
-            "SessionStore.forgetSavedTabGroup('group-left-open')"
+            0,
+            msg="We have no saved tab groups",
         )
 
     def wait_for_tabcount(self, expected_tabcount, message, timeout=5):
