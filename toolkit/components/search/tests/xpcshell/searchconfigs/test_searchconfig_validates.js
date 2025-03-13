@@ -154,8 +154,20 @@ add_task(async function test_search_config_valid_partner_codes() {
         ) {
           Assert.ok(
             variant.telemetrySuffix,
-            `${entry.identifier} should have a telemetrySuffix when a distribution is specified with a partnerCode.`
+            `${entry.identifier} variant should have a telemetrySuffix when a distribution is specified with a partnerCode.`
           );
+        }
+
+        for (let subVariant of variant.subVariants ?? []) {
+          if (
+            "partnerCode" in subVariant &&
+            "distributions" in subVariant.environment
+          ) {
+            Assert.ok(
+              subVariant.telemetrySuffix,
+              `${entry.identifier} sub-variant should have a telemetrySuffix when a distribution is specified with a partnerCode.`
+            );
+          }
         }
       }
     }
