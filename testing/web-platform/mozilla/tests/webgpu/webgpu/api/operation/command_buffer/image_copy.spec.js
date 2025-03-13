@@ -48,7 +48,6 @@ import {
   kTextureDimensions } from
 '../../../capability_info.js';
 import {
-  kTextureFormatInfo,
   kDepthStencilFormats,
   kColorTextureFormats,
   depthStencilBufferTextureCopySupported,
@@ -57,9 +56,15 @@ import {
 
 
 
-  isCompressedTextureFormat } from
+  isCompressedTextureFormat,
+  isDepthTextureFormat,
+  isStencilTextureFormat,
+  getBlockInfoForTextureFormat,
+  getBlockInfoForColorTextureFormat,
+  canCopyToAllAspectsOfTextureFormat,
+  canCopyFromAllAspectsOfTextureFormat } from
 '../../../format_info.js';
-import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
 import { checkElementsEqual } from '../../../util/check_contents.js';
 import { align } from '../../../util/math.js';
 import { physicalMipSizeFromTexture } from '../../../util/texture/base.js';
@@ -124,7 +129,7 @@ const kMethodsToTest = [
 const dataGenerator = new DataArrayGenerator();
 const altDataGenerator = new DataArrayGenerator();
 
-class ImageCopyTest extends TextureTestMixin(GPUTest) {
+class ImageCopyTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
   /**
    * This is used for testing passing undefined members of `GPUTexelCopyBufferLayout` instead of actual
    * values where possible. Passing arguments as values and not as objects so that they are passed
@@ -1020,12 +1025,12 @@ class ImageCopyTest extends TextureTestMixin(GPUTest) {
           arrayLayerCount: 1
         })
       };
-      if (kTextureFormatInfo[stencilTextureFormat].depth) {
+      if (isDepthTextureFormat(stencilTextureFormat)) {
         depthStencilAttachment.depthClearValue = 0;
         depthStencilAttachment.depthLoadOp = 'clear';
         depthStencilAttachment.depthStoreOp = 'store';
       }
-      if (kTextureFormatInfo[stencilTextureFormat].stencil) {
+      if (isStencilTextureFormat(stencilTextureFormat)) {
         depthStencilAttachment.stencilLoadOp = 'load';
         depthStencilAttachment.stencilStoreOp = 'store';
       }
@@ -1102,7 +1107,7 @@ class ImageCopyTest extends TextureTestMixin(GPUTest) {
   copyMipLevel,
   initialData)
   {
-    assert(!!kTextureFormatInfo[depthFormat].depth);
+    assert(isDepthTextureFormat(depthFormat));
 
     const inputTexture = this.createTextureTracked({
       size: copySize,
@@ -1177,12 +1182,12 @@ class ImageCopyTest extends TextureTestMixin(GPUTest) {
           mipLevelCount: 1
         })
       };
-      if (kTextureFormatInfo[depthFormat].depth) {
+      if (isDepthTextureFormat(depthFormat)) {
         depthStencilAttachment.depthClearValue = 0.0;
         depthStencilAttachment.depthLoadOp = 'clear';
         depthStencilAttachment.depthStoreOp = 'store';
       }
-      if (kTextureFormatInfo[depthFormat].stencil) {
+      if (isStencilTextureFormat(depthFormat)) {
         depthStencilAttachment.stencilLoadOp = 'load';
         depthStencilAttachment.stencilStoreOp = 'store';
       }
@@ -1343,7 +1348,7 @@ class ImageCopyTest extends TextureTestMixin(GPUTest) {
  * This is a helper function used for filtering test parameters
  */
 function formatCanBeTested({ format }) {
-  return kTextureFormatInfo[format].color.copyDst && kTextureFormatInfo[format].color.copySrc;
+  return canCopyToAllAspectsOfTextureFormat(format) && canCopyFromAllAspectsOfTextureFormat(format);
 }
 
 export const g = makeTestGroup(ImageCopyTest);
@@ -1421,11 +1426,6 @@ expandWithParams((p) => {
   return kRowsPerImageAndBytesPerRowParams.copySizes;
 })
 ).
-beforeAllSubcases((t) => {
-  const info = kTextureFormatInfo[t.params.format];
-  t.skipIfTextureFormatNotSupported(t.params.format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const {
     bytesPerRowPadding,
@@ -1438,7 +1438,8 @@ fn((t) => {
     initMethod,
     checkMethod
   } = t.params;
-  const info = kTextureFormatInfo[format];
+  t.skipIfTextureFormatNotSupported(t.params.format);
+  const info = getBlockInfoForTextureFormat(format);
   // For CopyB2T and CopyT2B we need to have bytesPerRow 256-aligned,
   // to make this happen we align the bytesInACompleteRow value and multiply
   // bytesPerRowPadding by 256.
@@ -1536,11 +1537,6 @@ combine('copyDepth', kOffsetsAndSizesParams.copyDepth) // 2d and 2d-array textur
 combine('rowsPerImageEqualsCopyHeight', [true, false]).
 unless((p) => p.dimension === '1d' && p.copyDepth !== 1)
 ).
-beforeAllSubcases((t) => {
-  const info = kTextureFormatInfo[t.params.format];
-  t.skipIfTextureFormatNotSupported(t.params.format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const {
     offsetInBlocks,
@@ -1553,6 +1549,7 @@ fn((t) => {
     copyWidth,
     rowsPerImageEqualsCopyHeight
   } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
 
   // Skip test cases designed for special cases coverage on compatibility mode to save run time.
   if (!(t.isCompatibility && (format === 'r8snorm' || format === 'rg8snorm'))) {
@@ -1567,9 +1564,9 @@ fn((t) => {
     }
   }
 
-  const info = kTextureFormatInfo[format];
+  const info = getBlockInfoForColorTextureFormat(format);
 
-  const offset = offsetInBlocks * info.color.bytes;
+  const offset = offsetInBlocks * info.bytesPerBlock;
   const copyHeight = 3;
   const copySize = {
     width: copyWidth * info.blockWidth,
@@ -1578,7 +1575,7 @@ fn((t) => {
   };
   let textureHeight = 4 * info.blockHeight;
   let rowsPerImage = rowsPerImageEqualsCopyHeight ? copyHeight : copyHeight + 1;
-  const bytesPerRow = align(copyWidth * info.color.bytes, 256);
+  const bytesPerRow = align(copyWidth * info.bytesPerBlock, 256);
 
   if (dimension === '1d') {
     copySize.height = 1;
@@ -1634,11 +1631,6 @@ unless(
 combine('coordinateToTest', [0, 1, 2]).
 unless((p) => p.dimension === '1d' && p.coordinateToTest !== 0)
 ).
-beforeAllSubcases((t) => {
-  const info = kTextureFormatInfo[t.params.format];
-  t.skipIfTextureFormatNotSupported(t.params.format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const {
     originValueInBlocks,
@@ -1649,7 +1641,8 @@ fn((t) => {
     initMethod,
     checkMethod
   } = t.params;
-  const info = kTextureFormatInfo[format];
+  t.skipIfTextureFormatNotSupported(format);
+  const info = getBlockInfoForColorTextureFormat(format);
 
   let originBlocks = [1, 1, 1];
   let copySizeBlocks = [2, 2, 2];
@@ -1685,7 +1678,7 @@ fn((t) => {
 
 
   const rowsPerImage = copySizeBlocks[1];
-  const bytesPerRow = align(copySizeBlocks[0] * info.color.bytes, 256);
+  const bytesPerRow = align(copySizeBlocks[0] * info.bytesPerBlock, 256);
 
   const dataSize = dataBytesForCopyOrFail({
     layout: { offset: 0, bytesPerRow, rowsPerImage },
@@ -1727,7 +1720,7 @@ function* generateTestTextureSizes({
 
 }) {
   assert(dimension !== '1d'); // textureSize[1] would be wrong for 1D mipped textures.
-  const info = kTextureFormatInfo[format];
+  const info = getBlockInfoForColorTextureFormat(format);
 
   const widthAtThisLevel = _mipSizeInBlocks.width * info.blockWidth;
   const heightAtThisLevel = _mipSizeInBlocks.height * info.blockHeight;
@@ -1834,11 +1827,6 @@ combineWithParams([
 ).
 expand('textureSize', generateTestTextureSizes)
 ).
-beforeAllSubcases((t) => {
-  const info = kTextureFormatInfo[t.params.format];
-  t.skipIfTextureFormatNotSupported(t.params.format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const {
     copySizeInBlocks,
@@ -1850,7 +1838,8 @@ fn((t) => {
     initMethod,
     checkMethod
   } = t.params;
-  const info = kTextureFormatInfo[format];
+  t.skipIfTextureFormatNotSupported(format);
+  const info = getBlockInfoForColorTextureFormat(format);
 
   const origin = {
     x: originInBlocks.x * info.blockWidth,
@@ -1965,9 +1954,9 @@ copyMethod)
 {
   {
     return (
-      aspect === 'stencil-only' && !!kTextureFormatInfo[format].stencil ||
+      aspect === 'stencil-only' && isStencilTextureFormat(format) ||
       aspect === 'depth-only' &&
-      !!kTextureFormatInfo[format].depth &&
+      isDepthTextureFormat(format) &&
       copyMethod === 'CopyT2B' &&
       depthStencilBufferTextureCopySupported('CopyT2B', format, aspect));
 
@@ -2002,10 +1991,6 @@ filter((t) => {
 }).
 combine('mipLevel', [0, 2])
 ).
-beforeAllSubcases((t) => {
-  const info = kTextureFormatInfo[t.params.format];
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const {
     format,
@@ -2018,6 +2003,7 @@ fn((t) => {
     copyDepth,
     mipLevel
   } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
   const bytesPerBlock = depthStencilFormatAspectSize(format, aspect);
   const rowsPerImage = copyHeightInBlocks + rowsPerImagePadding;
 
@@ -2093,13 +2079,10 @@ filter((t) => t.offsetInBlocks % 4 === 0).
 combine('copyDepth', kOffsetsAndSizesParams.copyDepth).
 combine('mipLevel', [0, 2])
 ).
-beforeAllSubcases((t) => {
-  const info = kTextureFormatInfo[t.params.format];
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { format, copyMethod, aspect, offsetInBlocks, dataPaddingInBytes, copyDepth, mipLevel } =
   t.params;
+  t.skipIfTextureFormatNotSupported(format);
   const bytesPerBlock = depthStencilFormatAspectSize(format, aspect);
   const initialDataOffset = offsetInBlocks * bytesPerBlock;
   const copySize = [3, 3, copyDepth];

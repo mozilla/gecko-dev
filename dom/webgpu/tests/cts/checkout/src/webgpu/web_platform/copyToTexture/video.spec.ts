@@ -8,7 +8,7 @@ copyToTexture with HTMLVideoElement and VideoFrame.
 `;
 
 import { makeTestGroup } from '../../../common/framework/test_group.js';
-import { GPUTest, TextureTestMixin } from '../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../gpu_test.js';
 import {
   startPlayingAndWaitForVideo,
   getVideoElement,
@@ -22,7 +22,7 @@ import {
 
 const kFormat = 'rgba8unorm';
 
-export const g = makeTestGroup(TextureTestMixin(GPUTest));
+export const g = makeTestGroup(TextureTestMixin(AllFeaturesMaxLimitsGPUTest));
 
 g.test('copy_from_video')
   .desc(

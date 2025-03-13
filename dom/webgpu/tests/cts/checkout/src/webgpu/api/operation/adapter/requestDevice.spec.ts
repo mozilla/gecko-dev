@@ -42,8 +42,17 @@ g.test('default')
     const device = await t.requestDeviceTracked(adapter, ...args);
     assert(device !== null);
 
-    // Default device should have no features.
-    t.expect(device.features.size === 0, 'Default device should not have any features');
+    if (device.features.size === 1) {
+      t.expect(
+        device.features.has('core-features-and-limits'),
+        'Default device should not have any features other than "core-features-and-limits"'
+      );
+    } else {
+      t.expect(
+        device.features.size === 0,
+        'Default device should not have any features other than "core-features-and-limits"'
+      );
+    }
     // All limits should be defaults.
     const limitInfo = getDefaultLimitsForAdapter(adapter);
     for (const limit of kLimits) {
@@ -498,36 +507,29 @@ g.test('always_returns_device')
     tested in the same browser configuration.
   `
   )
-  .params(u => u.combine('compatibilityMode', [false, true] as const))
+  .params(u => u.combine('featureLevel', ['core', 'compatibility'] as const))
   .fn(async t => {
-    const { compatibilityMode } = t.params;
+    const { featureLevel } = t.params;
     const gpu = getGPU(t.rec);
-    // MAINTENANCE_TODO: Remove compatibilityMode and the cast once compatibilityMode is no longer
-    // used (mainly in `setDefaultRequestAdapterOptions`).
     const adapter = await gpu.requestAdapter({
-      compatibilityMode,
-      featureLevel: compatibilityMode ? 'compatibility' : 'core',
+      featureLevel,
     } as GPURequestAdapterOptions);
     if (adapter) {
       const device = await t.requestDeviceTracked(adapter);
       assert(device instanceof GPUDevice, 'requestDevice must return a device or throw');
 
-      if (!compatibilityMode) {
+      if (featureLevel === 'core') {
         // This check is to make sure something lower-level is not forcing compatibility mode.
 
         // MAINTENANCE_TODO: Simplify this check (and typecast) once we standardize how to do this.
         const adapterExtensions = adapter as unknown as {
-          isCompatibilityMode?: boolean;
           featureLevel?: string;
         };
         t.expect(
           // Old version of Compat design.
-          !adapterExtensions.isCompatibilityMode &&
-            // Current version of Compat design, as of this writing.
-            adapterExtensions.featureLevel !== 'compatibility' &&
-            // An as-yet-unlanded proposed change to the Compat design, but for now it doesn't hurt
-            // to just check. Unlanded PR: https://github.com/gpuweb/gpuweb/pull/5036
-            !device.features.has('webgpu-core'),
+          adapterExtensions.featureLevel === 'core' ||
+            // Current version of Compat design.
+            device.features.has('core-features-and-limits'),
           'must not get a Compatibility adapter if not requested'
         );
       }

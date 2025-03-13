@@ -4,7 +4,10 @@
 copyExternalImageToTexture from HTMLImageElement source.
 `;import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { raceWithRejectOnTimeout } from '../../../common/util/util.js';
-import { kTextureFormatInfo, kValidTextureFormatsForCopyE2T } from '../../format_info.js';
+import {
+  getBaseFormatForRegularTextureFormat,
+  kValidTextureFormatsForCopyE2T } from
+'../../format_info.js';
 import { TextureUploadingUtils, kCopySubrectInfo } from '../../util/copy_to_texture.js';
 
 import { kTestColorsOpaque, makeTestColorsTexelView } from './util.js';
@@ -61,11 +64,11 @@ combine('width', [1, 2, 4, 15, 255, 256]).
 combine('height', [1, 2, 4, 15, 255, 256])
 ).
 beforeAllSubcases((t) => {
-  t.skipIfTextureFormatNotSupported(t.params.dstColorFormat);
   if (typeof HTMLImageElement === 'undefined') t.skip('HTMLImageElement not available');
 }).
 fn(async (t) => {
   const { width, height, dstColorFormat, dstPremultiplied, srcDoFlipYDuringCopy } = t.params;
+  t.skipIfTextureFormatNotSupported(dstColorFormat);
 
   const imageCanvas = document.createElement('canvas');
   imageCanvas.width = width;
@@ -108,7 +111,7 @@ fn(async (t) => {
     GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
   });
 
-  const expFormat = kTextureFormatInfo[dstColorFormat].baseFormat ?? dstColorFormat;
+  const expFormat = getBaseFormatForRegularTextureFormat(dstColorFormat) ?? dstColorFormat;
   const flipSrcBeforeCopy = false;
   const texelViewExpected = t.getExpectedDstPixelsFromSrcPixels({
     srcPixels: imageData.data,

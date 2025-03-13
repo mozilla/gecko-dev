@@ -84,7 +84,7 @@ g.test('resource_compatibility')
         'Storage textures can not be used in fragment shaders because maxStorageTexturesInFragmentStage === 0'
       );
     }
-    t.skipIfTextureViewDimensionNotSupported(wgslResource.texture?.viewDimension);
+    t.skipIfTextureViewDimensionNotSupportedDeprecated(wgslResource.texture?.viewDimension);
     const emptyVS = `
 @vertex
 fn main() -> @builtin(position) vec4f {

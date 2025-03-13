@@ -201,11 +201,6 @@ combine('type', [
 ).
 beginSubcases()
 ).
-beforeAllSubcases((t) => {
-  if (t.params.type.name.includes('f16')) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   // While this would fail validation, it doesn't fail for any reasons related to alignment.
   // Atomics are not allowed in uniform address space as they have to be read_write.

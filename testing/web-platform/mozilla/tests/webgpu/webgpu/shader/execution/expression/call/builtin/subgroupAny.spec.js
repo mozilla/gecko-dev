@@ -131,10 +131,8 @@ combine('wgSize', kWGSizes).
 beginSubcases().
 combine('case', [...iterRange(kNumCases, (x) => x)])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
   const wgsl = `
@@ -197,10 +195,8 @@ beginSubcases().
 combine('wgSize', kWGSizes).
 combine('case', [...iterRange(kNumCases, (x) => x)])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const testcase = kPredicateCases[t.params.predicate];
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
@@ -331,10 +327,8 @@ beginSubcases().
 combine('case', [...iterRange(kNumCases, (x) => x)]).
 combineWithParams([{ format: 'rg32uint' }])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const numInputs = t.params.size[0] * t.params.size[1];
   const inputData = generateInputData(t.params.case, numInputs);
 

@@ -16,73 +16,18 @@ Examples:
     - can be passed to requestAdapter as requiredFeatures
 `;
 
-import { TestCaseRecorder, TestParams } from '../../common/framework/fixture.js';
 import { makeTestGroup } from '../../common/framework/test_group.js';
 import { keysOf } from '../../common/util/data_tables.js';
 import { getGPU } from '../../common/util/navigator_gpu.js';
 import { assert, objectEquals, unreachable } from '../../common/util/util.js';
 import { getDefaultLimitsForAdapter, kLimits } from '../capability_info.js';
-import {
-  DeviceSelectionDescriptor,
-  GPUTest,
-  GPUTestSubcaseBatchState,
-  initUncanonicalizedDeviceDescriptor,
-} from '../gpu_test.js';
-import { CanonicalDeviceDescriptor, DescriptorModifier } from '../util/device_pool.js';
+import { AllFeaturesMaxLimitsGPUTest, GPUTest } from '../gpu_test.js';
 
 // MAINTENANCE_TODO: Remove this filter when these limits are added to the spec.
 const isUnspecifiedLimit = (limit: string) =>
   /maxStorage(Buffer|Texture)sIn(Vertex|Fragment)Stage/.test(limit);
 
 const kSpecifiedLimits = kLimits.filter(s => !isUnspecifiedLimit(s));
-
-function addAllFeatures(adapter: GPUAdapter, desc: CanonicalDeviceDescriptor | undefined) {
-  const descWithMaxLimits: CanonicalDeviceDescriptor = {
-    defaultQueue: {},
-    ...desc,
-    requiredFeatures: [...adapter.features] as GPUFeatureName[],
-    requiredLimits: { ...(desc?.requiredLimits ?? {}) },
-  };
-  return descWithMaxLimits;
-}
-
-/**
- * Used to request a device with all the max limits of the adapter.
- */
-class AllFeaturesGPUTestSubcaseBatchState extends GPUTestSubcaseBatchState {
-  override requestDeviceWithRequiredParametersOrSkip(
-    descriptor: DeviceSelectionDescriptor,
-    descriptorModifier?: DescriptorModifier
-  ): void {
-    const mod: DescriptorModifier = {
-      descriptorModifier(adapter: GPUAdapter, desc: CanonicalDeviceDescriptor | undefined) {
-        desc = descriptorModifier?.descriptorModifier
-          ? descriptorModifier.descriptorModifier(adapter, desc)
-          : desc;
-        return addAllFeatures(adapter, desc);
-      },
-      keyModifier(baseKey: string) {
-        return `${baseKey}:AllFeaturesTest`;
-      },
-    };
-    super.requestDeviceWithRequiredParametersOrSkip(
-      initUncanonicalizedDeviceDescriptor(descriptor),
-      mod
-    );
-  }
-}
-
-/**
- * A Test that requests all the max limits from the adapter on the device.
- */
-class AllFeaturesTest extends GPUTest {
-  public static override MakeSharedState(
-    recorder: TestCaseRecorder,
-    params: TestParams
-  ): GPUTestSubcaseBatchState {
-    return new AllFeaturesGPUTestSubcaseBatchState(recorder, params);
-  }
-}
 
 type ResourceInfo = {
   create: (t: GPUTest) => Object;
@@ -271,7 +216,7 @@ function aHasBElements(
   }
 }
 
-export const g = makeTestGroup(AllFeaturesTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 g.test('obj,Object_keys')
   .desc('tests returns nothing for Object.keys()')
   .params(u => u.combine('type', kResources))

@@ -45,11 +45,6 @@ g.test('matrix_args')
       .combine('rows', [2, 3, 4] as const)
       .combine('type', ['abstract-int', 'abstract-float', 'f32', 'f16'] as const)
   )
-  .beforeAllSubcases(t => {
-    if (t.params.type === 'f16') {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     const cols = t.params.cols;
     const rows = t.params.rows;

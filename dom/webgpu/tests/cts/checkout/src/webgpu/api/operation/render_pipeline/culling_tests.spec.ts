@@ -5,8 +5,8 @@ Test all culling combinations of GPUFrontFace and GPUCullMode show the correct o
 `;
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { kTextureFormatInfo, SizedTextureFormat } from '../../../format_info.js';
-import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { isStencilTextureFormat, SizedTextureFormat } from '../../../format_info.js';
+import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
 
 function faceIsCulled(face: 'cw' | 'ccw', frontFace: GPUFrontFace, cullMode: GPUCullMode): boolean {
   return cullMode !== 'none' && (frontFace === face) === (cullMode === 'front');
@@ -24,7 +24,7 @@ function faceColor(face: 'cw' | 'ccw', frontFace: GPUFrontFace, cullMode: GPUCul
   }
 }
 
-class CullingTest extends TextureTestMixin(GPUTest) {
+class CullingTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
   checkCornerPixels(
     texture: GPUTexture,
     expectedTopLeftColor: Uint8Array,
@@ -146,7 +146,7 @@ g.test('culling')
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     });
 
-    const haveStencil = depthStencilFormat && kTextureFormatInfo[depthStencilFormat].stencil;
+    const haveStencil = depthStencilFormat && isStencilTextureFormat(depthStencilFormat);
     let depthTexture: GPUTexture | undefined = undefined;
     let depthStencilAttachment: GPURenderPassDepthStencilAttachment | undefined = undefined;
     let depthStencil: GPUDepthStencilState | undefined = undefined;

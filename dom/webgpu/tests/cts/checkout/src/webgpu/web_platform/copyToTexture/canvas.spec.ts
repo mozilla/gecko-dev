@@ -6,7 +6,7 @@ import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { skipTestCase } from '../../../common/util/util.js';
 import { kCanvasAlphaModes } from '../../capability_info.js';
 import {
-  kTextureFormatInfo,
+  getBaseFormatForRegularTextureFormat,
   kValidTextureFormatsForCopyE2T,
   RegularTextureFormat,
 } from '../../format_info.js';
@@ -413,8 +413,8 @@ class F extends TextureUploadingUtils {
     });
 
     // Construct expected value for different dst color format
-    const info = kTextureFormatInfo[p.dstColorFormat];
-    const expFormat = info.baseFormat ?? p.dstColorFormat;
+    const baseFormat = getBaseFormatForRegularTextureFormat(p.dstColorFormat);
+    const expFormat = baseFormat ?? p.dstColorFormat;
 
     // For 2d canvas, get expected pixels with getImageData(), which returns unpremultiplied
     // values.
@@ -493,10 +493,8 @@ g.test('copy_contents_from_2d_context_canvas')
       .combine('width', [1, 2, 4, 15])
       .combine('height', [1, 2, 4, 15])
   )
-  .beforeAllSubcases(t => {
-    t.skipIfTextureFormatNotSupported(t.params.dstColorFormat);
-  })
   .fn(t => {
+    t.skipIfTextureFormatNotSupported(t.params.dstColorFormat);
     const { width, height, canvasType, dstAlphaMode } = t.params;
 
     const { canvas, expectedSourceData } = t.init2DCanvasContent({
@@ -557,10 +555,8 @@ g.test('copy_contents_from_gl_context_canvas')
       .combine('width', [1, 2, 4, 15])
       .combine('height', [1, 2, 4, 15])
   )
-  .beforeAllSubcases(t => {
-    t.skipIfTextureFormatNotSupported(t.params.dstColorFormat);
-  })
   .fn(t => {
+    t.skipIfTextureFormatNotSupported(t.params.dstColorFormat);
     const { width, height, canvasType, contextName, srcPremultiplied, dstAlphaMode } = t.params;
 
     const { canvas, expectedSourceData } = t.initGLCanvasContent({
@@ -627,10 +623,10 @@ g.test('copy_contents_from_gpu_context_canvas')
       .combine('height', [1, 2, 4, 15])
   )
   .beforeAllSubcases(t => {
-    t.skipIfTextureFormatNotSupported(t.params.dstColorFormat);
     t.selectMismatchedDeviceOrSkipTestCase(undefined);
   })
   .fn(t => {
+    t.skipIfTextureFormatNotSupported(t.params.dstColorFormat);
     const { width, height, canvasType, srcAndDstInSameGPUDevice, srcAlphaMode, dstAlphaMode } =
       t.params;
 
@@ -692,10 +688,8 @@ g.test('copy_contents_from_bitmaprenderer_context_canvas')
       .combine('width', [1, 2, 4, 15])
       .combine('height', [1, 2, 4, 15])
   )
-  .beforeAllSubcases(t => {
-    t.skipIfTextureFormatNotSupported(t.params.dstColorFormat);
-  })
   .fn(async t => {
+    t.skipIfTextureFormatNotSupported(t.params.dstColorFormat);
     const { width, height, canvasType, dstAlphaMode } = t.params;
 
     const canvas = createCanvas(t, canvasType, width, height);
@@ -768,10 +762,8 @@ g.test('color_space_conversion')
       .combine('width', [1, 2, 4, 15, 255, 256])
       .combine('height', [1, 2, 4, 15, 255, 256])
   )
-  .beforeAllSubcases(t => {
-    t.skipIfTextureFormatNotSupported(t.params.dstColorFormat);
-  })
   .fn(t => {
+    t.skipIfTextureFormatNotSupported(t.params.dstColorFormat);
     const {
       width,
       height,
@@ -802,7 +794,7 @@ g.test('color_space_conversion')
       dstSize: [width, height],
       subRectSize: [width, height],
       // copyExternalImageToTexture does not perform gamma-encoding into `-srgb` formats.
-      format: kTextureFormatInfo[dstColorFormat].baseFormat ?? dstColorFormat,
+      format: getBaseFormatForRegularTextureFormat(dstColorFormat) ?? dstColorFormat,
       flipSrcBeforeCopy: false,
       srcDoFlipYDuringCopy,
       conversion: {

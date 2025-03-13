@@ -131,10 +131,8 @@ g.test('compute,all_active')
       .beginSubcases()
       .combine('case', [...iterRange(kNumCases, x => x)])
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
     const wgsl = `
@@ -197,10 +195,8 @@ g.test('compute,split')
       .combine('wgSize', kWGSizes)
       .combine('case', [...iterRange(kNumCases, x => x)])
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const testcase = kPredicateCases[t.params.predicate];
     const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
@@ -331,10 +327,8 @@ g.test('fragment,all_active')
       .combine('case', [...iterRange(kNumCases, x => x)])
       .combineWithParams([{ format: 'rg32uint' }] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const numInputs = t.params.size[0] * t.params.size[1];
     const inputData = generateInputData(t.params.case, numInputs);
 

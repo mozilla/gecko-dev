@@ -179,7 +179,7 @@ Test the computation of requiredBytesInCopy by computing the minimum data size f
   )
   .beforeAllSubcases(t => {
     const info = kTextureFormatInfo[t.params.format];
-    t.skipIfTextureFormatNotSupported(t.params.format);
+    t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -252,7 +252,7 @@ Test that rowsPerImage has no alignment constraints.
   )
   .beforeAllSubcases(t => {
     const info = kTextureFormatInfo[t.params.format];
-    t.skipIfTextureFormatNotSupported(t.params.format);
+    t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -295,7 +295,7 @@ Test the alignment requirement on the linear data offset (block size, or 4 for d
   )
   .beforeAllSubcases(t => {
     const info = kTextureFormatInfo[t.params.format];
-    t.skipIfTextureFormatNotSupported(t.params.format);
+    t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -400,7 +400,7 @@ Test that bytesPerRow, if specified must be big enough for a full copy row.
   )
   .beforeAllSubcases(t => {
     const info = kTextureFormatInfo[t.params.format];
-    t.skipIfTextureFormatNotSupported(t.params.format);
+    t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {

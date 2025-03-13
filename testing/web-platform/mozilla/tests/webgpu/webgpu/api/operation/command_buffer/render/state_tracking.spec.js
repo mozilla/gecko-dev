@@ -6,10 +6,10 @@ times in different orders) for setIndexBuffer and setVertexBuffer.
 Equivalent tests for setBindGroup and setPipeline are in programmable/state_tracking.spec.ts.
 Equivalent tests for viewport/scissor/blend/reference are in render/dynamic_state.spec.ts
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { GPUTest, TextureTestMixin } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../../gpu_test.js';
 import { TexelView } from '../../../../util/texture/texel_view.js';
 
-class VertexAndIndexStateTrackingTest extends TextureTestMixin(GPUTest) {
+class VertexAndIndexStateTrackingTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
   GetRenderPipelineForTest(arrayStride) {
     return this.device.createRenderPipeline({
       layout: 'auto',

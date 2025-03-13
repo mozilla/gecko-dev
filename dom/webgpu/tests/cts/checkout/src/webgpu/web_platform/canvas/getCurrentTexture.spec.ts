@@ -6,12 +6,12 @@ import { SkipTestCase } from '../../../common/framework/fixture.js';
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { timeout } from '../../../common/util/timeout.js';
 import { assert, unreachable } from '../../../common/util/util.js';
-import { GPUTest } from '../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../gpu_test.js';
 import { kAllCanvasTypes, createCanvas, CanvasType } from '../../util/create_elements.js';
 
 const kFormat = 'bgra8unorm';
 
-class GPUContextTest extends GPUTest {
+class GPUContextTest extends AllFeaturesMaxLimitsGPUTest {
   initCanvasContext(canvasType: CanvasType = 'onscreen'): GPUCanvasContext {
     const canvas = createCanvas(this, canvasType, 2, 2);
     if (canvasType === 'onscreen') {

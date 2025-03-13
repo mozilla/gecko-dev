@@ -8,7 +8,11 @@ TODO:
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { assert, unreachable } from '../../../../common/util/util.js';
 import { kTextureDimensions } from '../../../capability_info.js';
-import { kColorTextureFormats, kTextureFormatInfo } from '../../../format_info.js';
+import {
+  getBlockInfoForColorTextureFormat,
+  getBlockInfoForTextureFormat,
+  kPossibleStorageTextureFormats,
+} from '../../../format_info.js';
 import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { align } from '../../../util/math.js';
 
@@ -19,7 +23,7 @@ type ShaderStageForReadWriteStorageTexture =
 class F extends AllFeaturesMaxLimitsGPUTest {
   getInitialData(storageTexture: GPUTexture): ArrayBuffer {
     const format = storageTexture.format;
-    const bytesPerBlock = kTextureFormatInfo[format].bytesPerBlock;
+    const { bytesPerBlock } = getBlockInfoForTextureFormat(format);
     assert(bytesPerBlock !== undefined);
 
     const width = storageTexture.width;
@@ -68,7 +72,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     initialData: ArrayBuffer
   ): ArrayBuffer {
     const format = storageTexture.format;
-    const bytesPerBlock = kTextureFormatInfo[format].bytesPerBlock;
+    const { bytesPerBlock } = getBlockInfoForTextureFormat(format);
     assert(bytesPerBlock !== undefined);
 
     const width = storageTexture.width;
@@ -308,18 +312,16 @@ g.test('basic')
   )
   .params(u =>
     u
-      .combine('format', kColorTextureFormats)
-      .filter(p => kTextureFormatInfo[p.format].color?.readWriteStorage === true)
+      .combine('format', kPossibleStorageTextureFormats)
       .combine('shaderStage', kShaderStagesForReadWriteStorageTexture)
       .combine('textureDimension', kTextureDimensions)
       .combine('depthOrArrayLayers', [1, 2] as const)
       .unless(p => p.textureDimension === '1d' && p.depthOrArrayLayers > 1)
   )
-  .beforeAllSubcases(t => {
-    t.skipIfTextureFormatNotUsableAsStorageTexture(t.params.format);
-  })
   .fn(t => {
     const { format, shaderStage, textureDimension, depthOrArrayLayers } = t.params;
+    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatNotUsableAsReadWriteStorageTexture(format);
 
     if (t.isCompatibility) {
       if (shaderStage === 'fragment') {
@@ -343,7 +345,7 @@ g.test('basic')
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING,
     });
 
-    const bytesPerBlock = kTextureFormatInfo[format].bytesPerBlock;
+    const { bytesPerBlock } = getBlockInfoForColorTextureFormat(format);
     const initialData = t.getInitialData(storageTexture);
     t.queue.writeTexture(
       { texture: storageTexture },

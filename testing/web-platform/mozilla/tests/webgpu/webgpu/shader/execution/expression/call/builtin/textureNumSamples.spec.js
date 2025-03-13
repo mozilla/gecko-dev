@@ -33,6 +33,8 @@ fn((t) => {
   const { stage, sampled_type } = t.params;
   const { format } = kSampleTypeInfo[sampled_type];
 
+  t.skipIfTextureFormatNotMultisampled(format);
+
   const sampleCount = 4;
   const texture = t.createTextureTracked({
     format,

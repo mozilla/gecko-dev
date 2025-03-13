@@ -1,6 +1,6 @@
-import { ValidationTest } from '../api/validation/validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../api/validation/validation_test.js';
 
-export class CompatibilityTest extends ValidationTest {
+export class CompatibilityTest extends AllFeaturesMaxLimitsValidationTest {
   override async init() {
     await super.init();
   }

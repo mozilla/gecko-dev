@@ -13,7 +13,7 @@ import {
   kDepthStencilFormats,
   kAllTextureFormats,
   textureDimensionAndFormatCompatible,
-  isFilterableAsTextureF32 } from
+  isTextureFormatPossiblyFilterableAsTextureF32 } from
 '../../../../../format_info.js';
 import { TextureTestMixin } from '../../../../../gpu_test.js';
 
@@ -34,13 +34,12 @@ import {
 
   chooseTextureSize,
   isPotentiallyFilterableAndFillable,
-  skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable,
+  skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable,
   getTextureTypeForTextureViewDimension,
   WGSLTextureSampleTest,
   isSupportedViewFormatCombo,
 
-  generateTextureBuiltinInputs1D,
-  skipIfNeedsFilteringAndIsUnfilterable } from
+  generateTextureBuiltinInputs1D } from
 './texture_utils.js';
 
 export const g = makeTestGroup(TextureTestMixin(WGSLTextureSampleTest));
@@ -67,11 +66,9 @@ combine('modeU', kShortAddressModes).
 beginSubcases().
 combine('samplePoints', kSamplePointMethods)
 ).
-beforeAllSubcases((t) =>
-skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format)
-).
 fn(async (t) => {
   const { format, samplePoints, modeU, filt: minFilter } = t.params;
+  skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
 
   // We want at least 4 blocks or something wide enough for 3 mip levels.
   const size = chooseTextureSize({ minSize: 8, minBlocks: 4, format, viewDimension: '1d' });
@@ -151,19 +148,16 @@ u.
 combine('format', kAllTextureFormats).
 filter((t) => isPotentiallyFilterableAndFillable(t.format)).
 combine('filt', ['nearest', 'linear']).
-filter((t) => t.filt === 'nearest' || isFilterableAsTextureF32(t.format)).
+filter((t) => t.filt === 'nearest' || isTextureFormatPossiblyFilterableAsTextureF32(t.format)).
 combine('modeU', kShortAddressModes).
 combine('modeV', kShortAddressModes).
 combine('offset', [false, true]).
 beginSubcases().
 combine('samplePoints', kSamplePointMethods)
 ).
-beforeAllSubcases((t) => {
-  skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format);
-}).
 fn(async (t) => {
   const { format, samplePoints, modeU, modeV, filt: minFilter, offset } = t.params;
-  skipIfNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+  skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
 
   // We want at least 4 blocks or something wide enough for 3 mip levels.
   const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
@@ -252,7 +246,7 @@ filter((t) => isPotentiallyFilterableAndFillable(t.format)).
 combine('dim', ['3d', 'cube']).
 filter((t) => isSupportedViewFormatCombo(t.format, t.dim)).
 combine('filt', ['nearest', 'linear']).
-filter((t) => t.filt === 'nearest' || isFilterableAsTextureF32(t.format)).
+filter((t) => t.filt === 'nearest' || isTextureFormatPossiblyFilterableAsTextureF32(t.format)).
 combine('modeU', kShortAddressModes).
 combine('modeV', kShortAddressModes).
 combine('modeW', kShortAddressModes).
@@ -261,9 +255,6 @@ filter((t) => t.dim !== 'cube' || t.offset !== true).
 beginSubcases().
 combine('samplePoints', kCubeSamplePointMethods).
 filter((t) => t.samplePoints !== 'cube-edges' || t.dim !== '3d')
-).
-beforeAllSubcases((t) =>
-skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format)
 ).
 fn(async (t) => {
   const {
@@ -276,7 +267,7 @@ fn(async (t) => {
     filt: minFilter,
     offset
   } = t.params;
-  skipIfNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+  skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
 
   const size = chooseTextureSize({ minSize: 8, minBlocks: 2, format, viewDimension });
   const descriptor = {
@@ -389,12 +380,10 @@ combine('offset', [false, true]).
 beginSubcases().
 combine('samplePoints', kSamplePointMethods)
 ).
-beforeAllSubcases((t) => {
-  t.skipIfDepthTextureCanNotBeUsedWithNonComparisonSampler();
-  t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
-}).
 fn(async (t) => {
   const { format, samplePoints, modeU, modeV, offset } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfDepthTextureCanNotBeUsedWithNonComparisonSampler();
 
   // We want at least 4 blocks or something wide enough for 3 mip levels.
   const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
@@ -478,7 +467,7 @@ u.
 combine('format', kAllTextureFormats).
 filter((t) => isPotentiallyFilterableAndFillable(t.format)).
 combine('filt', ['nearest', 'linear']).
-filter((t) => t.filt === 'nearest' || isFilterableAsTextureF32(t.format)).
+filter((t) => t.filt === 'nearest' || isTextureFormatPossiblyFilterableAsTextureF32(t.format)).
 combine('modeU', kShortAddressModes).
 combine('modeV', kShortAddressModes).
 combine('offset', [false, true]).
@@ -486,9 +475,6 @@ beginSubcases().
 combine('samplePoints', kSamplePointMethods).
 combine('A', ['i32', 'u32']).
 combine('depthOrArrayLayers', [1, 8])
-).
-beforeAllSubcases((t) =>
-skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format)
 ).
 fn(async (t) => {
   const {
@@ -501,7 +487,7 @@ fn(async (t) => {
     offset,
     depthOrArrayLayers
   } = t.params;
-  skipIfNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+  skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
 
   // We want at least 4 blocks or something wide enough for 3 mip levels.
   const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
@@ -585,19 +571,16 @@ u.
 combine('format', kAllTextureFormats).
 filter((t) => isPotentiallyFilterableAndFillable(t.format)).
 combine('filt', ['nearest', 'linear']).
-filter((t) => t.filt === 'nearest' || isFilterableAsTextureF32(t.format)).
+filter((t) => t.filt === 'nearest' || isTextureFormatPossiblyFilterableAsTextureF32(t.format)).
 combine('mode', kShortAddressModes).
 beginSubcases().
 combine('samplePoints', kCubeSamplePointMethods).
 combine('A', ['i32', 'u32'])
 ).
-beforeAllSubcases((t) => {
-  skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format);
-  t.skipIfTextureViewDimensionNotSupported('cube-array');
-}).
 fn(async (t) => {
   const { format, samplePoints, A, mode, filt: minFilter } = t.params;
-  skipIfNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+  t.skipIfTextureViewDimensionNotSupported('cube-array');
+  skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
 
   const viewDimension = 'cube-array';
   const size = chooseTextureSize({
@@ -692,13 +675,11 @@ combine('mode', kShortAddressModes).
 beginSubcases().
 combine('samplePoints', kCubeSamplePointMethods)
 ).
-beforeAllSubcases((t) => {
-  t.skipIfDepthTextureCanNotBeUsedWithNonComparisonSampler();
-  t.skipIfTextureViewDimensionNotSupported(t.params.viewDimension);
-  t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
-}).
 fn(async (t) => {
   const { format, viewDimension, samplePoints, A, mode } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureViewDimensionNotSupported(viewDimension);
+  t.skipIfDepthTextureCanNotBeUsedWithNonComparisonSampler();
 
   const size = chooseTextureSize({
     minSize: 32,
@@ -801,12 +782,10 @@ combine('A', ['i32', 'u32']).
 combine('L', ['i32', 'u32']).
 combine('depthOrArrayLayers', [1, 8])
 ).
-beforeAllSubcases((t) => {
-  t.skipIfDepthTextureCanNotBeUsedWithNonComparisonSampler();
-  t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
-}).
 fn(async (t) => {
   const { format, samplePoints, mode, A, L, offset, depthOrArrayLayers } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfDepthTextureCanNotBeUsedWithNonComparisonSampler();
 
   // We want at least 4 blocks or something wide enough for 3 mip levels.
   const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
@@ -891,13 +870,11 @@ beginSubcases().
 combine('samplePoints', kCubeSamplePointMethods).
 combine('A', ['i32', 'u32'])
 ).
-beforeAllSubcases((t) => {
-  t.skipIfDepthTextureCanNotBeUsedWithNonComparisonSampler();
-  t.skipIfTextureViewDimensionNotSupported('cube-array');
-  t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
-}).
 fn(async (t) => {
   const { format, samplePoints, A, mode } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfDepthTextureCanNotBeUsedWithNonComparisonSampler();
+  t.skipIfTextureViewDimensionNotSupportedDeprecated('cube-array');
 
   const viewDimension = 'cube-array';
   const size = chooseTextureSize({

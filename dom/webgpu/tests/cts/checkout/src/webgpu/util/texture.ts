@@ -1,9 +1,9 @@
 import { assert, unreachable } from '../../common/util/util.js';
 import {
+  getBlockInfoForTextureFormat,
   isDepthOrStencilTextureFormat,
   isDepthTextureFormat,
   isStencilTextureFormat,
-  kTextureFormatInfo,
 } from '../format_info.js';
 import { GPUTestBase } from '../gpu_test.js';
 
@@ -113,6 +113,11 @@ const kLoadValueFromStorageInfo: Partial<{
     storageType: 'u32',
     texelType: 'vec4i',
     unpackWGSL: 'return unpack4xI8(getSrc(byteOffset / 4))',
+  },
+  rg11b10ufloat: {
+    storageType: 'u32',
+    texelType: 'vec4f',
+    unpackWGSL: `return unpackRG11B10UFloat(getSrc(byteOffset / 4))`,
   },
   r16float: {
     storageType: 'u32',
@@ -306,6 +311,53 @@ function getCopyBufferToTextureViaRenderCode(
       let x = offset % width;
       let y = offset / width;
       return textureLoad(src, vec2u(x, y), 0).r;
+    }
+
+    const kFloat32FormatMantissaBits = 23;
+    const kFloat32FormatBias = 127;
+    fn floatBitsToNumber(
+        rawBits: u32,
+        bitOffset: u32,
+        exponentBits: u32,
+        mantissaBits: u32,
+        bias: u32,
+        signed: bool) -> f32 {
+      let nonSignBits = exponentBits + mantissaBits;
+      let allBits = nonSignBits + select(0u, 1u, signed);
+      let allMask = (1u << allBits) - 1u;
+      let bits = (rawBits >> bitOffset) & allMask;
+      let nonSignBitsMask = (1u << nonSignBits) - 1u;
+      let exponentAndMantissaBits = bits & nonSignBitsMask;
+      let exponentMask = ((1u << exponentBits) - 1u) << mantissaBits;
+      let infinityOrNaN = (bits & exponentMask) == exponentMask;
+      if (infinityOrNaN) {
+        let mantissaMask = (1u << mantissaBits) - 1;
+        let signBit = 1u << nonSignBits;
+        let isNegative = (bits & signBit) != 0;
+        if ((bits & mantissaMask) != 0u) {
+          return 0.0; // NaN (does not exist in WGSL)
+        }
+        if (isNegative) {
+          return f32(-2e38); // NEGATIVE_INFINITY (does not exist in WGSL)
+        } else {
+          return f32(2e38); // POSITIVE_INFINITY (does not exist in WGSL)
+        }
+      }
+      var f32BitsWithWrongBias =
+        exponentAndMantissaBits << (kFloat32FormatMantissaBits - mantissaBits);
+      // add in the sign
+      f32BitsWithWrongBias |= (bits << (31u - nonSignBits)) & 0x80000000u;
+      let numberWithWrongBias = bitcast<f32>(f32BitsWithWrongBias);
+      return numberWithWrongBias * pow(2.0f, f32(kFloat32FormatBias - bias));
+    }
+
+    fn unpackRG11B10UFloat(v: u32) -> vec4f {
+      return vec4f(
+        floatBitsToNumber(v,  0, 5, 6, 15, false),
+        floatBitsToNumber(v, 11, 5, 6, 15, false),
+        floatBitsToNumber(v, 22, 5, 5, 15, false),
+        1
+      );
     }
 
     fn unpack(byteOffset: u32) -> ${texelType} {
@@ -533,7 +585,7 @@ function copyBufferToTextureViaRender(
       pass.setViewport(origin.x, origin.y, copySize.width, copySize.height, 0, 1);
       pass.setPipeline(pipeline);
 
-      const info = kTextureFormatInfo[sourceFormat];
+      const info = getBlockInfoForTextureFormat(sourceFormat);
       const offset =
         (source.offset ?? 0) + (source.bytesPerRow ?? 0) * (source.rowsPerImage ?? 0) * l;
       const uniforms = new Uint32Array([

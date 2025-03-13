@@ -14,7 +14,7 @@ Tests a render pass with a resolveTarget resolves correctly for many combination
 `;
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
 
 const kSlotsToResolve = [
   [0, 2],
@@ -25,7 +25,7 @@ const kSlotsToResolve = [
 const kSize = 4;
 const kFormat: GPUTextureFormat = 'rgba8unorm';
 
-export const g = makeTestGroup(TextureTestMixin(GPUTest));
+export const g = makeTestGroup(TextureTestMixin(AllFeaturesMaxLimitsGPUTest));
 
 g.test('render_pass_resolve')
   .params(u =>

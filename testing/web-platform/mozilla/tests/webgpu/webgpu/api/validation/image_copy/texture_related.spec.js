@@ -268,7 +268,7 @@ combine('copyHeightModifier', [0, -1])
 ).
 beforeAllSubcases((t) => {
   const info = kTextureFormatInfo[t.params.format];
-  t.skipIfTextureFormatNotSupported(t.params.format);
+  t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
   t.selectDeviceOrSkipTestCase(info.feature);
 }).
 fn((t) => {
@@ -355,7 +355,7 @@ expand('valueToCoordinate', texelBlockAlignmentTestExpanderForValueToCoordinate)
 ).
 beforeAllSubcases((t) => {
   const info = kTextureFormatInfo[t.params.format];
-  t.skipIfTextureFormatNotSupported(t.params.format);
+  t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
   t.selectDeviceOrSkipTestCase(info.feature);
 }).
 fn((t) => {
@@ -413,7 +413,7 @@ expand('valueToCoordinate', texelBlockAlignmentTestExpanderForValueToCoordinate)
 ).
 beforeAllSubcases((t) => {
   const info = kTextureFormatInfo[t.params.format];
-  t.skipIfTextureFormatNotSupported(t.params.format);
+  t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
   t.selectDeviceOrSkipTestCase(info.feature);
 }).
 fn((t) => {

@@ -4,9 +4,9 @@ Compute pipeline using overridable constants test.
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { range } from '../../../../common/util/util.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
-class F extends GPUTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   async ExpectShaderOutputWithConstants(
     isAsync: boolean,
     expected: Uint32Array | Float32Array,

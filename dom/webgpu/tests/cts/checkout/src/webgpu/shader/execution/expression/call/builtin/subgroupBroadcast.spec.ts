@@ -105,17 +105,13 @@ g.test('data_types')
       .beginSubcases()
       .combine('id', [0, 1, 2, 3] as const)
   )
-  .beforeAllSubcases(t => {
-    const features: GPUFeatureName[] = ['subgroups' as GPUFeatureName];
-    const type = kDataTypes[t.params.type];
-    if (type.requiresF16()) {
-      features.push('shader-f16');
-    }
-    t.selectDeviceOrSkipTestCase(features);
-  })
   .fn(async t => {
     const wgSize = [4, 1, 1];
     const type = kDataTypes[t.params.type];
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
+    if (type.requiresF16()) {
+      t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+    }
     let enables = 'enable subgroups;\n';
     if (type.requiresF16()) {
       enables += 'enable f16;\n';
@@ -177,10 +173,8 @@ g.test('workgroup_uniform_load')
       .combine('inputId', [1, 2, 3] as const)
       .combine('first', [false, true] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     // Compatibility mode has lower workgroup limits.
     const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
     const {
@@ -361,10 +355,8 @@ g.test('compute,all_active')
       // Only values < 4 are used because it is a dynamic error to broadcast an inactive invocation.
       .combine('id', [0, 1, 2, 3] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
     const broadcast =
@@ -436,10 +428,8 @@ g.test('compute,split')
       .combine('id', [0, 1, 2, 3] as const)
       .combine('wgSize', kWGSizes)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const testcase = kPredicateCases[t.params.predicate];
     const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
@@ -510,10 +500,8 @@ g.test('broadcastFirst,split')
   .params(u =>
     u.combine('predicate', keysOf(kPredicateCases)).beginSubcases().combine('wgSize', kWGSizes)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const testcase = kPredicateCases[t.params.predicate];
     const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
@@ -663,10 +651,8 @@ g.test('fragment')
       .combine('id', [0, 1, 2, 3] as const)
       .combineWithParams([{ format: 'rgba32uint' }] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const innerTexels = (t.params.size[0] - 1) * (t.params.size[1] - 1);
     interface SubgroupProperties extends GPUAdapterInfo {
       subgroupMaxSize: number;

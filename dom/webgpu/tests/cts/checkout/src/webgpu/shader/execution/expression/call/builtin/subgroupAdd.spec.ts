@@ -66,14 +66,12 @@ and limit the number of permutations needed to calculate the final result.`
         [kStride / 2, 2, 1],
       ] as const)
   )
-  .beforeAllSubcases(t => {
-    const features: GPUFeatureName[] = ['subgroups' as GPUFeatureName];
-    if (t.params.type === 'f16') {
-      features.push('shader-f16');
-    }
-    t.selectDeviceOrSkipTestCase(features);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
+    if (t.params.type === 'f16') {
+      t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+    }
+
     await runAccuracyTest(
       t,
       t.params.case,
@@ -169,16 +167,12 @@ TODO: support vec3 types.
       .combine('wgSize', kWGSizes)
       .combine('operation', kOperations)
   )
-  .beforeAllSubcases(t => {
-    const features: GPUFeatureName[] = ['subgroups' as GPUFeatureName];
+  .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const type = kDataTypes[t.params.type];
     if (type.requiresF16()) {
-      features.push('shader-f16');
+      t.skipIfDeviceDoesNotHaveFeature('shader-f16');
     }
-    t.selectDeviceOrSkipTestCase(features);
-  })
-  .fn(async t => {
-    const type = kDataTypes[t.params.type];
     let numEles = 1;
     if (type instanceof VectorType) {
       numEles = type.width;
@@ -300,10 +294,8 @@ g.test('compute,split')
       .combine('operation', kOperations)
       .combine('wgSize', kWGSizes)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const testcase = kPredicateCases[t.params.case];
     const outputUintsPerElement = 1;
     const inputData = new Uint32Array([0]); // no input data
@@ -489,10 +481,8 @@ g.test('fragment')
       .beginSubcases()
       .combineWithParams([{ format: 'rgba32uint' }] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     interface SubgroupProperties extends GPUAdapterInfo {
       subgroupMinSize: number;
     }

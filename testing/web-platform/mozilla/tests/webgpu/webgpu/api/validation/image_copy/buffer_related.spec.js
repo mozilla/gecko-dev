@@ -185,7 +185,7 @@ unless((p) => p.dimension === '1d' && p.copyHeightInBlocks > 1)
 ).
 beforeAllSubcases((t) => {
   const info = kTextureFormatInfo[t.params.format];
-  t.skipIfTextureFormatNotSupported(t.params.format);
+  t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
   t.selectDeviceOrSkipTestCase(info.feature);
 }).
 fn((t) => {

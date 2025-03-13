@@ -13,7 +13,10 @@ If an out-of-bounds access occurs, the built-in function should not be executed.
 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { unreachable, iterRange, range } from '../../../../../../common/util/util.js';
-import { kTextureFormatInfo } from '../../../../../format_info.js';
+import {
+  isTextureFormatPossiblyStorageReadWritable,
+  kPossibleStorageTextureFormats,
+} from '../../../../../format_info.js';
 import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../../../gpu_test.js';
 import {
   kFloat32Format,
@@ -24,7 +27,8 @@ import {
 } from '../../../../../util/conversion.js';
 import { align, clamp } from '../../../../../util/math.js';
 import { getTextureDimensionFromView, virtualMipSize } from '../../../../../util/texture/base.js';
-import { TexelFormats } from '../../../../types.js';
+
+import { getTextureFormatTypeInfo } from './texture_utils.js';
 
 const kDims = ['1d', '2d', '3d'] as const;
 const kViewDimensions = ['1d', '2d', '2d-array', '3d'] as const;
@@ -82,15 +86,13 @@ g.test('texel_formats')
   )
   .params(u =>
     u
-      .combineWithParams([...TexelFormats, { format: 'bgra8unorm', _shaderType: 'f32' }])
+      .combine('format', kPossibleStorageTextureFormats)
       .combine('viewDimension', kViewDimensions)
       // Note: We can't use writable storage textures in a vertex stage.
       .combine('stage', ['compute', 'fragment'] as const)
       .combine('access', ['write', 'read_write'] as const)
       .unless(
-        t =>
-          t.access === 'read_write' &&
-          !kTextureFormatInfo[t.format as GPUTextureFormat].color?.readWriteStorage
+        t => t.access === 'read_write' && !isTextureFormatPossiblyStorageReadWritable(t.format)
       )
       .combine('mipLevel', [0, 1, 2] as const)
       .unless(t => t.viewDimension === '1d' && t.mipLevel !== 0)
@@ -99,11 +101,12 @@ g.test('texel_formats')
     if (t.params.format === 'bgra8unorm') {
       t.selectDeviceOrSkipTestCase('bgra8unorm-storage');
     } else {
-      t.skipIfTextureFormatNotUsableAsStorageTexture(t.params.format as GPUTextureFormat);
+      t.skipIfTextureFormatNotUsableAsStorageTextureDeprecated(t.params.format as GPUTextureFormat);
     }
   })
   .fn(t => {
-    const { format, stage, access, viewDimension, _shaderType, mipLevel } = t.params;
+    const { format, stage, access, viewDimension, mipLevel } = t.params;
+    const { componentType } = getTextureFormatTypeInfo(format);
     const values = inputArray(format);
 
     t.skipIf(
@@ -130,7 +133,7 @@ fn setValue(gid: vec3u) {
     range[(ndx + 2) % ${values.length}],
     range[(ndx + 3) % ${values.length}],
   );
-  var val = vec4<${_shaderType}>(vecVal);
+  var val = vec4<${componentType}>(vecVal);
   let coord = gid.${swizzleWGSL};
   textureStore(tex, coord${layerWGSL}, val);
 }

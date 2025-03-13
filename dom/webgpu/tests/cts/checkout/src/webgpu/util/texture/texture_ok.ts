@@ -1,5 +1,10 @@
 import { assert, ErrorWithExtra, unreachable } from '../../../common/util/util.js';
-import { kTextureFormatInfo, EncodableTextureFormat } from '../../format_info.js';
+import {
+  EncodableTextureFormat,
+  getTextureFormatType,
+  isColorTextureFormat,
+  isDepthTextureFormat,
+} from '../../format_info.js';
 import { GPUTestBase } from '../../gpu_test.js';
 import { numbersApproximatelyEqual } from '../conversion.js';
 import { generatePrettyTable, numericToStringBuilder } from '../pretty_diff_tables.js';
@@ -220,14 +225,13 @@ export function findFailedPixels(
     return undefined;
   }
 
-  const info = kTextureFormatInfo[format];
   const repr = kTexelRepresentationInfo[format];
   // MAINTENANCE_TODO: Print depth-stencil formats as float+int instead of float+float.
-  const printAsInteger = info.color
+  const printAsInteger = isColorTextureFormat(format)
     ? // For color, pick the type based on the format type
-      ['uint', 'sint'].includes(info.color.type)
+      ['uint', 'sint'].includes(getTextureFormatType(format))
     : // Print depth as "float", depth-stencil as "float,float", stencil as "int".
-      !info.depth;
+      !isDepthTextureFormat(format);
   const numericToString = numericToStringBuilder(printAsInteger);
 
   const componentOrderStr = repr.componentOrder.join(',') + ':';

@@ -98,14 +98,12 @@ and limit the number of permutations needed to calculate the final result.`
         [kStride / 2, 2, 1],
       ] as const)
   )
-  .beforeAllSubcases(t => {
-    const features: GPUFeatureName[] = ['subgroups' as GPUFeatureName];
-    if (t.params.type === 'f16') {
-      features.push('shader-f16');
-    }
-    t.selectDeviceOrSkipTestCase(features);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
+    if (t.params.type === 'f16') {
+      t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+    }
+
     await runAccuracyTest(
       t,
       t.params.case,
@@ -181,17 +179,14 @@ g.test('data_types')
       .combine('idx2', [0, 1, 2, 3] as const)
       .combine('idx1Id', [0, 1, 2, 3] as const)
   )
-  .beforeAllSubcases(t => {
-    const features: GPUFeatureName[] = ['subgroups' as GPUFeatureName];
-    const type = kDataTypes[t.params.type];
-    if (type.requiresF16()) {
-      features.push('shader-f16' as GPUFeatureName);
-    }
-    t.selectDeviceOrSkipTestCase(features);
-  })
   .fn(async t => {
     const wgSize = [4, 1, 1];
     const type = kDataTypes[t.params.type];
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
+    if (type.requiresF16()) {
+      t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+    }
+
     let enables = `enable subgroups;\n`;
     if (type.requiresF16()) {
       enables += `enable f16;`;
@@ -328,10 +323,8 @@ g.test('compute,all_active')
       .beginSubcases()
       .combine('case', [...iterRange(kNumRandomCases, x => x)] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
     const wgsl = `
@@ -402,10 +395,8 @@ g.test('compute,split')
       .combine('wgSize', kWGSizes)
       .combine('case', [...iterRange(kNumRandomCases, x => x)])
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const testcase = kPredicateCases[t.params.predicate];
     const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
@@ -578,10 +569,8 @@ g.test('fragment')
       .combine('case', [...iterRange(kNumRandomCases, x => x)])
       .combineWithParams([{ format: 'rg32uint' }] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const numInputs = t.params.size[0] * t.params.size[1];
 
     interface SubgroupProperties extends GPUAdapterInfo {

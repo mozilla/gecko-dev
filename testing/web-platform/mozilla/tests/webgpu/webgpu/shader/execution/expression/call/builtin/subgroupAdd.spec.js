@@ -66,14 +66,12 @@ combine('wgSize', [
 [kStride / 2, 2, 1]]
 )
 ).
-beforeAllSubcases((t) => {
-  const features = ['subgroups'];
-  if (t.params.type === 'f16') {
-    features.push('shader-f16');
-  }
-  t.selectDeviceOrSkipTestCase(features);
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
+  if (t.params.type === 'f16') {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
+
   await runAccuracyTest(
     t,
     t.params.case,
@@ -169,16 +167,12 @@ beginSubcases().
 combine('wgSize', kWGSizes).
 combine('operation', kOperations)
 ).
-beforeAllSubcases((t) => {
-  const features = ['subgroups'];
+fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const type = kDataTypes[t.params.type];
   if (type.requiresF16()) {
-    features.push('shader-f16');
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   }
-  t.selectDeviceOrSkipTestCase(features);
-}).
-fn(async (t) => {
-  const type = kDataTypes[t.params.type];
   let numEles = 1;
   if (type instanceof VectorType) {
     numEles = type.width;
@@ -300,10 +294,8 @@ beginSubcases().
 combine('operation', kOperations).
 combine('wgSize', kWGSizes)
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const testcase = kPredicateCases[t.params.case];
   const outputUintsPerElement = 1;
   const inputData = new Uint32Array([0]); // no input data
@@ -489,10 +481,8 @@ combine('size', kFramebufferSizes).
 beginSubcases().
 combineWithParams([{ format: 'rgba32uint' }])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
 
 
 

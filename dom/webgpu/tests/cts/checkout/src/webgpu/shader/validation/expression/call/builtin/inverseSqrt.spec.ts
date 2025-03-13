@@ -45,11 +45,6 @@ Validates that constant evaluation and override evaluation of ${builtin}() input
         )
       )
   )
-  .beforeAllSubcases(t => {
-    if (scalarTypeOf(kValuesTypes[t.params.type]) === Type.f16) {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     const type = kValuesTypes[t.params.type];
     const expectedResult =

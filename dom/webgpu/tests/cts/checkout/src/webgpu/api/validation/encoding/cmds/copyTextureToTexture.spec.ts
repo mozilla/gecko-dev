@@ -375,8 +375,8 @@ Test the formats of textures in copyTextureToTexture must be copy-compatible.
   .fn(t => {
     const { srcFormat, dstFormat } = t.params;
 
-    t.skipIfTextureFormatNotSupported(srcFormat, dstFormat);
-    t.skipIfCopyTextureToTextureNotSupportedForFormat(srcFormat, dstFormat);
+    t.skipIfTextureFormatNotSupportedDeprecated(srcFormat, dstFormat);
+    t.skipIfCopyTextureToTextureNotSupportedForFormatDeprecated(srcFormat, dstFormat);
 
     const srcFormatInfo = kTextureFormatInfo[srcFormat];
     const dstFormatInfo = kTextureFormatInfo[dstFormat];

@@ -43,11 +43,6 @@ Validates that constant evaluation and override evaluation of ${builtin}() rejec
       .expand('value1', u => [-1000, -10, 0, 10, 1000])
       .expand('value2', u => [-1000, -10, 0, 10, 1000])
   )
-  .beforeAllSubcases(t => {
-    if (scalarTypeOf(kValuesTypes[t.params.type]) === Type.f16) {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     const type = kValuesTypes[t.params.type];
 
@@ -83,11 +78,6 @@ g.test('partial_eval_errors')
       // in_shader: Is the function call statically accessed by the entry point?
       .combine('in_shader', [false, true] as const)
   )
-  .beforeAllSubcases(t => {
-    if (scalarTypeOf(kValuesTypes[t.params.type]) === Type.f16) {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     const type = kValuesTypes[t.params.type];
     const scalarTy = scalarTypeOf(type);
@@ -157,11 +147,6 @@ Validates that scalar and vector arguments are rejected by ${builtin}() if not f
 `
   )
   .params(u => u.combine('type', keysOf(kArgumentTypes)))
-  .beforeAllSubcases(t => {
-    if (scalarTypeOf(kArgumentTypes[t.params.type]) === Type.f16) {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     const type = kArgumentTypes[t.params.type];
     const expectedResult = isConvertibleToFloatType(elementTypeOf(type));
@@ -300,11 +285,6 @@ const kTests = {
 g.test('arguments')
   .desc(`Test that ${builtin} is validated correctly when called with different arguments.`)
   .params(u => u.combine('test', keysOf(kTests)))
-  .beforeAllSubcases(t => {
-    if (t.params.test.includes('f16')) {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     const src = kTests[t.params.test].src;
     const enables = t.params.test.includes('f16') ? 'enable f16;' : '';

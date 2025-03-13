@@ -5,14 +5,14 @@ Test rendering to 3d texture slices.
 `;
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { kTextureFormatInfo } from '../../../format_info.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { getColorRenderByteCost } from '../../../format_info.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { kBytesPerRowAlignment } from '../../../util/texture/layout.js';
 
 const kSize = 4;
 const kFormat = 'rgba8unorm' as const;
 
-class F extends GPUTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   createShaderModule(attachmentCount: number = 1): GPUShaderModule {
     let locations = '';
     let outputs = '';
@@ -170,7 +170,7 @@ g.test('multiple_color_attachments,same_mip_level')
   .fn(t => {
     const { sameTexture, samePass, mipLevel } = t.params;
 
-    const formatByteCost = kTextureFormatInfo[kFormat].colorRender.byteCost;
+    const formatByteCost = getColorRenderByteCost(kFormat);
     const maxAttachmentCountPerSample = Math.trunc(
       t.device.limits.maxColorAttachmentBytesPerSample / formatByteCost
     );
@@ -288,7 +288,7 @@ g.test('multiple_color_attachments,same_slice_with_diff_mip_levels')
 
     const kBaseSize = 1;
 
-    const formatByteCost = kTextureFormatInfo[kFormat].colorRender.byteCost;
+    const formatByteCost = getColorRenderByteCost(kFormat);
     const maxAttachmentCountPerSample = Math.trunc(
       t.device.limits.maxColorAttachmentBytesPerSample / formatByteCost
     );

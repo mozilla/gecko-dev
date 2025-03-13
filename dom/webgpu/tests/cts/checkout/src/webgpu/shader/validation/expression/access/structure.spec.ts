@@ -84,9 +84,6 @@ g.test('result_type')
 g.test('result_type_f16')
   .desc('Tests correct type is returned for f16')
   .params(u => u.combine('decl', ['value', 'ref'] as const))
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  })
   .fn(t => {
     const code = `
     enable f16;

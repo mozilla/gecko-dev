@@ -10,7 +10,7 @@ local_invocation_index. Tests should avoid assuming there is.
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../../../common/util/data_tables.js';
 import { iterRange, assert } from '../../../../../../common/util/util.js';
-import { kTextureFormatInfo } from '../../../../../format_info.js';
+import { getBlockInfoForTextureFormat } from '../../../../../format_info.js';
 import { GPUTest } from '../../../../../gpu_test.js';
 import { align } from '../../../../../util/math.js';
 
@@ -184,10 +184,8 @@ const kCases = {
 g.test('compute,split')
   .desc('Tests ballot in a split subgroup')
   .params(u => u.combine('case', keysOf(kCases)))
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const testcase = kCases[t.params.case];
     const wgsl = `
 enable subgroups;
@@ -223,10 +221,8 @@ g.test('fragment,split').unimplemented();
 g.test('predicate')
   .desc('Tests the predicate parameter')
   .params(u => u.combine('case', keysOf(kCases)))
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const testcase = kCases[t.params.case];
     const wgsl = `
 enable subgroups;
@@ -314,10 +310,8 @@ const kBothCases = {
 g.test('predicate_and_control_flow')
   .desc('Test dynamic predicate and control flow together')
   .params(u => u.combine('case', keysOf(kBothCases)))
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const testcase = kBothCases[t.params.case];
     const wgsl = `
 enable subgroups;
@@ -526,10 +520,8 @@ g.test('fragment')
       .combine('size', kFramebufferSizes)
       .combineWithParams([{ format: 'rgba32uint' }] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const width = t.params.size[0];
     const height = t.params.size[1];
     const testcase = kFragmentPredicates[t.params.predicate];
@@ -588,7 +580,9 @@ fn vsMain(@builtin(vertex_index) index : u32) -> @builtin(position) vec4f {
       },
     });
 
-    const { blockWidth, blockHeight, bytesPerBlock } = kTextureFormatInfo[t.params.format];
+    const { blockWidth, blockHeight, bytesPerBlock } = getBlockInfoForTextureFormat(
+      t.params.format
+    );
     assert(bytesPerBlock !== undefined);
 
     const blocksPerRow = width / blockWidth;

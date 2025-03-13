@@ -559,9 +559,6 @@ g.test('shadow_hides_builtin_f16')
       .beginSubcases()
       .combine('builtin', keysOf(kFloat16Tests))
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-  })
   .fn(t => {
     const data = kFloat16Tests[t.params.builtin];
     const local = `let ${data.keyword} = 4;`;

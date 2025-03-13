@@ -13,10 +13,10 @@ import {
   kRegularTextureFormats,
   kFeaturesForFormats,
   filterFormatsByFeature,
-  viewCompatible,
+  viewCompatibleDeprecated,
   textureDimensionAndFormatCompatible,
-  isTextureFormatUsableAsStorageFormat,
-  isMultisampledTextureFormat,
+  isTextureFormatUsableAsStorageFormatDeprecated,
+  isMultisampledTextureFormatDeprecated,
 } from '../../format_info.js';
 import { maxMipLevelCount } from '../../util/texture/base.js';
 
@@ -112,7 +112,7 @@ g.test('dimension_type_and_format_compatibility')
   .beforeAllSubcases(t => {
     const { format } = t.params;
     const info = kTextureFormatInfo[format];
-    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatNotSupportedDeprecated(format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -150,7 +150,7 @@ g.test('mipLevelCount,format')
   .beforeAllSubcases(t => {
     const { format } = t.params;
     const info = kTextureFormatInfo[format];
-    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatNotSupportedDeprecated(format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -281,7 +281,7 @@ g.test('sampleCount,various_sampleCount_with_all_formats')
   .beforeAllSubcases(t => {
     const { format } = t.params;
     const info = kTextureFormatInfo[format];
-    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatNotSupportedDeprecated(format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -302,7 +302,7 @@ g.test('sampleCount,various_sampleCount_with_all_formats')
 
     const success =
       sampleCount === 1 ||
-      (sampleCount === 4 && isMultisampledTextureFormat(format, t.isCompatibility));
+      (sampleCount === 4 && isMultisampledTextureFormatDeprecated(format, t.isCompatibility));
 
     t.expectValidationError(() => {
       t.createTextureTracked(descriptor);
@@ -356,7 +356,7 @@ g.test('sampleCount,valid_sampleCount_with_other_parameter_varies')
   .beforeAllSubcases(t => {
     const { format } = t.params;
     const info = kTextureFormatInfo[format];
-    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatNotSupportedDeprecated(format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -380,12 +380,12 @@ g.test('sampleCount,valid_sampleCount_with_other_parameter_varies')
 
     const satisfyWithStorageUsageRequirement =
       (usage & GPUConst.TextureUsage.STORAGE_BINDING) === 0 ||
-      isTextureFormatUsableAsStorageFormat(format, t.isCompatibility);
+      isTextureFormatUsableAsStorageFormatDeprecated(format, t.isCompatibility);
 
     const success =
       (sampleCount === 1 && satisfyWithStorageUsageRequirement) ||
       (sampleCount === 4 &&
-        isMultisampledTextureFormat(format, t.isCompatibility) &&
+        isMultisampledTextureFormatDeprecated(format, t.isCompatibility) &&
         (dimension === '2d' || dimension === undefined) &&
         kTextureFormatInfo[format].multisample &&
         mipLevelCount === 1 &&
@@ -440,7 +440,7 @@ g.test('texture_size,default_value_and_smallest_size,uncompressed_format')
   .beforeAllSubcases(t => {
     const { format } = t.params;
     const info = kTextureFormatInfo[format];
-    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatNotSupportedDeprecated(format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -517,7 +517,7 @@ g.test('texture_size,1d_texture')
   .beforeAllSubcases(t => {
     const { format } = t.params;
     const info = kTextureFormatInfo[format];
-    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatNotSupportedDeprecated(format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -566,7 +566,7 @@ g.test('texture_size,2d_texture,uncompressed_format')
   .beforeAllSubcases(t => {
     const { format } = t.params;
     const info = kTextureFormatInfo[format];
-    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatNotSupportedDeprecated(format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -812,7 +812,7 @@ g.test('texture_size,3d_texture,uncompressed_format')
   .beforeAllSubcases(t => {
     const { format } = t.params;
     const info = kTextureFormatInfo[format];
-    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatNotSupportedDeprecated(format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -1049,7 +1049,7 @@ g.test('texture_usage')
   .beforeAllSubcases(t => {
     const { format } = t.params;
     const info = kTextureFormatInfo[format];
-    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatNotSupportedDeprecated(format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -1071,7 +1071,8 @@ g.test('texture_usage')
     // if (!info.copySrc && (usage & GPUTextureUsage.COPY_SRC) !== 0) success = false;
     // if (!info.copyDst && (usage & GPUTextureUsage.COPY_DST) !== 0) success = false;
     if (usage & GPUTextureUsage.STORAGE_BINDING) {
-      if (!isTextureFormatUsableAsStorageFormat(format, t.isCompatibility)) success = false;
+      if (!isTextureFormatUsableAsStorageFormatDeprecated(format, t.isCompatibility))
+        success = false;
     }
     if (usage & GPUTextureUsage.RENDER_ATTACHMENT) {
       if (appliedDimension === '1d') success = false;
@@ -1107,9 +1108,9 @@ g.test('viewFormats')
     const { format, viewFormat } = t.params;
     const { blockWidth, blockHeight } = kTextureFormatInfo[format];
 
-    t.skipIfTextureFormatNotSupported(format, viewFormat);
+    t.skipIfTextureFormatNotSupportedDeprecated(format, viewFormat);
 
-    const compatible = viewCompatible(t.isCompatibility, format, viewFormat);
+    const compatible = viewCompatibleDeprecated(t.isCompatibility, format, viewFormat);
 
     // Test the viewFormat in the list.
     t.expectValidationError(() => {

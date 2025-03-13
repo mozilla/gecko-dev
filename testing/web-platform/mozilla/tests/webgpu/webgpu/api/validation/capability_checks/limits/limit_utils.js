@@ -1204,6 +1204,12 @@ export class LimitTestsImpl extends GPUTestBase {
 
   skipIfNotEnoughStorageBuffersInStage(visibility, numRequired) {
     const { device } = this;
+
+    this.skipIf(
+      numRequired > device.limits.maxStorageBuffersPerShaderStage,
+      `maxStorageBuffersPerShaderStage = ${device.limits.maxSamplersPerShaderStage} which is less than ${numRequired}`
+    );
+
     this.skipIf(
       this.isCompatibility &&
       // If we're using the fragment stage

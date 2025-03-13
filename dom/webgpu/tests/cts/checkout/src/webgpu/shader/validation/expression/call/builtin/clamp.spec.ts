@@ -44,11 +44,6 @@ Validates that constant evaluation and override evaluation of ${builtin}() rejec
       .expand('low', u => fullRangeForType(kValuesTypes[u.type], 4))
       .expand('high', u => fullRangeForType(kValuesTypes[u.type], 4))
   )
-  .beforeAllSubcases(t => {
-    if (scalarTypeOf(kValuesTypes[t.params.type]) === Type.f16) {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     const type = kValuesTypes[t.params.type];
     const expectedResult = t.params.low <= t.params.high;
@@ -74,18 +69,10 @@ Validates that even with valid types, if types do not match, ${builtin}() errors
       .combine('low', keysOf(kValuesTypes))
       .combine('high', keysOf(kValuesTypes))
   )
-  .beforeAllSubcases(t => {
-    if (scalarTypeOf(kValuesTypes[t.params.e]) === Type.f16) {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     const e = kValuesTypes[t.params.e];
     const low = kValuesTypes[t.params.low];
     const high = kValuesTypes[t.params.high];
-
-    // Skip if shader-16 isn't available.
-    t.skipIf(scalarTypeOf(low) === Type.f16 || scalarTypeOf(high) === Type.f16);
 
     // If there exists 1 type of the 3 args that the other 2 can be converted into, then the args
     // are valid.
@@ -130,12 +117,6 @@ Validates that low <= high.
       // in_shader: Is the function call statically accessed by the entry point?
       .combine('in_shader', [false, true] as const)
   )
-  .beforeAllSubcases(t => {
-    const ty = kValuesTypes[t.params.type];
-    if (ty.requiresF16()) {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     const ty = kValuesTypes[t.params.type];
     const scalar = scalarTypeOf(ty);

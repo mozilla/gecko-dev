@@ -4,8 +4,8 @@ Test related to depth buffer, depth op, compare func, etc.
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { TypedArrayBufferView } from '../../../../common/util/util.js';
-import { kDepthStencilFormats, kTextureFormatInfo } from '../../../format_info.js';
-import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { isStencilTextureFormat, kDepthTextureFormats } from '../../../format_info.js';
+import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
 
 const backgroundColor = [0x00, 0x00, 0x00, 0xff];
@@ -21,7 +21,7 @@ type TestStates = {
   depth: number;
 };
 
-class DepthTest extends TextureTestMixin(GPUTest) {
+class DepthTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
   runDepthStateTest(testStates: TestStates[], expectedColor: Float32Array) {
     const renderTargetFormat = 'rgba8unorm';
 
@@ -187,7 +187,7 @@ g.test('depth_write_disabled')
   .fn(t => {
     const { depthWriteEnabled, lastDepth, _expectedColor } = t.params;
 
-    const depthSpencilFormat: GPUTextureFormat = 'depth24plus-stencil8';
+    const depthStencilFormat: GPUTextureFormat = 'depth24plus-stencil8';
 
     const stencilState = {
       compare: 'always',
@@ -197,7 +197,7 @@ g.test('depth_write_disabled')
     } as const;
 
     const baseState = {
-      format: depthSpencilFormat,
+      format: depthStencilFormat,
       depthWriteEnabled: true,
       depthCompare: 'always',
       stencilFront: stencilState,
@@ -207,7 +207,7 @@ g.test('depth_write_disabled')
     } as const;
 
     const depthWriteState = {
-      format: depthSpencilFormat,
+      format: depthStencilFormat,
       depthWriteEnabled,
       depthCompare: 'always',
       stencilFront: stencilState,
@@ -217,7 +217,7 @@ g.test('depth_write_disabled')
     } as const;
 
     const checkState = {
-      format: depthSpencilFormat,
+      format: depthStencilFormat,
       depthWriteEnabled: false,
       depthCompare: 'equal',
       stencilFront: stencilState,
@@ -256,10 +256,10 @@ g.test('depth_test_fail')
   .fn(t => {
     const { secondDepth, lastDepth, _expectedColor } = t.params;
 
-    const depthSpencilFormat: GPUTextureFormat = 'depth24plus-stencil8';
+    const depthStencilFormat: GPUTextureFormat = 'depth24plus-stencil8';
 
     const baseState = {
-      format: depthSpencilFormat,
+      format: depthStencilFormat,
       depthWriteEnabled: true,
       depthCompare: 'always',
       stencilReadMask: 0xff,
@@ -267,7 +267,7 @@ g.test('depth_test_fail')
     } as const;
 
     const depthTestState = {
-      format: depthSpencilFormat,
+      format: depthStencilFormat,
       depthWriteEnabled: true,
       depthCompare: 'less',
       stencilReadMask: 0xff,
@@ -292,55 +292,48 @@ g.test('depth_compare_func')
     `Tests each depth compare function works properly. Clears the depth attachment to various values, and renders a point at depth 0.5 with various depthCompare modes.`
   )
   .params(u =>
-    u
-      .combine(
-        'format',
-        kDepthStencilFormats.filter(format => kTextureFormatInfo[format].depth)
-      )
-      .combineWithParams([
-        { depthCompare: 'never', depthClearValue: 1.0, _expected: backgroundColor },
-        { depthCompare: 'never', depthClearValue: kMiddleDepthValue, _expected: backgroundColor },
-        { depthCompare: 'never', depthClearValue: 0.0, _expected: backgroundColor },
-        { depthCompare: 'less', depthClearValue: 1.0, _expected: triangleColor },
-        { depthCompare: 'less', depthClearValue: kMiddleDepthValue, _expected: backgroundColor },
-        { depthCompare: 'less', depthClearValue: 0.0, _expected: backgroundColor },
-        { depthCompare: 'less-equal', depthClearValue: 1.0, _expected: triangleColor },
-        {
-          depthCompare: 'less-equal',
-          depthClearValue: kMiddleDepthValue,
-          _expected: triangleColor,
-        },
-        { depthCompare: 'less-equal', depthClearValue: 0.0, _expected: backgroundColor },
-        { depthCompare: 'equal', depthClearValue: 1.0, _expected: backgroundColor },
-        { depthCompare: 'equal', depthClearValue: kMiddleDepthValue, _expected: triangleColor },
-        { depthCompare: 'equal', depthClearValue: 0.0, _expected: backgroundColor },
-        { depthCompare: 'not-equal', depthClearValue: 1.0, _expected: triangleColor },
-        {
-          depthCompare: 'not-equal',
-          depthClearValue: kMiddleDepthValue,
-          _expected: backgroundColor,
-        },
-        { depthCompare: 'not-equal', depthClearValue: 0.0, _expected: triangleColor },
-        { depthCompare: 'greater-equal', depthClearValue: 1.0, _expected: backgroundColor },
-        {
-          depthCompare: 'greater-equal',
-          depthClearValue: kMiddleDepthValue,
-          _expected: triangleColor,
-        },
-        { depthCompare: 'greater-equal', depthClearValue: 0.0, _expected: triangleColor },
-        { depthCompare: 'greater', depthClearValue: 1.0, _expected: backgroundColor },
-        { depthCompare: 'greater', depthClearValue: kMiddleDepthValue, _expected: backgroundColor },
-        { depthCompare: 'greater', depthClearValue: 0.0, _expected: triangleColor },
-        { depthCompare: 'always', depthClearValue: 1.0, _expected: triangleColor },
-        { depthCompare: 'always', depthClearValue: kMiddleDepthValue, _expected: triangleColor },
-        { depthCompare: 'always', depthClearValue: 0.0, _expected: triangleColor },
-      ] as const)
+    u.combine('format', kDepthTextureFormats).combineWithParams([
+      { depthCompare: 'never', depthClearValue: 1.0, _expected: backgroundColor },
+      { depthCompare: 'never', depthClearValue: kMiddleDepthValue, _expected: backgroundColor },
+      { depthCompare: 'never', depthClearValue: 0.0, _expected: backgroundColor },
+      { depthCompare: 'less', depthClearValue: 1.0, _expected: triangleColor },
+      { depthCompare: 'less', depthClearValue: kMiddleDepthValue, _expected: backgroundColor },
+      { depthCompare: 'less', depthClearValue: 0.0, _expected: backgroundColor },
+      { depthCompare: 'less-equal', depthClearValue: 1.0, _expected: triangleColor },
+      {
+        depthCompare: 'less-equal',
+        depthClearValue: kMiddleDepthValue,
+        _expected: triangleColor,
+      },
+      { depthCompare: 'less-equal', depthClearValue: 0.0, _expected: backgroundColor },
+      { depthCompare: 'equal', depthClearValue: 1.0, _expected: backgroundColor },
+      { depthCompare: 'equal', depthClearValue: kMiddleDepthValue, _expected: triangleColor },
+      { depthCompare: 'equal', depthClearValue: 0.0, _expected: backgroundColor },
+      { depthCompare: 'not-equal', depthClearValue: 1.0, _expected: triangleColor },
+      {
+        depthCompare: 'not-equal',
+        depthClearValue: kMiddleDepthValue,
+        _expected: backgroundColor,
+      },
+      { depthCompare: 'not-equal', depthClearValue: 0.0, _expected: triangleColor },
+      { depthCompare: 'greater-equal', depthClearValue: 1.0, _expected: backgroundColor },
+      {
+        depthCompare: 'greater-equal',
+        depthClearValue: kMiddleDepthValue,
+        _expected: triangleColor,
+      },
+      { depthCompare: 'greater-equal', depthClearValue: 0.0, _expected: triangleColor },
+      { depthCompare: 'greater', depthClearValue: 1.0, _expected: backgroundColor },
+      { depthCompare: 'greater', depthClearValue: kMiddleDepthValue, _expected: backgroundColor },
+      { depthCompare: 'greater', depthClearValue: 0.0, _expected: triangleColor },
+      { depthCompare: 'always', depthClearValue: 1.0, _expected: triangleColor },
+      { depthCompare: 'always', depthClearValue: kMiddleDepthValue, _expected: triangleColor },
+      { depthCompare: 'always', depthClearValue: 0.0, _expected: triangleColor },
+    ] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
-  })
   .fn(t => {
     const { depthCompare, depthClearValue, _expected, format } = t.params;
+    t.skipIfTextureFormatNotSupported(format);
 
     const colorAttachmentFormat = 'rgba8unorm';
     const colorAttachment = t.createTextureTracked({
@@ -397,7 +390,7 @@ g.test('depth_compare_func')
       depthLoadOp: 'clear',
       depthStoreOp: 'store',
     };
-    if (kTextureFormatInfo[format].stencil) {
+    if (isStencilTextureFormat(format)) {
       depthStencilAttachment.stencilClearValue = 0;
       depthStencilAttachment.stencilLoadOp = 'clear';
       depthStencilAttachment.stencilStoreOp = 'store';

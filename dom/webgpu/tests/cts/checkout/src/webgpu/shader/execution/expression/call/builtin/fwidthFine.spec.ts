@@ -7,12 +7,12 @@ Returns abs(dpdxFine(e)) + abs(dpdyFine(e)).
 `;
 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 
 import { d } from './fwidth.cache.js';
 import { runFWidthTest } from './fwidth.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 const builtin = 'fwidthFine';
 

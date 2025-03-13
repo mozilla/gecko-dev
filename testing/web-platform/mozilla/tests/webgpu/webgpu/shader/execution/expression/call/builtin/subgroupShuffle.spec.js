@@ -110,10 +110,8 @@ expected)
 g.test('shuffle,id').
 desc(`Tests various ways to shuffle invocations`).
 params((u) => u.combine('case', keysOf(kShuffleCases))).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const testcase = kShuffleCases[t.params.case];
 
   const wgsl = `
@@ -234,10 +232,8 @@ expected)
 g.test('shuffleUpDown,delta').
 desc(`Test ShuffleUp and ShuffleDown deltas`).
 params((u) => u.combine('op', kUpDownOps).combine('case', keysOf(kUpDownCases))).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const testcase = kUpDownCases[t.params.case];
 
   const wgsl = `
@@ -327,10 +323,8 @@ mask)
 g.test('shuffleXor,mask').
 desc(`Test ShuffleXor masks`).
 params((u) => u.combine('case', keysOf(kMaskCases))).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const testcase = kMaskCases[t.params.case];
 
   const wgsl = `
@@ -501,10 +495,8 @@ combine('op', kOps).
 beginSubcases().
 combine('case', [...iterRange(kNumCases, (x) => x)])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
   let selectValue = `input[lid]`;
@@ -581,10 +573,8 @@ combine('op', kOps).
 beginSubcases().
 combine('wgSize', kWGSizes)
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const testcase = kPredicateCases[t.params.predicate];
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
@@ -734,17 +724,14 @@ combine('type', keysOf(kTypes)).
 beginSubcases().
 combine('id', [0, 1, 2, 3])
 ).
-beforeAllSubcases((t) => {
-  const features = ['subgroups'];
-  const type = kTypes[t.params.type];
-  if (type.requiresF16()) {
-    features.push('shader-f16');
-  }
-  t.selectDeviceOrSkipTestCase(features);
-}).
 fn(async (t) => {
   const wgSize = [4, 1, 1];
   const type = kTypes[t.params.type];
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
+  if (type.requiresF16()) {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
+
   let enables = `enable subgroups;\n`;
   if (type.requiresF16()) {
     enables += `enable f16;`;
@@ -885,10 +872,8 @@ combine('op', kOps).
 combine('id', [0, 1, 2, 3]).
 combineWithParams([{ format: 'rgba32uint' }])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const fsShader = `
 enable subgroups;
 

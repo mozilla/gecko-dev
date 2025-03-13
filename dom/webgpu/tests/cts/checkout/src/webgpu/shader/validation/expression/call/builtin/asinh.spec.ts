@@ -49,11 +49,6 @@ Validates that constant evaluation and override evaluation of ${builtin}() rejec
         unique(fullRangeForType(kValuesTypes[u.type]), additionalRangeForType(kValuesTypes[u.type]))
       )
   )
-  .beforeAllSubcases(t => {
-    if (scalarTypeOf(kValuesTypes[t.params.type]) === Type.f16) {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     const type = kValuesTypes[t.params.type];
     const expectedResult = isRepresentable(

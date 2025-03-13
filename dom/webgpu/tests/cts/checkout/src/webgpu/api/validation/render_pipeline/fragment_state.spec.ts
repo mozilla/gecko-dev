@@ -78,7 +78,7 @@ g.test('targets_format_is_color_format')
   .beforeAllSubcases(t => {
     const { format } = t.params;
     const info = kTextureFormatInfo[format];
-    t.skipIfTextureFormatNotSupported(t.params.format);
+    t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -116,7 +116,7 @@ g.test('targets_format_renderable')
   .beforeAllSubcases(t => {
     const { format } = t.params;
     const info = kTextureFormatInfo[format];
-    t.skipIfTextureFormatNotSupported(t.params.format);
+    t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -180,7 +180,7 @@ g.test('limits,maxColorAttachmentBytesPerSample,aligned')
       .combine('isAsync', [false, true])
   )
   .beforeAllSubcases(t => {
-    t.skipIfTextureFormatNotSupported(t.params.format);
+    t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
   })
   .fn(t => {
     const { format, attachmentCount, isAsync } = t.params;
@@ -264,7 +264,7 @@ g.test('targets_format_filterable')
   .beforeAllSubcases(t => {
     const { format } = t.params;
     const info = kTextureFormatInfo[format];
-    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatNotSupportedDeprecated(format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {

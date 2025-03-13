@@ -338,7 +338,7 @@ function bitcastF16ToF16Comparator(f: number): Comparator {
  */
 function bitcastU32ToVec2F16Comparator(u: number): Comparator {
   const bitcastedVec2F16InU16x2 = u32ToU16x2(u).map(reinterpretU16AsF16);
-  // Generate expection for vec2 f16 result, by generating expected intervals for each elements and
+  // Generate expectation for vec2 f16 result, by generating expected intervals for each elements and
   // then do cartesian product.
   const expectedIntervalsCombination = cartesianProduct(
     ...bitcastedVec2F16InU16x2.map(generateF16ExpectationIntervals)
@@ -352,7 +352,7 @@ function bitcastU32ToVec2F16Comparator(u: number): Comparator {
  */
 function bitcastI32ToVec2F16Comparator(i: number): Comparator {
   const bitcastedVec2F16InU16x2 = u32ToU16x2(reinterpretI32AsU32(i)).map(reinterpretU16AsF16);
-  // Generate expection for vec2 f16 result, by generating expected intervals for each elements and
+  // Generate expectation for vec2 f16 result, by generating expected intervals for each elements and
   // then do cartesian product.
   const expectedIntervalsCombination = cartesianProduct(
     ...bitcastedVec2F16InU16x2.map(generateF16ExpectationIntervals)
@@ -371,7 +371,7 @@ function bitcastF32ToVec2F16Comparator(f: number): Comparator {
     return anyOf([f16UnboundedInterval, f16UnboundedInterval]);
   }
   const bitcastedVec2F16InU16x2 = u32ToU16x2(reinterpretF32AsU32(f)).map(reinterpretU16AsF16);
-  // Generate expection for vec2 f16 result, by generating expected intervals for each elements and
+  // Generate expectation for vec2 f16 result, by generating expected intervals for each elements and
   // then do cartesian product.
   const expectedIntervalsCombination = cartesianProduct(
     ...bitcastedVec2F16InU16x2.map(generateF16ExpectationIntervals)
@@ -386,7 +386,7 @@ function bitcastF32ToVec2F16Comparator(f: number): Comparator {
 function bitcastVec2U32ToVec4F16Comparator(u32x2: number[]): Comparator {
   assert(u32x2.length === 2);
   const bitcastedVec4F16InU16x4 = u32x2.flatMap(u32ToU16x2).map(reinterpretU16AsF16);
-  // Generate expection for vec4 f16 result, by generating expected intervals for each elements and
+  // Generate expectation for vec4 f16 result, by generating expected intervals for each elements and
   // then do cartesian product.
   const expectedIntervalsCombination = cartesianProduct(
     ...bitcastedVec4F16InU16x4.map(generateF16ExpectationIntervals)
@@ -404,7 +404,7 @@ function bitcastVec2I32ToVec4F16Comparator(i32x2: number[]): Comparator {
     .map(reinterpretI32AsU32)
     .flatMap(u32ToU16x2)
     .map(reinterpretU16AsF16);
-  // Generate expection for vec4 f16 result, by generating expected intervals for each elements and
+  // Generate expectation for vec4 f16 result, by generating expected intervals for each elements and
   // then do cartesian product.
   const expectedIntervalsCombination = cartesianProduct(
     ...bitcastedVec4F16InU16x4.map(generateF16ExpectationIntervals)
@@ -422,7 +422,7 @@ function bitcastVec2F32ToVec4F16Comparator(f32x2: number[]): Comparator {
     .map(reinterpretF32AsU32)
     .flatMap(u32ToU16x2)
     .map(reinterpretU16AsF16);
-  // Generate expection for vec4 f16 result, by generating expected intervals for each elements and
+  // Generate expectation for vec4 f16 result, by generating expected intervals for each elements and
   // then do cartesian product.
   const expectedIntervalsCombination = cartesianProduct(
     ...bitcastedVec4F16InU16x4.map(generateF16ExpectationIntervals)
@@ -431,7 +431,7 @@ function bitcastVec2F32ToVec4F16Comparator(f32x2: number[]): Comparator {
 }
 
 // Structure that store the expectations of a single 32bit scalar/element bitcasted from two f16.
-interface ExpectionFor32BitsScalarFromF16x2 {
+interface ExpectationFor32BitsScalarFromF16x2 {
   // possibleExpectations is Scalar array if the expectation is for i32/u32 and FPInterval array for
   // f32. Note that if the expectation for i32/u32 is unbound, possibleExpectations is meaningless.
   possibleExpectations: (ScalarValue | FPInterval)[];
@@ -451,12 +451,12 @@ function possibleBitsInU16FromFiniteF16InU16(f16InU16: number): number[] {
 
 /**
  * @returns the expectation for a single 32bit scalar bitcasted from given pair of
- * f16, result in ExpectionFor32BitsScalarFromF16x2.
+ * f16, result in ExpectationFor32BitsScalarFromF16x2.
  */
 function possible32BitScalarIntervalsFromF16x2(
   f16x2InU16x2: number[],
   type: 'i32' | 'u32' | 'f32'
-): ExpectionFor32BitsScalarFromF16x2 {
+): ExpectationFor32BitsScalarFromF16x2 {
   assert(f16x2InU16x2.length === 2);
   let reinterpretFromU32: (x: number) => number;
   let expectationsForValue: (x: number) => ScalarValue[] | FPInterval[];
@@ -491,7 +491,7 @@ function possible32BitScalarIntervalsFromF16x2(
     };
     unboundedExpectations = [f32UnboundedInterval];
   }
-  // Return unbounded expection if f16 Inf/NaN occurs
+  // Return unbounded expectation if f16 Inf/NaN occurs
   if (
     !isFiniteF16(reinterpretU16AsF16(f16x2InU16x2[0])) ||
     !isFiniteF16(reinterpretU16AsF16(f16x2InU16x2[1]))

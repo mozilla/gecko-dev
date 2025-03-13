@@ -815,11 +815,10 @@ export function getDefaultLimitsForAdapter(adapter) {
   const adapterExtensions = adapter;
 
 
-
   const featureLevel =
-  adapterExtensions.featureLevel === 'compatibility' || adapterExtensions.isCompatibilityMode ?
-  'compatibility' :
-  'core';
+  adapterExtensions.featureLevel === 'core' || adapter.features.has('core-features-and-limits') ?
+  'core' :
+  'compatibility';
   return getDefaultLimits(featureLevel);
 }
 

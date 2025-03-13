@@ -5,9 +5,9 @@ Validation tests for GPUBuffer.destroy.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { kBufferUsages } from '../../../capability_info.js';
 import { GPUConst } from '../../../constants.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
 
 g.test('all_usages').
 desc('Test destroying buffers of every usage type.').

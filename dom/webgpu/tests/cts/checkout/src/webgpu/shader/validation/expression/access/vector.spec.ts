@@ -393,11 +393,6 @@ g.test('concrete')
       .beginSubcases()
       .combine('case', keysOf(kConcreteCases))
   )
-  .beforeAllSubcases(t => {
-    if (t.params.element_type === 'f16') {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     const c = kConcreteCases[t.params.case];
     const enables = t.params.element_type === 'f16' ? 'enable f16;' : '';
@@ -442,11 +437,6 @@ g.test('abstract')
       .beginSubcases()
       .combine('case', keysOf(kAbstractCases))
   )
-  .beforeAllSubcases(t => {
-    if (t.params.concrete_type === 'f16') {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     const enables = t.params.concrete_type === 'f16' ? 'enable f16;' : '';
     const c = kAbstractCases[t.params.case];

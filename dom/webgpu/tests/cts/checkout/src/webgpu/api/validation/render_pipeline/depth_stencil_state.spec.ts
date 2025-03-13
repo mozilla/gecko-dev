@@ -30,7 +30,7 @@ g.test('format')
   .beforeAllSubcases(t => {
     const { format } = t.params;
     const info = kTextureFormatInfo[format];
-    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatNotSupportedDeprecated(format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -62,7 +62,7 @@ g.test('depthCompare_optional')
   .beforeAllSubcases(t => {
     const { format } = t.params;
     const info = kTextureFormatInfo[format];
-    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatNotSupportedDeprecated(format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -113,7 +113,7 @@ g.test('depthWriteEnabled_optional')
   .beforeAllSubcases(t => {
     const { format } = t.params;
     const info = kTextureFormatInfo[format];
-    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatNotSupportedDeprecated(format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {

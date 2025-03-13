@@ -73,12 +73,10 @@ Parameters
       // 1d textures can't have mipLevelCount > 0
       .filter(t => t.texture_type !== 'texture_1d' || t.view_type !== 'partial')
   )
-  .beforeAllSubcases(t => {
-    t.skipIfTextureViewDimensionNotSupported(kTextureTypeToViewDimension[t.params.texture_type]);
-  })
   .fn(t => {
     const { stage, texture_type, sampled_type, view_type } = t.params;
     const { format } = kSampleTypeInfo[sampled_type];
+    t.skipIfTextureViewDimensionNotSupported(kTextureTypeToViewDimension[t.params.texture_type]);
 
     const viewDimension = kTextureTypeToViewDimension[texture_type];
     const dimension = getTextureDimensionFromView(viewDimension);
@@ -146,11 +144,9 @@ Parameters
       .beginSubcases()
       .combine('stage', kShaderStages)
   )
-  .beforeAllSubcases(t => {
-    t.skipIfTextureViewDimensionNotSupported(kTextureTypeToViewDimension[t.params.texture_type]);
-  })
   .fn(t => {
     const { stage, texture_type, view_type } = t.params;
+    t.skipIfTextureViewDimensionNotSupported(kTextureTypeToViewDimension[t.params.texture_type]);
 
     const viewDimension = kTextureTypeToViewDimension[texture_type];
     const dimension = getTextureDimensionFromView(viewDimension);

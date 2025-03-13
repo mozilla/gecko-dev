@@ -12,7 +12,7 @@ things. If there are no guarantees we can issue warnings instead of failures. Id
     more of the color in the correct direction).
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { assert } from '../../../../common/util/util.js';
-import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
 import { checkElementsEqual } from '../../../util/check_contents.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
 
@@ -33,7 +33,7 @@ new Uint8Array([0x00, 0xff, 0x00, 0xff])];
 
 
 // renders texture a slanted plane placed in a specific way
-class SamplerAnisotropicFilteringSlantedPlaneTest extends GPUTest {
+class SamplerAnisotropicFilteringSlantedPlaneTest extends AllFeaturesMaxLimitsGPUTest {
   copyRenderTargetToBuffer(rt) {
     const byteLength = kRTSize * kBytesPerRow;
     const buffer = this.createBufferTracked({

@@ -8,7 +8,7 @@ Validation tests for the ${builtin}() builtin.
 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf, objectsToRecord } from '../../../../../../common/util/data_tables.js';
-import { kAllTextureFormats, kTextureFormatInfo } from '../../../../../format_info.js';
+import { kPossibleStorageTextureFormats } from '../../../../../format_info.js';
 import {
   Type,
   kAllScalarsAndVectors,
@@ -83,9 +83,7 @@ Validates the return type of ${builtin} is the expected type.
       .combine('returnType', keysOf(kValuesTypes))
       .combine('textureType', kTextureNumLayersTextureTypesForStorageTextures)
       .beginSubcases()
-      .combine('format', kAllTextureFormats)
-      // filter to only storage texture formats.
-      .filter(t => !!kTextureFormatInfo[t.format].color?.storage)
+      .combine('format', kPossibleStorageTextureFormats)
   )
   .fn(t => {
     const { returnType, textureType, format } = t.params;

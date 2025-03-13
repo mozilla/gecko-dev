@@ -1,7 +1,6 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { assert } from '../../../../../common/util/util.js';import { kTextureFormatInfo } from '../../../../format_info.js';import { virtualMipSize } from '../../../../util/texture/base.js';
-
+**/import { virtualMipSize } from '../../../../util/texture/base.js';
 
 
 export const checkContentsByBufferCopy = (
@@ -12,7 +11,6 @@ state,
 subresourceRange) =>
 {
   for (const { level: mipLevel, layer } of subresourceRange.each()) {
-    assert(params.format in kTextureFormatInfo);
     const format = params.format;
 
     t.expectSingleColor(texture, format, {
@@ -33,7 +31,6 @@ state,
 subresourceRange) =>
 {
   for (const { level, layer } of subresourceRange.each()) {
-    assert(params.format in kTextureFormatInfo);
     const format = params.format;
 
     const [width, height, depth] = virtualMipSize(

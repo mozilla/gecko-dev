@@ -101,11 +101,6 @@ g.test('stage_inout')
       t.isCompatibility && ['sample_index', 'sample_mask'].includes(t.params.name),
       'compatibility mode does not support sample_index or sample_mask'
     );
-    if (t.params.name.includes('subgroup')) {
-      t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-    } else if (t.params.name === 'clip_distances') {
-      t.selectDeviceOrSkipTestCase('clip-distances' as GPUFeatureName);
-    }
     t.skipIf(
       t.params.name !== 'position' &&
         t.params.target_stage === 'vertex' &&
@@ -151,11 +146,6 @@ g.test('type')
       t.isCompatibility && ['sample_index', 'sample_mask'].includes(t.params.name),
       'compatibility mode does not support sample_index or sample_mask'
     );
-    if (t.params.name.includes('subgroup')) {
-      t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-    } else if (t.params.name === 'clip_distances') {
-      t.selectDeviceOrSkipTestCase('clip-distances' as GPUFeatureName);
-    }
     t.skipIf(
       t.params.name !== 'position' &&
         t.params.stage === 'vertex' &&
@@ -339,11 +329,6 @@ g.test('reuse_builtin_name')
   .beforeAllSubcases(t => {
     if (!t.params.enable_extension) {
       return;
-    }
-    if (t.params.name.includes('subgroup')) {
-      t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-    } else if (t.params.name === 'clip_distances') {
-      t.selectDeviceOrSkipTestCase('clip-distances' as GPUFeatureName);
     }
   })
   .fn(t => {

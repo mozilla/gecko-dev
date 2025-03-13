@@ -133,10 +133,8 @@ beginSubcases().
 combine('wgSize', kWGSizes).
 combine('op', kOps)
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const type = kTypes[t.params.type];
   let numEles = 1;
   if (type instanceof VectorType) {
@@ -294,10 +292,8 @@ beginSubcases().
 combine('wgSize', kWGSizes).
 combine('op', kOps)
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
   const wgsl = `
@@ -367,10 +363,8 @@ combine('wgSize', kWGSizes).
 combine('op', kOps).
 combine('case', [...iterRange(kNumCases, (x) => x)])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const testcase = kPredicateCases[t.params.predicate];
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
@@ -541,10 +535,8 @@ combine('case', [...iterRange(kNumCases, (x) => x)]).
 combine('op', kOps).
 combineWithParams([{ format: 'rg32uint' }])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const numInputs = t.params.size[0] * t.params.size[1];
 
 

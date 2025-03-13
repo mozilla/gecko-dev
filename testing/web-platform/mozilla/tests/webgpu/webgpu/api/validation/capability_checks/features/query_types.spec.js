@@ -3,9 +3,9 @@
 **/export const description = `
 Tests for capability checking for features enabling optional query types.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { ValidationTest } from '../../validation_test.js';
+import { UniqueFeaturesAndLimitsValidationTest } from '../../validation_test.js';
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(UniqueFeaturesAndLimitsValidationTest);
 
 g.test('createQuerySet').
 desc(
@@ -77,10 +77,14 @@ fn((t) => {
     expected = 'TypeError';
 
     const encoder = t.createEncoder('non-pass');
-    t.shouldThrow(expected, () => {
+    t.shouldThrow(
+      expected,
+      () => {
 
-      encoder.encoder.writeTimestamp(querySet, 0);
-    });
+        encoder.encoder.writeTimestamp(querySet, 0);
+      },
+      { message: 'writeTimestamp should throw' }
+    );
     encoder.finish();
   }
 

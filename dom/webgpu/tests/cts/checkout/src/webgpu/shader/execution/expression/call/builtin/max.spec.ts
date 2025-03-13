@@ -17,7 +17,7 @@ Component-wise when T is a vector.
 `;
 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { Type, i32, u32, abstractInt } from '../../../../../util/conversion.js';
 import { maxBigInt } from '../../../../../util/math.js';
 import { Case } from '../../case.js';
@@ -35,7 +35,7 @@ function generateTestCases<Type>(values: Type[], makeCase: (x: Type, y: Type) =>
   });
 }
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('abstract_int')
   .specURL('https://www.w3.org/TR/WGSL/#integer-builtin-functions')
@@ -134,10 +134,8 @@ g.test('f16')
   .params(u =>
     u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
     const cases = await d.get('f16');
     await run(t, builtin('max'), [Type.f16, Type.f16], Type.f16, t.params, cases);
   });

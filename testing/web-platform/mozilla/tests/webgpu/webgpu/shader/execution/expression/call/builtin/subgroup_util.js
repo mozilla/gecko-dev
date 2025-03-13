@@ -1,14 +1,14 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { assert, iterRange, unreachable } from '../../../../../../common/util/util.js';import { Float16Array } from '../../../../../../external/petamoriken/float16/float16.js';import { kTextureFormatInfo } from '../../../../../format_info.js';
-import { GPUTest, TextureTestMixin } from '../../../../../gpu_test.js';
+**/import { assert, iterRange, unreachable } from '../../../../../../common/util/util.js';import { Float16Array } from '../../../../../../external/petamoriken/float16/float16.js';import { getBlockInfoForTextureFormat } from '../../../../../format_info.js';
+import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../../../gpu_test.js';
 import { kBit } from '../../../../../util/constants.js';
 import { Type, VectorType, scalarTypeOf } from '../../../../../util/conversion.js';
 
 import { sparseScalarF16Range, sparseScalarF32Range, align } from '../../../../../util/math.js';
 import { PRNG } from '../../../../../util/prng.js';
 
-export class SubgroupTest extends TextureTestMixin(GPUTest) {}
+export class SubgroupTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {}
 
 export const kNumCases = 1000;
 export const kStride = 128;
@@ -448,7 +448,7 @@ export const kFramebufferSizes = [
  * @param height The height
  */
 export function getUintsPerFramebuffer(format, width, height) {
-  const { blockWidth, blockHeight, bytesPerBlock } = kTextureFormatInfo[format];
+  const { blockWidth, blockHeight, bytesPerBlock } = getBlockInfoForTextureFormat(format);
   assert(bytesPerBlock !== undefined);
 
   const blocksPerRow = width / blockWidth;
@@ -511,7 +511,7 @@ fn vsMain(@builtin(vertex_index) index : u32) -> @builtin(position) vec4f {
     }
   });
 
-  const { blockWidth, blockHeight, bytesPerBlock } = kTextureFormatInfo[format];
+  const { blockWidth, blockHeight, bytesPerBlock } = getBlockInfoForTextureFormat(format);
   assert(bytesPerBlock !== undefined);
 
   const blocksPerRow = width / blockWidth;

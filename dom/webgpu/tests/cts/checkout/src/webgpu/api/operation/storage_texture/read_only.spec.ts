@@ -12,8 +12,9 @@ import { Float16Array } from '../../../../external/petamoriken/float16/float16.j
 import { kTextureDimensions } from '../../../capability_info.js';
 import {
   ColorTextureFormat,
-  kColorTextureFormats,
-  kTextureFormatInfo,
+  getBlockInfoForColorTextureFormat,
+  getTextureFormatType,
+  kPossibleStorageTextureFormats,
 } from '../../../format_info.js';
 import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { kValidShaderStages, TValidShaderStage } from '../../../util/shader.js';
@@ -51,8 +52,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     storageTexture: GPUTexture,
     format: ColorTextureFormat
   ): ArrayBuffer {
-    const bytesPerBlock = kTextureFormatInfo[format].color.bytes;
-    assert(bytesPerBlock !== undefined);
+    const { bytesPerBlock } = getBlockInfoForColorTextureFormat(format);
 
     const width = storageTexture.width;
     const height = storageTexture.height;
@@ -175,7 +175,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
   }
 
   getTypedArrayBufferForOutputBufferData(arrayBuffer: ArrayBuffer, format: ColorTextureFormat) {
-    switch (kTextureFormatInfo[format].color.type) {
+    switch (getTextureFormatType(format)) {
       case 'uint':
         return new Uint32Array(arrayBuffer);
       case 'sint':
@@ -183,6 +183,8 @@ class F extends AllFeaturesMaxLimitsGPUTest {
       case 'float':
       case 'unfilterable-float':
         return new Float32Array(arrayBuffer);
+      default:
+        unreachable();
     }
   }
 
@@ -220,7 +222,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
   }
 
   getOutputBufferWGSLType(format: ColorTextureFormat) {
-    switch (kTextureFormatInfo[format].color.type) {
+    switch (getTextureFormatType(format)) {
       case 'uint':
         return 'vec4u';
       case 'sint':
@@ -542,25 +544,16 @@ g.test('basic')
   )
   .params(u =>
     u
-      .combine('format', kColorTextureFormats)
-      .filter(
-        p => p.format === 'bgra8unorm' || kTextureFormatInfo[p.format].color?.storage === true
-      )
+      .combine('format', kPossibleStorageTextureFormats)
       .combine('shaderStage', kValidShaderStages)
       .combine('dimension', kTextureDimensions)
       .combine('depthOrArrayLayers', [1, 2] as const)
       .unless(p => p.dimension === '1d' && p.depthOrArrayLayers > 1)
   )
-  .beforeAllSubcases(t => {
-    if (t.params.format === 'bgra8unorm') {
-      t.selectDeviceOrSkipTestCase('bgra8unorm-storage');
-    }
-    if (t.isCompatibility) {
-      t.skipIfTextureFormatNotUsableAsStorageTexture(t.params.format);
-    }
-  })
   .fn(t => {
     const { format, shaderStage, dimension, depthOrArrayLayers } = t.params;
+    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatNotUsableAsStorageTexture(format);
 
     if (t.isCompatibility) {
       if (shaderStage === 'fragment') {
@@ -598,7 +591,7 @@ g.test('basic')
 
     t.doTransform(storageTexture, shaderStage, format, outputBuffer);
 
-    switch (kTextureFormatInfo[format].color.type) {
+    switch (getTextureFormatType(format)) {
       case 'uint':
         t.expectGPUBufferValuesEqual(outputBuffer, new Uint32Array(expectedData));
         break;

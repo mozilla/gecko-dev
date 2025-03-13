@@ -9,7 +9,6 @@ import {
   Type,
   kConcreteIntegerScalarsAndVectors,
   kConvertableToFloatScalarsAndVectors,
-  scalarTypeOf,
 } from '../../../../../util/conversion.js';
 import { ShaderValidationTest } from '../../../shader_validation_test.js';
 
@@ -38,11 +37,6 @@ Validates that constant evaluation and override evaluation of ${builtin}() input
       .beginSubcases()
       .expand('value', u => fullRangeForType(kValuesTypes[u.type]))
   )
-  .beforeAllSubcases(t => {
-    if (scalarTypeOf(kValuesTypes[t.params.type]) === Type.f16) {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     const expectedResult = t.params.value > 0;
     validateConstOrOverrideBuiltinEval(

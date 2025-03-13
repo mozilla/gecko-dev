@@ -30,7 +30,9 @@ combine('sampleType', kNonFilterableCases).
 combine('viewDimension', ['2d', '2d-array', 'cube', 'cube-array']).
 combine('sameGroup', [true, false])
 ).
-beforeAllSubcases((t) => t.skipIfTextureViewDimensionNotSupported(t.params.viewDimension)).
+beforeAllSubcases((t) =>
+t.skipIfTextureViewDimensionNotSupportedDeprecated(t.params.viewDimension)
+).
 fn((t) => {
   const { device } = t;
   const { pipeline, async, sampleType, viewDimension, sameGroup } = t.params;

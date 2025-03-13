@@ -29,11 +29,12 @@ export const description = `API Operation Tests for RenderPass StoreOp.
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import {
-  kTextureFormatInfo,
-  kEncodableTextureFormats,
+  isDepthTextureFormat,
+  isStencilTextureFormat,
+  kPossibleColorRenderableTextureFormats,
   kSizedDepthStencilFormats,
 } from '../../../format_info.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { PerTexelComponent } from '../../../util/texture/texel_data.js';
 
 // Test with a zero and non-zero mip.
@@ -52,7 +53,7 @@ const kStoreOps: GPUStoreOp[] = ['discard', 'store'];
 const kHeight = 2;
 const kWidth = 2;
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 // Tests a render pass with both a color and depth stencil attachment to ensure store operations are
 // set independently.
@@ -142,18 +143,16 @@ g.test('render_pass_store_op,color_attachment_with_depth_stencil_attachment')
 g.test('render_pass_store_op,color_attachment_only')
   .params(u =>
     u
-      .combine('colorFormat', kEncodableTextureFormats)
-      // Filter out any non-renderable formats
-      .filter(({ colorFormat }) => !!kTextureFormatInfo[colorFormat].colorRender)
+      .combine('colorFormat', kPossibleColorRenderableTextureFormats)
       .combine('storeOperation', kStoreOps)
       .beginSubcases()
       .combine('mipLevel', kMipLevel)
       .combine('arrayLayer', kArrayLayers)
   )
-  .beforeAllSubcases(t => {
-    t.skipIfTextureFormatNotSupported(t.params.colorFormat);
-  })
   .fn(t => {
+    t.skipIfTextureFormatNotSupported(t.params.colorFormat);
+    t.skipIfTextureFormatNotUsableAsRenderAttachment(t.params.colorFormat);
+
     const colorAttachment = t.createTextureTracked({
       format: t.params.colorFormat,
       size: { width: kWidth, height: kHeight, depthOrArrayLayers: t.params.arrayLayer + 1 },
@@ -306,12 +305,12 @@ TODO: Also test unsized depth/stencil formats [1]
     const depthStencilAttachment: GPURenderPassDepthStencilAttachment = {
       view: depthStencilAttachmentView,
     };
-    if (kTextureFormatInfo[t.params.depthStencilFormat].depth) {
+    if (isDepthTextureFormat(t.params.depthStencilFormat)) {
       depthStencilAttachment.depthClearValue = 1.0;
       depthStencilAttachment.depthLoadOp = 'clear';
       depthStencilAttachment.depthStoreOp = t.params.storeOperation;
     }
-    if (kTextureFormatInfo[t.params.depthStencilFormat].stencil) {
+    if (isStencilTextureFormat(t.params.depthStencilFormat)) {
       depthStencilAttachment.stencilClearValue = 1;
       depthStencilAttachment.stencilLoadOp = 'clear';
       depthStencilAttachment.stencilStoreOp = t.params.storeOperation;
@@ -335,7 +334,7 @@ TODO: Also test unsized depth/stencil formats [1]
       expectedStencilValue = { Stencil: 1 };
     }
 
-    if (kTextureFormatInfo[t.params.depthStencilFormat].depth) {
+    if (isDepthTextureFormat(t.params.depthStencilFormat)) {
       t.expectSingleColor(depthStencilTexture, t.params.depthStencilFormat, {
         size: [kHeight, kWidth, 1],
         slice: t.params.arrayLayer,
@@ -343,7 +342,7 @@ TODO: Also test unsized depth/stencil formats [1]
         layout: { mipLevel: t.params.mipLevel, aspect: 'depth-only' },
       });
     }
-    if (kTextureFormatInfo[t.params.depthStencilFormat].stencil) {
+    if (isStencilTextureFormat(t.params.depthStencilFormat)) {
       t.expectSingleColor(depthStencilTexture, t.params.depthStencilFormat, {
         size: [kHeight, kWidth, 1],
         slice: t.params.arrayLayer,

@@ -4,10 +4,11 @@
 Validation tests for various texture types in shaders.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import {
+  getTextureFormatType,
+  isTextureFormatPossiblyStorageReadable,
   isTextureFormatUsableAsStorageFormat,
   kAllTextureFormats,
-  kColorTextureFormats,
-  kTextureFormatInfo } from
+  kColorTextureFormats } from
 '../../../format_info.js';
 import { getPlainTypeInfo } from '../../../util/shader.js';
 import { ShaderValidationTest } from '../shader_validation_test.js';
@@ -21,23 +22,14 @@ desc(
 params((u) =>
 u.
 combine('format', kColorTextureFormats).
-filter((p) => kTextureFormatInfo[p.format].color.storage).
+filter((p) => isTextureFormatPossiblyStorageReadable(p.format)).
 beginSubcases().
 combine('shaderScalarType', ['f32', 'u32', 'i32', 'bool', 'f16'])
 ).
-beforeAllSubcases((t) => {
-  if (t.params.shaderScalarType === 'f16') {
-    t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-  }
-
-  if (!isTextureFormatUsableAsStorageFormat(t.params.format, t.isCompatibility)) {
-    t.skip('storage usage is unsupported');
-  }
-}).
 fn((t) => {
   const { format, shaderScalarType } = t.params;
-  const info = kTextureFormatInfo[format];
-  const validShaderScalarType = getPlainTypeInfo(info.color.type);
+  t.skipIfTextureFormatNotUsableAsStorageTexture(format);
+  const validShaderScalarType = getPlainTypeInfo(getTextureFormatType(format));
   const shaderValueType = `vec4<${shaderScalarType}>`;
   const wgsl = `
     @group(0) @binding(0) var tex: texture_storage_2d<${format}, read>;
@@ -120,7 +112,7 @@ fn((t) => {
   const { format, access, comma } = t.params;
   // bgra8unorm is considered a valid storage format at shader compilation stage
   const isFormatValid =
-  isTextureFormatUsableAsStorageFormat(format, false) || format === 'bgra8unorm';
+  isTextureFormatUsableAsStorageFormat(t.device, format) || format === 'bgra8unorm';
   const isAccessValid = kAccessModes.includes(access);
   const wgsl = `@group(0) @binding(0) var tex: texture_storage_2d<${format}, ${access}${comma}>;`;
   t.expectCompileResult(isFormatValid && isAccessValid, wgsl);

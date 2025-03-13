@@ -313,9 +313,6 @@ combineWithParams(kConditions).
 combine('op', kSubgroupOps).
 combine('stage', ['compute', 'fragment'])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn((t) => {
   let code = `
  enable subgroups;
@@ -399,10 +396,6 @@ beforeAllSubcases((t) => {
     t.isCompatibility && ['sample_index', 'sample_mask'].includes(t.params.builtin),
     'compatibility mode does not support sample_index or sample_mask'
   );
-  const builtin = t.params.builtin;
-  if (builtin.includes('subgroup')) {
-    t.selectDeviceOrSkipTestCase('subgroups');
-  }
 }).
 fn((t) => {
   let cond = ``;
@@ -486,11 +479,6 @@ const kComputeBuiltinValues = [
 g.test('compute_builtin_values').
 desc(`Test uniformity of compute built-in values`).
 params((u) => u.combineWithParams(kComputeBuiltinValues).beginSubcases()).
-beforeAllSubcases((t) => {
-  if (t.params.builtin.includes('subgroup')) {
-    t.selectDeviceOrSkipTestCase('subgroups');
-  }
-}).
 fn((t) => {
   let cond = ``;
   switch (t.params.type) {
@@ -2819,9 +2807,6 @@ u.
 combine('op', ['subgroupShuffleUp', 'subgroupShuffleDown', 'subgroupShuffleXor']).
 combine('uniform', [false, true])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn((t) => {
   const wgsl = `
 enable subgroups;

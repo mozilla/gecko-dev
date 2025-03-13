@@ -3,7 +3,7 @@ Test indexing, index format and primitive restart.
 `;
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { getTextureCopyLayout } from '../../../util/texture/layout.js';
 
 const kHeight = 4;
@@ -48,7 +48,7 @@ const { byteLength, bytesPerRow, rowsPerImage } = getTextureCopyLayout(kTextureF
   1,
 ]);
 
-class IndexFormatTest extends GPUTest {
+class IndexFormatTest extends AllFeaturesMaxLimitsGPUTest {
   MakeRenderPipeline(
     topology: GPUPrimitiveTopology,
     stripIndexFormat?: GPUIndexFormat

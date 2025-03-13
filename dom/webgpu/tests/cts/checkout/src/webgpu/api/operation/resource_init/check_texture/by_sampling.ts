@@ -1,5 +1,5 @@
 import { assert, unreachable } from '../../../../../common/util/util.js';
-import { kTextureFormatInfo, EncodableTextureFormat } from '../../../../format_info.js';
+import { EncodableTextureFormat } from '../../../../format_info.js';
 import { virtualMipSize } from '../../../../util/texture/base.js';
 import {
   kTexelRepresentationInfo,
@@ -16,7 +16,6 @@ export const checkContentsBySampling: CheckContents = (
   state,
   subresourceRange
 ) => {
-  assert(params.format in kTextureFormatInfo);
   const format = params.format as EncodableTextureFormat;
   const rep = kTexelRepresentationInfo[format];
 

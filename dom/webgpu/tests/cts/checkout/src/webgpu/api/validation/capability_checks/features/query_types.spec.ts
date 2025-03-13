@@ -3,9 +3,9 @@ Tests for capability checking for features enabling optional query types.
 `;
 
 import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { ValidationTest } from '../../validation_test.js';
+import { UniqueFeaturesAndLimitsValidationTest } from '../../validation_test.js';
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(UniqueFeaturesAndLimitsValidationTest);
 
 g.test('createQuerySet')
   .desc(
@@ -77,10 +77,14 @@ g.test('timestamp')
       expected = 'TypeError';
 
       const encoder = t.createEncoder('non-pass');
-      t.shouldThrow(expected, () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (encoder.encoder as any).writeTimestamp(querySet, 0);
-      });
+      t.shouldThrow(
+        expected,
+        () => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (encoder.encoder as any).writeTimestamp(querySet, 0);
+        },
+        { message: 'writeTimestamp should throw' }
+      );
       encoder.finish();
     }
 

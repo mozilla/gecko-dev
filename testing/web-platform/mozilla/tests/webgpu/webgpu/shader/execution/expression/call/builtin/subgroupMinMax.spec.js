@@ -98,14 +98,12 @@ combine('wgSize', [
 [kStride / 2, 2, 1]]
 )
 ).
-beforeAllSubcases((t) => {
-  const features = ['subgroups'];
-  if (t.params.type === 'f16') {
-    features.push('shader-f16');
-  }
-  t.selectDeviceOrSkipTestCase(features);
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
+  if (t.params.type === 'f16') {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
+
   await runAccuracyTest(
     t,
     t.params.case,
@@ -181,17 +179,14 @@ combine('idx1', [0, 1, 2, 3]).
 combine('idx2', [0, 1, 2, 3]).
 combine('idx1Id', [0, 1, 2, 3])
 ).
-beforeAllSubcases((t) => {
-  const features = ['subgroups'];
-  const type = kDataTypes[t.params.type];
-  if (type.requiresF16()) {
-    features.push('shader-f16');
-  }
-  t.selectDeviceOrSkipTestCase(features);
-}).
 fn(async (t) => {
   const wgSize = [4, 1, 1];
   const type = kDataTypes[t.params.type];
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
+  if (type.requiresF16()) {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
+
   let enables = `enable subgroups;\n`;
   if (type.requiresF16()) {
     enables += `enable f16;`;
@@ -328,10 +323,8 @@ combine('wgSize', kWGSizes).
 beginSubcases().
 combine('case', [...iterRange(kNumRandomCases, (x) => x)])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
   const wgsl = `
@@ -402,10 +395,8 @@ beginSubcases().
 combine('wgSize', kWGSizes).
 combine('case', [...iterRange(kNumRandomCases, (x) => x)])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const testcase = kPredicateCases[t.params.predicate];
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
@@ -578,10 +569,8 @@ beginSubcases().
 combine('case', [...iterRange(kNumRandomCases, (x) => x)]).
 combineWithParams([{ format: 'rg32uint' }])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const numInputs = t.params.size[0] * t.params.size[1];
 
 

@@ -38,9 +38,6 @@ fn main() {
 g.test('early_eval').
 desc('Ensures the builtin is not able to be compile time evaluated').
 params((u) => u.combine('stage', keysOf(kStages)).beginSubcases().combine('builtin', kBuiltins)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn((t) => {
   const code = kStages[t.params.stage](t.params.builtin);
   t.expectCompileResult(t.params.stage === 'runtime', code);
@@ -54,9 +51,6 @@ combine('must_use', [true, false]).
 beginSubcases().
 combine('builtin', kBuiltins)
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn((t) => {
   const wgsl = `
 enable subgroups;
@@ -75,14 +69,6 @@ desc('Validates data parameter type').
 params((u) =>
 u.combine('type', keysOf(kArgumentTypes)).beginSubcases().combine('builtin', kBuiltins)
 ).
-beforeAllSubcases((t) => {
-  const features = ['subgroups'];
-  const type = kArgumentTypes[t.params.type];
-  if (type.requiresF16()) {
-    features.push('shader-f16');
-  }
-  t.selectDeviceOrSkipTestCase(features);
-}).
 fn((t) => {
   const type = kArgumentTypes[t.params.type];
   let enables = `enable subgroups;\n`;
@@ -120,15 +106,6 @@ filter((t) => {
 beginSubcases().
 combine('builtin', kBuiltins)
 ).
-beforeAllSubcases((t) => {
-  const features = ['subgroups'];
-  const dataType = kArgumentTypes[t.params.dataType];
-  const retType = kArgumentTypes[t.params.retType];
-  if (dataType.requiresF16() || retType.requiresF16()) {
-    features.push('shader-f16');
-  }
-  t.selectDeviceOrSkipTestCase(features);
-}).
 fn((t) => {
   const dataType = kArgumentTypes[t.params.dataType];
   const retType = kArgumentTypes[t.params.retType];
@@ -155,9 +132,6 @@ combine('stage', ['compute', 'fragment', 'vertex']).
 beginSubcases().
 combine('builtin', kBuiltins)
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn((t) => {
   const compute = `
 @compute @workgroup_size(1)
@@ -206,9 +180,6 @@ desc('Tests that invalid non-plain types are rejected').
 params((u) =>
 u.combine('case', keysOf(kInvalidTypeCases)).beginSubcases().combine('builtin', kBuiltins)
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn((t) => {
   const val = kInvalidTypeCases[t.params.case];
   const wgsl = `

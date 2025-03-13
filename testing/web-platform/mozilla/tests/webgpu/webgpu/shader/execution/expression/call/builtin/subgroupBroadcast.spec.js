@@ -105,17 +105,13 @@ combine('type', keysOf(kDataTypes)).
 beginSubcases().
 combine('id', [0, 1, 2, 3])
 ).
-beforeAllSubcases((t) => {
-  const features = ['subgroups'];
-  const type = kDataTypes[t.params.type];
-  if (type.requiresF16()) {
-    features.push('shader-f16');
-  }
-  t.selectDeviceOrSkipTestCase(features);
-}).
 fn(async (t) => {
   const wgSize = [4, 1, 1];
   const type = kDataTypes[t.params.type];
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
+  if (type.requiresF16()) {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   let enables = 'enable subgroups;\n';
   if (type.requiresF16()) {
     enables += 'enable f16;\n';
@@ -177,10 +173,8 @@ beginSubcases().
 combine('inputId', [1, 2, 3]).
 combine('first', [false, true])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn((t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   // Compatibility mode has lower workgroup limits.
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
   const {
@@ -361,10 +355,8 @@ beginSubcases()
 // Only values < 4 are used because it is a dynamic error to broadcast an inactive invocation.
 .combine('id', [0, 1, 2, 3])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
   const broadcast =
@@ -436,10 +428,8 @@ beginSubcases().
 combine('id', [0, 1, 2, 3]).
 combine('wgSize', kWGSizes)
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const testcase = kPredicateCases[t.params.predicate];
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
@@ -510,10 +500,8 @@ desc(`Test broadcastFirst with only some active invocations`).
 params((u) =>
 u.combine('predicate', keysOf(kPredicateCases)).beginSubcases().combine('wgSize', kWGSizes)
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const testcase = kPredicateCases[t.params.predicate];
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
@@ -663,10 +651,8 @@ beginSubcases().
 combine('id', [0, 1, 2, 3]).
 combineWithParams([{ format: 'rgba32uint' }])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const innerTexels = (t.params.size[0] - 1) * (t.params.size[1] - 1);
 
 

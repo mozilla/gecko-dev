@@ -1,7 +1,7 @@
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { unreachable } from '../../../../common/util/util.js';
 import { GPUConst } from '../../../constants.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { getTextureCopyLayout } from '../../../util/texture/layout.js';
 import { PerTexelComponent } from '../../../util/texture/texel_data.js';
 
@@ -21,7 +21,7 @@ const kBufferUsagesForMappedAtCreationTests = [
   GPUConst.BufferUsage.COPY_SRC,
 ];
 
-class F extends GPUTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   GetBufferUsageFromMapMode(mapMode: GPUMapModeFlags): number {
     switch (mapMode) {
       case GPUMapMode.READ:

@@ -30,7 +30,9 @@ g.test('non_filterable_texture_with_filtering_sampler')
       .combine('viewDimension', ['2d', '2d-array', 'cube', 'cube-array'] as const)
       .combine('sameGroup', [true, false] as const)
   )
-  .beforeAllSubcases(t => t.skipIfTextureViewDimensionNotSupported(t.params.viewDimension))
+  .beforeAllSubcases(t =>
+    t.skipIfTextureViewDimensionNotSupportedDeprecated(t.params.viewDimension)
+  )
   .fn(t => {
     const { device } = t;
     const { pipeline, async, sampleType, viewDimension, sameGroup } = t.params;

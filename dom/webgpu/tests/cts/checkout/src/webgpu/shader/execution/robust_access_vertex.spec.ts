@@ -61,7 +61,7 @@ it should be added into drawCallTestParameter list.
 
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { assert } from '../../../common/util/util.js';
-import { GPUTest, TextureTestMixin } from '../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest, GPUTest, TextureTestMixin } from '../../gpu_test.js';
 
 // Encapsulates a draw call (either indexed or non-indexed)
 class DrawCall {
@@ -273,7 +273,7 @@ const typeInfoMap: { [k: string]: VertexInfo } = {
   },
 };
 
-class F extends TextureTestMixin(GPUTest) {
+class F extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
   generateBufferContents(
     numVertices: number,
     attributesPerBuffer: number,

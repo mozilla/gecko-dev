@@ -1,9 +1,10 @@
 import { assert, memcpy } from '../../../common/util/util.js';
 import {
-  kTextureFormatInfo,
   resolvePerAspectFormat,
   SizedTextureFormat,
   EncodableTextureFormat,
+  getBlockInfoForTextureFormat,
+  getBlockInfoForEncodableTextureFormat,
 } from '../../format_info.js';
 import { GPUTest } from '../../gpu_test.js';
 import { align } from '../math.js';
@@ -98,7 +99,7 @@ export function getTextureSubCopyLayout(
   } = {}
 ): TextureSubCopyLayout {
   format = resolvePerAspectFormat(format, aspect);
-  const { blockWidth, blockHeight, bytesPerBlock } = kTextureFormatInfo[format];
+  const { blockWidth, blockHeight, bytesPerBlock } = getBlockInfoForTextureFormat(format);
   assert(bytesPerBlock !== undefined);
 
   const copySize_ = reifyExtent3D(copySize);
@@ -161,7 +162,7 @@ export function fillTextureDataWithTexelValue(
   size: [number, number, number],
   options: LayoutOptions = kDefaultLayoutOptions
 ): void {
-  const { blockWidth, blockHeight, bytesPerBlock } = kTextureFormatInfo[format];
+  const { blockWidth, blockHeight, bytesPerBlock } = getBlockInfoForEncodableTextureFormat(format);
   // Block formats are not handled correctly below.
   assert(blockWidth === 1);
   assert(blockHeight === 1);
@@ -243,7 +244,8 @@ export const kImageCopyTypes: readonly ImageCopyType[] = [
  * Computes `bytesInACompleteRow` (as defined by the WebGPU spec) for image copies (B2T/T2B/writeTexture).
  */
 export function bytesInACompleteRow(copyWidth: number, format: SizedTextureFormat): number {
-  const info = kTextureFormatInfo[format];
+  const info = getBlockInfoForTextureFormat(format);
+  assert(!!info.bytesPerBlock);
   assert(copyWidth % info.blockWidth === 0);
   return (info.bytesPerBlock * copyWidth) / info.blockWidth;
 }
@@ -320,7 +322,8 @@ export function dataBytesForCopyOrOverestimate({
 }: DataBytesForCopyArgs): { minDataSizeOrOverestimate: number; copyValid: boolean } {
   const copyExtent = reifyExtent3D(copySize_);
 
-  const info = kTextureFormatInfo[format];
+  const info = getBlockInfoForTextureFormat(format);
+  assert(!!info.bytesPerBlock);
   assert(copyExtent.width % info.blockWidth === 0);
   assert(copyExtent.height % info.blockHeight === 0);
   const sizeInBlocks = {

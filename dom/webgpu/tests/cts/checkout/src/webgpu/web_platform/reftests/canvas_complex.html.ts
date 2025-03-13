@@ -1,5 +1,5 @@
 import { assert, unreachable } from '../../../common/util/util.js';
-import { kTextureFormatInfo, ColorTextureFormat } from '../../format_info.js';
+import { ColorTextureFormat, getBlockInfoForColorTextureFormat } from '../../format_info.js';
 import { gammaDecompress, float32ToFloat16Bits } from '../../util/conversion.js';
 import { align } from '../../util/math.js';
 
@@ -43,10 +43,7 @@ export function run(
 
     function copyBufferToTexture(ctx: GPUCanvasContext) {
       const rows = ctx.canvas.height;
-      const bytesPerPixel = kTextureFormatInfo[format].color.bytes;
-      if (bytesPerPixel === undefined) {
-        unreachable();
-      }
+      const { bytesPerBlock: bytesPerPixel } = getBlockInfoForColorTextureFormat(format);
       const bytesPerRow = align(bytesPerPixel * ctx.canvas.width, 256);
       const componentsPerPixel = 4;
 

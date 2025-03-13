@@ -3,11 +3,11 @@ Execution Tests for vector component selection expressions
 `;
 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { ScalarValue, Type, VectorValue, f32 } from '../../../../../util/conversion.js';
 import { allInputSources, basicExpressionBuilder, run } from '../../expression.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 /** @returns the full permutation of component indices used to component select a vector of width 'n' */
 function indices(n: number) {
@@ -41,12 +41,10 @@ g.test('concrete_scalar')
       .beginSubcases()
       .expand('indices', u => indices(u.width))
   )
-  .beforeAllSubcases(t => {
-    if (t.params.elementType === 'f16') {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(async t => {
+    if (t.params.elementType === 'f16') {
+      t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+    }
     const elementType = Type[t.params.elementType];
     const vectorType = Type.vec(t.params.width, elementType);
     const elementValues =

@@ -3,22 +3,20 @@ Execution Tests for zero value constructors
 `;
 
 import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { ScalarKind, Type } from '../../../../util/conversion.js';
 import { ShaderBuilderParams, basicExpressionBuilder, run } from '../expression.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('scalar')
   .specURL('https://www.w3.org/TR/WGSL/#zero-value-builtin-function')
   .desc(`Test that a zero value scalar constructor produces the expected zero value`)
   .params(u => u.combine('type', ['bool', 'i32', 'u32', 'f32', 'f16'] as const))
-  .beforeAllSubcases(t => {
-    if (t.params.type === 'f16') {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(async t => {
+    if (t.params.type === 'f16') {
+      t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+    }
     const type = Type[t.params.type];
     await run(
       t,
@@ -38,12 +36,10 @@ g.test('vector')
       .combine('type', ['bool', 'i32', 'u32', 'f32', 'f16'] as const)
       .combine('width', [2, 3, 4] as const)
   )
-  .beforeAllSubcases(t => {
-    if (t.params.type === 'f16') {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(async t => {
+    if (t.params.type === 'f16') {
+      t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+    }
     const type = Type.vec(t.params.width, Type[t.params.type]);
     await run(
       t,
@@ -60,12 +56,10 @@ g.test('vector_prefix')
   .params(u =>
     u.combine('type', ['i32', 'u32', 'f32', 'f16'] as const).combine('width', [2, 3, 4] as const)
   )
-  .beforeAllSubcases(t => {
-    if (t.params.type === 'f16') {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(async t => {
+    if (t.params.type === 'f16') {
+      t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+    }
     const type = Type.vec(t.params.width, Type[t.params.type]);
     await run(
       t,
@@ -86,12 +80,10 @@ g.test('matrix')
       .combine('columns', [2, 3, 4] as const)
       .combine('rows', [2, 3, 4] as const)
   )
-  .beforeAllSubcases(t => {
-    if (t.params.type === 'f16') {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(async t => {
+    if (t.params.type === 'f16') {
+      t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+    }
     const type = Type.mat(t.params.columns, t.params.rows, Type[t.params.type]);
     await run(
       t,
@@ -111,12 +103,10 @@ g.test('array')
       .combine('type', ['bool', 'i32', 'u32', 'f32', 'f16', 'vec3f', 'vec4i'] as const)
       .combine('length', [1, 5, 10] as const)
   )
-  .beforeAllSubcases(t => {
-    if (t.params.type === 'f16') {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(async t => {
+    if (t.params.type === 'f16') {
+      t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+    }
     const type = Type.array(t.params.length, Type[t.params.type]);
     await run(
       t,
@@ -146,12 +136,10 @@ g.test('structure')
       .beginSubcases()
       .expand('member_index', t => t.member_types.map((_, i) => i))
   )
-  .beforeAllSubcases(t => {
-    if (t.params.member_types.includes('f16')) {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(async t => {
+    if (t.params.member_types.includes('f16')) {
+      t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+    }
     const memberType = Type[t.params.member_types[t.params.member_index]];
     const builder = basicExpressionBuilder(_ =>
       t.params.nested

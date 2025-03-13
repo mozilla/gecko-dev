@@ -5,13 +5,13 @@ Tests for render pass clear values.
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { assert } from '../../../../common/util/util.js';
 import {
-  kTextureFormatInfo,
-  kDepthStencilFormats,
   depthStencilFormatAspectSize,
+  kStencilTextureFormats,
+  isDepthTextureFormat,
 } from '../../../format_info.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('stored')
   .desc(`Test render pass clear values are stored at the end of an empty pass.`)
@@ -48,19 +48,15 @@ g.test('stencil_clear_value')
   )
   .params(u =>
     u
-      .combine('stencilFormat', kDepthStencilFormats)
+      .combine('stencilFormat', kStencilTextureFormats)
       .combine('stencilClearValue', [0, 1, 0xff, 0x100 + 2, 0x10000 + 3])
       .combine('applyStencilClearValueAsStencilReferenceValue', [true, false])
-      .filter(t => !!kTextureFormatInfo[t.stencilFormat].stencil)
   )
-  .beforeAllSubcases(t => {
-    const { stencilFormat } = t.params;
-    const info = kTextureFormatInfo[stencilFormat];
-    t.selectDeviceOrSkipTestCase(info.feature);
-  })
   .fn(t => {
     const { stencilFormat, stencilClearValue, applyStencilClearValueAsStencilReferenceValue } =
       t.params;
+
+    t.skipIfTextureFormatNotSupported(stencilFormat);
 
     const kSize = [1, 1, 1] as const;
     const colorFormat = 'rgba8unorm';
@@ -141,7 +137,7 @@ g.test('stencil_clear_value')
       stencilStoreOp: 'store',
       stencilClearValue,
     };
-    if (kTextureFormatInfo[stencilFormat].depth) {
+    if (isDepthTextureFormat(stencilFormat)) {
       depthStencilAttachment.depthClearValue = 0;
       depthStencilAttachment.depthLoadOp = 'clear';
       depthStencilAttachment.depthStoreOp = 'store';

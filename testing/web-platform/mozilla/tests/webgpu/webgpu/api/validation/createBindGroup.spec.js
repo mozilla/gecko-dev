@@ -24,11 +24,11 @@ import {
   texBindingTypeInfo } from
 '../../capability_info.js';
 import { GPUConst } from '../../constants.js';
-import { kAllTextureFormats, kTextureFormatInfo } from '../../format_info.js';
-import { kResourceStates, MaxLimitsTestMixin } from '../../gpu_test.js';
+import { kPossibleStorageTextureFormats } from '../../format_info.js';
+import { kResourceStates } from '../../gpu_test.js';
 import { getTextureDimensionFromView } from '../../util/texture/base.js';
 
-import { ValidationTest } from './validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from './validation_test.js';
 
 const kTestFormat = 'r32float';
 
@@ -69,9 +69,7 @@ visibility)
   }
 }
 
-export const g = makeTestGroup(MaxLimitsTestMixin(ValidationTest));
-
-const kStorageTextureFormats = kAllTextureFormats.filter((f) => kTextureFormatInfo[f].color?.storage);
+export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
 
 g.test('binding_count_mismatch').
 desc('Test that the number of entries must match the number of entries in the BindGroupLayout.').
@@ -370,7 +368,7 @@ fn((t) => {
     dimension: getTextureDimensionFromView(dimension)
   });
 
-  t.skipIfTextureViewDimensionNotSupported(viewDimension, dimension);
+  t.skipIfTextureViewDimensionNotSupportedDeprecated(viewDimension, dimension);
   if (t.isCompatibility && texture.dimension === '2d') {
     if (depthOrArrayLayers === 1) {
       t.skipIf(
@@ -871,15 +869,12 @@ desc(
 ).
 params((u) =>
 u //
-.combine('storageTextureFormat', kStorageTextureFormats).
-combine('resourceFormat', kStorageTextureFormats)
+.combine('storageTextureFormat', kPossibleStorageTextureFormats).
+combine('resourceFormat', kPossibleStorageTextureFormats)
 ).
-beforeAllSubcases((t) => {
-  const { storageTextureFormat, resourceFormat } = t.params;
-  t.skipIfTextureFormatNotUsableAsStorageTexture(storageTextureFormat, resourceFormat);
-}).
 fn((t) => {
   const { storageTextureFormat, resourceFormat } = t.params;
+  t.skipIfTextureFormatNotUsableAsStorageTexture(storageTextureFormat, resourceFormat);
 
   const bindGroupLayout = t.device.createBindGroupLayout({
     entries: [

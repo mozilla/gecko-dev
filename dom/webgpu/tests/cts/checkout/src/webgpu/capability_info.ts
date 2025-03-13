@@ -813,13 +813,12 @@ export function getDefaultLimitsForAdapter(adapter: GPUAdapter) {
   // MAINTENANCE_TODO: Remove casts once we have a standardized way to do this
   // (see https://github.com/gpuweb/gpuweb/pull/5037#issuecomment-2576110161).
   const adapterExtensions = adapter as unknown as {
-    isCompatibilityMode?: boolean;
     featureLevel?: string;
   };
   const featureLevel =
-    adapterExtensions.featureLevel === 'compatibility' || adapterExtensions.isCompatibilityMode
-      ? 'compatibility'
-      : 'core';
+    adapterExtensions.featureLevel === 'core' || adapter.features.has('core-features-and-limits')
+      ? 'core'
+      : 'compatibility';
   return getDefaultLimits(featureLevel);
 }
 

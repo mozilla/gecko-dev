@@ -14,7 +14,7 @@ If low >= high:
 `;
 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { ScalarValue, Type, Value } from '../../../../../util/conversion.js';
 import { Case } from '../../case.js';
 import { allInputSources, onlyConstInputSource, run } from '../../expression.js';
@@ -22,7 +22,7 @@ import { allInputSources, onlyConstInputSource, run } from '../../expression.js'
 import { abstractFloatBuiltin, builtin } from './builtin.js';
 import { d } from './smoothstep.cache.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 // Returns true if `c` is valid for a const evaluation of smoothstep.
 function validForConst(c: Case): boolean {
@@ -76,10 +76,8 @@ g.test('f16')
   .params(u =>
     u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
     const cases = await d.get(t.params.inputSource === 'const' ? 'f16_const' : 'f16_non_const');
     const validCases = cases.filter(c => t.params.inputSource !== 'const' || validForConst(c));
     await run(

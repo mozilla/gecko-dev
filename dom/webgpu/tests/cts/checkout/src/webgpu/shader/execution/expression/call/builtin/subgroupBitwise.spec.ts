@@ -133,10 +133,8 @@ g.test('data_types')
       .combine('wgSize', kWGSizes)
       .combine('op', kOps)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const type = kTypes[t.params.type];
     let numEles = 1;
     if (type instanceof VectorType) {
@@ -294,10 +292,8 @@ g.test('compute,all_active')
       .combine('wgSize', kWGSizes)
       .combine('op', kOps)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
     const wgsl = `
@@ -367,10 +363,8 @@ g.test('compute,split')
       .combine('op', kOps)
       .combine('case', [...iterRange(kNumCases, x => x)])
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const testcase = kPredicateCases[t.params.predicate];
     const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
@@ -541,10 +535,8 @@ g.test('fragment,all_active')
       .combine('op', kOps)
       .combineWithParams([{ format: 'rg32uint' }] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const numInputs = t.params.size[0] * t.params.size[1];
 
     interface SubgroupProperties extends GPUAdapterInfo {

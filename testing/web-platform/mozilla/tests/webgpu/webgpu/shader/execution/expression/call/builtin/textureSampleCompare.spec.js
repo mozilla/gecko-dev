@@ -62,9 +62,9 @@ beginSubcases().
 combine('samplePoints', kSamplePointMethods).
 combine('compare', kCompareFunctions)
 ).
-beforeAllSubcases((t) => t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format)).
 fn(async (t) => {
   const { format, samplePoints, modeU, modeV, filt: minFilter, compare, offset } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
 
   const size = chooseTextureSize({ minSize: 16, minBlocks: 4, format });
 
@@ -153,9 +153,9 @@ beginSubcases().
 combine('samplePoints', kCubeSamplePointMethods).
 combine('compare', kCompareFunctions)
 ).
-beforeAllSubcases((t) => t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format)).
 fn(async (t) => {
   const { format, samplePoints, mode, filt: minFilter, compare } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
 
   const viewDimension = 'cube';
   const size = chooseTextureSize({ minSize: 16, minBlocks: 2, format, viewDimension });
@@ -262,10 +262,6 @@ combine('A', ['i32', 'u32']).
 combine('compare', kCompareFunctions).
 combine('depthOrArrayLayers', [1, 8])
 ).
-beforeAllSubcases((t) => {
-  t.skipIfTextureFormatNotSupported(t.params.format);
-  t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
-}).
 fn(async (t) => {
   const {
     format,
@@ -278,6 +274,7 @@ fn(async (t) => {
     offset,
     depthOrArrayLayers
   } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
 
   const [width, height] = chooseTextureSize({ minSize: 16, minBlocks: 4, format });
   const size = { width, height, depthOrArrayLayers };
@@ -375,12 +372,10 @@ combine('samplePoints', kCubeSamplePointMethods).
 combine('A', ['i32', 'u32']).
 combine('compare', kCompareFunctions)
 ).
-beforeAllSubcases((t) => {
-  t.skipIfTextureViewDimensionNotSupported('cube-array');
-  t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
-}).
 fn(async (t) => {
   const { format, A, samplePoints, mode, filt: minFilter, compare } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureViewDimensionNotSupported('cube-array');
 
   const viewDimension = 'cube-array';
   const size = chooseTextureSize({ minSize: 8, minBlocks: 2, format, viewDimension });

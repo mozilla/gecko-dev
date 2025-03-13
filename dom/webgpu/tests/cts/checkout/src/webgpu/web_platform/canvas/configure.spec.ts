@@ -14,7 +14,7 @@ import {
   kAllTextureFormats,
   kFeaturesForFormats,
   filterFormatsByFeature,
-  viewCompatible,
+  textureFormatsAreViewCompatible,
 } from '../../format_info.js';
 import { AllFeaturesMaxLimitsGPUTest } from '../../gpu_test.js';
 import { kAllCanvasTypes, createCanvas } from '../../util/create_elements.js';
@@ -155,11 +155,9 @@ g.test('format')
       .combine('canvasType', kAllCanvasTypes)
       .combine('format', kAllTextureFormats)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
-  })
   .fn(t => {
     const { canvasType, format } = t.params;
+    t.skipIfTextureFormatNotSupported(format);
     const canvas = createCanvas(t, canvasType, 2, 2);
     const ctx = canvas.getContext('webgpu');
     assert(ctx instanceof GPUCanvasContext, 'Failed to get WebGPU context from canvas');
@@ -445,9 +443,6 @@ g.test('viewFormats')
         filterFormatsByFeature(viewFormatFeature, kAllTextureFormats)
       )
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase([t.params.viewFormatFeature]);
-  })
   .fn(t => {
     const { canvasType, format, viewFormat } = t.params;
 
@@ -457,7 +452,7 @@ g.test('viewFormats')
     const ctx = canvas.getContext('webgpu');
     assert(ctx instanceof GPUCanvasContext, 'Failed to get WebGPU context from canvas');
 
-    const compatible = viewCompatible(t.isCompatibility, format, viewFormat);
+    const compatible = textureFormatsAreViewCompatible(t.device, format, viewFormat);
 
     // Test configure() produces an error if the formats aren't compatible.
     t.expectValidationError(() => {

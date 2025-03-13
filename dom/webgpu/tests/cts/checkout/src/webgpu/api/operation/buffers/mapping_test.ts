@@ -1,7 +1,7 @@
 import { assert } from '../../../../common/util/util.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
-export class MappingTest extends GPUTest {
+export class MappingTest extends AllFeaturesMaxLimitsGPUTest {
   checkMapWrite(
     buffer: GPUBuffer,
     offset: number,

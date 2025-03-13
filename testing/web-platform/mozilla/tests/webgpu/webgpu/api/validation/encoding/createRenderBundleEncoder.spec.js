@@ -63,7 +63,7 @@ combine(
 )
 ).
 beforeAllSubcases((t) => {
-  t.skipIfTextureFormatNotSupported(t.params.format);
+  t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
 }).
 fn((t) => {
   const { format, colorFormatCount } = t.params;

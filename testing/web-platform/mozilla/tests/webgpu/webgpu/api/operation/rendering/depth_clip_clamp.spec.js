@@ -4,8 +4,12 @@
 Tests for depth clipping, depth clamping (at various points in the pipeline), and maybe extended
 depth ranges as well.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { assert } from '../../../../common/util/util.js';
-import { kDepthStencilFormats, kTextureFormatInfo } from '../../../format_info.js';
+import {
+  canCopyFromAspectOfTextureFormat,
+  getBlockInfoForTextureFormat,
+  isStencilTextureFormat,
+  kDepthTextureFormats } from
+'../../../format_info.js';
 import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import {
   checkElementsBetween,
@@ -36,24 +40,17 @@ have unexpected values then get drawn to the color buffer, which is later checke
 ).
 params((u) =>
 u //
-.combine('format', kDepthStencilFormats).
-filter((p) => !!kTextureFormatInfo[p.format].depth).
+.combine('format', kDepthTextureFormats).
 combine('unclippedDepth', [undefined, false, true]).
 combine('writeDepth', [false, true]).
 combine('multisampled', [false, true])
 ).
-beforeAllSubcases((t) => {
-  const info = kTextureFormatInfo[t.params.format];
-
-  t.selectDeviceOrSkipTestCase([
-  t.params.unclippedDepth ? 'depth-clip-control' : undefined,
-  info.feature]
-  );
-}).
 fn(async (t) => {
   const { format, unclippedDepth, writeDepth, multisampled } = t.params;
-  const info = kTextureFormatInfo[format];
-  assert(!!info.depth);
+  t.skipIfTextureFormatNotSupported(format);
+  if (unclippedDepth) {
+    t.skipIfDeviceDoesNotHaveFeature('depth-clip-control');
+  }
 
   const hasStorageBuffers = t.isCompatibility ?
   t.device.limits.maxStorageBuffersInFragmentStage > 0 :
@@ -233,17 +230,18 @@ fn(async (t) => {
   t.createTextureTracked({ ...checkTextureDesc, sampleCount: 4 }).createView() :
   undefined;
 
+  const { bytesPerBlock } = getBlockInfoForTextureFormat(format);
   const dsActual =
-  !multisampled && info.depth.bytes ?
+  canCopyFromAspectOfTextureFormat(format, 'depth-only') && !multisampled && bytesPerBlock ?
   t.createBufferTracked({
-    size: kNumTestPoints * info.depth.bytes,
+    size: kNumTestPoints * bytesPerBlock,
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
   }) :
   undefined;
   const dsExpected =
-  !multisampled && info.depth.bytes ?
+  canCopyFromAspectOfTextureFormat(format, 'depth-only') && !multisampled && bytesPerBlock ?
   t.createBufferTracked({
-    size: kNumTestPoints * info.depth.bytes,
+    size: kNumTestPoints * bytesPerBlock,
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
   }) :
   undefined;
@@ -272,9 +270,11 @@ fn(async (t) => {
         depthClearValue: 0.5, // Will see this depth value if the fragment was clipped.
         depthLoadOp: 'clear',
         depthStoreOp: 'store',
-        stencilClearValue: info.stencil ? 0 : undefined,
-        stencilLoadOp: info.stencil ? 'clear' : undefined,
-        stencilStoreOp: info.stencil ? 'discard' : undefined
+        ...(isStencilTextureFormat(format) && {
+          stencilClearValue: 0,
+          stencilLoadOp: 'clear',
+          stencilStoreOp: 'discard'
+        })
       }
     });
     pass.setPipeline(testPipeline);
@@ -308,9 +308,11 @@ fn(async (t) => {
         view: dsTextureView,
         depthLoadOp: 'load',
         depthStoreOp: 'store',
-        stencilClearValue: info.stencil ? 0 : undefined,
-        stencilLoadOp: info.stencil ? 'clear' : undefined,
-        stencilStoreOp: info.stencil ? 'discard' : undefined
+        ...(isStencilTextureFormat(format) && {
+          stencilClearValue: 0,
+          stencilLoadOp: 'clear',
+          stencilStoreOp: 'discard'
+        })
       }
     });
     pass.setPipeline(checkPipeline);
@@ -375,22 +377,16 @@ to be empty.`
 ).
 params((u) =>
 u //
-.combine('format', kDepthStencilFormats).
-filter((p) => !!kTextureFormatInfo[p.format].depth).
+.combine('format', kDepthTextureFormats).
 combine('unclippedDepth', [false, true]).
 combine('multisampled', [false, true])
 ).
-beforeAllSubcases((t) => {
-  const info = kTextureFormatInfo[t.params.format];
-
-  t.selectDeviceOrSkipTestCase([
-  t.params.unclippedDepth ? 'depth-clip-control' : undefined,
-  info.feature]
-  );
-}).
 fn((t) => {
   const { format, unclippedDepth, multisampled } = t.params;
-  const info = kTextureFormatInfo[format];
+  t.skipIfTextureFormatNotSupported(format);
+  if (unclippedDepth) {
+    t.skipIfDeviceDoesNotHaveFeature('depth-clip-control');
+  }
 
   const kNumDepthValues = 8;
   const kViewportMinDepth = 0.25;
@@ -502,9 +498,11 @@ fn((t) => {
         depthClearValue: 1.0,
         depthLoadOp: 'clear',
         depthStoreOp: 'store',
-        stencilClearValue: info.stencil ? 0 : undefined,
-        stencilLoadOp: info.stencil ? 'clear' : undefined,
-        stencilStoreOp: info.stencil ? 'discard' : undefined
+        ...(isStencilTextureFormat(format) && {
+          stencilClearValue: 0,
+          stencilLoadOp: 'clear',
+          stencilStoreOp: 'discard'
+        })
       }
     });
     pass.setPipeline(initPipeline);
@@ -529,9 +527,11 @@ fn((t) => {
         view: dsTextureView,
         depthLoadOp: 'load',
         depthStoreOp: 'store',
-        stencilClearValue: info.stencil ? 0 : undefined,
-        stencilLoadOp: info.stencil ? 'clear' : undefined,
-        stencilStoreOp: info.stencil ? 'discard' : undefined
+        ...(isStencilTextureFormat(format) && {
+          stencilClearValue: 0,
+          stencilLoadOp: 'clear',
+          stencilStoreOp: 'discard'
+        })
       }
     });
     pass.setPipeline(testPipeline);

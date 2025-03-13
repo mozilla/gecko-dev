@@ -11,9 +11,9 @@ import {
 '../../../capability_info.js';
 import { GPUConst } from '../../../constants.js';
 import { kMaxSafeMultipleOf8 } from '../../../util/math.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
 
 assert(kBufferSizeAlignment === 4);
 g.test('size').

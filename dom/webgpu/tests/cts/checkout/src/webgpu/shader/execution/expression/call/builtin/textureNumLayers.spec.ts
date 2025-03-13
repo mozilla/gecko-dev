@@ -5,8 +5,10 @@ Returns the number of layers (elements) of an array texture.
 `;
 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { kTextureFormatInfo } from '../../../../../format_info.js';
-import { TexelFormats } from '../../../../types.js';
+import {
+  isTextureFormatPossiblyStorageReadWritable,
+  kPossibleStorageTextureFormats,
+} from '../../../../../format_info.js';
 import { kShaderStages } from '../../../../validation/decl/util.js';
 
 import { kSampleTypeInfo, WGSLTextureQueryTest } from './texture_utils.js';
@@ -185,13 +187,13 @@ Parameters
   )
   .params(u =>
     u
-      .combineWithParams(TexelFormats)
+      .combine('format', kPossibleStorageTextureFormats)
       .combine('view_type', ['full', 'partial'] as const)
       .beginSubcases()
       .combine('stage', kShaderStages)
       .combine('access_mode', ['read', 'write', 'read_write'] as const)
       .filter(
-        t => t.access_mode !== 'read_write' || kTextureFormatInfo[t.format].color?.readWriteStorage
+        t => t.access_mode !== 'read_write' || !isTextureFormatPossiblyStorageReadWritable(t.format)
       )
       // Vertex stage can not use writable storage textures.
       .unless(t => t.stage === 'vertex' && t.access_mode !== 'read')
@@ -201,12 +203,14 @@ Parameters
       t.isCompatibility && t.params.view_type === 'partial',
       'compatibility mode does not support partial layer views'
     );
-    t.skipIfTextureFormatNotUsableAsStorageTexture(t.params.format);
   })
   .fn(t => {
     const { stage, format, access_mode, view_type } = t.params;
-
     t.skipIfNoStorageTexturesInStage(stage);
+    t.skipIfTextureFormatNotUsableAsStorageTexture(format);
+    if (access_mode === 'read_write') {
+      t.skipIfTextureFormatNotUsableAsReadWriteStorageTexture(format);
+    }
 
     const texture = t.createTextureTracked({
       format,

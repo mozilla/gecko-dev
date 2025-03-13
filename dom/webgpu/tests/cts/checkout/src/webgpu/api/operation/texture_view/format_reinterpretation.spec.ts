@@ -1,18 +1,20 @@
 export const description = `
 Test texture views can reinterpret the format of the original texture.
+
+- TODO: test compressed texture reinterpretation
 `;
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import {
-  kRenderableColorTextureFormats,
-  kRegularTextureFormats,
-  viewCompatible,
   EncodableTextureFormat,
+  getBaseFormatForTextureFormat,
+  kDifferentBaseFormatRegularTextureFormats,
+  RegularTextureFormat,
 } from '../../../format_info.js';
-import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
 
-export const g = makeTestGroup(TextureTestMixin(GPUTest));
+export const g = makeTestGroup(TextureTestMixin(AllFeaturesMaxLimitsGPUTest));
 
 const kColors = [
   { R: 1.0, G: 0.0, B: 0.0, A: 0.8 },
@@ -97,95 +99,96 @@ g.test('texture_binding')
   .desc(`Test that a regular texture allocated as 'format' is correctly sampled as 'viewFormat'.`)
   .params(u =>
     u //
-      .combine('format', kRegularTextureFormats)
-      .combine('viewFormat', kRegularTextureFormats)
-      .filter(
-        ({ format, viewFormat }) =>
-          format !== viewFormat && viewCompatible(false, format, viewFormat)
-      )
+      .combine('format', kDifferentBaseFormatRegularTextureFormats)
   )
-  .beforeAllSubcases(t => {
-    const { format, viewFormat } = t.params;
-    t.skipIfTextureFormatNotSupported(format, viewFormat);
-    // Compatibility mode does not support format reinterpretation.
-    t.skipIf(t.isCompatibility);
-  })
+  // Compatibility mode does not support format reinterpretation.
+  .beforeAllSubcases(t => t.skipIf(t.isCompatibility))
   .fn(t => {
-    const { format, viewFormat } = t.params;
+    const { format } = t.params;
+    const viewFormat = getBaseFormatForTextureFormat(format) as RegularTextureFormat;
 
-    // Make an input texel view.
-    const inputTexelView = makeInputTexelView(format);
+    t.skipIfTextureFormatNotSupported(format, viewFormat);
 
-    // Create the initial texture with the contents if the input texel view.
-    const texture = t.createTextureFromTexelView(inputTexelView, {
-      size: [kTextureSize, kTextureSize],
-      usage: GPUTextureUsage.TEXTURE_BINDING,
-      viewFormats: [viewFormat],
-    });
+    const cases = [
+      { format, viewFormat },
+      { format: viewFormat, viewFormat: format },
+    ];
 
-    // Reinterpret the texture as the view format.
-    // Make a texel view of the format that also reinterprets the data.
-    const reinterpretedView = texture.createView({ format: viewFormat });
-    const reinterpretedTexelView = TexelView.fromTexelsAsBytes(viewFormat, inputTexelView.bytes);
+    for (const { format, viewFormat } of cases) {
+      // Make an input texel view.
+      const inputTexelView = makeInputTexelView(format);
 
-    // Create a pipeline to write data out to rgba8unorm.
-    const pipeline = t.device.createComputePipeline({
-      layout: 'auto',
-      compute: {
-        module: t.device.createShaderModule({
-          code: `
-          @group(0) @binding(0) var src: texture_2d<f32>;
-          @group(0) @binding(1) var dst: texture_storage_2d<rgba8unorm, write>;
-          @compute @workgroup_size(1, 1) fn main(
-            @builtin(global_invocation_id) global_id: vec3<u32>,
-          ) {
-            var coord = vec2<i32>(global_id.xy);
-            textureStore(dst, coord, textureLoad(src, coord, 0));
-          }`,
+      // Create the initial texture with the contents of the input texel view.
+      const texture = t.createTextureFromTexelView(inputTexelView, {
+        size: [kTextureSize, kTextureSize],
+        usage: GPUTextureUsage.TEXTURE_BINDING,
+        viewFormats: [viewFormat],
+      });
+
+      // Reinterpret the texture as the view format.
+      // Make a texel view of the format that also reinterprets the data.
+      const reinterpretedView = texture.createView({ format: viewFormat });
+      const reinterpretedTexelView = TexelView.fromTexelsAsBytes(viewFormat, inputTexelView.bytes);
+
+      // Create a pipeline to write data out to rgba8unorm.
+      const pipeline = t.device.createComputePipeline({
+        layout: 'auto',
+        compute: {
+          module: t.device.createShaderModule({
+            code: `
+            @group(0) @binding(0) var src: texture_2d<f32>;
+            @group(0) @binding(1) var dst: texture_storage_2d<rgba8unorm, write>;
+            @compute @workgroup_size(1, 1) fn main(
+              @builtin(global_invocation_id) global_id: vec3<u32>,
+            ) {
+              var coord = vec2<i32>(global_id.xy);
+              textureStore(dst, coord, textureLoad(src, coord, 0));
+            }`,
+          }),
+          entryPoint: 'main',
+        },
+      });
+
+      // Create an rgba8unorm output texture.
+      const outputTexture = t.createTextureTracked({
+        format: 'rgba8unorm',
+        size: [kTextureSize, kTextureSize],
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC,
+      });
+
+      // Execute a compute pass to load data from the reinterpreted view and
+      // write out to the rgba8unorm texture.
+      const commandEncoder = t.device.createCommandEncoder();
+      const pass = commandEncoder.beginComputePass();
+      pass.setPipeline(pipeline);
+      pass.setBindGroup(
+        0,
+        t.device.createBindGroup({
+          layout: pipeline.getBindGroupLayout(0),
+          entries: [
+            {
+              binding: 0,
+              resource: reinterpretedView,
+            },
+            {
+              binding: 1,
+              resource: outputTexture.createView(),
+            },
+          ],
+        })
+      );
+      pass.dispatchWorkgroups(kTextureSize, kTextureSize);
+      pass.end();
+      t.device.queue.submit([commandEncoder.finish()]);
+
+      t.expectTexelViewComparisonIsOkInTexture(
+        { texture: outputTexture },
+        TexelView.fromTexelsAsColors('rgba8unorm', reinterpretedTexelView.color, {
+          clampToFormatRange: true,
         }),
-        entryPoint: 'main',
-      },
-    });
-
-    // Create an rgba8unorm output texture.
-    const outputTexture = t.createTextureTracked({
-      format: 'rgba8unorm',
-      size: [kTextureSize, kTextureSize],
-      usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC,
-    });
-
-    // Execute a compute pass to load data from the reinterpreted view and
-    // write out to the rgba8unorm texture.
-    const commandEncoder = t.device.createCommandEncoder();
-    const pass = commandEncoder.beginComputePass();
-    pass.setPipeline(pipeline);
-    pass.setBindGroup(
-      0,
-      t.device.createBindGroup({
-        layout: pipeline.getBindGroupLayout(0),
-        entries: [
-          {
-            binding: 0,
-            resource: reinterpretedView,
-          },
-          {
-            binding: 1,
-            resource: outputTexture.createView(),
-          },
-        ],
-      })
-    );
-    pass.dispatchWorkgroups(kTextureSize, kTextureSize);
-    pass.end();
-    t.device.queue.submit([commandEncoder.finish()]);
-
-    t.expectTexelViewComparisonIsOkInTexture(
-      { texture: outputTexture },
-      TexelView.fromTexelsAsColors('rgba8unorm', reinterpretedTexelView.color, {
-        clampToFormatRange: true,
-      }),
-      [kTextureSize, kTextureSize]
-    );
+        [kTextureSize, kTextureSize]
+      );
+    }
   });
 
 g.test('render_and_resolve_attachment')
@@ -198,113 +201,73 @@ in view format and match in base format.`
   )
   .params(u =>
     u //
-      .combine('format', kRenderableColorTextureFormats)
-      .combine('viewFormat', kRenderableColorTextureFormats)
-      .filter(
-        ({ format, viewFormat }) =>
-          format !== viewFormat && viewCompatible(false, format, viewFormat)
-      )
+      .combine('format', kDifferentBaseFormatRegularTextureFormats)
       .combine('sampleCount', [1, 4])
   )
-  .beforeAllSubcases(t => {
-    const { format, viewFormat } = t.params;
-    t.skipIfTextureFormatNotSupported(format, viewFormat);
-    // Compatibility mode does not support format reinterpretation.
-    t.skipIf(t.isCompatibility);
-  })
+  // Compatibility mode does not support format reinterpretation.
+  .beforeAllSubcases(t => t.skipIf(t.isCompatibility))
   .fn(t => {
-    const { format, viewFormat, sampleCount } = t.params;
+    const { format, sampleCount } = t.params;
+    const viewFormat = getBaseFormatForTextureFormat(format) as RegularTextureFormat;
 
-    // Make an input texel view.
-    const inputTexelView = makeInputTexelView(format);
+    t.skipIfTextureFormatNotSupported(format, viewFormat);
 
-    // Create the renderTexture as |format|.
-    const renderTexture = t.createTextureTracked({
-      format,
-      size: [kTextureSize, kTextureSize],
-      usage:
-        GPUTextureUsage.RENDER_ATTACHMENT |
-        (sampleCount > 1 ? GPUTextureUsage.TEXTURE_BINDING : GPUTextureUsage.COPY_SRC),
-      viewFormats: [viewFormat],
-      sampleCount,
-    });
+    const cases = [
+      { format, viewFormat },
+      { format: viewFormat, viewFormat: format },
+    ];
 
-    const resolveTexture =
-      sampleCount === 1
-        ? undefined
-        : t.createTextureTracked({
-            format,
-            size: [kTextureSize, kTextureSize],
-            usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
-            viewFormats: [viewFormat],
-          });
+    for (const { format, viewFormat } of cases) {
+      // Make an input texel view.
+      const inputTexelView = makeInputTexelView(format);
 
-    // Create the sample source with the contents of the input texel view.
-    // We will sample this texture into |renderTexture|. It uses the same format to keep the same
-    // number of bits of precision.
-    const sampleSource = t.createTextureFromTexelView(inputTexelView, {
-      size: [kTextureSize, kTextureSize],
-      usage: GPUTextureUsage.TEXTURE_BINDING,
-    });
+      // Create the renderTexture as |format|.
+      const renderTexture = t.createTextureTracked({
+        format,
+        size: [kTextureSize, kTextureSize],
+        usage:
+          GPUTextureUsage.RENDER_ATTACHMENT |
+          (sampleCount > 1 ? GPUTextureUsage.TEXTURE_BINDING : GPUTextureUsage.COPY_SRC),
+        viewFormats: [viewFormat],
+        sampleCount,
+      });
 
-    // Reinterpret the renderTexture as |viewFormat|.
-    const reinterpretedRenderView = renderTexture.createView({ format: viewFormat });
-    const reinterpretedResolveView =
-      resolveTexture && resolveTexture.createView({ format: viewFormat });
+      const resolveTexture =
+        sampleCount === 1
+          ? undefined
+          : t.createTextureTracked({
+              format,
+              size: [kTextureSize, kTextureSize],
+              usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
+              viewFormats: [viewFormat],
+            });
 
-    // Create a pipeline to blit a src texture to the render attachment.
-    const pipeline = makeBlitPipeline(t.device, viewFormat, {
-      sample: 1,
-      render: sampleCount,
-    });
+      // Create the sample source with the contents of the input texel view.
+      // We will sample this texture into |renderTexture|. It uses the same format to keep the same
+      // number of bits of precision.
+      const sampleSource = t.createTextureFromTexelView(inputTexelView, {
+        size: [kTextureSize, kTextureSize],
+        usage: GPUTextureUsage.TEXTURE_BINDING,
+      });
 
-    // Execute a render pass to sample |sampleSource| into |texture| viewed as |viewFormat|.
-    const commandEncoder = t.device.createCommandEncoder();
-    const pass = commandEncoder.beginRenderPass({
-      colorAttachments: [
-        {
-          view: reinterpretedRenderView,
-          resolveTarget: reinterpretedResolveView,
-          loadOp: 'load',
-          storeOp: 'store',
-        },
-      ],
-    });
-    pass.setPipeline(pipeline);
-    pass.setBindGroup(
-      0,
-      t.device.createBindGroup({
-        layout: pipeline.getBindGroupLayout(0),
-        entries: [
-          {
-            binding: 0,
-            resource: sampleSource.createView(),
-          },
-        ],
-      })
-    );
-    pass.draw(6);
-    pass.end();
+      // Reinterpret the renderTexture as |viewFormat|.
+      const reinterpretedRenderView = renderTexture.createView({ format: viewFormat });
+      const reinterpretedResolveView =
+        resolveTexture && resolveTexture.createView({ format: viewFormat });
 
-    // If the render target is multisampled, we'll manually resolve it to check
-    // the contents.
-    const singleSampleRenderTexture = resolveTexture
-      ? t.createTextureTracked({
-          format,
-          size: [kTextureSize, kTextureSize],
-          usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
-        })
-      : renderTexture;
+      // Create a pipeline to blit a src texture to the render attachment.
+      const pipeline = makeBlitPipeline(t.device, viewFormat, {
+        sample: 1,
+        render: sampleCount,
+      });
 
-    if (resolveTexture) {
-      // Create a pipeline to blit the multisampled render texture to a non-multisample texture.
-      // We are basically performing a manual resolve step to the same format as the original
-      // render texture to check its contents.
-      const pipeline = makeBlitPipeline(t.device, format, { sample: sampleCount, render: 1 });
+      // Execute a render pass to sample |sampleSource| into |texture| viewed as |viewFormat|.
+      const commandEncoder = t.device.createCommandEncoder();
       const pass = commandEncoder.beginRenderPass({
         colorAttachments: [
           {
-            view: singleSampleRenderTexture.createView(),
+            view: reinterpretedRenderView,
+            resolveTarget: reinterpretedResolveView,
             loadOp: 'load',
             storeOp: 'store',
           },
@@ -318,39 +281,80 @@ in view format and match in base format.`
           entries: [
             {
               binding: 0,
-              resource: renderTexture.createView(),
+              resource: sampleSource.createView(),
             },
           ],
         })
       );
       pass.draw(6);
       pass.end();
-    }
 
-    // Submit the commands.
-    t.device.queue.submit([commandEncoder.finish()]);
+      // If the render target is multisampled, we'll manually resolve it to check
+      // the contents.
+      const singleSampleRenderTexture = resolveTexture
+        ? t.createTextureTracked({
+            format,
+            size: [kTextureSize, kTextureSize],
+            usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
+          })
+        : renderTexture;
 
-    // Check the rendered contents.
-    const renderViewTexels = TexelView.fromTexelsAsColors(viewFormat, inputTexelView.color, {
-      clampToFormatRange: true,
-    });
-    t.expectTexelViewComparisonIsOkInTexture(
-      { texture: singleSampleRenderTexture },
-      renderViewTexels,
-      [kTextureSize, kTextureSize],
-      { maxDiffULPsForNormFormat: 2 }
-    );
+      if (resolveTexture) {
+        // Create a pipeline to blit the multisampled render texture to a non-multisample texture.
+        // We are basically performing a manual resolve step to the same format as the original
+        // render texture to check its contents.
+        const pipeline = makeBlitPipeline(t.device, format, { sample: sampleCount, render: 1 });
+        const pass = commandEncoder.beginRenderPass({
+          colorAttachments: [
+            {
+              view: singleSampleRenderTexture.createView(),
+              loadOp: 'load',
+              storeOp: 'store',
+            },
+          ],
+        });
+        pass.setPipeline(pipeline);
+        pass.setBindGroup(
+          0,
+          t.device.createBindGroup({
+            layout: pipeline.getBindGroupLayout(0),
+            entries: [
+              {
+                binding: 0,
+                resource: renderTexture.createView(),
+              },
+            ],
+          })
+        );
+        pass.draw(6);
+        pass.end();
+      }
 
-    // Check the resolved contents.
-    if (resolveTexture) {
-      const resolveView = TexelView.fromTexelsAsColors(viewFormat, renderViewTexels.color, {
+      // Submit the commands.
+      t.device.queue.submit([commandEncoder.finish()]);
+
+      // Check the rendered contents.
+      const renderViewTexels = TexelView.fromTexelsAsColors(viewFormat, inputTexelView.color, {
         clampToFormatRange: true,
       });
       t.expectTexelViewComparisonIsOkInTexture(
-        { texture: resolveTexture },
-        resolveView,
+        { texture: singleSampleRenderTexture },
+        renderViewTexels,
         [kTextureSize, kTextureSize],
         { maxDiffULPsForNormFormat: 2 }
       );
+
+      // Check the resolved contents.
+      if (resolveTexture) {
+        const resolveView = TexelView.fromTexelsAsColors(viewFormat, renderViewTexels.color, {
+          clampToFormatRange: true,
+        });
+        t.expectTexelViewComparisonIsOkInTexture(
+          { texture: resolveTexture },
+          resolveView,
+          [kTextureSize, kTextureSize],
+          { maxDiffULPsForNormFormat: 2 }
+        );
+      }
     }
   });

@@ -1,10 +1,10 @@
 import { Colors } from '../../../../common/util/colors.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
 /**
  * Options for runFlowControlTest()
  */
-interface FlowControlTest extends GPUTest {
+interface FlowControlTest extends AllFeaturesMaxLimitsGPUTest {
   params: {
     /**
      * If true, then constant values will be placed into a storage buffer,

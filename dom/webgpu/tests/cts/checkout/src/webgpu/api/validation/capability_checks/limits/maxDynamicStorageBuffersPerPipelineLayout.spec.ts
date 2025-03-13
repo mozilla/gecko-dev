@@ -1,4 +1,4 @@
-import { assert, range } from '../../../../../common/util/util.js';
+import { range } from '../../../../../common/util/util.js';
 import { kShaderStageCombinationsWithStage } from '../../../../capability_info.js';
 import { GPUConst } from '../../../../constants.js';
 
@@ -54,42 +54,57 @@ g.test('createBindGroupLayout,at_over')
 g.test('createPipelineLayout,at_over')
   .desc(`Test using at and over ${limit} limit in createPipelineLayout`)
   .params(
-    kMaximumLimitBaseParams
-      .combine('visibility', kShaderStageCombinationsWithStage)
-      .combine('type', ['storage', 'read-only-storage'] as GPUBufferBindingType[])
-      .filter(
-        ({ visibility, type }) =>
-          (visibility & GPUConst.ShaderStage.VERTEX) === 0 || type !== 'storage'
-      )
+    kMaximumLimitBaseParams.combine('type', [
+      'storage',
+      'read-only-storage',
+    ] as GPUBufferBindingType[])
   )
   .fn(async t => {
-    const { limitTest, testValueName, visibility, type } = t.params;
+    const { limitTest, testValueName, type } = t.params;
 
     await t.testDeviceWithRequestedMaximumLimits(
       limitTest,
       testValueName,
       async ({ device, testValue, shouldError, actualLimit }) => {
-        t.skipIfNotEnoughStorageBuffersInStage(visibility, testValue);
-
-        const maxBindingsPerBindGroup = Math.min(
-          t.device.limits.maxBindingsPerBindGroup,
+        // We need to make the largest binding groups we can that don't exceed maxDynamicStorageBuffersPerPipelineLayout
+        // otherwise, createBindGroupLayout will fail.
+        const maxComputeBindings = Math.min(
+          device.limits.maxStorageBuffersPerShaderStage,
           actualLimit
         );
+        const maxFragmentBindings = Math.min(
+          device.limits.maxStorageBuffersInFragmentStage ?? maxComputeBindings,
+          actualLimit
+        );
+        // read-write storage buffers are not allowed in vertex stages.
+        const maxVertexBindings =
+          type === 'storage'
+            ? 0
+            : Math.min(
+                device.limits.maxStorageBuffersInVertexStage ?? maxComputeBindings,
+                actualLimit
+              );
 
-        const kNumGroups = Math.ceil(testValue / maxBindingsPerBindGroup);
+        const totalBindings = maxComputeBindings + maxFragmentBindings + maxVertexBindings;
+        t.skipIf(
+          totalBindings < testValue,
+          `total storage buffer bindings across stages (${totalBindings}) < testValue(${testValue})`
+        );
 
-        // Not sure what to do in this case but best we get notified if it happens.
-        assert(kNumGroups <= t.device.limits.maxBindGroups);
+        // These are ordered by their stage visibility bits
+        const maxBindingsPerStage = [maxVertexBindings, maxFragmentBindings, maxComputeBindings];
 
-        const bindGroupLayouts = range(kNumGroups, i => {
-          const numInGroup = Math.min(
-            testValue - i * maxBindingsPerBindGroup,
-            maxBindingsPerBindGroup
-          );
+        // Make 3 groups using the max bindings allowed for that stage up to testValue bindings
+        let numBindingsAvailable = testValue;
+        const bindGroupLayouts = maxBindingsPerStage.map((maxBindings, visibilityBit) => {
+          const numInGroup = Math.min(numBindingsAvailable, maxBindings);
+          numBindingsAvailable -= numInGroup;
+          t.debug(`group(${visibilityBit}) numBindings: ${numInGroup}`);
+
           return device.createBindGroupLayout({
             entries: range(numInGroup, i => ({
               binding: i,
-              visibility,
+              visibility: 1 << visibilityBit,
               buffer: {
                 type,
                 hasDynamicOffset: true,

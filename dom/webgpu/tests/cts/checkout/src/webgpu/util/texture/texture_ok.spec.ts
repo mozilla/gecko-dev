@@ -1,12 +1,12 @@
 export const description = 'checkPixels helpers behave as expected against real textures';
 
 import { makeTestGroup } from '../../../common/framework/test_group.js';
-import { GPUTest } from '../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../gpu_test.js';
 
 import { TexelView } from './texel_view.js';
 import { textureContentIsOKByT2B } from './texture_ok.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('float32')
   .desc(`Basic test that actual/expected must match, for float32.`)

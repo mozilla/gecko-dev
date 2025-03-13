@@ -1,6 +1,8 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/
+**/import { assert } from '../util/util.js';
+
+
 
 
 
@@ -67,3 +69,14 @@ export const globalTestConfig = {
   enforceDefaultLimits: false,
   logToWebSocket: false
 };
+
+// Check if a device is a compatibility device.
+// Note: The CTS generally, requires that if globalTestConfig.compatibility
+// is true then the device MUST be a compatibility device since the CTS
+// is trying to test that compatibility devices have the correct validation.
+export function isCompatibilityDevice(device) {
+  if (globalTestConfig.compatibility) {
+    assert(!device.features.has('core-features-and-limits'));
+  }
+  return globalTestConfig.compatibility;
+}

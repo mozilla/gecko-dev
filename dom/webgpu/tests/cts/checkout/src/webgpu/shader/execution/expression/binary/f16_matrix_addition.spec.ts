@@ -3,14 +3,14 @@ Execution Tests for matrix f16 addition expression
 `;
 
 import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { Type } from '../../../../util/conversion.js';
 import { allInputSources, run } from '../expression.js';
 
 import { binary, compoundBinary } from './binary.js';
 import { d } from './f16_matrix_addition.cache.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('matrix')
   .specURL('https://www.w3.org/TR/WGSL/#floating-point-evaluation')
@@ -26,10 +26,8 @@ Accuracy: Correctly rounded
       .combine('cols', [2, 3, 4] as const)
       .combine('rows', [2, 3, 4] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
     const cols = t.params.cols;
     const rows = t.params.rows;
     const cases = await d.get(
@@ -59,10 +57,8 @@ Accuracy: Correctly rounded
       .combine('cols', [2, 3, 4] as const)
       .combine('rows', [2, 3, 4] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
     const cols = t.params.cols;
     const rows = t.params.rows;
     const cases = await d.get(

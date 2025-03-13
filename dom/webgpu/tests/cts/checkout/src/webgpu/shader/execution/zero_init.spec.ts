@@ -2,7 +2,7 @@ export const description = `Test that variables in the shader are zero initializ
 
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { iterRange, unreachable } from '../../../common/util/util.js';
-import { GPUTest } from '../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../gpu_test.js';
 import {
   ScalarType,
   kVectorContainerTypes,
@@ -47,7 +47,7 @@ function prettyPrint(t: ShaderTypeInfo): string {
   }
 }
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 g.test('compute,zero_init')
   .desc(
     `Test that uninitialized variables in workgroup, private, and function storage classes are initialized to zero.`

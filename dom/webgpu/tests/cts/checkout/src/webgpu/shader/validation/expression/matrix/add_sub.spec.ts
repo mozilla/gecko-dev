@@ -93,11 +93,6 @@ g.test('invalid')
       .combine('rhs', ['ai', 'mat2x3f()', 'mat2x3h()'])
       .combine('test', keysOf(kTests))
   )
-  .beforeAllSubcases(t => {
-    if (kTests[t.params.test].is_f16 === true || t.params.rhs.startsWith('mat2x3h(')) {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     const lhs = kTests[t.params.test].src;
     const rhs = t.params.rhs === 'ai' ? 'mat2x4(0, 0, 0, 0, 0, 0, 0, 0)' : t.params.rhs;
@@ -130,11 +125,6 @@ g.test('with_abstract')
       .combine('rhs', ['mat2x3f()', 'mat2x3h()'])
       .combine('swap', [true, false])
   )
-  .beforeAllSubcases(t => {
-    if (t.params.rhs.startsWith('mat2x3h(')) {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     let lhs = 'mat2x3(0, 0, 0, 0, 0, 0)';
     let rhs = t.params.rhs;
@@ -233,9 +223,6 @@ g.test('overflow_f16')
       .combine('c', [2, 3, 4] as const)
       .combine('r', [2, 3, 4] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  })
   .fn(t => {
     let lhs = `mat${t.params.c}x${t.params.r}h(`;
     let rhs = `mat${t.params.c}x${t.params.r}h(`;
@@ -267,9 +254,6 @@ g.test('underflow_f16')
       .combine('c', [2, 3, 4] as const)
       .combine('r', [2, 3, 4] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  })
   .fn(t => {
     let lhs = `mat${t.params.c}x${t.params.r}h(`;
     let rhs = `mat${t.params.c}x${t.params.r}h(`;

@@ -105,17 +105,14 @@ g.test('data_types')
       .beginSubcases()
       .combine('id', [0, 1, 2, 3] as const)
   )
-  .beforeAllSubcases(t => {
-    const features: GPUFeatureName[] = ['subgroups' as GPUFeatureName];
-    const type = kTypes[t.params.type];
-    if (type.requiresF16()) {
-      features.push('shader-f16' as GPUFeatureName);
-    }
-    t.selectDeviceOrSkipTestCase(features);
-  })
   .fn(async t => {
     const wgSize = [4, 1, 1];
     const type = kTypes[t.params.type];
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
+    if (type.requiresF16()) {
+      t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+    }
+
     let enables = `enable subgroups;\n`;
     if (type.requiresF16()) {
       enables += `enable f16;`;
@@ -244,10 +241,8 @@ Quad operations require a full quad so workgroup sizes are limited to multiples 
       .beginSubcases()
       .combine('id', [0, 1, 2, 3] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
     const wgsl = `
@@ -326,10 +321,8 @@ predication filters are skipped.
       .beginSubcases()
       .combine('id', [0, 1, 2, 3] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
     const testcase = kPredicateCases[t.params.predicate];
 
@@ -488,10 +481,8 @@ g.test('fragment,all_active')
       .combine('id', [0, 1, 2, 3] as const)
       .combineWithParams([{ format: 'rgba32uint' }] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
-  })
   .fn(async t => {
+    t.skipIfDeviceDoesNotHaveFeature('subgroups' as GPUFeatureName);
     const fsShader = `
 enable subgroups;
 

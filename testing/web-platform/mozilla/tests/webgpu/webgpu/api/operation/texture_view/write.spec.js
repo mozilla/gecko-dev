@@ -18,8 +18,8 @@ TODO: Write helper for this if not already available (see resource_init, buffer_
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { unreachable } from '../../../../common/util/util.js';
 import {
-  kRegularTextureFormats,
-  kTextureFormatInfo } from
+  getTextureFormatType,
+  kRegularTextureFormats } from
 
 '../../../format_info.js';
 import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
@@ -75,8 +75,8 @@ view,
 format,
 sampleCount)
 {
-  const info = kTextureFormatInfo[format];
-  const isFloatType = info.color.type === 'float' || info.color.type === 'unfilterable-float';
+  const type = getTextureFormatType(format);
+  const isFloatType = type === 'float' || type === 'unfilterable-float';
   const kColors = isFloatType ? kColorsFloat : kColorsInt;
   const expectedTexelView = TexelView.fromTexelsAsColors(
     format,
@@ -86,7 +86,7 @@ sampleCount)
     },
     { clampToFormatRange: true }
   );
-  const vecType = isFloatType ? 'vec4f' : info.color.type === 'sint' ? 'vec4i' : 'vec4u';
+  const vecType = isFloatType ? 'vec4f' : type === 'sint' ? 'vec4i' : 'vec4u';
   const kColorArrayShaderString = `array<${vecType}, ${kColors.length}>(
       ${kColors.map((t) => `${vecType}(${t.R}, ${t.G}, ${t.B}, ${t.A}) `).join(',')}
     )`;
@@ -312,12 +312,6 @@ u //
 combine('format', kRegularTextureFormats).
 combine('sampleCount', [1, 4]).
 filter(({ format, method, sampleCount }) => {
-  const info = kTextureFormatInfo[format];
-
-  if (sampleCount > 1 && !info.multisample) {
-    return false;
-  }
-
   // [2]
   if (format === 'rgb10a2uint') {
     return false;
@@ -326,42 +320,42 @@ filter(({ format, method, sampleCount }) => {
   switch (method) {
     case 'storage-write-compute':
     case 'storage-write-fragment':
-      return info.color?.storage && sampleCount === 1;
+      return sampleCount === 1;
+    case 'render-pass-resolve':
+      return sampleCount === 1;
     case 'render-pass-store':
       // [1]
       if (sampleCount > 1) {
         return false;
       }
-      return !!info.colorRender;
-    case 'render-pass-resolve':
-      return !!info.colorRender?.resolve && sampleCount === 1;
+      break;
   }
+
   return true;
 }).
 combine('viewUsageMethod', kTextureViewUsageMethods)
 ).
-beforeAllSubcases((t) => {
-  const { format, method, sampleCount } = t.params;
+fn((t) => {
+  const { format, method, sampleCount, viewUsageMethod } = t.params;
   t.skipIfTextureFormatNotSupported(format);
+  if (sampleCount > 1) {
+    t.skipIfTextureFormatNotMultisampled(format);
+  }
 
   switch (method) {
     case 'storage-write-compute':
     case 'storage-write-fragment':
-      // Still need to filter again for compat mode.
       t.skipIfTextureFormatNotUsableAsStorageTexture(format);
-      if (sampleCount > 1) {
-        t.skipIfMultisampleNotSupportedForFormat(format);
-      }
+      break;
+    case 'render-pass-store':
+      t.skipIfTextureFormatNotUsableAsRenderAttachment(format);
       break;
     case 'render-pass-resolve':
-    case 'render-pass-store':
       // Requires multisample in `writeTextureAndGetExpectedTexelView`
-      t.skipIfMultisampleNotSupportedForFormat(format);
+      t.skipIfTextureFormatNotUsableAsRenderAttachment(format);
+      t.skipIfTextureFormatNotResolvable(format);
       break;
   }
-}).
-fn((t) => {
-  const { format, method, sampleCount, viewUsageMethod } = t.params;
 
   t.skipIf(
     t.isCompatibility &&

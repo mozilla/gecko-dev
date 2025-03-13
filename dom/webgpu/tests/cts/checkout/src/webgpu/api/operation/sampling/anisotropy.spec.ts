@@ -12,7 +12,7 @@ things. If there are no guarantees we can issue warnings instead of failures. Id
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { assert } from '../../../../common/util/util.js';
-import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
 import { checkElementsEqual } from '../../../util/check_contents.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
 import { PerPixelComparison } from '../../../util/texture/texture_ok.js';
@@ -33,7 +33,7 @@ const checkerColors = [
 ];
 
 // renders texture a slanted plane placed in a specific way
-class SamplerAnisotropicFilteringSlantedPlaneTest extends GPUTest {
+class SamplerAnisotropicFilteringSlantedPlaneTest extends AllFeaturesMaxLimitsGPUTest {
   copyRenderTargetToBuffer(rt: GPUTexture): GPUBuffer {
     const byteLength = kRTSize * kBytesPerRow;
     const buffer = this.createBufferTracked({

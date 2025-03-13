@@ -101,11 +101,6 @@ beforeAllSubcases((t) => {
     t.isCompatibility && ['sample_index', 'sample_mask'].includes(t.params.name),
     'compatibility mode does not support sample_index or sample_mask'
   );
-  if (t.params.name.includes('subgroup')) {
-    t.selectDeviceOrSkipTestCase('subgroups');
-  } else if (t.params.name === 'clip_distances') {
-    t.selectDeviceOrSkipTestCase('clip-distances');
-  }
   t.skipIf(
     t.params.name !== 'position' &&
     t.params.target_stage === 'vertex' &&
@@ -151,11 +146,6 @@ beforeAllSubcases((t) => {
     t.isCompatibility && ['sample_index', 'sample_mask'].includes(t.params.name),
     'compatibility mode does not support sample_index or sample_mask'
   );
-  if (t.params.name.includes('subgroup')) {
-    t.selectDeviceOrSkipTestCase('subgroups');
-  } else if (t.params.name === 'clip_distances') {
-    t.selectDeviceOrSkipTestCase('clip-distances');
-  }
   t.skipIf(
     t.params.name !== 'position' &&
     t.params.stage === 'vertex' &&
@@ -339,11 +329,6 @@ unless(
 beforeAllSubcases((t) => {
   if (!t.params.enable_extension) {
     return;
-  }
-  if (t.params.name.includes('subgroup')) {
-    t.selectDeviceOrSkipTestCase('subgroups');
-  } else if (t.params.name === 'clip_distances') {
-    t.selectDeviceOrSkipTestCase('clip-distances');
   }
 }).
 fn((t) => {

@@ -19,7 +19,7 @@ Details could be found at: https://github.com/gpuweb/cts/issues/2201
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { assert, range } from '../../../../common/util/util.js';
-import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
 import { checkElementsPassPredicate, checkElementsEqual } from '../../../util/check_contents.js';
 import { Type } from '../../../util/conversion.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
@@ -263,7 +263,7 @@ struct FragmentOutput2 {
 }
 `;
 
-class F extends TextureTestMixin(GPUTest) {
+class F extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
   private sampleTexture: GPUTexture | undefined;
   private sampler: GPUSampler | undefined;
 

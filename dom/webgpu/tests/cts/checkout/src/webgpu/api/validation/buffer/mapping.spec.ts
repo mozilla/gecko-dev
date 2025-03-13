@@ -7,9 +7,9 @@ import { attemptGarbageCollection } from '../../../../common/util/collect_garbag
 import { assert, unreachable } from '../../../../common/util/util.js';
 import { kBufferUsages } from '../../../capability_info.js';
 import { GPUConst } from '../../../constants.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsValidationTest {
   async testMapAsyncCall(
     expectation:
       | 'success'

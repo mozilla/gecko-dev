@@ -3,10 +3,10 @@
 **/export const description = `
 Testing render pipeline using overridable constants in vertex stage and fragment stage.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
 
-class F extends GPUTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   async ExpectShaderOutputWithConstants(
   isAsync,
   format,

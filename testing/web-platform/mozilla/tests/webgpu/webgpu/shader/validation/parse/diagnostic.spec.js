@@ -219,11 +219,6 @@ desc(`Tests other global directives before a diagnostic directive.`).
 params((u) =>
 u.combine('directive', ['enable f16', 'requires readonly_and_readwrite_storage_textures'])
 ).
-beforeAllSubcases((t) => {
-  if (t.params.directive.startsWith('enable')) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   if (t.params.directive.startsWith('requires')) {
     t.skipIfLanguageFeatureNotSupported('readonly_and_readwrite_storage_textures');

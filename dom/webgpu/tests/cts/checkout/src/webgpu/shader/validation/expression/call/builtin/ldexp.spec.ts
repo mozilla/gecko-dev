@@ -84,11 +84,6 @@ Validates that constant evaluation and override evaluation of ${builtin}() never
       .expand('a', u => fullRangeForType(kValidArgumentTypesA[u.typeA], 5))
       .expand('b', u => biasRange(kValidArgumentTypesA[u.typeA]))
   )
-  .beforeAllSubcases(t => {
-    if (scalarTypeOf(kValidArgumentTypesA[t.params.typeA]) === Type.f16) {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     const typeA = kValidArgumentTypesA[t.params.typeA];
     const bias = biasForType(scalarTypeOf(typeA));
@@ -146,12 +141,6 @@ g.test('partial_values')
       // in_shader: Is the functino call statically accessed by the entry point?
       .combine('in_shader', [false, true] as const)
   )
-  .beforeAllSubcases(t => {
-    const ty = kValidArgumentTypesA[t.params.typeA];
-    if (ty.requiresF16()) {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     const tyA = kValidArgumentTypesA[t.params.typeA];
     const tyB = kValidArgumentTypesB[t.params.typeB];

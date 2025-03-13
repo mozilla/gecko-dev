@@ -490,12 +490,6 @@ g.test('layout_constraints')
       .beginSubcases()
       .combine('aspace', ['storage', 'uniform', 'function', 'private', 'workgroup'] as const)
   )
-  .beforeAllSubcases(t => {
-    const testcase = kLayoutCases[t.params.case];
-    if (testcase.f16) {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
-  })
   .fn(t => {
     const testcase = kLayoutCases[t.params.case];
     const decls = testcase.decls !== undefined ? testcase.decls : '';
