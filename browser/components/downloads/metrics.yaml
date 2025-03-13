@@ -27,3 +27,23 @@ downloads:
       - emalysz@mozilla.com
     expires: never
     telemetry_mirror: DOWNLOADS_PANEL_SHOWN
+
+glam_experiment:
+  panel_shown:
+    type: counter
+    disabled: true
+    description: >
+      Duplicate of:
+      `downloads.panel_shown`
+
+      Intended for the purpose of testing client side sampling of data. This
+      metric is disabled by default and will be enabled only for the purpose
+      of the experiment. See Bug 1947604 for more information.
+    bugs:
+      - https://bugzil.la/1947604
+    data_reviews:
+      - https://bugzil.la/1627676
+    notification_emails:
+      - tlong@mozilla.com
+      - efilho@mozilla.com
+    expires: 146

@@ -1106,6 +1106,11 @@ var Impl = {
     if (needsUpdate) {
       this._sessionActiveTicks++;
       Glean.browserEngagement.activeTicks.add(1);
+      // GLAM EXPERIMENT
+      // This metric is temporary, disabled by default, and will be enabled only
+      // for the purpose of experimenting with client-side sampling of data for
+      // GLAM use. See Bug 1947604 for more information.
+      Glean.glamExperiment.activeTicks.add(1);
     }
   },
 

@@ -1507,3 +1507,28 @@ browser.sanitizer:
       - mbonardo@mozilla.com
     expires: never
     telemetry_mirror: FX_SANITIZE_OPENWINDOWS
+
+glam_experiment:
+  active_ticks:
+    type: counter
+    disabled: true
+    description: |
+      Duplicate of:
+      `browser.engagement.active_ticks`
+
+      Intended for the purpose of testing client side sampling of data. This
+      metric is disabled by default and will be enabled only for the purpose
+      of the experiment. See Bug 1947604 for more information.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947604
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1545172#c8
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1781578
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1811152#c5
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1921440
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - tlong@mozilla.com
+      - efilho@mozilla.com
+    expires: 146
