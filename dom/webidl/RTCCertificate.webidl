@@ -12,8 +12,15 @@ dictionary RTCCertificateExpiration {
   DOMTimeStamp expires;
 };
 
+[GenerateInit]
+dictionary RTCDtlsFingerprint {
+  DOMString algorithm;
+  DOMString value;
+};
+
 [Pref="media.peerconnection.enabled", Serializable,
  Exposed=Window]
 interface RTCCertificate {
   readonly attribute DOMTimeStamp expires;
+  sequence<RTCDtlsFingerprint> getFingerprints();
 };

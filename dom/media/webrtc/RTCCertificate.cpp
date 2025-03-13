@@ -44,6 +44,7 @@
 #include "nsTLiteralString.h"
 #include "pk11pub.h"
 #include "plarena.h"
+#include "sdp/SdpAttribute.h"
 #include "secasn1.h"
 #include "secasn1t.h"
 #include "seccomon.h"
@@ -327,6 +328,33 @@ RTCCertificate::RTCCertificate(nsIGlobalObject* aGlobal,
       mCertificate(aCertificate),
       mAuthType(aAuthType),
       mExpires(aExpires) {}
+
+void RTCCertificate::GetFingerprints(
+    nsTArray<dom::RTCDtlsFingerprint>& aFingerprintsOut) {
+  // if we have a cert and haven't already built the fingerprints
+  if (mCertificate && mFingerprints.Length() == 0) {
+    DtlsDigest digest(DtlsIdentity::DEFAULT_HASH_ALGORITHM);
+    nsresult rv = DtlsIdentity::ComputeFingerprint(mCertificate, &digest);
+    if (NS_FAILED(rv)) {
+      // Safe to return early here since we didn't already have fingerprints
+      // and the call to DtlsIdentity::ComputeFingerprint failed.
+      return;
+    }
+    RTCDtlsFingerprint fingerprint;
+    fingerprint.mAlgorithm.Construct(NS_ConvertASCIItoUTF16(digest.algorithm_));
+
+    std::string value =
+        SdpFingerprintAttributeList::FormatFingerprint(digest.value_);
+    // Sadly, the SDP fingerprint is expected to be all uppercase hex,
+    // while the RTC fingerprint is expected to be all lowercase hex.
+    std::transform(value.begin(), value.end(), value.begin(), ::tolower);
+    fingerprint.mValue.Construct(NS_ConvertASCIItoUTF16(value));
+
+    mFingerprints.AppendElement(fingerprint);
+  }
+
+  aFingerprintsOut = mFingerprints.Clone();
+}
 
 RefPtr<DtlsIdentity> RTCCertificate::CreateDtlsIdentity() const {
   if (!mPrivateKey || !mCertificate) {
