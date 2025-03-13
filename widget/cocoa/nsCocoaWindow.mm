@@ -1591,7 +1591,6 @@ void nsCocoaWindow::ProcessTransitions() {
 
       case TransitionType::EmulatedFullscreen: {
         if (!mInFullScreenMode) {
-          NSDisableScreenUpdates();
           mSuppressSizeModeEvents = true;
           // The order here matters. When we exit full screen mode, we need to
           // show the Dock first, otherwise the newly-created window won't have
@@ -1599,7 +1598,6 @@ void nsCocoaWindow::ProcessTransitions() {
           nsCocoaUtils::HideOSChromeOnScreen(true);
           nsBaseWidget::InfallibleMakeFullScreen(true);
           mSuppressSizeModeEvents = false;
-          NSEnableScreenUpdates();
           UpdateFullscreenState(true, false);
         }
         break;
@@ -1623,7 +1621,6 @@ void nsCocoaWindow::ProcessTransitions() {
             [mWindow toggleFullScreen:nil];
             continue;
           } else {
-            NSDisableScreenUpdates();
             mSuppressSizeModeEvents = true;
             // The order here matters. When we exit full screen mode, we need to
             // show the Dock first, otherwise the newly-created window won't
@@ -1631,7 +1628,6 @@ void nsCocoaWindow::ProcessTransitions() {
             nsCocoaUtils::HideOSChromeOnScreen(false);
             nsBaseWidget::InfallibleMakeFullScreen(false);
             mSuppressSizeModeEvents = false;
-            NSEnableScreenUpdates();
             UpdateFullscreenState(false, false);
           }
         } else if (mWindow.zoomed) {
