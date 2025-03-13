@@ -463,8 +463,30 @@
   <string name="onboarding_first_screen_title">Benvignûts su %1$s</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">Svelt. Privât. Cence distrazions.</string>
+  <!--
+    New Onboarding flow first screen 'terms of use' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Continuant, tu acetis lis %1$s</string>
+  <!--
+    New Onboarding flow first screen 'terms of use link'
+
+    Text for the link used in onboarding_first_screen_terms_of_use_text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">cundizions di utilizazion di Firefox.</string>
+  <!--
+    New Onboarding flow first screen 'privacy notice' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
+  -->
+  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox al considere une vore la tô riservatece. Altris informazions te nestre %1$s</string>
+  <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
+  <string name="onboarding_first_screen_privacy_notice_link">Informative su la riservatece.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">Scomence</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue">Acete e continue</string>
   <!--
     Onboarding second screen: Title
 

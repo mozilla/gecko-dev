@@ -669,6 +669,12 @@
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Cemût che o doprìn i dâts</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Conferme e scomence a navigâ</string>
+  <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Une ultime robe</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Condivît cemût che tu âs discuviert Firefox e il fat che tu lu dopris cui colaboradôrs pe comercializazion di Mozilla. Chescj dâts no vegnin mai vendûts.</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Acete e scomence a navigâ</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Sielç la posizion de sbare dai struments</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -704,6 +710,12 @@
   <string name="onboarding_customize_theme_content_description">Imagjin dal teme “%1$s”</string>
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">No cumò</string>
+  <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Invie une ricercje svelte</string>
   <!--
     Search Widget
 
@@ -871,12 +883,18 @@
   <string name="preferences_show_voice_search">Mostre ricercje vocâl</string>
   <!-- Preference title for switch preference to show search suggestions also in private mode -->
   <string name="preferences_show_search_suggestions_in_private">Mostre in sessions privadis</string>
+  <!-- Preference title for switch preference to show trending search suggestions -->
+  <string name="preferences_show_trending_search_suggestions">Mostre sugjeriments di tindince</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Mostre ricercjis resintis</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Mostre sugjeriments des notis</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
   <string name="preferences_search_browsing_history">Cîr te cronologjie di navigazion</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">Cîr tai segnelibris</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">Mostre scurtis</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">Cîr tes schedis sincronizadis</string>
   <!-- Preference for account settings -->
@@ -897,6 +915,16 @@
   <string name="preferences_show_nonsponsored_suggestions">Sugjeriments di %1$s</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">Oten sugjeriments dal web relatîfs ae tô ricercje</string>
+  <!-- Preference for link sharing -->
+  <string name="preferences_link_sharing">Condivision colegaments</string>
+  <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_title">Inclût un colegament par discjariâ %1$s tes condivisions su WhatsApp</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">Invide i tiei amîs a navigâ plui svelts e in mût plui sigûr cun %1$s ogni volte che tu condividis un colegament su WhatsApp.</string>
+  <!-- Snackbar message shown when user shares a link -->
+  <string name="link_shared_snackbar_message">Colegament condividût</string>
+  <!-- Snackbar action label shown when user shares a link -->
+  <string name="link_shared_snackbar_action">Gjestìs impostazions</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Vierç i links tes aplicazions</string>
   <!-- Preference for open links in third party apps always open in apps option -->
@@ -1838,6 +1866,10 @@
   <string name="sync_add_new_device_learn_button">Plui informazions sul mandâ schedis…</string>
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">Conet un altri dispositîf…</string>
+  <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s \n\nInviât di %2$s 🦊 Prove il navigadôr par dispositîfs mobii: %3$s</string>
+  <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s Inviât di %2$s 🦊 %3$s</string>
   <!--
     Notifications
 
@@ -2176,6 +2208,94 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">Icone des preferencis pes ecezions pe protezion des spiis miorade</string>
+  <!--
+    DNS Over HTTPS (DoH)
+
+    Preference title for DNS over HTTPS settings
+  -->
+  <string name="preference_doh_title">DNS sore HTTPS</string>
+  <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_summary">Il sisteme di risoluzion dai nons di domini (DNS) sore HTTPS al invie lis richiestis pai nons di domini a traviers di une conession cifrade, furnint un DNS sigûr e fasint in mût che al sedi plui dificil scuvierzi i sîts web che tu stâs par visitâ. %1$s</string>
+  <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+  <string name="preference_doh_learn_more">Plui informazions</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="preference_doh_up_description">Navighe in sù</string>
+  <!-- Content description for the "Exceptions" button -->
+  <string name="preference_doh_exceptions_description">Ecezions</string>
+  <!-- Content description for the "Info" button -->
+  <string name="preference_doh_info_description">Informazions</string>
+  <!-- Content description for the "Add Site" button -->
+  <string name="preference_doh_add_site_description">Zonte sît</string>
+  <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection">Protezion predefinide</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">%1$s al decît se doprâ un DNS sigûr par protezi la tô riservatece.</string>
+  <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_1">Dopre il furnidôr che tu âs selezionât</string>
+  <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_2">Dopre il to risolvidôr di DNS predefinît se al capite un probleme cul furnidôr di DNS sigûr</string>
+  <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_3">Dopre un furnidôr locâl, se pussibil. %1$s</string>
+  <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_4">Disative se daûr di VPN o se a son atîfs controi parentâi o politichis di aziende</string>
+  <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_5">Disative tal câs che la rêt e domandi a %1$s di no doprâ un DNS sigûr. %2$s</string>
+  <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection">Protezion aumentade</string>
+  <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_summary">Tu puedis decidi se doprâ un DNS sigûr e sielzi il furnidôr.</string>
+  <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_1">Dopre il furnidôr che tu âs selezionât</string>
+  <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_2">Dopre il to risolvidôr di DNS predefinît dome se a vegnin fûr problemis cul DNS sigûr</string>
+  <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection">Protezion massime</string>
+  <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_max_protection_summary">%1$s al doprarà simpri un DNS sigûr. Prime di doprâ il DNS di sisteme al vignarà visualizât un avîs sul risi di sigurece.</string>
+  <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_1">Dopre dome il furnidôr che tu âs selezionât</string>
+  <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_2">Vise simpri se il DNS sigûr nol è disponibil</string>
+  <!-- Bullet point 3 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_3">Se il DNS sigûr nol è disponibil i sîts no si cjariaran o no funzionaran ben</string>
+  <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off">Disativât</string>
+  <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off_summary">Dopre il to risolvidôr DNS predefinît</string>
+  <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
+  <string name="preference_doh_choose_provider">Sielç furnidôr</string>
+  <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_default">(predefinît)</string>
+  <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_custom">Personalizât</string>
+  <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_title">Furnidôr personalizât</string>
+  <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_textfield">Furnidôr</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
+  <string name="preference_doh_provider_custom_dialog_error_https">L\'URL al scugne scomençâ cun “https://”</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
+  <string name="preference_doh_provider_custom_dialog_error_invalid">URL no valit</string>
+  <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_cancel">Anule</string>
+  <!-- Add button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_add">Zonte</string>
+  <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
+  <string name="preference_doh_exceptions">Ecezions</string>
+  <!-- Description of "exceptions" for "DNS over HTTPS". The first parameter is the name of the application. (For example: Fenix) -->
+  <string name="preference_doh_exceptions_summary">%1$s nol doprarà un DNS sigûr su chescj sîts e i lôr sot-dominis.</string>
+  <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
+  <string name="preference_doh_exceptions_add">Zonte sît</string>
+  <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_site">Sît</string>
+  <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_placeholder">example.com</string>
+  <!-- Error displayed in the input field when adding invalid URLs for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_error">Al scugne jessi un domini valit</string>
+  <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_add_save">Salve</string>
+  <!-- Text displayed for removing all exceptions in "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_remove_all_exceptions">Gjave dutis lis ecezions</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Supuart</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -2481,6 +2601,8 @@
   <string name="quick_settings_sheet_secure_connection_2">La conession e je sigure</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">La conession no je sigure</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">Cheste pagjine e je memorizade sul to dispositîf.</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">Nete vie i cookies e i dâts dai sîts</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->
@@ -2636,10 +2758,19 @@
     Search suggestions title for Firefox Suggest.
   -->
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox Suggest</string>
+  <!-- Search suggestions title for trending searches. -->
+  <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">Ricercjis di tindince</string>
+  <!--
+    Search suggestions title for trending search suggestions.
+    %s is a placeholder for the name of the search engine providing the trending search suggestions.
+  -->
+  <string name="trending_searches_header_2">Di tindince su %s</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header">Ricercje Google</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">Ricercje %s</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">Ricercjis resintis</string>
   <!--
     Default browser experiment
 
@@ -3090,6 +3221,14 @@
   <string name="download_language_file_dialog_positive_button_text_all_languages">Discjame e volte</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
   <string name="download_language_file_dialog_negative_button_text">Anule</string>
+  <!--
+    Unified Trust Panel
+
+    Text for the protection panel header when the site is secure.
+  -->
+  <string name="protection_panel_header_secure">Sigûr</string>
+  <!-- Text for the protection panel header when the site is not secure. -->
+  <string name="protection_panel_header_not_secure">No sigûr</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Sta atent su chest sît</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3114,6 +3253,46 @@
   <string name="protection_panel_etp_toggle_enabled_description">Se alc nol va su chest sît, prove a disativâ lis protezions.</string>
   <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
   <string name="protection_panel_etp_toggle_disabled_description">Lis protezions a son DISATIVADIS. Ti conseìn di tornâ a ativâlis.</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the protection panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="protection_panel_num_trackers_blocked">Spiis blocadis: %d</string>
+  <!-- Text for when no trackers have been blocked. -->
+  <string name="protection_panel_no_trackers_blocked">Nissune spie cjatade</string>
+  <!-- Link text to navigate to privacy and security settings from the protection panel. -->
+  <string name="protection_panel_privacy_and_security_settings">Impostazions pe riservatece e sigurece</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the trackers blocked panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_total_num_trackers_blocked">Spiis blocadis: %d</string>
+  <!--
+    Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
+    %s is a placeholder for the name of the tracker category.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
+  <!--
+    Description text for a dialog confirming whether the user wants to delete all data for current site.
+    %s is a placeholder for the base domain of website.
+  -->
+  <string name="clear_site_data_dialog_description">La rimozion di cookies e di dâts di sîts par &lt;b&gt;%s&lt;/b&gt; e podarès disconetiti dai sîts web o disvuedâ i carei des spesis che tu âs in spiete.</string>
+  <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
+  <string name="clear_site_data_dialog_positive_button_text">Nete</string>
+  <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
+  <string name="clear_site_data_dialog_negative_button_text">Anule</string>
+  <!-- Snackbar title shown when the site data has been cleared. -->
+  <string name="clear_site_data_snackbar">Gjavâts cookies e dâts di sîts</string>
+  <!-- Text for the connection security panel when the site is secure. -->
+  <string name="connection_security_panel_secure">Conession sigure</string>
+  <!-- Text for the connection security panel when the site is not secure. -->
+  <string name="connection_security_panel_not_secure">Conession no sigure</string>
+  <!--
+    Text for the connection security panel to indicate who the certificate was verified by.
+    %s is a placeholder for the name of the certificate authority that verified the ticket
+  -->
+  <string name="connection_security_panel_verified_by">Verificade di %s</string>
   <!--
     Debug drawer
 

@@ -668,6 +668,8 @@
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Растау және шолуды бастау</string>
   <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
   <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Соңғы бір нәрсе</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Келісу және шолуды бастау</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Құралдар панелінің орналасуын таңдау</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -703,6 +705,12 @@
   <string name="onboarding_customize_theme_content_description">%1$s темасының суреті</string>
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Қазір емес</string>
+  <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Жылдам іздеуді бастау</string>
   <!--
     Search Widget
 
@@ -872,6 +880,8 @@
   <string name="preferences_show_search_suggestions_in_private">Жекелік сессияларды көрсету</string>
   <!-- Preference title for switch preference to show trending search suggestions -->
   <string name="preferences_show_trending_search_suggestions">Трендтік ұсыныстарды көрсету</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Жуырдағы іздеулерді көрсету</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Алмасу буфері ұсыныстарын көрсету</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->

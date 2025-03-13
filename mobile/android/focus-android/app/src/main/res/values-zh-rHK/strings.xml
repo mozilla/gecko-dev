@@ -16,7 +16,7 @@
   <string name="action_ok">OK</string>
   <string name="action_save">儲存</string>
   <!-- This text is shown in the URL bar when it's empty -->
-  <string name="urlbar_hint">搜尋或輸入地址</string>
+  <string name="urlbar_hint">搜尋或輸入網址</string>
   <string name="teaser">自動私隱瀏覽\n睇完 · 刪咗佢 · 再嚟過</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
   <string name="feedback_erase">你嘅瀏覽歷史已被刪除。</string>
@@ -24,7 +24,7 @@
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">Tab 嘅瀏覽歷史記錄已被刪除。</string>
   <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
-  <string name="search_hint">搜索%1$s</string>
+  <string name="search_hint">搜尋%1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">分享…</string>
   <!-- Menu item: Report an issue on the current site -->
@@ -81,6 +81,12 @@
     sharing an URL.
   -->
   <string name="share_dialog_title">分享去</string>
+  <string name="notification_erase_title_android_14">刪除瀏覽紀錄？</string>
+  <!--
+    Text shown in the notification description that pops up to remind the user that a browsing session is active
+    for Android 14+.
+  -->
+  <string name="notification_erase_text_android_14_1">篤下或者掃走呢個通知，就可以安全地刪除你嘅瀏覽記錄。</string>
   <string name="notification_erase_text">刪除瀏覽紀錄</string>
   <!-- Notification action to open Focus and resume the current browsing session. -->
   <string name="notification_action_open">打開</string>

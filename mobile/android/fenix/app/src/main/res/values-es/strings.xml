@@ -1339,12 +1339,6 @@
   <string name="studies_title">Instalar y ejecutar estudios</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Saber más</string>
-  <!-- Dialog message shown after removing a study -->
-  <string name="studies_restart_app" moz:removedIn="137">La aplicación se cerrará para aplicar los cambios</string>
-  <!-- Dialog button to confirm the removing a study. -->
-  <string name="studies_restart_dialog_ok" moz:removedIn="137">Aceptar</string>
-  <!-- Dialog button text for canceling removing a study. -->
-  <string name="studies_restart_dialog_cancel" moz:removedIn="137">Cancelar</string>
   <!--
     Sessions
 
