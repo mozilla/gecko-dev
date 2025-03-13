@@ -234,7 +234,7 @@
       "channel": "release",
       "userFacingName": "New Onboarding Experience experiment phase 1 (Android)",
       "userFacingDescription": "Rolling out new onboarding experience pointing to more information about data use.",
-      "isEnrollmentPaused": false,
+      "isEnrollmentPaused": true,
       "isRollout": false,
       "bucketConfig": {
         "randomizationUnit": "nimbus_id",
