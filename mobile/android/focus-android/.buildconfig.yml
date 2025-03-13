@@ -14,6 +14,7 @@ projects:
     - browser-thumbnails
     - browser-toolbar
     - compose-awesomebar
+    - compose-base
     - compose-cfr
     - concept-awesomebar
     - concept-base

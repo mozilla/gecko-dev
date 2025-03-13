@@ -5,6 +5,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - concept-toolbar
     - lib-publicsuffixlist
     - support-base
@@ -26,7 +27,6 @@ projects:
     - concept-storage
     - lib-publicsuffixlist
     - lib-state
-    - service-glean
     - service-nimbus
     - support-base
     - support-ktx
@@ -59,6 +59,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - lib-publicsuffixlist
     - support-base
     - support-ktx
@@ -117,6 +118,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - concept-menu
     - lib-publicsuffixlist
     - support-base
@@ -132,10 +134,12 @@ projects:
     upstream_dependencies:
     - browser-engine-gecko
     - browser-errorpages
+    - browser-menu
     - browser-menu2
     - browser-state
     - browser-tabstray
     - browser-thumbnails
+    - browser-toolbar
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -159,9 +163,11 @@ projects:
     - support-test-libstate
     - support-utils
     - tooling-lint
+    - ui-autocomplete
     - ui-colors
     - ui-icons
     - ui-tabcounter
+    - ui-widgets
   browser-state:
     description: Component responsible for maintaining the centralized state of a
       browser engine.
@@ -189,6 +195,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - concept-storage
     - concept-sync
     - concept-toolbar
@@ -292,10 +299,14 @@ projects:
     - tooling-lint
     - ui-icons
   compose-base:
-    description: A component containing base Composable components based on Acorn Design System.
+    description: A component containing base Composable components based on Acorn
+      Design System.
     path: components/compose/base
     publish: true
     upstream_dependencies:
+    - concept-base
+    - concept-fetch
+    - support-base
     - support-test
     - tooling-lint
     - ui-colors
@@ -307,10 +318,12 @@ projects:
     upstream_dependencies:
     - browser-errorpages
     - browser-state
+    - compose-base
     - concept-awesomebar
     - concept-base
     - concept-engine
     - concept-fetch
+    - concept-menu
     - concept-storage
     - concept-toolbar
     - feature-session
@@ -321,6 +334,8 @@ projects:
     - support-test
     - support-utils
     - tooling-lint
+    - ui-autocomplete
+    - ui-colors
     - ui-icons
   compose-cfr:
     description: A standard Contextual Feature Recommendation popup using Jetpack
@@ -329,6 +344,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - lib-publicsuffixlist
     - support-base
     - support-ktx
@@ -363,11 +379,13 @@ projects:
     publish: true
     upstream_dependencies:
     - browser-errorpages
+    - browser-menu
     - browser-menu2
     - browser-session-storage
     - browser-state
     - browser-tabstray
     - browser-thumbnails
+    - browser-toolbar
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -386,15 +404,18 @@ projects:
     - support-test
     - support-utils
     - tooling-lint
+    - ui-autocomplete
     - ui-colors
     - ui-icons
     - ui-tabcounter
+    - ui-widgets
   concept-awesomebar:
     description: An abstract definition of an awesomebar component.
     path: components/concept/awesomebar
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - support-base
     - tooling-lint
   concept-base:
@@ -403,6 +424,7 @@ projects:
     path: components/concept/base
     publish: true
     upstream_dependencies:
+    - concept-fetch
     - support-base
     - support-test
     - tooling-lint
@@ -437,6 +459,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - lib-publicsuffixlist
     - support-base
     - support-ktx
@@ -449,6 +472,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - support-base
     - support-test
     - tooling-lint
@@ -458,6 +482,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - lib-publicsuffixlist
     - support-base
     - support-ktx
@@ -470,6 +495,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - support-base
     - tooling-lint
   concept-tabstray:
@@ -494,6 +520,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - lib-publicsuffixlist
     - support-base
     - support-ktx
@@ -507,11 +534,13 @@ projects:
     publish: true
     upstream_dependencies:
     - browser-errorpages
+    - browser-menu
     - browser-menu2
     - browser-session-storage
     - browser-state
     - browser-tabstray
     - browser-thumbnails
+    - browser-toolbar
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -534,9 +563,11 @@ projects:
     - support-utils
     - support-webextensions
     - tooling-lint
+    - ui-autocomplete
     - ui-colors
     - ui-icons
     - ui-tabcounter
+    - ui-widgets
   feature-accounts-push:
     description: Feature of use cases for FxA Account that work with push support.
     path: components/feature/accounts-push
@@ -643,12 +674,14 @@ projects:
     upstream_dependencies:
     - browser-errorpages
     - browser-icons
+    - browser-menu
     - browser-menu2
     - browser-session-storage
     - browser-state
     - browser-storage-sync
     - browser-tabstray
     - browser-thumbnails
+    - browser-toolbar
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -661,6 +694,7 @@ projects:
     - feature-search
     - feature-session
     - feature-tabs
+    - feature-top-sites
     - lib-fetch-httpurlconnection
     - lib-publicsuffixlist
     - lib-state
@@ -672,9 +706,11 @@ projects:
     - support-test
     - support-utils
     - tooling-lint
+    - ui-autocomplete
     - ui-colors
     - ui-icons
     - ui-tabcounter
+    - ui-widgets
   feature-containers:
     description: Feature component for working with contextual identities also known
       as containers.
@@ -704,11 +740,13 @@ projects:
     publish: true
     upstream_dependencies:
     - browser-errorpages
+    - browser-menu
     - browser-menu2
     - browser-session-storage
     - browser-state
     - browser-tabstray
     - browser-thumbnails
+    - browser-toolbar
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -732,6 +770,7 @@ projects:
     - support-test-libstate
     - support-utils
     - tooling-lint
+    - ui-autocomplete
     - ui-colors
     - ui-icons
     - ui-tabcounter
@@ -845,6 +884,7 @@ projects:
     - support-base
     - support-ktx
     - support-locale
+    - support-remotesettings
     - support-test
     - support-utils
     - tooling-lint
@@ -855,11 +895,13 @@ projects:
     publish: true
     upstream_dependencies:
     - browser-errorpages
+    - browser-menu
     - browser-menu2
     - browser-session-storage
     - browser-state
     - browser-tabstray
     - browser-thumbnails
+    - browser-toolbar
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -882,20 +924,25 @@ projects:
     - support-test-libstate
     - support-utils
     - tooling-lint
+    - ui-autocomplete
     - ui-colors
     - ui-icons
     - ui-tabcounter
+    - ui-widgets
   feature-logins:
     description: Feature component for logins related features.
     path: components/feature/logins
     publish: true
     upstream_dependencies:
     - browser-errorpages
+    - browser-menu
     - browser-menu2
     - browser-session-storage
     - browser-state
     - browser-tabstray
     - browser-thumbnails
+    - browser-toolbar
+    - compose-base
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -916,6 +963,7 @@ projects:
     - support-test
     - support-utils
     - tooling-lint
+    - ui-autocomplete
     - ui-colors
     - ui-icons
     - ui-tabcounter
@@ -969,11 +1017,13 @@ projects:
     publish: true
     upstream_dependencies:
     - browser-errorpages
+    - browser-menu
     - browser-menu2
     - browser-session-storage
     - browser-state
     - browser-tabstray
     - browser-thumbnails
+    - browser-toolbar
     - compose-base
     - concept-awesomebar
     - concept-base
@@ -995,6 +1045,7 @@ projects:
     - support-test-libstate
     - support-utils
     - tooling-lint
+    - ui-autocomplete
     - ui-colors
     - ui-icons
     - ui-tabcounter
@@ -1006,6 +1057,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - concept-push
     - support-base
     - support-test
@@ -1060,6 +1112,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - lib-publicsuffixlist
     - support-base
     - support-ktx
@@ -1115,6 +1168,17 @@ projects:
     - support-utils
     - tooling-lint
     - ui-icons
+  feature-screendetection:
+    description: Feature implementation connecting an engine implementation with the
+      search module.
+    path: components/feature/screendetection
+    publish: true
+    upstream_dependencies:
+    - concept-base
+    - concept-fetch
+    - support-base
+    - support-test
+    - tooling-lint
   feature-search:
     description: Feature implementation connecting an engine implementation with the
       search module.
@@ -1122,11 +1186,13 @@ projects:
     publish: true
     upstream_dependencies:
     - browser-errorpages
+    - browser-menu
     - browser-menu2
     - browser-session-storage
     - browser-state
     - browser-tabstray
     - browser-thumbnails
+    - browser-toolbar
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -1149,19 +1215,11 @@ projects:
     - support-test-libstate
     - support-utils
     - tooling-lint
+    - ui-autocomplete
     - ui-colors
     - ui-icons
     - ui-tabcounter
-  feature-screendetection:
-    description: Feature implementation connecting an engine implementation with the
-      search module.
-    path: components/feature/screendetection
-    publish: true
-    upstream_dependencies:
-      - support-test
-      - support-test-fakes
-      - support-test-libstate
-      - tooling-lint
+    - ui-widgets
   feature-serviceworker:
     description: Feature that adds support for service workers when using GeckoEngine.
     path: components/feature/serviceworker
@@ -1169,11 +1227,13 @@ projects:
     upstream_dependencies:
     - browser-engine-gecko
     - browser-errorpages
+    - browser-menu
     - browser-menu2
     - browser-session-storage
     - browser-state
     - browser-tabstray
     - browser-thumbnails
+    - browser-toolbar
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -1194,9 +1254,11 @@ projects:
     - support-test
     - support-utils
     - tooling-lint
+    - ui-autocomplete
     - ui-colors
     - ui-icons
     - ui-tabcounter
+    - ui-widgets
   feature-session:
     description: Feature implementation connecting an engine implementation with the
       session module.
@@ -1228,6 +1290,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - lib-publicsuffixlist
     - support-android-test
     - support-base
@@ -1241,11 +1304,13 @@ projects:
     publish: true
     upstream_dependencies:
     - browser-errorpages
+    - browser-menu
     - browser-menu2
     - browser-session-storage
     - browser-state
     - browser-tabstray
     - browser-thumbnails
+    - browser-toolbar
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -1265,9 +1330,11 @@ projects:
     - support-test
     - support-utils
     - tooling-lint
+    - ui-autocomplete
     - ui-colors
     - ui-icons
     - ui-tabcounter
+    - ui-widgets
   feature-syncedtabs:
     description: Feature that provides access to other devices' tabs in the same account.
     path: components/feature/syncedtabs
@@ -1303,11 +1370,13 @@ projects:
     publish: true
     upstream_dependencies:
     - browser-errorpages
+    - browser-menu
     - browser-menu2
     - browser-session-storage
     - browser-state
     - browser-tabstray
     - browser-thumbnails
+    - browser-toolbar
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -1329,9 +1398,11 @@ projects:
     - support-test-libstate
     - support-utils
     - tooling-lint
+    - ui-autocomplete
     - ui-colors
     - ui-icons
     - ui-tabcounter
+    - ui-widgets
   feature-tabs:
     description: Feature implementation connecting a tabs tray implementation with
       the session and toolbar modules.
@@ -1339,11 +1410,13 @@ projects:
     publish: true
     upstream_dependencies:
     - browser-errorpages
+    - browser-menu
     - browser-menu2
     - browser-session-storage
     - browser-state
     - browser-tabstray
     - browser-thumbnails
+    - browser-toolbar
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -1362,9 +1435,11 @@ projects:
     - support-test-libstate
     - support-utils
     - tooling-lint
+    - ui-autocomplete
     - ui-colors
     - ui-icons
     - ui-tabcounter
+    - ui-widgets
   feature-toolbar:
     description: Feature implementation connecting a toolbar implementation with the
       session module.
@@ -1396,6 +1471,7 @@ projects:
     upstream_dependencies:
     - browser-storage-sync
     - concept-base
+    - concept-fetch
     - concept-storage
     - concept-sync
     - concept-toolbar
@@ -1474,11 +1550,13 @@ projects:
     upstream_dependencies:
     - browser-errorpages
     - browser-icons
+    - browser-menu
     - browser-menu2
     - browser-session-storage
     - browser-state
     - browser-tabstray
     - browser-thumbnails
+    - browser-toolbar
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -1502,15 +1580,18 @@ projects:
     - support-test
     - support-utils
     - tooling-lint
+    - ui-autocomplete
     - ui-colors
     - ui-icons
     - ui-tabcounter
+    - ui-widgets
   lib-auth:
     description: A component for various kinds of authentication mechanisms.
     path: components/lib/auth
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - support-base
     - support-test
     - tooling-lint
@@ -1523,7 +1604,6 @@ projects:
     - concept-base
     - concept-fetch
     - lib-publicsuffixlist
-    - service-glean
     - support-base
     - support-ktx
     - support-test
@@ -1535,6 +1615,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - lib-crash
     - lib-publicsuffixlist
     - support-base
@@ -1548,6 +1629,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - support-base
     - support-test
     - tooling-lint
@@ -1583,6 +1665,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - support-base
     - support-test
     - tooling-lint
@@ -1592,6 +1675,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - concept-push
     - support-base
     - support-test
@@ -1602,6 +1686,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - lib-publicsuffixlist
     - support-base
     - support-ktx
@@ -1627,6 +1712,7 @@ projects:
     - browser-thumbnails
     - browser-toolbar
     - compose-awesomebar
+    - compose-base
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -1650,11 +1736,13 @@ projects:
     - feature-prompts
     - feature-pwa
     - feature-readerview
+    - feature-screendetection
     - feature-search
     - feature-session
     - feature-sitepermissions
     - feature-tabs
     - feature-toolbar
+    - feature-top-sites
     - feature-webcompat
     - feature-webcompat-reporter
     - feature-webnotifications
@@ -1691,13 +1779,16 @@ projects:
     - browser-engine-gecko
     - browser-errorpages
     - browser-icons
+    - browser-menu
     - browser-menu2
     - browser-session-storage
     - browser-state
     - browser-storage-sync
     - browser-tabstray
     - browser-thumbnails
+    - browser-toolbar
     - compose-awesomebar
+    - compose-base
     - compose-browser-toolbar
     - compose-engine
     - compose-tabstray
@@ -1715,6 +1806,7 @@ projects:
     - feature-search
     - feature-session
     - feature-tabs
+    - feature-top-sites
     - lib-publicsuffixlist
     - lib-state
     - service-location
@@ -1727,9 +1819,11 @@ projects:
     - support-rusthttp
     - support-utils
     - tooling-lint
+    - ui-autocomplete
     - ui-colors
     - ui-icons
     - ui-tabcounter
+    - ui-widgets
   samples-crash:
     description: An app showing the integration of the lib-crash component.
     path: samples/crash
@@ -1752,6 +1846,7 @@ projects:
     publish: false
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - lib-dataprotect
     - lib-publicsuffixlist
     - support-base
@@ -1812,13 +1907,6 @@ projects:
     path: samples/glean/samples-glean-library
     publish: false
     upstream_dependencies:
-    - concept-base
-    - concept-fetch
-    - lib-publicsuffixlist
-    - service-glean
-    - support-base
-    - support-ktx
-    - support-utils
     - tooling-lint
   samples-sync:
     description: A simple app demoing Firefox Sync (History, Bookmarks, etc) integration.
@@ -1836,7 +1924,6 @@ projects:
     - lib-publicsuffixlist
     - lib-state
     - service-firefox-accounts
-    - service-glean
     - service-sync-autofill
     - service-sync-logins
     - support-base
@@ -1859,7 +1946,6 @@ projects:
     - lib-publicsuffixlist
     - lib-state
     - service-firefox-accounts
-    - service-glean
     - service-sync-logins
     - support-base
     - support-ktx
@@ -1879,6 +1965,8 @@ projects:
     - browser-menu2
     - browser-state
     - browser-toolbar
+    - compose-base
+    - compose-browser-toolbar
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -1899,24 +1987,6 @@ projects:
     - ui-icons
     - ui-tabcounter
     - ui-widgets
-  service-mars:
-    description: A library to communicate with the Contile services API
-    path: components/service/mars
-    publish: true
-    upstream_dependencies:
-    - browser-storage-sync
-    - concept-base
-    - concept-fetch
-    - concept-storage
-    - concept-sync
-    - concept-toolbar
-    - feature-top-sites
-    - lib-publicsuffixlist
-    - support-base
-    - support-ktx
-    - support-test
-    - support-utils
-    - tooling-lint
   service-digitalassetlinks:
     description: A library for communicating with the Digital Asset Links API.
     path: components/service/digitalassetlinks
@@ -1936,6 +2006,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - concept-storage
     - concept-sync
     - lib-dataprotect
@@ -1977,6 +2048,24 @@ projects:
     - support-test
     - support-utils
     - tooling-lint
+  service-mars:
+    description: A library to communicate with the Contile services API
+    path: components/service/mars
+    publish: true
+    upstream_dependencies:
+    - browser-storage-sync
+    - concept-base
+    - concept-fetch
+    - concept-storage
+    - concept-sync
+    - concept-toolbar
+    - feature-top-sites
+    - lib-publicsuffixlist
+    - support-base
+    - support-ktx
+    - support-test
+    - support-utils
+    - tooling-lint
   service-nimbus:
     description: A client-side experiment SDK
     path: components/service/nimbus
@@ -1991,7 +2080,6 @@ projects:
     - concept-storage
     - lib-publicsuffixlist
     - lib-state
-    - service-glean
     - support-base
     - support-ktx
     - support-locale
@@ -2020,6 +2108,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - concept-storage
     - concept-sync
     - lib-dataprotect
@@ -2040,7 +2129,6 @@ projects:
     - concept-sync
     - lib-dataprotect
     - lib-publicsuffixlist
-    - service-glean
     - support-base
     - support-ktx
     - support-utils
@@ -2058,6 +2146,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - support-test
     - tooling-lint
   support-images:
@@ -2122,6 +2211,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - lib-publicsuffixlist
     - support-base
     - support-ktx
@@ -2133,6 +2223,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - support-base
     - tooling-lint
   support-rusthttp:
@@ -2150,6 +2241,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - support-base
     - support-test
     - tooling-lint
@@ -2159,6 +2251,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - lib-publicsuffixlist
     - support-base
     - support-ktx
@@ -2194,6 +2287,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - lib-publicsuffixlist
     - lib-state
     - support-base
@@ -2206,6 +2300,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - support-base
     - support-test
     - tooling-lint
@@ -2254,6 +2349,7 @@ projects:
     publish: true
     upstream_dependencies:
     - concept-base
+    - concept-fetch
     - support-base
     - support-test
     - support-utils
@@ -2283,6 +2379,7 @@ projects:
     upstream_dependencies:
     - browser-menu2
     - concept-base
+    - concept-fetch
     - concept-menu
     - lib-publicsuffixlist
     - support-base

@@ -15,6 +15,7 @@ projects:
     - browser-toolbar
     - compose-awesomebar
     - compose-base
+    - compose-browser-toolbar
     - compose-cfr
     - concept-awesomebar
     - concept-base
@@ -141,13 +142,13 @@ variants:
   name: fenixBeta
 - apks:
   - abi: arm64-v8a
-    fileName: app-fenix-arm64-v8a-benchmark-unsigned.apk
+    fileName: app-fenix-arm64-v8a-benchmark.apk
   - abi: armeabi-v7a
-    fileName: app-fenix-armeabi-v7a-benchmark-unsigned.apk
+    fileName: app-fenix-armeabi-v7a-benchmark.apk
   - abi: x86
-    fileName: app-fenix-x86-benchmark-unsigned.apk
+    fileName: app-fenix-x86-benchmark.apk
   - abi: x86_64
-    fileName: app-fenix-x86_64-benchmark-unsigned.apk
+    fileName: app-fenix-x86_64-benchmark.apk
   build_type: benchmark
   name: fenixBenchmark
 - apks:
