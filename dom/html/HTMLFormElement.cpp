@@ -49,6 +49,7 @@
 #include "mozilla/dom/FormData.h"
 #include "mozilla/dom/FormDataEvent.h"
 #include "mozilla/dom/SubmitEvent.h"
+#include "mozilla/intl/Localization.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_prompts.h"
@@ -63,7 +64,6 @@
 #include "nsIDocShell.h"
 #include "nsIPromptService.h"
 #include "nsISecurityUITelemetry.h"
-#include "nsIStringBundle.h"
 
 // radio buttons
 #include "mozilla/dom/HTMLInputElement.h"
@@ -983,39 +983,34 @@ nsresult HTMLFormElement::DoSecureToInsecureSubmitCheck(nsIURI* aActionURL,
     return rv;
   }
 
-  nsCOMPtr<nsIStringBundle> stringBundle;
-  nsCOMPtr<nsIStringBundleService> stringBundleService =
-      mozilla::components::StringBundle::Service();
-  if (!stringBundleService) {
-    return NS_ERROR_FAILURE;
-  }
-  rv = stringBundleService->CreateBundle(
-      "chrome://global/locale/browser.properties",
-      getter_AddRefs(stringBundle));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  nsAutoString title;
-  nsAutoString message;
-  nsAutoString cont;
-  stringBundle->GetStringFromName("formPostSecureToInsecureWarning.title",
-                                  title);
-  stringBundle->GetStringFromName("formPostSecureToInsecureWarning.message",
-                                  message);
-  stringBundle->GetStringFromName("formPostSecureToInsecureWarning.continue",
-                                  cont);
+  nsTArray<nsCString> resIds = {"toolkit/global/htmlForm.ftl"_ns};
+  RefPtr<intl::Localization> l10n = intl::Localization::Create(resIds, true);
+  nsAutoCString title;
+  nsAutoCString message;
+  nsAutoCString cont;
+  ErrorResult error;
+  l10n->FormatValueSync("form-post-secure-to-insecure-warning-title"_ns, {},
+                        title, error);
+  NS_ENSURE_TRUE(!error.Failed(), error.StealNSResult());
+  l10n->FormatValueSync("form-post-secure-to-insecure-warning-message"_ns, {},
+                        message, error);
+  NS_ENSURE_TRUE(!error.Failed(), error.StealNSResult());
+  l10n->FormatValueSync("form-post-secure-to-insecure-warning-continue"_ns, {},
+                        cont, error);
+  NS_ENSURE_TRUE(!error.Failed(), error.StealNSResult());
   int32_t buttonPressed;
   bool checkState =
       false;  // this is unused (ConfirmEx requires this parameter)
   rv = promptSvc->ConfirmExBC(
       docShell->GetBrowsingContext(),
-      StaticPrefs::prompts_modalType_insecureFormSubmit(), title.get(),
-      message.get(),
+      StaticPrefs::prompts_modalType_insecureFormSubmit(),
+      NS_ConvertUTF8toUTF16(title).get(), NS_ConvertUTF8toUTF16(message).get(),
       (nsIPromptService::BUTTON_TITLE_IS_STRING *
        nsIPromptService::BUTTON_POS_0) +
           (nsIPromptService::BUTTON_TITLE_CANCEL *
            nsIPromptService::BUTTON_POS_1),
-      cont.get(), nullptr, nullptr, nullptr, &checkState, &buttonPressed);
+      NS_ConvertUTF8toUTF16(cont).get(), nullptr, nullptr, nullptr, &checkState,
+      &buttonPressed);
   if (NS_FAILED(rv)) {
     return rv;
   }
