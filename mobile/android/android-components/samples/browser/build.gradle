@@ -7,6 +7,10 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+if (findProject(":geckoview") != null) {
+    buildDir "${topobjdir}/gradle/build/mobile/android/samples-browser"
+}
+
 apply plugin: 'com.android.application'
 
 android {

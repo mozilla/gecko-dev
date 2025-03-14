@@ -177,29 +177,4 @@ gradle.projectsLoaded { ->
             }
         }
     }
-
-    // If we are doing a top-level build, initialize all project buildDirs to be
-    // in ${topobjdir} to follow conventions of mozilla-central build system.
-    // Specific subproject builds like fenix continue to build in source tree to
-    // avoiding breaking existing automation.
-    if (findProject(":geckoview") != null) {
-        gradle.rootProject.allprojects { project ->
-            def topSrcPath = file(gradle.mozconfig.topsrcdir).toPath()
-            def topObjPath = file(gradle.mozconfig.topobjdir).toPath()
-
-            def sourcePath = project.getBuildFile().toPath().getParent()
-            def relativePath = topSrcPath.relativize(sourcePath)
-
-            if (relativePath.startsWith("..")) {
-                // The project doesn't appear to be in topsrcdir so leave the
-                // buildDir alone.
-            } else {
-                // Transplant the project path into "${topobjdir}/gradle/build".
-                // This is consistent with existing gradle / taskcluster
-                // configurations but less consistent with the result of the
-                // non-gradle build system.
-                buildDir topObjPath.resolve("gradle/build").resolve(relativePath)
-            }
-        }
-    }
 }

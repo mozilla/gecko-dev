@@ -1,3 +1,5 @@
+buildDir "${topobjdir}/gradle/build/mobile/android/annotations"
+
 apply plugin: 'java'
 
 dependencies {
