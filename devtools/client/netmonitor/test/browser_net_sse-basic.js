@@ -30,6 +30,11 @@ add_task(async function () {
   const requests = document.querySelectorAll(".request-list-item");
   is(requests.length, 1, "There should be one request");
 
+  const requestItem = document.querySelectorAll(".request-list-item")[0];
+
+  const type = requestItem.querySelector(".requests-list-type").textContent;
+  is(type, "eventsource", "Type should be rendered correctly.");
+
   // Select the request to open the side panel.
   EventUtils.sendMouseEvent({ type: "mousedown" }, requests[0]);
 

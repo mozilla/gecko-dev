@@ -28,6 +28,7 @@ const CONTENT_MIME_TYPE_ABBREVIATIONS = {
   ecmascript: "js",
   javascript: "js",
   "x-javascript": "js",
+  "event-stream": "eventsource",
 };
 
 /**
