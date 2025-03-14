@@ -336,10 +336,10 @@ extern void CheckDebuggeeThing(JSObject* obj, bool invisibleOk);
  * beacomes a debuggee again later, new Frame objects are created.)
  */
 template <class Referent, class Wrapper, bool InvisibleKeysOk = false>
-class DebuggerWeakMap : private WeakMap<HeapPtr<Referent*>, HeapPtr<Wrapper*>> {
+class DebuggerWeakMap : private WeakMap<Referent*, Wrapper*> {
  private:
-  using Key = HeapPtr<Referent*>;
-  using Value = HeapPtr<Wrapper*>;
+  using Key = Referent*;
+  using Value = Wrapper*;
 
   JS::Compartment* compartment;
 
