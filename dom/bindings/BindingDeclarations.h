@@ -27,6 +27,7 @@
 #include <type_traits>
 
 #include "js/Value.h"
+#include "mozilla/CycleCollectedUniquePtr.h"
 #include "mozilla/RootedOwningNonNull.h"
 #include "mozilla/RootedRefPtr.h"
 
@@ -85,12 +86,6 @@ inline std::enable_if_t<is_dom_dictionary<T>, void> ImplCycleCollectionTraverse(
     nsCycleCollectionTraversalCallback& aCallback, T& aDictionary,
     const char* aName, uint32_t aFlags = 0) {
   aDictionary.TraverseForCC(aCallback, aFlags);
-}
-
-template <typename T>
-inline std::enable_if_t<is_dom_dictionary<T>, void> ImplCycleCollectionUnlink(
-    UniquePtr<T>& aDictionary) {
-  aDictionary.reset();
 }
 
 template <typename T>
