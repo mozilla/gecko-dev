@@ -21,32 +21,14 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=916893
 <script>
   SimpleTest.requestFlakyTimeout("Mock alert service dispatches show and click events.");
 
-  async function testFrame(src, registration) {
-    let { promise, resolve } = Promise.withResolvers();
-    let iframe = document.createElement("iframe");
-    iframe.src = src;
-    window.callback = async function(result) {
-      window.callback = null;
-      document.body.removeChild(iframe);
-      iframe = null;
-      ok(result, "Got notificationclick event with correct data.");
-      await registration.unregister();
-      resolve();
-    };
-    document.body.appendChild(iframe);
-    await promise;
-  }
+  add_task(() => setupServiceWorker("notificationclick.js", "notificationclick-otherwindow.html"));
 
   add_task(async function runTest() {
-    await NotificationTest.allowNotifications();
-    await MockAlertsService.register();
     await MockAlertsService.enableAutoClick();
-    let registration = await navigator.serviceWorker.register(
-      "notificationclick.js",
-      { scope: "notificationclick-otherwindow.html" }
-    );
-    await waitForState(registration.installing, 'activated');
-    await testFrame('notificationclick-otherwindow.html', registration);
+
+    const args = { data: { complex: ["jsval", 5] } };
+    const event = await testFrame('notificationclick-otherwindow.html', args);
+    isDeeply(event.notification.data, args.data, "Got notificationclick event with the correct data.")
   });
 </script>
 </body>

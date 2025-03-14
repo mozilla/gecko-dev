@@ -1,3 +1,5 @@
+/* global MockAlertsService, registerAndWaitForActive */
+
 var NotificationTest = (function () {
   "use strict";
 
@@ -91,3 +93,27 @@ var NotificationTest = (function () {
     },
   };
 })();
+
+async function setupServiceWorker(src, scope) {
+  await NotificationTest.allowNotifications();
+  await MockAlertsService.register();
+  let registration = await registerAndWaitForActive(src, scope);
+  SimpleTest.registerCleanupFunction(async () => {
+    await registration.unregister();
+  });
+}
+
+async function testFrame(src, args) {
+  let { promise, resolve } = Promise.withResolvers();
+  let iframe = document.createElement("iframe");
+  let serialized = encodeURIComponent(JSON.stringify(args));
+  iframe.src = `${src}?args=${serialized}`;
+  window.callback = async function (data) {
+    window.callback = null;
+    document.body.removeChild(iframe);
+    iframe = null;
+    resolve(data);
+  };
+  document.body.appendChild(iframe);
+  return await promise;
+}

@@ -21,33 +21,25 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=916893
 <script>
   SimpleTest.requestFlakyTimeout("Mock alert service dispatches show and click events.");
 
-  async function testFrame(src, registration) {
-    let { promise, resolve } = Promise.withResolvers();
-    let iframe = document.createElement("iframe");
-    iframe.src = src;
-    window.callback = async function(result) {
-      window.callback = null;
-      document.body.removeChild(iframe);
-      iframe = null;
-      ok(result, "Got notificationclick event with correct data.");
-      await registration.unregister();
-      resolve();
-    };
-    document.body.appendChild(iframe);
-    await promise;
-  }
+  add_task(() => setupServiceWorker("notificationclick.js", "notificationclick.html"));
 
-  add_task(async function runTest() {
-    await NotificationTest.allowNotifications();
-    await MockAlertsService.register();
+  add_task(async function click() {
     await MockAlertsService.enableAutoClick();
-    let registration = await navigator.serviceWorker.register(
-      "notificationclick.js",
-      { scope: "notificationclick.html" }
-    );
-    await waitForState(registration.installing, 'activated');
-    // Now that we know the document will be controlled, create the frame.
-    await testFrame('notificationclick.html', registration);
+
+    const args = { data: { complex: ["jsval", 5] } };
+    const event = await testFrame("notificationclick.html", args);
+    isDeeply(event.notification.data, args.data, "Got notificationclick event with the correct data.")
+    is(event.action, "", "Got notificationclick event with an empty action.");
+    is(event.notification.actions.length, 0, "Got notificationclick event with an empty action list.");
+  });
+
+  add_task(async function clickWithAction() {
+    await MockAlertsService.enableAutoClick("foo");
+
+    const args = { actions: [{ action: "foo", title: "bar" }] };
+    const event = await testFrame("notificationclick.html", args);
+    is(event.action, "foo", "Got notificationclick event with the correct action.");
+    isDeeply(event.notification.actions, args.actions, "Got notificationclick event with a correct action list");
   });
 </script>
 </body>

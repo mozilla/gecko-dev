@@ -5,6 +5,11 @@
 /* eslint-env serviceworker */
 
 onnotificationclick = function (e) {
+  const {
+    notification: { data, actions },
+    action,
+  } = e;
+
   self.clients.matchAll().then(function (clients) {
     if (clients.length === 0) {
       dump(
@@ -15,11 +20,8 @@ onnotificationclick = function (e) {
 
     clients.forEach(function (client) {
       client.postMessage({
-        result:
-          e.notification.data &&
-          e.notification.data.complex &&
-          e.notification.data.complex[0] == "jsval" &&
-          e.notification.data.complex[1] == 5,
+        notification: { data, actions },
+        action,
       });
     });
   });
