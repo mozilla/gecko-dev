@@ -987,7 +987,7 @@ class tp5n(PageloaderTest):
     setup = "${talos}/xtalos/start_xperf.py -c ${talos}/bcontroller.json"
     cleanup = "${talos}/xtalos/parse_xperf.py -c ${talos}/bcontroller.json"
     preferences = {
-        "extensions.enabledScopes": "",
+        "extensions.enabledScopes": 5,
         "talos.logfile": "browser_output.txt",
     }
     unit = "ms"

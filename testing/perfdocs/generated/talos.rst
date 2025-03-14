@@ -9215,7 +9215,7 @@ For the sample commands found below, note that the capitalization used is import
    * mac_counters: []
    * mainthread: True
    * multidomain: True
-   * preferences: {'extensions.enabledScopes': '', 'talos.logfile': 'browser_output.txt'}
+   * preferences: {'extensions.enabledScopes': 5, 'talos.logfile': 'browser_output.txt'}
    * resolution: 20
    * setup: ${talos}/xtalos/start_xperf.py -c ${talos}/bcontroller.json
    * timeout: 1800
