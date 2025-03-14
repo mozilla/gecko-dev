@@ -117,7 +117,6 @@ class CodeGenerator final : public CodeGeneratorSpecific {
   void visitOutOfLineCallVM(
       OutOfLineCallVM<Fn, fn, ArgSeq, StoreOutputTo>* ool);
 
-  void emitStoreElementHoleOOL(LInstruction* lir);
   void emitIsCallableOOL(Register object, Register output);
 
   void emitResumableWasmTrapOOL(LInstruction* lir, size_t framePushed,

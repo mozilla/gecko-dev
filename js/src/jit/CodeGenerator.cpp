@@ -14956,106 +14956,23 @@ void CodeGenerator::visitStoreHoleValueElement(LStoreHoleValueElement* lir) {
   masm.storeValue(MagicValue(JS_ELEMENTS_HOLE), element);
 }
 
-void CodeGenerator::emitStoreElementHoleOOL(LInstruction* lir) {
-  Register object, elements, index;
-  mozilla::Maybe<ConstantOrRegister> value;
-  Register temp;
-
-  if (lir->isStoreElementHoleV()) {
-    LStoreElementHoleV* store = lir->toStoreElementHoleV();
-    object = ToRegister(store->object());
-    elements = ToRegister(store->elements());
-    index = ToRegister(store->index());
-    value.emplace(TypedOrValueRegister(ToValue(store->value())));
-    temp = ToRegister(store->temp0());
-  } else {
-    LStoreElementHoleT* store = lir->toStoreElementHoleT();
-    object = ToRegister(store->object());
-    elements = ToRegister(store->elements());
-    index = ToRegister(store->index());
-    if (store->value()->isConstant()) {
-      value.emplace(
-          ConstantOrRegister(store->value()->toConstant()->toJSValue()));
-    } else {
-      MIRType valueType = store->mir()->value()->type();
-      value.emplace(
-          TypedOrValueRegister(valueType, ToAnyRegister(store->value())));
-    }
-    temp = ToRegister(store->temp0());
-  }
-
-  Address initLength(elements, ObjectElements::offsetOfInitializedLength());
-
-  // We're out-of-bounds. We only handle the index == initlength case.
-  // If index > initializedLength, bail out. Note that this relies on the
-  // condition flags sticking from the incoming branch.
-  // Also note: this branch does not need Spectre mitigations, doing that for
-  // the capacity check below is sufficient.
-  Label allocElement, addNewElement;
-#if defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || \
-    defined(JS_CODEGEN_RISCV64)
-  // Had to reimplement for MIPS because there are no flags.
-  bailoutCmp32(Assembler::NotEqual, initLength, index, lir->snapshot());
-#else
-  bailoutIf(Assembler::NotEqual, lir->snapshot());
-#endif
-
-  // If index < capacity, we can add a dense element inline. If not, we need
-  // to allocate more elements first.
-  masm.spectreBoundsCheck32(
-      index, Address(elements, ObjectElements::offsetOfCapacity()), temp,
-      &allocElement);
-  masm.jump(&addNewElement);
-
-  masm.bind(&allocElement);
-
-  // Save all live volatile registers, except |temp|.
-  LiveRegisterSet liveRegs = liveVolatileRegs(lir);
-  liveRegs.takeUnchecked(temp);
-  masm.PushRegsInMask(liveRegs);
-
-  masm.setupAlignedABICall();
-  masm.loadJSContext(temp);
-  masm.passABIArg(temp);
-  masm.passABIArg(object);
-
-  using Fn = bool (*)(JSContext*, NativeObject*);
-  masm.callWithABI<Fn, NativeObject::addDenseElementPure>();
-  masm.storeCallPointerResult(temp);
-
-  masm.PopRegsInMask(liveRegs);
-  bailoutIfFalseBool(temp, lir->snapshot());
-
-  // Load the reallocated elements pointer.
-  masm.loadPtr(Address(object, NativeObject::offsetOfElements()), elements);
-
-  masm.bind(&addNewElement);
-
-  // Increment initLength
-  masm.add32(Imm32(1), initLength);
-
-  // If length is now <= index, increment length too.
-  Label skipIncrementLength;
-  Address length(elements, ObjectElements::offsetOfLength());
-  masm.branch32(Assembler::Above, length, index, &skipIncrementLength);
-  masm.add32(Imm32(1), length);
-  masm.bind(&skipIncrementLength);
-}
-
 void CodeGenerator::visitStoreElementHoleT(LStoreElementHoleT* lir) {
+  Register obj = ToRegister(lir->object());
+  Register elements = ToRegister(lir->elements());
+  Register index = ToRegister(lir->index());
+  Register temp = ToRegister(lir->temp0());
+
   auto* ool = new (alloc()) LambdaOutOfLineCode([=](OutOfLineCode& ool) {
-    emitStoreElementHoleOOL(lir);
+    Label bail;
+    masm.prepareOOBStoreElement(obj, index, elements, temp, &bail,
+                                liveVolatileRegs(lir));
+    bailoutFrom(&bail, lir->snapshot());
 
     // Jump to the inline path where we will store the value.
     // We rejoin after the prebarrier, because the memory is uninitialized.
     masm.jump(ool.rejoin());
   });
   addOutOfLineCode(ool, lir->mir());
-
-  Register obj = ToRegister(lir->object());
-  Register elements = ToRegister(lir->elements());
-  Register index = ToRegister(lir->index());
-  Register temp = ToRegister(lir->temp0());
 
   Address initLength(elements, ObjectElements::offsetOfInitializedLength());
   masm.spectreBoundsCheck32(index, initLength, temp, ool->entry());
@@ -15075,20 +14992,23 @@ void CodeGenerator::visitStoreElementHoleT(LStoreElementHoleT* lir) {
 }
 
 void CodeGenerator::visitStoreElementHoleV(LStoreElementHoleV* lir) {
+  Register obj = ToRegister(lir->object());
+  Register elements = ToRegister(lir->elements());
+  Register index = ToRegister(lir->index());
+  ValueOperand value = ToValue(lir->value());
+  Register temp = ToRegister(lir->temp0());
+
   auto* ool = new (alloc()) LambdaOutOfLineCode([=](OutOfLineCode& ool) {
-    emitStoreElementHoleOOL(lir);
+    Label bail;
+    masm.prepareOOBStoreElement(obj, index, elements, temp, &bail,
+                                liveVolatileRegs(lir));
+    bailoutFrom(&bail, lir->snapshot());
 
     // Jump to the inline path where we will store the value.
     // We rejoin after the prebarrier, because the memory is uninitialized.
     masm.jump(ool.rejoin());
   });
   addOutOfLineCode(ool, lir->mir());
-
-  Register obj = ToRegister(lir->object());
-  Register elements = ToRegister(lir->elements());
-  Register index = ToRegister(lir->index());
-  ValueOperand value = ToValue(lir->value());
-  Register temp = ToRegister(lir->temp0());
 
   Address initLength(elements, ObjectElements::offsetOfInitializedLength());
   masm.spectreBoundsCheck32(index, initLength, temp, ool->entry());

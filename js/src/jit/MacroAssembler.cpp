@@ -9300,6 +9300,57 @@ void MacroAssembler::registerIterator(Register enumeratorsList, Register iter,
   storePtr(iter, Address(enumeratorsList, NativeIterator::offsetOfPrev()));
 }
 
+void MacroAssembler::prepareOOBStoreElement(Register object, Register index,
+                                            Register elements,
+                                            Register spectreTemp,
+                                            Label* failure,
+                                            LiveRegisterSet volatileLiveRegs) {
+  Address length(elements, ObjectElements::offsetOfLength());
+  Address initLength(elements, ObjectElements::offsetOfInitializedLength());
+  Address capacity(elements, ObjectElements::offsetOfCapacity());
+
+  // We only handle the index == initLength case.
+  branch32(Assembler::NotEqual, initLength, index, failure);
+
+  // If index < capacity, we can add a dense element inline. If not, we
+  // need to allocate more elements.
+  Label allocElement, addNewElement;
+  spectreBoundsCheck32(index, capacity, spectreTemp, &allocElement);
+  jump(&addNewElement);
+
+  bind(&allocElement);
+
+  volatileLiveRegs.takeUnchecked(elements);
+  volatileLiveRegs.takeUnchecked(spectreTemp);
+  PushRegsInMask(volatileLiveRegs);
+
+  // Use `elements` as a scratch register because we're about to reallocate it.
+  using Fn = bool (*)(JSContext* cx, NativeObject* obj);
+  setupUnalignedABICall(elements);
+  loadJSContext(elements);
+  passABIArg(elements);
+  passABIArg(object);
+  callWithABI<Fn, NativeObject::addDenseElementPure>();
+  storeCallPointerResult(elements);
+
+  PopRegsInMask(volatileLiveRegs);
+  branchIfFalseBool(elements, failure);
+
+  // Load the reallocated elements pointer.
+  loadPtr(Address(object, NativeObject::offsetOfElements()), elements);
+
+  bind(&addNewElement);
+
+  // Increment initLength.
+  add32(Imm32(1), initLength);
+
+  // If length is now <= index, increment length too.
+  Label skipIncrementLength;
+  branch32(Assembler::Above, length, index, &skipIncrementLength);
+  add32(Imm32(1), length);
+  bind(&skipIncrementLength);
+}
+
 void MacroAssembler::toHashableNonGCThing(ValueOperand value,
                                           ValueOperand result,
                                           FloatRegister tempFloat) {

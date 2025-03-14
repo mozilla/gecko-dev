@@ -5404,6 +5404,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
                      Register temp3);
   void registerIterator(Register enumeratorsList, Register iter, Register temp);
 
+  void prepareOOBStoreElement(Register object, Register index,
+                              Register elements, Register spectreTemp,
+                              Label* failure, LiveRegisterSet volatileLiveRegs);
+
   void toHashableNonGCThing(ValueOperand value, ValueOperand result,
                             FloatRegister tempFloat);
 

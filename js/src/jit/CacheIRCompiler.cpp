@@ -6984,48 +6984,9 @@ bool CacheIRCompiler::emitStoreDenseElementHole(ObjOperandId objId,
     masm.spectreBoundsCheck32(index, initLength, spectreTemp, &outOfBounds);
     masm.jump(&inBounds);
 
-    // If we're out-of-bounds, only handle the index == initLength case.
     masm.bind(&outOfBounds);
-    masm.branch32(Assembler::NotEqual, initLength, index, failure->label());
-
-    // If index < capacity, we can add a dense element inline. If not we
-    // need to allocate more elements.
-    Label allocElement, addNewElement;
-    Address capacity(scratch, ObjectElements::offsetOfCapacity());
-    masm.spectreBoundsCheck32(index, capacity, spectreTemp, &allocElement);
-    masm.jump(&addNewElement);
-
-    masm.bind(&allocElement);
-
-    LiveRegisterSet save = liveVolatileRegs();
-    save.takeUnchecked(scratch);
-    masm.PushRegsInMask(save);
-
-    using Fn = bool (*)(JSContext* cx, NativeObject* obj);
-    masm.setupUnalignedABICall(scratch);
-    masm.loadJSContext(scratch);
-    masm.passABIArg(scratch);
-    masm.passABIArg(obj);
-    masm.callWithABI<Fn, NativeObject::addDenseElementPure>();
-    masm.storeCallPointerResult(scratch);
-
-    masm.PopRegsInMask(save);
-    masm.branchIfFalseBool(scratch, failure->label());
-
-    // Load the reallocated elements pointer.
-    masm.loadPtr(Address(obj, NativeObject::offsetOfElements()), scratch);
-
-    masm.bind(&addNewElement);
-
-    // Increment initLength.
-    masm.add32(Imm32(1), initLength);
-
-    // If length is now <= index, increment length too.
-    Label skipIncrementLength;
-    Address length(scratch, ObjectElements::offsetOfLength());
-    masm.branch32(Assembler::Above, length, index, &skipIncrementLength);
-    masm.add32(Imm32(1), length);
-    masm.bind(&skipIncrementLength);
+    masm.prepareOOBStoreElement(obj, index, scratch, spectreTemp,
+                                failure->label(), liveVolatileRegs());
 
     // Skip EmitPreBarrier as the memory is uninitialized.
     masm.jump(&storeSkipPreBarrier);
