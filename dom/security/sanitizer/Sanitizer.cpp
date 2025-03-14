@@ -289,7 +289,7 @@ void Sanitizer::MaybeMaterializeDefaultConfig() {
       ListSet<CanonicalName> attributes;
       while (kHTMLElementWithAttributes[++i]) {
         attributes.InsertNew(
-          CanonicalName(kHTMLElementWithAttributes[i], nullptr));
+            CanonicalName(kHTMLElementWithAttributes[i], nullptr));
       }
       i++;
       element.mAttributes = Some(std::move(attributes));
@@ -307,7 +307,7 @@ void Sanitizer::MaybeMaterializeDefaultConfig() {
       ListSet<CanonicalName> attributes;
       while (kMathMLElementWithAttributes[++i]) {
         attributes.InsertNew(
-          CanonicalName(kMathMLElementWithAttributes[i], nullptr));
+            CanonicalName(kMathMLElementWithAttributes[i], nullptr));
       }
       i++;
       element.mAttributes = Some(std::move(attributes));
@@ -742,7 +742,7 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
     // Make sure this is optimized away for the default config.
     Maybe<CanonicalName> elementName;
     if constexpr (!IsDefaultConfig) {
-     elementName.emplace(nameAtom, ToNamespace(namespaceID));
+      elementName.emplace(nameAtom, ToNamespace(namespaceID));
     }
 
     // Optimization: Remove unsafe elements before doing anything else.
@@ -781,7 +781,8 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
         if (elements) {
           if (auto lookup = elements->Lookup(nameAtom->AsStatic())) {
             found = true;
-            // This is the nullptr for elements without specific allowed attributes.
+            // This is the nullptr for elements without specific allowed
+            // attributes.
             elementAttributes = lookup->get();
           }
         }
@@ -1036,7 +1037,8 @@ void Sanitizer::SanitizeDefaultConfigAttributes(
     // - "data-" is a code unit prefix of local name and namespace is null and
     // configuration["dataAttributes"] is true
     bool remove = false;
-    // Note: All attributes allowed by the default config are in the "null" namespace.
+    // Note: All attributes allowed by the default config are in the "null"
+    // namespace.
     if (attrNs != kNameSpaceID_None ||
         (!sDefaultAttributes->Contains(attrLocalName) &&
          !(aElementAttributes && aElementAttributes->Contains(attrLocalName)) &&
