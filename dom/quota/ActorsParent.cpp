@@ -5862,6 +5862,10 @@ Result<Ok, nsresult> QuotaManager::EnsureTemporaryGroupIsInitializedInternal(
     // origins. This is going to change soon with the planned asynchronous
     // temporary origin initialization done in the background.
     for (const auto& originMetadata : *array) {
+      if (NS_WARN_IF(IsShuttingDown())) {
+        return Err(NS_ERROR_ABORT);
+      }
+
       if (IsTemporaryOriginInitializedInternal(originMetadata)) {
         continue;
       }
