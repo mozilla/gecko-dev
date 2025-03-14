@@ -4,14 +4,13 @@
 
 "use strict";
 
+/* global AppConstants */
+
 /**
  * This file tests AboutNewTab  for its default URL values, as well as its
  * behaviour when overriding the default URL values.
  */
 
-const { AppConstants } = ChromeUtils.importESModule(
-  "resource://gre/modules/AppConstants.sys.mjs"
-);
 const { AboutNewTab } = ChromeUtils.importESModule(
   "resource:///modules/AboutNewTab.sys.mjs"
 );

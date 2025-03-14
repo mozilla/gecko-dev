@@ -3,6 +3,11 @@
 
 "use strict";
 
+/**
+ * This head.js file is shared between the browser/extensions/newtab xpcshell
+ * tests as well as browser/components/newtab xpcshell tests.
+ */
+
 const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
@@ -38,27 +43,25 @@ AddonTestUtils.overrideCertDB();
  *   Resolves once the addon has been installed.
  */
 async function loadExtension() {
-  let extensionPath = Services.dirsvc.get("GreD", Ci.nsIFile);
-  extensionPath.append("browser");
-  extensionPath.append("chrome");
-  extensionPath.append("browser");
-  extensionPath.append("builtin-addons");
-  extensionPath.append("newtab");
+  const scopes = AddonManager.SCOPE_PROFILE | AddonManager.SCOPE_APPLICATION;
+  Services.prefs.setIntPref("extensions.enabledScopes", scopes);
 
-  let startupPromise = new Promise(resolve => {
-    const { apiManager } = ExtensionParent;
-    function onReady(event, extension) {
-      if (extension.id === "newtab@mozilla.org") {
-        apiManager.off("ready", onReady);
-        resolve();
-      }
-    }
+  const EXTENSION_ID = "newtab@mozilla.org";
+  const builtinsConfig = await fetch(
+    "chrome://browser/content/built_in_addons.json"
+  ).then(res => res.json());
 
-    apiManager.on("ready", onReady);
+  await AddonTestUtils.overrideBuiltIns({
+    system: [],
+    builtins: builtinsConfig.builtins.filter(
+      entry => entry.addon_id === EXTENSION_ID
+    ),
   });
 
-  await AddonManager.installTemporaryAddon(extensionPath);
-  await startupPromise;
+  await AddonTestUtils.promiseRestartManager();
+
+  const addon = await AddonManager.getAddonByID(EXTENSION_ID);
+  Assert.ok(addon, "Expect newtab addon to be found");
 }
 
 add_setup(async function head_initialize() {
