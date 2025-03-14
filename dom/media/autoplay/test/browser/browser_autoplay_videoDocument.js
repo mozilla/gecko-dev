@@ -22,7 +22,13 @@ async function checkIsVideoDocumentAutoplay(browser) {
       ));
     return played;
   });
-  ok(played, "Should be able to play in video document.");
+  // On Android, we won't allow top level video document to autoplay.
+  const expectToPlay = SpecialPowers.Services.appinfo.OS != "Android";
+  is(
+    played,
+    expectToPlay,
+    `Should ${expectToPlay ? "" : "NOT "} be able to play a video document.`
+  );
 }
 
 async function checkIsIframeVideoDocumentAutoplay(browser) {
