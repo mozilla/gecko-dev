@@ -1181,11 +1181,16 @@ export class DiscoveryStreamFeed {
         const headers = new Headers();
         headers.append("content-type", "application/json");
 
-        const spocsResponse = await this.fetchFromEndpoint(endpoint, {
-          method: "POST",
-          headers,
-          body: JSON.stringify(body),
-        });
+        let spocsResponse;
+        try {
+          spocsResponse = await this.fetchFromEndpoint(endpoint, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(body),
+          });
+        } catch (error) {
+          console.error("Error trying to load spocs feeds:", error);
+        }
 
         if (spocsResponse) {
           const fetchTimestamp = Date.now();
