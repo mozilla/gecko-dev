@@ -22,18 +22,21 @@ struct DataType {};
 
 template <>
 struct DataType<JSObject*> {
+  using BarrieredType = HeapPtr<JSObject*>;
+  using HasherType = StableCellHasher<BarrieredType>;
   static JSObject* NullValue() { return nullptr; }
 };
 
 template <>
 struct DataType<JS::Value> {
+  using BarrieredType = HeapPtr<Value>;
   static JS::Value NullValue() { return JS::UndefinedValue(); }
 };
 
 template <typename K, typename V>
 struct Utils {
-  using KeyType = K;
-  using ValueType = V;
+  using KeyType = typename DataType<K>::BarrieredType;
+  using ValueType = typename DataType<V>::BarrieredType;
   using Type = WeakMap<KeyType, ValueType>;
   using PtrType = Type*;
   static PtrType cast(void* ptr) { return static_cast<PtrType>(ptr); }

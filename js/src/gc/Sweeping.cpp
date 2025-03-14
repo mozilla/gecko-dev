@@ -729,7 +729,7 @@ bool Zone::findSweepGroupEdges(Zone* atomsZone) {
     }
   }
 
-  return WeakMapBase::findSweepGroupEdgesForZone(atomsZone, this);
+  return WeakMapBase::findSweepGroupEdgesForZone(this);
 }
 
 bool GCRuntime::addEdgesForMarkQueue() {

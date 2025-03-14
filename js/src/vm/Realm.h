@@ -19,7 +19,6 @@
 #include "builtin/Array.h"
 #include "ds/IdValuePair.h"
 #include "gc/Barrier.h"
-#include "gc/WeakMap.h"
 #include "jit/BaselineCompileQueue.h"
 #include "js/GCVariant.h"
 #include "js/RealmOptions.h"
@@ -230,6 +229,7 @@ struct IteratorHashPolicy {
 
 class DebugEnvironments;
 class NonSyntacticVariablesObject;
+class ObjectWeakMap;
 class WithEnvironmentObject;
 
 // ObjectRealm stores various tables and other state associated with particular

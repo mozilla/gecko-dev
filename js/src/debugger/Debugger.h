@@ -336,10 +336,10 @@ extern void CheckDebuggeeThing(JSObject* obj, bool invisibleOk);
  * beacomes a debuggee again later, new Frame objects are created.)
  */
 template <class Referent, class Wrapper, bool InvisibleKeysOk = false>
-class DebuggerWeakMap : private WeakMap<Referent*, Wrapper*> {
+class DebuggerWeakMap : private WeakMap<HeapPtr<Referent*>, HeapPtr<Wrapper*>> {
  private:
-  using Key = Referent*;
-  using Value = Wrapper*;
+  using Key = HeapPtr<Referent*>;
+  using Value = HeapPtr<Wrapper*>;
 
   JS::Compartment* compartment;
 
@@ -399,7 +399,7 @@ class DebuggerWeakMap : private WeakMap<Referent*, Wrapper*> {
     }
   }
 
-  bool findSweepGroupEdges(JS::Zone* atomsZone) override;
+  bool findSweepGroupEdges() override;
 
  private:
 #ifdef JS_GC_ZEAL

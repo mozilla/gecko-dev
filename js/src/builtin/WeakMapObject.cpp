@@ -164,7 +164,8 @@ bool WeakCollectionObject::nondeterministicGetKeys(
   if (ValueValueWeakMap* map = obj->getMap()) {
     // Prevent GC from mutating the weakmap while iterating.
     gc::AutoSuppressGC suppress(cx);
-    for (ValueValueWeakMap::Range r = map->all(); !r.empty(); r.popFront()) {
+    for (ValueValueWeakMap::Base::Range r = map->all(); !r.empty();
+         r.popFront()) {
       const auto& key = r.front().key();
       MOZ_ASSERT(key.isObject() || key.isSymbol());
       JS::ExposeValueToActiveJS(key);
@@ -230,6 +231,9 @@ JS_PUBLIC_API bool JS::GetWeakMapEntry(JSContext* cx, HandleObject mapObj,
   }
 
   if (ValueValueWeakMap::Ptr ptr = map->lookup(key)) {
+    // Read barrier to prevent an incorrectly gray value from escaping the
+    // weak map. See the comment before UnmarkGrayChildren in gc/Marking.cpp
+    ExposeValueToActiveJS(ptr->value().get());
     rval.set(ptr->value());
   }
   return true;

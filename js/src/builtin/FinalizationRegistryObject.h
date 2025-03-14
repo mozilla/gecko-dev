@@ -87,7 +87,6 @@
 #define builtin_FinalizationRegistryObject_h
 
 #include "gc/Barrier.h"
-#include "gc/WeakMap.h"
 #include "js/GCVector.h"
 #include "vm/NativeObject.h"
 
@@ -96,6 +95,7 @@ namespace js {
 class FinalizationRegistryObject;
 class FinalizationRecordObject;
 class FinalizationQueueObject;
+class ObjectWeakMap;
 
 using HandleFinalizationRegistryObject = Handle<FinalizationRegistryObject*>;
 using HandleFinalizationRecordObject = Handle<FinalizationRecordObject*>;
