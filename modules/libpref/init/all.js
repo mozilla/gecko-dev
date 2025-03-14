@@ -3174,9 +3174,6 @@ pref("network.buffer.cache.size",  32768);
 // Web Notification
 pref("dom.webnotifications.requireinteraction.count", 3);
 
-// Show favicons in web notifications.
-pref("alerts.showFavicons", false);
-
 // DOM full-screen API.
 #ifdef XP_MACOSX
   // Whether to use macOS native full screen for Fullscreen API
