@@ -542,23 +542,6 @@ bool FFmpegVideoDecoder<LIBAV_VER>::ShouldEnableLinuxHWDecoding() const {
 }
 #endif
 
-#if defined(MOZ_WIDGET_GTK) && defined(MOZ_USE_HWDECODE)
-bool FFmpegVideoDecoder<LIBAV_VER>::UploadSWDecodeToDMABuf() const {
-  // Use direct DMABuf upload for GL backend Wayland compositor only.
-  bool available =
-      mImageAllocator && (mImageAllocator->GetCompositorBackendType() ==
-                              layers::LayersBackend::LAYERS_WR &&
-                          !mImageAllocator->UsingSoftwareWebRender() &&
-                          mImageAllocator->GetWebRenderCompositorType() ==
-                              layers::WebRenderCompositor::WAYLAND);
-  if (!available) {
-    return false;
-  }
-  // We use direct upload for HDR content only for now.
-  return IsLinuxHDR();
-}
-#endif
-
 FFmpegVideoDecoder<LIBAV_VER>::FFmpegVideoDecoder(
     FFmpegLibWrapper* aLib, const VideoInfo& aConfig,
     KnowsCompositor* aAllocator, ImageContainer* aImageContainer,
@@ -584,9 +567,6 @@ FFmpegVideoDecoder<LIBAV_VER>::FFmpegVideoDecoder(
   // initialization.
   mExtraData = new MediaByteBuffer;
   mExtraData->AppendElements(*aConfig.mExtraData);
-#if defined(MOZ_WIDGET_GTK) && defined(MOZ_USE_HWDECODE)
-  mUploadSWDecodeToDMABuf = UploadSWDecodeToDMABuf();
-#endif
 #ifdef MOZ_USE_HWDECODE
   InitHWDecoderIfAllowed();
 #endif  // MOZ_USE_HWDECODE
@@ -713,16 +693,6 @@ static bool IsYUV420Sampling(const AVPixelFormat& aFormat) {
          aFormat == AV_PIX_FMT_YUV420P10LE || aFormat == AV_PIX_FMT_YUV420P12LE;
 }
 
-#  if defined(MOZ_WIDGET_GTK)
-bool FFmpegVideoDecoder<LIBAV_VER>::IsLinuxHDR() const {
-  if (!mInfo.mColorPrimaries || !mInfo.mTransferFunction) {
-    return false;
-  }
-  return mInfo.mColorPrimaries.value() == gfx::ColorSpace2::BT2020 &&
-         mInfo.mTransferFunction.value() == gfx::TransferFunction::PQ;
-}
-#  endif
-
 layers::TextureClient*
 FFmpegVideoDecoder<LIBAV_VER>::AllocateTextureClientForImage(
     struct AVCodecContext* aCodecContext, PlanarYCbCrImage* aImage) {
@@ -831,13 +801,6 @@ int FFmpegVideoDecoder<LIBAV_VER>::GetVideoBuffer(
   if (IsHardwareAccelerated()) {
     return AVERROR(EINVAL);
   }
-
-#  if defined(MOZ_WIDGET_GTK) && defined(MOZ_USE_HWDECODE)
-  if (mUploadSWDecodeToDMABuf) {
-    FFMPEG_LOG("DMABuf upload doesn't use shm buffers");
-    return AVERROR(EINVAL);
-  }
-#  endif
 
   if (!IsColorFormatSupportedForUsingCustomizedBuffer(aCodecContext->pix_fmt)) {
     FFMPEG_LOG("Not support color format %d", aCodecContext->pix_fmt);
@@ -1490,7 +1453,7 @@ gfx::SurfaceFormat FFmpegVideoDecoder<LIBAV_VER>::GetSurfaceFormat() const {
 
 MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImage(
     int64_t aOffset, int64_t aPts, int64_t aDuration,
-    MediaDataDecoder::DecodedData& aResults) {
+    MediaDataDecoder::DecodedData& aResults) const {
   FFMPEG_LOG("Got one frame output with pts=%" PRId64 " dts=%" PRId64
              " duration=%" PRId64,
              aPts, mFrame->pkt_dts, aDuration);
@@ -1582,35 +1545,6 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImage(
         mInfo.mDisplay, aOffset, TimeUnit::FromMicroseconds(aPts),
         TimeUnit::FromMicroseconds(aDuration), wrapper->AsImage(),
         !!mFrame->key_frame, TimeUnit::FromMicroseconds(-1));
-  }
-#endif
-#if defined(MOZ_WIDGET_GTK) && defined(MOZ_USE_HWDECODE)
-  if (mUploadSWDecodeToDMABuf) {
-    MOZ_DIAGNOSTIC_ASSERT(!v);
-    if (!mVideoFramePool) {
-      mVideoFramePool = MakeUnique<VideoFramePool<LIBAV_VER>>(10);
-    }
-    const auto yuvData = layers::PlanarYCbCrData::From(b);
-    if (yuvData) {
-      auto surface =
-          mVideoFramePool->GetVideoFrameSurface(*yuvData, mCodecContext);
-      if (surface) {
-        FFMPEG_LOGV("Uploaded HDR video data to DMABuf surface UID %d",
-                    surface->GetDMABufSurface()->GetUID());
-        surface->SetYUVColorSpace(GetFrameColorSpace());
-        surface->SetColorRange(GetFrameColorRange());
-        surface->SetColorPrimaries(mInfo.mColorPrimaries.value());
-        surface->SetTransferFunction(mInfo.mTransferFunction.value());
-        v = VideoData::CreateFromImage(
-            mInfo.mDisplay, aOffset, TimeUnit::FromMicroseconds(aPts),
-            TimeUnit::FromMicroseconds(aDuration), surface->GetAsImage(),
-            !!mFrame->key_frame, TimeUnit::FromMicroseconds(-1));
-      } else {
-        FFMPEG_LOG("Failed to uploaded HDR video data to DMABuf");
-      }
-    } else {
-      FFMPEG_LOG("Failed to convert PlanarYCbCrData");
-    }
   }
 #endif
   if (!v) {

@@ -75,8 +75,6 @@ enum class SurfaceFormat : int8_t {
   // These ones are their own special cases.
   YUV420,     // Sometimes called YU12. 3 planes of 8 bit Y, then Cb, then Cr.
               // 4:2:0 chroma subsampling.
-  YUV420P10,  // YUV420 but with 16 bit plane values where the 6 most
-              // significant bits are 0 (so it's 10-bit format).
   YUV422P10,  // 3 planes like YUV420, but with 4:2:2 chroma subampling and
               // 16 bit plane values where the 6 least significant bits are 0.
   NV12,       // 2 planes. YUV 4:2:0 image with a plane of 8 bit Y samples
@@ -160,7 +158,6 @@ inline std::optional<SurfaceFormatInfo> Info(const SurfaceFormat aFormat) {
       break;
 
     case SurfaceFormat::YUV420:
-    case SurfaceFormat::YUV420P10:
     case SurfaceFormat::YUV422P10:
     case SurfaceFormat::NV12:
     case SurfaceFormat::P016:
@@ -218,7 +215,6 @@ inline std::optional<SurfaceFormatInfo> Info(const SurfaceFormat aFormat) {
       break;
 
     case SurfaceFormat::YUV420:
-    case SurfaceFormat::YUV420P10:
     case SurfaceFormat::YUV422P10:
     case SurfaceFormat::NV12:
     case SurfaceFormat::P016:

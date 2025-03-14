@@ -28,6 +28,7 @@
 #include <dlfcn.h>
 #include <mutex>
 #include <unistd.h>
+#include "gbm.h"
 
 using namespace mozilla::gfx;
 

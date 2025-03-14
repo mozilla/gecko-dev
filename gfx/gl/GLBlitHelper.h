@@ -250,8 +250,6 @@ class GLBlitHelper final {
             OriginPos destOrigin) const;
   bool BlitImage(layers::DMABUFSurfaceImage* srcImage,
                  const gfx::IntSize& destSize, OriginPos destOrigin) const;
-  bool BlitYCbCrImageToDMABuf(const layers::PlanarYCbCrData& yuvData,
-                              DMABufSurface* surface);
 #endif
 
   explicit GLBlitHelper(GLContext* gl);
