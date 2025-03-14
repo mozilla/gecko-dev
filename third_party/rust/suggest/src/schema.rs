@@ -23,7 +23,7 @@ use sql_support::{
 ///     `clear_database()` by adding their names to `conditional_tables`, unless
 ///     they are cleared via a deletion trigger or there's some other good
 ///     reason not to do so.
-pub const VERSION: u32 = 33;
+pub const VERSION: u32 = 34;
 
 /// The current Suggest database schema.
 pub const SQL: &str = "
@@ -614,6 +614,14 @@ impl ConnectionInitializer for SuggestConnectionInitializer<'_> {
             32 => {
                 // Drop rs_cache since it's no longer needed.
                 tx.execute_batch("DROP TABLE rs_cache;")?;
+                Ok(())
+            }
+            33 => {
+                // This migration is due to the replacement of the
+                // `quicksuggest` collection with `quicksuggest-amp` and
+                // `quicksuggest-other`. Clear the DB so that records from the
+                // old collection don't stick around. See bug 1953945.
+                clear_database(tx)?;
                 Ok(())
             }
             _ => Err(open_database::Error::IncompatibleVersion(version)),
