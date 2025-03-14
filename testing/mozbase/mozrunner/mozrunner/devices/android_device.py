@@ -386,40 +386,55 @@ def verify_android_device(
             "MOZ_DISABLE_ADB_INSTALL=True or pass the --no-install flag\n"
             "*********************************************************************"
         )
-    device_verified = False
-    emulator = AndroidEmulator("*", substs=build_obj.substs, verbose=verbose)
-    adb_path = _find_sdk_exe(build_obj.substs, "adb", False)
-    if not adb_path:
-        adb_path = "adb"
-    adbhost = ADBHost(adb=adb_path, verbose=verbose, timeout=SHORT_TIMEOUT)
-    devices = adbhost.devices(timeout=SHORT_TIMEOUT)
-    if "device" in [d["state"] for d in devices]:
-        device_verified = True
-    elif emulator.is_available():
-        response = input(
-            "No Android devices connected. Start an emulator? (Y/n) "
-        ).strip()
-        if response.lower().startswith("y") or response == "":
-            if not emulator.check_avd():
-                _log_info("Android AVD not found, please run |mach bootstrap|")
-                return
-            _log_info(
-                "Starting emulator running %s..." % emulator.get_avd_description()
-            )
-            emulator.start()
-            emulator.wait_for_start()
-            device_verified = True
 
-    if device_verified and "DEVICE_SERIAL" not in os.environ:
+    # If device_serial not specified, check environment variables.
+    if device_serial is None:
+        device_serial = os.environ.get("DEVICE_SERIAL")
+
+    # If no serial specified, check for a connected and ready device
+    if device_serial is None:
+        adb_path = _find_sdk_exe(build_obj.substs, "adb", False)
+        adbhost = ADBHost(adb=adb_path, verbose=verbose, timeout=SHORT_TIMEOUT)
         devices = adbhost.devices(timeout=SHORT_TIMEOUT)
-        for d in devices:
-            if d["state"] == "device":
-                os.environ["DEVICE_SERIAL"] = d["device_serial"]
-                break
+        ready_devices = [d["device_serial"] for d in devices if d["state"] == "device"]
+        if ready_devices:
+            if len(ready_devices) > 1:
+                _log_info(
+                    "Multiple Android devices available. Please set DEVICE_SERIAL to pick one."
+                )
+                return
+            device_serial = ready_devices[0]
+
+    # If no device available, ask about starting an emulator
+    if device_serial is None:
+        emulator = AndroidEmulator("*", substs=build_obj.substs, verbose=verbose)
+        if emulator.is_available():
+            response = input(
+                "No Android devices connected. Start an emulator? (Y/n) "
+            ).strip()
+            if response.lower().startswith("y") or response == "":
+                if not emulator.check_avd():
+                    _log_info("Android AVD not found, please run |mach bootstrap|")
+                    return
+                _log_info(
+                    "Starting emulator running %s..." % emulator.get_avd_description()
+                )
+                emulator.start()
+                emulator.wait_for_start()
+                device_serial = "emulator-5554"
+
+    # Try to open a connection to chosen device
+    device = None
+    if device_serial:
+        device = _get_device(substs=build_obj.substs, device_serial=device_serial)
+
+    # For compatability, we record active device in DEVICE_SERIAL environment
+    if device:
+        os.environ["DEVICE_SERIAL"] = device_serial
 
     metadata = metadata_for_app(app, aab)
 
-    if device_verified and install != InstallIntent.NO:
+    if device and install != InstallIntent.NO:
         # Determine if test app is installed on the device; if not,
         # prompt to install. This feature allows a test command to
         # launch an emulator, install the test app, and proceed with testing
@@ -432,7 +447,6 @@ def verify_android_device(
         # Installing every time (without prompting) is problematic because:
         #  - it prevents testing against other builds (downloaded apk)
         #  - installation may take a couple of minutes.
-        device = _get_device(build_obj.substs, device_serial)
         response = ""
         installed = device.is_app_installed(metadata.package_name)
 
@@ -467,7 +481,7 @@ def verify_android_device(
 
         device.run_as_package = metadata.package_name
 
-    if device_verified and xre:
+    if device and xre:
         # Check whether MOZ_HOST_BIN has been set to a valid xre; if not,
         # prompt to install one.
         xre_path = os.environ.get("MOZ_HOST_BIN")
@@ -497,13 +511,11 @@ def verify_android_device(
             if response.lower().startswith("y") or response == "":
                 _install_host_utils(build_obj)
 
-    if device_verified and network:
+    if device and network:
         # Optionally check the network: If on a device that does not look like
         # an emulator, verify that the device IP address can be obtained
         # and check that this host can ping the device.
-        serial = device_serial or os.environ.get("DEVICE_SERIAL")
-        if not serial or ("emulator" not in serial):
-            device = _get_device(build_obj.substs, serial)
+        if "emulator" not in device_serial:
             device.run_as_package = metadata.package_name
             try:
                 addr = device.get_ip_address()
@@ -531,7 +543,7 @@ def verify_android_device(
             metadata.package_name, build_obj.substs, device_serial, setup=True
         )
 
-    return device_verified
+    return device is not None
 
 
 def run_lldb_server(app, substs, device_serial):

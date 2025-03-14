@@ -1684,7 +1684,7 @@ def _run_android(
     )
     device_serial = os.environ.get("DEVICE_SERIAL")
     if not device_serial:
-        print("No ADB devices connected.")
+        print("Unable to find ready Android device")
         return 1
 
     device = _get_device(command_context.substs, device_serial=device_serial)
