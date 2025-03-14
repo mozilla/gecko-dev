@@ -969,13 +969,13 @@ const nsStaticAtom* const kURLAttributesMathML[] = {
     // clang-format on
 };
 
-nsTreeSanitizer::AtomsTable* nsTreeSanitizer::sElementsHTML = nullptr;
-nsTreeSanitizer::AtomsTable* nsTreeSanitizer::sAttributesHTML = nullptr;
-nsTreeSanitizer::AtomsTable* nsTreeSanitizer::sPresAttributesHTML = nullptr;
-nsTreeSanitizer::AtomsTable* nsTreeSanitizer::sElementsSVG = nullptr;
-nsTreeSanitizer::AtomsTable* nsTreeSanitizer::sAttributesSVG = nullptr;
-nsTreeSanitizer::AtomsTable* nsTreeSanitizer::sElementsMathML = nullptr;
-nsTreeSanitizer::AtomsTable* nsTreeSanitizer::sAttributesMathML = nullptr;
+StaticAtomSet* nsTreeSanitizer::sElementsHTML = nullptr;
+StaticAtomSet* nsTreeSanitizer::sAttributesHTML = nullptr;
+StaticAtomSet* nsTreeSanitizer::sPresAttributesHTML = nullptr;
+StaticAtomSet* nsTreeSanitizer::sElementsSVG = nullptr;
+StaticAtomSet* nsTreeSanitizer::sAttributesSVG = nullptr;
+StaticAtomSet* nsTreeSanitizer::sElementsMathML = nullptr;
+StaticAtomSet* nsTreeSanitizer::sAttributesMathML = nullptr;
 nsIPrincipal* nsTreeSanitizer::sNullPrincipal = nullptr;
 
 nsTreeSanitizer::nsTreeSanitizer(uint32_t aFlags)
@@ -1522,37 +1522,37 @@ void nsTreeSanitizer::LogMessage(const char* aMessage, Document* aDoc,
 void nsTreeSanitizer::InitializeStatics() {
   MOZ_ASSERT(!sElementsHTML, "Initializing a second time.");
 
-  sElementsHTML = new AtomsTable(std::size(kElementsHTML));
+  sElementsHTML = new StaticAtomSet(std::size(kElementsHTML));
   for (uint32_t i = 0; kElementsHTML[i]; i++) {
     sElementsHTML->Insert(kElementsHTML[i]);
   }
 
-  sAttributesHTML = new AtomsTable(std::size(kAttributesHTML));
+  sAttributesHTML = new StaticAtomSet(std::size(kAttributesHTML));
   for (uint32_t i = 0; kAttributesHTML[i]; i++) {
     sAttributesHTML->Insert(kAttributesHTML[i]);
   }
 
-  sPresAttributesHTML = new AtomsTable(std::size(kPresAttributesHTML));
+  sPresAttributesHTML = new StaticAtomSet(std::size(kPresAttributesHTML));
   for (uint32_t i = 0; kPresAttributesHTML[i]; i++) {
     sPresAttributesHTML->Insert(kPresAttributesHTML[i]);
   }
 
-  sElementsSVG = new AtomsTable(std::size(kElementsSVG));
+  sElementsSVG = new StaticAtomSet(std::size(kElementsSVG));
   for (uint32_t i = 0; kElementsSVG[i]; i++) {
     sElementsSVG->Insert(kElementsSVG[i]);
   }
 
-  sAttributesSVG = new AtomsTable(std::size(kAttributesSVG));
+  sAttributesSVG = new StaticAtomSet(std::size(kAttributesSVG));
   for (uint32_t i = 0; kAttributesSVG[i]; i++) {
     sAttributesSVG->Insert(kAttributesSVG[i]);
   }
 
-  sElementsMathML = new AtomsTable(std::size(kElementsMathML));
+  sElementsMathML = new StaticAtomSet(std::size(kElementsMathML));
   for (uint32_t i = 0; kElementsMathML[i]; i++) {
     sElementsMathML->Insert(kElementsMathML[i]);
   }
 
-  sAttributesMathML = new AtomsTable(std::size(kAttributesMathML));
+  sAttributesMathML = new StaticAtomSet(std::size(kAttributesMathML));
   for (uint32_t i = 0; kAttributesMathML[i]; i++) {
     sAttributesMathML->Insert(kAttributesMathML[i]);
   }

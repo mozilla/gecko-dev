@@ -270,6 +270,7 @@ EXPORTS.mozilla.dom += [
     "SerializedStackHolder.h",
     "ShadowIncludingTreeIterator.h",
     "ShadowRoot.h",
+    "StaticAtomSet.h",
     "StaticRange.h",
     "StructuredCloneBlob.h",
     "StructuredCloneHolder.h",
