@@ -192,10 +192,11 @@ DWORD LazyInstantiator::GetRemoteMsaaClientPid() {
  * This is the blocklist for known "bad" remote clients that instantiate a11y.
  */
 static const char* gBlockedRemoteClients[] = {
-    "tbnotifier.exe",  // Ask.com Toolbar, bug 1453876
-    "flow.exe",        // Conexant Flow causes performance issues, bug 1569712
-    "rtop_bg.exe",     // ByteFence Anti-Malware, bug 1713383
-    "osk.exe",         // Windows On-Screen Keyboard, bug 1424505
+    "tbnotifier.exe",   // Ask.com Toolbar, bug 1453876
+    "flow.exe",         // Conexant Flow causes performance issues, bug 1569712
+    "rtop_bg.exe",      // ByteFence Anti-Malware, bug 1713383
+    "osk.exe",          // Windows On-Screen Keyboard, bug 1424505
+    "corplink-uc.exe",  // Feilian CorpLink, bug 1951571
 };
 
 /**
