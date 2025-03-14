@@ -138,6 +138,40 @@ class TestSessionRestoreWithTabGroups(SessionStoreTestCase):
             msg="We have no saved tab groups",
         )
 
+    def test_no_redundant_saves(self):
+        self.wait_for_windows(
+            self.all_windows, "Not all requested windows have been opened"
+        )
+
+        self.marionette.execute_script(
+            """
+            let group = gBrowser.addTabGroup([...gBrowser.tabs], { id: "group-to-save", label: "to-save" });
+            let { TabStateFlusher } = ChromeUtils.importESModule("resource:///modules/sessionstore/TabStateFlusher.sys.mjs");
+            TabStateFlusher.flushWindow(gBrowser.ownerGlobal).then(() => {
+                group.saveAndClose();
+            });
+            """
+        )
+
+        self.marionette.quit()
+        self.marionette.start_session()
+        self.marionette.set_context("chrome")
+        self.assertEqual(
+            self.marionette.execute_script(
+                """
+                return SessionStore.savedGroups.length;
+                """
+            ),
+            1,
+            "There is one and only one saved group",
+        )
+
+        self.marionette.execute_script(
+            """
+            SessionStore.forgetSavedTabGroup("group-to-save");
+            """
+        )
+
     def wait_for_tabcount(self, expected_tabcount, message, timeout=5):
         current_tabcount = None
 

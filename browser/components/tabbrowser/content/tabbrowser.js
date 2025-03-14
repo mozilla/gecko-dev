@@ -2997,6 +2997,13 @@
         options.skipPermitUnload = true;
       }
 
+      if (group.tabs.length == this.tabs.length) {
+        // explicit calls to removeTabGroup are not expected to save groups.
+        // if removing this group closes a window, we need to tell the window
+        // not to save the group.
+        group.saveOnWindowClose = false;
+      }
+
       // This needs to be fired before tabs are removed because session store
       // needs to respond to this while tabs are still part of the group
       group.dispatchEvent(
