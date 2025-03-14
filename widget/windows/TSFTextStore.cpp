@@ -6923,6 +6923,14 @@ void TSFTextStore::Initialize() {
 
   MarkContextAsKeyboardDisabled(disabledContext);
   MarkContextAsEmpty(disabledContext);
+  hr = disabledDocumentMgr->Push(disabledContext);
+  if (FAILED(hr)) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("  TSFTextStore::Initialize() FAILED to push disabled context, "
+             "hr=0x%08lX",
+             hr));
+    // Don't return, we should ignore the failure and release them later.
+  }
 
   sThreadMgr = threadMgr;
   sDisabledDocumentMgr = disabledDocumentMgr;
@@ -7089,8 +7097,12 @@ void TSFTextStore::Terminate() {
   sDisplayAttrMgr = nullptr;
   sCategoryMgr = nullptr;
   sEnabledTextStore = nullptr;
-  sDisabledDocumentMgr = nullptr;
-  sDisabledContext = nullptr;
+  if (const RefPtr<ITfDocumentMgr> disabledDocumentMgr =
+          sDisabledDocumentMgr.forget()) {
+    MOZ_ASSERT(!sDisabledDocumentMgr);
+    disabledDocumentMgr->Pop(TF_POPF_ALL);
+    sDisabledContext = nullptr;
+  }
   sCompartmentForOpenClose = nullptr;
   sInputProcessorProfiles = nullptr;
   sClientId = 0;
