@@ -479,7 +479,14 @@ function parseManifest(manifestUri) {
       let [type, ...argv] = line.split(/\s+/);
       if (type == "content" || type == "skin" || type == "locale") {
         let chromeUri = `chrome://${argv[0]}/${type}/`;
-        trackChromeUri(chromeUri);
+        // The webcompat reporter's locale directory may not exist if
+        // the addon is preffed-off, and since it's a hack until we
+        // get bz1425104 landed, we'll just skip it for now.
+        if (chromeUri === "chrome://report-site-issue/locale/") {
+          gChromeMap.set("chrome://report-site-issue/locale/", true);
+        } else {
+          trackChromeUri(chromeUri);
+        }
       } else if (type == "override" || type == "overlay") {
         // Overlays aren't really overrides, but behave the same in
         // that the overlay is only referenced if the original xul

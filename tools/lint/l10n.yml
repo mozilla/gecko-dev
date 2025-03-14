@@ -6,6 +6,7 @@ l10n:
     include:
         - browser/branding/official/locales/en-US
         - browser/extensions/formautofill/locales/en-US
+        - browser/extensions/report-site-issue/locales/en-US
         - browser/locales/en-US
         - devtools/client/locales/en-US
         - devtools/shared/locales/en-US
