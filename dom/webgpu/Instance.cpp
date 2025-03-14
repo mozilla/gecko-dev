@@ -8,6 +8,8 @@
 #include "Adapter.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/gfx/Logging.h"
+#include "nsDebug.h"
 #include "nsIGlobalObject.h"
 #include "ipc/WebGPUChild.h"
 #include "ipc/WebGPUTypes.h"
@@ -67,7 +69,17 @@ Instance::Instance(nsIGlobalObject* aOwner)
     NS_ConvertASCIItoUTF16 feature{wgslFeature};
     this->mWgslLanguageFeatures->Add(feature, rv);
     if (rv.Failed()) {
-      MOZ_CRASH("failed to append WGSL language feature");
+      if (rv.ErrorCodeIs(NS_ERROR_UNEXPECTED)) {
+        // This is fine; something went wrong with the JS scope we're in, and we
+        // can just let that happen.
+        NS_WARNING(
+            "`Instance::Instance`: failed to append WGSL language feature: got "
+            "`NS_ERROR_UNEXPECTED`");
+      } else {
+        MOZ_CRASH_UNSAFE_PRINTF(
+            "`Instance::Instance`: failed to append WGSL language feature: %d",
+            rv.ErrorCodeAsInt());
+      }
     }
   }
 }
