@@ -2,27 +2,15 @@
   "manifest_version": 2,
   "name": "test-trial-ml",
   "version": "0.1",
-  "description": "test-trial-ml description",
+  "description": "A demo extension that uses the (trial) ML API.",
   "optional_permissions": ["trialML"],
   "permissions": ["menus", "activeTab", "scripting"],
   "icons": {
     "64": "icon.png"
   },
-  "browser_action": {
-    "default_title": "test-trial-ml (browserAction)",
-    "default_icon": {
-      "64": "icon.png"
-    }
-  },
   "background": {
     "scripts": ["background.js"]
   },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content-script.js"]
-    }
-  ],
   "options_ui": {
     "page": "settings.html"
   }

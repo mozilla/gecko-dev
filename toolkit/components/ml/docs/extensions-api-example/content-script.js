@@ -30,7 +30,7 @@ class AltTextModal {
   }
 
   #createModal() {
-    modal = document.createElement("div");
+    const modal = document.createElement("div");
     modal.id = this.modalId;
     modal.className = "ml-progress";
     document.body.appendChild(modal);
@@ -110,15 +110,10 @@ class AltTextModal {
   }
 }
 
-let modal;
-
-function getModal() {
-  if (modal) {
-    return modal;
-  }
-  modal = new AltTextModal();
+if (!window.altTextModal) {
+  window.altTextModal = new AltTextModal();
   window.addEventListener("beforeunload", _event => {
-    modal.close();
+    window.altTextModal.close();
+    delete window.altTextModal;
   });
-  return modal;
 }

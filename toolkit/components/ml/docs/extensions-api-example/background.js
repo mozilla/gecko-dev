@@ -7,17 +7,17 @@
  * Called in the tab content
  */
 async function generateAltText(targetElementId) {
-  const modal = getModal();
+  const { altTextModal } = window;
   try {
     const imageUrl = browser.menus.getTargetElement(targetElementId).src;
-    modal.updateText("Running inference...");
+    altTextModal.updateText("Running inference...");
 
     const res = await browser.trial.ml.runEngine({
       args: [imageUrl],
     });
-    modal.updateText(res[0].generated_text);
+    altTextModal.updateText(res[0].generated_text);
   } catch (err) {
-    modal.updateText(`${err}`);
+    altTextModal.updateText(`${err}`);
   }
 }
 
@@ -25,7 +25,8 @@ async function generateAltText(targetElementId) {
  * Called in the tab content
  */
 async function _displayMessage(message) {
-  getModal().updateText(message);
+  const { altTextModal } = window;
+  altTextModal.updateText(message);
 }
 
 /**
