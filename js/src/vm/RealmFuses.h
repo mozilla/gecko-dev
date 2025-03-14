@@ -160,6 +160,7 @@ struct OptimizeArraySpeciesFuse final : public InvalidatingRealmFuse {
 struct OptimizePromiseLookupFuse final : public InvalidatingRealmFuse {
   virtual const char* name() override { return "OptimizePromiseLookupFuse"; }
   virtual bool checkInvariant(JSContext* cx) override;
+  virtual void popFuse(JSContext* cx, RealmFuses& realmFuses) override;
 };
 
 // Guard used to optimize iterating over Map objects. If this fuse is intact,

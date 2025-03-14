@@ -2896,6 +2896,9 @@ static void SetUseCounterCallback(JSObject* obj, JSUseCounter counter) {
     case JSUseCounter::OPTIMIZE_ARRAY_SPECIES_FUSE:
       SetUseCounter(obj, eUseCounter_custom_JS_optimizeArraySpecies_fuse);
       return;
+    case JSUseCounter::OPTIMIZE_PROMISE_LOOKUP_FUSE:
+      SetUseCounter(obj, eUseCounter_custom_JS_optimizePromiseLookup_fuse);
+      return;
     case JSUseCounter::THENABLE_USE:
       SetUseCounter(obj, eUseCounter_custom_JS_thenable);
       return;

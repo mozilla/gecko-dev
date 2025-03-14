@@ -115,7 +115,8 @@ extern JS_PUBLIC_API void JS_SetAccumulateTelemetryCallback(
   _(ERRORSTACK_SETTER_NO_ERRORDATA, ErrorStackSetterNoErrorData) \
   _(DATEPARSE, DateParse)                                        \
   _(DATEPARSE_IMPL_DEF, DateParseImplDef)                        \
-  _(OPTIMIZE_ARRAY_SPECIES_FUSE, OptimizeArraySpeciesFuse)
+  _(OPTIMIZE_ARRAY_SPECIES_FUSE, OptimizeArraySpeciesFuse)       \
+  _(OPTIMIZE_PROMISE_LOOKUP_FUSE, OptimizePromiseLookupFuse)
 
 /*
  * Use counter names passed to the accumulate use counter callback.

@@ -36,3 +36,5 @@ newGlobal().evaluate(`
   Object.defineProperty(Promise, Symbol.species, {value: null});
   assertEq(getFuseState().OptimizePromiseLookupFuse.intact, false);
 `);
+
+assertEq(getUseCounterResults().OptimizePromiseLookupFuse, 4);

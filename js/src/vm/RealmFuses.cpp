@@ -358,6 +358,14 @@ bool js::OptimizeArraySpeciesFuse::checkInvariant(JSContext* cx) {
                                  cx->names().dollar_ArraySpecies_);
 }
 
+void js::OptimizePromiseLookupFuse::popFuse(JSContext* cx,
+                                            RealmFuses& realmFuses) {
+  InvalidatingRealmFuse::popFuse(cx, realmFuses);
+  MOZ_ASSERT(cx->global());
+  cx->runtime()->setUseCounter(cx->global(),
+                               JSUseCounter::OPTIMIZE_PROMISE_LOOKUP_FUSE);
+}
+
 bool js::OptimizePromiseLookupFuse::checkInvariant(JSContext* cx) {
   // Prototype must be Promise.prototype.
   auto* proto = cx->global()->maybeGetPrototype<NativeObject>(JSProto_Promise);
