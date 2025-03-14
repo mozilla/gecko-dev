@@ -669,6 +669,10 @@
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Πώς χρησιμοποιούμε τα δεδομένα</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Επιβεβαίωση και έναρξη περιήγησης</string>
+  <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Κάτι ακόμα</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Μοιραστείτε πώς ανακαλύψατε το Firefox και δηλώστε ότι το χρησιμοποιείτε στους συνεργάτες μάρκετινγκ της Mozilla. Αυτά τα δεδομένα δεν θα πωληθούν ποτέ.</string>
   <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Αποδοχή και έναρξη περιήγησης</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
@@ -706,6 +710,12 @@
   <string name="onboarding_customize_theme_content_description">Εικόνα για το %1$s θέμα</string>
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Όχι τώρα</string>
+  <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Έναρξη γρήγορης αναζήτησης</string>
   <!--
     Search Widget
 
@@ -905,6 +915,14 @@
   <string name="preferences_show_nonsponsored_suggestions">Προτάσεις από το %1$s</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">Λάβετε προτάσεις από το διαδίκτυο που σχετίζονται με την αναζήτησή σας</string>
+  <!-- Preference for link sharing -->
+  <string name="preferences_link_sharing">Κοινοποίηση συνδέσμου</string>
+  <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_title">Προσθήκη του συνδέσμου λήψης του %1$s στις κοινοποιήσεις μέσω WhatsApp</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">Προσκαλέστε τους φίλους σας να δοκιμάσουν το %1$s για ταχύτερη και ασφαλέστερη περιήγηση, κάθε φορά που μοιράζεστε έναν σύνδεσμο μέσω του WhatsApp.</string>
+  <!-- Snackbar message shown when user shares a link -->
+  <string name="link_shared_snackbar_message">Ο σύνδεσμος κοινοποιήθηκε</string>
   <!-- Snackbar action label shown when user shares a link -->
   <string name="link_shared_snackbar_action">Διαχείριση ρυθμίσεων</string>
   <!-- Preference for open links in third party apps -->
@@ -1123,15 +1141,15 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Μάθετε περισσότερα</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1">Τεχνικά δεδομένα και δεδομένα αλληλεπίδρασης</string>
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Τεχνικά δεδομένα και δεδομένα αλληλεπίδρασης</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_2" tools:ignore="UnusedResources">Αποστολή τεχνικών δεδομένων και δεδομένων αλληλεπίδρασης</string>
+  <string name="preference_usage_data_2">Αποστολή τεχνικών δεδομένων και δεδομένων αλληλεπίδρασης</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Μάθετε περισσότερα</string>
+  <string name="preference_usage_data_learn_more">Μάθετε περισσότερα</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Αποστέλλει πληροφορίες επιδόσεων, χρήσης, υλικού συσκευής και εξατομίκευσης του προγράμματος περιήγησης στη Mozilla για βελτίωση του %1$s</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
-  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Τα δεδομένα της συσκευής, των ρυθμίσεων υλικού και της χρήσης σας, μάς βοηθούν να βελτιώσουμε τις λειτουργίες, τις επιδόσεις και τη σταθερότητα του Firefox.</string>
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Τα δεδομένα της συσκευής, των ρυθμίσεων υλικού και της χρήσης σας, μάς βοηθούν να βελτιώσουμε τις λειτουργίες, τις επιδόσεις και τη σταθερότητα του Firefox.</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Δεδομένα μάρκετινγκ</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
@@ -1848,6 +1866,10 @@
   <string name="sync_add_new_device_learn_button">Μάθετε για την αποστολή καρτελών…</string>
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">Σύνδεση άλλης συσκευής…</string>
+  <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nΑπεστάλη από το %2$s 🦊 Δοκιμάστε το: %3$s</string>
+  <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nΑπεστέλη από το %2$s 🦊 %3$s</string>
   <!--
     Notifications
 
@@ -2192,6 +2214,8 @@
     Preference title for DNS over HTTPS settings
   -->
   <string name="preference_doh_title">DNS μέσω HTTPS</string>
+  <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_summary">Το DNS (Domain Name System) μέσω HTTPS στέλνει το αίτημά σας για όνομα τομέα μέσω κρυπτογραφημένης σύνδεσης, παρέχοντας ένα ασφαλές DNS και δυσκολεύοντας τους άλλους να δουν σε ποιον ιστότοπο πρόκειται να αποκτήσετε πρόσβαση. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Μάθετε περισσότερα</string>
   <!-- Content description for the toolbar "Navigate up" button -->
@@ -2204,16 +2228,46 @@
   <string name="preference_doh_add_site_description">Προσθήκη ιστοτόπου</string>
   <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection">Προεπιλεγμένη προστασία</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">Το %1$s αποφασίζει πότε θα χρησιμοποιεί ασφαλές DNS για την προστασία του απορρήτου σας.</string>
+  <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_1">Χρήση του παρόχου της επιλογής σας</string>
+  <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_2">Χρήση προεπιλεγμένης ανάλυσης DNS εάν υπάρχει πρόβλημα με τον πάροχο ασφαλούς DNS</string>
+  <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_3">Χρήση τοπικού παρόχου εάν είναι δυνατόν. %1$s</string>
+  <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_4">Απενεργοποίηση όταν είναι ενεργό το VPN, ο γονικός έλεγχος ή οι εταιρικές πολιτικές</string>
+  <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_5">Απενεργοποίηση όταν ένα δίκτυο ενημερώνει το %1$s ότι δεν πρέπει να χρησιμοποιήσει ασφαλές DNS. %2$s</string>
   <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection">Αυξημένη προστασία</string>
   <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection_summary">Εσείς ελέγχετε πότε θα χρησιμοποιείται ασφαλές DNS και επιλέγετε τον πάροχό σας.</string>
   <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection_info_1">Χρήση του παρόχου της επιλογής σας</string>
+  <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_2">Χρήση προεπιλεγμένης ανάλυσης DNS μόνο εάν υπάρχει πρόβλημα με το ασφαλές DNS</string>
   <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection">Μέγιστη προστασία</string>
+  <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_max_protection_summary">Το %1$s θα χρησιμοποιεί πάντα ασφαλές DNS. Θα βλέπετε μια προειδοποίηση πριν χρησιμοποιήσουμε το DNS του συστήματός σας.</string>
+  <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_1">Χρήση μόνο του παρόχου της επιλογής σας</string>
+  <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_2">Πάντα προειδοποίηση εάν το ασφαλές DNS δεν είναι διαθέσιμο</string>
+  <!-- Bullet point 3 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_3">Εάν δεν διατίθεται ασφαλές DNS, οι ιστότοποι δεν θα φορτώνονται ή δεν θα λειτουργούν σωστά</string>
+  <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off">Ανενεργό</string>
+  <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off_summary">Χρήση προεπιλεγμένης ανάλυσης DNS</string>
+  <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
+  <string name="preference_doh_choose_provider">Επιλογή παρόχου</string>
   <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
   <string name="preference_doh_provider_default">(προεπιλογή)</string>
+  <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_custom">Προσαρμοσμένο</string>
   <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_title">Προσαρμοσμένος πάροχος</string>
   <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
@@ -2228,6 +2282,8 @@
   <string name="preference_doh_provider_custom_dialog_add">Προσθήκη</string>
   <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
   <string name="preference_doh_exceptions">Εξαιρέσεις</string>
+  <!-- Description of "exceptions" for "DNS over HTTPS". The first parameter is the name of the application. (For example: Fenix) -->
+  <string name="preference_doh_exceptions_summary">Το %1$s δεν θα χρησιμοποιεί ασφαλές DNS σε αυτούς τους ιστοτόπους και τους υποτομείς τους.</string>
   <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
   <string name="preference_doh_exceptions_add">Προσθήκη ιστοτόπου</string>
   <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
@@ -2544,6 +2600,8 @@
   <string name="quick_settings_sheet_secure_connection_2">Η σύνδεση είναι ασφαλής</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">Η σύνδεση δεν είναι ασφαλής</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">Αυτή η σελίδα είναι αποθηκευμένη στη συσκευή σας.</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">Απαλοιφή cookie και δεδομένων ιστοτόπων</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->
@@ -2701,6 +2759,11 @@
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">Προτάσεις Firefox</string>
   <!-- Search suggestions title for trending searches. -->
   <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">Δημοφιλείς αναζητήσεις</string>
+  <!--
+    Search suggestions title for trending search suggestions.
+    %s is a placeholder for the name of the search engine providing the trending search suggestions.
+  -->
+  <string name="trending_searches_header_2">Δημοφιλές στο %s</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header">Αναζήτηση Google</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->

@@ -1138,15 +1138,15 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">了解更多</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1">技術與互動資料</string>
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">技術與互動資料</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_2" tools:ignore="UnusedResources">傳送技術與互動資料</string>
+  <string name="preference_usage_data_2">傳送技術與互動資料</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">更多資訊</string>
+  <string name="preference_usage_data_learn_more">更多資訊</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">分享您瀏覽器的效能、使用方式、硬體設備、與自訂功能的資料給 Mozilla 以幫助我們讓 %1$s 變得更好</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
-  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">關於您的裝置、硬體設定，以及您的使用方式，可幫助我們為所有使用者改進 Firefox 功能、效能與穩定度。</string>
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">關於您的裝置、硬體設定，以及您的使用方式，可幫助我們為所有使用者改進 Firefox 功能、效能與穩定度。</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">行銷資料</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->

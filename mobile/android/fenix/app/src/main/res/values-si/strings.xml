@@ -947,7 +947,7 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">තව දැනගන්න</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">තව දැනගන්න</string>
+  <string name="preference_usage_data_learn_more">තව දැනගන්න</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">%1$s දියුණු කිරීම සඳහා ඔබගේ අතිරික්සුවෙහි කාර්ය සාධනය, භාවිතය, දෘඩාංග හා රුචිකරණය පිළිබඳ දත්ත මොසිල්ලා සමඟ බෙදා ගැනෙයි</string>
   <!-- Preference switch for marketing data collection -->

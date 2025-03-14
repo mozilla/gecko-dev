@@ -1141,15 +1141,15 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">ਹੋਰ ਸਿੱਖੋ</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1">ਤਕਨੀਕੀ ਅਤੇ ਤਾਲਮੇਲ ਡਾਟਾ</string>
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">ਤਕਨੀਕੀ ਅਤੇ ਤਾਲਮੇਲ ਡਾਟਾ</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_2" tools:ignore="UnusedResources">ਤਕਨੀਕੀ ਅਤੇ ਤਾਲਮੇਲ ਡਾਟੇ ਨੂੰ ਭੇਜੋ</string>
+  <string name="preference_usage_data_2">ਤਕਨੀਕੀ ਅਤੇ ਤਾਲਮੇਲ ਡਾਟੇ ਨੂੰ ਭੇਜੋ</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">ਹੋਰ ਜਾਣੋ</string>
+  <string name="preference_usage_data_learn_more">ਹੋਰ ਜਾਣੋ</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">ਸਾਨੂੰ %1$s ਵਧੀਆ ਬਣਾਉਣ ਲਈ ਆਪਣੇ ਬਰਾਊਜ਼ਰ ਦੀ ਕਾਰਗੁਜ਼ਾਰੀ, ਵਰਤੋ, ਹਾਰਡਵੇਅਰ ਅਤੇ ਪਸੰਦ ਬਦਲਣ ਦਾ ਡਾਟਾ ਸਾਂਝਾ ਕਰੋ</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
-  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">ਤੁਹਾਡੇ ਡਿਵਾਈਸ, ਹਾਰਡਵੇਅਰ ਸੰਰਚਨਾ ਅਤੇ ਵਰਤੋਂ ਬਾਰੇ ਡਾਟਾ ਸਾਨੂੰ Firefox ਦੇ ਫ਼ੀਚਰਾਂ, ਕਾਰਗੁਜ਼ਾਰੀ ਅਤੇ ਸਥਿਰਤਾ ਵਿੱਚ ਸੁਧਾਰ ਕਰਨ ਲਈ ਮਦਦ ਕਰਦਾ ਹੈ।</string>
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">ਤੁਹਾਡੇ ਡਿਵਾਈਸ, ਹਾਰਡਵੇਅਰ ਸੰਰਚਨਾ ਅਤੇ ਵਰਤੋਂ ਬਾਰੇ ਡਾਟਾ ਸਾਨੂੰ Firefox ਦੇ ਫ਼ੀਚਰਾਂ, ਕਾਰਗੁਜ਼ਾਰੀ ਅਤੇ ਸਥਿਰਤਾ ਵਿੱਚ ਸੁਧਾਰ ਕਰਨ ਲਈ ਮਦਦ ਕਰਦਾ ਹੈ।</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">ਮਾਰਕੀਟਿੰਗ ਡਾਟਾ</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->

@@ -66,7 +66,7 @@
         &lt;li&gt;എന്നിട്ടും പ്രശ്നം ഉണ്ടോ? എങ്കില്‍ നെറ്റ്‌വര്‍ക്ക്അഡ്മിനിസ്ട്രേറ്റര്‍ അല്ലെങ്കില്‍ ഇന്റര്‍നെറ്റ് പ്രൊവൈഡറുമായി ബന്ധപ്പെടുക.&lt;/li&gt;
       &lt;/ul&gt;</string>
   <!-- The document title and heading of the error page shown when a website could not be reached. -->
-  <string name="mozac_browser_errorpages_connection_failure_title">ബന്ധിപ്പിക്കാൻ കഴിയില്ല</string>
+  <string name="mozac_browser_errorpages_connection_failure_title">ബന്ധിപ്പിക്കാൻ കഴിയുന്നില്ല</string>
   <!-- The error message shown when a website could not be reached. -->
   <string name="mozac_browser_errorpages_connection_failure_message">&lt;ul&gt;
         &lt;li&gt;ഈ സൈറ്റ് തിരക്കിലാണ് അല്ലെങ്കിൽ താത്കാലമായി ലഭ്യമല്ല. അല്പ സമയത്തിനു് ശേഷം വീണ്ടും ശ്രമിയ്ക്കൂ.&lt;/li&gt;
@@ -105,7 +105,7 @@
         &lt;li&gt;നിങ്ങൾക്ക് താളുകളൊന്നും ലോഡുചെയ്യാൻ കഴിയുന്നില്ലെങ്കിൽ നിങ്ങളുടെ ഉപകരണത്തിന്റെ ഡാറ്റയോ വൈഫൈ കണക്ഷനോ പരിശോധിക്കുക.&lt;/li&gt;
       &lt;/ul&gt;</string>
   <!-- The document title and heading of the error page shown when the browser refuses to load a type of file that is considered unsafe. -->
-  <string name="mozac_browser_errorpages_unsafe_content_type_title">സുരക്ഷിതമല്ലാത്ത ഫയല്‍</string>
+  <string name="mozac_browser_errorpages_unsafe_content_type_title">സുരക്ഷിതമല്ലാത്ത ഫയല്‍ തരം</string>
   <!-- The error message shown when the browser refuses to load a type of file that is considered unsafe. -->
   <string name="mozac_browser_errorpages_unsafe_content_type_message">&lt;ul&gt;
         &lt;li&gt;ദയവായി വെബ് സൈറ്റ് ഉടമകളെ ഈ പ്രശ്നം അറിയിയ്ക്കുക.&lt;/li&gt;

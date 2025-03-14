@@ -1071,11 +1071,11 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">കൂടുതല്‍ അറിയുക</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1">സാങ്കേതിയും ഇടപാടുനീയ ദത്ത</string>
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">സാങ്കേതിയും ഇടപാടുനീയ ദത്ത</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_2" tools:ignore="UnusedResources">സാങ്കേതിയും ഇടപാടുനീയ ദത്ത അയയ്ക്കുക</string>
+  <string name="preference_usage_data_2">സാങ്കേതിയും ഇടപാടുനീയ ദത്ത അയയ്ക്കുക</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">കൂടുതലറിയുക</string>
+  <string name="preference_usage_data_learn_more">കൂടുതലറിയുക</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">പ്രകടനം, ഉപയോഗം, ഹാർഡ്‌വെയർ തുടങ്ങിയ വിവരങ്ങൾ മോഡില്ലയുമായിമായി പങ്കു വെച്ച്  %1$s മെച്ചപ്പെടുത്തുവാൻ സഹായിക്കുക</string>
   <!-- Preference switch for marketing data collection -->

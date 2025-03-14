@@ -1138,15 +1138,15 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Научете повече</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1">Технически данни и данни за взаимодействие</string>
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Технически данни и данни за взаимодействие</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_2" tools:ignore="UnusedResources">Изпращане на технически данни и данни за взаимодействие</string>
+  <string name="preference_usage_data_2">Изпращане на технически данни и данни за взаимодействие</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Научете повече</string>
+  <string name="preference_usage_data_learn_more">Научете повече</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Споделя данни за използването, производителността, хардуера, настройките на четеца с Mozilla, за да ни помогне да направим %1$s по-добър</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
-  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Данните за вашето устройство, хардуерна конфигурация и използване ни помагат да подобрим възможностите, производителността и стабилността на Firefox.</string>
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Данните за вашето устройство, хардуерна конфигурация и използване ни помагат да подобрим възможностите, производителността и стабилността на Firefox.</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Маркетингови данни</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->

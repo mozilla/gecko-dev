@@ -872,12 +872,16 @@
   <string name="preferences_show_search_suggestions_in_private">Mostrar em sessões privativas</string>
   <!-- Preference title for switch preference to show trending search suggestions -->
   <string name="preferences_show_trending_search_suggestions">Mostrar sugestões em alta</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Mostrar pesquisas recentes</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Mostrar sugestões a partir da área de transferência</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
   <string name="preferences_search_browsing_history">Pesquisar no histórico de navegação</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">Pesquisar nos favoritos</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">Mostrar atalhos</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">Pesquisar em abas sincronizadas</string>
   <!-- Preference for account settings -->
@@ -1124,15 +1128,15 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Saiba mais</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1">Dados técnicos e de interação</string>
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Dados técnicos e de interação</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_2" tools:ignore="UnusedResources">Enviar dados técnicos e de interação</string>
+  <string name="preference_usage_data_2">Enviar dados técnicos e de interação</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Saiba mais</string>
+  <string name="preference_usage_data_learn_more">Saiba mais</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Compartilhar dados de desempenho, uso, hardware e personalização do seu navegador com a Mozilla para nos ajudar a melhorar o %1$s</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
-  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Dados sobre seu dispositivo, configuração de hardware e uso nos ajudam a melhorar recursos, desempenho e estabilidade do Firefox.</string>
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Dados sobre seu dispositivo, configuração de hardware e uso nos ajudam a melhorar recursos, desempenho e estabilidade do Firefox.</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Dados de marketing</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
@@ -2250,6 +2254,8 @@
   <string name="preference_doh_provider_custom_dialog_title">Provedor personalizado</string>
   <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_textfield">Provedor</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
+  <string name="preference_doh_provider_custom_dialog_error_https">A URL deve começar com “https://”</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
   <string name="preference_doh_provider_custom_dialog_error_invalid">URL inválida</string>
   <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
@@ -2258,6 +2264,8 @@
   <string name="preference_doh_provider_custom_dialog_add">Adicionar</string>
   <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
   <string name="preference_doh_exceptions">Exceções</string>
+  <!-- Description of "exceptions" for "DNS over HTTPS". The first parameter is the name of the application. (For example: Fenix) -->
+  <string name="preference_doh_exceptions_summary">O %1$s não usará DNS seguro nesses sites e seus subdomínios.</string>
   <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
   <string name="preference_doh_exceptions_add">Adicionar site</string>
   <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
@@ -2574,6 +2582,8 @@
   <string name="quick_settings_sheet_secure_connection_2">Conexão segura</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">Conexão não segura</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">Esta página está armazenada no seu dispositivo.</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">Limpar cookies e dados do site</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->
@@ -2740,6 +2750,8 @@
   <string name="google_search_engine_suggestion_header">Pesquisa do Google</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">Pesquisa do %s</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">Pesquisas recentes</string>
   <!--
     Default browser experiment
 

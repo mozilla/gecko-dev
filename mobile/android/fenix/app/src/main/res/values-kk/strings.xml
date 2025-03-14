@@ -1124,15 +1124,15 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Көбірек білу</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1">Техникалық және өзара әрекеттесу деректері</string>
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Техникалық және өзара әрекеттесу деректері</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_2" tools:ignore="UnusedResources">Техникалық және өзара әрекеттесу деректерін жіберу</string>
+  <string name="preference_usage_data_2">Техникалық және өзара әрекеттесу деректерін жіберу</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Көбірек білу</string>
+  <string name="preference_usage_data_learn_more">Көбірек білу</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Өнімділік, қолдану, құрылғылар және баптаулар мәліметін Mozilla-ға жіберіп, бізге %1$s жақсартуға көмектеседі</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
-  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Құрылғыңыз, жабдық конфигурациясы және пайдалану туралы деректер бізге Firefox мүмкіндіктерін, өнімділігін мен тұрақтылығын жақсартуға көмектеседі.</string>
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Құрылғыңыз, жабдық конфигурациясы және пайдалану туралы деректер бізге Firefox мүмкіндіктерін, өнімділігін мен тұрақтылығын жақсартуға көмектеседі.</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Маркетингтік мәліметтер</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->

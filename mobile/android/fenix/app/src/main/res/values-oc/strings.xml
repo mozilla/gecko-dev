@@ -1120,11 +1120,11 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Ne saber mai</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1">Donadas tecnicas e d’interaccion</string>
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Donadas tecnicas e d’interaccion</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_2" tools:ignore="UnusedResources">Enviar de dondas tecnicas e d’interaccion</string>
+  <string name="preference_usage_data_2">Enviar de dondas tecnicas e d’interaccion</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Ne saber mai</string>
+  <string name="preference_usage_data_learn_more">Ne saber mai</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Parteja d’informacions sus las performàncias, lo material, l’utilizacion e las personalizacions a Mozilla per nos ajudar a melhorar %1$s</string>
   <!-- Preference switch for marketing data collection -->

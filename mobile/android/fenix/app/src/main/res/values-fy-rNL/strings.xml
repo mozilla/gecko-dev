@@ -1142,15 +1142,15 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Mear ynfo</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1">Technyske en ynteraksjegegevens</string>
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Technyske en ynteraksjegegevens</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_2" tools:ignore="UnusedResources">Technyske en ynteraksjegegevens ferstjoere</string>
+  <string name="preference_usage_data_2">Technyske en ynteraksjegegevens ferstjoere</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Mear ynfo</string>
+  <string name="preference_usage_data_learn_more">Mear ynfo</string>
   <!-- Preference description for usage and technical data collection -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Dielt gegevens oer prestaasjes, gebrûk, hardware en oanpassingen fan jo browser mei Mozilla om %1$s te helpen ferbetterjen</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
-  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Gegevens oer jo apparaat, hardwarekonfiguraasje en gebrûk helpt ús de funksjes, prestaasjes en stabiliteit fan Firefox te ferbetterjen.</string>
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Gegevens oer jo apparaat, hardwarekonfiguraasje en gebrûk helpt ús de funksjes, prestaasjes en stabiliteit fan Firefox te ferbetterjen.</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Marketinggegevens</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
