@@ -49,6 +49,21 @@ add_task(function test_text_processing() {
     "This is a test sentence. Today is Mar. 12, 2025.",
     "multiple sentences should be processed"
   );
+
+  Assert.equal(
+    LinkPreviewModel.preprocessText(`${text}
+
+     Short \t\t\t\t\t\t\t\t\t\t                      without spaces.
+
+
+
+      It has           \t \t \t multiple consecutive spaces in between words.
+      They should all go away
+   `),
+    "This is a test sentence. It has multiple consecutive spaces in between words.",
+    "Remove consecutive spaces by single."
+  );
+
   Assert.equal(
     LinkPreviewModel.preprocessText(text.repeat(100)),
     text.repeat(6).trim(),
