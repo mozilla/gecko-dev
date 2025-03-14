@@ -6,28 +6,84 @@
 
 #include "mozilla/dom/Navigation.h"
 
+#include "nsContentUtils.h"
+#include "nsCycleCollectionParticipant.h"
+#include "nsDocShell.h"
+#include "nsGlobalWindowInner.h"
+#include "nsIStructuredCloneContainer.h"
+#include "nsIXULRuntime.h"
+#include "nsNetUtil.h"
+#include "nsTHashtable.h"
+
 #include "mozilla/CycleCollectedJSContext.h"
+#include "mozilla/CycleCollectedUniquePtr.h"
+#include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/Logging.h"
+#include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/UniquePtr.h"
+
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/FeaturePolicy.h"
+#include "mozilla/dom/NavigationActivation.h"
 #include "mozilla/dom/NavigationCurrentEntryChangeEvent.h"
 #include "mozilla/dom/NavigationHistoryEntry.h"
+#include "mozilla/dom/NavigationTransition.h"
+#include "mozilla/dom/NavigationUtils.h"
 #include "mozilla/dom/SessionHistoryEntry.h"
-#include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/dom/Document.h"
-#include "mozilla/dom/NavigationCurrentEntryChangeEvent.h"
-#include "mozilla/dom/NavigationHistoryEntry.h"
-#include "mozilla/dom/SessionHistoryEntry.h"
-#include "nsContentUtils.h"
-#include "nsIXULRuntime.h"
-#include "nsNetUtil.h"
+#include "mozilla/dom/WindowContext.h"
 
 mozilla::LazyLogModule gNavigationLog("Navigation");
 
 namespace mozilla::dom {
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED(Navigation, DOMEventTargetHelper, mEntries);
+struct NavigationAPIMethodTracker {
+  RefPtr<Navigation> mNavigationObject;
+  Maybe<nsID> mKey;
+  JS::Heap<JS::Value> mInfo;
+  RefPtr<nsStructuredCloneContainer> mSerializedState;
+  RefPtr<NavigationHistoryEntry> mCommittedToEntry;
+  RefPtr<Promise> mFinishedPromise;
+};
+
+// This ignore is because the following ImplCycleCollectionTraverse and
+// ImplCycleCollectionTrace are being called by the cycle collection machinery
+// through a visitor pattern, that fools clangd a bit, since we're not directly
+// calling them here but instead they get called from either the overloads for
+// UniquePtr or nsTHashtable.
+#ifdef __clang__
+#  pragma clang diagnostic push
+#  pragma clang diagnostic ignored "-Wunused-function"
+#endif  // __clang__
+
+static void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& cb,
+    const NavigationAPIMethodTracker& aField, const char* aName,
+    uint32_t aFlags) {
+  const NavigationAPIMethodTracker* tmp = &aField;
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mNavigationObject);
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSerializedState);
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCommittedToEntry);
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mFinishedPromise);
+}
+
+static void ImplCycleCollectionTrace(const TraceCallbacks& aCallbacks,
+                                     NavigationAPIMethodTracker& aField,
+                                     const char* aName, void* aClosure) {
+  ImplCycleCollectionTrace(aCallbacks, aField.mInfo, aName, aClosure);
+}
+
+#ifdef __clang__
+#  pragma clang diagnostic pop
+#endif  // __clang__
+
+NS_IMPL_CYCLE_COLLECTION_INHERITED_WITH_JS_MEMBERS(
+    Navigation, DOMEventTargetHelper,
+    (mEntries, mOngoingNavigateEvent, mTransition, mActivation,
+     mOngoingAPIMethodTracker, mUpcomingNonTraverseAPIMethodTracker,
+     mUpcomingTraverseAPIMethodTrackers),
+    (mOngoingAPIMethodTracker, mUpcomingNonTraverseAPIMethodTracker,
+     mUpcomingTraverseAPIMethodTrackers));
 NS_IMPL_ADDREF_INHERITED(Navigation, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(Navigation, DOMEventTargetHelper)
 
@@ -37,7 +93,11 @@ NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 Navigation::Navigation(nsPIDOMWindowInner* aWindow)
     : DOMEventTargetHelper(aWindow) {
   MOZ_ASSERT(aWindow);
+
+  mozilla::HoldJSObjects(this);
 }
+
+Navigation::~Navigation() { mozilla::DropJSObjects(this); }
 
 JSObject* Navigation::WrapObject(JSContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
@@ -103,6 +163,10 @@ void Navigation::UpdateCurrentEntry(
       this, u"currententrychange"_ns, init);
   DispatchEvent(*event);
 }
+
+NavigationTransition* Navigation::GetTransition() const { return mTransition; }
+
+NavigationActivation* Navigation::GetActivation() const { return mActivation; }
 
 // https://html.spec.whatwg.org/#has-entries-and-events-disabled
 bool Navigation::HasEntriesAndEventsDisabled() const {
@@ -259,6 +323,526 @@ void LogEntry(NavigationHistoryEntry* aEntry, uint64_t aIndex, uint64_t aTotal,
 }
 
 }  // namespace
+
+// https://html.spec.whatwg.org/#fire-a-traverse-navigate-event
+bool Navigation::FireTraverseNavigateEvent(
+    SessionHistoryInfo* aDestinationSessionHistoryInfo,
+    Maybe<UserNavigationInvolvement> aUserInvolvement) {
+  // aDestinationSessionHistoryInfo corresponds to
+  // https://html.spec.whatwg.org/#fire-navigate-traverse-destinationshe
+
+  // To not unnecessarily create an event that's never used, step 1 and step 2
+  // in #fire-a-traverse-navigate-event have been moved to after step 25 in
+  // #inner-navigate-event-firing-algorithm in our implementation.
+
+  // Step 5
+  RefPtr<NavigationHistoryEntry> destinationNHE =
+      FindNavigationHistoryEntry(aDestinationSessionHistoryInfo);
+
+  // Step 6.2 and step 7.2
+  RefPtr<nsStructuredCloneContainer> state =
+      destinationNHE ? destinationNHE->GetNavigationState() : nullptr;
+
+  // Step 8
+  bool isSameDocument =
+      ToMaybeRef(
+          nsDocShell::Cast(nsContentUtils::GetDocShellForEventTarget(this)))
+          .andThen([](auto& aDocShell) {
+            return ToMaybeRef(aDocShell.GetLoadingSessionHistoryInfo());
+          })
+          .map([aDestinationSessionHistoryInfo](auto& aSessionHistoryInfo) {
+            return aDestinationSessionHistoryInfo->SharesDocumentWith(
+                aSessionHistoryInfo.mInfo);
+          })
+          .valueOr(false);
+
+  // Step 3, step 4, step 6.1, and step 7.1.
+  RefPtr<NavigationDestination> destination =
+      MakeAndAddRef<NavigationDestination>(
+          GetOwnerGlobal(), aDestinationSessionHistoryInfo->GetURI(),
+          destinationNHE, state, isSameDocument);
+
+  // Step 9
+  return InnerFireNavigateEvent(
+      NavigationType::Traverse, destination,
+      aUserInvolvement.valueOr(UserNavigationInvolvement::None),
+      /* aSourceElement */ nullptr,
+      /* aFormDataEntryList*/ Nothing(),
+      /* aClassicHistoryAPIState */ nullptr,
+      /* aDownloadRequestFilename */ u""_ns);
+}
+
+// https://html.spec.whatwg.org/#fire-a-push/replace/reload-navigate-event
+bool Navigation::FirePushReplaceReloadNavigateEvent(
+    NavigationType aNavigationType, nsIURI* aDestinationURL,
+    bool aIsSameDocument, Maybe<UserNavigationInvolvement> aUserInvolvement,
+    Element* aSourceElement, Maybe<const FormData&> aFormDataEntryList,
+    nsStructuredCloneContainer* aNavigationAPIState,
+    nsIStructuredCloneContainer* aClassicHistoryAPIState) {
+  // To not unnecessarily create an event that's never used, step 1 and step 2
+  // in #fire-a-push/replace/reload-navigate-event have been moved to after step
+  // 25 in #inner-navigate-event-firing-algorithm in our implementation.
+
+  // Step 3 to step 7
+  RefPtr<NavigationDestination> destination =
+      MakeAndAddRef<NavigationDestination>(GetOwnerGlobal(), aDestinationURL,
+                                           /* aEntry */ nullptr,
+                                           /* aState */ nullptr,
+                                           aIsSameDocument);
+
+  // Step 8
+  return InnerFireNavigateEvent(
+      aNavigationType, destination,
+      aUserInvolvement.valueOr(UserNavigationInvolvement::None), aSourceElement,
+      aFormDataEntryList, aClassicHistoryAPIState,
+      /* aDownloadRequestFilename */ u""_ns);
+}
+
+// https://html.spec.whatwg.org/#fire-a-download-request-navigate-event
+bool Navigation::FireDownloadRequestNavigateEvent(
+    nsIURI* aDestinationURL, UserNavigationInvolvement aUserInvolvement,
+    Element* aSourceElement, const nsAString& aFilename) {
+  // To not unnecessarily create an event that's never used, step 1 and step 2
+  // in #fire-a-download-request-navigate-event have been moved to after step
+  // 25 in #inner-navigate-event-firing-algorithm in our implementation.
+
+  // Step 3 to step 7
+  RefPtr<NavigationDestination> destination =
+      MakeAndAddRef<NavigationDestination>(GetOwnerGlobal(), aDestinationURL,
+                                           /* aEntry */ nullptr,
+                                           /* aState */ nullptr,
+                                           /* aIsSameDocument */ false);
+
+  // Step 8
+  return InnerFireNavigateEvent(
+      NavigationType::Push, destination, aUserInvolvement, aSourceElement,
+      /* aFormDataEntryList */ Nothing(),
+      /* aClassicHistoryAPIState */ nullptr, aFilename);
+}
+
+// Implementation of this will be done in Bug 1948596.
+// https://html.spec.whatwg.org/#can-have-its-url-rewritten
+static bool CanBeRewritten(nsIURI* aURI, nsIURI* aOtherURI) { return false; }
+
+static bool HasHistoryActionActivation(
+    Maybe<nsGlobalWindowInner&> aRelevantGlobalObject) {
+  return aRelevantGlobalObject
+      .map([](auto& aRelevantGlobalObject) {
+        WindowContext* windowContext = aRelevantGlobalObject.GetWindowContext();
+        return windowContext && windowContext->HasValidHistoryActivation();
+      })
+      .valueOr(false);
+}
+
+static void ConsumeHistoryActionUserActivation(
+    Maybe<nsGlobalWindowInner&> aRelevantGlobalObject) {
+  aRelevantGlobalObject.apply([](auto& aRelevantGlobalObject) {
+    if (WindowContext* windowContext =
+            aRelevantGlobalObject.GetWindowContext()) {
+      windowContext->ConsumeHistoryActivation();
+    }
+  });
+}
+
+// Implementation of this will be done in Bug 1948593.
+static bool HasUAVisualTransition(Maybe<Document&>) { return false; }
+
+static bool EqualsExceptRef(nsIURI* aURI, nsIURI* aOtherURI) {
+  bool equalsExceptRef = false;
+  return aURI && aOtherURI &&
+         NS_SUCCEEDED(aURI->EqualsExceptRef(aOtherURI, &equalsExceptRef));
+}
+
+static bool HasIdenticalFragment(nsIURI* aURI, nsIURI* aOtherURI) {
+  nsAutoCString ref;
+
+  if (NS_FAILED(aURI->GetRef(ref))) {
+    return false;
+  }
+
+  nsAutoCString otherRef;
+  if (NS_FAILED(aOtherURI->GetRef(otherRef))) {
+    return false;
+  }
+
+  return ref.Equals(otherRef);
+}
+
+nsresult Navigation::FireEvent(const nsAString& aName) {
+  RefPtr<Event> event = NS_NewDOMEvent(this, nullptr, nullptr);
+  // it doesn't bubble, and it isn't cancelable
+  event->InitEvent(aName, false, false);
+  event->SetTrusted(true);
+  ErrorResult rv;
+  DispatchEvent(*event, rv);
+  return rv.StealNSResult();
+}
+
+// https://html.spec.whatwg.org/#inner-navigate-event-firing-algorithm
+bool Navigation::InnerFireNavigateEvent(
+    NavigationType aNavigationType, NavigationDestination* aDestination,
+    UserNavigationInvolvement aUserInvolvement, Element* aSourceElement,
+    Maybe<const FormData&> aFormDataEntryList,
+    nsIStructuredCloneContainer* aClassicHistoryAPIState,
+    const nsAString& aDownloadRequestFilename) {
+  // Step 1
+  if (HasEntriesAndEventsDisabled()) {
+    // Step 1.1 to step 1.3
+    MOZ_DIAGNOSTIC_ASSERT(!mOngoingAPIMethodTracker);
+    MOZ_DIAGNOSTIC_ASSERT(!mUpcomingNonTraverseAPIMethodTracker);
+    MOZ_DIAGNOSTIC_ASSERT(mUpcomingTraverseAPIMethodTrackers.IsEmpty());
+
+    // Step 1.4
+    return true;
+  }
+
+  NavigateEventInit init;
+
+  // Step 2
+  Maybe<nsID> destinationKey;
+
+  // Step 3
+  if (auto* entry = aDestination->GetEntry()) {
+    destinationKey.emplace(entry->Key());
+  }
+
+  // Step 4
+  MOZ_DIAGNOSTIC_ASSERT(!destinationKey || destinationKey->Equals(nsID{}));
+
+  // Step 5
+  PromoteUpcomingAPIMethodTrackerToOngoing(std::move(destinationKey));
+
+  // Step 6
+  NavigationAPIMethodTracker* apiMethodTracker = mOngoingAPIMethodTracker.get();
+
+  // Step 7
+  Maybe<BrowsingContext&> navigable =
+      ToMaybeRef(GetOwnerWindow()).andThen([](auto& aWindow) {
+        return ToMaybeRef(aWindow.GetBrowsingContext());
+      });
+
+  // Step 8
+  Document* document =
+      navigable.map([](auto& aNavigable) { return aNavigable.GetDocument(); })
+          .valueOr(nullptr);
+
+  // Step 9
+  init.mCanIntercept =
+      document &&
+      CanBeRewritten(document->GetDocumentURI(), aDestination->GetURI()) &&
+      (aDestination->SameDocument() ||
+       aNavigationType != NavigationType::Traverse);
+
+  // Step 10 and step 11
+  init.mCancelable =
+      navigable->IsTop() && aDestination->SameDocument() &&
+      (aUserInvolvement != UserNavigationInvolvement::BrowserUI ||
+       HasHistoryActionActivation(ToMaybeRef(GetOwnerWindow())));
+
+  // Step 13
+  init.mNavigationType = aNavigationType;
+
+  // Step 14
+  init.mDestination = aDestination;
+
+  // Step 15
+  init.mDownloadRequest = aDownloadRequestFilename;
+
+  // Step 16
+  // init.mInfo = std::move(apiMethodTracker->mInfo);
+
+  // Step 17
+  init.mHasUAVisualTransition =
+      HasUAVisualTransition(ToMaybeRef(GetDocumentIfCurrent()));
+
+  // Step 18
+  init.mSourceElement = aSourceElement;
+
+  // Step 19
+  RefPtr<AbortController> abortController =
+      new AbortController(GetOwnerGlobal());
+
+  // Step 20
+  init.mSignal = abortController->Signal();
+
+  // step 21
+  nsCOMPtr<nsIURI> currentURL = document->GetDocumentURI();
+
+  // step 22
+  init.mHashChange = !aClassicHistoryAPIState && aDestination->SameDocument() &&
+                     EqualsExceptRef(aDestination->GetURI(), currentURL) &&
+                     !HasIdenticalFragment(aDestination->GetURI(), currentURL);
+
+  // Step 23
+  init.mUserInitiated = aUserInvolvement != UserNavigationInvolvement::None;
+
+  // Step 24
+  init.mFormData = aFormDataEntryList ? aFormDataEntryList->Clone() : nullptr;
+
+  // Step 25
+  MOZ_DIAGNOSTIC_ASSERT(!mOngoingNavigateEvent);
+
+  // We now have everything we need to fully initialize the NavigateEvent, so
+  // we'll go ahead and create it now. This is done by the spec in step 1 and
+  // step 2 of #fire-a-traverse-navigate-event,
+  // #fire-a-push/replace/reload-navigate-event, or
+  // #fire-a-download-request-navigate-event, but there's no reason to not
+  // delay it until here.
+  RefPtr<NavigateEvent> event = NavigateEvent::Constructor(
+      this, u"navigate"_ns, init, aClassicHistoryAPIState, abortController);
+
+  // Step 26
+  mOngoingNavigateEvent = event;
+
+  // Step 27
+  mFocusChangedDUringOngoingNavigation = false;
+
+  // Step 28
+  mSuppressNormalScrollRestorationDuringOngoingNavigation = false;
+
+  // Step 29 and step 30
+  if (!DispatchEvent(*event, CallerType::NonSystem, IgnoreErrors())) {
+    // Step 30.1
+    if (aNavigationType == NavigationType::Traverse) {
+      ConsumeHistoryActionUserActivation(ToMaybeRef(GetOwnerWindow()));
+    }
+
+    // Step 30.2
+    if (!abortController->Signal()->Aborted()) {
+      AbortOngoingNavigation();
+    }
+
+    // Step 30.3
+    return false;
+  }
+
+  using InterceptionState = enum NavigateEvent::InterceptionState;
+  // Step 31
+  bool endResultIsSameDocument =
+      event->InterceptionState() != InterceptionState::None ||
+      aDestination->SameDocument();
+
+  // Step 32 (and the destructor of this is step 36)
+  nsAutoMicroTask mt;
+
+  // Step 33
+  if (event->InterceptionState() != InterceptionState::None) {
+    // Step 33.1
+    event->SetInterceptionState(InterceptionState::Committed);
+
+    // Step 33.2
+    RefPtr<NavigationHistoryEntry> fromNHE = GetCurrentEntry();
+
+    // Step 33.3
+    MOZ_DIAGNOSTIC_ASSERT(fromNHE);
+
+    // Step 33.4
+    RefPtr<Promise> promise = Promise::CreateInfallible(GetOwnerGlobal());
+    mTransition = MakeAndAddRef<NavigationTransition>(
+        GetOwnerGlobal(), aNavigationType, fromNHE, promise);
+
+    // Step 33.5
+    MOZ_ALWAYS_TRUE(promise->SetAnyPromiseIsHandled());
+
+    switch (aNavigationType) {
+      case NavigationType::Traverse:
+        // Step 33.6
+        mSuppressNormalScrollRestorationDuringOngoingNavigation = true;
+        break;
+      case NavigationType::Push:
+      case NavigationType::Replace: {
+        // Step 33.7
+        nsDocShell* docShell = nsDocShell::Cast(document->GetDocShell());
+        docShell->UpdateURLAndHistory(
+            document, aDestination->GetURI(), event->ClassicHistoryAPIState(),
+            *NavigationUtils::NavigationHistoryBehavior(aNavigationType),
+            document->GetDocumentURI(), aDestination->SameDocument());
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  // Step 34
+  if (endResultIsSameDocument) {
+    // Step 34.1
+    AutoTArray<RefPtr<Promise>, 16> promiseList;
+    // Step 34.2
+    for (auto& handler : event->NavigationHandlerList().Clone()) {
+      // Step 34.2.1
+      promiseList.AppendElement(MOZ_KnownLive(handler)->Call());
+    }
+
+    // Step 34.3
+    if (promiseList.IsEmpty()) {
+      promiseList.AppendElement(Promise::CreateResolvedWithUndefined(
+          GetOwnerGlobal(), IgnoredErrorResult()));
+    }
+
+    // Step 34.4
+    Promise::WaitForAll(
+        GetOwnerGlobal(), promiseList,
+        [self = RefPtr(this), event,
+         apiMethodTracker](const Span<JS::Heap<JS::Value>>&) {
+          // Success steps
+          // Step 1
+          if (nsCOMPtr<nsPIDOMWindowInner> window =
+                  do_QueryInterface(event->GetParentObject());
+              window && !window->IsFullyActive()) {
+            return;
+          }
+
+          // Step 2
+          if (AbortSignal* signal = event->Signal(); signal->Aborted()) {
+            return;
+          }
+
+          // Step 3
+          MOZ_DIAGNOSTIC_ASSERT(event == self->mOngoingNavigateEvent);
+
+          // Step 4
+          self->mOngoingNavigateEvent = nullptr;
+
+          // Step 5
+          event->Finish(true);
+
+          // Step 6
+          self->FireEvent(u"navigatesuccess"_ns);
+
+          // Step 7
+          if (apiMethodTracker) {
+            apiMethodTracker->mFinishedPromise->MaybeResolveWithUndefined();
+          }
+
+          // Step 8
+          if (self->mTransition) {
+            self->mTransition->Finished()->MaybeResolveWithUndefined();
+          }
+
+          self->mTransition = nullptr;
+        },
+        [self = RefPtr(this), event,
+         apiMethodTracker](JS::Handle<JS::Value> aRejectionReason) {
+          // Failure steps
+          // Step 1
+          if (nsCOMPtr<nsPIDOMWindowInner> window =
+                  do_QueryInterface(event->GetParentObject());
+              window && !window->IsFullyActive()) {
+            return;
+          }
+
+          // Step 2
+          if (AbortSignal* signal = event->Signal(); signal->Aborted()) {
+            return;
+          }
+
+          // Step 3
+          MOZ_DIAGNOSTIC_ASSERT(event == self->mOngoingNavigateEvent);
+
+          // Step 4
+          self->mOngoingNavigateEvent = nullptr;
+
+          // Step 5
+          event->Finish(false);
+
+          // Step 6 and step 7 will be implemented in Bug 1949499.
+          // Step 6: Let errorInfo be the result of extracting error
+          // information from rejectionReason.
+
+          // Step 7: Fire an event named navigateerror at navigation using
+          // ErrorEvent, with additional attributes initialized according to
+          // errorInfo.
+
+          // Step 8
+          if (apiMethodTracker) {
+            apiMethodTracker->mFinishedPromise->MaybeReject(aRejectionReason);
+          }
+
+          // Step 9
+          if (self->mTransition) {
+            self->mTransition->Finished()->MaybeReject(aRejectionReason);
+          }
+
+          self->mTransition = nullptr;
+        });
+  }
+
+  // Step 35
+  if (apiMethodTracker) {
+    CleanUp(apiMethodTracker);
+  }
+
+  // Step 37 and step 38
+  return event->InterceptionState() == InterceptionState::None;
+}
+
+NavigationHistoryEntry* Navigation::FindNavigationHistoryEntry(
+    SessionHistoryInfo* aSessionHistoryInfo) const {
+  for (const auto& navigationHistoryEntry : mEntries) {
+    if (navigationHistoryEntry->IsSameEntry(aSessionHistoryInfo)) {
+      return navigationHistoryEntry;
+    }
+  }
+
+  return nullptr;
+}
+
+// https://html.spec.whatwg.org/#promote-an-upcoming-api-method-tracker-to-ongoing
+void Navigation::PromoteUpcomingAPIMethodTrackerToOngoing(
+    Maybe<nsID>&& aDestinationKey) {
+  MOZ_DIAGNOSTIC_ASSERT(!mOngoingAPIMethodTracker);
+  if (aDestinationKey) {
+    MOZ_DIAGNOSTIC_ASSERT(!mUpcomingNonTraverseAPIMethodTracker);
+    Maybe<NavigationAPIMethodTracker&> tracker(NavigationAPIMethodTracker);
+    if (auto entry =
+            mUpcomingTraverseAPIMethodTrackers.Extract(*aDestinationKey)) {
+      mOngoingAPIMethodTracker = std::move(*entry);
+    }
+    return;
+  }
+
+  mOngoingAPIMethodTracker = std::move(mUpcomingNonTraverseAPIMethodTracker);
+}
+
+// https://html.spec.whatwg.org/#navigation-api-method-tracker-clean-up
+/* static */ void Navigation::CleanUp(
+    NavigationAPIMethodTracker* aNavigationAPIMethodTracker) {
+  // Step 1
+  RefPtr<Navigation> navigation =
+      aNavigationAPIMethodTracker->mNavigationObject;
+
+  // Step 2
+  if (navigation->mOngoingAPIMethodTracker == aNavigationAPIMethodTracker) {
+    navigation->mOngoingAPIMethodTracker = nullptr;
+
+    return;
+  }
+
+  // Step 3.1
+  Maybe<nsID> key = aNavigationAPIMethodTracker->mKey;
+
+  // Step 3.2
+  MOZ_DIAGNOSTIC_ASSERT(key);
+
+  // Step 3.3
+  MOZ_DIAGNOSTIC_ASSERT(
+      navigation->mUpcomingTraverseAPIMethodTrackers.Contains(*key));
+
+  navigation->mUpcomingTraverseAPIMethodTrackers.Remove(*key);
+}
+
+// https://html.spec.whatwg.org/#abort-the-ongoing-navigation
+void Navigation::AbortOngoingNavigation() {}
+
+bool Navigation::FocusedChangedDuringOngoingNavigation() const {
+  return mFocusChangedDUringOngoingNavigation;
+}
+
+void Navigation::SetFocusedChangedDuringOngoingNavigation(
+    bool aFocusChangedDUringOngoingNavigation) {
+  mFocusChangedDUringOngoingNavigation = aFocusChangedDUringOngoingNavigation;
+}
 
 void Navigation::LogHistory() const {
   if (!MOZ_LOG_TEST(gNavigationLog, LogLevel::Debug)) {

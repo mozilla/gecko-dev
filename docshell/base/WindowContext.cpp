@@ -607,15 +607,15 @@ bool WindowContext::HasValidHistoryActivation() const {
 }
 
 // https://html.spec.whatwg.org/multipage/interaction.html#consume-history-action-user-activation
-bool WindowContext::ConsumeHistoryActivation() {
+void WindowContext::ConsumeHistoryActivation() {
   MOZ_ASSERT(IsInProcess());
 
   if (!HasValidHistoryActivation()) {
-    return false;
+    return;
   }
 
   mHistoryActivation = mUserGestureStart;
-  return true;
+  return;
 }
 
 bool WindowContext::GetTransientUserGestureActivationModifiers(
