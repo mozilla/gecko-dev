@@ -11,6 +11,7 @@
 #include "mozilla/dom/DocumentFragment.h"
 #include "mozilla/dom/SanitizerBinding.h"
 #include "mozilla/dom/SanitizerTypes.h"
+#include "mozilla/dom/StaticAtomSet.h"
 #include "nsString.h"
 #include "nsIGlobalObject.h"
 #include "nsIParserUtils.h"
@@ -89,10 +90,16 @@ class Sanitizer final : public nsISupports, public nsWrapperCache {
   void SetDefaultConfig();
   void SetConfig(const SanitizerConfig& aConfig, ErrorResult& aRv);
 
+  void MaybeMaterializeDefaultConfig();
+
+  template <bool IsDefaultConfig>
   void SanitizeChildren(nsINode* aNode, bool aSafe);
   void SanitizeAttributes(Element* aChild,
                           const sanitizer::CanonicalName& aElementName,
                           bool aSafe);
+  void SanitizeDefaultConfigAttributes(Element* aChild,
+                                       StaticAtomSet* aElementAttributes,
+                                       bool aSafe);
 
   /**
    * Logs localized message to either content console or browser console
@@ -113,6 +120,14 @@ class Sanitizer final : public nsISupports, public nsWrapperCache {
   static void LogMessage(const nsAString& aMessage, uint32_t aFlags,
                          uint64_t aInnerWindowID, bool aFromPrivateWindow);
 
+  void AssertNoLists() {
+    MOZ_ASSERT(mElements.IsEmpty());
+    MOZ_ASSERT(mRemoveElements.IsEmpty());
+    MOZ_ASSERT(mReplaceWithChildrenElements.IsEmpty());
+    MOZ_ASSERT(mAttributes.IsEmpty());
+    MOZ_ASSERT(mRemoveAttributes.IsEmpty());
+  }
+
   RefPtr<nsIGlobalObject> mGlobal;
 
   sanitizer::ListSet<sanitizer::CanonicalElementWithAttributes> mElements;
@@ -124,6 +139,9 @@ class Sanitizer final : public nsISupports, public nsWrapperCache {
 
   bool mComments = false;
   bool mDataAttributes = false;
+  // Optimization: This sanitizer has a lazy default config. None
+  // of the element lists will be used.
+  bool mIsDefaultConfig = false;
 };
 }  // namespace dom
 }  // namespace mozilla
