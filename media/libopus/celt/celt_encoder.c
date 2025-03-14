@@ -1319,7 +1319,7 @@ static opus_val16 tone_detect(const celt_sig *in, const celt_sig *prefilter_mem,
       fail = tone_lpc(x, N+overlap, delay, lpc);
    }
    /* Check that our filter has complex roots. */
-   if (!fail && MULT32_32_Q31(lpc[0],lpc[0]) + MULT32_32_Q31(QCONST32(4.f, 29), lpc[1]) < 0) {
+   if (!fail && MULT32_32_Q31(lpc[0],lpc[0]) + MULT32_32_Q31(QCONST32(3.999999, 29), lpc[1]) < 0) {
       /* Squared radius of the poles. */
       *toneishness = -lpc[1];
 #ifdef FIXED_POINT
@@ -2377,7 +2377,7 @@ int celt_encode_with_ec(CELTEncoder * OPUS_RESTRICT st, const opus_res * pcm, in
    ALLOC(fine_priority, nbEBands, int);
 
    /* bits =           packet size                    - where we are - safety*/
-   bits = (((opus_int32)nbCompressedBytes*8)<<BITRES) - ec_tell_frac(enc) - 1;
+   bits = (((opus_int32)nbCompressedBytes*8)<<BITRES) - (opus_int32)ec_tell_frac(enc) - 1;
    anti_collapse_rsv = isTransient&&LM>=2&&bits>=((LM+2)<<BITRES) ? (1<<BITRES) : 0;
    bits -= anti_collapse_rsv;
    signalBandwidth = end-1;

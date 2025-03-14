@@ -180,15 +180,15 @@ static const float log2_y_norm_coeff[8] = {
 
 static OPUS_INLINE float celt_log2(float x)
 {
-   int integer;
+   opus_int32 integer;
    opus_int32 range_idx;
    union {
       float f;
       opus_uint32 i;
    } in;
    in.f = x;
-   integer = (in.i>>23)-127;
-   in.i -= (opus_uint32)integer<<23;
+   integer = (opus_int32)(in.i>>23)-127;
+   in.i = (opus_int32)in.i - (opus_int32)((opus_uint32)integer<<23);
 
    /* Normalize the mantissa range from [1, 2] to [1,1.125], and then shift x
     * by 1.0625 to [-0.0625, 0.0625]. */
@@ -221,7 +221,7 @@ static OPUS_INLINE float celt_log2(float x)
  *         = exp2(integer) * exp2(fraction) */
 static OPUS_INLINE float celt_exp2(float x)
 {
-   int integer;
+   opus_int32 integer;
    float frac;
    union {
       float f;
@@ -247,7 +247,7 @@ static OPUS_INLINE float celt_exp2(float x)
                + frac * (EXP2_COEFF_A3
                + frac * (EXP2_COEFF_A4
                + frac * (EXP2_COEFF_A5)))));
-   res.i = (res.i + ((opus_uint32)integer<<23)) & 0x7fffffff;
+   res.i = (opus_uint32)((opus_int32)res.i + (opus_int32)((opus_uint32)integer<<23)) & 0x7fffffff;
    return res.f;
 }
 

@@ -417,8 +417,8 @@ static void compute_twiddles(kiss_twiddle_cpx *twiddles, int nfft)
    for (i=0;i<nfft;++i) {
       opus_val32 phase = -i;
 #ifdef ENABLE_QEXT
-      twiddles[i].r = floor(.5+2147483647*cos((2*M_PI/nfft)*phase));
-      twiddles[i].i = floor(.5+2147483647*sin((2*M_PI/nfft)*phase));
+      twiddles[i].r = (int)MIN32(2147483647, floor(.5+2147483648*cos((2*M_PI/nfft)*phase)));
+      twiddles[i].i = (int)MIN32(2147483647, floor(.5+2147483648*sin((2*M_PI/nfft)*phase)));
 #else
       kf_cexp2(twiddles+i, DIV32(SHL32(phase,17),nfft));
 #endif
@@ -534,7 +534,30 @@ void opus_fft_free(const kiss_fft_state *cfg, int arch)
 
 #endif /* CUSTOM_MODES */
 
-void opus_fft_impl(const kiss_fft_state *st,kiss_fft_cpx *fout)
+#ifdef FIXED_POINT
+static void fft_downshift(kiss_fft_cpx *x, int N, int *total, int step) {
+   int shift;
+   shift = IMIN(step, *total);
+   *total -= shift;
+   if (shift == 1) {
+      int i;
+      for (i=0;i<N;i++) {
+         x[i].r = SHR32(x[i].r, 1);
+         x[i].i = SHR32(x[i].i, 1);
+      }
+   } else if (shift>0) {
+      int i;
+      for (i=0;i<N;i++) {
+         x[i].r = PSHR32(x[i].r, shift);
+         x[i].i = PSHR32(x[i].i, shift);
+      }
+   }
+}
+#else
+#define fft_downshift(x, N, total, step)
+#endif
+
+void opus_fft_impl(const kiss_fft_state *st,kiss_fft_cpx *fout ARG_FIXED(int downshift))
 {
     int m2, m;
     int p;
@@ -564,22 +587,27 @@ void opus_fft_impl(const kiss_fft_state *st,kiss_fft_cpx *fout)
        switch (st->factors[2*i])
        {
        case 2:
+          fft_downshift(fout, st->nfft, &downshift, 1);
           kf_bfly2(fout, m, fstride[i]);
           break;
        case 4:
+          fft_downshift(fout, st->nfft, &downshift, 2);
           kf_bfly4(fout,fstride[i]<<shift,st,m, fstride[i], m2);
           break;
  #ifndef RADIX_TWO_ONLY
        case 3:
+          fft_downshift(fout, st->nfft, &downshift, 2);
           kf_bfly3(fout,fstride[i]<<shift,st,m, fstride[i], m2);
           break;
        case 5:
+          fft_downshift(fout, st->nfft, &downshift, 3);
           kf_bfly5(fout,fstride[i]<<shift,st,m, fstride[i], m2);
           break;
  #endif
        }
        m = m2;
     }
+    fft_downshift(fout, st->nfft, &downshift, downshift);
 }
 
 void opus_fft_c(const kiss_fft_state *st,const kiss_fft_cpx *fin,kiss_fft_cpx *fout)
@@ -598,10 +626,10 @@ void opus_fft_c(const kiss_fft_state *st,const kiss_fft_cpx *fin,kiss_fft_cpx *f
    for (i=0;i<st->nfft;i++)
    {
       kiss_fft_cpx x = fin[i];
-      fout[st->bitrev[i]].r = SHR32(S_MUL2(x.r, scale), scale_shift);
-      fout[st->bitrev[i]].i = SHR32(S_MUL2(x.i, scale), scale_shift);
+      fout[st->bitrev[i]].r = S_MUL2(x.r, scale);
+      fout[st->bitrev[i]].i = S_MUL2(x.i, scale);
    }
-   opus_fft_impl(st, fout);
+   opus_fft_impl(st, fout ARG_FIXED(scale_shift));
 }
 
 
@@ -614,7 +642,7 @@ void opus_ifft_c(const kiss_fft_state *st,const kiss_fft_cpx *fin,kiss_fft_cpx *
       fout[st->bitrev[i]] = fin[i];
    for (i=0;i<st->nfft;i++)
       fout[i].i = -fout[i].i;
-   opus_fft_impl(st, fout);
+   opus_fft_impl(st, fout ARG_FIXED(0));
    for (i=0;i<st->nfft;i++)
       fout[i].i = -fout[i].i;
 }

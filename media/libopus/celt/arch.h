@@ -125,6 +125,12 @@ void celt_fatal(const char *str, const char *file, int line)
 #define OPUS_FAST_INT64 0
 #endif
 
+#ifdef FIXED_POINT
+#define ARG_FIXED(arg) , arg
+#else
+#define ARG_FIXED(arg)
+#endif
+
 #define PRINT_MIPS(file)
 
 #ifdef FIXED_POINT

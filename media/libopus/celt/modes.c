@@ -380,7 +380,7 @@ CELTMode *opus_custom_mode_create(opus_int32 Fs, int frame_size, int *error)
 #else
 # ifdef ENABLE_QEXT
    for (i=0;i<mode->overlap;i++)
-      window[i] = 2147483647*sin(.5*M_PI* sin(.5*M_PI*(i+.5)/mode->overlap) * sin(.5*M_PI*(i+.5)/mode->overlap));
+      window[i] = MIN32(2147483647, 2147483648*sin(.5*M_PI* sin(.5*M_PI*(i+.5)/mode->overlap) * sin(.5*M_PI*(i+.5)/mode->overlap)));
 # else
    for (i=0;i<mode->overlap;i++)
       window[i] = MIN32(32767,floor(.5+32768.*sin(.5*M_PI* sin(.5*M_PI*(i+.5)/mode->overlap) * sin(.5*M_PI*(i+.5)/mode->overlap))));
