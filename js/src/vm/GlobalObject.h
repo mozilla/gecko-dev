@@ -1184,9 +1184,21 @@ JSObject* GenericCreatePrototype(JSContext* cx, JSProtoKey key) {
   return GlobalObject::createBlankPrototype(cx, cx->global(), &T::protoClass_);
 }
 
-inline bool GenericFinishInitWithPrototypeFuseProperty(JSContext* cx,
-                                                       HandleObject ctor,
-                                                       HandleObject proto) {
+// Which object(s) should be marked as having a fuse property in
+// GenericFinishInit.
+enum class WhichHasFuseProperty {
+  Proto,
+  ProtoAndCtor,
+};
+
+template <WhichHasFuseProperty FuseProperty>
+inline bool GenericFinishInit(JSContext* cx, HandleObject ctor,
+                              HandleObject proto) {
+  if constexpr (FuseProperty == WhichHasFuseProperty::ProtoAndCtor) {
+    if (!JSObject::setHasFuseProperty(cx, ctor)) {
+      return false;
+    }
+  }
   return JSObject::setHasFuseProperty(cx, proto);
 }
 

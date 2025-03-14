@@ -140,7 +140,7 @@ const ClassSpec WeakSetObject::classSpec_ = {
     nullptr,
     WeakSetObject::methods,
     WeakSetObject::properties,
-    GenericFinishInitWithPrototypeFuseProperty,
+    GenericFinishInit<WhichHasFuseProperty::Proto>,
 };
 
 const JSClass WeakSetObject::class_ = {
