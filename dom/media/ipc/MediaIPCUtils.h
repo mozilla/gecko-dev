@@ -15,6 +15,7 @@
 #include "ipc/EnumSerializer.h"
 #include "mozilla/EnumSet.h"
 #include "mozilla/GfxMessageUtils.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/ParamTraits_TiedFields.h"
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/dom/MFCDMSerializers.h"
@@ -272,13 +273,16 @@ struct ParamTraits<mozilla::MediaResult> {
   static void Write(MessageWriter* aWriter, const paramType& aParam) {
     WriteParam(aWriter, aParam.Code());
     WriteParam(aWriter, aParam.Message());
+    WriteParam(aWriter, aParam.GetPlatformErrorCode());
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
     nsresult result;
     nsCString message;
-    if (ReadParam(aReader, &result) && ReadParam(aReader, &message)) {
-      *aResult = paramType(result, std::move(message));
+    mozilla::Maybe<int32_t> platformErrorCode;
+    if (ReadParam(aReader, &result) && ReadParam(aReader, &message) &&
+        ReadParam(aReader, &platformErrorCode)) {
+      *aResult = paramType(result, std::move(message), platformErrorCode);
       return true;
     }
     return false;
