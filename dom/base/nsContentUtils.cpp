@@ -5043,6 +5043,16 @@ EventMessage nsContentUtils::GetEventMessage(nsAtom* aName) {
 }
 
 // static
+void nsContentUtils::ForEachEventAttributeName(
+    int32_t aType, const FunctionRef<void(nsAtom*)> aFunc) {
+  for (auto iter = sAtomEventTable->ConstIter(); !iter.Done(); iter.Next()) {
+    if (iter.Data().mType & aType) {
+      aFunc(iter.Key());
+    }
+  }
+}
+
+// static
 mozilla::EventClassID nsContentUtils::GetEventClassID(const nsAString& aName) {
   EventNameMapping mapping;
   if (sStringEventTable->Get(aName, &mapping)) return mapping.mEventClassID;

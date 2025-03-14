@@ -31,6 +31,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/BasicEvents.h"
+#include "mozilla/FunctionRef.h"
 #include "mozilla/SourceLocation.h"
 #include "mozilla/CORSMode.h"
 #include "mozilla/CallState.h"
@@ -1747,6 +1748,17 @@ class nsContentUtils {
    * @param aName the event name to look up
    */
   static EventMessage GetEventMessage(nsAtom* aName);
+
+  /**
+   * Iterate through all event attribute names (such as onclick) that
+   * are valid for a given element type. Types are from the EventNameType
+   * enumeration defined above.
+   *
+   * @param aType the type of content
+   * @param aFunc iterator functor
+   */
+  static void ForEachEventAttributeName(
+      int32_t aType, const mozilla::FunctionRef<void(nsAtom*)> aFunc);
 
   /**
    * Return the event type atom for a given event message.

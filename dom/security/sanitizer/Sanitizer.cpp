@@ -515,14 +515,18 @@ void Sanitizer::RemoveElement(const SanitizerElement& aElement) {
   // element.
   CanonicalName element = CanonicalizeElement(aElement);
 
+  RemoveElementCanonical(std::move(element));
+}
+
+void Sanitizer::RemoveElementCanonical(CanonicalName&& aElement) {
   // Step 3. Remove element from configuration["elements"] list.
-  mElements.Remove(element);
+  mElements.Remove(aElement);
 
   // Step 4. Remove element from configuration["replaceWithChildrenElements"].
-  mReplaceWithChildrenElements.Remove(element);
+  mReplaceWithChildrenElements.Remove(aElement);
 
   // Step 2. Add element to configuration["removeElements"].
-  mRemoveElements.Insert(std::move(element));
+  mRemoveElements.Insert(std::move(aElement));
 }
 
 template void Sanitizer::RemoveElement(
@@ -578,11 +582,15 @@ void Sanitizer::RemoveAttribute(const SanitizerAttribute& aAttribute) {
   // with attribute.
   CanonicalName attribute = CanonicalizeAttribute(aAttribute);
 
+  RemoveAttributeCanonical(std::move(attribute));
+}
+
+void Sanitizer::RemoveAttributeCanonical(CanonicalName&& aAttribute) {
   // Step 3. Remove attribute from configuration["attributes"].
-  mAttributes.Remove(attribute);
+  mAttributes.Remove(aAttribute);
 
   // Step 2. Add attribute to configuration["removeAttributes"].
-  mRemoveAttributes.Insert(std::move(attribute));
+  mRemoveAttributes.Insert(std::move(aAttribute));
 }
 
 template void Sanitizer::RemoveAttribute(
@@ -599,7 +607,45 @@ void Sanitizer::SetDataAttributes(bool aAllow) {
   mDataAttributes = aAllow;
 }
 
-void Sanitizer::RemoveUnsafe() {}
+// https://wicg.github.io/sanitizer-api/#sanitizer-removeunsafe
+void Sanitizer::RemoveUnsafe() {
+  MaybeMaterializeDefaultConfig();
+
+  // https://wicg.github.io/sanitizer-api/#sanitizerconfig-remove-unsafe
+  // Step 1. Assert: (Implicit)
+  // Step 2. Let result be a copy of configuration. (Unobservable)
+
+  // Step 3. For each element in built-in safe baseline
+  // configuration[removeElements]:
+  //
+  // Keep in sync with IsUnsafeElement
+  RemoveElementCanonical(
+      CanonicalName(nsGkAtoms::script, nsGkAtoms::nsuri_xhtml));
+  RemoveElementCanonical(
+      CanonicalName(nsGkAtoms::frame, nsGkAtoms::nsuri_xhtml));
+  RemoveElementCanonical(
+      CanonicalName(nsGkAtoms::iframe, nsGkAtoms::nsuri_xhtml));
+  RemoveElementCanonical(
+      CanonicalName(nsGkAtoms::object, nsGkAtoms::nsuri_xhtml));
+  RemoveElementCanonical(
+      CanonicalName(nsGkAtoms::embed, nsGkAtoms::nsuri_xhtml));
+  RemoveElementCanonical(
+      CanonicalName(nsGkAtoms::script, nsGkAtoms::nsuri_svg));
+  RemoveElementCanonical(CanonicalName(nsGkAtoms::use, nsGkAtoms::nsuri_svg));
+
+  // Step 4. For each attribute in built-in safe baseline
+  // configuration[removeAttributes]: (Empty list)
+
+  // Step 5. For each attribute listed in event handler content attributes:
+  // TODO: Consider sorting these.
+  nsContentUtils::ForEachEventAttributeName(
+      EventNameType_All & ~EventNameType_XUL,
+      [self = MOZ_KnownLive(this)](nsAtom* aName) {
+        self->RemoveAttributeCanonical(CanonicalName(aName, nullptr));
+      });
+
+  // Step 6. Return result. (Overwrites "this’s configuration")
+}
 
 // https://wicg.github.io/sanitizer-api/#sanitize
 RefPtr<DocumentFragment> Sanitizer::SanitizeFragment(
@@ -646,6 +692,7 @@ static RefPtr<nsAtom> ToNamespace(int32_t aNamespaceID) {
 
 // https://wicg.github.io/sanitizer-api/#built-in-safe-baseline-configuration
 // The "removeElements" list.
+// Keep in sync with Sanitizer::RemoveUnsafe
 static bool IsUnsafeElement(nsAtom* aLocalName, int32_t aNamespaceID) {
   if (aNamespaceID == kNameSpaceID_XHTML) {
     return aLocalName == nsGkAtoms::script || aLocalName == nsGkAtoms::frame ||
