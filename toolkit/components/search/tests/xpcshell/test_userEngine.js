@@ -56,4 +56,5 @@ add_task(async function test_user_engine() {
       submissionUrl: "blank:",
     },
   });
+  await Services.search.removeEngine(engine);
 });

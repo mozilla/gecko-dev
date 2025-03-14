@@ -135,7 +135,7 @@ export class QueryParameter {
  * @returns {string}
  *   An updated parameter string.
  */
-function ParamSubstitution(paramValue, searchTerms, queryCharset) {
+function paramSubstitution(paramValue, searchTerms, queryCharset) {
   const PARAM_REGEXP = /\{(\w+)(\??)\}/g;
   return paramValue.replace(PARAM_REGEXP, function (match, name, optional) {
     // {searchTerms} is by far the most common param so handle it first.
@@ -177,9 +177,19 @@ function ParamSubstitution(paramValue, searchTerms, queryCharset) {
  * EngineURL holds a query URL and all associated parameters.
  */
 export class EngineURL {
+  /** @type {QueryParameter[]} */
   params = [];
+  /** @type {string[]} */
   rels = [];
-  #searchTermParamName = null;
+  /** @type {string} */
+  template;
+
+  /**
+   * The name of the parameter used for the search term.
+   *
+   * @type {?string}
+   */
+  #searchTermParam = null;
 
   /**
    * Creates an EngineURL.
@@ -246,13 +256,16 @@ export class EngineURL {
     let urlParms = new URLSearchParams(templateURI.query);
     for (let [name, value] of urlParms.entries()) {
       if (value == "{searchTerms}") {
-        this.#searchTermParamName = name;
+        this.#searchTermParam = name;
       }
     }
   }
 
   /**
-   * @param {QueryParameter} param the QueryParameter to add
+   * Adds a QueryParameter object to the list of params.
+   *
+   * @param {QueryParameter} param
+   *   The QueryParameter to add.
    */
   addQueryParameter(param) {
     if (param.value == "{searchTerms}") {
@@ -264,8 +277,8 @@ export class EngineURL {
 
   /**
    * Adds a QueryParameter by name and value.
-   * Exists because this is a frequent operation and because it allows
-   * other files to add QueryParameters without importing QueryParameter
+   * This exists because it's a frequent operation and it allows
+   * other files to add QueryParameters without importing QueryParameter.
    *
    * @param {string} name name of the parameter
    * @param {string} value value of the parameter
@@ -282,25 +295,24 @@ export class EngineURL {
    *   The name of the parameter.
    */
   setSearchTermParamName(name) {
-    if (this.#searchTermParamName) {
+    if (this.#searchTermParam) {
       lazy.logConsole.warn(
         "set searchTermParamName: searchTermParamName was set twice."
       );
     }
     this.params.push(new QueryParameter(name, "{searchTerms}"));
-    this.#searchTermParamName = name;
+    this.#searchTermParam = name;
   }
 
   /**
    * Returns the name of the parameter used for the search term.
    *
-   * @returns {string|null}
-   *   A string which is the name of the parameter, or null
-   *   if no parameter can be found or is not supported (e.g. POST,
-   *   or contained within the URL).
+   * @returns {?string}
+   *   A string which is the name of the parameter, or null if no parameter
+   *   can be found (e.g. if search terms are contained within the URL).
    */
   get searchTermParamName() {
-    return this.#searchTermParamName;
+    return this.#searchTermParam;
   }
 
   /**
@@ -315,7 +327,7 @@ export class EngineURL {
    *   The submission data containing the URL and post data for the URL.
    */
   getSubmission(searchTerms, queryCharset) {
-    let escapedSearchTerms = "";
+    let escapedSearchTerms;
     try {
       escapedSearchTerms = Services.textToSubURI.ConvertAndEscape(
         queryCharset,
@@ -331,48 +343,30 @@ export class EngineURL {
       );
     }
 
-    // textToSubURI encodes spaces with '+' but we want to use %20 if the search
-    // terms are part of the URL. We only use '+' if they are a query parameter.
-    let url = ParamSubstitution(
-      this.template,
-      escapedSearchTerms.replaceAll("+", "%20"),
+    let templateURI = new URL(this.template);
+    let paramString = this.#encodeParams(escapedSearchTerms, queryCharset);
+
+    let postData = null;
+    let query = paramSubstitution(
+      templateURI.search,
+      escapedSearchTerms,
       queryCharset
     );
-
-    // Create an application/x-www-form-urlencoded representation of our params
-    // (name=value&name=value&name=value)
-    let dataArray = [];
-    for (let param of this.params) {
-      // QueryPreferenceParameters might not have a preferenced saved, or a valid value.
-      if (param.value != null) {
-        let value = ParamSubstitution(
-          param.value,
-          escapedSearchTerms,
-          queryCharset
-        );
-        dataArray.push(param.name + "=" + value);
-      }
-    }
-    let dataString = dataArray.join("&");
-
-    var postData = null;
-    if (this.method == "GET") {
-      // GET method requests have no post data, and append the encoded
-      // query string to the url...
-      if (dataString) {
-        if (url.includes("?")) {
-          url = `${url}&${dataString}`;
-        } else {
-          url = `${url}?${dataString}`;
-        }
+    if (this.method == "GET" && paramString) {
+      // Query parameters may be specified in the template url AND in `this.params`.
+      // Thus, we need to supply both with the search terms and join them.
+      if (query) {
+        query += "&" + paramString;
+      } else {
+        query = paramString;
       }
     } else if (this.method == "POST") {
       // POST method requests must wrap the encoded text in a MIME
       // stream and supply that as POSTDATA.
-      var stringStream = Cc[
+      let stringStream = Cc[
         "@mozilla.org/io/string-input-stream;1"
       ].createInstance(Ci.nsIStringInputStream);
-      stringStream.setByteStringData(dataString);
+      stringStream.setByteStringData(paramString);
 
       postData = Cc["@mozilla.org/network/mime-input-stream;1"].createInstance(
         Ci.nsIMIMEInputStream
@@ -381,7 +375,54 @@ export class EngineURL {
       postData.setData(stringStream);
     }
 
-    return new Submission(Services.io.newURI(url), postData);
+    templateURI.search = query;
+
+    // textToSubURI encodes spaces with '+', but we want to use '%20' if the
+    // search terms are part of the file path or ref. We only use '+' if they
+    // are part of a query parameter.
+    let urlSearchTerms = escapedSearchTerms.replaceAll("+", "%20");
+    templateURI.pathname = paramSubstitution(
+      // The braces in filePath are percent-encoded, so we
+      // decode them to ensure paramSubstitution finds them.
+      decodeURIComponent(templateURI.pathname),
+      urlSearchTerms,
+      queryCharset
+    );
+    templateURI.hash = paramSubstitution(
+      templateURI.hash,
+      urlSearchTerms,
+      queryCharset
+    );
+
+    return new Submission(templateURI.URI, postData);
+  }
+
+  /**
+   * Returns a application/x-www-form-urlencoded representation of the params
+   * using the specified search term (name=value&name=value&name=value).
+   * Can be used for GET and POST.
+   *
+   * @param {string} escapedSearchTerms
+   *   The user's search terms escaped with the correct charset.
+   * @param {string} queryCharset
+   *   The character set that is being used for the query.
+   * @returns {string}
+   *   Parameter string containing the search terms.
+   */
+  #encodeParams(escapedSearchTerms, queryCharset) {
+    let dataArray = [];
+    for (let param of this.params) {
+      // QueryPreferenceParameters might not have a preferenced saved, or a valid value.
+      if (param.value != null) {
+        let value = paramSubstitution(
+          param.value,
+          escapedSearchTerms,
+          queryCharset
+        );
+        dataArray.push(param.name + "=" + value);
+      }
+    }
+    return dataArray.join("&");
   }
 
   _hasRelation(rel) {
@@ -1033,7 +1074,7 @@ export class SearchEngine {
    * Returns a list of aliases, including a user defined alias and
    * a list defined by webextension keywords.
    *
-   * @returns {Array}
+   * @returns {string[]}
    */
   get aliases() {
     return [
@@ -1075,6 +1116,7 @@ export class SearchEngine {
   get hidden() {
     return this.getAttr("hidden") || false;
   }
+
   set hidden(val) {
     var value = !!val;
     if (value != this.hidden) {

@@ -179,7 +179,7 @@ add_task(async function () {
       "Submission URI is correct"
     );
     Assert.equal(
-      decodePostData(submission.postData, args.charset),
+      postDataToString(submission.postData),
       args.expectedPost,
       "Submission post data is correct."
     );
@@ -194,16 +194,16 @@ add_task(async function () {
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
 
-function decodePostData(postData, charset) {
+function postDataToString(postData) {
   if (!postData) {
     return undefined;
   }
-  const binaryStream = Cc["@mozilla.org/binaryinputstream;1"].createInstance(
+  let binaryStream = Cc["@mozilla.org/binaryinputstream;1"].createInstance(
     Ci.nsIBinaryInputStream
   );
-  binaryStream.setInputStream(postData);
-  const available = binaryStream.available();
-  const buffer = new ArrayBuffer(available);
-  binaryStream.readArrayBuffer(available, buffer);
-  return new TextDecoder(charset).decode(buffer);
+  binaryStream.setInputStream(postData.data);
+
+  return binaryStream
+    .readBytes(binaryStream.available())
+    .replace("searchTerms", "%s");
 }

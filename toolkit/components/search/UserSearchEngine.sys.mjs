@@ -78,6 +78,7 @@ export class UserSearchEngine extends SearchEngine {
    */
   #initWithFormInfo(formInfo) {
     this._name = formInfo.name.trim();
+    let charset = formInfo.charset ?? lazy.SearchUtils.DEFAULT_QUERY_CHARSET;
 
     let url = new EngineURL(
       lazy.SearchUtils.URL_TYPE.SEARCH,
@@ -89,9 +90,9 @@ export class UserSearchEngine extends SearchEngine {
         throw new Error("Non-string values are not supported.");
       }
       url.addParam(
-        Services.textToSubURI.ConvertAndEscape(formInfo.charset, key),
+        Services.textToSubURI.ConvertAndEscape(charset, key),
         Services.textToSubURI
-          .ConvertAndEscape(formInfo.charset, value)
+          .ConvertAndEscape(charset, value)
           .replaceAll("%7BsearchTerms%7D", "{searchTerms}")
       );
     }

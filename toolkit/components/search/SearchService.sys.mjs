@@ -648,6 +648,7 @@ export class SearchService {
     let newEngine = new lazy.UserSearchEngine({ formInfo });
     lazy.logConsole.debug(`Adding ${formInfo.name}`);
     this.#addEngineToStore(newEngine);
+    return newEngine;
   }
 
   async addSearchEngine(engine) {

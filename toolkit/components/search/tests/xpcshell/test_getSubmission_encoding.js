@@ -59,3 +59,74 @@ add_task(async function test_getSubmission_windows1252() {
   let engine = Services.search.getEngineById("windows1252");
   testEncode(engine, "windows-1252", "caff\u00E8+", "?q=caff%E8%2B");
 });
+
+// Spaces are percent-encoded to either + or %20, depending on the url component.
+add_task(async function test_encoding_of_spaces() {
+  info("Testing spaces in query.");
+  let engine = await Services.search.addUserEngine({
+    name: "user",
+    url: "https://example.com/user?q={searchTerms}#ref",
+  });
+  Assert.equal(
+    engine.getSubmission("f o o").uri.spec,
+    "https://example.com/user?q=f+o+o#ref",
+    "Encodes spaces in query as +."
+  );
+  await Services.search.removeEngine(engine);
+
+  info("Testing spaces in path.");
+  engine = await Services.search.addUserEngine({
+    name: "user",
+    url: "https://example.com/user/{searchTerms}?que=ry#ref",
+  });
+  Assert.equal(
+    engine.getSubmission("f o o").uri.spec,
+    "https://example.com/user/f%20o%20o?que=ry#ref",
+    "Encodes spaces in path as %20."
+  );
+  await Services.search.removeEngine(engine);
+
+  info("Testing spaces in ref.");
+  engine = await Services.search.addUserEngine({
+    name: "user",
+    url: "https://example.com/user?que=ry#{searchTerms}",
+  });
+  Assert.equal(
+    engine.getSubmission("f o o").uri.spec,
+    "https://example.com/user?que=ry#f%20o%20o",
+    "Encodes spaces in ref as %20."
+  );
+  await Services.search.removeEngine(engine);
+
+  info("Testing spaces in post data.");
+  let formData = new FormData();
+  formData.append("q", "{searchTerms}");
+  engine = await Services.search.addUserEngine({
+    name: "user",
+    url: "https://example.com/user",
+    formData,
+    method: "POST",
+  });
+  let submission = engine.getSubmission("f o o");
+  Assert.equal(submission.uri.spec, "https://example.com/user");
+  Assert.equal(
+    postDataToString(submission.postData),
+    "q=f+o+o",
+    "Encodes spaces in body as +."
+  );
+  await Services.search.removeEngine(engine);
+});
+
+function postDataToString(postData) {
+  if (!postData) {
+    return undefined;
+  }
+  let binaryStream = Cc["@mozilla.org/binaryinputstream;1"].createInstance(
+    Ci.nsIBinaryInputStream
+  );
+  binaryStream.setInputStream(postData.data);
+
+  return binaryStream
+    .readBytes(binaryStream.available())
+    .replace("searchTerms", "%s");
+}
