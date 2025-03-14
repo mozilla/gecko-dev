@@ -58,8 +58,10 @@
 
 namespace mozilla::detail {
 struct InputImageData {
-  uint64_t rtp_timestamp = 0;
+  uint64_t gmp_timestamp_us = 0;
+  int64_t ntp_timestamp_ms = 0;
   int64_t timestamp_us = 0;
+  uint32_t rtp_timestamp = 0;
   webrtc::ScalableVideoController::LayerFrameConfig frame_config;
 };
 }  // namespace mozilla::detail
