@@ -10270,7 +10270,12 @@ bool BaseCompiler::emitBody() {
 
 #ifdef JS_ION_PERF
   bool spewerEnabled = perfSpewer_.needsToRecordInstruction();
+#else
+  bool spewerEnabled = false;
 #endif
+  bool debugEnabled = compilerEnv_.debugEnabled();
+  // Fold the debug and profiler checks into a single bool.
+  bool hasPerInstrCheck = spewerEnabled || debugEnabled;
 
   for (;;) {
     Nothing unused_a, unused_b, unused_c;
@@ -10411,28 +10416,29 @@ bool BaseCompiler::emitBody() {
     OpBytes op{};
     CHECK(iter_.readOp(&op));
 
-    // When compilerEnv_.debugEnabled(), some operators get a breakpoint site.
-    if (compilerEnv_.debugEnabled() && op.shouldHaveBreakpoint() &&
-        !deadCode_) {
-      if (previousBreakablePoint_ != masm.currentOffset()) {
-        // TODO sync only registers that can be clobbered by the exit
-        // prologue/epilogue or disable these registers for use in
-        // baseline compiler when compilerEnv_.debugEnabled() is set.
-        sync();
+    if (MOZ_UNLIKELY(hasPerInstrCheck)) {
+      // When compilerEnv_.debugEnabled(), some operators get a breakpoint site.
+      if (debugEnabled && op.shouldHaveBreakpoint() && !deadCode_) {
+        if (previousBreakablePoint_ != masm.currentOffset()) {
+          // TODO sync only registers that can be clobbered by the exit
+          // prologue/epilogue or disable these registers for use in
+          // baseline compiler when compilerEnv_.debugEnabled() is set.
+          sync();
 
-        insertBreakablePoint(CallSiteKind::Breakpoint);
-        if (!createStackMap("debug: per-insn breakpoint")) {
-          return false;
+          insertBreakablePoint(CallSiteKind::Breakpoint);
+          if (!createStackMap("debug: per-insn breakpoint")) {
+            return false;
+          }
+          previousBreakablePoint_ = masm.currentOffset();
         }
-        previousBreakablePoint_ = masm.currentOffset();
       }
-    }
 
 #ifdef JS_ION_PERF
-    if (MOZ_UNLIKELY(spewerEnabled)) {
-      perfSpewer_.recordInstruction(masm, op);
-    }
+      if (spewerEnabled) {
+        perfSpewer_.recordInstruction(masm, op);
+      }
 #endif
+    }
 
     // Going below framePushedAtEntryToBody would imply that we've
     // popped off the machine stack, part of the frame created by
