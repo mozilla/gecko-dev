@@ -888,9 +888,13 @@ AtkObject* GetWrapperFor(Accessible* aAcc) {
 
 static uint16_t GetInterfacesForProxy(RemoteAccessible* aProxy) {
   uint16_t interfaces = 1 << MAI_INTERFACE_COMPONENT;
-  if (aProxy->IsHyperText()) {
-    interfaces |= (1 << MAI_INTERFACE_HYPERTEXT) | (1 << MAI_INTERFACE_TEXT) |
-                  (1 << MAI_INTERFACE_EDITABLE_TEXT);
+
+  if (aProxy->IsHyperText() && aProxy->IsTextRole()) {
+    interfaces |= 1 << MAI_INTERFACE_TEXT;
+    interfaces |= 1 << MAI_INTERFACE_EDITABLE_TEXT;
+    if (!nsAccUtils::MustPrune(aProxy)) {
+      interfaces |= 1 << MAI_INTERFACE_HYPERTEXT;
+    }
   }
 
   if (aProxy->IsLink()) {

@@ -166,7 +166,8 @@ bool Accessible::IsTextRole() {
                        roleMapEntry->role == roles::IMAGE_MAP ||
                        roleMapEntry->role == roles::SLIDER ||
                        roleMapEntry->role == roles::PROGRESSBAR ||
-                       roleMapEntry->role == roles::SEPARATOR)) {
+                       roleMapEntry->role == roles::SEPARATOR ||
+                       roleMapEntry->role == roles::METER)) {
     return false;
   }
 
