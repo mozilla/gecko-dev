@@ -4,10 +4,6 @@
 
 BROWSER_CHROME_MANIFESTS += ["tests/browser/browser.toml"]
 
-MOCHITEST_CHROME_MANIFESTS += [
-    "tests/chrome/chrome.toml",
-]
-
 with Files("**"):
     BUG_COMPONENT = ("Core", "Machine Learning")
 

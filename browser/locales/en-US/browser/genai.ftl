@@ -157,14 +157,3 @@ genai-onboarding-huggingchat-switch = Switch between a diverse set of open model
 genai-onboarding-huggingchat-price-2 = Free; account required after a certain number of requests
 genai-onboarding-lechat-generate = Generate text and code
 genai-onboarding-lechat-price = Free; account required
-
-## Model Optin Component
-
-genai-model-optin-continue =
-  .label = Continue
-
-genai-model-optin-optout =
-  .label = Cancel
-
-genai-model-optin-cancel =
-  .label = Cancel
