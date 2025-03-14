@@ -310,7 +310,7 @@ nsHyphenator::nsHyphenator(nsIURI* aURI, bool aHyphenateCapitalized)
 
 bool nsHyphenator::IsValid() {
   return mDict.match(
-      [](Span<const uint8_t>& span) { return span.data() != nullptr; },
+      [](Span<const uint8_t>& span) { return !span.IsEmpty(); },
       [](ipc::ReadOnlySharedMemoryHandle& shm) { return shm.IsValid(); },
       [](ipc::ReadOnlySharedMemoryMapping& shm) { return shm.IsValid(); },
       [](UniquePtr<const HyphDic>& hyph) { return hyph != nullptr; });
