@@ -824,9 +824,6 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
     if (auto* templateEl = HTMLTemplateElement::FromNode(child)) {
       // Step 2.4.4.1. Then call sanitize core on child’s template contents with
       // configuration and handleJavascriptNavigationUrls.
-
-      // TODO: The <template>'s content can't be accessed after sanitizing,
-      // because nsINode::WrapObject throws NS_ERROR_UNEXPECTED.
       RefPtr<DocumentFragment> frag = templateEl->Content();
       SanitizeChildren<IsDefaultConfig>(frag, aSafe);
     }
