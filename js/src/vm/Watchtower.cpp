@@ -383,6 +383,29 @@ static void MaybePopWeakSetPrototypeFuses(JSContext* cx, NativeObject* obj,
   }
 }
 
+static void MaybePopPromiseConstructorFuses(JSContext* cx, NativeObject* obj,
+                                            jsid id) {
+  if (obj != obj->global().maybeGetConstructor(JSProto_Promise)) {
+    return;
+  }
+  if (id.isWellKnownSymbol(JS::SymbolCode::species) ||
+      id.isAtom(cx->names().resolve)) {
+    obj->realm()->realmFuses.optimizePromiseLookupFuse.popFuse(
+        cx, obj->realm()->realmFuses);
+  }
+}
+
+static void MaybePopPromisePrototypeFuses(JSContext* cx, NativeObject* obj,
+                                          jsid id) {
+  if (obj != obj->global().maybeGetPrototype(JSProto_Promise)) {
+    return;
+  }
+  if (id.isAtom(cx->names().constructor) || id.isAtom(cx->names().then)) {
+    obj->realm()->realmFuses.optimizePromiseLookupFuse.popFuse(
+        cx, obj->realm()->realmFuses);
+  }
+}
+
 static void MaybePopFuses(JSContext* cx, NativeObject* obj, jsid id) {
   // Handle writes to Array constructor fuse properties.
   MaybePopArrayConstructorFuses(cx, obj, id);
@@ -410,6 +433,12 @@ static void MaybePopFuses(JSContext* cx, NativeObject* obj, jsid id) {
 
   // Handle writes to WeakSet.prototype fuse properties.
   MaybePopWeakSetPrototypeFuses(cx, obj, id);
+
+  // Handle writes to Promise constructor fuse properties.
+  MaybePopPromiseConstructorFuses(cx, obj, id);
+
+  // Handle writes to Promise.prototype fuse properties.
+  MaybePopPromisePrototypeFuses(cx, obj, id);
 }
 
 // static

@@ -7200,6 +7200,7 @@ static const ClassSpec PromiseObjectClassSpec = {
     promise_static_properties,
     promise_methods,
     promise_properties,
+    GenericFinishInit<WhichHasFuseProperty::ProtoAndCtor>,
 };
 
 const JSClass PromiseObject::class_ = {

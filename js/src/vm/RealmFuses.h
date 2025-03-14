@@ -150,6 +150,18 @@ struct OptimizeArraySpeciesFuse final : public InvalidatingRealmFuse {
   virtual void popFuse(JSContext* cx, RealmFuses& realmFuses) override;
 };
 
+// Fuse used to optimize various property lookups for promises. If this fuse is
+// intact, the following invariants must hold:
+//
+// - The builtin `Promise.prototype` object has unchanged `constructor` and
+//   `then` properties.
+// - The builtin `Promise` constructor has unchanged `Symbol.species` and
+//   `resolve` properties.
+struct OptimizePromiseLookupFuse final : public InvalidatingRealmFuse {
+  virtual const char* name() override { return "OptimizePromiseLookupFuse"; }
+  virtual bool checkInvariant(JSContext* cx) override;
+};
+
 // Guard used to optimize iterating over Map objects. If this fuse is intact,
 // the following invariants must hold:
 //
@@ -228,6 +240,7 @@ struct OptimizeWeakSetPrototypeAddFuse final : public RealmFuse {
   FUSE(IteratorPrototypeHasObjectProto, iteratorPrototypeHasObjectProto)       \
   FUSE(ObjectPrototypeHasNoReturnProperty, objectPrototypeHasNoReturnProperty) \
   FUSE(OptimizeArraySpeciesFuse, optimizeArraySpeciesFuse)                     \
+  FUSE(OptimizePromiseLookupFuse, optimizePromiseLookupFuse)                   \
   FUSE(OptimizeMapObjectIteratorFuse, optimizeMapObjectIteratorFuse)           \
   FUSE(OptimizeSetObjectIteratorFuse, optimizeSetObjectIteratorFuse)           \
   FUSE(OptimizeMapPrototypeSetFuse, optimizeMapPrototypeSetFuse)               \
