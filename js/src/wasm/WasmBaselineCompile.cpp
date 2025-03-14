@@ -7374,10 +7374,10 @@ RegPtr BaseCompiler::loadAllocSiteInstanceData(uint32_t allocSiteIndex) {
   return rp;
 }
 
-uint32_t BaseCompiler::readAllocSiteIndex() {
-  uint32_t index = masm.allocSitesPatches().length();
+bool BaseCompiler::readAllocSiteIndex(uint32_t* index) {
+  *index = masm.allocSitesPatches().length();
   masm.append(wasm::AllocSitePatch());
-  return index;
+  return !masm.oom();
 }
 
 RegPtr BaseCompiler::loadSuperTypeVector(uint32_t typeIndex) {
@@ -7768,7 +7768,10 @@ bool BaseCompiler::emitStructNew() {
     return false;
   }
 
-  uint32_t allocSiteIndex = readAllocSiteIndex();
+  uint32_t allocSiteIndex;
+  if (!readAllocSiteIndex(&allocSiteIndex)) {
+    return false;
+  }
 
   if (deadCode_) {
     return true;
@@ -7858,7 +7861,10 @@ bool BaseCompiler::emitStructNewDefault() {
     return false;
   }
 
-  uint32_t allocSiteIndex = readAllocSiteIndex();
+  uint32_t allocSiteIndex;
+  if (!readAllocSiteIndex(&allocSiteIndex)) {
+    return false;
+  }
 
   if (deadCode_) {
     return true;
@@ -8125,7 +8131,10 @@ bool BaseCompiler::emitArrayNew() {
     return false;
   }
 
-  uint32_t allocSiteIndex = readAllocSiteIndex();
+  uint32_t allocSiteIndex;
+  if (!readAllocSiteIndex(&allocSiteIndex)) {
+    return false;
+  }
 
   if (deadCode_) {
     return true;
@@ -8195,7 +8204,10 @@ bool BaseCompiler::emitArrayNewFixed() {
     return false;
   }
 
-  uint32_t allocSiteIndex = readAllocSiteIndex();
+  uint32_t allocSiteIndex;
+  if (!readAllocSiteIndex(&allocSiteIndex)) {
+    return false;
+  }
 
   if (deadCode_) {
     return true;
@@ -8267,7 +8279,10 @@ bool BaseCompiler::emitArrayNewDefault() {
     return false;
   }
 
-  uint32_t allocSiteIndex = readAllocSiteIndex();
+  uint32_t allocSiteIndex;
+  if (!readAllocSiteIndex(&allocSiteIndex)) {
+    return false;
+  }
 
   if (deadCode_) {
     return true;
@@ -8293,7 +8308,10 @@ bool BaseCompiler::emitArrayNewData() {
     return false;
   }
 
-  uint32_t allocSiteIndex = readAllocSiteIndex();
+  uint32_t allocSiteIndex;
+  if (!readAllocSiteIndex(&allocSiteIndex)) {
+    return false;
+  }
 
   if (deadCode_) {
     return true;
@@ -8316,7 +8334,10 @@ bool BaseCompiler::emitArrayNewElem() {
     return false;
   }
 
-  uint32_t allocSiteIndex = readAllocSiteIndex();
+  uint32_t allocSiteIndex;
+  if (!readAllocSiteIndex(&allocSiteIndex)) {
+    return false;
+  }
 
   if (deadCode_) {
     return true;

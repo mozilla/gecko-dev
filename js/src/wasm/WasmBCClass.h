@@ -1749,7 +1749,7 @@ struct BaseCompiler final {
   RegPtr loadAllocSiteInstanceData(uint32_t allocSiteIndex);
 
   // Gets alloc site allociated with current instruction
-  uint32_t readAllocSiteIndex();
+  [[nodiscard]] bool readAllocSiteIndex(uint32_t* index);
 
   // Load a pointer to the SuperTypeVector for a given type index
   RegPtr loadSuperTypeVector(uint32_t typeIndex);
