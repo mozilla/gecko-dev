@@ -835,6 +835,7 @@ pub unsafe extern "C" fn wgpu_server_buffer_map(
     mut error_buf: ErrorBuffer,
 ) {
     let closure = Box::new(move |result| {
+        let _ = &closure;
         let status = match result {
             Ok(_) => BufferMapAsyncStatus::Success,
             Err(BufferAccessError::Device(_)) => BufferMapAsyncStatus::ContextLost,
@@ -2644,7 +2645,10 @@ pub unsafe extern "C" fn wgpu_server_on_submitted_work_done(
     self_id: id::QueueId,
     closure: SubmittedWorkDoneClosure,
 ) {
-    let closure = Box::new(move || (closure.callback)(closure.user_data));
+    let closure = Box::new(move || {
+        let _ = &closure;
+        (closure.callback)(closure.user_data)
+    });
     global.queue_on_submitted_work_done(self_id, closure);
 }
 
