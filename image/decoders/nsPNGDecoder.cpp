@@ -446,8 +446,7 @@ uint32_t nsPNGDecoder::ReadColorProfile(png_structp png_ptr, png_infop info_ptr,
                    "supported\n"));
         }
 
-        mInProfile = qcms_profile_create_cicp(
-            primaries, ChooseTransferCharacteristics(tc));
+        mInProfile = qcms_profile_create_cicp(primaries, tc);
         if (mInProfile) {
           return qcms_profile_get_rendering_intent(mInProfile);
         }

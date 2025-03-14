@@ -1746,8 +1746,7 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
       MOZ_ASSERT(tc != CICP::TransferCharacteristics::TC_UNSPECIFIED &&
                  !CICP::IsReserved(tc));
 
-      mInProfile =
-          qcms_profile_create_cicp(cp, ChooseTransferCharacteristics(tc));
+      mInProfile = qcms_profile_create_cicp(cp, tc);
     }
 
     MOZ_LOG(sAVIFLog, LogLevel::Debug,
