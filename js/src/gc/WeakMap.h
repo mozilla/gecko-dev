@@ -229,7 +229,7 @@ class WeakMap
   Ptr lookup(const Lookup& l) const {
     Ptr p = Base::lookup(l);
     if (p) {
-      exposeGCThingToActiveJS(p->value());
+      valueReadBarrier(p->value());
     }
     return p;
   }
@@ -239,7 +239,7 @@ class WeakMap
   AddPtr lookupForAdd(const Lookup& l) {
     AddPtr p = Base::lookupForAdd(l);
     if (p) {
-      exposeGCThingToActiveJS(p->value());
+      valueReadBarrier(p->value());
     }
     return p;
   }
@@ -295,25 +295,27 @@ class WeakMap
 
   bool markEntries(GCMarker* marker) override;
 
- protected:
   // Find sweep group edges for delegates, if the key type has delegates. (If
   // not, the optimizer should make this a nop.)
   bool findSweepGroupEdges() override;
 
-  /**
-   * If a wrapper is used as a key in a weakmap, the garbage collector should
-   * keep that object around longer than it otherwise would. We want to avoid
-   * collecting the wrapper (and removing the weakmap entry) as long as the
-   * wrapped object is alive (because the object can be rewrapped and looked up
-   * again). As long as the wrapper is used as a weakmap key, it will not be
-   * collected (and remain in the weakmap) until the wrapped object is
-   * collected.
-   */
+#if DEBUG
+  void assertEntriesNotAboutToBeFinalized();
+#endif
+
+#ifdef JS_GC_ZEAL
+  bool checkMarking() const override;
+#endif
+
+#ifdef JSGC_HASH_TABLE_CHECKS
+  void checkAfterMovingGC() const override;
+#endif
+
  private:
-  void exposeGCThingToActiveJS(const JS::Value& v) const {
+  static void valueReadBarrier(const JS::Value& v) {
     JS::ExposeValueToActiveJS(v);
   }
-  void exposeGCThingToActiveJS(JSObject* obj) const {
+  static void valueReadBarrier(JSObject* obj) {
     JS::ExposeObjectToActiveJS(obj);
   }
 
@@ -327,19 +329,6 @@ class WeakMap
   // memberOf can be nullptr, which means that the map is not part of a
   // JSObject.
   void traceMappings(WeakMapTracer* tracer) override;
-
- protected:
-#if DEBUG
-  void assertEntriesNotAboutToBeFinalized();
-#endif
-
-#ifdef JS_GC_ZEAL
-  bool checkMarking() const override;
-#endif
-
-#ifdef JSGC_HASH_TABLE_CHECKS
-  void checkAfterMovingGC() const override;
-#endif
 };
 
 using ObjectValueWeakMap = WeakMap<HeapPtr<JSObject*>, HeapPtr<Value>>;

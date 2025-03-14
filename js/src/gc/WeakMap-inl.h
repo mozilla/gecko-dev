@@ -45,6 +45,14 @@ static CellColor GetEffectiveColor(GCMarker* marker, const T& item) {
   return t.color();
 }
 
+// If a wrapper is used as a key in a weakmap, the garbage collector should
+// keep that object around longer than it otherwise would. We want to avoid
+// collecting the wrapper (and removing the weakmap entry) as long as the
+// wrapped object is alive (because the object can be rewrapped and looked up
+// again). As long as the wrapper is used as a weakmap key, it will not be
+// collected (and remain in the weakmap) until the wrapped object is
+// collected.
+
 // Only objects have delegates, so default to returning nullptr. Note that some
 // compilation units will only ever use the object version.
 static MOZ_MAYBE_UNUSED JSObject* GetDelegateInternal(gc::Cell* key) {
