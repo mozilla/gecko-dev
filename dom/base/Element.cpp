@@ -5378,7 +5378,7 @@ void Element::SetHTML(const nsAString& aInnerHTML,
   ElementCreationOptionsOrString options;
   RefPtr<DocumentFragment> fragment;
   if (doc->IsHTMLDocument()) {
-    inertDoc = nsContentUtils::CreateInertHTMLDocument(nullptr);
+    inertDoc = nsContentUtils::CreateInertHTMLDocument(doc);
     if (!inertDoc) {
       aError = NS_ERROR_FAILURE;
       return;
@@ -5392,7 +5392,7 @@ void Element::SetHTML(const nsAString& aInnerHTML,
 
   } else {
     MOZ_ASSERT(doc->IsXMLDocument());
-    inertDoc = nsContentUtils::CreateInertXMLDocument(nullptr);
+    inertDoc = nsContentUtils::CreateInertXMLDocument(doc);
     if (!inertDoc) {
       aError = NS_ERROR_FAILURE;
       return;
