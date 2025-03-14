@@ -26,7 +26,7 @@ Snap environment and this might lead to weird bugs, as well as break things
 completely. This would be the case if you run a `core24` enabled build of
 Firefox on a Ubuntu 22.04 system where libraries symbols may mismatch. If you
 need to force the `binary_location`, then you will have to use the full path
-under `/snap/firefox/current/lib/firefox/firefox` in combination with the
+under `/snap/firefox/current/usr/lib/firefox/firefox` in combination with the
 correct previous path to GeckoDriver. Using `/snap/bin/firefox` will only
 result in a `binary is not a Firefox executable` error.
 
