@@ -23,6 +23,10 @@ typedef void* EGLSyncKHR;
 
 #define DMABUF_BUFFER_PLANES 4
 
+// The files bellow has exact description of all formats:
+// media/ffvpx/libavutil/pixdesc.h
+// media/ffvpx/libavutil/pixdesc.c
+
 #ifndef VA_FOURCC_NV12
 #  define VA_FOURCC_NV12 0x3231564E
 #endif
@@ -73,6 +77,10 @@ typedef enum {
 class DMABufSurfaceRGBA;
 class DMABufSurfaceYUV;
 struct wl_buffer;
+
+namespace mozilla::layers {
+class PlanarYCbCrImage;
+}
 
 class DMABufSurface {
  public:
@@ -242,7 +250,6 @@ class DMABufSurface {
   int32_t mDrmFormats[DMABUF_BUFFER_PLANES];
   int32_t mStrides[DMABUF_BUFFER_PLANES];
   int32_t mOffsets[DMABUF_BUFFER_PLANES];
-  uint64_t mBufferModifiers[DMABUF_BUFFER_PLANES];
 
   struct gbm_bo* mGbmBufferObject[DMABUF_BUFFER_PLANES];
   void* mMappedRegion[DMABUF_BUFFER_PLANES];
@@ -279,8 +286,6 @@ class DMABufSurfaceRGBA final : public DMABufSurface {
   bool Serialize(mozilla::layers::SurfaceDescriptor& aOutDescriptor) override;
 
   DMABufSurfaceRGBA* GetAsDMABufSurfaceRGBA() override { return this; }
-
-  void Clear();
 
   void ReleaseSurface() override;
 
@@ -351,13 +356,11 @@ class DMABufSurfaceRGBA final : public DMABufSurface {
   EGLImageKHR mEGLImage;
   GLuint mTexture;
   uint32_t mGbmBufferFlags;
+  uint64_t mBufferModifier;
 };
 
 class DMABufSurfaceYUV final : public DMABufSurface {
  public:
-  static already_AddRefed<DMABufSurfaceYUV> CreateYUVSurface(
-      int aWidth, int aHeight, void** aPixelData = nullptr,
-      int* aLineSizes = nullptr);
   static already_AddRefed<DMABufSurfaceYUV> CreateYUVSurface(
       const VADRMPRIMESurfaceDescriptor& aDesc, int aWidth, int aHeight);
   static already_AddRefed<DMABufSurfaceYUV> CopyYUVSurface(
@@ -412,9 +415,11 @@ class DMABufSurfaceYUV final : public DMABufSurface {
 
   DMABufSurfaceYUV();
 
-  bool UpdateYUVData(void** aPixelData, int* aLineSizes);
   bool UpdateYUVData(const VADRMPRIMESurfaceDescriptor& aDesc, int aWidth,
                      int aHeight, bool aCopy);
+  bool UpdateYUVData(const mozilla::layers::PlanarYCbCrData& aData,
+                     mozilla::gfx::SurfaceFormat aImageFormat,
+                     mozilla::gfx::SurfaceFormat aTargetFormat);
   bool VerifyTextureCreation();
 
 #ifdef MOZ_WAYLAND
@@ -427,11 +432,9 @@ class DMABufSurfaceYUV final : public DMABufSurface {
   ~DMABufSurfaceYUV();
 
   bool Create(const mozilla::layers::SurfaceDescriptor& aDesc) override;
-  bool Create(int aWidth, int aHeight, void** aPixelData, int* aLineSizes);
   bool CreateYUVPlane(int aPlane);
   bool CreateLinearYUVPlane(int aPlane, int aWidth, int aHeight,
                             int aDrmFormat);
-  void UpdateYUVPlane(int aPlane, void* aPixelData, int aLineSize);
 
   bool MoveYUVDataImpl(const VADRMPRIMESurfaceDescriptor& aDesc, int aWidth,
                        int aHeight);
@@ -460,6 +463,7 @@ class DMABufSurfaceYUV final : public DMABufSurface {
   int mHeightAligned[DMABUF_BUFFER_PLANES];
   EGLImageKHR mEGLImage[DMABUF_BUFFER_PLANES];
   GLuint mTexture[DMABUF_BUFFER_PLANES];
+  uint64_t mBufferModifiers[DMABUF_BUFFER_PLANES];
   mozilla::gfx::YUVColorSpace mColorSpace =
       mozilla::gfx::YUVColorSpace::Default;
   mozilla::gfx::ColorSpace2 mColorPrimaries =
