@@ -11,6 +11,7 @@ prefs = [
   "accessibility.force_disabled=-1",
 ]
 
+["browser_atspi_interfaces.js"]
 ["browser_groupPosition.js"]
 ["browser_prune_children.js"]
 ["browser_role.js"]

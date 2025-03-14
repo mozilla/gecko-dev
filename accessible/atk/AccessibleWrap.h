@@ -82,9 +82,6 @@ class AccessibleWrap : public LocalAccessible {
   nsresult FireAtkTextChangedEvent(AccEvent* aEvent, AtkObject* aObject);
 
   AtkObject* mAtkObject;
-
- private:
-  uint16_t CreateMaiInterfaces();
 };
 
 }  // namespace a11y

@@ -269,6 +269,56 @@ void AccessibleWrap::Shutdown() {
   LocalAccessible::Shutdown();
 }
 
+static uint16_t CreateMaiInterfaces(Accessible* aAccessible) {
+  uint16_t interfaces = 1 << MAI_INTERFACE_COMPONENT;
+
+  if (aAccessible->IsHyperText() && aAccessible->IsTextRole()) {
+    interfaces |= (1 << MAI_INTERFACE_HYPERTEXT) | (1 << MAI_INTERFACE_TEXT) |
+                  (1 << MAI_INTERFACE_EDITABLE_TEXT);
+  }
+
+  if (aAccessible->IsLink()) {
+    interfaces |= 1 << MAI_INTERFACE_HYPERLINK_IMPL;
+  }
+
+  if (aAccessible->HasNumericValue()) {
+    interfaces |= 1 << MAI_INTERFACE_VALUE;
+  }
+
+  if (aAccessible->IsTable()) {
+    interfaces |= 1 << MAI_INTERFACE_TABLE;
+  }
+
+  if (aAccessible->IsTableCell()) {
+    interfaces |= 1 << MAI_INTERFACE_TABLE_CELL;
+  }
+
+  if (aAccessible->IsImage()) {
+    interfaces |= 1 << MAI_INTERFACE_IMAGE;
+  }
+
+  if (aAccessible->IsDoc()) {
+    interfaces |= 1 << MAI_INTERFACE_DOCUMENT;
+  }
+
+  if (aAccessible->IsSelect()) {
+    interfaces |= 1 << MAI_INTERFACE_SELECTION;
+  }
+
+  if (aAccessible->IsRemote()) {
+    if (aAccessible->IsActionable()) {
+      interfaces |= 1 << MAI_INTERFACE_ACTION;
+    }
+  } else {
+    // XXX: Harmonize this with remote accessibles
+    if (aAccessible->ActionCount()) {
+      interfaces |= 1 << MAI_INTERFACE_ACTION;
+    }
+  }
+
+  return interfaces;
+}
+
 void AccessibleWrap::GetNativeInterface(void** aOutAccessible) {
   *aOutAccessible = nullptr;
 
@@ -279,7 +329,7 @@ void AccessibleWrap::GetNativeInterface(void** aOutAccessible) {
       return;
     }
 
-    GType type = GetMaiAtkType(CreateMaiInterfaces());
+    GType type = GetMaiAtkType(CreateMaiInterfaces(this));
     if (!type) return;
 
     mAtkObject = reinterpret_cast<AtkObject*>(g_object_new(type, nullptr));
@@ -305,52 +355,6 @@ AtkObject* AccessibleWrap::GetAtkObject(LocalAccessible* acc) {
   void* atkObjPtr = nullptr;
   acc->GetNativeInterface(&atkObjPtr);
   return atkObjPtr ? ATK_OBJECT(atkObjPtr) : nullptr;
-}
-
-/* private */
-uint16_t AccessibleWrap::CreateMaiInterfaces(void) {
-  uint16_t interfacesBits = 0;
-
-  // The Component interface is supported by all accessibles.
-  interfacesBits |= 1 << MAI_INTERFACE_COMPONENT;
-
-  // Add Action interface if the action count is more than zero.
-  if (ActionCount() > 0) interfacesBits |= 1 << MAI_INTERFACE_ACTION;
-
-  // Text, Editabletext, and Hypertext interface.
-  HyperTextAccessible* hyperText = AsHyperText();
-  if (hyperText && hyperText->IsTextRole()) {
-    interfacesBits |= 1 << MAI_INTERFACE_TEXT;
-    interfacesBits |= 1 << MAI_INTERFACE_EDITABLE_TEXT;
-    if (!nsAccUtils::MustPrune(this)) {
-      interfacesBits |= 1 << MAI_INTERFACE_HYPERTEXT;
-    }
-  }
-
-  // Value interface.
-  if (HasNumericValue()) interfacesBits |= 1 << MAI_INTERFACE_VALUE;
-
-  // Document interface.
-  if (IsDoc()) interfacesBits |= 1 << MAI_INTERFACE_DOCUMENT;
-
-  if (IsImage()) interfacesBits |= 1 << MAI_INTERFACE_IMAGE;
-
-  // HyperLink interface.
-  if (IsLink()) interfacesBits |= 1 << MAI_INTERFACE_HYPERLINK_IMPL;
-
-  if (!nsAccUtils::MustPrune(this)) {  // These interfaces require children
-    // Table interface.
-    if (AsTable()) interfacesBits |= 1 << MAI_INTERFACE_TABLE;
-
-    if (AsTableCell()) interfacesBits |= 1 << MAI_INTERFACE_TABLE_CELL;
-
-    // Selection interface.
-    if (IsSelect()) {
-      interfacesBits |= 1 << MAI_INTERFACE_SELECTION;
-    }
-  }
-
-  return interfacesBits;
 }
 
 static GType GetMaiAtkType(uint16_t interfacesBits) {
@@ -886,56 +890,10 @@ AtkObject* GetWrapperFor(Accessible* aAcc) {
   return AccessibleWrap::GetAtkObject(aAcc->AsLocal());
 }
 
-static uint16_t GetInterfacesForProxy(RemoteAccessible* aProxy) {
-  uint16_t interfaces = 1 << MAI_INTERFACE_COMPONENT;
-
-  if (aProxy->IsHyperText() && aProxy->IsTextRole()) {
-    interfaces |= 1 << MAI_INTERFACE_TEXT;
-    interfaces |= 1 << MAI_INTERFACE_EDITABLE_TEXT;
-    if (!nsAccUtils::MustPrune(aProxy)) {
-      interfaces |= 1 << MAI_INTERFACE_HYPERTEXT;
-    }
-  }
-
-  if (aProxy->IsLink()) {
-    interfaces |= 1 << MAI_INTERFACE_HYPERLINK_IMPL;
-  }
-
-  if (aProxy->HasNumericValue()) {
-    interfaces |= 1 << MAI_INTERFACE_VALUE;
-  }
-
-  if (aProxy->IsTable()) {
-    interfaces |= 1 << MAI_INTERFACE_TABLE;
-  }
-
-  if (aProxy->IsTableCell()) {
-    interfaces |= 1 << MAI_INTERFACE_TABLE_CELL;
-  }
-
-  if (aProxy->IsImage()) {
-    interfaces |= 1 << MAI_INTERFACE_IMAGE;
-  }
-
-  if (aProxy->IsDoc()) {
-    interfaces |= 1 << MAI_INTERFACE_DOCUMENT;
-  }
-
-  if (aProxy->IsSelect()) {
-    interfaces |= 1 << MAI_INTERFACE_SELECTION;
-  }
-
-  if (aProxy->IsActionable()) {
-    interfaces |= 1 << MAI_INTERFACE_ACTION;
-  }
-
-  return interfaces;
-}
-
 void a11y::ProxyCreated(RemoteAccessible* aProxy) {
   MOZ_ASSERT(aProxy->RemoteParent() || aProxy->IsDoc(),
              "Need parent to check for HyperLink interface");
-  GType type = GetMaiAtkType(GetInterfacesForProxy(aProxy));
+  GType type = GetMaiAtkType(CreateMaiInterfaces(aProxy));
   NS_ASSERTION(type, "why don't we have a type!");
 
   AtkObject* obj = reinterpret_cast<AtkObject*>(g_object_new(type, nullptr));
