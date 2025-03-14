@@ -31,6 +31,7 @@ data class DownloadUIState(
      */
     val itemsToDisplay: List<DownloadListItem> = itemsNotPendingDeletion
         .groupBy { it.createdTime }
+        .toSortedMap()
         .flatMap { (key, value) ->
             listOf(HeaderItem(key)) + value
         }
