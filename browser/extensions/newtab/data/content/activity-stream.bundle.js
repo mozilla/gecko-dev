@@ -13550,8 +13550,19 @@ class BaseContent extends (external_React_default()).PureComponent {
     const prefs = this.props.Prefs.values;
     const selectedWallpaper = prefs["newtabWallpapers.wallpaper"];
     const {
-      wallpaperList
+      wallpaperList,
+      uploadedWallpaper
     } = this.props.Wallpapers;
+    if (uploadedWallpaper) {
+      // revoke ObjectURL to prevent memory leaks
+      if (this.uploadedWallpaperUrl) {
+        URL.revokeObjectURL(this.uploadedWallpaperUrl);
+      }
+      const uploadedWallpaperUrl = URL.createObjectURL(uploadedWallpaper);
+      __webpack_require__.g.document?.body.style.setProperty("--newtab-wallpaper", `url(${uploadedWallpaperUrl})`);
+      __webpack_require__.g.document?.body.style.setProperty("--newtab-wallpaper-color", "transparent");
+      return;
+    }
     if (wallpaperList) {
       let wallpaper = wallpaperList.find(wp => wp.title === selectedWallpaper);
       let lightWallpaper = {};

@@ -384,9 +384,29 @@ export class BaseContent extends React.PureComponent {
 
   async updateWallpaper() {
     const prefs = this.props.Prefs.values;
-
     const selectedWallpaper = prefs["newtabWallpapers.wallpaper"];
-    const { wallpaperList } = this.props.Wallpapers;
+    const { wallpaperList, uploadedWallpaper } = this.props.Wallpapers;
+
+    if (uploadedWallpaper) {
+      // revoke ObjectURL to prevent memory leaks
+      if (this.uploadedWallpaperUrl) {
+        URL.revokeObjectURL(this.uploadedWallpaperUrl);
+      }
+
+      const uploadedWallpaperUrl = URL.createObjectURL(uploadedWallpaper);
+
+      global.document?.body.style.setProperty(
+        "--newtab-wallpaper",
+        `url(${uploadedWallpaperUrl})`
+      );
+
+      global.document?.body.style.setProperty(
+        "--newtab-wallpaper-color",
+        "transparent"
+      );
+
+      return;
+    }
 
     if (wallpaperList) {
       let wallpaper = wallpaperList.find(wp => wp.title === selectedWallpaper);

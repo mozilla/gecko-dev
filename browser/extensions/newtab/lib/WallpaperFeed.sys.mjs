@@ -28,6 +28,9 @@ const WALLPAPER_REMOTE_SETTINGS_COLLECTION_V2 = "newtab-wallpapers-v2";
 const PREF_WALLPAPERS_CUSTOM_WALLPAPER_ENABLED =
   "browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.enabled";
 
+const PREF_WALLPAPERS_CUSTOM_WALLPAPER_UUID =
+  "browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.uuid";
+
 export class WallpaperFeed {
   constructor() {
     this.loaded = false;
@@ -93,6 +96,37 @@ export class WallpaperFeed {
   }
 
   async updateWallpapers(isStartup = false) {
+    let uuid = Services.prefs.getStringPref(
+      PREF_WALLPAPERS_CUSTOM_WALLPAPER_UUID,
+      ""
+    );
+
+    if (uuid) {
+      const wallpaperDir = PathUtils.join(PathUtils.profileDir, "wallpaper");
+      const filePath = PathUtils.join(wallpaperDir, uuid);
+
+      try {
+        let testFile = await IOUtils.getFile(filePath);
+
+        if (!testFile) {
+          throw new Error("File does not exist");
+        }
+
+        let passableFile = await File.createFromNsIFile(testFile);
+
+        this.store.dispatch(
+          ac.BroadcastToContent({
+            type: at.WALLPAPERS_CUSTOM_SET,
+            data: passableFile,
+          })
+        );
+      } catch (error) {
+        console.warn(`Wallpaper file not found: ${error.message}`);
+        Services.prefs.clearUserPref(PREF_WALLPAPERS_CUSTOM_WALLPAPER_UUID);
+        return;
+      }
+    }
+
     // retrieving all records in collection
     const records = await this.wallpaperClient.get();
     if (!records?.length) {
@@ -195,7 +229,12 @@ export class WallpaperFeed {
 
       // create wallpaper directory if it does not exist
       await IOUtils.makeDirectory(wallpaperDir, { ignoreExisting: true });
+
       let uuid = Services.uuid.generateUUID().toString().slice(1, -1);
+      this.store.dispatch(
+        ac.SetPref("newtabWallpapers.customWallpaper.uuid", uuid)
+      );
+
       const filePath = PathUtils.join(wallpaperDir, uuid);
 
       // convert to Uint8Array for IOUtils
@@ -205,9 +244,9 @@ export class WallpaperFeed {
       await IOUtils.write(filePath, uint8Array, { tmpPath: `${filePath}.tmp` });
 
       this.store.dispatch(
-        ac.AlsoToPreloaded({
+        ac.BroadcastToContent({
           type: at.WALLPAPERS_CUSTOM_SET,
-          data: filePath,
+          data: file,
         })
       );
 
@@ -251,6 +290,7 @@ export class WallpaperFeed {
         break;
       case at.WALLPAPER_UPLOAD:
         this.wallpaperUpload(action.data);
+        break;
     }
   }
 }

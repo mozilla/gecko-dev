@@ -1841,6 +1841,10 @@ pref("browser.newtabpage.activity-stream.newtabWallpapers.v2.enabled", true);
 pref("browser.newtabpage.activity-stream.newtabWallpapers.customColor.enabled", false);
 pref("browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.enabled", false);
 
+// Utility preferences for custom wallpaper upload
+pref("browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.uuid", "");
+pref("browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.fileSize", 0);
+
 // Current new tab page background images.
 pref("browser.newtabpage.activity-stream.newtabWallpapers.wallpaper", "");
 
