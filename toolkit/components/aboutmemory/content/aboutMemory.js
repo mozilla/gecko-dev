@@ -327,24 +327,13 @@ window.onload = function () {
         // onchange handler to be re-called without having to go via the file
         // picker.
         if (!aElem.skipClick) {
-          // Attempts to reopen the picker immediately might fail because the
-          // focus may not have switched back on some platform, so explicitly
-          //  wait for focus here.
-          if (!this.ownerDocument.hasFocus()) {
-            let input = this;
-            this.ownerDocument.addEventListener("focus", (e) => {
-              input.click();
-            }, { once: true });
-            return;
-          }
           this.click();
         }
-        return;
+      } else {
+        let filename1 = this.filename1;
+        delete this.filename1;
+        updateAboutMemoryFromTwoFiles(filename1, file.mozFullPath);
       }
-
-      let filename1 = this.filename1;
-      delete this.filename1;
-      updateAboutMemoryFromTwoFiles(filename1, file.mozFullPath);
     }
   );
 

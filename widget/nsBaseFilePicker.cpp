@@ -26,7 +26,6 @@
 #include "WidgetUtils.h"
 #include "nsSimpleEnumerator.h"
 #include "nsContentUtils.h"
-#include "nsThreadUtils.h"
 
 #include "nsBaseFilePicker.h"
 
@@ -352,10 +351,7 @@ bool nsBaseFilePicker::MaybeBlockFilePicker(
   if (mozilla::StaticPrefs::widget_disable_file_pickers()) {
     if (aCallback) {
       // File pickers are disabled, so we answer the callback with returnCancel.
-      NS_DispatchToCurrentThread(
-          mozilla::NewRunnableMethod<nsIFilePicker::ResultCode>(
-              "nsBaseFilePicker::CallbackWithCancelResult", aCallback,
-              &nsIFilePickerShownCallback::Done, nsIFilePicker::returnCancel));
+      aCallback->Done(nsIFilePicker::returnCancel);
     }
 
     RefPtr<Element> topFrameElement = mBrowsingContext->GetTopFrameElement();
@@ -376,10 +372,7 @@ bool nsBaseFilePicker::MaybeBlockFilePicker(
   if (aCallback) {
     // File pickers are not allowed to open, so we respond to the callback with
     // returnCancel.
-    NS_DispatchToCurrentThread(
-        mozilla::NewRunnableMethod<nsIFilePicker::ResultCode>(
-            "nsBaseFilePicker::CallbackWithCancelResult", aCallback,
-            &nsIFilePickerShownCallback::Done, nsIFilePicker::returnCancel));
+    aCallback->Done(nsIFilePicker::returnCancel);
   }
 
   return true;
