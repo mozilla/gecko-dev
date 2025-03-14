@@ -92,6 +92,9 @@ class Sanitizer final : public nsISupports, public nsWrapperCache {
 
   void MaybeMaterializeDefaultConfig();
 
+  void RemoveElementCanonical(sanitizer::CanonicalName&& aElement);
+  void RemoveAttributeCanonical(sanitizer::CanonicalName&& aAttribute);
+
   template <bool IsDefaultConfig>
   void SanitizeChildren(nsINode* aNode, bool aSafe);
   void SanitizeAttributes(Element* aChild,
