@@ -353,7 +353,6 @@ void Realm::purge() {
   newPlainObjectWithPropsCache.purge();
   plainObjectAssignCache.purge();
   objects_.iteratorCache.clearAndCompact();
-  promiseLookup.purge();
 }
 
 void Realm::removeFromCompileQueue(JSScript* script) {

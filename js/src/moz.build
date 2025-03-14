@@ -402,7 +402,6 @@ UNIFIED_SOURCES += [
     "vm/Prefs.cpp",
     "vm/Printer.cpp",
     "vm/Probes.cpp",
-    "vm/PromiseLookup.cpp",
     "vm/PropertyAndElement.cpp",
     "vm/PropertyDescriptor.cpp",
     "vm/PropMap.cpp",

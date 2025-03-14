@@ -28,7 +28,6 @@
 #include "vm/GuardFuse.h"
 #include "vm/InvalidatingFuse.h"
 #include "vm/JSContext.h"
-#include "vm/PromiseLookup.h"  // js::PromiseLookup
 #include "vm/RealmFuses.h"
 #include "vm/SavedStacks.h"
 #include "wasm/WasmRealm.h"
@@ -416,7 +415,6 @@ class JS::Realm : public JS::shadow::Realm {
   js::NewProxyCache newProxyCache;
   js::NewPlainObjectWithPropsCache newPlainObjectWithPropsCache;
   js::PlainObjectAssignCache plainObjectAssignCache;
-  js::PromiseLookup promiseLookup;
 
   // Last time at which an animation was played for this realm.
   js::MainThreadData<mozilla::TimeStamp> lastAnimationTime;

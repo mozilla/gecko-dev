@@ -30,7 +30,6 @@
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
 #include "vm/PlainObject.h"    // js::PlainObject
-#include "vm/PromiseLookup.h"  // js::PromiseLookup
 #include "vm/PromiseObject.h"  // js::PromiseObject, js::PromiseSlot_*
 #include "vm/SelfHosting.h"
 #include "vm/Warnings.h"  // js::WarnNumberASCII
@@ -387,6 +386,32 @@ namespace {
 // Generator used by PromiseObject::getID.
 mozilla::Atomic<uint64_t> gIDGenerator(0);
 }  // namespace
+
+// Returns true if the following properties haven't been mutated:
+// - On the original Promise.prototype object: "constructor" and "then"
+// - On the original Promise constructor: "resolve" and @@species
+static bool HasDefaultPromiseProperties(JSContext* cx) {
+  return cx->realm()->realmFuses.optimizePromiseLookupFuse.intact();
+}
+
+static bool IsPromiseWithDefaultProperties(PromiseObject* promise,
+                                           JSContext* cx) {
+  if (!HasDefaultPromiseProperties(cx)) {
+    return false;
+  }
+
+  // Ensure the promise's prototype is the original Promise.prototype object.
+  JSObject* proto = cx->global()->maybeGetPrototype(JSProto_Promise);
+  if (!proto || promise->staticPrototype() != proto) {
+    return false;
+  }
+
+  // Ensure `promise` doesn't define any own properties. This serves as a
+  // quick check to make sure `promise` doesn't define an own "constructor"
+  // or "then" property which may shadow Promise.prototype.constructor or
+  // Promise.prototype.then.
+  return promise->empty();
+}
 
 class PromiseDebugInfo : public NativeObject {
  private:
@@ -3090,8 +3115,7 @@ enum class CombinatorKind { All, AllSettled, Any, Race };
       return false;
     }
 
-    PromiseLookup& promiseLookup = cx->realm()->promiseLookup;
-    if (C != promiseCtor || !promiseLookup.isDefaultPromiseState(cx)) {
+    if (C != promiseCtor || !HasDefaultPromiseProperties(cx)) {
       // Step 3. Let promiseResolve be GetPromiseResolve(C).
 
       // GetPromiseResolve
@@ -3586,13 +3610,11 @@ template <typename T>
   // during the iteration.
   bool iterationMayHaveSideEffects = !iterator.isOptimizedDenseArrayIteration();
 
-  PromiseLookup& promiseLookup = cx->realm()->promiseLookup;
-
   // Try to optimize when the Promise object is in its default state, guarded
   // by |C == promiseCtor| because we can only perform this optimization
   // for the builtin Promise constructor.
   bool isDefaultPromiseState =
-      C == promiseCtor && promiseLookup.isDefaultPromiseState(cx);
+      C == promiseCtor && HasDefaultPromiseProperties(cx);
   bool validatePromiseState = iterationMayHaveSideEffects;
 
   RootedValue CVal(cx, ObjectValue(*C));
@@ -3637,7 +3659,7 @@ template <typename T>
     bool getThen = true;
 
     if (isDefaultPromiseState && validatePromiseState) {
-      isDefaultPromiseState = promiseLookup.isDefaultPromiseState(cx);
+      isDefaultPromiseState = HasDefaultPromiseProperties(cx);
     }
 
     RootedValue& nextPromise = nextValueOrNextPromise;
@@ -3648,8 +3670,7 @@ template <typename T>
       }
 
       if (nextValuePromise &&
-          promiseLookup.isDefaultInstanceWhenPromiseStateIsSane(
-              cx, nextValuePromise)) {
+          IsPromiseWithDefaultProperties(nextValuePromise, cx)) {
         // The below steps don't produce any side-effects, so we can
         // skip the Promise state revalidation in the next iteration
         // when the iterator itself also doesn't produce any
@@ -5458,8 +5479,8 @@ static bool PromiseThenNewPromiseCapability(
 static bool CanCallOriginalPromiseThenBuiltin(JSContext* cx,
                                               HandleValue promise) {
   return promise.isObject() && promise.toObject().is<PromiseObject>() &&
-         cx->realm()->promiseLookup.isDefaultInstance(
-             cx, &promise.toObject().as<PromiseObject>());
+         IsPromiseWithDefaultProperties(&promise.toObject().as<PromiseObject>(),
+                                        cx);
 }
 
 static MOZ_ALWAYS_INLINE bool IsPromiseThenOrCatchRetValImplicitlyUsed(
@@ -7084,8 +7105,7 @@ void PromiseObject::dumpOwnStringContent(js::GenericPrinter& out) const {}
     return true;
   }
 
-  PromiseLookup& promiseLookup = cx->realm()->promiseLookup;
-  if (!promiseLookup.isDefaultInstance(cx, promise)) {
+  if (!IsPromiseWithDefaultProperties(promise, cx)) {
     *canSkip = false;
     return true;
   }
