@@ -202,7 +202,6 @@ constexpr nsStaticAtom* kHTMLElementWithAttributes[] = {
     nsGkAtoms::scope,
     nsGkAtoms::abbr,
     nullptr,
-    /* sentinel */ nullptr,
     // clang-format on
 };
 
@@ -247,7 +246,6 @@ constexpr nsStaticAtom* kMathMLElementWithAttributes[] = {
     nsGkAtoms::accent,
     nsGkAtoms::accentunder,
     nullptr,
-    /* sentinel */ nullptr,
     // clang-format on
 };
 

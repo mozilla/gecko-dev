@@ -5,7 +5,7 @@
 import json
 from urllib.request import urlretrieve
 
-REVISION = "8240cdeb454c602b235907f52dac593f557d829b"
+REVISION = "87f1c88f8954192705ec32aea421bf9da2bb2dd0"
 
 urlretrieve(
     f"https://raw.githubusercontent.com/WICG/sanitizer-api/{REVISION}/builtins/safe-default-configuration.json",
@@ -23,7 +23,11 @@ def attributes_list(attributes):
     for attr in attributes:
         assert set(attr.keys()) == {"name", "namespace"}
         assert attr["namespace"] is None
-        result.append("nsGkAtoms::" + attr["name"])
+
+        atom = "nsGkAtoms::" + attr["name"]
+        # TODO: Remove this after https://github.com/WICG/sanitizer-api/issues/264
+        if not atom in result:
+            result.append(atom)
 
     # Should not have duplicate attributes
     assert len(result) == len(set(result))
@@ -74,12 +78,8 @@ mathml_elements_body = create_list_body(mathml_elements)
 
 attributes_body = create_list_body(attributes_list(config["attributes"]))
 
-xhtml_element_with_attributes_body = create_list_body(
-    xhtml_element_with_attributes + ["/* sentinel */ nullptr"]
-)
-mathml_element_with_attributes_body = create_list_body(
-    mathml_element_with_attributes + ["/* sentinel */ nullptr"]
-)
+xhtml_element_with_attributes_body = create_list_body(xhtml_element_with_attributes)
+mathml_element_with_attributes_body = create_list_body(mathml_element_with_attributes)
 
 out = open("SanitizerDefaultConfig.h", "w")
 out.write(
