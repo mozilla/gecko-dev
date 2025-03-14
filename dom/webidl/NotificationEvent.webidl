@@ -11,14 +11,20 @@
  * related or neighboring rights to this work.
  */
 
-[Exposed=ServiceWorker,Func="mozilla::dom::Notification::PrefEnabled"]
+[Exposed=ServiceWorker, Func="mozilla::dom::Notification::PrefEnabled"]
 interface NotificationEvent : ExtendableEvent {
   constructor(DOMString type, NotificationEventInit eventInitDict);
 
   [BinaryName="notification_"]
   readonly attribute Notification notification;
+
+  [Pref="dom.webnotifications.actions.enabled"]
+  readonly attribute DOMString action;
 };
 
 dictionary NotificationEventInit : ExtendableEventInit {
   required Notification notification;
+
+  [Pref="dom.webnotifications.actions.enabled"]
+  DOMString action = "";
 };

@@ -53,9 +53,18 @@ struct ServiceWorkerPushSubscriptionChangeEventOpArgs {
   PushSubscriptionData? oldSubscription;
 };
 
-struct ServiceWorkerNotificationEventOpArgs {
-  nsString eventName;
+struct ServiceWorkerNotificationClickEventOpArgs {
   IPCNotification notification;
+  nsString action;
+};
+
+struct ServiceWorkerNotificationCloseEventOpArgs {
+  IPCNotification notification;
+};
+
+union ServiceWorkerNotificationEventOpArgs {
+  ServiceWorkerNotificationClickEventOpArgs;
+  ServiceWorkerNotificationCloseEventOpArgs;
 };
 
 struct ServiceWorkerExtensionAPIEventOpArgs {

@@ -956,9 +956,19 @@ class NotificationEventOp : public ExtendableEventOp,
 
     ServiceWorkerNotificationEventOpArgs& args =
         mArgs.get_ServiceWorkerNotificationEventOpArgs();
+    bool isClick = args.type() ==
+                   ServiceWorkerNotificationEventOpArgs::
+                       TServiceWorkerNotificationClickEventOpArgs;
+    const IPCNotification& notification =
+        args.type() == ServiceWorkerNotificationEventOpArgs::
+                           TServiceWorkerNotificationClickEventOpArgs
+            ? args.get_ServiceWorkerNotificationClickEventOpArgs()
+                  .notification()
+            : args.get_ServiceWorkerNotificationCloseEventOpArgs()
+                  .notification();
 
     auto result = Notification::ConstructFromIPC(
-        aWorkerPrivate->GlobalScope(), args.notification(),
+        aWorkerPrivate->GlobalScope(), notification,
         NS_ConvertUTF8toUTF16(aWorkerPrivate->ServiceWorkerScope()));
 
     if (NS_WARN_IF(result.isErr())) {
@@ -969,13 +979,19 @@ class NotificationEventOp : public ExtendableEventOp,
     init.mNotification = result.unwrap();
     init.mBubbles = false;
     init.mCancelable = false;
+    if (isClick) {
+      init.mAction =
+          args.get_ServiceWorkerNotificationClickEventOpArgs().action();
+    }
 
     RefPtr<NotificationEvent> notificationEvent =
-        NotificationEvent::Constructor(target, args.eventName(), init);
+        NotificationEvent::Constructor(
+            target, isClick ? u"notificationclick"_ns : u"notificationclose"_ns,
+            init);
 
     notificationEvent->SetTrusted(true);
 
-    if (args.eventName().EqualsLiteral("notificationclick")) {
+    if (isClick) {
       StartClearWindowTimer(aWorkerPrivate);
     }
 

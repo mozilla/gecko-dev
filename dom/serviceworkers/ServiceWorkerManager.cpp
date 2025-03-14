@@ -1129,9 +1129,10 @@ ServiceWorkerManager::SendPushSubscriptionChangeEvent(
       aOldSubscription);
 }
 
-nsresult ServiceWorkerManager::SendNotificationEvent(
-    const nsAString& aEventName, const nsACString& aOriginSuffix,
-    const nsAString& aScope, const IPCNotification& aNotification) {
+NS_IMETHODIMP
+ServiceWorkerManager::SendNotificationClickEvent(
+    const nsACString& aOriginSuffix, const nsAString& aScope,
+    const IPCNotification& aNotification, const nsAString& aAction) {
   OriginAttributes attrs;
   if (!attrs.PopulateFromSuffix(aOriginSuffix)) {
     return NS_ERROR_INVALID_ARG;
@@ -1145,24 +1146,28 @@ nsresult ServiceWorkerManager::SendNotificationEvent(
 
   ServiceWorkerPrivate* workerPrivate = info->WorkerPrivate();
 
-  return workerPrivate->SendNotificationEvent(aEventName, aScope,
-                                              aNotification);
-}
-
-NS_IMETHODIMP
-ServiceWorkerManager::SendNotificationClickEvent(
-    const nsACString& aOriginSuffix, const nsAString& aScope,
-    const IPCNotification& aIPCNotification) {
-  return SendNotificationEvent(nsLiteralString(NOTIFICATION_CLICK_EVENT_NAME),
-                               aOriginSuffix, aScope, aIPCNotification);
+  return workerPrivate->SendNotificationClickEvent(aScope, aNotification,
+                                                   aAction);
 }
 
 NS_IMETHODIMP
 ServiceWorkerManager::SendNotificationCloseEvent(
     const nsACString& aOriginSuffix, const nsAString& aScope,
-    const IPCNotification& aIPCNotification) {
-  return SendNotificationEvent(nsLiteralString(NOTIFICATION_CLOSE_EVENT_NAME),
-                               aOriginSuffix, aScope, aIPCNotification);
+    const IPCNotification& aNotification) {
+  OriginAttributes attrs;
+  if (!attrs.PopulateFromSuffix(aOriginSuffix)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  ServiceWorkerInfo* info =
+      GetActiveWorkerInfoForScope(attrs, NS_ConvertUTF16toUTF8(aScope));
+  if (!info) {
+    return NS_ERROR_FAILURE;
+  }
+
+  ServiceWorkerPrivate* workerPrivate = info->WorkerPrivate();
+
+  return workerPrivate->SendNotificationCloseEvent(aScope, aNotification);
 }
 
 RefPtr<ServiceWorkerRegistrationPromise> ServiceWorkerManager::WhenReady(

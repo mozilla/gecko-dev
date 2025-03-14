@@ -984,20 +984,32 @@ nsresult ServiceWorkerPrivate::SendPushSubscriptionChangeEvent(
       });
 }
 
-nsresult ServiceWorkerPrivate::SendNotificationEvent(
-    const nsAString& aEventName, const nsAString& aScope,
-    const IPCNotification& aNotification) {
+nsresult ServiceWorkerPrivate::SendNotificationClickEvent(
+    const nsAString& aScope, const IPCNotification& aNotification,
+    const nsAString& aAction) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (!aEventName.EqualsLiteral(NOTIFICATION_CLICK_EVENT_NAME) &&
-      !aEventName.EqualsLiteral(NOTIFICATION_CLOSE_EVENT_NAME)) {
-    MOZ_ASSERT_UNREACHABLE("Invalid notification event name");
-    return NS_ERROR_FAILURE;
-  }
+  ServiceWorkerNotificationClickEventOpArgs clickArgs;
+  clickArgs.notification() = aNotification;
+  clickArgs.action() = aAction;
 
-  ServiceWorkerNotificationEventOpArgs args;
-  args.eventName() = nsString(aEventName);
-  args.notification() = aNotification;
+  ServiceWorkerNotificationEventOpArgs args(std::move(clickArgs));
+
+  return ExecServiceWorkerOp(
+      std::move(args), ServiceWorkerLifetimeExtension(FullLifetimeExtension{}),
+      [](ServiceWorkerOpResult&& aResult) {
+        MOZ_ASSERT(aResult.type() == ServiceWorkerOpResult::Tnsresult);
+      });
+}
+
+nsresult ServiceWorkerPrivate::SendNotificationCloseEvent(
+    const nsAString& aScope, const IPCNotification& aNotification) {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  ServiceWorkerNotificationCloseEventOpArgs closeArgs;
+  closeArgs.notification() = aNotification;
+
+  ServiceWorkerNotificationEventOpArgs args(std::move(closeArgs));
 
   return ExecServiceWorkerOp(
       std::move(args), ServiceWorkerLifetimeExtension(FullLifetimeExtension{}),

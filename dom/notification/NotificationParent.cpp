@@ -30,7 +30,7 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
     return OpenSettings(mPrincipal);
   }
   if (!strcmp("alertclickcallback", aTopic)) {
-    return FireClickEvent();
+    return FireClickEvent(aSubject);
   }
   if (!strcmp("alertshow", aTopic)) {
     if (!mResolver) {
@@ -83,7 +83,7 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
   return NS_OK;
 }
 
-nsresult NotificationParent::FireClickEvent() {
+nsresult NotificationParent::FireClickEvent(nsISupports* aSubject) {
   if (mScope.IsEmpty()) {
     if (SendNotifyClick()) {
       return NS_OK;
@@ -96,10 +96,16 @@ nsresult NotificationParent::FireClickEvent() {
   // context but in the window context
   if (nsCOMPtr<nsIServiceWorkerManager> swm =
           mozilla::components::ServiceWorkerManager::Service()) {
+    nsCOMPtr<nsIAlertAction> action = do_QueryInterface(aSubject);
+    nsAutoString actionName;
+    if (action) {
+      MOZ_TRY(action->GetAction(actionName));
+    }
+
     nsAutoCString originSuffix;
     MOZ_TRY(mPrincipal->GetOriginSuffix(originSuffix));
-    MOZ_TRY(swm->SendNotificationClickEvent(originSuffix, mScope,
-                                            IPCNotification(mId, mOptions)));
+    MOZ_TRY(swm->SendNotificationClickEvent(
+        originSuffix, mScope, IPCNotification(mId, mOptions), actionName));
 
     return NS_OK;
   }

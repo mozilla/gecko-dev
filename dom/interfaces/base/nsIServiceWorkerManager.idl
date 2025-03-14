@@ -300,7 +300,8 @@ interface nsIServiceWorkerManager : nsISupports
   [noscript]
   void sendNotificationClickEvent(in ACString aOriginSuffix,
                                   in AString scope,
-                                  in const_IPCNotificationRef aNotification);
+                                  in const_IPCNotificationRef aNotification,
+                                  in AString aAction);
 
   [noscript]
   void sendNotificationCloseEvent(in ACString aOriginSuffix,

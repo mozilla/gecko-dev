@@ -48,7 +48,7 @@ class NotificationParent final : public PNotificationParent,
   ~NotificationParent() = default;
 
   nsresult Show();
-  nsresult FireClickEvent();
+  nsresult FireClickEvent(nsISupports* aSubject);
   nsresult FireCloseEvent();
 
   void Unregister(CloseMode aCloseMode);
