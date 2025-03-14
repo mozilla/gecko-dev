@@ -25,8 +25,7 @@ add_task(async function () {
   const { getDisplayedRequestsSummary } = windowRequire(
     "devtools/client/netmonitor/src/selectors/index"
   );
-  const { L10N } = windowRequire("devtools/client/netmonitor/src/utils/l10n");
-  const { PluralForm } = windowRequire("devtools/shared/plural-form");
+  const l10n = new Localization(["devtools/client/netmonitor.ftl"], true);
 
   store.dispatch(Actions.batchEnable(false));
   testStatus();
@@ -63,52 +62,63 @@ add_task(async function () {
       `Current requests: ${requestsSummary.count} of ${totalRequestsCount}.`
     );
 
-    const valueCount = document.querySelector(
+    const countEl = document.querySelector(
       ".requests-list-network-summary-count"
-    ).textContent;
-    info("Current summary count: " + valueCount);
-    const expectedCount = PluralForm.get(
-      requestsSummary.count,
-      L10N.getStr("networkMenu.summary.requestsCount2")
-    ).replace("#1", requestsSummary.count);
+    );
+    info(`Current summary count: ${countEl.textContent}`);
+
+    const expectedCount = l10n.formatValueSync(
+      "network-menu-summary-requests-count",
+      { requestCount: requestsSummary.count }
+    );
+
+    is(
+      countEl.textContent,
+      expectedCount,
+      "The current summary count is correct."
+    );
 
     if (!totalRequestsCount || !requestsSummary.count) {
-      is(
-        valueCount,
-        L10N.getStr("networkMenu.summary.requestsCountEmpty"),
-        "The current summary text is incorrect, expected an 'empty' label."
-      );
       return;
     }
 
-    const valueTransfer = document.querySelector(
+    const transferEl = document.querySelector(
       ".requests-list-network-summary-transfer"
-    ).textContent;
-    info("Current summary transfer: " + valueTransfer);
-    const expectedTransfer = L10N.getFormatStrWithNumbers(
-      "networkMenu.summary.transferred",
-      getFormattedSize(requestsSummary.contentSize),
-      getFormattedSize(requestsSummary.transferredSize)
+    );
+    info(`Current summary transfer: ${transferEl.textContent}`);
+
+    const expectedTransfer = l10n.formatValueSync(
+      "network-menu-summary-transferred",
+      {
+        formattedContentSize: getFormattedSize(requestsSummary.contentSize),
+        formattedTransferredSize: getFormattedSize(
+          requestsSummary.transferredSize
+        ),
+      }
     );
 
-    const valueFinish = document.querySelector(
-      ".requests-list-network-summary-finish"
-    ).textContent;
-    info("Current summary finish: " + valueFinish);
-    const expectedFinish = L10N.getFormatStrWithNumbers(
-      "networkMenu.summary.finish",
-      getFormattedTime(requestsSummary.ms)
+    is(
+      transferEl.textContent,
+      expectedTransfer,
+      "The current summary transfer is correct."
     );
+
+    const finishEl = document.querySelector(
+      ".requests-list-network-summary-finish"
+    );
+    info(`Current summary finish: ${finishEl.textContent}`);
+
+    const expectedFinish = l10n.formatValueSync("network-menu-summary-finish", {
+      formattedTime: getFormattedTime(requestsSummary.ms),
+    });
 
     info(`Computed total bytes: ${requestsSummary.bytes}`);
     info(`Computed total ms: ${requestsSummary.ms}`);
 
-    is(valueCount, expectedCount, "The current summary count is correct.");
     is(
-      valueTransfer,
-      expectedTransfer,
-      "The current summary transfer is correct."
+      finishEl.textContent,
+      expectedFinish,
+      "The current summary finish is correct."
     );
-    is(valueFinish, expectedFinish, "The current summary finish is correct.");
   }
 });

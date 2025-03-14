@@ -5,6 +5,7 @@
 "use strict";
 
 const {
+  createFactory,
   Component,
 } = require("resource://devtools/client/shared/vendor/react.js");
 const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
@@ -12,7 +13,8 @@ const dom = require("resource://devtools/client/shared/vendor/react-dom-factorie
 const {
   connect,
 } = require("resource://devtools/client/shared/vendor/react-redux.js");
-const { PluralForm } = require("resource://devtools/shared/plural-form.js");
+const FluentReact = require("resource://devtools/client/shared/vendor/fluent-react.js");
+const Localized = createFactory(FluentReact.Localized);
 const Actions = require("resource://devtools/client/netmonitor/src/actions/index.js");
 const {
   getDisplayedRequestsSummary,
@@ -23,29 +25,10 @@ const {
   getFormattedTime,
 } = require("resource://devtools/client/netmonitor/src/utils/format-utils.js");
 const {
-  L10N,
-} = require("resource://devtools/client/netmonitor/src/utils/l10n.js");
-const {
   propertiesEqual,
 } = require("resource://devtools/client/netmonitor/src/utils/request-utils.js");
 
 const { button, div } = dom;
-
-const REQUESTS_COUNT_EMPTY = L10N.getStr(
-  "networkMenu.summary.requestsCountEmpty"
-);
-const TOOLTIP_PERF = L10N.getStr("networkMenu.summary.tooltip.perf");
-const TOOLTIP_REQUESTS_COUNT = L10N.getStr(
-  "networkMenu.summary.tooltip.requestsCount"
-);
-const TOOLTIP_TRANSFERRED = L10N.getStr(
-  "networkMenu.summary.tooltip.transferred"
-);
-const TOOLTIP_FINISH = L10N.getStr("networkMenu.summary.tooltip.finish");
-const TOOLTIP_DOM_CONTENT_LOADED = L10N.getStr(
-  "networkMenu.summary.tooltip.domContentLoaded"
-);
-const TOOLTIP_LOAD = L10N.getStr("networkMenu.summary.tooltip.load");
 
 const UPDATED_SUMMARY_PROPS = ["count", "contentSize", "transferredSize", "ms"];
 
@@ -82,73 +65,97 @@ class StatusBar extends Component {
     const { openStatistics, summary, timingMarkers, connector } = this.props;
     const { count, contentSize, transferredSize, ms } = summary;
     const { DOMContentLoaded, load } = timingMarkers;
-
-    const toolbox = connector.getToolbox();
-    const countText =
-      count === 0
-        ? REQUESTS_COUNT_EMPTY
-        : PluralForm.get(
-            count,
-            L10N.getStr("networkMenu.summary.requestsCount2")
-          ).replace("#1", count);
-    const transferText = L10N.getFormatStrWithNumbers(
-      "networkMenu.summary.transferred",
-      getFormattedSize(contentSize),
-      getFormattedSize(transferredSize)
-    );
-    const finishText = L10N.getFormatStrWithNumbers(
-      "networkMenu.summary.finish",
-      getFormattedTime(ms)
-    );
+    const { isBrowserToolbox } = connector.getToolbox();
 
     return div(
       { className: "devtools-toolbar devtools-toolbar-bottom" },
-      !toolbox.isBrowserToolbox
-        ? button({
-            className: "devtools-button requests-list-network-summary-button",
-            title: TOOLTIP_PERF,
-            onClick: openStatistics,
-          })
+      !isBrowserToolbox
+        ? Localized(
+            {
+              id: "network-menu-summary-tooltip-perf",
+              attrs: { title: true },
+            },
+            button({
+              className: "devtools-button requests-list-network-summary-button",
+              onClick: openStatistics,
+            })
+          )
         : null,
-      div(
+      Localized(
         {
-          className: "status-bar-label requests-list-network-summary-count",
-          title: TOOLTIP_REQUESTS_COUNT,
+          id: "network-menu-summary-tooltip-requests-count",
+          attrs: { title: true },
         },
-        countText
+        div(
+          {
+            className: "status-bar-label requests-list-network-summary-count",
+          },
+          Localized({
+            id: "network-menu-summary-requests-count",
+            $requestCount: count,
+          })
+        )
       ),
       count !== 0 &&
-        div(
+        Localized(
           {
-            className:
-              "status-bar-label requests-list-network-summary-transfer",
-            title: TOOLTIP_TRANSFERRED,
+            id: "network-menu-summary-tooltip-transferred",
+            attrs: { title: true },
           },
-          transferText
+          div(
+            {
+              className:
+                "status-bar-label requests-list-network-summary-transfer",
+            },
+            Localized({
+              id: "network-menu-summary-transferred",
+              $formattedContentSize: getFormattedSize(contentSize),
+              $formattedTransferredSize: getFormattedSize(transferredSize),
+            })
+          )
         ),
       count !== 0 &&
-        div(
+        Localized(
           {
-            className: "status-bar-label requests-list-network-summary-finish",
-            title: TOOLTIP_FINISH,
+            id: "network-menu-summary-tooltip-finish",
+            attrs: { title: true },
           },
-          finishText
+          div(
+            {
+              className:
+                "status-bar-label requests-list-network-summary-finish",
+            },
+            Localized({
+              id: "network-menu-summary-finish",
+              $formattedTime: getFormattedTime(ms),
+            })
+          )
         ),
       DOMContentLoaded > -1 &&
-        div(
+        Localized(
           {
-            className: "status-bar-label dom-content-loaded",
-            title: TOOLTIP_DOM_CONTENT_LOADED,
+            id: "network-menu-summary-tooltip-domcontentloaded",
+            attrs: { title: true },
           },
-          `DOMContentLoaded: ${getFormattedTime(DOMContentLoaded)}`
+          div(
+            {
+              className: "status-bar-label dom-content-loaded",
+            },
+            `DOMContentLoaded: ${getFormattedTime(DOMContentLoaded)}`
+          )
         ),
       load > -1 &&
-        div(
+        Localized(
           {
-            className: "status-bar-label load",
-            title: TOOLTIP_LOAD,
+            id: "network-menu-summary-tooltip-load",
+            attrs: { title: true },
           },
-          `load: ${getFormattedTime(load)}`
+          div(
+            {
+              className: "status-bar-label load",
+            },
+            `load: ${getFormattedTime(load)}`
+          )
         )
     );
   }

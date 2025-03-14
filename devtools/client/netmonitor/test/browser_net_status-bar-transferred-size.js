@@ -25,7 +25,7 @@ add_task(async function testTotalTransferredSize() {
   const { getDisplayedRequestsSummary } = windowRequire(
     "devtools/client/netmonitor/src/selectors/index"
   );
-  const { L10N } = windowRequire("devtools/client/netmonitor/src/utils/l10n");
+  const l10n = new Localization(["devtools/client/netmonitor.ftl"], true);
 
   store.dispatch(Actions.batchEnable(false));
 
@@ -58,10 +58,14 @@ add_task(async function testTotalTransferredSize() {
     ".requests-list-network-summary-transfer"
   ).textContent;
   info("Current summary transfer: " + valueTransfer);
-  const expectedTransfer = L10N.getFormatStrWithNumbers(
-    "networkMenu.summary.transferred",
-    getFormattedSize(requestsSummary.contentSize),
-    getFormattedSize(requestsSummary.transferredSize)
+  const expectedTransfer = l10n.formatValueSync(
+    "network-menu-summary-transferred",
+    {
+      formattedContentSize: getFormattedSize(requestsSummary.contentSize),
+      formattedTransferredSize: getFormattedSize(
+        requestsSummary.transferredSize
+      ),
+    }
   );
 
   is(

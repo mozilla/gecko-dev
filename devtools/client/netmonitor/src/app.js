@@ -5,6 +5,7 @@
 "use strict";
 
 const {
+  createFactory,
   createElement,
 } = require("resource://devtools/client/shared/vendor/react.js");
 const {
@@ -18,7 +19,12 @@ const {
   visibilityHandlerStore,
 } = require("resource://devtools/client/shared/redux/visibilityHandlerStore.js");
 
+const FluentReact = require("resource://devtools/client/shared/vendor/fluent-react.js");
 const App = require("resource://devtools/client/netmonitor/src/components/App.js");
+const {
+  FluentL10n,
+} = require("resource://devtools/client/shared/fluent-l10n/fluent-l10n.js");
+const LocalizationProvider = createFactory(FluentReact.LocalizationProvider);
 const {
   EVENTS,
 } = require("resource://devtools/client/netmonitor/src/constants.js");
@@ -66,6 +72,9 @@ NetMonitorApp.prototype = {
 
     const sourceMapURLService = toolbox.sourceMapURLService;
 
+    const fluentL10n = new FluentL10n();
+    await fluentL10n.init(["devtools/client/netmonitor.ftl"]);
+
     // Render the root Application component.
     render(
       createElement(
@@ -74,17 +83,20 @@ NetMonitorApp.prototype = {
         // (this can't be done from create-store as it is loaded from the toolbox, without the browser loader
         //  and isn't bound to the netmonitor document)
         { store: visibilityHandlerStore(store) },
-        createElement(
-          ToolboxProvider,
-          { store: toolbox.store },
-          createElement(App, {
-            actions,
-            connector,
-            openLink,
-            openSplitConsole,
-            sourceMapURLService,
-            toolboxDoc: toolbox.doc,
-          })
+        LocalizationProvider(
+          { bundles: fluentL10n.getBundles() },
+          createElement(
+            ToolboxProvider,
+            { store: toolbox.store },
+            createElement(App, {
+              actions,
+              connector,
+              openLink,
+              openSplitConsole,
+              sourceMapURLService,
+              toolboxDoc: toolbox.doc,
+            })
+          )
         )
       ),
       this.mount
