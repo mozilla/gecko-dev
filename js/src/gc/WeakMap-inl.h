@@ -137,9 +137,28 @@ WeakMap<K, V>::WeakMap(JS::Zone* zone, JSObject* memOf)
 
 template <class K, class V>
 WeakMap<K, V>::~WeakMap() {
-  // Weak maps have GC lifetime except on construction failure.
+#ifdef DEBUG
+  // Weak maps store their data in an unbarriered map (|map_|) meaning that no
+  // barriers are run on destruction. This is safe because:
+
+  // 1. Weak maps have GC lifetime except on construction failure, therefore no
+  // prebarrier is required.
   MOZ_ASSERT_IF(!empty(),
                 CurrentThreadIsGCSweeping() || CurrentThreadIsGCFinalizing());
+
+  // 2. If we're finalizing a weak map due to GC then it cannot contain nursery
+  // things, because we evicted the nursery at the start of collection and
+  // writing a nursery thing into the table would require the map to be
+  // live. Therefore no postbarrier is required.
+  size_t i = 0;
+  for (auto r = all(); !r.empty() && i < 1000; r.popFront(), i++) {
+    K key = r.front().key();
+    MOZ_ASSERT_IF(gc::ToMarkable(key), !IsInsideNursery(gc::ToMarkable(key)));
+    V value = r.front().value();
+    MOZ_ASSERT_IF(gc::ToMarkable(value),
+                  !IsInsideNursery(gc::ToMarkable(value)));
+  }
+#endif
 }
 
 // If the entry is live, ensure its key and value are marked. Also make sure the

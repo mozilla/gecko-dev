@@ -206,7 +206,10 @@ class WeakMap : public WeakMapBase {
 
   using Map = HashMap<HeapPtr<Key>, HeapPtr<Value>,
                       StableCellHasher<HeapPtr<Key>>, ZoneAllocPolicy>;
-  Map map_;
+  using UnbarrieredMap =
+      HashMap<Key, Value, StableCellHasher<Key>, ZoneAllocPolicy>;
+
+  UnbarrieredMap map_;  // Barriers are added by |map()| accessor.
 
  public:
   using Lookup = typename Map::Lookup;
@@ -346,8 +349,9 @@ class WeakMap : public WeakMapBase {
 #endif
 
  private:
-  Map& map() { return map_; }
-  const Map& map() const { return map_; }
+  // Map accessor uses a cast to add barriers.
+  Map& map() { return reinterpret_cast<Map&>(map_); }
+  const Map& map() const { return reinterpret_cast<const Map&>(map_); }
 
   static void valueReadBarrier(const JS::Value& v) {
     JS::ExposeValueToActiveJS(v);
