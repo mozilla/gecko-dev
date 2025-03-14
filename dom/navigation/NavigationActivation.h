@@ -7,7 +7,6 @@
 #ifndef mozilla_dom_NavigationActivation_h___
 #define mozilla_dom_NavigationActivation_h___
 
-#include "nsISupports.h"
 #include "nsWrapperCache.h"
 
 class nsIGlobalObject;

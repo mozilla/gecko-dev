@@ -13,7 +13,6 @@ EXPORTS.mozilla.dom += [
     "NavigationDestination.h",
     "NavigationHistoryEntry.h",
     "NavigationTransition.h",
-    "NavigationUtils.h",
     "UserNavigationInvolvement.h",
 ]
 
@@ -23,7 +22,6 @@ UNIFIED_SOURCES += [
     "NavigationDestination.cpp",
     "NavigationHistoryEntry.cpp",
     "NavigationTransition.cpp",
-    "NavigationUtils.cpp",
 ]
 
 FINAL_LIBRARY = "xul"

@@ -7,136 +7,56 @@
 #ifndef mozilla_dom_NavigateEvent_h___
 #define mozilla_dom_NavigateEvent_h___
 
-#include "js/RootingAPI.h"
-#include "js/Value.h"
-#include "mozilla/AlreadyAddRefed.h"
-#include "mozilla/RefPtr.h"
-#include "mozilla/dom/AbortController.h"
+#include "js/TypeDecls.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/NavigateEventBinding.h"
-#include "nsCycleCollectionParticipant.h"
+#include "mozilla/dom/NavigationBinding.h"
 
 namespace mozilla::dom {
 
-class AbortController;
 class AbortSignal;
 class FormData;
 class NavigationDestination;
 struct NavigationInterceptOptions;
 
-enum class NavigationType : uint8_t;
-
-// https://html.spec.whatwg.org/#the-navigateevent-interface
 class NavigateEvent final : public Event {
  public:
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(NavigateEvent, Event)
-
-  virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  NS_INLINE_DECL_REFCOUNTING_INHERITED(NavigateEvent, Event)
 
   static already_AddRefed<NavigateEvent> Constructor(
       const GlobalObject& aGlobal, const nsAString& aType,
       const NavigateEventInit& aEventInitDict);
 
-  static already_AddRefed<NavigateEvent> Constructor(
-      EventTarget* aEventTarget, const nsAString& aType,
-      const NavigateEventInit& aEventInitDict);
+  enum NavigationType NavigationType() const { return {}; }
 
-  static already_AddRefed<NavigateEvent> Constructor(
-      EventTarget* aEventTarget, const nsAString& aType,
-      const NavigateEventInit& aEventInitDict,
-      nsIStructuredCloneContainer* aClassicHistoryAPIState,
-      AbortController* aAbortController);
+  already_AddRefed<NavigationDestination> Destination() const { return {}; }
 
-  NavigationType NavigationType() const;
+  bool CanIntercept() const { return {}; }
 
-  already_AddRefed<NavigationDestination> Destination() const;
+  bool UserInitiated() const { return {}; }
 
-  bool CanIntercept() const;
+  bool HashChange() const { return {}; }
 
-  bool UserInitiated() const;
+  already_AddRefed<AbortSignal> Signal() const { return {}; }
 
-  bool HashChange() const;
+  already_AddRefed<FormData> GetFormData() const { return {}; }
 
-  AbortSignal* Signal() const;
+  void GetDownloadRequest(nsString& aRetVal) const {}
 
-  already_AddRefed<FormData> GetFormData() const;
+  void GetInfo(JSContext* aCx, JS::MutableHandle<JS::Value> aRetVal) const {}
 
-  void GetDownloadRequest(nsAString& aDownloadRequest) const;
+  bool HasUAVisualTransition() const { return {}; }
 
-  void GetInfo(JSContext* aCx, JS::MutableHandle<JS::Value> aInfo) const;
+  void Intercept(const NavigationInterceptOptions& aOptions, ErrorResult& aRv) {
+  }
 
-  bool HasUAVisualTransition() const;
+  void Scroll(ErrorResult& aRv) {}
 
-  Element* GetSourceElement() const;
-
-  void Intercept(const NavigationInterceptOptions& aOptions, ErrorResult& aRv);
-
-  void Scroll(ErrorResult& aRv);
-
-  void InitNavigateEvent(const NavigateEventInit& aEventInitDict);
-
-  void SetCanIntercept(bool aCanIntercept);
-
-  enum class InterceptionState : uint8_t {
-    None,
-    Intercepted,
-    Committed,
-    Scrolled,
-    Finished
-  };
-
-  InterceptionState InterceptionState() const;
-
-  void SetInterceptionState(enum InterceptionState aInterceptionState);
-
-  nsIStructuredCloneContainer* ClassicHistoryAPIState() const;
-
-  nsTArray<RefPtr<NavigationInterceptHandler>>& NavigationHandlerList();
-
-  void Finish(bool aDidFulfill);
+  bool IsTrusted() const { return {}; }
 
  private:
-  void PotentiallyResetFocus();
-
-  void PotentiallyProcessScrollBehavior();
-
-  void ProcessScrollBehavior();
-
-  explicit NavigateEvent(EventTarget* aOwner);
-  ~NavigateEvent();
-
-  enum NavigationType mNavigationType {};
-  RefPtr<NavigationDestination> mDestination;
-  bool mCanIntercept = false;
-  bool mUserInitiated = false;
-  bool mHashChange = false;
-  RefPtr<AbortSignal> mSignal;
-  RefPtr<FormData> mFormData;
-  nsString mDownloadRequest;
-  JS::Heap<JS::Value> mInfo;
-  bool mHasUAVisualTransition = false;
-  RefPtr<Element> mSourceElement;
-
-  // https://html.spec.whatwg.org/multipage/nav-history-apis.html#the-navigateevent-interface:navigateevent-2
-  enum InterceptionState mInterceptionState = InterceptionState::None;
-
-  // https://html.spec.whatwg.org/multipage/nav-history-apis.html#the-navigateevent-interface:navigateevent-3
-  nsTArray<RefPtr<NavigationInterceptHandler>> mNavigationHandlerList;
-
-  // https://html.spec.whatwg.org/multipage/nav-history-apis.html#the-navigateevent-interface:navigateevent-4
-  Maybe<NavigationFocusReset> mFocusResetBehavior;
-
-  // https://html.spec.whatwg.org/multipage/nav-history-apis.html#the-navigateevent-interface:navigateevent-5
-  Maybe<NavigationScrollBehavior> mScrollBehavior;
-
-  // https://html.spec.whatwg.org/multipage/nav-history-apis.html#the-navigateevent-interface:navigateevent-6
-  RefPtr<AbortController> mAbortController;
-
-  // https://html.spec.whatwg.org/multipage/nav-history-apis.html#the-navigateevent-interface:navigateevent-7
-  nsCOMPtr<nsIStructuredCloneContainer> mClassicHistoryAPIState;
+  ~NavigateEvent() = default;
 };
 
 }  // namespace mozilla::dom

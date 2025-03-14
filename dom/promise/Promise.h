@@ -261,12 +261,6 @@ class Promise : public SupportsWeakPtr {
       PropagateUserInteraction aPropagateUserInteraction =
           eDontPropagateUserInteraction);
 
-  static void WaitForAll(
-      nsIGlobalObject* aGlobal, const Span<RefPtr<Promise>>& aPromises,
-      const std::function<void(const Span<JS::Heap<JS::Value>>&)>&
-          aSuccessSteps,
-      const std::function<void(JS::Handle<JS::Value>)>& aFailureSteps);
-
   template <typename Callback, typename... Args>
   using IsHandlerCallback =
       std::is_same<already_AddRefed<Promise>,

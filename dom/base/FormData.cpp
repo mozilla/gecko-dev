@@ -365,7 +365,7 @@ nsresult FormData::GetSendInfo(nsIInputStream** aBody, uint64_t* aContentLength,
   return NS_OK;
 }
 
-already_AddRefed<FormData> FormData::Clone() const {
+already_AddRefed<FormData> FormData::Clone() {
   RefPtr<FormData> formData = new FormData(*this);
   return formData.forget();
 }
