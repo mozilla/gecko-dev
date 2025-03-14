@@ -152,8 +152,6 @@ class nsHttpConnectionMgr final : public HttpConnectionMgrShell,
   const nsTArray<RefPtr<nsIWebTransportHash>>* GetServerCertHashes(
       nsHttpConnectionInfo* aConnInfo);
 
-  uint64_t GenerateNewWebTransportId() { return mMaxWebTransportId++; }
-
  private:
   virtual ~nsHttpConnectionMgr();
 
@@ -471,10 +469,6 @@ class nsHttpConnectionMgr final : public HttpConnectionMgrShell,
   void NotifyConnectionOfBrowserIdChange(uint64_t previousId);
 
   void CheckTransInPendingQueue(nsHttpTransaction* aTrans);
-
-  // Used for generating unique IDSs for dedicated connections, currently used
-  // by WebTransport
-  Atomic<uint64_t> mMaxWebTransportId{1};
 };
 
 }  // namespace mozilla::net

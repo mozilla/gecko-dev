@@ -276,6 +276,8 @@ class nsHttpConnectionInfo final : public ARefBase {
   void SetEchConfig(const nsACString& aEchConfig) { mEchConfig = aEchConfig; }
   const nsCString& GetEchConfig() const { return mEchConfig; }
 
+  static uint64_t GenerateNewWebTransportId();
+
  private:
   void Init(const nsACString& host, int32_t port, const nsACString& npnToken,
             const nsACString& username, nsProxyInfo* proxyInfo,

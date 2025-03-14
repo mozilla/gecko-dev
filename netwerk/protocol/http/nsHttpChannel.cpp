@@ -7005,7 +7005,7 @@ nsresult nsHttpChannel::BeginConnect() {
       wtconSettings->GetDedicated(&dedicated);
       if (dedicated) {
         connInfo->SetWebTransportId(
-            gHttpHandler->ConnMgr()->GenerateNewWebTransportId());
+            nsHttpConnectionInfo::GenerateNewWebTransportId());
       }
     } else {
       connInfo = new nsHttpConnectionInfo(host, port, ""_ns, mUsername,
