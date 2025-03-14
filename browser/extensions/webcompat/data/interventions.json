@@ -2780,6 +2780,21 @@
       }
     ]
   },
+  "1919698": {
+    "label": "anecdotes.ai",
+    "bugs": {
+      "1919698": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.anecdotes.ai/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
+      }
+    ]
+  },
   "1921410": {
     "label": "beta.maps.apple.com",
     "bugs": {
