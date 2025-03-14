@@ -3312,7 +3312,6 @@ mfcdm:
       audio_codec: The audio codec was being used when the error or crash happened
       resolution: The video resolution was being used when the error or crash happened
       key_system: The key system was being used when the error or crash happened
-      platform_error_code: The platform specific error code, eg. HResult on Windows
 
 installation:
   first_seen:

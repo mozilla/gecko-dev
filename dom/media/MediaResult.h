@@ -30,16 +30,10 @@ class MediaResult {
  public:
   MediaResult() : mCode(NS_OK) {}
   MOZ_IMPLICIT MediaResult(nsresult aResult) : mCode(aResult) {}
-  MediaResult(nsresult aResult, const nsACString& aMessage,
-              Maybe<int32_t> aPlatformErrorCode = Nothing())
-      : mCode(aResult),
-        mMessage(aMessage),
-        mPlatformErrorCode(aPlatformErrorCode) {}
-  MediaResult(nsresult aResult, const char* aMessage,
-              Maybe<int32_t> aPlatformErrorCode = Nothing())
-      : mCode(aResult),
-        mMessage(aMessage),
-        mPlatformErrorCode(aPlatformErrorCode) {}
+  MediaResult(nsresult aResult, const nsACString& aMessage)
+      : mCode(aResult), mMessage(aMessage) {}
+  MediaResult(nsresult aResult, const char* aMessage)
+      : mCode(aResult), mMessage(aMessage) {}
   MediaResult(nsresult aResult, CDMProxy* aCDMProxy)
       : mCode(aResult), mCDMProxy(aCDMProxy) {
     MOZ_ASSERT(aResult == NS_ERROR_DOM_MEDIA_CDM_PROXY_NOT_SUPPORTED_ERR);
@@ -73,7 +67,6 @@ class MediaResult {
   }
 
   CDMProxy* GetCDMProxy() const { return mCDMProxy; }
-  Maybe<int32_t> GetPlatformErrorCode() const { return mPlatformErrorCode; }
 
   void ThrowTo(ErrorResult& aRv) const;
   void RejectTo(dom::Promise* aPromise) const;
@@ -81,8 +74,6 @@ class MediaResult {
  private:
   nsresult mCode;
   nsCString mMessage;
-  // A platform error code, which is useful for debug. Eg. HResult on Windows.
-  Maybe<int32_t> mPlatformErrorCode = Nothing();
   // It's used when the error is NS_ERROR_DOM_MEDIA_CDM_PROXY_NOT_SUPPORTED_ERR.
   CDMProxy* mCDMProxy = nullptr;
 };
