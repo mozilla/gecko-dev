@@ -27,5 +27,8 @@ elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
         "user32",
     ]
 
+if CONFIG["MOZ_ASAN"] or CONFIG["MOZ_UBSAN"] or CONFIG["MOZ_TSAN"]:
+    USE_LIBS += ["sanitizer-options"]
+
 NO_PGO = True
 DisableStlWrapping()

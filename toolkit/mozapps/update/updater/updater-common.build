@@ -116,12 +116,8 @@ if have_progressui == 0:
 
 SOURCES += sorted(srcs)
 
-if CONFIG["MOZ_TSAN"]:
-    # Since mozglue is not linked to the updater,
-    # we need to include our own TSan suppression list.
-    SOURCES += [
-        "TsanOptions.cpp",
-    ]
+if CONFIG["MOZ_ASAN"] or CONFIG["MOZ_UBSAN"] or CONFIG["MOZ_TSAN"]:
+    USE_LIBS += ["sanitizer-options"]
 
 DEFINES["SPRINTF_H_USES_VSNPRINTF"] = True
 DEFINES["NS_NO_XPCOM"] = True
