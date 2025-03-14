@@ -399,7 +399,7 @@ class DebuggerWeakMap : private WeakMap<HeapPtr<Referent*>, HeapPtr<Wrapper*>> {
     }
   }
 
-  bool findSweepGroupEdges() override;
+  bool findSweepGroupEdges(JS::Zone* atomsZone) override;
 
  private:
 #ifdef JS_GC_ZEAL

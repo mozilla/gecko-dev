@@ -4163,7 +4163,7 @@ bool DebugAPI::findSweepGroupEdges(JSRuntime* rt) {
 
 template <class UnbarrieredKey, class Wrapper, bool InvisibleKeysOk>
 bool DebuggerWeakMap<UnbarrieredKey, Wrapper,
-                     InvisibleKeysOk>::findSweepGroupEdges() {
+                     InvisibleKeysOk>::findSweepGroupEdges(Zone* atomsZone) {
   Zone* debuggerZone = zone();
   MOZ_ASSERT(debuggerZone->isGCMarking());
   for (Enum e(*this); !e.empty(); e.popFront()) {
@@ -4177,7 +4177,7 @@ bool DebuggerWeakMap<UnbarrieredKey, Wrapper,
   }
 
   // Add in edges for delegates, if relevant for the key type.
-  return Base::findSweepGroupEdges();
+  return Base::findSweepGroupEdges(atomsZone);
 }
 
 const JSClassOps DebuggerInstanceObject::classOps_ = {

@@ -289,9 +289,14 @@ bool WeakMap<K, V>::markEntries(GCMarker* marker) {
 
 template <class K, class V>
 void WeakMap<K, V>::traceWeakEdges(JSTracer* trc) {
-  // Remove all entries whose keys remain unmarked.
+  // Scan the map, removing all entries whose keys remain unmarked. Rebuild
+  // cached key state at the same time.
+  mayHaveSymbolKeys = false;
+  mayHaveKeyDelegates = false;
   for (Enum e(*this); !e.empty(); e.popFront()) {
-    if (!TraceWeakEdge(trc, &e.front().mutableKey(), "WeakMap key")) {
+    if (TraceWeakEdge(trc, &e.front().mutableKey(), "WeakMap key")) {
+      keyWriteBarrier(e.front().key());
+    } else {
       e.removeFront();
     }
   }
@@ -317,50 +322,53 @@ void WeakMap<K, V>::traceMappings(WeakMapTracer* tracer) {
 }
 
 template <class K, class V>
-bool WeakMap<K, V>::findSweepGroupEdges() {
+bool WeakMap<K, V>::findSweepGroupEdges(Zone* atomsZone) {
   // For weakmap keys with delegates in a different zone, add a zone edge to
   // ensure that the delegate zone finishes marking before the key zone.
-  JS::AutoSuppressGCAnalysis nogc;
-  for (Range r = all(); !r.empty(); r.popFront()) {
-    const K& key = r.front().key();
 
-    JSObject* delegate = gc::detail::GetDelegate(key);
-    if (delegate) {
-      // Marking a WeakMap key's delegate will mark the key, so process the
-      // delegate zone no later than the key zone.
-      Zone* delegateZone = delegate->zone();
-      gc::Cell* keyCell = gc::ToMarkable(key);
-      MOZ_ASSERT(keyCell);
-      Zone* keyZone = keyCell->zone();
-      if (delegateZone != keyZone && delegateZone->isGCMarking() &&
-          keyZone->isGCMarking()) {
-        if (!delegateZone->addSweepGroupEdgeTo(keyZone)) {
-          return false;
-        }
-      }
+#ifdef DEBUG
+  if (!mayHaveSymbolKeys || !mayHaveKeyDelegates) {
+    for (Range r = all(); !r.empty(); r.popFront()) {
+      const K& key = r.front().key();
+      MOZ_ASSERT_IF(!mayHaveKeyDelegates, !gc::detail::GetDelegate(key));
+      MOZ_ASSERT_IF(!mayHaveSymbolKeys, !gc::detail::IsSymbol(key));
     }
+  }
+#endif
 
 #ifdef NIGHTLY_BUILD
-    bool symbolsAsWeakMapKeysEnabled =
-        JS::Prefs::experimental_symbols_as_weakmap_keys();
-    if (!symbolsAsWeakMapKeysEnabled) {
-      continue;
+  if (mayHaveSymbolKeys) {
+    MOZ_ASSERT(JS::Prefs::experimental_symbols_as_weakmap_keys());
+    if (atomsZone->isGCMarking()) {
+      if (!atomsZone->addSweepGroupEdgeTo(zone())) {
+        return false;
+      }
     }
+  }
+#endif
 
-    bool isSym = gc::detail::IsSymbol(key);
-    if (isSym) {
-      gc::Cell* keyCell = gc::ToMarkable(key);
-      Zone* keyZone = keyCell->zone();
-      MOZ_ASSERT(keyZone->isAtomsZone());
+  if (mayHaveKeyDelegates) {
+    for (Range r = all(); !r.empty(); r.popFront()) {
+      const K& key = r.front().key();
 
-      if (zone()->isGCMarking() && keyZone->isGCMarking()) {
-        if (!keyZone->addSweepGroupEdgeTo(zone())) {
-          return false;
+      JSObject* delegate = gc::detail::GetDelegate(key);
+      if (delegate) {
+        // Marking a WeakMap key's delegate will mark the key, so process the
+        // delegate zone no later than the key zone.
+        Zone* delegateZone = delegate->zone();
+        gc::Cell* keyCell = gc::ToMarkable(key);
+        MOZ_ASSERT(keyCell);
+        Zone* keyZone = keyCell->zone();
+        if (delegateZone != keyZone && delegateZone->isGCMarking() &&
+            keyZone->isGCMarking()) {
+          if (!delegateZone->addSweepGroupEdgeTo(keyZone)) {
+            return false;
+          }
         }
       }
     }
-#endif
   }
+
   return true;
 }
 
