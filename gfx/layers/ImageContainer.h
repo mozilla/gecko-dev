@@ -32,6 +32,7 @@
 #include "mozilla/UniquePtr.h"
 #include "nsTHashMap.h"
 #include "TimeUnits.h"
+#include "MediaData.h"
 
 #ifdef XP_WIN
 struct ID3D10Texture2D;
@@ -784,6 +785,7 @@ struct PlanarYCbCrData {
   }
 
   static Maybe<PlanarYCbCrData> From(const SurfaceDescriptorBuffer&);
+  static Maybe<PlanarYCbCrData> From(const VideoData::YCbCrBuffer&);
 };
 
 /****** Image subtypes for the different formats ******/
