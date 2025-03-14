@@ -134,6 +134,13 @@ WeakMap<K, V>::WeakMap(JS::Zone* zone, JSObject* memOf)
   }
 }
 
+template <class K, class V>
+WeakMap<K, V>::~WeakMap() {
+  // Weak maps have GC lifetime except on construction failure.
+  MOZ_ASSERT_IF(!empty(),
+                CurrentThreadIsGCSweeping() || CurrentThreadIsGCFinalizing());
+}
+
 // If the entry is live, ensure its key and value are marked. Also make sure the
 // key is at least as marked as min(map, delegate), so it cannot get discarded
 // and then recreated by rewrapping the delegate.

@@ -7,6 +7,7 @@
 
 #include <algorithm>
 
+#include "gc/GCInternals.h"
 #include "gc/WeakMap.h"
 #include "gc/Zone.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById
@@ -379,6 +380,9 @@ bool TestInternalWeakMap(CellColor keyMarkColor, CellColor delegateMarkColor,
     CHECK(key->color() == expectedColor);
     CHECK(delegate->color() == expectedColor);
     CHECK(value->color() == expectedColor);
+
+    AutoSetThreadIsFinalizing setFinalizing;
+    js_delete(weakMap.release());
   }
 
   return true;
@@ -433,6 +437,9 @@ bool TestInternalWeakMapWithGrayUnmarking(CellColor keyMarkColor,
     CHECK(key->color() == expectedColor);
     CHECK(delegate->color() == expectedColor);
     CHECK(value->color() == expectedColor);
+
+    AutoSetThreadIsFinalizing setFinalizing;
+    js_delete(weakMap.release());
   }
 
   JS::UnsetGCZeal(cx, uint8_t(ZealMode::YieldWhileGrayMarking));
