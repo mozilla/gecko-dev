@@ -259,7 +259,7 @@ export var ToolbarContextMenu = {
       (!["tabbrowser-tabs", "sidebar-button"].includes(toolbarItem?.id) &&
         gBrowser.tabContainer?.verticalMode);
     document.getElementById("sidebarRevampSeparator").hidden =
-      !showSidebarActions;
+      !showSidebarActions || isVerticalTabStripMenu;
     document.getElementById("customizationMenuSeparator").hidden =
       toolbarItem?.id == "tabbrowser-tabs" ||
       toolbarItem?.localName == "toolbarspring";

@@ -306,6 +306,10 @@ add_task(async function test_toggle_vertical_tabs() {
         !document.getElementById("toolbar-context-customize-sidebar").hidden,
         "Customize sidebar should be visible when the tab-strip is right clicked"
       );
+      ok(
+        document.getElementById("sidebarRevampSeparator").hidden,
+        "If vertical tabs are enabled we should hide sidebar revamp separator"
+      );
     }
   );
 
