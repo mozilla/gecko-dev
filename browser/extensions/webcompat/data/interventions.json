@@ -2812,6 +2812,21 @@
       }
     ]
   },
+  "1923656": {
+    "label": "ipmph.com",
+    "bugs": {
+      "1923656": {
+        "issue": "page-fails-to-load",
+        "matches": ["*://*.ipmph.com/#/bookPreview*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1924500": {
     "label": "www.tiktok.com",
     "bugs": {
