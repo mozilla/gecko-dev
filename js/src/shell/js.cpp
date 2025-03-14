@@ -7068,7 +7068,8 @@ static bool WasmCompileInSeparateProcess(JSContext* cx, unsigned argc,
   SharedMem<uint8_t*> bytecode;
   size_t numBytes;
   if (!args[0].isObject() ||
-      !IsBufferSource(&args[0].toObject(), &bytecode, &numBytes)) {
+      !IsBufferSource(cx, &args[0].toObject(), /*allowShared*/ false,
+                      /*allowResizable*/ false, &bytecode, &numBytes)) {
     RootedObject callee(cx, &args.callee());
     ReportUsageErrorASCII(cx, callee, "Argument must be a buffer source");
     return false;
@@ -8222,7 +8223,8 @@ class StreamCacheEntryObject : public NativeObject {
     SharedMem<uint8_t*> ptr;
     size_t numBytes;
     if (!args[0].isObject() ||
-        !IsBufferSource(&args[0].toObject(), &ptr, &numBytes)) {
+        !IsBufferSource(cx, &args[0].toObject(), /*allowShared*/ true,
+                        /*allowResizable*/ true, &ptr, &numBytes)) {
       RootedObject callee(cx, &args.callee());
       ReportUsageErrorASCII(cx, callee, "Argument must be an ArrayBuffer");
       return false;
@@ -8415,7 +8417,8 @@ static bool ConsumeBufferSource(JSContext* cx, JS::HandleObject obj,
 
   SharedMem<uint8_t*> dataPointer;
   size_t byteLength;
-  if (IsBufferSource(obj, &dataPointer, &byteLength)) {
+  if (IsBufferSource(cx, obj, /*allowShared*/ true, /*allowResizable*/ true,
+                     &dataPointer, &byteLength)) {
     Uint8Vector bytes;
     if (!bytes.resize(byteLength)) {
       JS_ReportOutOfMemory(cx);
