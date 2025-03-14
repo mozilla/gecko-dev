@@ -8,7 +8,6 @@
 
 #include "nsIAlertsService.h"
 #include "nsCOMPtr.h"
-#include "nsXULAlerts.h"
 
 class nsAlertsService : public nsIAlertsService, public nsIAlertsDoNotDisturb {
  public:

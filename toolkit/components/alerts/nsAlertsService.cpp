@@ -4,15 +4,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "xpcpublic.h"
-#include "mozilla/dom/PermissionMessageUtils.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_alerts.h"
-#include "nsXULAppAPI.h"
+#include "nsServiceManagerUtils.h"
+#include "nsXULAlerts.h"
 
 #include "nsAlertsService.h"
 
-#include "nsXPCOM.h"
-#include "nsPromiseFlatString.h"
 #include "nsToolkitCompsCID.h"
 #include "nsComponentManagerUtils.h"
 
@@ -21,6 +19,7 @@
 #endif  // MOZ_PLACES
 
 #ifdef XP_WIN
+#  include <windows.h>
 #  include <shellapi.h>
 #endif
 
@@ -221,8 +220,9 @@ NS_IMETHODIMP nsAlertsService::ShowAlert(nsIAlertNotification* aAlert,
 
   if (!ShouldShowAlert()) {
     // Do not display the alert. Instead call alertfinished and get out.
-    if (aAlertListener)
+    if (aAlertListener) {
       aAlertListener->Observe(nullptr, "alertfinished", cookie.get());
+    }
     return NS_OK;
   }
 

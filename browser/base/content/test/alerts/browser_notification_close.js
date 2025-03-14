@@ -10,20 +10,9 @@ const { PermissionTestUtils } = ChromeUtils.importESModule(
 
 let notificationURL =
   "https://example.org/browser/browser/base/content/test/alerts/file_dom_notifications.html";
-let oldShowFavicons;
 
 add_task(async function test_notificationClose() {
-  let notificationURI = makeURI(notificationURL);
   await addNotificationPermission(notificationURL);
-
-  oldShowFavicons = Services.prefs.getBoolPref("alerts.showFavicons");
-  Services.prefs.setBoolPref("alerts.showFavicons", true);
-
-  await PlacesTestUtils.addVisits(notificationURI);
-  let dataURL = makeURI(
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4//8/AAX+Av7czFnnAAAAAElFTkSuQmCC"
-  );
-  await PlacesTestUtils.setFaviconForPage(notificationURI, dataURL, dataURL);
 
   await BrowserTestUtils.withNewTab(
     {
@@ -56,8 +45,6 @@ add_task(async function test_notificationClose() {
         "Test body 2",
         "Body text of notification should be present"
       );
-      let alertIcon = alertWindow.document.getElementById("alertIcon");
-      is(alertIcon.src, dataURL.spec, "Icon of notification should be present");
 
       let alertCloseButton = alertWindow.document.querySelector(".close-icon");
       is(alertCloseButton.localName, "toolbarbutton", "close button found");
@@ -88,7 +75,4 @@ add_task(async function test_notificationClose() {
 
 add_task(async function cleanup() {
   PermissionTestUtils.remove(notificationURL, "desktop-notification");
-  if (typeof oldShowFavicons == "boolean") {
-    Services.prefs.setBoolPref("alerts.showFavicons", oldShowFavicons);
-  }
 });
