@@ -2863,6 +2863,24 @@
       }
     ]
   },
+  "1927984": {
+    "label": "modules.sms-timing.com",
+    "bugs": {
+      "1927984": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://modules.sms-timing.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1927984-modules.sms-timing.com-chrome-shim.js"]
+        },
+        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
+      }
+    ]
+  },
   "1928216": {
     "label": "voice.google.com",
     "bugs": {
