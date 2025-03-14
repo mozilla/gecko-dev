@@ -342,7 +342,7 @@ bool js::OptimizeArraySpeciesFuse::checkInvariant(JSContext* cx) {
     return true;
   }
 
-  auto* ctor = cx->global()->maybeGetConstructor(JSProto_Array);
+  auto* ctor = cx->global()->maybeGetConstructor<NativeObject>(JSProto_Array);
   MOZ_ASSERT(ctor);
 
   // Ensure Array.prototype's `constructor` slot is the `Array` constructor.
@@ -353,21 +353,20 @@ bool js::OptimizeArraySpeciesFuse::checkInvariant(JSContext* cx) {
 
   // Ensure Array's `@@species` slot is the $ArraySpecies getter.
   PropertyKey speciesKey = PropertyKey::Symbol(cx->wellKnownSymbols().species);
-  return ObjectHasGetterFunction(&ctor->as<NativeObject>(), speciesKey,
+  return ObjectHasGetterFunction(ctor, speciesKey,
                                  cx->names().dollar_ArraySpecies_);
 }
 
 bool js::OptimizeMapObjectIteratorFuse::checkInvariant(JSContext* cx) {
   // Ensure Map.prototype's @@iterator slot is unchanged.
-  auto* proto = cx->global()->maybeGetPrototype(JSProto_Map);
+  auto* proto = cx->global()->maybeGetPrototype<NativeObject>(JSProto_Map);
   if (!proto) {
     // No proto, invariant still holds
     return true;
   }
   PropertyKey iteratorKey =
       PropertyKey::Symbol(cx->wellKnownSymbols().iterator);
-  if (!ObjectHasDataPropertyFunction(&proto->as<NativeObject>(), iteratorKey,
-                                     MapObject::entries)) {
+  if (!ObjectHasDataPropertyFunction(proto, iteratorKey, MapObject::entries)) {
     return false;
   }
 
@@ -385,15 +384,14 @@ bool js::OptimizeMapObjectIteratorFuse::checkInvariant(JSContext* cx) {
 
 bool js::OptimizeSetObjectIteratorFuse::checkInvariant(JSContext* cx) {
   // Ensure Set.prototype's @@iterator slot is unchanged.
-  auto* proto = cx->global()->maybeGetPrototype(JSProto_Set);
+  auto* proto = cx->global()->maybeGetPrototype<NativeObject>(JSProto_Set);
   if (!proto) {
     // No proto, invariant still holds
     return true;
   }
   PropertyKey iteratorKey =
       PropertyKey::Symbol(cx->wellKnownSymbols().iterator);
-  if (!ObjectHasDataPropertyFunction(&proto->as<NativeObject>(), iteratorKey,
-                                     SetObject::values)) {
+  if (!ObjectHasDataPropertyFunction(proto, iteratorKey, SetObject::values)) {
     return false;
   }
 
@@ -410,43 +408,41 @@ bool js::OptimizeSetObjectIteratorFuse::checkInvariant(JSContext* cx) {
 }
 
 bool js::OptimizeMapPrototypeSetFuse::checkInvariant(JSContext* cx) {
-  auto* proto = cx->global()->maybeGetPrototype(JSProto_Map);
+  auto* proto = cx->global()->maybeGetPrototype<NativeObject>(JSProto_Map);
   if (!proto) {
     // No proto, invariant still holds
     return true;
   }
-  return ObjectHasDataPropertyFunction(
-      &proto->as<NativeObject>(), NameToId(cx->names().set), MapObject::set);
+  return ObjectHasDataPropertyFunction(proto, NameToId(cx->names().set),
+                                       MapObject::set);
 }
 
 bool js::OptimizeSetPrototypeAddFuse::checkInvariant(JSContext* cx) {
-  auto* proto = cx->global()->maybeGetPrototype(JSProto_Set);
+  auto* proto = cx->global()->maybeGetPrototype<NativeObject>(JSProto_Set);
   if (!proto) {
     // No proto, invariant still holds
     return true;
   }
-  return ObjectHasDataPropertyFunction(
-      &proto->as<NativeObject>(), NameToId(cx->names().add), SetObject::add);
+  return ObjectHasDataPropertyFunction(proto, NameToId(cx->names().add),
+                                       SetObject::add);
 }
 
 bool js::OptimizeWeakMapPrototypeSetFuse::checkInvariant(JSContext* cx) {
-  auto* proto = cx->global()->maybeGetPrototype(JSProto_WeakMap);
+  auto* proto = cx->global()->maybeGetPrototype<NativeObject>(JSProto_WeakMap);
   if (!proto) {
     // No proto, invariant still holds
     return true;
   }
-  return ObjectHasDataPropertyFunction(&proto->as<NativeObject>(),
-                                       NameToId(cx->names().set),
+  return ObjectHasDataPropertyFunction(proto, NameToId(cx->names().set),
                                        WeakMapObject::set);
 }
 
 bool js::OptimizeWeakSetPrototypeAddFuse::checkInvariant(JSContext* cx) {
-  auto* proto = cx->global()->maybeGetPrototype(JSProto_WeakSet);
+  auto* proto = cx->global()->maybeGetPrototype<NativeObject>(JSProto_WeakSet);
   if (!proto) {
     // No proto, invariant still holds
     return true;
   }
-  return ObjectHasDataPropertyFunction(&proto->as<NativeObject>(),
-                                       NameToId(cx->names().add),
+  return ObjectHasDataPropertyFunction(proto, NameToId(cx->names().add),
                                        WeakSetObject::add);
 }

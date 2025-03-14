@@ -381,10 +381,22 @@ class GlobalObject : public NativeObject {
     return data().builtinConstructors[protoKey].constructor;
   }
 
+  template <typename T>
+  T* maybeGetConstructor(JSProtoKey protoKey) const {
+    JSObject* ctor = maybeGetConstructor(protoKey);
+    return ctor ? &ctor->as<T>() : nullptr;
+  }
+
   JSObject* maybeGetPrototype(JSProtoKey protoKey) const {
     MOZ_ASSERT(JSProto_Null < protoKey);
     MOZ_ASSERT(protoKey < JSProto_LIMIT);
     return data().builtinConstructors[protoKey].prototype;
+  }
+
+  template <typename T>
+  T* maybeGetPrototype(JSProtoKey protoKey) const {
+    JSObject* proto = maybeGetPrototype(protoKey);
+    return proto ? &proto->as<T>() : nullptr;
   }
 
   static bool maybeResolveGlobalThis(JSContext* cx,
