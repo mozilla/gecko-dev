@@ -8,7 +8,6 @@
 
 // Add addresses enabled flag in telemetry environment for recording the number of
 // users who disable/enable the address autofill feature.
-const BUNDLE_URI = "chrome://formautofill/locale/formautofill.properties";
 const MANAGE_ADDRESSES_URL =
   "chrome://formautofill/content/manageAddresses.xhtml";
 const MANAGE_CREDITCARDS_URL =
@@ -47,9 +46,7 @@ const {
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 
-export function FormAutofillPreferences() {
-  this.bundle = Services.strings.createBundle(BUNDLE_URI);
-}
+export function FormAutofillPreferences() {}
 
 FormAutofillPreferences.prototype = {
   /**

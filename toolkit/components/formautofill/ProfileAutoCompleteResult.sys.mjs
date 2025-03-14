@@ -506,13 +506,9 @@ export class CreditCardResult extends ProfileAutoCompleteResult {
 
   _generateLabels(focusedFieldName, allFieldNames, profiles, _fillCategories) {
     if (!this._isSecure) {
-      let brandName =
-        lazy.FormAutofillUtils.brandBundle.GetStringFromName("brandShortName");
-
       return [
-        lazy.FormAutofillUtils.stringBundle.formatStringFromName(
-          "insecureFieldWarningDescription",
-          [brandName]
+        lazy.l10n.formatValueSync(
+          "autofill-insecure-field-warning-description"
         ),
       ];
     }

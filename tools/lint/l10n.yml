@@ -5,7 +5,6 @@ l10n:
     # browser and mobile/android l10n.tomls
     include:
         - browser/branding/official/locales/en-US
-        - browser/extensions/formautofill/locales/en-US
         - browser/extensions/report-site-issue/locales/en-US
         - browser/locales/en-US
         - devtools/client/locales/en-US

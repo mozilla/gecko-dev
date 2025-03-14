@@ -52,9 +52,6 @@ l10n-%:
 	@$(MAKE) -C ../themes/shared/app-marketplace-icons AB_CD=$* XPI_NAME=locale-$*
 	@$(MAKE) -C ../../toolkit/locales l10n-$* XPI_ROOT_APPID='$(XPI_ROOT_APPID)'
 	@$(MAKE) -C ../../extensions/spellcheck/locales AB_CD=$* XPI_NAME=locale-$*
-ifneq (,$(wildcard ../extensions/formautofill/locales))
-	@$(MAKE) -C ../extensions/formautofill/locales AB_CD=$* XPI_NAME=locale-$*
-endif
 	@$(MAKE) -C ../extensions/report-site-issue/locales AB_CD=$* XPI_NAME=locale-$*
 	@$(MAKE) -C ../../devtools/client/locales AB_CD=$* XPI_NAME=locale-$* XPI_ROOT_APPID='$(XPI_ROOT_APPID)'
 	@$(MAKE) -C ../../devtools/startup/locales AB_CD=$* XPI_NAME=locale-$* XPI_ROOT_APPID='$(XPI_ROOT_APPID)'
@@ -69,9 +66,6 @@ chrome-%:
 	@$(MAKE) -C ../themes/shared/app-marketplace-icons chrome AB_CD=$*
 	@$(MAKE) -C ../../toolkit/locales chrome-$*
 	@$(MAKE) -C ../../extensions/spellcheck/locales chrome AB_CD=$*
-ifneq (,$(wildcard ../extensions/formautofill/locales))
-	@$(MAKE) -C ../extensions/formautofill/locales chrome AB_CD=$*
-endif
 	@$(MAKE) -C ../../devtools/client/locales chrome AB_CD=$*
 	@$(MAKE) -C ../../devtools/startup/locales chrome AB_CD=$*
 	@$(MAKE) chrome AB_CD=$*

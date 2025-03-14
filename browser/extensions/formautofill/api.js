@@ -122,27 +122,9 @@ this.formautofill = class extends ExtensionAPI {
       this.extension.rootURI
     );
     this.chromeHandle = aomStartup.registerChrome(manifestURI, [
-      ["content", "formautofill", "chrome/content/"],
+      ["content", "formautofill", "content/"],
     ]);
 
-    // Until we move to fluent (bug 1446164), we're stuck with
-    // chrome.manifest for handling localization since its what the
-    // build system can handle for localized repacks.
-    if (this.extension.rootURI instanceof Ci.nsIJARURI) {
-      this.autofillManifest = this.extension.rootURI.JARFile.QueryInterface(
-        Ci.nsIFileURL
-      ).file;
-    } else if (this.extension.rootURI instanceof Ci.nsIFileURL) {
-      this.autofillManifest = this.extension.rootURI.file;
-    }
-
-    if (this.autofillManifest) {
-      Components.manager.addBootstrappedManifestLocation(this.autofillManifest);
-    } else {
-      console.error(
-        "Cannot find formautofill chrome.manifest for registring translated strings"
-      );
-    }
     this.adjustAndCheckFormAutofillPrefs(
       FormAutofill.isAutofillAddressesAvailable,
       FormAutofill.isAutofillCreditCardsAvailable
@@ -183,12 +165,6 @@ this.formautofill = class extends ExtensionAPI {
 
     this.chromeHandle.destruct();
     this.chromeHandle = null;
-
-    if (this.autofillManifest) {
-      Components.manager.removeBootstrappedManifestLocation(
-        this.autofillManifest
-      );
-    }
 
     ChromeUtils.unregisterWindowActor("FormAutofill");
 

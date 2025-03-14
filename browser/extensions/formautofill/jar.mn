@@ -2,6 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-[features/formautofill@mozilla.org] chrome.jar:
-  content/ (content/*)
-  content/skin/ (skin/shared/*)
+browser.jar:
+%   resource builtin-addons %builtin-addons/  contentaccessible=yes
+    builtin-addons/formautofill/api.js (api.js)
+    builtin-addons/formautofill/background.js (background.js)
+    builtin-addons/formautofill/content/ (content/*)
+    builtin-addons/formautofill/content/skin/ (skin/shared/*)
+    builtin-addons/formautofill/manifest.json (manifest.json)
+    builtin-addons/formautofill/schema.json (schema.json)
