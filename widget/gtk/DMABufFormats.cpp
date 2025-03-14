@@ -11,7 +11,7 @@
 
 #include "DMABufLibWrapper.h"
 #include "DMABufFormats.h"
-#include "mozilla/widget/gbm.h"
+#include "gbm/gbm.h"
 #ifdef MOZ_WAYLAND
 #  include "nsWaylandDisplay.h"
 #  include "mozilla/widget/mozwayland.h"

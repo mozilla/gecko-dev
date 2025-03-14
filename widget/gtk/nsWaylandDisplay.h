@@ -11,7 +11,7 @@
 #include "DMABufLibWrapper.h"
 
 #include "mozilla/widget/mozwayland.h"
-#include "mozilla/widget/gbm.h"
+#include "gbm/gbm.h"
 #include "mozilla/widget/fractional-scale-v1-client-protocol.h"
 #include "mozilla/widget/idle-inhibit-unstable-v1-client-protocol.h"
 #include "mozilla/widget/relative-pointer-unstable-v1-client-protocol.h"
