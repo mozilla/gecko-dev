@@ -10,6 +10,7 @@ import static org.mozilla.geckoview.ExperimentDelegate.ExperimentException.ERROR
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.graphics.SurfaceTexture;
 import android.net.Uri;
 import android.os.Bundle;
@@ -489,6 +490,11 @@ public class TestRunnerActivity extends Activity {
               public GeckoResult<AllowOrDeny> onOrientationLock(int aOrientation) {
                 setRequestedOrientation(aOrientation);
                 return GeckoResult.allow();
+              }
+
+              @Override
+              public void onOrientationUnlock() {
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
               }
             });
 

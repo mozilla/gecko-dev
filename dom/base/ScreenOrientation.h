@@ -56,6 +56,10 @@ class ScreenOrientation final : public DOMEventTargetHelper {
   static void AbortInProcessOrientationPromises(
       BrowsingContext* aBrowsingContext);
 
+  // Dispatch change event then resolve the promise.
+  // aBrowsingContext must be top level in process.
+  static void DispatchChangeEventToChildren(BrowsingContext* aBrowsingContext);
+
  private:
   virtual ~ScreenOrientation();
 

@@ -775,9 +775,29 @@ void ScreenOrientation::MaybeChanged() {
     rv = bc->SetCurrentOrientation(mType, mAngle);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "SetCurrentOrientation failed");
 
-    nsCOMPtr<nsIRunnable> runnable = DispatchChangeEventAndResolvePromise();
-    rv = NS_DispatchToMainThread(runnable);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "NS_DispatchToMainThread failed");
+    // change event has to be dispatched by descendantDocs.
+    // Looking for top level browsing context that has screen in process.
+    // If parent document has screen, we don't dispatch it at this time.
+    // change event will be dispatched by parent's
+    // ScreenOrientation::MaybeChanged.
+    BrowsingContext* rootBc = bc;
+    bool dispatchChangeEvent = true;
+    while (rootBc->GetParent()) {
+      rootBc = rootBc->GetParent();
+      if (Document* doc = rootBc->GetExtantDocument()) {
+        if (auto* win = nsGlobalWindowInner::Cast(doc->GetInnerWindow())) {
+          if (win->HasScreen()) {
+            // Parent of browsing context has screen object. Child shouldn't
+            // dispatch change event.
+            dispatchChangeEvent = false;
+            break;
+          }
+        }
+      }
+    }
+    if (dispatchChangeEvent) {
+      DispatchChangeEventToChildren(rootBc);
+    }
   }
 }
 
@@ -794,6 +814,28 @@ void ScreenOrientation::UpdateActiveOrientationLock(
                                    "hal::LockScreenOrientation failed");
             });
   }
+}
+
+// static
+void ScreenOrientation::DispatchChangeEventToChildren(
+    BrowsingContext* aBrowsingContext) {
+  // XXX(m_kato):
+  // If crossing process, child process's document might receive change event
+  // before parent process is received.
+  aBrowsingContext->PreOrderWalk([](BrowsingContext* aContext) {
+    if (Document* doc = aContext->GetExtantDocument()) {
+      if (auto* win = nsGlobalWindowInner::Cast(doc->GetInnerWindow())) {
+        if (win->HasScreen()) {
+          ScreenOrientation* orientation = win->Screen()->Orientation();
+          nsCOMPtr<nsIRunnable> runnable =
+              orientation->DispatchChangeEventAndResolvePromise();
+          DebugOnly<nsresult> rv = NS_DispatchToMainThread(runnable);
+          NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                               "NS_DispatchToMainThread failed");
+        }
+      }
+    }
+  });
 }
 
 nsCOMPtr<nsIRunnable>

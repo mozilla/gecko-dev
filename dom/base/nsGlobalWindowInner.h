@@ -759,6 +759,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
       const nsACString& aQuery, mozilla::dom::CallerType aCallerType,
       mozilla::ErrorResult& aError);
   nsScreen* Screen();
+  bool HasScreen() const { return !!mScreen; }
   void MoveTo(int32_t aXPos, int32_t aYPos,
               mozilla::dom::CallerType aCallerType,
               mozilla::ErrorResult& aError);
