@@ -6,6 +6,13 @@
 const BLANK_PAGE =
   "https://example.com/browser/browser/base/content/test/about/blank_page.sjs";
 
+function getConnectionState() {
+  // Prevents items that are being lazy loaded causing issues
+  document.getElementById("identity-icon-box").click();
+  gIdentityHandler.refreshIdentityPopup();
+  return document.getElementById("identity-popup").getAttribute("connection");
+}
+
 async function test_blankPage(
   page,
   expectedL10nID,
@@ -35,6 +42,12 @@ async function test_blankPage(
 
   info("Loading and waiting for the net error");
   await pageLoaded;
+
+  is(
+    getConnectionState(),
+    "secure",
+    "httpErrorPage/serverError should be a secure neterror"
+  );
 
   await SpecialPowers.spawn(
     browser,

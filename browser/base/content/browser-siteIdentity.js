@@ -150,6 +150,18 @@ var gIdentityHandler = {
     );
   },
 
+  get _isSecurelyConnectedAboutNetErrorPage() {
+    let { documentURI } = gBrowser.selectedBrowser;
+    if (documentURI?.scheme != "about" || documentURI.filePath != "neterror") {
+      return false;
+    }
+
+    let error = new URLSearchParams(documentURI.query).get("e");
+
+    // Bug 1944993 - A list of neterrors without connection issues
+    return error === "httpErrorPage" || error === "serverError";
+  },
+
   get _isAboutNetErrorPage() {
     let { documentURI } = gBrowser.selectedBrowser;
     return documentURI?.scheme == "about" && documentURI.filePath == "neterror";
@@ -1035,6 +1047,8 @@ var gIdentityHandler = {
       connection = "https-only-error-page";
     } else if (this._isAboutBlockedPage) {
       connection = "not-secure";
+    } else if (this._isSecurelyConnectedAboutNetErrorPage) {
+      connection = "secure";
     } else if (this._isAboutNetErrorPage) {
       connection = "net-error-page";
     } else if (this._isAssociatedIdentity) {
