@@ -51,8 +51,6 @@ class EmitterScope : public Nestable<EmitterScope> {
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
   mozilla::Maybe<UsingEmitter> usingEmitter_;
 
-  mozilla::Maybe<ForOfDisposalEmitter> forOfDisposalEmitter_;
-
  private:
   BlockKind blockKind_ = BlockKind::Other;
 #endif
