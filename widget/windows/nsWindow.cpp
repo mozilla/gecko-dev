@@ -6987,10 +6987,14 @@ void nsWindow::OnDPIChanged(int32_t x, int32_t y, int32_t width,
 
   if (mResizeState != RESIZING &&
       mFrameState->GetSizeMode() == nsSizeMode_Normal) {
-    // Limit the position (if not in the middle of a drag-move) & size,
-    // if it would overflow the destination screen
-    nsCOMPtr<nsIScreenManager> sm = do_GetService(sScreenManagerContractID);
-    if (sm) {
+    if (nsCOMPtr<nsIScreenManager> sm =
+            do_GetService(sScreenManagerContractID)) {
+      // Before getting the screen which will contain this window, we need to
+      // refresh the screens because WM_DPICHANGED is sent before
+      // WM_DISPLAYCHANGE.
+      ScreenHelperWin::RefreshScreens();
+      // Limit the position (if not in the middle of a drag-move) & size,
+      // if it would overflow the destination screen
       nsCOMPtr<nsIScreen> screen;
       sm->ScreenForRect(x, y, width, height, getter_AddRefs(screen));
       if (screen) {
