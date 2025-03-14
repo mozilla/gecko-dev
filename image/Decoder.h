@@ -580,6 +580,8 @@ class Decoder {
       RawAccessFrameRef&& aPreviousFrame);
 
  protected:
+  static uint8_t ChooseTransferCharacteristics(uint8_t aTC);
+
   /// Color management profile from the ICCP chunk in the image.
   qcms_profile* mInProfile;
 
