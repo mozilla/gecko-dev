@@ -104,7 +104,7 @@ expectUnkown("(-moz-platform: )");
   let supportsMica = matchMedia('(-moz-platform: windows)').matches && lazy.WindowsVersionInfo.get().buildNumber >= 22621;
   info(`Mica supported: ${supportsMica}`);
   for (let [query, pref] of [['(-moz-windows-mica)', 'widget.windows.mica'], ['(-moz-windows-mica-popups)', 'widget.windows.mica.popups']]) {
-    let prefEnabled = SpecialPowers.getBoolPref(pref, false);
+    let prefEnabled = SpecialPowers.getBoolPref("widget.windows.mica", false);
     let mediaList = matchMedia(query);
     is(mediaList.matches, supportsMica && prefEnabled, `Mica support is as expected ${query}`);
     let change = new Promise(r => {
