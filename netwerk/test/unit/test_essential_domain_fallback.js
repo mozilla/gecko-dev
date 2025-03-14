@@ -107,7 +107,7 @@ add_task(async function test_fallback_on_connection_failure() {
 
   Services.prefs.setIntPref("network.http.connection-timeout", 1);
   override.clearOverrides();
-  override.addIPOverride("aus5.mozilla.org", "169.254.200.200"); // Local IP that doesn't exist.
+  override.addIPOverride("aus5.mozilla.org", "10.99.99.99"); // Local IP that doesn't exist (hopefully).
   override.addIPOverride("foo.example.com", "127.0.0.1");
 
   await new Promise(resolve => do_timeout(100, resolve));
