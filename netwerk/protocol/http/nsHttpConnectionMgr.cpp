@@ -804,8 +804,8 @@ HttpConnectionBase* nsHttpConnectionMgr::FindCoalescableConnection(
   nsHttpConnectionInfo* ci = ent->mConnInfo;
   LOG(("FindCoalescableConnection %s\n", ci->HashKey().get()));
 
-  if (ci->GetWebTransport() || ci->HasEchConfig()) {
-    LOG(("Don't coalesce a WebTransport/EchConfig conn"));
+  if (ci->GetWebTransport()) {
+    LOG(("Don't coalesce a WebTransport conn "));
     return nullptr;
   }
   // First try and look it up by origin frame
@@ -1825,6 +1825,10 @@ nsresult nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction* trans) {
       trans->Caps() & NS_HTTP_DISALLOW_SPDY,
       trans->Caps() & NS_HTTP_DISALLOW_HTTP3, &isWildcard);
   MOZ_ASSERT(ent);
+
+  if (gHttpHandler->EchConfigEnabled(ci->IsHttp3())) {
+    ent->MaybeUpdateEchConfig(ci);
+  }
 
   ReportProxyTelemetry(ent);
 
@@ -3453,22 +3457,20 @@ ConnectionEntry* nsHttpConnectionMgr::GetOrCreateConnectionEntry(
   // step 1 repeated for an inverted anonymous flag; we return an entry
   // only when it has an h2 established connection that is not authenticated
   // with a client certificate.
-  if (!specificCI->HasEchConfig()) {
-    RefPtr<nsHttpConnectionInfo> anonInvertedCI(specificCI->Clone());
-    anonInvertedCI->SetAnonymous(!specificCI->GetAnonymous());
-    ConnectionEntry* invertedEnt = mCT.GetWeak(anonInvertedCI->HashKey());
-    if (invertedEnt) {
-      HttpConnectionBase* h2orh3conn =
-          GetH2orH3ActiveConn(invertedEnt, aNoHttp2, aNoHttp3);
-      if (h2orh3conn && h2orh3conn->IsExperienced() &&
-          h2orh3conn->NoClientCertAuth()) {
-        MOZ_ASSERT(h2orh3conn->UsingSpdy() || h2orh3conn->UsingHttp3());
-        LOG(
-            ("GetOrCreateConnectionEntry is coalescing h2/3 an/onymous "
-             "connections, ent=%p",
-             invertedEnt));
-        return invertedEnt;
-      }
+  RefPtr<nsHttpConnectionInfo> anonInvertedCI(specificCI->Clone());
+  anonInvertedCI->SetAnonymous(!specificCI->GetAnonymous());
+  ConnectionEntry* invertedEnt = mCT.GetWeak(anonInvertedCI->HashKey());
+  if (invertedEnt) {
+    HttpConnectionBase* h2orh3conn =
+        GetH2orH3ActiveConn(invertedEnt, aNoHttp2, aNoHttp3);
+    if (h2orh3conn && h2orh3conn->IsExperienced() &&
+        h2orh3conn->NoClientCertAuth()) {
+      MOZ_ASSERT(h2orh3conn->UsingSpdy() || h2orh3conn->UsingHttp3());
+      LOG(
+          ("GetOrCreateConnectionEntry is coalescing h2/3 an/onymous "
+           "connections, ent=%p",
+           invertedEnt));
+      return invertedEnt;
     }
   }
 
@@ -3477,7 +3479,7 @@ ConnectionEntry* nsHttpConnectionMgr::GetOrCreateConnectionEntry(
   }
 
   // step 2
-  if (!prohibitWildCard && aNoHttp3 && !specificCI->HasEchConfig()) {
+  if (!prohibitWildCard && aNoHttp3) {
     RefPtr<nsHttpConnectionInfo> wildCardProxyCI;
     DebugOnly<nsresult> rv =
         specificCI->CreateWildCard(getter_AddRefs(wildCardProxyCI));
@@ -3510,6 +3512,14 @@ void nsHttpConnectionMgr::DoSpeculativeConnection(
   ConnectionEntry* ent = GetOrCreateConnectionEntry(
       aTrans->ConnectionInfo(), false, aTrans->Caps() & NS_HTTP_DISALLOW_SPDY,
       aTrans->Caps() & NS_HTTP_DISALLOW_HTTP3, &isWildcard);
+  if (!aFetchHTTPSRR &&
+      gHttpHandler->EchConfigEnabled(aTrans->ConnectionInfo()->IsHttp3())) {
+    // This happens when this is called from
+    // SpeculativeTransaction::OnHTTPSRRAvailable. We have to update this
+    // entry's echConfig so that the newly created connection can use the latest
+    // echConfig.
+    ent->MaybeUpdateEchConfig(aTrans->ConnectionInfo());
+  }
   DoSpeculativeConnectionInternal(ent, aTrans, aFetchHTTPSRR);
 }
 
