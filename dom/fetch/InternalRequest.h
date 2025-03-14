@@ -228,7 +228,7 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
   LoadTainting GetResponseTainting() const { return mResponseTainting; }
 
   void MaybeIncreaseResponseTainting(LoadTainting aTainting) {
-    if (aTainting > mResponseTainting) {
+    if (aTainting > mResponseTainting && !mNeverTaint) {
       mResponseTainting = aTainting;
     }
   }
@@ -270,6 +270,10 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
   nsIPrincipal* GetTriggeringPrincipalOverride() {
     return mTriggeringPrincipalOverride;
   }
+
+  void SetNeverTaint(bool aNeverTaint) { mNeverTaint = aNeverTaint; }
+
+  bool GetNeverTaint() { return mNeverTaint; }
 
   const nsCString& GetFragment() const { return mFragment; }
 
@@ -448,6 +452,7 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
   nsCOMPtr<nsIInputStream> mBodyStream;
 
   nsCOMPtr<nsIPrincipal> mTriggeringPrincipalOverride;
+  bool mNeverTaint = false;
   int64_t mBodyLength{InternalResponse::UNKNOWN_BODY_SIZE};
 
   nsCString mPreferredAlternativeDataType;
