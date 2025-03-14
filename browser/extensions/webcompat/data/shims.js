@@ -989,6 +989,28 @@ const AVAILABLE_SHIMS = [
     matches: ["*://openfpcdn.io/botd/v1"],
     onlyIfBlockedByETP: true,
   },
+  {
+    id: "SteamLogin",
+    platform: "all",
+    name: "Steam Login Shim",
+    bug: "1938299",
+    requestStorageAccessForRedirect: [
+      // allow cookies for *.steampowered.com <-> steamcommunity.com
+      ["*://store.steampowered.com/*", "*://steamcommunity.com/*"],
+      ["*://steamcommunity.com/*", "*://store.steampowered.com/*"],
+      ["*://help.steampowered.com/*", "*://steamcommunity.com/*"],
+      ["*://steamcommunity.com/*", "*://help.steampowered.com/*"],
+      ["*://checkout.steampowered.com/*", "*://steamcommunity.com/*"],
+      ["*://steamcommunity.com/*", "*://checkout.steampowered.com/*"],
+      // allow cookies for *.steampowered.com <-> steam.tv
+      ["*://store.steampowered.com/*", "*://steam.tv/*"],
+      ["*://steam.tv/*", "*://store.steampowered.com/*"],
+      ["*://help.steampowered.com/*", "*://steam.tv/*"],
+      ["*://steam.tv/*", "*://help.steampowered.com/*"],
+      ["*://checkout.steampowered.com/*", "*://steam.tv/*"],
+      ["*://steam.tv/*", "*://checkout.steampowered.com/*"],
+    ],
+  },
 ];
 
 module.exports = AVAILABLE_SHIMS;
