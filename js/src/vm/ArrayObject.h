@@ -15,11 +15,11 @@ class AutoSetNewObjectMetadata;
 
 class ArrayObject : public NativeObject {
  public:
-  // Array(x) eagerly allocates dense elements if x <= this value. Without
-  // the subtraction the max would roll over to the next power-of-two (4096)
-  // due to the way that growElements() and goodAllocated() work.
+  // Array(x) eagerly allocates dense elements if x <= this value.
+  // This number was chosen so that the elements, the elements header,
+  // and the MediumBuffer header all fit within MaxMediumAllocSize.
   static const uint32_t EagerAllocationMaxLength =
-      2048 - ObjectElements::VALUES_PER_HEADER;
+      (1 << 16) - ObjectElements::VALUES_PER_HEADER - 1;
 
   static const JSClass class_;
 
