@@ -453,7 +453,7 @@ bool CreateInternalWeakMapObjects(UniquePtr<GCManagedObjectWeakMap>* weakMapOut,
   auto weakMap = cx->make_unique<GCManagedObjectWeakMap>(cx);
   CHECK(weakMap);
 
-  CHECK(weakMap->add(cx, key, value));
+  CHECK(weakMap->put(key, value));
 
   *weakMapOut = std::move(weakMap);
   *keyOut = key;

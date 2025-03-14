@@ -312,10 +312,9 @@ void FinalizationRegistryObject::traceWeak(JSTracer* trc) {
   // are weakly held.
 
   MOZ_ASSERT(registrations());
-  for (ObjectValueWeakMap::Enum e(registrations()->valueMap()); !e.empty();
-       e.popFront()) {
+  for (ObjectWeakMap::Enum e(*registrations()); !e.empty(); e.popFront()) {
     auto* registrations =
-        &e.front().value().toObject().as<FinalizationRegistrationsObject>();
+        &e.front().value()->as<FinalizationRegistrationsObject>();
     if (!registrations->traceWeak(trc)) {
       e.removeFront();
     }
@@ -488,12 +487,13 @@ bool FinalizationRegistryObject::addRegistration(
 
   auto& map = *registry->registrations();
   Rooted<FinalizationRegistrationsObject*> recordsObject(cx);
-  JSObject* obj = map.lookup(unregisterToken);
+  JSObject* obj = map.get(unregisterToken);
   if (obj) {
     recordsObject = &obj->as<FinalizationRegistrationsObject>();
   } else {
     recordsObject = FinalizationRegistrationsObject::create(cx);
-    if (!recordsObject || !map.add(cx, unregisterToken, recordsObject)) {
+    if (!recordsObject || !map.put(unregisterToken, recordsObject)) {
+      ReportOutOfMemory(cx);
       return false;
     }
   }
@@ -518,7 +518,7 @@ bool FinalizationRegistryObject::addRegistration(
   JS::AutoAssertNoGC nogc;
 
   auto& map = *registry->registrations();
-  JSObject* obj = map.lookup(unregisterToken);
+  JSObject* obj = map.get(unregisterToken);
   MOZ_ASSERT(obj);
   auto records = &obj->as<FinalizationRegistrationsObject>();
   records->remove(record);
@@ -570,7 +570,7 @@ bool FinalizationRegistryObject::unregister(JSContext* cx, unsigned argc,
   //       i. Remove cell from finalizationRegistry.[[Cells]].
   //       ii. Set removed to true.
 
-  RootedObject obj(cx, registry->registrations()->lookup(unregisterToken));
+  RootedObject obj(cx, registry->registrations()->get(unregisterToken));
   if (obj) {
     auto* records = obj->as<FinalizationRegistrationsObject>().records();
     MOZ_ASSERT(records);
