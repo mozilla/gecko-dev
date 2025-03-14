@@ -7040,8 +7040,9 @@ static bool WasmCompileAndSerialize(JSContext* cx) {
     return false;
   }
 
+  wasm::BytecodeSource bytecodeSource(bytecode->begin(), bytecode->length());
   wasm::Bytes serialized;
-  if (!wasm::CompileAndSerialize(cx, *bytecode, &serialized)) {
+  if (!wasm::CompileAndSerialize(cx, bytecodeSource, &serialized)) {
     return false;
   }
 

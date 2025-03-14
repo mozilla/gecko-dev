@@ -1196,12 +1196,7 @@ class SuspendingFunctionModuleFactory {
       return nullptr;
     }
 
-    SharedBytes shareableBytes = js_new<ShareableBytes>();
-    if (!shareableBytes) {
-      ReportOutOfMemory(cx);
-      return nullptr;
-    }
-    return mg.finishModule(*shareableBytes, moduleMeta,
+    return mg.finishModule(BytecodeBufferOrSource(), moduleMeta,
                            /*maybeCompleteTier2Listener=*/nullptr);
   }
 };
@@ -1611,12 +1606,7 @@ class PromisingFunctionModuleFactory {
       return nullptr;
     }
 
-    SharedBytes shareableBytes = js_new<ShareableBytes>();
-    if (!shareableBytes) {
-      ReportOutOfMemory(cx);
-      return nullptr;
-    }
-    return mg.finishModule(*shareableBytes, moduleMeta,
+    return mg.finishModule(BytecodeBufferOrSource(), moduleMeta,
                            /*maybeCompleteTier2Listener=*/nullptr);
   }
 };

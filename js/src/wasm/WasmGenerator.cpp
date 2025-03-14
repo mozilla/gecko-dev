@@ -18,8 +18,6 @@
 
 #include "wasm/WasmGenerator.h"
 
-#include "mozilla/SHA1.h"
-
 #include <algorithm>
 
 #include "jit/Assembler.h"
@@ -1211,7 +1209,7 @@ UniqueCodeBlock ModuleGenerator::finishTier(UniqueLinkData* linkData) {
 // Complete all tier-1 construction and return the resulting Module.  For this
 // we will need both codeMeta_ (and maybe codeMetaForAsmJS_) and moduleMeta_.
 SharedModule ModuleGenerator::finishModule(
-    const ShareableBytes& bytecode, MutableModuleMetadata moduleMeta,
+    const BytecodeBufferOrSource& bytecode, MutableModuleMetadata moduleMeta,
     JS::OptimizedEncodingListener* maybeCompleteTier2Listener) {
   MOZ_ASSERT(compilingTier1());
 
@@ -1231,6 +1229,7 @@ SharedModule ModuleGenerator::finishModule(
   // ModuleMetadata into their full-fat versions by copying the underlying
   // data blocks.
 
+  const BytecodeSource& bytecodeSource = bytecode.source();
   MOZ_ASSERT(moduleMeta->dataSegments.empty());
   if (!moduleMeta->dataSegments.reserve(
           moduleMeta->dataSegmentRanges.length())) {
@@ -1241,7 +1240,7 @@ SharedModule ModuleGenerator::finishModule(
     if (!dstSeg) {
       return nullptr;
     }
-    if (!dstSeg->init(bytecode, srcRange)) {
+    if (!dstSeg->init(bytecodeSource, srcRange)) {
       return nullptr;
     }
     moduleMeta->dataSegments.infallibleAppend(std::move(dstSeg));
@@ -1253,17 +1252,17 @@ SharedModule ModuleGenerator::finishModule(
     return nullptr;
   }
   for (const CustomSectionRange& srcRange : codeMeta_->customSectionRanges) {
+    BytecodeSpan nameSpan = bytecodeSource.getSpan(srcRange.name);
     CustomSection sec;
-    if (!sec.name.append(bytecode.begin() + srcRange.nameOffset,
-                         srcRange.nameLength)) {
+    if (!sec.name.append(nameSpan.data(), nameSpan.size())) {
       return nullptr;
     }
     MutableBytes payload = js_new<ShareableBytes>();
     if (!payload) {
       return nullptr;
     }
-    if (!payload->append(bytecode.begin() + srcRange.payloadOffset,
-                         srcRange.payloadLength)) {
+    BytecodeSpan payloadSpan = bytecodeSource.getSpan(srcRange.payload);
+    if (!payload->append(payloadSpan.data(), payloadSpan.size())) {
       return nullptr;
     }
     sec.payload = std::move(payload);
@@ -1292,7 +1291,42 @@ SharedModule ModuleGenerator::finishModule(
     codeMeta->numAllocSites = codeMeta->numTypes();
   }
 
+  // Initialize debuggable module state
+  if (debugEnabled()) {
+    // We cannot use lazy or eager tiering with debugging
+    MOZ_ASSERT(mode() == CompileMode::Once);
+
+    // Mark the flag
+    codeMeta->debugEnabled = true;
+
+    // Grab or allocate a full copy of the bytecode of this module
+    if (!bytecode.getOrCreateBuffer(&codeMeta->debugBytecode)) {
+      return nullptr;
+    }
+    codeMeta->codeSectionBytecode = codeMeta->debugBytecode.codeSection();
+
+    // Compute the hash for this module
+    static_assert(sizeof(ModuleHash) <= sizeof(mozilla::SHA1Sum::Hash),
+                  "The ModuleHash size shall not exceed the SHA1 hash size.");
+    mozilla::SHA1Sum::Hash hash;
+    bytecodeSource.computeHash(&hash);
+    memcpy(codeMeta->debugHash, hash, sizeof(ModuleHash));
+  }
+
+  // Initialize lazy tiering module state
   if (mode() == CompileMode::LazyTiering) {
+    // We cannot debbug and use lazy tiering
+    MOZ_ASSERT(!debugEnabled());
+
+    // Grab or allocate a reference to the code section for this module
+    if (bytecodeSource.hasCodeSection()) {
+      codeMeta->codeSectionBytecode = bytecode.getOrCreateCodeSection();
+      if (!codeMeta->codeSectionBytecode) {
+        return nullptr;
+      }
+    }
+
+    // Create call_ref hints
     codeMeta->callRefHints = MutableCallRefHints(
         js_pod_calloc<MutableCallRefHint>(numCallRefMetrics_));
     if (!codeMeta->callRefHints) {
@@ -1300,46 +1334,10 @@ SharedModule ModuleGenerator::finishModule(
     }
   }
 
-  // We keep the bytecode alive for debuggable modules, or if we're doing
-  // partial tiering.
-  if (debugEnabled()) {
-    MOZ_ASSERT(mode() != CompileMode::LazyTiering);
-    codeMeta->debugBytecode = &bytecode;
-  } else if (mode() == CompileMode::LazyTiering) {
-    MutableBytes codeSectionBytecode = js_new<ShareableBytes>();
-    if (!codeSectionBytecode) {
-      return nullptr;
-    }
-
-    if (codeMeta->codeSectionRange) {
-      const uint8_t* codeSectionStart =
-          bytecode.begin() + codeMeta->codeSectionRange->start;
-      if (!codeSectionBytecode->append(codeSectionStart,
-                                       codeMeta->codeSectionRange->size)) {
-        return nullptr;
-      }
-    }
-
-    codeMeta->codeSectionBytecode = codeSectionBytecode;
-  }
-
   // Store a reference to the name section on the code metadata
   if (codeMeta_->nameCustomSectionIndex) {
     codeMeta->namePayload =
         moduleMeta->customSections[*codeMeta_->nameCustomSectionIndex].payload;
-  }
-
-  // Initialize the debug hash for display urls, if we need to
-  if (debugEnabled()) {
-    codeMeta->debugEnabled = true;
-
-    static_assert(sizeof(ModuleHash) <= sizeof(mozilla::SHA1Sum::Hash),
-                  "The ModuleHash size shall not exceed the SHA1 hash size.");
-    mozilla::SHA1Sum::Hash hash;
-    mozilla::SHA1Sum sha1Sum;
-    sha1Sum.update(bytecode.begin(), bytecode.length());
-    sha1Sum.finish(hash);
-    memcpy(codeMeta->debugHash, hash, sizeof(ModuleHash));
   }
 
   // Update statistics in the CodeMeta.  Also remember the bytecode size for
@@ -1418,7 +1416,17 @@ SharedModule ModuleGenerator::finishModule(
   }
 
   if (compileState_ == CompileState::EagerTier1) {
-    module->startTier2(bytecode, maybeCompleteTier2Listener);
+    // Grab or allocate a copy of the code section bytecode
+    SharedBytes codeSection;
+    if (bytecodeSource.hasCodeSection()) {
+      codeSection = bytecode.getOrCreateCodeSection();
+      if (!codeSection) {
+        return nullptr;
+      }
+    }
+
+    // Kick off a background tier-2 compile task
+    module->startTier2(codeSection, maybeCompleteTier2Listener);
   } else if (tier() == Tier::Serialized && maybeCompleteTier2Listener &&
              module->canSerialize()) {
     Bytes bytes;
