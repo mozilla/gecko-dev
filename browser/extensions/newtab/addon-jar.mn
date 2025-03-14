@@ -3,8 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 browser.jar:
-% resource newtab %builtin-addons contentaccessible=yes
-% content newtab %content/builtin-addons contentaccessible=yes
   builtin-addons/newtab/manifest.json (./manifest.json)
   builtin-addons/newtab/webext-glue/background.js (./webext-glue/background.js)
   builtin-addons/newtab/webext-glue/schema.json (./webext-glue/schema.json)
