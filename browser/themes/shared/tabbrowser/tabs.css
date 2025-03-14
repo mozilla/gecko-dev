@@ -236,11 +236,18 @@
     z-index: 2;
   }
 
-  &:is([muted], [soundplaying], [activemedia-blocked]) {
-    --tab-icon-end-margin: 2px;
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media not -moz-pref("sidebar.visibility", "expand-on-hover") {
+    /* We need these rules to apply at all times when the sidebar.visibility
+    pref is not set to "expand-on-hover" as opposed to when the "sidebar-expand-on-hover" attribute
+    has not been added to root. There are certain scenarios when that attribute is temporarily
+    removed from root such as when toggling the sidebar to expand with the toolbar button. */
+    &:is([muted], [soundplaying], [activemedia-blocked]) {
+      --tab-icon-end-margin: 2px;
 
-    #tabbrowser-tabs[orient=horizontal] &:not([pinned]) {
-      min-width: max(var(--tab-min-width-pref, var(--tab-min-width)), 100px);
+      #tabbrowser-tabs[orient=horizontal] &:not([pinned]) {
+        min-width: max(var(--tab-min-width-pref, var(--tab-min-width)), 100px);
+      }
     }
   }
 }
@@ -253,7 +260,7 @@
     min-width: 0;
   }
 
-  :root:not([uidensity=compact]) &[pinned] {
+  :root:not([uidensity=compact], [sidebar-expand-on-hover]) &[pinned] {
     padding: 0 10px;
   }
 
@@ -348,12 +355,25 @@
   height: 16px;
   width: 16px;
 
-  /* apply end margin to not-pinned tabs which are:
-     - oriented horizontally, or
-     - vertical but expanded
+  /* apply end margin to tabs which are:
+     - oriented horizontally and not pinned
+     - vertical but expanded and not pinned
+     - expand on hover enabled, vertical but expanded
   */
-  #tabbrowser-tabs:is([orient="horizontal"], [orient="vertical"][expanded]) &:not([pinned]) {
+  #tabbrowser-tabs[orient="horizontal"] &:not([pinned]),
+  :root:not([sidebar-expand-on-hover]) #tabbrowser-tabs[orient="vertical"][expanded] &:not([pinned]) {
     margin-inline-end: var(--tab-icon-end-margin);
+  }
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media -moz-pref("sidebar.visibility", "expand-on-hover") {
+    /* We need these rules to apply at all times when the sidebar.visibility
+    pref is set to "expand-on-hover" as opposed to when the "sidebar-expand-on-hover" attribute
+    has been added to root. There are certain scenarios when that attribute is temporarily
+    removed from root such as when toggling the sidebar to expand with the toolbar button. */
+    #tabbrowser-tabs[orient="vertical"][expanded] & {
+      margin-inline-end: var(--tab-icon-end-margin);
+    }
   }
 }
 
@@ -593,10 +613,92 @@
     }
   }
 
-  #tabbrowser-tabs[orient="vertical"]:not([expanded]) &:is([soundplaying], [muted], [activemedia-blocked]),
   &[pinned]:is([soundplaying], [muted], [activemedia-blocked]),
   &[crashed] {
     display: revert;
+  }
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media -moz-pref("sidebar.visibility", "expand-on-hover") {
+    /* We need these rules to apply at all times when the sidebar.visibility
+    pref is set to "expand-on-hover" as opposed to when the "sidebar-expand-on-hover" attribute
+    has been added to root. There are certain scenarios when that attribute is temporarily
+    removed from root such as when toggling the sidebar to expand with the toolbar button. */
+    #tabbrowser-tabs[orient="vertical"] &:is([soundplaying], [muted], [activemedia-blocked]) {
+      display: revert;
+    }
+
+    #tabbrowser-tabs[orient="vertical"] &:not([crashed]) {
+      &[soundplaying] {
+        list-style-image: url("chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg");
+      }
+
+      &[muted] {
+        list-style-image: url("chrome://browser/skin/tabbrowser/tab-audio-muted-small.svg");
+      }
+
+      &[activemedia-blocked] {
+        list-style-image: url("chrome://browser/skin/tabbrowser/tab-audio-blocked-small.svg");
+      }
+
+      &:is([soundplaying], [muted], [activemedia-blocked]) {
+        /* We want to make this look like the selected tab, but fully opaque. For that,
+         * we build a stack of `--lwt-accent-color` (guaranteed opaque), then
+         * `--toolbox-bgcolor`, then `--tab-selected-bgcolor`.
+         *
+         * We rely on at least one of `--toolbox-bgcolor` / `--tab-selected-bgcolor`
+         * being opaque on the system themes, so even though `--lwt-accent-color` is
+         * not set there, it ends up working out because we never see it through.
+         *
+         * We also apply one extra color on top (--audio-overlay-extra-background)
+         * for hover / active feedback.
+         */
+         --audio-overlay-extra-background: transparent;
+        background-color: var(--lwt-accent-color);
+        background-image: linear-gradient(var(--audio-overlay-extra-background)),
+                          linear-gradient(var(--toolbox-bgcolor));
+        -moz-context-properties: fill;
+        fill: var(--tab-selected-textcolor);
+        color-scheme: var(--tab-selected-color-scheme);
+        border-radius: var(--border-radius-circle);
+
+        .browser-toolbox-background:-moz-window-inactive &:not([selected]) {
+          background-image: linear-gradient(var(--audio-overlay-extra-background)),
+                            linear-gradient(var(--toolbox-bgcolor-inactive));
+        }
+
+        &:hover {
+          --audio-overlay-extra-background: var(--button-background-color-ghost-hover);
+        }
+
+        &:hover:active {
+          --audio-overlay-extra-background: var(--button-background-color-ghost-active);
+        }
+
+        &[selected] {
+          background-image: linear-gradient(var(--audio-overlay-extra-background)),
+                            linear-gradient(var(--tab-selected-bgcolor)),
+                            linear-gradient(var(--toolbox-bgcolor));
+        }
+
+        .browser-toolbox-background:-moz-window-inactive &[selected] {
+          background-image: linear-gradient(var(--audio-overlay-extra-background)),
+                          linear-gradient(var(--tab-selected-bgcolor)),
+                          linear-gradient(var(--toolbox-bgcolor-inactive));
+        }
+      }
+    }
+  }
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media not -moz-pref("sidebar.visibility", "expand-on-hover") {
+    /* We need these rules to apply at all times when the sidebar.visibility
+    pref is not set to "expand-on-hover" as opposed to when the "sidebar-expand-on-hover" attribute
+    has not been added to root. There are certain scenarios when that attribute is temporarily
+    removed from root such as when toggling the sidebar to expand with the toolbar button. */
+    #tabbrowser-tabs[orient="vertical"]:not([expanded]) &:is([soundplaying], [muted], [activemedia-blocked]) {
+      display: revert;
+    }
   }
 }
 
@@ -608,23 +710,31 @@
   --button-min-height-small: 24px;
   --button-border-radius: var(--border-radius-small);
 
-  #tabbrowser-tabs:is([orient="vertical"][expanded], [orient="horizontal"]) &:not([pinned]):not([crashed]) {
-    &:is([soundplaying], [muted], [activemedia-blocked]) {
-      display: block;
-    }
+    /* stylelint-disable-next-line media-query-no-invalid */
+    @media not -moz-pref("sidebar.visibility", "expand-on-hover") {
+      /* We need these rules to apply at all times when the sidebar.visibility
+      pref is not set to "expand-on-hover" as opposed to when the "sidebar-expand-on-hover" attribute
+      has not been added to root. There are certain scenarios when that attribute is temporarily
+      removed from root such as when toggling the sidebar to expand with the toolbar button. */
+      #tabbrowser-tabs[orient="horizontal"] &:not([pinned]):not([crashed]),
+      :root:not([sidebar-expand-on-hover]) #tabbrowser-tabs[orient="vertical"][expanded] &:not([pinned]):not([crashed]) {
+        &:is([soundplaying], [muted], [activemedia-blocked]) {
+          display: block;
+        }
 
-    &[soundplaying]::part(button) {
-      background-image: url("chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg");
-    }
+        &[soundplaying]::part(button) {
+          background-image: url("chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg");
+        }
 
-    &[muted]::part(button) {
-      background-image: url("chrome://browser/skin/tabbrowser/tab-audio-muted-small.svg");
-    }
+        &[muted]::part(button) {
+          background-image: url("chrome://browser/skin/tabbrowser/tab-audio-muted-small.svg");
+        }
 
-    &[activemedia-blocked]::part(button) {
-      background-image: url("chrome://browser/skin/tabbrowser/tab-audio-blocked-circle-12.svg");
+        &[activemedia-blocked]::part(button) {
+          background-image: url("chrome://browser/skin/tabbrowser/tab-audio-blocked-circle-12.svg");
+        }
+      }
     }
-  }
 }
 
 .tab-label-container {
@@ -669,7 +779,8 @@
   border-radius: var(--tab-border-radius);
   list-style-image: url(chrome://global/skin/icons/close-12.svg);
 
-  &[pinned],
+  #tabbrowser-tabs[orient="horizontal"] &[pinned],
+  :root:not([sidebar-expand-on-hover]) #tabbrowser-tabs[orient="vertical"] &[pinned],
   #tabbrowser-tabs[closebuttons="activetab"][orient="horizontal"] &:not([selected]) {
     display: none;
   }
@@ -1274,92 +1385,103 @@
 }
 
 #vertical-pinned-tabs-container {
-  /* Fit slightly more than 5 tabs + padding before overflowing */
-  max-height: calc(5 * var(--tabstrip-min-height) + var(--space-large));
-  --tab-inline-padding: calc(
-    (
-      calc(
-          var(--tab-collapsed-background-width) + 2 *
-            var(--tab-pinned-margin-inline-expanded) - var(--icon-size-default)
-        ) /
-        2
-    )
-  );
+  :root:not([sidebar-expand-on-hover]) & {
+    /* Fit slightly more than 5 tabs + padding before overflowing */
+    max-height: calc(5 * var(--tabstrip-min-height) + var(--space-large));
+    --tab-inline-padding: calc((var(--tab-collapsed-background-width) + 2 *
+    var(--tab-pinned-margin-inline-expanded) - var(--icon-size-default)) / 2);
 
-  &:empty {
-    display: none;
-  }
-
-  &::part(scrollbutton-up),
-  &::part(scrollbutton-down) {
-    display: none;
-  }
-
-  &::part(scrollbox) {
-    scrollbar-width: thin;
-    scrollbar-color: var(--vertical-tabs-scrollbar-color);
-    overflow-y: auto;
-  }
-
-  &::part(items-wrapper) {
-    grid-template-columns: repeat(
-      auto-fit,
-      minmax(var(--tab-pinned-min-width-expanded), auto)
-    );
-    display: grid;
-  }
-
-  &:not([scrolledtostart])::part(overflow-start-indicator),
-  &:not([scrolledtoend])::part(overflow-end-indicator) {
-    background-image: linear-gradient(
-      to top,
-      transparent 0%,
-      var(--toolbox-bgcolor)
-    );
-    background-repeat: no-repeat;
-    pointer-events: none;
-    position: relative;
-    height: 16px;
-    z-index: 1;
-  }
-
-  &::part(overflow-start-indicator) {
-    margin-block: 0 -16px;
-  }
-
-  &::part(overflow-end-indicator) {
-    transform: scaleY(-1);
-    margin-block: -16px 0;
-  }
-
-  .tab-content {
-    justify-content: center;
-  }
-
-  #tabbrowser-tabs[orient="vertical"] > &:not(:empty) {
-    display: grid;
-  }
-
-  .tab-label-container {
-    display: none;
-  }
-
-  .tab-background {
-    border-radius: var(--border-radius-medium);
-
-    .tabbrowser-tab:not(:hover) > .tab-stack > &:not([selected], [multiselected]) {
-      background-color: color-mix(in srgb, currentColor 7%, transparent);
+    &:empty {
+      display: none;
     }
-  }
 
-  #tabbrowser-tabs[expanded] > & {
+    &::part(scrollbutton-up),
+    &::part(scrollbutton-down) {
+      display: none;
+    }
+
+    &::part(scrollbox) {
+      scrollbar-width: thin;
+      scrollbar-color: var(--vertical-tabs-scrollbar-color);
+      overflow-y: auto;
+    }
+
+    /* stylelint-disable-next-line media-query-no-invalid */
+    @media not -moz-pref("sidebar.visibility", "expand-on-hover") {
+      /* We need these rules to apply at all times when the sidebar.visibility
+      pref is not set to "expand-on-hover" as opposed to when the "sidebar-expand-on-hover" attribute
+      has not been added to root. There are certain scenarios when that attribute is temporarily
+      removed from root such as when toggling the sidebar to expand with the toolbar button. */
+      &::part(items-wrapper) {
+        grid-template-columns: repeat(
+          auto-fit,
+          minmax(var(--tab-pinned-min-width-expanded), auto)
+        );
+        display: grid;
+      }
+
+      .tab-label-container {
+        display: none;
+      }
+    }
+
+    &:not([scrolledtostart])::part(overflow-start-indicator),
+    &:not([scrolledtoend])::part(overflow-end-indicator) {
+      background-image: linear-gradient(
+        to top,
+        transparent 0%,
+        var(--toolbox-bgcolor)
+      );
+      background-repeat: no-repeat;
+      pointer-events: none;
+      position: relative;
+      height: 16px;
+      z-index: 1;
+    }
+
+    &::part(overflow-start-indicator) {
+      margin-block: 0 -16px;
+    }
+
+    &::part(overflow-end-indicator) {
+      transform: scaleY(-1);
+      margin-block: -16px 0;
+    }
+
+    .tab-content {
+      justify-content: center;
+    }
+
+    #tabbrowser-tabs[orient="vertical"] > &:not(:empty) {
+      display: grid;
+    }
+
     .tab-background {
-      margin-inline: var(--tab-pinned-margin-inline-expanded);
+      border-radius: var(--border-radius-medium);
+
+      .tabbrowser-tab:not(:hover) > .tab-stack > &:not([selected], [multiselected]) {
+        background-color: color-mix(in srgb, currentColor 7%, transparent);
+      }
     }
 
-    &::part(items-wrapper) {
-      padding-inline: var(--tab-pinned-container-margin-inline-expanded);
+    #tabbrowser-tabs[expanded] > & {
+      .tab-background {
+        margin-inline: var(--tab-pinned-margin-inline-expanded);
+      }
+
+      &::part(items-wrapper) {
+        padding-inline: var(--tab-pinned-container-margin-inline-expanded);
+      }
     }
+  }
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media -moz-pref("sidebar.visibility", "expand-on-hover") {
+    /* We need this rule to apply at all times when the sidebar.visibility
+    pref is set to "expand-on-hover" as opposed to when the "sidebar-expand-on-hover" attribute
+    has been added to root. There are certain scenarios when that attribute is temporarily
+    removed from root such as when toggling the sidebar to expand with the toolbar button. */
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1368,9 +1490,19 @@
   border-bottom: var(--tabstrip-inner-border);
   margin-inline: var(--tab-inner-inline-margin);
 
-  #tabbrowser-tabs[expanded] > &,
   #vertical-pinned-tabs-container:empty + & {
     display: none;
+  }
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media not -moz-pref("sidebar.visibility", "expand-on-hover") {
+  /* We need these rules to apply at all times when the sidebar.visibility
+  pref is not set to "expand-on-hover" as opposed to when the "sidebar-expand-on-hover" attribute
+  has not been added to root. There are certain scenarios when that attribute is temporarily
+  removed from root such as when toggling the sidebar to expand with the toolbar button. */
+    #tabbrowser-tabs[expanded] > & {
+      display: none;
+    }
   }
 }
 
@@ -1489,7 +1621,11 @@
         not be shown when expand on hover is enabled because once
         you hover over the launcher to use the button, the launcher
         starts to expand and the button is no longer shown. Users can
-        rely on the close button within the tab once expanded. */
+        rely on the close button within the tab once expanded.
+         We need this rule to apply at all times when the sidebar.visibility
+    pref is set to "expand-on-hover" as opposed to when the "sidebar-expand-on-hover" attribute
+    has been added to root. There are certain scenarios when that attribute is temporarily
+    removed from root such as when toggling the sidebar to expand with the toolbar button. */
         display: none;
       }
     }
