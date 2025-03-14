@@ -62,6 +62,7 @@ suites:
             "ML Suggest Inference Model": ""
             "ML Autofill Model": ""
             "ML Summarizer Model": ""
+            "ML Smart Tab Clustering": ""
             "ML Smart Tab Model": ""
             "ML Llama Summarizer Model": ""
 

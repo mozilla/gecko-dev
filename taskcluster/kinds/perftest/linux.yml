@@ -624,3 +624,32 @@ ml-perf-smart-tab:
             --output $MOZ_FETCHES_DIR/../artifacts
             --hooks toolkit/components/ml/tests/tools/hooks_local_hub.py
             toolkit/components/ml/tests/browser/browser_ml_smart_tab_perf.js
+
+ml-perf-smart-tab-cluster:
+    fetches:
+        fetch:
+            - ort.wasm
+            - ort.jsep.wasm
+            - mozilla-smart-tab-topic
+            - mozilla-smart-tab-emb
+    description: Run ML Smart Tab Clustering
+    worker:
+        max-run-time: 14400
+    treeherder:
+        symbol: perftest(linux-ml-perf-stg-cluster)
+        tier: 2
+    attributes:
+        batch: false
+        cron: false
+    run-on-projects: [autoland, mozilla-central]
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $MOZ_FETCHES_DIR &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox-bin
+            --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --hooks toolkit/components/ml/tests/tools/hooks_local_hub.py
+            --mochitest-name-change
+            toolkit/components/ml/tests/browser/browser_ml_smart_tab_clustering_perf.js

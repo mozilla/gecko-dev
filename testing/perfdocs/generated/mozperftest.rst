@@ -418,6 +418,24 @@ browser_ml_llama_summarizer_perf.js
 
 **Template test for latency for Summarizer model using Llama.cpp WASM**
 
+browser_ml_smart_tab_clustering_perf.js
+=======================================
+
+:owner: GenAI Team
+:name: ML Smart Tab Clustering
+:Default options:
+
+::
+
+ --perfherder
+ --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MiB,shouldAlert:True
+ --verbose
+ --manifest perftest.toml
+ --manifest-flavor browser-chrome
+ --try-platform linux, mac, win
+
+**Testing Smart Tab Clustering**
+
 browser_ml_smart_tab_perf.js
 ============================
 
