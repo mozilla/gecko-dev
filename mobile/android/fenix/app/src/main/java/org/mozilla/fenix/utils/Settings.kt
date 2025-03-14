@@ -2464,4 +2464,28 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         key = appContext.getPreferenceKey(R.string.pref_key_tab_strip),
         default = false,
     )
+
+    /**
+     * Indicates if the user has completed the setup step for choosing the toolbar location
+     */
+    var hasCompletedSetupStepToolbar by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_setup_step_toolbar),
+        default = false,
+    )
+
+    /**
+     * Indicates if the user has completed the setup step for choosing the theme
+     */
+    var hasCompletedSetupStepTheme by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_setup_step_theme),
+        default = false,
+    )
+
+    /**
+     * Indicates if the user has completed the setup step for exploring extensions
+     */
+    var hasCompletedSetupStepExtensions by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_setup_step_extensions),
+        default = false,
+    )
 }
