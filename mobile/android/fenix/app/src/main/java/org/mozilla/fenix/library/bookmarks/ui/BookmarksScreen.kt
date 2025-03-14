@@ -913,7 +913,7 @@ private fun EditFolderScreen(
     store: BookmarksStore,
 ) {
     val state by store.observeAsState(store.state) { it }
-    val editState = state.bookmarksEditFolderState
+    val editState = state.bookmarksEditFolderState ?: return
     val dialogState = state.bookmarksDeletionDialogState
 
     if (dialogState is DeletionDialogState.Presenting) {
@@ -934,7 +934,7 @@ private fun EditFolderScreen(
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
             TextField(
-                value = editState?.folder?.title ?: "",
+                value = editState.folder.title,
                 onValueChange = { newText -> store.dispatch(EditFolderAction.TitleChanged(newText)) },
                 placeholder = "",
                 errorText = "",
@@ -956,7 +956,7 @@ private fun EditFolderScreen(
             )
 
             IconListItem(
-                label = editState?.parent?.title ?: "",
+                label = editState.parent.title,
                 beforeIconPainter = painterResource(R.drawable.ic_folder_icon),
                 onClick = { store.dispatch(EditFolderAction.ParentFolderClicked) },
             )
