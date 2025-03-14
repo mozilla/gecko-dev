@@ -124,8 +124,6 @@ class nsCSSPseudoElements {
       case Type::sliderThumb:
       case Type::sliderFill:
         return mozilla::StaticPrefs::layout_css_modern_range_pseudos_enabled();
-      case Type::detailsContent:
-        return mozilla::StaticPrefs::layout_css_details_content_enabled();
       case Type::viewTransition:
       case Type::viewTransitionGroup:
       case Type::viewTransitionImagePair:

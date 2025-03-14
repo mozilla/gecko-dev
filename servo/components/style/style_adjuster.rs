@@ -554,7 +554,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         // FIXME(emilio): ::before and ::after should support display: contents,
         // see bug 1418138.
-        // FIXME(bug 1954140): Element-backed pseudo elements should support display: contents.
         if self.style.pseudo.is_some() {
             self.style.mutate_box().set_display(Display::Inline);
             return;

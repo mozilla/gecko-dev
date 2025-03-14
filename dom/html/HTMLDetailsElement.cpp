@@ -149,9 +149,6 @@ void HTMLDetailsElement::SetupShadowTree() {
     if (NS_WARN_IF(!slot)) {
       return;
     }
-    if (StaticPrefs::layout_css_details_content_enabled()) {
-      slot->SetPseudoElementType(PseudoStyleType::detailsContent);
-    }
     sr->AppendChildTo(slot, kNotify, IgnoreErrors());
   }
 }
