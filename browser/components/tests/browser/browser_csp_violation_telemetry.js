@@ -4,6 +4,10 @@
 "use strict";
 
 add_task(async function test_internal_page_telemetry() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["security.csp.testing.allow_internal_csp_violation", true]],
+  });
+
   Services.fog.testResetFOG();
 
   is(
@@ -39,7 +43,9 @@ add_task(async function test_internal_page_telemetry() {
     undefined,
     "violation's `blockeduridetails` is correct"
   );
-  is(extra.linenumber, "18", "violation's `linenumber` is correct");
+  is(extra.linenumber, "22", "violation's `linenumber` is correct");
   is(extra.columnnumber, "45", "violation's `columnnumber` is correct");
   is(extra.sample, "foobar()", "violation's sample is correct");
+
+  await SpecialPowers.popPrefEnv();
 });

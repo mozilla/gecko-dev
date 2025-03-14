@@ -80,6 +80,9 @@ add_task(async function test_csp_inline_script() {
     }
   }
 
+  await SpecialPowers.pushPrefEnv({
+    set: [["security.csp.testing.allow_internal_csp_violation", true]],
+  });
   Services.console.registerListener(onConsoleMessage);
 
   await load(browser, "csp.xhtml");
@@ -87,6 +90,7 @@ add_task(async function test_csp_inline_script() {
   ok(await promise, "Inline script got blocked by CSP");
 
   Services.console.unregisterListener(onConsoleMessage);
+  await SpecialPowers.popPrefEnv();
 });
 ]]></script>
 </body>

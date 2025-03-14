@@ -16027,6 +16027,14 @@
   value: 2
   mirror: always
 
+#ifdef DEBUG
+# Crash on CSP violations on internal pages (i.e. chrome:)
+- name: security.csp.testing.allow_internal_csp_violation
+  type: bool
+  value: false
+  mirror: always
+#endif
+
 # If true, all toplevel data: URI navigations will be blocked.
 # Please note that manually entering a data: URI in the
 # URL-Bar will not be blocked when flipping this pref.

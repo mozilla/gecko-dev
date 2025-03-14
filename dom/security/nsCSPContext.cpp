@@ -1429,9 +1429,10 @@ nsresult nsCSPContext::SendReportsToURIs(
   return NS_OK;
 }
 
-void nsCSPContext::RecordInternalViolationTelemetry(
+void nsCSPContext::HandleInternalPageViolation(
     const CSPViolationData& aCSPViolationData,
-    const SecurityPolicyViolationEventInit& aInit) {
+    const SecurityPolicyViolationEventInit& aInit,
+    const nsAString& aViolatedDirectiveNameAndValue) {
   if (!mSelfURI || !mSelfURI->SchemeIs("chrome")) {
     return;
   }
@@ -1475,6 +1476,17 @@ void nsCSPContext::RecordInternalViolationTelemetry(
   }
 
   glean::security::csp_violation_internal_page.Record(Some(extra));
+
+#ifdef DEBUG
+  if (!StaticPrefs::security_csp_testing_allow_internal_csp_violation()) {
+    NS_ConvertUTF16toUTF8 directive(aViolatedDirectiveNameAndValue);
+    MOZ_CRASH_UNSAFE_PRINTF(
+        "Unexpected CSP violation on page %s caused by violating the "
+        "directive: \"%s\". For debugging you can set the pref "
+        "security.csp.testing.allow_internal_csp_violation=true.",
+        selfURISpec.get(), directive.get());
+  }
+#endif
 }
 
 nsresult nsCSPContext::FireViolationEvent(
@@ -1610,8 +1622,9 @@ class CSPReportSenderRunnable final : public Runnable {
     // 3) log to console (one per policy violation)
     ReportToConsole();
 
-    // 4) For internal pages we might send the failure to telemetry.
-    mCSPContext->RecordInternalViolationTelemetry(mCSPViolationData, init);
+    // 4) For internal pages we might send the failure to telemetry or crash.
+    mCSPContext->HandleInternalPageViolation(mCSPViolationData, init,
+                                             mViolatedDirectiveNameAndValue);
 
     // 5) fire violation event
     // A frame-ancestors violation has occurred, but we should not dispatch

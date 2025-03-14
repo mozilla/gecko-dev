@@ -106,10 +106,10 @@ class nsCSPContext : public nsIContentSecurityPolicy {
       const mozilla::dom::SecurityPolicyViolationEventInit&
           aViolationEventInit);
 
-  void RecordInternalViolationTelemetry(
+  void HandleInternalPageViolation(
       const mozilla::dom::CSPViolationData& aCSPViolationData,
-      const mozilla::dom::SecurityPolicyViolationEventInit&
-          aViolationEventInit);
+      const mozilla::dom::SecurityPolicyViolationEventInit& aViolationEventInit,
+      const nsAString& aViolatedDirectiveNameAndValue);
 
   nsresult FireViolationEvent(
       mozilla::dom::Element* aTriggeringElement,

@@ -4,6 +4,9 @@
 "use strict";
 
 add_task(async function test_blocks_event_handlers() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["security.csp.testing.allow_internal_csp_violation", true]],
+  });
   Services.fog.testResetFOG();
 
   let main = document.documentElement;
@@ -80,9 +83,11 @@ add_task(async function test_blocks_event_handlers() {
     undefined,
     "violation's `blockeduridetails` is correct"
   );
-  is(extra.linenumber, "32", "violation's `linenumber` is correct");
+  is(extra.linenumber, "35", "violation's `linenumber` is correct");
   is(extra.columnnumber, "8", "violation's `columnnumber` is correct");
   is(extra.sample, "run_me()", "violation's sample is correct");
+
+  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_pref_disable() {
@@ -108,7 +113,10 @@ add_task(async function test_pref_disable() {
 
 add_task(async function test_pref_report_only() {
   await SpecialPowers.pushPrefEnv({
-    set: [["security.browser_xhtml_csp.report-only", true]],
+    set: [
+      ["security.browser_xhtml_csp.report-only", true],
+      ["security.csp.testing.allow_internal_csp_violation", true],
+    ],
   });
 
   Services.fog.testResetFOG();
