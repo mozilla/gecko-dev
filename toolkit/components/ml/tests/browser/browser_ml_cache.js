@@ -1597,6 +1597,49 @@ add_task(async function test_DeleteFileByEngines() {
   await deleteCache(cache);
 });
 
+/**
+ * Test deleting files used by an engine via the model hub. This is similar to
+ * `test_DeleteFileByEngines`, except we are calling the model hub method.
+ */
+add_task(async function test_ModelHub_DeleteFileByEngines() {
+  const cache = await initializeCache();
+  const engineOne = "engine-1";
+  const hub = new ModelHub({
+    rootUrl: FAKE_HUB,
+    urlTemplate: FAKE_URL_TEMPLATE,
+    allowDenyList: [],
+  });
+  hub.cache = cache;
+
+  // a file is stored by engineOne
+  await cache.put({
+    engineId: engineOne,
+    taskName: "task",
+    model: "org/model",
+    revision: "v1",
+    file: "file.txt",
+    data: createBlob(),
+    headers: null,
+  });
+
+  await hub.deleteFilesByEngine(engineOne);
+
+  // at this point we should not have anymore files
+  const dataAfterDelete = await cache.getFile({
+    engineId: engineOne,
+    model: "org/model",
+    revision: "v1",
+    file: "file.txt",
+  });
+  Assert.equal(
+    dataAfterDelete,
+    null,
+    "The data for the deleted model should not exist."
+  );
+
+  await deleteCache(cache);
+});
+
 // tests allow deny list updating after model is cached
 add_task(async function test_update_allow_deny_after_model_cache() {
   const cache = await initializeCache();

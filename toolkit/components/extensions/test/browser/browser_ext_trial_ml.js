@@ -234,3 +234,23 @@ add_task(async function test_idle_timeout() {
     await cleanup();
   }
 });
+
+add_task(async function test_deleteCachedModels() {
+  const { cleanup } = await setup({
+    prefs: [
+      ["extensions.experiments.enabled", true],
+      ["extensions.ml.enabled", true],
+    ],
+  });
+  const extension = createExtension(async function background() {
+    await browser.trial.ml.deleteCachedModels();
+    browser.test.sendMessage("cached-models-deleted");
+  });
+  await extension.startup();
+
+  await extension.awaitMessage("cached-models-deleted");
+
+  await extension.unload();
+  await EngineProcess.destroyMLEngine();
+  await cleanup();
+});

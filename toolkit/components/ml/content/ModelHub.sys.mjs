@@ -1701,11 +1701,22 @@ export class ModelHub {
    * @throws {Error} If a revision is defined, the model must also be defined.
    *                 If the model is not defined, the revision should also not be defined.
    *                 Otherwise, an error will be thrown.
- 
+
    * @returns {Promise<void>}
    */
   async deleteModels({ taskName, model, revision, filterFn }) {
     await this.#initCache();
     return this.cache.deleteModels({ taskName, model, revision, filterFn });
+  }
+
+  /**
+   * Deletes files associated with a specific engine ID in the cache.
+   *
+   * @param {string} engineId - The ID of the engine whose files are to be deleted.
+   * @returns {Promise<void>} A promise that resolves once the deletion process is complete.
+   */
+  async deleteFilesByEngine(engineId) {
+    await this.#initCache();
+    return this.cache.deleteFilesByEngine(engineId);
   }
 }
