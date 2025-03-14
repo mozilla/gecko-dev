@@ -2094,7 +2094,11 @@ bool TextLeafRange::Crop(Accessible* aContainer) {
 }
 
 LayoutDeviceIntRect TextLeafRange::Bounds() const {
-  // Walk all the lines and union them into the result rectangle.
+  // We can't simply query the first and last character, and union their bounds.
+  // They might reside on different lines, so a simple union may yield an
+  // incorrect width. We should use the length of the longest spanned line for
+  // our width. To achieve this, walk all the lines and union them into the
+  // result rectangle.
   LayoutDeviceIntRect result = TextLeafPoint{mStart}.CharBounds();
   const bool succeeded = WalkLineRects(
       [&result](TextLeafRange aLine, LayoutDeviceIntRect aLineRect) {
@@ -2371,19 +2375,31 @@ bool TextLeafRange::WalkLineRects(LineRectCallback aCallback) const {
 
   // Union the first and last chars of each line to create a line rect.
   while (!locatedFinalLine) {
-    // Fetch the last point in the current line by getting the
-    // start of the next line and going back one char. We don't
-    // use BOUNDARY_LINE_END here because it is equivalent to LINE_START when
-    // the line doesn't end with a line feed character.
     TextLeafPoint nextLineStartPoint = currPoint.FindBoundary(
         nsIAccessibleText::BOUNDARY_LINE_START, eDirNext);
+    // If currPoint is at the end of the document, nextLineStartPoint will be
+    // equal to currPoint. However, this can only happen if mEnd is also the end
+    // of the document.
+    MOZ_ASSERT(nextLineStartPoint != currPoint || nextLineStartPoint == mEnd);
+    if (mEnd <= nextLineStartPoint) {
+      // nextLineStart is past the end of the range. Constrain this last line to
+      // the end of the range.
+      nextLineStartPoint = mEnd;
+      locatedFinalLine = true;
+    }
+    // Fetch the last point in the current line by going back one char from the
+    // start of the next line.
     TextLeafPoint lastPointInLine = nextLineStartPoint.FindBoundary(
         nsIAccessibleText::BOUNDARY_CHAR, eDirPrevious);
-    // If currPoint is the end of the document, nextLineStartPoint will be equal
-    // to currPoint and we would be in an endless loop.
-    if (nextLineStartPoint == currPoint || mEnd <= lastPointInLine) {
-      lastPointInLine = mEnd;
-      locatedFinalLine = true;
+    MOZ_ASSERT(currPoint <= lastPointInLine);
+
+    if (lastPointInLine != currPoint && lastPointInLine.IsLineFeedChar()) {
+      // The line feed character at the end of a line in pre-formatted text
+      // doesn't have a useful rect. Use the previous character. Otherwise,
+      // the rect we provide won't span the line of text and we'll miss
+      // characters.
+      lastPointInLine = lastPointInLine.FindBoundary(
+          nsIAccessibleText::BOUNDARY_CHAR, eDirPrevious);
     }
 
     LayoutDeviceIntRect currLineRect = currPoint.CharBounds();

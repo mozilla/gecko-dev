@@ -248,11 +248,6 @@ LayoutDeviceIntRect HyperTextAccessibleBase::TextBounds(int32_t aStartOffset,
     return LayoutDeviceIntRect();
   }
 
-  // Here's where things get complicated. We can't simply query the first
-  // and last character, and union their bounds. They might reside on different
-  // lines, and a simple union may yield an incorrect width. We
-  // should use the length of the longest spanned line for our width.
-
   TextLeafPoint startPoint =
       ToTextLeafPoint(static_cast<int32_t>(startOffset), false);
   TextLeafPoint endPoint =
@@ -260,14 +255,6 @@ LayoutDeviceIntRect HyperTextAccessibleBase::TextBounds(int32_t aStartOffset,
   if (!endPoint) {
     // The caller provided an invalid offset.
     return LayoutDeviceIntRect();
-  }
-
-  // Step backwards from the point returned by ToTextLeafPoint above.
-  // For our purposes, `endPoint` should be inclusive.
-  endPoint =
-      endPoint.FindBoundary(nsIAccessibleText::BOUNDARY_CHAR, eDirPrevious);
-  if (endPoint < startPoint) {
-    return result;
   }
 
   if (endPoint == startPoint) {

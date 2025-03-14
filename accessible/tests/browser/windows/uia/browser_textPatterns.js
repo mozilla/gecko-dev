@@ -1980,6 +1980,113 @@ addUiaTask(
 );
 
 /**
+ * Test char bounds with the TextRange pattern's GetBoundingRectangles method.
+ */
+addUiaTask(
+  `<div id="test">abc</div>`,
+  async function testTextRangeGetBoundingRectanglesChar(browser, docAcc) {
+    const testAcc = findAccessibleChildByID(docAcc, "test", [
+      nsIAccessibleText,
+    ]);
+    const charX = {};
+    const charY = {};
+    const charW = {};
+    const charH = {};
+    testAcc.getCharacterExtents(
+      0,
+      charX,
+      charY,
+      charW,
+      charH,
+      COORDTYPE_SCREEN_RELATIVE
+    );
+
+    await runPython(`
+      global doc, docText, testAcc, range
+      doc = getDocUia()
+      docText = getUiaPattern(doc, "Text")
+      testAcc = findUiaByDomId(doc, "test")
+      range = docText.RangeFromChild(testAcc)
+      range.ExpandToEnclosingUnit(TextUnit_Character)
+    `);
+    is(await runPython(`range.GetText(-1)`), "a", "range text correct");
+
+    const uiaRect = await runPython(`range.GetBoundingRectangles()`);
+    is(uiaRect.length, 4, "GetBoundingRectangles returned one rectangle");
+    is(uiaRect[0], charX.value, "UIA char rect X matches core char rect X");
+    is(uiaRect[1], charY.value, "UIA char rect Y matches core char rect Y");
+    is(uiaRect[2], charW.value, "UIA char rect W matches core char rect W");
+    is(uiaRect[3], charH.value, "UIA char rect H matches core char rect H");
+  },
+  { uiaEnabled: true, uiaDisabled: true, chrome: true }
+);
+
+/**
+ * Test special case line bounds with the TextRange pattern's
+ * GetBoundingRectangles method.
+ */
+addUiaTask(
+  `
+<div><span id="line-break" tabindex="-1">ABC<br/></span>DEF</div>
+<p style="width: 1px;"><span id="wrapping" tabindex="-1">ABC</span> DEF</p>
+  `,
+  async function testTextRangeGetBoundingRectanglesLine(browser, docAcc) {
+    const lineBreakAcc = findAccessibleChildByID(docAcc, "line-break", [
+      nsIAccessibleText,
+    ]);
+    const wrappingAcc = findAccessibleChildByID(docAcc, "wrapping", [
+      nsIAccessibleText,
+    ]);
+
+    let lineRects = await runPython(`
+      global doc, docText, testAcc
+      doc = getDocUia()
+      docText = getUiaPattern(doc, "Text")
+      testAcc = findUiaByDomId(doc, "line-break")
+      range = docText.RangeFromChild(testAcc)
+      return range.GetBoundingRectangles()
+    `);
+
+    is(lineRects.length, 4, "GetBoundingRectangles returned one rectangle");
+    const lineBreakLineRect = [
+      lineRects[0],
+      lineRects[1],
+      lineRects[2],
+      lineRects[3],
+    ];
+    testTextBounds(
+      lineBreakAcc,
+      0,
+      -1,
+      lineBreakLineRect,
+      COORDTYPE_SCREEN_RELATIVE
+    );
+
+    lineRects = await runPython(`
+      global doc, docText, testAcc
+      testAcc = findUiaByDomId(doc, "wrapping")
+      range = docText.RangeFromChild(testAcc)
+      return range.GetBoundingRectangles()
+    `);
+    is(lineRects.length, 4, "GetBoundingRectangles returned one rectangle");
+    const wrappingLineRect = [
+      lineRects[0],
+      lineRects[1],
+      lineRects[2],
+      lineRects[3],
+    ];
+    testTextBounds(
+      wrappingAcc,
+      0,
+      -1,
+      wrappingLineRect,
+      COORDTYPE_SCREEN_RELATIVE
+    );
+  },
+  { uiaEnabled: true, uiaDisabled: true, chrome: true }
+);
+
+/**
  * Test the TextRange pattern's ScrollIntoView method.
  */
 addUiaTask(
@@ -2361,7 +2468,7 @@ addUiaTask(
   `
 <div id="div">
   <p>line1</p>
-  <p>line2</p>
+  <p><strong id="strong">line</strong>2</p>
   <p style="position: absolute; left: -10000px; width: 1px;">line3</p>
   <p>line4</p>
 </div>
@@ -2428,6 +2535,24 @@ line7</textarea>
       "range 0 text correct"
     );
     // line6 and line7 are scrolled off screen by the textarea.
+
+    await runPython(`
+      strong = findUiaByDomId(doc, "strong")
+      strongLeaf = uiaClient.RawViewWalker.GetFirstChildElement(strong)
+      strongText = getUiaPattern(strongLeaf, "Text")
+      global ranges
+      ranges = strongText.GetVisibleRanges()
+    `);
+    is(
+      await runPython(`ranges.Length`),
+      1,
+      "strong leaf has correct number of visible ranges"
+    );
+    is(
+      await runPython(`ranges.GetElement(0).GetText(-1)`),
+      "line",
+      "range 0 text correct"
+    );
   },
   // The IA2 -> UIA proxy doesn't support GetVisibleRanges.
   { uiaEnabled: true, uiaDisabled: false }
