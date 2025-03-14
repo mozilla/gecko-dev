@@ -389,6 +389,8 @@ def verify_android_device(
 
     # If device_serial not specified, check environment variables.
     if device_serial is None:
+        device_serial = os.environ.get("ANDROID_SERIAL")
+    if device_serial is None:
         device_serial = os.environ.get("DEVICE_SERIAL")
 
     # If no serial specified, check for a connected and ready device
@@ -400,7 +402,7 @@ def verify_android_device(
         if ready_devices:
             if len(ready_devices) > 1:
                 _log_info(
-                    "Multiple Android devices available. Please set DEVICE_SERIAL to pick one."
+                    "Multiple Android devices available. Please set ANDROID_SERIAL to pick one."
                 )
                 return
             device_serial = ready_devices[0]

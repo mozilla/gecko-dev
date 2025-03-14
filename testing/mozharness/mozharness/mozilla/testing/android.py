@@ -41,7 +41,9 @@ class AndroidMixin(object):
         self._device = None
         self.app_name = None
         self.device_name = os.environ.get("DEVICE_NAME", None)
-        self.device_serial = os.environ.get("DEVICE_SERIAL", None)
+        self.device_serial = os.environ.get("ANDROID_SERIAL") or os.environ.get(
+            "DEVICE_SERIAL"
+        )
         self.device_ip = os.environ.get("DEVICE_IP", None)
         self.logcat_proc = None
         self.logcat_file = None
