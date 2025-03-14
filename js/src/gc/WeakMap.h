@@ -250,8 +250,8 @@ class WeakMap : public WeakMapBase {
     return ptr->value();
   }
 
-  // Add a read barrier to prevent an incorrectly gray value from escaping the
-  // weak map. See the UnmarkGrayTracer::onChild comment in gc/Marking.cpp.
+  // Add a read barrier to prevent a gray value from escaping the weak map. This
+  // is necessary because we don't unmark gray through weak maps.
   Ptr lookup(const Lookup& l) const {
     Ptr p = map().lookup(l);
     if (p) {

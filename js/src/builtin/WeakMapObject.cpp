@@ -230,9 +230,6 @@ JS_PUBLIC_API bool JS::GetWeakMapEntry(JSContext* cx, HandleObject mapObj,
   }
 
   if (ValueValueWeakMap::Ptr ptr = map->lookup(key)) {
-    // Read barrier to prevent an incorrectly gray value from escaping the
-    // weak map. See the comment before UnmarkGrayChildren in gc/Marking.cpp
-    ExposeValueToActiveJS(ptr->value().get());
     rval.set(ptr->value());
   }
   return true;
