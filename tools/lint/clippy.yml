@@ -16,6 +16,7 @@ clippy:
         - mozglue/static/rust/
         - netwerk/base/mozurl/
         - netwerk/test/http3server/
+        - netwerk/socket/neqo_glue/
         - security/manager/ssl/data_storage/
         - servo/components/selectors/
         - servo/components/servo_arc/
@@ -82,7 +83,6 @@ clippy:
         - xpcom/rust/nserror/
         - xpcom/rust/moz_task/
         - xpcom/rust/gkrust_utils/
-        - netwerk/socket/neqo_glue/
         - dom/media/webrtc/transport/mdns_service/
         - tools/lint/test/files/clippy/
         - servo/ports/geckolib/
