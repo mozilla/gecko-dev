@@ -2880,6 +2880,21 @@
       }
     ]
   },
+  "1928941": {
+    "label": "oasis.decart.ai",
+    "bugs": {
+      "1928941": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://oasis.decart.ai/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1930440": {
     "label": "online.singaporepools.com",
     "bugs": {
