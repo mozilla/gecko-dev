@@ -6,8 +6,6 @@ plugins {
     id "org.gradle.kotlin.kotlin-dsl" version "5.1.2"
 }
 
-buildDir "${gradle.mozconfig.topobjdir}/gradle/build/mobile/android/android-components/plugins/publicsuffixlist"
-
 repositories {
         gradle.mozconfig.substs.GRADLE_MAVEN_REPOSITORIES.each { repository ->
             maven {

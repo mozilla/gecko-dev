@@ -25,6 +25,10 @@ plugins {
     id "com.google.protobuf" version "$protobuf_plugin"
 }
 
+if (findProject(":geckoview") != null) {
+    buildDir "${topobjdir}/gradle/build/mobile/android/fenix"
+}
+
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-parcelize'
 apply plugin: 'jacoco'

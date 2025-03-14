@@ -1,3 +1,5 @@
+buildDir "${topobjdir}/gradle/build/mobile/android/exoplayer2"
+
 apply plugin: 'com.android.library'
 
 dependencies {
