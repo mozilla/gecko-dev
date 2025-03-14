@@ -9302,26 +9302,30 @@ void MacroAssembler::registerIterator(Register enumeratorsList, Register iter,
 
 void MacroAssembler::prepareOOBStoreElement(Register object, Register index,
                                             Register elements,
-                                            Register spectreTemp,
-                                            Label* failure,
+                                            Register maybeTemp, Label* failure,
                                             LiveRegisterSet volatileLiveRegs) {
   Address length(elements, ObjectElements::offsetOfLength());
   Address initLength(elements, ObjectElements::offsetOfInitializedLength());
   Address capacity(elements, ObjectElements::offsetOfCapacity());
-
-  // We only handle the index == initLength case.
-  branch32(Assembler::NotEqual, initLength, index, failure);
+  Address flags(elements, ObjectElements::offsetOfFlags());
 
   // If index < capacity, we can add a dense element inline. If not, we
   // need to allocate more elements.
-  Label allocElement, addNewElement;
-  spectreBoundsCheck32(index, capacity, spectreTemp, &allocElement);
-  jump(&addNewElement);
+  Label allocElement, enoughCapacity;
+  spectreBoundsCheck32(index, capacity, maybeTemp, &allocElement);
+  jump(&enoughCapacity);
 
   bind(&allocElement);
 
+  // We currently only support storing one past the current capacity.
+  // We could add support for stores beyond that point by calling a different
+  // function, but then we'd have to think carefully about when to go sparse.
+  branch32(Assembler::NotEqual, capacity, index, failure);
+
   volatileLiveRegs.takeUnchecked(elements);
-  volatileLiveRegs.takeUnchecked(spectreTemp);
+  if (maybeTemp != InvalidReg) {
+    volatileLiveRegs.takeUnchecked(maybeTemp);
+  }
   PushRegsInMask(volatileLiveRegs);
 
   // Use `elements` as a scratch register because we're about to reallocate it.
@@ -9339,16 +9343,45 @@ void MacroAssembler::prepareOOBStoreElement(Register object, Register index,
   // Load the reallocated elements pointer.
   loadPtr(Address(object, NativeObject::offsetOfElements()), elements);
 
-  bind(&addNewElement);
+  bind(&enoughCapacity);
 
-  // Increment initLength.
-  add32(Imm32(1), initLength);
+  // If our caller couldn't give us a temp register, use `object`.
+  Register temp;
+  if (maybeTemp == InvalidReg) {
+    push(object);
+    temp = object;
+  } else {
+    temp = maybeTemp;
+  }
 
-  // If length is now <= index, increment length too.
-  Label skipIncrementLength;
-  branch32(Assembler::Above, length, index, &skipIncrementLength);
-  add32(Imm32(1), length);
-  bind(&skipIncrementLength);
+  // Load the index of the first uninitialized element into `temp`.
+  load32(initLength, temp);
+
+  // If it is not `index`, mark this elements array as non-packed.
+  Label noHoles, loop, done;
+  branch32(Assembler::Equal, temp, index, &noHoles);
+  or32(Imm32(ObjectElements::NON_PACKED), flags);
+
+  // Loop over intermediate elements and fill them with the magic hole value.
+  bind(&loop);
+  storeValue(MagicValue(JS_ELEMENTS_HOLE), BaseValueIndex(elements, temp));
+  add32(Imm32(1), temp);
+  branch32(Assembler::NotEqual, temp, index, &loop);
+
+  bind(&noHoles);
+
+  // The new initLength is index + 1. Update it.
+  add32(Imm32(1), temp);
+  store32(temp, initLength);
+
+  // If necessary, update length as well.
+  branch32(Assembler::Above, length, temp, &done);
+  store32(temp, length);
+  bind(&done);
+
+  if (maybeTemp == InvalidReg) {
+    pop(object);
+  }
 }
 
 void MacroAssembler::toHashableNonGCThing(ValueOperand value,

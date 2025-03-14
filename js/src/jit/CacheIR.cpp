@@ -5039,15 +5039,12 @@ AttachDecision SetPropIRGenerator::tryAttachSetDenseElementHole(
              "Extensible objects should not have frozen elements");
 
   uint32_t initLength = nobj->getDenseInitializedLength();
+  uint32_t capacity = nobj->getDenseCapacity();
 
-  // Optimize if we're adding an element at initLength or writing to a hole.
-  //
-  // In the case where index > initLength, we need noteHasDenseAdd to be called
-  // to ensure Ion is aware that writes have occurred to-out-of-bound indexes
-  // before.
-  //
-  // TODO(post-Warp): noteHasDenseAdd (nee: noteArrayWriteHole) no longer exists
-  bool isAdd = index == initLength;
+  // Optimize if:
+  // a) we're adding an element inside capacity, or one element past.
+  // b) we're writing to a hole inside initLength.
+  bool isAdd = index >= initLength && index <= capacity;
   bool isHoleInBounds =
       index < initLength && !nobj->containsDenseElement(index);
   if (!isAdd && !isHoleInBounds) {
