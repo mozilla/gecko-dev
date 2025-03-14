@@ -143,6 +143,8 @@ class SnapTestsBase:
             try:
                 tabs_before = set(self._driver.window_handles)
                 rv = getattr(self, m)(expectations)
+                assert rv is not None, "test returned no value"
+
                 tabs_after = set(self._driver.window_handles)
                 self._logger.info("tabs_after OK {}".format(tabs_after))
 
@@ -379,6 +381,8 @@ class SnapTests(SnapTestsBase):
 
     def test_snap_core_base(self, exp):
         assert self.snap_core_base() in ["22", "24"], "Core base should be 22 or 24"
+
+        return True
 
     def test_about_support(self, exp):
         self.open_tab("about:support")
