@@ -14,7 +14,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
 // We use a list of prefs for display to make sure we only show prefs that
 // are useful for support and won't compromise the user's privacy.  Note that
 // entries are *prefixes*: for example, "accessibility." applies to all prefs
-// under the "accessibility.*" branch.
+// under the "accessibility.*" branch.  To exclude entries, add them to
+// PREF_REGEXES_NOT_TO_DISPLAY or PREFS_UNIMPORTANT_LOCKED.
 const PREFS_FOR_DISPLAY = [
   "accessibility.",
   "apz.",
@@ -57,6 +58,7 @@ const PREFS_FOR_DISPLAY = [
   "browser.zoom.",
   "doh-rollout.",
   "dom.",
+  "extensions.backgroundServiceWorker.enabled",
   "extensions.checkCompatibility",
   "extensions.eventPages.enabled",
   "extensions.formautofill.",
@@ -133,10 +135,11 @@ PREFS_GETTERS[Ci.nsIPrefBranch.PREF_BOOL] = (prefs, name) =>
   prefs.getBoolPref(name);
 
 // List of unimportant locked prefs (won't be shown on the troubleshooting
-// session)
+// session). You only need to add prefs here if they are matched by
+// PREFS_FOR_DISPLAY yet not by PREF_REGEXES_NOT_TO_DISPLAY.
 const PREFS_UNIMPORTANT_LOCKED = [
   "dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled",
-  "extensions.backgroundServiceWorkerEnabled.enabled",
+  "extensions.backgroundServiceWorker.enabled",
   "privacy.restrict3rdpartystorage.url_decorations",
 ];
 
