@@ -2,8 +2,8 @@ defaults pref(test.ime_content_observer.assert_invalid_cache,true)
 
 load 336081-1.xhtml
 load 403965-1.xhtml
-load 428489-1.html
-load 429586-1.html
+pref(dom.mutation_events.enabled,true) load 428489-1.html
+pref(dom.mutation_events.enabled,true) load 429586-1.html
 load 431086-1.xhtml
 load 475132-1.xhtml
 load 503709-1.xhtml
@@ -37,7 +37,7 @@ load 1158452.html
 load 1158651.html
 load 1244894.xhtml
 load 1264921.html
-load 1272490.html
+pref(dom.mutation_events.enabled,true) load 1272490.html
 load 1274050.html
 load 1317704.html
 load 1317718.html
@@ -57,18 +57,18 @@ load 1383763.html
 load 1384161.html
 load 1388075.html
 load 1393171.html
-needs-focus load 1402196.html
+pref(dom.mutation_events.enabled,true) needs-focus load 1402196.html
 load 1402469.html
-load 1402526.html
-load 1405897.html
+pref(dom.mutation_events.enabled,true) load 1402526.html
+pref(dom.mutation_events.enabled,true) load 1405897.html
 load 1408170.html
-asserts(0-1) load 1414581.html
-load 1415231.html
-load 1423767.html
-needs-focus load 1423776.html
+pref(dom.mutation_events.enabled,true) asserts(0-1) load 1414581.html
+pref(dom.mutation_events.enabled,true) load 1415231.html
+pref(dom.mutation_events.enabled,true) load 1423767.html
+pref(dom.mutation_events.enabled,true) needs-focus load 1423776.html
 skip-if(ThreadSanitizer) needs-focus load 1424450.html # bug 1718775, permafail on tsan
-load 1425091.html
-load 1426709.html
+pref(dom.mutation_events.enabled,true) load 1425091.html
+pref(dom.mutation_events.enabled,true) load 1426709.html
 needs-focus load 1429523.html
 needs-focus load 1429523.xhtml
 load 1441619.html
@@ -77,18 +77,18 @@ skip-if(Android) needs-focus load 1444630.html
 load 1446451.html
 pref(layout.accessiblecaret.enabled,true) load 1470926.html
 load 1517028.html
-load 1525481.html
-load 1533913.html
+pref(dom.mutation_events.enabled,true) load 1525481.html
+pref(dom.mutation_events.enabled,true) load 1533913.html
 load 1534394.html
 load 1547897.html
 load 1547898.html
 load 1556799.html
-load 1579934.html
 load 1574544.html
-load 1578916.html
+pref(dom.mutation_events.enabled,true) load 1578916.html
+pref(dom.mutation_events.enabled,true) load 1579934.html
 load 1581246.html
 load 1596516.html
-load 1605741.html
+pref(dom.mutation_events.enabled,true) load 1605741.html
 load 1613521.html
 load 1618906.html
 load 1623166.html
@@ -106,9 +106,9 @@ load 1655539.html
 load 1659717.html
 load 1663725.html # throws
 load 1655508.html
-load 1655988.html
+pref(dom.mutation_events.enabled,true) load 1655988.html
 load 1677566.html
-load 1691051.html
+pref(dom.mutation_events.enabled,true) load 1691051.html
 load 1699866.html
 load 1701348.html
-load 1707630.html
+pref(dom.mutation_events.enabled,true) load 1707630.html
