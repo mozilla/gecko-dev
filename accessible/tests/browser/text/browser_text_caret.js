@@ -504,3 +504,37 @@ addAccessibleTask(
   },
   { chrome: true, topLevel: true, iframe: true, remoteIframe: true }
 );
+
+/**
+ * Test setting the caret in a contentEditable which is aria-hidden. Arguably,
+ * we shouldn't fire caret events at all in this case, but really, this is just
+ * bad authoring and shouldn't happen. We just need to make sure that the
+ * offsets we do fire are at least valid so we don't trigger assertions or
+ * confuse clients.
+ */
+addAccessibleTask(
+  `
+<div contenteditable id="editable" aria-hidden="true">abcd</div>
+<p></p>
+  `,
+  async function testSetCaretInAriaHidden(browser, docAcc) {
+    info("Focusing editable");
+    let moved = waitForEvent(EVENT_TEXT_CARET_MOVED, docAcc);
+    await invokeContentTask(browser, [], () => {
+      content.document.getElementById("editable").focus();
+    });
+    let evt = await moved;
+    evt.QueryInterface(nsIAccessibleCaretMoveEvent);
+    is(evt.caretOffset, 0, "Caret event is for offset 0");
+
+    info("Setting caret in editable to c");
+    moved = waitForEvent(EVENT_TEXT_CARET_MOVED, docAcc);
+    await invokeContentTask(browser, [], () => {
+      const text = content.document.getElementById("editable").firstChild;
+      content.getSelection().setBaseAndExtent(text, 3, text, 3);
+    });
+    evt = await moved;
+    evt.QueryInterface(nsIAccessibleCaretMoveEvent);
+    is(evt.caretOffset, 0, "Caret event is for offset 0");
+  }
+);

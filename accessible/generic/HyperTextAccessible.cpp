@@ -172,7 +172,18 @@ uint32_t HyperTextAccessible::DOMPointToOffset(nsINode* aNode,
     }
   }
 
-  if (descendant && descendant->IsTextLeaf()) {
+  if (!descendant) {
+    // This DOM point can't be mapped to an offset in this HyperTextAccessible.
+    // Return the length as a fallback.
+    return CharacterCount();
+  }
+
+  if (aNode->IsText() && descendant->GetContent() != aNode) {
+    // `offset` is relative to aNode, but aNode doesn't have an Accessible, so
+    // we used the next Accessible. This means that `offset` is no longer valid.
+    NS_WARNING("No Accessible for DOM text node");
+    offset = 0;
+  } else if (descendant->IsTextLeaf()) {
     uint32_t length = nsAccUtils::TextLength(descendant);
     if (offset > length) {
       // This can happen if text in the accessibility tree is out of date with
