@@ -351,10 +351,16 @@ nsresult ContentAnalysis::CreateContentAnalysisClient(
     bool aIsPerUser) {
   MOZ_ASSERT(!NS_IsMainThread());
 
-  std::shared_ptr<content_analysis::sdk::Client> client(
-      content_analysis::sdk::Client::Create({aPipePathName.Data(), aIsPerUser})
-          .release());
-  LOGD("Content analysis is %s", client ? "connected" : "not available");
+  std::shared_ptr<content_analysis::sdk::Client> client;
+  if (!IsShuttingDown()) {
+    client.reset(content_analysis::sdk::Client::Create(
+                     {aPipePathName.Data(), aIsPerUser})
+                     .release());
+    LOGD("Content analysis is %s", client ? "connected" : "not available");
+  } else {
+    LOGD("ContentAnalysis::IsShuttingDown is true");
+  }
+
 #ifdef XP_WIN
   if (client && !aClientSignatureSetting.IsEmpty()) {
     std::string agentPath = client->GetAgentInfo().binary_path;
@@ -1238,20 +1244,41 @@ ContentAnalysis::ContentAnalysis()
 
 ContentAnalysis::~ContentAnalysis() {
   AssertIsOnMainThread();
+
+  {
+    // Make sure that we don't try to reconnect to the agent.
+    auto lock = mIsShuttingDown.Lock();
+    *lock = true;
+  }
+
   // Reject the promise to avoid assertions when it gets destroyed
   // Note that if the promise has already been resolved or rejected this is a
   // noop
   mCaClientPromise->Reject(NS_ERROR_ILLEGAL_DURING_SHUTDOWN, __func__);
 
-  // Make sure that the MultipartRequestCallbacks in mUserActionMap don't
-  // try to update the map while it is being cleared (destroyed).
-  mIsShuttingDown = true;
+  // In case the promise _was_ resolved before, create a new one and reject
+  // that.
+  mCaClientPromise =
+      new ClientPromise::Private("ContentAnalysis:ShutdownReject");
+  mCaClientPromise->Reject(NS_ERROR_ILLEGAL_DURING_SHUTDOWN, __func__);
+
+  // The userActionMap must be cleared before the object is destroyed.
   mUserActionMap.Clear();
+}
+
+bool ContentAnalysis::IsShuttingDown() {
+  auto lock = mIsShuttingDown.ConstLock();
+  return *lock;
 }
 
 nsresult ContentAnalysis::CreateClientIfNecessary(
     bool aForceCreate /* = false */) {
   AssertIsOnMainThread();
+
+  if (IsShuttingDown()) {
+    return NS_OK;
+  }
+
   nsCString pipePathName;
   nsresult rv = Preferences::GetCString(kPipePathNamePref, pipePathName);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -2517,10 +2544,12 @@ ContentAnalysis::MultipartRequestCallback::Error(nsresult aRv) {
 
 ContentAnalysis::MultipartRequestCallback::~MultipartRequestCallback() {
   MOZ_ASSERT(NS_IsMainThread());
-  // Either we are shutting down or we have called our callback and removed
-  // our userActionId.
-  MOZ_ASSERT(!mWeakContentAnalysis || mWeakContentAnalysis->mIsShuttingDown ||
-             !mWeakContentAnalysis->mUserActionMap.Contains(mUserActionId));
+
+  // Either we have called our callback and removed our userActionId or we are
+  // shutting down.
+  MOZ_ASSERT(!mWeakContentAnalysis ||
+             !mWeakContentAnalysis->mUserActionMap.Contains(mUserActionId) ||
+             mWeakContentAnalysis->IsShuttingDown());
 }
 
 void ContentAnalysis::MultipartRequestCallback::CancelRequests() {

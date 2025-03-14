@@ -313,6 +313,10 @@ class ContentAnalysis final : public nsIContentAnalysis,
                                             nsCString&& aUserActionId,
                                             bool aAutoAcknowledge);
   bool LastRequestSucceeded();
+
+  // Thread-safe check whether the service is being destroyed.
+  bool IsShuttingDown();
+
   // Did the URL filter completely handle the request or do we need to check
   // with the agent.
   enum UrlFilterResult { eCheck, eDeny, eAllow };
@@ -456,7 +460,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
   std::vector<std::regex> mDenyUrlList;
   bool mParsedUrlLists = false;
   bool mForbidFutureRequests = false;
-  bool mIsShuttingDown = false;
+  DataMutex<bool> mIsShuttingDown{false, "ContentAnalysis::IsShuttingDown"};
 
   friend class ContentAnalysisResponse;
   friend class ::ContentAnalysisTest;
