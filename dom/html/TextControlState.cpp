@@ -2537,7 +2537,9 @@ void TextControlState::GetValue(nsAString& aValue, bool aIgnoreWrap,
     // XXXbz if we could just get the textContent of our anonymous content (eg
     // if plaintext editor didn't create <br> nodes all over), we wouldn't need
     // this.
-    { /* Scope for AutoNoJSAPI. */
+    // XXX If mTextEditor has not been initialized yet, ComputeTextValue()
+    // anyway returns empty string. Is this always expected here?
+    if (mEditorInitialized) {
       AutoNoJSAPI nojsapi;
 
       DebugOnly<nsresult> rv = mTextEditor->ComputeTextValue(flags, aValue);

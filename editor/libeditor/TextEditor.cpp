@@ -480,6 +480,17 @@ already_AddRefed<Element> TextEditor::GetInputEventTargetElement() const {
 }
 
 bool TextEditor::IsEmpty() const {
+  // This is a public method.  Therefore, it might have not been initialized yet
+  // when this is called.  Let's return true in such case, but warn it because
+  // it may return different value than actual value which is stored by the
+  // text control element.
+  MOZ_ASSERT_IF(mInitSucceeded, GetRoot());
+  if (NS_WARN_IF(!GetRoot())) {
+    NS_ASSERTION(false,
+                 "Make the root caller stop doing that before initializing or "
+                 "after destroying the TextEditor");
+    return true;
+  }
   const Text* const textNode = GetTextNode();
   MOZ_DIAGNOSTIC_ASSERT_IF(textNode,
                            !Text::FromNodeOrNull(textNode->GetNextSibling()));
