@@ -3,35 +3,35 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![expect(
+    clippy::missing_safety_doc,
+    clippy::missing_panics_doc,
+    reason = "OK here"
+)]
+
 extern crate url;
-use url::quirks;
-use url::{ParseOptions, Position, Url};
+use url::{quirks, ParseOptions, Position, Url};
 
 extern crate nsstring;
 use nsstring::{nsACString, nsCString};
 
 extern crate nserror;
-use nserror::*;
+use nserror::{nsresult, NS_ERROR_MALFORMED_URI, NS_ERROR_UNEXPECTED, NS_OK};
 
 extern crate xpcom;
 use xpcom::{AtomicRefcnt, RefCounted, RefPtr};
 
 extern crate uuid;
-use uuid::Uuid;
+use std::{fmt::Write as _, marker::PhantomData, ops, ptr, str};
 
-use std::fmt::Write;
-use std::marker::PhantomData;
-use std::mem;
-use std::ops;
-use std::ptr;
-use std::str;
+use uuid::Uuid;
 
 extern "C" {
     fn Gecko_StrictFileOriginPolicy() -> bool;
 }
 
 /// Helper macro. If the expression $e is Ok(t) evaluates to t, otherwise,
-/// returns NS_ERROR_MALFORMED_URI.
+/// returns `NS_ERROR_MALFORMED_URI`.
 macro_rules! try_or_malformed {
     ($e:expr) => {
         match $e {
@@ -49,21 +49,19 @@ fn default_port(scheme: &str) -> Option<u16> {
     match scheme {
         "ftp" => Some(21),
         "gopher" => Some(70),
-        "http" => Some(80),
-        "https" => Some(443),
-        "ws" => Some(80),
-        "wss" => Some(443),
-        "rtsp" => Some(443),
-        "android" => Some(443),
+        "http" | "ws" => Some(80),
+        "https" | "wss" | "rtsp" | "android" => Some(443),
         _ => None,
     }
 }
 
-/// A slice into the backing string. This type is only valid as long as the
-/// MozURL which it was pulled from is valid. In C++, this type implicitly
-/// converts to a nsDependentCString, and is an implementation detail.
+/// A slice into the backing string.
 ///
-/// This type exists because, unlike &str, this type is safe to return over FFI.
+/// This type is only valid as long as the [`MozURL`] which it was pulled from is
+/// valid. In C++, this type implicitly converts to a `nsDependentCString`, and is
+/// an implementation detail.
+///
+/// This type exists because, unlike `&str`, this type is safe to return over FFI.
 #[repr(C)]
 pub struct SpecSlice<'a> {
     data: *const u8,
@@ -72,17 +70,16 @@ pub struct SpecSlice<'a> {
 }
 
 impl<'a> From<&'a str> for SpecSlice<'a> {
-    fn from(s: &'a str) -> SpecSlice<'a> {
-        assert!(s.len() < u32::max_value() as usize);
+    fn from(s: &'a str) -> Self {
         SpecSlice {
             data: s.as_ptr(),
-            len: s.len() as u32,
+            len: u32::try_from(s.len()).expect("string length not representable in u32"),
             _marker: PhantomData,
         }
     }
 }
 
-/// The MozURL reference-counted threadsafe URL type. This type intentionally
+/// The [`MozURL`] reference-counted threadsafe URL type. This type intentionally
 /// implements no XPCOM interfaces, and all method calls are non-virtual.
 #[repr(C)]
 pub struct MozURL {
@@ -91,15 +88,16 @@ pub struct MozURL {
 }
 
 impl MozURL {
-    pub fn from_url(url: Url) -> RefPtr<MozURL> {
+    #[must_use]
+    pub fn from_url(url: Url) -> RefPtr<Self> {
         // Actually allocate the URL on the heap. This is the only place we actually
-        // create a MozURL, other than in clone().
+        // create a [`MozURL`], other than in `clone()`.
         unsafe {
-            RefPtr::from_raw(Box::into_raw(Box::new(MozURL {
-                url: url,
+            RefPtr::from_raw(Box::into_raw(Box::new(Self {
+                url,
                 refcnt: AtomicRefcnt::new(),
             })))
-            .unwrap()
+            .expect("MozURL created OK")
         }
     }
 }
@@ -126,7 +124,7 @@ pub unsafe extern "C" fn mozurl_addref(url: &MozURL) {
 pub unsafe extern "C" fn mozurl_release(url: &MozURL) {
     let rc = url.refcnt.dec();
     if rc == 0 {
-        mem::drop(Box::from_raw(url as *const MozURL as *mut MozURL));
+        drop(Box::from_raw(ptr::from_ref::<MozURL>(url).cast_mut()));
     }
 }
 
@@ -161,7 +159,7 @@ pub extern "C" fn mozurl_new(
     NS_OK
 }
 
-/// Allocate a new MozURL object which is a clone of the original, and store a
+/// Allocate a new [`MozURL`] object which is a clone of the original, and store a
 /// pointer to it into newurl.
 #[no_mangle]
 pub extern "C" fn mozurl_clone(url: &MozURL, newurl: &mut *const MozURL) {
@@ -200,15 +198,14 @@ pub extern "C" fn mozurl_host(url: &MozURL) -> SpecSlice {
 #[no_mangle]
 pub extern "C" fn mozurl_port(url: &MozURL) -> i32 {
     // NOTE: Gecko uses -1 to represent the default port.
-    url.port().map(|p| p as i32).unwrap_or(-1)
+    url.port().map_or(-1, i32::from)
 }
 
 #[no_mangle]
 pub extern "C" fn mozurl_real_port(url: &MozURL) -> i32 {
     url.port()
         .or_else(|| default_port(url.scheme()))
-        .map(|p| p as i32)
-        .unwrap_or(-1)
+        .map_or(-1, i32::from)
 }
 
 #[no_mangle]
@@ -256,11 +253,10 @@ pub extern "C" fn mozurl_has_query(url: &MozURL) -> bool {
 
 #[no_mangle]
 pub extern "C" fn mozurl_directory(url: &MozURL) -> SpecSlice {
-    if let Some(position) = url.path().rfind('/') {
-        url.path()[..position + 1].into()
-    } else {
-        url.path().into()
-    }
+    url.path().rfind('/').map_or_else(
+        || url.path().into(),
+        |position| url.path()[..=position].into(),
+    )
 }
 
 #[no_mangle]
@@ -281,7 +277,12 @@ fn get_origin(url: &MozURL) -> Option<String> {
             if port == default_port(url.scheme()) {
                 Some(format!("{}://{}", url.scheme(), host))
             } else {
-                Some(format!("{}://{}:{}", url.scheme(), host, port.unwrap()))
+                Some(format!(
+                    "{}://{}:{}",
+                    url.scheme(),
+                    host,
+                    port.expect("got a port")
+                ))
             }
         }
         "file" => {
@@ -298,10 +299,10 @@ fn get_origin(url: &MozURL) -> Option<String> {
 
 #[no_mangle]
 pub extern "C" fn mozurl_origin(url: &MozURL, origin: &mut nsACString) {
-    let origin_str = if !url.as_ref().starts_with("about:blank") {
-        get_origin(url)
-    } else {
+    let origin_str = if url.as_ref().starts_with("about:blank") {
         None
+    } else {
+        get_origin(url)
     };
 
     let origin_str = origin_str.unwrap_or_else(|| {
@@ -375,7 +376,7 @@ pub extern "C" fn mozurl_set_hostname(url: &mut MozURL, host: &nsACString) -> ns
 pub extern "C" fn mozurl_set_port_no(url: &mut MozURL, new_port: i32) -> nsresult {
     debug_assert_mut!(url);
 
-    if new_port > u16::MAX as i32 {
+    if new_port > i32::from(u16::MAX) {
         return NS_ERROR_UNEXPECTED;
     }
 
@@ -383,8 +384,9 @@ pub extern "C" fn mozurl_set_port_no(url: &mut MozURL, new_port: i32) -> nsresul
         return NS_ERROR_MALFORMED_URI;
     }
 
+    #[expect(clippy::cast_sign_loss, reason = "not possible due to first match arm")]
     let port = match new_port {
-        new if new < 0 || u16::max_value() as i32 <= new => None,
+        new if new < 0 || i32::from(u16::MAX) <= new => None,
         new if Some(new as u16) == default_port(url.scheme()) => None,
         new => Some(new as u16),
     };
@@ -419,7 +421,7 @@ pub extern "C" fn mozurl_set_fragment(url: &mut MozURL, fragment: &nsACString) -
 #[no_mangle]
 pub extern "C" fn mozurl_sizeof(url: &MozURL) -> usize {
     debug_assert_mut!(url);
-    mem::size_of::<MozURL>() + url.as_str().len()
+    size_of::<MozURL>() + url.as_str().len()
 }
 
 #[no_mangle]
@@ -485,7 +487,7 @@ pub extern "C" fn mozurl_relative(
     match (url1.path_segments(), url2.path_segments()) {
         (Some(mut path1), Some(mut path2)) => {
             // Exhaust the part of the iterators that match
-            while let (Some(ref p1), Some(ref p2)) = (path1.next(), path2.next()) {
+            while let (Some(p1), Some(p2)) = (&path1.next(), &path2.next()) {
                 if p1 != p2 {
                     break;
                 }
@@ -512,6 +514,6 @@ pub extern "C" fn mozurl_relative(
 pub extern "C" fn rusturl_parse_ipv6addr(input: &nsACString, addr: &mut nsACString) -> nsresult {
     let ip6 = try_or_malformed!(str::from_utf8(input));
     let host = try_or_malformed!(url::Host::parse(ip6));
-    let _ = write!(addr, "{}", host);
+    _ = write!(addr, "{host}");
     NS_OK
 }
