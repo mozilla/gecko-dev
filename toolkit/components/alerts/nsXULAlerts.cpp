@@ -59,8 +59,7 @@ nsXULAlertObserver::Observe(nsISupports* aSubject, const char* aTopic,
 
 // We don't cycle collect nsXULAlerts since gXULAlerts will keep the instance
 // alive till shutdown anyway.
-NS_IMPL_ISUPPORTS(nsXULAlerts, nsIAlertsService, nsIAlertsDoNotDisturb,
-                  nsIAlertsIconURI)
+NS_IMPL_ISUPPORTS(nsXULAlerts, nsIAlertsService, nsIAlertsDoNotDisturb)
 
 /* static */
 already_AddRefed<nsXULAlerts> nsXULAlerts::GetInstance() {
@@ -81,8 +80,8 @@ void nsXULAlerts::PersistentAlertFinished() {
 
   // Show next pending persistent alert if any.
   if (!mPendingPersistentAlerts.IsEmpty()) {
-    ShowAlertWithIconURI(mPendingPersistentAlerts[0].mAlert,
-                         mPendingPersistentAlerts[0].mListener, nullptr);
+    ShowAlertImpl(mPendingPersistentAlerts[0].mAlert,
+                  mPendingPersistentAlerts[0].mListener);
     mPendingPersistentAlerts.RemoveElementAt(0);
   }
 }
@@ -154,13 +153,11 @@ nsXULAlerts::ShowAlert(nsIAlertNotification* aAlert,
     pa->Init(aAlert, aAlertListener);
     return NS_OK;
   }
-  return ShowAlertWithIconURI(aAlert, aAlertListener, nullptr);
+  return ShowAlertImpl(aAlert, aAlertListener);
 }
 
-NS_IMETHODIMP
-nsXULAlerts::ShowAlertWithIconURI(nsIAlertNotification* aAlert,
-                                  nsIObserver* aAlertListener,
-                                  nsIURI* aIconURI) {
+nsresult nsXULAlerts::ShowAlertImpl(nsIAlertNotification* aAlert,
+                                    nsIObserver* aAlertListener) {
   bool inPrivateBrowsing;
   nsresult rv = aAlert->GetInPrivateBrowsing(&inPrivateBrowsing);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -329,18 +326,6 @@ nsXULAlerts::ShowAlertWithIconURI(nsIAlertNotification* aAlert,
   NS_ENSURE_TRUE(scriptableAlertSource, NS_ERROR_FAILURE);
   scriptableAlertSource->SetData(source);
   rv = argsArray->AppendElement(scriptableAlertSource);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsISupportsCString> scriptableIconURL(
-      do_CreateInstance(NS_SUPPORTS_CSTRING_CONTRACTID));
-  NS_ENSURE_TRUE(scriptableIconURL, NS_ERROR_FAILURE);
-  if (aIconURI) {
-    nsAutoCString iconURL;
-    rv = aIconURI->GetSpec(iconURL);
-    NS_ENSURE_SUCCESS(rv, rv);
-    scriptableIconURL->SetData(iconURL);
-  }
-  rv = argsArray->AppendElement(scriptableIconURL);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<mozIDOMWindowProxy> newWindow;

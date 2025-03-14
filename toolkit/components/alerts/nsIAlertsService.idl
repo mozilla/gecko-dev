@@ -346,16 +346,3 @@ interface nsIAlertsIconData : nsISupports
                              [const, array, size_is(aIconSize)] in uint8_t
                                                                 aIconData);
 };
-
-[scriptable, uuid(f3c82915-bf60-41ea-91ce-6c46b22e381a)]
-interface nsIAlertsIconURI : nsISupports
-{
-  /**
-   * Shows an alert with an icon URI. Web notifications use |cached-favicon:|
-   * URIs to reference favicons from Places. If the page doesn't have a
-   * favicon, |aIconURI| will be |null|.
-   */
-  void showAlertWithIconURI(in nsIAlertNotification aAlert,
-                            [optional] in nsIObserver aAlertListener,
-                            [optional] in nsIURI aIconURI);
-};

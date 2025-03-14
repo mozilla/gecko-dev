@@ -23,13 +23,10 @@ struct PendingAlert {
   nsCOMPtr<nsIObserver> mListener;
 };
 
-class nsXULAlerts : public nsIAlertsService,
-                    public nsIAlertsDoNotDisturb,
-                    public nsIAlertsIconURI {
+class nsXULAlerts : public nsIAlertsService, public nsIAlertsDoNotDisturb {
   friend class nsXULAlertObserver;
 
  public:
-  NS_DECL_NSIALERTSICONURI
   NS_DECL_NSIALERTSDONOTDISTURB
   NS_DECL_NSIALERTSSERVICE
   NS_DECL_ISUPPORTS
@@ -41,6 +38,8 @@ class nsXULAlerts : public nsIAlertsService,
  protected:
   virtual ~nsXULAlerts() = default;
   void PersistentAlertFinished();
+  nsresult ShowAlertImpl(nsIAlertNotification* aAlert,
+                         nsIObserver* aAlertListener);
 
   nsInterfaceHashtable<nsStringHashKey, mozIDOMWindowProxy> mNamedWindows;
   uint32_t mPersistentAlertCount = 0;

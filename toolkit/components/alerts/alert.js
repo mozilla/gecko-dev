@@ -38,20 +38,9 @@ function prefillAlertInfo() {
   // arguments[9] --> replaced alert window (nsIDOMWindow)
   // arguments[10] --> an optional callback listener (nsIObserver)
   // arguments[11] -> the nsIURI.hostPort of the origin, optional
-  // arguments[12] -> the alert icon URL, optional
 
   switch (window.arguments.length) {
     default:
-    case 13: {
-      if (window.arguments[12]) {
-        let alertBox = document.getElementById("alertBox");
-        alertBox.setAttribute("hasIcon", true);
-
-        let icon = document.getElementById("alertIcon");
-        icon.src = window.arguments[12];
-      }
-    }
-    // fall through
     case 12: {
       if (window.arguments[11]) {
         let alertBox = document.getElementById("alertBox");
