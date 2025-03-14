@@ -101,12 +101,15 @@ static bool IsWindowAllowedToPlayByTraits(nsPIDOMWindowInner* aWindow) {
     return false;
   }
 
+#ifndef MOZ_WIDGET_ANDROID
+  // On Android, we'd like to prevent top level video document from autoplaying.
   bool isTopLevelContent = !aWindow->GetBrowsingContext()->GetParent();
   if (currentDoc->MediaDocumentKind() == Document::MediaDocumentKind::Video &&
       isTopLevelContent) {
     AUTOPLAY_LOG("Allow top-level video document to autoplay.");
     return true;
   }
+#endif
 
   if (StaticPrefs::media_autoplay_allow_extension_background_pages() &&
       currentDoc->IsExtensionPage()) {
