@@ -158,7 +158,7 @@ OSXNotificationCenter::~OSXNotificationCenter() {
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
 
-NS_IMPL_ISUPPORTS(OSXNotificationCenter, nsIAlertsService, nsIAlertsIconData,
+NS_IMPL_ISUPPORTS(OSXNotificationCenter, nsIAlertsService,
                   nsIAlertsDoNotDisturb, nsIAlertNotificationImageListener)
 
 nsresult OSXNotificationCenter::Init() {
@@ -194,14 +194,6 @@ OSXNotificationCenter::ShowAlertNotification(
 NS_IMETHODIMP
 OSXNotificationCenter::ShowAlert(nsIAlertNotification* aAlert,
                                  nsIObserver* aAlertListener) {
-  return ShowAlertWithIconData(aAlert, aAlertListener, 0, nullptr);
-}
-
-NS_IMETHODIMP
-OSXNotificationCenter::ShowAlertWithIconData(nsIAlertNotification* aAlert,
-                                             nsIObserver* aAlertListener,
-                                             uint32_t aIconSize,
-                                             const uint8_t* aIconData) {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
   NS_ENSURE_ARG(aAlert);
@@ -331,18 +323,6 @@ OSXNotificationCenter::ShowAlertWithIconData(nsIAlertNotification* aAlert,
 
   OSXNotificationInfo* osxni =
       new OSXNotificationInfo(alertName, aAlert, aAlertListener, cookie);
-
-  // Show the favicon if supported on this version of OS X.
-  if (aIconSize > 0 &&
-      [notification respondsToSelector:@selector(set_identityImage:)] &&
-      [notification
-          respondsToSelector:@selector(set_identityImageHasBorder:)]) {
-    NSData* iconData = [NSData dataWithBytes:aIconData length:aIconSize];
-    NSImage* icon = [[[NSImage alloc] initWithData:iconData] autorelease];
-
-    [(NSObject*)notification setValue:icon forKey:@"_identityImage"];
-    [(NSObject*)notification setValue:@(NO) forKey:@"_identityImageHasBorder"];
-  }
 
   bool inPrivateBrowsing;
   rv = aAlert->GetInPrivateBrowsing(&inPrivateBrowsing);

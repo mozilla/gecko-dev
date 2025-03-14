@@ -331,18 +331,3 @@ interface nsIAlertsDoNotDisturb : nsISupports
    */
   attribute boolean suppressForScreenSharing;
 };
-
-[scriptable, uuid(fc6d7f0a-0cf6-4268-8c71-ab640842b9b1)]
-interface nsIAlertsIconData : nsISupports
-{
-  /**
-   * Shows an alert with an icon. Web notifications use the favicon of the
-   * page that created the alert. If the favicon is not in the Places database,
-   * |aIconSize| will be zero.
-  */
-  void showAlertWithIconData(in nsIAlertNotification aAlert,
-                             in nsIObserver aAlertListener,
-                             in uint32_t aIconSize,
-                             [const, array, size_is(aIconSize)] in uint8_t
-                                                                aIconData);
-};
