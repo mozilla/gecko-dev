@@ -22,7 +22,10 @@
   <string name="feedback_erase">သင့် ဘယောက်ဆာသုံး မှတ်တမ်းဖျက်ပြီး</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">ကြည့်ရှုမှတ်တမ်းကို ရှင်းလင်းထားသည်။</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">%1$s ကိုရှာမယ်</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">မျှဝေပါ…</string>
@@ -247,7 +250,7 @@
   <string name="preference_mozilla_telemetry_summary2">Mozilla သည် လူတိုင်းအတွက် %1$s ကို ပေးစွမ်းရန်နှင့် တိုးတက်ကောင်းမွန်စေရန်အတွက်သာ ကောက်ခံမှုပြုခြင်း ဖြစ်ပါသည်။</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">ကိုယ်ရေးကာကွယ်မှု သတိပေးချက်</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">%1$s အကြောင်း</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">သွင်းထားသော ရှာဖွေအင်ဂျင်များ</string>
@@ -265,7 +268,7 @@
   <string name="search_add_manually_name_hint">အင်ဂျင်နာမည် ရှာဖွေပါ</string>
   <string name="search_add_manually_string">အသုံးပြုရန် စာကြောင်းရှာဖွေပါ</string>
   <string name="search_add_manually_save">သိမ်းဆည်းပါ</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">Example: example.com/search/?q=%s</string>
   <string name="search_add_confirmation">ရှာဖွေအင်ဂျင်အသစ် ထည့်ခဲ့သည်</string>
   <string name="search_add_error_empty_name">ရှာဖွေအင်ဂျင်နာမည် ဝင်ပါ</string>
@@ -337,19 +340,19 @@
   <string name="external_app_prompt_title">အခြားအက်ပ်တွင် လင့်ခ်ကို ဖွင့်ပါ</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">%2$s တွင် ယခုလင့်ခ်ကို ဖွင့်ရန် %1$s ထံမှ ထွက်ခွာနိုင်ပါသည်။</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">လင့်ခ်ကို ဖွင့်နိုင်သော အက်ပ်ကို ရှာပါ</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">ယခုလင့်ခ်ကို ကိရိယာရှိ မည်သည့်အက်ပ်မျှ မဖွင့်နိုင်ပါ။ ၎င်းကို ဖွင့်နိုင်သည့်အက်ပ် %2$s တွင် ရှာဖွေရန် %1$s ထံမှ ထွက်ခွာနိုင်ပါသည်။</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">လုံခြုံစွာ ဝဘ်ဆိုက်ကြည့်ရှုခြင်းမှ ထွက်ပါမည်လား။</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s ကို ဆွဲယူခြင်း ပြီးဆုံးပါပြီ</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">ဖွင့်ပါ</string>
@@ -428,13 +431,15 @@
   <!-- Watermark/Hint for the find in page input field -->
   <string name="find_in_page_input">စာမျက်နှာထဲတွင် ရှာပါ</string>
   <!--
-    String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total
+    String to show the number of results found in the page and the position
+    the user is at. %1$d is the position, %2$d is the total number of
+    results.
   -->
   <string name="find_in_page_result">%1$d/%2$d</string>
   <!--
-    String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total
+    String to be read by the accessibility service presenting the number of
+    results found in the page and the position the user is at. %1$d is the
+    position, %2$d is the total number of results.
   -->
   <string name="accessibility_find_in_page_result">%2$d ရဲ့ %1$d</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->
@@ -482,12 +487,12 @@
   <string name="tip_disable_tracking_protection">ဝဘ်ဆိုက်သည် မူမမှန်ဖြစ်နေပါသလား။\n ခြေရာခံကာကွယ်မှုစနစ်ကို ပိတ်ပြီး ပြန်စမ်းကြည့်ပါ။</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
-    Argument 1 will be replaced with a line break in the application.
+    %1$s is replaced with a line break in the application.
   -->
   <string name="tip_add_to_homescreen">အသုံးများသောဆိုက်များကို တစ်ကြိမ်နှိပ်ပြီး သွားရောက်နိုင်ရန် %1$s မီနူး &gt; စတင်အသုံးပြုရာ ဖန်သားပြင်သို့ ပို့ပါ</string>
   <!--
     Tip displayed on home view explaining how to make Focus the default browser
-    Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
+    %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
   <string name="tip_set_default_browser">%1$s ရှိ လင့်ခ်တိုင်းကို ဖွင့်ပါ\n %1$s ကို မူသေဘရောက်ဇာအဖြစ် သတ်မှတ်ပါ</string>

@@ -3,13 +3,13 @@
   <!--
     Search Widget
 
-    Content description for searching with a widget. The first parameter is the name of the application.
+    Content description for searching with a widget. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="search_widget_content_description">Opna nýjan %1$s-flipa</string>
-  <!-- Text preview for smaller sized widgets -->
+  <!-- Text preview for smaller sized widgets. -->
   <string name="search_widget_text_short">Leita</string>
-  <!-- Text preview for larger sized widgets -->
+  <!-- Text preview for larger sized widgets. -->
   <string name="search_widget_text_long">Leita á vefnum</string>
-  <!-- Content description (not visible, for screen readers etc.): Voice search -->
+  <!-- Content description (not visible, for screen readers etc.): Voice search. -->
   <string name="search_widget_voice">Raddleit</string>
 </resources>

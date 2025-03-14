@@ -34,7 +34,7 @@
   <string name="browser_menu_find_in_page">ପୃଷ୍ଠାରେ ଖୋଜି ପାଆନ୍ତୁ</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_open_in_fenix">%1$sରେ ଖୋଲନ୍ତୁ</string>
   <!-- Browser menu label for adding a bookmark -->
@@ -54,7 +54,7 @@
   <!--
     Search Widget
 
-    Content description for searching with a widget. The first parameter is the name of the application.
+    Content description for searching with a widget. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="search_widget_content_description_2">ଗୋଟିଏ ନୂଆ %1$s ଟ୍ୟାବ୍ ଖୋଲନ୍ତୁ</string>
   <!--
@@ -161,7 +161,7 @@
   <string name="saved_login_hide_password">ପାସ୍‍ୱାର୍ଡ଼ ଲୁଚାନ୍ତୁ</string>
   <!-- label shown when there are not site exceptions to show in the site exception settings -->
   <string name="no_site_exceptions">କୌଣସି ସାଇଟ୍ ବ୍ୟତିକ୍ରମ ହୋଇନାହିଁ</string>
-  <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked. -->
+  <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
   <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Firefox ପରିବାରର ଏକ ଅଂଶ। %s</string>
   <!-- Translations feature -->
 </resources>

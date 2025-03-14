@@ -139,7 +139,7 @@
   <string name="mozac_feature_prompts_save_credit_card_prompt_title">Salvar d’un biais segur aquesta carta ?</string>
   <!-- Text for the title of an update credit card dialog. -->
   <string name="mozac_feature_prompts_update_credit_card_prompt_title">Actualizar la data d’expiracion de la carta ?</string>
-  <!-- Subtitle text displayed under the title of the saved card dialog. Parameter will be replaced by app name -->
+  <!-- Subtitle text displayed under the title of the saved card dialog. %s is the name of the app (for example "Firefox"). -->
   <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s chifra lo numèro de carta. Lo còdi de seguretat s’enregistrarà pas.</string>
   <!--
     Address Autofill

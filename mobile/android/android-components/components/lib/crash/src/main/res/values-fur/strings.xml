@@ -2,19 +2,19 @@
 <resources>
   <!-- Title of the crash reporter dialog. %1$s will be replaced with the name of the app (e.g. Firefox Focus). -->
   <string name="mozac_lib_crash_dialog_title">Nus displâs. %1$s al à vût un probleme e al è colassât.</string>
-  <!-- Label of the checkbox for sending crash reports in the crash reporter dialog. %1$s will be replaced with the name of the organization (e.g. Mozilla). -->
+  <!-- Label of the checkbox for sending crash reports in the crash reporter dialog. %1$s is the name of the organization (for example "Mozilla"). -->
   <string name="mozac_lib_crash_dialog_checkbox">Invie la segnalazion di colàs a %1$s</string>
   <!-- Label of the button closing the crash reporter dialog. -->
   <string name="mozac_lib_crash_dialog_button_close">Siere</string>
-  <!-- Label of the button closing the crash reporter dialog and restarting the app. -->
+  <!-- Label of the button closing the crash reporter dialog and restarting the app. %1$s is the name of the app (for example "Firefox"). -->
   <string name="mozac_lib_crash_dialog_button_restart">Torne invie %1$s</string>
   <!-- Name of the "notification channel" used for displaying a notification when the app crashed and we can't show a prompt. See https://developer.android.com/training/notify-user/channels -->
   <string name="mozac_lib_crash_channel">Colàs</string>
-  <!-- Title of the crash reporter notification for background process crashes. %1$s will be replaced with the name of the app (e.g. Firefox Focus). -->
+  <!-- Title of the crash reporter notification for background process crashes. %1$s is the name of the app (for example "Firefox"). -->
   <string name="mozac_lib_crash_background_process_notification_title">Nus displâs. Al è capitât un probleme in %1$s.</string>
   <!-- Label of a notification action/button that will send the crash report to Mozilla. -->
   <string name="mozac_lib_crash_notification_action_report">Segnale</string>
-  <!-- Label of notification showing that the crash report service is running. %1$s will be replaced with the name of the organization (e.g. Mozilla). -->
+  <!-- Label of notification showing that the crash report service is running. %1$s is the name of the organization (for example "Mozilla"). -->
   <string name="mozac_lib_send_crash_report_in_progress">Daûr a inviâ la segnalazion di colàs a %1$s</string>
   <!-- Label of notification showing that the crash handling service is gathering the crash data. -->
   <string name="mozac_lib_gathering_crash_data_in_progress">Daûr a racuei i dâts sui colàs</string>

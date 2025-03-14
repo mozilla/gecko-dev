@@ -16,19 +16,19 @@
   <string name="mozac_feature_downloads_dialog_cancel">Tuup</string>
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
   <string name="mozac_feature_downloads_file_not_supported2">%1$s ma\' tu páajtal u yéemel le bin yano\'ob archivoa\'</string>
-  <!-- Message that appears when the downloaded file could not be opened -->
+  <!-- Message that appears when the downloaded file could not be opened. -->
   <string name="mozac_feature_downloads_could_not_open_file">Ma\' páajchaj u je\'ebel le archivoo\'</string>
-  <!-- Message that appears when the downloaded file is a specific type that Android doesn't support opening -->
+  <!-- Message that appears when the downloaded file is a specific type (%1$s) that Android doesn't support opening. -->
   <string name="mozac_feature_downloads_open_not_supported1">Ma\' kaxta\'ab mix jump\'éel ka\'anatako\'ob uti\'al u je\'ek\'abtik archivo\'ob %1$s</string>
-  <!-- Button that pauses the download when pressed -->
+  <!-- Button that pauses the download when pressed. -->
   <string name="mozac_feature_downloads_button_pause">Je\'elel</string>
-  <!-- Button that resumes the download when pressed -->
+  <!-- Button that resumes the download when pressed. -->
   <string name="mozac_feature_downloads_button_resume">Tsaay</string>
-  <!-- Button that cancels the download when pressed -->
+  <!-- Button that cancels the download when pressed. -->
   <string name="mozac_feature_downloads_button_cancel">Káanselar</string>
-  <!-- Button that opens the downloaded file when pressed -->
+  <!-- Button that opens the downloaded file when pressed. -->
   <string name="mozac_feature_downloads_button_open">Waach</string>
-  <!-- Button that restarts the download after a failed attempt -->
+  <!-- Button that restarts the download after a failed attempt. -->
   <string name="mozac_feature_downloads_button_try_again">Ka\'a k\'aax</string>
   <!-- Content description for close button -->
   <string name="mozac_feature_downloads_button_close">K\'aal</string>

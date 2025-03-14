@@ -20,7 +20,10 @@
   <string name="teaser">Navegación privada automatica.\nNavegar. Borrar. Repetir.</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
   <string name="feedback_erase">S\'ha borrau lo suyo historial de navegación.</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">Buscar %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">Compartir…</string>
@@ -201,7 +204,7 @@
   <string name="preference_mozilla_telemetry_summary2">Mozilla s\'esfuerza per replegar nomás lo necesario pa fornir y amillorar %1$s pa toz.</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">Politica de privacidat</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">Quanto a %1$s</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">Motors de busqueda instalaus</string>
@@ -219,7 +222,7 @@
   <string name="search_add_manually_name_hint">Nombre d\'o motor de busqueda</string>
   <string name="search_add_manually_string">Cadena de busqueda a emplegar</string>
   <string name="search_add_manually_save">Alzar</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">Eixemplo: eixemplo.com/search/?q=%s</string>
   <string name="search_add_confirmation">Nuevo motor de busqueda anyadiu.</string>
   <string name="search_add_error_empty_name">Escribir lo nombre d\'o motor de busqueda</string>
@@ -281,19 +284,19 @@
   <string name="external_app_prompt_title">Ubrir lo vinclo en belatra aplicación</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">Puetz salir d\'o %1$s pa ubrir este vinclo en %2$s.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">Trobar una aplicación que pueda ubrir lo vinclo</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">Garra d\'as aplicacions d\'o tuyo dispositivo ha estau capable d\'ubrir este vinclo. Puetz zarrar lo %1$s pa mirar en %2$s una aplicación que lo pueda ubrir.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">Salir d\'a Navegación Privada?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s ha rematau</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">Ubrir</string>
@@ -372,13 +375,15 @@
   <!-- Watermark/Hint for the find in page input field -->
   <string name="find_in_page_input">Trobar en a pachina</string>
   <!--
-    String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total
+    String to show the number of results found in the page and the position
+    the user is at. %1$d is the position, %2$d is the total number of
+    results.
   -->
   <string name="find_in_page_result">%1$d/%2$d</string>
   <!--
-    String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total
+    String to be read by the accessibility service presenting the number of
+    results found in the page and the position the user is at. %1$d is the
+    position, %2$d is the total number of results.
   -->
   <string name="accessibility_find_in_page_result">%1$d de %2$d</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->

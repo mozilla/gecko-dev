@@ -137,7 +137,7 @@
   <string name="mozac_feature_prompts_save_credit_card_prompt_title">ᱱᱚᱶᱟ ᱠᱟᱰ ᱫᱚ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱥᱟᱹᱦᱤᱡ ᱫᱚᱦᱚᱭ ᱟᱢ ᱥᱮ ?</string>
   <!-- Text for the title of an update credit card dialog. -->
   <string name="mozac_feature_prompts_update_credit_card_prompt_title">ᱠᱟᱰ ᱪᱟᱵᱟ ᱢᱟᱦᱟᱸ ᱦᱟᱹᱞᱤᱭᱟᱹᱭᱟᱹᱠ ᱟᱢ ᱥᱮ ?</string>
-  <!-- Subtitle text displayed under the title of the saved card dialog. Parameter will be replaced by app name -->
+  <!-- Subtitle text displayed under the title of the saved card dialog. %s is the name of the app (for example "Firefox"). -->
   <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s ᱫᱚ ᱟᱢᱟᱜ ᱠᱟᱰ ᱱᱚᱢᱵᱚᱨ ᱮ ᱮᱱᱠᱨᱤᱯᱴ ᱟ ᱾ ᱟᱢᱟᱜ ᱥᱤᱠᱭᱚᱨᱤᱴᱤ ᱠᱳᱰ ᱵᱟᱭ ᱥᱟᱧᱪᱟᱣᱜ ᱟ ᱾</string>
   <!--
     Address Autofill

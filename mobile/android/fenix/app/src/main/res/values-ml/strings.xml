@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_5">സ്വകാര്യം %s</string>
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_4">%s(സ്വകാര്യം)</string>
   <!--
     Home Fragment
@@ -32,7 +32,7 @@
   <string name="no_open_tabs_description">താങ്കളുടെ തുറന്നു കിടക്കുന്ന ടാബുകൾ ഇവിടെ കാണിക്കും.</string>
   <!-- No Private Tabs Message Description -->
   <string name="no_private_tabs_description">നിങ്ങളുടെ സ്വകാര്യ ടാബുകൾ ഇവിടെ കാണിക്കും.</string>
-  <!-- Tab tray multi select title in app bar. The first parameter is the number of tabs selected -->
+  <!-- Tab tray multi select title in app bar. %1$d is the number of tabs selected -->
   <string name="tab_tray_multi_select_title">%1$d തിരഞ്ഞെടുത്തിരിക്കുന്നു</string>
   <!-- Label of button in create collection dialog for creating a new collection -->
   <string name="tab_tray_add_new_collection">പുതിയ ശേഖരം ചേർക്കുക</string>
@@ -56,13 +56,13 @@
   <string name="home_bookmarks_show_all_content_description">എല്ലാ അടയാളകുറിപ്പുകൾ കാണിക്കുക</string>
   <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
   <string name="home_bookmarks_menu_item_remove">മാറ്റുക</string>
-  <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
+  <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s നിർമ്മിച്ചത് മോസില്ലയാണ്.</string>
   <!--
     Private Browsing
 
-    Explanation for private browsing displayed to users on home view when they first enable private mode
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    Explanation for private browsing displayed to users on home view when they first enable private mode.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s നിങ്ങളുടെ തിരയലും ബ്രൗസിംഗ് ചരിത്രവും സ്വകാര്യ ടാബുകൾ അടയ്ക്കുമ്പോൾ അല്ലെങ്കിൽ അപ്ലിക്കേഷനിൽ നിന്ന് പുറത്തുകടക്കുമ്പോൾ അവ മായ്‌ക്കുന്നു. ഇത് നിങ്ങളെ വെബ്‌സൈറ്റുകളിലേക്കോ ഇൻറർനെറ്റ് സേവന ദാതാവിലേക്കോ അജ്ഞാതനാക്കില്ലെങ്കിലും, ഈ ഉപകരണം ഉപയോഗിക്കുന്ന മറ്റെതൊരാളിൽ നിന്നും നിങ്ങൾ ഓൺലൈനിൽ ചെയ്യുന്നത് സ്വകാര്യമായി സൂക്ഷിക്കുന്നത് എളുപ്പമാക്കുന്നു.</string>
   <string name="private_browsing_common_myths">സ്വകാര്യ തിരച്ചിലിനെക്കുറിച്ചുള്ള പൊതുവായ തെറ്റിദ്ധാരണങ്ങൾ</string>
@@ -75,14 +75,14 @@
   <!--
     Explanation for private browsing displayed to users on home view when they first enable
     private mode in our new Total Private Browsing mode.
-    The first parameter is the name of the app defined in app_name (for example: Firefox Nightly)
-    The second parameter is the clickable link text in felt_privacy_info_card_subtitle_link_text
+    %1$s is the name of the app (for example "Firefox").
+    %2$s is a link using felt_privacy_info_card_subtitle_link_text as text
   -->
   <string name="felt_privacy_info_card_subtitle_2">സ്വകാര്യ ടാബു് അടക്കുമ്പോൾ %1$s താങ്ങളുടെ കുക്കീസും നാൾവഴിയും സൈറ്റദത്തയും മായ്ക്കാരുണ്ടു്. %2$s</string>
   <!--
     Clickable portion of the explanation for private browsing that links the user to our
     about privacy page.
-    This string is used in felt_privacy_info_card_subtitle as the second parameter.
+    This string is used in felt_privacy_info_card_subtitle as the text for the link.
   -->
   <string name="felt_privacy_info_card_subtitle_link_text">ആർക്കൊക്കെ എന്റെ പ്രവർത്തനങ്ങൾ കാണാൻ കഴിയും?</string>
   <!--
@@ -98,7 +98,7 @@
   <!--
     Open in App "contextual feature recommendation" (CFR)
 
-    Text for the info message. The first parameter is the name of the application.
+    Text for the info message. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="open_in_app_cfr_info_message_2">ഉപയോഗങ്ങളിലെ കണ്ണികൾ തന്നെതാനെ തുറക്കാൻ താങ്ങൾക്കു് %1$s സജ്ജീകരിക്കാം.</string>
   <!-- Text for the positive action button -->
@@ -149,7 +149,7 @@
   <string name="tab_tray_inactive_auto_close_title">ഒരു മാസത്തിന് ശേഷം തനതാനെ അടയ്ക്കണോ?</string>
   <!--
     Text for the body for the auto-close dialog of the inactive tabs.
-    The first parameter is the name of the application.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_tray_inactive_auto_close_body_2">കഴിഞ്ഞ ഒരു മാസമായി താങ്ങൾ കാണാത്ത ടാബുകൾ %1$s-ന് അടയ്ക്കാനാവും.</string>
   <!-- Content description for close button in the auto-close dialog of the inactive tabs. -->
@@ -217,19 +217,19 @@
   <string name="browser_menu_extensions">വിപുലീകരണങ്ങൾ</string>
   <!--
     Browser menu banner header text for extensions onboarding.
-    The first parameter is the name of the app defined in app_name (for example: Fenix).
+    %s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_extensions_banner_onboarding_header">%s താങ്ങളുടേതാക്കുക</string>
   <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
   <string name="browser_menu_disabled_extensions_banner_onboarding_header">നിങ്ങൾ വിപുലീകരണങ്ങൾ സ്ഥാപിച്ചിരിക്കുന്നു, പക്ഷേ പ്രവർത്തനക്ഷമമാക്കിയിട്ടില്ല</string>
   <!--
     Browser menu banner body text for extensions onboarding.
-    The first parameter is the name of the app defined in app_name (for example: Fenix).
+    %s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_extensions_banner_onboarding_body">വിപുലീകരണങ്ങൾ താങ്ങളുടെ തിരയലിനെ സമനിലയിലാക്കുന്നു, %s എങ്ങനെ കാണുകയും പ്രവർത്തിക്കുകയും ചെയ്യുന്നു എന്നതു് മാറ്റുന്നതു് മുതൽ സ്വകാര്യതയും സുരക്ഷയും വർദ്ധിപ്പിക്കുന്നതു് വരെ.</string>
   <!--
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
-    The first parameter is the name of the button that opens extension manager (for example "Manage extensions").
+    %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
   <string name="browser_menu_disabled_extensions_banner_onboarding_body">വിപുലീകരണങ്ങൾ ഉപയോഗിക്കുന്നതിനു് ക്രമീകരണങ്ങളിൽ അല്ലെങ്കിൽ ചുവടെയുള്ള "%s" തിരഞ്ഞെടുത്തു് അതിനു് പ്രവർത്തനക്ഷമമാക്കുക.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
@@ -240,7 +240,7 @@
   <string name="browser_menu_recommended_section_content_description">ശുപാർശപെട്ട വിപുലീകരണങ്ങൾ</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
-    The first parameter is the name of the extension (for example: ClearURLs).
+    %1$s is the name of the extension (for example: ClearURLs).
   -->
   <string name="browser_menu_extension_plus_icon_content_description_2">%1$s ചേർക്കുക</string>
   <!-- Browser menu button that opens AMO in a tab -->
@@ -291,17 +291,17 @@
   <string name="browser_menu_share_2">പങ്കിടുക…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_open_in_fenix">%1$s ൽ തുറക്കുക</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by">%1$s ലഭ്യമാക്കുന്നത്</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by2">%1$s ലഭ്യമാക്കുന്നത്</string>
   <!-- Browser menu button to put the current page in reader mode -->
@@ -334,7 +334,7 @@
   <string name="browser_menu_passwords">രഹസ്യവാക്കുകൾ</string>
   <!--
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_new_in_firefox">%1$s -ൽ പുതിയതു്</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
@@ -392,14 +392,14 @@
   <string name="browser_menu_webcompat_reporter">പൊട്ടിയ സൈറ്റിന്റെ വിവരം അറിയിക്കുക…</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
-    The first parameter is the name of the language that page was translated to (e.g. English).
+    %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">%1$s -ലേക്കു് വിവർത്തനം ചെയ്തു</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print">അച്ചടിപ്പിക്കുക…</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
-    The first parameter is the name of the app defined in app_name (for example: Fenix).
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_delete_browsing_data_on_quit">%1$s-ൽ നിന്നു് പുറത്തുകടക്കുക</string>
   <!--
@@ -431,8 +431,8 @@
   <string name="browser_toolbar_translate">താളിന്റെ വിവർത്തനം ചെയ്യുക</string>
   <!--
     Content description (not visible, for screen readers etc.) for the translate page toolbar button that opens the translations dialog when the page is translated successfully.
-    The first parameter is the name of the language that is displayed in the original page. (For example: English)
-    The second parameter is the name of the language which the page was translated to. (For example: French)
+    %1$s is the name of the language that is displayed in the original page. (For example: English)
+    %2$s is the name of the language which the page was translated to. (For example: French)
   -->
   <string name="browser_toolbar_translated_successfully">ഈ താൾ %1$s-ൽ നിന്നു് %2$s-ലേക്കു് വിവർത്തനം ചെയ്തിരിക്കുന്നു </string>
   <!--
@@ -461,9 +461,9 @@
   <string name="search_suggestions_onboarding_do_not_allow_button">അനുവദിക്കരുത്</string>
   <!-- Search suggestion onboarding hint title text -->
   <string name="search_suggestions_onboarding_title">സ്വകാര്യ സെഷനുകളിൽ തിരയൽ നിർദ്ദേശങ്ങൾ അനുവദിക്കണോ?</string>
-  <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
   <string name="search_suggestions_onboarding_text">നിങ്ങളുടെ സ്ഥിരസ്ഥിതി സെര്‍ച്ച് എഞ്ചിനുമായി വിലാസ ബാറിൽ നിങ്ങൾ എഴുതുന്നതെല്ലാം %s ആയി പങ്കിടും</string>
-  <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine -->
+  <!-- Search engine suggestion title text. %s is the name of the suggested engine. -->
   <string name="search_engine_suggestions_title">%s അന്വേഷിക്കുക</string>
   <!-- Search engine suggestion description text -->
   <string name="search_engine_suggestions_description">വിലാസപ്പട്ട നിന്ന് നേരിട്ട് തിരയുക</string>
@@ -473,12 +473,12 @@
   <string name="search_header_menu_item_2">ഈ വട്ടം ഇതിൽ തിരയുക:</string>
   <!--
     Content description (not visible, for screen readers etc.): Search engine icon.
-    The parameter is the search engine name (for example: DuckDuckGo).
+    %s is the search engine name (for example: DuckDuckGo).
   -->
   <string name="search_engine_icon_content_description_1">തിരയൽയന്ത്രം: %s</string>
   <!--
     Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
-    The parameter is the search engine name (for example: DuckDuckGo).
+    %s is the search engine name (for example: DuckDuckGo).
     The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button.
   -->
   <string name="search_engine_selector_content_description">%s: തിരയൽയന്ത്ര തിരഞ്ഞെടുക്കൽസഹായി</string>
@@ -589,7 +589,7 @@
   <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">ഡാർക്കു് റീടർ</string>
   <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
   <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">ജംഗമവലക്കുള്ള ഇഷ്ടാനുസൃത ഇരുണ്ടരീതി.</string>
-  <!-- Label for the number of reviews for an add-on. The parameter is for the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
+  <!-- Label for the number of reviews for an add-on. %1$s is the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
   <string name="onboarding_add_on_reviews_label">അവലോകനങ്ങൾ: %1$s</string>
   <!-- Content description for the add-on icon. -->
   <string name="onboarding_add_on_icon_content_description">ആഡ്-ഓൺ അടയാളം</string>
@@ -599,7 +599,7 @@
   <string name="onboarding_installing_add_on_icon_content_description">ആഡ് ഓൺ അടയാളം സ്ഥാപിക്കുന്നു</string>
   <!-- Content description for the add add-on button. -->
   <string name="onboarding_add_on_add_button_content_description">ആഡ്-ഓൺ ബട്ടൺ ചേർക്കുക</string>
-  <!-- Content description for the star rating group. -->
+  <!-- Content description for the star rating group. %1$s is the rating. -->
   <string name="onboarding_add_on_star_rating_content_description">5-ൽ %1$s-ആയി സ്ഥാനക്രമിച്ചതു്</string>
   <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
   <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage">ഫയർഫോക്സു് മെച്ചപ്പെടുത്താൻ ഞങ്ങളെ സഹായിക്കുക</string>
@@ -640,7 +640,7 @@
   <string name="onboarding_term_of_service_line_two_2" tools:ignore="BrandUsage">താങ്ങളുടെ സ്വകാര്യതക്കു് ഫയർഫോക്സു് ശ്രദ്ധിക്കാരുണ്ടു്. ഞങ്ങളുടെ %1$s-ൽ കൂടുതൽ അറിയുക.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
   <string name="onboarding_term_of_service_line_two_link_text">സ്വകാര്യതാ അറിയിപ്പ്</string>
-  <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (“Manage”). -->
+  <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$s is replaced by an active link using onboarding_term_of_service_line_three_link_text as text (“Manage”). -->
   <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">അന്വേഷിയന്ത്രത്തിനെ മെച്ചപ്പെുടത്താൻ ഫയർഫോക്സു് മോസില്ലക്കു് നിദാനനിർണയനീയും ഇടപാടുനീയ ദത്ത അയയ്ക്കാരുണ്ടു്. %1$s</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
   <string name="onboarding_term_of_service_line_three_link_text">കൈകാര്യം ചെയ്യുക</string>
@@ -692,7 +692,7 @@
   <!--
     Search Widget
 
-    Content description for searching with a widget. The first parameter is the name of the application.
+    Content description for searching with a widget. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="search_widget_content_description_2">പുതിയ %1$s ടാബില്‍ തുറക്കുക</string>
   <!-- Text preview for smaller sized widgets -->
@@ -737,7 +737,7 @@
   <string name="preferences_rate">ഗൂഗിൾ പ്ലേയിൽ വിലയിരുത്തുക</string>
   <!--
     Preference linking to about page for Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="preferences_about">%1$s നെ കുറിച്ച്</string>
   <!-- Preference for settings related to changing the default browser -->
@@ -780,17 +780,17 @@
   <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">പിന്തുണ അഭ്യർത്ഥനം അയച്ചു</string>
   <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
   <string name="reduce_cookie_banner_unsupported_site">വെബ്സ്ഥാനം നിലവിൽ പിന്തുണയ്ക്കുന്നില്ല</string>
-  <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site -->
+  <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">%1$s-നു് കുക്കീസു് പൊന്തുവരൽ തടയൽയന്ത്രം തുടങ്ങണോ?</string>
-  <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site -->
+  <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">%1$s-നു് കുക്കീസു് പൊന്തുവരൽ തടയൽയന്ത്രം അണക്കണോ?</string>
-  <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
+  <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
   <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s-ൾക്കു് കുക്കീ അഭ്യാർത്ഥങ്ങളെ തന്നെതാനെ നിരസിക്കാൻ ഒക്കത്തില്ല. ഭാവിയിൽ ഈ സൈറ്റിനെ പിന്തുണയ്ക്കാൻ താങ്ങൾക്കൊരു അഭ്യാർത്ഥനം അയയ്ക്കാം.</string>
-  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
+  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
   <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">%1$s-നു് അണച്ചാൽ കുക്കീകളും മായച്ചിട്ടു് വെബ്സ്ഥാനം വീണ്ടും ലഭ്യമാക്കും. ഇതിന്റെ കാരണം താങ്ങളെ ചിലപ്പോൾ സൈറ്റുകൾ നിന്നു് പുറത്തു് കടപ്പിക്കും അല്ലെങ്കിൽ  ഷോപ്പിംഗു് കാർട്ടുകൾ ഒഴിക്കപ്പെടാം.</string>
-  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
+  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
   <string name="reduce_cookie_banner_details_panel_description_on_for_site_3">താങ്ങൾ %1$s-നെ തുടങ്ങിയാൽ ഈ സൈറ്റിലെ എല്ലാ കുക്കി പൊന്തുവരലുകൾ തന്നെതാനെ നിരസിക്കാൻ ശ്രമിക്കും.</string>
-  <!-- Title for the cookie banner re-engagement CFR, the placeholder is replaced with app name -->
+  <!-- Title for the cookie banner re-engagement CFR, the placeholder is replaced with app name. %1$s is the name of the app (for example "Firefox"). -->
   <string name="cookie_banner_cfr_title">%1$s താങ്ങൾക്കായി കുക്കികൾ നിരസിച്ചു</string>
   <!-- Message for the cookie banner re-engagement CFR -->
   <string name="cookie_banner_cfr_message">കുറഞ്ഞ പതൎച്ചയും കുറഞ്ഞ കുക്കിപ്പിന്തുടൎച്ചയും </string>
@@ -868,7 +868,7 @@
   <string name="preferences_enable_autocomplete_urls">URLs തനിയേ പൂർത്തിയാക്കുക</string>
   <!--
     Preference title for switch preference to show Firefox Suggest search suggestions for web content.
-    The first parameter is the name of the application.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="preferences_show_nonsponsored_suggestions">%1$s-ൽ നിന്നുള്ള നിർദ്ദേശങ്ങൾ</string>
   <!-- Preference for link sharing -->
@@ -951,7 +951,7 @@
   <!--
     Wallpapers
 
-    Content description for various wallpapers. The first parameter is the name of the wallpaper
+    Content description for various wallpapers. %1$s is the name of the wallpaper.
   -->
   <string name="wallpapers_item_name_content_description">ചുവർകടലാസു് ഇനം: %1$s</string>
   <!-- Snackbar message for when wallpaper is selected -->
@@ -966,7 +966,7 @@
   <string name="wallpaper_select_error_snackbar_message">ചുവർകടലാസു് മാറ്റാൻ പറ്റിയില്ല</string>
   <!-- Text displayed that links to website containing documentation about the "Limited Edition" wallpapers. -->
   <string name="wallpaper_learn_more">കൂടുതലറിയുക</string>
-  <!-- Text for classic wallpapers title. The first parameter is the Firefox name. -->
+  <!-- Text for classic wallpapers title. %s is the name of the app (for example "Firefox"). -->
   <string name="wallpaper_classic_title">ക്ലാസിക് %s</string>
   <!-- Wallpaper onboarding dialog header text. -->
   <string name="wallpapers_onboarding_dialog_title_text">നിറത്തിന്റെ നീർത്തെറിപ്പ് ഉരച്ചുനോക്കുക</string>
@@ -1018,18 +1018,18 @@
   <string name="empty_device_name_error">ഉപകരണത്തിന്റെ പേര് ശൂന്യമായിരിക്കരുത്.</string>
   <!-- Label indicating that sync is in progress -->
   <string name="sync_syncing_in_progress">സമന്വയിപ്പിക്കുന്നു…</string>
-  <!-- Label summary indicating that sync failed. The first parameter is the date stamp showing last time it succeeded -->
+  <!-- Label summary indicating that sync failed. %s is the date stamp showing last time it succeeded. -->
   <string name="sync_failed_summary">സമന്വയം പരാജയപ്പെട്ടു. അവസാന വിജയം: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_failed_never_synced_summary">സമന്വയം പരാജയപ്പെട്ടു. അവസാനം സമന്വയിപ്പിച്ചത്: ഒരിക്കലുമില്ല</string>
-  <!-- Label summary the date we last synced. The first parameter is date stamp showing last time synced -->
+  <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
   <string name="sync_last_synced_summary">അവസാനം സമന്വയിപ്പിച്ചത്: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_never_synced_summary">അവസാനം സമന്വയിപ്പിച്ചത്: ഒരിക്കലുമില്ല</string>
   <!--
     Text for displaying the default device name.
-    The first parameter is the application name, the second is the device manufacturer name
-    and the third is the device model.
+    %1$s is the name of the app (for example "Firefox"). %2$s is the device manufacturer name
+    and %3$s is the device model.
   -->
   <string name="default_device_name_2">%2$s %3$s ‍ൽ %1$s</string>
   <!-- Preference for syncing payment methods -->
@@ -1076,7 +1076,7 @@
   <string name="preference_usage_data_2">സാങ്കേതിയും ഇടപാടുനീയ ദത്ത അയയ്ക്കുക</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more">കൂടുതലറിയുക</string>
-  <!-- Preference description for usage and technical data collection -->
+  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">പ്രകടനം, ഉപയോഗം, ഹാർഡ്‌വെയർ തുടങ്ങിയ വിവരങ്ങൾ മോഡില്ലയുമായിമായി പങ്കു വെച്ച്  %1$s മെച്ചപ്പെടുത്തുവാൻ സഹായിക്കുക</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">വിപണനത്തിനായുള്ള ഡാറ്റ</string>
@@ -1267,7 +1267,7 @@
   <string name="studies_remove">മാറ്റുക</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">സജീവം</string>
-  <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
+  <!-- Description for studies, it indicates why Firefox use studies. %1$s is the name of the app (for example "Firefox"). -->
   <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s ചിലപ്പോൾ പഠനങ്ങൾ വല്ലപ്പോഴു് സ്ഥാപിച്ചുനടത്തും.</string>
   <!-- Title of the Studies data preference -->
   <string name="studies_title">പാഠനങ്ങൾ സ്ഥാപിച്ചിട്ടു് അവയെ നടത്തുക</string>
@@ -1325,7 +1325,7 @@
   <string name="tabs_tray_select_tabs">ടാബുകൾ തിരഞ്ഞെടുക്കുക</string>
   <!-- Content description (not visible, for screen readers etc.): Close tab button. Closes the current session when pressed -->
   <string name="close_tab">ടാബ് അടയ്ക്കുക</string>
-  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. First parameter is tab title -->
+  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. %s is the tab title -->
   <string name="close_tab_title">%s ടാബ് അടയ്ക്കുക</string>
   <!-- Content description (not visible, for screen readers etc.): Opens the open tabs menu when pressed -->
   <string name="open_tabs_menu">ടാബുകളുടെ മെനു തുറക്കുക</string>
@@ -1343,7 +1343,7 @@
   <string name="remove_top_site">നീക്കം ചെയ്യുക</string>
   <!-- Text for the menu button to delete a top site from history -->
   <string name="delete_from_history">നാള്‍വഴിയിൽ നിന്ന് മായ്ക്കുക</string>
-  <!-- Postfix for private WebApp titles, placeholder is replaced with app name -->
+  <!-- Postfix for private WebApp titles. %1$s is the name of the app (for example "Firefox"). -->
   <string name="pwa_site_controls_title_private">%1$s (സ്വകാര്യ രീതി)</string>
   <!--
     History
@@ -1355,13 +1355,13 @@
   <string name="history_delete_all">നാള്‍വഴികൾ ഇല്ലാതാക്കുക</string>
   <!-- Text for the snackbar to confirm that multiple browsing history items has been deleted -->
   <string name="history_delete_multiple_items_snackbar">നാൾവഴി മായച്ചു</string>
-  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. The first parameter is the shortened URL of the deleted history item. -->
+  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. %1$s is the shortened URL of the deleted history item. -->
   <string name="history_delete_single_item_snackbar">%1$s നീക്കം ചെയ്തു</string>
   <!-- Context description text for the button to delete a single history item -->
   <string name="history_delete_item">നീക്കം ചെയ്യുക</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="history_multi_select_title">%1$d തിരഞ്ഞെടുത്തിരിക്കുന്നു</string>
   <!-- Text for the header that groups the history for today -->
@@ -1382,24 +1382,38 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1">ഇറക്കിവയ്ക്കലുകൾ മാറ്റി</string>
-  <!-- Text for the snackbar to confirm that a single download item has been removed. The first parameter is the name of the download item. -->
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar">%1$s മാറ്റി</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1">ഇറക്കിവച്ച ഫയലുകളൊന്നുമില്ല</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of downloads selected
+    %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">%1$d തിരഞ്ഞെടുത്തിരിക്കുന്നു</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">മാറ്റുക</string>
+  <!--
+    Time period headers for downloads
+
+    Text for the header that groups the downloads for today
+  -->
+  <string name="download_time_period_today">ഇന്നു്</string>
+  <!-- Text for the header that groups the downloads for yesterday -->
+  <string name="download_time_period_yesterday">ഇന്നലെ</string>
+  <!-- Text for the header that groups the downloads the past 7 days -->
+  <string name="download_time_period_last_7_days">കഴിഞ്ഞ 7 ദിവസങ്ങൾ</string>
+  <!-- Text for the header that groups the downloads the past 30 days -->
+  <string name="download_time_period_last_30_days">കഴിഞ്ഞ 30 ദിവസങ്ങൾ</string>
+  <!-- Text for the header that groups the downloads older than other groups -->
+  <string name="download_time_period_older">പഴയതു്</string>
   <!--
     WebCompat Reporter
 
     The title of the Web Compat Reporter feature. This is displayed in the top app bar.
   -->
   <string name="webcompat_reporter_screen_title">പൊട്ടിയ സൈറ്റിന്റെ വിവരം അറിയിക്കുക</string>
-  <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
+  <!-- The description of the Web Compat Reporter feature. %1$s is the name of the app (for example "Firefox"). -->
   <string name="webcompat_reporter_description">എല്ലാവൎക്കുമായി %1$s-നെ മെച്ചപ്പെടുത്താൻ സഹായിക്കുക. മോസില്ല ഉദ്യോഗസ്ഥന്മാർ താങ്ങൾ അയയ്ക്കുന്ന വിവരങ്ങൾ വെബ്സ്ഥാനക്കുഴപ്പങ്ങളെ പരിഹരിക്കാൻ ഉപയോഗിക്കുന്നു.</string>
   <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
   <string name="webcompat_reporter_label_url">യുആര്‍എല്‍</string>
@@ -1444,7 +1458,7 @@
   <!--
     Crashes
 
-    Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix)
+    Title text displayed on the tab crash page. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_crash_title_2">പൊറുക്കണം. %1$s ന് ആ താൾ ലഭ്യമാക്കാൻ കഴിഞ്ഞില്ല.</string>
   <!-- Send crash report checkbox text on the tab crash page -->
@@ -1453,7 +1467,7 @@
   <string name="tab_crash_close">ടാബ് അടയ്ക്കുക</string>
   <!-- Restore tab button text on the tab crash page -->
   <string name="tab_crash_restore">ടാബ് പുനസ്ഥാപിക്കുക</string>
-  <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox) -->
+  <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_dialog_title">%s-നു വീണ്ടും തുടങ്ങണ്ടി വന്നു</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
   <string name="unsubmitted_crash_dialog_checkbox_label">തകർച്ച വിവരങ്ങൾ തന്നെതാന്നെ അയയ്ക്കുക</string>
@@ -1469,13 +1483,13 @@
   <string name="bookmark_delete_folder_confirmation_dialog">ഈ അറയെ മായ്ക്കണമെന്നു് താങ്കൾക്ക് ഉറപ്പാണോ?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items. -->
   <string name="bookmark_delete_folders_confirmation_dialog">തിരഞ്ഞെടുക്കപ്പെട്ട ഇനങ്ങൾ മായ്ക്കണമെന്നു് ഉറപ്പുണ്ടോ?</string>
-  <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
+  <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. %s is the name of the app (for example "Firefox"). -->
   <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s തിരഞ്ഞെടുത്ത ഇനങ്ങൾ മായ്ക്കും.</string>
   <!-- Text for the cancel button on delete bookmark dialog -->
   <string name="bookmark_delete_negative">റദ്ദാക്കുക</string>
   <!-- Screen title for adding a bookmarks folder -->
   <string name="bookmark_add_folder">അറ ചേർക്കുക</string>
-  <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+  <!-- Snackbar title that confirms a bookmark was saved into a folder. %s is the name of the folder the bookmark was saved into. -->
   <string name="bookmark_saved_in_folder_snackbar">"%s"-ൽ കരുതവച്ചു</string>
   <!-- Snackbar edit button shown after a bookmark has been created. -->
   <string name="edit_bookmark_snackbar_action">തിരുത്തുക</string>
@@ -1501,7 +1515,7 @@
   <string name="bookmark_menu_save_button">സൂക്ഷിക്കുക</string>
   <!--
     Bookmark multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="bookmarks_multi_select_title">%1$d തിരഞ്ഞെടുത്തു</string>
   <!-- Bookmark editing screen title -->
@@ -1532,7 +1546,7 @@
   <string name="bookmarks_empty_message">അടയാളക്കുറിപ്പുകളൊന്നുമില്ല</string>
   <!--
     Bookmark snackbar message on deletion
-    The first parameter is the host part of the URL of the bookmark deleted, if any
+    %1$s is the host part of the URL of the bookmark deleted, if any
   -->
   <string name="bookmark_deletion_snackbar_message">%1$s നീക്കം ചെയ്തു</string>
   <!-- Bookmark snackbar message on deleting multiple bookmarks not including folders -->
@@ -1541,9 +1555,9 @@
   <string name="bookmark_deletion_multiple_snackbar_message_3">തിരഞ്ഞെടുത്ത അറകൾ മായ്ക്കുന്നു</string>
   <!-- Bookmark undo button for deletion snackbar action -->
   <string name="bookmark_undo_deletion">പൂർവസ്ഥിതിയാക്കുക</string>
-  <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
+  <!-- Bookmark snackbar message for deleting a single item. %s is the title of the item being deleted -->
   <string name="bookmark_delete_single_item">%s മായച്ചതു്</string>
-  <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
+  <!-- Bookmark snackbar message for deleting multiple items. %s is the number of items being deleted -->
   <string name="bookmark_delete_multiple_items">മായച്ച ഇനങ്ങൾ: %s</string>
   <!-- Text for the button to search all bookmarks -->
   <string name="bookmark_search">തിരയൽ പദങ്ങൾ പറയുക</string>
@@ -1557,7 +1571,7 @@
   <string name="bookmark_delete_folder_content_description">അറ മായ്ക്കുക</string>
   <!-- Content description for bookmark search floating action button -->
   <string name="bookmark_search_button_content_description">അടയാളക്കുറിപ്പുകളിൽ തേടുക</string>
-  <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
+  <!-- Content description for the overflow menu for a bookmark item. %s is a folder name or bookmark title. -->
   <string name="bookmark_item_menu_button_content_description">%s-നുള്ള ഇനം പട്ടിക</string>
   <!-- Title for the bookmark list empty state -->
   <string name="bookmark_empty_list_title">ഇതുവരെ അടയാളക്കുറിപ്പുകളൊന്നുമില്ല</string>
@@ -1836,7 +1850,7 @@
   <string name="snackbar_tabs_closed">ടാബുകൾ അടച്ചു</string>
   <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
   <string name="snackbar_num_tabs_closed">അടച്ച ടാബുകൾ: %1$s</string>
-  <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+  <!-- Text shown in snackbar when user bookmarks a list of tabs. %s is the name of the folder the bookmark was saved into. -->
   <string name="snackbar_message_bookmarks_saved_in">അടയാളക്കുറിപ്പു് "%s"-ൽ കരുതിവച്ചു</string>
   <!-- Text shown in snackbar when user adds a site to shortcuts -->
   <string name="snackbar_added_to_shortcuts">കുറുക്കുവഴികളിലേക്കു് ചേർത്തു!</string>
@@ -1852,7 +1866,7 @@
   <string name="snackbar_top_site_removed">സൈറ്റ് നീക്കം ചെയ്തു</string>
   <!--
     QR code scanner prompt which appears after scanning a code, but before navigating to it
-    First parameter is the name of the app, second parameter is the URL or text scanned
+    %1$s is the name of the app (for example "Firefox"), %2$s is the URL or text scanned
   -->
   <string name="qr_scanner_confirmation_dialog_message">%2$s തുറക്കാൻ %1$s നെ അനുവദിക്കുക</string>
   <!-- QR code scanner prompt dialog positive option to allow navigation to scanned link -->
@@ -1863,7 +1877,7 @@
   <string name="qr_scanner_dialog_invalid">ഈ വലവിലാസം സാധ്യമല്ല.</string>
   <!-- QR code scanner prompt dialog positive option when there is an error -->
   <string name="qr_scanner_dialog_invalid_ok">ശരി</string>
-  <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
+  <!-- Tab collection deletion prompt dialog message. %1$s is the collection name. -->
   <string name="tab_collection_dialog_message">%1$s നീക്കം ചെയ്യണമെന്ന് താങ്കൾക്ക് ഉറപ്പാണോ?</string>
   <!-- Tab collection deletion prompt dialog option to delete the collection -->
   <string name="tab_collection_dialog_positive">നീക്കം ചെയ്യുക</string>
@@ -1883,7 +1897,7 @@
   <string name="preferences_delete_browsing_data">തിരയൽ ദത്ത മായ്ക്കുക</string>
   <!-- Title for the tabs item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_tabs_title_2">ടാബുകൾ തുറക്കുക</string>
-  <!-- Subtitle for the tabs item in Delete browsing data, parameter will be replaced with the number of open tabs -->
+  <!-- Subtitle for the tabs item in Delete browsing data, %d is the number of open tabs -->
   <string name="preferences_delete_browsing_data_tabs_subtitle">%d ടാബുകL</string>
   <!--
     Title for the data and history items in Delete browsing data
@@ -1892,7 +1906,7 @@
   -->
   <string name="preferences_delete_browsing_data_browsing_history_title">നാൾവഴി</string>
   <!--
-    Subtitle for the data and history items in delete browsing data, parameter will be replaced with the
+    Subtitle for the data and history items in delete browsing data, %d is the
     number of history items the user has
   -->
   <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d വിലാസങ്ങൾ</string>
@@ -1926,7 +1940,7 @@
   <string name="delete_history_prompt_button_today_and_yesterday">ഇന്നലെയും ഇന്നും</string>
   <!-- Radio button in the delete browsing data dialog to delete all history. -->
   <string name="delete_history_prompt_button_everything">എല്ലാം</string>
-  <!-- Dialog message to the user asking to delete browsing data. Parameter will be replaced by app name. -->
+  <!-- Dialog message to the user asking to delete browsing data. %s is the name of the app (for example "Firefox"). -->
   <string name="delete_browsing_data_prompt_message_3">%s തിരഞ്ഞെടുത്ത തിരയൽദത്ത മായ്ക്കും.</string>
   <!-- Text for the cancel button for the data deletion dialog -->
   <string name="delete_browsing_data_prompt_cancel">റദ്ദാക്കുക</string>
@@ -1936,7 +1950,7 @@
   <string name="preferences_delete_browsing_data_snackbar">തിരച്ചിൽ ദത്ത മായച്ചു</string>
   <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
   <string name="deleting_browsing_data_in_progress">തിരച്ചിൽ ദത്ത മായ്ക്കുന്നു…</string>
-  <!-- Dialog message to the user asking to delete all history items inside the opened group. Parameter will be replaced by a history group name. -->
+  <!-- Dialog message to the user asking to delete all history items inside the opened group. %s is a history group name. -->
   <string name="delete_all_history_group_prompt_message">"%s"-ൽ എല്ലാ സൈറ്റുകൾ മായ്ക്കുക</string>
   <!-- Text for the cancel button for the history group deletion dialog -->
   <string name="delete_history_group_prompt_cancel">റദ്ദാക്കുക</string>
@@ -1974,7 +1988,7 @@
   <string name="sign_in_with_email">പകരം ഇമെയിൽ ഉപയോഗിക്കുക</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
   <string name="sign_in_create_account_text" tools:ignore="BrandUsage">അക്കൗണ്ടില്ലേ? &lt;u&gt; ഉപകരണങ്ങൾക്കിടയിൽ ഫയർഫോക്സ് സമന്വയിപ്പിക്കുന്നതിന് ഒരെണ്ണം ഉണ്ടാക്കുക &lt;/u&gt;.</string>
-  <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
+  <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">താങ്കളുടെ അക്കൗണ്ടുമായി സമന്വയിപ്പിക്കുന്നത് %s നിർത്തും പക്ഷേ ഈ ഉപകരണത്തിലുള്ള താങ്കളുടെ തിരയൽദത്തയൊന്നും മായ്ക്കത്തില്ല.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
   <string name="sign_out_disconnect">വിച്ഛേദിക്കുക</string>
@@ -2067,11 +2081,11 @@
     back from ETP details (Ex: Tracking content)
   -->
   <string name="etp_back_button_content_description">പുറകോട്ട് പോവുക</string>
-  <!-- About page link text to open what's new link -->
+  <!-- About page link text to open what's new link. %s is the name of the app (for example "Firefox"). -->
   <string name="about_whats_new">%s- ൽ പുതിയതെന്താണ്</string>
   <!--
     Open source licenses page title
-    The first parameter is the app name
+    %s is the name of the app (for example "Firefox")
   -->
   <string name="open_source_licenses_title">%s| സ്വതന്ത്ര ലൈബ്രറികൾ</string>
   <!-- Category of trackers (redirect trackers) that can be blocked by Enhanced Tracking Protection -->
@@ -2158,7 +2172,7 @@
   <string name="about_other_open_source_libraries">ഞങ്ങൾ ഉപയോഗിക്കുന്ന ലൈബ്രറികൾ</string>
   <!--
     Toast shown to the user when they are activating the secret dev menu
-    The first parameter is number of long clicks left to enable the menu
+    %1$d is number of long clicks left to enable the menu
   -->
   <string name="about_debug_menu_toast_progress">ഡീബഗ് കുറിപ്പടി: പ്രവർത്തനക്ഷമമാക്കാൻ %1$d അമർത്തൽ അവശേഷിക്കുന്നു</string>
   <string name="about_debug_menu_toast_done">ഡീബഗ് മെനു പ്രവർത്തനക്ഷമമാക്കി</string>
@@ -2210,15 +2224,15 @@
   <string name="preferences_passwords_sync_logins_across_devices_2">ഉപകരണങ്ങൾ കുറുകെ രഹസ്യവാക്കുകൾ സമന്വയിപ്പിക്കുക</string>
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">കരുതിവച്ച രഹസ്യവാക്കുകൾ</string>
-  <!-- Description of empty list of saved passwords. Placeholder is replaced with app name. -->
+  <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_passwords_saved_logins_description_empty_text_2">താങ്ങൾ കരുതിവയ്ക്കുന്ന അല്ലെങ്കിൽ %s-ലേക്ക് സമന്വയിപ്പിക്കുന്ന രഹസ്യവാക്കുകൾ ഇവിടെ പട്ടികപ്പെടും. താങ്ങൾ കരുതിവയ്ക്കുന്ന എല്ലാ രഹസ്യവാക്കുകളും രൂപമാറ്റം ചെയ്തിട്ടേ വയ്ക്കും.</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">സമന്വയത്തെപറ്റി കൂടുതലറിയുക</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
   <string name="preferences_passwords_exceptions">വിട്ടുവീഴ്ചകള്‍</string>
-  <!-- Empty description of list of login exceptions that we never save passwords for. Parameter will be replaced by app name. -->
+  <!-- Empty description of list of login exceptions that we never save passwords for. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_passwords_exceptions_description_empty_2">ഇവിടെ കൊടുത്തിരിക്കുന്ന സൈറ്റുകളുടെ രഹസ്യവാക്കുകൾ %s കരുതിവയ്ക്കത്തില്ല.</string>
-  <!-- Description of list of login exceptions that we never save passwords for. Parameter will be replaced by app name. -->
+  <!-- Description of list of login exceptions that we never save passwords for. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_passwords_exceptions_description_2">ഇവിടെ കൊടുത്തിരിക്കുന്ന സൈറ്റുകളുടെ രഹസ്യവാക്കുകൾ %s കരുതിവയ്ക്കത്തില്ല.</string>
   <!-- Text on button to remove all saved login exceptions -->
   <string name="preferences_passwords_exceptions_remove_all">എല്ലാ ഒഴിവാക്കലുകളും മായ്ക്കുക</string>
@@ -2282,7 +2296,7 @@
   <string name="preferences_credit_cards_2">പണമടക്കൽ മുറകൾ</string>
   <!-- Preference for saving and autofilling credit cards -->
   <string name="preferences_credit_cards_save_and_autofill_cards_2">പണമടക്കൽ രീതികൾ കരുതിവച്ചു് പൂരിപ്പിക്കുക</string>
-  <!-- Preference summary for saving and autofilling payment method data. Parameter will be replaced by app name. -->
+  <!-- Preference summary for saving and autofilling payment method data. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_credit_cards_save_and_autofill_cards_summary_2">%s താങ്ങൾ കരുതിവയ്ക്കുന്ന എല്ലാ പണമടക്കൽ മുറകളിൽ രൂപമാറ്റം വരുത്താരുണ്ടു്</string>
   <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
   <string name="preferences_credit_cards_sync_cards_across_devices">ഉപകരണങ്ങളിലുടനീളം ചീട്ടുകൾ സമന്വയിപ്പിക്കുക</string>
@@ -2420,13 +2434,13 @@
   <string name="search_add_custom_engine_error_empty_search_string">തിരയുന്നതിനായി ഒരു വാചകം നൽകുക</string>
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">തിരച്ചിൽ വാചകം ഉദാഹരണ ഘടനയുമായി പൊരുത്തപ്പെടുന്നുണ്ടോ എന്ന് പരിശോധിക്കുക</string>
-  <!-- Text shown when we aren't able to validate the custom search query. The first parameter is the url of the custom search engine -->
+  <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_error_cannot_reach">“%s” ലേക്ക് ബന്ധിപ്പിക്കന്നതിൽ പിശക്</string>
-  <!-- Text shown when a user creates a new search engine -->
+  <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s സൃഷ്ടിച്ചു</string>
-  <!-- Text shown when a user successfully edits a custom search engine -->
+  <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_edit_custom_engine_success_message">%s സൂക്ഷിച്ചു</string>
-  <!-- Text shown when a user successfully deletes a custom search engine -->
+  <!-- Text shown when a user successfully deletes a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_delete_search_engine_success_message">%s നീക്കം ചെയ്തു</string>
   <!-- Heading for the instructions to allow a permission -->
   <string name="phone_feature_blocked_intro">ഇത് അനുവദിക്കുന്നതിന്:</string>
@@ -2434,7 +2448,7 @@
   <string name="phone_feature_blocked_step_settings">1. ആൻഡ്രോയിഡ് ക്രമീകരണങ്ങളിലേക്ക് പോകുക</string>
   <!-- Second step for the allowing a permission -->
   <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt;അനുമതികൾ&lt;/b&gt; അമർത്തുക</string>
-  <!-- Third step for the allowing a permission (Fore example: Camera) -->
+  <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
   <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt; ഓണാക്കുക</string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">സുരക്ഷിതമായ സമ്പർക്കം</string>
@@ -2457,7 +2471,7 @@
   <!-- Browser menu button that removes a shortcut from the home fragment -->
   <string name="browser_menu_remove_from_shortcuts">കുറുക്കുവഴികളിൽ നിന്നു് മാറ്റുക</string>
   <!--
-    text shown before the issuer name to indicate who its verified by, parameter is the name of
+    text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
   <string name="certificate_info_verified_by">പരിശോധിച്ചത്: %1$s</string>
@@ -2591,7 +2605,7 @@
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">ഫയർഫോക്സ് നിർദ്ദേശം</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header">Google തിരയൽ</string>
-  <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
+  <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">%s തിരച്ചിൽ</string>
   <!-- Title for recent search suggestions. -->
   <string name="recent_searches_header">അടുത്തിടെ തിരഞ്ഞതെല്ലാം</string>
@@ -2619,9 +2633,9 @@
   <string name="pocket_stories_categories_header">ലേഖനങ്ങൾ വിഷയാനുസൃതമായി</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text">കൂടുതലായി കണ്ടെത്തൂ</string>
-  <!-- Title of an app feature. Smaller than a heading. The first parameter is product name Pocket -->
+  <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
   <string name="pocket_stories_feature_title_2">അവതരിപ്പിക്കുന്നത്: %s</string>
-  <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked. -->
+  <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
   <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">ഫയർഫോക്സ് കുടുംബത്തിന്റെ ഭാഗം. %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
   <string name="pocket_stories_feature_learn_more">കൂടുതലറിയുക</string>
@@ -2629,7 +2643,7 @@
   <string name="pocket_stories_sponsor_indication">പണം കൊണ്ടു് പ്രചരിപ്പിച്ചതു്</string>
   <!-- Snackbar button text to navigate to telemetry settings. -->
   <string name="experiments_snackbar_button">ക്രമീകരണങ്ങളിലേക്കു പോവുക</string>
-  <!-- Text for learn more caption presenting a link with information about review quality. First parameter is for clickable text defined in review_quality_check_info_learn_more_link. -->
+  <!-- Text for learn more caption presenting a link with information about review quality. %s is a link using review_quality_check_info_learn_more_link as text. -->
   <string name="review_quality_check_info_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">%s നെക്കുറിച്ചു് കൂടുതലറിയുക.</string>
   <!-- Text for title of settings section. -->
   <string name="review_quality_check_settings_title" moz:removedIn="136" tools:ignore="UnusedResources">ക്രമീകരണങ്ങള്‍</string>
@@ -2639,9 +2653,9 @@
   <string name="review_quality_check_settings_recommended_products_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">കൂടുതലറിയുക</string>
   <!-- Text for title of recommended product section. This is displayed above a product image, suggested as an alternative to the product reviewed. -->
   <string name="review_quality_check_ad_title" moz:removedIn="136" tools:ignore="UnusedResources">പരിഗണിക്കാൻ കൂടുതൽ</string>
-  <!-- Caption for recommended product section indicating this is an ad by Fakespot. First parameter is the Fakespot product name. -->
+  <!-- Caption for recommended product section indicating this is an ad by Fakespot. %s is "Fakespot". -->
   <string name="review_quality_check_ad_caption" moz:removedIn="136" tools:ignore="UnusedResources">%s-ന്റെ പരസ്യം</string>
-  <!-- Clickable text that links to Fakespot.com. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
+  <!-- Clickable text that links to Fakespot.com. %s is "Fakespot". In the phrase "Fakespot by Mozilla", "by" can be localized. -->
   <string name="review_quality_check_powered_by_link" moz:removedIn="136" tools:ignore="UnusedResources">മോസില്ല അവതരിപ്പിച്ചതു്: %s</string>
   <!-- Text for title of warning card informing the user that the current analysis is outdated. -->
   <string name="review_quality_check_outdated_analysis_warning_title" moz:removedIn="136" tools:ignore="UnusedResources">നോക്കാൻ പുതിയ വിവരങ്ങൾ</string>
@@ -2667,7 +2681,7 @@
   <string name="review_quality_check_no_connection_title" moz:removedIn="136" tools:ignore="UnusedResources">ഗോളാന്തരവല സമ്പർക്കമില്ല</string>
   <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
   <string name="review_quality_check_contextual_onboarding_learn_more_link" moz:removedIn="136" tools:ignore="UnusedResources">കൂടുതലറിയുക</string>
-  <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
+  <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. %1$s is the name of the app (for example "Firefox"), %3$s is "Fakespot". %2$s and %4$s are links using review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use as text. -->
   <string name="review_quality_check_contextual_onboarding_caption_4" moz:removedIn="136" tools:ignore="UnusedResources">"അതെ, ഇതു് പരീക്ഷിച്ചു് നോക്കാം" തിരഞ്ഞെടുക്കുന്നതിലൂടെ താങ്ങൾ %1$s-ന്റെ %2$s, %3$s-ന്റെ %4$s എന്നിവ അംഗീകരിക്കുന്നു.</string>
   <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
   <string name="review_quality_check_contextual_onboarding_privacy_policy_3" moz:removedIn="136" tools:ignore="UnusedResources">സ്വകാര്യത അറിയിപ്പ്</string>
@@ -2677,7 +2691,7 @@
   <string name="review_quality_check_contextual_onboarding_primary_button_text" moz:removedIn="136" tools:ignore="UnusedResources">അതെ, ശ്രമിച്ചു് നോക്കൂ</string>
   <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
   <string name="review_quality_check_contextual_onboarding_secondary_button_text" moz:removedIn="136" tools:ignore="UnusedResources">ഇപ്പോഴല്ല</string>
-  <!-- Content description (not visible, for screen readers etc.) for review quality check star rating. First parameter is the number of stars (1-5) representing the rating. -->
+  <!-- Content description (not visible, for screen readers etc.) for review quality check star rating. %1$s is the number of stars (1-5) representing the rating. -->
   <string name="review_quality_check_star_rating_content_description" moz:removedIn="136" tools:ignore="UnusedResources">5 താരചിഹ്നങ്ങളിൽ %1$s</string>
   <!-- Text for minimize button from highlights card. When clicked the highlights card should reduce its size. -->
   <string name="review_quality_check_highlights_show_less" moz:removedIn="136" tools:ignore="UnusedResources">കുറച്ച് കാണിക്കുക</string>
@@ -2689,7 +2703,7 @@
   <string name="review_quality_check_highlights_type_price" moz:removedIn="136" tools:ignore="UnusedResources">വില</string>
   <!-- Text for highlights card shipping category header. Reviews shown under this header should refer the product's shipping. -->
   <string name="review_quality_check_highlights_type_shipping" moz:removedIn="136" tools:ignore="UnusedResources">വിതരണം</string>
-  <!-- Text that is surrounded by quotes. The parameter is the actual text that is in quotes. An example of that text could be: Excellent craftsmanship, and that is displayed as “Excellent craftsmanship”. The text comes from a buyer's review that the feature is highlighting" -->
+  <!-- Text that is surrounded by quotes. %s is the actual text that is in quotes. An example of that text could be: Excellent craftsmanship, and that is displayed as “Excellent craftsmanship”. The text comes from a buyer's review that the feature is highlighting" -->
   <string name="surrounded_with_quotes" moz:removedIn="136" tools:ignore="UnusedResources">"%s"</string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
@@ -2709,7 +2723,7 @@
   <string name="a11y_action_label_read_article">ലേഖനം വായിക്കുക</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="a11y_action_label_pocket_learn_more">കൂടുതലറിയാൻ കണ്ണി തുറക്കുക</string>
-  <!-- Content description for headings announced by accessibility service. The first parameter is the text of the heading. Talkback will announce the first parameter and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
+  <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
   <string name="a11y_heading">%s, തലക്കെട്ടു്</string>
   <!-- Title for dialog displayed when trying to access links present in a text. -->
   <string name="a11y_links_title">കണ്ണികള്‍</string>
@@ -2725,11 +2739,11 @@
   <string name="translations_bottom_sheet_title">ഈ താൾ വിവർത്തനം ചെയ്യണോ?</string>
   <!--
     Title for the translation dialog after a translation was completed successfully.
-    The first parameter is the name of the language that the page was translated from, for example, "French".
-    The second parameter is the name of the language that the page was translated to, for example, "English".
+    %1$s is the name of the language that the page was translated from, for example, "French".
+    %2$s is the name of the language that the page was translated to, for example, "English".
   -->
   <string name="translations_bottom_sheet_title_translation_completed">%1$s നിന്നു് %2$s-ലേക്കു് വിവർത്തനം ചെയ്തു</string>
-  <!-- Title for the translation dialog that allows a user to translate the webpage when a user uses the translation feature the first time. The first parameter is the name of the application, for example, "Fenix". -->
+  <!-- Title for the translation dialog that allows a user to translate the webpage when a user uses the translation feature the first time. %1$s is the name of the app (for example "Firefox"). -->
   <string name="translations_bottom_sheet_title_first_time">%1$s-ൽ സ്വകാര്യ വിവർത്തനങ്ങൾ പരിശോധിച്ചു് നോക്കൂ</string>
   <!-- Text that links to additional information about the Firefox translations feature. -->
   <string name="translations_bottom_sheet_info_message_learn_more">കൂടുതല്‍ അറിയുക</string>
@@ -2761,7 +2775,7 @@
   <string name="translation_error_could_not_translate_warning_text">വിവർത്തനം ചെയ്യുമ്പോൾ ഒരു കുഴപ്പമുണ്ടായി. ദയവായി വീണ്ടും ശ്രമിച്ചു് നോക്കുക.</string>
   <!-- The title of the warning card informs the user that the list of languages cannot be loaded. -->
   <string name="translation_error_could_not_load_languages_warning_text">ഭാഷാകൾ ലഭ്യമാക്കാൻ കഴിഞ്ഞില്ല. താങ്ങളുടെ ഗോളാന്തരവല സമ്പർക്കം പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.</string>
-  <!-- The title of the warning card informs the user that a language is not supported. The first parameter is the name of the language that is not supported. -->
+  <!-- The title of the warning card informs the user that a language is not supported. %1$s is the name of the language that is not supported. -->
   <string name="translation_error_language_not_supported_warning_text">പൊറുക്കണം, ഞങ്ങൾ ഇതുവരെ %1$s-നെ പിന്തുണയ്ക്കുന്നില്ല.</string>
   <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
   <string name="translation_in_progress_snackbar">വിവർത്തനം ചെയ്യുന്നു…</string>
@@ -2769,7 +2783,7 @@
     Title for the data saving mode warning dialog used in the translation request dialog.
     This dialog will be presented when the user attempts to perform
     a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
-    The first parameter is the size in kilobytes or megabytes of the language file.
+    %1$s is the size in kilobytes or megabytes of the language file.
   -->
   <string name="translations_download_language_file_dialog_title">ദത്ത കരുതിവയ്ക്കൽ രീതിയിൽ ഭാഷ ഇറക്കിവയ്ക്കണോ (%1$s)?</string>
   <!--
@@ -2780,9 +2794,9 @@
   <string name="translation_option_bottom_sheet_title_heading">വിവർത്തന സാധ്യതകൾ</string>
   <!-- Toggle switch label that allows a user to set the setting if they would like the browser to always offer or suggest translations when available. -->
   <string name="translation_option_bottom_sheet_always_translate">വിവർത്തനം ചെയ്യാൻ എപ്പോഴും വാഗ്ദാനം ചെയ്യുക</string>
-  <!-- Toggle switch label that allows a user to set if they would like a given language to automatically translate or not. The first parameter is the language name, for example, "Spanish". -->
+  <!-- Toggle switch label that allows a user to set if they would like a given language to automatically translate or not. %1$s is the language name, for example, "Spanish". -->
   <string name="translation_option_bottom_sheet_always_translate_in_language">എപ്പോഴും %1$s-നു് വിവർത്തനം ചെയ്യുക</string>
-  <!-- Toggle switch label that allows a user to set if they would like to never be offered a translation of the given language. The first parameter is the language name, for example, "Spanish". -->
+  <!-- Toggle switch label that allows a user to set if they would like to never be offered a translation of the given language. %1$s is the language name, for example, "Spanish". -->
   <string name="translation_option_bottom_sheet_never_translate_in_language">ഒരിക്കലും %1$s-നു് വിവർത്തനം ചെയ്യരുതു്</string>
   <!-- Toggle switch label that allows a user to set the setting if they would like the browser to never translate the site the user is currently visiting. -->
   <string name="translation_option_bottom_sheet_never_translate_site">ഒരിക്കലും ഈ വെബ്സ്ഥാനിന്റെ വിവർത്തനം ചെയ്യരുതു്</string>
@@ -2790,7 +2804,7 @@
   <string name="translation_option_bottom_sheet_switch_never_translate_site_description">മറ്റു എല്ലാ ക്രമീകരണങ്ങളെയും തള്ളാറുണ്ടു്</string>
   <!-- Button text for the button that will take the user to the translation settings dialog. -->
   <string name="translation_option_bottom_sheet_translation_settings">വിവർത്തന ക്രമീകരണങ്ങൾ</string>
-  <!-- Button text for the button that will take the user to a website to learn more about how translations works in the given app. The first parameter is the name of the application, for example, "Fenix". -->
+  <!-- Button text for the button that will take the user to a website to learn more about how translations works in the given app. %1$s is the name of the app (for example "Firefox"). -->
   <string name="translation_option_bottom_sheet_about_translations">%1$s-ലെ വിവർത്തനങ്ങളെക്കുറിച്ച്</string>
   <!-- Content description (not visible, for screen readers etc.) for closing the translations bottom sheet. -->
   <string name="translation_option_bottom_sheet_close_content_description">വിവർത്തനതാളു് അടയ്ക്കുക</string>
@@ -2828,15 +2842,15 @@
     Preference option for offering to translate. Radio button title text.
   -->
   <string name="automatic_translation_option_offer_to_translate_title_preference">വിവർത്തനം ചെയ്യാൻ വാഗ്ദാനം നല്കുക (എപ്പോഴും)</string>
-  <!-- Preference option for offering to translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Preference option for offering to translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
   <string name="automatic_translation_option_offer_to_translate_summary_preference">ഈ ഭാഷായിൽ എഴുതിയ വെബ്സ്ഥാനങ്ങളിൽ വിവർത്തനം ചെയ്യാൻ %1$s  ചോദിക്കും.</string>
   <!-- Preference option for always translate. Radio button title text. -->
   <string name="automatic_translation_option_always_translate_title_preference">എപ്പോഴും വിവർത്തനം ചെയ്യുക</string>
-  <!-- Preference option for always translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Preference option for always translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
   <string name="automatic_translation_option_always_translate_summary_preference">താൾ ലഭ്യമാവുമ്പോൾ %1$s ഉടനെ ഈ ഭാഷയിന്റെ തന്നെതാനെ വിവർത്തനം ചെയ്യും.</string>
   <!-- Preference option for never translate. Radio button title text. -->
   <string name="automatic_translation_option_never_translate_title_preference">ഒരിക്കലും വിവർത്തനം ചെയ്യരുതു്</string>
-  <!-- Preference option for never translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Preference option for never translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
   <string name="automatic_translation_option_never_translate_summary_preference">ഈ ഭാഷായിൽ എഴുതിയ വെബ്സ്ഥാനങ്ങളിൽ വിവർത്തനം ചെയ്യാൻ %1$s ഒരിക്കലും വാഗ്ദാനം ചെയ്യില്ല.</string>
   <!--
     Never translate site preference screen
@@ -2846,14 +2860,14 @@
   <string name="never_translate_site_toolbar_title_preference">ഒരിക്കലും ഈ വെബ്സ്ഥാനങ്ങളുടെ വിവർത്തനം ചെയ്യരുതു്</string>
   <!--
     Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
-    The first parameter is web site url (for example:"wikipedia.com")
+    %1$s is web site url (for example:"wikipedia.com")
   -->
   <string name="never_translate_site_item_list_content_description_preference">%1$s മാറ്റുക</string>
   <!-- The title of the warning card informs the user that an error has occurred at the never translate sites list. -->
   <string name="never_translate_site_error_warning_text">വെബ്സ്ഥാനങ്ങൾ ലഭ്യമാക്കാൻ കഴിഞ്ഞില്ല. കുറച്ചു് നേരം കഴിഞ്ഞു് തിരിച്ചു് വരുക.</string>
   <!--
     The Delete site dialogue title will appear when the user clicks on a list item.
-    The first parameter is web site url (for example:"wikipedia.com")
+    %1$s is web site url (for example:"wikipedia.com")
   -->
   <string name="never_translate_site_dialog_title_preference">%1$s-നു് മായ്ക്കുട്ടെ?</string>
   <!-- The Delete site dialogue positive button will appear when the user clicks on a list item. The site will be deleted. -->
@@ -2866,7 +2880,7 @@
     Title of the toolbar for the translation feature screen where users may download different languages for translation.
   -->
   <string name="download_languages_translations_toolbar_title_preference">ഭാഷാകൾ ഇറക്കിവയ്ക്കുക</string>
-  <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
+  <!-- Screen header presenting the download language preference feature. It will appear under the toolbar. %1$s is a link using download_languages_header_learn_more_preference as text ("Learn more"). Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="download_languages_header_preference">ഉടൻ വിവൎത്തനങ്ങൾക്കായും ഓഫ്ലയിൻ വിവൎത്തനങ്ങൾക്കായും മുഴുവൻ ഭാഷയെ ഇറക്കിവയ്ക്കുക. %1$s</string>
   <!-- Clickable text from the screen header that links to a website. -->
   <string name="download_languages_header_learn_more_preference">കൂടുതല്‍ അറിയുക</string>
@@ -2876,8 +2890,8 @@
   <string name="download_languages_default_system_language_require_preference">ആവശ്യമുള്ളതു്</string>
   <!--
     A text for download language preference item.
-    The first parameter is the language name, for example, "Spanish".
-    The second parameter is the language file size, for example, "(3.91 KB)" or, if the language package name is a pivot language, "(required)".
+    %1$s is the language name, for example, "Spanish".
+    %2$s is the language file size, for example, "(3.91 KB)" or, if the language package name is a pivot language, the string defined in download_languages_default_system_language_require_preference ("required").
   -->
   <string name="download_languages_language_item_preference">%1$s (%2$s)</string>
   <!-- The subhead of the download language preference screen will appear above the items that were not downloaded. -->
@@ -2892,8 +2906,8 @@
   <string name="download_languages_item_content_description_delete_in_progress_state">പുരോഗതിയിൽ</string>
   <!--
     Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
-    The first parameter is the language name, for example, "Spanish".
-    The second parameter is the language file size, for example, "(3.91 KB)".
+    %1$s is the language name, for example, "Spanish".
+    %2$s is the language file size, for example, "(3.91 KB)".
   -->
   <string name="download_languages_item_content_description_download_in_progress_state">%1$s (%2$s) ഇറക്കിവയ്ക്കാൻ നിരുത്തുക</string>
   <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
@@ -2902,29 +2916,29 @@
   <string name="download_languages_fetch_error_warning_text">ഭാഷാകൾ ലഭ്യമാക്കാൻ കഴിഞ്ഞില്ല. കുറച്ചു് നേരം കഴിഞ്ഞു് വീണ്ടും ശ്രമിക്കുക. </string>
   <!--
     The title of the warning card informs the user that an error has occurred at downloading a language.
-    The first parameter is the language name, for example, "Spanish".
+    %1$s is the language name, for example, "Spanish".
   -->
   <string name="download_languages_error_warning_text">&lt;b&gt;%1$s&lt;/b&gt; ഇറക്കിവയ്ക്കാൻ പറ്റിയില്ല.  വീണ്ടും ശ്രമിക്കുക.</string>
   <!--
     The title of the warning card informs the user that an error has occurred at deleting a language.
-    The first parameter is the language name, for example, "Spanish".
+    %1$s is the language name, for example, "Spanish".
   -->
   <string name="download_languages_delete_error_warning_text">&lt;b&gt;%1$s&lt;/b&gt; മായ്ക്കാൻ പറ്റിയില്ല.  വീണ്ടും ശ്രമിക്കുക.</string>
   <!--
     Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.
-    The first parameter is the name of the language, for example, "Spanish" and the second parameter is the size in kilobytes or megabytes of the language file.
+    %1$s is the name of the language, for example, "Spanish" and %2$s is the size in kilobytes or megabytes of the language file.
   -->
   <string name="delete_language_file_dialog_title">%1$s (%2$s) മായ്ക്കണോ?</string>
-  <!-- Additional information for the dialog used by the translations feature to confirm deleting a language. The first parameter is the name of the application, for example, "Fenix". -->
+  <!-- Additional information for the dialog used by the translations feature to confirm deleting a language. %1$s is the name of the app (for example "Firefox"). -->
   <string name="delete_language_file_dialog_message">താങ്ങൾ ഭാഷയെ മായച്ചാൽ താങ്ങൾ വിവൎത്തനം ചെയ്യുമ്പോഴു് %1$s ഭാഗികമായി ഭാഷയെ താങ്ങളുടെ ഗണനികയതിവേഗോൎമ്മയിലോട്ടു് ഇറക്കിവയ്ക്കും.</string>
   <!--
     Title for the dialog used by the translations feature to confirm deleting all languages file.
     The dialog will be presented when the user requests deletion of all languages file.
-    The first parameter is the size in kilobytes or megabytes of the language file.
+    %1$s is the size in kilobytes or megabytes of the language file.
   -->
   <string name="delete_language_all_languages_file_dialog_title">എല്ലാ ഭാഷാകൾ (%1$s) മായ്ക്കണോ?</string>
-  <!-- Additional information for the dialog used by the translations feature to confirm deleting all languages file. The first parameter is the name of the application, for example, "Fenix". -->
+  <!-- Additional information for the dialog used by the translations feature to confirm deleting all languages file. %1$s is the name of the app (for example "Firefox"). -->
   <string name="delete_language_all_languages_file_dialog_message">താങ്ങൾ എല്ലാ ഭാഷകളെ മായച്ചാൽ താങ്ങൾ വിവൎത്തനം ചെയ്യുമ്പോഴു് %1$s ഭാഗികമായി ഭാഷകളെ താങ്ങളുടെ ഗണനികയതിവേഗോൎമ്മയിലോട്ടു് ഇറക്കിവയ്ക്കും.</string>
   <!-- Button text on the dialog used by the translations feature to confirm deleting a language. -->
   <string name="delete_language_file_dialog_positive_button_text">മായ്ക്കുക</string>
@@ -2934,7 +2948,7 @@
     Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
     a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
-    The first parameter is the size in kilobytes or megabytes of the language file.
+    %1$s is the size in kilobytes or megabytes of the language file.
   -->
   <string name="download_language_file_dialog_title">ദത്ത കരുതിവയ്ക്കൽ രീതിയിൽ ഭാഷ ഇറക്കിവയ്ക്കണോ (%1$s)?</string>
   <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
@@ -2963,12 +2977,12 @@
   <string name="protection_panel_banner_not_protected_title">താങ്ങൾ പരിരക്ഷകൾ അണച്ചു</string>
   <!--
     Description text for the protection panel banner when tracking protection is disabled.
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %s is the name of the app (for example "Firefox").
   -->
   <string name="protection_panel_banner_not_protected_description">%s കാവൽ വിട്ടു. പരിരക്ഷകൾ വീണ്ടും തുടങ്ങിവയ്ക്കാനാണു് നല്ലതു്.</string>
   <!--
     Title text for the protection panel banner when tracking protection is enabled.
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %s is the name of the app (for example "Firefox").
   -->
   <string name="protection_panel_banner_protected_title">%s കാവൽ നിൽക്കുന്നു</string>
   <!-- Description text for the protection panel banner when tracking protection is enabled. -->
@@ -3052,7 +3066,7 @@
   <string name="debug_drawer_tab_tools_tab_quantity_non_zero_error">പൂജ്യത്തേക്കാൾ വലിയ ഒരു സംഖ്യ നൽകുക</string>
   <!--
     The error message of the text field in the tab creation tool when the text field is a
-    quantity greater than the max tabs. The first parameter is the maximum number of tabs
+    quantity greater than the max tabs. %1$s is the maximum number of tabs
     that can be generated in one operation.
   -->
   <string name="debug_drawer_tab_tools_tab_quantity_exceed_max_error">ഒരു ക്രയത്തിൽ ഉച്ചനില സൃഷ്ടിക്കാനാവുന്ന ടാബുകളുടെ (%1$s) അതിരുകവിഞ്ഞു </string>
@@ -3134,11 +3148,11 @@
     The title of the Logins feature in the Debug Drawer.
   -->
   <string name="debug_drawer_logins_title">പ്രവേശനങ്ങള്‍</string>
-  <!-- The title of the logins section in the Logins feature, where the parameter will be the site domain -->
+  <!-- The title of the logins section in the Logins feature. %s is the site domain. -->
   <string name="debug_drawer_logins_current_domain_label">നിലവിലെ മേഖലം: %s</string>
   <!-- The label for a button to add a new fake login for the current domain in the Logins feature. -->
   <string name="debug_drawer_logins_add_login_button">ഈ മേഖലക്കു് ഒരു വ്യാജ പ്രവേശിക്കൽ ചേർക്കുക</string>
-  <!-- Content description for delete button where parameter will be the username of the login -->
+  <!-- Content description for delete button. %s is the username of the login. -->
   <string name="debug_drawer_logins_delete_login_button_content_description">%s എന്ന ഉപയോക്തൃപ്പേരുള്ള പ്രവേശിക്കൽ മായ്ക്കുക</string>
   <!--
     Debug drawer addresses

@@ -20,7 +20,10 @@
   <string name="teaser">Outomatiese privaat-lees modus.\nLees. Vergeet. Herhaal.</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
   <string name="feedback_erase">Jou leesrekord is uitgevee.</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">Soek vir %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">Deel…</string>

@@ -23,7 +23,10 @@
   <string name="feedback_erase2">පිරික්සුම් ඉතිහාසය මැකිණි</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">පටිත්තෙහි පිරික්සුම් ඉතිහාසය මකා දමා ඇත.</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">%1$s සඳහා සොයන්න</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">බෙදාගන්න…</string>
@@ -143,8 +146,8 @@
   -->
   <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">ෆෝකස් නයිට්ලි හි සොයන්න</string>
   <!--
-    Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
-    Argument 2 is the url for the learn-more link.
+    Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
+    %2$s is the url for the learn-more link.
   -->
   <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s ඔබව පාලනයේ තබයි.&lt;/p&gt;
 &lt;p&gt;පෞද්. අතිරික්සුවක් ලෙස යොදාගන්න:
@@ -207,14 +210,14 @@
   <string name="preference_switch_autocomplete_topsites">ප්‍රචලිත අඩවි සඳහා</string>
   <!--
     Summary for the toggle to enable autocomplete for the topsites list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_topsite_summary2">ලිපින තීරුවේ %s ජනප්‍රිය ඒ.ස.නි. 450 කට වඩා ස්වයං පිරවීමට සබල කරන්න.</string>
   <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
   <string name="preference_switch_autocomplete_user_list">එක් කරන අඩවි සඳහා</string>
   <!--
     Summary for the toggle to enable autocomplete for the user-defined list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_user_list_summary2">%s ඔබගේ ප්‍රියතම ඒ.ස.නි. ස්වයං පිරවීම සබල කරන්න.</string>
   <!-- Preference category: Manage (user-defined) sites -->
@@ -289,8 +292,8 @@
   <!--
     Preference Summary: Biometrics (iris scan, fingerprint, or facial scan) can be used to unlock Focus if the app had a URL
     open when the app was last run to ensure that only the phone's owner can view a previous session.
-    %s will be replaced by the app name (e.g. Firefox Focus)
-    Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar")
+    Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them.
   -->
   <string name="preference_security_biometric_summary2">ඔබ කෙටිමං එක් කර ඇත්නම් හෝ අඩවියක් දැනටමත් %s තුළ විවෘතව තිබෙන විට ඇඟිලි සටහන භාවිතයෙන් අගුළු හරින්න.</string>
   <!--
@@ -332,9 +335,9 @@
   <string name="preference_licensing_info">බලපත්‍රදායක තොරතුරු</string>
   <!-- Link to Focus licensing information from other libraries that we use. -->
   <string name="preference_libraries_we_use">අපි භාවිතා කරන එකතු</string>
-  <!-- Open Source Licenses page title. The first parameter is the app name -->
+  <!-- Open Source Licenses page title. %s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="open_source_licenses_title">%s | OSS එකතු</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">%1$s ගැන</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">ස්ථාපිත සෙවුම් යන්ත්‍ර</string>
@@ -358,7 +361,7 @@
   <string name="search_add_manually_name_hint">සෙවුම් යන්ත්‍රයේ නම</string>
   <string name="search_add_manually_string">භාවිතයට සෙවුම් තන්තුව</string>
   <string name="search_add_manually_save">සුරකින්න</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">උදාහරණය: නිදසුන.ලංකා/සොයන්න/?q=%s</string>
   <string name="search_add_confirmation">නව සෙවුම් යන්ත්‍රයක් එක් විය.</string>
   <string name="search_add_error_empty_name">සෙවුම් යන්ත්‍රයේ නම යොදන්න</string>
@@ -430,19 +433,19 @@
   <string name="external_app_prompt_title">අන් යෙදුමක සබැඳිය අරින්න</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">මෙම සබැඳිය %2$s හි විවෘත කිරීමට %1$s හැර යාමට හැකිය.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">සබැඳිය විවෘත කළ හැකි යෙදුමක් සොයන්න</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">ඔබගේ උපාංගයේ තිබෙන යෙදුම් කිසිවකට මෙම සබැඳිය විවෘත කළ නොහැකිය. %2$s හි යෙදුමක් සොයා ගැනීම සඳහා %1$s හැර යාමට හැකිය.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">පෞද්. පිරික්සුමෙන් පිටවන්නද?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s අවසන්</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">අරින්න</string>
@@ -452,7 +455,7 @@
   <!--
     New Onboarding flow first screen title
 
-    %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly)
+    %1$s is the app name and build variant (for example "Firefox Focus", "Firefox Klar Nightly").
   -->
   <string name="onboarding_first_screen_title">%1$s වෙත පිළිගනිමු</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
@@ -587,13 +590,15 @@
   <!-- Watermark/Hint for the find in page input field -->
   <string name="find_in_page_input">පිටුවේ සොයන්න</string>
   <!--
-    String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total
+    String to show the number of results found in the page and the position
+    the user is at. %1$d is the position, %2$d is the total number of
+    results.
   -->
   <string name="find_in_page_result">%1$d/%2$d</string>
   <!--
-    String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total
+    String to be read by the accessibility service presenting the number of
+    results found in the page and the position the user is at. %1$d is the
+    position, %2$d is the total number of results.
   -->
   <string name="accessibility_find_in_page_result">%1$d / %2$d</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->
@@ -640,13 +645,13 @@
   <string name="cookie_banner_exception_panel_switch_state_off">මෙම අඩවියට අක්‍රියයි</string>
   <!-- Text for indicating cookie banner handling is on this site, this is shown when the user enters in details after he clicks on the item from protection panel. -->
   <string name="cookie_banner_exception_panel_switch_state_on">මෙම අඩවියට සක්‍රියයි</string>
-  <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site. -->
+  <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="cookie_banner_exception_panel_title_state_on_for_site">%1$s සඳහා දත්තකඩ පතාක අවකරණය සක්‍රිය කරන්නද?</string>
-  <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site. -->
+  <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="cookie_banner_exception_panel_title_state_off_for_site">%1$s සඳහා දත්තකඩ පතාක අවකරණය අක්‍රිය කරන්නද?</string>
-  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The placeholder will be updated with the app name. -->
+  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="cookie_banner_exception_panel_description_state_on_for_site">%1$s මෙම අඩවියේ දත්තකඩ ඉවත් කර පිටුව නැවුම් කරයි. සියළුම දත්තකඩ මැකීමෙන් බඩු කරත්ත හිස් වීමට හෝ ඔබව නික්මවීමට ඉඩ ඇත.</string>
-  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The placeholder will be updated with the app name. -->
+  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="cookie_banner_exception_panel_description_state_off_for_site2">%1$s මඟින් දත්තකඩ ඉල්ලීම් ස්වයංක්‍රීයව ඉවතලීමට හැකිය.</string>
   <!-- Long text for a detail explanation indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
   <string name="cookie_banner_exception_panel_description_site_is_not_supported">මෙම අඩවිය දැනට දත්තකඩ පතාක අවකරණයට සහාය නොදක්වයි. මෙම වියමන අඩවිය සමාලෝචනය කර අනාගතයේදී සහාය දක්වන ලෙස අපගේ කණ්ඩායමට දැන්වීමට කැමතිද?</string>
@@ -676,7 +681,7 @@
   <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt;අවසර&lt;/b&gt; තට්ටු කරන්න</string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">සැකසුම් වෙත යන්න</string>
-  <!-- Third step for allowing a permission. The placeholder will be updated by, for example, "Camera" -->
+  <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
   <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt; සබල කරන්න</string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">රූගතය</string>
@@ -768,12 +773,12 @@
     ලුහුබැඳීමේ රැකවරණය අක්‍රිය කර බලන්න</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
-    Argument 1 will be replaced with a line break in the application.
+    %1$s is replaced with a line break in the application.
   -->
   <string name="tip_add_to_homescreen">ඔබ නිතර භාවිතා කරන අඩවි වෙත එක් තට්ටුවකින් ප්‍රවේශ වන්න%1$s වට්ටෝරුව &gt; මුල් තිරයට දමන්න</string>
   <!--
     Tip displayed on home view explaining how to make Focus the default browser
-    Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
+    %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
   <string name="tip_set_default_browser">සෑම සබැඳියක්ම %1$s\n හි විවෘත කරන්න
@@ -833,29 +838,29 @@
   <string name="crash_report_send_crash_label">මොසිල්ලා වෙත බිඳ වැටීම් වාර්තාව යවන්න</string>
   <!-- Tracking protection bottom sheet -->
 
-  <!-- Label for the total number of trackers blocked. %s represents the app install date -->
+  <!-- Label for the total number of trackers blocked. %s is the app install date. -->
   <string name="trackers_count_note">%s සිට අවහිර කළ ලුහුබැඳීම්</string>
-  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection. -->
   <string name="content">අන්තර්ගතය</string>
-  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection. -->
   <string name="advertising">දැන්වීම්</string>
-  <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection. -->
   <string name="social">සමාජ</string>
-  <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection. -->
   <string name="analytics">විශ්ලේෂ</string>
-  <!-- Preference title for enhanced tracking protection settings -->
+  <!-- Preference title for enhanced tracking protection settings. -->
   <string name="enhanced_tracking_protection">දියුණු කළ ලුහුබැඳීමේ රැකවරණය</string>
-  <!-- Enhanced tracking protection preference description when the tracking protection is disabled for this site -->
+  <!-- Enhanced tracking protection preference description when the tracking protection is disabled for this site. -->
   <string name="enhanced_tracking_protection_state_off">අඩවියට දියුණු කළ ලුහුබැඳීමේ රැකවරණය අක්‍රියයි</string>
-  <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site -->
+  <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site. -->
   <string name="enhanced_tracking_protection_state_on">අඩවියට දියුණු කළ ලුහුබැඳීමේ රැකවරණය සක්‍රියයි</string>
-  <!-- Label that indicates a site is using a secure connection -->
+  <!-- Label that indicates a site is using a secure connection. -->
   <string name="secure_connection">සම්බන්‍ධතාව ආරක්‍ෂිතයි</string>
-  <!-- Label that indicates a site is using a insecure connection -->
+  <!-- Label that indicates a site is using a insecure connection. -->
   <string name="insecure_connection">සම්බන්‍ධතාව අනාරක්‍ෂිතයි</string>
-  <!-- Title for the list of trackers enhanced tracking ptotection can block -->
+  <!-- Title for the list of trackers enhanced tracking protection can block. -->
   <string name="trackers_and_scripts">අවහිර කිරීමට ලුහුබැඳීම් හා අත්පත්</string>
-  <!-- Content description (not visible, for screen readers etc.): Navigate back button description -->
+  <!-- Content description (not visible, for screen readers etc.): Navigate back button description. -->
   <string name="go_back">ආපසු යන්න</string>
   <!--
     Top Sites
@@ -891,8 +896,8 @@
   <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
   <string name="errorpage_httpsonly_title2">අඩවිය HTTPS සඳහා සහය නොදක්වයි</string>
   <!--
-    The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
-    Contains a button that will redirect the user to Privacy & Security Screen
+    The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
+    %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
   <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">වැඩි ආරක්‍ෂාවක් සඳහා %1$s හැකි සෑම විටම HTTPS සම්බන්ධතාවක් භාවිතයට උත්සාහ කරයි.
  &lt;a href="%2$s"&gt;තව දැනගන්න&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
@@ -952,13 +957,13 @@
 
     Message shown to explain how to exit fullscreen mode when gesture navigation is enabled.
 
-    Localisation note: this text should be as short as possible, max 68 chars
+    This text should be as short as possible, max 68 chars
   -->
   <string name="exit_fullscreen_with_gesture_short">මුදුනෙන් ඇද ආපසු අභිනය භාවිතයෙන් පිටවන්න</string>
   <!--
     Message shown to explain how to exit fullscreen mode when using back button navigation.
 
-    Localisation note: this text should be as short as possible, max 68 chars
+    This text should be as short as possible, max 68 chars
   -->
   <string name="exit_fullscreen_with_back_button_short">මුදුනෙන් ඇද ආපසු ඔබා පිටවන්න</string>
 </resources>

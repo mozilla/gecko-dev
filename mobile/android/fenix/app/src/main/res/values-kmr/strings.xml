@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_5">%s’a veşartî</string>
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_4">%s (Veşartî)</string>
   <!--
     Home Fragment
@@ -32,7 +32,7 @@
   <string name="no_open_tabs_description">Hilpekînên te yên vekirî ew ê li vir bên nîşandan.</string>
   <!-- No Private Tabs Message Description -->
   <string name="no_private_tabs_description">Hilpekînên te yên veşartî ew ê li vir bên nîşandan.</string>
-  <!-- Tab tray multi select title in app bar. The first parameter is the number of tabs selected -->
+  <!-- Tab tray multi select title in app bar. %1$d is the number of tabs selected -->
   <string name="tab_tray_multi_select_title">%1$d hilpekîn hatin bijartin</string>
   <!-- Label of button in create collection dialog for creating a new collection -->
   <string name="tab_tray_add_new_collection">Koleksiyona nû tevlî bike</string>
@@ -56,13 +56,13 @@
   <string name="home_bookmarks_show_all_content_description">Hemû bijareyan nîşan bide</string>
   <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
   <string name="home_bookmarks_menu_item_remove">Rake</string>
-  <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
+  <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s berhemeke Mozillayê ye.</string>
   <!--
     Private Browsing
 
-    Explanation for private browsing displayed to users on home view when they first enable private mode
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    Explanation for private browsing displayed to users on home view when they first enable private mode.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">
         %1$s, dema ku te hilpekînên veşartî girtin an jî tu ji sepanê derket ew ê raboriya te ya gerîn û lêgerînê ji hilpekînên veşartî bên paqijkirin. Ev, rê li ber şopandina te ya ji aliyê malper û peydakerên servîsê ve nagirê lê heke hin kesên din ên vê cîhazê bi kar tînin hebin ew ê bihêle ku tu raboriya xwe ji wan veşêrî.</string>
@@ -78,14 +78,14 @@
   <!--
     Explanation for private browsing displayed to users on home view when they first enable
     private mode in our new Total Private Browsing mode.
-    The first parameter is the name of the app defined in app_name (for example: Firefox Nightly)
-    The second parameter is the clickable link text in felt_privacy_info_card_subtitle_link_text
+    %1$s is the name of the app (for example "Firefox").
+    %2$s is a link using felt_privacy_info_card_subtitle_link_text as text
   -->
   <string name="felt_privacy_info_card_subtitle_2">%1$s dema ku hûn hemî tabloyên xwe yên taybet digirin, çerezên we, dîrok û daneyên malperê jê dibe. %2$s</string>
   <!--
     Clickable portion of the explanation for private browsing that links the user to our
     about privacy page.
-    This string is used in felt_privacy_info_card_subtitle as the second parameter.
+    This string is used in felt_privacy_info_card_subtitle as the text for the link.
   -->
   <string name="felt_privacy_info_card_subtitle_link_text">Kî dikare karibe çalakiyên min bibîne?</string>
   <!--
@@ -101,7 +101,7 @@
   <!--
     Open in App "contextual feature recommendation" (CFR)
 
-    Text for the info message. The first parameter is the name of the application.
+    Text for the info message. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="open_in_app_cfr_info_message_2">Tu dikarî  %1$s`ê wisa eyar bikî ku girêdank xweber di appan de vebin.</string>
   <!-- Text for the positive action button -->
@@ -152,7 +152,7 @@
   <string name="tab_tray_inactive_auto_close_title">Bila piştî mehekê xweber bigire?</string>
   <!--
     Text for the body for the auto-close dialog of the inactive tabs.
-    The first parameter is the name of the application.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_tray_inactive_auto_close_body_2"> %1$s dikare hilpekînên te di meha borî de venekirine bigire.</string>
   <!-- Content description for close button in the auto-close dialog of the inactive tabs. -->
@@ -220,19 +220,19 @@
   <string name="browser_menu_extensions">Pêvek</string>
   <!--
     Browser menu banner header text for extensions onboarding.
-    The first parameter is the name of the app defined in app_name (for example: Fenix).
+    %s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_extensions_banner_onboarding_header">%s`ê taybet bike</string>
   <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
   <string name="browser_menu_disabled_extensions_banner_onboarding_header">Te pêvekên sazkirî hene, lê ne çalakkirî ne</string>
   <!--
     Browser menu banner body text for extensions onboarding.
-    The first parameter is the name of the app defined in app_name (for example: Fenix).
+    %s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_extensions_banner_onboarding_body">Pêvek ji xuyakirin heta performansa  %s`ê heta nepenî û ewlekariyê asta gera te bilind dikin.</string>
   <!--
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
-    The first parameter is the name of the button that opens extension manager (for example "Manage extensions").
+    %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
   <string name="browser_menu_disabled_extensions_banner_onboarding_body">Ji bo bikaranîna pêvekan wan ji eyaran yan jî ji hilbijarka “%s” ya jêrê çalak bike.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
@@ -243,7 +243,7 @@
   <string name="browser_menu_recommended_section_content_description">Pêvekên pêşniyarkirî</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
-    The first parameter is the name of the extension (for example: ClearURLs).
+    %1$s is the name of the extension (for example: ClearURLs).
   -->
   <string name="browser_menu_extension_plus_icon_content_description_2">%1$s`ê têxê</string>
   <!-- Browser menu button that opens AMO in a tab -->
@@ -294,17 +294,17 @@
   <string name="browser_menu_share_2">Parve bike…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_open_in_fenix">Di %1$s de veke</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by">Bihêzkirin ji aliyê %1$s</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by2">Bihêzkirin ji aliyê %1$s</string>
   <!-- Browser menu button to put the current page in reader mode -->
@@ -337,7 +337,7 @@
   <string name="browser_menu_passwords">Şîfre</string>
   <!--
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_new_in_firefox">Tiştên nû yên %1$s`ê</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
@@ -395,14 +395,14 @@
   <string name="browser_menu_webcompat_reporter">Malpera xirabe rapor bike…</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
-    The first parameter is the name of the language that page was translated to (e.g. English).
+    %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">Li zimanê %1$s hat wergerandin</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print">Çapkirin…</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
-    The first parameter is the name of the app defined in app_name (for example: Fenix).
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_delete_browsing_data_on_quit">Ji %1$s`ê derkeve</string>
   <!--
@@ -434,8 +434,8 @@
   <string name="browser_toolbar_translate">Rûpelê wergerîne</string>
   <!--
     Content description (not visible, for screen readers etc.) for the translate page toolbar button that opens the translations dialog when the page is translated successfully.
-    The first parameter is the name of the language that is displayed in the original page. (For example: English)
-    The second parameter is the name of the language which the page was translated to. (For example: French)
+    %1$s is the name of the language that is displayed in the original page. (For example: English)
+    %2$s is the name of the language which the page was translated to. (For example: French)
   -->
   <string name="browser_toolbar_translated_successfully">Rûpel ji %1$s li %2$s hat wergerandin.</string>
   <!--
@@ -464,9 +464,9 @@
   <string name="search_suggestions_onboarding_do_not_allow_button">Destûrê nede</string>
   <!-- Search suggestion onboarding hint title text -->
   <string name="search_suggestions_onboarding_title">Bila pêşniyarên lêgerînê di rûniştina veşartî de werin pêş te?</string>
-  <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
   <string name="search_suggestions_onboarding_text">%s dê hemû tiştên tu li darika navnîşanan binivîsî bi motora te ya lêgerînê ya derbasdar re parve bike.</string>
-  <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine -->
+  <!-- Search engine suggestion title text. %s is the name of the suggested engine. -->
   <string name="search_engine_suggestions_title">Bi %s bigere</string>
   <!-- Search engine suggestion description text -->
   <string name="search_engine_suggestions_description">Lêgerînê rasterast ji darikê navnîşanan bike</string>
@@ -476,12 +476,12 @@
   <string name="search_header_menu_item_2">Bi vê bigere:</string>
   <!--
     Content description (not visible, for screen readers etc.): Search engine icon.
-    The parameter is the search engine name (for example: DuckDuckGo).
+    %s is the search engine name (for example: DuckDuckGo).
   -->
   <string name="search_engine_icon_content_description_1">Motora lêgerînê: %s</string>
   <!--
     Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
-    The parameter is the search engine name (for example: DuckDuckGo).
+    %s is the search engine name (for example: DuckDuckGo).
     The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button.
   -->
   <string name="search_engine_selector_content_description">%s: hilbijêra motora lêgerînê</string>
@@ -565,7 +565,7 @@
   <!--
     Search Widget
 
-    Content description for searching with a widget. The first parameter is the name of the application.
+    Content description for searching with a widget. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="search_widget_content_description_2">Hilpekînek nû ya  %1$s `ê veke</string>
   <!-- Text preview for smaller sized widgets -->
@@ -594,7 +594,7 @@
   <string name="preferences_rate">Li ser Google Playê puan bide</string>
   <!--
     Preference linking to about page for Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="preferences_about">Derbarê %1$s de</string>
   <!-- Preference for settings related to changing the default browser -->
@@ -740,7 +740,7 @@
   <string name="customize_toggle_recently_visited">Seredanên dawî</string>
   <!-- Title for the customize home screen section with Pocket. -->
   <string name="customize_toggle_pocket_2">Gotarên balkêş</string>
-  <!-- Summary for the customize home screen section with Pocket. The first parameter is product name Pocket -->
+  <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
   <string name="customize_toggle_pocket_summary">Gotar ji aliyê %sê ve tên dabînkirin</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">Nûçeyên sponsorkirî</string>
@@ -751,7 +751,7 @@
   <!--
     Wallpapers
 
-    Content description for various wallpapers. The first parameter is the name of the wallpaper
+    Content description for various wallpapers. %1$s is the name of the wallpaper.
   -->
   <string name="wallpapers_item_name_content_description">Wêneyê dîwêr: %1$s</string>
   <!-- Snackbar message for when wallpaper is selected -->
@@ -766,7 +766,7 @@
   <string name="wallpaper_select_error_snackbar_message">Wêneyê dîwêr nehat guhertin</string>
   <!-- Text displayed that links to website containing documentation about the "Limited Edition" wallpapers. -->
   <string name="wallpaper_learn_more">Zêdetir bizane</string>
-  <!-- Text for classic wallpapers title. The first parameter is the Firefox name. -->
+  <!-- Text for classic wallpapers title. %s is the name of the app (for example "Firefox"). -->
   <string name="wallpaper_classic_title">Klasîk %s</string>
   <!-- Wallpaper onboarding dialog header text. -->
   <string name="wallpapers_onboarding_dialog_title_text">Rengên cuda biceribîne</string>
@@ -793,7 +793,7 @@
   <!--
     This is a message shown to the user when too many errors have occurred with the extensions process and they have been disabled.
     The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
-    The first parameter is the application name.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="extension_process_crash_dialog_message">Pêvekek yan jî zêdetir pêvek naxebitin û ev pergala te dike bêbiryar.  %1$s kir ku dîsa dest pê bikin lê bi ser neketin.\n\nDi vê danişîna te de pêvek dê dîsa neyên destpêkirin.\n\nDibe ku rakirin yan jî neçalakkirina pêvekan problemê çareser bike.</string>
   <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
@@ -826,18 +826,18 @@
   <string name="empty_device_name_error">Navê cîhazê nabe vala bimîne.</string>
   <!-- Label indicating that sync is in progress -->
   <string name="sync_syncing_in_progress">Tê sekronîzekirin…</string>
-  <!-- Label summary indicating that sync failed. The first parameter is the date stamp showing last time it succeeded -->
+  <!-- Label summary indicating that sync failed. %s is the date stamp showing last time it succeeded. -->
   <string name="sync_failed_summary">Senkronîzekirin têk çû, Senkronîzeya dawî: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_failed_never_synced_summary">Senkronîzekirin têk çû, Senkronîzeya dawî: tune</string>
-  <!-- Label summary the date we last synced. The first parameter is date stamp showing last time synced -->
+  <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
   <string name="sync_last_synced_summary">Senkronîzekirina dawî: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_never_synced_summary">Senkronîzekirina dawî: tune</string>
   <!--
     Text for displaying the default device name.
-    The first parameter is the application name, the second is the device manufacturer name
-    and the third is the device model.
+    %1$s is the name of the app (for example "Firefox"). %2$s is the device manufacturer name
+    and %3$s is the device model.
   -->
   <string name="default_device_name_2">%1$s - %2$s %3$s</string>
   <!-- Preference for syncing payment methods -->
@@ -868,7 +868,7 @@
   <string name="exceptions_empty_message_description">Istisna dihêlin ku tu bikaribî ji bo malperên hilbijartî parastina ji şopandinê bigirî.</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Zêdetir bizane</string>
-  <!-- Preference description for usage and technical data collection -->
+  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Performans, bikaranîn, reqalav û daneyên taybetkirinê yên têkildarî geroka te bi Mozillayê re parve dike, ji bo ku em karibin pê %1$s’ê baştir bikin</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Daneyên bazarkirinê</string>
@@ -1052,7 +1052,7 @@
   <string name="studies_remove">Rake</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">Çalak</string>
-  <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
+  <!-- Description for studies, it indicates why Firefox use studies. %1$s is the name of the app (for example "Firefox"). -->
   <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s dikare carê lêkolînan bar bike û bide xebitandin.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Zêdetir bizane</string>
@@ -1098,7 +1098,7 @@
   <string name="tabs_tray_select_tabs">Hilpekînan hilbijêre</string>
   <!-- Content description (not visible, for screen readers etc.): Close tab button. Closes the current session when pressed -->
   <string name="close_tab">Hilpekînê bigire</string>
-  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. First parameter is tab title -->
+  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. %s is the tab title -->
   <string name="close_tab_title">Hilpekîna %s’ê bigire</string>
   <!-- Content description (not visible, for screen readers etc.): Opens the open tabs menu when pressed -->
   <string name="open_tabs_menu">Menûya hilpekînên vekirî, veke</string>
@@ -1116,7 +1116,7 @@
   <string name="remove_top_site">Rake</string>
   <!-- Text for the menu button to delete a top site from history -->
   <string name="delete_from_history">Ji raboriyê rake</string>
-  <!-- Postfix for private WebApp titles, placeholder is replaced with app name -->
+  <!-- Postfix for private WebApp titles. %1$s is the name of the app (for example "Firefox"). -->
   <string name="pwa_site_controls_title_private">%1$s (Moda Veşartî)</string>
   <!--
     History
@@ -1128,13 +1128,13 @@
   <string name="history_delete_all">Raboriyê jê bibe</string>
   <!-- Text for the snackbar to confirm that multiple browsing history items has been deleted -->
   <string name="history_delete_multiple_items_snackbar">Raborî hate jêbirin</string>
-  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. The first parameter is the shortened URL of the deleted history item. -->
+  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. %1$s is the shortened URL of the deleted history item. -->
   <string name="history_delete_single_item_snackbar">%1$s hate jêbirin</string>
   <!-- Context description text for the button to delete a single history item -->
   <string name="history_delete_item">Jê bibe</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="history_multi_select_title">%1$d hate bijartin</string>
   <!-- Text for the header that groups the history for today -->
@@ -1155,13 +1155,13 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1">Daxistin hatin rakirin</string>
-  <!-- Text for the snackbar to confirm that a single download item has been removed. The first parameter is the name of the download item. -->
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar">%1$s hate rakirin</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1">Ti tişt nehatiye daxistin</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of downloads selected
+    %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">%1$d hatin bijartin</string>
   <!-- Text for the button to remove a single download item -->
@@ -1169,7 +1169,7 @@
   <!--
     Crashes
 
-    Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix)
+    Title text displayed on the tab crash page. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_crash_title_2">Bibore. %1$s, nikare vê rûpelê bar bike.</string>
   <!-- Send crash report checkbox text on the tab crash page -->
@@ -1184,7 +1184,7 @@
     Confirmation message for a dialog confirming if the user wants to delete the selected folder
   -->
   <string name="bookmark_delete_folder_confirmation_dialog">Tu bi rastî jî dixwazî vê peldankê jê bibî?</string>
-  <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
+  <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. %s is the name of the app (for example "Firefox"). -->
   <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s ew ê hêmanên bijartî jê bibe.</string>
   <!-- Text for the cancel button on delete bookmark dialog -->
   <string name="bookmark_delete_negative">Betal</string>
@@ -1212,7 +1212,7 @@
   <string name="bookmark_menu_save_button">Tomar bike</string>
   <!--
     Bookmark multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="bookmarks_multi_select_title">%1$d hatin bijartin</string>
   <!-- Bookmark editing screen title -->
@@ -1239,7 +1239,7 @@
   <string name="bookmarks_empty_message">Hîç favorî nîn in</string>
   <!--
     Bookmark snackbar message on deletion
-    The first parameter is the host part of the URL of the bookmark deleted, if any
+    %1$s is the host part of the URL of the bookmark deleted, if any
   -->
   <string name="bookmark_deletion_snackbar_message">%1$s hate jêbirin</string>
   <!-- Bookmark snackbar message on deleting multiple bookmarks not including folders -->
@@ -1510,7 +1510,7 @@
   <string name="snackbar_tab_closed">Hilpekîn hate girtin</string>
   <!-- Text shown in snackbar when user closes all tabs -->
   <string name="snackbar_tabs_closed">Hilpekîn hatin girtin</string>
-  <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+  <!-- Text shown in snackbar when user bookmarks a list of tabs. %s is the name of the folder the bookmark was saved into. -->
   <string name="snackbar_message_bookmarks_saved_in">Favorî di “%s”``ê de hatin qeydkirin!</string>
   <!-- Text shown in snackbar when user adds a site to shortcuts -->
   <string name="snackbar_added_to_shortcuts">Li bijareyan hat zêdekirin!</string>
@@ -1524,7 +1524,7 @@
   <string name="snackbar_top_site_removed">Malper hate rakirin</string>
   <!--
     QR code scanner prompt which appears after scanning a code, but before navigating to it
-    First parameter is the name of the app, second parameter is the URL or text scanned
+    %1$s is the name of the app (for example "Firefox"), %2$s is the URL or text scanned
   -->
   <string name="qr_scanner_confirmation_dialog_message">Destûrê bide %1$s’ê ku %2$s’ê veke</string>
   <!-- QR code scanner prompt dialog positive option to allow navigation to scanned link -->
@@ -1535,7 +1535,7 @@
   <string name="qr_scanner_dialog_invalid">Navnîşana webê nederbasdar e.</string>
   <!-- QR code scanner prompt dialog positive option when there is an error -->
   <string name="qr_scanner_dialog_invalid_ok">BAŞ E</string>
-  <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
+  <!-- Tab collection deletion prompt dialog message. %1$s is the collection name. -->
   <string name="tab_collection_dialog_message">Tu bi rastî jî dixwazî koleksiyana %1$s’ê were jêbirin?</string>
   <!-- Tab collection deletion prompt dialog option to delete the collection -->
   <string name="tab_collection_dialog_positive">Jê bibe</string>
@@ -1555,10 +1555,10 @@
   <string name="preferences_delete_browsing_data">Daneyên gerînê jê bibe</string>
   <!-- Title for the tabs item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_tabs_title_2">Hilpekînên vekirî</string>
-  <!-- Subtitle for the tabs item in Delete browsing data, parameter will be replaced with the number of open tabs -->
+  <!-- Subtitle for the tabs item in Delete browsing data, %d is the number of open tabs -->
   <string name="preferences_delete_browsing_data_tabs_subtitle">%d hilpekîn</string>
   <!--
-    Subtitle for the data and history items in delete browsing data, parameter will be replaced with the
+    Subtitle for the data and history items in delete browsing data, %d is the
     number of history items the user has
   -->
   <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d navnîşan</string>
@@ -1588,7 +1588,7 @@
   <string name="delete_history_prompt_button_today_and_yesterday">Îro û do</string>
   <!-- Radio button in the delete browsing data dialog to delete all history. -->
   <string name="delete_history_prompt_button_everything">Her tiştî</string>
-  <!-- Dialog message to the user asking to delete browsing data. Parameter will be replaced by app name. -->
+  <!-- Dialog message to the user asking to delete browsing data. %s is the name of the app (for example "Firefox"). -->
   <string name="delete_browsing_data_prompt_message_3">%s dê daneyên gerînê yên hilbijartî jê bibe.</string>
   <!-- Text for the cancel button for the data deletion dialog -->
   <string name="delete_browsing_data_prompt_cancel">Betal bike</string>
@@ -1598,7 +1598,7 @@
   <string name="preferences_delete_browsing_data_snackbar">Daneyên gerînê hatin jêbirin</string>
   <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
   <string name="deleting_browsing_data_in_progress">Daneyên gerînê tên jêbirin…</string>
-  <!-- Dialog message to the user asking to delete all history items inside the opened group. Parameter will be replaced by a history group name. -->
+  <!-- Dialog message to the user asking to delete all history items inside the opened group. %s is a history group name. -->
   <string name="delete_all_history_group_prompt_message">Hemû malperên di nav “%s”ê de jê bibe</string>
   <!-- Text for the cancel button for the history group deletion dialog -->
   <string name="delete_history_group_prompt_cancel">Betal</string>
@@ -1636,7 +1636,7 @@
   <string name="sign_in_with_email">Bi emaîlê têkeve</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
   <string name="sign_in_create_account_text" tools:ignore="BrandUsage">Hesabê te tune ye? Ji bo ku Firefoxê di navbera cîhazan de senkronîze bikî &lt;u&gt;Hesêb veke&lt;/u&gt;.</string>
-  <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
+  <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s ew ê bi hesabê te re senkronîzekirinê rawestîne, lê ti daneyên te yên gerînê yên di vê cîhazê de nayên jêbirin.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
   <string name="sign_out_disconnect">Girêdanê qut bike</string>
@@ -1654,7 +1654,7 @@
   <string name="preference_enhanced_tracking_protection">Parastina ji şopandinê ya pêşketî</string>
   <!-- Preference summary for enhanced tracking protection settings on/off switch -->
   <string name="preference_enhanced_tracking_protection_summary">Niha taybetiya Parastina Tevahî ya Çerezan li dijî kodên şopandina navmalperî bariyera me ya herî xurt e.</string>
-  <!-- Description of enhanced tracking protection. The parameter is the name of the application (For example: Firefox Fenix) -->
+  <!-- Description of enhanced tracking protection. %s is the name of the app (for example "Firefox"). -->
   <string name="preference_enhanced_tracking_protection_explanation_2">%s te li hemberî piraniya şopgerên naskirî yên tevgerên te yên li ser înternetê dişopînin, diparêze.</string>
   <!-- Text displayed that links to website about enhanced tracking protection -->
   <string name="preference_enhanced_tracking_protection_explanation_learn_more">Zêdetir bizane</string>
@@ -1737,11 +1737,11 @@
     back from ETP details (Ex: Tracking content)
   -->
   <string name="etp_back_button_content_description">Paşve here</string>
-  <!-- About page link text to open what's new link -->
+  <!-- About page link text to open what's new link. %s is the name of the app (for example "Firefox"). -->
   <string name="about_whats_new">Di %s’ê de çi tiştên nû hene?</string>
   <!--
     Open source licenses page title
-    The first parameter is the app name
+    %s is the name of the app (for example "Firefox")
   -->
   <string name="open_source_licenses_title">%s | Pirtûkxaneyên OSS’ê</string>
   <!-- Category of trackers (redirect trackers) that can be blocked by Enhanced Tracking Protection -->
@@ -1774,7 +1774,7 @@
   <string name="about_other_open_source_libraries">Pirtûkxaneyên em bi kar tînin</string>
   <!--
     Toast shown to the user when they are activating the secret dev menu
-    The first parameter is number of long clicks left to enable the menu
+    %1$d is number of long clicks left to enable the menu
   -->
   <string name="about_debug_menu_toast_progress">Menûya neqandina çewtiyan: Ji bo çalakkirinê %1$d tikandin man</string>
   <string name="about_debug_menu_toast_done">Menûya neqandina çewtiyan çalek e</string>
@@ -1882,7 +1882,7 @@
   <string name="preferences_credit_cards_2">Rêbazên peredanê</string>
   <!-- Preference for saving and autofilling credit cards -->
   <string name="preferences_credit_cards_save_and_autofill_cards_2">Rêbazên peredanû qeyd bike û dagire</string>
-  <!-- Preference summary for saving and autofilling payment method data. Parameter will be replaced by app name. -->
+  <!-- Preference summary for saving and autofilling payment method data. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_credit_cards_save_and_autofill_cards_summary_2">%s hemû rêbazên peredenanê yên te qeydkirine şîfre dike</string>
   <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
   <string name="preferences_credit_cards_sync_cards_across_devices">Kartan di navbera amûran de senkronîze bike</string>
@@ -1996,13 +1996,13 @@
   <string name="search_add_custom_engine_error_empty_search_string">Rêzikeke lêgerînê binivîse</string>
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Kontrol bike ka rêzika lêgerînê û formata nimûne li hev dikin an na</string>
-  <!-- Text shown when we aren't able to validate the custom search query. The first parameter is the url of the custom search engine -->
+  <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_error_cannot_reach">Li “%s”ê ve nehate girêdan</string>
-  <!-- Text shown when a user creates a new search engine -->
+  <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s hat afirandin</string>
-  <!-- Text shown when a user successfully edits a custom search engine -->
+  <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_edit_custom_engine_success_message">%s hat tomarkirin</string>
-  <!-- Text shown when a user successfully deletes a custom search engine -->
+  <!-- Text shown when a user successfully deletes a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_delete_search_engine_success_message">%s hat jêbirin</string>
   <!-- Heading for the instructions to allow a permission -->
   <string name="phone_feature_blocked_intro">Ji bo destûrdayînê:</string>
@@ -2010,7 +2010,7 @@
   <string name="phone_feature_blocked_step_settings">1. Here sazkariyên Androidê</string>
   <!-- Second step for the allowing a permission -->
   <string name="phone_feature_blocked_step_permissions">2. Li &lt;b&gt;Destûr&lt;/b&gt;’ê bitikîne</string>
-  <!-- Third step for the allowing a permission (Fore example: Camera) -->
+  <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
   <string name="phone_feature_blocked_step_feature">3. Eyara &lt;b&gt;%1$s&lt;/b&gt;’yê bike VEKIRÎ</string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">Girêdan ewle ye</string>
@@ -2018,7 +2018,7 @@
   <string name="quick_settings_sheet_insecure_connection_2">Girêdan ne ewle ye</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">Çerezan û daneyên malperan paqij bike</string>
-  <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->
+  <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
   <string name="confirm_clear_site_data">Tu ji dil dixwazî hemû çerez û daneyên malpera &lt;b&gt;%s&lt;/b&gt;ê jê bibî?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">Tu ji dil dixwazî hemû destûrên li ser hemû malperan jê bibî?</string>
@@ -2035,7 +2035,7 @@
   <!-- Browser menu button that removes a shortcut from the home fragment -->
   <string name="browser_menu_remove_from_shortcuts">Ji nav bijareyan bibe</string>
   <!--
-    text shown before the issuer name to indicate who its verified by, parameter is the name of
+    text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
   <string name="certificate_info_verified_by">Piştrastkirin ji aliyê: %1$s</string>
@@ -2139,7 +2139,7 @@
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">Pêşniyara Firefoxê</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header">Lêgerîna Googleê</string>
-  <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
+  <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">Lêgerîna %sê</string>
   <!-- Default browser card text -->
   <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Bila lînkên ji malperan, e-posteyan û peyaman xweber di Firefoxê de bên vekirin.</string>
@@ -2161,9 +2161,9 @@
   <string name="pocket_stories_categories_header">Gotarên li gorî sernavan</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text">Zêdetir keşf bike</string>
-  <!-- Title of an app feature. Smaller than a heading. The first parameter is product name Pocket -->
+  <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
   <string name="pocket_stories_feature_title_2">Bihêzkirin ji aliyê %sê.</string>
-  <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked. -->
+  <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
   <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Beşeke ji malbata Firefoxê. %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
   <string name="pocket_stories_feature_learn_more">Agahiyên zêdetir</string>
@@ -2181,7 +2181,7 @@
   <string name="review_quality_check_open_handle_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Kontrolkara nirxandinê veke</string>
   <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
   <string name="review_quality_check_close_handle_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Kontrolkara nirxandinê bigire</string>
-  <!-- Content description (not visible, for screen readers etc.) for review quality check star rating. First parameter is the number of stars (1-5) representing the rating. -->
+  <!-- Content description (not visible, for screen readers etc.) for review quality check star rating. %1$s is the number of stars (1-5) representing the rating. -->
   <string name="review_quality_check_star_rating_content_description" moz:removedIn="136" tools:ignore="UnusedResources">%1$s ji 5 stêran</string>
   <!-- Text for minimize button from highlights card. When clicked the highlights card should reduce its size. -->
   <string name="review_quality_check_highlights_show_less" moz:removedIn="136" tools:ignore="UnusedResources">Hindiktir nîşan bide</string>
@@ -2197,7 +2197,7 @@
   <string name="review_quality_check_highlights_type_packaging_appearance" moz:removedIn="136" tools:ignore="UnusedResources">Pakêtkirin û xuyakirin</string>
   <!-- Text for highlights card competitiveness category header. Reviews shown under this header should refer the product's competitiveness. -->
   <string name="review_quality_check_highlights_type_competitiveness" moz:removedIn="136" tools:ignore="UnusedResources">Şiyana reqabetê</string>
-  <!-- Text that is surrounded by quotes. The parameter is the actual text that is in quotes. An example of that text could be: Excellent craftsmanship, and that is displayed as “Excellent craftsmanship”. The text comes from a buyer's review that the feature is highlighting" -->
+  <!-- Text that is surrounded by quotes. %s is the actual text that is in quotes. An example of that text could be: Excellent craftsmanship, and that is displayed as “Excellent craftsmanship”. The text comes from a buyer's review that the feature is highlighting" -->
   <string name="surrounded_with_quotes" moz:removedIn="136" tools:ignore="UnusedResources">“%s”</string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
@@ -2217,7 +2217,7 @@
   <string name="a11y_action_label_read_article">gotarê bixwîne</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="a11y_action_label_pocket_learn_more">ji bo zêdetir bizanî lînkê veke</string>
-  <!-- Content description for headings announced by accessibility service. The first parameter is the text of the heading. Talkback will announce the first parameter and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
+  <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
   <string name="a11y_heading">%s, Sernav</string>
   <!-- Title for dialog displayed when trying to access links present in a text. -->
   <string name="a11y_links_title">Girêdan</string>
@@ -2233,13 +2233,13 @@
   <string name="translations_bottom_sheet_title">Vê rûpelê wergerîne?</string>
   <!--
     Title for the translation dialog after a translation was completed successfully.
-    The first parameter is the name of the language that the page was translated from, for example, "French".
-    The second parameter is the name of the language that the page was translated to, for example, "English".
+    %1$s is the name of the language that the page was translated from, for example, "French".
+    %2$s is the name of the language that the page was translated to, for example, "English".
   -->
   <string name="translations_bottom_sheet_title_translation_completed">Rûpel ji %1$s li %2$s hat wergerandin</string>
-  <!-- Title for the translation dialog that allows a user to translate the webpage when a user uses the translation feature the first time. The first parameter is the name of the application, for example, "Fenix". -->
+  <!-- Title for the translation dialog that allows a user to translate the webpage when a user uses the translation feature the first time. %1$s is the name of the app (for example "Firefox"). -->
   <string name="translations_bottom_sheet_title_first_time">Wergerandina nepen di %1$s de biceribîne</string>
-  <!-- Additional information on the translation dialog that appears when a user uses the translation feature the first time. The first parameter is clickable text with a link, for example, "Learn more". -->
+  <!-- Additional information on the translation dialog that appears when a user uses the translation feature the first time. %1$s is a link using translations_bottom_sheet_info_message_learn_more as text. -->
   <string name="translations_bottom_sheet_info_message">Ji bo nepeniya te, werger dê ji cîhaza te dernekevin. Zimanên nû û pêşvebirin di nêzîk de tên! %1$s</string>
   <!-- Text that links to additional information about the Firefox translations feature. -->
   <string name="translations_bottom_sheet_info_message_learn_more">Zêdetir bizane</string>
@@ -2271,7 +2271,7 @@
   <string name="translation_error_could_not_translate_warning_text">Di wergerandinê de çewtiyek derket. Tika ye dîsa biceribîne.</string>
   <!-- The title of the warning card informs the user that the list of languages cannot be loaded. -->
   <string name="translation_error_could_not_load_languages_warning_text">Ziman nehantin barkirin. Girêdana înterneta xwe kontrol bike û dîsa biceribîne.</string>
-  <!-- The title of the warning card informs the user that a language is not supported. The first parameter is the name of the language that is not supported. -->
+  <!-- The title of the warning card informs the user that a language is not supported. %1$s is the name of the language that is not supported. -->
   <string name="translation_error_language_not_supported_warning_text">Bibore, em niha piştgiriya %1$s nakin.</string>
   <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
   <string name="translation_in_progress_snackbar">Tê wergerandin…</string>
@@ -2279,7 +2279,7 @@
     Title for the data saving mode warning dialog used in the translation request dialog.
     This dialog will be presented when the user attempts to perform
     a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
-    The first parameter is the size in kilobytes or megabytes of the language file.
+    %1$s is the size in kilobytes or megabytes of the language file.
   -->
   <string name="translations_download_language_file_dialog_title">Bila ziman di moda teserûfa daneyan de bê jêbarkirin (%1$s)?</string>
   <!--
@@ -2290,9 +2290,9 @@
   <string name="translation_option_bottom_sheet_title_heading">Vebijarkên wergerandinê</string>
   <!-- Toggle switch label that allows a user to set the setting if they would like the browser to always offer or suggest translations when available. -->
   <string name="translation_option_bottom_sheet_always_translate">Wergerandinê timî pêşniyar bike</string>
-  <!-- Toggle switch label that allows a user to set if they would like a given language to automatically translate or not. The first parameter is the language name, for example, "Spanish". -->
+  <!-- Toggle switch label that allows a user to set if they would like a given language to automatically translate or not. %1$s is the language name, for example, "Spanish". -->
   <string name="translation_option_bottom_sheet_always_translate_in_language">%1$s timî wergerîne</string>
-  <!-- Toggle switch label that allows a user to set if they would like to never be offered a translation of the given language. The first parameter is the language name, for example, "Spanish". -->
+  <!-- Toggle switch label that allows a user to set if they would like to never be offered a translation of the given language. %1$s is the language name, for example, "Spanish". -->
   <string name="translation_option_bottom_sheet_never_translate_in_language">%1$s qet wernegerîne</string>
   <!-- Toggle switch label that allows a user to set the setting if they would like the browser to never translate the site the user is currently visiting. -->
   <string name="translation_option_bottom_sheet_never_translate_site">Vê rûpelê qet wernegerîne</string>
@@ -2302,7 +2302,7 @@
   <string name="translation_option_bottom_sheet_switch_description">Pêşniyarên wergerandinê bêbandor dike</string>
   <!-- Button text for the button that will take the user to the translation settings dialog. -->
   <string name="translation_option_bottom_sheet_translation_settings">Eyarên wergerandinê</string>
-  <!-- Button text for the button that will take the user to a website to learn more about how translations works in the given app. The first parameter is the name of the application, for example, "Fenix". -->
+  <!-- Button text for the button that will take the user to a website to learn more about how translations works in the given app. %1$s is the name of the app (for example "Firefox"). -->
   <string name="translation_option_bottom_sheet_about_translations">Derbarê wergerên %1$s de</string>
   <!-- Content description (not visible, for screen readers etc.) for closing the translations bottom sheet. -->
   <string name="translation_option_bottom_sheet_close_content_description">Rûpela wergerandinan bigire</string>
@@ -2342,15 +2342,15 @@
     Preference option for offering to translate. Radio button title text.
   -->
   <string name="automatic_translation_option_offer_to_translate_title_preference">Wergerandinê pêşniyar bike (standard)</string>
-  <!-- Preference option for offering to translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Preference option for offering to translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
   <string name="automatic_translation_option_offer_to_translate_summary_preference">%1$s dê pêşniyar bike ku rûpelên bi vî zimanî wergerîne.</string>
   <!-- Preference option for always translate. Radio button title text. -->
   <string name="automatic_translation_option_always_translate_title_preference">Timî wergerîne</string>
-  <!-- Preference option for always translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Preference option for always translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
   <string name="automatic_translation_option_always_translate_summary_preference">Gava rûpel  bê barkirin %1$s dê vî zimanî xweber wergerîne.</string>
   <!-- Preference option for never translate. Radio button title text. -->
   <string name="automatic_translation_option_never_translate_title_preference">Qet wernegerîne</string>
-  <!-- Preference option for never translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Preference option for never translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
   <string name="automatic_translation_option_never_translate_summary_preference">%1$s dê qet pêşniyar neke ku rûpelên bi vî zimanî wergerîne.</string>
   <!--
     Never translate site preference screen
@@ -2362,14 +2362,14 @@
   <string name="never_translate_site_header_preference">Ji bo lêzêdekirina malpereke din: Ji menuya wergerandinê serdana “Vê rûpelê qet wernegerîne” bike.</string>
   <!--
     Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
-    The first parameter is web site url (for example:"wikipedia.com")
+    %1$s is web site url (for example:"wikipedia.com")
   -->
   <string name="never_translate_site_item_list_content_description_preference">%1$s`ê rake</string>
   <!-- The title of the warning card informs the user that an error has occurred at the never translate sites list. -->
   <string name="never_translate_site_error_warning_text">Malper nehatin barkirin. Tika ye paşê dîsa biceribîne.</string>
   <!--
     The Delete site dialogue title will appear when the user clicks on a list item.
-    The first parameter is web site url (for example:"wikipedia.com")
+    %1$s is web site url (for example:"wikipedia.com")
   -->
   <string name="never_translate_site_dialog_title_preference">%1$s’ê jê bibe?</string>
   <!-- The Delete site dialogue positive button will appear when the user clicks on a list item. The site will be deleted. -->
@@ -2382,7 +2382,7 @@
     Title of the toolbar for the translation feature screen where users may download different languages for translation.
   -->
   <string name="download_languages_translations_toolbar_title_preference">Zimanan jêbar bike</string>
-  <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
+  <!-- Screen header presenting the download language preference feature. It will appear under the toolbar. %1$s is a link using download_languages_header_learn_more_preference as text ("Learn more"). Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="download_languages_header_preference">Ji bo wergera bileztir û offline temamê zimanan jêbar bike. %1$s</string>
   <!-- Clickable text from the screen header that links to a website. -->
   <string name="download_languages_header_learn_more_preference">Zêdetir bizane</string>
@@ -2392,8 +2392,8 @@
   <string name="download_languages_default_system_language_require_preference">pêdivî</string>
   <!--
     A text for download language preference item.
-    The first parameter is the language name, for example, "Spanish".
-    The second parameter is the language file size, for example, "(3.91 KB)" or, if the language package name is a pivot language, "(required)".
+    %1$s is the language name, for example, "Spanish".
+    %2$s is the language file size, for example, "(3.91 KB)" or, if the language package name is a pivot language, the string defined in download_languages_default_system_language_require_preference ("required").
   -->
   <string name="download_languages_language_item_preference">%1$s (%2$s)</string>
   <!-- The subhead of the download language preference screen will appear above the items that were not downloaded. -->
@@ -2408,8 +2408,8 @@
   <string name="download_languages_item_content_description_delete_in_progress_state">Dewam dike</string>
   <!--
     Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
-    The first parameter is the language name, for example, "Spanish".
-    The second parameter is the language file size, for example, "(3.91 KB)".
+    %1$s is the language name, for example, "Spanish".
+    %2$s is the language file size, for example, "(3.91 KB)".
   -->
   <string name="download_languages_item_content_description_download_in_progress_state">Jêbarkirina %1$s rawestîne (%2$s)</string>
   <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
@@ -2418,29 +2418,29 @@
   <string name="download_languages_fetch_error_warning_text">Ziman nehatin barkirin. Tika ye paşê dîsa biceribîne.</string>
   <!--
     The title of the warning card informs the user that an error has occurred at downloading a language.
-    The first parameter is the language name, for example, "Spanish".
+    %1$s is the language name, for example, "Spanish".
   -->
   <string name="download_languages_error_warning_text">&lt;b&gt;%1$s&lt;/b&gt; nehat barkirin. Tika ye paşê dîsa biceribîne.</string>
   <!--
     The title of the warning card informs the user that an error has occurred at deleting a language.
-    The first parameter is the language name, for example, "Spanish".
+    %1$s is the language name, for example, "Spanish".
   -->
   <string name="download_languages_delete_error_warning_text">&lt;b&gt;%1$s&lt;/b&gt; nehat jêbirin. Tika ye paşê dîsa biceribîne.</string>
   <!--
     Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.
-    The first parameter is the name of the language, for example, "Spanish" and the second parameter is the size in kilobytes or megabytes of the language file.
+    %1$s is the name of the language, for example, "Spanish" and %2$s is the size in kilobytes or megabytes of the language file.
   -->
   <string name="delete_language_file_dialog_title">%1$s jê bibe (%2$s)?</string>
-  <!-- Additional information for the dialog used by the translations feature to confirm deleting a language. The first parameter is the name of the application, for example, "Fenix". -->
+  <!-- Additional information for the dialog used by the translations feature to confirm deleting a language. %1$s is the name of the app (for example "Firefox"). -->
   <string name="delete_language_file_dialog_message">Heke tu vî zimanî jê bibî, %1$s dê di dema wergerandinê de hin beşên zimanan li pêşbîrê bar bike.</string>
   <!--
     Title for the dialog used by the translations feature to confirm deleting all languages file.
     The dialog will be presented when the user requests deletion of all languages file.
-    The first parameter is the size in kilobytes or megabytes of the language file.
+    %1$s is the size in kilobytes or megabytes of the language file.
   -->
   <string name="delete_language_all_languages_file_dialog_title">Hemû zimanan jê bibe (%1$s)?</string>
-  <!-- Additional information for the dialog used by the translations feature to confirm deleting all languages file. The first parameter is the name of the application, for example, "Fenix". -->
+  <!-- Additional information for the dialog used by the translations feature to confirm deleting all languages file. %1$s is the name of the app (for example "Firefox"). -->
   <string name="delete_language_all_languages_file_dialog_message">Heke tu hemû zimanan jê bibî, %1$s dê di dema wergerandinê de hin beşên zimanan li pêşbîrê bar bike.</string>
   <!-- Button text on the dialog used by the translations feature to confirm deleting a language. -->
   <string name="delete_language_file_dialog_positive_button_text">Jê bibe</string>
@@ -2450,7 +2450,7 @@
     Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
     a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
-    The first parameter is the size in kilobytes or megabytes of the language file.
+    %1$s is the size in kilobytes or megabytes of the language file.
   -->
   <string name="download_language_file_dialog_title">Di moda teserûfa daneyan de jêbar bike (%1$s)?</string>
   <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->

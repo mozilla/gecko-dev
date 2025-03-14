@@ -23,7 +23,10 @@
   <string name="feedback_erase2">Ndó bíy</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">Ndó bíy sá.</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">KwàɁn lô %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">Tă~làz…</string>
@@ -224,7 +227,7 @@
   <string name="preference_mozilla_telemetry_summary">Lab kùe</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">M-bláb kùe</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">Cho nak kùe %1$s</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">Tob yìb kwàɁn</string>
@@ -242,7 +245,7 @@
   <string name="search_add_manually_name_hint">KwàɁn sá lé yíʔb-kwàɁn</string>
   <string name="search_add_manually_string">KwàɁn nêt lí chèl</string>
   <string name="search_add_manually_save">Mb-lòɁ sóg</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">Wí: lemen.com/search/?q=%s</string>
   <string name="search_add_confirmation">Dób lá yíʔb-kwàɁn.</string>
   <string name="search_add_error_empty_name">KwàɁn sá lé yíʔb-kwàɁn</string>
@@ -302,19 +305,19 @@
   <string name="external_app_prompt_title">Mb-šàlɁ nêt (n̆eza) lenɁ tá thîb app</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">Tàk rûl trè %1$s zá tàk mb-šàlɁ nêd ré lenɁ %2$s.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">KwàɁn app kó tàk mb-šàlɁ nêd ré</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">Niè thîb app tàk mb-šàlɁ nêd ré. Tàk rûl trè %1$s zá tàk mb-šàlɁ nêd ré lenɁ %2$s.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">¿Mb-ròɁ gá?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s tèlôy</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">Mb-šàlɁ lá</string>

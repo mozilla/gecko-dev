@@ -20,7 +20,10 @@
   <string name="teaser">Brabhsáil phríobháideach, go huathoibríoch.\nBrabhsáil. Bánaigh. Arís is arís eile.</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
   <string name="feedback_erase">Bánaíodh do stair bhrabhsála.</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">Cuardaigh %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">Comhroinn…</string>
@@ -181,7 +184,7 @@
   <string name="preference_mozilla_telemetry_summary">Tuilleadh eolais</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">Fógra Príobháideachais</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">Maidir le %1$s</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">Innill chuardaigh suiteáilte</string>
@@ -199,7 +202,7 @@
   <string name="search_add_manually_name_hint">Ainm an innill cuardaigh</string>
   <string name="search_add_manually_string">Teaghrán cuardaigh</string>
   <string name="search_add_manually_save">Sábháil</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">Sampla: example.com/search/?q=%s</string>
   <string name="search_add_confirmation">Cuireadh inneall cuardaigh nua leis.</string>
   <string name="search_add_error_empty_name">Cuir isteach ainm an innill cuardaigh</string>
@@ -259,19 +262,19 @@
   <string name="external_app_prompt_title">Oscail an nasc in aip eile</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">Is féidir leat %1$s a fhágáil chun an nasc seo a oscailt in %2$s.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">Aimsigh aip lenar féidir an nasc seo a oscailt</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">Níl aon aip ar do ghléas atá in ann an nasc seo a oscailt. Is féidir leat %1$s a fhágáil chun aip oiriúnach a lorg in %2$s.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">Scoir de Bhrabhsáil Phríobháideach?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s críochnaithe</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">Oscail</string>

@@ -23,7 +23,10 @@
   <string name="feedback_erase2">உலாவி வரலாறு அழிக்கப்பட்டது</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">கீற்றின் உலாவல் வரலாறு அழிக்கப்பட்டது.</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">%1$s சொல்லைத் தேடு</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">பகிர்…</string>
@@ -137,8 +140,8 @@
   -->
   <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">ஃபோகசு நைட்லியில் தேடு</string>
   <!--
-    Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
-    Argument 2 is the url for the learn-more link.
+    Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
+    %2$s is the url for the learn-more link.
   -->
   <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s கட்டுப்பாட்டை உங்களிடம் வழங்குகிறது.&lt;/p&gt;
 &lt;p&gt;அதை ஒரு தனிப்பட்ட உலாவியாக பயன்படுத்துங்கள்:
@@ -273,7 +276,7 @@
   <string name="preference_mozilla_telemetry_summary2">அனைவருக்கும் %1$s வழங்க மற்றும் மேம்படுத்த தேவையானதை மட்டும் சேகரிக்க மொசில்லா உறுதிபூண்டுள்ளது.</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">தனியுரிமை கொள்கை</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">%1$s பற்றி</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">நிறுவப்பட்ட தேடு பொறிகள்</string>
@@ -291,7 +294,7 @@
   <string name="search_add_manually_name_hint">தேடுபொறி பெயர்</string>
   <string name="search_add_manually_string">பயன்படுத்த வேண்டிய தேடல் தொடர்</string>
   <string name="search_add_manually_save">சேமி</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">எகா: example.com/search/?q=%s</string>
   <string name="search_add_confirmation">புது தேடுபொறி சேர்க்கப்பட்டது.</string>
   <string name="search_add_error_empty_name">தேடுபொறி பெயரை உள்ளிடு</string>
@@ -353,19 +356,19 @@
   <string name="external_app_prompt_title">தொடுப்பை இன்னொரு செயலியில் திறக்கும்</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">%1$s உலாவியை விட்டு விலகி %2$s செயலியில் திறக்கும்.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">தொடுப்பை திறக்கவல்ல ஒரு செயலியைக் கண்டுபிடி</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">இந்தச் சாதனத்தில் உள்ள எந்த ஒரு செயலியும் இத்தொடுப்பை திறக்கவல்லது. %1$s என்பதை விடுத்து ஒரு செயலியால் %2$s என்பதை தேட முடியும்.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">அந்தரங்க உலாவலில் இருந்து வெளியேறவா?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s முடிந்தது</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">திற</string>
@@ -448,13 +451,15 @@
   <!-- Watermark/Hint for the find in page input field -->
   <string name="find_in_page_input">பக்கத்தில் கண்டுபிடி</string>
   <!--
-    String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total
+    String to show the number of results found in the page and the position
+    the user is at. %1$d is the position, %2$d is the total number of
+    results.
   -->
   <string name="find_in_page_result">%1$d/%2$d</string>
   <!--
-    String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total
+    String to be read by the accessibility service presenting the number of
+    results found in the page and the position the user is at. %1$d is the
+    position, %2$d is the total number of results.
   -->
   <string name="accessibility_find_in_page_result">%2$d இல் %1$d</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->

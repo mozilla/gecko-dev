@@ -57,17 +57,17 @@
   <string name="browser_menu_share">Paylaş</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_open_in_fenix">%1$s ilə aç</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by">%1$s TƏRƏFİNDƏN</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by2">%1$s Tərəfindən</string>
   <!-- Browser menu button to put the current page in reader mode -->
@@ -94,7 +94,7 @@
   <string name="search_suggestions_onboarding_do_not_allow_button">İcazə vermə</string>
   <!-- Search suggestion onboarding hint title text -->
   <string name="search_suggestions_onboarding_title">Məxfi sessiyada axtarış təkliflərinə icazə verilsin?</string>
-  <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
   <string name="search_suggestions_onboarding_text">%s ünvan sətrində yazdığınız hər şeyi əsas axtarış mühərriyiniz ilə paylaşacaq.</string>
   <!-- Text preview for smaller sized widgets -->
   <string name="search_widget_text_short">Axtar</string>
@@ -118,7 +118,7 @@
   <string name="preferences_rate">Google Play-də qiymətləndir</string>
   <!--
     Preference linking to about page for Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="preferences_about">%1$s Haqqında</string>
   <!-- Preference for settings related to changing the default browser -->
@@ -181,11 +181,11 @@
   <string name="empty_device_name_error">Cihaz adı boş ola bilməz.</string>
   <!-- Label indicating that sync is in progress -->
   <string name="sync_syncing_in_progress">Sinxronlaşır…</string>
-  <!-- Label summary indicating that sync failed. The first parameter is the date stamp showing last time it succeeded -->
+  <!-- Label summary indicating that sync failed. %s is the date stamp showing last time it succeeded. -->
   <string name="sync_failed_summary">Sinxronlaşdırmaq mümkün olmadı. Son uğurlu olan: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_failed_never_synced_summary">Sinxronlaşdırmaq mümkün olmadı. Son uğurlu olan: heç vaxt</string>
-  <!-- Label summary the date we last synced. The first parameter is date stamp showing last time synced -->
+  <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
   <string name="sync_last_synced_summary">Son uğurlu olan: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_never_synced_summary">Son uğurlu olan: heç vaxt</string>
@@ -267,7 +267,7 @@
   <string name="add_tab">Vərəq əlavə et</string>
   <!-- Content description (not visible, for screen readers etc.): Close tab button. Closes the current session when pressed -->
   <string name="close_tab">Vərəqi qapat</string>
-  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. First parameter is tab title -->
+  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. %s is the tab title -->
   <string name="close_tab_title">%s vərəqini qapat</string>
   <!-- Content description (not visible, for screen readers etc.): Opens the open tabs menu when pressed -->
   <string name="open_tabs_menu">Açıq vərəqlər menyusunu aç</string>
@@ -285,7 +285,7 @@
   <string name="history_delete_item">Sil</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="history_multi_select_title">%1$d seçilib</string>
   <!-- Text for the header that groups the history the past 7 days -->
@@ -320,7 +320,7 @@
   <string name="bookmark_menu_save_button">Saxla</string>
   <!--
     Bookmark multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="bookmarks_multi_select_title">%1$d seçilib</string>
   <!-- Bookmark editing screen title -->
@@ -347,7 +347,7 @@
   <string name="bookmarks_empty_message">Əlfəcinlər yoxdur</string>
   <!--
     Bookmark snackbar message on deletion
-    The first parameter is the host part of the URL of the bookmark deleted, if any
+    %1$s is the host part of the URL of the bookmark deleted, if any
   -->
   <string name="bookmark_deletion_snackbar_message">%1$s silindi</string>
   <!-- Bookmark undo button for deletion snackbar action -->
@@ -505,7 +505,7 @@
   <string name="url_copied">URL köçürüldü</string>
   <!-- Title for Accessibility Text Size Scaling Preference -->
   <string name="preference_accessibility_font_size_title">Şrift ölçüsü</string>
-  <!-- Subtitle for the tabs item in Delete browsing data, parameter will be replaced with the number of open tabs -->
+  <!-- Subtitle for the tabs item in Delete browsing data, %d is the number of open tabs -->
   <string name="preferences_delete_browsing_data_tabs_subtitle">%d vərəq</string>
   <!--
     Title for the data and history items in Delete browsing data
@@ -514,7 +514,7 @@
   -->
   <string name="preferences_delete_browsing_data_browsing_history_title">Tarixçə</string>
   <!--
-    Subtitle for the data and history items in delete browsing data, parameter will be replaced with the
+    Subtitle for the data and history items in delete browsing data, %d is the
     number of history items the user has
   -->
   <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d ünvan</string>
@@ -607,11 +607,11 @@
     back from ETP details (Ex: Tracking content)
   -->
   <string name="etp_back_button_content_description">Geri get</string>
-  <!-- About page link text to open what's new link -->
+  <!-- About page link text to open what's new link. %s is the name of the app (for example "Firefox"). -->
   <string name="about_whats_new">%s yenilikləri</string>
   <!--
     Open source licenses page title
-    The first parameter is the app name
+    %s is the name of the app (for example "Firefox")
   -->
   <string name="open_source_licenses_title">%s | OSS Kitabxanalar</string>
   <!-- About page link text to open support link -->
@@ -686,16 +686,16 @@
   <string name="search_add_custom_engine_error_empty_name">Axtarış mühərriyi adını daxil edin</string>
   <!-- Text shown when a user leaves the search string field empty -->
   <string name="search_add_custom_engine_error_empty_search_string">Axtarış mətnini daxil edin</string>
-  <!-- Text shown when a user creates a new search engine -->
+  <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s yaradıldı</string>
-  <!-- Text shown when a user successfully edits a custom search engine -->
+  <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_edit_custom_engine_success_message">%s saxlandı</string>
-  <!-- Text shown when a user successfully deletes a custom search engine -->
+  <!-- Text shown when a user successfully deletes a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_delete_search_engine_success_message">%s silindi</string>
   <!-- label shown when there are not site exceptions to show in the site exception settings -->
   <string name="no_site_exceptions">İstisna sayt yoxdur</string>
   <!--
-    text shown before the issuer name to indicate who its verified by, parameter is the name of
+    text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
   <string name="certificate_info_verified_by">Təsdiqləyən: %1$s</string>

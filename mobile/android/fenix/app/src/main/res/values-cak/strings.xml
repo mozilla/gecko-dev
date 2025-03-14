@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_5">Ichinan %s</string>
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_4">%s (Ichinan)</string>
   <!--
     Home Fragment
@@ -30,7 +30,7 @@
   <string name="no_open_tabs_description">Wawe\' xkeq\'alajin pe ri jaqäl taq ruwi\'.</string>
   <!-- No Private Tabs Message Description -->
   <string name="no_private_tabs_description">Wawe\' xkeq\'alajin pe ri ichinan taq ruwi\'.</string>
-  <!-- Tab tray multi select title in app bar. The first parameter is the number of tabs selected -->
+  <!-- Tab tray multi select title in app bar. %1$d is the number of tabs selected -->
   <string name="tab_tray_multi_select_title">%1$d xcha\'</string>
   <!-- Label of button in create collection dialog for creating a new collection -->
   <string name="tab_tray_add_new_collection">Titz\'aqatisäx k\'ak\'a\' mol</string>
@@ -54,13 +54,13 @@
   <string name="home_bookmarks_show_all_content_description">Kek\'ut konojel taq yaketal</string>
   <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
   <string name="home_bookmarks_menu_item_remove">Tiyuj</string>
-  <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
+  <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s b\'anon ruma Mozilla.</string>
   <!--
     Private Browsing
 
-    Explanation for private browsing displayed to users on home view when they first enable private mode
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    Explanation for private browsing displayed to users on home view when they first enable private mode.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s nuyüj ri akanoxik chuqa\' runatab\'al awokem pa k\'amaya\'l toq yatel pa ri chokoy o ri  ichinan taq wi\'. Estape\' re re\' man yatrewaj ta pan ajk\'amaya\'l o chuwäch ri niya\'on ak\'amaya\'l, yatruto\' richin nichinäx ronojel ri nab\'än pan k\'amab\'ey chuwäch jun chik winäq nrokisaj ri awokisab\'al.</string>
   <string name="private_browsing_common_myths">Ch\'ob\'on taq tzij chi rij ri ichinan okem pa k\'amaya\'l</string>
@@ -73,14 +73,14 @@
   <!--
     Explanation for private browsing displayed to users on home view when they first enable
     private mode in our new Total Private Browsing mode.
-    The first parameter is the name of the app defined in app_name (for example: Firefox Nightly)
-    The second parameter is the clickable link text in felt_privacy_info_card_subtitle_link_text
+    %1$s is the name of the app (for example "Firefox").
+    %2$s is a link using felt_privacy_info_card_subtitle_link_text as text
   -->
   <string name="felt_privacy_info_card_subtitle_2">%1$s yeruyüj ri taq acookie, natab\'äl chuqa\' taq rutzij ruxaq k\'amaya\'l toq ye\'atz\'apij ronojel ri ichinan taq awi\'. %2$s</string>
   <!--
     Clickable portion of the explanation for private browsing that links the user to our
     about privacy page.
-    This string is used in felt_privacy_info_card_subtitle as the second parameter.
+    This string is used in felt_privacy_info_card_subtitle as the text for the link.
   -->
   <string name="felt_privacy_info_card_subtitle_link_text">¿Achike taq k\'a nitz\'eton ri nasamajij?</string>
   <!--
@@ -96,7 +96,7 @@
   <!--
     Open in App "contextual feature recommendation" (CFR)
 
-    Text for the info message. The first parameter is the name of the application.
+    Text for the info message. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="open_in_app_cfr_info_message_2">Yatikïr nab\'än runuk\'ulem ri %1$s richin ruyon yerujäq taq ximoj pa taq chokoy.</string>
   <!-- Text for the positive action button -->
@@ -129,7 +129,7 @@
   <string name="tab_tray_inactive_auto_close_title">¿La ruyonil nitz\'apïx chi rij jun ik\'?</string>
   <!--
     Text for the body for the auto-close dialog of the inactive tabs.
-    The first parameter is the name of the application.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_tray_inactive_auto_close_body_2">%1$s nitikïr yerutz\'apij taq ruwi\', ri man xe\'ajäq ta ri ruk\'isib\'äl ik\'.</string>
   <!-- Content description for close button in the auto-close dialog of the inactive tabs. -->
@@ -203,7 +203,7 @@
   <string name="browser_menu_recommended_section_content_description">Chilab\'en taq k\'amal</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
-    The first parameter is the name of the extension (for example: ClearURLs).
+    %1$s is the name of the extension (for example: ClearURLs).
   -->
   <string name="browser_menu_extension_plus_icon_content_description_2">Titz\'aqatisäx %1$s</string>
   <!-- Browser menu button that opens account settings -->
@@ -236,17 +236,17 @@
   <string name="browser_menu_share">Tikomonïx</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_open_in_fenix">Tijaq pa %1$s</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by">YA\'ON RUMA %1$s</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by2">B\'anon ruma %1$s</string>
   <!-- Browser menu button to put the current page in reader mode -->
@@ -277,7 +277,7 @@
   <string name="browser_menu_passwords">Ewan taq tzij</string>
   <!--
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_new_in_firefox">K\'ak\'a\' pa %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
@@ -310,8 +310,8 @@
   <string name="browser_toolbar_translate">Titzalq\'omïx ruxaq</string>
   <!--
     Content description (not visible, for screen readers etc.) for the translate page toolbar button that opens the translations dialog when the page is translated successfully.
-    The first parameter is the name of the language that is displayed in the original page. (For example: English)
-    The second parameter is the name of the language which the page was translated to. (For example: French)
+    %1$s is the name of the language that is displayed in the original page. (For example: English)
+    %2$s is the name of the language which the page was translated to. (For example: French)
   -->
   <string name="browser_toolbar_translated_successfully">Tzalq\'omin ruxaq %1$s pa %2$s.</string>
   <!--
@@ -334,9 +334,9 @@
   <string name="search_suggestions_onboarding_do_not_allow_button">Man tiya\' q\'ij</string>
   <!-- Search suggestion onboarding hint title text -->
   <string name="search_suggestions_onboarding_title">¿La niya\' q\'ij richin yek\'ut pe taq ruchilab\'exik kanoxïk pa nichinan taq molojri\'ïl?</string>
-  <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
   <string name="search_suggestions_onboarding_text">%s xtukomonij ronojel ri xtatz\'ib\'aj pa ri kikajtz\'ik taq ochochib\'äl rik\'in ri akanob\'al k\'o wi.</string>
-  <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine -->
+  <!-- Search engine suggestion title text. %s is the name of the suggested engine. -->
   <string name="search_engine_suggestions_title">Tikanöx %s</string>
   <!-- Search engine suggestion description text -->
   <string name="search_engine_suggestions_description">Tikanöx pa kikajtz\'ik ochochib\'äl</string>
@@ -431,7 +431,7 @@
   <!--
     Search Widget
 
-    Content description for searching with a widget. The first parameter is the name of the application.
+    Content description for searching with a widget. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="search_widget_content_description_2">Tijaq jun k\'ak\'a\' %1$s ruwi\'</string>
   <!-- Text preview for smaller sized widgets -->
@@ -476,7 +476,7 @@
   <string name="preferences_rate">Tiya\' rejqalem pa Google Play</string>
   <!--
     Preference linking to about page for Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="preferences_about">Chi rij %1$s</string>
   <!-- Preference for settings related to changing the default browser -->
@@ -517,15 +517,15 @@
   <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Xtaq ruk\'utuj to\'ïk</string>
   <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
   <string name="reduce_cookie_banner_unsupported_site">Wakami man koch\'el ta re ruxaq re\'</string>
-  <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site -->
+  <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">¿La nitzij ri kiq\'atik taq kitzijol cookie richin %1$s?</string>
-  <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site -->
+  <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">¿La nichup ri ruq\'atoj kitzijol taq cookie richin %1$s?</string>
-  <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
+  <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
   <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2"> Man yeruq\'ät ta ri %1$s pa ruyonil ri taq kik\'utuj taq cookie pa re ruxaq re\'. Yatikïr natäq un k\'utuj richin nito\' re ruxaq re\' ri chwa\'q kab\'ij.</string>
-  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
+  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
   <string name="reduce_cookie_banner_details_panel_description_on_for_site_3">Toq nitzij, ri %1$s xtutojtob\'ej xkeruxutuj pa ruyonil ri taq kitzijol taq cookie pa re ruxaq re\'.</string>
-  <!-- Title for the cookie banner re-engagement CFR, the placeholder is replaced with app name -->
+  <!-- Title for the cookie banner re-engagement CFR, the placeholder is replaced with app name. %1$s is the name of the app (for example "Firefox"). -->
   <string name="cookie_banner_cfr_title">%1$s k\'a b\'a\' keruxutuj taq cookie</string>
   <!-- Message for the cookie banner re-engagement CFR -->
   <string name="cookie_banner_cfr_message">Jub\'a\' nikik\'äm atzub\'al, jub\'a\' taq cookie ri yatkojqaj pa re ruxaq re\'.</string>
@@ -599,7 +599,7 @@
   <string name="preferences_show_sponsored_suggestions">Chilab\'en taq to\'onela\'</string>
   <!--
     Preference title for switch preference to show Firefox Suggest search suggestions for web content.
-    The first parameter is the name of the application.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="preferences_show_nonsponsored_suggestions">Taq ruchilab\'exik %1$s</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
@@ -655,7 +655,7 @@
   <string name="customize_toggle_recently_visited">K\'a b\'a ketz\'et</string>
   <!-- Title for the customize home screen section with Pocket. -->
   <string name="customize_toggle_pocket_2">B\'anob\'äl richin yach\'ob\'on</string>
-  <!-- Summary for the customize home screen section with Pocket. The first parameter is product name Pocket -->
+  <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
   <string name="customize_toggle_pocket_summary">Taq cholna\'oj ruchilab\'en %s</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">To\'on taq b\'anob\'äl</string>
@@ -666,7 +666,7 @@
   <!--
     Wallpapers
 
-    Content description for various wallpapers. The first parameter is the name of the wallpaper
+    Content description for various wallpapers. %1$s is the name of the wallpaper.
   -->
   <string name="wallpapers_item_name_content_description">Retal rupam ruwäch: %1$s</string>
   <!-- Snackbar message for when wallpaper is selected -->
@@ -681,9 +681,9 @@
   <string name="wallpaper_select_error_snackbar_message">Man xjalatäj ta ri rupam ruwäch</string>
   <!-- Text displayed that links to website containing documentation about the "Limited Edition" wallpapers. -->
   <string name="wallpaper_learn_more">Tetamäx ch\'aqa\' chik</string>
-  <!-- Text for classic wallpapers title. The first parameter is the Firefox name. -->
+  <!-- Text for classic wallpapers title. %s is the name of the app (for example "Firefox"). -->
   <string name="wallpaper_classic_title">Ojer %s</string>
-  <!-- Description text for the artist series wallpapers with learn more link. The first parameter is the learn more string defined in wallpaper_learn_more. "Independent voices" is the name of the wallpaper collection -->
+  <!-- Description text for the artist series wallpapers with learn more link. %s is a learn more link using wallpaper_learn_more as text. "Independent voices" is the name of the wallpaper collection -->
   <string name="wallpaper_artist_series_description_with_learn_more">Ri Jamäl ch\'ab\'äl molb\'äl. %s</string>
   <!-- Description text for the artist series wallpapers. "Independent voices" is the name of the wallpaper collection -->
   <string name="wallpaper_artist_series_description">Ri Jamäl Ch\'ab\'äl molb\'äl.</string>
@@ -723,18 +723,18 @@
   <string name="empty_device_name_error">Man tikirel ta kowöl rub\'i\' okisab\'äl.</string>
   <!-- Label indicating that sync is in progress -->
   <string name="sync_syncing_in_progress">Nixim…</string>
-  <!-- Label summary indicating that sync failed. The first parameter is the date stamp showing last time it succeeded -->
+  <!-- Label summary indicating that sync failed. %s is the date stamp showing last time it succeeded. -->
   <string name="sync_failed_summary">Xsach ri ximoj. Ruk\'isib\'äl mul xok: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_failed_never_synced_summary">Xsach ri ximoj. Ruk\'isib\'äl mul xok: majub\'ey</string>
-  <!-- Label summary the date we last synced. The first parameter is date stamp showing last time synced -->
+  <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
   <string name="sync_last_synced_summary">Ruk\'isib\'äl mul xxim: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_never_synced_summary">Ruk\'isib\'äl mul xxim: majub\'ey</string>
   <!--
     Text for displaying the default device name.
-    The first parameter is the application name, the second is the device manufacturer name
-    and the third is the device model.
+    %1$s is the name of the app (for example "Firefox"). %2$s is the device manufacturer name
+    and %3$s is the device model.
   -->
   <string name="default_device_name_2">%1$s pa %2$s %3$s</string>
   <!-- Preference for syncing payment methods -->
@@ -765,7 +765,7 @@
   <string name="exceptions_empty_message_description">Ri taq man relik ta nikiya\' q\'ij chawe richin nachüp ri chajinïk chuwäch ojqanem pa ri taq ruxaq echa\'on.</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Tetamäx ch\'aqa\' chik</string>
-  <!-- Preference description for usage and technical data collection -->
+  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Takomonij ri na\'oj pa ruwi\' rub\'eyal nisamäj, ri rokisaxik, ch\'akulakem chuqa\' richinaxik awokik\'amaya\'l rik\'in Mozilla richin chi ri %1$s nel ütz</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Marketin tzij</string>
@@ -936,7 +936,7 @@
   <string name="studies_remove">Tiyuj</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">Tzijïl</string>
-  <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
+  <!-- Description for studies, it indicates why Firefox use studies. %1$s is the name of the app (for example "Firefox"). -->
   <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s k\'o b\'ey nitikïr yeruyäk chuqa\' yerub\'än taq tijob\'alil.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Tetamäx ch\'aqa\' chik</string>
@@ -982,7 +982,7 @@
   <string name="tabs_tray_select_tabs">Kecha\' taq ruwi\'</string>
   <!-- Content description (not visible, for screen readers etc.): Close tab button. Closes the current session when pressed -->
   <string name="close_tab">Titz\'apïx ruwi\'</string>
-  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. First parameter is tab title -->
+  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. %s is the tab title -->
   <string name="close_tab_title">Titz\'apïx ruwi\' %s</string>
   <!-- Content description (not visible, for screen readers etc.): Opens the open tabs menu when pressed -->
   <string name="open_tabs_menu">Tijaq kik\'utsamaj ruwi\'</string>
@@ -1000,7 +1000,7 @@
   <string name="remove_top_site">Tiyuj</string>
   <!-- Text for the menu button to delete a top site from history -->
   <string name="delete_from_history">Tiyuj pa natab\'äl</string>
-  <!-- Postfix for private WebApp titles, placeholder is replaced with app name -->
+  <!-- Postfix for private WebApp titles. %1$s is the name of the app (for example "Firefox"). -->
   <string name="pwa_site_controls_title_private">%1$s (Ichinan Rub\'anikil)</string>
   <!--
     History
@@ -1012,13 +1012,13 @@
   <string name="history_delete_all">Tiyuj natab\'äl</string>
   <!-- Text for the snackbar to confirm that multiple browsing history items has been deleted -->
   <string name="history_delete_multiple_items_snackbar">Xyuj Natab\'äl</string>
-  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. The first parameter is the shortened URL of the deleted history item. -->
+  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. %1$s is the shortened URL of the deleted history item. -->
   <string name="history_delete_single_item_snackbar">Xyuj %1$s</string>
   <!-- Context description text for the button to delete a single history item -->
   <string name="history_delete_item">Tiyuj</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="history_multi_select_title">%1$d xcha\'</string>
   <!-- Text for the header that groups the history for today -->
@@ -1039,13 +1039,13 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1">Xesilöx taq Qasanïk</string>
-  <!-- Text for the snackbar to confirm that a single download item has been removed. The first parameter is the name of the download item. -->
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar">Xsilöx %1$s</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1">Man xeqasäx ta taq yakb\'äl</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of downloads selected
+    %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">%1$d xcha\'</string>
   <!-- Text for the button to remove a single download item -->
@@ -1053,7 +1053,7 @@
   <!--
     Crashes
 
-    Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix)
+    Title text displayed on the tab crash page. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_crash_title_2">Takuyu\'. Man nitikïr ta nusamajij ri ruxaq ri %1$s.</string>
   <!-- Send crash report checkbox text on the tab crash page -->
@@ -1068,7 +1068,7 @@
     Confirmation message for a dialog confirming if the user wants to delete the selected folder
   -->
   <string name="bookmark_delete_folder_confirmation_dialog">¿La kan nawajo\' chi nayüj re molyakb\'äl re\'?</string>
-  <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
+  <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. %s is the name of the app (for example "Firefox"). -->
   <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s xkeruyüj ri cha\'on taq wachinäq.</string>
   <!-- Text for the cancel button on delete bookmark dialog -->
   <string name="bookmark_delete_negative">Tiq\'at</string>
@@ -1096,7 +1096,7 @@
   <string name="bookmark_menu_save_button">Tiyak</string>
   <!--
     Bookmark multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="bookmarks_multi_select_title">%1$d xcha\'</string>
   <!-- Bookmark editing screen title -->
@@ -1123,7 +1123,7 @@
   <string name="bookmarks_empty_message">Majun yaketal wawe\'</string>
   <!--
     Bookmark snackbar message on deletion
-    The first parameter is the host part of the URL of the bookmark deleted, if any
+    %1$s is the host part of the URL of the bookmark deleted, if any
   -->
   <string name="bookmark_deletion_snackbar_message">Xyuj %1$s</string>
   <!-- Bookmark snackbar message on deleting multiple bookmarks not including folders -->
@@ -1402,7 +1402,7 @@
   <string name="snackbar_top_site_removed">Ruxaq xyuj</string>
   <!--
     QR code scanner prompt which appears after scanning a code, but before navigating to it
-    First parameter is the name of the app, second parameter is the URL or text scanned
+    %1$s is the name of the app (for example "Firefox"), %2$s is the URL or text scanned
   -->
   <string name="qr_scanner_confirmation_dialog_message">Tiya\' q\'ij chi re %1$s richin nujäq %2$s</string>
   <!-- QR code scanner prompt dialog positive option to allow navigation to scanned link -->
@@ -1413,7 +1413,7 @@
   <string name="qr_scanner_dialog_invalid">Man okel ta web ochochib\'äl.</string>
   <!-- QR code scanner prompt dialog positive option when there is an error -->
   <string name="qr_scanner_dialog_invalid_ok">ÜTZ</string>
-  <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
+  <!-- Tab collection deletion prompt dialog message. %1$s is the collection name. -->
   <string name="tab_collection_dialog_message">¿La kan nawajo\' nayuj %1$s?</string>
   <!-- Tab collection deletion prompt dialog option to delete the collection -->
   <string name="tab_collection_dialog_positive">Tiyuj</string>
@@ -1433,7 +1433,7 @@
   <string name="preferences_delete_browsing_data">Keyuj taq rutzij okem pa k\'amaya\'l</string>
   <!-- Title for the tabs item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_tabs_title_2">Kejaq taq ruwi\'</string>
-  <!-- Subtitle for the tabs item in Delete browsing data, parameter will be replaced with the number of open tabs -->
+  <!-- Subtitle for the tabs item in Delete browsing data, %d is the number of open tabs -->
   <string name="preferences_delete_browsing_data_tabs_subtitle">%d taq ruwi\'</string>
   <!--
     Title for the data and history items in Delete browsing data
@@ -1442,7 +1442,7 @@
   -->
   <string name="preferences_delete_browsing_data_browsing_history_title">Runatab\'al okem</string>
   <!--
-    Subtitle for the data and history items in delete browsing data, parameter will be replaced with the
+    Subtitle for the data and history items in delete browsing data, %d is the
     number of history items the user has
   -->
   <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d taq ochochib\'äl</string>
@@ -1474,7 +1474,7 @@
   <string name="delete_history_prompt_button_today_and_yesterday">Wakami chuqa\' iwir</string>
   <!-- Radio button in the delete browsing data dialog to delete all history. -->
   <string name="delete_history_prompt_button_everything">Ronojel</string>
-  <!-- Dialog message to the user asking to delete browsing data. Parameter will be replaced by app name. -->
+  <!-- Dialog message to the user asking to delete browsing data. %s is the name of the app (for example "Firefox"). -->
   <string name="delete_browsing_data_prompt_message_3">%s xkeruyüj el ri taq rutzij awokem xecha\'.</string>
   <!-- Text for the cancel button for the data deletion dialog -->
   <string name="delete_browsing_data_prompt_cancel">Tiq\'at</string>
@@ -1484,7 +1484,7 @@
   <string name="preferences_delete_browsing_data_snackbar">Rutzij okem xeyuj</string>
   <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
   <string name="deleting_browsing_data_in_progress">yeyuj taq rutzij okem pa k\'amaya\'l…</string>
-  <!-- Dialog message to the user asking to delete all history items inside the opened group. Parameter will be replaced by a history group name. -->
+  <!-- Dialog message to the user asking to delete all history items inside the opened group. %s is a history group name. -->
   <string name="delete_all_history_group_prompt_message">Keyuj ronojel ri taq ruxaq pa “%s”</string>
   <!-- Text for the cancel button for the history group deletion dialog -->
   <string name="delete_history_group_prompt_cancel">Tiq\'at</string>
@@ -1522,7 +1522,7 @@
   <string name="sign_in_with_email">Tawokisaj ri taqoya\'l</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
   <string name="sign_in_create_account_text" tools:ignore="BrandUsage">¿La man k\'o ta rub\'i\' ataqoya\'l? &lt;u&gt;Tatz\'uku\' jun&lt;/u&gt; richin naxïm Firefox pa taq okisab\'äl.</string>
-  <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
+  <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s Man xtuxïm ta chik ri rub\'i\' ataqoya\'l, man xkeyuj ta ri taq rutzij awokem pa re oyonib\'äl re\'.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
   <string name="sign_out_disconnect">Tichup</string>
@@ -1538,7 +1538,7 @@
   <string name="etp_settings">Runuk\'ulem Ojqanem</string>
   <!-- Preference title for enhanced tracking protection settings -->
   <string name="preference_enhanced_tracking_protection">Utzirisan Chajinïk chuwäch Ojqanem</string>
-  <!-- Description of enhanced tracking protection. The parameter is the name of the application (For example: Firefox Fenix) -->
+  <!-- Description of enhanced tracking protection. %s is the name of the app (for example "Firefox"). -->
   <string name="preference_enhanced_tracking_protection_explanation_2"> %s yaruchajij chi kiwäch relik ojqanela\', ri nikoqaj ri nab\'än pa k\'amab\'ey.</string>
   <!-- Text displayed that links to website about enhanced tracking protection -->
   <string name="preference_enhanced_tracking_protection_explanation_learn_more">Tetamäx ch\'aqa\' chik</string>
@@ -1619,11 +1619,11 @@
     back from ETP details (Ex: Tracking content)
   -->
   <string name="etp_back_button_content_description">Katok pa k\'amaya\'l chi rij</string>
-  <!-- About page link text to open what's new link -->
+  <!-- About page link text to open what's new link. %s is the name of the app (for example "Firefox"). -->
   <string name="about_whats_new">Achike ri k\'ak\'a\' pa %s</string>
   <!--
     Open source licenses page title
-    The first parameter is the app name
+    %s is the name of the app (for example "Firefox")
   -->
   <string name="open_source_licenses_title">%s | OSS taq wujb\'äl</string>
   <!-- Category of trackers (redirect trackers) that can be blocked by Enhanced Tracking Protection -->
@@ -1651,7 +1651,7 @@
   <string name="about_other_open_source_libraries">Taq wujb\'äl yeqokisaj</string>
   <!--
     Toast shown to the user when they are activating the secret dev menu
-    The first parameter is number of long clicks left to enable the menu
+    %1$d is number of long clicks left to enable the menu
   -->
   <string name="about_debug_menu_toast_progress">Ruk\'utsamaj chojmirisanel: %1$d (taq) pitz\'oj richin nitzij</string>
   <string name="about_debug_menu_toast_done">Xtzij ruk\'utsamaj chojmirisanel</string>
@@ -1882,13 +1882,13 @@ Achi\'el: \nhttps://www.google.com/search?q=%s</string>
   <string name="search_add_custom_engine_error_empty_search_string">Titz\'ib\'äx jun rucholajil kanoxïk</string>
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Tinik\'öx chi ri rucholajem ri nikanöx nuk\'äm ri\' rik\'in ri rub\'anikil tz\'etb\'äl</string>
-  <!-- Text shown when we aren't able to validate the custom search query. The first parameter is the url of the custom search engine -->
+  <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_error_cannot_reach">Xsach toq nok rik\'in “%s”</string>
-  <!-- Text shown when a user creates a new search engine -->
+  <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">Xtz\'uk %s</string>
-  <!-- Text shown when a user successfully edits a custom search engine -->
+  <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_edit_custom_engine_success_message">Tiyak %s</string>
-  <!-- Text shown when a user successfully deletes a custom search engine -->
+  <!-- Text shown when a user successfully deletes a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_delete_search_engine_success_message">Xyuj %s</string>
   <!-- Heading for the instructions to allow a permission -->
   <string name="phone_feature_blocked_intro">Richin niya\' q\'ij chi re:</string>
@@ -1896,7 +1896,7 @@ Achi\'el: \nhttps://www.google.com/search?q=%s</string>
   <string name="phone_feature_blocked_step_settings">1. Jät pa Runuk\'ulem Android</string>
   <!-- Second step for the allowing a permission -->
   <string name="phone_feature_blocked_step_permissions">2. Tachapa\' &lt;b&gt;Taq Ya\'oj Q\'ij&lt;/b&gt;</string>
-  <!-- Third step for the allowing a permission (Fore example: Camera) -->
+  <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
   <string name="phone_feature_blocked_step_feature">3. Tik\'exlöx &lt;b&gt;%1$s&lt;/b&gt; rik\'in TZIJÏL</string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">Rujikomal okem</string>
@@ -1919,7 +1919,7 @@ Achi\'el: \nhttps://www.google.com/search?q=%s</string>
   <!-- Browser menu button that removes a shortcut from the home fragment -->
   <string name="browser_menu_remove_from_shortcuts">Tiyu pa ruq\'a\'</string>
   <!--
-    text shown before the issuer name to indicate who its verified by, parameter is the name of
+    text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
   <string name="certificate_info_verified_by">Jikib\'an Ruma: %1$s</string>
@@ -2017,7 +2017,7 @@ Achi\'el: \nhttps://www.google.com/search?q=%s</string>
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox Suggest</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header">Google Kanob\'äl</string>
-  <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
+  <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">Tikanöx pa %s</string>
   <!-- Default browser card text -->
   <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Nub\'än kinuk\'ulem ximonel ajk\'amaya\'l taq ruxaq, taq taqoya\'l chuqa\' taq rutzijol richin yejaq pa ruyonil pa Firefox.</string>
@@ -2037,7 +2037,7 @@ Achi\'el: \nhttps://www.google.com/search?q=%s</string>
   <string name="pocket_stories_header_1">B\'anob\'äl richin yach\'ob\'on</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text">Tilitäj ch\'aqa\' chik</string>
-  <!-- Title of an app feature. Smaller than a heading. The first parameter is product name Pocket -->
+  <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
   <string name="pocket_stories_feature_title_2">B\'anon ruma %s.</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
   <string name="pocket_stories_feature_learn_more">Tetamäx ch\'aqa\' chik</string>
@@ -2053,13 +2053,13 @@ Achi\'el: \nhttps://www.google.com/search?q=%s</string>
     Name for the review quality check feature used as title for the panel.
   -->
   <string name="review_quality_check_feature_name_2" moz:removedIn="136" tools:ignore="UnusedResources">Jikib\'anel taq Nik\'oj</string>
-  <!-- Text for learn more caption presenting a link with information about review quality. First parameter is for clickable text defined in review_quality_check_info_learn_more_link. -->
+  <!-- Text for learn more caption presenting a link with information about review quality. %s is a link using review_quality_check_info_learn_more_link as text. -->
   <string name="review_quality_check_info_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Tawetamaj ch\'aqa\' chik pa ruwi\' %s.</string>
   <!-- Text for title of settings section. -->
   <string name="review_quality_check_settings_title" moz:removedIn="136" tools:ignore="UnusedResources">Taq nuk\'ulem</string>
   <!-- Clickable text that links to review quality check recommended products support article. -->
   <string name="review_quality_check_settings_recommended_products_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Tetamäx ch\'aqa\' chik</string>
-  <!-- Clickable text that links to Fakespot.com. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
+  <!-- Clickable text that links to Fakespot.com. %s is "Fakespot". In the phrase "Fakespot by Mozilla", "by" can be localized. -->
   <string name="review_quality_check_powered_by_link" moz:removedIn="136" tools:ignore="UnusedResources">%s richin Mozilla</string>
   <!-- Text for title of warning card informing the user that the current analysis is outdated. -->
   <string name="review_quality_check_outdated_analysis_warning_title" moz:removedIn="136" tools:ignore="UnusedResources">K\'ak\'a\' rutzijol richin nijikib\'äx</string>
@@ -2087,7 +2087,7 @@ Achi\'el: \nhttps://www.google.com/search?q=%s</string>
   <string name="review_quality_check_highlights_type_price" moz:removedIn="136" tools:ignore="UnusedResources">Rajil</string>
   <!-- Text for highlights card shipping category header. Reviews shown under this header should refer the product's shipping. -->
   <string name="review_quality_check_highlights_type_shipping" moz:removedIn="136" tools:ignore="UnusedResources">Taqoj</string>
-  <!-- Text that is surrounded by quotes. The parameter is the actual text that is in quotes. An example of that text could be: Excellent craftsmanship, and that is displayed as “Excellent craftsmanship”. The text comes from a buyer's review that the feature is highlighting" -->
+  <!-- Text that is surrounded by quotes. %s is the actual text that is in quotes. An example of that text could be: Excellent craftsmanship, and that is displayed as “Excellent craftsmanship”. The text comes from a buyer's review that the feature is highlighting" -->
   <string name="surrounded_with_quotes" moz:removedIn="136" tools:ignore="UnusedResources">“%s”</string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_5">ખાનગી %s</string>
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_4">%s (ખાનગી)</string>
   <!--
     Home Fragment
@@ -20,7 +20,7 @@
   <string name="no_open_tabs_description">તમારા ખુલ્લા ટેબ અહીં બતાવવામાં આવશે.</string>
   <!-- No Private Tabs Message Description -->
   <string name="no_private_tabs_description">તમારા ખાનગી ટૅબ્સ અહીં બતાવવામાં આવશે.</string>
-  <!-- Tab tray multi select title in app bar. The first parameter is the number of tabs selected -->
+  <!-- Tab tray multi select title in app bar. %1$d is the number of tabs selected -->
   <string name="tab_tray_multi_select_title">%1$d પસંદ કરેલ</string>
   <!-- Label of button in create collection dialog for creating a new collection -->
   <string name="tab_tray_add_new_collection">નવો સંગ્રહ ઉમેરો</string>
@@ -77,17 +77,17 @@
   <string name="browser_menu_share">વહેંચો</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_open_in_fenix">%1$s માં ખોલો</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by">%1$s દ્વારા સંચાલિત</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by2">%1$s દ્વારા સંચાલિત</string>
   <!-- Browser menu button to put the current page in reader mode -->
@@ -114,7 +114,7 @@
   <string name="search_suggestions_onboarding_do_not_allow_button">મંજૂરી આપશો નહીં</string>
   <!-- Search suggestion onboarding hint title text -->
   <string name="search_suggestions_onboarding_title">ખાનગી સત્રોમાં શોધ સૂચનોને મંજૂરી આપીએ?</string>
-  <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
   <string name="search_suggestions_onboarding_text">%s એ એડ્રેસ બારમાં તમે લખો છો તે બધું તમારા ડિફોલ્ટ શોધ એંજિનથી શેર કરશે.</string>
   <!-- Text preview for smaller sized widgets -->
   <string name="search_widget_text_short">શોધો</string>
@@ -140,7 +140,7 @@
   <string name="preferences_rate">ગૂગલ પ્લે પર રેટ કરો</string>
   <!--
     Preference linking to about page for Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="preferences_about">%1$s વિશે</string>
   <!-- Preference for settings related to changing the default browser -->
@@ -201,11 +201,11 @@
   <string name="empty_device_name_error">ઉપકરણનું નામ ખાલી હોઈ શકતું નથી.</string>
   <!-- Label indicating that sync is in progress -->
   <string name="sync_syncing_in_progress">સમન્વયિત…</string>
-  <!-- Label summary indicating that sync failed. The first parameter is the date stamp showing last time it succeeded -->
+  <!-- Label summary indicating that sync failed. %s is the date stamp showing last time it succeeded. -->
   <string name="sync_failed_summary">સમન્વયન નિષ્ફળ થયું. છેલ્લી સફળતા: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_failed_never_synced_summary">સમન્વયન નિષ્ફળ થયું. છેલ્લે સમન્વયિત: ક્યારેય નહીં</string>
-  <!-- Label summary the date we last synced. The first parameter is date stamp showing last time synced -->
+  <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
   <string name="sync_last_synced_summary">છેલ્લે સમન્વયિત: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_never_synced_summary">છેલ્લે સમન્વયિત: ક્યારેય નહીં</string>
@@ -295,7 +295,7 @@
   <string name="tab_tray_menu_item_close">બધી ટૅબ્સ બંધ કરો</string>
   <!-- Content description (not visible, for screen readers etc.): Close tab button. Closes the current session when pressed -->
   <string name="close_tab">ટૅબ બંધ કરો</string>
-  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. First parameter is tab title -->
+  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. %s is the tab title -->
   <string name="close_tab_title">ટૅબ બંધ કરો %s</string>
   <!-- Content description (not visible, for screen readers etc.): Opens the open tabs menu when pressed -->
   <string name="open_tabs_menu">ટૅબ્સ મેનૂ ખોલો</string>
@@ -307,17 +307,17 @@
   <string name="collection_open_tabs">ટૅબ્સ ખોલો</string>
   <!-- Text for the menu button to remove a top site -->
   <string name="remove_top_site">દૂર કરો</string>
-  <!-- Postfix for private WebApp titles, placeholder is replaced with app name -->
+  <!-- Postfix for private WebApp titles. %1$s is the name of the app (for example "Firefox"). -->
   <string name="pwa_site_controls_title_private">%1$s (ખાનગી મોડ)</string>
   <!-- Text for the button to clear all history -->
   <string name="history_delete_all">ઇતિહાસ કાઢી નાખો</string>
-  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. The first parameter is the shortened URL of the deleted history item. -->
+  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. %1$s is the shortened URL of the deleted history item. -->
   <string name="history_delete_single_item_snackbar">%1$s કાઢી નાખ્યું</string>
   <!-- Context description text for the button to delete a single history item -->
   <string name="history_delete_item">કાઢો</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="history_multi_select_title">%1$d પસંદ કરેલ</string>
   <!-- Text for the header that groups the history the past 7 days -->
@@ -331,7 +331,7 @@
   <!--
     Crashes
 
-    Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix)
+    Title text displayed on the tab crash page. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_crash_title_2">માફ કરશો. %1$s તે પૃષ્ઠને લોડ કરી શકતા નથી.</string>
   <!-- Send crash report checkbox text on the tab crash page -->
@@ -366,7 +366,7 @@
   <string name="bookmark_menu_save_button">સાચવો</string>
   <!--
     Bookmark multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="bookmarks_multi_select_title">%1$d પસંદ કરેલ</string>
   <!-- Bookmark editing screen title -->
@@ -393,7 +393,7 @@
   <string name="bookmarks_empty_message">અહીં કોઈ બુકમાર્ક્સ નથી</string>
   <!--
     Bookmark snackbar message on deletion
-    The first parameter is the host part of the URL of the bookmark deleted, if any
+    %1$s is the host part of the URL of the bookmark deleted, if any
   -->
   <string name="bookmark_deletion_snackbar_message">%1$s કાઢી નાખ્યું</string>
   <!-- Bookmark undo button for deletion snackbar action -->
@@ -557,14 +557,14 @@
   <string name="snackbar_top_site_removed">સાઇટ દૂર કરી</string>
   <!--
     QR code scanner prompt which appears after scanning a code, but before navigating to it
-    First parameter is the name of the app, second parameter is the URL or text scanned
+    %1$s is the name of the app (for example "Firefox"), %2$s is the URL or text scanned
   -->
   <string name="qr_scanner_confirmation_dialog_message">%1$s ને %2$s ખોલવાની મંજૂરી આપો</string>
   <!-- QR code scanner prompt dialog positive option to allow navigation to scanned link -->
   <string name="qr_scanner_dialog_positive">પરવાનગી આપો</string>
   <!-- QR code scanner prompt dialog positive option to deny navigation to scanned link -->
   <string name="qr_scanner_dialog_negative">નકારો</string>
-  <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
+  <!-- Tab collection deletion prompt dialog message. %1$s is the collection name. -->
   <string name="tab_collection_dialog_message">શું તમે ખરેખર %1$s ને કાઢી નાખવા માંગો છો?</string>
   <!-- Tab collection deletion prompt dialog option to delete the collection -->
   <string name="tab_collection_dialog_positive">કાઢી નાખો</string>
@@ -580,7 +580,7 @@
   <string name="preferences_delete_browsing_data">બ્રાઉઝિંગ માહિતી કાઢી નાખો</string>
   <!-- Title for the tabs item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_tabs_title_2">ટૅબ્સ ખોલો</string>
-  <!-- Subtitle for the tabs item in Delete browsing data, parameter will be replaced with the number of open tabs -->
+  <!-- Subtitle for the tabs item in Delete browsing data, %d is the number of open tabs -->
   <string name="preferences_delete_browsing_data_tabs_subtitle">%d ટૅબ્સ</string>
   <!--
     Title for the data and history items in Delete browsing data
@@ -589,7 +589,7 @@
   -->
   <string name="preferences_delete_browsing_data_browsing_history_title">ઇતિહાસ</string>
   <!--
-    Subtitle for the data and history items in delete browsing data, parameter will be replaced with the
+    Subtitle for the data and history items in delete browsing data, %d is the
     number of history items the user has
   -->
   <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d સરનામાંઓ</string>
@@ -609,7 +609,7 @@
   <string name="preference_summary_delete_browsing_data_on_quit_2">જ્યારે તમે મુખ્ય મેનૂમાંથી \"Quit\" પસંદ કરો છો ત્યારે બ્રાઉઝિંગ ડેટા આપમેળે કાઢી નાખે છે</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">બંધ કરો</string>
-  <!-- Dialog message to the user asking to delete browsing data. Parameter will be replaced by app name. -->
+  <!-- Dialog message to the user asking to delete browsing data. %s is the name of the app (for example "Firefox"). -->
   <string name="delete_browsing_data_prompt_message_3">%s પસંદ કરેલી બ્રાઉઝિંગ માહિતીને કાઢી નાખશે.</string>
   <!-- Text for the cancel button for the data deletion dialog -->
   <string name="delete_browsing_data_prompt_cancel">રદ કરો</string>
@@ -703,11 +703,11 @@
   <string name="etp_panel_off">આ સાઇટ માટે સંરક્ષણ બંધ છે</string>
   <!-- Header for exceptions list for which sites enhanced tracking protection is always off -->
   <string name="enhanced_tracking_protection_exceptions">આ વેબસાઇટ્સ માટે ઉન્નત ટ્રેકિંગ પ્રોટેક્શન બંધ છે</string>
-  <!-- About page link text to open what's new link -->
+  <!-- About page link text to open what's new link. %s is the name of the app (for example "Firefox"). -->
   <string name="about_whats_new">%s માં નવું શું છે</string>
   <!--
     Open source licenses page title
-    The first parameter is the app name
+    %s is the name of the app (for example "Firefox")
   -->
   <string name="open_source_licenses_title">%s | OSS પુસ્તકાલયો</string>
   <!-- About page link text to open support link -->
@@ -794,18 +794,18 @@
   <string name="search_add_custom_engine_error_empty_search_string">શોધ શબ્દમાળા દાખલ કરો</string>
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">તે તપાસણી કરો કે શોધ શબ્દમાળા ઉદાહરણ ફોર્મેટ સાથે મેળ ખાય છે</string>
-  <!-- Text shown when we aren't able to validate the custom search query. The first parameter is the url of the custom search engine -->
+  <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_error_cannot_reach">“%s” થી કનેક્ટ કરવામાં ભૂલ</string>
-  <!-- Text shown when a user creates a new search engine -->
+  <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s બનાવ્યું</string>
-  <!-- Text shown when a user successfully edits a custom search engine -->
+  <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_edit_custom_engine_success_message">%s સાચવ્યું</string>
-  <!-- Text shown when a user successfully deletes a custom search engine -->
+  <!-- Text shown when a user successfully deletes a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_delete_search_engine_success_message">%s કાઢી નાખ્યું</string>
   <!-- Heading for the instructions to allow a permission -->
   <string name="phone_feature_blocked_intro">તેને મંજૂરી આપવા માટે:</string>
   <!--
-    text shown before the issuer name to indicate who its verified by, parameter is the name of
+    text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
   <string name="certificate_info_verified_by">દ્વારા ચકાસાયેલ: %1$s</string>

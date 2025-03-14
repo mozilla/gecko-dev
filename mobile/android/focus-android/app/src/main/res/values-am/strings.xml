@@ -23,7 +23,10 @@
   <string name="feedback_erase2">የአሰሳ ታሪክ ጸድቷል</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">የትሩ የአሰሳ ታሪክ ተደምስሷል።</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">ፈልግ ስለ %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">ያጋሩ…\n\n</string>
@@ -143,8 +146,8 @@
   -->
   <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Focus Nightly ላይ ፈልግ</string>
   <!--
-    Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
-    Argument 2 is the url for the learn-more link.
+    Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
+    %2$s is the url for the learn-more link.
   -->
   <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s እርስዎን ውሣኔ ሰጪ ያደርግዎታል።&lt;/p&gt;
 &lt;p&gt;እንደ የግል አሳሽ ይጠቀሙበት፡-
@@ -207,14 +210,14 @@
   <string name="preference_switch_autocomplete_topsites">ለዋና ዋና ድረ-ገፆች</string>
   <!--
     Summary for the toggle to enable autocomplete for the topsites list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_topsite_summary2">በአድራሻ አሞሌው ውስጥ ከ450 በላይ ታዋቂ ዩአርኤሎችን %s በራስ ሰር እንዲያጠናቅቅ ያንቁ።</string>
   <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
   <string name="preference_switch_autocomplete_user_list">ለሚያክሏቸው ድረ-ገፆች</string>
   <!--
     Summary for the toggle to enable autocomplete for the user-defined list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_user_list_summary2">የሚወዷቸውን ዩአርኤሎች %s በራስ ሰር እንዲያጠናቅቅ ያንቁ።</string>
   <!-- Preference category: Manage (user-defined) sites -->
@@ -289,8 +292,8 @@
   <!--
     Preference Summary: Biometrics (iris scan, fingerprint, or facial scan) can be used to unlock Focus if the app had a URL
     open when the app was last run to ensure that only the phone's owner can view a previous session.
-    %s will be replaced by the app name (e.g. Firefox Focus)
-    Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar")
+    Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them.
   -->
   <string name="preference_security_biometric_summary2">አቋራጮችን ካከሉ ወይም አንድ ድረ-ገፅ በ%s ውስጥ ክፍት ከሆነ፤ የጣት አሻራ በመጠቀም ይክፈቱ።</string>
   <!--
@@ -332,9 +335,9 @@
   <string name="preference_licensing_info">የፈቃድ መረጃ</string>
   <!-- Link to Focus licensing information from other libraries that we use. -->
   <string name="preference_libraries_we_use">የምንጠቀማቸው ጥቅሎች</string>
-  <!-- Open Source Licenses page title. The first parameter is the app name -->
+  <!-- Open Source Licenses page title. %s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="open_source_licenses_title">%s | ክፍት ምንጭ ሶፍትዌር (OSS) ጥቅሎች</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">ስለ %1$s</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">የተጫኑ የፍለጋ ፕሮግራሞች</string>
@@ -358,7 +361,7 @@
   <string name="search_add_manually_name_hint">የመፈለጊያ ማሸን ስም</string>
   <string name="search_add_manually_string">የሚጠቀሙ ሕብረ ቁምፊዎችን ፈልግ</string>
   <string name="search_add_manually_save">አስቀምጥ</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">ለምሳሌ: ለምሳሌ.com /search/?q=%s</string>
   <string name="search_add_confirmation">አዲስ የፍለጋ ፕሮግራም ታክሏል</string>
   <string name="search_add_error_empty_name">የፍለጋውን ስም አስገባ</string>
@@ -430,19 +433,19 @@
   <string name="external_app_prompt_title">አገናኙን በሌላ መተግበሪያ ውስጥ ይክፈቱ</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">መሄድ ይችላሉ %1$s ይህንን አገናኝ በ ውስጥ ለመክፈት %2$s</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">አገናኙን መክፈት የሚችል መተግበሪያ ያግኙ</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">በመሣሪያዎ ላይ ካሉት መተግበሪያዎች ውስጥ አንዳቸውም ይህን አገናኝ መክፈት አይችሉም። የሚችል መተግበሪያ %2$s ለመፈለግ %1$sን ትተው መሄድ ይችላሉ።</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">የግል አሰሳውን ውጣ?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s ተጠናቅቋል</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">ክፈት</string>
@@ -452,7 +455,7 @@
   <!--
     New Onboarding flow first screen title
 
-    %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly)
+    %1$s is the app name and build variant (for example "Firefox Focus", "Firefox Klar Nightly").
   -->
   <string name="onboarding_first_screen_title">እንኳን ወደ %1$s በደህና መጡ</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
@@ -587,13 +590,15 @@
   <!-- Watermark/Hint for the find in page input field -->
   <string name="find_in_page_input">በገጽ ውስጥ ያግኙ</string>
   <!--
-    String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total
+    String to show the number of results found in the page and the position
+    the user is at. %1$d is the position, %2$d is the total number of
+    results.
   -->
   <string name="find_in_page_result">%1$d/%2$d</string>
   <!--
-    String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total
+    String to be read by the accessibility service presenting the number of
+    results found in the page and the position the user is at. %1$d is the
+    position, %2$d is the total number of results.
   -->
   <string name="accessibility_find_in_page_result">%1$d ከ%2$d</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->
@@ -640,13 +645,13 @@
   <string name="cookie_banner_exception_panel_switch_state_off">ለዚህ ድረ-ገፅ ጠፍቷል</string>
   <!-- Text for indicating cookie banner handling is on this site, this is shown when the user enters in details after he clicks on the item from protection panel. -->
   <string name="cookie_banner_exception_panel_switch_state_on">ለዚህ ድረ-ገፅ በርቷል</string>
-  <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site. -->
+  <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="cookie_banner_exception_panel_title_state_on_for_site">ለ%1$s የኩኪ ባነር ቅነሳ ይብራ?</string>
-  <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site. -->
+  <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="cookie_banner_exception_panel_title_state_off_for_site">ለ%1$s የኩኪ ባነር ቅነሳ ይጥፋ?</string>
-  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The placeholder will be updated with the app name. -->
+  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="cookie_banner_exception_panel_description_state_on_for_site">%1$s የዚህን ጣቢያ ኩኪዎች ያጠራል እና ገጹን ያድሳል። ሁሉንም ኩኪዎች ማጽዳት እርስዎን ሊያስወጣዎት ወይም የግዢ ጋሪዎችን ባዶ ሊያደርግ ይችላል።</string>
-  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The placeholder will be updated with the app name. -->
+  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="cookie_banner_exception_panel_description_state_off_for_site2">%1$s የኩኪ ጥያቄዎችን በራስ ሰር ውድቅ ለማድረግ መሞከር ይችላል።</string>
   <!-- Long text for a detail explanation indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
   <string name="cookie_banner_exception_panel_description_site_is_not_supported">ይህ ድረ-ገጽ በአሁኑ ጊዜ በኩኪ ሰሌዳ ቅነሳ አይደገፍም። ቡድናችን ይህንን ድረ-ገጽ እንዲገመግም እና ለወደፊቱ ድጋፍ እንዲጨምር መጠየቅ ይፈልጋሉ?</string>
@@ -676,7 +681,7 @@
   <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt;ፍቃዶችን&lt;/b&gt; መታ ያድርጉ</string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">ወደ ቅንብሮች ይሂዱ</string>
-  <!-- Third step for allowing a permission. The placeholder will be updated by, for example, "Camera" -->
+  <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
   <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt; ን ወደ አብራ ቀይር</string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">ካሜራ</string>
@@ -768,12 +773,12 @@
     የክትትል ጥበቃን በማጥፋት ይሞክሩ</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
-    Argument 1 will be replaced with a line break in the application.
+    %1$s is replaced with a line break in the application.
   -->
   <string name="tip_add_to_homescreen">ብዙ ጊዜ የሚጠቀሟቸውን ድረ-ገፆች በቅርብ ለማግኘት%1$s ምናሌ &gt; ወደ መነሻ ገፅ አክል</string>
   <!--
     Tip displayed on home view explaining how to make Focus the default browser
-    Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
+    %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
   <string name="tip_set_default_browser">እያንዳንዱን አገናኝ በ %1$s ክፈት\n
@@ -830,29 +835,29 @@
   <string name="crash_report_send_crash_label">የብልሽት ሪፖርት ወደ ሞዚላ ይላኩ</string>
   <!-- Tracking protection bottom sheet -->
 
-  <!-- Label for the total number of trackers blocked. %s represents the app install date -->
+  <!-- Label for the total number of trackers blocked. %s is the app install date. -->
   <string name="trackers_count_note">ከ%s ጀምሮ የታገዱ መከታተያዎች </string>
-  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection. -->
   <string name="content">ይዘት</string>
-  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection. -->
   <string name="advertising">ማስታወቂያ</string>
-  <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection. -->
   <string name="social">ማኅበራዊ</string>
-  <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection. -->
   <string name="analytics">ትንታኔ</string>
-  <!-- Preference title for enhanced tracking protection settings -->
+  <!-- Preference title for enhanced tracking protection settings. -->
   <string name="enhanced_tracking_protection">የተሻሻለ የመከታተያ ጥበቃ</string>
-  <!-- Enhanced tracking protection preference description when the tracking protection is disabled for this site -->
+  <!-- Enhanced tracking protection preference description when the tracking protection is disabled for this site. -->
   <string name="enhanced_tracking_protection_state_off">ለዚህ ጣቢያ ጥበቃዎች ጠፍተዋል</string>
-  <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site -->
+  <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site. -->
   <string name="enhanced_tracking_protection_state_on">ጥበቃዎች ለዚህ ጣቢያ በርተዋል</string>
-  <!-- Label that indicates a site is using a secure connection -->
+  <!-- Label that indicates a site is using a secure connection. -->
   <string name="secure_connection">ግንኙነት ደህንነቱ የተጠበቀ ነው</string>
-  <!-- Label that indicates a site is using a insecure connection -->
+  <!-- Label that indicates a site is using a insecure connection. -->
   <string name="insecure_connection">ግንኙነት ደህንነቱ የተጠበቀ አይደለም</string>
-  <!-- Title for the list of trackers enhanced tracking ptotection can block -->
+  <!-- Title for the list of trackers enhanced tracking protection can block. -->
   <string name="trackers_and_scripts">መከታተያዎች እና ስክሪፕቶች ለማገድ </string>
-  <!-- Content description (not visible, for screen readers etc.): Navigate back button description -->
+  <!-- Content description (not visible, for screen readers etc.): Navigate back button description. -->
   <string name="go_back">ተመለስ</string>
   <!--
     Top Sites
@@ -888,8 +893,8 @@
   <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
   <string name="errorpage_httpsonly_title2">ይህ ድረ-ገፅ HTTPSን አይደግፍም</string>
   <!--
-    The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
-    Contains a button that will redirect the user to Privacy & Security Screen
+    The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
+    %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
   <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s ለበለጠ ደህንነት በተቻለ መጠን የHTTPS ግንኙነት ለመጠቀም ይሞክራል።
      &lt;a href="%2$s"&gt;የበለጠ ለመረዳት&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
@@ -969,13 +974,13 @@
 
     Message shown to explain how to exit fullscreen mode when gesture navigation is enabled.
 
-    Localisation note: this text should be as short as possible, max 68 chars
+    This text should be as short as possible, max 68 chars
   -->
   <string name="exit_fullscreen_with_gesture_short">ከላይ ይጎትቱ እና ለመውጣት ወደ ኋላ በእጅ ያመላክቱ</string>
   <!--
     Message shown to explain how to exit fullscreen mode when using back button navigation.
 
-    Localisation note: this text should be as short as possible, max 68 chars
+    This text should be as short as possible, max 68 chars
   -->
   <string name="exit_fullscreen_with_back_button_short">ከላይ ይጎትቱ እና ለመውጣት ወደ ኋላ ምልክትን ይጫኑ</string>
 </resources>

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_5">Cuuriɗum %s</string>
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_4">%s (Cuuriɗum)</string>
   <!--
     Home Fragment
@@ -34,7 +34,7 @@
   <string name="tab_tray_select_collection">Danndu to leemannde</string>
   <!-- Content description for save to collection button while in multiselect mode in tab tray -->
   <string name="tab_tray_collection_button_multiselect_content_description">Danndu tabbe labaaɗe to leemannde</string>
-  <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
+  <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">Ko Mozilla jibini %1$s</string>
   <string name="private_browsing_common_myths">Tinndi goowaaɗi baɗte banngogol suturo</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
@@ -47,7 +47,7 @@
   <string name="tab_tray_inactive_auto_close_title">Uddu e jaajol caggal lewru?</string>
   <!--
     Text for the body for the auto-close dialog of the inactive tabs.
-    The first parameter is the name of the application.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_tray_inactive_auto_close_body_2">%1$s ena waawi uddude tabbe ɗe a yillaaki e lewru ɓennundu nduu.</string>
   <!--
@@ -118,7 +118,7 @@
   <string name="browser_menu_share">Lollin</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_open_in_fenix">Uddit e %1$s</string>
   <!-- Browser menu button to put the current page in reader mode -->
@@ -147,9 +147,9 @@
   <string name="search_suggestions_onboarding_do_not_allow_button">Hoto Yamir</string>
   <!-- Search suggestion onboarding hint title text -->
   <string name="search_suggestions_onboarding_title">Yamir basiye njiilaw nder doge cuuriiɗe?</string>
-  <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
   <string name="search_suggestions_onboarding_text">%s maa lollin kala ko tappuɗaa e palal ñiiɓirde maa e yiylorde maa woowaande ndee.</string>
-  <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine -->
+  <!-- Search engine suggestion title text. %s is the name of the suggested engine. -->
   <string name="search_engine_suggestions_title">Yiylo %s</string>
   <!-- Search engine suggestion description text -->
   <string name="search_engine_suggestions_description">Yiylo beƴ e palal ñiiɓirɗe ngal</string>
@@ -160,7 +160,7 @@
   <!--
     Search Widget
 
-    Content description for searching with a widget. The first parameter is the name of the application.
+    Content description for searching with a widget. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="search_widget_content_description_2">Uddit tabbere hesre %1$s</string>
   <!-- Text preview for smaller sized widgets -->
@@ -187,7 +187,7 @@
   <string name="preferences_rate">Ɓetto to Google Play</string>
   <!--
     Preference linking to about page for Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="preferences_about">Baɗte %1$s</string>
   <!-- Preference for settings related to changing the default browser -->
@@ -278,7 +278,7 @@
   <!--
     Wallpapers
 
-    Content description for various wallpapers. The first parameter is the name of the wallpaper
+    Content description for various wallpapers. %1$s is the name of the wallpaper.
   -->
   <string name="wallpapers_item_name_content_description">Temre ɗeerol ɓalal: %1$s</string>
   <!-- Snackbar message for when wallpaper is selected -->
@@ -293,7 +293,7 @@
   <string name="wallpaper_select_error_snackbar_message">Horiima waylude ɗerol ɓalal</string>
   <!-- Text displayed that links to website containing documentation about the "Limited Edition" wallpapers. -->
   <string name="wallpaper_learn_more">Ɓeydu humpito</string>
-  <!-- Text for classic wallpapers title. The first parameter is the Firefox name. -->
+  <!-- Text for classic wallpapers title. %s is the name of the app (for example "Firefox"). -->
   <string name="wallpaper_classic_title">Gaadanteejo %s</string>
   <!-- Preference for triggering sync -->
   <string name="preferences_sync_now">Sanngoɗin jooni</string>
@@ -313,18 +313,18 @@
   <string name="empty_device_name_error">Innde kaɓirgal wonataa mehre.</string>
   <!-- Label indicating that sync is in progress -->
   <string name="sync_syncing_in_progress">Nana yahdina…</string>
-  <!-- Label summary indicating that sync failed. The first parameter is the date stamp showing last time it succeeded -->
+  <!-- Label summary indicating that sync failed. %s is the date stamp showing last time it succeeded. -->
   <string name="sync_failed_summary">Jahdingol jaccii. Sakkitii moƴƴude: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_failed_never_synced_summary">Jahdingol jaccii. Sakkitii yahdineedee: abadaa</string>
-  <!-- Label summary the date we last synced. The first parameter is date stamp showing last time synced -->
+  <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
   <string name="sync_last_synced_summary">Sakkitii yahdineede: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_never_synced_summary">Sakkitii yahdineede: abadaa</string>
   <!--
     Text for displaying the default device name.
-    The first parameter is the application name, the second is the device manufacturer name
-    and the third is the device model.
+    %1$s is the name of the app (for example "Firefox"). %2$s is the device manufacturer name
+    and %3$s is the device model.
   -->
   <string name="default_device_name_2">%1$s dow %2$s%3$s</string>
   <!--
@@ -538,7 +538,7 @@
   <string name="tabs_tray_select_tabs">Suɓo tabbe</string>
   <!-- Content description (not visible, for screen readers etc.): Close tab button. Closes the current session when pressed -->
   <string name="close_tab">Uddu tabbere</string>
-  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. First parameter is tab title -->
+  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. %s is the tab title -->
   <string name="close_tab_title">Uddu tabbe %s</string>
   <!-- Content description (not visible, for screen readers etc.): Opens the open tabs menu when pressed -->
   <string name="open_tabs_menu">Uddit dosol tabbe</string>
@@ -552,13 +552,13 @@
   <string name="history_delete_all">Momtu aslol</string>
   <!-- Text for the snackbar to confirm that multiple browsing history items has been deleted -->
   <string name="history_delete_multiple_items_snackbar">Aslol momtaama</string>
-  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. The first parameter is the shortened URL of the deleted history item. -->
+  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. %1$s is the shortened URL of the deleted history item. -->
   <string name="history_delete_single_item_snackbar">Momtaama %1$s</string>
   <!-- Context description text for the button to delete a single history item -->
   <string name="history_delete_item">Momtu</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="history_multi_select_title">suɓaama %1$d</string>
   <!-- Text for the header that groups the history the past 7 days -->
@@ -579,13 +579,13 @@
   <string name="download_empty_message_1">Alaa piille gaawtaaɗe</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of downloads selected
+    %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">%1$d labaama</string>
   <!--
     Crashes
 
-    Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix)
+    Title text displayed on the tab crash page. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_crash_title_2">Njaafoɗaa. %1$s waawaa loowde ngoo hello.</string>
   <!-- Send crash report checkbox text on the tab crash page -->
@@ -622,7 +622,7 @@
   <string name="bookmark_menu_save_button">Danndu</string>
   <!--
     Bookmark multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="bookmarks_multi_select_title">suɓaama %1$d</string>
   <!-- Bookmark editing screen title -->
@@ -649,7 +649,7 @@
   <string name="bookmarks_empty_message">Ɗoo alaa maantore</string>
   <!--
     Bookmark snackbar message on deletion
-    The first parameter is the host part of the URL of the bookmark deleted, if any
+    %1$s is the host part of the URL of the bookmark deleted, if any
   -->
   <string name="bookmark_deletion_snackbar_message">Momtaama %1$s</string>
   <!-- Bookmark snackbar message on deleting multiple bookmarks not including folders -->
@@ -809,14 +809,14 @@
   <string name="snackbar_top_site_removed">Lowre momtaama</string>
   <!--
     QR code scanner prompt which appears after scanning a code, but before navigating to it
-    First parameter is the name of the app, second parameter is the URL or text scanned
+    %1$s is the name of the app (for example "Firefox"), %2$s is the URL or text scanned
   -->
   <string name="qr_scanner_confirmation_dialog_message">Yamir %1$s uddita %2$s</string>
   <!-- QR code scanner prompt dialog positive option to allow navigation to scanned link -->
   <string name="qr_scanner_dialog_positive">YAMIR</string>
   <!-- QR code scanner prompt dialog positive option to deny navigation to scanned link -->
   <string name="qr_scanner_dialog_negative">HAƊ</string>
-  <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
+  <!-- Tab collection deletion prompt dialog message. %1$s is the collection name. -->
   <string name="tab_collection_dialog_message">Aɗa yenanaa yiɗde momtude %1$s?</string>
   <!-- Tab collection deletion prompt dialog option to delete the collection -->
   <string name="tab_collection_dialog_positive">Momtu</string>
@@ -836,10 +836,10 @@
   <string name="preferences_delete_browsing_data">Momtu keɓe banngogol</string>
   <!-- Title for the tabs item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_tabs_title_2">Tabbe udditiiɗe</string>
-  <!-- Subtitle for the tabs item in Delete browsing data, parameter will be replaced with the number of open tabs -->
+  <!-- Subtitle for the tabs item in Delete browsing data, %d is the number of open tabs -->
   <string name="preferences_delete_browsing_data_tabs_subtitle">%d tabbe</string>
   <!--
-    Subtitle for the data and history items in delete browsing data, parameter will be replaced with the
+    Subtitle for the data and history items in delete browsing data, %d is the
     number of history items the user has
   -->
   <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d ñiiɓirɗe</string>
@@ -859,7 +859,7 @@
   <string name="preference_summary_delete_browsing_data_on_quit_2">Ina momta keɓe banngogol ɗoon e ɗoon  so a suɓiima \"Uddu\" e dosol dowrowol ngol</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Uddu</string>
-  <!-- Dialog message to the user asking to delete browsing data. Parameter will be replaced by app name. -->
+  <!-- Dialog message to the user asking to delete browsing data. %s is the name of the app (for example "Firefox"). -->
   <string name="delete_browsing_data_prompt_message_3">%s momtoytu keɓe banngogol cuɓaaɗe ɗee.</string>
   <!-- Text for the cancel button for the data deletion dialog -->
   <string name="delete_browsing_data_prompt_cancel">Haaytu</string>
@@ -893,7 +893,7 @@
   <string name="sign_in_with_email">Huutoro ɗoo iimeel</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
   <string name="sign_in_create_account_text" tools:ignore="BrandUsage">A alaa konte? &lt;u&gt;Sos konte&lt;/u&gt; ngam sanngoɗinde Firefox hakkunde kaɓirɗi.</string>
-  <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
+  <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">Maa %s dartin jahdingol e konte maa, kono momtataa hay wootere e keɓe banngogol maa e ngal kaɓirgal gal.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
   <string name="sign_out_disconnect">Seŋtondir</string>
@@ -941,7 +941,7 @@
   <string name="enhanced_tracking_protection_allowed">Yamiraama</string>
   <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_tracking_content_title">Dewindagol loowdi</string>
-  <!-- About page link text to open what's new link -->
+  <!-- About page link text to open what's new link. %s is the name of the app (for example "Firefox"). -->
   <string name="about_whats_new">Ko hesɗi e %s</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Wallitorde</string>
@@ -1055,11 +1055,11 @@
   <string name="search_engine_delete">Momtu</string>
   <!-- Text shown when a user leaves the name field empty -->
   <string name="search_add_custom_engine_error_empty_name">Naatnu innde yiylorde</string>
-  <!-- Text shown when a user creates a new search engine -->
+  <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s Sosaa</string>
-  <!-- Text shown when a user successfully edits a custom search engine -->
+  <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_edit_custom_engine_success_message">%s danndaa</string>
-  <!-- Text shown when a user successfully deletes a custom search engine -->
+  <!-- Text shown when a user successfully deletes a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_delete_search_engine_success_message">Momtaama %s</string>
   <!-- Heading for the instructions to allow a permission -->
   <string name="phone_feature_blocked_intro">Yamirde ɗum:</string>

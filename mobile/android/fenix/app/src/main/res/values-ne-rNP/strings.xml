@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_5">निजी %s</string>
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_4">%s (निजी)</string>
   <!--
     Home Fragment
@@ -20,7 +20,7 @@
   <string name="no_open_tabs_description">तपाईंका खुलेका ट्याबहरू यहाँ देखाइने छन्।</string>
   <!-- No Private Tabs Message Description -->
   <string name="no_private_tabs_description">तपाईंका निजी ट्याबहरू यहाँ देखाइने छन्।</string>
-  <!-- Tab tray multi select title in app bar. The first parameter is the number of tabs selected -->
+  <!-- Tab tray multi select title in app bar. %1$d is the number of tabs selected -->
   <string name="tab_tray_multi_select_title">%1$d छनौट गरियो</string>
   <!-- Label of button in create collection dialog for creating a new collection -->
   <string name="tab_tray_add_new_collection">नयाँ सङ्कलन थप्नुहोस्</string>
@@ -34,13 +34,13 @@
   <string name="tab_tray_collection_button_multiselect_content_description">सङ्कलनमा चयन गरिएका ट्याबहरू बचत गर्नुहोस्</string>
   <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
   <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">छानिएका</string>
-  <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
+  <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s Mozilla द्वारा निर्माण गरिएको हो।</string>
   <!--
     Private Browsing
 
-    Explanation for private browsing displayed to users on home view when they first enable private mode
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    Explanation for private browsing displayed to users on home view when they first enable private mode.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">
         %1$s ले तपाइँको खोज र ब्राउजिङ्ग इतिहासलाई निजी ट्याबहरूबाट खाली गर्दछ जब, तपाइँ तिनीहरूलाई बन्द गर्नुहुन्छ वा एप छोड्नुहुन्छ। यद्यपि यसले तपाइँलाई वेबसाइटहरू वा तपाइँको इन्टरनेट सेवा प्रदायकको लागि गुमनाम बनाउँदैन, यसले तपाइँलाई यो यन्त्र प्रयोग गर्ने अरू कसैबाट तपाइँ अनलाइन गर्ने कुरालाई गोप्य राख्न सजिलो बनाउँछ।</string>
@@ -114,7 +114,7 @@
   <string name="browser_menu_share">सेयर</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_open_in_fenix">%1$s मा खोल्नुहोस्</string>
   <!-- Browser menu label for adding a bookmark -->
@@ -149,9 +149,9 @@
   <string name="search_suggestions_onboarding_do_not_allow_button">अनुमति नदिनुहोस्</string>
   <!-- Search suggestion onboarding hint title text -->
   <string name="search_suggestions_onboarding_title">निजी सत्रहरूमा खोजी सुझावहरूलाई अनुमति दिन चाहानुहुन्छ?</string>
-  <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
   <string name="search_suggestions_onboarding_text">%s ले तपाईले ठेगाना पट्टीमा टाइप गर्नुहुने सबै कुरा तपाईको पूर्व-निर्धारित खोज इन्जिन सङ्ग साझेदारी गर्नेछ।</string>
-  <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine -->
+  <!-- Search engine suggestion title text. %s is the name of the suggested engine. -->
   <string name="search_engine_suggestions_title">%s खोज्नुहोस्</string>
   <!-- Search engine suggestion description text -->
   <string name="search_engine_suggestions_description">ठेगाना पट्टीबाट सिधै खोज्नुहोस्</string>
@@ -179,7 +179,7 @@
   <string name="preferences_rate">गुगल प्ले मा मुल्याङ्कन गर्नुहोस्</string>
   <!--
     Preference linking to about page for Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="preferences_about">%1$s बारेमा</string>
   <!-- Preference for settings related to changing the default browser -->
@@ -281,18 +281,18 @@
   <string name="empty_device_name_error">उपकरणको नाम खाली छोड्न मिल्दैन।</string>
   <!-- Label indicating that sync is in progress -->
   <string name="sync_syncing_in_progress">सिङ्क गरिदै…</string>
-  <!-- Label summary indicating that sync failed. The first parameter is the date stamp showing last time it succeeded -->
+  <!-- Label summary indicating that sync failed. %s is the date stamp showing last time it succeeded. -->
   <string name="sync_failed_summary">सिङ्क असफल भयो। पछिल्लो सफलता: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_failed_never_synced_summary">सिङ्क असफल भयो। पछिल्लो सफलता: कहिल्यै पनि छैन</string>
-  <!-- Label summary the date we last synced. The first parameter is date stamp showing last time synced -->
+  <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
   <string name="sync_last_synced_summary">अन्तिम पटक सिङ्क गरिएको: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_never_synced_summary">अन्तिम पटक सिङ्क गरिएको: कहिल्यै गरिएन</string>
   <!--
     Text for displaying the default device name.
-    The first parameter is the application name, the second is the device manufacturer name
-    and the third is the device model.
+    %1$s is the name of the app (for example "Firefox"). %2$s is the device manufacturer name
+    and %3$s is the device model.
   -->
   <string name="default_device_name_2">%2$s %3$s मा %1$s</string>
   <!-- Preference for syncing addresses -->

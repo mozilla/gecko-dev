@@ -6,9 +6,9 @@
   <string name="mozac_feature_downloads_dialog_title2">Snuù (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">Snuù</string>
-  <!-- Button that pauses the download when pressed -->
+  <!-- Button that pauses the download when pressed. -->
   <string name="mozac_feature_downloads_button_pause">Kunchatu</string>
-  <!-- Button that opens the downloaded file when pressed -->
+  <!-- Button that opens the downloaded file when pressed. -->
   <string name="mozac_feature_downloads_button_open">Kuna</string>
   <!-- Content description for close button -->
   <string name="mozac_feature_downloads_button_close">Kasi</string>

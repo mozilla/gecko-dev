@@ -23,7 +23,10 @@
   <string name="feedback_erase2">Se borró el historial de navegación</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">Se ha borrado el historial de navegación de la pestaña.</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">Buscar %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">Compartir…</string>
@@ -143,8 +146,8 @@
   -->
   <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Buscar en Focus Nightly</string>
   <!--
-    Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
-    Argument 2 is the url for the learn-more link.
+    Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
+    %2$s is the url for the learn-more link.
   -->
   <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s te da el control.&lt;/p&gt;
 &lt;p&gt;Úsalo como navegador privado:
@@ -207,14 +210,14 @@
   <string name="preference_switch_autocomplete_topsites">Para sitios favoritos</string>
   <!--
     Summary for the toggle to enable autocomplete for the topsites list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_topsite_summary2">Activar para que %s autocomplete más de 450 URLs populares en la barra de direcciones.</string>
   <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
   <string name="preference_switch_autocomplete_user_list">Para los sitios que agregues</string>
   <!--
     Summary for the toggle to enable autocomplete for the user-defined list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_user_list_summary2">Activar para que %s autocomplete tus URLs favoritas.</string>
   <!-- Preference category: Manage (user-defined) sites -->
@@ -289,8 +292,8 @@
   <!--
     Preference Summary: Biometrics (iris scan, fingerprint, or facial scan) can be used to unlock Focus if the app had a URL
     open when the app was last run to ensure that only the phone's owner can view a previous session.
-    %s will be replaced by the app name (e.g. Firefox Focus)
-    Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar")
+    Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them.
   -->
   <string name="preference_security_biometric_summary2">Desbloquea usando la huella digital si agregaste accesos directos o cuando un sitio web ya está abierto en %s.</string>
   <!--
@@ -338,9 +341,9 @@
   <string name="preference_libraries_we_use">Bibliotecas que usamos</string>
   <!-- Link to Focus Crash reports list. -->
   <string name="preference_crashes">Fallos</string>
-  <!-- Open Source Licenses page title. The first parameter is the app name -->
+  <!-- Open Source Licenses page title. %s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="open_source_licenses_title">%s | Bibliotecas OSS</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">Acerca de %1$s</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">Motores de búsqueda instalados</string>
@@ -364,7 +367,7 @@
   <string name="search_add_manually_name_hint">Nombre del motor de búsqueda</string>
   <string name="search_add_manually_string">Buscar cadena para usar</string>
   <string name="search_add_manually_save">Guardar</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">Ejemplo: example.com/search/?q=%s</string>
   <string name="search_add_confirmation">Nuevo motor de búsqueda añadido.</string>
   <string name="search_add_error_empty_name">Introducir el nombre del motor de navegación</string>
@@ -436,19 +439,19 @@
   <string name="external_app_prompt_title">Abrir enlace en otra aplicación</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">Puedes salir de %1$s para abrir este enlace en %2$s.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">Buscar una aplicación que pueda abrir el enlace</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">Ninguna de las aplicaciones en tu dispositivo puede abrir este enlace. Puedes salir de %1$s para buscar una aplicación compatible en %2$s.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">¿Salir de la navegación privada?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s finalizado</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">Abrir</string>
@@ -458,7 +461,7 @@
   <!--
     New Onboarding flow first screen title
 
-    %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly)
+    %1$s is the app name and build variant (for example "Firefox Focus", "Firefox Klar Nightly").
   -->
   <string name="onboarding_first_screen_title">Te damos la bienvenida a %1$s</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
@@ -593,13 +596,15 @@
   <!-- Watermark/Hint for the find in page input field -->
   <string name="find_in_page_input">Buscar en la página</string>
   <!--
-    String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total
+    String to show the number of results found in the page and the position
+    the user is at. %1$d is the position, %2$d is the total number of
+    results.
   -->
   <string name="find_in_page_result">%1$d/%2$d</string>
   <!--
-    String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total
+    String to be read by the accessibility service presenting the number of
+    results found in the page and the position the user is at. %1$d is the
+    position, %2$d is the total number of results.
   -->
   <string name="accessibility_find_in_page_result">%1$d de %2$d</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->
@@ -646,13 +651,13 @@
   <string name="cookie_banner_exception_panel_switch_state_off">DESACTIVADO para este sitio</string>
   <!-- Text for indicating cookie banner handling is on this site, this is shown when the user enters in details after he clicks on the item from protection panel. -->
   <string name="cookie_banner_exception_panel_switch_state_on">ACTIVADO para este sitio</string>
-  <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site. -->
+  <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="cookie_banner_exception_panel_title_state_on_for_site">¿Activar la reducción de banner de cookies para %1$s?</string>
-  <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site. -->
+  <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="cookie_banner_exception_panel_title_state_off_for_site">¿Desactivar la reducción de banner de cookies para %1$s?</string>
-  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The placeholder will be updated with the app name. -->
+  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="cookie_banner_exception_panel_description_state_on_for_site">%1$s borrará las cookies de este sitio y actualizará la página. Borrar todas las cookies puede cerrar tu sesión o vaciar los carritos de compras.</string>
-  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The placeholder will be updated with the app name. -->
+  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="cookie_banner_exception_panel_description_state_off_for_site2">%1$s puede intentar rechazar automáticamente las solicitudes de cookies.</string>
   <!-- Long text for a detail explanation indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
   <string name="cookie_banner_exception_panel_description_site_is_not_supported">Actualmente, este sitio no es compatible con la reducción de banner de cookies. ¿Te gustaría solicitar a nuestro equipo que revise este sitio web y agregue soporte en el futuro?</string>
@@ -683,7 +688,7 @@
   <string name="phone_feature_blocked_step_permissions">2. Presiona &lt;b&gt;Permisos&lt;/b&gt;</string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Ir a los ajustes</string>
-  <!-- Third step for allowing a permission. The placeholder will be updated by, for example, "Camera" -->
+  <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
   <string name="phone_feature_blocked_step_feature">3. Cambia &lt;b&gt;%1$s&lt;/b&gt; a Encendido</string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Cámara</string>
@@ -774,12 +779,12 @@
   <string name="tip_disable_tracking_protection">¿El sitio se comporta de manera inesperada?\n Prueba desactivar la Protección de Rastreo</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
-    Argument 1 will be replaced with a line break in the application.
+    %1$s is replaced with a line break in the application.
   -->
   <string name="tip_add_to_homescreen">Obtén acceso con un toque a los sitios que más usas%1$s Menú &gt; Agregar a la pantalla de inicio</string>
   <!--
     Tip displayed on home view explaining how to make Focus the default browser
-    Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
+    %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
   <string name="tip_set_default_browser">Abrir cada enlace en %1$s\n Establecer %1$s como navegador predeterminado</string>
@@ -833,29 +838,29 @@
   <string name="crash_report_send_crash_label">Enviar reporte de fallos a Mozilla</string>
   <!-- Tracking protection bottom sheet -->
 
-  <!-- Label for the total number of trackers blocked. %s represents the app install date -->
+  <!-- Label for the total number of trackers blocked. %s is the app install date. -->
   <string name="trackers_count_note">Rastreadores bloqueados desde %s</string>
-  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection. -->
   <string name="content">Contenido</string>
-  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection. -->
   <string name="advertising">Publicidad</string>
-  <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection. -->
   <string name="social">Social</string>
-  <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection. -->
   <string name="analytics">Analítica</string>
-  <!-- Preference title for enhanced tracking protection settings -->
+  <!-- Preference title for enhanced tracking protection settings. -->
   <string name="enhanced_tracking_protection">Protección mejorada contra el rastreo</string>
-  <!-- Enhanced tracking protection preference description when the tracking protection is disabled for this site -->
+  <!-- Enhanced tracking protection preference description when the tracking protection is disabled for this site. -->
   <string name="enhanced_tracking_protection_state_off">Las protecciones están desactivadas para este sitio</string>
-  <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site -->
+  <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site. -->
   <string name="enhanced_tracking_protection_state_on">Las protecciones están activadas para este sitio</string>
-  <!-- Label that indicates a site is using a secure connection -->
+  <!-- Label that indicates a site is using a secure connection. -->
   <string name="secure_connection">La conexión es segura</string>
-  <!-- Label that indicates a site is using a insecure connection -->
+  <!-- Label that indicates a site is using a insecure connection. -->
   <string name="insecure_connection">La conexión no es segura</string>
-  <!-- Title for the list of trackers enhanced tracking ptotection can block -->
+  <!-- Title for the list of trackers enhanced tracking protection can block. -->
   <string name="trackers_and_scripts">Rastreadores y scripts a bloquear</string>
-  <!-- Content description (not visible, for screen readers etc.): Navigate back button description -->
+  <!-- Content description (not visible, for screen readers etc.): Navigate back button description. -->
   <string name="go_back">Retroceder</string>
   <!--
     Top Sites
@@ -891,8 +896,8 @@
   <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
   <string name="errorpage_httpsonly_title2">Este sitio no es compatible con HTTPS</string>
   <!--
-    The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
-    Contains a button that will redirect the user to Privacy & Security Screen
+    The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
+    %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
   <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s intenta usar una conexión HTTPS siempre que sea posible para mayor seguridad.
      &lt;a href="%2$s"&gt;Saber más&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
@@ -972,13 +977,13 @@
 
     Message shown to explain how to exit fullscreen mode when gesture navigation is enabled.
 
-    Localisation note: this text should be as short as possible, max 68 chars
+    This text should be as short as possible, max 68 chars
   -->
   <string name="exit_fullscreen_with_gesture_short">Arrastra desde la parte superior y usa el gesto hacia atrás para salir</string>
   <!--
     Message shown to explain how to exit fullscreen mode when using back button navigation.
 
-    Localisation note: this text should be as short as possible, max 68 chars
+    This text should be as short as possible, max 68 chars
   -->
   <string name="exit_fullscreen_with_back_button_short">Arrastra desde la parte superior y presiona atrás para salir</string>
 </resources>

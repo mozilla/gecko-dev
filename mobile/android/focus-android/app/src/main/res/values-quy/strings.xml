@@ -20,7 +20,10 @@
   <string name="teaser">Sapanmanta asuy t\'aqwiriy. T\'aqwiriy. Pichay. Kutikipay.</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
   <string name="feedback_erase">Ñawpa yaykusqa t\'aqwiriyniyki picharpakun.</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">Mask\'ay kaypaq %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">Qunakuy…</string>
@@ -201,7 +204,7 @@
   <string name="preference_mozilla_telemetry_summary2">Mozilla aswan munasqallata tantananpaq kaypachakun qusunankupaq chanta allinchanankupaq %1$s tukuypaq.</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">Asuymanta willay</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">Kaymanta %1$s</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">Mask\'aq motores chantisqa</string>
@@ -219,7 +222,7 @@
   <string name="search_add_manually_name_hint">Mask\'aq motorpata sutin</string>
   <string name="search_add_manually_string">Mayqin mask\'aq wallqawanchus llamk\'akunqa</string>
   <string name="search_add_manually_save">Jallich\'ay</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">Kayjina: example.com/search/?q=%s</string>
   <string name="search_add_confirmation">Musuq mask\'aq motor yapasqa.</string>
   <string name="search_add_error_empty_name">Mask\'aq motor sutinta qillqay</string>
@@ -281,19 +284,19 @@
   <string name="external_app_prompt_title">T\'inkiyta kichariy wak aplicaciónwan</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">Lluqsiy atiwaq kaymanta %1$s kay t\'inkiyta kaypi %2$s kichanaykipaq.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">Juk aplicación tariy mayqinchus kay t\'inkiyta kichariy atinanpaq</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">Ni mayqin aplicaciones kay dispositivoykiqpata kay t\'inkiyta kichariy atinchu. Lluqsiy atiwaq kaymanta %1$s mask\'anaykipaq kaypi %2$s juk tupakuq aplicacionta.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">¿Asuy t\'aqwiriymanta lluqsinkichu?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s tukusqa</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">Kichay</string>

@@ -22,7 +22,10 @@
   <string name="feedback_erase">ཁྱེད་ཀྱི་འཚོལ་རབས་འདོར་བསུབས་བྱས་ཟིན།</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">རེའུ་མིག་བཟོ་རྟགས་ཀྱི་འཚོལ་རབས་འདོར་བསུབས་བྱས་ཟིན།</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">འཚོལ་བྱའི་ནང་དོན་ %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">མཉམ་སྤྱོད་་་</string>
@@ -217,7 +220,7 @@
   <string name="preference_mozilla_telemetry_summary">དེ་བས་མང་།</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">གསང་དོན་གསལ་བརྡ།</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">%1$s ངོ་སྤྲོད།</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">འཚོལ་བཤེར་སྒྲིག་འཇུག</string>
@@ -234,7 +237,7 @@
   <string name="action_option_add_search_engine">འཚོལ་བཤེར་དྲ་ངོས་སྣོན།</string>
   <string name="search_add_manually_name_hint">འཚོལ་བཤེར་དྲ་བའི་མིང་།</string>
   <string name="search_add_manually_save">ཉར་གསོག</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">"དཔེར་ན།  example.com/search/?q=%s"</string>
   <string name="search_add_confirmation">འཚོལ་བཤེར་དྲ་ངོས་གསར་པ་སྣོན་ཟིན།</string>
   <string name="search_add_error_empty_name">འཚོལ་བཤེར་དྲ་ངོས་མིང་འདིར་འཇུག་རོགས།</string>
@@ -298,7 +301,7 @@
   <string name="your_rights">ཁྱེད་ཀྱི་བདག་དབང་།</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">གསང་རྒྱ་ནས་ཕྱིར་ཐོན་དགོས་སམ།</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s ཟིན་པ།</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">ཁ་འབྱེད།</string>
@@ -362,13 +365,15 @@
   <!-- Watermark/Hint for the find in page input field -->
   <string name="find_in_page_input">ཤོག་ངོས་ནང་འཚོལ་བཤེར་བྱོས།</string>
   <!--
-    String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total
+    String to show the number of results found in the page and the position
+    the user is at. %1$d is the position, %2$d is the total number of
+    results.
   -->
   <string name="find_in_page_result">%1$d/%2$d</string>
   <!--
-    String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total
+    String to be read by the accessibility service presenting the number of
+    results found in the page and the position the user is at. %1$d is the
+    position, %2$d is the total number of results.
   -->
   <string name="accessibility_find_in_page_result">"%1$d ནང་ནས་ %1$d "</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->

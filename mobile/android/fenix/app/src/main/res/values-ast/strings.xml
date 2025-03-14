@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_5">%s en privao</string>
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_4">%s (en privao)</string>
   <!--
     Home Fragment
@@ -32,7 +32,7 @@
   <string name="no_open_tabs_description">Equí apaecen les llingüetes abiertes.</string>
   <!-- No Private Tabs Message Description -->
   <string name="no_private_tabs_description">Equí apaecen les llingüetes privaes abiertes.</string>
-  <!-- Tab tray multi select title in app bar. The first parameter is the number of tabs selected -->
+  <!-- Tab tray multi select title in app bar. %1$d is the number of tabs selected -->
   <string name="tab_tray_multi_select_title">%1$d na seleición</string>
   <!-- Label of button in create collection dialog for creating a new collection -->
   <string name="tab_tray_add_new_collection">Coleición nueva</string>
@@ -56,13 +56,13 @@
   <string name="home_bookmarks_show_all_content_description">Amosar tolos marcadores</string>
   <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
   <string name="home_bookmarks_menu_item_remove">Quitar</string>
-  <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
+  <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s ta producíu por Mozilla.</string>
   <!--
     Private Browsing
 
-    Explanation for private browsing displayed to users on home view when they first enable private mode
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    Explanation for private browsing displayed to users on home view when they first enable private mode.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">
         %1$s borra l\'historial de busca y de resolar de les llingüetes privaes cuando les zarres o coles de l\'aplicación. Magar qu\'esta aición nun caltién el to anonimatu nos sitios web o nel fornidor de servicios d\'internet, facilita que cualesquier persona qu\'use esti preséu nun sepa qué faes en llinia.</string>
@@ -78,14 +78,14 @@
   <!--
     Explanation for private browsing displayed to users on home view when they first enable
     private mode in our new Total Private Browsing mode.
-    The first parameter is the name of the app defined in app_name (for example: Firefox Nightly)
-    The second parameter is the clickable link text in felt_privacy_info_card_subtitle_link_text
+    %1$s is the name of the app (for example "Firefox").
+    %2$s is a link using felt_privacy_info_card_subtitle_link_text as text
   -->
   <string name="felt_privacy_info_card_subtitle_2">%1$s desanicia les cookies, l\'historial y los datos de los sitios cuando zarres toles llingüetes privaes. %2$s</string>
   <!--
     Clickable portion of the explanation for private browsing that links the user to our
     about privacy page.
-    This string is used in felt_privacy_info_card_subtitle as the second parameter.
+    This string is used in felt_privacy_info_card_subtitle as the text for the link.
   -->
   <string name="felt_privacy_info_card_subtitle_link_text">¿Quién sedría a ver la mio actividá?</string>
   <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
@@ -95,7 +95,7 @@
   <!--
     Open in App "contextual feature recommendation" (CFR)
 
-    Text for the info message. The first parameter is the name of the application.
+    Text for the info message. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="open_in_app_cfr_info_message_2">Pues configurar %1$s pa qu\'abra automáticamente los enllaces dientro de les aplicaciones.</string>
   <!-- Text for the positive action button -->
@@ -132,7 +132,7 @@
   <string name="tab_tray_inactive_auto_close_title">¿Quies zarrales automáticamente al cabu d\'un mes?</string>
   <!--
     Text for the body for the auto-close dialog of the inactive tabs.
-    The first parameter is the name of the application.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_tray_inactive_auto_close_body_2">%1$s pue zarrar les llingüetes que nun visitesti\'l mes pasáu.</string>
   <!-- Content description for close button in the auto-close dialog of the inactive tabs. -->
@@ -221,17 +221,17 @@
   <string name="browser_menu_share_2">Compartir…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_open_in_fenix">Abrir en: %1$s</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by">COLA TEUNOLOXÍA DE: %1$s</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by2">Cola teunoloxía de: %1$s</string>
   <!-- Browser menu button to put the current page in reader mode -->
@@ -276,8 +276,8 @@
   <string name="browser_toolbar_home">Pantalla d\'aniciu</string>
   <!--
     Content description (not visible, for screen readers etc.) for the translate page toolbar button that opens the translations dialog when the page is translated successfully.
-    The first parameter is the name of the language that is displayed in the original page. (For example: English)
-    The second parameter is the name of the language which the page was translated to. (For example: French)
+    %1$s is the name of the language that is displayed in the original page. (For example: English)
+    %2$s is the name of the language which the page was translated to. (For example: French)
   -->
   <string name="browser_toolbar_translated_successfully">La páxina tradúxose del «%1$s» al «%2$s».</string>
   <!--
@@ -300,11 +300,11 @@
   <string name="search_suggestions_onboarding_do_not_allow_button">Nun permitir</string>
   <!-- Search suggestion onboarding hint title text -->
   <string name="search_suggestions_onboarding_title">¿Quies permitir les suxerencies de busca nes sesiones privaes?</string>
-  <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
   <string name="search_suggestions_onboarding_text">%s va compartir tolo que teclexes na barra de direiciones col motor de busca predetermináu.</string>
   <!--
     Content description (not visible, for screen readers etc.): Search engine icon.
-    The parameter is the search engine name (for example: DuckDuckGo).
+    %s is the search engine name (for example: DuckDuckGo).
   -->
   <string name="search_engine_icon_content_description_1">Motor de busca: %s</string>
   <!--
@@ -367,7 +367,7 @@
   <string name="preferences_rate">Valorar en Google Play</string>
   <!--
     Preference linking to about page for Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="preferences_about">Tocante a %1$s</string>
   <!-- Preference for settings related to changing the default browser -->
@@ -492,18 +492,18 @@
   <string name="empty_device_name_error">El nome del preséu nun pue tar baleru.</string>
   <!-- Label indicating that sync is in progress -->
   <string name="sync_syncing_in_progress">Sincronizando…</string>
-  <!-- Label summary indicating that sync failed. The first parameter is the date stamp showing last time it succeeded -->
+  <!-- Label summary indicating that sync failed. %s is the date stamp showing last time it succeeded. -->
   <string name="sync_failed_summary">La sincronización falló. La última conexón correuta: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_failed_never_synced_summary">La sincronización falló. Enxamás se sincronizó.</string>
-  <!-- Label summary the date we last synced. The first parameter is date stamp showing last time synced -->
+  <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
   <string name="sync_last_synced_summary">Última sincronización: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_never_synced_summary">Enxamás se sincronizó.</string>
   <!--
     Text for displaying the default device name.
-    The first parameter is the application name, the second is the device manufacturer name
-    and the third is the device model.
+    %1$s is the name of the app (for example "Firefox"). %2$s is the device manufacturer name
+    and %3$s is the device model.
   -->
   <string name="default_device_name_2">%1$s en %2$s %3$s</string>
   <!-- Preference for syncing addresses -->
@@ -532,7 +532,7 @@
   <string name="exceptions_empty_message_learn_more_link">Saber más</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Datos téunicos y d\'interaición</string>
-  <!-- Preference description for usage and technical data collection -->
+  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Comparte\'l rindimientu, l\'usu, el hardaware y los datos personalizaos del restolador con Mozilla p\'ayudanos a ameyorar %1$s</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Datos de marketing</string>
@@ -734,7 +734,7 @@
   <string name="tabs_tray_select_tabs">Seleicionar llingüetes</string>
   <!-- Content description (not visible, for screen readers etc.): Close tab button. Closes the current session when pressed -->
   <string name="close_tab">Zarrar la llingüeta</string>
-  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. First parameter is tab title -->
+  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. %s is the tab title -->
   <string name="close_tab_title">Zarrar la llingüeta «%s»</string>
   <!-- Content description (not visible, for screen readers etc.): Opens the open tabs menu when pressed -->
   <string name="open_tabs_menu">Menú de llingüetes abiertes</string>
@@ -752,7 +752,7 @@
   <string name="remove_top_site">Quitar</string>
   <!-- Text for the menu button to delete a top site from history -->
   <string name="delete_from_history">Desaniciar del historial</string>
-  <!-- Postfix for private WebApp titles, placeholder is replaced with app name -->
+  <!-- Postfix for private WebApp titles. %1$s is the name of the app (for example "Firefox"). -->
   <string name="pwa_site_controls_title_private">%1$s (en privao)</string>
   <!--
     History
@@ -764,13 +764,13 @@
   <string name="history_delete_all">Desaniciar l\'historial</string>
   <!-- Text for the snackbar to confirm that multiple browsing history items has been deleted -->
   <string name="history_delete_multiple_items_snackbar">Desanicióse l\'historial</string>
-  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. The first parameter is the shortened URL of the deleted history item. -->
+  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. %1$s is the shortened URL of the deleted history item. -->
   <string name="history_delete_single_item_snackbar">Desanicióse «%1$s»</string>
   <!-- Context description text for the button to delete a single history item -->
   <string name="history_delete_item">Desaniciar</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="history_multi_select_title">%1$d na seleición</string>
   <!-- Text for the header that groups the history for today -->
@@ -791,13 +791,13 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1">Quitáronse les descargues</string>
-  <!-- Text for the snackbar to confirm that a single download item has been removed. The first parameter is the name of the download item. -->
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar">Quitóse «%1$s»</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1">Nun hai nengún ficheru baxáu</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of downloads selected
+    %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">%1$d na seleición</string>
   <!-- Text for the button to remove a single download item -->
@@ -807,7 +807,7 @@
   <!--
     Crashes
 
-    Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix)
+    Title text displayed on the tab crash page. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_crash_title_2">%1$s nun pue cargar esa páxina.</string>
   <!-- Send crash report checkbox text on the tab crash page -->
@@ -822,11 +822,11 @@
     Confirmation message for a dialog confirming if the user wants to delete the selected folder
   -->
   <string name="bookmark_delete_folder_confirmation_dialog">¿De xuru que quies desaniciar esta carpeta?</string>
-  <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
+  <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. %s is the name of the app (for example "Firefox"). -->
   <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s va desaniciar los elementos seleicionaos.</string>
   <!-- Screen title for adding a bookmarks folder -->
   <string name="bookmark_add_folder">Creación d\'una carpeta</string>
-  <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+  <!-- Snackbar title that confirms a bookmark was saved into a folder. %s is the name of the folder the bookmark was saved into. -->
   <string name="bookmark_saved_in_folder_snackbar">Guardóse en «%s»</string>
   <!-- Snackbar edit button shown after a bookmark has been created. -->
   <string name="edit_bookmark_snackbar_action">EDITAR</string>
@@ -846,7 +846,7 @@
   <string name="bookmark_menu_save_button">Guardar</string>
   <!--
     Bookmark multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="bookmarks_multi_select_title">%1$d na seleición</string>
   <!-- Bookmark editing screen title -->
@@ -873,7 +873,7 @@
   <string name="bookmarks_empty_message">Equí nun hai nengún marcador</string>
   <!--
     Bookmark snackbar message on deletion
-    The first parameter is the host part of the URL of the bookmark deleted, if any
+    %1$s is the host part of the URL of the bookmark deleted, if any
   -->
   <string name="bookmark_deletion_snackbar_message">Desanicióse «%1$s»</string>
   <!-- Bookmark snackbar message on deleting multiple bookmarks not including folders -->
@@ -1061,7 +1061,7 @@
   <string name="snackbar_tab_closed">Zarróse la llingüeta</string>
   <!-- Text shown in snackbar when user closes all tabs -->
   <string name="snackbar_tabs_closed">Zarráronse les llingüetes</string>
-  <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+  <!-- Text shown in snackbar when user bookmarks a list of tabs. %s is the name of the folder the bookmark was saved into. -->
   <string name="snackbar_message_bookmarks_saved_in">¡Los marcadores guardáronse en «%s»!</string>
   <!-- Text shown in snackbar when user adds a site to shortcuts -->
   <string name="snackbar_added_to_shortcuts">¡Amestóse a los atayos!</string>
@@ -1075,14 +1075,14 @@
   <string name="snackbar_top_site_removed">Quitóse\'l sitiu</string>
   <!--
     QR code scanner prompt which appears after scanning a code, but before navigating to it
-    First parameter is the name of the app, second parameter is the URL or text scanned
+    %1$s is the name of the app (for example "Firefox"), %2$s is the URL or text scanned
   -->
   <string name="qr_scanner_confirmation_dialog_message">¿Permitir a %1$s qu\'abra «%2$s»?</string>
   <!-- QR code scanner prompt dialog positive option to allow navigation to scanned link -->
   <string name="qr_scanner_dialog_positive">PERMITIR</string>
   <!-- QR code scanner prompt dialog positive option to deny navigation to scanned link -->
   <string name="qr_scanner_dialog_negative">NEGAR</string>
-  <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
+  <!-- Tab collection deletion prompt dialog message. %1$s is the collection name. -->
   <string name="tab_collection_dialog_message">¿De xuru que quies desaniciar «%1$s»?</string>
   <!-- Tab collection deletion prompt dialog option to delete the collection -->
   <string name="tab_collection_dialog_positive">Desaniciar</string>
@@ -1102,10 +1102,10 @@
   <string name="preferences_delete_browsing_data">Desaniciu de los datos de restolar</string>
   <!-- Title for the tabs item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_tabs_title_2">Llingüetes abiertes</string>
-  <!-- Subtitle for the tabs item in Delete browsing data, parameter will be replaced with the number of open tabs -->
+  <!-- Subtitle for the tabs item in Delete browsing data, %d is the number of open tabs -->
   <string name="preferences_delete_browsing_data_tabs_subtitle">%d llingüetes</string>
   <!--
-    Subtitle for the data and history items in delete browsing data, parameter will be replaced with the
+    Subtitle for the data and history items in delete browsing data, %d is the
     number of history items the user has
   -->
   <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d direiciones</string>
@@ -1127,7 +1127,7 @@
   <string name="preference_summary_delete_browsing_data_on_quit_2">Desanicia automáticamente los datos de restolar cuando seleiciones «Colar» nel menú principal</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Colar</string>
-  <!-- Dialog message to the user asking to delete browsing data. Parameter will be replaced by app name. -->
+  <!-- Dialog message to the user asking to delete browsing data. %s is the name of the app (for example "Firefox"). -->
   <string name="delete_browsing_data_prompt_message_3">%s va desaniciar los datos de restolar seleicionaos.</string>
   <!-- Text for the cancel button for the data deletion dialog -->
   <string name="delete_browsing_data_prompt_cancel">Encaboxar</string>
@@ -1167,7 +1167,7 @@
   <string name="sign_in_with_email">Usar una direición de corréu</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
   <string name="sign_in_create_account_text" tools:ignore="BrandUsage">¿Nun tienes una cuenta? &lt;u&gt;Créala&lt;/u&gt; pa sincronizar Firefox ente preseos.</string>
-  <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
+  <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s va dexar de sincronizase cola to cuenta mas nun va desaniciar nengún datu d\'esti preséu.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
   <string name="sign_out_disconnect">Desconectar</string>
@@ -1254,11 +1254,11 @@
     back from ETP details (Ex: Tracking content)
   -->
   <string name="etp_back_button_content_description">Dir p\'atrás</string>
-  <!-- About page link text to open what's new link -->
+  <!-- About page link text to open what's new link. %s is the name of the app (for example "Firefox"). -->
   <string name="about_whats_new">Novedaes de %s</string>
   <!--
     Open source licenses page title
-    The first parameter is the app name
+    %s is the name of the app (for example "Firefox")
   -->
   <string name="open_source_licenses_title">%s | Biblioteques OSS</string>
   <!-- Category of trackers (redirect trackers) that can be blocked by Enhanced Tracking Protection -->
@@ -1279,7 +1279,7 @@
   <string name="about_other_open_source_libraries">Les biblioteques qu\'usamos</string>
   <!--
     Toast shown to the user when they are activating the secret dev menu
-    The first parameter is number of long clicks left to enable the menu
+    %1$d is number of long clicks left to enable the menu
   -->
   <string name="about_debug_menu_toast_progress">Menú de depuración: %1$d calcu(os) p\'activar</string>
   <string name="about_debug_menu_toast_done">Activóse\'l menú de depuración</string>
@@ -1325,9 +1325,9 @@
   <string name="preferences_passwords_saved_logins_2">Contraseñes guardaes</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
   <string name="preferences_passwords_exceptions">Esceiciones</string>
-  <!-- Empty description of list of login exceptions that we never save passwords for. Parameter will be replaced by app name. -->
+  <!-- Empty description of list of login exceptions that we never save passwords for. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_passwords_exceptions_description_empty_2">%s nun va guardar les contraseñes llistaes equí</string>
-  <!-- Description of list of login exceptions that we never save passwords for. Parameter will be replaced by app name. -->
+  <!-- Description of list of login exceptions that we never save passwords for. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_passwords_exceptions_description_2">%s nun va guardar les contraseñes d\'estos sitios.</string>
   <!-- Text on button to remove all saved login exceptions -->
   <string name="preferences_passwords_exceptions_remove_all">Quitar toles esceiciones</string>
@@ -1421,19 +1421,19 @@
   <string name="search_add_custom_engine_error_empty_search_string">Introduz una cadena de busca</string>
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Comprueba que la cadena de busca concase col formatu del exemplu</string>
-  <!-- Text shown when we aren't able to validate the custom search query. The first parameter is the url of the custom search engine -->
+  <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_error_cannot_reach">Prodúxose un error al conectase a «%s»</string>
-  <!-- Text shown when a user creates a new search engine -->
+  <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">Creóse «%s»</string>
-  <!-- Text shown when a user successfully edits a custom search engine -->
+  <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_edit_custom_engine_success_message">Guardóse «%s»</string>
-  <!-- Text shown when a user successfully deletes a custom search engine -->
+  <!-- Text shown when a user successfully deletes a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_delete_search_engine_success_message">Desanicióse «%s»</string>
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Ve a Configuración d\'Android</string>
   <!-- Second step for the allowing a permission -->
   <string name="phone_feature_blocked_step_permissions">2. Toca &lt;b&gt;Permisos&lt;/b&gt;</string>
-  <!-- Third step for the allowing a permission (Fore example: Camera) -->
+  <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
   <string name="phone_feature_blocked_step_feature">3. Activa &lt;b&gt;%1$s&lt;/b&gt;</string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">La conexón ye segura</string>
@@ -1454,7 +1454,7 @@
   <!-- Browser menu button that removes a shortcut from the home fragment -->
   <string name="browser_menu_remove_from_shortcuts">Quitar de los atayos</string>
   <!--
-    text shown before the issuer name to indicate who its verified by, parameter is the name of
+    text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
   <string name="certificate_info_verified_by">Cola verificación de: %1$s</string>
@@ -1512,7 +1512,7 @@
   <string name="inactive_tabs_title">Llingüetes inactives</string>
   <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
   <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">Firefox pue zarrar les llingüetes que nun visitesti demientres el mes pasáu.</string>
-  <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
+  <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">Busca nel motor «%s»</string>
   <!-- Content description for close button in collection placeholder. -->
   <string name="remove_home_collection_placeholder_content_description">Quitar</string>
@@ -1520,9 +1520,9 @@
   <string name="radio_preference_info_content_description">Calca pa consiguir más detalles</string>
   <!-- Content description for privacy content close button -->
   <string name="privacy_content_close_button_content_description">Zarrar</string>
-  <!-- Title of an app feature. Smaller than a heading. The first parameter is product name Pocket -->
+  <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
   <string name="pocket_stories_feature_title_2">Cola teunoloxía de: %s.</string>
-  <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked. -->
+  <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
   <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Parte de la familia Firefox. %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
   <string name="pocket_stories_feature_learn_more">Saber más</string>
@@ -1538,7 +1538,7 @@
   <string name="review_quality_check_highlights_type_price" moz:removedIn="136" tools:ignore="UnusedResources">Preciu</string>
   <!-- Text for highlights card competitiveness category header. Reviews shown under this header should refer the product's competitiveness. -->
   <string name="review_quality_check_highlights_type_competitiveness" moz:removedIn="136" tools:ignore="UnusedResources">Competitividá</string>
-  <!-- Text that is surrounded by quotes. The parameter is the actual text that is in quotes. An example of that text could be: Excellent craftsmanship, and that is displayed as “Excellent craftsmanship”. The text comes from a buyer's review that the feature is highlighting" -->
+  <!-- Text that is surrounded by quotes. %s is the actual text that is in quotes. An example of that text could be: Excellent craftsmanship, and that is displayed as “Excellent craftsmanship”. The text comes from a buyer's review that the feature is highlighting" -->
   <string name="surrounded_with_quotes" moz:removedIn="136" tools:ignore="UnusedResources">«%s»</string>
   <!-- Translations feature -->
 
@@ -1550,8 +1550,8 @@
   <string name="translations_bottom_sheet_title">¿Quies traducir esta páxina?</string>
   <!--
     Title for the translation dialog after a translation was completed successfully.
-    The first parameter is the name of the language that the page was translated from, for example, "French".
-    The second parameter is the name of the language that the page was translated to, for example, "English".
+    %1$s is the name of the language that the page was translated from, for example, "French".
+    %2$s is the name of the language that the page was translated to, for example, "English".
   -->
   <string name="translations_bottom_sheet_title_translation_completed">La páxina tradúxose del %1$s al %2$s</string>
   <!-- Button text on the translations dialog to dismiss the dialog and return to the browser. -->
@@ -1562,7 +1562,7 @@
   <string name="translation_error_could_not_translate_warning_text">Hebo un problema al traducir. Volvi tentalo.</string>
   <!-- The title of the warning card informs the user that the list of languages cannot be loaded. -->
   <string name="translation_error_could_not_load_languages_warning_text">Nun se pudieron cargar les llingües. Comprueba la conexón a internet y volvi tentalo.</string>
-  <!-- The title of the warning card informs the user that a language is not supported. The first parameter is the name of the language that is not supported. -->
+  <!-- The title of the warning card informs the user that a language is not supported. %1$s is the name of the language that is not supported. -->
   <string name="translation_error_language_not_supported_warning_text">«%1$s» nun ye compatible.</string>
   <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
   <string name="translation_in_progress_snackbar">Traduciendo…</string>
@@ -1584,11 +1584,11 @@
     Title of the automatic translation preference screen that will appear on the toolbar.
   -->
   <string name="automatic_translation_toolbar_title_preference">Traducción automática</string>
-  <!-- Preference option for always translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Preference option for always translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
   <string name="automatic_translation_option_always_translate_summary_preference">«%1$s» va traducir esta llingua automáticamente cuando cargue la páxina.</string>
   <!--
     The Delete site dialogue title will appear when the user clicks on a list item.
-    The first parameter is web site url (for example:"wikipedia.com")
+    %1$s is web site url (for example:"wikipedia.com")
   -->
   <string name="never_translate_site_dialog_title_preference">¿Quies desaniciar «%1$s»?</string>
   <!-- The Delete site dialogue positive button will appear when the user clicks on a list item. The site will be deleted. -->
@@ -1611,7 +1611,7 @@
     Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.
   -->
   <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Logotipu de Firefox</string>
-  <!-- The title of the logins section in the Logins feature, where the parameter will be the site domain -->
+  <!-- The title of the logins section in the Logins feature. %s is the site domain. -->
   <string name="debug_drawer_logins_current_domain_label">Dominiu actual: %s</string>
   <!--
     Beta Label Component !
