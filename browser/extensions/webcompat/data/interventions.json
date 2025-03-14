@@ -2933,6 +2933,21 @@
       }
     ]
   },
+  "1933169": {
+    "label": "next.goalplan.com",
+    "bugs": {
+      "1933169": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://next.goalplan.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
+      }
+    ]
+  },
   "1933811": {
     "label": "indices.circana.com",
     "bugs": {
