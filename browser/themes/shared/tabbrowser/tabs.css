@@ -485,6 +485,23 @@
     }
   }
 
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media -moz-pref("browser.tabs.fadeOutExplicitlyUnloadedTabs") {
+    &[pending][discarded] {
+      filter: grayscale(100%);
+      opacity: 0.5;
+      /* Fade the favicon out */
+      transition-property: filter, opacity;
+      transition-duration: 1s;
+    }
+    &:not([pending]) {
+      /* When loading the tab, just show the favicon without a transition.
+        The favicon turns into the "loading" state anyway, so we don't want
+        to interfere with that. */
+      transition: none;
+    }
+  }
+
   &:not([src]),
   &:-moz-broken {
     content: url("chrome://global/skin/icons/defaultFavicon.svg");

@@ -2495,6 +2495,10 @@
       };
 
       SessionStore.resetBrowserToLazyState(aTab);
+      // Indicate that this tab was explicitly unloaded (i.e. not
+      // from a session restore) in case we want to style that
+      // differently.
+      aTab.toggleAttribute("discarded", true);
 
       // Remove the tab's filter and progress listener.
       let filter = this._tabFilters.get(aTab);

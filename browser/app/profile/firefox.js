@@ -2541,8 +2541,12 @@ pref("browser.tabs.unloadTabInContextMenu", false);
 #endif
 
 // Whether unloaded tabs (either from session restore or because
-// they are explicitly unloaded) are faded out in the tab bar
+// they are explicitly unloaded) are faded out in the tab bar.
 pref("browser.tabs.fadeOutUnloadedTabs", false);
+
+// Whether tabs that have been explicitly unloaded
+// are faded out in the tab bar.
+pref("browser.tabs.fadeOutExplicitlyUnloadedTabs", false);
 
 // If true, unprivileged extensions may use experimental APIs on
 // nightly and developer edition.

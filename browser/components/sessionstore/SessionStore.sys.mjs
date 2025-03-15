@@ -6219,6 +6219,7 @@ var SessionStoreInternal = {
     // Set this tab's state to restoring
     TAB_STATE_FOR_BROWSER.set(browser, TAB_STATE_RESTORING);
     aTab.removeAttribute("pending");
+    aTab.removeAttribute("discarded");
   },
 
   /**
@@ -7385,6 +7386,7 @@ var SessionStoreInternal = {
     browser.browsingContext.clearRestoreState();
 
     aTab.removeAttribute("pending");
+    aTab.removeAttribute("discarded");
 
     if (previousState == TAB_STATE_RESTORING) {
       if (this._tabsRestoringCount) {
