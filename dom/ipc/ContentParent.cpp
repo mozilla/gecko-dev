@@ -2080,8 +2080,7 @@ void ContentParent::ActorDestroy(ActorDestroyReason why) {
   }
 
   // Unregister all the BlobURLs registered by the ContentChild.
-  BlobURLProtocolHandler::RemoveDataEntries(mBlobURLs);
-  mBlobURLs.Clear();
+  BlobURLProtocolHandler::RemoveDataEntriesPerContentParent(ChildID());
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
   AssertNotInPool();
@@ -5899,12 +5898,8 @@ mozilla::ipc::IPCResult ContentParent::RecvStoreAndBroadcastBlobURLRegistration(
   }
 
   BlobURLProtocolHandler::AddDataEntry(aURI, aPrincipal, aPartitionKey,
-                                       blobImpl);
+                                       blobImpl, Some(ChildID()));
   BroadcastBlobURLRegistration(aURI, blobImpl, aPrincipal, aPartitionKey, this);
-
-  // We want to store this blobURL, so we can unregister it if the child
-  // crashes.
-  mBlobURLs.AppendElement(aURI);
 
   return IPC_OK();
 }
@@ -5921,7 +5916,6 @@ ContentParent::RecvUnstoreAndBroadcastBlobURLUnregistration(
     }
 
     uris.AppendElement(request.url());
-    mBlobURLs.RemoveElement(request.url());
   }
 
   BroadcastBlobURLUnregistration(aRequests, this);
