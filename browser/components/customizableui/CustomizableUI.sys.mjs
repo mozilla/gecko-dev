@@ -124,6 +124,8 @@ var gSupportedWidgetTypes = new Set([
 /**
  * gPanelsForWindow is a list of known panels in a window which we may need to close
  * should command events fire which target them.
+ *
+ * @type {WeakMap<Element, Set<Element>>}
  */
 var gPanelsForWindow = new WeakMap();
 
@@ -266,7 +268,22 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
   return new ConsoleAPI(consoleOptions);
 });
 
+/**
+ * This is the internal, private implementation of most of the CustomizableUI
+ * API. This is intentionally not exported, but is instead called directly
+ * from within this module via the exported CustomizableUI object, which
+ * allows us to get a type of encapsulation.
+ */
 var CustomizableUIInternal = {
+  /**
+   * Main entrypoint to initializing the CustomizableUI singleton. This is
+   * called once the very first time this module is evaluated anywhere, via a
+   * a call at the very end of this module file.
+   *
+   * This sets up observers, registers built-in widgets, and loads the saved
+   * customization state from preferences, and performs any migration on that
+   * loaded state.
+   */
   initialize() {
     lazy.log.debug("Initializing");
 
@@ -279,11 +296,11 @@ var CustomizableUIInternal = {
     });
 
     this.addListener(this);
-    this._defineBuiltInWidgets();
+    this.defineBuiltInWidgets();
     this.loadSavedState();
-    this._updateForNewVersion();
-    this._updateForNewProtonVersion();
-    this._markObsoleteBuiltinButtonsSeen();
+    this.updateForNewVersion();
+    this.updateForNewProtonVersion();
+    this.markObsoleteBuiltinButtonsSeen();
 
     this.registerArea(
       CustomizableUI.AREA_FIXED_OVERFLOW_PANEL,
@@ -403,21 +420,39 @@ var CustomizableUIInternal = {
     Services.prefs.addObserver(kPrefSidebarRevampEnabled, this);
   },
 
+  /**
+   * Implements the onEnabled method for the AddonListener interface. Called
+   * when an add-on is marked as enabled.
+   *
+   * @param {AddonInternal} addon
+   *   The add-on that was enabled.
+   */
   onEnabled(addon) {
     if (addon.type == "theme") {
       gSelectedTheme = addon;
     }
   },
 
-  get _builtinAreas() {
+  /**
+   * Returns a new Set that contains the IDs of all built-in customizable areas.
+   *
+   * @type {Set<string>}
+   */
+  get builtinAreas() {
     return new Set([
-      ...this._builtinToolbars,
+      ...this.builtinToolbars,
       CustomizableUI.AREA_FIXED_OVERFLOW_PANEL,
       CustomizableUI.AREA_ADDONS,
     ]);
   },
 
-  get _builtinToolbars() {
+  /**
+   * Returns a new Set that contains the IDs of all built-in customizable
+   * toolbar areas.
+   *
+   * @type {Set<string>}
+   */
+  get builtinToolbars() {
     let toolbars = new Set([
       CustomizableUI.AREA_NAVBAR,
       CustomizableUI.AREA_BOOKMARKS,
@@ -429,14 +464,22 @@ var CustomizableUIInternal = {
     return toolbars;
   },
 
-  _defineBuiltInWidgets() {
+  /**
+   * Goes through the list of widgets defined in CustomizableWidgets and
+   * registers them with CustomizableUI.
+   */
+  defineBuiltInWidgets() {
     for (let widgetDefinition of lazy.CustomizableWidgets) {
       this.createBuiltinWidget(widgetDefinition);
     }
   },
 
+  /**
+   * Runs any necessary migrations on the current saved customization state
+   * to get us to a kVersion compatible state.
+   */
   // eslint-disable-next-line complexity
-  _updateForNewVersion() {
+  updateForNewVersion() {
     // We should still enter even if gSavedState.currentVersion >= kVersion
     // because the per-widget pref facility is independent of versioning.
     if (!gSavedState) {
@@ -675,7 +718,7 @@ var CustomizableUIInternal = {
     // Remove unsupported custom toolbar saved placements
     if (currentVersion < 14) {
       for (let area in gSavedState.placements) {
-        if (!this._builtinAreas.has(area)) {
+        if (!this.builtinAreas.has(area)) {
           delete gSavedState.placements[area];
         }
       }
@@ -794,7 +837,13 @@ var CustomizableUIInternal = {
     }
   },
 
-  _updateForNewProtonVersion() {
+  /**
+   * A separate state migration method for when we introduced the Proton
+   * retheme in 2021. Because the Proton retheme was toggle-able via a pref,
+   * it was important to have the migration separated out. Like most old
+   * migrations, this is probably a historical artifact at this point.
+   */
+  updateForNewProtonVersion() {
     const VERSION = 3;
     let currentVersion = Services.prefs.getIntPref(
       kPrefProtonToolbarVersion,
@@ -849,10 +898,11 @@ var CustomizableUIInternal = {
   },
 
   /**
-   * _markObsoleteBuiltinButtonsSeen
-   * when upgrading, ensure obsoleted buttons are in seen state.
+   * When upgrading, checks to see if any built-in button definitions were
+   * just removed / marked obsolete (see ObsoleteBuiltinButtons) for the
+   * current kVersion. If so, marks those buttons as seen.
    */
-  _markObsoleteBuiltinButtonsSeen() {
+  markObsoleteBuiltinButtonsSeen() {
     if (!gSavedState) {
       return;
     }
@@ -870,7 +920,15 @@ var CustomizableUIInternal = {
     }
   },
 
-  _placeNewDefaultWidgetsInArea(aArea) {
+  /**
+   * If a new area was defined, or new default widgets for an area are defined,
+   * this reconciles the placements of those new default widgets with the
+   * existing customization and toolbar state of the browser.
+   *
+   * @param {string} aArea
+   *   The ID of the area to reconcile the default widget state for.
+   */
+  placeNewDefaultWidgetsInArea(aArea) {
     let futurePlacedWidgets = gFuturePlacements.get(aArea);
     let savedPlacements =
       gSavedState && gSavedState.placements && gSavedState.placements[aArea];
@@ -944,6 +1002,20 @@ var CustomizableUIInternal = {
     this.saveState();
   },
 
+  /**
+   * Given a DOM node with the `customizable` attribute, will attempt to resolve
+   * it to the associated "customization target" for that DOM node via its
+   * `customizationtarget` attribute. If no such attribute exists, the DOM node
+   * itself is returned.
+   *
+   * If the DOM node is null, is not customizable, or cannot be resolved to
+   * a customization target, then null is returned.
+   *
+   * @param {Element|null} aElement
+   *   The DOM node to resolve to a customization target DOM node.
+   * @returns {Element|null}
+   *   The customization target DOM node, or null if one cannot be found.
+   */
   getCustomizationTarget(aElement) {
     if (!aElement) {
       return null;
@@ -967,6 +1039,22 @@ var CustomizableUIInternal = {
     return aElement._customizationTarget;
   },
 
+  /**
+   * Given a customizable widget ID, creates and returns a WidgetGroupWrapper
+   * or a XULGroupWrapper for that widget (depending on how the widget is
+   * provided). This wrapper is then cached and returned for future calls
+   * for that same widget ID.
+   *
+   * If the customizable widget ID cannot be resolved to a particular provider,
+   * null is returned.
+   *
+   * @param {string} aWidgetId
+   *   The ID of the customizable widget to get the WidgetGroupWrapper /
+   *   XULGroupWrapper for.
+   * @returns {WidgetGroupWrapper|XULGroupWrapper|null}
+   *   The appropriate GroupWrapper for the widget, or null if no such wrapper
+   *   can be found.
+   */
   wrapWidget(aWidgetId) {
     if (gGroupWrapperCache.has(aWidgetId)) {
       return gGroupWrapperCache.get(aWidgetId);
@@ -994,6 +1082,12 @@ var CustomizableUIInternal = {
     return wrapper;
   },
 
+  /**
+   * @see CustomizableUI.registerArea
+   * @param {string} aName
+   * @param {object} aProperties
+   * @param {boolean} aInternalCaller
+   */
   registerArea(aName, aProperties, aInternalCaller) {
     if (typeof aName != "string" || !/^[a-z0-9-_]{1,}$/i.test(aName)) {
       throw new Error("Invalid area name");
@@ -1049,7 +1143,7 @@ var CustomizableUIInternal = {
       gAreas.set(aName, props);
 
       // Reconcile new default widgets. Have to do this before we start restoring things.
-      this._placeNewDefaultWidgetsInArea(aName);
+      this.placeNewDefaultWidgetsInArea(aName);
 
       if (
         props.get("type") == CustomizableUI.TYPE_TOOLBAR &&
@@ -1078,6 +1172,11 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * @see CustomizableUI.unregisterArea
+   * @param {string} aName
+   * @param {boolean} [aDestroyPlacements]
+   */
   unregisterArea(aName, aDestroyPlacements) {
     if (typeof aName != "string" || !/^[a-z0-9-_]{1,}$/i.test(aName)) {
       throw new Error("Invalid area name");
@@ -1124,6 +1223,10 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * @see CustomizableUI.registerToolbarNode
+   * @param {Element} aToolbar
+   */
   registerToolbarNode(aToolbar) {
     let area = aToolbar.id;
     if (gBuildAreas.has(area) && gBuildAreas.get(area).has(aToolbar)) {
@@ -1154,7 +1257,7 @@ var CustomizableUIInternal = {
       // For toolbars that need it, mark as dirty.
       let defaultPlacements = areaProperties.get("defaultPlacements");
       if (
-        !this._builtinToolbars.has(area) ||
+        !this.builtinToolbars.has(area) ||
         placements.length != defaultPlacements.length ||
         !placements.every((id, i) => id == defaultPlacements[i])
       ) {
@@ -1204,6 +1307,17 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * For each "special" node in a toolbar (any spring, spacer, separator, or
+   * element with an ID prefixed with kSpecialWidgetPfx), assigns the unique
+   * ID from the saved state to the DOM nodes. These unique IDs are things like
+   * "customizableui-special-spring30".
+   *
+   * @param {Element} aToolbar
+   *   The <xul:toolbar> node to update the special widget children IDs for.
+   * @param {string[]} aSpecialIDs
+   *   An array of special node IDs from the saved placements state.
+   */
   updateSpecialsForBuiltinToolbar(aToolbar, aSpecialIDs) {
     // Nodes are going to be in the correct order, so we can do this straightforwardly:
     let { children } = this.getCustomizationTarget(aToolbar);
@@ -1220,23 +1334,39 @@ var CustomizableUIInternal = {
     }
   },
 
-  buildArea(aArea, aPlacements, aAreaNode) {
+  /**
+   * This does the work of causing a customizable area to reflect the placements
+   * that have been computed for that area. This means taking the initial
+   * default DOM state of the area, and then modifying it to match the computed
+   * state (either the state that had been saved in preferences, or the state
+   * computed after doing runtime checks during initialization).
+   *
+   * @param {string} aAreaId
+   *   The ID of the customizable area to "build".
+   * @param {string[]} aPlacements
+   *   The IDs of the customizable widgets that are expected to be in the
+   *   customizable area.
+   * @param {Element} aAreaNode
+   *   The node associated with the area (as opposed to the customization
+   *   target within that area).
+   */
+  buildArea(aAreaId, aPlacements, aAreaNode) {
     let document = aAreaNode.ownerDocument;
     let window = document.defaultView;
     let inPrivateWindow = lazy.PrivateBrowsingUtils.isWindowPrivate(window);
     let container = this.getCustomizationTarget(aAreaNode);
     let areaIsPanel =
-      gAreas.get(aArea).get("type") == CustomizableUI.TYPE_PANEL;
+      gAreas.get(aAreaId).get("type") == CustomizableUI.TYPE_PANEL;
 
     if (!container) {
       throw new Error(
-        "Expected area " + aArea + " to have a customizationTarget attribute."
+        "Expected area " + aAreaId + " to have a customizationTarget attribute."
       );
     }
 
     // Restore nav-bar visibility since it may have been hidden
     // through a migration path (bug 938980) or an add-on.
-    if (aArea == CustomizableUI.AREA_NAVBAR) {
+    if (aAreaId == CustomizableUI.AREA_NAVBAR) {
       aAreaNode.collapsed = false;
     }
 
@@ -1282,7 +1412,7 @@ var CustomizableUIInternal = {
         // we shouldn't be moving them:
         if (provider == CustomizableUI.PROVIDER_API) {
           widget = gPalette.get(id);
-          if (!widget.removable && aArea != widget.defaultArea) {
+          if (!widget.removable && aAreaId != widget.defaultArea) {
             placementsToRemove.add(id);
             continue;
           }
@@ -1307,9 +1437,9 @@ var CustomizableUIInternal = {
 
         // This needs updating in case we're resetting / undoing a reset.
         if (widget) {
-          widget.currentArea = aArea;
+          widget.currentArea = aAreaId;
         }
-        this.insertWidgetBefore(node, currentNode, container, aArea);
+        this.insertWidgetBefore(node, currentNode, container, aAreaId);
         if (gResetting) {
           this.notifyListeners("onWidgetReset", node, container);
         } else if (gUndoResetting) {
@@ -1353,11 +1483,11 @@ var CustomizableUIInternal = {
               node.setAttribute("removable", false);
               lazy.log.debug(
                 "Adding non-removable widget to placements of " +
-                  aArea +
+                  aAreaId +
                   ": " +
                   node.id
               );
-              gPlacements.get(aArea).push(node.id);
+              gPlacements.get(aAreaId).push(node.id);
               gDirty = true;
             }
           }
@@ -1369,7 +1499,7 @@ var CustomizableUIInternal = {
       // we remove them from this area's placement array. They will (have) be(en) added
       // to their original area's placements array in the block above this one.
       if (placementsToRemove.size) {
-        let placementAry = gPlacements.get(aArea);
+        let placementAry = gPlacements.get(aAreaId);
         for (let id of placementsToRemove) {
           let index = placementAry.indexOf(id);
           placementAry.splice(index, 1);
@@ -1377,13 +1507,17 @@ var CustomizableUIInternal = {
       }
 
       if (gResetting) {
-        this.notifyListeners("onAreaReset", aArea, container);
+        this.notifyListeners("onAreaReset", aAreaId, container);
       }
     } finally {
       this.endBatchUpdate();
     }
   },
 
+  /**
+   * @see CustomizableUI.addPanelCloseListeners
+   * @param {Element} aPanel
+   */
   addPanelCloseListeners(aPanel) {
     aPanel.addEventListener("click", this, { mozSystemGroup: true });
     aPanel.addEventListener("keypress", this, { mozSystemGroup: true });
@@ -1394,6 +1528,10 @@ var CustomizableUIInternal = {
     gPanelsForWindow.get(win).add(this._getPanelForNode(aPanel));
   },
 
+  /**
+   * @see CustomizableUI.removePanelCloseListeners
+   * @param {Element} aPanel
+   */
   removePanelCloseListeners(aPanel) {
     aPanel.removeEventListener("click", this, { mozSystemGroup: true });
     aPanel.removeEventListener("keypress", this, { mozSystemGroup: true });
@@ -1404,6 +1542,21 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * Given a customizable widget node, attempts to assign it the correct
+   * context / contextmenu attributes for the current placement of that
+   * widget.
+   *
+   * @param {Element} aNode
+   *   The node to set the context / contextmenu attributes for.
+   * @param {Element} aAreaNode
+   *   The node representing the area that aNode is currently placed within.
+   * @param {boolean} forcePanel
+   *   True if we should force the panel context menu, regardless of the
+   *   current placement. This is mainly useful for the overflow panel, where
+   *   the placement may be the overflowable toolbar, but visually the widget
+   *   is within the overflowable toolbar panel.
+   */
   ensureButtonContextMenu(aNode, aAreaNode, forcePanel) {
     const kPanelItemContextMenu = "customizationPanelItemContextMenu";
 
@@ -1434,6 +1587,15 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * Returns the ID of the provider for a given widget. This is one of the
+   * CustomizableUI.PROVIDER_* constants.
+   *
+   * @param {string} aWidgetId
+   *   The ID of the widget to get the provider for.
+   * @returns {string}
+   *   One of the CustomizableUI.PROVIDER_* constants.
+   */
   getWidgetProvider(aWidgetId) {
     if (this.isSpecialWidget(aWidgetId)) {
       return CustomizableUI.PROVIDER_SPECIAL;
@@ -1454,6 +1616,27 @@ var CustomizableUIInternal = {
     return CustomizableUI.PROVIDER_XUL;
   },
 
+  /**
+   * @typedef {string|null} GetWidgetNodeIndex0
+   *   The ID of the provider for the widget node. This is one of the constants
+   *   in CustomizableUI.PROVIDER_*. This is null if no node is found for the
+   *   widget ID.
+   * @typedef {Element|null} GetWidgetNodeIndex1
+   *   The found node associated with a widget ID, or null if no such node can
+   *   be found.
+   * @typedef {[GetWidgetNodeIndex0, GetWidgetNodeIndex1]} GetWidgetNodeResult
+   */
+
+  /**
+   * For a given window, returns the node associated with a widget ID.
+   *
+   * @param {string} aWidgetId
+   *   The ID of the widget to get the associated node for in the window.
+   * @param {DOMWindow} aWindow
+   *   The window to find the node for, associated with aWidgetId.
+   * @returns {GetWidgetNodeResult}
+   *   The found node information.
+   */
   getWidgetNode(aWidgetId, aWindow) {
     let document = aWindow.document;
 
@@ -1477,11 +1660,14 @@ var CustomizableUIInternal = {
         return [CustomizableUI.PROVIDER_API, widget.instances.get(document)];
       }
 
-      return [CustomizableUI.PROVIDER_API, this.buildWidget(document, widget)];
+      return [
+        CustomizableUI.PROVIDER_API,
+        this.buildWidgetNode(document, widget),
+      ];
     }
 
     lazy.log.debug("Searching for " + aWidgetId + " in toolbox.");
-    let node = this.findWidgetInWindow(aWidgetId, aWindow);
+    let node = this.findXULWidgetInWindow(aWidgetId, aWindow);
     if (node) {
       return [CustomizableUI.PROVIDER_XUL, node];
     }
@@ -1490,17 +1676,22 @@ var CustomizableUIInternal = {
     return [null, null];
   },
 
-  registerPanelNode(aNode, aArea) {
-    if (gBuildAreas.has(aArea) && gBuildAreas.get(aArea).has(aNode)) {
+  /**
+   * @see CustomizableUI.registerPanelNode
+   * @param {Element} aNode
+   * @param {Element} aAreaId
+   */
+  registerPanelNode(aNode, aAreaId) {
+    if (gBuildAreas.has(aAreaId) && gBuildAreas.get(aAreaId).has(aNode)) {
       return;
     }
 
     aNode._customizationTarget = aNode;
     this.addPanelCloseListeners(this._getPanelForNode(aNode));
 
-    let placements = gPlacements.get(aArea);
-    this.buildArea(aArea, placements, aNode);
-    this.notifyListeners("onAreaNodeRegistered", aArea, aNode);
+    let placements = gPlacements.get(aAreaId);
+    this.buildArea(aAreaId, placements, aNode);
+    this.notifyListeners("onAreaNodeRegistered", aAreaId, aNode);
 
     for (let child of aNode.children) {
       if (child.localName != "toolbarbutton") {
@@ -1512,17 +1703,23 @@ var CustomizableUIInternal = {
       this.ensureButtonContextMenu(child, aNode, true);
     }
 
-    this.registerBuildArea(aArea, aNode);
+    this.registerBuildArea(aAreaId, aNode);
   },
 
-  onWidgetAdded(aWidgetId, aArea, aPosition) {
-    this.insertNode(aWidgetId, aArea, aPosition, true);
+  /**
+   * @type {CustomizableUIOnWidgetAddedCallback}
+   */
+  onWidgetAdded(aWidgetId, aArea, _aPosition) {
+    this.insertNode(aWidgetId, aArea, true);
 
     if (!gResetting) {
       this._clearPreviousUIState();
     }
   },
 
+  /**
+   * @type {CustomizableUIOnWidgetRemovedCallback}
+   */
   onWidgetRemoved(aWidgetId, aArea) {
     let areaNodes = gBuildAreas.get(aArea);
     if (!areaNodes) {
@@ -1590,21 +1787,36 @@ var CustomizableUIInternal = {
     }
   },
 
-  onWidgetMoved(aWidgetId, aArea, aOldPosition, aNewPosition) {
-    this.insertNode(aWidgetId, aArea, aNewPosition);
+  /**
+   * @type {CustomizableUIOnWidgetMovedCallback}
+   */
+  onWidgetMoved(aWidgetId, aArea, _aOldPosition, _aNewPosition) {
+    this.insertNode(aWidgetId, aArea);
     if (!gResetting) {
       this._clearPreviousUIState();
     }
   },
 
+  /**
+   * @type {CustomizableUIOnCustomizeEnd}
+   */
   onCustomizeEnd() {
     this._clearPreviousUIState();
   },
 
-  registerBuildArea(aArea, aNode) {
+  /**
+   * Registers a customizable area of a window with CustomizableUI such that it
+   * can then be "built" to reflect the current stored state.
+   *
+   * @param {string} aAreaId
+   *   The ID of the area to be registered.
+   * @param {Element} aAreaNode
+   *   The element for the area in the window being registered.
+   */
+  registerBuildArea(aAreaId, aAreaNode) {
     // We ensure that the window is registered to have its customization data
     // cleaned up when unloading.
-    let window = aNode.ownerGlobal;
+    let window = aAreaNode.ownerGlobal;
     if (window.closed) {
       return;
     }
@@ -1615,17 +1827,26 @@ var CustomizableUIInternal = {
       gBuildWindows.get(window).add(window.gNavToolbox);
     }
 
-    if (!gBuildAreas.has(aArea)) {
-      gBuildAreas.set(aArea, new Set());
+    if (!gBuildAreas.has(aAreaId)) {
+      gBuildAreas.set(aAreaId, new Set());
     }
 
-    gBuildAreas.get(aArea).add(aNode);
+    gBuildAreas.get(aAreaId).add(aAreaNode);
 
     // Give a class to all customize targets to be used for styling in Customize Mode
-    let customizableNode = this.getCustomizeTargetForArea(aArea, window);
+    let customizableNode = this.getCustomizeTargetForArea(aAreaId, window);
     customizableNode.classList.add("customization-target");
   },
 
+  /**
+   * Registers a browser window with customizable elements with CustomizableUI.
+   * This is mainly used to set up event handlers to perform cleanups if and
+   * when the window closes. If the window is already registered, this is a
+   * no-op.
+   *
+   * @param {DOMWindow} aWindow
+   *   The window to register.
+   */
   registerBuildWindow(aWindow) {
     if (!gBuildWindows.has(aWindow)) {
       gBuildWindows.set(aWindow, new Set());
@@ -1637,6 +1858,16 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * Unregisters a browser window that was registered with registerBuildWindow.
+   * The onAreaNodeUnregistered callback will be called for each customizable
+   * area within the window being unregistered. The onWidgetInstanceRemoved
+   * will be called for each widget in the window being unregistered. Finally,
+   * the onWindowClosed listener will be called with the window.
+   *
+   * @param {DOMWindow} aWindow
+   *   The window to unregister.
+   */
   unregisterBuildWindow(aWindow) {
     aWindow.removeEventListener("unload", this);
     aWindow.removeEventListener("command", this, true);
@@ -1680,6 +1911,10 @@ var CustomizableUIInternal = {
     this.notifyListeners("onWindowClosed", aWindow);
   },
 
+  /**
+   * @see CustomizableUI.handleNewBrowserWindow
+   * @param {DOMWindow} aWindow
+   */
   handleNewBrowserWindow(aWindow) {
     let { gNavToolbox, document, gBrowser } = aWindow;
     gNavToolbox.palette = document.getElementById(
@@ -1746,12 +1981,22 @@ var CustomizableUIInternal = {
     }
   },
 
-  setLocationAttributes(aNode, aArea) {
-    let props = gAreas.get(aArea);
+  /**
+   * Sets some attributes on a customizable widget when it is introduced into
+   * the DOM or moved around within it. Those attributes are "cui-anchorid"
+   * and "cui-areatype".
+   *
+   * @param {Element} aNode
+   *   The customizable widget node being inserted or moved within the DOM.
+   * @param {string} aAreaId
+   *   The area that the customizable widget is being moved into or within.
+   */
+  setLocationAttributes(aNode, aAreaId) {
+    let props = gAreas.get(aAreaId);
     if (!props) {
       throw new Error(
         "Expected area " +
-          aArea +
+          aAreaId +
           " to have a properties Map " +
           "associated with it."
       );
@@ -1766,21 +2011,44 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * Removes any location attributes from a customizable widget node when the
+   * node is removed from any of the registered customizable areas.
+   *
+   * @param {Element} aNode
+   *   The node being removed from the customizable area.
+   */
   removeLocationAttributes(aNode) {
     aNode.removeAttribute("cui-areatype");
     aNode.removeAttribute("cui-anchorid");
   },
 
-  insertNode(aWidgetId, aArea, aPosition, isNew) {
-    let areaNodes = gBuildAreas.get(aArea);
+  /**
+   * Inserts a node associated with the customizable widget with ID aWidgetId
+   * into all the areas with aAreaId across all windows.
+   *
+   * @param {string} aWidgetId
+   *   The ID of the customizable widget to insert into aAreaId across all
+   *   windows.
+   * @param {string} aAreaId
+   *   The ID of the area to insert the widget into across all windows.
+   *   This method is a no-op if aAreaId is not associated with a registered
+   *   area.
+   * @param {boolean} isNew
+   *   True if the widget is being newly inserted as opposed to moved.
+   */
+  insertNode(aWidgetId, aAreaId, isNew) {
+    let areaNodes = gBuildAreas.get(aAreaId);
     if (!areaNodes) {
       return;
     }
 
-    let placements = gPlacements.get(aArea);
+    let placements = gPlacements.get(aAreaId);
     if (!placements) {
       lazy.log.error(
-        "Could not find any placements for " + aArea + " when moving a widget."
+        "Could not find any placements for " +
+          aAreaId +
+          " when moving a widget."
       );
       return;
     }
@@ -1792,6 +2060,19 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * Inserts a widget with ID aWidgetId into the passed area node in the
+   * position dictated by CustomizableUI's internal positioning state for
+   * widgets.
+   *
+   * @param {string} aWidgetId
+   *   The ID of the widget to insert into aAreaNode.
+   * @param {Element} aAreaNode
+   *   The customizable area node to insert aWidgetId into.
+   * @param {boolean} isNew
+   *   True if the widget is being inserted for the first time, instead of
+   *   moved.
+   */
   insertNodeInWindow(aWidgetId, aAreaNode, isNew) {
     let window = aAreaNode.ownerGlobal;
     let showInPrivateBrowsing = gPalette.has(aWidgetId)
@@ -1832,6 +2113,28 @@ var CustomizableUIInternal = {
     this.insertWidgetBefore(widgetNode, nextNode, insertionContainer, areaId);
   },
 
+  /**
+   * @typedef {Element|null} FindInsertionPointsIndex0
+   *   The container that the node should be inserted into, or null if no such
+   *   container can be found.
+   * @typedef {Element|null} FindInsertionPointsIndex1
+   *   The node that the insertion should occur before, or null if no such
+   *   sibling can be found.
+   * @typedef {[FindInsertionPointsIndex0, FindInsertionPointsIndex1]} FindInsertionPointsResult
+   */
+
+  /**
+   * Given a node for a customizable widget that may have a placement within an
+   * area, find the location in the DOM where it makes the most sense to insert
+   * that node. In the event of there being a placement for aNode in aAreaNode,
+   * this insertion point will reflect the index of the node in that area's
+   * placements array. In the event of there not being a pre-existing placement
+   * for aNode in aAreaNode, the node will be prepended to the area.
+   *
+   * @param {Element} aNode
+   * @param {Element} aAreaNode
+   * @returns {FindInsertionPointsResult}
+   */
   findInsertionPoints(aNode, aAreaNode) {
     let areaId = aAreaNode.id;
     let props = gAreas.get(areaId);
@@ -1872,13 +2175,45 @@ var CustomizableUIInternal = {
     return [container, null];
   },
 
-  insertWidgetBefore(aNode, aNextNode, aContainer, aArea) {
+  /**
+   * Inserts a node associated with a widget before some other node within a
+   * container within a customizable area.
+   *
+   * @param {Element} aNode
+   *   The customizable widget node to insert.
+   * @param {Element|null} aNextNode
+   *   The node that the inserted node should be inserted before, or null if
+   *   it should be inserted at the end of aContainer.
+   * @param {Element} aContainer
+   *   The parent node of both aNode and aNextNode.
+   * @param {string} aAreaId
+   *   The identifier string of the area that aNode is being inserted into.
+   */
+  insertWidgetBefore(aNode, aNextNode, aContainer, aAreaId) {
     this.notifyDOMChange(aNode, aNextNode, aContainer, false, () => {
-      this.setLocationAttributes(aNode, aArea);
+      this.setLocationAttributes(aNode, aAreaId);
       aContainer.insertBefore(aNode, aNextNode);
     });
   },
 
+  /**
+   * Fires the onWidgetBeforeDOMChange event, then calls aCallback, before
+   * firing the onWidgetAfterDOMChange event.
+   *
+   * @param {Element} aNode
+   *   The node that is being changed.
+   * @param {Element|null} aNextNode
+   *   The node immediately after the one changing, or null if there is no next
+   *   node in the container.
+   * @param {Element} aContainer
+   *   The container of the node that is being changed.
+   * @param {boolean} aIsRemove
+   *   True iff the action about to happen is the removal of the DOM node.
+   * @param {Function} aCallback
+   *   A synchronous function that will be called after the
+   *   onWidgetBeforeDOMChange event is fired, but before onWidgetAfterDOMChange
+   *   is fired.
+   */
   notifyDOMChange(aNode, aNextNode, aContainer, aIsRemove, aCallback) {
     this.notifyListeners(
       "onWidgetBeforeDOMChange",
@@ -1897,6 +2232,12 @@ var CustomizableUIInternal = {
     );
   },
 
+  /**
+   * General event handler for CustomizableUIInternal that mostly just
+   * dispatches to more specialized event handlers based on the event type.
+   *
+   * @param {CommandEvent|MouseEvent|KeyEvent|Event} aEvent
+   */
   handleEvent(aEvent) {
     switch (aEvent.type) {
       case "command":
@@ -1915,6 +2256,13 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * Returns true if the CommandEvent is being fired on a target that exists
+   * in one of the panels that CustomizableUI tracks in gPanelsForWindow.
+   *
+   * @param {CommandEvent} aEvent
+   * @returns {boolean}
+   */
   _originalEventInPanel(aEvent) {
     let e = aEvent.sourceEvent;
     if (!e) {
@@ -1929,33 +2277,72 @@ var CustomizableUIInternal = {
     return !!panels && panels.has(node);
   },
 
-  _getSpecialIdForNode(aNode) {
-    if (typeof aNode == "object" && aNode.localName) {
-      if (aNode.id) {
-        return aNode.id;
+  /**
+   * If passed a DOM node, this will return the ID attribute for the node if it
+   * exists. If it doesn't, it will check to see if the element localName starts
+   * with "toolbar", and if so, return the rest of the localName after that
+   * string. This means that for a <toolbarseparator> without an ID, this will
+   * return "separator". If the element does not have a localName that starts
+   * with "toolbar", this will return the empty string.
+   *
+   * If aNode happens to be a string instead of a DOM node, this simply returns
+   * the string back.
+   *
+   * @param {Element|string} aStringOrNode
+   *   A node to try to get the special identifier for, or a string that will
+   *   be echoed back to the caller.
+   * @returns {string}
+   *   The special identifier for the node, the empty string, or aStringOrNode
+   *   in the event that aStringOrNode happened to already be a string.
+   */
+  _getSpecialIdForNode(aStringOrNode) {
+    if (typeof aStringOrNode == "object" && aStringOrNode.localName) {
+      if (aStringOrNode.id) {
+        return aStringOrNode.id;
       }
-      if (aNode.localName.startsWith("toolbar")) {
-        return aNode.localName.substring(7);
+      if (aStringOrNode.localName.startsWith("toolbar")) {
+        return aStringOrNode.localName.substring(7);
       }
       return "";
     }
-    return aNode;
+    return aStringOrNode;
   },
 
-  isSpecialWidget(aId) {
-    if (aId === null) {
+  /**
+   * Returns true if the passed in ID or node happens to be one of the "special"
+   * widget types (a separator, a spring, or a spacer).
+   *
+   * @param {string|Element} aStringOrNode
+   *   An ID for a node, or an actual node itself to check for special-ness.
+   * @returns {boolean}
+   *   True if the ID or node resolves to a "special" widget type.
+   */
+  isSpecialWidget(aStringOrNode) {
+    if (aStringOrNode === null) {
       lazy.log.debug("isSpecialWidget was passed null");
       return false;
     }
-    aId = this._getSpecialIdForNode(aId);
+    aStringOrNode = this._getSpecialIdForNode(aStringOrNode);
     return (
-      aId.startsWith(kSpecialWidgetPfx) ||
-      aId.startsWith("separator") ||
-      aId.startsWith("spring") ||
-      aId.startsWith("spacer")
+      aStringOrNode.startsWith(kSpecialWidgetPfx) ||
+      aStringOrNode.startsWith("separator") ||
+      aStringOrNode.startsWith("spring") ||
+      aStringOrNode.startsWith("spacer")
     );
   },
 
+  /**
+   * Returns true if the passed in strings (or nodes) happen to be the same
+   * special widget.
+   *
+   * @param {string|Element} aId1
+   *   The first ID or element to compare to the second.
+   * @param {string|Element} aId2
+   *   The second ID or element to compare to the first.
+   * @returns {boolean}
+   *   True if the two strings or elements being compared refer to the same
+   *   special widget.
+   */
   matchingSpecials(aId1, aId2) {
     aId1 = this._getSpecialIdForNode(aId1);
     aId2 = this._getSpecialIdForNode(aId2);
@@ -1968,6 +2355,19 @@ var CustomizableUIInternal = {
     );
   },
 
+  /**
+   * If the aId string starts with any of "spring", "spacer" or "separator" (any
+   * of the special widget types), this will add a the special widget prefix
+   * to the id, as well as a unique numeric suffix at the end and return it.
+   *
+   * Otherwise, this simply echoes back the aId string.
+   *
+   * @param {string} aId
+   * @returns {string}
+   *   The aId string with the special widget prefix and unique numeric suffix
+   *   if the aId string is for a special widget, otherwise this just echoes
+   *   back aId.
+   */
   ensureSpecialWidgetId(aId) {
     let nodeType = aId.match(/spring|spacer|separator/)[0];
     // If the ID we were passed isn't a generated one, generate one now:
@@ -1978,6 +2378,12 @@ var CustomizableUIInternal = {
     return aId;
   },
 
+  /**
+   * @see CustomizableUI.createSpecialWidget
+   * @param {string} aId
+   * @param {Document} aDocument
+   * @returns {Element}
+   */
   createSpecialWidget(aId, aDocument) {
     let nodeName = "toolbar" + aId.match(/spring|spacer|separator/)[0];
     let node = aDocument.createXULElement(nodeName);
@@ -1986,10 +2392,20 @@ var CustomizableUIInternal = {
     return node;
   },
 
-  /* Find a XUL-provided widget in a window. Don't try to use this
+  /**
+   * Find a XUL-provided widget node in a window. Don't try to use this
    * for an API-provided widget or a special widget.
+   *
+   * @param {string} aId
+   *   The ID of the XUL-provided widget to find the node for in aWindow.
+   * @param {DOMWindow} aWindow
+   *   The window to find the XUL-provided widget node for.
+   * @returns {Element|null}
+   *   The found XUL widget node, or null if it cannot be found.
+   * @throws {Error}
+   *   Throws if aWindow is not a registered build window.
    */
-  findWidgetInWindow(aId, aWindow) {
+  findXULWidgetInWindow(aId, aWindow) {
     if (!gBuildWindows.has(aWindow)) {
       throw new Error("Build window not registered");
     }
@@ -2063,7 +2479,25 @@ var CustomizableUIInternal = {
     return null;
   },
 
-  buildWidget(aDocument, aWidget) {
+  /**
+   * Constructs a node for a customizable UI widget that can be placed within
+   * aDocument.
+   *
+   * @param {Document} aDocument
+   *   The document that the node will be inserted into.
+   * @param {string|WidgetGroupWrapper|XULWidgetGroupWrapper} aWidget
+   *   The customizable UI widget wrapper or widget ID of the widget to
+   *   construct.
+   * @returns {Element|null}
+   *   Returns the constructed node for the widget to be placed in aDocument.
+   *   Will return null if the widget node is not allowed to be placed in
+   *   aDocument (for example, if aDocument is a private browsing window
+   *   document, and the widget is not allowed to be placed in such a window).
+   * @throws {Error}
+   *   Can throw if the document is not a browser window document, or if
+   *   aWidget is null.
+   */
+  buildWidgetNode(aDocument, aWidget) {
     if (aDocument.documentURI != kExpectedWindowURL) {
       throw new Error("buildWidget was called for a non-browser window!");
     }
@@ -2256,6 +2690,10 @@ var CustomizableUIInternal = {
     return node;
   },
 
+  /**
+   * @see CustomizableUI.ensureSubviewListeners
+   * @param {Element} viewNode
+   */
   ensureSubviewListeners(viewNode) {
     if (viewNode._addedEventListeners) {
       return;
@@ -2277,6 +2715,14 @@ var CustomizableUIInternal = {
     );
   },
 
+  /**
+   * @see CustomizableUI.getLocalizedProperty
+   * @param {string|object} aWidget
+   * @param {string} aProp
+   * @param {string[]} [aFormatArgs]
+   * @param {string} [aDef]
+   * @returns {string}
+   */
   getLocalizedProperty(aWidget, aProp, aFormatArgs, aDef) {
     const kReqStringProps = ["label"];
 
@@ -2322,6 +2768,11 @@ var CustomizableUIInternal = {
     return def;
   },
 
+  /**
+   * @see CustomizableUI.addShortcut
+   * @param {Element} aShortcutNode
+   * @param {Element|null} aTargetNode
+   */
   addShortcut(aShortcutNode, aTargetNode = aShortcutNode) {
     // Detect if we've already been here before.
     if (aTargetNode.hasAttribute("shortcut")) {
@@ -2353,6 +2804,16 @@ var CustomizableUIInternal = {
     );
   },
 
+  /**
+   * Executes a customizable UI widget's command handler to handle aEvent.
+   *
+   * @param {WidgetGroupWrapper|XULWidgetGroupWrapper} aWidget
+   *   The customizable UI widget to call the command handler for.
+   * @param {Element} aNode
+   *   The node that the aEvent command event fired on.
+   * @param {CommandEvent} aEvent
+   *   The command event to handle.
+   */
   doWidgetCommand(aWidget, aNode, aEvent) {
     if (aWidget.onCommand) {
       try {
@@ -2370,6 +2831,19 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * Handles an event on a customizable UI widget node that has a panelview
+   * associated with it. This routine will cause the panelview to be displayed.
+   *
+   * @param {WidgetGroupWrapper|XULWidgetGroupWrapper} aWidget
+   *   The customizable UI widget to show the panelview for.
+   * @param {Element} aNode
+   *   The node that is handling the event that is causing the panelview to
+   *   show.
+   * @param {Event} aEvent
+   *   The event that the node is handlign that is causing the panelview to
+   *   show.
+   */
   showWidgetView(aWidget, aNode, aEvent) {
     let ownerWindow = aNode.ownerGlobal;
     let area = this.getPlacementOfWidget(aNode.id).area;
@@ -2399,6 +2873,17 @@ var CustomizableUIInternal = {
     ownerWindow.PanelUI.showSubView(aWidget.viewId, anchor, aEvent);
   },
 
+  /**
+   * Handles a command event on a customizable ui widget node, and does the
+   * action that best suits the type of widget.
+   *
+   * @param {WidgetGroupWrapper|XULWidgetGroupWrapper} aWidget
+   *   The widget to handle the command event for.
+   * @param {Element} aNode
+   *   The node that the command event is being fired on.
+   * @param {CommandEvent} aEvent
+   *   The command event to be handled.
+   */
   handleWidgetCommand(aWidget, aNode, aEvent) {
     // Note that aEvent can be a keypress event for widgets of type "view".
     lazy.log.debug("handleWidgetCommand");
@@ -2436,6 +2921,18 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * Handles a click event on a customizable ui widget node, and redirects to
+   * the widgets onClick event handler, if such a handler exists.
+   *
+   * @param {WidgetGroupWrapper|XULWidgetGroupWrapper} aWidget
+   *   The widget to call the onClick event handler for if such a handler
+   *   exists. If the handler does not exist, nothing is called.
+   * @param {Element} aNode
+   *   The node that fired the click event.
+   * @param {MouseEvent} aEvent
+   *   The click event to be handled.
+   */
   handleWidgetClick(aWidget, aNode, aEvent) {
     lazy.log.debug("handleWidgetClick");
     if (aWidget.onClick) {
@@ -2454,15 +2951,34 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * Returns the closest <xul:panel> element to aNode in its ancestry, or null
+   * if no such node can be found.
+   *
+   * @param {Element} aNode
+   *   The node to check the ancestry for.
+   * @returns {Element|null}
+   */
   _getPanelForNode(aNode) {
     return aNode.closest("panel");
   },
 
-  /*
-   * If people put things in the panel which need more than single-click interaction,
-   * we don't want to close it. Right now we check for text inputs and menu buttons.
-   * We also check for being outside of any toolbaritem/toolbarbutton, ie on a blank
-   * part of the menu, or on another menu (like a context menu inside the panel).
+  /**
+   * If people put things in the panel which need more than single-click
+   * interaction, we don't want to close it. Right now we check for text inputs
+   * and menu buttons. We also check for being outside of any
+   * toolbaritem/toolbarbutton, ie on a blank part of the menu, or on another
+   * menu (like a context menu inside the panel).
+   *
+   * So this returns true if the event being handled is on one of these
+   * interactive things that should NOT result in the associated panel closing.
+   *
+   * @param {Event} aEvent
+   *   The event that is occurring that we're evaluating.
+   * @returns {boolean}
+   *   True if the event occurred on an item we consider "interactive" such
+   *   that the enclosing panel should remain open. False if the panel should
+   *   close.
    */
   _isOnInteractiveElement(aEvent) {
     let panel = this._getPanelForNode(aEvent.currentTarget);
@@ -2531,6 +3047,13 @@ var CustomizableUIInternal = {
     return true;
   },
 
+  /**
+   * Finds the associated panel (if any) enclosing a given element, and
+   * closes it.
+   *
+   * @param {Element} aNode
+   *   The node to close the panel ancestor for.
+   */
   hidePanelForNode(aNode) {
     let panel = this._getPanelForNode(aNode);
     if (panel) {
@@ -2538,6 +3061,14 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * For an event that occurs for a node within a panel, this routine will
+   * check to see if that event should cause the panel to close.
+   *
+   * @param {Event} aEvent
+   *   The event that is being fired on the node. This could be a keyboard,
+   *   mouse or command event, for example.
+   */
   maybeAutoHidePanel(aEvent) {
     let eventType = aEvent.type;
     if (eventType == "keypress" && aEvent.keyCode != aEvent.DOM_VK_RETURN) {
@@ -2584,6 +3115,11 @@ var CustomizableUIInternal = {
     this.hidePanelForNode(aEvent.target);
   },
 
+  /**
+   * @see CustomizableUI.getUnusedWidgets
+   * @param {DOMElement} aWindowPalette
+   * @returns {Array<WidgetGroupWrapper|XULWidgetGroupWrapper>}
+   */
   getUnusedWidgets(aWindowPalette) {
     let window = aWindowPalette.ownerGlobal;
     let isWindowPrivate = lazy.PrivateBrowsingUtils.isWindowPrivate(window);
@@ -2618,6 +3154,13 @@ var CustomizableUIInternal = {
     return [...widgets];
   },
 
+  /**
+   * @see CustomizableUI.getPlacementOfWidget
+   * @param {string} aWidgetId
+   * @param {boolean} [aOnlyRegistered=true]
+   * @param {boolean} [aDeadAreas=false]
+   * @returns {CustomizableUIPlacementInfo|null}
+   */
   getPlacementOfWidget(aWidgetId, aOnlyRegistered, aDeadAreas) {
     if (aOnlyRegistered && !this.widgetExists(aWidgetId)) {
       return null;
@@ -2636,6 +3179,19 @@ var CustomizableUIInternal = {
     return null;
   },
 
+  /**
+   * Check for the current existance of a widget by ID.
+   *
+   * @see CustomizableUIInternal.isSpecialWidget
+   * @param {string} aWidgetId
+   * @returns {boolean}
+   *   Returns true if the widget ID belongs to a widget that is registered or
+   *   is a "special" widget (see isSpecialWidget). This will return false for
+   *   widget IDs belonging to widgets we have seen in the past, but are no
+   *   longer registered. There is also a special case for treating
+   *   the "save-to-pocket-button" as a non-existant widget. All other IDs are
+   *   presumed to belong to XUL widgets, and presumed to exist.
+   */
   widgetExists(aWidgetId) {
     if (gPalette.has(aWidgetId) || this.isSpecialWidget(aWidgetId)) {
       return true;
@@ -2653,7 +3209,16 @@ var CustomizableUIInternal = {
     return true;
   },
 
-  addWidgetToArea(aWidgetId, aArea, aPosition, aInitialAdd) {
+  /**
+   * @see CustomizableUI.addWidgetToArea
+   * @param {string} aWidgetId
+   * @param {string} aArea
+   * @param {number} aPosition
+   * @param {boolean} [aInitialAdd=false]
+   *   True if this is the first time the widget is being added to the area
+   *   for the first time during initialization, or after a state reset.
+   */
+  addWidgetToArea(aWidgetId, aArea, aPosition, aInitialAdd = false) {
     if (aArea == CustomizableUI.AREA_NO_AREA) {
       throw new Error(
         "AREA_NO_AREA is only used as an argument for " +
@@ -2735,6 +3300,10 @@ var CustomizableUIInternal = {
     this.notifyListeners("onWidgetAdded", aWidgetId, aArea, aPosition);
   },
 
+  /**
+   * @see CustomizableUI.removeWidgetFromArea
+   * @param {string} aWidgetId
+   */
   removeWidgetFromArea(aWidgetId) {
     let oldPlacement = this.getPlacementOfWidget(aWidgetId, false, true);
     if (!oldPlacement) {
@@ -2778,6 +3347,11 @@ var CustomizableUIInternal = {
     this.notifyListeners("onWidgetRemoved", aWidgetId, oldPlacement.area);
   },
 
+  /**
+   * @see CustomizableUI.moveWidgetWithinArea
+   * @param {string} aWidgetId
+   * @param {number} aPosition
+   */
   moveWidgetWithinArea(aWidgetId, aPosition) {
     let oldPlacement = this.getPlacementOfWidget(aWidgetId);
     if (!oldPlacement) {
@@ -2825,6 +3399,14 @@ var CustomizableUIInternal = {
     );
   },
 
+  /**
+   * Returns the horizontal tab strip's placements state that was saved the
+   * last time we switched to vertical tabs mode. This state is an array of
+   * widget IDs that had been in the tab strip prior to switching to vertical
+   * tabs.
+   *
+   * @returns {string[]}
+   */
   getSavedHorizontalSnapshotState() {
     let state = [];
     let prefValue = lazy.horizontalPlacementsPref;
@@ -2841,6 +3423,14 @@ var CustomizableUIInternal = {
     return state;
   },
 
+  /**
+   * Returns the vertical tab strip's placements state that was saved the
+   * last time we switched to horizontal tabs mode. This state is an array of
+   * widget IDs that had been in the vertical tab strip prior to switching to
+   * horizontal tabs.
+   *
+   * @returns {string[]}
+   */
   getSavedVerticalSnapshotState() {
     let state = [];
     let prefValue = lazy.verticalPlacementsPref;
@@ -2857,8 +3447,12 @@ var CustomizableUIInternal = {
     return state;
   },
 
-  // Note that this does not populate gPlacements, which is done lazily.
-  // The panel area is an exception here.
+  /**
+   * Loads the saved customization state objects from preferences or sets them
+   * to their defaults if no such state can be found.
+   *
+   * Note that this does not populate gPlacements, which is done lazily.
+   */
   loadSavedState() {
     let state = Services.prefs.getCharPref(kPrefCustomizationState, "");
     if (!state) {
@@ -2892,8 +3486,16 @@ var CustomizableUIInternal = {
     gNewElementCount = gSavedState.newElementCount || 0;
   },
 
-  restoreStateForArea(aArea) {
-    let placementsPreexisted = gPlacements.has(aArea);
+  /**
+   * Restores the placements of widgets within an area with ID aAreaId from
+   * saved state, or sets the default placements if no such saved state exists.
+   * This should be called during area registration, or after a state reset.
+   *
+   * @param {string} aAreaId
+   *   The ID of the area to restore the state for.
+   */
+  restoreStateForArea(aAreaId) {
+    let placementsPreexisted = gPlacements.has(aAreaId);
 
     this.beginBatchUpdate();
     try {
@@ -2901,42 +3503,44 @@ var CustomizableUIInternal = {
 
       let restored = false;
       if (placementsPreexisted) {
-        lazy.log.debug("Restoring " + aArea + " from pre-existing placements");
-        for (let [position, id] of gPlacements.get(aArea).entries()) {
+        lazy.log.debug(
+          "Restoring " + aAreaId + " from pre-existing placements"
+        );
+        for (let [position, id] of gPlacements.get(aAreaId).entries()) {
           this.moveWidgetWithinArea(id, position);
         }
         gDirty = false;
         restored = true;
       } else {
-        gPlacements.set(aArea, []);
+        gPlacements.set(aAreaId, []);
       }
 
-      if (!restored && gSavedState && aArea in gSavedState.placements) {
-        lazy.log.debug("Restoring " + aArea + " from saved state");
-        let placements = gSavedState.placements[aArea];
+      if (!restored && gSavedState && aAreaId in gSavedState.placements) {
+        lazy.log.debug("Restoring " + aAreaId + " from saved state");
+        let placements = gSavedState.placements[aAreaId];
         for (let id of placements) {
-          this.addWidgetToArea(id, aArea);
+          this.addWidgetToArea(id, aAreaId);
         }
         gDirty = false;
         restored = true;
       }
 
       if (!restored) {
-        lazy.log.debug("Restoring " + aArea + " from default state");
-        let defaults = gAreas.get(aArea).get("defaultPlacements");
+        lazy.log.debug("Restoring " + aAreaId + " from default state");
+        let defaults = gAreas.get(aAreaId).get("defaultPlacements");
         if (
           CustomizableUI.verticalTabsEnabled &&
-          gAreas.get(aArea).has("verticalTabsDefaultPlacements")
+          gAreas.get(aAreaId).has("verticalTabsDefaultPlacements")
         ) {
           lazy.log.debug(
-            "Using verticalTabsDefaultPlacements to restore " + aArea
+            "Using verticalTabsDefaultPlacements to restore " + aAreaId
           );
-          defaults = gAreas.get(aArea).get("verticalTabsDefaultPlacements");
+          defaults = gAreas.get(aAreaId).get("verticalTabsDefaultPlacements");
         }
 
         if (defaults) {
           for (let id of defaults) {
-            this.addWidgetToArea(id, aArea, null, true);
+            this.addWidgetToArea(id, aAreaId, null, true);
           }
         }
         gDirty = false;
@@ -2945,22 +3549,22 @@ var CustomizableUIInternal = {
       // Finally, add widgets to the area that were added before the it was able
       // to be restored. This can occur when add-ons register widgets for a
       // lazily-restored area before it's been restored.
-      if (gFuturePlacements.has(aArea)) {
-        let areaPlacements = gPlacements.get(aArea);
-        for (let id of gFuturePlacements.get(aArea)) {
+      if (gFuturePlacements.has(aAreaId)) {
+        let areaPlacements = gPlacements.get(aAreaId);
+        for (let id of gFuturePlacements.get(aAreaId)) {
           if (areaPlacements.includes(id)) {
             continue;
           }
-          this.addWidgetToArea(id, aArea);
+          this.addWidgetToArea(id, aAreaId);
         }
-        gFuturePlacements.delete(aArea);
+        gFuturePlacements.delete(aAreaId);
       }
 
       lazy.log.debug(
         "Placements for " +
-          aArea +
+          aAreaId +
           ":\n\t" +
-          gPlacements.get(aArea).join("\n\t")
+          gPlacements.get(aAreaId).join("\n\t")
       );
 
       gRestoring = false;
@@ -2969,6 +3573,21 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * Adds widgets to the AREA_TABSTRIP area that were saved when switching away
+   * from horizontal tabs. This will effectively rebuild AREA_TABSTRIP to
+   * match the state in savedPlacements, and then clear the saved horizontal
+   * tab state.
+   *
+   * @param {string[]} [savedPlacements=this.getSavedHorizontalSnapshotState()]
+   *   The array of widget IDs to add to the AREA_TABSTRIP, in order. If this
+   *   set of placements doesn't include "tabbrowser-tabs" for some reason, the
+   *   whole set of placements is ignored and the tab strip is reset to the
+   *   defaults.
+   * @param {boolean} [isInitializing = false]
+   *   True if the horizontal tab strip is being rebuilt during CustomizableUI
+   *   initialization as opposed to via a pref-flip at runtime.
+   */
   restoreSavedHorizontalTabStripState(
     savedPlacements = this.getSavedHorizontalSnapshotState(),
     isInitializing = false
@@ -3011,6 +3630,15 @@ var CustomizableUIInternal = {
     this.endBatchUpdate();
   },
 
+  /**
+   * Looks for a widget with a matching ID to aWidgetId within the saved
+   * horizontal tab strip state, and then deletes it from that state before
+   * saving that state to preferences.
+   *
+   * @see CustomizableUIInternal.saveHorizontalTabStripState
+   * @param {string} aWidgetId
+   *   The ID of the widget to remove from the saved horizontal tabstrip state.
+   */
   deleteWidgetInSavedHorizontalTabStripState(aWidgetId) {
     const savedPlacements = this.getSavedHorizontalSnapshotState();
     let position = savedPlacements.indexOf(aWidgetId);
@@ -3020,6 +3648,15 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * Looks for a widget with a matching ID to aWidgetId within the navbar state
+   * that was saved when switching away from vertical tabs mode, and then
+   * deletes it from that state before saving that state to preferences.
+   *
+   * @see CustomizableUIInternal.saveNavBarWhenVerticalTabsState
+   * @param {string} aWidgetId
+   *   The ID of the widget to remove from the saved navbar state.
+   */
   deleteWidgetInSavedNavBarWhenVerticalTabsState(aWidgetId) {
     const savedPlacements = this.getSavedVerticalSnapshotState();
     let position = savedPlacements.indexOf(aWidgetId);
@@ -3029,6 +3666,18 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * Takes the current set of widgets placed within the horizontal tab strip
+   * and saves their IDs to a preference. This is used just before switching
+   * to vertical tabs mode (which moves some widgets around), and the saved
+   * state is used to restore the horizontal tab mode state of the tab
+   * strip.
+   *
+   * @param {string[]} [placements=[]]
+   *   The placements within the horizontal tab strip to save to preferences.
+   *   If this is the empty array, this method will use the current placements
+   *   of the tab strip automatically.
+   */
   saveHorizontalTabStripState(placements = []) {
     if (!placements.length) {
       placements = this.getAreaPlacementsForSaving(
@@ -3043,6 +3692,18 @@ var CustomizableUIInternal = {
     );
   },
 
+  /**
+   * Takes the current set of widgets placed within the navbar while in
+   * vertical tabs mode, and and saves their IDs to a preference. This is used
+   * just before switching to horizontal tabs mode (which moves some widgets
+   * around), and the saved state is used to restore the navbar's widget
+   * placements if the user switches back to vertical tabs.
+   *
+   * @param {string[]} [placements=[]]
+   *   The placements within the navbar to save to preferences. If this is the
+   *   empty array, this method will use the current placements of the navbar
+   *   automatically.
+   */
   saveNavBarWhenVerticalTabsState(placements = []) {
     if (!placements.length) {
       placements = this.getAreaPlacementsForSaving(CustomizableUI.AREA_NAVBAR);
@@ -3055,29 +3716,45 @@ var CustomizableUIInternal = {
     );
   },
 
-  getAreaPlacementsForSaving(area) {
+  /**
+   * Returns the placements of widgets within a known area, regardless of
+   * whether or not the area has already been built, or is still registered.
+   * This means that we can get the placements for an area that was registered
+   * in the past, is no longer registered, but still exists within the
+   * saved state.
+   *
+   * @param {string} aAreaId
+   *   The ID of the area to get the placements for.
+   * @returns {string[]|undefined}
+   *   Returns the placements for the area, or undefined if the area is not
+   *   recognized.
+   */
+  getAreaPlacementsForSaving(aAreaId) {
     // An early call to saveState can occur before all the lazy-area building is complete
     let placements;
-    if (this.isAreaLazy(area) && gFuturePlacements.get(area)?.size) {
-      placements = [...gFuturePlacements.get(area)];
-    } else if (gPlacements.has(area)) {
-      placements = gPlacements.get(area);
+    if (this.isAreaLazy(aAreaId) && gFuturePlacements.get(aAreaId)?.size) {
+      placements = [...gFuturePlacements.get(aAreaId)];
+    } else if (gPlacements.has(aAreaId)) {
+      placements = gPlacements.get(aAreaId);
     }
 
     // Merge in previously saved areas if not present in gPlacements/gFuturePlacements.
     // This way, state is still persisted for e.g. temporarily disabled
     // add-ons - see bug 989338.
-    if (!placements && gSavedState && gSavedState.placements?.[area]) {
-      placements = gSavedState.placements[area];
+    if (!placements && gSavedState && gSavedState.placements?.[aAreaId]) {
+      placements = gSavedState.placements[aAreaId];
     }
     lazy.log.debug(
-      `getAreaPlacementsForSaving for area: ${area}, gPlacements for area: ${gPlacements.get(
-        area
+      `getAreaPlacementsForSaving for area: ${aAreaId}, gPlacements for area: ${gPlacements.get(
+        aAreaId
       )}, returning: ${placements}`
     );
     return placements;
   },
 
+  /**
+   * Saves the current state of all customizable areas to preferences.
+   */
   saveState() {
     if (gInBatchStack || !gDirty) {
       return;
@@ -3110,7 +3787,17 @@ var CustomizableUIInternal = {
     gDirty = false;
   },
 
-  serializerHelper(aKey, aValue) {
+  /**
+   * This helper is passed to JSON.stringify when serializing the current
+   * customizable areas to preferences in saveState(). This does the work
+   * of serializing Map and Sets to objects and arrays, respectively.
+   *
+   * @see CustomizableUIInternal.saveState()
+   * @param {string|symbol} _aKey
+   * @param {any} aValue
+   * @returns {any}
+   */
+  serializerHelper(_aKey, aValue) {
     if (typeof aValue == "object" && aValue.constructor.name == "Map") {
       let result = {};
       for (let [mapKey, mapValue] of aValue) {
@@ -3126,10 +3813,17 @@ var CustomizableUIInternal = {
     return aValue;
   },
 
+  /**
+   * @see CustomizableUI.beginBatchUpdate()
+   */
   beginBatchUpdate() {
     gInBatchStack++;
   },
 
+  /**
+   * @see CustomizableUI.endBatchUpdate()
+   * @param {boolean} aForceDirty
+   */
   endBatchUpdate(aForceDirty) {
     gInBatchStack--;
     if (aForceDirty === true) {
@@ -3144,10 +3838,18 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * @see CustomizableUI.addListener
+   * @param {CustomizableUIListener} aListener
+   */
   addListener(aListener) {
     gListeners.add(aListener);
   },
 
+  /**
+   * @see CustomizableUI.removeListener
+   * @param {CustomizableUIListener} aListener
+   */
   removeListener(aListener) {
     if (aListener == this) {
       return;
@@ -3156,15 +3858,27 @@ var CustomizableUIInternal = {
     gListeners.delete(aListener);
   },
 
-  notifyListeners(aEvent, ...aArgs) {
+  /**
+   * For any listeners registered via `addListener` or `removeListener`, this
+   * calls the appropriate listener function for a particular CustomizableUI
+   * event if it is defined on the listener, passing along the arguments.
+   *
+   * @param {string} aListenerName
+   *   The name of the listener that should be called. This is a string
+   *   identifier of something that can be listened for via a
+   *   CustomizableUIListener - for example, "onWidgetCreated".
+   * @param  {...any} aArgs
+   *   The arguments to pass to the CustomizableUIListener function.
+   */
+  notifyListeners(aListenerName, ...aArgs) {
     if (gRestoring) {
       return;
     }
 
     for (let listener of gListeners) {
       try {
-        if (typeof listener[aEvent] == "function") {
-          listener[aEvent].apply(listener, aArgs);
+        if (typeof listener[aListenerName] == "function") {
+          listener[aListenerName].apply(listener, aArgs);
         }
       } catch (e) {
         lazy.log.error(e + " -- " + e.fileName + ":" + e.lineNumber);
@@ -3172,6 +3886,20 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * Constructs a CustomEvent with the aEventType type that is bubbling and
+   * cancelable, and includes the details passed on aDetails. This event is
+   * then dispatched on the gNavToolbox in aWindow.
+   *
+   * @see CustomizableUIInternal.dispatchToolboxEvent
+   * @param {string} aEventType
+   *   The type of the CustomEvent to fire.
+   * @param {any} aDetails
+   *   The details to assign to the event being fired.
+   * @param {DOMWindow} aWindow
+   *   The browser window containing the gNavToolbox which will have the event
+   *   dispatched on it.
+   */
   _dispatchToolboxEventToWindow(aEventType, aDetails, aWindow) {
     let evt = new aWindow.CustomEvent(aEventType, {
       bubbles: true,
@@ -3181,6 +3909,22 @@ var CustomizableUIInternal = {
     aWindow.gNavToolbox.dispatchEvent(evt);
   },
 
+  /**
+   * Constructs a CustomEvent with the aEventType type that is bubbling and
+   * cancelable, and includes the details passed on aDetails. This event is
+   * then dispatched on the gNavToolbox in aWindow if one is provided. If no
+   * window is provided, this is dispatched on the gNavToolbox for all
+   * registered windows.
+   *
+   * @param {string} aEventType
+   *   The type of the CustomEvent to fire.
+   * @param {any} [aDetails={}]
+   *   The details to assign to the event being fired.
+   * @param {DOMWindow} [aWindow=null]
+   *   The browser window containing the gNavToolbox which will have the event
+   *   dispatched on it, or null to dispatch to all gNavToolbox elements in
+   *   all registered windows.
+   */
   dispatchToolboxEvent(aEventType, aDetails = {}, aWindow = null) {
     if (aWindow) {
       this._dispatchToolboxEventToWindow(aEventType, aDetails, aWindow);
@@ -3191,6 +3935,12 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * @see CustomizableUI.createWidget
+   * @param {CustomizableUICreateWidgetProperties} aProperties
+   * @returns {string}
+   *   The ID of the created widget.
+   */
   createWidget(aProperties) {
     let widget = this.normalizeWidget(
       aProperties,
@@ -3331,6 +4081,12 @@ var CustomizableUIInternal = {
     return widget.id;
   },
 
+  /**
+   * Creates the widgets that are defined statically within the browser in
+   * CustomizableWidgets.
+   *
+   * @param {CustomizableUICreateWidgetProperties} aData
+   */
   createBuiltinWidget(aData) {
     // This should only ever be called on startup, before any windows are
     // opened - so we know there's no build areas to handle. Also, builtin
@@ -3368,15 +4124,33 @@ var CustomizableUIInternal = {
     }
   },
 
-  // Returns true if the area will eventually lazily restore (but hasn't yet).
-  isAreaLazy(aArea) {
-    if (gPlacements.has(aArea) || !gAreas.has(aArea)) {
+  /**
+   * Returns true if the associated area will eventually lazily restore (but
+   * hasn't yet).
+   *
+   * @param {string} aAreaId
+   * @returns {boolean}
+   */
+  isAreaLazy(aAreaId) {
+    if (gPlacements.has(aAreaId) || !gAreas.has(aAreaId)) {
       return false;
     }
-    return gAreas.get(aArea).get("type") == CustomizableUI.TYPE_TOOLBAR;
+    return gAreas.get(aAreaId).get("type") == CustomizableUI.TYPE_TOOLBAR;
   },
 
-  // XXXunf Log some warnings here, when the data provided isn't up to scratch.
+  /**
+   * Given a set of CustomizableUICreateWidgetProperties, attempts to
+   * create a "normalized" version of that object with default values where
+   * aData failed to define values, as well as properly wrapped event handlers.
+   *
+   * @param {CustomizableUICreateWidgetProperties} aData
+   * @param {string} aSource
+   *   One of the CustomizableUI.SOURCE_* constants, for example
+   *   CustomizableUI.SOURCE_EXTERNAL.
+   * @returns {object}
+   *   The normalized widget representation. Notably, the `implementation`
+   *   property of this widget will point to the original aData structure.
+   */
   normalizeWidget(aData, aSource) {
     let widget = {
       implementation: aData,
@@ -3527,6 +4301,17 @@ var CustomizableUIInternal = {
     return widget;
   },
 
+  /**
+   * Given some widget definition object, forwards calls to functions with the
+   * name aEventName to the underlying implementation objects copy of that
+   * function.
+   *
+   * @param {string} aEventName
+   *   The name of the function to redirect to the underlying implementations
+   *   version of that same named function.
+   * @param {object} aWidget
+   *   A "normalized" widget definition as computed by `normalizeWidget()`.
+   */
   wrapWidgetEventHandler(aEventName, aWidget) {
     if (typeof aWidget.implementation[aEventName] != "function") {
       aWidget[aEventName] = null;
@@ -3549,6 +4334,10 @@ var CustomizableUIInternal = {
     };
   },
 
+  /**
+   * @see CustomizableUI.destroyWidget
+   * @param {string} aWidgetId
+   */
   destroyWidget(aWidgetId) {
     let widget = gPalette.get(aWidgetId);
     if (!widget) {
@@ -3632,6 +4421,12 @@ var CustomizableUIInternal = {
     this.notifyListeners("onWidgetDestroyed", aWidgetId);
   },
 
+  /**
+   * @see CustomizableUI.getCustomizeTargetForArea
+   * @param {string} aArea
+   * @param {DOMWindow} aWindow
+   * @returns {Element}
+   */
   getCustomizeTargetForArea(aArea, aWindow) {
     let buildAreaNodes = gBuildAreas.get(aArea);
     if (!buildAreaNodes) {
@@ -3647,6 +4442,9 @@ var CustomizableUIInternal = {
     return null;
   },
 
+  /**
+   * @see CustomizableUI.reset()
+   */
   reset() {
     gResetting = true;
     // CUI reset also implies resetting verticalTabs back to false.
@@ -3672,6 +4470,13 @@ var CustomizableUIInternal = {
     gResetting = false;
   },
 
+  /**
+   * Persists the current state to gUIStateBeforeReset (in order to temporarily
+   * allow for undoing CustomizableUI resets) and then blows away the current
+   * CustomizableUI state (including saved prefs) and sets them to their
+   * defaults. This also rebuilds all of the registered areas to reflect the
+   * defaults.
+   */
   _resetUIState() {
     try {
       gUIStateBeforeReset.drawInTitlebar =
@@ -3735,6 +4540,10 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * For all registered areas, builds those areas to reflect the current
+   * placement state of all widgets.
+   */
   _rebuildRegisteredAreas() {
     for (let [areaId, areaNodes] of gBuildAreas) {
       let placements = gPlacements.get(areaId);
@@ -3762,7 +4571,8 @@ var CustomizableUIInternal = {
   },
 
   /**
-   * Undoes a previous reset, restoring the state of the UI to the state prior to the reset.
+   * Undoes a previous reset, restoring the state of the UI to the state prior
+   * to the reset.
    */
   undoReset() {
     if (
@@ -3810,6 +4620,10 @@ var CustomizableUIInternal = {
     gUndoResetting = false;
   },
 
+  /**
+   * Clears the persisted state that was snapshotted just before the most
+   * recent reset of the state.
+   */
   _clearPreviousUIState() {
     Object.getOwnPropertyNames(gUIStateBeforeReset).forEach(prop => {
       gUIStateBeforeReset[prop] = null;
@@ -3881,6 +4695,12 @@ var CustomizableUIInternal = {
     return true;
   },
 
+  /**
+   * @see CustomizableUI.canWidgetMoveToArea
+   * @param {string} aWidgetId
+   * @param {string} aArea
+   * @returns {boolean}
+   */
   canWidgetMoveToArea(aWidgetId, aArea) {
     // Special widgets can't move to the menu panel.
     if (
@@ -3923,6 +4743,12 @@ var CustomizableUIInternal = {
     return this.isWidgetRemovable(aWidgetId);
   },
 
+  /**
+   * @see CustomizableUI.ensureWidgetPlacedInWindow
+   * @param {string} aWidgetId
+   * @param {DOMWindow} aWindow
+   * @returns {boolean}
+   */
   ensureWidgetPlacedInWindow(aWidgetId, aWindow) {
     let placement = this.getPlacementOfWidget(aWidgetId);
     if (!placement) {
@@ -3945,9 +4771,18 @@ var CustomizableUIInternal = {
     return true;
   },
 
+  /**
+   * Returns a list of all the widget IDs actively in this container, including
+   * any that are overflown for overflowable containers. Notably, this does NOT
+   * include IDs of widgets that have been previously placed within this
+   * container but are not currently registered (for example, for uninstalled
+   * extensions).
+   *
+   * @param {Element} container
+   * @returns {string[]}
+   *   The list of widget IDs that currently exist within container.
+   */
   _getCurrentWidgetsInContainer(container) {
-    // Get a list of all the widget IDs in this container, including any that
-    // are overflown.
     let currentWidgets = new Set();
     function addUnskippedChildren(parent) {
       for (let node of parent.children) {
@@ -3985,6 +4820,11 @@ var CustomizableUIInternal = {
     });
   },
 
+  /**
+   * @type {boolean}
+   *   True if the CustomizableUI state of the browser is in the stock state
+   *   that is shipped by default.
+   */
   get inDefaultState() {
     if (CustomizableUI.verticalTabsEnabled) {
       return false;
@@ -4113,9 +4953,14 @@ var CustomizableUIInternal = {
     return true;
   },
 
+  /**
+   * @see CustomizableUI.getCollapsedToolbarIds
+   * @param {Window} window
+   * @returns {Set<string>}
+   */
   getCollapsedToolbarIds(window) {
     let collapsedToolbars = new Set();
-    for (let toolbarId of CustomizableUIInternal._builtinToolbars) {
+    for (let toolbarId of CustomizableUIInternal.builtinToolbars) {
       let toolbar = window.document.getElementById(toolbarId);
 
       // Menubar toolbars are special in that they're hidden with the autohide
@@ -4131,6 +4976,11 @@ var CustomizableUIInternal = {
     return collapsedToolbars;
   },
 
+  /**
+   * @see CustomizableUI.setToolbarVisibility
+   * @param {string} aToolbarId
+   * @param {boolean} aIsVisible
+   */
   setToolbarVisibility(aToolbarId, aIsVisible) {
     // We only persist the attribute the first time.
     let isFirstChangedToolbar = true;
@@ -4143,6 +4993,12 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * @see CustomizableUI.widgetIsLikelyVisible
+   * @param {string} aWidgetId
+   * @param {Window} window
+   * @returns {boolean}
+   */
   widgetIsLikelyVisible(aWidgetId, window) {
     let placement = this.getPlacementOfWidget(aWidgetId);
 
@@ -4170,6 +5026,14 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * nsIObserver implementation that observes for toolbar visibility changes
+   * or preference changes.
+   *
+   * @param {nsISupports} aSubject
+   * @param {string} aTopic
+   * @param {string} aData
+   */
   observe(aSubject, aTopic, aData) {
     if (aTopic == "browser-set-toolbar-visibility") {
       let [toolbar, visibility] = JSON.parse(aData);
@@ -4181,6 +5045,12 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * Initializes CustomizableUI for the current tab orientation.
+   *
+   * @param {boolean} toVertical
+   *   True if the tab orientation is vertical, false if horizontal.
+   */
   initializeForTabsOrientation(toVertical) {
     lazy.log.debug(
       `initializeForTabsOrientation, toVertical: ${toVertical}, gCurrentVerticalTabs: ${gCurrentVerticalTabs}`
@@ -4292,6 +5162,16 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * Currently, the new sidebar and vertical tabs have a tight relationship
+   * with one another (specifically, the new sidebar is a dependency for
+   * vertical tabs). They are, however, controlled by two separate preferences.
+   * This function does the work of changing the vertical tabs state if the
+   * sidebar pref changes, and vice-versa.
+   *
+   * @param {string} prefChanged
+   *   The key for the preference that changed.
+   */
   reconcileSidebarPrefs(prefChanged) {
     let sidebarRevampEnabled = Services.prefs.getBoolPref(
       kPrefSidebarRevampEnabled,
@@ -4336,6 +5216,10 @@ var CustomizableUIInternal = {
     }
   },
 
+  /**
+   * @type {boolean}
+   *   True if the horizontal and vertical tabstrips have been registered.
+   */
   get tabstripAreasReady() {
     return (
       gBuildAreas.get(CustomizableUI.AREA_TABSTRIP)?.size &&
@@ -4343,6 +5227,10 @@ var CustomizableUIInternal = {
     );
   },
 
+  /**
+   * Updates the vertical or horizontal state of the tabstrip to best match
+   * the current preference value.
+   */
   updateTabStripOrientation() {
     if (!this.tabstripAreasReady) {
       lazy.log.debug("tabstrip build areas not yet ready");
@@ -4880,6 +5768,9 @@ export var CustomizableUI = {
    * you call registerArea. Note that CustomizableUI won't restore state in the area,
    * allow the user to customize it in customize mode, or otherwise deal
    * with it, until the area has been registered.
+   *
+   * @param {Element} aToolbar
+   *   The <xul:toolbar> node to register.
    */
   registerToolbarNode(aToolbar) {
     CustomizableUIInternal.registerToolbarNode(aToolbar);
@@ -4993,6 +5884,10 @@ export var CustomizableUI = {
    *   The ID of the widget that was just created.
    * @param {DOMWindow} aWindow
    *   The window in which you want to ensure it was added.
+   * @returns {boolean}
+   *   True if the widget was successfully placed in the window (or was already
+   *   placed in the window). False if something goes wrong with checking for
+   *   the presence of the widget in the window.
    */
   ensureWidgetPlacedInWindow(aWidgetId, aWindow) {
     return CustomizableUIInternal.ensureWidgetPlacedInWindow(
@@ -5321,7 +6216,7 @@ export var CustomizableUI = {
    *   widgets could be available in some windows but not others, and likewise
    *   API-provided widgets might not exist in a private window (because of the
    *   showInPrivateBrowsing property).
-   * @returns {WidgetGroupWrapper[]|XULWidgetGroupWrapper[]}
+   * @returns {Array<WidgetGroupWrapper|XULWidgetGroupWrapper>}
    *   An array of widget wrappers (see getWidget)
    */
   getUnusedWidgets(aWindowPalette) {
@@ -5535,6 +6430,13 @@ export var CustomizableUI = {
    *
    * @param {string} aWidgetId
    *   The ID of the widget whose placement you want to know.
+   * @param {boolean} [aOnlyRegistered=true]
+   *   Set to false to return placements for widgets that aren't registered,
+   *   but still exist within the placements state, having been registered and
+   *   placed in the past.
+   * @param {boolean} [aDeadAreas=false]
+   *   Set to true to include placements within "dead" areas that are no longer
+   *   registered, but still exist in the placement state.
    * @returns {CustomizableUIPlacementInfo|null}
    *   Returns null if the widget is not placed anywhere (ie in the palette).
    */
@@ -5730,7 +6632,7 @@ export var CustomizableUI = {
   },
   /**
    * Add listeners to a panel that will close it. For use from the menu panel
-   * and overflowable toolbar implementations, unlikely to be useful for
+   * and overflowable toolbar implementations, unlikely to be useful for other
    * consumers.
    *
    * @param {Element} aPanel
@@ -5849,7 +6751,7 @@ export var CustomizableUI = {
    *   The ID of the toolbar you want to check.
    */
   isBuiltinToolbar(aToolbarId) {
-    return CustomizableUIInternal._builtinToolbars.has(aToolbarId);
+    return CustomizableUIInternal.builtinToolbars.has(aToolbarId);
   },
 
   /**
@@ -5859,6 +6761,8 @@ export var CustomizableUI = {
    *   The type of special widget (spring, spacer or separator).
    * @param {Document} aDocument
    *   The document in which to create it.
+   * @returns {Element}
+   *   The created spring, spacer or separator node.
    */
   createSpecialWidget(aId, aDocument) {
     return CustomizableUIInternal.createSpecialWidget(aId, aDocument);
@@ -6109,7 +7013,10 @@ function WidgetGroupWrapper(aWidget) {
 
     let instance = aWidget.instances.get(aWindow.document);
     if (!instance) {
-      instance = CustomizableUIInternal.buildWidget(aWindow.document, aWidget);
+      instance = CustomizableUIInternal.buildWidgetNode(
+        aWindow.document,
+        aWidget
+      );
     }
 
     let wrapper = new WidgetSingleWrapper(aWidget, instance);
@@ -6298,7 +7205,7 @@ function XULWidgetSingleWrapper(aWidgetId, aNode, aDocument) {
     let doc = weakDoc.get();
     if (doc) {
       // Store locally so we can cache the result:
-      aNode = CustomizableUIInternal.findWidgetInWindow(
+      aNode = CustomizableUIInternal.findXULWidgetInWindow(
         aWidgetId,
         doc.defaultView
       );
