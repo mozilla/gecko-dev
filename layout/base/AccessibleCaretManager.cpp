@@ -828,10 +828,9 @@ nsAutoString AccessibleCaretManager::StringifiedSelection() const {
   nsAutoString str;
   RefPtr<Selection> selection = GetSelection();
   if (selection) {
-    selection->Stringify(str, CallerType::System,
-                         mLayoutFlusher.mAllowFlushing
-                             ? Selection::FlushFrames::Yes
-                             : Selection::FlushFrames::No);
+    selection->Stringify(str, mLayoutFlusher.mAllowFlushing
+                                  ? Selection::FlushFrames::Yes
+                                  : Selection::FlushFrames::No);
   }
   return str;
 }

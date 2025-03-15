@@ -5225,12 +5225,6 @@
   value: @IS_NIGHTLY_BUILD@
   mirror: always
 
-# Mimic Chrome's window.getSelection().toString() behaviour
-- name: dom.selection.mimic_chrome_tostring.enabled
-  type: bool
-  value: false
-  mirror: always
-
 # When this pref is enabled:
 #  - Shadow DOM is not pierced by default anymore
 #  - The method accepts optional CaretPositionFromPointOptions to allow piercing
