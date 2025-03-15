@@ -43,7 +43,10 @@ fn gradient_color_interpolation_method_enabled() -> bool {
 pub type Image = generic::Image<Gradient, SpecifiedUrl, Color, Percentage, Resolution>;
 
 // Images should remain small, see https://github.com/servo/servo/pull/18430
+#[cfg(feature = "gecko")]
 size_of_test!(Image, 16);
+#[cfg(feature = "servo")]
+size_of_test!(Image, 40);
 
 /// Specified values for a CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>
