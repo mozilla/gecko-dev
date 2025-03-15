@@ -14,7 +14,6 @@
 #include "mozilla/StaticPtr.h"
 
 #include "mozilla/dom/FragmentOrElement.h"
-#include "mozilla/dom/AncestorIterator.h"
 #include "DOMIntersectionObserver.h"
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/EffectSet.h"
@@ -1033,36 +1032,6 @@ Element* nsIContent::GetAutofocusDelegate(IsFocusableFlags aFlags) const {
     }
   }
   return nullptr;
-}
-
-bool nsIContent::CanStartSelectionAsWebCompatHack() const {
-  if (!StaticPrefs::dom_selection_mimic_chrome_tostring_enabled()) {
-    return true;
-  }
-
-  if (IsInChromeDocument()) {
-    return true;
-  }
-
-  if (IsEditable()) {
-    return true;
-  }
-
-  nsIFrame* frame = GetPrimaryFrame();
-  if (!frame) {
-    return true;
-  }
-
-  if (!frame->IsSelectable(nullptr)) {
-    return false;
-  }
-
-  for (const auto* parent : FlatTreeAncestorsOfType<nsIContent>()) {
-    if (!parent->CanStartSelectionAsWebCompatHack()) {
-      return false;
-    }
-  }
-  return true;
 }
 
 Element* nsIContent::GetFocusDelegate(IsFocusableFlags aFlags) const {

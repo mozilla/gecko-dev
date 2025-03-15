@@ -574,16 +574,11 @@ class PresShell final : public nsStubDocumentObserver,
 
   void ClearFrameRefs(nsIFrame* aFrame);
 
-  enum class CanMoveLastSelectionForToString { No, Yes };
   // Clears the selection of the older focused frame selection if any.
-  void FrameSelectionWillTakeFocus(nsFrameSelection&,
-                                   CanMoveLastSelectionForToString);
+  void FrameSelectionWillTakeFocus(nsFrameSelection&);
 
   // Clears and repaint mFocusedFrameSelection if it matches the argument.
   void FrameSelectionWillLoseFocus(nsFrameSelection&);
-
-  // Update mLastSelectionForToString to the given frame selection.
-  void UpdateLastSelectionForToString(const nsFrameSelection*);
 
   /**
    * Get a reference rendering context. This is a context that should not
@@ -656,10 +651,6 @@ class PresShell final : public nsStubDocumentObserver,
    * the frame selection that's visible to the user.
    */
   nsFrameSelection* GetLastFocusedFrameSelection();
-
-  const nsFrameSelection* GetLastSelectionForToString() const {
-    return mLastSelectionForToString;
-  }
 
   /**
    * Interface to dispatch events via the presshell
@@ -3008,11 +2999,6 @@ class PresShell final : public nsStubDocumentObserver,
   // hide if we focus another selection. May or may not be the same as
   // `mSelection`.
   RefPtr<nsFrameSelection> mFocusedFrameSelection;
-
-  // This the frame selection that will be used when getSelection().toString()
-  // is called. See nsIContent::CanStartSelection for its reasoning.
-  RefPtr<const nsFrameSelection> mLastSelectionForToString;
-
   RefPtr<nsCaret> mCaret;
   RefPtr<nsCaret> mOriginalCaret;
   RefPtr<AccessibleCaretEventHub> mAccessibleCaretEventHub;

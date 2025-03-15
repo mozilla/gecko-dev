@@ -357,22 +357,6 @@ class nsIContent : public nsINode {
    */
   inline nsIContent* GetFlattenedTreeParent() const;
 
-  // This method is used to provide a similar CanStartSelection behaviour in
-  // Chromium, see the link for exact Chromium's behaviour.
-  // https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/dom/node.cc;l=1909;drc=58fb75d86a0ad2642beec2d6c16b1e6c008e33cd;bpv=1;bpt=1
-  //
-  // Basically, Chromium has this method to decide if the selection should be
-  // changed or remain at the current element when an element is focused. This
-  // creates a webcompat issue for when window.getSelection().toString()
-  // is called, web authors expect Firefox to serialize the old content, but
-  // Firefox decides to serialize a different content.
-  //
-  // This method, along with PresShell::mLastSelectionForToString is used to
-  // address this webcompat issue.
-  //
-  // THIS METHOD SHOULD BE USED WITH EXTRA CAUTIOUS.
-  bool CanStartSelectionAsWebCompatHack() const;
-
  protected:
   // Handles getting inserted or removed directly under a <slot> element.
   // This is meant to only be called from the two functions below.
