@@ -3492,13 +3492,17 @@ MainAxisPositionTracker::MainAxisPositionTracker(
   mPackingSpaceRemaining -= aLine->SumOfGaps();
 
   // If packing space is negative or we only have one item, 'space-between'
-  // falls back to 'safe flex-start', and 'space-around' & 'space-evenly' fall
-  // back to 'safe center'. In those cases, it's simplest to just pretend we
-  // have a different 'justify-content' value and share code.
+  // falls back to 'safe flex-start'[1], and 'space-around' & 'space-evenly'
+  // fall back to 'safe center'. In those cases, it's simplest to just pretend
+  // we have a different 'justify-content' value and share code.
   // https://drafts.csswg.org/css-align-3/#distribution-values
   if (mPackingSpaceRemaining < 0 || aLine->NumItems() == 1) {
     if (mJustifyContent.primary == StyleAlignFlags::SPACE_BETWEEN) {
-      justifyContentFlags = StyleAlignFlags::SAFE;
+      // [1]  XXXdholbert Per spec, we should do...
+      //   justifyContentFlags = StyleAlignFlags::SAFE;
+      // ...here, but for now let's not do that since it causes overflow to be
+      // inadvertently clipped in situations with a reversed main axis!
+      // See https://github.com/w3c/csswg-drafts/issues/11937
       mJustifyContent.primary = StyleAlignFlags::FLEX_START;
     } else if (mJustifyContent.primary == StyleAlignFlags::SPACE_AROUND ||
                mJustifyContent.primary == StyleAlignFlags::SPACE_EVENLY) {
