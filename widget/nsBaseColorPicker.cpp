@@ -7,6 +7,7 @@
 
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/CanonicalBrowsingContext.h"
+#include "nsThreadUtils.h"
 
 NS_IMETHODIMP
 nsBaseColorPicker::Init(mozilla::dom::BrowsingContext* aBrowsingContext,
@@ -47,8 +48,10 @@ bool nsBaseColorPicker::MaybeBlockColorPicker(
   if (!mBrowsingContext->Canonical()->CanOpenModalPicker()) {
     if (aCallback) {
       // Color pickers are disabled, so we answer the callback with
-      // returnCancel.
-      aCallback->Done(EmptyString());
+      // empty string.
+      NS_DispatchToCurrentThread(mozilla::NewRunnableMethod<const nsAString&>(
+          "nsBaseColorPicker::CallbackWithEmptyString", aCallback,
+          &nsIColorPickerShownCallback::Done, EmptyString()));
     }
     return true;
   }
