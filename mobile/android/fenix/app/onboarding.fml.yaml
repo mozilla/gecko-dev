@@ -82,7 +82,7 @@ features:
               body: onboarding_customize_toolbar_description
               image-res: ic_onboarding_customize_toolbar
               ordering: 37
-              primary-button-label: onboarding_save_and_start_button
+              primary-button-label: onboarding_save_and_continue_button
               extra-data:
                 customization-toolbar-data:
                   - toolbar-type: toolbar-top
