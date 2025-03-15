@@ -19,7 +19,10 @@
   <string name="teaser">T\'áá bí nanil\'ingo hainitá.</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
   <string name="feedback_erase">Hanítá baa hane\' yę́ę \'ígíí nits\'ą́ą́\' k\'éé\'óólchxǫ\'.</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">Hanį́tá %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">"Ła\' bił \'ííshjání \'ádeeshłííł nisin "</string>

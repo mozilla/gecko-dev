@@ -3,13 +3,13 @@
   <!--
     Search Widget
 
-    Content description for searching with a widget. The first parameter is the name of the application.
+    Content description for searching with a widget. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="search_widget_content_description">%1$s نال نویں ٹیب کھولھو</string>
-  <!-- Text preview for smaller sized widgets -->
+  <!-- Text preview for smaller sized widgets. -->
   <string name="search_widget_text_short">کھوج</string>
-  <!-- Text preview for larger sized widgets -->
+  <!-- Text preview for larger sized widgets. -->
   <string name="search_widget_text_long">ویب دی کھوج</string>
-  <!-- Content description (not visible, for screen readers etc.): Voice search -->
+  <!-- Content description (not visible, for screen readers etc.): Voice search. -->
   <string name="search_widget_voice">آواز دی کھوج</string>
 </resources>

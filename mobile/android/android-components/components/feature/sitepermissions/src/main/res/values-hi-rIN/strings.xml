@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <!-- Title of a dialog for a notification permission request. -->
+  <!-- Title of a dialog for a notification permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_notification_title">%1$s को सूचनाएँ भेजने की अनुमति दें?</string>
-  <!-- Title of a dialog for a camera permission request. -->
+  <!-- Title of a dialog for a camera permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_camera_title">%1$s को अपने कैमरे का उपयोग करने की अनुमति दें?</string>
-  <!-- Title of a dialog for a microphone permission request. -->
+  <!-- Title of a dialog for a microphone permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_microfone_title">%1$s को अपने माइक्रोफोन के उपयोग की अनुमति दें?</string>
-  <!-- Title of a dialog for a location permission request. -->
+  <!-- Title of a dialog for a location permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_location_title">%1$s को अपने स्थान के उपयोग की जानकारी दें?</string>
-  <!-- Title of a dialog for a camera and microphone permission request. -->
+  <!-- Title of a dialog for a camera and microphone permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_camera_and_microphone">%1$s को अपने कैमरे और माइक्रोफोन के उपयोग की अनुमति दें?</string>
   <!--
     Option in a dialog for requesting a microphone permission, this option will give access to

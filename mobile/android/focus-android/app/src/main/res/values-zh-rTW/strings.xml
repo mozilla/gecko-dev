@@ -23,7 +23,10 @@
   <string name="feedback_erase2">已清除瀏覽紀錄</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">已清除分頁瀏覽紀錄。</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">搜尋 %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">分享…</string>
@@ -143,8 +146,8 @@
   -->
   <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">使用 Focus Nightly 搜尋</string>
   <!--
-    Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
-    Argument 2 is the url for the learn-more link.
+    Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
+    %2$s is the url for the learn-more link.
   -->
   <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s 讓您可自行控制線上生活。&lt;/p&gt;
 &lt;p&gt;可當作私密瀏覽器使用:
@@ -207,14 +210,14 @@
   <string name="preference_switch_autocomplete_topsites">針對熱門網站</string>
   <!--
     Summary for the toggle to enable autocomplete for the topsites list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_topsite_summary2">開啟後，即可在 %s 網址列自動完成超過 450 組熱門網址。</string>
   <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
   <string name="preference_switch_autocomplete_user_list">針對您加入的網站</string>
   <!--
     Summary for the toggle to enable autocomplete for the user-defined list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_user_list_summary2">開啟後，即可讓 %s 自動完成您最愛的網址。</string>
   <!-- Preference category: Manage (user-defined) sites -->
@@ -289,8 +292,8 @@
   <!--
     Preference Summary: Biometrics (iris scan, fingerprint, or facial scan) can be used to unlock Focus if the app had a URL
     open when the app was last run to ensure that only the phone's owner can view a previous session.
-    %s will be replaced by the app name (e.g. Firefox Focus)
-    Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar")
+    Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them.
   -->
   <string name="preference_security_biometric_summary2">若已用 %s 開啟網站或加入捷徑，可使用指紋直接解鎖。</string>
   <!--
@@ -338,9 +341,9 @@
   <string name="preference_libraries_we_use">我們使用的程式庫</string>
   <!-- Link to Focus Crash reports list. -->
   <string name="preference_crashes">程式錯誤</string>
-  <!-- Open Source Licenses page title. The first parameter is the app name -->
+  <!-- Open Source Licenses page title. %s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="open_source_licenses_title">%s | 開放原始碼程式庫</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">關於 %1$s</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">已安裝的搜尋引擎</string>
@@ -364,7 +367,7 @@
   <string name="search_add_manually_name_hint">搜尋引擎名稱</string>
   <string name="search_add_manually_string">要使用的搜尋字串</string>
   <string name="search_add_manually_save">儲存</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">例如: example.com/search/?q=%s</string>
   <string name="search_add_confirmation">已加入新搜尋引擎。</string>
   <string name="search_add_error_empty_name">輸入搜尋引擎名稱</string>
@@ -436,19 +439,19 @@
   <string name="external_app_prompt_title">用其他應用程式開啟鏈結</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">您可離開 %1$s，到 %2$s 安裝應用程式來開啟此鏈結。</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">尋找可開啟此鏈結的應用程式</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">您裝置中並未安裝可開啟此鏈結的應用程式。您可離開 %1$s，到 %2$s 安裝一套。</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">要結束隱私瀏覽嗎？</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s 下載完成</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">開啟</string>
@@ -458,7 +461,7 @@
   <!--
     New Onboarding flow first screen title
 
-    %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly)
+    %1$s is the app name and build variant (for example "Firefox Focus", "Firefox Klar Nightly").
   -->
   <string name="onboarding_first_screen_title">歡迎使用 %1$s</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
@@ -615,13 +618,15 @@
   <!-- Watermark/Hint for the find in page input field -->
   <string name="find_in_page_input">在頁面中搜尋</string>
   <!--
-    String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total
+    String to show the number of results found in the page and the position
+    the user is at. %1$d is the position, %2$d is the total number of
+    results.
   -->
   <string name="find_in_page_result">%1$d/%2$d</string>
   <!--
-    String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total
+    String to be read by the accessibility service presenting the number of
+    results found in the page and the position the user is at. %1$d is the
+    position, %2$d is the total number of results.
   -->
   <string name="accessibility_find_in_page_result">第 %1$d 筆，共 %2$d 筆</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->
@@ -668,13 +673,13 @@
   <string name="cookie_banner_exception_panel_switch_state_off">對此網站關閉</string>
   <!-- Text for indicating cookie banner handling is on this site, this is shown when the user enters in details after he clicks on the item from protection panel. -->
   <string name="cookie_banner_exception_panel_switch_state_on">對此網站開啟</string>
-  <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site. -->
+  <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="cookie_banner_exception_panel_title_state_on_for_site">要為 %1$s 開啟減少 Cookie 橫幅功能嗎？</string>
-  <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site. -->
+  <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="cookie_banner_exception_panel_title_state_off_for_site">要為 %1$s 關閉減少 Cookie 橫幅功能嗎？</string>
-  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The placeholder will be updated with the app name. -->
+  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="cookie_banner_exception_panel_description_state_on_for_site">%1$s 將清除此網站的 Cookie 並重新載入頁面。清除 Cookie 可能會將您從網站登出，或清空購物車。</string>
-  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The placeholder will be updated with the app name. -->
+  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="cookie_banner_exception_panel_description_state_off_for_site2">%1$s 可以嘗試自動為您拒絕網站要設定 Cookie 的請求。</string>
   <!-- Long text for a detail explanation indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
   <string name="cookie_banner_exception_panel_description_site_is_not_supported">「減少 Cookie 橫幅」功能目前暫不支援此網站。您想要將此網站回報給我們的團隊，看看是否未來有機會支援嗎？</string>
@@ -704,7 +709,7 @@
   <string name="phone_feature_blocked_step_permissions">2. 點擊&lt;b&gt;權限&lt;/b&gt;</string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">開啟設定</string>
-  <!-- Third step for allowing a permission. The placeholder will be updated by, for example, "Camera" -->
+  <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
   <string name="phone_feature_blocked_step_feature">3. 開啟&lt;b&gt;%1$s&lt;/b&gt;權限</string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">相機</string>
@@ -796,12 +801,12 @@
     試試關閉追蹤保護功能</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
-    Argument 1 will be replaced with a line break in the application.
+    %1$s is replaced with a line break in the application.
   -->
   <string name="tip_add_to_homescreen">快速開啟您最常用的網站%1$s選單 &gt; 新增至裝置主畫面</string>
   <!--
     Tip displayed on home view explaining how to make Focus the default browser
-    Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
+    %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
   <string name="tip_set_default_browser">使用 %1$s 開啟所有鏈結\n
@@ -861,29 +866,29 @@
   <string name="crash_report_send_crash_label">傳送錯誤報告給 Mozilla</string>
   <!-- Tracking protection bottom sheet -->
 
-  <!-- Label for the total number of trackers blocked. %s represents the app install date -->
+  <!-- Label for the total number of trackers blocked. %s is the app install date. -->
   <string name="trackers_count_note">自 %s起封鎖的追蹤器數量</string>
-  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection. -->
   <string name="content">內容</string>
-  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection. -->
   <string name="advertising">廣告</string>
-  <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection. -->
   <string name="social">社交</string>
-  <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection. -->
   <string name="analytics">統計</string>
-  <!-- Preference title for enhanced tracking protection settings -->
+  <!-- Preference title for enhanced tracking protection settings. -->
   <string name="enhanced_tracking_protection">加強型追蹤保護</string>
-  <!-- Enhanced tracking protection preference description when the tracking protection is disabled for this site -->
+  <!-- Enhanced tracking protection preference description when the tracking protection is disabled for this site. -->
   <string name="enhanced_tracking_protection_state_off">已關閉此網站的追蹤保護</string>
-  <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site -->
+  <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site. -->
   <string name="enhanced_tracking_protection_state_on">已開啟此網站的追蹤保護</string>
-  <!-- Label that indicates a site is using a secure connection -->
+  <!-- Label that indicates a site is using a secure connection. -->
   <string name="secure_connection">連線安全</string>
-  <!-- Label that indicates a site is using a insecure connection -->
+  <!-- Label that indicates a site is using a insecure connection. -->
   <string name="insecure_connection">連線不安全</string>
-  <!-- Title for the list of trackers enhanced tracking ptotection can block -->
+  <!-- Title for the list of trackers enhanced tracking protection can block. -->
   <string name="trackers_and_scripts">要封鎖的追蹤器與指令碼</string>
-  <!-- Content description (not visible, for screen readers etc.): Navigate back button description -->
+  <!-- Content description (not visible, for screen readers etc.): Navigate back button description. -->
   <string name="go_back">回上一頁</string>
   <!--
     Top Sites
@@ -919,8 +924,8 @@
   <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
   <string name="errorpage_httpsonly_title2">此網站不支援 HTTPS</string>
   <!--
-    The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
-    Contains a button that will redirect the user to Privacy & Security Screen
+    The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
+    %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
   <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s 為了加強安全性，會盡可能使用 HTTPS 進行連線。&lt;a href="%2$s"&gt;了解更多&lt;/a&gt;&lt;br/&gt;&lt;br/&gt;可到「設定 &gt; 隱私權與安全性 &gt; 安全性」調整此設定。</string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
@@ -994,13 +999,13 @@
 
     Message shown to explain how to exit fullscreen mode when gesture navigation is enabled.
 
-    Localisation note: this text should be as short as possible, max 68 chars
+    This text should be as short as possible, max 68 chars
   -->
   <string name="exit_fullscreen_with_gesture_short">從畫面頂端向下拖曳，並使用回到上一頁的手勢離開</string>
   <!--
     Message shown to explain how to exit fullscreen mode when using back button navigation.
 
-    Localisation note: this text should be as short as possible, max 68 chars
+    This text should be as short as possible, max 68 chars
   -->
   <string name="exit_fullscreen_with_back_button_short">從畫面頂端向下拖曳，並點擊返回上一頁的按鈕離開</string>
 </resources>

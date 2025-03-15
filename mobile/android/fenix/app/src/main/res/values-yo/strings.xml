@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_5">Ìkọ̀kọ̀ %s</string>
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_4">%s(Ìkọ̀kọ̀)</string>
   <!--
     Home Fragment
@@ -22,7 +22,7 @@
   <string name="no_open_tabs_description">Àwọn táàbù rẹ tó wà ní ṣíṣí yóó hàn níbí.</string>
   <!-- No Private Tabs Message Description -->
   <string name="no_private_tabs_description">Àwọn táàbù ìkọ̀kọ̀ rẹ yóó hàn níbí.</string>
-  <!-- Tab tray multi select title in app bar. The first parameter is the number of tabs selected -->
+  <!-- Tab tray multi select title in app bar. %1$d is the number of tabs selected -->
   <string name="tab_tray_multi_select_title">%1$d di yíyàn</string>
   <!-- Label of button in create collection dialog for creating a new collection -->
   <string name="tab_tray_add_new_collection">Ṣàfikún àkójọpọ̀ tuntun</string>
@@ -36,13 +36,13 @@
   <string name="tab_tray_collection_button_multiselect_content_description">Ṣe ìfipamọ́ àwọn táàbù tí o yàn sí inú àkójọpọ̀</string>
   <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
   <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Yàn</string>
-  <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
+  <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s Jẹ́ ṣíṣẹ̀dá látọwọ́ọ Mozilla.</string>
   <!--
     Private Browsing
 
-    Explanation for private browsing displayed to users on home view when they first enable private mode
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    Explanation for private browsing displayed to users on home view when they first enable private mode.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s pa ìwádìí àti ìtàn ìlọkiri rẹ̀ lórí àwọn táàbù ìkọ̀kọ̀ nígbà tí o bá tì wọ́n tàbí nígbà tí o kò lo áàpù náà mọ́. Ní àkó́kò tí èyí kò sọ ẹ́ di aláìnídáánimọ̀ sí àwọn wẹ́íbusaìtì yí tàbí olùpèsè ìlò íntánẹ́ẹ̀tì rẹ, ó jẹ́ kó rọrùn láti tọ́jú gbogbo ohun tí ò ń ṣe lórí ayélujára sí ìkọ̀kọ̀ fún ẹnikẹ́ni tó bá lo èrọ yìí.</string>
   <string name="private_browsing_common_myths">Àwọn àròsọ tó wọ́pọ̀ nípa ìlọkiri-oníwẹ́ẹ̀bù ìkọ̀kọ̀ </string>
@@ -51,7 +51,7 @@
   <!--
     Open in App "contextual feature recommendation" (CFR)
 
-    Text for the info message. The first parameter is the name of the application.
+    Text for the info message. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="open_in_app_cfr_info_message_2">O lè ṣètò %1$s láti ṣi àwọn líìnkì inú àwọn áàpù láì-fọwọ́kan.</string>
   <!-- Text for the positive action button -->
@@ -78,7 +78,7 @@
   <string name="tab_tray_inactive_auto_close_title">Títì-fún-ra-ẹ̀ lẹ́yìn oṣù kan?</string>
   <!--
     Text for the body for the auto-close dialog of the inactive tabs.
-    The first parameter is the name of the application.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_tray_inactive_auto_close_body_2">%1$s lè ti àwọn táàbù tí o kò tíì wò ní oṣù tó kọjá.</string>
   <!-- Content description for close button in the auto-close dialog of the inactive tabs. -->
@@ -162,17 +162,17 @@
   <string name="browser_menu_share">Pín</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_open_in_fenix">Ṣí i ní %1$s</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by">OLÙGBỌ̀WỌ́ JẸ́ %1$s</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by2">Olùgbọ̀wọ́ jẹ́ %1$s</string>
   <!-- Browser menu button to put the current page in reader mode -->
@@ -215,9 +215,9 @@
   <string name="search_suggestions_onboarding_do_not_allow_button">Má fàyègbàá</string>
   <!-- Search suggestion onboarding hint title text -->
   <string name="search_suggestions_onboarding_title">Gba àwọn ìmọ̀ràn ìwádìí láàyè ní àwọn àsìkò ìkọ̀kọ̀ bí?</string>
-  <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
   <string name="search_suggestions_onboarding_text">%s yóó pín gbogbo ohun to bá tẹ̀ sí ààyè ìfi-àdírẹ̀sì-sí pẹ̀lú ẹ̀rọ ìwádìí rẹ gangan.</string>
-  <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine -->
+  <!-- Search engine suggestion title text. %s is the name of the suggested engine. -->
   <string name="search_engine_suggestions_title">Wádìí %s</string>
   <!-- Search engine suggestion description text -->
   <string name="search_engine_suggestions_description">Wá tààrà láti ààyè ìfi-àdírẹ̀sì-sí</string>
@@ -238,7 +238,7 @@
   <!--
     Search Widget
 
-    Content description for searching with a widget. The first parameter is the name of the application.
+    Content description for searching with a widget. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="search_widget_content_description_2">Ṣí táàbù tuntun %1$s</string>
   <!-- Text preview for smaller sized widgets -->
@@ -265,7 +265,7 @@
   <string name="preferences_rate">Ṣe òṣùwọ̀n lórí Google Play</string>
   <!--
     Preference linking to about page for Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="preferences_about">Nípa %1$s</string>
   <!-- Preference for settings related to changing the default browser -->
@@ -380,7 +380,7 @@
   <!--
     Wallpapers
 
-    Content description for various wallpapers. The first parameter is the name of the wallpaper
+    Content description for various wallpapers. %1$s is the name of the wallpaper.
   -->
   <string name="wallpapers_item_name_content_description">Ohun Ìṣẹ̀ṣọ́ ògiri: %1$s</string>
   <!-- Snackbar message for when wallpaper is selected -->
@@ -405,18 +405,18 @@
   <string name="empty_device_name_error">Orúkọ ẹ̀rọ ò lè jẹ́ òfìfo.</string>
   <!-- Label indicating that sync is in progress -->
   <string name="sync_syncing_in_progress">Ó ń sopọ̀…</string>
-  <!-- Label summary indicating that sync failed. The first parameter is the date stamp showing last time it succeeded -->
+  <!-- Label summary indicating that sync failed. %s is the date stamp showing last time it succeeded. -->
   <string name="sync_failed_summary">Àwọn ìṣepọ̀ kùnà. Àṣeyọrí ìkẹhìn: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_failed_never_synced_summary">Àwọn ìṣepọ̀ kùnà. Àwọn ìṣepọ̀ ìkẹhìn: láíláí</string>
-  <!-- Label summary the date we last synced. The first parameter is date stamp showing last time synced -->
+  <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
   <string name="sync_last_synced_summary">Ìṣepọ̀ ìkẹhìn: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_never_synced_summary">Ìṣepọ̀ ìkẹhìn: láíláí</string>
   <!--
     Text for displaying the default device name.
-    The first parameter is the application name, the second is the device manufacturer name
-    and the third is the device model.
+    %1$s is the name of the app (for example "Firefox"). %2$s is the device manufacturer name
+    and %3$s is the device model.
   -->
   <string name="default_device_name_2">%1$s lórí %2$s %3$s</string>
   <!-- Preference for syncing addresses -->
@@ -445,7 +445,7 @@
   <string name="exceptions_empty_message_description">Àwọn ìyọkúrò jẹ́ kí o pa ààbò ìtọpaṣẹ̀ fún àwọn sáìtì tí o yàn.</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Kọ́ si</string>
-  <!-- Preference description for usage and technical data collection -->
+  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Pín àwọn iṣẹ́ ṣíṣe, lílò, hádíwiẹ̀ àti dátà ìsọdi tẹni nípa bíráwúsà rẹ pẹ̀lú Mozilla láti ṣe ìrànlọ́wọ́ fún wa láti jẹ́ kí ó %1$s dára</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Pípolówó dátà</string>
@@ -599,7 +599,7 @@
   <string name="studies_remove">Yọ kúrò</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">Tí ó ń ṣiṣẹ́</string>
-  <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
+  <!-- Description for studies, it indicates why Firefox use studies. %1$s is the name of the app (for example "Firefox"). -->
   <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s lè fi sórí ẹ̀rọ kí o sì ṣe àwọn àyẹ̀wò láti ìgbàdégbà.  </string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Kọ́ si</string>
@@ -645,7 +645,7 @@
   <string name="tabs_tray_select_tabs">Yan àwọn táàbù</string>
   <!-- Content description (not visible, for screen readers etc.): Close tab button. Closes the current session when pressed -->
   <string name="close_tab">Pa táàbù dé</string>
-  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. First parameter is tab title -->
+  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. %s is the tab title -->
   <string name="close_tab_title">Pa táàbù dé %s</string>
   <!-- Content description (not visible, for screen readers etc.): Opens the open tabs menu when pressed -->
   <string name="open_tabs_menu">Ṣí àwọn àtẹ táàbù</string>
@@ -663,7 +663,7 @@
   <string name="remove_top_site">Yọ kúrò</string>
   <!-- Text for the menu button to delete a top site from history -->
   <string name="delete_from_history">Parẹ́ kúrò nínú ìtan</string>
-  <!-- Postfix for private WebApp titles, placeholder is replaced with app name -->
+  <!-- Postfix for private WebApp titles. %1$s is the name of the app (for example "Firefox"). -->
   <string name="pwa_site_controls_title_private">%1$s  (Móòdù ìkọ̀kọ̀)</string>
   <!--
     History
@@ -675,13 +675,13 @@
   <string name="history_delete_all">Pa ìtàn rẹ́</string>
   <!-- Text for the snackbar to confirm that multiple browsing history items has been deleted -->
   <string name="history_delete_multiple_items_snackbar">Ìtàn ti Parẹ́</string>
-  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. The first parameter is the shortened URL of the deleted history item. -->
+  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. %1$s is the shortened URL of the deleted history item. -->
   <string name="history_delete_single_item_snackbar">Parẹ́ %1$s</string>
   <!-- Context description text for the button to delete a single history item -->
   <string name="history_delete_item">Parẹ́</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="history_multi_select_title">%1$d ti yàn</string>
   <!-- Text for the header that groups the history for today -->
@@ -702,13 +702,13 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1">Yọ àwọn ìgbàsílẹ̀ kúrò</string>
-  <!-- Text for the snackbar to confirm that a single download item has been removed. The first parameter is the name of the download item. -->
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar">Ti yọ́ kúrò %1$s</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1">Kò sí àwọn fáìlì tí a gbàsílẹ̀</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of downloads selected
+    %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">%1$d ti yàn</string>
   <!-- Text for the button to remove a single download item -->
@@ -716,7 +716,7 @@
   <!--
     Crashes
 
-    Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix)
+    Title text displayed on the tab crash page. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_crash_title_2">Má bínú. %1$s kò le ṣàkójọpọ̀ ojú-ìwé yẹn.</string>
   <!-- Send crash report checkbox text on the tab crash page -->
@@ -731,7 +731,7 @@
     Confirmation message for a dialog confirming if the user wants to delete the selected folder
   -->
   <string name="bookmark_delete_folder_confirmation_dialog">Ṣé ó dá ọ lójú pé o fẹ́ ṣe ìyọkúrò fóhúdà yìí?</string>
-  <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
+  <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. %s is the name of the app (for example "Firefox"). -->
   <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s yóò pa àwọn ohun tí o yàn rẹ́.</string>
   <!-- Text for the cancel button on delete bookmark dialog -->
   <string name="bookmark_delete_negative">Parẹ́</string>
@@ -755,7 +755,7 @@
   <string name="bookmark_menu_save_button">Fipamọ́</string>
   <!--
     Bookmark multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="bookmarks_multi_select_title">%1$d ti yàn</string>
   <!-- Bookmark editing screen title -->
@@ -782,7 +782,7 @@
   <string name="bookmarks_empty_message">Kò sí àwọn búkúmaàkì níbí</string>
   <!--
     Bookmark snackbar message on deletion
-    The first parameter is the host part of the URL of the bookmark deleted, if any
+    %1$s is the host part of the URL of the bookmark deleted, if any
   -->
   <string name="bookmark_deletion_snackbar_message">Ti párẹ́ %1$s</string>
   <!-- Bookmark snackbar message on deleting multiple bookmarks not including folders -->
@@ -1002,7 +1002,7 @@
   <string name="snackbar_top_site_removed">Sáìtì ti di yíyọ kúrò</string>
   <!--
     QR code scanner prompt which appears after scanning a code, but before navigating to it
-    First parameter is the name of the app, second parameter is the URL or text scanned
+    %1$s is the name of the app (for example "Firefox"), %2$s is the URL or text scanned
   -->
   <string name="qr_scanner_confirmation_dialog_message">Fàyègbàá %1$s láti ṣí %2$s</string>
   <!-- QR code scanner prompt dialog positive option to allow navigation to scanned link -->
@@ -1013,7 +1013,7 @@
   <string name="qr_scanner_dialog_invalid">Àdìrẹ́sì wẹ́ẹ̀bù ò fẹsẹ̀múlẹ̀.</string>
   <!-- QR code scanner prompt dialog positive option when there is an error -->
   <string name="qr_scanner_dialog_invalid_ok">Ó DÁA</string>
-  <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
+  <!-- Tab collection deletion prompt dialog message. %1$s is the collection name. -->
   <string name="tab_collection_dialog_message">Ṣé ó dá ọ lójú pé o fẹ́ paárẹ́ %1$s?</string>
   <!-- Tab collection deletion prompt dialog option to delete the collection -->
   <string name="tab_collection_dialog_positive">Parẹ́</string>
@@ -1033,10 +1033,10 @@
   <string name="preferences_delete_browsing_data">Pa dátà bíráwúsìnnì rẹ́</string>
   <!-- Title for the tabs item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_tabs_title_2">Ṣí àwọn táàbù</string>
-  <!-- Subtitle for the tabs item in Delete browsing data, parameter will be replaced with the number of open tabs -->
+  <!-- Subtitle for the tabs item in Delete browsing data, %d is the number of open tabs -->
   <string name="preferences_delete_browsing_data_tabs_subtitle">%d àwọn táàbù</string>
   <!--
-    Subtitle for the data and history items in delete browsing data, parameter will be replaced with the
+    Subtitle for the data and history items in delete browsing data, %d is the
     number of history items the user has
   -->
   <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d àwọn àdìrẹ́sì</string>
@@ -1066,7 +1066,7 @@
   <string name="delete_history_prompt_button_today_and_yesterday">Òní àti àná</string>
   <!-- Radio button in the delete browsing data dialog to delete all history. -->
   <string name="delete_history_prompt_button_everything">Gbogbogbò</string>
-  <!-- Dialog message to the user asking to delete browsing data. Parameter will be replaced by app name. -->
+  <!-- Dialog message to the user asking to delete browsing data. %s is the name of the app (for example "Firefox"). -->
   <string name="delete_browsing_data_prompt_message_3">%s yóò pa àwọn dátà bíráwúsìnnì tí a yàn rẹ́.</string>
   <!-- Text for the cancel button for the data deletion dialog -->
   <string name="delete_browsing_data_prompt_cancel">Parẹ́</string>
@@ -1076,7 +1076,7 @@
   <string name="preferences_delete_browsing_data_snackbar">Àwọn dátà bíráwúsìnnì ti parẹ́</string>
   <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
   <string name="deleting_browsing_data_in_progress">Ń pa dátà bíráwúsìnnì rẹ́…</string>
-  <!-- Dialog message to the user asking to delete all history items inside the opened group. Parameter will be replaced by a history group name. -->
+  <!-- Dialog message to the user asking to delete all history items inside the opened group. %s is a history group name. -->
   <string name="delete_all_history_group_prompt_message">Pa gbogbo àwọn sáìtì rẹ́ ní “%s”</string>
   <!-- Text for the cancel button for the history group deletion dialog -->
   <string name="delete_history_group_prompt_cancel">Parẹ́</string>
@@ -1114,7 +1114,7 @@
   <string name="sign_in_with_email">Lo ímeelì dípò</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
   <string name="sign_in_create_account_text" tools:ignore="BrandUsage">Kò sí àkáǹtì? &lt;u&gt; Ṣẹ̀dá ọ̀kan&lt;/u&gt;láti jẹ́ kí Firefox ṣiṣẹ́pọ̀ láàárín àwọn ẹ̀rọ.</string>
-  <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
+  <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s yóò dá ìṣiṣẹ́pọ̀ dúrọ́ pẹ̀lú àkáńtì rẹ, àmọ́ ò ní pa dátà bíráwúsìnnì kankan rẹ́ lóri ẹ̀rọ yìí.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
   <string name="sign_out_disconnect">Gé ìsopọ̀ kúrò</string>
@@ -1207,11 +1207,11 @@
     back from ETP details (Ex: Tracking content)
   -->
   <string name="etp_back_button_content_description">Pípadà ṣẹ́yìn</string>
-  <!-- About page link text to open what's new link -->
+  <!-- About page link text to open what's new link. %s is the name of the app (for example "Firefox"). -->
   <string name="about_whats_new">Kíni ó jẹ́ tuntun ní %s</string>
   <!--
     Open source licenses page title
-    The first parameter is the app name
+    %s is the name of the app (for example "Firefox")
   -->
   <string name="open_source_licenses_title">%s | Àwọn ilé-ìkàwé OSS</string>
   <!-- Category of trackers (redirect trackers) that can be blocked by Enhanced Tracking Protection -->
@@ -1239,7 +1239,7 @@
   <string name="about_other_open_source_libraries">Àwọn ilé-ìkàwé tí a lò</string>
   <!--
     Toast shown to the user when they are activating the secret dev menu
-    The first parameter is number of long clicks left to enable the menu
+    %1$d is number of long clicks left to enable the menu
   -->
   <string name="about_debug_menu_toast_progress">Wíwá àtúnṣẹ àtẹ: %1$d tẹ(s) òsì láti jẹ́kí ó ṣiṣẹ́</string>
   <string name="about_debug_menu_toast_done">Wá àtúnṣe sí àtẹ tọ́ ti jẹ́kí ó ṣiṣẹ́</string>
@@ -1429,13 +1429,13 @@
   <string name="search_add_custom_engine_error_empty_search_string">Tẹ àkójọ ohun ìwádìí kan</string>
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Ri pé àkójọ ohun ìwádìí bá ìlànà àpẹẹrẹ náà mu</string>
-  <!-- Text shown when we aren't able to validate the custom search query. The first parameter is the url of the custom search engine -->
+  <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_error_cannot_reach">Àṣìṣe ṣe ìsopọ̀ sí “%s”</string>
-  <!-- Text shown when a user creates a new search engine -->
+  <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">Ti ṣẹ̀dá%s</string>
-  <!-- Text shown when a user successfully edits a custom search engine -->
+  <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_edit_custom_engine_success_message">Ti fipamọ́%s</string>
-  <!-- Text shown when a user successfully deletes a custom search engine -->
+  <!-- Text shown when a user successfully deletes a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_delete_search_engine_success_message">Ti parẹ́%s</string>
   <!-- Heading for the instructions to allow a permission -->
   <string name="phone_feature_blocked_intro">Láti gbàá láyè:</string>
@@ -1443,7 +1443,7 @@
   <string name="phone_feature_blocked_step_settings">1. Lọ sí ètò ándírọ́ídì</string>
   <!-- Second step for the allowing a permission -->
   <string name="phone_feature_blocked_step_permissions">2. Fọwọ́ ba&lt;b&gt;ìgbàláàyè&lt;/b&gt;</string>
-  <!-- Third step for the allowing a permission (Fore example: Camera) -->
+  <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
   <string name="phone_feature_blocked_step_feature">3. Yíipadà &lt;b&gt;%1$s&lt;/b&gt; láti TÀN-ÁN</string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">Ààbò wá lórí ìbáṣepọ̀</string>
@@ -1451,7 +1451,7 @@
   <string name="quick_settings_sheet_insecure_connection_2">Kò sí ààbò lórí ìbáṣepọ̀</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">Pa àwọn àkójọ dátà aláfiránṣẹ́ ti wẹ́ẹ̀bù àti dátà sáìtì rẹ́</string>
-  <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->
+  <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
   <string name="confirm_clear_site_data">Ṣé ó dá ẹ lójú pé o fẹ́ yọ gbogbo àwọn àkójọ dátà aláfiránṣẹ́ ti wẹ́ẹ̀bù àti dátà fún sáìtì náà&lt;b&gt;%s&lt;/b&gt;?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">Ṣé ó dá ẹ lójú pé o fẹ́ yọ gbogbo ìgbààyè yìí fún gbogbo sáìtì?</string>
@@ -1468,7 +1468,7 @@
   <!-- Browser menu button that removes a shortcut from the home fragment -->
   <string name="browser_menu_remove_from_shortcuts">Yọọ́ kúrò nínú àwọn ọ̀nà-àbùjá </string>
   <!--
-    text shown before the issuer name to indicate who its verified by, parameter is the name of
+    text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
   <string name="certificate_info_verified_by">Jẹ́rìí sí láti ọwọ́: %1$s</string>
@@ -1590,7 +1590,7 @@
   <string name="pocket_stories_categories_header">Àwọn ìtàn nípasẹ̀ kókó-ọ̀rọ̀</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text">Ṣàwárí si</string>
-  <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked. -->
+  <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
   <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Ara ìdílé Firefox. %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
   <string name="pocket_stories_feature_learn_more">Kọ́ ẹ̀kọ́ si</string>

@@ -23,7 +23,10 @@
   <string name="feedback_erase2">تاریخچهٔ مرور، پاک شد</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">تاریخچه زبانه‌های مرورگر پاک شده است.</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">جست‌وجو برای %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">اشتراک‌گذاری…</string>
@@ -131,8 +134,8 @@
   -->
   <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">جستجو در Focus Nightly</string>
   <!--
-    Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
-    Argument 2 is the url for the learn-more link.
+    Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
+    %2$s is the url for the learn-more link.
   -->
   <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s شما را تحت کنترل قرار می‌دهد.&lt;/p&gt;
 &lt;p&gt;از این به عنوان یک مرورگر خصوصی استفاده کنید:
@@ -195,14 +198,14 @@
   <string name="preference_switch_autocomplete_topsites">برای سایت‌های برتر</string>
   <!--
     Summary for the toggle to enable autocomplete for the topsites list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_topsite_summary2">فعال کردن %s برای تکمیل خودکار بیش از ۴۵۰ URL محبوب در نوار آدرس.</string>
   <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
   <string name="preference_switch_autocomplete_user_list">برای سایت‌هایی که شما اضافه می‌کنید</string>
   <!--
     Summary for the toggle to enable autocomplete for the user-defined list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_user_list_summary2">فعال کردن %s برای تکمیل خودکار URLهای محبوب شما.</string>
   <!-- Preference category: Manage (user-defined) sites -->
@@ -277,8 +280,8 @@
   <!--
     Preference Summary: Biometrics (iris scan, fingerprint, or facial scan) can be used to unlock Focus if the app had a URL
     open when the app was last run to ensure that only the phone's owner can view a previous session.
-    %s will be replaced by the app name (e.g. Firefox Focus)
-    Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar")
+    Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them.
   -->
   <string name="preference_security_biometric_summary2">بازکردن قفل به وسیله اثر انگشت اگر این میانبر را اضافه کرده‌ اید یا پایگاه اینترنتی در حال حاضر در %s باز است.</string>
   <!--
@@ -316,7 +319,7 @@
   <string name="preference_mozilla_telemetry_summary2">موزیلا تلاش می‌کند تنها اطلاعاتی که برای بهینه‌سازی %1$s برای همه به آنها نیاز دارد را جمع‌آوری کند.</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">نکات حریم‌خصوصی</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">درباره %1$s</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">موتورهای جست‌وجو نصب شده</string>
@@ -340,7 +343,7 @@
   <string name="search_add_manually_name_hint">نام موتور جست‌وجو</string>
   <string name="search_add_manually_string">رشتهٔ جست‌وجو جهت استفاده</string>
   <string name="search_add_manually_save">ذخیره</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">مثال: example.com/search/?q=%s</string>
   <string name="search_add_confirmation">موتور جست‌وجو جدید اضافه شد.</string>
   <string name="search_add_error_empty_name">نام موتور جست‌وجو را وارد کنید</string>
@@ -412,19 +415,19 @@
   <string name="external_app_prompt_title">باز کردن پیوند در برنامه‌ای دیگر</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">می‌توانید از %1$s خارج شوید تا پیوند را در %2$s باز کنید.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">برنامه‌ای برای باز کردن پیوند پیدا کنید</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">هیچکدام از برنامه‌های روی دستگاه شما امکان باز کردن این پیوند را ندارند. می‌توانید از %1$s خارج شوید تا در %2$s برای برنامه‌ای که بتواند اینکار را انجام دهد جست‌وجو کنید.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">از مرور ناشناس خارج می‌شوید؟</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s پایان‌یافته است</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">باز کردن</string>
@@ -432,7 +435,7 @@
   <!--
     New Onboarding flow first screen title
 
-    %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly)
+    %1$s is the app name and build variant (for example "Firefox Focus", "Firefox Klar Nightly").
   -->
   <string name="onboarding_first_screen_title">به %1$s خوش‌ آمدید</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
@@ -555,13 +558,15 @@
   <!-- Watermark/Hint for the find in page input field -->
   <string name="find_in_page_input">پیدا کردن در صفحه</string>
   <!--
-    String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total
+    String to show the number of results found in the page and the position
+    the user is at. %1$d is the position, %2$d is the total number of
+    results.
   -->
   <string name="find_in_page_result">%1$d/%2$d</string>
   <!--
-    String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total
+    String to be read by the accessibility service presenting the number of
+    results found in the page and the position the user is at. %1$d is the
+    position, %2$d is the total number of results.
   -->
   <string name="accessibility_find_in_page_result">%1$d از %2$d</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->
@@ -639,12 +644,12 @@
   <string name="tip_disable_tracking_protection">سایت رفتار غیرمنتظره‌ای دارد؟\n محافظت از دنبال کردن را خاموش کنید</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
-    Argument 1 will be replaced with a line break in the application.
+    %1$s is replaced with a line break in the application.
   -->
   <string name="tip_add_to_homescreen">با اشاره یک انگشت به سایت های پربازدید خود دسترسی داشته باشید%1$s فهرست&gt; اضافه کردن به صفحه خانگی</string>
   <!--
     Tip displayed on home view explaining how to make Focus the default browser
-    Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
+    %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
   <string name="tip_set_default_browser">بازکردن هر پیوندی در %1$s\n تنظیم%1$s به عنوان مرورگر پیش فرض</string>
@@ -696,29 +701,29 @@
   <string name="crash_report_send_crash_label">ارسال گزارش خرابی ها به موزیلا</string>
   <!-- Tracking protection bottom sheet -->
 
-  <!-- Label for the total number of trackers blocked. %s represents the app install date -->
+  <!-- Label for the total number of trackers blocked. %s is the app install date. -->
   <string name="trackers_count_note">ردیاب‌های مسدود شده از %s</string>
-  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection. -->
   <string name="content">محتوا</string>
-  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection. -->
   <string name="advertising">تبلیغات</string>
-  <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection. -->
   <string name="social">اجتماعی</string>
-  <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection. -->
   <string name="analytics">تجزیه و تحلیل</string>
-  <!-- Preference title for enhanced tracking protection settings -->
+  <!-- Preference title for enhanced tracking protection settings. -->
   <string name="enhanced_tracking_protection">محافظت پیشرفته در برابر ردیابی</string>
-  <!-- Enhanced tracking protection preference description when the tracking protection is disabled for this site -->
+  <!-- Enhanced tracking protection preference description when the tracking protection is disabled for this site. -->
   <string name="enhanced_tracking_protection_state_off">محافظت‌ها برای این سایت خاموش است</string>
-  <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site -->
+  <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site. -->
   <string name="enhanced_tracking_protection_state_on">محافظت‌ها برای این سایت روشن است</string>
-  <!-- Label that indicates a site is using a secure connection -->
+  <!-- Label that indicates a site is using a secure connection. -->
   <string name="secure_connection">اتّصال امن است</string>
-  <!-- Label that indicates a site is using a insecure connection -->
+  <!-- Label that indicates a site is using a insecure connection. -->
   <string name="insecure_connection">اتّصال امن نیست</string>
-  <!-- Title for the list of trackers enhanced tracking ptotection can block -->
+  <!-- Title for the list of trackers enhanced tracking protection can block. -->
   <string name="trackers_and_scripts">ردیاب‌ها و اسکریپت‌ها برای مسدود کردن</string>
-  <!-- Content description (not visible, for screen readers etc.): Navigate back button description -->
+  <!-- Content description (not visible, for screen readers etc.): Navigate back button description. -->
   <string name="go_back">بازگشت</string>
   <!--
     Top Sites

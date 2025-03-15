@@ -139,7 +139,7 @@
   <string name="mozac_feature_prompts_save_credit_card_prompt_title">このカードの情報を安全に保存しますか？</string>
   <!-- Text for the title of an update credit card dialog. -->
   <string name="mozac_feature_prompts_update_credit_card_prompt_title">カードの有効期限を更新しますか？</string>
-  <!-- Subtitle text displayed under the title of the saved card dialog. Parameter will be replaced by app name -->
+  <!-- Subtitle text displayed under the title of the saved card dialog. %s is the name of the app (for example "Firefox"). -->
   <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s がカード番号を暗号化します。セキュリティコードは保存しません。</string>
   <!--
     Address Autofill

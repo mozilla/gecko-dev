@@ -23,7 +23,10 @@
   <string name="feedback_erase2">Nná da a nnánukunu</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">Daa nnánukunu nnaá nuu pestaña.</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">Nánuku %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">Kua´a…</string>
@@ -143,8 +146,8 @@
   -->
   <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Nánuku ji Focus Nightly</string>
   <!--
-    Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
-    Argument 2 is the url for the learn-more link.
+    Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
+    %2$s is the url for the learn-more link.
   -->
   <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s taji kajinu.&lt;/p&gt;
 &lt;p&gt;Ni´ima kua iin nuu nánuku yu´u:
@@ -207,14 +210,14 @@
   <string name="preference_switch_autocomplete_topsites">Daa sitios tuvika</string>
   <!--
     Summary for the toggle to enable autocomplete for the topsites list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_topsite_summary2">Ke´í saa %s kutuvi nuu ka̱a̱ nánuku kuaiyo da 450 URLs populares.</string>
   <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
   <string name="preference_switch_autocomplete_user_list">Nuu daa sitios chisonu</string>
   <!--
     Summary for the toggle to enable autocomplete for the user-defined list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_user_list_summary2">Ke´i saa %s kutuvi da URLs favoritas.</string>
   <!-- Preference category: Manage (user-defined) sites -->
@@ -289,8 +292,8 @@
   <!--
     Preference Summary: Biometrics (iris scan, fingerprint, or facial scan) can be used to unlock Focus if the app had a URL
     open when the app was last run to ensure that only the phone's owner can view a previous session.
-    %s will be replaced by the app name (e.g. Firefox Focus)
-    Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar")
+    Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them.
   -->
   <string name="preference_security_biometric_summary2">Síne jíí na\'a tiin noo\'o de nchisonu accesos directos a xíín sa íyo nune iin sitio jíí %s.</string>
   <!--
@@ -336,9 +339,9 @@
   <string name="preference_licensing_info">Tutu nákani saa kuantiñunu ya´a</string>
   <!-- Link to Focus licensing information from other libraries that we use. -->
   <string name="preference_libraries_we_use">Bibliotecas a ni´idani</string>
-  <!-- Open Source Licenses page title. The first parameter is the app name -->
+  <!-- Open Source Licenses page title. %s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="open_source_licenses_title">%s | Bibliotecas OSS</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">Jiee ya´a %1$s</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">Ka̱a̱ nánuku yɨ´ɨ</string>
@@ -362,7 +365,7 @@
   <string name="search_add_manually_name_hint">Sivɨ ka̱a̱ nánuku</string>
   <string name="search_add_manually_string">Nuku tu´un saa ni´ima</string>
   <string name="search_add_manually_save">Chuva´a</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">Kua: example.com/search/?q=%s</string>
   <string name="search_add_confirmation">A jíía ka̱a̱ nánuku ntee.</string>
   <string name="search_add_error_empty_name">Tee sivɨ ka̱a̱ nánuku</string>
@@ -434,19 +437,19 @@
   <string name="external_app_prompt_title">Síne link nuu inka ka̱a̱</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">Kuvi kenenu nuu %1$s jee síne link ya´a nuu %2$s.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">Nánuku iin ka̱a̱ nuu kuvi síne link ya´a</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">Ni´i daa ka̱a̱ nuu ka̱a̱ noo´o kuvi síne link ya´a. Kuvi kenenu nuu %1$s saa kuvi nánukunu iin ka̱a̱ kuvi koo inu jii %2$s.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">Kene nuu nánuku daa yɨ´ɨ yu´u?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s nnɨ´ɨ</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">Síne</string>
@@ -456,7 +459,7 @@
   <!--
     New Onboarding flow first screen title
 
-    %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly)
+    %1$s is the app name and build variant (for example "Firefox Focus", "Firefox Klar Nightly").
   -->
   <string name="onboarding_first_screen_title">Kusɨɨ inidáni nkantanu nu %1$s</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
@@ -591,13 +594,15 @@
   <!-- Watermark/Hint for the find in page input field -->
   <string name="find_in_page_input">Nánuku nuu página</string>
   <!--
-    String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total
+    String to show the number of results found in the page and the position
+    the user is at. %1$d is the position, %2$d is the total number of
+    results.
   -->
   <string name="find_in_page_result">%1$d/%2$d</string>
   <!--
-    String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total
+    String to be read by the accessibility service presenting the number of
+    results found in the page and the position the user is at. %1$d is the
+    position, %2$d is the total number of results.
   -->
   <string name="accessibility_find_in_page_result">%1$d de %2$d</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->
@@ -644,13 +649,13 @@
   <string name="cookie_banner_exception_panel_switch_state_off">DESACTIVADO nu sitio ya´a</string>
   <!-- Text for indicating cookie banner handling is on this site, this is shown when the user enters in details after he clicks on the item from protection panel. -->
   <string name="cookie_banner_exception_panel_switch_state_on">ACTIVADO nu sitio ya´a</string>
-  <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site. -->
+  <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="cookie_banner_exception_panel_title_state_on_for_site">¿A kuvi sa´a reducción banner da cookies nu %1$s?</string>
-  <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site. -->
+  <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="cookie_banner_exception_panel_title_state_off_for_site">¿A kuvi sa´a reducción banner da cookies nu %1$s?</string>
-  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The placeholder will be updated with the app name. -->
+  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="cookie_banner_exception_panel_description_state_on_for_site">%1$s Naa daa cookies sitio ya\'a jee nakajie\'e tuku tutu. Dee naa kuaiyo daa cookies kuvi nakasɨ sesión noo\'o a xíín naa daa ka̱a̱ nuu ke\'en.</string>
-  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The placeholder will be updated with the app name. -->
+  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="cookie_banner_exception_panel_description_state_off_for_site2">%1$s kuvi sá´á njia´a da solicitudes jikan cookies.</string>
   <!-- Long text for a detail explanation indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
   <string name="cookie_banner_exception_panel_description_site_is_not_supported">Ntañu\'un, nuu ya\'a ntu satiñu va\'a jíí reducción banner jíí cookies. ¿A kuvinu kakanu nuu daa nuu\'u kune\'yadani nuu web ya\'a saa kuvi satiñu va\'a íchi nuu?</string>
@@ -681,7 +686,7 @@
   <string name="phone_feature_blocked_step_permissions">2. Kuaxin &lt;b&gt;Permisos&lt;/b&gt;</string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Kua´an nuu da ke´i</string>
-  <!-- Third step for allowing a permission. The placeholder will be updated by, for example, "Camera" -->
+  <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
   <string name="phone_feature_blocked_step_feature">3. Sama &lt;b&gt;%1$s&lt;/b&gt; a stuu</string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Ka̱a̱ natava</string>
@@ -772,12 +777,12 @@
   <string name="tip_disable_tracking_protection">¿Ntu satiñu vii sitio ya´a?\n Xita a kumi nkuntada-ja noo´o</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
-    Argument 1 will be replaced with a line break in the application.
+    %1$s is replaced with a line break in the application.
   -->
   <string name="tip_add_to_homescreen">Kuaxin ntu ichi jee kivu nuu daa sitios ni´inu ntaka ichi %1$s Kaji &gt; Tee nuu kajie´e</string>
   <!--
     Tip displayed on home view explaining how to make Focus the default browser
-    Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
+    %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
   <string name="tip_set_default_browser">Sine daa enlace nuu %1$s\n Tee %1$s kua ka̱a̱ xinañu´u</string>
@@ -831,29 +836,29 @@
   <string name="crash_report_send_crash_label">Chu´un ichi saa tivu ya´a nuu Mozilla</string>
   <!-- Tracking protection bottom sheet -->
 
-  <!-- Label for the total number of trackers blocked. %s represents the app install date -->
+  <!-- Label for the total number of trackers blocked. %s is the app install date. -->
   <string name="trackers_count_note">Rastreadores nnakasɨ ne %s</string>
-  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection. -->
   <string name="content">Contenido</string>
-  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection. -->
   <string name="advertising">Tutu xiko</string>
-  <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection. -->
   <string name="social">Social</string>
-  <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection. -->
   <string name="analytics">Analítica</string>
-  <!-- Preference title for enhanced tracking protection settings -->
+  <!-- Preference title for enhanced tracking protection settings. -->
   <string name="enhanced_tracking_protection">Vitan jee vaji iin a kumi noo´o nkutada a sá´ánu</string>
-  <!-- Enhanced tracking protection preference description when the tracking protection is disabled for this site -->
+  <!-- Enhanced tracking protection preference description when the tracking protection is disabled for this site. -->
   <string name="enhanced_tracking_protection_state_off">Da a kumi noo´o ntu iyo activo nu sito ya´a</string>
-  <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site -->
+  <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site. -->
   <string name="enhanced_tracking_protection_state_on">Da a kumi noo´o iyo activo nu sito ya´a</string>
-  <!-- Label that indicates a site is using a secure connection -->
+  <!-- Label that indicates a site is using a secure connection. -->
   <string name="secure_connection">Conexión va´a</string>
-  <!-- Label that indicates a site is using a insecure connection -->
+  <!-- Label that indicates a site is using a insecure connection. -->
   <string name="insecure_connection">Conexión ntu va´a</string>
-  <!-- Title for the list of trackers enhanced tracking ptotection can block -->
+  <!-- Title for the list of trackers enhanced tracking protection can block. -->
   <string name="trackers_and_scripts">Rastreadores y scripts a nejika nakasɨ</string>
-  <!-- Content description (not visible, for screen readers etc.): Navigate back button description -->
+  <!-- Content description (not visible, for screen readers etc.): Navigate back button description. -->
   <string name="go_back">Xniko</string>
   <!--
     Top Sites
@@ -889,8 +894,8 @@
   <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
   <string name="errorpage_httpsonly_title2">Ntu satiñu vatu jii HTTPS</string>
   <!--
-    The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
-    Contains a button that will redirect the user to Privacy & Security Screen
+    The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
+    %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
   <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s Ni\'i iin conexión HTTPS ntaka kuvinu koo kue\'e a kumiji noo\'o
      &lt;a href="%2$s"&gt;Kuni kue\'eka jiee&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
@@ -970,13 +975,13 @@
 
     Message shown to explain how to exit fullscreen mode when gesture navigation is enabled.
 
-    Localisation note: this text should be as short as possible, max 68 chars
+    This text should be as short as possible, max 68 chars
   -->
   <string name="exit_fullscreen_with_gesture_short">Staka ne íchi sikɨ jee ni\'i gesto íchi yata saa kuvi kene</string>
   <!--
     Message shown to explain how to exit fullscreen mode when using back button navigation.
 
-    Localisation note: this text should be as short as possible, max 68 chars
+    This text should be as short as possible, max 68 chars
   -->
   <string name="exit_fullscreen_with_back_button_short">Staka ne íchi sikɨ jee kuaxin íchi yata sa kene</string>
 </resources>

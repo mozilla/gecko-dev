@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <!-- Title of a dialog for a notification permission request. -->
+  <!-- Title of a dialog for a notification permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_notification_title">¿La niya\' q\'ij chi ri %1$s yerutäq taq rutzijol?</string>
-  <!-- Title of a dialog for a camera permission request. -->
+  <!-- Title of a dialog for a camera permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_camera_title">¿La niya\' q\'ij chi re ri %1$s richin nrokisaj ri elesäy wachib\'äl?</string>
-  <!-- Title of a dialog for a microphone permission request. -->
+  <!-- Title of a dialog for a microphone permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_microfone_title">¿La niya\' q\'ij chi re ri %1$s richin nrokisaj ri q\asäy ch\'ab\'äl?</string>
-  <!-- Title of a dialog for a location permission request. -->
+  <!-- Title of a dialog for a location permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_location_title">¿La niya\' q\'ij chi re ri %1$s richin nrokisaj ri ak\'ojlemal?</string>
-  <!-- Title of a dialog for a camera and microphone permission request. -->
+  <!-- Title of a dialog for a camera and microphone permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_camera_and_microphone">¿La niya\' q\'ij chi re ri %1$s richin nrokisaj ri elsäy wachib\'äl chuqa\' q\'asäy ch\'ab\'äl?</string>
   <!--
     Option in a dialog for requesting a microphone permission, this option will give access to

@@ -22,7 +22,10 @@
   <string name="feedback_erase">Sejarah pelayaran anda telah dibuang.</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">Sejarah pelayaran tab telah dibuang.</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">Cari %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">Kongsi…</string>
@@ -247,7 +250,7 @@
   <string name="preference_mozilla_telemetry_summary2">Mozilla mengumpulkan hanya yang diperlukan untuk menyedia dan meningkatkan %1$s.</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">Notis Privasi</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">Perihal %1$s</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">Enjin carian dipasang</string>
@@ -265,7 +268,7 @@
   <string name="search_add_manually_name_hint">Nama enjin carian</string>
   <string name="search_add_manually_string">Cari string yang mahu digunakan</string>
   <string name="search_add_manually_save">Simpan</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">Contoh: example.com/search/?q=%s</string>
   <string name="search_add_confirmation">Enjin carian baru sudah ditambah.</string>
   <string name="search_add_error_empty_name">Masukkan nama enjin carian</string>
@@ -337,19 +340,19 @@
   <string name="external_app_prompt_title">Buka pautan guna aplikasi lain</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">Anda boleh keluar dari %1$s untuk membuka pautan ini dalam %2$s.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">Cari aplikasi yang boleh buka pautan</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">Tiada aplikasi pada peranti anda dapat membuka pautan ini. Anda boleh tinggalkan %1$s untuk mencari %2$s aplikasi yang boleh melaksanakannya.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">Tamatkan Pelayaran Peribadi?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s sudah siap</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">Buka</string>
@@ -428,13 +431,15 @@
   <!-- Watermark/Hint for the find in page input field -->
   <string name="find_in_page_input">Cari dalam halaman</string>
   <!--
-    String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total
+    String to show the number of results found in the page and the position
+    the user is at. %1$d is the position, %2$d is the total number of
+    results.
   -->
   <string name="find_in_page_result">%1$d/%2$d</string>
   <!--
-    String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total
+    String to be read by the accessibility service presenting the number of
+    results found in the page and the position the user is at. %1$d is the
+    position, %2$d is the total number of results.
   -->
   <string name="accessibility_find_in_page_result">%1$d daripada %2$d</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->
@@ -482,12 +487,12 @@
   <string name="tip_disable_tracking_protection">Laman berkelakuan tidak dijangka?\n Cuba nyahaktifkan Perlindungan Penjejakan</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
-    Argument 1 will be replaced with a line break in the application.
+    %1$s is replaced with a line break in the application.
   -->
   <string name="tip_add_to_homescreen">Dapatkan akses sekali-sentuh ke laman yang kerap dilawati%1$s Menu &gt; Tambah ke skrin Utama</string>
   <!--
     Tip displayed on home view explaining how to make Focus the default browser
-    Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
+    %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
   <string name="tip_set_default_browser">Buka pautan dalam %1$s\n Tetapkan %1$s sebagai pelayar piawai</string>

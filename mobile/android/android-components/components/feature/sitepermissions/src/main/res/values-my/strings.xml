@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <!-- Title of a dialog for a notification permission request. -->
+  <!-- Title of a dialog for a notification permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_notification_title">%1$s အား အသိပေးချက်များကို ပေးပို့ရန် ခွင့်ပြုပါ။</string>
-  <!-- Title of a dialog for a camera permission request. -->
+  <!-- Title of a dialog for a camera permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_camera_title">သင့်ကင်မရာ အသုံးပြုရန် %1$s ကို ခွင့်ပေးပါမည်လား။</string>
-  <!-- Title of a dialog for a microphone permission request. -->
+  <!-- Title of a dialog for a microphone permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_microfone_title">သင့်မိုက်ကရိုဖုန်း အသုံးပြုရန်  %1$s ကို ခွင့်ပေးပါမည်လား။</string>
-  <!-- Title of a dialog for a location permission request. -->
+  <!-- Title of a dialog for a location permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_location_title">သင့်တည်နေရာကို %1$s သုံးရန်ခွင့်ပြုမလား။</string>
-  <!-- Title of a dialog for a camera and microphone permission request. -->
+  <!-- Title of a dialog for a camera and microphone permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_camera_and_microphone">သင့်ကင်မရာနှင့် မိုက်ကရိုဖုန်း အသုံးပြုရန်  %1$s ကို ခွင့်ပေးပါမည်လား။</string>
   <!--
     Option in a dialog for requesting a microphone permission, this option will give access to

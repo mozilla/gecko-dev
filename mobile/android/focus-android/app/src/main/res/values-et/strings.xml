@@ -23,7 +23,10 @@
   <string name="feedback_erase2">Lehitsemisajalugu on kustutatud</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">Kaardi lehitsemisajalugu on kustutatud.</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">Otsi fraasi %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">Jaga…</string>
@@ -113,8 +116,8 @@
   -->
   <string name="shortcut_erase_and_open_long_label">Kustuta ja ava %1$s</string>
   <!--
-    Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
-    Argument 2 is the url for the learn-more link.
+    Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
+    %2$s is the url for the learn-more link.
   -->
   <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s annab kontrolli sulle.&lt;/p&gt;
 &lt;p&gt;Kasuta seda kui privaatset brauserit:
@@ -177,14 +180,14 @@
   <string name="preference_switch_autocomplete_topsites">Top saitide jaoks</string>
   <!--
     Summary for the toggle to enable autocomplete for the topsites list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_topsite_summary2">Võimaldab %sel aadressiribal automaatselt lõpetada üle 450 populaarse URli.</string>
   <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
   <string name="preference_switch_autocomplete_user_list">Sinu lisatud saitide jaoks</string>
   <!--
     Summary for the toggle to enable autocomplete for the user-defined list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_user_list_summary2">Võimaldab %sel automaatselt lõpetada sinu lemmik URLe.</string>
   <!-- Preference category: Manage (user-defined) sites -->
@@ -259,8 +262,8 @@
   <!--
     Preference Summary: Biometrics (iris scan, fingerprint, or facial scan) can be used to unlock Focus if the app had a URL
     open when the app was last run to ensure that only the phone's owner can view a previous session.
-    %s will be replaced by the app name (e.g. Firefox Focus)
-    Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar")
+    Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them.
   -->
   <string name="preference_security_biometric_summary2">Kui oled juba lisanud otsetee või avanud kaardi, siis saad %se avada sõrmejäljega.</string>
   <!--
@@ -298,7 +301,7 @@
   <string name="preference_mozilla_telemetry_summary2">Mozilla püüab koguda ainult seda, mida vajame, et teha %1$s kõigi jaoks paremaks.</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">Privaatsusreeglid</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">%1$sest</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">Paigaldatud otsingumootorid</string>
@@ -322,7 +325,7 @@
   <string name="search_add_manually_name_hint">Otsingumootori nimi</string>
   <string name="search_add_manually_string">Kasutatav otsingustring</string>
   <string name="search_add_manually_save">Salvesta</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">Näide: example.com/search/?q=%s</string>
   <string name="search_add_confirmation">Uus otsingumootor lisatud.</string>
   <string name="search_add_error_empty_name">Sisesta otsingumootori nimi</string>
@@ -394,19 +397,19 @@
   <string name="external_app_prompt_title">Ava link teises äpis</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">Selle lingi avamiseks äpis %2$s võid lahkuda %1$sest.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">Linki avada suutva äpi otsimine</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">Ükski sinu seadmes olev äpp ei saa seda linki avada. Võid lahkuda %1$sest, et otsida äpist %2$s sobivat äppi.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">Kas väljuda privaatsest veebilehitsemisest?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">Faili %1$s allalaadimine on lõpetatud</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">Ava</string>
@@ -519,13 +522,15 @@
   <!-- Watermark/Hint for the find in page input field -->
   <string name="find_in_page_input">Otsi lehelt</string>
   <!--
-    String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total
+    String to show the number of results found in the page and the position
+    the user is at. %1$d is the position, %2$d is the total number of
+    results.
   -->
   <string name="find_in_page_result">%1$d/%2$d</string>
   <!--
-    String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total
+    String to be read by the accessibility service presenting the number of
+    results found in the page and the position the user is at. %1$d is the
+    position, %2$d is the total number of results.
   -->
   <string name="accessibility_find_in_page_result">tulemus %1$d, kokku %2$d</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->
@@ -558,7 +563,7 @@
   <string name="phone_feature_blocked_step_permissions">2. Puuduta &lt;b&gt;Load&lt;/b&gt;</string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Mine sätetesse</string>
-  <!-- Third step for allowing a permission. The placeholder will be updated by, for example, "Camera" -->
+  <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
   <string name="phone_feature_blocked_step_feature">3. Lülita &lt;b&gt;%1$s&lt;/b&gt; olekusse SEES</string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Kaamera</string>
@@ -650,12 +655,12 @@
     Proovi jälitamisvastane kaitse välja lülitada</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
-    Argument 1 will be replaced with a line break in the application.
+    %1$s is replaced with a line break in the application.
   -->
   <string name="tip_add_to_homescreen">Saa ühe puudutusega ligipääs saitidele, mida enim %1$ses kasutad. Menüü &gt; Lisa avaekraanile</string>
   <!--
     Tip displayed on home view explaining how to make Focus the default browser
-    Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
+    %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
   <string name="tip_set_default_browser">Ava kõik lingid %1$ses\n
@@ -715,29 +720,29 @@
   <string name="crash_report_send_crash_label">Mozillale saadetakse vearaport</string>
   <!-- Tracking protection bottom sheet -->
 
-  <!-- Label for the total number of trackers blocked. %s represents the app install date -->
+  <!-- Label for the total number of trackers blocked. %s is the app install date. -->
   <string name="trackers_count_note">Alates %s blokitud jälitajaid</string>
-  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection. -->
   <string name="content">Sisu</string>
-  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection. -->
   <string name="advertising">Reklaam</string>
-  <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection. -->
   <string name="social">Sotsiaalmeedia</string>
-  <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection. -->
   <string name="analytics">Analüütika</string>
-  <!-- Preference title for enhanced tracking protection settings -->
+  <!-- Preference title for enhanced tracking protection settings. -->
   <string name="enhanced_tracking_protection">Täiustatud jälitamisvastane kaitse</string>
-  <!-- Enhanced tracking protection preference description when the tracking protection is disabled for this site -->
+  <!-- Enhanced tracking protection preference description when the tracking protection is disabled for this site. -->
   <string name="enhanced_tracking_protection_state_off">Sellel saidil on kaitse VÄLJAS</string>
-  <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site -->
+  <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site. -->
   <string name="enhanced_tracking_protection_state_on">Sellel saidil on kaitse SEES</string>
-  <!-- Label that indicates a site is using a secure connection -->
+  <!-- Label that indicates a site is using a secure connection. -->
   <string name="secure_connection">Turvaline ühendus</string>
-  <!-- Label that indicates a site is using a insecure connection -->
+  <!-- Label that indicates a site is using a insecure connection. -->
   <string name="insecure_connection">Ühendus pole turvaline</string>
-  <!-- Title for the list of trackers enhanced tracking ptotection can block -->
+  <!-- Title for the list of trackers enhanced tracking protection can block. -->
   <string name="trackers_and_scripts">Blokitavad jälitajad ja skriptid</string>
-  <!-- Content description (not visible, for screen readers etc.): Navigate back button description -->
+  <!-- Content description (not visible, for screen readers etc.): Navigate back button description. -->
   <string name="go_back">Mine tagasi</string>
   <!--
     Top Sites

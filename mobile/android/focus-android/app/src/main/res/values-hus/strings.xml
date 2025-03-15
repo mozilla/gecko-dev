@@ -22,7 +22,10 @@
   <string name="feedback_erase">Pakuwatits an dhuchlab xi in olnál jant\'oj a aliyamal.</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">Pakuwatits an dhuchlab xi in olnál jant\'oj a aliyamal.</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">Ka aliy %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">Ka buk\'uw…</string>
@@ -221,7 +224,7 @@
   <string name="preference_mozilla_telemetry_summary2">Mozilla in t\'ajál abal kin pena\' expidh xi in yejenchal ani kin alwa\'medha\' %1$s abal patal.</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">Tin kwentaj an tsinaxtaláb</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">Tin kwentaj an %1$s</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">An alimchik punudhits ta k\'al</string>
@@ -239,7 +242,7 @@
   <string name="search_add_manually_name_hint">In bij an alim</string>
   <string name="search_add_manually_string">Ka aliy an kawchik axi eynal</string>
   <string name="search_add_manually_save">Dheya\'</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">Ejtil: example.com/search/?q=%s</string>
   <string name="search_add_confirmation">Punuwat jun i it alim</string>
   <string name="search_add_error_empty_name">Ka dhucha\' in bij an it alim</string>
@@ -306,19 +309,19 @@
   <string name="external_app_prompt_title">Ka japiy al pil i eyendhanél</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">U awil kit kalej ti %1$s abal ka japiy ti %2$s.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">Ka aliy jun i eyendhanel axi kin ejtow kin japiy</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">Ma ni jun i eyendhanél axi in kwa\'al a pat\'alil in jetowal kin japiy. U awil kit kalej ti %1$s abal ka aliy pil i eyendhanél abal %2$s.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">¿A le\' kit kalej ti tsinat tsa\'bixtaláb?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s talbedhamej</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">Ka japiy</string>
@@ -397,13 +400,15 @@
   <!-- Watermark/Hint for the find in page input field -->
   <string name="find_in_page_input">Ka aliy al an xeklek</string>
   <!--
-    String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total
+    String to show the number of results found in the page and the position
+    the user is at. %1$d is the position, %2$d is the total number of
+    results.
   -->
   <string name="find_in_page_result">%1$d/%2$d</string>
   <!--
-    String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total
+    String to be read by the accessibility service presenting the number of
+    results found in the page and the position the user is at. %1$d is the
+    position, %2$d is the total number of results.
   -->
   <string name="accessibility_find_in_page_result">%1$d in k\'al %2$d</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->
@@ -451,12 +456,12 @@
   <string name="tip_disable_tracking_protection">An xeklek yab u alwa\' t\'ojnal \n Ka exa\' ka kuba\' an k\'anix abal yab kit kedhmayat</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
-    Argument 1 will be replaced with a line break in the application.
+    %1$s is replaced with a line break in the application.
   -->
   <string name="tip_add_to_homescreen">Ka ela\' k\'al jun i takaxtaláb an xeklek axi a lej eyendhál%1$s Takuxtaláb&gt; Ka punuw ti ok\'ox xeklek</string>
   <!--
     Tip displayed on home view explaining how to make Focus the default browser
-    Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
+    %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
   <string name="tip_set_default_browser">Ka japiy patal an ne\'dhom %1$s Ka t\'aja\' %1$s ta ok\'ox eyendhom</string>

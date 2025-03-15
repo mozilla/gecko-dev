@@ -20,7 +20,10 @@
   <string name="teaser">Ինքնաշխատ գաղտնի դիտարկում: \nԴիտարկել: Ջնջել: Կրկնել:</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
   <string name="feedback_erase">Դիտարկումների պատմությունը ջնջվել է:</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">Որոնել %1$s-ի համար</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">Համօգտագործել</string>
@@ -216,7 +219,7 @@
   <string name="preference_privacy_notice">Գաղտնիության ծանուցում</string>
   <!-- In-app link (in settings) to Focus licensing information. -->
   <string name="preference_licensing_info">Արտոնագրի տեղեկություն</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">%1$s-ի մասին</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">Տեղադրված որոնիչներ</string>
@@ -236,7 +239,7 @@
   <string name="search_add_manually_name_hint">Որոնել որոնիչ</string>
   <string name="search_add_manually_string">Որոնել տողը՝ օգտագործելու համար</string>
   <string name="search_add_manually_save">Պահպանել</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">Օրինակ՝ example.com/search/?q=%s</string>
   <string name="search_add_confirmation">Նոր որոնիչը ավելացվել է:</string>
   <string name="search_add_error_empty_name">Մուտքագրեք որոնիչի անունը</string>
@@ -298,19 +301,19 @@
   <string name="external_app_prompt_title">Բացել հղումը այլ հավելվածով</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">Կարող եք բաց պահել %1$s-ը և բացել այս հղումը %2$s-ում:</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">Գտեք հավելված, որը կարող է բացել հղումը</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">Ձեր սարքի ոչ մի հավելված չի կարողանում բացել այս հղումը: Դուք կարող եք թողնել %1$s-ը՝ որոնելու համար %2$s-ում այն հավելվածը, որը կարող է այն բացել:</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">Փակե՞լ Գաղտնի դիտարկումը</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s ավարտվել է</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">Բացել</string>
@@ -469,9 +472,9 @@
   <string name="preference_exceptions_remove_all_button_label">Հեռացնել բոլոր վեբ-կայքերը</string>
   <!-- Tracking protection bottom sheet -->
 
-  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection. -->
   <string name="content">Բովանդակություն</string>
-  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection. -->
   <string name="advertising">Գովազդ</string>
   <!--
     Top Sites

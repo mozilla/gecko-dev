@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <!-- Title of a dialog for a notification permission request. -->
+  <!-- Title of a dialog for a notification permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_notification_title">Pirmèttiri a %1$s di mannari nutìfichi?</string>
-  <!-- Title of a dialog for a camera permission request. -->
+  <!-- Title of a dialog for a camera permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_camera_title">Pirmettiri a %1$s di usari a fotucàmmira?</string>
-  <!-- Title of a dialog for a microphone permission request. -->
+  <!-- Title of a dialog for a microphone permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_microfone_title">Pirmèttiri a %1$s di usari u micròfunu?</string>
-  <!-- Title of a dialog for a location permission request. -->
+  <!-- Title of a dialog for a location permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_location_title">Pirmèttiri a %1$s di usari a pusizzioni?</string>
-  <!-- Title of a dialog for a camera and microphone permission request. -->
+  <!-- Title of a dialog for a camera and microphone permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_camera_and_microphone">Pirmèttiri a %1$s di usari a fotucàmmira e u micròfunu?</string>
   <!--
     Option in a dialog for requesting a microphone permission, this option will give access to

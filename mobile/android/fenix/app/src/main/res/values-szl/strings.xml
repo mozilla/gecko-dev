@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_5">Prywatny %s</string>
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_4">%s (prywatny)</string>
   <!--
     Home Fragment
@@ -30,7 +30,7 @@
   <string name="no_open_tabs_description">Sam sie pokożōm twoje ôtwarte karty.</string>
   <!-- No Private Tabs Message Description -->
   <string name="no_private_tabs_description">Sam sie pokożōm twoje prywatne karty.</string>
-  <!-- Tab tray multi select title in app bar. The first parameter is the number of tabs selected -->
+  <!-- Tab tray multi select title in app bar. %1$d is the number of tabs selected -->
   <string name="tab_tray_multi_select_title">Ôbrane karty: %1$d</string>
   <!-- Label of button in create collection dialog for creating a new collection -->
   <string name="tab_tray_add_new_collection">Przidej nowo kolekcyjo</string>
@@ -44,13 +44,13 @@
   <string name="tab_tray_collection_button_multiselect_content_description">Spamiyntej ôbrane karty we kolekcyji</string>
   <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
   <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Ôbrane</string>
-  <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
+  <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s produkuje Mozilla.</string>
   <!--
     Private Browsing
 
-    Explanation for private browsing displayed to users on home view when they first enable private mode
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    Explanation for private browsing displayed to users on home view when they first enable private mode.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">
         %1$s ôprōżnio historyjo wyszukowanio i przeglōndanio ze prywatnych kart, jak zawrzisz je abo aplikacyjo. Skuli tego niy je sie anonimowym do strōn ani dostowcōw necowych usug. Snadnij ale możesz skryć swoja aktywność w internecie przed inkszymi, co używajōm tyj masziny.</string>
@@ -70,7 +70,7 @@
   <!--
     Open in App "contextual feature recommendation" (CFR)
 
-    Text for the info message. The first parameter is the name of the application.
+    Text for the info message. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="open_in_app_cfr_info_message_2">Możesz nastawić aplikacyjo %1$s, coby autōmatycznie ôtwiyrała linki w aplikacyjach. </string>
   <!-- Text for the positive action button -->
@@ -97,7 +97,7 @@
   <string name="tab_tray_inactive_auto_close_title">Autōmatycznie zawiyrać po miesiōncu?</string>
   <!--
     Text for the body for the auto-close dialog of the inactive tabs.
-    The first parameter is the name of the application.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_tray_inactive_auto_close_body_2">%1$s może zawiyrać karty, co w zeszłym miesiōncu niy były ôglōndane.</string>
   <!-- Content description for close button in the auto-close dialog of the inactive tabs. -->
@@ -183,17 +183,17 @@
   <string name="browser_menu_share">Udostympnij</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_open_in_fenix">Ôdewrzij we %1$s</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by">Funguje skuli %1$s</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by2">Funguje skuli %1$s</string>
   <!-- Browser menu button to put the current page in reader mode -->
@@ -236,9 +236,9 @@
   <string name="search_suggestions_onboarding_do_not_allow_button">Niy zwolej</string>
   <!-- Search suggestion onboarding hint title text -->
   <string name="search_suggestions_onboarding_title">Pokazować dorady szukanio we prywatnych ôknach?</string>
-  <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
   <string name="search_suggestions_onboarding_text">%s bydzie przekazowoł bazowyj wyszukowarce wszysko, co wkludzosz we posku z adresōm.</string>
-  <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine -->
+  <!-- Search engine suggestion title text. %s is the name of the suggested engine. -->
   <string name="search_engine_suggestions_title">Szukej na %s</string>
   <!-- Search engine suggestion description text -->
   <string name="search_engine_suggestions_description">Szukej zaroz na posku z adresōm</string>
@@ -283,7 +283,7 @@
   <!--
     Search Widget
 
-    Content description for searching with a widget. The first parameter is the name of the application.
+    Content description for searching with a widget. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="search_widget_content_description_2">Ôdewrzij w nowyj karcie aplikacyje %1$s</string>
   <!-- Text preview for smaller sized widgets -->
@@ -316,7 +316,7 @@
   <string name="preferences_rate">Ôcyń na Google Play</string>
   <!--
     Preference linking to about page for Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="preferences_about">Ô aplikacyji %1$s</string>
   <!-- Preference for settings related to changing the default browser -->
@@ -458,7 +458,7 @@
   <string name="customize_toggle_recently_visited">Niydowno nawiedzōne</string>
   <!-- Title for the customize home screen section with Pocket. -->
   <string name="customize_toggle_pocket_2">Historyje do pōmedykowanio</string>
-  <!-- Summary for the customize home screen section with Pocket. The first parameter is product name Pocket -->
+  <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
   <string name="customize_toggle_pocket_summary">Historyje z usugi %s</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">Spōnsorowane nowiny</string>
@@ -469,7 +469,7 @@
   <!--
     Wallpapers
 
-    Content description for various wallpapers. The first parameter is the name of the wallpaper
+    Content description for various wallpapers. %1$s is the name of the wallpaper.
   -->
   <string name="wallpapers_item_name_content_description">Tapeta: %1$s</string>
   <!-- Snackbar message for when wallpaper is selected -->
@@ -484,7 +484,7 @@
   <string name="wallpaper_select_error_snackbar_message">Niy szło zmiynić tapety</string>
   <!-- Text displayed that links to website containing documentation about the "Limited Edition" wallpapers. -->
   <string name="wallpaper_learn_more">Przewiydz sie wiyncyj</string>
-  <!-- Text for classic wallpapers title. The first parameter is the Firefox name. -->
+  <!-- Text for classic wallpapers title. %s is the name of the app (for example "Firefox"). -->
   <string name="wallpaper_classic_title">Klasyczny %s</string>
   <!-- Wallpaper onboarding dialog header text. -->
   <string name="wallpapers_onboarding_dialog_title_text">Sprōbuj kapki farby</string>
@@ -516,18 +516,18 @@
   <string name="empty_device_name_error">Miano masziny niy śmiy być prōżne.</string>
   <!-- Label indicating that sync is in progress -->
   <string name="sync_syncing_in_progress">Synchrōnizacyjo…</string>
-  <!-- Label summary indicating that sync failed. The first parameter is the date stamp showing last time it succeeded -->
+  <!-- Label summary indicating that sync failed. %s is the date stamp showing last time it succeeded. -->
   <string name="sync_failed_summary">Synchronizacyjo sie niy podarziła. Ôstatnio udano: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_failed_never_synced_summary">Synchronizacyjo sie niy podarziła. Ôstatnio udano: żodno</string>
-  <!-- Label summary the date we last synced. The first parameter is date stamp showing last time synced -->
+  <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
   <string name="sync_last_synced_summary">Ôstatnio synchrōnizacyjo: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_never_synced_summary">Ôstatnio synchrōnizacyjo: żodno</string>
   <!--
     Text for displaying the default device name.
-    The first parameter is the application name, the second is the device manufacturer name
-    and the third is the device model.
+    %1$s is the name of the app (for example "Firefox"). %2$s is the device manufacturer name
+    and %3$s is the device model.
   -->
   <string name="default_device_name_2">%1$s na %2$s %3$s</string>
   <!-- Preference for syncing addresses -->
@@ -556,7 +556,7 @@
   <string name="exceptions_empty_message_description">Z wyjōntkami możesz zastawić ôchrōna ôd śledzynio na ôbranych strōnach.</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Przewiydz sie wiyncyj</string>
-  <!-- Preference description for usage and technical data collection -->
+  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Udostympnio Mozilli dane ô przeglōndarce: sprowności, używaniu, sprzyńcie i sztalōnkach, coby my mogli polepszać aplikacyjo %1$s</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Marketingowe dane</string>
@@ -734,7 +734,7 @@
   <string name="studies_remove">Skasuj</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">Aktywne</string>
-  <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
+  <!-- Description for studies, it indicates why Firefox use studies. %1$s is the name of the app (for example "Firefox"). -->
   <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s może roz za czas insztalować i kludzić podszukōnki.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Przewiydz sie wiyncyj</string>
@@ -780,7 +780,7 @@
   <string name="tabs_tray_select_tabs">Ôbier karty</string>
   <!-- Content description (not visible, for screen readers etc.): Close tab button. Closes the current session when pressed -->
   <string name="close_tab">Zawrzij karta</string>
-  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. First parameter is tab title -->
+  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. %s is the tab title -->
   <string name="close_tab_title">Zawrzij karta %s</string>
   <!-- Content description (not visible, for screen readers etc.): Opens the open tabs menu when pressed -->
   <string name="open_tabs_menu">Myni ôtwartych kart</string>
@@ -798,7 +798,7 @@
   <string name="remove_top_site">Skasuj</string>
   <!-- Text for the menu button to delete a top site from history -->
   <string name="delete_from_history">Skasuj z historyje</string>
-  <!-- Postfix for private WebApp titles, placeholder is replaced with app name -->
+  <!-- Postfix for private WebApp titles. %1$s is the name of the app (for example "Firefox"). -->
   <string name="pwa_site_controls_title_private">%1$s (prywatny tryb)</string>
   <!--
     History
@@ -810,13 +810,13 @@
   <string name="history_delete_all">Skasuj historyjo</string>
   <!-- Text for the snackbar to confirm that multiple browsing history items has been deleted -->
   <string name="history_delete_multiple_items_snackbar">Historyjo je skasowano</string>
-  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. The first parameter is the shortened URL of the deleted history item. -->
+  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. %1$s is the shortened URL of the deleted history item. -->
   <string name="history_delete_single_item_snackbar">%1$s je skasowane</string>
   <!-- Context description text for the button to delete a single history item -->
   <string name="history_delete_item">Skasuj</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="history_multi_select_title">Ôbrane: %1$d</string>
   <!-- Text for the header that groups the history for today -->
@@ -837,13 +837,13 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1">Pobrane sōm skasowane</string>
-  <!-- Text for the snackbar to confirm that a single download item has been removed. The first parameter is the name of the download item. -->
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar">Skasowane zbiory: %1$s</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1">Niy ma żodnych pobranych zbiorōw</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of downloads selected
+    %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">Ôbrane: %1$d</string>
   <!-- Text for the button to remove a single download item -->
@@ -851,7 +851,7 @@
   <!--
     Crashes
 
-    Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix)
+    Title text displayed on the tab crash page. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_crash_title_2">%1$s niy poradzi zaladować tyj strōny.</string>
   <!-- Send crash report checkbox text on the tab crash page -->
@@ -866,7 +866,7 @@
     Confirmation message for a dialog confirming if the user wants to delete the selected folder
   -->
   <string name="bookmark_delete_folder_confirmation_dialog">Na zicher chcesz skasować tyn katalog?</string>
-  <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
+  <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. %s is the name of the app (for example "Firefox"). -->
   <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s skasuje ôbrane elymynty.</string>
   <!-- Text for the cancel button on delete bookmark dialog -->
   <string name="bookmark_delete_negative">Pociep</string>
@@ -894,7 +894,7 @@
   <string name="bookmark_menu_save_button">Spamiyntej</string>
   <!--
     Bookmark multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="bookmarks_multi_select_title">Ôbrane: %1$d</string>
   <!-- Bookmark editing screen title -->
@@ -921,7 +921,7 @@
   <string name="bookmarks_empty_message">Niy ma sam żodnych zokłodek</string>
   <!--
     Bookmark snackbar message on deletion
-    The first parameter is the host part of the URL of the bookmark deleted, if any
+    %1$s is the host part of the URL of the bookmark deleted, if any
   -->
   <string name="bookmark_deletion_snackbar_message">Skasowane: %1$s</string>
   <!-- Bookmark snackbar message on deleting multiple bookmarks not including folders -->
@@ -1167,7 +1167,7 @@
   <string name="snackbar_top_site_removed">Strōna je skasowano</string>
   <!--
     QR code scanner prompt which appears after scanning a code, but before navigating to it
-    First parameter is the name of the app, second parameter is the URL or text scanned
+    %1$s is the name of the app (for example "Firefox"), %2$s is the URL or text scanned
   -->
   <string name="qr_scanner_confirmation_dialog_message">Dowej aplikacyji %1$s ôtwiyrać %2$s</string>
   <!-- QR code scanner prompt dialog positive option to allow navigation to scanned link -->
@@ -1178,7 +1178,7 @@
   <string name="qr_scanner_dialog_invalid">Adresa strōny je felerno.</string>
   <!-- QR code scanner prompt dialog positive option when there is an error -->
   <string name="qr_scanner_dialog_invalid_ok">OK</string>
-  <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
+  <!-- Tab collection deletion prompt dialog message. %1$s is the collection name. -->
   <string name="tab_collection_dialog_message">Na zicher chcesz skasować %1$s?</string>
   <!-- Tab collection deletion prompt dialog option to delete the collection -->
   <string name="tab_collection_dialog_positive">Skasuj</string>
@@ -1198,10 +1198,10 @@
   <string name="preferences_delete_browsing_data">Skasuj dane przeglōndanio</string>
   <!-- Title for the tabs item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_tabs_title_2">Ôtwarte karty</string>
-  <!-- Subtitle for the tabs item in Delete browsing data, parameter will be replaced with the number of open tabs -->
+  <!-- Subtitle for the tabs item in Delete browsing data, %d is the number of open tabs -->
   <string name="preferences_delete_browsing_data_tabs_subtitle">Karty: %d</string>
   <!--
-    Subtitle for the data and history items in delete browsing data, parameter will be replaced with the
+    Subtitle for the data and history items in delete browsing data, %d is the
     number of history items the user has
   -->
   <string name="preferences_delete_browsing_data_browsing_data_subtitle">Adresy: %d</string>
@@ -1233,7 +1233,7 @@
   <string name="delete_history_prompt_button_today_and_yesterday">Dzisio a wczora</string>
   <!-- Radio button in the delete browsing data dialog to delete all history. -->
   <string name="delete_history_prompt_button_everything">Wszysko</string>
-  <!-- Dialog message to the user asking to delete browsing data. Parameter will be replaced by app name. -->
+  <!-- Dialog message to the user asking to delete browsing data. %s is the name of the app (for example "Firefox"). -->
   <string name="delete_browsing_data_prompt_message_3">%s skasuje ôbrane dane przeglōndanio.</string>
   <!-- Text for the cancel button for the data deletion dialog -->
   <string name="delete_browsing_data_prompt_cancel">Pociep</string>
@@ -1243,7 +1243,7 @@
   <string name="preferences_delete_browsing_data_snackbar">Dane przeglōndanio sōm skasowane</string>
   <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
   <string name="deleting_browsing_data_in_progress">Kasowanie danych przeglōndanio…</string>
-  <!-- Dialog message to the user asking to delete all history items inside the opened group. Parameter will be replaced by a history group name. -->
+  <!-- Dialog message to the user asking to delete all history items inside the opened group. %s is a history group name. -->
   <string name="delete_all_history_group_prompt_message">Skasuj wszystkie strōny we %s</string>
   <!-- Text for the cancel button for the history group deletion dialog -->
   <string name="delete_history_group_prompt_cancel">Pociep</string>
@@ -1281,7 +1281,7 @@
   <string name="sign_in_with_email">Użyj lepij emaila</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
   <string name="sign_in_create_account_text" tools:ignore="BrandUsage">Niy mosz kōnta? &lt;u&gt;Zrychtuj je&lt;/u&gt;, coby synchrōnizować Firefoxa miyndzy maszinami.</string>
-  <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
+  <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s skōńczy sie synchrōnizować ze twojim kōntym, ale niy skasuje żodnych danych przeglōndanio na tyj maszinie.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
   <string name="sign_out_disconnect">Rozłōncz</string>
@@ -1299,7 +1299,7 @@
   <string name="preference_enhanced_tracking_protection">Polepszōno ôchrōna ôd śledzynio</string>
   <!-- Preference summary for enhanced tracking protection settings on/off switch -->
   <string name="preference_enhanced_tracking_protection_summary">Teroz z pōłnym ôchrōnōm cookies, naszōm nojsiylniyjszōm baryjerōm przeciw elymyntōm, co śledzōm miyndzy strōnami.</string>
-  <!-- Description of enhanced tracking protection. The parameter is the name of the application (For example: Firefox Fenix) -->
+  <!-- Description of enhanced tracking protection. %s is the name of the app (for example "Firefox"). -->
   <string name="preference_enhanced_tracking_protection_explanation_2">%s brōni cie przed mockōm nojpopularniyjszych śledzōncych elymyntōw, kere badajōm, co robisz online.</string>
   <!-- Text displayed that links to website about enhanced tracking protection -->
   <string name="preference_enhanced_tracking_protection_explanation_learn_more">Przewiydz sie wiyncyj</string>
@@ -1385,7 +1385,7 @@
   <string name="about_other_open_source_libraries">Biblioteki, kerych używōmy</string>
   <!--
     Toast shown to the user when they are activating the secret dev menu
-    The first parameter is number of long clicks left to enable the menu
+    %1$d is number of long clicks left to enable the menu
   -->
   <string name="about_debug_menu_toast_progress">Myni debugowanio: do załōnczynio ôstały kliki: %1$d</string>
   <string name="about_debug_menu_toast_done">Myni debugowanio je załōnczōne</string>

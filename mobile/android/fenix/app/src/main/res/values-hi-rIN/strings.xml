@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_5">निजी %s</string>
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_4">%s (निजी)</string>
   <!--
     Home Fragment
@@ -20,7 +20,7 @@
   <string name="no_open_tabs_description">आपके खुले टैब यहां दिखाए जाएंगे।</string>
   <!-- No Private Tabs Message Description -->
   <string name="no_private_tabs_description">आपके निजी टैब यहाँ दिखाए जाएंगे।</string>
-  <!-- Tab tray multi select title in app bar. The first parameter is the number of tabs selected -->
+  <!-- Tab tray multi select title in app bar. %1$d is the number of tabs selected -->
   <string name="tab_tray_multi_select_title">%1$d चयनित</string>
   <!-- Label of button in create collection dialog for creating a new collection -->
   <string name="tab_tray_add_new_collection">नया संग्रह जोड़ें</string>
@@ -34,13 +34,13 @@
   <string name="tab_tray_collection_button_multiselect_content_description">चुने गए टैब को संग्रह में सहेजें</string>
   <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
   <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">चयनित</string>
-  <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
+  <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s को Mozilla द्वारा निर्मित किया गया है।</string>
   <!--
     Private Browsing
 
-    Explanation for private browsing displayed to users on home view when they first enable private mode
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    Explanation for private browsing displayed to users on home view when they first enable private mode.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s जब आप ऐप को बंद करते हैं तो निजी टैब से आपका खोज और ब्राउज़िंग इतिहास को मिटाता हैं। हालांकि यह आपको वेबसाइटों या आपके इंटरनेट सेवा प्रदाता के लिए अज्ञात नहीं बनाता है, लेकिन यह आसान बनाता है कि आप इस कंप्यूटर का उपयोग करने वाले किसी अन्य व्यक्ति से ऑनलाइन निजी काम करें।</string>
   <string name="private_browsing_common_myths">निजी ब्राउज़िंग के बारे में आम कथा</string>
@@ -128,17 +128,17 @@
   <string name="browser_menu_share">साझा करें</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_open_in_fenix">%1$s में खोलें</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by">%1$s द्वारा संचालित</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by2">%1$s द्वारा संचालित</string>
   <!-- Browser menu button to put the current page in reader mode -->
@@ -181,9 +181,9 @@
   <string name="search_suggestions_onboarding_do_not_allow_button">अनुमति न दें</string>
   <!-- Search suggestion onboarding hint title text -->
   <string name="search_suggestions_onboarding_title">निजी विंडोज में खोज सुझाव की अनुमति दें?</string>
-  <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
   <string name="search_suggestions_onboarding_text">%s आपके द्वारा पता बार में टाइप की गई सभी चीज़ों को आपके डिफ़ॉल्ट खोज इंजन के साथ साझा करेगा।</string>
-  <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine -->
+  <!-- Search engine suggestion title text. %s is the name of the suggested engine. -->
   <string name="search_engine_suggestions_title">%s खोजें</string>
   <!-- Search engine suggestion description text -->
   <string name="search_engine_suggestions_description">सीधे पता बार से खोजें</string>
@@ -211,7 +211,7 @@
   <string name="preferences_rate">Google Play पर रेट करें</string>
   <!--
     Preference linking to about page for Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="preferences_about">%1$s के बारे में</string>
   <!-- Preference for settings related to changing the default browser -->
@@ -309,18 +309,18 @@
   <string name="empty_device_name_error">डिवाइस का नाम रिक्त नहीं हो सकता।</string>
   <!-- Label indicating that sync is in progress -->
   <string name="sync_syncing_in_progress">सिंक हो रहा है…</string>
-  <!-- Label summary indicating that sync failed. The first parameter is the date stamp showing last time it succeeded -->
+  <!-- Label summary indicating that sync failed. %s is the date stamp showing last time it succeeded. -->
   <string name="sync_failed_summary">सिंक विफल रहा। पिछली सफलता: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_failed_never_synced_summary">सिंक विफल रहा। पिछला सिंक: कभी नहीं हुआ</string>
-  <!-- Label summary the date we last synced. The first parameter is date stamp showing last time synced -->
+  <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
   <string name="sync_last_synced_summary">पिछला सिंक: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_never_synced_summary">पिछला सिंक: कभी नहीं हुआ</string>
   <!--
     Text for displaying the default device name.
-    The first parameter is the application name, the second is the device manufacturer name
-    and the third is the device model.
+    %1$s is the name of the app (for example "Firefox"). %2$s is the device manufacturer name
+    and %3$s is the device model.
   -->
   <string name="default_device_name_2">%2$s %3$s पर %1$s</string>
   <!-- Preference for syncing addresses -->
@@ -349,7 +349,7 @@
   <string name="exceptions_empty_message_description">अपवाद आपको चयनित साइटों के लिए ट्रैकिंग सुरक्षा अक्षम करते हैं।</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">अधिक जानें</string>
-  <!-- Preference description for usage and technical data collection -->
+  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Mozilla के साथ अपने ब्राउज़र के बारे में प्रदर्शन, उपयोग, हार्डवेयर और अनुकूलन डेटा साझा करना हमें %1$s को बेहतर बनाने में मदद करता है</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">मार्केटिंग डेटा</string>
@@ -527,7 +527,7 @@
   <string name="tabs_tray_select_tabs">टैब चुनें</string>
   <!-- Content description (not visible, for screen readers etc.): Close tab button. Closes the current session when pressed -->
   <string name="close_tab">टैब बंद करें</string>
-  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. First parameter is tab title -->
+  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. %s is the tab title -->
   <string name="close_tab_title">टैब बंद करें %s</string>
   <!-- Content description (not visible, for screen readers etc.): Opens the open tabs menu when pressed -->
   <string name="open_tabs_menu">टैब मेन्यू खोलें</string>
@@ -545,19 +545,19 @@
   <string name="remove_top_site">हटाएं</string>
   <!-- Text for the menu button to delete a top site from history -->
   <string name="delete_from_history">इतिहास से मिटाएं</string>
-  <!-- Postfix for private WebApp titles, placeholder is replaced with app name -->
+  <!-- Postfix for private WebApp titles. %1$s is the name of the app (for example "Firefox"). -->
   <string name="pwa_site_controls_title_private">%1$s (निजी मोड)</string>
   <!-- Text for the button to clear all history -->
   <string name="history_delete_all">इतिहास मिटाएं</string>
   <!-- Text for the snackbar to confirm that multiple browsing history items has been deleted -->
   <string name="history_delete_multiple_items_snackbar">इतिहास मिटा दिया गया</string>
-  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. The first parameter is the shortened URL of the deleted history item. -->
+  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. %1$s is the shortened URL of the deleted history item. -->
   <string name="history_delete_single_item_snackbar">%1$s मिटाया गया</string>
   <!-- Context description text for the button to delete a single history item -->
   <string name="history_delete_item">मिटाएं</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="history_multi_select_title">%1$d चयनित</string>
   <!-- Text for the header that groups the history for today -->
@@ -578,13 +578,13 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1">डाउनलोड हटा दिए गए</string>
-  <!-- Text for the snackbar to confirm that a single download item has been removed. The first parameter is the name of the download item. -->
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar">%1$s हटाया गया</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1">कोई डाउनलोड की गई फ़ाइलें नहीं</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of downloads selected
+    %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">%1$d चयनित</string>
   <!-- Text for the button to remove a single download item -->
@@ -592,7 +592,7 @@
   <!--
     Crashes
 
-    Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix)
+    Title text displayed on the tab crash page. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_crash_title_2">माफ़ कीजिए। %1$s उस पृष्ठ को लोड नहीं कर सकता हैं।</string>
   <!-- Send crash report checkbox text on the tab crash page -->
@@ -607,7 +607,7 @@
     Confirmation message for a dialog confirming if the user wants to delete the selected folder
   -->
   <string name="bookmark_delete_folder_confirmation_dialog">क्या आप वाकई इस फ़ोल्डर को हटाना चाहते हैं?</string>
-  <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
+  <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. %s is the name of the app (for example "Firefox"). -->
   <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s चयनित वस्तुओं को मिटा देगा।</string>
   <!-- Screen title for adding a bookmarks folder -->
   <string name="bookmark_add_folder">फ़ोल्डर जोड़ें</string>
@@ -629,7 +629,7 @@
   <string name="bookmark_menu_save_button">सहेजें</string>
   <!--
     Bookmark multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="bookmarks_multi_select_title">%1$d चयनित</string>
   <!-- Bookmark editing screen title -->
@@ -656,7 +656,7 @@
   <string name="bookmarks_empty_message">यहां कोई बुकमार्क नहीं है</string>
   <!--
     Bookmark snackbar message on deletion
-    The first parameter is the host part of the URL of the bookmark deleted, if any
+    %1$s is the host part of the URL of the bookmark deleted, if any
   -->
   <string name="bookmark_deletion_snackbar_message">%1$s मिटाया गया</string>
   <!-- Bookmark snackbar message on deleting multiple bookmarks not including folders -->
@@ -852,7 +852,7 @@
   <string name="snackbar_top_site_removed">साइट हटायी गई</string>
   <!--
     QR code scanner prompt which appears after scanning a code, but before navigating to it
-    First parameter is the name of the app, second parameter is the URL or text scanned
+    %1$s is the name of the app (for example "Firefox"), %2$s is the URL or text scanned
   -->
   <string name="qr_scanner_confirmation_dialog_message">%1$s को %2$s खोलने की अनुमति दें</string>
   <!-- QR code scanner prompt dialog positive option to allow navigation to scanned link -->
@@ -863,7 +863,7 @@
   <string name="qr_scanner_dialog_invalid">वेब पता वैध नहीं है.</string>
   <!-- QR code scanner prompt dialog positive option when there is an error -->
   <string name="qr_scanner_dialog_invalid_ok">ठीक है</string>
-  <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
+  <!-- Tab collection deletion prompt dialog message. %1$s is the collection name. -->
   <string name="tab_collection_dialog_message">क्या आप वाकई %1$s को हटाना चाहते हैं?</string>
   <!-- Tab collection deletion prompt dialog option to delete the collection -->
   <string name="tab_collection_dialog_positive">मिटाएं</string>
@@ -883,10 +883,10 @@
   <string name="preferences_delete_browsing_data">ब्राउज़िंग डेटा मिटाएं</string>
   <!-- Title for the tabs item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_tabs_title_2">टैब खोलें</string>
-  <!-- Subtitle for the tabs item in Delete browsing data, parameter will be replaced with the number of open tabs -->
+  <!-- Subtitle for the tabs item in Delete browsing data, %d is the number of open tabs -->
   <string name="preferences_delete_browsing_data_tabs_subtitle">%d टैब</string>
   <!--
-    Subtitle for the data and history items in delete browsing data, parameter will be replaced with the
+    Subtitle for the data and history items in delete browsing data, %d is the
     number of history items the user has
   -->
   <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d पता</string>
@@ -908,7 +908,7 @@
   <string name="preference_summary_delete_browsing_data_on_quit_2">जब आप मुख्य मेन्यू से \"निकास\" चुनते हैं तो स्वचालित रूप से ब्राउज़िंग डेटा हटा देता है</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">निकास</string>
-  <!-- Dialog message to the user asking to delete browsing data. Parameter will be replaced by app name. -->
+  <!-- Dialog message to the user asking to delete browsing data. %s is the name of the app (for example "Firefox"). -->
   <string name="delete_browsing_data_prompt_message_3">%s चयनित ब्राउज़िंग डेटा को मिटा देगा।</string>
   <!-- Text for the cancel button for the data deletion dialog -->
   <string name="delete_browsing_data_prompt_cancel">रद्द करें</string>
@@ -946,7 +946,7 @@
   <string name="sign_in_with_camera">अपने कैमरे से साइन इन करें</string>
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">इसके बजाय ईमेल का उपयोग करें</string>
-  <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
+  <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s आपके खाते के साथ सिंक करना बंद करेगा, लेकिन इस उपकरण पर स्थित आपका कोई भी ब्राउजिंग डाटा नहीं मिटाएगा।</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
   <string name="sign_out_disconnect">डिस्कनेक्ट करें</string>
@@ -1033,11 +1033,11 @@
     back from ETP details (Ex: Tracking content)
   -->
   <string name="etp_back_button_content_description">पीछे आयें</string>
-  <!-- About page link text to open what's new link -->
+  <!-- About page link text to open what's new link. %s is the name of the app (for example "Firefox"). -->
   <string name="about_whats_new">%s में क्या नया है</string>
   <!--
     Open source licenses page title
-    The first parameter is the app name
+    %s is the name of the app (for example "Firefox")
   -->
   <string name="open_source_licenses_title">%s | OSS लाइब्रेरी</string>
   <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
@@ -1056,7 +1056,7 @@
   <string name="about_other_open_source_libraries">लाइब्रेरी जो हम उपयोग करते हैं</string>
   <!--
     Toast shown to the user when they are activating the secret dev menu
-    The first parameter is number of long clicks left to enable the menu
+    %1$d is number of long clicks left to enable the menu
   -->
   <string name="about_debug_menu_toast_progress">डिबग मेन्यू : %1$d सक्षम करने के लिए दबायें</string>
   <string name="about_debug_menu_toast_done">डिबग मेन्यू सक्षम किया गया</string>
@@ -1170,13 +1170,13 @@
   <string name="search_add_custom_engine_error_empty_search_string">एक खोज स्ट्रिंग दर्ज करें</string>
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">जाँचें कि खोज स्ट्रिंग उदाहरण संरूप से मेल खाती है</string>
-  <!-- Text shown when we aren't able to validate the custom search query. The first parameter is the url of the custom search engine -->
+  <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_error_cannot_reach">"%s" से संपर्क में त्रुटि</string>
-  <!-- Text shown when a user creates a new search engine -->
+  <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s बनाया गया</string>
-  <!-- Text shown when a user successfully edits a custom search engine -->
+  <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_edit_custom_engine_success_message">%s सहेजा गया</string>
-  <!-- Text shown when a user successfully deletes a custom search engine -->
+  <!-- Text shown when a user successfully deletes a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_delete_search_engine_success_message">%s हटाया गया</string>
   <!-- Heading for the instructions to allow a permission -->
   <string name="phone_feature_blocked_intro">इसे अनुमति देने के लिए:</string>
@@ -1184,7 +1184,7 @@
   <string name="phone_feature_blocked_step_settings">1. Android सेटिंग में जाएं</string>
   <!-- Second step for the allowing a permission -->
   <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt;अनुमतियां&lt;/b&gt; दबाएं</string>
-  <!-- Third step for the allowing a permission (Fore example: Camera) -->
+  <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
   <string name="phone_feature_blocked_step_feature">3. चालू करने के लिए &lt;b&gt;%1$s&lt;/ b&gt; टॉगल करें</string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">संपर्क सुरक्षित है</string>
@@ -1203,7 +1203,7 @@
   <!-- Bookmark deletion confirmation -->
   <string name="bookmark_deletion_confirmation">क्या आप वाकई इस बुकमार्क को हटाना चाहते हैं?</string>
   <!--
-    text shown before the issuer name to indicate who its verified by, parameter is the name of
+    text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
   <string name="certificate_info_verified_by">इसके द्वारा जाँचा गया: %1$s</string>

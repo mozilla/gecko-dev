@@ -3,13 +3,13 @@
   <!--
     Search Widget
 
-    Content description for searching with a widget. The first parameter is the name of the application.
+    Content description for searching with a widget. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="search_widget_content_description">Embojuruja tendayke pyahu %1$s-pe</string>
-  <!-- Text preview for smaller sized widgets -->
+  <!-- Text preview for smaller sized widgets. -->
   <string name="search_widget_text_short">Heka</string>
-  <!-- Text preview for larger sized widgets -->
+  <!-- Text preview for larger sized widgets. -->
   <string name="search_widget_text_long">Eheka ñandutípe</string>
-  <!-- Content description (not visible, for screen readers etc.): Voice search -->
+  <!-- Content description (not visible, for screen readers etc.): Voice search. -->
   <string name="search_widget_voice">Ayvu rupi jeheka</string>
 </resources>

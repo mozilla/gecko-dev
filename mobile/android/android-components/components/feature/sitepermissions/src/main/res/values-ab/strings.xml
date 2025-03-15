@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <!-- Title of a dialog for a notification permission request. -->
+  <!-- Title of a dialog for a notification permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_notification_title">Азин %1$s ардыррақәа рышьҭразы?</string>
-  <!-- Title of a dialog for a camera permission request. -->
+  <!-- Title of a dialog for a camera permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_camera_title">Азин %1$s укамера ахархәара?</string>
-  <!-- Title of a dialog for a microphone permission request. -->
+  <!-- Title of a dialog for a microphone permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_microfone_title">Азин %1$s умикрофон ахархәара?</string>
-  <!-- Title of a dialog for a location permission request. -->
+  <!-- Title of a dialog for a location permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_location_title">Азин %1$s уҭыԥ ахархәара?</string>
-  <!-- Title of a dialog for a camera and microphone permission request. -->
+  <!-- Title of a dialog for a camera and microphone permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_camera_and_microphone">Азин %1$s акамереи амикрофони рхархәара?</string>
   <!--
     Option in a dialog for requesting a microphone permission, this option will give access to

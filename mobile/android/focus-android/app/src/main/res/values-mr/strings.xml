@@ -23,7 +23,10 @@
   <string name="feedback_erase2">ब्राउझिंग इतिहास नष्ट</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">टॅबचा ब्राउझिंग इतिहास मिटविला गेला आहे.</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">%1$s करिता शोधा</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">शेअर करा…</string>
@@ -113,8 +116,8 @@
   -->
   <string name="shortcut_erase_and_open_long_label">मिटवा आणि %1$s उघडा</string>
   <!--
-    Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
-    Argument 2 is the url for the learn-more link.
+    Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
+    %2$s is the url for the learn-more link.
   -->
   <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s आपल्याला नियंत्रण देतो.&lt;/p&gt;
 &lt;p&gt;खाजगी ब्राउझर म्हणून वापरा:
@@ -276,7 +279,7 @@
   <string name="preference_mozilla_telemetry_summary2">सर्वांसाठी %1$s उपलब्ध करण्यासाठी व सुधारण्यास जी गरजेची आहे फक्त तीच माहिती जमा करण्यास Mozilla तत्पर आहे.</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">गोपनीयता सूचना</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">%1$s विषयी</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">स्थापित केलेले शोध इंजिन</string>
@@ -300,7 +303,7 @@
   <string name="search_add_manually_name_hint">शोध इंजिनचे नाव</string>
   <string name="search_add_manually_string">शोधण्यास वापरायची अक्षरमाळ</string>
   <string name="search_add_manually_save">जतन करा</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">उदाहरण: example.com/search/?q=%s</string>
   <string name="search_add_confirmation">नवीन शोध इंजिन जोडले.</string>
   <string name="search_add_error_empty_name">शोध इंजिनाचे नाव प्रविष्ट करा</string>
@@ -372,19 +375,19 @@
   <string name="external_app_prompt_title">दुसर्या अॅपमध्ये दुवा उघडा</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">दुआ %2$s मध्ये उघडण्यासाठी आपण %1$s सोडू शकता.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">दुवा उघडू शकणारा अॅप शोधा</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">आपल्या उपकरणातील कोणतीही अँप ही दुवा उघडू शकत नाही. ही दुवा उघडू शकणारी अँप %2$s वर शोधण्यासाठी आपण %1$s सोडून जाऊ शकता.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">खाजगी ब्राउझिंगच्या बाहेर पडायचे आहे का?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s समाप्त</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">उघडा</string>
@@ -492,13 +495,15 @@
   <!-- Watermark/Hint for the find in page input field -->
   <string name="find_in_page_input">पृष्ठामध्ये शोधा</string>
   <!--
-    String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total
+    String to show the number of results found in the page and the position
+    the user is at. %1$d is the position, %2$d is the total number of
+    results.
   -->
   <string name="find_in_page_result">%1$d/%2$d</string>
   <!--
-    String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total
+    String to be read by the accessibility service presenting the number of
+    results found in the page and the position the user is at. %1$d is the
+    position, %2$d is the total number of results.
   -->
   <string name="accessibility_find_in_page_result">%2$d पैकी %1$d</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->
@@ -560,12 +565,12 @@
   <string name="tip_disable_tracking_protection">साइट अनपेक्षितरित्या वागत आहे?\n ट्रॅकिंग संरक्षण बंद करण्याचा प्रयत्न करा</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
-    Argument 1 will be replaced with a line break in the application.
+    %1$s is replaced with a line break in the application.
   -->
   <string name="tip_add_to_homescreen">आपण सर्वात जास्त वापरता त्या साईट एका टॅप मध्ये मिळवा%1$sमेनू &gt; मुख्य पृष्ठावर जोडा</string>
   <!--
     Tip displayed on home view explaining how to make Focus the default browser
-    Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
+    %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
   <string name="tip_set_default_browser">प्रत्येक दुवा %1$s मध्ये उघडा\n%1$s ला पूर्वनिर्धारित ब्राउझर करा</string>

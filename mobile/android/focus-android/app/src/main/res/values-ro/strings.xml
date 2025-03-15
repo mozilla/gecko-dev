@@ -22,7 +22,10 @@
   <string name="feedback_erase">Istoricul de navigare a fost șters.</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">Istoricul de navigare al filei a fost șters.</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">Caută %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">Partajează…</string>
@@ -108,8 +111,8 @@
   -->
   <string name="shortcut_erase_and_open_long_label">Șterge și deschide %1$s</string>
   <!--
-    Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
-    Argument 2 is the url for the learn-more link.
+    Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
+    %2$s is the url for the learn-more link.
   -->
   <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s îți oferă controlul.&lt;/p&gt;
 &lt;p&gt;Folosește-l ca browser privat:
@@ -262,7 +265,7 @@
   <string name="preference_mozilla_telemetry_summary2">Mozilla se străduiește să colecteze doar strictul necesar pentru a furniza și a îmbunătăți %1$s pentru toți.</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">Politica de confidențialitate</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">Despre %1$s</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">Motoare de căutare instalate</string>
@@ -280,7 +283,7 @@
   <string name="search_add_manually_name_hint">Numele motorului de căutare</string>
   <string name="search_add_manually_string">Text de căutare spre utilizare</string>
   <string name="search_add_manually_save">Salvează</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">Exemplu: example.com/search/?q=%s</string>
   <string name="search_add_confirmation">Motor nou de căutare adăugat.</string>
   <string name="search_add_error_empty_name">Introdu numele motorului de căutare</string>
@@ -352,19 +355,19 @@
   <string name="external_app_prompt_title">Deschide linkul în altă aplicație</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">Poți părăsi %1$s pentru a deschide acest link în %2$s.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">Găsește o aplicație care poate deschide linkul</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">Niciuna dintre aplicațiile de pe dispozitiv nu poate deschide acest link. Poți părăsi %1$s ca să cauți în %2$s o aplicație care poate.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">Ieși din navigarea privată?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">Descărcarea %1$s s-a terminat</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">Deschide</string>
@@ -443,13 +446,15 @@
   <!-- Watermark/Hint for the find in page input field -->
   <string name="find_in_page_input">Caută în pagină</string>
   <!--
-    String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total
+    String to show the number of results found in the page and the position
+    the user is at. %1$d is the position, %2$d is the total number of
+    results.
   -->
   <string name="find_in_page_result">%1$d / %2$d</string>
   <!--
-    String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total
+    String to be read by the accessibility service presenting the number of
+    results found in the page and the position the user is at. %1$d is the
+    position, %2$d is the total number of results.
   -->
   <string name="accessibility_find_in_page_result">%1$d din %2$d</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->
@@ -502,12 +507,12 @@
   <string name="tip_disable_tracking_protection">Site-ul are un comportament neașteptat?\n Încearcă să dezactivezi protecția împotriva urmăririi</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
-    Argument 1 will be replaced with a line break in the application.
+    %1$s is replaced with a line break in the application.
   -->
   <string name="tip_add_to_homescreen">Obține acces cu o singură atingere la site-urile pe care intri des%1$s Meniu &gt; Adaugă la ecranul principal</string>
   <!--
     Tip displayed on home view explaining how to make Focus the default browser
-    Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
+    %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
   <string name="tip_set_default_browser">Deschide fiecare link în %1$s\n Setează %1$s ca browser implicit</string>

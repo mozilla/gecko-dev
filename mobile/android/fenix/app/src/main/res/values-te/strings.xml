@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_5">అంతరంగిక %s</string>
-  <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_4">%s (అంతరంగికం)</string>
   <!--
     Home Fragment
@@ -20,7 +20,7 @@
   <string name="no_open_tabs_description">మీ తెరిచివున్న ట్యాబులు ఇక్కడ కనిపిస్తాయి.</string>
   <!-- No Private Tabs Message Description -->
   <string name="no_private_tabs_description">మీ అంతరంగిక ట్యాబులు ఇక్కడ కనిపిస్తాయి.</string>
-  <!-- Tab tray multi select title in app bar. The first parameter is the number of tabs selected -->
+  <!-- Tab tray multi select title in app bar. %1$d is the number of tabs selected -->
   <string name="tab_tray_multi_select_title">%1$d ఎంచుకున్నారు</string>
   <!-- Label of button in create collection dialog for creating a new collection -->
   <string name="tab_tray_add_new_collection">కొత్త సేకరణను చేర్చు</string>
@@ -42,13 +42,13 @@
   <string name="home_bookmarks_title">ఇష్టాంశాలు</string>
   <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
   <string name="home_bookmarks_menu_item_remove">తొలగించు</string>
-  <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
+  <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s‌ని తయారుచేసినది మొజిల్లా.</string>
   <!--
     Private Browsing
 
-    Explanation for private browsing displayed to users on home view when they first enable private mode
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    Explanation for private browsing displayed to users on home view when they first enable private mode.
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">మీరు  అంతరంగిక ట్యాబులను మూసివేసినప్పుడు లేదా అనువర్తనం నుండి నిష్క్రమించినప్పుడు  మీ వెతుకుడు, విహరణ చరిత్రను %1$s తుడిచివేస్తుంది. ఇది మిమ్మల్ని వెబ్‌సైట్లకు లేదా మీ ఇంటర్నెట్ సర్వీస్ ప్రొవైడర్‌కు అనామకంగా చేయనప్పటికీ, ఈ పరికరాన్ని వాడే ఇతరుల నుండి మీ  ఆన్‌లైన్ కార్యకలాపాన్ని అంతరంగికంగా ఉంచుకోవడంలో తోడ్పడుతుంది.</string>
   <string name="private_browsing_common_myths">అంతరంగిక విహారణ గురించి సామాన్య అపోహలు</string>
@@ -141,17 +141,17 @@
   <string name="browser_menu_share">పంచుకోండి</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_open_in_fenix">%1$sలో తెరువు</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by">%1$s‌చే శక్తిమంతం</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by2">%1$sచే శక్తిమంతం</string>
   <!-- Browser menu button to put the current page in reader mode -->
@@ -168,7 +168,7 @@
   <string name="browser_menu_passwords">సంకేతపదాలు</string>
   <!--
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_new_in_firefox">%1$sలో కొత్తవి</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
@@ -210,9 +210,9 @@
   <string name="search_suggestions_onboarding_do_not_allow_button">అనుమతించవద్దు</string>
   <!-- Search suggestion onboarding hint title text -->
   <string name="search_suggestions_onboarding_title">అంతరంగిక సెషన్లలో వెతుకుడు సలహాలను అనుమతించాలా?</string>
-  <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
   <string name="search_suggestions_onboarding_text">చిరునామా పట్టీలో మీరు వ్రాసిన ప్రతిదాన్ని %s మీ అప్రమేయ శోధన యంత్రంతో పంచుకుంటుంది.</string>
-  <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine -->
+  <!-- Search engine suggestion title text. %s is the name of the suggested engine. -->
   <string name="search_engine_suggestions_title">%s‌లో వెతకండి</string>
   <!-- Menu option in the search selector menu to open the search settings -->
   <string name="search_settings_menu_item">వెతుకుడు అమరికలు</string>
@@ -247,7 +247,7 @@
   <!--
     Search Widget
 
-    Content description for searching with a widget. The first parameter is the name of the application.
+    Content description for searching with a widget. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="search_widget_content_description_2">కొత్త %1$s ట్యాబును తెరువు</string>
   <!-- Text preview for smaller sized widgets -->
@@ -276,7 +276,7 @@
   <string name="preferences_rate">Google Playలో రేటు చేయండి</string>
   <!--
     Preference linking to about page for Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="preferences_about">%1$s గురించి</string>
   <!-- Preference for settings related to changing the default browser -->
@@ -410,18 +410,18 @@
   <string name="empty_device_name_error">పరికరం పేరు ఖాళీగా ఉండకూడదు.</string>
   <!-- Label indicating that sync is in progress -->
   <string name="sync_syncing_in_progress">సింక్ అవుతూంది…</string>
-  <!-- Label summary indicating that sync failed. The first parameter is the date stamp showing last time it succeeded -->
+  <!-- Label summary indicating that sync failed. %s is the date stamp showing last time it succeeded. -->
   <string name="sync_failed_summary">సింక్ విఫలమైంది. చివరిగా విజయవంతమైనది: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_failed_never_synced_summary">సింక్ విఫలమైంది. చివరిగా విజయవంతమైనది: ఇంకా లేదు</string>
-  <!-- Label summary the date we last synced. The first parameter is date stamp showing last time synced -->
+  <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
   <string name="sync_last_synced_summary">చివరిగా సింక్ అయినది: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_never_synced_summary">చివరిగా సింక్ అయ్యినది: ఇంకా లేదు</string>
   <!--
     Text for displaying the default device name.
-    The first parameter is the application name, the second is the device manufacturer name
-    and the third is the device model.
+    %1$s is the name of the app (for example "Firefox"). %2$s is the device manufacturer name
+    and %3$s is the device model.
   -->
   <string name="default_device_name_2">%2$s %3$sలో %1$s</string>
   <!-- Preference for syncing payment methods -->
@@ -454,7 +454,7 @@
   <string name="exceptions_empty_message_learn_more_link">ఇంకా తెలుసుకోండి</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more">ఇంకా తెలుసుకోండి</string>
-  <!-- Preference description for usage and technical data collection -->
+  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">%1$s‌ను మెరుగుపరచడంలో తోడ్పడటానికి మీ విహారిణి గురించిన పనితనం, వాడుక, హార్డ్‌వేరు, అభిమతీకరణల డేటాను మొజిల్లాతో పంచుకుంటుంది</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">మార్కెటింగ్ డేటా</string>
@@ -641,7 +641,7 @@
   <string name="tabs_tray_select_tabs">ట్యాబులను ఎంచుకో</string>
   <!-- Content description (not visible, for screen readers etc.): Close tab button. Closes the current session when pressed -->
   <string name="close_tab">ట్యాబును మూసివేయి</string>
-  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. First parameter is tab title -->
+  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. %s is the tab title -->
   <string name="close_tab_title">%s ట్యాబును మూసివేయి</string>
   <!-- Content description (not visible, for screen readers etc.): Opens the open tabs menu when pressed -->
   <string name="open_tabs_menu">తెరిచివున్న ట్యాబుల మెనూ</string>
@@ -659,19 +659,19 @@
   <string name="remove_top_site">తీసివేయి</string>
   <!-- Text for the menu button to delete a top site from history -->
   <string name="delete_from_history">చరిత్ర నుండి తొలగించు</string>
-  <!-- Postfix for private WebApp titles, placeholder is replaced with app name -->
+  <!-- Postfix for private WebApp titles. %1$s is the name of the app (for example "Firefox"). -->
   <string name="pwa_site_controls_title_private">%1$s (అంతరంగిక రీతి)</string>
   <!-- Text for the button to clear all history -->
   <string name="history_delete_all">చరిత్రను తొలగించు</string>
   <!-- Text for the snackbar to confirm that multiple browsing history items has been deleted -->
   <string name="history_delete_multiple_items_snackbar">చరిత్ర తొలగించబడింది</string>
-  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. The first parameter is the shortened URL of the deleted history item. -->
+  <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. %1$s is the shortened URL of the deleted history item. -->
   <string name="history_delete_single_item_snackbar">%1$s తొలగించబడింది</string>
   <!-- Context description text for the button to delete a single history item -->
   <string name="history_delete_item">తొలగించు</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="history_multi_select_title">%1$d ఎంచుకున్నారు</string>
   <!-- Text for the header that groups the history for today -->
@@ -692,13 +692,13 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1">దింపుకోళ్ళు తొలగించబడ్డాయి</string>
-  <!-- Text for the snackbar to confirm that a single download item has been removed. The first parameter is the name of the download item. -->
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar">%1$s తొలగించబడింది</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1">దించుకున్న ఫైళ్ళేమీ లేవు</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of downloads selected
+    %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">%1$d ఎంచుకున్నారు</string>
   <!-- Text for the button to remove a single download item -->
@@ -710,7 +710,7 @@
   <!--
     Crashes
 
-    Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix)
+    Title text displayed on the tab crash page. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_crash_title_2">క్షమించండి. %1$s ఆ పేజీని లోడు చేయలేకుంది.</string>
   <!-- Send crash report checkbox text on the tab crash page -->
@@ -727,7 +727,7 @@
     Confirmation message for a dialog confirming if the user wants to delete the selected folder
   -->
   <string name="bookmark_delete_folder_confirmation_dialog">మీరు నిజంగానే ఈ సంచయాన్ని తొలగించాలనుకుంటున్నారా?</string>
-  <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
+  <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. %s is the name of the app (for example "Firefox"). -->
   <string name="bookmark_delete_multiple_folders_confirmation_dialog">ఎంచుకున్న అంశాలను %s తొలగిస్తుంది.</string>
   <!-- Text for the cancel button on delete bookmark dialog -->
   <string name="bookmark_delete_negative">రద్దుచేయి</string>
@@ -751,7 +751,7 @@
   <string name="bookmark_menu_save_button">భద్రపరుచు</string>
   <!--
     Bookmark multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="bookmarks_multi_select_title">%1$d ఎంచుకున్నారు</string>
   <!-- Bookmark editing screen title -->
@@ -780,7 +780,7 @@
   <string name="bookmarks_empty_message">ఇక్కడ ఇష్టాంశాలేమీ లేవు</string>
   <!--
     Bookmark snackbar message on deletion
-    The first parameter is the host part of the URL of the bookmark deleted, if any
+    %1$s is the host part of the URL of the bookmark deleted, if any
   -->
   <string name="bookmark_deletion_snackbar_message">%1$s తొలగించబడింది</string>
   <!-- Bookmark snackbar message on deleting multiple bookmarks not including folders -->
@@ -994,7 +994,7 @@
   <string name="snackbar_top_site_removed">సైటు తీసివేయబడింది</string>
   <!--
     QR code scanner prompt which appears after scanning a code, but before navigating to it
-    First parameter is the name of the app, second parameter is the URL or text scanned
+    %1$s is the name of the app (for example "Firefox"), %2$s is the URL or text scanned
   -->
   <string name="qr_scanner_confirmation_dialog_message">%2$s తెరవడానికి %1$s‌ను అనుమతించు</string>
   <!-- QR code scanner prompt dialog positive option to allow navigation to scanned link -->
@@ -1005,7 +1005,7 @@
   <string name="qr_scanner_dialog_invalid">జాల చిరునామా సరైనది కాదు.</string>
   <!-- QR code scanner prompt dialog positive option when there is an error -->
   <string name="qr_scanner_dialog_invalid_ok">సరే</string>
-  <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
+  <!-- Tab collection deletion prompt dialog message. %1$s is the collection name. -->
   <string name="tab_collection_dialog_message">మీరు నిజంగానే %1$s‌ను తొలగించాలనుకుంటున్నారా?</string>
   <!-- Tab collection deletion prompt dialog option to delete the collection -->
   <string name="tab_collection_dialog_positive">తొలగించు</string>
@@ -1025,7 +1025,7 @@
   <string name="preferences_delete_browsing_data">విహరణ డేటాను తొలగించు</string>
   <!-- Title for the tabs item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_tabs_title_2">తెరిచివున్న ట్యాబులు</string>
-  <!-- Subtitle for the tabs item in Delete browsing data, parameter will be replaced with the number of open tabs -->
+  <!-- Subtitle for the tabs item in Delete browsing data, %d is the number of open tabs -->
   <string name="preferences_delete_browsing_data_tabs_subtitle">%d ట్యాబులు</string>
   <!--
     Title for the data and history items in Delete browsing data
@@ -1034,7 +1034,7 @@
   -->
   <string name="preferences_delete_browsing_data_browsing_history_title">విహరణ చరిత్ర</string>
   <!--
-    Subtitle for the data and history items in delete browsing data, parameter will be replaced with the
+    Subtitle for the data and history items in delete browsing data, %d is the
     number of history items the user has
   -->
   <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d చిరునామాలు</string>
@@ -1060,7 +1060,7 @@
   <string name="delete_history_prompt_button_today_and_yesterday">ఈరోజు, నిన్న</string>
   <!-- Radio button in the delete browsing data dialog to delete all history. -->
   <string name="delete_history_prompt_button_everything">అన్నీ</string>
-  <!-- Dialog message to the user asking to delete browsing data. Parameter will be replaced by app name. -->
+  <!-- Dialog message to the user asking to delete browsing data. %s is the name of the app (for example "Firefox"). -->
   <string name="delete_browsing_data_prompt_message_3">ఎంచుకున్న డేటాను %s తొలగిస్తుంది.</string>
   <!-- Text for the cancel button for the data deletion dialog -->
   <string name="delete_browsing_data_prompt_cancel">రద్దుచేయి</string>
@@ -1104,7 +1104,7 @@
   <string name="sign_in_with_email">లేదా ఈమెయిలు వాడండి</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
   <string name="sign_in_create_account_text" tools:ignore="BrandUsage">ఖాతా లేదా? Firefoxను పరికరాల మధ్య సమకాలీకరించడానికి &lt;u&gt;ఒక ఖాతాను సృష్టించుకోండి&lt;/u&gt;.</string>
-  <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
+  <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s మీ ఖాతాను సింక్రనించడం ఆపివేస్తుంది, కానీ ఈ పరికరంలోని మీ విహరణ డేటాను తొలగించదు.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
   <string name="sign_out_disconnect">అనుసంధానం తెంచు</string>
@@ -1191,11 +1191,11 @@
     back from ETP details (Ex: Tracking content)
   -->
   <string name="etp_back_button_content_description">వెనక్కి వెళ్ళు</string>
-  <!-- About page link text to open what's new link -->
+  <!-- About page link text to open what's new link. %s is the name of the app (for example "Firefox"). -->
   <string name="about_whats_new">%s‌లో కొత్తవి ఏమిటి</string>
   <!--
     Open source licenses page title
-    The first parameter is the app name
+    %s is the name of the app (for example "Firefox")
   -->
   <string name="open_source_licenses_title">%s| OSS లైబ్రరీలు</string>
   <!-- Category of trackers (redirect trackers) that can be blocked by Enhanced Tracking Protection -->
@@ -1218,7 +1218,7 @@
   <string name="about_other_open_source_libraries">మేము వాడే లైబ్రరీలు</string>
   <!--
     Toast shown to the user when they are activating the secret dev menu
-    The first parameter is number of long clicks left to enable the menu
+    %1$d is number of long clicks left to enable the menu
   -->
   <string name="about_debug_menu_toast_progress">డీబగ్ మెనూ: చేతనించడానికి %1$d నొక్కు(లు) మిగిలి ఉన్నాయి</string>
   <string name="about_debug_menu_toast_done">డీబగ్ మెనూ చేతనించబడింది</string>
@@ -1382,13 +1382,13 @@
   <string name="search_add_custom_engine_error_empty_search_string">శోధన పదాన్ని ఇవ్వండి</string>
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">శోధన పదం ఉదహరించిన ఆకృతిలో ఉండేలా సరిచూడండి</string>
-  <!-- Text shown when we aren't able to validate the custom search query. The first parameter is the url of the custom search engine -->
+  <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_error_cannot_reach">“%s”కి అనుసంధానించడంలో తప్పిదం</string>
-  <!-- Text shown when a user creates a new search engine -->
+  <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s సృష్టించబడింది</string>
-  <!-- Text shown when a user successfully edits a custom search engine -->
+  <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_edit_custom_engine_success_message">%s భద్రమయ్యింది</string>
-  <!-- Text shown when a user successfully deletes a custom search engine -->
+  <!-- Text shown when a user successfully deletes a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_delete_search_engine_success_message">%s తొలగించబడింది</string>
   <!-- Heading for the instructions to allow a permission -->
   <string name="phone_feature_blocked_intro">దీనిని అనుమతించడానికి:</string>
@@ -1396,7 +1396,7 @@
   <string name="phone_feature_blocked_step_settings">1. ఆండ్రాయిడ్  అమరికలకు వెళ్లండి</string>
   <!-- Second step for the allowing a permission -->
   <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt;అనుమతులు&lt;/b&gt;ను తాకండి</string>
-  <!-- Third step for the allowing a permission (Fore example: Camera) -->
+  <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
   <string name="phone_feature_blocked_step_feature">3. చేతనించడానికి &lt;b&gt;%1$s&lt;/b&gt;ను ఎంచుకోండి</string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">అనుసంధానం సురక్షితం</string>
@@ -1404,7 +1404,7 @@
   <string name="quick_settings_sheet_insecure_connection_2">అనుసంధానం సురక్షితం కాదు</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">కుకీలను, సైటు దత్తాంశాన్ని తుడిచివేయి</string>
-  <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->
+  <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
   <string name="confirm_clear_site_data">మీరు నిజంగానే &lt;b&gt;%s&lt;/b&gt; సైటు సంబంధింత కుకీలను, డేబాను తుడిచివేయాలనుకుంటున్నారా?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">నిజంగానే సైట్లన్నిటిలోనూ అనుమతులన్నింటినీ తుడిచివేయాలనుకుంటున్నారా?</string>
@@ -1417,7 +1417,7 @@
   <!-- Bookmark deletion confirmation -->
   <string name="bookmark_deletion_confirmation">ఈ ఇష్టాంశాన్ని మీరు నిజంగానే తొలగించాలనుకుంటున్నారా?</string>
   <!--
-    text shown before the issuer name to indicate who its verified by, parameter is the name of
+    text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
   <string name="certificate_info_verified_by">తనిఖీ చేసినవారు: %1$s</string>
@@ -1549,7 +1549,7 @@
   <string name="translation_settings_translation_preference">అనువాద అభిరుచులు</string>
   <!--
     The Delete site dialogue title will appear when the user clicks on a list item.
-    The first parameter is web site url (for example:"wikipedia.com")
+    %1$s is web site url (for example:"wikipedia.com")
   -->
   <string name="never_translate_site_dialog_title_preference">%1$s‌ని తొలగించాలా?</string>
   <!-- The Delete site dialogue positive button will appear when the user clicks on a list item. The site will be deleted. -->

@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <!-- Title of a dialog for a notification permission request. -->
+  <!-- Title of a dialog for a notification permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_notification_title">Gā\'nïnt riña %1$s da\' gānātàj a\'ngô nuguan\' huā aj.</string>
-  <!-- Title of a dialog for a camera permission request. -->
+  <!-- Title of a dialog for a camera permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_camera_title">Gā\'nïnt riña %1$s da\' gārasunj si kamarâ raj.</string>
-  <!-- Title of a dialog for a microphone permission request. -->
+  <!-- Title of a dialog for a microphone permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_microfone_title">Gā\'nïnt riña %1$s da\' gārasunj si āgâ\'t aga\' uxun nanèe aj.</string>
-  <!-- Title of a dialog for a location permission request. -->
+  <!-- Title of a dialog for a location permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_location_title">Gā\'nïnt riña %1$s da\' gārasunj lūguâ nun raj.</string>
-  <!-- Title of a dialog for a camera and microphone permission request. -->
+  <!-- Title of a dialog for a camera and microphone permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_camera_and_microphone">Gā\'nïnt riña %1$s da\' gārasunj si kamarât ngà si āgâ\'t aga\' uxun nanèe aj.</string>
   <!--
     Option in a dialog for requesting a microphone permission, this option will give access to

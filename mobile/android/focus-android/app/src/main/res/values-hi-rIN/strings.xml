@@ -23,7 +23,10 @@
   <string name="feedback_erase2">ब्राउज़िंग इतिहास मिटा दिया गया</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">टैब का ब्राउज़िंग इतिहास मिटा दिया गया है।</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">%1$s लिए खोजें</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">साझा करें…</string>
@@ -267,7 +270,7 @@
   <string name="preference_mozilla_telemetry_summary2">Mozilla मात्र वही एकत्र करने का प्रयास करता है जिसकी हमें %1$s को बेहतर बनाने और सबको उपलब्ध कराने के लिए आवश्यकता है।</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">गोपनीयता सूचना</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">%1$s परिचय</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">संस्थापित खोज इंजन</string>
@@ -291,7 +294,7 @@
   <string name="search_add_manually_name_hint">खोज इंजन का नाम</string>
   <string name="search_add_manually_string">उपयोग के लिए खोज स्ट्रिंग</string>
   <string name="search_add_manually_save">सहेजें</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">उदाहरण: example.com/search/?q=%s</string>
   <string name="search_add_confirmation">नया खोज इंजन संकलित।</string>
   <string name="search_add_error_empty_name">खोज इंजन का नाम दर्ज करें</string>
@@ -363,19 +366,19 @@
   <string name="external_app_prompt_title">किसी अन्य अनुप्रयोग में लिंक खोलें</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">आप इस लिंक को %2$s में खोलने के लिए %1$s को छोड़ सकते हैं।</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">एक ऐप ढूंढें जो लिंक खोल सकता है</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">आपके डिवाइस पर मौजूद कोई ऐप इस लिंक को खोलने में सक्षम नहीं है। आप एक एप के लिए %2$s की खोज हेतु %1$s को छोड़ सकते हैं जो कर सकता है।</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">निजी ब्राउज़िंग से बाहर निकलें?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s खत्म हुआ</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">खोले</string>
@@ -458,13 +461,15 @@
   <!-- Watermark/Hint for the find in page input field -->
   <string name="find_in_page_input">पृष्ठ में ढूँढें</string>
   <!--
-    String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total
+    String to show the number of results found in the page and the position
+    the user is at. %1$d is the position, %2$d is the total number of
+    results.
   -->
   <string name="find_in_page_result">%1$d/%2$d</string>
   <!--
-    String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total
+    String to be read by the accessibility service presenting the number of
+    results found in the page and the position the user is at. %1$d is the
+    position, %2$d is the total number of results.
   -->
   <string name="accessibility_find_in_page_result">%2$d में से %1$d</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->
@@ -537,12 +542,12 @@
   <string name="tip_disable_tracking_protection">साइट अनपेक्षित ढंग से पेश आ रहा है?\n ट्रैकिंग सुरक्षा बंद कर के देखें</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
-    Argument 1 will be replaced with a line break in the application.
+    %1$s is replaced with a line break in the application.
   -->
   <string name="tip_add_to_homescreen">आपके द्वारा अधिक इस्तेमाल किये साइटों तक एक टैप में पहुँचें %1$s मेन्यु &gt; होम स्क्रीन में जोड़ें</string>
   <!--
     Tip displayed on home view explaining how to make Focus the default browser
-    Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
+    %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
   <string name="tip_set_default_browser">प्रत्येक लिंक %1$s में खोलें\n %1$s को डिफ़ॉल्ट ब्राउज़र बनायें</string>
@@ -592,27 +597,27 @@
   <string name="crash_report_send_crash_label">Mozilla को क्रैश रिपोर्ट भेजें</string>
   <!-- Tracking protection bottom sheet -->
 
-  <!-- Label for the total number of trackers blocked. %s represents the app install date -->
+  <!-- Label for the total number of trackers blocked. %s is the app install date. -->
   <string name="trackers_count_note">%s से ट्रैकर अवरूद्ध</string>
-  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection. -->
   <string name="content">सामग्री</string>
-  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection. -->
   <string name="advertising">विज्ञापन</string>
-  <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection. -->
   <string name="social">सामाजिक</string>
-  <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection -->
+  <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection. -->
   <string name="analytics">विश्लेषण</string>
-  <!-- Preference title for enhanced tracking protection settings -->
+  <!-- Preference title for enhanced tracking protection settings. -->
   <string name="enhanced_tracking_protection">उन्नत ट्रैकिंग सुरक्षा</string>
-  <!-- Enhanced tracking protection preference description when the tracking protection is disabled for this site -->
+  <!-- Enhanced tracking protection preference description when the tracking protection is disabled for this site. -->
   <string name="enhanced_tracking_protection_state_off">इस साइट के लिए सुरक्षा बंद हैं</string>
-  <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site -->
+  <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site. -->
   <string name="enhanced_tracking_protection_state_on">इस साइट के लिए सुरक्षा चालू हैं</string>
-  <!-- Label that indicates a site is using a secure connection -->
+  <!-- Label that indicates a site is using a secure connection. -->
   <string name="secure_connection">संपर्क सुरक्षित है</string>
-  <!-- Label that indicates a site is using a insecure connection -->
+  <!-- Label that indicates a site is using a insecure connection. -->
   <string name="insecure_connection">संपर्क सुरक्षित नहीं है</string>
-  <!-- Content description (not visible, for screen readers etc.): Navigate back button description -->
+  <!-- Content description (not visible, for screen readers etc.): Navigate back button description. -->
   <string name="go_back">वापस जाएँ</string>
   <!--
     Top Sites

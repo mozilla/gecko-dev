@@ -133,7 +133,7 @@
   <string name="mozac_feature_prompts_save_credit_card_prompt_title">මෙම පත ආරක්‍ෂිතව සුරකින්නද?</string>
   <!-- Text for the title of an update credit card dialog. -->
   <string name="mozac_feature_prompts_update_credit_card_prompt_title">පත ඉකුත්වන දිනය යාවත්කාල කරන්නද?</string>
-  <!-- Subtitle text displayed under the title of the saved card dialog. Parameter will be replaced by app name -->
+  <!-- Subtitle text displayed under the title of the saved card dialog. %s is the name of the app (for example "Firefox"). -->
   <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s ඔබගේ පතෙහි අංකය සංකේතනය කරයි. ඔබගේ ආරක්‍ෂණ කේතය සුරැකෙන්නේ නැත.</string>
   <!--
     Address Autofill

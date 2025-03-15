@@ -20,7 +20,10 @@
   <string name="teaser">Njoow ci sutura doxal boppam.\nJoow. Far. Tambaliwaat.</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
   <string name="feedback_erase">Farees na jaar-jaaru sag njoow.</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">Seet %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">Séddoo…</string>
@@ -142,7 +145,7 @@
   <string name="preference_mozilla_telemetry_summary2">Mozilla li mu soxla rekk, te manul ñàkk, lay jéem a dajale ngir man a gënal %1$s ngir nun ñépp.</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">Sàrti Sutura</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">Ñeel %1$s</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">Seetukaay yiñ fi sàmp</string>
@@ -160,7 +163,7 @@
   <string name="search_add_manually_name_hint">Turu seetukaay bi</string>
   <string name="search_add_manually_string">Mbindum seet mees di jëfandikoo</string>
   <string name="search_add_manually_save">Denc</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">Misaal: misaal.com//search/?q=%s</string>
   <string name="search_add_confirmation">Yokkees na seetukaay bu bees.</string>
   <string name="search_add_error_empty_name">Duggalal turu seetukaay bi</string>
@@ -221,19 +224,19 @@
   <string name="external_app_prompt_title">Ubbil lëkkalekaay bi ci beneen jëfekaay</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">Man ngaa génn %1$s ngir ubbi bii lëkkalekaay ci %2$s.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">Seet ab jëfekaay bu man a ubbu lëkkalekaay bi</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">Amul benn jëfekaay ci sa jumtukaay bu man a ubbi bii lëkkalekaay. Man ngaa génn %1$s ngir seet ci %2$s ab jëfekaay bu ko man.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">Génn ci Njoow gu Suturloo gi?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s mat na</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">Ubbi</string>

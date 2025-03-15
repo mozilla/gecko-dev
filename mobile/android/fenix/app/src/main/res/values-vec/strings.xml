@@ -55,17 +55,17 @@
   <string name="browser_menu_share">Condividi</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_open_in_fenix">Vèrxi en %1$s</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by">CO TECNOLOGIA %1$s</string>
   <!--
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_powered_by2">Co tecnoƚogia %1$s</string>
   <!-- Browser menu button to put the current page in reader mode -->
@@ -92,7 +92,7 @@
   <string name="search_suggestions_onboarding_do_not_allow_button">No parmetare</string>
   <!-- Search suggestion onboarding hint title text -->
   <string name="search_suggestions_onboarding_title">Parmetare sugerimenti de reserca in sesion anonime?</string>
-  <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix) -->
+  <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
   <string name="search_suggestions_onboarding_text">Cualsiasi testo digità ne ƚa bara degli indirisi de %s el vegnerà condivixo co’l motore de reserca predefinìo.</string>
   <!-- Text preview for smaller sized widgets -->
   <string name="search_widget_text_short">Serca</string>
@@ -118,7 +118,7 @@
   <string name="preferences_rate">Vota su Google Play</string>
   <!--
     Preference linking to about page for Fenix
-    The first parameter is the name of the app defined in app_name (for example: Fenix)
+    %1$s is the name of the app (for example "Firefox").
   -->
   <string name="preferences_about">Informasion so %1$s</string>
   <!-- Preference for settings related to changing the default browser -->
@@ -181,18 +181,18 @@
   <string name="empty_device_name_error">Meter rento on nòme par el dispoxitivo.</string>
   <!-- Label indicating that sync is in progress -->
   <string name="sync_syncing_in_progress">Sincronixasion…</string>
-  <!-- Label summary indicating that sync failed. The first parameter is the date stamp showing last time it succeeded -->
+  <!-- Label summary indicating that sync failed. %s is the date stamp showing last time it succeeded. -->
   <string name="sync_failed_summary">Sincronixasion mìa riusìa. Ùltema sincronixasion: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_failed_never_synced_summary">Sincronixasion no riusìa. Ùltema sincronixasion: mai</string>
-  <!-- Label summary the date we last synced. The first parameter is date stamp showing last time synced -->
+  <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
   <string name="sync_last_synced_summary">Ùltema sincronixasion: %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_never_synced_summary">Ùltema sincronixasion: mai</string>
   <!--
     Text for displaying the default device name.
-    The first parameter is the application name, the second is the device manufacturer name
-    and the third is the device model.
+    %1$s is the name of the app (for example "Firefox"). %2$s is the device manufacturer name
+    and %3$s is the device model.
   -->
   <string name="default_device_name_2">%1$s so %2$s %3$s</string>
   <!--
@@ -219,7 +219,7 @@
   <string name="exceptions_empty_message_description">Co Ecesion te poi dixativare ƚa protesion antitraciamento par i siti seƚesionà.</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Ulteriori informasion</string>
-  <!-- Preference description for usage and technical data collection -->
+  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Condividi co Mozilla informasion reƚative a prestasion, utilixo, hardware e personalixasion de’l browser par contribuire al mijoramento de %1$s</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Dati de marketing</string>
@@ -279,7 +279,7 @@
   <string name="add_tab">Xonta scheda</string>
   <!-- Content description (not visible, for screen readers etc.): Close tab button. Closes the current session when pressed -->
   <string name="close_tab">Sara su scheda</string>
-  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. First parameter is tab title -->
+  <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. %s is the tab title -->
   <string name="close_tab_title">Sara su scheda %s</string>
   <!-- Content description (not visible, for screen readers etc.): Opens the open tabs menu when pressed -->
   <string name="open_tabs_menu">Menu schede vèrte</string>
@@ -297,7 +297,7 @@
   <string name="history_delete_item">Scanseƚa</string>
   <!--
     History multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="history_multi_select_title">%1$d seƚesionà</string>
   <!-- Text for the header that groups the history the past 7 days -->
@@ -311,7 +311,7 @@
   <!--
     Crashes
 
-    Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix)
+    Title text displayed on the tab crash page. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="tab_crash_title_2">No xe posibiƚe cargare ƚa pàgina in %1$s.</string>
   <!-- Send crash report checkbox text on the tab crash page -->
@@ -340,7 +340,7 @@
   <string name="bookmark_menu_save_button">Salva</string>
   <!--
     Bookmark multi select title in app bar
-    The first parameter is the number of bookmarks selected
+    %1$d is the number of bookmarks selected
   -->
   <string name="bookmarks_multi_select_title">%1$d seƚesionà</string>
   <!-- Bookmark editing screen title -->
@@ -367,7 +367,7 @@
   <string name="bookmarks_empty_message">Nisun segnaƚibro chive</string>
   <!--
     Bookmark snackbar message on deletion
-    The first parameter is the host part of the URL of the bookmark deleted, if any
+    %1$s is the host part of the URL of the bookmark deleted, if any
   -->
   <string name="bookmark_deletion_snackbar_message">Scanseƚà %1$s</string>
   <!-- Bookmark undo button for deletion snackbar action -->
@@ -531,14 +531,14 @@
   <string name="snackbar_top_site_removed">Sito cavà</string>
   <!--
     QR code scanner prompt which appears after scanning a code, but before navigating to it
-    First parameter is the name of the app, second parameter is the URL or text scanned
+    %1$s is the name of the app (for example "Firefox"), %2$s is the URL or text scanned
   -->
   <string name="qr_scanner_confirmation_dialog_message">Parmeti a %1$s de vèrxere %2$s</string>
   <!-- QR code scanner prompt dialog positive option to allow navigation to scanned link -->
   <string name="qr_scanner_dialog_positive">PARMETI</string>
   <!-- QR code scanner prompt dialog positive option to deny navigation to scanned link -->
   <string name="qr_scanner_dialog_negative">NEGA</string>
-  <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
+  <!-- Tab collection deletion prompt dialog message. %1$s is the collection name. -->
   <string name="tab_collection_dialog_message">Scanseƚare %1$s?</string>
   <!-- Tab collection deletion prompt dialog option to delete the collection -->
   <string name="tab_collection_dialog_positive">Scanseƚa</string>
@@ -554,10 +554,10 @@
   <string name="preference_accessibility_auto_size_summary">Ƚa dimension de i caràtari corispondarà a ƚe inpostasion de Android. Dixativare par gestire ƚa dimension de i caràtari separatamente.</string>
   <!-- Title for the Delete browsing data preference -->
   <string name="preferences_delete_browsing_data">Scanseƚa i dati de navigasion</string>
-  <!-- Subtitle for the tabs item in Delete browsing data, parameter will be replaced with the number of open tabs -->
+  <!-- Subtitle for the tabs item in Delete browsing data, %d is the number of open tabs -->
   <string name="preferences_delete_browsing_data_tabs_subtitle">%d schede</string>
   <!--
-    Subtitle for the data and history items in delete browsing data, parameter will be replaced with the
+    Subtitle for the data and history items in delete browsing data, %d is the
     number of history items the user has
   -->
   <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d indirisi</string>
@@ -577,7 +577,7 @@
   <string name="preference_summary_delete_browsing_data_on_quit_2">Scanseƚa otomàticamente i dati de navigasion cò viene seƚesionà “Va fora” nel menu principaƚe</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Va fora</string>
-  <!-- Dialog message to the user asking to delete browsing data. Parameter will be replaced by app name. -->
+  <!-- Dialog message to the user asking to delete browsing data. %s is the name of the app (for example "Firefox"). -->
   <string name="delete_browsing_data_prompt_message_3">%s scanseƚerà i dati de navigasion seƚesionà.</string>
   <!-- Text for the cancel button for the data deletion dialog -->
   <string name="delete_browsing_data_prompt_cancel">Anuƚa</string>
@@ -689,11 +689,11 @@
   <string name="etp_panel_off">Ƚe protesion ƚe xe dixativà par sto sito</string>
   <!-- Header for exceptions list for which sites enhanced tracking protection is always off -->
   <string name="enhanced_tracking_protection_exceptions">Ƚa protesion antitraciamento avansà ƚa xe dixativà par sti siti</string>
-  <!-- About page link text to open what's new link -->
+  <!-- About page link text to open what's new link. %s is the name of the app (for example "Firefox"). -->
   <string name="about_whats_new">Novità en %s</string>
   <!--
     Open source licenses page title
-    The first parameter is the app name
+    %s is the name of the app (for example "Firefox")
   -->
   <string name="open_source_licenses_title">%s | Librarie OSS</string>
   <!-- About page link text to open support link -->
@@ -778,13 +778,13 @@
   <string name="search_add_custom_engine_error_empty_search_string">Meter rento na stringa de reserca</string>
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Verificare che ƚa stringa de reserca corisponda al formato de exenpio</string>
-  <!-- Text shown when we aren't able to validate the custom search query. The first parameter is the url of the custom search engine -->
+  <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_error_cannot_reach">Erore de conesion a “%s”</string>
-  <!-- Text shown when a user creates a new search engine -->
+  <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s creà</string>
-  <!-- Text shown when a user successfully edits a custom search engine -->
+  <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_edit_custom_engine_success_message">%s salvà</string>
-  <!-- Text shown when a user successfully deletes a custom search engine -->
+  <!-- Text shown when a user successfully deletes a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_delete_search_engine_success_message">%s scanseƚà</string>
   <!-- Heading for the instructions to allow a permission -->
   <string name="phone_feature_blocked_intro">Per parmeterƚo:</string>
@@ -792,7 +792,7 @@
   <string name="phone_feature_blocked_step_settings">1. Vèrxii ƚe inpostasioni de Android</string>
   <!-- Second step for the allowing a permission -->
   <string name="phone_feature_blocked_step_permissions">2. Toca &lt;b&gt;Autorixasion&lt;/b&gt;</string>
-  <!-- Third step for the allowing a permission (Fore example: Camera) -->
+  <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
   <string name="phone_feature_blocked_step_feature">3. Inposta &lt;b&gt;%1$s&lt;/b&gt; so Consenti</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">Scanseƚare i parmesi par tuti i siti?</string>
@@ -805,7 +805,7 @@
   <!-- Bookmark deletion confirmation -->
   <string name="bookmark_deletion_confirmation">Scanseƚare sto segnalibro?</string>
   <!--
-    text shown before the issuer name to indicate who its verified by, parameter is the name of
+    text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
   <string name="certificate_info_verified_by">Verificà da: %1$s</string>

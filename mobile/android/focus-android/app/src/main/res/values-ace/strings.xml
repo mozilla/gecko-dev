@@ -23,7 +23,10 @@
   <string name="feedback_erase2">Riwayat peuhah wèb geusampôh</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">Riwayat peuhah wèb tab ka geusampôh</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">Mita keu %1$s</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">Bulueng…</string>
@@ -137,8 +140,8 @@
   -->
   <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Mita lam Focus Nightly</string>
   <!--
-    Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
-    Argument 2 is the url for the learn-more link.
+    Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
+    %2$s is the url for the learn-more link.
   -->
   <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s peuduek droeneuh lam keumudoe.&lt;/p&gt;
 &lt;p&gt;Ngui sibagoe browser rahsia:
@@ -201,14 +204,14 @@
   <string name="preference_switch_autocomplete_topsites">Keu situs hayeue</string>
   <!--
     Summary for the toggle to enable autocomplete for the topsites list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_topsite_summary2">Peuudép keu na %s peuleungkap otomatis keu 450 boh URL nyang meusyeuhu lam bateueng alamat.</string>
   <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
   <string name="preference_switch_autocomplete_user_list">Keu situs nyang neutamah</string>
   <!--
     Summary for the toggle to enable autocomplete for the user-defined list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_user_list_summary2">Peuudép keu na %s peuleungkap otomatis alamat URL geunalak droeneuh.</string>
   <!-- Preference category: Manage (user-defined) sites -->
@@ -283,8 +286,8 @@
   <!--
     Preference Summary: Biometrics (iris scan, fingerprint, or facial scan) can be used to unlock Focus if the app had a URL
     open when the app was last run to ensure that only the phone's owner can view a previous session.
-    %s will be replaced by the app name (e.g. Firefox Focus)
-    Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar")
+    Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them.
   -->
   <string name="preference_security_biometric_summary2">Ngui sidék jaroe keu peuhah meunyo neutamah shortcut atawa watèe situs wèb ka teuhah bak %s.</string>
   <!--
@@ -326,9 +329,9 @@
   <string name="preference_licensing_info">Keutrangan lisènsi</string>
   <!-- Link to Focus licensing information from other libraries that we use. -->
   <string name="preference_libraries_we_use">Pustaka nyang meungui</string>
-  <!-- Open Source Licenses page title. The first parameter is the app name -->
+  <!-- Open Source Licenses page title. %s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="open_source_licenses_title">%s | Pustaka OSS</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">Bhaih %1$s</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">Meusén mita teupasang</string>
@@ -352,7 +355,7 @@
   <string name="search_add_manually_name_hint">Nan meusén mita</string>
   <string name="search_add_manually_string">String mita keu geungui</string>
   <string name="search_add_manually_save">Keubah</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">Miseue: miseue.com/mita/?q=%s</string>
   <string name="search_add_confirmation">Meusén mita nyang barô geutamah.</string>
   <string name="search_add_error_empty_name">Peutamong nan meusén mita</string>
@@ -424,19 +427,19 @@
   <string name="external_app_prompt_title">Peuhah link lam aplikasi laén</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">Droeneuh jeuet neutinggai %1$s keu neupeuhah peunawôt nyoe bak %2$s.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">Mita saboh app nyang jeuet peuhah link</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">Hana meu sabôh app lam peukakah droeneuh nyang jeuet peuhah link nyoe. Droeneu jeuet neutinggai %1$s keu jak mita %2$s keu app nyang jeuet.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">Teubiet Pumeuhah Rahsia?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s seuleusoe</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">Peuhah</string>
@@ -446,7 +449,7 @@
   <!--
     New Onboarding flow first screen title
 
-    %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly)
+    %1$s is the app name and build variant (for example "Firefox Focus", "Firefox Klar Nightly").
   -->
   <string name="onboarding_first_screen_title">Neupiyôh bak %1$s</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
@@ -518,13 +521,15 @@
   <!-- Watermark/Hint for the find in page input field -->
   <string name="find_in_page_input">Mita lam laman</string>
   <!--
-    String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total
+    String to show the number of results found in the page and the position
+    the user is at. %1$d is the position, %2$d is the total number of
+    results.
   -->
   <string name="find_in_page_result">%1$d/%2$d</string>
   <!--
-    String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total
+    String to be read by the accessibility service presenting the number of
+    results found in the page and the position the user is at. %1$d is the
+    position, %2$d is the total number of results.
   -->
   <string name="accessibility_find_in_page_result">%1$d nibak %2$d</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->
@@ -583,7 +588,7 @@
   <string name="phone_feature_blocked_step_permissions">2. Thèp &lt;b&gt;Idin&lt;/b&gt;</string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Atô</string>
-  <!-- Third step for allowing a permission. The placeholder will be updated by, for example, "Camera" -->
+  <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
   <string name="phone_feature_blocked_step_feature">3. Pinah &lt;b&gt;%1$s&lt;/b&gt; jeuet ON</string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Kamèra</string>
@@ -644,7 +649,7 @@
   <string name="tab_crash_report_close_tab_button_label">Tôp Tab</string>
   <!-- Tracking protection bottom sheet -->
 
-  <!-- Preference title for enhanced tracking protection settings -->
+  <!-- Preference title for enhanced tracking protection settings. -->
   <string name="enhanced_tracking_protection">Tamah Lindông Seumeutöt</string>
   <!--
     Theme Preferences

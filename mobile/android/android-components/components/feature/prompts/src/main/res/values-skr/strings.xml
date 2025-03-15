@@ -137,7 +137,7 @@
   <string name="mozac_feature_prompts_save_credit_card_prompt_title">ایہ کارڈ حفاظت نال محفوظ کروں؟</string>
   <!-- Text for the title of an update credit card dialog. -->
   <string name="mozac_feature_prompts_update_credit_card_prompt_title">کارڈ مُکݨ تریخ اپ ڈیٹ کروں؟</string>
-  <!-- Subtitle text displayed under the title of the saved card dialog. Parameter will be replaced by app name -->
+  <!-- Subtitle text displayed under the title of the saved card dialog. %s is the name of the app (for example "Firefox"). -->
   <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s تُہاݙے کارڈ نمبر کوں انکرپٹ کرین٘دا ہِے۔ تُہاݙا سیکیورٹی کوڈ محفوظ کائناں تھیسی۔</string>
   <!--
     Address Autofill

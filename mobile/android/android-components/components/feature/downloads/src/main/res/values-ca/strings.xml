@@ -16,19 +16,19 @@
   <string name="mozac_feature_downloads_dialog_cancel">Cancel·la</string>
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
   <string name="mozac_feature_downloads_file_not_supported2">El %1$s no pot baixar aquest tipus de fitxer</string>
-  <!-- Message that appears when the downloaded file could not be opened -->
+  <!-- Message that appears when the downloaded file could not be opened. -->
   <string name="mozac_feature_downloads_could_not_open_file">No s’ha pogut obrir el fitxer</string>
-  <!-- Message that appears when the downloaded file is a specific type that Android doesn't support opening -->
+  <!-- Message that appears when the downloaded file is a specific type (%1$s) that Android doesn't support opening. -->
   <string name="mozac_feature_downloads_open_not_supported1">No s’ha trobat cap aplicació per a obrir els fitxers %1$s</string>
-  <!-- Button that pauses the download when pressed -->
+  <!-- Button that pauses the download when pressed. -->
   <string name="mozac_feature_downloads_button_pause">Pausa</string>
-  <!-- Button that resumes the download when pressed -->
+  <!-- Button that resumes the download when pressed. -->
   <string name="mozac_feature_downloads_button_resume">Reprèn</string>
-  <!-- Button that cancels the download when pressed -->
+  <!-- Button that cancels the download when pressed. -->
   <string name="mozac_feature_downloads_button_cancel">Cancel·la</string>
-  <!-- Button that opens the downloaded file when pressed -->
+  <!-- Button that opens the downloaded file when pressed. -->
   <string name="mozac_feature_downloads_button_open">Obre</string>
-  <!-- Button that restarts the download after a failed attempt -->
+  <!-- Button that restarts the download after a failed attempt. -->
   <string name="mozac_feature_downloads_button_try_again">Torna-ho a provar</string>
   <!-- Content description for close button -->
   <string name="mozac_feature_downloads_button_close">Tanca</string>

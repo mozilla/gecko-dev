@@ -139,7 +139,7 @@
   <string name="mozac_feature_prompts_save_credit_card_prompt_title">Toś tu kórtu wěsće składowaś?</string>
   <!-- Text for the title of an update credit card dialog. -->
   <string name="mozac_feature_prompts_update_credit_card_prompt_title">Datum spadnjenja kórty aktualizěrowaś?</string>
-  <!-- Subtitle text displayed under the title of the saved card dialog. Parameter will be replaced by app name -->
+  <!-- Subtitle text displayed under the title of the saved card dialog. %s is the name of the app (for example "Firefox"). -->
   <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s waš kórtowy numer koděrujo. Waš wěstotny kod njebuźo se składowaś.</string>
   <!--
     Address Autofill

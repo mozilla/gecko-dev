@@ -23,7 +23,10 @@
   <string name="feedback_erase2">ब्राउजिङ्ग इतिहास खाली गरियो</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">ट्याबको ब्राउजिङ्ग इतिहास मेटाइएको छ।</string>
-  <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
+  <!--
+    This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search.
+    %1$s is the text typed by the user.
+  -->
   <string name="search_hint">%1$s को लागि खोज्नुहोस्</string>
   <!-- Menu item: Share the currently visible page -->
   <string name="menu_share">सेयर…</string>
@@ -113,8 +116,8 @@
   -->
   <string name="shortcut_erase_and_open_long_label">मेटाउनुहोस् र %1$s खोल्नुहोस्</string>
   <!--
-    Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
-    Argument 2 is the url for the learn-more link.
+    Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
+    %2$s is the url for the learn-more link.
   -->
   <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s ले तपाईंलाई नियन्त्रणमा राख्छ।&lt;/p&gt;
 &lt;p&gt;यसलाई निजी ब्राउजरको रूपमा प्रयोग गर्नुहोस्:
@@ -177,14 +180,14 @@
   <string name="preference_switch_autocomplete_topsites">शीर्ष साइटहरूको लागि</string>
   <!--
     Summary for the toggle to enable autocomplete for the topsites list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_topsite_summary2">ठेगाना पट्टीमा %s 450 भन्दा बढी लोकप्रिय URLs हरू स्वत: पूर्ण गर्न यसलाई सक्षम गर्नुहोस्।</string>
   <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
   <string name="preference_switch_autocomplete_user_list">तपाईले थप्नुभएका साइटहरुको लागि</string>
   <!--
     Summary for the toggle to enable autocomplete for the user-defined list
-    %s is a placeholder for the app name (e.g. Firefox Focus)
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="preference_autocomplete_user_list_summary2">आफ्नो मनपर्ने URLs हरू %s स्वतः पूरा गर्न सक्षम गर्नुहोस्।</string>
   <!-- Preference category: Manage (user-defined) sites -->
@@ -290,7 +293,7 @@
   <string name="preference_mozilla_telemetry_summary2">Mozilla सबैको लागि %1$s प्रदान र सुधार गर्न आवश्यक कुरा मात्र संकलन गर्ने प्रयास गर्दछ ।</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">गोपनीयता नीति</string>
-  <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
+  <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">%1$s बारेमा</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">स्थापित खोज इन्जिनहरू</string>
@@ -314,7 +317,7 @@
   <string name="search_add_manually_name_hint">खोजी इन्जिनको नाम</string>
   <string name="search_add_manually_string">प्रयोग गर्न स्ट्रिङ खोजी गर्नुहोस्</string>
   <string name="search_add_manually_save">सङ्ग्रह गर्नुहोस्</string>
-  <!-- Example of search engine url -->
+  <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">Example: example.com/search/?q=%s</string>
   <string name="search_add_confirmation">नयाँ खोजी इन्जिन थपियो ।</string>
   <string name="search_add_error_empty_name">खोजी इन्जिनको नाम प्रविष्ट गर्नुहोस्</string>
@@ -386,19 +389,19 @@
   <string name="external_app_prompt_title">लिङ्कलाई अर्को अनुप्रयोगमा खोल्नुहोस्</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
-    Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar).
+    %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
   <string name="external_app_prompt">तपाईं %2$s मा यो लिङ्क खोल्नका लागि %1$s छोड्न सक्नुहुन्छ।</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">लिङ्क खोल्न सक्ने अनुप्रयोग खोज्नुहोस्</string>
   <!--
-    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+    This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
   <string name="external_app_prompt_no_app">तपाईँको उपकरणमा कुनै पनि एपले यो लिङ्क खोल्न सक्षम छैन। %2$s खोल्न सक्ने एउटा एपको खोज्नका लागि, तपाईंले %1$s छोड्न सक्नुहुन्छ।</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">निजी ब्राउजिङ्ग बन्द गर्न चाहनुहुन्छ ?</string>
-  <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
+  <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">%1$s सकियो</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">खोल्नुहोस्</string>
