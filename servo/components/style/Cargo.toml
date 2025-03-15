@@ -4,10 +4,10 @@ version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 repository = "https://github.com/servo/stylo"
+edition = "2021"
 publish = false
 
 build = "build.rs"
-edition = "2018"
 
 # https://github.com/rust-lang/cargo/issues/3544
 links = "servo_style_crate"
