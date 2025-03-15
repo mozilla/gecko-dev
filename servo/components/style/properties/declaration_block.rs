@@ -940,7 +940,7 @@ impl PropertyDeclarationBlock {
         );
 
         if let Some(cv) = computed_values {
-            context.builder.custom_properties = cv.custom_properties.clone();
+            context.builder.custom_properties = cv.custom_properties().clone();
         };
 
         match (declaration, computed_values) {
