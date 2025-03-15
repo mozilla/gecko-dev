@@ -171,6 +171,18 @@ const char* const kFragSample_ThreePlane = R"(
   }
 )";
 
+extern const char* const kFragSample_TwoPlaneUVP010 = R"(
+  VARYING mediump vec2 vTexCoord0;
+  uniform PRECISION SAMPLER uTex1;
+  uniform PRECISION SAMPLER uTex2;
+
+  vec4 metaSample() {
+    vec4 src = TEXTURE(uTex1, vTexCoord0);
+    src.g = TEXTURE(uTex2, vTexCoord0).r;
+    return src;
+  }
+)";
+
 // -
 
 const char* const kFragConvert_None = R"(
@@ -248,6 +260,16 @@ const char* const kFragConvert_ColorLut2d = R"(
     vec4 dst_zNext = texture(uColorLut, texelSrc2d_zNext / lut2dSize);
 
     return mix(dst_zFloor, dst_zNext, texelSrc3d.z - texelSrc3d_zFloor.z);
+  }
+)";
+
+extern const char* const kFragConvertYUVP010 = R"(
+  vec3 metaConvert(vec3 src) {
+    // YUV420P10 and P010 are both 10-bit formats stored in 16-bit integer.
+    // P010 has 6 lower bits 0 (value is shifted to upper bits)
+    // while YUV420P10 has upper 6 bites zeroed.
+    src *= 64.0;
+    return src;
   }
 )";
 
@@ -1610,6 +1632,129 @@ bool GLBlitHelper::BlitImage(layers::DMABUFSurfaceImage* srcImage,
     return false;
   }
   return Blit(surface, destSize, destOrigin);
+}
+
+bool GLBlitHelper::BlitYCbCrImageToDMABuf(const PlanarYCbCrData& yuvData,
+                                          DMABufSurface* surface) {
+  if (!mGL->IsAtLeast(gl::ContextProfile::OpenGLCore, 300) &&
+      !mGL->IsAtLeast(gl::ContextProfile::OpenGLES, 300)) {
+    return false;
+  }
+
+  // We support to YUV420P10 to P010 conversion only right now.
+  // We'll add YUV420 to NV12 later.
+  if (yuvData.mColorDepth != gfx::ColorDepth::COLOR_10) {
+    return false;
+  }
+
+  if (!mYuvUploads[0]) {
+    mGL->fGenTextures(3, mYuvUploads);
+    const ScopedBindTexture bindTex(mGL, mYuvUploads[0]);
+    mGL->TexParams_SetClampNoMips();
+    mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[1]);
+    mGL->TexParams_SetClampNoMips();
+    mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[2]);
+    mGL->TexParams_SetClampNoMips();
+  }
+
+  auto ySize = yuvData.YDataSize();
+  auto cbcrSize = yuvData.CbCrDataSize();
+  if (yuvData.mYSkip || yuvData.mCbSkip || yuvData.mCrSkip || ySize.width < 0 ||
+      ySize.height < 0 || cbcrSize.width < 0 || cbcrSize.height < 0 ||
+      yuvData.mYStride < 0 || yuvData.mCbCrStride < 0) {
+    gfxCriticalError() << "Unusual PlanarYCbCrData: " << yuvData.mYSkip << ","
+                       << yuvData.mCbSkip << "," << yuvData.mCrSkip << ", "
+                       << ySize.width << "," << ySize.height << ", "
+                       << cbcrSize.width << "," << cbcrSize.height << ", "
+                       << yuvData.mYStride << "," << yuvData.mCbCrStride;
+    return false;
+  }
+
+  // --
+
+  const ScopedSaveMultiTex saveTex(mGL, 3, LOCAL_GL_TEXTURE_2D);
+  const ResetUnpackState reset(mGL);
+  const gfx::IntSize yTexSize(yuvData.mYStride >> 1,
+                              yuvData.YDataSize().height);
+  const gfx::IntSize uvTexSize(yuvData.mCbCrStride >> 1,
+                               yuvData.CbCrDataSize().height);
+
+  if (yTexSize != mYuvUploads_YSize || uvTexSize != mYuvUploads_UVSize) {
+    mYuvUploads_YSize = yTexSize;
+    mYuvUploads_UVSize = uvTexSize;
+
+    mGL->fActiveTexture(LOCAL_GL_TEXTURE0);
+    mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[0]);
+    mGL->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_R16, yTexSize.width,
+                     yTexSize.height, 0, LOCAL_GL_RED, LOCAL_GL_UNSIGNED_SHORT,
+                     nullptr);
+    for (int i = 1; i < 3; i++) {
+      mGL->fActiveTexture(LOCAL_GL_TEXTURE0 + i);
+      mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[i]);
+      mGL->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_R16, uvTexSize.width,
+                       uvTexSize.height, 0, LOCAL_GL_RED,
+                       LOCAL_GL_UNSIGNED_SHORT, nullptr);
+    }
+  }
+
+  // --
+
+  mGL->fActiveTexture(LOCAL_GL_TEXTURE0);
+  mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[0]);
+  mGL->fTexSubImage2D(LOCAL_GL_TEXTURE_2D, 0, 0, 0, yTexSize.width,
+                      yTexSize.height, LOCAL_GL_RED, LOCAL_GL_UNSIGNED_SHORT,
+                      yuvData.mYChannel);
+  mGL->fActiveTexture(LOCAL_GL_TEXTURE1);
+  mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[1]);
+  mGL->fTexSubImage2D(LOCAL_GL_TEXTURE_2D, 0, 0, 0, uvTexSize.width,
+                      uvTexSize.height, LOCAL_GL_RED, LOCAL_GL_UNSIGNED_SHORT,
+                      yuvData.mCbChannel);
+  mGL->fActiveTexture(LOCAL_GL_TEXTURE2);
+  mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[2]);
+  mGL->fTexSubImage2D(LOCAL_GL_TEXTURE_2D, 0, 0, 0, uvTexSize.width,
+                      uvTexSize.height, LOCAL_GL_RED, LOCAL_GL_UNSIGNED_SHORT,
+                      yuvData.mCrChannel);
+
+  // --
+
+  DrawBlitProg::BaseArgs baseArgs;
+  baseArgs.yFlip = false;
+  baseArgs.texMatrix0 = SubRectMat3(0, 0, 1, 1);
+
+  // Blit Y plane
+  {
+    ScopedFramebufferForTexture autoFBForTex(mGL, surface->GetTexture(0));
+    if (!autoFBForTex.IsComplete()) {
+      gfxCriticalError() << "GLBlitHelper::BlitYCbCrImageToDMABuf: "
+                            "ScopedFramebufferForTexture failed.";
+      return false;
+    }
+    const ScopedBindFramebuffer bindFB(mGL, autoFBForTex.FB());
+
+    baseArgs.destSize = gfx::IntSize(surface->GetWidth(), surface->GetHeight());
+    const auto& prog = GetDrawBlitProg(
+        {kFragHeader_Tex2D, {kFragSample_OnePlane, kFragConvertYUVP010}});
+    prog.Draw(baseArgs);
+  }
+
+  // Blit UV planes
+  {
+    ScopedFramebufferForTexture autoFBForTex(mGL, surface->GetTexture(1));
+    if (!autoFBForTex.IsComplete()) {
+      gfxCriticalError() << "GLBlitHelper::BlitYCbCrImageToDMABuf: "
+                            "ScopedFramebufferForTexture failed.";
+      return false;
+    }
+    const ScopedBindFramebuffer bindFB(mGL, autoFBForTex.FB());
+
+    baseArgs.destSize =
+        gfx::IntSize(surface->GetWidth(1), surface->GetHeight(1));
+    const auto& prog = GetDrawBlitProg(
+        {kFragHeader_Tex2D, {kFragSample_TwoPlaneUVP010, kFragConvertYUVP010}});
+    prog.Draw(baseArgs);
+  }
+
+  return true;
 }
 #endif
 
