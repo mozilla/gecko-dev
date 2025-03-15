@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-03-07T18:54:25.418364+00:00'
+updated_at: '2025-03-14T10:56:58.997663+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -886,10 +886,6 @@ people:
     bmo_id: 697076
     name: Perry McManis
     nick: perry.mcmanis
-  - &peterv
-    bmo_id: 24295
-    name: Peter Van der Beken
-    nick: peterv
   - &prathiksha
     bmo_id: 580428
     name: ''
@@ -1547,13 +1543,13 @@ modules:
     meta:
       peers_emeritus:
         - David Baron
+        - Peter Van der Beken
       group: dev-platform
       components:
         - Core::Cycle Collector
     owners:
       - *mccr8
     peers:
-      - *peterv
       - *smaug
     machine_name: core_cycle_collector
 
@@ -1589,6 +1585,7 @@ modules:
         - Justin Lebar
         - Samael Wang
         - Kyle Machulis
+        - Peter Van der Beken
       group: dev-platform
       components:
         - 'Core::DOM: Navigation'
@@ -1596,7 +1593,6 @@ modules:
       - *smaug
       - *nika
     peers:
-      - *peterv
       - *farre
     machine_name: core_docshell
 
@@ -1608,6 +1604,7 @@ modules:
     meta:
       owners_emeritus:
         - Johnny Stenback
+        - Peter Van der Beken
       peers_emeritus:
         - Justin Lebar
         - Jonas Sicking
@@ -1620,6 +1617,8 @@ modules:
         - Kyle Machulis
         - Boris Zbarsky
         - Ehsan Akhgari
+        - Axel Hecht
+        - Eric Rahm
       group: dev-tech-dom
       url: http://developer.mozilla.org/en/docs/DOM
       components:
@@ -1627,7 +1626,7 @@ modules:
         - 'Core::DOM: Core & HTML'
       review_group: dom-core
     owners:
-      - *peterv
+      - *mccr8
     peers:
       - *smaug
       - *hsivonen
@@ -2135,6 +2134,7 @@ modules:
       peers_emeritus:
         - Johnny Stenback
         - David Baron
+        - Peter Van der Beken
       owners_emeritus:
         - Blake Kaplan
       url: http://www.mozilla.org/newlayout/doc/parser.html
@@ -2142,7 +2142,6 @@ modules:
         - 'Core::HTML: Parser'
     owners: []
     peers:
-      - *peterv
       - *rbs
     machine_name: core_legacy_html_parser
 
@@ -3232,6 +3231,8 @@ modules:
       - dom/xml/**/*
       - parser/expat/**/*
     meta:
+      owners_emeritus:
+        - Peter Van der Beken
       peers_emeritus:
         - Jonas Sicking
         - Johnny Stenback
@@ -3241,7 +3242,8 @@ modules:
       components:
         - Core::XML
     owners:
-      - *peterv
+      - *hsivonen
+      - *mccr8
     peers: []
     machine_name: core_xml
 
@@ -3311,12 +3313,12 @@ modules:
         - Andreas Gal
         - Johnny Stenback
         - Gabor Krizsanits
+        - Peter Van der Beken
       components:
         - Core::XPConnect
     owners:
       - *bholley
     peers:
-      - *peterv
       - *mccr8
       - *kmag
       - *nika
@@ -3341,24 +3343,6 @@ modules:
     peers:
       - *mccr8
     machine_name: core_xpidl
-
-  - name: 'Core: XSLT Processor'
-    description: XSLT transformations processor
-    includes:
-      - dom/xslt/**/*
-    meta:
-      peers_emeritus:
-        - Jonas Sicking
-        - Axel Hecht
-        - Eric Rahm
-      group: dev-tech-xslt
-      url: https://developer.mozilla.org/docs/Web/XSLT
-      components:
-        - Core::XSLT
-    owners:
-      - *peterv
-    peers: []
-    machine_name: core_xslt_processor
 
   - name: Desktop Firefox
     description: Standalone Web Browser.
@@ -4575,5 +4559,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: c50edff26d9ce06c7e7f0855e54c0c98bd169470
-  export: 15298ba93e80b7f56222906aba4f794543bac763
+  config: 99d782a07e8e666751d47583736dc54ac4df29b3
+  export: e5667246652c4e393f8966e6b25a75fc25de6fb1
