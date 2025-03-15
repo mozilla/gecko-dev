@@ -515,7 +515,7 @@ trait Collector {
     fn class_map(&mut self) -> &mut IdOrClassDependencyMap;
     fn state_map(&mut self) -> &mut StateDependencyMap;
     fn attribute_map(&mut self) -> &mut LocalNameDependencyMap;
-    fn custom_state_map(&mut self) -> &mut LocalNameDependencyMap;
+    fn custom_state_map(&mut self) -> &mut CustomStateDependencyMap;
     fn update_states(&mut self, element_state: ElementState, document_state: DocumentState);
 
     // In normal invalidations, type-based dependencies don't need to be explicitly tracked;
