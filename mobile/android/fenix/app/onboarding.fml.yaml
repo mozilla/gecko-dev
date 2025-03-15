@@ -57,6 +57,41 @@ features:
               primary-button-label: juno_onboarding_enable_notifications_positive_button
               secondary-button-label: juno_onboarding_enable_notifications_negative_button
 
+            theme-selection:
+              card-type: theme-selection
+              title: onboarding_customize_theme_title
+              body: onboarding_customize_theme_description
+              image-res: ic_pick_a_theme
+              ordering: 33
+              primary-button-label: onboarding_save_and_continue_button
+              extra-data:
+                customization-theme-data:
+                  - theme-type: theme-system
+                    label: onboarding_customize_theme_system_option
+                    image-res: ic_pick_a_theme_system_auto
+                  - theme-type: theme-light
+                    label: onboarding_customize_theme_light_option
+                    image-res: ic_pick_a_theme_light
+                  - theme-type: theme-dark
+                    label: onboarding_customize_theme_dark_option
+                    image-res: ic_pick_a_theme_dark
+
+            toolbar-placement:
+              card-type: toolbar-placement
+              title: onboarding_customize_toolbar_title
+              body: onboarding_customize_toolbar_description
+              image-res: ic_onboarding_customize_toolbar
+              ordering: 37
+              primary-button-label: onboarding_save_and_start_button
+              extra-data:
+                customization-toolbar-data:
+                  - toolbar-type: toolbar-top
+                    label: onboarding_customize_toolbar_top_option
+                    image-res: ic_onboarding_top_toolbar
+                  - toolbar-type: toolbar-bottom
+                    label: onboarding_customize_toolbar_bottom_option
+                    image-res: ic_onboarding_bottom_toolbar
+
 objects:
 
   OnboardingCardData:
