@@ -13,6 +13,7 @@
 #include "mozilla/a11y/HyperTextAccessibleBase.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/Components.h"
+#include "mozilla/ProfilerMarkers.h"
 #include "nsIStringBundle.h"
 
 #ifdef A11Y_LOG
@@ -678,7 +679,21 @@ void Accessible::ApplyImplicitState(uint64_t& aState) const {
       }
     } else if (aState & states::FOCUSED) {
       Accessible* container = nsAccUtils::GetSelectableContainer(this, aState);
-      if (container && !(container->State() & states::MULTISELECTABLE)) {
+      AUTO_PROFILER_MARKER_TEXT(
+          "Accessible::ApplyImplicitState::ImplicitSelection", A11Y, {}, ""_ns);
+      auto HasExplicitSelection = [](Accessible* aAcc) {
+        nsTArray<Accessible*> selectedItems;
+        aAcc->SelectedItems(&selectedItems);
+        for (Accessible* child : selectedItems) {
+          if (child->ARIASelected()) {
+            return true;
+          }
+        }
+        return false;
+      };
+
+      if (container && !(container->State() & states::MULTISELECTABLE) &&
+          !HasExplicitSelection(container)) {
         aState |= states::SELECTED;
       }
     }
