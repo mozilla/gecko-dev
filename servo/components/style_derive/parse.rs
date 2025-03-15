@@ -142,7 +142,7 @@ fn parse_non_keyword_variant(
         }
     } else {
         quote! {
-            if let Ok(v) = input.try(|input| #parse) {
+            if let Ok(v) = input.try_parse(|input| #parse) {
                 return Ok(#variant_name(v));
             }
         }

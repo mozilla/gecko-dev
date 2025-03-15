@@ -4,6 +4,7 @@ version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 repository = "https://github.com/servo/stylo"
+edition = "2021"
 publish = false
 
 [lib]
