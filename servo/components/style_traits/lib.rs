@@ -10,31 +10,16 @@
 #![crate_type = "rlib"]
 #![deny(unsafe_code, missing_docs)]
 
-extern crate app_units;
-#[macro_use]
-extern crate bitflags;
-extern crate cssparser;
-extern crate euclid;
-#[macro_use]
-extern crate lazy_static;
-extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
-#[cfg(feature = "gecko")]
-extern crate nsstring;
-extern crate selectors;
 #[macro_use]
 extern crate serde;
-extern crate servo_arc;
-#[cfg(feature = "servo")]
-extern crate servo_atoms;
-extern crate thin_vec;
-extern crate to_shmem;
 #[macro_use]
 extern crate to_shmem_derive;
 #[cfg(feature = "servo")]
- extern crate url;
+extern crate url;
 
+use bitflags::bitflags;
 use cssparser::{CowRcStr, Token};
 use selectors::parser::SelectorParseErrorKind;
 #[cfg(feature = "servo")]
