@@ -728,16 +728,18 @@ impl ToCss for KeyframesName {
             return dest.write_str("none");
         }
 
-        let serialize = |string: &_| {
+        fn serialize<W: Write>(string: &str, dest: &mut CssWriter<W>) -> fmt::Result {
             if CustomIdent::is_valid(string, &["none"]) {
                 serialize_identifier(string, dest)
             } else {
                 string.to_css(dest)
             }
-        };
+        }
+
         #[cfg(feature = "gecko")]
-        return self.0.with_str(serialize);
+        return self.0.with_str(|s| serialize(s, dest));
+
         #[cfg(feature = "servo")]
-        return serialize(self.0.as_ref());
+        return serialize(self.0.as_ref(), dest);
     }
 }
