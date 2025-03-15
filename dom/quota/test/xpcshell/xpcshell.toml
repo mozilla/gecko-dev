@@ -71,6 +71,8 @@ skip-if = ["true"] # Only used for recreating unsetLastAccessTime_profile.zip
 
 ["test_getUsageForPrincipal.js"]
 
+["test_groupInitializationStarted.js"]
+
 ["test_groupMismatch.js"]
 skip-if = ["true"] # The group is now always empty, so metadata can't differ anymore.
 

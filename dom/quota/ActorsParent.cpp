@@ -5850,6 +5850,8 @@ Result<Ok, nsresult> QuotaManager::EnsureTemporaryGroupIsInitializedInternal(
 
   const auto innerFunc = [&aPrincipalMetadata,
                           this](const auto&) -> mozilla::Result<Ok, nsresult> {
+    NotifyGroupInitializationStarted(*this);
+
     const auto& array =
         mIOThreadAccessible.Access()->mAllTemporaryOrigins.Lookup(
             aPrincipalMetadata.mGroup);
