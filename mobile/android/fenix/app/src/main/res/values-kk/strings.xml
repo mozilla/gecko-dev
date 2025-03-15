@@ -888,6 +888,8 @@
   <string name="preferences_search_browsing_history">Шолу тарихынан іздеу</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">Бетбелгілерден іздеу</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">Жарлықтарды көрсету</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">Синхрондалған беттерден іздеу</string>
   <!-- Preference for account settings -->
@@ -908,6 +910,12 @@
   <string name="preferences_show_nonsponsored_suggestions">%1$s ұсыныстары</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">Сіздің іздеуіңізге қатысты интернеттен ұсыныстар алыңыз</string>
+  <!-- Preference for link sharing -->
+  <string name="preferences_link_sharing">Сілтемені бөлісу</string>
+  <!-- Snackbar message shown when user shares a link -->
+  <string name="link_shared_snackbar_message">Сілтеме бөлісілді</string>
+  <!-- Snackbar action label shown when user shares a link -->
+  <string name="link_shared_snackbar_action">Баптауларды басқару</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Сілтемелерді қолданбаларда ашу</string>
   <!-- Preference for open links in third party apps always open in apps option -->
@@ -1470,6 +1478,20 @@
   <string name="download_multi_select_title">%1$d таңдалды</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">Өшіру</string>
+  <!--
+    Time period headers for downloads
+
+    Text for the header that groups the downloads for today
+  -->
+  <string name="download_time_period_today">Бүгін</string>
+  <!-- Text for the header that groups the downloads for yesterday -->
+  <string name="download_time_period_yesterday">Кеше</string>
+  <!-- Text for the header that groups the downloads the past 7 days -->
+  <string name="download_time_period_last_7_days">Соңғы 7 күн</string>
+  <!-- Text for the header that groups the downloads the past 30 days -->
+  <string name="download_time_period_last_30_days">Соңғы 30 күн</string>
+  <!-- Text for the header that groups the downloads older than other groups -->
+  <string name="download_time_period_older">Ескілеу</string>
   <!--
     WebCompat Reporter
 

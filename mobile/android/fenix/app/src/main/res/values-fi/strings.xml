@@ -1485,6 +1485,20 @@
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">Poista</string>
   <!--
+    Time period headers for downloads
+
+    Text for the header that groups the downloads for today
+  -->
+  <string name="download_time_period_today">Tänään</string>
+  <!-- Text for the header that groups the downloads for yesterday -->
+  <string name="download_time_period_yesterday">Eilen</string>
+  <!-- Text for the header that groups the downloads the past 7 days -->
+  <string name="download_time_period_last_7_days">Viimeiset 7 päivää</string>
+  <!-- Text for the header that groups the downloads the past 30 days -->
+  <string name="download_time_period_last_30_days">Viimeiset 30 päivää</string>
+  <!-- Text for the header that groups the downloads older than other groups -->
+  <string name="download_time_period_older">Vanhemmat</string>
+  <!--
     WebCompat Reporter
 
     The title of the Web Compat Reporter feature. This is displayed in the top app bar.
@@ -2223,6 +2237,8 @@
   <string name="preference_doh_add_site_description">Lisää sivusto</string>
   <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection">Oletussuojaus</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">%1$s päättää, milloin käyttää suojattua DNS:ää yksityisyytesi suojaamiseksi.</string>
   <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_1">Käytä valitsemaasi palveluntarjoajaa</string>
   <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
@@ -2241,6 +2257,8 @@
   <string name="preference_doh_increased_protection_info_2">Käytä oletusarvoista DNS-selvittäjää vain, jos suojatussa DNS:ssä on ongelma</string>
   <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection">Täysi suojaus</string>
+  <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_max_protection_summary">%1$s käyttää aina suojattua DNS:ää. Näet turvallisuusriskivaroituksen, ennen kuin käytämme järjestelmäsi DNS:ää.</string>
   <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection_info_1">Käytä vain valitsemaani palveluntarjoajaa</string>
   <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
@@ -2271,6 +2289,8 @@
   <string name="preference_doh_provider_custom_dialog_add">Lisää</string>
   <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
   <string name="preference_doh_exceptions">Poikkeukset</string>
+  <!-- Description of "exceptions" for "DNS over HTTPS". %1$s is the name of the app (for example "Firefox"). -->
+  <string name="preference_doh_exceptions_summary">%1$s ei käytä suojattua DNS:ää näillä sivustoilla ja niiden aliverkkotunnuksissa.</string>
   <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
   <string name="preference_doh_exceptions_add">Lisää sivusto</string>
   <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
