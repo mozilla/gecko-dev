@@ -52,7 +52,6 @@ EXPORTS.mozilla.widget += [
     "DMABufFormats.h",
     "DMABufLibWrapper.h",
     "DMABufSurface.h",
-    "gbm.h",
     "GtkCompositorWidget.h",
     "InProcessGtkCompositorWidget.h",
     "va_drmcommon.h",

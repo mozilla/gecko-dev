@@ -10,7 +10,7 @@
 #include "mozilla/webgpu/WebGPUParent.h"
 #include "mozilla/widget/DMABufSurface.h"
 #include "mozilla/widget/DMABufLibWrapper.h"
-#include "mozilla/widget/gbm.h"
+#include "gbm/gbm.h"
 
 namespace mozilla::webgpu {
 
