@@ -773,47 +773,38 @@ pub const FONT_MEDIUM_LINE_HEIGHT_PX: f32 = FONT_MEDIUM_PX * 1.2;
 
 impl FontSizeKeyword {
     #[inline]
-    #[cfg(feature = "servo")]
-    fn to_length(&self, _: &Context) -> NonNegativeLength {
-        let medium = Length::new(FONT_MEDIUM_PX);
-        // https://drafts.csswg.org/css-fonts-3/#font-size-prop
-        NonNegative(match *self {
-            FontSizeKeyword::XXSmall => medium * 3.0 / 5.0,
-            FontSizeKeyword::XSmall => medium * 3.0 / 4.0,
-            FontSizeKeyword::Small => medium * 8.0 / 9.0,
-            FontSizeKeyword::Medium => medium,
-            FontSizeKeyword::Large => medium * 6.0 / 5.0,
-            FontSizeKeyword::XLarge => medium * 3.0 / 2.0,
-            FontSizeKeyword::XXLarge => medium * 2.0,
-            FontSizeKeyword::XXXLarge => medium * 3.0,
-            FontSizeKeyword::Math | FontSizeKeyword::None => unreachable!(),
-        })
-    }
-
-    #[cfg(feature = "gecko")]
-    #[inline]
     fn to_length(&self, cx: &Context) -> NonNegativeLength {
         let font = cx.style().get_font();
+
+        #[cfg(feature = "servo")]
+        let family = &font.font_family.families;
+        #[cfg(feature = "gecko")]
         let family = &font.mFont.family.families;
+
         let generic = family
             .single_generic()
             .unwrap_or(computed::GenericFontFamily::None);
+
+        #[cfg(feature = "gecko")]
         let base_size = unsafe {
             Atom::with(font.mLanguage.mRawPtr, |language| {
                 cx.device().base_size_for_generic(language, generic)
             })
         };
+        #[cfg(feature = "servo")]
+        let base_size = cx.device().base_size_for_generic(generic);
+
         self.to_length_without_context(cx.quirks_mode, base_size)
     }
 
     /// Resolve a keyword length without any context, with explicit arguments.
-    #[cfg(feature = "gecko")]
     #[inline]
     pub fn to_length_without_context(
         &self,
         quirks_mode: QuirksMode,
         base_size: Length,
     ) -> NonNegativeLength {
+        #[cfg(feature = "gecko")]
         debug_assert_ne!(*self, FontSizeKeyword::Math);
         // The tables in this function are originally from
         // nsRuleNode::CalcFontPointSize in Gecko:
