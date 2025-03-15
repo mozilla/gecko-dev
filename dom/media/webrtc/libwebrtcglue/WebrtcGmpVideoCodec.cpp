@@ -354,8 +354,7 @@ void WebrtcGmpVideoEncoder::Encode_g(
     GMP_LOG_DEBUG("GMP Encode: failed to create frame");
     return;
   }
-  frame->SetTimestamp((aInputImage.rtp_timestamp() * 1000ll) /
-                      90);  // note: rounds down!
+  frame->SetTimestamp(AssertedCast<uint64_t>(aInputImage.ntp_time_ms() * 1000));
 
   GMPCodecSpecificInfo info{};
   info.mCodecType = kGMPVideoCodecH264;
@@ -378,10 +377,13 @@ void WebrtcGmpVideoEncoder::Encode_g(
   }
 
   MOZ_RELEASE_ASSERT(mInputImageMap.IsEmpty() ||
-                     mInputImageMap.LastElement().rtp_timestamp <
-                         frame->Timestamp());
+                     mInputImageMap.LastElement().ntp_timestamp_ms <
+                         aInputImage.ntp_time_ms());
   mInputImageMap.AppendElement(
-      InputImageData{frame->Timestamp(), aInputImage.timestamp_us()});
+      InputImageData{.gmp_timestamp_us = frame->Timestamp(),
+                     .ntp_timestamp_ms = aInputImage.ntp_time_ms(),
+                     .timestamp_us = aInputImage.timestamp_us(),
+                     .rtp_timestamp = aInputImage.rtp_timestamp()});
 
   GMP_LOG_DEBUG("GMP Encode: %" PRIu64, (frame->Timestamp()));
   err = mGMP->Encode(std::move(frame), codecSpecificInfo, gmp_frame_types);
@@ -479,23 +481,23 @@ void WebrtcGmpVideoEncoder::Encoded(
     GMPVideoEncodedFrame* aEncodedFrame,
     const nsTArray<uint8_t>& aCodecSpecificInfo) {
   MOZ_ASSERT(mGMPThread->IsOnCurrentThread());
-  webrtc::Timestamp capture_time = webrtc::Timestamp::Micros(0);
-  auto rtp_comparator = [](const InputImageData& aA,
-                           const InputImageData& aB) -> int32_t {
-    const auto& a = aA.rtp_timestamp;
-    const auto& b = aB.rtp_timestamp;
+  Maybe<InputImageData> data;
+  auto gmp_timestamp_comparator = [](const InputImageData& aA,
+                                     const InputImageData& aB) -> int32_t {
+    const auto& a = aA.gmp_timestamp_us;
+    const auto& b = aB.gmp_timestamp_us;
     return a < b ? -1 : a != b;
   };
   size_t nextIdx = mInputImageMap.IndexOfFirstElementGt(
-      InputImageData{aEncodedFrame->TimeStamp(), 0}, rtp_comparator);
+      InputImageData{.gmp_timestamp_us = aEncodedFrame->TimeStamp()},
+      gmp_timestamp_comparator);
   const size_t numToRemove = nextIdx;
   size_t numFramesDropped = numToRemove;
   MOZ_ASSERT(nextIdx != 0);
-  if (nextIdx != 0 && mInputImageMap.ElementAt(nextIdx - 1).rtp_timestamp ==
+  if (nextIdx != 0 && mInputImageMap.ElementAt(nextIdx - 1).gmp_timestamp_us ==
                           aEncodedFrame->TimeStamp()) {
     --numFramesDropped;
-    capture_time = webrtc::Timestamp::Micros(
-        mInputImageMap.ElementAt(nextIdx - 1).timestamp_us);
+    data = Some(mInputImageMap.ElementAt(nextIdx - 1));
   }
   mInputImageMap.RemoveElementsAt(0, numToRemove);
 
@@ -511,7 +513,6 @@ void WebrtcGmpVideoEncoder::Encoded(
 
   webrtc::VideoFrameType ft;
   GmpFrameTypeToWebrtcFrameType(aEncodedFrame->FrameType(), &ft);
-  uint64_t timestamp = (aEncodedFrame->TimeStamp() * 90ll + 999) / 1000;
 
   GMP_LOG_DEBUG("GMP Encoded: %" PRIu64 ", type %d, len %d",
                 aEncodedFrame->TimeStamp(), aEncodedFrame->BufferType(),
@@ -528,8 +529,9 @@ void WebrtcGmpVideoEncoder::Encoded(
   unit.SetEncodedData(webrtc::EncodedImageBuffer::Create(
       aEncodedFrame->Buffer(), aEncodedFrame->Size()));
   unit._frameType = ft;
-  unit.SetRtpTimestamp(timestamp);
-  unit.capture_time_ms_ = capture_time.ms();
+  unit.SetRtpTimestamp(data->rtp_timestamp);
+  unit.capture_time_ms_ = webrtc::Timestamp::Micros(data->timestamp_us).ms();
+  unit.ntp_time_ms_ = data->ntp_timestamp_ms;
   unit._encodedWidth = aEncodedFrame->EncodedWidth();
   unit._encodedHeight = aEncodedFrame->EncodedHeight();
   if (int idx = aEncodedFrame->GetTemporalLayerId(); idx >= 0) {
