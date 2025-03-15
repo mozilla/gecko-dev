@@ -3849,6 +3849,12 @@
   value: 0
   mirror: always
 
+# A pref that is used to slow down group initialization for testing purposes.
+- name: dom.quotaManager.groupInitialization.pauseOnIOThreadMs
+  type: RelaxedAtomicUint32
+  value: 0
+  mirror: always
+
 # A pref that is used to slow down origin initialization for testing purposes.
 - name: dom.quotaManager.originInitialization.pauseOnIOThreadMs
   type: RelaxedAtomicUint32

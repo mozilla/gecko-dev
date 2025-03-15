@@ -5884,6 +5884,9 @@ Result<Ok, nsresult> QuotaManager::EnsureTemporaryGroupIsInitializedInternal(
 
     // XXX Evict origins that exceed their group limit here.
 
+    SleepIfEnabled(
+        StaticPrefs::dom_quotaManager_groupInitialization_pauseOnIOThreadMs());
+
     return Ok{};
   };
 
