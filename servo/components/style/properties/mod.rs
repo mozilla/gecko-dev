@@ -360,7 +360,7 @@ impl PropertyId {
     pub fn is_animatable(&self) -> bool {
         match self {
             Self::NonCustom(id) => id.is_animatable(),
-            Self::Custom(..) => true,
+            Self::Custom(_) => cfg!(feature = "gecko"),
         }
     }
 
@@ -1086,7 +1086,7 @@ impl<'a> PropertyDeclarationId<'a> {
     pub fn is_animatable(&self) -> bool {
         match self {
             Self::Longhand(id) => id.is_animatable(),
-            Self::Custom(_) => true,
+            Self::Custom(_) => cfg!(feature = "gecko"),
         }
     }
 
@@ -1096,7 +1096,7 @@ impl<'a> PropertyDeclarationId<'a> {
         match self {
             Self::Longhand(longhand) => longhand.is_discrete_animatable(),
             // TODO(bug 1885995): Refine this.
-            Self::Custom(_) => true,
+            Self::Custom(_) => cfg!(feature = "gecko")
         }
     }
 
