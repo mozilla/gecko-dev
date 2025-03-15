@@ -2929,10 +2929,10 @@ macro_rules! css_properties_accessors {
                         % for prop in [property] + property.aliases:
                             % if '-' in prop.name:
                                 [${prop.ident.capitalize()}, Set${prop.ident.capitalize()},
-                                 PropertyId::${kind}(${kind}Id::${property.camel_case})],
+                                 PropertyId::NonCustom(${kind}Id::${property.camel_case}.into())],
                             % endif
                             [${prop.camel_case}, Set${prop.camel_case},
-                             PropertyId::${kind}(${kind}Id::${property.camel_case})],
+                             PropertyId::NonCustom(${kind}Id::${property.camel_case}.into())],
                         % endfor
                     % endif
                 % endfor
