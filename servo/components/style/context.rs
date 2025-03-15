@@ -34,7 +34,7 @@ use selectors::context::SelectorCaches;
 #[cfg(feature = "gecko")]
 use servo_arc::Arc;
 #[cfg(feature = "servo")]
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 use std::fmt;
 use std::ops;
 use std::time::{Duration, Instant};

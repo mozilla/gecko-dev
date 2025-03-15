@@ -89,7 +89,7 @@ impl SpecifiedValueInfo for String {}
 impl SpecifiedValueInfo for crate::owned_str::OwnedStr {}
 
 #[cfg(feature = "servo")]
-impl SpecifiedValueInfo for ::servo_atoms::Atom {}
+impl SpecifiedValueInfo for ::stylo_atoms::Atom {}
 #[cfg(feature = "servo")]
 impl SpecifiedValueInfo for ::url::Url {}
 

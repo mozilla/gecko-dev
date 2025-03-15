@@ -64,7 +64,7 @@ extern crate serde;
 pub use servo_arc;
 #[cfg(feature = "servo")]
 #[macro_use]
-extern crate servo_atoms;
+extern crate stylo_atoms;
 #[macro_use]
 extern crate static_assertions;
 #[macro_use]
@@ -155,7 +155,7 @@ pub type LocalName = crate::values::AtomIdent;
 pub use crate::gecko_string_cache::Namespace;
 
 #[cfg(feature = "servo")]
-pub use servo_atoms::Atom;
+pub use stylo_atoms::Atom;
 
 #[cfg(feature = "servo")]
 #[allow(missing_docs)]
@@ -202,7 +202,7 @@ longhand_properties_idents!(reexport_computed_values);
 #[cfg(feature = "gecko")]
 use crate::gecko_string_cache::WeakAtom;
 #[cfg(feature = "servo")]
-use servo_atoms::Atom as WeakAtom;
+use stylo_atoms::Atom as WeakAtom;
 
 /// Extension methods for selectors::attr::CaseSensitivity
 pub trait CaseSensitivityExt {

@@ -8,7 +8,7 @@ use parking_lot::RwLock;
 use selectors::attr::*;
 use selectors::parser::*;
 use servo_arc::Arc;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 use servo_config::prefs::{PrefValue, PREFS};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;

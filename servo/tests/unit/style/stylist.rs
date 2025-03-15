@@ -7,7 +7,7 @@ use euclid::Scale;
 use euclid::Size2D;
 use selectors::parser::{AncestorHashes, Selector};
 use servo_arc::Arc;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 use style::context::QuirksMode;
 use style::media_queries::{Device, MediaType};
 use style::properties::{longhands, Importance};

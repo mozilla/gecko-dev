@@ -12,7 +12,7 @@ name = "style_traits"
 path = "lib.rs"
 
 [features]
-servo = ["servo_atoms", "cssparser/serde", "url", "euclid/serde"]
+servo = ["stylo_atoms", "cssparser/serde", "url", "euclid/serde"]
 gecko = ["nsstring"]
 
 [dependencies]
@@ -26,7 +26,7 @@ nsstring = {path = "../../../xpcom/rust/nsstring/", optional = true}
 selectors = { path = "../selectors" }
 serde = "1.0"
 servo_arc = { path = "../servo_arc" }
-servo_atoms = { path = "../atoms", optional = true }
+stylo_atoms = { path = "../atoms", optional = true }
 thin-vec = "0.2"
 to_shmem = { path = "../to_shmem" }
 to_shmem_derive = { path = "../to_shmem_derive" }
