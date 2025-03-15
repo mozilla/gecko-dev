@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /**
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,10 +17,16 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false,
   (_pref, _old, val) => LinkPreview.onEnabledPref(val)
 );
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "outputSentences",
+  "browser.ml.linkPreview.outputSentences"
+);
 
 export const LinkPreview = {
   keyboardComboActive: false,
   _windowStates: new Map(),
+  linkPreviewPanelId: "link-preview-panel",
 
   /**
    * Handles the preference change for enabling/disabling Link Preview.
@@ -43,6 +48,12 @@ export const LinkPreview = {
    */
   init(win) {
     this._windowStates.set(win, {});
+    if (!win.customElements.get("link-preview-card")) {
+      win.ChromeUtils.importESModule(
+        "chrome://browser/content/genai/content/link-preview-card.mjs",
+        { global: "current" }
+      );
+    }
 
     if (lazy.gLinkPreviewEnabled) {
       this._addEventListeners(win);
@@ -60,6 +71,10 @@ export const LinkPreview = {
     if (lazy.gLinkPreviewEnabled) {
       this._removeEventListeners(win);
     }
+
+    // Remove the panel if it exists
+    const doc = win.document;
+    doc.getElementById(this.linkPreviewPanelId)?.remove();
 
     // Remove the window from the map
     this._windowStates.delete(win);
@@ -159,6 +174,118 @@ export const LinkPreview = {
       this._maybeLinkPreview(win);
     }
   },
+
+  /**
+   * Creates an Open Graph (OG) card using meta information from the page.
+   *
+   * @param {Document} doc - The document object where the OG card will be
+   * created.
+   * @param {object} pageData - An object containing page data, including meta
+   * tags and article information.
+   * @param {object} [pageData.article] - Optional article-specific data.
+   * @param {object} [pageData.metaInfo] - Optional meta tag key-value pairs.
+   * @returns {Element} A DOM element representing the OG card.
+   */
+  createOGCard(doc, pageData) {
+    const ogCard = doc.createElement("link-preview-card");
+    ogCard.pageData = pageData;
+
+    if (pageData.article.textContent) {
+      this.generateKeyPoints(ogCard);
+    }
+    return ogCard;
+  },
+
+  /**
+   * Generate AI key points for card.
+   *
+   * @param {LinkPreviewCard} ogCard to add key points
+   */
+  async generateKeyPoints(ogCard) {
+    ogCard.generating = true;
+
+    // Ensure sequential AI processing to reduce memory usage by passing our
+    // promise to the next request before waiting on the previous.
+    const previous = this.lastRequest;
+    const { promise, resolve } = Promise.withResolvers();
+    this.lastRequest = promise;
+    await previous;
+
+    // No need to generate if already removed.
+    if (!ogCard.isConnected) {
+      resolve();
+      return;
+    }
+
+    try {
+      let expected = lazy.outputSentences;
+      await lazy.LinkPreviewModel.generateTextAI(
+        ogCard.pageData.article.textContent,
+        {
+          onError: console.error,
+          onText(text) {
+            ogCard.addKeyPoint(text);
+            if (--expected == 0) {
+              ogCard.generating = false;
+            }
+          },
+        }
+      );
+    } finally {
+      resolve();
+      ogCard.generating = false;
+    }
+  },
+
+  /**
+   * Renders the link preview panel at the specified coordinates.
+   *
+   * @param {Window} win - The browser window context.
+   * @param {string} url - The URL of the link to be previewed.
+   */
+  async renderLinkPreviewPanel(win, url) {
+    const doc = win.document;
+    let panel = doc.getElementById(this.linkPreviewPanelId);
+    const openPopup = () => {
+      const { _x: x, _y: y } = win.MousePosTracker;
+      // Open near the mouse offsetting so link in the card can be clicked.
+      panel.openPopup(doc.documentElement, "overlap", x - 20, y - 150);
+    };
+
+    // Reuse the existing panel if the url is the same.
+    if (panel) {
+      if (panel.previewUrl == url) {
+        if (panel.state == "closed") {
+          openPopup();
+        }
+        return;
+      }
+
+      // Hide in preparation to replace the content for new url.
+      panel.hidePopup();
+    } else {
+      panel = doc
+        .getElementById("mainPopupSet")
+        .appendChild(doc.createXULElement("panel"));
+      panel.className = "panel-no-padding";
+      panel.id = this.linkPreviewPanelId;
+      panel.setAttribute("noautofocus", true);
+      panel.setAttribute("type", "arrow");
+      panel.style.width = "300px";
+    }
+    panel.previewUrl = url;
+
+    const browsingContext = win.browsingContext;
+    const actor = browsingContext.currentWindowGlobal.getActor("LinkPreview");
+    //TODO: figure out how to get read duration data from Reader mode
+    const pageData = await actor.fetchPageData(url);
+    const ogCard = this.createOGCard(doc, pageData);
+    panel.replaceChildren(ogCard);
+    ogCard.addEventListener("LinkPreviewCard:dismiss", () => panel.hidePopup());
+
+    openPopup();
+  },
+
   /**
    * Determines whether to process or cancel the link preview based on the current state.
    * If a URL is available and the keyboard combination is active, it processes the link preview.
@@ -166,23 +293,11 @@ export const LinkPreview = {
    *
    * @param {Window} win - The window context in which the link preview may occur.
    */
-  async _maybeLinkPreview(win) {
+  _maybeLinkPreview(win) {
     const stateObject = this._windowStates.get(win);
     const url = stateObject.overLink;
-
     if (url && this.keyboardComboActive) {
-      console.log(`Previewing link: ${url}`);
-      const browsingContext = win.browsingContext;
-      const actor = browsingContext.currentWindowGlobal.getActor("LinkPreview");
-      //TODO: use result from sendQuery below for link preview rendering
-      //TODO: figure out how to get read duration data from Reader mode
-      const result = await actor.fetchPageData(url);
-      console.log(result);
-      console.log("Generating text AI...");
-      lazy.LinkPreviewModel.generateTextAI(result.article.textContent, {
-        onError: console.error,
-        onText: console.log,
-      });
+      this.renderLinkPreviewPanel(win, url);
     }
   },
 };

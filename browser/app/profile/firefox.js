@@ -2129,6 +2129,7 @@ pref("browser.ml.chat.sidebar", true);
 
 // Whether link preview feature should be active
 pref("browser.ml.linkPreview.enabled", false);
+pref("browser.ml.linkPreview.outputSentences", 3);
 
 // Block insecure active content on https pages
 pref("security.mixed_content.block_active_content", true);

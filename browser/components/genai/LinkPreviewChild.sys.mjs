@@ -95,26 +95,23 @@ export class LinkPreviewChild extends JSWindowActorChild {
    * @returns {Promise<object>} An object containing meta information, page text, and HTML code.
    */
   async fetchPageData(url) {
+    const ret = {
+      article: {},
+      metaInfo: {},
+      url,
+    };
     try {
       const htmlCode = await this.fetchHTML(url);
 
       const parser = new DOMParser();
       const doc = parser.parseFromString(htmlCode, "text/html");
 
-      const metaInfo = this.parseMetaTagsFromDoc(doc);
-      const articleData = await this.getArticleDataFromDoc(doc);
-
-      return {
-        metaInfo,
-        article: articleData,
-      };
+      ret.metaInfo = this.parseMetaTagsFromDoc(doc);
+      ret.article = await this.getArticleDataFromDoc(doc);
     } catch (error) {
       console.error(`Failed to fetch and parse page data: ${error.message}`);
-      return {
-        metaInfo: {},
-        article: {},
-      };
     }
+    return ret;
   }
 
   /**
@@ -129,7 +126,15 @@ export class LinkPreviewChild extends JSWindowActorChild {
     const metaInfo = {};
 
     // TODO: Define the meta tags we are interested in
-    const desiredMetaNames = ["description", "og:image", "title"];
+    const desiredMetaNames = [
+      "description",
+      "og:image",
+      "title",
+      "og:title",
+      "twitter:title",
+      "og:description",
+      "twitter:description",
+    ];
 
     metaTags.forEach(tag => {
       const name = tag.getAttribute("name") || tag.getAttribute("property");
@@ -160,7 +165,8 @@ export class LinkPreviewChild extends JSWindowActorChild {
       const article = await lazy.ReaderMode.parseDocument(doc);
       if (article) {
         //TODO include other fields like sitename from article
-        const { title, byline, textContent, length, siteName } = article;
+        const { title, byline, textContent, length, siteName, excerpt } =
+          article;
 
         //TODO getReadingTime from Readermode
         return {
@@ -169,6 +175,7 @@ export class LinkPreviewChild extends JSWindowActorChild {
           textContent,
           length,
           siteName,
+          excerpt,
         };
       }
     } catch (error) {

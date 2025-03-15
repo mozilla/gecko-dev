@@ -101,3 +101,34 @@ add_task(async function test_fetch_page_data() {
   );
   is(result.metaInfo["html:title"], "Article title", "title should be correct");
 });
+
+/**
+ * Test that link preview panel is shown.
+ */
+add_task(async function test_link_preview_panel_shown() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.linkPreview.enabled", true]],
+  });
+
+  const stub = sinon.stub(LinkPreview, "generateKeyPoints");
+  window.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      altKey: true,
+    })
+  );
+  XULBrowserWindow.setOverLink(TEST_LINK_URL, {});
+
+  const panel = await TestUtils.waitForCondition(() =>
+    document.getElementById("link-preview-panel")
+  );
+  ok(panel, "Panel created for link preview");
+
+  await BrowserTestUtils.waitForEvent(panel, "popupshown");
+
+  is(stub.callCount, 1, "would have generated key points");
+
+  panel.remove();
+  stub.restore();
+});

@@ -1,0 +1,64 @@
+/**
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+.og-card-img img {
+    height: 100px;
+    object-fit: cover;
+    width: 100%;
+}
+
+.og-card-content {
+    border-radius: var(--border-radius-medium);
+    box-shadow: var(--box-shadow-card);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-medium);
+    padding: var(--space-large);
+}
+
+.site-name {
+    color: var(--text-color-deemphasized);
+    font-size: 1.3em;
+}
+
+.og-card-title {
+    font-size: 1.4em;
+    font-weight: var(--font-weight-bold);
+    margin: 0;
+    overflow: hidden;
+    -webkit-line-clamp: 3;
+}
+
+.og-card-description {
+    font-size: 1.2em;
+    margin: 0;
+    overflow: hidden;
+    -webkit-line-clamp: 3;
+}
+
+.ai-content {
+    background-color: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.1));
+    padding: var(--space-large);
+
+    > h3 {
+        font-size: 1.3em;
+        font-weight: var(--font-weight-bold);
+        margin: 0;
+    }
+
+    > ul {
+        font-size: 1.2em;
+        padding-inline-start: var(--space-large);
+    }
+
+    li {
+        margin-block: var(--space-medium);
+    }
+
+    > hr {
+        border-color: var(--border-color-card);
+    }
+}
