@@ -1334,14 +1334,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                     // `max(min, max)`.
                     let max_cmp_min = match max.compare(&min, PositivePercentageBasis::Unknown) {
                         Some(o) => o,
-                        None => {
-                            debug_assert!(
-                                false,
-                                "We compared center with min and max, how are \
-                                 min / max not comparable with each other?"
-                            );
-                            return;
-                        },
+                        None => return,
                     };
 
                     if matches!(max_cmp_min, cmp::Ordering::Less) {
