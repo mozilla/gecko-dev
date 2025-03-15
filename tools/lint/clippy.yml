@@ -15,6 +15,7 @@ clippy:
         - modules/libpref/init/static_prefs/
         - mozglue/static/rust/
         - netwerk/base/mozurl/
+        - netwerk/base/rust-helper/
         - netwerk/test/http3server/
         - netwerk/socket/neqo_glue/
         - security/manager/ssl/data_storage/
