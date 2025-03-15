@@ -557,7 +557,6 @@ ${helpers.predefined_type(
     "WillChange",
     "computed::WillChange::auto()",
     engines="gecko servo",
-    servo_pref="layout.unimplemented",
     animation_type="none",
     spec="https://drafts.csswg.org/css-will-change/#will-change",
     affects="layout",
