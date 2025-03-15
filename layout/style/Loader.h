@@ -55,7 +55,7 @@ class SheetLoadDataHashKey : public PLDHashEntryHdr {
 
   explicit SheetLoadDataHashKey(const SheetLoadDataHashKey* aKey)
       : mURI(aKey->mURI),
-        mPrincipal(aKey->mPrincipal),
+        mTriggeringPrincipal(aKey->mTriggeringPrincipal),
         mLoaderPrincipal(aKey->mLoaderPrincipal),
         mPartitionPrincipal(aKey->mPartitionPrincipal),
         mEncodingGuess(aKey->mEncodingGuess),
@@ -76,7 +76,7 @@ class SheetLoadDataHashKey : public PLDHashEntryHdr {
                        const dom::SRIMetadata& aSRIMetadata,
                        css::StylePreloadKind aPreloadKind)
       : mURI(aURI),
-        mPrincipal(aPrincipal),
+        mTriggeringPrincipal(aPrincipal),
         mLoaderPrincipal(aLoaderPrincipal),
         mPartitionPrincipal(aPartitionPrincipal),
         mEncodingGuess(aEncodingGuess),
@@ -94,7 +94,7 @@ class SheetLoadDataHashKey : public PLDHashEntryHdr {
 
   SheetLoadDataHashKey(SheetLoadDataHashKey&& toMove)
       : mURI(std::move(toMove.mURI)),
-        mPrincipal(std::move(toMove.mPrincipal)),
+        mTriggeringPrincipal(std::move(toMove.mTriggeringPrincipal)),
         mLoaderPrincipal(std::move(toMove.mLoaderPrincipal)),
         mPartitionPrincipal(std::move(toMove.mPartitionPrincipal)),
         mEncodingGuess(std::move(toMove.mEncodingGuess)),
@@ -130,7 +130,7 @@ class SheetLoadDataHashKey : public PLDHashEntryHdr {
 
   nsIURI* URI() const { return mURI; }
 
-  nsIPrincipal* Principal() const { return mPrincipal; }
+  nsIPrincipal* TriggeringPrincipal() const { return mTriggeringPrincipal; }
 
   nsIPrincipal* LoaderPrincipal() const { return mLoaderPrincipal; }
 
@@ -142,7 +142,7 @@ class SheetLoadDataHashKey : public PLDHashEntryHdr {
 
  protected:
   const nsCOMPtr<nsIURI> mURI;
-  const nsCOMPtr<nsIPrincipal> mPrincipal;
+  const nsCOMPtr<nsIPrincipal> mTriggeringPrincipal;
   const nsCOMPtr<nsIPrincipal> mLoaderPrincipal;
   const nsCOMPtr<nsIPrincipal> mPartitionPrincipal;
   // The encoding guess is the encoding the sheet would get if the request

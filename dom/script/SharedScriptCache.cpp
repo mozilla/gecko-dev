@@ -24,7 +24,7 @@ ScriptHashKey::ScriptHashKey(ScriptLoader* aLoader,
                              const JS::loader::ScriptLoadRequest* aRequest)
     : PLDHashEntryHdr(),
       mURI(aRequest->mURI),
-      mPrincipal(aRequest->TriggeringPrincipal()),
+      mTriggeringPrincipal(aRequest->TriggeringPrincipal()),
       mLoaderPrincipal(aLoader->LoaderPrincipal()),
       mPartitionPrincipal(aLoader->PartitionedPrincipal()),
       mCORSMode(aRequest->CORSMode()),
@@ -56,7 +56,7 @@ bool ScriptHashKey::KeyEquals(const ScriptHashKey& aKey) const {
     }
   }
 
-  if (!mPrincipal->Equals(aKey.mPrincipal)) {
+  if (!mTriggeringPrincipal->Equals(aKey.mTriggeringPrincipal)) {
     return false;
   }
 

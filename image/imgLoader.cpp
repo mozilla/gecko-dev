@@ -1376,8 +1376,7 @@ imgLoader::ClearCache(JS::Handle<JS::Value> chrome) {
   return ClearCache(chrome.isBoolean() ? Some(chrome.toBoolean()) : Nothing());
 }
 
-nsresult
-imgLoader::ClearCache(mozilla::Maybe<bool> chrome) {
+nsresult imgLoader::ClearCache(mozilla::Maybe<bool> chrome) {
   if (XRE_IsParentProcess()) {
     bool privateLoader = this == gPrivateBrowsingLoader;
     for (auto* cp : ContentParent::AllProcesses(ContentParent::eLive)) {
@@ -1447,90 +1446,46 @@ nsresult imgLoader::RemoveEntriesInternal(
     return NS_ERROR_INVALID_ARG;
   }
 
-  nsCOMPtr<nsIEffectiveTLDService> tldService;
   AutoTArray<RefPtr<imgCacheEntry>, 128> entriesToBeRemoved;
-
-  Maybe<OriginAttributesPattern> patternWithPartitionKey = Nothing();
-  if (aPattern) {
-    // Used for checking for cache entries partitioned under aSchemelessSite.
-    OriginAttributesPattern pattern(aPattern.ref());
-    pattern.mPartitionKeyPattern.Construct();
-    pattern.mPartitionKeyPattern.Value().mBaseDomain.Construct(
-        NS_ConvertUTF8toUTF16(aSchemelessSite.ref()));
-
-    patternWithPartitionKey.emplace(std::move(pattern));
-  }
 
   // For base domain we only clear the non-chrome cache.
   for (const auto& entry : mCache) {
     const auto& key = entry.GetKey();
 
+    // TODO(emilio): Deduplicate this with SharedSubresourceCache.
     const bool shouldRemove = [&] {
-      // The isolation key is either just the site, or an origin suffix
-      // which contains the partitionKey holding the baseDomain.
-
       if (aPrincipal) {
-        nsCOMPtr<nsIPrincipal> keyPrincipal =
-            BasePrincipal::CreateContentPrincipal(key.URI(),
-                                                  key.OriginAttributesRef());
-        return keyPrincipal->Equals(aPrincipal.ref());
+        return key.LoaderPrincipal()->Equals(aPrincipal.ref());
       }
 
       if (!aSchemelessSite) {
         return false;
       }
-      // Clear by site and pattern.
-      nsAutoCString host;
-      nsresult rv = key.URI()->GetHost(host);
-      if (NS_FAILED(rv) || host.IsEmpty()) {
-        return false;
-      }
-
-      if (!tldService) {
-        tldService = do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
-      }
-      if (NS_WARN_IF(!tldService)) {
-        return false;
-      }
-
-      bool hasRootDomain = false;
-      rv = tldService->HasRootDomain(host, aSchemelessSite.ref(),
-                                     &hasRootDomain);
+      // Clear by site
+      nsIPrincipal* partitionPrincipal = key.PartitionPrincipal();
+      nsAutoCString principalBaseDomain;
+      nsresult rv = partitionPrincipal->GetBaseDomain(principalBaseDomain);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return false;
       }
 
-      if (hasRootDomain && aPattern->Matches(key.OriginAttributesRef())) {
+      if (principalBaseDomain.Equals(aSchemelessSite.ref()) &&
+          aPattern.ref().Matches(partitionPrincipal->OriginAttributesRef())) {
         return true;
       }
 
-      // Attempt to parse isolation key into origin attributes.
-      Maybe<OriginAttributes> originAttributesWithPartitionKey;
-      {
-        OriginAttributes attrs;
-        if (attrs.PopulateFromSuffix(key.IsolationKeyRef())) {
-          OriginAttributes attrsWithPartitionKey(key.OriginAttributesRef());
-          attrsWithPartitionKey.mPartitionKey = attrs.mPartitionKey;
-          originAttributesWithPartitionKey.emplace(
-              std::move(attrsWithPartitionKey));
-        }
-      }
+      // Clear entries partitioned under aSchemelessSite. We need to add the
+      // partition key filter to aPattern so that we include any OA filtering
+      // specified by the caller. For example the caller may pass aPattern = {
+      // privateBrowsingId: 1 } which means we may only clear partitioned
+      // private browsing data.
+      OriginAttributesPattern patternWithPartitionKey(aPattern.ref());
+      patternWithPartitionKey.mPartitionKeyPattern.Construct();
+      patternWithPartitionKey.mPartitionKeyPattern.Value()
+          .mBaseDomain.Construct(NS_ConvertUTF8toUTF16(aSchemelessSite.ref()));
 
-      // Match it against the pattern that contains the partition key and any
-      // fields set by the caller pattern.
-      if (originAttributesWithPartitionKey.isSome()) {
-        nsAutoCString oaSuffixForPrinting;
-        originAttributesWithPartitionKey->CreateSuffix(oaSuffixForPrinting);
-
-        nsAutoString patternForPrinting;
-        patternWithPartitionKey->ToJSON(patternForPrinting);
-
-        return patternWithPartitionKey.ref().Matches(
-            originAttributesWithPartitionKey.ref());
-      }
-
-      // The isolation key is the site.
-      return aSchemelessSite->Equals(key.IsolationKeyRef());
+      return patternWithPartitionKey.Matches(
+          partitionPrincipal->OriginAttributesRef());
     }();
 
     if (shouldRemove) {
