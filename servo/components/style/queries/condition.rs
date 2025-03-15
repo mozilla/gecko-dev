@@ -184,12 +184,18 @@ impl MozPrefFeature {
         Ok(Self { name, value })
     }
 
+    #[cfg(feature = "gecko")]
     fn matches(&self, ctx: &computed::Context) -> KleeneValue {
         use crate::values::computed::ToComputedValue;
         let value = self.value.to_computed_value(ctx);
         KleeneValue::from(unsafe {
             crate::gecko_bindings::bindings::Gecko_EvalMozPrefFeature(self.name.as_ptr(), &value)
         })
+    }
+
+    #[cfg(feature = "servo")]
+    fn matches(&self, _: &computed::Context) -> KleeneValue {
+        KleeneValue::Unknown
     }
 }
 
