@@ -2,8 +2,6 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
-buildDir "${topobjdir}/gradle/build/mobile/android/geckoview"
-
 import groovy.json.JsonOutput
 
 apply plugin: 'com.android.library'

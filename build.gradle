@@ -201,8 +201,6 @@ allprojects {
     }
 }
 
-buildDir "${topobjdir}/gradle/build"
-
 import  org.gradle.api.services.BuildServiceParameters
 abstract class MozconfigService implements BuildService<MozconfigService.Params>, AutoCloseable {
     interface Params extends BuildServiceParameters {

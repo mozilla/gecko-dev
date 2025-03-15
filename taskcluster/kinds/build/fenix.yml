@@ -50,7 +50,7 @@ android-aarch64-fenix/debug:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
         artifacts:
             - name: public/build/fenix.apk
-              path: /builds/worker/workspace/obj-build/gradle/build/mobile/android/fenix/outputs/apk/fenix/debug/fenix-fenix-x86-debug.apk
+              path: /builds/worker/workspace/obj-build/gradle/build/mobile/android/fenix/app/outputs/apk/fenix/debug/fenix-fenix-arm64-v8a-debug.apk
               type: file
     run:
         custom-build-variant-cfg: aarch64-fenix-debug
