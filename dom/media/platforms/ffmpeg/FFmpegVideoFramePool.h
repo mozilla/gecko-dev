@@ -15,6 +15,10 @@
 #include "mozilla/widget/DMABufLibWrapper.h"
 #include "mozilla/widget/DMABufSurface.h"
 
+namespace mozilla::layers {
+class PlanarYCbCrImage;
+}
+
 namespace mozilla {
 
 // VideoFrameSurface holds a reference to GPU data with a video frame.
@@ -134,6 +138,8 @@ class VideoFramePool<LIBAV_VER> {
       AVDRMFrameDescriptor& aDesc, int aWidth, int aHeight,
       AVCodecContext* aAVCodecContext, AVFrame* aAVFrame,
       FFmpegLibWrapper* aLib);
+  RefPtr<VideoFrameSurface<LIBAV_VER>> GetVideoFrameSurface(
+      const layers::PlanarYCbCrData& aData, AVCodecContext* aAVCodecContext);
 
   void ReleaseUnusedVAAPIFrames();
 
