@@ -761,7 +761,10 @@ impl<'b> Cascade<'b> {
             return;
         }
 
-        let has_writing_mode = apply!(WritingMode) | apply!(Direction) | apply!(TextOrientation);
+        let has_writing_mode = apply!(WritingMode) | apply!(Direction);
+        #[cfg(feature = "gecko")]
+        let has_writing_mode = has_writing_mode | apply!(TextOrientation);
+
         if has_writing_mode {
             context.builder.writing_mode = WritingMode::new(context.builder.get_inherited_box())
         }
@@ -781,29 +784,40 @@ impl<'b> Cascade<'b> {
         // Compute font-family.
         let has_font_family = apply!(FontFamily);
         let has_lang = apply!(XLang);
-        if has_lang {
-            self.recompute_initial_font_family_if_needed(&mut context.builder);
-        }
-        if has_font_family {
-            self.prioritize_user_fonts_if_needed(&mut context.builder);
+        #[cfg(feature = "gecko")]
+        {
+            if has_lang {
+                self.recompute_initial_font_family_if_needed(&mut context.builder);
+            }
+            if has_font_family {
+                self.prioritize_user_fonts_if_needed(&mut context.builder);
+            }
+
+            // Compute font-size.
+            if apply!(XTextScale) {
+                self.unzoom_fonts_if_needed(&mut context.builder);
+            }
+            let has_font_size = apply!(FontSize);
+            let has_math_depth = apply!(MathDepth);
+            let has_min_font_size_ratio = apply!(MozMinFontSizeRatio);
+
+            if has_math_depth && has_font_size {
+                self.recompute_math_font_size_if_needed(context);
+            }
+            if has_lang || has_font_family {
+                self.recompute_keyword_font_size_if_needed(context);
+            }
+            if has_font_size || has_min_font_size_ratio || has_lang || has_font_family {
+                self.constrain_font_size_if_needed(&mut context.builder);
+            }
         }
 
-        // Compute font-size.
-        if apply!(XTextScale) {
-            self.unzoom_fonts_if_needed(&mut context.builder);
-        }
-        let has_font_size = apply!(FontSize);
-        let has_math_depth = apply!(MathDepth);
-        let has_min_font_size_ratio = apply!(MozMinFontSizeRatio);
-
-        if has_math_depth && has_font_size {
-            self.recompute_math_font_size_if_needed(context);
-        }
-        if has_lang || has_font_family {
-            self.recompute_keyword_font_size_if_needed(context);
-        }
-        if has_font_size || has_min_font_size_ratio || has_lang || has_font_family {
-            self.constrain_font_size_if_needed(&mut context.builder);
+        #[cfg(feature = "servo")]
+        {
+            apply!(FontSize);
+            if has_lang || has_font_family {
+                self.recompute_keyword_font_size_if_needed(context);
+            }
         }
 
         // Compute the rest of the first-available-font-affecting properties.
