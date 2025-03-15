@@ -93,7 +93,7 @@ Running reftests like a boss (on a local device):
 -------------------------------------------------
 
     Same steps as running on a local emulator, except you need to do this:
-        export ANDROID_SERIAL=<your device's serial>
+        export DEVICE_SERIAL=<your device's serial>
     before running the `./mach python` command. You can get the serial of
     your device by running `adb devices` with the device plugged in. When running
     on a device, the android_emulator_wrench.py script will skip the steps to

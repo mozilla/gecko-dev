@@ -235,11 +235,10 @@ class InterventionTest(MozbuildObject):
                 verify_android_device,
             )
 
-            # verify_android_device sets up device/emulator and records selected
-            # one to DEVICE_SERIAL environment.
             verify_android_device(
                 command_context, app=app, network=True, install=InstallIntent.YES
             )
+
             kwargs["device_serial"] = os.environ.get("DEVICE_SERIAL")
 
         # GVE does not have the webcompat addon by default. Add it.

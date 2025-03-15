@@ -135,11 +135,7 @@ def set_android_args(context, args):
         args.adbPath = config["exes"]["adb"] % {
             "abs_work_dir": context.mozharness_workdir
         }
-        args.deviceSerial = (
-            os.environ.get("ANDROID_SERIAL")
-            or os.environ.get("DEVICE_SERIAL")
-            or "emulator-5554"
-        )
+        args.deviceSerial = os.environ.get("DEVICE_SERIAL", "emulator-5554")
     return args
 
 
