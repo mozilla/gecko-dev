@@ -34,7 +34,9 @@
 >
     use crate::computed_values::font_variant_caps::T::SmallCaps;
     use crate::parser::Parse;
-    use crate::properties::longhands::{font_family, font_style, font_size, font_weight, font_stretch};
+    use crate::properties::longhands::{font_family, font_style, font_weight, font_stretch};
+    #[cfg(feature = "gecko")]
+    use crate::properties::longhands::font_size;
     use crate::properties::longhands::font_variant_caps;
     use crate::values::specified::font::LineHeight;
     use crate::values::specified::{FontSize, FontWeight};
@@ -315,7 +317,9 @@
             % for p in subprops_for_value_info:
             ${p}::collect_completion_keywords(f);
             % endfor
+            % if engine == "gecko":
             <SystemFont as SpecifiedValueInfo>::collect_completion_keywords(f);
+            % endif
         }
     }
 </%helpers:shorthand>
