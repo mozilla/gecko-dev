@@ -954,11 +954,15 @@ add_task(async function testClearHistoryCheckboxStatesAfterMigration3() {
       ["privacy.cpd.cookies", true],
       ["privacy.cpd.offlineApps", false],
       ["privacy.cpd.sessions", false],
-      ["privacy.cpd.siteSettings", false],
+      ["privacy.cpd.siteSettings", true],
       ["privacy.cpd.cache", true],
-      // Set cookiesAndStorage to verify that the pref is flipped in the test
+      // Verify that prefs not in not touched in migration from v2
       ["privacy.clearHistory.cookiesAndStorage", false],
-      ["privacy.clearHistory.historyFormDataAndDownloads", false],
+      ["privacy.clearHistory.siteSettings", false],
+      ["privacy.clearHistory.cache", false],
+      // Verify that formData and browsingHistoryAndDownloads inherit this value
+      ["privacy.clearHistory.historyFormDataAndDownloads", true],
+      // migrate from v2 to v3, dont redo the v1 to v2 migration
       ["privacy.sanitize.cpd.hasMigratedToNewPrefs2", true],
       ["privacy.sanitize.cpd.hasMigratedToNewPrefs3", false],
     ],
@@ -966,16 +970,18 @@ add_task(async function testClearHistoryCheckboxStatesAfterMigration3() {
 
   let dh = new ClearHistoryDialogHelper({ mode: "clearHistory" });
   dh.onload = function () {
-    this.validateCheckbox("cookiesAndStorage", true);
-    this.validateCheckbox("browsingHistoryAndDownloads", false);
-    // Formdata should flip to false since it should follow privacy.clearHistory.historyFormDataAndDownloads
-    // based on the new migration
-    this.validateCheckbox("formdata", false);
-    this.validateCheckbox("cache", true);
+    // migration to v3 shouldn't modify these values
+    this.validateCheckbox("cookiesAndStorage", false);
     this.validateCheckbox("siteSettings", false);
+    this.validateCheckbox("cache", false);
 
+    // migration to v3 should set them initially to true from historyFormDataAndDownloads pref
+    this.validateCheckbox("browsingHistoryAndDownloads", true);
+    this.validateCheckbox("formdata", true);
+
+    // flip two prefs to open to verify migration doesn't happen again and checkboxes retain their value
     this.checkPrefCheckbox("siteSettings", true);
-    this.checkPrefCheckbox("cookiesAndStorage", false);
+    this.checkPrefCheckbox("browsingHistoryAndDownloads", false);
     this.acceptDialog();
   };
   dh.open();
@@ -991,7 +997,7 @@ add_task(async function testClearHistoryCheckboxStatesAfterMigration3() {
   dh = new ClearHistoryDialogHelper({ mode: "clearHistory" });
   dh.onload = function () {
     this.validateCheckbox("siteSettings", true);
-    this.validateCheckbox("cookiesAndStorage", false);
+    this.validateCheckbox("browsingHistoryAndDownloads", false);
     this.cancelDialog();
   };
   dh.open();
