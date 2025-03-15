@@ -22,6 +22,8 @@ use crate::invalidation::element::state_and_attributes::{
     check_dependency, dependency_may_be_relevant, invalidated_descendants, invalidated_self,
     invalidated_sibling, push_invalidation, should_process_descendants,
 };
+#[cfg(feature = "servo")]
+use crate::selector_parser::SnapshotMap as ServoElementSnapshotTable;
 use crate::stylist::{CascadeData, Stylist};
 use dom::ElementState;
 use fxhash::FxHashMap;
