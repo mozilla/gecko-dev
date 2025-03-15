@@ -4,6 +4,9 @@ support-files = [
   "MockAlertsService.js",
   "NotificationTest.js",
 ]
+prefs = [
+  "dom.webnotifications.actions.enabled=true",
+]
 
 ["test_notification_basics.html"]
 skip-if = [
