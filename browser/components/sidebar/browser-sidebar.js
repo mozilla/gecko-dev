@@ -282,8 +282,11 @@ var SidebarController = {
     return this._uninitializing;
   },
 
-  get inPopup() {
-    return !window.toolbar.visible;
+  get inSingleTabWindow() {
+    return (
+      !window.toolbar.visible ||
+      window.document.documentElement.hasAttribute("taskbartab")
+    );
   },
 
   get sidebarContainer() {
@@ -446,7 +449,6 @@ var SidebarController = {
     }
 
     requestIdleCallback(() => {
-      const isPopup = !window.toolbar.visible;
       const windowPrivacyMatches =
         !window.opener || this.windowPrivacyMatches(window.opener, window);
       // If other sources (like session store or source window) haven't set the
@@ -455,7 +457,7 @@ var SidebarController = {
       // privacy level.)
       if (
         !this.uiStateInitialized &&
-        !isPopup &&
+        !this.inSingleTabWindow &&
         (this.sidebarRevampEnabled || windowPrivacyMatches)
       ) {
         const backupState = this.SidebarManager.getBackupState();
@@ -521,7 +523,7 @@ var SidebarController = {
   },
 
   getUIState() {
-    if (this.inPopup) {
+    if (this.inSingleTabWindow) {
       return null;
     }
     let snapshot = this._state.getProperties();
@@ -814,7 +816,7 @@ var SidebarController = {
     }
 
     // If window is a popup, hide the sidebar
-    if (!window.toolbar.visible && this.sidebarRevampEnabled) {
+    if (this.inSingleTabWindow && this.sidebarRevampEnabled) {
       document.getElementById("sidebar-main").hidden = true;
       return false;
     }
@@ -840,7 +842,7 @@ var SidebarController = {
    * If loading a sidebar was delayed on startup, start the load now.
    */
   async startDelayedLoad() {
-    if (this.inPopup) {
+    if (this.inSingleTabWindow) {
       this._state.launcherVisible = false;
       return;
     }
@@ -1174,7 +1176,7 @@ var SidebarController = {
    */
   async handleToolbarButtonClick() {
     let initialExpandedValue = this._state.launcherExpanded;
-    if (this.inPopup || this.uninitializing) {
+    if (this.inSingleTabWindow || this.uninitializing) {
       return;
     }
     if (this.sidebarRevampVisibility === "expand-on-hover") {
@@ -1210,7 +1212,7 @@ var SidebarController = {
    * Update `checked` state and tooltip text of the toolbar button.
    */
   updateToolbarButton(toolbarButton = this.toolbarButton) {
-    if (!toolbarButton || this.inPopup) {
+    if (!toolbarButton || this.inSingleTabWindow) {
       return;
     }
     if (!this.sidebarRevampEnabled) {
@@ -1344,7 +1346,7 @@ var SidebarController = {
   },
 
   addOrUpdateExtension(commandID, extension) {
-    if (this.inPopup) {
+    if (this.inSingleTabWindow) {
       return;
     }
     if (this.toolsAndExtensions.has(commandID)) {
@@ -1437,7 +1439,7 @@ var SidebarController = {
     if (sidebar.menuL10nId) {
       menuitem.dataset.l10nId = sidebar.menuL10nId;
     }
-    if (!window.toolbar.visible) {
+    if (this.inSingleTabWindow) {
       menuitem.setAttribute("disabled", "true");
     }
     return menuitem;
@@ -1543,7 +1545,7 @@ var SidebarController = {
    * @param {string} commandID
    */
   removeExtension(commandID) {
-    if (this.inPopup) {
+    if (this.inSingleTabWindow) {
       return;
     }
     const sidebar = this.sidebars.get(commandID);
@@ -1571,7 +1573,7 @@ var SidebarController = {
    * @returns {Promise<boolean>}
    */
   async show(commandID, triggerNode) {
-    if (this.inPopup) {
+    if (this.inSingleTabWindow) {
       return false;
     }
     if (this.currentID) {
@@ -1608,7 +1610,7 @@ var SidebarController = {
    * @returns {Promise<boolean>}
    */
   async showInitially(commandID) {
-    if (this.inPopup) {
+    if (this.inSingleTabWindow) {
       return false;
     }
     this._recordPanelToggle(commandID, true);
@@ -2042,7 +2044,10 @@ XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController.POSITION_START_PREF,
   true,
   (_aPreference, _previousValue, newValue) => {
-    if (!SidebarController.uninitializing && !SidebarController.inPopup) {
+    if (
+      !SidebarController.uninitializing &&
+      !SidebarController.inSingleTabWindow
+    ) {
       SidebarController.setPosition();
       SidebarController.recordPositionSetting(newValue);
     }
@@ -2084,7 +2089,10 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "sidebar.main.tools",
   "aichat,syncedtabs,history",
   () => {
-    if (!SidebarController.inPopup && !SidebarController.uninitializing) {
+    if (
+      !SidebarController.inSingleTabWindow &&
+      !SidebarController.uninitializing
+    ) {
       SidebarController.refreshTools();
     }
   }
@@ -2096,7 +2104,10 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "sidebar.visibility",
   "always-show",
   (_aPreference, _previousValue, newValue) => {
-    if (!SidebarController.inPopup && !SidebarController.uninitializing) {
+    if (
+      !SidebarController.inSingleTabWindow &&
+      !SidebarController.uninitializing
+    ) {
       SidebarController.toggleExpandOnHover(newValue === "expand-on-hover");
       SidebarController.recordVisibilitySetting(newValue);
       if (SidebarController._state) {
@@ -2139,7 +2150,10 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "sidebar.verticalTabs",
   false,
   (_aPreference, _previousValue, newValue) => {
-    if (!SidebarController.uninitializing && !SidebarController.inPopup) {
+    if (
+      !SidebarController.uninitializing &&
+      !SidebarController.inSingleTabWindow
+    ) {
       SidebarController.recordTabsLayoutSetting(newValue);
     }
   }
