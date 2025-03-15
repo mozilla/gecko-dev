@@ -174,9 +174,11 @@ where
 
     fn collect_user_agent_rules(&mut self) {
         self.collect_stylist_rules(Origin::UserAgent);
+        #[cfg(feature = "gecko")]
         self.collect_view_transition_dynamic_rules();
     }
 
+    #[cfg(feature = "gecko")]
     fn collect_view_transition_dynamic_rules(&mut self) {
         if !self.pseudo_element.is_some_and(|p| p.is_named_view_transition()) {
             return;
