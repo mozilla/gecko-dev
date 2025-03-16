@@ -13,6 +13,7 @@ pdfjs.jar:
  content/web/wasm/openjpeg.wasm (content/web/wasm/openjpeg.wasm)
  content/web/wasm/openjpeg_nowasm_fallback.js (content/web/wasm/openjpeg_nowasm_fallback.js)
  content/web/wasm/qcms_bg.wasm (content/web/wasm/qcms_bg.wasm)
+ content/web/iccs/ (content/web/iccs/*.icc)
 #ifdef ANDROID
  content/GeckoViewPdfjsParent.sys.mjs (content/GeckoViewPdfjsParent.sys.mjs)
  content/GeckoViewPdfjsChild.sys.mjs (content/GeckoViewPdfjsChild.sys.mjs)
