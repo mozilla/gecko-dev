@@ -93,7 +93,7 @@ struct ImportValues;
 // WebAssembly.Module object.
 
 [[nodiscard]] bool CompileAndSerialize(JSContext* cx,
-                                       const BytecodeSource& source,
+                                       const ShareableBytes& bytecode,
                                        Bytes* serialized);
 
 [[nodiscard]] bool DeserializeModule(JSContext* cx, const Bytes& serialized,

@@ -169,7 +169,7 @@ using ValidatingOpIter = OpIter<ValidatingPolicy>;
 //  - if *error is null, the caller should report out-of-memory
 //  - otherwise, there was a legitimate error described by *error
 
-[[nodiscard]] bool Validate(JSContext* cx, const BytecodeSource& bytecode,
+[[nodiscard]] bool Validate(JSContext* cx, const ShareableBytes& bytecode,
                             const FeatureOptions& options, UniqueChars* error);
 
 // A base type for dumping wasm ops. Does nothing by default; extend to add

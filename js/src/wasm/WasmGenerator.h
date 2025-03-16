@@ -348,7 +348,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   // to being SharedModuleMetadata.
 
   SharedModule finishModule(
-      const BytecodeBufferOrSource& bytecode, MutableModuleMetadata moduleMeta,
+      const ShareableBytes& bytecode, MutableModuleMetadata moduleMeta,
       JS::OptimizedEncodingListener* maybeCompleteTier2Listener);
   [[nodiscard]] bool finishTier2(const Module& module);
   [[nodiscard]] bool finishPartialTier2();

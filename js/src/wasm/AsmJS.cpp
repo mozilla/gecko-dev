@@ -2191,7 +2191,11 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
 
     // asm.js does not have any wasm bytecode to save; view-source is
     // provided through the ScriptSource.
-    BytecodeBufferOrSource bytecode;
+    SharedBytes bytes = js_new<ShareableBytes>();
+    if (!bytes) {
+      ReportOutOfMemory(fc_);
+      return nullptr;
+    }
 
     if (!moduleMeta_->prepareForCompile(compilerEnv_.mode())) {
       return nullptr;
@@ -2216,7 +2220,7 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
       return nullptr;
     }
 
-    return mg.finishModule(bytecode, moduleMeta_,
+    return mg.finishModule(*bytes, moduleMeta_,
                            /*maybeCompleteTier2Listener=*/nullptr);
   }
 };
