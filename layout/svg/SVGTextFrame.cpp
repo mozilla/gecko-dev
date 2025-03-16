@@ -3089,8 +3089,6 @@ void SVGTextFrame::PaintSVG(gfxContext& aContext, const gfxMatrix& aTransform,
 
   nsPresContext* presContext = PresContext();
 
-  gfxMatrix initialMatrix = aContext.CurrentMatrixDouble();
-
   if (HasAnyStateBits(NS_FRAME_IS_NONDISPLAY)) {
     // If we are in a canvas DrawWindow call that used the
     // DRAWWINDOW_DO_NOT_FLUSH flag, then we may still have out
@@ -3121,6 +3119,8 @@ void SVGTextFrame::PaintSVG(gfxContext& aContext, const gfxMatrix& aTransform,
     NS_WARNING("Can't render text element!");
     return;
   }
+
+  gfxMatrix initialMatrix = aContext.CurrentMatrixDouble();
 
   gfxMatrix matrixForPaintServers = aTransform * initialMatrix;
 
@@ -5146,8 +5146,9 @@ bool SVGTextFrame::UpdateFontSizeScaleFactor() {
   double oldFontSizeScaleFactor = mFontSizeScaleFactor;
 
   bool geometricPrecision = false;
-  CSSCoord min = std::numeric_limits<float>::max();
-  CSSCoord max = std::numeric_limits<float>::min();
+  // We may need to invert a matrix with these values later.
+  CSSCoord min = std::sqrt(std::numeric_limits<float>::max());
+  CSSCoord max = std::sqrt(std::numeric_limits<float>::min());
   bool anyText = false;
 
   // Find the minimum and maximum font sizes used over all the
