@@ -135,7 +135,8 @@ function openContextMenu() {
 
         ok(x < mouseX,
            "menu left " + x + " should be left of click point " + mouseX);
-        var right = x + menu.getBoundingClientRect().width - parseFloat(getComputedStyle(menu).marginRight);
+
+        var right = menu.getBoundingClientRect().right + parseFloat(getComputedStyle(menu).marginRight);
 
         // Context menus flip horizontally and appear to the left of the mouse pointer
         ok(right < mouseX,
