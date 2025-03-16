@@ -375,65 +375,6 @@ SharedCompileArgs CompileArgs::buildAndReport(JSContext* cx,
   return nullptr;
 }
 
-BytecodeSource::BytecodeSource(const uint8_t* begin, size_t length) {
-  BytecodeRange envRange;
-  BytecodeRange codeRange;
-  BytecodeRange tailRange;
-  if (StartsCodeSection(begin, begin + length, &codeRange)) {
-    envRange = BytecodeRange(0, codeRange.start);
-    tailRange = BytecodeRange(codeRange.end(), length - codeRange.end());
-  } else {
-    envRange = BytecodeRange(0, length);
-    codeRange = BytecodeRange(length, 0);
-    tailRange = BytecodeRange(length, 0);
-  }
-
-  BytecodeSpan module(begin, length);
-  env_ = envRange.toSpan(module);
-  code_ = codeRange.toSpan(module);
-  tail_ = tailRange.toSpan(module);
-}
-
-BytecodeBuffer::BytecodeBuffer(const ShareableBytes* env,
-                               const ShareableBytes* code,
-                               const ShareableBytes* tail)
-    : env_(env),
-      code_(code),
-      tail_(tail),
-      source_(env_ ? env_->span() : BytecodeSpan(),
-              code_ ? code_->span() : BytecodeSpan(),
-              tail_ ? tail_->span() : BytecodeSpan()) {}
-
-bool BytecodeBuffer::fromSource(const BytecodeSource& bytecodeSource,
-                                BytecodeBuffer* bytecodeBuffer) {
-  SharedBytes env;
-  if (bytecodeSource.envRange().size) {
-    env = ShareableBytes::fromSpan(bytecodeSource.envSpan());
-    if (!env) {
-      return false;
-    }
-  }
-
-  SharedBytes code;
-  if (bytecodeSource.hasCodeSection() && bytecodeSource.codeRange().size) {
-    code = ShareableBytes::fromSpan(bytecodeSource.codeSpan());
-    if (!code) {
-      return false;
-    }
-  }
-
-  SharedBytes tail;
-  if (bytecodeSource.hasCodeSection() && bytecodeSource.tailRange().size) {
-    tail = ShareableBytes::fromSpan(bytecodeSource.tailSpan());
-    if (!tail) {
-      return false;
-    }
-  }
-
-  *bytecodeBuffer = BytecodeBuffer(env, code, tail);
-  return true;
-}
-
 /*
  * [SMDOC] Tiered wasm compilation.
  *
@@ -953,23 +894,20 @@ static bool DecodeCodeSection(const CodeMetadata& codeMeta, DecoderT& d,
 }
 
 SharedModule wasm::CompileBuffer(const CompileArgs& args,
-                                 const BytecodeBufferOrSource& bytecode,
+                                 const ShareableBytes& bytecode,
                                  UniqueChars* error,
                                  UniqueCharsVector* warnings,
                                  JS::OptimizedEncodingListener* listener) {
+  Decoder d(bytecode.vector, 0, error, warnings);
+
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
   if (!moduleMeta || !moduleMeta->init(args)) {
     return nullptr;
   }
 
-  const BytecodeSource& bytecodeSource = bytecode.source();
-  Decoder envDecoder(bytecodeSource.envSpan(), bytecodeSource.envRange().start,
-                     error, warnings);
-  if (!DecodeModuleEnvironment(envDecoder, moduleMeta->codeMeta.get(),
-                               moduleMeta)) {
+  if (!DecodeModuleEnvironment(d, moduleMeta->codeMeta.get(), moduleMeta)) {
     return nullptr;
   }
-
   CompilerEnvironment compilerEnv(args);
   compilerEnv.computeParameters(*moduleMeta);
   if (!moduleMeta->prepareForCompile(compilerEnv.mode())) {
@@ -982,57 +920,19 @@ SharedModule wasm::CompileBuffer(const CompileArgs& args,
     return nullptr;
   }
 
-  // If our bytecode has a code section, then we must switch decoders for
-  // these section.
-  if (bytecodeSource.hasCodeSection()) {
-    // DecodeModuleEnvironment will stop and return true if there is an unknown
-    // section before the code section. We must check this and return an error.
-    if (!moduleMeta->codeMeta->codeSectionRange) {
-      envDecoder.fail("unknown section before code section");
-      return nullptr;
-    }
+  if (!DecodeCodeSection(*moduleMeta->codeMeta, d, mg)) {
+    return nullptr;
+  }
 
-    // Our pre-parse that split the module should ensure that after we've
-    // parsed the environment there are no bytes left.
-    MOZ_RELEASE_ASSERT(envDecoder.done());
-
-    Decoder codeDecoder(bytecodeSource.codeSpan(),
-                        bytecodeSource.codeRange().start, error, warnings);
-    if (!DecodeCodeSection(*moduleMeta->codeMeta, codeDecoder, mg)) {
-      return nullptr;
-    }
-    // Our pre-parse that split the module should ensure that after we've
-    // parsed the code section there are no bytes left.
-    MOZ_RELEASE_ASSERT(codeDecoder.done());
-
-    Decoder tailDecoder(bytecodeSource.tailSpan(),
-                        bytecodeSource.tailRange().start, error, warnings);
-    if (!DecodeModuleTail(tailDecoder, moduleMeta->codeMeta, moduleMeta)) {
-      return nullptr;
-    }
-    // Decoding the module tail should consume all remaining bytes.
-    MOZ_RELEASE_ASSERT(tailDecoder.done());
-  } else {
-    // We still must call this method even without a code section because it
-    // does validation that ensure we aren't missing function definitions.
-    if (!DecodeCodeSection(*moduleMeta->codeMeta, envDecoder, mg)) {
-      return nullptr;
-    }
-
-    if (!DecodeModuleTail(envDecoder, moduleMeta->codeMeta, moduleMeta)) {
-      return nullptr;
-    }
-
-    // Decoding the module tail should consume all remaining bytes.
-    MOZ_RELEASE_ASSERT(envDecoder.done());
+  if (!DecodeModuleTail(d, moduleMeta->codeMeta, moduleMeta)) {
+    return nullptr;
   }
 
   return mg.finishModule(bytecode, moduleMeta, listener);
 }
 
-bool wasm::CompileCompleteTier2(const ShareableBytes* codeSection,
-                                const Module& module, UniqueChars* error,
-                                UniqueCharsVector* warnings,
+bool wasm::CompileCompleteTier2(const Bytes& bytecode, const Module& module,
+                                UniqueChars* error, UniqueCharsVector* warnings,
                                 Atomic<bool>* cancelled) {
   CompilerEnvironment compilerEnv(CompileMode::EagerTiering, Tier::Optimized,
                                   DebugEnabled::False);
@@ -1046,13 +946,14 @@ bool wasm::CompileCompleteTier2(const ShareableBytes* codeSection,
   }
 
   if (codeMeta.codeSectionRange) {
-    BytecodeSpan codeSpan(codeSection->begin(), codeSection->end());
-    Decoder d(codeSpan, codeMeta.codeSectionRange->start, error);
+    const BytecodeRange& codeSection = *codeMeta.codeSectionRange;
+    const uint8_t* codeSectionStart = bytecode.begin() + codeSection.start;
+    const uint8_t* codeSectionEnd = codeSectionStart + codeSection.size;
+    Decoder d(codeSectionStart, codeSectionEnd, codeSection.start, error);
     if (!DecodeCodeSection(module.codeMeta(), d, mg)) {
       return false;
     }
   } else {
-    MOZ_ASSERT(!codeSection);
     MOZ_ASSERT(codeMeta.numFuncDefs() == 0);
     if (!mg.finishFuncDefs()) {
       return false;
@@ -1135,9 +1036,38 @@ class StreamingDecoder {
   }
 };
 
+static SharedBytes CreateBytecode(const Bytes& env, const Bytes& code,
+                                  const Bytes& tail, UniqueChars* error) {
+  size_t size = env.length() + code.length() + tail.length();
+  if (size > MaxModuleBytes) {
+    *error = DuplicateString("module too big");
+    return nullptr;
+  }
+
+  MutableBytes bytecode = js_new<ShareableBytes>();
+  if (!bytecode || !bytecode->vector.resize(size)) {
+    return nullptr;
+  }
+
+  uint8_t* p = bytecode->vector.begin();
+
+  memcpy(p, env.begin(), env.length());
+  p += env.length();
+
+  memcpy(p, code.begin(), code.length());
+  p += code.length();
+
+  memcpy(p, tail.begin(), tail.length());
+  p += tail.length();
+
+  MOZ_ASSERT(p == bytecode->end());
+
+  return bytecode;
+}
+
 SharedModule wasm::CompileStreaming(
-    const CompileArgs& args, const ShareableBytes& envBytes,
-    const ShareableBytes& codeBytes, const ExclusiveBytesPtr& codeBytesEnd,
+    const CompileArgs& args, const Bytes& envBytes, const Bytes& codeBytes,
+    const ExclusiveBytesPtr& codeBytesEnd,
     const ExclusiveStreamEndData& exclusiveStreamEnd,
     const Atomic<bool>& cancelled, UniqueChars* error,
     UniqueCharsVector* warnings) {
@@ -1149,7 +1079,7 @@ SharedModule wasm::CompileStreaming(
   CodeMetadata& codeMeta = *moduleMeta->codeMeta;
 
   {
-    Decoder d(envBytes.vector, 0, error, warnings);
+    Decoder d(envBytes, 0, error, warnings);
 
     if (!DecodeModuleEnvironment(d, &codeMeta, moduleMeta)) {
       return nullptr;
@@ -1176,8 +1106,8 @@ SharedModule wasm::CompileStreaming(
   }
 
   {
-    StreamingDecoder d(codeMeta, codeBytes.vector, codeBytesEnd, cancelled,
-                       error, warnings);
+    StreamingDecoder d(codeMeta, codeBytes, codeBytesEnd, cancelled, error,
+                       warnings);
 
     if (!DecodeCodeSection(codeMeta, d, mg)) {
       return nullptr;
@@ -1197,11 +1127,10 @@ SharedModule wasm::CompileStreaming(
   }
 
   const StreamEndData streamEnd = exclusiveStreamEnd.lock();
-  const ShareableBytes& tailBytes = *streamEnd.tailBytes;
+  const Bytes& tailBytes = *streamEnd.tailBytes;
 
   {
-    Decoder d(tailBytes.vector, codeMeta.codeSectionRange->end(), error,
-              warnings);
+    Decoder d(tailBytes, codeMeta.codeSectionRange->end(), error, warnings);
 
     if (!DecodeModuleTail(d, &codeMeta, moduleMeta)) {
       return nullptr;
@@ -1210,8 +1139,12 @@ SharedModule wasm::CompileStreaming(
     MOZ_RELEASE_ASSERT(d.done());
   }
 
-  BytecodeBuffer bytecodeBuffer(&envBytes, &codeBytes, &tailBytes);
-  return mg.finishModule(BytecodeBufferOrSource(bytecodeBuffer), moduleMeta,
+  SharedBytes bytecode = CreateBytecode(envBytes, codeBytes, tailBytes, error);
+  if (!bytecode) {
+    return nullptr;
+  }
+
+  return mg.finishModule(*bytecode, moduleMeta,
                          streamEnd.completeTier2Listener);
 }
 
@@ -1264,7 +1197,7 @@ bool wasm::DumpIonFunctionInModule(const ShareableBytes& bytecode,
   compilerEnv.computeParameters();
 
   UniqueCharsVector warnings;
-  Decoder d(bytecode.span(), 0, error, &warnings);
+  Decoder d(bytecode.vector, 0, error, &warnings);
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
   if (!moduleMeta || !moduleMeta->init(*compileArgs)) {
     return false;

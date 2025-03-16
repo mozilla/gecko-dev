@@ -94,14 +94,13 @@ void js::wasm::ReportTier2ResultsOffThread(bool success,
 
 class Module::CompleteTier2GeneratorTaskImpl
     : public CompleteTier2GeneratorTask {
-  SharedBytes codeSection_;
+  SharedBytes bytecode_;
   SharedModule module_;
   mozilla::Atomic<bool> cancelled_;
 
  public:
-  CompleteTier2GeneratorTaskImpl(const ShareableBytes* codeSection,
-                                 Module& module)
-      : codeSection_(codeSection), module_(&module), cancelled_(false) {}
+  CompleteTier2GeneratorTaskImpl(const ShareableBytes& bytecode, Module& module)
+      : bytecode_(&bytecode), module_(&module), cancelled_(false) {}
 
   ~CompleteTier2GeneratorTaskImpl() override {
     module_->completeTier2Listener_ = nullptr;
@@ -121,7 +120,7 @@ class Module::CompleteTier2GeneratorTaskImpl
       // that's okay.
       UniqueChars error;
       UniqueCharsVector warnings;
-      bool success = CompileCompleteTier2(codeSection_, *module_, &error,
+      bool success = CompileCompleteTier2(bytecode_->vector, *module_, &error,
                                           &warnings, &cancelled_);
       if (!cancelled_) {
         // We could try to dispatch a runnable to the thread that started this
@@ -154,12 +153,11 @@ Module::~Module() {
   MOZ_ASSERT(!testingTier2Active_);
 }
 
-void Module::startTier2(const ShareableBytes* codeSection,
+void Module::startTier2(const ShareableBytes& bytecode,
                         JS::OptimizedEncodingListener* listener) {
   MOZ_ASSERT(!testingTier2Active_);
-  MOZ_ASSERT_IF(codeMeta().codeSectionRange.isSome(), codeSection);
 
-  auto task = MakeUnique<CompleteTier2GeneratorTaskImpl>(codeSection, *this);
+  auto task = MakeUnique<CompleteTier2GeneratorTaskImpl>(bytecode, *this);
   if (!task) {
     return;
   }

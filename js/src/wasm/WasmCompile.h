@@ -49,15 +49,14 @@ double EstimateCompiledCodeSize(Tier tier, size_t bytecodeSize);
 //  - *error is null and the caller should report out-of-memory.
 
 SharedModule CompileBuffer(const CompileArgs& args,
-                           const BytecodeBufferOrSource& bytecode,
-                           UniqueChars* error, UniqueCharsVector* warnings,
+                           const ShareableBytes& bytecode, UniqueChars* error,
+                           UniqueCharsVector* warnings,
                            JS::OptimizedEncodingListener* listener = nullptr);
 
 // Attempt to compile the second tier of the given wasm::Module.
 
-bool CompileCompleteTier2(const ShareableBytes* codeSection,
-                          const Module& module, UniqueChars* error,
-                          UniqueCharsVector* warnings,
+bool CompileCompleteTier2(const Bytes& bytecode, const Module& module,
+                          UniqueChars* error, UniqueCharsVector* warnings,
                           mozilla::Atomic<bool>* cancelled);
 
 // Attempt to compile the second tier for the given functions of a wasm::Module.
@@ -88,16 +87,15 @@ using ExclusiveBytesPtr = ExclusiveWaitableData<const uint8_t*>;
 
 struct StreamEndData {
   bool reached;
-  const ShareableBytes* tailBytes;
+  const Bytes* tailBytes;
   CompleteTier2Listener completeTier2Listener;
 
-  StreamEndData() : reached(false), tailBytes(nullptr) {}
+  StreamEndData() : reached(false) {}
 };
 using ExclusiveStreamEndData = ExclusiveWaitableData<StreamEndData>;
 
-SharedModule CompileStreaming(const CompileArgs& args,
-                              const ShareableBytes& envBytes,
-                              const ShareableBytes& codeBytes,
+SharedModule CompileStreaming(const CompileArgs& args, const Bytes& envBytes,
+                              const Bytes& codeBytes,
                               const ExclusiveBytesPtr& codeBytesEnd,
                               const ExclusiveStreamEndData& streamEnd,
                               const mozilla::Atomic<bool>& cancelled,
