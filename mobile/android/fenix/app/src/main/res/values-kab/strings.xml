@@ -823,6 +823,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="preferences_show_voice_search">Sken anadi s taɣect</string>
   <!-- Preference title for switch preference to show search suggestions also in private mode -->
   <string name="preferences_show_search_suggestions_in_private">Sken deg tɣimit tusligt</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Sken inadiyen imaynuten</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Sken isumar n tkatut ɣef afus</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
@@ -849,6 +851,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="preferences_show_nonsponsored_suggestions">Isumar n %1$s</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">Awi isumar seg web yeqqnen ɣer unadi-k·m</string>
+  <!-- Snackbar action label shown when user shares a link -->
+  <string name="link_shared_snackbar_action">Sefrek iɣewwaren</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Ldi iseɣwan deg isnasen</string>
   <!-- Preference for open links in third party apps always open in apps option -->
@@ -1376,6 +1380,20 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="download_multi_select_title">%1$d yettwafren</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">Kkes</string>
+  <!--
+    Time period headers for downloads
+
+    Text for the header that groups the downloads for today
+  -->
+  <string name="download_time_period_today">Ass-a</string>
+  <!-- Text for the header that groups the downloads for yesterday -->
+  <string name="download_time_period_yesterday">Iḍelli</string>
+  <!-- Text for the header that groups the downloads the past 7 days -->
+  <string name="download_time_period_last_7_days">7 n wussan ineggura</string>
+  <!-- Text for the header that groups the downloads the past 30 days -->
+  <string name="download_time_period_last_30_days">30 n wussan ineggura</string>
+  <!-- Text for the header that groups the downloads older than other groups -->
+  <string name="download_time_period_older">Iqbuṛen</string>
   <!--
     WebCompat Reporter
 
@@ -2091,6 +2109,24 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">Tignit n usmenyif n tasureft i ummesten yettwasǧehden mgal aḍfar</string>
+  <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+  <string name="preference_doh_learn_more">Issin ugar</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="preference_doh_up_description">Inig d asawen</string>
+  <!-- Content description for the "Exceptions" button -->
+  <string name="preference_doh_exceptions_description">Tisuraf</string>
+  <!-- Content description for the "Info" button -->
+  <string name="preference_doh_info_description">Talɣut</string>
+  <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection">Ammesten s wudem amezwer</string>
+  <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_1">Seqdec asaǧǧaw i tferneḍ</string>
+  <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection">Ammesten yettwasghden</string>
+  <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_1">Seqdec asaǧǧaw i tferneḍ</string>
+  <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection">Ammesten unnig</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Tallelt</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->

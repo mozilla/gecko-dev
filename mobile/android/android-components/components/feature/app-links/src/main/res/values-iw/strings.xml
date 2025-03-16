@@ -4,8 +4,18 @@
   <string name="mozac_feature_applinks_open_in">פתיחה ב…</string>
   <!-- The description to warn users that their private browsing session changes -->
   <string name="mozac_feature_applinks_confirm_dialog_title">האם לפתוח ביישומון? ייתכן שהפעילות שלך כבר לא תהיה פרטית.</string>
+  <!--
+    The description to warn users that their private browsing session changes
+    %s is a placeholder that will be replaced by an app name
+  -->
+  <string name="mozac_feature_applinks_confirm_dialog_title_with_app_name">האם לפתוח ב־%s? ייתכן שהפעילות שלך כבר לא תהיה פרטית.</string>
   <!-- The title of the prompt that warns users their normal browsing session is trying to open another app -->
   <string name="mozac_feature_applinks_normal_confirm_dialog_title">פתיחה ביישומון אחר</string>
+  <!--
+    The title of the prompt that warns users their normal browsing session is trying to open another app
+    %s is a placeholder that will be replaced by an app name
+  -->
+  <string name="mozac_feature_applinks_normal_confirm_dialog_title_with_app_name">פתיחה ב־%s</string>
   <!--
     The message of the prompt to confirm with users that they want to open the link in another app
     %s is a placeholder that will be replaced by the app name

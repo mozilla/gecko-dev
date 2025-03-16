@@ -1487,6 +1487,20 @@
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">Smazat</string>
   <!--
+    Time period headers for downloads
+
+    Text for the header that groups the downloads for today
+  -->
+  <string name="download_time_period_today">Dnes</string>
+  <!-- Text for the header that groups the downloads for yesterday -->
+  <string name="download_time_period_yesterday">Včera</string>
+  <!-- Text for the header that groups the downloads the past 7 days -->
+  <string name="download_time_period_last_7_days">Posledních 7 dní</string>
+  <!-- Text for the header that groups the downloads the past 30 days -->
+  <string name="download_time_period_last_30_days">Posledních 30 dní</string>
+  <!-- Text for the header that groups the downloads older than other groups -->
+  <string name="download_time_period_older">Starší</string>
+  <!--
     WebCompat Reporter
 
     The title of the Web Compat Reporter feature. This is displayed in the top app bar.
@@ -2213,6 +2227,8 @@
     Preference title for DNS over HTTPS settings
   -->
   <string name="preference_doh_title">DNS skrze HTTPS</string>
+  <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_summary">Systém DNS (Domain Name System) přes HTTPS odesílá váš požadavek na název domény prostřednictvím šifrovaného připojení, čímž zajišťuje bezpečný systém DNS a znemožňuje ostatním zjistit, na kterou webovou stránku se chystáte vstoupit. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Zjistit více</string>
   <!-- Content description for the toolbar "Navigate up" button -->
@@ -2235,6 +2251,8 @@
   <string name="preference_doh_default_protection_info_3">Použije se místní poskytovatel, pokud je to možné. %1$s</string>
   <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_4">Vypne se, když je aktivní VPN, rodičovská kontrola nebo podnikové zásady</string>
+  <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_5">Vypne se, když síť sdělí serveru %1$s, že nemá používat zabezpečené DNS. %2$s</string>
   <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection">Zvýšená ochrana</string>
   <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
