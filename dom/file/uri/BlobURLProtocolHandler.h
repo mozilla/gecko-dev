@@ -8,6 +8,7 @@
 #define mozilla_dom_BlobURLProtocolHandler_h
 
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/ipc/IdType.h"
 #include "nsIProtocolHandler.h"
 #include "nsIURI.h"
 #include "nsCOMPtr.h"
@@ -52,14 +53,18 @@ class BlobURLProtocolHandler final : public nsIProtocolHandler,
                                const nsCString& aPartitionKey,
                                nsACString& aUri);
   // IPC only
-  static void AddDataEntry(const nsACString& aURI, nsIPrincipal* aPrincipal,
-                           const nsCString& aPartitionKey, BlobImpl* aBlobImpl);
+  static void AddDataEntry(
+      const nsACString& aURI, nsIPrincipal* aPrincipal,
+      const nsCString& aPartitionKey, BlobImpl* aBlobImpl,
+      const Maybe<ContentParentId>& aContentParentId = Nothing());
 
   // These methods revoke a list of blobURLs. Because some operations could
   // still be in progress, the revoking consists in marking the blobURL as
   // revoked and in removing it after RELEASING_TIMER milliseconds.
   static void RemoveDataEntries(const nsTArray<nsCString>& aUris,
                                 bool aBroadcastToOTherProcesses = true);
+  static void RemoveDataEntriesPerContentParent(
+      const ContentParentId& aContentParentId);
   // Returns true if the entry was allowed to be removed.
   static bool RemoveDataEntry(const nsACString& aUri, nsIPrincipal* aPrincipal,
                               const nsCString& aPartitionKey);

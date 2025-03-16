@@ -51,22 +51,26 @@ struct DataInfo {
   enum ObjectType { eBlobImpl, eMediaSource };
 
   DataInfo(mozilla::dom::BlobImpl* aBlobImpl, nsIPrincipal* aPrincipal,
-           const nsCString& aPartitionKey)
+           const nsCString& aPartitionKey,
+           const Maybe<ContentParentId>& aContentParentId)
       : mObjectType(eBlobImpl),
         mBlobImpl(aBlobImpl),
         mPrincipal(aPrincipal),
         mPartitionKey(aPartitionKey),
-        mRevoked(false) {
+        mRevokeId(0),
+        mContentParentId(aContentParentId) {
     MOZ_ASSERT(aPrincipal);
   }
 
   DataInfo(MediaSource* aMediaSource, nsIPrincipal* aPrincipal,
-           const nsCString& aPartitionKey)
+           const nsCString& aPartitionKey,
+           const Maybe<ContentParentId>& aContentParentId)
       : mObjectType(eMediaSource),
         mMediaSource(aMediaSource),
         mPrincipal(aPrincipal),
         mPartitionKey(aPartitionKey),
-        mRevoked(false) {
+        mRevokeId(0),
+        mContentParentId(aContentParentId) {
     MOZ_ASSERT(aPrincipal);
   }
 
@@ -84,7 +88,10 @@ struct DataInfo {
   // When a blobURL is revoked, we keep it alive for RELEASING_TIMER
   // milliseconds in order to support pending operations such as navigation,
   // download and so on.
-  bool mRevoked;
+  // ReleasingTimerHolder will look for this ID.
+  uint64_t mRevokeId;
+
+  Maybe<ContentParentId> mContentParentId;
 };
 
 // The mutex is locked whenever gDataTable is changed, or if gDataTable
@@ -113,7 +120,7 @@ static mozilla::dom::DataInfo* GetDataInfo(const nsACString& aUri,
     res = gDataTable->Get(StringHead(aUri, fragmentPos));
   }
 
-  if (!aAlsoIfRevoked && res && res->mRevoked) {
+  if (!aAlsoIfRevoked && res && res->mRevokeId) {
     return nullptr;
   }
 
@@ -390,14 +397,18 @@ class ReleasingTimerHolder final : public Runnable,
  public:
   NS_DECL_ISUPPORTS_INHERITED
 
-  static void Create(const nsTArray<nsCString>& aURIs) {
+  static uint64_t NextRevokeId() {
     MOZ_ASSERT(NS_IsMainThread());
 
-    if (aURIs.IsEmpty()) {
-      return;
-    }
+    static uint64_t sRevokeId = 0;
+    return ++sRevokeId;
+  }
 
-    RefPtr<ReleasingTimerHolder> holder = new ReleasingTimerHolder(aURIs);
+  static void Create(uint64_t aRevokeId) {
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(aRevokeId > 0);
+
+    RefPtr<ReleasingTimerHolder> holder = new ReleasingTimerHolder(aRevokeId);
 
     // BlobURLProtocolHandler::RemoveDataEntry potentially happens late. We are
     // prepared to RevokeUri synchronously if we run after XPCOMWillShutdown,
@@ -448,9 +459,8 @@ class ReleasingTimerHolder final : public Runnable,
 
   NS_IMETHOD
   GetName(nsAString& aName) override {
-    aName.AssignLiteral("ReleasingTimerHolder for ");
-    aName.AppendInt(static_cast<uint32_t>(mURIs.Length()));
-    aName.AppendLiteral(" BlobURLs");
+    aName.AssignLiteral("ReleasingTimerHolder for revokeID ");
+    aName.AppendInt(mRevokeId);
     return NS_OK;
   }
 
@@ -464,8 +474,8 @@ class ReleasingTimerHolder final : public Runnable,
   GetState(nsIPropertyBag**) override { return NS_OK; }
 
  private:
-  explicit ReleasingTimerHolder(const nsTArray<nsCString>& aURIs)
-      : Runnable("ReleasingTimerHolder"), mURIs(aURIs) {}
+  explicit ReleasingTimerHolder(uint64_t aRevokeId)
+      : Runnable("ReleasingTimerHolder"), mRevokeId(aRevokeId) {}
 
   ~ReleasingTimerHolder() override = default;
 
@@ -481,16 +491,20 @@ class ReleasingTimerHolder final : public Runnable,
     {
       StaticMutexAutoLock lock(sMutex);
 
-      for (const nsCString& uri : mURIs) {
-        mozilla::dom::DataInfo* info =
-            GetDataInfo(uri, true /* We care about revoked dataInfo */);
-        if (!info) {
-          // Already gone!
-          return;
+      if (!gDataTable) {
+        return;
+      }
+
+      for (auto iter = gDataTable->Iter(); !iter.Done(); iter.Next()) {
+        mozilla::dom::DataInfo* info = iter.UserData();
+        MOZ_ASSERT(info);
+
+        if (info->mRevokeId != mRevokeId) {
+          // This entry does not match the current revoking operation
+          continue;
         }
 
-        MOZ_ASSERT(info->mRevoked);
-        gDataTable->Remove(uri);
+        iter.Remove();
       }
 
       if (gDataTable->Count() == 0) {
@@ -520,7 +534,7 @@ class ReleasingTimerHolder final : public Runnable,
     return phase;
   }
 
-  CopyableTArray<nsCString> mURIs;
+  uint64_t mRevokeId;
   nsCOMPtr<nsITimer> mTimer;
 };
 
@@ -528,9 +542,10 @@ NS_IMPL_ISUPPORTS_INHERITED(ReleasingTimerHolder, Runnable, nsITimerCallback,
                             nsIAsyncShutdownBlocker)
 
 template <typename T>
-static void AddDataEntryInternal(const nsACString& aURI, T aObject,
-                                 nsIPrincipal* aPrincipal,
-                                 const nsCString& aPartitionKey) {
+static void AddDataEntryInternal(
+    const nsACString& aURI, T aObject, nsIPrincipal* aPrincipal,
+    const nsCString& aPartitionKey,
+    Maybe<ContentParentId> aContentParentId = Nothing()) {
   MOZ_ASSERT(NS_IsMainThread(), "changing gDataTable is main-thread only");
   StaticMutexAutoLock lock(sMutex);
   if (!gDataTable) {
@@ -538,8 +553,8 @@ static void AddDataEntryInternal(const nsACString& aURI, T aObject,
   }
 
   mozilla::UniquePtr<mozilla::dom::DataInfo> info =
-      mozilla::MakeUnique<mozilla::dom::DataInfo>(aObject, aPrincipal,
-                                                  aPartitionKey);
+      mozilla::MakeUnique<mozilla::dom::DataInfo>(
+          aObject, aPrincipal, aPartitionKey, aContentParentId);
   BlobURLsReporter::GetJSStackForBlob(info.get());
 
   gDataTable->InsertOrUpdate(aURI, std::move(info));
@@ -595,13 +610,14 @@ nsresult BlobURLProtocolHandler::AddDataEntry(MediaSource* aMediaSource,
 }
 
 /* static */
-void BlobURLProtocolHandler::AddDataEntry(const nsACString& aURI,
-                                          nsIPrincipal* aPrincipal,
-                                          const nsCString& aPartitionKey,
-                                          mozilla::dom::BlobImpl* aBlobImpl) {
+void BlobURLProtocolHandler::AddDataEntry(
+    const nsACString& aURI, nsIPrincipal* aPrincipal,
+    const nsCString& aPartitionKey, mozilla::dom::BlobImpl* aBlobImpl,
+    const Maybe<ContentParentId>& aContentParentId) {
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(aBlobImpl);
-  AddDataEntryInternal(aURI, aBlobImpl, aPrincipal, aPartitionKey);
+  AddDataEntryInternal(aURI, aBlobImpl, aPrincipal, aPartitionKey,
+                       aContentParentId);
 }
 
 /* static */
@@ -624,7 +640,7 @@ bool BlobURLProtocolHandler::ForEachBlobURL(
 
     MOZ_ASSERT(info->mBlobImpl);
     if (!aCb(info->mBlobImpl, info->mPrincipal, info->mPartitionKey,
-             entry.GetKey(), info->mRevoked)) {
+             entry.GetKey(), !!info->mRevokeId)) {
       return false;
     }
   }
@@ -640,33 +656,78 @@ void BlobURLProtocolHandler::RemoveDataEntries(
     return;
   }
 
+  uint64_t revokeId = ReleasingTimerHolder::NextRevokeId();
+  MOZ_ASSERT(revokeId > 0);
+
   nsTArray<BroadcastBlobURLUnregistrationRequest> requests(aURIs.Length());
+  bool revokeNeeded = false;
 
-  for (const nsCString& uri : aURIs) {
-    mozilla::dom::DataInfo* info = GetDataInfo(uri);
-    if (!info) {
-      continue;
-    }
+  {
+    StaticMutexAutoLock lock(sMutex);
 
-    {
-      StaticMutexAutoLock lock(sMutex);
-      info->mRevoked = true;
-    }
+    for (const nsCString& uri : aURIs) {
+      mozilla::dom::DataInfo* info = GetDataInfo(uri);
+      if (!info) {
+        continue;
+      }
 
-    if (aBroadcastToOtherProcesses &&
-        info->mObjectType == mozilla::dom::DataInfo::eBlobImpl) {
-      requests.AppendElement(
-          BroadcastBlobURLUnregistrationRequest{uri, info->mPrincipal});
+      info->mRevokeId = revokeId;
+      revokeNeeded = true;
+
+      if (aBroadcastToOtherProcesses &&
+          info->mObjectType == mozilla::dom::DataInfo::eBlobImpl) {
+        requests.AppendElement(
+            BroadcastBlobURLUnregistrationRequest{uri, info->mPrincipal});
+      }
     }
   }
 
   // The timer will take care of removing the entry for real after
   // RELEASING_TIMER milliseconds. In the meantime, the
   // mozilla::dom::DataInfo, marked as revoked, will not be exposed.
-  ReleasingTimerHolder::Create(aURIs);
+  if (revokeNeeded) {
+    ReleasingTimerHolder::Create(revokeId);
+  }
 
   if (!requests.IsEmpty()) {
     BroadcastBlobURLUnregistration(requests);
+  }
+}
+
+// static
+void BlobURLProtocolHandler::RemoveDataEntriesPerContentParent(
+    const ContentParentId& aContentParentId) {
+  MOZ_ASSERT(NS_IsMainThread(), "changing gDataTable is main-thread only");
+  if (!gDataTable) {
+    return;
+  }
+
+  uint64_t revokeId = ReleasingTimerHolder::NextRevokeId();
+  MOZ_ASSERT(revokeId > 0);
+  bool revokeNeeded = false;
+
+  {
+    StaticMutexAutoLock lock(sMutex);
+
+    for (const auto& entry : *gDataTable) {
+      mozilla::dom::DataInfo* info = entry.GetWeak();
+      MOZ_ASSERT(info);
+
+      if (!info->mContentParentId.isSome() ||
+          info->mContentParentId.value() != aContentParentId) {
+        continue;
+      }
+
+      info->mRevokeId = revokeId;
+      revokeNeeded = true;
+    }
+  }
+
+  // The timer will take care of removing the entry for real after
+  // RELEASING_TIMER milliseconds. In the meantime, the
+  // mozilla::dom::DataInfo, marked as revoked, will not be exposed.
+  if (revokeNeeded) {
+    ReleasingTimerHolder::Create(revokeId);
   }
 }
 
@@ -858,7 +919,7 @@ NS_IMPL_ISUPPORTS(BlobURLProtocolHandler, nsIProtocolHandler,
     StaticMutexAutoLock lock(sMutex);
     mozilla::dom::DataInfo* info = GetDataInfo(aSpec);
     if (info && info->mObjectType == mozilla::dom::DataInfo::eBlobImpl) {
-      revoked = info->mRevoked;
+      revoked = !!info->mRevokeId;
     }
   }
 

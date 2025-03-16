@@ -54,6 +54,9 @@ function checkWindowChrome(win) {
     document.hasAttribute("fxadisabled"),
     "fxadisabled attribute should exist"
   );
+
+  let sideBarElement = win.document.getElementById("sidebar-main");
+  ok(BrowserTestUtils.isHidden(sideBarElement), "The sidebar should be hidden");
 }
 
 // Given a window, check if hamburger menu
