@@ -4,8 +4,18 @@
   <string name="mozac_feature_applinks_open_in">앱에서 열기…</string>
   <!-- The description to warn users that their private browsing session changes -->
   <string name="mozac_feature_applinks_confirm_dialog_title">앱에서 여시겠습니까? 사용자의 활동이 더 이상 보호되지 않을 수 있습니다.</string>
+  <!--
+    The description to warn users that their private browsing session changes
+    %s is a placeholder that will be replaced by an app name
+  -->
+  <string name="mozac_feature_applinks_confirm_dialog_title_with_app_name">%s에서 여시겠습니까? 사용자의 활동이 더이상 비공개가 아닐 수 있습니다.</string>
   <!-- The title of the prompt that warns users their normal browsing session is trying to open another app -->
   <string name="mozac_feature_applinks_normal_confirm_dialog_title">다른 앱에서 열기</string>
+  <!--
+    The title of the prompt that warns users their normal browsing session is trying to open another app
+    %s is a placeholder that will be replaced by an app name
+  -->
+  <string name="mozac_feature_applinks_normal_confirm_dialog_title_with_app_name">%s에서 열기</string>
   <!--
     The message of the prompt to confirm with users that they want to open the link in another app
     %s is a placeholder that will be replaced by the app name
