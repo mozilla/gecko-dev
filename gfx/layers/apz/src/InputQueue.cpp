@@ -498,7 +498,6 @@ APZEventResult InputQueue::ReceivePanGestureInput(
 
     mActivePanGestureBlock = block;
 
-    CancelAnimationsForNewBlock(block);
     const bool waitingForContentResponse =
         MaybeRequestContentResponse(aTarget, block);
 

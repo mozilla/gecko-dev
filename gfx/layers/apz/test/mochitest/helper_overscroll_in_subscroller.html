@@ -84,15 +84,11 @@
     ok(overscrolledData.every(data => SpecialPowers.wrap(data).key == subScrollId),
        "The overscrolled scroll container should be the sub scroll container");
 
-    let twoScrollEndPromise = new Promise(resolve => {
-      let count = 0;
+    let oneScrollEndPromise = new Promise(resolve => {
       subScroller.addEventListener("scrollend", () => {
-        count++;
-        ok(count <= 2, "There should never be more than two scrollend events");
-        if (count == 2) {
-          resolve();
-        }
-      });
+        info("Received scrollend event");
+        resolve();
+      }, { once: true });
     });
 
     // Finish the pan upward gesture.
@@ -133,13 +129,10 @@
     // While the root scroll container is still being overscrolled because the
     // new pan gesture is still on-going, the sub scroll container should be
     // restored.
-    // Note that the test waits for two scrollend events on the subscroller.
-    // The first gets fired at the start of the second pan gesture, when the 
-    // subscroller's overscroll animation is briefly interrupted due to the finger
-    // going down before starting again because the gesture will scroll the parent.
-    // The second is fired when the overscroll animation finishes.
-    await twoScrollEndPromise;
-    info("Got two scroll end events on the sub scroll container");
+    // Wait for a scrollend event indicating that the subscroller's overscroll
+    // animation has completed.
+    await oneScrollEndPromise;
+    info("Got a scroll end event on the sub scroll container");
 
     await promiseApzFlushedRepaints();
 
