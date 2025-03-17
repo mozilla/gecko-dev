@@ -198,7 +198,7 @@ mozilla::ipc::IPCResult SessionStoreParent::RecvIncrementalSessionStoreUpdate(
     const MaybeDiscarded<BrowsingContext>& aBrowsingContext,
     const Maybe<FormData>& aFormData, const Maybe<nsPoint>& aScrollPosition,
     uint32_t aEpoch) {
-  if (!aBrowsingContext.IsNullOrDiscarded()) {
+  if (!aBrowsingContext.IsNull()) {
     if (aFormData.isSome()) {
       mHasNewFormData = true;
     }
@@ -216,7 +216,7 @@ mozilla::ipc::IPCResult SessionStoreParent::RecvIncrementalSessionStoreUpdate(
 
 mozilla::ipc::IPCResult SessionStoreParent::RecvResetSessionStore(
     const MaybeDiscarded<BrowsingContext>& aBrowsingContext, uint32_t aEpoch) {
-  if (!aBrowsingContext.IsNullOrDiscarded()) {
+  if (!aBrowsingContext.IsNull()) {
     mSessionStore->RemoveSessionStore(
         aBrowsingContext.GetMaybeDiscarded()->Canonical());
   }
