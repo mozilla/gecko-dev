@@ -322,7 +322,7 @@ static size_t DeleteIntFunctionCallCount = 0;
 
 static void DeleteIntFunction(void* aPtr) {
   DeleteIntFunctionCallCount++;
-  delete static_cast<int*>(aPtr);
+  delete[] static_cast<int*>(aPtr);
 }
 
 static void SetMallocedInt(UniquePtr<int, FreeSignature>& aPtr, int aI) {
