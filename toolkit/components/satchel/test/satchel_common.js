@@ -142,11 +142,11 @@ function notifySelectedIndex(expectedIndex) {
   return gChromeScript.sendQuery("waitForSelectedIndex", { expectedIndex });
 }
 
-function testMenuEntry(index, statement) {
+function testMenuEntry(index, is) {
   return new Promise(resolve => {
     gChromeScript.sendAsyncMessage("waitForMenuEntryTest", {
       index,
-      statement,
+      is,
     });
     gChromeScript.addMessageListener("menuEntryTested", function changed() {
       gChromeScript.removeMessageListener("menuEntryTested", changed);

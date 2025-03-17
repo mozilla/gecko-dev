@@ -153,7 +153,6 @@ async function addEntry(fieldname, value) {
 }
 
 preventSubmitOnForms();
-SpecialPowers.pushPrefEnv({"set": [["security.allow_eval_with_system_principal", true]]});
 
 add_setup(async () => {
   await updateFormHistory([
