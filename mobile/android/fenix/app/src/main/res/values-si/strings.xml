@@ -356,6 +356,11 @@
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print">මුද්‍රණය…</string>
   <!--
+    Browser menu label for the Delete browsing data on quit feature.
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="browser_menu_delete_browsing_data_on_quit">ඉවත් වන්න</string>
+  <!--
     Extensions management fragment
 
     Text displayed when there are no extensions to be shown

@@ -31,7 +31,7 @@
   <!-- The advanced certificate information shown when a website sends has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_techInfo">&lt;label&gt;誰かがサイトになりすまそうとしている可能性があります。この先へ進んではいけません。&lt;/label&gt;
         &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;ウェブサイトは証明書によって身元が証明されます。証明書の発行者が不明か、証明書が自己署名されているか、サーバーが正しい中間証明書を送信していないため、%1$s は &lt;b&gt;%2$s&lt;/b&gt; を信頼できません。&lt;/label&gt;</string>
+        &lt;label&gt;ウェブサイトは証明書で同一性を証明します。証明書の発行者が不明か、証明書が自己署名されているか、サーバーが正しい中間証明書を送信していないため、%1$s は &lt;b&gt;%2$s&lt;/b&gt; を信頼しません。&lt;/label&gt;</string>
   <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
   <string name="mozac_browser_errorpages_security_bad_cert_back">戻る (推奨)</string>
   <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->

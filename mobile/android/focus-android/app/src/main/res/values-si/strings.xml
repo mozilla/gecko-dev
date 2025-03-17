@@ -329,12 +329,18 @@
   <string name="preference_mozilla_telemetry_summary">තව දැනගන්න</string>
   <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
   <string name="preference_mozilla_telemetry_summary2">සැමට %1$s වැඩිදියුණු කර දීමට හා සැපයීමට අවශ්‍ය දෑ පමණක් රැස් කර ගැනීමට මොසිල්ලා උත්සාහ කරයි.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preference_daily_usage_ping_title">දෛනික භාවිත හැඬවීම</string>
+  <string name="preference_daily_usage_ping_description">මෙය මොසිල්ලා සඳහා සක්‍රිය පරිශ්‍රීලකයින් තක්සේරුවට උපකාරී වේ.</string>
+  <string name="preference_daily_usage_ping_learn_more">තව දැනගන්න</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">රහස්‍යතා දැන්වීම</string>
   <!-- In-app link (in settings) to Focus licensing information. -->
   <string name="preference_licensing_info">බලපත්‍රදායක තොරතුරු</string>
   <!-- Link to Focus licensing information from other libraries that we use. -->
   <string name="preference_libraries_we_use">අපි භාවිතා කරන එකතු</string>
+  <!-- Link to Focus Crash reports list. -->
+  <string name="preference_crashes">බිඳවැටීම්</string>
   <!-- Open Source Licenses page title. %s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="open_source_licenses_title">%s | OSS එකතු</string>
   <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
@@ -460,8 +466,30 @@
   <string name="onboarding_first_screen_title">%1$s වෙත පිළිගනිමු</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">වේගවත්. පෞද්ගලික. බාධා රහිත.</string>
+  <!--
+    New Onboarding flow first screen 'terms of use' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">ඉදිරියට යාමෙන් ඔබ %1$s සඳහා එකඟ වේ</string>
+  <!--
+    New Onboarding flow first screen 'terms of use link'
+
+    Text for the link used in onboarding_first_screen_terms_of_use_text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">ෆයර්ෆොක්ස් භාවිත නියම</string>
+  <!--
+    New Onboarding flow first screen 'privacy notice' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
+  -->
+  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">ෆයර්ෆොක්ස් ඔබගේ පෞද්ගලිකත්‍වය ගැන සැලකිලිමත් වේ. අපගේ %1$s ගැන තව දැනගන්න.</string>
+  <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
+  <string name="onboarding_first_screen_privacy_notice_link">රහස්‍යතා දැන්වීම</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">පටන් ගන්න</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue">එකඟ වී ඉදිරියට</string>
   <!--
     Onboarding second screen: Title
 
