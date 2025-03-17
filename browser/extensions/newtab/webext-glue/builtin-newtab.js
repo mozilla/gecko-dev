@@ -16,9 +16,14 @@ XPCOMUtils.defineLazyServiceGetter(
   "nsISubstitutingProtocolHandler"
 );
 
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  AboutHomeStartupCache: "resource:///modules/AboutHomeStartupCache.sys.mjs",
+});
+
 const ResourceSubstitution = "newtab";
 
-this.resourceMapping = class extends ExtensionAPI {
+this.builtin_newtab = class extends ExtensionAPI {
   #chromeHandle = null;
 
   onStartup() {
@@ -65,5 +70,23 @@ this.resourceMapping = class extends ExtensionAPI {
     resProto.setSubstitution(ResourceSubstitution, null);
     this.#chromeHandle.destruct();
     this.#chromeHandle = null;
+  }
+
+  getAPI(_context) {
+    return {
+      builtin: {
+        newtab: {
+          handleUpdateAvailable() {
+            // An update was downloaded, but will not apply until restart. If
+            // we attempt to restart the browser, any cached about:home might
+            // not be compatible with the newtab code from the updated add-on.
+            // We invalidate the cache here, and uninit the
+            // AboutHomeStartupCache so that it won't attempt to recreate the
+            // cache until after the next restart.
+            lazy.AboutHomeStartupCache.clearCacheAndUninit();
+          },
+        },
+      },
+    };
   }
 };

@@ -14,5 +14,6 @@ browser.runtime.onUpdateAvailable.addListener(_details => {
   //
   // We also need to invalidate the AboutHomeStartupCache when an update is
   // available, and prevent any new caches from being created until the
-  // next browser restart. That's covered in bug 1946564.
+  // next browser restart.
+  browser.builtin.newtab.handleUpdateAvailable();
 });

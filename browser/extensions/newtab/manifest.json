@@ -12,12 +12,13 @@
   },
 
   "experiment_apis": {
-    "resourceMapping": {
+    "builtin_newtab": {
       "schema": "webext-glue/schema.json",
       "parent": {
         "scopes": ["addon_parent"],
-        "script": "webext-glue/resource-mapping.js",
-        "events": ["startup"]
+        "script": "webext-glue/builtin-newtab.js",
+        "events": ["startup"],
+        "paths": [["builtin", "newtab"]]
       }
     }
   },
