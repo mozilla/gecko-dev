@@ -2057,8 +2057,6 @@ fn substitute_one_reference<'a>(
     if reference.is_var {
         let registration = stylist.get_custom_property_registration(&reference.name);
         if let Some(v) = custom_properties.get(registration, &reference.name) {
-            #[cfg(debug_assertions)]
-            debug_assert!(v.is_parsed(registration), "Should be already computed");
             // Skip references that are inside the outer variable (in fallback for example).
             while references
                 .next_if(|next_ref| next_ref.end <= reference.end)

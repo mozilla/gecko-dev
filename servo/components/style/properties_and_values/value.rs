@@ -343,12 +343,6 @@ impl ComputedValue {
         }
     }
 
-    /// Returns whether the the property is computed.
-    #[cfg(debug_assertions)]
-    pub fn is_parsed(&self, registration: &PropertyRegistrationData) -> bool {
-        registration.syntax.is_universal() || !matches!(self.v, ValueInner::Universal(_))
-    }
-
     /// Convert to an untyped variable value.
     pub fn to_variable_value(&self) -> ComputedPropertyValue {
         if let ValueInner::Universal(ref value) = self.v {
