@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-03-17T14:46:17.162892+00:00'
+updated_at: '2025-03-17T19:10:18.549535+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -830,6 +830,10 @@ people:
     bmo_id: 534482
     name: Nika Layzell
     nick: nika
+  - &nikkis
+    bmo_id: 725309
+    name: Nikki Sharpley
+    nick: nikkis
   - &niklas
     bmo_id: 690738
     name: Niklas Baumgardner
@@ -3836,7 +3840,9 @@ modules:
           - *sfoster
           - *farre
         peers:
-          - *dao
+          - *dwalker
+          - *nikkis
+          - *jswinarton
         machine_name: session_restore
 
       - name: Settings UI
@@ -4559,5 +4565,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 124d5e19b7dfd4048bd02ce7d0317c68079e39bf
-  export: 42bc59b9aa99faaba3321dc5c345456473f6284d
+  config: 9a5ef9c8662bd9369804ff9bac39709b0938de4b
+  export: 594741fdafe612ab8a111fe46007acd7dc738e83
