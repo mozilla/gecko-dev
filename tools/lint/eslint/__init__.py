@@ -67,46 +67,52 @@ def lint(paths, config, binary=None, fix=None, rules=[], setup=None, **lintargs)
         binary, _ = find_node_executable()
 
     if not binary:
-        print(ESLINT_NOT_FOUND_MESSAGE)
+        log.error(ESLINT_NOT_FOUND_MESSAGE)
         return 1
 
     extra_args = lintargs.get("extra_args") or []
-    exclude_args = []
-    for path in config.get("exclude", []):
-        exclude_args.extend(
-            ["--ignore-pattern", os.path.relpath(path, lintargs["root"])]
+
+    result = {"results": [], "fixed": 0}
+
+    # If something passes formatonly, avoid running eslint and only run prettier.
+    # This allows ./mach format and similar mechanisms to work correctly.
+    if not lintargs.get("formatonly", False):
+        exclude_args = []
+        for path in config.get("exclude", []):
+            exclude_args.extend(
+                ["--ignore-pattern", os.path.relpath(path, lintargs["root"])]
+            )
+
+        for rule in rules:
+            extra_args.extend(["--rule", rule])
+
+        # First run ESLint
+        cmd_args = (
+            [
+                binary,
+                os.path.join(module_path, "node_modules", "eslint", "bin", "eslint.js"),
+                # This keeps ext as a single argument.
+                "--ext",
+                "[{}]".format(",".join(config["extensions"])),
+                "--format",
+                "json",
+                "--no-error-on-unmatched-pattern",
+            ]
+            + rules
+            + extra_args
+            + exclude_args
+            + paths
         )
 
-    for rule in rules:
-        extra_args.extend(["--rule", rule])
+        if fix:
+            # eslint requires that --fix be set before the --ext argument.
+            cmd_args.insert(2, "--fix")
 
-    # First run ESLint
-    cmd_args = (
-        [
-            binary,
-            os.path.join(module_path, "node_modules", "eslint", "bin", "eslint.js"),
-            # This keeps ext as a single argument.
-            "--ext",
-            "[{}]".format(",".join(config["extensions"])),
-            "--format",
-            "json",
-            "--no-error-on-unmatched-pattern",
-        ]
-        + rules
-        + extra_args
-        + exclude_args
-        + paths
-    )
+        log.debug("ESLint command: {}".format(" ".join(cmd_args)))
 
-    if fix:
-        # eslint requires that --fix be set before the --ext argument.
-        cmd_args.insert(2, "--fix")
-
-    log.debug("ESLint command: {}".format(" ".join(cmd_args)))
-
-    result = run(cmd_args, config)
-    if result == 1:
-        return result
+        result = run(cmd_args, config)
+        if result == 1:
+            return result
 
     # Then run Prettier
     cmd_args = (

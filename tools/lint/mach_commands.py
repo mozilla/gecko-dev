@@ -23,7 +23,7 @@ if os.path.exists(thunderbird_excludes):
 
 GLOBAL_EXCLUDES = ["**/node_modules", "tools/lint/test/files", ".hg", ".git"]
 
-VALID_FORMATTERS = {"black", "clang-format", "rustfmt"}
+VALID_FORMATTERS = {"black", "clang-format", "eslint", "rustfmt"}
 VALID_ANDROID_FORMATTERS = {"android-format"}
 
 # Code-review bot must index issues from the whole codebase when pushing
@@ -179,11 +179,13 @@ def format_files(command_context, paths, extra_args=[], **kwargs):
                 "Note that only the following linters are valid formatters:"
             )
             print("\n".join(sorted(formatters)))
+            print("Further note that for eslint, only prettier will run.")
             return 1
 
     kwargs["linters"] = list(linters)
 
     kwargs["fix"] = True
+    kwargs["formatonly"] = True
     command_context._mach_context.commands.dispatch(
         "lint", command_context._mach_context, paths=paths, argv=extra_args, **kwargs
     )
