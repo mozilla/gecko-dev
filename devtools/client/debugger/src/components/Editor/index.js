@@ -58,6 +58,7 @@ import {
   setDocument,
   resetLineNumberFormat,
   getEditor,
+  removeEditor,
   lineAtHeight,
   toSourceLine,
   getDocument,
@@ -422,6 +423,7 @@ class Editor extends PureComponent {
       }
       editor.destroy();
       this.setState({ editor: null });
+      removeEditor();
     }
   }
 

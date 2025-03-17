@@ -204,6 +204,8 @@ class Editor extends EventEmitter {
   #scrollSnapshots = new Map();
   #updateListener = null;
 
+  #sources = new Map();
+
   constructor(config) {
     super();
 
@@ -2482,6 +2484,25 @@ class Editor extends EventEmitter {
     this.resetIndentUnit();
   }
 
+  addSource(id, sourceText) {
+    this.#sources.set(id, sourceText);
+  }
+
+  clearSources(ids) {
+    if (ids) {
+      for (const id of ids) {
+        this.#sources.delete(id);
+      }
+    } else {
+      this.#sources.clear();
+    }
+  }
+
+  /* Currently used only in tests */
+  sourcesCount() {
+    return this.#sources.size;
+  }
+
   /**
    * Reloads the state of the editor based on all current preferences.
    * This is called automatically when any of the relevant preferences
@@ -3631,6 +3652,7 @@ class Editor extends EventEmitter {
     this.#lineGutterMarkers.clear();
     this.#lineContentMarkers.clear();
     this.#scrollSnapshots.clear();
+    this.clearSources();
 
     if (this.#prefObserver) {
       this.#prefObserver.off(KEYMAP_PREF, this.setKeyMap);

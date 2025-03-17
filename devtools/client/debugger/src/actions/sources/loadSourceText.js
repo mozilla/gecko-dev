@@ -21,6 +21,9 @@ import { isPretty } from "../../utils/source";
 import { createLocation } from "../../utils/location";
 import { memoizeableAction } from "../../utils/memoizableAction";
 
+import { features } from "../../utils/prefs";
+import { getEditor } from "../../utils/editor/index";
+
 async function loadGeneratedSource(sourceActor, { client }) {
   // If no source actor can be found then the text for the
   // source cannot be loaded.
@@ -132,13 +135,20 @@ async function onSourceTextContentAvailable(
     return;
   }
 
+  const contentValue = isFulfilled(content)
+    ? content.value
+    : { type: "text", value: "", contentType: undefined };
+
+  // Lezer parser uses the sources to map the original frame names
+  if (features.codemirrorNext) {
+    const editor = getEditor(features.codemirrorNext);
+    if (!editor.isWasm) {
+      editor.addSource(source.id, contentValue.value);
+    }
+  }
+  // The babel parser needs the sources to parse scopes
   if (parserWorker.isLocationSupported(location)) {
-    parserWorker.setSource(
-      source.id,
-      isFulfilled(content)
-        ? content.value
-        : { type: "text", value: "", contentType: undefined }
-    );
+    parserWorker.setSource(source.id, contentValue);
   }
 
   // Update the text in any breakpoints for this source by re-adding them.
