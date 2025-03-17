@@ -361,8 +361,9 @@ inline UnsignedInteger ToUnsignedInteger(double d) {
   }
 
   // Compute the congruent value in the signed range.
-  return (bits & mozilla::FloatingPoint<double>::kSignBit) ? ~result + 1
-                                                           : result;
+  return (bits & mozilla::FloatingPoint<double>::kSignBit)
+             ? UnsignedInteger(~result) + 1
+             : result;
 }
 
 template <typename SignedInteger>
