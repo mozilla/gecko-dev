@@ -20,9 +20,8 @@ import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.feature.awesomebar.provider.BookmarksStorageSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.CombinedHistorySuggestionProvider
-import mozilla.components.feature.awesomebar.provider.DEFAULT_RECENT_SEARCH_SUGGESTION_LIMIT
+import mozilla.components.feature.awesomebar.provider.DEFAULT_SEARCH_TERMS_SUGGESTION_LIMIT
 import mozilla.components.feature.awesomebar.provider.HistoryStorageSuggestionProvider
-import mozilla.components.feature.awesomebar.provider.RecentSearchSuggestionsProvider
 import mozilla.components.feature.awesomebar.provider.SearchActionProvider
 import mozilla.components.feature.awesomebar.provider.SearchEngineSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.SearchSuggestionProvider
@@ -504,11 +503,11 @@ class AwesomeBarView(
     @VisibleForTesting
     internal fun getRecentSearchSuggestionsProvider(
         searchEngineSource: SearchEngineSource,
-        maxNumberOfSuggestions: Int = DEFAULT_RECENT_SEARCH_SUGGESTION_LIMIT,
+        maxNumberOfSuggestions: Int = DEFAULT_SEARCH_TERMS_SUGGESTION_LIMIT,
     ): AwesomeBar.SuggestionProvider? {
         val validSearchEngine = searchEngineSource.searchEngine ?: return null
 
-        return RecentSearchSuggestionsProvider(
+        return SearchTermSuggestionsProvider(
             historyStorage = components.core.historyStorage,
             searchUseCase = historySearchTermUseCase,
             searchEngine = validSearchEngine,
@@ -516,6 +515,7 @@ class AwesomeBarView(
             icon = getDrawable(activity, R.drawable.ic_history)?.toBitmap(),
             engine = engineForSpeculativeConnects,
             suggestionsHeader = activity.getString(R.string.recent_searches_header),
+            showSuggestionsOnlyWhenEmpty = true,
         )
     }
 

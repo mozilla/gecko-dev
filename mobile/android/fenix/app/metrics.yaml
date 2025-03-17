@@ -317,8 +317,7 @@ events:
           tracking_protection, search_bookmarks, search_browsing_history, show_clipboard_suggestions,
           show_search_shortcuts, open_links_in_a_private_tab, pref_key_sync_logins,
           pref_key_sync_bookmarks, pref_key_sync_history, pref_key_show_voice_search,
-          pref_key_show_search_suggestions_in_private, pref_key_show_trending_search_suggestions,
-          pref_key_show_recent_search_suggestions, pref_key_show_shortcuts_suggestions.
+          pref_key_show_search_suggestions_in_private and pref_key_show_trending_search_suggestions.
         type: string
       enabled:
         description: "Whether or not the preference is *now* enabled"
@@ -332,7 +331,6 @@ events:
       - https://github.com/mozilla-mobile/fenix/issues/6070
       - https://github.com/mozilla-mobile/fenix/issues/19923
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1945634
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950208
     data_reviews:
       - https://github.com/mozilla-mobile/fenix/pull/1896
       - https://github.com/mozilla-mobile/fenix/pull/5704
@@ -345,7 +343,6 @@ events:
       - https://github.com/mozilla-mobile/fenix/pull/19924#issuecomment-861423789
       - https://github.com/mozilla-mobile/fenix/pull/21038#issuecomment-906757301
       - https://phabricator.services.mozilla.com/D239200
-      - https://phabricator.services.mozilla.com/D240680
     data_sensitivity:
       - technical
       - interaction
@@ -10144,17 +10141,11 @@ awesomebar:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1945634
     data_reviews:
       - https://phabricator.services.mozilla.com/D239200
-      - https://phabricator.services.mozilla.com/D241711
     data_sensitivity:
       - interaction
     notification_emails:
       - android-probes@mozilla.com
     expires: never
-    extra_keys:
-      position:
-        description: |
-          The position of the clicked trending search suggestion.
-        type: quantity
     metadata:
       tags:
         - Search
@@ -10166,102 +10157,11 @@ awesomebar:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1945634
     data_reviews:
       - https://phabricator.services.mozilla.com/D239200
-      - https://phabricator.services.mozilla.com/D241711
     data_sensitivity:
       - interaction
     notification_emails:
       - android-probes@mozilla.com
     expires: never
-    extra_keys:
-      position:
-        description: |
-          The position of the clicked top site suggestion.
-        type: quantity
-    metadata:
-      tags:
-        - Search
-  recent_search_suggestion_clicked:
-    type: event
-    description: |
-      The recent search suggestion in awesomebar was clicked.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950208
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D240680
-      - https://phabricator.services.mozilla.com/D241711
-    data_sensitivity:
-      - interaction
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
-    extra_keys:
-      position:
-        description: |
-          The position of the clicked recent site suggestion.
-        type: quantity
-    metadata:
-      tags:
-        - Search
-  trending_search_suggestions_displayed:
-    type: event
-    description: |
-      Trending search suggestions are displayed in the awesomebar.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950134
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D241711
-    data_sensitivity:
-      - interaction
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
-    extra_keys:
-      count:
-        description: |
-          The number of trending search suggestions displayed.
-        type: quantity
-    metadata:
-      tags:
-        - Search
-  recent_search_suggestions_displayed:
-    type: event
-    description: |
-      Recent search suggestions are displayed in the awesomebar.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950134
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D241711
-    data_sensitivity:
-      - interaction
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
-    extra_keys:
-      count:
-        description: |
-          The number of recent search suggestions displayed.
-        type: quantity
-    metadata:
-      tags:
-        - Search
-  top_site_suggestions_displayed:
-    type: event
-    description: |
-      Top site suggestions are displayed in the awesomebar.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950134
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D241711
-    data_sensitivity:
-      - interaction
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
-    extra_keys:
-      count:
-        description: |
-          The number of top site suggestions displayed.
-        type: quantity
     metadata:
       tags:
         - Search
