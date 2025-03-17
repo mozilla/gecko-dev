@@ -6,35 +6,35 @@ const DEFAULT_SITES_MAP = new Map([
   // This first item is the global list fallback for any unexpected geos
   [
     "",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.wikipedia.org/,https://www.reddit.com/,https://twitter.com/",
+    "https://www.wikipedia.org/,https://www.youtube.com/,https://www.reddit.com/,https://addons.mozilla.org",
   ],
   [
     "US",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.reddit.com/,https://www.wikipedia.org/,https://twitter.com/",
+    "https://www.wikipedia.org/,https://www.youtube.com/,https://apnews.com/,https://www.reddit.com/",
   ],
   [
     "CA",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.reddit.com/,https://www.wikipedia.org/,https://twitter.com/",
+    "https://www.wikipedia.org/,https://www.youtube.com/,https://www.reddit.com/,https://addons.mozilla.org",
   ],
   [
     "DE",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.ebay.de/,https://www.wikipedia.org/,https://www.reddit.com/",
+    "https://www.wikipedia.org/,https://www.youtube.com/,https://www.tagesschau.de/,https://www.reddit.com/",
   ],
   [
     "PL",
-    "https://www.youtube.com/,https://www.facebook.com/,https://allegro.pl/,https://www.wikipedia.org/,https://www.olx.pl/,https://www.wykop.pl/",
+    "https://www.wikipedia.org/,https://www.youtube.com/,https://www.reddit.com/,https://addons.mozilla.org",
   ],
   [
     "RU",
-    "https://vk.com/,https://www.youtube.com/,https://ok.ru/,https://www.avito.ru/,https://www.aliexpress.com/,https://www.wikipedia.org/",
+    "https://www.wikipedia.org/,https://www.youtube.com/,https://www.reddit.com/,https://addons.mozilla.org",
   ],
   [
     "GB",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.reddit.com/,https://www.bbc.co.uk/,https://www.ebay.co.uk/",
+    "https://www.wikipedia.org/,https://www.youtube.com/,https://www.bbc.co.uk/,https://www.reddit.com/",
   ],
   [
     "FR",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.wikipedia.org/,https://www.leboncoin.fr/,https://twitter.com/",
+    "https://www.wikipedia.org/,https://www.youtube.com/,https://www.lemonde.fr/,https://www.reddit.com/",
   ],
   [
     "CN",

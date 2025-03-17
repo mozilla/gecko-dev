@@ -5,6 +5,11 @@
     "favicon_url": "favicons/adidas.png"
   },
   {
+    "domains": ["addons.mozilla.org"],
+    "image_url": "images/addons-mozilla@2x.png",
+    "favicon_url": "favicons/addons-mozilla.png"
+  },
+  {
     "domains": ["aliexpress.com"],
     "image_url": "images/aliexpress-com@2x.png",
     "favicon_url": "favicons/aliexpress-com.ico"
@@ -38,6 +43,11 @@
     ],
     "image_url": "images/amazon@2x.png",
     "favicon_url": "favicons/amazon.ico"
+  },
+  {
+    "domains": ["apnews.com"],
+    "image_url": "images/apnews@2x.png",
+    "favicon_url": "favicons/apnews.png"
   },
   {
     "domains": ["avito.ru"],
@@ -99,7 +109,7 @@
   {
     "domains": ["facebook.com"],
     "image_url": "images/facebook-com@2x.png",
-    "favicon_url": "favicons/facebook-com.ico"
+    "favicon_url": "favicons/facebook-com.png"
   },
   {
     "domains": ["geico.com"],
@@ -132,9 +142,19 @@
     "favicon_url": "favicons/leboncoin-fr.png"
   },
   {
+    "domains": ["lemonde.fr"],
+    "image_url": "images/lemonde@2x.png",
+    "favicon_url": "favicons/lemonde.png"
+  },
+  {
     "domains": ["nike.com"],
     "image_url": "images/nike@2x.jpg",
     "favicon_url": "favicons/nike.ico"
+  },
+  {
+    "domains": ["ndtv.com"],
+    "image_url": "images/ndtv@2x.png",
+    "favicon_url": "favicons/ndtv.png"
   },
   {
     "domains": ["ok.ru"],
@@ -155,6 +175,11 @@
     "domains": ["samsung.com"],
     "image_url": "images/samsung@2x.jpg",
     "favicon_url": "favicons/samsung.ico"
+  },
+  {
+    "domains": ["tagesschau.de"],
+    "image_url": "images/tagesschau@2x.png",
+    "favicon_url": "favicons/tagesschau.png"
   },
   {
     "domains": ["turbotax.intuit.com"],
