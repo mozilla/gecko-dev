@@ -25,6 +25,8 @@ prefs = [
 
 ["browser_bump_version.js"]
 
+["browser_clearCacheAndUninit.js"]
+
 ["browser_disabled.js"]
 
 ["browser_experiments_api_control.js"]

@@ -177,11 +177,13 @@ export var AboutHomeStartupCache = {
       await this.cacheNow();
     }, this.CACHE_DEBOUNCE_RATE_MS);
 
+    this._shutdownBlocker = async () => {
+      await this.onShutdown();
+    };
+
     lazy.AsyncShutdown.quitApplicationGranted.addBlocker(
       "AboutHomeStartupCache: Writing cache",
-      async () => {
-        await this.onShutdown();
-      },
+      this._shutdownBlocker,
       () => this._cacheProgress
     );
 
@@ -235,6 +237,11 @@ export var AboutHomeStartupCache = {
     this._cacheDeferred = null;
     this._finalized = false;
     this._firstPrivilegedProcessCreated = false;
+
+    lazy.AsyncShutdown.quitApplicationGranted.removeBlocker(
+      this._shutdownBlocker
+    );
+    this._shutdownBlocker = null;
   },
 
   _aboutHomeURI: null,
@@ -634,6 +641,20 @@ export var AboutHomeStartupCache = {
       resolve(this._cacheEntry);
     });
     this._hasWrittenThisSession = false;
+  },
+
+  /**
+   * Clears the contents of the cache, and then completely uninitializes the
+   * AboutHomeStartupCache caching mechanism until the next time it's
+   * initialized (which outside of testing scenarios, is the next browser
+   * start).
+   */
+  clearCacheAndUninit() {
+    if (this._enabled && this.initted) {
+      this.log.trace("Clearing the cache and uninitializing.");
+      this.clearCache();
+      this.uninit();
+    }
   },
 
   /**
