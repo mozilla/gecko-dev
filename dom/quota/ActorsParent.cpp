@@ -6490,8 +6490,6 @@ RefPtr<BoolPromise> QuotaManager::InitializeAllTemporaryOrigins() {
 
     auto processNextGroup = [self = RefPtr(this)](
                                 auto&& processNextGroupCallback) {
-      // TODO: Add shutdown checks.
-
       auto backgroundThreadData = self->mBackgroundThreadAccessible.Access();
 
       if (backgroundThreadData->mUninitializedGroups.IsEmpty()) {
@@ -6500,6 +6498,15 @@ RefPtr<BoolPromise> QuotaManager::InitializeAllTemporaryOrigins() {
 
         self->mInitializeAllTemporaryOriginsPromiseHolder.ResolveIfExists(
             true, __func__);
+
+        return;
+      }
+
+      if (NS_WARN_IF(IsShuttingDown())) {
+        self->mInitializingAllTemporaryOrigins = false;
+
+        self->mInitializeAllTemporaryOriginsPromiseHolder.RejectIfExists(
+            NS_ERROR_ABORT, __func__);
 
         return;
       }
