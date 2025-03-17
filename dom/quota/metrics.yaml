@@ -103,3 +103,46 @@ quotamanager.initialize.repository:
       - temporary
       - default
       - private
+
+dom.quota:
+  info_load_time:
+    type: labeled_timing_distribution
+    description: >
+      Time (ms) for the QuotaManager to load quota information. Keyed by
+      conditions during quota info loading, see RecordTimeDeltaHelper::Run in
+      https://searchfox.org/mozilla-central/source/dom/quota/ActorsParent.cpp
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram QM_QUOTA_INFO_LOAD_TIME_V0.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1609625
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1683102
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1609625
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1683102
+    notification_emails:
+      - ttung@mozilla.com
+      - storage-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: QM_QUOTA_INFO_LOAD_TIME_V0
+
+  shutdown_time:
+    type: labeled_timing_distribution
+    description: >
+      Time (ms) for the QuotaManager to shutdown. Keyed by conditions during
+      shutdown, see RecordTimeDeltaHelper::Run in
+      https://searchfox.org/mozilla-central/source/dom/quota/ActorsParent.cpp
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram QM_SHUTDOWN_TIME_V0.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1824075
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1824075
+    notification_emails:
+      - jvarga@mozilla.com
+      - storage-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: QM_SHUTDOWN_TIME_V0
