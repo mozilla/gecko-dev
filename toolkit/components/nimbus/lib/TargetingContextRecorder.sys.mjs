@@ -5,10 +5,11 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   ASRouterTargeting:
     // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
     "resource:///modules/asrouter/ASRouterTargeting.sys.mjs",
+  ClientID: "resource://gre/modules/ClientID.sys.mjs",
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   TargetingContext: "resource://messaging-system/targeting/Targeting.sys.mjs",
 });
@@ -394,6 +395,9 @@ export async function recordTargetingContext() {
   recordPrefValues();
   recordUserSetPrefs();
   await recordTargetingContextAttributes();
+
+  // This will ensure that the profile group ID metric has been set.
+  await lazy.ClientID.getProfileGroupID();
 
   GleanPings.nimbusTargetingContext.submit();
 }
