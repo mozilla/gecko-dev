@@ -15,7 +15,6 @@ import org.mozilla.focus.ext.showCrashReports
 import org.mozilla.focus.ext.showToolbar
 import org.mozilla.focus.state.AppAction
 import org.mozilla.focus.state.Screen
-import org.mozilla.focus.utils.AppConstants
 import org.mozilla.focus.utils.SupportUtils
 
 class MozillaSettingsFragment :
@@ -60,14 +59,8 @@ class MozillaSettingsFragment :
                 requireComponents.appStore.dispatch(AppAction.OpenTab(tabId))
             }
             resources.getString(R.string.pref_key_privacy_notice) -> {
-                val url = if (AppConstants.isKlarBuild) {
-                    SupportUtils.PRIVACY_NOTICE_KLAR_URL
-                } else {
-                    SupportUtils.PRIVACY_NOTICE_URL
-                }
-
                 val tabId = activity.components.tabsUseCases.addTab(
-                    url,
+                    SupportUtils.PRIVACY_NOTICE_URL,
                     source = SessionState.Source.Internal.Menu,
                     selectTab = true,
                     private = true,
