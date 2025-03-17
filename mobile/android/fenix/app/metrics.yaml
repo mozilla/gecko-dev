@@ -10144,11 +10144,17 @@ awesomebar:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1945634
     data_reviews:
       - https://phabricator.services.mozilla.com/D239200
+      - https://phabricator.services.mozilla.com/D241711
     data_sensitivity:
       - interaction
     notification_emails:
       - android-probes@mozilla.com
     expires: never
+    extra_keys:
+      position:
+        description: |
+          The position of the clicked trending search suggestion.
+        type: quantity
     metadata:
       tags:
         - Search
@@ -10160,11 +10166,17 @@ awesomebar:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1945634
     data_reviews:
       - https://phabricator.services.mozilla.com/D239200
+      - https://phabricator.services.mozilla.com/D241711
     data_sensitivity:
       - interaction
     notification_emails:
       - android-probes@mozilla.com
     expires: never
+    extra_keys:
+      position:
+        description: |
+          The position of the clicked top site suggestion.
+        type: quantity
     metadata:
       tags:
         - Search
@@ -10176,11 +10188,80 @@ awesomebar:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1950208
     data_reviews:
       - https://phabricator.services.mozilla.com/D240680
+      - https://phabricator.services.mozilla.com/D241711
     data_sensitivity:
       - interaction
     notification_emails:
       - android-probes@mozilla.com
     expires: never
+    extra_keys:
+      position:
+        description: |
+          The position of the clicked recent site suggestion.
+        type: quantity
+    metadata:
+      tags:
+        - Search
+  trending_search_suggestions_displayed:
+    type: event
+    description: |
+      Trending search suggestions are displayed in the awesomebar.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950134
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D241711
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    extra_keys:
+      count:
+        description: |
+          The number of trending search suggestions displayed.
+        type: quantity
+    metadata:
+      tags:
+        - Search
+  recent_search_suggestions_displayed:
+    type: event
+    description: |
+      Recent search suggestions are displayed in the awesomebar.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950134
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D241711
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    extra_keys:
+      count:
+        description: |
+          The number of recent search suggestions displayed.
+        type: quantity
+    metadata:
+      tags:
+        - Search
+  top_site_suggestions_displayed:
+    type: event
+    description: |
+      Top site suggestions are displayed in the awesomebar.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950134
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D241711
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    extra_keys:
+      count:
+        description: |
+          The number of top site suggestions displayed.
+        type: quantity
     metadata:
       tags:
         - Search

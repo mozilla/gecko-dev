@@ -293,13 +293,34 @@ internal class ReleaseMetricController(
             Awesomebar.searchSuggestionClicked.record(NoExtras())
         }
         Component.FEATURE_AWESOMEBAR to AwesomeBarFacts.Items.TRENDING_SEARCH_SUGGESTION_CLICKED -> {
-            Awesomebar.trendingSearchSuggestionClicked.record(NoExtras())
+            Awesomebar.trendingSearchSuggestionClicked.record(
+                Awesomebar.TrendingSearchSuggestionClickedExtra(position = value?.toInt() ?: 0),
+            )
         }
         Component.FEATURE_AWESOMEBAR to AwesomeBarFacts.Items.TOP_SITE_SUGGESTION_CLICKED -> {
-            Awesomebar.topSiteSuggestionClicked.record(NoExtras())
+            Awesomebar.topSiteSuggestionClicked.record(
+                Awesomebar.TopSiteSuggestionClickedExtra(position = value?.toInt() ?: 0),
+            )
         }
         Component.FEATURE_AWESOMEBAR to AwesomeBarFacts.Items.RECENT_SEARCH_SUGGESTION_CLICKED -> {
-            Awesomebar.recentSearchSuggestionClicked.record(NoExtras())
+            Awesomebar.recentSearchSuggestionClicked.record(
+                Awesomebar.RecentSearchSuggestionClickedExtra(position = value?.toInt() ?: 0),
+            )
+        }
+        Component.FEATURE_AWESOMEBAR to AwesomeBarFacts.Items.TRENDING_SEARCH_SUGGESTIONS_DISPLAYED -> {
+            Awesomebar.trendingSearchSuggestionsDisplayed.record(
+                Awesomebar.TrendingSearchSuggestionsDisplayedExtra(count = value?.toInt() ?: 0),
+            )
+        }
+        Component.FEATURE_AWESOMEBAR to AwesomeBarFacts.Items.TOP_SITE_SUGGESTIONS_DISPLAYED -> {
+            Awesomebar.topSiteSuggestionsDisplayed.record(
+                Awesomebar.TopSiteSuggestionsDisplayedExtra(count = value?.toInt() ?: 0),
+            )
+        }
+        Component.FEATURE_AWESOMEBAR to AwesomeBarFacts.Items.RECENT_SEARCH_SUGGESTIONS_DISPLAYED -> {
+            Awesomebar.recentSearchSuggestionsDisplayed.record(
+                Awesomebar.RecentSearchSuggestionsDisplayedExtra(count = value?.toInt() ?: 0),
+            )
         }
         Component.FEATURE_AWESOMEBAR to AwesomeBarFacts.Items.OPENED_TAB_SUGGESTION_CLICKED -> {
             Awesomebar.openedTabSuggestionClicked.record(NoExtras())
