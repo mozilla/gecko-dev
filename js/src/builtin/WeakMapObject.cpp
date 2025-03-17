@@ -149,6 +149,75 @@ bool WeakMapObject::set(JSContext* cx, unsigned argc, Value* vp) {
                                                                           args);
 }
 
+#ifdef NIGHTLY_BUILD
+static bool getOrAddWeakMapEntry(JSContext* cx, Handle<WeakMapObject*> mapObj,
+                                 Handle<Value> key, Handle<Value> value,
+                                 MutableHandleValue rval) {
+  if (MOZ_UNLIKELY(!CanBeHeldWeakly(cx, key))) {
+    unsigned errorNum = GetErrorNumber(true);
+    ReportValueError(cx, errorNum, JSDVG_IGNORE_STACK, key, nullptr);
+    return false;
+  }
+
+  ValueValueWeakMap* map = mapObj->getMap();
+  if (!map) {
+    auto newMap = cx->make_unique<ValueValueWeakMap>(cx, mapObj.get());
+    if (!newMap) {
+      return false;
+    }
+    map = newMap.release();
+    InitReservedSlot(mapObj, WeakCollectionObject::DataSlot, map,
+                     MemoryUse::WeakMapObject);
+  }
+
+  ValueValueWeakMap::AddPtr addPtr = map->lookupForAdd(key);
+  if (!addPtr) {
+    if (key.isObject()) {
+      RootedObject keyObj(cx, &key.toObject());
+
+      // Preserve wrapped native keys to prevent wrapper optimization.
+      if (!TryPreserveReflector(cx, keyObj)) {
+        return false;
+      }
+
+      RootedObject delegate(cx, UncheckedUnwrapWithoutExpose(keyObj));
+      if (delegate && !TryPreserveReflector(cx, delegate)) {
+        return false;
+      }
+    }
+    MOZ_ASSERT_IF(key.isObject(),
+                  key.toObject().compartment() == mapObj->compartment());
+    MOZ_ASSERT_IF(
+        value.isGCThing(),
+        gc::ToMarkable(value)->zoneFromAnyThread() == mapObj->zone() ||
+            gc::ToMarkable(value)->zoneFromAnyThread()->isAtomsZone());
+    MOZ_ASSERT_IF(value.isObject(),
+                  value.toObject().compartment() == mapObj->compartment());
+    if (!map->add(addPtr, key, value)) {
+      JS_ReportOutOfMemory(cx);
+      return false;
+    }
+  }
+  rval.set(addPtr->value());
+  return true;
+}
+
+/* static */ MOZ_ALWAYS_INLINE bool WeakMapObject::getOrInsert_impl(
+    JSContext* cx, const CallArgs& args) {
+  MOZ_ASSERT(WeakMapObject::is(args.thisv()));
+
+  Rooted<WeakMapObject*> map(cx, &args.thisv().toObject().as<WeakMapObject>());
+  return getOrAddWeakMapEntry(cx, map, args.get(0), args.get(1), args.rval());
+}
+
+/* static */
+bool WeakMapObject::getOrInsert(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  return CallNonGenericMethod<WeakMapObject::is,
+                              WeakMapObject::getOrInsert_impl>(cx, args);
+}
+#endif  // #ifdef NIGHTLY_BUILD
+
 size_t WeakCollectionObject::sizeOfExcludingThis(
     mozilla::MallocSizeOf aMallocSizeOf) {
   ValueValueWeakMap* map = getMap();
@@ -386,7 +455,7 @@ const JSFunctionSpec WeakMapObject::methods[] = {
     JS_FN("delete", delete_, 1, 0),
     JS_FN("set", set, 2, 0),
 #ifdef NIGHTLY_BUILD
-    JS_SELF_HOSTED_FN("getOrInsert", "WeakMapGetOrInsert", 2, 0),
+    JS_FN("getOrInsert", getOrInsert, 2, 0),
     JS_SELF_HOSTED_FN("getOrInsertComputed", "WeakMapGetOrInsertComputed", 2,
                       0),
 #endif

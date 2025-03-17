@@ -388,7 +388,7 @@ const JSFunctionSpec MapObject::methods[] = {
     JS_FN("clear", clear, 0, 0),
     JS_SELF_HOSTED_FN("forEach", "MapForEach", 2, 0),
 #ifdef NIGHTLY_BUILD
-    JS_SELF_HOSTED_FN("getOrInsert", "MapGetOrInsert", 2, 0),
+    JS_FN("getOrInsert", getOrInsert, 2, 0),
     JS_SELF_HOSTED_FN("getOrInsertComputed", "MapGetOrInsertComputed", 2, 0),
 #endif
     JS_FN("entries", entries, 0, 0),
@@ -572,6 +572,39 @@ bool MapObject::setWithHashableKey(JSContext* cx, const HashableValue& key,
 
   return true;
 }
+
+#ifdef NIGHTLY_BUILD
+bool MapObject::getOrInsert(JSContext* cx, const Value& key, const Value& val,
+                            MutableHandleValue rval) {
+  HashableValue k;
+  if (!k.setValue(cx, key)) {
+    return false;
+  }
+
+  bool needsPostBarriers = isTenured();
+  if (needsPostBarriers) {
+    if (!PostWriteBarrier(this, k)) {
+      ReportOutOfMemory(cx);
+      return false;
+    }
+    // Use the Table representation which has post barriers.
+    if (const Table::Entry* p = Table(this).getOrAdd(cx, k, val)) {
+      rval.set(p->value);
+    } else {
+      return false;
+    }
+  } else {
+    // Use the PreBarrieredTable representation which does not.
+    if (const PreBarrieredTable::Entry* p =
+            PreBarrieredTable(this).getOrAdd(cx, k, val)) {
+      rval.set(p->value);
+    } else {
+      return false;
+    }
+  }
+  return true;
+}
+#endif  // #ifdef NIGHTLY_BUILD
 
 MapObject* MapObject::createWithProto(JSContext* cx, HandleObject proto,
                                       NewObjectKind newKind) {
@@ -914,6 +947,21 @@ bool MapObject::set(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   return CallNonGenericMethod<MapObject::is, MapObject::set_impl>(cx, args);
 }
+
+#ifdef NIGHTLY_BUILD
+bool MapObject::getOrInsert_impl(JSContext* cx, const CallArgs& args) {
+  auto* mapObj = &args.thisv().toObject().as<MapObject>();
+  return mapObj->getOrInsert(cx, args.get(0), args.get(1), args.rval());
+}
+
+bool MapObject::getOrInsert(JSContext* cx, unsigned argc, Value* vp) {
+  AutoJSMethodProfilerEntry pseudoFrame(cx, "Map.prototype",
+                                        "getOrInsertComputed");
+  CallArgs args = CallArgsFromVp(argc, vp);
+  return CallNonGenericMethod<MapObject::is, MapObject::getOrInsert_impl>(cx,
+                                                                          args);
+}
+#endif  // #ifdef NIGHTLY_BUILD
 
 bool MapObject::delete_(JSContext* cx, const Value& key, bool* rval) {
   HashableValue k;
@@ -1832,6 +1880,31 @@ JS_PUBLIC_API bool JS::MapHas(JSContext* cx, HandleObject obj, HandleValue key,
   }
   return enter.unwrapped()->has(cx, wrappedKey, rval);
 }
+
+#ifdef NIGHTLY_BUILD
+JS_PUBLIC_API bool JS::MapGetOrInsert(JSContext* cx, HandleObject obj,
+                                      HandleValue key, HandleValue val,
+                                      MutableHandleValue rval) {
+  CHECK_THREAD(cx);
+  cx->check(obj, key, val);
+
+  if (obj->is<MapObject>()) {
+    return obj.as<MapObject>()->getOrInsert(cx, key, val, rval);
+  }
+  {
+    AutoEnterTableRealm<MapObject> enter(cx, obj);
+    Rooted<Value> wrappedKey(cx, key);
+    Rooted<Value> wrappedValue(cx, val);
+    if (!JS_WrapValue(cx, &wrappedKey) || !JS_WrapValue(cx, &wrappedValue)) {
+      return false;
+    }
+    if (!enter.unwrapped()->getOrInsert(cx, wrappedKey, wrappedValue, rval)) {
+      return false;
+    }
+  }
+  return JS_WrapValue(cx, rval);
+}
+#endif  // #ifdef NIGHTLY_BUILD
 
 JS_PUBLIC_API bool JS::MapDelete(JSContext* cx, HandleObject obj,
                                  HandleValue key, bool* rval) {

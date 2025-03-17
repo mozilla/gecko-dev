@@ -31,43 +31,6 @@ function WeakMapConstructorInit(iterable) {
 /**
  * Upsert proposal
  * 
- * WeakMap.prototype.getOrInsert ( key, value )
- *
- * https://tc39.es/proposal-upsert/
- */
-function WeakMapGetOrInsert(key, value) {
-  // Step 1.  Let M be the this value.
-  var M = this;
-
-  // Step 2.  Perform ? RequireInternalSlot(M, [[WeakMapData]]).
-  if (!IsObject(M) || (M = GuardToWeakMapObject(M)) === null) {
-    return callFunction(
-      CallWeakMapMethodIfWrapped,
-      this,
-      key,
-      value,
-      "WeakMapGetOrInsert"
-    );
-  }
-
-  // Step 3.  If CanBeHeldWeakly(key) is false, throw a TypeError exception.
-  // Step 4.  For each Record { [[Key]], [[Value]] } p of M.[[WeakMapData]], do
-  // Step 4.a.  If p.[[Key]] is not empty and SameValue(p.[[Key]], key) is true, return p.[[Value]].
-  if (callFunction(std_WeakMap_has, M, key)) {
-    return callFunction(std_WeakMap_get, M, key);
-  }
-
-  // Step 5.  Let p be the Record { [[Key]]: key, [[Value]]: value }.
-  // Step 6.  Append p to M.[[WeakMapData]].
-  callFunction(std_WeakMap_set, M, key, value);
-
-  // Step 7.  Return value.
-  return value;
-}
-
-/**
- * Upsert proposal
- * 
  * WeakMap.prototype.getOrInsertComputed ( key, callbackfn )
  *
  * https://tc39.es/proposal-upsert/

@@ -63,6 +63,12 @@ class WeakMapObject : public WeakCollectionObject {
   [[nodiscard]] static bool delete_(JSContext* cx, unsigned argc, Value* vp);
   [[nodiscard]] static MOZ_ALWAYS_INLINE bool set_impl(JSContext* cx,
                                                        const CallArgs& args);
+#ifdef NIGHTLY_BUILD
+  [[nodiscard]] static MOZ_ALWAYS_INLINE bool getOrInsert_impl(
+      JSContext* cx, const CallArgs& args);
+  [[nodiscard]] static bool getOrInsert(JSContext* cx, unsigned argc,
+                                        Value* vp);
+#endif  // #ifdef NIGHTLY_BUILD
 };
 
 }  // namespace js

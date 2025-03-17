@@ -59,6 +59,17 @@ BEGIN_TEST(testMap) {
     // Clear
     CHECK(JS::MapClear(cx, map));
     CHECK_EQUAL(JS::MapSize(cx, map), 0u);
+
+#ifdef NIGHTLY_BUILD
+    // GetOrInsert
+    CHECK(JS::MapSet(cx, map, val1, val2));
+    CHECK(JS::MapGetOrInsert(cx, map, val1, val2, &rval));
+    CHECK(rval == val2);
+    CHECK(JS::MapGetOrInsert(cx, map, val2, val1, &rval));
+    CHECK(rval == val1);
+    CHECK_EQUAL(JS::MapSize(cx, map), 2u);
+    CHECK(JS::MapClear(cx, map));
+#endif  // #ifdef NIGHTLY_BUILD
     return true;
   };
 
