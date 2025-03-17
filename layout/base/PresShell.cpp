@@ -3727,8 +3727,11 @@ static nsMargin GetScrollMargin(const nsIFrame* aFrame) {
   // TODO: This is also a bit of an issue for delegated focus, see
   // https://github.com/whatwg/html/issues/7033.
   if (aFrame->GetContent() && aFrame->GetContent()->ChromeOnlyAccess()) {
+    // XXX Should we use nsIContent::FindFirstNonChromeOnlyAccessContent()
+    // instead of nsINode::GetClosestNativeAnonymousSubtreeRootParentOrHost()?
     if (const nsIContent* userContent =
-            aFrame->GetContent()->GetChromeOnlyAccessSubtreeRootParent()) {
+            aFrame->GetContent()
+                ->GetClosestNativeAnonymousSubtreeRootParentOrHost()) {
       if (const nsIFrame* frame = userContent->GetPrimaryFrame()) {
         return frame->StyleMargin()->GetScrollMargin();
       }

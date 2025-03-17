@@ -1634,10 +1634,6 @@ class nsINode : public mozilla::dom::EventTarget {
     return ChromeOnlyAccess() && !HasBeenInUAWidget();
   }
 
-  const nsIContent* GetChromeOnlyAccessSubtreeRootParent() const {
-    return GetClosestNativeAnonymousSubtreeRootParentOrHost();
-  }
-
   bool IsInShadowTree() const { return HasFlag(NODE_IS_IN_SHADOW_TREE); }
 
   /**

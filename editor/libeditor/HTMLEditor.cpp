@@ -7522,10 +7522,12 @@ Element* HTMLEditor::ComputeEditingHostInternal(
     }
     if (Element* focusedElementInWindow = innerWindow->GetFocusedElement()) {
       if (focusedElementInWindow->ChromeOnlyAccess()) {
-        focusedElementInWindow =
-            Element::FromNodeOrNull(const_cast<nsIContent*>(
-                focusedElementInWindow
-                    ->GetChromeOnlyAccessSubtreeRootParent()));
+        focusedElementInWindow = Element::FromNodeOrNull(
+            // XXX Should we use
+            // nsIContent::FindFirstNonChromeOnlyAccessContent() instead of
+            // nsINode::GetClosestNativeAnonymousSubtreeRootParentOrHost()?
+            focusedElementInWindow
+                ->GetClosestNativeAnonymousSubtreeRootParentOrHost());
       }
       if (focusedElementInWindow) {
         return focusedElementInWindow->IsEditable() ? focusedElementInWindow
