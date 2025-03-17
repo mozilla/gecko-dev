@@ -72,13 +72,13 @@ class SupportUtilsTest {
     fun `getMozillaPageUrl returns the correct URL for the terms of service`() {
         Locale.setDefault(Locale.UK)
         assertEquals(
-            "https://www.mozilla.org/en-GB/about/legal/terms/services/",
+            "https://www.mozilla.org/en-GB/about/legal/terms/firefox-focus/",
             SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.TERMS_OF_SERVICE),
         )
 
-        Locale.setDefault(Locale.KOREA)
+        Locale.setDefault(Locale.GERMAN)
         assertEquals(
-            "https://www.mozilla.org/ko-KR/about/legal/terms/services/",
+            "https://www.mozilla.org/de/about/legal/terms/firefox-focus/",
             SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.TERMS_OF_SERVICE),
         )
     }
@@ -87,13 +87,13 @@ class SupportUtilsTest {
     fun `getMozillaPageUrl returns the correct URL for the privacy notice`() {
         Locale.setDefault(Locale.UK)
         assertEquals(
-            "https://www.mozilla.org/en-GB/privacy/firefox/",
+            "https://www.mozilla.org/en-GB/privacy/firefox-focus/",
             SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.PRIVATE_NOTICE),
         )
 
-        Locale.setDefault(Locale.KOREA)
+        Locale.setDefault(Locale.GERMAN)
         assertEquals(
-            "https://www.mozilla.org/ko-KR/privacy/firefox/",
+            "https://www.mozilla.org/de/privacy/firefox-focus/",
             SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.PRIVATE_NOTICE),
         )
     }

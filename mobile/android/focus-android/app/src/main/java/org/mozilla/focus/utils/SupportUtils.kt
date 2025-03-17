@@ -44,8 +44,8 @@ object SupportUtils {
      * Paths for specific pages on the Mozilla website.
      */
     enum class MozillaPage(internal val path: String) {
-        PRIVATE_NOTICE("privacy/firefox/"),
-        TERMS_OF_SERVICE("about/legal/terms/services/"),
+        PRIVATE_NOTICE("privacy/firefox-focus/"),
+        TERMS_OF_SERVICE("about/legal/terms/firefox-focus/"),
     }
 
     /**
