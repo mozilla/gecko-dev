@@ -25,9 +25,6 @@ support-files = ["POSTSearchEngine.xml", "print_postdata.sjs"]
 ["browser_aboutHome_search_composing.js"]
 support-files = ["searchSuggestionEngine.xml", "searchSuggestionEngine.sjs"]
 
-["browser_aboutHome_search_searchbar.js"]
-support-files = ["searchSuggestionEngine.xml", "searchSuggestionEngine.sjs"]
-
 ["browser_aboutHome_search_suggestion.js"]
 support-files = ["searchSuggestionEngine.xml", "searchSuggestionEngine.sjs"]
 skip-if = [
@@ -127,3 +124,5 @@ skip-if = [
 
 ["browser_trending_suggestions.js"]
 support-files = ["trendingSuggestionEngine.sjs"]
+
+["browser_webSearch.js"]

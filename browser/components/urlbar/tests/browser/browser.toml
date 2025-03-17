@@ -259,8 +259,6 @@ support-files = [
 
 ["browser_focusContentDocumentEsc.js"]
 
-["browser_focusedCmdK.js"]
-
 ["browser_groupLabels.js"]
 support-files = [
   "searchSuggestionEngine.xml",
