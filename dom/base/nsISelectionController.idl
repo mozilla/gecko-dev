@@ -147,6 +147,7 @@ interface nsISelectionController : nsISelectionDisplay
    * @param aRegion the region inside the selection to scroll into view. //SelectionRegion
    * @param aFlags the scroll flags.
    */
+  [can_run_script]
   void scrollSelectionIntoView(in short type, in short region, in nsISelectionController_ControllerScrollFlags flags);
 
   /**
@@ -203,6 +204,7 @@ interface nsISelectionController : nsISelectionDisplay
    *  @param aForward forward or backward if false
    *  @param aExtend  should it collapse the selection of extend it?
    */
+  [can_run_script]
   void characterMove(in boolean forward, in boolean extend);
 
   /** PhysicalMove will move the selection one "unit" in a given direction
@@ -214,6 +216,7 @@ interface nsISelectionController : nsISelectionDisplay
    *  @param aAmount    character/line; word/lineBoundary
    *  @param aExtend    should it collapse the selection of extend it?
    */
+  [can_run_script]
   void physicalMove(in short direction, in short amount, in boolean extend);
 
   /**
@@ -232,6 +235,7 @@ interface nsISelectionController : nsISelectionDisplay
    *  @param aForward forward or backward if false
    *  @param aExtend  should it collapse the selection of extend it?
    */
+  [can_run_script]
   void wordMove(in boolean forward, in boolean extend);
 
   /** LineMove will move the selection one line forward/backward in the document.
@@ -241,6 +245,7 @@ interface nsISelectionController : nsISelectionDisplay
    *  @param aForward forward or backward if false
    *  @param aExtend  should it collapse the selection of extend it?
    */
+  [can_run_script]
   void lineMove(in boolean forward, in boolean extend);
 
   /** IntraLineMove will move the selection to the front of the line or end of the line
@@ -251,6 +256,7 @@ interface nsISelectionController : nsISelectionDisplay
    *  @param aForward forward or backward if false
    *  @param aExtend  should it collapse the selection of extend it?
    */
+  [can_run_script]
   void intraLineMove(in boolean forward, in boolean extend);
 
   /** PageMove will move the selection one page forward/backward in the document.

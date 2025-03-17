@@ -1340,7 +1340,7 @@ class EditorBase : public nsIEditor,
       return mParentData ? mParentData->RangeUpdaterRef() : mRangeUpdater;
     }
 
-    void UpdateSelectionCache(Selection& aSelection);
+    MOZ_CAN_RUN_SCRIPT void UpdateSelectionCache(Selection& aSelection);
 
     bool IsDispatchingInputEvent() const {
       return mDispatchingInputEvent ||
@@ -2548,7 +2548,8 @@ class EditorBase : public nsIEditor,
    *                            has parent node.  So, it's always safe to
    *                            call SetAncestorLimit() with this node.
    */
-  virtual void InitializeSelectionAncestorLimit(Element& aAncestorLimit) const;
+  MOZ_CAN_RUN_SCRIPT virtual void InitializeSelectionAncestorLimit(
+      Element& aAncestorLimit) const;
 
   /**
    * Initializes selection and caret for the editor at getting focus.  If

@@ -971,7 +971,7 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
   already_AddRefed<nsIURI> GetHrefURIForAnchors() const;
 
  private:
-  void ChangeEditableState(int32_t aChange);
+  MOZ_CAN_RUN_SCRIPT void ChangeEditableState(int32_t aChange);
 };
 
 namespace mozilla::dom {

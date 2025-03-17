@@ -1260,9 +1260,9 @@ class PresShell final : public nsStubDocumentObserver,
 
   NS_IMETHOD SetDisplaySelection(int16_t aToggle) override;
   NS_IMETHOD GetDisplaySelection(int16_t* aToggle) override;
-  NS_IMETHOD ScrollSelectionIntoView(RawSelectionType aRawSelectionType,
-                                     SelectionRegion aRegion,
-                                     ControllerScrollFlags aFlags) override;
+  MOZ_CAN_RUN_SCRIPT NS_IMETHOD ScrollSelectionIntoView(
+      RawSelectionType aRawSelectionType, SelectionRegion aRegion,
+      ControllerScrollFlags aFlags) override;
   using nsISelectionController::ScrollSelectionIntoView;
   NS_IMETHOD RepaintSelection(RawSelectionType aRawSelectionType) override;
   void SelectionWillTakeFocus() override;
@@ -1360,16 +1360,16 @@ class PresShell final : public nsStubDocumentObserver,
 
   // nsISelectionController
 
-  NS_IMETHOD PhysicalMove(int16_t aDirection, int16_t aAmount,
-                          bool aExtend) override;
-  NS_IMETHOD CharacterMove(bool aForward, bool aExtend) override;
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHOD WordMove(bool aForward,
-                                                  bool aExtend) override;
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHOD LineMove(bool aForward,
-                                                  bool aExtend) override;
-  NS_IMETHOD IntraLineMove(bool aForward, bool aExtend) override;
-  MOZ_CAN_RUN_SCRIPT
-  NS_IMETHOD PageMove(bool aForward, bool aExtend) override;
+  MOZ_CAN_RUN_SCRIPT NS_IMETHOD PhysicalMove(int16_t aDirection,
+                                             int16_t aAmount,
+                                             bool aExtend) override;
+  MOZ_CAN_RUN_SCRIPT NS_IMETHOD CharacterMove(bool aForward,
+                                              bool aExtend) override;
+  MOZ_CAN_RUN_SCRIPT NS_IMETHOD WordMove(bool aForward, bool aExtend) override;
+  MOZ_CAN_RUN_SCRIPT NS_IMETHOD LineMove(bool aForward, bool aExtend) override;
+  MOZ_CAN_RUN_SCRIPT NS_IMETHOD IntraLineMove(bool aForward,
+                                              bool aExtend) override;
+  MOZ_CAN_RUN_SCRIPT NS_IMETHOD PageMove(bool aForward, bool aExtend) override;
   NS_IMETHOD ScrollPage(bool aForward) override;
   NS_IMETHOD ScrollLine(bool aForward) override;
   NS_IMETHOD ScrollCharacter(bool aRight) override;

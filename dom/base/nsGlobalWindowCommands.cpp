@@ -122,10 +122,9 @@ class nsSelectionCommandsBase : public nsIControllerCommand {
   NS_IMETHOD GetCommandStateParams(const char* aCommandName,
                                    nsICommandParams* aParams,
                                    nsISupports* aCommandContext) override;
-  MOZ_CAN_RUN_SCRIPT
-  NS_IMETHOD DoCommandParams(const char* aCommandName,
-                             nsICommandParams* aParams,
-                             nsISupports* aCommandContext) override;
+  MOZ_CAN_RUN_SCRIPT NS_IMETHOD
+  DoCommandParams(const char* aCommandName, nsICommandParams* aParams,
+                  nsISupports* aCommandContext) override;
 
  protected:
   virtual ~nsSelectionCommandsBase() = default;
@@ -142,8 +141,8 @@ class nsSelectionCommandsBase : public nsIControllerCommand {
 // caret' setting
 class nsSelectMoveScrollCommand : public nsSelectionCommandsBase {
  public:
-  NS_IMETHOD DoCommand(const char* aCommandName,
-                       nsISupports* aCommandContext) override;
+  MOZ_CAN_RUN_SCRIPT NS_IMETHOD
+  DoCommand(const char* aCommandName, nsISupports* aCommandContext) override;
 
   // no member variables, please, we're stateless!
 };
@@ -151,8 +150,8 @@ class nsSelectMoveScrollCommand : public nsSelectionCommandsBase {
 // this class implements physical-movement versions of the above
 class nsPhysicalSelectMoveScrollCommand : public nsSelectionCommandsBase {
  public:
-  NS_IMETHOD DoCommand(const char* aCommandName,
-                       nsISupports* aCommandContext) override;
+  MOZ_CAN_RUN_SCRIPT NS_IMETHOD
+  DoCommand(const char* aCommandName, nsISupports* aCommandContext) override;
 
   // no member variables, please, we're stateless!
 };
@@ -160,8 +159,8 @@ class nsPhysicalSelectMoveScrollCommand : public nsSelectionCommandsBase {
 // this class implements other selection commands
 class nsSelectCommand : public nsSelectionCommandsBase {
  public:
-  NS_IMETHOD DoCommand(const char* aCommandName,
-                       nsISupports* aCommandContext) override;
+  MOZ_CAN_RUN_SCRIPT NS_IMETHOD
+  DoCommand(const char* aCommandName, nsISupports* aCommandContext) override;
 
   // no member variables, please, we're stateless!
 };
@@ -169,8 +168,8 @@ class nsSelectCommand : public nsSelectionCommandsBase {
 // this class implements physical-movement versions of selection commands
 class nsPhysicalSelectCommand : public nsSelectionCommandsBase {
  public:
-  NS_IMETHOD DoCommand(const char* aCommandName,
-                       nsISupports* aCommandContext) override;
+  MOZ_CAN_RUN_SCRIPT NS_IMETHOD
+  DoCommand(const char* aCommandName, nsISupports* aCommandContext) override;
 
   // no member variables, please, we're stateless!
 };

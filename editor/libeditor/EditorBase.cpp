@@ -5694,7 +5694,7 @@ void EditorBase::InitializeSelectionAncestorLimit(
     Element& aAncestorLimit) const {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
-  SelectionRef().SetAncestorLimiter(&aAncestorLimit);
+  MOZ_KnownLive(SelectionRef()).SetAncestorLimiter(&aAncestorLimit);
 }
 
 nsresult EditorBase::InitializeSelection(
@@ -6616,19 +6616,20 @@ void EditorBase::AutoEditActionDataSetter::UpdateSelectionCache(
     MOZ_ASSERT_UNREACHABLE("You do something wrong");
   }();
 
+  RefPtr<Selection> previousSelection = mSelection;
+
   // Keep grabbing the old selection in the top level edit action data until the
   // all owners end handling it.
-  if (mSelection) {
-    topLevelEditActionData.mRetiredSelections.AppendElement(*mSelection);
+  if (previousSelection) {
+    topLevelEditActionData.mRetiredSelections.AppendElement(*previousSelection);
   }
 
   // If the old selection is in batch, we should end the batch which
   // `EditorBase::BeginUpdateViewBatch` started.
-  if (mEditorBase.mUpdateCount && mSelection) {
-    mSelection->EndBatchChanges(__FUNCTION__);
+  if (mEditorBase.mUpdateCount && previousSelection) {
+    previousSelection->EndBatchChanges(__FUNCTION__);
   }
 
-  Selection* previousSelection = mSelection;
   mSelection = &aSelection;
   for (AutoEditActionDataSetter* parentActionData = mParentData;
        parentActionData; parentActionData = parentActionData->mParentData) {

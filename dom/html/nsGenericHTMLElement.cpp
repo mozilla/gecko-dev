@@ -2534,7 +2534,7 @@ void nsGenericHTMLElement::ChangeEditableState(int32_t aChange) {
   // in shadow DOM and the composed document is in design mode.
   if (IsInDesignMode() && !IsInShadowTree() && aChange > 0 &&
       previousEditingState == Document::EditingState::eContentEditable) {
-    if (HTMLEditor* htmlEditor =
+    if (const RefPtr<HTMLEditor> htmlEditor =
             nsContentUtils::GetHTMLEditor(document->GetPresContext())) {
       htmlEditor->NotifyEditingHostMaybeChanged();
     }
