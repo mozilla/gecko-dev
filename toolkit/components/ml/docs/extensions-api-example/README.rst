@@ -27,34 +27,4 @@ you will get a download progress.
 Manifest
 --------
 
-.. code-block:: json
-
-  {
-    "manifest_version": 2,
-    "name": "test-trial-ml",
-    "version": "0.1",
-    "description": "test-trial-ml description",
-    "optional_permissions": ["trialML"],
-    "permissions": ["menus", "activeTab", "scripting"],
-    "icons": {
-      "64": "icon.png"
-    },
-    "browser_action": {
-      "default_title": "test-trial-ml (browserAction)",
-      "default_icon": {
-        "64": "icon.png"
-      }
-    },
-    "background": {
-      "scripts": ["background.js"]
-    },
-    "content_scripts": [
-      {
-        "matches": ["<all_urls>"],
-        "js": ["content-script.js"]
-      }
-    ],
-    "options_ui": {
-      "page": "settings.html"
-    }
-  }
+See the :searchfox:`extensions-api-example's manifest.json file <toolkit/components/ml/docs/extensions-api-example/manifest.json>`.
