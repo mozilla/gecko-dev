@@ -4366,10 +4366,6 @@ void AsyncPanZoomController::CancelAnimation(CancelAnimationFlags aFlags) {
   APZC_LOG_DETAIL("running CancelAnimation(0x%x) in state %s\n", this, aFlags,
                   ToString(mState).c_str());
 
-  if ((aFlags & ExcludeWheel) && mState == WHEEL_SCROLL) {
-    return;
-  }
-
   if (mAnimation) {
     mAnimation->Cancel(aFlags);
   }
