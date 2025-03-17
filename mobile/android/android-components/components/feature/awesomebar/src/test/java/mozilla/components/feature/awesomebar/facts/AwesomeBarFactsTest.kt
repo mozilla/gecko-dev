@@ -59,20 +59,22 @@ class AwesomeBarFactsTest {
                 assertEquals(AwesomeBarFacts.Items.SEARCH_SUGGESTION_CLICKED, item)
             }
 
-            emitTrendingSearchSuggestionClickedFact()
+            emitTrendingSearchSuggestionClickedFact(3)
             assertEquals(6, facts.size)
             facts[5].apply {
                 assertEquals(Component.FEATURE_AWESOMEBAR, component)
                 assertEquals(Action.INTERACTION, action)
                 assertEquals(AwesomeBarFacts.Items.TRENDING_SEARCH_SUGGESTION_CLICKED, item)
+                assertEquals("3", value)
             }
 
-            emitTopSiteSuggestionClickedFact()
+            emitTopSiteSuggestionClickedFact(2)
             assertEquals(7, facts.size)
             facts[6].apply {
                 assertEquals(Component.FEATURE_AWESOMEBAR, component)
                 assertEquals(Action.INTERACTION, action)
                 assertEquals(AwesomeBarFacts.Items.TOP_SITE_SUGGESTION_CLICKED, item)
+                assertEquals("2", value)
             }
 
             emitOpenTabSuggestionClickedFact()
@@ -91,12 +93,40 @@ class AwesomeBarFactsTest {
                 assertEquals(AwesomeBarFacts.Items.SEARCH_TERM_SUGGESTION_CLICKED, item)
             }
 
-            emitRecentSearchSuggestionClickedFact()
+            emitRecentSearchSuggestionClickedFact(1)
             assertEquals(10, facts.size)
             facts[9].apply {
                 assertEquals(Component.FEATURE_AWESOMEBAR, component)
                 assertEquals(Action.INTERACTION, action)
                 assertEquals(AwesomeBarFacts.Items.RECENT_SEARCH_SUGGESTION_CLICKED, item)
+                assertEquals("1", value)
+            }
+
+            emitTrendingSearchSuggestionsDisplayedFact(6)
+            assertEquals(11, facts.size)
+            facts[10].apply {
+                assertEquals(Component.FEATURE_AWESOMEBAR, component)
+                assertEquals(Action.INTERACTION, action)
+                assertEquals(AwesomeBarFacts.Items.TRENDING_SEARCH_SUGGESTIONS_DISPLAYED, item)
+                assertEquals("6", value)
+            }
+
+            emitTopSiteSuggestionsDisplayedFact(5)
+            assertEquals(12, facts.size)
+            facts[11].apply {
+                assertEquals(Component.FEATURE_AWESOMEBAR, component)
+                assertEquals(Action.INTERACTION, action)
+                assertEquals(AwesomeBarFacts.Items.TOP_SITE_SUGGESTIONS_DISPLAYED, item)
+                assertEquals("5", value)
+            }
+
+            emitRecentSearchSuggestionsDisplayedFact(4)
+            assertEquals(13, facts.size)
+            facts[12].apply {
+                assertEquals(Component.FEATURE_AWESOMEBAR, component)
+                assertEquals(Action.INTERACTION, action)
+                assertEquals(AwesomeBarFacts.Items.RECENT_SEARCH_SUGGESTIONS_DISPLAYED, item)
+                assertEquals("4", value)
             }
         }
     }

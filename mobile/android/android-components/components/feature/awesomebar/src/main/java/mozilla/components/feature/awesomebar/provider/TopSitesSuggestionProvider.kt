@@ -9,6 +9,7 @@ import mozilla.components.browser.icons.IconRequest
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.awesomebar.facts.emitTopSiteSuggestionClickedFact
+import mozilla.components.feature.awesomebar.facts.emitTopSiteSuggestionsDisplayedFact
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.top.sites.DefaultTopSitesStorage
 import mozilla.components.feature.top.sites.TopSite
@@ -60,6 +61,10 @@ class TopSitesSuggestionProvider(
 
         suggestions.firstOrNull()?.url?.let { url -> engine?.speculativeConnect(url) }
 
+        if (suggestions.isNotEmpty()) {
+            emitTopSiteSuggestionsDisplayedFact(suggestions.size)
+        }
+
         return suggestions.toAwesomebarSuggestions(this, icons, loadUrlUseCase)
     }
 }
@@ -79,7 +84,7 @@ internal suspend fun Iterable<TopSite>.toAwesomebarSuggestions(
             editSuggestion = null,
             onSuggestionClicked = {
                 loadUrlUseCase(result.url)
-                emitTopSiteSuggestionClickedFact()
+                emitTopSiteSuggestionClickedFact(index)
             },
             score = MAX_VALUE - index,
         )
