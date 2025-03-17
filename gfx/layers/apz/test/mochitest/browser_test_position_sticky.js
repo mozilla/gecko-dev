@@ -136,11 +136,20 @@ add_task(async () => {
 
   await dragFinisher();
 
+  const disablePixelAlignment = SpecialPowers.getBoolPref(
+    "layout.scroll.disable-pixel-alignment"
+  );
+  // With disabling pixel alignment, there appears 1px line glitch at the top of
+  // the image, we allow it.
+  const fuzz = disablePixelAlignment
+    ? { maxDifference: 1, numDifferentPixels: rect.width }
+    : null;
+
   assertSnapshots(
     snapshotCanvas,
     referenceCanvas,
     true /* expectEqual */,
-    null /* fuzz */,
+    fuzz,
     "test case",
     "reference"
   );
