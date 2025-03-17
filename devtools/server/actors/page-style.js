@@ -805,6 +805,8 @@ class PageStyleActor extends Actor {
         return node.nodeName == "VIDEO";
       case "::file-selector-button":
         return node.nodeName == "INPUT" && node.type == "file";
+      case "::details-content":
+        return node.nodeName == "DETAILS";
       case "::placeholder":
       case "::-moz-placeholder":
         return this._nodeIsTextfieldLike(node);

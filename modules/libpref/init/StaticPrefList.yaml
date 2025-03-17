@@ -10450,6 +10450,13 @@
   value: false
   mirror: always
 
+# Is support for the ::details-content pseudo-element enabled?
+- name: layout.css.details-content.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+  rust: true
+
 # Is 'content:none' supported on (non-pseudo) elements?
 - name: layout.css.element-content-none.enabled
   type: RelaxedAtomicBool

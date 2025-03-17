@@ -296,6 +296,7 @@ where
 
         let mut pseudo_styles = EagerPseudoStyles::default();
 
+        // FIXME(bug 1954142): This should account for element-backed pseudo elements.
         if !self.element.is_pseudo_element() {
             let layout_parent_style_for_pseudo =
                 layout_parent_style_for_pseudo(&primary_style, layout_parent_style);
