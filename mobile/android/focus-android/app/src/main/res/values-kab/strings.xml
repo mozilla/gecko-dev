@@ -329,12 +329,15 @@
   <string name="preference_mozilla_telemetry_summary">Issin ugar</string>
   <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
   <string name="preference_mozilla_telemetry_summary2">Mozilla tettennaɣ akken ad telqeḍ kan ayen tesra i usnulfu d usnernu n %1$s i yal uiwen.</string>
+  <string name="preference_daily_usage_ping_learn_more">Issin ugar</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">Tasertit n tbaḍnit</string>
   <!-- In-app link (in settings) to Focus licensing information. -->
   <string name="preference_licensing_info">Talɣut n turagt</string>
   <!-- Link to Focus licensing information from other libraries that we use. -->
   <string name="preference_libraries_we_use">Timkerḍiyin i nseqdac</string>
+  <!-- Link to Focus Crash reports list. -->
+  <string name="preference_crashes">Aɣelluy</string>
   <!-- Open Source Licenses page title. %s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="open_source_licenses_title">%s | timkerḍiyin OSS</string>
   <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
@@ -460,8 +463,12 @@
   <string name="onboarding_first_screen_title">Welcome to %1$s</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">D arurad. D uslig. Ulac yesruḥuyen ddehn.</string>
+  <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
+  <string name="onboarding_first_screen_privacy_notice_link">Tasertit n tbaḍnit.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">Bdu</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue">Qbel syen kemmel</string>
   <!--
     Onboarding second screen: Title
 

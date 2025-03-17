@@ -624,6 +624,7 @@
   <string name="onboarding_preferences_dialog_usage_data_title">Emondo mba’ekuaarã aporekogua ha ñomongeta Mozilla-pe</string>
   <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
   <string name="onboarding_preferences_dialog_usage_data_description" moz:removedIn="136" tools:ignore="BrandUsage,UnusedResources">Umi mba’ekuaarã ne mba’e’okapegua, hardware ñemboheko ha Firefox jeporu oipytyvõ tembiapoite porãverã, ijeporureko ha hekopyta opaite poruhára arapy tuichakuépe.</string>
+  <string name="onboarding_preferences_dialog_usage_data_description_2" tools:ignore="BrandUsage">Umi mba’ekuaarã mba’e’oka rehegua, hardware ñemboheko ha Firefox jeporu oipytyvõ tembiapoite porãverã, ijeporureko ha hekopyta opaite poruhárape g̃uarã.</string>
   <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_usage_data_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Eikuaave mba’ekuaarã ojeporúva rehegua</string>
   <string name="onboarding_preferences_dialog_usage_data_learn_more_2">Kuaave</string>
@@ -698,6 +699,12 @@
   <string name="onboarding_customize_theme_content_description">Téma ra’ãnga %1$s</string>
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Ani ko’ág̃a</string>
+  <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Eñepyrũ jeheka pya’e</string>
   <!--
     Search Widget
 
@@ -875,6 +882,8 @@
   <string name="preferences_search_browsing_history">Eheka kundahára rembiasakue</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">Eheka techaukaha</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">Ehechauka mbopya’eha</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">Eheka tendayke mbojuehepyre</string>
   <!-- Preference for account settings -->
@@ -1128,6 +1137,8 @@
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Emoherakuã mba’ekuaarã apopy, jeporu, hardware ha kundahára mboava Mozilla ndive orepytyvõ hag̃ua oikoporãvévo %1$s</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Mba’ekuaarã jehepyme’ẽrã</string>
+  <!-- Preference switch for campaign measurement data (marketing data) collection -->
+  <string name="preferences_marketing_data_2">Tembiapokue ñeha’ãrã mba’ekuaarã</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Eikuaave marketing mba’ekuaarã</string>
   <!-- Preference switch for daily usage ping data collection -->
@@ -1336,8 +1347,18 @@
     Title for the list of tabs in the current private session
   -->
   <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Tendayke ñemiguáva</string>
+  <!--
+    Title for the list of tabs in the current private session used by a11y services
+    The %1$s will be replaced by the number of opened private tabs
+  -->
+  <string name="tabs_header_private_tabs_counter_title">Tendayke ñemi ijurujáva: %1$s. Eikutu emoambue hag̃ua tendayke.</string>
   <!-- Title for the list of tabs in the synced tabs -->
   <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Tendayke mbojuehepyre</string>
+  <!--
+    Title for the list of tabs in the synced tabs used by a11y services
+    The %1$s will be replaced by the number of opened synced tabs
+  -->
+  <string name="tabs_header_synced_tabs_counter_title">Tendayke mbojuehepyre ijurujáva: %1$s. Eikutu emoambue hag̃ua tendayke.</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">Embojuaju tendayke</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1440,6 +1461,20 @@
   <string name="download_multi_select_title">%1$d poravopyre</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">Mboguete</string>
+  <!--
+    Time period headers for downloads
+
+    Text for the header that groups the downloads for today
+  -->
+  <string name="download_time_period_today">Ko’árape</string>
+  <!-- Text for the header that groups the downloads for yesterday -->
+  <string name="download_time_period_yesterday">Kuehe</string>
+  <!-- Text for the header that groups the downloads the past 7 days -->
+  <string name="download_time_period_last_7_days">7 ára ohasaramóva</string>
+  <!-- Text for the header that groups the downloads the past 30 days -->
+  <string name="download_time_period_last_30_days">30 ára ohasaramóva</string>
+  <!-- Text for the header that groups the downloads older than other groups -->
+  <string name="download_time_period_older">Itujavéva</string>
   <!--
     WebCompat Reporter
 
@@ -1813,6 +1848,10 @@
   <string name="sync_add_new_device_learn_button">Eikuaave tendayke mondo rehegua…</string>
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">Embojuaju ambue mba’e’oka…</string>
+  <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nOñemondóva %2$s guive 🦊 Eiporu pumbyry kundahára: %3$s</string>
+  <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nOñemondo %2$s 🦊 %3$s guive</string>
   <!--
     Notifications
 
@@ -2169,6 +2208,16 @@
   <string name="preference_doh_add_site_description">Embojuaju tenda</string>
   <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection">Ñemo’ã ijypyguáva</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">%1$s eikuaa oiporúta vove DNS hekorosãva omo’ã hag̃ua nde rekoñemi.</string>
+  <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_1">Eiporu me’ẽhára poravopyre</string>
+  <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_2">Eiporu DNS rechaporãha ijypykuéva oĩramo apañuái DNS hekorosãva me’ẽhára ndive</string>
+  <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_3">Eiporu me’ẽhára ag̃uigua, ikatúrõ. %1$s</string>
+  <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_4">Eipe’a pe VPN, pehẽngue jehecharã térã mba’apohaguasu oñemyandývo</string>
   <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection">Ñemo’ã Tuichavéva</string>
   <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
@@ -2527,6 +2576,8 @@
   <string name="quick_settings_sheet_secure_connection_2">Jeikekatu</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">Jeikekatu’ỹ</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">Ko kuatiarogue oñeñongatu ne mba’e’okápe.</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">Emboguete kookie ha mba’ekuaarã tendágui</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
@@ -2684,6 +2735,11 @@
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox Kuave’ẽmby</string>
   <!-- Search suggestions title for trending searches. -->
   <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">Jehekakue ojejapovéva</string>
+  <!--
+    Search suggestions title for trending search suggestions.
+    %s is a placeholder for the name of the search engine providing the trending search suggestions.
+  -->
+  <string name="trending_searches_header_2">Ojeporumeme %s-pe</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header">Google Jehekaha</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
@@ -3164,12 +3220,19 @@
     %s is the name of the app (for example "Firefox").
   -->
   <string name="protection_panel_banner_protected_title">%s oĩ ñema’ẽme</string>
+  <!-- Description text for the protection panel banner when tracking protection is enabled. -->
+  <string name="protection_panel_banner_protected_description">Eñemo’ãma. Rohecháramo peteĩ mba’e, romombe’úta ndéve.</string>
   <!-- Label text for the Enhanced Tracking Protection toggle. -->
   <string name="protection_panel_etp_toggle_label">Tapykueho mo’ãha iporãvéva</string>
   <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
   <string name="protection_panel_etp_toggle_enabled_description">Oĩramo ndoikoporãmbáiva ko tendápe, eñeha’ã eipe’a umi ñemo’ãha.</string>
   <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
   <string name="protection_panel_etp_toggle_disabled_description">Umi ñemo’ãha oñembotypáma. Roipota embojurujajey.</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the protection panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="protection_panel_num_trackers_blocked">Tapykuehoha jokopyre: %d</string>
   <!-- Text for when no trackers have been blocked. -->
   <string name="protection_panel_no_trackers_blocked">Ndojejuhúi tapykuehoha</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->

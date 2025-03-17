@@ -1474,6 +1474,18 @@
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">Hapus</string>
   <!--
+    Time period headers for downloads
+
+    Text for the header that groups the downloads for today
+  -->
+  <string name="download_time_period_today">Hari Ini</string>
+  <!-- Text for the header that groups the downloads for yesterday -->
+  <string name="download_time_period_yesterday">Kemarin</string>
+  <!-- Text for the header that groups the downloads the past 7 days -->
+  <string name="download_time_period_last_7_days">7 hari terakhir</string>
+  <!-- Text for the header that groups the downloads the past 30 days -->
+  <string name="download_time_period_last_30_days">30 hari terakhir</string>
+  <!--
     WebCompat Reporter
 
     The title of the Web Compat Reporter feature. This is displayed in the top app bar.
@@ -2212,6 +2224,12 @@
   <string name="preference_doh_default_protection_summary">%1$s memutuskan kapan menggunakan DNS aman untuk melindungi privasi Anda.</string>
   <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_1">Gunakan penyedia yang Anda pilih</string>
+  <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_3">Gunakan penyedia lokal, jika memungkinkan. %1$s</string>
+  <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_4">Matikan saat VPN, kontrol orang tua, atau kebijakan perusahaan aktif</string>
+  <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_5">Nonaktifkan saat jaringan memberi tahu %1$s bahwa seharusnya tidak menggunakan DNS aman. %2$s</string>
   <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection">Peningkatan Perlindungan</string>
   <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
@@ -2222,6 +2240,26 @@
   <string name="preference_doh_increased_protection_info_2">Hanya gunakan resolver DNS bawaan Anda jika ada masalah dengan DNS aman</string>
   <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection">Perlindungan Maksimal</string>
+  <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_max_protection_summary">%1$s akan selalu menggunakan DNS aman. Anda akan melihat peringatan risiko keamanan sebelum kami menggunakan DNS sistem Anda.</string>
+  <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_1">Hanya gunakan penyedia yang Anda pilih</string>
+  <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_2">Selalu peringatkan jika DNS aman tidak tersedia</string>
+  <!-- Bullet point 3 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_3">Jika DNS aman tidak tersedia, situs tidak akan dimuat atau berfungsi dengan baik</string>
+  <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off">Mati</string>
+  <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off_summary">Gunakan resolver DNS baku Anda</string>
+  <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
+  <string name="preference_doh_choose_provider">Pilih penyedia</string>
+  <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_default">(baku)</string>
+  <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_custom">Ubahan</string>
+  <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_title">Penyedia ubahan</string>
   <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_textfield">Penyedia</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
@@ -2234,6 +2272,20 @@
   <string name="preference_doh_provider_custom_dialog_add">Tambah</string>
   <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
   <string name="preference_doh_exceptions">Pengecualian</string>
+  <!-- Description of "exceptions" for "DNS over HTTPS". %1$s is the name of the app (for example "Firefox"). -->
+  <string name="preference_doh_exceptions_summary">%1$s tidak akan menggunakan DNS aman pada situs ini dan subdomainnya.</string>
+  <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
+  <string name="preference_doh_exceptions_add">Tambahkan situs</string>
+  <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_site">Situs</string>
+  <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_placeholder">contoh.org</string>
+  <!-- Error displayed in the input field when adding invalid URLs for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_error">Harus berupa domain yang valid</string>
+  <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_add_save">Simpan</string>
+  <!-- Text displayed for removing all exceptions in "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_remove_all_exceptions">Hapus semua pengecualian</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Dukungan</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -3002,6 +3054,66 @@
   <string name="translation_settings_automatic_translation">Terjemahan otomatis</string>
   <!-- Button text for the button that will take the user to the never translate these sites dialog. On the never translate these sites dialog, the user can set if translations should never occur on certain websites. -->
   <string name="translation_settings_automatic_never_translate_sites">Jangan pernah terjemahkan situs ini</string>
+  <!--
+    Automatic translation preference screen
+
+    Title of the automatic translation preference screen that will appear on the toolbar.
+  -->
+  <string name="automatic_translation_toolbar_title_preference">Terjemahan otomatis</string>
+  <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
+  <string name="automatic_translation_header_preference">Pilih bahasa untuk mengelola preferensi "selalu terjemahkan" dan "jangan terjemahkan".</string>
+  <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
+  <string name="automatic_translation_error_warning_text">Tidak bisa memuat bahasa. Silakan periksa lagi nanti.</string>
+  <!--
+    Automatic translation options preference screen
+
+    Preference option for offering to translate. Radio button title text.
+  -->
+  <string name="automatic_translation_option_offer_to_translate_title_preference">Tawarkan untuk menerjemahkan (baku)</string>
+  <!-- Preference option for offering to translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="automatic_translation_option_offer_to_translate_summary_preference">%1$s akan menawarkan untuk menerjemahkan situs dalam bahasa ini.</string>
+  <!-- Preference option for always translate. Radio button title text. -->
+  <string name="automatic_translation_option_always_translate_title_preference">Selalu terjemahkan</string>
+  <!-- Preference option for always translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="automatic_translation_option_always_translate_summary_preference">%1$s akan menerjemahkan bahasa ini secara otomatis saat laman dimuat.</string>
+  <!-- Preference option for never translate. Radio button title text. -->
+  <string name="automatic_translation_option_never_translate_title_preference">Jangan pernah terjemahkan</string>
+  <!--
+    Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
+    %1$s is web site url (for example:"wikipedia.com")
+  -->
+  <string name="never_translate_site_item_list_content_description_preference">Buang %1$s</string>
+  <!-- The title of the warning card informs the user that an error has occurred at the never translate sites list. -->
+  <string name="never_translate_site_error_warning_text">Tidak bisa memuat situs. Silakan periksa kembali nanti.</string>
+  <!--
+    The Delete site dialogue title will appear when the user clicks on a list item.
+    %1$s is web site url (for example:"wikipedia.com")
+  -->
+  <string name="never_translate_site_dialog_title_preference">Hapus %1$s?</string>
+  <!-- The Delete site dialogue positive button will appear when the user clicks on a list item. The site will be deleted. -->
+  <string name="never_translate_site_dialog_confirm_delete_preference">Hapus</string>
+  <!-- The Delete site dialogue negative button will appear when the user clicks on a list item. The dialog will be dismissed. -->
+  <string name="never_translate_site_dialog_cancel_preference">Batal</string>
+  <!--
+    Download languages preference screen
+
+    Title of the toolbar for the translation feature screen where users may download different languages for translation.
+  -->
+  <string name="download_languages_translations_toolbar_title_preference">Unduh bahasa</string>
+  <!-- Screen header presenting the download language preference feature. It will appear under the toolbar. %1$s is a link using download_languages_header_learn_more_preference as text ("Learn more"). Talkback will append this to say "Double tap to open link to learn more". -->
+  <string name="download_languages_header_preference">Unduh bahasa lengkap untuk terjemahan yang lebih cepat dan untuk menerjemahkan secara luring. %1$s</string>
+  <!-- Clickable text from the screen header that links to a website. -->
+  <string name="download_languages_header_learn_more_preference">Pelajari lebih lanjut</string>
+  <!-- The subhead of the download language preference screen will appear above the pivot language. -->
+  <string name="download_languages_available_languages_preference">Bahasa yang tersedia</string>
+  <!-- Text that will appear beside a core or pivot language package name to show that the language is necessary for the translation feature to function. -->
+  <string name="download_languages_default_system_language_require_preference">diperlukan</string>
+  <!--
+    A text for download language preference item.
+    %1$s is the language name, for example, "Spanish".
+    %2$s is the language file size, for example, "(3.91 KB)" or, if the language package name is a pivot language, the string defined in download_languages_default_system_language_require_preference ("required").
+  -->
+  <string name="download_languages_language_item_preference">%1$s (%2$s)</string>
   <!-- The subhead of the download language preference screen will appear above the items that were not downloaded. -->
   <string name="download_language_header_preference">Unduh Bahasa</string>
   <!-- All languages list item. When the user presses this item, they can download all languages. -->
@@ -3038,14 +3150,79 @@
     %1$s is the name of the language, for example, "Spanish" and %2$s is the size in kilobytes or megabytes of the language file.
   -->
   <string name="delete_language_file_dialog_title">Hapus %1$s (%2$s)?</string>
+  <!-- Additional information for the dialog used by the translations feature to confirm deleting a language. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="delete_language_file_dialog_message">Jika Anda menghapus bahasa ini, %1$s akan mengunduh sebagian bahasa ke singgahan saat Anda menerjemahkan.</string>
+  <!--
+    Title for the dialog used by the translations feature to confirm deleting all languages file.
+    The dialog will be presented when the user requests deletion of all languages file.
+    %1$s is the size in kilobytes or megabytes of the language file.
+  -->
+  <string name="delete_language_all_languages_file_dialog_title">Hapus semua bahasa (%1$s)?</string>
+  <!-- Additional information for the dialog used by the translations feature to confirm deleting all languages file. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="delete_language_all_languages_file_dialog_message">Jika Anda menghapus semua bahasa, %1$s akan mengunduh sebagian bahasa ke singgahan saat Anda menerjemahkan.</string>
+  <!-- Button text on the dialog used by the translations feature to confirm deleting a language. -->
+  <string name="delete_language_file_dialog_positive_button_text">Hapus</string>
+  <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
+  <string name="delete_language_file_dialog_negative_button_text">Batal</string>
+  <!--
+    Title for the data saving mode warning dialog used by the translations feature.
+    This dialog will be presented when the user attempts to download a language or perform
+    a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
+    %1$s is the size in kilobytes or megabytes of the language file.
+  -->
+  <string name="download_language_file_dialog_title">Unduh saat dalam mode hemat data (%1$s)?</string>
+  <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
+  <string name="download_language_file_dialog_message_all_languages">Kami mengunduh sebagian bahasa ke singgahan Anda untuk menjaga terjemahan tetap pribadi.</string>
+  <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
+  <string name="download_language_file_dialog_checkbox_text">Selalu unduh dalam mode hemat data</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
   <string name="download_language_file_dialog_positive_button_text">Unduh</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file and perform a translation. -->
   <string name="download_language_file_dialog_positive_button_text_all_languages">Unduh dan terjemahkan</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
   <string name="download_language_file_dialog_negative_button_text">Batal</string>
+  <!--
+    Unified Trust Panel
+
+    Text for the protection panel header when the site is secure.
+  -->
+  <string name="protection_panel_header_secure">Aman</string>
+  <!-- Text for the protection panel header when the site is not secure. -->
+  <string name="protection_panel_header_not_secure">Tidak aman</string>
+  <!-- Title text for the protection panel banner when the site is not secure. -->
+  <string name="protection_panel_banner_not_secure_title">Hati-hati dengan situs ini</string>
+  <!-- Description text for the protection panel banner when the site is not secure. -->
+  <string name="protection_panel_banner_not_secure_description">Sambungan Anda tidak aman.</string>
+  <!-- Title text for the protection panel banner when tracking protection is disabled. -->
+  <string name="protection_panel_banner_not_protected_title">Anda menonaktifkan perlindungan</string>
   <!-- Description text for the protection panel banner when tracking protection is enabled. -->
   <string name="protection_panel_banner_protected_description">Anda terlindungi. Jika kami menemukan sesuatu, kami akan memberi tahu Anda.</string>
+  <!-- Label text for the Enhanced Tracking Protection toggle. -->
+  <string name="protection_panel_etp_toggle_label">Perlindungan Pelacakan yang Ditingkatkan</string>
+  <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
+  <string name="protection_panel_etp_toggle_enabled_description">Jika ada yang tampak rusak di situs ini, coba matikan perlindungan.</string>
+  <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+  <string name="protection_panel_etp_toggle_disabled_description">Perlindungan NONAKTIF. Kami sarankan untuk mengaktifkannya kembali.</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the protection panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="protection_panel_num_trackers_blocked">Pelacak diblokir: %d</string>
+  <!-- Text for when no trackers have been blocked. -->
+  <string name="protection_panel_no_trackers_blocked">Tidak ada pelacak ditemukan</string>
+  <!-- Link text to navigate to privacy and security settings from the protection panel. -->
+  <string name="protection_panel_privacy_and_security_settings">Setelan privasi dan keamanan</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the trackers blocked panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_total_num_trackers_blocked">Pelacak diblokir: %d</string>
+  <!--
+    Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
+    %s is a placeholder for the name of the tracker category.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
   <!--
     Debug drawer
 
@@ -3095,9 +3272,87 @@
   <!-- The button text to add tabs to the private tab group in the tab creation tool. -->
   <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_private">Tambahkan ke tab pribadi</string>
   <!--
+    Microsurvey
+
+    Prompt view
+
+    The microsurvey prompt title. Note: The word "Firefox" should NOT be translated
+  -->
+  <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">Bantu kami membuat Firefox lebih baik. Hanya butuh satu menit.</string>
+  <!-- The continue button label -->
+  <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Lanjutkan</string>
+  <!--
+    Survey view
+
+    The survey header
+  -->
+  <string name="micro_survey_survey_header_2">Silakan lengkapi survei</string>
+  <!-- The privacy notice link -->
+  <string name="micro_survey_privacy_notice_2">Pemberitahuan privasi</string>
+  <!-- The submit button label text -->
+  <string name="micro_survey_submit_button_label">Kirim</string>
+  <!-- The survey completion header -->
+  <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">Survei selesai</string>
+  <!-- The survey completion confirmation text -->
+  <string name="micro_survey_feedback_confirmation">Terima kasih atas masukan Anda!</string>
+  <!-- Option for likert scale -->
+  <string name="likert_scale_option_1" tools:ignore="UnusedResources">Sangat puas</string>
+  <!-- Option for likert scale -->
+  <string name="likert_scale_option_2" tools:ignore="UnusedResources">Puas</string>
+  <!-- Option for likert scale -->
+  <string name="likert_scale_option_3" tools:ignore="UnusedResources">Netral</string>
+  <!-- Option for likert scale -->
+  <string name="likert_scale_option_4" tools:ignore="UnusedResources">Tidak puas</string>
+  <!-- Option for likert scale -->
+  <string name="likert_scale_option_5" tools:ignore="UnusedResources">Sangat tidak puas</string>
+  <!-- The title of the logins section in the Logins feature. %s is the site domain. -->
+  <string name="debug_drawer_logins_current_domain_label">Domain saat ini: %s</string>
+  <!-- Content description for delete button. %s is the username of the login. -->
+  <string name="debug_drawer_logins_delete_login_button_content_description">Hapus log masuk dengan nama pengguna %s</string>
+  <!--
+    Debug drawer addresses
+
+    The title of the Addresses feature in the Debug Drawer.
+  -->
+  <string name="debug_drawer_addresses_title">Alamat</string>
+  <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+  <string name="debug_drawer_addresses_debug_locales_header">Locale awakutu yang akan difungsikan</string>
+  <!-- The title of the header for the section for managing addresses. -->
+  <string name="debug_drawer_addresses_management_header">Kelola alamat</string>
+  <!--
+    Debug drawer "contextual feature recommendation" (CFR) tools
+
+    The title of the CFR Tools feature in the Debug Drawer
+  -->
+  <string name="debug_drawer_cfr_tools_title">Alat CFR</string>
+  <!-- The title of the reset CFR section in CFR Tools -->
+  <string name="debug_drawer_cfr_tools_reset_cfr_title">Setel ulang CFR</string>
+  <!--
+    Glean debug tools
+
+    The title of the glean debugging feature
+  -->
+  <string name="glean_debug_tools_title">Alat Debug Glean</string>
+  <!--
     Beta Label Component !
 
     Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element.
   -->
   <string name="beta_feature">BETA</string>
+  <!--
+    Root certificate expiration warnings
+
+    These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !
+
+    Homepage card button to open Google Play Store. "Update" is a verb.
+  -->
+  <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Perbarui sekarang</string>
+  <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Perbarui peramban Firefox Anda</string>
+  <!-- Homepage card message about old Firefox version -->
+  <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Sertifikat root akan kedaluwarsa, menyebabkan beberapa fitur berhenti bekerja pada 14 Maret.</string>
+  <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+  <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Perbarui sebelum 14 Maret</string>
+  <!-- The default content description for the cross trailing icon button in TextField -->
+  <string name="text_field_cross_trailing_icon_default_content_description">Bersihkan teks</string>
 </resources>

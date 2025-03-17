@@ -275,7 +275,7 @@
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
   <string name="browser_menu_add_app_to_homescreen_2">Προσθήκη εφαρμογής στην αρχική οθόνη…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
-  <string name="browser_menu_add_to_homescreen_xiaomi">Οι συσκευές Xiaomi ενδέχεται να χρειάζονται επιπλέον δικαιώματα για να προσθέσουν συντομεύσεις στην αρχική οθόνη. Παρακαλούμε ελέγξτε τις ρυθμίσεις σας.</string>
+  <string name="browser_menu_add_to_homescreen_xiaomi">Οι συσκευές Xiaomi ενδέχεται να απαιτούν επιπλέον δικαιώματα για την προσθήκη συντομεύσεων στην αρχική οθόνη. Ελέγξτε τις ρυθμίσεις σας.</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
   <string name="resync_button_content_description">Επανασυγχρονισμός</string>
   <!-- Browser menu button that opens the find in page menu -->
@@ -2690,9 +2690,9 @@
   -->
   <string name="synced_tabs_connect_another_device">Συνδέστε μια άλλη συσκευή.</string>
   <!-- Text displayed asking user to re-authenticate -->
-  <string name="synced_tabs_reauth">Παρακαλούμε επαληθεύστε ξανά την ταυτότητά σας.</string>
+  <string name="synced_tabs_reauth">Επαληθεύστε ξανά την ταυτότητά σας.</string>
   <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
-  <string name="synced_tabs_enable_tab_syncing">Παρακαλούμε ενεργοποιήστε τον συγχρονισμό καρτελών.</string>
+  <string name="synced_tabs_enable_tab_syncing">Ενεργοποιήστε τον συγχρονισμό των καρτελών.</string>
   <!-- Text displayed when user has no tabs that have been synced -->
   <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">Δεν έχετε καμία άλλη καρτέλα ανοικτή στο Firefox σε άλλες σας συσκευές.</string>
   <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
@@ -2901,7 +2901,7 @@
   <!-- Title for info card displayed after the user reports a product is back in stock. -->
   <string name="review_quality_check_analysis_requested_info_title" moz:removedIn="136" tools:ignore="UnusedResources">Ευχαριστούμε για την αναφορά!</string>
   <!-- Text for body of info card displayed after the user reports a product is back in stock. -->
-  <string name="review_quality_check_analysis_requested_info_body" moz:removedIn="136" tools:ignore="UnusedResources">Θα έχουμε πληροφορίες για τις κριτικές αυτού του προϊόντος εντός 24 ωρών. Παρακαλούμε ελέγξτε ξανά.</string>
+  <string name="review_quality_check_analysis_requested_info_body" moz:removedIn="136" tools:ignore="UnusedResources">Θα έχουμε πληροφορίες για τις κριτικές αυτού του προϊόντος εντός 24 ωρών. Ελέγξτε ξανά αργότερα.</string>
   <!-- Title for info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
   <string name="review_quality_check_not_analyzable_info_title" moz:removedIn="136" tools:ignore="UnusedResources">Δεν μπορούμε να ελέγξουμε αυτές τις κριτικές</string>
   <!-- Text for body of info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
@@ -2909,7 +2909,7 @@
   <!-- Title for info card displayed when another user reported the displayed product is back in stock. -->
   <string name="review_quality_check_analysis_requested_other_user_info_title" moz:removedIn="136" tools:ignore="UnusedResources">Περισσότερες πληροφορίες σύντομα</string>
   <!-- Text for body of info card displayed when another user reported the displayed product is back in stock. -->
-  <string name="review_quality_check_analysis_requested_other_user_info_body" moz:removedIn="136" tools:ignore="UnusedResources">Θα έχουμε πληροφορίες για τις κριτικές αυτού του προϊόντος εντός 24 ωρών. Παρακαλούμε ελέγξτε ξανά.</string>
+  <string name="review_quality_check_analysis_requested_other_user_info_body" moz:removedIn="136" tools:ignore="UnusedResources">Θα έχουμε πληροφορίες για τις κριτικές αυτού του προϊόντος εντός 24 ωρών. Ελέγξτε ξανά αργότερα.</string>
   <!-- Title for info card displayed to the user when analysis finished updating. -->
   <string name="review_quality_check_analysis_updated_confirmation_title" moz:removedIn="136" tools:ignore="UnusedResources">Η ανάλυση είναι ενημερωμένη</string>
   <!-- Text for the action button from info card displayed to the user when analysis finished updating. -->
@@ -2917,7 +2917,7 @@
   <!-- Title for error card displayed to the user when an error occurred. -->
   <string name="review_quality_check_generic_error_title" moz:removedIn="136" tools:ignore="UnusedResources">Δεν υπάρχουν διαθέσιμες πληροφορίες αυτήν τη στιγμή</string>
   <!-- Text for body of error card displayed to the user when an error occurred. -->
-  <string name="review_quality_check_generic_error_body" moz:removedIn="136" tools:ignore="UnusedResources">Εργαζόμαστε για την επίλυση του προβλήματος. Παρακαλούμε ελέγξτε ξανά σύντομα.</string>
+  <string name="review_quality_check_generic_error_body" moz:removedIn="136" tools:ignore="UnusedResources">Εργαζόμαστε για την επίλυση του προβλήματος. Ελέγξτε ξανά σύντομα.</string>
   <!-- Title for error card displayed to the user when the device is disconnected from the network. -->
   <string name="review_quality_check_no_connection_title" moz:removedIn="136" tools:ignore="UnusedResources">Δεν υπάρχει σύνδεση στο δίκτυο</string>
   <!-- Text for body of error card displayed to the user when the device is disconnected from the network. -->
@@ -3039,7 +3039,7 @@
   <!-- Default dropdown option when initially selecting a language from the translations dialog language selection dropdown. -->
   <string name="translations_bottom_sheet_default_dropdown_selection">Επιλέξτε μια γλώσσα</string>
   <!-- The title of the warning card informs the user that a translation could not be completed. -->
-  <string name="translation_error_could_not_translate_warning_text">Προέκυψε πρόβλημα με τη μετάφραση. Παρακαλούμε δοκιμάστε ξανά.</string>
+  <string name="translation_error_could_not_translate_warning_text">Προέκυψε πρόβλημα με τη μετάφραση. Δοκιμάστε ξανά.</string>
   <!-- The title of the warning card informs the user that the list of languages cannot be loaded. -->
   <string name="translation_error_could_not_load_languages_warning_text">Αδυναμία φόρτωσης γλωσσών. Ελέγξτε τη σύνδεσή σας στο διαδίκτυο και δοκιμάστε ξανά.</string>
   <!-- The title of the warning card informs the user that a language is not supported. %1$s is the name of the language that is not supported. -->
@@ -3339,9 +3339,9 @@
   <!-- The error message of the text field in the tab creation tool when the text field is empty -->
   <string name="debug_drawer_tab_tools_tab_quantity_empty_error">Το πεδίο κειμένου είναι κενό</string>
   <!-- The error message of the text field in the tab creation tool when the text field has characters other than digits -->
-  <string name="debug_drawer_tab_tools_tab_quantity_non_digits_error">Παρακαλώ εισαγάγετε μόνο θετικούς ακέραιους αριθμούς</string>
+  <string name="debug_drawer_tab_tools_tab_quantity_non_digits_error">Εισαγάγετε μόνο θετικούς ακέραιους αριθμούς</string>
   <!-- The error message of the text field in the tab creation tool when the text field is a zero -->
-  <string name="debug_drawer_tab_tools_tab_quantity_non_zero_error">Παρακαλώ εισαγάγετε έναν αριθμό μεγαλύτερο του μηδέν</string>
+  <string name="debug_drawer_tab_tools_tab_quantity_non_zero_error">Εισαγάγετε έναν αριθμό μεγαλύτερο του μηδέν</string>
   <!--
     The error message of the text field in the tab creation tool when the text field is a
     quantity greater than the max tabs. %1$s is the maximum number of tabs
@@ -3369,7 +3369,7 @@
 
     The survey header
   -->
-  <string name="micro_survey_survey_header_2">Παρακαλούμε συμπληρώστε την έρευνα</string>
+  <string name="micro_survey_survey_header_2">Συμπληρώστε την έρευνα</string>
   <!-- The privacy notice link -->
   <string name="micro_survey_privacy_notice_2">Σημείωση απορρήτου</string>
   <!-- The submit button label text -->
