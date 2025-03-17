@@ -190,14 +190,11 @@ windows11-64-24h2-hw-ref/opt:
 windows11-64-qr/opt:
     build-platform: win64/opt
     test-sets:
-        - windows-talos
         - windows-talos-webgl
 
 windows11-64-shippable-qr/opt:
     build-platform: win64-shippable/opt
     test-sets:
-        - talos-profiling
-        - windows-talos
         - windows-talos-webgl
 
 # win10-64 2004
