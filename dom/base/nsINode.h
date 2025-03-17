@@ -2065,25 +2065,25 @@ class nsINode : public mozilla::dom::EventTarget {
   void SetBoolFlag(BooleanFlag name, bool value) {
     static_assert(BooleanFlagCount <= 8 * sizeof(mBoolFlags),
                   "Too many boolean flags");
-    mBoolFlags = (mBoolFlags & ~(1 << name)) | (value << name);
+    mBoolFlags = (mBoolFlags & ~(1U << name)) | (value << name);
   }
 
   void SetBoolFlag(BooleanFlag name) {
     static_assert(BooleanFlagCount <= 8 * sizeof(mBoolFlags),
                   "Too many boolean flags");
-    mBoolFlags |= (1 << name);
+    mBoolFlags |= (1U << name);
   }
 
   void ClearBoolFlag(BooleanFlag name) {
     static_assert(BooleanFlagCount <= 8 * sizeof(mBoolFlags),
                   "Too many boolean flags");
-    mBoolFlags &= ~(1 << name);
+    mBoolFlags &= ~(1U << name);
   }
 
   bool GetBoolFlag(BooleanFlag name) const {
     static_assert(BooleanFlagCount <= 8 * sizeof(mBoolFlags),
                   "Too many boolean flags");
-    return mBoolFlags & (1 << name);
+    return mBoolFlags & (1U << name);
   }
 
  public:
