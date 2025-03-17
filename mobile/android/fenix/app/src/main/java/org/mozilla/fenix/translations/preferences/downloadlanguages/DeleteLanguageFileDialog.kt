@@ -29,6 +29,7 @@ import java.util.Locale
  * @param onCancel Invoked when the user clicks on the "Cancel" dialog button.
  */
 @Composable
+@Suppress("Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1953923
 fun DeleteLanguageFileDialog(
     language: String? = null,
     isAllLanguagesItemType: Boolean,

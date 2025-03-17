@@ -799,6 +799,7 @@ abstract class BaseBrowserFragment :
                             activity = requireActivity(),
                             filename = filename.value,
                             contentSize = contentSize.value,
+                            fileSizeFormatter = requireComponents.core.fileSizeFormatter,
                             positiveButtonAction = positiveAction.value,
                             negativeButtonAction = negativeAction.value,
                         ).onDismiss {
@@ -1408,6 +1409,7 @@ abstract class BaseBrowserFragment :
 
         DynamicDownloadDialog(
             context = context,
+            fileSizeFormatter = requireComponents.core.fileSizeFormatter,
             downloadState = savedDownloadState.first,
             didFail = savedDownloadState.second,
             tryAgain = onTryAgain,

@@ -260,6 +260,7 @@ private fun DownloadLanguagesHeader(title: String) {
 }
 
 @Composable
+@Suppress("Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1953923
 private fun LanguageItemPreference(
     item: DownloadLanguageItemPreference,
     onItemClick: (DownloadLanguageItemPreference) -> Unit,
@@ -378,6 +379,7 @@ private fun DownloadLanguagesHeaderPreference(
 }
 
 @Composable
+@Suppress("Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1953923
 private fun downloadLanguageItemContentDescriptionPreference(
     item: DownloadLanguageItemPreference,
     label: String? = null,

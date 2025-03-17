@@ -11,7 +11,6 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.spyk
 import io.mockk.verify
-import mozilla.components.feature.downloads.toMegabyteOrKilobyteString
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -21,6 +20,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.R
 import org.mozilla.fenix.databinding.StartDownloadDialogLayoutBinding
+import org.mozilla.fenix.downloads.fake.FakeFileSizeFormatter
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.robolectric.Robolectric
@@ -39,11 +39,13 @@ class FirstPartyDownloadDialogTest {
         var wasPositiveActionDone = false
         var wasNegativeActionDone = false
         val contentSize = 5566L
+        val fakeFileSizeFormatter = FakeFileSizeFormatter()
         val dialog = spyk(
             FirstPartyDownloadDialog(
                 activity = activity,
                 filename = "Test",
                 contentSize = contentSize,
+                fileSizeFormatter = fakeFileSizeFormatter,
                 positiveButtonAction = { wasPositiveActionDone = true },
                 negativeButtonAction = { wasNegativeActionDone = true },
             ),
@@ -60,7 +62,7 @@ class FirstPartyDownloadDialogTest {
         assertEquals(
             testContext.getString(
                 R.string.mozac_feature_downloads_dialog_title2,
-                contentSize.toMegabyteOrKilobyteString(),
+                fakeFileSizeFormatter.formatSizeInBytes(contentSize),
             ),
             dialogBinding.title.text,
         )
@@ -85,6 +87,7 @@ class FirstPartyDownloadDialogTest {
                 activity = activity,
                 filename = "Test",
                 contentSize = contentSize,
+                fileSizeFormatter = FakeFileSizeFormatter(),
                 positiveButtonAction = { wasPositiveActionDone = true },
                 negativeButtonAction = { wasNegativeActionDone = true },
             ),

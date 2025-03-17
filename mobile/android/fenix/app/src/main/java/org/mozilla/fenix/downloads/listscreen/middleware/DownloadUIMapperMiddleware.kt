@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.feature.downloads.toMegabyteOrKilobyteString
+import mozilla.components.feature.downloads.FileSizeFormatter
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.Store
@@ -30,12 +30,14 @@ import java.time.ZoneId
  * Middleware for loading and mapping download items from the browser store.
  *
  * @param browserStore [BrowserStore] instance to get the download items from.
+ * @param fileSizeFormatter [FileSizeFormatter] used to format the size of the file item.
  * @param scope The [CoroutineScope] that will be used to launch coroutines.
  * @param ioDispatcher The [CoroutineDispatcher] that will be used for IO operations.
  * @param dateTimeProvider The [DateTimeProvider] that will be used to get the current date.
  */
 class DownloadUIMapperMiddleware(
     private val browserStore: BrowserStore,
+    private val fileSizeFormatter: FileSizeFormatter,
     private val scope: CoroutineScope,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val dateTimeProvider: DateTimeProvider = DateTimeProviderImpl(),
@@ -80,7 +82,7 @@ class DownloadUIMapperMiddleware(
             url = url,
             fileName = fileName,
             filePath = filePath,
-            formattedSize = contentLength?.toMegabyteOrKilobyteString() ?: "0",
+            formattedSize = fileSizeFormatter.formatSizeInBytes(contentLength ?: 0),
             contentType = contentType,
             status = status,
             createdTime = categorizeTime(createdTime),

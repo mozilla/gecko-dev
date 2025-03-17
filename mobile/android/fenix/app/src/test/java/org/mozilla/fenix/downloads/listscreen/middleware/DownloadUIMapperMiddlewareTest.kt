@@ -15,6 +15,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.downloads.fake.FakeDateTimeProvider
+import org.mozilla.fenix.downloads.fake.FakeFileSizeFormatter
 import org.mozilla.fenix.downloads.listscreen.store.CreatedTime
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIStore
@@ -31,6 +32,8 @@ class DownloadUIMapperMiddlewareTest {
     val coroutinesTestRule = MainCoroutineRule()
     private val dispatcher = coroutinesTestRule.testDispatcher
     private val scope = coroutinesTestRule.scope
+
+    private val fakeFormatter = FakeFileSizeFormatter()
 
     @Test
     fun `WHEN downloads store is initialised THEN downloads state is updated to be sorted by created time`() {
@@ -80,6 +83,7 @@ class DownloadUIMapperMiddlewareTest {
             middleware = listOf(
                 DownloadUIMapperMiddleware(
                     browserStore = browserStore,
+                    fileSizeFormatter = fakeFormatter,
                     scope = scope,
                     ioDispatcher = dispatcher,
                     dateTimeProvider = FakeDateTimeProvider(LocalDate.of(2025, 5, 31)),
@@ -160,6 +164,7 @@ class DownloadUIMapperMiddlewareTest {
             middleware = listOf(
                 DownloadUIMapperMiddleware(
                     browserStore = browserStore,
+                    fileSizeFormatter = fakeFormatter,
                     scope = scope,
                     ioDispatcher = dispatcher,
                 ),
@@ -176,7 +181,7 @@ class DownloadUIMapperMiddlewareTest {
                 url = "url",
                 fileName = "1.pdf",
                 filePath = "downloads/1.pdf",
-                formattedSize = "0.10 KB",
+                formattedSize = "100",
                 contentType = "application/pdf",
                 status = DownloadState.Status.COMPLETED,
                 createdTime = CreatedTime.OLDER,

@@ -12,7 +12,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.feature.downloads.AbstractFetchDownloadService
-import mozilla.components.feature.downloads.toMegabyteOrKilobyteString
+import mozilla.components.feature.downloads.FileSizeFormatter
 import org.mozilla.fenix.R
 import org.mozilla.fenix.databinding.DownloadDialogLayoutBinding
 import org.mozilla.fenix.ext.components
@@ -26,6 +26,7 @@ import org.mozilla.fenix.ext.settings
 @Suppress("LongParameterList")
 class DynamicDownloadDialog(
     private val context: Context,
+    private val fileSizeFormatter: FileSizeFormatter,
     private val downloadState: DownloadState?,
     private val didFail: Boolean,
     private val tryAgain: (String) -> Unit,
@@ -60,7 +61,7 @@ class DynamicDownloadDialog(
         } else {
             val titleText = context.getString(
                 R.string.mozac_feature_downloads_completed_notification_text2,
-            ) + " (${downloadState.contentLength?.toMegabyteOrKilobyteString()})"
+            ) + " (${downloadState.contentLength?.let { fileSizeFormatter.formatSizeInBytes(it) }})"
 
             binding.downloadDialogTitle.text = titleText
 

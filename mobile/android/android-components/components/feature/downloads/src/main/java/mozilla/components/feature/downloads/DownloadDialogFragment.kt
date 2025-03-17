@@ -86,6 +86,15 @@ fun Long.toKilobyteString(): String {
  * Converts the bytes to megabytes or kilobytes( if size smaller than 0.01 MB)
  * with two decimal places and returns a formatted string
  */
+@Deprecated(
+    message = "This does not provide localization support and it can only convert to MB or kB. " +
+        "Use FileSizeFormatter instead",
+    replaceWith = ReplaceWith(
+        expression = "DefaultFileSizeFormatter(context = context).formatSizeInBytes(sizeInBytes = sizeInBytes)",
+        imports = ["mozilla.components.feature.downloads.FileSizeFormatter"],
+    ),
+    level = DeprecationLevel.WARNING,
+)
 fun Long.toMegabyteOrKilobyteString(): String {
     return if (this / MEGABYTE < BYTES_TO_MB_LIMIT) {
         this.toKilobyteString()

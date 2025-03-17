@@ -91,7 +91,8 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
             binding.title.text = if (getLong(KEY_CONTENT_LENGTH) <= 0L) {
                 getString(R.string.mozac_feature_downloads_dialog_download)
             } else {
-                val contentSize = getLong(KEY_CONTENT_LENGTH).toMegabyteOrKilobyteString()
+                val sizeFormatter = DefaultFileSizeFormatter(requireContext().applicationContext)
+                val contentSize = sizeFormatter.formatSizeInBytes(getLong(KEY_CONTENT_LENGTH))
                 getString(getInt(KEY_TITLE_TEXT, R.string.mozac_feature_downloads_dialog_title2), contentSize)
             }
 

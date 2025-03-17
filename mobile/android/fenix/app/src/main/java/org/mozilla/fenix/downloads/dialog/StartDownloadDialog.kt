@@ -20,8 +20,8 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.children
 import androidx.viewbinding.ViewBinding
 import mozilla.components.concept.base.crash.Breadcrumb
+import mozilla.components.feature.downloads.FileSizeFormatter
 import mozilla.components.feature.downloads.databinding.MozacDownloaderChooserPromptBinding
-import mozilla.components.feature.downloads.toMegabyteOrKilobyteString
 import mozilla.components.feature.downloads.ui.DownloaderApp
 import mozilla.components.feature.downloads.ui.DownloaderAppAdapter
 import org.mozilla.fenix.R
@@ -151,6 +151,7 @@ abstract class StartDownloadDialog(
  * @param filename Name of the file to be downloaded. It wil be shown without any modification.
  * @param contentSize Size of the file to be downloaded expressed as a number of bytes.
  * It will automatically be parsed to the appropriate kilobyte or megabyte value before being shown.
+ * @param fileSizeFormatter [FileSizeFormatter] used to format the size of the file item.
  * @param positiveButtonAction Callback for when the user interacts with the dialog to start the download.
  * @param negativeButtonAction Callback for when the user interacts with the dialog to dismiss it.
  */
@@ -158,6 +159,7 @@ class FirstPartyDownloadDialog(
     private val activity: Activity,
     private val filename: String,
     private val contentSize: Long,
+    private val fileSizeFormatter: FileSizeFormatter,
     private val positiveButtonAction: () -> Unit,
     private val negativeButtonAction: () -> Unit,
 ) : StartDownloadDialog(activity) {
@@ -166,7 +168,7 @@ class FirstPartyDownloadDialog(
             .also { binding = it }
 
         if (contentSize > 0L) {
-            val contentSize = contentSize.toMegabyteOrKilobyteString()
+            val contentSize = fileSizeFormatter.formatSizeInBytes(contentSize)
             dialog.title.text =
                 activity.getString(R.string.mozac_feature_downloads_dialog_title2, contentSize)
         }

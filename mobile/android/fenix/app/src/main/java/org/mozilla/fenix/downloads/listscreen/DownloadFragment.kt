@@ -62,6 +62,7 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler, MenuProvider
             middleware = listOf(
                 DownloadUIMapperMiddleware(
                     browserStore = requireComponents.core.store,
+                    fileSizeFormatter = requireComponents.core.fileSizeFormatter,
                     scope = viewModelScope,
                 ),
             ),

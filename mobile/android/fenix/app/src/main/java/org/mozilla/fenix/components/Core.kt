@@ -40,7 +40,9 @@ import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.concept.fetch.Client
 import mozilla.components.feature.awesomebar.provider.SessionAutocompleteProvider
 import mozilla.components.feature.customtabs.store.CustomTabsServiceStore
+import mozilla.components.feature.downloads.DefaultFileSizeFormatter
 import mozilla.components.feature.downloads.DownloadMiddleware
+import mozilla.components.feature.downloads.FileSizeFormatter
 import mozilla.components.feature.fxsuggest.facts.FxSuggestFactsMiddleware
 import mozilla.components.feature.logins.exceptions.LoginExceptionStorage
 import mozilla.components.feature.media.MediaSessionFeature
@@ -376,6 +378,11 @@ class Core(
      * The [CustomTabsServiceStore] holds global custom tabs related data.
      */
     val customTabsStore by lazyMonitored { CustomTabsServiceStore() }
+
+    /**
+     * [FileSizeFormatter] used to format the size of the file items.
+     */
+    val fileSizeFormatter: FileSizeFormatter by lazyMonitored { DefaultFileSizeFormatter(context.applicationContext) }
 
     /**
      * The [RelationChecker] checks Digital Asset Links relationships for Trusted Web Activities.

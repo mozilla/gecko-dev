@@ -35,6 +35,10 @@ permalink: /changelog/
 * **feature-prompts**
   * Added support for selecting a client authentication certificate using `CertificatePicker`. [Bug 1813930](https://bugzilla.mozilla.org/show_bug.cgi?id=1813930).
 
+* **feature-downloads**
+  * Added `FileSizeFormatter` to help with displaying file sizes in a localized manner. See [Bug 1951907](https://bugzilla.mozilla.org/show_bug.cgi?id=1951907).
+  * Deprecated `Long.toMegabyteOrKilobyteString`. Use `FileSizeFormatter` instead. See [Bug 1951907](https://bugzilla.mozilla.org/show_bug.cgi?id=1951907).
+
 # 137.0
 * **support-ktx**
   * 🌟 Added `String.isContentUrl` method that checks if the string is a content URL. [Bug 1944084](https://bugzilla.mozilla.org/show_bug.cgi?id=1944084).

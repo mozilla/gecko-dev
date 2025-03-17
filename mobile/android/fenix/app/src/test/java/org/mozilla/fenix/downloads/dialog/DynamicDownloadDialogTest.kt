@@ -22,6 +22,7 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.R
 import org.mozilla.fenix.databinding.DownloadDialogLayoutBinding
 import org.mozilla.fenix.downloads.dialog.DynamicDownloadDialog.Companion.getCannotOpenFileErrorMessage
+import org.mozilla.fenix.downloads.fake.FakeFileSizeFormatter
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
@@ -113,6 +114,7 @@ class DynamicDownloadDialogTest {
         binding: DownloadDialogLayoutBinding,
     ) = DynamicDownloadDialog(
         context = context,
+        fileSizeFormatter = FakeFileSizeFormatter(),
         downloadState = downloadState,
         didFail = didFail,
         tryAgain = tryAgain,

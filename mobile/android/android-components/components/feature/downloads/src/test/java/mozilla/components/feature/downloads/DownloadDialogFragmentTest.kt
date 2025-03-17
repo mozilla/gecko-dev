@@ -18,6 +18,7 @@ import org.junit.runner.RunWith
 import kotlin.math.roundToLong
 
 @RunWith(AndroidJUnit4::class)
+@Suppress("Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1953923
 class DownloadDialogFragmentTest {
 
     private lateinit var dialog: DownloadDialogFragment

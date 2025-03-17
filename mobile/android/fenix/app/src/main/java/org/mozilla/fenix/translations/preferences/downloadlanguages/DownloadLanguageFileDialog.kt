@@ -45,7 +45,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * @param onCancel Invoked when the user clicks on the "Cancel" dialog button.
  */
 @Composable
-@Suppress("LongMethod")
+@Suppress("LongMethod", "Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1953923
 fun DownloadLanguageFileDialog(
     downloadLanguageDialogType: DownloadLanguageFileDialogType,
     fileSize: Long? = null,
