@@ -85,16 +85,19 @@ gradle.projectsLoaded { ->
     }
 }
 
-def runCmd(cmd, workingDir, successMessage, captureStdout = true) {
-    def proc = cmd.execute(null, new File(workingDir))
-    def standardOutput = captureStdout ? new ByteArrayOutputStream() : System.out
-    proc.consumeProcessOutput(standardOutput, System.err)
-    proc.waitFor()
+def runCmd(cmd, workingDirectory, successMessage, captureStdout = true) {
+    def proc = providers.exec {
+        commandLine(cmd)
+        ignoreExitValue = true
+        workingDir = workingDirectory
+    }
 
-    if (proc.exitValue() != 0) {
-        throw new GradleException("Process '${cmd}' finished with non-zero exit value ${proc.exitValue()}");
+    def result = proc.result.get().exitValue
+
+    if (result != 0) {
+        throw new GradleException("Process '${cmd}' finished with non-zero exit value ${result}");
     } else {
         logger.lifecycle("settings.gradle> ${successMessage}")
     }
-    return captureStdout ? standardOutput : null
+    return captureStdout ? proc.standardOutput.asText.get() : null
 }
