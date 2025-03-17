@@ -11,7 +11,7 @@ const SJS_URL =
   "https://example.com/browser/devtools/client/webconsole/" +
   "/test/browser/test_hsts-invalid-headers.sjs";
 const LEARN_MORE_URI =
-  "https://developer.mozilla.org/docs/Web/HTTP/Headers/" +
+  "https://developer.mozilla.org/docs/Web/HTTP/Reference/Headers/" +
   "Strict-Transport-Security" +
   DOCS_GA_PARAMS;
 

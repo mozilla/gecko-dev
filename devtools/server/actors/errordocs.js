@@ -126,15 +126,15 @@ const INSECURE_PASSWORDS_LEARN_MORE =
 const PUBLIC_KEY_PINS_LEARN_MORE =
   "https://developer.mozilla.org/docs/Web/HTTP/Public_Key_Pinning";
 const STRICT_TRANSPORT_SECURITY_LEARN_MORE =
-  "https://developer.mozilla.org/docs/Web/HTTP/Headers/Strict-Transport-Security";
+  "https://developer.mozilla.org/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security";
 const MIME_TYPE_MISMATCH_LEARN_MORE =
-  "https://developer.mozilla.org/docs/Web/HTTP/Headers/X-Content-Type-Options";
+  "https://developer.mozilla.org/docs/Web/HTTP/Reference/Headers/X-Content-Type-Options";
 const SOURCE_MAP_LEARN_MORE =
   "https://firefox-source-docs.mozilla.org/devtools-user/debugger/source_map_errors/";
 const TLS_LEARN_MORE =
   "https://blog.mozilla.org/security/2018/10/15/removing-old-versions-of-tls/";
 const X_FRAME_OPTIONS_LEARN_MORE =
-  "https://developer.mozilla.org/docs/Web/HTTP/Headers/X-Frame-Options";
+  "https://developer.mozilla.org/docs/Web/HTTP/Reference/Headers/X-Frame-Options";
 const REQUEST_STORAGE_ACCESS_LEARN_MORE =
   "https://developer.mozilla.org/docs/Web/API/Document/requestStorageAccess";
 const DOCTYPE_MODES_LEARN_MORE =
@@ -161,7 +161,7 @@ const ErrorCategories = {
 };
 
 const baseCorsErrorUrl =
-  "https://developer.mozilla.org/docs/Web/HTTP/CORS/Errors/";
+  "https://developer.mozilla.org/docs/Web/HTTP/Guides/CORS/Errors";
 const corsParams =
   "?utm_source=devtools&utm_medium=firefox-cors-errors&utm_campaign=default";
 const CorsErrorDocs = {
