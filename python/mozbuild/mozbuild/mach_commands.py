@@ -1458,21 +1458,21 @@ def _get_jsshell_run_parser():
     )
 
     group = parser.add_argument_group("Compiled Program Options")
+    # Trick ArgumentParser into displaying an advice to access program help
+    group.add_argument(
+        "fake_help",
+        nargs=argparse.REMAINDER,
+        default=[],
+        metavar="-- --help",
+        help="Display the program help.",
+    )
     group.add_argument(
         "params",
-        nargs="*",
+        nargs=argparse.REMAINDER,
         default=[],
         metavar="[--] params...",
         help="Command-line arguments to be passed through to the program. "
         "Omitting --profile or -P results in a temporary profile being used.",
-    )
-    # Trick ArgumentParser into displaying an advice to access program help
-    group.add_argument(
-        "fake_help",
-        nargs="*",
-        default=[],
-        metavar="-- --help",
-        help="Display the program help.",
     )
 
     return parser
@@ -1584,22 +1584,22 @@ def _get_desktop_run_parser():
     )
 
     group = parser.add_argument_group("Compiled Program Options")
+    # Trick ArgumentParser into displaying an advice to access program help
+    group.add_argument(
+        "fake_help",
+        nargs=argparse.REMAINDER,
+        default=[],
+        metavar="-- --help",
+        help="Display the program help.",
+    )
+
     group.add_argument(
         "params",
-        nargs="*",
+        nargs=argparse.REMAINDER,
         default=[],
         metavar="[--] params...",
         help="Command-line arguments to be passed through to the program. "
         "Omitting --profile or -P results in a temporary profile being used.",
-    )
-
-    # Trick ArgumentParser into displaying an advice to access program help
-    group.add_argument(
-        "fake_help",
-        nargs="*",
-        default=[],
-        metavar="-- --help",
-        help="Display the program help.",
     )
 
     return parser
@@ -1624,7 +1624,7 @@ def setup_run_parser():
 def run(command_context, **kwargs):
     """Run the compiled program."""
     # Get rid of fake_help artifact
-    fake_help = kwargs.pop("fake_help")
+    fake_help = kwargs.pop("fake_help", None)
     assert not fake_help
 
     if conditions.is_android(command_context):
