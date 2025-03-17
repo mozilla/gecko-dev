@@ -214,37 +214,59 @@ inline void ImplCycleCollectionTrace(const TraceCallbacks& aCallbacks,
  *
  * To participate either define `ImplCycleCollectionContainer` or
  * `ImplCycleCollectionIndexedContainer` for the container type. The latter
- * should be chosen when edges should be decorated as an indexed container.
+ * should be chosen when edges should be decorated as an indexed container. Use
+ * `EnableCycleCollectionIf` from nsCycleCollectionContainerParticipant.h to
+ * restrict allowed types. For example:
+ *
+ * template <typename T>
+ * struct MyContainer {
+ *   T mT;
+ * };
+ *
+ * template <typename Container, typename Callback,
+ *           EnableCycleCollectionIf<Container, MyContainer> = nullptr>
+ * inline void ImplCycleCollectionContainer(Container&& aField,
+ *                                          Callback&& aCallback) {
+ *   aCallback(aField.mT);
+ * }
  */
 
 template <typename T, typename = void>
-struct IsCycleCollectionContainer : std::false_type {};
+struct ImplCycleCollectionNonIndexedContainerT : std::false_type {};
 
 template <typename T>
-struct IsCycleCollectionContainer<
+struct ImplCycleCollectionNonIndexedContainerT<
     T,
     std::void_t<decltype(ImplCycleCollectionContainer(std::declval<T&>(), 0))>>
     : std::true_type {};
 
 template <typename T, typename = void>
-struct IsCycleCollectionIndexedContainer : std::false_type {};
+struct ImplCycleCollectionIndexedContainerT : std::false_type {};
 
 template <typename T>
-struct IsCycleCollectionIndexedContainer<
+struct ImplCycleCollectionIndexedContainerT<
     T, std::void_t<decltype(ImplCycleCollectionIndexedContainer(
            std::declval<T&>(), 0))>> : std::true_type {};
 
 template <typename T>
-constexpr bool kIsCycleCollectionContainer =
-    IsCycleCollectionContainer<T>::value ||
-    IsCycleCollectionIndexedContainer<T>::value;
+constexpr bool ImplCycleCollectionCollectNonIndexedContainer =
+    ImplCycleCollectionNonIndexedContainerT<T>::value;
 
-template <typename T,
-          typename = std::enable_if_t<kIsCycleCollectionContainer<T>, void>>
+template <typename T>
+constexpr bool ImplCycleCollectionCollectIndexedContainer =
+    ImplCycleCollectionIndexedContainerT<T>::value;
+
+template <typename T>
+constexpr bool ImplCycleCollectionCollectContainer =
+    ImplCycleCollectionNonIndexedContainerT<T>::value ||
+    ImplCycleCollectionIndexedContainerT<T>::value;
+
+template <typename T, typename = std::enable_if_t<
+                          ImplCycleCollectionCollectContainer<T>, void>>
 void ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
                                  T& aField, const char* aName,
                                  uint32_t aFlags = 0) {
-  if constexpr (IsCycleCollectionIndexedContainer<T>::value) {
+  if constexpr (ImplCycleCollectionIndexedContainerT<T>::value) {
     aFlags |= CycleCollectionEdgeNameArrayFlag;
     ImplCycleCollectionIndexedContainer(aField, [&](auto& aFieldMember) {
       ImplCycleCollectionTraverse(aCallback, aFieldMember, aName, aFlags);
@@ -256,11 +278,11 @@ void ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
   }
 }
 
-template <typename T,
-          typename = std::enable_if_t<kIsCycleCollectionContainer<T>, void>>
+template <typename T, typename = std::enable_if_t<
+                          ImplCycleCollectionCollectContainer<T>, void>>
 void ImplCycleCollectionTrace(const TraceCallbacks& aCallbacks, T& aField,
                               const char* aName, void* aClosure) {
-  if constexpr (IsCycleCollectionIndexedContainer<T>::value) {
+  if constexpr (ImplCycleCollectionIndexedContainerT<T>::value) {
     ImplCycleCollectionIndexedContainer(aField, [&](auto& aFieldMember) {
       ImplCycleCollectionTrace(aCallbacks, aFieldMember, aName, aClosure);
     });
