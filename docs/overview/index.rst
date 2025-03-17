@@ -5,5 +5,5 @@ A Quick Guide to Mozilla Applications
 
    gecko
    /browser/overview
-   /mobile/android/overview
+   /mobile/android/index
    ios
