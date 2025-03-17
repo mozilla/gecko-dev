@@ -4,6 +4,7 @@
 
 browser.jar:
     content/browser/genai/assets (assets/**/*.svg)
+    content/browser/genai/content/ (content/model-optin.*)
     content/browser/genai/chat.css
     content/browser/genai/chat.html
     content/browser/genai/chat.js

@@ -1,0 +1,95 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+.optin-wrapper {
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-radius: 8px;
+  padding: var(--space-large);
+}
+
+.optin-header-wrapper,
+.optin-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.optin-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-medium);
+}
+
+.optin-heading {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xxlarge);
+  margin: 0;
+}
+
+.optin-message {
+  text-align: center;
+  font-size: var(--font-size-large);
+}
+
+.optin-heading-icon {
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
+  -moz-context-properties: fill, fill-opacity, stroke;
+}
+
+.optin-progress-bar-wrapper {
+  margin-top: var(--space-medium);
+}
+
+.optin-progress-bar {
+  width: 100%;
+
+  &::-moz-progress-bar {
+    height: 0;
+  }
+
+  &:indeterminate {
+    --optin-animation-base-color-1: light-dark(
+      var(--color-blue-50),
+      var(--color-blue-30)
+    );
+    --optin-animation-base-color-2: color-mix(
+      in srgb,
+      var(--optin-animation-base-color-1) 25%,
+      transparent
+    );
+
+    animation: optin-loading-bar-animation 3s infinite;
+    outline-color: var(--optin-animation-base-color-1);
+    border-color: var(--optin-animation-base-color-2);
+    background: linear-gradient(
+      100deg,
+      color-mix(in srgb, var(--optin-animation-base-color-1), transparent 25%)
+        30%,
+      var(--optin-animation-base-color-2) 50%,
+      color-mix(in srgb, var(--optin-animation-base-color-1), transparent 25%)
+        70%
+    );
+
+    background-size: 200% 100%;
+    border-radius: var(--border-radius-small);
+    height: 4px;
+    white-space: nowrap;
+    width: 100%;
+  }
+}
+
+@keyframes optin-loading-bar-animation {
+  0% {
+    background-position: 200% 0;
+  }
+
+  50% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
