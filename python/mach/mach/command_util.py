@@ -171,9 +171,7 @@ MACH_COMMANDS = {
         "python/mozperftest/mozperftest/mach_commands.py"
     ),
     "power": MachCommandReference("tools/power/mach_commands.py"),
-    "prettier-format": MachCommandReference(
-        "python/mozbuild/mozbuild/code_analysis/mach_commands.py"
-    ),
+    "prettier": MachCommandReference("tools/lint/mach_commands.py"),
     "puppeteer-test": MachCommandReference("remote/mach_commands.py"),
     "python": MachCommandReference("python/mach_commands.py"),
     "python-test": MachCommandReference("python/mach_commands.py"),

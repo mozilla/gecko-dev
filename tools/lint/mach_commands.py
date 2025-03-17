@@ -157,6 +157,35 @@ def eslint(command_context, paths, extra_args=[], **kwargs):
 
 
 @Command(
+    "prettier",
+    category="devenv",
+    description="Run prettier to reformat the relevant files.",
+)
+@CommandArgument(
+    "paths",
+    default=None,
+    nargs="*",
+    help="Paths to file or directories to lint, like "
+    "'browser/' Defaults to the "
+    "current directory if not given.",
+)
+@CommandArgument(
+    "extra_args",
+    nargs=argparse.REMAINDER,
+    help="Extra args that will be forwarded to prettier.",
+)
+def prettier(command_context, paths, extra_args=[], **kwargs):
+    command_context._mach_context.commands.dispatch(
+        "format",
+        command_context._mach_context,
+        linters=["eslint"],
+        paths=paths,
+        argv=extra_args,
+        **kwargs
+    )
+
+
+@Command(
     "format",
     category="devenv",
     description="Format files, alternative to 'lint --fix' ",

@@ -26,7 +26,6 @@ from six.moves import input
 
 from mozbuild import build_commands
 from mozbuild.controller.clobber import Clobberer
-from mozbuild.nodeutil import find_node_executable
 from mozbuild.util import cpu_count, memoize
 
 
@@ -1071,57 +1070,6 @@ def print_checks(command_context, verbose=False):
     ]
 
     return command_context.run_process(args=args, pass_thru=True)
-
-
-@Command(
-    "prettier-format",
-    category="misc",
-    description="Run prettier on current changes",
-)
-@CommandArgument(
-    "--path",
-    "-p",
-    nargs=1,
-    required=True,
-    help="Specify the path to reformat to stdout.",
-)
-@CommandArgument(
-    "--assume-filename",
-    "-a",
-    nargs=1,
-    required=True,
-    help="This option is usually used in the context of hg-formatsource."
-    "When reading from stdin, Prettier assumes this "
-    "filename to decide which style and parser to use.",
-)
-def prettier_format(command_context, path, assume_filename):
-    # With assume_filename we want to have stdout clean since the result of the
-    # format will be redirected to stdout.
-
-    binary, _ = find_node_executable()
-    prettier = os.path.join(
-        command_context.topsrcdir, "node_modules", "prettier", "bin", "prettier.cjs"
-    )
-    path = os.path.join(command_context.topsrcdir, path[0])
-
-    # Bug 1564824. Prettier fails on patches with moved files where the
-    # original directory also does not exist.
-    assume_dir = os.path.dirname(
-        os.path.join(command_context.topsrcdir, assume_filename[0])
-    )
-    assume_filename = assume_filename[0] if os.path.isdir(assume_dir) else path
-
-    # We use --stdin-filepath in order to better determine the path for
-    # the prettier formatter when it is ran outside of the repo, for example
-    # by the extension hg-formatsource.
-    args = [binary, prettier, "--stdin-filepath", assume_filename]
-
-    process = subprocess.Popen(args, stdin=subprocess.PIPE)
-    with open(path, "rb") as fin:
-        process.stdin.write(fin.read())
-        process.stdin.close()
-        process.wait()
-        return process.returncode
 
 
 @Command(
