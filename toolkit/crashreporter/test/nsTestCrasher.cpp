@@ -251,14 +251,22 @@ extern "C" NS_EXPORT void Crash(int16_t how) {
       // Do a UAF, triggering a crash.
       uint8_t* p = GetPHCAllocation(32);
       free(p);
+
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wuse-after-free"
       p[0] = 0;
+#  pragma GCC diagnostic pop
       // not reached
     }
     case CRASH_PHC_DOUBLE_FREE: {
       // Do a double free, triggering a crash.
       uint8_t* p = GetPHCAllocation(64);
       free(p);
+
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wuse-after-free"
       free(p);
+#  pragma GCC diagnostic pop
       // not reached
     }
     case CRASH_PHC_BOUNDS_VIOLATION: {
