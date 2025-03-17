@@ -2230,6 +2230,10 @@ export class UrlbarQueryContext {
         options.userContextId,
         this.isPrivate
       ) || Ci.nsIScriptSecurityManager.DEFAULT_USER_CONTEXT_ID;
+
+    // Used to store glean timing distribution timer ids.
+    this.firstTimerId = 0;
+    this.sixthTimerId = 0;
   }
 
   /**

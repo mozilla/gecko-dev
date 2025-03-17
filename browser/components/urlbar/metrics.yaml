@@ -686,6 +686,42 @@ urlbar:
     expires: never
     telemetry_mirror: URLBAR_AUTOFILL_DELETION
 
+  autocomplete_first_result_time:
+    type: timing_distribution
+    description: >
+      PLACES: Time for first autocomplete result if > 50ms (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PLACES_AUTOCOMPLETE_1ST_RESULT_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - adw@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_AUTOCOMPLETE_1ST_RESULT_TIME_MS
+
+  autocomplete_sixth_result_time:
+    type: timing_distribution
+    description: >
+      PLACES: Time for the 6 first autocomplete results (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PLACES_AUTOCOMPLETE_6_FIRST_RESULTS_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - adw@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_AUTOCOMPLETE_6_FIRST_RESULTS_TIME_MS
+
 # Replacement for PingCentre "quicksuggest-block|impression|click" pings.
 quick_suggest:
   ping_type:

@@ -15,9 +15,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
 });
 
-const TELEMETRY_1ST_RESULT = "PLACES_AUTOCOMPLETE_1ST_RESULT_TIME_MS";
-const TELEMETRY_6_FIRST_RESULTS = "PLACES_AUTOCOMPLETE_6_FIRST_RESULTS_TIME_MS";
-
 const NOTIFICATIONS = {
   QUERY_STARTED: "onQueryStarted",
   QUERY_RESULTS: "onQueryResults",
@@ -125,8 +122,10 @@ export class UrlbarController {
     let contextWrapper = (this._lastQueryContextWrapper = { queryContext });
 
     queryContext.lastResultCount = 0;
-    TelemetryStopwatch.start(TELEMETRY_1ST_RESULT, queryContext);
-    TelemetryStopwatch.start(TELEMETRY_6_FIRST_RESULTS, queryContext);
+    queryContext.firstTimerId =
+      Glean.urlbar.autocompleteFirstResultTime.start();
+    queryContext.sixthTimerId =
+      Glean.urlbar.autocompleteSixthResultTime.start();
 
     // For proper functionality we must ensure this notification is fired
     // synchronously, as soon as startQuery is invoked, but after any
@@ -162,8 +161,12 @@ export class UrlbarController {
     this._lastQueryContextWrapper.done = true;
 
     let { queryContext } = this._lastQueryContextWrapper;
-    TelemetryStopwatch.cancel(TELEMETRY_1ST_RESULT, queryContext);
-    TelemetryStopwatch.cancel(TELEMETRY_6_FIRST_RESULTS, queryContext);
+
+    Glean.urlbar.autocompleteFirstResultTime.cancel(queryContext.firstTimerId);
+    queryContext.firstTimerId = 0;
+    Glean.urlbar.autocompleteSixthResultTime.cancel(queryContext.sixthTimerId);
+    queryContext.sixthTimerId = 0;
+
     this.manager.cancelQuery(queryContext);
     this.notify(NOTIFICATIONS.QUERY_CANCELLED, queryContext);
     this.notify(NOTIFICATIONS.QUERY_FINISHED, queryContext);
@@ -176,10 +179,16 @@ export class UrlbarController {
    */
   receiveResults(queryContext) {
     if (queryContext.lastResultCount < 1 && queryContext.results.length >= 1) {
-      TelemetryStopwatch.finish(TELEMETRY_1ST_RESULT, queryContext);
+      Glean.urlbar.autocompleteFirstResultTime.stopAndAccumulate(
+        queryContext.firstTimerId
+      );
+      queryContext.firstTimerId = 0;
     }
     if (queryContext.lastResultCount < 6 && queryContext.results.length >= 6) {
-      TelemetryStopwatch.finish(TELEMETRY_6_FIRST_RESULTS, queryContext);
+      Glean.urlbar.autocompleteSixthResultTime.stopAndAccumulate(
+        queryContext.sixthTimerId
+      );
+      queryContext.sixthTimerId = 0;
     }
 
     if (queryContext.firstResultChanged) {
