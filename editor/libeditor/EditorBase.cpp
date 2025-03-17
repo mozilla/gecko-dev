@@ -5181,7 +5181,7 @@ Result<CaretPoint, nsresult> EditorBase::DeleteRangeWithTransaction(
 Result<CaretPoint, nsresult> EditorBase::DeleteRangesWithTransaction(
     nsIEditor::EDirection aDirectionAndAmount,
     nsIEditor::EStripWrappers aStripWrappers,
-    const AutoClonedRangeArray& aRangesToDelete) {
+    AutoClonedRangeArray& aRangesToDelete) {
   MOZ_ASSERT(IsEditActionDataAvailable());
   MOZ_ASSERT(!Destroyed());
   MOZ_ASSERT(aStripWrappers == eStrip || aStripWrappers == eNoStrip);

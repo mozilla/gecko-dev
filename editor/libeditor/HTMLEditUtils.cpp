@@ -849,24 +849,35 @@ EditorDOMPoint HTMLEditUtils::LineRequiresPaddingLineBreakToBeVisible(
         point.IsStartOfContainer()) {
       return true;
     }
-    const WSScanResult previousThing =
-        WSRunScanner::ScanPreviousVisibleNodeOrBlockBoundary(
-            WSRunScanner::Scan::EditableNodes, preferredPaddingLineBreakPoint,
+    // We need to scan previous `Text` which may ends with invisible white-space
+    // because we want to make it visible.  Therefore, we cannot use
+    // WSRunScanner::ScanPreviousVisibleNodeOrBlockBoundary() here.
+    nsIContent* const previousVisibleLeafOrChildBlock =
+        HTMLEditUtils::GetPreviousNonEmptyLeafContentOrPreviousBlockElement(
+            preferredPaddingLineBreakPoint,
+            {LeafNodeType::LeafNodeOrChildBlock},
             BlockInlineCheck::UseComputedDisplayOutsideStyle);
-    if (previousThing.ContentIsText()) {
-      if (MOZ_UNLIKELY(!previousThing.TextPtr()->TextDataLength())) {
-        return false;
-      }
-      auto atLastChar = EditorRawDOMPointInText(
-          previousThing.TextPtr(),
-          previousThing.TextPtr()->TextDataLength() - 1);
-      if (atLastChar.IsCharCollapsibleASCIISpace()) {
-        preferredPaddingLineBreakPoint.SetAfter(previousThing.TextPtr());
-        return true;
-      }
+    if (!previousVisibleLeafOrChildBlock) {
+      // Reached current block.
+      return true;
+    }
+    if (HTMLEditUtils::IsBlockElement(
+            *previousVisibleLeafOrChildBlock,
+            BlockInlineCheck::UseComputedDisplayOutsideStyle)) {
+      // We reached previous child block.
+      return true;
+    }
+    Text* const previousVisibleText =
+        Text::FromNode(previousVisibleLeafOrChildBlock);
+    if (!previousVisibleText) {
+      // We reached visible inline element.
       return false;
     }
-    return previousThing.ReachedBlockBoundary();
+    MOZ_ASSERT(previousVisibleText->TextDataLength());
+    // We reached previous (currently) invisible white-space or visible
+    // character.
+    return EditorRawDOMPoint::AtEndOf(*previousVisibleText)
+        .IsPreviousCharASCIISpace();
   }();
   if (!followingBlockBoundaryOrCollapsibleWhiteSpace) {
     return EditorDOMPoint();

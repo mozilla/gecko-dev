@@ -1713,10 +1713,9 @@ class HTMLEditor final : public EditorBase,
                                  const Element& aEditingHost);
 
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CaretPoint, nsresult>
-  DeleteRangesWithTransaction(
-      nsIEditor::EDirection aDirectionAndAmount,
-      nsIEditor::EStripWrappers aStripWrappers,
-      const AutoClonedRangeArray& aRangesToDelete) override;
+  DeleteRangesWithTransaction(nsIEditor::EDirection aDirectionAndAmount,
+                              nsIEditor::EStripWrappers aStripWrappers,
+                              AutoClonedRangeArray& aRangesToDelete) override;
 
   /**
    * SplitParagraphWithTransaction() splits the parent block, aParentDivOrP, at

@@ -1078,6 +1078,159 @@ void AutoClonedRangeArray::RemoveCollapsedRanges() {
   }
 }
 
+void AutoClonedRangeArray::ExtendRangeToContainSurroundingInvisibleWhiteSpaces(
+    nsIEditor::EStripWrappers aStripWrappers) {
+  const auto PointAfterLineBoundary =
+      [](const WSScanResult& aPreviousThing) -> EditorRawDOMPoint {
+    if (aPreviousThing.ReachedCurrentBlockBoundary()) {
+      return EditorRawDOMPoint(aPreviousThing.ElementPtr(), 0u);
+    }
+    return aPreviousThing.PointAfterReachedContent<EditorRawDOMPoint>();
+  };
+  const auto PointeAtLineBoundary =
+      [](const WSScanResult& aNextThing) -> EditorRawDOMPoint {
+    if (aNextThing.ReachedCurrentBlockBoundary()) {
+      return EditorRawDOMPoint::AtEndOf(*aNextThing.ElementPtr());
+    }
+    return aNextThing.PointAtReachedContent<EditorRawDOMPoint>();
+  };
+  for (const OwningNonNull<nsRange>& range : mRanges) {
+    if (MOZ_UNLIKELY(range->Collapsed())) {
+      // Don't extend the collapsed range to do nothing for the range.
+      continue;
+    }
+    const WSScanResult previousThing =
+        WSRunScanner::ScanPreviousVisibleNodeOrBlockBoundary(
+            WSRunScanner::Scan::EditableNodes,
+            EditorRawDOMPoint(range->StartRef()),
+            BlockInlineCheck::UseComputedDisplayOutsideStyle);
+    if (previousThing.ReachedLineBoundary()) {
+      const EditorRawDOMPoint mostDistantNewStart =
+          [&]() MOZ_NEVER_INLINE_DEBUG {
+            if (aStripWrappers == nsIEditor::eStrip) {
+              nsINode* const commonAncestor =
+                  range->GetClosestCommonInclusiveAncestor();
+              MOZ_ASSERT(commonAncestor);
+              Element* const commonContainer =
+                  commonAncestor->GetAsElementOrParentElement();
+              if (NS_WARN_IF(!commonContainer)) {
+                return EditorRawDOMPoint();
+              }
+              return EditorRawDOMPoint(commonContainer, 0u);
+            }
+            Element* const container =
+                range->StartRef().GetContainer()->GetAsElementOrParentElement();
+            if (NS_WARN_IF(!container)) {
+              return EditorRawDOMPoint();
+            }
+            return EditorRawDOMPoint(container, 0u);
+          }();
+      const EditorRawDOMPoint afterLineBoundary =
+          PointAfterLineBoundary(previousThing);
+      const auto& newStart =
+          [&]() MOZ_NEVER_INLINE_DEBUG -> const EditorRawDOMPoint& {
+        // If the container wraps the line boundary, we can extend the range
+        // to the line boundary.
+        if (MOZ_UNLIKELY(!mostDistantNewStart.IsSet()) ||
+            mostDistantNewStart.IsBefore(afterLineBoundary)) {
+          return afterLineBoundary;
+        }
+        // If the container does not wrap the line boundary, we can delete
+        // first content of the container.
+        return mostDistantNewStart;
+      }();
+      const auto betterNewStart = [&]() MOZ_NEVER_INLINE_DEBUG {
+        if (MOZ_UNLIKELY(!newStart.IsSet())) {
+          return EditorRawDOMPoint();
+        }
+        MOZ_ASSERT_IF(mostDistantNewStart.IsSet(),
+                      mostDistantNewStart.IsStartOfContainer());
+        auto* const firstText = Text::FromNodeOrNull(
+            newStart == mostDistantNewStart
+                ? mostDistantNewStart.GetContainer()->GetFirstChild()
+                : newStart.GetChild());
+        if (!firstText) {
+          return newStart;
+        }
+        return EditorRawDOMPoint(firstText, 0u);
+      }();
+      if (MOZ_LIKELY(!NS_WARN_IF(!betterNewStart.IsSet())) &&
+          betterNewStart != range->StartRef()) {
+        IgnoredErrorResult ignoredError;
+        range->SetStart(betterNewStart.ToRawRangeBoundary(), ignoredError);
+        NS_WARNING_ASSERTION(!ignoredError.Failed(),
+                             "nsRange::SetStart() failed, but ignored");
+      }
+    }
+    const WSScanResult nextThing =
+        WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
+            WSRunScanner::Scan::EditableNodes,
+            EditorRawDOMPoint(range->EndRef()),
+            BlockInlineCheck::UseComputedDisplayOutsideStyle);
+    if (!nextThing.ReachedLineBoundary()) {
+      continue;
+    }
+    const EditorRawDOMPoint mostDistantNewEnd = [&]() MOZ_NEVER_INLINE_DEBUG {
+      if (aStripWrappers == nsIEditor::eStrip) {
+        nsINode* const commonAncestor =
+            range->GetClosestCommonInclusiveAncestor();
+        MOZ_ASSERT(commonAncestor);
+        Element* const commonContainer =
+            commonAncestor->GetAsElementOrParentElement();
+        if (NS_WARN_IF(!commonContainer)) {
+          return EditorRawDOMPoint();
+        }
+        return EditorRawDOMPoint::AtEndOf(*commonContainer);
+      }
+      Element* const container =
+          range->EndRef().GetContainer()->GetAsElementOrParentElement();
+      if (NS_WARN_IF(!container)) {
+        return EditorRawDOMPoint();
+      }
+      return EditorRawDOMPoint::AtEndOf(*container);
+    }();
+    if (MOZ_UNLIKELY(!mostDistantNewEnd.IsSet())) {
+      continue;
+    }
+    const EditorRawDOMPoint atLineBoundary = PointeAtLineBoundary(nextThing);
+    const auto& newEnd =
+        [&]() MOZ_NEVER_INLINE_DEBUG -> const EditorRawDOMPoint& {
+      // If the container wraps the line boundary, we can use the boundary
+      // point.
+      if (atLineBoundary.IsBefore(mostDistantNewEnd)) {
+        return atLineBoundary;
+      }
+      // If the container does not wrap the line boundary, we can delete last
+      // content of the container.
+      return mostDistantNewEnd;
+    }();
+    if (MOZ_UNLIKELY(!newEnd.IsSet())) {
+      continue;
+    }
+    const auto betterNewEnd = [&]() MOZ_NEVER_INLINE_DEBUG {
+      MOZ_ASSERT_IF(mostDistantNewEnd.IsSet(),
+                    mostDistantNewEnd.IsEndOfContainer());
+      auto* const lastText = Text::FromNodeOrNull(
+          newEnd == mostDistantNewEnd
+              ? mostDistantNewEnd.GetContainer()->GetLastChild()
+              : (!newEnd.IsStartOfContainer()
+                     ? newEnd.GetPreviousSiblingOfChild()
+                     : nullptr));
+      if (!lastText) {
+        return newEnd;
+      }
+      return EditorRawDOMPoint::AtEndOf(*lastText);
+    }();
+    if (NS_WARN_IF(!betterNewEnd.IsSet()) || betterNewEnd == range->EndRef()) {
+      continue;
+    }
+    IgnoredErrorResult ignoredError;
+    range->SetEnd(betterNewEnd.ToRawRangeBoundary(), ignoredError);
+    NS_WARNING_ASSERTION(!ignoredError.Failed(),
+                         "nsRange::SetEnd() failed, but ignored");
+  }
+}
+
 /******************************************************************************
  * mozilla::AutoClonedSelectionRangeArray
  *****************************************************************************/

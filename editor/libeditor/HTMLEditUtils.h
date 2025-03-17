@@ -1586,6 +1586,96 @@ class HTMLEditUtils final {
   }
 
   /**
+   * Return previous non-empty leaf content or child block or non-editable
+   * content (depending on aLeafNodeTypes).  This ignores invisible inline leaf
+   * element like `<b></b>` and empty `Text` nodes.  So, this may return
+   * invisible `Text` node, but it may be useful to consider whether we need to
+   * insert a padding <br> element.
+   */
+  [[nodiscard]] static nsIContent*
+  GetPreviousNonEmptyLeafContentOrPreviousBlockElement(
+      const nsIContent& aContent, const LeafNodeTypes& aLeafNodeTypes,
+      BlockInlineCheck aBlockInlineCheck,
+      const Element* aAncestorLimiter = nullptr) {
+    for (nsIContent* previousContent =
+             HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
+                 aContent, aLeafNodeTypes, aBlockInlineCheck, aAncestorLimiter);
+         previousContent;
+         previousContent =
+             HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
+                 *previousContent, aLeafNodeTypes, aBlockInlineCheck,
+                 aAncestorLimiter)) {
+      if (aLeafNodeTypes.contains(LeafNodeType::LeafNodeOrChildBlock) &&
+          HTMLEditUtils::IsBlockElement(
+              *previousContent,
+              BlockInlineCheck::UseComputedDisplayOutsideStyle)) {
+        return previousContent;  // Reached block element
+      }
+      if (aLeafNodeTypes.contains(LeafNodeType::LeafNodeOrNonEditableNode) &&
+          HTMLEditUtils::IsSimplyEditableNode(*previousContent)) {
+        return previousContent;  // Reached non-editable content
+      }
+      Text* const previousText = Text::FromNode(previousContent);
+      if (!previousText) {
+        if (!HTMLEditUtils::IsVisibleElementEvenIfLeafNode(*previousContent)) {
+          continue;  // Ignore invisible inline elements
+        }
+        return previousContent;  // Reached visible inline element
+      }
+      if (!previousText->TextDataLength()) {
+        continue;  // Ignore empty Text nodes.
+      }
+      return previousText;  // Reached non-empty text
+    }
+    return nullptr;
+  }
+
+  /**
+   * Return previous visible leaf content or child block or non-editable content
+   * (depending on aLeafNodeTypes).  This ignores invisible inline leaf element
+   * like `<b></b>` and empty `Text` nodes.  So, this may return invisible
+   * `Text` node, but it may be useful to consider whether we need to insert a
+   * padding <br> element.
+   */
+  template <typename PT, typename CT>
+  [[nodiscard]] static nsIContent*
+  GetPreviousNonEmptyLeafContentOrPreviousBlockElement(
+      const EditorDOMPointBase<PT, CT>& aPoint,
+      const LeafNodeTypes& aLeafNodeTypes, BlockInlineCheck aBlockInlineCheck,
+      const Element* aAncestorLimiter = nullptr) {
+    for (nsIContent* previousContent =
+             HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
+                 aPoint, aLeafNodeTypes, aBlockInlineCheck, aAncestorLimiter);
+         previousContent;
+         previousContent =
+             HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
+                 *previousContent, aLeafNodeTypes, aBlockInlineCheck,
+                 aAncestorLimiter)) {
+      if (aLeafNodeTypes.contains(LeafNodeType::LeafNodeOrChildBlock) &&
+          HTMLEditUtils::IsBlockElement(
+              *previousContent,
+              BlockInlineCheck::UseComputedDisplayOutsideStyle)) {
+        return previousContent;  // Reached block element
+      }
+      if (aLeafNodeTypes.contains(LeafNodeType::LeafNodeOrNonEditableNode) &&
+          HTMLEditUtils::IsSimplyEditableNode(*previousContent)) {
+        return previousContent;  // Reached non-editable content
+      }
+      Text* const previousText = Text::FromNode(previousContent);
+      if (!previousText) {
+        if (!HTMLEditUtils::IsVisibleElementEvenIfLeafNode(*previousContent)) {
+          continue;  // Ignore invisible inline elements
+        }
+        return previousContent;  // Reached visible inline element
+      }
+      if (!previousText->TextDataLength()) {
+        continue;  // Ignore empty Text nodes.
+      }
+      return previousText;  // Reached non-empty text
+    }
+    return nullptr;
+  }
+  /**
    * Returns a content node whose inline styles should be preserved after
    * deleting content in a range.  Typically, you should set aPoint to start
    * boundary of the range to delete.

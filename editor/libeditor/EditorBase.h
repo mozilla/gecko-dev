@@ -2666,7 +2666,7 @@ class EditorBase : public nsIEditor,
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT virtual Result<CaretPoint, nsresult>
   DeleteRangesWithTransaction(nsIEditor::EDirection aDirectionAndAmount,
                               nsIEditor::EStripWrappers aStripWrappers,
-                              const AutoClonedRangeArray& aRangesToDelete);
+                              AutoClonedRangeArray& aRangesToDelete);
 
   /**
    * Create a transaction for delete the content in aRangesToDelete.

@@ -4158,18 +4158,20 @@ HTMLEditor::DeleteEmptyInclusiveAncestorInlineElements(
 
   const nsCOMPtr<nsIContent> nextSibling = content->GetNextSibling();
   const nsCOMPtr<nsINode> parentNode = content->GetParentNode();
+  MOZ_ASSERT(parentNode);
   nsresult rv = DeleteNodeWithTransaction(content);
   if (NS_FAILED(rv)) {
     NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
     return Err(rv);
   }
-  if (NS_WARN_IF(nextSibling && nextSibling->GetParentNode() != parentNode)) {
+  if (NS_WARN_IF(nextSibling && nextSibling->GetParentNode() != parentNode) ||
+      NS_WARN_IF(!HTMLEditUtils::IsSimplyEditableNode(*parentNode))) {
     return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
   }
-  return CaretPoint(nextSibling &&
-                            HTMLEditUtils::IsSimplyEditableNode(*nextSibling)
-                        ? EditorDOMPoint(nextSibling)
-                        : EditorDOMPoint::AtEndOf(*parentNode));
+  // Note that even if nextSibling is not editable, we can put caret before it
+  // unless parentNode is not editable.
+  return CaretPoint(nextSibling ? EditorDOMPoint(nextSibling)
+                                : EditorDOMPoint::AtEndOf(*parentNode));
 }
 
 nsresult HTMLEditor::DeleteAllChildrenWithTransaction(Element& aElement) {
