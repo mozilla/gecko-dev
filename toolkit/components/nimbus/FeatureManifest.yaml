@@ -1843,6 +1843,12 @@ pdfjs:
       setPref:
         branch: default
         pref: browser.ml.enable
+    enableSignatureEditor:
+      description: Set to true to enable the signature editor
+      type: boolean
+      setPref:
+        branch: default
+        pref: pdfjs.enableSignatureEditor
 
 # fxms-message-* placeholder feature ids
 #
