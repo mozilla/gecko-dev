@@ -509,7 +509,8 @@ void printRange(nsRange* aDomRange) {
 }
 #endif /* PRINT_RANGE */
 
-void Selection::Stringify(nsAString& aResult, FlushFrames aFlushFrames) {
+void Selection::Stringify(nsAString& aResult, CallerType aCallerType,
+                          FlushFrames aFlushFrames) {
   if (aFlushFrames == FlushFrames::Yes) {
     // We need FlushType::Frames here to make sure frames have been created for
     // the selected content.  Use mFrameSelection->GetPresShell() which returns
@@ -524,8 +525,17 @@ void Selection::Stringify(nsAString& aResult, FlushFrames aFlushFrames) {
   }
 
   IgnoredErrorResult rv;
-  ToStringWithFormat(u"text/plain"_ns, nsIDocumentEncoder::SkipInvisibleContent,
-                     0, aResult, rv);
+  uint32_t flags = nsIDocumentEncoder::SkipInvisibleContent;
+  if (StaticPrefs::dom_selection_mimic_chrome_tostring_enabled() &&
+      Type() == SelectionType::eNormal &&
+      aCallerType == CallerType::NonSystem) {
+    if (mFrameSelection && !mFrameSelection->GetLimiter()) {
+      // NonSystem and non-independent selection
+      flags |= nsIDocumentEncoder::MimicChromeToStringBehaviour;
+    }
+  }
+
+  ToStringWithFormat(u"text/plain"_ns, flags, 0, aResult, rv);
   if (rv.Failed()) {
     aResult.Truncate();
   }
@@ -559,7 +569,17 @@ void Selection::ToStringWithFormat(const nsAString& aFormatType,
     return;
   }
 
-  encoder->SetSelection(this);
+  Selection* selectionToEncode = this;
+
+  if (aFlags & nsIDocumentEncoder::MimicChromeToStringBehaviour) {
+    if (const nsFrameSelection* sel =
+            presShell->GetLastSelectionForToString()) {
+      MOZ_ASSERT(StaticPrefs::dom_selection_mimic_chrome_tostring_enabled());
+      selectionToEncode = &sel->NormalSelection();
+    }
+  }
+
+  encoder->SetSelection(selectionToEncode);
   if (aWrapCol != 0) encoder->SetWrapColumn(aWrapCol);
 
   rv = encoder->EncodeToString(aReturn);
@@ -2446,6 +2466,12 @@ void Selection::AddRangeJS(nsRange& aRange, ErrorResult& aRv) {
   mCalledByJS = true;
   RefPtr<Document> document(GetDocument());
   AddRangeAndSelectFramesAndNotifyListenersInternal(aRange, document, aRv);
+  if (StaticPrefs::dom_selection_mimic_chrome_tostring_enabled() &&
+      !aRv.Failed()) {
+    if (auto* presShell = GetPresShell()) {
+      presShell->UpdateLastSelectionForToString(mFrameSelection);
+    }
+  }
 }
 
 void Selection::AddRangeAndSelectFramesAndNotifyListeners(nsRange& aRange,
@@ -3353,6 +3379,12 @@ void Selection::SelectAllChildrenJS(nsINode& aNode, ErrorResult& aRv) {
   AutoRestore<bool> calledFromJSRestorer(mCalledByJS);
   mCalledByJS = true;
   SelectAllChildren(aNode, aRv);
+  if (StaticPrefs::dom_selection_mimic_chrome_tostring_enabled() &&
+      !aRv.Failed()) {
+    if (auto* presShell = GetPresShell()) {
+      presShell->UpdateLastSelectionForToString(mFrameSelection);
+    }
+  }
 }
 
 void Selection::SelectAllChildren(nsINode& aNode, ErrorResult& aRv) {
@@ -4122,6 +4154,12 @@ void Selection::SetBaseAndExtentJS(nsINode& aAnchorNode, uint32_t aAnchorOffset,
   AutoRestore<bool> calledFromJSRestorer(mCalledByJS);
   mCalledByJS = true;
   SetBaseAndExtent(aAnchorNode, aAnchorOffset, aFocusNode, aFocusOffset, aRv);
+  if (StaticPrefs::dom_selection_mimic_chrome_tostring_enabled() &&
+      !aRv.Failed()) {
+    if (auto* presShell = GetPresShell()) {
+      presShell->UpdateLastSelectionForToString(mFrameSelection);
+    }
+  }
 }
 
 void Selection::SetBaseAndExtent(nsINode& aAnchorNode, uint32_t aAnchorOffset,

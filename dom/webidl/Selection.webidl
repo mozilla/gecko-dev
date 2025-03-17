@@ -84,6 +84,7 @@ interface Selection {
   [Throws]
   boolean   containsNode(Node node,
                          optional boolean allowPartialContainment = false);
+  [NeedsCallerType]
   stringifier DOMString ();
 };
 

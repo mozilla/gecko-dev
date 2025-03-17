@@ -166,7 +166,11 @@ function test()
     // iframe/input/custom-element contents must not be included on the parent
     // selection.
     checkCharacter(sel, "f", false, "iframe (checking on parent)");
-    checkCharacter(sel, "i", false, "input (checking on parent)");
+    checkCharacter(sel, "i",
+      SpecialPowers.getBoolPref("dom.selection.mimic_chrome_tostring.enabled")
+        ? aInputShouldBeSelected
+        : false,
+      "input (checking on parent)");
     checkCharacter(sel, "x", false, "Custom element contents (checking on parent)");
 
     var selInIFrame = iframe.contentWindow.getSelection().toString();

@@ -1408,7 +1408,10 @@ nsresult nsFrameSelection::TakeFocus(nsIContent& aNewFocus,
            __FUNCTION__, &aNewFocus, aContentOffset, aContentEndOffset,
            static_cast<int>(aHint), static_cast<int>(aFocusMode)));
 
-  mPresShell->FrameSelectionWillTakeFocus(*this);
+  mPresShell->FrameSelectionWillTakeFocus(
+      *this, aNewFocus.CanStartSelectionAsWebCompatHack()
+                 ? PresShell::CanMoveLastSelectionForToString::Yes
+                 : PresShell::CanMoveLastSelectionForToString::No);
 
   // Clear all table selection data
   mTableSelection.mMode = TableSelectionMode::None;
@@ -3115,7 +3118,16 @@ void nsFrameSelection::DisconnectFromPresShell() {
     MOZ_ASSERT(mDomSelections[i]);
     mDomSelections[i]->Clear(nullptr);
   }
-  mPresShell = nullptr;
+
+  if (auto* presshell = mPresShell) {
+    if (const nsFrameSelection* sel =
+            presshell->GetLastSelectionForToString()) {
+      if (sel == this) {
+        presshell->UpdateLastSelectionForToString(nullptr);
+      }
+    }
+    mPresShell = nullptr;
+  }
 }
 
 #ifdef XP_MACOSX
