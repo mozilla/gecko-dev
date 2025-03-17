@@ -2652,11 +2652,40 @@ main section {
 }
 
 .theme-custom-color-picker {
+  background-color: var(--newtab-background-color-secondary);
+  background-clip: content-box;
+  border-radius: var(--border-radius-medium);
+  outline: 2px dashed var(--border-color-default, #CFCFD8);
+  outline-offset: 2px;
   position: relative;
   color-scheme: light;
 }
+.theme-custom-color-picker .wallpaper-input {
+  box-shadow: none;
+}
+.theme-custom-color-picker:focus-visible {
+  border-color: transparent;
+  outline-color: var(--color-accent-primary-active);
+  padding: 2px;
+}
+.theme-custom-color-picker.default-color-set #solid-color-picker {
+  opacity: 0;
+}
+@media (prefers-color-scheme: dark) {
+  .theme-custom-color-picker.default-color-set::after {
+    color-scheme: dark;
+  }
+}
+.theme-custom-color-picker.custom-color-dark::after {
+  color-scheme: dark;
+}
 .theme-custom-color-picker.is-dark::after {
   color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  .theme-custom-color-picker.is-dark::after {
+    color: #FBFBFE;
+  }
 }
 .theme-custom-color-picker::after {
   background: url("chrome://global/skin/icons/color-picker-20.svg") center no-repeat;
@@ -2672,15 +2701,6 @@ main section {
   transform: translate(-50%, -50%);
   pointer-events: none;
   cursor: pointer;
-}
-.theme-custom-color-picker .wallpaper-input {
-  border: 2px dashed var(--border-color-default, #CFCFD8);
-  box-shadow: none;
-}
-.theme-custom-color-picker .wallpaper-input.active {
-  border-color: transparent;
-  outline-color: var(--color-accent-primary-active);
-  padding: 2px;
 }
 .theme-custom-color-picker label {
   display: inline-block;

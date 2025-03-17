@@ -106,12 +106,57 @@
 }
 
 .theme-custom-color-picker {
+  background-color: var(--newtab-background-color-secondary);
+  background-clip: content-box;
+  border-radius: var(--border-radius-medium);
+  outline: 2px dashed var(--border-color-default, #CFCFD8);
+  outline-offset: 2px;
   position: relative;
   color-scheme: light;
+
+  .wallpaper-input {
+    box-shadow: none;
+  }
+
+  &:focus-visible {
+    border-color: transparent;
+    outline-color: var(--color-accent-primary-active);
+    padding: 2px;
+  }
+
+  // The color picker has a default state where the user has not picked a custom color
+  // It will either be a custom color or the default background color.
+  // Depending on this, we need to override the icon color to match the correct contrast.
+  // The default-color-set and custom-color-dark classes are removed whenever
+  //  a user interacts with the color picker, letting the current color dictate contrast.
+
+  // When the user has no custom color set, we need to hide the color picker input entirely to
+  // show the default panel color beneath
+  &.default-color-set {
+    #solid-color-picker {
+      opacity: 0;
+    }
+
+    &::after {
+      @media (prefers-color-scheme: dark) {
+        color-scheme: dark;
+      }
+    }
+  }
+
+  &.custom-color-dark {
+    &::after {
+      color-scheme: dark;
+    }
+  }
 
   // Change the icon color based on the selected color
   &.is-dark::after {
     color-scheme: dark;
+
+    @media (prefers-color-scheme: dark) {
+      color: #FBFBFE; // var(--color-gray-05);
+    }
   }
 
   // Color Picker Icon
@@ -129,17 +174,6 @@
     transform: translate(-50%, -50%);
     pointer-events: none;
     cursor: pointer;
-  }
-
-  .wallpaper-input {
-    border: 2px dashed var(--border-color-default, #CFCFD8);
-    box-shadow: none;
-
-    &.active {
-      border-color: transparent;
-      outline-color: var(--color-accent-primary-active);
-      padding: 2px;
-    }
   }
 
   label {

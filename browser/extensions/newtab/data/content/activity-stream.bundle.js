@@ -11392,6 +11392,7 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
     this.categoryRef = []; // store references for wallpaper category list
     this.wallpaperRef = []; // store reference for wallpaper selection list
     this.customColorPickerRef = /*#__PURE__*/external_React_default().createRef(); // Used to determine contrast icon color for custom color picker
+    this.customColorInput = /*#__PURE__*/external_React_default().createRef(); // Used to determine contrast icon color for custom color picker
     this.state = {
       activeCategory: null,
       activeCategoryFluentID: null,
@@ -11419,6 +11420,10 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
 
     // Set background color to custom color
     event.target.style.backgroundColor = `rgb(${rgbColors.toString()})`;
+    if (this.customColorPickerRef.current) {
+      const colorInputBackground = this.customColorPickerRef.current.children[0].style.backgroundColor;
+      this.customColorPickerRef.current.style.backgroundColor = colorInputBackground;
+    }
 
     // Set icon color based on the selected color
     const isColorDark = this.isWallpaperColorDark(rgbColors);
@@ -11428,6 +11433,9 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       } else {
         this.customColorPickerRef.current.classList.remove("is-dark");
       }
+
+      // Remove any possible initial classes
+      this.customColorPickerRef.current.classList.remove("custom-color-set", "custom-color-dark", "default-color-set");
     }
 
     // Setting this now so when we remove v1 we don't have to migrate v1 values.
@@ -11658,8 +11666,25 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
     if (prefs["newtabWallpapers.customColor.enabled"] && activeCategory === "solid-colors") {
       filteredWallpapers = reduceColorsToFitCustomColorInput(filteredWallpapers);
     }
+
+    // Bug 1953012 - If nothing selected, default to color of customize panel
+    // --color-blue-70 : #054096
+    // --color-blue-05 : #deeafc
+    const starterColorHex = this.prefersDarkQuery?.matches ? "#054096" : "#deeafc";
+
+    // Set initial state of the color picker (depending if the user has already set a custom color)
+    let initStateClassname = wallpaperCustomSolidColorHex ? "custom-color-set" : "default-color-set";
+
+    // If a custom color picker is set, make sure the icon has the correct contrast
+    if (wallpaperCustomSolidColorHex) {
+      const rgbColors = this.getRGBColors(wallpaperCustomSolidColorHex);
+      const isColorDark = this.isWallpaperColorDark(rgbColors);
+      if (isColorDark) {
+        initStateClassname += " custom-color-dark";
+      }
+    }
     let colorPickerInput = showColorPicker && activeCategory === "solid-colors" ? /*#__PURE__*/external_React_default().createElement("div", {
-      className: "theme-custom-color-picker",
+      className: `theme-custom-color-picker ${initStateClassname}`,
       ref: this.customColorPickerRef
     }, /*#__PURE__*/external_React_default().createElement("input", {
       onInput: this.handleColorInput,
@@ -11671,12 +11696,11 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       id: "solid-color-picker"
       // aria-checked is not applicable for input[type="color"] elements
       ,
-      "aria-current": this.state.activeId === "solid-color-picker"
-      // Bug 1953012 - If nothing selected, default to color of customize panel
-      ,
-      value: wallpaperCustomSolidColorHex || "#00d230",
+      "aria-current": this.state.activeId === "solid-color-picker",
+      value: wallpaperCustomSolidColorHex || starterColorHex,
       className: `wallpaper-input
-              ${this.state.activeId === "solid-color-picker" ? "active" : ""}`
+              ${this.state.activeId === "solid-color-picker" ? "active" : ""}`,
+      ref: this.customColorInput
     }), /*#__PURE__*/external_React_default().createElement("label", {
       htmlFor: "solid-color-picker",
       "data-l10n-id": "newtab-wallpaper-custom-color"
