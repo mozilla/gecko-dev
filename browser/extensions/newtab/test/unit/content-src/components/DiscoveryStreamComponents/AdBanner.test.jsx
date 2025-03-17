@@ -7,6 +7,13 @@ import { actionCreators as ac } from "common/Actions.mjs";
 import React from "react";
 
 const DEFAULT_PROPS = {
+  prefs: {
+    ...INITIAL_STATE.Prefs,
+    values: {
+      ...INITIAL_STATE.Prefs.values,
+      "discoverystream.sections.enabled": false,
+    },
+  },
   type: "foo",
   firstVisibleTimestamp: new Date("March 21, 2024 10:11:12").getTime(),
   row: "3",

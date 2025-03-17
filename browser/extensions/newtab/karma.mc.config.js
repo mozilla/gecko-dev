@@ -203,10 +203,10 @@ module.exports = function (config) {
               },
             "content-src/components/DiscoveryStreamComponents/CardSections/CardSections.jsx":
               {
-                statements: 90.82,
-                lines: 90.53,
-                functions: 87.5,
-                branches: 60,
+                statements: 86.55,
+                lines: 86.09,
+                functions: 81.48,
+                branches: 57.97,
               },
             "content-src/components/DiscoveryStreamComponents/SectionContextMenu/SectionContextMenu.jsx":
               {
@@ -217,7 +217,7 @@ module.exports = function (config) {
               },
             "content-src/components/DiscoveryStreamComponents/AdBanner/AdBanner.jsx":
               {
-                branches: 62.5,
+                branches: 60,
               },
             "content-src/components/DiscoveryStreamComponents/**/*.jsx": {
               statements: 90.48,

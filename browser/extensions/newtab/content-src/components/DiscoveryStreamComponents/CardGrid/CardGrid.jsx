@@ -482,7 +482,11 @@ export class _CardGrid extends React.PureComponent {
 
     // if a banner ad is enabled and we have any available, place them in the grid
     const { spocs } = this.props.DiscoveryStream;
-    if ((billboardEnabled || leaderboardEnabled) && spocs.data.newtab_spocs) {
+
+    if (
+      (billboardEnabled || leaderboardEnabled) &&
+      spocs.data.newtab_spocs.items
+    ) {
       // Only render one AdBanner in the grid -
       // Prioritize rendering a leaderboard if it exists,
       // otherwise render a billboard
@@ -526,6 +530,7 @@ export class _CardGrid extends React.PureComponent {
               type={this.props.type}
               firstVisibleTimestamp={this.props.firstVisibleTimestamp}
               row={row}
+              prefs={prefs}
             />
           );
         };

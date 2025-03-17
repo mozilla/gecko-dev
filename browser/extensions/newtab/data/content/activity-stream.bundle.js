@@ -4297,7 +4297,8 @@ const AdBanner = ({
   dispatch,
   firstVisibleTimestamp,
   row,
-  type
+  type,
+  prefs
 }) => {
   const getDimensions = format => {
     switch (format) {
@@ -4318,6 +4319,7 @@ const AdBanner = ({
       height: undefined
     };
   };
+  const sectionsEnabled = prefs["discoverystream.sections.enabled"];
   const {
     width: imgWidth,
     height: imgHeight
@@ -4358,7 +4360,11 @@ const AdBanner = ({
         } : {}),
         fetchTimestamp: spoc.fetchTimestamp,
         firstVisibleTimestamp,
-        format: spoc.format
+        format: spoc.format,
+        ...(sectionsEnabled ? {
+          section: spoc.format,
+          section_position: row
+        } : {})
       }
     }));
   };
@@ -4825,7 +4831,7 @@ class _CardGrid extends (external_React_default()).PureComponent {
     const {
       spocs
     } = this.props.DiscoveryStream;
-    if ((billboardEnabled || leaderboardEnabled) && spocs.data.newtab_spocs) {
+    if ((billboardEnabled || leaderboardEnabled) && spocs.data.newtab_spocs.items) {
       // Only render one AdBanner in the grid -
       // Prioritize rendering a leaderboard if it exists,
       // otherwise render a billboard
@@ -4857,7 +4863,8 @@ class _CardGrid extends (external_React_default()).PureComponent {
             dispatch: this.props.dispatch,
             type: this.props.type,
             firstVisibleTimestamp: this.props.firstVisibleTimestamp,
-            row: row
+            row: row,
+            prefs: prefs
           }));
         };
         const getBannerIndex = () => {
@@ -10318,6 +10325,11 @@ const CardSections_PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topic
 const CardSections_PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 const PREF_INTEREST_PICKER_ENABLED = "discoverystream.sections.interestPicker.enabled";
 const CardSections_PREF_VISIBLE_SECTIONS = "discoverystream.sections.interestPicker.visibleSections";
+const PREF_MEDIUM_RECTANGLE_ENABLED = "newtabAdSize.mediumRectangle";
+const CardSections_PREF_BILLBOARD_ENABLED = "newtabAdSize.billboard";
+const CardSections_PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
+const CardSections_PREF_LEADERBOARD_POSITION = "newtabAdSize.leaderboard.position";
+const CardSections_PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
 function getLayoutData(responsiveLayouts, index) {
   let layoutData = {
     classNames: [],
@@ -10480,6 +10492,13 @@ function CardSection({
     type: type,
     sectionPosition: sectionPosition
   }));
+
+  // Determine to display first medium-sized in MREC IAB format
+  const mediumRectangleEnabled = prefs[PREF_MEDIUM_RECTANGLE_ENABLED];
+  let adSizingVariantClassName = "";
+  if (mediumRectangleEnabled) {
+    adSizingVariantClassName = "ad-sizing-variant-a";
+  }
   return /*#__PURE__*/external_React_default().createElement("section", {
     className: "ds-section",
     ref: el => {
@@ -10494,7 +10513,7 @@ function CardSection({
   }, title), subtitle && /*#__PURE__*/external_React_default().createElement("p", {
     className: "section-subtitle"
   }, subtitle)), mayHaveSectionsPersonalization ? sectionContextWrapper : null), /*#__PURE__*/external_React_default().createElement("div", {
-    className: "ds-section-grid ds-card-grid"
+    className: `ds-section-grid ds-card-grid ${adSizingVariantClassName}`
   }, section.data.slice(0, maxTile).map((rec, index) => {
     const {
       classNames,
@@ -10569,6 +10588,9 @@ function CardSections({
   ctaButtonSponsors
 }) {
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
+  const {
+    spocs
+  } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream);
   const personalizationEnabled = prefs[PREF_SECTIONS_PERSONALIZATION_ENABLED];
   const interestPickerEnabled = prefs[PREF_INTEREST_PICKER_ENABLED];
 
@@ -10606,10 +10628,37 @@ function CardSections({
     ctaButtonSponsors: ctaButtonSponsors
   }));
 
-  // check that the interest picker is enabled and has data needed to render
+  // Add a billboard/leaderboard IAB ad to the sectionsToRender array (if enabled/possible).
+  const billboardEnabled = prefs[CardSections_PREF_BILLBOARD_ENABLED];
+  const leaderboardEnabled = prefs[CardSections_PREF_LEADERBOARD_ENABLED];
+  if ((billboardEnabled || leaderboardEnabled) && spocs.data.newtab_spocs) {
+    const spocToRender = spocs.data.newtab_spocs.items.find(({
+      format
+    }) => format === "leaderboard" && leaderboardEnabled) || spocs.data.newtab_spocs.items.find(({
+      format
+    }) => format === "billboard" && billboardEnabled);
+    if (spocToRender && !spocs.blocked.includes(spocToRender.url)) {
+      const row = spocToRender.format === "leaderboard" ? prefs[CardSections_PREF_LEADERBOARD_POSITION] : prefs[CardSections_PREF_BILLBOARD_POSITION];
+      sectionsToRender.splice(
+      // Math.min is used here to ensure the given row stays within the bounds of the sectionsToRender array.
+      Math.min(sectionsToRender.length - 1, row), 0, /*#__PURE__*/external_React_default().createElement(AdBanner, {
+        spoc: spocToRender,
+        key: `dscard-${spocToRender.id}`,
+        dispatch: dispatch,
+        type: type,
+        firstVisibleTimestamp: firstVisibleTimestamp,
+        row: row,
+        prefs: prefs
+      }));
+    }
+  }
+
+  // Add the interest picker to the sectionsToRender array (if enabled/possible).
   if (interestPickerEnabled && personalizationEnabled && interestPicker?.sections) {
     const index = interestPicker.receivedFeedRank - 1;
-    sectionsToRender.splice(Math.min(sectionsToRender.length - 1, index), 0, /*#__PURE__*/external_React_default().createElement(InterestPicker, {
+    sectionsToRender.splice(
+    // Math.min is used here to ensure the given row stays within the bounds of the sectionsToRender array.
+    Math.min(sectionsToRender.length - 1, index), 0, /*#__PURE__*/external_React_default().createElement(InterestPicker, {
       title: interestPicker.title,
       subtitle: interestPicker.subtitle,
       interests: interestPicker.sections || [],

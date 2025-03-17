@@ -13,6 +13,7 @@ export const AdBanner = ({
   firstVisibleTimestamp,
   row,
   type,
+  prefs,
 }) => {
   const getDimensions = format => {
     switch (format) {
@@ -33,6 +34,8 @@ export const AdBanner = ({
       height: undefined,
     };
   };
+
+  const sectionsEnabled = prefs["discoverystream.sections.enabled"];
 
   const { width: imgWidth, height: imgHeight } = getDimensions(spoc.format);
 
@@ -77,6 +80,12 @@ export const AdBanner = ({
           fetchTimestamp: spoc.fetchTimestamp,
           firstVisibleTimestamp,
           format: spoc.format,
+          ...(sectionsEnabled
+            ? {
+                section: spoc.format,
+                section_position: row,
+              }
+            : {}),
         },
       })
     );

@@ -10,7 +10,7 @@ import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
 import { useIntersectionObserver } from "../../../lib/utils";
 import { SectionContextMenu } from "../SectionContextMenu/SectionContextMenu";
 import { InterestPicker } from "../InterestPicker/InterestPicker";
-
+import { AdBanner } from "../AdBanner/AdBanner.jsx";
 // Prefs
 const PREF_SECTIONS_CARDS_ENABLED = "discoverystream.sections.cards.enabled";
 const PREF_SECTIONS_CARDS_THUMBS_UP_DOWN_ENABLED =
@@ -27,6 +27,11 @@ const PREF_INTEREST_PICKER_ENABLED =
   "discoverystream.sections.interestPicker.enabled";
 const PREF_VISIBLE_SECTIONS =
   "discoverystream.sections.interestPicker.visibleSections";
+const PREF_MEDIUM_RECTANGLE_ENABLED = "newtabAdSize.mediumRectangle";
+const PREF_BILLBOARD_ENABLED = "newtabAdSize.billboard";
+const PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
+const PREF_LEADERBOARD_POSITION = "newtabAdSize.leaderboard.position";
+const PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
 
 function getLayoutData(responsiveLayouts, index) {
   let layoutData = {
@@ -228,6 +233,14 @@ function CardSection({
     </div>
   );
 
+  // Determine to display first medium-sized in MREC IAB format
+  const mediumRectangleEnabled = prefs[PREF_MEDIUM_RECTANGLE_ENABLED];
+
+  let adSizingVariantClassName = "";
+  if (mediumRectangleEnabled) {
+    adSizingVariantClassName = "ad-sizing-variant-a";
+  }
+
   return (
     <section
       className="ds-section"
@@ -242,7 +255,9 @@ function CardSection({
         </div>
         {mayHaveSectionsPersonalization ? sectionContextWrapper : null}
       </div>
-      <div className="ds-section-grid ds-card-grid">
+      <div
+        className={`ds-section-grid ds-card-grid ${adSizingVariantClassName}`}
+      >
         {section.data.slice(0, maxTile).map((rec, index) => {
           const { classNames, imageSizes } = getLayoutData(
             responsiveLayouts,
@@ -323,6 +338,7 @@ function CardSections({
   ctaButtonSponsors,
 }) {
   const prefs = useSelector(state => state.Prefs.values);
+  const { spocs } = useSelector(state => state.DiscoveryStream);
   const personalizationEnabled = prefs[PREF_SECTIONS_PERSONALIZATION_ENABLED];
   const interestPickerEnabled = prefs[PREF_INTEREST_PICKER_ENABLED];
 
@@ -366,7 +382,43 @@ function CardSections({
     />
   ));
 
-  // check that the interest picker is enabled and has data needed to render
+  // Add a billboard/leaderboard IAB ad to the sectionsToRender array (if enabled/possible).
+  const billboardEnabled = prefs[PREF_BILLBOARD_ENABLED];
+  const leaderboardEnabled = prefs[PREF_LEADERBOARD_ENABLED];
+
+  if ((billboardEnabled || leaderboardEnabled) && spocs.data.newtab_spocs) {
+    const spocToRender =
+      spocs.data.newtab_spocs.items.find(
+        ({ format }) => format === "leaderboard" && leaderboardEnabled
+      ) ||
+      spocs.data.newtab_spocs.items.find(
+        ({ format }) => format === "billboard" && billboardEnabled
+      );
+
+    if (spocToRender && !spocs.blocked.includes(spocToRender.url)) {
+      const row =
+        spocToRender.format === "leaderboard"
+          ? prefs[PREF_LEADERBOARD_POSITION]
+          : prefs[PREF_BILLBOARD_POSITION];
+
+      sectionsToRender.splice(
+        // Math.min is used here to ensure the given row stays within the bounds of the sectionsToRender array.
+        Math.min(sectionsToRender.length - 1, row),
+        0,
+        <AdBanner
+          spoc={spocToRender}
+          key={`dscard-${spocToRender.id}`}
+          dispatch={dispatch}
+          type={type}
+          firstVisibleTimestamp={firstVisibleTimestamp}
+          row={row}
+          prefs={prefs}
+        />
+      );
+    }
+  }
+
+  // Add the interest picker to the sectionsToRender array (if enabled/possible).
   if (
     interestPickerEnabled &&
     personalizationEnabled &&
@@ -375,6 +427,7 @@ function CardSections({
     const index = interestPicker.receivedFeedRank - 1;
 
     sectionsToRender.splice(
+      // Math.min is used here to ensure the given row stays within the bounds of the sectionsToRender array.
       Math.min(sectionsToRender.length - 1, index),
       0,
       <InterestPicker
