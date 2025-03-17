@@ -100,10 +100,10 @@ fun Window.setNavigationBarDividerColorCompat(@ColorInt color: Int?) {
  * This results in keeping the same behavior for such insets while allowing to separately control the behavior
  * for other dynamic insets.
  *
- * This only works on Android Q and above. On older versions calling this will result in no-op.
+ * This only works on Android 13 and above. On older versions calling this will result in no-op.
  */
 fun Window.setupPersistentInsets() {
-    if (SDK_INT >= VERSION_CODES.Q) {
+    if (SDK_INT >= VERSION_CODES.TIRAMISU) {
         WindowCompat.setDecorFitsSystemWindows(this, false)
 
         val rootView = decorView.findViewById<View>(android.R.id.content)

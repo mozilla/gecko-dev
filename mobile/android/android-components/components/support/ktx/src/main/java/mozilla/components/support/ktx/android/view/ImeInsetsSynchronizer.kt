@@ -181,7 +181,7 @@ class ImeInsetsSynchronizer private constructor(
     companion object {
         /**
          * Setup animating [targetView] as always on top of the keyboard while also respecting all system bars insets.
-         * This works only on Android 10+, otherwise the dynamic padding based on the keyboard is not reliable.
+         * This works only on Android 13+, otherwise the dynamic padding based on the keyboard is not reliable.
          *
          * @param targetView The root view to add paddings to for accounting the visible keyboard height.
          * @param synchronizeViewWithIME Whether to automatically apply the needed margins to [targetView]
@@ -197,7 +197,7 @@ class ImeInsetsSynchronizer private constructor(
             synchronizeViewWithIME: Boolean = true,
             onIMEAnimationStarted: (Boolean, Int) -> Unit = { _, _ -> },
             onIMEAnimationFinished: (Boolean, Int) -> Unit = { _, _ -> },
-        ) = when (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        ) = when (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             true -> ImeInsetsSynchronizer(
                 targetView,
                 synchronizeViewWithIME,
