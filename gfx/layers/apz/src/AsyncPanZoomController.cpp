@@ -6494,9 +6494,17 @@ void AsyncPanZoomController::ResetPanGestureInputState() {
     return;
   }
 
-  // No point sending a PANGESTURE_INTERRUPTED as all it does is
-  // call CancelAnimation(), which we also do here.
-  CancelAnimationAndGestureState();
+  // Unlike in ResetTouchInputState(), do not cancel animations unconditionally.
+  // Doing so would break scenarios where content handled `wheel` events
+  // triggered by pan gesture input by calling preventDefault() and doing its
+  // own smooth (animated) scrolling. However, we do need to call
+  // CancelAnimation for its state-resetting effect if there isn't an animation
+  // running, otherwise we could e.g. get stuck in a PANNING state if content
+  // preventDefault()s an event in the middle of a pan gesture.
+  if (!mAnimation) {
+    CancelAnimationAndGestureState();
+  }
+
   // Clear overscroll along the entire handoff chain, in case an APZC
   // later in the chain is overscrolled.
   if (block) {

@@ -64,8 +64,21 @@
     });
 
     // Send 10 wheel events in fairly quick succession (one frame between each).
+    let useTouchpad = (location.search == "?touchpad");
     for (var i = 0; i < eventCount; i++) {
-      await synthesizeNativeWheel(window, 50, 50, 0, -50);
+      if (useTouchpad) {
+        let phase;
+        if (i == 0) {
+          phase = NativePanHandler.beginPhase;
+        } else if (i == (eventCount - 1)) {
+          phase = NativePanHandler.endPhase;
+        } else {
+          phase = NativePanHandler.updatePhase;
+        }
+        await NativePanHandler.promiseNativePanEvent(window, 50, 50, 0, -50, phase);
+      } else {
+        await synthesizeNativeWheel(window, 50, 50, 0, -50);
+      }
       await promiseFrame();
     }
 
