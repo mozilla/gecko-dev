@@ -79,23 +79,6 @@ var tests = [
       done();
     }, "http://example.org/");
   },
-  function test_unsecure_host_override(done) {
-    Services.prefs.setBoolPref("browser.uitour.requireSecure", false);
-    loadUITourTestPage(function () {
-      let highlight = document.getElementById("UITourHighlight");
-      is_element_hidden(highlight, "Highlight should initially be hidden");
-
-      gContentAPI.showHighlight("urlbar").then(() => {
-        waitForElementToBeVisible(
-          highlight,
-          done,
-          "Highlight should be shown on a unsecure host when override pref is set"
-        );
-
-        Services.prefs.setBoolPref("browser.uitour.requireSecure", true);
-      });
-    }, "http://example.org/");
-  },
   function test_disabled(done) {
     Services.prefs.setBoolPref("browser.uitour.enabled", false);
 

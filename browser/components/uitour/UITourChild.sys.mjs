@@ -2,14 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const PREF_TEST_WHITELIST = "browser.uitour.testingOrigins";
+const PREF_TEST_ORIGINS = "browser.uitour.testingOrigins";
 const UITOUR_PERMISSION = "uitour";
 
 export class UITourChild extends JSWindowActorChild {
   handleEvent(event) {
-    if (!Services.prefs.getBoolPref("browser.uitour.enabled")) {
-      return;
-    }
     if (!this.ensureTrustedOrigin()) {
       return;
     }
@@ -22,17 +19,13 @@ export class UITourChild extends JSWindowActorChild {
   }
 
   isTestingOrigin(aURI) {
-    if (
-      Services.prefs.getPrefType(PREF_TEST_WHITELIST) !=
-      Services.prefs.PREF_STRING
-    ) {
+    let testingOrigins = Services.prefs.getStringPref(PREF_TEST_ORIGINS, "");
+    if (!testingOrigins) {
       return false;
     }
 
-    // Add any testing origins (comma-seperated) to the whitelist for the session.
-    for (let origin of Services.prefs
-      .getCharPref(PREF_TEST_WHITELIST)
-      .split(",")) {
+    // Allow any testing origins (comma-seperated).
+    for (let origin of testingOrigins.split(/\s*,\s*/)) {
       try {
         let testingURI = Services.io.newURI(origin);
         if (aURI.prePath == testingURI.prePath) {
@@ -48,10 +41,6 @@ export class UITourChild extends JSWindowActorChild {
   // This function is copied from UITour.sys.mjs.
   isSafeScheme(aURI) {
     let allowedSchemes = new Set(["https", "about"]);
-    if (!Services.prefs.getBoolPref("browser.uitour.requireSecure")) {
-      allowedSchemes.add("http");
-    }
-
     if (!allowedSchemes.has(aURI.scheme)) {
       return false;
     }

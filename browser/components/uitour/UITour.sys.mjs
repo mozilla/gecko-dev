@@ -874,10 +874,6 @@ export var UITour = {
   // This function is copied to UITourListener.
   isSafeScheme(aURI) {
     let allowedSchemes = new Set(["https", "about"]);
-    if (!Services.prefs.getBoolPref("browser.uitour.requireSecure")) {
-      allowedSchemes.add("http");
-    }
-
     if (!allowedSchemes.has(aURI.scheme)) {
       lazy.log.error("Unsafe scheme:", aURI.scheme);
       return false;

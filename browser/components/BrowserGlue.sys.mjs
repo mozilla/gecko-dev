@@ -933,6 +933,7 @@ let JSWINDOWACTORS = {
       },
     },
 
+    enablePreference: "browser.uitour.enabled",
     messageManagerGroups: ["browsers"],
   },
 
