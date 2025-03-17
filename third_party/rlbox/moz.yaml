@@ -1,14 +1,14 @@
 schema: 1
 
 bugzilla:
-  product: "Firefox Build System"
-  component: "General"
+  product: "Core"
+  component: "Security: RLBox"
 
 origin:
   name: rlbox
   description: sandboxing framework
 
-  url: https://github.com/PLSysSec/rlbox_sandboxing_api
+  url: https://github.com/PLSysSec/rlbox
 
   release: 2ffb43846498d8dbb21a4c466922599d1d697b37 (2023-07-27T18:06:21Z).
   revision: 2ffb43846498d8dbb21a4c466922599d1d697b37
@@ -16,7 +16,7 @@ origin:
   license: MIT
 
 vendoring:
-  url: https://github.com/PLSysSec/rlbox_sandboxing_api
+  url: https://github.com/PLSysSec/rlbox
   source-hosting: github
   tracking: commit
 
@@ -31,3 +31,11 @@ vendoring:
     - action: move-dir
       from: '{vendor_dir}/code/include'
       to: '{vendor_dir}/include'
+
+updatebot:
+  maintainer-phab: shravanrn
+  maintainer-bz: shravanrn@gmail.com
+  tasks:
+    - type: vendoring
+      enabled: true
+      frequency: release
