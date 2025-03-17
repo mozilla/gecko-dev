@@ -93,6 +93,22 @@ using namespace mozilla::dom;
 
 static LazyLogModule sFrameSelectionLog("FrameSelection");
 
+std::ostream& operator<<(std::ostream& aStream,
+                         const nsFrameSelection& aFrameSelection) {
+  return aStream << "{ mPresShell=" << aFrameSelection.mPresShell
+                 << ", mLimiters={ mLimiter="
+                 << aFrameSelection.mLimiters.mLimiter << ", mAncestorLimiter="
+                 << aFrameSelection.mLimiters.mAncestorLimiter
+                 << "}, IsBatching()=" << std::boolalpha
+                 << aFrameSelection.IsBatching()
+                 << ", IsInTableSelectionMode()=" << std::boolalpha
+                 << aFrameSelection.IsInTableSelectionMode()
+                 << ", GetDragState()=" << std::boolalpha
+                 << aFrameSelection.GetDragState()
+                 << ", HighlightSelectionCount()="
+                 << aFrameSelection.HighlightSelectionCount() << " }";
+}
+
 namespace mozilla {
 extern LazyLogModule sSelectionAPILog;
 extern void LogStackForSelectionAPI();
@@ -573,11 +589,10 @@ nsresult nsFrameSelection::ConstrainFrameAndPointToAnchorSubtree(
 
   NS_ENSURE_STATE(mPresShell);
   RefPtr<PresShell> presShell = mPresShell;
-  nsIContent* anchorRoot =
-      anchorContent
-          ->GetSelectionRootContent(
-              presShell,
-              StaticPrefs::dom_shadowdom_selection_across_boundary_enabled() /* aAllowCrossShadowBoundary */);
+  nsIContent* anchorRoot = anchorContent->GetSelectionRootContent(
+      presShell, nsINode::IgnoreOwnIndependentSelection::Yes,
+      static_cast<nsINode::AllowCrossShadowBoundary>(
+          StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()));
   NS_ENSURE_TRUE(anchorRoot, NS_ERROR_UNEXPECTED);
 
   //
@@ -587,10 +602,10 @@ nsresult nsFrameSelection::ConstrainFrameAndPointToAnchorSubtree(
   nsCOMPtr<nsIContent> content = aFrame->GetContent();
 
   if (content) {
-    nsIContent* contentRoot =
-        content->GetSelectionRootContent(
-            presShell, StaticPrefs::
-                           dom_shadowdom_selection_across_boundary_enabled() /* aAllowCrossShadowBoundary */);
+    nsIContent* contentRoot = content->GetSelectionRootContent(
+        presShell, nsINode::IgnoreOwnIndependentSelection::Yes,
+        static_cast<nsINode::AllowCrossShadowBoundary>(
+            StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()));
     NS_ENSURE_TRUE(contentRoot, NS_ERROR_UNEXPECTED);
 
     if (anchorRoot == contentRoot) {
@@ -615,8 +630,10 @@ nsresult nsFrameSelection::ConstrainFrameAndPointToAnchorSubtree(
         nsCOMPtr<nsIContent> cursorContent = cursorFrame->GetContent();
         NS_ENSURE_TRUE(cursorContent, NS_ERROR_FAILURE);
         nsIContent* cursorContentRoot = cursorContent->GetSelectionRootContent(
-            presShell, StaticPrefs::
-                           dom_shadowdom_selection_across_boundary_enabled() /* aAllowCrossShadowBoundary */);
+            presShell, nsINode::IgnoreOwnIndependentSelection::Yes,
+            static_cast<nsINode::AllowCrossShadowBoundary>(
+                StaticPrefs::
+                    dom_shadowdom_selection_across_boundary_enabled()));
         NS_ENSURE_TRUE(cursorContentRoot, NS_ERROR_UNEXPECTED);
         if (cursorContentRoot == anchorRoot) {
           *aRetFrame = cursorFrame;
@@ -1047,7 +1064,8 @@ Result<Element*, nsresult> nsFrameSelection::GetAncestorLimiterForCaretMove(
 nsPrevNextBidiLevels nsFrameSelection::GetPrevNextBidiLevels(
     nsIContent* aNode, uint32_t aContentOffset, bool aJumpLines) const {
   return SelectionMovementUtils::GetPrevNextBidiLevels(
-      aNode, aContentOffset, mCaret.mHint, aJumpLines);
+      aNode, aContentOffset, mCaret.mHint, aJumpLines,
+      GetAncestorLimiterOrLimiter());
 }
 
 nsresult nsFrameSelection::MaintainSelection(nsSelectionAmount aAmount) {
@@ -1074,8 +1092,9 @@ void nsFrameSelection::BidiLevelFromMove(PresShell* aPresShell,
     case eSelectEndLine:
     case eSelectNoAmount: {
       nsPrevNextBidiLevels levels =
-          SelectionMovementUtils::GetPrevNextBidiLevels(aNode, aContentOffset,
-                                                        aHint, false);
+          SelectionMovementUtils::GetPrevNextBidiLevels(
+              aNode, aContentOffset, aHint, false,
+              GetAncestorLimiterOrLimiter());
 
       SetCaretBidiLevelAndMaybeSchedulePaint(
           aHint == CaretAssociationHint::Before ? levels.mLevelBefore

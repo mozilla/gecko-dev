@@ -2268,7 +2268,7 @@ class nsIFrame : public nsQueryFrame {
                       nsSelectionAmount aBeginAmountType,
                       nsSelectionAmount aEndAmountType, uint32_t aSelectFlags);
 
-  MOZ_CAN_RUN_SCRIPT nsresult PeekBackwardAndForward(
+  MOZ_CAN_RUN_SCRIPT nsresult PeekBackwardAndForwardForSelection(
       nsSelectionAmount aAmountBack, nsSelectionAmount aAmountForward,
       int32_t aStartPos, bool aJumpLines, uint32_t aSelectFlags);
 
@@ -4138,12 +4138,15 @@ class nsIFrame : public nsQueryFrame {
    * @param aDirection the direction to move in (eDirPrevious or eDirNext)
    * @param aOptions the other options which is same as
    * PeekOffsetStruct::mOptions.
+   * @param aAncestorLimiter if set, this refers only the frames for its
+   * descendants.
    * FIXME: Due to the include hell, we cannot use the alias, PeekOffsetOptions
    * is not available in this header file.
    */
   SelectablePeekReport GetFrameFromDirection(
       nsDirection aDirection,
-      const mozilla::EnumSet<mozilla::PeekOffsetOption>& aOptions);
+      const mozilla::EnumSet<mozilla::PeekOffsetOption>& aOptions,
+      const mozilla::dom::Element* aAncestorLimiter);
   SelectablePeekReport GetFrameFromDirection(
       const mozilla::PeekOffsetStruct& aPos);
 

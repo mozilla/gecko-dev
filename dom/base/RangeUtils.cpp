@@ -4,13 +4,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/RangeUtils.h"
+#include "RangeUtils.h"
 
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/AbstractRange.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/ShadowRoot.h"
 #include "nsContentUtils.h"
+#include "nsFrameSelection.h"
 
 namespace mozilla {
 
@@ -44,6 +45,38 @@ template nsresult RangeUtils::CompareNodeToRangeBoundaries(
     nsINode* aNode, const RawRangeBoundary& aStartBoundary,
     const RawRangeBoundary& aEndBoundary, bool* aNodeIsBeforeRange,
     bool* aNodeIsAfterRange);
+
+[[nodiscard]] static inline bool ParentNodeIsInSameSelection(
+    const nsINode& aNode) {
+  // Currently, independent selection root is always the anonymous <div> in a
+  // text control which is an native anonymous subtree root.  Therefore, we
+  // can skip most checks if the node is not a root of native anonymous subtree.
+  if (!aNode.IsRootOfNativeAnonymousSubtree()) {
+    return true;
+  }
+  // If the node returns nullptr for frame selection, it means that it's not the
+  // anonymous <div> of the editable content root of a text control or just not
+  // in composed doc.
+  const nsFrameSelection* frameSelection = aNode.GetFrameSelection();
+  if (!frameSelection || frameSelection->IsIndependentSelection()) {
+    MOZ_ASSERT_IF(aNode.GetClosestNativeAnonymousSubtreeRootParentOrHost(),
+                  aNode.GetClosestNativeAnonymousSubtreeRootParentOrHost()
+                      ->IsTextControlElement());
+    return false;
+  }
+  return true;
+}
+
+// static
+nsINode* RangeUtils::GetParentNodeInSameSelection(const nsINode* aNode) {
+  if (MOZ_UNLIKELY(!aNode)) {
+    return nullptr;
+  }
+  if (!ParentNodeIsInSameSelection(*aNode)) {
+    return nullptr;
+  }
+  return aNode->GetParentNode();
+}
 
 // static
 nsINode* RangeUtils::ComputeRootNode(nsINode* aNode) {
@@ -175,7 +208,7 @@ nsresult RangeUtils::CompareNodeToRangeBoundaries(
   // gather up the dom point info
   int32_t nodeStart;
   uint32_t nodeEnd;
-  nsINode* parent = aNode->GetParentNode();
+  const nsINode* parent = GetParentNodeInSameSelection(aNode);
   if (!parent) {
     // can't make a parent/offset pair to represent start or
     // end of the root node, because it has no parent.
@@ -272,8 +305,11 @@ uint32_t ShadowDOMSelectionHelpers::EndOffset(const AbstractRange* aRange,
 }
 
 // static
-nsINode* ShadowDOMSelectionHelpers::GetParentNode(
+nsINode* ShadowDOMSelectionHelpers::GetParentNodeInSameSelection(
     nsINode& aNode, bool aAllowCrossShadowBoundary) {
+  if (!ParentNodeIsInSameSelection(aNode)) {
+    return nullptr;
+  }
   return (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled() &&
           aAllowCrossShadowBoundary)
              ? aNode.GetParentOrShadowHostNode()

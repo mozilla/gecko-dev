@@ -114,7 +114,7 @@ SelectionMovementUtils::PeekOffsetForCaretMove(
 // static
 nsPrevNextBidiLevels SelectionMovementUtils::GetPrevNextBidiLevels(
     nsIContent* aNode, uint32_t aContentOffset, CaretAssociationHint aHint,
-    bool aJumpLines) {
+    bool aJumpLines, const Element* aAncestorLimiter) {
   // Get the level of the frames on each side
   nsIFrame* currentFrame;
   uint32_t currentOffset;
@@ -150,8 +150,10 @@ nsPrevNextBidiLevels SelectionMovementUtils::GetPrevNextBidiLevels(
   if (aJumpLines) {
     peekOffsetOptions += PeekOffsetOption::JumpLines;
   }
-  nsIFrame* newFrame =
-      currentFrame->GetFrameFromDirection(direction, peekOffsetOptions).mFrame;
+  nsIFrame* newFrame = currentFrame
+                           ->GetFrameFromDirection(direction, peekOffsetOptions,
+                                                   aAncestorLimiter)
+                           .mFrame;
 
   FrameBidiData currentBidi = currentFrame->GetBidiData();
   intl::BidiEmbeddingLevel currentLevel = currentBidi.embeddingLevel;
@@ -553,7 +555,9 @@ CaretFrameData SelectionMovementUtils::GetCaretFrameForNodeOffset(
       static_cast<uint32_t>(start) == result.mOffsetInFrameContent ||
       static_cast<uint32_t>(end) == result.mOffsetInFrameContent) {
     nsPrevNextBidiLevels levels = SelectionMovementUtils::GetPrevNextBidiLevels(
-        aContentNode, aOffset, result.mHint, false);
+        aContentNode, aOffset, result.mHint, false,
+        aFrameSelection ? aFrameSelection->GetAncestorLimiterOrLimiter()
+                        : nullptr);
 
     /* Boundary condition, we need to know the Bidi levels of the characters
      * before and after the caret */

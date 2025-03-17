@@ -29,6 +29,7 @@
 #include "mozilla/ServoBindings.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TextControlElement.h"
+#include "mozilla/TextControlState.h"
 #include "mozilla/TextEditor.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/dom/BindContext.h"
@@ -601,8 +602,10 @@ static nsIContent* GetRootForContentSubtree(nsIContent* aContent) {
   return nsIContent::FromNode(aContent->SubtreeRoot());
 }
 
-nsIContent* nsINode::GetSelectionRootContent(PresShell* aPresShell,
-                                             bool aAllowCrossShadowBoundary) {
+nsIContent* nsINode::GetSelectionRootContent(
+    PresShell* aPresShell,
+    IgnoreOwnIndependentSelection aIgnoreOwnIndependentSelection,
+    AllowCrossShadowBoundary aAllowCrossShadowBoundary) {
   NS_ENSURE_TRUE(aPresShell, nullptr);
 
   const bool isContent = IsContent();
@@ -616,16 +619,14 @@ nsIContent* nsINode::GetSelectionRootContent(PresShell* aPresShell,
       return nullptr;
     }
 
-    if (AsContent()->HasIndependentSelection() ||
-        IsInNativeAnonymousSubtree()) {
+    const bool computeTextEditorRoot =
+        IsInNativeAnonymousSubtree() ||
+        (aIgnoreOwnIndependentSelection == IgnoreOwnIndependentSelection::No &&
+         AsContent()->HasIndependentSelection());
+    if (computeTextEditorRoot) {
       // This node should be an inclusive descendant of input/textarea editor.
       // In that case, the anonymous <div> for TextEditor should be always the
       // selection root.
-      // FIXME: If Selection for the document is collapsed in <input> or
-      // <textarea>, returning anonymous <div> may make the callers confused.
-      // Perhaps, we should do this only when this is in the native anonymous
-      // subtree unless the callers explicitly want to retrieve the anonymous
-      // <div> from a text control element.
       if (Element* anonymousDivElement =
               GetAnonymousRootElementOfTextEditor()) {
         return anonymousDivElement;
@@ -664,7 +665,7 @@ nsIContent* nsINode::GetSelectionRootContent(PresShell* aPresShell,
       MOZ_ASSERT(IsEditable());
       MOZ_ASSERT(!IsInDesignMode());
       MOZ_ASSERT(IsContent());
-      return static_cast<nsIContent*>(this)->GetEditingHost();
+      return AsContent()->GetEditingHost();
     }
   }
 
@@ -693,14 +694,51 @@ nsIContent* nsINode::GetSelectionRootContent(PresShell* aPresShell,
     // Use the host as the root.
     if (ShadowRoot* shadowRoot = ShadowRoot::FromNode(content)) {
       content = shadowRoot->GetHost();
-      if (content && aAllowCrossShadowBoundary) {
-        content = content->GetSelectionRootContent(aPresShell,
-                                                   aAllowCrossShadowBoundary);
+      if (content && bool(aAllowCrossShadowBoundary)) {
+        content = content->GetSelectionRootContent(
+            aPresShell, aIgnoreOwnIndependentSelection,
+            aAllowCrossShadowBoundary);
       }
     }
   }
 
   return content;
+}
+
+nsFrameSelection* nsINode::GetFrameSelection() const {
+  if (!IsInComposedDoc()) {
+    return nullptr;
+  }
+  if (IsInNativeAnonymousSubtree()) {
+    auto* const textControlElement = TextControlElement::FromNodeOrNull(
+        GetClosestNativeAnonymousSubtreeRootParentOrHost());
+    if (textControlElement &&
+        textControlElement->IsSingleLineTextControlOrTextArea()) {
+      nsFrameSelection* const independentFrameSelection =
+          textControlElement->GetIndependentFrameSelection();
+      if (!independentFrameSelection) {
+        return nullptr;  // not yet initialized or being destroyed?
+      }
+      const Element* const anonymousDiv =
+          independentFrameSelection->GetLimiter();
+      if (!anonymousDiv || !IsInclusiveDescendantOf(anonymousDiv)) {
+        return nullptr;  // not in the editor root, shouldn't be selectable
+      }
+      return independentFrameSelection;
+    }
+    // Otherwise, even if we're in a native anonymous subtree, our selection
+    // should be managed by the document selection.
+  }
+  PresShell* const presShell = OwnerDoc()->GetPresShell();
+  if (!presShell) {
+    return nullptr;
+  }
+  // FIXME: PresShell::FrameSelection() returns
+  // already_AddRefed<nsFrameSelection> for making the users work safer.
+  // However, in these days, it should be managed with MOZ_CAN_RUN_SCRIPT.
+  // Therefore, for now, we should use ConstFrameSelection() and cost_cast
+  // here to avoid to AddRef/Release in unnecessary cases.
+  return const_cast<nsFrameSelection*>(presShell->ConstFrameSelection());
 }
 
 nsINodeList* nsINode::ChildNodes() {

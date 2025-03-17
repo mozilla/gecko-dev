@@ -5076,7 +5076,7 @@ nsresult nsIFrame::SelectByTypeAtPoint(nsPresContext* aPresContext,
   if (!frame) {
     return NS_ERROR_FAILURE;
   }
-  return frame->PeekBackwardAndForward(
+  return frame->PeekBackwardAndForwardForSelection(
       aBeginAmountType, aEndAmountType, static_cast<int32_t>(offset),
       aBeginAmountType != eSelectWord, aSelectFlags);
 }
@@ -5129,10 +5129,9 @@ nsIFrame::HandleMultiplePress(nsPresContext* aPresContext,
                              (aControlHeld ? SELECT_ACCUMULATE : 0));
 }
 
-nsresult nsIFrame::PeekBackwardAndForward(nsSelectionAmount aAmountBack,
-                                          nsSelectionAmount aAmountForward,
-                                          int32_t aStartPos, bool aJumpLines,
-                                          uint32_t aSelectFlags) {
+nsresult nsIFrame::PeekBackwardAndForwardForSelection(
+    nsSelectionAmount aAmountBack, nsSelectionAmount aAmountForward,
+    int32_t aStartPos, bool aJumpLines, uint32_t aSelectFlags) {
   nsIFrame* baseFrame = this;
   int32_t baseOffset = aStartPos;
   nsresult rv;
@@ -5142,11 +5141,17 @@ nsresult nsIFrame::PeekBackwardAndForward(nsSelectionAmount aAmountBack,
     peekOffsetOptions += PeekOffsetOption::JumpLines;
   }
 
+  Element* const ancestorLimiter = [&]() -> Element* {
+    const nsFrameSelection* const frameSelection = GetConstFrameSelection();
+    return frameSelection ? frameSelection->GetAncestorLimiterOrLimiter()
+                          : nullptr;
+  }();
+
   if (aAmountBack == eSelectWord) {
     // To avoid selecting the previous word when at start of word,
     // first move one character forward.
     PeekOffsetStruct pos(eSelectCharacter, eDirNext, aStartPos, nsPoint(0, 0),
-                         peekOffsetOptions);
+                         peekOffsetOptions, eDefaultBehavior, ancestorLimiter);
     rv = PeekOffset(&pos);
     if (NS_SUCCEEDED(rv)) {
       baseFrame = pos.mResultFrame;
@@ -5156,7 +5161,8 @@ nsresult nsIFrame::PeekBackwardAndForward(nsSelectionAmount aAmountBack,
 
   // Search backward for a boundary.
   PeekOffsetStruct startpos(aAmountBack, eDirPrevious, baseOffset,
-                            nsPoint(0, 0), peekOffsetOptions);
+                            nsPoint(0, 0), peekOffsetOptions, eDefaultBehavior,
+                            ancestorLimiter);
   rv = baseFrame->PeekOffset(&startpos);
   if (NS_FAILED(rv)) {
     return rv;
@@ -5173,7 +5179,7 @@ nsresult nsIFrame::PeekBackwardAndForward(nsSelectionAmount aAmountBack,
   }
 
   PeekOffsetStruct endpos(aAmountForward, eDirNext, baseOffset, nsPoint(0, 0),
-                          peekOffsetOptions);
+                          peekOffsetOptions, eDefaultBehavior, ancestorLimiter);
   rv = baseFrame->PeekOffset(&endpos);
   if (NS_FAILED(rv)) {
     return rv;
@@ -9609,7 +9615,8 @@ nsresult nsIFrame::PeekOffsetForWord(PeekOffsetStruct* aPos, int32_t aOffset) {
         // placeholder frame boundary if there is in the word.
         options += PeekOffsetOption::StopAtPlaceholder;
       }
-      return current.mFrame->GetFrameFromDirection(aPos->mDirection, options);
+      return current.mFrame->GetFrameFromDirection(aPos->mDirection, options,
+                                                   aPos->mAncestorLimiter);
     }();
     if (next.Failed()) {
       // If we've crossed the line boundary, check to make sure that we
@@ -9806,6 +9813,7 @@ nsresult nsIFrame::PeekOffsetForLine(PeekOffsetStruct* aPos) {
 nsresult nsIFrame::PeekOffsetForLineEdge(PeekOffsetStruct* aPos) {
   // Adjusted so that the caret can't get confused when content changes
   nsIFrame* frame = AdjustFrameForSelectionStyles(this);
+  // FIXME: Use PeekOffsetStruct::mAncestorLimiter instead.
   Element* editingHost = frame->GetContent()->GetEditingHost();
 
   auto [blockFrame, lineFrame] = frame->GetContainingBlockForLine(
@@ -10173,7 +10181,8 @@ Result<bool, nsresult> nsIFrame::IsLogicallyAtLineEdge(
 }
 
 nsIFrame::SelectablePeekReport nsIFrame::GetFrameFromDirection(
-    nsDirection aDirection, const PeekOffsetOptions& aOptions) {
+    nsDirection aDirection, const PeekOffsetOptions& aOptions,
+    const Element* aAncestorLimiter) {
   SelectablePeekReport result;
 
   nsPresContext* presContext = PresContext();
@@ -10184,15 +10193,15 @@ nsIFrame::SelectablePeekReport nsIFrame::GetFrameFromDirection(
   nsFrameIterator frameIterator(
       presContext, this, nsFrameIterator::Type::Leaf, needsVisualTraversal,
       aOptions.contains(PeekOffsetOption::StopAtScroller), followOofs,
-      false  // aSkipPopupChecks
-  );
+      false,  // aSkipPopupChecks
+      aAncestorLimiter);
 
   // Find the prev/next selectable frame
   bool selectable = false;
   nsIFrame* traversedFrame = this;
   AutoAssertNoDomMutations guard;
-  const nsIContent* const nativeAnonymousSubtreeContent =
-      GetClosestNativeAnonymousSubtreeRoot();
+  const nsFrameSelection* frameSelection =
+      GetContent() ? GetContent()->GetFrameSelection() : nullptr;
   while (!selectable) {
     auto [blockFrame, lineFrame] = traversedFrame->GetContainingBlockForLine(
         aOptions.contains(PeekOffsetOption::StopAtScroller));
@@ -10243,21 +10252,26 @@ nsIFrame::SelectablePeekReport nsIFrame::GetFrameFromDirection(
       return result;
     }
 
-    auto IsSelectable =
-        [aOptions, nativeAnonymousSubtreeContent](const nsIFrame* aFrame) {
-          if (!aFrame->IsSelectable(nullptr)) {
-            return false;
-          }
-          // If the new frame is in a native anonymous subtree, we should treat
-          // it as not selectable unless the frame and found frame are in same
-          // subtree.
-          if (aFrame->GetClosestNativeAnonymousSubtreeRoot() !=
-              nativeAnonymousSubtreeContent) {
-            return false;
-          }
-          return !aOptions.contains(PeekOffsetOption::ForceEditableRegion) ||
-                 aFrame->GetContent()->IsEditable();
-        };
+    auto IsSelectable = [aAncestorLimiter, aOptions,
+                         frameSelection](const nsIFrame* aFrame) {
+      if (!aFrame->IsSelectable(nullptr) ||
+          MOZ_UNLIKELY(!aFrame->GetContent())) {
+        return false;
+      }
+      // If the found frame content is managed by different nsFrameSelection, we
+      // cannot select the frame content with current selection.
+      if (frameSelection != aFrame->GetContent()->GetFrameSelection()) {
+        return false;
+      }
+      if (MOZ_UNLIKELY(aAncestorLimiter &&
+                       !aAncestorLimiter->GetPrimaryFrame()) &&
+          !aFrame->GetContent()->IsInclusiveFlatTreeDescendantOf(
+              aAncestorLimiter)) {
+        return false;
+      }
+      return !aOptions.contains(PeekOffsetOption::ForceEditableRegion) ||
+             aFrame->GetContent()->IsEditable();
+    };
 
     // Skip br frames, but only if we can select something before hitting the
     // end of the line or a non-selectable region.
@@ -10278,6 +10292,10 @@ nsIFrame::SelectablePeekReport nsIFrame::GetFrameFromDirection(
     }
 
     selectable = IsSelectable(traversedFrame);
+    if (MOZ_UNLIKELY(!frameSelection) && selectable &&
+        MOZ_LIKELY(traversedFrame->GetContent())) {
+      frameSelection = traversedFrame->GetContent()->GetFrameSelection();
+    }
     if (!selectable) {
       if (traversedFrame->IsSelectable(nullptr)) {
         result.mHasSelectableFrame = true;
@@ -10299,7 +10317,8 @@ nsIFrame::SelectablePeekReport nsIFrame::GetFrameFromDirection(
 
 nsIFrame::SelectablePeekReport nsIFrame::GetFrameFromDirection(
     const PeekOffsetStruct& aPos) {
-  return GetFrameFromDirection(aPos.mDirection, aPos.mOptions);
+  return GetFrameFromDirection(aPos.mDirection, aPos.mOptions,
+                               aPos.mAncestorLimiter);
 }
 
 nsView* nsIFrame::GetClosestView(nsPoint* aOffset) const {

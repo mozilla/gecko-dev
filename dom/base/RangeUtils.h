@@ -37,7 +37,8 @@ struct ShadowDOMSelectionHelpers {
   static uint32_t EndOffset(const AbstractRange* aRange,
                             bool aAllowCrossShadowBoundary);
 
-  static nsINode* GetParentNode(nsINode& aNode, bool aAllowCrossShadowBoundary);
+  static nsINode* GetParentNodeInSameSelection(nsINode& aNode,
+                                               bool aAllowCrossShadowBoundary);
 
   static ShadowRoot* GetShadowRoot(const nsINode* aNode,
                                    bool aAllowCrossShadowBoundary);
@@ -45,9 +46,11 @@ struct ShadowDOMSelectionHelpers {
 }  // namespace dom
 
 class RangeUtils final {
-  typedef dom::AbstractRange AbstractRange;
+  using AbstractRange = dom::AbstractRange;
 
  public:
+  static nsINode* GetParentNodeInSameSelection(const nsINode* aNode);
+
   /**
    * GetRawRangeBoundaryBefore() and GetRawRangeBoundaryAfter() retrieve
    * RawRangeBoundary which points before or after aNode.

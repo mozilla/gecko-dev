@@ -3306,9 +3306,9 @@ void nsFocusManager::GetSelectionLocation(Document* aDocument,
       domSelection->IsCollapsed()) {
     nsIFrame* startFrame = start->GetPrimaryFrame();
     // Yes, indeed we were at the end of the last node
-    nsIFrame* limiter =
+    const Element* const limiter =
         domSelection && domSelection->GetAncestorLimiter()
-            ? domSelection->GetAncestorLimiter()->GetPrimaryFrame()
+            ? domSelection->GetAncestorLimiter()
             : nullptr;
     nsFrameIterator frameIterator(presContext, startFrame,
                                   nsFrameIterator::Type::Leaf,

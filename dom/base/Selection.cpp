@@ -40,12 +40,13 @@
 #include "mozilla/StackWalk.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/ToString.h"
 #include "mozilla/Try.h"
 
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
 #include "nsDirection.h"
-#include "nsString.h"
+#include "nsFmtString.h"
 #include "nsFrameSelection.h"
 #include "nsISelectionListener.h"
 #include "nsDeviceContext.h"
@@ -58,6 +59,7 @@
 #include "nsTableCellFrame.h"
 #include "nsCCUncollectableMarker.h"
 #include "nsIDocumentEncoder.h"
+#include "nsString.h"
 #include "nsTextFragment.h"
 #include <algorithm>
 #include "nsContentUtils.h"
@@ -3054,8 +3056,20 @@ void Selection::Extend(nsINode& aContainer, uint32_t aOffset,
     return;
   }
 
-  nsresult res;
   if (!mFrameSelection->NodeIsInLimiters(&aContainer)) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return;
+  }
+
+  if (aContainer.GetFrameSelection() != mFrameSelection) {
+    NS_ASSERTION(
+        false,
+        nsFmtCString(
+            FMT_STRING("mFrameSelection is {} which is expected as "
+                       "aContainer.GetFrameSelection() ({})"),
+            mozilla::ToString(mFrameSelection).c_str(),
+            mozilla::ToString(RefPtr{aContainer.GetFrameSelection()}).c_str())
+            .get());
     aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
@@ -3097,6 +3111,7 @@ void Selection::Extend(nsINode& aContainer, uint32_t aOffset,
 
   // If the points are disconnected, the range will be collapsed below,
   // resulting in a range that selects nothing.
+  nsresult res;
   if (shouldClearRange) {
     // Repaint the current range with the selection removed.
     SelectFrames(presContext, *range, false);

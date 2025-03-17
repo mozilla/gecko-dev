@@ -269,16 +269,22 @@ bool IMEContentObserver::InitWithEditor(nsPresContext& aPresContext,
     // there is and startContainer is not outside of the <body>.  Otherwise, the
     // document element is used instead.
     nsCOMPtr<nsINode> startContainer = selRange->GetStartContainer();
-    mRootElement = Element::FromNodeOrNull(
-        startContainer->GetSelectionRootContent(presShell));
+    mRootElement =
+        Element::FromNodeOrNull(startContainer->GetSelectionRootContent(
+            presShell,
+            nsINode::IgnoreOwnIndependentSelection::No,  // XXX "Yes"?
+            nsINode::AllowCrossShadowBoundary::No));
   } else {
     MOZ_ASSERT(!mIsTextControl);
     // If an editing host has focus, mRootElement is it.
     // Otherwise, if we're in the design mode, mRootElement is the <body> if
     // there is.  Otherwise, the document element is used instead.
     nsCOMPtr<nsINode> editableNode = mEditableNode;
-    mRootElement = Element::FromNodeOrNull(
-        editableNode->GetSelectionRootContent(presShell));
+    mRootElement =
+        Element::FromNodeOrNull(editableNode->GetSelectionRootContent(
+            presShell,
+            nsINode::IgnoreOwnIndependentSelection::No,  // XXX "Yes"?
+            nsINode::AllowCrossShadowBoundary::No));
   }
   if (!mRootElement && mEditableNode->IsDocument()) {
     // The document node is editable, but there are no contents, this document

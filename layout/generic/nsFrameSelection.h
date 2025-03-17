@@ -238,6 +238,8 @@ enum class TableSelectionMode : uint32_t {
 
 class nsFrameSelection final {
  public:
+  friend std::ostream& operator<<(std::ostream&, const nsFrameSelection&);
+
   using CaretAssociationHint = mozilla::CaretAssociationHint;
   using Element = mozilla::dom::Element;
 
@@ -540,6 +542,15 @@ class nsFrameSelection final {
    */
   nsresult RepaintSelection(mozilla::SelectionType aSelectionType);
 
+  /**
+   * Return true if aContainerNode is in the selection limiter or the ancestor
+   * limiter if one of them is set.
+   *
+   * Note that this returns true when aContainerNode may be in the scope of
+   * an independent selection.  Therefore, even if this returns `true`,
+   * aContainerNode may not be valid container node for a selection managed
+   * by this instance.
+   */
   [[nodiscard]] bool NodeIsInLimiters(const nsINode* aContainerNode) const;
 
   [[nodiscard]] static bool NodeIsInLimiters(
@@ -849,6 +860,11 @@ class nsFrameSelection final {
    * document.
    */
   Element* GetAncestorLimiter() const { return mLimiters.mAncestorLimiter; }
+
+  Element* GetAncestorLimiterOrLimiter() const {
+    return mLimiters.mAncestorLimiter ? mLimiters.mAncestorLimiter
+                                      : mLimiters.mLimiter;
+  }
 
   /**
    * Set ancestor limiter.  If aLimiter is not nullptr, this adjusts all

@@ -393,8 +393,9 @@ nsresult ContentEventHandler::InitRootContent(
                "firstNormalSelectionRange crosses the document boundary");
 
   RefPtr<PresShell> presShell = mDocument->GetPresShell();
-  mRootElement =
-      Element::FromNodeOrNull(startNode->GetSelectionRootContent(presShell));
+  mRootElement = Element::FromNodeOrNull(startNode->GetSelectionRootContent(
+      presShell, nsINode::IgnoreOwnIndependentSelection::No,
+      nsINode::AllowCrossShadowBoundary::No));
   if (NS_WARN_IF(!mRootElement)) {
     return NS_ERROR_FAILURE;
   }

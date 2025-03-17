@@ -5325,22 +5325,13 @@ nsresult HTMLEditor::SelectAllInternal() {
       return bodyOrDocumentElement;
     }();
 
-    // If the element to be selected is <input type="text"> or <textarea>,
-    // GetSelectionRootContent() returns its anonymous <div> element, but we
-    // want to select all of the document or selection limiter.  Therefore,
-    // we should use its parent to compute the selection root.
-    if (elementToBeSelected->HasIndependentSelection()) {
-      Element* parentElement = elementToBeSelected->GetParentElement();
-      if (MOZ_LIKELY(parentElement)) {
-        elementToBeSelected = parentElement;
-      }
-    }
-
     // Then, compute the selection root content to select all including
     // elementToBeSelected.
     RefPtr<PresShell> presShell = GetPresShell();
     nsIContent* computedSelectionRootContent =
-        elementToBeSelected->GetSelectionRootContent(presShell);
+        elementToBeSelected->GetSelectionRootContent(
+            presShell, nsINode::IgnoreOwnIndependentSelection::Yes,
+            nsINode::AllowCrossShadowBoundary::No);
     if (NS_WARN_IF(!computedSelectionRootContent)) {
       return nullptr;
     }

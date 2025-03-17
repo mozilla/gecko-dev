@@ -99,6 +99,7 @@ class SelectionMovementUtils final {
    * @param aJumpLines
    *   If true, look across line boundaries.
    *   If false, behave as if there were base-level frames at line edges.
+   * @param aAncestorLimiter  If set, this refers only the descendants.
    *
    * @return A struct holding the before/after frame and the before/after
    * level.
@@ -109,10 +110,9 @@ class SelectionMovementUtils final {
    * In these cases the before frame and after frame respectively will be
    * nullptr.
    */
-  static nsPrevNextBidiLevels GetPrevNextBidiLevels(nsIContent* aNode,
-                                                    uint32_t aContentOffset,
-                                                    CaretAssociationHint aHint,
-                                                    bool aJumpLines);
+  static nsPrevNextBidiLevels GetPrevNextBidiLevels(
+      nsIContent* aNode, uint32_t aContentOffset, CaretAssociationHint aHint,
+      bool aJumpLines, const dom::Element* aAncestorLimiter);
 
   /**
    * PeekOffsetForCaretMove() only peek offset for caret move from the specified
