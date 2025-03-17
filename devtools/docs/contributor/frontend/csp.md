@@ -1,5 +1,5 @@
 
-The DevTools toolbox is loaded in an iframe pointing to about:devtools-toolbox. This iframe has a [Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP) (CSP) applied, which will mitigate potential attacks. However this may limit the resources that can be loaded in the toolbox documenth.
+The DevTools toolbox is loaded in an iframe pointing to about:devtools-toolbox. This iframe has a [Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP) (CSP) applied, which will mitigate potential attacks. However this may limit the resources that can be loaded in the toolbox documenth.
 
 # Current DevTools CSP
 
@@ -12,7 +12,7 @@ This means:
 - `chrome://` and `resource://` are allowed for any resource
 - `chrome://` and `resource://` and `data://` are allowed for images
 
-For more information about which resources and requests are in scope of the CSP, you can read the [default-src documentation on MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/default-src).
+For more information about which resources and requests are in scope of the CSP, you can read the [default-src documentation on MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/default-src).
 
 # Scope of the DevTools CSP
 
