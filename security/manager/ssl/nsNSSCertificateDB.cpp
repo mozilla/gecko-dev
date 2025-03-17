@@ -153,6 +153,7 @@ nsresult nsNSSCertificateDB::FindCertByDBKey(const nsACString& aDBKey,
   reader += issuerLen;
   MOZ_ASSERT(reader == decoded.EndReading());
 
+  AutoSearchingForClientAuthCertificates _;
   cert.reset(CERT_FindCertByIssuerAndSN(CERT_GetDefaultCertDB(), &issuerSN));
   return NS_OK;
 }
@@ -1185,8 +1186,6 @@ NS_IMETHODIMP nsNSSCertificateDB::AsPKCS7Blob(
 
 NS_IMETHODIMP
 nsNSSCertificateDB::GetCerts(nsTArray<RefPtr<nsIX509Cert>>& _retval) {
-  AutoSearchingForClientAuthCertificates _;
-
   nsresult rv = BlockUntilLoadableCertsLoaded();
   if (NS_FAILED(rv)) {
     return rv;
@@ -1198,6 +1197,7 @@ nsNSSCertificateDB::GetCerts(nsTArray<RefPtr<nsIX509Cert>>& _retval) {
   }
 
   nsCOMPtr<nsIInterfaceRequestor> ctx = new PipUIContext();
+  AutoSearchingForClientAuthCertificates _;
   UniqueCERTCertList certList(PK11_ListCerts(PK11CertListUnique, ctx));
   if (!certList) {
     return NS_ERROR_FAILURE;
