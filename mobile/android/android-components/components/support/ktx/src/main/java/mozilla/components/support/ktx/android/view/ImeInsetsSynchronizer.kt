@@ -47,6 +47,7 @@ class ImeInsetsSynchronizer private constructor(
     private lateinit var lastWindowInsets: WindowInsetsCompat
     private var areKeyboardInsetsDeferred = false
     private var isKeyboardShowingUp: Boolean = true
+    private var keyboardAnimationInProgress = false
     private var keyboardHeight = 0
 
     override fun onApplyWindowInsets(
@@ -90,6 +91,8 @@ class ImeInsetsSynchronizer private constructor(
         bounds: WindowInsetsAnimationCompat.BoundsCompat,
     ): WindowInsetsAnimationCompat.BoundsCompat {
         if (animation.typeMask and ime() != 0) {
+            keyboardAnimationInProgress = true
+
             // Workaround for https://issuetracker.google.com/issues/361027506
             // Compute the keyboard height based on the animation bounds.
             keyboardHeight = bounds.upperBound.bottom - bounds.lowerBound.bottom
@@ -113,6 +116,8 @@ class ImeInsetsSynchronizer private constructor(
         insets: WindowInsetsCompat,
         runningAnimations: List<WindowInsetsAnimationCompat>,
     ): WindowInsetsCompat {
+        if (!keyboardAnimationInProgress) return insets
+
         runningAnimations.firstOrNull { it.typeMask and ime() != 0 }?.let { imeAnimation ->
             // Ensure the IME animation fraction is growing when the keyboard is showing up
             // and shrinking otherwise.
@@ -133,6 +138,8 @@ class ImeInsetsSynchronizer private constructor(
     }
 
     override fun onEnd(animation: WindowInsetsAnimationCompat) {
+        keyboardAnimationInProgress = false
+
         val currentInsets = getCurrentInsets()
         if (currentInsets != null && areKeyboardInsetsDeferred && (animation.typeMask and ime()) != 0) {
             // If we deferred the IME insets and an IME animation has finished, we need to reset the flag
