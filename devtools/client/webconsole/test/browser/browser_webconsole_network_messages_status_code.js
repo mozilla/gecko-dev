@@ -14,8 +14,7 @@ const {
   l10n,
 } = require("resource://devtools/client/webconsole/utils/messages.js");
 const LEARN_MORE_URI =
-  "https://developer.mozilla.org/docs/Web/HTTP/Reference/Status/200" +
-  GA_PARAMS;
+  "https://developer.mozilla.org/docs/Web/HTTP/Status/200" + GA_PARAMS;
 
 pushPref(NET_PREF, true);
 pushPref(XHR_PREF, true);
