@@ -22,7 +22,7 @@ export { resumed } from "./resumed";
 export { continueToHere } from "./continueToHere";
 export { breakOnNext } from "./breakOnNext";
 export { resetBreakpointsPaneState } from "./resetBreakpointsPaneState";
-export { mapFrames } from "./mapFrames";
+export { mapFrames, updateAllFrameDisplayNames } from "./mapFrames";
 export { pauseOnDebuggerStatement } from "./pauseOnDebuggerStatement";
 export { pauseOnExceptions } from "./pauseOnExceptions";
 export { selectFrame } from "./selectFrame";

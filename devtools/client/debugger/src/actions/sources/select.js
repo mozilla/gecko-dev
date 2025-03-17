@@ -354,10 +354,8 @@ export function selectLocation(
       selectedFrame &&
       (selectedFrame.location.source.id == location.source.id ||
         selectedFrame.generatedLocation.source.id == location.source.id) &&
-      // The parser worker only load symbols for in scope lines when CM5 is enabled or
-      // when paused in original sources, as `parserWorker.getClosestFunctionName`
-      // is called when mapping original frames (TODO: Remove when Bug 1943945 is fixed)
-      (!features.codemirrorNext || selectedFrame.location.source.isOriginal)
+      // The parser worker only load symbols for in scope lines when CM5 is enabled
+      !features.codemirrorNext
     ) {
       // This is done from selectLocation and not from paused and selectFrame actions
       // because we may select either original or generated location while being paused

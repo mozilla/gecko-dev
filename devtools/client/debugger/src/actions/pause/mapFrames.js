@@ -35,9 +35,9 @@ function getSelectedFrameId(state, thread, frames) {
   return selectedFrame?.id;
 }
 
-async function updateFrameLocationAndDisplayName(frame, thunkArgs) {
+async function updateFrameLocation(frame, thunkArgs) {
   // Ignore WASM original sources
-  if (frame.isOriginal) {
+  if (isWasmOriginalSourceFrame(frame)) {
     return frame;
   }
 
@@ -49,18 +49,11 @@ async function updateFrameLocationAndDisplayName(frame, thunkArgs) {
     return frame;
   }
 
-  // As we now know that this frame relates to an original source...
-  // Fetch the symbols for it and compute the frame's originalDisplayName.
-  const originalDisplayName = location.source.isPrettyPrinted
-    ? frame.displayName
-    : await thunkArgs.dispatch(getOriginalFunctionDisplayName(location));
-
   // As we modify frame object, fork it to force causing re-renders
   return {
     ...frame,
     location,
     generatedLocation: frame.generatedLocation || frame.location,
-    originalDisplayName,
   };
 }
 
@@ -116,6 +109,57 @@ async function expandWasmFrames(frames, { getState, sourceMapLoader }) {
   return result;
 }
 
+async function updateFrameDisplayName(frame, thunkArgs) {
+  const location = frame.location;
+  // Ignore WASM original, generated and pretty printed sources
+  if (
+    location.source.isWasm ||
+    !location.source.isOriginal ||
+    location.source.isPrettyPrinted
+  ) {
+    return frame;
+  }
+
+  // As we now know that this frame relates to an original source...
+  // Fetch the symbols for it and compute the frame's originalDisplayName.
+  const originalDisplayName = location.source.isPrettyPrinted
+    ? frame.displayName
+    : await thunkArgs.dispatch(getOriginalFunctionDisplayName(location));
+
+  // As we modify frame object, fork it to force causing re-renders
+  return {
+    ...frame,
+    originalDisplayName,
+  };
+}
+
+/**
+ * Update the display names of the mapped original frames
+ *
+ * @param {Object} thread
+ * @returns
+ */
+export function updateAllFrameDisplayNames(thread) {
+  return async function (thunkArgs) {
+    const { dispatch, getState } = thunkArgs;
+    const frames = getFrames(getState(), thread);
+    if (!frames || !frames.length) {
+      return;
+    }
+
+    // Update frame's originalDisplayNames in case it relates to an original source
+    const updatedFrames = await Promise.all(
+      frames.map(frame => updateFrameDisplayName(frame, thunkArgs))
+    );
+
+    dispatch({
+      type: "UPDATE_FRAMES",
+      frames: updatedFrames,
+      thread,
+    });
+  };
+}
+
 /**
  * Map call stack frame locations and display names to originals.
  * e.g.
@@ -133,9 +177,9 @@ export function mapFrames(thread) {
       return;
     }
 
-    // Update frame's location/generatedLocation/originalDisplayNames in case it relates to an original source
+    // Update frame's location/generatedLocation in case it relates to an original source
     let mappedFrames = await Promise.all(
-      frames.map(frame => updateFrameLocationAndDisplayName(frame, thunkArgs))
+      frames.map(frame => updateFrameLocation(frame, thunkArgs))
     );
 
     mappedFrames = await expandWasmFrames(mappedFrames, thunkArgs);

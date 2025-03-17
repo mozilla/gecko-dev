@@ -223,6 +223,11 @@ function update(state = initialPauseState(), action) {
       return updateThreadState({ frames, selectedFrameId });
     }
 
+    case "UPDATE_FRAMES": {
+      const { frames } = action;
+      return updateThreadState({ frames });
+    }
+
     case "ADD_SCOPES": {
       const { status, value } = action;
       const selectedFrameId = action.selectedFrame.id;

@@ -61,12 +61,19 @@ const nodeTypeSets = {
     nodeTypes.VariableDeclaration,
     nodeTypes.AssignmentExpression,
   ]),
+  functionsVarDecl: new Set([
+    ...nodeTypeSets.functions,
+    // For anonymous functions we are using the variable name where the function is stored. See `getFunctionName`.
+    nodeTypes.VariableDeclaration,
+  ]),
   paramList: new Set([nodeTypes.ParamList]),
   variableDefinition: new Set([nodeTypes.VariableDefinition]),
   numberAndProperty: new Set([nodeTypes.PropertyDefinition, nodeTypes.Number]),
   memberExpression: new Set([nodeTypes.MemberExpression]),
   classes: new Set([nodeTypes.ClassDeclaration, nodeTypes.ClassExpression]),
 };
+
+const ast = new Map();
 
 /**
  * Checks if a node has children with any of the node types specified
@@ -102,6 +109,62 @@ function findChildNodeOfType(node, types) {
     childNode = childNode.nextSibling;
   }
   return null;
+}
+
+/**
+ * Gets a cached tree or parses the the source content
+ *
+ * @param {Object} parserLanguage - The language parser used to parse the source
+ * @param {String} id - A unique identifier for the source
+ * @param {String} content - The source text
+ * @returns {Tree} - https://lezer.codemirror.net/docs/ref/#common.Tree
+ */
+function getTree(parserLanguage, id, content) {
+  if (ast.has(id)) {
+    return ast.get(id);
+  }
+  const tree = parserLanguage.parser.parse(content);
+  ast.set(id, tree);
+  return tree;
+}
+
+function clear() {
+  ast.clear();
+}
+
+/**
+ * Gets the name of the function which immediately encloses the node (representing a location)
+ *
+ * @param {Object} doc - The codemirror document used to retrive the part of content
+ * @param {Object} node - The parser syntax node https://lezer.codemirror.net/docs/ref/#common.SyntaxNode
+ * @returns
+ */
+function getEnclosingFunctionName(doc, node) {
+  let parentNode = node.parent;
+  while (parentNode !== null) {
+    if (nodeTypeSets.functionsVarDecl.has(parentNode.name)) {
+      const funcName = getFunctionName(doc, parentNode);
+      if (funcName) {
+        return funcName;
+      }
+    }
+    parentNode = parentNode.parent;
+  }
+  return "";
+}
+
+/**
+ * Gets the node at the specified location
+ *
+ * @param {Object} doc - https://codemirror.net/docs/ref/#state.EditorState.doc
+ * @param {Object} tree - https://lezer.codemirror.net/docs/ref/#common.Tree
+ * @param {Object} location
+ * @returns {Object} node - https://lezer.codemirror.net/docs/ref/#common.SyntaxNodeRef
+ */
+function getTreeNodeAtLocation(doc, tree, location) {
+  const line = doc.line(location.line);
+  const pos = line.from + location.column;
+  return tree.resolve(pos, 1);
 }
 
 /**
@@ -321,7 +384,11 @@ module.exports = {
   getFunctionName,
   getFunctionParameterNames,
   getFunctionClass,
+  getEnclosingFunctionName,
+  getTreeNodeAtLocation,
   nodeTypes,
   nodeTypeSets,
   walkTree,
+  getTree,
+  clear,
 };
