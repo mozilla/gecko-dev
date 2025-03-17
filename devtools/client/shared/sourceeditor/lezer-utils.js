@@ -62,7 +62,7 @@ const nodeTypeSets = {
     nodeTypes.AssignmentExpression,
   ]),
   functionsVarDecl: new Set([
-    ...nodeTypeSets.functions,
+    ...functionsSet,
     // For anonymous functions we are using the variable name where the function is stored. See `getFunctionName`.
     nodeTypes.VariableDeclaration,
   ]),
