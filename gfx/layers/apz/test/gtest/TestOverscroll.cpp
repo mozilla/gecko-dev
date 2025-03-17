@@ -1978,8 +1978,6 @@ TEST_F(APZCOverscrollTesterMock, OverscrollIntoPreventDefault) {
   float overscrollY = rootApzc->GetOverscrollAmount().y;
 
   // Send a content response with preventDefault = true.
-  manager->SetAllowedTouchBehavior(result.mInputBlockId,
-                                   {AllowedTouchBehavior::VERTICAL_PAN});
   manager->SetTargetAPZC(result.mInputBlockId, {result.mTargetGuid});
   manager->ContentReceivedInputBlock(result.mInputBlockId,
                                      /*aPreventDefault=*/true);
@@ -2003,8 +2001,6 @@ TEST_F(APZCOverscrollTesterMock, OverscrollIntoPreventDefault) {
   EXPECT_EQ(overscrollY, rootApzc->GetOverscrollAmount().y);
 
   // preventDefault the new event as well
-  manager->SetAllowedTouchBehavior(result.mInputBlockId,
-                                   {AllowedTouchBehavior::VERTICAL_PAN});
   manager->SetTargetAPZC(result.mInputBlockId, {result.mTargetGuid});
   manager->ContentReceivedInputBlock(result.mInputBlockId,
                                      /*aPreventDefault=*/true);
