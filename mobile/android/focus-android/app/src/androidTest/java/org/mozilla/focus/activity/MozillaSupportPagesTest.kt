@@ -10,11 +10,9 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.focus.R
 import org.mozilla.focus.activity.robots.homeScreen
 import org.mozilla.focus.helpers.FeatureSettingsHelper
 import org.mozilla.focus.helpers.MainActivityFirstrunTestRule
-import org.mozilla.focus.helpers.TestHelper.getTargetContext
 import org.mozilla.focus.helpers.TestSetup
 import org.mozilla.focus.testAnnotations.SmokeTest
 
@@ -77,19 +75,13 @@ class MozillaSupportPagesTest : TestSetup() {
 
     @SmokeTest
     @Test
-    fun openYourRightsPageTest() {
-        val yourRightsString = getTargetContext.getString(
-            R.string.your_rights_content1,
-            getTargetContext.getString(R.string.app_name),
-            "Mozilla Public License",
-        )
-
+    fun openTermsOfUsePageTest() {
         homeScreen {
         }.openMainMenu {
         }.openSettings {
         }.openMozillaSettingsMenu {
-        }.openYourRightsPage {
-            verifyPageContent(yourRightsString)
+        }.openTermsOfUsePage {
+            verifyPageURL("www.mozilla.org/en-us/about/legal/terms/firefox-focus")
         }
     }
 

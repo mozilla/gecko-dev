@@ -20,6 +20,7 @@ import mozilla.components.support.utils.ext.getPackageInfoCompat
 import org.hamcrest.Matchers.allOf
 import org.mozilla.focus.R
 import org.mozilla.focus.helpers.TestHelper.appName
+import org.mozilla.focus.helpers.TestHelper.getStringResource
 import org.mozilla.focus.helpers.TestHelper.mDevice
 import org.mozilla.focus.helpers.TestHelper.packageName
 import org.mozilla.focus.helpers.TestHelper.waitingTime
@@ -33,7 +34,7 @@ class SettingsMozillaMenuRobot {
         mozillaSettingsList.waitForExists(waitingTime)
         aboutFocusPageLink.check(matches(isDisplayed()))
         helpPageLink.check(matches(isDisplayed()))
-        yourRightsLink.check(matches(isDisplayed()))
+        termsOfUseLink.check(matches(isDisplayed()))
         privacyNoticeLink.check(matches(isDisplayed()))
         licenseInfo.check(matches(isDisplayed()))
         librariesUsedLink.check(matches(isDisplayed()))
@@ -99,8 +100,8 @@ class SettingsMozillaMenuRobot {
             return BrowserRobot.Transition()
         }
 
-        fun openYourRightsPage(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
-            yourRightsLink
+        fun openTermsOfUsePage(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+            termsOfUseLink
                 .check(matches(isDisplayed()))
                 .perform(click())
 
@@ -161,10 +162,10 @@ private val helpPageLink =
         ),
     )
 
-private val yourRightsLink =
+private val termsOfUseLink =
     onView(
         allOf(
-            withText("Your Rights"),
+            withText(getStringResource(R.string.menu_terms_of_use)),
             withParent(
                 hasSibling(withId(R.id.icon_frame)),
             ),
