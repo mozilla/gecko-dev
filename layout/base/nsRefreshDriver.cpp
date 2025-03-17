@@ -2253,7 +2253,8 @@ void nsRefreshDriver::PerformPendingViewTransitionOperations() {
   }
   mNeedToUpdateViewTransitions = false;
   AUTO_PROFILER_LABEL_RELEVANT_FOR_JS("View Transitions", LAYOUT);
-  mPresContext->Document()->PerformPendingViewTransitionOperations();
+  RefPtr doc = mPresContext->Document();
+  doc->PerformPendingViewTransitionOperations();
 }
 
 void nsRefreshDriver::UpdateIntersectionObservations(TimeStamp aNowTime) {

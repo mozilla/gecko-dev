@@ -76,7 +76,7 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
   Promise* GetFinished(ErrorResult&);
 
   void SkipTransition(SkipTransitionReason = SkipTransitionReason::JS);
-  void PerformPendingOperations();
+  MOZ_CAN_RUN_SCRIPT void PerformPendingOperations();
 
   Element* GetRoot() const { return mViewTransitionRoot; }
   Maybe<nsSize> GetOldSize(nsAtom* aName) const;
@@ -104,15 +104,15 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
 
   struct CapturedElement;
 
- private:
-  enum class CallIfDone : bool { No, Yes };
-  MOZ_CAN_RUN_SCRIPT void CallUpdateCallbackIgnoringErrors(CallIfDone);
   MOZ_CAN_RUN_SCRIPT void CallUpdateCallback(ErrorResult&);
+
+ private:
+  MOZ_CAN_RUN_SCRIPT void MaybeScheduleUpdateCallback();
   void Activate();
 
   void ClearActiveTransition(bool aIsDocumentHidden);
   void Timeout();
-  void Setup();
+  MOZ_CAN_RUN_SCRIPT void Setup();
   [[nodiscard]] Maybe<SkipTransitionReason> CaptureOldState();
   [[nodiscard]] Maybe<SkipTransitionReason> CaptureNewState();
   void SetupTransitionPseudoElements();
