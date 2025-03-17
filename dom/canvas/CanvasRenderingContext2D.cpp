@@ -6281,13 +6281,13 @@ already_AddRefed<ImageData> CanvasRenderingContext2D::GetImageData(
   // relevant direction.
   uint32_t w, h;
   if (aSw < 0) {
-    w = -aSw;
+    w = uint32_t(-aSw);
     aSx -= w;
   } else {
     w = aSw;
   }
   if (aSh < 0) {
-    h = -aSh;
+    h = uint32_t(-aSh);
     aSy -= h;
   } else {
     h = aSh;
