@@ -119,7 +119,6 @@ class SelectableProfileServiceClass extends EventEmitter {
 
     this.onNimbusUpdate = this.onNimbusUpdate.bind(this);
     this.themeObserver = this.themeObserver.bind(this);
-    this.matchMediaObserver = this.matchMediaObserver.bind(this);
     this.prefObserver = (subject, topic, prefName) =>
       this.flushSharedPrefToDatabase(prefName);
     this.#profileService = Cc[
@@ -405,10 +404,6 @@ class SelectableProfileServiceClass extends EventEmitter {
       this.themeObserver,
       "lightweight-theme-styling-update"
     );
-
-    let window = Services.wm.getMostRecentBrowserWindow();
-    let prefersDarkQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    prefersDarkQuery.addEventListener("change", this.matchMediaObserver);
 
     this.#initialized = true;
 
@@ -827,35 +822,6 @@ class SelectableProfileServiceClass extends EventEmitter {
   }
 
   /**
-   * The default theme uses `light-dark` color function which doesn't apply
-   * correctly to the taskbar avatar icon. We use `InspectorUtils.colorToRGBA`
-   * to get the current rgba values for a theme. This way the color values can
-   * be correctly applied to the taskbar avatar icon.
-   *
-   * @returns {object}
-   *  themeBg {string}: the background color in rgba(r, g, b, a) format
-   *  themeFg {string}: the foreground color in rgba(r, g, b, a) format
-   */
-  getColorsForDefaultTheme() {
-    let window = Services.wm.getMostRecentBrowserWindow();
-    // The computedStyles object is a live CSSStyleDeclaration.
-    let computedStyles = window.getComputedStyle(
-      window.document.documentElement
-    );
-
-    let themeFgColor = computedStyles.getPropertyValue("--toolbar-color");
-    let themeBgColor = computedStyles.getPropertyValue("--toolbar-bgcolor");
-
-    let bg = InspectorUtils.colorToRGBA(themeBgColor, window.document);
-    let themeBg = `rgba(${bg.r}, ${bg.r}, ${bg.b}, ${bg.a})`;
-
-    let fg = InspectorUtils.colorToRGBA(themeFgColor, window.document);
-    let themeFg = `rgba(${fg.r}, ${fg.g}, ${fg.b}, ${fg.a})`;
-
-    return { themeBg, themeFg };
-  }
-
-  /**
    * The observer function that watches for theme changes and updates the
    * current profile of a theme change.
    *
@@ -883,10 +849,16 @@ class SelectableProfileServiceClass extends EventEmitter {
     let themeBg = theme.toolbarColor;
 
     if (theme.id === "default-theme@mozilla.org" || !themeFg || !themeBg) {
+      // The computedStyles object is a live CSSStyleDeclaration.
+      let computedStyles = window.getComputedStyle(
+        window.document.documentElement
+      );
+
       window.addEventListener(
         "windowlwthemeupdate",
         () => {
-          ({ themeBg, themeFg } = this.getColorsForDefaultTheme());
+          themeFg = computedStyles.getPropertyValue("--toolbar-color");
+          themeBg = computedStyles.getPropertyValue("--toolbar-bgcolor");
 
           this.currentProfile.theme = {
             themeId: theme.id,
@@ -905,20 +877,6 @@ class SelectableProfileServiceClass extends EventEmitter {
         themeBg,
       };
     }
-  }
-
-  /**
-   * The observer function that watches for OS theme changes and updates the
-   * current profile of a theme change.
-   */
-  matchMediaObserver() {
-    let { themeBg, themeFg } = this.getColorsForDefaultTheme();
-
-    this.currentProfile.theme = {
-      themeId: this.currentProfile.theme.themeId,
-      themeFg,
-      themeBg,
-    };
   }
 
   /**
