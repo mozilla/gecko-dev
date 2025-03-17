@@ -189,7 +189,7 @@ export const ExperimentFakes = {
   },
   waitForExperimentUpdate(ExperimentAPI, slug) {
     return new Promise(resolve =>
-      ExperimentAPI._store.once(`update:${slug}`, resolve)
+      ExperimentAPI._manager.store.once(`update:${slug}`, resolve)
     );
   },
   /**

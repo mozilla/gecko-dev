@@ -107,8 +107,10 @@ add_task(function test_getExperimentMetaData_safe() {
   const sandbox = sinon.createSandbox();
   let exposureStub = sandbox.stub(ExperimentAPI, "recordExposureEvent");
 
-  sandbox.stub(ExperimentAPI._store, "get").throws();
-  sandbox.stub(ExperimentAPI._store, "getExperimentForFeature").throws();
+  sandbox.stub(ExperimentAPI._manager.store, "get").throws();
+  sandbox
+    .stub(ExperimentAPI._manager.store, "getExperimentForFeature")
+    .throws();
 
   try {
     let metadata = ExperimentAPI.getExperimentMetaData({ slug: "foo" });
@@ -117,7 +119,7 @@ add_task(function test_getExperimentMetaData_safe() {
     Assert.ok(false, "Error should be caught in ExperimentAPI");
   }
 
-  Assert.ok(ExperimentAPI._store.get.calledOnce, "Sanity check");
+  Assert.ok(ExperimentAPI._manager.store.get.calledOnce, "Sanity check");
 
   try {
     let metadata = ExperimentAPI.getExperimentMetaData({ featureId: "foo" });
@@ -127,7 +129,7 @@ add_task(function test_getExperimentMetaData_safe() {
   }
 
   Assert.ok(
-    ExperimentAPI._store.getExperimentForFeature.calledOnce,
+    ExperimentAPI._manager.store.getExperimentForFeature.calledOnce,
     "Sanity check"
   );
 
@@ -138,7 +140,9 @@ add_task(function test_getExperimentMetaData_safe() {
 
 add_task(async function test_getExperiment_safe() {
   const sandbox = sinon.createSandbox();
-  sandbox.stub(ExperimentAPI._store, "getExperimentForFeature").throws();
+  sandbox
+    .stub(ExperimentAPI._manager.store, "getExperimentForFeature")
+    .throws();
 
   try {
     Assert.equal(
@@ -163,7 +167,7 @@ add_task(async function test_getExperiment_featureAccess() {
     },
   });
   const stub = sandbox
-    .stub(ExperimentAPI._store, "getExperimentForFeature")
+    .stub(ExperimentAPI._manager.store, "getExperimentForFeature")
     .returns(expected);
 
   let { branch } = ExperimentAPI.getExperiment({ featureId: "cfr" });
@@ -185,7 +189,7 @@ add_task(async function test_getExperiment_featureAccess_backwardsCompat() {
     },
   });
   const stub = sandbox
-    .stub(ExperimentAPI._store, "getExperimentForFeature")
+    .stub(ExperimentAPI._manager.store, "getExperimentForFeature")
     .returns(expected);
 
   let { branch } = ExperimentAPI.getExperiment({ featureId: "cfr" });
@@ -477,7 +481,9 @@ add_task(async function test_getActiveBranch() {
 
 add_task(async function test_getActiveBranch_safe() {
   const sandbox = sinon.createSandbox();
-  sandbox.stub(ExperimentAPI._store, "getAllActiveExperiments").throws();
+  sandbox
+    .stub(ExperimentAPI._manager.store, "getAllActiveExperiments")
+    .throws();
 
   try {
     Assert.equal(

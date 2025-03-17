@@ -143,7 +143,7 @@ export const ExperimentAPI = {
    *          store
    */
   async ready() {
-    return this._store.ready();
+    return this._manager.store.ready();
   },
 
   async _annotateCrashReport() {
@@ -181,9 +181,9 @@ export const ExperimentAPI = {
     let experimentData;
     try {
       if (slug) {
-        experimentData = this._store.get(slug);
+        experimentData = this._manager.store.get(slug);
       } else if (featureId) {
-        experimentData = this._store.getExperimentForFeature(featureId);
+        experimentData = this._manager.store.getExperimentForFeature(featureId);
       }
     } catch (e) {
       console.error(e);
@@ -216,12 +216,13 @@ export const ExperimentAPI = {
     let experimentData;
     try {
       if (slug) {
-        experimentData = this._store.get(slug);
+        experimentData = this._manager.store.get(slug);
       } else if (featureId) {
         if (isRollout) {
-          experimentData = this._store.getRolloutForFeature(featureId);
+          experimentData = this._manager.store.getRolloutForFeature(featureId);
         } else {
-          experimentData = this._store.getExperimentForFeature(featureId);
+          experimentData =
+            this._manager.store.getExperimentForFeature(featureId);
         }
       }
     } catch (e) {
@@ -263,9 +264,9 @@ export const ExperimentAPI = {
     let experiment = null;
     try {
       if (slug) {
-        experiment = this._store.get(slug);
+        experiment = this._manager.store.get(slug);
       } else if (featureId) {
-        experiment = this._store.getExperimentForFeature(featureId);
+        experiment = this._manager.store.getExperimentForFeature(featureId);
       }
     } catch (e) {
       console.error(e);
@@ -286,7 +287,7 @@ export const ExperimentAPI = {
    * This should noly be called from the main process.
    *
    * Note that the recipe is directly fetched from RemoteSettings, which has
-   * all the recipe metadata available without relying on the `this._store`.
+   * all the recipe metadata available without relying on the `this._manager.store`.
    * Therefore, calling this function does not require to call `this.ready()` first.
    *
    * @param slug {String} An experiment identifier
@@ -387,7 +388,7 @@ export class _ExperimentFeature {
           fallbackPref,
           null,
           () => {
-            ExperimentAPI._store._emitFeatureUpdate(
+            ExperimentAPI._manager.store._emitFeatureUpdate(
               this.featureId,
               "pref-updated"
             );
@@ -428,7 +429,9 @@ export class _ExperimentFeature {
   getAllVariables({ defaultValues = null } = {}) {
     let enrollment = null;
     try {
-      enrollment = ExperimentAPI._store.getExperimentForFeature(this.featureId);
+      enrollment = ExperimentAPI._manager.store.getExperimentForFeature(
+        this.featureId
+      );
     } catch (e) {
       console.error(e);
     }
@@ -436,7 +439,9 @@ export class _ExperimentFeature {
 
     if (typeof featureValue === "undefined") {
       try {
-        enrollment = ExperimentAPI._store.getRolloutForFeature(this.featureId);
+        enrollment = ExperimentAPI._manager.store.getRolloutForFeature(
+          this.featureId
+        );
       } catch (e) {
         console.error(e);
       }
@@ -463,7 +468,9 @@ export class _ExperimentFeature {
     // Next, check if an experiment is defined
     let enrollment = null;
     try {
-      enrollment = ExperimentAPI._store.getExperimentForFeature(this.featureId);
+      enrollment = ExperimentAPI._manager.store.getExperimentForFeature(
+        this.featureId
+      );
     } catch (e) {
       console.error(e);
     }
@@ -474,7 +481,9 @@ export class _ExperimentFeature {
 
     // Next, check for a rollout.
     try {
-      enrollment = ExperimentAPI._store.getRolloutForFeature(this.featureId);
+      enrollment = ExperimentAPI._manager.store.getRolloutForFeature(
+        this.featureId
+      );
     } catch (e) {
       console.error(e);
     }
@@ -489,7 +498,7 @@ export class _ExperimentFeature {
   }
 
   getRollout() {
-    let remoteConfig = ExperimentAPI._store.getRolloutForFeature(
+    let remoteConfig = ExperimentAPI._manager.store.getRolloutForFeature(
       this.featureId
     );
     if (!remoteConfig) {
@@ -536,11 +545,11 @@ export class _ExperimentFeature {
   }
 
   onUpdate(callback) {
-    ExperimentAPI._store._onFeatureUpdate(this.featureId, callback);
+    ExperimentAPI._manager.store._onFeatureUpdate(this.featureId, callback);
   }
 
   offUpdate(callback) {
-    ExperimentAPI._store._offFeatureUpdate(this.featureId, callback);
+    ExperimentAPI._manager.store._offFeatureUpdate(this.featureId, callback);
   }
 
   /**
@@ -729,11 +738,6 @@ if (CRASHREPORTER_ENABLED) {
 
 ChromeUtils.defineLazyGetter(ExperimentAPI, "_manager", function () {
   return lazy.ExperimentManager;
-});
-
-Object.defineProperty(ExperimentAPI, "_store", {
-  configurable: true,
-  get: () => ExperimentAPI._manager.store,
 });
 
 ChromeUtils.defineLazyGetter(ExperimentAPI, "_rsLoader", function () {

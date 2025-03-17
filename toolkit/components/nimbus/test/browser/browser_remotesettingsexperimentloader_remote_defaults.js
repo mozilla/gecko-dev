@@ -252,10 +252,10 @@ add_task(async function test_remote_fetch_and_ready() {
   );
   Assert.ok(!barInstance.getVariable("remoteValue"), "Should be missing");
 
-  ExperimentAPI._store._deleteForTests("foo");
-  ExperimentAPI._store._deleteForTests("bar");
-  ExperimentAPI._store._deleteForTests(REMOTE_CONFIGURATION_FOO.slug);
-  ExperimentAPI._store._deleteForTests(REMOTE_CONFIGURATION_BAR.slug);
+  ExperimentAPI._manager.store._deleteForTests("foo");
+  ExperimentAPI._manager.store._deleteForTests("bar");
+  ExperimentAPI._manager.store._deleteForTests(REMOTE_CONFIGURATION_FOO.slug);
+  ExperimentAPI._manager.store._deleteForTests(REMOTE_CONFIGURATION_BAR.slug);
   sandbox.restore();
 
   cleanupTestFeatures();
@@ -413,8 +413,8 @@ add_task(async function test_finalizeRemoteConfigs_cleanup() {
   // This will also remove the inactive recipe from the store
   // the previous update (from recipe not seen code path)
   // only sets the recipe as inactive
-  ExperimentAPI._store._deleteForTests("bar-rollout");
-  ExperimentAPI._store._deleteForTests("foo-rollout");
+  ExperimentAPI._manager.store._deleteForTests("bar-rollout");
+  ExperimentAPI._manager.store._deleteForTests("foo-rollout");
 
   cleanupTestFeatures();
   cleanup();
@@ -424,7 +424,7 @@ add_task(async function test_finalizeRemoteConfigs_cleanup() {
 // this test should not throw
 add_task(async function remote_defaults_no_mutation() {
   let sandbox = sinon.createSandbox();
-  sandbox.stub(ExperimentAPI._store, "getRolloutForFeature").returns(
+  sandbox.stub(ExperimentAPI._manager.store, "getRolloutForFeature").returns(
     Cu.cloneInto(
       {
         featureIds: ["foo"],
@@ -446,8 +446,8 @@ add_task(async function remote_defaults_no_mutation() {
 });
 
 add_task(async function remote_defaults_active_remote_defaults() {
-  ExperimentAPI._store._deleteForTests("foo");
-  ExperimentAPI._store._deleteForTests("bar");
+  ExperimentAPI._manager.store._deleteForTests("foo");
+  ExperimentAPI._manager.store._deleteForTests("bar");
   let barFeature = new ExperimentFeature("bar", {
     description: "mochitest",
     variables: { enabled: { type: "boolean" } },
@@ -514,8 +514,8 @@ add_task(async function remote_defaults_active_remote_defaults() {
   await featureUpdate;
 
   Assert.ok(fooFeature.getVariable("enabled"), "Targeting should match");
-  ExperimentAPI._store._deleteForTests("foo");
-  ExperimentAPI._store._deleteForTests("bar");
+  ExperimentAPI._manager.store._deleteForTests("foo");
+  ExperimentAPI._manager.store._deleteForTests("bar");
 
   cleanup();
   cleanupTestFeatures();
@@ -586,6 +586,6 @@ add_task(async function remote_defaults_variables_storage() {
     "Variable pref is cleared"
   );
   Assert.ok(!barFeature.getVariable("string"), "Variable is no longer defined");
-  ExperimentAPI._store._deleteForTests("bar");
-  ExperimentAPI._store._deleteForTests("bar-rollout");
+  ExperimentAPI._manager.store._deleteForTests("bar");
+  ExperimentAPI._manager.store._deleteForTests("bar-rollout");
 });

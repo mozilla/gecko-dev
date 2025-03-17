@@ -43,8 +43,6 @@ registerCleanupFunction(() => {
   defaultAgentStub.restore();
   _userChoiceImpossibleTelemetryResultStub.restore();
   shellStub.restore();
-
-  ExperimentAPI._store._deleteForTests("shellService");
 });
 
 add_task(async function ready() {

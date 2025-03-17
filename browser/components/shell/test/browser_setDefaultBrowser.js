@@ -33,8 +33,6 @@ const sendTriggerStub = sinon.stub(ASRouter, "sendTriggerMessage");
 
 registerCleanupFunction(() => {
   sinon.restore();
-
-  ExperimentAPI._store._deleteForTests("shellService");
 });
 
 let defaultUserChoice;
@@ -91,7 +89,6 @@ add_task(async function restore_default() {
 
   userChoiceStub.resetHistory();
   setDefaultStub.resetHistory();
-  ExperimentAPI._store._deleteForTests("shellService");
 
   await ShellService.setDefaultBrowser();
 

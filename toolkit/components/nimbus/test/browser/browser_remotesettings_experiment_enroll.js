@@ -71,7 +71,7 @@ add_task(async function test_experimentEnrollment() {
   });
 
   Assert.ok(!experiment.active, "Experiment is no longer active");
-  ExperimentAPI._store._deleteForTests(recipe.slug);
+  ExperimentAPI._manager.store._deleteForTests(recipe.slug);
 });
 
 add_task(async function test_experimentEnrollment_startup() {
