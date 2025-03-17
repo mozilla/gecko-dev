@@ -1038,22 +1038,23 @@ class PythonVirtualenv:
         # It /might/ be possible to cheat and set sys.executable to
         # self.python_path. However, this seems more risk than it's worth.
 
-        install_result = subprocess.run(
-            pip_command(
-                python_executable=self.python_path,
-                subcommand="install",
-                args=pip_install_args,
-            ),
-            **kwargs,
-        )
-
-        if install_result.returncode and not self._quiet:
-            if install_result.stdout:
-                print(install_result.stdout)
-            if install_result.stderr:
-                print(install_result.stderr, file=sys.stderr)
-
-        return install_result
+        try:
+            install_result = subprocess.run(
+                pip_command(
+                    python_executable=self.python_path,
+                    subcommand="install",
+                    args=pip_install_args,
+                ),
+                **kwargs,
+            )
+            return install_result
+        except subprocess.CalledProcessError as cpe:
+            if not self._quiet:
+                if cpe.stdout:
+                    print(cpe.stdout)
+                if cpe.stderr:
+                    print(cpe.stderr, file=sys.stderr)
+            sys.exit(1)
 
     def install_optional_packages(self, optional_requirements):
         for requirement in optional_requirements:
