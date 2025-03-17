@@ -133,10 +133,11 @@
     // While the root scroll container is still being overscrolled because the
     // new pan gesture is still on-going, the sub scroll container should be
     // restored.
-    // Note that this test relies on the fact that two scrollend events get
-    // fired when overscrolling happens, one gets fired when the scroll position
-    // reached to the edge of the scrollport (i.e. just about to start
-    // overscrolling), the other one gets fired when overscrolling ends.
+    // Note that the test waits for two scrollend events on the subscroller.
+    // The first gets fired at the start of the second pan gesture, when the 
+    // subscroller's overscroll animation is briefly interrupted due to the finger
+    // going down before starting again because the gesture will scroll the parent.
+    // The second is fired when the overscroll animation finishes.
     await twoScrollEndPromise;
     info("Got two scroll end events on the sub scroll container");
 
