@@ -100,6 +100,8 @@ skip-if = ["os == 'mac' && !debug"] # Bug 1503778, 1577362
 
 ["browser_imageCache8.js"]
 
+["browser_initial_aboutblank_mixed_context.js"]
+
 ["browser_localStorageEvents.js"]
 
 ["browser_nimbus_3pcb.js"]
