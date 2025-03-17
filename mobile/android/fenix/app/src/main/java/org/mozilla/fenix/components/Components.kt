@@ -57,6 +57,7 @@ import org.mozilla.fenix.perf.StrictModeManager
 import org.mozilla.fenix.perf.lazyMonitored
 import org.mozilla.fenix.utils.ClipboardHandler
 import org.mozilla.fenix.utils.Settings
+import org.mozilla.fenix.utils.isLargeScreenSize
 import org.mozilla.fenix.wifi.WifiConnectionMonitor
 import java.util.concurrent.TimeUnit
 
@@ -257,6 +258,9 @@ class Components(private val context: Context) {
             } else {
                 RemoteSettingsServer.Stage
             },
+            channel = BuildConfig.BUILD_TYPE,
+            // Need to send this value separately, since `isLargeScreenSize()` is a fenix extension
+            isLargeScreenSize = context.isLargeScreenSize(),
         )
     }
 
