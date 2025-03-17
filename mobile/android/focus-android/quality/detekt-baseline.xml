@@ -96,7 +96,6 @@
     <ID>UndocumentedPublicClass:IntentProcessor.kt$IntentProcessor.Result$None : Result</ID>
     <ID>UndocumentedPublicClass:IntentProcessor.kt$IntentProcessor.Result$Tab : Result</ID>
     <ID>UndocumentedPublicClass:IntentReceiverActivity.kt$IntentReceiverActivity$Companion</ID>
-    <ID>UndocumentedPublicClass:LanguageMiddleware.kt$LanguageMiddleware : Middleware</ID>
     <ID>UndocumentedPublicClass:LanguageScreenStore.kt$LanguageScreenAction$InitLanguages : LanguageScreenAction</ID>
     <ID>UndocumentedPublicClass:LanguageScreenStore.kt$LanguageScreenAction$Select : LanguageScreenAction</ID>
     <ID>UndocumentedPublicClass:LanguageScreenStore.kt$LanguageScreenAction$UpdateLanguages : LanguageScreenAction</ID>

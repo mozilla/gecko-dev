@@ -39,6 +39,7 @@ class LanguageFragment : BaseComposeFragment() {
                 LanguageMiddleware(
                     activity = requireActivity(),
                     localeUseCase = localeUseCases,
+                    storage = LanguageStorage(requireContext()),
                 ),
             ),
         )
