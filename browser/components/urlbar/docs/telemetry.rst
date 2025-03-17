@@ -69,6 +69,10 @@ FX_URLBAR_ZERO_PREFIX_DWELL_TIME_MS
   with 50 buckets. Values are in milliseconds. This histogram was introduced in
   Firefox 110.0 in bug 1806765.
 
+  Changelog
+    Firefox 138
+      Removed completely. (See bug 1938938)
+
 PLACES_FRECENCY_RECALC_CHUNK_TIME_MS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

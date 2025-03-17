@@ -43,8 +43,6 @@ const SELECTABLE_ELEMENT_SELECTOR = "[role=button], [selectable]";
 const KEYBOARD_SELECTABLE_ELEMENT_SELECTOR =
   "[role=button]:not([keyboard-inaccessible]), [selectable]";
 
-const ZERO_PREFIX_HISTOGRAM_DWELL_TIME = "FX_URLBAR_ZERO_PREFIX_DWELL_TIME_MS";
-
 const RESULT_MENU_COMMANDS = {
   DISMISS: "dismiss",
   HELP: "help",
@@ -534,6 +532,8 @@ export class UrlbarView {
    *   True if the Urlbar focus border should be shown after the view is closed.
    */
   close({ elementPicked = false, showFocusBorder = true } = {}) {
+    const isShowingZeroPrefix =
+      this.#queryContext && !this.#queryContext.searchString;
     this.controller.cancelQuery();
     // We do not show the focus border when an element is picked because we'd
     // flash it just before the input is blurred. The focus border is removed
@@ -588,13 +588,12 @@ export class UrlbarView {
       this.#blobUrlsByResultUrl.clear();
     }
 
-    if (this.#isShowingZeroPrefix) {
+    if (isShowingZeroPrefix) {
       if (elementPicked) {
         Glean.urlbarZeroprefix.engagement.add(1);
       } else {
         Glean.urlbarZeroprefix.abandonment.add(1);
       }
-      this.#setIsShowingZeroPrefix(false);
     }
   }
 
@@ -751,9 +750,10 @@ export class UrlbarView {
       this.clear();
     }
 
-    // Now that the view has finished updating for this query, call
-    // `#setIsShowingZeroPrefix()`.
-    this.#setIsShowingZeroPrefix(!queryContext.searchString);
+    // Now that the view has finished updating for this query, record the exposure.
+    if (!queryContext.searchString) {
+      Glean.urlbarZeroprefix.exposure.add(1);
+    }
 
     // If the query returned results, we're done.
     if (this.#queryUpdatedResults) {
@@ -1092,7 +1092,6 @@ export class UrlbarView {
   #resultMenuCommands;
   #rows;
   #rawSelectedElement;
-  #zeroPrefixStopwatchInstance = null;
 
   /**
    * #rawSelectedElement may be disconnected from the DOM (e.g. it was remove()d)
@@ -3192,33 +3191,6 @@ export class UrlbarView {
     }
 
     return idArgs;
-  }
-
-  get #isShowingZeroPrefix() {
-    return !!this.#zeroPrefixStopwatchInstance;
-  }
-
-  #setIsShowingZeroPrefix(isShowing) {
-    if (!!isShowing == !!this.#zeroPrefixStopwatchInstance) {
-      return;
-    }
-
-    if (!isShowing) {
-      TelemetryStopwatch.finish(
-        ZERO_PREFIX_HISTOGRAM_DWELL_TIME,
-        this.#zeroPrefixStopwatchInstance
-      );
-      this.#zeroPrefixStopwatchInstance = null;
-      return;
-    }
-
-    this.#zeroPrefixStopwatchInstance = {};
-    TelemetryStopwatch.start(
-      ZERO_PREFIX_HISTOGRAM_DWELL_TIME,
-      this.#zeroPrefixStopwatchInstance
-    );
-
-    Glean.urlbarZeroprefix.exposure.add(1);
   }
 
   /**

@@ -9,7 +9,6 @@
 
 "use strict";
 
-const HISTOGRAM_DWELL_TIME = "FX_URLBAR_ZERO_PREFIX_DWELL_TIME_MS";
 const SCALARS = {
   ABANDONMENT: "urlbar.zeroprefix.abandonment",
   ENGAGEMENT: "urlbar.zeroprefix.engagement",
@@ -27,15 +26,11 @@ add_setup(async function () {
 
 // zero prefix engagement
 add_task(async function engagement() {
-  let dwellHistogram =
-    TelemetryTestUtils.getAndClearHistogram(HISTOGRAM_DWELL_TIME);
-
   await BrowserTestUtils.withNewTab("about:blank", async () => {
     await showZeroPrefix();
     checkScalars({
       [SCALARS.EXPOSURE]: 1,
     });
-    checkAndClearHistogram(dwellHistogram, false);
 
     info("Finding row with result type URL");
     let foundURLRow = false;
@@ -60,14 +55,10 @@ add_task(async function engagement() {
   checkScalars({
     [SCALARS.ENGAGEMENT]: 1,
   });
-  checkAndClearHistogram(dwellHistogram, true);
 });
 
 // zero prefix abandonment
 add_task(async function abandonment() {
-  let dwellHistogram =
-    TelemetryTestUtils.getAndClearHistogram(HISTOGRAM_DWELL_TIME);
-
   // Open and close the view twice. The second time the view will used a cached
   // query context and that shouldn't interfere with telemetry.
   for (let i = 0; i < 2; i++) {
@@ -75,28 +66,22 @@ add_task(async function abandonment() {
     checkScalars({
       [SCALARS.EXPOSURE]: 1,
     });
-    checkAndClearHistogram(dwellHistogram, false);
 
     await UrlbarTestUtils.promisePopupClose(window, () => gURLBar.blur());
     checkScalars({
       [SCALARS.ABANDONMENT]: 1,
     });
-    dwellHistogram = checkAndClearHistogram(dwellHistogram, true);
   }
 });
 
 // Shows the zero-prefix view, does some searches, then shows it again by doing
 // a search for an empty string.
 add_task(async function searches() {
-  let dwellHistogram =
-    TelemetryTestUtils.getAndClearHistogram(HISTOGRAM_DWELL_TIME);
-
   info("Show zero prefix");
   await showZeroPrefix();
   checkScalars({
     [SCALARS.EXPOSURE]: 1,
   });
-  checkAndClearHistogram(dwellHistogram, false);
 
   info("Search for 't'");
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
@@ -104,7 +89,6 @@ add_task(async function searches() {
     value: "t",
   });
   checkScalars({});
-  dwellHistogram = checkAndClearHistogram(dwellHistogram, true);
 
   info("Search for 'te'");
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
@@ -112,7 +96,6 @@ add_task(async function searches() {
     value: "te",
   });
   checkScalars({});
-  checkAndClearHistogram(dwellHistogram, false);
 
   info("Search for 't'");
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
@@ -120,7 +103,6 @@ add_task(async function searches() {
     value: "t",
   });
   checkScalars({});
-  checkAndClearHistogram(dwellHistogram, false);
 
   info("Search for ''");
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
@@ -130,22 +112,17 @@ add_task(async function searches() {
   checkScalars({
     [SCALARS.EXPOSURE]: 1,
   });
-  checkAndClearHistogram(dwellHistogram, false);
 
   info("Blur urlbar and close view");
   await UrlbarTestUtils.promisePopupClose(window, () => gURLBar.blur());
   checkScalars({
     [SCALARS.ABANDONMENT]: 1,
   });
-  checkAndClearHistogram(dwellHistogram, true);
 });
 
 // A zero prefix engagement should not be recorded when the view isn't showing
 // zero prefix.
 add_task(async function notZeroPrefix_engagement() {
-  let dwellHistogram =
-    TelemetryTestUtils.getAndClearHistogram(HISTOGRAM_DWELL_TIME);
-
   await BrowserTestUtils.withNewTab("about:blank", async () => {
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
@@ -157,15 +134,11 @@ add_task(async function notZeroPrefix_engagement() {
   });
 
   checkScalars({});
-  checkAndClearHistogram(dwellHistogram, false);
 });
 
 // A zero prefix abandonment should not be recorded when the view isn't showing
 // zero prefix.
 add_task(async function notZeroPrefix_abandonment() {
-  let dwellHistogram =
-    TelemetryTestUtils.getAndClearHistogram(HISTOGRAM_DWELL_TIME);
-
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "test",
@@ -173,7 +146,6 @@ add_task(async function notZeroPrefix_abandonment() {
   await UrlbarTestUtils.promisePopupClose(window, () => gURLBar.blur());
 
   checkScalars({});
-  checkAndClearHistogram(dwellHistogram, false);
 });
 
 function checkScalars(expected) {
@@ -188,24 +160,6 @@ function checkScalars(expected) {
       );
     }
   }
-}
-
-function checkAndClearHistogram(histogram, expected) {
-  if (expected) {
-    Assert.deepEqual(
-      Object.values(histogram.snapshot().values).filter(v => v > 0),
-      [1],
-      "Dwell histogram should be updated"
-    );
-  } else {
-    Assert.strictEqual(
-      histogram.snapshot().sum,
-      0,
-      "Dwell histogram should not be updated"
-    );
-  }
-
-  return TelemetryTestUtils.getAndClearHistogram(histogram.name());
 }
 
 async function showZeroPrefix() {
