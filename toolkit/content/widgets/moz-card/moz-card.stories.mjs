@@ -56,7 +56,6 @@ const Template = ({ l10nId, content, type, hasHeadingIcon, expanded }) => html`
       ?icon=${hasHeadingIcon}
       class=${classMap({ headingWithIcon: hasHeadingIcon })}
       data-l10n-id=${ifDefined(l10nId)}
-      data-l10n-attrs="heading"
       expanded=${ifDefined(expanded)}
     >
       <div>${content}</div>

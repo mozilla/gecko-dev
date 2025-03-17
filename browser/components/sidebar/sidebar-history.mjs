@@ -127,7 +127,6 @@ export class SidebarHistory extends SidebarPage {
             html` <moz-card
               type="accordion"
               ?expanded=${i < DAYS_EXPANDED_INITIALLY}
-              data-l10n-attrs="heading"
               data-l10n-id=${l10nId}
               data-l10n-args=${JSON.stringify({
                 date: items[0].time,
@@ -189,7 +188,6 @@ export class SidebarHistory extends SidebarPage {
 
   #searchResultsTemplate() {
     return html` <moz-card
-      data-l10n-attrs="heading"
       data-l10n-id="sidebar-search-results-header"
       data-l10n-args=${JSON.stringify({
         query: this.controller.searchQuery,

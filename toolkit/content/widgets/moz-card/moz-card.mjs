@@ -39,7 +39,7 @@ export default class MozCard extends MozLitElement {
   };
 
   static properties = {
-    heading: { type: String },
+    heading: { type: String, fluent: true },
     icon: { type: Boolean },
     type: { type: String, reflect: true },
     expanded: { type: Boolean },
