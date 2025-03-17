@@ -22,8 +22,6 @@ browser.jar:
     content/browser/places/bookmarksSidebar.js           (content/bookmarksSidebar.js)
     content/browser/places/editBookmark.js               (content/editBookmark.js)
     content/browser/places/placesContextMenu.js          (content/placesContextMenu.js)
-#ifdef NIGHTLY_BUILD
     content/browser/places/interactionsViewer.css        (metadataViewer/interactionsViewer.css)
     content/browser/places/interactionsViewer.html       (metadataViewer/interactionsViewer.html)
     content/browser/places/interactionsViewer.js         (metadataViewer/interactionsViewer.js)
-#endif

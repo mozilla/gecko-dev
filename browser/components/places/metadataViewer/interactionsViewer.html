@@ -3,6 +3,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 -->
+<?csp default-src chrome:; img-src chrome: moz-icon:; object-src 'none'; ?>
+
 <!doctype html>
 
 <html>
@@ -24,7 +26,7 @@
     />
     <style id="tableStyle" type="text/css"></style>
   </head>
-  <body>
+  <body class="hidden">
     <div id="enabledWarning" class="message-bar message-bar-warning" hidden>
       <img class="message-bar-icon" />
       <descripton class="message-bar-description">

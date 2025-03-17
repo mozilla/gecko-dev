@@ -657,8 +657,18 @@ function setupListeners() {
   });
 }
 
-checkPrefs();
-// Set the initial handler here.
-let gCurrentHandler = metadataHandler;
-gCurrentHandler.start().catch(console.error);
-setupListeners();
+let gCurrentHandler;
+if (
+  Services.prefs.getBoolPref(
+    "browser.places.interactions.viewer.enabled",
+    false
+  )
+) {
+  document.body.classList.remove("hidden");
+
+  checkPrefs();
+  // Set the initial handler here.
+  gCurrentHandler = metadataHandler;
+  gCurrentHandler.start().catch(console.error);
+  setupListeners();
+}
