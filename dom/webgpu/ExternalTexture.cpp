@@ -21,12 +21,6 @@
 
 namespace mozilla::webgpu {
 
-GPU_IMPL_CYCLE_COLLECTION(ExtTex, mGlobal)
-
-JSObject* ExtTex::WrapObject(JSContext* cx, JS ::Handle<JSObject*> givenProto) {
-  return dom::GPUExternalTexture_Binding::Wrap(cx, this, givenProto);
-}
-
 // static
 UniquePtr<ExternalTexture> ExternalTexture::Create(
     WebGPUParent* aParent, const ffi::WGPUDeviceId aDeviceId,
