@@ -27,4 +27,15 @@ cp -a ${GRADLE_USER_HOME}/wrapper/dists/gradle-*-*/*/gradle-*/ android-gradle-de
 
 tar cavf /builds/worker/artifacts/android-gradle-dependencies.tar.zst android-gradle-dependencies
 
+# Bug 1953671
+# There are intermittent issues where some files seem to be missing from the
+# resulting artifacts. That causes downstream failures which are unpleasant to
+# track down.
+if [[ -e android-gradle-dependencies/central/com/squareup/okio/okio/2.2.2/okio-2.2.2.pom &&
+    ! -e android-gradle-dependencies/central/com/squareup/okio/okio/2.2.2/okio-2.2.2.jar ]]
+then
+    echo "FATAL" "ERROR: incomplete dependencies file generated. try re-running task."
+    exit 1
+fi
+
 popd
