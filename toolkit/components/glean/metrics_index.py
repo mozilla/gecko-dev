@@ -90,6 +90,7 @@ gecko_metrics = [
     "toolkit/components/url-classifier/metrics.yaml",
     "toolkit/content/metrics.yaml",
     "toolkit/content/widgets/metrics.yaml",
+    "toolkit/modules/gecko_metrics.yaml",
     "toolkit/mozapps/extensions/metrics.yaml",
     "toolkit/mozapps/extensions/metrics_legacy.yaml",
     "toolkit/mozapps/handling/metrics.yaml",
