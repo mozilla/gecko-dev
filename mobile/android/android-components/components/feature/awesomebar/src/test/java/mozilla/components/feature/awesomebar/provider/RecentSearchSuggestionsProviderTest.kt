@@ -212,7 +212,7 @@ class RecentSearchSuggestionsProviderTest {
             with(facts[0]) {
                 assertEquals(Component.FEATURE_AWESOMEBAR, component)
                 assertEquals(Action.INTERACTION, action)
-                assertEquals(AwesomeBarFacts.Items.SEARCH_TERM_SUGGESTION_CLICKED, item)
+                assertEquals(AwesomeBarFacts.Items.RECENT_SEARCH_SUGGESTION_CLICKED, item)
             }
         }
     }
