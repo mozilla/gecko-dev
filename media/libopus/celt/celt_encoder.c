@@ -1284,9 +1284,11 @@ static int tone_lpc(const opus_val16 *x, int len, int delay, opus_val32 *lpc) {
 #endif
    num1 = MULT32_32_Q31(r02,r11) - MULT32_32_Q31(r01,r12);
    if (num1 >= den) lpc[1] = QCONST32(1.f, 29);
+   else if (num1 <= -den) lpc[1] = -QCONST32(1.f, 29);
    else lpc[1] = frac_div32_q29(num1, den);
    num0 = MULT32_32_Q31(r00,r12) - MULT32_32_Q31(r02,r01);
-   if (HALF32(num0) >= den) lpc[0] = QCONST32(1.999f, 29);
+   if (HALF32(num0) >= den) lpc[0] = QCONST32(1.999999f, 29);
+   else if (HALF32(num0) <= -den) lpc[0] = -QCONST32(1.999999f, 29);
    else lpc[0] = frac_div32_q29(num0, den);
    /*printf("%f %f\n", lpc[0], lpc[1]);*/
    return 0;
