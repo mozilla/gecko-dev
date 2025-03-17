@@ -222,7 +222,7 @@ class TextControlState final : public SupportsWeakPtr {
   MOZ_CAN_RUN_SCRIPT TextEditor* GetTextEditor();
   TextEditor* GetExtantTextEditor() const;
   nsISelectionController* GetSelectionController() const;
-  nsFrameSelection* GetConstFrameSelection();
+  nsFrameSelection* GetIndependentFrameSelection() const;
   nsresult BindToFrame(nsTextControlFrame* aFrame);
   MOZ_CAN_RUN_SCRIPT void UnbindFromFrame(nsTextControlFrame* aFrame);
   MOZ_CAN_RUN_SCRIPT nsresult PrepareEditor(const nsAString* aValue = nullptr);

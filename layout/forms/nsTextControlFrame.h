@@ -117,7 +117,7 @@ class nsTextControlFrame : public nsContainerFrame,
                                                   mozilla::SelectionDirection);
   NS_IMETHOD GetOwnedSelectionController(nsISelectionController** aSelCon);
   nsFrameSelection* GetOwnedFrameSelection() {
-    return ControlElement()->GetConstFrameSelection();
+    return ControlElement()->GetIndependentFrameSelection();
   }
   nsISelectionController* GetSelectionController() {
     return ControlElement()->GetSelectionController();

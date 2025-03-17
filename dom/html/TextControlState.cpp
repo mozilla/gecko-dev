@@ -343,7 +343,9 @@ class TextInputSelectionController final : public nsSupportsWeakReference,
                                Element& aEditorRootAnonymousDiv);
 
   void SetScrollContainerFrame(ScrollContainerFrame* aScrollContainerFrame);
-  nsFrameSelection* GetConstFrameSelection() { return mFrameSelection; }
+  nsFrameSelection* GetIndependentFrameSelection() const {
+    return mFrameSelection;
+  }
   // Will return null if !mFrameSelection.
   Selection* GetSelection(SelectionType aSelectionType);
 
@@ -1526,8 +1528,8 @@ void TextControlState::Traverse(nsCycleCollectionTraversalCallback& cb) {
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTextEditor)
 }
 
-nsFrameSelection* TextControlState::GetConstFrameSelection() {
-  return mSelCon ? mSelCon->GetConstFrameSelection() : nullptr;
+nsFrameSelection* TextControlState::GetIndependentFrameSelection() const {
+  return mSelCon ? mSelCon->GetIndependentFrameSelection() : nullptr;
 }
 
 TextEditor* TextControlState::GetTextEditor() {
@@ -1691,7 +1693,7 @@ nsresult TextControlState::PrepareEditor(const nsAString* aValue) {
     return NS_OK;
   }
 
-  AutoHideSelectionChanges hideSelectionChanges(GetConstFrameSelection());
+  AutoHideSelectionChanges hideSelectionChanges(GetIndependentFrameSelection());
 
   if (mHandlingState) {
     // Don't attempt to initialize recursively!

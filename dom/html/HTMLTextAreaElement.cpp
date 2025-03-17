@@ -179,9 +179,9 @@ nsISelectionController* HTMLTextAreaElement::GetSelectionController() {
   return mState->GetSelectionController();
 }
 
-nsFrameSelection* HTMLTextAreaElement::GetConstFrameSelection() {
+nsFrameSelection* HTMLTextAreaElement::GetIndependentFrameSelection() const {
   MOZ_ASSERT(mState);
-  return mState->GetConstFrameSelection();
+  return mState->GetIndependentFrameSelection();
 }
 
 nsresult HTMLTextAreaElement::BindToFrame(nsTextControlFrame* aFrame) {

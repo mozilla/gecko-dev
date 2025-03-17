@@ -2423,10 +2423,10 @@ nsISelectionController* HTMLInputElement::GetSelectionController() {
   return nullptr;
 }
 
-nsFrameSelection* HTMLInputElement::GetConstFrameSelection() {
+nsFrameSelection* HTMLInputElement::GetIndependentFrameSelection() const {
   TextControlState* state = GetEditorState();
   if (state) {
-    return state->GetConstFrameSelection();
+    return state->GetIndependentFrameSelection();
   }
   return nullptr;
 }
@@ -3105,7 +3105,7 @@ void HTMLInputElement::Select() {
   MOZ_ASSERT(state, "Single line text controls are expected to have a state");
 
   if (FocusState() != FocusTristate::eUnfocusable) {
-    RefPtr<nsFrameSelection> fs = state->GetConstFrameSelection();
+    RefPtr<nsFrameSelection> fs = state->GetIndependentFrameSelection();
     if (fs && fs->MouseDownRecorded()) {
       // This means that we're being called while the frame selection has a
       // mouse down event recorded to adjust the caret during the mouse up

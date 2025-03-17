@@ -2871,8 +2871,8 @@ nsresult nsDocViewerFocusListener::HandleEvent(Event* aEvent) {
     if (selection != presShell->ConstFrameSelection()) {
       RefPtr<Document> doc = presShell->GetDocument();
       const bool selectionMatchesFocus =
-          selection->GetLimiter() &&
-          selection->GetLimiter()->GetChromeOnlyAccessSubtreeRootParent() ==
+          selection->IsIndependentSelection() &&
+          selection->GetIndependentSelectionRootParentElement() ==
               doc->GetUnretargetedFocusedContent();
       if (NS_WARN_IF(!selectionMatchesFocus)) {
         presShell->FrameSelectionWillLoseFocus(*selection);

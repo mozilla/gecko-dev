@@ -292,6 +292,13 @@ class nsFrameSelection final {
   }
 
   /**
+   * Return true if this is an instance for an independent selection.
+   * Currently, independent selection is created only in the text controls
+   * to manage selections in their native anonymous subtree.
+   */
+  [[nodiscard]] bool IsIndependentSelection() const { return !!GetLimiter(); }
+
+  /**
    * Returns true if the selection was created by doubleclick or
    * long tap over a word.
    */
@@ -822,8 +829,19 @@ class nsFrameSelection final {
    * non-nullptr only when this instance is for an independent selection of a
    * text control.  Then, this returns the editor root anonymous <div> in the
    * text control element.
+   * TODO: Rename this to GetIndependentSelectionRootElement() in bug 1954020
    */
   Element* GetLimiter() const { return mLimiters.mLimiter; }
+
+  /**
+   * Get the independent selection root parent which is usually a text control
+   * element which hosts the anonymous subtree managed by this frame selection.
+   */
+  Element* GetIndependentSelectionRootParentElement() const {
+    MOZ_DIAGNOSTIC_ASSERT(IsIndependentSelection());
+    return Element::FromNodeOrNull(
+        mLimiters.mLimiter->GetClosestNativeAnonymousSubtreeRootParentOrHost());
+  }
 
   /**
    * GetAncestorLimiter() returns the root of current selection ranges.  This is

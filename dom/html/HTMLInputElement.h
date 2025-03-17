@@ -241,7 +241,7 @@ class HTMLInputElement final : public TextControlElement,
   MOZ_CAN_RUN_SCRIPT TextEditor* GetTextEditor() override;
   TextEditor* GetExtantTextEditor() const override;
   nsISelectionController* GetSelectionController() override;
-  nsFrameSelection* GetConstFrameSelection() override;
+  nsFrameSelection* GetIndependentFrameSelection() const override;
   TextControlState* GetTextControlState() const override {
     return GetEditorState();
   }

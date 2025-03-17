@@ -131,7 +131,7 @@ class TextControlElement : public nsGenericHTMLFormControlElementWithState {
    */
   virtual nsISelectionController* GetSelectionController() = 0;
 
-  virtual nsFrameSelection* GetConstFrameSelection() = 0;
+  virtual nsFrameSelection* GetIndependentFrameSelection() const = 0;
 
   virtual TextControlState* GetTextControlState() const = 0;
 
