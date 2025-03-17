@@ -52,6 +52,9 @@ const gUpdateElevationDialog = {
     } else {
       link.hidden = true;
     }
+    link.addEventListener("click", event =>
+      gUpdateElevationDialog.openUpdateURL(event)
+    );
 
     let manualLinkLabel = document.getElementById("manualLinkLabel");
     let manualURL = Services.urlFormatter.formatURLPref(
@@ -59,14 +62,29 @@ const gUpdateElevationDialog = {
     );
     manualLinkLabel.value = manualURL;
     manualLinkLabel.setAttribute("url", manualURL);
+    manualLinkLabel.addEventListener("click", event =>
+      gUpdateElevationDialog.openUpdateURL(event)
+    );
 
-    let button = document.getElementById("elevateExtra2");
-    this._setButton(button, "restartLaterButton");
-    button = document.getElementById("elevateExtra1");
-    this._setButton(button, "noThanksButton");
-    button = document.getElementById("elevateAccept");
-    this._setButton(button, "restartNowButton");
-    button.focus();
+    let buttonElevateExtra2 = document.getElementById("elevateExtra2");
+    buttonElevateExtra2.addEventListener("command", () =>
+      gUpdateElevationDialog.onRestartLater()
+    );
+    this._setButton(buttonElevateExtra2, "restartLaterButton");
+
+    let buttonElevateExtra1 = document.getElementById("elevateExtra1");
+    buttonElevateExtra1.addEventListener("command", () =>
+      gUpdateElevationDialog.onNoThanks()
+    );
+    this._setButton(buttonElevateExtra1, "noThanksButton");
+
+    let buttonElevateAccept = document.getElementById("elevateAccept");
+    // note that onRestartNow runs asynchronously
+    buttonElevateAccept.addEventListener("command", () =>
+      gUpdateElevationDialog.onRestartNow()
+    );
+    this._setButton(buttonElevateAccept, "restartNowButton");
+    buttonElevateAccept.focus();
   },
   onRestartLater() {
     window.close();
@@ -136,3 +154,5 @@ const gUpdateElevationDialog = {
     );
   },
 };
+
+window.addEventListener("load", () => gUpdateElevationDialog.onLoad());

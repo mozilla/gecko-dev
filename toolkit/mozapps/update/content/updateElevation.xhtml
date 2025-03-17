@@ -6,6 +6,8 @@
 
 <!-- This is temporary until bug 1521632 is fixed -->
 
+<?csp default-src chrome:; style-src chrome: 'unsafe-inline'; ?>
+
 <window windowtype="Update:Elevation"
         type="child"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
@@ -13,7 +15,7 @@
         data-l10n-id="elevation-update-wizard"
         data-l10n-attrs="title"
         style="width: auto; height: auto"
-        onload="gUpdateElevationDialog.onLoad();">
+        >
 <dialog id="updates"
         buttons="extra2,extra1,accept">
 
@@ -54,27 +56,23 @@
         <label data-l10n-id="elevation-finished-background"/>
         <label id="updateFinishedName" flex="1" crop="end" value=""/>
         <label id="detailsLinkLabel" disabled="true" is="text-link"
-               data-l10n-id="elevation-details-link-label"
-               onclick="gUpdateElevationDialog.openUpdateURL(event);"/>
+               data-l10n-id="elevation-details-link-label"/>
       </hbox>
       <spacer flex="1"/>
       <label id="finishedBackgroundMoreElevated" data-l10n-id="elevation-more-elevated"/>
       <label data-l10n-id="elevation-error-manual"/>
       <hbox>
-        <label id="manualLinkLabel" is="text-link" value=""
-               onclick="gUpdateElevationDialog.openUpdateURL(event);"/>
+        <label id="manualLinkLabel" is="text-link" value=""/>
       </hbox>
     </vbox>
   </vbox>
   <separator class="groove update-buttons-separator"/>
   <hbox id="update-button-box" pack="end">
-    <button id="elevateExtra2" dlgtype="extra2" label="" class="dialog-button"
-	        oncommand="gUpdateElevationDialog.onRestartLater();" />
-    <button id="elevateExtra1" dlgtype="extra1" label="" class="dialog-button"
-	        oncommand="gUpdateElevationDialog.onNoThanks();" />
+    <button id="elevateExtra2" dlgtype="extra2" label="" class="dialog-button"/>
+    <button id="elevateExtra1" dlgtype="extra1" label="" class="dialog-button"/>
     <spacer flex="1"/>
     <button id="elevateAccept" dlgtype="accept" label="" class="dialog-button"
-	        oncommand="gUpdateElevationDialog.onRestartNow();" default="true"/> <!-- note that onRestartNow runs asynchronously -->
+     default="true"/>
   </hbox>
 </dialog>
 </window>
