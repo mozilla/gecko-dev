@@ -38,7 +38,6 @@ class ScriptHashKey : public PLDHashEntryHdr {
   explicit ScriptHashKey(const ScriptHashKey& aKey)
       : PLDHashEntryHdr(),
         mURI(aKey.mURI),
-        mTriggeringPrincipal(aKey.mTriggeringPrincipal),
         mLoaderPrincipal(aKey.mLoaderPrincipal),
         mPartitionPrincipal(aKey.mPartitionPrincipal),
         mCORSMode(aKey.mCORSMode),
@@ -55,7 +54,6 @@ class ScriptHashKey : public PLDHashEntryHdr {
   ScriptHashKey(ScriptHashKey&& aKey)
       : PLDHashEntryHdr(),
         mURI(std::move(aKey.mURI)),
-        mTriggeringPrincipal(std::move(aKey.mTriggeringPrincipal)),
         mLoaderPrincipal(std::move(aKey.mLoaderPrincipal)),
         mPartitionPrincipal(std::move(aKey.mPartitionPrincipal)),
         mCORSMode(std::move(aKey.mCORSMode)),
@@ -87,7 +85,6 @@ class ScriptHashKey : public PLDHashEntryHdr {
     return nsURIHashKey::HashKey(aKey->mURI);
   }
 
-  nsIPrincipal* TriggeringPrincipal() const { return mTriggeringPrincipal; }
   nsIPrincipal* LoaderPrincipal() const { return mLoaderPrincipal; }
   nsIPrincipal* PartitionPrincipal() const { return mPartitionPrincipal; }
 
@@ -97,7 +94,6 @@ class ScriptHashKey : public PLDHashEntryHdr {
 
  protected:
   const nsCOMPtr<nsIURI> mURI;
-  const nsCOMPtr<nsIPrincipal> mTriggeringPrincipal;
   const nsCOMPtr<nsIPrincipal> mLoaderPrincipal;
   const nsCOMPtr<nsIPrincipal> mPartitionPrincipal;
   const CORSMode mCORSMode;

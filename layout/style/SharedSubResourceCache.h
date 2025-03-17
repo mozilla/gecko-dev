@@ -296,9 +296,7 @@ void SharedSubResourceCache<Traits, Derived>::ClearInProcess(
       }
 
       if (aPrincipal &&
-          iter.Key().TriggeringPrincipal()->Equals(aPrincipal.ref())) {
-        // FIXME(emilio): I don't think we want the triggering principal, but
-        // the loader principal (or the partition principal), most likely?
+          iter.Key().LoaderPrincipal()->Equals(aPrincipal.ref())) {
         return true;
       }
       if (!aSchemelessSite) {

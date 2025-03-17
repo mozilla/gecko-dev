@@ -55,7 +55,6 @@ class SheetLoadDataHashKey : public PLDHashEntryHdr {
 
   explicit SheetLoadDataHashKey(const SheetLoadDataHashKey* aKey)
       : mURI(aKey->mURI),
-        mTriggeringPrincipal(aKey->mTriggeringPrincipal),
         mLoaderPrincipal(aKey->mLoaderPrincipal),
         mPartitionPrincipal(aKey->mPartitionPrincipal),
         mEncodingGuess(aKey->mEncodingGuess),
@@ -67,8 +66,7 @@ class SheetLoadDataHashKey : public PLDHashEntryHdr {
     MOZ_COUNT_CTOR(SheetLoadDataHashKey);
   }
 
-  SheetLoadDataHashKey(nsIURI* aURI, nsIPrincipal* aPrincipal,
-                       nsIPrincipal* aLoaderPrincipal,
+  SheetLoadDataHashKey(nsIURI* aURI, nsIPrincipal* aLoaderPrincipal,
                        nsIPrincipal* aPartitionPrincipal,
                        NotNull<const Encoding*> aEncodingGuess,
                        CORSMode aCORSMode, css::SheetParsingMode aParsingMode,
@@ -76,7 +74,6 @@ class SheetLoadDataHashKey : public PLDHashEntryHdr {
                        const dom::SRIMetadata& aSRIMetadata,
                        css::StylePreloadKind aPreloadKind)
       : mURI(aURI),
-        mTriggeringPrincipal(aPrincipal),
         mLoaderPrincipal(aLoaderPrincipal),
         mPartitionPrincipal(aPartitionPrincipal),
         mEncodingGuess(aEncodingGuess),
@@ -87,14 +84,12 @@ class SheetLoadDataHashKey : public PLDHashEntryHdr {
         mIsLinkRelPreloadOrEarlyHint(
             css::IsLinkRelPreloadOrEarlyHint(aPreloadKind)) {
     MOZ_ASSERT(aURI);
-    MOZ_ASSERT(aPrincipal);
     MOZ_ASSERT(aLoaderPrincipal);
     MOZ_COUNT_CTOR(SheetLoadDataHashKey);
   }
 
   SheetLoadDataHashKey(SheetLoadDataHashKey&& toMove)
       : mURI(std::move(toMove.mURI)),
-        mTriggeringPrincipal(std::move(toMove.mTriggeringPrincipal)),
         mLoaderPrincipal(std::move(toMove.mLoaderPrincipal)),
         mPartitionPrincipal(std::move(toMove.mPartitionPrincipal)),
         mEncodingGuess(std::move(toMove.mEncodingGuess)),
@@ -130,10 +125,7 @@ class SheetLoadDataHashKey : public PLDHashEntryHdr {
 
   nsIURI* URI() const { return mURI; }
 
-  nsIPrincipal* TriggeringPrincipal() const { return mTriggeringPrincipal; }
-
   nsIPrincipal* LoaderPrincipal() const { return mLoaderPrincipal; }
-
   nsIPrincipal* PartitionPrincipal() const { return mPartitionPrincipal; }
 
   css::SheetParsingMode ParsingMode() const { return mParsingMode; }
@@ -142,7 +134,6 @@ class SheetLoadDataHashKey : public PLDHashEntryHdr {
 
  protected:
   const nsCOMPtr<nsIURI> mURI;
-  const nsCOMPtr<nsIPrincipal> mTriggeringPrincipal;
   const nsCOMPtr<nsIPrincipal> mLoaderPrincipal;
   const nsCOMPtr<nsIPrincipal> mPartitionPrincipal;
   // The encoding guess is the encoding the sheet would get if the request

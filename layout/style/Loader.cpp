@@ -144,7 +144,6 @@ namespace mozilla {
 
 SheetLoadDataHashKey::SheetLoadDataHashKey(const css::SheetLoadData& aLoadData)
     : mURI(aLoadData.mURI),
-      mTriggeringPrincipal(aLoadData.mTriggeringPrincipal),
       mLoaderPrincipal(aLoadData.mLoader->LoaderPrincipal()),
       mPartitionPrincipal(aLoadData.mLoader->PartitionedPrincipal()),
       mEncodingGuess(aLoadData.mGuessedEncoding),
@@ -154,7 +153,6 @@ SheetLoadDataHashKey::SheetLoadDataHashKey(const css::SheetLoadData& aLoadData)
       mIsLinkRelPreloadOrEarlyHint(aLoadData.IsLinkRelPreloadOrEarlyHint()) {
   MOZ_COUNT_CTOR(SheetLoadDataHashKey);
   MOZ_ASSERT(mURI);
-  MOZ_ASSERT(mTriggeringPrincipal);
   MOZ_ASSERT(mLoaderPrincipal);
   MOZ_ASSERT(mPartitionPrincipal);
   aLoadData.mSheet->GetIntegrity(mSRIMetadata);
@@ -180,24 +178,9 @@ bool SheetLoadDataHashKey::KeyEquals(const SheetLoadDataHashKey& aKey) const {
     return true;
   }
 
-  if (!mTriggeringPrincipal->Equals(aKey.mTriggeringPrincipal)) {
-    LOG((" > Triggering principal mismatch\n"));
+  if (!mPartitionPrincipal->Equals(aKey.mPartitionPrincipal)) {
+    LOG((" > Partition principal mismatch\n"));
     return false;
-  }
-
-  // We only check for partition principal equality if any of the loads are
-  // triggered by a document rather than e.g. an extension (which have different
-  // origins than the loader principal).
-  //
-  // TODO(emilio): The idea of this code is allowing sharing extension
-  // stylesheets on different origins, see bug 1645987 comment 5, but I think
-  // this is less important (maybe completely irrelevant?) with Fission.
-  if (mTriggeringPrincipal->Equals(mLoaderPrincipal) ||
-      aKey.mTriggeringPrincipal->Equals(aKey.mLoaderPrincipal)) {
-    if (!mPartitionPrincipal->Equals(aKey.mPartitionPrincipal)) {
-      LOG((" > Partition principal mismatch\n"));
-      return false;
-    }
   }
 
   if (mCORSMode != aKey.mCORSMode) {
@@ -950,8 +933,7 @@ Loader::CreateSheet(nsIURI* aURI, nsIContent* aLinkingContent,
   }
 
   if (mSheets) {
-    SheetLoadDataHashKey key(aURI, aTriggeringPrincipal, LoaderPrincipal(),
-                             PartitionedPrincipal(),
+    SheetLoadDataHashKey key(aURI, LoaderPrincipal(), PartitionedPrincipal(),
                              GetFallbackEncoding(*this, aLinkingContent,
                                                  aPreloadOrParentDataEncoding),
                              aCORSMode, aParsingMode, CompatMode(aPreloadKind),
