@@ -24,7 +24,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
   Spotlight: "resource:///modules/asrouter/Spotlight.sys.mjs",
   UIState: "resource://services-sync/UIState.sys.mjs",
-  UITour: "resource:///modules/UITour.sys.mjs",
+  UITour: "moz-src:///browser/components/uitour/UITour.sys.mjs",
 });
 
 export const SpecialMessageActions = {

@@ -17,7 +17,7 @@ let { UIState } = ChromeUtils.importESModule(
 );
 
 ChromeUtils.defineESModuleGetters(this, {
-  UITour: "resource:///modules/UITour.sys.mjs",
+  UITour: "moz-src:///browser/components/uitour/UITour.sys.mjs",
 });
 
 const DECKINDEX_TABS = 0;

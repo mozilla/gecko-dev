@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { UITour } from "resource:///modules/UITour.sys.mjs";
+import { UITour } from "moz-src:///browser/components/uitour/UITour.sys.mjs";
 
 export class UITourParent extends JSWindowActorParent {
   receiveMessage(message) {

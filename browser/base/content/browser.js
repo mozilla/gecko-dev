@@ -91,7 +91,7 @@ ChromeUtils.defineESModuleGetters(this, {
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   ToolbarContextMenu: "resource:///modules/ToolbarContextMenu.sys.mjs",
   TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
-  UITour: "resource:///modules/UITour.sys.mjs",
+  UITour: "moz-src:///browser/components/uitour/UITour.sys.mjs",
   UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
   URILoadingHelper: "resource:///modules/URILoadingHelper.sys.mjs",
   UrlbarInput: "resource:///modules/UrlbarInput.sys.mjs",
