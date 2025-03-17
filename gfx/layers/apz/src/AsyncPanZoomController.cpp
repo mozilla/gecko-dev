@@ -6203,7 +6203,22 @@ void AsyncPanZoomController::ZoomToRect(const ZoomTarget& aZoomTarget,
       const CSSCoord scrollableRectHeight =
           Metrics().GetScrollableRect().height;
 
-      if (scrollableRectHeight > svh && scrollableRectHeight < lvh) {
+      auto mightNeedToHideToolbar = [&]() -> bool {
+        // While the software keyboard is visible on resizes-visual mode,
+        // if the target rect is underneath of the toolbar, we will have to
+        // hide the toolbar.
+        if (aFlags & ZOOM_TO_FOCUSED_INPUT_ON_RESIZES_VISUAL) {
+          return true;
+        }
+        // FIXME: This condition is too strict even in resizes-content mode,
+        // it's possible for the toolbar to cover up an element at the bottom
+        // of the scrollable rect even if `scrollableRectHeight > lvh`.
+        // We need to either relax the condition, or find a different solution
+        // such as bug 1920019 comment 8.
+        return scrollableRectHeight > svh && scrollableRectHeight < lvh;
+      };
+
+      if (mightNeedToHideToolbar()) {
         const CSSCoord targetDistanceFromBottom =
             (Metrics().GetScrollableRect().YMost() -
              aZoomTarget.targetRect.YMost());

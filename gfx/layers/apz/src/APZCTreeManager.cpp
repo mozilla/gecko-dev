@@ -2571,7 +2571,12 @@ void APZCTreeManager::ZoomToRect(const ScrollableLayerGuid& aGuid,
 
       apzc = FindZoomableApzc(apzc);
       if (apzc) {
-        apzc->ZoomToRect(zoomTarget, aFlags);
+        uint32_t flags = aFlags;
+        if (mIsSoftwareKeyboardVisible &&
+            mInteractiveWidget == dom::InteractiveWidget::ResizesVisual) {
+          flags |= ZOOM_TO_FOCUSED_INPUT_ON_RESIZES_VISUAL;
+        }
+        apzc->ZoomToRect(zoomTarget, flags);
       }
     }
     return;

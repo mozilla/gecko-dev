@@ -19,10 +19,13 @@ import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.mozilla.geckoview.Autofill
+import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.GeckoSession.ContentDelegate
 import org.mozilla.geckoview.GeckoView
 import org.mozilla.geckoview.PanZoomController
 import org.mozilla.geckoview.ScreenLength
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule
+import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.AssertCalled
 import org.mozilla.geckoview.test.util.AssertUtils
 
 @RunWith(AndroidJUnit4::class)
@@ -57,16 +60,7 @@ class InteractiveWidgetTest : BaseSessionTest() {
         } catch (e: Exception) {}
     }
 
-    @GeckoSessionTestRule.NullDelegate(Autofill.Delegate::class)
-    @Test
-    fun stickyElementWithDynamicToolbarOnResizesVisual() {
-        mainSession.setActive(true)
-
-        mainSession.loadTestPath(BaseSessionTest.INTERACTIVE_WIDGET_HTML_PATH)
-        mainSession.waitForPageStop()
-        mainSession.promiseAllPaintsDone()
-        mainSession.flushApzRepaints()
-
+    private fun ensureKeyboardOpen() {
         view.requestFocus()
 
         var promise = mainSession.evaluatePromiseJS(
@@ -90,6 +84,19 @@ class InteractiveWidgetTest : BaseSessionTest() {
             promise.value as Boolean,
             equalTo(true),
         )
+    }
+
+    @GeckoSessionTestRule.NullDelegate(Autofill.Delegate::class)
+    @Test
+    fun stickyElementWithDynamicToolbarOnResizesVisual() {
+        mainSession.setActive(true)
+
+        mainSession.loadTestPath(BaseSessionTest.INTERACTIVE_WIDGET_HTML_PATH)
+        mainSession.waitForPageStop()
+        mainSession.promiseAllPaintsDone()
+        mainSession.flushApzRepaints()
+
+        ensureKeyboardOpen()
 
         // Hide the dynamic toolbar.
         view.setVerticalClipping(-dynamicToolbarMaxHeight)
@@ -202,6 +209,34 @@ class InteractiveWidgetTest : BaseSessionTest() {
         val reference = createReferenceImage(result.height.toDouble())
 
         AssertUtils.assertScreenshotResult(result, reference)
+
+        // Close the software keyboard.
+        imm.hideSoftInputFromWindow(view.getWindowToken(), 0)
+    }
+
+    @GeckoSessionTestRule.NullDelegate(Autofill.Delegate::class)
+    @Test
+    fun hideDynamicToolbarOnResizesVisual() {
+        mainSession.setActive(true)
+
+        mainSession.loadTestPath(BaseSessionTest.HIDE_DYNAMIC_TOOLBAR_ON_RESIZES_VISUAL_HTML_PATH)
+        mainSession.waitForPageStop()
+        mainSession.promiseAllPaintsDone()
+        mainSession.flushApzRepaints()
+
+        ensureKeyboardOpen()
+
+        mainSession.evaluateJS("document.getElementById('input1').focus();")
+        mainSession.zoomToFocusedInput()
+
+        mainSession.flushApzRepaints()
+        mainSession.promiseAllPaintsDone()
+
+        mainSession.waitUntilCalled(object : ContentDelegate {
+            @AssertCalled(count = 1)
+            override fun onHideDynamicToolbar(session: GeckoSession) {
+            }
+        })
 
         // Close the software keyboard.
         imm.hideSoftInputFromWindow(view.getWindowToken(), 0)
