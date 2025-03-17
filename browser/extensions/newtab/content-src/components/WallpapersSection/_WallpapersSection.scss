@@ -46,7 +46,7 @@
   background-clip: content-box;
   background-repeat: no-repeat;
   background-size: cover;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   border: none;
   box-shadow: $shadow-secondary;
   cursor: pointer;
@@ -107,6 +107,12 @@
 
 .theme-custom-color-picker {
   position: relative;
+  color-scheme: light;
+
+  // Change the icon color based on the selected color
+  &.is-dark::after {
+    color-scheme: dark;
+  }
 
   // Color Picker Icon
   &::after {
@@ -121,6 +127,8 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    pointer-events: none;
+    cursor: pointer;
   }
 
   .wallpaper-input {
@@ -143,6 +151,7 @@
 
   ::-moz-color-swatch {
     border-color: transparent;
+    border-radius: var(--border-radius-medium);
   }
 }
 

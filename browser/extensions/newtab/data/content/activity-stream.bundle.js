@@ -11391,6 +11391,7 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
     this.prefersDarkQuery = null;
     this.categoryRef = []; // store references for wallpaper category list
     this.wallpaperRef = []; // store reference for wallpaper selection list
+    this.customColorPickerRef = /*#__PURE__*/external_React_default().createRef(); // Used to determine contrast icon color for custom color picker
     this.state = {
       activeCategory: null,
       activeCategoryFluentID: null,
@@ -11418,9 +11419,16 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
 
     // Set background color to custom color
     event.target.style.backgroundColor = `rgb(${rgbColors.toString()})`;
-    this.setState({
-      customHexValue: event.target.style.backgroundColor
-    });
+
+    // Set icon color based on the selected color
+    const isColorDark = this.isWallpaperColorDark(rgbColors);
+    if (this.customColorPickerRef.current) {
+      if (isColorDark) {
+        this.customColorPickerRef.current.classList.add("is-dark");
+      } else {
+        this.customColorPickerRef.current.classList.remove("is-dark");
+      }
+    }
 
     // Setting this now so when we remove v1 we don't have to migrate v1 values.
     this.props.setPref("newtabWallpapers.wallpaper", id);
@@ -11598,6 +11606,9 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
     const b = parseInt(input.substr(5, 2), 16);
     return [r, g, b];
   }
+  isWallpaperColorDark([r, g, b]) {
+    return 0.2125 * r + 0.7154 * g + 0.0721 * b <= 110;
+  }
   render() {
     const prefs = this.props.Prefs.values;
     const {
@@ -11648,7 +11659,8 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       filteredWallpapers = reduceColorsToFitCustomColorInput(filteredWallpapers);
     }
     let colorPickerInput = showColorPicker && activeCategory === "solid-colors" ? /*#__PURE__*/external_React_default().createElement("div", {
-      className: "theme-custom-color-picker"
+      className: "theme-custom-color-picker",
+      ref: this.customColorPickerRef
     }, /*#__PURE__*/external_React_default().createElement("input", {
       onInput: this.handleColorInput,
       onChange: this.debouncedHandleChange,
@@ -11660,7 +11672,7 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       // aria-checked is not applicable for input[type="color"] elements
       ,
       "aria-current": this.state.activeId === "solid-color-picker"
-      // If nothing selected, default to Zilla Green
+      // Bug 1953012 - If nothing selected, default to color of customize panel
       ,
       value: wallpaperCustomSolidColorHex || "#00d230",
       className: `wallpaper-input

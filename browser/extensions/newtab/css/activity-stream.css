@@ -2572,7 +2572,7 @@ main section {
   background-clip: content-box;
   background-repeat: no-repeat;
   background-size: cover;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   border: none;
   box-shadow: 0 1px 4px 0 rgba(12, 12, 13, 0.2);
   cursor: pointer;
@@ -2653,6 +2653,10 @@ main section {
 
 .theme-custom-color-picker {
   position: relative;
+  color-scheme: light;
+}
+.theme-custom-color-picker.is-dark::after {
+  color-scheme: dark;
 }
 .theme-custom-color-picker::after {
   background: url("chrome://global/skin/icons/color-picker-20.svg") center no-repeat;
@@ -2666,6 +2670,8 @@ main section {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  pointer-events: none;
+  cursor: pointer;
 }
 .theme-custom-color-picker .wallpaper-input {
   border: 2px dashed var(--border-color-default, #CFCFD8);
@@ -2684,6 +2690,7 @@ main section {
 }
 .theme-custom-color-picker ::-moz-color-swatch {
   border-color: transparent;
+  border-radius: var(--border-radius-medium);
 }
 
 .wallpaper-list {
