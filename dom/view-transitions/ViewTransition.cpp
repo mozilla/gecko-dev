@@ -602,7 +602,7 @@ static nsTArray<Keyframe> BuildGroupKeyframes(
       AnimatedPropertyID(eCSSProperty_height),
       Servo_DeclarationBlock_CreateEmpty().Consume(),
   };
-  SetProp(width.mServoDeclarationBlock, aDoc, eCSSProperty_height,
+  SetProp(height.mServoDeclarationBlock, aDoc, eCSSProperty_height,
           cssSize.height, eCSSUnit_Pixel);
   firstKeyframe.mPropertyValues.AppendElement(std::move(transform));
   firstKeyframe.mPropertyValues.AppendElement(std::move(width));
