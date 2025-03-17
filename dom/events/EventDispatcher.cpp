@@ -754,16 +754,15 @@ EventTargetChainItem* EventTargetChainItemForChromeTarget(
 }
 
 static bool ShouldClearTargets(WidgetEvent* aEvent) {
-  if (nsIContent* finalTarget =
-          nsIContent::FromEventTargetOrNull(aEvent->mTarget)) {
-    if (finalTarget->SubtreeRoot()->IsShadowRoot()) {
+  if (auto* finalTarget = nsIContent::FromEventTargetOrNull(aEvent->mTarget)) {
+    if (finalTarget->IsInShadowTree()) {
       return true;
     }
   }
 
-  if (nsIContent* finalRelatedTarget =
+  if (auto* finalRelatedTarget =
           nsIContent::FromEventTargetOrNull(aEvent->mRelatedTarget)) {
-    if (finalRelatedTarget->SubtreeRoot()->IsShadowRoot()) {
+    if (finalRelatedTarget->IsInShadowTree()) {
       return true;
     }
   }
