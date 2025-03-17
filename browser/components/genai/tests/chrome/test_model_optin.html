@@ -49,12 +49,12 @@
      */
      add_task(async function test_model_optin_confirm_deny() {
       const mo = document.querySelector("#model-optin");
-    
+
       // Make sure it's visible and not loading
       mo.isHidden = false;
       mo.isLoading = false;
       await waitForUpdateComplete(mo);
-    
+
       let eventsFired = [];
       function onConfirm() {
         eventsFired.push("MlModelOptinConfirm");
@@ -62,21 +62,21 @@
       function onDeny() {
         eventsFired.push("MlModelOptinDeny");
       }
-    
+
       mo.addEventListener("MlModelOptinConfirm", onConfirm);
       mo.addEventListener("MlModelOptinDeny", onDeny);
-    
+
       // Grab the buttons by their IDs inside the component's shadow root
       const confirmBtn = mo.shadowRoot.querySelector("#optin-confirm-button");
       const denyBtn = mo.shadowRoot.querySelector("#optin-deny-button");
       ok(confirmBtn, "Found the confirm button with an ID");
       ok(denyBtn, "Found the deny button with an ID");
-    
+
       // Synthesize a click on the confirm button
       synthesizeMouseAtCenter(confirmBtn, {});
       is(eventsFired.length, 1, "One event fired after confirm click.");
       is(eventsFired[0], "MlModelOptinConfirm", "Confirm event was fired.");
-    
+
       // Synthesize a click on the deny button
       synthesizeMouseAtCenter(denyBtn, {});
       is(eventsFired.length, 2, "Second event fired after deny click.");
