@@ -1015,9 +1015,23 @@ bool AntiTrackingUtils::IsThirdPartyDocument(Document* aDocument) {
 
   if (!aDocument->GetChannel()) {
     // If we can't get the channel from the document, i.e. initial about:blank
-    // page, we use the browsingContext of the document to check if it's in the
-    // third-party context. If the browsing context is still not available, we
-    // will treat the window as third-party.
+    // page, we first check if we should inherit from the parent document. If
+    // the principal of the document is the same as the principal of the parent
+    // document, we inherit the third-party status from the parent document.
+    // Otherwise, we use the browsingContext of the document to check if it's
+    // in the third-party context. If the browsing context is still not
+    // available, we will treat the window as third-party.
+    //
+    // Note that we cannot directly use the browsingContext here. The
+    // browsingContext of a mixed but same baseDomain context with top level
+    // will be considered as third-party because they are not in the same
+    // content process. However, it should be considered as first-party.
+    RefPtr<Document> parentDoc = aDocument->GetInProcessParentDocument();
+    if (parentDoc &&
+        aDocument->NodePrincipal()->Equals(parentDoc->NodePrincipal())) {
+      return IsThirdPartyDocument(parentDoc);
+    }
+
     RefPtr<BrowsingContext> bc = aDocument->GetBrowsingContext();
     return bc ? IsThirdPartyContext(bc) : true;
   }
