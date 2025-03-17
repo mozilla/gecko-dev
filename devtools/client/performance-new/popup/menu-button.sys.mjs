@@ -63,10 +63,17 @@ function isInNavbar() {
 }
 
 function ensureButtonInNavbar() {
-  if (!isInNavbar()) {
-    // Ensure the widget is enabled.
+  // 1. Ensure the widget is enabled.
+  const featureFlagPref = "devtools.performance.popup.feature-flag";
+  const isPopupFeatureFlagEnabled = Services.prefs.getBoolPref(featureFlagPref);
+  if (!isPopupFeatureFlagEnabled) {
+    // Setting the pref will also run the menubutton initialization thanks to
+    // the observer set in DevtoolsStartup.
     Services.prefs.setBoolPref("devtools.performance.popup.feature-flag", true);
+  }
 
+  // 2. Ensure it's added to the nav bar
+  if (!isInNavbar()) {
     // Enable the profiler menu button.
     addToNavbar();
 

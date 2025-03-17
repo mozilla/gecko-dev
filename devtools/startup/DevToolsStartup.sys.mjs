@@ -705,13 +705,6 @@ DevToolsStartup.prototype = {
     // popup for our users, regardless of if the feature is enabled by default.
     this.initializeProfilerWebChannel();
 
-    if (!Cu.isInAutomation && Services.env.exists("MOZ_PROFILER_STARTUP")) {
-      // If the profiler is active due to startup profiling, show the profiler
-      // button in the nav bar. But do not do it in automation to avoid
-      // side-effects with existing tests.
-      lazy.ProfilerMenuButton.ensureButtonInNavbar();
-    }
-
     if (isPopupFeatureFlagEnabled) {
       // Initialize the CustomizableUI widget.
       lazy.ProfilerMenuButton.initialize(this.toggleProfilerKeyShortcuts);
@@ -723,6 +716,13 @@ DevToolsStartup.prototype = {
         Services.prefs.removeObserver(featureFlagPref, enable);
       };
       Services.prefs.addObserver(featureFlagPref, enable);
+    }
+
+    if (!Cu.isInAutomation && Services.env.exists("MOZ_PROFILER_STARTUP")) {
+      // If the profiler is active due to startup profiling, show the profiler
+      // button in the nav bar. But do not do it in automation to avoid
+      // side-effects with existing tests.
+      lazy.ProfilerMenuButton.ensureButtonInNavbar();
     }
   },
 
