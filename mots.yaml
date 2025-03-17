@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-03-14T10:56:58.997663+00:00'
+updated_at: '2025-03-17T14:46:17.162892+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -1236,7 +1236,7 @@ modules:
     meta:
       group: dev-platform
       components:
-        - Core::DOM::Animation
+        - 'Core::DOM: Animation'
         - Core::CSS Transitions and Animations
       peers_emeritus:
         - Matt Woodrow
@@ -1619,11 +1619,11 @@ modules:
         - Ehsan Akhgari
         - Axel Hecht
         - Eric Rahm
-      group: dev-tech-dom
       url: http://developer.mozilla.org/en/docs/DOM
       components:
         - Core::DOM
         - 'Core::DOM: Core & HTML'
+        - Core::XSLT
       review_group: dom-core
     owners:
       - *mccr8
@@ -1632,7 +1632,6 @@ modules:
       - *hsivonen
       - *bholley
       - *baku
-      - *mccr8
       - *nika
       - *farre
       - *emilio
@@ -1687,7 +1686,7 @@ modules:
       group: dev-platform
       url: :ref:`Editor`
       components:
-        - Core::Editor
+        - 'Core::DOM: Editor'
     owners:
       - *masayuki
     peers:
@@ -1881,7 +1880,7 @@ modules:
       group: dev-platform
       url: http://about.validator.nu/
       components:
-        - 'Core::HTML: Parser'
+        - 'Core::DOM: HTML Parser'
     owners:
       - *hsivonen
     peers:
@@ -2980,6 +2979,7 @@ modules:
       group: dev-platform
       url: https://developer.mozilla.org/docs/Web/API/Web_Workers_API/Using_web_workers
       components:
+        - 'Core::DOM: Service Workers'
         - 'Core::DOM: Workers'
       review_group: dom-worker-reviewers
     owners:
@@ -4559,5 +4559,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 99d782a07e8e666751d47583736dc54ac4df29b3
-  export: e5667246652c4e393f8966e6b25a75fc25de6fb1
+  config: 124d5e19b7dfd4048bd02ce7d0317c68079e39bf
+  export: 42bc59b9aa99faaba3321dc5c345456473f6284d
