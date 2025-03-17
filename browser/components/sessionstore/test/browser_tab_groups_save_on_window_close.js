@@ -236,3 +236,19 @@ add_task(async function test_dontSaveAfterAdoptingGroup() {
   state = ss.getCurrentState();
   Assert.ok(!state.savedGroups.length, "savedGroups is still empty");
 });
+
+add_task(async function test_dontSaveAfterDeletingLastGroupInWindow() {
+  let win = await promiseNewWindowLoaded();
+  let state = ss.getCurrentState();
+  Assert.ok(!state.savedGroups.length, "savedGroups starts empty");
+  let tab1 = BrowserTestUtils.addTab(win.gBrowser, "about:mozilla");
+  await BrowserTestUtils.browserLoaded(tab1.linkedBrowser);
+  await TabStateFlusher.flush(tab1.linkedBrowser);
+  let group1 = win.gBrowser.addTabGroup([tab1]);
+  await BrowserTestUtils.removeTab(win.gBrowser.tabs[0]);
+  let windowUnloaded = BrowserTestUtils.waitForEvent(win, "unload");
+  win.gBrowser.removeTabGroup(group1);
+  await windowUnloaded;
+  state = ss.getCurrentState();
+  Assert.ok(!state.savedGroups.length, "savedGroups is still empty");
+});

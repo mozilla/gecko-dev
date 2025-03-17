@@ -6988,7 +6988,11 @@ var SessionStoreInternal = {
     // SessionStartup.state.
     let state = Cu.cloneInto(startupState, {});
     let hasPinnedTabs = false;
-    let defaultState = { windows: [], selectedWindow: 1 };
+    let defaultState = {
+      windows: [],
+      selectedWindow: 1,
+      savedGroups: state.savedGroups || [],
+    };
     state.selectedWindow = state.selectedWindow || 1;
 
     // Look at each window, remove pinned tabs, adjust selectedindex,
@@ -7081,9 +7085,14 @@ var SessionStoreInternal = {
         tIndex++;
       }
 
-      defaultState.savedGroups = startupState.savedGroups || [];
       groupsToSave.forEach(groupState => {
-        defaultState.savedGroups.push(groupState);
+        if (
+          !defaultState.savedGroups.find(
+            existingGroup => existingGroup.id == groupState.id
+          )
+        ) {
+          defaultState.savedGroups.push(groupState);
+        }
       });
 
       hasPinnedTabs ||= !!newWindowState.tabs.length;
