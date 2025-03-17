@@ -179,7 +179,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         /**
          * Bug 1946867 - Currently "hardcoded" to the DoH TRR URI of Cloudflare
          */
-        private const val CLOUDFLARE_URI = "mozilla.cloudflare-dns.com"
+        private const val CLOUDFLARE_URI = "https://mozilla.cloudflare-dns.com/dns-query"
     }
 
     @VisibleForTesting
@@ -2446,7 +2446,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
 
     /**
      * Stores the URI of the default DoH provider.
-     * Bug 1946867 - Currently "hardcoded" to "mozilla.cloudflare-dns.com"
+     * Bug 1946867 - Currently "hardcoded" to "https://mozilla.cloudflare-dns.com/dns-query"
      */
     val dohDefaultProviderUrl by stringPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_doh_default_provider_uri),

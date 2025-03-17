@@ -1492,6 +1492,10 @@ class GeckoEngine(
             this.loginAutofillEnabled = it.loginAutofillEnabled
             this.enterpriseRootsEnabled = it.enterpriseRootsEnabled
             this.httpsOnlyMode = it.httpsOnlyMode
+            this.dohSettingsMode = it.dohSettingsMode
+            this.dohProviderUrl = it.dohProviderUrl
+            this.dohDefaultProviderUrl = it.dohDefaultProviderUrl
+            this.dohExceptionsList = it.dohExceptionsList
             this.cookieBannerHandlingMode = it.cookieBannerHandlingMode
             this.cookieBannerHandlingModePrivateBrowsing = it.cookieBannerHandlingModePrivateBrowsing
             this.cookieBannerHandlingDetectOnlyMode = it.cookieBannerHandlingDetectOnlyMode

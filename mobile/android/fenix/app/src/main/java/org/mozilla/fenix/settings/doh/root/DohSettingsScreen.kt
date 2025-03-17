@@ -587,7 +587,7 @@ private fun ExceptionsRow(onExceptionsClicked: () -> Unit) {
 private fun DohScreenDefaultProviderPreview() {
     FirefoxTheme {
         val provider = Provider.BuiltIn(
-            url = "mozilla.cloudflare-dns.com",
+            url = "https://mozilla.cloudflare-dns.com/dns-query",
             name = "Cloudflare",
             default = true,
         )
