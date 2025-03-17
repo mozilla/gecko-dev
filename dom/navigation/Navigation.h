@@ -102,7 +102,6 @@ class Navigation final : public DOMEventTargetHelper {
 
   void LogHistory() const;
 
-  nsCOMPtr<nsPIDOMWindowInner> mWindow;
   // https://html.spec.whatwg.org/multipage/nav-history-apis.html#navigation-entry-list
   nsTArray<RefPtr<NavigationHistoryEntry>> mEntries;
   // https://html.spec.whatwg.org/multipage/nav-history-apis.html#navigation-current-entry
