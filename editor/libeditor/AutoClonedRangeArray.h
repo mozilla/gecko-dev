@@ -523,11 +523,11 @@ class MOZ_STACK_CLASS AutoClonedSelectionRangeArray final
   }
 
   /**
-   * Equivalent to nsFrameSelection::GetLimiter().
+   * Equivalent to nsFrameSelection::GetIndependentSelectionRootElement().
    * NOTE: This should be called only when IsForSelection() returns true.
    */
-  [[nodiscard]] dom::Element* GetLimiter() const {
-    return mLimitersAndCaretData.mLimiter;
+  [[nodiscard]] dom::Element* GetIndependentSelectionRootElement() const {
+    return mLimitersAndCaretData.mIndependentSelectionRootElement;
   }
   /**
    * Equivalent to nsFrameSelection::GetAncestorLimiter()

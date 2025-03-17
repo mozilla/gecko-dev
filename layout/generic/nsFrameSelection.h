@@ -298,7 +298,9 @@ class nsFrameSelection final {
    * Currently, independent selection is created only in the text controls
    * to manage selections in their native anonymous subtree.
    */
-  [[nodiscard]] bool IsIndependentSelection() const { return !!GetLimiter(); }
+  [[nodiscard]] bool IsIndependentSelection() const {
+    return !!GetIndependentSelectionRootElement();
+  }
 
   /**
    * Returns true if the selection was created by doubleclick or
@@ -554,7 +556,8 @@ class nsFrameSelection final {
   [[nodiscard]] bool NodeIsInLimiters(const nsINode* aContainerNode) const;
 
   [[nodiscard]] static bool NodeIsInLimiters(
-      const nsINode* aContainerNode, const Element* aSelectionLimiter,
+      const nsINode* aContainerNode,
+      const Element* aIndependentSelectionLimiterElement,
       const Element* aSelectionAncestorLimiter);
 
   /**
@@ -836,13 +839,13 @@ class nsFrameSelection final {
   }
 
   /**
-   * GetLimiter() returns the selection limiter element which is currently
-   * non-nullptr only when this instance is for an independent selection of a
-   * text control.  Then, this returns the editor root anonymous <div> in the
-   * text control element.
-   * TODO: Rename this to GetIndependentSelectionRootElement() in bug 1954020
+   * Returns the selection root element if and only if the instance is for an
+   * independent selection.  Currently, this is a native anonymous `<div>` for
+   * a text control.
    */
-  Element* GetLimiter() const { return mLimiters.mLimiter; }
+  [[nodiscard]] Element* GetIndependentSelectionRootElement() const {
+    return mLimiters.mIndependentSelectionRootElement;
+  }
 
   /**
    * Get the independent selection root parent which is usually a text control
@@ -851,7 +854,8 @@ class nsFrameSelection final {
   Element* GetIndependentSelectionRootParentElement() const {
     MOZ_DIAGNOSTIC_ASSERT(IsIndependentSelection());
     return Element::FromNodeOrNull(
-        mLimiters.mLimiter->GetClosestNativeAnonymousSubtreeRootParentOrHost());
+        mLimiters.mIndependentSelectionRootElement
+            ->GetClosestNativeAnonymousSubtreeRootParentOrHost());
   }
 
   /**
@@ -859,11 +863,15 @@ class nsFrameSelection final {
    * typically the focused editing host unless it's the root element of the
    * document.
    */
-  Element* GetAncestorLimiter() const { return mLimiters.mAncestorLimiter; }
+  [[nodiscard]] Element* GetAncestorLimiter() const {
+    return mLimiters.mAncestorLimiter;
+  }
 
-  Element* GetAncestorLimiterOrLimiter() const {
-    return mLimiters.mAncestorLimiter ? mLimiters.mAncestorLimiter
-                                      : mLimiters.mLimiter;
+  [[nodiscard]] Element* GetAncestorLimiterOrIndependentSelectionRootElement()
+      const {
+    return mLimiters.mAncestorLimiter
+               ? mLimiters.mAncestorLimiter
+               : mLimiters.mIndependentSelectionRootElement;
   }
 
   /**
@@ -1060,7 +1068,7 @@ class nsFrameSelection final {
                                       CaretMovementStyle aMovementStyle) const {
     MOZ_ASSERT(aSelection);
     return CreatePeekOffsetOptionsForCaretMove(
-        mLimiters.mLimiter,
+        mLimiters.mIndependentSelectionRootElement,
         static_cast<ForceEditableRegion>(aSelection->IsEditorSelection()),
         aExtendSelection, aMovementStyle);
   }
@@ -1252,11 +1260,9 @@ class nsFrameSelection final {
   Batching mBatching;
 
   struct Limiters {
-    // Limit selection navigation to a child of this element.
-    // This is set only when the nsFrameSelection instance is for the
-    // independent selection for a text control.  If this is set, it's always
-    // the anonymous <div> of the text control element.
-    RefPtr<Element> mLimiter;
+    // The independent selection root element if and only if the
+    // nsFrameSelection instance is for an independent selection.
+    RefPtr<Element> mIndependentSelectionRootElement;
     // Limit selection navigation to a descendant of this element.
     // This is typically the focused editing host if set unless it's the root
     // element of the document.
@@ -1365,14 +1371,15 @@ struct LimitersAndCaretData {
 
   LimitersAndCaretData() = default;
   explicit LimitersAndCaretData(const nsFrameSelection& aFrameSelection)
-      : mLimiter(aFrameSelection.GetLimiter()),
+      : mIndependentSelectionRootElement(
+            aFrameSelection.GetIndependentSelectionRootElement()),
         mAncestorLimiter(aFrameSelection.GetAncestorLimiter()),
         mCaretAssociationHint(aFrameSelection.GetHint()),
         mCaretBidiLevel(aFrameSelection.GetCaretBidiLevel()) {}
 
   [[nodiscard]] bool NodeIsInLimiters(const nsINode* aContainerNode) const {
-    return nsFrameSelection::NodeIsInLimiters(aContainerNode, mLimiter,
-                                              mAncestorLimiter);
+    return nsFrameSelection::NodeIsInLimiters(
+        aContainerNode, mIndependentSelectionRootElement, mAncestorLimiter);
   }
   [[nodiscard]] bool RangeInLimiters(const dom::AbstractRange& aRange) const {
     return NodeIsInLimiters(aRange.GetStartContainer()) &&
@@ -1380,8 +1387,8 @@ struct LimitersAndCaretData {
             NodeIsInLimiters(aRange.GetEndContainer()));
   }
 
-  // nsFrameSelection::GetLimiter
-  RefPtr<Element> mLimiter;
+  // nsFrameSelection::GetIndependentSelectionRootElement
+  RefPtr<Element> mIndependentSelectionRootElement;
   // nsFrameSelection::GetAncestorLimiter
   RefPtr<Element> mAncestorLimiter;
   // nsFrameSelection::GetHint

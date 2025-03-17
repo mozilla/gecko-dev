@@ -96,8 +96,9 @@ static LazyLogModule sFrameSelectionLog("FrameSelection");
 std::ostream& operator<<(std::ostream& aStream,
                          const nsFrameSelection& aFrameSelection) {
   return aStream << "{ mPresShell=" << aFrameSelection.mPresShell
-                 << ", mLimiters={ mLimiter="
-                 << aFrameSelection.mLimiters.mLimiter << ", mAncestorLimiter="
+                 << ", mLimiters={ mIndependentSelectionRootElement="
+                 << aFrameSelection.mLimiters.mIndependentSelectionRootElement
+                 << ", mAncestorLimiter="
                  << aFrameSelection.mLimiters.mAncestorLimiter
                  << "}, IsBatching()=" << std::boolalpha
                  << aFrameSelection.IsBatching()
@@ -230,12 +231,14 @@ NO limiter all points are valid since you are in a topmost iframe. (browser
 or composer)
 */
 bool nsFrameSelection::NodeIsInLimiters(const nsINode* aContainerNode) const {
-  return NodeIsInLimiters(aContainerNode, GetLimiter(), GetAncestorLimiter());
+  return NodeIsInLimiters(aContainerNode, GetIndependentSelectionRootElement(),
+                          GetAncestorLimiter());
 }
 
 // static
 bool nsFrameSelection::NodeIsInLimiters(
-    const nsINode* aContainerNode, const Element* aSelectionLimiter,
+    const nsINode* aContainerNode,
+    const Element* aIndependentSelectionLimiterElement,
     const Element* aSelectionAncestorLimiter) {
   if (!aContainerNode) {
     return false;
@@ -245,14 +248,15 @@ bool nsFrameSelection::NodeIsInLimiters(
   // control.  The <div> should have only one Text and/or a <br>.  Therefore,
   // when it's non-nullptr, selection range containers must be the container or
   // the Text in it.
-  if (aSelectionLimiter) {
-    MOZ_ASSERT(aSelectionLimiter->GetPseudoElementType() ==
+  if (aIndependentSelectionLimiterElement) {
+    MOZ_ASSERT(aIndependentSelectionLimiterElement->GetPseudoElementType() ==
                PseudoStyleType::mozTextControlEditingRoot);
-    MOZ_ASSERT(aSelectionLimiter->IsHTMLElement(nsGkAtoms::div));
-    if (aSelectionLimiter == aContainerNode) {
+    MOZ_ASSERT(
+        aIndependentSelectionLimiterElement->IsHTMLElement(nsGkAtoms::div));
+    if (aIndependentSelectionLimiterElement == aContainerNode) {
       return true;
     }
-    if (aSelectionLimiter == aContainerNode->GetParent()) {
+    if (aIndependentSelectionLimiterElement == aContainerNode->GetParent()) {
       NS_WARNING_ASSERTION(aContainerNode->IsText(),
                            ToString(*aContainerNode).c_str());
       MOZ_ASSERT(aContainerNode->IsText());
@@ -429,7 +433,7 @@ nsFrameSelection::nsFrameSelection(
                     PseudoStyleType::mozTextControlEditingRoot);
   MOZ_ASSERT_IF(aEditorRootAnonymousDiv,
                 aEditorRootAnonymousDiv->IsHTMLElement(nsGkAtoms::div));
-  mLimiters.mLimiter = aEditorRootAnonymousDiv;
+  mLimiters.mIndependentSelectionRootElement = aEditorRootAnonymousDiv;
 
   // This should only ever be initialized on the main thread, so we are OK here.
   MOZ_ASSERT(NS_IsMainThread());
@@ -461,7 +465,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsFrameSelection)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mTableSelection.mAppendStartSelectedCell)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mTableSelection.mUnselectCellOnMouseUp)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mMaintainedRange.mRange)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mLimiters.mLimiter)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mLimiters.mIndependentSelectionRootElement)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mLimiters.mAncestorLimiter)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsFrameSelection)
@@ -486,7 +490,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsFrameSelection)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTableSelection.mAppendStartSelectedCell)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTableSelection.mUnselectCellOnMouseUp)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMaintainedRange.mRange)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mLimiters.mLimiter)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mLimiters.mIndependentSelectionRootElement)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mLimiters.mAncestorLimiter)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
@@ -1065,7 +1069,7 @@ nsPrevNextBidiLevels nsFrameSelection::GetPrevNextBidiLevels(
     nsIContent* aNode, uint32_t aContentOffset, bool aJumpLines) const {
   return SelectionMovementUtils::GetPrevNextBidiLevels(
       aNode, aContentOffset, mCaret.mHint, aJumpLines,
-      GetAncestorLimiterOrLimiter());
+      GetAncestorLimiterOrIndependentSelectionRootElement());
 }
 
 nsresult nsFrameSelection::MaintainSelection(nsSelectionAmount aAmount) {
@@ -1094,7 +1098,7 @@ void nsFrameSelection::BidiLevelFromMove(PresShell* aPresShell,
       nsPrevNextBidiLevels levels =
           SelectionMovementUtils::GetPrevNextBidiLevels(
               aNode, aContentOffset, aHint, false,
-              GetAncestorLimiterOrLimiter());
+              GetAncestorLimiterOrIndependentSelectionRootElement());
 
       SetCaretBidiLevelAndMaybeSchedulePaint(
           aHint == CaretAssociationHint::Before ? levels.mLevelBefore
@@ -1323,8 +1327,9 @@ void nsFrameSelection::HandleDrag(nsIFrame* aFrame, const nsPoint& aPoint) {
   }
 
   mMaintainedRange.AdjustContentOffsets(
-      offsets, mLimiters.mLimiter ? MaintainedRange::StopAtScroller::Yes
-                                  : MaintainedRange::StopAtScroller::No);
+      offsets, mLimiters.mIndependentSelectionRootElement
+                   ? MaintainedRange::StopAtScroller::Yes
+                   : MaintainedRange::StopAtScroller::No);
 
   // TODO: no click has happened, rename `HandleClick`.
   HandleClick(MOZ_KnownLive(offsets.content) /* bug 1636889 */, offsets.offset,
@@ -1745,8 +1750,9 @@ nsIFrame* nsFrameSelection::GetFrameToPageSelect() const {
   }
 
   nsIFrame* rootFrameToSelect;
-  if (mLimiters.mLimiter) {
-    rootFrameToSelect = mLimiters.mLimiter->GetPrimaryFrame();
+  if (mLimiters.mIndependentSelectionRootElement) {
+    rootFrameToSelect =
+        mLimiters.mIndependentSelectionRootElement->GetPrimaryFrame();
     if (NS_WARN_IF(!rootFrameToSelect)) {
       return nullptr;
     }
@@ -2081,9 +2087,9 @@ nsFrameSelection::CreateRangeExtendedToSomewhere(
                : ForceEditableRegion::No;
   }();
   Result<PeekOffsetOptions, nsresult> options =
-      CreatePeekOffsetOptionsForCaretMove(aLimitersAndCaretData.mLimiter,
-                                          forceEditableRegion,
-                                          ExtendSelection::Yes, aMovementStyle);
+      CreatePeekOffsetOptionsForCaretMove(
+          aLimitersAndCaretData.mIndependentSelectionRootElement,
+          forceEditableRegion, ExtendSelection::Yes, aMovementStyle);
   if (MOZ_UNLIKELY(options.isErr())) {
     return options.propagateErr();
   }

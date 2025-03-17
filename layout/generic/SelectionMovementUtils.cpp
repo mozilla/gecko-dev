@@ -556,8 +556,10 @@ CaretFrameData SelectionMovementUtils::GetCaretFrameForNodeOffset(
       static_cast<uint32_t>(end) == result.mOffsetInFrameContent) {
     nsPrevNextBidiLevels levels = SelectionMovementUtils::GetPrevNextBidiLevels(
         aContentNode, aOffset, result.mHint, false,
-        aFrameSelection ? aFrameSelection->GetAncestorLimiterOrLimiter()
-                        : nullptr);
+        aFrameSelection
+            ? aFrameSelection
+                  ->GetAncestorLimiterOrIndependentSelectionRootElement()
+            : nullptr);
 
     /* Boundary condition, we need to know the Bidi levels of the characters
      * before and after the caret */
