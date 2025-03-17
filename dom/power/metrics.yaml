@@ -1,0 +1,50 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: DOM: Core & HTML'
+
+screenwakelock:
+  held_duration:
+    type: timing_distribution
+    description: >
+      How long a screen wake lock was held in ms
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SCREENWAKELOCK_HELD_DURATION_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1589554
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1589554
+    notification_emails:
+      - vhilla@mozilla.com
+    expires: never
+    telemetry_mirror: SCREENWAKELOCK_HELD_DURATION_MS
+
+  release_battery_level_discharging:
+    type: custom_distribution
+    description: >
+      Battery level when discharging and the wake lock was released
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram SCREENWAKELOCK_RELEASE_BATTERY_LEVEL_DISCHARGING.
+    range_min: 1
+    range_max: 100
+    bucket_count: 50
+    histogram_type: linear
+    unit: percentage
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1589554
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1589554
+    notification_emails:
+      - vhilla@mozilla.com
+    expires: never
+    telemetry_mirror: SCREENWAKELOCK_RELEASE_BATTERY_LEVEL_DISCHARGING

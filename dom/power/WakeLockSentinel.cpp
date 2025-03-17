@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Assertions.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomPowerMetrics.h"
 #include "mozilla/TelemetryHistogramEnums.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Event.h"
@@ -29,15 +29,15 @@ void WakeLockSentinel::NotifyLockReleased() {
   MOZ_ASSERT(!mReleased);
   mReleased = true;
 
-  Telemetry::AccumulateTimeDelta(Telemetry::SCREENWAKELOCK_HELD_DURATION_MS,
-                                 mCreationTime);
+  glean::screenwakelock::held_duration.AccumulateRawDuration(TimeStamp::Now() -
+                                                             mCreationTime);
 
   hal::BatteryInformation batteryInfo;
   hal::GetCurrentBatteryInformation(&batteryInfo);
   if (!batteryInfo.charging()) {
     uint32_t level = static_cast<uint32_t>(100 * batteryInfo.level());
-    Telemetry::Accumulate(
-        Telemetry::SCREENWAKELOCK_RELEASE_BATTERY_LEVEL_DISCHARGING, level);
+    glean::screenwakelock::release_battery_level_discharging
+        .AccumulateSingleSample(level);
   }
 
   if (mHoldsActualLock) {
