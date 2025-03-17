@@ -271,9 +271,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             }
         }
 
-        if self.style.is_pseudo_element() {
+        if self.style.pseudo.is_some_and(|p| p.is_first_line()) {
             self.style
-                .add_flags(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE);
+                .add_flags(ComputedValueFlags::IS_IN_FIRST_LINE_SUBTREE);
         }
 
         if self.style.is_root_element {

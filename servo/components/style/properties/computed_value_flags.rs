@@ -43,8 +43,8 @@ bitflags! {
         /// visited.
         const IS_RELEVANT_LINK_VISITED = 1 << 3;
 
-        /// A flag used to mark styles which are a pseudo-element or under one.
-        const IS_IN_PSEUDO_ELEMENT_SUBTREE = 1 << 4;
+        /// A flag used to mark styles which are a ::first-line or under one.
+        const IS_IN_FIRST_LINE_SUBTREE = 1 << 4;
 
         /// A flag used to mark styles which have contain:style or under one.
         const SELF_OR_ANCESTOR_HAS_CONTAIN_STYLE = 1 << 5;
@@ -151,7 +151,7 @@ impl ComputedValueFlags {
     fn inherited_flags() -> Self {
         Self::IS_RELEVANT_LINK_VISITED |
             Self::CAN_BE_FRAGMENTED |
-            Self::IS_IN_PSEUDO_ELEMENT_SUBTREE |
+            Self::IS_IN_FIRST_LINE_SUBTREE |
             Self::HAS_TEXT_DECORATION_LINES |
             Self::IS_IN_OPACITY_ZERO_SUBTREE |
             Self::SELF_OR_ANCESTOR_HAS_CONTAIN_STYLE |

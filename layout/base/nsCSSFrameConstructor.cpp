@@ -6636,7 +6636,7 @@ void nsCSSFrameConstructor::ContentAppended(nsIContent* aFirstNewContent,
                           frameList);
     // That moved things into line frames as needed, reparenting their
     // styles.  Nothing else needs to be done.
-  } else if (parentFrame->Style()->HasPseudoElementData()) {
+  } else if (parentFrame->Style()->IsInFirstLineSubtree()) {
     // parentFrame might be inside a ::first-line frame.  Check whether it is,
     // and if so fix up our styles.
     CheckForFirstLineInsertion(parentFrame, frameList);
@@ -7106,7 +7106,7 @@ void nsCSSFrameConstructor::ContentRangeInserted(nsIContent* aStartChild,
     // frame. Look at it and see...
     AppendFirstLineFrames(state, containingBlock->GetContent(), containingBlock,
                           frameList);
-  } else if (insertion.mParentFrame->Style()->HasPseudoElementData()) {
+  } else if (insertion.mParentFrame->Style()->IsInFirstLineSubtree()) {
     CheckForFirstLineInsertion(insertion.mParentFrame, frameList);
     CheckForFirstLineInsertion(insertion.mParentFrame, captionList);
   }
@@ -9891,7 +9891,7 @@ void nsCSSFrameConstructor::AppendFirstLineFrames(
 
 void nsCSSFrameConstructor::CheckForFirstLineInsertion(
     nsIFrame* aParentFrame, nsFrameList& aFrameList) {
-  MOZ_ASSERT(aParentFrame->Style()->HasPseudoElementData(),
+  MOZ_ASSERT(aParentFrame->Style()->IsInFirstLineSubtree(),
              "Why were we called?");
 
   if (aFrameList.IsEmpty()) {
@@ -9908,7 +9908,7 @@ void nsCSSFrameConstructor::CheckForFirstLineInsertion(
   // tree; in particular it might be past our containing block.
   nsIFrame* ancestor = aParentFrame;
   while (ancestor) {
-    if (!ancestor->Style()->HasPseudoElementData()) {
+    if (!ancestor->Style()->IsInFirstLineSubtree()) {
       // We know we won't find a ::first-line now.
       return;
     }

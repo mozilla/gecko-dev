@@ -169,12 +169,9 @@ class ComputedStyle {
     return bool(Flags() & Flag::DEPENDS_ON_INHERITED_FONT_METRICS);
   }
 
-  // Does this ComputedStyle represent the style for a pseudo-element or
-  // inherit data from such a ComputedStyle?  Whether this returns true
-  // is equivalent to whether it or any of its ancestors returns
-  // non-null for IsPseudoElement().
-  bool HasPseudoElementData() const {
-    return bool(Flags() & Flag::IS_IN_PSEUDO_ELEMENT_SUBTREE);
+  // Whether this style is inside a ::first-line.
+  bool IsInFirstLineSubtree() const {
+    return bool(Flags() & Flag::IS_IN_FIRST_LINE_SUBTREE);
   }
 
   bool SelfOrAncestorHasContainStyle() const {
