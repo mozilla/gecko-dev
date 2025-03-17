@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 /**
  * @typedef {object} Lazy
@@ -31,10 +32,66 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Progress: "chrome://global/content/ml/Utils.sys.mjs",
 });
 
+XPCOMUtils.defineLazyServiceGetter(
+  lazy,
+  "mlUtils",
+  "@mozilla.org/ml-utils;1",
+  "nsIMLUtils"
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "CHECK_FOR_MEMORY",
+  "browser.ml.checkForMemory"
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "MINIMUM_PHYSICAL_MEMORY",
+  "browser.ml.minimumPhysicalMemory"
+);
+
+const ONE_GiB = 1024 * 1024 * 1024;
 const RS_RUNTIME_COLLECTION = "ml-onnx-runtime";
 const RS_INFERENCE_OPTIONS_COLLECTION = "ml-inference-options";
 const RS_ALLOW_DENY_COLLECTION = "ml-model-allow-deny-list";
 const TERMINATE_TIMEOUT = 5000;
+
+/**
+ * Custom error class for handling insufficient memory errors.
+ *
+ * @augments Error
+ */
+export class NotEnoughMemoryError extends Error {
+  /**
+   * Creates an instance of NotEnoughMemoryError.
+   *
+   * @param {object} options - The error options.
+   * @param {string} [options.message="Not enough physical memory available"] - The error message.
+   * @param {number} options.requiredMemory - The amount of memory required in bytes.
+   * @param {number} options.availableMemory - The amount of available memory in bytes.
+   */
+  constructor({
+    message = "Not enough physical memory available",
+    requiredMemory,
+    availableMemory,
+  }) {
+    super(message);
+    this.name = "NotEnoughMemoryError";
+    this.requiredMemory = requiredMemory;
+    this.availableMemory = availableMemory;
+    Error.captureStackTrace(this, this.constructor);
+  }
+
+  /**
+   * Returns a formatted string with details about the memory issue.
+   *
+   * @returns {string} A string describing the required and available memory in GiB.
+   */
+  getDetails() {
+    return `Required Memory: ${(this.requiredMemory / ONE_GiB).toFixed(2)} GiB, Available Memory: ${(this.availableMemory / ONE_GiB).toFixed(2)} GiB`;
+  }
+}
 
 /**
  * The ML engine is in its own content process. This actor handles the
@@ -158,6 +215,16 @@ export class MLEngineParent extends JSProcessActorParent {
    * @returns {Promise<MLEngine>}
    */
   async getEngine(pipelineOptions, notificationsCallback = null) {
+    if (
+      lazy.CHECK_FOR_MEMORY &&
+      lazy.mlUtils.totalPhysicalMemory < lazy.MINIMUM_PHYSICAL_MEMORY * ONE_GiB
+    ) {
+      throw new NotEnoughMemoryError({
+        availableMemory: lazy.mlUtils.totalPhysicalMemory,
+        requiredMemory: lazy.MINIMUM_PHYSICAL_MEMORY * ONE_GiB,
+      });
+    }
+
     const engineId = pipelineOptions.engineId;
 
     // Allow notifications callback changes even when reusing engine.

@@ -3669,19 +3669,10 @@ pref("browser.ml.modelCacheMaxSize", 4);
 pref("browser.ml.modelCacheTimeout", 120000);
 // Minimal Physical RAM required in GiB
 pref("browser.ml.minimumPhysicalMemory", 4);
-// Default memory usage for a model in GiB
-pref("browser.ml.defaultModelMemoryUsage", 1);
 // Check for memory before running
-pref("browser.ml.checkForMemory", false);
-// Maximum memory pressure (%)
-pref("browser.ml.maximumMemoryPressure", 80);
-// Queue wait timeout in seconds
-pref("browser.ml.queueWaitTimeout", 60);
-// Queue wait checks interval in seconds
-pref("browser.ml.queueWaitInterval", 1);
+pref("browser.ml.checkForMemory", true);
 // Allowed overrides for various ml features
 pref("browser.ml.overridePipelineOptions", "{}");
-
 
 // When a user cancels this number of authentication dialogs coming from
 // a single web page in a row, all following authentication dialogs will

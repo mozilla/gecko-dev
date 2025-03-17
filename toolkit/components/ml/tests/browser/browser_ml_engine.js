@@ -691,27 +691,24 @@ add_task(async function test_ml_engine_get_status() {
 });
 
 add_task(async function test_ml_engine_not_enough_memory() {
-  const { cleanup, remoteClients } = await setup({
-    prefs: [["browser.ml.checkForMemory", true]],
+  const { cleanup } = await setup({
+    prefs: [
+      ["browser.ml.checkForMemory", true],
+      ["browser.ml.minimumPhysicalMemory", 99999],
+    ],
   });
 
   info("Get the greedy engine");
-  const engineInstance = await createEngine({
-    modelId: "testing/greedy",
-    taskName: "moz-echo",
-    dtype: "q8",
-    numThreads: 1,
-    device: "wasm",
-  });
-  info("Run the inference");
-  const inferencePromise = engineInstance.run({ data: "This gets echoed." });
-
-  info("Wait for the pending downloads.");
-  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
 
   await Assert.rejects(
-    inferencePromise,
-    /Timeout reached while waiting for enough memory/,
+    createEngine({
+      modelId: "testing/greedy",
+      taskName: "moz-echo",
+      dtype: "q8",
+      numThreads: 1,
+      device: "wasm",
+    }),
+    /Not enough physical memory/,
     "The call should be rejected because of a lack of memory"
   );
 
