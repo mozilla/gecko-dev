@@ -3504,6 +3504,8 @@ impl Renderer {
         let mut swapchain_layers = Vec::new();
         let cap = composite_state.tiles.len();
 
+        // NOTE: Tiles here are being iterated in front-to-back order by
+        //       z-id, due to the sort in composite_state.end_frame()
         for (idx, tile) in composite_state.tiles.iter().enumerate() {
             let device_tile_box = composite_state.get_device_rect(
                 &tile.local_rect,
@@ -3608,7 +3610,7 @@ impl Renderer {
                         (
                             DeviceIntPoint::zero(),
                             device_size.into(),
-                            input_layers.is_empty() && window_is_opaque,
+                            false,      // Assume not opaque, we'll calculate this later
                         )
                     }
                     CompositorSurfaceUsage::External { .. } => {
@@ -3662,23 +3664,40 @@ impl Renderer {
             }
         }
 
+        // Reverse the layers - we're now working in back-to-front order from here onwards
         assert_eq!(swapchain_layers.len(), input_layers.len());
+        input_layers.reverse();
+        swapchain_layers.reverse();
 
-        // If no tiles were present, and we expect an opaque window,
-        // add an empty layer to force a composite that clears the screen,
-        // to match existing semantics.
-        if window_is_opaque && input_layers.is_empty() {
-            input_layers.push(CompositorInputLayer {
-                usage: CompositorSurfaceUsage::Content,
-                is_opaque: true,
-                offset: DeviceIntPoint::zero(),
-                clip_rect: device_size.into(),
-            });
+        if window_is_opaque {
+            match input_layers.first_mut() {
+                Some(_layer) => {
+                    // If the window is opaque, and the first layer is a content layer
+                    // then mark that as opaque.
+                    // TODO(gw): This causes flickering in some cases when changing
+                    //           layer count. We need to find out why so we can enable
+                    //           selecting an opaque swapchain where possible.
+                    // if let CompositorSurfaceUsage::Content = layer.usage {
+                    //     layer.is_opaque = true;
+                    // }
+                }
+                None => {
+                    // If no tiles were present, and we expect an opaque window,
+                    // add an empty layer to force a composite that clears the screen,
+                    // to match existing semantics.
+                    input_layers.push(CompositorInputLayer {
+                        usage: CompositorSurfaceUsage::Content,
+                        is_opaque: true,
+                        offset: DeviceIntPoint::zero(),
+                        clip_rect: device_size.into(),
+                    });
 
-            swapchain_layers.push(SwapChainLayer {
-                clear_tiles: Vec::new(),
-                occlusion: occlusion::FrontToBackBuilder::with_capacity(cap, cap),
-            })
+                    swapchain_layers.push(SwapChainLayer {
+                        clear_tiles: Vec::new(),
+                        occlusion: occlusion::FrontToBackBuilder::with_capacity(cap, cap),
+                    });
+                }
+            }
         }
 
         // Add a debug overlay request if enabled
@@ -3695,7 +3714,7 @@ impl Renderer {
             swapchain_layers.push(SwapChainLayer {
                 clear_tiles: Vec::new(),
                 occlusion: occlusion::FrontToBackBuilder::with_capacity(cap, cap),
-            })
+            });
         }
 
         // Start compositing if using OS compositor
