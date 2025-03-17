@@ -155,7 +155,7 @@ async function doDelayedUpdatePlaceholderTest({ defaultEngine }) {
   );
 
   info("Simulate user interaction");
-  let urlTab = await BrowserTestUtils.addTab(newWin.gBrowser, "about:mozilla");
+  let urlTab = BrowserTestUtils.addTab(newWin.gBrowser, "about:mozilla");
   await BrowserTestUtils.switchTab(newWin.gBrowser, urlTab);
   if (defaultEngine.isAppProvided) {
     await TestUtils.waitForCondition(
