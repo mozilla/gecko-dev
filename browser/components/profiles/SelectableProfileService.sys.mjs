@@ -976,13 +976,19 @@ class SelectableProfileServiceClass extends EventEmitter {
         PathUtils.join(
           SelectableProfileServiceClass.getDirectory("DefProfRt").path,
           profileDir
-        )
+        ),
+        {
+          permissions: 0o700,
+        }
       ),
       IOUtils.makeDirectory(
         PathUtils.join(
           SelectableProfileServiceClass.getDirectory("DefProfLRt").path,
           profileDir
-        )
+        ),
+        {
+          permissions: 0o700,
+        }
       ),
     ]);
 
