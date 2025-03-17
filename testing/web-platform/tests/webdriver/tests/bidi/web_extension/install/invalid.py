@@ -1,8 +1,6 @@
 import pytest
 import webdriver.bidi.error as error
 
-from tests.support.helpers import get_extension_path
-
 pytestmark = pytest.mark.asyncio
 
 
@@ -10,14 +8,14 @@ pytestmark = pytest.mark.asyncio
 async def test_params_extension_data_invalid_type(bidi_session, value):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.web_extension.install(
-            extensionData=value
+            extension_data=value
         )
 
 
 async def test_params_extension_data_invalid_value(bidi_session):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.web_extension.install(
-            extensionData={}
+            extension_data={}
         )
 
 
@@ -25,7 +23,7 @@ async def test_params_extension_data_invalid_value(bidi_session):
 async def test_params_extension_data_type_invalid_type(bidi_session, value):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.web_extension.install(
-            extensionData={ "type": value }
+            extension_data={ "type": value }
         )
 
 
@@ -33,7 +31,7 @@ async def test_params_extension_data_type_invalid_type(bidi_session, value):
 async def test_params_extension_data_type_invalid_value(bidi_session, value):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.web_extension.install(
-            extensionData={ "type": value }
+            extension_data={ "type": value }
         )
 
 
@@ -41,7 +39,7 @@ async def test_params_extension_data_type_invalid_value(bidi_session, value):
 async def test_params_extension_data_path_missing(bidi_session, value):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.web_extension.install(
-            extensionData={ "type": value }
+            extension_data={ "type": value }
         )
 
 
@@ -50,7 +48,7 @@ async def test_params_extension_data_path_missing(bidi_session, value):
 async def test_params_extension_data_path_invalid_type(bidi_session, data_type, value):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.web_extension.install(
-            extensionData={ "type": data_type, "path": value }
+            extension_data={ "type": data_type, "path": value }
         )
 
 
@@ -59,14 +57,14 @@ async def test_params_extension_data_path_invalid_type(bidi_session, data_type, 
 async def test_params_extension_data_path_invalid_value(bidi_session, data_type, value):
     with pytest.raises(error.UnknownErrorException):
         await bidi_session.web_extension.install(
-            extensionData={ "type": data_type, "path": value }
+            extension_data={ "type": data_type, "path": value }
         )
 
 
 async def test_params_extension_data_archive_path_invalid_webextension(bidi_session, extension_data):
     with pytest.raises(error.InvalidWebExtensionException):
         await bidi_session.web_extension.install(
-            extensionData={"type": "archivePath",
+            extension_data={"type": "archivePath",
                            "path": extension_data["archivePathInvalid"]}
         )
 
@@ -74,14 +72,14 @@ async def test_params_extension_data_archive_path_invalid_webextension(bidi_sess
 async def test_params_extension_data_path_invalid_webextension(bidi_session, extension_data):
     with pytest.raises(error.InvalidWebExtensionException):
         await bidi_session.web_extension.install(
-            extensionData={"type": "path", "path": extension_data["archivePath"]}
+            extension_data={"type": "path", "path": extension_data["archivePath"]}
         )
 
 
 async def test_params_extension_data_value_missing(bidi_session):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.web_extension.install(
-            extensionData={ "type": "base64" }
+            extension_data={ "type": "base64" }
         )
 
 
@@ -89,14 +87,14 @@ async def test_params_extension_data_value_missing(bidi_session):
 async def test_params_extension_data_value_invalid_type(bidi_session, value):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.web_extension.install(
-            extensionData={ "type": "base64", "value": value }
+            extension_data={ "type": "base64", "value": value }
         )
 
 
 async def test_params_extension_data_value_invalid_value(bidi_session):
     with pytest.raises(error.UnknownErrorException):
         await bidi_session.web_extension.install(
-            extensionData={ "type": "base64", "value": "not a base64" }
+            extension_data={ "type": "base64", "value": "not a base64" }
         )
 
 
@@ -104,5 +102,5 @@ async def test_params_extension_data_value_invalid_value(bidi_session):
 async def test_params_extension_data_value_invalid_webextension(bidi_session, value):
     with pytest.raises(error.InvalidWebExtensionException):
         await bidi_session.web_extension.install(
-            extensionData={ "type": "base64", "value": value }
+            extension_data={ "type": "base64", "value": value }
         )
