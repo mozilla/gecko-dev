@@ -18,15 +18,9 @@ import mozilla.components.feature.search.ext.buildSearchUrl
 import java.util.UUID
 
 /**
- * Return 2 search term suggestions by default. Same as on desktop.
+ * Return 2 recent search suggestions by default. Same as on desktop.
  */
-private const val DEFAULT_SUGGESTION_LIMIT = 2
-
-/**
- * A too big limit but which help ensure the SearchSuggestionProvider' suggestions which should be placed
- * below the ones from this provider will appear correctly.
- */
-const val SEARCH_TERMS_MAXIMUM_ALLOWED_SUGGESTIONS_LIMIT: Int = 1000
+const val DEFAULT_RECENT_SEARCH_SUGGESTION_LIMIT = 2
 
 /**
  * Error message if clients are requesting for a too big number of suggestions.
@@ -36,7 +30,7 @@ private const val MAXIMUM_ALLOWED_SUGGESTIONS_LIMIT_REACHED =
 
 /**
  * A [AwesomeBar.SuggestionProvider] implementation that will show past searches done with the
- * specified [searchEngine] allowing to easily redo a search or continue with a lightly modified search.
+ * specified [searchEngine] allowing to easily redo a recent search from the 0-prefix state.
  *
  * @param historyStorage an instance of the [PlacesHistoryStorage] used
  * to query matching metadata records.
@@ -51,12 +45,12 @@ private const val MAXIMUM_ALLOWED_SUGGESTIONS_LIMIT_REACHED =
  * @param showEditSuggestion optional parameter to specify if the suggestion should show the edit button.
  * @param suggestionsHeader optional parameter to specify if the suggestion should have a header
  */
-class SearchTermSuggestionsProvider(
+class RecentSearchSuggestionsProvider(
     private val historyStorage: PlacesHistoryStorage,
     private val searchUseCase: SearchUseCase,
     private val searchEngine: SearchEngine?,
     @androidx.annotation.IntRange(from = 0, to = SEARCH_TERMS_MAXIMUM_ALLOWED_SUGGESTIONS_LIMIT.toLong())
-    private val maxNumberOfSuggestions: Int = DEFAULT_SUGGESTION_LIMIT,
+    private val maxNumberOfSuggestions: Int = DEFAULT_RECENT_SEARCH_SUGGESTION_LIMIT,
     private val icon: Bitmap? = null,
     private val engine: Engine? = null,
     private val showEditSuggestion: Boolean = true,
@@ -75,7 +69,7 @@ class SearchTermSuggestionsProvider(
     }
 
     override suspend fun onInputChanged(text: String): List<AwesomeBar.Suggestion> = coroutineScope {
-        if (text.isBlank()) {
+        if (text.isNotBlank()) {
             return@coroutineScope emptyList()
         }
 
@@ -98,7 +92,7 @@ class SearchTermSuggestionsProvider(
         }
 
         return@coroutineScope suggestions.into(
-            provider = this@SearchTermSuggestionsProvider,
+            provider = this@RecentSearchSuggestionsProvider,
             searchEngine = searchEngine,
             icon = icon,
             searchUseCase = searchUseCase,
