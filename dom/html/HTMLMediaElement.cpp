@@ -2804,12 +2804,23 @@ void HTMLMediaElement::SelectResource() {
       ReportLoadError("MediaLoadInvalidURI", params);
       rv = MediaResult(rv.Code(), "MediaLoadInvalidURI");
     }
-    // The media element has neither a src attribute nor a source element child:
-    // set the networkState to NETWORK_EMPTY, and abort these steps; the
-    // synchronous section ends.
-    GetMainThreadSerialEventTarget()->Dispatch(NewRunnableMethod<nsCString>(
-        "HTMLMediaElement::NoSupportedMediaSourceError", this,
-        &HTMLMediaElement::NoSupportedMediaSourceError, rv.Description()));
+    // https://html.spec.whatwg.org/multipage/media.html#concept-media-load-algorithm
+    // "Failed with attribute:"
+    // "Take pending play promises and queue a media element task given the
+    // media element to run the dedicated media source failure steps with the
+    // result."
+    GetMainThreadSerialEventTarget()->Dispatch(NS_NewRunnableFunction(
+        "HTMLMediaElement::NoSupportedMediaSourceError",
+        [this, self = RefPtr{this}, loadId = GetCurrentLoadID(),
+         description = rv.Description()]() {
+          // Drop the task if the load algorithm has been invoked again.
+          // https://html.spec.whatwg.org/multipage/media.html#media-element-load-algorithm
+          // "Remove each task in pending tasks from its task queue."
+          if (GetCurrentLoadID() == loadId) {
+            // The failed load has not been aborted.
+            NoSupportedMediaSourceError(description);
+          }
+        }));
   } else {
     // Otherwise, the source elements will be used.
     mIsLoadingFromSourceChildren = true;
