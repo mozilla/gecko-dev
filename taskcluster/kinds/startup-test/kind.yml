@@ -87,7 +87,7 @@ tasks:
             upstream_kind: repackage
             upstream_artifact: target.dmg
             binary: Contents/MacOS/firefox
-        worker-type: t-osx-1015-r8
+        worker-type: t-osx-1400-r8
         shipping-product: firefox
         attributes:
             build_platform: macosx64-shippable
