@@ -229,8 +229,9 @@ class WindowContext : public nsISupports, public nsWrapperCache {
   // Return true if its corresponding window has history activation.
   bool HasValidHistoryActivation() const;
 
-  // Consume the history-action user activation.
-  void ConsumeHistoryActivation();
+  // Return true if the corresponding window has valid history activation
+  // and the history activation had been consumed successfully.
+  bool ConsumeHistoryActivation();
 
   bool GetTransientUserGestureActivationModifiers(
       UserActivation::Modifiers* aModifiers);

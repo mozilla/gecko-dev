@@ -104,10 +104,4 @@ JSObject* NavigationDestination::WrapObject(JSContext* aCx,
 
 nsIGlobalObject* NavigationDestination::GetParentObject() { return mGlobal; }
 
-NavigationHistoryEntry* NavigationDestination::GetEntry() const {
-  return mEntry;
-}
-
-nsIURI* NavigationDestination::GetURI() const { return mURL; }
-
 }  // namespace mozilla::dom
