@@ -962,7 +962,7 @@ describe("MultiStageAboutWelcome module", () => {
           const wrapper = mount(
             <WelcomeScreen
               {...PREF_SCREEN_PROPS}
-              activeMultiSelect={["checkbox-1"]}
+              activeMultiSelect={{ "tile-0": ["checkbox-1"] }}
             />
           );
           wrapper.find(".primary").simulate("click");
@@ -995,7 +995,7 @@ describe("MultiStageAboutWelcome module", () => {
           const wrapper = mount(
             <WelcomeScreen
               {...PREF_SCREEN_PROPS}
-              activeMultiSelect={["checkbox-2"]}
+              activeMultiSelect={{ "tile-0": ["checkbox-2"] }}
             />
           );
           wrapper.find(".primary").simulate("click");
@@ -1034,7 +1034,7 @@ describe("MultiStageAboutWelcome module", () => {
           const wrapper = mount(
             <WelcomeScreen
               {...PREF_SCREEN_PROPS}
-              activeMultiSelect={["checkbox-1", "checkbox-2"]}
+              activeMultiSelect={{ "tile-0": ["checkbox-1", "checkbox-2"] }}
             />
           );
           wrapper.find(".primary").simulate("click");

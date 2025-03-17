@@ -249,22 +249,39 @@ export const MultiStageAboutWelcome = props => {
           const totalNumberOfScreens = screens.length;
           const isSingleScreen = totalNumberOfScreens === 1;
 
-          const setActiveMultiSelect = valueOrFn =>
-            setActiveMultiSelects(prevState => ({
-              ...prevState,
-              [currentScreen.id]:
-                typeof valueOrFn === "function"
-                  ? valueOrFn(prevState[currentScreen.id])
-                  : valueOrFn,
-            }));
-          const setScreenMultiSelects = valueOrFn =>
-            setMultiSelects(prevState => ({
-              ...prevState,
-              [currentScreen.id]:
-                typeof valueOrFn === "function"
-                  ? valueOrFn(prevState[currentScreen.id])
-                  : valueOrFn,
-            }));
+          const setActiveMultiSelect = (valueOrFn, multiSelectId) => {
+            setActiveMultiSelects(prevState => {
+              const currentScreenSelections = prevState[currentScreen.id] || {};
+
+              return {
+                ...prevState,
+                [currentScreen.id]: {
+                  ...currentScreenSelections,
+                  [multiSelectId]:
+                    typeof valueOrFn === "function"
+                      ? valueOrFn(currentScreenSelections[multiSelectId])
+                      : valueOrFn,
+                },
+              };
+            });
+          };
+
+          const setScreenMultiSelects = (valueOrFn, multiSelectId) => {
+            setMultiSelects(prevState => {
+              const currentMultiSelects = prevState[currentScreen.id] || {};
+
+              return {
+                ...prevState,
+                [currentScreen.id]: {
+                  ...currentMultiSelects,
+                  [multiSelectId]:
+                    typeof valueOrFn === "function"
+                      ? valueOrFn(currentMultiSelects[multiSelectId])
+                      : valueOrFn,
+                },
+              };
+            });
+          };
 
           const setActiveSingleSelect = valueOrFn =>
             setActiveSingleSelects(prevState => ({
@@ -340,11 +357,24 @@ export const SecondaryCTA = props => {
     className += " split-button-container";
   }
   const isDisabled = React.useCallback(
-    disabledValue =>
-      disabledValue === "hasActiveMultiSelect"
-        ? !(props.activeMultiSelect?.length > 0)
-        : disabledValue,
-    [props.activeMultiSelect?.length]
+    disabledValue => {
+      if (disabledValue === "hasActiveMultiSelect") {
+        if (!props.activeMultiSelect) {
+          return true;
+        }
+
+        for (const key in props.activeMultiSelect) {
+          if (props.activeMultiSelect[key]?.length > 0) {
+            return false;
+          }
+        }
+
+        return true;
+      }
+
+      return disabledValue;
+    },
+    [props.activeMultiSelect]
   );
 
   if (isTextLink) {
@@ -586,19 +616,25 @@ export class WelcomeScreen extends React.PureComponent {
     // `orderedExecution` flag set to true.
     let multiSelectActions = [];
 
-    const processTile = tile => {
-      if (tile?.type === "multiselect" && Array.isArray(tile.data)) {
-        for (const checkbox of tile.data) {
-          let checkboxAction;
-          if (props.activeMultiSelect?.includes(checkbox.id)) {
-            checkboxAction = checkbox.checkedAction ?? checkbox.action;
-          } else {
-            checkboxAction = checkbox.uncheckedAction;
-          }
+    const processTile = (tile, tileIndex) => {
+      if (tile?.type !== "multiselect" || !Array.isArray(tile.data)) {
+        return;
+      }
 
-          if (checkboxAction) {
-            multiSelectActions.push(checkboxAction);
-          }
+      const multiSelectId = `tile-${tileIndex}`;
+
+      const activeSelections = props.activeMultiSelect[multiSelectId] || [];
+
+      for (const checkbox of tile.data) {
+        let checkboxAction;
+        if (activeSelections.includes(checkbox.id)) {
+          checkboxAction = checkbox.checkedAction ?? checkbox.action;
+        } else {
+          checkboxAction = checkbox.uncheckedAction;
+        }
+
+        if (checkboxAction) {
+          multiSelectActions.push(checkboxAction);
         }
       }
     };
@@ -610,19 +646,21 @@ export class WelcomeScreen extends React.PureComponent {
         props.content.tiles.forEach(processTile);
       } else {
         // Handle case where tiles is a single tile object
-        processTile(props.content.tiles);
+        processTile(props.content.tiles, 0);
       }
     }
 
     // Prepend the collected multi-select actions to the CTA's actions array
     action.data.actions.unshift(...multiSelectActions);
 
-    // Send telemetry with selected checkbox ids
-    AboutWelcomeUtils.sendActionTelemetry(
-      props.messageId,
-      props.activeMultiSelect,
-      "SELECT_CHECKBOX"
-    );
+    for (const value of Object.values(props.activeMultiSelect)) {
+      // Send telemetry with selected checkbox ids
+      AboutWelcomeUtils.sendActionTelemetry(
+        props.messageId,
+        value.flat(),
+        "SELECT_CHECKBOX"
+      );
+    }
   }
 
   render() {

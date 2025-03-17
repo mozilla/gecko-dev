@@ -43,20 +43,26 @@ export const ContentTiles = props => {
   useEffect(() => {
     // Run once when ContentTiles mounts to prefill activeMultiSelect
     if (!props.activeMultiSelect) {
-      const newActiveMultiSelect = [];
       const tilesArray = Array.isArray(tiles) ? tiles : [tiles];
 
-      tilesArray.forEach(tile => {
+      tilesArray.forEach((tile, index) => {
         if (tile.type !== "multiselect" || !tile.data) {
           return;
         }
+
+        const multiSelectId = `tile-${index}`;
+        const newActiveMultiSelect = [];
+
         tile.data.forEach(({ id, defaultValue }) => {
           if (defaultValue && id) {
             newActiveMultiSelect.push(id);
           }
         });
+
+        if (newActiveMultiSelect.length) {
+          props.setActiveMultiSelect(newActiveMultiSelect, multiSelectId);
+        }
       });
-      props.setActiveMultiSelect(newActiveMultiSelect);
     }
   }, [tiles]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -73,6 +79,14 @@ export const ContentTiles = props => {
       "content_tiles_header"
     );
   };
+
+  function getTileMultiSelects(screenMultiSelects, index) {
+    return screenMultiSelects?.[`tile-${index}`];
+  }
+
+  function getTileActiveMultiSelect(activeMultiSelect, index) {
+    return activeMultiSelect?.[`tile-${index}`];
+  }
 
   const renderContentTile = (tile, index = 0) => {
     const isExpanded = expandedTileIndex === index;
@@ -154,10 +168,17 @@ export const ContentTiles = props => {
             {tile.type === "multiselect" && tile.data && (
               <MultiSelect
                 content={{ tiles: tile }}
-                screenMultiSelects={props.screenMultiSelects}
+                screenMultiSelects={getTileMultiSelects(
+                  props.screenMultiSelects,
+                  index
+                )}
                 setScreenMultiSelects={props.setScreenMultiSelects}
-                activeMultiSelect={props.activeMultiSelect}
+                activeMultiSelect={getTileActiveMultiSelect(
+                  props.activeMultiSelect,
+                  index
+                )}
                 setActiveMultiSelect={props.setActiveMultiSelect}
+                multiSelectId={`tile-${index}`}
               />
             )}
             {tile.type === "migration-wizard" && (

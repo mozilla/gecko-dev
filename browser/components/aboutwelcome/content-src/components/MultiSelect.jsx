@@ -60,6 +60,7 @@ export const MultiSelect = ({
   setScreenMultiSelects,
   activeMultiSelect,
   setActiveMultiSelect,
+  multiSelectId,
 }) => {
   const { data } = content.tiles;
 
@@ -72,8 +73,8 @@ export const MultiSelect = ({
         newActiveMultiSelect.push(key);
       }
     });
-    setActiveMultiSelect(newActiveMultiSelect);
-  }, [setActiveMultiSelect]);
+    setActiveMultiSelect(newActiveMultiSelect, multiSelectId);
+  }, [setActiveMultiSelect, multiSelectId]);
 
   const items = useMemo(
     () => {
@@ -88,7 +89,7 @@ export const MultiSelect = ({
           }))
           .sort((a, b) => b.rank - a.rank)
           .map(({ id }) => id);
-        setScreenMultiSelects(orderedIds);
+        setScreenMultiSelects(orderedIds, multiSelectId);
         return orderedIds;
       }
       return getOrderedIds().map(id => data.find(item => item.id === id));
@@ -116,7 +117,7 @@ export const MultiSelect = ({
           newActiveMultiSelect.push(id);
         }
       });
-      setActiveMultiSelect(newActiveMultiSelect);
+      setActiveMultiSelect(newActiveMultiSelect, multiSelectId);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
