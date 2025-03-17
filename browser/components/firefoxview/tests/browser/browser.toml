@@ -60,6 +60,13 @@ fail-if = ["a11y_checks"] # Bug 1850591 clicked moz-page-nav-button button is no
 ["browser_syncedtabs_errors_firefoxview.js"]
 
 ["browser_syncedtabs_firefoxview.js"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1875321
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt", # Bug 1875321
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1875321
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1875321
+
+]
 
 ["browser_tab_close_last_tab.js"]
 
