@@ -105,4 +105,4 @@ localstorage.database:
     notification_emails:
       - jvarga@mozilla.com
       - storage-telemetry@mozilla.com
-    expires: 139
+    expires: 142
