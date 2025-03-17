@@ -1722,8 +1722,9 @@ const MESSAGES = () => {
               dismiss_button: {
                 action: { dismiss: true },
                 size: "small",
-                marginBlock: "28px 0",
+                marginBlock: "20px 0",
                 marginInline: "0 28px",
+                background: true,
               },
               secondary_button: {
                 label: {
@@ -1977,8 +1978,9 @@ const MESSAGES = () => {
               dismiss_button: {
                 action: { dismiss: true },
                 size: "small",
-                marginBlock: "28px 0",
+                marginBlock: "20px 0",
                 marginInline: "0 28px",
+                background: true,
               },
               secondary_button: {
                 label: {
@@ -2423,8 +2425,9 @@ const MESSAGES = () => {
               dismiss_button: {
                 action: { dismiss: true },
                 size: "small",
-                marginBlock: "28px 0",
+                marginBlock: "20px 0",
                 marginInline: "0 28px",
+                background: true,
               },
             },
           },
@@ -2494,8 +2497,9 @@ const MESSAGES = () => {
               dismiss_button: {
                 action: { dismiss: true },
                 size: "small",
-                marginBlock: "28px 0",
+                marginBlock: "20px 0",
                 marginInline: "0 28px",
+                background: true,
               },
             },
           },
@@ -2617,8 +2621,9 @@ const MESSAGES = () => {
               dismiss_button: {
                 action: { dismiss: true },
                 size: "small",
-                marginBlock: "28px 0",
+                marginBlock: "20px 0",
                 marginInline: "0 28px",
+                background: true,
               },
             },
           },
@@ -2688,8 +2693,9 @@ const MESSAGES = () => {
               dismiss_button: {
                 action: { dismiss: true },
                 size: "small",
-                marginBlock: "28px 0",
+                marginBlock: "20px 0",
                 marginInline: "0 28px",
+                background: true,
               },
             },
           },
@@ -2760,8 +2766,9 @@ const MESSAGES = () => {
               dismiss_button: {
                 action: { dismiss: true },
                 size: "small",
-                marginBlock: "28px 0",
+                marginBlock: "20px 0",
                 marginInline: "0 28px",
+                background: true,
               },
             },
           },
@@ -2831,8 +2838,9 @@ const MESSAGES = () => {
               dismiss_button: {
                 action: { dismiss: true },
                 size: "small",
-                marginBlock: "28px 0",
+                marginBlock: "20px 0",
                 marginInline: "0 28px",
+                background: true,
               },
             },
           },
