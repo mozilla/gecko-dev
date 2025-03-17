@@ -225,7 +225,7 @@ struct MOZ_STACK_CLASS CreateDecoderParams final {
     str.AppendPrintf(
         ", mEncryptedCustomIdent = %s",
         mEncryptedCustomIdent == EncryptedCustomIdent::True ? "true" : "false");
-    return std::move(str);
+    return str;
   }
 
   // CreateDecoderParams is a MOZ_STACK_CLASS, it is only used to
