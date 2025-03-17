@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import com.google.android.material.snackbar.BaseTransientBottomBar
 import kotlinx.coroutines.launch
@@ -154,11 +155,21 @@ class Snackbar private constructor(
         /**
          * This is a re-implementation of [MaterialSnackbar.findSuitableParent].
          */
+        @Suppress("ReturnCount")
         private fun findSuitableParent(view: View?): ViewGroup? {
             var currentView = view
             var fallback: ViewGroup? = null
 
             do {
+                /**
+                 * A [ConstraintLayout] parent overcomes the issue with snackbars internally
+                 * positioning themselves above the OS navigation bar or IMEs when using edge-to-edge
+                 * https://github.com/material-components/material-components-android/issues/3446
+                 */
+                if (currentView is ConstraintLayout && currentView.id == R.id.dynamicSnackbarContainer) {
+                    return currentView
+                }
+
                 if (currentView is CoordinatorLayout) {
                     return currentView
                 }

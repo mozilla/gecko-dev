@@ -77,11 +77,13 @@
                 android:focusable="true"
                 android:elevation="@dimen/browser_fragment_toolbar_elevation"/>
 
-            <FrameLayout
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/dynamicSnackbarContainer"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:elevation="@dimen/browser_fragment_toolbar_elevation"/>
+                android:layout_gravity="bottom"
+                android:elevation="@dimen/browser_fragment_toolbar_elevation"
+                tools:ignore="MozMultipleConstraintLayouts" />
 
             <ViewStub
                 android:id="@+id/loginSelectBarStub"
