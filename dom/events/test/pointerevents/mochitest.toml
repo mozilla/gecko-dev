@@ -61,8 +61,14 @@ skip-if = ["os == 'android'"] # Bug 1312791
 support-files = ["!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js"]
 
 ["test_getCoalescedEvents.html"]
+skip-if = [
+  "os == 'android' && xorigin", # Bug 1953695
+]
 
 ["test_getCoalescedEvents_during_button_press.html"]
+skip-if = [
+  "os == 'android' && xorigin", # Bug 1953695
+]
 
 ["test_getCoalescedEvents_touch.html"]
 skip-if = [

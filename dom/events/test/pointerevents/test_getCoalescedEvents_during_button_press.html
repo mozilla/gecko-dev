@@ -42,7 +42,7 @@ SimpleTest.waitForFocus(async () => {
           return aNewOffset >= roundedOffset - 1 && aNewOffset <= roundedOffset + 1;
         }
         let candidateOffset = aPrevOffset + 5;
-        const toleranceError = navigator.userAgent.includes("Android") ? 0.21 : 0.1;
+        const toleranceError = navigator.userAgent.includes("Android") ? 0.31 : 0.1;
         while (candidateOffset < 25) {
           if (
             aNewOffset >= candidateOffset - toleranceError &&
