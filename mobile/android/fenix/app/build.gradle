@@ -29,8 +29,11 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-parcelize'
 apply plugin: 'jacoco'
 apply plugin: 'androidx.navigation.safeargs.kotlin'
-apply plugin: 'com.google.android.gms.oss-licenses-plugin'
 apply plugin: 'kotlinx-serialization'
+
+if (gradle.mozconfig.substs.MOZILLA_OFFICIAL) {
+    apply plugin: 'com.google.android.gms.oss-licenses-plugin'
+}
 
 import groovy.json.JsonOutput
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile

@@ -7,7 +7,10 @@ plugins {
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-parcelize'
 apply plugin: 'jacoco'
-apply plugin: 'com.google.android.gms.oss-licenses-plugin'
+
+if (gradle.mozconfig.substs.MOZILLA_OFFICIAL) {
+    apply plugin: 'com.google.android.gms.oss-licenses-plugin'
+}
 
 def versionCodeGradle = "$project.rootDir/tools/gradle/versionCode.gradle"
 if (findProject(":geckoview") != null) {
