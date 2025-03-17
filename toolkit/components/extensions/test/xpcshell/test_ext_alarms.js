@@ -344,3 +344,36 @@ add_task(
     await AddonTestUtils.promiseShutdownManager();
   }
 );
+
+add_task(async function test_alarms_create_return() {
+  function background() {
+    const ALARM_NAME = "test_ext_alarms";
+    const when = Date.now() + 2000000;
+
+    // test callback return
+    browser.alarms.create(ALARM_NAME, { when }, result => {
+      browser.test.assertEq(undefined, result, "no callback params");
+      browser.test.sendMessage("callback done");
+    });
+
+    // test promise return
+    browser.alarms.create(ALARM_NAME + 1, { when }).then(result => {
+      browser.test.assertEq(undefined, result, "no promise params");
+      browser.test.sendMessage("promise done");
+    });
+  }
+
+  const extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      permissions: ["alarms"],
+    },
+    background,
+  });
+
+  await extension.startup();
+  await Promise.all([
+    extension.awaitMessage("callback done"),
+    extension.awaitMessage("promise done"),
+  ]);
+  await extension.unload();
+});

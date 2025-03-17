@@ -30,10 +30,8 @@
 interface ExtensionAlarms {
   // API methods.
 
-  [Throws, WebExtensionStub="NoReturn"]
-  undefined create(DOMString name, any alarmInfo);
-  [Throws, WebExtensionStub="NoReturn"]
-  undefined create(any alarmInfo);
+  [Throws, WebExtensionStub="AsyncAmbiguous"]
+  any create(any... args);
 
   [Throws, WebExtensionStub="Async"]
   any get(DOMString name, optional Function callback);

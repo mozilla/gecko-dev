@@ -28,6 +28,7 @@
         "name": "create",
         "type": "function",
         "description": "Creates an alarm. After the delay is expired, the onAlarm event is fired. If there is another alarm with the same name (or no name if none is specified), it will be cancelled and replaced by this alarm.",
+        "async": "callback",
         "parameters": [
           {
             "type": "string",
@@ -56,6 +57,12 @@
                 "description": "Number of minutes after which the alarm should recur repeatedly."
               }
             }
+          },
+          {
+            "type": "function",
+            "name": "callback",
+            "optional": true,
+            "parameters": []
           }
         ]
       },
