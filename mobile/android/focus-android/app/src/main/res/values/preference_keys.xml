@@ -45,7 +45,7 @@
     <string name="pref_key_biometric" translatable="false"><xliff:g id="preference_key">pref_biometric</xliff:g></string>
     <string name="pref_key_about" translatable="false"><xliff:g id="preference_key">pref_about</xliff:g></string>
     <string name="pref_key_help" translatable="false"><xliff:g id="preference_key">pref_help</xliff:g></string>
-    <string name="pref_key_rights" translatable="false"><xliff:g id="preference_key">pref_rights</xliff:g></string>
+    <string name="pref_key_terms_of_use" translatable="false"><xliff:g id="preference_key">pref_terms_of_use</xliff:g></string>
     <string name="pref_key_privacy_notice" translatable="false"><xliff:g id="preference_key">pref_privacy_notice</xliff:g></string>
     <string name="pref_key_licensing_info" translatable="false"><xliff:g id="preference_key">pref_licensing_info</xliff:g></string>
     <string name="pref_key_libraries_we_use" translatable="false"><xliff:g id="preference_key">pref_libraries_we_use</xliff:g></string>

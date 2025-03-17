@@ -8,7 +8,6 @@ import android.os.Bundle
 import androidx.preference.Preference
 import mozilla.components.browser.state.state.SessionState
 import org.mozilla.focus.R
-import org.mozilla.focus.browser.LocalizedContent
 import org.mozilla.focus.ext.components
 import org.mozilla.focus.ext.requireComponents
 import org.mozilla.focus.ext.showCrashReports
@@ -49,9 +48,9 @@ class MozillaSettingsFragment :
                 )
                 requireComponents.appStore.dispatch(AppAction.OpenTab(tabId))
             }
-            resources.getString(R.string.pref_key_rights) -> run {
+            resources.getString(R.string.pref_key_terms_of_use) -> run {
                 val tabId = activity.components.tabsUseCases.addTab(
-                    LocalizedContent.URL_RIGHTS,
+                    SupportUtils.TERMS_OF_USE_URL,
                     source = SessionState.Source.Internal.Menu,
                     selectTab = true,
                     private = true,

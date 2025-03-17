@@ -29,11 +29,6 @@ class AppContentInterceptor(
         isSubframeRequest: Boolean,
     ): RequestInterceptor.InterceptionResponse? {
         return when (uri) {
-            LocalizedContent.URL_RIGHTS -> RequestInterceptor.InterceptionResponse.Content(
-                LocalizedContent.loadRights(context),
-                encoding = "base64",
-            )
-
             LocalizedContent.URL_GPL -> RequestInterceptor.InterceptionResponse.Content(
                 LocalizedContent.loadGPL(context),
                 encoding = "base64",
