@@ -72,26 +72,21 @@ async function addTab(url, message, win = window) {
      * @returns {Promise<void>}
      */
     runInPage(callback, data = {}) {
-      // ContentTask.spawn runs the `Function.prototype.toString` on this function in
-      // order to send it into the content process. The following function is doing its
-      // own string manipulation in order to load in the TranslationsTest module.
-      const fn = new Function(/* js */ `
-        const TranslationsTest = ChromeUtils.importESModule(
-          "chrome://mochitests/content/browser/toolkit/components/translations/tests/browser/translations-test.mjs"
-        );
-
-        // Pass in the values that get injected by the task runner.
-        TranslationsTest.setup({Assert, ContentTaskUtils, content});
-
-        const data = ${JSON.stringify(data)};
-
-        return (${callback.toString()})(TranslationsTest, data);
-      `);
-
       return ContentTask.spawn(
         tab.linkedBrowser,
-        {}, // Data to inject.
-        fn
+        { contentData: data, callbackSource: callback.toString() }, // Data to inject.
+        function ({ contentData, callbackSource }) {
+          const TranslationsTest = ChromeUtils.importESModule(
+            "chrome://mochitests/content/browser/toolkit/components/translations/tests/browser/translations-test.mjs"
+          );
+
+          // Pass in the values that get injected by the task runner.
+          TranslationsTest.setup({ Assert, ContentTaskUtils, content });
+
+          // eslint-disable-next-line no-eval
+          let contentCallback = eval(`(${callbackSource})`);
+          return contentCallback(TranslationsTest, contentData);
+        }
       );
     },
   };
