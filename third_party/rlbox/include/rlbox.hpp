@@ -788,12 +788,20 @@ BinaryOpWrappedRhs(&);
 BinaryOpWrappedRhs(|);
 BinaryOpWrappedRhs(<<);
 BinaryOpWrappedRhs(>>);
+
+// GCC10.1 to GCC13 has a bug where it selects the wrong overload of operator==
+// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=114549 . However C++ 20 also
+// provides reverse comparisons by default, and so we no longer need to define
+// them. Thus, from C++ 20, we do not define the reverse operators.
+#if __cplusplus < 202002L
 BinaryOpWrappedRhs(==);
 BinaryOpWrappedRhs(!=);
 BinaryOpWrappedRhs(<);
 BinaryOpWrappedRhs(<=);
 BinaryOpWrappedRhs(>);
 BinaryOpWrappedRhs(>=);
+#endif
+
 #undef BinaryOpWrappedRhs
 
 #define BooleanBinaryOpWrappedRhs(opSymbol)                                    \
