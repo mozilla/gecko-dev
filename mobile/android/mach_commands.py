@@ -564,6 +564,7 @@ def gradle(command_context, args, verbose=False, gradle_path=None, topsrcdir=Non
     # See https://bugzilla.mozilla.org/show_bug.cgi?id=1576471
     android_sdk_root = command_context.substs.get("ANDROID_SDK_ROOT", "")
     if android_sdk_root:
+        env["ANDROID_HOME"] = android_sdk_root
         env["ANDROID_SDK_ROOT"] = android_sdk_root
 
     should_print_status = env.get("MACH") and not env.get("NO_BUILDSTATUS_MESSAGES")
