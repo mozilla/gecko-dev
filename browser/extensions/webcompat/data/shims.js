@@ -1027,4 +1027,6 @@ const AVAILABLE_SHIMS = [
   },
 ];
 
-module.exports = AVAILABLE_SHIMS;
+if (typeof module !== "undefined") {
+  module.exports = AVAILABLE_SHIMS;
+}

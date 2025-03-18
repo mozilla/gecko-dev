@@ -4,7 +4,7 @@
 
 "use strict";
 
-/* globals browser, module, UAHelpers */
+/* globals browser, UAHelpers */
 
 const GOOGLE_TLDS = [
   "com",
@@ -415,5 +415,3 @@ var InterventionHelpers = {
     return InterventionHelpers.matchPatternsForTLDs(base, suffix, GOOGLE_TLDS);
   },
 };
-
-module.exports = InterventionHelpers;

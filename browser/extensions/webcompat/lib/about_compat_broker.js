@@ -4,7 +4,7 @@
 
 "use strict";
 
-/* global browser, module, onMessageFromTab */
+/* global browser, onMessageFromTab */
 
 class AboutCompatBroker {
   constructor(bindings) {
@@ -122,5 +122,3 @@ class AboutCompatBroker {
     });
   }
 }
-
-module.exports = AboutCompatBroker;

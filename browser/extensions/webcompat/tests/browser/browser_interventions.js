@@ -64,19 +64,24 @@ function check_valid_array(a, key, id) {
 
 // eslint-disable-next-line complexity
 add_task(async function test_json_data() {
-  const module = {};
+  const addon = await AddonManager.getAddonByID("webcompat@mozilla.org");
+  const addonURI = addon.getResourceURI().spec;
 
-  // eslint-disable-next-line no-eval
-  eval(await (await fetch(addon_url("lib/intervention_helpers.js"))).text());
-  const helpers = module.exports;
+  const exports = {};
+  Services.scriptloader.loadSubScript(
+    `${addonURI}/lib/intervention_helpers.js`,
+    exports
+  );
+  Services.scriptloader.loadSubScript(
+    `${addonURI}/lib/custom_functions.js`,
+    exports
+  );
+  const helpers = exports.InterventionHelpers;
+  const custom_fns = exports.CUSTOM_FUNCTIONS;
 
   for (const [name, fn] of Object.entries(helpers.skip_if_functions)) {
     Assert.strictEqual(typeof fn, "function", `Skip-if ${name} is a function`);
   }
-
-  // eslint-disable-next-line no-eval
-  eval(await (await fetch(addon_url("lib/custom_functions.js"))).text());
-  const custom_fns = module.exports;
 
   for (const [name, { disable, enable }] of Object.entries(custom_fns)) {
     Assert.strictEqual(

@@ -4,7 +4,7 @@
 
 "use strict";
 
-/* globals browser, InterventionHelpers, module */
+/* globals browser, InterventionHelpers */
 
 class Interventions {
   constructor(availableInterventions, customFunctions) {
@@ -430,5 +430,3 @@ class Interventions {
     return [registration];
   }
 }
-
-module.exports = Interventions;

@@ -1307,4 +1307,6 @@ class Shims {
   }
 }
 
-module.exports = Shims;
+if (typeof module !== "undefined") {
+  module.exports = Shims;
+}

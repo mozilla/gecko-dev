@@ -4,7 +4,7 @@
 
 "use strict";
 
-/* globals browser, exportFunction, module */
+/* globals browser, exportFunction */
 
 var UAHelpers = {
   _deviceAppropriateChromeUAs: {},
@@ -159,7 +159,3 @@ var UAHelpers = {
     return `Mozilla/5.0 (Windows NT 10.0; Win64; x64; ${rv}) Gecko/20100101 ${ver}`;
   },
 };
-
-if (typeof module !== "undefined") {
-  module.exports = UAHelpers;
-}

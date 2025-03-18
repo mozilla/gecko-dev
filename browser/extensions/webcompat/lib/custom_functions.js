@@ -4,7 +4,7 @@
 
 "use strict";
 
-/* globals browser, module */
+/* globals browser */
 
 const replaceStringInRequest = (
   requestId,
@@ -35,7 +35,7 @@ const replaceStringInRequest = (
   };
 };
 
-const CUSTOM_FUNCTIONS = {
+var CUSTOM_FUNCTIONS = {
   replace_string_in_request: {
     details: ["find", "replace", "urls", "types"],
     enable(details) {
@@ -99,5 +99,3 @@ const CUSTOM_FUNCTIONS = {
     },
   },
 };
-
-module.exports = CUSTOM_FUNCTIONS;
