@@ -8512,11 +8512,18 @@
   set_spidermonkey_pref: startup
 
   # Experimental support for Atomics.pause in JavaScript.
--   name: javascript.options.experimental.atomics_pause
-    type: bool
-    value: true
-    mirror: always
-    set_spidermonkey_pref: startup
+- name: javascript.options.experimental.atomics_pause
+  type: bool
+  value: true
+  mirror: always
+  set_spidermonkey_pref: startup
+
+  # Experimental support for Error.isError in JavaScript.
+- name: javascript.options.experimental.error_iserror
+  type: bool
+  value: true
+  mirror: always
+  set_spidermonkey_pref: always
 
 #ifdef NIGHTLY_BUILD
   # Experimental support for Async Iterator Helpers in JavaScript.
@@ -8532,13 +8539,6 @@
     value: false
     mirror: always
     set_spidermonkey_pref: startup
-
-  # Experimental support for Error.isError in JavaScript.
--   name: javascript.options.experimental.error_iserror
-    type: bool
-    value: false
-    mirror: always
-    set_spidermonkey_pref: always
 
   # Experimental support for Iterator.range in JavaScript.
 -   name: javascript.options.experimental.iterator_range
