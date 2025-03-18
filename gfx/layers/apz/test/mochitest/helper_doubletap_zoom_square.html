@@ -27,10 +27,12 @@ async function test() {
   ok(resolution > prev_resolution, "The first double-tap has increased the resolution to " + resolution);
 
   let rect = target.getBoundingClientRect();
-  ok(visualViewport.pageLeft < rect.x, "left");
-  ok(visualViewport.pageTop < rect.y, "top");
-  ok(visualViewport.pageLeft + visualViewport.width > rect.x + rect.width, "right");
-  ok(visualViewport.pageTop + visualViewport.height > rect.y + rect.height, "bottom");
+  ok(visualViewport.pageLeft < rect.x, `left: ${visualViewport.pageLeft} < ${rect.x}`);
+  ok(visualViewport.pageTop < rect.y, `top: ${visualViewport.pageTop} < ${rect.y}`);
+  ok(visualViewport.pageLeft + visualViewport.width > rect.x + rect.width,
+    `right: ${visualViewport.pageLeft} + ${visualViewport.width} > ${rect.x} + ${rect.width}`);
+  ok(visualViewport.pageTop + visualViewport.height > rect.y + rect.height,
+    `bottom: ${visualViewport.pageTop} + ${visualViewport.height} > ${rect.y} + ${rect.height}`);
 
   // Check that double-tapping the second time on the element zooms out
   info("sending second double tap");
