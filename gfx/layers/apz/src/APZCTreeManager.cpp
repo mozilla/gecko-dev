@@ -3214,8 +3214,8 @@ already_AddRefed<AsyncPanZoomController> APZCTreeManager::FindZoomableApzc(
 }
 
 ScreenMargin APZCTreeManager::GetCompositorFixedLayerMargins() const {
-  RecursiveMutexAutoLock lock(mTreeLock);
-  return mCompositorFixedLayerMargins;
+  MutexAutoLock lock(mMapLock);
+  return GetCompositorFixedLayerMargins(lock);
 }
 
 AsyncPanZoomController* APZCTreeManager::FindRootApzcFor(
