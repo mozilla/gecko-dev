@@ -3260,6 +3260,23 @@
       }
     ]
   },
+  "1944725": {
+    "label": "homedepot.com",
+    "bugs": {
+      "1944725": {
+        "issue": "broken-layout",
+        "matches": ["*://*.homedepot.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "js": ["bug1944725-homedepot.com-innerWidth-fix.js"]
+        }
+      }
+    ]
+  },
   "1944727": {
     "label": "linkedin.com",
     "bugs": {
