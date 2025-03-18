@@ -1482,7 +1482,9 @@ addUiaTask(
     `);
     is(await runPython(`text.GetSelection().Length`), 0, "No selection");
     info("Focusing textarea");
-    const textarea = findAccessibleChildByID(docAcc, "textarea");
+    const textarea = findAccessibleChildByID(docAcc, "textarea", [
+      nsIAccessibleText,
+    ]);
     let moved = waitForEvent(EVENT_TEXT_CARET_MOVED, textarea);
     textarea.takeFocus();
     await moved;
@@ -1546,6 +1548,36 @@ addUiaTask(
     await definePyVar("range", `text.GetSelection().GetElement(0)`);
     await runPython(`range.ExpandToEnclosingUnit(TextUnit_Line)`);
     is(await runPython(`range.GetText(-1)`), "cd", "range text correct");
+
+    info("Clicking mouse at b");
+    // BrowserTestUtils.synthesizeMouseAtPoint takes coordinates relative to the document.
+    const docX = {};
+    const docY = {};
+    docAcc.getBounds(docX, docY, {}, {});
+    let charX = {};
+    let charY = {};
+    textarea.getCharacterExtents(
+      1,
+      charX,
+      charY,
+      {},
+      {},
+      COORDTYPE_SCREEN_RELATIVE
+    );
+    moved = waitForEvent(EVENT_TEXT_CARET_MOVED, textarea);
+    await BrowserTestUtils.synthesizeMouseAtPoint(
+      charX.value - docX.value,
+      charY.value - docY.value,
+      {},
+      docAcc.browsingContext
+    );
+    await moved;
+    is(await runPython(`text.GetSelection().Length`), 1, "1 selection");
+    await definePyVar("range", `text.GetSelection().GetElement(0)`);
+    ok(await runPython(`bool(range)`), "Got selection range 0");
+    info("Expanding to character");
+    await runPython(`range.ExpandToEnclosingUnit(TextUnit_Character)`);
+    is(await runPython(`range.GetText(-1)`), "b", "range text correct");
   }
 );
 

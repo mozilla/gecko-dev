@@ -54,7 +54,7 @@ addAccessibleTask(
     EventUtils.synthesizeKey("KEY_ArrowDown");
     evt = await caretMoved;
     evt.QueryInterface(nsIAccessibleCaretMoveEvent);
-    todo(!evt.isAtEndOfLine, "Caret is not at end of line");
+    ok(!evt.isAtEndOfLine, "Caret is not at end of line");
     is(evt.granularity, LINE_AMOUNT, "Caret moved by line");
 
     caretMoved = waitForEvent(

@@ -1065,18 +1065,24 @@ TextLeafPoint TextLeafPoint::GetCaret(Accessible* aAcc) {
     RefPtr<nsFrameSelection> sel = frame ? frame->GetFrameSelection() : nullptr;
     if (sel && sel->GetHint() == CaretAssociationHint::Before) {
       // CaretAssociationHint::Before can mean that the caret is at the end of
-      // a line. However, it can also mean that the caret is before the start
-      // of a node in the middle of a line. This happens when moving the cursor
-      // forward to a new node.
-      if (point.mOffset == 0) {
-        // The caret is before the start of a node. The caret is at the end of a
-        // line if the node is at the start of a line but not at the start of a
-        // paragraph.
+      // a line. However, this can also occur in a few other situations:
+      // 1. The caret is before the start of a node in the middle of a line.
+      // This happens when moving the cursor forward to a new node.
+      // 2. The user clicks the mouse on a character other than the first in a
+      // node.
+      // 3. The caret is somewhere other than the start of a line and the user
+      // presses down or up arrow to move by line.
+      if (point.mOffset <
+          static_cast<int32_t>(nsAccUtils::TextLength(point.mAcc))) {
+        // The caret is at the end of a line if the point is at the start of a
+        // line but not at the start of a paragraph.
         point.mIsEndOfLineInsertionPoint =
-            IsLocalAccAtLineStart(point.mAcc->AsLocal()) &&
+            point.FindPrevLineStartSameLocalAcc(/* aIncludeOrigin */ true) ==
+                point &&
             !point.IsParagraphStart();
       } else {
-        // This isn't the start of a node, so we must be at the end of a line.
+        // This is the end of a node. CaretAssociationHint::Before is only used
+        // at the end of a node if the caret is at the end of a line.
         point.mIsEndOfLineInsertionPoint = true;
       }
     }
