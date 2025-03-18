@@ -102,8 +102,9 @@ add_task(async function () {
       [argObj],
       async function (arg) {
         // The CSS/JS cache needs to be cleared in-process.
-        content.windowUtils.clearStyleSheetCache();
-        content.windowUtils.clearScriptCache();
+        ChromeUtils.clearResourceCache({
+          types: ["stylesheet", "script"],
+        });
 
         let videoURL = arg.urlPrefix + "file_thirdPartyChild.video.webm";
         let audioURL = arg.urlPrefix + "file_thirdPartyChild.audio.ogg";

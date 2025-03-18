@@ -14,8 +14,6 @@ const baseURL = us.substring(0, us.lastIndexOf('/') + 1);
 const serverFilename = "file_resource_cache_server.sjs";
 const frame = document.getElementById("frame");
 
-gWindowUtils = SpecialPowers.getDOMWindowUtils(window);
-
 SimpleTest.waitForExplicitFinish();
 
 async function testReload({ src, clearCache, cacheable, desc }) {
@@ -35,8 +33,9 @@ async function testReload({ src, clearCache, cacheable, desc }) {
      `body color before reload with ${desc} should be red`);
 
   if (clearCache) {
-    gWindowUtils.clearStyleSheetCache();
-    gWindowUtils.clearScriptCache();
+    SpecialPowers.ChromeUtils.clearResourceCache({
+      types: ["stylesheet", "script"],
+    });
   }
 
   // Reload the iframe and wait for reload.
@@ -71,8 +70,9 @@ async function reset() {
   });
 
   // Clear cache.
-  gWindowUtils.clearStyleSheetCache();
-  gWindowUtils.clearScriptCache();
+  SpecialPowers.ChromeUtils.clearResourceCache({
+    types: ["stylesheet", "script"],
+  });
 }
 
 async function doTest() {

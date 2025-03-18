@@ -78,8 +78,9 @@ function reset() {
 // This test has to come before testPositiveCache to ensure gethash server doesn't
 // contain completions.
 function testNegativeCache() {
-  SpecialPowers.DOMWindowUtils.clearStyleSheetCache();
-  SpecialPowers.DOMWindowUtils.clearScriptCache();
+  SpecialPowers.ChromeUtils.clearResourceCache({
+    types: ["stylesheet", "script"],
+  });
   shouldLoad = true;
 
   async function setup() {
@@ -108,8 +109,9 @@ function testNegativeCache() {
 }
 
 function testPositiveCache() {
-  SpecialPowers.DOMWindowUtils.clearStyleSheetCache();
-  SpecialPowers.DOMWindowUtils.clearScriptCache();
+  SpecialPowers.ChromeUtils.clearResourceCache({
+    types: ["stylesheet", "script"],
+  });
   shouldLoad = false;
 
   async function setup() {

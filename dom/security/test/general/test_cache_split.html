@@ -59,8 +59,9 @@
         }
         async function clearCache(){
             info("Clearing Cache");
-            SpecialPowers.DOMWindowUtils.clearStyleSheetCache();
-            SpecialPowers.DOMWindowUtils.clearScriptCache();
+            SpecialPowers.ChromeUtils.clearResourceCache({
+                types: ["stylesheet", "script"],
+            });
             await ChromeTask.spawn(null,(()=>{
                 Services.cache2.clear();
             }));

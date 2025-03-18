@@ -92,8 +92,9 @@ async function cleanup() {
   }
 
   // Ensure we clear the stylesheet/JS cache so that we re-classify.
-  SpecialPowers.DOMWindowUtils.clearStyleSheetCache();
-  SpecialPowers.DOMWindowUtils.clearScriptCache();
+  SpecialPowers.ChromeUtils.clearResourceCache({
+    types: ["stylesheet", "script"],
+  });
 
   await clearServiceWorker();
 }

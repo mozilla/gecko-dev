@@ -123,10 +123,9 @@ add_task(async () => {
     );
 
     await contentPage.spawn([], () => {
-      // eslint-disable-next-line no-undef
-      content.windowUtils.clearStyleSheetCache();
-      // eslint-disable-next-line no-undef
-      content.windowUtils.clearScriptCache();
+      ChromeUtils.clearResourceCache({
+        types: ["stylesheet", "script"],
+      });
     });
 
     await contentPage.close();
