@@ -16,10 +16,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -27,6 +31,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.delay
+import org.mozilla.fenix.compose.utils.toFraction
 import kotlin.math.max
 import kotlin.math.min
 
@@ -203,4 +208,57 @@ private fun Rect.getIntersectPercentage(realSize: IntSize, other: Rect): Float {
     val intersectionArea = heightOverlap * widthOverlap
 
     return (intersectionArea.toFloat() / composableArea)
+}
+
+/**
+ * Default values for [Modifier.horizontalFadeGradient]
+ */
+const val DEFAULT_FADE_ALPHA = .99f
+const val DEFAULT_FADE_LEFT_START = 0f
+const val DEFAULT_FADE_RIGHT_START = 1F
+
+/**
+ * Adds a horizontal fade across the current composable.
+ *
+ * @param fadeLength The length of the fade in [Dp].
+ * @param fadeAlpha The alpha value [Float] of the horizontal gradient fade.
+ * @param fadeDirection Represents the direction of the horizontal gradient fade.
+ */
+fun Modifier.horizontalFadeGradient(
+    fadeLength: Dp,
+    fadeAlpha: Float = DEFAULT_FADE_ALPHA,
+    fadeDirection: FadeDirection,
+): Modifier = this.then(
+    Modifier.graphicsLayer { alpha = fadeAlpha }
+        .drawWithContent {
+            drawContent()
+            val fraction = fadeLength.toFraction(totalWidth = this.size.width.toDp())
+
+            val brush = if (fadeDirection == FadeDirection.LEFT) {
+                Brush.horizontalGradient(
+                    DEFAULT_FADE_LEFT_START to Color.Transparent,
+                    fraction to Color.Black,
+                )
+            } else {
+                val fadeStartPercent = DEFAULT_FADE_RIGHT_START - fraction
+
+                Brush.horizontalGradient(
+                    fadeStartPercent to Color.Black,
+                    DEFAULT_FADE_RIGHT_START to Color.Transparent,
+                )
+            }
+
+            drawRect(
+                brush = brush,
+                blendMode = BlendMode.DstIn,
+            )
+        },
+)
+
+/**
+ * Describes the direction of fade for [Modifier.horizontalFadeGradient].
+ */
+enum class FadeDirection {
+    LEFT,
+    RIGHT,
 }
