@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@media (any-pointer: fine) {
-  :root {
+:root:not(.mobile) {
+  & {
     font-family: sans-serif;
     margin: 40px auto;
     min-width: 30em;
@@ -27,7 +27,7 @@
 
 /* Mobile UI where common.css is not loaded */
 
-@media (any-pointer: coarse), (any-pointer: none) {
+:root.mobile {
   * {
     margin: 0;
     padding: 0;
@@ -58,25 +58,21 @@
     font-size: 14px;
     -moz-text-size-adjust: none;
     display: grid;
-    grid-template-areas: "a b c" "d d d";
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-areas: "a b" "c c";
+    grid-template-columns: 1fr 1fr;
     grid-template-rows: fit-content(100%) 1fr;
   }
 
-  .tab[data-l10n-id="label-overrides"] {
+  .tab[data-l10n-id="label-interventions"] {
     grid-area: a;
   }
 
-  .tab[data-l10n-id="label-interventions"] {
+  .tab[data-l10n-id="label-smartblock"] {
     grid-area: b;
   }
 
-  .tab[data-l10n-id="label-smartblock"] {
-    grid-area: c;
-  }
-
   table {
-    grid-area: d;
+    grid-area: c;
   }
 
   table,
