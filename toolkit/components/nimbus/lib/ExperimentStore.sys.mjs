@@ -370,7 +370,6 @@ export class ExperimentStore extends SharedDataMap {
       updateEvent.unenrollReason = enrollment.unenrollReason;
     }
     this.emit("update", updateEvent);
-    this.emit(`update:${enrollment.slug}`, enrollment);
     const featureIds =
       enrollment.featureIds || getAllBranchFeatureIds(enrollment.branch);
     const reason = enrollment.isRollout

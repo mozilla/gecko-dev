@@ -51,14 +51,9 @@ add_setup(function test_setup() {
 add_task(async function test_add_to_store() {
   const manager = ExperimentFakes.manager();
   const recipe = ExperimentFakes.recipe("foo");
-  const enrollPromise = new Promise(resolve =>
-    manager.store.on("update:foo", resolve)
-  );
-
   await manager.onStartup();
 
   await manager.enroll(recipe, "test_add_to_store");
-  await enrollPromise;
   const experiment = manager.store.get("foo");
 
   Assert.ok(experiment, "should add an experiment with slug foo");
@@ -88,14 +83,10 @@ add_task(async function test_add_rollout_to_store() {
       total: 1000,
     },
   };
-  const enrollPromise = new Promise(resolve =>
-    manager.store.on("update:rollout-slug", resolve)
-  );
 
   await manager.onStartup();
 
   await manager.enroll(recipe, "test_add_rollout_to_store");
-  await enrollPromise;
   const experiment = manager.store.get("rollout-slug");
 
   Assert.ok(experiment, `Should add an experiment with slug ${recipe.slug}`);
@@ -164,9 +155,6 @@ add_task(
   async function test_setExperimentActive_sendEnrollmentTelemetry_called() {
     const manager = ExperimentFakes.manager();
     const sandbox = sinon.createSandbox();
-    const enrollPromise = new Promise(resolve =>
-      manager.store.on("update:foo", resolve)
-    );
     sandbox.spy(manager, "setExperimentActive");
     sandbox.spy(manager, "sendEnrollmentTelemetry");
 
@@ -194,7 +182,6 @@ add_task(
       ExperimentFakes.recipe("foo"),
       "test_setExperimentActive_sendEnrollmentTelemetry_called"
     );
-    await enrollPromise;
     const experiment = manager.store.get("foo");
 
     Assert.equal(
@@ -254,9 +241,6 @@ add_task(async function test_setRolloutActive_sendEnrollmentTelemetry_called() {
     branches: [ExperimentFakes.rollout("rollout").branch],
     isRollout: true,
   };
-  const enrollPromise = new Promise(resolve =>
-    manager.store.on("update:rollout", resolve)
-  );
   sandbox.spy(manager, "setExperimentActive");
   sandbox.spy(manager, "sendEnrollmentTelemetry");
 
@@ -284,8 +268,6 @@ add_task(async function test_setRolloutActive_sendEnrollmentTelemetry_called() {
     rolloutRecipe,
     "test_setRolloutActive_sendEnrollmentTelemetry_called"
   );
-
-  await enrollPromise;
 
   const enrollment = manager.store.get("rollout");
 
@@ -709,12 +691,8 @@ add_task(async function enroll_in_reference_aw_experiment() {
   recipe.bucketConfig.count = recipe.bucketConfig.total;
 
   const manager = ExperimentFakes.manager();
-  const enrollPromise = new Promise(resolve =>
-    manager.store.on("update:reference-aw", resolve)
-  );
   await manager.onStartup();
   await manager.enroll(recipe, "enroll_in_reference_aw_experiment");
-  await enrollPromise;
 
   Assert.ok(manager.store.get("reference-aw"), "Successful onboarding");
   let prefValue = Services.prefs.getStringPref(
@@ -736,12 +714,6 @@ add_task(async function enroll_in_reference_aw_experiment() {
 add_task(async function test_forceEnroll_cleanup() {
   const manager = ExperimentFakes.manager();
   const sandbox = sinon.createSandbox();
-  const fooEnrollPromise = new Promise(resolve =>
-    manager.store.on("update:foo", resolve)
-  );
-  const barEnrollPromise = new Promise(resolve =>
-    manager.store.on("update:optin-bar", resolve)
-  );
   let unenrollStub = sandbox.spy(manager, "unenroll");
   let existingRecipe = ExperimentFakes.recipe("foo", {
     branches: [
@@ -764,11 +736,9 @@ add_task(async function test_forceEnroll_cleanup() {
 
   await manager.onStartup();
   await manager.enroll(existingRecipe, "test_forceEnroll_cleanup");
-  await fooEnrollPromise;
 
   let setExperimentActiveSpy = sandbox.spy(manager, "setExperimentActive");
   manager.forceEnroll(forcedRecipe, forcedRecipe.branches[0]);
-  await barEnrollPromise;
 
   Assert.ok(unenrollStub.called, "Unenrolled from existing experiment");
   Assert.equal(
@@ -849,16 +819,6 @@ add_task(async function test_forceEnroll() {
     },
   ];
 
-  async function forceEnroll(manager, recipe) {
-    const enrollmentPromise = new Promise(resolve => {
-      manager.store.on(`update:optin-${recipe.slug}`, resolve);
-    });
-
-    manager.forceEnroll(recipe, recipe.branches[0]);
-
-    return enrollmentPromise;
-  }
-
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
@@ -871,7 +831,7 @@ add_task(async function test_forceEnroll() {
 
   for (const { enroll, expected } of TEST_CASES) {
     for (const recipe of enroll) {
-      await forceEnroll(manager, recipe);
+      await manager.forceEnroll(recipe, recipe.branches[0]);
     }
 
     const activeSlugs = manager.store
@@ -1103,10 +1063,6 @@ add_task(async function test_group_enrollment() {
   const store1 = ExperimentFakes.store();
   const manager1 = ExperimentFakes.manager(store1);
 
-  const enrollPromise1 = new Promise(resolve =>
-    manager1.store.on("update:group_enroll", resolve)
-  );
-
   await manager1.onStartup();
 
   const groupId = "cedc1378-b806-4664-8c3e-2090f2f46e00";
@@ -1142,7 +1098,6 @@ add_task(async function test_group_enrollment() {
   Services.prefs.setStringPref("app.normandy.user_id", clientId1);
 
   await manager1.enroll(recipe, "test_group_enrollment");
-  await enrollPromise1;
 
   const experiment1 = manager1.store.get("group_enroll");
   let clientId1branch = experiment1.branch;
@@ -1151,16 +1106,11 @@ add_task(async function test_group_enrollment() {
   const store2 = ExperimentFakes.store();
   const manager2 = ExperimentFakes.manager(store2);
 
-  const enrollPromise2 = new Promise(resolve =>
-    manager2.store.on("update:group_enroll", resolve)
-  );
-
   await manager2.onStartup();
 
   Services.prefs.setStringPref("app.normandy.user_id", clientId2);
 
   await manager2.enroll(recipe, "test_group_enrollment");
-  await enrollPromise2;
 
   const experiment2 = manager2.store.get("group_enroll");
   let clientId2branch = experiment2.branch;

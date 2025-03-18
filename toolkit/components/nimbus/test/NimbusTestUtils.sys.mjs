@@ -187,11 +187,6 @@ export const ExperimentFakes = {
       isParent: true,
     });
   },
-  waitForExperimentUpdate(ExperimentAPI, slug) {
-    return new Promise(resolve =>
-      ExperimentAPI._manager.store.once(`update:${slug}`, resolve)
-    );
-  },
   /**
    * Enroll in an experiment branch with the given feature configuration.
    *
@@ -268,23 +263,8 @@ export const ExperimentFakes = {
     };
   },
   async cleanupAll(slugs, { manager = lazy.ExperimentAPI._manager } = {}) {
-    function unenrollCompleted(slug) {
-      return new Promise(resolve =>
-        manager.store.on(`update:${slug}`, (event, experiment) => {
-          if (!experiment.active) {
-            // Removes recipe from file storage which
-            // (normally the users archive of past experiments)
-            manager.store._deleteForTests(slug);
-            resolve();
-          }
-        })
-      );
-    }
-
     for (const slug of slugs) {
-      let promise = unenrollCompleted(slug);
       manager.unenroll(slug, "cleanup");
-      await promise;
     }
 
     if (manager.store.getAllActiveExperiments().length) {

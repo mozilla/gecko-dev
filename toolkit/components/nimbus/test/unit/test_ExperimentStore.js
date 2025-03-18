@@ -39,66 +39,6 @@ add_task(async function test_usageBeforeInitialization() {
   );
 });
 
-add_task(async function test_event_add_experiment() {
-  const sandbox = sinon.createSandbox();
-  const store = ExperimentFakes.store();
-  const expected = ExperimentFakes.experiment("foo");
-  const updateEventCbStub = sandbox.stub();
-
-  // Setup ExperimentManager and child store for ExperimentAPI
-  await store.init();
-
-  // Set update cb
-  store.on("update:foo", updateEventCbStub);
-
-  // Add some data
-  store.addEnrollment(expected);
-
-  Assert.equal(updateEventCbStub.callCount, 1, "Called once for add");
-
-  store.off("update:foo", updateEventCbStub);
-});
-
-add_task(async function test_event_updates_main() {
-  const sandbox = sinon.createSandbox();
-  const store = ExperimentFakes.store();
-  const experiment = ExperimentFakes.experiment("foo");
-  const updateEventCbStub = sandbox.stub();
-
-  // Setup ExperimentManager and child store for ExperimentAPI
-  await store.init();
-
-  // Set update cb
-  store.on(
-    `featureUpdate:${experiment.branch.features[0].featureId}`,
-    updateEventCbStub
-  );
-
-  store.addEnrollment(experiment);
-  store.updateExperiment("foo", { active: false });
-
-  Assert.equal(
-    updateEventCbStub.callCount,
-    2,
-    "Should be called twice: add, update"
-  );
-  Assert.equal(
-    updateEventCbStub.firstCall.args[1],
-    "experiment-updated",
-    "Should be called with updated experiment status"
-  );
-  Assert.equal(
-    updateEventCbStub.secondCall.args[1],
-    "experiment-updated",
-    "Should be called with updated experiment status"
-  );
-
-  store.off(
-    `featureUpdate:${experiment.branch.features[0].featureId}`,
-    updateEventCbStub
-  );
-});
-
 add_task(async function test_getExperimentForGroup() {
   const store = ExperimentFakes.store();
   const experiment = ExperimentFakes.experiment("foo", {
@@ -481,13 +421,9 @@ add_task(async function test_getRolloutForFeature_fromSyncCache() {
       features: [{ featureId: "aboutwelcome", value: { enabled: true } }],
     },
   });
-  let updatePromise = new Promise(resolve =>
-    store.on(`update:${rollout.slug}`, resolve)
-  );
 
   await store.init();
   store.addEnrollment(rollout);
-  await updatePromise;
   // New uninitialized store will return data from sync cache
   // before init
   store = ExperimentFakes.store();
@@ -518,27 +454,17 @@ add_task(async function test_remoteRollout() {
     },
   });
   let featureUpdateStub = sinon.stub();
-  let updatePromise = new Promise(resolve =>
-    store.on(`update:${rollout.slug}`, resolve)
-  );
   store.on("featureUpdate:aboutwelcome", featureUpdateStub);
 
   await store.init();
   store.addEnrollment(rollout);
-  await updatePromise;
 
   Assert.ok(
     Services.prefs.getStringPref(`${SYNC_DEFAULTS_PREF_BRANCH}aboutwelcome`),
     "Sync cache is set"
   );
 
-  updatePromise = new Promise(resolve =>
-    store.on(`update:${rollout.slug}`, resolve)
-  );
   store.updateExperiment(rollout.slug, { active: false });
-
-  // wait for it to be removed
-  await updatePromise;
 
   Assert.ok(featureUpdateStub.calledTwice, "Called for add and remove");
   Assert.ok(

@@ -108,11 +108,7 @@ add_task(async function test_startup_unenroll() {
   // recipe in the store. If the user has opted out it should
   // unenroll.
   await store.init();
-  let enrollmentPromise = new Promise(resolve =>
-    store.on(`update:${recipe.slug}`, resolve)
-  );
   store.addEnrollment(recipe);
-  await enrollmentPromise;
 
   const manager = ExperimentFakes.manager(store);
   const unenrollSpy = sandbox.spy(manager, "unenroll");
@@ -206,15 +202,9 @@ add_task(async function test_onRecipe_update() {
   sandbox.stub(manager, "isInBucketAllocation").resolves(true);
 
   const fooRecipe = ExperimentFakes.recipe("foo");
-  const experimentUpdate = new Promise(resolve =>
-    manager.store.on(`update:${fooRecipe.slug}`, resolve)
-  );
 
   await manager.onStartup();
   await manager.onRecipe(fooRecipe, "test", true);
-  // onRecipe calls enroll which saves the experiment in the store
-  // but none of them wait on disk operations to finish
-  await experimentUpdate;
   // Call again after recipe has already been enrolled
   await manager.onRecipe(fooRecipe, "test", true);
 
