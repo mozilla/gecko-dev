@@ -64,7 +64,11 @@ const VIEW_TEMPLATE = {
 // Minimum number of parts of the expression before we show a result.
 const MIN_EXPRESSION_LENGTH = 3;
 const UNDEFINED_VALUE = "undefined";
-const FULL_NUMBER_MAX_THRESHOLD = 5 * 10 ** 12;
+// Minimum and maximum value of result before it switches to scientific
+// notation. Displaying numbers longer than 10 digits long or a decimal
+// containing 5 or more leading zeroes in scientific notation improves
+// readability.
+const FULL_NUMBER_MAX_THRESHOLD = 1 * 10 ** 10;
 const FULL_NUMBER_MIN_THRESHOLD = 10 ** -5;
 
 /**
@@ -151,10 +155,18 @@ class ProviderCalculator extends UrlbarProvider {
       input = {
         l10n: { id: "urlbar-result-action-undefined-calculator-result" },
       };
+    } else if (value.toString().includes("e")) {
+      input = {
+        l10n: {
+          id: "urlbar-result-action-calculator-result-scientific-notation",
+          args: { result: value },
+        },
+      };
     } else {
-      const l10nId = value.toString().includes("e")
-        ? "urlbar-result-action-calculator-result-scientific-notation"
-        : "urlbar-result-action-calculator-result-2";
+      const l10nId =
+        value < 1
+          ? "urlbar-result-action-calculator-result-decimal"
+          : "urlbar-result-action-calculator-result-3";
       input = {
         l10n: {
           id: l10nId,
