@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-03-17T19:10:18.549535+00:00'
+updated_at: '2025-03-18T06:33:28.837729+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -1088,10 +1088,6 @@ people:
     bmo_id: 415378
     name: Valentin Gosu
     nick: valentin
-  - &wchen
-    bmo_id: 414438
-    name: William Chen
-    nick: wchen
   - &whimboo
     bmo_id: 76551
     name: Henrik Skupin
@@ -1885,10 +1881,10 @@ modules:
       url: http://about.validator.nu/
       components:
         - 'Core::DOM: HTML Parser'
+      peers_emeritus:
+        - William Chen
     owners:
       - *hsivonen
-    peers:
-      - *wchen
     machine_name: core_html_parser
 
   - name: 'Core: I18N Library'
@@ -4565,5 +4561,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 9a5ef9c8662bd9369804ff9bac39709b0938de4b
-  export: 594741fdafe612ab8a111fe46007acd7dc738e83
+  config: ab967e8320c4a7e118c8f69708f06ac7651835b1
+  export: a92f9f4e3c5ad9e19f3ba6943ceb38eed333189d
