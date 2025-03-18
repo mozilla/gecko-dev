@@ -24,7 +24,33 @@ IGNORE_PREFS = {
     "dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled",  # NOQA: E501; Uses the 'locked' attribute.
     "extensions.backgroundServiceWorker.enabled",  # NOQA: E501; Uses the 'locked' attribute.
 }
-PATTERN = re.compile(r"\s*pref\(\s*\"(?P<pref>.+)\"\s*,\s*(?P<val>.+)\)\s*;.*")
+
+# A regular expression to match preference names and values from js preference
+# files. This is not an exact parser, but close enough for our purposes.
+# The exact parser grammar is defined at https://searchfox.org/mozilla-central/rev/5c2888b35d56928d252acf84e8816fa89a8a6a61/modules/libpref/parser/src/lib.rs#5-30
+PATTERN = re.compile(
+    r"""
+    \s*pref\(
+    \s*"
+        (?P<pref>[^"]+)
+    "
+    \s*,
+    \s*
+        (?P<val>
+            "(              # String value
+                [^"\\]+     # Any unescaped string character.
+                |
+                \\.         # An escaped character.
+            )*"
+            |
+            [^,)]+          # other literals: true, false, integers
+        )
+        (\s*,.*)?           # optional pref-attr: "sticky" | "locked"
+    \s*\)
+    \s*;.*
+    """,
+    re.VERBOSE,
+)
 
 
 def get_names(pref_list_filename):
@@ -40,6 +66,13 @@ def get_names(pref_list_filename):
         print("{}: error:\n  {}".format(pref_list_filename, e), file=sys.stderr)
         sys.exit(1)
 
+    # Caveats on pref["value"]:
+    # - StaticPrefList.yaml may contain expressions such as 10*1000, 0.0f, and
+    #   even float(M_PI / 6.0). We don't parse these and may therefore fail to
+    #   report these prefs if their value in the js pref file still matches.
+    # - Some prefs have values dependent on preprocessor directives. In these
+    #   cases, the last value takes precedence over values declared at an
+    #   earlier line.
     for pref in pref_list:
         if pref["name"] not in IGNORE_PREFS:
             pref_names[pref["name"]] = pref["value"]
