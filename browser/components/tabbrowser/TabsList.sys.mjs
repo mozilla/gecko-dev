@@ -21,6 +21,9 @@ function setAttributes(element, attrs) {
 }
 
 class TabsListBase {
+  /** @type {boolean} */
+  #domRefreshPending = false;
+
   constructor({
     className,
     filterFn,
@@ -157,8 +160,14 @@ class TabsListBase {
   }
 
   _refreshDOM() {
-    this._cleanupDOM();
-    this._populateDOM();
+    if (!this.#domRefreshPending) {
+      this.#domRefreshPending = true;
+      this.containerNode.ownerGlobal.requestAnimationFrame(() => {
+        this.#domRefreshPending = false;
+        this._cleanupDOM();
+        this._populateDOM();
+      });
+    }
   }
 
   _setupListeners() {
