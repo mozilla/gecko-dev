@@ -69,6 +69,8 @@ private fun downloadStateReducer(
             items = action.items.filter { it.id !in state.pendingDeletionIds },
         )
 
+        is DownloadUIAction.ContentTypeSelected -> state.copy(userSelectedContentTypeFilter = action.contentTypeFilter)
+
         DownloadUIAction.Init -> state
     }
 }

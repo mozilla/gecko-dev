@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.downloads.listscreen
+package org.mozilla.fenix.downloads.listscreen.store
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.state.content.DownloadState
@@ -12,11 +12,6 @@ import org.junit.Assert.assertNotSame
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.downloads.listscreen.store.CreatedTime
-import org.mozilla.fenix.downloads.listscreen.store.DownloadUIAction
-import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
-import org.mozilla.fenix.downloads.listscreen.store.DownloadUIStore
-import org.mozilla.fenix.downloads.listscreen.store.FileItem
 
 @RunWith(AndroidJUnit4::class)
 class DownloadUIStoreTest {

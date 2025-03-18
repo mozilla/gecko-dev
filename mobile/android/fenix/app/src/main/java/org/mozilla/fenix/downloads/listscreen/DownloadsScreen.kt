@@ -7,16 +7,22 @@ package org.mozilla.fenix.downloads.listscreen
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -42,6 +48,7 @@ import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.SelectableChip
 import org.mozilla.fenix.compose.list.ExpandableListHeader
 import org.mozilla.fenix.compose.list.SelectableListItem
 import org.mozilla.fenix.compose.menu.DropdownMenu
@@ -73,14 +80,28 @@ fun DownloadsScreen(
 ) {
     val uiState by downloadsStore.observeAsState(initialValue = downloadsStore.state) { it }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(FirefoxTheme.colors.layer1),
-        contentAlignment = Alignment.Center,
+            .background(FirefoxTheme.colors.layer1)
+            .widthIn(max = FirefoxTheme.layout.size.containerMaxWidth),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (uiState.isEmptyState) {
-            NoDownloadsText()
+        if (uiState.filtersToDisplay.isNotEmpty()) {
+            Filters(
+                selectedContentTypeFilter = uiState.selectedContentTypeFilter,
+                contentTypeFilters = uiState.filtersToDisplay,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = FirefoxTheme.layout.space.static200),
+                onContentTypeSelected = {
+                    downloadsStore.dispatch(DownloadUIAction.ContentTypeSelected(it))
+                },
+            )
+        }
+
+        if (uiState.itemsToDisplay.isEmpty()) {
+            EmptyState(modifier = Modifier.fillMaxSize())
         } else {
             DownloadsContent(
                 state = uiState,
@@ -93,9 +114,7 @@ fun DownloadsScreen(
                     }
                 },
                 onDeleteClick = onItemDeleteClick,
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .widthIn(max = FirefoxTheme.layout.size.containerMaxWidth),
+                modifier = Modifier.fillMaxHeight(),
             )
         }
     }
@@ -114,7 +133,6 @@ private fun DownloadsContent(
 
     LazyColumn(
         modifier = modifier,
-        contentPadding = PaddingValues(vertical = FirefoxTheme.layout.space.static200),
     ) {
         itemsIndexed(
             items = state.itemsToDisplay,
@@ -233,13 +251,55 @@ private fun HeaderListItem(
 }
 
 @Composable
-private fun NoDownloadsText(modifier: Modifier = Modifier) {
-    Text(
-        text = stringResource(id = R.string.download_empty_message_1),
+private fun Filters(
+    selectedContentTypeFilter: FileItem.ContentTypeFilter,
+    contentTypeFilters: List<FileItem.ContentTypeFilter>,
+    modifier: Modifier = Modifier,
+    onContentTypeSelected: (FileItem.ContentTypeFilter) -> Unit,
+) {
+    LazyRow(
         modifier = modifier,
-        color = FirefoxTheme.colors.textSecondary,
-        style = FirefoxTheme.typography.body1,
+        horizontalArrangement = Arrangement.spacedBy(FirefoxTheme.layout.space.static100),
+        contentPadding = PaddingValues(horizontal = FirefoxTheme.layout.space.static200),
+    ) {
+        items(
+            items = contentTypeFilters,
+            key = { it },
+        ) { contentTypeParam ->
+            DownloadChip(
+                selected = selectedContentTypeFilter == contentTypeParam,
+                contentTypeFilter = contentTypeParam,
+                onContentTypeSelected = onContentTypeSelected,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DownloadChip(
+    selected: Boolean,
+    contentTypeFilter: FileItem.ContentTypeFilter,
+    onContentTypeSelected: (FileItem.ContentTypeFilter) -> Unit,
+) {
+    SelectableChip(
+        text = stringResource(id = contentTypeFilter.stringRes),
+        isSelected = selected,
+        onClick = { onContentTypeSelected(contentTypeFilter) },
     )
+}
+
+@Composable
+private fun EmptyState(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(id = R.string.download_empty_message_1),
+            color = FirefoxTheme.colors.textSecondary,
+            style = FirefoxTheme.typography.body1,
+        )
+    }
 }
 
 private class DownloadsScreenPreviewModelParameterProvider :
@@ -283,6 +343,7 @@ private class DownloadsScreenPreviewModelParameterProvider :
                 mode = DownloadUIState.Mode.Normal,
                 pendingDeletionIds = emptySet(),
                 isDeletingItems = false,
+                userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
             ),
         )
 }

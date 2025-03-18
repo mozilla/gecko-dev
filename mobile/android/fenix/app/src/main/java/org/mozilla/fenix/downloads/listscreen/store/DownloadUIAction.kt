@@ -59,4 +59,10 @@ sealed interface DownloadUIAction : Action {
      * [DownloadUIAction] to update the list of [FileItem]s.
      */
     data class UpdateFileItems(val items: List<FileItem>) : DownloadUIAction
+
+    /**
+     * [DownloadUIAction] to select a content type filter.
+     */
+    data class ContentTypeSelected(val contentTypeFilter: FileItem.ContentTypeFilter) :
+        DownloadUIAction
 }

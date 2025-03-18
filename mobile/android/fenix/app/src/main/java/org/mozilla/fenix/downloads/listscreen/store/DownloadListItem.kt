@@ -34,7 +34,55 @@ data class FileItem(
     val contentType: String?,
     val status: DownloadState.Status,
     val createdTime: CreatedTime,
-) : DownloadListItem
+) : DownloadListItem {
+
+    /**
+     * The content type filter based on the [contentType] of the [FileItem]
+     */
+    val matchingContentTypeFilter: ContentTypeFilter
+        get() = (ContentTypeFilter.interestingContentTypes)
+            .first { type -> type.predicate(contentType) }
+
+    /**
+     * Enum class representing the content type filter options
+     *
+     * @property stringRes The string resource id of the content type filter
+     * @property predicate The predicate for the content type filter
+     */
+    enum class ContentTypeFilter(
+        @StringRes val stringRes: Int,
+        val predicate: (String?) -> Boolean,
+    ) {
+        All(
+            stringRes = R.string.download_content_type_filter_all,
+            predicate = { true },
+        ),
+        Image(
+            stringRes = R.string.download_content_type_filter_image,
+            predicate = { it?.startsWith("image/") == true },
+        ),
+        Video(
+            stringRes = R.string.download_content_type_filter_video,
+            predicate = { it?.startsWith("video/") == true },
+        ),
+        Document(
+            stringRes = R.string.download_content_type_filter_document,
+            predicate = { it in listOf("application/pdf", "text/plain") },
+        ),
+        Other(
+            stringRes = R.string.download_content_type_filter_other,
+            predicate = { !Image.predicate(it) && !Video.predicate(it) && !Document.predicate(it) },
+        ),
+        ;
+
+        /**
+         * @see [ContentTypeFilter].
+         */
+        companion object {
+            val interestingContentTypes = entries - All
+        }
+    }
+}
 
 /**
  * Class representing a downloads section header
