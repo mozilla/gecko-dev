@@ -79,7 +79,7 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
         "ExternalTextureD3D11.cpp",
     ]
 
-if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
+if CONFIG["OS_TARGET"] == "Linux":
     EXPORTS.mozilla.webgpu += [
         "ExternalTextureDMABuf.h",
     ]
