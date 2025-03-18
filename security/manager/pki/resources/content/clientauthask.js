@@ -87,6 +87,9 @@ async function onLoad() {
   await setDetails();
   document.addEventListener("dialogaccept", doOK);
   document.addEventListener("dialogcancel", doCancel);
+  document
+    .getElementById("nicknames")
+    .addEventListener("command", () => onCertSelected());
 
   Services.obs.notifyObservers(
     document.getElementById("certAuthAsk"),
@@ -169,3 +172,5 @@ function doCancel() {
   retVals.cert = null;
   retVals.rememberDecision = rememberBox.checked;
 }
+
+window.addEventListener("load", () => onLoad());

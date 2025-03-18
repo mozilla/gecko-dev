@@ -3,13 +3,14 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<?csp default-src chrome:; ?>
+
 <!DOCTYPE window>
 
 <window
   data-l10n-id="client-auth-window"
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   xmlns:html="http://www.w3.org/1999/xhtml"
-  onload="onLoad();"
 >
   <dialog
     id="certAuthAsk"
@@ -47,7 +48,7 @@
     <!-- The items in this menulist must never be sorted,
      but remain in the order filled by the application
 -->
-    <menulist id="nicknames" oncommand="onCertSelected();" native="true">
+    <menulist id="nicknames" native="true">
       <menupopup />
     </menulist>
 
