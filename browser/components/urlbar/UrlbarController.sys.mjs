@@ -939,7 +939,6 @@ class TelemetryEvent {
     }
 
     let action;
-    let skipLegacyTelemetry = false;
     if (!event) {
       action =
         startEventInfo.interactionType == "dropped" ? "drop_go" : "paste_go";
@@ -955,10 +954,8 @@ class TelemetryEvent {
       details.element.dataset.command != "help"
     ) {
       action = details.element.dataset.command;
-      skipLegacyTelemetry = true;
     } else if (details.selType == "dismiss") {
       action = "dismiss";
-      skipLegacyTelemetry = true;
     } else if (MouseEvent.isInstance(event)) {
       action = event.target.classList.contains("urlbar-go-button")
         ? "go_button"
@@ -1014,22 +1011,6 @@ class TelemetryEvent {
 
     if (!details.isSessionOngoing) {
       this.#recordExposures(queryContext);
-    }
-
-    if (!skipLegacyTelemetry) {
-      let firstVisibleResult = this._controller.view?.visibleResults?.[0];
-      if (
-        method === "engagement" &&
-        firstVisibleResult?.autofill &&
-        firstVisibleResult?.type == lazy.UrlbarUtils.RESULT_TYPE.URL
-      ) {
-        // Record autofill impressions upon engagement.
-        const type = lazy.UrlbarUtils.telemetryTypeFromResult(
-          firstVisibleResult,
-          true
-        );
-        Glean.urlbarImpression[type]?.add(1);
-      }
     }
 
     try {

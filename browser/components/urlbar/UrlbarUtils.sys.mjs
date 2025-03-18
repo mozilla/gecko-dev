@@ -1237,12 +1237,9 @@ export var UrlbarUtils = {
    * telemetry.
    *
    * @param {UrlbarResult} result The result to analyze.
-   * @param {boolean} camelCase Whether the returned telemetry type should be the
-                                camelCase version.
-                                Eventually this should be the default (bug 1928946).
    * @returns {string} A string type for telemetry.
    */
-  telemetryTypeFromResult(result, camelCase = false) {
+  telemetryTypeFromResult(result) {
     if (!result) {
       return "unknown";
     }
@@ -1251,7 +1248,7 @@ export var UrlbarUtils = {
         return "switchtab";
       case UrlbarUtils.RESULT_TYPE.SEARCH:
         if (result.providerName == "RecentSearches") {
-          return camelCase ? "recentSearch" : "recent_search";
+          return "recent_search";
         }
         if (result.source == UrlbarUtils.RESULT_SOURCE.HISTORY) {
           return "formhistory";
@@ -1262,7 +1259,7 @@ export var UrlbarUtils = {
         if (result.payload.suggestion) {
           let type = result.payload.trending ? "trending" : "searchsuggestion";
           if (result.isRichSuggestion) {
-            type += camelCase ? "Rich" : "_rich";
+            type += "_rich";
           }
           return type;
         }
@@ -1277,9 +1274,6 @@ export var UrlbarUtils = {
                 "`result.autofill.type` not set, falling back to 'other'"
               )
             );
-          }
-          if (camelCase) {
-            return `autofill${type[0].toUpperCase()}${type.slice(1)}`;
           }
           return `autofill_${type}`;
         }
@@ -1301,7 +1295,7 @@ export var UrlbarUtils = {
               ? "bookmark"
               : "history";
           if (result.providerName == "InputHistory") {
-            return type + (camelCase ? "Adaptive" : "adaptive");
+            return type + "adaptive";
           }
           return type;
         }
@@ -1321,22 +1315,16 @@ export var UrlbarUtils = {
         return "dynamic";
       case UrlbarUtils.RESULT_TYPE.RESTRICT:
         if (result.payload.keyword === lazy.UrlbarTokenizer.RESTRICT.BOOKMARK) {
-          return camelCase
-            ? "restrictKeywordBookmarks"
-            : "restrict_keyword_bookmarks";
+          return "restrict_keyword_bookmarks";
         }
         if (result.payload.keyword === lazy.UrlbarTokenizer.RESTRICT.OPENPAGE) {
-          return camelCase ? "restrictKeywordTabs" : "restrict_keyword_tabs";
+          return "restrict_keyword_tabs";
         }
         if (result.payload.keyword === lazy.UrlbarTokenizer.RESTRICT.HISTORY) {
-          return camelCase
-            ? "restrictKeywordHistory"
-            : "restrict_keyword_history";
+          return "restrict_keyword_history";
         }
         if (result.payload.keyword === lazy.UrlbarTokenizer.RESTRICT.ACTION) {
-          return camelCase
-            ? "restrictKeywordActions"
-            : "restrict_keyword_actions";
+          return "restrict_keyword_actions";
         }
     }
     return "unknown";

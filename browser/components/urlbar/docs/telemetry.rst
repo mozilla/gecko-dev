@@ -135,6 +135,8 @@ urlbar.engagement
 urlbar.impression.*
 ~~~~~~~~~~~~~~~~~~~
 
+  NOTE: This telemetry is no longer collected. See changelog below.
+
   A uint recording the number of impression that was displaying when user picks
   any result.
 
@@ -152,6 +154,13 @@ urlbar.impression.*
     code that is not properly setting a specific autofill type.
   - ``autofill_url``
     For url type autofill.
+
+  Changelog
+    Firefox 134
+      Legacy ``urlbar.impression.*`` telemetry mirrored to Glean. (See bug 1927093)
+    Firefox 138
+      Legacy ``urlbar.impression.*`` telemetry and Glean ``urlbar.impression.*`` telemetry
+      removed completely. (See bug 1932712)
 
 urlbar.persistedsearchterms.revert_by_popup_count
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
