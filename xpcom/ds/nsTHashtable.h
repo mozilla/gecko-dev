@@ -25,7 +25,6 @@
 #include "mozilla/fallible.h"
 #include "nsPointerHashKeys.h"
 #include "nsTArrayForwardDeclare.h"
-#include "nsCycleCollectionContainerParticipant.h"
 
 template <class EntryType>
 class nsTHashtable;
@@ -431,8 +430,8 @@ class MOZ_NEEDS_NO_VTABLE_TYPE nsTHashtable {
   };
 
   template <class F>
-  auto WithEntryHandle(KeyType aKey, F&& aFunc)
-      -> std::invoke_result_t<F, EntryHandle&&> {
+  auto WithEntryHandle(KeyType aKey,
+                       F&& aFunc) -> std::invoke_result_t<F, EntryHandle&&> {
     return this->mTable.WithEntryHandle(
         EntryType::KeyToPointer(aKey),
         [&aKey, &aFunc](auto entryHandle) -> decltype(auto) {
@@ -723,21 +722,20 @@ void nsTHashtable<EntryType>::s_ClearEntry(PLDHashTable* aTable,
 }
 
 class nsCycleCollectionTraversalCallback;
-struct TraceCallbacks;
 
 template <class EntryType>
 inline void ImplCycleCollectionUnlink(nsTHashtable<EntryType>& aField) {
   aField.Clear();
 }
 
-// Function template constrained to types that are (possibly const)
-// nsTHashtable.
-template <typename Container, typename Callback,
-          EnableCycleCollectionIf<Container, nsTHashtable> = nullptr>
-inline void ImplCycleCollectionContainer(Container&& aField,
-                                         Callback&& aCallback) {
-  for (auto& entry : aField) {
-    aCallback(entry);
+template <class EntryType>
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback,
+    const nsTHashtable<EntryType>& aField, const char* aName,
+    uint32_t aFlags = 0) {
+  for (auto iter = aField.ConstIter(); !iter.Done(); iter.Next()) {
+    const EntryType* entry = iter.Get();
+    ImplCycleCollectionTraverse(aCallback, *entry, aName, aFlags);
   }
 }
 
@@ -878,8 +876,8 @@ class nsTHashtable<nsPtrHashKey<T>>
   };
 
   template <class F>
-  auto WithEntryHandle(KeyType aKey, F aFunc)
-      -> std::invoke_result_t<F, EntryHandle&&> {
+  auto WithEntryHandle(KeyType aKey,
+                       F aFunc) -> std::invoke_result_t<F, EntryHandle&&> {
     return Base::WithEntryHandle(aKey, [&aFunc](auto entryHandle) {
       return aFunc(EntryHandle{std::move(entryHandle)});
     });

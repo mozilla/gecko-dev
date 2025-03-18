@@ -15,8 +15,8 @@ extern mozilla::LazyLogModule gNavigationLog;
 
 namespace mozilla::dom {
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED(NavigationHistoryEntry,
-                                   DOMEventTargetHelper);
+NS_IMPL_CYCLE_COLLECTION_INHERITED(NavigationHistoryEntry, DOMEventTargetHelper,
+                                   mWindow);
 NS_IMPL_ADDREF_INHERITED(NavigationHistoryEntry, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(NavigationHistoryEntry, DOMEventTargetHelper)
 
@@ -24,21 +24,18 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(NavigationHistoryEntry)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 NavigationHistoryEntry::NavigationHistoryEntry(
-    nsIGlobalObject* aGlobal, const SessionHistoryInfo* aSHInfo, int64_t aIndex)
-    : DOMEventTargetHelper(aGlobal),
+    nsPIDOMWindowInner* aWindow, const SessionHistoryInfo* aSHInfo,
+    int64_t aIndex)
+    : mWindow(aWindow),
       mSHInfo(MakeUnique<SessionHistoryInfo>(*aSHInfo)),
       mIndex(aIndex) {}
 
 NavigationHistoryEntry::~NavigationHistoryEntry() = default;
 
-// https://html.spec.whatwg.org/#dom-navigationhistoryentry-url
 void NavigationHistoryEntry::GetUrl(nsAString& aResult) const {
-  if (!HasActiveDocument()) {
+  if (!GetCurrentDocument()->IsCurrentActiveDocument()) {
     return;
   }
-
-  // HasActiveDocument implies that GetCurrentDocument returns non-null.
-  MOZ_DIAGNOSTIC_ASSERT(GetCurrentDocument());
 
   if (!SameDocument()) {
     auto referrerPolicy = GetCurrentDocument()->ReferrerPolicy();
@@ -56,9 +53,8 @@ void NavigationHistoryEntry::GetUrl(nsAString& aResult) const {
   CopyUTF8toUTF16(uriSpec, aResult);
 }
 
-// https://html.spec.whatwg.org/#dom-navigationhistoryentry-key
 void NavigationHistoryEntry::GetKey(nsAString& aResult) const {
-  if (!HasActiveDocument()) {
+  if (!GetCurrentDocument()->IsCurrentActiveDocument()) {
     return;
   }
 
@@ -67,9 +63,8 @@ void NavigationHistoryEntry::GetKey(nsAString& aResult) const {
   CopyUTF8toUTF16(Substring(keyString.get() + 1, NSID_LENGTH - 3), aResult);
 }
 
-// https://html.spec.whatwg.org/#dom-navigationhistoryentry-id
 void NavigationHistoryEntry::GetId(nsAString& aResult) const {
-  if (!HasActiveDocument()) {
+  if (!GetCurrentDocument()->IsCurrentActiveDocument()) {
     return;
   }
 
@@ -78,30 +73,20 @@ void NavigationHistoryEntry::GetId(nsAString& aResult) const {
   CopyUTF8toUTF16(Substring(idString.get() + 1, NSID_LENGTH - 3), aResult);
 }
 
-// https://html.spec.whatwg.org/#dom-navigationhistoryentry-index
 int64_t NavigationHistoryEntry::Index() const {
   MOZ_ASSERT(mSHInfo);
-  if (!HasActiveDocument()) {
+  if (!GetCurrentDocument()->IsCurrentActiveDocument()) {
     return -1;
   }
   return mIndex;
 }
 
-// https://html.spec.whatwg.org/#dom-navigationhistoryentry-samedocument
 bool NavigationHistoryEntry::SameDocument() const {
-  if (!HasActiveDocument()) {
-    return false;
-  }
-
-  // HasActiveDocument implies that GetCurrentDocument returns non-null.
-  MOZ_DIAGNOSTIC_ASSERT(GetCurrentDocument());
-
   MOZ_ASSERT(mSHInfo);
-  auto* docShell = nsDocShell::Cast(GetCurrentDocument()->GetDocShell());
-  return docShell && docShell->IsSameDocumentAsActiveEntry(*mSHInfo);
+  auto* docShell = static_cast<nsDocShell*>(mWindow->GetDocShell());
+  return docShell->IsSameDocumentAsActiveEntry(*mSHInfo);
 }
 
-// https://html.spec.whatwg.org/#dom-navigationhistoryentry-getstate
 void NavigationHistoryEntry::GetState(JSContext* aCx,
                                       JS::MutableHandle<JS::Value> aResult,
                                       ErrorResult& aRv) const {
@@ -122,10 +107,8 @@ void NavigationHistoryEntry::GetState(JSContext* aCx,
 }
 
 void NavigationHistoryEntry::SetState(nsStructuredCloneContainer* aState) {
-  if (RefPtr<nsStructuredCloneContainer> state =
-          mSHInfo->GetNavigationState()) {
-    state->Copy(*aState);
-  }
+  RefPtr<nsStructuredCloneContainer> state = mSHInfo->GetNavigationState();
+  state->Copy(*aState);
 }
 
 bool NavigationHistoryEntry::IsSameEntry(
@@ -144,27 +127,11 @@ JSObject* NavigationHistoryEntry::WrapObject(
 }
 
 Document* NavigationHistoryEntry::GetCurrentDocument() const {
-  return GetDocumentIfCurrent();
-}
-
-bool NavigationHistoryEntry::HasActiveDocument() const {
-  if (auto* document = GetCurrentDocument()) {
-    return document->IsCurrentActiveDocument();
-  }
-
-  return false;
+  return mWindow->GetDoc();
 }
 
 const nsID& NavigationHistoryEntry::Key() const {
   return mSHInfo->NavigationKey();
-}
-
-nsStructuredCloneContainer* NavigationHistoryEntry::GetNavigationState() const {
-  if (!mSHInfo) {
-    return nullptr;
-  }
-
-  return mSHInfo->GetNavigationState();
 }
 
 }  // namespace mozilla::dom
