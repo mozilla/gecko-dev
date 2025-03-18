@@ -125,17 +125,25 @@ toolbar .toolbarbutton-1 {
     &:hover > :is(.toolbarbutton-icon, .toolbarbutton-text, .toolbarbutton-badge-stack) {
       background-color: var(--toolbarbutton-hover-background);
       color: inherit;
-      outline-color: var(--toolbarbutton-hover-outline-color);
     }
 
     &:is(:hover:active, [open], [checked]) > :is(.toolbarbutton-icon, .toolbarbutton-text, .toolbarbutton-badge-stack) {
       background-color: var(--toolbarbutton-active-background);
       color: inherit;
-      outline-color: var(--toolbarbutton-active-outline-color);
     }
 
-    &:is([open], [checked]) > :is(.toolbarbutton-icon, .toolbarbutton-text, .toolbarbutton-badge-stack) {
-      outline-color: var(--toolbarbutton-selected-outline-color);
+    &:not(:focus-visible) {
+      &:hover > :is(.toolbarbutton-icon, .toolbarbutton-text, .toolbarbutton-badge-stack) {
+        outline-color: var(--toolbarbutton-hover-outline-color);
+      }
+
+      &:hover:active > :is(.toolbarbutton-icon, .toolbarbutton-text, .toolbarbutton-badge-stack) {
+        outline-color: var(--toolbarbutton-active-outline-color);
+      }
+
+      &:is([open], [checked]) > :is(.toolbarbutton-icon, .toolbarbutton-text, .toolbarbutton-badge-stack) {
+        outline-color: var(--toolbarbutton-selected-outline-color);
+      }
     }
   }
 }
