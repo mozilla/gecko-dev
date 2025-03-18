@@ -43,7 +43,8 @@ static const GUID sGUID_PROP_URL = {
     0x4308,
     {0xbc, 0xbf, 0x2e, 0x73, 0x93, 0x98, 0xe2, 0x34}};
 
-namespace mozilla::widget {
+namespace mozilla {
+namespace widget {
 
 /**
  * TSF related code should log its behavior even on release build especially
@@ -65,48 +66,48 @@ namespace mozilla::widget {
 
 enum class TextInputProcessorID {
   // Internal use only.  This won't be returned by TSFStaticSink::ActiveTIP().
-  NotComputed,
+  eNotComputed,
 
   // Not a TIP.  E.g., simple keyboard layout or IMM-IME.
-  None,
+  eNone,
 
   // Used for other TIPs, i.e., any TIPs which we don't support specifically.
-  Unknown,
+  eUnknown,
 
   // TIP for Japanese.
-  MicrosoftIMEForJapanese,
-  MicrosoftOfficeIME2010ForJapanese,
-  GoogleJapaneseInput,
-  ATOK2011,
-  ATOK2012,
-  ATOK2013,
-  ATOK2014,
-  ATOK2015,
-  ATOK2016,
-  ATOKUnknown,
-  Japanist10,
+  eMicrosoftIMEForJapanese,
+  eMicrosoftOfficeIME2010ForJapanese,
+  eGoogleJapaneseInput,
+  eATOK2011,
+  eATOK2012,
+  eATOK2013,
+  eATOK2014,
+  eATOK2015,
+  eATOK2016,
+  eATOKUnknown,
+  eJapanist10,
 
   // TIP for Traditional Chinese.
-  MicrosoftBopomofo,
-  MicrosoftChangJie,
-  MicrosoftPhonetic,
-  MicrosoftQuick,
-  MicrosoftNewChangJie,
-  MicrosoftNewPhonetic,
-  MicrosoftNewQuick,
-  FreeChangJie,
+  eMicrosoftBopomofo,
+  eMicrosoftChangJie,
+  eMicrosoftPhonetic,
+  eMicrosoftQuick,
+  eMicrosoftNewChangJie,
+  eMicrosoftNewPhonetic,
+  eMicrosoftNewQuick,
+  eFreeChangJie,
 
   // TIP for Simplified Chinese.
-  MicrosoftPinyin,
-  MicrosoftPinyinNewExperienceInputStyle,
-  MicrosoftWubi,
+  eMicrosoftPinyin,
+  eMicrosoftPinyinNewExperienceInputStyle,
+  eMicrosoftWubi,
 
   // TIP for Korean.
-  MicrosoftIMEForKorean,
-  MicrosoftOldHangul,
+  eMicrosoftIMEForKorean,
+  eMicrosoftOldHangul,
 
   // Keyman Desktop, which can install various language keyboards.
-  KeymanDesktop,
+  eKeymanDesktop,
 };
 
 static const char* GetBoolName(bool aBool) { return aBool ? "true" : "false"; }
@@ -117,7 +118,7 @@ static void HandleSeparator(nsCString& aDesc) {
   }
 }
 
-static nsCString GetFindFlagName(DWORD aFindFlag) {
+static const nsCString GetFindFlagName(DWORD aFindFlag) {
   nsCString description;
   if (!aFindFlag) {
     description.AppendLiteral("no flags (0)");
@@ -404,7 +405,7 @@ static const char* GetTextStoreReturnValueName(HRESULT aResult) {
   }
 }
 
-static nsCString GetSinkMaskNameStr(DWORD aSinkMask) {
+static const nsCString GetSinkMaskNameStr(DWORD aSinkMask) {
   nsCString description;
   if (aSinkMask & TS_AS_TEXT_CHANGE) {
     description.AppendLiteral("TS_AS_TEXT_CHANGE");
@@ -431,7 +432,7 @@ static nsCString GetSinkMaskNameStr(DWORD aSinkMask) {
   return description;
 }
 
-static nsCString GetLockFlagNameStr(DWORD aLockFlags) {
+static const nsCString GetLockFlagNameStr(DWORD aLockFlags) {
   nsCString description;
   if ((aLockFlags & TS_LF_READWRITE) == TS_LF_READWRITE) {
     description.AppendLiteral("TS_LF_READWRITE");
@@ -1015,19 +1016,19 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
   /**
    * ActiveTIP() returns an ID for currently active TIP.
    * Please note that this method is expensive due to needs a lot of GUID
-   * comparisons if active language ID is one of CJKT.  If you need to
+   * comparations if active language ID is one of CJKT.  If you need to
    * check TIPs for a specific language, you should check current language
    * first.
    */
   static TextInputProcessorID ActiveTIP() {
     EnsureInstance();
     if (!sInstance || !sInstance->EnsureInitActiveTIPKeyboard()) {
-      return TextInputProcessorID::Unknown;
+      return TextInputProcessorID::eUnknown;
     }
     sInstance->ComputeActiveTextInputProcessor();
     if (NS_WARN_IF(sInstance->mActiveTIP ==
-                   TextInputProcessorID::NotComputed)) {
-      return TextInputProcessorID::Unknown;
+                   TextInputProcessorID::eNotComputed)) {
+      return TextInputProcessorID::eUnknown;
     }
     return sInstance->mActiveTIP;
   }
@@ -1074,8 +1075,8 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
       return false;
     }
     switch (ActiveTIP()) {
-      case TextInputProcessorID::MicrosoftChangJie:
-      case TextInputProcessorID::MicrosoftQuick:
+      case TextInputProcessorID::eMicrosoftChangJie:
+      case TextInputProcessorID::eMicrosoftQuick:
         return true;
       default:
         return false;
@@ -1090,8 +1091,8 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
       return false;
     }
     switch (ActiveTIP()) {
-      case TextInputProcessorID::MicrosoftPinyin:
-      case TextInputProcessorID::MicrosoftWubi:
+      case TextInputProcessorID::eMicrosoftPinyin:
+      case TextInputProcessorID::eMicrosoftWubi:
         return true;
       default:
         return false;
@@ -1105,7 +1106,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
     if (!IsJapanese()) {
       return false;
     }
-    return ActiveTIP() == TextInputProcessorID::MicrosoftIMEForJapanese;
+    return ActiveTIP() == TextInputProcessorID::eMicrosoftIMEForJapanese;
   }
 
   static bool IsGoogleJapaneseInputActive() {
@@ -1115,7 +1116,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
     if (!IsJapanese()) {
       return false;
     }
-    return ActiveTIP() == TextInputProcessorID::GoogleJapaneseInput;
+    return ActiveTIP() == TextInputProcessorID::eGoogleJapaneseInput;
   }
 
   static bool IsATOKActive() {
@@ -1135,11 +1136,11 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
       return false;
     }
     switch (ActiveTIP()) {
-      case TextInputProcessorID::ATOK2011:
-      case TextInputProcessorID::ATOK2012:
-      case TextInputProcessorID::ATOK2013:
-      case TextInputProcessorID::ATOK2014:
-      case TextInputProcessorID::ATOK2015:
+      case TextInputProcessorID::eATOK2011:
+      case TextInputProcessorID::eATOK2012:
+      case TextInputProcessorID::eATOK2013:
+      case TextInputProcessorID::eATOK2014:
+      case TextInputProcessorID::eATOK2015:
         return true;
       default:
         return false;
@@ -1168,12 +1169,12 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
   }
 
   void ComputeActiveTextInputProcessor() {
-    if (mActiveTIP != TextInputProcessorID::NotComputed) {
+    if (mActiveTIP != TextInputProcessorID::eNotComputed) {
       return;
     }
 
     if (mActiveTIPGUID == GUID_NULL) {
-      mActiveTIP = TextInputProcessorID::None;
+      mActiveTIP = TextInputProcessorID::eNone;
       return;
     }
 
@@ -1194,12 +1195,12 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         mActiveTIP = ComputeActiveTIPAsSimplifiedChinese();
         break;
       default:
-        mActiveTIP = TextInputProcessorID::Unknown;
+        mActiveTIP = TextInputProcessorID::eUnknown;
         break;
     }
     // Special case for Keyman Desktop, it is available for any languages.
     // Therefore, we need to check it only if we don't know the active TIP.
-    if (mActiveTIP != TextInputProcessorID::Unknown) {
+    if (mActiveTIP != TextInputProcessorID::eUnknown) {
       return;
     }
 
@@ -1214,7 +1215,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x4B4C,
         {0x96, 0xBF, 0xE7, 0xE2, 0x0A, 0x74, 0xCF, 0xB7}};
     if (mActiveTIPCLSID == kKeymanDesktop_CLSID) {
-      mActiveTIP = TextInputProcessorID::KeymanDesktop;
+      mActiveTIP = TextInputProcessorID::eKeymanDesktop;
     }
   }
 
@@ -1226,7 +1227,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x4E90,
         {0xAA, 0xFA, 0x4D, 0xB1, 0x12, 0xF9, 0xAC, 0x76}};
     if (mActiveTIPGUID == kMicrosoftIMEForJapaneseGUID) {
-      return TextInputProcessorID::MicrosoftIMEForJapanese;
+      return TextInputProcessorID::eMicrosoftIMEForJapanese;
     }
     // {54EDCC94-1524-4BB1-9FB7-7BABE4F4CA64}
     static constexpr GUID kMicrosoftOfficeIME2010ForJapaneseGUID = {
@@ -1235,7 +1236,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x4BB1,
         {0x9F, 0xB7, 0x7B, 0xAB, 0xE4, 0xF4, 0xCA, 0x64}};
     if (mActiveTIPGUID == kMicrosoftOfficeIME2010ForJapaneseGUID) {
-      return TextInputProcessorID::MicrosoftOfficeIME2010ForJapanese;
+      return TextInputProcessorID::eMicrosoftOfficeIME2010ForJapanese;
     }
     // {773EB24E-CA1D-4B1B-B420-FA985BB0B80D}
     static constexpr GUID kGoogleJapaneseInputGUID = {
@@ -1244,7 +1245,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x4B1B,
         {0xB4, 0x20, 0xFA, 0x98, 0x5B, 0xB0, 0xB8, 0x0D}};
     if (mActiveTIPGUID == kGoogleJapaneseInputGUID) {
-      return TextInputProcessorID::GoogleJapaneseInput;
+      return TextInputProcessorID::eGoogleJapaneseInput;
     }
     // {F9C24A5C-8A53-499D-9572-93B2FF582115}
     static const GUID kATOK2011GUID = {
@@ -1253,7 +1254,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x499D,
         {0x95, 0x72, 0x93, 0xB2, 0xFF, 0x58, 0x21, 0x15}};
     if (mActiveTIPGUID == kATOK2011GUID) {
-      return TextInputProcessorID::ATOK2011;
+      return TextInputProcessorID::eATOK2011;
     }
     // {1DE01562-F445-401B-B6C3-E5B18DB79461}
     static constexpr GUID kATOK2012GUID = {
@@ -1262,7 +1263,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x401B,
         {0xB6, 0xC3, 0xE5, 0xB1, 0x8D, 0xB7, 0x94, 0x61}};
     if (mActiveTIPGUID == kATOK2012GUID) {
-      return TextInputProcessorID::ATOK2012;
+      return TextInputProcessorID::eATOK2012;
     }
     // {3C4DB511-189A-4168-B6EA-BFD0B4C85615}
     static constexpr GUID kATOK2013GUID = {
@@ -1271,7 +1272,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x4168,
         {0xB6, 0xEA, 0xBF, 0xD0, 0xB4, 0xC8, 0x56, 0x15}};
     if (mActiveTIPGUID == kATOK2013GUID) {
-      return TextInputProcessorID::ATOK2013;
+      return TextInputProcessorID::eATOK2013;
     }
     // {4EF33B79-6AA9-4271-B4BF-9321C279381B}
     static constexpr GUID kATOK2014GUID = {
@@ -1280,7 +1281,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x4271,
         {0xB4, 0xBF, 0x93, 0x21, 0xC2, 0x79, 0x38, 0x1B}};
     if (mActiveTIPGUID == kATOK2014GUID) {
-      return TextInputProcessorID::ATOK2014;
+      return TextInputProcessorID::eATOK2014;
     }
     // {EAB4DC00-CE2E-483D-A86A-E6B99DA9599A}
     static constexpr GUID kATOK2015GUID = {
@@ -1289,7 +1290,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x483D,
         {0xA8, 0x6A, 0xE6, 0xB9, 0x9D, 0xA9, 0x59, 0x9A}};
     if (mActiveTIPGUID == kATOK2015GUID) {
-      return TextInputProcessorID::ATOK2015;
+      return TextInputProcessorID::eATOK2015;
     }
     // {0B557B4C-5740-4110-A60A-1493FA10BF2B}
     static constexpr GUID kATOK2016GUID = {
@@ -1298,7 +1299,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x4110,
         {0xA6, 0x0A, 0x14, 0x93, 0xFA, 0x10, 0xBF, 0x2B}};
     if (mActiveTIPGUID == kATOK2016GUID) {
-      return TextInputProcessorID::ATOK2016;
+      return TextInputProcessorID::eATOK2016;
     }
 
     // * ATOK 2017
@@ -1307,7 +1308,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
     //   - {A38F2FD9-7199-45E1-841C-BE0313D8052F}
 
     if (IsATOKActiveInternal()) {
-      return TextInputProcessorID::ATOKUnknown;
+      return TextInputProcessorID::eATOKUnknown;
     }
 
     // {E6D66705-1EDA-4373-8D01-1D0CB2D054C7}
@@ -1317,10 +1318,10 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x4373,
         {0x8D, 0x01, 0x1D, 0x0C, 0xB2, 0xD0, 0x54, 0xC7}};
     if (mActiveTIPGUID == kJapanist10GUID) {
-      return TextInputProcessorID::Japanist10;
+      return TextInputProcessorID::eJapanist10;
     }
 
-    return TextInputProcessorID::Unknown;
+    return TextInputProcessorID::eUnknown;
   }
 
   TextInputProcessorID ComputeActiveTIPAsTraditionalChinese() {
@@ -1331,7 +1332,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x11D4,
         {0x97, 0x90, 0x00, 0x80, 0xC8, 0x82, 0x68, 0x7E}};
     if (mActiveTIPGUID == kMicrosoftBopomofoGUID) {
-      return TextInputProcessorID::MicrosoftBopomofo;
+      return TextInputProcessorID::eMicrosoftBopomofo;
     }
     // {4BDF9F03-C7D3-11D4-B2AB-0080C882687E} (Win7, Win8.1, Win10)
     static const GUID kMicrosoftChangJieGUID = {
@@ -1340,7 +1341,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x11D4,
         {0xB2, 0xAB, 0x00, 0x80, 0xC8, 0x82, 0x68, 0x7E}};
     if (mActiveTIPGUID == kMicrosoftChangJieGUID) {
-      return TextInputProcessorID::MicrosoftChangJie;
+      return TextInputProcessorID::eMicrosoftChangJie;
     }
     // {761309DE-317A-11D4-9B5D-0080C882687E} (Win7)
     static constexpr GUID kMicrosoftPhoneticGUID = {
@@ -1349,7 +1350,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x11D4,
         {0x9B, 0x5D, 0x00, 0x80, 0xC8, 0x82, 0x68, 0x7E}};
     if (mActiveTIPGUID == kMicrosoftPhoneticGUID) {
-      return TextInputProcessorID::MicrosoftPhonetic;
+      return TextInputProcessorID::eMicrosoftPhonetic;
     }
     // {6024B45F-5C54-11D4-B921-0080C882687E} (Win7, Win8.1, Win10)
     static constexpr GUID kMicrosoftQuickGUID = {
@@ -1358,7 +1359,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x11D4,
         {0xB9, 0x21, 0x00, 0x80, 0xC8, 0x82, 0x68, 0x7E}};
     if (mActiveTIPGUID == kMicrosoftQuickGUID) {
-      return TextInputProcessorID::MicrosoftQuick;
+      return TextInputProcessorID::eMicrosoftQuick;
     }
     // {F3BA907A-6C7E-11D4-97FA-0080C882687E} (Win7)
     static constexpr GUID kMicrosoftNewChangJieGUID = {
@@ -1367,7 +1368,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x11D4,
         {0x97, 0xFA, 0x00, 0x80, 0xC8, 0x82, 0x68, 0x7E}};
     if (mActiveTIPGUID == kMicrosoftNewChangJieGUID) {
-      return TextInputProcessorID::MicrosoftNewChangJie;
+      return TextInputProcessorID::eMicrosoftNewChangJie;
     }
     // {B2F9C502-1742-11D4-9790-0080C882687E} (Win7)
     static constexpr GUID kMicrosoftNewPhoneticGUID = {
@@ -1376,7 +1377,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x11D4,
         {0x97, 0x90, 0x00, 0x80, 0xC8, 0x82, 0x68, 0x7E}};
     if (mActiveTIPGUID == kMicrosoftNewPhoneticGUID) {
-      return TextInputProcessorID::MicrosoftNewPhonetic;
+      return TextInputProcessorID::eMicrosoftNewPhonetic;
     }
     // {0B883BA0-C1C7-11D4-87F9-0080C882687E} (Win7)
     static constexpr GUID kMicrosoftNewQuickGUID = {
@@ -1385,7 +1386,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x11D4,
         {0x87, 0xF9, 0x00, 0x80, 0xC8, 0x82, 0x68, 0x7E}};
     if (mActiveTIPGUID == kMicrosoftNewQuickGUID) {
-      return TextInputProcessorID::MicrosoftNewQuick;
+      return TextInputProcessorID::eMicrosoftNewQuick;
     }
 
     // NOTE: There are some other Traditional Chinese TIPs installed in Windows:
@@ -1401,10 +1402,10 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x4335,
         {0xBB, 0xC9, 0xE7, 0x7B, 0xBC, 0xB4, 0x3C, 0xAD}};
     if (mActiveTIPGUID == kFreeChangJieGUID) {
-      return TextInputProcessorID::FreeChangJie;
+      return TextInputProcessorID::eFreeChangJie;
     }
 
-    return TextInputProcessorID::Unknown;
+    return TextInputProcessorID::eUnknown;
   }
 
   TextInputProcessorID ComputeActiveTIPAsSimplifiedChinese() {
@@ -1417,7 +1418,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x411F,
         {0xA5, 0xAC, 0xCA, 0x03, 0x8E, 0xC5, 0x15, 0xD7}};
     if (mActiveTIPGUID == kMicrosoftPinyinGUID) {
-      return TextInputProcessorID::MicrosoftPinyin;
+      return TextInputProcessorID::eMicrosoftPinyin;
     }
 
     // {F3BA9077-6C7E-11D4-97FA-0080C882687E} (Win7)
@@ -1427,7 +1428,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x11D4,
         {0x97, 0xFA, 0x00, 0x80, 0xC8, 0x82, 0x68, 0x7E}};
     if (mActiveTIPGUID == kMicrosoftPinyinNewExperienceInputStyleGUID) {
-      return TextInputProcessorID::MicrosoftPinyinNewExperienceInputStyle;
+      return TextInputProcessorID::eMicrosoftPinyinNewExperienceInputStyle;
     }
     // {82590C13-F4DD-44F4-BA1D-8667246FDF8E} (Win8.1, Win10)
     static constexpr GUID kMicrosoftWubiGUID = {
@@ -1436,7 +1437,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x44F4,
         {0xBA, 0x1D, 0x86, 0x67, 0x24, 0x6F, 0xDF, 0x8E}};
     if (mActiveTIPGUID == kMicrosoftWubiGUID) {
-      return TextInputProcessorID::MicrosoftWubi;
+      return TextInputProcessorID::eMicrosoftWubi;
     }
     // NOTE: There are some other Simplified Chinese TIPs installed in Windows:
     // * Chinese Simplified QuanPin (version 6.0)
@@ -1447,7 +1448,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
     //   - {EF63706D-31C4-490E-9DBB-BD150ADC454B} (Win8.1)
     // * Microsoft Pinyin ABC Input Style
     //   - {FCA121D2-8C6D-41FB-B2DE-A2AD110D4820} (Win7)
-    return TextInputProcessorID::Unknown;
+    return TextInputProcessorID::eUnknown;
   }
 
   TextInputProcessorID ComputeActiveTIPAsKorean() {
@@ -1458,7 +1459,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x4445,
         {0x9C, 0x03, 0xC5, 0x68, 0xF2, 0x3C, 0x99, 0xA1}};
     if (mActiveTIPGUID == kMicrosoftIMEForKoreanGUID) {
-      return TextInputProcessorID::MicrosoftIMEForKorean;
+      return TextInputProcessorID::eMicrosoftIMEForKorean;
     }
     // {B60AF051-257A-46BC-B9D3-84DAD819BAFB} (Win8.1, Win10)
     static constexpr GUID kMicrosoftOldHangulGUID = {
@@ -1467,14 +1468,14 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
         0x46BC,
         {0xB9, 0xD3, 0x84, 0xDA, 0xD8, 0x19, 0xBA, 0xFB}};
     if (mActiveTIPGUID == kMicrosoftOldHangulGUID) {
-      return TextInputProcessorID::MicrosoftOldHangul;
+      return TextInputProcessorID::eMicrosoftOldHangul;
     }
 
     // NOTE: There is the other Korean TIP installed in Windows:
     // * Microsoft IME 2010
     //   - {48878C45-93F9-4aaf-A6A1-272CD863C4F5} (Win7)
 
-    return TextInputProcessorID::Unknown;
+    return TextInputProcessorID::eUnknown;
   }
 
  public:  // ITfInputProcessorProfileActivationSink
@@ -1482,7 +1483,7 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
                            DWORD);
 
  private:
-  TSFStaticSink() = default;
+  TSFStaticSink();
   virtual ~TSFStaticSink() {}
 
   bool EnsureInitActiveTIPKeyboard();
@@ -1494,17 +1495,17 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
   bool IsTIPCategoryKeyboard(REFCLSID aTextService, LANGID aLangID,
                              REFGUID aProfile);
 
-  TextInputProcessorID mActiveTIP = TextInputProcessorID::NotComputed;
+  TextInputProcessorID mActiveTIP;
 
   // Cookie of installing ITfInputProcessorProfileActivationSink
-  DWORD mIPProfileCookie = TF_INVALID_COOKIE;
+  DWORD mIPProfileCookie;
 
-  LANGID mLangID = 0;
+  LANGID mLangID;
 
   // True if current IME is implemented with IMM.
-  bool mIsIMM_IME = false;
+  bool mIsIMM_IME;
   // True if OnActivated() is already called
-  bool mOnActivatedCalled = false;
+  bool mOnActivatedCalled;
 
   RefPtr<ITfThreadMgr> mThreadMgr;
   RefPtr<ITfInputProcessorProfiles> mInputProcessorProfiles;
@@ -1514,13 +1515,21 @@ class TSFStaticSink final : public ITfInputProcessorProfileActivationSink {
   nsString mActiveTIPKeyboardDescription;
 
   // Active TIP's GUID and CLSID
-  GUID mActiveTIPGUID = GUID_NULL;
-  CLSID mActiveTIPCLSID = CLSID_NULL;
+  GUID mActiveTIPGUID;
+  CLSID mActiveTIPCLSID;
 
   static StaticRefPtr<TSFStaticSink> sInstance;
 };
 
 StaticRefPtr<TSFStaticSink> TSFStaticSink::sInstance;
+
+TSFStaticSink::TSFStaticSink()
+    : mActiveTIP(TextInputProcessorID::eNotComputed),
+      mIPProfileCookie(TF_INVALID_COOKIE),
+      mLangID(0),
+      mIsIMM_IME(false),
+      mOnActivatedCalled(false),
+      mActiveTIPGUID(GUID_NULL) {}
 
 bool TSFStaticSink::Init(ITfThreadMgr* aThreadMgr,
                          ITfInputProcessorProfiles* aInputProcessorProfiles) {
@@ -1592,15 +1601,15 @@ void TSFStaticSink::Destroy() {
   mInputProcessorProfiles = nullptr;
 }
 
-STDMETHODIMP TSFStaticSink::OnActivated(DWORD dwProfileType, LANGID langid,
-                                        REFCLSID rclsid, REFGUID catid,
-                                        REFGUID guidProfile, HKL hkl,
-                                        DWORD dwFlags) {
+STDMETHODIMP
+TSFStaticSink::OnActivated(DWORD dwProfileType, LANGID langid, REFCLSID rclsid,
+                           REFGUID catid, REFGUID guidProfile, HKL hkl,
+                           DWORD dwFlags) {
   if ((dwFlags & TF_IPSINK_FLAG_ACTIVE) &&
       (dwProfileType == TF_PROFILETYPE_KEYBOARDLAYOUT ||
        catid == GUID_TFCAT_TIP_KEYBOARD)) {
     mOnActivatedCalled = true;
-    mActiveTIP = TextInputProcessorID::NotComputed;
+    mActiveTIP = TextInputProcessorID::eNotComputed;
     mActiveTIPGUID = guidProfile;
     mActiveTIPCLSID = rclsid;
     mLangID = langid & 0xFFFF;
@@ -1762,7 +1771,12 @@ bool TSFTextStore::sIsKeyboardEventDispatched = false;
 
 #define TEXTSTORE_DEFAULT_VIEW (1)
 
-TSFTextStore::TSFTextStore() {
+TSFTextStore::TSFTextStore()
+    : mEditCookie(0),
+      mSinkMask(0),
+      mLock(0),
+      mLockQueued(0),
+      mHandlingKeyMessage(0) {
   // We hope that 5 or more actions don't occur at once.
   mPendingActions.SetCapacity(5);
 
@@ -1970,7 +1984,8 @@ void TSFTextStore::ReleaseTSFObjects() {
           ("0x%p   TSFTextStore::ReleaseTSFObjects() completed", this));
 }
 
-STDMETHODIMP TSFTextStore::QueryInterface(REFIID riid, void** ppv) {
+STDMETHODIMP
+TSFTextStore::QueryInterface(REFIID riid, void** ppv) {
   *ppv = nullptr;
   if ((IID_IUnknown == riid) || (IID_ITextStoreACP == riid)) {
     *ppv = static_cast<ITextStoreACP*>(this);
@@ -1990,8 +2005,8 @@ STDMETHODIMP TSFTextStore::QueryInterface(REFIID riid, void** ppv) {
   return E_NOINTERFACE;
 }
 
-STDMETHODIMP TSFTextStore::AdviseSink(REFIID riid, IUnknown* punk,
-                                      DWORD dwMask) {
+STDMETHODIMP
+TSFTextStore::AdviseSink(REFIID riid, IUnknown* punk, DWORD dwMask) {
   MOZ_LOG(
       gIMELog, LogLevel::Info,
       ("0x%p TSFTextStore::AdviseSink(riid=%s, punk=0x%p, dwMask=%s), "
@@ -2043,7 +2058,8 @@ STDMETHODIMP TSFTextStore::AdviseSink(REFIID riid, IUnknown* punk,
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::UnadviseSink(IUnknown* punk) {
+STDMETHODIMP
+TSFTextStore::UnadviseSink(IUnknown* punk) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::UnadviseSink(punk=0x%p), mSink=0x%p", this, punk,
            mSink.get()));
@@ -2078,7 +2094,8 @@ STDMETHODIMP TSFTextStore::UnadviseSink(IUnknown* punk) {
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::RequestLock(DWORD dwLockFlags, HRESULT* phrSession) {
+STDMETHODIMP
+TSFTextStore::RequestLock(DWORD dwLockFlags, HRESULT* phrSession) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::RequestLock(dwLockFlags=%s, phrSession=0x%p), "
            "mLock=%s, mDestroyed=%s",
@@ -2240,7 +2257,7 @@ void TSFTextStore::FlushPendingActions() {
   for (uint32_t i = 0; i < mPendingActions.Length(); i++) {
     PendingAction& action = mPendingActions[i];
     switch (action.mType) {
-      case PendingAction::Type::KeyboardEvent:
+      case PendingAction::Type::eKeyboardEvent:
         if (mDestroyed) {
           MOZ_LOG(
               gIMELog, LogLevel::Warning,
@@ -2256,7 +2273,7 @@ void TSFTextStore::FlushPendingActions() {
           break;
         }
         break;
-      case PendingAction::Type::CompositionStart: {
+      case PendingAction::Type::eCompositionStart: {
         MOZ_LOG(gIMELog, LogLevel::Debug,
                 ("0x%p   TSFTextStore::FlushPendingActions() "
                  "flushing Type::eCompositionStart={ mSelectionStart=%ld, "
@@ -2281,7 +2298,7 @@ void TSFTextStore::FlushPendingActions() {
           selectionSet.mReversed = false;
           selectionSet.mExpandToClusterBoundary =
               TSFStaticSink::ActiveTIP() !=
-                  TextInputProcessorID::KeymanDesktop &&
+                  TextInputProcessorID::eKeymanDesktop &&
               StaticPrefs::
                   intl_tsf_hack_extend_setting_selection_range_to_cluster_boundaries();
           DispatchEvent(selectionSet);
@@ -2321,7 +2338,7 @@ void TSFTextStore::FlushPendingActions() {
         }
         break;
       }
-      case PendingAction::Type::CompositionUpdate: {
+      case PendingAction::Type::eCompositionUpdate: {
         MOZ_LOG(gIMELog, LogLevel::Debug,
                 ("0x%p   TSFTextStore::FlushPendingActions() "
                  "flushing Type::eCompositionUpdate={ mData=\"%s\", "
@@ -2368,7 +2385,7 @@ void TSFTextStore::FlushPendingActions() {
         }
         break;
       }
-      case PendingAction::Type::CompositionEnd: {
+      case PendingAction::Type::eCompositionEnd: {
         MOZ_LOG(gIMELog, LogLevel::Debug,
                 ("0x%p   TSFTextStore::FlushPendingActions() "
                  "flushing Type::eCompositionEnd={ mData=\"%s\" }",
@@ -2402,7 +2419,7 @@ void TSFTextStore::FlushPendingActions() {
         }
         break;
       }
-      case PendingAction::Type::SetSelection: {
+      case PendingAction::Type::eSetSelection: {
         MOZ_LOG(
             gIMELog, LogLevel::Debug,
             ("0x%p   TSFTextStore::FlushPendingActions() "
@@ -2425,7 +2442,8 @@ void TSFTextStore::FlushPendingActions() {
         selectionSet.mLength = static_cast<uint32_t>(action.mSelectionLength);
         selectionSet.mReversed = action.mSelectionReversed;
         selectionSet.mExpandToClusterBoundary =
-            TSFStaticSink::ActiveTIP() != TextInputProcessorID::KeymanDesktop &&
+            TSFStaticSink::ActiveTIP() !=
+                TextInputProcessorID::eKeymanDesktop &&
             StaticPrefs::
                 intl_tsf_hack_extend_setting_selection_range_to_cluster_boundaries();
         DispatchEvent(selectionSet);
@@ -2584,7 +2602,7 @@ void TSFTextStore::MaybeDispatchKeyboardEventAsProcessedByIME() {
          "adding to dispatch a keyboard event into the queue...",
          this));
     PendingAction* action = mPendingActions.AppendElement();
-    action->mType = PendingAction::Type::KeyboardEvent;
+    action->mType = PendingAction::Type::eKeyboardEvent;
     memcpy(&action->mKeyMsg, sHandlingKeyMsg, sizeof(MSG));
     return;
   }
@@ -2630,7 +2648,8 @@ void TSFTextStore::DispatchKeyboardEventAsProcessedByIME(const MSG& aMsg) {
   }
 }
 
-STDMETHODIMP TSFTextStore::GetStatus(TS_STATUS* pdcs) {
+STDMETHODIMP
+TSFTextStore::GetStatus(TS_STATUS* pdcs) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::GetStatus(pdcs=0x%p)", this, pdcs));
 
@@ -2646,9 +2665,9 @@ STDMETHODIMP TSFTextStore::GetStatus(TS_STATUS* pdcs) {
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::QueryInsert(LONG acpTestStart, LONG acpTestEnd,
-                                       ULONG cch, LONG* pacpResultStart,
-                                       LONG* pacpResultEnd) {
+STDMETHODIMP
+TSFTextStore::QueryInsert(LONG acpTestStart, LONG acpTestEnd, ULONG cch,
+                          LONG* pacpResultStart, LONG* pacpResultEnd) {
   MOZ_LOG(
       gIMELog, LogLevel::Info,
       ("0x%p TSFTextStore::QueryInsert(acpTestStart=%ld, "
@@ -2700,9 +2719,9 @@ STDMETHODIMP TSFTextStore::QueryInsert(LONG acpTestStart, LONG acpTestEnd,
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::GetSelection(ULONG ulIndex, ULONG ulCount,
-                                        TS_SELECTION_ACP* pSelection,
-                                        ULONG* pcFetched) {
+STDMETHODIMP
+TSFTextStore::GetSelection(ULONG ulIndex, ULONG ulCount,
+                           TS_SELECTION_ACP* pSelection, ULONG* pcFetched) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::GetSelection(ulIndex=%lu, ulCount=%lu, "
            "pSelection=0x%p, pcFetched=0x%p)",
@@ -2978,9 +2997,9 @@ static TextRangeType GetGeckoSelectionValue(TF_DISPLAYATTRIBUTE& aDisplayAttr) {
   }
 }
 
-HRESULT TSFTextStore::GetDisplayAttribute(ITfProperty* aAttrProperty,
-                                          ITfRange* aRange,
-                                          TF_DISPLAYATTRIBUTE* aResult) {
+HRESULT
+TSFTextStore::GetDisplayAttribute(ITfProperty* aAttrProperty, ITfRange* aRange,
+                                  TF_DISPLAYATTRIBUTE* aResult) {
   NS_ENSURE_TRUE(aAttrProperty, E_FAIL);
   NS_ENSURE_TRUE(aRange, E_FAIL);
   NS_ENSURE_TRUE(aResult, E_FAIL);
@@ -3063,7 +3082,8 @@ HRESULT TSFTextStore::GetDisplayAttribute(ITfProperty* aAttrProperty,
   return S_OK;
 }
 
-HRESULT TSFTextStore::RestartCompositionIfNecessary(ITfRange* aRangeNew) {
+HRESULT
+TSFTextStore::RestartCompositionIfNecessary(ITfRange* aRangeNew) {
   MOZ_LOG(gIMELog, LogLevel::Debug,
           ("0x%p   TSFTextStore::RestartCompositionIfNecessary("
            "aRangeNew=0x%p), mComposition=%s",
@@ -3182,8 +3202,8 @@ HRESULT TSFTextStore::RestartComposition(Composition& aCurrentComposition,
   // undo transaction.
 
   // Backup current composition data and selection data.
-  Composition oldComposition(aCurrentComposition);  // NOLINT
-  Selection oldSelection(*selectionForTSF);         // NOLINT
+  Composition oldComposition = aCurrentComposition;
+  Selection oldSelection = *selectionForTSF;
 
   // Commit only the part of composition.
   LONG keepComposingStartOffset =
@@ -3290,7 +3310,8 @@ static bool GetLineStyle(TF_DA_LINESTYLE aTSFLineStyle,
   }
 }
 
-HRESULT TSFTextStore::RecordCompositionUpdateAction() {
+HRESULT
+TSFTextStore::RecordCompositionUpdateAction() {
   MOZ_LOG(
       gIMELog, LogLevel::Debug,
       ("0x%p   TSFTextStore::RecordCompositionUpdateAction(), mComposition=%s",
@@ -3312,10 +3333,10 @@ HRESULT TSFTextStore::RecordCompositionUpdateAction() {
   // the display attribute manager and translate that to TextRange to be
   // sent in eCompositionChange
 
-  RefPtr<ITfProperty> attrProperty;
+  RefPtr<ITfProperty> attrPropetry;
   HRESULT hr =
-      mContext->GetProperty(GUID_PROP_ATTRIBUTE, getter_AddRefs(attrProperty));
-  if (FAILED(hr) || !attrProperty) {
+      mContext->GetProperty(GUID_PROP_ATTRIBUTE, getter_AddRefs(attrPropetry));
+  if (FAILED(hr) || !attrPropetry) {
     MOZ_LOG(gIMELog, LogLevel::Error,
             ("0x%p   TSFTextStore::RecordCompositionUpdateAction() FAILED "
              "due to mContext->GetProperty() failure",
@@ -3334,12 +3355,12 @@ HRESULT TSFTextStore::RecordCompositionUpdateAction() {
   }
 
   RefPtr<IEnumTfRanges> enumRanges;
-  hr = attrProperty->EnumRanges(TfEditCookie(mEditCookie),
+  hr = attrPropetry->EnumRanges(TfEditCookie(mEditCookie),
                                 getter_AddRefs(enumRanges), composingRange);
   if (FAILED(hr) || !enumRanges) {
     MOZ_LOG(gIMELog, LogLevel::Error,
             ("0x%p   TSFTextStore::RecordCompositionUpdateAction() FAILED "
-             "due to attrProperty->EnumRanges() failure",
+             "due to attrPropetry->EnumRanges() failure",
              this));
     return FAILED(hr) ? hr : E_FAIL;
   }
@@ -3416,7 +3437,7 @@ HRESULT TSFTextStore::RecordCompositionUpdateAction() {
       newRange.mEndOffset = mComposition->Length();
 
       TF_DISPLAYATTRIBUTE attr;
-      hr = GetDisplayAttribute(attrProperty, range, &attr);
+      hr = GetDisplayAttribute(attrPropetry, range, &attr);
       if (FAILED(hr)) {
         newRange.mRangeType = TextRangeType::eRawClause;
       } else {
@@ -3505,8 +3526,9 @@ HRESULT TSFTextStore::RecordCompositionUpdateAction() {
   return S_OK;
 }
 
-HRESULT TSFTextStore::SetSelectionInternal(
-    const TS_SELECTION_ACP* pSelection, bool aDispatchCompositionChangeEvent) {
+HRESULT
+TSFTextStore::SetSelectionInternal(const TS_SELECTION_ACP* pSelection,
+                                   bool aDispatchCompositionChangeEvent) {
   MOZ_LOG(
       gIMELog, LogLevel::Debug,
       ("0x%p   TSFTextStore::SetSelectionInternal(pSelection=%s, "
@@ -3618,7 +3640,7 @@ HRESULT TSFTextStore::SetSelectionInternal(
 
   CompleteLastActionIfStillIncomplete();
   PendingAction* action = mPendingActions.AppendElement();
-  action->mType = PendingAction::Type::SetSelection;
+  action->mType = PendingAction::Type::eSetSelection;
   action->mSelectionStart = selectionInContent.acpStart;
   action->mSelectionLength =
       selectionInContent.acpEnd - selectionInContent.acpStart;
@@ -3630,8 +3652,8 @@ HRESULT TSFTextStore::SetSelectionInternal(
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::SetSelection(ULONG ulCount,
-                                        const TS_SELECTION_ACP* pSelection) {
+STDMETHODIMP
+TSFTextStore::SetSelection(ULONG ulCount, const TS_SELECTION_ACP* pSelection) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::SetSelection(ulCount=%lu, pSelection=%s }), "
            "mComposition=%s",
@@ -3674,10 +3696,11 @@ STDMETHODIMP TSFTextStore::SetSelection(ULONG ulCount,
   return hr;
 }
 
-STDMETHODIMP TSFTextStore::GetText(LONG acpStart, LONG acpEnd, WCHAR* pchPlain,
-                                   ULONG cchPlainReq, ULONG* pcchPlainOut,
-                                   TS_RUNINFO* prgRunInfo, ULONG ulRunInfoReq,
-                                   ULONG* pulRunInfoOut, LONG* pacpNext) {
+STDMETHODIMP
+TSFTextStore::GetText(LONG acpStart, LONG acpEnd, WCHAR* pchPlain,
+                      ULONG cchPlainReq, ULONG* pcchPlainOut,
+                      TS_RUNINFO* prgRunInfo, ULONG ulRunInfoReq,
+                      ULONG* pulRunInfoOut, LONG* pacpNext) {
   MOZ_LOG(
       gIMELog, LogLevel::Info,
       ("0x%p TSFTextStore::GetText(acpStart=%ld, acpEnd=%ld, pchPlain=0x%p, "
@@ -3776,9 +3799,9 @@ STDMETHODIMP TSFTextStore::GetText(LONG acpStart, LONG acpEnd, WCHAR* pchPlain,
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::SetText(DWORD dwFlags, LONG acpStart, LONG acpEnd,
-                                   const WCHAR* pchText, ULONG cch,
-                                   TS_TEXTCHANGE* pChange) {
+STDMETHODIMP
+TSFTextStore::SetText(DWORD dwFlags, LONG acpStart, LONG acpEnd,
+                      const WCHAR* pchText, ULONG cch, TS_TEXTCHANGE* pChange) {
   MOZ_LOG(
       gIMELog, LogLevel::Info,
       ("0x%p TSFTextStore::SetText(dwFlags=%s, acpStart=%ld, acpEnd=%ld, "
@@ -3831,8 +3854,9 @@ STDMETHODIMP TSFTextStore::SetText(DWORD dwFlags, LONG acpStart, LONG acpEnd,
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::GetFormattedText(LONG acpStart, LONG acpEnd,
-                                            IDataObject** ppDataObject) {
+STDMETHODIMP
+TSFTextStore::GetFormattedText(LONG acpStart, LONG acpEnd,
+                               IDataObject** ppDataObject) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::GetFormattedText() called "
            "but not supported (E_NOTIMPL)",
@@ -3842,8 +3866,9 @@ STDMETHODIMP TSFTextStore::GetFormattedText(LONG acpStart, LONG acpEnd,
   return E_NOTIMPL;
 }
 
-STDMETHODIMP TSFTextStore::GetEmbedded(LONG acpPos, REFGUID rguidService,
-                                       REFIID riid, IUnknown** ppunk) {
+STDMETHODIMP
+TSFTextStore::GetEmbedded(LONG acpPos, REFGUID rguidService, REFIID riid,
+                          IUnknown** ppunk) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::GetEmbedded() called "
            "but not supported (E_NOTIMPL)",
@@ -3853,9 +3878,10 @@ STDMETHODIMP TSFTextStore::GetEmbedded(LONG acpPos, REFGUID rguidService,
   return E_NOTIMPL;
 }
 
-STDMETHODIMP TSFTextStore::QueryInsertEmbedded(const GUID* pguidService,
-                                               const FORMATETC* pFormatEtc,
-                                               BOOL* pfInsertable) {
+STDMETHODIMP
+TSFTextStore::QueryInsertEmbedded(const GUID* pguidService,
+                                  const FORMATETC* pFormatEtc,
+                                  BOOL* pfInsertable) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::QueryInsertEmbedded() called "
            "but not supported, *pfInsertable=FALSE (S_OK)",
@@ -3866,9 +3892,9 @@ STDMETHODIMP TSFTextStore::QueryInsertEmbedded(const GUID* pguidService,
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::InsertEmbedded(DWORD dwFlags, LONG acpStart,
-                                          LONG acpEnd, IDataObject* pDataObject,
-                                          TS_TEXTCHANGE* pChange) {
+STDMETHODIMP
+TSFTextStore::InsertEmbedded(DWORD dwFlags, LONG acpStart, LONG acpEnd,
+                             IDataObject* pDataObject, TS_TEXTCHANGE* pChange) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::InsertEmbedded() called "
            "but not supported (E_NOTIMPL)",
@@ -3894,20 +3920,20 @@ bool TSFTextStore::ShouldSetInputScopeOfURLBarToDefault() {
   }
 
   switch (TSFStaticSink::ActiveTIP()) {
-    case TextInputProcessorID::MicrosoftIMEForJapanese:
-    case TextInputProcessorID::GoogleJapaneseInput:
-    case TextInputProcessorID::MicrosoftBopomofo:
-    case TextInputProcessorID::MicrosoftChangJie:
-    case TextInputProcessorID::MicrosoftPhonetic:
-    case TextInputProcessorID::MicrosoftQuick:
-    case TextInputProcessorID::MicrosoftNewChangJie:
-    case TextInputProcessorID::MicrosoftNewPhonetic:
-    case TextInputProcessorID::MicrosoftNewQuick:
-    case TextInputProcessorID::MicrosoftPinyin:
-    case TextInputProcessorID::MicrosoftPinyinNewExperienceInputStyle:
-    case TextInputProcessorID::MicrosoftOldHangul:
-    case TextInputProcessorID::MicrosoftWubi:
-    case TextInputProcessorID::MicrosoftIMEForKorean:
+    case TextInputProcessorID::eMicrosoftIMEForJapanese:
+    case TextInputProcessorID::eGoogleJapaneseInput:
+    case TextInputProcessorID::eMicrosoftBopomofo:
+    case TextInputProcessorID::eMicrosoftChangJie:
+    case TextInputProcessorID::eMicrosoftPhonetic:
+    case TextInputProcessorID::eMicrosoftQuick:
+    case TextInputProcessorID::eMicrosoftNewChangJie:
+    case TextInputProcessorID::eMicrosoftNewPhonetic:
+    case TextInputProcessorID::eMicrosoftNewQuick:
+    case TextInputProcessorID::eMicrosoftPinyin:
+    case TextInputProcessorID::eMicrosoftPinyinNewExperienceInputStyle:
+    case TextInputProcessorID::eMicrosoftOldHangul:
+    case TextInputProcessorID::eMicrosoftWubi:
+    case TextInputProcessorID::eMicrosoftIMEForKorean:
       return true;
     default:
       return false;
@@ -3944,7 +3970,8 @@ int32_t TSFTextStore::GetRequestedAttrIndex(const TS_ATTRID& aAttrID) {
   return eNotSupported;
 }
 
-TS_ATTRID TSFTextStore::GetAttrID(int32_t aIndex) {
+TS_ATTRID
+TSFTextStore::GetAttrID(int32_t aIndex) {
   switch (aIndex) {
     case eInputScope:
       return GUID_PROP_INPUTSCOPE;
@@ -3960,8 +3987,9 @@ TS_ATTRID TSFTextStore::GetAttrID(int32_t aIndex) {
   }
 }
 
-HRESULT TSFTextStore::HandleRequestAttrs(DWORD aFlags, ULONG aFilterCount,
-                                         const TS_ATTRID* aFilterAttrs) {
+HRESULT
+TSFTextStore::HandleRequestAttrs(DWORD aFlags, ULONG aFilterCount,
+                                 const TS_ATTRID* aFilterAttrs) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::HandleRequestAttrs(aFlags=%s, "
            "aFilterCount=%lu)",
@@ -3991,8 +4019,9 @@ HRESULT TSFTextStore::HandleRequestAttrs(DWORD aFlags, ULONG aFilterCount,
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::RequestSupportedAttrs(
-    DWORD dwFlags, ULONG cFilterAttrs, const TS_ATTRID* paFilterAttrs) {
+STDMETHODIMP
+TSFTextStore::RequestSupportedAttrs(DWORD dwFlags, ULONG cFilterAttrs,
+                                    const TS_ATTRID* paFilterAttrs) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::RequestSupportedAttrs(dwFlags=%s, "
            "cFilterAttrs=%lu)",
@@ -4001,9 +4030,10 @@ STDMETHODIMP TSFTextStore::RequestSupportedAttrs(
   return HandleRequestAttrs(dwFlags, cFilterAttrs, paFilterAttrs);
 }
 
-STDMETHODIMP TSFTextStore::RequestAttrsAtPosition(
-    LONG acpPos, ULONG cFilterAttrs, const TS_ATTRID* paFilterAttrs,
-    DWORD dwFlags) {
+STDMETHODIMP
+TSFTextStore::RequestAttrsAtPosition(LONG acpPos, ULONG cFilterAttrs,
+                                     const TS_ATTRID* paFilterAttrs,
+                                     DWORD dwFlags) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::RequestAttrsAtPosition(acpPos=%ld, "
            "cFilterAttrs=%lu, dwFlags=%s)",
@@ -4013,9 +4043,11 @@ STDMETHODIMP TSFTextStore::RequestAttrsAtPosition(
                             paFilterAttrs);
 }
 
-STDMETHODIMP TSFTextStore::RequestAttrsTransitioningAtPosition(
-    LONG acpPos, ULONG cFilterAttrs, const TS_ATTRID* paFilterAttr,
-    DWORD dwFlags) {
+STDMETHODIMP
+TSFTextStore::RequestAttrsTransitioningAtPosition(LONG acpPos,
+                                                  ULONG cFilterAttrs,
+                                                  const TS_ATTRID* paFilterAttr,
+                                                  DWORD dwFlags) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::RequestAttrsTransitioningAtPosition("
            "acpPos=%ld, cFilterAttrs=%lu, dwFlags=%s) called but not supported "
@@ -4026,10 +4058,12 @@ STDMETHODIMP TSFTextStore::RequestAttrsTransitioningAtPosition(
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::FindNextAttrTransition(
-    LONG acpStart, LONG acpHalt, ULONG cFilterAttrs,
-    const TS_ATTRID* paFilterAttrs, DWORD dwFlags, LONG* pacpNext,
-    BOOL* pfFound, LONG* plFoundOffset) {
+STDMETHODIMP
+TSFTextStore::FindNextAttrTransition(LONG acpStart, LONG acpHalt,
+                                     ULONG cFilterAttrs,
+                                     const TS_ATTRID* paFilterAttrs,
+                                     DWORD dwFlags, LONG* pacpNext,
+                                     BOOL* pfFound, LONG* plFoundOffset) {
   if (!pacpNext || !pfFound || !plFoundOffset) {
     MOZ_LOG(gIMELog, LogLevel::Error,
             ("  0x%p TSFTextStore::FindNextAttrTransition() FAILED due to "
@@ -4052,9 +4086,9 @@ STDMETHODIMP TSFTextStore::FindNextAttrTransition(
 // To test the document URL result, define this to out put it to the stdout
 // #define DEBUG_PRINT_DOCUMENT_URL
 
-STDMETHODIMP TSFTextStore::RetrieveRequestedAttrs(ULONG ulCount,
-                                                  TS_ATTRVAL* paAttrVals,
-                                                  ULONG* pcFetched) {
+STDMETHODIMP
+TSFTextStore::RetrieveRequestedAttrs(ULONG ulCount, TS_ATTRVAL* paAttrVals,
+                                     ULONG* pcFetched) {
   if (!pcFetched || !paAttrVals) {
     MOZ_LOG(gIMELog, LogLevel::Error,
             ("0x%p TSFTextStore::RetrieveRequestedAttrs() FAILED due to "
@@ -4187,7 +4221,8 @@ STDMETHODIMP TSFTextStore::RetrieveRequestedAttrs(ULONG ulCount,
 
 #undef DEBUG_PRINT_DOCUMENT_URL
 
-STDMETHODIMP TSFTextStore::GetEndACP(LONG* pacp) {
+STDMETHODIMP
+TSFTextStore::GetEndACP(LONG* pacp) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::GetEndACP(pacp=0x%p)", this, pacp));
 
@@ -4219,7 +4254,8 @@ STDMETHODIMP TSFTextStore::GetEndACP(LONG* pacp) {
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::GetActiveView(TsViewCookie* pvcView) {
+STDMETHODIMP
+TSFTextStore::GetActiveView(TsViewCookie* pvcView) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::GetActiveView(pvcView=0x%p)", this, pvcView));
 
@@ -4239,8 +4275,9 @@ STDMETHODIMP TSFTextStore::GetActiveView(TsViewCookie* pvcView) {
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::GetACPFromPoint(TsViewCookie vcView, const POINT* pt,
-                                           DWORD dwFlags, LONG* pacp) {
+STDMETHODIMP
+TSFTextStore::GetACPFromPoint(TsViewCookie vcView, const POINT* pt,
+                              DWORD dwFlags, LONG* pacp) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::GetACPFromPoint(pvcView=%ld, pt=%p (x=%ld, "
            "y=%ld), dwFlags=%s, pacp=%p, mDeferNotifyingTSFUntilNextUpdate=%s, "
@@ -4398,8 +4435,9 @@ STDMETHODIMP TSFTextStore::GetACPFromPoint(TsViewCookie vcView, const POINT* pt,
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::GetTextExt(TsViewCookie vcView, LONG acpStart,
-                                      LONG acpEnd, RECT* prc, BOOL* pfClipped) {
+STDMETHODIMP
+TSFTextStore::GetTextExt(TsViewCookie vcView, LONG acpStart, LONG acpEnd,
+                         RECT* prc, BOOL* pfClipped) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::GetTextExt(vcView=%ld, "
            "acpStart=%ld, acpEnd=%ld, prc=0x%p, pfClipped=0x%p), "
@@ -4664,7 +4702,7 @@ bool TSFTextStore::MaybeHackNoErrorLayoutBugs(LONG& aACPStart, LONG& aACPEnd) {
     // starting from Windows 8.  And also we may meet same trouble in e10s
     // mode on Win7.  So, we should never return TS_E_NOLAYOUT to MS IME for
     // Japanese.
-    case TextInputProcessorID::MicrosoftIMEForJapanese:
+    case TextInputProcessorID::eMicrosoftIMEForJapanese:
       // Basically, MS-IME tries to retrieve whole composition string rect
       // at deciding suggest window immediately after unlocking the document.
       // However, in e10s mode, the content hasn't updated yet in most cases.
@@ -4707,7 +4745,7 @@ bool TSFTextStore::MaybeHackNoErrorLayoutBugs(LONG& aACPStart, LONG& aACPEnd) {
     // XXX We have not tested with Microsoft Office IME 2010 since it's
     //     installable only with Win7 and Win8 (i.e., cannot install Win8.1
     //     and Win10), and requires upgrade to Win10.
-    case TextInputProcessorID::MicrosoftOfficeIME2010ForJapanese:
+    case TextInputProcessorID::eMicrosoftOfficeIME2010ForJapanese:
       // Basically, MS-IME tries to retrieve whole composition string rect
       // at deciding suggest window immediately after unlocking the document.
       // However, in e10s mode, the content hasn't updated yet in most cases.
@@ -4747,11 +4785,11 @@ bool TSFTextStore::MaybeHackNoErrorLayoutBugs(LONG& aACPStart, LONG& aACPEnd) {
     //      Mozilla window classes and we stop creating native caret for ATOK
     //      because creating native caret causes ATOK refers caret position
     //      when GetTextExt() returns TS_E_NOLAYOUT.
-    case TextInputProcessorID::ATOK2011:
-    case TextInputProcessorID::ATOK2012:
-    case TextInputProcessorID::ATOK2013:
-    case TextInputProcessorID::ATOK2014:
-    case TextInputProcessorID::ATOK2015:
+    case TextInputProcessorID::eATOK2011:
+    case TextInputProcessorID::eATOK2012:
+    case TextInputProcessorID::eATOK2013:
+    case TextInputProcessorID::eATOK2014:
+    case TextInputProcessorID::eATOK2015:
       // ATOK 2016 and later may temporarily show candidate window at odd
       // position when you convert a word quickly (e.g., keep pressing
       // space bar).  So, on ATOK 2016 or later, we need to keep hacking the
@@ -4767,8 +4805,8 @@ bool TSFTextStore::MaybeHackNoErrorLayoutBugs(LONG& aACPStart, LONG& aACPEnd) {
         return false;
       }
       [[fallthrough]];
-    case TextInputProcessorID::ATOK2016:
-    case TextInputProcessorID::ATOKUnknown:
+    case TextInputProcessorID::eATOK2016:
+    case TextInputProcessorID::eATOKUnknown:
       if (!StaticPrefs::
               intl_tsf_hack_atok_do_not_return_no_layout_error_of_composition_string()) {
         return false;
@@ -4787,7 +4825,7 @@ bool TSFTextStore::MaybeHackNoErrorLayoutBugs(LONG& aACPStart, LONG& aACPEnd) {
     // top-left of the screen.  So, we should return the nearest caret rect
     // where we know.  This is Japanist's bug.  So, even after build 17643,
     // we need this hack.
-    case TextInputProcessorID::Japanist10:
+    case TextInputProcessorID::eJapanist10:
       if (!StaticPrefs::
               intl_tsf_hack_japanist10_do_not_return_no_layout_error_of_composition_string()) {
         return false;
@@ -4802,7 +4840,7 @@ bool TSFTextStore::MaybeHackNoErrorLayoutBugs(LONG& aACPStart, LONG& aACPEnd) {
     // Free ChangJie 2010 doesn't handle ITfContextView::GetTextExt() properly.
     // This must be caused by the bug of TSF since Free ChangJie works fine on
     // build 17643 and later.
-    case TextInputProcessorID::FreeChangJie:
+    case TextInputProcessorID::eFreeChangJie:
       if (sAlllowToStopHackingIfFine) {
         return false;
       }
@@ -4815,12 +4853,12 @@ bool TSFTextStore::MaybeHackNoErrorLayoutBugs(LONG& aACPStart, LONG& aACPEnd) {
       break;
     // Some Traditional Chinese TIPs of Microsoft don't show candidate window
     // in e10s mode on Win8 or later.
-    case TextInputProcessorID::MicrosoftQuick:
+    case TextInputProcessorID::eMicrosoftQuick:
       if (sAlllowToStopHackingIfFine) {
         return false;  // MS Quick works fine with Win10 build 17643.
       }
       [[fallthrough]];
-    case TextInputProcessorID::MicrosoftChangJie:
+    case TextInputProcessorID::eMicrosoftChangJie:
       if (!StaticPrefs::
               intl_tsf_hack_ms_traditional_chinese_do_not_return_no_layout_error()) {
         return false;
@@ -4836,8 +4874,8 @@ bool TSFTextStore::MaybeHackNoErrorLayoutBugs(LONG& aACPStart, LONG& aACPEnd) {
     //      candidate window properly, we return TS_E_NOLAYOUT and following
     //      log looks same as when they don't show candidate window.  Perhaps,
     //      there is stateful cause or race in them.
-    case TextInputProcessorID::MicrosoftPinyin:
-    case TextInputProcessorID::MicrosoftWubi:
+    case TextInputProcessorID::eMicrosoftPinyin:
+    case TextInputProcessorID::eMicrosoftWubi:
       if (!StaticPrefs::
               intl_tsf_hack_ms_simplified_chinese_do_not_return_no_layout_error()) {
         return false;
@@ -4915,7 +4953,8 @@ bool TSFTextStore::MaybeHackNoErrorLayoutBugs(LONG& aACPStart, LONG& aACPEnd) {
   return true;
 }
 
-STDMETHODIMP TSFTextStore::GetScreenExt(TsViewCookie vcView, RECT* prc) {
+STDMETHODIMP
+TSFTextStore::GetScreenExt(TsViewCookie vcView, RECT* prc) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::GetScreenExt(vcView=%ld, prc=0x%p)", this,
            vcView, prc));
@@ -5013,7 +5052,8 @@ bool TSFTextStore::GetScreenExtInternal(RECT& aScreenExt) {
   return true;
 }
 
-STDMETHODIMP TSFTextStore::GetWnd(TsViewCookie vcView, HWND* phwnd) {
+STDMETHODIMP
+TSFTextStore::GetWnd(TsViewCookie vcView, HWND* phwnd) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::GetWnd(vcView=%ld, phwnd=0x%p), "
            "mWidget=0x%p",
@@ -5043,11 +5083,10 @@ STDMETHODIMP TSFTextStore::GetWnd(TsViewCookie vcView, HWND* phwnd) {
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::InsertTextAtSelection(DWORD dwFlags,
-                                                 const WCHAR* pchText,
-                                                 ULONG cch, LONG* pacpStart,
-                                                 LONG* pacpEnd,
-                                                 TS_TEXTCHANGE* pChange) {
+STDMETHODIMP
+TSFTextStore::InsertTextAtSelection(DWORD dwFlags, const WCHAR* pchText,
+                                    ULONG cch, LONG* pacpStart, LONG* pacpEnd,
+                                    TS_TEXTCHANGE* pChange) {
   MOZ_LOG(
       gIMELog, LogLevel::Info,
       ("0x%p TSFTextStore::InsertTextAtSelection(dwFlags=%s, "
@@ -5219,13 +5258,13 @@ bool TSFTextStore::InsertTextAtSelectionInternal(const nsAString& aInsertStr,
     PendingAction* compositionStart = mPendingActions.AppendElements(2);
     PendingAction* compositionEnd = compositionStart + 1;
 
-    compositionStart->mType = PendingAction::Type::CompositionStart;
+    compositionStart->mType = PendingAction::Type::eCompositionStart;
     compositionStart->mSelectionStart = oldSelection.acpStart;
     compositionStart->mSelectionLength =
         oldSelection.acpEnd - oldSelection.acpStart;
     compositionStart->mAdjustSelection = false;
 
-    compositionEnd->mType = PendingAction::Type::CompositionEnd;
+    compositionEnd->mType = PendingAction::Type::eCompositionEnd;
     compositionEnd->mData = aInsertStr;
     compositionEnd->mSelectionStart = compositionStart->mSelectionStart;
 
@@ -5261,11 +5300,10 @@ bool TSFTextStore::InsertTextAtSelectionInternal(const nsAString& aInsertStr,
   return true;
 }
 
-STDMETHODIMP TSFTextStore::InsertEmbeddedAtSelection(DWORD dwFlags,
-                                                     IDataObject* pDataObject,
-                                                     LONG* pacpStart,
-                                                     LONG* pacpEnd,
-                                                     TS_TEXTCHANGE* pChange) {
+STDMETHODIMP
+TSFTextStore::InsertEmbeddedAtSelection(DWORD dwFlags, IDataObject* pDataObject,
+                                        LONG* pacpStart, LONG* pacpEnd,
+                                        TS_TEXTCHANGE* pChange) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::InsertEmbeddedAtSelection() called "
            "but not supported (E_NOTIMPL)",
@@ -5359,7 +5397,7 @@ HRESULT TSFTextStore::RecordCompositionStartAction(
   }
 
   PendingAction* action = mPendingActions.AppendElement();
-  action->mType = PendingAction::Type::CompositionStart;
+  action->mType = PendingAction::Type::eCompositionStart;
   action->mSelectionStart = aStart;
   action->mSelectionLength = aLength;
 
@@ -5399,7 +5437,8 @@ HRESULT TSFTextStore::RecordCompositionStartAction(
   return S_OK;
 }
 
-HRESULT TSFTextStore::RecordCompositionEndAction() {
+HRESULT
+TSFTextStore::RecordCompositionEndAction() {
   MOZ_LOG(gIMELog, LogLevel::Debug,
           ("0x%p   TSFTextStore::RecordCompositionEndAction(), "
            "mComposition=%s",
@@ -5431,7 +5470,7 @@ HRESULT TSFTextStore::RecordCompositionEndAction() {
   // forget all composition updates now.
   RemoveLastCompositionUpdateActions();
   PendingAction* action = mPendingActions.AppendElement();
-  action->mType = PendingAction::Type::CompositionEnd;
+  action->mType = PendingAction::Type::eCompositionEnd;
   action->mData = mComposition->DataRef();
   action->mSelectionStart = mComposition->StartOffset();
 
@@ -5450,7 +5489,7 @@ HRESULT TSFTextStore::RecordCompositionEndAction() {
   // dispatch redundant composition events.
   for (size_t i = mPendingActions.Length(), j = 1; i > 0; --i, ++j) {
     PendingAction& pendingAction = mPendingActions[i - 1];
-    if (pendingAction.mType == PendingAction::Type::CompositionStart) {
+    if (pendingAction.mType == PendingAction::Type::eCompositionStart) {
       if (pendingAction.mData != action->mData) {
         break;
       }
@@ -5460,7 +5499,7 @@ HRESULT TSFTextStore::RecordCompositionEndAction() {
         LONG selectionLength = pendingAction.mSelectionLength;
 
         PendingAction* setSelection = mPendingActions.AppendElement();
-        setSelection->mType = PendingAction::Type::SetSelection;
+        setSelection->mType = PendingAction::Type::eSetSelection;
         setSelection->mSelectionStart = selectionStart;
         setSelection->mSelectionLength = selectionLength;
         setSelection->mSelectionReversed = false;
@@ -5481,8 +5520,8 @@ HRESULT TSFTextStore::RecordCompositionEndAction() {
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::OnStartComposition(ITfCompositionView* pComposition,
-                                              BOOL* pfOk) {
+STDMETHODIMP
+TSFTextStore::OnStartComposition(ITfCompositionView* pComposition, BOOL* pfOk) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::OnStartComposition(pComposition=0x%p, "
            "pfOk=0x%p), mComposition=%s",
@@ -5525,8 +5564,9 @@ STDMETHODIMP TSFTextStore::OnStartComposition(ITfCompositionView* pComposition,
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::OnUpdateComposition(ITfCompositionView* pComposition,
-                                               ITfRange* pRangeNew) {
+STDMETHODIMP
+TSFTextStore::OnUpdateComposition(ITfCompositionView* pComposition,
+                                  ITfRange* pRangeNew) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::OnUpdateComposition(pComposition=0x%p, "
            "pRangeNew=0x%p), mComposition=%s",
@@ -5611,7 +5651,8 @@ STDMETHODIMP TSFTextStore::OnUpdateComposition(ITfCompositionView* pComposition,
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::OnEndComposition(ITfCompositionView* pComposition) {
+STDMETHODIMP
+TSFTextStore::OnEndComposition(ITfCompositionView* pComposition) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::OnEndComposition(pComposition=0x%p), "
            "mComposition=%s",
@@ -5649,9 +5690,9 @@ STDMETHODIMP TSFTextStore::OnEndComposition(ITfCompositionView* pComposition) {
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::AdviseMouseSink(ITfRangeACP* range,
-                                           ITfMouseSink* pSink,
-                                           DWORD* pdwCookie) {
+STDMETHODIMP
+TSFTextStore::AdviseMouseSink(ITfRangeACP* range, ITfMouseSink* pSink,
+                              DWORD* pdwCookie) {
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStore::AdviseMouseSink(range=0x%p, pSink=0x%p, "
            "pdwCookie=0x%p)",
@@ -5719,7 +5760,8 @@ STDMETHODIMP TSFTextStore::AdviseMouseSink(ITfRangeACP* range,
   return S_OK;
 }
 
-STDMETHODIMP TSFTextStore::UnadviseMouseSink(DWORD dwCookie) {
+STDMETHODIMP
+TSFTextStore::UnadviseMouseSink(DWORD dwCookie) {
   MOZ_LOG(
       gIMELog, LogLevel::Info,
       ("0x%p TSFTextStore::UnadviseMouseSink(dwCookie=%ld)", this, dwCookie));
@@ -6287,10 +6329,10 @@ bool TSFTextStore::NotifyTSFOfLayoutChange() {
   // later, we should call it with ::PostMessage() hack.
   MOZ_LOG(gIMELog, LogLevel::Debug,
           ("0x%p   TSFTextStore::NotifyTSFOfLayoutChange(), "
-           "posting MOZ_WM_NOTIFY_TSF_OF_LAYOUT_CHANGE for calling "
+           "posing  MOZ_WM_NOTIY_TSF_OF_LAYOUT_CHANGE for calling "
            "OnLayoutChange() again...",
            this));
-  ::PostMessage(mWidget->GetWindowHandle(), MOZ_WM_NOTIFY_TSF_OF_LAYOUT_CHANGE,
+  ::PostMessage(mWidget->GetWindowHandle(), MOZ_WM_NOTIY_TSF_OF_LAYOUT_CHANGE,
                 reinterpret_cast<WPARAM>(this), 0);
 
   return true;
@@ -7177,7 +7219,7 @@ void TSFTextStore::ProcessMessage(nsWindow* aWindow, UINT aMessage,
       }
       CommitComposition(false);
       break;
-    case MOZ_WM_NOTIFY_TSF_OF_LAYOUT_CHANGE: {
+    case MOZ_WM_NOTIY_TSF_OF_LAYOUT_CHANGE: {
       TSFTextStore* maybeTextStore = reinterpret_cast<TSFTextStore*>(aWParam);
       if (maybeTextStore == sEnabledTextStore) {
         RefPtr<TSFTextStore> textStore(maybeTextStore);
@@ -7317,7 +7359,7 @@ void TSFTextStore::Content::StartComposition(
     bool aPreserveSelection) {
   MOZ_ASSERT(aCompositionView);
   MOZ_ASSERT(mComposition.isNothing());
-  MOZ_ASSERT(aCompStart.mType == PendingAction::Type::CompositionStart);
+  MOZ_ASSERT(aCompStart.mType == PendingAction::Type::eCompositionStart);
 
   mComposition.reset();  // Avoid new crash in the beta and nightly channels.
   mComposition.emplace(
@@ -7342,7 +7384,7 @@ void TSFTextStore::Content::RestoreCommittedComposition(
   MOZ_ASSERT(aCompositionView);
   MOZ_ASSERT(mComposition.isNothing());
   MOZ_ASSERT(aCanceledCompositionEnd.mType ==
-             PendingAction::Type::CompositionEnd);
+             PendingAction::Type::eCompositionEnd);
   MOZ_ASSERT(
       GetSubstring(
           static_cast<uint32_t>(aCanceledCompositionEnd.mSelectionStart),
@@ -7359,7 +7401,7 @@ void TSFTextStore::Content::RestoreCommittedComposition(
 
 void TSFTextStore::Content::EndComposition(const PendingAction& aCompEnd) {
   MOZ_ASSERT(mComposition.isSome());
-  MOZ_ASSERT(aCompEnd.mType == PendingAction::Type::CompositionEnd);
+  MOZ_ASSERT(aCompEnd.mType == PendingAction::Type::eCompositionEnd);
 
   if (mComposition.isNothing()) {
     return;  // Avoid new crash in the beta and nightly channels.
@@ -7376,7 +7418,8 @@ void TSFTextStore::Content::EndComposition(const PendingAction& aCompEnd) {
 
 TSFTextStore::MouseTracker::MouseTracker() : mCookie(kInvalidCookie) {}
 
-HRESULT TSFTextStore::MouseTracker::Init(TSFTextStore* aTextStore) {
+HRESULT
+TSFTextStore::MouseTracker::Init(TSFTextStore* aTextStore) {
   MOZ_LOG(gIMELog, LogLevel::Debug,
           ("0x%p   TSFTextStore::MouseTracker::Init(aTextStore=0x%p), "
            "aTextStore->mMouseTrackers.Length()=%zu",
@@ -7402,9 +7445,10 @@ HRESULT TSFTextStore::MouseTracker::Init(TSFTextStore* aTextStore) {
   return S_OK;
 }
 
-HRESULT TSFTextStore::MouseTracker::AdviseSink(TSFTextStore* aTextStore,
-                                               ITfRangeACP* aTextRange,
-                                               ITfMouseSink* aMouseSink) {
+HRESULT
+TSFTextStore::MouseTracker::AdviseSink(TSFTextStore* aTextStore,
+                                       ITfRangeACP* aTextRange,
+                                       ITfMouseSink* aMouseSink) {
   MOZ_LOG(gIMELog, LogLevel::Debug,
           ("0x%p   TSFTextStore::MouseTracker::AdviseSink(aTextStore=0x%p, "
            "aTextRange=0x%p, aMouseSink=0x%p), mCookie=%ld, mSink=0x%p",
@@ -7536,4 +7580,5 @@ bool TSFTextStore::CurrentKeyboardLayoutHasIME() {
 }
 #endif  // #ifdef DEBUG
 
-}  // namespace mozilla::widget
+}  // namespace widget
+}  // namespace mozilla
