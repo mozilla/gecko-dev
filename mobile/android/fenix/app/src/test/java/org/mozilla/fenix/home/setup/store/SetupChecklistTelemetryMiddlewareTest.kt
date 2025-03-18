@@ -7,6 +7,8 @@ import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.junit.MockitoJUnitRunner
+import org.mozilla.fenix.R
+import org.mozilla.fenix.checklist.ChecklistItem
 
 // todo complete as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1951909
 
@@ -38,44 +40,14 @@ class SetupChecklistTelemetryMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN default browser clicked action WHEN middleware is invoked THEN no telemetry is sent`() {
-        middleware.invoke(context, {}, SetupChecklistAction.DefaultBrowserClicked)
-        verifyNoInteractions(telemetry)
-    }
-
-    @Test
-    fun `GIVEN sync click action WHEN middleware is invoked THEN no telemetry is sent`() {
-        middleware.invoke(context, {}, SetupChecklistAction.SyncClicked)
-        verifyNoInteractions(telemetry)
-    }
-
-    @Test
-    fun `GIVEN theme selection click action WHEN middleware is invoked THEN no telemetry is sent`() {
-        middleware.invoke(context, {}, SetupChecklistAction.ThemeSelectionClicked)
-        verifyNoInteractions(telemetry)
-    }
-
-    @Test
-    fun `GIVEN toolbar selection click action WHEN middleware is invoked THEN no telemetry is sent`() {
-        middleware.invoke(context, {}, SetupChecklistAction.ToolbarSelectionClicked)
-        verifyNoInteractions(telemetry)
-    }
-
-    @Test
-    fun `GIVEN extensions clicked action WHEN middleware is invoked THEN no telemetry is sent`() {
-        middleware.invoke(context, {}, SetupChecklistAction.ExtensionsClicked)
-        verifyNoInteractions(telemetry)
-    }
-
-    @Test
-    fun `GIVEN add search widget click action WHEN middleware is invoked THEN no telemetry is sent`() {
-        middleware.invoke(context, {}, SetupChecklistAction.AddSearchWidgetClicked)
-        verifyNoInteractions(telemetry)
-    }
-
-    @Test
-    fun `GIVEN view state action WHEN middleware is invoked THEN no telemetry is sent`() {
-        middleware.invoke(context, {}, SetupChecklistAction.ViewState(SetupChecklistViewState.FULL))
+    fun `GIVEN checklist item clicked action WHEN middleware is invoked THEN no telemetry is sent`() {
+        val task = ChecklistItem.Task(
+            type = ChecklistItem.Task.Type.EXPLORE_EXTENSION,
+            title = "A cool task",
+            icon = R.drawable.ic_addons_extensions,
+            isCompleted = false,
+        )
+        middleware.invoke(context, {}, SetupChecklistAction.ChecklistItemClicked(task))
         verifyNoInteractions(telemetry)
     }
 }

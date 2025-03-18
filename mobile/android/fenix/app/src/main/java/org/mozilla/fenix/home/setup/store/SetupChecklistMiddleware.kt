@@ -28,13 +28,6 @@ class SetupChecklistMiddleware(
         when (action) {
             is SetupChecklistAction.Init -> {}
             is SetupChecklistAction.Closed -> {}
-            is SetupChecklistAction.DefaultBrowserClicked -> {}
-            is SetupChecklistAction.SyncClicked -> {}
-            is SetupChecklistAction.ThemeSelectionClicked -> {}
-            is SetupChecklistAction.ToolbarSelectionClicked -> {}
-            is SetupChecklistAction.ExtensionsClicked -> {}
-            is SetupChecklistAction.AddSearchWidgetClicked -> {}
-            is SetupChecklistAction.ViewState -> {}
             is SetupChecklistAction.ChecklistItemClicked -> {
                 if (action.item is ChecklistItem.Task) {
                     when (action.item.type) {

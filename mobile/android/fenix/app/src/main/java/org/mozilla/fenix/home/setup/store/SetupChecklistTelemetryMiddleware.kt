@@ -24,13 +24,6 @@ class SetupChecklistTelemetryMiddleware(val telemetry: SetupChecklistTelemetryRe
         when (action) {
             is SetupChecklistAction.Init -> {}
             is SetupChecklistAction.Closed -> {}
-            is SetupChecklistAction.DefaultBrowserClicked -> {}
-            is SetupChecklistAction.SyncClicked -> {}
-            is SetupChecklistAction.ThemeSelectionClicked -> {}
-            is SetupChecklistAction.ToolbarSelectionClicked -> {}
-            is SetupChecklistAction.ExtensionsClicked -> {}
-            is SetupChecklistAction.AddSearchWidgetClicked -> {}
-            is SetupChecklistAction.ViewState -> {}
             is SetupChecklistAction.ChecklistItemClicked -> {}
         }
     }
