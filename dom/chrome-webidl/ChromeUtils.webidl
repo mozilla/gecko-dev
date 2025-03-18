@@ -72,6 +72,42 @@ dictionary FormAutofillConfidences {
   double ccName = 0;
 };
 
+enum ResourceCacheType {
+  "stylesheet",
+  "script",
+  "image",
+};
+
+enum ResourceCacheTarget {
+  "chrome",
+  "content",
+};
+
+dictionary ClearResourceCacheOptions {
+  // If specified clear only those types of resources.
+  // If not specified, clears all types.
+  sequence<ResourceCacheType> types;
+
+  // If specified, clear only the specified target, either chrome or content.
+  // If not specified, clears both chrome and content.
+  //
+  // Exclusive with principal and schemelessSite.
+  ResourceCacheTarget target;
+
+  // If specified, filters by principal.
+  //
+  // Exclusive with target and schemelessSite.
+  Principal principal;
+
+  // If specified, filters by site, and needs to provide a pattern.
+  //
+  // Exclusive with target and principal.
+  UTF8String schemelessSite;
+
+  // If specified with schemelessSite, filter by origin attributes.
+  OriginAttributesPatternDictionary pattern = {};
+};
+
 /**
  * A collection of static utility methods that are only exposed to system code.
  * This is exposed in all the system globals where we can expose stuff by
@@ -271,12 +307,9 @@ namespace ChromeUtils {
 
   /**
    * Clears the entire resource cache (stylesheets, JavaScripts, and images).
-   *
-   * If chrome parameter is passed and true, this clears chrome cache.
-   * If chrome parameter is passed and false, this clears content cache.
-   * If chrome parameter is not passed, this clears all cache.
    */
-  undefined clearResourceCache(optional boolean chrome);
+  [Throws]
+  undefined clearResourceCache(optional ClearResourceCacheOptions options = {});
 
   /**
    * Clears the Messaging Layer Security state by schemeless site.

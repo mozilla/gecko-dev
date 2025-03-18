@@ -217,7 +217,8 @@ class ChromeUtils {
                                const Optional<bool>& aChrome);
 
   static void ClearResourceCache(GlobalObject& aGlobal,
-                                 const Optional<bool>& aChrome);
+                                 const dom::ClearResourceCacheOptions& aOptions,
+                                 ErrorResult& aRv);
 
   static void SetPerfStatsCollectionMask(GlobalObject& aGlobal, uint64_t aMask);
 

@@ -1612,12 +1612,116 @@ void ChromeUtils::ClearScriptCache(GlobalObject&,
                                                : Nothing());
 }
 
-void ChromeUtils::ClearResourceCache(GlobalObject&,
-                                     const Optional<bool>& aChrome) {
-  Maybe<bool> chrome = aChrome.WasPassed() ? Some(aChrome.Value()) : Nothing();
-  SharedStyleSheetCache::Clear(chrome);
-  SharedScriptCache::Clear(chrome);
-  imgLoader::ClearCache(Nothing(), chrome);
+void ChromeUtils::ClearResourceCache(
+    GlobalObject& aGlobal, const dom::ClearResourceCacheOptions& aOptions,
+    ErrorResult& aRv) {
+  bool clearStyleSheet = false;
+  bool clearScript = false;
+  bool clearImage = false;
+
+  if (aOptions.mTypes.WasPassed()) {
+    for (const auto& type : aOptions.mTypes.Value()) {
+      switch (type) {
+        case ResourceCacheType::Stylesheet:
+          clearStyleSheet = true;
+          break;
+        case ResourceCacheType::Script:
+          clearScript = true;
+          break;
+        case ResourceCacheType::Image:
+          clearImage = true;
+          break;
+      }
+    }
+  } else {
+    clearStyleSheet = true;
+    clearScript = true;
+    clearImage = true;
+  }
+
+  int filterCount = 0;
+  if (aOptions.mTarget.WasPassed()) {
+    filterCount++;
+  }
+  if (aOptions.mPrincipal.WasPassed()) {
+    filterCount++;
+  }
+  if (aOptions.mSchemelessSite.WasPassed()) {
+    filterCount++;
+  }
+  if (filterCount > 1) {
+    aRv.ThrowInvalidStateError(
+        "target, principal, and schemelessSite properties are mutually "
+        "exclusive");
+    return;
+  }
+
+  if (aOptions.mTarget.WasPassed()) {
+    Maybe<bool> chrome;
+    switch (aOptions.mTarget.Value()) {
+      case ResourceCacheTarget::Chrome:
+        chrome.emplace(true);
+        break;
+      case ResourceCacheTarget::Content:
+        chrome.emplace(false);
+        break;
+    }
+
+    if (clearStyleSheet) {
+      SharedStyleSheetCache::Clear(chrome);
+    }
+    if (clearScript) {
+      SharedScriptCache::Clear(chrome);
+    }
+    if (clearImage) {
+      imgLoader::ClearCache(Nothing(), chrome);
+    }
+    return;
+  }
+
+  if (aOptions.mPrincipal.WasPassed()) {
+    nsCOMPtr<nsIPrincipal> principal = aOptions.mPrincipal.Value().get();
+
+    if (clearStyleSheet) {
+      SharedStyleSheetCache::Clear(Nothing(), Some(principal));
+    }
+    if (clearScript) {
+      SharedScriptCache::Clear(Nothing(), Some(principal));
+    }
+    if (clearImage) {
+      imgLoader::ClearCache(Nothing(), Nothing(), Some(principal));
+    }
+    return;
+  }
+
+  if (aOptions.mSchemelessSite.WasPassed()) {
+    nsCString schemelessSite(aOptions.mSchemelessSite.Value());
+    mozilla::OriginAttributesPattern pattern(aOptions.mPattern);
+
+    if (clearStyleSheet) {
+      SharedStyleSheetCache::Clear(Nothing(), Nothing(), Some(schemelessSite),
+                                   Some(pattern));
+    }
+    if (clearScript) {
+      SharedScriptCache::Clear(Nothing(), Nothing(), Some(schemelessSite),
+                               Some(pattern));
+    }
+    if (clearImage) {
+      imgLoader::ClearCache(Nothing(), Nothing(), Nothing(),
+                            Some(schemelessSite), Some(pattern));
+    }
+    return;
+  }
+
+  if (clearStyleSheet) {
+    SharedStyleSheetCache::Clear();
+  }
+  if (clearScript) {
+    SharedScriptCache::Clear();
+  }
+  if (clearImage) {
+    imgLoader::ClearCache();
+  }
 }
 
 #define PROCTYPE_TO_WEBIDL_CASE(_procType, _webidl) \

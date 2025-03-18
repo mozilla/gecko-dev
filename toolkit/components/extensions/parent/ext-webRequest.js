@@ -241,7 +241,7 @@ this.webRequest = class extends ExtensionAPIPersistent {
           }
           timestamps.push(now);
 
-          ChromeUtils.clearResourceCache(false); // false = content
+          ChromeUtils.clearResourceCache({ target: "content" });
         },
       },
     };
