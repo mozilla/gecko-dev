@@ -494,8 +494,6 @@ class nsDocShell final : public nsDocLoader,
       mozilla::dom::BrowsingContext* aBrowsingContext, uint32_t aLoadType,
       bool aIsDocumentLoad = true);
 
-  mozilla::dom::SessionHistoryInfo* GetActiveSessionHistoryInfo() const;
-
   void SetLoadingSessionHistoryInfo(
       const mozilla::dom::LoadingSessionHistoryInfo& aLoadingInfo,
       bool aNeedToReportActiveAfterLoadingBecomesActive = false);

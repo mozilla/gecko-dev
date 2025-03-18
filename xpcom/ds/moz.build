@@ -91,7 +91,6 @@ EXPORTS.mozilla += [
     "ArrayAlgorithm.h",
     "ArrayIterator.h",
     "AtomArray.h",
-    "CycleCollectedUniquePtr.h",
     "Dafsa.h",
     "IncrementalTokenizer.h",
     "Observer.h",

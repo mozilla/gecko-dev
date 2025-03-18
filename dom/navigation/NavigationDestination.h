@@ -48,9 +48,6 @@ class NavigationDestination final : public nsISupports, public nsWrapperCache {
                        JS::Handle<JSObject*> aGivenProto) override;
   nsIGlobalObject* GetParentObject();
 
-  NavigationHistoryEntry* GetEntry() const;
-  nsIURI* GetURI() const;
-
  private:
   ~NavigationDestination() = default;
 
