@@ -82,11 +82,6 @@ export class SearchModeSwitcher {
 
     await this.#buildSearchModeList(this.#input.window);
 
-    if (anchor.getAttribute("open") == "true") {
-      lazy.PanelMultiView.hidePopup(this.#popup);
-      return;
-    }
-
     this.#input.view.close({ showFocusBorder: false });
 
     this.#popup.addEventListener(
