@@ -1281,25 +1281,6 @@ void ChromeUtils::ClearRecentJSDevError(GlobalObject&) {
 }
 #endif  // NIGHTLY_BUILD
 
-void ChromeUtils::ClearStyleSheetCacheByPrincipal(GlobalObject&,
-                                                  nsIPrincipal* aForPrincipal) {
-  SharedStyleSheetCache::Clear(Nothing(), Some(aForPrincipal));
-}
-
-void ChromeUtils::ClearStyleSheetCacheBySite(
-    GlobalObject&, const nsACString& aSchemelessSite,
-    const dom::OriginAttributesPatternDictionary& aPattern) {
-  SharedStyleSheetCache::Clear(Nothing(), Nothing(),
-                               Some(nsCString(aSchemelessSite)),
-                               Some(OriginAttributesPattern(aPattern)));
-}
-
-void ChromeUtils::ClearStyleSheetCache(GlobalObject&,
-                                       const Optional<bool>& aChrome) {
-  SharedStyleSheetCache::Clear(aChrome.WasPassed() ? Some(aChrome.Value())
-                                                   : Nothing());
-}
-
 void ChromeUtils::ClearMessagingLayerSecurityStateByPrincipal(
     GlobalObject&, nsIPrincipal* aPrincipal, ErrorResult& aRv) {
   MOZ_LOG(gMlsLog, LogLevel::Debug,
@@ -1592,24 +1573,6 @@ void ChromeUtils::ClearMessagingLayerSecurityState(GlobalObject&,
   }
 
   MOZ_LOG(gMlsLog, LogLevel::Debug, ("Successfully cleared all MLS state"));
-}
-
-void ChromeUtils::ClearScriptCacheByPrincipal(GlobalObject&,
-                                              nsIPrincipal* aForPrincipal) {
-  SharedScriptCache::Clear(Nothing(), Some(aForPrincipal));
-}
-
-void ChromeUtils::ClearScriptCacheBySite(
-    GlobalObject&, const nsACString& aSchemelessSite,
-    const dom::OriginAttributesPatternDictionary& aPattern) {
-  SharedScriptCache::Clear(Nothing(), Nothing(),
-                           Some(nsCString(aSchemelessSite)), Some(aPattern));
-}
-
-void ChromeUtils::ClearScriptCache(GlobalObject&,
-                                   const Optional<bool>& aChrome) {
-  SharedScriptCache::Clear(aChrome.WasPassed() ? Some(aChrome.Value())
-                                               : Nothing());
 }
 
 void ChromeUtils::ClearResourceCache(

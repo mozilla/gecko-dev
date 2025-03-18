@@ -266,46 +266,6 @@ namespace ChromeUtils {
 #endif // NIGHTLY_BUILD
 
   /**
-   * Clears the stylesheet cache by site. This includes associated
-   * state-partitioned cache.
-   */
-  undefined clearStyleSheetCacheBySite(UTF8String schemelessSite, optional OriginAttributesPatternDictionary pattern = {});
-
-  /**
-   * Clears the stylesheet cache by principal.
-   */
-  undefined clearStyleSheetCacheByPrincipal(Principal principal);
-
-  /**
-   * Clears the entire stylesheet cache.
-   *
-   * If chrome parameter is passed and true, this clears chrome cache.
-   * If chrome parameter is passed and false, this clears content cache.
-   * If chrome parameter is not passed, this clears all cache.
-   */
-  undefined clearStyleSheetCache(optional boolean chrome);
-
-  /**
-   * Clears the JavaScript cache by schemeless site. This includes associated
-   * state-partitioned cache.
-   */
-  undefined clearScriptCacheBySite(UTF8String schemelessSite, optional OriginAttributesPatternDictionary pattern = {});
-
-  /**
-   * Clears the JavaScript cache by principal.
-   */
-  undefined clearScriptCacheByPrincipal(Principal principal);
-
-  /**
-   * Clears the entire JavaScript cache.
-   *
-   * If chrome parameter is passed and true, this clears chrome cache.
-   * If chrome parameter is passed and false, this clears content cache.
-   * If chrome parameter is not passed, this clears all cache.
-   */
-  undefined clearScriptCache(optional boolean chrome);
-
-  /**
    * Clears the entire resource cache (stylesheets, JavaScripts, and images).
    */
   [Throws]
