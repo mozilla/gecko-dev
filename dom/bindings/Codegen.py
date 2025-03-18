@@ -19267,6 +19267,15 @@ class CGBindingRoot(CGThing):
 
         for d in dictionaries:
             addPrefHeadersForDictionary(bindingHeaders, d)
+            try:
+                if CGDictionary.dictionaryNeedsCycleCollection(d):
+                    bindingDeclareHeaders["nsCycleCollectionParticipant.h"] = True
+            except CycleCollectionUnsupported:
+                # We have some member that we don't know how to CC.  Don't output
+                # our cycle collection overloads, so attempts to CC us will fail to
+                # compile instead of misbehaving.
+                pass
+
         for d in descriptors:
             interface = d.interface
             addPrefHeaderForObject(bindingHeaders, interface)

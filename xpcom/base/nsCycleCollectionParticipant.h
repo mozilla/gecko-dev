@@ -21,12 +21,8 @@
  * is a hack and is intentional in order to speed up the comparison inside
  * NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED.
  */
-#define NS_XPCOMCYCLECOLLECTIONPARTICIPANT_IID       \
-  {                                                  \
-    0xc61eac14, 0x5f7a, 0x4481, {                    \
-      0x96, 0x5e, 0x7e, 0xaa, 0x6e, 0xff, 0xa8, 0x5e \
-    }                                                \
-  }
+#define NS_XPCOMCYCLECOLLECTIONPARTICIPANT_IID \
+  {0xc61eac14, 0x5f7a, 0x4481, {0x96, 0x5e, 0x7e, 0xaa, 0x6e, 0xff, 0xa8, 0x5e}}
 
 /**
  * Special IID to get at the base nsISupports for a class. Usually this is the
@@ -35,12 +31,8 @@
  * to have separate nsCycleCollectionParticipant's for tearoffs or aggregated
  * classes.
  */
-#define NS_CYCLECOLLECTIONISUPPORTS_IID              \
-  {                                                  \
-    0xc61eac14, 0x5f7a, 0x4481, {                    \
-      0x96, 0x5e, 0x7e, 0xaa, 0x6e, 0xff, 0xa8, 0x5f \
-    }                                                \
-  }
+#define NS_CYCLECOLLECTIONISUPPORTS_IID \
+  {0xc61eac14, 0x5f7a, 0x4481, {0x96, 0x5e, 0x7e, 0xaa, 0x6e, 0xff, 0xa8, 0x5f}}
 
 namespace mozilla {
 enum class CCReason : uint8_t {
@@ -197,6 +189,87 @@ struct TraceCallbackFunc : public TraceCallbacks {
  private:
   Func mCallback;
 };
+
+template <typename T,
+          typename = std::enable_if_t<
+              std::is_same_v<
+                  void, decltype(std::declval<TraceCallbacks*>()->Trace(
+                            std::declval<T*>(), std::declval<const char*>(),
+                            std::declval<void*>()))>,
+              void>>
+using TraceableType = T;
+
+/*
+ * Default implementation for traceable types.
+ */
+template <typename T>
+inline void ImplCycleCollectionTrace(const TraceCallbacks& aCallbacks,
+                                     TraceableType<T>& aField,
+                                     const char* aName, void* aClosure) {
+  aCallbacks.Trace(&aField, aName, aClosure);
+}
+
+/*
+ * Default implementations for containers.
+ *
+ * To participate either define `ImplCycleCollectionContainer` or
+ * `ImplCycleCollectionIndexedContainer` for the container type. The latter
+ * should be chosen when edges should be decorated as an indexed container.
+ */
+
+template <typename T, typename = void>
+struct IsCycleCollectionContainer : std::false_type {};
+
+template <typename T>
+struct IsCycleCollectionContainer<
+    T,
+    std::void_t<decltype(ImplCycleCollectionContainer(std::declval<T&>(), 0))>>
+    : std::true_type {};
+
+template <typename T, typename = void>
+struct IsCycleCollectionIndexedContainer : std::false_type {};
+
+template <typename T>
+struct IsCycleCollectionIndexedContainer<
+    T, std::void_t<decltype(ImplCycleCollectionIndexedContainer(
+           std::declval<T&>(), 0))>> : std::true_type {};
+
+template <typename T>
+constexpr bool kIsCycleCollectionContainer =
+    IsCycleCollectionContainer<T>::value ||
+    IsCycleCollectionIndexedContainer<T>::value;
+
+template <typename T,
+          typename = std::enable_if_t<kIsCycleCollectionContainer<T>, void>>
+void ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
+                                 T& aField, const char* aName,
+                                 uint32_t aFlags = 0) {
+  if constexpr (IsCycleCollectionIndexedContainer<T>::value) {
+    aFlags |= CycleCollectionEdgeNameArrayFlag;
+    ImplCycleCollectionIndexedContainer(aField, [&](auto& aFieldMember) {
+      ImplCycleCollectionTraverse(aCallback, aFieldMember, aName, aFlags);
+    });
+  } else {
+    ImplCycleCollectionContainer(aField, [&](auto& aFieldMember) {
+      ImplCycleCollectionTraverse(aCallback, aFieldMember, aName, aFlags);
+    });
+  }
+}
+
+template <typename T,
+          typename = std::enable_if_t<kIsCycleCollectionContainer<T>, void>>
+void ImplCycleCollectionTrace(const TraceCallbacks& aCallbacks, T& aField,
+                              const char* aName, void* aClosure) {
+  if constexpr (IsCycleCollectionIndexedContainer<T>::value) {
+    ImplCycleCollectionIndexedContainer(aField, [&](auto& aFieldMember) {
+      ImplCycleCollectionTrace(aCallbacks, aFieldMember, aName, aClosure);
+    });
+  } else {
+    ImplCycleCollectionContainer(aField, [&](auto& aFieldMember) {
+      ImplCycleCollectionTrace(aCallbacks, aFieldMember, aName, aClosure);
+    });
+  }
+}
 
 /**
  * Participant implementation classes
@@ -620,7 +693,7 @@ T* DowncastCCParticipant(void* aPtr) {
     NS_CYCLE_COLLECTION_CLASSNAME(_base_class)::Trace(s, aCallbacks, aClosure);
 
 #define NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(_field) \
-  aCallbacks.Trace(&tmp->_field, #_field, aClosure);
+  ImplCycleCollectionTrace(aCallbacks, tmp->_field, #_field, aClosure);
 
 // NB: The (void)tmp; hack in the TRACE_END macro exists to support
 // implementations that don't need to do anything in their Trace method.
