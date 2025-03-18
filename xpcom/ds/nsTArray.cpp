@@ -21,7 +21,3 @@ bool IsTwiceTheRequiredBytesRepresentableAsUint32(size_t aCapacity,
   using mozilla::CheckedUint32;
   return ((CheckedUint32(aCapacity) * aElemSize) * 2).isValid();
 }
-
-void ::detail::SetCycleCollectionArrayFlag(uint32_t& aFlags) {
-  aFlags |= CycleCollectionEdgeNameArrayFlag;
-}
