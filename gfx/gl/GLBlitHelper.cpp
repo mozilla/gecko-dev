@@ -14,6 +14,7 @@
 #include "HeapCopyOfStackArray.h"
 #include "ImageContainer.h"
 #include "ScopedGLHelpers.h"
+#include "GLUploadHelpers.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Casting.h"
 #include "mozilla/Preferences.h"
@@ -171,7 +172,7 @@ const char* const kFragSample_ThreePlane = R"(
   }
 )";
 
-extern const char* const kFragSample_TwoPlaneUVP010 = R"(
+extern const char* const kFragSample_TwoPlaneUV = R"(
   VARYING mediump vec2 vTexCoord0;
   uniform PRECISION SAMPLER uTex1;
   uniform PRECISION SAMPLER uTex2;
@@ -1636,25 +1637,11 @@ bool GLBlitHelper::BlitImage(layers::DMABUFSurfaceImage* srcImage,
 
 bool GLBlitHelper::BlitYCbCrImageToDMABuf(const PlanarYCbCrData& yuvData,
                                           DMABufSurface* surface) {
-  if (!mGL->IsAtLeast(gl::ContextProfile::OpenGLCore, 300) &&
-      !mGL->IsAtLeast(gl::ContextProfile::OpenGLES, 300)) {
+  if ((!mGL->IsAtLeast(gl::ContextProfile::OpenGLCore, 300) &&
+       !mGL->IsAtLeast(gl::ContextProfile::OpenGLES, 300)) ||
+      !mGL->HasPBOState()) {
+    gfxCriticalError() << "BlitYCbCrImageToDMABuf: old GL version";
     return false;
-  }
-
-  // We support to YUV420P10 to P010 conversion only right now.
-  // We'll add YUV420 to NV12 later.
-  if (yuvData.mColorDepth != gfx::ColorDepth::COLOR_10) {
-    return false;
-  }
-
-  if (!mYuvUploads[0]) {
-    mGL->fGenTextures(3, mYuvUploads);
-    const ScopedBindTexture bindTex(mGL, mYuvUploads[0]);
-    mGL->TexParams_SetClampNoMips();
-    mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[1]);
-    mGL->TexParams_SetClampNoMips();
-    mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[2]);
-    mGL->TexParams_SetClampNoMips();
   }
 
   auto ySize = yuvData.YDataSize();
@@ -1670,14 +1657,49 @@ bool GLBlitHelper::BlitYCbCrImageToDMABuf(const PlanarYCbCrData& yuvData,
     return false;
   }
 
+  GLenum internalFormat;
+  GLenum unpackFormat;
+  GLenum sizeFormat;
+  switch (yuvData.mColorDepth) {
+    case gfx::ColorDepth::COLOR_8:
+      internalFormat = LOCAL_GL_R8;
+      unpackFormat = LOCAL_GL_RED;
+      sizeFormat = LOCAL_GL_UNSIGNED_BYTE;
+      break;
+    case gfx::ColorDepth::COLOR_10:
+      internalFormat = LOCAL_GL_R16;
+      unpackFormat = LOCAL_GL_RED;
+      sizeFormat = LOCAL_GL_UNSIGNED_SHORT;
+      break;
+    default:
+      gfxCriticalError() << "BlitYCbCrImageToDMABuf: Unsupported color depth";
+      return false;
+  }
+
+  if (!mYuvUploads[0]) {
+    mGL->fGenTextures(3, mYuvUploads);
+    const ScopedBindTexture bindTex(mGL, mYuvUploads[0]);
+    mGL->TexParams_SetClampNoMips();
+    mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[1]);
+    mGL->TexParams_SetClampNoMips();
+    mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[2]);
+    mGL->TexParams_SetClampNoMips();
+  }
+
   // --
 
   const ScopedSaveMultiTex saveTex(mGL, 3, LOCAL_GL_TEXTURE_2D);
   const ResetUnpackState reset(mGL);
-  const gfx::IntSize yTexSize(yuvData.mYStride >> 1,
-                              yuvData.YDataSize().height);
-  const gfx::IntSize uvTexSize(yuvData.mCbCrStride >> 1,
-                               yuvData.CbCrDataSize().height);
+
+  gfx::IntSize yTexSize(yuvData.mYStride, yuvData.YDataSize().height);
+  gfx::IntSize uvTexSize(yuvData.mCbCrStride, yuvData.CbCrDataSize().height);
+
+  // If we upload short integer type (16bit per pixel),
+  // we need to divide texture width as it's derived from stride in bytes.
+  if (sizeFormat == LOCAL_GL_UNSIGNED_SHORT) {
+    yTexSize.width >>= 1;
+    uvTexSize.width >>= 1;
+  }
 
   if (yTexSize != mYuvUploads_YSize || uvTexSize != mYuvUploads_UVSize) {
     mYuvUploads_YSize = yTexSize;
@@ -1685,15 +1707,13 @@ bool GLBlitHelper::BlitYCbCrImageToDMABuf(const PlanarYCbCrData& yuvData,
 
     mGL->fActiveTexture(LOCAL_GL_TEXTURE0);
     mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[0]);
-    mGL->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_R16, yTexSize.width,
-                     yTexSize.height, 0, LOCAL_GL_RED, LOCAL_GL_UNSIGNED_SHORT,
-                     nullptr);
+    mGL->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, internalFormat, yTexSize.width,
+                     yTexSize.height, 0, unpackFormat, sizeFormat, nullptr);
     for (int i = 1; i < 3; i++) {
       mGL->fActiveTexture(LOCAL_GL_TEXTURE0 + i);
       mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[i]);
-      mGL->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_R16, uvTexSize.width,
-                       uvTexSize.height, 0, LOCAL_GL_RED,
-                       LOCAL_GL_UNSIGNED_SHORT, nullptr);
+      mGL->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, internalFormat, uvTexSize.width,
+                       uvTexSize.height, 0, unpackFormat, sizeFormat, nullptr);
     }
   }
 
@@ -1702,24 +1722,29 @@ bool GLBlitHelper::BlitYCbCrImageToDMABuf(const PlanarYCbCrData& yuvData,
   mGL->fActiveTexture(LOCAL_GL_TEXTURE0);
   mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[0]);
   mGL->fTexSubImage2D(LOCAL_GL_TEXTURE_2D, 0, 0, 0, yTexSize.width,
-                      yTexSize.height, LOCAL_GL_RED, LOCAL_GL_UNSIGNED_SHORT,
+                      yTexSize.height, unpackFormat, sizeFormat,
                       yuvData.mYChannel);
   mGL->fActiveTexture(LOCAL_GL_TEXTURE1);
   mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[1]);
   mGL->fTexSubImage2D(LOCAL_GL_TEXTURE_2D, 0, 0, 0, uvTexSize.width,
-                      uvTexSize.height, LOCAL_GL_RED, LOCAL_GL_UNSIGNED_SHORT,
+                      uvTexSize.height, unpackFormat, sizeFormat,
                       yuvData.mCbChannel);
   mGL->fActiveTexture(LOCAL_GL_TEXTURE2);
   mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[2]);
   mGL->fTexSubImage2D(LOCAL_GL_TEXTURE_2D, 0, 0, 0, uvTexSize.width,
-                      uvTexSize.height, LOCAL_GL_RED, LOCAL_GL_UNSIGNED_SHORT,
+                      uvTexSize.height, unpackFormat, sizeFormat,
                       yuvData.mCrChannel);
 
   // --
 
   DrawBlitProg::BaseArgs baseArgs;
   baseArgs.yFlip = false;
-  baseArgs.texMatrix0 = SubRectMat3(0, 0, 1, 1);
+  const auto& clipRect = yuvData.mPictureRect;
+  baseArgs.texMatrix0 = SubRectMat3(clipRect, yTexSize);
+
+  const char* fragConvert = yuvData.mColorDepth == gfx::ColorDepth::COLOR_10
+                                ? kFragConvertYUVP010
+                                : kFragConvert_None;
 
   // Blit Y plane
   {
@@ -1733,7 +1758,7 @@ bool GLBlitHelper::BlitYCbCrImageToDMABuf(const PlanarYCbCrData& yuvData,
 
     baseArgs.destSize = gfx::IntSize(surface->GetWidth(), surface->GetHeight());
     const auto& prog = GetDrawBlitProg(
-        {kFragHeader_Tex2D, {kFragSample_OnePlane, kFragConvertYUVP010}});
+        {kFragHeader_Tex2D, {kFragSample_OnePlane, fragConvert}});
     prog.Draw(baseArgs);
   }
 
@@ -1750,7 +1775,7 @@ bool GLBlitHelper::BlitYCbCrImageToDMABuf(const PlanarYCbCrData& yuvData,
     baseArgs.destSize =
         gfx::IntSize(surface->GetWidth(1), surface->GetHeight(1));
     const auto& prog = GetDrawBlitProg(
-        {kFragHeader_Tex2D, {kFragSample_TwoPlaneUVP010, kFragConvertYUVP010}});
+        {kFragHeader_Tex2D, {kFragSample_TwoPlaneUV, fragConvert}});
     prog.Draw(baseArgs);
   }
 
