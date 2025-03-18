@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import org.mozilla.fenix.datastore.editOrCatch
 import org.mozilla.fenix.datastore.preferencesDataStore
+import org.mozilla.fenix.utils.isLargeScreenSize
 
 private const val DESKTOP_BROWSING_KEY = "desktop_browsing_key_2"
 
@@ -42,18 +43,17 @@ interface DesktopModeRepository {
  * @param dataStore [DataStore] for accessing user preferences.
  */
 class DefaultDesktopModeRepository(
-    context: Context,
+    private val context: Context,
     private val dataStore: DataStore<Preferences> = context.preferencesDataStore,
 ) : DesktopModeRepository {
 
-// The desktop mode default will be re-enabled when Bug1928771 is fixed.
-//    private val defaultDesktopMode by lazy {
-//        context.isLargeScreenSize()
-//    }
+    private val defaultDesktopMode by lazy {
+        context.isLargeScreenSize()
+    }
 
     override suspend fun getDesktopBrowsingEnabled(): Boolean =
         dataStore.data.map { preferences ->
-            preferences[desktopBrowsingEnabledKey] ?: false
+            preferences[desktopBrowsingEnabledKey] ?: defaultDesktopMode
         }.first()
 
     override suspend fun setDesktopBrowsingEnabled(enabled: Boolean): Boolean {

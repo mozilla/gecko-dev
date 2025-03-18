@@ -6,6 +6,9 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.mockk.every
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
 import kotlinx.coroutines.test.runTest
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.After
@@ -13,6 +16,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.fenix.utils.isLargeScreenSize
+import kotlin.reflect.KFunction
 
 private val Context.testDataStore: DataStore<Preferences> by preferencesDataStore(name = "DesktopModeRepositoryTest")
 
@@ -45,6 +50,26 @@ class DesktopModeRepositoryTest {
         }
 
     @Test
+    fun `GIVEN desktop mode defaults unset and device is not large screen WHEN the repository is read for the first time THEN desktop mode should be false`() =
+        runTest {
+            safeMockkStatic(Context::isLargeScreenSize) {
+                every { testContext.isLargeScreenSize() } returns false
+                val repository = createRepository()
+                assertFalse(repository.getDesktopBrowsingEnabled())
+            }
+        }
+
+    @Test
+    fun `GIVEN desktop mode defaults unset and device is large screen WHEN the repository is read for the first time THEN desktop mode should be true`() =
+        runTest {
+            safeMockkStatic(Context::isLargeScreenSize) {
+                every { testContext.isLargeScreenSize() } returns true
+                val repository = createRepository()
+                assertTrue(repository.getDesktopBrowsingEnabled())
+            }
+        }
+
+    @Test
     fun `WHEN the repository is written to THEN the preference is updated`() =
         runTest {
             val repository = createRepository()
@@ -57,11 +82,22 @@ class DesktopModeRepositoryTest {
         }
 
     private suspend fun createRepository(
-        initialDesktopMode: Boolean = false,
+        initialDesktopMode: Boolean? = null,
     ) = DefaultDesktopModeRepository(
         context = testContext,
         dataStore = testContext.testDataStore,
     ).apply {
-        setDesktopBrowsingEnabled(enabled = initialDesktopMode)
+        initialDesktopMode?.let {
+            setDesktopBrowsingEnabled(enabled = it)
+        }
+    }
+
+    private inline fun safeMockkStatic(vararg objects: KFunction<*>, block: () -> Unit) {
+        try {
+            mockkStatic(*objects)
+            block()
+        } finally {
+            unmockkStatic(*objects)
+        }
     }
 }
