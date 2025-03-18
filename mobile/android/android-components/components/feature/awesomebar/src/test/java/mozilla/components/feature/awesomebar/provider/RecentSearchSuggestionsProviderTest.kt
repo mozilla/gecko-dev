@@ -39,7 +39,7 @@ import org.mockito.Mockito.verify
 
 @ExperimentalCoroutinesApi // for runTest
 @RunWith(AndroidJUnit4::class)
-class SearchTermSuggestionsProviderTest {
+class RecentSearchSuggestionsProviderTest {
     private val historyEntry = HistoryMetadata(
         key = HistoryMetadataKey("http://www.mozilla.com/search?q=firefox", "fire", null),
         title = "Firefox",
@@ -60,7 +60,7 @@ class SearchTermSuggestionsProviderTest {
 
     @Test(expected = IllegalArgumentException::class)
     fun `GIVEN a too large number of suggestions WHEN constructing the provider THEN throw an exception`() {
-        SearchTermSuggestionsProvider(
+        RecentSearchSuggestionsProvider(
             historyStorage = mock(),
             searchUseCase = mock(),
             searchEngine = searchEngine,
@@ -69,40 +69,40 @@ class SearchTermSuggestionsProviderTest {
     }
 
     @Test
-    fun `GIVEN an empty input WHEN querying suggestions THEN return an empty list`() = runTest {
-        val provider = SearchTermSuggestionsProvider(mock(), mock(), searchEngine)
+    fun `GIVEN a non-empty input WHEN querying suggestions THEN return an empty list`() = runTest {
+        val provider = RecentSearchSuggestionsProvider(mock(), mock(), searchEngine)
 
-        val suggestions = provider.onInputChanged("")
+        val suggestions = provider.onInputChanged("fir")
 
         assertTrue(suggestions.isEmpty())
     }
 
     @Test
-    fun `GIVEN an empty input WHEN querying suggestions THEN do not cleanup read operations for the empty query`() = runTest {
-        val provider = SearchTermSuggestionsProvider(storage, mock(), searchEngine)
+    fun `GIVEN an non-empty input WHEN querying suggestions THEN do not cleanup read operations for the empty query`() = runTest {
+        val provider = RecentSearchSuggestionsProvider(storage, mock(), searchEngine)
 
-        provider.onInputChanged("")
+        provider.onInputChanged("fir")
 
         verify(storage, never()).cancelReads()
-        verify(storage, never()).cancelReads("")
+        verify(storage, never()).cancelReads("fir")
     }
 
     @Test
     fun `GIVEN a valid input WHEN querying suggestions THEN cleanup all read operations for the current query`() = runTest {
-        val provider = SearchTermSuggestionsProvider(storage, mock(), searchEngine)
+        val provider = RecentSearchSuggestionsProvider(storage, mock(), searchEngine)
         val orderVerifier = inOrder(storage)
 
-        provider.onInputChanged("fir")
+        provider.onInputChanged("")
 
         orderVerifier.verify(storage, never()).cancelReads()
-        orderVerifier.verify(storage).cancelReads("fir")
+        orderVerifier.verify(storage).cancelReads("")
         orderVerifier.verify(storage).getHistoryMetadataSince(Long.MIN_VALUE)
     }
 
     @Test
     fun `GIVEN a valid input WHEN querying suggestions THEN return suggestions from configured history storage`() = runTest {
         val searchEngineIcon: Bitmap = mock()
-        val provider = SearchTermSuggestionsProvider(
+        val provider = RecentSearchSuggestionsProvider(
             historyStorage = storage,
             searchUseCase = mock(),
             searchEngine = searchEngine,
@@ -110,7 +110,7 @@ class SearchTermSuggestionsProviderTest {
             showEditSuggestion = true,
         )
 
-        val suggestions = provider.onInputChanged("fir")
+        val suggestions = provider.onInputChanged("")
 
         assertEquals(1, suggestions.size)
         assertEquals(provider, suggestions[0].provider)
@@ -131,47 +131,47 @@ class SearchTermSuggestionsProviderTest {
         val searchEngineIcon: Bitmap = mock()
 
         // Test with a provided icon.
-        var provider = SearchTermSuggestionsProvider(
+        var provider = RecentSearchSuggestionsProvider(
             historyStorage = storage,
             searchUseCase = mock(),
             searchEngine = searchEngine,
             icon = searchEngineIcon,
         )
-        var suggestions = provider.onInputChanged("fir")
+        var suggestions = provider.onInputChanged("")
         assertEquals(1, suggestions.size)
         assertEquals(searchEngineIcon, suggestions[0].icon)
 
         // Test with no provided icon.
-        provider = SearchTermSuggestionsProvider(
+        provider = RecentSearchSuggestionsProvider(
             historyStorage = storage,
             searchUseCase = mock(),
             searchEngine = searchEngine,
             icon = null,
         )
-        suggestions = provider.onInputChanged("fir")
+        suggestions = provider.onInputChanged("")
         assertEquals(1, suggestions.size)
         assertEquals(searchEngine.icon, suggestions[0].icon)
     }
 
     @Test
     fun `GIVEN a valid input and editing suggestions disabled WHEN querying suggestions THEN return suggestions with no string for editing the suggestion`() = runTest {
-        var provider = SearchTermSuggestionsProvider(
+        var provider = RecentSearchSuggestionsProvider(
             historyStorage = storage,
             searchUseCase = mock(),
             searchEngine = searchEngine,
             showEditSuggestion = true,
         )
-        var suggestions = provider.onInputChanged("fir")
+        var suggestions = provider.onInputChanged("")
         assertEquals(1, suggestions.size)
         assertEquals(historyEntry.key.searchTerm, suggestions[0].editSuggestion)
 
-        provider = SearchTermSuggestionsProvider(
+        provider = RecentSearchSuggestionsProvider(
             historyStorage = storage,
             searchUseCase = mock(),
             searchEngine = searchEngine,
             showEditSuggestion = false,
         )
-        suggestions = provider.onInputChanged("fir")
+        suggestions = provider.onInputChanged("")
         assertEquals(1, suggestions.size)
         assertEquals(null, suggestions[0].editSuggestion)
     }
@@ -180,13 +180,13 @@ class SearchTermSuggestionsProviderTest {
     fun `GIVEN a valid input WHEN querying suggestions THEN return suggestions configured to do a new search when clicked`() = runTest {
         val searchUseCase: SearchUseCase = mock()
         doReturn(listOf(historyEntry)).`when`(storage).getHistoryMetadataSince(Long.MIN_VALUE)
-        val provider = SearchTermSuggestionsProvider(
+        val provider = RecentSearchSuggestionsProvider(
             historyStorage = storage,
             searchUseCase = searchUseCase,
             searchEngine = searchEngine,
         )
 
-        val suggestions = provider.onInputChanged("fir")
+        val suggestions = provider.onInputChanged("")
         assertEquals(1, suggestions.size)
         suggestions[0].onSuggestionClicked?.invoke()
 
@@ -197,13 +197,13 @@ class SearchTermSuggestionsProviderTest {
     fun `GIVEN a valid input WHEN querying suggestions THEN return suggestions configured to emit a telemetry fact when clicked`() = runTest {
         val searchUseCase: SearchUseCase = mock()
         doReturn(listOf(historyEntry)).`when`(storage).getHistoryMetadataSince(Long.MIN_VALUE)
-        val provider = SearchTermSuggestionsProvider(
+        val provider = RecentSearchSuggestionsProvider(
             historyStorage = storage,
             searchUseCase = searchUseCase,
             searchEngine = searchEngine,
         )
 
-        val suggestions = provider.onInputChanged("fir")
+        val suggestions = provider.onInputChanged("")
         assertEquals(1, suggestions.size)
         CollectionProcessor.withFactCollection { facts ->
             suggestions[0].onSuggestionClicked?.invoke()
@@ -234,9 +234,9 @@ class SearchTermSuggestionsProviderTest {
             ),
         )
         doReturn(historyEntries).`when`(storage).getHistoryMetadataSince(Long.MIN_VALUE)
-        val provider = SearchTermSuggestionsProvider(storage, mock(), searchEngine)
+        val provider = RecentSearchSuggestionsProvider(storage, mock(), searchEngine)
 
-        val suggestions = provider.onInputChanged("fir")
+        val suggestions = provider.onInputChanged("")
 
         assertEquals(2, suggestions.size)
         assertEquals(historyEntries[2].key.searchTerm, suggestions[0].title)
@@ -264,26 +264,26 @@ class SearchTermSuggestionsProviderTest {
         doReturn(historyEntries).`when`(storage).getHistoryMetadataSince(Long.MIN_VALUE)
 
         // Test with asking for more suggestions.
-        var provider = SearchTermSuggestionsProvider(
+        var provider = RecentSearchSuggestionsProvider(
             historyStorage = storage,
             searchUseCase = mock(),
             searchEngine = searchEngine,
             maxNumberOfSuggestions = 3,
         )
-        var suggestions = provider.onInputChanged("fir")
+        var suggestions = provider.onInputChanged("")
         assertEquals(3, suggestions.size)
         assertEquals(historyEntries[2].key.searchTerm, suggestions[0].title)
         assertEquals(historyEntries[1].key.searchTerm, suggestions[1].title)
         assertEquals(historyEntries[0].key.searchTerm, suggestions[2].title)
 
         // Test with asking for fewer suggestions.
-        provider = SearchTermSuggestionsProvider(
+        provider = RecentSearchSuggestionsProvider(
             historyStorage = storage,
             searchUseCase = mock(),
             searchEngine = searchEngine,
             maxNumberOfSuggestions = 1,
         )
-        suggestions = provider.onInputChanged("fir")
+        suggestions = provider.onInputChanged("")
         assertEquals(1, suggestions.size)
         assertEquals(historyEntries[2].key.searchTerm, suggestions[0].title)
     }
@@ -298,9 +298,9 @@ class SearchTermSuggestionsProviderTest {
             ),
         )
         doReturn(historyEntries).`when`(storage).getHistoryMetadataSince(Long.MIN_VALUE)
-        val provider = SearchTermSuggestionsProvider(storage, mock(), searchEngine)
+        val provider = RecentSearchSuggestionsProvider(storage, mock(), searchEngine)
 
-        val suggestions = provider.onInputChanged("fir")
+        val suggestions = provider.onInputChanged("")
 
         assertEquals(1, suggestions.size)
         assertEquals(historyEntries[0].key.searchTerm, suggestions[0].title)
@@ -311,19 +311,19 @@ class SearchTermSuggestionsProviderTest {
         val engine: Engine = mock()
         val searcheEngineSearchUrl = "https://test/q=$OS_SEARCH_ENGINE_TERMS_PARAM"
         doReturn(listOf(searcheEngineSearchUrl)).`when`(searchEngine).resultUrls
-        val provider = SearchTermSuggestionsProvider(
+        val provider = RecentSearchSuggestionsProvider(
             historyStorage = storage,
             searchUseCase = mock(),
             searchEngine = searchEngine,
             engine = engine,
         )
 
-        var suggestions = provider.onInputChanged("")
+        var suggestions = provider.onInputChanged("fir")
         assertTrue(suggestions.isEmpty())
         verify(engine, never()).speculativeConnect(anyString())
 
         doReturn(listOf(historyEntry)).`when`(storage).getHistoryMetadataSince(Long.MIN_VALUE)
-        suggestions = provider.onInputChanged("fir")
+        suggestions = provider.onInputChanged("")
         assertEquals(1, suggestions.size)
         assertEquals("fire", suggestions[0].title)
         assertNull(suggestions[0].description)

@@ -19,6 +19,7 @@ import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
 import mozilla.components.feature.awesomebar.provider.BookmarksStorageSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.CombinedHistorySuggestionProvider
 import mozilla.components.feature.awesomebar.provider.HistoryStorageSuggestionProvider
+import mozilla.components.feature.awesomebar.provider.RecentSearchSuggestionsProvider
 import mozilla.components.feature.awesomebar.provider.SearchActionProvider
 import mozilla.components.feature.awesomebar.provider.SearchEngineSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.SearchSuggestionProvider
@@ -1516,7 +1517,7 @@ class AwesomeBarViewTest {
 
         val result = awesomeBarView.getProvidersToAdd(state)
 
-        assertEquals(1, result.filterIsInstance<SearchTermSuggestionsProvider>().size)
+        assertEquals(1, result.filterIsInstance<RecentSearchSuggestionsProvider>().size)
     }
 
     @Test
@@ -1531,7 +1532,7 @@ class AwesomeBarViewTest {
 
         val result = awesomeBarView.getProvidersToAdd(state)
 
-        assertEquals(0, result.filterIsInstance<SearchTermSuggestionsProvider>().size)
+        assertEquals(0, result.filterIsInstance<RecentSearchSuggestionsProvider>().size)
     }
 }
 
