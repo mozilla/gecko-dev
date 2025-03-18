@@ -29,6 +29,7 @@
 #include "mozilla/ProfilerThreadSleep.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/SchedulerGroup.h"
+#include "mozilla/WindowsVersion.h"
 #include "mozilla/WinHeaderOnlyUtils.h"
 #include "mozilla/Unused.h"
 #include "nsIContentPolicy.h"
