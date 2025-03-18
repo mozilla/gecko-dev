@@ -13,6 +13,7 @@ import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.storage.HistoryMetadata
 import mozilla.components.feature.awesomebar.facts.emitRecentSearchSuggestionClickedFact
+import mozilla.components.feature.awesomebar.facts.emitRecentSearchSuggestionsDisplayedFact
 import mozilla.components.feature.search.SearchUseCases.SearchUseCase
 import mozilla.components.feature.search.ext.buildSearchUrl
 import java.util.UUID
@@ -91,6 +92,10 @@ class RecentSearchSuggestionsProvider(
             }
         }
 
+        if (suggestions.isNotEmpty()) {
+            emitRecentSearchSuggestionsDisplayedFact(suggestions.size)
+        }
+
         return@coroutineScope suggestions.into(
             provider = this@RecentSearchSuggestionsProvider,
             searchEngine = searchEngine,
@@ -122,7 +127,7 @@ private fun Iterable<HistoryMetadata>.into(
             score = Int.MAX_VALUE - (index + 2),
             onSuggestionClicked = {
                 searchUseCase.invoke(safeSearchTerm)
-                emitRecentSearchSuggestionClickedFact()
+                emitRecentSearchSuggestionClickedFact(index)
             },
         )
     }
