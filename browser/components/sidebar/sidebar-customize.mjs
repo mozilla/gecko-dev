@@ -88,6 +88,7 @@ export class SidebarCustomize extends SidebarPage {
     positionInput: "#position",
     visibilityInput: "#hide-sidebar",
     verticalTabsInput: "#vertical-tabs",
+    expandOnHoverInput: "#expand-on-hover",
   };
 
   connectedCallback() {

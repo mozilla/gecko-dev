@@ -130,7 +130,7 @@ add_task(async function test_tabs() {
       // to ensure we properly test that path
       if (client.id === 2) {
         Assert.ok(
-          !row.renderRoot.querySelector(".dismiss-button"),
+          !row.secondaryButtonEl,
           `Dismiss button should NOT appear for tab ${
             j + 1
           } on the client that does not have available commands.`
@@ -138,37 +138,46 @@ add_task(async function test_tabs() {
       } else {
         // We need to use renderRoot since Lit components querySelector
         // won't return the right things
-        await BrowserTestUtils.waitForCondition(
-          () => row.renderRoot.querySelector(".dismiss-button") !== null,
+        await BrowserTestUtils.waitForMutationCondition(
+          row.shadowRoot,
+          { childList: true },
+          () => row.secondaryButtonEl,
           `Dismiss button should appear for tab ${j + 1}`
         );
         // Check the presence of the dismiss button
-        const dismissButton = row.renderRoot.querySelector(".dismiss-button");
+        const dismissButton = row.secondaryButtonEl;
         Assert.ok(dismissButton, `Dismiss button is present on tab ${j + 1}.`);
         // Simulate clicking the dismiss button
         EventUtils.synthesizeMouseAtCenter(dismissButton, {}, content);
 
-        await TestUtils.waitForCondition(
+        await BrowserTestUtils.waitForMutationCondition(
+          row.secondaryButtonEl,
+          { attributes: true },
           () => {
-            const undoButton = row.renderRoot.querySelector(".undo-button");
-            return undoButton && undoButton.style.display !== "none";
+            const undoButton = row.secondaryButtonEl;
+            return (
+              undoButton.classList.contains("undo-button") &&
+              undoButton.style.display !== "none"
+            );
           },
           `Undo button is shown after dismissing tab ${j + 1}.`
         );
 
         // Simulate clicking the undo button
-        const undoButton = row.renderRoot.querySelector(".undo-button");
+        const undoButton = row.secondaryButtonEl;
         EventUtils.synthesizeMouseAtCenter(
           row.mainEl,
           { type: "mouseover" },
           content
         );
         EventUtils.synthesizeMouseAtCenter(undoButton, {}, content);
-        await TestUtils.waitForCondition(
+        await BrowserTestUtils.waitForMutationCondition(
+          row.secondaryButtonEl,
+          { attributes: true },
           () => {
             return (
-              row.renderRoot.querySelector(".dismiss-button") &&
-              !row.renderRoot.querySelector(".undo-button")
+              row.secondaryButtonEl.classList.contains("dismiss-button") &&
+              !row.secondaryButtonEl.classList.contains("undo-button")
             );
           },
           `Dismiss button is restored after undoing tab ${j + 1}.`
