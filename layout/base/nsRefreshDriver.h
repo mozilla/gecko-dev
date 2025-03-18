@@ -502,7 +502,7 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   void UpdateIntersectionObservations(mozilla::TimeStamp aNowTime);
   void UpdateRemoteFrameEffects();
   void UpdateRelevancyOfContentVisibilityAutoFrames();
-  MOZ_CAN_RUN_SCRIPT void PerformPendingViewTransitionOperations();
+  void PerformPendingViewTransitionOperations();
   MOZ_CAN_RUN_SCRIPT void
   DetermineProximityToViewportAndNotifyResizeObservers();
   void MaybeIncreaseMeasuredTicksSinceLoading();

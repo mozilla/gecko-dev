@@ -355,22 +355,11 @@ Promise* ViewTransition::GetFinished(ErrorResult& aRv) {
   return mFinishedPromise;
 }
 
-// This performs the step 5 in setup view transition.
-// https://drafts.csswg.org/css-view-transitions-1/#setup-view-transition
-void ViewTransition::MaybeScheduleUpdateCallback() {
-  // 1. If transition’s phase is "done", then abort these steps.
-  // Note: This happens if transition was skipped before this point.
-  if (mPhase == Phase::Done) {
+void ViewTransition::CallUpdateCallbackIgnoringErrors(CallIfDone aCallIfDone) {
+  if (aCallIfDone == CallIfDone::No && mPhase == Phase::Done) {
     return;
   }
-
-  RefPtr doc = mDocument;
-
-  // 2. Schedule the update callback for transition.
-  doc->ScheduleViewTransitionUpdateCallback(this);
-
-  // 3. Flush the update callback queue.
-  doc->FlushViewTransitionUpdateCallbackQueue();
+  CallUpdateCallback(IgnoreErrors());
 }
 
 // https://drafts.csswg.org/css-view-transitions-1/#call-the-update-callback
@@ -613,7 +602,7 @@ static nsTArray<Keyframe> BuildGroupKeyframes(
       AnimatedPropertyID(eCSSProperty_height),
       Servo_DeclarationBlock_CreateEmpty().Consume(),
   };
-  SetProp(height.mServoDeclarationBlock, aDoc, eCSSProperty_height,
+  SetProp(width.mServoDeclarationBlock, aDoc, eCSSProperty_height,
           cssSize.height, eCSSUnit_Pixel);
   firstKeyframe.mPropertyValues.AppendElement(std::move(transform));
   firstKeyframe.mPropertyValues.AppendElement(std::move(width));
@@ -922,13 +911,6 @@ void ViewTransition::PerformPendingOperations() {
   MOZ_ASSERT(mDocument);
   MOZ_ASSERT(mDocument->GetActiveViewTransition() == this);
 
-  // Flush the update callback queue.
-  // Note: this ensures that any changes to the DOM scheduled by other skipped
-  // transitions are done before the old state for this transition is captured.
-  // https://github.com/w3c/csswg-drafts/issues/11943
-  RefPtr doc = mDocument;
-  doc->FlushViewTransitionUpdateCallbackQueue();
-
   switch (mPhase) {
     case Phase::PendingCapture:
       return Setup();
@@ -1199,17 +1181,16 @@ void ViewTransition::Setup() {
     return SkipTransition(*skipReason);
   }
 
-  // Step 3: Set document’s rendering suppression for view transitions to true.
   mDocument->SetRenderingSuppressedForViewTransitions(true);
 
   // Step 4: Queue a global task on the DOM manipulation task source, given
   // transition's relevant global object, to perform the following steps:
-  //   4.1: If transition's phase is "done", then abort these steps.
-  //   4.2: Schedule the update callback for transition.
-  //   4.3: Flush the update callback queue.
-  mDocument->Dispatch(
-      NewRunnableMethod("ViewTransition::MaybeScheduleUpdateCallback", this,
-                        &ViewTransition::MaybeScheduleUpdateCallback));
+  //   4.1: If transition's phase is "done", then abort these steps. That is
+  //        achieved via CallIfDone::No.
+  //   4.2: call the update callback.
+  mDocument->Dispatch(NewRunnableMethod<CallIfDone>(
+      "ViewTransition::CallUpdateCallbackFromSetup", this,
+      &ViewTransition::CallUpdateCallbackIgnoringErrors, CallIfDone::No));
 }
 
 // https://drafts.csswg.org/css-view-transitions-1/#handle-transition-frame
@@ -1428,10 +1409,14 @@ void ViewTransition::SkipTransition(
   if (mPhase == Phase::Done) {
     return;
   }
-  // Step 3: If transition’s phase is before "update-callback-called", then
-  // schedule the update callback for transition.
+  // Step 3: If transition's phase is before "update-callback-called", then
+  // queue a global task on the DOM manipulation task source, given
+  // transition’s relevant global object, to call the update callback of
+  // transition.
   if (UnderlyingValue(mPhase) < UnderlyingValue(Phase::UpdateCallbackCalled)) {
-    mDocument->ScheduleViewTransitionUpdateCallback(this);
+    mDocument->Dispatch(NewRunnableMethod<CallIfDone>(
+        "ViewTransition::CallUpdateCallbackFromSkip", this,
+        &ViewTransition::CallUpdateCallbackIgnoringErrors, CallIfDone::Yes));
   }
 
   // Step 4: Set rendering suppression for view transitions to false.
