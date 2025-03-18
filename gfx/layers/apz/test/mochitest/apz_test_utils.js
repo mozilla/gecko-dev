@@ -391,6 +391,8 @@ async function promiseApzFlushedRepaints(aPopupElement = null) {
 //   onload: optional, a function that will be registered as a load event listener
 //           for the child window that will hold the subtest. the function will be
 //           passed exactly one argument, which will be the child window.
+//   windowFeatures: optional, will be passed to as the third argument of `window.open`.
+//                   See https://developer.mozilla.org/en-US/docs/Web/API/Window/open#windowfeatures
 // An example of an array is:
 //   aSubtests = [
 //     { 'file': 'test_file_name.html' },
@@ -462,7 +464,13 @@ function runSubtestsSeriallyInFreshWindows(aSubtests) {
 
       test = aSubtests[testIndex];
 
-      let recognizedProps = ["file", "prefs", "dp_suppression", "onload"];
+      let recognizedProps = [
+        "file",
+        "prefs",
+        "dp_suppression",
+        "onload",
+        "windowFeatures",
+      ];
       for (let prop in test) {
         if (!recognizedProps.includes(prop)) {
           SimpleTest.ok(
@@ -505,7 +513,11 @@ function runSubtestsSeriallyInFreshWindows(aSubtests) {
       }
 
       function spawnTest(aFile) {
-        w = window.open("", "_blank");
+        w = window.open(
+          "",
+          "_blank",
+          test.windowFeatures ? test.windowFeatures : ""
+        );
         w.subtestDone = advanceSubtestExecution;
         w.subtestFailed = advanceSubtestExecutionWithFailure;
         w.isApzSubtest = true;

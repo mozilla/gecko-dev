@@ -6376,7 +6376,7 @@ void AsyncPanZoomController::ZoomToRect(const ZoomTarget& aZoomTarget,
     }
 
     // Vertically center the zoomed element in the screen.
-    if (!zoomOut && (sizeAfterZoom.height > rect.Height())) {
+    if (!zoomOut && (sizeAfterZoom.height - rect.Height() > COORDINATE_EPSILON)) {
       rect.MoveByY(-(sizeAfterZoom.height - rect.Height()) * 0.5f);
       if (rect.Y() < 0.0f) {
         rect.MoveToY(0.0f);
@@ -6384,7 +6384,7 @@ void AsyncPanZoomController::ZoomToRect(const ZoomTarget& aZoomTarget,
     }
 
     // Horizontally center the zoomed element in the screen.
-    if (!zoomOut && (sizeAfterZoom.width > rect.Width())) {
+    if (!zoomOut && (sizeAfterZoom.width - rect.Width() > COORDINATE_EPSILON)) {
       rect.MoveByX(-(sizeAfterZoom.width - rect.Width()) * 0.5f);
       if (rect.X() < 0.0f) {
         rect.MoveToX(0.0f);
@@ -6396,7 +6396,7 @@ void AsyncPanZoomController::ZoomToRect(const ZoomTarget& aZoomTarget,
     // are able to show to center what was visible.
     // Note that this calculation works no matter the relation of sizeBeforeZoom
     // to sizeAfterZoom, ie whether we are increasing or decreasing zoom.
-    if (!zoomOut && (sizeAfterZoom.height < rect.Height())) {
+    if (!zoomOut && (rect.Height() - sizeAfterZoom.height > COORDINATE_EPSILON)) {
       rect.y =
           scrollOffset.y + (sizeBeforeZoom.height - sizeAfterZoom.height) / 2;
       rect.height = sizeAfterZoom.Height();
@@ -6404,7 +6404,7 @@ void AsyncPanZoomController::ZoomToRect(const ZoomTarget& aZoomTarget,
       intersectRectAgain = true;
     }
 
-    if (!zoomOut && (sizeAfterZoom.width < rect.Width())) {
+    if (!zoomOut && (rect.Width() - sizeAfterZoom.width > COORDINATE_EPSILON)) {
       rect.x =
           scrollOffset.x + (sizeBeforeZoom.width - sizeAfterZoom.width) / 2;
       rect.width = sizeAfterZoom.Width();
