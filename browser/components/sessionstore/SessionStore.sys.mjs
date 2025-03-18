@@ -1292,13 +1292,15 @@ var SessionStoreInternal = {
           // Update the session start time using the restored session state.
           this._updateSessionStartTime(state);
 
-          // Make sure that at least the first window doesn't have anything hidden.
-          delete state.windows[0].hidden;
-          // Since nothing is hidden in the first window, it cannot be a popup.
-          delete state.windows[0].isPopup;
-          // We don't want to minimize and then open a window at startup.
-          if (state.windows[0].sizemode == "minimized") {
-            state.windows[0].sizemode = "normal";
+          if (state.windows.length) {
+            // Make sure that at least the first window doesn't have anything hidden.
+            delete state.windows[0].hidden;
+            // Since nothing is hidden in the first window, it cannot be a popup.
+            delete state.windows[0].isPopup;
+            // We don't want to minimize and then open a window at startup.
+            if (state.windows[0].sizemode == "minimized") {
+              state.windows[0].sizemode = "normal";
+            }
           }
 
           // clear any lastSessionWindowID attributes since those don't matter
