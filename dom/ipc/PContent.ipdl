@@ -658,17 +658,20 @@ child:
                           bool? aChrome,
                           nullable nsIPrincipal? aPrincipal,
                           nsCString? aSchemelessSite,
-                          OriginAttributesPattern? aPattern);
+                          OriginAttributesPattern? aPattern,
+                          nsCString? aURL);
 
     async ClearStyleSheetCache(bool? aChrome,
                                nullable nsIPrincipal? aPrincipal,
                                nsCString? aSchemelessSite,
-                               OriginAttributesPattern? aPattern);
+                               OriginAttributesPattern? aPattern,
+                               nsCString? aURL);
 
     async ClearScriptCache(bool? aChrome,
                            nullable nsIPrincipal? aPrincipal,
                            nsCString? aSchemelessSite,
-                           OriginAttributesPattern? aPattern);
+                           OriginAttributesPattern? aPattern,
+                           nsCString? aURL);
 
     async SetOffline(bool offline);
     async SetConnectivity(bool connectivity);

@@ -1612,9 +1612,12 @@ void ChromeUtils::ClearResourceCache(
   if (aOptions.mSchemelessSite.WasPassed()) {
     filterCount++;
   }
+  if (aOptions.mUrl.WasPassed()) {
+    filterCount++;
+  }
   if (filterCount > 1) {
     aRv.ThrowInvalidStateError(
-        "target, principal, and schemelessSite properties are mutually "
+        "target, principal, schemelessSite, and url properties are mutually "
         "exclusive");
     return;
   }
@@ -1672,6 +1675,24 @@ void ChromeUtils::ClearResourceCache(
     if (clearImage) {
       imgLoader::ClearCache(Nothing(), Nothing(), Nothing(),
                             Some(schemelessSite), Some(pattern));
+    }
+    return;
+  }
+
+  if (aOptions.mUrl.WasPassed()) {
+    nsCString url(aOptions.mUrl.Value());
+
+    if (clearStyleSheet) {
+      SharedStyleSheetCache::Clear(Nothing(), Nothing(), Nothing(), Nothing(),
+                                   Some(url));
+    }
+    if (clearScript) {
+      SharedScriptCache::Clear(Nothing(), Nothing(), Nothing(), Nothing(),
+                               Some(url));
+    }
+    if (clearImage) {
+      imgLoader::ClearCache(Nothing(), Nothing(), Nothing(), Nothing(),
+                            Nothing(), Some(url));
     }
     return;
   }

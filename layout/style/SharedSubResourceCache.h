@@ -242,7 +242,8 @@ class SharedSubResourceCache {
   void ClearInProcess(const Maybe<bool>& aChrome,
                       const Maybe<nsCOMPtr<nsIPrincipal>>& aPrincipal,
                       const Maybe<nsCString>& aSchemelessSite,
-                      const Maybe<OriginAttributesPattern>& aPattern);
+                      const Maybe<OriginAttributesPattern>& aPattern,
+                      const Maybe<nsCString>& aURL);
 
  protected:
   void CancelPendingLoadsForLoader(Loader&);
@@ -272,11 +273,12 @@ template <typename Traits, typename Derived>
 void SharedSubResourceCache<Traits, Derived>::ClearInProcess(
     const Maybe<bool>& aChrome, const Maybe<nsCOMPtr<nsIPrincipal>>& aPrincipal,
     const Maybe<nsCString>& aSchemelessSite,
-    const Maybe<OriginAttributesPattern>& aPattern) {
+    const Maybe<OriginAttributesPattern>& aPattern,
+    const Maybe<nsCString>& aURL) {
   MOZ_ASSERT(aSchemelessSite.isSome() == aPattern.isSome(),
              "Must pass both site and OA pattern.");
 
-  if (!aChrome && !aPrincipal && !aSchemelessSite) {
+  if (!aChrome && !aPrincipal && !aSchemelessSite && !aURL) {
     mComplete.Clear();
     return;
   }
@@ -290,9 +292,18 @@ void SharedSubResourceCache<Traits, Derived>::ClearInProcess(
           return false;
         }
 
-        if (!aPrincipal && !aSchemelessSite) {
+        if (!aPrincipal && !aSchemelessSite && !aURL) {
           return true;
         }
+      }
+
+      if (aURL) {
+        nsAutoCString spec;
+        nsresult rv = iter.Key().URI()->GetSpec(spec);
+        if (NS_FAILED(rv)) {
+          return false;
+        }
+        return spec == *aURL;
       }
 
       if (aPrincipal &&

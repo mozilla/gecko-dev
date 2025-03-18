@@ -258,17 +258,20 @@ class imgLoader final : public imgILoader,
    *        If specified and true, clear chrome cache.
    *        If specified and false, clear content cache.
    *        If not specified, clear both.
-   *        Has no effect with aPrincipal or aSchemelessSite.
+   *        Has no effect with aPrincipal, aSchemelessSite or aURL.
    * @param aPrincipal
    *        If specified, clear cache from the same origin and the same
    *        originAttributes of the passed principal.
-   *        Exclusive with aSchemelessSite.
+   *        Exclusive with aSchemelessSite and aURL.
    * @param aSchemelessSite
    *        If specified, clear cache which match the the given site.
    *        If this is specified, aPattern should also be specified.
-   *        Exclusive with aPrincipal.
+   *        Exclusive with aPrincipal and aURL.
    * @param aPattern
    *        The pattern used with aSchemelessSite.
+   * @param aURL
+   *        If specified, clear cache for given URL.
+   *        Exclusive with aPrincipal and aschemelesssite.
    */
   static nsresult ClearCache(
       mozilla::Maybe<bool> aPrivateLoader = mozilla::Nothing(),
@@ -277,7 +280,8 @@ class imgLoader final : public imgILoader,
           mozilla::Nothing(),
       const mozilla::Maybe<nsCString>& aSchemelessSite = mozilla::Nothing(),
       const mozilla::Maybe<mozilla::OriginAttributesPattern>& aPattern =
-          mozilla::Nothing());
+          mozilla::Nothing(),
+      const mozilla::Maybe<nsCString>& aURL = mozilla::Nothing());
 
   bool IsImageAvailable(nsIURI*, nsIPrincipal* aTriggeringPrincipal,
                         mozilla::CORSMode, mozilla::dom::Document*);
@@ -376,7 +380,8 @@ class imgLoader final : public imgILoader,
   nsresult RemoveEntriesInternal(
       const mozilla::Maybe<nsCOMPtr<nsIPrincipal>>& aPrincipal,
       const mozilla::Maybe<nsCString>& aSchemelessSite,
-      const mozilla::Maybe<mozilla::OriginAttributesPattern>& aPattern);
+      const mozilla::Maybe<mozilla::OriginAttributesPattern>& aPattern,
+      const mozilla::Maybe<nsCString>& aURL);
 
   // The image loader maintains a hash table of all imgCacheEntries. However,
   // only some of them will be evicted from the cache: those who have no

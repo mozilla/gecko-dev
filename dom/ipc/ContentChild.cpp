@@ -2093,16 +2093,20 @@ mozilla::ipc::IPCResult ContentChild::RecvRegisterChromeItem(
 mozilla::ipc::IPCResult ContentChild::RecvClearStyleSheetCache(
     const Maybe<bool>& aChrome, const Maybe<RefPtr<nsIPrincipal>>& aPrincipal,
     const Maybe<nsCString>& aSchemelessSite,
-    const Maybe<OriginAttributesPattern>& aPattern) {
-  SharedStyleSheetCache::Clear(aChrome, aPrincipal, aSchemelessSite, aPattern);
+    const Maybe<OriginAttributesPattern>& aPattern,
+    const Maybe<nsCString>& aURL) {
+  SharedStyleSheetCache::Clear(aChrome, aPrincipal, aSchemelessSite, aPattern,
+                               aURL);
   return IPC_OK();
 }
 
 mozilla::ipc::IPCResult ContentChild::RecvClearScriptCache(
     const Maybe<bool>& aChrome, const Maybe<RefPtr<nsIPrincipal>>& aPrincipal,
     const Maybe<nsCString>& aSchemelessSite,
-    const Maybe<OriginAttributesPattern>& aPattern) {
-  SharedScriptCache::Clear(aChrome, aPrincipal, aSchemelessSite, aPattern);
+    const Maybe<OriginAttributesPattern>& aPattern,
+    const Maybe<nsCString>& aURL) {
+  SharedScriptCache::Clear(aChrome, aPrincipal, aSchemelessSite, aPattern,
+                           aURL);
   return IPC_OK();
 }
 
@@ -2110,9 +2114,10 @@ mozilla::ipc::IPCResult ContentChild::RecvClearImageCache(
     const Maybe<bool>& aPrivateLoader, const Maybe<bool>& aChrome,
     const Maybe<RefPtr<nsIPrincipal>>& aPrincipal,
     const Maybe<nsCString>& aSchemelessSite,
-    const Maybe<OriginAttributesPattern>& aPattern) {
+    const Maybe<OriginAttributesPattern>& aPattern,
+    const Maybe<nsCString>& aURL) {
   imgLoader::ClearCache(aPrincipal, aChrome, aPrincipal, aSchemelessSite,
-                        aPattern);
+                        aPattern, aURL);
   return IPC_OK();
 }
 

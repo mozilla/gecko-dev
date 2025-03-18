@@ -1418,11 +1418,12 @@ nsresult imgLoader::ClearCache(
         aPrincipal /* = mozilla::Nothing() */,
     const mozilla::Maybe<nsCString>& aSchemelessSite /* = mozilla::Nothing() */,
     const mozilla::Maybe<mozilla::OriginAttributesPattern>&
-        aPattern /* = mozilla::Nothing() */) {
+        aPattern /* = mozilla::Nothing() */,
+    const mozilla::Maybe<nsCString>& aURL /* = mozilla::Nothing() */) {
   if (XRE_IsParentProcess()) {
     for (auto* cp : ContentParent::AllProcesses(ContentParent::eLive)) {
       Unused << cp->SendClearImageCache(aPrivateLoader, aChrome, aPrincipal,
-                                        aSchemelessSite, aPattern);
+                                        aSchemelessSite, aPattern, aURL);
     }
   }
 
@@ -1434,19 +1435,36 @@ nsresult imgLoader::ClearCache(
       loader = imgLoader::NormalLoader();
     }
 
-    loader->RemoveEntriesInternal(aPrincipal, Nothing(), Nothing());
+    loader->RemoveEntriesInternal(aPrincipal, Nothing(), Nothing(), Nothing());
     return NS_OK;
   }
 
   if (aSchemelessSite) {
     if (!aPrivateLoader || !*aPrivateLoader) {
       nsresult rv = imgLoader::NormalLoader()->RemoveEntriesInternal(
-          Nothing(), aSchemelessSite, aPattern);
+          Nothing(), aSchemelessSite, aPattern, Nothing());
       NS_ENSURE_SUCCESS(rv, rv);
     }
     if (!aPrivateLoader || *aPrivateLoader) {
       nsresult rv = imgLoader::PrivateBrowsingLoader()->RemoveEntriesInternal(
-          Nothing(), aSchemelessSite, aPattern);
+          Nothing(), aSchemelessSite, aPattern, Nothing());
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    return NS_OK;
+  }
+
+  if (aURL) {
+    nsCOMPtr<nsIURI> uri;
+    nsresult rv = NS_NewURI(getter_AddRefs(uri), *aURL);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (!aPrivateLoader || !*aPrivateLoader) {
+      nsresult rv = imgLoader::NormalLoader()->RemoveEntry(uri, nullptr);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    if (!aPrivateLoader || *aPrivateLoader) {
+      nsresult rv =
+          imgLoader::PrivateBrowsingLoader()->RemoveEntry(uri, nullptr);
       NS_ENSURE_SUCCESS(rv, rv);
     }
     return NS_OK;
@@ -1503,9 +1521,12 @@ imgLoader::RemoveEntriesFromSiteInAllProcesses(
 nsresult imgLoader::RemoveEntriesInternal(
     const Maybe<nsCOMPtr<nsIPrincipal>>& aPrincipal,
     const Maybe<nsCString>& aSchemelessSite,
-    const Maybe<OriginAttributesPattern>& aPattern) {
+    const Maybe<OriginAttributesPattern>& aPattern,
+    const mozilla::Maybe<nsCString>& aURL) {
   // Can only clear by either principal or site + pattern.
-  if ((!aPrincipal && !aSchemelessSite) || (aPrincipal && aSchemelessSite) ||
+  if ((!aPrincipal && !aSchemelessSite && !aURL) ||
+      (aPrincipal && aSchemelessSite) || (aPrincipal && aURL) ||
+      (aSchemelessSite && aURL) ||
       aSchemelessSite.isSome() != aPattern.isSome()) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -1518,6 +1539,15 @@ nsresult imgLoader::RemoveEntriesInternal(
 
     // TODO(emilio): Deduplicate this with SharedSubresourceCache.
     const bool shouldRemove = [&] {
+      if (aURL) {
+        nsAutoCString spec;
+        nsresult rv = key.URI()->GetSpec(spec);
+        if (NS_FAILED(rv)) {
+          return false;
+        }
+        return spec == *aURL;
+      }
+
       if (aPrincipal) {
         return key.LoaderPrincipal()->Equals(aPrincipal.ref());
       }

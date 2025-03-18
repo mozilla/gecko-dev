@@ -197,7 +197,8 @@ class SharedScriptCache final
   static void Clear(const Maybe<bool>& aChrome = Nothing(),
                     const Maybe<nsCOMPtr<nsIPrincipal>>& aPrincipal = Nothing(),
                     const Maybe<nsCString>& aSchemelessSite = Nothing(),
-                    const Maybe<OriginAttributesPattern>& aPattern = Nothing());
+                    const Maybe<OriginAttributesPattern>& aPattern = Nothing(),
+                    const Maybe<nsCString>& aURL = Nothing());
 
  protected:
   ~SharedScriptCache();

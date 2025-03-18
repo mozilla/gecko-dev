@@ -91,21 +91,26 @@ dictionary ClearResourceCacheOptions {
   // If specified, clear only the specified target, either chrome or content.
   // If not specified, clears both chrome and content.
   //
-  // Exclusive with principal and schemelessSite.
+  // Exclusive with principal, schemelessSite, and url.
   ResourceCacheTarget target;
 
   // If specified, filters by principal.
   //
-  // Exclusive with target and schemelessSite.
+  // Exclusive with target, schemelessSite, and url.
   Principal principal;
 
   // If specified, filters by site, and needs to provide a pattern.
   //
-  // Exclusive with target and principal.
+  // Exclusive with target, principal, and url.
   UTF8String schemelessSite;
 
   // If specified with schemelessSite, filter by origin attributes.
   OriginAttributesPatternDictionary pattern = {};
+
+  // If specified, clear the cache for the url
+  //
+  // Exclusive with target, principal, and schemelessSite.
+  UTF8String url;
 };
 
 /**

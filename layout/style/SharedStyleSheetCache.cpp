@@ -207,18 +207,20 @@ SharedStyleSheetCache::CollectReports(nsIHandleReportCallback* aHandleReport,
 void SharedStyleSheetCache::Clear(
     const Maybe<bool>& aChrome, const Maybe<nsCOMPtr<nsIPrincipal>>& aPrincipal,
     const Maybe<nsCString>& aSchemelessSite,
-    const Maybe<OriginAttributesPattern>& aPattern) {
+    const Maybe<OriginAttributesPattern>& aPattern,
+    const Maybe<nsCString>& aURL) {
   using ContentParent = dom::ContentParent;
 
   if (XRE_IsParentProcess()) {
     for (auto* cp : ContentParent::AllProcesses(ContentParent::eLive)) {
       Unused << cp->SendClearStyleSheetCache(aChrome, aPrincipal,
-                                             aSchemelessSite, aPattern);
+                                             aSchemelessSite, aPattern, aURL);
     }
   }
 
   if (sSingleton) {
-    sSingleton->ClearInProcess(aChrome, aPrincipal, aSchemelessSite, aPattern);
+    sSingleton->ClearInProcess(aChrome, aPrincipal, aSchemelessSite, aPattern,
+                               aURL);
   }
 }
 
