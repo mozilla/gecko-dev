@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-URL = "https://account.gov.il/sspr/public/newuser"
+URL = "https://account.gov.il/sspr/public/newuser?forwardURL=https%3A%2F%2Flogin.gov.il%2Fnidp%2Fsaml2%2Fsso%3Fid%3DusernamePasswordSMSOtp%26sid%3D0%26option%3Dcredential%26sid%3D0&locale=iw"
 
 SUPPORTED_CSS = "#givenName"
 UNSUPPORTED_CSS = "#bgBrowserCheck"
