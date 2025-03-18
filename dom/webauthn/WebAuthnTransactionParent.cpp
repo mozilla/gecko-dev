@@ -121,11 +121,6 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
   WindowGlobalParent* manager = static_cast<WindowGlobalParent*>(Manager());
   nsIPrincipal* principal = manager->DocumentPrincipal();
 
-  if (!IsWebAuthnAllowedForTransportSecurityInfo(manager->GetSecurityInfo())) {
-    aResolver(NS_ERROR_DOM_SECURITY_ERR);
-    return IPC_OK();
-  }
-
   if (!IsWebAuthnAllowedForPrincipal(principal)) {
     aResolver(NS_ERROR_DOM_SECURITY_ERR);
     return IPC_OK();
@@ -315,11 +310,6 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
 
   WindowGlobalParent* manager = static_cast<WindowGlobalParent*>(Manager());
   nsIPrincipal* principal = manager->DocumentPrincipal();
-
-  if (!IsWebAuthnAllowedForTransportSecurityInfo(manager->GetSecurityInfo())) {
-    aResolver(NS_ERROR_DOM_SECURITY_ERR);
-    return IPC_OK();
-  }
 
   if (!IsWebAuthnAllowedForPrincipal(principal)) {
     aResolver(NS_ERROR_DOM_SECURITY_ERR);

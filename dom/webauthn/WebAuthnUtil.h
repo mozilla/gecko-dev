@@ -19,9 +19,6 @@ bool IsWebAuthnAllowedInDocument(const nsCOMPtr<Document>& aDoc);
 
 bool IsWebAuthnAllowedForPrincipal(const nsCOMPtr<nsIPrincipal>& aPrincipal);
 
-bool IsWebAuthnAllowedForTransportSecurityInfo(
-    nsITransportSecurityInfo* aSecurityInfo);
-
 nsresult DefaultRpId(const nsCOMPtr<nsIPrincipal>& aPrincipal,
                      /* out */ nsACString& aRpId);
 
