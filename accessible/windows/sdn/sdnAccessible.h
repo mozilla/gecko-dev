@@ -13,7 +13,6 @@
 #include "MsaaAccessible.h"
 
 #include "mozilla/Attributes.h"
-#include "mozilla/Maybe.h"
 #include "mozilla/NotNull.h"
 
 namespace mozilla {
@@ -58,14 +57,6 @@ class sdnAccessible final : public ISimpleDOMNode {
    * Return associated MsaaAccessible if any.
    */
   MsaaAccessible* GetMsaa();
-
-  void SetUniqueID(uint32_t aNewUniqueId) { mUniqueId = Some(aNewUniqueId); }
-
-  Maybe<uint32_t> ReleaseUniqueID() {
-    Maybe<uint32_t> result = mUniqueId;
-    mUniqueId = Nothing();
-    return result;
-  }
 
   // IUnknown
   DECL_IUNKNOWN
@@ -136,11 +127,9 @@ class sdnAccessible final : public ISimpleDOMNode {
       /* [out][retval] */ BSTR __RPC_FAR* aLanguage);
 
  private:
-  // mNode will be null for a RemoteAccessible. In that case, we only partially
-  // implement this interface using data from the RemoteAccessible cache.
+  // mNode will be null for a RemoteAccessible.
   nsCOMPtr<nsINode> mNode;
   RefPtr<MsaaAccessible> mMsaa;
-  Maybe<uint32_t> mUniqueId;
 };
 
 }  // namespace a11y

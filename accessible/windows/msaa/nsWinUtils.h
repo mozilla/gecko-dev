@@ -29,15 +29,6 @@ const LPCWSTR kPropNameDocAccParent = L"MozDocAccessibleParent";
 class nsWinUtils {
  public:
   /**
-   * Return computed styles declaration for the given node.
-   *
-   * @note Please use it carefully since it can shutdown the accessible tree
-   *       you operate on.
-   */
-  static already_AddRefed<nsICSSDeclaration> GetComputedStyleDeclaration(
-      nsIContent* aContent);
-
-  /**
    * Start window emulation if presence of specific AT is detected.
    */
   static bool MaybeStartWindowEmulation();

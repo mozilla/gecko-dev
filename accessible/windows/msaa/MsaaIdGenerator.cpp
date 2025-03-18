@@ -12,7 +12,6 @@
 #include "mozilla/Unused.h"
 #include "MsaaAccessible.h"
 #include "nsAccessibilityService.h"
-#include "sdnAccessible.h"
 
 namespace mozilla {
 namespace a11y {
@@ -73,14 +72,6 @@ bool MsaaIdGenerator::ReleaseID(uint32_t aID) {
 
 void MsaaIdGenerator::ReleaseID(NotNull<MsaaAccessible*> aMsaaAcc) {
   ReleaseID(aMsaaAcc->GetExistingID());
-}
-
-void MsaaIdGenerator::ReleaseID(NotNull<sdnAccessible*> aSdnAcc) {
-  Maybe<uint32_t> id = aSdnAcc->ReleaseUniqueID();
-  if (id.isSome()) {
-    DebugOnly<bool> released = ReleaseID(id.value());
-    MOZ_ASSERT(released);
-  }
 }
 
 }  // namespace a11y

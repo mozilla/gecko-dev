@@ -21,7 +21,6 @@ namespace a11y {
 class Accessible;
 class AccessibleWrap;
 class LocalAccessible;
-class sdnAccessible;
 
 class MsaaAccessible : public ia2Accessible,
                        public ia2AccessibleComponent,
@@ -38,8 +37,6 @@ class MsaaAccessible : public ia2Accessible,
   static const uint32_t kNoID = 0;
 
   static int32_t GetChildIDFor(Accessible* aAccessible);
-  static void AssignChildIDTo(NotNull<sdnAccessible*> aSdnAcc);
-  static void ReleaseChildID(NotNull<sdnAccessible*> aSdnAcc);
   static HWND GetHWNDFor(Accessible* aAccessible);
   static void FireWinEvent(Accessible* aTarget, uint32_t aEventType);
 

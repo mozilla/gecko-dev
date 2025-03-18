@@ -24,7 +24,6 @@
 #include "nsWinUtils.h"
 #include "Relation.h"
 #include "sdnAccessible.h"
-#include "sdnTextAccessible.h"
 #include "HyperTextAccessible-inl.h"
 #include "ServiceProvider.h"
 #include "ARIAMap.h"
@@ -134,16 +133,6 @@ int32_t MsaaAccessible::GetChildIDFor(Accessible* aAccessible) {
   doc->AddID(*id, aAccessible);
 
   return *id;
-}
-
-/* static */
-void MsaaAccessible::AssignChildIDTo(NotNull<sdnAccessible*> aSdnAcc) {
-  aSdnAcc->SetUniqueID(sIDGen.GetID());
-}
-
-/* static */
-void MsaaAccessible::ReleaseChildID(NotNull<sdnAccessible*> aSdnAcc) {
-  sIDGen.ReleaseID(aSdnAcc);
 }
 
 HWND MsaaAccessible::GetHWNDFor(Accessible* aAccessible) {
@@ -562,10 +551,6 @@ MsaaAccessible::QueryInterface(REFIID iid, void** ppv) {
     }
 
     *ppv = static_cast<ISimpleDOMNode*>(new sdnAccessible(WrapNotNull(this)));
-  } else if (iid == IID_ISimpleDOMText && localAcc && localAcc->IsTextLeaf()) {
-    *ppv = static_cast<ISimpleDOMText*>(new sdnTextAccessible(this));
-    static_cast<IUnknown*>(*ppv)->AddRef();
-    return S_OK;
   }
 
   if (!*ppv && localAcc) {

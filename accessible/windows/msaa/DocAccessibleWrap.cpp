@@ -13,7 +13,6 @@
 #include "DocAccessibleChild.h"
 #include "nsWinUtils.h"
 #include "RootAccessible.h"
-#include "sdnDocAccessible.h"
 #include "Statistics.h"
 
 using namespace mozilla;

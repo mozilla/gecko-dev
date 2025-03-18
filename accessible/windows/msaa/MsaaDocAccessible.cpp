@@ -12,7 +12,6 @@
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
 #include "nsWinUtils.h"
-#include "sdnDocAccessible.h"
 #include "mozilla/a11y/Role.h"
 #include "ISimpleDOM.h"
 
@@ -52,11 +51,6 @@ MsaaDocAccessible* MsaaDocAccessible::GetFromOwned(Accessible* aAcc) {
 
 // IUnknown
 IMPL_IUNKNOWN_QUERY_HEAD(MsaaDocAccessible)
-if (aIID == IID_ISimpleDOMDocument && LocalAcc()) {
-  *aInstancePtr = static_cast<ISimpleDOMDocument*>(new sdnDocAccessible(this));
-  static_cast<IUnknown*>(*aInstancePtr)->AddRef();
-  return S_OK;
-}
 IMPL_IUNKNOWN_QUERY_TAIL_INHERITED(ia2AccessibleHypertext)
 
 STDMETHODIMP

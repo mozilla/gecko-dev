@@ -16,7 +16,6 @@
 #include "mozilla/a11y/DocAccessibleParent.h"
 #include "mozilla/Preferences.h"
 #include "nsArrayUtils.h"
-#include "nsICSSDeclaration.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
 #include "nsXULAppAPI.h"
@@ -36,23 +35,6 @@ static LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM wParam,
                                    LPARAM lParam);
 
 bool nsWinUtils::sWindowEmulationStarted = false;
-
-already_AddRefed<nsICSSDeclaration> nsWinUtils::GetComputedStyleDeclaration(
-    nsIContent* aContent) {
-  nsIContent* elm = nsCoreUtils::GetDOMElementFor(aContent);
-  if (!elm) return nullptr;
-
-  // Returns number of items in style declaration
-  nsCOMPtr<nsPIDOMWindowInner> window = elm->OwnerDoc()->GetInnerWindow();
-  if (!window) return nullptr;
-
-  ErrorResult dummy;
-  nsCOMPtr<Element> domElement(do_QueryInterface(elm));
-  nsCOMPtr<nsICSSDeclaration> cssDecl =
-      window->GetComputedStyle(*domElement, u""_ns, dummy);
-  dummy.SuppressException();
-  return cssDecl.forget();
-}
 
 bool nsWinUtils::MaybeStartWindowEmulation() {
   // Register window class that'll be used for document accessibles associated
