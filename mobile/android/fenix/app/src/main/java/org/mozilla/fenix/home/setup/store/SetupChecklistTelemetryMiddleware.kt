@@ -31,6 +31,7 @@ class SetupChecklistTelemetryMiddleware(val telemetry: SetupChecklistTelemetryRe
             is SetupChecklistAction.ExtensionsClicked -> {}
             is SetupChecklistAction.AddSearchWidgetClicked -> {}
             is SetupChecklistAction.ViewState -> {}
+            is SetupChecklistAction.ChecklistItemClicked -> {}
         }
     }
 }

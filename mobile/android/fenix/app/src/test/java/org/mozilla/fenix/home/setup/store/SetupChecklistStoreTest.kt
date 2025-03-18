@@ -10,6 +10,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.fenix.R
+import org.mozilla.fenix.checklist.ChecklistItem
 import org.mozilla.fenix.testDispatch
 
 @RunWith(AndroidJUnit4::class)
@@ -124,4 +126,87 @@ class SetupChecklistStoreTest {
             SetupChecklistState(viewState = SetupChecklistViewState.EXPANDED_FUNDAMENTALS)
         assertEquals(expectedState, store.state)
     }
+
+    @Test
+    fun `WHEN a group item is clicked THEN it changes its expanded state to the opposite `() {
+        val initialState = true
+        val group = ChecklistItem.Group(
+            title = "A cool group",
+            tasks = listOf(),
+            isExpanded = initialState,
+        )
+        val store = buildStore(checklistItems = listOf(group))
+
+        store.testDispatch(SetupChecklistAction.ChecklistItemClicked(group))
+
+        val result = (store.state.checklistItems[0] as ChecklistItem.Group).isExpanded
+        assertEquals(!initialState, result)
+    }
+
+    @Test
+    fun `WHEN a task item is clicked THEN it changes its completed state to the opposite `() {
+        val initialState = true
+        val task = ChecklistItem.Task(
+            title = "A cool task",
+            icon = R.drawable.ic_addons_extensions,
+            isCompleted = initialState,
+        )
+        val store = buildStore(checklistItems = listOf(task))
+
+        store.testDispatch(SetupChecklistAction.ChecklistItemClicked(task))
+
+        val result = (store.state.checklistItems[0] as ChecklistItem.Task).isCompleted
+        assertEquals(!initialState, result)
+    }
+
+    @Test
+    fun `WHEN a task item within a group is clicked THEN it changes its completed state to the opposite `() {
+        val initialState = true
+        val task = ChecklistItem.Task(
+            title = "A cool task",
+            icon = R.drawable.ic_addons_extensions,
+            isCompleted = initialState,
+        )
+        val group = ChecklistItem.Group(
+            title = "A cool group",
+            tasks = listOf(task),
+            isExpanded = true,
+        )
+        val store = buildStore(checklistItems = listOf(group))
+
+        store.testDispatch(SetupChecklistAction.ChecklistItemClicked(task))
+
+        val result = (store.state.checklistItems[0] as ChecklistItem.Group).tasks[0].isCompleted
+        assertEquals(!initialState, result)
+    }
+
+    @Test
+    fun `GIVEN multiple task items in a group WEHN a task item within a group is clicked THEN other tasks do not change their state `() {
+        val initialState = true
+        val clickedTask = ChecklistItem.Task(
+            title = "A cool task",
+            icon = R.drawable.ic_addons_extensions,
+            isCompleted = initialState,
+        )
+        val notClickedTask = ChecklistItem.Task(
+            title = "A cooler task",
+            icon = R.drawable.ic_addons_extensions,
+            isCompleted = initialState,
+        )
+        val group = ChecklistItem.Group(
+            title = "A cool group",
+            tasks = listOf(clickedTask, notClickedTask),
+            isExpanded = true,
+        )
+        val store = buildStore(checklistItems = listOf(group))
+
+        store.testDispatch(SetupChecklistAction.ChecklistItemClicked(clickedTask))
+
+        val result = (store.state.checklistItems[0] as ChecklistItem.Group).tasks[1].isCompleted
+        assertEquals(initialState, result)
+    }
+
+    private fun buildStore(checklistItems: List<ChecklistItem>) = SetupChecklistStore(
+        initialState = SetupChecklistState(checklistItems = checklistItems),
+    )
 }

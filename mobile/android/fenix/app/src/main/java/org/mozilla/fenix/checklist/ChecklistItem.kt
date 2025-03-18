@@ -4,7 +4,7 @@
 
 package org.mozilla.fenix.checklist
 
-import androidx.compose.ui.graphics.painter.Painter
+import androidx.annotation.DrawableRes
 
 /**
  * A sealed class representing an item in the setup checklist.
@@ -17,12 +17,12 @@ sealed class ChecklistItem(open val title: String) {
      * A data class representing an individual task in the checklist.
      *
      * @property title the task's title.
-     * @property icon the icon displayed on the right of the task.
+     * @property icon The icon resource to be displayed on the right of the task.
      * @property isCompleted whether the task has been completed.
      */
     data class Task(
         override val title: String,
-        val icon: Painter,
+        @DrawableRes val icon: Int,
         val isCompleted: Boolean,
     ) : ChecklistItem(title)
 

@@ -5,6 +5,7 @@
 package org.mozilla.fenix.checklist
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -29,32 +31,41 @@ import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.compose.base.theme.AcornTheme
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.IconButton
 import org.mozilla.fenix.theme.FirefoxTheme
+
+private const val ROTATE_180 = 180F
 
 /**
  * Renders a checklist for onboarding users.
  *
  * @param checkListItems The list of [ChecklistItem] displayed in setup checklist.
+ * @param onChecklistItemClicked Gets invoked when the user clicks a check list item.
  */
 @Composable
-fun CheckListView(checkListItems: List<ChecklistItem>) {
+fun CheckListView(
+    checkListItems: List<ChecklistItem>,
+    onChecklistItemClicked: (ChecklistItem) -> Unit,
+) {
     LazyColumn {
         items(checkListItems) { item ->
             when (item) {
-                is ChecklistItem.Group -> GroupWithTasks(item)
-                is ChecklistItem.Task -> Task(item)
+                is ChecklistItem.Group -> GroupWithTasks(item, onChecklistItemClicked)
+                is ChecklistItem.Task -> Task(item, onChecklistItemClicked)
             }
         }
     }
 }
 
 @Composable
-private fun Task(task: ChecklistItem.Task) {
+private fun Task(
+    task: ChecklistItem.Task,
+    onChecklistItemClicked: (ChecklistItem) -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp),
+            .height(56.dp)
+            .clickable(onClick = { onChecklistItemClicked(task) }),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (task.isCompleted) {
@@ -78,7 +89,7 @@ private fun Task(task: ChecklistItem.Task) {
         )
 
         Icon(
-            painter = task.icon,
+            painter = painterResource(task.icon),
             contentDescription = stringResource(R.string.a11y_task_icon_description),
             modifier = Modifier.padding(16.dp),
             tint = FirefoxTheme.colors.iconPrimary,
@@ -87,25 +98,33 @@ private fun Task(task: ChecklistItem.Task) {
 }
 
 @Composable
-private fun GroupWithTasks(group: ChecklistItem.Group) {
+private fun GroupWithTasks(
+    group: ChecklistItem.Group,
+    onChecklistItemClicked: (ChecklistItem) -> Unit,
+) {
     Column {
-        Group(group)
+        Group(group, onChecklistItemClicked)
+
         if (group.isExpanded) {
-            group.tasks.forEach { task -> Task(task) }
+            group.tasks.forEach { task -> Task(task, onChecklistItemClicked) }
         }
     }
 }
 
 @Composable
 @Suppress("LongMethod")
-private fun Group(group: ChecklistItem.Group) {
+private fun Group(
+    group: ChecklistItem.Group,
+    onChecklistItemClicked: (ChecklistItem) -> Unit,
+) {
     Row(
         modifier = Modifier
             .padding(
                 horizontal = 16.dp,
                 vertical = 8.dp,
             )
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .clickable { onChecklistItemClicked(group) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(
@@ -127,18 +146,15 @@ private fun Group(group: ChecklistItem.Group) {
             )
         }
 
-        Row(horizontalArrangement = Arrangement.End) {
-            IconButton(onClick = {}) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_arrowhead_down),
-                    tint = FirefoxTheme.colors.textPrimary,
-                    contentDescription = "",
-                    modifier = Modifier
-                        .size(26.dp)
-                        .padding(1.dp),
-                )
-            }
-        }
+        Icon(
+            painter = painterResource(id = R.drawable.ic_arrowhead_down),
+            tint = FirefoxTheme.colors.textPrimary,
+            contentDescription = "",
+            modifier = Modifier
+                .size(26.dp)
+                .padding(1.dp)
+                .rotate(if (group.isExpanded) ROTATE_180 else 0f),
+        )
     }
 }
 
@@ -154,12 +170,12 @@ private fun TasksChecklistPreview() {
             val tasks = listOf(
                 ChecklistItem.Task(
                     title = "First task",
-                    icon = painterResource(id = R.drawable.ic_addons_extensions),
+                    icon = R.drawable.ic_addons_extensions,
                     isCompleted = true,
                 ),
                 ChecklistItem.Task(
                     title = "Second task",
-                    icon = painterResource(id = R.drawable.ic_search),
+                    icon = R.drawable.ic_search,
                     isCompleted = false,
                 ),
             )
@@ -177,6 +193,7 @@ private fun TasksChecklistPreview() {
 
             CheckListView(
                 checkListItems = listOf(group1, group2),
+                onChecklistItemClicked = {},
             )
         }
     }
