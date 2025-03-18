@@ -1443,9 +1443,9 @@ bool DMABufSurfaceYUV::CreateLinearYUVPlane(int aPlane, int aWidth, int aHeight,
 
 bool DMABufSurfaceYUV::UpdateYUVData(
     const mozilla::layers::PlanarYCbCrData& aData,
-    gfx::SurfaceFormat aImageFormat, gfx::SurfaceFormat aTargetFormat) {
-  if (aImageFormat != gfx::SurfaceFormat::YUV420P10 ||
-      aTargetFormat != gfx::SurfaceFormat::P010) {
+    gfx::SurfaceFormat aImageFormat) {
+  gfx::SurfaceFormat targetFormat = GetHWFormat(aImageFormat);
+  if (targetFormat == gfx::SurfaceFormat::UNKNOWN) {
     LOGDMABUF(("DMABufSurfaceYUV::UpdateYUVData() wrong format!"));
     return false;
   }
@@ -1457,19 +1457,32 @@ bool DMABufSurfaceYUV::UpdateYUVData(
     ReturnSnapshotGLContext(context);
   });
 
-  // Create dmabuf P010 layout
+  // Use LINEAR modifiers
+  // TODO: Load modifiers from DMABuf
+  mBufferModifiers[0] = mBufferModifiers[1] = 0;
+
   gfx::IntSize size = aData.YPictureSize();
-  mFOURCCFormat = VA_FOURCC_P010;
-  mBufferPlaneCount = 2;
   mWidth[0] = size.width;
   mHeight[0] = size.height;
   mWidth[1] = (size.width + 1) >> 1;
   mHeight[1] = (size.height + 1) >> 1;
-  mDrmFormats[0] = GBM_FORMAT_R16;
-  mDrmFormats[1] = GBM_FORMAT_GR1616;
-  // Use LINEAR modifiers
-  // TODO: Load modifiers from DMABuf
-  mBufferModifiers[0] = mBufferModifiers[1] = 0;
+  mBufferPlaneCount = 2;
+
+  switch (targetFormat) {
+    case gfx::SurfaceFormat::P010:
+      mFOURCCFormat = VA_FOURCC_P010;
+      mDrmFormats[0] = GBM_FORMAT_R16;
+      mDrmFormats[1] = GBM_FORMAT_GR1616;
+      break;
+    case gfx::SurfaceFormat::NV12:
+      mFOURCCFormat = VA_FOURCC_NV12;
+      mDrmFormats[0] = GBM_FORMAT_R8;
+      mDrmFormats[1] = GBM_FORMAT_GR88;
+      break;
+    default:
+      MOZ_DIAGNOSTIC_CRASH("Unsupported target format!");
+      return false;
+  }
 
   for (int i = 0; i < mBufferPlaneCount; i++) {
     // TODO: Nvidia -> create from texture
@@ -1760,6 +1773,17 @@ gfx::SurfaceFormat DMABufSurfaceYUV::GetFormat() {
     default:
       gfxCriticalNoteOnce << "DMABufSurfaceYUV::GetFormat() unknow format: "
                           << mFOURCCFormat;
+      return gfx::SurfaceFormat::UNKNOWN;
+  }
+}
+
+gfx::SurfaceFormat DMABufSurfaceYUV::GetHWFormat(gfx::SurfaceFormat aSWFormat) {
+  switch (aSWFormat) {
+    case gfx::SurfaceFormat::YUV420P10:
+      return gfx::SurfaceFormat::P010;
+    case gfx::SurfaceFormat::YUV420:
+      return gfx::SurfaceFormat::NV12;
+    default:
       return gfx::SurfaceFormat::UNKNOWN;
   }
 }

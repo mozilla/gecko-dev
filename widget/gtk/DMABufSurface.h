@@ -383,6 +383,11 @@ class DMABufSurfaceYUV final : public DMABufSurface {
   mozilla::gfx::SurfaceFormat GetFormat() override;
   mozilla::gfx::SurfaceFormat GetFormatGL() override;
 
+  // Get hardware compatible format for SW decoded one.
+  // It's used for uploading SW decoded images to DMABuf.
+  mozilla::gfx::SurfaceFormat GetHWFormat(
+      mozilla::gfx::SurfaceFormat aSWFormat);
+
   bool CreateTexture(mozilla::gl::GLContext* aGLContext,
                      int aPlane = 0) override;
   void ReleaseTextures() override;
@@ -418,8 +423,7 @@ class DMABufSurfaceYUV final : public DMABufSurface {
   bool UpdateYUVData(const VADRMPRIMESurfaceDescriptor& aDesc, int aWidth,
                      int aHeight, bool aCopy);
   bool UpdateYUVData(const mozilla::layers::PlanarYCbCrData& aData,
-                     mozilla::gfx::SurfaceFormat aImageFormat,
-                     mozilla::gfx::SurfaceFormat aTargetFormat);
+                     mozilla::gfx::SurfaceFormat aImageFormat);
   bool VerifyTextureCreation();
 
 #ifdef MOZ_WAYLAND
