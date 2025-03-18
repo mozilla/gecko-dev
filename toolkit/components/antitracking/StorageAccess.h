@@ -105,9 +105,7 @@ bool StoragePartitioningEnabled(uint32_t aRejectedReason,
 // loaded inside the passed 3rd party context tracking resource window.
 // If aCookies is true, this considers the permission granted by
 // document.requestStorageAccess. Cookies should be the only website state
-// that changes its accessability based upon that permission.
-// If the window is first party context, please use
-// ApproximateAllowAccessForWithoutChannel();
+// that changes its accessibility based upon that permission.
 //
 // aRejectedReason could be set to one of these values if passed and if the
 // storage permission is not granted:
@@ -119,22 +117,9 @@ bool StoragePartitioningEnabled(uint32_t aRejectedReason,
 //
 // If you update this function, you almost certainly want to consider
 // updating the other overloaded functions
-// (and ApproximateAllowAccessForWithoutChannel).
 bool ShouldAllowAccessFor(nsPIDOMWindowInner* a3rdPartyTrackingWindow,
                           nsIURI* aURI, bool aCookies,
                           uint32_t* aRejectedReason);
-
-// Note: you should use ShouldAllowAccessFor() passing the nsIChannel! Use
-// this method _only_ if the channel is not available.  For first party
-// window, it's impossible to know if the aURI is a tracking resource
-// synchronously, so here we return the best guest: if we are sure that the
-// permission is granted for the origin of aURI, this method returns true,
-// otherwise false.
-//
-// If you update this function, you almost certainly want to consider
-// updating the ShouldAllowAccessFor functions.
-bool ApproximateAllowAccessForWithoutChannel(
-    nsPIDOMWindowInner* aFirstPartyWindow, nsIURI* aURI);
 
 // It returns true if the URI has access to the first party storage.
 // aChannel can be a 3rd party channel, or not.
@@ -143,7 +128,6 @@ bool ApproximateAllowAccessForWithoutChannel(
 //
 // If you update this function, you almost certainly want to consider
 // updating the other overloaded functions
-// (and ApproximateAllowAccessForWithoutChannel).
 bool ShouldAllowAccessFor(nsIChannel* aChannel, nsIURI* aURI,
                           uint32_t* aRejectedReason);
 
@@ -153,7 +137,6 @@ bool ShouldAllowAccessFor(nsIChannel* aChannel, nsIURI* aURI,
 //
 // If you update this function, you almost certainly want to consider
 // updating the other overloaded functions
-// (and ApproximateAllowAccessForWithoutChannel).
 bool ShouldAllowAccessFor(nsIPrincipal* aPrincipal,
                           nsICookieJarSettings* aCookieJarSettings);
 
