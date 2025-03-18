@@ -254,11 +254,24 @@ VideoFramePool<LIBAV_VER>::GetVideoFrameSurface(
   return videoSurface;
 }
 
+static gfx::SurfaceFormat GetSurfaceFormat(enum AVPixelFormat aPixFmt) {
+  switch (aPixFmt) {
+    case AV_PIX_FMT_YUV420P10LE:
+      return gfx::SurfaceFormat::YUV420P10;
+    case AV_PIX_FMT_YUV420P:
+      return gfx::SurfaceFormat::YUV420;
+    default:
+      return gfx::SurfaceFormat::UNKNOWN;
+  }
+}
+
+// TODO: Add support for AV_PIX_FMT_YUV444P / AV_PIX_FMT_GBRP
 RefPtr<VideoFrameSurface<LIBAV_VER>>
 VideoFramePool<LIBAV_VER>::GetVideoFrameSurface(
     const layers::PlanarYCbCrData& aData, AVCodecContext* aAVCodecContext) {
-  if (aAVCodecContext->pix_fmt != AV_PIX_FMT_YUV420P10LE) {
-    DMABUF_LOG("Unsupported FFmpeg HDR format %x", aAVCodecContext->pix_fmt);
+  static gfx::SurfaceFormat format = GetSurfaceFormat(aAVCodecContext->pix_fmt);
+  if (format == gfx::SurfaceFormat::UNKNOWN) {
+    DMABUF_LOG("Unsupported FFmpeg DMABuf format %x", aAVCodecContext->pix_fmt);
     return nullptr;
   }
 
@@ -275,11 +288,10 @@ VideoFramePool<LIBAV_VER>::GetVideoFrameSurface(
     surface = videoSurface->GetDMABufSurface();
   }
 
-  DMABUF_LOG("Using SW HDR DMABufSurface UID %d", surface->GetUID());
+  DMABUF_LOG("Using SW DMABufSurface UID %d", surface->GetUID());
 
-  if (!surface->UpdateYUVData(aData, gfx::SurfaceFormat::YUV420P10,
-                              gfx::SurfaceFormat::P010)) {
-    DMABUF_LOG("  failed to convert HDR data to DMABuf memory!");
+  if (!surface->UpdateYUVData(aData, format)) {
+    DMABUF_LOG("  failed to convert YUV data to DMABuf memory!");
     return nullptr;
   }
 
