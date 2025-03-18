@@ -1726,3 +1726,15 @@ function getCurrentVisibleColumns(monitor) {
   // to return name.
   return visibleColumns.map(([name]) => name);
 }
+
+function findRequestByInitiator(document, initiator) {
+  for (const request of document.querySelectorAll(".request-list-item")) {
+    if (
+      request.querySelector(".requests-list-initiator").getAttribute("title") ==
+      initiator
+    ) {
+      return request;
+    }
+  }
+  return null;
+}

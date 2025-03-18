@@ -19,7 +19,7 @@ Services.scriptloader.loadSubScript(
 add_task(async function testHTMLOverride() {
   const { monitor, tab, document } = await setupNetworkOverridesTest();
 
-  let htmlRequest = document.querySelectorAll(".request-list-item")[0];
+  let htmlRequest = findRequestByInitiator(document, "document");
   ok(
     !htmlRequest.querySelector(".requests-list-override"),
     "There is no override cell"
@@ -27,7 +27,7 @@ add_task(async function testHTMLOverride() {
   await assertOverrideColumnStatus(monitor, { visible: false });
 
   info("Set a network override for the HTML request");
-  const overrideFileName = "index-override.html";
+  const overrideFileName = `index-override.html`;
   const overridePath = await setNetworkOverride(
     monitor,
     htmlRequest,
@@ -46,9 +46,9 @@ add_task(async function testHTMLOverride() {
     "The override icon's title contains the overridden path"
   );
 
-  const scriptRequest = document.querySelectorAll(".request-list-item")[1];
+  const scriptRequest = findRequestByInitiator(document, "script");
   assertOverrideCellStatus(scriptRequest, { overridden: false });
-  const stylesheetRequest = document.querySelectorAll(".request-list-item")[2];
+  const stylesheetRequest = findRequestByInitiator(document, "stylesheet");
   assertOverrideCellStatus(stylesheetRequest, { overridden: false });
 
   info("Reloading to check override is applied on the page");
@@ -60,7 +60,7 @@ add_task(async function testHTMLOverride() {
     ok(content.document.body.textContent.includes("Overridden content"));
   });
 
-  htmlRequest = document.querySelectorAll(".request-list-item")[0];
+  htmlRequest = findRequestByInitiator(document, "document");
   // If the HTML file was properly overridden, reloading the page should only
   // create one request, because there is no longer any JS or CSS file loaded
   // by the overridden HTML response.
@@ -123,7 +123,7 @@ add_task(async function testScriptOverride() {
     );
   }
 
-  let scriptRequest = document.querySelectorAll(".request-list-item")[1];
+  let scriptRequest = findRequestByInitiator(document, "script");
   ok(
     !scriptRequest.querySelector(".requests-list-override"),
     "There is no override cell"
@@ -134,7 +134,7 @@ add_task(async function testScriptOverride() {
   await assertScriptOverrideInContent({ override: false });
 
   info("Set a network override for the script request");
-  const overrideFileName = "script-override.js";
+  const overrideFileName = `script-override.js`;
   const overridePath = await setNetworkOverride(
     monitor,
     scriptRequest,
@@ -152,9 +152,9 @@ add_task(async function testScriptOverride() {
     overrideCell.getAttribute("title").includes(overrideFileName),
     "The override icon's title contains the overridden path"
   );
-  const htmlRequest = document.querySelectorAll(".request-list-item")[0];
+  const htmlRequest = findRequestByInitiator(document, "document");
   assertOverrideCellStatus(htmlRequest, { overridden: false });
-  const stylesheetRequest = document.querySelectorAll(".request-list-item")[2];
+  const stylesheetRequest = findRequestByInitiator(document, "stylesheet");
   assertOverrideCellStatus(stylesheetRequest, { overridden: false });
 
   info("Reloading to check the overridden script is loaded on the page");
@@ -165,7 +165,7 @@ add_task(async function testScriptOverride() {
   info("Check the override div was created by the script in the content page");
   await assertScriptOverrideInContent({ override: true });
 
-  scriptRequest = document.querySelectorAll(".request-list-item")[1];
+  scriptRequest = findRequestByInitiator(document, "script");
 
   // Assert Response Tab shows the appropriate content
   await assertOverriddenResponseTab(document, scriptRequest, overridePath);
@@ -205,7 +205,7 @@ add_task(async function testStylesheetOverride() {
     );
   }
 
-  let stylesheetRequest = document.querySelectorAll(".request-list-item")[2];
+  let stylesheetRequest = findRequestByInitiator(document, "stylesheet");
   ok(
     !stylesheetRequest.querySelector(".requests-list-override"),
     "There is no override cell"
@@ -216,7 +216,7 @@ add_task(async function testStylesheetOverride() {
   await assertStylesheetOverrideInContent({ override: false });
 
   info("Set a network override for the stylesheet request");
-  const overrideFileName = "style-override.css";
+  const overrideFileName = `style-override.css`;
   const overridePath = await setNetworkOverride(
     monitor,
     stylesheetRequest,
@@ -236,9 +236,9 @@ add_task(async function testStylesheetOverride() {
     overrideCell.getAttribute("title").includes(overrideFileName),
     "The override icon's title contains the overridden path"
   );
-  const htmlRequest = document.querySelectorAll(".request-list-item")[0];
+  const htmlRequest = findRequestByInitiator(document, "document");
   assertOverrideCellStatus(htmlRequest, { overridden: false });
-  const scriptRequest = document.querySelectorAll(".request-list-item")[1];
+  const scriptRequest = findRequestByInitiator(document, "script");
   assertOverrideCellStatus(scriptRequest, { overridden: false });
 
   info("Reloading to check the overridden script is loaded on the page");
@@ -250,7 +250,7 @@ add_task(async function testStylesheetOverride() {
   await assertStylesheetOverrideInContent({ override: true });
 
   info("Check the response tab");
-  stylesheetRequest = document.querySelectorAll(".request-list-item")[2];
+  stylesheetRequest = findRequestByInitiator(document, "stylesheet");
   await assertOverriddenResponseTab(document, stylesheetRequest, overridePath);
 
   info("Remove the network override");
