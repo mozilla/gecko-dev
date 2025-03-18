@@ -28,9 +28,6 @@ add_task(async function test_edit_profile_delete() {
     ok(true, "Skipping because !AppConstants.MOZ_SELECTABLE_PROFILES");
     return;
   }
-  await SpecialPowers.pushPrefEnv({
-    set: [["dom.require_user_interaction_for_beforeunload", false]],
-  });
   await setup();
   is(
     null,

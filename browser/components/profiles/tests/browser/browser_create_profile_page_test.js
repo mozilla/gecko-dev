@@ -33,10 +33,7 @@ add_task(async function test_new_profile_beforeunload() {
   }
 
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.profiles.profile-name.updated", false],
-      ["dom.require_user_interaction_for_beforeunload", false],
-    ],
+    set: [["browser.profiles.profile-name.updated", false]],
   });
 
   let profile = SelectableProfileService.currentProfile;
