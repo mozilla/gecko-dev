@@ -29,7 +29,7 @@ From the root mozilla-central directory, build Fenix:
 
 .. code-block:: shell
 
-    ./mach gradle clean fenix:assembleDebug
+    ./mach gradle fenix:assembleDebug
 
 You can then find the generated debug apks in objdir under
 ``gradle/build/mobile/android/fenix/app/outputs/apk/fenix/debug``
