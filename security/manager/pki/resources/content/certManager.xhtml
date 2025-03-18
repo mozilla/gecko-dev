@@ -3,6 +3,8 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<?csp default-src chrome:; style-src chrome: 'unsafe-inline' ?>
+
 <!DOCTYPE window>
 
 <window
@@ -10,7 +12,6 @@
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   xmlns:html="http://www.w3.org/1999/xhtml"
   data-l10n-id="certmgr-title"
-  onload="LoadCerts();"
   persist="screenX screenY width height"
 >
   <dialog id="certmanager" buttons="accept">
@@ -41,12 +42,7 @@
         <vbox id="myCerts" flex="1">
           <description data-l10n-id="certmgr-mine"></description>
           <separator class="thin" />
-          <tree
-            id="user-tree"
-            flex="1"
-            enableColumnDrag="true"
-            onselect="mine_enableButtons()"
-          >
+          <tree id="user-tree" flex="1" enableColumnDrag="true">
             <treecols>
               <!--
               The below code may suggest that 'ordinal' is still a supported XUL
@@ -89,7 +85,7 @@
                 persist="hidden width ordinal"
               />
             </treecols>
-            <treechildren ondblclick="viewCerts();" />
+            <treechildren id="user-tree-children" />
           </tree>
 
           <separator class="thin" />
@@ -100,33 +96,28 @@
               class="normal"
               data-l10n-id="certmgr-view"
               disabled="true"
-              oncommand="viewCerts();"
             />
             <button
               id="mine_backupButton"
               class="normal"
               data-l10n-id="certmgr-backup"
               disabled="true"
-              oncommand="backupCerts();"
             />
             <button
               id="mine_backupAllButton"
               class="normal"
               data-l10n-id="certmgr-backup-all"
-              oncommand="backupAllCerts();"
             />
             <button
               id="mine_restoreButton"
               class="normal"
               data-l10n-id="certmgr-restore"
-              oncommand="restoreCerts();"
             />
             <button
               id="mine_deleteButton"
               class="normal"
               data-l10n-id="certmgr-delete"
               disabled="true"
-              oncommand="deleteCerts();"
             />
           </hbox>
         </vbox>
@@ -162,21 +153,19 @@
               id="remembered_deleteButton"
               class="normal"
               data-l10n-id="certmgr-delete"
-              oncommand="rememberedDecisionsRichList.deleteSelectedRichListItem()"
             />
 
             <button
               id="remembered_viewButton"
               class="normal"
               data-l10n-id="certmgr-view"
-              oncommand="rememberedDecisionsRichList.viewSelectedRichListItem()"
             />
           </hbox>
         </vbox>
         <vbox id="othersCerts" flex="1">
           <description data-l10n-id="certmgr-people"></description>
           <separator class="thin" />
-          <tree id="email-tree" flex="1" onselect="email_enableButtons()">
+          <tree id="email-tree" flex="1">
             <treecols>
               <treecol
                 id="certcol"
@@ -188,7 +177,7 @@
               <splitter class="tree-splitter" />
               <treecol id="expiredcol" data-l10n-id="certmgr-expires-label" />
             </treecols>
-            <treechildren flex="1" ondblclick="viewCerts();" />
+            <treechildren flex="1" id="email-tree-children" />
           </tree>
 
           <separator class="thin" />
@@ -198,24 +187,17 @@
               id="email_viewButton"
               data-l10n-id="certmgr-view"
               disabled="true"
-              oncommand="viewCerts();"
             />
-            <button
-              id="email_addButton"
-              data-l10n-id="certmgr-restore"
-              oncommand="addEmailCert();"
-            />
+            <button id="email_addButton" data-l10n-id="certmgr-restore" />
             <button
               id="email_exportButton"
               data-l10n-id="certmgr-export"
               disabled="true"
-              oncommand="exportCerts();"
             />
             <button
               id="email_deleteButton"
               data-l10n-id="certmgr-delete"
               disabled="true"
-              oncommand="deleteCerts();"
             />
           </hbox>
         </vbox>
@@ -235,37 +217,22 @@
               data-l10n-id="certmgr-fingerprint-sha-256"
             />
           </listheader>
-          <richlistbox
-            ondblclick="serverRichList.viewSelectedRichListItem();"
-            id="serverList"
-            flex="1"
-            selected="false"
-          />
+          <richlistbox id="serverList" flex="1" selected="false" />
 
           <separator class="thin" />
 
           <hbox>
-            <button
-              id="websites_deleteButton"
-              data-l10n-id="certmgr-delete"
-              oncommand="serverRichList.deleteSelectedRichListItem();"
-            />
+            <button id="websites_deleteButton" data-l10n-id="certmgr-delete" />
             <button
               id="websites_exceptionButton"
               data-l10n-id="certmgr-add-exception"
-              oncommand="serverRichList.addException();"
             />
           </hbox>
         </vbox>
         <vbox id="CACerts" flex="1">
           <description data-l10n-id="certmgr-ca"></description>
           <separator class="thin" />
-          <tree
-            id="ca-tree"
-            flex="1"
-            enableColumnDrag="true"
-            onselect="ca_enableButtons()"
-          >
+          <tree id="ca-tree" flex="1" enableColumnDrag="true">
             <treecols>
               <!--
               The below code may suggest that 'ordinal' is still a supported XUL
@@ -289,7 +256,7 @@
                 persist="hidden width ordinal"
               />
             </treecols>
-            <treechildren ondblclick="viewCerts();" />
+            <treechildren id="ca-tree-children" />
           </tree>
 
           <separator class="thin" />
@@ -299,30 +266,22 @@
               id="ca_viewButton"
               data-l10n-id="certmgr-view"
               disabled="true"
-              oncommand="viewCerts();"
             />
             <button
               id="ca_editButton"
               data-l10n-id="certmgr-edit"
               disabled="true"
-              oncommand="editCerts();"
             />
-            <button
-              id="ca_addButton"
-              data-l10n-id="certmgr-restore"
-              oncommand="addCACerts();"
-            />
+            <button id="ca_addButton" data-l10n-id="certmgr-restore" />
             <button
               id="ca_exportButton"
               data-l10n-id="certmgr-export"
               disabled="true"
-              oncommand="exportCerts();"
             />
             <button
               id="ca_deleteButton"
               data-l10n-id="certmgr-delete-builtin"
               disabled="true"
-              oncommand="deleteCerts();"
             />
           </hbox>
         </vbox>
