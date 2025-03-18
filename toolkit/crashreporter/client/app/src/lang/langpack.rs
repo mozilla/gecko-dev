@@ -11,8 +11,14 @@ use anyhow::Context;
 const LOCALE_PREF_KEY: &str = r#""intl.locale.requested""#;
 
 /// Use the profile language preferences to determine the localization to use.
-pub fn read(profile_dir: &Path, locale: Option<&str>) -> anyhow::Result<Option<LanguageInfo>> {
-    let Some((identifier, langpack)) = select_langpack(profile_dir, locale)? else {
+pub fn read(
+    profile_dir: &Path,
+    base_locales: &[String],
+    useragent_locale: Option<&str>,
+) -> anyhow::Result<Option<LanguageInfo>> {
+    let Some((identifier, langpack)) =
+        select_langpack(profile_dir, base_locales, useragent_locale)?
+    else {
         return Ok(None);
     };
 
@@ -37,27 +43,33 @@ pub fn read(profile_dir: &Path, locale: Option<&str>) -> anyhow::Result<Option<L
 
 /// Select the langpack to use based on profile settings, the useragent locale, and the existence
 /// of langpack files.
+/// Returns `Ok(None)` if no locales are found in pref and from useragent locale. Also return
+/// `Ok(None)` if the locale specified is the base installation locale, as there is no langpack for
+/// the base installation locale.
 fn select_langpack(
     profile_dir: &Path,
-    locale: Option<&str>,
+    base_locales: &[String],
+    useragent_locale: Option<&str>,
 ) -> anyhow::Result<Option<(String, PathBuf)>> {
-    if let Some(path) = locale.and_then(|l| find_langpack_extension(profile_dir, l)) {
-        Ok(Some((locale.unwrap().to_string(), path)))
-    } else {
-        let Some(locales) = locales_from_prefs(profile_dir)? else {
-            return Ok(None);
-        };
-        // Use the first language for which we can find a langpack extension.
-        locales
-            .iter()
-            .find_map(|lang| {
-                find_langpack_extension(profile_dir, lang).map(|path| (lang.to_string(), path))
-            })
-            .with_context(|| {
-                format!("couldn't locate langpack for requested locales ({locales:?})")
-            })
-            .map(Some)
+    let mut locales = locales_from_prefs(profile_dir)?
+        .into_iter()
+        .flatten()
+        .chain(useragent_locale.map(str::to_string));
+
+    if locales.clone().count() == 0 {
+        return Ok(None);
     }
+
+    // Use the first language that is either the base locale or we can find a langpack extension for
+    locales
+        .find_map(|lang| {
+            if base_locales.contains(&lang) {
+                Some(None)
+            } else {
+                find_langpack_extension(profile_dir, &lang).map(|path| Some((lang, path)))
+            }
+        })
+        .with_context(|| format!("couldn't locate langpack for requested locales ({locales:?})"))
 }
 
 fn locales_from_prefs(profile_dir: &Path) -> anyhow::Result<Option<Vec<String>>> {
