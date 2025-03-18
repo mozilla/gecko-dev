@@ -590,6 +590,8 @@
   <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">Blokir iklan secara efektif dan efisien.</string>
   <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
   <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
+  <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Permata anti-pelacakan. Hentikan pelacak tak terlihat dan iklan mata-mata.</string>
   <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
   <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Cari berdasarkan Gambar</string>
   <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
@@ -682,6 +684,8 @@
   <string name="onboarding_customize_toolbar_top_option">Puncak</string>
   <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_bottom_option">Dasar</string>
+  <!-- Onboarding toolbar selection card content description for the main image. -->
+  <string name="onboarding_customize_toolbar_main_image_content_description">Gambar header besar dari tampilan pemilihan bilah alat menampilkan bilah alat bergambar.</string>
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">Gambar bilah alat bawah</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">Gambar bilah alat puncak</string>
@@ -912,6 +916,8 @@
   <string name="preferences_show_nonsponsored_suggestions_summary">Dapatkan rekomendasi dari web yang terkait dengan pencarian Anda</string>
   <!-- Preference for link sharing -->
   <string name="preferences_link_sharing">Berbagi tautan</string>
+  <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_title">Sertakan Tautan Unduhan %1$s saat Berbagi ke WhatsApp</string>
   <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
   <string name="link_sharing_toggle_body">Undang teman Anda untuk mencoba penjelajahan yang lebih cepat dan lebih aman dengan %1$s setiap kali Anda membagikan tautan di WhatsApp.</string>
   <!-- Snackbar message shown when user shares a link -->
@@ -1149,6 +1155,11 @@
   <string name="preferences_marketing_data_2">Data pengukuran kampanye</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
   <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Bagikan informasi tentang bagaimana Anda menemukan Firefox dengan mitra pemasaran Mozilla. Ini membantu kami menumbuhkan Firefox dan membangun internet yang lebih baik</string>
+  <!--
+    Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for.
+  -->
+  <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Bagikan bagaimana Anda menemukan Firefox, dan bahwa Anda menggunakannya dengan mitra pemasaran Mozilla.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Pelajari lebih lanjut tentang data pemasaran</string>
   <!-- Preference switch for daily usage ping data collection -->
@@ -1351,6 +1362,8 @@
   <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s dapat memasang dan menjalankan kajian dari waktu ke waktu.</string>
   <!-- Description for studies -->
   <string name="studies_description_3">Cobalah fitur dan ide sebelum dirilis ke semua orang.</string>
+  <!-- Title of the Studies data preference -->
+  <string name="studies_title">Pasang dan jalankan studi</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Pelajari lebih lanjut</string>
   <!--
@@ -1485,6 +1498,8 @@
   <string name="download_time_period_last_7_days">7 hari terakhir</string>
   <!-- Text for the header that groups the downloads the past 30 days -->
   <string name="download_time_period_last_30_days">30 hari terakhir</string>
+  <!-- Text for the header that groups the downloads older than other groups -->
+  <string name="download_time_period_older">Lebih lama</string>
   <!--
     WebCompat Reporter
 
@@ -1864,6 +1879,8 @@
   <string name="sync_add_new_device_learn_button">Pelajari Tentang Pengiriman Tab…</string>
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">Sambungkan Peranti Lain…</string>
+  <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nDikirim dari %2$s Coba peramban seluler: %3$s</string>
   <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
   <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nDikirim dari %2$s 🦊 %3$s</string>
   <!--
@@ -2210,8 +2227,12 @@
     Preference title for DNS over HTTPS settings
   -->
   <string name="preference_doh_title">DNS Di Atas HTTPS</string>
+  <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_summary">Domain Name System (DNS) melalui HTTPS mengirimkan permintaan Anda untuk mendapatkan nama domain melalui koneksi terenkripsi, sehingga menyediakan DNS yang aman dan mempersulit orang lain untuk melihat situs web mana yang akan diakses. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Pelajari lebih lanjut</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="preference_doh_up_description">Arahkan ke atas</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Pengecualian</string>
   <!-- Content description for the "Info" button -->
@@ -2224,6 +2245,8 @@
   <string name="preference_doh_default_protection_summary">%1$s memutuskan kapan menggunakan DNS aman untuk melindungi privasi Anda.</string>
   <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_1">Gunakan penyedia yang Anda pilih</string>
+  <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_2">Gunakan resolver DNS bawaan Anda jika ada masalah dengan penyedia DNS aman</string>
   <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
   <string name="preference_doh_default_protection_info_3">Gunakan penyedia lokal, jika memungkinkan. %1$s</string>
   <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
@@ -2484,6 +2507,8 @@
   <string name="credit_cards_biometric_prompt_message">Buka kunci untuk melihat kartu yang Anda simpan</string>
   <!-- Title of warning dialog if users have no device authentication set up -->
   <string name="credit_cards_warning_dialog_title_2">Amankan metode pembayaran Anda yang tersimpan</string>
+  <!-- Message of warning dialog if users have no device authentication set up -->
+  <string name="credit_cards_warning_dialog_message_3">Siapkan pola kunci perangkat, PIN, atau kata sandi untuk melindungi metode pembayaran Anda yang tersimpan agar tidak diakses jika perangkat Anda berpindah tangan.</string>
   <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
   <string name="credit_cards_warning_dialog_set_up_now">Atur sekarang</string>
   <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
@@ -2588,6 +2613,8 @@
   <string name="quick_settings_sheet_secure_connection_2">Sambungan aman</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">Sambungan tidak aman</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">Laman ini disimpan di perangkat Anda.</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">Bersihkan kuki dan data situs</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
@@ -2743,10 +2770,19 @@
     Search suggestions title for Firefox Suggest.
   -->
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">Saran Firefox</string>
+  <!-- Search suggestions title for trending searches. -->
+  <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">Pencarian Tren</string>
+  <!--
+    Search suggestions title for trending search suggestions.
+    %s is a placeholder for the name of the search engine providing the trending search suggestions.
+  -->
+  <string name="trending_searches_header_2">Sedang tren di %s</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header">Pencarian Google</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">Pencarian %s</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">Pencarian Terkini</string>
   <!--
     Default browser experiment
 
@@ -2943,12 +2979,16 @@
   <string name="a11y_state_label_collapsed">diciutkan</string>
   <!-- Action label for elements that can be expanded if interacting with them. Talkback will append this to say "Double tap to expand". -->
   <string name="a11y_action_label_expand">bentangkan</string>
+  <!-- Current state for elements that can be expanded if interacting with them. Talkback will dictate this after a state change. -->
+  <string name="a11y_state_label_expanded">dibentangkan</string>
   <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
   <string name="a11y_action_label_wallpaper_collection_learn_more">buka tautan untuk mempelajari lebih lanjut tentang koleksi ini</string>
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
   <string name="a11y_action_label_read_article">baca artikel</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="a11y_action_label_pocket_learn_more">buka tautan untuk mempelajari lebih lanjut</string>
+  <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
+  <string name="a11y_heading">%s, Judul</string>
   <!-- Title for dialog displayed when trying to access links present in a text. -->
   <string name="a11y_links_title">Tautan</string>
   <!-- Additional content description for text bodies that contain urls. -->
@@ -3054,6 +3094,8 @@
   <string name="translation_settings_automatic_translation">Terjemahan otomatis</string>
   <!-- Button text for the button that will take the user to the never translate these sites dialog. On the never translate these sites dialog, the user can set if translations should never occur on certain websites. -->
   <string name="translation_settings_automatic_never_translate_sites">Jangan pernah terjemahkan situs ini</string>
+  <!-- Button text for the button that will take the user to the download languages dialog. On the download languages dialog, the user can manage which languages they would like to download for translations. -->
+  <string name="translation_settings_download_language">Unduh bahasa</string>
   <!--
     Automatic translation preference screen
 
@@ -3078,6 +3120,16 @@
   <string name="automatic_translation_option_always_translate_summary_preference">%1$s akan menerjemahkan bahasa ini secara otomatis saat laman dimuat.</string>
   <!-- Preference option for never translate. Radio button title text. -->
   <string name="automatic_translation_option_never_translate_title_preference">Jangan pernah terjemahkan</string>
+  <!-- Preference option for never translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="automatic_translation_option_never_translate_summary_preference">%1$s tidak akan menawarkan untuk menerjemahkan situs dalam bahasa ini.</string>
+  <!--
+    Never translate site preference screen
+
+    Title of the never translate site preference screen that will appear on the toolbar.
+  -->
+  <string name="never_translate_site_toolbar_title_preference">Jangan pernah terjemahkan situs ini</string>
+  <!-- Screen header presenting the never translate site preference feature. It will appear under the toolbar. -->
+  <string name="never_translate_site_header_preference">Untuk menambahkan situs baru: Kunjungi dan pilih “Jangan terjemahkan situs ini” dari menu terjemahan.</string>
   <!--
     Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
     %1$s is web site url (for example:"wikipedia.com")
@@ -3195,6 +3247,16 @@
   <string name="protection_panel_banner_not_secure_description">Sambungan Anda tidak aman.</string>
   <!-- Title text for the protection panel banner when tracking protection is disabled. -->
   <string name="protection_panel_banner_not_protected_title">Anda menonaktifkan perlindungan</string>
+  <!--
+    Description text for the protection panel banner when tracking protection is disabled.
+    %s is the name of the app (for example "Firefox").
+  -->
+  <string name="protection_panel_banner_not_protected_description">%s tidak bertugas. Kami menyarankan untuk mengaktifkan kembali perlindungan.</string>
+  <!--
+    Title text for the protection panel banner when tracking protection is enabled.
+    %s is the name of the app (for example "Firefox").
+  -->
+  <string name="protection_panel_banner_protected_title">%s waspada</string>
   <!-- Description text for the protection panel banner when tracking protection is enabled. -->
   <string name="protection_panel_banner_protected_description">Anda terlindungi. Jika kami menemukan sesuatu, kami akan memberi tahu Anda.</string>
   <!-- Label text for the Enhanced Tracking Protection toggle. -->
@@ -3223,6 +3285,26 @@
     %d is a placeholder for the number of trackers blocked.
   -->
   <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
+  <!--
+    Description text for a dialog confirming whether the user wants to delete all data for current site.
+    %s is a placeholder for the base domain of website.
+  -->
+  <string name="clear_site_data_dialog_description">Menghapus kuki dan data situs untuk &lt;b&gt;%s&lt;/b&gt; dapat mengeluarkan Anda dari situs web dan menghapus keranjang belanja.</string>
+  <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
+  <string name="clear_site_data_dialog_positive_button_text">Bersihkan</string>
+  <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
+  <string name="clear_site_data_dialog_negative_button_text">Batal</string>
+  <!-- Snackbar title shown when the site data has been cleared. -->
+  <string name="clear_site_data_snackbar">Kuki dan data situs dihapus</string>
+  <!-- Text for the connection security panel when the site is secure. -->
+  <string name="connection_security_panel_secure">Sambungan aman</string>
+  <!-- Text for the connection security panel when the site is not secure. -->
+  <string name="connection_security_panel_not_secure">Sambungan tidak aman</string>
+  <!--
+    Text for the connection security panel to indicate who the certificate was verified by.
+    %s is a placeholder for the name of the certificate authority that verified the ticket
+  -->
+  <string name="connection_security_panel_verified_by">Diverifikasi oleh %s</string>
   <!--
     Debug drawer
 
@@ -3305,8 +3387,48 @@
   <string name="likert_scale_option_4" tools:ignore="UnusedResources">Tidak puas</string>
   <!-- Option for likert scale -->
   <string name="likert_scale_option_5" tools:ignore="UnusedResources">Sangat tidak puas</string>
+  <!-- Option for likert scale -->
+  <string name="likert_scale_option_6" tools:ignore="UnusedResources">Saya tidak menggunakannya</string>
+  <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
+  <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Saya tidak melakukan pencarian di Firefox</string>
+  <!-- Option for likert scale -->
+  <string name="likert_scale_option_8" tools:ignore="UnusedResources">Saya tidak menggunakan sinkronisasi</string>
+  <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
+  <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Bantu membuat pencetakan di Firefox menjadi lebih baik. Hanya butuh beberapa detik</string>
+  <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+  <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Bantu membuat pencarian di Firefox lebih baik. Hanya butuh beberapa menit</string>
+  <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+  <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Bantu membuat sinkronisasi di Firefox menjadi lebih baik. Hanya butuh beberapa menit</string>
+  <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+  <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Seberapa puaskah Anda dengan pencetakan di Firefox?</string>
+  <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+  <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Seberapa puaskah Anda dengan beranda Firefox Anda?</string>
+  <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+  <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Seberapa puaskah Anda dengan pengalaman pencarian di Firefox?</string>
+  <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+  <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Seberapa puaskah Anda dengan pengalaman sinkronisasi di Firefox?</string>
+  <!--
+    Accessibility
+
+    Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.
+  -->
+  <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Logo Firefox</string>
+  <!-- Content description for the survey feature icon. -->
+  <string name="microsurvey_feature_icon_content_description">Ikon fitur survei</string>
+  <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
+  <string name="microsurvey_close_handle_content_description">Tutup survei</string>
+  <!-- Content description for "X" button that is closing microsurvey. -->
+  <string name="microsurvey_close_button_content_description">Tutup</string>
+  <!--
+    Debug drawer logins
+
+    The title of the Logins feature in the Debug Drawer.
+  -->
+  <string name="debug_drawer_logins_title">Log masuk</string>
   <!-- The title of the logins section in the Logins feature. %s is the site domain. -->
   <string name="debug_drawer_logins_current_domain_label">Domain saat ini: %s</string>
+  <!-- The label for a button to add a new fake login for the current domain in the Logins feature. -->
+  <string name="debug_drawer_logins_add_login_button">Tambahkan info masuk palsu untuk domain ini</string>
   <!-- Content description for delete button. %s is the username of the login. -->
   <string name="debug_drawer_logins_delete_login_button_content_description">Hapus log masuk dengan nama pengguna %s</string>
   <!--
@@ -3319,6 +3441,10 @@
   <string name="debug_drawer_addresses_debug_locales_header">Locale awakutu yang akan difungsikan</string>
   <!-- The title of the header for the section for managing addresses. -->
   <string name="debug_drawer_addresses_management_header">Kelola alamat</string>
+  <!-- The title of the button in the debug drawer for adding a new address. -->
+  <string name="debug_drawer_add_new_address">Tambahkan alamat baru untuk pelokalan yang dipilih</string>
+  <!-- The title of the button for deleting in the debug drawer all addresses. -->
+  <string name="debug_drawer_delete_all_addresses">Hapus semua alamat</string>
   <!--
     Debug drawer "contextual feature recommendation" (CFR) tools
 
@@ -3333,6 +3459,20 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Alat Debug Glean</string>
+  <!--
+    Messages explaining how to exit fullscreen mode
+
+    Message shown to explain how to exit fullscreen mode when gesture navigation is enabled.
+
+    Localisation note: this text should be as short as possible, max 68 chars
+  -->
+  <string name="exit_fullscreen_with_gesture_short">Seret dari atas &amp; gunakan gestur kembali untuk keluar</string>
+  <!--
+    Message shown to explain how to exit fullscreen mode when using back button navigation.
+
+    Localisation note: this text should be as short as possible, max 68 chars
+  -->
+  <string name="exit_fullscreen_with_back_button_short">Seret dari atas &amp; tekan kembali untuk keluar</string>
   <!--
     Beta Label Component !
 
@@ -3353,6 +3493,32 @@
   <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Sertifikat root akan kedaluwarsa, menyebabkan beberapa fitur berhenti bekerja pada 14 Maret.</string>
   <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
   <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Perbarui sebelum 14 Maret</string>
+  <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Sertifikat root akan kedaluwarsa, menyebabkan versi Firefox Anda berhenti bekerja.</string>
+  <!-- Homepage card title about old Firefox version -->
+  <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Kurang dari 7 hari tersisa untuk memperbarui</string>
+  <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">Pada 14 Maret, pengaya dan fitur Firefox lainnya akan berhenti bekerja karena sertifikat root kedaluwarsa.</string>
+  <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Kesempatan terakhir untuk mempertahankan Firefox Anda</string>
+  <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Versi Firefox Anda tidak akan berfungsi dengan semestinya pada 14 Maret karena sebuah sertifikat root  kedaluwarsa.</string>
+  <!-- Push notification title about old Firefox version. "Update" is a noun. -->
+  <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Pembaruan disarankan</string>
+  <!-- Push notification message about old Firefox version -->
+  <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Pengaya dan beberapa fitur akan berhenti bekerja pada 14 Maret.</string>
+  <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Anda menggunakan Firefox versi lama</string>
+  <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+  <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Perbarui sebelum 14 Maret untuk tetap menggunakan pengaya dan fitur lainnya.</string>
+  <!-- Push notification message about old Firefox version -->
+  <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Beberapa fitur tidak lagi berfungsi besok.</string>
+  <!--
+    TextField Design System Component
+
+    The default content description for the eye trailing icon button in TextField
+  -->
+  <string name="text_field_eye_trailing_icon_default_content_description">Tampilkan teks tersembunyi</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description">Bersihkan teks</string>
 </resources>
