@@ -511,48 +511,6 @@ nsresult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
   return NS_OK;
 }
 
-bool FFmpegVideoEncoder<LIBAV_VER>::ScaleInputFrame() {
-  AVFrame* source = mFrame;
-  mFrame = nullptr;
-  // Allocate AVFrame.
-  if (!PrepareFrame()) {
-    FFMPEGV_LOG("failed to allocate frame");
-    return false;
-  }
-
-  // Set AVFrame properties for its internal data allocation. For now, we always
-  // convert into ffmpeg's buffer.
-  mFrame->format = ffmpeg::FFMPEG_PIX_FMT_YUV420P;
-  mFrame->width = static_cast<int>(mConfig.mSize.Width());
-  mFrame->height = static_cast<int>(mConfig.mSize.Height());
-
-  // Allocate AVFrame data.
-  if (int ret = mLib->av_frame_get_buffer(mFrame, 16); ret < 0) {
-    FFMPEGV_LOG("failed to allocate frame data: %s",
-                MakeErrorString(mLib, ret).get());
-    return false;
-  }
-
-  // Make sure AVFrame is writable.
-  if (int ret = mLib->av_frame_make_writable(mFrame); ret < 0) {
-    FFMPEGV_LOG("failed to make frame writable: %s",
-                MakeErrorString(mLib, ret).get());
-    return false;
-  }
-  int rv = I420Scale(source->data[0], source->linesize[0], source->data[1],
-                     source->linesize[1], source->data[2], source->linesize[2],
-                     source->width, source->height, mFrame->data[0],
-                     mFrame->linesize[0], mFrame->data[1], mFrame->linesize[1],
-                     mFrame->data[2], mFrame->linesize[2], mFrame->width,
-                     mFrame->height, libyuv::FilterMode::kFilterBox);
-  if (!rv) {
-    FFMPEGV_LOG("YUV scale error");
-  }
-  mLib->av_frame_unref(source);
-  mLib->av_frame_free(&source);
-  return true;
-}
-
 // avcodec_send_frame and avcodec_receive_packet were introduced in version 58.
 #if LIBAVCODEC_VERSION_MAJOR >= 58
 Result<MediaDataEncoder::EncodedData, nsresult> FFmpegVideoEncoder<
@@ -585,8 +543,8 @@ Result<MediaDataEncoder::EncodedData, nsresult> FFmpegVideoEncoder<
   // Set AVFrame properties for its internal data allocation. For now, we always
   // convert into ffmpeg's buffer.
   mFrame->format = ffmpeg::FFMPEG_PIX_FMT_YUV420P;
-  mFrame->width = static_cast<int>(sample->mImage->GetSize().width);
-  mFrame->height = static_cast<int>(sample->mImage->GetSize().height);
+  mFrame->width = static_cast<int>(mConfig.mSize.width);
+  mFrame->height = static_cast<int>(mConfig.mSize.height);
   mFrame->pict_type =
       sample->mKeyframe ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_NONE;
 
@@ -608,21 +566,11 @@ Result<MediaDataEncoder::EncodedData, nsresult> FFmpegVideoEncoder<
 
   nsresult rv = ConvertToI420(
       sample->mImage, mFrame->data[0], mFrame->linesize[0], mFrame->data[1],
-      mFrame->linesize[1], mFrame->data[2], mFrame->linesize[2]);
+      mFrame->linesize[1], mFrame->data[2], mFrame->linesize[2], mConfig.mSize);
   if (NS_FAILED(rv)) {
     FFMPEGV_LOG("Conversion error!");
     return Result<MediaDataEncoder::EncodedData, nsresult>(
         NS_ERROR_DOM_MEDIA_FATAL_ERR);
-  }
-
-  // Scale the YUV input frame if needed -- the encoded frame will have the
-  // dimensions configured at encoded initialization.
-  if (mFrame->width != mConfig.mSize.Width() ||
-      mFrame->height != mConfig.mSize.Height()) {
-    if (!ScaleInputFrame()) {
-      return Result<MediaDataEncoder::EncodedData, nsresult>(
-          NS_ERROR_DOM_MEDIA_FATAL_ERR);
-    }
   }
 
   // Set presentation timestamp and duration of the AVFrame. The unit of pts is

@@ -353,7 +353,7 @@ class VideoFrameConverterImpl : public rtc::AdaptedVideoTrackSource {
       nsresult rv = ConvertToI420(aFrame.mImage, buffer->MutableDataY(),
                                   buffer->StrideY(), buffer->MutableDataU(),
                                   buffer->StrideU(), buffer->MutableDataV(),
-                                  buffer->StrideV());
+                                  buffer->StrideV(), aFrame.mSize);
 
       if (NS_FAILED(rv)) {
         LOG(LogLevel::Warning,

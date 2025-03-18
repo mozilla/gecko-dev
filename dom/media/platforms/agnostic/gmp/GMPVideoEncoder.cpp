@@ -218,24 +218,11 @@ RefPtr<MediaDataEncoder::EncodePromise> GMPVideoEncoder::Encode(
   const VideoData* sample(aSample->As<const VideoData>());
   const uint64_t timestamp = sample->mTime.ToMicroseconds();
 
-  gfx::IntSize ySize;
-  gfx::IntSize cbCrSize;
-  int32_t yStride;
-  int32_t cbCrStride;
-
-  if (const layers::PlanarYCbCrImage* planarImage =
-          sample->mImage->AsPlanarYCbCrImage()) {
-    const layers::PlanarYCbCrData* yuv = planarImage->GetData();
-    ySize = yuv->YDataSize();
-    cbCrSize = yuv->CbCrDataSize();
-    yStride = yuv->mYStride;
-    cbCrStride = yuv->mCbCrStride;
-  } else {
-    ySize = sample->mImage->GetSize();
-    cbCrSize = gfx::ChromaSize(ySize, gfx::ChromaSubsampling::HALF_WIDTH);
-    yStride = ySize.width;
-    cbCrStride = cbCrSize.width;
-  }
+  const gfx::IntSize ySize = mConfig.mSize;
+  const gfx::IntSize cbCrSize =
+      gfx::ChromaSize(ySize, gfx::ChromaSubsampling::HALF_WIDTH_AND_HEIGHT);
+  const int32_t yStride = ySize.width;
+  const int32_t cbCrStride = cbCrSize.width;
 
   GMP_LOG_DEBUG(
       "[%p] GMPVideoEncoder::Encode -- request encode of frame @ %" PRIu64
@@ -257,7 +244,7 @@ RefPtr<MediaDataEncoder::EncodePromise> GMPVideoEncoder::Encode(
   uint8_t* vDest = frame->Buffer(GMPPlaneType::kGMPVPlane);
 
   nsresult rv = ConvertToI420(sample->mImage, yDest, yStride, uDest, cbCrStride,
-                              vDest, cbCrStride);
+                              vDest, cbCrStride, ySize);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     GMP_LOG_ERROR("[%p] GMPVideoEncoder::Encode -- failed to convert to I420",
                   this);

@@ -674,7 +674,7 @@ nsresult VP8TrackEncoder::PrepareRawFrame(VideoChunk& aChunk) {
                               mVPXImageWrapper.planes[VPX_PLANE_U],
                               mVPXImageWrapper.stride[VPX_PLANE_U],
                               mVPXImageWrapper.planes[VPX_PLANE_V],
-                              mVPXImageWrapper.stride[VPX_PLANE_V]);
+                              mVPXImageWrapper.stride[VPX_PLANE_V], imgSize);
   if (NS_FAILED(rv)) {
     VP8LOG(LogLevel::Error, "Converting to I420 failed");
     return rv;
