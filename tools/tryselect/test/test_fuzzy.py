@@ -193,5 +193,36 @@ def test_query_multiple_tags(run_mach, capfd, tag):
     print(output)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="fzf not installed on host")
+def test_target_tasks_method_pre_filter(run_mach, capfd):
+    cmd = [
+        "try",
+        "fuzzy",
+        "--no-push",
+        "--target-tasks-method=os-integration",
+        "-xq",
+        "^test 'talos",
+    ]
+    assert run_mach(cmd) == 0
+
+    output = capfd.readouterr().out
+    print(output)
+
+    delim = "Calculated try_task_config.json:"
+    index = output.find(delim)
+    result = json.loads(output[index + len(delim) :])
+    assert "target_tasks_method" not in result["parameters"]
+
+    tasks = result["parameters"]["try_task_config"]["tasks"]
+
+    # Assert we didn't select any unexpected talos tests, which implies the
+    # os-integration pre-filtering worked. Talos was chosen because the tasks
+    # we add to os-integration are unlikely to change much, but another type
+    # of task could be used instead if needed.
+    expected_talos_tests = {"other", "xperf", "webgl"}
+    for label in tasks:
+        assert any(e in label for e in expected_talos_tests)
+
+
 if __name__ == "__main__":
     mozunit.main()

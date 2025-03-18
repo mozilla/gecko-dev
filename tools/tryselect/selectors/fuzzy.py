@@ -121,6 +121,7 @@ class FuzzyParser(BaseTryParser):
         "gecko-profile",
         "new-test-config",
         "path",
+        "target-tasks-method",
         "test-tag",
         "pernosco",
         "rebuild",
@@ -159,8 +160,16 @@ def run(
 
     push = not stage_changes and not dry_run
     check_working_directory(push)
+
+    target_tasks_method = None
+    if try_config_params and "target_tasks_method" in try_config_params:
+        target_tasks_method = try_config_params.pop("target_tasks_method")
+
     tg = generate_tasks(
-        parameters, full=full, disable_target_task_filter=disable_target_task_filter
+        parameters,
+        full=full,
+        disable_target_task_filter=disable_target_task_filter,
+        target_tasks_method=target_tasks_method,
     )
     all_tasks = tg.tasks
 

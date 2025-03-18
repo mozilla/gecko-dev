@@ -171,18 +171,31 @@ def test_resolve_tests_by_suite(patch_resolver, input, tests, expected):
 
 
 @pytest.mark.parametrize(
-    "attr,params,disable_target_task_filter,expected",
+    "attr,params,disable_target_task_filter,target_tasks_method,expected",
     (
-        ("target_task_set", None, False, "target_task_set"),
-        ("target_task_set", {"project": "autoland"}, False, "target_task_set"),
-        ("target_task_set", {"project": "mozilla-central"}, False, "target_task_set"),
-        ("target_task_set", None, True, "target_task_set-uncommon"),
-        ("full_task_set", {"project": "pine"}, False, "full_task_set-pine"),
-        ("full_task_set", None, True, "full_task_set"),
+        ("target_task_set", None, False, None, "target_task_set"),
+        ("target_task_set", {"project": "autoland"}, False, None, "target_task_set"),
+        (
+            "target_task_set",
+            {"project": "mozilla-central"},
+            False,
+            None,
+            "target_task_set",
+        ),
+        ("target_task_set", None, True, None, "target_task_set-uncommon"),
+        ("target_task_set", None, False, "foo", "target_task_set-target_foo"),
+        ("full_task_set", {"project": "pine"}, False, None, "full_task_set-pine"),
+        ("full_task_set", None, True, None, "full_task_set"),
+        ("full_task_set", None, True, "foo", "full_task_set-target_foo"),
     ),
 )
-def test_cache_key(attr, params, disable_target_task_filter, expected):
-    assert cache_key(attr, params, disable_target_task_filter) == expected
+def test_cache_key(
+    attr, params, disable_target_task_filter, target_tasks_method, expected
+):
+    assert (
+        cache_key(attr, params, disable_target_task_filter, target_tasks_method)
+        == expected
+    )
 
 
 if __name__ == "__main__":

@@ -53,13 +53,17 @@ def invalidate(cache):
         os.remove(cache)
 
 
-def cache_key(attr, params, disable_target_task_filter):
+def cache_key(attr, params, disable_target_task_filter, target_tasks_method):
     key = attr
     if params and params["project"] not in ("autoland", "mozilla-central"):
         key += f"-{params['project']}"
 
     if disable_target_task_filter and "full" not in attr:
         key += "-uncommon"
+
+    if target_tasks_method:
+        key += f"-target_{target_tasks_method}"
+
     return key
 
 
@@ -85,22 +89,32 @@ def add_chunk_patterns(tg):
     return tg
 
 
-def generate_tasks(params=None, full=False, disable_target_task_filter=False):
+def generate_tasks(
+    param_spec=None,
+    full=False,
+    disable_target_task_filter=False,
+    target_tasks_method=None,
+):
     attr = "full_task_set" if full else "target_task_set"
 
-    filter_fn = (
-        "try_select_tasks"
-        if not disable_target_task_filter
-        else "try_select_tasks_uncommon"
-    )
-    params = parameters_loader(
-        params,
-        strict=False,
-        overrides={
-            "try_mode": "try_select",
-            "filters": [filter_fn],
-        },
-    )
+    overrides = {
+        "filters": [
+            (
+                "try_select_tasks"
+                if not disable_target_task_filter
+                else "try_select_tasks_uncommon"
+            )
+        ],
+        "try_mode": "try_select",
+    }
+
+    # If a separate target_tasks_method was requested, pre-filter the available
+    # list of tasks based on that.
+    if target_tasks_method:
+        overrides["target_tasks_method"] = target_tasks_method
+        overrides["filters"].insert(0, "target_tasks_method")
+
+    params = parameters_loader(param_spec, strict=False, overrides=overrides)
     root = os.path.join(build.topsrcdir, "taskcluster")
     taskgraph.fast = True
     generator = TaskGraphGenerator(root_dir=root, parameters=params)
@@ -108,7 +122,9 @@ def generate_tasks(params=None, full=False, disable_target_task_filter=False):
     cache_dir = os.path.join(
         get_state_dir(specific_to_topsrcdir=True), "cache", "taskgraph"
     )
-    key = cache_key(attr, generator.parameters, disable_target_task_filter)
+    key = cache_key(
+        attr, generator.parameters, disable_target_task_filter, target_tasks_method
+    )
     cache = os.path.join(cache_dir, key)
 
     invalidate(cache)
@@ -132,7 +148,9 @@ def generate_tasks(params=None, full=False, disable_target_task_filter=False):
             sys.exit(1)
 
         # write cache
-        key = cache_key(attr, generator.parameters, disable_target_task_filter)
+        key = cache_key(
+            attr, generator.parameters, disable_target_task_filter, target_tasks_method
+        )
         with open(os.path.join(cache_dir, key), "w") as fh:
             json.dump(tg.to_json(), fh)
         return add_chunk_patterns(tg)

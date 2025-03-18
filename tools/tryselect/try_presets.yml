@@ -237,7 +237,7 @@ mochitest-bc:
     selector: fuzzy
 
 os-integration:
-    selector: empty
+    selector: fuzzy
     description: >-
         Run the same tasks as the "os-integration" cron.
     try_config_params:
