@@ -537,23 +537,29 @@ const CSSCacheCleaner = {
       aOriginAttributes
     );
 
-    ChromeUtils.clearStyleSheetCacheByPrincipal(httpPrincipal);
-    ChromeUtils.clearStyleSheetCacheByPrincipal(httpsPrincipal);
+    this.deleteByPrincipal(httpPrincipal);
+    this.deleteByPrincipal(httpsPrincipal);
   },
 
   async deleteByPrincipal(aPrincipal) {
-    ChromeUtils.clearStyleSheetCacheByPrincipal(aPrincipal);
+    ChromeUtils.clearResourceCache({
+      types: ["stylesheet"],
+      principal: aPrincipal,
+    });
   },
 
   async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
-    ChromeUtils.clearStyleSheetCacheBySite(
-      aSchemelessSite,
-      aOriginAttributesPattern
-    );
+    ChromeUtils.clearResourceCache({
+      types: ["stylesheet"],
+      schemelessSite: aSchemelessSite,
+      pattern: aOriginAttributesPattern,
+    });
   },
 
   async deleteAll() {
-    ChromeUtils.clearStyleSheetCache();
+    ChromeUtils.clearResourceCache({
+      types: ["stylesheet"],
+    });
   },
 };
 
@@ -603,23 +609,29 @@ const JSCacheCleaner = {
       aOriginAttributes
     );
 
-    ChromeUtils.clearScriptCacheByPrincipal(httpPrincipal);
-    ChromeUtils.clearScriptCacheByPrincipal(httpsPrincipal);
+    this.deleteByPrincipal(httpPrincipal);
+    this.deleteByPrincipal(httpsPrincipal);
   },
 
   async deleteByPrincipal(aPrincipal) {
-    ChromeUtils.clearScriptCacheByPrincipal(aPrincipal);
+    ChromeUtils.clearResourceCache({
+      types: ["script"],
+      principal: aPrincipal,
+    });
   },
 
   async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
-    ChromeUtils.clearScriptCacheBySite(
-      aSchemelessSite,
-      aOriginAttributesPattern
-    );
+    ChromeUtils.clearResourceCache({
+      types: ["script"],
+      schemelessSite: aSchemelessSite,
+      pattern: aOriginAttributesPattern,
+    });
   },
 
   async deleteAll() {
-    ChromeUtils.clearScriptCache();
+    ChromeUtils.clearResourceCache({
+      types: ["script"],
+    });
   },
 };
 
