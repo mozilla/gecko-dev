@@ -42,9 +42,10 @@ pub fn load() -> LangStrings {
 /// Get a localized string bundle from the configured locale langpack, if any.
 fn load_langpack(
     profile_dir: &crate::std::path::Path,
-    locale: Option<&str>,
+    base_locales: &[String],
+    useragent_locale: Option<&str>,
 ) -> anyhow::Result<Option<LanguageBundle>> {
-    langpack::read(profile_dir, locale).and_then(|r| match r {
+    langpack::read(profile_dir, base_locales, useragent_locale).and_then(|r| match r {
         Some(language_info) => language_info.load_strings().map(Some),
         None => Ok(None),
     })
@@ -121,9 +122,10 @@ impl LangStrings {
     pub fn add_langpack(
         &mut self,
         profile_dir: &crate::std::path::Path,
-        locale: Option<&str>,
+        useragent_locale: Option<&str>,
     ) -> anyhow::Result<()> {
-        if let Some(strings) = load_langpack(profile_dir, locale)? {
+        let base_locales: Vec<String> = self.bundles.iter().map(|b| b.locale()).collect();
+        if let Some(strings) = load_langpack(profile_dir, &base_locales, useragent_locale)? {
             self.bundles.insert(0, strings);
         }
         Ok(())
