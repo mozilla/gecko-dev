@@ -22,8 +22,6 @@ const VISIBILITY_SETTING_PREF = "sidebar.visibility";
 const EXPAND_ON_HOVER_PREF = "sidebar.expandOnHover";
 const POSITION_SETTING_PREF = "sidebar.position_start";
 const TAB_DIRECTION_SETTING_PREF = "sidebar.verticalTabs";
-const EXPAND_ON_HOVER_MESSAGE_DISMISSED_PREF =
-  "sidebar.expandOnHoverMessage.dismissed";
 
 export class SidebarCustomize extends SidebarPage {
   constructor() {
@@ -251,26 +249,6 @@ export class SidebarCustomize extends SidebarPage {
     </div>`;
   }
 
-  expandOnHoverMessageTemplate() {
-    if (
-      !Services.prefs.getBoolPref(EXPAND_ON_HOVER_MESSAGE_DISMISSED_PREF, false)
-    ) {
-      return html`
-        <moz-message-bar
-          class="setting-message expand-on-hover-message"
-          data-l10n-id="expand-on-hover-message"
-          @message-bar:user-dismissed=${this.onExpandOnHoverMessageDismissed}
-          dismissable
-        ></moz-message-bar>
-      `;
-    }
-    return "";
-  }
-
-  onExpandOnHoverMessageDismissed() {
-    Services.prefs.setBoolPref(EXPAND_ON_HOVER_MESSAGE_DISMISSED_PREF, true);
-  }
-
   render() {
     let extensions = this.getWindow().SidebarController.getExtensions();
     return html`
@@ -322,7 +300,6 @@ export class SidebarCustomize extends SidebarPage {
             `
           )}
           </moz-checkbox>
-          ${this.expandOnHoverMessageTemplate()}
         </moz-fieldset>
         <moz-fieldset class="customize-group medium-top-margin no-label">
           <moz-checkbox

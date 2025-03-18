@@ -2107,7 +2107,7 @@ pref("sidebar.visibility", "always-show");
 // as a backup to restore the sidebar UI state when a user has PPB mode on
 // or has history cleared on browser close.
 pref("sidebar.backupState", "{}");
-pref("sidebar.expandOnHover", false);
+pref("sidebar.expandOnHover", true);
 pref("sidebar.old-sidebar.has-used", false);
 pref("sidebar.new-sidebar.has-used", false);
 

@@ -14,14 +14,6 @@
   }
 }
 
-.setting-message {
-  /* Pull the message-bar over the input box's border */
-  margin-block-end: calc(-1 * var(--sidebar-box-border-width));
-  margin-inline: calc(-1 * var(--space-medium) - var(--sidebar-box-border-width));
-  /* Remove the top radius, match the bottom radius to the input box's radius */
-  --message-bar-border-radius: 0 0 var(--border-radius-medium) var(--border-radius-medium);
-}
-
 .medium-top-margin {
   margin-block-start: var(--space-medium);
 }
