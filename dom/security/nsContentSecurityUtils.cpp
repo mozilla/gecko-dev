@@ -1271,6 +1271,7 @@ static nsLiteralCString sStyleSrcUnsafeInlineAllowList[] = {
     "chrome://browser/content/spotlight.html"_ns,
     "chrome://devtools/content/debugger/index.html"_ns,
     "chrome://devtools/content/inspector/index.xhtml"_ns,
+    "chrome://devtools/content/inspector/markup/markup.xhtml"_ns,
     "chrome://devtools/content/memory/index.xhtml"_ns,
     "chrome://formautofill/content/manageAddresses.xhtml"_ns,
     "chrome://formautofill/content/manageCreditCards.xhtml"_ns,
