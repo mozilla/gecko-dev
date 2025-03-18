@@ -7,7 +7,7 @@ test_apps = [
   'env',
 ]
 
-if not use_openssl and not use_nss
+if not use_openssl and not use_nss and not use_mbedtls
   test_apps += ['sha1_driver']
 endif
 
@@ -20,7 +20,7 @@ foreach test_name : test_apps
   test(test_name, test_exe, args: ['-v'])
 endforeach
 
-if not use_openssl and not use_nss
+if not use_openssl and not use_nss and not use_mbedtls
   test_exe = executable('aes_calc',
     'aes_calc.c', '../../test/getopt_s.c', '../../test/util.c',
     include_directories: [config_incs, crypto_incs, srtp2_incs, test_incs],

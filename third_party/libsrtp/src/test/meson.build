@@ -54,7 +54,7 @@ if can_run_rtpw
   endif
 
   rtpw_test_gcm_sh = find_program('rtpw_test_gcm.sh', required: false)
-  if (use_openssl or use_nss) and rtpw_test_gcm_sh.found()
+  if (use_openssl or use_nss or use_mbedtls) and rtpw_test_gcm_sh.found()
     test('rtpw_test_gcm', rtpw_test_gcm_sh,
          args: ['-w', words_txt],
          depends: rtpw_exe,

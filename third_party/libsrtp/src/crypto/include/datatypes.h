@@ -62,6 +62,10 @@
 #error "Platform not recognized"
 #endif
 
+#if defined(__SSE2__)
+#include <emmintrin.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -90,6 +94,26 @@ void v128_left_shift(v128_t *x, int shift_index);
  *
  */
 
+#if defined(__SSE2__)
+
+#define v128_set_to_zero(x)                                                    \
+    (_mm_storeu_si128((__m128i *)(x), _mm_setzero_si128()))
+
+#define v128_copy(x, y)                                                        \
+    (_mm_storeu_si128((__m128i *)(x), _mm_loadu_si128((const __m128i *)(y))))
+
+#define v128_xor(z, x, y)                                                      \
+    (_mm_storeu_si128((__m128i *)(z),                                          \
+                      _mm_xor_si128(_mm_loadu_si128((const __m128i *)(x)),     \
+                                    _mm_loadu_si128((const __m128i *)(y)))))
+
+#define v128_xor_eq(z, x)                                                      \
+    (_mm_storeu_si128((__m128i *)(z),                                          \
+                      _mm_xor_si128(_mm_loadu_si128((const __m128i *)(x)),     \
+                                    _mm_loadu_si128((const __m128i *)(z)))))
+
+#else /* defined(__SSE2__) */
+
 #define v128_set_to_zero(x)                                                    \
     ((x)->v32[0] = 0, (x)->v32[1] = 0, (x)->v32[2] = 0, (x)->v32[3] = 0)
 
@@ -112,6 +136,8 @@ void v128_left_shift(v128_t *x, int shift_index);
 #define v128_xor_eq(z, x)                                                      \
     ((z)->v64[0] ^= (x)->v64[0], (z)->v64[1] ^= (x)->v64[1])
 #endif
+
+#endif /* defined(__SSE2__) */
 
 /* NOTE!  This assumes an odd ordering! */
 /* This will not be compatible directly with math on some processors */
@@ -137,7 +163,7 @@ void v128_left_shift(v128_t *x, int shift_index);
  * verifying authentication tags.
  */
 
-int srtp_octet_string_is_eq(uint8_t *a, uint8_t *b, int len);
+int srtp_octet_string_is_eq(const uint8_t *a, const uint8_t *b, int len);
 
 /*
  * A portable way to zero out memory as recommended by
@@ -166,15 +192,18 @@ void octet_string_set_to_zero(void *s, size_t len);
 #include <byteswap.h>
 #define be32_to_cpu(x) bswap_32((x))
 #define be64_to_cpu(x) bswap_64((x))
+#elif defined(__APPLE__)
+// Mac OS X / Darwin features
+#include <libkern/OSByteOrder.h>
+#define be32_to_cpu(x) OSSwapInt32(x)
+#define be64_to_cpu(x) OSSwapInt64(x)
 #else /* WORDS_BIGENDIAN */
 
-#if defined(__GNUC__) && (defined(HAVE_X86) || defined(__x86_64__))
+#if defined(__GNUC__)
 /* Fall back. */
 static inline uint32_t be32_to_cpu(uint32_t v)
 {
-    /* optimized for x86. */
-    asm("bswap %0" : "=r"(v) : "0"(v));
-    return v;
+    return __builtin_bswap32(v);
 }
 #else /* HAVE_X86 */
 #ifdef HAVE_NETINET_IN_H
@@ -187,7 +216,9 @@ static inline uint32_t be32_to_cpu(uint32_t v)
 
 static inline uint64_t be64_to_cpu(uint64_t v)
 {
-#ifdef NO_64BIT_MATH
+#if defined(__GNUC__)
+    v = __builtin_bswap64(v);
+#elif defined(NO_64BIT_MATH)
     /* use the make64 functions to do 64-bit math */
     v = make64(htonl(low32(v)), htonl(high32(v)));
 #else  /* NO_64BIT_MATH */
