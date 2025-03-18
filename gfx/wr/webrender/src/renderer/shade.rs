@@ -7,6 +7,7 @@ use crate::batch::{BatchKey, BatchKind, BrushBatchKind, BatchFeatures};
 use crate::composite::{CompositeFeatures, CompositeSurfaceFormat};
 use crate::device::{Device, Program, ShaderError};
 use crate::pattern::PatternKind;
+use crate::telemetry::Telemetry;
 use euclid::default::Transform3D;
 use glyph_rasterizer::GlyphFormat;
 use crate::renderer::{
@@ -131,7 +132,9 @@ impl LazilyCompiledShader {
 
         if precache_flags.intersects(ShaderPrecacheFlags::ASYNC_COMPILE | ShaderPrecacheFlags::FULL_COMPILE) {
             let t0 = precise_time_ns();
+            let timer_id = Telemetry::start_shaderload_time();
             shader.get_internal(device, precache_flags, profile)?;
+            Telemetry::stop_and_accumulate_shaderload_time(timer_id);
             let t1 = precise_time_ns();
             debug!("[C: {:.1} ms ] Precache {} {:?}",
                 (t1 - t0) as f64 / 1000000.0,

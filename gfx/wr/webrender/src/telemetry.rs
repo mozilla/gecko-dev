@@ -25,6 +25,8 @@ impl Telemetry {
     pub fn start_sceneswap_time() -> TimerId { TimerId }
     pub fn stop_and_accumulate_sceneswap_time(_id: TimerId) { }
     pub fn cancel_sceneswap_time(_id: TimerId) { }
+    pub fn start_shaderload_time() -> TimerId { TimerId }
+    pub fn stop_and_accumulate_shaderload_time(_id: TimerId) { }
     pub fn record_texture_cache_update_time(_duration: Duration) { }
     pub fn record_time_to_frame_build(_duration: Duration) { }
 }
@@ -40,6 +42,8 @@ impl Telemetry {
     pub fn start_sceneswap_time() -> TimerId { wr::sceneswap_time.start() }
     pub fn stop_and_accumulate_sceneswap_time(id: TimerId) { wr::sceneswap_time.stop_and_accumulate(id); }
     pub fn cancel_sceneswap_time(id: TimerId) { wr::sceneswap_time.cancel(id); }
+    pub fn start_shaderload_time() -> TimerId { wr::shaderload_time.start() }
+    pub fn stop_and_accumulate_shaderload_time(id: TimerId) { wr::shaderload_time.stop_and_accumulate(id); }
     pub fn record_texture_cache_update_time(duration: Duration) { wr::texture_cache_update_time.accumulate_raw_duration(duration); }
     pub fn record_time_to_frame_build(duration: Duration) { wr::time_to_frame_build.accumulate_raw_duration(duration); }
 }

@@ -247,6 +247,23 @@ wr:
       - jmuizelaar@mozilla.com
     expires: never
 
+  shaderload_time:
+    type: timing_distribution
+    description: >
+      Time spent blocking on the shader compilation for LazilyCompiled shaders
+      created with ASYNC_COMPILE or FULL_COMPILE.
+    time_unit: microsecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1954566
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1954566
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+      - jmuizelaar@mozilla.com
+    expires: never
+
   sceneswap_time:
     type: timing_distribution
     description: >
