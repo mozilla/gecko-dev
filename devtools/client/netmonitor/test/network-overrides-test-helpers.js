@@ -69,16 +69,19 @@ function startOverridesHTTPServer() {
 
   httpServer.registerPathHandler("/index.html", (request, response) => {
     response.setStatusLine(request.httpVersion, 200, "OK");
+    response.setHeader("Cache-Control", "max-age=60000");
     response.write(ORIGINAL_HTML);
   });
 
   httpServer.registerPathHandler("/script.js", (request, response) => {
     response.setHeader("Content-Type", "application/javascript");
+    response.setHeader("Cache-Control", "max-age=60000");
     response.write(ORIGINAL_SCRIPT);
   });
 
   httpServer.registerPathHandler("/style.css", (request, response) => {
     response.setHeader("Content-Type", "text/css; charset=utf-8");
+    response.setHeader("Cache-Control", "max-age=60000");
     response.write(ORIGINAL_STYLESHEET);
   });
 
@@ -311,12 +314,13 @@ async function writeTextContentToPath(textContent, path, isEmpty = false) {
  * @returns {object}
  *     An object with monitor, tab and document properties.
  */
-async function setupNetworkOverridesTest() {
+async function setupNetworkOverridesTest({ enableCache = false } = {}) {
   const baseURL = startOverridesHTTPServer();
   const TEST_URL = baseURL + "index.html";
 
   const { monitor, tab } = await initNetMonitor(TEST_URL, {
     requestCount: 3,
+    enableCache,
   });
 
   const { document, store, windowRequire } = monitor.panelWin;

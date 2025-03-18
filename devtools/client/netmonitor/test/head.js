@@ -238,6 +238,23 @@ async function disableCacheAndReload(toolbox, waitForLoad) {
   }
 }
 
+async function enableCacheAndReload(toolbox, waitForLoad) {
+  // Disable the cache for any toolbox that it is opened from this point on.
+  Services.prefs.setBoolPref("devtools.cache.disabled", false);
+
+  await toolbox.commands.targetConfigurationCommand.updateConfiguration({
+    cacheDisabled: false,
+  });
+
+  // If the page which is reloaded is not found, this will likely cause
+  // reloadTopLevelTarget to not return so let not wait for it.
+  if (waitForLoad) {
+    await toolbox.commands.targetCommand.reloadTopLevelTarget();
+  } else {
+    toolbox.commands.targetCommand.reloadTopLevelTarget();
+  }
+}
+
 /**
  * Wait for 2 markers during document load.
  */
@@ -381,6 +398,22 @@ function initNetMonitor(
         allComplete.push(waitForTimelineMarkers(monitor));
       }
       await disableCacheAndReload(toolbox, waitForLoad);
+      await Promise.all(allComplete);
+      await clearNetworkEvents(monitor);
+    } else if (Services.prefs.getBoolPref("devtools.cache.disabled")) {
+      info("Enabling cache and reloading page.");
+
+      const allComplete = [];
+      allComplete.push(
+        waitForNetworkEvents(monitor, requestCount, {
+          expectedEventTimings,
+        })
+      );
+
+      if (waitForLoad) {
+        allComplete.push(waitForTimelineMarkers(monitor));
+      }
+      await enableCacheAndReload(toolbox, waitForLoad);
       await Promise.all(allComplete);
       await clearNetworkEvents(monitor);
     }

@@ -16,8 +16,8 @@ Services.scriptloader.loadSubScript(
  * - CSS file
  */
 
-add_task(async function testHTMLOverride() {
-  const { monitor, tab, document } = await setupNetworkOverridesTest();
+async function testHTMLOverrideWithOptions(options) {
+  const { monitor, tab, document } = await setupNetworkOverridesTest(options);
 
   let htmlRequest = findRequestByInitiator(document, "document");
   ok(
@@ -99,10 +99,18 @@ add_task(async function testHTMLOverride() {
   });
 
   return teardown(monitor);
+}
+
+add_task(async function testHTMLOverrideWithoutCache() {
+  await testHTMLOverrideWithOptions({ enableCache: false });
 });
 
-add_task(async function testScriptOverride() {
-  const { monitor, tab, document } = await setupNetworkOverridesTest();
+add_task(async function testHTMLOverrideWithCache() {
+  await testHTMLOverrideWithOptions({ enableCache: true });
+});
+
+async function testScriptOverrideWithOptions(options) {
+  const { monitor, tab, document } = await setupNetworkOverridesTest(options);
 
   async function assertScriptOverrideInContent({ override }) {
     await SpecialPowers.spawn(
@@ -139,7 +147,11 @@ add_task(async function testScriptOverride() {
     monitor,
     scriptRequest,
     overrideFileName,
-    OVERRIDDEN_SCRIPT
+    OVERRIDDEN_SCRIPT,
+    // If cache is used and the navigation cache is enabled, the response is
+    // not available.
+    Services.prefs.getBoolPref("dom.script_loader.navigation_cache") &&
+      options.enableCache
   );
 
   // Assert override column is checked but disabled in context menu
@@ -188,10 +200,18 @@ add_task(async function testScriptOverride() {
   await assertScriptOverrideInContent({ override: false });
 
   return teardown(monitor);
+}
+
+add_task(async function testScriptOverrideWithoutCache() {
+  await testScriptOverrideWithOptions({ enableCache: false });
 });
 
-add_task(async function testStylesheetOverride() {
-  const { monitor, tab, document } = await setupNetworkOverridesTest();
+add_task(async function testScriptOverrideWithCache() {
+  await testScriptOverrideWithOptions({ enableCache: true });
+});
+
+async function testStylesheetOverrideWithOptions(options) {
+  const { monitor, tab, document } = await setupNetworkOverridesTest(options);
 
   async function assertStylesheetOverrideInContent({ override }) {
     await SpecialPowers.spawn(
@@ -221,7 +241,9 @@ add_task(async function testStylesheetOverride() {
     monitor,
     stylesheetRequest,
     overrideFileName,
-    OVERRIDDEN_STYLESHEET
+    OVERRIDDEN_STYLESHEET,
+    // If cache is used, the response is not available.
+    options.enableCache
   );
 
   // Assert override column is checked but disabled in context menu
@@ -270,6 +292,14 @@ add_task(async function testStylesheetOverride() {
   await assertStylesheetOverrideInContent({ override: false });
 
   return teardown(monitor);
+}
+
+add_task(async function testStylesheetOverrideWithoutCache() {
+  await testStylesheetOverrideWithOptions({ enableCache: false });
+});
+
+add_task(async function testStylesheetOverrideWithCache() {
+  await testStylesheetOverrideWithOptions({ enableCache: true });
 });
 
 async function assertOverriddenResponseTab(doc, request, overrideFileName) {
