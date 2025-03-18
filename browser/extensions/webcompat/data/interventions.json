@@ -1,19 +1,4 @@
 {
-  "969844": {
-    "label": "mobile.de",
-    "bugs": {
-      "969844": {
-        "issue": "desktop-layout-not-mobile",
-        "matches": ["*://*.mobile.de/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["android"],
-        "ua_string": ["add_Chrome"]
-      }
-    ]
-  },
   "1385206": {
     "label": "rakuten.co.jp",
     "bugs": {
