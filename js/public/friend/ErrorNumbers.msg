@@ -916,7 +916,7 @@ MSG_DEF(JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE_ERAYEAR, 3, JSEXN_RANGEERR, "\"eraY
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE_YEAR, 2, JSEXN_RANGEERR, "\"year\" and computed \"year\" calendar fields are inconsistent: {0} - {1}")
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE_MONTHCODE, 2, JSEXN_RANGEERR, "\"monthCode\" and \"month\" calendar fields are inconsistent: {0} - {1}")
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_INTERNAL_ERROR,     0, JSEXN_ERR, "internal error while computing calendar data")
-MSG_DEF(JSMSG_TEMPORAL_PLAIN_DATE_INVALID,          0, JSEXN_RANGEERR, "year-month-day must be valid iso dates")
+MSG_DEF(JSMSG_TEMPORAL_PLAIN_DATE_INVALID,          0, JSEXN_RANGEERR, "year-month-day must be valid ISO date values")
 MSG_DEF(JSMSG_TEMPORAL_PLAIN_DATE_INVALID_VALUE,    4, JSEXN_RANGEERR, "date value \"{0}\" not in {1}..{2}: {3}")
 MSG_DEF(JSMSG_TEMPORAL_PLAIN_DATE_TIME_INVALID,     0, JSEXN_RANGEERR, "arguments must be valid ISO date-time values")
 MSG_DEF(JSMSG_TEMPORAL_PLAIN_TIME_INVALID,          0, JSEXN_RANGEERR, "arguments must be valid ISO time values")
