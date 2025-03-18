@@ -501,6 +501,26 @@ browsertime-benchmark-jetstream2:
             fenix: 1
             default: 3
 
+browsertime-benchmark-jetstream3:
+    description: Raptor (browsertime) jetstream 3 benchmark test
+    raptor:
+        # Bug 1954124 not quite ready for Fenix and GVE
+        apps: [chrome-m, cstm-car-m]
+        subtests:
+            - [jetstream3, js3]
+    run-on-projects:
+        by-test-platform:
+            android-hw-a55.*shippable.*:
+                by-app:
+                    fenix: [mozilla-central]
+                    default: []
+            default: []
+    treeherder-symbol: Btime()
+    tier:
+        by-app:
+            fenix: 1
+            default: 3
+
 browsertime-benchmark-unity-webgl-mobile:
     description: Browsertime Unity WebGL on Android
     raptor:

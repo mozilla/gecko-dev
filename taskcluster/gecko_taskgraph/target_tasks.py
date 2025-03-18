@@ -767,6 +767,9 @@ def target_tasks_custom_car_perf_testing(full_task_graph, parameters, graph_conf
                     return False
                 if "jetstream2" in try_name:
                     return True
+                # Bug 1954124 - Don't run JS3 + Android on a cron yet.
+                if "jetstream3" in try_name:
+                    return False
                 # Bug 1898514: avoid tp6m or non-essential tp6 jobs in cron on non-a55 platform
                 if "tp6m" in try_name and "a55" not in platform:
                     return False
@@ -832,6 +835,9 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
                     if "speedometer" in try_name:
                         return True
                 if "safari" and "benchmark" in try_name:
+                    # Bug 1954202 Safari + JS3 seems to be perma failing on CI.
+                    if "jetstream3" in try_name and "safari-tp" not in try_name:
+                        return False
                     return True
         # Android selection
         elif accept_raptor_android_build(platform):
@@ -870,6 +876,9 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
                     return False
                 if "jetstream2" in try_name:
                     return True
+                # Bug 1954124 - Don't run JS3 + Android on a cron yet.
+                if "jetstream3" in try_name:
+                    return False
                 if "fenix" in try_name:
                     return False
                 if "speedometer" in try_name:

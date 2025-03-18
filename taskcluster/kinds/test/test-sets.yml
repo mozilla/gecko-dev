@@ -536,6 +536,7 @@ android-hw-browsertime:
     - browsertime-benchmark-unity-webgl-mobile
     - browsertime-benchmark-motionmark-1-3
     - browsertime-benchmark-jetstream2
+    - browsertime-benchmark-jetstream3
     - browsertime-video-playback-latency-mobile
     - browsertime-youtube-playback-power-mobile
 
