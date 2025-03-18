@@ -295,7 +295,7 @@ export class EditProfileCard extends MozLitElement {
   }
 
   headerTemplate() {
-    return html`<h2 data-l10n-id="edit-profile-page-header"></h2>`;
+    return html`<h1 data-l10n-id="edit-profile-page-header"></h1>`;
   }
 
   nameInputTemplate() {
