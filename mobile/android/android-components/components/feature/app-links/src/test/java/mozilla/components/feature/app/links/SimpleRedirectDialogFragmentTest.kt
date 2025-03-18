@@ -11,11 +11,13 @@ import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.feature.app.links.SimpleRedirectDialogFragment.Companion.VIEW_ID
+import mozilla.components.support.ktx.util.PromptAbuserDetector
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.doNothing
@@ -28,8 +30,17 @@ import androidx.appcompat.R as appcompatR
 class SimpleRedirectDialogFragmentTest {
     private val themeResId = appcompatR.style.Theme_AppCompat_Light
 
+    @Before
+    fun setUp() {
+        PromptAbuserDetector.validationsEnabled = false
+    }
+
+    @After
+    fun tearDown() {
+        PromptAbuserDetector.validationsEnabled = true
+    }
+
     @Test
-    @Ignore("This will be addressed in another follow up ticket")
     fun `GIVEN the checkbox is visible and ticked WHEN clicking on positive button THEN the callback is called correctly`() {
         var onConfirmAlwaysUncheckCalled = false
         var onConfirmedAlwaysCheckedCalled = false
@@ -59,6 +70,8 @@ class SimpleRedirectDialogFragmentTest {
         val dialog = fragment.onCreateDialog(null)
         dialog.show()
 
+        shadowOf(getMainLooper()).idle()
+
         val confirmButton = dialog.findViewById<Button>(android.R.id.button1)
         val checkbox = dialog.findViewById<CheckBox>(VIEW_ID)
         checkbox.isChecked = true
@@ -70,8 +83,6 @@ class SimpleRedirectDialogFragmentTest {
         fragment.onCancelRedirect = onCancel
 
         confirmButton?.performClick()
-
-        shadowOf(getMainLooper()).idle()
 
         assertTrue(onConfirmedAlwaysCheckedCalled)
         assertFalse(onConfirmAlwaysUncheckCalled)

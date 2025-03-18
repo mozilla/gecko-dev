@@ -83,6 +83,8 @@ class SimpleRedirectDialogFragment(
             dialog.withCenterAlignedButtons()
             dialog.setOnShowListener {
                 val okButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                // Overrides the default behavior of the positive button, which dismiss after clicking.
+                // We want to dismiss only when cold off time has expired.
                 okButton.setOnClickListener {
                     if (promptAbuserDetector.areDialogsBeingAbused()) {
                         promptAbuserDetector.updateJSDialogAbusedState()
