@@ -79,91 +79,6 @@ browser.engagement:
         type: quantity
     expires: never
 
-  tab_group_create:
-    type: event
-    description: >
-      Recorded when the user creates a new tab group via
-      the tab context menu or through drag and drop.
-    notification_emails:
-      - dao@mozilla.com
-      - jswinarton@mozilla.com
-    bugs:
-      - https://bugzil.la/1938423
-    data_reviews:
-      - https://bugzil.la/1938423
-    data_sensitivity:
-      - interaction
-    extra_keys:
-      source:
-        description: The means by which the tab group was created
-        type: string
-      tabs:
-        description: The number of tabs in the group when it was created
-        type: quantity
-      layout:
-        description: The layout of the tab strip when the group was created (either "horizontal" or "vertical")
-        type: string
-      id:
-        description: The ID of the created tab group
-        type: string
-    expires: never
-
-  tab_group_expand_or_collapse:
-    type: event
-    description: >
-      Recorded when a tab group is expanded or collapsed.
-    notification_emails:
-      - dao@mozilla.com
-      - jswinarton@mozilla.com
-    bugs:
-      - https://bugzil.la/1938397
-    data_reviews:
-      - https://bugzil.la/1938397
-    data_sensitivity:
-      - interaction
-    extra_keys:
-      total_collapsed:
-        description: The total number of active groups in all windows that are collapsed
-        type: quantity
-      total_expanded:
-        description: The total number of active groups in all windows that are expanded
-        type: quantity
-    expires: never
-
-  tab_group_modify:
-    type: event
-    description: >
-      Recorded when the number of tabs in a tab group are modified.
-    notification_emails:
-      - dao@mozilla.com
-      - jswinarton@mozilla.com
-    bugs:
-      - https://bugzil.la/1938397
-    data_reviews:
-      - https://bugzil.la/1938397
-    data_sensitivity:
-      - interaction
-    extra_keys:
-      tabs_per_active_group_max:
-        description: The number of open tabs in the largest tab group in any window
-        type: quantity
-      tabs_per_active_group_min:
-        description: The number of open tabs in the smallest tab group in any window
-        type: quantity
-      tabs_per_active_group_median:
-        description: The median number of open tabs in tab groups in all windows
-        type: quantity
-      tabs_per_active_group_average:
-        description: The average number of open tabs in tab groups in all windows
-        type: quantity
-      tabs_inside_groups:
-        description: The total number of tabs within tab groups in all windows
-        type: quantity
-      tabs_outside_groups:
-        description: The total number of tabs not in groups in all windows
-        type: quantity
-    expires: never
-
 browser.ui.interaction:
   all_tabs_panel_dragstart_tab_event_count:
     type: counter
@@ -288,3 +203,94 @@ browser.ml.interaction:
     expires: never
     no_lint:
       - COMMON_PREFIX
+
+tabgroup:
+  create_group:
+    type: event
+    description: >
+      Recorded when the user creates a new tab group via
+      the tab context menu or through drag and drop.
+    notification_emails:
+      - dao@mozilla.com
+      - jswinarton@mozilla.com
+    bugs:
+      - https://bugzil.la/1938423
+      - https://bugzil.la/1954500
+    data_reviews:
+      - https://bugzil.la/1938423
+      - https://bugzil.la/1954500
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      source:
+        description: The means by which the tab group was created
+        type: string
+      tabs:
+        description: The number of tabs in the group when it was created
+        type: quantity
+      layout:
+        description: The layout of the tab strip when the group was created (either "horizontal" or "vertical")
+        type: string
+      id:
+        description: The ID of the created tab group
+        type: string
+    expires: never
+
+  active_groups:
+    type: labeled_quantity
+    description: >
+      Records the number of groups present in the tab bar, split by expanded or collapsed.
+    notification_emails:
+      - dao@mozilla.com
+      - jswinarton@mozilla.com
+    bugs:
+      - https://bugzil.la/1938397
+      - https://bugzil.la/1954500
+    data_reviews:
+      - https://bugzil.la/1938397
+      - https://bugzil.la/1954500
+    expires: never
+    unit: tab groups
+    labels:
+      - expanded
+      - collapsed
+
+  tabs_per_active_group:
+    type: labeled_quantity
+    description: >
+      Records statistics about the number of tabs per active group: max, median, average and min.
+    notification_emails:
+      - dao@mozilla.com
+      - jswinarton@mozilla.com
+    bugs:
+      - https://bugzil.la/1938397
+      - https://bugzil.la/1954500
+    data_reviews:
+      - https://bugzil.la/1938397
+      - https://bugzil.la/1954500
+    expires: never
+    unit: tabs
+    labels:
+      - max
+      - median
+      - average
+      - min
+
+  tab_count_in_groups:
+    type: labeled_quantity
+    description: >
+      Records the latest number of tabs in the tab bar, split by being inside a group or outside.
+    notification_emails:
+      - dao@mozilla.com
+      - jswinarton@mozilla.com
+    bugs:
+      - https://bugzil.la/1938397
+      - https://bugzil.la/1954500
+    data_reviews:
+      - https://bugzil.la/1938397
+      - https://bugzil.la/1954500
+    expires: never
+    unit: tabs
+    labels:
+      - inside
+      - outside
