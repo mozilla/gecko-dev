@@ -23,11 +23,11 @@ size_t TreeOrderedArray<Node>::Insert(Node& aNode, nsINode* aCommonAncestor) {
     return 0;
   }
 
+  // TODO(emilio, bug 1954552): We should probably allow passing a
+  // NodeIndexCache around here.
   struct PositionComparator {
     Node& mNode;
     nsINode* mCommonAncestor;
-    PositionComparator(Node& aNode, nsINode* aCommonAncestor)
-        : mNode(aNode), mCommonAncestor(aCommonAncestor) {}
 
     int operator()(void* aNode) const {
       auto* curNode = static_cast<Node*>(aNode);
@@ -38,9 +38,16 @@ size_t TreeOrderedArray<Node>::Insert(Node& aNode, nsINode* aCommonAncestor) {
     }
   };
 
+  PositionComparator cmp{aNode, aCommonAncestor};
+  if (cmp(mList.LastElement()) > 0) {
+    // Appending is a really common case, optimize for it.
+    auto index = mList.Length();
+    mList.AppendElement(&aNode);
+    return index;
+  }
+
   size_t idx;
-  BinarySearchIf(mList, 0, mList.Length(),
-                 PositionComparator(aNode, aCommonAncestor), &idx);
+  BinarySearchIf(mList, 0, mList.Length(), cmp, &idx);
   mList.InsertElementAt(idx, &aNode);
   return idx;
 }
