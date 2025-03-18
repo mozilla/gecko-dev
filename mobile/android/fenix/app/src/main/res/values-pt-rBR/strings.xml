@@ -668,6 +668,12 @@
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Como usamos os dados</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Confirmar e iniciar navegação</string>
+  <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Uma última coisa</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Compartilhe que você usa o Firefox e como o descobriu, com parceiros de marketing da Mozilla. Esses dados nunca são vendidos.</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Concordar e iniciar navegação</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Escolha a posição da barra de ferramentas</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -703,6 +709,12 @@
   <string name="onboarding_customize_theme_content_description">Imagem do tema %1$s</string>
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Agora não</string>
+  <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Iniciar uma pesquisa rápida</string>
   <!--
     Search Widget
 
@@ -1475,6 +1487,20 @@
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">Remover</string>
   <!--
+    Time period headers for downloads
+
+    Text for the header that groups the downloads for today
+  -->
+  <string name="download_time_period_today">Hoje</string>
+  <!-- Text for the header that groups the downloads for yesterday -->
+  <string name="download_time_period_yesterday">Ontem</string>
+  <!-- Text for the header that groups the downloads the past 7 days -->
+  <string name="download_time_period_last_7_days">Últimos 7 dias</string>
+  <!-- Text for the header that groups the downloads the past 30 days -->
+  <string name="download_time_period_last_30_days">Últimos 30 dias</string>
+  <!-- Text for the header that groups the downloads older than other groups -->
+  <string name="download_time_period_older">Mais antigos</string>
+  <!--
     WebCompat Reporter
 
     The title of the Web Compat Reporter feature. This is displayed in the top app bar.
@@ -2206,6 +2232,8 @@
  , .</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Saiba mais</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="preference_doh_up_description">Ir para o topo</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Exceções</string>
   <!-- Content description for the "Info" button -->
@@ -2224,6 +2252,8 @@
   <string name="preference_doh_default_protection_info_3">Usar um provedor local, se possível. %1$s</string>
   <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_4">Desativar quando estiver ativo VPN, controle dos pais ou diretivas corporativas</string>
+  <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_5">Desativar quando uma rede informar ao %1$s que ele não deve usar DNS seguro. %2$s</string>
   <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection">Proteção maior</string>
   <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
@@ -2244,6 +2274,8 @@
   <string name="preference_doh_max_protection_info_3">Se não tiver DNS seguro disponível, alguns sites podem não ser carregados ou não funcionar corretamente</string>
   <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
   <string name="preference_doh_off">Desativado</string>
+  <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off_summary">Usar seu resolvedor de DNS padrão</string>
   <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
   <string name="preference_doh_choose_provider">Escolher provedor</string>
   <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->

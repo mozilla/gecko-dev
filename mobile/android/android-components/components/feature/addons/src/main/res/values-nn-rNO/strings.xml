@@ -30,6 +30,8 @@
     %1$d will be replaced by an integer indicating the number of additional domains for which this web extension is requesting permission.
   -->
   <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">Få tilgang til dine data på %1$d andre domene</string>
+  <!-- When an add-on requires access to domains, this entry is used to describe the total number of domains. Underneath it will be the list of all the domains. %1$d is the number of all the domains that will be shown to the user as required. -->
+  <string name="mozac_feature_addons_permissions_all_domain_count_description" tools:ignore="PluralsCandidate">Få tilgang til dataa dine for nettstadar på %1$d domener</string>
   <!-- Content description for a permission item, for an installed add-on details page. %1$s will be replaced with the permission text name, %2$d will be replaced with the permission position in the list and %3$d will be replaced with the total number of permissions in the list.Taking as an example "Read and modify privacy settings" the whole text will read Read and modify privacy settings, 2 of 6. -->
   <string name="mozac_feature_addons_permissions_content_description_item">%1$s, %2$d av %3$d</string>
   <!-- Description for tabs add-on permission. -->
@@ -80,6 +82,8 @@
   <string name="mozac_feature_addons_permissions_top_sites_description">Tilgang til nettlesarhistorikken</string>
   <!-- Description for trialML permission. -->
   <string name="mozac_feature_addons_permissions_trial_ml_description">Last ned og køyr AI-modellar på eininga di</string>
+  <!-- Description for userScripts permission. -->
+  <string name="mozac_feature_addons_permissions_user_scripts_description">Tillat at ikkje stadfesta tredjepartsskript får tilgang til dataa dine</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">Utvide utviklarverktøy for å få tilgang til dine data i opne faner</string>
   <!-- Description for text button that expands the list of domain permissions -->

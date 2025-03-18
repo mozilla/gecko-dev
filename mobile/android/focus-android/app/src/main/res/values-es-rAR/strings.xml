@@ -195,7 +195,7 @@
     Description of the preference that enables/disables search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="preference_show_search_suggestions_summary">%1$s enviará lo que ingreses en la barra de direcciones a tu motor de búsqueda</string>
+  <string name="preference_show_search_suggestions_summary">%1$s enviará lo que escribás en la barra de direcciones al buscador</string>
   <!-- This label is shown below the name of the default search engine in settings -->
   <string name="preference_search_engine_default">Predeterminado</string>
   <!-- This label is shown above the currently selected search engine in settings -->
@@ -782,7 +782,7 @@
     Description for the prompt to enable search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="enable_search_suggestion_description">Para obtener sugerencias de búsqueda, %1$s necesita enviar lo que ingreses en la barra de direcciones al motor de búsqueda.</string>
+  <string name="enable_search_suggestion_description"> Para obtener sugerencias, %1$s necesita enviar lo que escribás en la barra de direcciones al buscador.</string>
   <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
   <string name="enable_search_suggestions_no">No</string>
   <!-- Label used for the "YES button" for the prompt to enable search suggestions -->

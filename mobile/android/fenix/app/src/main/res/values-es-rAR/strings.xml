@@ -463,7 +463,7 @@
   <!-- Search suggestion onboarding hint title text -->
   <string name="search_suggestions_onboarding_title">¿Permitir sugerencias de búsqueda en sesiones privadas?</string>
   <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
-  <string name="search_suggestions_onboarding_text">%s va a compartir todo lo que escribas en la barra de direcciones con tu motor de búsqueda predeterminado.</string>
+  <string name="search_suggestions_onboarding_text">%s va a compartir todo lo que escribás en la barra de direcciones con el buscador predeterminado.</string>
   <!-- Search engine suggestion title text. %s is the name of the suggested engine. -->
   <string name="search_engine_suggestions_title">Buscar en %s</string>
   <!-- Search engine suggestion description text -->
@@ -745,7 +745,7 @@
   <!-- Preference category for settings related to managing search shortcuts for the quick search menu -->
   <string name="preferences_category_engines_in_search_menu">Buscadores visibles en el menú de búsqueda</string>
   <!-- Preference for settings related to changing the default search engine -->
-  <string name="preferences_default_search_engine">Motor de búsqueda predeterminado</string>
+  <string name="preferences_default_search_engine">Buscador predeterminado</string>
   <!-- Preference for settings related to Search -->
   <string name="preferences_search">Buscar</string>
   <!-- Preference for settings related to Search engines -->
@@ -2577,7 +2577,7 @@
   <!-- Description text for the Search String TextField. The %s is part of the string -->
   <string name="search_add_custom_engine_search_string_example" formatted="false">Reemplazar la consulta con "%s". Ejemplo:\n https://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
-  <string name="search_add_custom_engine_form_description">Detalles del motor de búsqueda personalizado</string>
+  <string name="search_add_custom_engine_form_description">Detalles del buscador personalizado</string>
   <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
   <string name="search_add_custom_engine_suggest_url_label">API de sugerencias de búsqueda (opcional)</string>
   <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->

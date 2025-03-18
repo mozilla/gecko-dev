@@ -138,6 +138,12 @@ ja sa võid hiljem uuesti proovida.&lt;/li&gt;
           &lt;strong&gt;www&lt;/strong&gt;.example.com.&lt;/li&gt; asemel)
         &lt;li&gt;Kui sa ei saa avada ühtegi lehte, siis kontrolli oma seadme andmeside või Wi-Fi ühendust.&lt;/li&gt;
       &lt;/ul&gt;</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_no_internet_title_2">Näib, et internetiühendusega on probleem</string>
+  <!-- The main body text of this error page. It will be shown beneath the title -->
+  <string name="mozac_browser_errorpages_no_internet_message_2">Proovi ühendada mõnes muus seadmes. Kontrolli oma modemit või ruuterit. Katkesta ühendus ja ühenda uuesti Wi-Fi-ga.</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_no_internet_error_code">Veakood: NS_ERROR_OFFLINE</string>
   <!-- Text that will show up on the button at the bottom of the error page -->
   <string name="mozac_browser_errorpages_no_internet_refresh_button">Laadi uuesti</string>
   <!-- The document title and heading of an error page. -->
