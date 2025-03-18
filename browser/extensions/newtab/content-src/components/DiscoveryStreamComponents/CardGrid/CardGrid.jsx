@@ -485,7 +485,7 @@ export class _CardGrid extends React.PureComponent {
 
     if (
       (billboardEnabled || leaderboardEnabled) &&
-      spocs.data.newtab_spocs.items
+      spocs?.data?.newtab_spocs?.items
     ) {
       // Only render one AdBanner in the grid -
       // Prioritize rendering a leaderboard if it exists,

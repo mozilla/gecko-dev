@@ -386,7 +386,10 @@ function CardSections({
   const billboardEnabled = prefs[PREF_BILLBOARD_ENABLED];
   const leaderboardEnabled = prefs[PREF_LEADERBOARD_ENABLED];
 
-  if ((billboardEnabled || leaderboardEnabled) && spocs.data.newtab_spocs) {
+  if (
+    (billboardEnabled || leaderboardEnabled) &&
+    spocs?.data?.newtab_spocs?.items
+  ) {
     const spocToRender =
       spocs.data.newtab_spocs.items.find(
         ({ format }) => format === "leaderboard" && leaderboardEnabled

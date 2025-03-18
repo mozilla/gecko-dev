@@ -4831,7 +4831,7 @@ class _CardGrid extends (external_React_default()).PureComponent {
     const {
       spocs
     } = this.props.DiscoveryStream;
-    if ((billboardEnabled || leaderboardEnabled) && spocs.data.newtab_spocs.items) {
+    if ((billboardEnabled || leaderboardEnabled) && spocs?.data?.newtab_spocs?.items) {
       // Only render one AdBanner in the grid -
       // Prioritize rendering a leaderboard if it exists,
       // otherwise render a billboard
@@ -10631,7 +10631,7 @@ function CardSections({
   // Add a billboard/leaderboard IAB ad to the sectionsToRender array (if enabled/possible).
   const billboardEnabled = prefs[CardSections_PREF_BILLBOARD_ENABLED];
   const leaderboardEnabled = prefs[CardSections_PREF_LEADERBOARD_ENABLED];
-  if ((billboardEnabled || leaderboardEnabled) && spocs.data.newtab_spocs) {
+  if ((billboardEnabled || leaderboardEnabled) && spocs?.data?.newtab_spocs?.items) {
     const spocToRender = spocs.data.newtab_spocs.items.find(({
       format
     }) => format === "leaderboard" && leaderboardEnabled) || spocs.data.newtab_spocs.items.find(({
