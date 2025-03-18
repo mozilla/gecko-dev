@@ -32,8 +32,7 @@
 #include "mozilla/EventStateManager.h"
 #include "mozilla/ScrollContainerFrame.h"
 #include "mozilla/ServoStyleSet.h"
-#include "mozilla/SharedStyleSheetCache.h"
-#include "mozilla/dom/SharedScriptCache.h"
+#include "mozilla/css/Loader.h"
 #include "mozilla/StaticPrefs_test.h"
 #include "mozilla/InputTaskManager.h"
 #include "nsIObjectLoadingContent.h"
@@ -1313,18 +1312,6 @@ nsDOMWindowUtils::SuppressAnimation(bool aSuppress) {
   if (widget) {
     widget->SuppressAnimation(aSuppress);
   }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDOMWindowUtils::ClearStyleSheetCache() {
-  SharedStyleSheetCache::Clear();
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDOMWindowUtils::ClearScriptCache() {
-  SharedScriptCache::Clear();
   return NS_OK;
 }
 

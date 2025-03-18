@@ -840,16 +840,6 @@ interface nsIDOMWindowUtils : nsISupports {
                              [optional] in nsIObserver aObserver);
 
   /**
-   * Clears the SharedStyleSheetCache.
-   */
-  void clearStyleSheetCache();
-
-  /**
-   * Clears the SharedScriptCache.
-   */
-  void clearScriptCache();
-
-  /**
    * Returns the number of stylesheets that have been parsed on this document.
    * Useful to test caching.
    */
