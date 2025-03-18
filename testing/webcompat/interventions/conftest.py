@@ -33,6 +33,16 @@ def pytest_generate_tests(metafunc):
             if mark.name == "skip_platforms":
                 otherargs["skip_platforms"] = mark.args
 
+    if "only_channels" in marks:
+        for mark in metafunc.function.pytestmark:
+            if mark.name == "only_channels":
+                otherargs["only_channels"] = mark.args
+
+    if "skip_channels" in marks:
+        for mark in metafunc.function.pytestmark:
+            if mark.name == "skip_channels":
+                otherargs["skip_channels"] = mark.args
+
     if "with_interventions" in marks:
         argvalues.append([dict({"interventions": True}, **otherargs)])
         ids.append("with_interventions")

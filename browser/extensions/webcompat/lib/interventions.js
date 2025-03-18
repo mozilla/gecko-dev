@@ -107,6 +107,7 @@ class Interventions {
 
     const skipped = [];
 
+    const channel = await browser.appConstants.getEffectiveUpdateChannel();
     const { version } = await browser.runtime.getBrowserInfo();
     const cleanVersion = parseFloat(version.match(/\d+(\.\d+)?/)[0]);
 
@@ -115,7 +116,13 @@ class Interventions {
 
     for (const config of this._availableInterventions) {
       for (const intervention of config.interventions) {
-        if (await InterventionHelpers.shouldSkip(intervention, cleanVersion)) {
+        if (
+          await InterventionHelpers.shouldSkip(
+            intervention,
+            cleanVersion,
+            channel
+          )
+        ) {
           continue;
         }
         if (!(await InterventionHelpers.checkPlatformMatches(intervention))) {

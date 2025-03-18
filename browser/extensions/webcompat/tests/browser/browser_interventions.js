@@ -157,6 +157,8 @@ add_task(async function test_json_data() {
       "min_version",
       "not_platforms",
       "platforms",
+      "not_channels",
+      "only_channels",
       "skip_if",
       "ua_string",
     ];
@@ -193,8 +195,15 @@ add_task(async function test_json_data() {
           );
         }
       }
-      let { content_scripts, not_platforms, platforms, skip_if, ua_string } =
-        intervention;
+      let {
+        content_scripts,
+        not_platforms,
+        not_channels,
+        only_channels,
+        platforms,
+        skip_if,
+        ua_string,
+      } = intervention;
       ok(
         !!platforms || !!not_platforms,
         `platforms or not_platforms key exists for id ${id} intervention ${JSON.stringify(intervention)}`
@@ -226,6 +235,30 @@ add_task(async function test_json_data() {
           ok(
             helpers.valid_platforms.includes(platform),
             `Platform ${platform} is valid in id ${id}`
+          );
+        }
+      }
+      if (check_valid_array(not_channels, "not_channels", id)) {
+        let skipped = 0;
+        let possible = helpers.valid_channels.length;
+        for (const channel of not_channels) {
+          ok(
+            helpers.valid_channels.includes(channel),
+            `Not-channel ${channel} is valid in id ${id}`
+          );
+          ++skipped;
+        }
+        Assert.less(
+          skipped,
+          possible,
+          `Not skipping all channels for id ${id} intervention ${JSON.stringify(intervention)}`
+        );
+      }
+      if (check_valid_array(only_channels, "only_channels", id)) {
+        for (const channel of only_channels) {
+          ok(
+            helpers.valid_channels.includes(channel),
+            `Channel ${channel} is valid in id ${id}`
           );
         }
       }

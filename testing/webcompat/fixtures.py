@@ -344,6 +344,18 @@ def platform(session):
 
 
 @pytest.fixture(autouse=True)
+def channel(session):
+    ver = session.capabilities["browserVersion"]
+    if "a" in ver:
+        return "nightly"
+    elif "b" in ver:
+        return "beta"
+    elif "esr" in ver:
+        return "esr"
+    return "stable"
+
+
+@pytest.fixture(autouse=True)
 def check_visible_scrollbars(session):
     plat = session.capabilities["platformName"]
     if plat == "android":
@@ -404,4 +416,27 @@ def skip_platforms(bug_number, platform, request, session):
             if skipped == platform:
                 pytest.skip(
                     f"Bug #{bug_number} skipped on platform ({platform}, test skipped for {' and '.join(plats)})"
+                )
+
+
+@pytest.fixture(autouse=True)
+def only_channels(bug_number, channel, request, session):
+    if request.node.get_closest_marker("only_channels"):
+        channels = request.node.get_closest_marker("only_channels").args
+        for only in channels:
+            if only == channel:
+                return
+        pytest.skip(
+            f"Bug #{bug_number} skipped on channel ({channel}, test only for {' or '.join(channels)})"
+        )
+
+
+@pytest.fixture(autouse=True)
+def skip_channels(bug_number, channel, request, session):
+    if request.node.get_closest_marker("skip_channels"):
+        channels = request.node.get_closest_marker("skip_channels").args
+        for skipped in channels:
+            if skipped == channel:
+                pytest.skip(
+                    f"Bug #{bug_number} skipped on channel ({channel}, test skipped for {' and '.join(channels)})"
                 )

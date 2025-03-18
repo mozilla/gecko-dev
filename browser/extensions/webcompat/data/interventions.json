@@ -2830,6 +2830,22 @@
       }
     ]
   },
+  "1918609": {
+    "label": "www.zara.com",
+    "bugs": {
+      "1918609": {
+        "issue": "broken-layout",
+        "matches": ["*://www.zara.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "only_channels": ["nightly"],
+        "ua_string": ["reduce_firefox_version_by_one"]
+      }
+    ]
+  },
   "1919698": {
     "label": "anecdotes.ai",
     "bugs": {
