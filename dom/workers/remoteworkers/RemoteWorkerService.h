@@ -19,6 +19,7 @@ class nsIThread;
 namespace mozilla::dom {
 
 class RemoteWorkerDebuggerManagerChild;
+class RemoteWorkerDebuggerManagerParent;
 class RemoteWorkerService;
 class RemoteWorkerServiceChild;
 class RemoteWorkerServiceShutdownBlocker;
@@ -123,7 +124,8 @@ class RemoteWorkerService final : public nsIObserver {
 
   nsCOMPtr<nsIThread> mThread;
   RefPtr<RemoteWorkerServiceChild> mActor;
-  RefPtr<RemoteWorkerDebuggerManagerChild> mDebuggerManagerActor;
+  RefPtr<RemoteWorkerDebuggerManagerChild> mDebuggerManagerChild;
+  RefPtr<RemoteWorkerDebuggerManagerParent> mDebuggerManagerParent;
   // The keep-alive is set and cleared on the main thread but we will hand out
   // additional references to it from the "Worker Launcher" thread, so it's
   // appropriate to use a mutex.  (Alternately we could have used a ThreadBound

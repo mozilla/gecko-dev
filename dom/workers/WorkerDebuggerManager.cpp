@@ -349,8 +349,10 @@ nsCOMPtr<nsIWorkerDebugger> WorkerDebuggerManager::GetDebuggerById(
   MOZ_ASSERT_DEBUG_OR_FUZZING(!aWorkerId.IsEmpty());
   for (auto debugger : mDebuggers) {
     nsAutoString workerId;
+    bool isRemote;
     debugger->GetId(workerId);
-    if (workerId.Equals(aWorkerId)) {
+    debugger->GetIsRemote(&isRemote);
+    if (workerId.Equals(aWorkerId) && isRemote) {
       return debugger;
     }
   }

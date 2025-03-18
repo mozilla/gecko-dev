@@ -43,14 +43,14 @@ mozilla::ipc::IPCResult RemoteWorkerDebuggerManagerParent::RecvRegister(
   RefPtr<WorkerDebuggerManager> manager = WorkerDebuggerManager::Get();
   MOZ_ASSERT_DEBUG_OR_FUZZING(manager);
 
-  nsCOMPtr<nsIWorkerDebugger> debugger =
-      manager->GetDebuggerById(aDebuggerInfo.Id());
-  MOZ_ASSERT_DEBUG_OR_FUZZING(!debugger);
-
-  debugger = MakeRefPtr<RemoteWorkerDebuggerParent>(aDebuggerInfo,
-                                                    std::move(aParentEp));
+  RefPtr<RemoteWorkerDebuggerParent> debugger =
+      MakeRefPtr<RemoteWorkerDebuggerParent>(aDebuggerInfo,
+                                             std::move(aParentEp));
 
   manager->RegisterDebugger(debugger);
+
+  MOZ_ASSERT(debugger->CanSend());
+  Unused << debugger->SendRegisterDone();
 
   return IPC_OK();
 }

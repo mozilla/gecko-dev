@@ -35,6 +35,10 @@ mozilla::ipc::IPCResult RemoteWorkerDebuggerParent::RecvUnregister() {
     listener->OnClose();
   }
 
+  if (CanSend()) {
+    Unused << SendUnregisterDone();
+  }
+
   return IPC_OK();
 }
 
@@ -102,6 +106,15 @@ RemoteWorkerDebuggerParent::GetIsChrome(bool* aResult) {
   MOZ_ASSERT_DEBUG_OR_FUZZING(aResult);
 
   *aResult = mWorkerDebuggerInfo.isChrome();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+RemoteWorkerDebuggerParent::GetIsRemote(bool* aResult) {
+  AssertIsOnMainThread();
+  MOZ_ASSERT_DEBUG_OR_FUZZING(aResult);
+
+  *aResult = true;
   return NS_OK;
 }
 
