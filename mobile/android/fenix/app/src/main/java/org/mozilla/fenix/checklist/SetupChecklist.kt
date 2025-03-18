@@ -92,8 +92,9 @@ fun SetupChecklist(
 }
 
 /**
- * The header for setup checklist that contains the title, the subtitle and the progress bar
+ * The header for setup checklist that contains the title, the subtitle and the progress bar.
  */
+@Suppress("MagicNumber")
 @Composable
 private fun Header(title: String, subtitle: String) {
     Column(
@@ -120,7 +121,8 @@ private fun Header(title: String, subtitle: String) {
             color = FirefoxTheme.colors.textPrimary,
         )
 
-        ProgressIndicatorSetupChecklist()
+        // TODO to updated with real values https://bugzilla.mozilla.org/show_bug.cgi?id=1954503
+        ProgressBarSetupChecklistView(6, 3)
     }
 }
 
