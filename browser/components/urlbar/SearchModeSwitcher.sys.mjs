@@ -86,14 +86,13 @@ export class SearchModeSwitcher {
       return;
     }
 
-    this.#input.view.hideTemporarily();
+    this.#input.view.close({ showFocusBorder: false });
 
     this.#popup.addEventListener(
       "popuphidden",
       () => {
         anchor.removeAttribute("open");
         anchor.setAttribute("aria-expanded", false);
-        this.#input.view.restoreVisibility();
       },
       { once: true }
     );
