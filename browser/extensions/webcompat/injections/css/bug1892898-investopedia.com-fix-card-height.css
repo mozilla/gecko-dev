@@ -1,0 +1,14 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * investopedia.com - Article cards are too tall.
+ * Bug #1892898 - https://bugzilla.mozilla.org/show_bug.cgi?id=1892898
+ *
+ * The site is running into an interop issue with images with alt-text
+ * (see bug 1945916). We can work around this by specifying a minimum height.
+ */
+.card__img {
+  min-height: 0;
+}

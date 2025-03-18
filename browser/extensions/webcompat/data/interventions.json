@@ -2101,6 +2101,23 @@
       }
     ]
   },
+  "1892898": {
+    "label": "investopedia.com",
+    "bugs": {
+      "1892898": {
+        "issue": "broken-layout",
+        "matches": ["*://*.investopedia.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "css": ["bug1892898-investopedia.com-fix-card-height.css"]
+        }
+      }
+    ]
+  },
   "1894308": {
     "label": "dingtalk.com",
     "bugs": {
