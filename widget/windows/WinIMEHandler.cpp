@@ -7,29 +7,26 @@
 
 #include "IMMHandler.h"
 #include "KeyboardLayout.h"
+#include "OSKInputPaneManager.h"
+#include "OSKTabTipManager.h"
+#include "OSKVRManager.h"
+#include "TSFTextStore.h"
+#include "TSFUtils.h"
+#include "WindowsUIUtils.h"
+#include "WinTextEventDispatcherListener.h"
+#include "WinUtils.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_intl.h"
 #include "mozilla/StaticPrefs_ui.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/Unused.h"
 #include "mozilla/WindowsVersion.h"
-#include "nsWindowDefs.h"
-#include "WinTextEventDispatcherListener.h"
-
-#include "TSFTextStore.h"
-
-#include "OSKInputPaneManager.h"
-#include "OSKTabTipManager.h"
-#include "OSKVRManager.h"
-#include "nsLookAndFeel.h"
-#include "nsWindow.h"
-#include "WinUtils.h"
-#include "nsIWindowsRegKey.h"
-#include "WindowsUIUtils.h"
-
 #ifdef ACCESSIBILITY
 #  include "nsAccessibilityService.h"
 #endif  // #ifdef ACCESSIBILITY
+#include "nsIWindowsRegKey.h"
+#include "nsWindow.h"
+#include "nsWindowDefs.h"
 
 #include "shellapi.h"
 #include "shlobj.h"
@@ -604,7 +601,7 @@ void IMEHandler::AppendInputScopeFromInputMode(const nsAString& aHTMLInputMode,
     //      However, if the OS is Win7 or it's installed on Win7 but has not
     //      been updated yet even after the OS is upgraded to Win8 or later,
     //      it's installed as IMM-IME.
-    if (TSFTextStore::ShouldSetInputScopeOfURLBarToDefault()) {
+    if (TSFUtils::ShouldSetInputScopeOfURLBarToDefault()) {
       return;
     }
     // Don't append IS_SEARCH here for showing on-screen keyboard for URL.

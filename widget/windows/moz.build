@@ -23,7 +23,7 @@ with Files("*KeyboardLayout*"):
 with Files("OSK*"):
     BUG_COMPONENT = ("Core", "DOM: UI Events & Focus Handling")
 
-with Files("*TSFTextStore*"):
+with Files("*TSF*"):
     BUG_COMPONENT = ("Core", "DOM: UI Events & Focus Handling")
 
 DIRS += [
@@ -107,6 +107,9 @@ UNIFIED_SOURCES += [
     "TaskbarPreviewButton.cpp",
     "TaskbarTabPreview.cpp",
     "TaskbarWindowPreview.cpp",
+    "TSFInputScope.cpp",
+    "TSFStaticSink.cpp",
+    "TSFTextStore.cpp",
     "WinCompositorWindowThread.cpp",
     "WindowHook.cpp",
     "WindowsConsole.cpp",
@@ -139,7 +142,7 @@ SOURCES += [
 # Needs INITGUID and we don't allow INITGUID in unified sources since bug 970429.
 SOURCES += [
     "InputDeviceUtils.cpp",
-    "TSFTextStore.cpp",
+    "TSFUtils.cpp",
 ]
 
 if CONFIG["NS_PRINTING"]:
