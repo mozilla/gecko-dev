@@ -150,6 +150,12 @@ input::slider-track {
 .url-fragment-text-directives::target-text {
     background-color: salmon;
 }
+
+details[open]::details-content {
+    color: hotpink;
+    border: 4px solid darkmagenta;
+}
+
     </style>
   </head>
   <body>
@@ -191,6 +197,12 @@ input::slider-track {
     <section class="url-fragment-text-directives">May the fox be with you</section>
 
     <canvas></canvas>
+
+    <details open>
+        <summary>Summary</summary>
+        <h2>::details-content</h2>
+        <p>In details</p>
+    </details>
 
     <script>
         "use strict";
