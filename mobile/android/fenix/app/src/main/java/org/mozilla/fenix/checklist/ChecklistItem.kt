@@ -16,15 +16,30 @@ sealed class ChecklistItem(open val title: String) {
     /**
      * A data class representing an individual task in the checklist.
      *
+     * @property type The type of the task.
      * @property title the task's title.
      * @property icon The icon resource to be displayed on the right of the task.
      * @property isCompleted whether the task has been completed.
      */
     data class Task(
+        val type: Type,
         override val title: String,
         @DrawableRes val icon: Int,
         val isCompleted: Boolean,
-    ) : ChecklistItem(title)
+    ) : ChecklistItem(title) {
+
+        /**
+         * A check list task type.
+         */
+        enum class Type {
+            SET_AS_DEFAULT,
+            SIGN_IN,
+            SELECT_THEME,
+            CHANGE_TOOLBAR_PLACEMENT,
+            INSTALL_SEARCH_WIDGET,
+            EXPLORE_EXTENSION,
+        }
+    }
 
     /**
      * A data class representing a group of tasks in the checklist.

@@ -147,6 +147,7 @@ class SetupChecklistStoreTest {
     fun `WHEN a task item is clicked THEN it changes its completed state to the opposite `() {
         val initialState = true
         val task = ChecklistItem.Task(
+            type = ChecklistItem.Task.Type.EXPLORE_EXTENSION,
             title = "A cool task",
             icon = R.drawable.ic_addons_extensions,
             isCompleted = initialState,
@@ -163,6 +164,7 @@ class SetupChecklistStoreTest {
     fun `WHEN a task item within a group is clicked THEN it changes its completed state to the opposite `() {
         val initialState = true
         val task = ChecklistItem.Task(
+            type = ChecklistItem.Task.Type.EXPLORE_EXTENSION,
             title = "A cool task",
             icon = R.drawable.ic_addons_extensions,
             isCompleted = initialState,
@@ -184,11 +186,13 @@ class SetupChecklistStoreTest {
     fun `GIVEN multiple task items in a group WEHN a task item within a group is clicked THEN other tasks do not change their state `() {
         val initialState = true
         val clickedTask = ChecklistItem.Task(
+            type = ChecklistItem.Task.Type.SET_AS_DEFAULT,
             title = "A cool task",
             icon = R.drawable.ic_addons_extensions,
             isCompleted = initialState,
         )
         val notClickedTask = ChecklistItem.Task(
+            type = ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET,
             title = "A cooler task",
             icon = R.drawable.ic_addons_extensions,
             isCompleted = initialState,

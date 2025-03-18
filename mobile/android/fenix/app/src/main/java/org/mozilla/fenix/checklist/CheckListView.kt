@@ -169,11 +169,13 @@ private fun TasksChecklistPreview() {
         ) {
             val tasks = listOf(
                 ChecklistItem.Task(
+                    type = ChecklistItem.Task.Type.EXPLORE_EXTENSION,
                     title = "First task",
                     icon = R.drawable.ic_addons_extensions,
                     isCompleted = true,
                 ),
                 ChecklistItem.Task(
+                    type = ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET,
                     title = "Second task",
                     icon = R.drawable.ic_search,
                     isCompleted = false,

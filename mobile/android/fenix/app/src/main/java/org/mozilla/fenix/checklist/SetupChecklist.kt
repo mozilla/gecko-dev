@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -20,6 +21,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
@@ -27,12 +29,18 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.compose.base.theme.layout.AcornLayout
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.button.PrimaryButton
+import org.mozilla.fenix.compose.snackbar.AcornSnackbarHostState
+import org.mozilla.fenix.compose.snackbar.SnackbarHost
+import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.home.setup.store.SetupChecklistAction
+import org.mozilla.fenix.home.setup.store.SetupChecklistMiddleware
 import org.mozilla.fenix.home.setup.store.SetupChecklistState
 import org.mozilla.fenix.home.setup.store.SetupChecklistStore
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -147,44 +155,93 @@ private class SetupChecklistPreviewParameterProvider :
     PreviewParameterProvider<SetupChecklistState> {
     override val values: Sequence<SetupChecklistState>
         get() = sequenceOf(
-            SetupChecklistState(),
-            SetupChecklistState(
-                checklistItems = listOf(
-                    ChecklistItem.Group(
-                        title = "First group",
-                        tasks = listOf(
-                            ChecklistItem.Task(
-                                title = "First task",
-                                icon = R.drawable.ic_addons_extensions,
-                                isCompleted = true,
-                            ),
-                            ChecklistItem.Task(
-                                title = "Second task",
-                                icon = R.drawable.ic_search,
-                                isCompleted = false,
-                            ),
-                        ),
-                        isExpanded = true,
-                    ),
-                    ChecklistItem.Group(
-                        title = "Second group",
-                        tasks = listOf(
-                            ChecklistItem.Task(
-                                title = "Third task",
-                                icon = R.drawable.ic_addons_extensions,
-                                isCompleted = true,
-                            ),
-                            ChecklistItem.Task(
-                                title = "Forth task",
-                                icon = R.drawable.ic_search,
-                                isCompleted = false,
-                            ),
-                        ),
-                        isExpanded = false,
-                    ),
-                ),
-            ),
+            SetupChecklistState(checklistItems = createPreviewTasks()),
+            SetupChecklistState(checklistItems = createPreviewGroups()),
         )
+}
+
+private fun createPreviewTasks() = listOf(
+    ChecklistItem.Task(
+        type = ChecklistItem.Task.Type.SET_AS_DEFAULT,
+        title = "Set as default browser",
+        icon = R.drawable.mozac_ic_web_extension_default_icon,
+        isCompleted = false,
+    ),
+    ChecklistItem.Task(
+        type = ChecklistItem.Task.Type.EXPLORE_EXTENSION,
+        title = "Explore extensions",
+        icon = R.drawable.mozac_ic_web_extension_default_icon,
+        isCompleted = false,
+    ),
+    ChecklistItem.Task(
+        type = ChecklistItem.Task.Type.SIGN_IN,
+        title = "Sign in to your account",
+        icon = R.drawable.mozac_ic_web_extension_default_icon,
+        isCompleted = true,
+    ),
+)
+
+private fun createPreviewGroups() = listOf(
+    ChecklistItem.Group(
+        title = "First group",
+        tasks = listOf(
+            ChecklistItem.Task(
+                type = ChecklistItem.Task.Type.SET_AS_DEFAULT,
+                title = "Set as default browser",
+                icon = R.drawable.mozac_ic_web_extension_default_icon,
+                isCompleted = false,
+            ),
+            ChecklistItem.Task(
+                type = ChecklistItem.Task.Type.SIGN_IN,
+                title = "Sign in to your account",
+                icon = R.drawable.mozac_ic_web_extension_default_icon,
+                isCompleted = true,
+            ),
+        ),
+        isExpanded = true,
+    ),
+    ChecklistItem.Group(
+        title = "Second group",
+        tasks = listOf(
+            ChecklistItem.Task(
+                type = ChecklistItem.Task.Type.SELECT_THEME,
+                title = "Select a theme",
+                icon = R.drawable.mozac_ic_web_extension_default_icon,
+                isCompleted = false,
+            ),
+            ChecklistItem.Task(
+                type = ChecklistItem.Task.Type.CHANGE_TOOLBAR_PLACEMENT,
+                title = "Choose toolbar placement",
+                icon = R.drawable.mozac_ic_web_extension_default_icon,
+                isCompleted = false,
+            ),
+        ),
+        isExpanded = false,
+    ),
+    ChecklistItem.Group(
+        title = "Second group",
+        tasks = listOf(
+            ChecklistItem.Task(
+                type = ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET,
+                title = "Install search widget",
+                icon = R.drawable.mozac_ic_web_extension_default_icon,
+                isCompleted = false,
+            ),
+            ChecklistItem.Task(
+                type = ChecklistItem.Task.Type.EXPLORE_EXTENSION,
+                title = "Explore extensions",
+                icon = R.drawable.mozac_ic_web_extension_default_icon,
+                isCompleted = false,
+            ),
+        ),
+        isExpanded = false,
+    ),
+)
+
+private fun showSnackbar(scope: CoroutineScope, hostState: AcornSnackbarHostState, message: String) {
+    scope.launch {
+        hostState.showSnackbar(SnackbarState(message = message))
+    }
 }
 
 @FlexibleWindowLightDarkPreview
@@ -192,7 +249,31 @@ private class SetupChecklistPreviewParameterProvider :
 private fun SetupChecklistPreview(
     @PreviewParameter(SetupChecklistPreviewParameterProvider::class) initialState: SetupChecklistState,
 ) {
-    val store = remember { SetupChecklistStore(initialState = initialState) }
+    val snackbarHostState = remember { AcornSnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val middleware = SetupChecklistMiddleware(
+        triggerDefaultPrompt = {
+            showSnackbar(scope, snackbarHostState, "Should trigger default prompt")
+        },
+        navigateToSignIn = {
+            showSnackbar(scope, snackbarHostState, "Should navigate to sign in fragment")
+        },
+        navigateToCustomize = {
+            showSnackbar(scope, snackbarHostState, "Should navigate to Customize fragment")
+        },
+        navigateToExtensions = {
+            showSnackbar(scope, snackbarHostState, "Should navigate to Extensions fragment")
+        },
+        installSearchWidget = {
+            showSnackbar(scope, snackbarHostState, "Should trigger adding Firefox widget")
+        },
+    )
+    val store = remember {
+        SetupChecklistStore(
+            initialState = initialState,
+            middleware = listOf(middleware),
+        )
+    }
 
     FirefoxTheme {
         Spacer(Modifier.height(16.dp))
@@ -200,6 +281,7 @@ private fun SetupChecklistPreview(
         Box(
             modifier = Modifier
                 .background(color = FirefoxTheme.colors.layer1)
+                .fillMaxHeight()
                 .padding(16.dp),
         ) {
             SetupChecklist(
@@ -212,6 +294,11 @@ private fun SetupChecklistPreview(
                     store.dispatch(SetupChecklistAction.ChecklistItemClicked(item))
                 },
                 onRemoveChecklistButtonClicked = {},
+            )
+
+            SnackbarHost(
+                snackbarHostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
     }
