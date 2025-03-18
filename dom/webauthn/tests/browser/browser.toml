@@ -21,6 +21,8 @@ run-if = ["os != 'win'"] # Test not relevant on 1903+
 ["browser_fido_appid_extension.js"]
 run-if = ["os != 'win'"] # Test not relevant on 1903+
 
+["browser_webauthn_cert_override.js"]
+
 ["browser_webauthn_conditional_mediation.js"]
 
 ["browser_webauthn_ipaddress.js"]
