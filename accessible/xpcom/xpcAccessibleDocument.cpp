@@ -134,16 +134,19 @@ xpcAccessibleDocument::GetChildDocumentAt(uint32_t aIndex,
 }
 
 NS_IMETHODIMP
-xpcAccessibleDocument::GetBrowsingContext(dom::BrowsingContext** aBrowsingContext) {
+xpcAccessibleDocument::GetBrowsingContext(
+    dom::BrowsingContext** aBrowsingContext) {
   NS_ENSURE_ARG_POINTER(aBrowsingContext);
   *aBrowsingContext = nullptr;
   if (!mIntl) {
     return NS_ERROR_FAILURE;
   }
   if (LocalAccessible* local = mIntl->AsLocal()) {
-    NS_IF_ADDREF(*aBrowsingContext = local->AsDoc()->DocumentNode()->GetBrowsingContext());
+    NS_IF_ADDREF(*aBrowsingContext =
+                     local->AsDoc()->DocumentNode()->GetBrowsingContext());
   } else {
-    NS_IF_ADDREF(*aBrowsingContext = mIntl->AsRemote()->AsDoc()->GetBrowsingContext());
+    NS_IF_ADDREF(*aBrowsingContext =
+                     mIntl->AsRemote()->AsDoc()->GetBrowsingContext());
   }
   return NS_OK;
 }
