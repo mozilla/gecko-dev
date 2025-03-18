@@ -817,11 +817,11 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
   /**
    * Compute the translation that should be applied to a layer that's fixed
    * at |eFixedSides|, to respect the fixed layer margins
-   * |aCompositorFixedLayerMargins|, given that the most recent main thread
+   * |mCompositorFixedLayerMargins|, given that the most recent main thread
    * paint has taken into account |aGeckoFixedLayerMargins|.
    */
   ScreenPoint ComputeFixedMarginsOffset(
-      const ScreenMargin& aCompositorFixedLayerMargins, SideBits aFixedSides,
+      const MutexAutoLock& aProofOfMapLock, SideBits aFixedSides,
       const ScreenMargin& aGeckoFixedLayerMargins) const;
 
  protected:
