@@ -220,3 +220,4 @@ void AudioTrimmer::PrepareTrimmers(MediaRawData* aRaw) {
 }  // namespace mozilla
 
 #undef LOG
+#undef LOGV
