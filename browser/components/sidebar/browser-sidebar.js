@@ -11,6 +11,9 @@
 var { ShoppingUtils } = ChromeUtils.importESModule(
   "resource:///modules/ShoppingUtils.sys.mjs"
 );
+const { DeferredTask } = ChromeUtils.importESModule(
+  "resource://gre/modules/DeferredTask.sys.mjs"
+);
 
 const defaultTools = {
   viewGenaiChatSidebar: "aichat",
@@ -20,6 +23,8 @@ const defaultTools = {
   viewBookmarksSidebar: "bookmarks",
   viewCPMSidebar: "passwords",
 };
+const EXPAND_ON_HOVER_DEBOUNCE_RATE_MS = 200;
+const EXPAND_ON_HOVER_DEBOUNCE_TIMEOUT_MS = 1000;
 
 var SidebarController = {
   makeSidebar({ elementId, ...rest }) {
@@ -1135,7 +1140,7 @@ var SidebarController = {
             ? fromTranslate + widthGrowth
             : fromTranslate - widthGrowth;
         }
-      } else if (isSidebar && !this._positionStart) {
+      } else if (isSidebar) {
         fromTranslate += sidebarOnLeft ? -widthGrowth : widthGrowth;
       }
 
@@ -1891,42 +1896,30 @@ var SidebarController = {
     this.sidebarMain.requestUpdate();
   },
 
-  onMouseOver(e) {
-    if (!SidebarController.sidebarContainer.matches(":hover")) {
-      // Don't fire mouseout if hovered over element outside of the launcher
-      e.stopPropagation();
-    } else {
-      const contentArea = document.getElementById("tabbrowser-tabbox");
-      SidebarController._box.toggleAttribute("sidebar-launcher-hovered", true);
-      contentArea.toggleAttribute("sidebar-launcher-hovered", true);
-      SidebarController._state.launcherHoverActive = true;
-      if (!SidebarController._launcherMouseOutListenerAdded) {
-        SidebarController.sidebarContainer.addEventListener(
-          "mouseout",
-          SidebarController.onMouseOut
-        );
-        SidebarController._launcherMouseOutListenerAdded = true;
+  onMouseOver() {
+    const contentArea = document.getElementById("tabbrowser-tabbox");
+    SidebarController._box.toggleAttribute("sidebar-launcher-hovered", true);
+    contentArea.toggleAttribute("sidebar-launcher-hovered", true);
+    SidebarController._state.launcherHoverActive = true;
+    if (SidebarController._animationEnabled && !window.gReduceMotion) {
+      if (SidebarController._ongoingAnimations.length) {
+        SidebarController._ongoingAnimations.forEach(a => a.cancel());
+        SidebarController._ongoingAnimations = [];
       }
-      if (SidebarController._animationEnabled && !window.gReduceMotion) {
-        if (SidebarController._ongoingAnimations.length) {
-          SidebarController._ongoingAnimations.forEach(a => a.cancel());
-          SidebarController._ongoingAnimations = [];
-        }
-        SidebarController._animateSidebarMain();
-      }
-      SidebarController._state.launcherExpanded = true;
-      SidebarController.sidebarContainer.removeEventListener(
-        "mouseover",
-        SidebarController.onMouseOver
-      );
-      SidebarController._launcherMouseOverListenerAdded = false;
+      SidebarController._animateSidebarMain();
     }
+    SidebarController._state.launcherExpanded = true;
+    SidebarController.sidebarContainer.removeEventListener(
+      "mouseover",
+      SidebarController.handleMouseOver
+    );
+    SidebarController._launcherMouseOverListenerAdded = false;
   },
 
   onMouseOut(e) {
     if (SidebarController.sidebarContainer.matches(":hover")) {
       // Don't fire mouseout if hovered over launcher child element
-      e.stopPropagation();
+      e?.stopPropagation();
     } else {
       const contentArea = document.getElementById("tabbrowser-tabbox");
       SidebarController._box.toggleAttribute("sidebar-launcher-hovered", false);
@@ -1935,7 +1928,7 @@ var SidebarController = {
       if (!SidebarController._launcherMouseOverListenerAdded) {
         SidebarController.sidebarContainer.addEventListener(
           "mouseover",
-          SidebarController.onMouseOver
+          SidebarController.handleMouseOver
         );
         SidebarController._launcherMouseOverListenerAdded = true;
       }
@@ -1953,6 +1946,31 @@ var SidebarController = {
       );
       SidebarController._launcherMouseOutListenerAdded = false;
     }
+  },
+
+  handleMouseOver(e) {
+    if (!SidebarController.mouseOverTask) {
+      SidebarController.mouseOverTask = new DeferredTask(
+        () => {
+          if (!SidebarController.sidebarContainer.matches(":hover")) {
+            // Don't fire mouseout if hovered over element outside of the launcher
+            e?.stopPropagation();
+          } else {
+            if (!SidebarController._launcherMouseOutListenerAdded) {
+              SidebarController.sidebarContainer.addEventListener(
+                "mouseout",
+                SidebarController.onMouseOut
+              );
+              SidebarController._launcherMouseOutListenerAdded = true;
+            }
+            SidebarController.onMouseOver();
+          }
+        },
+        EXPAND_ON_HOVER_DEBOUNCE_RATE_MS,
+        EXPAND_ON_HOVER_DEBOUNCE_TIMEOUT_MS
+      );
+    }
+    SidebarController.mouseOverTask?.arm();
   },
 
   async setLauncherCollapsedWidth() {
@@ -1985,15 +2003,20 @@ var SidebarController = {
       if (!this._state) {
         this._state = new this.SidebarState(this);
       }
-      this.sidebarContainer.addEventListener("mouseover", this.onMouseOver);
-
+      this.sidebarContainer.addEventListener("mouseover", this.handleMouseOver);
       await this.sidebarMain.updateComplete;
       await this._waitForOngoingAnimations();
       if (!isDragEnded) {
         await this.setLauncherCollapsedWidth();
       }
     } else {
-      this.sidebarContainer.removeEventListener("mouseover", this.onMouseOver);
+      this.sidebarContainer.removeEventListener(
+        "mouseover",
+        this.handleMouseOver
+      );
+      if (!this.mouseOverTask?.isFinalized) {
+        this.mouseOverTask?.finalize();
+      }
     }
   },
 
