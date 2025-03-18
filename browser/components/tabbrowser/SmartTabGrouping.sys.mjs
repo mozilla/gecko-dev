@@ -733,6 +733,7 @@ export class SmartTabGroupingManager {
   /**
    * One artifact of the LLM output is that sometimes words are duplicated
    * This function cuts the phrase when it sees the first duplicate word.
+   * Handles simple singluar / plural duplicates (-s only).
    * @param {string} phrase Input phrase
    * @returns {string} phrase cut before any duplicate word
    */
@@ -743,13 +744,20 @@ export class SmartTabGroupingManager {
     const wordsSet = new Set();
     const wordList = phrase.split(" ");
     for (let i = 0; i < wordList.length; i++) {
-      const lowerWord = wordList[i].toLowerCase();
-      if (wordsSet.has(lowerWord)) {
+      let baseWord = wordList[i].toLowerCase();
+      if (baseWord.length > 3) {
+        if (baseWord.slice(-1) === "s") {
+          baseWord = baseWord.slice(0, -1);
+        }
+      }
+      if (wordsSet.has(baseWord)) {
+        // We are seeing a baseWord word. Exit with just the words so far and don't
+        // add any new words
         return wordList.slice(0, i).join(" ");
       }
-      wordsSet.add(lowerWord);
+      wordsSet.add(baseWord);
     }
-    return phrase;
+    return phrase; // return original phrase
   }
 
   /**

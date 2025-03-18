@@ -236,8 +236,11 @@ add_task(function testDuplicateWords() {
     "",
     " ",
     "Ask me about my cat",
-    "Ask me about my cat cat cat",
+    "Ask me about my cat cats cat",
     "Zoom Room zoom",
+    "Zoom zooms",
+    "Event events",
+    "Events event",
   ];
   const output_phrases = [
     "",
@@ -245,6 +248,9 @@ add_task(function testDuplicateWords() {
     "Ask me about my cat",
     "Ask me about my cat",
     "Zoom Room",
+    "Zoom",
+    "Event",
+    "Events",
   ];
   for (let i = 0; i < input_phrases.length; i++) {
     Assert.equal(
