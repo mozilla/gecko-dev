@@ -2735,6 +2735,24 @@
       }
     ]
   },
+  "1911253": {
+    "label": "qq.com",
+    "bugs": {
+      "1911253": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.qq.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "all_frames": true,
+          "css": ["bug1911253-qq.com-unhide-checkboxes.css"]
+        }
+      }
+    ]
+  },
   "1912923": {
     "label": "class.com",
     "bugs": {
