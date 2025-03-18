@@ -18,13 +18,9 @@ class nsIThread;
 
 namespace mozilla::dom {
 
-class RemoteWorkerDebuggerManagerChild;
-class RemoteWorkerDebuggerManagerParent;
 class RemoteWorkerService;
 class RemoteWorkerServiceChild;
 class RemoteWorkerServiceShutdownBlocker;
-class PRemoteWorkerDebuggerManagerChild;
-class PRemoteWorkerDebuggerParent;
 class PRemoteWorkerServiceChild;
 
 /**
@@ -75,14 +71,9 @@ class RemoteWorkerService final : public nsIObserver {
   // To be called when a process is initialized on main-thread.
   static void InitializeParent();
   static void InitializeChild(
-      mozilla::ipc::Endpoint<PRemoteWorkerServiceChild> aEndpoint,
-      mozilla::ipc::Endpoint<PRemoteWorkerDebuggerManagerChild>
-          aDebuggerChildEp);
+      mozilla::ipc::Endpoint<PRemoteWorkerServiceChild> aEndpoint);
 
   static nsIThread* Thread();
-  static void RegisterRemoteDebugger(
-      RemoteWorkerDebuggerInfo aDebuggerInfo,
-      mozilla::ipc::Endpoint<PRemoteWorkerDebuggerParent> aDebuggerParentEp);
 
   // Called by RemoteWorkerChild instances on the "Worker Launcher" thread at
   // their creation to assist in tracking when it's safe to shutdown the
@@ -105,9 +96,7 @@ class RemoteWorkerService final : public nsIObserver {
   ~RemoteWorkerService();
 
   nsresult InitializeOnMainThread(
-      mozilla::ipc::Endpoint<PRemoteWorkerServiceChild> aEndpoint,
-      mozilla::ipc::Endpoint<PRemoteWorkerDebuggerManagerChild>
-          aDebuggerChildEp);
+      mozilla::ipc::Endpoint<PRemoteWorkerServiceChild> aEndpoint);
 
   void InitializeOnTargetThread(
       mozilla::ipc::Endpoint<PRemoteWorkerServiceChild> aEndpoint);
@@ -124,8 +113,6 @@ class RemoteWorkerService final : public nsIObserver {
 
   nsCOMPtr<nsIThread> mThread;
   RefPtr<RemoteWorkerServiceChild> mActor;
-  RefPtr<RemoteWorkerDebuggerManagerChild> mDebuggerManagerChild;
-  RefPtr<RemoteWorkerDebuggerManagerParent> mDebuggerManagerParent;
   // The keep-alive is set and cleared on the main thread but we will hand out
   // additional references to it from the "Worker Launcher" thread, so it's
   // appropriate to use a mutex.  (Alternately we could have used a ThreadBound

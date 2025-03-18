@@ -65,10 +65,7 @@ namespace mozilla {
 class ThrottledEventQueue;
 namespace dom {
 
-class PRemoteWorkerDebuggerChild;
-class PRemoteWorkerDebuggerParent;
 class RemoteWorkerChild;
-class RemoteWorkerDebuggerChild;
 class RemoteWorkerNonLifeCycleOpControllerChild;
 
 // If you change this, the corresponding list in nsIWorkerDebugger.idl needs
@@ -1060,26 +1057,6 @@ class WorkerPrivate final
 
   void DisableDebugger();
 
-  void BindRemoteWorkerDebuggerChild();
-
-  void CreateRemoteDebuggerEndpoints();
-
-  void SetIsRemoteDebuggerRegistered(const bool& aRegistered);
-
-  void SetIsRemoteDebuggerReady(const bool& aReady);
-
-  void EnableRemoteDebugger();
-
-  void DisableRemoteDebugger();
-
-  void DisableRemoteDebuggerOnWorkerThread(const bool& aForShutdown = false);
-
-  void SetIsQueued(const bool& aQueued);
-
-  bool IsQueued() const;
-
-  void UpdateWindowIDToDebugger(const uint64_t& aWindowID, const bool& aIsAdd);
-
   already_AddRefed<WorkerRunnable> MaybeWrapAsWorkerRunnable(
       already_AddRefed<nsIRunnable> aRunnable);
 
@@ -1154,7 +1131,7 @@ class WorkerPrivate final
 
   void StartCancelingTimer();
 
-  const nsString& Id();
+  const nsAString& Id();
 
   const nsID& AgentClusterId() const { return mAgentClusterId; }
 
@@ -1515,15 +1492,6 @@ class WorkerPrivate final
       mRemoteWorkerNonLifeCycleOpController;
 
   mozilla::ipc::Endpoint<PRemoteWorkerNonLifeCycleOpControllerChild> mChildEp;
-
-  RefPtr<RemoteWorkerDebuggerChild> mRemoteDebugger;
-  mozilla::ipc::Endpoint<PRemoteWorkerDebuggerChild> mDebuggerChildEp;
-  mozilla::ipc::Endpoint<PRemoteWorkerDebuggerParent> mDebuggerParentEp;
-  bool mRemoteDebuggerRegistered MOZ_GUARDED_BY(mMutex);
-  bool mRemoteDebuggerReady MOZ_GUARDED_BY(mMutex);
-  bool mIsQueued;  // Should only touched on parent thread.
-  mozilla::CondVar mDebuggerBindingCondVar MOZ_GUARDED_BY(mMutex);
-  RefPtr<WorkerEventTarget> mWorkerDebuggerEventTarget;
 
   JS::UniqueChars mDefaultLocale;  // nulled during worker JSContext init
   TimeStamp mKillTime;

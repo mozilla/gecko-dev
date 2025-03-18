@@ -209,14 +209,6 @@ WorkerDebugger::GetIsChrome(bool* aResult) {
 }
 
 NS_IMETHODIMP
-WorkerDebugger::GetIsRemote(bool* aResult) {
-  AssertIsOnMainThread();
-
-  *aResult = false;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 WorkerDebugger::GetIsInitialized(bool* aResult) {
   AssertIsOnMainThread();
 
