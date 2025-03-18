@@ -979,6 +979,8 @@ static bool exn_toSource(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+#ifdef NIGHTLY_BUILD
+
 /**
  * Error.isError Proposal
  * Error.isError ( arg )
@@ -1026,6 +1028,7 @@ static bool exn_isError(JSContext* cx, unsigned argc, Value* vp) {
   args.rval().setBoolean(false);
   return true;
 }
+#endif
 
 // The below is the "documentation" from https://v8.dev/docs/stack-trace-api
 //
