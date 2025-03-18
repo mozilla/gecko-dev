@@ -133,7 +133,7 @@ open class ObserverRegistry<T> : Observable<T> {
 
     @Synchronized
     override fun notifyObservers(block: T.() -> Unit) {
-        observers.forEach {
+        observers.toList().forEach {
             if (!pausedObservers.contains(it)) {
                 it.block()
             }
