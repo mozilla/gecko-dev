@@ -56,7 +56,7 @@ class FormData final : public nsISupports,
                     NotNull<const Encoding*> aEncoding = UTF_8_ENCODING,
                     Element* aSubmitter = nullptr);
 
-  already_AddRefed<FormData> Clone();
+  already_AddRefed<FormData> Clone() const;
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(FormData)

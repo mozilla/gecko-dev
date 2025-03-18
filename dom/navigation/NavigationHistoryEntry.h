@@ -47,6 +47,8 @@ class NavigationHistoryEntry final : public DOMEventTargetHelper {
 
   const nsID& Key() const;
 
+  nsStructuredCloneContainer* GetNavigationState() const;
+
  private:
   ~NavigationHistoryEntry();
 
