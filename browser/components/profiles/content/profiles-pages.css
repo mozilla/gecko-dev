@@ -58,6 +58,10 @@ new-profile-card {
     flex-direction: column;
     gap: var(--space-medium);
   }
+
+  & h1 {
+    word-break: break-all;
+  }
 }
 
 #profile-content {
