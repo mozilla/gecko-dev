@@ -26,27 +26,17 @@ if (!navigator.platform.includes("Win")) {
     "(Windows NT 10.0; Win64; x64; rv:"
   );
 
-  Object.defineProperty(window.navigator.wrappedJSObject, "userAgent", {
-    get: exportFunction(function () {
-      return WINDOWS_UA;
-    }, window),
+  const nav = Object.getPrototypeOf(navigator.wrappedJSObject);
 
-    set: exportFunction(function () {}, window),
-  });
+  const ua = Object.getOwnPropertyDescriptor(nav, "userAgent");
+  ua.get = exportFunction(() => WINDOWS_UA, window);
+  Object.defineProperty(nav, "userAgent", ua);
 
-  Object.defineProperty(window.navigator.wrappedJSObject, "appVersion", {
-    get: exportFunction(function () {
-      return "appVersion";
-    }, window),
+  const appVersion = Object.getOwnPropertyDescriptor(nav, "appVersion");
+  appVersion.get = exportFunction(() => "appVersion", window);
+  Object.defineProperty(nav, "appVersion", appVersion);
 
-    set: exportFunction(function () {}, window),
-  });
-
-  Object.defineProperty(window.navigator.wrappedJSObject, "platform", {
-    get: exportFunction(function () {
-      return "Win64";
-    }, window),
-
-    set: exportFunction(function () {}, window),
-  });
+  const platform = Object.getOwnPropertyDescriptor(nav, "platform");
+  platform.get = exportFunction(() => "Win64", window);
+  Object.defineProperty(nav, "platform", platform);
 }

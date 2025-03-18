@@ -23,10 +23,7 @@ console.info(
   "navigator.appVersion has been shimmed for compatibility reasons. See https://webcompat.com/issues/108993 for details."
 );
 
-Object.defineProperty(navigator.wrappedJSObject, "appVersion", {
-  get: exportFunction(function () {
-    return "5.0 (Linux)";
-  }, window),
-
-  set: exportFunction(function () {}, window),
-});
+const nav = Object.getPrototypeOf(navigator.wrappedJSObject);
+const appVersion = Object.getOwnPropertyDescriptor(nav, "appVersion");
+appVersion.get = exportFunction(() => "5.0 (Linux)", window);
+Object.defineProperty(nav, "appVersion", appVersion);

@@ -21,18 +21,12 @@ console.info(
 
 const CHROME_UA = navigator.userAgent + " Chrome for WebCompat";
 
-Object.defineProperty(window.navigator.wrappedJSObject, "userAgent", {
-  get: exportFunction(function () {
-    return CHROME_UA;
-  }, window),
+const nav = Object.getPrototypeOf(navigator.wrappedJSObject);
 
-  set: exportFunction(function () {}, window),
-});
+const ua = Object.getOwnPropertyDescriptor(nav, "userAgent");
+ua.get = exportFunction(() => CHROME_UA, window);
+Object.defineProperty(nav, "userAgent", ua);
 
-Object.defineProperty(window.navigator.wrappedJSObject, "vendor", {
-  get: exportFunction(function () {
-    return "Google Inc.";
-  }, window),
-
-  set: exportFunction(function () {}, window),
-});
+const vendor = Object.getOwnPropertyDescriptor(nav, "vendor");
+vendor.get = exportFunction(() => "Google Inc.", window);
+Object.defineProperty(nav, "vendor", vendor);

@@ -21,7 +21,4 @@ console.info(
   "The window.OnetrustActiveGroups property has been shimmed for compatibility reasons. See https://bugzilla.mozilla.org/show_bug.cgi?id=1831007 for details."
 );
 
-Object.defineProperty(window.wrappedJSObject, "OnetrustActiveGroups", {
-  value: "",
-  writable: true,
-});
+window.wrappedJSObject.OnetrustActiveGroups = "";

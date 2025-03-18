@@ -19,18 +19,16 @@ const warning =
 
 const localStorageKey = "mailProtocolHandlerAlreadyOffered";
 
-const nav = navigator.wrappedJSObject;
-const { registerProtocolHandler } = nav;
+const proto = Object.getPrototypeOf(navigator).wrappedJSObject;
+const { registerProtocolHandler } = proto;
 const { localStorage } = window.wrappedJSObject;
 
-Object.defineProperty(navigator.wrappedJSObject, "registerProtocolHandler", {
-  value: exportFunction(function (scheme, url, title) {
-    if (localStorage.getItem(localStorageKey)) {
-      console.info(warning);
-      return undefined;
-    }
-    registerProtocolHandler.call(nav, scheme, url, title);
-    localStorage.setItem(localStorageKey, true);
+proto.registerProtocolHandler = exportFunction(function (scheme, url, title) {
+  if (localStorage.getItem(localStorageKey)) {
+    console.info(warning);
     return undefined;
-  }, window),
-});
+  }
+  registerProtocolHandler.call(this, scheme, url, title);
+  localStorage.setItem(localStorageKey, true);
+  return undefined;
+}, window);

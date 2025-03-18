@@ -26,10 +26,7 @@ console.info(
 
 const pluginsArray = new window.wrappedJSObject.Array();
 Object.setPrototypeOf(pluginsArray, PluginArray.prototype);
-
-Object.defineProperty(navigator.wrappedJSObject, "plugins", {
-  get: exportFunction(function () {
-    return pluginsArray;
-  }, window),
-  set: exportFunction(function () {}, window),
-});
+const navProto = Object.getPrototypeOf(navigator.wrappedJSObject);
+const pluginsDesc = Object.getOwnPropertyDescriptor(navProto, "plugins");
+pluginsDesc.get = exportFunction(() => pluginsArray, window);
+Object.defineProperty(navProto, "plugins", pluginsDesc);

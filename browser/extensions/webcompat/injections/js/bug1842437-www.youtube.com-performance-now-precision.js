@@ -19,21 +19,18 @@ console.info(
   "performance.now precision has been modified for compatibility reasons. See https://bugzilla.mozilla.org/show_bug.cgi?id=1756970 for details."
 );
 
-const origPerf = performance.wrappedJSObject;
-const origNow = origPerf.now;
-
 let counter = 0;
 let previousVal = 0;
 
-Object.defineProperty(window.performance.wrappedJSObject, "now", {
-  value: exportFunction(function () {
-    let originalVal = origNow.call(origPerf);
-    if (originalVal === previousVal) {
-      originalVal += 0.00000003 * ++counter;
-    } else {
-      previousVal = originalVal;
-      counter = 0;
-    }
-    return originalVal;
-  }, window),
-});
+const perf = Object.getPrototypeOf(performance.wrappedJSObject);
+const now = perf.now;
+perf.now = exportFunction(function () {
+  let originalVal = now.call(this);
+  if (originalVal === previousVal) {
+    originalVal += 0.00000003 * ++counter;
+  } else {
+    previousVal = originalVal;
+    counter = 0;
+  }
+  return originalVal;
+}, window);

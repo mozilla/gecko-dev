@@ -16,10 +16,4 @@ console.info(
   "window.chrome has been shimmed for compatibility reasons. See https://github.com/webcompat/web-bugs/issues/77727 for details."
 );
 
-Object.defineProperty(window.wrappedJSObject, "chrome", {
-  get: exportFunction(function () {
-    return true;
-  }, window),
-
-  set: exportFunction(function () {}, window),
-});
+window.wrappedJSObject.chrome = new window.wrappedJSObject.Object();

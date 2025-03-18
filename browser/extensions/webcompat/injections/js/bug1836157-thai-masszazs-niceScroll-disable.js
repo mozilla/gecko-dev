@@ -10,14 +10,17 @@
  * the page avoid adding niceScroll entirely, unbreaking the page.
  */
 
+/* globals exportFunction */
+
 var plat = navigator.platform;
 if (!plat.includes("Mac")) {
   console.info(
     "The navigator.platform property has been shimmed to include 'Mac' for compatibility reasons. See https://bugzilla.mozilla.org/show_bug.cgi?id=1836157 for details."
   );
 
-  Object.defineProperty(navigator.__proto__.wrappedJSObject, "platform", {
-    value: plat + " Mac",
-    writable: true,
-  });
+  const newPlat = plat + " Mac";
+  const nav = Object.getPrototypeOf(navigator.wrappedJSObject);
+  const platform = Object.getOwnPropertyDescriptor(nav, "platform");
+  platform.get = exportFunction(() => newPlat, window);
+  Object.defineProperty(nav, "platform", platform);
 }

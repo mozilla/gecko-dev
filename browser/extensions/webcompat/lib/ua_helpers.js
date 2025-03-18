@@ -118,10 +118,10 @@ var UAHelpers = {
   },
   overrideWithDeviceAppropriateChromeUA(config) {
     const chromeUA = UAHelpers.getDeviceAppropriateChromeUA(config);
-    Object.defineProperty(window.navigator.wrappedJSObject, "userAgent", {
-      get: exportFunction(() => chromeUA, window),
-      set: exportFunction(function () {}, window),
-    });
+    const nav = Object.getPrototypeOf(navigator.wrappedJSObject);
+    const ua = Object.getOwnPropertyDescriptor(nav, "userAgent");
+    ua.get = exportFunction(() => chromeUA, window);
+    Object.defineProperty(nav, "userAgent", ua);
   },
   capVersionTo99(originalUA) {
     const ver = originalUA.match(/Firefox\/(\d+\.\d+)/);

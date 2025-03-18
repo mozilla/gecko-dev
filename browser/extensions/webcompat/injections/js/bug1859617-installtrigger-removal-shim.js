@@ -17,10 +17,5 @@ if (typeof window.InstallTrigger !== "undefined") {
     "window.InstallTrigger has been undefined for compatibility reasons. See https://bugzilla.mozilla.org/show_bug.cgi?id=1859617 for details."
   );
 
-  Object.defineProperty(window.wrappedJSObject, "InstallTrigger", {
-    get: exportFunction(function () {
-      return undefined;
-    }, window),
-    set: exportFunction(function (_) {}, window),
-  });
+  delete window.wrappedJSObject.InstallTrigger;
 }

@@ -37,15 +37,9 @@ new MutationObserver(mutations => {
   subtree: true,
 });
 
-const originalAlert = Object.getOwnPropertyDescriptor(
-  window.wrappedJSObject,
-  "alert"
-).value;
-
-Object.defineProperty(window.wrappedJSObject, "alert", {
-  value: exportFunction(function (msg) {
-    if (!msg?.includes("unsupported browser")) {
-      originalAlert.apply(this, arguments);
-    }
-  }, window),
-});
+const originalAlert = window.wrappedJSObject.alert;
+window.wrappedJSObject.alert = exportFunction(function (msg) {
+  if (!msg?.toLowerCase?.().includes("unsupported browser")) {
+    originalAlert(msg);
+  }
+}, window);

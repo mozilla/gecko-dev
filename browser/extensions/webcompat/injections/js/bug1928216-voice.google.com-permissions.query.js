@@ -19,8 +19,8 @@
     navigator.permissions.wrappedJSObject
   );
 
-  Object.defineProperty(navigator.permissions.wrappedJSObject, "query", {
-    value: exportFunction(function query(descriptor) {
+  Object.getPrototypeOf(navigator.permissions).wrappedJSObject.query =
+    exportFunction(function query(descriptor) {
       if (typeof descriptor == "object") {
         switch (descriptor.name) {
           case "camera":
@@ -36,6 +36,5 @@
         }
       }
       return nativeQuery(descriptor);
-    }, navigator.permissions),
-  });
+    }, navigator.permissions);
 })();

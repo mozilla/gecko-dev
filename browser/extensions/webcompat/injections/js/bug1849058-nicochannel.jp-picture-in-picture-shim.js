@@ -19,19 +19,9 @@ console.info(
   "PictureInPictureWindow was shimmed for compatibility reasons. See https://bugzilla.mozilla.org/show_bug.cgi?id=1849058 for details."
 );
 
-Object.defineProperty(window.wrappedJSObject, "PictureInPictureWindow", {
-  value: exportFunction(function () {
-    return class {};
-  }, window),
-});
-
-Object.defineProperty(
-  Document.wrappedJSObject.prototype,
-  "pictureInPictureElement",
-  {
-    get: exportFunction(function () {
-      return null;
-    }, window),
-    set: exportFunction(function () {}, window),
-  }
+window.wrappedJSObject.PictureInPictureWindow = exportFunction(
+  class {},
+  window
 );
+
+Object.getPrototypeOf(document).wrappedJSObject.pictureInPictureElement = null;

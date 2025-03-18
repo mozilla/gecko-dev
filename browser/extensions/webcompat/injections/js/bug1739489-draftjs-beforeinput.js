@@ -29,6 +29,7 @@ for (const [obj, name] of Remapped) {
   const { prototype } = obj;
   const orig = prototype[name];
   Object.defineProperty(prototype, name, {
+    configurable: true,
     value: exportFunction(function (type, b, c, d) {
       if (type?.toLowerCase() === "textinput") {
         type = "beforeinput";

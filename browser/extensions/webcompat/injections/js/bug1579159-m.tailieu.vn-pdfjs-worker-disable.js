@@ -21,6 +21,8 @@ console.info(
 let globals = {};
 
 Object.defineProperty(window.wrappedJSObject, "PDFJS", {
+  configurable: true,
+
   get: exportFunction(function () {
     return globals;
   }, window),

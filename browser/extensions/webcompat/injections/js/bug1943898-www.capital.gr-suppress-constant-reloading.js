@@ -20,15 +20,13 @@ console.info(
   "setTimeout has been overridden for compatibility reasons. See https://bugzilla.mozilla.org/show_bug.cgi?id=1943898 for details."
 );
 
-Object.defineProperty(window.wrappedJSObject, "setTimeout", {
-  value: exportFunction(function (fn, time) {
-    const text = "" + fn;
-    if (
-      text.includes("var el = document.getElementById('alwaysFetch');") &&
-      text.includes("el.value = el.value ? location.reload() : true;")
-    ) {
-      document.getElementById("alwaysFetch").value = "";
-    }
-    return window.setTimeout(fn, time);
-  }, window),
-});
+window.wrappedJSObject.setTimeout = exportFunction(function (fn, time) {
+  const text = "" + fn;
+  if (
+    text.includes("var el = document.getElementById('alwaysFetch');") &&
+    text.includes("el.value = el.value ? location.reload() : true;")
+  ) {
+    document.getElementById("alwaysFetch").value = "";
+  }
+  return window.setTimeout(fn, time);
+}, window);
