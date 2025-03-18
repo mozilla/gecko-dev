@@ -26,6 +26,7 @@ object ComponentsDependencies {
     val mozilla_appservices_tabs = "${ApplicationServicesConfig.groupId}:tabs:${ApplicationServicesConfig.version}"
     val mozilla_appservices_suggest = "${ApplicationServicesConfig.groupId}:suggest:${ApplicationServicesConfig.version}"
     val mozilla_appservices_httpconfig = "${ApplicationServicesConfig.groupId}:httpconfig:${ApplicationServicesConfig.version}"
+    val mozilla_appservices_init_rust_components = "${ApplicationServicesConfig.groupId}:init_rust_components:${ApplicationServicesConfig.version}"
     val mozilla_appservices_full_megazord = "${ApplicationServicesConfig.groupId}:full-megazord:${ApplicationServicesConfig.version}"
     val mozilla_appservices_full_megazord_libsForTests = "${ApplicationServicesConfig.groupId}:full-megazord-libsForTests:${ApplicationServicesConfig.version}"
 

@@ -718,6 +718,8 @@ dependencies {
     implementation libs.play.review
     implementation libs.play.review.ktx
 
+    implementation ComponentsDependencies.mozilla_appservices_init_rust_components
+
     androidTestImplementation(libs.androidx.espresso.contrib) {
         exclude module: 'protobuf-lite'
     }
