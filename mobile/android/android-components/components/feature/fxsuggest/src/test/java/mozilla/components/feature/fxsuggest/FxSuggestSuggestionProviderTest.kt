@@ -309,7 +309,7 @@ class FxSuggestSuggestionProviderTest {
             eq(
                 SuggestionQuery(
                     keyword = "la",
-                    providers = listOf(SuggestionProvider.AMP_MOBILE),
+                    providers = listOf(SuggestionProvider.AMP),
                     limit = 1,
                 ),
             ),

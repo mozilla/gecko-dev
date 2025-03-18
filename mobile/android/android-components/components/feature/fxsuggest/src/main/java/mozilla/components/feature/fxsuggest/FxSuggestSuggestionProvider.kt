@@ -60,7 +60,7 @@ class FxSuggestSuggestionProvider(
                     add(SuggestionProvider.AMP)
                 }
                 if (includeSponsoredSuggestions && availableSuggestionTypes[SuggestionType.AMP_MOBILE] == true) {
-                    add(SuggestionProvider.AMP_MOBILE)
+                    add(SuggestionProvider.AMP)
                 }
                 if (includeNonSponsoredSuggestions && availableSuggestionTypes[SuggestionType.WIKIPEDIA] == true) {
                     add(SuggestionProvider.WIKIPEDIA)
