@@ -4058,6 +4058,11 @@ criteria = "safe-to-deploy"
 version = "0.18.0"
 notes = "Mozilla-developed package, no unsafe code, no access to file system, network or other far reaching APIs."
 
+[[audits.plist]]
+who = "Erich Gubler <erichdongubler@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.3.1 -> 1.7.0"
+
 [[audits.powerfmt]]
 who = "Alex Franchuk <afranchuk@mozilla.com>"
 criteria = "safe-to-deploy"
