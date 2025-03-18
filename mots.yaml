@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-03-18T06:33:28.837729+00:00'
+updated_at: '2025-03-18T12:13:23.887109+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -1988,7 +1988,9 @@ modules:
   - name: 'Core: JavaScript'
     description: JavaScript engine (SpiderMonkey)
     includes:
-      - js/src/**/*
+      - js/**/*
+    excludes:
+      - js/xpconnect/**/*
     meta:
       owners_emeritus:
         - Brendan Eich
@@ -4561,5 +4563,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: ab967e8320c4a7e118c8f69708f06ac7651835b1
-  export: a92f9f4e3c5ad9e19f3ba6943ceb38eed333189d
+  config: 04541f5cfaca0467d99758f96bc1e65a7f072ac8
+  export: 2087ad1ff6ebc39b009157ad348dcba0bc67c892
