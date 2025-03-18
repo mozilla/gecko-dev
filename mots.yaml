@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-03-18T12:13:23.887109+00:00'
+updated_at: '2025-03-18T12:14:35.133627+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -2000,6 +2000,7 @@ modules:
       peers_emeritus:
         - Andreas Gal
         - Ashley Hauck
+        - Benjamin Bouvier
         - Bill McCloskey
         - Blake Kaplan
         - Brian Hackett
@@ -2015,11 +2016,13 @@ modules:
         - Nicholas Nethercote
         - Nick Fitzgerald
         - Niko Matsakis
+        - Sean Stangl
         - Shu-yu Guo
         - Till Schneidereit
       url: https://spidermonkey.dev/
       components:
         - Core::JavaScript Engine
+        - 'Core::JavaScript Engine: JIT'
         - 'Core::JavaScript: GC'
         - 'Core::JavaScript: Internationalization API'
         - 'Core::JavaScript: Standard Library'
@@ -2047,35 +2050,6 @@ modules:
       - *yulia
       - *yury
     machine_name: core_javascript
-
-  - name: 'Core: JavaScript JIT'
-    description: JavaScript engine's JIT compilers (IonMonkey, Baseline)
-    includes:
-      - js/src/jit/**/*
-    meta:
-      peers_emeritus:
-        - Benjamin Bouvier
-        - Brian Hackett
-        - Caroline Cullen
-        - David Anderson
-        - Hannes Verschore
-        - Kannan Vijayan
-        - Luke Wagner
-        - Shu-yu Guo
-        - Sean Stangl
-      url: https://spidermonkey.dev/
-      components:
-        - 'Core::JavaScript Engine: JIT'
-    owners:
-      - *jandem
-    peers:
-      - *anba
-      - *tcampbell
-      - *mgaudet
-      - *iain
-      - *nbp
-      - *evilpie
-    machine_name: core_javascript_jit
 
   - name: 'Core: Layout Engine'
     description: rendering tree construction, layout (reflow), etc.
@@ -4563,5 +4537,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 04541f5cfaca0467d99758f96bc1e65a7f072ac8
-  export: 2087ad1ff6ebc39b009157ad348dcba0bc67c892
+  config: 05c1528990ef0552c2ac39450cce376112b1c102
+  export: 3d1a1aad667aabbb7faca7e1706d98da40518a57
