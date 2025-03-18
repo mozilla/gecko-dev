@@ -782,6 +782,11 @@ impl<'a> SceneBuilder<'a> {
             _ => false,
         };
 
+        // Snapshot picture are special. All clips belonging to parents
+        // *must* be extracted from the snapshot, so we rely on this optimization
+        // taking out parent clips and it overrides other conditions.
+        let is_snapshot = pictures[pic_index.0].snapshot.is_some();
+
         // It is only safe to apply this optimisation if the old pic clip node
         // is the direct parent of the new LCA node.  If this is not the case
         // then there could be other more restrictive clips in between the two
@@ -792,7 +797,7 @@ impl<'a> SceneBuilder<'a> {
             .map(|(lca_tree_node, pic_node_id)| lca_tree_node.parent == pic_node_id)
             .unwrap_or(false);
 
-        if let Some((lca_node, pic_node)) = lca_node.zip(pic_node) {
+        let should_set_clip_root = is_snapshot || lca_node.zip(pic_node).map_or(false, |(lca_node, pic_node)| {
             // It is only safe to ignore the LCA clip (by making it the clip
             // root) if it is equal to or larger than the picture clip. But
             // this comparison also needs to take into account spatial nodes
@@ -801,9 +806,11 @@ impl<'a> SceneBuilder<'a> {
             // clips to be identical and have the same spatial node so it's
             // simplest to just test for ClipItemKey equality (which includes
             // both spatial node and the actual clip).
-            if lca_node.key == pic_node.key && !has_blur && direct_parent {
-                pictures[pic_index.0].clip_root = shared_clip_node_id;
-            }
+            lca_node.key == pic_node.key && !has_blur && direct_parent
+        });
+
+        if should_set_clip_root {
+            pictures[pic_index.0].clip_root = shared_clip_node_id;
         }
 
         // Update the spatial node of any child pictures

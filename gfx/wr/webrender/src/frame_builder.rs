@@ -410,14 +410,16 @@ impl FrameBuilder {
                 // the changes, we have to make sure that the image's
                 // generation counter is incremented early in the frame,
                 // before the main visibility pass visits the image items.
-                let snapshot = scene.prim_store
-                    .pictures[pic_index.0]
-                    .snapshot
+                let pic = &scene.prim_store.pictures[pic_index.0];
+                let snapshot = pic.snapshot
                     .unwrap();
                 let key = snapshot.key.as_image();
                 visibility_state.resource_cache
                     .increment_image_generation(key);
 
+                if let Some(node) = pic.clip_root {
+                    visibility_state.clip_tree.push_clip_root_node(node);
+                }
                 update_prim_visibility(
                     *pic_index,
                     None,
@@ -428,6 +430,9 @@ impl FrameBuilder {
                     &mut visibility_state,
                     &mut None,
                 );
+                if scene.prim_store.pictures[pic_index.0].clip_root.is_some() {
+                    visibility_state.clip_tree.pop_clip_root();
+                }
             }
 
             for pic_index in scene.tile_cache_pictures.iter().rev() {
