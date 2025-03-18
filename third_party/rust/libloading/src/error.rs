@@ -98,6 +98,7 @@ impl std::error::Error for Error {
             CreateCString { ref source } => Some(source),
             CreateCStringWithTrailing { ref source } => Some(source),
             LoadLibraryExW { ref source } => Some(&source.0),
+            GetModuleHandleExW { ref source } => Some(&source.0),
             GetProcAddress { ref source } => Some(&source.0),
             FreeLibrary { ref source } => Some(&source.0),
             _ => None,

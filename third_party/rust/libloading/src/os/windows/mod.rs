@@ -19,6 +19,7 @@ use self::windows_imports::*;
 use util::{ensure_compatible_types, cstr_cow_from_bytes};
 use std::ffi::{OsStr, OsString};
 use std::{fmt, io, marker, mem, ptr};
+use std::os::raw;
 
 /// The platform-specific counterpart of the cross-platform [`Library`](crate::Library).
 pub struct Library(HMODULE);
@@ -298,6 +299,13 @@ impl<T> Symbol<T> {
     /// Convert the loaded `Symbol` into a handle.
     pub fn into_raw(self) -> FARPROC {
         self.pointer
+    }
+
+    /// Convert the loaded `Symbol` into a raw pointer.
+    pub fn as_raw_ptr(self) -> *mut raw::c_void {
+        self.pointer
+            .map(|raw| raw as *mut raw::c_void)
+            .unwrap_or(std::ptr::null_mut())
     }
 }
 
