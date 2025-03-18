@@ -1187,9 +1187,6 @@ var gPrivacyPane = {
     this.initDataCollection();
 
     if (AppConstants.MOZ_DATA_REPORTING) {
-      if (AppConstants.MOZ_CRASHREPORTER) {
-        this.initSubmitCrashes();
-      }
       this.initSubmitHealthReport();
       setEventListener(
         "submitHealthReportBox",
@@ -3374,13 +3371,6 @@ var gPrivacyPane = {
     this.initPrivacySegmentation();
   },
 
-  initSubmitCrashes() {
-    this._setupLearnMoreLink(
-      "toolkit.crashreporter.infoURL",
-      "crashReporterLearnMore"
-    );
-  },
-
   initPrivacySegmentation() {
     // Section visibility
     let section = document.getElementById("privacySegmentationSection");
@@ -3424,11 +3414,6 @@ var gPrivacyPane = {
    * Initialize the health report service reference and checkbox.
    */
   initSubmitHealthReport() {
-    this._setupLearnMoreLink(
-      "datareporting.healthreport.infoURL",
-      "FHRLearnMore"
-    );
-
     let checkbox = document.getElementById("submitHealthReportBox");
 
     // Telemetry is only sending data if MOZ_TELEMETRY_REPORTING is defined.
