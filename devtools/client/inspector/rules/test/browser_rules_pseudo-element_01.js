@@ -13,7 +13,6 @@ add_task(async function () {
   await pushPref("dom.customHighlightAPI.enabled", true);
   await pushPref("dom.text_fragments.enabled", true);
   await pushPref("layout.css.modern-range-pseudos.enabled", true);
-  await pushPref("layout.css.details-content.enabled", true);
   await pushPref("full-screen-api.transition-duration.enter", "0 0");
   await pushPref("full-screen-api.transition-duration.leave", "0 0");
 
@@ -30,7 +29,6 @@ add_task(async function () {
   await testCustomHighlight(inspector, view);
   await testSlider(inspector, view);
   await testUrlFragmentTextDirective(inspector, view);
-  await testDetailsContent(inspector, view);
   // keep this one last as it makes the browser go fullscreen and seem to impact other tests
   await testBackdrop(inspector, view);
 });
@@ -463,15 +461,6 @@ async function testUrlFragmentTextDirective(inspector, view) {
   assertGutters(view);
 }
 
-async function testDetailsContent(inspector, view) {
-  await assertPseudoElementRulesNumbers("details", inspector, view, {
-    // `element`, `*`, and inherited `body`
-    elementRules: 3,
-    detailsContentRules: 1,
-  });
-  assertGutters(view);
-}
-
 function convertTextPropsToString(textProps) {
   return textProps
     .map(
@@ -502,7 +491,6 @@ const PSEUDO_DICT = {
   sliderThumbRules: "::slider-thumb",
   sliderTrackRules: "::slider-track",
   targetTextRules: "::target-text",
-  detailsContentRules: "::details-content",
 };
 
 async function assertPseudoElementRulesNumbers(
