@@ -24,7 +24,6 @@ import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
 import org.mozilla.fenix.downloads.listscreen.store.FileItem
 import java.io.File
 import java.time.Instant
-import java.time.ZoneId
 
 /**
  * Middleware for loading and mapping download items from the browser store.
@@ -91,7 +90,7 @@ class DownloadUIMapperMiddleware(
     private fun categorizeTime(epochMillis: Long): CreatedTime {
         val currentDate = dateTimeProvider.currentLocalDate()
         val inputDate = Instant.ofEpochMilli(epochMillis)
-            .atZone(ZoneId.systemDefault())
+            .atZone(dateTimeProvider.currentZoneId())
             .toLocalDate()
 
         return when {

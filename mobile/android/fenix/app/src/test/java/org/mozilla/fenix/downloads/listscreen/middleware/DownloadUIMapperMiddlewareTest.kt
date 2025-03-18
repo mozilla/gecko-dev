@@ -23,7 +23,7 @@ import org.mozilla.fenix.downloads.listscreen.store.FileItem
 import org.mozilla.fenix.downloads.listscreen.store.HeaderItem
 import java.io.File
 import java.time.LocalDate
-import java.time.ZoneOffset
+import java.time.ZoneId
 
 @RunWith(AndroidJUnit4::class)
 class DownloadUIMapperMiddlewareTest {
@@ -37,10 +37,13 @@ class DownloadUIMapperMiddlewareTest {
 
     @Test
     fun `WHEN downloads store is initialised THEN downloads state is updated to be sorted by created time`() {
+        val fakeDateTimeProvider = FakeDateTimeProvider(LocalDate.of(2025, 5, 31))
+        val zoneId = fakeDateTimeProvider.currentZoneId()
+
         val downloads = mapOf(
             "1" to DownloadState(
                 id = "1",
-                createdTime = LocalDate.of(2025, 3, 1).toEpochMilli(),
+                createdTime = LocalDate.of(2025, 3, 1).toEpochMilli(zoneId),
                 url = "url",
                 fileName = "1.pdf",
                 status = DownloadState.Status.COMPLETED,
@@ -50,7 +53,7 @@ class DownloadUIMapperMiddlewareTest {
             ),
             "2" to DownloadState(
                 id = "2",
-                createdTime = LocalDate.of(2025, 4, 12).toEpochMilli(),
+                createdTime = LocalDate.of(2025, 4, 12).toEpochMilli(zoneId),
                 url = "url",
                 fileName = "2.pdf",
                 status = DownloadState.Status.FAILED,
@@ -59,7 +62,7 @@ class DownloadUIMapperMiddlewareTest {
             ),
             "3" to DownloadState(
                 id = "3",
-                createdTime = LocalDate.of(2025, 5, 31).toEpochMilli(),
+                createdTime = LocalDate.of(2025, 5, 31).toEpochMilli(zoneId),
                 url = "url",
                 fileName = "3.pdf",
                 status = DownloadState.Status.COMPLETED,
@@ -86,7 +89,7 @@ class DownloadUIMapperMiddlewareTest {
                     fileSizeFormatter = fakeFormatter,
                     scope = scope,
                     ioDispatcher = dispatcher,
-                    dateTimeProvider = FakeDateTimeProvider(LocalDate.of(2025, 5, 31)),
+                    dateTimeProvider = fakeDateTimeProvider,
                 ),
             ),
         )
@@ -120,11 +123,11 @@ class DownloadUIMapperMiddlewareTest {
                 ),
             )
 
-        assertEquals(expectedList, downloadsStore.state.itemsToDisplay)
-
         // Cleanup files
         file1.delete()
         file3.delete()
+
+        assertEquals(expectedList, downloadsStore.state.itemsToDisplay)
     }
 
     @Test
@@ -193,7 +196,7 @@ class DownloadUIMapperMiddlewareTest {
         file1.delete()
     }
 
-    private fun LocalDate.toEpochMilli(): Long {
-        return atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    private fun LocalDate.toEpochMilli(zoneId: ZoneId): Long {
+        return atStartOfDay(zoneId).toInstant().toEpochMilli()
     }
 }

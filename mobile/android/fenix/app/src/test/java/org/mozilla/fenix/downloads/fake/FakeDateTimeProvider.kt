@@ -6,10 +6,14 @@ package org.mozilla.fenix.downloads.fake
 
 import org.mozilla.fenix.downloads.listscreen.middleware.DateTimeProvider
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZoneOffset
 
 class FakeDateTimeProvider(
     private val localDate: LocalDate,
 ) : DateTimeProvider {
 
     override fun currentLocalDate(): LocalDate = localDate
+
+    override fun currentZoneId(): ZoneId = ZoneOffset.UTC
 }

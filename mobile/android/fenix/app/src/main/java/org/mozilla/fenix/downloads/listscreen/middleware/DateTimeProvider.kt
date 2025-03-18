@@ -5,6 +5,7 @@
 package org.mozilla.fenix.downloads.listscreen.middleware
 
 import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * Interface for providing date and time information. This is useful for separating the
@@ -17,6 +18,11 @@ interface DateTimeProvider {
      * Get the current local date.
      */
     fun currentLocalDate(): LocalDate
+
+    /**
+     * Get the current time zone.
+     */
+    fun currentZoneId(): ZoneId
 }
 
 /**
@@ -29,5 +35,9 @@ class DateTimeProviderImpl : DateTimeProvider {
      */
     override fun currentLocalDate(): LocalDate {
         return LocalDate.now()
+    }
+
+    override fun currentZoneId(): ZoneId {
+        return ZoneId.systemDefault()
     }
 }
