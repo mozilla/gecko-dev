@@ -234,7 +234,7 @@ talos-g1-profiling:
     run-on-projects: []
     max-run-time:
         by-test-platform:
-            linux1804-64.*: 3600
+            linux1804-64.*: 5400
             default: 7200
     mozharness:
         extra-options:
