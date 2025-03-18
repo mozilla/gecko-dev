@@ -531,10 +531,13 @@
     },
     "interventions": [
       {
-        "platforms": ["android"],
+        "platforms": ["linux", "android"],
         "content_scripts": {
           "all_frames": true,
-          "js": ["bug1724868-news.yahoo.co.jp-ua-override.js"]
+          "js": [
+            "lib/ua_helpers.js",
+            "bug1724868-news.yahoo.co.jp-ua-override.js"
+          ]
         }
       }
     ]
