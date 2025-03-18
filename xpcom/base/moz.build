@@ -65,6 +65,7 @@ EXPORTS += [
     "nsCOMPtr.h",
     "nscore.h",
     "nsCRTGlue.h",
+    "nsCycleCollectionContainerParticipant.h",
     "nsCycleCollectionNoteChild.h",
     "nsCycleCollectionNoteRootCallback.h",
     "nsCycleCollectionParticipant.h",
