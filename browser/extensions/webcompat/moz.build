@@ -192,6 +192,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["shims"] += [
     "shims/rich-relevance.js",
     "shims/salesforce.js",
     "shims/spotify-embed.js",
+    "shims/stackoverflow-login.js",
     "shims/tiktok-embed.js",
     "shims/tiktok.svg",
     "shims/tracking-pixel.png",

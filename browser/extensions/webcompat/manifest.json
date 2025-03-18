@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Web Compatibility Interventions",
   "description": "Urgent post-release fixes for web compatibility.",
-  "version": "137.6.0",
+  "version": "137.7.0",
   "browser_specific_settings": {
     "gecko": {
       "id": "webcompat@mozilla.org",
@@ -160,6 +160,7 @@
     "shims/rich-relevance.js",
     "shims/salesforce.js",
     "shims/spotify-embed.js",
+    "shims/stackoverflow-login.js",
     "shims/tiktok-embed.js",
     "shims/tiktok.svg",
     "shims/tracking-pixel.png",

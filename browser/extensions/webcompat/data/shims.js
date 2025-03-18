@@ -918,6 +918,20 @@ const AVAILABLE_SHIMS = [
     onlyIfDFPIActive: true,
   },
   {
+    id: "StackOverflowLogin",
+    platform: "all",
+    name: "StackOverflow Login",
+    bug: "1949491",
+    contentScripts: [
+      {
+        js: "stackoverflow-login.js",
+        matches: ["*://stackoverflow.com/*"],
+        runAt: "document_start",
+      },
+    ],
+    onlyIfDFPIActive: true,
+  },
+  {
     id: "emeraude.my.salesforce.com",
     platform: "all",
     name: "Salesforce IndexedDB Script Access",
