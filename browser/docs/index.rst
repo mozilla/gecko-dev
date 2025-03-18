@@ -37,3 +37,4 @@ This is the nascent documentation of the Firefox front-end code.
    /toolkit/themes/shared/design-system/docs/README.design-tokens.stories
    /toolkit/themes/shared/design-system/docs/README.json-design-tokens.stories
    components/backup/docs/index
+   components/sidebar/docs/index

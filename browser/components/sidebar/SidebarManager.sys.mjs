@@ -7,6 +7,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const BACKUP_STATE_PREF = "sidebar.backupState";
 const VISIBILITY_SETTING_PREF = "sidebar.visibility";
+const SIDEBAR_TOOLS = "sidebar.main.tools";
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -30,6 +31,16 @@ XPCOMUtils.defineLazyPreferenceGetter(
     SidebarManager.handleVerticalTabsPrefChange(newVal, true);
   }
 );
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "sidebarRevampEnabled",
+  "sidebar.revamp",
+  false,
+  () => SidebarManager.updateDefaultTools()
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(lazy, "sidebarTools", SIDEBAR_TOOLS);
 
 export const SidebarManager = {
   /**
@@ -78,6 +89,12 @@ export const SidebarManager = {
       );
     });
 
+    Services.prefs.addObserver(
+      "sidebar.newTool.migration.",
+      this.updateDefaultTools.bind(this)
+    );
+    this.updateDefaultTools();
+
     // if there's no user visibility pref, we may need to update it to the default value for the tab orientation
     const shouldResetVisibility = !Services.prefs.prefHasUserValue(
       VISIBILITY_SETTING_PREF
@@ -98,6 +115,55 @@ export const SidebarManager = {
     } else if (resetVisibility) {
       // only reset visibility pref when switching to vertical tabs and explictly indicated
       Services.prefs.setStringPref(VISIBILITY_SETTING_PREF, "always-show");
+    }
+  },
+
+  /**
+   * Appends any new tools defined on the sidebar.newTool.migration pref branch
+   * to the sidebar.main.tools pref one time as a way of introducing a new tool
+   * to the launcher without overwriting what a user had previously customized.
+   */
+  updateDefaultTools() {
+    if (!lazy.sidebarRevampEnabled) {
+      return;
+    }
+
+    let tools = lazy.sidebarTools;
+    for (const pref of Services.prefs.getChildList(
+      "sidebar.newTool.migration."
+    )) {
+      try {
+        let options = JSON.parse(Services.prefs.getStringPref(pref));
+        let newTool = pref.split(".")[3];
+
+        // ensure we only add this tool once
+        if (options?.alreadyShown || lazy.sidebarTools.includes(newTool)) {
+          continue;
+        }
+
+        if (options?.visibilityPref) {
+          // Will only add the tool to the launcher if the panel governing a panels sidebar visibility
+          // is first enabled
+          let visibilityPrefValue = Services.prefs.getBoolPref(
+            options.visibilityPref
+          );
+          if (!visibilityPrefValue) {
+            Services.prefs.addObserver(
+              options.visibilityPref,
+              this.updateDefaultTools.bind(this)
+            );
+            continue;
+          }
+        }
+        tools = tools + "," + newTool;
+        options.alreadyShown = true;
+        Services.prefs.setStringPref(pref, JSON.stringify(options));
+      } catch (ex) {
+        console.error("Failed to handle pref " + pref, ex);
+      }
+    }
+    if (tools.length > lazy.sidebarTools.length) {
+      Services.prefs.setStringPref(SIDEBAR_TOOLS, tools);
     }
   },
 
