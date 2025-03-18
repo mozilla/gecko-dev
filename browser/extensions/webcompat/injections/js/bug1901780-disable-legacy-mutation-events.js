@@ -5,17 +5,13 @@
 "use strict";
 
 /**
- * Bugs 1881922, 1901780 - Disable legacy DOM Mutation Events to prevent performance issues.
+ * Bugs 1901780 - Disable legacy DOM Mutation Events to prevent performance issues.
  */
 
 /* globals exportFunction */
 
-let bug = "1881922";
-if (location.origin.includes("vanbreda")) {
-  bug = "1901780";
-}
 console.info(
-  `DOM Mutation Events have been disabled to prevent performance issues. See https://bugzilla.mozilla.org/show_bug.cgi?id=${bug} for details.`
+  "DOM Mutation Events have been disabled to prevent performance issues. See https://bugzilla.mozilla.org/show_bug.cgi?id=1901780 for details."
 );
 
 (function disableMutationEvents() {

@@ -1939,23 +1939,6 @@
       }
     ]
   },
-  "1881922": {
-    "label": "helpdeskgeek.com",
-    "bugs": {
-      "1881922": {
-        "issue": "slow-performance",
-        "matches": ["*://helpdeskgeek.com/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "content_scripts": {
-          "js": ["bug1881922-disable-legacy-mutation-events.js"]
-        }
-      }
-    ]
-  },
   "1884779": {
     "label": "memurlar.net",
     "bugs": {
@@ -2566,7 +2549,7 @@
       {
         "platforms": ["all"],
         "content_scripts": {
-          "js": ["bug1881922-disable-legacy-mutation-events.js"]
+          "js": ["bug1901780-disable-legacy-mutation-events.js"]
         }
       }
     ]
