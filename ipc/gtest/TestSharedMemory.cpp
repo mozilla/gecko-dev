@@ -7,7 +7,6 @@
 #include "gtest/gtest.h"
 
 #include "mozilla/MathAlgorithms.h"
-#include "mozilla/RefPtr.h"
 #include "mozilla/ipc/SharedMemoryCursor.h"
 #include "mozilla/ipc/SharedMemoryHandle.h"
 #include "mozilla/ipc/SharedMemoryMapping.h"
@@ -274,7 +273,7 @@ TEST(IPCSharedMemory, FreezeAndMapRW)
 
   auto roMapping = roHandle.Map();
   ASSERT_TRUE(roMapping);
-  auto* roMem = roMapping.DataAs<char>();
+  const auto* roMem = roMapping.DataAs<char>();
   ASSERT_TRUE(roMem);
   ASSERT_EQ(*roMem, 'A');
 }
@@ -297,21 +296,18 @@ TEST(IPCSharedMemory, FreezeAndReprotect)
   *mem = 'A';
 
   // Freeze
-  auto [roHandle, rwMapping] = std::move(mapping).FreezeWithMutableMapping();
-  ASSERT_TRUE(rwMapping);
+  auto roHandle = std::move(mapping).Freeze();
   ASSERT_TRUE(roHandle);
 
-  mem = rwMapping.DataAs<char>();
-  ASSERT_EQ(*mem, 'A');
+  auto roMapping = roHandle.Map();
+  ASSERT_TRUE(roMapping);
 
-  // Drop the writable mapping so LocalProtect will fail as expected.
-  // This is required since the memory can be reprotected as long as the mutable
-  // mapping exists in the process.
-  rwMapping = nullptr;
+  const auto* roMem = roMapping.DataAs<char>();
+  ASSERT_EQ(*roMem, 'A');
 
   // Try to alter protection; should fail
   EXPECT_FALSE(ipc::shared_memory::LocalProtect(
-      mem, 1, ipc::shared_memory::AccessReadWrite));
+      (char*)roMem, 1, ipc::shared_memory::AccessReadWrite));
 }
 
 #if !defined(XP_WIN) && !defined(XP_DARWIN)
@@ -352,7 +348,7 @@ TEST(IPCSharedMemory, Reprotect)
 
   // Try to alter protection; should succeed, because not frozen
   EXPECT_TRUE(ipc::shared_memory::LocalProtect(
-      mem, 1, ipc::shared_memory::AccessReadWrite));
+      (char*)cmem, 1, ipc::shared_memory::AccessReadWrite));
 }
 #endif
 
@@ -405,7 +401,7 @@ TEST(IPCSharedMemory, ROCopyAndWrite)
 
   auto* memRW = rwMapping.DataAs<char>();
   ASSERT_TRUE(memRW);
-  auto* memRO = roMapping.DataAs<char>();
+  const auto* memRO = roMapping.DataAs<char>();
   ASSERT_TRUE(memRO);
 
   ASSERT_NE(memRW, memRO);
@@ -433,7 +429,7 @@ TEST(IPCSharedMemory, ROCopyAndRewrite)
   ASSERT_TRUE(memRW);
   *memRW = 'A';
 
-  auto* memRO = roMapping.DataAs<char>();
+  const auto* memRO = roMapping.DataAs<char>();
   ASSERT_TRUE(memRO);
 
   ASSERT_NE(memRW, memRO);
@@ -467,7 +463,7 @@ class IPCSharedMemoryLinuxTest : public ::testing::Test {
     if (mMajor != 0) {
       return;
     }
-    struct utsname uts;
+    struct utsname uts{};
     ASSERT_EQ(uname(&uts), 0) << strerror(errno);
     ASSERT_STREQ(uts.sysname, "Linux");
     ASSERT_EQ(sscanf(uts.release, "%d.%d", &mMajor, &mMinor), 2);
@@ -491,7 +487,7 @@ TEST_F(IPCSharedMemoryLinuxTest, IsMemfd) {
   UniqueFileHandle fd = std::move(handle).TakePlatformHandle();
   ASSERT_TRUE(fd);
 
-  struct statfs fs;
+  struct statfs fs{};
   ASSERT_EQ(fstatfs(fd.get(), &fs), 0) << strerror(errno);
   EXPECT_EQ(fs.f_type, TMPFS_MAGIC);
   static constexpr decltype(fs.f_blocks) kNoLimit = 0;
@@ -512,7 +508,7 @@ TEST_F(IPCSharedMemoryLinuxTest, MemfdNoExec) {
   UniqueFileHandle fd = std::move(handle).TakePlatformHandle();
   ASSERT_TRUE(fd);
 
-  struct stat sb;
+  struct stat sb{};
   ASSERT_EQ(fstat(fd.get(), &sb), 0) << strerror(errno);
   // Check that mode is reasonable.
   EXPECT_EQ(sb.st_mode & (S_IRUSR | S_IWUSR), mode_t(S_IRUSR | S_IWUSR));
