@@ -309,7 +309,7 @@ web-platform-tests-webgpu:
     chunks:
         by-test-platform:
             linux2204.*/debug.*: 17
-            linux2204.*: 15
+            linux2204.*: 16
             windows.*-64.*/opt.*: 10
             default: 10
     max-run-time:
