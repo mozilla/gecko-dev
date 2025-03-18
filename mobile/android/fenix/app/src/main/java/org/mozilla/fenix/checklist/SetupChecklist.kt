@@ -20,11 +20,13 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.compose.base.theme.layout.AcornLayout
+import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -36,7 +38,7 @@ private val shapeChecklist = RoundedCornerShape(size = AcornLayout.AcornCorner.l
  *
  * @param title The checklist's title.
  * @param subtitle The checklist's subtitle.
- * @param tasks The list of the tasks.
+ * @param items The list of the items.
  * @param allTasksCompleted If all tasks are completed.
  * @param labelRemoveChecklistButton The label of the checklist's button to remove it.
  * @param onRemoveChecklistButtonClicked Invoked when the remove button is clicked.
@@ -45,7 +47,7 @@ private val shapeChecklist = RoundedCornerShape(size = AcornLayout.AcornCorner.l
 fun SetupChecklist(
     title: String,
     subtitle: String,
-    tasks: List<Task>,
+    items: List<ChecklistItem>,
     allTasksCompleted: Boolean,
     labelRemoveChecklistButton: String,
     onRemoveChecklistButtonClicked: () -> Unit,
@@ -61,7 +63,7 @@ fun SetupChecklist(
         ) {
             Header(title, subtitle)
 
-            TasksListView(tasks)
+            CheckListView(items)
 
             if (allTasksCompleted) {
                 RemoveChecklistButton(labelRemoveChecklistButton, onRemoveChecklistButtonClicked)
@@ -141,20 +143,34 @@ private fun SetupChecklistPreview() {
                 .background(color = FirefoxTheme.colors.layer1)
                 .padding(16.dp),
         ) {
-            val task1 = Task(
-                title = "First task",
-                iCollapsed = true,
+            val tasks = listOf(
+                ChecklistItem.Task(
+                    title = "First task",
+                    icon = painterResource(id = R.drawable.ic_addons_extensions),
+                    isCompleted = true,
+                ),
+                ChecklistItem.Task(
+                    title = "Second task",
+                    icon = painterResource(id = R.drawable.ic_search),
+                    isCompleted = false,
+                ),
             )
-            val task2 = Task(
-                title = "Second task",
-                isCompleted = true,
-                iCollapsed = true,
+
+            val group1 = ChecklistItem.Group(
+                title = "First group",
+                tasks = tasks,
+                isExpanded = true,
+            )
+            val group2 = ChecklistItem.Group(
+                title = "Second group",
+                tasks = tasks,
+                isExpanded = false,
             )
 
             SetupChecklist(
                 title = "Finish setting up Firefox",
                 subtitle = "Complete all 6 steps to set up Firefox for the best browsing experience.",
-                tasks = listOf(task1, task2),
+                items = listOf(group1, group2),
                 allTasksCompleted = true,
                 labelRemoveChecklistButton = "Remove checklist",
                 onRemoveChecklistButtonClicked = {},
