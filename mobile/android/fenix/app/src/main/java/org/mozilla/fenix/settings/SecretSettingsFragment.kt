@@ -218,14 +218,6 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
-        requirePreference<SwitchPreference>(
-            R.string.pref_key_set_as_default_browser_prompt_enabled,
-        ).apply {
-            isVisible = true
-            isChecked = context.settings().setAsDefaultBrowserPromptForExistingUsersEnabled
-            onPreferenceChangeListener = SharedPreferenceUpdater()
-        }
-
         requirePreference<SwitchPreference>(R.string.pref_key_persistent_debug_menu).apply {
             isVisible = true
             // We look up the actual value of the pref, not the `showSecretDebugMenuThisSession` setting because

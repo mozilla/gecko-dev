@@ -37,7 +37,6 @@ class BookmarksTestCompose : TestSetup() {
                 isNewBookmarksEnabled = true,
                 isNavigationToolbarEnabled = false,
                 isNavigationBarCFREnabled = false,
-                isSetAsDefaultBrowserPromptEnabled = false,
                 isMenuRedesignEnabled = false,
                 isMenuRedesignCFREnabled = false,
                 shouldUseBottomToolbar = true,

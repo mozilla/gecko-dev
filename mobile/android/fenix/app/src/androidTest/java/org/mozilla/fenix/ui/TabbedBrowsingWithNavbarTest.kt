@@ -25,7 +25,6 @@ class TabbedBrowsingWithNavbarTest : TestSetup() {
                 skipOnboarding = true,
                 isNavigationToolbarEnabled = true,
                 isNavigationBarCFREnabled = false,
-                isSetAsDefaultBrowserPromptEnabled = false,
             ),
         ) { it.activity }
 

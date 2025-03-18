@@ -1198,8 +1198,7 @@ class SettingsTest {
     }
 
     @Test
-    fun `GIVEN the conditions to show a prompt are not met WHEN shouldShowSetAsDefaultPrompt is checked THEN shouldShowSetAsDefaultPrompt is false`() {
-        settings.setAsDefaultBrowserPromptForExistingUsersEnabled = false
+    fun `GIVEN the conditions to show a prompt are not met WHEN checking prompt eligibility THEN shouldShowSetAsDefaultPrompt is false`() {
         settings.numberOfSetAsDefaultPromptShownTimes = 0
         settings.lastSetAsDefaultPromptShownTimeInMillis = System.currentTimeMillis()
         settings.coldStartsBetweenSetAsDefaultPrompts = 5
@@ -1208,8 +1207,7 @@ class SettingsTest {
     }
 
     @Test
-    fun `GIVEN the prompt has been shown maximum times WHEN shouldShowSetAsDefaultPrompt is checked THEN shouldShowSetAsDefaultPrompt is false`() {
-        settings.setAsDefaultBrowserPromptForExistingUsersEnabled = true
+    fun `GIVEN the prompt has been shown maximum times WHEN checking prompt eligibility THEN shouldShowSetAsDefaultPrompt is false`() {
         settings.numberOfSetAsDefaultPromptShownTimes = 3 // Maximum number of times the prompt can be shown based on the design criteria
         settings.lastSetAsDefaultPromptShownTimeInMillis = 0L
         settings.coldStartsBetweenSetAsDefaultPrompts = 5
@@ -1218,8 +1216,7 @@ class SettingsTest {
     }
 
     @Test
-    fun `GIVEN the time since last prompt is too short WHEN shouldShowSetAsDefaultPrompt is checked THEN shouldShowSetAsDefaultPrompt is false`() {
-        settings.setAsDefaultBrowserPromptForExistingUsersEnabled = true
+    fun `GIVEN the time since last prompt is too short WHEN checking prompt eligibility THEN shouldShowSetAsDefaultPrompt is false`() {
         settings.numberOfSetAsDefaultPromptShownTimes = 1
         settings.lastSetAsDefaultPromptShownTimeInMillis = System.currentTimeMillis() - 1000
         settings.coldStartsBetweenSetAsDefaultPrompts = 5
@@ -1228,8 +1225,7 @@ class SettingsTest {
     }
 
     @Test
-    fun `GIVEN not enough cold starts WHEN shouldShowSetAsDefaultPrompt is checked THEN shouldShowSetAsDefaultPrompt is false`() {
-        settings.setAsDefaultBrowserPromptForExistingUsersEnabled = true
+    fun `GIVEN not enough cold starts WHEN checking prompt eligibility THEN shouldShowSetAsDefaultPrompt is false`() {
         settings.numberOfSetAsDefaultPromptShownTimes = 1
         settings.lastSetAsDefaultPromptShownTimeInMillis = 0L
         settings.coldStartsBetweenSetAsDefaultPrompts = 1
@@ -1238,8 +1234,7 @@ class SettingsTest {
     }
 
     @Test
-    fun `GIVEN enough cold starts and conditions met WHEN shouldShowSetAsDefaultPrompt is checked THEN shouldShowSetAsDefaultPrompt is true`() {
-        settings.setAsDefaultBrowserPromptForExistingUsersEnabled = true
+    fun `GIVEN enough cold starts and conditions met WHEN checking prompt eligibility THEN shouldShowSetAsDefaultPrompt is true`() {
         settings.numberOfSetAsDefaultPromptShownTimes = 1
         settings.lastSetAsDefaultPromptShownTimeInMillis = 0L
         settings.coldStartsBetweenSetAsDefaultPrompts = 5 // More than required cold starts

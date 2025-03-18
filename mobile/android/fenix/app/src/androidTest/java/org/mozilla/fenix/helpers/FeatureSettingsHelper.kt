@@ -104,11 +104,6 @@ interface FeatureSettingsHelper {
     var isMicrosurveyEnabled: Boolean
 
     /**
-     * Enable or disable the "Set as default browser" dialog.
-     */
-    var isSetAsDefaultBrowserPromptEnabled: Boolean
-
-    /**
      * Enable or disable bottom toolbar position.
      */
     var shouldUseBottomToolbar: Boolean

@@ -2295,14 +2295,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
-     * Indicates if the Set as default browser prompt for existing users feature is enabled.
-     */
-    var setAsDefaultBrowserPromptForExistingUsersEnabled by booleanPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_set_as_default_browser_prompt_enabled),
-        default = true,
-    )
-
-    /**
      * Last time the Set as default Browser prompt has been displayed to the user.
      */
     var lastSetAsDefaultPromptShownTimeInMillis by longPreference(
@@ -2338,11 +2330,11 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      * Indicates if the Set as default Browser prompt should be displayed to the user.
      */
     val shouldShowSetAsDefaultPrompt: Boolean
-        get() = setAsDefaultBrowserPromptForExistingUsersEnabled &&
+        get() =
             (System.currentTimeMillis() - lastSetAsDefaultPromptShownTimeInMillis) >
-            DAYS_BETWEEN_DEFAULT_BROWSER_PROMPTS * ONE_DAY_MS &&
-            numberOfSetAsDefaultPromptShownTimes < MAX_NUMBER_OF_DEFAULT_BROWSER_PROMPTS &&
-            coldStartsBetweenSetAsDefaultPrompts >= APP_COLD_STARTS_TO_SHOW_DEFAULT_PROMPT
+                DAYS_BETWEEN_DEFAULT_BROWSER_PROMPTS * ONE_DAY_MS &&
+                numberOfSetAsDefaultPromptShownTimes < MAX_NUMBER_OF_DEFAULT_BROWSER_PROMPTS &&
+                coldStartsBetweenSetAsDefaultPrompts >= APP_COLD_STARTS_TO_SHOW_DEFAULT_PROMPT
 
     /**
      * Updates the relevant settings when the "Set as Default Browser" prompt is shown.

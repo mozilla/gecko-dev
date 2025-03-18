@@ -50,7 +50,6 @@ class NavigationToolbarComposeTest : TestSetup() {
                 skipOnboarding = true,
                 isNavigationToolbarEnabled = true,
                 isNavigationBarCFREnabled = false,
-                isSetAsDefaultBrowserPromptEnabled = false,
                 isMenuRedesignEnabled = true,
                 isMenuRedesignCFREnabled = false,
             ),

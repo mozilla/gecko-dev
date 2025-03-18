@@ -27,7 +27,6 @@ class TranslationsTest : TestSetup() {
                 skipOnboarding = true,
                 isNavigationToolbarEnabled = false,
                 isNavigationBarCFREnabled = false,
-                isSetAsDefaultBrowserPromptEnabled = false,
                 isMenuRedesignEnabled = false,
                 isMenuRedesignCFREnabled = false,
                 isPageLoadTranslationsPromptEnabled = true,
