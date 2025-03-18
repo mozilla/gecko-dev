@@ -3123,6 +3123,23 @@
       }
     ]
   },
+  "1939248": {
+    "label": "rosasthai.com",
+    "bugs": {
+      "1939248": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://rosasthai.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1939248-rosasthai.com-load-event-helper.js"]
+        }
+      }
+    ]
+  },
   "1943920": {
     "label": "add.org",
     "bugs": {

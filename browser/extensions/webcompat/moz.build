@@ -136,6 +136,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["js"] += [
     "injections/js/bug1927984-modules.sms-timing.com-chrome-shim.js",
     "injections/js/bug1928216-voice.google.com-permissions.query.js",
     "injections/js/bug1930440-online.singaporepools.com-prevent-unsupported-alert.js",
+    "injections/js/bug1939248-rosasthai.com-load-event-helper.js",
     "injections/js/bug1943898-www.capital.gr-suppress-constant-reloading.js",
     "injections/js/bug1945019-order.mealkeyway.com-prevent-unsupported-message.js",
     "injections/js/bug1950282-formula1.com-platform-linux-fix.js",
