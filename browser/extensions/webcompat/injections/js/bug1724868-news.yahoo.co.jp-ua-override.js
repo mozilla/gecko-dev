@@ -20,4 +20,4 @@ console.info(
   "The user agent has been overridden for compatibility reasons. See https://webcompat.com/issues/82605 for details."
 );
 
-UAHelpers.overrideWithDeviceAppropriateChromeUA({ desktopOS: "nonLinux" });
+UAHelpers.overrideWithDeviceAppropriateChromeUA({ OS: "nonLinux" });
