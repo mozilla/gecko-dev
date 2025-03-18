@@ -1153,10 +1153,16 @@ export class NetworkObserver {
 
   override(url, path) {
     this.#overrides.set(url, path);
+
+    // Clear in-memory cache, so that the subsequent request reaches the
+    // http handling and the override works.
+    ChromeUtils.clearResourceCache({ url });
   }
 
   removeOverride(url) {
     this.#overrides.delete(url);
+
+    ChromeUtils.clearResourceCache({ url });
   }
 
   /**
