@@ -263,11 +263,7 @@ add_task(async function test_focus_on_switcher_by_tab() {
     "urlbar-searchmode-switcher",
     "Dedicated Search button loses the focus"
   );
-  Assert.equal(
-    gURLBar.view.panel.hasAttribute("hide-temporarily"),
-    true,
-    "Urlbar view panel is closed"
-  );
+  Assert.equal(gURLBar.view.isOpen, false, "Urlbar view panel is closed");
   Assert.equal(gURLBar.value, input, "Inputted value still be on urlbar");
 
   info("Close the switcher popup by Escape");
