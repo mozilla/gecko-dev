@@ -517,10 +517,10 @@ std::vector<LayersId> APZCTreeManager::UpdateHitTestingTree(
             MutexAutoLock lock(mMapLock);
             mGeckoFixedLayerMargins =
                 aLayerMetrics.Metrics().GetFixedLayerMargins();
-            mInteractiveWidget =
-                aLayerMetrics.Metadata().GetInteractiveWidget();
-            mIsSoftwareKeyboardVisible =
-                aLayerMetrics.Metadata().IsSoftwareKeyboardVisible();
+            SetInteractiveWidgetMode(
+                aLayerMetrics.Metadata().GetInteractiveWidget(), lock);
+            SetIsSoftwareKeyboardVisible(
+                aLayerMetrics.Metadata().IsSoftwareKeyboardVisible(), lock);
             currentRootContentLayersId = layersId;
           } else {
             MOZ_ASSERT(aLayerMetrics.Metrics().GetFixedLayerMargins() ==
@@ -2568,8 +2568,10 @@ void APZCTreeManager::ZoomToRect(const ScrollableLayerGuid& aGuid,
       apzc = FindZoomableApzc(apzc);
       if (apzc) {
         uint32_t flags = aFlags;
-        if (mIsSoftwareKeyboardVisible &&
-            mInteractiveWidget == dom::InteractiveWidget::ResizesVisual) {
+        MutexAutoLock lock(mMapLock);
+        if (IsSoftwareKeyboardVisible(lock) &&
+            InteractiveWidgetMode(lock) ==
+                dom::InteractiveWidget::ResizesVisual) {
           flags |= ZOOM_TO_FOCUSED_INPUT_ON_RESIZES_VISUAL;
         }
         apzc->ZoomToRect(zoomTarget, flags);
@@ -3854,8 +3856,9 @@ ScreenPoint APZCTreeManager::ComputeFixedMarginsOffset(
   // If the software keyboard is visible and the interactive-widget is not
   // resizes-content, we don't need to move the position:fixed or sticky
   // elements at all.
-  if (mIsSoftwareKeyboardVisible &&
-      mInteractiveWidget != dom::InteractiveWidget::ResizesContent) {
+  if (IsSoftwareKeyboardVisible(aProofOfMapLock) &&
+      InteractiveWidgetMode(aProofOfMapLock) !=
+          dom::InteractiveWidget::ResizesContent) {
     return ScreenPoint(0, 0);
   }
 
