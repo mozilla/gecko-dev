@@ -383,6 +383,7 @@ class DCSwapChain : public DCSurface {
   wr::DeviceIntSize mSize;
   RefPtr<IDXGISwapChain1> mSwapChain;
   EGLSurface mEGLSurface;
+  bool mFirstPresent = true;
 };
 
 /**

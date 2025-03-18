@@ -1483,6 +1483,28 @@ void DCSwapChain::Present() {
   HRESULT hr = mSwapChain->Present(0, 0);
   MOZ_RELEASE_ASSERT(SUCCEEDED(hr));
 
+  if (mFirstPresent) {
+    mFirstPresent = false;
+
+    // Wait for the GPU to finish executing its commands before
+    // committing the DirectComposition tree, or else the swapchain
+    // may flicker black when it's first presented.
+    auto* device = mDCLayerTree->GetDevice();
+    RefPtr<IDXGIDevice2> dxgiDevice2;
+    device->QueryInterface((IDXGIDevice2**)getter_AddRefs(dxgiDevice2));
+    MOZ_ASSERT(dxgiDevice2);
+
+    HANDLE event = ::CreateEvent(nullptr, false, false, nullptr);
+    hr = dxgiDevice2->EnqueueSetEvent(event);
+    if (SUCCEEDED(hr)) {
+      DebugOnly<DWORD> result = ::WaitForSingleObject(event, INFINITE);
+      MOZ_ASSERT(result == WAIT_OBJECT_0);
+    } else {
+      gfxCriticalNoteOnce << "EnqueueSetEvent failed: " << gfx::hexa(hr);
+    }
+    ::CloseHandle(event);
+  }
+
   gle->SetEGLSurfaceOverride(EGL_NO_SURFACE);
 }
 
