@@ -267,6 +267,8 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "GPUError", nightly: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "GPUExternalTexture", nightly: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "GPUInternalError", nightly: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "GPUMapMode", nightly: true },

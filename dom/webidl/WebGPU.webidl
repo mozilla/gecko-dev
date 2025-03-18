@@ -443,6 +443,12 @@ enum GPUTextureFormat {
 
 [Func="mozilla::webgpu::Instance::PrefEnabled",
  Exposed=(Window, Worker), SecureContext]
+interface GPUExternalTexture {
+};
+GPUExternalTexture includes GPUObjectBase;
+
+[Func="mozilla::webgpu::Instance::PrefEnabled",
+ Exposed=(Window, Worker), SecureContext]
 interface GPUSampler {
 };
 GPUSampler includes GPUObjectBase;
