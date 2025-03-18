@@ -73,8 +73,6 @@ skip-if = [
   "os == 'win' && os_version == '11.26100' && opt", # Bug 1898739
 ]
 
-["browser_tools_migration.js"]
-
 ["browser_tools_overflow.js"]
 
 ["browser_verticalTabs_widget_placements.js"]
