@@ -46,7 +46,7 @@ bool TrapSitesForKind::lookup(uint32_t trapInstructionOffset,
                    &match)) {
     TrapSiteDesc desc;
     desc.bytecodeOffset = bytecodeOffsets_[match];
-    if (auto lookup = inlinedCallerOffsets_.lookup(match)) {
+    if (auto lookup = inlinedCallerOffsets_.readonlyThreadsafeLookup(match)) {
       desc.inlinedCallerOffsets = lookup->value();
     }
     *trapOut = desc;

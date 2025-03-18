@@ -293,7 +293,7 @@ class StackMaps {
   }
 
   const StackMap* lookup(uint32_t codeOffset) const {
-    auto ptr = mapping_.lookup(codeOffset);
+    auto ptr = mapping_.readonlyThreadsafeLookup(codeOffset);
     if (!ptr) {
       return nullptr;
     }

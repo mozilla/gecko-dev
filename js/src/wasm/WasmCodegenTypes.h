@@ -1036,7 +1036,7 @@ class CallSites {
 
   CallSite operator[](size_t index) const {
     SharedBytecodeOffsetVector inlinedCallerOffsets;
-    if (auto entry = inlinedCallerOffsets_.lookup(index)) {
+    if (auto entry = inlinedCallerOffsets_.readonlyThreadsafeLookup(index)) {
       inlinedCallerOffsets = entry->value();
     }
     return CallSite(CallSiteDesc(lineOrBytecodes_[index], inlinedCallerOffsets,
