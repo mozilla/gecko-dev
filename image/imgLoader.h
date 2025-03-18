@@ -244,7 +244,40 @@ class imgLoader final : public imgILoader,
   imgLoader();
   nsresult Init();
 
-  nsresult ClearCache(mozilla::Maybe<bool> chrome);
+  /**
+   * Clear cache that matches the specified filters.
+   * If called on the parent process, clear cache from all processes.
+   * If called in the content process, clear cache within the process.
+   *
+   * @param aPrivateLoader
+   *        If specified and true, clear private loader.
+   *        If specified and false, clear normal loader.
+   *        If not specified, clear both loaders.
+   *        Has no effect with aPrincipal.
+   * @param aChrome
+   *        If specified and true, clear chrome cache.
+   *        If specified and false, clear content cache.
+   *        If not specified, clear both.
+   *        Has no effect with aPrincipal or aSchemelessSite.
+   * @param aPrincipal
+   *        If specified, clear cache from the same origin and the same
+   *        originAttributes of the passed principal.
+   *        Exclusive with aSchemelessSite.
+   * @param aSchemelessSite
+   *        If specified, clear cache which match the the given site.
+   *        If this is specified, aPattern should also be specified.
+   *        Exclusive with aPrincipal.
+   * @param aPattern
+   *        The pattern used with aSchemelessSite.
+   */
+  static nsresult ClearCache(
+      mozilla::Maybe<bool> aPrivateLoader = mozilla::Nothing(),
+      mozilla::Maybe<bool> aChrome = mozilla::Nothing(),
+      const mozilla::Maybe<nsCOMPtr<nsIPrincipal>>& aPrincipal =
+          mozilla::Nothing(),
+      const mozilla::Maybe<nsCString>& aSchemelessSite = mozilla::Nothing(),
+      const mozilla::Maybe<mozilla::OriginAttributesPattern>& aPattern =
+          mozilla::Nothing());
 
   bool IsImageAvailable(nsIURI*, nsIPrincipal* aTriggeringPrincipal,
                         mozilla::CORSMode, mozilla::dom::Document*);

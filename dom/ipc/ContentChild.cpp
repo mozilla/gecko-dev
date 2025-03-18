@@ -2106,35 +2106,13 @@ mozilla::ipc::IPCResult ContentChild::RecvClearScriptCache(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult ContentChild::RecvClearImageCacheFromPrincipal(
-    nsIPrincipal* aPrincipal) {
-  imgLoader* loader;
-  if (aPrincipal->OriginAttributesRef().IsPrivateBrowsing()) {
-    loader = imgLoader::PrivateBrowsingLoader();
-  } else {
-    loader = imgLoader::NormalLoader();
-  }
-
-  loader->RemoveEntriesInternal(Some(aPrincipal), Nothing(), Nothing());
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult ContentChild::RecvClearImageCacheFromSite(
-    const nsCString& aSchemelessSite, const OriginAttributesPattern& aPattern) {
-  imgLoader::NormalLoader()->RemoveEntriesInternal(
-      Nothing(), Some(aSchemelessSite), Some(aPattern));
-  imgLoader::PrivateBrowsingLoader()->RemoveEntriesInternal(
-      Nothing(), Some(aSchemelessSite), Some(aPattern));
-
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult ContentChild::RecvClearImageCache(
-    const bool& privateLoader, const mozilla::Maybe<bool>& chrome) {
-  imgLoader* loader = privateLoader ? imgLoader::PrivateBrowsingLoader()
-                                    : imgLoader::NormalLoader();
-
-  loader->ClearCache(chrome);
+    const Maybe<bool>& aPrivateLoader, const Maybe<bool>& aChrome,
+    const Maybe<RefPtr<nsIPrincipal>>& aPrincipal,
+    const Maybe<nsCString>& aSchemelessSite,
+    const Maybe<OriginAttributesPattern>& aPattern) {
+  imgLoader::ClearCache(aPrincipal, aChrome, aPrincipal, aSchemelessSite,
+                        aPattern);
   return IPC_OK();
 }
 

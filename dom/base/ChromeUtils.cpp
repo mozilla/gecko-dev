@@ -1617,8 +1617,7 @@ void ChromeUtils::ClearResourceCache(GlobalObject&,
   Maybe<bool> chrome = aChrome.WasPassed() ? Some(aChrome.Value()) : Nothing();
   SharedStyleSheetCache::Clear(chrome);
   SharedScriptCache::Clear(chrome);
-  imgLoader::PrivateBrowsingLoader()->ClearCache(chrome);
-  imgLoader::NormalLoader()->ClearCache(chrome);
+  imgLoader::ClearCache(Nothing(), chrome);
 }
 
 #define PROCTYPE_TO_WEBIDL_CASE(_procType, _webidl) \

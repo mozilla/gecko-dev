@@ -1372,17 +1372,28 @@ imgLoader::Observe(nsISupports* aSubject, const char* aTopic,
 }
 
 NS_IMETHODIMP
-imgLoader::ClearCache(JS::Handle<JS::Value> chrome) {
-  return ClearCache(chrome.isBoolean() ? Some(chrome.toBoolean()) : Nothing());
-}
+imgLoader::ClearCache(JS::Handle<JS::Value> aChrome) {
+  nsresult rv = NS_OK;
 
-nsresult imgLoader::ClearCache(mozilla::Maybe<bool> chrome) {
+  Maybe<bool> chrome =
+      aChrome.isBoolean() ? Some(aChrome.toBoolean()) : Nothing();
   if (XRE_IsParentProcess()) {
     bool privateLoader = this == gPrivateBrowsingLoader;
-    for (auto* cp : ContentParent::AllProcesses(ContentParent::eLive)) {
-      Unused << cp->SendClearImageCache(privateLoader, chrome);
+    rv = ClearCache(Some(privateLoader), chrome, Nothing(), Nothing(),
+                    Nothing());
+
+    if (this == gNormalLoader || this == gPrivateBrowsingLoader) {
+      return rv;
     }
+
+    // NOTE: There can be other loaders created with
+    //       Cc["@mozilla.org/image/loader;1"].createInstance(Ci.imgILoader).
+    //       If ClearCache is called on them, the above static ClearCache
+    //       doesn't handle it, and ClearImageCache needs to be called on
+    //       the current instance.
+    //       The favicon handling and some tests can create such loaders.
   }
+
   ClearOptions options;
   if (chrome) {
     if (*chrome) {
@@ -1391,7 +1402,74 @@ nsresult imgLoader::ClearCache(mozilla::Maybe<bool> chrome) {
       options += ClearOption::ContentOnly;
     }
   }
-  return ClearImageCache(options);
+  nsresult rv2 = ClearImageCache(options);
+
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  return rv2;
+}
+
+/*static */
+nsresult imgLoader::ClearCache(
+    mozilla::Maybe<bool> aPrivateLoader /* = mozilla::Nothing() */,
+    mozilla::Maybe<bool> aChrome /* = mozilla::Nothing() */,
+    const mozilla::Maybe<nsCOMPtr<nsIPrincipal>>&
+        aPrincipal /* = mozilla::Nothing() */,
+    const mozilla::Maybe<nsCString>& aSchemelessSite /* = mozilla::Nothing() */,
+    const mozilla::Maybe<mozilla::OriginAttributesPattern>&
+        aPattern /* = mozilla::Nothing() */) {
+  if (XRE_IsParentProcess()) {
+    for (auto* cp : ContentParent::AllProcesses(ContentParent::eLive)) {
+      Unused << cp->SendClearImageCache(aPrivateLoader, aChrome, aPrincipal,
+                                        aSchemelessSite, aPattern);
+    }
+  }
+
+  if (aPrincipal) {
+    imgLoader* loader;
+    if ((*aPrincipal)->OriginAttributesRef().IsPrivateBrowsing()) {
+      loader = imgLoader::PrivateBrowsingLoader();
+    } else {
+      loader = imgLoader::NormalLoader();
+    }
+
+    loader->RemoveEntriesInternal(aPrincipal, Nothing(), Nothing());
+    return NS_OK;
+  }
+
+  if (aSchemelessSite) {
+    if (!aPrivateLoader || !*aPrivateLoader) {
+      nsresult rv = imgLoader::NormalLoader()->RemoveEntriesInternal(
+          Nothing(), aSchemelessSite, aPattern);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    if (!aPrivateLoader || *aPrivateLoader) {
+      nsresult rv = imgLoader::PrivateBrowsingLoader()->RemoveEntriesInternal(
+          Nothing(), aSchemelessSite, aPattern);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    return NS_OK;
+  }
+
+  ClearOptions options;
+  if (aChrome) {
+    if (*aChrome) {
+      options += ClearOption::ChromeOnly;
+    } else {
+      options += ClearOption::ContentOnly;
+    }
+  }
+
+  if (!aPrivateLoader || !*aPrivateLoader) {
+    nsresult rv = imgLoader::NormalLoader()->ClearImageCache(options);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  if (!aPrivateLoader || *aPrivateLoader) {
+    nsresult rv = imgLoader::PrivateBrowsingLoader()->ClearImageCache(options);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -1400,18 +1478,8 @@ imgLoader::RemoveEntriesFromPrincipalInAllProcesses(nsIPrincipal* aPrincipal) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  for (auto* cp : ContentParent::AllProcesses(ContentParent::eLive)) {
-    Unused << cp->SendClearImageCacheFromPrincipal(aPrincipal);
-  }
-
-  imgLoader* loader;
-  if (aPrincipal->OriginAttributesRef().IsPrivateBrowsing()) {
-    loader = imgLoader::PrivateBrowsingLoader();
-  } else {
-    loader = imgLoader::NormalLoader();
-  }
-
-  return loader->RemoveEntriesInternal(Some(aPrincipal), Nothing(), Nothing());
+  nsCOMPtr<nsIPrincipal> principal = aPrincipal;
+  return ClearCache(Nothing(), Nothing(), Some(principal));
 }
 
 NS_IMETHODIMP
@@ -1428,12 +1496,8 @@ imgLoader::RemoveEntriesFromSiteInAllProcesses(
     return NS_ERROR_INVALID_ARG;
   }
 
-  for (auto* cp : ContentParent::AllProcesses(ContentParent::eLive)) {
-    Unused << cp->SendClearImageCacheFromSite(aSchemelessSite, pattern);
-  }
-
-  return RemoveEntriesInternal(Nothing(), Some(nsCString(aSchemelessSite)),
-                               Some(pattern));
+  return ClearCache(Nothing(), Nothing(), Nothing(),
+                    Some(nsCString(aSchemelessSite)), Some(pattern));
 }
 
 nsresult imgLoader::RemoveEntriesInternal(

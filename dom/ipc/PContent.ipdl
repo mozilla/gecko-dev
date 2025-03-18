@@ -654,11 +654,11 @@ child:
                          OverrideMapping[] overrides, nsCString locale, bool reset);
     async RegisterChromeItem(ChromeRegistryItem item);
 
-    async ClearImageCacheFromPrincipal(nullable nsIPrincipal aPrincipal);
-
-    async ClearImageCacheFromSite(nsCString aSchemelessSite, OriginAttributesPattern aPattern);
-
-    async ClearImageCache(bool privateLoader, bool? chrome);
+    async ClearImageCache(bool? privateLoader,
+                          bool? aChrome,
+                          nullable nsIPrincipal? aPrincipal,
+                          nsCString? aSchemelessSite,
+                          OriginAttributesPattern? aPattern);
 
     async ClearStyleSheetCache(bool? aChrome,
                                nullable nsIPrincipal? aPrincipal,

@@ -256,13 +256,11 @@ class ContentChild final : public PContentChild,
       const Maybe<nsCString>& aSchemelessSite,
       const Maybe<OriginAttributesPattern>& aPattern);
 
-  mozilla::ipc::IPCResult RecvClearImageCacheFromPrincipal(
-      nsIPrincipal* aPrincipal);
-  mozilla::ipc::IPCResult RecvClearImageCacheFromSite(
-      const nsCString& aSchemelessSite,
-      const OriginAttributesPattern& aPattern);
-  mozilla::ipc::IPCResult RecvClearImageCache(const bool& privateLoader,
-                                              const Maybe<bool>& chrome);
+  mozilla::ipc::IPCResult RecvClearImageCache(
+      const Maybe<bool>& aPrivateLoader, const Maybe<bool>& aChrome,
+      const Maybe<RefPtr<nsIPrincipal>>& aPrincipal,
+      const Maybe<nsCString>& aSchemelessSite,
+      const Maybe<OriginAttributesPattern>& aPattern);
 
   PRemoteSpellcheckEngineChild* AllocPRemoteSpellcheckEngineChild();
 
