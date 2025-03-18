@@ -3882,9 +3882,12 @@ class Document : public nsINode,
     return mActiveViewTransition;
   }
   void ClearActiveViewTransition();
-  void PerformPendingViewTransitionOperations();
+  MOZ_CAN_RUN_SCRIPT void PerformPendingViewTransitionOperations();
   void EnsureViewTransitionOperationsHappen();
   void MaybeSkipTransitionAfterVisibilityChange();
+
+  void ScheduleViewTransitionUpdateCallback(ViewTransition* aVt);
+  MOZ_CAN_RUN_SCRIPT void FlushViewTransitionUpdateCallbackQueue();
 
   // Getter for PermissionDelegateHandler. Performs lazy initialization.
   PermissionDelegateHandler* GetPermissionDelegateHandler();
@@ -5439,8 +5442,12 @@ class Document : public nsINode,
 
   RefPtr<HTMLAllCollection> mAll;
 
+  // The active view transition.
   // https://drafts.csswg.org/css-view-transitions-1/#document-active-view-transition
   RefPtr<ViewTransition> mActiveViewTransition;
+  // The update callback queue.
+  // https://drafts.csswg.org/css-view-transitions-1/#document-update-callback-queue
+  nsTArray<RefPtr<ViewTransition>> mViewTransitionUpdateCallbacks;
 
   nsTHashSet<RefPtr<WorkerDocumentListener>> mWorkerListeners;
 
