@@ -493,6 +493,31 @@ add_task(async function test_onSearchIncrement() {
   BrowserTestUtils.removeTab(tab);
 });
 
+add_task(async function test_onSearchIncrement_cap() {
+  const cap = 100;
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+  Services.prefs.setIntPref("browser.search.totalSearches", cap);
+
+  const onLoaded = BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+  let SEARCH_TERM = "test search term";
+  gURLBar.value = SEARCH_TERM;
+  gURLBar.focus();
+  EventUtils.synthesizeKey("KEY_Enter");
+  await onLoaded;
+
+  const totalSearches = Services.prefs.getIntPref(
+    "browser.search.totalSearches",
+    0
+  );
+  Assert.equal(
+    totalSearches,
+    cap,
+    `Total searches has not incremented past ${cap}`
+  );
+
+  BrowserTestUtils.removeTab(tab);
+});
+
 add_task(async function test_onSearchTrigger() {
   const sandbox = sinon.createSandbox();
 

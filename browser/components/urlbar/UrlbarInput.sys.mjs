@@ -2958,7 +2958,7 @@ export class UrlbarInput {
       "browser.search.totalSearches"
     );
     const totalSearchesCap = 100;
-    if (totalSearches <= totalSearchesCap) {
+    if (totalSearches < totalSearchesCap) {
       Services.prefs.setIntPref(
         "browser.search.totalSearches",
         totalSearches + 1
