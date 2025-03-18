@@ -104,7 +104,7 @@ tasks:
             upstream_kind: repackage-signing
             upstream_artifact: target.installer.exe
             binary: core/firefox.exe
-        worker-type: win11-64-2009-source
+        worker-type: win11-64-24h2-source
         shipping-product: firefox
         attributes:
             build_platform: win32-shippable
@@ -121,7 +121,7 @@ tasks:
             upstream_kind: repackage-signing
             upstream_artifact: target.installer.exe
             binary: core/firefox.exe
-        worker-type: win11-64-2009-source
+        worker-type: win11-64-24h2-source
         shipping-product: firefox
         attributes:
             build_platform: win64-shippable
