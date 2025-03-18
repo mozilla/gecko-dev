@@ -32,8 +32,51 @@ add_task(async function test_save_doorhanger_supported_region() {
         },
       });
       await onPopupShown;
+      await clickDoorhangerButton(MAIN_BUTTON, 0);
     }
   );
+
+  await expectSavedAddressesCount(1);
+  await removeAllRecords();
+});
+
+add_task(async function test_save_doorhanger_supported_region_from_pref() {
+  const initialHomeRegion = Region._home;
+  const initialCurrentRegion = Region._current;
+  const region = "US";
+  Region._setCurrentRegion(region);
+  Region._setHomeRegion(region);
+
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: ADDRESS_FORM_URL },
+    async function (browser) {
+      // Remove the country field
+      await SpecialPowers.spawn(browser, [], async function () {
+        let countryField = content.document.getElementById("country");
+        countryField.remove();
+      });
+
+      const onPopupShown = waitForPopupShown();
+
+      await focusUpdateSubmitForm(browser, {
+        focusSelector: "#given-name",
+        newValues: {
+          "#given-name": "John",
+          "#family-name": "Doe",
+          "#organization": "Mozilla",
+          "#street-address": "123 Sesame Street",
+        },
+      });
+      await onPopupShown;
+      await clickDoorhangerButton(MAIN_BUTTON, 0);
+    }
+  );
+
+  Region._setCurrentRegion(initialHomeRegion);
+  Region._setHomeRegion(initialCurrentRegion);
+
+  await expectSavedAddressesCount(1);
+  await removeAllRecords();
 });
 
 /**
