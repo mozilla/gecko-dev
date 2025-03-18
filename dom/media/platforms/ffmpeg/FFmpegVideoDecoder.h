@@ -164,9 +164,7 @@ class FFmpegVideoDecoder<LIBAV_VER>
                                MediaDataDecoder::DecodedData& aResults);
   bool CanUseZeroCopyVideoFrame() const;
 
-  int32_t mTextureAlignment;
   AVBufferRef* mD3D11VADeviceContext = nullptr;
-  AVBufferRef* mD3D11VAHWFrameContext = nullptr;
   RefPtr<ID3D11Device> mDevice;
   UniquePtr<DXVA2Manager> mDXVA2Manager;
   // Number of HW Textures are already in use by Gecko

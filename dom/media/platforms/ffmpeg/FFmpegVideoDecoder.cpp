@@ -1817,8 +1817,6 @@ void FFmpegVideoDecoder<LIBAV_VER>::ProcessShutdown() {
     d3d11vactx->device = nullptr;
     mLib->av_buffer_unref(&mD3D11VADeviceContext);
     mD3D11VADeviceContext = nullptr;
-    mLib->av_buffer_unref(&mD3D11VAHWFrameContext);
-    mD3D11VAHWFrameContext = nullptr;
   }
 #endif
   FFmpegDataDecoder<LIBAV_VER>::ProcessShutdown();
@@ -2063,10 +2061,6 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitD3D11VADecoder() {
       mLib->av_buffer_unref(&mD3D11VADeviceContext);
       mD3D11VADeviceContext = nullptr;
     }
-    if (mD3D11VAHWFrameContext) {
-      mLib->av_buffer_unref(&mD3D11VAHWFrameContext);
-      mD3D11VAHWFrameContext = nullptr;
-    }
     mDXVA2Manager.reset();
   });
 
@@ -2101,47 +2095,6 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitD3D11VADecoder() {
   }
 
   mCodecContext->hw_device_ctx = mLib->av_buffer_ref(mD3D11VADeviceContext);
-
-  FFMPEG_LOG("  creating hwframe context");
-  mD3D11VAHWFrameContext = mLib->av_hwframe_ctx_alloc(mD3D11VADeviceContext);
-  if (!mD3D11VAHWFrameContext) {
-    FFMPEG_LOG("  av_hwframe_ctx_alloc failed.");
-    return NS_ERROR_DOM_MEDIA_FATAL_ERR;
-  }
-
-  AVHWFramesContext* framesContext =
-      (AVHWFramesContext*)mD3D11VAHWFrameContext->data;
-  framesContext->format = AV_PIX_FMT_D3D11;
-  if (mInfo.mColorDepth == gfx::ColorDepth::COLOR_10) {
-    framesContext->sw_format = AV_PIX_FMT_P010;
-  } else {
-    MOZ_ASSERT(mInfo.mColorDepth == gfx::ColorDepth::COLOR_8);
-    framesContext->sw_format = AV_PIX_FMT_NV12;
-  }
-
-  // See
-  // https://github.com/FFmpeg/FFmpeg/blob/a234e5cd80224c95a205c1f3e297d8c04a1374c3/libavcodec/dxva2.c#L609-L616
-  if (mCodecID == AV_CODEC_ID_AV1) {
-    mTextureAlignment = 128;
-  } else {
-    mTextureAlignment = 16;
-  }
-  framesContext->width = FFALIGN(mCodecContext->width, mTextureAlignment);
-  framesContext->height = FFALIGN(mCodecContext->height, mTextureAlignment);
-
-  AVD3D11VAFramesContext* d3d11vaFramesContext =
-      (AVD3D11VAFramesContext*)framesContext->hwctx;
-  d3d11vaFramesContext->BindFlags |= D3D11_BIND_DECODER;
-  if (CanUseZeroCopyVideoFrame()) {
-    d3d11vaFramesContext->BindFlags |= D3D11_BIND_SHADER_RESOURCE;
-  }
-
-  int err = mLib->av_hwframe_ctx_init(mD3D11VAHWFrameContext);
-  if (err < 0) {
-    FFMPEG_LOG("  av_hwframe_ctx_init failed. err=%d", err);
-    return NS_ERROR_DOM_MEDIA_FATAL_ERR;
-  }
-
   MediaResult ret = AllocateExtraData();
   if (NS_FAILED(ret)) {
     FFMPEG_LOG("  failed to allocate extradata.");
