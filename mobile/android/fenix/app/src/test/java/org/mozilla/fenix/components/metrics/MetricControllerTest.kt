@@ -805,6 +805,16 @@ class MetricControllerTest {
 
         assertNotNull(Awesomebar.topSiteSuggestionClicked.testGetValue())
 
+        // Verify recent search suggestion action clicked
+        assertNull(Awesomebar.recentSearchSuggestionClicked.testGetValue())
+        fact = Fact(Component.FEATURE_AWESOMEBAR, Action.CANCEL, AwesomeBarFacts.Items.RECENT_SEARCH_SUGGESTION_CLICKED)
+
+        with(controller) {
+            fact.process()
+        }
+
+        assertNotNull(Awesomebar.recentSearchSuggestionClicked.testGetValue())
+
         // Verify bookmark opened tab suggestion clicked
         assertNull(Awesomebar.openedTabSuggestionClicked.testGetValue())
         fact = Fact(Component.FEATURE_AWESOMEBAR, Action.CANCEL, AwesomeBarFacts.Items.OPENED_TAB_SUGGESTION_CLICKED)
