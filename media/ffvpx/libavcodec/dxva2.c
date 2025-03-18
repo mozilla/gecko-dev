@@ -647,6 +647,7 @@ int ff_dxva2_common_frame_params(AVCodecContext *avctx,
         AVD3D11VAFramesContext *frames_hwctx = frames_ctx->hwctx;
 
         frames_hwctx->BindFlags |= D3D11_BIND_DECODER;
+        frames_hwctx->BindFlags |= D3D11_BIND_SHADER_RESOURCE;
     }
 #endif
 
