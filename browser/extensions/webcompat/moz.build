@@ -135,6 +135,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["js"] += [
     "injections/js/bug1924500-www.tiktok.com-fix-captcha-slider.js",
     "injections/js/bug1927984-modules.sms-timing.com-chrome-shim.js",
     "injections/js/bug1928216-voice.google.com-permissions.query.js",
+    "injections/js/bug1928941-oasis.decart.ai-window-chrome-shim.js",
     "injections/js/bug1930440-online.singaporepools.com-prevent-unsupported-alert.js",
     "injections/js/bug1939248-rosasthai.com-load-event-helper.js",
     "injections/js/bug1943898-www.capital.gr-suppress-constant-reloading.js",
