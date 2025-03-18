@@ -108,16 +108,10 @@ add_task(async function test_tabs() {
   for (const [i, client] of tabClients.entries()) {
     const card = component.cards[i];
     Assert.equal(card.heading, client.name, "Device name is correct.");
-    await BrowserTestUtils.waitForMutationCondition(
-      card.querySelector("sidebar-tab-list").shadowRoot,
-      { childList: true },
-      () => {
-        const { rowEls } = card.querySelector("sidebar-tab-list");
-        return rowEls.length === client.tabs.length && rowEls;
-      },
-      "Device has the correct number of tabs."
-    );
-    const rows = card.querySelector("sidebar-tab-list").rowEls;
+    const rows = await TestUtils.waitForCondition(() => {
+      const { rowEls } = card.querySelector("sidebar-tab-list");
+      return rowEls.length === client.tabs.length && rowEls;
+    }, "Device has the correct number of tabs.");
     for (const [j, row] of rows.entries()) {
       const tabData = client.tabs[j];
       Assert.equal(row.title, tabData.title, `Tab ${j + 1} has correct title.`);
@@ -136,7 +130,7 @@ add_task(async function test_tabs() {
       // to ensure we properly test that path
       if (client.id === 2) {
         Assert.ok(
-          !row.secondaryButtonEl,
+          !row.renderRoot.querySelector(".dismiss-button"),
           `Dismiss button should NOT appear for tab ${
             j + 1
           } on the client that does not have available commands.`
@@ -144,46 +138,37 @@ add_task(async function test_tabs() {
       } else {
         // We need to use renderRoot since Lit components querySelector
         // won't return the right things
-        await BrowserTestUtils.waitForMutationCondition(
-          row.shadowRoot,
-          { childList: true },
-          () => row.secondaryButtonEl,
+        await BrowserTestUtils.waitForCondition(
+          () => row.renderRoot.querySelector(".dismiss-button") !== null,
           `Dismiss button should appear for tab ${j + 1}`
         );
         // Check the presence of the dismiss button
-        const dismissButton = row.secondaryButtonEl;
+        const dismissButton = row.renderRoot.querySelector(".dismiss-button");
         Assert.ok(dismissButton, `Dismiss button is present on tab ${j + 1}.`);
         // Simulate clicking the dismiss button
         EventUtils.synthesizeMouseAtCenter(dismissButton, {}, content);
 
-        await BrowserTestUtils.waitForMutationCondition(
-          row.secondaryButtonEl,
-          { attributes: true },
+        await TestUtils.waitForCondition(
           () => {
-            const undoButton = row.secondaryButtonEl;
-            return (
-              undoButton.classList.contains("undo-button") &&
-              undoButton.style.display !== "none"
-            );
+            const undoButton = row.renderRoot.querySelector(".undo-button");
+            return undoButton && undoButton.style.display !== "none";
           },
           `Undo button is shown after dismissing tab ${j + 1}.`
         );
 
         // Simulate clicking the undo button
-        const undoButton = row.secondaryButtonEl;
+        const undoButton = row.renderRoot.querySelector(".undo-button");
         EventUtils.synthesizeMouseAtCenter(
           row.mainEl,
           { type: "mouseover" },
           content
         );
         EventUtils.synthesizeMouseAtCenter(undoButton, {}, content);
-        await BrowserTestUtils.waitForMutationCondition(
-          row.secondaryButtonEl,
-          { attributes: true },
+        await TestUtils.waitForCondition(
           () => {
             return (
-              row.secondaryButtonEl.classList.contains("dismiss-button") &&
-              !row.secondaryButtonEl.classList.contains("undo-button")
+              row.renderRoot.querySelector(".dismiss-button") &&
+              !row.renderRoot.querySelector(".undo-button")
             );
           },
           `Dismiss button is restored after undoing tab ${j + 1}.`
