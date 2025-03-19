@@ -1063,7 +1063,13 @@ pref("browser.tabs.groups.enabled", true);
 #else
 pref("browser.tabs.groups.enabled", false);
 #endif
+
+// Pref to control whether Smart Tab Grouping is enabled in the UI.
+// This must be on (or overriden by RemoteSettings) to show the UI for Smart Tab Grouping
 pref("browser.tabs.groups.smart.enabled", false);
+
+// User setting for Smart Tab Grouping to turn on and off in settings
+pref("browser.tabs.groups.smart.userEnabled", true);
 
 pref("browser.tabs.groups.dragOverDelayMS", 240);
 pref("browser.tabs.dragdrop.moveOverThresholdPercent", 80);
