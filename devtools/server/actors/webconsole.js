@@ -1617,7 +1617,7 @@ class WebConsoleActor extends Actor {
             // We need to load sub-properties as well to render the table in a nice way.
             const actor =
               grip && this.targetActor.objectsPool.getActorByID(grip.actor);
-            if (actor) {
+            if (actor && typeof actor.enumProperties === "function") {
               const res = actor
                 .enumProperties({
                   ignoreNonIndexedProperties: isArray(grip),

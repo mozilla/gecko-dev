@@ -34,6 +34,7 @@ function doConsoleCalls()
   top.console.trace();
   top.console.dir(top.document, top.location);
   top.console.log("foo", longString);
+  top.console.table([Symbol("apples"), Symbol("bananas")]);
 
   const sandbox = new Cu.Sandbox(null, { invisibleToDebugger: true });
   const sandboxObj = sandbox.eval("new Object");
@@ -131,6 +132,18 @@ function doConsoleCalls()
             DevToolsServer.LONG_STRING_INITIAL_LENGTH),
           length: longString.length,
           actor: /[a-z]/,
+        },
+      ],
+    },
+    {
+      level: "table",
+      filename: /test_consoleapi/,
+      timeStamp: FRACTIONAL_NUMBER_REGEX,
+      arguments: [
+        {
+          type: "object",
+          actor: /[a-z]/,
+          class: "Array",
         },
       ],
     },

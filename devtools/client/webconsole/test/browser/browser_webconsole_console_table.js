@@ -375,7 +375,8 @@ add_task(async function () {
     },
     {
       info: "Testing performance entries",
-      input: "PERFORMANCE_ENTRIES",
+      evalInput: true,
+      input: `performance.getEntriesByType("navigation")`,
       headers: [
         "name",
         "entryType",
@@ -397,17 +398,36 @@ add_task(async function () {
         rows: [[0, "navigation", /\d+/, /\d+/, /\d+/, TEST_URI, "navigation"]],
       },
     },
+    {
+      // Bug 1953942
+      info: "Testing with array of Symbols",
+      evalInput: true,
+      input: `[Symbol("apricots"), Symbol("pears"), Symbol("raspberries")]`,
+      expected: {
+        columns: ["(index)", "Values"],
+        rows: [
+          ["0", `Symbol("apricots")`],
+          ["1", `Symbol("pears")`],
+          ["2", `Symbol("raspberries")`],
+        ],
+      },
+    },
   ];
 
   await SpecialPowers.spawn(
     gBrowser.selectedBrowser,
-    [testCases.map(({ input, headers }) => ({ input, headers }))],
+    [
+      testCases.map(({ input, evalInput, headers }) => ({
+        input,
+        evalInput,
+        headers,
+      })),
+    ],
     function (tests) {
       tests.forEach(test => {
-        let { input, headers } = test;
-        if (input === "PERFORMANCE_ENTRIES") {
-          input =
-            content.wrappedJSObject.performance.getEntriesByType("navigation");
+        let { input, headers, evalInput } = test;
+        if (evalInput) {
+          input = content.wrappedJSObject.eval(input);
         }
         content.wrappedJSObject.doConsoleTable(input, headers);
       });

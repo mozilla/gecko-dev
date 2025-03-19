@@ -195,7 +195,7 @@ function getConsoleTableMessageItems(targetActor, result) {
           // We need to load sub-properties as well to render the table in a nice way.
           const actor =
             grip && targetActor.objectsPool.getActorByID(grip.actor);
-          if (actor) {
+          if (actor && typeof actor.enumProperties === "function") {
             const res = actor
               .enumProperties({
                 ignoreNonIndexedProperties: isArray(grip),
