@@ -3,6 +3,8 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<?csp default-src chrome:; style-src chrome: 'unsafe-inline'; ?>
+
 <!DOCTYPE dialog>
 
 <window
@@ -12,7 +14,6 @@
   data-l10n-id="devmgr-window"
   data-l10n-attrs="style"
   persist="screenX screenY width height"
-  onload="LoadModules();"
 >
   <dialog id="devicemanager" buttons="accept">
     <linkset>
@@ -31,7 +32,6 @@
       <tree
         id="device_tree"
         seltype="single"
-        onselect="enableButtons();"
         hidecolumnpicker="true"
         flex="1"
         style="min-width: 15em"
@@ -75,37 +75,25 @@
         <button
           id="login_button"
           data-l10n-id="devmgr-button-login"
-          oncommand="doLogin();"
           disabled="true"
         />
         <button
           id="logout_button"
           data-l10n-id="devmgr-button-logout"
-          oncommand="doLogout();"
           disabled="true"
         />
         <button
           id="change_pw_button"
           data-l10n-id="devmgr-button-changepw"
-          oncommand="changePassword();"
           disabled="true"
         />
-        <button
-          id="load_button"
-          data-l10n-id="devmgr-button-load"
-          oncommand="doLoad();"
-        />
+        <button id="load_button" data-l10n-id="devmgr-button-load" />
         <button
           id="unload_button"
           data-l10n-id="devmgr-button-unload"
-          oncommand="doUnload();"
           disabled="true"
         />
-        <button
-          id="fipsbutton"
-          data-l10n-id="devmgr-button-enable-fips"
-          oncommand="toggleFIPS();"
-        />
+        <button id="fipsbutton" data-l10n-id="devmgr-button-enable-fips" />
       </vbox>
       <!-- / Buttons for manipulating devices -->
     </hbox>

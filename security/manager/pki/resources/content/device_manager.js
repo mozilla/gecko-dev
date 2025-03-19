@@ -16,6 +16,38 @@ function LoadModules() {
     Ci.nsIPKCS11ModuleDB
   );
   RefreshDeviceList();
+
+  document
+    .getElementById("device_tree")
+    .addEventListener("select", () => enableButtons());
+  document
+    .getElementById("devicemanager")
+    .addEventListener("command", event => {
+      switch (event.target.id) {
+        case "login_button":
+          doLogin();
+          break;
+        case "logout_button":
+          doLogout();
+          break;
+        case "change_pw_button":
+          changePassword();
+          break;
+        case "load_button":
+          doLoad();
+          break;
+        case "unload_button":
+          doUnload();
+          break;
+        case "fipsbutton":
+          toggleFIPS();
+          break;
+        default:
+          // Default means that we are not handling a command so we should
+          // probably let people know.
+          throw new Error("Unhandled command event");
+      }
+    });
 }
 
 async function doPrompt(l10n_id) {
@@ -431,3 +463,5 @@ function toggleFIPS() {
 
   RefreshDeviceList();
 }
+
+window.addEventListener("load", () => LoadModules());
