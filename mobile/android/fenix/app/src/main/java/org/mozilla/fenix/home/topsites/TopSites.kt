@@ -122,7 +122,7 @@ fun TopSites(
  * menu item.
  * @param onTopSitesItemBound Invoked during the composition of a top site item.
  */
-@OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 @Suppress("LongParameterList", "LongMethod")
 fun TopSites(
@@ -138,7 +138,11 @@ fun TopSites(
     onSponsorPrivacyClicked: () -> Unit,
     onTopSitesItemBound: () -> Unit,
 ) {
-    val pageCount = ceil((topSites.size.toDouble() / TOP_SITES_PER_PAGE)).toInt()
+    val numberOfTopSites = topSites.size.toDouble()
+    val pageCount = ceil((numberOfTopSites / TOP_SITES_PER_PAGE)).toInt()
+
+    val needsInvisibleRow =
+        numberOfTopSites > TOP_SITES_PER_PAGE && numberOfTopSites <= (TOP_SITES_PER_PAGE + TOP_SITES_PER_ROW)
 
     Column(
         modifier = Modifier
@@ -195,6 +199,10 @@ fun TopSites(
 
                         Spacer(modifier = Modifier.height(12.dp))
                     }
+
+                    if (needsInvisibleRow && page > 0) {
+                        InvisibleRow()
+                    }
                 }
             }
         }
@@ -209,6 +217,27 @@ fun TopSites(
             )
         }
     }
+}
+
+/**
+ * Workaround for when the second pager page only has one row, and the pager shrinks to fit. This
+ * invisible row mimics top sites items to match the correct height.
+ */
+@Composable
+private fun InvisibleRow() {
+    Spacer(modifier = Modifier.height(4.dp + TOP_SITES_FAVICON_CARD_SIZE.dp + 6.dp))
+
+    Text(
+        text = "",
+        style = FirefoxTheme.typography.caption,
+    )
+
+    Text(
+        text = "",
+        fontSize = 10.sp,
+    )
+
+    Spacer(modifier = Modifier.height(12.dp))
 }
 
 /**
