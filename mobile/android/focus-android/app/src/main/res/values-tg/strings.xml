@@ -55,7 +55,7 @@
   <string name="menu_settings">Танзимот</string>
   <string name="menu_about">Дар бораи барнома</string>
   <string name="menu_help">Кумак</string>
-  <string name="menu_rights">Ҳуқуқҳои шумо</string>
+  <string name="menu_rights" moz:removedIn="137">Ҳуқуқҳои шумо</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -571,33 +571,33 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">Браузери «%1$s» нармафзори ройгон ва бо манбаи кушод буда, аз ҷониби «Mozilla» ва саҳмгузорони дигар таҳия карда шудааст.</string>
+  <string name="your_rights_content1" moz:removedIn="137">Браузери «%1$s» нармафзори ройгон ва бо манбаи кушод буда, аз ҷониби «Mozilla» ва саҳмгузорони дигар таҳия карда шудааст.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">Браузери «%1$s» тибқи шартҳои &lt;a href="%2$s"&gt;Иҷозатномаи ҷамъиятии «Mozilla»&lt;/a&gt; ва иҷозатномаҳои манбаи кушоди дигар ба шумо барои истифода дастрас шудааст.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Браузери «%1$s» тибқи шартҳои &lt;a href="%2$s"&gt;Иҷозатномаи ҷамъиятии «Mozilla»&lt;/a&gt; ва иҷозатномаҳои манбаи кушоди дигар ба шумо барои истифода дастрас шудааст.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Ба шумо нисбат ба тамғаҳои тиҷории «Mozilla Foundation» ё ягон тарафи дигар, аз он ҷумла,
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Ба шумо нисбат ба тамғаҳои тиҷории «Mozilla Foundation» ё ягон тарафи дигар, аз он ҷумла,
 бе маҳдудият нисбат ба тамға ё номи «Mozilla», «Firefox» or «%1$s» ягон ҳуқуқи тамғаи тиҷорӣ ё иҷозатномавӣ таъмин нашудааст. Маълумоти иловагӣ метавонад &lt;a href="%2$s"&gt;дар ин ҷо&lt;/a&gt; пайдо карда шавад.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">Рамзи манбаи иловагӣ барои «%1$s» дар таҳти &lt;a href="%2$s"&gt;иҷозатномаҳои&lt;/a&gt; гуногуни дигари манбаи кушод ва ройгон дастрас аст.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Рамзи манбаи иловагӣ барои «%1$s» дар таҳти &lt;a href="%2$s"&gt;иҷозатномаҳои&lt;/a&gt; гуногуни дигари манбаи кушод ва ройгон дастрас аст.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">«%1$s», инчунин, аз рӯйхатҳои манъкуние, ки аз ҷониби «Disconnect, Inc.» таъмин шудаанд, ҳамчун корҳои алоҳида ва мустақил дар таҳти &lt;a href="%2$s"&gt;Иҷозатномаи ҷамъиятии умумии GNU v3&lt;/a&gt; истифода мебарад ва рӯйхати мазкур &lt;a href="%3$s"&gt;дар ин ҷо&lt;/a&gt; дастрас аст.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">«%1$s», инчунин, аз рӯйхатҳои манъкуние, ки аз ҷониби «Disconnect, Inc.» таъмин шудаанд, ҳамчун корҳои алоҳида ва мустақил дар таҳти &lt;a href="%2$s"&gt;Иҷозатномаи ҷамъиятии умумии GNU v3&lt;/a&gt; истифода мебарад ва рӯйхати мазкур &lt;a href="%3$s"&gt;дар ин ҷо&lt;/a&gt; дастрас аст.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Номи корбар</string>
   <string name="gv_prompt_password_hint">Ниҳонвожа</string>

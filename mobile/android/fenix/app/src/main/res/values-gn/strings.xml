@@ -1135,6 +1135,8 @@
   <string name="preference_usage_data_learn_more">Eikuaave</string>
   <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Emoherakuã mba’ekuaarã apopy, jeporu, hardware ha kundahára mboava Mozilla ndive orepytyvõ hag̃ua oikoporãvévo %1$s</string>
+  <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Umi mba’ekuaarã mba’e’oka rehegua, hardware ñemboheko ha Firefox jeporu oipytyvõ tembiapoite porãverã, ijeporureko ha hekopyta.</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Mba’ekuaarã jehepyme’ẽrã</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
@@ -1148,6 +1150,8 @@
   <!-- Preference switch title for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_title">Emondo marandu jejavy rehegua</string>
   <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Emondo marandu jejavy rehegua</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Kóva ore pytyvõ roikuaa ha romyatyrõvo apañuái kundahára ndive. Umi marandu’ípe oĩkuaa mba’ekuaarã nemba’ete ha ñemiguáva.</string>
   <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Emoherakuã, ijehegui oñepyrũvo, mba’ekuaarã jejavy rehegua Mozilla ndive oiko rire jejavy</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Eikuaave marandu jejavy rehegua</string>
@@ -1337,6 +1341,8 @@
   <string name="studies_active">Myandy</string>
   <!-- Description for studies, it indicates why Firefox use studies. %1$s is the name of the app (for example "Firefox"). -->
   <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s ikatu omohenda ha omongu’e kuaara’ã sapy’apy’a.</string>
+  <!-- Description for studies -->
+  <string name="studies_description_3">Eiporu tembiapoite ha temimo’ã opavavete oiporukuaa mboyve.</string>
   <!-- Title of the Studies data preference -->
   <string name="studies_title">Emohenda ha emongu’e mba’ekuaarã</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
@@ -1481,6 +1487,8 @@
     The title of the Web Compat Reporter feature. This is displayed in the top app bar.
   -->
   <string name="webcompat_reporter_screen_title">Emombe’u tenda vai</string>
+  <!-- The description of the Web Compat Reporter feature. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="webcompat_reporter_description">Eipytyvõ %1$s iporãve hag̃ua opavavépe g̃uarã. Mozilla mba’apoharakuéra oiporu marandu emondóva oñemyatyrõ hag̃ua apañuái ñanduti rendapegua.</string>
   <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
   <string name="webcompat_reporter_label_url">URL</string>
   <!-- The error message of the URL text field when an invalid URL has been entered. -->
@@ -1641,8 +1649,12 @@
   <string name="bookmark_item_menu_button_content_description">Poravoha ítem %s peg̃uarã</string>
   <!-- Title for the bookmark list empty state -->
   <string name="bookmark_empty_list_title">Ndaipóri gueteri techaukaha</string>
+  <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+  <string name="bookmark_empty_list_guest_description">Eñongatu tenda eikundakuévo. Eñepyrũ tembiapo ereko hag̃ua techaukaha umi ambue mba’e’oka ojuehepyrévagui.</string>
   <!-- Text for the button to navigate to sync authentication -->
   <string name="bookmark_empty_list_guest_cta">Eike embojuehe hag̃ua</string>
+  <!-- Description for the bookmark list empty state when you're signed into sync. -->
+  <string name="bookmark_empty_list_authenticated_description">Eñongatu tenda eikundakuévo. Rorekóta avei techaukahakuéra umi ambue mba’e’oka ojuehepyrévagui.</string>
   <!-- Description for the bookmark list empty state when you're in an empty folder. -->
   <string name="bookmark_empty_list_folder_description">Embojuaju techaukaha eikundaha aja ejuju hag̃ua erohoryvéva tenda ag̃ave.</string>
   <!-- Description for the add new folder button when selecting a folder. -->
@@ -2228,6 +2240,8 @@
   <string name="preference_doh_increased_protection_info_2">Eiporu DNS rechaporãha ijypykuéva oĩramo apañuái DNS hekorosãva me’ẽhára ndive</string>
   <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection">Ñemo’ã tuichavéva</string>
+  <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_max_protection_summary">%1$s oiporumeméta DNS hekorosãva. Ehecháta kyhyjerã tekorosã imarãkuaáva roiporu mboyve DNS apopyvusugua.</string>
   <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection_info_1">Eiporu me’ẽhára poravopyre añoite</string>
   <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->

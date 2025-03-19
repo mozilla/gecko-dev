@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -55,7 +55,7 @@
   <string name="menu_settings">सेटिंग</string>
   <string name="menu_about">याबद्दल</string>
   <string name="menu_help">मदत</string>
-  <string name="menu_rights">आपले अधिकार</string>
+  <string name="menu_rights" moz:removedIn="137">आपले अधिकार</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -448,32 +448,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s Mozilla आणि इतर योगदानकर्त्यांनी बनवलेले मोफत आणि खुल्या स्रोताचे सॉफ्टवेअर आहे.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s Mozilla आणि इतर योगदानकर्त्यांनी बनवलेले मोफत आणि खुल्या स्रोताचे सॉफ्टवेअर आहे.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">%1$s आपल्याला &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; आणि इतर खुल्या स्त्रोत परवान्यांच्या नियमांतर्गत उपलब्ध करून दिले गेले आहे.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s आपल्याला &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; आणि इतर खुल्या स्त्रोत परवान्यांच्या नियमांतर्गत उपलब्ध करून दिले गेले आहे.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Mozilla, Firefox किंवा %1$s यांचे नाव किंवा चिन्हांसह Mozilla Foundation किंवा कोणत्याही पक्षाच्या व्यापारचिन्हाचे अधिकार किंवा परवाने आपल्याला दिले गेले नाहीत. अधिक माहिती &lt;a href="%2$s"&gt;इथे&lt;/a&gt; मिळू शकते.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Mozilla, Firefox किंवा %1$s यांचे नाव किंवा चिन्हांसह Mozilla Foundation किंवा कोणत्याही पक्षाच्या व्यापारचिन्हाचे अधिकार किंवा परवाने आपल्याला दिले गेले नाहीत. अधिक माहिती &lt;a href="%2$s"&gt;इथे&lt;/a&gt; मिळू शकते.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">%1$s साठी अधिक स्रोत कोड इतर अनेक मुक्त आणि खुल्या स्त्रोताच्या &lt;a href="%2$s"&gt;परवान्यांतर्गत&lt;/a&gt; उपलब्ध आहे.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s साठी अधिक स्रोत कोड इतर अनेक मुक्त आणि खुल्या स्त्रोताच्या &lt;a href="%2$s"&gt;परवान्यांतर्गत&lt;/a&gt; उपलब्ध आहे.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">Disconnect, inc. यांनी पुरवलेल्या अडवणूक याद्या सुद्धा &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt; अंतर्गत एक विभक्त आणि स्वतंत्र संसाधन म्हणून %1$s वापरते, ज्या &lt;a href="%3$s"&gt;इथे&lt;/a&gt; उपलब्ध आहेत.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Disconnect, inc. यांनी पुरवलेल्या अडवणूक याद्या सुद्धा &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt; अंतर्गत एक विभक्त आणि स्वतंत्र संसाधन म्हणून %1$s वापरते, ज्या &lt;a href="%3$s"&gt;इथे&lt;/a&gt; उपलब्ध आहेत.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">वापरकर्त्याचे नाव</string>
   <string name="gv_prompt_password_hint">पासवर्ड</string>

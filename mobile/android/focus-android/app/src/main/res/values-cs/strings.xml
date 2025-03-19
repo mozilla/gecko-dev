@@ -55,7 +55,7 @@
   <string name="menu_settings">Nastavení</string>
   <string name="menu_about">O nás</string>
   <string name="menu_help">Nápověda</string>
-  <string name="menu_rights">Vaše práva</string>
+  <string name="menu_rights" moz:removedIn="137">Vaše práva</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -571,32 +571,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s je otevřený software zdarma od Mozilly a jiných přispěvatelů.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s je otevřený software zdarma od Mozilly a jiných přispěvatelů.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">%1$s vám je zpřístupněn za podmínek &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; a jiných open source licencí.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s vám je zpřístupněn za podmínek &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; a jiných open source licencí.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Nejsou vám však podstoupena žádná práva ani licence k ochranným známkám Mozilla Foundation či dalších stran, a to zejména k logům a názvům Mozilla, Firefox nebo %1$s. Podrobnější informace o ochranných známkách jsou dostupné &lt;a href="%2$s"&gt;zde&lt;/a&gt;.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Nejsou vám však podstoupena žádná práva ani licence k ochranným známkám Mozilla Foundation či dalších stran, a to zejména k logům a názvům Mozilla, Firefox nebo %1$s. Podrobnější informace o ochranných známkách jsou dostupné &lt;a href="%2$s"&gt;zde&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">Další zdrojové kódy pro %1$s jsou dostupné pod dalšími různými &lt;a href="%2$s"&gt;licencemi&lt;/a&gt; svobodného softwaru.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Další zdrojové kódy pro %1$s jsou dostupné pod dalšími různými &lt;a href="%2$s"&gt;licencemi&lt;/a&gt; svobodného softwaru.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">%1$s také používá seznamy společnosti Disconnect, Inc. poskytnuté jako samostatná a nezávislá díla pod licencí &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt; a dostupné &lt;a href="%3$s"&gt;zde&lt;/a&gt;.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s také používá seznamy společnosti Disconnect, Inc. poskytnuté jako samostatná a nezávislá díla pod licencí &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt; a dostupné &lt;a href="%3$s"&gt;zde&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Uživatelské jméno</string>
   <string name="gv_prompt_password_hint">Heslo</string>

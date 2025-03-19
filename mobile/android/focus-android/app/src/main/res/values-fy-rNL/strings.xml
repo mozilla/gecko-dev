@@ -55,7 +55,8 @@
   <string name="menu_settings">Ynstellingen</string>
   <string name="menu_about">Oer</string>
   <string name="menu_help">Help</string>
-  <string name="menu_rights">Jo rjochten</string>
+  <string name="menu_rights" moz:removedIn="137">Jo rjochten</string>
+  <string name="menu_terms_of_use">Brûkersbetingsten</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -571,32 +572,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s is fergese en iepenboarnesoftware makke troch Mozilla en oare meiwurkers.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s is fergese en iepenboarnesoftware makke troch Mozilla en oare meiwurkers.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">%1$s wurdt beskikber steld ûnder de betingsten fan de &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; en oare opensourcelisinsjes.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s wurdt beskikber steld ûnder de betingsten fan de &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; en oare opensourcelisinsjes.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Der wurde jo gjin rjochten of lisinsjes ferliend op de hannelsmerken fan de Mozilla Foundation of iennige oare partij, mei ynbegryp fan de nammen of logo’s fan Mozilla, Firefox of %1$s. Oanfoljende ynformaasje is &lt;a href="%2$s"&gt;hjir&lt;/a&gt; te finen.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Der wurde jo gjin rjochten of lisinsjes ferliend op de hannelsmerken fan de Mozilla Foundation of iennige oare partij, mei ynbegryp fan de nammen of logo’s fan Mozilla, Firefox of %1$s. Oanfoljende ynformaasje is &lt;a href="%2$s"&gt;hjir&lt;/a&gt; te finen.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">Oanfoljende boarnekoade foar %1$s is beskikber ûnder ferskate oare frije en opensource-&lt;a href="%2$s"&gt;lisinsjes&lt;/a&gt;.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Oanfoljende boarnekoade foar %1$s is beskikber ûnder ferskate oare frije en opensource-&lt;a href="%2$s"&gt;lisinsjes&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">%1$s brûkt ek blokkearlisten dy’t troch Disconnect, Inc. levere wurde as ôfsûnderlike en ûnôfhinklike wurken ûnder de &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt; en dy &lt;a href="%3$s"&gt;hjir&lt;/a&gt; beskikber binne.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s brûkt ek blokkearlisten dy’t troch Disconnect, Inc. levere wurde as ôfsûnderlike en ûnôfhinklike wurken ûnder de &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt; en dy &lt;a href="%3$s"&gt;hjir&lt;/a&gt; beskikber binne.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Brûkersnamme</string>
   <string name="gv_prompt_password_hint">Wachtwurd</string>

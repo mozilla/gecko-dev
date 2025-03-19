@@ -55,7 +55,7 @@
   <string name="menu_settings">Indstillinger</string>
   <string name="menu_about">Om</string>
   <string name="menu_help">Hjælp</string>
-  <string name="menu_rights">Dine rettigheder</string>
+  <string name="menu_rights" moz:removedIn="137">Dine rettigheder</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -549,32 +549,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s er frit og åbent software, udviklet af Mozilla og andre bidragydere.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s er frit og åbent software, udviklet af Mozilla og andre bidragydere.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">%1$s er tilgængelig under de vilkår, der er fastsat i &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; og andre licenser til åben kildekode.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s er tilgængelig under de vilkår, der er fastsat i &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; og andre licenser til åben kildekode.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Du bliver ikke givet nogen ret eller licens til varemærker tilhørende Mozilla Foundation eller tredjepart, herunder navn og logo for Mozilla, Firefox og %1$s. Få flere oplysninger &lt;a href="%2$s"&gt;her&lt;/a&gt;.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Du bliver ikke givet nogen ret eller licens til varemærker tilhørende Mozilla Foundation eller tredjepart, herunder navn og logo for Mozilla, Firefox og %1$s. Få flere oplysninger &lt;a href="%2$s"&gt;her&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">Yderligere gratis og åben kildekode til %1$s er tilgængelig under diverse &lt;a href="%2$s"&gt;licenser&lt;/a&gt;.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Yderligere gratis og åben kildekode til %1$s er tilgængelig under diverse &lt;a href="%2$s"&gt;licenser&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">%1$s benytter sig også af blokeringslister fra Disconnect, Inc. som adskilte og uafhængige værker under &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt;. Listerne er tilgængelige &lt;a href="%3$s"&gt;her&lt;/a&gt;.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s benytter sig også af blokeringslister fra Disconnect, Inc. som adskilte og uafhængige værker under &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt;. Listerne er tilgængelige &lt;a href="%3$s"&gt;her&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Brugernavn</string>
   <string name="gv_prompt_password_hint">Adgangskode</string>

@@ -55,7 +55,7 @@
   <string name="menu_settings">Beállítások</string>
   <string name="menu_about">Névjegy</string>
   <string name="menu_help">Súgó</string>
-  <string name="menu_rights">Az Ön jogai</string>
+  <string name="menu_rights" moz:removedIn="137">Az Ön jogai</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -571,32 +571,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">A %1$s szabad és nyílt forráskódú szoftver, amelyet a Mozilla és más közreműködők készítenek.</string>
+  <string name="your_rights_content1" moz:removedIn="137">A %1$s szabad és nyílt forráskódú szoftver, amelyet a Mozilla és más közreműködők készítenek.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">A %1$s a &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; és más nyílt forráskódú licencek feltételei szerint érhető el.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">A %1$s a &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; és más nyílt forráskódú licencek feltételei szerint érhető el.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Nem kap semmiféle jogot vagy licencet a Mozilla Alapítvány vagy bármely más fél védjegyeihez, köztük a Mozilla, Firefox vagy %1$s nevekhez vagy logókhoz. További információkat &lt;a href="%2$s"&gt;itt&lt;/a&gt; találhat.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Nem kap semmiféle jogot vagy licencet a Mozilla Alapítvány vagy bármely más fél védjegyeihez, köztük a Mozilla, Firefox vagy %1$s nevekhez vagy logókhoz. További információkat &lt;a href="%2$s"&gt;itt&lt;/a&gt; találhat.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">További %1$s forráskódok érhetők el különféle szabad szoftver vagy nyílt forráskódú &lt;a href="%2$s"&gt;licencek&lt;/a&gt; alatt.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">További %1$s forráskódok érhetők el különféle szabad szoftver vagy nyílt forráskódú &lt;a href="%2$s"&gt;licencek&lt;/a&gt; alatt.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">A %1$s a Disconnect, Inc. által biztosított blokkolási listákat használ, különálló munkaként, &lt;a href="%2$s"&gt;GNU General Public Licence v3&lt;/a&gt; alatt, ez &lt;a href="%3$s"&gt;itt&lt;/a&gt; érhető el.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">A %1$s a Disconnect, Inc. által biztosított blokkolási listákat használ, különálló munkaként, &lt;a href="%2$s"&gt;GNU General Public Licence v3&lt;/a&gt; alatt, ez &lt;a href="%3$s"&gt;itt&lt;/a&gt; érhető el.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Felhasználónév</string>
   <string name="gv_prompt_password_hint">Jelszó</string>

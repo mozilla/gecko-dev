@@ -120,6 +120,12 @@
 &lt;li&gt;أمتأكد من وجود عنوان النطاق هذا؟  ربما قد يكون انتهى تسجيله.&lt;/li&gt;
 &lt;li&gt;إن لم تكن تستطيع تحميل أي صفحة، تحقق من اتصال المحمول بشبكة البيانات أو الشبكة اللاسلكية.&lt;/li&gt;
 &lt;/ul&gt;</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_no_internet_title_2">يبدو أن هناك مشكلة في اتصالك بالإنترنت</string>
+  <!-- The main body text of this error page. It will be shown beneath the title -->
+  <string name="mozac_browser_errorpages_no_internet_message_2">حاول الاتصال بجهاز آخر. تحقق من المودم أو جهاز التوجيه. افصل شبكة Wi-Fi وأعد الاتصال بها.</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_no_internet_error_code">رمز الخطأ: NS_ERROR_OFFLINE</string>
   <!-- Text that will show up on the button at the bottom of the error page -->
   <string name="mozac_browser_errorpages_no_internet_refresh_button">أعِد التحميل</string>
   <!-- The document title and heading of an error page. -->

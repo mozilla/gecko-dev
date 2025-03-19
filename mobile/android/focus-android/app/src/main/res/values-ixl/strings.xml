@@ -55,7 +55,7 @@
   <string name="menu_settings">B\'an tuche\'</string>
   <string name="menu_about">Ti\' uvaa\'</string>
   <string name="menu_help">Lochb\'al</string>
-  <string name="menu_rights">Uve\' la uch ab\'anata</string>
+  <string name="menu_rights" moz:removedIn="137">Uve\' la uch ab\'anata</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -543,32 +543,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s jajle\'l kuxh u eq\'on tetze\' ta\'n u Mozilla.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s jajle\'l kuxh u eq\'on tetze\' ta\'n u Mozilla.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">%1$s ile’ ni tx’eb’on ve’t see’ aq’al la b’anb’e ta’ne’ tan la ootzi &lt;a href="%2$s"&gt;kam yol xo’l tenam ti u Mozilla at sti’&lt;/a&gt; as atkan unka’ta yol ti’ unq’a lochb’al tetz uva’ jajlu kan.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s ile’ ni tx’eb’on ve’t see’ aq’al la b’anb’e ta’ne’ tan la ootzi &lt;a href="%2$s"&gt;kam yol xo’l tenam ti u Mozilla at sti’&lt;/a&gt; as atkan unka’ta yol ti’ unq’a lochb’al tetz uva’ jajlu kan.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Ye’l umaj yol aq’axoj see’ ti’ b’anb’el unq’a texhlale’ uve’ ni xaansale’ ta’n u Mozilla moj tu jalte, echkole’ u texhlale’, vi b’ii u Mozilla, Firefox moj unq’a %1$s. La uch alejat ka’ta yol sti’ &lt;a href="%2$s"&gt;tzitza’&lt;/a&gt;.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Ye’l umaj yol aq’axoj see’ ti’ b’anb’el unq’a texhlale’ uve’ ni xaansale’ ta’n u Mozilla moj tu jalte, echkole’ u texhlale’, vi b’ii u Mozilla, Firefox moj unq’a %1$s. La uch alejat ka’ta yol sti’ &lt;a href="%2$s"&gt;tzitza’&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">Kat u texhlale’ uve’ tetz %1$s ile’ at ve’te’ ta’n ka’t &lt;a href="%2$s"&gt;unq’a tu’aale’&lt;/a&gt; uve’ jajlu kan kuxhtu’.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Kat u texhlale’ uve’ tetz %1$s ile’ at ve’te’ ta’n ka’t &lt;a href="%2$s"&gt;unq’a tu’aale’&lt;/a&gt; uve’ jajlu kan kuxhtu’.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">%1$s ni b’anb’e tachul majb’al uva’ ileltu ta’n u Mozilla. Echkole’ unq’a aq’one’ uve’ jatxel ivatz as a’ kuxh ni taq’onvu sijunal ta’n u &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt;, as ile’ at ve’t &lt;a href="%3$s"&gt;tzitza’&lt;/a&gt;.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s ni b’anb’e tachul majb’al uva’ ileltu ta’n u Mozilla. Echkole’ unq’a aq’one’ uve’ jatxel ivatz as a’ kuxh ni taq’onvu sijunal ta’n u &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt;, as ile’ at ve’t &lt;a href="%3$s"&gt;tzitza’&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Ab\'ii la ooksa kan</string>
   <string name="gv_prompt_password_hint">Exhlal axh kuxh la ootzin</string>

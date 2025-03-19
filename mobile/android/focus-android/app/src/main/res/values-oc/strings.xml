@@ -55,7 +55,7 @@
   <string name="menu_settings">Paramètres</string>
   <string name="menu_about">A prepaus</string>
   <string name="menu_help">Ajuda</string>
-  <string name="menu_rights">Vòstres dreches</string>
+  <string name="menu_rights" moz:removedIn="137">Vòstres dreches</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -549,32 +549,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s es un logicial liure e dobèrt fach per Mozilla e d’autres contributors.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s es un logicial liure e dobèrt fach per Mozilla e d’autres contributors.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">%1$s es distribuit jols tèrmes de la &lt;a href="%2$s"&gt;Licéncia publica de Mozilla&lt;/a&gt; e d’autras licéncias open source.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s es distribuit jols tèrmes de la &lt;a href="%2$s"&gt;Licéncia publica de Mozilla&lt;/a&gt; e d’autras licéncias open source.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Cap de drech o licéncia vos es pas cedit sus las marcas depausadas de la Fondacion Mozilla o de tèrces, inclús sul nom e lo lògo de Mozilla, Firefox o de %1$s. Podètz consultar d’informacions complementàrias &lt;a href="%2$s"&gt;aquí&lt;/a&gt;.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Cap de drech o licéncia vos es pas cedit sus las marcas depausadas de la Fondacion Mozilla o de tèrces, inclús sul nom e lo lògo de Mozilla, Firefox o de %1$s. Podètz consultar d’informacions complementàrias &lt;a href="%2$s"&gt;aquí&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">Còdis font complementaris per %1$s son disponibles jos diferentas &lt;a href="%2$s"&gt;licéncias&lt;/a&gt; liuras e open source.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Còdis font complementaris per %1$s son disponibles jos diferentas &lt;a href="%2$s"&gt;licéncias&lt;/a&gt; liuras e open source.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">%1$s utiliza tanben las listas de blocatges provesidas per Disconnect, Inc coma de trabalh separat e independent jos licéncia &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt;, e disponiblas &lt;a href="%3$s"&gt;aquí&lt;/a&gt;.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s utiliza tanben las listas de blocatges provesidas per Disconnect, Inc coma de trabalh separat e independent jos licéncia &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt;, e disponiblas &lt;a href="%3$s"&gt;aquí&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Nom d\'utilizaire</string>
   <string name="gv_prompt_password_hint">Senhal</string>

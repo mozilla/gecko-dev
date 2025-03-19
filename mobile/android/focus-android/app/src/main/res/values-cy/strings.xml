@@ -55,7 +55,7 @@
   <string name="menu_settings">Gosodiadau</string>
   <string name="menu_about">Ynghylch</string>
   <string name="menu_help">Cymorth</string>
-  <string name="menu_rights">Eich Hawliau</string>
+  <string name="menu_rights" moz:removedIn="137">Eich Hawliau</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -571,32 +571,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">Mae %1$s yn feddalwedd cod agored a rhydd gan Mozilla a chyfranwyr eraill.</string>
+  <string name="your_rights_content1" moz:removedIn="137">Mae %1$s yn feddalwedd cod agored a rhydd gan Mozilla a chyfranwyr eraill.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">Mae %1$s ar gael i chi o dan amodau &lt;a href="%2$s"&gt;Trwydded Gyhoeddus Mozilla&lt;/a&gt; a thrwyddedau cod agored eraill.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Mae %1$s ar gael i chi o dan amodau &lt;a href="%2$s"&gt;Trwydded Gyhoeddus Mozilla&lt;/a&gt; a thrwyddedau cod agored eraill.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Nid ydych yn derbyn unrhyw hawliau na thrwyddedau i nod masnach y Mozilla Foundation neu unrhyw barti arall, gan gynnwys enwau a logos Mozilla, Firefox n %1$s. Mae gwybodaeth bellach i’w gael &lt;a href="%2$s"&gt;yma&lt;/a&gt;.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Nid ydych yn derbyn unrhyw hawliau na thrwyddedau i nod masnach y Mozilla Foundation neu unrhyw barti arall, gan gynnwys enwau a logos Mozilla, Firefox n %1$s. Mae gwybodaeth bellach i’w gael &lt;a href="%2$s"&gt;yma&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">Mae cod ffynhonnell ychwanegol ar gyfer %1$s ar gael o dan amrywiol &lt;a href="%2$s"&gt;drwyddedau&lt;/a&gt; rhydd a chod agored.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Mae cod ffynhonnell ychwanegol ar gyfer %1$s ar gael o dan amrywiol &lt;a href="%2$s"&gt;drwyddedau&lt;/a&gt; rhydd a chod agored.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">Mae %1$s hefyd yn defnyddio rhestrau rhwystro sy’n cael eu darparu gan Disconnect, Inc. fel gweithiau ar wahân ac annibynnol o dan &lt;a href="%2$s"&gt;Trwydded Gyhoeddus Gyffredinol GNU v3&lt;/a&gt;, ac sydd ar gael &lt;a href = "%3$s"&gt;yma&lt;/a&gt;.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Mae %1$s hefyd yn defnyddio rhestrau rhwystro sy’n cael eu darparu gan Disconnect, Inc. fel gweithiau ar wahân ac annibynnol o dan &lt;a href="%2$s"&gt;Trwydded Gyhoeddus Gyffredinol GNU v3&lt;/a&gt;, ac sydd ar gael &lt;a href = "%3$s"&gt;yma&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Enw Defnyddiwr</string>
   <string name="gv_prompt_password_hint">Cyfrinair</string>

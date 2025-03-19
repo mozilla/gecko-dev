@@ -55,7 +55,7 @@
   <string name="menu_settings">Көйләүләр</string>
   <string name="menu_about">Хакында</string>
   <string name="menu_help">Ярдәм</string>
-  <string name="menu_rights">Хокукларыгыз</string>
+  <string name="menu_rights" moz:removedIn="137">Хокукларыгыз</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -543,32 +543,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s — Mozilla һәм башка катнашучылар ясаган ирекле һәм ачык чыганаклы программа.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s — Mozilla һәм башка катнашучылар ясаган ирекле һәм ачык чыганаклы программа.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">%1$s Сезгә &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; һәм башка ачык чыганак лицензияләренең шартлары белән тәкъдим ителә.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s Сезгә &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; һәм башка ачык чыганак лицензияләренең шартлары белән тәкъдим ителә.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Сезгә Mozilla Foundation-ның яисә башка тарафларның һичбер теркәлгән сәүдә билгеләренә, шул исәптән Mozilla, Firefox яисә %1$s исемнәре яки логотипларына бернинди дә хокуклар я лицензияләр бирелми. Өстәмә мәгълүматны &lt;a href="%2$s"&gt;монда&lt;/a&gt; табып була.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Сезгә Mozilla Foundation-ның яисә башка тарафларның һичбер теркәлгән сәүдә билгеләренә, шул исәптән Mozilla, Firefox яисә %1$s исемнәре яки логотипларына бернинди дә хокуклар я лицензияләр бирелми. Өстәмә мәгълүматны &lt;a href="%2$s"&gt;монда&lt;/a&gt; табып була.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">%1$s өчен өстәмә чыганак кодлары башка берничә ирекле һәм ачык чыганак &lt;a href="%2$s"&gt;лицензияләләре&lt;/a&gt; астында нәшер ителә.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s өчен өстәмә чыганак кодлары башка берничә ирекле һәм ачык чыганак &lt;a href="%2$s"&gt;лицензияләләре&lt;/a&gt; астында нәшер ителә.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">Моннан тыш, %1$s, аерым һәм бәйсез әсәрләр буларак, Disconnect, Inc. тәэмин иткән блоклау исемлекләрен куллана. Аларны &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt; шартлары белән һәм түләүсез &lt;a href="%3$s"&gt;монда&lt;/a&gt; табып була.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Моннан тыш, %1$s, аерым һәм бәйсез әсәрләр буларак, Disconnect, Inc. тәэмин иткән блоклау исемлекләрен куллана. Аларны &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt; шартлары белән һәм түләүсез &lt;a href="%3$s"&gt;монда&lt;/a&gt; табып була.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Кулланучы исеме</string>
   <string name="gv_prompt_password_hint">Серсүз</string>

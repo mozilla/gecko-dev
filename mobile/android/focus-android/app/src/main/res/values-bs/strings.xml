@@ -55,7 +55,7 @@
   <string name="menu_settings">Postavke</string>
   <string name="menu_about">O aplikaciji</string>
   <string name="menu_help">Pomoć</string>
-  <string name="menu_rights">Vaša prava</string>
+  <string name="menu_rights" moz:removedIn="137">Vaša prava</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -571,32 +571,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s je besplatan softver i otvorenog koda napravljen od strane Mozille i drugih doprinosilaca.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s je besplatan softver i otvorenog koda napravljen od strane Mozille i drugih doprinosilaca.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">%1$s vam je omogućen pod uslovima licence &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; i drugih licenci otvorenog kôda.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s vam je omogućen pod uslovima licence &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; i drugih licenci otvorenog kôda.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Ne dodjeljuju vam se nikakva prava ili licence za žigove Mozilla Foundation ili bilo koje strane, uključujući imena ili logotipe Mozilla, Firefox ili %1$s. Dodatne informacije možete pronaći &lt;a href="%2$s"&gt;ovdje&lt;/a&gt;.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Ne dodjeljuju vam se nikakva prava ili licence za žigove Mozilla Foundation ili bilo koje strane, uključujući imena ili logotipe Mozilla, Firefox ili %1$s. Dodatne informacije možete pronaći &lt;a href="%2$s"&gt;ovdje&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">Dodatni izvorni kod za %1$s je dostupan pod raznim drugim besplatnim i otvorenim &lt;a href="%2$s"&gt;licencama&lt;/a&gt;.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Dodatni izvorni kod za %1$s je dostupan pod raznim drugim besplatnim i otvorenim &lt;a href="%2$s"&gt;licencama&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">%1$s također koristi liste blokiranih koje pruža Disconnect, Inc. kao odvojene i nezavisne radove pod &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt;, i dostupnima &lt;a href="%3$s"&gt;ovdje&lt;/a&gt;.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s također koristi liste blokiranih koje pruža Disconnect, Inc. kao odvojene i nezavisne radove pod &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt;, i dostupnima &lt;a href="%3$s"&gt;ovdje&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Korisničko ime</string>
   <string name="gv_prompt_password_hint">Lozinka</string>

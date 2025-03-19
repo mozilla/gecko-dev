@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <!--
+    Message announced to the user when tab tray is selected
+    The %1$s will be replaced by the number of opened tabs
+  -->
+  <string name="mozac_tab_counter_open_tab_tray">الألسنة المفتوحة: %1$s. انقر للتبديل بين الألسنة.</string>
+  <!--
+    Message announced to the user when tab tray is selected used by a11y services
+    The %1$s will be replaced by the number of opened tabs
+  -->
+  <string name="mozac_open_tab_counter_tab_tray">الألسنة غير الخاصة المفتوحة: %1$s. انقر للتبديل بين الألسنة.</string>
   <!-- Browser menu button that creates a new tab -->
   <string name="mozac_browser_menu_new_tab">لسان جديد</string>
   <!-- Browser menu button that creates a private tab -->

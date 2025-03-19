@@ -55,7 +55,7 @@
   <string name="menu_settings">Cài đặt</string>
   <string name="menu_about">Giới thiệu</string>
   <string name="menu_help">Trợ giúp</string>
-  <string name="menu_rights">Quyền lợi của bạn</string>
+  <string name="menu_rights" moz:removedIn="137">Quyền lợi của bạn</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -571,32 +571,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s là phần mềm miễn phí và mã nguồn mở do Mozilla và các cộng tác viên khác cung cấp.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s là phần mềm miễn phí và mã nguồn mở do Mozilla và các cộng tác viên khác cung cấp.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">%1$s được cung cấp cho bạn theo các điều khoản của &lt;a href="%2$s"&gt;Giấy phép Công cộng Mozilla&lt;/a&gt; và các giấy phép mã nguồn mở khác.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s được cung cấp cho bạn theo các điều khoản của &lt;a href="%2$s"&gt;Giấy phép Công cộng Mozilla&lt;/a&gt; và các giấy phép mã nguồn mở khác.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Bạn không được cấp bất kỳ quyền hoặc giấy phép nào đối với nhãn hiệu của Mozilla Foundation hoặc bất kỳ bên nào, bao gồm tên hoặc logo của Mozilla, Firefox hoặc %1$s. Thông tin bổ sung có thể được tìm thấy &lt;a href="%2$s"&gt;tại đây&lt;/a&gt;.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Bạn không được cấp bất kỳ quyền hoặc giấy phép nào đối với nhãn hiệu của Mozilla Foundation hoặc bất kỳ bên nào, bao gồm tên hoặc logo của Mozilla, Firefox hoặc %1$s. Thông tin bổ sung có thể được tìm thấy &lt;a href="%2$s"&gt;tại đây&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">Mã nguồn bổ sung cho %1$s có sẵn dưới nhiều &lt;a href="%2$s"&gt;giấy phép nguồn mở miễn phí&lt;/a&gt; khác.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Mã nguồn bổ sung cho %1$s có sẵn dưới nhiều &lt;a href="%2$s"&gt;giấy phép nguồn mở miễn phí&lt;/a&gt; khác.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">%1$s cũng sử dụng danh sách chặn được cung cấp bởi Disconnect, Inc. là các tác phẩm riêng biệt và độc lập theo &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt; và có sẵn &lt;a href="%3$s"&gt;ở đây&lt;/a&gt;.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s cũng sử dụng danh sách chặn được cung cấp bởi Disconnect, Inc. là các tác phẩm riêng biệt và độc lập theo &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt; và có sẵn &lt;a href="%3$s"&gt;ở đây&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Tên đăng nhập</string>
   <string name="gv_prompt_password_hint">Mật khẩu</string>

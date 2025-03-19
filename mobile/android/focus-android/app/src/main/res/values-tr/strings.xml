@@ -55,7 +55,7 @@
   <string name="menu_settings">Ayarlar</string>
   <string name="menu_about">Hakkında</string>
   <string name="menu_help">Yardım</string>
-  <string name="menu_rights">Haklarınız</string>
+  <string name="menu_rights" moz:removedIn="137">Haklarınız</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -571,32 +571,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">Mozilla ve gönüllüler tarafından geliştirilen %1$s, özgür ve açık kaynaklı bir yazılımdır.</string>
+  <string name="your_rights_content1" moz:removedIn="137">Mozilla ve gönüllüler tarafından geliştirilen %1$s, özgür ve açık kaynaklı bir yazılımdır.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">%1$s, &lt;a href="%2$s"&gt;Mozilla Kamu Lisansı&lt;/a&gt; ve diğer açık kaynak lisanslarının koşullarıyla sunulmaktadır.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s, &lt;a href="%2$s"&gt;Mozilla Kamu Lisansı&lt;/a&gt; ve diğer açık kaynak lisanslarının koşullarıyla sunulmaktadır.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Mozilla Vakfı’nın tescilli markaları olan Mozilla, Firefox, %1$s adları ve logoları da dahil olmak üzere, tescilli markalarımızın hakları ve lisansları sizinle paylaşılmamaktadır. Daha fazla bilgi almak isterseniz &lt;a href="%2$s"&gt;buraya&lt;/a&gt; bakabilirsiniz.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Mozilla Vakfı’nın tescilli markaları olan Mozilla, Firefox, %1$s adları ve logoları da dahil olmak üzere, tescilli markalarımızın hakları ve lisansları sizinle paylaşılmamaktadır. Daha fazla bilgi almak isterseniz &lt;a href="%2$s"&gt;buraya&lt;/a&gt; bakabilirsiniz.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">Bazı ek %1$s kaynak kodları çeşitli özgür lisanslar ve açık kaynak &lt;a href="%2$s"&gt;lisansları&lt;/a&gt; ile sunulmaktadır.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Bazı ek %1$s kaynak kodları çeşitli özgür lisanslar ve açık kaynak &lt;a href="%2$s"&gt;lisansları&lt;/a&gt; ile sunulmaktadır.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">%1$s ayrıca Disconnect, Inc. tarafından sağlanan engelleme listelerini kullanır. Tarayıcıdan ayrı ve bağımsız olan &lt;a href="%3$s"&gt;bu çalışmalar&lt;/a&gt; &lt;a href="%2$s"&gt;GNU Kamu Lisansı v3&lt;/a&gt; ile sunulmaktadır.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s ayrıca Disconnect, Inc. tarafından sağlanan engelleme listelerini kullanır. Tarayıcıdan ayrı ve bağımsız olan &lt;a href="%3$s"&gt;bu çalışmalar&lt;/a&gt; &lt;a href="%2$s"&gt;GNU Kamu Lisansı v3&lt;/a&gt; ile sunulmaktadır.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Kullanıcı adı</string>
   <string name="gv_prompt_password_hint">Parola</string>

@@ -55,7 +55,7 @@
   <string name="menu_settings">Налаштування</string>
   <string name="menu_about">Про</string>
   <string name="menu_help">Довідка</string>
-  <string name="menu_rights">Ваші права</string>
+  <string name="menu_rights" moz:removedIn="137">Ваші права</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -549,32 +549,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s є вільним програмним забезпеченням з відкритим кодом від Mozilla та інших помічників.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s є вільним програмним забезпеченням з відкритим кодом від Mozilla та інших помічників.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">%1$s доступний для вас на умовах &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; та інших ліцензій відкритого коду.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s доступний для вас на умовах &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; та інших ліцензій відкритого коду.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Вам не надаються жодні права чи ліцензії на торговельні марки Mozilla Foundation або на будь-які її частини, включно з Mozilla, Firefox, а також назвами чи логотипами %1$s. Додаткову інформацію можна знайти &lt;a href="%2$s"&gt;тут&lt;/a&gt;.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Вам не надаються жодні права чи ліцензії на торговельні марки Mozilla Foundation або на будь-які її частини, включно з Mozilla, Firefox, а також назвами чи логотипами %1$s. Додаткову інформацію можна знайти &lt;a href="%2$s"&gt;тут&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">Додатковий програмний код для %1$s доступний на умовах різних інших &lt;a href="%2$s"&gt;ліцензій&lt;/a&gt; вільного й відкритого програмного забезпечення.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Додатковий програмний код для %1$s доступний на умовах різних інших &lt;a href="%2$s"&gt;ліцензій&lt;/a&gt; вільного й відкритого програмного забезпечення.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">%1$s також використовує списки блокування від Disconnect Inc., як окремі та незалежні розробки на умовах &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt;, і доступні &lt;a href="%3$s"&gt;тут&lt;/a&gt;.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s також використовує списки блокування від Disconnect Inc., як окремі та незалежні розробки на умовах &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt;, і доступні &lt;a href="%3$s"&gt;тут&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Ім\'я користувача</string>
   <string name="gv_prompt_password_hint">Пароль</string>

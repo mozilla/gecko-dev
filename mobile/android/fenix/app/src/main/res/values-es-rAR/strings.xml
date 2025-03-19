@@ -376,7 +376,7 @@
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
   <string name="browser_menu_save_description">Agregar marcador, acceso directo, inicio, colección, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
-  <string name="browser_menu_bookmark_this_page">Marcar esta página</string>
+  <string name="browser_menu_bookmark_this_page">Agregar esta página a marcadores</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Editar marcador</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -3520,4 +3520,12 @@
   <string name="text_field_eye_trailing_icon_default_content_description">Mostrar texto oculto</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description">Borrar texto</string>
+  <!--
+    Setup checklist component
+
+    Accessibility description for a check mark on a completed task
+  -->
+  <string name="a11y_completed_task_description">Tarea completa</string>
+  <!-- Accessibility description for the task icon -->
+  <string name="a11y_task_icon_description">Icono de tarea</string>
 </resources>
