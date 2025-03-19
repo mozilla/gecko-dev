@@ -3,6 +3,10 @@
 
 "use strict";
 
+const { NimbusTelemetry } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/Telemetry.sys.mjs"
+);
+
 function getRecipe(slug) {
   return ExperimentFakes.recipe(slug, {
     bucketConfig: {
@@ -17,11 +21,8 @@ function getRecipe(slug) {
 }
 
 add_task(async function test_double_feature_enrollment() {
-  let sandbox = sinon.createSandbox();
-  let sendFailureTelemetryStub = sandbox.stub(
-    ExperimentManager,
-    "sendFailureTelemetry"
-  );
+  const sandbox = sinon.createSandbox();
+  sandbox.stub(NimbusTelemetry, "recordEnrollmentFailure");
   await ExperimentAPI.ready();
 
   Assert.ok(
@@ -42,25 +43,16 @@ add_task(async function test_double_feature_enrollment() {
   );
 
   Assert.equal(
-    sendFailureTelemetryStub.callCount,
+    NimbusTelemetry.recordEnrollmentFailure.callCount,
     1,
     "Expected to fail one of the recipes"
   );
 
-  Assert.equal(
-    sendFailureTelemetryStub.firstCall.args[0],
-    "enrollFailed",
-    "Check expected event"
-  );
   Assert.ok(
-    sendFailureTelemetryStub.firstCall.args[1] === recipe1.slug ||
-      sendFailureTelemetryStub.firstCall.args[1] === recipe2.slug,
-    "Failed one of the two recipes"
-  );
-  Assert.equal(
-    sendFailureTelemetryStub.firstCall.args[2],
-    "feature-conflict",
-    "Check expected reason"
+    NimbusTelemetry.recordEnrollmentFailure.calledOnceWith(
+      recipe2.slug,
+      "feature-conflict"
+    )
   );
 
   await ExperimentFakes.cleanupAll([recipe1.slug]);

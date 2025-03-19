@@ -8,6 +8,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   FirefoxLabs: "resource://nimbus/FirefoxLabs.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  NimbusTelemetry: "resource://nimbus/lib/Telemetry.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "log", () => {
@@ -139,11 +140,7 @@ export const NimbusMigrations = {
           reason = e.reason;
         }
 
-        Glean.nimbusEvents.migration.record({
-          migration_id: migration.name,
-          success: false,
-          error_reason: reason,
-        });
+        lazy.NimbusTelemetry.recordMigration(migration.name, reason);
 
         break;
       }
@@ -154,10 +151,7 @@ export const NimbusMigrations = {
         `applyMigrations: applied migration ${i}: ${migration.name}`
       );
 
-      Glean.nimbusEvents.migration.record({
-        migration_id: migration.name,
-        success: true,
-      });
+      lazy.NimbusTelemetry.recordMigration(migration.name);
     }
 
     if (latestMigration != lastSuccess) {
