@@ -9,7 +9,6 @@ import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
-import android.net.Uri
 import android.os.Bundle
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
@@ -17,6 +16,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatDialogFragment
+import androidx.core.net.toUri
 import androidx.fragment.app.commit
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -111,7 +111,7 @@ class OpenWithFragment : AppCompatDialogFragment(), OnAppSelectedListener {
     }
 
     override fun onAppSelected(app: AppAdapter.App) {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(requireArguments().getString(ARGUMENT_URL)))
+        val intent = Intent(Intent.ACTION_VIEW, requireArguments().getString(ARGUMENT_URL)?.toUri())
         intent.setClassName(app.packageName, app.activityName)
         startActivity(intent)
 

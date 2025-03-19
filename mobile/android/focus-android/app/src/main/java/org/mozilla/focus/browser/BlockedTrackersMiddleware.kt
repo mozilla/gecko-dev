@@ -5,6 +5,7 @@
 package org.mozilla.focus.browser
 
 import android.content.Context
+import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.TrackingProtectionAction
@@ -45,11 +46,11 @@ class BlockedTrackersMiddleware(
     private fun incrementCount() {
         val blockedTrackersCount = settings.getTotalBlockedTrackersCount()
         preferences
-            .edit()
-            .putInt(
-                context.getString(R.string.pref_key_privacy_total_trackers_blocked_count),
-                blockedTrackersCount + 1,
-            )
-            .apply()
+            .edit() {
+                putInt(
+                    context.getString(R.string.pref_key_privacy_total_trackers_blocked_count),
+                    blockedTrackersCount + 1,
+                )
+            }
     }
 }

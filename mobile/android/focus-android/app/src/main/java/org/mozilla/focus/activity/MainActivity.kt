@@ -20,6 +20,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.isVisible
 import androidx.preference.PreferenceManager
@@ -145,9 +146,9 @@ open class MainActivity : LocaleAwareAppCompatActivity() {
 
         val launchCount = settings.getAppLaunchCount()
         PreferenceManager.getDefaultSharedPreferences(this)
-            .edit()
-            .putInt(getString(R.string.app_launch_count), launchCount + 1)
-            .apply()
+            .edit() {
+                putInt(getString(R.string.app_launch_count), launchCount + 1)
+            }
 
         AppReviewUtils.showAppReview(this)
 
@@ -398,10 +399,12 @@ open class MainActivity : LocaleAwareAppCompatActivity() {
         // Disable biometrics if the user is no longer eligible due to un-enrolling fingerprints:
         if (!canUseBiometricFeature()) {
             PreferenceManager.getDefaultSharedPreferences(this)
-                .edit().putBoolean(
-                    getString(R.string.pref_key_biometric),
-                    false,
-                ).apply()
+                .edit {
+                    putBoolean(
+                        getString(R.string.pref_key_biometric),
+                        false,
+                    )
+                }
         }
     }
 

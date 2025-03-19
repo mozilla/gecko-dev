@@ -11,6 +11,7 @@ import android.util.AttributeSet
 import android.widget.RadioButton
 import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.content.edit
 import androidx.core.content.res.TypedArrayUtils.getAttr
 import androidx.core.content.withStyledAttributes
 import androidx.core.text.HtmlCompat
@@ -126,8 +127,9 @@ open class RadioButtonPreference @JvmOverloads constructor(
     override fun updateRadioValue(isChecked: Boolean) {
         persistBoolean(isChecked)
         radioButton?.isChecked = isChecked
-        preferences.edit().putBoolean(key, isChecked)
-            .apply()
+        preferences.edit() {
+            putBoolean(key, isChecked)
+        }
         onPreferenceChangeListener?.onPreferenceChange(this, isChecked)
     }
 

@@ -5,6 +5,7 @@
 package org.mozilla.focus.searchsuggestions
 
 import android.content.Context
+import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import org.mozilla.focus.R
 import org.mozilla.focus.ext.settings
@@ -18,23 +19,29 @@ class SearchSuggestionsPreferences(private val context: Context) {
     fun userHasDismissedNoSuggestionsMessage(): Boolean = settings.userHasDismissedNoSuggestionsMessage()
 
     fun enableSearchSuggestions() {
-        preferences.edit()
-            .putBoolean(TOGGLED_SUGGESTIONS_PREF, true)
-            .putBoolean(context.resources.getString(R.string.pref_key_show_search_suggestions), true)
-            .apply()
+        preferences.edit {
+            putBoolean(TOGGLED_SUGGESTIONS_PREF, true)
+                .putBoolean(
+                    context.resources.getString(R.string.pref_key_show_search_suggestions),
+                    true,
+                )
+        }
     }
 
     fun disableSearchSuggestions() {
-        preferences.edit()
-            .putBoolean(TOGGLED_SUGGESTIONS_PREF, true)
-            .putBoolean(context.resources.getString(R.string.pref_key_show_search_suggestions), false)
-            .apply()
+        preferences.edit {
+            putBoolean(TOGGLED_SUGGESTIONS_PREF, true)
+                .putBoolean(
+                    context.resources.getString(R.string.pref_key_show_search_suggestions),
+                    false,
+                )
+        }
     }
 
     fun dismissNoSuggestionsMessage() {
-        preferences.edit()
-            .putBoolean(DISMISSED_NO_SUGGESTIONS_PREF, true)
-            .apply()
+        preferences.edit {
+            putBoolean(DISMISSED_NO_SUGGESTIONS_PREF, true)
+        }
     }
 
     companion object {

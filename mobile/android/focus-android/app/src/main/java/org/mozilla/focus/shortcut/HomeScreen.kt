@@ -7,13 +7,13 @@ package org.mozilla.focus.shortcut
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.net.Uri
 import android.os.Build
 import android.text.TextUtils
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
+import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -119,7 +119,7 @@ object HomeScreen {
     ): Intent {
         val shortcutIntent = Intent(context, MainActivity::class.java)
         shortcutIntent.action = Intent.ACTION_VIEW
-        shortcutIntent.data = Uri.parse(url)
+        shortcutIntent.data = url.toUri()
         shortcutIntent.putExtra(BLOCKING_ENABLED, blockingEnabled)
         shortcutIntent.putExtra(REQUEST_DESKTOP, requestDesktop)
         shortcutIntent.putExtra(ADD_TO_HOMESCREEN_TAG, ADD_TO_HOMESCREEN_TAG)
@@ -132,7 +132,7 @@ object HomeScreen {
     @VisibleForTesting
     fun generateTitleFromUrl(url: String): String {
         // For now we just use the host name and strip common subdomains like "www" or "m".
-        return Uri.parse(url).host?.stripCommonSubdomains() ?: ""
+        return url.toUri().host?.stripCommonSubdomains() ?: ""
     }
 
     /**

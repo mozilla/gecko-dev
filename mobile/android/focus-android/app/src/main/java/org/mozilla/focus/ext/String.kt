@@ -5,6 +5,7 @@
 package org.mozilla.focus.ext
 
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
 import mozilla.components.support.ktx.android.net.hostWithoutCommonPrefixes
 import mozilla.components.support.ktx.util.URLStringUtils
@@ -72,4 +73,4 @@ val String.tryGetRootDomain: String
  * Tries to parse a color string and return a [Color]
  */
 val String.color: Color
-    get() = Color(android.graphics.Color.parseColor(this))
+    get() = Color(this.toColorInt())

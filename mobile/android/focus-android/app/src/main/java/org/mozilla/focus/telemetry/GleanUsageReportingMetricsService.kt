@@ -5,6 +5,7 @@
 package org.mozilla.focus.telemetry
 
 import android.content.Context
+import androidx.core.content.edit
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -141,16 +142,15 @@ class GleanUsageReportingMetricsService(
                 null,
             )
             set(value) {
-                defaultSharedPreferences.edit()
-                    .putString(
-                        preferenceKey,
-                        value,
-                    ).apply()
+                defaultSharedPreferences.edit {
+                    putString(preferenceKey, value)
+                }
             }
 
         override fun clear() {
-            defaultSharedPreferences.edit()
-                .remove(preferenceKey).apply()
+            defaultSharedPreferences.edit {
+                remove(preferenceKey)
+            }
         }
     }
 }

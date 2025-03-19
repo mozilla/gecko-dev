@@ -15,6 +15,7 @@ import android.widget.EditText
 import android.widget.ImageView
 import androidx.appcompat.app.AlertDialog
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.edit
 import androidx.core.view.isVisible
 import androidx.fragment.app.DialogFragment
 import androidx.preference.PreferenceManager
@@ -105,11 +106,12 @@ class AddToHomescreenDialogFragment : DialogFragment() {
                 ),
             )
 
-            PreferenceManager.getDefaultSharedPreferences(requireContext()).edit()
-                .putBoolean(
+            PreferenceManager.getDefaultSharedPreferences(requireContext()).edit() {
+                putBoolean(
                     requireContext().getString(R.string.has_added_to_home_screen),
                     true,
-                ).apply()
+                )
+            }
             dismiss()
         }
     }
