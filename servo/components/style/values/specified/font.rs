@@ -594,7 +594,8 @@ impl KeywordInfo {
         #[cfg(feature="gecko")]
         debug_assert_ne!(self.kw, FontSizeKeyword::Math);
         let base = context.maybe_zoom_text(self.kw.to_length(context).0);
-        base * self.factor + context.maybe_zoom_text(self.offset)
+        let zoom_factor = context.style().effective_zoom.value();
+        CSSPixelLength::new(base.px() * self.factor * zoom_factor) + context.maybe_zoom_text(self.offset)
     }
 
     /// Given a parent keyword info (self), apply an additional factor/offset to
