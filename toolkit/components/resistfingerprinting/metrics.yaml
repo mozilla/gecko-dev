@@ -4954,3 +4954,20 @@ characteristics:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
       # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
       - highly_sensitive
+
+  machine_model_name:
+    type: string
+    description: >
+      Machine model name
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1952006
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1952006#c5
+    expires: never
+    data_sensitivity:
+      - stored_content

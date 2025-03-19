@@ -50,6 +50,7 @@
 #include "nsThreadUtils.h"
 #include "mozilla/dom/Navigator.h"
 #include "nsIGSettingsService.h"
+#include "nsIPropertyBag2.h"
 #include "nsITimer.h"
 #include "gfxConfig.h"
 
@@ -650,6 +651,19 @@ already_AddRefed<PopulatePromise> PopulateTimeZone() {
   return populatePromise.forget();
 }
 
+void PopulateModelName() {
+  nsCString modelName("null");
+
+#if defined(XP_MACOSX)
+  nsCOMPtr<nsIPropertyBag2> sysInfo =
+      do_GetService("@mozilla.org/system-info;1");
+  NS_ENSURE_TRUE_VOID(sysInfo);
+  sysInfo->GetPropertyAsACString(u"appleModelId"_ns, modelName);
+#endif
+
+  glean::characteristics::machine_model_name.Set(modelName);
+}
+
 const RefPtr<PopulatePromise>& TimoutPromise(
     const RefPtr<PopulatePromise>& promise, uint32_t delay,
     const nsCString& funcName) {
@@ -885,6 +899,7 @@ void nsUserCharacteristics::PopulateDataAndEventuallySubmit(
     PopulateLanguages();
     PopulateTextAntiAliasing();
     PopulateProcessorCount();
+    PopulateModelName();
     PopulateMisc(false);
   }
 
