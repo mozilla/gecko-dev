@@ -311,7 +311,7 @@ def _run_sphinx(docdir, savedir, config=None, fmt="html", jobs=None, verbose=Non
         print("Run sphinx with:")
         print(args)
         status = sphinx.cmd.build.build_main(args)
-        with open(warn_path) as warn_file:
+        with open(warn_path, "r", encoding="utf-8") as warn_file:
             warnings = warn_file.readlines()
         return status, warnings
     finally:
