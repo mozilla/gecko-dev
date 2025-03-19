@@ -82,9 +82,9 @@ var gSmallTests = [
   {
     name: "avc-2bytes-nalu.mp4",
     type: "video/mp4",
-    width: 400,
-    height: 300,
-    duration: 0.5,
+    width: 560,
+    height: 320,
+    duration: 0.27,
   },
 ];
 
