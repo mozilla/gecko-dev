@@ -36,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
@@ -381,10 +380,9 @@ private fun TopSiteItem(
             }
 
             Text(
-                text = stringResource(id = R.string.top_sites_sponsored_label),
+                text = if (topSite is TopSite.Provided) stringResource(id = R.string.top_sites_sponsored_label) else "",
                 modifier = Modifier
-                    .width(TOP_SITES_ITEM_SIZE.dp)
-                    .alpha(alpha = if (topSite is TopSite.Provided) 1f else 0f),
+                    .width(TOP_SITES_ITEM_SIZE.dp),
                 color = topSiteColors.sponsoredTextColor,
                 fontSize = 10.sp,
                 textAlign = TextAlign.Center,
