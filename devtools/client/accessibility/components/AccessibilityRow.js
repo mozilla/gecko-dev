@@ -13,7 +13,7 @@ const {
 const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
 const {
   findDOMNode,
-} = require("resource://devtools/client/shared/vendor/react-dom.js");
+} = require("resource://devtools/client/shared/vendor/react-dom.mjs");
 const {
   connect,
 } = require("resource://devtools/client/shared/vendor/react-redux.js");

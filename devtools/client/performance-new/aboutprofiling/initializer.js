@@ -46,7 +46,7 @@ const { presets } = ChromeUtils.importESModule(
   "resource://devtools/client/performance-new/shared/background.sys.mjs"
 );
 
-const ReactDOM = require("resource://devtools/client/shared/vendor/react-dom.js");
+const ReactDOM = require("resource://devtools/client/shared/vendor/react-dom.mjs");
 const React = require("resource://devtools/client/shared/vendor/react.js");
 const FluentReact = require("resource://devtools/client/shared/vendor/fluent-react.js");
 const {
@@ -132,7 +132,10 @@ async function gInit(
 
 async function gDestroy() {
   // This allows all unregister commands to run.
-  ReactDOM.unmountComponentAtNode(document.querySelector("#root"));
+  const root = document.querySelector("#root");
+  if (root) {
+    ReactDOM.unmountComponentAtNode(root);
+  }
 }
 
 // Automatically initialize the page if it's not a remote connection, otherwise

@@ -10,6 +10,8 @@ module.exports = {
     "@babel/plugin-proposal-optional-chaining",
     "@babel/plugin-proposal-nullish-coalescing-operator",
     "@babel/plugin-proposal-private-methods",
+    "@babel/plugin-transform-modules-commonjs",
+    "babel-plugin-add-module-exports",
     "transform-amd-to-commonjs",
   ],
   presets: [

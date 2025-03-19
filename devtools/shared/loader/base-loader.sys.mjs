@@ -351,17 +351,10 @@ export function Require(loader, requirer) {
     // Load all react modules as ES Modules, in the Browser Loader global.
     // For this we have to ensure using ChromeUtils.importESModule with `global:"current"`,
     // but executed from the Loader global scope. `syncImport` does that.
-    //
-    // Also all these modules but the react-dom-factories should have their "default"
-    // imported.
-    let importDefault = false;
     if (REACT_ESM_MODULES.has(uri)) {
       // All CommonJS modules are still importing the .js/CommonJS version,
       // but we hack these require() call to load the ESM version.
       uri = uri.replace(/.js$/, ".mjs");
-      if (!uri.includes("react-dom-factories")) {
-        importDefault = true;
-      }
     }
 
     let module = null;
@@ -370,12 +363,10 @@ export function Require(loader, requirer) {
       module = modules[uri];
     } else if (isESMURI(uri)) {
       module = modules[uri] = Module(requirement, uri);
-      module.exports = ChromeUtils.importESModule(uri, {
+      const rv = ChromeUtils.importESModule(uri, {
         global: "contextual",
       });
-      if (importDefault) {
-        module.exports = module.exports.default;
-      }
+      module.exports = rv.default || rv;
     } else if (isJSONURI(uri)) {
       let data;
 

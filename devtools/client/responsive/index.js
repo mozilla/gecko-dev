@@ -19,7 +19,7 @@ const {
   createFactory,
   createElement,
 } = require("resource://devtools/client/shared/vendor/react.js");
-const ReactDOM = require("resource://devtools/client/shared/vendor/react-dom.js");
+const ReactDOM = require("resource://devtools/client/shared/vendor/react-dom.mjs");
 const {
   Provider,
 } = require("resource://devtools/client/shared/vendor/react-redux.js");

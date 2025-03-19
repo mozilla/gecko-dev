@@ -10,7 +10,7 @@ const {
 } = require("resource://devtools/client/shared/vendor/react.js");
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
-const ReactDOM = require("resource://devtools/client/shared/vendor/react-dom.js");
+const ReactDOM = require("resource://devtools/client/shared/vendor/react-dom.mjs");
 
 const ColorPath = createFactory(
   require("resource://devtools/client/inspector/animation/components/keyframes-graph/ColorPath.js")

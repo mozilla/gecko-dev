@@ -314,6 +314,11 @@ declare module "resource://devtools/client/shared/vendor/react.js" {
   export = React;
 }
 
+declare module "resource://devtools/client/shared/vendor/react-dom.mjs" {
+  import * as ReactDOM from "react-dom";
+  export = ReactDOM;
+}
+
 declare module "resource://devtools/client/shared/vendor/react-dom-factories.js" {
   import * as ReactDomFactories from "react-dom-factories";
   export = ReactDomFactories;

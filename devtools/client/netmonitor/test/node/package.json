@@ -8,6 +8,8 @@
     "test-ci": "jest --json"
   },
   "dependencies": {
-    "jest": "^24.6.0"
+    "jest": "^24.6.0",
+    "@babel/plugin-transform-modules-commonjs": "^7.23.0",
+    "babel-plugin-add-module-exports": "1.0.4"
   }
 }

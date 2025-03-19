@@ -4,7 +4,7 @@
 
 "use strict";
 
-const ReactDOM = require("resource://devtools/client/shared/vendor/react-dom.js");
+const ReactDOM = require("resource://devtools/client/shared/vendor/react-dom.mjs");
 const {
   FILTER_TAGS,
 } = require("resource://devtools/client/netmonitor/src/constants.js");

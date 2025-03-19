@@ -15,18 +15,15 @@ loader.lazyRequireGetter(
   "resource://devtools/client/shared/widgets/tooltip/HTMLTooltip.js",
   true
 );
-loader.lazyRequireGetter(
-  this,
-  "createPortal",
-  "resource://devtools/client/shared/vendor/react-dom.js",
-  true
-);
 
 // React & Redux
 const {
   Component,
 } = require("resource://devtools/client/shared/vendor/react.js");
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
+const {
+  createPortal,
+} = require("resource://devtools/client/shared/vendor/react-dom.mjs");
 const {
   connect,
 } = require("resource://devtools/client/shared/vendor/react-redux.js");

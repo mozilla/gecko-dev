@@ -16,7 +16,7 @@ const {
 } = require("resource://devtools/client/shared/vendor/react-redux.js");
 const {
   findDOMNode,
-} = require("resource://devtools/client/shared/vendor/react-dom.js");
+} = require("resource://devtools/client/shared/vendor/react-dom.mjs");
 const Actions = require("resource://devtools/client/netmonitor/src/actions/index.js");
 const {
   updateFormDataSections,

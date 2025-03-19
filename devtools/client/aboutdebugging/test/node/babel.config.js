@@ -4,5 +4,9 @@
 "use strict";
 
 module.exports = {
-  plugins: ["@babel/plugin-proposal-async-generator-functions"],
+  plugins: [
+    "@babel/plugin-proposal-async-generator-functions",
+    "@babel/plugin-transform-modules-commonjs",
+    "babel-plugin-add-module-exports",
+  ],
 };

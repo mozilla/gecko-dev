@@ -7,6 +7,7 @@
   "devDependencies": {
     "@types/react-dom-factories": "^1.0.2",
     "@types/react-redux": "^7.1.18",
+    "@types/react-dom": "^16.8.6",
     "@types/redux": "^3.6.0",
     "typescript": "^5.3.3"
   }

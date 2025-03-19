@@ -312,7 +312,7 @@ exports.createContextMenu = createContextMenu;
  */
 async function getUnvirtualizedConsoleOutputText(webConsoleWrapper) {
   return new Promise(resolve => {
-    const ReactDOM = require("resource://devtools/client/shared/vendor/react-dom.js");
+    const ReactDOM = require("resource://devtools/client/shared/vendor/react-dom.mjs");
     const {
       createElement,
       createFactory,

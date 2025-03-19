@@ -18,7 +18,7 @@ const {
 const Actions = require("resource://devtools/client/netmonitor/src/actions/index.js");
 const {
   findDOMNode,
-} = require("resource://devtools/client/shared/vendor/react-dom.js");
+} = require("resource://devtools/client/shared/vendor/react-dom.mjs");
 const {
   getSelectedMessage,
   isSelectedMessageVisible,

@@ -17,7 +17,4 @@ module.exports = {
     "\\.svg$": `${testHelpersDir}/jest-fixtures/svgMock.js`,
   },
   setupFiles: ["<rootDir>jest-setup.js"],
-  transform: {
-    "\\.[jt]sx?$": "babel-jest",
-  },
 };

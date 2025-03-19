@@ -20,5 +20,5 @@ module.exports = {
       lazy[key] = mockedESM[key];
     }
   },
-  importESModule: () => ({}),
+  importESModule: path => require(path) || {},
 };

@@ -59,7 +59,7 @@ class CssCompatibilityTooltipHelper {
       createFactory,
       createElement,
     } = require("resource://devtools/client/shared/vendor/react.js");
-    const ReactDOM = require("resource://devtools/client/shared/vendor/react-dom.js");
+    const ReactDOM = require("resource://devtools/client/shared/vendor/react-dom.mjs");
     const UnsupportedBrowserList = createFactory(
       require("resource://devtools/client/inspector/compatibility/components/UnsupportedBrowserList.js")
     );

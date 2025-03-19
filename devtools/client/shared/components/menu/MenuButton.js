@@ -14,6 +14,9 @@ const {
 } = require("resource://devtools/client/shared/vendor/react.js");
 const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
+const {
+  createPortal,
+} = require("resource://devtools/client/shared/vendor/react-dom.mjs");
 const { button } = dom;
 
 const isMacOS = Services.appinfo.OS === "Darwin";
@@ -29,13 +32,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   focusableSelector: "resource://devtools/client/shared/focus.mjs",
 });
-
-loader.lazyRequireGetter(
-  this,
-  "createPortal",
-  "resource://devtools/client/shared/vendor/react-dom.js",
-  true
-);
 
 // Return a copy of |obj| minus |fields|.
 const omit = (obj, fields) => {

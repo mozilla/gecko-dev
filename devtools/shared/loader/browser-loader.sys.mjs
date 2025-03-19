@@ -180,6 +180,10 @@ function BrowserLoaderBuilder({
         const moduleExports = syncImport(uri);
         return moduleExports.default || moduleExports;
       }
+      if (uri.endsWith(".mjs")) {
+        const moduleExports = syncImport(uri);
+        return moduleExports.default || moduleExports;
+      }
 
       if (
         commonLibRequire &&
