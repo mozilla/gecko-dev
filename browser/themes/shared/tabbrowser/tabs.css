@@ -130,7 +130,7 @@
     min-height: var(--tabstrip-min-height);
 
     --tab-min-width: 76px;
-    :root[uidensity="touch"] & .tabbrowser-tab {
+    :root[uidensity="touch"] & .tabbrowser-tab:not([pinned]) {
       /* Touch mode needs additional space for the close button. */
       min-width: max(var(--tab-min-width-pref, var(--tab-min-width)), 86px);
     }
