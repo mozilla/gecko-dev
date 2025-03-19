@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.downloads.listscreen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,6 +26,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ChipDefaults
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.FilterChip
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
@@ -47,8 +53,8 @@ import kotlinx.coroutines.launch
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.lib.state.ext.observeAsState
+import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.SelectableChip
 import org.mozilla.fenix.compose.list.ExpandableListHeader
 import org.mozilla.fenix.compose.list.SelectableListItem
 import org.mozilla.fenix.compose.menu.DropdownMenu
@@ -215,7 +221,8 @@ private fun FileListItem(
 
                 IconButton(
                     onClick = { menuExpanded = true },
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier
+                        .size(24.dp)
                         .testTag("${DownloadsListTestTag.DOWNLOADS_LIST_ITEM_MENU}.${fileItem.fileName}"),
                 ) {
                     Icon(
@@ -279,17 +286,56 @@ private fun Filters(
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun DownloadChip(
     selected: Boolean,
     contentTypeFilter: FileItem.ContentTypeFilter,
+    modifier: Modifier = Modifier,
     onContentTypeSelected: (FileItem.ContentTypeFilter) -> Unit,
 ) {
-    SelectableChip(
-        text = stringResource(id = contentTypeFilter.stringRes),
-        isSelected = selected,
+    FilterChip(
+        selected = selected,
         onClick = { onContentTypeSelected(contentTypeFilter) },
-    )
+        shape = RoundedCornerShape(16.dp),
+        border = if (selected) {
+            null
+        } else {
+            BorderStroke(1.dp, FirefoxTheme.colors.borderPrimary)
+        },
+        colors = ChipDefaults.filterChipColors(
+            // Update to use token when available in design system
+            selectedBackgroundColor = PhotonColors.Violet05,
+            selectedContentColor = FirefoxTheme.colors.actionPrimary,
+            backgroundColor = FirefoxTheme.colors.layer1,
+            contentColor = FirefoxTheme.colors.textPrimary,
+        ),
+        modifier = modifier.height(36.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            if (selected) {
+                // Custom content is used instead of using the `leadingIcon` parameter as the paddings
+                // are different and spec requires a specific padding between the icon and text.
+                Icon(
+                    painter = painterResource(id = R.drawable.mozac_ic_checkmark_24),
+                    contentDescription = null,
+                    tint = FirefoxTheme.colors.actionPrimary,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+            Text(
+                text = stringResource(id = contentTypeFilter.stringRes),
+                style = if (selected) {
+                    FirefoxTheme.typography.headline8
+                } else {
+                    FirefoxTheme.typography.body2
+                },
+            )
+        }
+    }
 }
 
 @Composable
