@@ -7,12 +7,14 @@
 #include "ARIAMap.h"
 #include "nsAccUtils.h"
 #include "nsIURI.h"
+#include "Pivot.h"
 #include "Relation.h"
 #include "States.h"
 #include "mozilla/a11y/FocusManager.h"
 #include "mozilla/a11y/HyperTextAccessibleBase.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/Components.h"
+#include "mozilla/ProfilerMarkers.h"
 #include "nsIStringBundle.h"
 
 #ifdef A11Y_LOG
@@ -678,7 +680,16 @@ void Accessible::ApplyImplicitState(uint64_t& aState) const {
       }
     } else if (aState & states::FOCUSED) {
       Accessible* container = nsAccUtils::GetSelectableContainer(this, aState);
-      if (container && !(container->State() & states::MULTISELECTABLE)) {
+      AUTO_PROFILER_MARKER_TEXT(
+          "Accessible::ApplyImplicitState::ImplicitSelection", A11Y, {}, ""_ns);
+      auto HasExplicitSelection = [](Accessible* aAcc) {
+        Pivot p = Pivot(aAcc);
+        PivotARIASelectedRule rule;
+        return p.First(rule) != nullptr;
+      };
+
+      if (container && !(container->State() & states::MULTISELECTABLE) &&
+          !HasExplicitSelection(container)) {
         aState |= states::SELECTED;
       }
     }

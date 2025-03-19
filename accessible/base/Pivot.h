@@ -89,6 +89,14 @@ class PivotRoleRule : public PivotRule {
 };
 
 /**
+ * This rule matches Accessibles with an explicit value for aria-selected.
+ */
+class PivotARIASelectedRule : public PivotRule {
+ public:
+  virtual uint16_t Match(Accessible* aAcc) override;
+};
+
+/**
  * This rule matches accessibles with a given state.
  */
 class PivotStateRule : public PivotRule {

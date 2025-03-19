@@ -329,3 +329,19 @@ uint16_t MustPruneSameDocRule::Match(Accessible* aAcc) {
 
   return nsIAccessibleTraversalRule::FILTER_MATCH;
 }
+
+// ARIA Selected Rule
+
+uint16_t PivotARIASelectedRule::Match(Accessible* aAcc) {
+  uint16_t result = nsIAccessibleTraversalRule::FILTER_IGNORE;
+
+  if (nsAccUtils::MustPrune(aAcc)) {
+    result |= nsIAccessibleTraversalRule::FILTER_IGNORE_SUBTREE;
+  }
+
+  if (aAcc && aAcc->ARIASelected()) {
+    result = nsIAccessibleTraversalRule::FILTER_MATCH;
+  }
+
+  return result;
+}
