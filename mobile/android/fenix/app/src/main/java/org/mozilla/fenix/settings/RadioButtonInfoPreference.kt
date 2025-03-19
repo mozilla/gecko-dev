@@ -6,7 +6,6 @@ package org.mozilla.fenix.settings
 
 import android.content.Context
 import android.util.AttributeSet
-import android.view.View
 import android.widget.ImageView
 import androidx.preference.PreferenceViewHolder
 import org.mozilla.fenix.R
@@ -35,11 +34,11 @@ class RadioButtonInfoPreference @JvmOverloads constructor(
 
     override fun onBindViewHolder(holder: PreferenceViewHolder) {
         super.onBindViewHolder(holder)
-        val infoView = holder.findViewById(R.id.info_button_container) as View
-        infoView.setOnClickListener {
+        infoView = holder.findViewById(R.id.info_button) as ImageView
+        infoView?.setOnClickListener {
             infoClickListener?.invoke()
         }
-        infoView.alpha = if (isEnabled) FULL_ALPHA else HALF_ALPHA
-        contentDescription?.let { infoView.contentDescription = it }
+        infoView?.alpha = if (isEnabled) FULL_ALPHA else HALF_ALPHA
+        contentDescription?.let { infoView?.contentDescription = it }
     }
 }
