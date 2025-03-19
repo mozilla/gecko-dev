@@ -1140,7 +1140,7 @@ var SidebarController = {
             ? fromTranslate + widthGrowth
             : fromTranslate - widthGrowth;
         }
-      } else if (isSidebar) {
+      } else if (isSidebar && !this._positionStart) {
         fromTranslate += sidebarOnLeft ? -widthGrowth : widthGrowth;
       }
 

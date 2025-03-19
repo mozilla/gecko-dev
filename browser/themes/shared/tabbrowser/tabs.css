@@ -50,10 +50,6 @@
   --tab-outline-offset: -1px;
   --tab-selected-outline-color: transparent;
   --tab-hover-outline-color: transparent;
-  --tab-attention-dot-position-x: calc(50% + 11px);
-  &:-moz-locale-dir(rtl) {
-    --tab-attention-dot-position-x: calc(50% - 11px);
-  }
   @media (prefers-contrast) {
     --tab-selected-outline-color: currentColor;
     --tab-hover-outline-color: currentColor;
@@ -904,7 +900,19 @@
 
   #tabbrowser-tabs[orient="vertical"] & {
     background-position-y: 6px;
-    background-position-x: var(--tab-attention-dot-position-x);
+    background-position-x: calc(var(--tab-inline-padding) + var(--icon-size-default) + 1px);
+
+    &:-moz-locale-dir(rtl) {
+      background-position-x: right calc(var(--tab-inline-padding) + var(--icon-size-default) + 1px);
+    }
+
+    :root:not([sidebar-expand-on-hover]) &[pinned] {
+      background-position-x: calc(50% + 11px);
+
+      &:-moz-locale-dir(rtl) {
+        background-position-x: calc(50% - 11px);
+      }
+    }
   }
 }
 
