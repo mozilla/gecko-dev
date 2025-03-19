@@ -40,7 +40,6 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.By.text
 import androidx.test.uiautomator.UiObject
 import androidx.test.uiautomator.UiObjectNotFoundException
-import androidx.test.uiautomator.UiScrollable
 import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
 import mozilla.components.browser.state.selector.selectedTab
@@ -196,7 +195,7 @@ class BrowserRobot {
      *  document.querySelector('#testContent').innerText == expectedText
      *
      */
-    fun verifyPageContent(expectedText: String) {
+    fun verifyPageContent(expectedText: String, alsoClick: Boolean = false) {
         sessionLoadedIdlingResource = SessionLoadedIdlingResource()
 
         mDevice.waitNotNull(
@@ -205,25 +204,13 @@ class BrowserRobot {
         )
 
         registerAndCleanupIdlingResources(sessionLoadedIdlingResource) {
-            assertTrue(
-                itemWithResId("$packageName:id/engineView")
-                    .getChild(UiSelector().textContains(expectedText)).waitForExists(waitingTimeLong),
-            )
+            val obj = itemWithResId("$packageName:id/engineView")
+                .getChild(UiSelector().textContains(expectedText))
+            assertTrue(obj.waitForExists(waitingTimeLong))
+            if (alsoClick) {
+                obj.click()
+            }
         }
-    }
-
-    fun scrollIntoViewTheSmartBlockFixesSection() {
-        val aboutCompatView = UiScrollable(UiSelector().text("about:compat")).setAsVerticalList()
-        Log.i(TAG, "scrollIntoViewTheSmartBlockFixesSection: Trying to scroll into view the \"SmartBlock Fixes\" section")
-        aboutCompatView.scrollIntoView(itemContainingText("SmartBlock Fixes"))
-        Log.i(TAG, "scrollIntoViewTheSmartBlockFixesSection: Scrolled into view the \"SmartBlock Fixes\" section")
-    }
-
-    fun scrollToTheEndOfTheAboutCompatPage() {
-        val aboutCompatView = UiScrollable(UiSelector().text("about:compat")).setAsVerticalList()
-        Log.i(TAG, "scrollToTheEndOfTheAboutCompatPage: Trying to scroll to the end of the \"about:compat\" page")
-        aboutCompatView.scrollToEnd(3)
-        Log.i(TAG, "scrollToTheEndOfTheAboutCompatPage: Scrolled to the end of the \"about:compat\" page")
     }
 
     fun verifyTextFragmentsPageContent(expectedText: String) {

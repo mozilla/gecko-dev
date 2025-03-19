@@ -45,13 +45,16 @@ class AboutURITest : TestSetup() {
         searchScreen {
         }.loadPage(webCompatPage) {
             verifyPageURL(webCompatPage)
+
+            verifyPageContent("More Information: Bug")
             verifyPageContent("Interventions")
+            verifyPageContent("Disable", alsoClick = true)
+            verifyPageContent("Enable", alsoClick = true)
+            verifyPageContent("Disable", alsoClick = true)
+
+            verifyPageContent("SmartBlock Fixes", alsoClick = true)
             verifyPageContent("More Information: Bug")
-            scrollIntoViewTheSmartBlockFixesSection()
-            verifyPageContent("SmartBlock Fixes")
-            // Scroll down to be able to properly verify the bugs listed in the "SmartBlock Fixes section"
-            scrollToTheEndOfTheAboutCompatPage()
-            verifyPageContent("More Information: Bug")
+            verifyPageContent("Disable")
         }
     }
 }
