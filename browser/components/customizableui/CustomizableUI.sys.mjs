@@ -1003,18 +1003,9 @@ var CustomizableUIInternal = {
   },
 
   /**
-   * Given a DOM node with the `customizable` attribute, will attempt to resolve
-   * it to the associated "customization target" for that DOM node via its
-   * `customizationtarget` attribute. If no such attribute exists, the DOM node
-   * itself is returned.
-   *
-   * If the DOM node is null, is not customizable, or cannot be resolved to
-   * a customization target, then null is returned.
-   *
+   * @see CustomizableUI.getCustomizationTarget
    * @param {Element|null} aElement
-   *   The DOM node to resolve to a customization target DOM node.
    * @returns {Element|null}
-   *   The customization target DOM node, or null if one cannot be found.
    */
   getCustomizationTarget(aElement) {
     if (!aElement) {
@@ -6908,10 +6899,34 @@ export var CustomizableUI = {
     return CustomizableUIInternal.handleNewBrowserWindow(aWindow);
   },
 
+  /**
+   * Given a DOM node with the `customizable` attribute, will attempt to resolve
+   * it to the associated "customization target" for that DOM node via its
+   * `customizationtarget` attribute. If no such attribute exists, the DOM node
+   * itself is returned.
+   *
+   * If the DOM node is null, is not customizable, or cannot be resolved to
+   * a customization target, then null is returned.
+   *
+   * @param {Element|null} aElement
+   *   The DOM node to resolve to a customization target DOM node.
+   * @returns {Element|null}
+   *   The customization target DOM node, or null if one cannot be found.
+   */
   getCustomizationTarget(aElement) {
     return CustomizableUIInternal.getCustomizationTarget(aElement);
   },
 
+  /**
+   * This is a test-only method that allows tests to violate encapsulation and
+   * gain access to some state internal to this module. If not running in test
+   * automation, this will always return null.
+   *
+   * @param {string} aProp
+   *   The string representation of the internal property to retrieve. Only some
+   *   properties are supported - see the method code.
+   * @returns {any|null}
+   */
   getTestOnlyInternalProp(aProp) {
     if (!Cu.isInAutomation) {
       return null;
@@ -6936,6 +6951,19 @@ export var CustomizableUI = {
     }
     return null;
   },
+
+  /**
+   * This is a test-only method that allows tests to violate encapsulation and
+   * write to some state internal to this module. If not running in test
+   * automation, this will always just immediately return without making any
+   * changes.
+   *
+   * @param {string} aProp
+   *   The string representation of the internal property to change. Only some
+   *   properties are supported - see the method code.
+   * @param {any} aValue
+   *   The value to set the property to.
+   */
   setTestOnlyInternalProp(aProp, aValue) {
     if (!Cu.isInAutomation) {
       return;
