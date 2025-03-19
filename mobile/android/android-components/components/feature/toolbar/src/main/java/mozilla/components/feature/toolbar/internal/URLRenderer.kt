@@ -71,7 +71,7 @@ internal class URLRenderer(
         }
 
         toolbar.url = when (configuration.renderStyle) {
-            // Display only the URL, uncolored
+            // Display only the eTLD+1 (direct subdomain of the public suffix), uncolored
             ToolbarFeature.RenderStyle.RegistrableDomain -> {
                 val host = url.toUri().host?.ifEmpty { null }
                 host?.let { getRegistrableDomain(host, configuration) } ?: url

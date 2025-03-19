@@ -90,7 +90,7 @@ class ToolbarFeature(
     /**
      * Controls how the url should be styled
      *
-     * RegistrableDomain: displays only the url, uncolored
+     * RegistrableDomain: displays only the eTLD+1 (direct subdomain of the public suffix), uncolored
      * ColoredUrl: displays the registrableDomain with color and url with another color
      * UncoloredUrl: displays the full url, uncolored
      */
