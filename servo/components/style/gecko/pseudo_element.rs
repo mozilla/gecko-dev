@@ -62,6 +62,13 @@ impl ::selectors::parser::PseudoElement for PseudoElement {
         // root.
         self.is_named_view_transition()
     }
+
+    /// Whether this pseudo-element is "element-backed", which means that it inherits from its regular
+    /// flat tree parent, which might not be the originating element.
+    #[inline]
+    fn is_element_backed(&self) -> bool {
+        self.is_named_view_transition() || *self == PseudoElement::DetailsContent
+    }
 }
 
 impl PseudoElement {
@@ -189,12 +196,6 @@ impl PseudoElement {
                 Self::ViewTransitionOld(..) |
                 Self::ViewTransitionNew(..)
         )
-    }
-
-    /// Whether this pseudo-element is "part-like", which means that it inherits from its regular
-    /// flat tree parent, which might not be the originating element.
-    pub fn is_part_like(&self) -> bool {
-        self.is_named_view_transition() || *self == PseudoElement::DetailsContent
     }
 
     /// The count we contribute to the specificity from this pseudo-element.

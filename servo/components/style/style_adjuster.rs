@@ -19,6 +19,8 @@ use crate::properties::longhands::float::computed_value::T as Float;
 use crate::properties::longhands::position::computed_value::T as Position;
 use crate::properties::{self, ComputedValues, StyleBuilder};
 
+use selectors::parser::PseudoElement;
+
 /// A struct that implements all the adjustment methods.
 ///
 /// NOTE(emilio): If new adjustments are introduced that depend on reset
@@ -553,7 +555,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
 
         // FIXME(emilio): ::before and ::after should support display: contents, see bug 1418138.
-        if self.style.pseudo.is_some_and(|p| !p.is_part_like()) {
+        if self.style.pseudo.is_some_and(|p| !p.is_element_backed()) {
             self.style.mutate_box().set_display(Display::Inline);
             return;
         }

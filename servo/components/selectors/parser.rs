@@ -47,6 +47,12 @@ pub trait PseudoElement: Sized + ToCss {
         false
     }
 
+    /// Whether this pseudo-element is element-backed.
+    /// https://drafts.csswg.org/css-pseudo-4/#element-like
+    fn is_element_backed(&self) -> bool {
+        false
+    }
+
     /// The count we contribute to the specificity from this pseudo-element.
     fn specificity_count(&self) -> u32 {
         1
@@ -106,26 +112,26 @@ bitflags! {
         /// If so, then we can only parse a subset of pseudo-elements, and
         /// whatever comes after them if so.
         const AFTER_SLOTTED = 1 << 1;
-        /// Whether we've parsed a ::part() pseudo-element already.
+        /// Whether we've parsed a ::part() or element-backed pseudo-element already.
         ///
         /// If so, then we can only parse a subset of pseudo-elements, and
         /// whatever comes after them if so.
-        const AFTER_PART = 1 << 2;
-        /// Whether we've parsed a pseudo-element (as in, an
+        const AFTER_PART_LIKE = 1 << 2;
+        /// Whether we've parsed a non-element-backed pseudo-element (as in, an
         /// `Impl::PseudoElement` thus not accounting for `::slotted` or
         /// `::part`) already.
         ///
         /// If so, then other pseudo-elements and most other selectors are
         /// disallowed.
-        const AFTER_PSEUDO_ELEMENT = 1 << 3;
+        const AFTER_NON_ELEMENT_BACKED_PSEUDO = 1 << 3;
         /// Whether we've parsed a non-stateful pseudo-element (again, as-in
         /// `Impl::PseudoElement`) already. If so, then other pseudo-classes are
-        /// disallowed. If this flag is set, `AFTER_PSEUDO_ELEMENT` must be set
+        /// disallowed. If this flag is set, `AFTER_NON_ELEMENT_BACKED_PSEUDO` must be set
         /// as well.
         const AFTER_NON_STATEFUL_PSEUDO_ELEMENT = 1 << 4;
 
         /// Whether we are after any of the pseudo-like things.
-        const AFTER_PSEUDO = Self::AFTER_PART.bits() | Self::AFTER_SLOTTED.bits() | Self::AFTER_PSEUDO_ELEMENT.bits();
+        const AFTER_PSEUDO = Self::AFTER_PART_LIKE.bits() | Self::AFTER_SLOTTED.bits() | Self::AFTER_NON_ELEMENT_BACKED_PSEUDO.bits();
 
         /// Whether we explicitly disallow combinators.
         const DISALLOW_COMBINATORS = 1 << 5;
@@ -146,7 +152,7 @@ impl SelectorParsingState {
     #[inline]
     fn allows_pseudos(self) -> bool {
         // NOTE(emilio): We allow pseudos after ::part and such.
-        !self.intersects(Self::AFTER_PSEUDO_ELEMENT | Self::DISALLOW_PSEUDOS)
+        !self.intersects(Self::AFTER_NON_ELEMENT_BACKED_PSEUDO | Self::DISALLOW_PSEUDOS)
     }
 
     #[inline]
@@ -2730,9 +2736,9 @@ where
 
         if state.intersects(SelectorParsingState::AFTER_PSEUDO) {
             debug_assert!(state.intersects(
-                SelectorParsingState::AFTER_PSEUDO_ELEMENT |
+                SelectorParsingState::AFTER_NON_ELEMENT_BACKED_PSEUDO |
                     SelectorParsingState::AFTER_SLOTTED |
-                    SelectorParsingState::AFTER_PART
+                    SelectorParsingState::AFTER_PART_LIKE
             ));
             break;
         }
@@ -3255,7 +3261,7 @@ where
                 builder.push_simple_selector(s);
             },
             SimpleSelectorParseResult::PartPseudo(part_names) => {
-                state.insert(SelectorParsingState::AFTER_PART);
+                state.insert(SelectorParsingState::AFTER_PART_LIKE);
                 builder.push_combinator(Combinator::Part);
                 builder.push_simple_selector(Component::Part(part_names));
             },
@@ -3265,7 +3271,11 @@ where
                 builder.push_simple_selector(Component::Slotted(selector));
             },
             SimpleSelectorParseResult::PseudoElement(p) => {
-                state.insert(SelectorParsingState::AFTER_PSEUDO_ELEMENT);
+                if p.is_element_backed() {
+                    state.insert(SelectorParsingState::AFTER_PART_LIKE);
+                } else {
+                    state.insert(SelectorParsingState::AFTER_NON_ELEMENT_BACKED_PSEUDO);
+                }
                 if !p.accepts_state_pseudo_classes() {
                     state.insert(SelectorParsingState::AFTER_NON_STATEFUL_PSEUDO_ELEMENT);
                 }
@@ -3372,11 +3382,11 @@ where
         return parse_is_where(parser, input, state, Component::Is);
     }
 
-    if state.intersects(SelectorParsingState::AFTER_PSEUDO_ELEMENT | SelectorParsingState::AFTER_SLOTTED) {
+    if state.intersects(SelectorParsingState::AFTER_NON_ELEMENT_BACKED_PSEUDO | SelectorParsingState::AFTER_SLOTTED) {
         return Err(input.new_custom_error(SelectorParseErrorKind::InvalidState));
     }
 
-    let after_part = state.intersects(SelectorParsingState::AFTER_PART);
+    let after_part = state.intersects(SelectorParsingState::AFTER_PART_LIKE);
     P::parse_non_ts_functional_pseudo_class(parser, name, input, after_part).map(Component::NonTSPseudoClass)
 }
 
@@ -3615,7 +3625,7 @@ where
     }
 
     let pseudo_class = P::parse_non_ts_pseudo_class(parser, location, name)?;
-    if state.intersects(SelectorParsingState::AFTER_PSEUDO_ELEMENT) &&
+    if state.intersects(SelectorParsingState::AFTER_NON_ELEMENT_BACKED_PSEUDO) &&
         !pseudo_class.is_user_action_state()
     {
         return Err(location.new_custom_error(SelectorParseErrorKind::InvalidState));
@@ -3655,6 +3665,10 @@ pub mod tests {
         }
 
         fn valid_after_slotted(&self) -> bool {
+            true
+        }
+
+        fn is_element_backed(&self) -> bool {
             true
         }
     }

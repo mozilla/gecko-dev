@@ -78,6 +78,7 @@ use selectors::matching::VisitedHandlingMode;
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::sink::Push;
 use selectors::{Element, OpaqueElement};
+use selectors::parser::PseudoElement as ParserPseudoElement;
 use servo_arc::{Arc, ArcBorrow};
 use std::cell::Cell;
 use std::fmt;
@@ -1049,7 +1050,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn inheritance_parent(&self) -> Option<Self> {
         if let Some(pseudo) = self.implemented_pseudo_element() {
-            if !pseudo.is_part_like() {
+            if !pseudo.is_element_backed() {
                 return self.pseudo_element_originating_element();
             }
         }
