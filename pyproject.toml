@@ -21,6 +21,7 @@ lint.ignore = [
   "E1", "E4", "E5", "W2", "W5"
 ]
 builtins = ["gdb"]
+extend-include = ["*.configure"]
 exclude = [
   # These paths should be triaged and either fixed or moved to the list below.
   "devtools/shared",
@@ -36,7 +37,6 @@ exclude = [
   "layout/reftests/w3c-css",
   "layout/style",
   "media/libdav1d/generate_source.py",
-  "moz.configure",
   "netwerk/dns/prepare_tlds.py",
   "netwerk/protocol/http/make_incoming_tables.py",
   "python/l10n/fluent_migrations",
