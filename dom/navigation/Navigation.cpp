@@ -34,7 +34,8 @@ NS_IMPL_RELEASE_INHERITED(Navigation, DOMEventTargetHelper)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Navigation)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-Navigation::Navigation(nsPIDOMWindowInner* aWindow) : mWindow(aWindow) {
+Navigation::Navigation(nsPIDOMWindowInner* aWindow)
+    : DOMEventTargetHelper(aWindow) {
   MOZ_ASSERT(aWindow);
 }
 
@@ -72,7 +73,7 @@ already_AddRefed<NavigationHistoryEntry> Navigation::GetCurrentEntry() const {
   return entry.forget();
 }
 
-// https://html.spec.whatwg.org/multipage/nav-history-apis.html#dom-navigation-updatecurrententry
+// https://html.spec.whatwg.org/#dom-navigation-updatecurrententry
 void Navigation::UpdateCurrentEntry(
     JSContext* aCx, const NavigationUpdateCurrentEntryOptions& aOptions,
     ErrorResult& aRv) {
@@ -103,16 +104,16 @@ void Navigation::UpdateCurrentEntry(
   DispatchEvent(*event);
 }
 
-// https://html.spec.whatwg.org/multipage/nav-history-apis.html#has-entries-and-events-disabled
+// https://html.spec.whatwg.org/#has-entries-and-events-disabled
 bool Navigation::HasEntriesAndEventsDisabled() const {
-  Document* doc = mWindow->GetDoc();
-  return !doc->IsCurrentActiveDocument() ||
+  Document* doc = GetDocumentIfCurrent();
+  return !doc || !doc->IsCurrentActiveDocument() ||
          (NS_IsAboutBlankAllowQueryAndFragment(doc->GetDocumentURI()) &&
           doc->IsInitialDocument()) ||
          doc->GetPrincipal()->GetIsNullPrincipal();
 }
 
-// https://html.spec.whatwg.org/multipage/nav-history-apis.html#initialize-the-navigation-api-entries-for-a-new-document
+// https://html.spec.whatwg.org/#initialize-the-navigation-api-entries-for-a-new-document
 void Navigation::InitializeHistoryEntries(
     mozilla::Span<const SessionHistoryInfo> aNewSHInfos,
     const SessionHistoryInfo* aInitialSHInfo) {
@@ -123,8 +124,8 @@ void Navigation::InitializeHistoryEntries(
   }
 
   for (auto i = 0ul; i < aNewSHInfos.Length(); i++) {
-    mEntries.AppendElement(
-        MakeRefPtr<NavigationHistoryEntry>(mWindow, &aNewSHInfos[i], i));
+    mEntries.AppendElement(MakeRefPtr<NavigationHistoryEntry>(
+        GetOwnerGlobal(), &aNewSHInfos[i], i));
     if (aNewSHInfos[i].NavigationKey() == aInitialSHInfo->NavigationKey()) {
       mCurrentEntryIndex = Some(i);
     }
@@ -139,7 +140,7 @@ void Navigation::InitializeHistoryEntries(
       ("aInitialSHInfo: %s %s\n", key.ToString().get(), id.ToString().get()));
 }
 
-// https://html.spec.whatwg.org/multipage/nav-history-apis.html#update-the-navigation-api-entries-for-a-same-document-navigation
+// https://html.spec.whatwg.org/#update-the-navigation-api-entries-for-a-same-document-navigation
 void Navigation::UpdateEntriesForSameDocumentNavigation(
     SessionHistoryInfo* aDestinationSHE, NavigationType aNavigationType) {
   // Step 1.
@@ -174,7 +175,7 @@ void Navigation::UpdateEntriesForSameDocumentNavigation(
         disposedEntries.AppendElement(mEntries.PopLastElement());
       }
       mEntries.AppendElement(MakeRefPtr<NavigationHistoryEntry>(
-          mWindow, aDestinationSHE, *mCurrentEntryIndex));
+          GetOwnerGlobal(), aDestinationSHE, *mCurrentEntryIndex));
       break;
 
     case NavigationType::Replace:
@@ -182,7 +183,7 @@ void Navigation::UpdateEntriesForSameDocumentNavigation(
       disposedEntries.AppendElement(oldCurrentEntry);
       aDestinationSHE->NavigationKey() = oldCurrentEntry->Key();
       mEntries[*mCurrentEntryIndex] = MakeRefPtr<NavigationHistoryEntry>(
-          mWindow, aDestinationSHE, *mCurrentEntryIndex);
+          GetOwnerGlobal(), aDestinationSHE, *mCurrentEntryIndex);
       break;
 
     case NavigationType::Reload:
@@ -194,7 +195,7 @@ void Navigation::UpdateEntriesForSameDocumentNavigation(
   // Steps 9-12.
   {
     nsAutoMicroTask mt;
-    AutoEntryScript aes(mWindow->AsGlobal(),
+    AutoEntryScript aes(GetOwnerGlobal(),
                         "UpdateEntriesForSameDocumentNavigation");
 
     ScheduleEventsFromNavigation(aNavigationType, oldCurrentEntry,
@@ -202,7 +203,7 @@ void Navigation::UpdateEntriesForSameDocumentNavigation(
   }
 }
 
-// https://html.spec.whatwg.org/multipage/nav-history-apis.html#update-the-navigation-api-entries-for-reactivation
+// https://html.spec.whatwg.org/#update-the-navigation-api-entries-for-reactivation
 void Navigation::UpdateForReactivation(SessionHistoryInfo* aReactivatedEntry) {
   // NAV-TODO
 }
