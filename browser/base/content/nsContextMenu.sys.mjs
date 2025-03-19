@@ -2022,7 +2022,7 @@ export class nsContextMenu {
         if (aStatusCode == NS_ERROR_SAVE_LINK_AS_TIMEOUT) {
           // do it the old fashioned way, which will pick the best filename
           // it can without waiting.
-          this.window.saveURL(
+          this._window.saveURL(
             linkURL,
             null,
             linkText,
