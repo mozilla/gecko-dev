@@ -1,37 +1,21 @@
-use crate::deflate::{State, MIN_LOOKAHEAD, STD_MAX_MATCH, STD_MIN_MATCH};
-
-type Pos = u16;
+use crate::deflate::{Pos, State, MIN_LOOKAHEAD, STD_MAX_MATCH, STD_MIN_MATCH};
 
 const EARLY_EXIT_TRIGGER_LEVEL: i8 = 5;
 
-const UNALIGNED_OK: bool = cfg!(any(
-    target_arch = "wasm32",
-    target_arch = "x86",
-    target_arch = "x86_64",
-    target_arch = "arm",
-    target_arch = "aarch64",
-    target_arch = "powerpc64",
-));
-
-const UNALIGNED64_OK: bool = cfg!(any(
-    target_arch = "wasm32",
-    target_arch = "x86_64",
-    target_arch = "aarch64",
-    target_arch = "powerpc64",
-));
-
-pub fn longest_match(state: &crate::deflate::State, cur_match: u16) -> (usize, usize) {
+/// Find the (length, offset) in the window of the longest match for the string
+/// at offset cur_match
+pub fn longest_match(state: &crate::deflate::State, cur_match: u16) -> (usize, u16) {
     longest_match_help::<false>(state, cur_match)
 }
 
-pub fn longest_match_slow(state: &crate::deflate::State, cur_match: u16) -> (usize, usize) {
+pub fn longest_match_slow(state: &crate::deflate::State, cur_match: u16) -> (usize, u16) {
     longest_match_help::<true>(state, cur_match)
 }
 
 fn longest_match_help<const SLOW: bool>(
     state: &crate::deflate::State,
     mut cur_match: u16,
-) -> (usize, usize) {
+) -> (usize, u16) {
     let mut match_start = state.match_start;
 
     let strstart = state.strstart;
@@ -42,14 +26,11 @@ fn longest_match_help<const SLOW: bool>(
     let limit_base: Pos;
     let early_exit: bool;
 
-    let mut chain_length: usize;
+    let mut chain_length: u16;
     let mut best_len: usize;
 
     let lookahead = state.lookahead;
     let mut match_offset = 0;
-
-    let mut scan_start = [0u8; 8];
-    let mut scan_end = [0u8; 8];
 
     macro_rules! goto_next_in_chain {
         () => {
@@ -69,30 +50,20 @@ fn longest_match_help<const SLOW: bool>(
     // The code is optimized for STD_MAX_MATCH-2 multiple of 16.
     assert_eq!(STD_MAX_MATCH, 258, "Code too clever");
 
+    // length of the previous match (if any), hence <= STD_MAX_MATCH
     best_len = if state.prev_length > 0 {
-        state.prev_length
+        state.prev_length as usize
     } else {
         STD_MIN_MATCH - 1
     };
 
     // Calculate read offset which should only extend an extra byte to find the next best match length.
     let mut offset = best_len - 1;
-    if best_len >= core::mem::size_of::<u32>() && UNALIGNED_OK {
+    if best_len >= core::mem::size_of::<u32>() {
         offset -= 2;
-        if best_len >= core::mem::size_of::<u64>() && UNALIGNED64_OK {
+        if best_len >= core::mem::size_of::<u64>() {
             offset -= 4;
         }
-    }
-
-    if UNALIGNED64_OK {
-        scan_start.copy_from_slice(&scan[..core::mem::size_of::<u64>()]);
-        scan_end.copy_from_slice(&scan[offset..][..core::mem::size_of::<u64>()]);
-    } else if UNALIGNED_OK {
-        scan_start[..4].copy_from_slice(&scan[..core::mem::size_of::<u32>()]);
-        scan_end[..4].copy_from_slice(&scan[offset..][..core::mem::size_of::<u32>()]);
-    } else {
-        scan_start[..2].copy_from_slice(&scan[..core::mem::size_of::<u16>()]);
-        scan_end[..2].copy_from_slice(&scan[offset..][..core::mem::size_of::<u16>()]);
     }
 
     let mut mbase_start = window.as_ptr();
@@ -100,7 +71,7 @@ fn longest_match_help<const SLOW: bool>(
 
     // Don't waste too much time by following a chain if we already have a good match
     chain_length = state.max_chain_length;
-    if best_len >= state.good_match {
+    if best_len >= state.good_match as usize {
         chain_length >>= 2;
     }
     let nice_match = state.nice_match;
@@ -156,6 +127,9 @@ fn longest_match_help<const SLOW: bool>(
         early_exit = state.level < EARLY_EXIT_TRIGGER_LEVEL;
     }
 
+    let scan_start = window[strstart..].as_ptr();
+    let mut scan_end = window[strstart + offset..].as_ptr();
+
     assert!(
         strstart <= state.window_size.saturating_sub(MIN_LOOKAHEAD),
         "need lookahead"
@@ -204,47 +178,47 @@ fn longest_match_help<const SLOW: bool>(
 
         // first, do a quick check on the start and end bytes. Go to the next item in the chain if
         // these bytes don't match.
-        // SAFETY: we read up to 8 bytes in this block. scan_start and start_end are 8 byte arrays.
-        // this loop also breaks before cur_match gets past strstart, which is bounded by
-        // window_size - MIN_LOOKAHEAD, so 8 byte reads of mbase_end/start are in-bounds.
+        // SAFETY: we read up to 8 bytes in this block.
+        // Note that scan_start >= mbase_start and scan_end >= mbase_end.
+        // the surrounding loop breaks before cur_match gets past strstart, which is bounded by
+        // `window_size - 258 + 3 + 1` (`window_size - MIN_LOOKAHEAD`).
+        //
+        // With 262 bytes of space at the end, and 8 byte reads of scan_start is always in-bounds.
+        //
+        // scan_end is a bit trickier: it reads at a bounded offset from scan_start:
+        //
+        // - >= 8: scan_end is bounded by `258 - (4 + 2 + 1)`, so an 8-byte read is in-bounds
+        // - >= 4: scan_end is bounded by `258 - (2 + 1)`, so a 4-byte read is in-bounds
+        // - >= 2: scan_end is bounded by `258 - 1`, so a 2-byte read is in-bounds
+        let mut len = 0;
         unsafe {
-            let scan_start = scan_start.as_ptr();
-            let scan_end = scan_end.as_ptr();
-
-            if UNALIGNED_OK {
-                if best_len < core::mem::size_of::<u32>() {
-                    loop {
-                        if is_match::<2>(cur_match, mbase_start, mbase_end, scan_start, scan_end) {
-                            break;
-                        }
-
-                        goto_next_in_chain!();
+            if best_len < core::mem::size_of::<u64>() {
+                let scan_val = u64::from_ne_bytes(
+                    core::slice::from_raw_parts(scan_start, 8).try_into().unwrap());
+                loop {
+                    let bs = mbase_start.wrapping_add(cur_match as usize);
+                    let match_val = u64::from_ne_bytes(
+                        core::slice::from_raw_parts(bs, 8).try_into().unwrap());
+                    let cmp = scan_val ^ match_val;
+                    if cmp == 0 {
+                        // The first 8 bytes all matched. Additional scanning will be needed
+                        // (the compare256 call below) to determine the full match length.
+                        break;
                     }
-                } else if best_len >= core::mem::size_of::<u64>() && UNALIGNED64_OK {
-                    loop {
-                        if is_match::<8>(cur_match, mbase_start, mbase_end, scan_start, scan_end) {
-                            break;
-                        }
-
-                        goto_next_in_chain!();
+                    // Compute the number of leading bytes that match.
+                    let cmp_len = cmp.to_le().trailing_zeros() as usize / 8;
+                    if cmp_len > best_len {
+                        // The match is fully contained within the 8 bytes just compared,
+                        // so we know the match length without needing to do the more
+                        // expensive compare256 operation.
+                        len = cmp_len;
+                        break;
                     }
-                } else {
-                    loop {
-                        if is_match::<4>(cur_match, mbase_start, mbase_end, scan_start, scan_end) {
-                            break;
-                        }
-
-                        goto_next_in_chain!();
-                    }
+                    goto_next_in_chain!();
                 }
             } else {
                 loop {
-                    if memcmp_n_ptr::<2>(mbase_end.wrapping_add(cur_match as usize), scan_end)
-                        && memcmp_n_ptr::<2>(
-                            mbase_start.wrapping_add(cur_match as usize),
-                            scan.as_ptr(),
-                        )
-                    {
+                    if is_match::<8>(cur_match, mbase_start, mbase_end, scan_start, scan_end) {
                         break;
                     }
 
@@ -254,15 +228,17 @@ fn longest_match_help<const SLOW: bool>(
         }
 
         // we know that there is at least some match. Now count how many bytes really match
-        let len = {
-            // SAFETY: cur_match is bounded by window_size - MIN_LOOKAHEAD, where MIN_LOOKAHEAD
-            // is 256 + 2, so 258-byte reads of mbase_start are in-bounds.
-            let src1 = unsafe {
-                core::slice::from_raw_parts(mbase_start.wrapping_add(cur_match as usize + 2), 256)
-            };
+        if len == 0 {
+            len = {
+                // SAFETY: cur_match is bounded by window_size - MIN_LOOKAHEAD, where MIN_LOOKAHEAD
+                // is 258 + 3 + 1, so 258-byte reads of mbase_start are in-bounds.
+                let src1 = unsafe {
+                    core::slice::from_raw_parts(mbase_start.wrapping_add(cur_match as usize + 2), 256)
+                };
 
-            crate::deflate::compare256::compare256_slice(&scan[2..], src1) + 2
-        };
+                crate::deflate::compare256::compare256_slice(&scan[2..], src1) + 2
+            };
+        }
 
         assert!(
             scan.as_ptr() as usize + len <= window.as_ptr() as usize + (state.window_size - 1),
@@ -270,35 +246,29 @@ fn longest_match_help<const SLOW: bool>(
         );
 
         if len > best_len {
-            match_start = (cur_match - match_offset) as usize;
+            match_start = cur_match - match_offset;
 
             /* Do not look for matches beyond the end of the input. */
             if len > lookahead {
                 return (lookahead, match_start);
             }
             best_len = len;
-            if best_len >= nice_match {
+            if best_len >= nice_match as usize {
                 return (best_len, match_start);
             }
 
             offset = best_len - 1;
-            if best_len >= core::mem::size_of::<u32>() && UNALIGNED_OK {
+            if best_len >= core::mem::size_of::<u32>() {
                 offset -= 2;
-                if best_len >= core::mem::size_of::<u64>() && UNALIGNED64_OK {
+                if best_len >= core::mem::size_of::<u64>() {
                     offset -= 4;
                 }
             }
 
-            if UNALIGNED64_OK {
-                scan_end.copy_from_slice(&scan[offset..][..core::mem::size_of::<u64>()]);
-            } else if UNALIGNED_OK {
-                scan_end[..4].copy_from_slice(&scan[offset..][..core::mem::size_of::<u32>()]);
-            } else {
-                scan_end[..2].copy_from_slice(&scan[offset..][..core::mem::size_of::<u16>()]);
-            }
+            scan_end = window[strstart + offset..].as_ptr();
 
             // Look for a better string offset
-            if SLOW && len > STD_MIN_MATCH && match_start + len < strstart {
+            if SLOW && len > STD_MIN_MATCH && match_start as usize + len < strstart {
                 let mut pos: Pos;
                 // uint32_t i, hash;
                 // unsigned char *scan_endstr;
@@ -365,6 +335,6 @@ fn longest_match_help<const SLOW: bool>(
     (best_len, match_start)
 }
 
-fn break_matching(state: &State, best_len: usize, match_start: usize) -> (usize, usize) {
+fn break_matching(state: &State, best_len: usize, match_start: u16) -> (usize, u16) {
     (Ord::min(best_len, state.lookahead), match_start)
 }

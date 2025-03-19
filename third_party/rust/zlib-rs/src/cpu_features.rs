@@ -1,6 +1,13 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
+pub struct CpuFeatures;
+
+impl CpuFeatures {
+    pub const NONE: usize = 0;
+    pub const AVX2: usize = 1;
+}
+
 #[inline(always)]
 pub fn is_enabled_sse() -> bool {
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]

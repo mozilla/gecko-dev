@@ -80,7 +80,7 @@ pub fn deflate_medium(stream: &mut DeflateStream, flush: DeflateFlush) -> BlockS
                     crate::deflate::longest_match::longest_match(state, hash_head);
                 state.match_start = match_start;
                 current_match.match_length = match_length as u16;
-                current_match.match_start = match_start as u16;
+                current_match.match_start = match_start;
                 if (current_match.match_length as usize) < WANT_MIN_MATCH {
                     current_match.match_length = 1;
                 }
@@ -123,7 +123,7 @@ pub fn deflate_medium(stream: &mut DeflateStream, flush: DeflateFlush) -> BlockS
                     crate::deflate::longest_match::longest_match(state, hash_head);
                 state.match_start = match_start;
                 next_match.match_length = match_length as u16;
-                next_match.match_start = match_start as u16;
+                next_match.match_start = match_start;
 
                 if next_match.match_start >= next_match.strstart {
                     /* this can happen due to some restarts */
@@ -229,12 +229,8 @@ fn insert_match(state: &mut State, mut m: Match) {
         return;
     }
 
-    /* Insert new strings in the hash table only if the match length
-     * is not too large. This saves time but degrades compression.
-     */
-    if (m.match_length as usize) <= 16 * state.max_insert_length()
-        && state.lookahead >= WANT_MIN_MATCH
-    {
+    // Insert new strings in the hash table
+    if state.lookahead >= WANT_MIN_MATCH {
         m.match_length -= 1; /* string at strstart already in table */
         m.strstart += 1;
 

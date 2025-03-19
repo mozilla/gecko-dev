@@ -3111,8 +3111,8 @@ delta = "0.28.0 -> 0.31.0"
 [[audits.libz-rs-sys]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "0.2.1 -> 0.2.1@git:4aa430ccb77537d0d60dab8db993ca51bb1194c5"
-importable = false
+delta = "0.4.1 -> 0.4.2"
+notes = "Only documentation changes."
 
 [[audits.linked-hash-map]]
 who = "Aria Beingessner <a.beingessner@gmail.com>"

@@ -14,7 +14,7 @@ use crate::{
 
 use self::{
     algorithm::CONFIGURATION_TABLE,
-    hash_calc::{Crc32HashCalc, HashCalcVariant, RollHashCalc, StandardHashCalc},
+    hash_calc::{HashCalcVariant, RollHashCalc, StandardHashCalc},
     pending::Pending,
     trees_tbl::STATIC_LTREE,
     window::Window,
@@ -28,6 +28,9 @@ mod pending;
 mod slide_hash;
 mod trees_tbl;
 mod window;
+
+// Position relative to the current window
+pub(crate) type Pos = u16;
 
 // SAFETY: This struct must have the same layout as [`z_stream`], so that casts and transmutations
 // between the two can work without UB.
@@ -282,16 +285,16 @@ pub fn init(stream: &mut z_stream, config: DeflateConfig) -> ReturnCode {
                     pending.drop_in(&alloc);
                 }
                 if let Some(head) = head {
-                    alloc.deallocate(head, 1)
+                    alloc.deallocate(head.as_ptr(), 1)
                 }
                 if let Some(prev) = prev {
-                    alloc.deallocate(prev, w_size)
+                    alloc.deallocate(prev.as_ptr(), w_size)
                 }
                 if let Some(mut window) = window {
                     window.drop_in(&alloc);
                 }
 
-                alloc.deallocate(state_allocation, 1);
+                alloc.deallocate(state_allocation.as_ptr(), 1);
             }
 
             return ReturnCode::MemError;
@@ -299,10 +302,12 @@ pub fn init(stream: &mut z_stream, config: DeflateConfig) -> ReturnCode {
     };
 
     // zero initialize the memory
+    let prev = prev.as_ptr(); // FIXME: write_bytes is stable for NonNull since 1.80.0
     unsafe { prev.write_bytes(0, w_size) };
     let prev = unsafe { WeakSliceMut::from_raw_parts_mut(prev, w_size) };
 
     // zero out head's first element
+    let head = head.as_ptr(); // FIXME: write_bytes is stable for NonNull since 1.80.0
     unsafe { head.write_bytes(0, 1) };
     let head = unsafe { WeakArrayMut::<u16, HASH_SIZE>::from_ptr(head) };
 
@@ -310,7 +315,6 @@ pub fn init(stream: &mut z_stream, config: DeflateConfig) -> ReturnCode {
         status: Status::Init,
 
         // window
-        w_bits: window_bits,
         w_size,
         w_mask: w_size - 1,
 
@@ -353,11 +357,6 @@ pub fn init(stream: &mut z_stream, config: DeflateConfig) -> ReturnCode {
         d_desc: TreeDesc::EMPTY,
         bl_desc: TreeDesc::EMPTY,
 
-        bl_count: [0u16; MAX_BITS + 1],
-
-        //
-        heap: Heap::new(),
-
         //
         crc_fold: Crc32Fold::new(),
         gzhead: None,
@@ -365,17 +364,22 @@ pub fn init(stream: &mut z_stream, config: DeflateConfig) -> ReturnCode {
 
         //
         match_start: 0,
-        match_length: 0,
         prev_match: 0,
         match_available: false,
         prev_length: 0,
 
         // just provide a valid default; gets set properly later
         hash_calc_variant: HashCalcVariant::Standard,
+        _cache_line_0: (),
+        _cache_line_1: (),
+        _cache_line_2: (),
+        _cache_line_3: (),
+        _padding_0: 0,
     };
 
-    unsafe { state_allocation.write(state) };
-    stream.state = state_allocation as *mut internal_state;
+    unsafe { state_allocation.as_ptr().write(state) }; // FIXME: write is stable for NonNull since 1.80.0
+
+    stream.state = state_allocation.as_ptr() as *mut internal_state;
 
     let Some(stream) = (unsafe { DeflateStream::from_stream_mut(stream) }) else {
         if cfg!(debug_assertions) {
@@ -596,16 +600,16 @@ pub fn copy<'a>(
                     pending.drop_in(alloc);
                 }
                 if let Some(head) = head {
-                    alloc.deallocate(head, HASH_SIZE)
+                    alloc.deallocate(head.as_ptr(), HASH_SIZE)
                 }
                 if let Some(prev) = prev {
-                    alloc.deallocate(prev, source_state.w_size)
+                    alloc.deallocate(prev.as_ptr(), source_state.w_size)
                 }
                 if let Some(mut window) = window {
                     window.drop_in(alloc);
                 }
 
-                alloc.deallocate(state_allocation, 1);
+                alloc.deallocate(state_allocation.as_ptr(), 1);
             }
 
             return ReturnCode::MemError;
@@ -613,11 +617,14 @@ pub fn copy<'a>(
     };
 
     let prev = unsafe {
+        let prev = prev.as_ptr();
         prev.copy_from_nonoverlapping(source_state.prev.as_ptr(), source_state.prev.len());
         WeakSliceMut::from_raw_parts_mut(prev, source_state.prev.len())
     };
 
+    // FIXME: write_bytes is stable for NonNull since 1.80.0
     let head = unsafe {
+        let head = head.as_ptr();
         head.write_bytes(0, 1);
         head.cast::<u16>().write(source_state.head.as_slice()[0]);
         WeakArrayMut::from_ptr(head)
@@ -639,8 +646,6 @@ pub fn copy<'a>(
         l_desc: source_state.l_desc.clone(),
         d_desc: source_state.d_desc.clone(),
         bl_desc: source_state.bl_desc.clone(),
-        bl_count: source_state.bl_count,
-        match_length: source_state.match_length,
         prev_match: source_state.prev_match,
         match_available: source_state.match_available,
         strstart: source_state.strstart,
@@ -659,25 +664,28 @@ pub fn copy<'a>(
         static_len: source_state.static_len,
         insert: source_state.insert,
         w_size: source_state.w_size,
-        w_bits: source_state.w_bits,
         w_mask: source_state.w_mask,
         lookahead: source_state.lookahead,
         prev,
         head,
         ins_h: source_state.ins_h,
-        heap: source_state.heap.clone(),
         hash_calc_variant: source_state.hash_calc_variant,
         crc_fold: source_state.crc_fold,
         gzhead: None,
         gzindex: source_state.gzindex,
+        _cache_line_0: (),
+        _cache_line_1: (),
+        _cache_line_2: (),
+        _cache_line_3: (),
+        _padding_0: source_state._padding_0,
     };
 
     // write the cloned state into state_ptr
-    unsafe { state_allocation.write(dest_state) };
+    unsafe { state_allocation.as_ptr().write(dest_state) }; // FIXME: write is stable for NonNull since 1.80.0
 
     // insert the state_ptr into `dest`
     let field_ptr = unsafe { core::ptr::addr_of_mut!((*dest.as_mut_ptr()).state) };
-    unsafe { core::ptr::write(field_ptr as *mut *mut State, state_allocation) };
+    unsafe { core::ptr::write(field_ptr as *mut *mut State, state_allocation.as_ptr()) };
 
     // update the gzhead field (it contains a mutable reference so we need to be careful
     let field_ptr = unsafe { core::ptr::addr_of_mut!((*dest.as_mut_ptr()).state.gzhead) };
@@ -784,10 +792,10 @@ fn lm_init(state: &mut State) {
 }
 
 fn lm_set_level(state: &mut State, level: i8) {
-    state.max_lazy_match = CONFIGURATION_TABLE[level as usize].max_lazy as usize;
-    state.good_match = CONFIGURATION_TABLE[level as usize].good_length as usize;
-    state.nice_match = CONFIGURATION_TABLE[level as usize].nice_length as usize;
-    state.max_chain_length = CONFIGURATION_TABLE[level as usize].max_chain as usize;
+    state.max_lazy_match = CONFIGURATION_TABLE[level as usize].max_lazy;
+    state.good_match = CONFIGURATION_TABLE[level as usize].good_length;
+    state.nice_match = CONFIGURATION_TABLE[level as usize].nice_length;
+    state.max_chain_length = CONFIGURATION_TABLE[level as usize].max_chain;
 
     state.hash_calc_variant = HashCalcVariant::for_max_chain_length(state.max_chain_length);
     state.level = level;
@@ -800,10 +808,10 @@ pub fn tune(
     nice_length: usize,
     max_chain: usize,
 ) -> ReturnCode {
-    stream.state.good_match = good_length;
-    stream.state.max_lazy_match = max_lazy;
-    stream.state.nice_match = nice_length;
-    stream.state.max_chain_length = max_chain;
+    stream.state.good_match = good_length as u16;
+    stream.state.max_lazy_match = max_lazy as u16;
+    stream.state.nice_match = nice_length as u16;
+    stream.state.max_chain_length = max_chain as u16;
 
     ReturnCode::Ok
 }
@@ -841,15 +849,18 @@ impl Value {
         self.a
     }
 
-    pub(crate) fn code(self) -> u16 {
+    #[inline(always)]
+    pub(crate) const fn code(self) -> u16 {
         self.a
     }
 
-    pub(crate) fn dad(self) -> u16 {
+    #[inline(always)]
+    pub(crate) const fn dad(self) -> u16 {
         self.b
     }
 
-    pub(crate) fn len(self) -> u16 {
+    #[inline(always)]
+    pub(crate) const fn len(self) -> u16 {
         self.b
     }
 }
@@ -891,6 +902,50 @@ struct BitWriter<'a> {
     /// bit length of compressed data sent (NOTE: zlib-ng uses a 32-bit integer here)
     #[cfg(feature = "ZLIB_DEBUG")]
     bits_sent: usize,
+}
+
+#[inline]
+const fn encode_len(ltree: &[Value], lc: u8) -> (u64, usize) {
+    let mut lc = lc as usize;
+
+    /* Send the length code, len is the match length - STD_MIN_MATCH */
+    let code = self::trees_tbl::LENGTH_CODE[lc] as usize;
+    let c = code + LITERALS + 1;
+    assert!(c < L_CODES, "bad l_code");
+    // send_code_trace(s, c);
+
+    let lnode = ltree[c];
+    let mut match_bits: u64 = lnode.code() as u64;
+    let mut match_bits_len = lnode.len() as usize;
+    let extra = StaticTreeDesc::EXTRA_LBITS[code] as usize;
+    if extra != 0 {
+        lc -= self::trees_tbl::BASE_LENGTH[code] as usize;
+        match_bits |= (lc as u64) << match_bits_len;
+        match_bits_len += extra;
+    }
+
+    (match_bits, match_bits_len)
+}
+
+#[inline]
+const fn encode_dist(dtree: &[Value], mut dist: u16) -> (u64, usize) {
+    dist -= 1; /* dist is now the match distance - 1 */
+    let code = State::d_code(dist as usize) as usize;
+    assert!(code < D_CODES, "bad d_code");
+    // send_code_trace(s, code);
+
+    /* Send the distance code */
+    let dnode = dtree[code];
+    let mut match_bits = dnode.code() as u64;
+    let mut match_bits_len = dnode.len() as usize;
+    let extra = StaticTreeDesc::EXTRA_DBITS[code] as usize;
+    if extra != 0 {
+        dist -= self::trees_tbl::BASE_DIST[code];
+        match_bits |= (dist as u64) << match_bits_len;
+        match_bits_len += extra;
+    }
+
+    (match_bits, match_bits_len)
 }
 
 impl<'a> BitWriter<'a> {
@@ -1053,41 +1108,30 @@ impl<'a> BitWriter<'a> {
         ltree: &[Value],
         dtree: &[Value],
         lc: u8,
-        mut dist: usize,
+        dist: u16,
     ) -> usize {
-        let mut lc = lc as usize;
+        let (mut match_bits, mut match_bits_len) = encode_len(ltree, lc);
 
-        /* Send the length code, len is the match length - STD_MIN_MATCH */
-        let mut code = self::trees_tbl::LENGTH_CODE[lc] as usize;
-        let c = code + LITERALS + 1;
-        assert!(c < L_CODES, "bad l_code");
-        // send_code_trace(s, c);
+        let (dist_match_bits, dist_match_bits_len) = encode_dist(dtree, dist);
 
-        let lnode = ltree[c];
-        let mut match_bits: u64 = lnode.code() as u64;
-        let mut match_bits_len = lnode.len() as usize;
-        let mut extra = StaticTreeDesc::EXTRA_LBITS[code] as usize;
-        if extra != 0 {
-            lc -= self::trees_tbl::BASE_LENGTH[code] as usize;
-            match_bits |= (lc as u64) << match_bits_len;
-            match_bits_len += extra;
-        }
+        match_bits |= dist_match_bits << match_bits_len;
+        match_bits_len += dist_match_bits_len;
 
-        dist -= 1; /* dist is now the match distance - 1 */
-        code = State::d_code(dist) as usize;
-        assert!(code < D_CODES, "bad d_code");
-        // send_code_trace(s, code);
+        self.send_bits(match_bits, match_bits_len as u8);
 
-        /* Send the distance code */
-        let dnode = dtree[code];
-        match_bits |= (dnode.code() as u64) << match_bits_len;
-        match_bits_len += dnode.len() as usize;
-        extra = StaticTreeDesc::EXTRA_DBITS[code] as usize;
-        if extra != 0 {
-            dist -= self::trees_tbl::BASE_DIST[code] as usize;
-            match_bits |= (dist as u64) << match_bits_len;
-            match_bits_len += extra;
-        }
+        match_bits_len
+    }
+
+    pub(crate) fn emit_dist_static(&mut self, lc: u8, dist: u16) -> usize {
+        let precomputed_len = trees_tbl::STATIC_LTREE_ENCODINGS[lc as usize];
+        let mut match_bits = precomputed_len.code() as u64;
+        let mut match_bits_len = precomputed_len.len() as usize;
+
+        let dtree = self::trees_tbl::STATIC_DTREE.as_slice();
+        let (dist_match_bits, dist_match_bits_len) = encode_dist(dtree, dist);
+
+        match_bits |= dist_match_bits << match_bits_len;
+        match_bits_len += dist_match_bits_len;
 
         self.send_bits(match_bits, match_bits_len as u8);
 
@@ -1100,7 +1144,7 @@ impl<'a> BitWriter<'a> {
                 unreachable!("out of bound access on the symbol buffer");
             };
 
-            match u16::from_be_bytes([dist_high, dist_low]) as usize {
+            match u16::from_le_bytes([dist_low, dist_high]) {
                 0 => self.emit_lit(ltree, lc) as usize,
                 dist => self.emit_dist(ltree, dtree, lc, dist),
             };
@@ -1174,7 +1218,7 @@ impl<'a> BitWriter<'a> {
     }
 }
 
-#[repr(C)]
+#[repr(C, align(64))]
 pub(crate) struct State<'a> {
     status: Status,
 
@@ -1186,40 +1230,47 @@ pub(crate) struct State<'a> {
     pub(crate) level: i8,
 
     /// Whether or not a block is currently open for the QUICK deflation scheme.
-    /// true if there is an active block, or false if the block was just closed
+    /// 0 if the block is closed, 1 if there is an active block, or 2 if there
+    /// is an active block and it is the last block.
     pub(crate) block_open: u8,
 
-    bit_writer: BitWriter<'a>,
+    pub(crate) hash_calc_variant: HashCalcVariant,
+
+    pub(crate) match_available: bool, /* set if previous match exists */
 
     /// Use a faster search when the previous match is longer than this
-    pub(crate) good_match: usize,
+    pub(crate) good_match: u16,
 
     /// Stop searching when current match exceeds this
-    pub(crate) nice_match: usize,
+    pub(crate) nice_match: u16,
 
-    // part of the fields below
-    //    dyn_ltree: [Value; ],
-    //    dyn_dtree: [Value; ],
-    //    bl_tree: [Value; ],
-    l_desc: TreeDesc<HEAP_SIZE>,             /* literal and length tree */
-    d_desc: TreeDesc<{ 2 * D_CODES + 1 }>,   /* distance tree */
-    bl_desc: TreeDesc<{ 2 * BL_CODES + 1 }>, /* Huffman tree for bit lengths */
-
-    pub(crate) bl_count: [u16; MAX_BITS + 1],
-
-    pub(crate) match_length: usize,   /* length of best match */
-    pub(crate) prev_match: u16,       /* previous match */
-    pub(crate) match_available: bool, /* set if previous match exists */
+    pub(crate) match_start: Pos,      /* start of matching string */
+    pub(crate) prev_match: Pos,       /* previous match */
     pub(crate) strstart: usize,       /* start of string to insert */
-    pub(crate) match_start: usize,    /* start of matching string */
+
+    pub(crate) window: Window<'a>,
+    pub(crate) w_size: usize,    /* LZ77 window size (32K by default) */
+    pub(crate) w_mask: usize,    /* w_size - 1 */
+
+    _cache_line_0: (),
+
+    /// prev[N], where N is an offset in the current window, contains the offset in the window
+    /// of the previous 4-byte sequence that hashes to the same value as the 4-byte sequence
+    /// starting at N. Together with head, prev forms a chained hash table that can be used
+    /// to find earlier strings in the window that are potential matches for new input being
+    /// deflated.
+    pub(crate) prev: WeakSliceMut<'a, u16>,
+    /// head[H] contains the offset of the last 4-character sequence seen so far in
+    /// the current window that hashes to H (as calculated using the hash_calc_variant).
+    pub(crate) head: WeakArrayMut<'a, u16, HASH_SIZE>,
 
     /// Length of the best match at previous step. Matches not greater than this
     /// are discarded. This is used in the lazy match evaluation.
-    pub(crate) prev_length: usize,
+    pub(crate) prev_length: u16,
 
     /// To speed up deflation, hash chains are never searched beyond this length.
     /// A higher limit improves compression ratio but degrades the speed.
-    pub(crate) max_chain_length: usize,
+    pub(crate) max_chain_length: u16,
 
     // TODO untangle this mess! zlib uses the same field differently based on compression level
     // we should just have 2 fields for clarity!
@@ -1230,15 +1281,21 @@ pub(crate) struct State<'a> {
     // define max_insert_length  max_lazy_match
     /// Attempt to find a better match only when the current match is strictly smaller
     /// than this value. This mechanism is used only for compression levels >= 4.
-    pub(crate) max_lazy_match: usize,
+    pub(crate) max_lazy_match: u16,
+
+    /// number of string matches in current block
+    /// NOTE: this is a saturating 8-bit counter, to help keep the struct compact. The code that
+    /// makes decisions based on this field only cares whether the count is greater than 2, so
+    /// an 8-bit counter is sufficient.
+    pub(crate) matches: u8,
 
     /// Window position at the beginning of the current output block. Gets
     /// negative when the window is moved backwards.
     pub(crate) block_start: isize,
 
-    pub(crate) window: Window<'a>,
-
     pub(crate) sym_buf: ReadBuf<'a>,
+
+    _cache_line_1: (),
 
     /// Size of match buffer for literals/lengths.  There are 4 reasons for
     /// limiting lit_bufsize to 64K:
@@ -1259,11 +1316,12 @@ pub(crate) struct State<'a> {
     ///   - I can't count above 4
     lit_bufsize: usize,
 
-    /// Actual size of window: 2*wSize, except when the user input buffer is directly used as sliding window.
+    /// Actual size of window: 2*w_size, except when the user input buffer is directly used as sliding window.
     pub(crate) window_size: usize,
 
-    /// number of string matches in current block
-    pub(crate) matches: usize,
+    bit_writer: BitWriter<'a>,
+
+    _cache_line_2: (),
 
     /// bit length of current block with optimal trees
     opt_len: usize,
@@ -1273,24 +1331,23 @@ pub(crate) struct State<'a> {
     /// bytes at end of window left to insert
     pub(crate) insert: usize,
 
-    pub(crate) w_size: usize,    /* LZ77 window size (32K by default) */
-    pub(crate) w_bits: usize,    /* log2(w_size)  (8..16) */
-    pub(crate) w_mask: usize,    /* w_size - 1 */
     pub(crate) lookahead: usize, /* number of valid bytes ahead in window */
 
-    pub(crate) prev: WeakSliceMut<'a, u16>,
-    pub(crate) head: WeakArrayMut<'a, u16, HASH_SIZE>,
-
     ///  hash index of string to be inserted
-    pub(crate) ins_h: usize,
+    pub(crate) ins_h: u32,
 
-    heap: Heap,
-
-    pub(crate) hash_calc_variant: HashCalcVariant,
-
-    crc_fold: crate::crc32::Crc32Fold,
     gzhead: Option<&'a mut gz_header>,
     gzindex: usize,
+
+    _padding_0: usize,
+
+    _cache_line_3: (),
+
+    crc_fold: crate::crc32::Crc32Fold,
+
+    l_desc: TreeDesc<HEAP_SIZE>,             /* literal and length tree */
+    d_desc: TreeDesc<{ 2 * D_CODES + 1 }>,   /* distance tree */
+    bl_desc: TreeDesc<{ 2 * BL_CODES + 1 }>, /* Huffman tree for bit lengths */
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
@@ -1329,6 +1386,11 @@ enum DataType {
 impl<'a> State<'a> {
     pub const BIT_BUF_SIZE: u8 = BitWriter::BIT_BUF_SIZE;
 
+    // log2(w_size)  (in the range MIN_WBITS..=MAX_WBITS)
+    pub(crate) fn w_bits(&self) -> u32 {
+        self.w_size.trailing_zeros()
+    }
+
     pub(crate) fn max_dist(&self) -> usize {
         self.w_size - MIN_LOOKAHEAD
     }
@@ -1336,7 +1398,7 @@ impl<'a> State<'a> {
     // TODO untangle this mess! zlib uses the same field differently based on compression level
     // we should just have 2 fields for clarity!
     pub(crate) fn max_insert_length(&self) -> usize {
-        self.max_lazy_match
+        self.max_lazy_match as usize
     }
 
     /// Total size of the pending buf. But because `pending` shares memory with `sym_buf`, this is
@@ -1349,9 +1411,6 @@ impl<'a> State<'a> {
     pub(crate) fn update_hash(&self, h: u32, val: u32) -> u32 {
         match self.hash_calc_variant {
             HashCalcVariant::Standard => StandardHashCalc::update_hash(h, val),
-            // SAFETY: self.hash_calc_variant is set by HashCalcVariant::for_max_chain_length,
-            // which avoids choosing Crc32 if the system doesn't have support.
-            HashCalcVariant::Crc32 => unsafe { Crc32HashCalc::update_hash(h, val) },
             HashCalcVariant::Roll => RollHashCalc::update_hash(h, val),
         }
     }
@@ -1360,9 +1419,6 @@ impl<'a> State<'a> {
     pub(crate) fn quick_insert_string(&mut self, string: usize) -> u16 {
         match self.hash_calc_variant {
             HashCalcVariant::Standard => StandardHashCalc::quick_insert_string(self, string),
-            // SAFETY: self.hash_calc_variant is set by HashCalcVariant::for_max_chain_length,
-            // which avoids choosing Crc32 if the system doesn't have support.
-            HashCalcVariant::Crc32 => unsafe { Crc32HashCalc::quick_insert_string(self, string) },
             HashCalcVariant::Roll => RollHashCalc::quick_insert_string(self, string),
         }
     }
@@ -1371,9 +1427,6 @@ impl<'a> State<'a> {
     pub(crate) fn insert_string(&mut self, string: usize, count: usize) {
         match self.hash_calc_variant {
             HashCalcVariant::Standard => StandardHashCalc::insert_string(self, string, count),
-            // SAFETY: self.hash_calc_variant is set by HashCalcVariant::for_max_chain_length,
-            // which avoids choosing Crc32 if the system doesn't have support.
-            HashCalcVariant::Crc32 => unsafe { Crc32HashCalc::insert_string(self, string, count) },
             HashCalcVariant::Roll => RollHashCalc::insert_string(self, string, count),
         }
     }
@@ -1411,7 +1464,7 @@ impl<'a> State<'a> {
     pub(crate) fn tally_dist(&mut self, mut dist: usize, len: usize) -> bool {
         self.sym_buf.push_dist(dist as u16, len as u8);
 
-        self.matches += 1;
+        self.matches = self.matches.saturating_add(1);
         dist -= 1;
 
         assert!(
@@ -1458,11 +1511,19 @@ impl<'a> State<'a> {
     }
 
     fn compress_block_static_trees(&mut self) {
-        self.bit_writer.compress_block_help(
-            self.sym_buf.filled(),
-            self::trees_tbl::STATIC_LTREE.as_slice(),
-            self::trees_tbl::STATIC_DTREE.as_slice(),
-        )
+        let ltree = self::trees_tbl::STATIC_LTREE.as_slice();
+        for chunk in self.sym_buf.filled().chunks_exact(3) {
+            let [dist_low, dist_high, lc] = *chunk else {
+                unreachable!("out of bound access on the symbol buffer");
+            };
+
+            match u16::from_le_bytes([dist_low, dist_high]) {
+                0 => self.bit_writer.emit_lit(ltree, lc) as usize,
+                dist => self.bit_writer.emit_dist_static(lc, dist),
+            };
+        }
+
+        self.bit_writer.emit_end_block(ltree, false)
     }
 
     fn compress_block_dynamic_trees(&mut self) {
@@ -1486,7 +1547,7 @@ impl<'a> State<'a> {
         };
 
         let h =
-            (Z_DEFLATED + ((self.w_bits as u16 - 8) << 4)) << 8 | (self.level_flags() << 6) | dict;
+            (Z_DEFLATED + ((self.w_bits() as u16 - 8) << 4)) << 8 | (self.level_flags() << 6) | dict;
 
         h + 31 - (h % 31)
     }
@@ -1599,7 +1660,6 @@ pub(crate) fn read_buf_window(stream: &mut DeflateStream, offset: usize, size: u
         // we likely cannot fuse the crc32 and the copy here because the input can be changed by
         // a concurrent thread. Therefore it cannot be converted into a slice!
         let window = &mut stream.state.window;
-        window.initialize_at_least(offset + len);
         // SAFETY: len is bounded by avail_in, so this copy is in bounds.
         unsafe { window.copy_and_initialize(offset..offset + len, stream.next_in) };
 
@@ -1609,7 +1669,6 @@ pub(crate) fn read_buf_window(stream: &mut DeflateStream, offset: usize, size: u
         // we likely cannot fuse the adler32 and the copy here because the input can be changed by
         // a concurrent thread. Therefore it cannot be converted into a slice!
         let window = &mut stream.state.window;
-        window.initialize_at_least(offset + len);
         // SAFETY: len is bounded by avail_in, so this copy is in bounds.
         unsafe { window.copy_and_initialize(offset..offset + len, stream.next_in) };
 
@@ -1617,7 +1676,6 @@ pub(crate) fn read_buf_window(stream: &mut DeflateStream, offset: usize, size: u
         stream.adler = adler32(stream.adler as u32, data) as _;
     } else {
         let window = &mut stream.state.window;
-        window.initialize_at_least(offset + len);
         // SAFETY: len is bounded by avail_in, so this copy is in bounds.
         unsafe { window.copy_and_initialize(offset..offset + len, stream.next_in) };
     }
@@ -1675,36 +1733,31 @@ pub(crate) const WANT_MIN_MATCH: usize = 4;
 
 pub(crate) const MIN_LOOKAHEAD: usize = STD_MAX_MATCH + STD_MIN_MATCH + 1;
 
+#[inline]
 pub(crate) fn fill_window(stream: &mut DeflateStream) {
     debug_assert!(stream.state.lookahead < MIN_LOOKAHEAD);
 
     let wsize = stream.state.w_size;
 
     loop {
-        let state = &mut stream.state;
+        let state = &mut *stream.state;
         let mut more = state.window_size - state.lookahead - state.strstart;
 
         // If the window is almost full and there is insufficient lookahead,
         // move the upper half to the lower one to make room in the upper half.
         if state.strstart >= wsize + state.max_dist() {
-            // in some cases zlib-ng copies uninitialized bytes here. We cannot have that, so
-            // explicitly initialize them with zeros.
-            //
-            // see also the "fill_window_out_of_bounds" test.
-            state.window.initialize_at_least(2 * wsize);
-            state.window.filled_mut().copy_within(wsize..2 * wsize, 0);
+            // shift the window to the left
+            let (old, new) = state.window.filled_mut()[..2 * wsize].split_at_mut(wsize);
+            old.copy_from_slice(new);
 
-            if state.match_start >= wsize {
-                state.match_start -= wsize;
-            } else {
-                state.match_start = 0;
+            state.match_start = state.match_start.saturating_sub(wsize as u16);
+            if state.match_start == 0 {
                 state.prev_length = 0;
             }
+
             state.strstart -= wsize; /* we now have strstart >= MAX_DIST */
             state.block_start -= wsize as isize;
-            if state.insert > state.strstart {
-                state.insert = state.strstart;
-            }
+            state.insert = Ord::min(state.insert, state.strstart);
 
             self::slide_hash::slide_hash(state);
 
@@ -1729,7 +1782,7 @@ pub(crate) fn fill_window(stream: &mut DeflateStream) {
 
         let n = read_buf_window(stream, stream.state.strstart + stream.state.lookahead, more);
 
-        let state = &mut stream.state;
+        let state = &mut *stream.state;
         state.lookahead += n;
 
         // Initialize the hash value now that we have some input:
@@ -1738,7 +1791,7 @@ pub(crate) fn fill_window(stream: &mut DeflateStream) {
             if state.max_chain_length > 1024 {
                 let v0 = state.window.filled()[string] as u32;
                 let v1 = state.window.filled()[string + 1] as u32;
-                state.ins_h = state.update_hash(v0, v1) as usize;
+                state.ins_h = state.update_hash(v0, v1);
             } else if string >= 1 {
                 state.quick_insert_string(string + 2 - STD_MIN_MATCH);
             }
@@ -1759,11 +1812,6 @@ pub(crate) fn fill_window(stream: &mut DeflateStream) {
             break;
         }
     }
-
-    // initialize some memory at the end of the (filled) window, so SIMD operations can go "out of
-    // bounds" without violating any requirements. The window allocation is already slightly bigger
-    // to allow for this.
-    stream.state.window.initialize_out_of_bounds();
 
     assert!(
         stream.state.strstart <= stream.state.window_size - MIN_LOOKAHEAD,
@@ -1858,14 +1906,15 @@ fn build_tree<const N: usize>(state: &mut State, desc: &mut TreeDesc<N>) {
     let stree = desc.stat_desc.static_tree;
     let elements = desc.stat_desc.elems;
 
-    let mut max_code = state.heap.initialize(&mut tree[..elements]);
+    let mut heap = Heap::new();
+    let mut max_code = heap.initialize(&mut tree[..elements]);
 
     // The pkzip format requires that at least one distance code exists,
     // and that at least one bit should be sent even if there is only one
     // possible code. So to avoid special checks later on we force at least
     // two codes of non zero frequency.
-    while state.heap.heap_len < 2 {
-        state.heap.heap_len += 1;
+    while heap.heap_len < 2 {
+        heap.heap_len += 1;
         let node = if max_code < 2 {
             max_code += 1;
             max_code
@@ -1876,9 +1925,9 @@ fn build_tree<const N: usize>(state: &mut State, desc: &mut TreeDesc<N>) {
         debug_assert!(node >= 0);
         let node = node as usize;
 
-        state.heap.heap[state.heap.heap_len] = node as u32;
+        heap.heap[heap.heap_len] = node as u32;
         *tree[node].freq_mut() = 1;
-        state.heap.depth[node] = 0;
+        heap.depth[node] = 0;
         state.opt_len -= 1;
         if !stree.is_empty() {
             state.static_len -= stree[node].len() as usize;
@@ -1892,25 +1941,27 @@ fn build_tree<const N: usize>(state: &mut State, desc: &mut TreeDesc<N>) {
 
     // The elements heap[heap_len/2+1 .. heap_len] are leaves of the tree,
     // establish sub-heaps of increasing lengths:
-    let mut n = state.heap.heap_len / 2;
+    let mut n = heap.heap_len / 2;
     while n >= 1 {
-        state.heap.pqdownheap(tree, n);
+        heap.pqdownheap(tree, n);
         n -= 1;
     }
 
-    state.heap.construct_huffman_tree(tree, elements);
+    heap.construct_huffman_tree(tree, elements);
 
     // At this point, the fields freq and dad are set. We can now
     // generate the bit lengths.
-    gen_bitlen(state, desc);
+    let bl_count = gen_bitlen(state, &mut heap, desc);
 
     // The field len is now set, we can generate the bit codes
-    gen_codes(&mut desc.dyn_tree, max_code, &state.bl_count);
+    gen_codes(&mut desc.dyn_tree, max_code, &bl_count);
 }
 
-fn gen_bitlen<const N: usize>(state: &mut State, desc: &mut TreeDesc<N>) {
-    let heap = &mut state.heap;
-
+fn gen_bitlen<const N: usize>(
+    state: &mut State,
+    heap: &mut Heap,
+    desc: &mut TreeDesc<N>,
+) -> [u16; MAX_BITS + 1] {
     let tree = &mut desc.dyn_tree;
     let max_code = desc.max_code;
     let stree = desc.stat_desc.static_tree;
@@ -1918,7 +1969,7 @@ fn gen_bitlen<const N: usize>(state: &mut State, desc: &mut TreeDesc<N>) {
     let base = desc.stat_desc.extra_base;
     let max_length = desc.stat_desc.max_length;
 
-    state.bl_count.fill(0);
+    let mut bl_count = [0u16; MAX_BITS + 1];
 
     // In a first pass, compute the optimal bit lengths (which may
     // overflow in the case of the bit length tree).
@@ -1944,7 +1995,7 @@ fn gen_bitlen<const N: usize>(state: &mut State, desc: &mut TreeDesc<N>) {
             continue;
         }
 
-        state.bl_count[bits as usize] += 1;
+        bl_count[bits as usize] += 1;
         let mut xbits = 0;
         if n >= base {
             xbits = extra[n - base] as usize;
@@ -1959,18 +2010,18 @@ fn gen_bitlen<const N: usize>(state: &mut State, desc: &mut TreeDesc<N>) {
     }
 
     if overflow == 0 {
-        return;
+        return bl_count;
     }
 
     /* Find the first bit length which could increase: */
     loop {
         let mut bits = max_length as usize - 1;
-        while state.bl_count[bits] == 0 {
+        while bl_count[bits] == 0 {
             bits -= 1;
         }
-        state.bl_count[bits] -= 1; /* move one leaf down the tree */
-        state.bl_count[bits + 1] += 2; /* move one overflow item as its brother */
-        state.bl_count[max_length as usize] -= 1;
+        bl_count[bits] -= 1; /* move one leaf down the tree */
+        bl_count[bits + 1] += 2; /* move one overflow item as its brother */
+        bl_count[max_length as usize] -= 1;
         /* The brother of the overflow item also moves one step up,
          * but this does not affect bl_count[max_length]
          */
@@ -1987,7 +2038,7 @@ fn gen_bitlen<const N: usize>(state: &mut State, desc: &mut TreeDesc<N>) {
     // from 'ar' written by Haruhiko Okumura.)
     let mut h = HEAP_SIZE;
     for bits in (1..=max_length).rev() {
-        let mut n = state.bl_count[bits as usize];
+        let mut n = bl_count[bits as usize];
         while n != 0 {
             h -= 1;
             let m = heap.heap[h] as usize;
@@ -2005,6 +2056,7 @@ fn gen_bitlen<const N: usize>(state: &mut State, desc: &mut TreeDesc<N>) {
             n -= 1;
         }
     }
+    bl_count
 }
 
 /// Checks that symbol is a printing character (excluding space)
@@ -2917,34 +2969,37 @@ impl Heap {
     /// Index within the heap array of least frequent node in the Huffman tree
     const SMALLEST: usize = 1;
 
-    fn smaller(tree: &[Value], n: u32, m: u32, depth: &[u8]) -> bool {
-        let (n, m) = (n as usize, m as usize);
-
-        match Ord::cmp(&tree[n].freq(), &tree[m].freq()) {
-            core::cmp::Ordering::Less => true,
-            core::cmp::Ordering::Equal => depth[n] <= depth[m],
-            core::cmp::Ordering::Greater => false,
-        }
-    }
-
     fn pqdownheap(&mut self, tree: &[Value], mut k: usize) {
         /* tree: the tree to restore */
         /* k: node to move down */
 
+        // Given the index $i of a node in the tree, pack the node's frequency and depth
+        // into a single integer. The heap ordering logic uses a primary sort on frequency
+        // and a secondary sort on depth, so packing both into one integer makes it
+        // possible to sort with fewer comparison operations.
+        macro_rules! freq_and_depth {
+            ($i:expr) => {
+                (tree[$i as usize].freq() as u32) << 8 | self.depth[$i as usize] as u32
+            };
+        }
+
         let v = self.heap[k];
+        let v_val = freq_and_depth!(v);
         let mut j = k << 1; /* left son of k */
 
         while j <= self.heap_len {
             /* Set j to the smallest of the two sons: */
+            let mut j_val = freq_and_depth!(self.heap[j]);
             if j < self.heap_len {
-                let cond = Self::smaller(tree, self.heap[j + 1], self.heap[j], &self.depth);
-                if cond {
+                let j1_val = freq_and_depth!(self.heap[j + 1]);
+                if j1_val <= j_val {
                     j += 1;
+                    j_val = j1_val;
                 }
             }
 
             /* Exit if v is smaller than both sons */
-            if Self::smaller(tree, v, self.heap[j], &self.depth) {
+            if v_val <= j_val {
                 break;
             }
 
@@ -3140,7 +3195,7 @@ pub fn bound(stream: Option<&mut DeflateStream>, source_len: usize) -> usize {
         }
     };
 
-    if stream.state.w_bits != MAX_WBITS as usize || HASH_BITS < 15 {
+    if stream.state.w_bits() != MAX_WBITS as u32 || HASH_BITS < 15 {
         if stream.state.level == 0 {
             /* upper bound for stored blocks with length 127 (memLevel == 1) ~4% overhead plus a small constant */
             source_len
@@ -3373,7 +3428,7 @@ mod test {
             };
             assert_eq!(init(&mut stream, config), ReturnCode::Ok);
             let stream = unsafe { DeflateStream::from_stream_mut(&mut stream) }.unwrap();
-            assert_eq!(stream.state.w_bits, 9);
+            assert_eq!(stream.state.w_bits(), 9);
 
             assert!(end(stream).is_ok());
         }
@@ -4159,34 +4214,27 @@ mod test {
             strategy: Strategy::Default,
         };
 
-        let crc32 = [
-            24, 149, 99, 96, 96, 96, 96, 208, 6, 17, 112, 138, 129, 193, 128, 1, 29, 24, 50, 208,
-            1, 200, 146, 169, 79, 24, 74, 59, 96, 147, 52, 71, 22, 70, 246, 88, 26, 94, 80, 128,
-            83, 6, 162, 219, 144, 76, 183, 210, 5, 8, 67, 105, 7, 108, 146, 230, 216, 133, 145,
-            129, 22, 3, 3, 131, 17, 3, 0, 3, 228, 25, 128,
-        ];
-
-        let other = [
+        let expected = [
             24, 149, 99, 96, 96, 96, 96, 208, 6, 17, 112, 138, 129, 193, 128, 1, 29, 24, 50, 208,
             1, 200, 146, 169, 79, 24, 74, 59, 96, 147, 52, 71, 22, 70, 246, 88, 26, 94, 80, 128,
             83, 6, 162, 219, 144, 76, 183, 210, 5, 8, 67, 105, 36, 159, 35, 128, 57, 118, 97, 100,
             160, 197, 192, 192, 96, 196, 0, 0, 3, 228, 25, 128,
         ];
 
-        // the output is slightly different based on what hashing algorithm is used
-        match HashCalcVariant::for_compression_level(config.level as usize) {
-            HashCalcVariant::Crc32 => {
-                // the aarch64 hashing algorithm is different from the standard algorithm, but in
-                // this case they turn out to give the same output. Beware!
-                if cfg!(target_arch = "x86") || cfg!(target_arch = "x86_64") {
-                    fuzz_based_test(&input, config, &crc32);
-                } else {
-                    fuzz_based_test(&input, config, &other);
-                }
-            }
-            HashCalcVariant::Standard | HashCalcVariant::Roll => {
-                fuzz_based_test(&input, config, &other);
-            }
-        }
+        fuzz_based_test(&input, config, &expected);
+    }
+
+    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+    mod _cache_lines {
+        use super::State;
+        // FIXME: once zlib-rs Minimum Supported Rust Version >= 1.77, switch to core::mem::offset_of
+        // and move this _cache_lines module from up a level from tests to super::
+        use memoffset::offset_of;
+
+        const _: () = assert!(offset_of!(State, status) == 0);
+        const _: () = assert!(offset_of!(State, _cache_line_0) == 64);
+        const _: () = assert!(offset_of!(State, _cache_line_1) == 128);
+        const _: () = assert!(offset_of!(State, _cache_line_2) == 192);
+        const _: () = assert!(offset_of!(State, _cache_line_3) == 256);
     }
 }
