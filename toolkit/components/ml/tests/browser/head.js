@@ -258,21 +258,24 @@ function stringify(arr) {
 }
 
 function reportMetrics(journal) {
-  let metrics = {};
   let text = "\nResults (ms)\n";
-
   const names = Object.keys(journal);
   const prefixLen = 1 + Math.max(...names.map(str => str.length));
-
   for (const name in journal) {
     const med = median(journal[name]);
     text += (name + ":").padEnd(prefixLen, " ") + stringify(journal[name]);
     text += "   median " + formatNumber(med) + "\n";
-    metrics[name] = med;
   }
-
+  const reportedMetrics = [];
+  for (const [name, values] of Object.entries(journal)) {
+    reportedMetrics.push({
+      name,
+      values,
+      value: median(values),
+    });
+  }
   dump(text);
-  info(`perfMetrics | ${JSON.stringify(metrics)}`);
+  info(`perfMetrics | ${JSON.stringify(reportedMetrics)}`);
 }
 
 /**
