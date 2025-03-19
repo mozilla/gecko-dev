@@ -1,5 +1,6 @@
 import pytest
 import pytest_asyncio
+from tests.support.helpers import deep_update
 
 from .helpers import (
     Browser,
@@ -10,6 +11,20 @@ from .helpers import (
     read_user_preferences,
     set_pref,
 )
+
+
+def pytest_collection_modifyitems(items):
+    """Auto-apply markers for specific API usage by fixtures"""
+    for item in items:
+        if "use_pref" in getattr(item, "fixturenames", ()):
+            item.add_marker("allow_system_access")
+
+
+def pytest_configure(config):
+    # register the allow_system_access marker
+    config.addinivalue_line(
+        "markers", "allow_system_access: Mark test to allow system access"
+    )
 
 
 @pytest.fixture(scope="module")
@@ -99,6 +114,37 @@ def browser(configuration, firefox_options):
         current_browser = None
 
 
+@pytest.fixture
+def default_capabilities(request):
+    """Default capabilities to use for a new WebDriver session for Mozilla specific tests."""
+
+    # Get the value from the overwritten original fixture
+    capabilities = request.getfixturevalue("default_capabilities")
+
+    allow_system_access = any(
+        marker.name == "allow_system_access" for marker in request.node.own_markers
+    )
+
+    if allow_system_access:
+        deep_update(
+            capabilities,
+            {
+                "moz:firefoxOptions": {
+                    "args": [
+                        "--remote-allow-system-access",
+                    ]
+                }
+            },
+        )
+
+    return capabilities
+
+
+@pytest.fixture
+def default_preferences(profile_folder):
+    return read_user_preferences(profile_folder)
+
+
 @pytest.fixture(name="create_custom_profile")
 def fixture_create_custom_profile(default_preferences, profile_folder):
     profile = None
@@ -115,11 +161,6 @@ def fixture_create_custom_profile(default_preferences, profile_folder):
     # if profile is not None:
     if profile:
         profile.cleanup()
-
-
-@pytest.fixture
-def default_preferences(profile_folder):
-    return read_user_preferences(profile_folder)
 
 
 @pytest.fixture(scope="session")
