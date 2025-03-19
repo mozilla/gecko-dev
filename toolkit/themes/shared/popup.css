@@ -15,9 +15,10 @@ panel {
   min-width: 1px;
   --panel-background: Menu;
   --panel-color: MenuText;
-  --panel-padding-block: 4px;
   --panel-padding: var(--panel-padding-block) 0;
-  --panel-border-radius: 4px;
+  /* This should match GetMenuMaskImage() on macOS, or be overridden below */
+  --panel-border-radius: 6px;
+  --panel-padding-block: 4px;
   --panel-border-color: ThreeDShadow;
   --panel-width: initial;
 
@@ -30,9 +31,6 @@ panel {
   --background-color-canvas: var(--panel-background);
 
   @media (-moz-platform: linux) {
-    --panel-border-radius: 8px;
-    --panel-padding-block: 3px;
-
     @media (prefers-contrast) {
       --panel-border-color: color-mix(in srgb, currentColor 60%, transparent);
     }
@@ -54,8 +52,6 @@ panel {
     background-color: Menu;
     --panel-background: none;
     --panel-border-color: transparent;
-    /* This should be kept in sync with GetMenuMaskImage() */
-    --panel-border-radius: 6px;
     /* -moz-window-shadow does the trick on macOS */
     --panel-shadow-margin: 0px;
   }

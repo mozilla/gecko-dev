@@ -93,7 +93,7 @@ menuseparator::before {
 menu,
 menuitem,
 menucaption {
-  border-radius: calc(var(--panel-border-radius) / 2);
+  border-radius: 3px;
   align-items: center;
   flex-shrink: 0;
   list-style-image: none;
