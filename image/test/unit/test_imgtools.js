@@ -308,7 +308,7 @@ function run_test() {
       : "image3ico32x32.png";
     refFile = do_get_file(refName);
     istream = getFileInputStream(refFile);
-    Assert.equal(istream.available(), AppConstants.USE_LIBZ_RS ? 2283 : 2280);
+    Assert.equal(istream.available(), AppConstants.USE_LIBZ_RS ? 2285 : 2280);
     referenceBytes = streamToArray(istream);
 
     // compare the encoder's output to the reference file.
