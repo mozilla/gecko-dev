@@ -62,13 +62,19 @@ impl<T: std::fmt::Display> std::fmt::Display for FluentArg<T> {
 }
 
 /// Run a gui and interaction on separate threads.
-fn gui_interact<G, I, R>(gui: G, interact: I) -> R
+///
+/// If the `gui` function returns an error, any panics in the interaction thread are ignored.
+fn gui_interact<G, I, R>(gui: G, interact: I) -> anyhow::Result<R>
 where
-    G: FnOnce() -> R,
+    G: FnOnce() -> anyhow::Result<R>,
     I: FnOnce(&Interact) + Send + 'static,
 {
-    let _spawned = Interact::spawn(interact);
-    gui()
+    let mut spawned_interact = Interact::spawn(interact);
+    let result = gui();
+    if result.is_err() {
+        spawned_interact.ignore_panic();
+    }
+    result
 }
 
 const MOCK_MINIDUMP_EXTRA: &str = r#"{
@@ -447,12 +453,14 @@ fn error_dialog() {
     gui_interact(
         || {
             let cfg = Config::default();
-            ui::error_dialog(&cfg, "an error occurred")
+            ui::error_dialog(&cfg, "an error occurred");
+            Ok(())
         },
         |interact| {
             interact.element("close", |_style, b: &model::Button| b.click.fire(&()));
         },
-    );
+    )
+    .unwrap();
 }
 
 #[test]
@@ -828,8 +836,41 @@ fn glean_ping_extra_stack_trace_fields() {
                                 "status": "OK",
                                 "foobar": "baz",
                                 "crash_info": {
-                                    "address": "0xcafe"
-                                }
+                                    "type": "bad crash",
+                                    "address": "0xcafe",
+                                    "crashing_thread": 1
+                                },
+                                "main_module": 0,
+                                "modules": [{
+                                    "base_addr": "0xcafe",
+                                    "end_addr": "0xf000",
+                                    "code_id": "CODEID",
+                                    "debug_file": "debug_file.so",
+                                    "debug_id": "DEBUGID",
+                                    "filename": "file.so",
+                                    "version": "1.0.0"
+                                }],
+                                "threads": [
+                                    {"frames": [
+                                        {
+                                            "ip": "0xf00",
+                                            "trust": "crash",
+                                            "module_index": 0
+                                        }
+                                    ]},
+                                    {"frames": [
+                                        {
+                                            "ip": "0x0",
+                                            "trust": "crash",
+                                            "module_index": 0
+                                        },
+                                        {
+                                            "ip": "0xbadf00d",
+                                            "trust": "cfi",
+                                            "module_index": 0
+                                        }
+                                    ]}
+                                ]
                             },
                             "Version": "100.0",
                             "ServerURL": "https://reports.example.com",
@@ -863,7 +904,42 @@ fn glean_ping_extra_stack_trace_fields() {
             glean::crash.test_before_next_submit(move |_| {
                 assert_eq!(
                     glean::crash::stack_traces.test_get_value(None),
-                    Some(serde_json::json! {{"crash_address":"0xcafe"}})
+                    Some(serde_json::json! {{
+                        "crash_type": "bad crash",
+                        "crash_address":"0xcafe",
+                        "crash_thread": 1,
+                        "main_module": 0,
+                        "modules": [{
+                            "base_address": "0xcafe",
+                            "end_address": "0xf000",
+                            "code_id": "CODEID",
+                            "debug_file": "debug_file.so",
+                            "debug_id": "DEBUGID",
+                            "filename": "file.so",
+                            "version": "1.0.0"
+                        }],
+                        "threads": [
+                            {"frames": [
+                                {
+                                    "module_index": 0,
+                                    "ip": "0xf00",
+                                    "trust": "crash"
+                                },
+                            ]},
+                            {"frames": [
+                                {
+                                    "module_index": 0,
+                                    "ip": "0x0",
+                                    "trust": "crash"
+                                },
+                                {
+                                    "module_index": 0,
+                                    "ip": "0xbadf00d",
+                                    "trust": "cfi"
+                                }
+                            ]}
+                        ]
+                    }})
                 );
                 submitted_glean_ping.inc();
             });

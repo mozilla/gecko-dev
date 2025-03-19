@@ -105,6 +105,13 @@ pub struct Interact {
 pub struct SpawnedInteract {
     interact: Interact,
     handle: ::std::mem::ManuallyDrop<::std::thread::JoinHandle<()>>,
+    ignore_panic: bool,
+}
+
+impl SpawnedInteract {
+    pub fn ignore_panic(&mut self) {
+        self.ignore_panic = true;
+    }
 }
 
 impl Drop for SpawnedInteract {
@@ -114,7 +121,7 @@ impl Drop for SpawnedInteract {
             .join()
             .is_err()
         {
-            if !std::thread::panicking() {
+            if !std::thread::panicking() && !self.ignore_panic {
                 // Make sure this thread panics so we see the panic from the interact thread.
                 panic!("interact thread panicked");
             }
@@ -140,6 +147,7 @@ impl Interact {
         SpawnedInteract {
             interact,
             handle: ::std::mem::ManuallyDrop::new(handle),
+            ignore_panic: false,
         }
     }
 
