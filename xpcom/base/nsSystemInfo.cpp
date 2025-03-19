@@ -585,6 +585,34 @@ static nsresult GetWinModelId(nsAutoString& aModelId) {
 }
 #endif
 
+#if defined(XP_LINUX)
+static nsresult GetLinuxProductName(nsAutoCString& aProductName) {
+  std::ifstream input("/sys/devices/virtual/dmi/id/product_name");
+  if (!input.is_open()) {
+    return NS_ERROR_FAILURE;
+  }
+  std::string line;
+  if (!std::getline(input, line)) {
+    return NS_ERROR_FAILURE;
+  }
+  aProductName = line.c_str();
+  return NS_OK;
+}
+
+static nsresult GetLinuxProductSku(nsAutoCString& aProductSku) {
+  std::ifstream input("/sys/devices/virtual/dmi/id/product_sku");
+  if (!input.is_open()) {
+    return NS_ERROR_FAILURE;
+  }
+  std::string line;
+  if (!std::getline(input, line)) {
+    return NS_ERROR_FAILURE;
+  }
+  aProductSku = line.c_str();
+  return NS_OK;
+}
+#endif
+
 using namespace mozilla;
 
 nsSystemInfo::nsSystemInfo() = default;
@@ -1512,6 +1540,20 @@ nsresult nsSystemInfo::Init() {
   nsAutoString modelId;
   if (NS_SUCCEEDED(GetWinModelId(modelId))) {
     rv = SetPropertyAsAString(u"winModelId"_ns, modelId);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+#endif
+
+#if defined(XP_LINUX)
+  nsAutoCString productName;
+  if (NS_SUCCEEDED(GetLinuxProductName(productName))) {
+    rv = SetPropertyAsACString(u"linuxProductName"_ns, productName);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  nsAutoCString productSku;
+  if (NS_SUCCEEDED(GetLinuxProductSku(productSku))) {
+    rv = SetPropertyAsACString(u"linuxProductSku"_ns, productSku);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 #endif
