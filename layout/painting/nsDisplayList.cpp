@@ -7166,7 +7166,7 @@ void nsDisplayTransform::HitTest(nsDisplayListBuilder* aBuilder,
   GetChildren()->HitTest(aBuilder, resultingRect, aState, aOutFrames);
 
   if (aState->mHitOccludingItem && !testingPoint &&
-      !mChildBounds.Contains(aRect)) {
+      !mBounds.Contains(aRect)) {
     MOZ_ASSERT(aBuilder->HitTestIsForVisibility());
     // We're hit-testing a rect that's bigger than our child bounds, but
     // resultingRect is clipped by our bounds (in ProjectRectBounds above), so

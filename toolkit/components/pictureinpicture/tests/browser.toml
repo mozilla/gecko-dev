@@ -19,6 +19,7 @@ support-files = [
   "test-transparent-nested-iframes.html",
   "test-transparent-overlay-1.html",
   "test-transparent-overlay-2.html",
+  "test-transparent-overlay-3.html",
   "test-video.mp4",
   "test-video-cropped.mp4",
   "test-video-long.mp4",
@@ -208,6 +209,8 @@ skip-if = [
 ["browser_toggleTransparentOverlay-1.js"]
 
 ["browser_toggleTransparentOverlay-2.js"]
+
+["browser_toggleTransparentOverlay-3.js"]
 
 ["browser_toggle_enabled.js"]
 
