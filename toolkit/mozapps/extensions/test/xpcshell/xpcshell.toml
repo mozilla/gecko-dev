@@ -242,6 +242,8 @@ skip-if = ["require_signing"]
 
 ["test_signed_verify.js"]
 
+["test_signed_verify_timer.js"]
+
 ["test_sitePermsAddonProvider.js"]
 skip-if = [
   "appname == 'thunderbird'", # Disabled in extensions.manifest
