@@ -499,8 +499,26 @@ static gfx::Matrix GetCTMInternal(SVGElement* aElement, CTMType aCTMType,
   if (frame->IsSVGOuterSVGFrame()) {
     nsMargin bp = frame->GetUsedBorderAndPadding();
     int32_t appUnitsPerCSSPixel = AppUnitsPerCSSPixel();
-    tm.PostTranslate(NSAppUnitsToFloatPixels(bp.left, appUnitsPerCSSPixel),
-                     NSAppUnitsToFloatPixels(bp.top, appUnitsPerCSSPixel));
+    float xOffset = NSAppUnitsToFloatPixels(bp.left, appUnitsPerCSSPixel);
+    float yOffset = NSAppUnitsToFloatPixels(bp.top, appUnitsPerCSSPixel);
+    // See
+    // https://drafts.csswg.org/css-transforms/#valdef-transform-box-fill-box
+    // For elements with associated CSS layout box, the used value for fill-box
+    // is content-box and for stroke-box and view-box is border-box.
+    switch (frame->StyleDisplay()->mTransformBox) {
+      case StyleTransformBox::FillBox:
+      case StyleTransformBox::ContentBox:
+        // Apply border/padding separate from the rest of the transform.
+        // i.e. after it's been transformed
+        tm.PostTranslate(xOffset, yOffset);
+        break;
+      case StyleTransformBox::StrokeBox:
+      case StyleTransformBox::ViewBox:
+      case StyleTransformBox::BorderBox:
+        // Apply border/padding before we transform the surface.
+        tm.PreTranslate(xOffset, yOffset);
+        break;
+    }
   }
 
   if (!ancestor || !ancestor->IsElement()) {
