@@ -3,6 +3,8 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<?csp default-src chrome:; style-src chrome: 'unsafe-inline'; ?>
+
 <!DOCTYPE window>
 
 <window
@@ -10,7 +12,6 @@
   data-l10n-attrs="title, style"
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   xmlns:html="http://www.w3.org/1999/xhtml"
-  onload="onLoad();"
 >
   <dialog id="download_cert" buttons="accept,cancel">
     <linkset>
@@ -50,11 +51,7 @@
       <description data-l10n-id="download-cert-message-desc"></description>
       <separator />
       <hbox>
-        <button
-          id="viewC-button"
-          data-l10n-id="download-cert-view-cert"
-          oncommand="viewCert();"
-        />
+        <button id="viewC-button" data-l10n-id="download-cert-view-cert" />
         <description
           style="margin: 4px"
           data-l10n-id="download-cert-view-text"
