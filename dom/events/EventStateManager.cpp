@@ -2552,16 +2552,25 @@ void EventStateManager::FillInEventFromGestureDown(WidgetMouseEvent* aEvent) {
 }
 
 void EventStateManager::MaybeFirePointerCancel(WidgetInputEvent* aEvent) {
+  // If aEvent is a synthesized mouse event, it does not have enough information
+  // to initialize ePointerCancel.
+  MOZ_ASSERT_IF(aEvent->AsMouseEvent(), aEvent->AsMouseEvent()->IsReal());
+  // The caller must want to dispatch ePointerCancel even if an event listener
+  // of the preceding event may update the layout.  So, the caller should
+  // guarantee the target frame.
+  MOZ_ASSERT(mCurrentTarget);
+
   RefPtr<PresShell> presShell = mPresContext->GetPresShell();
   AutoWeakFrame targetFrame = mCurrentTarget;
-
   if (!presShell || !targetFrame) {
     return;
   }
 
   nsCOMPtr<nsIContent> content;
   targetFrame->GetContentForEvent(aEvent, getter_AddRefs(content));
-  if (!content) {
+  // XXX If there is no proper event target, should we retarget ePointerCancel
+  // somewhere else?
+  if (NS_WARN_IF(!content)) {
     return;
   }
 
@@ -2626,6 +2635,7 @@ bool EventStateManager::IsEventOutsideDragThreshold(
 void EventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
                                             WidgetInputEvent* aEvent) {
   NS_ASSERTION(aPresContext, "This shouldn't happen.");
+  MOZ_ASSERT_IF(aEvent->AsMouseEvent(), aEvent->AsMouseEvent()->IsReal());
   if (!IsTrackingDragGesture()) {
     return;
   }
