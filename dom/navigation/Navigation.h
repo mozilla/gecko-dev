@@ -7,12 +7,24 @@
 #ifndef mozilla_dom_Navigation_h___
 #define mozilla_dom_Navigation_h___
 
+#include "nsHashtablesFwd.h"
+#include "nsStringFwd.h"
+
+#include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/DOMEventTargetHelper.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/RefPtr.h"
+
+#include "mozilla/dom/NavigateEvent.h"
 #include "mozilla/dom/NavigationBinding.h"
+
+class nsIDHashKey;
 
 namespace mozilla::dom {
 
+class FormData;
 class NavigationActivation;
+class NavigationDestination;
 class NavigationHistoryEntry;
 struct NavigationNavigateOptions;
 struct NavigationOptions;
@@ -22,6 +34,8 @@ struct NavigationReloadOptions;
 struct NavigationResult;
 
 class SessionHistoryInfo;
+
+struct NavigationAPIMethodTracker;
 
 class Navigation final : public DOMEventTargetHelper {
  public:
@@ -37,8 +51,8 @@ class Navigation final : public DOMEventTargetHelper {
   void UpdateCurrentEntry(JSContext* aCx,
                           const NavigationUpdateCurrentEntryOptions& aOptions,
                           ErrorResult& aRv);
-  already_AddRefed<NavigationTransition> GetTransition() { return {}; }
-  already_AddRefed<NavigationActivation> GetActivation() { return {}; }
+  NavigationTransition* GetTransition() const;
+  NavigationActivation* GetActivation() const;
 
   bool CanGoBack() {
     return !HasEntriesAndEventsDisabled() && mCurrentEntryIndex &&
@@ -89,7 +103,32 @@ class Navigation final : public DOMEventTargetHelper {
   static bool IsAPIEnabled(JSContext* /* unused */ = nullptr,
                            JSObject* /* unused */ = nullptr);
 
+  // Wrapper algorithms for firing the navigate event.
+  // https://html.spec.whatwg.org/#navigate-event-firing
+
+  MOZ_CAN_RUN_SCRIPT bool FireTraverseNavigateEvent(
+      SessionHistoryInfo* aDestinationSessionHistoryInfo,
+      Maybe<UserNavigationInvolvement> aUserInvolvement);
+
+  MOZ_CAN_RUN_SCRIPT bool FirePushReplaceReloadNavigateEvent(
+      NavigationType aNavigationType, nsIURI* aDestinationURL,
+      bool aIsSameDocument, Maybe<UserNavigationInvolvement> aUserInvolvement,
+      Element* aSourceElement, Maybe<const FormData&> aFormDataEntryList,
+      nsIStructuredCloneContainer* aNavigationAPIState,
+      nsIStructuredCloneContainer* aClassicHistoryAPIState);
+
+  MOZ_CAN_RUN_SCRIPT bool FireDownloadRequestNavigateEvent(
+      nsIURI* aDestinationURL, UserNavigationInvolvement aUserInvolvement,
+      Element* aSourceElement, const nsAString& aFilename);
+
+  bool FocusedChangedDuringOngoingNavigation() const;
+  void SetFocusedChangedDuringOngoingNavigation(
+      bool aFocusChangedDUringOngoingNavigation);
+
  private:
+  using UpcomingTraverseAPIMethodTrackers =
+      nsTHashMap<nsIDHashKey, RefPtr<NavigationAPIMethodTracker>>;
+
   ~Navigation() = default;
 
   // https://html.spec.whatwg.org/multipage/nav-history-apis.html#has-entries-and-events-disabled
@@ -100,12 +139,56 @@ class Navigation final : public DOMEventTargetHelper {
       const RefPtr<NavigationHistoryEntry>& aPreviousEntry,
       nsTArray<RefPtr<NavigationHistoryEntry>>&& aDisposedEntries);
 
+  nsresult FireEvent(const nsAString& aName);
+
+  // https://html.spec.whatwg.org/#inner-navigate-event-firing-algorithm
+  MOZ_CAN_RUN_SCRIPT bool InnerFireNavigateEvent(
+      NavigationType aNavigationType, NavigationDestination* aDestination,
+      UserNavigationInvolvement aUserInvolvement, Element* aSourceElement,
+      Maybe<const FormData&> aFormDataEntryList,
+      nsIStructuredCloneContainer* aClassicHistoryAPIState,
+      const nsAString& aDownloadRequestFilename);
+
+  NavigationHistoryEntry* FindNavigationHistoryEntry(
+      SessionHistoryInfo* aSessionHistoryInfo) const;
+
+  void PromoteUpcomingAPIMethodTrackerToOngoing(Maybe<nsID>&& aDestinationKey);
+
+  static void CleanUp(NavigationAPIMethodTracker* aNavigationAPIMethodTracker);
+
+  void AbortOngoingNavigation();
+
   void LogHistory() const;
 
   // https://html.spec.whatwg.org/multipage/nav-history-apis.html#navigation-entry-list
   nsTArray<RefPtr<NavigationHistoryEntry>> mEntries;
+
   // https://html.spec.whatwg.org/multipage/nav-history-apis.html#navigation-current-entry
   Maybe<uint64_t> mCurrentEntryIndex;
+
+  // https://html.spec.whatwg.org/#ongoing-navigation-tracking:navigateevent-2
+  RefPtr<NavigateEvent> mOngoingNavigateEvent;
+
+  // https://html.spec.whatwg.org/multipage/nav-history-apis.html#focus-changed-during-ongoing-navigation
+  bool mFocusChangedDUringOngoingNavigation = false;
+
+  // https://html.spec.whatwg.org/multipage/nav-history-apis.html#suppress-normal-scroll-restoration-during-ongoing-navigation
+  bool mSuppressNormalScrollRestorationDuringOngoingNavigation = false;
+
+  // https://html.spec.whatwg.org/multipage/nav-history-apis.html#ongoing-api-method-tracker
+  RefPtr<NavigationAPIMethodTracker> mOngoingAPIMethodTracker;
+
+  // https://html.spec.whatwg.org/multipage/nav-history-apis.html#upcoming-non-traverse-api-method-tracker
+  RefPtr<NavigationAPIMethodTracker> mUpcomingNonTraverseAPIMethodTracker;
+
+  // https://html.spec.whatwg.org/multipage/nav-history-apis.html#upcoming-traverse-api-method-trackers
+  UpcomingTraverseAPIMethodTrackers mUpcomingTraverseAPIMethodTrackers;
+
+  // https://html.spec.whatwg.org/#concept-navigation-transition
+  RefPtr<NavigationTransition> mTransition;
+
+  // https://html.spec.whatwg.org/#navigation-activation
+  RefPtr<NavigationActivation> mActivation;
 };
 
 }  // namespace mozilla::dom

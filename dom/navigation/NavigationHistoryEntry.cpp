@@ -159,4 +159,12 @@ const nsID& NavigationHistoryEntry::Key() const {
   return mSHInfo->NavigationKey();
 }
 
+nsStructuredCloneContainer* NavigationHistoryEntry::GetNavigationState() const {
+  if (!mSHInfo) {
+    return nullptr;
+  }
+
+  return mSHInfo->GetNavigationState();
+}
+
 }  // namespace mozilla::dom
