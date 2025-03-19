@@ -2478,6 +2478,18 @@ networking:
         branch: default
         pref: "network.http.http3.use_nspr_for_io"
 
+essentialFallbackDomains:
+  description: "Whether to retry failing system requests with a backup domain"
+  owner: vgosu@mozilla.com
+  hasExposure: false
+  variables:
+    essentialDomainsEnabled:
+      description: Whether to retry with a backup domain indicated in remote-settings
+      type: boolean
+      setPref:
+        branch: default
+        pref: "network.essential_domains_fallback"
+
 disableHttp3:
   description: "Whether HTTP/3 is disabled"
   owner: kershaw@mozilla.com
