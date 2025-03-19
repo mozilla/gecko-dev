@@ -48,7 +48,7 @@ function migrateForward(stateObj) {
   }
 
   CustomizableUI.setTestOnlyInternalProp("gSavedState", stateToSave);
-  CustomizableUIInternal._updateForNewVersion();
+  CustomizableUIInternal.updateForNewVersion();
 
   let migratedState = CustomizableUI.getTestOnlyInternalProp("gSavedState");
   if (migratedState) {
