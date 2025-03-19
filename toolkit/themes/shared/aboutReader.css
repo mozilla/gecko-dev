@@ -687,7 +687,8 @@ body.hcm .color-scheme-buttons {
     -moz-context-properties: fill;
     fill: currentColor;
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
       background-color: var(--popup-button-background-hover);
       color: var(--popup-button-foreground-hover);
 
