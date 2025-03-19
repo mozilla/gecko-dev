@@ -1296,7 +1296,9 @@ var gSync = {
         );
 
         if (state.syncEnabled) {
+          // Always show sync now and connect another device button when sync is enabled
           syncNowButtonEl.removeAttribute("hidden");
+          cadButtonEl.removeAttribute("hidden");
           oldSyncSetupEl.setAttribute("hidden", "true");
           newSyncSetupEl.setAttribute("hidden", "true");
         } else {
