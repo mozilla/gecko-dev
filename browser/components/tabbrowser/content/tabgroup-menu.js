@@ -299,21 +299,12 @@
 
     constructor() {
       super();
-      this.smartTabGroupsFeatureConfigEnabled = false;
+      this.smartTabGroupsEnabled = false;
       XPCOMUtils.defineLazyPreferenceGetter(
         this,
-        "smartTabGroupsFeatureConfigEnabled",
+        "smartTabGroupsEnabled",
         "browser.tabs.groups.smart.enabled",
         false,
-        this.#onSmartTabGroupsPrefChange.bind(this)
-      );
-
-      this.smartTabGroupsUserEnabled = true;
-      XPCOMUtils.defineLazyPreferenceGetter(
-        this,
-        "smartTabGroupsUserEnabled",
-        "browser.tabs.groups.smart.userEnabled",
-        true,
         this.#onSmartTabGroupsPrefChange.bind(this)
       );
     }
@@ -415,17 +406,8 @@
       this.#swatchesContainer.addEventListener("change", this);
     }
 
-    get smartTabGroupsEnabled() {
-      return (
-        this.smartTabGroupsUserEnabled &&
-        this.smartTabGroupsFeatureConfigEnabled
-      );
-    }
-
-    #onSmartTabGroupsPrefChange(_preName, _prev, _latest) {
-      const icon = this.smartTabGroupsEnabled
-        ? MozTabbrowserTabGroupMenu.AI_ICON
-        : "";
+    #onSmartTabGroupsPrefChange(_preName, _prev, latest) {
+      const icon = latest ? MozTabbrowserTabGroupMenu.AI_ICON : "";
 
       this.#suggestionButton.iconSrc = icon;
       this.#suggestionsMessage.iconSrc = icon;
