@@ -20,7 +20,7 @@ from mozbuild.util import cpu_count
     "ide",
     category="devenv",
     description="Generate a project and launch an IDE.",
-    virtualenv_name="build",
+    virtualenv_name="ide",
 )
 @CommandArgument("ide", choices=["eclipse", "visualstudio", "vscode"])
 @CommandArgument(
@@ -174,7 +174,15 @@ def setup_vscode(command_context, interactive):
     }
 
     import difflib
-    import json
+
+    try:
+        import json5 as json
+
+        dump_extra = {"quote_keys": True, "trailing_commas": False}
+    except ImportError:
+        import json
+
+        dump_extra = {}
 
     # Load the existing .vscode/settings.json file, to check if if needs to
     # be created or updated.
@@ -192,7 +200,7 @@ def setup_vscode(command_context, interactive):
     if old_settings_str is None:
         # No old settings exist
         with open(vscode_settings, "w") as fh:
-            json.dump(new_settings, fh, indent=4)
+            json.dump(new_settings, fh, indent=4, **dump_extra)
     else:
         # Merge our new settings with the existing settings, and check if we
         # need to make changes. Only prompt & write out the updated config
@@ -223,7 +231,7 @@ def setup_vscode(command_context, interactive):
 
         if old_settings != settings:
             # Prompt the user with a diff of the changes we're going to make
-            new_settings_str = json.dumps(settings, indent=4)
+            new_settings_str = json.dumps(settings, indent=4, **dump_extra)
             if interactive:
                 print(
                     "\nThe following modifications to {settings} will occur:\n{diff}".format(
