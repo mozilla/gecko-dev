@@ -104,7 +104,7 @@ tasks:
         image: gentoo/stage3
         pre-commands:
             - emerge --sync
-            - emerge mercurial dev-python/pip
+            - emerge mercurial dev-python/pip curl
     archlinux:
         image: archlinux
         pre-commands:
