@@ -305,8 +305,10 @@ export class _ExperimentManager {
           statusTelemetry.reason = ENROLLMENT_STATUS_REASONS.NOT_TARGETED;
         } else if (invalidRecipes.includes(slug)) {
           reason = "invalid-recipe";
-        } else if (invalidBranches.has(slug) || invalidFeatures.has(slug)) {
+        } else if (invalidBranches.has(slug)) {
           reason = "invalid-branch";
+        } else if (invalidFeatures.has(slug)) {
+          reason = "invalid-feature";
         } else if (missingLocale.includes(slug)) {
           reason = "l10n-missing-locale";
         } else if (missingL10nIds.has(slug)) {

@@ -839,9 +839,11 @@ nimbus_events:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1773563
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1781953
+ .    - https://bugzilla.mozilla.org/show_bug.cgi?id=1953530
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1773563
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1781953
+ .    - https://bugzilla.mozilla.org/show_bug.cgi?id=1953530
     data_sensitivity:
       - technical
     notification_emails:
@@ -863,7 +865,7 @@ nimbus_events:
         type: string
         description: >
           Why validation failed (one of "invalid-recipe", "invalid-branch",
-          "invalid-reason", "missing-locale", or "missing-l10n-entry").
+          "invalid-feature", "missing-locale", or "missing-l10n-entry").
       branch:
         type: string
         description: >
