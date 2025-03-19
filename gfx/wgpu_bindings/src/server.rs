@@ -1973,6 +1973,21 @@ impl Global {
                     return;
                 }
 
+                if [
+                    desc.size.width,
+                    desc.size.height,
+                    desc.size.depth_or_array_layers,
+                ]
+                .contains(&0)
+                {
+                    self.create_texture_error(Some(id), &desc);
+                    error_buf.init(ErrMsg {
+                        message: "size is zero",
+                        r#type: ErrorBufferType::Validation,
+                    });
+                    return;
+                }
+
                 let use_external_texture = if let Some(id) = swap_chain_id {
                     unsafe { wgpu_server_use_external_texture_for_swap_chain(self.owner, id) }
                 } else {

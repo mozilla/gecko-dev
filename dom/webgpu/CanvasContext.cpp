@@ -177,8 +177,6 @@ void CanvasContext::Unconfigure() {
 }
 
 NS_IMETHODIMP CanvasContext::SetDimensions(int32_t aWidth, int32_t aHeight) {
-  aWidth = std::max(1, aWidth);
-  aHeight = std::max(1, aHeight);
   const auto newSize = gfx::IntSize{aWidth, aHeight};
   if (newSize == mCanvasSize) return NS_OK;  // No-op no-change resizes.
 
