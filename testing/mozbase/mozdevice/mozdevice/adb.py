@@ -1163,14 +1163,15 @@ class ADBDevice(ADBCommand):
             devices = ADBHost(
                 adb=self._adb_path, adb_host=self._adb_host, adb_port=self._adb_port
             ).devices()
-            if len(devices) > 1:
+            ready_devices = [d for d in devices if d["state"] == "device"]
+            if len(ready_devices) > 1:
                 raise ValueError(
                     "ADBDevice called with multiple devices "
-                    "attached and no device specified"
+                    "available and no device specified"
                 )
-            if len(devices) == 0:
-                raise ADBError("No connected devices found.")
-            device = devices[0]
+            if len(ready_devices) == 0:
+                raise ADBError("No ready devices found.")
+            device = ready_devices[0]
 
         # Allow : in device serial if it matches a tcpip device serial.
         re_device_serial_tcpip = re.compile(r"[^:]+:[0-9]+$")
