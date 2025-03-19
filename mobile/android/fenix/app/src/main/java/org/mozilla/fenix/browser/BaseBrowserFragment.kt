@@ -85,6 +85,7 @@ import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.concept.engine.permission.SitePermissions
 import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.concept.storage.Address
+import mozilla.components.concept.storage.CreditCardEntry
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.feature.accounts.push.SendTabUseCases
@@ -104,6 +105,7 @@ import mozilla.components.feature.prompts.address.AddressDelegate
 import mozilla.components.feature.prompts.address.AddressSelectBar
 import mozilla.components.feature.prompts.concept.AutocompletePrompt
 import mozilla.components.feature.prompts.creditcard.CreditCardDelegate
+import mozilla.components.feature.prompts.creditcard.CreditCardSelectBar
 import mozilla.components.feature.prompts.dialog.FullScreenNotificationToast
 import mozilla.components.feature.prompts.dialog.GestureNavUtils
 import mozilla.components.feature.prompts.file.AndroidPhotoPicker
@@ -269,6 +271,7 @@ abstract class BaseBrowserFragment :
 
     private lateinit var loginSelectBar: AutocompletePrompt<Login>
     private var addressSelectBar: AutocompletePrompt<Address>? = null
+    private var creditCardSelectBar: AutocompletePrompt<CreditCardEntry>? = null
 
     private lateinit var browserFragmentStore: BrowserFragmentStore
     private lateinit var browserAnimator: BrowserAnimator
@@ -610,7 +613,6 @@ abstract class BaseBrowserFragment :
 
         autofillBarsIntegration = AutofillBarsIntegration(
             passwordBar = binding.suggestStrongPasswordBar,
-            creditCardBar = binding.creditCardSelectBar,
             settings = requireContext().settings(),
             onAutofillBarShown = {
                 removeBottomToolbarDivider(browserToolbarView.view)
@@ -942,6 +944,18 @@ abstract class BaseBrowserFragment :
             onHide = ::onAutocompleteBarHide,
         )
 
+        creditCardSelectBar = FenixAutocompletePrompt(
+            viewProvider = {
+                view.findViewById(R.id.creditCardSelectBar)
+                    ?: binding.creditCardSelectBarStub.inflate() as CreditCardSelectBar
+            },
+            toolbarPositionProvider = {
+                requireContext().settings().toolbarPosition
+            },
+            onShow = ::onAutocompleteBarShow,
+            onHide = ::onAutocompleteBarHide,
+        )
+
         promptsFeature.set(
             feature = PromptFeature(
                 activity = activity,
@@ -1029,7 +1043,7 @@ abstract class BaseBrowserFragment :
                 removeLastSavedGeneratedPassword = { removeLastSavedGeneratedPassword() },
                 creditCardDelegate = object : CreditCardDelegate {
                     override val creditCardPickerView
-                        get() = binding.creditCardSelectBar
+                        get() = creditCardSelectBar
                     override val onManageCreditCards = {
                         val directions =
                             NavGraphDirections.actionGlobalAutofillSettingFragment()
@@ -2579,6 +2593,7 @@ abstract class BaseBrowserFragment :
         requireContext().accessibilityManager.removeAccessibilityStateChangeListener(this)
 
         addressSelectBar = null
+        creditCardSelectBar = null
 
         _bottomToolbarContainerView = null
         _browserToolbarView = null

@@ -6,9 +6,7 @@ package org.mozilla.fenix.components
 
 import android.view.View
 import androidx.coordinatorlayout.widget.CoordinatorLayout
-import mozilla.components.feature.prompts.concept.ExpandablePrompt
 import mozilla.components.feature.prompts.concept.ToggleablePrompt
-import mozilla.components.feature.prompts.creditcard.CreditCardSelectBar
 import mozilla.components.feature.prompts.login.SuggestStrongPasswordBar
 import org.mozilla.fenix.browser.AutofillSelectBarBehavior
 import org.mozilla.fenix.utils.Settings
@@ -21,34 +19,16 @@ import org.mozilla.fenix.utils.Settings
 @Suppress("LongParameterList")
 class AutofillBarsIntegration(
     passwordBar: SuggestStrongPasswordBar,
-    creditCardBar: CreditCardSelectBar,
     private val settings: Settings,
     private val onAutofillBarShown: () -> Unit,
     private val onAutofillBarHidden: () -> Unit,
 ) {
     init {
         passwordBar.toggleablePromptListener = passwordBar.createToggleListener()
-        creditCardBar.toggleablePromptListener = creditCardBar.createToggleListener()
-        creditCardBar.expandablePromptListener = creditCardBar.createExpandedListener()
     }
 
     var isVisible: Boolean = false
         private set
-    var isExpanded: Boolean = false
-        private set
-
-    private fun <T : View> T.createExpandedListener() = object : ExpandablePrompt.Listener {
-        override fun onExpanded() {
-            (behavior as? AutofillSelectBarBehavior<*>)?.placeAtBottom(this@createExpandedListener)
-            // Remove the custom behavior to ensure the autofill bar stays fixed in place
-            behavior = null
-            isExpanded = true
-        }
-        override fun onCollapsed() {
-            behavior = createCustomAutofillBarBehavior()
-            isExpanded = false
-        }
-    }
 
     private fun <T : View> T.createToggleListener() = object : ToggleablePrompt.Listener {
         override fun onShown() {

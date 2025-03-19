@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mozilla.components.feature.prompts.creditcard.CreditCardSelectBar xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/creditCardSelectBar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/layer1"
+    android:elevation="@dimen/browser_fragment_above_toolbar_panels_elevation"
+    android:outlineProvider="none"
+    android:visibility="gone"
+    tools:ignore="MozMultipleConstraintLayoutsAndCustomViews" />
