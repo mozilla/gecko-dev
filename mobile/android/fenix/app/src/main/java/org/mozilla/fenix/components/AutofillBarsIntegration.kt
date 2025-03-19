@@ -6,7 +6,6 @@ package org.mozilla.fenix.components
 
 import android.view.View
 import androidx.coordinatorlayout.widget.CoordinatorLayout
-import mozilla.components.feature.prompts.address.AddressSelectBar
 import mozilla.components.feature.prompts.concept.ExpandablePrompt
 import mozilla.components.feature.prompts.concept.ToggleablePrompt
 import mozilla.components.feature.prompts.creditcard.CreditCardSelectBar
@@ -22,7 +21,6 @@ import org.mozilla.fenix.utils.Settings
 @Suppress("LongParameterList")
 class AutofillBarsIntegration(
     passwordBar: SuggestStrongPasswordBar,
-    addressBar: AddressSelectBar,
     creditCardBar: CreditCardSelectBar,
     private val settings: Settings,
     private val onAutofillBarShown: () -> Unit,
@@ -30,8 +28,6 @@ class AutofillBarsIntegration(
 ) {
     init {
         passwordBar.toggleablePromptListener = passwordBar.createToggleListener()
-        addressBar.toggleablePromptListener = addressBar.createToggleListener()
-        addressBar.expandablePromptListener = addressBar.createExpandedListener()
         creditCardBar.toggleablePromptListener = creditCardBar.createToggleListener()
         creditCardBar.expandablePromptListener = creditCardBar.createExpandedListener()
     }

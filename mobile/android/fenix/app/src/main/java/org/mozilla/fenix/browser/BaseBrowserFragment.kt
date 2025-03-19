@@ -84,6 +84,7 @@ import mozilla.components.compose.cfr.CFRPopupProperties
 import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.concept.engine.permission.SitePermissions
 import mozilla.components.concept.engine.prompt.ShareData
+import mozilla.components.concept.storage.Address
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.feature.accounts.push.SendTabUseCases
@@ -100,6 +101,7 @@ import mozilla.components.feature.privatemode.feature.SecureWindowFeature
 import mozilla.components.feature.prompts.PromptFeature
 import mozilla.components.feature.prompts.PromptFeature.Companion.PIN_REQUEST
 import mozilla.components.feature.prompts.address.AddressDelegate
+import mozilla.components.feature.prompts.address.AddressSelectBar
 import mozilla.components.feature.prompts.concept.AutocompletePrompt
 import mozilla.components.feature.prompts.creditcard.CreditCardDelegate
 import mozilla.components.feature.prompts.dialog.FullScreenNotificationToast
@@ -265,7 +267,8 @@ abstract class BaseBrowserFragment :
     private var _binding: FragmentBrowserBinding? = null
     internal val binding get() = _binding!!
 
-    lateinit var loginSelectBar: AutocompletePrompt<Login>
+    private lateinit var loginSelectBar: AutocompletePrompt<Login>
+    private var addressSelectBar: AutocompletePrompt<Address>? = null
 
     private lateinit var browserFragmentStore: BrowserFragmentStore
     private lateinit var browserAnimator: BrowserAnimator
@@ -607,7 +610,6 @@ abstract class BaseBrowserFragment :
 
         autofillBarsIntegration = AutofillBarsIntegration(
             passwordBar = binding.suggestStrongPasswordBar,
-            addressBar = binding.addressSelectBar,
             creditCardBar = binding.creditCardSelectBar,
             settings = requireContext().settings(),
             onAutofillBarShown = {
@@ -928,6 +930,18 @@ abstract class BaseBrowserFragment :
             onHide = ::onAutocompleteBarHide,
         )
 
+        addressSelectBar = FenixAutocompletePrompt(
+            viewProvider = {
+                view.findViewById(R.id.addressSelectBar)
+                    ?: binding.addressSelectBarStub.inflate() as AddressSelectBar
+            },
+            toolbarPositionProvider = {
+                requireContext().settings().toolbarPosition
+            },
+            onShow = ::onAutocompleteBarShow,
+            onHide = ::onAutocompleteBarHide,
+        )
+
         promptsFeature.set(
             feature = PromptFeature(
                 activity = activity,
@@ -1027,7 +1041,7 @@ abstract class BaseBrowserFragment :
                 },
                 addressDelegate = object : AddressDelegate {
                     override val addressPickerView
-                        get() = binding.addressSelectBar
+                        get() = addressSelectBar
                     override val onManageAddresses = {
                         val directions = NavGraphDirections.actionGlobalAutofillSettingFragment()
                         findNavController().navigate(directions)
@@ -2563,6 +2577,8 @@ abstract class BaseBrowserFragment :
 
         binding.engineView.setActivityContext(null)
         requireContext().accessibilityManager.removeAccessibilityStateChangeListener(this)
+
+        addressSelectBar = null
 
         _bottomToolbarContainerView = null
         _browserToolbarView = null

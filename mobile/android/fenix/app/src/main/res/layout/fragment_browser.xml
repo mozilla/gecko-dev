@@ -99,16 +99,12 @@
                 android:background="?attr/layer1"
                 android:visibility="gone" />
 
-            <mozilla.components.feature.prompts.address.AddressSelectBar
-                android:id="@+id/addressSelectBar"
+            <ViewStub
+                android:id="@+id/addressSelectBarStub"
+                android:inflatedId="@+id/addressSelectBar"
+                android:layout="@layout/address_select_bar"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/layer1"
-                android:elevation="@dimen/browser_fragment_above_toolbar_panels_elevation"
-                android:outlineProvider="none"
-                android:visibility="gone"
-                tools:ignore="MozMultipleConstraintLayoutsAndCustomViews"
-                />
+                android:layout_height="wrap_content" />
 
             <mozilla.components.feature.prompts.creditcard.CreditCardSelectBar
                 android:id="@+id/creditCardSelectBar"

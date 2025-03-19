@@ -8,7 +8,6 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
-import mozilla.components.feature.prompts.address.AddressSelectBar
 import mozilla.components.feature.prompts.creditcard.CreditCardSelectBar
 import mozilla.components.feature.prompts.login.SuggestStrongPasswordBar
 import mozilla.components.support.test.robolectric.testContext
@@ -28,10 +27,6 @@ class AutofillBarsIntegrationTest {
     private val passwordBar = spyk(SuggestStrongPasswordBar(testContext)) {
         every { layoutParams } returns passwordBarLayoutParams
     }
-    private val addressBarLayoutParams = CoordinatorLayout.LayoutParams(0, 0)
-    private val addressBar = spyk(AddressSelectBar(testContext)) {
-        every { layoutParams } returns addressBarLayoutParams
-    }
     private val creditCardBarLayoutParams = CoordinatorLayout.LayoutParams(0, 0)
     private val creditCardBar = spyk(CreditCardSelectBar(testContext)) {
         every { layoutParams } returns creditCardBarLayoutParams
@@ -42,7 +37,7 @@ class AutofillBarsIntegrationTest {
     private var visibilityInListener = false
     private val onLoginsBarShown = { visibilityInListener = true }
     private val onLoginsBarHidden = { visibilityInListener = false }
-    private val integration = AutofillBarsIntegration(passwordBar, addressBar, creditCardBar, settings, onLoginsBarShown, onLoginsBarHidden)
+    private val integration = AutofillBarsIntegration(passwordBar, creditCardBar, settings, onLoginsBarShown, onLoginsBarHidden)
 
     @Test
     fun `GIVEN a password bar WHEN it is shown THEN inform about this and set a custom layout behavior`() {
@@ -51,15 +46,6 @@ class AutofillBarsIntegrationTest {
         assertTrue(integration.isVisible)
         assertTrue(visibilityInListener)
         assertTrue((passwordBar.layoutParams as CoordinatorLayout.LayoutParams).behavior is AutofillSelectBarBehavior)
-    }
-
-    @Test
-    fun `GIVEN a address bar WHEN it is shown THEN inform about this and set a custom layout behavior`() {
-        addressBar.toggleablePromptListener?.onShown()
-
-        assertTrue(integration.isVisible)
-        assertTrue(visibilityInListener)
-        assertTrue((addressBar.layoutParams as CoordinatorLayout.LayoutParams).behavior is AutofillSelectBarBehavior)
     }
 
     @Test
@@ -80,17 +66,6 @@ class AutofillBarsIntegrationTest {
         assertFalse(integration.isVisible)
         assertFalse(visibilityInListener)
         assertNull((passwordBar.layoutParams as CoordinatorLayout.LayoutParams).behavior)
-    }
-
-    @Test
-    fun `GIVEN a address select bar WHEN it is hidden THEN inform about this and remove any layout behavior`() {
-        visibilityInListener = true
-
-        addressBar.toggleablePromptListener?.onHidden()
-
-        assertFalse(integration.isVisible)
-        assertFalse(visibilityInListener)
-        assertNull((addressBar.layoutParams as CoordinatorLayout.LayoutParams).behavior)
     }
 
     @Test
