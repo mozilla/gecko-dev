@@ -55,6 +55,22 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
+/**
+ * A helper method to synchronize aNode's DOM attributes with the properties and
+ * values in aAttrs. If aNode has an attribute that is false-y in aAttrs,
+ * then this attribute is removed.
+ *
+ * If aAttrs includes "shortcutId", the value is never set on aNode, but is
+ * instead used when setting the "label" or "tooltiptext" attributes to include
+ * the shortcut key combo. shortcutId should refer to the ID of the XUL <key>
+ * element that acts as the shortcut.
+ *
+ * @param {Element} aNode
+ *   The element to change the attributes of.
+ * @param {object} aAttrs
+ *   A set of key-value pairs where the key is set as the attribute name, and
+ *   the value is set as the attribute value.
+ */
 function setAttributes(aNode, aAttrs) {
   let doc = aNode.ownerDocument;
   for (let [name, value] of Object.entries(aAttrs)) {
@@ -86,6 +102,12 @@ function setAttributes(aNode, aAttrs) {
   }
 }
 
+/**
+ * The array of built-in CustomizableUICreateWidgetProperties that are
+ * registered as widgets upon browser start.
+ *
+ * @type {CustomizableUICreateWidgetProperties[]}
+ */
 export const CustomizableWidgets = [
   {
     id: "history-panelmenu",
