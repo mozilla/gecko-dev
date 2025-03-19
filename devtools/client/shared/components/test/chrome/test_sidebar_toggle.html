@@ -20,7 +20,7 @@ Test sidebar toggle button
 'use strict'
 
 window.onload = async function () {
-  const SidebarToggle = browserRequire("devtools/client/shared/components/SidebarToggle.js");
+  const SidebarToggle = React.createFactory(browserRequire("devtools/client/shared/components/SidebarToggle.js"));
 
   try {
     await test();
@@ -30,26 +30,26 @@ window.onload = async function () {
     SimpleTest.finish();
   }
 
-  function test() {
-    const output1 = shallowRenderComponent(SidebarToggle, {
+  async function test() {
+    const { element: output1 } = await createComponentTest(SidebarToggle, {
       collapsed: false,
       collapsePaneTitle: "Expand",
       expandPaneTitle: "Collapse"
     });
 
-    is(output1.type, "button", "Output is a button element");
-    is(output1.props.title, "Expand", "Proper title is set");
-    is(output1.props.className.indexOf("pane-collapsed"), -1,
+    is(output1.tagName, "BUTTON", "Output is a button element");
+    is(output1.title, "Expand", "Proper title is set");
+    is(output1.className.indexOf("pane-collapsed"), -1,
       "Proper class name is set");
 
-    const output2 = shallowRenderComponent(SidebarToggle, {
+    const { element: output2 } = await createComponentTest(SidebarToggle, {
       collapsed: true,
       collapsePaneTitle: "Expand",
       expandPaneTitle: "Collapse"
     });
 
-    is(output2.props.title, "Collapse", "Proper title is set");
-    ok(output2.props.className.includes("pane-collapsed"),
+    is(output2.title, "Collapse", "Proper title is set");
+    ok(output2.className.includes("pane-collapsed"),
       "Proper class name is set");
   }
 };

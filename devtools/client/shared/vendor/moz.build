@@ -16,7 +16,6 @@ DevToolsModules(
     'react-dom-factories.mjs',
     'react-redux.js',
     'react-router-dom.js',
-    'react-test-renderer-shallow.mjs',
     'react-test-renderer.mjs',
     'redux.js',
     'reselect.js',

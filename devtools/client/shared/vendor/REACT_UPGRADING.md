@@ -122,7 +122,6 @@ cp build/dist/react.development.js $VENDOR_PATH/react-dev.mjs
 cp build/dist/react-dom.development.js $VENDOR_PATH/react-dom-dev.mjs
 cp build/dist/react-dom-server.browser.development.js $VENDOR_PATH/react-dom-server-dev.mjs
 cp build/dist/react-dom-test-utils.development.js $VENDOR_PATH/react-dom-test-utils-dev.mjs
-cp build/dist/react-test-renderer-shallow.production.min.js $VENDOR_PATH/react-test-renderer-shallow.mjs
 cp build/dist/react-test-renderer.production.min.js $VENDOR_PATH/react-test-renderer.mjs
 ```
 

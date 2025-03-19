@@ -30,14 +30,12 @@ window.onload = async function () {
     const React = browserRequire("devtools/client/shared/vendor/react");
     const { NotificationBox, PriorityLevels } = browserRequire("devtools/client/shared/components/NotificationBox");
 
-    const renderedBox = shallowRenderComponent(NotificationBox, {});
-    is(renderedBox.type, "div", "NotificationBox is rendered as <div>");
-
     info("Test rendering NotificationBox with default props");
     const boxElement = React.createElement(NotificationBox);
     const notificationBox = TestUtils.renderIntoDocument(boxElement);
     const notificationNode = ReactDOM.findDOMNode(notificationBox);
 
+    is(notificationNode.tagName, "DIV", "NotificationBox is rendered as <div>");
     ok(notificationNode.classList.contains("notificationbox"),
       "NotificationBox has expected class");
     ok(notificationNode.classList.contains("border-bottom"),

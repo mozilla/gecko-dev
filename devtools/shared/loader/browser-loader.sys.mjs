@@ -56,7 +56,6 @@ const REACT_ESM_MODULES = new Set([
   VENDOR_URI + "react-prop-types-dev.js",
   VENDOR_URI + "react-prop-types.js",
   VENDOR_URI + "react-test-renderer.js",
-  VENDOR_URI + "react-test-renderer-shallow.js",
 ]);
 
 // Any directory that matches the following regular expression
