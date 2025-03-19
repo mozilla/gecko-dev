@@ -56,7 +56,7 @@
 const {
   PureComponent,
   createFactory,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const {
   code,
   div,

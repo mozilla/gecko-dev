@@ -11,7 +11,7 @@ const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-t
 const {
   createFactory,
   PureComponent,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const {
   a,
   article,

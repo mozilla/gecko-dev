@@ -8,7 +8,7 @@
 const {
   createElement,
   createFactory,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
 const { ELLIPSIS } = require("resource://devtools/shared/l10n.js");
 const Message = createFactory(

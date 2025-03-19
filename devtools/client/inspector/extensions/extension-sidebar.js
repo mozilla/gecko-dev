@@ -7,7 +7,7 @@
 const {
   createElement,
   createFactory,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const EventEmitter = require("resource://devtools/shared/event-emitter.js");
 const {
   Provider,

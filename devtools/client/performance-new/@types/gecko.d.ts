@@ -309,7 +309,7 @@ interface PathUtilsInterface {
   isAbsolute: (path: string) => boolean;
 }
 
-declare module "resource://devtools/client/shared/vendor/react.js" {
+declare module "resource://devtools/client/shared/vendor/react.mjs" {
   import * as React from "react";
   export = React;
 }

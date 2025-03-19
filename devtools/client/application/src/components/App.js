@@ -8,7 +8,7 @@ const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-t
 const {
   createFactory,
   PureComponent,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const {
   main,
 } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");

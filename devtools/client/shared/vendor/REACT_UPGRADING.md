@@ -128,8 +128,10 @@ cp build/dist/react-test-renderer.production.min.js $VENDOR_PATH/react-test-rend
 
 Finally, append the following piece of code at the end of `react.mjs`:
 ```
+const Children = react.Children;
+
 export {
-  createFactory, createElement, Component,
+  createFactory, createElement, Component, PureComponent, Children, createRef, cloneElement,
 }
 ```
 and the following lines to the end of `react-dev.mjs`:
@@ -138,9 +140,10 @@ and the following lines to the end of `react-dev.mjs`:
 // and createElement is overloaded via createElementWithValidation on React object.
 var createFactoryExport = React.createFactory;
 var createElementExport = React.createElement;
+var Children = React.Children;
 
 export {
-  createFactoryExport as createFactory, createElementExport as createElement, Component
+  createFactoryExport as createFactory, createElementExport as createElement, Component, PureComponent, Children, createRef, cloneElement,
 }
 ```
 

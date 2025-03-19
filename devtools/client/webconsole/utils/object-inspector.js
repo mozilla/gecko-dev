@@ -7,7 +7,7 @@
 const {
   createFactory,
   createElement,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 
 loader.lazyGetter(this, "REPS", function () {
   return ChromeUtils.importESModule(

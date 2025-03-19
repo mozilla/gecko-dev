@@ -7,7 +7,7 @@
 // React & Redux
 const {
   createFactory,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 const GripMessageBody = require("resource://devtools/client/webconsole/components/Output/GripMessageBody.js");

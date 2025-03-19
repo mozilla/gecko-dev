@@ -6,7 +6,7 @@
 
 const {
   Component,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const {
   findDOMNode,
 } = require("resource://devtools/client/shared/vendor/react-dom.mjs");

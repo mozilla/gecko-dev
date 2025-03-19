@@ -22,7 +22,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
-const react = require("resource://devtools/client/shared/vendor/react.js");
+const react = require("resource://devtools/client/shared/vendor/react.mjs");
 const PropTypes = _interopDefault(require("resource://devtools/client/shared/vendor/react-prop-types.js"));
 
 /*

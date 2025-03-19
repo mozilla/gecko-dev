@@ -7,7 +7,7 @@
 const {
   Component,
   createFactory,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 const { div, input, label, span, h2 } = dom;
 const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");

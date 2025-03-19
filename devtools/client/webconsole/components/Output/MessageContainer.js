@@ -7,7 +7,7 @@
 // React & Redux
 const {
   Component,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 loader.lazyRequireGetter(
   this,
   "PropTypes",

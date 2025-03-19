@@ -7,7 +7,7 @@
 const {
   Component,
   createRef,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const {
   L10N,
 } = require("resource://devtools/client/netmonitor/src/utils/l10n.js");

@@ -7,7 +7,7 @@ const { mount } = require("enzyme");
 
 const {
   createFactory,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const {
   span,
 } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");

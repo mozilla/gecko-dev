@@ -6,7 +6,7 @@
 const {
   Component,
   createFactory,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const ToolboxToolbar = createFactory(
   require("resource://devtools/client/framework/components/ToolboxToolbar.js")
 );

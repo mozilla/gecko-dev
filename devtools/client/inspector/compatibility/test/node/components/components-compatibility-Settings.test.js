@@ -10,7 +10,7 @@
 const { shallow } = require("enzyme");
 const {
   createFactory,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const {
   thunk,
 } = require("resource://devtools/client/shared/redux/middleware/thunk.js");

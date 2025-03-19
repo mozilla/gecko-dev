@@ -14,7 +14,7 @@ const {
   createElement,
   createFactory,
   Fragment,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const {
   div,
   label,

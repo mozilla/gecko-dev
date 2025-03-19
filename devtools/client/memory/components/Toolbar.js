@@ -6,7 +6,7 @@
 const { assert } = require("resource://devtools/shared/DevToolsUtils.js");
 const {
   Component,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 const { L10N } = require("resource://devtools/client/memory/utils.js");

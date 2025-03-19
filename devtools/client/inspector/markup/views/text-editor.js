@@ -6,7 +6,7 @@
 
 const {
   createFactory,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 
 const TextNode = createFactory(
   require("resource://devtools/client/inspector/markup/components/TextNode.js")

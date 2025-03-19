@@ -9,7 +9,7 @@ const {
 } = require("resource://devtools/client/shared/vendor/redux.js");
 const {
   createFactory,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const {
   render,
   unmountComponentAtNode,

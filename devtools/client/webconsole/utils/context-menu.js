@@ -316,7 +316,7 @@ async function getUnvirtualizedConsoleOutputText(webConsoleWrapper) {
     const {
       createElement,
       createFactory,
-    } = require("resource://devtools/client/shared/vendor/react.js");
+    } = require("resource://devtools/client/shared/vendor/react.mjs");
     const ConsoleOutput = createFactory(
       require("resource://devtools/client/webconsole/components/Output/ConsoleOutput.js")
     );

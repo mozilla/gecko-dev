@@ -9,7 +9,7 @@
 
 (function(f) {
   if (typeof exports === 'object' && typeof module !== 'undefined') {
-    module.exports = f(require('resource://devtools/client/shared/vendor/react.js'));
+    module.exports = f(require("resource://devtools/client/shared/vendor/react.mjs"));
     /* global define */
   } else if (typeof define === 'function' && define.amd) {
     define(['resource://devtools/client/shared/vendor/react.js'], f);

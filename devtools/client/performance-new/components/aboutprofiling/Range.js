@@ -19,7 +19,7 @@
 "use strict";
 const {
   PureComponent,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const {
   div,
   input,

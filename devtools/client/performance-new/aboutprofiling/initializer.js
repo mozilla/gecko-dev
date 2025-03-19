@@ -47,7 +47,7 @@ const { presets } = ChromeUtils.importESModule(
 );
 
 const ReactDOM = require("resource://devtools/client/shared/vendor/react-dom.mjs");
-const React = require("resource://devtools/client/shared/vendor/react.js");
+const React = require("resource://devtools/client/shared/vendor/react.mjs");
 const FluentReact = require("resource://devtools/client/shared/vendor/fluent-react.js");
 const {
   FluentL10n,

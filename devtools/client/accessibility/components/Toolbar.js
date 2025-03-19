@@ -6,7 +6,7 @@
 // React
 const {
   createFactory,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const {
   div,
 } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");

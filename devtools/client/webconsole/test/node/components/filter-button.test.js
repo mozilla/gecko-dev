@@ -7,7 +7,7 @@ const { render } = require("enzyme");
 
 const {
   createFactory,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 
 const FilterButton = createFactory(
   require("resource://devtools/client/webconsole/components/FilterBar/FilterButton.js")

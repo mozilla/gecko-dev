@@ -2231,6 +2231,8 @@ var react = React$3.default || React$3;
 
 export default react;
 
+const Children = react.Children;
+
 export {
-  createFactory, createElement, Component,
+  createFactory, createElement, Component, PureComponent, Children, createRef, cloneElement,
 }

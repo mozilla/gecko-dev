@@ -3152,5 +3152,5 @@ var createFactoryExport = React.createFactory;
 var createElementExport = React.createElement;
 
 export {
-  createFactoryExport as createFactory, createElementExport as createElement, Component
+  createFactoryExport as createFactory, createElementExport as createElement, Component, PureComponent, createRef, cloneElement,
 }

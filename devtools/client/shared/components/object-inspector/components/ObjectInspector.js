@@ -8,7 +8,7 @@ const {
   Component,
   createFactory,
   createElement,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const {
   connect,
   Provider,

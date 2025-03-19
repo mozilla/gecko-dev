@@ -41,8 +41,9 @@
 "use strict";
 
 const {
+  createFactory,
   PureComponent,
-} = require("resource://devtools/client/shared/vendor/react.js");
+} = require("resource://devtools/client/shared/vendor/react.mjs");
 const {
   div,
   button,
@@ -54,8 +55,7 @@ const {
 } = require("resource://devtools/client/shared/vendor/react-redux.js");
 const actions = require("resource://devtools/client/performance-new/store/actions.js");
 const selectors = require("resource://devtools/client/performance-new/store/selectors.js");
-const React = require("resource://devtools/client/shared/vendor/react.js");
-const Localized = React.createFactory(
+const Localized = createFactory(
   require("resource://devtools/client/shared/vendor/fluent-react.js").Localized
 );
 

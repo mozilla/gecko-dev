@@ -8,7 +8,7 @@
  */
 
 const renderer = require("react-test-renderer");
-const React = require("resource://devtools/client/shared/vendor/react.js");
+const React = require("resource://devtools/client/shared/vendor/react.mjs");
 const DebugTargetInfo = React.createFactory(
   require("resource://devtools/client/framework/components/DebugTargetInfo.js")
 );
