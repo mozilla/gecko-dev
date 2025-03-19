@@ -40,6 +40,7 @@ class FileExistsTest {
             contentType = "Image/png",
             status = DownloadState.Status.COMPLETED,
             createdTime = CreatedTime.OLDER,
+            displayedShortUrl = "",
         )
         val item2 = FileItem(
             id = "71",
@@ -49,6 +50,7 @@ class FileExistsTest {
             formattedSize = "71 Mb",
             contentType = "Image/png",
             status = DownloadState.Status.COMPLETED,
+            displayedShortUrl = "",
             createdTime = CreatedTime.OLDER,
         )
         val item3 = FileItem(
@@ -60,6 +62,7 @@ class FileExistsTest {
             contentType = "Image/png",
             status = DownloadState.Status.COMPLETED,
             createdTime = CreatedTime.OLDER,
+            displayedShortUrl = "",
         )
 
         val testList = mutableListOf(item1, item2, item3)
@@ -98,6 +101,7 @@ class FileExistsTest {
             contentType = "text/plain",
             status = DownloadState.Status.COMPLETED,
             createdTime = CreatedTime.OLDER,
+            displayedShortUrl = "",
         )
         val item2 = FileItem(
             id = "72",
@@ -107,6 +111,7 @@ class FileExistsTest {
             formattedSize = "71 Mb",
             contentType = "text/plain",
             status = DownloadState.Status.COMPLETED,
+            displayedShortUrl = "",
             createdTime = CreatedTime.OLDER,
         )
         val item3 = FileItem(
@@ -118,6 +123,7 @@ class FileExistsTest {
             contentType = "text/plain",
             status = DownloadState.Status.COMPLETED,
             createdTime = CreatedTime.OLDER,
+            displayedShortUrl = "",
         )
 
         val testList = mutableListOf(item1, item2, item3)

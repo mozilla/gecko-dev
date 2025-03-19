@@ -1346,6 +1346,11 @@
     <string name="download_content_type_filter_document">Documents</string>
     <!-- Text for the filter button to show all other file types in the downloads list -->
     <string name="download_content_type_filter_other">Others</string>
+    <!-- Description of a downloaded item, displayed in the downloads list.
+          %1$s: The size of the downloaded file.
+          %2$s: The URL of the downloaded file. -->
+    <string name="download_item_description">%1$s • %2$s</string>
+
 
     <!-- WebCompat Reporter -->
     <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->

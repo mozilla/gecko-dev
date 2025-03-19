@@ -27,6 +27,7 @@ class DownloadUIStoreTest {
         contentType = "jpg",
         status = DownloadState.Status.COMPLETED,
         createdTime = CreatedTime.OLDER,
+        displayedShortUrl = "",
     )
     private val newFileItem = FileItem(
         id = "1",
@@ -37,6 +38,7 @@ class DownloadUIStoreTest {
         contentType = "jpg",
         status = DownloadState.Status.COMPLETED,
         createdTime = CreatedTime.OLDER,
+        displayedShortUrl = "",
     )
 
     @Test

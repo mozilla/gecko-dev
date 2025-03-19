@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import mozilla.components.compose.base.utils.inComposePreview
 import mozilla.components.support.ktx.kotlin.MAX_URI_LENGTH
 import mozilla.components.support.ktx.kotlin.toShortUrl
+import mozilla.components.support.ktx.kotlin.tryGetHostFromUrl
 import org.mozilla.fenix.components.components
 
 /**
@@ -57,3 +58,33 @@ fun String.toEditable(): Editable = Editable.Factory.getInstance().newEditable(t
  */
 fun String?.replaceConsecutiveZeros(): String? =
     this?.replaceFirst(":0", ":")?.replace(":0", "")
+
+/**
+ * Extracts a shortened or simplified URL from a given URL string.
+ * (e.g., "example.com" instead of "https://www.example.com/long/path/to/file")
+ *
+ * This function handles both regular URLs and blob URLs. For regular URLs, it extracts the base domain.
+ * For blob URLs, it extracts the base domain from the URL embedded within the blob URL.
+ *
+ * @receiver The URL string to extract the shortened URL from.
+ * @return The shortened URL (typically the base domain).
+ */
+fun String.getBaseDomainUrl(): String {
+    return when {
+        this.startsWith("blob:") -> {
+            val blobUrl = this.substringAfter("blob:")
+            blobUrl.tryGetHostFromUrl().getBaseDomainFromHost()
+        }
+
+        else -> this.tryGetHostFromUrl().getBaseDomainFromHost()
+    }
+}
+
+private fun String.getBaseDomainFromHost(): String {
+    val parts = this.split(".")
+    return if (parts.size >= 2) {
+        parts.takeLast(2).joinToString(".")
+    } else {
+        this
+    }
+}

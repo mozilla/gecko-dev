@@ -22,6 +22,7 @@ import org.mozilla.fenix.downloads.listscreen.store.CreatedTime
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIAction
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
 import org.mozilla.fenix.downloads.listscreen.store.FileItem
+import org.mozilla.fenix.ext.getBaseDomainUrl
 import java.io.File
 import java.time.Instant
 
@@ -83,6 +84,7 @@ class DownloadUIMapperMiddleware(
             filePath = filePath,
             formattedSize = fileSizeFormatter.formatSizeInBytes(contentLength ?: 0),
             contentType = contentType,
+            displayedShortUrl = url.getBaseDomainUrl(),
             status = status,
             createdTime = categorizeTime(createdTime),
         )

@@ -13,6 +13,7 @@ fun fileItem(
     filePath: String = "path1",
     formattedSize: String = "1MB",
     contentType: String? = "image/png",
+    displayedShortUrl: String = "mozilla.org",
     status: DownloadState.Status = DownloadState.Status.COMPLETED,
     createdTime: CreatedTime = CreatedTime.LAST_30_DAYS,
 ) = FileItem(
@@ -22,6 +23,7 @@ fun fileItem(
     filePath = filePath,
     formattedSize = formattedSize,
     contentType = contentType,
+    displayedShortUrl = displayedShortUrl,
     status = status,
     createdTime = createdTime,
 )

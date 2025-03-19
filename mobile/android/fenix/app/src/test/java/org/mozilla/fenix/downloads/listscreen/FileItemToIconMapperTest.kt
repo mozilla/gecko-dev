@@ -23,6 +23,7 @@ class FileItemToIconMapperTest {
             contentType = "image/png",
             status = DownloadState.Status.COMPLETED,
             createdTime = CreatedTime.TODAY,
+            displayedShortUrl = "",
         )
 
         assertEquals(R.drawable.ic_file_type_image, fileItem.getIcon())

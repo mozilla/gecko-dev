@@ -200,7 +200,11 @@ private fun FileListItem(
 ) {
     SelectableListItem(
         label = fileItem.fileName ?: fileItem.url,
-        description = fileItem.formattedSize,
+        description = stringResource(
+            R.string.download_item_description,
+            fileItem.formattedSize,
+            fileItem.displayedShortUrl,
+        ),
         isSelected = isSelected,
         icon = fileItem.getIcon(),
         afterListAction = {
@@ -316,6 +320,7 @@ private class DownloadsScreenPreviewModelParameterProvider :
                         formattedSize = "1.2 MB",
                         contentType = "application/pdf",
                         status = DownloadState.Status.COMPLETED,
+                        displayedShortUrl = "example.com",
                         filePath = "/path/to/file1",
                         createdTime = CreatedTime.TODAY,
                     ),
@@ -326,6 +331,7 @@ private class DownloadsScreenPreviewModelParameterProvider :
                         formattedSize = "2.3 MB",
                         contentType = "image/png",
                         status = DownloadState.Status.COMPLETED,
+                        displayedShortUrl = "example.com",
                         filePath = "/path/to/file1",
                         createdTime = CreatedTime.TODAY,
                     ),
@@ -336,6 +342,7 @@ private class DownloadsScreenPreviewModelParameterProvider :
                         formattedSize = "3.4 MB",
                         contentType = "application/zip",
                         status = DownloadState.Status.COMPLETED,
+                        displayedShortUrl = "example.com",
                         filePath = "/path/to/file1",
                         createdTime = CreatedTime.OLDER,
                     ),
