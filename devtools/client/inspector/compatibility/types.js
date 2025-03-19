@@ -4,7 +4,7 @@
 
 "use strict";
 
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 
 const browser = {
   // The id of the browser which is defined in MDN compatibility dataset.

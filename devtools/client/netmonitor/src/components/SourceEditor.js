@@ -7,7 +7,7 @@
 const {
   Component,
 } = require("resource://devtools/client/shared/vendor/react.mjs");
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 const {
   connect,
 } = require("resource://devtools/client/shared/vendor/react-redux.js");

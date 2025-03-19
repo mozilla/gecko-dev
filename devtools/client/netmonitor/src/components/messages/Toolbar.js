@@ -11,7 +11,7 @@ const {
 const {
   connect,
 } = require("resource://devtools/client/shared/vendor/react-redux.js");
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 const Actions = require("resource://devtools/client/netmonitor/src/actions/index.js");
 const {
   CHANNEL_TYPE,

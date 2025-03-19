@@ -8,7 +8,7 @@ const {
   createFactory,
   PureComponent,
 } = require("resource://devtools/client/shared/vendor/react.mjs");
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 
 const FontPropertyValue = createFactory(
   require("resource://devtools/client/inspector/fonts/components/FontPropertyValue.js")

@@ -13,7 +13,7 @@ const {
   connect,
 } = require("resource://devtools/client/shared/vendor/react-redux.js");
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 
 const AnimationList = createFactory(
   require("resource://devtools/client/inspector/animation/components/AnimationList.js")

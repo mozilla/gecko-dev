@@ -12,7 +12,7 @@ const {
   span,
   button,
 } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 
 loader.lazyGetter(this, "l10n", function () {
   const { LocalizationHelper } = require("resource://devtools/shared/l10n.js");

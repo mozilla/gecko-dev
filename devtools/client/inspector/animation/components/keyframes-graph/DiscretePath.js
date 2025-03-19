@@ -5,7 +5,7 @@
 "use strict";
 
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 
 const ComputedStylePath = require("resource://devtools/client/inspector/animation/components/keyframes-graph/ComputedStylePath.js");
 

@@ -14,7 +14,7 @@ const {
   div,
   span,
 } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 const {
   findDOMNode,
 } = require("resource://devtools/client/shared/vendor/react-dom.mjs");

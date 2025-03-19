@@ -11,7 +11,7 @@ const dom = require("resource://devtools/client/shared/vendor/react-dom-factorie
 const {
   getUrlBaseName,
 } = require("resource://devtools/client/netmonitor/src/utils/request-utils.js");
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 
 class RequestListColumnInitiator extends Component {
   static get propTypes() {

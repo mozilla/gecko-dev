@@ -10,7 +10,7 @@ const {
   Component,
   cloneElement,
 } = require("resource://devtools/client/shared/vendor/react.mjs");
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 const {
   ul,
   li,

@@ -13,7 +13,7 @@ const dom = require("resource://devtools/client/shared/vendor/react-dom-factorie
 const FluentReact = require("resource://devtools/client/shared/vendor/fluent-react.js");
 const Localized = createFactory(FluentReact.Localized);
 
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 const Actions = require("resource://devtools/client/aboutdebugging/src/actions/index.js");
 
 class RefreshDevicesButton extends PureComponent {

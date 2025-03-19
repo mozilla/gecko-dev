@@ -5,7 +5,7 @@
 "use strict";
 
 // React
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 const {
   MESSAGE_TYPE,
   JSTERM_COMMANDS,

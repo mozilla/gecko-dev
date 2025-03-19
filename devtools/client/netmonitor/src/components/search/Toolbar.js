@@ -14,7 +14,7 @@ const {
 const {
   FILTER_SEARCH_DELAY,
 } = require("resource://devtools/client/netmonitor/src/constants.js");
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 const Actions = require("resource://devtools/client/netmonitor/src/actions/index.js");
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 const {

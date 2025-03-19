@@ -9,7 +9,7 @@ const {
   PureComponent,
 } = require("resource://devtools/client/shared/vendor/react.mjs");
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 const { LocalizationHelper } = require("resource://devtools/shared/l10n.js");
 
 const ComputedProperty = createFactory(

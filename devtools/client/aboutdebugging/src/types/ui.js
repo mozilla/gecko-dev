@@ -4,7 +4,7 @@
 
 "use strict";
 
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 const {
   ADB_ADDON_STATES,
 } = require("resource://devtools/client/shared/remote-debugging/adb/adb-addon.js");

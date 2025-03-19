@@ -22,7 +22,7 @@ const {
   PANELS,
 } = require("resource://devtools/client/netmonitor/src/constants.js");
 
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 
 const Tabbar = createFactory(
   require("resource://devtools/client/shared/components/tabs/TabBar.js")

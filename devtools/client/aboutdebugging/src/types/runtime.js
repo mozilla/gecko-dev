@@ -4,7 +4,7 @@
 
 "use strict";
 
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 const {
   ClientWrapper,
 } = require("resource://devtools/client/aboutdebugging/src/modules/client-wrapper.js");

@@ -4,7 +4,7 @@
 
 "use strict";
 
-const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
 
 // Helpers injected as props by extension-sidebar.js and used by the
 // ObjectInspector component (which is part of the ExpressionResultView).
