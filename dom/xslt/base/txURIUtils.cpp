@@ -84,7 +84,4 @@ void URIUtils::ResetWithSource(Document* aNewDoc, nsINode* aSourceNode) {
   aNewDoc->SetDocumentCharacterSetSource(
       sourceDoc->GetDocumentCharacterSetSource());
   aNewDoc->SetDocumentCharacterSet(sourceDoc->GetDocumentCharacterSet());
-
-  // Inherit the CookieJarSettings from the source document.
-  aNewDoc->SetCookieJarSettings(sourceDoc->CookieJarSettings());
 }

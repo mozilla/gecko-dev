@@ -160,9 +160,6 @@ support-files = [
 
 ["browser_partitionkey_bloburl.js"]
 
-["browser_partitionKey_XSLT.js"]
-support-files= [ "file_xslt.xsl" ]
-
 ["browser_permissionInNormalWindows.js"]
 
 ["browser_permissionInPrivateWindows.js"]
