@@ -793,8 +793,6 @@ class DisplayListBuilder final {
                      const wr::BorderRadius& aBorderRadius,
                      const wr::BoxShadowClipMode& aClipMode);
 
-  void PushDebug(uint32_t aVal);
-
   /**
    * Notifies the DisplayListBuilder that it can group together WR display items
    * that are pushed until |CancelGroup()| or |FinishGroup()| call.

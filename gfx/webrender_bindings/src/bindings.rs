@@ -3040,11 +3040,6 @@ pub extern "C" fn wr_dp_push_stacking_context(
 }
 
 #[no_mangle]
-pub extern "C" fn wr_dp_push_debug(state: &mut WrState, val: u32) {
-    state.frame_builder.dl_builder.push_debug(val);
-}
-
-#[no_mangle]
 pub extern "C" fn wr_dp_pop_stacking_context(state: &mut WrState, is_reference_frame: bool) {
     debug_assert!(unsafe { !is_in_render_thread() });
     state.frame_builder.dl_builder.pop_stacking_context();

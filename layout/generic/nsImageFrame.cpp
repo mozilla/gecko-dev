@@ -2374,7 +2374,6 @@ void nsDisplayImage::MaybeCreateWebRenderCommandsForViewTransition(
   const auto destRect =
       wr::ToLayoutRect(LayoutDeviceRect::FromAppUnits(destAppUnits, factor));
   auto rendering = wr::ToImageRendering(frame->UsedImageRendering());
-  aBuilder.PushDebug(1);
   aBuilder.PushImage(destRect, destRect, !BackfaceIsHidden(),
                      /* aForceAntiAliasing = */ false, rendering, key);
 }
