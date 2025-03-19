@@ -709,6 +709,7 @@ impl BuiltDisplayList {
                 Real::PopAllShadows => Debug::PopAllShadows,
                 Real::ReuseItems(_) |
                 Real::RetainedItems(_) => unreachable!("Unexpected item"),
+                Real::DebugMarker(val) => Debug::DebugMarker(val),
             };
             debug_items.push(serial_di);
         }
@@ -1919,6 +1920,10 @@ impl DisplayListBuilder {
             self.push_item(&di::DisplayItem::SetFilterPrimitives);
             self.push_iter(filter_primitives);
         }
+    }
+
+    pub fn push_debug(&mut self, val: u32) {
+        self.push_item(&di::DisplayItem::DebugMarker(val));
     }
 
     fn generate_clip_index(&mut self) -> di::ClipId {

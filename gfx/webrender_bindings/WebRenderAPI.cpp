@@ -1783,6 +1783,10 @@ void DisplayListBuilder::PushBoxShadow(
                         aBorderRadius, aClipMode);
 }
 
+void DisplayListBuilder::PushDebug(uint32_t aVal) {
+  wr_dp_push_debug(mWrState, aVal);
+}
+
 void DisplayListBuilder::StartGroup(nsPaintedDisplayItem* aItem) {
   if (!mDisplayItemCache || mDisplayItemCache->IsFull()) {
     return;
