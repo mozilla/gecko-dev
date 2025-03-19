@@ -5218,8 +5218,10 @@ function switchToTabHavingURI(
         if (doAdopt) {
           const newTab = window.gBrowser.adoptTab(
             aWindow.gBrowser.getTabForBrowser(browser),
-            window.gBrowser.tabContainer.selectedIndex + 1,
-            /* aSelectTab = */ true
+            {
+              tabIndex: window.gBrowser.tabContainer.selectedIndex + 1,
+              selectTab: true,
+            }
           );
           if (!newTab) {
             doAdopt = false;

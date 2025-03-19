@@ -259,7 +259,7 @@ export class TalosTabSwitchParent extends JSWindowActorParent {
       // that are delayed using requestAnimationFrame, so wait for an animation
       // frame callback + one tick to ensure we aren't measuring the time it
       // takes to move a tab.
-      gBrowser.moveTabTo(tab, 1);
+      gBrowser.moveTabTo(tab, { tabIndex: 1 });
       await new Promise(resolve => win.requestAnimationFrame(resolve));
       await new Promise(resolve => Services.tm.dispatchToMainThread(resolve));
 

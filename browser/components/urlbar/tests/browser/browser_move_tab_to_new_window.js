@@ -50,7 +50,10 @@ async function moveTabIntoNewWindowAndBack(url = "about:blank") {
     tab.linkedBrowser,
     "SwapDocShells"
   );
-  gBrowser.adoptTab(newWindow.gBrowser.selectedTab, 1, true);
+  gBrowser.adoptTab(newWindow.gBrowser.selectedTab, {
+    tabIndex: 1,
+    selectTab: true,
+  });
   await swapDocShellPromise;
   Assert.equal(
     gURLBar.value,

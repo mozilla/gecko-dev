@@ -550,7 +550,7 @@ add_task(async function test_TabGroupEvents() {
       ungroupedGroupId = event.detail.id;
     }
   );
-  gBrowser.moveTabTo(tab2, 0);
+  gBrowser.moveTabToStart(tab2);
   await tabUngrouped;
   Assert.equal(
     ungroupedGroupId,
@@ -2081,7 +2081,7 @@ add_task(async function test_adoptTab() {
   let otherWinTab = BrowserTestUtils.addTab(gBrowser, "about:robots", {
     skipAnimation: true,
   });
-  let adoptedTab = newWin.gBrowser.adoptTab(otherWinTab, 1);
+  let adoptedTab = newWin.gBrowser.adoptTab(otherWinTab, { tabIndex: 1 });
 
   Assert.equal(adoptedTab._tPos, 1, "tab adopted into expected position");
   Assert.equal(adoptedTab.group, group, "tab adopted into tab group");

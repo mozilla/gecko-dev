@@ -589,7 +589,7 @@ export class TabsPanel extends TabsListBase {
     } else {
       pos = targetTab._tPos + this.dropTargetDirection + 1;
     }
-    this.gBrowser.moveTabTo(draggedTab, pos);
+    this.gBrowser.moveTabTo(draggedTab, { tabIndex: pos });
 
     this._clearDropTarget();
   }

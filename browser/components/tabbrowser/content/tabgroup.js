@@ -241,11 +241,10 @@
         let tabToMove =
           this.ownerGlobal === tab.ownerGlobal
             ? tab
-            : gBrowser.adoptTab(
-                tab,
-                gBrowser.tabs.at(-1)._tPos + 1,
-                tab.selected
-              );
+            : gBrowser.adoptTab(tab, {
+                tabIndex: gBrowser.tabs.at(-1)._tPos + 1,
+                selectTab: tab.selected,
+              });
         gBrowser.moveTabToGroup(tabToMove, this);
       }
       this.#lastAddedTo = Date.now();

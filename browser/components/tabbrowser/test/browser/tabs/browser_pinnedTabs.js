@@ -80,10 +80,10 @@ add_task(async function test_pinned_horizontal_tabs() {
   indexTest(2, 3);
   indexTest(3, 0);
 
-  tabbrowser.moveTabTo(tabs[3], 3);
+  tabbrowser.moveTabTo(tabs[3], { tabIndex: 3 });
   indexTest(3, 1, "shouldn't be able to mix a pinned tab into normal tabs");
 
-  tabbrowser.moveTabTo(tabs[2], 0);
+  tabbrowser.moveTabTo(tabs[2], { tabIndex: 0 });
   indexTest(2, 2, "shouldn't be able to mix a normal tab into pinned tabs");
 
   eh = new PinUnpinHandler(tabs[1], "TabUnpinned");
@@ -181,7 +181,7 @@ add_task(async function test_pinned_horizontal_tabs() {
   indexTest(2, 1, "about:mozilla is now the second pinned tab");
   indexTest(3, 2, "about:home is now the third pinned tab");
 
-  tabbrowser.moveTabTo(tabs[1], 1);
+  tabbrowser.moveTabTo(tabs[1], { tabIndex: 1 });
   indexTest(1, 1, "about:blank is now the second pinned tab");
   indexTest(2, 0, "about:mozilla is now the first pinned tab");
   indexTest(3, 2, "about:home is now the third pinned tab");

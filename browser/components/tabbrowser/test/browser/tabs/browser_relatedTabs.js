@@ -39,7 +39,7 @@ add_task(async function () {
   await addTab("http://mochi.test:8888/#5", gBrowser.currentURI);
   gBrowser.removeTab(tabs.pop());
   await addTab("about:blank", gBrowser.currentURI);
-  gBrowser.moveTabTo(gBrowser.selectedTab, 1);
+  gBrowser.moveTabTo(gBrowser.selectedTab, { tabIndex: 1 });
   await addTab("http://mochi.test:8888/#6", gBrowser.currentURI);
   await addTab();
   await addTab("http://mochi.test:8888/#7");

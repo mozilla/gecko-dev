@@ -153,7 +153,7 @@ async function doTest(
     pageURL
   );
   const openerTabIndex = 1;
-  gBrowser.moveTabTo(openerTab, openerTabIndex);
+  gBrowser.moveTabTo(openerTab, { tabIndex: openerTabIndex });
 
   // Open a related tab via Middle click on the cell and test its position.
   let openTabIndex =

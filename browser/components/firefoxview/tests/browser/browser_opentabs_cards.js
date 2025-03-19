@@ -145,7 +145,7 @@ add_task(async function open_tab_same_window() {
     );
 
     info("Bring the new tab to the front.");
-    gBrowser.moveTabTo(newTab, 0);
+    gBrowser.moveTabToStart(newTab);
 
     info("Waiting for tabChangeRaised to resolve from the tab move");
     await tabChangeRaised;

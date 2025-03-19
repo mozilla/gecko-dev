@@ -546,7 +546,7 @@ add_task(async function testTabCreateRelated() {
     gBrowser,
     pageURL
   );
-  gBrowser.moveTabTo(openerTab, 0);
+  gBrowser.moveTabToStart(openerTab);
 
   await extension.startup();
 

@@ -26,7 +26,7 @@ function test() {
 
   owner = gBrowser.selectedTab;
   BrowserCommands.openTab();
-  gBrowser.moveTabTo(gBrowser.selectedTab, 0);
+  gBrowser.moveTabToStart(gBrowser.selectedTab);
   gBrowser.removeCurrentTab();
   is(
     gBrowser.selectedTab,
