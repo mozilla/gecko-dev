@@ -114,6 +114,13 @@ export class CaptchaDetectionPingUtils {
   }
 
   static maybeSubmitPing(setHasUnsubmittedDataFlag = true) {
+    if (!CaptchaDetectionPingUtils.profileIsOpen) {
+      lazy.console.debug(
+        "Not submitting ping because profile is closing or already closed."
+      );
+      return;
+    }
+
     if (setHasUnsubmittedDataFlag) {
       CaptchaDetectionPingUtils.#setHasUnsubmittedDataFlag();
     }
@@ -141,7 +148,6 @@ export class CaptchaDetectionPingUtils {
     CaptchaDetectionPingUtils.flushPing();
   }
 
-  static hasPrefObservers = false;
   static prefsOfInterest = {
     networkCookieCookiebehavior: {
       type: "Int",
@@ -189,10 +195,11 @@ export class CaptchaDetectionPingUtils {
     },
   };
 
+  static initialized = false;
   static profileIsOpen = true;
 
   static init() {
-    if (CaptchaDetectionPingUtils.hasPrefObservers) {
+    if (CaptchaDetectionPingUtils.initialized) {
       return;
     }
 
@@ -210,7 +217,7 @@ export class CaptchaDetectionPingUtils {
       );
     }
 
-    this.hasPrefObservers = true;
+    this.initialized = true;
     try {
       lazy.AsyncShutdown.profileBeforeChange.addBlocker(
         "CaptchaDetectionPingUtils: Don't submit pings after shutdown",
