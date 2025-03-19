@@ -286,10 +286,7 @@
       // the tab. If no tabs exist outside the group, create a new one and
       // select it.
       const group = event.target;
-      if (
-        gBrowser.selectedTab.group === group &&
-        !this.hasAttribute("movingtab")
-      ) {
+      if (gBrowser.selectedTab.group === group && !this.#isMovingTab()) {
         gBrowser.selectedTab =
           gBrowser._findTabToBlurTo(
             gBrowser.selectedTab,
@@ -754,9 +751,8 @@
       dt.addElement(tab);
 
       let expandGroupOnDrop;
-      if (!fromTabList) {
-        this.toggleAttribute("movingtab", true);
-        gNavToolbox.toggleAttribute("movingtab", true);
+      if (!fromTabList && this.getDropEffectForTabDrag(event) == "move") {
+        this.#setMovingTabMode(true);
 
         if (tab.multiselected) {
           this.#moveTogetherSelectedTabs(tab);
@@ -926,6 +922,8 @@
         this._finishMoveTogetherSelectedTabs(draggedTab);
 
         if (effects == "move") {
+          this.#setMovingTabMode(true);
+
           // Pinned tabs in expanded vertical mode are on a grid format and require
           // different logic to drag and drop.
           if (this.#isContainerVerticalPinnedExpanded(draggedTab)) {
@@ -1004,6 +1002,15 @@
       ind.style.transform = this.verticalMode
         ? "translateY(" + Math.round(newMargin) + "px)"
         : "translateX(" + Math.round(newMargin) + "px)";
+    }
+
+    #setMovingTabMode(movingTab) {
+      this.toggleAttribute("movingtab", movingTab);
+      gNavToolbox.toggleAttribute("movingtab", movingTab);
+    }
+
+    #isMovingTab() {
+      return this.hasAttribute("movingtab");
     }
 
     #expandGroupOnDrop(draggedTab) {
@@ -2728,12 +2735,11 @@
     }
 
     _finishAnimateTabMove() {
-      if (!this.hasAttribute("movingtab")) {
+      if (!this.#isMovingTab()) {
         return;
       }
 
-      this.removeAttribute("movingtab");
-      gNavToolbox.removeAttribute("movingtab");
+      this.#setMovingTabMode(false);
 
       for (let item of this.ariaFocusableItems) {
         if (isTabGroupLabel(item)) {
@@ -2941,7 +2947,7 @@
         case "mousemove":
           if (
             document.getElementById("tabContextMenu").state != "open" &&
-            !this.hasAttribute("movingtab")
+            !this.#isMovingTab()
           ) {
             this._unlockTabSizing();
           }
@@ -3109,17 +3115,17 @@
     getDropEffectForTabDrag(event) {
       var dt = event.dataTransfer;
 
-      let isMovingTabs = dt.mozItemCount > 0;
+      let isMovingTab = dt.mozItemCount > 0;
       for (let i = 0; i < dt.mozItemCount; i++) {
         // tabs are always added as the first type
         let types = dt.mozTypesAt(0);
         if (types[0] != TAB_DROP_TYPE) {
-          isMovingTabs = false;
+          isMovingTab = false;
           break;
         }
       }
 
-      if (isMovingTabs) {
+      if (isMovingTab) {
         let sourceNode = dt.mozGetDataAt(TAB_DROP_TYPE, 0);
         if (
           (isTab(sourceNode) || isTabGroupLabel(sourceNode)) &&
