@@ -703,6 +703,16 @@ features:
           What mode Certificate Transparency is in (0=disable, 1=telemetry only, 2=enforce).
         type: Int
         default: 0
+    defaults:
+      - channel: nightly
+        value:
+          certificateTransparencyMode: 2
+      - channel: developer
+        value:
+          certificateTransparencyMode: 2
+      - channel: beta
+        value:
+          certificateTransparencyMode: 2
 
   pqcrypto:
     description: Control the use of post-quantum key exchange mechanisms in TLS and HTTP/3.
