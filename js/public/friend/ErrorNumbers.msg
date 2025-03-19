@@ -922,7 +922,6 @@ MSG_DEF(JSMSG_TEMPORAL_PLAIN_DATE_TIME_INVALID,     0, JSEXN_RANGEERR, "argument
 MSG_DEF(JSMSG_TEMPORAL_PLAIN_TIME_INVALID,          0, JSEXN_RANGEERR, "arguments must be valid ISO time values")
 MSG_DEF(JSMSG_TEMPORAL_PLAIN_TIME_INVALID_VALUE,    4, JSEXN_RANGEERR, "time value \"{0}\" not in {1}..{2}: {3}")
 MSG_DEF(JSMSG_TEMPORAL_PLAIN_TIME_MISSING_UNIT,     0, JSEXN_TYPEERR, "Time-like objects must have at least one time unit")
-MSG_DEF(JSMSG_TEMPORAL_PLAIN_TIME_CALENDAR_NOT_ISO8601, 1, JSEXN_RANGEERR, "PlainTime only supports the \"iso8601\" calendar: {0}")
 MSG_DEF(JSMSG_TEMPORAL_PLAIN_MONTH_DAY_INVALID,     0, JSEXN_RANGEERR, "year-month-day must be valid iso dates")
 MSG_DEF(JSMSG_TEMPORAL_PLAIN_YEAR_MONTH_INVALID,    0, JSEXN_RANGEERR, "year-month must be valid ISO date values")
 MSG_DEF(JSMSG_TEMPORAL_ZONED_DATE_TIME_NO_TIME_FOUND, 0, JSEXN_RANGEERR, "date-time can't be represented in the given time zone")
