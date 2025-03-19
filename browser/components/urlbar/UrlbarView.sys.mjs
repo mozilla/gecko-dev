@@ -3358,9 +3358,15 @@ export class UrlbarView {
       // Update result action text.
       if (localSearchMode) {
         // Update the result action text for a local one-off.
+        const messageIDs = {
+          actions: "urlbar-result-action-search-actions",
+          bookmarks: "urlbar-result-action-search-bookmarks",
+          history: "urlbar-result-action-search-history",
+          tabs: "urlbar-result-action-search-tabs",
+        };
         let name = lazy.UrlbarUtils.getResultSourceName(localSearchMode.source);
         this.#l10nCache.setElementL10n(action, {
-          id: `urlbar-result-action-search-${name}`,
+          id: messageIDs[name],
         });
         if (result.heuristic) {
           item.setAttribute("source", name);

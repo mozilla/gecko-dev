@@ -3778,14 +3778,18 @@ export class UrlbarInput {
         { name: engineName }
       );
     } else if (source) {
+      const messageIDs = {
+        actions: "urlbar-placeholder-search-mode-other-actions",
+        bookmarks: "urlbar-placeholder-search-mode-other-bookmarks",
+        engine: "urlbar-placeholder-search-mode-other-engine",
+        history: "urlbar-placeholder-search-mode-other-history",
+        tabs: "urlbar-placeholder-search-mode-other-tabs",
+      };
       let sourceName = lazy.UrlbarUtils.getResultSourceName(source);
       let l10nID = `urlbar-search-mode-${sourceName}`;
       this.document.l10n.setAttributes(this._searchModeIndicatorTitle, l10nID);
       this.document.l10n.setAttributes(this._searchModeLabel, l10nID);
-      this.document.l10n.setAttributes(
-        this.inputField,
-        `urlbar-placeholder-search-mode-other-${sourceName}`
-      );
+      this.document.l10n.setAttributes(this.inputField, messageIDs[sourceName]);
     }
 
     this.toggleAttribute("searchmode", true);

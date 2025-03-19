@@ -329,6 +329,12 @@ export class UrlbarSearchOneOffs extends SearchOneOffs {
   async _rebuildEngineList(engines, addEngines) {
     await super._rebuildEngineList(engines, addEngines);
 
+    const messageIDs = {
+      actions: "search-one-offs-actions",
+      bookmarks: "search-one-offs-bookmarks",
+      history: "search-one-offs-history",
+      tabs: "search-one-offs-tabs",
+    };
     for (let { source, pref, restrict } of lazy.UrlbarUtils
       .LOCAL_SEARCH_MODES) {
       if (!lazy.UrlbarPrefs.get(pref)) {
@@ -339,7 +345,7 @@ export class UrlbarSearchOneOffs extends SearchOneOffs {
       button.id = `urlbar-engine-one-off-item-${name}`;
       button.setAttribute("class", "searchbar-engine-one-off-item");
       button.setAttribute("tabindex", "-1");
-      this.document.l10n.setAttributes(button, `search-one-offs-${name}`, {
+      this.document.l10n.setAttributes(button, messageIDs[name], {
         restrict,
       });
       button.source = source;

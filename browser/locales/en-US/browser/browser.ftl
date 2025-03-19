@@ -124,11 +124,6 @@ urlbar-addons-notification-anchor =
     .tooltiptext = Open add-on installation message panel
 urlbar-search-tips-confirm = Okay, Got It
 urlbar-search-tips-confirm-short = Got it
-# Read out before Urlbar Tip text content so screenreader users know the
-# subsequent text is a tip offered by the browser. It should end in a colon or
-# localized equivalent.
-urlbar-tip-icon-description =
-    .alt = Tip:
 
 urlbar-result-menu-button =
     .title = Open menu
