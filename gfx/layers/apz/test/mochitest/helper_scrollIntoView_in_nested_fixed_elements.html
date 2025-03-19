@@ -1,0 +1,58 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tests that Element.scrollIntoView scrolls visually to an element in nested position: fixed elements</title>
+  <script src="apz_test_native_event_utils.js"></script>
+  <script src="apz_test_utils.js"></script>
+  <script src="/tests/SimpleTest/paint_listener.js"></script>
+</head>
+<style>
+body {
+  margin: 0px;
+  padding: 0px;
+}
+#container {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  top: 0px;
+  left: 0px;
+}
+#banner {
+  position: fixed;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+  background-color: blue;
+}
+</style>
+<body>
+<div id="container">
+  <aside id="banner"></aside>
+</div>
+<script>
+async function test() {
+  is(window.scrollY, 0, "The initial scroll offset should be 0");
+  is(visualViewport.scale, 2.0, "The document should get scaled by 2.0");
+  is(visualViewport.pageTop, 0, "The initial visual viewport pageTop should be 0");
+
+  const scrollPromise =
+    new Promise(resolve => visualViewport.addEventListener("scroll", resolve));
+  document.querySelector("#banner").scrollIntoView();
+  await scrollPromise;
+
+  await promiseApzFlushedRepaints();
+
+  ok(visualViewport.pageTop > 0,
+    `The visual viewport should have been scrolled: ${visualViewport.pageTop}`);
+}
+
+SpecialPowers.getDOMWindowUtils(window).setResolutionAndScaleTo(2.0);
+waitUntilApzStable()
+.then(test)
+.then(subtestDone, subtestFailed);
+</script>
+</body>
+</html>

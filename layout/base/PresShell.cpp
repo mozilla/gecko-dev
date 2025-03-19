@@ -3939,6 +3939,11 @@ bool PresShell::ScrollFrameIntoView(
 
   nsIFrame* container = aTargetFrame;
 
+  bool inPositionFixedSubtree = false;
+  auto isPositionFixed = [&](const nsIFrame* aFrame) -> bool {
+    return aFrame->StyleDisplay()->mPosition == StylePositionProperty::Fixed &&
+           nsLayoutUtils::IsReallyFixedPos(aFrame);
+  };
   // This function needs to work even if rect has a width or height of 0.
   nsRect rect = [&] {
     if (aKnownRectRelativeToTarget) {
@@ -3946,6 +3951,9 @@ bool PresShell::ScrollFrameIntoView(
     }
     MaybeSkipPaddingSides(aTargetFrame);
     while (nsIFrame* parent = container->GetParent()) {
+      if (isPositionFixed(container)) {
+        inPositionFixedSubtree = true;
+      }
       container = parent;
       if (container->IsScrollContainerOrSubclass()) {
         // We really just need a non-fragmented frame so that we can accumulate
@@ -3983,16 +3991,13 @@ bool PresShell::ScrollFrameIntoView(
 
     return targetFrameBounds;
   }();
-
   bool didScroll = false;
-  bool inPositionFixedSubtree = false;
   const nsIFrame* target = aTargetFrame;
   Maybe<nsPoint> rootScrollDestination;
   // Walk up the frame hierarchy scrolling the rect into view and
   // keeping rect relative to container
   do {
-    if (container->StyleDisplay()->mPosition == StylePositionProperty::Fixed &&
-        nsLayoutUtils::IsReallyFixedPos(container)) {
+    if (isPositionFixed(container)) {
       inPositionFixedSubtree = true;
     }
 
