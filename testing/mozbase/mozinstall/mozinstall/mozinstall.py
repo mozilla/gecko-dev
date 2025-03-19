@@ -375,13 +375,28 @@ def _get_msix_install_location(pkg):
                             cmd = (
                                 f'powershell.exe "Get-AppxPackage" "-Name" "{pkgname}"'
                             )
+                            # Powershell "helpfully" wraps long lines and there's
+                            # no tidy way to tell it not to, so we'll have to
+                            # reconstruct the value. Output could look like this:
+                            # InstallLocation   : C:\Program
+                            #                     Files\WindowsApps\...
+                            # Don't strip trailing spaces. The space between
+                            # "Program" and "Files" is at the end of the first
+                            # line. (Not in this comment, due to linting.)
+                            location = None
                             for line in (
                                 subprocess.check_output(cmd)
                                 .decode("utf-8")
                                 .splitlines()
                             ):
                                 if line.startswith("InstallLocation"):
-                                    return "C:{}".format(line.split(":")[-1].strip())
+                                    location = line[line.find(": ") + 2 :]
+                                elif location is not None:
+                                    if line.startswith(" "):
+                                        location += line.lstrip()
+                                    else:
+                                        break
+                            return location
 
     raise Exception(f"Couldn't find install location of {pkg}")
 
