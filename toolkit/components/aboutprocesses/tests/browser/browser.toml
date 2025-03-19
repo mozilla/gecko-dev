@@ -25,6 +25,8 @@ https_first_disabled = true
 ["browser_aboutprocesses_show_threads.js"]
 https_first_disabled = true
 
+["browser_aboutprocesses_table_headers.js"]
+
 ["browser_aboutprocesses_twisty.js"]
 
 ["browser_aboutprocesses_utility_actors.js"]

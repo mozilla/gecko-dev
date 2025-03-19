@@ -1171,6 +1171,8 @@ var Control = {
 
         if (this._sortColumn) {
           const td = document.getElementById(this._sortColumn);
+          // Reset the sorting indication.
+          td.setAttribute("aria-sort", "none");
           td.classList.remove(ascArrow, descArrow);
         }
 
@@ -1182,9 +1184,12 @@ var Control = {
           this._sortColumn = columnId;
           this._sortAscendent = true;
         }
-
         event.target.classList.toggle(ascArrow, this._sortAscendent);
         event.target.classList.toggle(descArrow, !this._sortAscendent);
+        event.target.setAttribute(
+          "aria-sort",
+          this._sortAscendent ? "descending" : "ascending"
+        );
 
         await this._updateDisplay(true);
       });

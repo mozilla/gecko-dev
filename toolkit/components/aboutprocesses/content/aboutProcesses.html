@@ -25,22 +25,31 @@
     <table id="process-table">
       <thead id="process-thead">
         <tr>
-          <th
-            class="clickable"
-            id="column-name"
-            data-l10n-id="about-processes-column-name"
-          ></th>
-          <th
-            class="clickable"
-            id="column-memory-resident"
-            data-l10n-id="about-processes-column-memory-resident"
-          ></th>
+          <th class="clickable-header">
+            <button
+              class="clickable"
+              id="column-name"
+              aria-sort="none"
+              data-l10n-id="about-processes-column-name"
+            ></button>
+          </th>
+          <th class="clickable-header">
+            <button
+              class="clickable"
+              id="column-memory-resident"
+              data-l10n-id="about-processes-column-memory-resident"
+              aria-sort="none"
+            ></button>
+          </th>
           <!-- Memory usage. -->
-          <th
-            class="clickable"
-            id="column-cpu-total"
-            data-l10n-id="about-processes-column-cpu-total"
-          ></th>
+          <th class="clickable-header">
+            <button
+              class="clickable"
+              id="column-cpu-total"
+              data-l10n-id="about-processes-column-cpu-total"
+              aria-sort="none"
+            ></button>
+          </th>
           <!--CPU time-->
           <th id="column-kill" data-l10n-id="about-processes-column-action">
             ⚙
