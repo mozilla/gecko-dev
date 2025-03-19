@@ -111,7 +111,7 @@ void RenderBundleEncoder::SetPipeline(const RenderPipeline& aPipeline) {
 
 void RenderBundleEncoder::SetIndexBuffer(
     const Buffer& aBuffer, const dom::GPUIndexFormat& aIndexFormat,
-    uint64_t aOffset, uint64_t aSize) {
+    uint64_t aOffset, const dom::Optional<uint64_t>& aSize) {
   if (!mValid) {
     return;
   }
@@ -119,18 +119,21 @@ void RenderBundleEncoder::SetIndexBuffer(
   const auto iformat = aIndexFormat == dom::GPUIndexFormat::Uint32
                            ? ffi::WGPUIndexFormat_Uint32
                            : ffi::WGPUIndexFormat_Uint16;
+  const uint64_t* sizeRef = aSize.WasPassed() ? &aSize.Value() : nullptr;
   ffi::wgpu_render_bundle_set_index_buffer(mEncoder.get(), aBuffer.mId, iformat,
-                                           aOffset, aSize);
+                                           aOffset, sizeRef);
 }
 
-void RenderBundleEncoder::SetVertexBuffer(uint32_t aSlot, const Buffer& aBuffer,
-                                          uint64_t aOffset, uint64_t aSize) {
+void RenderBundleEncoder::SetVertexBuffer(
+    uint32_t aSlot, const Buffer& aBuffer, uint64_t aOffset,
+    const dom::Optional<uint64_t>& aSize) {
   if (!mValid) {
     return;
   }
   mUsedBuffers.AppendElement(&aBuffer);
+  const uint64_t* sizeRef = aSize.WasPassed() ? &aSize.Value() : nullptr;
   ffi::wgpu_render_bundle_set_vertex_buffer(mEncoder.get(), aSlot, aBuffer.mId,
-                                            aOffset, aSize);
+                                            aOffset, sizeRef);
 }
 
 void RenderBundleEncoder::Draw(uint32_t aVertexCount, uint32_t aInstanceCount,

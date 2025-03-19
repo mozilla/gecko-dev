@@ -1419,10 +1419,14 @@ pub extern "C" fn wgpu_render_bundle_set_vertex_buffer(
     slot: u32,
     buffer_id: id::BufferId,
     offset: BufferAddress,
-    size: Option<BufferSize>,
+    size: Option<&BufferSize>,
 ) {
     wgc::command::bundle_ffi::wgpu_render_bundle_set_vertex_buffer(
-        bundle, slot, buffer_id, offset, size,
+        bundle,
+        slot,
+        buffer_id,
+        offset,
+        size.copied(),
     )
 }
 
@@ -1432,14 +1436,14 @@ pub extern "C" fn wgpu_render_bundle_set_index_buffer(
     buffer: id::BufferId,
     index_format: IndexFormat,
     offset: BufferAddress,
-    size: Option<BufferSize>,
+    size: Option<&BufferSize>,
 ) {
     wgc::command::bundle_ffi::wgpu_render_bundle_set_index_buffer(
         encoder,
         buffer,
         index_format,
         offset,
-        size,
+        size.copied(),
     )
 }
 

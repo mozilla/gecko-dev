@@ -257,13 +257,13 @@ pub extern "C" fn wgpu_recorded_render_pass_set_vertex_buffer(
     slot: u32,
     buffer_id: id::BufferId,
     offset: BufferAddress,
-    size: Option<BufferSize>,
+    size: Option<&BufferSize>,
 ) {
     pass.base.commands.push(RenderCommand::SetVertexBuffer {
         slot,
         buffer_id,
         offset,
-        size,
+        size: size.copied(),
     });
 }
 
@@ -273,13 +273,13 @@ pub extern "C" fn wgpu_recorded_render_pass_set_index_buffer(
     buffer_id: id::BufferId,
     index_format: IndexFormat,
     offset: BufferAddress,
-    size: Option<BufferSize>,
+    size: Option<&BufferSize>,
 ) {
     pass.base.commands.push(RenderCommand::SetIndexBuffer {
         buffer_id,
         index_format,
         offset,
-        size,
+        size: size.copied(),
     });
 }
 

@@ -266,7 +266,8 @@ void RenderPassEncoder::SetPipeline(const RenderPipeline& aPipeline) {
 
 void RenderPassEncoder::SetIndexBuffer(const Buffer& aBuffer,
                                        const dom::GPUIndexFormat& aIndexFormat,
-                                       uint64_t aOffset, uint64_t aSize) {
+                                       uint64_t aOffset,
+                                       const dom::Optional<uint64_t>& aSize) {
   if (!mValid) {
     return;
   }
@@ -274,18 +275,22 @@ void RenderPassEncoder::SetIndexBuffer(const Buffer& aBuffer,
   const auto iformat = aIndexFormat == dom::GPUIndexFormat::Uint32
                            ? ffi::WGPUIndexFormat_Uint32
                            : ffi::WGPUIndexFormat_Uint16;
+  const uint64_t* sizeRef = aSize.WasPassed() ? &aSize.Value() : nullptr;
   ffi::wgpu_recorded_render_pass_set_index_buffer(mPass.get(), aBuffer.mId,
-                                                  iformat, aOffset, aSize);
+                                                  iformat, aOffset, sizeRef);
 }
 
 void RenderPassEncoder::SetVertexBuffer(uint32_t aSlot, const Buffer& aBuffer,
-                                        uint64_t aOffset, uint64_t aSize) {
+                                        uint64_t aOffset,
+                                        const dom::Optional<uint64_t>& aSize) {
   if (!mValid) {
     return;
   }
   mUsedBuffers.AppendElement(&aBuffer);
-  ffi::wgpu_recorded_render_pass_set_vertex_buffer(mPass.get(), aSlot,
-                                                   aBuffer.mId, aOffset, aSize);
+
+  const uint64_t* sizeRef = aSize.WasPassed() ? &aSize.Value() : nullptr;
+  ffi::wgpu_recorded_render_pass_set_vertex_buffer(
+      mPass.get(), aSlot, aBuffer.mId, aOffset, sizeRef);
 }
 
 void RenderPassEncoder::Draw(uint32_t aVertexCount, uint32_t aInstanceCount,
