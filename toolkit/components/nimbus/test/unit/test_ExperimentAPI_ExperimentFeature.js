@@ -5,9 +5,6 @@ const { ExperimentAPI, _ExperimentFeature: ExperimentFeature } =
 const { ExperimentFakes } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
-const { NimbusTelemetry } = ChromeUtils.importESModule(
-  "resource://nimbus/lib/Telemetry.sys.mjs"
-);
 
 async function setupForExperimentFeature() {
   const sandbox = sinon.createSandbox();
@@ -88,7 +85,7 @@ add_task(async function test_record_exposure_event() {
   const { sandbox, manager } = await setupForExperimentFeature();
 
   const featureInstance = new ExperimentFeature("foo", FAKE_FEATURE_MANIFEST);
-  const exposureSpy = sandbox.spy(NimbusTelemetry, "recordExposure");
+  const exposureSpy = sandbox.spy(ExperimentAPI, "recordExposureEvent");
   const getExperimentSpy = sandbox.spy(ExperimentAPI, "getExperimentMetaData");
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
@@ -161,7 +158,7 @@ add_task(async function test_record_exposure_event_once() {
   const { sandbox, manager } = await setupForExperimentFeature();
 
   const featureInstance = new ExperimentFeature("foo", FAKE_FEATURE_MANIFEST);
-  const exposureSpy = sandbox.spy(NimbusTelemetry, "recordExposure");
+  const exposureSpy = sandbox.spy(ExperimentAPI, "recordExposureEvent");
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
   // Clear any pre-existing data in Glean
@@ -203,7 +200,7 @@ add_task(async function test_allow_multiple_exposure_events() {
   const { sandbox, manager } = await setupForExperimentFeature();
 
   const featureInstance = new ExperimentFeature("foo", FAKE_FEATURE_MANIFEST);
-  const exposureSpy = sandbox.spy(NimbusTelemetry, "recordExposure");
+  const exposureSpy = sandbox.spy(ExperimentAPI, "recordExposureEvent");
 
   // Clear any pre-existing data in Glean
   Services.fog.testResetFOG();

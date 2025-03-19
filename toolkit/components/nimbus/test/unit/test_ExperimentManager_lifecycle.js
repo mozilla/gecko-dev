@@ -4,10 +4,6 @@ const { Sampling } = ChromeUtils.importESModule(
   "resource://gre/modules/components-utils/Sampling.sys.mjs"
 );
 
-const { NimbusTelemetry } = ChromeUtils.importESModule(
-  "resource://nimbus/lib/Telemetry.sys.mjs"
-);
-
 async function cleanupStore(store) {
   Assert.deepEqual(
     store.getAllActiveExperiments(),
@@ -35,7 +31,7 @@ add_task(async function test_onStartup_setExperimentActive_called() {
   const manager = ExperimentFakes.manager();
   const sandbox = sinon.createSandbox();
   const experiments = [];
-  sandbox.stub(NimbusTelemetry, "setExperimentActive");
+  sandbox.stub(manager, "setExperimentActive");
   sandbox.stub(manager.store, "init").resolves();
   sandbox.stub(manager.store, "getAll").returns(experiments);
   sandbox
@@ -55,7 +51,7 @@ add_task(async function test_onStartup_setExperimentActive_called() {
 
   active.forEach(exp =>
     Assert.equal(
-      NimbusTelemetry.setExperimentActive.calledWith(exp),
+      manager.setExperimentActive.calledWith(exp),
       true,
       `should call setExperimentActive for active experiment: ${exp.slug}`
     )
@@ -63,7 +59,7 @@ add_task(async function test_onStartup_setExperimentActive_called() {
 
   inactive.forEach(exp =>
     Assert.equal(
-      NimbusTelemetry.setExperimentActive.calledWith(exp),
+      manager.setExperimentActive.calledWith(exp),
       false,
       `should not call setExperimentActive for inactive experiment: ${exp.slug}`
     )
@@ -76,7 +72,7 @@ add_task(async function test_onStartup_setExperimentActive_called() {
 add_task(async function test_onStartup_setRolloutActive_called() {
   const manager = ExperimentFakes.manager();
   const sandbox = sinon.createSandbox();
-  sandbox.stub(NimbusTelemetry, "setExperimentActive");
+  sandbox.stub(manager, "setExperimentActive");
   sandbox.stub(manager.store, "init").resolves();
 
   const active = ["foo", "bar"].map(ExperimentFakes.rollout);
@@ -90,7 +86,7 @@ add_task(async function test_onStartup_setRolloutActive_called() {
 
   active.forEach(r =>
     Assert.equal(
-      NimbusTelemetry.setExperimentActive.calledWith(r),
+      manager.setExperimentActive.calledWith(r),
       true,
       `should call setExperimentActive for rollout: ${r.slug}`
     )
