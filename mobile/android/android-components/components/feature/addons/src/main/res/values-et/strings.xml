@@ -30,6 +30,8 @@
     %1$d will be replaced by an integer indicating the number of additional domains for which this web extension is requesting permission.
   -->
   <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">ligipääs sinu andmetele %1$d teisel domeenil</string>
+  <!-- When an add-on requires access to domains, this entry is used to describe the total number of domains. Underneath it will be the list of all the domains. %1$d is the number of all the domains that will be shown to the user as required. -->
+  <string name="mozac_feature_addons_permissions_all_domain_count_description" tools:ignore="PluralsCandidate">Pääseb ligi su andmetele %1$d domeeni lehtedel</string>
   <!-- Description for tabs add-on permission. -->
   <string name="mozac_feature_addons_permissions_tabs_description">ligipääs kaartidele</string>
   <!-- Description for unlimited_storage permission. -->
@@ -46,6 +48,8 @@
   <string name="mozac_feature_addons_permissions_clipboard_read_description">andmete hankimine vahemälust</string>
   <!-- Description for clipboard_write permission. -->
   <string name="mozac_feature_addons_permissions_clipboard_write_description">andmete sisestamine vahemällu</string>
+  <!-- Description for declarativeNetRequest permission. -->
+  <string name="mozac_feature_addons_permissions_declarative_net_request_description">Blokeeri sisu mis tahes lehel</string>
   <!-- Description for declarativeNetRequestFeedback permission. -->
   <string name="mozac_feature_addons_permissions_declarative_net_request_feedback_description">Lehitsemise ajaloo lugemine</string>
   <!-- Description for downloads permission. -->
@@ -74,8 +78,14 @@
   <string name="mozac_feature_addons_permissions_tab_hide_description">brauseri kaartide peitmine ja kuvamine</string>
   <!-- Description for top_sites permission. -->
   <string name="mozac_feature_addons_permissions_top_sites_description">ligipääs veebilehitsemise ajaloole</string>
+  <!-- Description for trialML permission. -->
+  <string name="mozac_feature_addons_permissions_trial_ml_description">Laadi alla ja käivita seadmes tehisaru mudelid</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">arendajate tööriistade laiendamine, et pääseda ligi avatud kaartide andmetele</string>
+  <!-- Description for text button that expands the list of domain permissions -->
+  <string name="mozac_feature_addons_permissions_show_all_sites">Kuva kõik saidid</string>
+  <!-- Description for text button that hides the majority of the list of domain permissions -->
+  <string name="mozac_feature_addons_permissions_show_fewer_sites">Kuva vähem saite</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">Versioon</string>
   <!-- The author of an add-on. -->
@@ -88,6 +98,8 @@
   <string name="mozac_feature_addons_learn_more">Rohkem teavet õiguste kohta</string>
   <!-- The rating of the add-on. -->
   <string name="mozac_feature_addons_rating">Hinnang</string>
+  <!-- A link that points to the detail page of the extension. -->
+  <string name="mozac_feature_addons_more_info_link_2"> Selle laienduse lisateave</string>
   <!-- The settings of the add-on. -->
   <string name="mozac_feature_addons_settings">Sätted</string>
   <!-- Indicates the add-on is enabled. -->
@@ -96,6 +108,8 @@
   <string name="mozac_feature_addons_settings_allow_in_private_browsing">Lubatakse privaatse veebilehitsemise režiimis</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">Käivitatakse privaatse veebilehitsemise režiimis</string>
+  <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
+  <string name="mozac_feature_addons_not_allowed_in_private_browsing">Pole lubatud privaatsetes akendes</string>
   <!-- Indicates the add-on is enabled. -->
   <string name="mozac_feature_addons_enabled">Lubatud</string>
   <!-- This is displayed in a page where the user can see the installed and recommended(not installed yet) add-ons, this string indicates the installed section. -->
@@ -130,16 +144,26 @@
   <string name="mozac_feature_addons_permissions_dialog_allow">Luba</string>
   <!-- This is a button to deny the optional permissions requested by an add-on . -->
   <string name="mozac_feature_addons_permissions_dialog_deny">Keeldu</string>
+  <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
+  <string name="mozac_feature_addons_permissions_dialog_learn_more">Rohkem teavet</string>
   <!-- This is a button to cancel the add-on installation . -->
   <string name="mozac_feature_addons_permissions_dialog_cancel">Loobu</string>
+  <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_install_addon_content_description_2">Paigalda %1$s</string>
   <!-- This is the label of a button to cancel an ongoing add-on installation. -->
   <string name="mozac_feature_addons_install_addon_dialog_cancel">Loobu</string>
   <!-- Indicates how many users have rated an add-on. %1$s will be replaced with number of reviews -->
   <string name="mozac_feature_addons_user_rating_count_2">Arvustusi: %1$s</string>
+  <!-- Accessibility content description for the amount of stars that add-on has, where %1$.02f will be the amount of stars. -->
+  <string name="mozac_feature_addons_rating_content_description_2">Hinnang: %1$.02f/5</string>
   <!-- This is the title of page where all the add-ons are listed -->
   <string name="mozac_feature_addons_addons">Lisad</string>
   <!-- Label for add-ons sub menu item for add-ons manager -->
   <string name="mozac_feature_addons_addons_manager">Lisade haldur</string>
+  <!-- The title of the "crash" notification in the extensions manager -->
+  <string name="mozac_feature_extensions_manager_notification_title_text">Laiendused on ajutiselt keelatud</string>
+  <!-- Button to re-enable the extensions in the "crash" notification -->
+  <string name="mozac_feature_extensions_manager_notification_restart_button">Taaskäivita laiendused</string>
   <!-- Button in the extensions manager that opens AMO in a tab -->
   <string name="mozac_feature_addons_find_more_extensions_button_text">Leia rohkem laiendusi</string>
   <!-- The label of the allow button, this will be shown to the user when an add-on needs new permissions, with the button the user will indicate that they want to accept the new permissions and update the add-on -->
@@ -152,6 +176,8 @@
   <string name="mozac_feature_addons_updater_notification_content" tools:ignore="PluralsCandidate">Nõutakse %1$d uut õigust</string>
   <!-- The content of the notification displayed when an add-on needs a new permission -->
   <string name="mozac_feature_addons_updater_notification_content_singular">Nõutakse uut õigust</string>
+  <!-- Name of the "notification channel" used for displaying a notification for updating an extension. See https://developer.android.com/training/notify-user/channels -->
+  <string name="mozac_feature_addons_updater_notification_channel_2">Laienduse värskendused</string>
   <!-- Name of the "notification channel" used for displaying a notification for new supported add-ons. See https://developer.android.com/training/notify-user/channels -->
   <string name="mozac_feature_addons_supported_checker_notification_channel" tools:ignore="UnusedResources">Toetatud lisade kontrollija</string>
   <!-- The tile of the notification, this will be shown to the user when one newly supported add-on is available. -->
@@ -166,12 +192,20 @@
   <string name="mozac_feature_addons_supported_checker_notification_content_more_than_two">Paigalda need %1$sile</string>
   <!-- This is the caption for not yet supported screen caption -->
   <string name="mozac_feature_addons_not_yet_supported_caption2">Me alles loome tuge esialgsele valikule soovitatud lisadest.</string>
+  <!-- This is the caption for the extension installation progress overlay -->
+  <string name="mozac_extension_install_progress_caption">Laienduse allalaadimine ja kinnitamine…</string>
+  <!-- Error shown when something unexpected happened while trying to get the extension list from the server -->
+  <string name="mozac_feature_addons_failed_to_query_extensions">Laienduste päring nurjus!</string>
   <!-- Error shown when unable to find a translation for an add-on field. %1$s is the locale of the user and %2$s is the default language of the add-on -->
   <string name="mozac_feature_addons_failed_to_translate">Tõlget ei leitud, ei keelele %1$s ega ka vaikekeelele %2$s</string>
   <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_successfully_installed">Lisa %1$s paigaldamine õnnestus</string>
   <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
   <string name="mozac_feature_addons_failed_to_install">Lisa %1$s paigaldamine ebaõnnestus</string>
+  <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
+  <string name="mozac_feature_addons_extension_failed_to_install">Selle laienduse paigaldamine nurjus.</string>
+  <!-- Text shown when installing an add-on has failed. -->
+  <string name="mozac_feature_addons_cant_install_extension">Laiendust ei saa paigaldada</string>
   <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_successfully_enabled">Lisa %1$s lubamine õnnestus</string>
   <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->

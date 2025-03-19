@@ -6,7 +6,7 @@
     Text for the message of an auth dialog displayed by a web page.
     %1$s will be replaced by the hostname or a description of the protected area/site, %2$s will be replaced with the URL of the current page (displaying the dialog).
   -->
-  <string name="mozac_browser_engine_system_auth_message">%2$s meminta nama pengguna dan sandi Anda. Situs ini berkata: “%1$s”</string>
+  <string name="mozac_browser_engine_system_auth_message">%2$s meminta nama pengguna dan kata sandi Anda. Situs ini mengatakan: "%1$s"</string>
   <!-- Text for the message of an auth dialog displayed by a web page. %1$s will be replaced with the URL of the current page (displaying the dialog). -->
-  <string name="mozac_browser_engine_system_auth_no_realm_message">%1$s meminta nama pengguna dan sandi Anda.</string>
+  <string name="mozac_browser_engine_system_auth_no_realm_message">%1$s Meminta nama pengguna dan kata sandi Anda.</string>
 </resources>

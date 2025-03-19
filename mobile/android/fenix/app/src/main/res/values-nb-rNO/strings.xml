@@ -358,6 +358,14 @@
   <string name="browser_save_menu_handlebar_content_description">Lukk menyen lagre</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
   <string name="browser_tools_menu_handlebar_content_description">Lukk verktøymenyen</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
+  <string name="browser_menu_tools_description_with_translate_with_report_site_2">Leservisning, Oversett, Rapporter ødelagt nettsted, Skriv ut, Del, Åpne app</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+  <string name="browser_menu_tools_description_with_translate_without_report_site">Lesevisning, oversett, skriv ut, del, åpne app</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
+  <string name="browser_menu_tools_description_with_report_site_2">Leservisning, Rapporter ødelagt nettsted, Skriv ut, Del, Åpne app</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+  <string name="browser_menu_tools_description_without_report_site">Lesevisning, skriv ut, del, åpne app</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
@@ -375,8 +383,12 @@
   <string name="browser_menu_turn_on_reader_view">Slå på leservisning</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
   <string name="browser_menu_turn_off_reader_view">Slå av leservisning</string>
+  <!-- Browser menu button that reopens a private tab as a regular tab -->
+  <string name="browser_menu_open_in_normal_tab">Flytt til ikke-privat fane</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page">Oversett siden…</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter">Rapporter problem med et nettsted…</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
@@ -463,6 +475,12 @@
     %s is the search engine name (for example: DuckDuckGo).
   -->
   <string name="search_engine_icon_content_description_1">Søkemotor: %s</string>
+  <!--
+    Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
+    %s is the search engine name (for example: DuckDuckGo).
+    The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button.
+  -->
+  <string name="search_engine_selector_content_description">%s: søkemotorvelger</string>
   <!--
     Home onboarding
 
@@ -557,6 +575,116 @@
     Note: The word "Firefox" should NOT be translated
   -->
   <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Tilpass Firefox med utvidelser</string>
+  <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Legg til tredjepartsutvidelser for å forbedre sikkerheten, produktiviteten og mer.</string>
+  <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_explore_more_extensions_2">Utforsk flere utvidelser</string>
+  <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_start_browsing_button_2">Begynn å surfe</string>
+  <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
+  <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+  <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">Blokker annonser effektivt.</string>
+  <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
+  <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
+  <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
+  <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Search by Image</string>
+  <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_search_by_image_description" tools:ignore="UnusedResources">Ser du et interessant bilde og vil vite mer om det.</string>
+  <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
+  <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">Dark Reader</string>
+  <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">Egendefinert mørk modus for det mobil internett.</string>
+  <!-- Label for the number of reviews for an add-on. %1$s is the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
+  <string name="onboarding_add_on_reviews_label">Omtaler: %1$s</string>
+  <!-- Content description for the add-on icon. -->
+  <string name="onboarding_add_on_icon_content_description">Utvidelses-ikon</string>
+  <!-- Content description for the an installed add-on icon. -->
+  <string name="onboarding_installed_add_on_icon_content_description">Ikon for installert tillegg</string>
+  <!-- Content description for the an installing add-on icon. -->
+  <string name="onboarding_installing_add_on_icon_content_description">Ikon for installering av tillegg</string>
+  <!-- Content description for the add add-on button. -->
+  <string name="onboarding_add_on_add_button_content_description">Legg til tilleggsknapp</string>
+  <!-- Content description for the star rating group. %1$s is the rating. -->
+  <string name="onboarding_add_on_star_rating_content_description">Vurdert %1$s av 5</string>
+  <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+  <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage">Hjelp oss med å gjøre Firefox bedre</string>
+  <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_crash_reporting_title">Send inn krasjrapporter automatisk</string>
+  <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_crash_reporting_description">Krasjrapporter lar oss diagnostisere og fikse problemer med nettleseren. Rapporter kan inneholde personlige eller sensitive data.</string>
+  <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Les mer</string>
+  <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
+  <string name="onboarding_preferences_dialog_usage_data_title">Send tekniske data og interaksjonsdata til Mozilla</string>
+  <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+  <string name="onboarding_preferences_dialog_usage_data_description" moz:removedIn="136" tools:ignore="BrandUsage,UnusedResources">Data om enheten din, maskinvarekonfigurasjon og hvordan du bruker Firefox bidrar til å forbedre funksjoner, ytelse og stabilitet for brukere overalt.</string>
+  <string name="onboarding_preferences_dialog_usage_data_description_2" tools:ignore="BrandUsage">Data om enheten din, maskinvarekonfigurasjonen og hvordan du bruker Firefox bidrar til å forbedre funksjoner, ytelse og stabilitet for alle.</string>
+  <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_usage_data_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Les mer om bruksdata</string>
+  <string name="onboarding_preferences_dialog_usage_data_learn_more_2">Les mer</string>
+  <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_positive_button">Ferdig</string>
+  <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources" moz:removedIn="136">Avbryt</string>
+  <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here -->
+  <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">Velkommen til Firefox</string>
+  <!-- Terms of service sub header label. -->
+  <string name="onboarding_terms_of_service_sub_header" tools:ignore="UnusedResources" moz:removedIn="136">Rask og sikker nettsurfing.</string>
+  <!-- Terms of service sub header label. -->
+  <string name="onboarding_terms_of_service_sub_header_2">Rask og sikker nettsurfing</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label">Godta og fortsett</string>
+  <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
+  <string name="onboarding_term_of_service_line_one" moz:removedIn="136" tools:ignore="BrandUsage, UnusedResources">Ved å fortsette godtar du Firefox %1$s.</string>
+  <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
+  <string name="onboarding_term_of_service_line_one_2">Ved å fortsette godtar du %1$s.</string>
+  <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
+  <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">Vilkår for bruk</string>
+  <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
+  <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">Firefox brukervilkår</string>
+  <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
+  <string name="onboarding_term_of_service_line_two" moz:removedIn="136" tools:ignore="UnusedResources,BrandUsage">Firefox bryr seg om personvernet ditt. Les mer i vår %1$s.</string>
+  <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
+  <string name="onboarding_term_of_service_line_two_link_text">Personvernbestemmelser</string>
+  <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$s is replaced by an active link using onboarding_term_of_service_line_three_link_text as text (“Manage”). -->
+  <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">For å hjelpe til med å forbedre nettleseren sender Firefox diagnose- og interaksjonsdata til Mozilla. %1$s</string>
+  <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
+  <string name="onboarding_term_of_service_line_three_link_text">Behandle</string>
+  <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Hjelp oss med å utvikle Firefox</string>
+  <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">En siste ting</string>
+  <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
+  <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Velg plassering for verktøylinjen</string>
+  <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
+  <string name="onboarding_save_and_continue_button">Lagre og fortsett</string>
+  <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
+  <string name="onboarding_customize_toolbar_top_option">Topp</string>
+  <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
+  <string name="onboarding_customize_toolbar_bottom_option">Bunn</string>
+  <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+  <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Ikke nå</string>
+  <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
+  <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Velg et tema</string>
+  <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
+  <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Se nettet i det beste lyset.</string>
+  <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
+  <string name="onboarding_save_and_start_button">Lagre og begynn å surfe</string>
+  <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
+  <string name="onboarding_customize_theme_dark_option">Mørk</string>
+  <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
+  <string name="onboarding_customize_theme_light_option">Lyst</string>
+  <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
+  <string name="onboarding_customize_theme_system_option">Samme som systemet</string>
+  <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+  <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Ikke nå</string>
+  <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Start et hurtigsøk</string>
   <!--
     Search Widget
 
@@ -614,6 +742,8 @@
   <string name="preferences_category_advanced">Avansert</string>
   <!-- Preference category for privacy and security settings -->
   <string name="preferences_category_privacy_security">Personvern og sikkerhet</string>
+  <!-- Preference for advanced site settings -->
+  <string name="preferences_site_settings">Nettstedsinnstillinger</string>
   <!-- Preference for private browsing options -->
   <string name="preferences_private_browsing_options">Privat nettlesing</string>
   <!-- Preference for opening links in a private tab -->
@@ -722,12 +852,18 @@
   <string name="preferences_show_voice_search">Vis stemmesøk</string>
   <!-- Preference title for switch preference to show search suggestions also in private mode -->
   <string name="preferences_show_search_suggestions_in_private">Vis i private økter</string>
+  <!-- Preference title for switch preference to show trending search suggestions -->
+  <string name="preferences_show_trending_search_suggestions">Vis populære søkeforslag</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Vis nylige søk</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Vis utklippstavleforslag</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
   <string name="preferences_search_browsing_history">Søk i nettleserhistorikk</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">Søk i bokmerker</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">Vis snarveier</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">Søk i synkroniserte faner</string>
   <!-- Preference for account settings -->
@@ -748,6 +884,16 @@
   <string name="preferences_show_nonsponsored_suggestions">Forslag fra %1$s</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">Få forslag fra nettet relatert til søket ditt</string>
+  <!-- Preference for link sharing -->
+  <string name="preferences_link_sharing">Lenkedeling</string>
+  <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_title">Inkluder %1$s-nedlastingslenke på WhatsApp-delinger</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">Inviter vennene dine til å prøve raskere og tryggere surfing med %1$s hver gang du deler en lenke på WhatsApp.</string>
+  <!-- Snackbar message shown when user shares a link -->
+  <string name="link_shared_snackbar_message">Lenke delt</string>
+  <!-- Snackbar action label shown when user shares a link -->
+  <string name="link_shared_snackbar_action">Behandle innstillinger</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Åpne lenker i apper</string>
   <!-- Preference for open links in third party apps always open in apps option -->
@@ -963,11 +1109,32 @@
   <string name="exceptions_empty_message_description">Unntak lar deg slå av sporingsbeskyttelse for utvalgte nettsteder.</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Les mer</string>
+  <!-- Preference switch for usage and technical data collection -->
+  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Tekniske data og interaksjonsdata</string>
+  <!-- Preference switch for usage and technical data collection -->
+  <string name="preference_usage_data_2">Send tekniske data og interaksjonsdata</string>
+  <!-- Preference switch for usage and technical learn more link -->
+  <string name="preference_usage_data_learn_more">Les mer</string>
   <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Deler data om ytelse, bruksmønster, maskinvare og tilpasninger i din nettleser med Mozilla, for å hjelpe oss å gjøre %1$s bedre</string>
+  <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Data om enheten din, maskinvarekonfigurasjon og bruk hjelper oss med å forbedre Firefox-funksjoner, ytelse og stabilitet.</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Markedsføringsdata</string>
+  <!-- Learn more link for marketing data preference -->
+  <string name="preferences_marketing_data_learn_more">Les mer om markedsføringsdata</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Ping for daglig bruk</string>
+  <string name="preferences_daily_usage_ping_description">Dette hjelper Mozilla med å beregne aktive brukere.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Les mer om ping for daglig bruk</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Send inn krasjrapporter automatisk</string>
   <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Send inn krasjrapporter automatisk</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Dette hjelper oss med å diagnostisere og fikse problemer med nettleseren. Rapporter kan inneholde personlige eller sensitive data.</string>
+  <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Deler krasjdata med Mozilla automatisk ved oppstart etter krasj oppstår</string>
+  <!-- Learn more link for crash reporting preference -->
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Les mer om krasjrapporter</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Undersøkelse</string>
   <!-- Summary for studies preferences -->
@@ -1154,6 +1321,10 @@
   <string name="studies_active">Aktiv</string>
   <!-- Description for studies, it indicates why Firefox use studies. %1$s is the name of the app (for example "Firefox"). -->
   <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s kan installere og kjøre studier fra tid til annen.</string>
+  <!-- Description for studies -->
+  <string name="studies_description_3">Prøv nye funksjoner og idéer før de blir tilgjengelige for alle.</string>
+  <!-- Title of the Studies data preference -->
+  <string name="studies_title">Installer og kjør studier</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Les mer</string>
   <!--
@@ -1266,6 +1437,58 @@
   <string name="download_multi_select_title">%1$d valgt</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">Fjern</string>
+  <!--
+    Time period headers for downloads
+
+    Text for the header that groups the downloads for today
+  -->
+  <string name="download_time_period_today">I dag</string>
+  <!-- Text for the header that groups the downloads for yesterday -->
+  <string name="download_time_period_yesterday">I går</string>
+  <!-- Text for the header that groups the downloads the past 7 days -->
+  <string name="download_time_period_last_7_days">Siste 7 dager</string>
+  <!-- Text for the header that groups the downloads the past 30 days -->
+  <string name="download_time_period_last_30_days">Siste 30 dager</string>
+  <!-- Text for the header that groups the downloads older than other groups -->
+  <string name="download_time_period_older">Eldre</string>
+  <!--
+    WebCompat Reporter
+
+    The title of the Web Compat Reporter feature. This is displayed in the top app bar.
+  -->
+  <string name="webcompat_reporter_screen_title">Rapporter problem med et nettsted</string>
+  <!-- The description of the Web Compat Reporter feature. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="webcompat_reporter_description">Bidra til å gjøre %1$s bedre for alle. Mozilla-ansatte bruker informasjonen du sender til å fikse problemer med nettstedet.</string>
+  <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+  <string name="webcompat_reporter_label_url">URL</string>
+  <!-- The error message of the URL text field when an invalid URL has been entered. -->
+  <string name="webcompat_reporter_url_error_invalid">Skriv inn en gyldig nettadresse</string>
+  <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+  <string name="webcompat_reporter_label_whats_broken" moz:removedIn="136" tools:ignore="UnusedResources">Hva er ødelagt? (valgfritt)</string>
+  <!-- The label/title of a field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+  <string name="webcompat_reporter_label_whats_broken_2">Hva er ødelagt?</string>
+  <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
+  <string name="webcompat_reporter_choose_reason">Velg grunn</string>
+  <!-- The error message of the dropdown, prompting the user to select a high-level reason why the site is broken. -->
+  <string name="webcompat_reporter_choose_reason_error">Velg en årsak</string>
+  <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+  <string name="webcompat_reporter_label_description">Beskriv problemet (valgfritt)</string>
+  <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+  <string name="webcompat_reporter_send_more_info">Send mer informasjon</string>
+  <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+  <string name="webcompat_reporter_cancel">Avbryt</string>
+  <!-- The button text for the send button to submit the provided form data. -->
+  <string name="webcompat_reporter_send">Send</string>
+  <!-- Text for a snackbar to confirm the successful submission of a WebCompat report. -->
+  <string name="webcompat_reporter_success_snackbar_text">Rapporten din ble sendt</string>
+  <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
+  <string name="webcompat_reporter_dismiss_success_snackbar_text">Lukk</string>
+  <!--
+    These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site.
+
+    Broken site reason text for site slow or not working
+  -->
+  <string name="webcompat_reporter_reason_slow">Nettstedet er tregt eller fungerer ikke</string>
   <!-- Broken site reason text for images or videos -->
   <string name="webcompat_reporter_reason_media">Bilder eller videoer</string>
   <!-- Broken site reason text for buttons, links, and other content -->
@@ -1607,6 +1830,10 @@
   <string name="sync_add_new_device_learn_button">Les mer om sending av faner…</string>
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">Koble til en annen enhet…</string>
+  <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nSendt fra %2$s Prøv den mobile nettleseren: %3$s</string>
+  <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nSendt fra %2$s 🦊 %3$s</string>
   <!--
     Notifications
 
@@ -1943,6 +2170,74 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">Ikon for unntaksinnstillinger for utvidet sporingsbeskyttelse</string>
+  <!--
+    DNS Over HTTPS (DoH)
+
+    Preference title for DNS over HTTPS settings
+  -->
+  <string name="preference_doh_title">DNS-over-HTTPS</string>
+  <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_summary">Domain Name System (DNS) over HTTPS sender forespørselen din om et domenenavn gjennom en kryptert tilkobling, og gir en sikker DNS og gjør det vanskeligere for andre å se hvilket nettsted du er i ferd med å besøke. %1$s</string>
+  <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+  <string name="preference_doh_learn_more">Les mer</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="preference_doh_up_description">Naviger opp</string>
+  <!-- Content description for the "Exceptions" button -->
+  <string name="preference_doh_exceptions_description">Unntak</string>
+  <!-- Content description for the "Info" button -->
+  <string name="preference_doh_info_description">Informasjon</string>
+  <!-- Content description for the "Add Site" button -->
+  <string name="preference_doh_add_site_description">Legg til nettsted</string>
+  <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_2">Bruk bare standard DNS-resolver hvis det er et problem med sikker DNS</string>
+  <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection">Maks beskyttelse</string>
+  <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_max_protection_summary">%1$s vil alltid bruke sikker DNS. Du vil se en advarsel om sikkerhetsrisiko før vi bruker systemets DNS.</string>
+  <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_1">Bruk kun leverandøren du velger</string>
+  <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_2">Advar alltid hvis sikker DNS ikke er tilgjengelig</string>
+  <!-- Bullet point 3 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_3">Hvis sikker DNS ikke er tilgjengelig, vil ikke nettsteder lastes eller fungere som de skal</string>
+  <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off">Av</string>
+  <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off_summary">Bruk din standard DNS-resolver</string>
+  <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
+  <string name="preference_doh_choose_provider">Velg leverandør</string>
+  <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_default">(standard)</string>
+  <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_custom">Tilpasset</string>
+  <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_title">Tilpasset leverandør</string>
+  <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_textfield">Leverandør</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
+  <string name="preference_doh_provider_custom_dialog_error_https">Nettadressen må begynne med «https://».</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
+  <string name="preference_doh_provider_custom_dialog_error_invalid">Ugyldig nettadresse</string>
+  <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_cancel">Avbryt</string>
+  <!-- Add button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_add">Legg til</string>
+  <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
+  <string name="preference_doh_exceptions">Unntak</string>
+  <!-- Description of "exceptions" for "DNS over HTTPS". %1$s is the name of the app (for example "Firefox"). -->
+  <string name="preference_doh_exceptions_summary">%1$s vil ikke bruke sikker DNS på disse nettstedene og deres underdomener.</string>
+  <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
+  <string name="preference_doh_exceptions_add">Legg til nettsted</string>
+  <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_site">Nettsted</string>
+  <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_placeholder">example.com</string>
+  <!-- Error displayed in the input field when adding invalid URLs for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_error">Må være et gyldig domene</string>
+  <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_add_save">Lagre</string>
+  <!-- Text displayed for removing all exceptions in "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_remove_all_exceptions">Fjern alle unntak</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Brukerstøtte</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -2245,6 +2540,8 @@
   <string name="quick_settings_sheet_secure_connection_2">Tilkoblingen er sikker</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">Tilkoblingen er ikke sikker</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">Denne siden er lagret på enheten din.</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">Fjern infokapsler og nettstedsdata</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
@@ -2400,10 +2697,19 @@
     Search suggestions title for Firefox Suggest.
   -->
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox-forslag</string>
+  <!-- Search suggestions title for trending searches. -->
+  <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">Populære søk</string>
+  <!--
+    Search suggestions title for trending search suggestions.
+    %s is a placeholder for the name of the search engine providing the trending search suggestions.
+  -->
+  <string name="trending_searches_header_2">Populært på %s</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header">Google-søk</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">%s-søk</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">Nylige søk</string>
   <!--
     Default browser experiment
 
@@ -2855,6 +3161,78 @@
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
   <string name="download_language_file_dialog_negative_button_text">Avbryt</string>
   <!--
+    Unified Trust Panel
+
+    Text for the protection panel header when the site is secure.
+  -->
+  <string name="protection_panel_header_secure">Sikker</string>
+  <!-- Text for the protection panel header when the site is not secure. -->
+  <string name="protection_panel_header_not_secure">Ikke sikker</string>
+  <!-- Title text for the protection panel banner when the site is not secure. -->
+  <string name="protection_panel_banner_not_secure_title">Vær forsiktig på dette nettstedet</string>
+  <!-- Description text for the protection panel banner when the site is not secure. -->
+  <string name="protection_panel_banner_not_secure_description">Tilkoblingen er ikke sikker.</string>
+  <!-- Title text for the protection panel banner when tracking protection is disabled. -->
+  <string name="protection_panel_banner_not_protected_title">Du har slått av beskyttelse</string>
+  <!--
+    Description text for the protection panel banner when tracking protection is disabled.
+    %s is the name of the app (for example "Firefox").
+  -->
+  <string name="protection_panel_banner_not_protected_description">%s er deaktivert. Vi foreslår at du skrur på beskyttelsen igjen.</string>
+  <!--
+    Title text for the protection panel banner when tracking protection is enabled.
+    %s is the name of the app (for example "Firefox").
+  -->
+  <string name="protection_panel_banner_protected_title">%s er på vakt</string>
+  <!-- Description text for the protection panel banner when tracking protection is enabled. -->
+  <string name="protection_panel_banner_protected_description">Du er beskyttet. Om vi oppdager noe sier vi ifra.</string>
+  <!-- Label text for the Enhanced Tracking Protection toggle. -->
+  <string name="protection_panel_etp_toggle_label">Utvidet sporingsbeskyttelse</string>
+  <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
+  <string name="protection_panel_etp_toggle_enabled_description">Hvis noe ser ødelagt ut på dette nettstedet, prøv å slå av beskyttelsen.</string>
+  <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+  <string name="protection_panel_etp_toggle_disabled_description">Beskyttelser er AV. Vi foreslår at du slår det på igjen.</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the protection panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="protection_panel_num_trackers_blocked">Sporere blokkert: %d</string>
+  <!-- Text for when no trackers have been blocked. -->
+  <string name="protection_panel_no_trackers_blocked">Fant ingen sporere</string>
+  <!-- Link text to navigate to privacy and security settings from the protection panel. -->
+  <string name="protection_panel_privacy_and_security_settings">Personvern- og sikkerhetsinnstillinger</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the trackers blocked panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_total_num_trackers_blocked">Sporere blokkert: %d</string>
+  <!--
+    Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
+    %s is a placeholder for the name of the tracker category.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
+  <!--
+    Description text for a dialog confirming whether the user wants to delete all data for current site.
+    %s is a placeholder for the base domain of website.
+  -->
+  <string name="clear_site_data_dialog_description">Fjerning av infokapsler og nettstedsdata for &lt;b&gt;%s&lt;/b&gt; kan logge deg ut av nettsteder og tømme handlekurver.</string>
+  <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
+  <string name="clear_site_data_dialog_positive_button_text">Tøm</string>
+  <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
+  <string name="clear_site_data_dialog_negative_button_text">Avbryt</string>
+  <!-- Snackbar title shown when the site data has been cleared. -->
+  <string name="clear_site_data_snackbar">Infokapsler og nettstedsdata fjernet</string>
+  <!-- Text for the connection security panel when the site is secure. -->
+  <string name="connection_security_panel_secure">Sikker tilkobling</string>
+  <!-- Text for the connection security panel when the site is not secure. -->
+  <string name="connection_security_panel_not_secure">Tilkoblingen er ikke sikker</string>
+  <!--
+    Text for the connection security panel to indicate who the certificate was verified by.
+    %s is a placeholder for the name of the certificate authority that verified the ticket
+  -->
+  <string name="connection_security_panel_verified_by">Bekreftet av: %s</string>
+  <!--
     Debug drawer
 
     The user-facing title of the Debug Drawer feature.
@@ -2981,6 +3359,18 @@
   <!-- Content description for delete button. %s is the username of the login. -->
   <string name="debug_drawer_logins_delete_login_button_content_description">Slett innlogging med brukernavn %s</string>
   <!--
+    Debug drawer addresses
+
+    The title of the Addresses feature in the Debug Drawer.
+  -->
+  <string name="debug_drawer_addresses_title">Adresser</string>
+  <!-- The title of the header for the section for managing addresses. -->
+  <string name="debug_drawer_addresses_management_header">Behandle adresser</string>
+  <!-- The title of the button in the debug drawer for adding a new address. -->
+  <string name="debug_drawer_add_new_address">Legg til ny adresse for valgt språk</string>
+  <!-- The title of the button for deleting in the debug drawer all addresses. -->
+  <string name="debug_drawer_delete_all_addresses">Slett alle adresser</string>
+  <!--
     Debug drawer "contextual feature recommendation" (CFR) tools
 
     The title of the CFR Tools feature in the Debug Drawer
@@ -3014,4 +3404,46 @@
     Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element.
   -->
   <string name="beta_feature">BETA</string>
+  <!--
+    Root certificate expiration warnings
+
+    These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !
+
+    Homepage card button to open Google Play Store. "Update" is a verb.
+  -->
+  <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Oppdater nå</string>
+  <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Oppdater din Firefox-nettleser</string>
+  <!-- Homepage card message about old Firefox version -->
+  <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Et rotsertifikat vil utløpe, noe som fører til at enkelte funksjoner slutter å fungere 14. mars.</string>
+  <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+  <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Oppdater før 14. mars</string>
+  <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Et rotsertifikat vil utløpe, noe som fører til at din versjon av Firefox slutter å fungere som den skal.</string>
+  <!-- Homepage card title about old Firefox version -->
+  <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Mindre enn 7 dager igjen å oppdatere</string>
+  <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">14. mars slutter tillegg og andre Firefox-funksjoner å fungere fordi et rotsertifikat utløper.</string>
+  <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Siste sjanse til å beholde Firefox</string>
+  <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Din versjon av Firefox slutter å fungere som den skal 14. mars fordi et rotsertifikat utløper.</string>
+  <!-- Push notification title about old Firefox version. "Update" is a noun. -->
+  <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Oppdatering anbefales</string>
+  <!-- Push notification message about old Firefox version -->
+  <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Tillegg og enkelte funksjoner slutter å fungere 14. mars.</string>
+  <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Du bruker en eldre versjon av Firefox</string>
+  <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+  <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Oppdater før 14. mars for å fortsette å bruke utvidelser og andre funksjoner.</string>
+  <!-- Push notification message about old Firefox version -->
+  <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Noen funksjoner slutter å fungere i morgen.</string>
+  <!--
+    TextField Design System Component
+
+    The default content description for the eye trailing icon button in TextField
+  -->
+  <string name="text_field_eye_trailing_icon_default_content_description">Vis skjult tekst</string>
+  <!-- The default content description for the cross trailing icon button in TextField -->
+  <string name="text_field_cross_trailing_icon_default_content_description">Fjern tekst</string>
 </resources>
