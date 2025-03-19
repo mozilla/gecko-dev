@@ -45,7 +45,7 @@ if (typeof assertNoWarning === 'undefined') {
                 print("assertNoWarning: " + msg);
             }
 
-            throw Error("assertNoWarning: Unexpected warning when calling: " + f);
+            throw Error(`assertNoWarning: Unexpected warning "${warning.message}" when calling: ` + f);
         }
     };
 }

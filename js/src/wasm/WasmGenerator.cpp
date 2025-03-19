@@ -1144,12 +1144,10 @@ bool ModuleGenerator::startCompleteTier() {
 bool ModuleGenerator::startPartialTier(uint32_t funcIndex) {
 #ifdef JS_JITSPEW
   UTF8Bytes name;
-  if (codeMeta_->namePayload.get()) {
-    if (!codeMeta_->getFuncNameForWasm(NameContext::Standalone, funcIndex,
-                                       &name) ||
-        !name.append("\0", 1)) {
-      return false;
-    }
+  if (!codeMeta_->getFuncNameForWasm(NameContext::Standalone, funcIndex,
+                                     &name) ||
+      !name.append("\0", 1)) {
+    return false;
   }
   uint32_t bytecodeLength = codeMeta_->funcDefRange(funcIndex).size;
   JS_LOG(wasmPerf, Info,
@@ -1324,9 +1322,10 @@ SharedModule ModuleGenerator::finishModule(
   }
 
   // Store a reference to the name section on the code metadata
-  if (codeMeta_->nameCustomSectionIndex) {
-    codeMeta->namePayload =
-        moduleMeta->customSections[*codeMeta_->nameCustomSectionIndex].payload;
+  if (codeMeta_->nameSection) {
+    codeMeta->nameSection->payload =
+        moduleMeta->customSections[codeMeta_->nameSection->customSectionIndex]
+            .payload;
   }
 
   // Initialize the debug hash for display urls, if we need to

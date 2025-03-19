@@ -225,8 +225,9 @@ static bool AppendFunctionIndexName(uint32_t funcIndex, UTF8Bytes* bytes) {
 
 bool CodeMetadata::getFuncNameForWasm(NameContext ctx, uint32_t funcIndex,
                                       UTF8Bytes* name) const {
-  if (moduleName && moduleName->length != 0) {
-    if (!AppendName(namePayload->vector, *moduleName, name)) {
+  if (nameSection && nameSection->moduleName.length != 0) {
+    if (!AppendName(nameSection->payload->vector, nameSection->moduleName,
+                    name)) {
       return false;
     }
     if (!name->append('.')) {
@@ -234,8 +235,10 @@ bool CodeMetadata::getFuncNameForWasm(NameContext ctx, uint32_t funcIndex,
     }
   }
 
-  if (funcIndex < funcNames.length() && funcNames[funcIndex].length != 0) {
-    return AppendName(namePayload->vector, funcNames[funcIndex], name);
+  if (nameSection && funcIndex < nameSection->funcNames.length() &&
+      nameSection->funcNames[funcIndex].length != 0) {
+    return AppendName(nameSection->payload->vector,
+                      nameSection->funcNames[funcIndex], name);
   }
 
   if (ctx == NameContext::BeforeLocation) {
@@ -254,8 +257,7 @@ size_t CodeMetadata::sizeOfExcludingThis(
          globals.sizeOfExcludingThis(mallocSizeOf) +
          tags.sizeOfExcludingThis(mallocSizeOf) +
          tables.sizeOfExcludingThis(mallocSizeOf) +
-         namePayload->sizeOfExcludingThis(mallocSizeOf) +
-         funcNames.sizeOfExcludingThis(mallocSizeOf) +
+         SizeOfMaybeExcludingThis(nameSection, mallocSizeOf) +
          funcs.sizeOfExcludingThis(mallocSizeOf) +
          elemSegmentTypes.sizeOfExcludingThis(mallocSizeOf) +
          asmJSSigToTableIndex.sizeOfExcludingThis(mallocSizeOf) +

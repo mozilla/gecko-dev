@@ -295,7 +295,7 @@ function moduleWithSections(sections) {
     const bytes = moduleHeaderThen();
     for (const section of sections) {
         bytes.push(section.name);
-        bytes.push(...varU32(section.body.length));
+        bytes.push(...varU32(section.length ?? section.body.length));
         for (let byte of section.body) {
             bytes.push(byte);
         }
@@ -706,7 +706,7 @@ function moduleNameSubsection(moduleName) {
     return body;
 }
 
-function funcNameSubsection(funcNames) {
+function funcNameSubsection(funcNames, subsectionLen = null) {
     var body = [];
     body.push(...varU32(nameTypeFunction));
 
@@ -719,19 +719,19 @@ function funcNameSubsection(funcNames) {
         funcIndex++;
     }
 
-    body.push(...varU32(subsection.length));
+    body.push(...varU32(subsectionLen ?? subsection.length));
     body.push(...subsection);
     return body;
 }
 
-function nameSection(subsections) {
+function nameSection(subsections, sectionLength = null) {
     var body = [];
     body.push(...string(nameName));
 
     for (let ss of subsections)
         body.push(...ss);
 
-    return { name: userDefinedId, body };
+    return { name: userDefinedId, length: sectionLength, body };
 }
 
 function customSection(name, ...body) {

@@ -903,6 +903,18 @@ CoderResult CodeCustomSection(Coder<mode>& coder,
 }
 
 template <CoderMode mode>
+CoderResult CodeNameSection(Coder<mode>& coder,
+                            CoderArg<mode, NameSection> item) {
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::NameSection, 64);
+  MOZ_TRY(CodePod(coder, &item->customSectionIndex));
+  MOZ_TRY(CodePod(coder, &item->moduleName));
+  MOZ_TRY(CodePodVector(coder, &item->funcNames));
+  // We do not serialize `payload` because the ModuleMetadata will do that for
+  // us.
+  return Ok();
+}
+
+template <CoderMode mode>
 CoderResult CodeTableDesc(Coder<mode>& coder, CoderArg<mode, TableDesc> item) {
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::TableDesc, 144);
   MOZ_TRY(CodeRefType(coder, &item->elemType));
@@ -1227,12 +1239,8 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
            &CodeRefPtr<mode, const ShareableBytes, CodeShareableBytes>>(
       coder, &item->codeSectionBytecode)));
 
-  MOZ_TRY((CodeMaybe<mode, uint32_t, &CodePod>(coder,
-                                               &item->nameCustomSectionIndex)));
-  MOZ_TRY(CodePod(coder, &item->moduleName));
-  MOZ_TRY(CodePodVector(coder, &item->funcNames));
-  // We do not serialize the `namePayload` because the ModuleMetadata will do
-  // that for us.
+  MOZ_TRY((CodeMaybe<mode, NameSection, &CodeNameSection>(coder,
+                                                          &item->nameSection)));
 
   // TODO (bug 1907645): We do not serialize branch hints yet.
 
@@ -1313,12 +1321,10 @@ CoderResult CodeModuleMetadata(Coder<mode>& coder,
   // Give CodeMetadata a pointer to our name payload now that we've
   // deserialized it.
   if constexpr (mode == MODE_DECODE) {
-    if (item->codeMeta->nameCustomSectionIndex) {
-      item->codeMeta->namePayload =
-          item->customSections[*item->codeMeta->nameCustomSectionIndex].payload;
-    } else {
-      MOZ_RELEASE_ASSERT(!item->codeMeta->moduleName);
-      MOZ_RELEASE_ASSERT(item->codeMeta->funcNames.empty());
+    if (item->codeMeta->nameSection) {
+      item->codeMeta->nameSection->payload =
+          item->customSections[item->codeMeta->nameSection->customSectionIndex]
+              .payload;
     }
   }
 

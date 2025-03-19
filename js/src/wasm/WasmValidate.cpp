@@ -3927,7 +3927,9 @@ static bool DecodeBranchHintingSection(Decoder& d, CodeMetadata* codeMeta) {
     codeMeta->branchHints.setFailedAndClear();
   }
 
-  d.finishCustomSection(BranchHintingSectionName, *range);
+  if (!d.finishCustomSection(BranchHintingSectionName, *range)) {
+    codeMeta->branchHints.setFailedAndClear();
+  }
   return true;
 }
 #endif
@@ -4181,7 +4183,7 @@ static bool DecodeModuleNameSubsection(Decoder& d,
   }
 
   // Only save the module name if the whole subsection validates.
-  codeMeta->moduleName.emplace(moduleName);
+  codeMeta->nameSection->moduleName = moduleName;
   return true;
 }
 
@@ -4244,9 +4246,8 @@ static bool DecodeFunctionNameSubsection(Decoder& d,
     return false;
   }
 
-  // To encourage fully valid function names subsections; only save names if
-  // the entire subsection decoded correctly.
-  codeMeta->funcNames = std::move(funcNames);
+  // Only save names if the entire subsection decoded correctly.
+  codeMeta->nameSection->funcNames = std::move(funcNames);
   return true;
 }
 
@@ -4260,8 +4261,10 @@ static bool DecodeNameSection(Decoder& d, CodeMetadata* codeMeta,
     return true;
   }
 
-  codeMeta->nameCustomSectionIndex =
-      Some(codeMeta->customSectionRanges.length() - 1);
+  codeMeta->nameSection.emplace((NameSection){
+      .customSectionIndex =
+          uint32_t(codeMeta->customSectionRanges.length() - 1),
+  });
   const CustomSectionRange& nameSection = codeMeta->customSectionRanges.back();
 
   // Once started, custom sections do not report validation errors.
@@ -4281,7 +4284,9 @@ static bool DecodeNameSection(Decoder& d, CodeMetadata* codeMeta,
   }
 
 finish:
-  d.finishCustomSection(NameSectionName, *range);
+  if (!d.finishCustomSection(NameSectionName, *range)) {
+    codeMeta->nameSection = mozilla::Nothing();
+  }
   return true;
 }
 

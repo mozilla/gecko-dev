@@ -233,7 +233,7 @@ fail:
   return fail("failed to start custom section");
 }
 
-void Decoder::finishCustomSection(const char* name,
+bool Decoder::finishCustomSection(const char* name,
                                   const BytecodeRange& range) {
   MOZ_ASSERT(cur_ >= beg_);
   MOZ_ASSERT(cur_ <= end_);
@@ -241,7 +241,7 @@ void Decoder::finishCustomSection(const char* name,
   if (error_ && *error_) {
     warnf("in the '%s' custom section: %s", name, error_->get());
     skipAndFinishCustomSection(range);
-    return;
+    return false;
   }
 
   uint32_t actualSize = currentOffset() - range.start;
@@ -255,10 +255,11 @@ void Decoder::finishCustomSection(const char* name,
             name, uint32_t(actualSize - range.size));
     }
     skipAndFinishCustomSection(range);
-    return;
+    return false;
   }
 
   // Nothing to do! (c.f. skipAndFinishCustomSection())
+  return true;
 }
 
 void Decoder::skipAndFinishCustomSection(const BytecodeRange& range) {

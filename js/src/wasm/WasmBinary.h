@@ -577,7 +577,8 @@ class Decoder {
     return startCustomSection(name, NameSizeWith0 - 1, codeMeta, range);
   }
 
-  void finishCustomSection(const char* name, const BytecodeRange& range);
+  [[nodiscard]] bool finishCustomSection(const char* name,
+                                         const BytecodeRange& range);
   void skipAndFinishCustomSection(const BytecodeRange& range);
 
   [[nodiscard]] bool skipCustomSection(CodeMetadata* codeMeta);

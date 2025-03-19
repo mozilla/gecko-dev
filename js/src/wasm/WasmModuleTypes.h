@@ -756,6 +756,18 @@ WASM_DECLARE_CACHEABLE_POD(Name);
 
 using NameVector = Vector<Name, 0, SystemAllocPolicy>;
 
+struct NameSection {
+  Name moduleName;
+  NameVector funcNames;
+  // payload points at the name section's CustomSection::payload so that
+  // the Names (which are use payload-relative offsets) can be used
+  // independently of the Module without duplicating the name section.
+  SharedBytes payload;
+  uint32_t customSectionIndex;
+
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
+};
+
 // The kind of limits to decode or convert from JS.
 
 enum class LimitsKind {

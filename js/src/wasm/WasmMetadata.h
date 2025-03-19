@@ -105,13 +105,7 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   BranchHintCollection branchHints;
 
   // Name section information
-  mozilla::Maybe<Name> moduleName;
-  NameVector funcNames;
-  // namePayload points at the name section's CustomSection::payload so that
-  // the Names (which are use payload-relative offsets) can be used
-  // independently of the Module without duplicating the name section.
-  SharedBytes namePayload;
-  mozilla::Maybe<uint32_t> nameCustomSectionIndex;
+  mozilla::Maybe<NameSection> nameSection;
 
   // Bytecode ranges for custom sections.
   CustomSectionRangeVector customSectionRanges;
