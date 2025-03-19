@@ -75,9 +75,7 @@ def run_perfdocs(config, logger=None, paths=None, generate=True):
     else:
         from tryselect.tasks import generate_tasks
 
-        task_graph = generate_tasks(
-            params=None, full=True, disable_target_task_filter=True
-        ).tasks
+        task_graph = generate_tasks(full=True, disable_target_task_filter=True).tasks
 
     # Late import because logger isn't defined until later
     from perfdocs.generator import Generator
