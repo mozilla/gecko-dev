@@ -330,6 +330,29 @@ class CaptchaDetectionParent extends JSWindowActorParent {
     await actor.sendQuery("Testing:MetricIsSet");
   }
 
+  recordCaptchaHandlerConstructed({ isPBM, type }) {
+    let metric = "";
+    switch (type) {
+      case "g-recaptcha-v2":
+        metric = "googleRecaptchaV2Oc";
+        break;
+      case "cf-turnstile":
+        metric = "cloudflareTurnstileOc";
+        break;
+      case "datadome":
+        metric = "datadomeOc";
+        break;
+      case "hCaptcha":
+        metric = "hcaptchaOc";
+        break;
+      case "arkoseLabs":
+        metric = "arkoselabsOc";
+        break;
+    }
+    metric += isPBM ? "Pbm" : "";
+    Glean.captchaDetection[metric].add(1);
+  }
+
   async receiveMessage(message) {
     lazy.console.debug("receiveMessage", message);
 
@@ -349,6 +372,14 @@ class CaptchaDetectionParent extends JSWindowActorParent {
             this.#recordHCaptchaState(message.data);
             break;
         }
+        break;
+      case "CaptchaHandler:Constructed":
+        // message.name === "CaptchaHandler:Constructed"
+        // => message.data = {
+        //   isPBM: bool,
+        //   type: string,
+        // }
+        this.recordCaptchaHandlerConstructed(message.data);
         break;
       case "TabState:Closed":
         // message.name === "TabState:Closed"

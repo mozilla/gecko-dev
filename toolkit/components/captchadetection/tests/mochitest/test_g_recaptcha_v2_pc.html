@@ -44,6 +44,10 @@
           await GleanTest.captchaDetection.googleRecaptchaV2Pc.testGetValue();
         is(puzzleCompletedCount, 1, "The puzzle completion count should be 1");
 
+        const occurredCount =
+          await GleanTest.captchaDetection.googleRecaptchaV2Oc.testGetValue();
+        is(occurredCount, 2, "We should have detected the occurrence");
+
         await CaptchaTestingUtils.clearPrefs();
       });
     </script>

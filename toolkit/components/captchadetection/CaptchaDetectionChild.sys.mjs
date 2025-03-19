@@ -16,6 +16,8 @@ ChromeUtils.defineLazyGetter(lazy, "console", () => {
  * Abstract class for handling captchas.
  */
 class CaptchaHandler {
+  static type = "abstract";
+
   /**
    * @param {CaptchaDetectionChild} actor - The window actor.
    * @param {Event} _event - The initial event that created the actor.
@@ -25,6 +27,15 @@ class CaptchaHandler {
     this.actor = actor;
     this.tabId = this.actor.docShell.browserChild.tabId;
     this.isPBM = this.actor.browsingContext.usePrivateBrowsing;
+    this.notifyConstructed();
+  }
+
+  notifyConstructed() {
+    lazy.console.debug(`CaptchaHandler constructed: ${this.constructor.type}`);
+    this.actor.sendAsyncMessage("CaptchaHandler:Constructed", {
+      type: this.constructor.type,
+      isPBM: this.isPBM,
+    });
   }
 
   static matches(_document) {
@@ -73,6 +84,8 @@ class GoogleRecaptchaV2Handler extends CaptchaHandler {
   #enabled;
   #mutationObserver;
 
+  static type = "g-recaptcha-v2";
+
   constructor(actor, event) {
     super(actor, event);
     this.#enabled = true;
@@ -92,7 +105,7 @@ class GoogleRecaptchaV2Handler extends CaptchaHandler {
       return (
         document
           .getElementById("captchaType")
-          ?.getAttribute("data-captcha-type") === "g-recaptcha-v2"
+          ?.getAttribute("data-captcha-type") === GoogleRecaptchaV2Handler.type
       );
     }
 
@@ -116,7 +129,7 @@ class GoogleRecaptchaV2Handler extends CaptchaHandler {
     const checkmark = this.actor.document.getElementById("recaptcha-anchor");
     if (checkmark && checkmark.ariaChecked === "true") {
       this.updateState({
-        type: "g-recaptcha-v2",
+        type: GoogleRecaptchaV2Handler.type,
         changes: "GotCheckmark",
       });
       this.#enabled = false;
@@ -127,7 +140,7 @@ class GoogleRecaptchaV2Handler extends CaptchaHandler {
     const images = this.actor.document.getElementById("rc-imageselect");
     if (images) {
       this.updateState({
-        type: "g-recaptcha-v2",
+        type: GoogleRecaptchaV2Handler.type,
         changes: "ImagesShown",
       });
       this.#enabled = false;
@@ -158,6 +171,8 @@ class CFTurnstileHandler extends CaptchaHandler {
   #observingShadowRoot;
   #mutationObserver;
 
+  static type = "cf-turnstile";
+
   constructor(actor, event) {
     super(actor, event);
     this.#observingShadowRoot = false;
@@ -182,7 +197,7 @@ class CFTurnstileHandler extends CaptchaHandler {
       return (
         document
           .getElementById("captchaType")
-          ?.getAttribute("data-captcha-type") === "cf-turnstile"
+          ?.getAttribute("data-captcha-type") === CFTurnstileHandler.type
       );
     }
 
@@ -222,7 +237,7 @@ class CFTurnstileHandler extends CaptchaHandler {
         if (fail.style.display !== "none") {
           lazy.console.debug("Captcha failed");
           this.updateState({
-            type: "cf-turnstile",
+            type: CFTurnstileHandler.type,
             result: "Failed",
           });
           observer.disconnect();
@@ -232,7 +247,7 @@ class CFTurnstileHandler extends CaptchaHandler {
         if (success.style.display !== "none") {
           lazy.console.debug("Captcha succeeded");
           this.updateState({
-            type: "cf-turnstile",
+            type: CFTurnstileHandler.type,
             result: "Succeeded",
           });
           observer.disconnect();
@@ -264,13 +279,15 @@ class CFTurnstileHandler extends CaptchaHandler {
  * when the captcha is completed.
  */
 class DatadomeHandler extends CaptchaHandler {
+  static type = "datadome";
+
   constructor(actor, event) {
     super(actor, event);
 
     event.stopImmediatePropagation();
 
     this.actor
-      .sendQuery("CaptchaDetection:Init", { type: "datadome" })
+      .sendQuery("CaptchaDetection:Init", { type: DatadomeHandler.type })
       .then(() => {
         // re-dispatch the event
         event.target.dispatchEvent(event);
@@ -282,7 +299,7 @@ class DatadomeHandler extends CaptchaHandler {
       return (
         document
           .getElementById("captchaType")
-          ?.getAttribute("data-captcha-type") === "datadome"
+          ?.getAttribute("data-captcha-type") === DatadomeHandler.type
       );
     }
 
@@ -306,6 +323,8 @@ class HCaptchaHandler extends CaptchaHandler {
   #shown;
   #checked;
   #mutationObserver;
+
+  static type = "hCaptcha";
 
   constructor(actor, event) {
     super(actor, event);
@@ -331,7 +350,7 @@ class HCaptchaHandler extends CaptchaHandler {
       return (
         document
           .getElementById("captchaType")
-          ?.getAttribute("data-captcha-type") === "hCaptcha"
+          ?.getAttribute("data-captcha-type") === HCaptchaHandler.type
       );
     }
 
@@ -364,7 +383,7 @@ class HCaptchaHandler extends CaptchaHandler {
     }
 
     this.updateState({
-      type: "hCaptcha",
+      type: HCaptchaHandler.type,
       changes: "shown",
     });
     observer.disconnect();
@@ -391,7 +410,7 @@ class HCaptchaHandler extends CaptchaHandler {
     if (checkbox?.ariaChecked === "true") {
       this.#checked = true;
       this.updateState({
-        type: "hCaptcha",
+        type: HCaptchaHandler.type,
         changes: "passed",
       });
       observer.disconnect();
@@ -413,10 +432,12 @@ class HCaptchaHandler extends CaptchaHandler {
  * the parent actor with the state of the captcha.
  */
 class ArkoseLabsHandler extends CaptchaHandler {
+  static type = "arkoseLabs";
+
   constructor(actor) {
     super(actor);
     this.actor.sendAsyncMessage("CaptchaDetection:Init", {
-      type: "arkoseLabs",
+      type: ArkoseLabsHandler.type,
     });
   }
 
@@ -425,7 +446,7 @@ class ArkoseLabsHandler extends CaptchaHandler {
       return (
         document
           .getElementById("captchaType")
-          ?.getAttribute("data-captcha-type") === "arkoseLabs"
+          ?.getAttribute("data-captcha-type") === ArkoseLabsHandler.type
       );
     }
 

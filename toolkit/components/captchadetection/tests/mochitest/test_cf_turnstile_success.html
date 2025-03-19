@@ -31,6 +31,10 @@
           await GleanTest.captchaDetection.cloudflareTurnstileCc.testGetValue();
         is(puzzleCompletedCount, 1, "The puzzle completion count should be 1");
 
+        const occurredCount =
+          await GleanTest.captchaDetection.cloudflareTurnstileOc.testGetValue();
+        is(occurredCount, 1, "We should have detected the occurrence");
+
         await CaptchaTestingUtils.clearPrefs();
       });
     </script>

@@ -17,6 +17,12 @@
       add_task(async function () {
         await GleanTest.testResetFOG();
 
+        await CaptchaTestingUtils.createIframeAndWaitForMessage(
+          "g_recaptcha_v2_images.html",
+          document.body,
+          "ready"
+        );
+
         const checkboxFrame =
           await CaptchaTestingUtils.createIframeAndWaitForMessage(
             "g_recaptcha_v2_checkbox.html",
@@ -31,6 +37,10 @@
         const puzzleCompletedCount =
           await GleanTest.captchaDetection.googleRecaptchaV2Ac.testGetValue();
         is(puzzleCompletedCount, 1, "The puzzle completion count should be 1");
+
+        const occurredCount =
+          await GleanTest.captchaDetection.googleRecaptchaV2Oc.testGetValue();
+        is(occurredCount, 2, "We should have detected the occurrence");
 
         await CaptchaTestingUtils.clearPrefs();
       });

@@ -46,6 +46,10 @@
           "The number of solutions required should be 2"
         );
 
+        const occurredCount =
+          await GleanTest.captchaDetection.arkoselabsOc.testGetValue();
+        is(occurredCount, 1, "We should have detected the occurrence");
+
         await CaptchaTestingUtils.clearPrefs();
       });
     </script>

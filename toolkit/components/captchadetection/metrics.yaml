@@ -17,10 +17,26 @@ $tags:
 # We use some abbreviations in some metric names.
 # Puzzle related: pc = puzzle completed, pf = puzzle failed, ac = auto completed, ps = puzzle shown
 # Challenge related: cc = challenge completed, cf = challenge failed
-# General: PBM = Private Browsing Mode, bl = blocked
+# General: PBM = Private Browsing Mode, bl = blocked, oc = occurrence
 
 captcha_detection:
   # Captcha states in normal browsing
+  google_recaptcha_v2_oc:
+    type: counter
+    description: >
+      Number of times the Google reCAPTCHA v2 was loaded since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
   google_recaptcha_v2_ps:
     type: counter
     description: >
@@ -69,6 +85,22 @@ captcha_detection:
     data_sensitivity:
       - interaction
 
+  cloudflare_turnstile_oc:
+    type: counter
+    description: >
+      Number of times the Cloudflare Turnstile challenge was loaded since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
   cloudflare_turnstile_cc:
     type: counter
     description: >
@@ -103,6 +135,22 @@ captcha_detection:
 
   # Datadome uses interstitials to block access to the website.
   # So it is enough to count the number of times the puzzle was shown.
+  datadome_oc:
+    type: counter
+    description: >
+      Number of times the Datadome was loaded since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
   datadome_ps:
     type: counter
     description: >
@@ -151,6 +199,22 @@ captcha_detection:
     data_sensitivity:
       - interaction
 
+  hcaptcha_oc:
+    type: counter
+    description: >
+      Number of times the hCaptcha was loaded since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
   hcaptcha_ps:
     type: counter
     description: >
@@ -191,6 +255,22 @@ captcha_detection:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
     data_reviews:
       - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  arkoselabs_oc:
+    type: counter
+    description: >
+      Number of times the ArkoseLabs was loaded since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
     notification_emails:
       - tritter@mozilla.com
     send_in_pings:
@@ -268,6 +348,22 @@ captcha_detection:
       - interaction
 
   # Captcha states in private browsing
+  google_recaptcha_v2_oc_pbm:
+    type: counter
+    description: >
+      Number of times the Google reCAPTCHA v2 was loaded since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
   google_recaptcha_v2_ps_pbm:
     type: counter
     description: >
@@ -308,6 +404,22 @@ captcha_detection:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
     data_reviews:
       - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  cloudflare_turnstile_oc_pbm:
+    type: counter
+    description: >
+      Number of times the Cloudflare Turnstile challenge was loaded since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
     notification_emails:
       - tritter@mozilla.com
     send_in_pings:
@@ -396,6 +508,22 @@ captcha_detection:
     data_sensitivity:
       - interaction
 
+  hcaptcha_oc_pbm:
+    type: counter
+    description: >
+      Number of times the hCaptcha was loaded since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
   hcaptcha_ps_pbm:
     type: counter
     description: >
@@ -436,6 +564,22 @@ captcha_detection:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
     data_reviews:
       - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  arkoselabs_oc_pbm:
+    type: counter
+    description: >
+      Number of times the ArkoseLabs was loaded since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
     notification_emails:
       - tritter@mozilla.com
     send_in_pings:

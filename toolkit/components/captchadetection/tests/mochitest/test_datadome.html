@@ -50,6 +50,10 @@
           await GleanTest.captchaDetection.datadomePc.testGetValue();
         is(puzzleCompletedCount, 1, "The puzzle completed count should be 1");
 
+        const occurredCount =
+          await GleanTest.captchaDetection.datadomeOc.testGetValue();
+        is(occurredCount, 3, "We should have detected the occurrence");
+
         await CaptchaTestingUtils.clearPrefs();
       });
     </script>
