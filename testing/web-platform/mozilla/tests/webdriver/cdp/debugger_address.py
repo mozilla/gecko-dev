@@ -14,7 +14,6 @@ def clear_protocol_pref(session):
     clear_pref(session, "remote.active-protocols")
 
 
-@pytest.mark.allow_system_access
 @pytest.mark.capabilities(
     {
         "moz:firefoxOptions": {
@@ -24,12 +23,11 @@ def clear_protocol_pref(session):
         },
     }
 )
-def test_debugger_address_not_set(session, capabilities):
+def test_debugger_address_not_set(session):
     debugger_address = session.capabilities.get("moz:debuggerAddress")
     assert debugger_address is None
 
 
-@pytest.mark.allow_system_access
 @pytest.mark.capabilities(
     {
         "moz:debuggerAddress": False,
@@ -45,7 +43,6 @@ def test_debugger_address_false(session):
     assert debugger_address is None
 
 
-@pytest.mark.allow_system_access
 @pytest.mark.capabilities(
     {
         "moz:debuggerAddress": True,
@@ -57,7 +54,7 @@ def test_debugger_address_false(session):
     }
 )
 @pytest.mark.parametrize("fission_enabled", [True, False], ids=["enabled", "disabled"])
-def test_debugger_address_true_with_fission(session, capabilities, fission_enabled):
+def test_debugger_address_true_with_fission(session, fission_enabled):
     debugger_address = session.capabilities.get("moz:debuggerAddress")
     assert debugger_address is not None
 

@@ -32,17 +32,11 @@ const CDP_ACTIVE = 0x2;
 const DEFAULT_HOST = "localhost";
 const DEFAULT_PORT = 9222;
 
-// Adds various command-line arguments as environment variables to preserve
-// their values when the application is restarted internally.
-const ENV_ALLOW_SYSTEM_ACCESS = "MOZ_REMOTE_ALLOW_SYSTEM_ACCESS";
-
 const isRemote =
   Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT;
-
 class RemoteAgentParentProcess {
   #allowHosts;
   #allowOrigins;
-  #allowSystemAccess;
   #browserStartupFinished;
   #classID;
   #enabled;
@@ -56,7 +50,6 @@ class RemoteAgentParentProcess {
   constructor() {
     this.#allowHosts = null;
     this.#allowOrigins = null;
-    this.#allowSystemAccess = Services.env.exists(ENV_ALLOW_SYSTEM_ACCESS);
     this.#browserStartupFinished = lazy.Deferred();
     this.#classID = Components.ID("{8f685a9d-8181-46d6-a71d-869289099c6d}");
     this.#enabled = false;
@@ -104,22 +97,6 @@ class RemoteAgentParentProcess {
 
   get allowOrigins() {
     return this.#allowOrigins;
-  }
-
-  get allowSystemAccess() {
-    return this.#allowSystemAccess;
-  }
-
-  set allowSystemAccess(value) {
-    // Return early if system access is already marked being allowed.
-    // There is also no possibility to disallow once it got allowed except
-    // quitting Firefox and starting it again.
-    if (this.#allowSystemAccess || !value) {
-      return;
-    }
-
-    this.#allowSystemAccess = true;
-    Services.env.set(ENV_ALLOW_SYSTEM_ACCESS, "1");
   }
 
   /**
@@ -222,14 +199,6 @@ class RemoteAgentParentProcess {
       return origins.split(",");
     } catch (e) {
       return null;
-    }
-  }
-
-  #handleAllowSystemAccessFlag(cmdLine) {
-    try {
-      return cmdLine.handleFlag("remote-allow-system-access", false);
-    } catch (e) {
-      return false;
     }
   }
 
@@ -438,16 +407,15 @@ class RemoteAgentParentProcess {
       case "command-line-startup":
         Services.obs.removeObserver(this, topic);
 
-        this.#allowHosts = this.#handleAllowHostsFlag(subject);
-        this.#allowOrigins = this.#handleAllowOriginsFlag(subject);
-        this.allowSystemAccess = this.#handleAllowSystemAccessFlag(subject);
-
         this.#enabled = this.#handleRemoteDebuggingPortFlag(subject);
 
         if (this.#enabled) {
           // Add annotation to crash report to indicate whether the
           // Remote Agent was active.
           Services.appinfo.annotateCrashReport("RemoteAgent", true);
+
+          this.#allowHosts = this.#handleAllowHostsFlag(subject);
+          this.#allowOrigins = this.#handleAllowOriginsFlag(subject);
 
           Services.obs.addObserver(this, "final-ui-startup");
           Services.obs.addObserver(this, "browser-idle-startup-tasks-finished");
@@ -534,8 +502,7 @@ class RemoteAgentParentProcess {
   --remote-allow-hosts <hosts> Values of the Host header to allow for incoming requests.
                      Please read security guidelines at https://firefox-source-docs.mozilla.org/remote/Security.html
   --remote-allow-origins <origins> Values of the Origin header to allow for incoming requests.
-                     Please read security guidelines at https://firefox-source-docs.mozilla.org/remote/Security.html
-  --remote-allow-system-access Enable privileged access to the application's parent process\n`;
+                     Please read security guidelines at https://firefox-source-docs.mozilla.org/remote/Security.html\n`;
   }
 
   get QueryInterface() {

@@ -53,7 +53,3 @@ user_pref('media.block-autoplay-until-in-foreground', true);
 
 // Turn off update
 user_pref("app.update.disabledForTesting", true);
-
-// Temporarily turn off the system access check until Browsertime will pass
-// the --remote-allow-system-access argument to Firefox.
-user_pref("remote.system-access-check.enabled", false);
