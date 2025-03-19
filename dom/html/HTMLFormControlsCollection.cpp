@@ -187,6 +187,7 @@ nsresult HTMLFormControlsCollection::GetSortedControls(
   uint32_t elementsIdx = 0;
   uint32_t notInElementsIdx = 0;
 
+  nsContentUtils::NodeIndexCache indexCache;
   while (elementsIdx < elementsLen || notInElementsIdx < notInElementsLen) {
     // Check whether we're done with mElements
     if (elementsIdx == elementsLen) {
@@ -219,7 +220,8 @@ nsresult HTMLFormControlsCollection::GetSortedControls(
     nsGenericHTMLFormElement* elementToAdd;
     if (nsContentUtils::CompareTreePosition<TreeKind::DOM>(
             mElements->ElementAt(elementsIdx),
-            mNotInElements->ElementAt(notInElementsIdx), mForm) < 0) {
+            mNotInElements->ElementAt(notInElementsIdx), mForm,
+            &indexCache) < 0) {
       elementToAdd = mElements->ElementAt(elementsIdx);
       ++elementsIdx;
     } else {

@@ -1826,6 +1826,7 @@ namespace {
 
 struct PositionComparator {
   nsIContent* const mElement;
+  mutable nsContentUtils::NodeIndexCache mCache;
   explicit PositionComparator(nsIContent* const aElement)
       : mElement(aElement) {}
 
@@ -1833,10 +1834,8 @@ struct PositionComparator {
     if (mElement == aElement) {
       return 0;
     }
-    if (nsContentUtils::PositionIsBefore(mElement, aElement)) {
-      return -1;
-    }
-    return 1;
+    return nsContentUtils::CompareTreePosition<TreeKind::DOM>(
+        mElement, aElement, nullptr, &mCache);
   }
 };
 

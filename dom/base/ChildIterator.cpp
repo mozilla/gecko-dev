@@ -42,6 +42,35 @@ FlattenedChildIterator::FlattenedChildIterator(const nsIContent* aParent,
   }
 }
 
+uint32_t FlattenedChildIterator::GetLength(const nsINode* aParent) {
+  if (const auto* element = Element::FromNode(aParent)) {
+    if (const auto* slot = HTMLSlotElement::FromNode(element)) {
+      if (uint32_t len = slot->AssignedNodes().Length()) {
+        return len;
+      }
+    } else if (auto* shadowRoot = element->GetShadowRoot()) {
+      return shadowRoot->GetChildCount();
+    }
+  }
+  return aParent->GetChildCount();
+}
+
+Maybe<uint32_t> FlattenedChildIterator::GetIndexOf(
+    const nsINode* aParent, const nsINode* aPossibleChild) {
+  if (const auto* element = Element::FromNode(aParent)) {
+    if (const auto* slot = HTMLSlotElement::FromNode(element)) {
+      const auto& assignedNodes = slot->AssignedNodes();
+      if (!assignedNodes.IsEmpty()) {
+        auto index = assignedNodes.IndexOf(aPossibleChild);
+        return index == assignedNodes.NoIndex ? Nothing() : Some(index);
+      }
+    } else if (auto* shadowRoot = element->GetShadowRoot()) {
+      return shadowRoot->ComputeIndexOf(aPossibleChild);
+    }
+  }
+  return aParent->ComputeIndexOf(aPossibleChild);
+}
+
 nsIContent* FlattenedChildIterator::GetNextChild() {
   // If we're already in the inserted-children array, look there first
   if (mParentAsSlot) {

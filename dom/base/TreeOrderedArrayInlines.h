@@ -23,18 +23,17 @@ size_t TreeOrderedArray<Node>::Insert(Node& aNode, nsINode* aCommonAncestor) {
     return 0;
   }
 
-  // TODO(emilio, bug 1954552): We should probably allow passing a
-  // NodeIndexCache around here.
   struct PositionComparator {
     Node& mNode;
-    nsINode* mCommonAncestor;
+    nsINode* mCommonAncestor = nullptr;
+    mutable nsContentUtils::NodeIndexCache mCache;
 
     int operator()(void* aNode) const {
       auto* curNode = static_cast<Node*>(aNode);
       MOZ_DIAGNOSTIC_ASSERT(curNode != &mNode,
                             "Tried to insert a node already in the list");
       return nsContentUtils::CompareTreePosition<TreeKind::DOM>(
-          &mNode, curNode, mCommonAncestor);
+          &mNode, curNode, mCommonAncestor, &mCache);
     }
   };
 

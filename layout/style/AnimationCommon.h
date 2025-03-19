@@ -112,15 +112,15 @@ class OwningElementRef final {
     return mTarget == aOther.mTarget;
   }
 
-  bool LessThan(Maybe<uint32_t>& aChildIndex, const OwningElementRef& aOther,
-                Maybe<uint32_t>& aOtherChildIndex) const {
+  bool LessThan(const OwningElementRef& aOther,
+                nsContentUtils::NodeIndexCache& aCache) const {
     MOZ_ASSERT(mTarget.mElement && aOther.mTarget.mElement,
                "Elements to compare should not be null");
 
     if (mTarget.mElement != aOther.mTarget.mElement) {
-      return nsContentUtils::PositionIsBefore(mTarget.mElement,
-                                              aOther.mTarget.mElement,
-                                              &aChildIndex, &aOtherChildIndex);
+      return nsContentUtils::CompareTreePosition(mTarget.mElement,
+                                                 aOther.mTarget.mElement,
+                                                 nullptr, &aCache) < 0;
     }
 
     enum SortingIndex : uint8_t {
