@@ -654,11 +654,6 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             message = "onResume()",
         )
 
-        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
-            true
-        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
-            AuthenticationStatus.NOT_AUTHENTICATED
-
         lifecycleScope.launch(IO) {
             try {
                 if (settings().showContileFeature) {

@@ -96,6 +96,8 @@ import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.ui.colors.PhotonColors
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import mozilla.telemetry.glean.private.NoExtras
+import org.mozilla.fenix.AuthenticationStatus
+import org.mozilla.fenix.BiometricAuthenticationManager
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.GleanMetrics.HomeScreen
 import org.mozilla.fenix.GleanMetrics.Homepage
@@ -1507,6 +1509,11 @@ class HomeFragment : Fragment() {
         components.useCases.sessionUseCases.updateLastAccess()
 
         evaluateMessagesForMicrosurvey(components)
+
+        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
+            true
+        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
+            AuthenticationStatus.NOT_AUTHENTICATED
     }
 
     private fun evaluateMessagesForMicrosurvey(components: Components) =
