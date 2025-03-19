@@ -205,6 +205,9 @@ pub enum DisplayItem {
 
     ReuseItems(ItemKey),
     RetainedItems(ItemKey),
+
+    // For debugging purposes.
+    DebugMarker(u32),
 }
 
 /// This is a "complete" version of the DisplayItem, with all implicit trailing
@@ -247,6 +250,8 @@ pub enum DebugDisplayItem {
     PopReferenceFrame,
     PopStackingContext,
     PopAllShadows,
+
+    DebugMarker(u32)
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
@@ -2294,6 +2299,7 @@ impl DisplayItem {
             DisplayItem::Text(..) => "text",
             DisplayItem::YuvImage(..) => "yuv_image",
             DisplayItem::BackdropFilter(..) => "backdrop_filter",
+            DisplayItem::DebugMarker(..) => "debug",
         }
     }
 }

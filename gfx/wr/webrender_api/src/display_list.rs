@@ -384,6 +384,7 @@ impl<'de> Deserialize<'de> for DisplayListWithCache {
                 Debug::PopStackingContext => Real::PopStackingContext,
                 Debug::PopReferenceFrame => Real::PopReferenceFrame,
                 Debug::PopAllShadows => Real::PopAllShadows,
+                Debug::DebugMarker(val) => Real::DebugMarker(val),
             };
             poke_into_vec(&item, &mut items_data);
             // the aux data is serialized after the item, hence the temporary
@@ -709,6 +710,7 @@ impl BuiltDisplayList {
                 Real::PopAllShadows => Debug::PopAllShadows,
                 Real::ReuseItems(_) |
                 Real::RetainedItems(_) => unreachable!("Unexpected item"),
+                Real::DebugMarker(val) => Debug::DebugMarker(val),
             };
             debug_items.push(serial_di);
         }
@@ -1919,6 +1921,10 @@ impl DisplayListBuilder {
             self.push_item(&di::DisplayItem::SetFilterPrimitives);
             self.push_iter(filter_primitives);
         }
+    }
+
+    pub fn push_debug(&mut self, val: u32) {
+        self.push_item(&di::DisplayItem::DebugMarker(val));
     }
 
     fn generate_clip_index(&mut self) -> di::ClipId {

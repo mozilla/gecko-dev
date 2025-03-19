@@ -1949,6 +1949,7 @@ impl<'a> SceneBuilder<'a> {
 
                 self.pop_all_shadows();
             }
+            DisplayItem::DebugMarker(..) => {}
         }
     }
 
