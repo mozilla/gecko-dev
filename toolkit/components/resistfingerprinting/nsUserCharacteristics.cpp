@@ -654,11 +654,18 @@ already_AddRefed<PopulatePromise> PopulateTimeZone() {
 void PopulateModelName() {
   nsCString modelName("null");
 
-#if defined(XP_MACOSX)
   nsCOMPtr<nsIPropertyBag2> sysInfo =
       do_GetService("@mozilla.org/system-info;1");
   NS_ENSURE_TRUE_VOID(sysInfo);
+
+#if defined(XP_MACOSX)
   sysInfo->GetPropertyAsACString(u"appleModelId"_ns, modelName);
+#elif defined(MOZ_WIDGET_ANDROID)
+  sysInfo->GetPropertyAsACString(u"manufacturer"_ns, modelName);
+  modelName.AppendLiteral(" ");
+  nsCString temp;
+  sysInfo->GetPropertyAsACString(u"device"_ns, temp);
+  modelName.Append(temp);
 #endif
 
   glean::characteristics::machine_model_name.Set(modelName);
