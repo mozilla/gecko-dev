@@ -148,9 +148,6 @@ fail:
 
 bool Decoder::finishSection(const BytecodeRange& range,
                             const char* sectionName) {
-  if (resilientMode_) {
-    return true;
-  }
   if (range.size != currentOffset() - range.start) {
     return failf("byte size mismatch in %s section", sectionName);
   }

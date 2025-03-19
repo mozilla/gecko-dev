@@ -4302,10 +4302,6 @@ bool wasm::DecodeModuleTail(Decoder& d, CodeMetadata* codeMeta,
 
   while (!d.done()) {
     if (!d.skipCustomSection(codeMeta)) {
-      if (d.resilientMode()) {
-        d.clearError();
-        return true;
-      }
       return false;
     }
   }

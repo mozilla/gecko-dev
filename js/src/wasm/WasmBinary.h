@@ -307,7 +307,6 @@ class Decoder {
   const size_t offsetInModule_;
   UniqueChars* error_;
   UniqueCharsVector* warnings_;
-  bool resilientMode_;
 
   template <class T>
   [[nodiscard]] bool read(T* out) {
@@ -400,15 +399,13 @@ class Decoder {
 
  public:
   Decoder(const uint8_t* begin, const uint8_t* end, size_t offsetInModule,
-          UniqueChars* error, UniqueCharsVector* warnings = nullptr,
-          bool resilientMode = false)
+          UniqueChars* error, UniqueCharsVector* warnings = nullptr)
       : beg_(begin),
         end_(end),
         cur_(begin),
         offsetInModule_(offsetInModule),
         error_(error),
-        warnings_(warnings),
-        resilientMode_(resilientMode) {
+        warnings_(warnings) {
     MOZ_ASSERT(begin <= end);
   }
   explicit Decoder(const Bytes& bytes, size_t offsetInModule = 0,
@@ -419,8 +416,7 @@ class Decoder {
         cur_(bytes.begin()),
         offsetInModule_(offsetInModule),
         error_(error),
-        warnings_(warnings),
-        resilientMode_(false) {}
+        warnings_(warnings) {}
 
   // These convenience functions use currentOffset() as the errorOffset.
   bool fail(const char* msg) { return fail(currentOffset(), msg); }
@@ -442,7 +438,6 @@ class Decoder {
     MOZ_ASSERT(cur_ <= end_);
     return cur_ == end_;
   }
-  bool resilientMode() const { return resilientMode_; }
 
   size_t bytesRemain() const {
     MOZ_ASSERT(end_ >= cur_);
