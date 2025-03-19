@@ -18,44 +18,17 @@ firefoxview-page-heading =
 firefoxview-page-label =
   .label = { -firefoxview-brand-name }
 
-firefoxview-close-button =
-  .title = Close
-  .aria-label = Close
-
-firefoxview-empty-state-icon =
-  .alt = Attention:
-
 # Used instead of the localized relative time when a timestamp is within a minute or so of now
 firefoxview-just-now-timestamp = Just now
-
-# This is a headline for an area in the product where users can resume and re-open tabs they have previously viewed on other devices.
-firefoxview-tabpickup-header = Tab pickup
-firefoxview-tabpickup-description = Open pages from other devices.
-
-# Variables:
-#  $percentValue (Number): the percentage value for setup completion
-firefoxview-tabpickup-progress-label = { $percentValue }% complete
-
-firefoxview-tabpickup-step-signin-header = Switch seamlessly between devices
-firefoxview-tabpickup-step-signin-description = To grab your phone tabs here, first sign in or create an account.
-firefoxview-tabpickup-step-signin-primarybutton = Continue
 
 firefoxview-syncedtabs-signin-header-2 = Your { -brand-product-name } on all your devices
 firefoxview-syncedtabs-signin-description-2 = To see tabs you have open on your phone and other devices, sign in or sign up for an account. With an account, you can also sync your passwords, history, and more.
 firefoxview-syncedtabs-signin-primarybutton-2 = Sign in
 
-firefoxview-tabpickup-adddevice-header = Sync { -brand-product-name } on your phone or tablet
-firefoxview-tabpickup-adddevice-description = Download { -brand-product-name } for mobile and sign in there.
-firefoxview-tabpickup-adddevice-learn-how = Learn how
-firefoxview-tabpickup-adddevice-primarybutton = Get { -brand-product-name } for mobile
-
 firefoxview-syncedtabs-adddevice-header-2 = Grab tabs from anywhere
 firefoxview-syncedtabs-adddevice-description-2 = Sign in to { -brand-product-name } on your phone or another computer to see tabs here. Learn how to <a data-l10n-name="url">connect additional devices</a>.
 firefoxview-syncedtabs-adddevice-primarybutton = Try { -brand-product-name } for mobile
 
-firefoxview-tabpickup-synctabs-header = Turn on tab syncing
-firefoxview-tabpickup-synctabs-description = Allow { -brand-short-name } to share tabs between devices.
-firefoxview-tabpickup-synctabs-learn-how = Learn how
 firefoxview-tabpickup-synctabs-primarybutton = Sync open tabs
 
 firefoxview-syncedtabs-synctabs-header = Update your sync settings
@@ -90,41 +63,15 @@ firefoxview-tabpickup-signed-out-header = Sign in to reconnect
 firefoxview-tabpickup-signed-out-description2 = To reconnect and grab your tabs, sign in to your account.
 firefoxview-tabpickup-signed-out-primarybutton = Sign in
 
-firefoxview-tabpickup-syncing = Sit tight while your tabs sync. It’ll be just a moment.
-
-firefoxview-mobile-promo-header = Grab tabs from your phone or tablet
-firefoxview-mobile-promo-description = To view your latest mobile tabs, sign in to { -brand-product-name } on iOS or Android.
-firefoxview-mobile-promo-primarybutton = Get { -brand-product-name } for mobile
-
-firefoxview-mobile-confirmation-header = 🎉 Good to go!
-firefoxview-mobile-confirmation-description = Now you can grab your { -brand-product-name } tabs from your tablet or phone.
-
-firefoxview-closed-tabs-placeholder-header = No recently closed tabs
-firefoxview-closed-tabs-placeholder-body2 = When you close a tab, you can fetch it from here.
-
 # Variables:
 #   $tabTitle (string) - Title of tab being dismissed
 firefoxview-closed-tabs-dismiss-tab =
   .title = Dismiss { $tabTitle }
 
-# refers to the last tab that was used
-firefoxview-pickup-tabs-badge = Last active
-
 # Variables:
 #   $targetURI (string) - URL that will be opened in the new tab
 firefoxview-tabs-list-tab-button =
   .title = Open { $targetURI } in a new tab
-
-firefoxview-try-colorways-button = Try colorways
-firefoxview-change-colorway-button = Change colorway
-
-# Variables:
-#  $intensity (String): Colorway intensity
-#  $collection (String): Colorway Collection name
-firefoxview-colorway-description = { $intensity } · { $collection }
-
-firefoxview-synced-tabs-placeholder-header = Nothing to see yet
-firefoxview-synced-tabs-placeholder-body = The next time you open a page in { -brand-product-name } on another device, grab it here like magic.
 
 firefoxview-collapse-button-show =
   .title = Show list
@@ -178,9 +125,6 @@ firefoxview-opentabs-window-header =
 firefoxview-opentabs-current-window-header =
   .title = Window { $winID } (Current)
 
-firefoxview-opentabs-focus-tab =
-  .title = Switch to this tab
-
 firefoxview-show-more = Show more
 firefoxview-show-less = Show less
 firefoxview-show-all = Show all
@@ -230,11 +174,6 @@ firefoxview-sort-history-by-site-label = Sort by site
 firefoxview-sort-open-tabs-by-recency-label = Sort by recent activity
 firefoxview-sort-open-tabs-by-order-label = Sort by tab order
 
-# Variables:
-#   $url (string) - URL that will be opened in the new tab
-firefoxview-opentabs-tab-row =
-  .title = Switch to { $url }
-
 ## Variables:
 ##   $date (string) - Date to be formatted based on locale
 
@@ -251,8 +190,6 @@ firefoxview-history-site-localhost = (local files)
 ##
 
 firefoxview-show-all-history = Show all history
-
-firefoxview-view-more-browsing-history = View more browsing history
 
 ## Message displayed in Firefox View when the user has no history data
 

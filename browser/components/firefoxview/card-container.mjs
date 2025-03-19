@@ -180,9 +180,9 @@ class CardContainer extends MozLitElement {
               <span
                 class="icon chevron-icon"
                 role="presentation"
-                data-l10n-id="firefoxview-collapse-button-${this.isExpanded
-                  ? "hide"
-                  : "show"}"
+                data-l10n-id=${this.isExpanded
+                  ? "firefoxview-collapse-button-hide"
+                  : "firefoxview-collapse-button-show"}
               ></span>
               <slot name="header"></slot>
             </summary>
