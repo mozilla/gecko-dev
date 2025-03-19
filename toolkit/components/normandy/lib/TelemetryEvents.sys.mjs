@@ -4,10 +4,10 @@
 
 export const TelemetryEvents = {
   sendEvent(method, object, value, extra) {
-    for (const val of Object.values(extra)) {
+    for (const [key, val] of Object.entries(extra)) {
       if (val == null) {
         throw new Error(
-          "Extra parameters in telemetry events must not be null"
+          `Extra parameter ${key} in telemetry events must not be null`
         );
       }
     }
