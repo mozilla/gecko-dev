@@ -3120,11 +3120,9 @@ void nsFrameSelection::DisconnectFromPresShell() {
   }
 
   if (auto* presshell = mPresShell) {
-    if (const nsFrameSelection* sel =
-            presshell->GetLastSelectionForToString()) {
-      if (sel == this) {
-        presshell->UpdateLastSelectionForToString(nullptr);
-      }
+    if (const nsFrameSelection* sel = presshell->GetLastSelectionForToString();
+        sel == this) {
+      presshell->UpdateLastSelectionForToString(nullptr);
     }
     mPresShell = nullptr;
   }
