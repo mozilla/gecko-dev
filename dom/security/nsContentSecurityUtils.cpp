@@ -1273,6 +1273,7 @@ static nsLiteralCString sStyleSrcUnsafeInlineAllowList[] = {
     "chrome://devtools/content/inspector/index.xhtml"_ns,
     "chrome://devtools/content/inspector/markup/markup.xhtml"_ns,
     "chrome://devtools/content/memory/index.xhtml"_ns,
+    "chrome://devtools/content/shared/sourceeditor/codemirror/cmiframe.html"_ns,
     "chrome://formautofill/content/manageAddresses.xhtml"_ns,
     "chrome://formautofill/content/manageCreditCards.xhtml"_ns,
     "chrome://gfxsanity/content/sanityparent.html"_ns,
@@ -1326,6 +1327,7 @@ static nsLiteralCString sImgSrcDataBlobAllowList[] = {
     "chrome://devtools/content/inspector/markup/markup.xhtml"_ns,
     "chrome://devtools/content/netmonitor/index.html"_ns,
     "chrome://devtools/content/responsive/toolbar.xhtml"_ns,
+    "chrome://devtools/content/shared/sourceeditor/codemirror/cmiframe.html"_ns,
     "chrome://devtools/content/webconsole/index.html"_ns,
     "chrome://global/content/print.html"_ns,
 };
@@ -1917,7 +1919,6 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
       "chrome://devtools/content/framework/browser-toolbox/window.html"_ns,
       "chrome://devtools/content/framework/toolbox-options.html"_ns,
       "chrome://devtools/content/framework/toolbox-window.xhtml"_ns,
-      "chrome://devtools/content/shared/sourceeditor/codemirror/cmiframe.html"_ns,
       "chrome://devtools/content/shared/webextension-fallback.html"_ns,
       "chrome://devtools/skin/images/alert.svg"_ns,
       "chrome://extensions/content/dummy.xhtml"_ns,
