@@ -318,6 +318,8 @@ void EffectCompositor::UpdateEffectProperties(
 
 namespace {
 class EffectCompositeOrderComparator {
+  mutable nsContentUtils::NodeIndexCache mCache;
+
  public:
   bool Equals(const KeyframeEffect* a, const KeyframeEffect* b) const {
     return a == b;
@@ -325,11 +327,13 @@ class EffectCompositeOrderComparator {
 
   bool LessThan(const KeyframeEffect* a, const KeyframeEffect* b) const {
     MOZ_ASSERT(a->GetAnimation() && b->GetAnimation());
-    MOZ_ASSERT(
-        Equals(a, b) ||
-        a->GetAnimation()->HasLowerCompositeOrderThan(*b->GetAnimation()) !=
-            b->GetAnimation()->HasLowerCompositeOrderThan(*a->GetAnimation()));
-    return a->GetAnimation()->HasLowerCompositeOrderThan(*b->GetAnimation());
+    MOZ_ASSERT(Equals(a, b) ||
+               a->GetAnimation()->HasLowerCompositeOrderThan(*b->GetAnimation(),
+                                                             mCache) !=
+                   b->GetAnimation()->HasLowerCompositeOrderThan(
+                       *a->GetAnimation(), mCache));
+    return a->GetAnimation()->HasLowerCompositeOrderThan(*b->GetAnimation(),
+                                                         mCache);
   }
 };
 }  // namespace

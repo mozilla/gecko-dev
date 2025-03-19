@@ -227,7 +227,8 @@ AnimationValue CSSTransition::ToValue() const {
 
 bool CSSTransition::HasLowerCompositeOrderThan(
     const Maybe<EventContext>& aContext, const CSSTransition& aOther,
-    const Maybe<EventContext>& aOtherContext) const {
+    const Maybe<EventContext>& aOtherContext,
+    nsContentUtils::NodeIndexCache& aCache) const {
   MOZ_ASSERT((IsTiedToMarkup() || aContext) &&
                  (aOther.IsTiedToMarkup() || aOtherContext),
              "Should only be called for CSS transitions that are sorted "
@@ -246,9 +247,7 @@ bool CSSTransition::HasLowerCompositeOrderThan(
       aOtherContext ? OwningElementRef(aOtherContext->mTarget)
                     : aOther.mOwningElement;
   if (!owningElement1.Equals(owningElement2)) {
-    return owningElement1.LessThan(
-        const_cast<CSSTransition*>(this)->CachedChildIndexRef(), owningElement2,
-        const_cast<CSSTransition*>(&aOther)->CachedChildIndexRef());
+    return owningElement1.LessThan(owningElement2, aCache);
   }
 
   // 2. (Same element and pseudo): Sort by transition generation

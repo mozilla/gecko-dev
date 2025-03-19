@@ -152,7 +152,8 @@ struct AnimationEventInfo {
   AnimationEventInfo(AnimationEventInfo&& aOther) = default;
   AnimationEventInfo& operator=(AnimationEventInfo&& aOther) = default;
 
-  bool operator<(const AnimationEventInfo& aOther) const {
+  bool LessThan(const AnimationEventInfo& aOther,
+                nsContentUtils::NodeIndexCache& aCache) const {
     if (this->mScheduledEventTimeStamp != aOther.mScheduledEventTimeStamp) {
       // Null timestamps sort first
       if (this->mScheduledEventTimeStamp.IsNull() ||
@@ -168,7 +169,8 @@ struct AnimationEventInfo {
     }
 
     return mAnimation->HasLowerCompositeOrderThan(
-        GetEventContext(), *aOther.mAnimation, aOther.GetEventContext());
+        GetEventContext(), *aOther.mAnimation, aOther.GetEventContext(),
+        aCache);
   }
 
   bool IsWebAnimationEvent() const { return mData.is<WebAnimationData>(); }
@@ -309,11 +311,16 @@ class AnimationEventDispatcher final {
       return;
     }
 
-    for (auto& pending : mPendingEvents) {
-      pending.mAnimation->CachedChildIndexRef().reset();
-    }
+    struct AnimationEventInfoComparator {
+      mutable nsContentUtils::NodeIndexCache mCache;
 
-    mPendingEvents.StableSort();
+      bool LessThan(const AnimationEventInfo& aOne,
+                    const AnimationEventInfo& aOther) const {
+        return aOne.LessThan(aOther, mCache);
+      }
+    };
+
+    mPendingEvents.StableSort(AnimationEventInfoComparator());
     mIsSorted = true;
   }
   void ScheduleDispatch();

@@ -2310,10 +2310,7 @@ class nsINode : public mozilla::dom::EventTarget {
                         ErrorResult& aRv) const;
   bool HasChildNodes() const { return HasChildren(); }
 
-  // See nsContentUtils::PositionIsBefore for aThisIndex and aOtherIndex usage.
-  uint16_t CompareDocumentPosition(
-      nsINode& aOther, mozilla::Maybe<uint32_t>* aThisIndex = nullptr,
-      mozilla::Maybe<uint32_t>* aOtherIndex = nullptr) const;
+  uint16_t CompareDocumentPosition(const nsINode& aOther) const;
   void GetNodeValue(nsAString& aNodeValue) { GetNodeValueInternal(aNodeValue); }
   MOZ_CAN_RUN_SCRIPT virtual void SetNodeValue(const nsAString& aNodeValue,
                                                mozilla::ErrorResult& aError) {

@@ -566,17 +566,11 @@ class nsContentUtils {
   // https://html.spec.whatwg.org/#find-a-potential-indicated-element
   static Element* GetTargetElement(Document* aDocument,
                                    const nsAString& aAnchorName);
-  /**
-   * Returns true if aNode1 is before aNode2 in the same connected
-   * tree.
-   * aNode1Index and aNode2Index are in/out arguments. If non-null, and value is
-   * Some, that value is used instead of calling slow ComputeIndexOf on the
-   * parent node. If value is Nothing, the value will be set to the return value
-   * of ComputeIndexOf.
-   */
-  static bool PositionIsBefore(nsINode* aNode1, nsINode* aNode2,
-                               mozilla::Maybe<uint32_t>* aNode1Index = nullptr,
-                               mozilla::Maybe<uint32_t>* aNode2Index = nullptr);
+  /** Returns true if aNode1 is before aNode2 in the same connected tree. */
+  static bool PositionIsBefore(const nsINode* aNode1, const nsINode* aNode2) {
+    return CompareTreePosition<TreeKind::DOM>(aNode1, aNode2, nullptr,
+                                              nullptr) < 0;
+  }
 
   /**
    * Cache implementation for ComparePoints().

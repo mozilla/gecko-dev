@@ -3192,17 +3192,6 @@ Element* nsContentUtils::GetCommonFlattenedTreeAncestorForStyle(
 }
 
 /* static */
-bool nsContentUtils::PositionIsBefore(nsINode* aNode1, nsINode* aNode2,
-                                      Maybe<uint32_t>* aNode1Index,
-                                      Maybe<uint32_t>* aNode2Index) {
-  // Note, CompareDocumentPosition takes the latter params in different order.
-  return (aNode2->CompareDocumentPosition(*aNode1, aNode2Index, aNode1Index) &
-          (Node_Binding::DOCUMENT_POSITION_PRECEDING |
-           Node_Binding::DOCUMENT_POSITION_DISCONNECTED)) ==
-         Node_Binding::DOCUMENT_POSITION_PRECEDING;
-}
-
-/* static */
 Maybe<int32_t> nsContentUtils::CompareChildNodes(
     const nsINode* aChild1, const nsINode* aChild2,
     NodeIndexCache* aIndexCache /* = nullptr */) {

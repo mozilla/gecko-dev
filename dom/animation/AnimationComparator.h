@@ -17,13 +17,14 @@ namespace mozilla {
 
 template <typename AnimationPtrType>
 class AnimationPtrComparator {
+  mutable nsContentUtils::NodeIndexCache mCache;
  public:
   bool Equals(const AnimationPtrType& a, const AnimationPtrType& b) const {
     return a == b;
   }
 
   bool LessThan(const AnimationPtrType& a, const AnimationPtrType& b) const {
-    return a->HasLowerCompositeOrderThan(*b);
+    return a->HasLowerCompositeOrderThan(*b, mCache);
   }
 };
 

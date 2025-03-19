@@ -129,7 +129,7 @@ void CSSAnimation::Tick(TickState& aState) {
 }
 
 bool CSSAnimation::HasLowerCompositeOrderThan(
-    const CSSAnimation& aOther) const {
+    const CSSAnimation& aOther, nsContentUtils::NodeIndexCache& aCache) const {
   MOZ_ASSERT(IsTiedToMarkup() && aOther.IsTiedToMarkup(),
              "Should only be called for CSS animations that are sorted "
              "as CSS animations (i.e. tied to CSS markup)");
@@ -141,10 +141,7 @@ bool CSSAnimation::HasLowerCompositeOrderThan(
 
   // 1. Sort by document order
   if (!mOwningElement.Equals(aOther.mOwningElement)) {
-    return mOwningElement.LessThan(
-        const_cast<CSSAnimation*>(this)->CachedChildIndexRef(),
-        aOther.mOwningElement,
-        const_cast<CSSAnimation*>(&aOther)->CachedChildIndexRef());
+    return mOwningElement.LessThan(aOther.mOwningElement, aCache);
   }
 
   // 2. (Same element and pseudo): Sort by position in animation-name

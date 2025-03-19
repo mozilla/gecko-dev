@@ -81,9 +81,10 @@ class CSSTransition final : public Animation {
   const AnimatedPropertyID& TransitionProperty() const;
   AnimationValue ToValue() const;
 
-  bool HasLowerCompositeOrderThan(
-      const Maybe<EventContext>& aContext, const CSSTransition& aOther,
-      const Maybe<EventContext>& aOtherContext) const;
+  bool HasLowerCompositeOrderThan(const Maybe<EventContext>& aContext,
+                                  const CSSTransition& aOther,
+                                  const Maybe<EventContext>& aOtherContext,
+                                  nsContentUtils::NodeIndexCache&) const;
   EffectCompositor::CascadeLevel CascadeLevel() const override {
     return IsTiedToMarkup() ? EffectCompositor::CascadeLevel::Transitions
                             : EffectCompositor::CascadeLevel::Animations;
