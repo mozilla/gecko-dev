@@ -211,7 +211,7 @@ public final class GeckoLoader {
       throw new IllegalStateException("Invalid library path for libmozglue.so: " + mozglue);
     }
     final String base = mozglue.substring(0, lastSlash);
-    Log.i(LOGTAG, "Library base=" + base);
+    Log.d(LOGTAG, "Library base=" + base);
     return base;
   }
 
