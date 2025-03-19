@@ -81,7 +81,7 @@ class MozillaSupportPagesTest : TestSetup() {
         }.openSettings {
         }.openMozillaSettingsMenu {
         }.openTermsOfUsePage {
-            verifyPageURL("www.mozilla.org/en-us/about/legal/terms/firefox-focus")
+            verifyPageURL("/about/legal/terms/firefox-focus/")
         }
     }
 
