@@ -74,8 +74,15 @@ export class ConditionalPanel extends PureComponent {
    *        conditional breakpoint/logpoint
    */
   saveAndClose = (expression = null) => {
-    if (expression) {
-      this.setBreakpoint(expression.trim());
+    if (typeof expression === "string") {
+      const trimmedExpression = expression.trim();
+      if (trimmedExpression) {
+        this.setBreakpoint(trimmedExpression);
+      } else if (this.props.breakpoint) {
+        // if the user was editing the condition/log of an existing breakpoint,
+        // we remove the condition/log.
+        this.setBreakpoint(null);
+      }
     }
 
     this.props.closeConditionalPanel();

@@ -58,6 +58,14 @@ add_task(async function () {
   bp = findBreakpoint(dbg, "simple2.js", 5);
   is(bp.options.condition, "1\n2", "Hit 'Shift+Enter' adds a new line");
 
+  info("The condition can be removed using the ConditionalPanel");
+  dblClickElement(dbg, "conditionalBreakpointInSecPane");
+  await waitForConditionalPanelFocus(dbg);
+  pressKey(dbg, "Backspace");
+  pressKey(dbg, "Enter");
+  bp = findBreakpoint(dbg, "simple2.js", 5);
+  is(bp.options.condition, null, "The condition was removed");
+
   clickElement(dbg, "gutterElement", 5);
   await waitForDispatch(dbg.store, "REMOVE_BREAKPOINT");
   bp = findBreakpoint(dbg, "simple2.js", 5);
@@ -111,6 +119,15 @@ add_task(async function () {
   await clickElement(dbg, "logPointInSecPane");
   const logPointPanel = findElement(dbg, "logPointPanel");
   is(logPointPanel, null, "The logpoint panel is closed");
+
+  info("The log value can be removed using the ConditionalPanel");
+  dblClickElement(dbg, "logPointInSecPane");
+  await waitForConditionalPanelFocus(dbg);
+  pressKey(dbg, "Backspace");
+  pressKey(dbg, "Space");
+  pressKey(dbg, "Enter");
+  bp = findBreakpoint(dbg, "simple2.js", 5);
+  is(bp.options.logValue, null, "The log value was removed");
 });
 
 function waitForBreakpointWithoutCondition(dbg, url, line) {
