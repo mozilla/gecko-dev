@@ -288,6 +288,12 @@ var DownloadsPanel = {
       case "dragstart":
         DownloadsView._onDownloadDragStart(aEvent);
         break;
+      case "mousedown":
+        if (DownloadsView.richListBox.hasAttribute("disabled")) {
+          this._handlePotentiallySpammyDownloadActivation(aEvent);
+        }
+        break;
+
       case "keydown":
         if (aEvent.currentTarget == DownloadsSummary._summaryNode) {
           DownloadsSummary._onKeyDown(aEvent);
@@ -400,6 +406,8 @@ var DownloadsPanel = {
     // Handle keypress to be able to preventDefault() events before they reach
     // the richlistbox, for keyboard navigation.
     this.panel.addEventListener("keypress", this);
+    // Handle mousedown to be able to notice clicks on disabled items.
+    this.panel.addEventListener("mousedown", this);
     this.panel.addEventListener("mousemove", this);
     this.panel.addEventListener("popupshown", this);
     this.panel.addEventListener("popuphidden", this);
@@ -426,6 +434,7 @@ var DownloadsPanel = {
   _unattachEventListeners() {
     this.panel.removeEventListener("keydown", this);
     this.panel.removeEventListener("keypress", this);
+    this.panel.removeEventListener("mousedown", this);
     this.panel.removeEventListener("mousemove", this);
     this.panel.removeEventListener("popupshown", this);
     this.panel.removeEventListener("popuphidden", this);
@@ -620,7 +629,11 @@ var DownloadsPanel = {
 
   _lastBeepTime: 0,
   _handlePotentiallySpammyDownloadActivation(aEvent) {
-    if (aEvent.key == "Enter" || aEvent.key == " ") {
+    let isSpammyKey =
+      aEvent.type.startsWith("key") &&
+      (aEvent.key == "Enter" || aEvent.key == " ");
+    let isSpammyMouse = aEvent.type.startsWith("mouse") && aEvent.button == 0;
+    if (isSpammyKey || isSpammyMouse) {
       // Throttle our beeping to a maximum of once per second, otherwise it
       // appears on Win10 that beeps never make it through at all.
       if (Date.now() - this._lastBeepTime > 1000) {
@@ -938,9 +951,10 @@ var DownloadsView = {
   onDownloadClick(aEvent) {
     // Handle primary clicks in the main area only:
     if (aEvent.button == 0 && aEvent.target.closest(".downloadMainArea")) {
-      let target = aEvent.target;
-      while (target.nodeName != "richlistitem") {
-        target = target.parentNode;
+      let target = aEvent.target.closest("richlistitem");
+      // Ignore clicks if the box is disabled.
+      if (target.closest("richlistbox").hasAttribute("disabled")) {
+        return;
       }
       let download = DownloadsView.itemForElement(target).download;
       if (download.succeeded) {
