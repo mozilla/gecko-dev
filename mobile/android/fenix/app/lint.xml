@@ -35,6 +35,10 @@
         <ignore path="**/values-*/strings.xml" />
         <ignore path="**/values/*_strings.xml" />
     </issue>
+    <issue id="PlaceholderComment" severity="error">
+        <ignore path="**/values-*/strings.xml" />
+        <ignore path="**/values/*_strings.xml" />
+    </issue>
     <issue id="Typos" severity="error">
         <ignore path="**/values-*/strings.xml" />
     </issue>
