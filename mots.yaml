@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-03-18T12:14:35.133627+00:00'
+updated_at: '2025-03-19T07:56:58.149299+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -970,6 +970,10 @@ people:
     bmo_id: 430165
     name: Sam Foster
     nick: sfoster
+  - &sfriedberger
+    bmo_id: 704251
+    name: Simon Friedberger
+    nick: sfriedberger
   - &shravanrn
     bmo_id: 639827
     name: Shravan Narayan
@@ -1429,6 +1433,7 @@ modules:
       - *dveditz
       - *freddy
       - *tschuster
+      - *sfriedberger
     machine_name: core_content_security
 
   - name: 'Core: Cookies'
@@ -4537,5 +4542,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 05c1528990ef0552c2ac39450cce376112b1c102
-  export: 3d1a1aad667aabbb7faca7e1706d98da40518a57
+  config: 71718137950a6523389a2ba3ad76f1fa9369c535
+  export: 07c82b47983559d1c5021f15255f6c7478c2d882
