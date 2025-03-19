@@ -343,9 +343,7 @@ export class BaseContent extends React.PureComponent {
   renderWallpaperAttribution() {
     const { wallpaperList } = this.props.Wallpapers;
     const activeWallpaper =
-      this.props.Prefs.values[
-        `newtabWallpapers.wallpaper-${this.state.colorMode}`
-      ];
+      this.props.Prefs.values[`newtabWallpapers.wallpaper`];
     const selected = wallpaperList.find(wp => wp.title === activeWallpaper);
     // make sure a wallpaper is selected and that the attribution also exists
     if (!selected?.attribution) {
@@ -561,8 +559,7 @@ export class BaseContent extends React.PureComponent {
     const shortcutsRefresh = prefs["newtabShortcuts.refresh"];
     const layoutsVariantAorB = layoutsVariantAEnabled || layoutsVariantBEnabled;
 
-    const activeWallpaper =
-      prefs[`newtabWallpapers.wallpaper-${this.state.colorMode}`];
+    const activeWallpaper = prefs[`newtabWallpapers.wallpaper`];
     const wallpapersV2Enabled = prefs["newtabWallpapers.v2.enabled"];
     const weatherEnabled = prefs.showWeather;
     const { showTopicSelection } = DiscoveryStream;
