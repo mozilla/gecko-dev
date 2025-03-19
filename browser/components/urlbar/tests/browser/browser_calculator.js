@@ -52,6 +52,22 @@ const TESTS = [
     formattedResult: "0.333333333",
     l10nId: "urlbar-result-action-calculator-result-decimal",
   },
+  // Ensure negative calculator results are correctly displayed.
+  {
+    formula: "-50000000 + 1",
+    formattedResult: "-49999999",
+    l10nId: "urlbar-result-action-calculator-result-3",
+  },
+  {
+    formula: "-1/3",
+    formattedResult: "-0.333333333",
+    l10nId: "urlbar-result-action-calculator-result-decimal",
+  },
+  {
+    formula: "-10^13",
+    formattedResult: "-1.0e13",
+    l10nId: "urlbar-result-action-calculator-result-scientific-notation",
+  },
 ];
 
 add_setup(async function () {
