@@ -9,4 +9,5 @@ include $(topsrcdir)/config/rules.mk
 addondir = $(srcdir)/tests/addons
 testdir = $(topobjdir)/_tests/xpcshell/toolkit/components/telemetry/tests/unit
 
-$(foreach dir,$(wildcard $(addondir)/*),$(eval $(call xpi_package_rule,$(notdir $(dir)),$(dir),$(testdir),misc)))
+misc:: $(call mkdir_deps,$(testdir))
+	$(foreach dir,$(wildcard $(addondir)/*),$(call py_action,zip $(notdir $(dir)).xpi,-C $(dir) $(testdir)/$(notdir $(dir)).xpi \*))
