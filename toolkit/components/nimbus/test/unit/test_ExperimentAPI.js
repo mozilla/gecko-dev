@@ -6,9 +6,6 @@ const { ExperimentAPI } = ChromeUtils.importESModule(
 const { ExperimentFakes } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
-const { NimbusTelemetry } = ChromeUtils.importESModule(
-  "resource://nimbus/lib/Telemetry.sys.mjs"
-);
 const { TestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TestUtils.sys.mjs"
 );
@@ -42,7 +39,7 @@ add_task(async function test_getExperimentMetaData() {
   const sandbox = sinon.createSandbox();
   const manager = ExperimentFakes.manager();
   const expected = ExperimentFakes.experiment("foo");
-  let exposureStub = sandbox.stub(NimbusTelemetry, "recordExposure");
+  let exposureStub = sandbox.stub(ExperimentAPI, "recordExposureEvent");
 
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
@@ -76,7 +73,7 @@ add_task(async function test_getRolloutMetaData() {
   const sandbox = sinon.createSandbox();
   const manager = ExperimentFakes.manager();
   const expected = ExperimentFakes.rollout("foo");
-  let exposureStub = sandbox.stub(NimbusTelemetry, "recordExposure");
+  let exposureStub = sandbox.stub(ExperimentAPI, "recordExposureEvent");
 
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
@@ -108,7 +105,7 @@ add_task(async function test_getRolloutMetaData() {
 
 add_task(function test_getExperimentMetaData_safe() {
   const sandbox = sinon.createSandbox();
-  let exposureStub = sandbox.stub(NimbusTelemetry, "recordExposure");
+  let exposureStub = sandbox.stub(ExperimentAPI, "recordExposureEvent");
 
   sandbox.stub(ExperimentAPI._manager.store, "get").throws();
   sandbox

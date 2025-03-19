@@ -14,9 +14,6 @@ const {
 const { EnrollmentsContext, RecipeStatus } = ChromeUtils.importESModule(
   "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
 );
-const { NimbusTelemetry } = ChromeUtils.importESModule(
-  "resource://nimbus/lib/Telemetry.sys.mjs"
-);
 const { PanelTestProvider } = ChromeUtils.importESModule(
   "resource:///modules/asrouter/PanelTestProvider.sys.mjs"
 );
@@ -569,31 +566,27 @@ add_task(async function test_updateRecipes_validationTelemetry() {
   };
 
   for (const { recipe, reason, events, callCount } of TEST_CASES) {
-    const sandbox = sinon.createSandbox();
     info(`Testing validation failed telemetry for reason = "${reason}" ...`);
     const loader = ExperimentFakes.rsLoader();
     const manager = loader.manager;
 
-    sandbox
+    sinon
       .stub(loader.remoteSettingsClients.experiments, "get")
       .resolves([recipe]);
 
-    sandbox.stub(manager, "onRecipe");
-    sandbox.stub(manager.store, "ready").resolves();
-    sandbox.stub(manager.store, "getAllActiveExperiments").returns([]);
-    sandbox.stub(manager.store, "getAllActiveRollouts").returns([]);
+    sinon.stub(manager, "onRecipe");
+    sinon.stub(manager.store, "ready").resolves();
+    sinon.stub(manager.store, "getAllActiveExperiments").returns([]);
+    sinon.stub(manager.store, "getAllActiveRollouts").returns([]);
 
-    const telemetrySpy = sandbox.spy(
-      NimbusTelemetry,
-      "recordValidationFailure"
-    );
+    const telemetrySpy = sinon.spy(manager, "sendValidationFailedTelemetry");
 
     await loader.enable();
 
     Assert.equal(
       telemetrySpy.callCount,
       callCount,
-      `Should call recordValidationFailure ${callCount} times for reason ${reason}`
+      `Should call sendValidationFailedTelemetry ${callCount} times for reason ${reason}`
     );
 
     const gleanEvents = Glean.nimbusEvents.validationFailed
@@ -638,7 +631,6 @@ add_task(async function test_updateRecipes_validationTelemetry() {
     Services.fog.testResetFOG();
 
     await assertEmptyStore(manager.store, { cleanup: true });
-    sandbox.restore();
   }
 });
 
@@ -672,24 +664,20 @@ add_task(async function test_updateRecipes_validationDisabled() {
   });
 
   for (const recipe of [invalidRecipe, invalidBranch, invalidFeature]) {
-    const sandbox = sinon.createSandbox();
     const loader = ExperimentFakes.rsLoader();
     const manager = loader.manager;
 
-    sandbox
+    sinon
       .stub(loader.remoteSettingsClients.experiments, "get")
       .resolves([recipe]);
 
-    sandbox.stub(manager, "onRecipe");
-    sandbox.stub(manager.store, "ready").resolves();
-    sandbox.stub(manager.store, "getAllActiveExperiments").returns([]);
-    sandbox.stub(manager.store, "getAllActiveRollouts").returns([]);
+    sinon.stub(manager, "onRecipe");
+    sinon.stub(manager.store, "ready").resolves();
+    sinon.stub(manager.store, "getAllActiveExperiments").returns([]);
+    sinon.stub(manager.store, "getAllActiveRollouts").returns([]);
 
-    const finalizeStub = sandbox.stub(manager, "onFinalize");
-    const telemetrySpy = sandbox.spy(
-      NimbusTelemetry,
-      "recordValidationFailure"
-    );
+    const finalizeStub = sinon.stub(manager, "onFinalize");
+    const telemetrySpy = sinon.spy(manager, "sendValidationFailedTelemetry");
 
     await loader.enable();
 
@@ -713,7 +701,6 @@ add_task(async function test_updateRecipes_validationDisabled() {
     );
 
     await assertEmptyStore(manager.store, { cleanup: true });
-    sandbox.restore();
   }
 
   Services.prefs.clearUserPref("nimbus.validation.enabled");
@@ -1010,7 +997,7 @@ add_task(async function test_updateRecipes_invalidFeature_mismatch() {
   sinon.stub(manager.store, "getAllActiveExperiments").returns([]);
   sinon.stub(manager.store, "getAllActiveRollouts").returns([]);
 
-  const telemetrySpy = sinon.stub(NimbusTelemetry, "recordValidationFailure");
+  const telemetrySpy = sinon.stub(manager, "sendValidationFailedTelemetry");
   const targetingSpy = sinon.spy(
     EnrollmentsContext.prototype,
     "checkTargeting"

@@ -9,11 +9,15 @@ const { TelemetryEnvironment } = ChromeUtils.importESModule(
 const { ExperimentAPI } = ChromeUtils.importESModule(
   "resource://nimbus/ExperimentAPI.sys.mjs"
 );
-const { NimbusTelemetry } = ChromeUtils.importESModule(
-  "resource://nimbus/lib/Telemetry.sys.mjs"
-);
 const STUDIES_OPT_OUT_PREF = "app.shield.optoutstudies.enabled";
 const UPLOAD_ENABLED_PREF = "datareporting.healthreport.uploadEnabled";
+
+const globalSandbox = sinon.createSandbox();
+globalSandbox.spy(TelemetryEnvironment, "setExperimentInactive");
+globalSandbox.spy(TelemetryEvents, "sendEvent");
+registerCleanupFunction(() => {
+  globalSandbox.restore();
+});
 
 /**
  * FOG requires a little setup in order to test it
@@ -48,9 +52,7 @@ add_task(async function test_set_inactive() {
 });
 
 add_task(async function test_unenroll_opt_out() {
-  const sandbox = sinon.createSandbox();
-  sandbox.spy(TelemetryEvents, "sendEvent");
-
+  globalSandbox.reset();
   Services.prefs.setBoolPref(STUDIES_OPT_OUT_PREF, true);
   const manager = ExperimentFakes.manager();
   const experiment = ExperimentFakes.experiment("foo");
@@ -115,13 +117,10 @@ add_task(async function test_unenroll_opt_out() {
 
   // reset pref
   Services.prefs.clearUserPref(STUDIES_OPT_OUT_PREF);
-  sandbox.restore();
 });
 
 add_task(async function test_unenroll_rollout_opt_out() {
-  const sandbox = sinon.createSandbox();
-  sandbox.spy(TelemetryEvents, "sendEvent");
-
+  globalSandbox.reset();
   Services.prefs.setBoolPref(STUDIES_OPT_OUT_PREF, true);
   const manager = ExperimentFakes.manager();
   const rollout = ExperimentFakes.rollout("foo");
@@ -186,10 +185,10 @@ add_task(async function test_unenroll_rollout_opt_out() {
 
   // reset pref
   Services.prefs.clearUserPref(STUDIES_OPT_OUT_PREF);
-  sandbox.restore();
 });
 
 add_task(async function test_unenroll_uploadPref() {
+  globalSandbox.reset();
   const manager = ExperimentFakes.manager();
   const recipe = ExperimentFakes.recipe("foo");
 
@@ -213,22 +212,24 @@ add_task(async function test_unenroll_uploadPref() {
 });
 
 add_task(async function test_setExperimentInactive_called() {
-  const sandbox = sinon.createSandbox();
-  sandbox.spy(TelemetryEnvironment, "setExperimentInactive");
-
+  globalSandbox.reset();
   const manager = ExperimentFakes.manager();
-  const experiment = ExperimentFakes.recipe("foo", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-  });
+  const experiment = ExperimentFakes.experiment("foo");
 
   // Clear any pre-existing data in Glean
   Services.fog.testResetFOG();
 
   await manager.onStartup();
-  await manager.enroll(experiment);
+  await manager.store.addEnrollment(experiment);
+
+  // Because `manager.store.addEnrollment()` sidesteps telemetry recording
+  // we will also call on the Glean experiment API directly to test that
+  // `manager.unenroll()` does in fact call `Glean.setExperimentActive()`
+  Services.fog.setExperimentActive(
+    experiment.slug,
+    experiment.branch.slug,
+    null
+  );
 
   // Test Glean experiment API interaction
   Assert.notEqual(
@@ -250,14 +251,10 @@ add_task(async function test_setExperimentInactive_called() {
     Services.fog.testGetExperimentData(experiment.slug),
     "experiment should be inactive after unenroll"
   );
-
-  sandbox.restore();
 });
 
 add_task(async function test_send_unenroll_event() {
-  const sandbox = sinon.createSandbox();
-  sandbox.spy(TelemetryEvents, "sendEvent");
-
+  globalSandbox.reset();
   const manager = ExperimentFakes.manager();
   const experiment = ExperimentFakes.experiment("foo");
 
@@ -313,14 +310,10 @@ add_task(async function test_send_unenroll_event() {
     unenrollmentEvents[0].extra.reason,
     "Glean.nimbusEvents.unenrollment recorded with correct reason"
   );
-
-  sandbox.restore();
 });
 
 add_task(async function test_undefined_reason() {
-  const sandbox = sinon.createSandbox();
-  sandbox.spy(TelemetryEvents, "sendEvent");
-
+  globalSandbox.reset();
   const manager = ExperimentFakes.manager();
   const experiment = ExperimentFakes.experiment("foo");
 
@@ -354,8 +347,6 @@ add_task(async function test_undefined_reason() {
     unenrollmentEvents[0].extra.reason,
     "Glean.nimbusEvents.unenrollment recorded with correct (unknown) reason"
   );
-
-  sandbox.restore();
 });
 
 /**
@@ -391,17 +382,14 @@ add_task(async function test_remove_rollouts() {
 });
 
 add_task(async function test_remove_rollout_onFinalize() {
-  const sandbox = sinon.createSandbox();
-
   const store = ExperimentFakes.store();
   const manager = ExperimentFakes.manager(store);
   const rollout = ExperimentFakes.rollout("foo");
 
-  sandbox.stub(store, "getAllActiveRollouts").returns([rollout]);
-  sandbox.stub(store, "get").returns(rollout);
-  sandbox.spy(manager, "unenroll");
-  sandbox.spy(NimbusTelemetry, "recordEnrollmentFailure");
-  sandbox.spy(NimbusTelemetry, "recordUnenrollmentFailure");
+  sinon.stub(store, "getAllActiveRollouts").returns([rollout]);
+  sinon.stub(store, "get").returns(rollout);
+  sinon.spy(manager, "unenroll");
+  sinon.spy(manager, "sendFailureTelemetry");
 
   // Clear any pre-existing data in Glean
   Services.fog.testResetFOG();
@@ -419,33 +407,22 @@ add_task(async function test_remove_rollout_onFinalize() {
     "no Glean unenroll_failed events when removing rollout"
   );
 
-  Assert.ok(
-    NimbusTelemetry.recordEnrollmentFailure.notCalled,
-    "Nothing should fail"
-  );
-  Assert.ok(
-    NimbusTelemetry.recordUnenrollmentFailure.notCalled,
-    "Nothing should fail"
-  );
+  Assert.ok(manager.sendFailureTelemetry.notCalled, "Nothing should fail");
   Assert.ok(manager.unenroll.calledOnce, "Should unenroll recipe not seen");
   Assert.ok(manager.unenroll.calledWith(rollout.slug, "recipe-not-seen"));
-
-  sandbox.restore();
 });
 
 add_task(async function test_rollout_telemetry_events() {
-  const sandbox = sinon.createSandbox();
-
+  globalSandbox.restore();
   const store = ExperimentFakes.store();
   const manager = ExperimentFakes.manager(store);
   const rollout = ExperimentFakes.rollout("foo");
+  globalSandbox.spy(TelemetryEnvironment, "setExperimentInactive");
+  globalSandbox.spy(TelemetryEvents, "sendEvent");
 
-  sandbox.spy(TelemetryEnvironment, "setExperimentInactive");
-  sandbox.spy(TelemetryEvents, "sendEvent");
-  sandbox.stub(store, "getAllActiveRollouts").returns([rollout]);
-  sandbox.stub(store, "get").returns(rollout);
-  sandbox.spy(NimbusTelemetry, "recordEnrollmentFailure");
-  sandbox.spy(NimbusTelemetry, "recordUnenrollmentFailure");
+  sinon.stub(store, "getAllActiveRollouts").returns([rollout]);
+  sinon.stub(store, "get").returns(rollout);
+  sinon.spy(manager, "sendFailureTelemetry");
 
   // Clear any pre-existing data in Glean
   Services.fog.testResetFOG();
@@ -472,14 +449,7 @@ add_task(async function test_rollout_telemetry_events() {
     "no Glean unenroll_failed events when removing rollout"
   );
 
-  Assert.ok(
-    NimbusTelemetry.recordEnrollmentFailure.notCalled,
-    "Nothing should fail"
-  );
-  Assert.ok(
-    NimbusTelemetry.recordUnenrollmentFailure.notCalled,
-    "Nothing should fail"
-  );
+  Assert.ok(manager.sendFailureTelemetry.notCalled, "Nothing should fail");
   Assert.ok(
     TelemetryEnvironment.setExperimentInactive.calledOnce,
     "Should unenroll recipe not seen"
@@ -525,11 +495,11 @@ add_task(async function test_rollout_telemetry_events() {
     unenrollmentEvents[0].extra.reason,
     "Glean.nimbusEvents.unenrollment recorded with correct reason"
   );
-
-  sandbox.restore();
+  globalSandbox.restore();
 });
 
 add_task(async function test_check_unseen_enrollments_telemetry_events() {
+  globalSandbox.restore();
   const store = ExperimentFakes.store();
   const manager = ExperimentFakes.manager(store);
   const sandbox = sinon.createSandbox();
@@ -567,16 +537,18 @@ add_task(async function test_check_unseen_enrollments_telemetry_events() {
   await manager.enroll(experiment, "aaa");
 
   const source = "test";
-  const slugs = new Array(7).fill(null).map((_, idx) => `slug-${idx}`);
-  const experiments = slugs.map(slug =>
-    ExperimentFakes.experiment(slug, {
+  const slugs = [],
+    experiments = [];
+  for (let i = 0; i < 7; i++) {
+    slugs.push(`slug-${i}`);
+    experiments.push({
+      slug: slugs[i],
+      source,
       branch: {
-        ...ExperimentFakes.recipe.branches[0],
         slug: "control",
       },
-      source,
-    })
-  );
+    });
+  }
 
   manager.sessions.set(source, new Set([slugs[0]]));
 
@@ -595,56 +567,43 @@ add_task(async function test_check_unseen_enrollments_telemetry_events() {
 
   Assert.equal(events?.length, 7);
 
-  Assert.deepEqual(
-    events.map(ev => ev.extra),
-    [
-      {
-        status: "Enrolled",
-        reason: "Qualified",
-        branch: "control",
-        slug: slugs[0],
-      },
-      {
-        status: "Disqualified",
-        reason: "NotTargeted",
-        branch: "control",
-        slug: slugs[1],
-      },
-      {
-        status: "Disqualified",
-        reason: "Error",
-        error_string: "invalid-recipe",
-        branch: "control",
-        slug: slugs[2],
-      },
-      {
-        status: "Disqualified",
-        reason: "Error",
-        error_string: "invalid-branch",
-        branch: "control",
-        slug: slugs[3],
-      },
-      {
-        status: "Disqualified",
-        reason: "Error",
-        error_string: "l10n-missing-locale",
-        branch: "control",
-        slug: slugs[4],
-      },
-      {
-        status: "Disqualified",
-        reason: "Error",
-        error_string: "l10n-missing-entry",
-        branch: "control",
-        slug: slugs[5],
-      },
-      {
-        status: "WasEnrolled",
-        branch: "control",
-        slug: slugs[6],
-      },
-    ]
-  );
+  Assert.equal(events[0].extra.status, "Enrolled");
+  Assert.equal(events[0].extra.reason, "Qualified");
+  Assert.equal(events[0].extra.branch, "control");
+  Assert.equal(events[0].extra.slug, slugs[0]);
+
+  Assert.equal(events[1].extra.status, "Disqualified");
+  Assert.equal(events[1].extra.reason, "NotTargeted");
+  Assert.equal(events[1].extra.branch, "control");
+  Assert.equal(events[1].extra.slug, slugs[1]);
+
+  Assert.equal(events[2].extra.status, "Disqualified");
+  Assert.equal(events[2].extra.reason, "Error");
+  Assert.equal(events[2].extra.error_string, "invalid-recipe");
+  Assert.equal(events[2].extra.branch, "control");
+  Assert.equal(events[2].extra.slug, slugs[2]);
+
+  Assert.equal(events[3].extra.status, "Disqualified");
+  Assert.equal(events[3].extra.reason, "Error");
+  Assert.equal(events[3].extra.error_string, "invalid-branch");
+  Assert.equal(events[3].extra.branch, "control");
+  Assert.equal(events[3].extra.slug, slugs[3]);
+
+  Assert.equal(events[4].extra.status, "Disqualified");
+  Assert.equal(events[4].extra.reason, "Error");
+  Assert.equal(events[4].extra.error_string, "l10n-missing-locale");
+  Assert.equal(events[4].extra.branch, "control");
+  Assert.equal(events[4].extra.slug, slugs[4]);
+
+  Assert.equal(events[5].extra.status, "Disqualified");
+  Assert.equal(events[5].extra.reason, "Error");
+  Assert.equal(events[5].extra.error_string, "l10n-missing-entry");
+  Assert.equal(events[5].extra.branch, "control");
+  Assert.equal(events[5].extra.slug, slugs[5]);
+
+  Assert.equal(events[6].extra.status, "WasEnrolled");
+  Assert.equal(events[6].extra.branch, "control");
+  Assert.equal(events[6].extra.slug, slugs[6]);
 
   sandbox.restore();
 });

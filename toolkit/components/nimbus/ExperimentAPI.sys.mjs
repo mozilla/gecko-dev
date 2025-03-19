@@ -12,7 +12,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   FeatureManifest: "resource://nimbus/FeatureManifest.sys.mjs",
   NimbusMigrations: "resource://nimbus/lib/Migrations.sys.mjs",
-  NimbusTelemetry: "resource://nimbus/lib/Telemetry.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   RemoteSettingsExperimentLoader:
     "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs",
@@ -340,6 +339,19 @@ export const ExperimentAPI = {
       branch => new Proxy(branch, experimentBranchAccessor)
     );
   },
+
+  recordExposureEvent({ featureId, experimentSlug, branchSlug }) {
+    Glean.normandy.exposeNimbusExperiment.record({
+      value: experimentSlug,
+      branchSlug,
+      featureId,
+    });
+    Glean.nimbusEvents.exposure.record({
+      experiment: experimentSlug,
+      branch: branchSlug,
+      feature_id: featureId,
+    });
+  },
 };
 
 /**
@@ -523,11 +535,11 @@ export class _ExperimentFeature {
 
     // Exposure only sent if user is enrolled in an experiment
     if (enrollmentData) {
-      lazy.NimbusTelemetry.recordExposure(
-        enrollmentData.slug,
-        enrollmentData.branch.slug,
-        this.featureId
-      );
+      ExperimentAPI.recordExposureEvent({
+        featureId: this.featureId,
+        experimentSlug: enrollmentData.slug,
+        branchSlug: enrollmentData.branch?.slug,
+      });
       this._didSendExposureEvent = true;
     }
   }
