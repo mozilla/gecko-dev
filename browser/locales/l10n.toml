@@ -132,6 +132,13 @@ locales = [
     reference = "browser/branding/official/locales/en-US/**"
     l10n = "{l}browser/branding/official/**"
 
+# This file was removed in bug 1948916. In order to keep this file in
+# repositories, we need to preserve this entry until esr115 and esr128 become
+# unsupported.
+[[paths]]
+    reference = "browser/extensions/formautofill/locales/en-US/**"
+    l10n = "{l}browser/extensions/formautofill/**"
+
 [[paths]]
     reference = "browser/extensions/report-site-issue/locales/en-US/**"
     l10n = "{l}browser/extensions/report-site-issue/**"
