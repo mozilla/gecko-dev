@@ -257,6 +257,37 @@ export class WallpaperFeed {
     }
   }
 
+  async removeCustomWallpaper() {
+    try {
+      let uuid = Services.prefs.getStringPref(
+        PREF_WALLPAPERS_CUSTOM_WALLPAPER_UUID,
+        ""
+      );
+
+      if (!uuid) {
+        return;
+      }
+
+      const wallpaperDir = PathUtils.join(PathUtils.profileDir, "wallpaper");
+      const filePath = PathUtils.join(wallpaperDir, uuid);
+
+      await IOUtils.remove(filePath, { ignoreAbsent: true });
+
+      this.store.dispatch(
+        ac.SetPref("newtabWallpapers.customWallpaper.uuid", uuid)
+      );
+
+      this.store.dispatch(
+        ac.BroadcastToContent({
+          type: at.WALLPAPERS_CUSTOM_SET,
+          data: null,
+        })
+      );
+    } catch (error) {
+      console.error("Failed to remove custom wallpaper:", error);
+    }
+  }
+
   async onAction(action) {
     switch (action.type) {
       case at.INIT:
@@ -290,6 +321,9 @@ export class WallpaperFeed {
         break;
       case at.WALLPAPER_UPLOAD:
         this.wallpaperUpload(action.data);
+        break;
+      case at.WALLPAPER_REMOVE_UPLOAD:
+        await this.removeCustomWallpaper();
         break;
     }
   }

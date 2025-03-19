@@ -266,6 +266,7 @@ for (const type of [
   "WALLPAPERS_SET",
   "WALLPAPER_CATEGORY_CLICK",
   "WALLPAPER_CLICK",
+  "WALLPAPER_REMOVE_UPLOAD",
   "WALLPAPER_UPLOAD",
   "WEATHER_IMPRESSION",
   "WEATHER_LOAD_ERROR",
@@ -11525,6 +11526,13 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
   }
   handleReset() {
     this.props.setPref("newtabWallpapers.wallpaper", "");
+    const uploadedPreviously = this.props.Prefs.values[PREF_WALLPAPER_UPLOADED_PREVIOUSLY];
+    if (uploadedPreviously) {
+      this.props.setPref(PREF_WALLPAPER_UPLOADED_PREVIOUSLY, false);
+      this.props.dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.WALLPAPER_REMOVE_UPLOAD
+      }));
+    }
     this.handleUserEvent(actionTypes.WALLPAPER_CLICK, {
       selected_wallpaper: "none",
       had_previous_wallpaper: !!this.props.activeWallpaper

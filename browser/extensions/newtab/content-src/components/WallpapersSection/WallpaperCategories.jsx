@@ -211,6 +211,19 @@ export class _WallpaperCategories extends React.PureComponent {
 
   handleReset() {
     this.props.setPref("newtabWallpapers.wallpaper", "");
+
+    const uploadedPreviously =
+      this.props.Prefs.values[PREF_WALLPAPER_UPLOADED_PREVIOUSLY];
+
+    if (uploadedPreviously) {
+      this.props.setPref(PREF_WALLPAPER_UPLOADED_PREVIOUSLY, false);
+      this.props.dispatch(
+        ac.OnlyToMain({
+          type: at.WALLPAPER_REMOVE_UPLOAD,
+        })
+      );
+    }
+
     this.handleUserEvent(at.WALLPAPER_CLICK, {
       selected_wallpaper: "none",
       had_previous_wallpaper: !!this.props.activeWallpaper,
