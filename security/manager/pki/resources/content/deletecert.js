@@ -119,3 +119,5 @@ function onDialogCancel() {
   let retVals = window.arguments[2];
   retVals.deleteConfirmed = false;
 }
+
+window.addEventListener("load", () => onLoad());
