@@ -666,6 +666,8 @@ void PopulateModelName() {
   nsCString temp;
   sysInfo->GetPropertyAsACString(u"device"_ns, temp);
   modelName.Append(temp);
+#elif defined(XP_WIN)
+  sysInfo->GetPropertyAsACString(u"winModelId"_ns, modelName);
 #endif
 
   glean::characteristics::machine_model_name.Set(modelName);
