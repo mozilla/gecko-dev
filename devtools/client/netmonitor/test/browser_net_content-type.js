@@ -136,10 +136,7 @@ add_task(async function () {
       statusText: "OK",
       type: "plain",
       fullMimeType: "text/plain",
-      transferred: L10N.getFormatStrWithNumbers(
-        "networkMenu.sizeB",
-        AppConstants.USE_LIBZ_RS ? 333 : 324
-      ),
+      transferred: L10N.getFormatStrWithNumbers("networkMenu.sizeB", 324),
       size: L10N.getFormatStrWithNumbers("networkMenu.size.kB", 10.99),
       time: true,
     }
