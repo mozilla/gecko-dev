@@ -729,7 +729,8 @@ win64-dxc:
         script: build-dxc.sh
         arguments:
             - "x86_64"
-        toolchain-artifact: public/build/dxc.tar.zst
+        toolchain-artifact: public/build/dxc-x86_64-pc-windows-msvc.tar.zst
+        toolchain-alias: dxc-x86_64-pc-windows-msvc
     fetches:
         toolchain:
             - linux64-clang-toolchain
@@ -747,7 +748,8 @@ win64-aarch64-dxc:
         script: build-dxc.sh
         arguments:
             - "aarch64"
-        toolchain-artifact: public/build/dxc.tar.zst
+        toolchain-artifact: public/build/dxc-aarch64-pc-windows-msvc.tar.zst
+        toolchain-alias: dxc-aarch64-pc-windows-msvc
     fetches:
         toolchain:
             - linux64-clang-toolchain

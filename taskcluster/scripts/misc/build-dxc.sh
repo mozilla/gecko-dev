@@ -14,6 +14,9 @@ export MOZ_DXC_WIN10_SDK_VERSION=`ls fetches/vs/Windows\ Kits/10/Include/ | sort
 
 export VSINSTALLDIR="$MOZ_FETCHES_DIR/vs"
 
+artifact=$(basename "$TOOLCHAIN_ARTIFACT")
+dxc_folder=${artifact%.tar.*}
+
 
 cd "$HOME/fetches/DirectXShaderCompiler"
 
@@ -49,8 +52,8 @@ cmake .. \
 ninja dxcompiler.dll
 
 # Pack the result and upload.
-mkdir dxc
-mv bin/dxcompiler.dll dxc
+mkdir $dxc_folder
+mv bin/dxcompiler.dll $dxc_folder
 
 mkdir -p $UPLOAD_DIR
-tar cavf $UPLOAD_DIR/dxc.tar.zst dxc
+tar cavf $UPLOAD_DIR/$artifact $dxc_folder
