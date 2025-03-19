@@ -47,6 +47,14 @@ export class FormAutofillChild extends JSWindowActorChild {
    */
   #handlerWaitingForFillOnFormChangeComplete = new Set();
 
+  /**
+   * Keep track of handler that are waiting for the parent process
+   * to complete the previous form submission action. This is needed
+   * to prevent the field update heuristics from changing the detected field
+   * details while the form submission heuristics is trying to capture them.
+   */
+  #handlerWaitingForFormSubmissionComplete = new Set();
+
   constructor() {
     super();
 
@@ -92,6 +100,11 @@ export class FormAutofillChild extends JSWindowActorChild {
     this.#handlerWaitingForDetectedComplete.delete(handler);
 
     if (isUpdate) {
+      if (this.#handlerWaitingForFormSubmissionComplete.has(handler)) {
+        // The form change was detected before the form submission, but was probably initiated
+        // by it, so don't touch the fieldDetails in this case.
+        return;
+      }
       handler.updateFormIfNeeded(fieldDetails[0].element);
       this._fieldDetailsManager.addFormHandlerByElementEntries(handler);
     }
@@ -164,6 +177,19 @@ export class FormAutofillChild extends JSWindowActorChild {
         this._hasRegisteredPageHide.add(true);
       }
     }
+  }
+
+  /**
+   * Disconnect all remaining form change observer that are still set up
+   * for the form that was submitted.
+   *
+   * @param {string} rootElementId
+   */
+  onFormSubmissionComplete(rootElementId) {
+    const handler =
+      this._fieldDetailsManager.getFormHandlerByRootElementId(rootElementId);
+    handler.clearFormChangeObservers();
+    this.#handlerWaitingForFormSubmissionComplete.delete(handler);
   }
 
   /**
@@ -515,6 +541,17 @@ export class FormAutofillChild extends JSWindowActorChild {
         formRootElementId
       );
 
+    if (
+      this.#handlerWaitingForFormSubmissionComplete.has(handler) ||
+      !form.isConnected ||
+      !form.checkVisibility()
+    ) {
+      // Bail out if a form submission is happening, or the whole form is disconnected or invisible,
+      // because then we're suspecting a form submission of reason "form-removal-after-fetch" next.
+      // In these cases avoid updating the fieldDetails since the form submission heuristics rely on them
+      return;
+    }
+
     // Not resetting the field state for elements that became invisible because the handler
     // keeps tracking them if they were previously autocompleted. Their field state
     // will be updated on a clearing action
@@ -675,6 +712,11 @@ export class FormAutofillChild extends JSWindowActorChild {
         this.onFieldsDetectedComplete(fieldDetails, isUpdate);
         break;
       }
+      case "FormAutofill:onFormSubmissionComplete": {
+        const { rootElementId } = message.data;
+        this.onFormSubmissionComplete(rootElementId);
+        break;
+      }
     }
     return true;
   }
@@ -719,6 +761,10 @@ export class FormAutofillChild extends JSWindowActorChild {
       return;
     }
 
+    if (this.#handlerWaitingForFormSubmissionComplete.has(handler)) {
+      return;
+    }
+
     const formFilledData = handler.collectFormFilledData();
     if (!formFilledData) {
       this.debug("Form handler could not obtain filled data");
@@ -735,6 +781,8 @@ export class FormAutofillChild extends JSWindowActorChild {
       rootElementId: handler.rootElementId,
       formFilledData,
     });
+
+    this.#handlerWaitingForFormSubmissionComplete.add(handler);
   }
 
   /**

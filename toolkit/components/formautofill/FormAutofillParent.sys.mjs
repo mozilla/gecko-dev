@@ -687,6 +687,17 @@ export class FormAutofillParent extends JSWindowActorParent {
       }
     }
 
+    try {
+      // The child is ignoring any detected field updates during a form submission.
+      // So we're notifying the child that the form submission is completed. Additionally the child
+      // disconnects any form change observers from the submitted form/fields.
+      this.sendAsyncMessage("FormAutofill:onFormSubmissionComplete", {
+        rootElementId,
+      });
+    } catch (e) {
+      // The child might be destroyed immediately after submission
+    }
+
     const browser = this.manager?.browsingContext.top.embedderElement;
     if (!browser) {
       return;
