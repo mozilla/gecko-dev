@@ -1232,8 +1232,8 @@ popupnotificationcontent {
   }
 }
 
-#historySwipeAnimationPreviousArrow:-moz-locale-dir(rtl),
-#historySwipeAnimationNextArrow:-moz-locale-dir(ltr) {
+.swipe-nav-icon:-moz-locale-dir(rtl),
+#historySwipeAnimationNextArrow {
   transform: scaleX(-1);
 }
 
