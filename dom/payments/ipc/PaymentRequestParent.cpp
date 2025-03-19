@@ -75,10 +75,8 @@ mozilla::ipc::IPCResult PaymentRequestParent::RecvRequestPayment(
   PaymentRequestService* rowService =
       static_cast<PaymentRequestService*>(service.get());
   MOZ_ASSERT(rowService);
-  nsresult rv = rowService->RequestPayment(mRequestId, aRequest, this);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return IPC_FAIL(this, "nsIPaymentRequestService::RequestPayment failed");
-  }
+  (void)NS_WARN_IF(
+      NS_FAILED(rowService->RequestPayment(mRequestId, aRequest, this)));
   return IPC_OK();
 }
 

@@ -7,13 +7,15 @@
 #ifndef mozilla_dom_PaymentRequestParent_h
 #define mozilla_dom_PaymentRequestParent_h
 
+#include "mozilla/WeakPtr.h"
 #include "mozilla/dom/PPaymentRequestParent.h"
 #include "nsIPaymentAddress.h"
 #include "nsIPaymentActionResponse.h"
 
 namespace mozilla::dom {
 
-class PaymentRequestParent final : public PPaymentRequestParent {
+class PaymentRequestParent final : public PPaymentRequestParent,
+                                   public SupportsWeakPtr {
   friend class PPaymentRequestParent;
 
   NS_INLINE_DECL_REFCOUNTING(PaymentRequestParent)

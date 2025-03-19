@@ -225,7 +225,7 @@ class PaymentRequest final : public nsIPaymentRequest {
 
   // IPC's life cycle should be controlled by IPC mechanism.
   // PaymentRequest should not own the reference of it.
-  PaymentRequestParent* mIPC;
+  WeakPtr<PaymentRequestParent> mIPC;
   eState mState;
 };
 
