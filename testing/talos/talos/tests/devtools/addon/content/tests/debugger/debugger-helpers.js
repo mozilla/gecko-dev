@@ -191,7 +191,7 @@ async function waitForPaused(
   } = dbg;
   const onStateChange = waitForState(dbg, state => {
     const thread = getCurrentThread(state);
-    return getSelectedScope(state) && getIsPaused(state, thread);
+    return getSelectedScope(state, thread) && getIsPaused(state, thread);
   });
   promises.push(onStateChange);
 

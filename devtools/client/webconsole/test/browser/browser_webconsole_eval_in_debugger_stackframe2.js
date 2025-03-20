@@ -40,7 +40,7 @@ add_task(async function () {
   execute(hud, "firstCall()");
 
   info("Waiting for a frame to be added");
-  await waitForPaused(dbg, null, { shouldWaitForInlinePreviews: false });
+  await waitForPaused(dbg);
 
   info("frames added, select the console again");
   await openConsole();

@@ -46,7 +46,7 @@ add_task(async function () {
 
   info("Select the debugger again");
   await openDebugger();
-  await pauseDebugger(dbg, { shouldWaitForInlinePreviews: false });
+  await pauseDebugger(dbg);
 
   const stackFrames = dbg.selectors.getCurrentThreadFrames();
 
@@ -100,9 +100,7 @@ add_task(async function () {
   info(
     "Check executing expression with private properties access while paused in class method"
   );
-  const onPaused = waitForPaused(dbg, null, {
-    shouldWaitForInlinePreviews: false,
-  });
+  const onPaused = waitForPaused(dbg);
   // breakFn has a debugger statement that will pause the debugger
   execute(hud, `x = new Foo(); x.breakFn()`);
   await onPaused;

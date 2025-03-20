@@ -7,9 +7,11 @@
 add_task(async function () {
   const dbg = await initDebugger("doc-script-mutate.html");
 
-  const onPaused = waitForPaused(dbg, "script-mutate.js");
+  const onPaused = waitForPaused(dbg);
   invokeInTab("mutate");
   await onPaused;
+  await waitForSelectedSource(dbg, "script-mutate");
+  await waitForDispatch(dbg.store, "ADD_INLINE_PREVIEW");
 
   is(
     getScopeNodeLabel(dbg, 2),
@@ -58,6 +60,7 @@ add_task(async function () {
 
   await resume(dbg);
   await waitForPaused(dbg);
+  await waitForDispatch(dbg.store, "ADD_INLINE_PREVIEW");
 
   is(
     getScopeNodeLabel(dbg, 2),

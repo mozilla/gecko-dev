@@ -3,19 +3,33 @@
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 import {
+  getOriginalFrameScope,
+  getGeneratedFrameScope,
   getSelectedFrameInlinePreviews,
   getSelectedLocation,
-  getSelectedScope,
+  getSelectedFrame,
 } from "../../selectors/index";
 import { features } from "../../utils/prefs";
 import { validateSelectedFrame } from "../../utils/context";
 
+// We need to display all variables in the current functional scope so
+// include all data for block scopes until the first functional scope
+function getLocalScopeLevels(originalAstScopes) {
+  let levels = 0;
+  while (
+    originalAstScopes[levels] &&
+    originalAstScopes[levels].type === "block"
+  ) {
+    levels++;
+  }
+  return levels;
+}
+
 /**
  * Update the inline previews for the currently selected frame.
  */
-export function generateInlinePreview(selectedFrame) {
-  return async function (thunkArgs) {
-    const { dispatch, getState } = thunkArgs;
+export function generateInlinePreview() {
+  return async function ({ dispatch, getState, parserWorker, client }) {
     if (!features.inlinePreview) {
       return null;
     }
@@ -24,13 +38,94 @@ export function generateInlinePreview(selectedFrame) {
     if (getSelectedFrameInlinePreviews(getState())) {
       return null;
     }
-    const scope = getSelectedScope(getState());
 
-    if (!scope || !scope.bindings) {
+    const selectedFrame = getSelectedFrame(getState());
+
+    const originalFrameScopes = getOriginalFrameScope(
+      getState(),
+      selectedFrame
+    );
+
+    const generatedFrameScopes = getGeneratedFrameScope(
+      getState(),
+      selectedFrame
+    );
+
+    let scopes = originalFrameScopes?.scope || generatedFrameScopes?.scope;
+
+    if (!scopes || !scopes.bindings) {
       return null;
     }
 
-    const allPreviews = await getPreviews(selectedFrame, scope, thunkArgs);
+    // It's important to use selectedLocation, because we don't know
+    // if we'll be viewing the original or generated frame location
+    const selectedLocation = getSelectedLocation(getState());
+    if (!selectedLocation) {
+      return null;
+    }
+
+    if (!parserWorker.isLocationSupported(selectedLocation)) {
+      return null;
+    }
+
+    const originalAstScopes = await parserWorker.getScopes(selectedLocation);
+    // Bailout if we resumed or moved to another frame while computing the scope
+    validateSelectedFrame(getState(), selectedFrame);
+
+    if (!originalAstScopes) {
+      return null;
+    }
+
+    const allPreviews = [];
+    const pausedOnLine = selectedLocation.line;
+    const levels = getLocalScopeLevels(originalAstScopes);
+
+    for (
+      let curLevel = 0;
+      curLevel <= levels && scopes && scopes.bindings;
+      curLevel++
+    ) {
+      const bindings = { ...scopes.bindings.variables };
+      scopes.bindings.arguments.forEach(argument => {
+        Object.keys(argument).forEach(key => {
+          bindings[key] = argument[key];
+        });
+      });
+
+      const previewBindings = Object.keys(bindings).map(async name => {
+        // We want to show values of properties of objects only and not
+        // function calls on other data types like someArr.forEach etc..
+        let properties = null;
+        const objectGrip = bindings[name].value;
+        if (objectGrip.actor && objectGrip.class === "Object") {
+          properties = await client.loadObjectProperties(
+            {
+              name,
+              path: name,
+              contents: { value: objectGrip },
+            },
+            selectedFrame.thread
+          );
+        }
+
+        const previewsFromBindings = getBindingValues(
+          originalAstScopes,
+          pausedOnLine,
+          name,
+          bindings[name].value,
+          curLevel,
+          properties
+        );
+
+        allPreviews.push(...previewsFromBindings);
+      });
+      await Promise.all(previewBindings);
+      // Bailout if we resumed or moved to another frame while fetching the values from the backend
+      validateSelectedFrame(getState(), selectedFrame);
+
+      scopes = scopes.parent;
+    }
+
     // Sort previews by line and column so they're displayed in the right order in the editor
     allPreviews.sort((previewA, previewB) => {
       if (previewA.line < previewB.line) {
@@ -59,119 +154,30 @@ export function generateInlinePreview(selectedFrame) {
     });
   };
 }
-/**
- * Creates all the previews
- *
- * @param {Object} selectedFrame
- * @param {Object} scope - Scopes from the platform
- * @param {Object} thunkArgs
- * @returns
- */
-async function getPreviews(selectedFrame, scope, thunkArgs) {
-  const { client, parserWorker, getState } = thunkArgs;
 
-  // It's important to use selectedLocation, because we don't know
-  // if we'll be viewing the original or generated frame location
-  const selectedLocation = getSelectedLocation(getState());
-  if (!selectedLocation) {
-    return [];
-  }
-
-  if (!parserWorker.isLocationSupported(selectedLocation)) {
-    return [];
-  }
-
-  const originalAstScopes = await parserWorker.getScopes(selectedLocation);
-  if (!originalAstScopes) {
-    return [];
-  }
-
-  // Bailout if we resumed or moved to another frame while computing the scope
-  validateSelectedFrame(getState(), selectedFrame);
-
-  const allPreviews = [];
-  let level = 0;
-  while (scope && scope.bindings) {
-    // All the bindings from the platform environment
-    const bindings = getScopeBindings(scope);
-
-    // Generate the previews for all the bindings
-    const allPreviewBindingsComplete = Object.keys(bindings).map(async name => {
-      // Get previews for this binding
-      const previews = await generatePreviewsForBinding(
-        originalAstScopes[level]?.bindings[name],
-        selectedLocation.line,
-        name,
-        bindings[name].value,
-        client,
-        selectedFrame.thread
-      );
-
-      allPreviews.push(...previews);
-    });
-    await Promise.all(allPreviewBindingsComplete);
-
-    // Bailout if we resumed or moved to another frame while fetching the values from the backend
-    validateSelectedFrame(getState(), selectedFrame);
-
-    // We need to display all variables in for all block scopes up until
-    // and including the first function scope.
-    if (scope.type === "function") {
-      break;
-    }
-    level++;
-    scope = scope.parent;
-  }
-  return allPreviews;
-}
-
-/**
- * Merge both variables and arguments into a unique "bindings" objects, where arguments overrides variables.
- *
- * @param {Object} scope
- * @returns
- */
-function getScopeBindings(scope) {
-  const bindings = { ...scope.bindings.variables };
-  scope.bindings.arguments.forEach(argument => {
-    Object.keys(argument).forEach(key => {
-      bindings[key] = argument[key];
-    });
-  });
-  return bindings;
-}
-
-/**
- * Generates the previews from the binding information
- *
- * @param {Object} bindingData - Scope binding data from the AST about a particular variable/argument at a particular level in the scope.
- * @param {Number} pausedOnLine - The current line we are paused on
- * @param {String} name - Name of binding from the platfom scopes
- * @param {String} value - Value of the binding from the platform scopes
- * @param {Object} client - Client object for loading properties
- * @param {Object} thread - Thread used to get the expressions values
- * @returns
- */
-async function generatePreviewsForBinding(
-  bindingData,
+function getBindingValues(
+  originalAstScopes,
   pausedOnLine,
   name,
   value,
-  client,
-  thread
+  curLevel,
+  properties
 ) {
-  if (!bindingData) {
-    return [];
+  const previews = [];
+
+  const binding = originalAstScopes[curLevel]?.bindings[name];
+  if (!binding) {
+    return previews;
   }
 
   // Show a variable only once ( an object and it's child property are
   // counted as different )
   const identifiers = new Set();
-  const previews = [];
+
   // We start from end as we want to show values besides variable
   // located nearest to the breakpoint
-  for (let i = bindingData.refs.length - 1; i >= 0; i--) {
-    const ref = bindingData.refs[i];
+  for (let i = binding.refs.length - 1; i >= 0; i--) {
+    const ref = binding.refs[i];
     // Subtracting 1 from line as codemirror lines are 0 indexed
     const line = ref.start.line - 1;
     const column = ref.start.column;
@@ -180,12 +186,11 @@ async function generatePreviewsForBinding(
       continue;
     }
 
-    const { displayName, displayValue } = await getExpressionNameAndValue(
+    const { displayName, displayValue } = getExpressionNameAndValue(
       name,
       value,
       ref,
-      client,
-      thread
+      properties
     );
 
     // Variable with same name exists, display value of current or
@@ -207,33 +212,15 @@ async function generatePreviewsForBinding(
   return previews;
 }
 
-/**
- * Get the name and value details to be displayed in the inline preview
- *
- * @param {String} name - Binding name
- * @param {String} value - Binding value which is the Enviroment object actor form
- * @param {Object} ref - Binding reference
- * @param {Object} client - Client object for loading properties
- * @param {String} thread - Thread used to get the expression values
- * @returns
- */
-async function getExpressionNameAndValue(name, value, ref, client, thread) {
+function getExpressionNameAndValue(
+  name,
+  value,
+  // TODO: Add data type to ref
+  ref,
+  properties
+) {
   let displayName = name;
   let displayValue = value;
-
-  // We want to show values of properties of objects only and not
-  // function calls on other data types like someArr.forEach etc..
-  let properties = null;
-  if (value.actor && value.class === "Object") {
-    properties = await client.loadObjectProperties(
-      {
-        name,
-        path: name,
-        contents: { value },
-      },
-      thread
-    );
-  }
 
   // Only variables of type Object will have properties
   if (properties) {
