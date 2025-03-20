@@ -337,6 +337,9 @@
       "test-linux1804-64-tsan/opt-*",
       "test-windows7-32/debug-*"
     ],
+    "browser/extensions/report-site-issue/test/browser/browser.toml": [
+      "test-windows11-64-2009/opt-*"
+    ],
     "browser/modules/test/browser/browser.toml": [
       "test-windows11-64-2009/opt-*"
     ],
@@ -1969,6 +1972,7 @@
     "browser/extensions/formautofill/test/mochitest/creditCard/mochitest.toml": 0.62,
     "browser/extensions/formautofill/test/mochitest/mochitest.toml": 0.77,
     "browser/extensions/formautofill/test/unit/xpcshell.toml": 0.78,
+    "browser/extensions/report-site-issue/test/browser/browser.toml": 0.53,
     "browser/modules/test/browser/browser.toml": 0.99,
     "browser/modules/test/unit/xpcshell.toml": 0.75,
     "browser/tools/mozscreenshots/controlCenter/browser.toml": 0.69,

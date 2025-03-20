@@ -52,6 +52,7 @@ l10n-%:
 	@$(MAKE) -C ../themes/shared/app-marketplace-icons AB_CD=$* XPI_NAME=locale-$*
 	@$(MAKE) -C ../../toolkit/locales l10n-$* XPI_ROOT_APPID='$(XPI_ROOT_APPID)'
 	@$(MAKE) -C ../../extensions/spellcheck/locales AB_CD=$* XPI_NAME=locale-$*
+	@$(MAKE) -C ../extensions/report-site-issue/locales AB_CD=$* XPI_NAME=locale-$*
 	@$(MAKE) -C ../../devtools/client/locales AB_CD=$* XPI_NAME=locale-$* XPI_ROOT_APPID='$(XPI_ROOT_APPID)'
 	@$(MAKE) -C ../../devtools/startup/locales AB_CD=$* XPI_NAME=locale-$* XPI_ROOT_APPID='$(XPI_ROOT_APPID)'
 	@$(MAKE) l10n AB_CD=$* XPI_NAME=locale-$* PREF_DIR=$(PREF_DIR)
@@ -69,6 +70,7 @@ chrome-%:
 	@$(MAKE) -C ../../devtools/startup/locales chrome AB_CD=$*
 	@$(MAKE) chrome AB_CD=$*
 	@$(MAKE) -C $(DEPTH)/$(MOZ_BRANDING_DIRECTORY)/locales chrome AB_CD=$*
+	@$(MAKE) -C ../extensions/report-site-issue/locales chrome AB_CD=$*
 
 package-win32-installer: $(SUBMAKEFILES)
 	$(MAKE) -C ../installer/windows CONFIG_DIR=l10ngen ZIP_IN='$(ZIP_OUT)' installer

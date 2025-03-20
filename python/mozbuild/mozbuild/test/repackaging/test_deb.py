@@ -797,6 +797,7 @@ _MANIFEST_JSON_DATA = {
                 "browser-region": "browser/chrome/fr/locale/browser-region/",
                 "devtools": "browser/chrome/fr/locale/fr/devtools/client/",
                 "devtools-shared": "browser/chrome/fr/locale/fr/devtools/shared/",
+                "report-site-issue": "browser/features/webcompat-reporter@mozilla.org/fr/locale/fr/",
                 "alerts": "chrome/fr/locale/fr/alerts/",
                 "autoconfig": "chrome/fr/locale/fr/autoconfig/",
                 "global": "chrome/fr/locale/fr/global/",
