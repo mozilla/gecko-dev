@@ -4957,63 +4957,55 @@ TEST_F(JsepSessionTest, TestUniqueReceivePayloadTypes) {
 
   ASSERT_FALSE(IsNull(offerTransceivers[0].mRecvTrack));
   ASSERT_TRUE(offerTransceivers[0].mRecvTrack.GetNegotiatedDetails());
-  ASSERT_EQ(0U, offerTransceivers[0]
-                    .mRecvTrack.GetNegotiatedDetails()
-                    ->GetUniqueReceivePayloadTypes()
-                    .size());
+  ASSERT_EQ(
+      0U,
+      offerTransceivers[0].mRecvTrack.GetUniqueReceivePayloadTypes().size());
 
   ASSERT_FALSE(IsNull(offerTransceivers[1].mRecvTrack));
   ASSERT_TRUE(offerTransceivers[1].mRecvTrack.GetNegotiatedDetails());
-  ASSERT_EQ(0U, offerTransceivers[1]
-                    .mRecvTrack.GetNegotiatedDetails()
-                    ->GetUniqueReceivePayloadTypes()
-                    .size());
+  ASSERT_EQ(
+      0U,
+      offerTransceivers[1].mRecvTrack.GetUniqueReceivePayloadTypes().size());
 
   // First video transceiver is the only one receiving, so gets unique pts.
   ASSERT_FALSE(IsNull(offerTransceivers[2].mRecvTrack));
   ASSERT_TRUE(offerTransceivers[2].mRecvTrack.GetNegotiatedDetails());
-  ASSERT_NE(0U, offerTransceivers[2]
-                    .mRecvTrack.GetNegotiatedDetails()
-                    ->GetUniqueReceivePayloadTypes()
-                    .size());
+  ASSERT_NE(
+      0U,
+      offerTransceivers[2].mRecvTrack.GetUniqueReceivePayloadTypes().size());
 
   // First video transceiver is not receiving, so does not get unique pts.
   ASSERT_TRUE(IsNull(offerTransceivers[3].mRecvTrack));
   ASSERT_TRUE(offerTransceivers[3].mRecvTrack.GetNegotiatedDetails());
-  ASSERT_EQ(0U, offerTransceivers[3]
-                    .mRecvTrack.GetNegotiatedDetails()
-                    ->GetUniqueReceivePayloadTypes()
-                    .size());
+  ASSERT_EQ(
+      0U,
+      offerTransceivers[3].mRecvTrack.GetUniqueReceivePayloadTypes().size());
 
   ASSERT_FALSE(IsNull(answerTransceivers[0].mRecvTrack));
   ASSERT_TRUE(answerTransceivers[0].mRecvTrack.GetNegotiatedDetails());
-  ASSERT_EQ(0U, answerTransceivers[0]
-                    .mRecvTrack.GetNegotiatedDetails()
-                    ->GetUniqueReceivePayloadTypes()
-                    .size());
+  ASSERT_EQ(
+      0U,
+      answerTransceivers[0].mRecvTrack.GetUniqueReceivePayloadTypes().size());
 
   ASSERT_FALSE(IsNull(answerTransceivers[1].mRecvTrack));
   ASSERT_TRUE(answerTransceivers[1].mRecvTrack.GetNegotiatedDetails());
-  ASSERT_EQ(0U, answerTransceivers[1]
-                    .mRecvTrack.GetNegotiatedDetails()
-                    ->GetUniqueReceivePayloadTypes()
-                    .size());
+  ASSERT_EQ(
+      0U,
+      answerTransceivers[1].mRecvTrack.GetUniqueReceivePayloadTypes().size());
 
   // Answerer is receiving two video streams with the same payload types.
   // Neither recv track should have unique pts.
   ASSERT_FALSE(IsNull(answerTransceivers[2].mRecvTrack));
   ASSERT_TRUE(answerTransceivers[2].mRecvTrack.GetNegotiatedDetails());
-  ASSERT_EQ(0U, answerTransceivers[2]
-                    .mRecvTrack.GetNegotiatedDetails()
-                    ->GetUniqueReceivePayloadTypes()
-                    .size());
+  ASSERT_EQ(
+      0U,
+      answerTransceivers[2].mRecvTrack.GetUniqueReceivePayloadTypes().size());
 
   ASSERT_FALSE(IsNull(answerTransceivers[3].mRecvTrack));
   ASSERT_TRUE(answerTransceivers[3].mRecvTrack.GetNegotiatedDetails());
-  ASSERT_EQ(0U, answerTransceivers[3]
-                    .mRecvTrack.GetNegotiatedDetails()
-                    ->GetUniqueReceivePayloadTypes()
-                    .size());
+  ASSERT_EQ(
+      0U,
+      answerTransceivers[3].mRecvTrack.GetUniqueReceivePayloadTypes().size());
 }
 
 TEST_F(JsepSessionTest, UnknownFingerprintAlgorithm) {

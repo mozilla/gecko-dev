@@ -368,7 +368,7 @@ nsTArray<RefPtr<RTCStatsPromise>> RTCRtpReceiver::GetStatsInternal(
                     RTCStatsTimestamp::FromNtp(
                         aConduit->GetTimestampMaker(),
                         /*webrtc::Timestamp::Millis(*/
-                            *audioStats->last_sender_report_utc_timestamp +
+                        *audioStats->last_sender_report_utc_timestamp +
                             webrtc::TimeDelta::Seconds(webrtc::kNtpJan1970))
                         .ToDom());
                 remote.mPacketsSent.Construct(
@@ -376,7 +376,8 @@ nsTArray<RefPtr<RTCStatsPromise>> RTCRtpReceiver::GetStatsInternal(
                 remote.mBytesSent.Construct(
                     audioStats->sender_reports_bytes_sent);
                 remote.mRemoteTimestamp.Construct(
-                    audioStats->last_sender_report_remote_utc_timestamp->ms<double>());
+                    audioStats->last_sender_report_remote_utc_timestamp
+                        ->ms<double>());
                 if (!report->mRemoteOutboundRtpStreamStats.AppendElement(
                         std::move(remote), fallible)) {
                   mozalloc_handle_oom(0);
@@ -687,7 +688,7 @@ void RTCRtpReceiver::Unlink() {
 
 void RTCRtpReceiver::UpdateTransport() {
   MOZ_ASSERT(NS_IsMainThread());
-  if (!mHaveSetupTransport) {
+  if (!mHaveSetupTransport && GetJsepTransceiver().HasLevel()) {
     mPipeline->SetLevel(GetJsepTransceiver().GetLevel());
     mHaveSetupTransport = true;
   }
@@ -695,12 +696,15 @@ void RTCRtpReceiver::UpdateTransport() {
   UniquePtr<MediaPipelineFilter> filter;
 
   auto const& details = GetJsepTransceiver().mRecvTrack.GetNegotiatedDetails();
-  if (GetJsepTransceiver().HasBundleLevel() && details) {
-    std::vector<webrtc::RtpExtension> extmaps;
-    details->ForEachRTPHeaderExtension(
-        [&extmaps](const SdpExtmapAttributeList::Extmap& extmap) {
-          extmaps.emplace_back(extmap.extensionname, extmap.entry);
-        });
+  std::vector<webrtc::RtpExtension> extmaps;
+  if (GetJsepTransceiver().HasBundleLevel()) {
+    if (details) {
+      details->ForEachRTPHeaderExtension(
+          [&extmaps](const SdpExtmapAttributeList::Extmap& extmap) {
+            extmaps.emplace_back(extmap.extensionname, extmap.entry);
+          });
+    }
+
     filter = MakeUnique<MediaPipelineFilter>(extmaps);
 
     // Add remote SSRCs so we can distinguish which RTP packets actually
@@ -718,16 +722,17 @@ void RTCRtpReceiver::UpdateTransport() {
     filter->SetRemoteMediaStreamId(mid);
 
     // Add unique payload types as a last-ditch fallback
-    auto uniquePts = GetJsepTransceiver()
-                         .mRecvTrack.GetNegotiatedDetails()
-                         ->GetUniqueReceivePayloadTypes();
+    auto uniquePts =
+        GetJsepTransceiver().mRecvTrack.GetUniqueReceivePayloadTypes();
     for (unsigned char& uniquePt : uniquePts) {
       filter->AddUniqueReceivePT(uniquePt);
     }
   }
 
-  mPipeline->UpdateTransport_m(GetJsepTransceiver().mTransport.mTransportId,
-                               std::move(filter));
+  if ((mPc->GetSignalingState() == RTCSignalingState::Stable) || filter) {
+    mPipeline->UpdateTransport_m(GetJsepTransceiver().mTransport.mTransportId,
+                                 std::move(filter));
+  }
 }
 
 void RTCRtpReceiver::UpdateConduit() {

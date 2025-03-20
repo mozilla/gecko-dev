@@ -296,21 +296,23 @@ class JsepTrackTest : public JsepTrackTestBase {
     // other side.
   }
 
-  void SanityCheckNegotiatedDetails(const JsepTrackNegotiatedDetails& a,
-                                    const JsepTrackNegotiatedDetails& b,
+  void SanityCheckNegotiatedDetails(const JsepTrack& aTrack,
+                                    const JsepTrack& bTrack,
                                     bool codecsMustMatch) const {
-    ASSERT_EQ(a.GetEncodingCount(), b.GetEncodingCount());
+    const auto aDetails = *aTrack.GetNegotiatedDetails();
+    const auto bDetails = *bTrack.GetNegotiatedDetails();
+    ASSERT_EQ(aDetails.GetEncodingCount(), bDetails.GetEncodingCount());
     if (codecsMustMatch) {
-      for (size_t i = 0; i < a.GetEncodingCount(); ++i) {
-        SanityCheckEncodings(a.GetEncoding(i), b.GetEncoding(i));
+      for (size_t i = 0; i < aDetails.GetEncodingCount(); ++i) {
+        SanityCheckEncodings(aDetails.GetEncoding(i), bDetails.GetEncoding(i));
       }
     }
 
-    ASSERT_EQ(a.GetUniqueReceivePayloadTypes().size(),
-              b.GetUniqueReceivePayloadTypes().size());
-    for (size_t i = 0; i < a.GetUniqueReceivePayloadTypes().size(); ++i) {
-      ASSERT_EQ(a.GetUniqueReceivePayloadTypes()[i],
-                b.GetUniqueReceivePayloadTypes()[i]);
+    ASSERT_EQ(aTrack.GetUniqueReceivePayloadTypes().size(),
+              bTrack.GetUniqueReceivePayloadTypes().size());
+    for (size_t i = 0; i < aTrack.GetUniqueReceivePayloadTypes().size(); ++i) {
+      ASSERT_EQ(aTrack.GetUniqueReceivePayloadTypes()[i],
+                bTrack.GetUniqueReceivePayloadTypes()[i]);
     }
   }
 
@@ -332,8 +334,7 @@ class JsepTrackTest : public JsepTrackTestBase {
       ASSERT_EQ(a.GetSsrcs()[i], b.GetSsrcs()[i]);
     }
 
-    SanityCheckNegotiatedDetails(*a.GetNegotiatedDetails(),
-                                 *b.GetNegotiatedDetails(), codecsMustMatch);
+    SanityCheckNegotiatedDetails(a, b, codecsMustMatch);
   }
 
   void SanityCheck(bool offerCodecsMatchAnswer = true) const {

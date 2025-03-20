@@ -3164,6 +3164,18 @@ void PeerConnectionImpl::DoSetDescriptionSuccessPostProcessing(
               mMaxSending[i] = sending[i];
             }
           }
+        } else if (aSdpType == dom::RTCSdpType::Offer && !aRemote) {
+          // We do this to ensure the mediaPipelineFilter is ready to receive
+          // PTs in our offer. This is mainly used for when bundle is involved
+          // but for whatever reason mid or SSRC is not signaled.
+          for (const auto& transceiverImpl : mTransceivers) {
+            if ((transceiverImpl->Direction() ==
+                 RTCRtpTransceiverDirection::Sendrecv) ||
+                (transceiverImpl->Direction() ==
+                 RTCRtpTransceiverDirection::Recvonly)) {
+              transceiverImpl->Receiver()->UpdateTransport();
+            }
+          }
         }
 
         mPendingRemoteDescription =

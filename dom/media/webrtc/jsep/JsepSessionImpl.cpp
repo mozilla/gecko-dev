@@ -903,6 +903,17 @@ nsresult JsepSessionImpl::SetLocalDescriptionOffer(UniquePtr<Sdp> offer) {
   mPendingLocalDescription = std::move(offer);
   mIsPendingOfferer = Some(true);
   SetState(kJsepStateHaveLocalOffer);
+
+  std::vector<JsepTrack*> recvTracks;
+  recvTracks.reserve(mTransceivers.size());
+  for (auto& transceiver : mTransceivers) {
+    if (transceiver.mJsDirection & sdp::kRecv) {
+      recvTracks.push_back(&transceiver.mRecvTrack);
+    }
+  }
+
+  JsepTrack::SetUniqueReceivePayloadTypes(recvTracks, true);
+
   return NS_OK;
 }
 

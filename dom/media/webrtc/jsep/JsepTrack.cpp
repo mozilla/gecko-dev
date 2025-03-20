@@ -79,6 +79,13 @@ void JsepTrack::AddToOffer(SsrcGenerator& ssrcGenerator,
                            SdpMediaSection* offer) {
   AddToMsection(mPrototypeCodecs, offer);
 
+  for (const auto& codec : mPrototypeCodecs) {
+    uint16_t pt;
+    if (SdpHelper::GetPtAsInt(codec->mDefaultPt, &pt)) {
+      mReceivePayloadTypes.push_back(pt);
+    }
+  }
+
   if (mDirection == sdp::kSend) {
     std::vector<std::string> rids;
     if (offer->IsSending()) {
@@ -720,31 +727,35 @@ nsresult JsepTrack::Negotiate(const SdpMediaSection& answer,
 // works, however, if that payload type appeared in only one m-section.
 // We figure that out here.
 /* static */
-void JsepTrack::SetUniqueReceivePayloadTypes(std::vector<JsepTrack*>& tracks) {
+void JsepTrack::SetUniqueReceivePayloadTypes(std::vector<JsepTrack*>& tracks,
+                                             bool localOffer) {
   // Maps to track details if no other track contains the payload type,
   // otherwise maps to nullptr.
-  std::map<uint16_t, JsepTrackNegotiatedDetails*> payloadTypeToDetailsMap;
+  std::map<uint16_t, JsepTrack*> payloadTypeToDetailsMap;
 
   for (JsepTrack* track : tracks) {
     if (track->GetMediaType() == SdpMediaSection::kApplication) {
       continue;
     }
 
-    auto* details = track->GetNegotiatedDetails();
-    if (!details) {
-      // Can happen if negotiation fails on a track
-      continue;
-    }
-
     std::vector<uint16_t> payloadTypesForTrack;
-    track->GetNegotiatedPayloadTypes(&payloadTypesForTrack);
+    if (!localOffer) {
+      auto* details = track->GetNegotiatedDetails();
+      if (!details) {
+        // Can happen if negotiation fails on a track
+        continue;
+      }
+      track->GetNegotiatedPayloadTypes(&payloadTypesForTrack);
+    } else {
+      payloadTypesForTrack = track->mReceivePayloadTypes;
+    }
 
     for (uint16_t pt : payloadTypesForTrack) {
       if (payloadTypeToDetailsMap.count(pt)) {
         // Found in more than one track, not unique
         payloadTypeToDetailsMap[pt] = nullptr;
       } else {
-        payloadTypeToDetailsMap[pt] = details;
+        payloadTypeToDetailsMap[pt] = track;
       }
     }
   }
@@ -752,7 +763,7 @@ void JsepTrack::SetUniqueReceivePayloadTypes(std::vector<JsepTrack*>& tracks) {
   for (auto ptAndDetails : payloadTypeToDetailsMap) {
     uint16_t uniquePt = ptAndDetails.first;
     MOZ_ASSERT(uniquePt <= UINT8_MAX);
-    auto trackDetails = ptAndDetails.second;
+    auto* trackDetails = ptAndDetails.second;
 
     if (trackDetails) {
       trackDetails->mUniqueReceivePayloadTypes.push_back(
