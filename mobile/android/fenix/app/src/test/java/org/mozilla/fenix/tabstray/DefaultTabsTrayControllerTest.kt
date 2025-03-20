@@ -73,7 +73,8 @@ import org.mozilla.fenix.ext.maxActiveTime
 import org.mozilla.fenix.ext.potentialInactiveTabs
 import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
-import org.mozilla.fenix.home.HomeFragment
+import org.mozilla.fenix.home.HomeScreenViewModel.Companion.ALL_NORMAL_TABS
+import org.mozilla.fenix.home.HomeScreenViewModel.Companion.ALL_PRIVATE_TABS
 import org.mozilla.fenix.utils.Settings
 import java.util.concurrent.TimeUnit
 
@@ -468,7 +469,7 @@ class DefaultTabsTrayControllerTest {
 
             controller.deleteMultipleTabs(listOf(privateTab, mockk()))
 
-            verify { controller.dismissTabsTrayAndNavigateHome(HomeFragment.ALL_PRIVATE_TABS) }
+            verify { controller.dismissTabsTrayAndNavigateHome(ALL_PRIVATE_TABS) }
             assertTrue(showUndoSnackbarForTabInvoked)
             verify(exactly = 0) { tabsUseCases.removeTabs(any()) }
         } finally {
@@ -497,7 +498,7 @@ class DefaultTabsTrayControllerTest {
 
             controller.deleteMultipleTabs(listOf(normalTab, normalTab))
 
-            verify { controller.dismissTabsTrayAndNavigateHome(HomeFragment.ALL_NORMAL_TABS) }
+            verify { controller.dismissTabsTrayAndNavigateHome(ALL_NORMAL_TABS) }
             verify(exactly = 0) { tabsUseCases.removeTabs(any()) }
             assertTrue(showUndoSnackbarForTabInvoked)
         } finally {

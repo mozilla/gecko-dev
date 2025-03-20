@@ -55,7 +55,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import mozilla.components.browser.menu.view.MenuButton
-import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.selector.normalTabs
 import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.state.BrowserState
@@ -258,6 +257,7 @@ class HomeFragment : Fragment() {
     private val recentSyncedTabFeature = ViewBoundFeatureWrapper<RecentSyncedTabFeature>()
     private val bookmarksFeature = ViewBoundFeatureWrapper<BookmarksFeature>()
     private val historyMetadataFeature = ViewBoundFeatureWrapper<RecentVisitsFeature>()
+    private val tabsCleanupFeature = ViewBoundFeatureWrapper<TabsCleanupFeature>()
     private val searchSelectorBinding = ViewBoundFeatureWrapper<SearchSelectorBinding>()
     private val searchSelectorMenuBinding = ViewBoundFeatureWrapper<SearchSelectorMenuBinding>()
     private val homeScreenPopupManager = ViewBoundFeatureWrapper<HomeScreenPopupManager>()
@@ -435,6 +435,21 @@ class HomeFragment : Fragment() {
                 view = binding.root,
             )
         }
+
+        tabsCleanupFeature.set(
+            feature = TabsCleanupFeature(
+                context = requireContext(),
+                viewModel = homeViewModel,
+                browserStore = components.core.store,
+                tabsUseCases = components.useCases.tabsUseCases,
+                settings = components.settings,
+                snackBarParentView = binding.dynamicSnackbarContainer,
+                showUndoSnackbar = ::showUndoSnackbar,
+                viewLifecycleScope = viewLifecycleOwner.lifecycleScope,
+            ),
+            owner = viewLifecycleOwner,
+            view = binding.root,
+        )
 
         snackbarBinding.set(
             feature = SnackbarBinding(
@@ -1146,16 +1161,6 @@ class HomeFragment : Fragment() {
             showCollectionsPlaceholder(it)
         }
 
-        homeViewModel.sessionToDelete?.also {
-            if (it == ALL_NORMAL_TABS || it == ALL_PRIVATE_TABS) {
-                removeAllTabsAndShowSnackbar(it)
-            } else {
-                removeTabAndShowSnackbar(it)
-            }
-        }
-
-        homeViewModel.sessionToDelete = null
-
         requireComponents.appStore.state.wasLastTabClosedPrivate?.also {
             showUndoSnackbar(requireContext().tabClosedUndoMessage(it))
             requireComponents.appStore.dispatch(AppAction.TabStripAction.UpdateLastTabClosed(null))
@@ -1340,40 +1345,6 @@ class HomeFragment : Fragment() {
                     }
                 }
         }
-    }
-
-    private fun removeAllTabsAndShowSnackbar(sessionCode: String) {
-        if (sessionCode == ALL_PRIVATE_TABS) {
-            requireComponents.useCases.tabsUseCases.removePrivateTabs()
-        } else {
-            requireComponents.useCases.tabsUseCases.removeNormalTabs()
-        }
-
-        val snackbarMessage = if (sessionCode == ALL_PRIVATE_TABS) {
-            if (requireContext().settings().feltPrivateBrowsingEnabled) {
-                getString(R.string.snackbar_private_data_deleted)
-            } else {
-                getString(R.string.snackbar_private_tabs_closed)
-            }
-        } else {
-            getString(R.string.snackbar_tabs_closed)
-        }
-
-        viewLifecycleOwner.lifecycleScope.allowUndo(
-            binding.dynamicSnackbarContainer,
-            snackbarMessage,
-            requireContext().getString(R.string.snackbar_deleted_undo),
-            {
-                requireComponents.useCases.tabsUseCases.undo.invoke()
-            },
-            operation = { },
-        )
-    }
-
-    private fun removeTabAndShowSnackbar(sessionId: String) {
-        val tab = store.state.findTab(sessionId) ?: return
-        requireComponents.useCases.tabsUseCases.removeTab(sessionId)
-        showUndoSnackbar(requireContext().tabClosedUndoMessage(tab.content.private))
     }
 
     private fun showUndoSnackbar(message: String) {
@@ -1625,10 +1596,6 @@ class HomeFragment : Fragment() {
     }
 
     companion object {
-        // Used to set homeViewModel.sessionToDelete when all tabs of a browsing mode are closed
-        const val ALL_NORMAL_TABS = "all_normal"
-        const val ALL_PRIVATE_TABS = "all_private"
-
         // Navigation arguments passed to HomeFragment
         const val FOCUS_ON_ADDRESS_BAR = "focusOnAddressBar"
         private const val SCROLL_TO_COLLECTION = "scrollToCollection"

@@ -43,8 +43,8 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.navigateSafe
 import org.mozilla.fenix.ext.settings
-import org.mozilla.fenix.home.HomeFragment
 import org.mozilla.fenix.home.HomeScreenViewModel
+import org.mozilla.fenix.home.HomeScreenViewModel.Companion.ALL_PRIVATE_TABS
 import org.mozilla.fenix.utils.Settings
 
 /**
@@ -234,7 +234,7 @@ class DefaultBrowserToolbarController(
 
     override fun handleEraseButtonClick() {
         Events.browserToolbarEraseTapped.record(NoExtras())
-        homeViewModel.sessionToDelete = HomeFragment.ALL_PRIVATE_TABS
+        homeViewModel.sessionToDelete = ALL_PRIVATE_TABS
         val directions = BrowserFragmentDirections.actionGlobalHome()
         navController.navigate(directions)
     }
