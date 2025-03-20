@@ -208,8 +208,12 @@ export CXXFLAGS_$(rust_host_cc_env_name)=$(HOST_CXX_BASE_FLAGS) $(COMPUTED_HOST_
 # The cc crate will fill in for those flags anyways, but we do need the PGO and
 # LTO flags to fill in for what the cc crate doesn't handle
 # (e.g. -pgo-temporal-instrumentation)
-export CFLAGS_$(rust_cc_env_name)=$(CC_BASE_FLAGS) $(MOZ_LTO_CFLAGS) $(COMPUTED_CFLAGS) $(filter-out -fprofile-generate%,$(PGO_CFLAGS)) -DMOZILLA_CONFIG_H
-export CXXFLAGS_$(rust_cc_env_name)=$(CXX_BASE_FLAGS) $(MOZ_LTO_CFLAGS) $(COMPUTED_CXXFLAGS) $(filter-out -fprofile-generate%,$(PGO_CFLAGS)) -DMOZILLA_CONFIG_H
+# We can't use LTO flags with GCC, though: https://github.com/rust-lang/rust/issues/138681
+ifneq (,$(filter clang%,$(CC_TYPE)))
+RUST_LTO_CFLAGS=$(MOZ_LTO_CFLAGS)
+endif
+export CFLAGS_$(rust_cc_env_name)=$(CC_BASE_FLAGS) $(RUST_LTO_CFLAGS) $(COMPUTED_CFLAGS) $(filter-out -fprofile-generate%,$(PGO_CFLAGS)) -DMOZILLA_CONFIG_H
+export CXXFLAGS_$(rust_cc_env_name)=$(CXX_BASE_FLAGS) $(RUST_LTO_CFLAGS) $(COMPUTED_CXXFLAGS) $(filter-out -fprofile-generate%,$(PGO_CFLAGS)) -DMOZILLA_CONFIG_H
 else
 # Because cargo doesn't allow to distinguish builds happening for build
 # scripts/procedural macros vs. those happening for the rust target,
