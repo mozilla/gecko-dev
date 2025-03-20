@@ -212,7 +212,7 @@ private fun FileListItem(
             fileItem.displayedShortUrl,
         ),
         isSelected = isSelected,
-        icon = fileItem.getIcon(),
+        icon = fileItem.icon,
         afterListAction = {
             if (isMenuIconVisible) {
                 var menuExpanded by remember { mutableStateOf(false) }

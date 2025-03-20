@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.downloads.listscreen.store
 
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import mozilla.components.browser.state.state.content.DownloadState
 import org.mozilla.fenix.R
@@ -38,6 +39,12 @@ data class FileItem(
     val status: DownloadState.Status,
     val createdTime: CreatedTime,
 ) : DownloadListItem {
+
+    /**
+     * The icon resource ID associated with this [FileItem].
+     */
+    @DrawableRes
+    val icon = getIcon()
 
     /**
      * The content type filter based on the [contentType] of the [FileItem]

@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.downloads.listscreen
+package org.mozilla.fenix.downloads.listscreen.store
 
 import mozilla.components.browser.state.state.content.DownloadState
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mozilla.fenix.R
-import org.mozilla.fenix.downloads.listscreen.store.CreatedTime
-import org.mozilla.fenix.downloads.listscreen.store.FileItem
 
 class FileItemToIconMapperTest {
     @Test
