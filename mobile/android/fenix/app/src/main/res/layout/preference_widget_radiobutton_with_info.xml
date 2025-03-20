@@ -64,21 +64,28 @@
         android:paddingStart="1dp"
         android:paddingEnd="1dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/info_button"
+        app:layout_constraintEnd_toStartOf="@id/info_button_container"
         app:layout_constraintStart_toEndOf="@id/title"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ImageView
-        android:id="@+id/info_button"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
+    <FrameLayout
+        android:id="@+id/info_button_container"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_marginStart="19dp"
         android:layout_marginEnd="19dp"
-        android:contentDescription="@string/radio_preference_info_content_description"
         app:layout_constraintBottom_toBottomOf="@id/vertical_divider"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/vertical_divider"
-        app:layout_constraintTop_toTopOf="@id/vertical_divider"
-        app:srcCompat="@drawable/ic_info" />
+        app:layout_constraintTop_toTopOf="@id/vertical_divider">
 
+        <ImageView
+            android:id="@+id/info_button"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:contentDescription="@string/radio_preference_info_content_description"
+            app:srcCompat="@drawable/ic_info" />
+    </FrameLayout>
+    
 </androidx.constraintlayout.widget.ConstraintLayout>
