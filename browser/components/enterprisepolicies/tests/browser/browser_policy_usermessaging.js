@@ -24,3 +24,34 @@ add_task(async function test_usermessaging() {
     ok(firefoxLabsCategory.hidden, "The labs category is hidden");
   });
 });
+
+add_task(async function test_skip_terms_of_use_timestamp_set() {
+  const startTime = Date.now();
+  await setupPolicyEngineWithJson({
+    policies: {
+      UserMessaging: {
+        SkipTermsOfUse: true,
+      },
+    },
+  });
+  const endTime = Date.now();
+
+  Assert.greater(
+    parseInt(
+      Services.prefs.getStringPref(
+        "datareporting.policy.dataSubmissionPolicyNotifiedTime"
+      )
+    ),
+    startTime,
+    "Policy notified time is greater than start time."
+  );
+  Assert.greaterOrEqual(
+    endTime,
+    parseInt(
+      Services.prefs.getStringPref(
+        "datareporting.policy.dataSubmissionPolicyNotifiedTime"
+      )
+    ),
+    "Policy notified time is less than or equal to end time."
+  );
+});

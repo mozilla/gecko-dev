@@ -2650,6 +2650,18 @@ export var Policies = {
           param.Locked
         );
       }
+      if (param.SkipTermsOfUse) {
+        PoliciesUtils.setDefaultPref(
+          "datareporting.policy.dataSubmissionPolicyAcceptedVersion",
+          999,
+          param.Locked
+        );
+        PoliciesUtils.setDefaultPref(
+          "datareporting.policy.dataSubmissionPolicyNotifiedTime",
+          Date.now().toString(),
+          param.Locked
+        );
+      }
       if ("MoreFromMozilla" in param) {
         PoliciesUtils.setDefaultPref(
           "browser.preferences.moreFromMozilla",

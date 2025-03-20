@@ -694,6 +694,34 @@ const POLICIES_TESTS = [
   {
     policies: {
       UserMessaging: {
+        SkipTermsOfUse: false,
+        Locked: false,
+      },
+    },
+    unlockedPrefs: {
+      "datareporting.policy.dataSubmissionPolicyAcceptedVersion": 0,
+      "datareporting.policy.dataSubmissionPolicyNotifiedTime": "0",
+    },
+  },
+
+  {
+    policies: {
+      UserMessaging: {
+        SkipTermsOfUse: true,
+        Locked: true,
+      },
+    },
+    lockedPrefs: {
+      "datareporting.policy.dataSubmissionPolicyAcceptedVersion": 999,
+      // "datareporting.policy.dataSubmissionPolicyNotifiedTime" is a string of
+      // the timestamp at which the policy was set, this is tested in
+      // browser/components/enterprisepolicies/tests/browser/browser_policy_usermessaging.js
+    },
+  },
+
+  {
+    policies: {
+      UserMessaging: {
         ExtensionRecommendations: false,
         Locked: false,
       },

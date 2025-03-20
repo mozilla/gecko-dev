@@ -226,6 +226,8 @@ policy-SecurityDevices2 = Add or delete PKCS #11 modules.
 
 policy-ShowHomeButton = Show the home button on the toolbar.
 
+policy-SkipTermsOfUse = Don’t show the Terms of Use and Privacy Notice on startup.
+
 policy-SSLVersionMax = Set the maximum SSL version.
 
 policy-SSLVersionMin = Set the minimum SSL version.
