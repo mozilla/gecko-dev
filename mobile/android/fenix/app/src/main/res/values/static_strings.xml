@@ -165,10 +165,6 @@
     <string name="debug_drawer_cfr_tools_toolbar_cfr_title">Toolbar CFRs</string>
     <!-- The title of the other CFRs section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_other_cfr_title">Other CFRs</string>
-    <!-- The private mode CFR title in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_private_mode_title">Add Private Tab to Home</string>
-    <!-- The private mode CFR description in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_private_mode_description">Displayed when the user enters PBM the first time AND the Focus browser is installed, OR after entering PBM three times AND the Focus browser is not installed. This will only be shown if a CFR has not been shown in at least 3 days.</string>
     <!-- The homepage nav toolbar CFR title in CFR Tools -->
     <string name="debug_drawer_cfr_tools_homepage_nav_toolbar_title">Homepage Navigation Toolbar</string>
     <!-- The homepage nav toolbar CFR description in CFR Tools -->

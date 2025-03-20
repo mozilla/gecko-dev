@@ -19,26 +19,14 @@ import android.view.ViewGroup
 import androidx.annotation.DrawableRes
 import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Text
-import androidx.compose.material.TextButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.testTag
-import androidx.compose.ui.semantics.testTagsAsResourceId
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -96,7 +84,6 @@ import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.support.utils.BrowsersCache
-import mozilla.components.ui.colors.PhotonColors
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
@@ -104,7 +91,6 @@ import org.mozilla.fenix.GleanMetrics.HomeScreen
 import org.mozilla.fenix.GleanMetrics.Homepage
 import org.mozilla.fenix.GleanMetrics.Metrics
 import org.mozilla.fenix.GleanMetrics.NavigationBar
-import org.mozilla.fenix.GleanMetrics.PrivateBrowsingShortcutCfr
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
@@ -114,7 +100,6 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.tabstrip.TabStrip
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.Components
-import org.mozilla.fenix.components.PrivateShortcutCreateManager
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
@@ -1433,17 +1418,10 @@ class HomeFragment : Fragment() {
         lastAppliedWallpaperName = Wallpaper.defaultName
     }
 
-    override fun onStop() {
-        dismissRecommendPrivateBrowsingShortcut()
-        super.onStop()
-    }
-
     override fun onStart() {
         super.onStart()
 
         subscribeToTabCollections()
-
-        val context = requireContext()
 
         requireComponents.backgroundServices.accountManagerAvailableQueue.runIfReadyOrQueue {
             // By the time this code runs, we may not be attached to a context or have a view lifecycle owner.
@@ -1468,14 +1446,6 @@ class HomeFragment : Fragment() {
                 },
                 owner = this@HomeFragment.viewLifecycleOwner,
             )
-        }
-
-        if (browsingModeManager.mode.isPrivate &&
-            // We will be showing the search dialog and don't want to show the CFR while the dialog shows
-            !bundleArgs.getBoolean(FOCUS_ON_ADDRESS_BAR) &&
-            context.settings().shouldShowPrivateModeCfr
-        ) {
-            recommendPrivateBrowsingShortcut()
         }
 
         // We only want this observer live just before we navigate away to the collection creation screen
@@ -1539,109 +1509,6 @@ class HomeFragment : Fragment() {
         // Counterpart to the update in onResume to keep the last access timestamp of the selected
         // tab up-to-date.
         requireComponents.useCases.sessionUseCases.updateLastAccess()
-    }
-
-    private var recommendPrivateBrowsingCFR: CFRPopup? = null
-
-    @OptIn(ExperimentalComposeUiApi::class)
-    @Suppress("LongMethod")
-    private fun recommendPrivateBrowsingShortcut() {
-        context?.let { context ->
-            CFRPopup(
-                anchor = binding.privateBrowsingButton,
-                properties = CFRPopupProperties(
-                    popupWidth = 256.dp,
-                    popupAlignment = CFRPopup.PopupAlignment.INDICATOR_CENTERED_IN_ANCHOR,
-                    popupBodyColors = listOf(
-                        getColor(context, R.color.fx_mobile_layer_color_gradient_end),
-                        getColor(context, R.color.fx_mobile_layer_color_gradient_start),
-                    ),
-                    showDismissButton = false,
-                    dismissButtonColor = getColor(context, R.color.fx_mobile_icon_color_oncolor),
-                    indicatorDirection = CFRPopup.IndicatorDirection.UP,
-                ),
-                onDismiss = {
-                    PrivateBrowsingShortcutCfr.cancel.record()
-                    context.settings().showedPrivateModeContextualFeatureRecommender = true
-                    context.settings().lastCfrShownTimeInMillis = System.currentTimeMillis()
-                    dismissRecommendPrivateBrowsingShortcut()
-                },
-                text = {
-                    FirefoxTheme {
-                        Text(
-                            text = context.getString(R.string.private_mode_cfr_message_2),
-                            color = FirefoxTheme.colors.textOnColorPrimary,
-                            style = FirefoxTheme.typography.headline7,
-                            modifier = Modifier
-                                .semantics {
-                                    testTagsAsResourceId = true
-                                    testTag = "private.message"
-                                },
-                        )
-                    }
-                },
-                action = {
-                    FirefoxTheme {
-                        TextButton(
-                            onClick = {
-                                PrivateBrowsingShortcutCfr.addShortcut.record(NoExtras())
-                                PrivateShortcutCreateManager.createPrivateShortcut(context)
-                                context.settings().showedPrivateModeContextualFeatureRecommender = true
-                                context.settings().lastCfrShownTimeInMillis = System.currentTimeMillis()
-                                dismissRecommendPrivateBrowsingShortcut()
-                            },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = PhotonColors.LightGrey30),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier
-                                .padding(top = 16.dp)
-                                .heightIn(36.dp)
-                                .fillMaxWidth()
-                                .semantics {
-                                    testTagsAsResourceId = true
-                                    testTag = "private.add"
-                                },
-                        ) {
-                            Text(
-                                text = context.getString(R.string.private_mode_cfr_pos_button_text),
-                                color = PhotonColors.DarkGrey50,
-                                style = FirefoxTheme.typography.headline7,
-                                textAlign = TextAlign.Center,
-                            )
-                        }
-                        TextButton(
-                            onClick = {
-                                PrivateBrowsingShortcutCfr.cancel.record()
-                                context.settings().showedPrivateModeContextualFeatureRecommender = true
-                                context.settings().lastCfrShownTimeInMillis = System.currentTimeMillis()
-                                dismissRecommendPrivateBrowsingShortcut()
-                            },
-                            modifier = Modifier
-                                .heightIn(36.dp)
-                                .fillMaxWidth()
-                                .semantics {
-                                    testTagsAsResourceId = true
-                                    testTag = "private.cancel"
-                                },
-                        ) {
-                            Text(
-                                text = context.getString(R.string.cfr_neg_button_text),
-                                textAlign = TextAlign.Center,
-                                color = FirefoxTheme.colors.textOnColorPrimary,
-                                style = FirefoxTheme.typography.headline7,
-                            )
-                        }
-                    }
-                },
-            ).run {
-                recommendPrivateBrowsingCFR = this
-                show()
-            }
-        }
-    }
-
-    private fun dismissRecommendPrivateBrowsingShortcut() {
-        recommendPrivateBrowsingCFR?.dismiss()
-        recommendPrivateBrowsingCFR = null
     }
 
     private fun subscribeToTabCollections(): Observer<List<TabCollection>> {

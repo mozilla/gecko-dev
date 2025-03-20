@@ -116,13 +116,6 @@ class CfrToolsPreferencesMiddlewareTest {
                     val actualValue = !actual.newValue
                     assertEquals(it.value, actualValue)
                 }
-                CfrPreferencesRepository.CfrPreference.AddPrivateTabToHome -> {
-                    // Note that the new value is not inverted in this CFR because of the different
-                    // logic for the pref key
-                    val actual = middleware.mapRepoUpdateToStoreAction(it) as CfrToolsAction.AddPrivateTabToHomeCfrUpdated
-                    val actualValue = actual.newValue
-                    assertEquals(it.value, actualValue)
-                }
                 CfrPreferencesRepository.CfrPreference.TabAutoCloseBanner -> {
                     val actual = middleware.mapRepoUpdateToStoreAction(it) as CfrToolsAction.TabAutoCloseBannerCfrUpdated
                     val actualValue = !actual.newValue
