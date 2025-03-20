@@ -81,12 +81,11 @@ void ViewportFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 }
 
 #ifdef DEBUG
-/**
- * Returns whether we are going to put an element in the top layer for
- * fullscreen. This function should matches the CSS rule in ua.css.
- */
+// Returns whether we are going to put an element in the top layer for
+// fullscreen. This function should matches the CSS rules in ua.css and xul.css.
 static bool ShouldInTopLayerForFullscreen(dom::Element* aElement) {
-  return !!aElement->GetParent();
+  return !aElement->IsRootElement() &&
+         !aElement->IsXULElement(nsGkAtoms::browser);
 }
 #endif  // DEBUG
 
