@@ -99,6 +99,23 @@ environment, but not to be used on an untrusted network such as the internet.
 People wishing to provide remote access to Firefox sessions via the Remote Agent
 must provide their own encryption, authentication, and authorization.
 
+## System Access
+
+By default, the Remote Agent can only interact with WebContent processes in Firefox.
+This means that all commands sent by the client related to windows, documents, or
+to interactions with DOM nodes are executed within the scope of a specified tab
+inside an open Firefox browser window.
+
+If tests require access to core Gecko APIs or need to interact with Firefox’s UI
+elements that live outside of the browser tabs, you must explicitly enable
+**system access** by starting Firefox with the `--remote-allow-system-access`
+argument.
+
+Note: Enabling this flag grants unrestricted access to all available Gecko APIs
+for both the Marionette and WebDriver BiDi protocols, allowing tests to interact
+directly with the host system or the device running the test.
+**Use this flag only when absolutely necessary.**
+
 ## Security reviews
 
 More details can be found in the security reviews conducted for Remote Agent and
