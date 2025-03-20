@@ -69,6 +69,10 @@ async function makeValidators() {
       "resource://testing-common/MenuMessage.schema.json",
       { common: true }
     ),
+    newtab_message: await schemaValidatorFor(
+      "resource://testing-common/NewtabMessage.schema.json",
+      { common: true }
+    ),
     pb_newtab: await schemaValidatorFor(
       "resource://testing-common/NewtabPromoMessage.schema.json",
       { common: true }

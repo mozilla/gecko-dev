@@ -169,6 +169,7 @@ Triggers and actions
 ..  _whats_new_schema: https://searchfox.org/mozilla-central/source/browser/components/asrouter/content-src/templates/OnboardingMessage/WhatsNewMessage.schema.json
 ..  _protections_panel_schema: https://searchfox.org/mozilla-central/source/browser/components/asrouter/content-src/templates/OnboardingMessage/ProtectionsPanelMessage.schema.json
 ..  _pbnewtab_promo_schema: https://searchfox.org/mozilla-central/source/browser/components/asrouter/content-src/templates/PBNewtab/NewtabPromoMessage.schema.json
+..  _newtab_message_schema: https://searchfox.org/mozilla-central/source/browser/components/asrouter/content-src/templates/OnboardingMessage/NewtabMessage.schema.json
 ..  _messaging_experiments_schema: https://searchfox.org/mozilla-central/source/browser/components/asrouter/content-src/schemas/MessagingExperiment.schema.json
 ..  _common_schema: https://searchfox.org/mozilla-central/source/browser/components/asrouter/content-src/schemas/FxMSCommon.schema.json
 
