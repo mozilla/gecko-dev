@@ -28,7 +28,7 @@ add_task(async function () {
 
   info("Call firstCall() and wait for the debugger statement to be reached.");
   const dbg = createDebuggerContext(toolbox);
-  await pauseDebugger(dbg);
+  await pauseDebugger(dbg, { shouldWaitForInlinePreviews: false });
 
   info("Switch back to the console");
   await gDevTools.showToolboxForTab(tab, { toolId: "webconsole" });
