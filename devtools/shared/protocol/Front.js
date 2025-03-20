@@ -296,6 +296,7 @@ class Front extends Pool {
       deferred,
       to: to || this.actorID,
       type,
+      packet,
       stack: getStack(),
     });
     this.send(packet);
@@ -363,7 +364,7 @@ class Front extends Pool {
       throw err;
     }
 
-    const { deferred, stack } = this._requests.shift();
+    const { deferred, packet: clientPacket, stack } = this._requests.shift();
     callFunctionWithAsyncStack(
       () => {
         if (packet.error) {
@@ -380,8 +381,11 @@ class Front extends Pool {
             message += ` (${fileName}:${lineNumber}:${columnNumber})`;
           }
           const packetError = new Error(message);
-          // Also handle the stack trace from the server side
-          packetError.serverStack = packet.stack;
+
+          // Pass the packets on the exception object to convey them to AppErrorBoundary
+          packetError.serverPacket = packet;
+          packetError.clientPacket = clientPacket;
+
           deferred.reject(packetError);
         } else {
           deferred.resolve(packet);

@@ -1120,8 +1120,15 @@ Toolbox.prototype = {
       // While the exception stack is correctly printed in the Browser console when
       // passing `e` to console.error, it is not on the stdout, so print it via dump.
       dump(error.stack + "\n");
-      if (error.serverStack) {
-        dump("Server stack:" + error.serverStack + "\n");
+      if (error.clientPacket) {
+        dump(
+          "Client packet:" + JSON.stringify(error.clientPacket, null, 2) + "\n"
+        );
+      }
+      if (error.serverPacket) {
+        dump(
+          "Server packet:" + JSON.stringify(error.serverPacket, null, 2) + "\n"
+        );
       }
 
       try {
@@ -1136,7 +1143,8 @@ Toolbox.prototype = {
             errorMsg: error.toString(),
             errorStack: error.stack,
             errorInfo: {
-              serverStack: error.serverStack,
+              clientPacket: error.clientPacket,
+              serverPacket: error.serverPacket,
             },
             toolbox: this,
           });

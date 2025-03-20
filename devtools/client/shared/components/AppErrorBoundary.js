@@ -68,17 +68,43 @@ class AppErrorBoundary extends Component {
       return Object.keys(info)
         .filter(key => info[key])
         .map((obj, outerIdx) => {
-          const traceParts = info[obj]
-            .split("\n")
-            .map((part, idx) => p({ key: `strace${idx}` }, part));
-          return div(
-            { key: `st-div-${outerIdx}`, className: "stack-trace-section" },
-            h3(
-              {},
-              obj == "componentStack" ? "React Component Stack" : "Server Stack"
-            ),
-            traceParts
-          );
+          switch (obj) {
+            case "componentStack": {
+              const traceParts = info[obj]
+                .split("\n")
+                .map((part, idx) => p({ key: `strace${idx}` }, part));
+              return div(
+                { key: `st-div-${outerIdx}`, className: "stack-trace-section" },
+                h3({}, "React Component Stack"),
+                traceParts
+              );
+            }
+            case "clientPacket":
+            case "serverPacket": {
+              // Only serverPacket has a stack.
+              const stack = info[obj].stack;
+              const traceParts = stack
+                ? stack
+                    .split("\n")
+                    .map((part, idx) => p({ key: `strace${idx}` }, part))
+                : null;
+              return div(
+                { className: "stack-trace-section" },
+                h3(
+                  {},
+                  obj == "clientPacket" ? "Client packet" : "Server packet"
+                ),
+                // Display the packet as JSON, while removing the artifical `stack` attribute from it
+                p(
+                  {},
+                  JSON.stringify({ ...info[obj], stack: undefined }, null, 2)
+                ),
+                stack ? h3({}, "Server stack") : null,
+                traceParts
+              );
+            }
+          }
+          return null;
         });
     }
 
@@ -101,9 +127,27 @@ class AppErrorBoundary extends Component {
     );
   }
 
+  renderServerPacket(packet) {
+    const traceParts = packet.stack
+      .split("\n")
+      .map((part, idx) => p({ key: `strace${idx}` }, part));
+    return [
+      div(
+        { className: "stack-trace-section" },
+        h3({}, "Server packet"),
+        p({}, JSON.stringify(packet, null, 2))
+      ),
+      div(
+        { className: "stack-trace-section" },
+        h3({}, "Server Stack"),
+        traceParts
+      ),
+    ];
+  }
+
   // Return a valid object, even if we don't receive one
   getValidInfo(infoObj) {
-    if (!infoObj.componentStack && !infoObj.serverStack) {
+    if (!infoObj.componentStack) {
       try {
         return { componentStack: JSON.stringify(infoObj) };
       } catch (err) {
@@ -124,21 +168,25 @@ class AppErrorBoundary extends Component {
   }
 
   getBugLink() {
-    const { componentStack, serverStack } = this.getValidInfo(
-      this.state.errorInfo
-    );
+    const { componentStack, clientPacket, serverPacket } = this.state.errorInfo;
 
-    let msg = `Error: \n${this.state.errorMsg}\n\n`;
+    let msg = `## Error in ${this.props.panel}: \n${this.state.errorMsg}\n\n`;
 
     if (componentStack) {
-      msg += `React Component Stack: ${componentStack}\n\n`;
+      msg += `## React Component Stack:${componentStack}\n\n`;
     }
 
-    if (serverStack) {
-      msg += `Server Stack: ${serverStack}\n\n`;
+    if (clientPacket) {
+      msg += `## Client Packet:\n\`\`\`\n${JSON.stringify(clientPacket, null, 2)}\n\`\`\`\n\n`;
     }
 
-    msg += `Stacktrace: \n${this.state.errorStack}`;
+    if (serverPacket) {
+      // Display the packet as JSON, while removing the artifical `stack` attribute from it
+      msg += `## Server Packet:\n\`\`\`\n${JSON.stringify({ ...serverPacket, stack: undefined }, null, 2)}\n\`\`\`\n\n`;
+      msg += `## Server Stack:\n\`\`\`\n${serverPacket.stack}\n\`\`\`\n\n`;
+    }
+
+    msg += `## Stacktrace: \n\`\`\`\n${this.state.errorStack}\n\`\`\``;
 
     return `${bugLink}${this.props.componentName}&comment=${encodeURIComponent(
       msg
