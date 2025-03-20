@@ -414,17 +414,6 @@ IPCResult WebGLParent::RecvGetSamplerParameter(ObjectId id, GLenum pname,
   return IPC_OK();
 }
 
-IPCResult WebGLParent::RecvGetShaderPrecisionFormat(
-    GLenum shaderType, GLenum precisionType,
-    Maybe<webgl::ShaderPrecisionFormat>* const ret) {
-  if (!mHost) {
-    return IPC_FAIL(this, "HostWebGLContext is not initialized.");
-  }
-
-  *ret = mHost->GetShaderPrecisionFormat(shaderType, precisionType);
-  return IPC_OK();
-}
-
 IPCResult WebGLParent::RecvGetString(GLenum pname,
                                      Maybe<std::string>* const ret) {
   if (!mHost) {

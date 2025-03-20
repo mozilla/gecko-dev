@@ -749,6 +749,36 @@ namespace webgl {
 
 // -
 
+using GetShaderPrecisionFormatArgs = std::tuple<GLenum, GLenum>;
+
+template <class Tuple>
+struct TupleStdHash {
+  size_t operator()(const Tuple& t) const {
+    size_t ret = 0;
+    mozilla::MapTuple(t, [&](const auto& field) {
+      using FieldT = std::remove_cv_t<std::remove_reference_t<decltype(field)>>;
+      ret ^= std::hash<FieldT>{}(field);
+      return true;  // ignored
+    });
+    return ret;
+  }
+};
+
+struct ShaderPrecisionFormat final {
+  // highp float: [127, 127, 23]
+  // highp int: [31, 30, 0]
+  uint8_t rangeMin = 0;  // highp float: +127 (meaning 2^-127)
+  uint8_t rangeMax = 0;
+  uint8_t precision = 0;
+  uint8_t _padding = 0;
+
+  auto MutTiedFields() {
+    return std::tie(rangeMin, rangeMax, precision, _padding);
+  }
+};
+
+// -
+
 struct InitContextResult final {
   Padded<std::string, 32> error;  // MINGW 32-bit needs this padding.
   WebGLContextOptions options;
@@ -757,10 +787,13 @@ struct InitContextResult final {
   std::array<uint8_t, 3> _padding = {};
   Limits limits;
   EnumMask<layers::SurfaceDescriptor::Type> uploadableSdTypes;
+  std::unordered_map<GetShaderPrecisionFormatArgs, ShaderPrecisionFormat,
+                     TupleStdHash<GetShaderPrecisionFormatArgs>>
+      shaderPrecisions;
 
   auto MutTiedFields() {
     return std::tie(error, options, vendor, optionalRenderableFormatBits,
-                    _padding, limits, uploadableSdTypes);
+                    _padding, limits, uploadableSdTypes, shaderPrecisions);
   }
 };
 
@@ -769,12 +802,6 @@ struct InitContextResult final {
 struct ErrorInfo final {
   GLenum type;
   std::string info;
-};
-
-struct ShaderPrecisionFormat final {
-  GLint rangeMin = 0;
-  GLint rangeMax = 0;
-  GLint precision = 0;
 };
 
 // -
@@ -1354,6 +1381,23 @@ inline std::string ToStringWithCommas(uint64_t v) {
     chunks.insert(chunks.begin(), std::to_string(chunk));
   }
   return Join(chunks, ",");
+}
+
+// -
+// C++17 polyfill implementation from:
+// https://en.cppreference.com/w/cpp/container/array/to_array
+
+namespace detail {
+template <class T, size_t N, size_t... I>
+constexpr std::array<std::remove_cv_t<T>, N> to_array_impl(
+    T (&&a)[N], std::index_sequence<I...>) {
+  return {{std::move(a[I])...}};
+}
+}  // namespace detail
+
+template <class T, size_t N>
+constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&&a)[N]) {
+  return detail::to_array_impl(std::move(a), std::make_index_sequence<N>{});
 }
 
 // -
