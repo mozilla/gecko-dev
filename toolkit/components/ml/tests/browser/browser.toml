@@ -11,13 +11,6 @@ support-files = [
 
 ["browser_ml_cluster_algos.js"]
 
-["browser_ml_end_to_end.js"]
-skip-if = [
-  "coverage", # Skips if running under test-coverage
-  "verify && e10s", # Skips if running under test-verify
-  "os == 'win'"  # see Bug 1920007
-]
-
 ["browser_ml_engine.js"]
 
 ["browser_ml_engine_process.js"]

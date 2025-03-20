@@ -2,29 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
-ort-training.wasm:
-    description: Onnx runtime wasm training SIMD and threaded 1.20.0-dev.20240827-1d059b8702
-    fetch:
-        type: static-url
-        url: https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0-dev.20240827-1d059b8702/dist/ort-training-wasm-simd-threaded.wasm
-        sha256: 7eb4ae0c65323064f8e4bf28916a3c4c1836e88ac3b5e29cad51a0737f96487e
-        size: 11861991
-
 ort.jsep.wasm:
-    description: Onnx runtime wasm SIMD, threaded and JSEP 1.20.1
+    description: Onnx runtime wasm SIMD, threaded and JSEP 1.22.0-dev.20250306-ccf8fdd9ea
     fetch:
         type: static-url
-        url: https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort-wasm-simd-threaded.jsep.wasm
-        sha256: 185b0861a6cd6cbdfb057289338090436483cc59e10a7bc83bd167b15531a51b
-        size: 21663894
-
-ort.wasm:
-    description: Onnx runtime wasm SIMD and threaded 1.20.1
-    fetch:
-        type: static-url
-        url: https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort-wasm-simd-threaded.wasm
-        sha256: 207d02be4591c156b0a98f024f3d58005b5b04c92274d759fb390338c63559ea
-        size: 11246032
+        url: https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0-dev.20250306-ccf8fdd9ea/dist/ort-wasm-simd-threaded.jsep.wasm
+        sha256: 9b97d6fc585b8a3f93aa7fe13c64156bc65dcc4cf5b9462c84428a60fcb8113e
+        size: 23929658
 
 wllama.wasm:
     description: Llama.cpp WASM files

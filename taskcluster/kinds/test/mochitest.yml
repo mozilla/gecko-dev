@@ -353,9 +353,7 @@ mochitest-browser-chrome:
     allow-software-gl-layers: false
     fetches:
         fetch:
-            - ort.wasm
             - ort.jsep.wasm
-            - ort-training.wasm
 
 mochitest-browser-chrome-failures:
     description: "Mochitest browser-chrome failures run"

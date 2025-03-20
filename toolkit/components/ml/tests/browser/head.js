@@ -95,7 +95,10 @@ function getDefaultWasmRecords(backend) {
       name: MLEngineParent.WASM_FILENAME[
         backend || MLEngineParent.DEFAULT_BACKEND
       ],
-      version: MLEngineParent.WASM_MAJOR_VERSION + ".0",
+      version:
+        MLEngineParent.WASM_MAJOR_VERSION[
+          backend || MLEngineParent.DEFAULT_BACKEND
+        ] + ".0",
     },
   ];
 }

@@ -119,21 +119,21 @@ export class MLEngineParent extends JSProcessActorParent {
    * The following constant controls the major and minor version for onnx wasm downloaded from
    * Remote Settings.
    *
-   * In our case, we want to use two distinct ort versions:
-   * - Transformers 2.x needs onnxruntime-web <= 1.19
-   * - Transformers 3.x needs onnxruntime-web > 1.19
+   * When a breaking change is introduced, increment this value and add a corresponding version
    *
-   * We are using "1.x" for the first one, and "2.x" for the second one.
-   * So when updating the versions in remote setting, make sure you use 2.0+ for 1.20+
+   * onnx:
+   * - 1 => Transformers 2.x
+   * - 2 => Transformers < 3.1
+   * - 3 => Transformers < 3.4
+   * - 4 => Transformers >= 3.4.0
    *
-   * When a breaking change is introduced, Nightly will have these
-   * numbers incremented by one, but Beta and Release will still be on the previous
-   * version. Remote Settings will ship both versions of the records, and the latest
-   * asset released in that version will be used. For instance, with a major version
-   * of "1", assets can be downloaded for "1.0", "1.2", "1.3beta", but assets marked
-   * as "2.0", "2.1", etc will not be downloaded.
+   * wllama:
+   * - 3 => wllama 2.x
    */
-  static WASM_MAJOR_VERSION = 3;
+  static WASM_MAJOR_VERSION = {
+    onnx: 4,
+    wllama: 3,
+  };
 
   /**
    * This wasm file supports CPU, WebGPU and WebNN.
@@ -453,8 +453,14 @@ export class MLEngineParent extends JSProcessActorParent {
             backend || MLEngineParent.DEFAULT_BACKEND
           ],
         },
-        minSupportedMajorVersion: MLEngineParent.WASM_MAJOR_VERSION,
-        maxSupportedMajorVersion: MLEngineParent.WASM_MAJOR_VERSION,
+        minSupportedMajorVersion:
+          MLEngineParent.WASM_MAJOR_VERSION[
+            backend || MLEngineParent.DEFAULT_BACKEND
+          ],
+        maxSupportedMajorVersion:
+          MLEngineParent.WASM_MAJOR_VERSION[
+            backend || MLEngineParent.DEFAULT_BACKEND
+          ],
       });
 
     if (wasmRecords.length === 0) {

@@ -141,8 +141,6 @@ test-verify:
                     - linux64-fix-stacks
                     - linux64-hostutils
         fetch:
-            - ort.wasm
-            - ort-training.wasm
             - ort.jsep.wasm
             - translations.inference
             - translations.esen.lex
