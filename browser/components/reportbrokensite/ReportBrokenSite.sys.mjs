@@ -294,7 +294,6 @@ export var ReportBrokenSite = new (class ReportBrokenSite {
   static SEND_MORE_INFO_PREF = "ui.new-webcompat-reporter.send-more-info-link";
   static NEW_REPORT_ENDPOINT_PREF =
     "ui.new-webcompat-reporter.new-report-endpoint";
-  static REPORT_SITE_ISSUE_PREF = "extensions.webcompat-reporter.enabled";
 
   static MAIN_PANELVIEW_ID = "report-broken-site-popup-mainView";
   static SENT_PANELVIEW_ID = "report-broken-site-popup-reportSentView";
@@ -337,10 +336,6 @@ export var ReportBrokenSite = new (class ReportBrokenSite {
         DEFAULT_NEW_REPORT_ENDPOINT,
       ],
       enabledPref: [ReportBrokenSite.REPORTER_ENABLED_PREF, true],
-      reportSiteIssueEnabledPref: [
-        ReportBrokenSite.REPORT_SITE_ISSUE_PREF,
-        false,
-      ],
     })) {
       XPCOMUtils.defineLazyPreferenceGetter(
         this,
@@ -363,9 +358,8 @@ export var ReportBrokenSite = new (class ReportBrokenSite {
 
   updateParentMenu(event) {
     // We need to make sure that the Report Broken Site menu item
-    // is disabled and/or hidden depending on the prefs/active tab URL
-    // when our parent popups are shown, and if their tab's location
-    // changes while they are open.
+    // is disabled if the tab's location changes to a non-reportable
+    // one while the menu is open.
     const tabbrowser = event.target.ownerGlobal.gBrowser;
     this.enableOrDisableMenuitems(tabbrowser.selectedBrowser);
 
@@ -426,47 +420,62 @@ export var ReportBrokenSite = new (class ReportBrokenSite {
     win.document
       .getElementById("cmd_reportBrokenSite")
       .addEventListener("command", e => {
-        this.open(e);
+        if (this.enabled) {
+          this.open(e);
+        } else {
+          const tabbrowser = e.target.ownerGlobal.gBrowser;
+          state.resetURLToCurrentTab();
+          state.currentTabWebcompatDetailsPromise = this.#queryActor(
+            "GetWebCompatInfo",
+            undefined,
+            tabbrowser.selectedBrowser
+          );
+          this.#openWebCompatTab(tabbrowser)
+            .catch(err => {
+              console.error("Report Broken Site: unexpected error", err);
+            })
+            .finally(() => {
+              state.reset();
+            });
+        }
       });
   }
 
   enableOrDisableMenuitems(selectedbrowser) {
     // Ensures that the various Report Broken Site menu items and
-    // toolbar buttons are enabled/hidden when appropriate (and
-    // also the Help menu's Report Site Issue item)/
+    // toolbar buttons are disabled when appropriate.
 
     const canReportUrl = this.canReportURI(selectedbrowser.currentURI);
 
     const { document } = selectedbrowser.ownerGlobal;
 
+    // Altering the disabled attribute on the command does not propagate
+    // the change to the related menuitems (see bug 805653), so we change them all.
     const cmd = document.getElementById("cmd_reportBrokenSite");
-    if (this.enabled) {
-      cmd.setAttribute("hidden", "false"); // see bug 805653
-    } else {
-      cmd.setAttribute("hidden", "true");
-    }
+    const app = document.ownerGlobal.PanelMultiView.getViewNode(
+      document,
+      "appMenu-report-broken-site-button"
+    );
+    // Note that this element does not exist until the protections popup is actually opened.
+    const prot = document.getElementById(
+      "protections-popup-report-broken-site-button"
+    );
     if (canReportUrl) {
       cmd.removeAttribute("disabled");
+      app.removeAttribute("disabled");
+      prot?.removeAttribute("disabled");
     } else {
       cmd.setAttribute("disabled", "true");
+      app.setAttribute("disabled", "true");
+      prot?.setAttribute("disabled", "true");
     }
 
-    // Changes to the "hidden" and "disabled" state of the command aren't reliably
+    // Changes to the "disabled" state of the command aren't reliably
     // reflected on the main menu unless we open it twice, or do it manually.
     // (See bug 1864953).
     const mainmenuItem = document.getElementById("help_reportBrokenSite");
     if (mainmenuItem) {
-      mainmenuItem.hidden = !this.enabled;
       mainmenuItem.disabled = !canReportUrl;
-    }
-
-    // Report Site Issue is our older issue reporter, shown in the Help
-    // menu on pre-release channels. We should hide it unless we're
-    // disabled, at which point we should show it when available.
-    const reportSiteIssue = document.getElementById("help_reportSiteIssue");
-    if (reportSiteIssue) {
-      reportSiteIssue.hidden = this.enabled || !this.reportSiteIssueEnabledPref;
-      reportSiteIssue.disabled = !canReportUrl;
     }
   }
 
