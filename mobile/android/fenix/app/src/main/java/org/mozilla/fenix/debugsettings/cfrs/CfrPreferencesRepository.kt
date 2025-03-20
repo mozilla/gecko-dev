@@ -34,7 +34,6 @@ interface CfrPreferencesRepository {
         HomepageNavToolbar(preferenceKey = R.string.pref_key_should_navbar_cfr),
         HomepageSearchBar(preferenceKey = R.string.pref_key_should_searchbar_cfr),
         NavButtons(preferenceKey = R.string.pref_key_toolbar_navigation_cfr),
-        AddPrivateTabToHome(preferenceKey = R.string.pref_key_showed_private_mode_cfr),
         TabAutoCloseBanner(preferenceKey = R.string.pref_key_should_show_auto_close_tabs_banner),
         InactiveTabs(preferenceKey = R.string.pref_key_should_show_inactive_tabs_popup),
         OpenInApp(preferenceKey = R.string.pref_key_should_show_open_in_app_banner),
@@ -105,8 +104,6 @@ class DefaultCfrPreferencesRepository(
                     settings.shouldShowSearchBarCFR
                 CfrPreferencesRepository.CfrPreference.NavButtons ->
                     settings.shouldShowNavigationButtonsCFR
-                CfrPreferencesRepository.CfrPreference.AddPrivateTabToHome ->
-                    settings.showedPrivateModeContextualFeatureRecommender
                 CfrPreferencesRepository.CfrPreference.TabAutoCloseBanner ->
                     settings.shouldShowAutoCloseTabsBanner
                 CfrPreferencesRepository.CfrPreference.InactiveTabs ->
@@ -168,10 +165,6 @@ class DefaultCfrPreferencesRepository(
                 settings.shouldShowSearchBarCFR = !preferenceUpdate.value
             CfrPreferencesRepository.CfrPreference.NavButtons ->
                 settings.shouldShowNavigationButtonsCFR = !preferenceUpdate.value
-            CfrPreferencesRepository.CfrPreference.AddPrivateTabToHome -> {
-                // This will be implemented at a later date due to its complex nature.
-                // See https://bugzilla.mozilla.org/show_bug.cgi?id=1916830 for more details.
-            }
             CfrPreferencesRepository.CfrPreference.TabAutoCloseBanner ->
                 settings.shouldShowAutoCloseTabsBanner = !preferenceUpdate.value
             CfrPreferencesRepository.CfrPreference.InactiveTabs ->

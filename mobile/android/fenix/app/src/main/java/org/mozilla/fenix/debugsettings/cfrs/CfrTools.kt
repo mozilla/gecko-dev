@@ -106,16 +106,6 @@ private fun ResetCfrTool(
                 text = stringResource(R.string.debug_drawer_cfr_tools_homepage_cfr_title),
             )
 
-            CfrToggle(
-                title = stringResource(R.string.debug_drawer_cfr_tools_private_mode_title),
-                description = stringResource(R.string.debug_drawer_cfr_tools_private_mode_description),
-                checked = cfrPreferences.addPrivateTabToHomeShown,
-                enabled = false,
-                onCfrToggle = {
-                    cfrToolsStore.dispatch(CfrToolsAction.AddPrivateTabToHomeShownToggled)
-                },
-            )
-
             if (shouldAddNavigationBar) {
                 CfrToggle(
                     title = stringResource(R.string.debug_drawer_cfr_tools_homepage_nav_toolbar_title),

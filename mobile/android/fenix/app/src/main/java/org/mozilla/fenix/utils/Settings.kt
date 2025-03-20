@@ -5,7 +5,6 @@
 package org.mozilla.fenix.utils
 
 import android.accessibilityservice.AccessibilityServiceInfo.CAPABILITY_CAN_PERFORM_GESTURES
-import android.app.Application
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.SharedPreferences
@@ -37,7 +36,6 @@ import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
-import org.mozilla.fenix.components.metrics.MozillaProductDetector
 import org.mozilla.fenix.components.settings.counterPreference
 import org.mozilla.fenix.components.settings.featureFlagPreference
 import org.mozilla.fenix.components.settings.lazyFeatureFlagPreference
@@ -82,8 +80,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         private const val BLOCKED_INT = 0
         private const val ASK_TO_ALLOW_INT = 1
         private const val ALLOWED_INT = 2
-        private const val CFR_COUNT_CONDITION_FOCUS_INSTALLED = 1
-        private const val CFR_COUNT_CONDITION_FOCUS_NOT_INSTALLED = 3
         private const val INACTIVE_TAB_MINIMUM_TO_SHOW_AUTO_CLOSE_DIALOG = 20
 
         const val FOUR_HOURS_MS = 60 * 60 * 4 * 1000L
@@ -1417,34 +1413,9 @@ class Settings(private val appContext: Context) : PreferencesHolder {
 
     fun incrementNumTimesPrivateModeOpened() = numTimesPrivateModeOpened.increment()
 
-    var showedPrivateModeContextualFeatureRecommender by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_showed_private_mode_cfr),
-        default = false,
-    )
-
     private val numTimesPrivateModeOpened = counterPreference(
         appContext.getPreferenceKey(R.string.pref_key_private_mode_opened),
     )
-
-    val shouldShowPrivateModeCfr: Boolean
-        get() {
-            if (!canShowCfr) return false
-            val focusInstalled = MozillaProductDetector
-                .getInstalledMozillaProducts(appContext as Application)
-                .contains(MozillaProductDetector.MozillaProducts.FOCUS.productName)
-
-            val showCondition = if (focusInstalled) {
-                numTimesPrivateModeOpened.value >= CFR_COUNT_CONDITION_FOCUS_INSTALLED
-            } else {
-                numTimesPrivateModeOpened.value >= CFR_COUNT_CONDITION_FOCUS_NOT_INSTALLED
-            }
-
-            if (showCondition && !showedPrivateModeContextualFeatureRecommender) {
-                return true
-            }
-
-            return false
-        }
 
     var openLinksInExternalAppOld by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_open_links_in_external_app_old),

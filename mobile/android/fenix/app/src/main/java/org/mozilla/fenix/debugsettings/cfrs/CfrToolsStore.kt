@@ -16,7 +16,6 @@ import mozilla.components.lib.state.UiStore
  * @property homepageNavToolbarShown Whether the homepage navigation toolbar CFR has been shown.
  * @property homepageSearchBarShown Whether the homepage search toolbar CFR has been shown.
  * @property navButtonsShown Whether the navigation buttons CFR has been shown.
- * @property addPrivateTabToHomeShown Whether the add private tab to home CFR has been shown.
  * @property tabAutoCloseBannerShown Whether the tab auto close banner CFR has been shown.
  * @property inactiveTabsShown Whether the inactive tabs CFR has been shown.
  * @property openInAppShown Whether the open in app CFR has been shown.
@@ -27,7 +26,6 @@ data class CfrToolsState(
     val homepageNavToolbarShown: Boolean = false,
     val homepageSearchBarShown: Boolean = false,
     val navButtonsShown: Boolean = false,
-    val addPrivateTabToHomeShown: Boolean = false,
     val tabAutoCloseBannerShown: Boolean = false,
     val inactiveTabsShown: Boolean = false,
     val openInAppShown: Boolean = false,
@@ -63,11 +61,6 @@ sealed class CfrToolsAction : Action {
      * Toggle whether the navigation buttons CFR has been shown.
      */
     data object NavButtonsShownToggled : CfrToolsAction()
-
-    /**
-     * Toggle whether the add private tab to home (private mode) CFR has been shown.
-     */
-    data object AddPrivateTabToHomeShownToggled : CfrToolsAction()
 
     /**
      * Toggle whether the tab auto close banner CFR has been shown.
@@ -132,14 +125,6 @@ sealed class CfrToolsAction : Action {
     data class NavButtonsCfrUpdated(val newValue: Boolean) : CfrToolsAction(), CfrPreferenceUpdate
 
     /**
-     * [CfrPreferenceUpdate] fired when the user toggles the add private tab to home CFR.
-     *
-     * @property newValue The updated value of the pref indicating whether or not to show the add
-     * private tab to home CFR.
-     */
-    data class AddPrivateTabToHomeCfrUpdated(val newValue: Boolean) : CfrToolsAction(), CfrPreferenceUpdate
-
-    /**
      * [CfrPreferenceUpdate] fired when the user toggles the tab auto close banner CFR.
      *
      * @property newValue The updated value of the pref indicating whether or not to show the tab auto
@@ -187,8 +172,6 @@ internal object CfrToolsReducer {
                 state.copy(homepageSearchBarShown = !state.homepageSearchBarShown)
             is CfrToolsAction.NavButtonsShownToggled ->
                 state.copy(navButtonsShown = !state.navButtonsShown)
-            is CfrToolsAction.AddPrivateTabToHomeShownToggled ->
-                state.copy(addPrivateTabToHomeShown = !state.addPrivateTabToHomeShown)
             is CfrToolsAction.TabAutoCloseBannerShownToggled ->
                 state.copy(tabAutoCloseBannerShown = !state.tabAutoCloseBannerShown)
             is CfrToolsAction.InactiveTabsShownToggled ->
@@ -198,8 +181,6 @@ internal object CfrToolsReducer {
             is CfrToolsAction.PwaShownToggled ->
                 state.copy(pwaShown = !state.pwaShown)
             is CfrToolsAction.ResetLastCFRTimestampButtonClicked -> state
-            is CfrToolsAction.AddPrivateTabToHomeCfrUpdated ->
-                state.copy(addPrivateTabToHomeShown = action.newValue)
             is CfrToolsAction.HomepageNavToolbarCfrUpdated ->
                 state.copy(homepageNavToolbarShown = action.newValue)
             is CfrToolsAction.HomepageSearchbarCfrUpdated ->
