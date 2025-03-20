@@ -82,7 +82,11 @@ class HistoryView(
         }
 
         val primaryTextColor = ThemeManager.resolveAttribute(R.attr.textPrimary, context)
-        binding.swipeRefresh.setColorSchemeColors(primaryTextColor)
+        val primaryBackgroundColor = ThemeManager.resolveAttribute(R.attr.layer2, context)
+        binding.swipeRefresh.apply {
+            setColorSchemeResources(primaryTextColor)
+            setProgressBackgroundColorSchemeResource(primaryBackgroundColor)
+        }
         binding.swipeRefresh.setOnRefreshListener {
             store.dispatch(HistoryFragmentAction.StartSync)
             scope.launch {
