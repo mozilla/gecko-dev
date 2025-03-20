@@ -89,7 +89,7 @@ UCONFIG_CFLAGS=""
 
 # Check whether to install icu-config
 AC_ARG_ENABLE([icu-config],
-    AS_HELP_STRING([--enable-icu-config], [install icu-config]),
+    AS_HELP_STRING([--disable-icu-config], [do not install icu-config]),
         [case "${enableval}" in
             yes) enable_icu_config=true ;;
             no) enable_icu_config=false ;;
@@ -102,7 +102,7 @@ AC_MSG_CHECKING([whether to build debug libraries])
 enabled=no
 ENABLE_DEBUG=0
 AC_ARG_ENABLE(debug,
-    [  --enable-debug          build debug libraries and enable the U_DEBUG define [default=no]],
+    [  --enable-debug          build debug libraries and enable the U_DEBUG define],
     [ case "${enableval}" in
          yes|"") enabled=yes; ENABLE_DEBUG=1; CONFIG_CPPFLAGS="$CONFIG_CPPFLAGS -DU_DEBUG=1" ;;
          *) ;;
@@ -116,7 +116,7 @@ AC_MSG_CHECKING([whether to build release libraries])
 enabled=yes
 ENABLE_RELEASE=1
 AC_ARG_ENABLE(release,
-    [  --enable-release        build release libraries [default=yes]],
+    [  --disable-release       do not build release libraries],
     [ case "${enableval}" in
          no) enabled=no; ENABLE_RELEASE=0 ;;
          *) ;;
@@ -270,7 +270,7 @@ AC_SUBST(LIB_M)
 AC_MSG_CHECKING([whether to build shared libraries])
 enabled=no
 AC_ARG_ENABLE(shared,
-    [  --enable-shared         build shared libraries [default=yes]],
+    [  --disable-shared        do not build shared libraries],
     [ case "${enableval}" in
 	     yes|"") enabled=yes; ENABLE_SHARED=YES ;;
 	     no);;
@@ -285,7 +285,7 @@ AC_SUBST(ENABLE_SHARED)
 AC_MSG_CHECKING([whether to build static libraries])
 enabled=no
 AC_ARG_ENABLE(static,
-    [  --enable-static         build static libraries [default=no]],
+    [  --enable-static         build static libraries],
     [ case "${enableval}" in
 	     yes|"") enabled=yes; ENABLE_STATIC=YES ;;
 	     no) ;;
@@ -332,7 +332,7 @@ AC_MSG_CHECKING([whether to enable auto cleanup of libraries])
 enabled=no
 UCLN_NO_AUTO_CLEANUP=1
 AC_ARG_ENABLE(auto-cleanup,
-    [  --enable-auto-cleanup   enable auto cleanup of libraries [default=no]],
+    [  --enable-auto-cleanup   enable auto cleanup of libraries],
     [ case "${enableval}" in
          yes) enabled=yes;
          CONFIG_CPPFLAGS="$CONFIG_CPPFLAGS -DUCLN_NO_AUTO_CLEANUP=0";
@@ -349,7 +349,7 @@ AC_MSG_CHECKING([whether to enable draft APIs])
 enabled=yes
 U_DEFAULT_SHOW_DRAFT=1
 AC_ARG_ENABLE(draft,
-    [  --enable-draft          enable draft APIs (and internal APIs) [default=yes]],
+    [  --disable-draft         do not enable draft APIs (and internal APIs)],
     [ case "${enableval}" in
          no) enabled=no; U_DEFAULT_SHOW_DRAFT=0;
          CONFIG_CPPFLAGS="$CONFIG_CPPFLAGS -DU_DEFAULT_SHOW_DRAFT=0"
@@ -376,7 +376,7 @@ AC_MSG_CHECKING([whether to enable renaming of symbols])
 enabled=yes
 U_DISABLE_RENAMING=0
 AC_ARG_ENABLE(renaming,
-    [  --enable-renaming       add a version suffix to symbols [default=yes]],
+    [  --disable-renaming      do not add a version suffix to symbols],
     [ case "${enableval}" in
 	     yes|"") enabled=yes ;;
 	     no) enabled=no; U_DISABLE_RENAMING=1;
@@ -392,7 +392,7 @@ AC_MSG_CHECKING([whether to enable function and data tracing])
 enabled=no
 U_ENABLE_TRACING=0
 AC_ARG_ENABLE(tracing,
-    [  --enable-tracing        enable function and data tracing [default=no]],
+    [  --enable-tracing        enable function and data tracing],
     [ case "${enableval}" in
 	     yes|"") enabled=yes;
                      CONFIG_CPPFLAGS="$CONFIG_CPPFLAGS -DU_ENABLE_TRACING=1";
@@ -412,7 +412,7 @@ fi
 
 # Enable/disable plugins
 AC_ARG_ENABLE(plugins,
-	[  --enable-plugins        enable plugins [default=no]],
+	[  --enable-plugins        enable plugins],
 	[case "${enableval}" in
 		yes) plugins=true ;;
 		no)  plugins=false ;;
@@ -430,7 +430,7 @@ U_ENABLE_DYLOAD=1
 enable=yes
 AC_MSG_CHECKING([whether to enable dynamic loading of plugins. Ignored if plugins disabled.])
 AC_ARG_ENABLE(dyload,
-    [  --disable-dyload        disable dynamic loading [default=no]],
+    [  --disable-dyload        disable dynamic loading],
     [ case "${enableval}" in
 	     yes|"")
 		     U_ENABLE_DYLOAD=1
@@ -577,7 +577,7 @@ case "${host}" in
 esac
 
 AC_ARG_ENABLE(weak-threads,
-	[  --enable-weak-threads   weakly reference the threading library [default=no]],
+	[  --enable-weak-threads   weakly reference the threading library],
 	[case "${enableval}" in
 		yes)
             LIB_THREAD="${LIBS%${OLD_LIBS}}"
@@ -974,7 +974,7 @@ AC_MSG_RESULT($CHECK_UTF16_STRING_RESULT)
 
 # Enable/disable extras
 AC_ARG_ENABLE(extras,
-	[  --enable-extras         build ICU extras [default=yes]],
+	[  --disable-extras        do not build ICU extras],
 	[case "${enableval}" in
 		yes) extras=true ;;
 		no)  extras=false ;;
@@ -983,7 +983,7 @@ AC_ARG_ENABLE(extras,
 	extras=true)
 ICU_CONDITIONAL(EXTRAS, test "$extras" = true)
 AC_ARG_ENABLE(icuio,
-	[  --enable-icuio          build ICU's icuio library [default=yes]],
+	[  --disable-icuio         do not build ICU's icuio library],
 	[case "${enableval}" in
 		yes) icuio=true ;;
 		no)  icuio=false ;;
@@ -994,7 +994,7 @@ ICU_CONDITIONAL(ICUIO, test "$icuio" = true)
 
 # Enable/disable layoutex
 AC_ARG_ENABLE(layoutex,
-	[  --enable-layoutex         build ICU's Paragraph Layout library [default=no].
+	[  --enable-layoutex       build ICU's Paragraph Layout library.
             icu-le-hb must be installed via pkg-config. See http://harfbuzz.org],
 	[case "${enableval}" in
 		yes) layoutex=$have_icu_le_hb ;;
@@ -1016,7 +1016,7 @@ AC_ARG_ENABLE(layout,
 
 # Enable/disable tools
 AC_ARG_ENABLE(tools,
-	[  --enable-tools         build ICU's tools [default=yes]],
+	[  --disable-tools         do not build ICU's tools],
 	[case "${enableval}" in
 		yes) tools=true ;;
 		no)  tools=false ;;
@@ -1027,7 +1027,7 @@ ICU_CONDITIONAL(TOOLS, test "$tools" = true)
 
 # Enable/disable fuzzer target tests.
 AC_ARG_ENABLE(fuzzer,
-	[  --enable-fuzzer        build ICU's fuzzer test targets [default=no]],
+	[  --enable-fuzzer         build ICU's fuzzer test targets],
 	[case "${enableval}" in
 		yes) fuzzer=true ;;
 		no)  fuzzer=false ;;
@@ -1144,7 +1144,7 @@ AC_SUBST(ICULIBSUFFIXCNAME)
 
 # Enable/disable tests
 AC_ARG_ENABLE(tests,
-	[  --enable-tests          build ICU tests [default=yes]],
+	[  --disable-tests         do not build ICU tests],
 	[case "${enableval}" in
 		yes) tests=true ;;
 		no)  tests=false ;;
@@ -1155,7 +1155,7 @@ ICU_CONDITIONAL(TESTS, test "$tests" = true)
 
 # Enable/disable samples
 AC_ARG_ENABLE(samples,
-	[  --enable-samples        build ICU samples [default=yes]
+	[  --disable-samples       do not build ICU samples
 
 Additionally, the variable FORCE_LIBS may be set before calling configure.
 If set, it will REPLACE any automatic list of libraries.],
@@ -1304,7 +1304,6 @@ AC_CONFIG_FILES([icudefs.mk \
 		test/perf/ustrperf/Makefile \
 		test/perf/utfperf/Makefile \
 		test/perf/utrie2perf/Makefile \
-		test/perf/leperf/Makefile \
 		test/fuzzer/Makefile \
 		samples/Makefile])
 AC_OUTPUT

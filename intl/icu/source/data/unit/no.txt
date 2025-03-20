@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 no{
     units{
         acceleration{
@@ -364,6 +364,18 @@ no{
                 gender{"masculine"}
                 one{"{0} promyriade"}
                 other{"{0} promyriade"}
+            }
+            portion-per-1e9{
+                case{
+                    genitive{
+                        one{"{0} del per milliards"}
+                        other{"{0} deler per milliards"}
+                    }
+                }
+                dnam{"deler per milliard"}
+                gender{"masculine"}
+                one{"{0} del per milliard"}
+                other{"{0} deler per milliard"}
             }
         }
         consumption{
@@ -1958,6 +1970,10 @@ no{
                 one{"{0}‱"}
                 other{"{0}‱"}
             }
+            portion-per-1e9{
+                one{"{0}ppb"}
+                other{"{0}ppb"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -2517,6 +2533,9 @@ no{
                 dnam{"promyriade"}
                 one{"{0} ‱"}
                 other{"{0} ‱"}
+            }
+            portion-per-1e9{
+                dnam{"deler/milliard"}
             }
         }
         consumption{

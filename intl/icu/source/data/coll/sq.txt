@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 sq{
     collations{
         standard{
@@ -17,7 +17,7 @@ sq{
                 "&[before 1]Y<xh<<<Xh<<<XH"
                 "&[before 1]Ʒ<zh<<<Zh<<<ZH"
             }
-            Version{"46"}
+            Version{"47"}
         }
     }
 }

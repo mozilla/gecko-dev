@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ne{
     units{
         acceleration{
@@ -132,6 +132,11 @@ ne{
             permyriad{
                 one{"{0} पर्माइराइड"}
                 other{"{0} पर्माइराइड"}
+            }
+            portion-per-1e9{
+                dnam{"अंश प्रति बरब"}
+                one{"{0} अंश प्रति अरब"}
+                other{"{0} अंश प्रति अरब"}
             }
         }
         consumption{
@@ -822,6 +827,10 @@ ne{
                 one{"{0}ppm"}
                 other{"{0}ppm"}
             }
+            portion-per-1e9{
+                one{"{0}ppb"}
+                other{"{0}ppb"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -1358,6 +1367,9 @@ ne{
             }
             permyriad{
                 dnam{"पर्माइराइड"}
+            }
+            portion-per-1e9{
+                dnam{"अंश/अरब"}
             }
         }
         consumption{

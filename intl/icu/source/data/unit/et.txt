@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 et{
     units{
         acceleration{
@@ -184,6 +184,11 @@ et{
             permyriad{
                 one{"{0} promüriaad"}
                 other{"{0} promüriaadi"}
+            }
+            portion-per-1e9{
+                dnam{"miljardikosa"}
+                one{"{0} miljardikosa"}
+                other{"{0} miljardikosa"}
             }
         }
         consumption{
@@ -1206,6 +1211,11 @@ et{
             }
             permyriad{
                 dnam{"promüriaad"}
+            }
+            portion-per-1e9{
+                dnam{"osakesed/miljard"}
+                one{"{0} miljardikosa"}
+                other{"{0} miljardikosa"}
             }
         }
         consumption{

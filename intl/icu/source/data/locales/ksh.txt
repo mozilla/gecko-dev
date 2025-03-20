@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ksh{
     AuxExemplarCharacters{"[áàăâãā ç éèĕêē ğ íìĭîïī ĳ ı ł ñ óòŏôøō úùŭûū ÿ]"}
     ExemplarCharacters{"[aåä æ b c d eëė f g h i j k l m n oö œ p q r s ß t uůü v w x y z]"}

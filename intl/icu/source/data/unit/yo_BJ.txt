@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 yo_BJ{
     units{
         compound{
@@ -16,6 +16,9 @@ yo_BJ{
             }
             permille{
                 other{"{0} ìdákan nínú ɛgbɛ̀rún"}
+            }
+            portion-per-1e9{
+                dnam{"ɛ̀yà nínú ìdá blíɔ̀nù"}
             }
         }
         consumption{
@@ -94,7 +97,7 @@ yo_BJ{
             }
             year{
                 dnam{"ɔ̀dún"}
-                per{"{0} ɔd"}
+                other{"{0} ɔ̀dún"}
             }
         }
         force{
@@ -171,6 +174,10 @@ yo_BJ{
             week{
                 dnam{"ɔshɛ́"}
                 per{"{0}/ɔ̀shɛ̀"}
+            }
+            year{
+                dnam{"ɔd"}
+                other{"{0} ɔd"}
             }
         }
         length{
@@ -252,7 +259,6 @@ yo_BJ{
             year{
                 dnam{"ɔd"}
                 other{"{0} ɔd"}
-                per{"{0}/ɔd"}
             }
         }
         force{

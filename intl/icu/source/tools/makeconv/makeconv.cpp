@@ -684,7 +684,7 @@ createConverter(ConvData *data, const char *converterName, UErrorCode *pErrorCod
 
         } else if(
             data->ucm->ext->mappingsLength>0 &&
-            !ucm_checkBaseExt(states, data->ucm->base, data->ucm->ext, data->ucm->ext, false)
+            !ucm_checkBaseExt(states, data->ucm->base, data->ucm->ext, data->ucm->ext, 0)
         ) {
             *pErrorCode=U_INVALID_TABLE_FORMAT;
         } else if(data->ucm->base->flagsType&UCM_FLAGS_EXPLICIT) {
@@ -804,7 +804,7 @@ createConverter(ConvData *data, const char *converterName, UErrorCode *pErrorCod
 
                 } else if(
                     !ucm_checkValidity(data->ucm->ext, baseStates) ||
-                    !ucm_checkBaseExt(baseStates, baseData.ucm->base, data->ucm->ext, data->ucm->ext, false)
+                    !ucm_checkBaseExt(baseStates, baseData.ucm->base, data->ucm->ext, data->ucm->ext, 0)
                 ) {
                     *pErrorCode=U_INVALID_TABLE_FORMAT;
                 } else {

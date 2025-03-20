@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 hi{
     units{
         acceleration{
@@ -311,6 +311,18 @@ hi{
                 gender{"masculine"}
                 one{"{0} प्रति दस हज़ार"}
                 other{"{0} प्रति दस हज़ार"}
+            }
+            portion-per-1e9{
+                case{
+                    oblique{
+                        one{"{0} पार्ट प्रति बिलियन"}
+                        other{"{0} पार्ट्स प्रति बिलियन"}
+                    }
+                }
+                dnam{"पार्ट्स प्रति बिलियन"}
+                gender{"masculine"}
+                one{"{0} पार्ट प्रति बिलियन"}
+                other{"{0} पार्ट्स प्रति बिलियन"}
             }
         }
         consumption{
@@ -2418,6 +2430,9 @@ hi{
             }
             permillion{
                 dnam{"हिस्सा प्रति दस लाख"}
+            }
+            portion-per-1e9{
+                dnam{"पार्ट्स/बिलियन"}
             }
         }
         consumption{

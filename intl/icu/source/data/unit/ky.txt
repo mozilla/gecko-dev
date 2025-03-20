@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ky{
     units{
         acceleration{
@@ -155,6 +155,11 @@ ky{
                 dnam{"миллионго бөлүктөр"}
                 one{"миллионго {0} бөлүк"}
                 other{"миллионго {0} бөлүк"}
+            }
+            portion-per-1e9{
+                dnam{"мкг/л"}
+                one{"{0} мкг/л"}
+                other{"{0} мкг/л"}
             }
         }
         consumption{
@@ -843,6 +848,11 @@ ky{
             percent{
                 dnam{"%"}
             }
+            portion-per-1e9{
+                dnam{"мкг/л"}
+                one{"{0} мкг/л"}
+                other{"{0} мкг/л"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -1167,6 +1177,11 @@ ky{
             }
             permillion{
                 dnam{"миллионго/бөлүк"}
+            }
+            portion-per-1e9{
+                dnam{"мкг/л"}
+                one{"{0} мкг/л"}
+                other{"{0} мкг/л"}
             }
         }
         consumption{

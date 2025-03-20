@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 mk{
     units{
         acceleration{
@@ -194,6 +194,11 @@ mk{
                 dnam{"десетилјадити дел"}
                 one{"{0} десетилјадити дел"}
                 other{"{0} десетилјадити делови"}
+            }
+            portion-per-1e9{
+                dnam{"делови на милијарда"}
+                one{"{0} дел на милијарда"}
+                other{"{0} дела на милијарда"}
             }
         }
         consumption{

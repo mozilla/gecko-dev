@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 is{
     AuxExemplarCharacters{"[c q w z]"}
     ExemplarCharacters{"[a á b d ð e é f g h i í j k l m n o ó p r s t u ú v x y ý þ æ ö]"}

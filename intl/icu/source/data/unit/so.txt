@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 so{
     units{
         acceleration{
@@ -176,6 +176,11 @@ so{
             permyriad{
                 one{"{0} bermiraad"}
                 other{"{0} bermiraad"}
+            }
+            portion-per-1e9{
+                dnam{"qeybaha bilyankiiba"}
+                one{"{0} qeybaha bilyankiiba"}
+                other{"{0} qeybaha bilyankiiba"}
             }
         }
         consumption{
@@ -955,6 +960,11 @@ so{
                 one{"{0}ppm"}
                 other{"{0}ppm#"}
             }
+            portion-per-1e9{
+                dnam{"qb"}
+                one{"{0}qb"}
+                other{"{0}qb"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -1295,6 +1305,11 @@ so{
             }
             permyriad{
                 dnam{"bermiraad"}
+            }
+            portion-per-1e9{
+                dnam{"qeybaha/bilyan"}
+                one{"{0} qb"}
+                other{"{0} qb"}
             }
         }
         consumption{

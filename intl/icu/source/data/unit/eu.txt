@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 eu{
     units{
         acceleration{
@@ -177,6 +177,11 @@ eu{
                 dnam{"zati milioi bakoitzeko"}
                 one{"{0} zati milioi bakoitzeko"}
                 other{"{0} zati milioi bakoitzeko"}
+            }
+            portion-per-1e9{
+                dnam{"zati mila milioiko"}
+                one{"{0} zati mila milioiko"}
+                other{"{0} zati mila milioiko"}
             }
         }
         consumption{
@@ -914,6 +919,11 @@ eu{
             millimole-per-liter{
                 dnam{"mmol/l"}
             }
+            portion-per-1e9{
+                dnam{"zati / m. m."}
+                one{"{0} zati / m. m."}
+                other{"{0} zati / m. m."}
+            }
         }
         consumption{
             mile-per-gallon-imperial{
@@ -1178,6 +1188,11 @@ eu{
             permyriad{
                 one{"‱ {0}"}
                 other{"‱ {0}"}
+            }
+            portion-per-1e9{
+                dnam{"zati / mila milioi"}
+                one{"{0} zati / m. m."}
+                other{"{0} zati / m. m."}
             }
         }
         consumption{

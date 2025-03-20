@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 dayPeriods:table(nofallback){
     locales{
         af{"set3"}
@@ -1822,10 +1822,10 @@ dayPeriods:table(nofallback){
             }
             morning1{
                 before{"12:00"}
-                from{"06:00"}
+                from{"00:00"}
             }
             night1{
-                before{"06:00"}
+                before{"24:00"}
                 from{"21:00"}
             }
             noon{
@@ -3647,10 +3647,10 @@ dayPeriods:table(nofallback){
             }
             morning1{
                 before{"12:00"}
-                from{"06:00"}
+                from{"00:00"}
             }
             night1{
-                before{"06:00"}
+                before{"24:00"}
                 from{"21:00"}
             }
         }

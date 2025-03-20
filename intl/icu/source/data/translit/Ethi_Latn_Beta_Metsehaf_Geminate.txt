@@ -1,6 +1,6 @@
 ﻿# © 2016 and later: Unicode, Inc. and others.
 # License & terms of use: http://www.unicode.org/copyright.html
-# Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+# Generated using tools/cldr/cldr-to-icu/
 #
 # File: Ethi_Latn_Beta_Metsehaf_Geminate.txt
 # Generated from CLDR
@@ -20,7 +20,7 @@
 ########################################################################
 #
 :: Amharic-Amharic/Geminate ;
-:: Ethiopic-Latin/BetaMetsehaf ;
+:: Ethiopic-Latin/Beta_Metsehaf ;
 #
 ########################################################################
 

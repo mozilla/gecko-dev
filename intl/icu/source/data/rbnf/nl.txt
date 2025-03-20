@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 nl{
     RBNFRules{
         OrdinalRules{
@@ -82,6 +82,12 @@ nl{
             "1000000000000: << biljoen[ >>];",
             "1000000000000000: << biljard[ >>];",
             "1000000000000000000: =#,##0=;",
+            "%spellout-cardinal-stressed:",
+            "-x: min >>;",
+            "x.x: =%spellout-cardinal=;",
+            "0: =%spellout-cardinal=;",
+            "1: \u00E9\u00E9n;",
+            "2: =%spellout-cardinal=;",
             "%%ord-ste:",
             "0: ste;",
             "1: \u00AD=%spellout-ordinal=;",

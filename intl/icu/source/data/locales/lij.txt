@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 lij{
     AuxExemplarCharacters{"[õō œ ř]"}
     ExemplarCharacters{"[aàâä æ b cç d eéèêë f g h iìîï j k l m nñ oóòôö p q r s t uùûü v w x y z]"}

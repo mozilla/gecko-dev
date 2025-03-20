@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ha{
     collations{
         standard{
@@ -12,7 +12,7 @@ ha{
                 "&T<ts<<<Ts<<<TS"
                 "&Y<ƴ<<<ʼy<<<''y<<<Ƴ<<<ʼY<<<''Y"
             }
-            Version{"46"}
+            Version{"47"}
         }
     }
 }

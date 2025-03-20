@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 az{
     collations{
         search{
@@ -9,7 +9,7 @@ az{
                 "[import az-u-co-standard]"
                 "[reorder others]"
             }
-            Version{"46"}
+            Version{"47"}
         }
         standard{
             Sequence{
@@ -26,7 +26,7 @@ az{
                 "&H<x<<<X"
                 "&Z<w<<<W"
             }
-            Version{"46"}
+            Version{"47"}
         }
     }
 }

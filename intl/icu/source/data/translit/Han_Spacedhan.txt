@@ -1,6 +1,6 @@
 ﻿# © 2016 and later: Unicode, Inc. and others.
 # License & terms of use: http://www.unicode.org/copyright.html
-# Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+# Generated using tools/cldr/cldr-to-icu/
 #
 # File: Han_Spacedhan.txt
 # Generated from CLDR
@@ -8,9 +8,9 @@
 
 # Only intended for internal use
 # Make sure Han are normalized, including characters that contain them.
-# The first set in the filter is computed with http://unicode.org/cldr/utility/list-unicodeset.jsp?a=[:tonfkd:/XXX/:]-[:ideographic:]-[:sc=han:]
-# Where XXX is the resolved [:ideographic:][:sc=han:]. It needs updating with each Unicode release!
-:: [[、。々《-』〜・㆒-㆟㈠-㉇㊀-㊰㋀-㋋ ㍘-㍰㍻-㍿㏠-㏾🈐-🈒🈔-🈺🉀-🉈🉐🉑][:ideographic:][:sc=han:]] nfkc;
+# The first set in the filter is computed with http://unicode.org/cldr/utility/list-unicodeset.jsp?a=[:tonfkd:/XXX/:]-[:Ideographic:]-[:sc=Han:]
+# Where XXX is the resolved [:Ideographic:][:sc=Han:]. It needs updating with each Unicode release!
+:: [[、。々《-』〜・㆒-㆟㈠-㉇㊀-㊰㋀-㋋ ㍘-㍰㍻-㍿㏠-㏾🈐-🈒🈔-🈺🉀-🉈🉐🉑][:Ideographic:][:sc=Han:]] nfkc;
 :: fullwidth-halfwidth;
 ｡ → '.';
 。→ '.';
@@ -31,7 +31,7 @@
 々→ '⓶';
 〜→ '~';
 $terminalPunct = [\.\,\:\;\?\!．，：？！｡、；[:Pe:][:Pf:]];
-$initialPunct = [:Ps:][:Pi:];
+$initialPunct = [[:Ps:][:Pi:]];
 # add space between any Han or terminal punctuation and letters, and
 # between letters and Han or initial punct
 [[:Ideographic:] $terminalPunct] {} [:Letter:] → ' ' ;

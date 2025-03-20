@@ -1,6 +1,6 @@
 ﻿# © 2016 and later: Unicode, Inc. and others.
 # License & terms of use: http://www.unicode.org/copyright.html
-# Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+# Generated using tools/cldr/cldr-to-icu/
 #
 # File: Arab_Latn.txt
 # Generated from CLDR
@@ -18,7 +18,7 @@
 # Does *not* do assimilation of "al", nor hyphenation.
 # While it could be done, we need to determine whether a prefix "al" could
 # occur other than as the definite article (since no space is used).
-:: [[:Arabic:][:block=ARABIC:][‎ⁿ،؛؟ـ\u064B-\u0655٠-٬۰-۹﷼ښ][\u0611\u0670]] ;
+:: [[:Arabic:][:Block=Arabic:][‎ⁿ،؛؟ـ\u064B-\u0655٠-٬۰-۹﷼ښ][\u0611\u0670]] ;
 :: NFKD (NFC);
 $disambig =  \u0331 ;
 $disambig2 =  \u0330 ;

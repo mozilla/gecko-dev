@@ -116,7 +116,7 @@ const ResourceBundle *RBDataMap::getItem(const char* key, UErrorCode &status) co
   }
 }
 
-const UnicodeString RBDataMap::getString(const char* key, UErrorCode &status) const
+UnicodeString RBDataMap::getString(const char* key, UErrorCode &status) const
 {
   const ResourceBundle *r = getItem(key, status);
   if(U_SUCCESS(status)) {

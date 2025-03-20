@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ar{
     collations{
         compat{
@@ -9,7 +9,7 @@ ar{
                 "&ت<<ة<<<ﺔ<<<ﺓ"
                 "&ي<<ى<<<ﯨ<<<ﯩ<<<ﻰ<<<ﻯ<<<ﲐ<<<ﱝ"
             }
-            Version{"46"}
+            Version{"47"}
         }
         standard{
             Sequence{
@@ -397,7 +397,7 @@ ar{
                 "‎&ۓ‎=ﮰ‎=ﮱ"
                 "‎&ۀ‎=ﮤ‎=ﮥ"
             }
-            Version{"46"}
+            Version{"47"}
         }
     }
 }

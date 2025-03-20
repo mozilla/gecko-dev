@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 uz{
     units{
         acceleration{
@@ -168,6 +168,11 @@ uz{
             permyriad{
                 one{"{0} promiriada"}
                 other{"{0} promiriada"}
+            }
+            portion-per-1e9{
+                dnam{"qism/milliard"}
+                one{"{0} ta qism/milliard"}
+                other{"{0} ta qism/milliard"}
             }
         }
         consumption{
@@ -777,6 +782,11 @@ uz{
                 one{"{0}ppm"}
                 other{"{0}ppm"}
             }
+            portion-per-1e9{
+                dnam{"qism/milliard"}
+                one{"{0} ta qism/mlrd"}
+                other{"{0} ta qism/mlrd"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -975,6 +985,11 @@ uz{
             }
             permyriad{
                 dnam{"promiriada"}
+            }
+            portion-per-1e9{
+                dnam{"qism/milliard"}
+                one{"{0} ta qism/mlrd"}
+                other{"{0} ta qism/mlrd"}
             }
         }
         consumption{

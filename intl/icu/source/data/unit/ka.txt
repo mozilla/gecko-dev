@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ka{
     units{
         acceleration{
@@ -161,6 +161,11 @@ ka{
                 dnam{"ნაწილი მილიონზე"}
                 one{"{0} ნაწილი მილიონზე"}
                 other{"{0} ნაწილი მილიონზე"}
+            }
+            portion-per-1e9{
+                dnam{"ნაწილი მილიარდზე"}
+                one{"{0} ნაწილი მილიარდზე"}
+                other{"{0} ნაწილი მილიარდზე"}
             }
         }
         consumption{
@@ -871,6 +876,11 @@ ka{
                 other{"{0} წმ"}
             }
         }
+        concentr{
+            portion-per-1e9{
+                dnam{"ნ/მ"}
+            }
+        }
         consumption{
             liter-per-100-kilometer{
                 one{"{0}ლ/100კმ"}
@@ -1104,6 +1114,11 @@ ka{
             }
             permillion{
                 dnam{"ნაწილი/მილიონზე"}
+            }
+            portion-per-1e9{
+                dnam{"ნაწილი/მილიარდზე"}
+                one{"{0} ნ/მ"}
+                other{"{0} ნ/მ"}
             }
         }
         consumption{

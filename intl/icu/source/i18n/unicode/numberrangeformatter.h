@@ -508,12 +508,11 @@ class U_I18N_API LocalizedNumberRangeFormatter
     FormattedNumberRange formatFormattableRange(
         const Formattable& first, const Formattable& second, UErrorCode& status) const;
 
-#ifndef U_HIDE_DRAFT_API
     /**
      * Disassociate the locale from this formatter.
      *
      * @return The fluent chain.
-     * @draft ICU 75
+     * @stable ICU 75
      */
     UnlocalizedNumberRangeFormatter withoutLocale() const &;
 
@@ -522,10 +521,9 @@ class U_I18N_API LocalizedNumberRangeFormatter
      *
      * @return The fluent chain.
      * @see #withoutLocale
-     * @draft ICU 75
+     * @stable ICU 75
      */
     UnlocalizedNumberRangeFormatter withoutLocale() &&;
-#endif // U_HIDE_DRAFT_API
 
     /**
      * Default constructor: puts the formatter into a valid but undefined state.

@@ -1,6 +1,6 @@
 ﻿# © 2016 and later: Unicode, Inc. and others.
 # License & terms of use: http://www.unicode.org/copyright.html
-# Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+# Generated using tools/cldr/cldr-to-icu/
 #
 # File: Han_Latin_Names.txt
 # Generated from CLDR
@@ -15,7 +15,7 @@
 # Do this before ::Han-Spacedhan() to catch Han after space in original text,
 # and to apply before all other rules.
 $startOfHanMarker = \uFDD1;
-[:^script=Han:] { ([:script=Han:]) → $startOfHanMarker $1;
+[:^Script=Han:] { ([:Script=Han:]) → $startOfHanMarker $1;
 # Need Spacedhan so the name transliterations get spaced properly
 ::Han-Spacedhan();
 # Convert special name readings that depend on next character

@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ja{
     AuxExemplarCharacters{
         "[丑 亥 亨 兌 兎 凧 剃 卯 嘉 嘔 嘘 壬 壺 嬉 寅 巳 庚 庵 弘 彗 悶 愕 戊 戌 拼 揃 斧 昌 杖 桶 梵 楔 湘 焚 燭 爬 牌 牝"
@@ -283,8 +283,8 @@ ja{
                 "Hmmssz",
                 "Hmmss",
                 "Hmm",
-                "GGGGyMEEEEd",
-                "GGGGyMd",
+                "GGGGyMMMEEEEd",
+                "GGGGyMMMd",
                 "GyMMdd",
                 "GyMMdd",
             }
@@ -761,8 +761,8 @@ ja{
                 "Hmmssz",
                 "Hmmss",
                 "Hmm",
-                "GyMEEEEd",
-                "GyMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
                 "GGGGGyMMdd",
                 "GGGGGyMd",
             }
@@ -1002,8 +1002,8 @@ ja{
                 "Hmmssz",
                 "Hmmss",
                 "Hmm",
-                "yMEEEEd",
-                "yMd",
+                "yMMMEEEEd",
+                "yMMMd",
                 "yMMdd",
                 "yMMdd",
             }
@@ -1326,8 +1326,8 @@ ja{
                 "Hmmssz",
                 "Hmmss",
                 "Hmm",
-                "GyMEEEEd",
-                "GyMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
                 "GyMMdd",
                 "GyMMdd",
             }
@@ -1398,8 +1398,8 @@ ja{
                 "Hmmssz",
                 "Hmmss",
                 "Hmm",
-                "GyMEEEEd",
-                "GyMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
                 "GyMMdd",
                 "GyMMdd",
             }
@@ -1466,10 +1466,10 @@ ja{
                 "Hmmssz",
                 "Hmmss",
                 "Hmm",
-                "GyMEEEEd",
-                "GyMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
                 {
-                    "GyMd",
+                    "GyMMMd",
                     "y=jpanyear",
                 }
                 "GGGGGyMd",
@@ -2005,8 +2005,8 @@ ja{
                 "Hmmssz",
                 "Hmmss",
                 "Hmm",
-                "GyMEEEEd",
-                "GyMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
                 "GyMMdd",
                 "GyMMdd",
             }

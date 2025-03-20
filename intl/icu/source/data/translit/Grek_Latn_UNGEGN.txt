@@ -1,6 +1,6 @@
 ﻿# © 2016 and later: Unicode, Inc. and others.
 # License & terms of use: http://www.unicode.org/copyright.html
-# Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+# Generated using tools/cldr/cldr-to-icu/
 #
 # File: Grek_Latn_UNGEGN.txt
 # Generated from CLDR
@@ -14,8 +14,8 @@
 :: [[[:Greek:][:Mn:][:Me:]] [\:-;?·;·]] ;
 ::NFD (NFC) ;
 # Useful variables
-$lower = [[:latin:][:greek:] & [:Ll:]] ;
-$upper = [[:latin:][:greek:] & [:Lu:]] ;
+$lower = [[:Latin:][:Greek:] & [:Ll:]] ;
+$upper = [[:Latin:][:Greek:] & [:Lu:]] ;
 $accent = [[:Mn:][:Me:]] ;
 $macron = \u0304 ;
 $ddot = \u0308 ;

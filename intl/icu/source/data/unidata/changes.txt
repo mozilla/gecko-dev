@@ -290,6 +290,8 @@ copying that version number into the $ICU_SRC/.bazeliskrc config file.
 - run Unicode Tools GenerateUnihanCollators & GenerateUnihanCollatorFiles,
   check CLDR diffs, copy to CLDR, test CLDR, ... as documented there
 - generate ICU zh collation data
+    WARNING: outdated, don't do this, follow the tools/cldr/cldr-to-icu/README.md file!
+    --- Old text from here:
     instructions inspired by
     https://github.com/unicode-org/icu/blob/main/tools/cldr/cldr-to-icu/README.txt and
     https://github.com/unicode-org/icu/blob/main/icu4c/source/data/cldr-icu-readme.txt

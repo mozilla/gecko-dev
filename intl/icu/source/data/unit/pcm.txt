@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 pcm{
     units{
         acceleration{
@@ -185,6 +185,11 @@ pcm{
             permyriad{
                 one{"{0} Fọ Ích Tẹ́n Taúzan"}
                 other{"{0} Fọ Ích Tẹ́n Taúzan"}
+            }
+            portion-per-1e9{
+                dnam{"pat fọ ích bíliọn"}
+                one{"{0} pat fọ ích bíliọn"}
+                other{"{0} pat fọ ích bíliọn"}
             }
         }
         consumption{
@@ -1026,6 +1031,11 @@ pcm{
             permyriad{
                 dnam{"‱"}
             }
+            portion-per-1e9{
+                dnam{"pfib"}
+                one{"{0}pfib"}
+                other{"{0}pfib"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -1344,6 +1354,11 @@ pcm{
             }
             permyriad{
                 dnam{"Fọ Ích Tẹ́n Taúzan"}
+            }
+            portion-per-1e9{
+                dnam{"pat/bíliọn"}
+                one{"{0} pfib"}
+                other{"{0} pfib"}
             }
         }
         consumption{

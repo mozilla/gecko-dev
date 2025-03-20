@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ha{
     units{
         acceleration{
@@ -181,6 +181,11 @@ ha{
             permyriad{
                 one{"permyriad {0}"}
                 other{"permyriad {0}"}
+            }
+            portion-per-1e9{
+                dnam{"sashi a cikin biliyan"}
+                one{"sashi {0} a cikin biliyan"}
+                other{"sashi {0} a cikin biliyan"}
             }
         }
         consumption{
@@ -1112,6 +1117,11 @@ ha{
             permyriad{
                 dnam{"‱"}
             }
+            portion-per-1e9{
+                dnam{"sashi/biliyan"}
+                one{"sashi {0} a cikin biliyan"}
+                other{"sashi {0} a cikin biliyan"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -1970,6 +1980,11 @@ ha{
                 dnam{"permyriad"}
                 one{"‱{0}"}
                 other{"‱{0}"}
+            }
+            portion-per-1e9{
+                dnam{"sashi/biliyan"}
+                one{"sashi {0} a cikin biliyan"}
+                other{"sashi {0} a cikin biliyan"}
             }
         }
         consumption{

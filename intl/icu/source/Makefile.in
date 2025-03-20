@@ -133,7 +133,7 @@ doc/html/index.html: Doxyfile $(wildcard ./common/unicode/platform.h $(srcdir)/c
 Doxyfile: $(srcdir)/Doxyfile.in
 	CONFIG_FILES=$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
-$(DOCZIP): doc
+$(DOCZIP): doc-searchengine
 	-$(RMV) $(DOCZIP)
 	( cd doc/html ; zip -r ../../$(DOCZIP) * )
 endif
@@ -210,7 +210,7 @@ endif
 ifeq ($(DOXYGEN),)
 install-doc:
 else
-install-doc: doc
+install-doc: doc-searchengine
 	$(RM) -r $(DESTDIR)$(docdir)/$(docsubdir)
 	$(MKINSTALLDIRS) $(DESTDIR)$(docdir)/$(docsubdir)
 	$(INSTALL_DATA) $(docfiles) $(DESTDIR)$(docdir)/$(docsubdir)

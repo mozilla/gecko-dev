@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ro{
     units{
         acceleration{
@@ -448,6 +448,20 @@ ro{
                 gender{"feminine"}
                 one{"{0} la zece mii"}
                 other{"{0} la zece mii"}
+            }
+            portion-per-1e9{
+                case{
+                    genitive{
+                        few{"{0} părți pe miliard"}
+                        one{"unei părți pe miliard"}
+                        other{"{0} de părți pe miliard"}
+                    }
+                }
+                dnam{"părți pe miliard"}
+                few{"{0} părți pe miliard"}
+                gender{"feminine"}
+                one{"{0} parte pe miliard"}
+                other{"{0} de părți pe miliard"}
             }
         }
         consumption{
@@ -2267,6 +2281,9 @@ ro{
                 one{"{0} ‱"}
                 other{"{0} ‱"}
             }
+            portion-per-1e9{
+                dnam{"părți/miliard"}
+            }
         }
         consumption{
             mile-per-gallon{
@@ -2503,6 +2520,9 @@ ro{
                 few{"{0} moli"}
                 one{"{0} mol"}
                 other{"{0} moli"}
+            }
+            portion-per-1e9{
+                dnam{"părți/miliard"}
             }
         }
         consumption{

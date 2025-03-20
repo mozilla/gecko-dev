@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 bg{
     units{
         acceleration{
@@ -186,6 +186,11 @@ bg{
             permyriad{
                 one{"{0} базисен пункт"}
                 other{"{0} базисни пункта"}
+            }
+            portion-per-1e9{
+                dnam{"части на милиард"}
+                one{"{0} част на милиард"}
+                other{"{0} части на милиард"}
             }
         }
         consumption{
@@ -1185,6 +1190,9 @@ bg{
             }
             permyriad{
                 dnam{"базисен пункт"}
+            }
+            portion-per-1e9{
+                dnam{"части/милиард"}
             }
         }
         consumption{

@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 sr{
     durationUnits{
         hm{"h.mm"}
@@ -655,6 +655,30 @@ sr{
             }
             permyriad{
                 gender{"inanimate"}
+            }
+            portion-per-1e9{
+                case{
+                    accusative{
+                        few{"{0} дела на милијарду"}
+                        one{"{0} део на милијарду"}
+                        other{"{0} делова на милијарду"}
+                    }
+                    genitive{
+                        few{"{0} дела на милијарду"}
+                        one{"{0} дела на милијарду"}
+                        other{"{0} делова на милијарду"}
+                    }
+                    instrumental{
+                        few{"{0} дела на милијарду"}
+                        one{"{0} делом на милијарду"}
+                        other{"{0} делова на милијарду"}
+                    }
+                }
+                dnam{"делови на милијарду"}
+                few{"{0} дела на милијарду"}
+                gender{"inanimate"}
+                one{"{0} део на милијарду"}
+                other{"{0} делова на милијарду"}
             }
         }
         consumption{
@@ -3529,6 +3553,9 @@ sr{
             }
             permille{
                 dnam{"промил"}
+            }
+            portion-per-1e9{
+                dnam{"делови/милијарда"}
             }
         }
         consumption{

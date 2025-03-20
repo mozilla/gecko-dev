@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 pt_PT{
     units{
         acceleration{
@@ -79,6 +79,11 @@ pt_PT{
                 dnam{"milimoles por litro"}
                 one{"{0} milimole por litro"}
                 other{"{0} milimoles por litro"}
+            }
+            portion-per-1e9{
+                dnam{"partes por mil milhões"}
+                one{"{0} parte por mil milhões"}
+                other{"{0} partes por mil milhões"}
             }
         }
         consumption{
@@ -264,6 +269,11 @@ pt_PT{
             karat{
                 dnam{"quilates"}
             }
+            portion-per-1e9{
+                dnam{"ppmm"}
+                one{"{0} ppmm"}
+                other{"{0} ppmm"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -426,6 +436,11 @@ pt_PT{
             }
             millimole-per-liter{
                 dnam{"milimole/litro"}
+            }
+            portion-per-1e9{
+                dnam{"partes/mil milhões"}
+                one{"{0} ppmm"}
+                other{"{0} ppmm"}
             }
         }
         consumption{

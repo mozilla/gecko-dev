@@ -1,6 +1,6 @@
 ﻿# © 2016 and later: Unicode, Inc. and others.
 # License & terms of use: http://www.unicode.org/copyright.html
-# Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+# Generated using tools/cldr/cldr-to-icu/
 #
 # File: chr_chr_FONIPA.txt
 # Generated from CLDR
@@ -114,5 +114,5 @@ e e+ → eː;
 i i+ → iː;
 o o+ → oː;
 u u+ → uː;
-ə\u0303 {ə\u0303}+ → ə\u0303;
+ə\u0303 ə\u0303+ → ə\u0303;
 

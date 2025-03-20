@@ -1,6 +1,6 @@
 ﻿# © 2016 and later: Unicode, Inc. and others.
 # License & terms of use: http://www.unicode.org/copyright.html
-# Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+# Generated using tools/cldr/cldr-to-icu/
 #
 # File: Latin_NumericPinyin.txt
 # Generated from CLDR
@@ -31,6 +31,6 @@ $digit = [1-5];
 $1 &NumericPinyin-Pinyin($3) $2 ← ([aAeE]) ($vowel* $consonant*) ($digit);
 $1 &NumericPinyin-Pinyin($3) $2 ← ([oO]) ([$vowel-[aeAE]]* $consonant*) ($digit);
 $1 &NumericPinyin-Pinyin($3) $2 ← ($vowel) ($consonant*) ($digit);
-&NumericPinyin-Pinyin($1) ← [:letter:] {($digit)};
+&NumericPinyin-Pinyin($1) ← [:Letter:] {($digit)};
 ::NFC (NFD);
 

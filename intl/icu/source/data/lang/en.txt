@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 en{
     Keys{
         calendar{"Calendar"}
@@ -168,7 +168,6 @@ en{
         csw{"Swampy Cree"}
         cu{"Church Slavic"}
         cv{"Chuvash"}
-        cwd{"Woods Cree"}
         cy{"Welsh"}
         da{"Danish"}
         dak{"Dakota"}
@@ -270,7 +269,6 @@ en{
         hak{"Hakka Chinese"}
         haw{"Hawaiian"}
         hax{"Southern Haida"}
-        hdn{"Northern Haida"}
         he{"Hebrew"}
         hi{"Hindi"}
         hi_Latn{"Hindi (Latin)"}
@@ -297,7 +295,6 @@ en{
         ig{"Igbo"}
         ii{"Sichuan Yi"}
         ik{"Inupiaq"}
-        ike{"Eastern Canadian Inuktitut"}
         ikt{"Western Canadian Inuktitut"}
         ilo{"Iloko"}
         inh{"Ingush"}
@@ -483,7 +480,6 @@ en{
         oj{"Ojibwa"}
         ojb{"Northwestern Ojibwa"}
         ojc{"Central Ojibwa"}
-        ojg{"Eastern Ojibwa"}
         ojs{"Oji-Cree"}
         ojw{"Western Ojibwa"}
         oka{"Okanagan"}
@@ -707,6 +703,7 @@ en{
         zza{"Zaza"}
     }
     Languages%long{
+        cr{"Woods Cree"}
         zh{"Mandarin Chinese"}
         zh_Hans{"Simplified Mandarin Chinese"}
         zh_Hant{"Traditional Mandarin Chinese"}

@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 et{
     collations{
         standard{
@@ -8,7 +8,7 @@ et{
                 "&[before 1]T<š<<<Š<z<<<Z<ž<<<Ž"
                 "&[before 1]X<õ<<<Õ<ä<<<Ä<ö<<<Ö<ü<<<Ü"
             }
-            Version{"46"}
+            Version{"47"}
         }
     }
 }

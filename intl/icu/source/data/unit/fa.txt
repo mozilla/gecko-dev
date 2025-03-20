@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 fa{
     units{
         acceleration{
@@ -108,6 +108,11 @@ fa{
             permyriad{
                 one{"{0} ده‌هزارم"}
                 other{"{0} ده‌هزارم"}
+            }
+            portion-per-1e9{
+                dnam{"بخش در بیلیون"}
+                one{"{0} بخش در بیلیون"}
+                other{"{0} بخش در بیلیون"}
             }
         }
         consumption{
@@ -626,6 +631,9 @@ fa{
             permillion{
                 one{"{0}ppm"}
                 other{"{0}ppm"}
+            }
+            portion-per-1e9{
+                dnam{"بخش در بیلیون"}
             }
         }
         consumption{
@@ -1353,6 +1361,9 @@ fa{
             }
             permyriad{
                 dnam{"ده‌هزارم"}
+            }
+            portion-per-1e9{
+                dnam{"بخش در بیلیون"}
             }
         }
         consumption{

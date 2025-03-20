@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 dyo{
     AuxExemplarCharacters{"[z]"}
     ExemplarCharacters{"[aá b c d eé f g h ií j k l m nñ ŋ oó p q r s t uú v w x y]"}

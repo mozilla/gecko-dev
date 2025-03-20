@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 hy{
     units{
         acceleration{
@@ -547,6 +547,29 @@ hy{
                 dnam{"պերմիրիադ"}
                 one{"{0} պերմիրիադ"}
                 other{"{0} պերմիրիադ"}
+            }
+            portion-per-1e9{
+                case{
+                    ablative{
+                        one{"{0} մասից միլիարդի վրա"}
+                        other{"{0} մասից միլիարդի վրա"}
+                    }
+                    dative{
+                        one{"{0} մասին միլիարդի վրա"}
+                        other{"{0} մասին միլիարդի վրա"}
+                    }
+                    instrumental{
+                        one{"{0} մասով միլիարդի վրա"}
+                        other{"{0} մասով միլիարդի վրա"}
+                    }
+                    locative{
+                        one{"{0} մասում միլիարդի վրա"}
+                        other{"{0} մասում միլիարդի վրա"}
+                    }
+                }
+                dnam{"մաս միլիարդի վրա"}
+                one{"{0} մաս միլիարդի վրա"}
+                other{"{0} մաս միլիարդի վրա"}
             }
         }
         consumption{
@@ -3155,6 +3178,11 @@ hy{
                 one{"{0}մմվ"}
                 other{"{0}մմվ"}
             }
+            portion-per-1e9{
+                dnam{"մմլրդվ"}
+                one{"{0}մմլրդվ"}
+                other{"{0}մմլրդվ"}
+            }
         }
         consumption{
             liter-per-kilometer{
@@ -3743,6 +3771,11 @@ hy{
                 dnam{"մաս/միլիոն"}
                 one{"{0} մմվ"}
                 other{"{0} մմվ"}
+            }
+            portion-per-1e9{
+                dnam{"մաս/միլիարդ"}
+                one{"{0} մմլրդվ"}
+                other{"{0} մմլրդվ"}
             }
         }
         consumption{

@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 en_CA{
     zoneStrings{
         "America:St_Barthelemy"{
@@ -176,8 +176,8 @@ en_CA{
         }
         "meta:Samoa"{
             ld{"Samoan Time"}
-            lg{"Samoa Time"}
-            ls{"Samoa Standard Time"}
+            lg{"American Samoa Time"}
+            ls{"American Samoa Standard Time"}
         }
         "meta:Uruguay"{
             sd{"UYST"}

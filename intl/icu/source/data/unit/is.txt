@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 is{
     units{
         acceleration{
@@ -538,6 +538,26 @@ is{
                 gender{"neuter"}
                 one{"{0} permyriad"}
                 other{"{0} permyriad"}
+            }
+            portion-per-1e9{
+                case{
+                    accusative{
+                        one{"{0} hluta á milljarð"}
+                        other{"{0} hluta á milljarð"}
+                    }
+                    dative{
+                        one{"{0} hluta á milljarð"}
+                        other{"{0} hlutum á milljarð"}
+                    }
+                    genitive{
+                        one{"{0} hluta á milljarð"}
+                        other{"{0} hluta á milljarð"}
+                    }
+                }
+                dnam{"hlutar á milljarð"}
+                gender{"masculine"}
+                one{"{0} hluti á milljarð"}
+                other{"{0} hlutar á milljarð"}
             }
         }
         consumption{

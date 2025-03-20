@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 km{
     units{
         acceleration{
@@ -119,6 +119,10 @@ km{
             permillion{
                 dnam{"ផ្នែកក្នុងមួយលាន"}
                 other{"{0} ផ្នែកក្នុងមួយលាន"}
+            }
+            portion-per-1e9{
+                dnam{"ផ្នែកក្នុងមួយប៊ីលាន"}
+                other{"{0} ផ្នែកក្នុងមួយប៊ីលាន"}
             }
         }
         consumption{
@@ -715,6 +719,9 @@ km{
             percent{
                 dnam{"%"}
             }
+            portion-per-1e9{
+                other{"{0}ppb"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -883,6 +890,9 @@ km{
             }
             percent{
                 dnam{"ភាគរយ"}
+            }
+            portion-per-1e9{
+                dnam{"ផ្នែក/ប៊ីលាន"}
             }
         }
         consumption{

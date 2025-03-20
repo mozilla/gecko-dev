@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ml{
     units{
         acceleration{
@@ -549,6 +549,11 @@ ml{
                 gender{"neuter"}
                 one{"{0} പെ൪മിറിയാഡ്"}
                 other{"{0} പെ൪മിറിയാഡ്"}
+            }
+            portion-per-1e9{
+                dnam{"പാർട്‌സ്/ബില്ല്യൺ"}
+                one{"{0} പാർട്ട്/ബില്ല്യൺ"}
+                other{"{0} പാർട്‌സ്/ബില്ല്യൺ"}
             }
         }
         consumption{
@@ -2366,6 +2371,11 @@ ml{
             permyriad{
                 dnam{"‱"}
             }
+            portion-per-1e9{
+                dnam{"പി.പി.ബി."}
+                one{"{0}പി.പി.ബി."}
+                other{"{0}പി.പി.ബി."}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -2787,6 +2797,11 @@ ml{
             }
             permyriad{
                 dnam{"പെ൪മിറിയാഡ്"}
+            }
+            portion-per-1e9{
+                dnam{"പാർട്‌സ്/ബില്ല്യൺ"}
+                one{"{0} പി.പി.ബി."}
+                other{"{0} പി.പി.ബി."}
             }
         }
         consumption{

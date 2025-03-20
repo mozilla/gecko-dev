@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 gu{
     units{
         acceleration{
@@ -159,6 +159,11 @@ gu{
                 gender{"masculine"}
                 one{"{0} પરમિરિયડ"}
                 other{"{0} પરમિરિયડ"}
+            }
+            portion-per-1e9{
+                dnam{"પ્રતિ અબજ ભાગ"}
+                one{"{0} પ્રતિ અબજ ભાગ"}
+                other{"{0} પ્રતિ અબજ ભાગ"}
             }
         }
         consumption{
@@ -880,6 +885,10 @@ gu{
             permyriad{
                 dnam{"‱"}
             }
+            portion-per-1e9{
+                one{"{0} પ્રતિ અબજ ભાગ"}
+                other{"{0} પ્રતિ અબજ ભાગ"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -1203,6 +1212,11 @@ gu{
             }
             permyriad{
                 dnam{"પરમિરિયડ"}
+            }
+            portion-per-1e9{
+                dnam{"ભાગ/અબજ"}
+                one{"{0} પ્રતિ અબજ ભાગ"}
+                other{"{0} પ્રતિ અબજ ભાગ"}
             }
         }
         consumption{

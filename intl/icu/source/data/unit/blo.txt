@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 blo{
     units{
         acceleration{
@@ -1082,6 +1082,11 @@ blo{
                 other{"‱{0}"}
                 zero{"‱{0}"}
             }
+            portion-per-1e9{
+                one{"ppb{0}"}
+                other{"ppb{0}"}
+                zero{"ppb{0}"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -1852,6 +1857,11 @@ blo{
                 one{"‱{0}"}
                 other{"‱{0}"}
                 zero{"‱{0}"}
+            }
+            portion-per-1e9{
+                one{"ppb {0}"}
+                other{"ppb {0}"}
+                zero{"ppb {0}"}
             }
         }
         consumption{

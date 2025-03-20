@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 nl{
     Keys{
         calendar{"kalender"}
@@ -35,7 +35,6 @@ nl{
         afh{"Afrihili"}
         agq{"Aghem"}
         ain{"Aino"}
-        ajp{"Zuid-Levantijns-Arabisch"}
         ak{"Akan"}
         akk{"Akkadisch"}
         akz{"Alabama"}

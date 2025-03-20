@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 sk{
     units{
         acceleration{
@@ -1100,6 +1100,46 @@ sk{
                 many{"{0} desatiny promile"}
                 one{"{0} desatina promile"}
                 other{"{0} desatín promile"}
+            }
+            portion-per-1e9{
+                case{
+                    accusative{
+                        few{"{0} častice na miliardu"}
+                        many{"{0} častice na miliardu"}
+                        one{"{0} časticu na miliardu"}
+                        other{"{0} častíc na miliardu"}
+                    }
+                    dative{
+                        few{"{0} časticiam na miliardu"}
+                        many{"{0} častice na miliardu"}
+                        one{"{0} častici na miliardu"}
+                        other{"{0} časticiam na miliardu"}
+                    }
+                    genitive{
+                        few{"{0} častíc na miliardu"}
+                        many{"{0} častice na miliardu"}
+                        one{"{0} častice na miliardu"}
+                        other{"{0} častíc na miliardu"}
+                    }
+                    instrumental{
+                        few{"{0} časticami na miliardu"}
+                        many{"{0} častice na miliardu"}
+                        one{"{0} časticou na miliardu"}
+                        other{"{0} časticami na miliardu"}
+                    }
+                    locative{
+                        few{"{0} časticiach na miliardu"}
+                        many{"{0} častice na miliardu"}
+                        one{"{0} častici na miliardu"}
+                        other{"{0} časticiach na miliardu"}
+                    }
+                }
+                dnam{"častice na miliardu"}
+                few{"{0} častice na miliardu"}
+                gender{"feminine"}
+                many{"{0} častice na miliardu"}
+                one{"{0} častica na miliardu"}
+                other{"{0} častíc na miliardu"}
             }
         }
         consumption{

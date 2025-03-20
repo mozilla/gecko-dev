@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ky{
     AuxExemplarCharacters{"[в ф ц щ ь]"}
     ExemplarCharacters{"[а б г д е ё ж з и й к л м н ң о ө п р с т у ү х ч ш ъ ы э ю я]"}

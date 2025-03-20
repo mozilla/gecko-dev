@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 as{
     units{
         acceleration{
@@ -134,6 +134,11 @@ as{
             permyriad{
                 one{"{0} পাৰমিৰেইড"}
                 other{"{0} পাৰমিৰেইড"}
+            }
+            portion-per-1e9{
+                dnam{"প্ৰতি বিলিয়নত অংশ"}
+                one{"{0} প্ৰতি বিলিয়নত অংশ"}
+                other{"{0} প্ৰতি বিলিয়নত অংশ"}
             }
         }
         consumption{
@@ -808,6 +813,10 @@ as{
             permyriad{
                 dnam{"‱"}
             }
+            portion-per-1e9{
+                one{"{0}ppb"}
+                other{"{0}ppb"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -1126,6 +1135,9 @@ as{
             }
             permyriad{
                 dnam{"পাৰমিৰেইড"}
+            }
+            portion-per-1e9{
+                dnam{"অংশ/বিলিয়ন"}
             }
         }
         consumption{

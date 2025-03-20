@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 he{
     units{
         acceleration{
@@ -276,6 +276,13 @@ he{
                 one{"{0} רבבית"}
                 other{"{0} רבביות"}
                 two{"{0} רבביות"}
+            }
+            portion-per-1e9{
+                dnam{"חלקים למיליארד"}
+                gender{"masculine"}
+                one{"{0} חלקים למיליארד"}
+                other{"{0} חלקים למיליארד"}
+                two{"{0} חלקים למיליארד"}
             }
         }
         consumption{

@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ti{
     units{
         acceleration{
@@ -199,6 +199,11 @@ ti{
                 dnam{"አብ ሚርያድ"}
                 one{"{0} አብ ሚርያድ"}
                 other{"{0} አብ ሚርያድ"}
+            }
+            portion-per-1e9{
+                dnam{"ክፍልታት ኣብ ሓደ ቢልዮን"}
+                one{"{0} ክፍልታት ኣብ ሓደ ቢልዮን"}
+                other{"{0} ክፍልታት ኣብ ሓደ ቢልዮን"}
             }
         }
         consumption{
@@ -1156,6 +1161,11 @@ ti{
                 one{"{0}ክፍልታት ኣብ ሚልዮን"}
                 other{"{0}ክፍልታት ኣብ ሚልዮን"}
             }
+            portion-per-1e9{
+                dnam{"ክፍልታት ኣብ ሓደ ቢልዮን"}
+                one{"{0}ክፍልታት ኣብ ሓደ ቢልዮን"}
+                other{"{0}ክፍልታት ኣብ ሓደ ቢልዮን"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -2086,6 +2096,11 @@ ti{
             }
             permyriad{
                 dnam{"አብ ሚርያድ"}
+            }
+            portion-per-1e9{
+                dnam{"ክፍልታት/ሓደ ቢልዮን"}
+                one{"{0} ክፍልታት ኣብ ሓደ ቢልዮን"}
+                other{"{0} ክፍልታት ኣብ ሓደ ቢልዮን"}
             }
         }
         consumption{

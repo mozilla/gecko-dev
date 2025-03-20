@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 /**
  * File: root.txt
  */
@@ -765,10 +765,19 @@ root:table(nofallback){
                 resource:process(transliterator){"Hans_Hant.txt"}
             }
         }
+        Hans-Latn{
+            alias{"Hani-Latn"}
+        }
         Hant-Hans{
             file{
                 direction{"REVERSE"}
                 resource:process(transliterator){"Hans_Hant.txt"}
+            }
+        }
+        Hant-Latn{
+            file{
+                direction{"FORWARD"}
+                resource:process(transliterator){"Hant_Latn.txt"}
             }
         }
         Hebr-Latn{
@@ -3896,6 +3905,12 @@ root:table(nofallback){
         }
         und-Latn-t-und-hani-m0-prprname{
             alias{"Han-Latin/Names"}
+        }
+        und-Latn-t-und-hans{
+            alias{"Hani-Latn"}
+        }
+        und-Latn-t-und-hant{
+            alias{"Hant-Latn"}
         }
         und-Latn-t-und-hebr{
             alias{"Hebr-Latn"}

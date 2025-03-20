@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 dsb{
     units{
         acceleration{
@@ -276,6 +276,13 @@ dsb{
                 one{"{0} źaseśina promila"}
                 other{"{0} źaseśinow promila"}
                 two{"{0} źaseśinje promila"}
+            }
+            portion-per-1e9{
+                dnam{"miliardnina"}
+                few{"{0} miliardniny"}
+                one{"{0} miliardnina"}
+                other{"{0} miliardninow"}
+                two{"{0} miliardninje"}
             }
         }
         consumption{
@@ -1438,6 +1445,15 @@ dsb{
                 two{"{0}°"}
             }
         }
+        concentr{
+            portion-per-1e9{
+                dnam{"n"}
+                few{"{0} n"}
+                one{"{0} n"}
+                other{"{0} n"}
+                two{"{0} n"}
+            }
+        }
         duration{
             day{
                 dnam{"d"}
@@ -1585,6 +1601,13 @@ dsb{
                 one{"{0} ‱"}
                 other{"{0} ‱"}
                 two{"{0} ‱"}
+            }
+            portion-per-1e9{
+                dnam{"nano"}
+                few{"{0} nano"}
+                one{"{0} nano"}
+                other{"{0} nano"}
+                two{"{0} nano"}
             }
         }
         consumption{

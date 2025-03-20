@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 kn{
     units{
         acceleration{
@@ -598,6 +598,30 @@ kn{
                 gender{"neuter"}
                 one{"{0} ಪರ್‌ಮಿರಿಯಾಡ್"}
                 other{"{0} ಪರ್‌ಮಿರಿಯಾಡ್‌"}
+            }
+            portion-per-1e9{
+                case{
+                    accusative{
+                        one{"{0} ಪಾರ್ಟ್ಸ್ ಪರ್ ಬಿಲಿಯನ್ ಅನ್ನು"}
+                        other{"{0} ಪಾರ್ಟ್ಸ್ ಪರ್ ಬಿಲಿಯನ್ ಅನ್ನು"}
+                    }
+                    dative{
+                        one{"{0} ಪಾರ್ಟ್ಸ್ ಪರ್ ಬಿಲಿಯನ್‌ಗೆ"}
+                        other{"{0} ಪಾರ್ಟ್ಸ್ ಪರ್ ಬಿಲಿಯನ್‌ಗೆ"}
+                    }
+                    genitive{
+                        one{"{0} ಪಾರ್ಟ್ಸ್ ಪರ್ ಬಿಲಿಯನ್‌ನ"}
+                        other{"{0} ಪಾರ್ಟ್ಸ್ ಪರ್ ಬಿಲಿಯನ್‌ನ"}
+                    }
+                    locative{
+                        one{"{0} ಪಾರ್ಟ್ಸ್ ಪರ್ ಬಿಲಿಯನ್‌ನಲ್ಲಿ"}
+                        other{"{0} ಪಾರ್ಟ್ಸ್ ಪರ್ ಬಿಲಿಯನ್‌ನಲ್ಲಿ"}
+                    }
+                }
+                dnam{"ಪಾರ್ಟ್ಸ್ ಪರ್ ಬಿಲಿಯನ್"}
+                gender{"neuter"}
+                one{"{0} ಪಾರ್ಟ್ಸ್ ಪರ್ ಬಿಲಿಯನ್"}
+                other{"{0} ಪಾರ್ಟ್ಸ್ ಪರ್ ಬಿಲಿಯನ್"}
             }
         }
         consumption{
@@ -4185,6 +4209,9 @@ kn{
             }
             permyriad{
                 dnam{"ಪರ್ಮಿರೈಡ್"}
+            }
+            portion-per-1e9{
+                dnam{"ಪಾರ್ಟ್ಸ್/ಬಿಲಿಯನ್"}
             }
         }
         consumption{

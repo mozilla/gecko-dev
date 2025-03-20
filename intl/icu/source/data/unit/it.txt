@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 it{
     units{
         acceleration{
@@ -229,6 +229,12 @@ it{
                 gender{"masculine"}
                 one{"{0} punto base"}
                 other{"{0} punti base"}
+            }
+            portion-per-1e9{
+                dnam{"parti per miliardo"}
+                gender{"feminine"}
+                one{"{0} parte per miliardo"}
+                other{"{0} parti per miliardo"}
             }
         }
         consumption{
@@ -1286,6 +1292,10 @@ it{
             permillion{
                 one{"{0}ppm"}
                 other{"{0}ppm"}
+            }
+            portion-per-1e9{
+                one{"{0}ppb"}
+                other{"{0}ppb"}
             }
         }
         consumption{

@@ -18,7 +18,7 @@ CR                 = [\p{Grapheme_Cluster_Break = CR}];
 LF                 = [\p{Grapheme_Cluster_Break = LF}];
 
 Control            = [[\p{Grapheme_Cluster_Break = Control}]];
-Extend             = [[\p{Grapheme_Cluster_Break = Extend}]];
+Extend_            = [[\p{Grapheme_Cluster_Break = Extend}]];
 ZWJ                = [\p{Grapheme_Cluster_Break = ZWJ}];
 Regional_Indicator = [\p{Grapheme_Cluster_Break = Regional_Indicator}];
 Prepend            = [\p{Grapheme_Cluster_Break = Prepend}];
@@ -38,11 +38,9 @@ LVT                = [\p{Grapheme_Cluster_Break = LVT}];
 Extended_Pict      = [:ExtPict:];
 
 # Indic Sequences
-Virama_            = [[\p{Gujr}\p{sc=Telu}\p{sc=Mlym}\p{sc=Orya}\p{sc=Beng}\p{sc=Deva}] & [\p{Indic_Syllabic_Category=Virama}]];
-
-LinkingConsonant   = [[\p{Gujr}\p{sc=Telu}\p{sc=Mlym}\p{sc=Orya}\p{sc=Beng}\p{sc=Deva}] & [\p{Indic_Syllabic_Category=Consonant}]];
-
-ExtCccZwj          = [[Extend-[\p{ccc=0}]] ZWJ];
+InCBLinker    = [\p{InCB=Linker}];
+InCBConsonant = [\p{InCB=Consonant}];
+InCBExtend    = [\p{InCB=Extend}];
 
 GB3:     CR LF;
 GB4:     (Control | CR | LF) ÷;
@@ -52,9 +50,9 @@ GB6:     L (L | V | LV | LVT);
 GB7:     (LV | V) (V | T);
 GB8:     (LVT | T) T;
 
-GB11:    Extended_Pict Extend* ZWJ Extended_Pict;
-GB9c:    LinkingConsonant ExtCccZwj* Virama_ ExtCccZwj* LinkingConsonant;
-GB9:     . (Extend | ZWJ);
+GB11:    Extended_Pict Extend_* ZWJ Extended_Pict;
+GB9c:    InCBConsonant ( InCBExtend | InCBLinker )* InCBLinker ( InCBExtend | InCBLinker )* InCBConsonant;
+GB9:     . (Extend_ | ZWJ);
 
 GB9a:    . SpacingMark;
 GB9b:    Prepend .;

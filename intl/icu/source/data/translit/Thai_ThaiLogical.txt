@@ -1,6 +1,6 @@
 ﻿# © 2016 and later: Unicode, Inc. and others.
 # License & terms of use: http://www.unicode.org/copyright.html
-# Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+# Generated using tools/cldr/cldr-to-icu/
 #
 # File: Thai_ThaiLogical.txt
 # Generated from CLDR
@@ -9,7 +9,7 @@
 # This reverses the Thai LogicalOrderException vowels, and does (part of) spaces
 # The rules that convert space into semicolon are in another file;
 # since they have to come BEFORE the break iterator
-$thai = [[:thai:] ก-\u0E3Aเ-๛] ;
+$thai = [[:Thai:] ก-\u0E3Aเ-๛] ;
 # First convert the semicolon back
 ' '  ← $thai { '; '  } $thai;
 # Remove any other spaces between thai letters

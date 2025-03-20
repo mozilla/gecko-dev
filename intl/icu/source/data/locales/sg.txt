@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 sg{
     AuxExemplarCharacters{"[c q x]"}
     ExemplarCharacters{"[aâä b d eêë f g h iîï j k l m n oôö p r s t uùûü v w y z]"}

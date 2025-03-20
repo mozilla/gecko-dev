@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 lv{
     units{
         acceleration{
@@ -748,6 +748,35 @@ lv{
                 one{"{0} promiriāde"}
                 other{"{0} promiriādes"}
                 zero{"{0}‱"}
+            }
+            portion-per-1e9{
+                case{
+                    accusative{
+                        one{"{0} miljarddaļu"}
+                        other{"{0} miljarddaļas"}
+                        zero{"{0} miljarddaļu"}
+                    }
+                    dative{
+                        one{"{0} miljarddaļai"}
+                        other{"{0} miljarddaļām"}
+                        zero{"{0} miljarddaļu"}
+                    }
+                    genitive{
+                        one{"{0} miljarddaļas"}
+                        other{"{0} miljarddaļu"}
+                        zero{"{0} miljarddaļu"}
+                    }
+                    locative{
+                        one{"{0} miljarddaļā"}
+                        other{"{0} miljarddaļās"}
+                        zero{"{0} miljarddaļu"}
+                    }
+                }
+                dnam{"miljarddaļas"}
+                gender{"feminine"}
+                one{"{0} miljarddaļa"}
+                other{"{0} miljarddaļas"}
+                zero{"{0} miljarddaļu"}
             }
         }
         consumption{
@@ -3940,6 +3969,11 @@ lv{
                 zero{"{0}mi²"}
             }
         }
+        concentr{
+            portion-per-1e9{
+                dnam{"miljarddaļas"}
+            }
+        }
         duration{
             hour{
                 dnam{"h"}
@@ -4251,6 +4285,9 @@ lv{
             }
             permyriad{
                 dnam{"promiriāde"}
+            }
+            portion-per-1e9{
+                dnam{"miljarddaļas"}
             }
         }
         consumption{

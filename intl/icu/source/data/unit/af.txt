@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 af{
     durationUnits{
         hm{"hh:mm"}
@@ -178,6 +178,11 @@ af{
             permyriad{
                 one{"{0} per tienduisend"}
                 other{"{0} per tienduisend"}
+            }
+            portion-per-1e9{
+                dnam{"deeltjies per miljard"}
+                one{"{0} deeltjie per miljard"}
+                other{"{0} deeltjies per miljard"}
             }
         }
         consumption{
@@ -1058,6 +1063,11 @@ af{
             permyriad{
                 dnam{"‱"}
             }
+            portion-per-1e9{
+                dnam{"deeltjies/miljard"}
+                one{"{0}deeltjie/miljard"}
+                other{"{0}deeltjies/miljard"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -1809,6 +1819,11 @@ af{
             }
             permyriad{
                 dnam{"per tienduisend"}
+            }
+            portion-per-1e9{
+                dnam{"deeltjies/miljard"}
+                one{"{0} deeltjie/miljard"}
+                other{"{0} deeltjies/miljard"}
             }
         }
         consumption{

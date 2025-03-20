@@ -1,5 +1,34 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 yue_Hant_CN{
+    calendar{
+        gregorian{
+            DateTimePatterns{
+                "HH:mm:ss [zzzz]",
+                "HH:mm:ss [z]",
+                "HH:mm:ss",
+                "HH:mm",
+                "y年M月d日 EEEE",
+                "y年M月d日",
+                "y年M月d日",
+                "y/M/d",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            DateTimeSkeletons{
+                "HHmmsszzzz",
+                "HHmmssz",
+                "HHmmss",
+                "HHmm",
+                "yMMMEEEEd",
+                "yMMMd",
+                "yMMMd",
+                "yMd",
+            }
+        }
+    }
 }

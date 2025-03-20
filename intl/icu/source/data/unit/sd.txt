@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 sd{
     units{
         acceleration{
@@ -105,6 +105,11 @@ sd{
             permyriad{
                 one{"{0} پيرمائيرڊ"}
                 other{"{0} پيرمائيرڊ"}
+            }
+            portion-per-1e9{
+                dnam{"حصا في ارب"}
+                one{"{0} حصو في ارب"}
+                other{"{0} حصا في ارب"}
             }
         }
         consumption{
@@ -553,6 +558,13 @@ sd{
                 other{"{0}m²"}
             }
         }
+        concentr{
+            portion-per-1e9{
+                dnam{"ح ف ا"}
+                one{"{0}ح ف ا"}
+                other{"{0}ح ف ا"}
+            }
+        }
         duration{
             century{
                 dnam{"ص"}
@@ -826,6 +838,11 @@ sd{
             }
             permyriad{
                 dnam{"پيرمائيرڊ"}
+            }
+            portion-per-1e9{
+                dnam{"حصا/ارب"}
+                one{"{0} ح ف ا"}
+                other{"{0} ح ف ا"}
             }
         }
         consumption{

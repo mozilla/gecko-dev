@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 lt{
     collations{
         standard{
@@ -16,7 +16,7 @@ lt{
                 "&U<<ų<<<Ų<<ū<<<Ū"
                 "&Z<ž<<<Ž"
             }
-            Version{"46"}
+            Version{"47"}
         }
     }
 }

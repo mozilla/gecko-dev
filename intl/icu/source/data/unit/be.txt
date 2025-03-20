@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 be{
     durationUnits{
         hm{"hh:mm"}
@@ -258,6 +258,13 @@ be{
                 many{"{0} базісных пунктаў"}
                 one{"{0} базісны пункт"}
                 other{"{0} базіснага пункта"}
+            }
+            portion-per-1e9{
+                dnam{"частак на мільярд"}
+                few{"{0} часткі на мільярд"}
+                many{"{0} частак на мільярд"}
+                one{"{0} частка на мільярд"}
+                other{"{0} часткі на мільярд"}
             }
         }
         consumption{
@@ -1330,6 +1337,13 @@ be{
                 one{"{0}%"}
                 other{"{0}%"}
             }
+            portion-per-1e9{
+                dnam{"ч/млрд"}
+                few{"{0} ч/млрд"}
+                many{"{0} ч/млрд"}
+                one{"{0} ч/млрд"}
+                other{"{0} ч/млрд"}
+            }
         }
         coordinate{
             east{"{0} У"}
@@ -1577,6 +1591,13 @@ be{
                 many{"{0} ‱"}
                 one{"{0} ‱"}
                 other{"{0} ‱"}
+            }
+            portion-per-1e9{
+                dnam{"частак/мільярд"}
+                few{"{0} ч/млрд"}
+                many{"{0} ч/млрд"}
+                one{"{0} ч/млрд"}
+                other{"{0} ч/млрд"}
             }
         }
         consumption{

@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 pa{
     units{
         acceleration{
@@ -287,6 +287,18 @@ pa{
                 gender{"masculine"}
                 one{"{0} ਪ੍ਰਤੀ ਦਸ ਹਜ਼ਾਰ"}
                 other{"{0} ਪ੍ਰਤੀ ਦਸ ਹਜ਼ਾਰ"}
+            }
+            portion-per-1e9{
+                case{
+                    oblique{
+                        one{"{0} ਹਿੱਸਾ ਪ੍ਰਤੀ ਅਰਬ"}
+                        other{"{0} ਹਿੱਸਾ ਪ੍ਰਤੀ ਅਰਬ"}
+                    }
+                }
+                dnam{"ਹਿੱਸਾ ਪ੍ਰਤੀ ਅਰਬ"}
+                gender{"masculine"}
+                one{"{0} ਹਿੱਸਾ ਪ੍ਰਤੀ ਅਰਬ"}
+                other{"{0} ਹਿੱਸਾ ਪ੍ਰਤੀ ਅਰਬ"}
             }
         }
         consumption{
@@ -2069,6 +2081,9 @@ pa{
             }
             permyriad{
                 dnam{"ਪ੍ਰਤੀ ਦਸ ਹਜ਼ਾਰ"}
+            }
+            portion-per-1e9{
+                dnam{"ਹਿੱਸਾ/ਅਰਬ"}
             }
         }
         consumption{

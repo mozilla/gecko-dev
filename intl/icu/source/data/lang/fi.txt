@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 fi{
     Keys{
         calendar{"kalenteri"}
@@ -35,7 +35,6 @@ fi{
         afh{"afrihili"}
         agq{"aghem"}
         ain{"ainu"}
-        ajp{"urduni"}
         ak{"akan"}
         akk{"akkadi"}
         akz{"alabama"}
@@ -47,6 +46,7 @@ fi{
         ang{"muinaisenglanti"}
         ann{"obolo"}
         anp{"angika"}
+        apc{"urduni"}
         ar{"arabia"}
         ar_001{"yleisarabia"}
         arc{"valtakunnanaramea"}

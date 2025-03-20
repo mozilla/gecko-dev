@@ -1,6 +1,6 @@
 ﻿# © 2016 and later: Unicode, Inc. and others.
 # License & terms of use: http://www.unicode.org/copyright.html
-# Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+# Generated using tools/cldr/cldr-to-icu/
 #
 # File: ar_ar_Latn_BGN.txt
 # Generated from CLDR
@@ -22,7 +22,7 @@
 #
 # MINIMAL FILTER: Arabic-Latin
 #
-:: [[:arabic:][:block=ARABIC:][ءآابةتثجحخدذرزسشصضطظعغفقكلمنهوىي\u064B\u064C\u064D\u064E\u064F\u0650\u0651\u0652٠١٢٣٤٥٦٧٨٩ٱ]] ;
+:: [[:Arabic:][:Block=Arabic:][ءآابةتثجحخدذرزسشصضطظعغفقكلمنهوىي\u064B\u064C\u064D\u064E\u064F\u0650\u0651\u0652٠١٢٣٤٥٦٧٨٩ٱ]] ;
 :: NFKD (NFC) ;
 #
 #

@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 yrl{
     AuxExemplarCharacters{"[ªáàăâåäā æ cç éèĕêëē f h íìĭîïī j l ñ oºóòŏôöõøō œ q úùŭûüū v ÿỹ z]"}
     Ellipsis{

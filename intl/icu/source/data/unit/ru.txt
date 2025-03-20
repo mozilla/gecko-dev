@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ru{
     units{
         acceleration{
@@ -1213,6 +1213,46 @@ ru{
                 many{"{0} промириадов"}
                 one{"{0} промириад"}
                 other{"{0} промириада"}
+            }
+            portion-per-1e9{
+                case{
+                    accusative{
+                        few{"{0} миллиардные доли"}
+                        many{"{0} миллиардных долей"}
+                        one{"{0} миллиардную долю"}
+                        other{"{0} миллиардной доли"}
+                    }
+                    dative{
+                        few{"{0} миллиардным долям"}
+                        many{"{0} миллиардным долям"}
+                        one{"{0} миллиардной доле"}
+                        other{"{0} миллиардной доли"}
+                    }
+                    genitive{
+                        few{"{0} миллиардных долей"}
+                        many{"{0} миллиардных долей"}
+                        one{"{0} миллиардной доли"}
+                        other{"{0} миллиардной доли"}
+                    }
+                    instrumental{
+                        few{"{0} миллиардными долями"}
+                        many{"{0} миллиардными долями"}
+                        one{"{0} миллиардной долей"}
+                        other{"{0} миллиардной доли"}
+                    }
+                    prepositional{
+                        few{"{0} миллиардных долях"}
+                        many{"{0} миллиардных долях"}
+                        one{"{0} миллиардной доле"}
+                        other{"{0} миллиардной доли"}
+                    }
+                }
+                dnam{"миллиардные доли"}
+                few{"{0} миллиардные доли"}
+                gender{"feminine"}
+                many{"{0} миллиардных долей"}
+                one{"{0} миллиардная доля"}
+                other{"{0} миллиардной доли"}
             }
         }
         consumption{

@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 sc{
     units{
         acceleration{
@@ -199,6 +199,11 @@ sc{
                 dnam{"pro deghemìgia"}
                 one{"{0} pro deghemìgia"}
                 other{"{0} pro deghemìgia"}
+            }
+            portion-per-1e9{
+                dnam{"partes pro milliardu"}
+                one{"{0} parte pro milliardu"}
+                other{"{0} partes pro milliardu"}
             }
         }
         consumption{
@@ -1117,6 +1122,10 @@ sc{
                 one{"{0}ppm"}
                 other{"{0}ppm"}
             }
+            portion-per-1e9{
+                one{"{0}ppb"}
+                other{"{0}ppb"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -1847,6 +1856,9 @@ sc{
                 dnam{"mmol/l"}
                 one{"{0} mmol/l"}
                 other{"{0} mmol/l"}
+            }
+            portion-per-1e9{
+                dnam{"partes/milliardu"}
             }
         }
         consumption{

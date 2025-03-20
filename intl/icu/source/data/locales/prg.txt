@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 prg{
     ExemplarCharacters{"[aā b c dḑ eē f gģ h iī j kķ l m nņ oō p q rŗ sš tț uū v w x y zž]"}
     ExemplarCharactersIndex{"[AĀ B C DḐ EĒ F GĢ H IĪ J KĶ L M NŅ OŌ P Q RŖ SŠ TȚ UŪ V W X Y ZŽ]"}

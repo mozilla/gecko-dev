@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 zh_Hans_MY{
     calendar{
         gregorian{
@@ -24,9 +24,9 @@ zh_Hans_MY{
                 "ahmmssz",
                 "ahmmss",
                 "ahmm",
-                "yMEEEEd",
-                "yMd",
-                "yMd",
+                "yMMMEEEEd",
+                "yMMMd",
+                "yMMMd",
                 "yMd",
             }
         }

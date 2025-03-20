@@ -180,7 +180,7 @@ LB11.2:      SP WJ;
 LB11.3:      WJ CM* [^CM];
 
 # Needs to apply before LB12, because the new monkeys are not greedy.
-LB20a.2:   GL (HY | HH) CM* AL;
+LB20a.2:   GL CM* (HY | HH) CM* AL;
 LB12:      GL CM* [^CM];
 
 LB12a:       [^SP BA HY] CM* GL;

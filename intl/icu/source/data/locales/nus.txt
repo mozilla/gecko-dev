@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 nus{
     ExemplarCharacters{
         "[aä{a̱} b c d eë{e̱} ɛ{ɛ̈}{ɛ̱}{ɛ̱̈} f g ɣ h iï{i̱} j k l m n ŋ oö{o̱} ɔ{ɔ̈}{"

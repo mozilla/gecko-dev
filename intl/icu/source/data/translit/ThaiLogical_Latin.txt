@@ -1,6 +1,6 @@
 ﻿# © 2016 and later: Unicode, Inc. and others.
 # License & terms of use: http://www.unicode.org/copyright.html
-# Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+# Generated using tools/cldr/cldr-to-icu/
 #
 # File: ThaiLogical_Latin.txt
 # Generated from CLDR
@@ -26,8 +26,8 @@
 #{ ( $consonant ) } [^$vowel \uE000] → | $1 \uE000 ;
 #\uE000 → o\u0323 ;
 # ← o\u0323 ;
-$notAbove = [^\p{ccc=0}\p{ccc=above}] ;
-$notBelow = [^\p{ccc=0}\p{ccc=below}] ;
+$notAbove = [^\p{ccc=0}\p{ccc=Above}] ;
+$notBelow = [^\p{ccc=0}\p{ccc=Below}] ;
 # Consonants
 # Warning: the 'h's need to be handled carefully!
 # What we really want to say is the following, but we can't

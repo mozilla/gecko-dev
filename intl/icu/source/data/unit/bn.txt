@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 bn{
     units{
         acceleration{
@@ -162,6 +162,11 @@ bn{
             permyriad{
                 one{"{0} পারমিরিয়াড"}
                 other{"{0} পারমিরিয়াড"}
+            }
+            portion-per-1e9{
+                dnam{"পার্ট প্রতি বিলিয়ন"}
+                one{"{0} পার্ট প্রতি বিলিয়ন"}
+                other{"{0} পার্ট প্রতি বিলিয়ন"}
             }
         }
         consumption{
@@ -884,6 +889,10 @@ bn{
             permille{
                 dnam{"‰"}
             }
+            portion-per-1e9{
+                one{"{0}ppb"}
+                other{"{0} ppb"}
+            }
         }
         consumption{
             mile-per-gallon-imperial{
@@ -1231,6 +1240,9 @@ bn{
             }
             permyriad{
                 dnam{"পারমিরিয়াড"}
+            }
+            portion-per-1e9{
+                dnam{"পার্ট/ বিলিয়ন"}
             }
         }
         consumption{

@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 hr{
     units{
         acceleration{
@@ -659,6 +659,30 @@ hr{
                 gender{"inanimate"}
                 one{"{0} permyriad"}
                 other{"{0} permyriada"}
+            }
+            portion-per-1e9{
+                case{
+                    accusative{
+                        few{"{0} dijela na milijardu"}
+                        one{"{0} dio na milijardu"}
+                        other{"{0} dijelova na milijardu"}
+                    }
+                    genitive{
+                        few{"{0} dijela na milijardu"}
+                        one{"{0} dijela na milijardu"}
+                        other{"{0} dijelova na milijardu"}
+                    }
+                    instrumental{
+                        few{"{0} dijela na milijardu"}
+                        one{"{0} dijelom na milijardu"}
+                        other{"{0} dijelova na milijardu"}
+                    }
+                }
+                dnam{"dijelovi na milijardu"}
+                few{"{0} dijela na milijardu"}
+                gender{"inanimate"}
+                one{"{0} dio na milijardu"}
+                other{"{0} dijelova na milijardu"}
             }
         }
         consumption{
@@ -3388,6 +3412,9 @@ hr{
                 one{"{0} mol"}
                 other{"{0} mola"}
             }
+            portion-per-1e9{
+                dnam{"dijelovi/milijarda"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -3594,6 +3621,9 @@ hr{
                 few{"{0} ‱"}
                 one{"{0} ‱"}
                 other{"{0} ‱"}
+            }
+            portion-per-1e9{
+                dnam{"dijelovi/milijarda"}
             }
         }
         consumption{

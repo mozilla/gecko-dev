@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 yue_Hans{
     %%Parent{"root"}
     AuxExemplarCharacters{
@@ -206,9 +206,9 @@ yue_Hans{
                 "HHmmssz",
                 "HHmmss",
                 "HHmm",
-                "GyMEEEEd",
-                "GyMd",
-                "GyMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
+                "GyMMMd",
                 "GyMd",
             }
             availableFormats{
@@ -766,9 +766,9 @@ yue_Hans{
                 "HHmmssz",
                 "HHmmss",
                 "HHmm",
-                "GyMMEEEEd",
-                "GyMMd",
-                "GyMMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
+                "GyMMMd",
                 "GyMd",
             }
             availableFormats{
@@ -972,9 +972,9 @@ yue_Hans{
                 "HHmmssz",
                 "HHmmss",
                 "HHmm",
-                "yMEEEEd",
-                "yMd",
-                "yMd",
+                "yMMMEEEEd",
+                "yMMMd",
+                "yMMMd",
                 "yMd",
             }
             appendItems{
@@ -1287,9 +1287,9 @@ yue_Hans{
                 "HHmmssz",
                 "HHmmss",
                 "HHmm",
-                "GyMEEEEd",
-                "GyMd",
-                "GyMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
+                "GyMMMd",
                 "GyMd",
             }
             eras{
@@ -1364,9 +1364,9 @@ yue_Hans{
                 "HHmmssz",
                 "HHmmss",
                 "HHmm",
-                "GyMEEEEd",
-                "GyMd",
-                "GyMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
+                "GyMMMd",
                 "GyMd",
             }
             availableFormats{
@@ -1446,9 +1446,9 @@ yue_Hans{
                 "HHmmssz",
                 "HHmmss",
                 "HHmm",
-                "GyMEEEEd",
-                "GyMd",
-                "GyMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
+                "GyMMMd",
                 "GyyMMdd",
             }
             availableFormats{
@@ -1756,9 +1756,9 @@ yue_Hans{
                 "HHmmssz",
                 "HHmmss",
                 "HHmm",
-                "GyMEEEEd",
-                "GyMd",
-                "GyMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
+                "GyMMMd",
                 "GyyMd",
             }
             availableFormats{

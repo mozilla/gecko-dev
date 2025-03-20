@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 id{
     durationUnits{
         hm{"h.mm"}
@@ -149,6 +149,10 @@ id{
             }
             permyriad{
                 other{"{0} permyriad"}
+            }
+            portion-per-1e9{
+                dnam{"bagian per miliar"}
+                other{"{0} bagian per miliar"}
             }
         }
         consumption{
@@ -1111,6 +1115,9 @@ id{
             }
             permyriad{
                 dnam{"permyriad"}
+            }
+            portion-per-1e9{
+                dnam{"bagian/miliar"}
             }
         }
         consumption{

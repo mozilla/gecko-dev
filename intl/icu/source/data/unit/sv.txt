@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 sv{
     units{
         acceleration{
@@ -349,6 +349,18 @@ sv{
                 gender{"common"}
                 one{"{0} promyriad"}
                 other{"{0} promyriad"}
+            }
+            portion-per-1e9{
+                case{
+                    genitive{
+                        one{"{0} miljarddels"}
+                        other{"{0} miljarddelars"}
+                    }
+                }
+                dnam{"miljarddelar"}
+                gender{"common"}
+                one{"{0} miljarddel"}
+                other{"{0} miljarddelar"}
             }
         }
         consumption{
@@ -1944,6 +1956,10 @@ sv{
             permyriad{
                 one{"{0}‱"}
                 other{"{0}‱"}
+            }
+            portion-per-1e9{
+                one{"{0}ppb"}
+                other{"{0}ppb"}
             }
         }
         consumption{

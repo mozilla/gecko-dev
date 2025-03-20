@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ak{
     units{
         acceleration{
@@ -130,6 +130,11 @@ ak{
                 dnam{"pɛɛmiride"}
                 one{"pɛɛmiride {0}"}
                 other{"pɛɛmiride {0}"}
+            }
+            portion-per-1e9{
+                dnam{"paat ɔpepepem biara"}
+                one{"paat ɔpepepem biara {0}"}
+                other{"paat ɔpepepem biara {0}"}
             }
         }
         consumption{
@@ -649,6 +654,9 @@ ak{
             permyriad{
                 dnam{"pɛɛmiride"}
             }
+            portion-per-1e9{
+                dnam{"paat ɔpepepem biara"}
+            }
         }
         consumption{
             liter-per-kilometer{
@@ -881,6 +889,9 @@ ak{
             }
             permyriad{
                 dnam{"pɛɛmiride"}
+            }
+            portion-per-1e9{
+                dnam{"paat ɔpepepem biara"}
             }
         }
         consumption{

@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 haw{
     AuxExemplarCharacters{"[b c d f g j q r s t v x y z]"}
     ExemplarCharacters{"[aā eē iī oō uū h k l m n p w ʻ]"}

@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 fr{
     units{
         acceleration{
@@ -238,6 +238,12 @@ fr{
                 gender{"masculine"}
                 one{"{0} pour dix mille"}
                 other{"{0} pour dix mille"}
+            }
+            portion-per-1e9{
+                dnam{"parts par milliard"}
+                gender{"feminine"}
+                one{"{0} part par milliard"}
+                other{"{0} parts par milliard"}
             }
         }
         consumption{
@@ -1319,6 +1325,10 @@ fr{
             permyriad{
                 one{"{0}‱"}
                 other{"{0}‱"}
+            }
+            portion-per-1e9{
+                one{"{0}ppb"}
+                other{"{0}ppb"}
             }
         }
         consumption{

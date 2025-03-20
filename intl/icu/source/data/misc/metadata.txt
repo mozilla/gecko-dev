@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 metadata:table(nofallback){
     alias{
         language{
@@ -275,6 +275,10 @@ metadata:table(nofallback){
             cld{
                 reason{"macrolanguage"}
                 replacement{"syr"}
+            }
+            cls{
+                reason{"macrolanguage"}
+                replacement{"sa"}
             }
             cmk{
                 reason{"deprecated"}
@@ -1130,7 +1134,7 @@ metadata:table(nofallback){
             }
             nbx{
                 reason{"deprecated"}
-                replacement{"ekc"}
+                replacement{"gll"}
             }
             ncp{
                 reason{"deprecated"}
@@ -5271,6 +5275,7 @@ metadata:table(nofallback){
         "cic_US",
         "ckb_IQ",
         "co_FR",
+        "cop_EG",
         "cs_CZ",
         "csw_CA",
         "cu_RU",
@@ -5328,6 +5333,7 @@ metadata:table(nofallback){
         "hnj_Hmnp_US",
         "hr_HR",
         "hsb_DE",
+        "ht_HT",
         "hu_HU",
         "hy_AM",
         "ia_001",

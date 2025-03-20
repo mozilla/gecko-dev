@@ -1,6 +1,6 @@
 ﻿# © 2016 and later: Unicode, Inc. and others.
 # License & terms of use: http://www.unicode.org/copyright.html
-# Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+# Generated using tools/cldr/cldr-to-icu/
 #
 # File: tr_Title.txt
 # Generated from CLDR
@@ -8,9 +8,9 @@
 
 # I and i-dotless; I-dot and i are case pairs in Turkish and Azeri
 # Make any string of letters after a cased letter be lower, with rules for i
-[:cased:] [:case-ignorable:]* { İ → i;
-[:cased:] [:case-ignorable:]* { I → ı;
-[:cased:] [:case-ignorable:]* { (.) → &Any-Lower($1) ;
+[:Cased:] [:Case_Ignorable:]* { İ → i;
+[:Cased:] [:Case_Ignorable:]* { I → ı;
+[:Cased:] [:Case_Ignorable:]* { (.) → &Any-Lower($1) ;
 # Otherwise all lowercase go to upper (titlecase stay as is)
 i→İ ;
 ([:Lowercase:]) → &Any-Upper($1) ;

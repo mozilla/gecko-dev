@@ -1,5 +1,5 @@
 # Test data for unit conversions
-#  Copyright © 1991-2024 Unicode, Inc.
+#  Copyright © 1991-2025 Unicode, Inc.
 #  For terms of use, see http://www.unicode.org/copyright.html
 #  SPDX-License-Identifier: Unicode-3.0
 #  CLDR data files are interpreted according to the LDML specification (http://unicode.org/reports/tr35/)
@@ -152,6 +152,7 @@ mass	;	tonne	;	kilogram	;	1,000 * x	;	1000000.0
 mass	;	earth-mass	;	kilogram	;	5,972,200,000,000,000,000,000,000 * x	;	5.9722E27
 mass	;	solar-mass	;	kilogram	;	1,988,470,000,000,000,000,000,000,000,000 * x	;	1.98847E33
 night-duration	;	night	;	night	;	1 * x	;	1,000.00
+portion	;	portion-per-1e9	;	portion	;	0.000000001 * x	;	1.0E-6
 portion	;	permillion	;	portion	;	0.000001 * x	;	0.001
 portion	;	permyriad	;	portion	;	0.0001 * x	;	0.1
 portion	;	permille	;	portion	;	0.001 * x	;	1.0

@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 en{
     Countries{
         001{"world"}
@@ -304,10 +304,12 @@ en{
     }
     Countries%short{
         BA{"Bosnia"}
+        CC{"Cocos Islands"}
         GB{"UK"}
         HK{"Hong Kong"}
         MM{"Myanmar"}
         MO{"Macao"}
+        PN{"Pitcairn"}
         PS{"Palestine"}
         UN{"UN"}
         US{"US"}

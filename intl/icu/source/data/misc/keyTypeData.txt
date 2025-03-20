@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 keyTypeData:table(nofallback){
     bcpTypeAlias{
         ca{
@@ -73,7 +73,9 @@ keyTypeData:table(nofallback){
     typeInfo{
         deprecated{
             co{
+                big5han{"true"}
                 direct{"true"}
+                gb2312{"true"}
                 reformed{"true"}
             }
         }

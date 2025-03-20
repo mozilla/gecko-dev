@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 te{
     units{
         acceleration{
@@ -191,6 +191,11 @@ te{
             permyriad{
                 one{"{0} పెర్మేరియాడ్"}
                 other{"{0} పెర్మేరియాడ్"}
+            }
+            portion-per-1e9{
+                dnam{"ప్రతి బిలియన్‌కి భాగాలు"}
+                one{"ప్రతి బిలియన్‌కి {0} భాగం"}
+                other{"ప్రతి బిలియన్‌కి {0} భాగాలు"}
             }
         }
         consumption{
@@ -1494,6 +1499,9 @@ te{
             }
             permyriad{
                 dnam{"పెర్మేరియాడ్"}
+            }
+            portion-per-1e9{
+                dnam{"భాగాలు/బిలియన్"}
             }
         }
         consumption{

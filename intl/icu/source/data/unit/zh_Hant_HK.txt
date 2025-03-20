@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 zh_Hant_HK{
     units{
         acceleration{
@@ -263,6 +263,9 @@ zh_Hant_HK{
             }
             permillion{
                 other{"{0} ppm"}
+            }
+            portion-per-1e9{
+                dnam{"濃度/十億"}
             }
         }
         consumption{

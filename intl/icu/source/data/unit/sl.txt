@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 sl{
     units{
         acceleration{
@@ -1091,6 +1091,46 @@ sl{
                 one{"{0} desettisočina"}
                 other{"{0} desettisočin"}
                 two{"{0} desettisočini"}
+            }
+            portion-per-1e9{
+                case{
+                    accusative{
+                        few{"{0} delce na milijardo"}
+                        one{"{0} delec na milijardo"}
+                        other{"{0} delcev na milijardo"}
+                        two{"{0} delca na milijardo"}
+                    }
+                    dative{
+                        few{"{0} delcem na milijardo"}
+                        one{"{0} delcu na milijardo"}
+                        other{"{0} delcem na milijardo"}
+                        two{"{0} delcema na milijardo"}
+                    }
+                    genitive{
+                        few{"{0} delcev na milijardo"}
+                        one{"{0} delca na milijardo"}
+                        other{"{0} delcev na milijardo"}
+                        two{"{0} delcev na milijardo"}
+                    }
+                    instrumental{
+                        few{"{0} delci na milijardo"}
+                        one{"{0} delcem na milijardo"}
+                        other{"{0} delci na milijardo"}
+                        two{"{0} delcema na milijardo"}
+                    }
+                    locative{
+                        few{"{0} delcih na milijardo"}
+                        one{"{0} delcu na milijardo"}
+                        other{"{0} delcih na milijardo"}
+                        two{"{0} delcih na milijardo"}
+                    }
+                }
+                dnam{"delci na milijardo"}
+                few{"{0} delci na milijardo"}
+                gender{"masculine"}
+                one{"{0} delec na milijardo"}
+                other{"{0} delcev na milijardo"}
+                two{"{0} delca na milijardo"}
             }
         }
         consumption{

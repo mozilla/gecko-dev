@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 fo{
     units{
         acceleration{
@@ -177,6 +177,11 @@ fo{
             permyriad{
                 one{"{0} promyriad"}
                 other{"{0} promyriad"}
+            }
+            portion-per-1e9{
+                dnam{"partar fyri hvørja milliard"}
+                one{"{0} part fyri hvørja milliard"}
+                other{"{0} partar fyri hvørja milliard"}
             }
         }
         consumption{
@@ -981,6 +986,11 @@ fo{
                 one{"{0}‱"}
                 other{"{0}‱"}
             }
+            portion-per-1e9{
+                dnam{"partar/mia."}
+                one{"{0}part/mia."}
+                other{"{0}partar/mia."}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -1595,6 +1605,11 @@ fo{
                 dnam{"promyriad"}
                 one{"{0} ‱"}
                 other{"{0} ‱"}
+            }
+            portion-per-1e9{
+                dnam{"partar/milliard"}
+                one{"{0} part/mia."}
+                other{"{0} partar/mia."}
             }
         }
         consumption{

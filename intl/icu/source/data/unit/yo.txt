@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 yo{
     units{
         area{
@@ -66,6 +66,9 @@ yo{
             }
             permille{
                 other{"{0} ìdákan nínú ẹgbẹ̀rún"}
+            }
+            portion-per-1e9{
+                dnam{"ẹ̀yà nínú ìdá blíọ̀nù"}
             }
         }
         consumption{

@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 yue_Hans{
     %%Parent{"root"}
     units{
@@ -29,6 +29,12 @@ yue_Hans{
         }
         compound{
             per{"每 {1} {0}"}
+        }
+        concentr{
+            portion-per-1e9{
+                dnam{"十亿分点浓度"}
+                other{"{0} 十亿分点浓度"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -239,6 +245,11 @@ yue_Hans{
         acceleration{
             meter-per-square-second{
                 other{"{0}m/s²"}
+            }
+        }
+        concentr{
+            portion-per-1e9{
+                other{"{0}ppb"}
             }
         }
         consumption{
@@ -476,6 +487,9 @@ yue_Hans{
             permyriad{
                 dnam{"点子"}
                 other{"{0} 点子"}
+            }
+            portion-per-1e9{
+                dnam{"浓度/十亿"}
             }
         }
         consumption{

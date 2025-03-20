@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 es_419{
     units{
         acceleration{
@@ -8,6 +8,13 @@ es_419{
                 dnam{"fuerza G"}
                 one{"{0} unidad de fuerza gravitacional"}
                 other{"{0} unidades de fuerza gravitacional"}
+            }
+        }
+        concentr{
+            portion-per-1e9{
+                dnam{"partes por mil millones"}
+                one{"{0} parte por mil millones"}
+                other{"{0} partes por mil millones"}
             }
         }
         electric{

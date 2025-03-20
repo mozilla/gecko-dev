@@ -113,9 +113,9 @@ hexDigit(uint8_t digit) {
 }
 
 static inline char *
-printBytes(char *buffer, const uint8_t *bytes, int32_t length) {
+printBytes(char *buffer, size_t bufferLength, const uint8_t *bytes, int32_t length) {
     char *s=buffer;
-    while(length>0) {
+    while(length>0 && (static_cast<size_t>(s-buffer) < bufferLength-3)) {
         *s++ = hexDigit(static_cast<uint8_t>(*bytes >> 4));
         *s++ = hexDigit(static_cast<uint8_t>(*bytes & 0xf));
         ++bytes;
@@ -400,7 +400,7 @@ MBCSAddToUnicode(MBCSData *mbcsData,
         if(MBCS_ENTRY_IS_TRANSITION(entry)) {
             if(i==length) {
                 fprintf(stderr, "error: byte sequence too short, ends in non-final state %hu: 0x%s (U+%x)\n",
-                    static_cast<short>(state), printBytes(buffer, bytes, length), static_cast<int>(c));
+                    static_cast<short>(state), printBytes(buffer, sizeof(buffer), bytes, length), static_cast<int>(c));
                 return false;
             }
             state = static_cast<uint8_t>(MBCS_ENTRY_TRANSITION_STATE(entry));
@@ -408,21 +408,21 @@ MBCSAddToUnicode(MBCSData *mbcsData,
         } else {
             if(i<length) {
                 fprintf(stderr, "error: byte sequence too long by %d bytes, final state %u: 0x%s (U+%x)\n",
-                    static_cast<int>(length - i), state, printBytes(buffer, bytes, length), static_cast<int>(c));
+                    static_cast<int>(length - i), state, printBytes(buffer, sizeof(buffer), bytes, length), static_cast<int>(c));
                 return false;
             }
             switch(MBCS_ENTRY_FINAL_ACTION(entry)) {
             case MBCS_STATE_ILLEGAL:
                 fprintf(stderr, "error: byte sequence ends in illegal state at U+%04x<->0x%s\n",
-                    static_cast<int>(c), printBytes(buffer, bytes, length));
+                    static_cast<int>(c), printBytes(buffer, sizeof(buffer), bytes, length));
                 return false;
             case MBCS_STATE_CHANGE_ONLY:
                 fprintf(stderr, "error: byte sequence ends in state-change-only at U+%04x<->0x%s\n",
-                    static_cast<int>(c), printBytes(buffer, bytes, length));
+                    static_cast<int>(c), printBytes(buffer, sizeof(buffer), bytes, length));
                 return false;
             case MBCS_STATE_UNASSIGNED:
                 fprintf(stderr, "error: byte sequence ends in unassigned state at U+%04x<->0x%s\n",
-                    static_cast<int>(c), printBytes(buffer, bytes, length));
+                    static_cast<int>(c), printBytes(buffer, sizeof(buffer), bytes, length));
                 return false;
             case MBCS_STATE_FALLBACK_DIRECT_16:
             case MBCS_STATE_VALID_DIRECT_16:
@@ -437,11 +437,11 @@ MBCSAddToUnicode(MBCSData *mbcsData,
                     }
                     if(flag>=0) {
                         fprintf(stderr, "error: duplicate codepage byte sequence at U+%04x<->0x%s see U+%04x\n",
-                            static_cast<int>(c), printBytes(buffer, bytes, length), static_cast<int>(old));
+                            static_cast<int>(c), printBytes(buffer, sizeof(buffer), bytes, length), static_cast<int>(old));
                         return false;
                     } else if(VERBOSE) {
                         fprintf(stderr, "duplicate codepage byte sequence at U+%04x<->0x%s see U+%04x\n",
-                            static_cast<int>(c), printBytes(buffer, bytes, length), static_cast<int>(old));
+                            static_cast<int>(c), printBytes(buffer, sizeof(buffer), bytes, length), static_cast<int>(old));
                     }
                     /*
                      * Continue after the above warning
@@ -467,16 +467,16 @@ MBCSAddToUnicode(MBCSData *mbcsData,
                 if((old=mbcsData->unicodeCodeUnits[offset])!=0xfffe || (old=removeFallback(mbcsData, offset))!=-1) {
                     if(flag>=0) {
                         fprintf(stderr, "error: duplicate codepage byte sequence at U+%04x<->0x%s see U+%04x\n",
-                            static_cast<int>(c), printBytes(buffer, bytes, length), static_cast<int>(old));
+                            static_cast<int>(c), printBytes(buffer, sizeof(buffer), bytes, length), static_cast<int>(old));
                         return false;
                     } else if(VERBOSE) {
                         fprintf(stderr, "duplicate codepage byte sequence at U+%04x<->0x%s see U+%04x\n",
-                            static_cast<int>(c), printBytes(buffer, bytes, length), static_cast<int>(old));
+                            static_cast<int>(c), printBytes(buffer, sizeof(buffer), bytes, length), static_cast<int>(old));
                     }
                 }
                 if(c>=0x10000) {
                     fprintf(stderr, "error: code point does not fit into valid-16-bit state at U+%04x<->0x%s\n",
-                        static_cast<int>(c), printBytes(buffer, bytes, length));
+                        static_cast<int>(c), printBytes(buffer, sizeof(buffer), bytes, length));
                     return false;
                 }
                 if(flag>0) {
@@ -505,11 +505,11 @@ MBCSAddToUnicode(MBCSData *mbcsData,
                     }
                     if(flag>=0) {
                         fprintf(stderr, "error: duplicate codepage byte sequence at U+%04x<->0x%s see U+%04x\n",
-                            static_cast<int>(c), printBytes(buffer, bytes, length), static_cast<int>(real));
+                            static_cast<int>(c), printBytes(buffer, sizeof(buffer), bytes, length), static_cast<int>(real));
                         return false;
                     } else if(VERBOSE) {
                         fprintf(stderr, "duplicate codepage byte sequence at U+%04x<->0x%s see U+%04x\n",
-                            static_cast<int>(c), printBytes(buffer, bytes, length), static_cast<int>(real));
+                            static_cast<int>(c), printBytes(buffer, sizeof(buffer), bytes, length), static_cast<int>(real));
                     }
                 }
                 if(flag>0) {
@@ -543,7 +543,7 @@ MBCSAddToUnicode(MBCSData *mbcsData,
             default:
                 /* reserved, must never occur */
                 fprintf(stderr, "internal error: byte sequence reached reserved action code, entry 0x%02x: 0x%s (U+%x)\n",
-                    static_cast<int>(entry), printBytes(buffer, bytes, length), static_cast<int>(c));
+                    static_cast<int>(entry), printBytes(buffer, sizeof(buffer), bytes, length), static_cast<int>(c));
                 return false;
             }
 
@@ -699,7 +699,7 @@ MBCSAddFromUnicode(MBCSData *mbcsData,
         (!IGNORE_SISO_CHECK && (*bytes==0xe || *bytes==0xf))
     ) {
         fprintf(stderr, "error: illegal mapping to SI or SO for SI/SO codepage: U+%04x<->0x%s\n",
-            static_cast<int>(c), printBytes(buffer, bytes, length));
+            static_cast<int>(c), printBytes(buffer, sizeof(buffer), bytes, length));
         return false;
     }
 
@@ -738,7 +738,7 @@ MBCSAddFromUnicode(MBCSData *mbcsData,
 
         if(newTop>MBCS_MAX_STAGE_2_TOP) {
             fprintf(stderr, "error: too many stage 2 entries at U+%04x<->0x%s\n",
-                static_cast<int>(c), printBytes(buffer, bytes, length));
+                static_cast<int>(c), printBytes(buffer, sizeof(buffer), bytes, length));
             return false;
         }
 
@@ -786,7 +786,7 @@ MBCSAddFromUnicode(MBCSData *mbcsData,
 
         if (newTop > MBCS_STAGE_3_MBCS_SIZE * static_cast<uint32_t>(maxCharLength)) {
             fprintf(stderr, "error: too many code points at U+%04x<->0x%s\n",
-                static_cast<int>(c), printBytes(buffer, bytes, length));
+                static_cast<int>(c), printBytes(buffer, sizeof(buffer), bytes, length));
             return false;
         }
         /* each block has 16*maxCharLength bytes */
@@ -881,11 +881,11 @@ MBCSAddFromUnicode(MBCSData *mbcsData,
     if((mbcsData->stage2[idx+(nextOffset>>MBCS_STAGE_2_SHIFT)]&(1UL<<(16+(c&0xf))))!=0 || old!=0) {
         if(flag>=0) {
             fprintf(stderr, "error: duplicate Unicode code point at U+%04x<->0x%s see 0x%02x\n",
-                static_cast<int>(c), printBytes(buffer, bytes, length), static_cast<int>(old));
+                static_cast<int>(c), printBytes(buffer, sizeof(buffer), bytes, length), static_cast<int>(old));
             return false;
         } else if(VERBOSE) {
             fprintf(stderr, "duplicate Unicode code point at U+%04x<->0x%s see 0x%02x\n",
-                static_cast<int>(c), printBytes(buffer, bytes, length), static_cast<int>(old));
+                static_cast<int>(c), printBytes(buffer, sizeof(buffer), bytes, length), static_cast<int>(old));
         }
         /* continue after the above warning if the precision of the mapping is
            unspecified */

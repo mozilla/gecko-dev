@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 fi{
     collations{
         search{
@@ -8,7 +8,7 @@ fi{
                 "[import und-u-co-search]"
                 "[import fi-u-co-standard]"
             }
-            Version{"46"}
+            Version{"47"}
         }
         standard{
             Sequence{
@@ -20,7 +20,7 @@ fi{
                 "&Z\u0335<<ʒ<<<Ʒ"
                 "&[before 1]ǀ<å<<<Å<ä<<<Ä<<æ<<<Æ<ö<<<Ö<<ø<<<Ø"
             }
-            Version{"46"}
+            Version{"47"}
         }
         traditional{
             Sequence{
@@ -31,7 +31,7 @@ fi{
                 "&Y<<ü<<<Ü<<ű<<<Ű"
                 "&[before 1]ǀ<å<<<Å<ä<<<Ä<<æ<<<Æ<ö<<<Ö<<ø<<<Ø<<ő<<<Ő<<õ<<<Õ<<œ<<<Œ"
             }
-            Version{"46"}
+            Version{"47"}
         }
     }
 }

@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 haw{
     collations{
         standard{
@@ -8,7 +8,7 @@ haw{
                 "&a<e<<<E<i<<<I<o<<<O<u<<<U"
                 "&w<ʻ"
             }
-            Version{"46"}
+            Version{"47"}
         }
     }
 }

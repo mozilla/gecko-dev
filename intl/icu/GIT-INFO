@@ -1,5 +1,7 @@
-commit 8eca245c7484ac6cc179e3e5f7c1ea7680810f39
-Author: Rahul Pandey <rp9.next@gmail.com>
-Date:   Mon Oct 21 16:21:38 2024 +0530
+commit f23af97cf467a3ae761e5943a6caf793415ac857
+Author: Markus Scherer <markus.icu@gmail.com>
+Date:   Wed Mar 12 16:40:58 2025 +0000
 
-    ICU-22724 BRS_76_GA Update version number to 76.1 (No more -SNAPSHOT)
+    ICU-22923 ICU 77 release page updates
+    
+    See #3432

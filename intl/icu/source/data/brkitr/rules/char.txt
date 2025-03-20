@@ -24,13 +24,9 @@ $Regional_Indicator = [\p{Grapheme_Cluster_Break = Regional_Indicator}];
 $Prepend     = [\p{Grapheme_Cluster_Break = Prepend}];
 $SpacingMark = [\p{Grapheme_Cluster_Break = SpacingMark}];
 
-#
-#  From cldr/common/properties/segments/
-#       and issue CLDR-10994
-#
-$Virama      = [\p{Gujr}\p{sc=Telu}\p{sc=Mlym}\p{sc=Orya}\p{sc=Beng}\p{sc=Deva}&\p{Indic_Syllabic_Category=Virama}];
-$LinkingConsonant = [\p{Gujr}\p{sc=Telu}\p{sc=Mlym}\p{sc=Orya}\p{sc=Beng}\p{sc=Deva}&\p{Indic_Syllabic_Category=Consonant}];
-$ExtCccZwj   = [[\p{gcb=Extend}-\p{ccc=0}] \p{gcb=ZWJ}];
+$InCBConsonant = [\p{InCB=Consonant}];
+$InCBExtend = [\p{InCB=Extend}];
+$InCBLinker = [\p{InCB=Linker}];
 
 # Korean Syllable Definitions
 #
@@ -64,8 +60,8 @@ $L ($L | $V | $LV | $LVT);
 # GB 9b
 $Prepend [^$Control $CR $LF];
 
-# GB 9.3, from CLDR-10994
-$LinkingConsonant $ExtCccZwj* $Virama $ExtCccZwj* $LinkingConsonant;
+# GB 9c
+$InCBConsonant [ $InCBExtend $InCBLinker ]* $InCBLinker [ $InCBExtend $InCBLinker ]* $InCBConsonant;
 
 # GB 11 Do not break within emoji modifier sequences or emoji zwj sequences.
 $Extended_Pict $Extend* $ZWJ $Extended_Pict;

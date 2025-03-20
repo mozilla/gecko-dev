@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 en{
     units{
         acceleration{
@@ -204,6 +204,11 @@ en{
                 dnam{"permyriad"}
                 one{"{0} permyriad"}
                 other{"{0} permyriad"}
+            }
+            portion-per-1e9{
+                dnam{"parts per billion"}
+                one{"{0} part per billion"}
+                other{"{0} parts per billion"}
             }
         }
         consumption{
@@ -1279,6 +1284,11 @@ en{
                 one{"{0}‱"}
                 other{"{0}‱"}
             }
+            portion-per-1e9{
+                dnam{"ppb"}
+                one{"{0}ppb"}
+                other{"{0}ppb"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -2352,6 +2362,11 @@ en{
                 dnam{"permyriad"}
                 one{"{0}‱"}
                 other{"{0}‱"}
+            }
+            portion-per-1e9{
+                dnam{"parts/billion"}
+                one{"{0} ppb"}
+                other{"{0} ppb"}
             }
         }
         consumption{

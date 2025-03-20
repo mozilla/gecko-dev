@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 sr_Latn{
     %%Parent{"root"}
     durationUnits{
@@ -497,6 +497,30 @@ sr_Latn{
             }
             permyriad{
                 gender{"inanimate"}
+            }
+            portion-per-1e9{
+                case{
+                    accusative{
+                        few{"{0} dela na milijardu"}
+                        one{"{0} deo na milijardu"}
+                        other{"{0} delova na milijardu"}
+                    }
+                    genitive{
+                        few{"{0} dela na milijardu"}
+                        one{"{0} dela na milijardu"}
+                        other{"{0} delova na milijardu"}
+                    }
+                    instrumental{
+                        few{"{0} dela na milijardu"}
+                        one{"{0} delom na milijardu"}
+                        other{"{0} delova na milijardu"}
+                    }
+                }
+                dnam{"delovi na milijardu"}
+                few{"{0} dela na milijardu"}
+                gender{"inanimate"}
+                one{"{0} deo na milijardu"}
+                other{"{0} delova na milijardu"}
             }
         }
         consumption{
@@ -3000,6 +3024,9 @@ sr_Latn{
             }
             permille{
                 dnam{"promil"}
+            }
+            portion-per-1e9{
+                dnam{"delovi/milijarda"}
             }
         }
         consumption{

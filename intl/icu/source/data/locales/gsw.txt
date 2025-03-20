@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 gsw{
     AuxExemplarCharacters{"[áàăâåā æ ç éèĕêëē íìĭîïī ñ óòŏôøō œ úùŭûū ÿ]"}
     ExemplarCharacters{"[aä b c d e f g h i j k l m n oö p q r s t uü v w x y z]"}

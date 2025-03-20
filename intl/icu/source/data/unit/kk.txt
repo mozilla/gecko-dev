@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 kk{
     units{
         acceleration{
@@ -168,6 +168,11 @@ kk{
             permyriad{
                 one{"{0} промириад"}
                 other{"{0} промириад"}
+            }
+            portion-per-1e9{
+                dnam{"миллиардтағы бөлік"}
+                one{"{0} б/млрд"}
+                other{"{0} б/млрд"}
             }
         }
         consumption{
@@ -893,6 +898,11 @@ kk{
             permille{
                 dnam{"‰"}
             }
+            portion-per-1e9{
+                dnam{"б/млрд"}
+                one{"{0} б/млрд"}
+                other{"{0} б/млрд"}
+            }
         }
         consumption{
             liter-per-kilometer{
@@ -1191,6 +1201,11 @@ kk{
             }
             permyriad{
                 dnam{"промириад"}
+            }
+            portion-per-1e9{
+                dnam{"бөлік/миллиард"}
+                one{"{0} б/млрд"}
+                other{"{0} б/млрд"}
             }
         }
         consumption{

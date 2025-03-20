@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 lt{
     durationUnits{
         hm{"hh:mm"}
@@ -988,6 +988,46 @@ lt{
             }
             permyriad{
                 gender{"masculine"}
+            }
+            portion-per-1e9{
+                case{
+                    accusative{
+                        few{"{0} milijonines dalelytes"}
+                        many{"{0} milijoninės dalelytės"}
+                        one{"{0} milijoninę dalelytę"}
+                        other{"{0} milijoninių dalelyčių"}
+                    }
+                    dative{
+                        few{"{0} milijoninėms dalelytėms"}
+                        many{"{0} milijoninės dalelytės"}
+                        one{"{0} milijoninei dalelytei"}
+                        other{"{0} milijoninių dalelyčių"}
+                    }
+                    genitive{
+                        few{"{0} milijoninių dalelyčių"}
+                        many{"{0} milijoninės dalelytės"}
+                        one{"{0} milijoninės dalelytės"}
+                        other{"{0} milijoninių dalelyčių"}
+                    }
+                    instrumental{
+                        few{"{0} milijoninėmis dalelytėmis"}
+                        many{"{0} milijoninės dalelytės"}
+                        one{"{0} milijonine dalelyte"}
+                        other{"{0} milijoninių dalelyčių"}
+                    }
+                    locative{
+                        few{"{0} milijoninėse dalelytėse"}
+                        many{"{0} milijoninės dalelytės"}
+                        one{"{0} milijoninėje dalelytėje"}
+                        other{"{0} milijoninių dalelyčių"}
+                    }
+                }
+                dnam{"milijoninės dalelytės"}
+                few{"{0} milijoninės dalelytės"}
+                gender{"feminine"}
+                many{"{0} milijoninės dalelytės"}
+                one{"{0} milijoninė dalelytė"}
+                other{"{0} milijoninių dalelyčių"}
             }
         }
         consumption{
@@ -5217,6 +5257,13 @@ lt{
             percent{
                 dnam{"%"}
             }
+            portion-per-1e9{
+                dnam{"dalelytė/mln."}
+                few{"{0} dalelytės/mln."}
+                many{"{0} dalelytės/mln."}
+                one{"{0} dalelytė/mln."}
+                other{"{0} dalelyčių/mln."}
+            }
         }
         consumption{
             mile-per-gallon{
@@ -5401,6 +5448,13 @@ lt{
                 many{"{0} ‰"}
                 one{"{0} ‰"}
                 other{"{0} ‰"}
+            }
+            portion-per-1e9{
+                dnam{"dalelytė/mln."}
+                few{"{0} dalelytės/mln."}
+                many{"{0} dalelytės/mln."}
+                one{"{0} dalelytė/mln."}
+                other{"{0} dalelyčių/mln."}
             }
         }
         consumption{

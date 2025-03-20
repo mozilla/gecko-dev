@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 mn{
     durationUnits{
         hm{"hh:mm"}
@@ -162,6 +162,11 @@ mn{
             permyriad{
                 one{"арван мянганы {0} хувь"}
                 other{"арван мянганы {0} хувь"}
+            }
+            portion-per-1e9{
+                dnam{"мкг/кг"}
+                one{"{0} мкг/кг"}
+                other{"{0} мкг/кг"}
             }
         }
         consumption{
@@ -888,6 +893,11 @@ mn{
             permyriad{
                 dnam{"‱"}
             }
+            portion-per-1e9{
+                dnam{"мкг/кг"}
+                one{"{0} мкг/кг"}
+                other{"{0} мкг/кг"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -1238,6 +1248,11 @@ mn{
             }
             permyriad{
                 dnam{"арван мянганы хувь"}
+            }
+            portion-per-1e9{
+                dnam{"мкг/кг"}
+                one{"{0} мкг/кг"}
+                other{"{0} мкг/кг"}
             }
         }
         consumption{

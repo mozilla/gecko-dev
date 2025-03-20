@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ms{
     units{
         acceleration{
@@ -135,6 +135,10 @@ ms{
             permyriad{
                 dnam{"permyriad"}
                 other{"{0} permyriad"}
+            }
+            portion-per-1e9{
+                dnam{"bahagian per bilion"}
+                other{"{0} bahagian per bilion"}
             }
         }
         consumption{
@@ -1111,6 +1115,9 @@ ms{
             }
             permille{
                 dnam{"per seribu"}
+            }
+            portion-per-1e9{
+                dnam{"bahagian/bilion"}
             }
         }
         consumption{

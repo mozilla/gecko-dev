@@ -18,11 +18,32 @@
 
 TestLog::~TestLog() {}
 
+IcuTestErrorCode::IcuTestErrorCode(TestLog &callingTestClass, const char *callingTestName)
+    : errorCode(U_ZERO_ERROR),
+      testClass(callingTestClass), testName(callingTestName), scopeMessage() {
+}
+
 IcuTestErrorCode::~IcuTestErrorCode() {
     // Safe because our errlog() does not throw exceptions.
     if(isFailure()) {
         errlog(false, u"destructor: expected success", nullptr);
     }
+}
+
+UErrorCode IcuTestErrorCode::reset() {
+    UErrorCode code = errorCode;
+    errorCode = U_ZERO_ERROR;
+    return code;
+}
+
+void IcuTestErrorCode::assertSuccess() const {
+    if(isFailure()) {
+        handleFailure();
+    }
+}
+
+const char* IcuTestErrorCode::errorName() const {
+    return u_errorName(errorCode);
 }
 
 UBool IcuTestErrorCode::errIfFailureAndReset() {
@@ -103,10 +124,11 @@ UBool IcuTestErrorCode::expectErrorAndReset(UErrorCode expectedError, const char
 }
 
 void IcuTestErrorCode::setScope(const char* message) {
-    scopeMessage.remove().append({ message, -1, US_INV });
+    UnicodeString us(message, -1, US_INV);
+    scopeMessage = us;
 }
 
-void IcuTestErrorCode::setScope(const UnicodeString& message) {
+void IcuTestErrorCode::setScope(std::u16string_view message) {
     scopeMessage = message;
 }
 
@@ -114,12 +136,12 @@ void IcuTestErrorCode::handleFailure() const {
     errlog(false, u"(handleFailure)", nullptr);
 }
 
-void IcuTestErrorCode::errlog(UBool dataErr, const UnicodeString& mainMessage, const char* extraMessage) const {
+void IcuTestErrorCode::errlog(UBool dataErr, std::u16string_view mainMessage, const char* extraMessage) const {
     UnicodeString msg(testName, -1, US_INV);
     msg.append(u' ').append(mainMessage);
     msg.append(u" but got error: ").append(UnicodeString(errorName(), -1, US_INV));
 
-    if (!scopeMessage.isEmpty()) {
+    if (!scopeMessage.empty()) {
         msg.append(u" scope: ").append(scopeMessage);
     }
 

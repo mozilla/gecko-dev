@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 zh{
     units{
         acceleration{
@@ -78,6 +78,10 @@ zh{
             }
             permillion{
                 other{"百万分之{0}"}
+            }
+            portion-per-1e9{
+                dnam{"十亿分比"}
+                other{"十亿分之{0}"}
             }
         }
         consumption{

@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ur{
     units{
         acceleration{
@@ -203,6 +203,12 @@ ur{
                 gender{"feminine"}
                 one{"{0} پرمرئیڈ"}
                 other{"{0} پرمرئیڈ"}
+            }
+            portion-per-1e9{
+                dnam{"اجزا فی بلین"}
+                gender{"masculine"}
+                one{"{0} جزو فی بلین"}
+                other{"{0} اجزا فی بلین"}
             }
         }
         consumption{
@@ -1087,6 +1093,10 @@ ur{
             permyriad{
                 dnam{"‱"}
             }
+            portion-per-1e9{
+                one{"{0}ppb"}
+                other{"{0}ppb"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -1468,6 +1478,9 @@ ur{
             }
             permyriad{
                 dnam{"پرمرئیڈ"}
+            }
+            portion-per-1e9{
+                dnam{"اجزا/بلین"}
             }
         }
         consumption{

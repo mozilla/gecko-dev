@@ -13,8 +13,9 @@
 #ifndef U_TESTFW_TESTLOG
 #define U_TESTFW_TESTLOG
 
-#include "unicode/errorcode.h"
-#include "unicode/unistr.h"
+#include <string>
+#include <string_view>
+#include "unicode/utypes.h"
 #include "unicode/testtype.h"
 
 /** Facilitates internal logging of data driven test service 
@@ -24,17 +25,34 @@
 class T_CTEST_EXPORT_API TestLog {
 public:
     virtual ~TestLog();
-    virtual void errln( const UnicodeString &message ) = 0;
-    virtual void logln( const UnicodeString &message ) = 0;
-    virtual void dataerrln( const UnicodeString &message ) = 0;
+    virtual void errln(std::u16string_view message) = 0;
+    virtual void logln(std::u16string_view message) = 0;
+    virtual void dataerrln(std::u16string_view message) = 0;
     virtual const char* getTestDataPath(UErrorCode& err) = 0;
 };
 
-class T_CTEST_EXPORT_API IcuTestErrorCode : public ErrorCode {
+// Note: The IcuTestErrorCode used to be a subclass of ErrorCode, but that made it not usable for
+// unit tests that work without U_SHOW_CPLUSPLUS_API.
+// So instead we *copy* the ErrorCode API.
+
+class T_CTEST_EXPORT_API IcuTestErrorCode {
 public:
-    IcuTestErrorCode(TestLog &callingTestClass, const char *callingTestName)
-            : testClass(callingTestClass), testName(callingTestName), scopeMessage() {}
+    IcuTestErrorCode(const IcuTestErrorCode&) = delete;
+    IcuTestErrorCode& operator=(const IcuTestErrorCode&) = delete;
+
+    IcuTestErrorCode(TestLog &callingTestClass, const char *callingTestName);
     virtual ~IcuTestErrorCode();
+
+    // ErrorCode API
+    operator UErrorCode & () { return errorCode; }
+    operator UErrorCode * () { return &errorCode; }
+    UBool isSuccess() const { return U_SUCCESS(errorCode); }
+    UBool isFailure() const { return U_FAILURE(errorCode); }
+    UErrorCode get() const { return errorCode; }
+    void set(UErrorCode value) { errorCode=value; }
+    UErrorCode reset();
+    void assertSuccess() const;
+    const char* errorName() const;
 
     // Returns true if isFailure().
     UBool errIfFailureAndReset();
@@ -46,17 +64,18 @@ public:
 
     /** Sets an additional message string to be appended to failure output. */
     void setScope(const char* message);
-    void setScope(const UnicodeString& message);
+    void setScope(std::u16string_view message);
 
 protected:
-    virtual void handleFailure() const override;
+    virtual void handleFailure() const;
 
 private:
+    UErrorCode errorCode;
     TestLog &testClass;
     const char *const testName;
-    UnicodeString scopeMessage;
+    std::u16string scopeMessage;
 
-    void errlog(UBool dataErr, const UnicodeString& mainMessage, const char* extraMessage) const;
+    void errlog(UBool dataErr, std::u16string_view mainMessage, const char* extraMessage) const;
 };
 
 #endif

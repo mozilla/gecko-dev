@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 zh_Hant{
     %%Parent{"root"}
     units{
@@ -61,6 +61,10 @@ zh_Hant{
             millimole-per-liter{
                 dnam{"每公升毫莫耳"}
                 other{"每公升 {0} 毫莫耳"}
+            }
+            portion-per-1e9{
+                dnam{"十億分點濃度"}
+                other{"{0} 十億分點濃度"}
             }
         }
         consumption{
@@ -361,6 +365,9 @@ zh_Hant{
             }
             permillion{
                 other{"{0}百萬分率"}
+            }
+            portion-per-1e9{
+                other{"{0}ppb"}
             }
         }
         consumption{
@@ -976,6 +983,9 @@ zh_Hant{
             permillion{
                 dnam{"百萬分率"}
                 other{"{0} 百萬分率"}
+            }
+            portion-per-1e9{
+                dnam{"濃度/十億"}
             }
         }
         consumption{

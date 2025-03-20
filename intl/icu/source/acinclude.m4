@@ -449,7 +449,7 @@ AC_DEFUN([AC_CHECK_64BIT_LIBS],
 AC_DEFUN([AC_CHECK_STRICT_COMPILE],
 [
     AC_MSG_CHECKING([whether strict compiling is on])
-    AC_ARG_ENABLE(strict,[  --enable-strict         compile with strict compiler options [default=yes]], [
+    AC_ARG_ENABLE(strict,[  --disable-strict        do not compile with strict compiler options], [
         if test "$enableval" = no
         then
             ac_use_strict_options=no

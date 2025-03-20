@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 de{
     units{
         acceleration{
@@ -585,6 +585,26 @@ de{
                 gender{"neuter"}
                 one{"{0} pro Zehntausend"}
                 other{"{0} pro Zehntausend"}
+            }
+            portion-per-1e9{
+                case{
+                    accusative{
+                        one{"{0} Milliardstel"}
+                        other{"{0} Milliardstel"}
+                    }
+                    dative{
+                        one{"{0} Milliardstel"}
+                        other{"{0} Milliardsteln"}
+                    }
+                    genitive{
+                        one{"{0} Milliardstels"}
+                        other{"{0} Milliardstel"}
+                    }
+                }
+                dnam{"Milliardstel"}
+                gender{"neuter"}
+                one{"{0} Milliardstel"}
+                other{"{0} Milliardstel"}
             }
         }
         consumption{
@@ -3841,6 +3861,11 @@ de{
             permyriad{
                 one{"{0} ‱"}
                 other{"{0} ‱"}
+            }
+            portion-per-1e9{
+                dnam{"Milliardstel"}
+                one{"{0} Milliardstel"}
+                other{"{0} Milliardstel"}
             }
         }
         consumption{

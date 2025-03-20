@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 my{
     units{
         acceleration{
@@ -137,6 +137,10 @@ my{
             }
             permyriad{
                 other{"{0} ပါမီရိတ်"}
+            }
+            portion-per-1e9{
+                dnam{"သန်းတစ်ထောင်ပုံ တစ်ပုံ"}
+                other{"သန်းတစ်ထောင်ပုံ {0} ပုံ"}
             }
         }
         consumption{
@@ -678,6 +682,11 @@ my{
                 dnam{"cm²"}
             }
         }
+        concentr{
+            portion-per-1e9{
+                other{"{0}ppb"}
+            }
+        }
         consumption{
             liter-per-100-kilometer{
                 dnam{"L/100km"}
@@ -904,6 +913,9 @@ my{
             }
             permyriad{
                 dnam{"ပါမီရိတ်"}
+            }
+            portion-per-1e9{
+                dnam{"သန်းတစ်ထောင်ပုံ တစ်ပုံ"}
             }
         }
         consumption{

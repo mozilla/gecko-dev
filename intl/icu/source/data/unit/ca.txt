@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ca{
     units{
         acceleration{
@@ -219,6 +219,12 @@ ca{
                 gender{"masculine"}
                 one{"{0} per deu mil"}
                 other{"{0} per deu mil"}
+            }
+            portion-per-1e9{
+                dnam{"part per mil milions"}
+                gender{"masculine"}
+                one{"{0} part per mil milions"}
+                other{"{0} parts per mil milions"}
             }
         }
         consumption{
@@ -1420,6 +1426,9 @@ ca{
                 dnam{"per deu mil"}
                 one{"{0} ‱"}
                 other{"{0} ‱"}
+            }
+            portion-per-1e9{
+                dnam{"part/mil milions"}
             }
         }
         consumption{

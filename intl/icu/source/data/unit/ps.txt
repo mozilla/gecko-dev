@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ps{
     units{
         acceleration{
@@ -928,6 +928,11 @@ ps{
         }
     }
     unitsNarrow{
+        concentr{
+            portion-per-1e9{
+                dnam{"p/b"}
+            }
+        }
         consumption{
             mile-per-gallon-imperial{
                 dnam{"mpg UK"}
@@ -1177,6 +1182,9 @@ ps{
             }
             permyriad{
                 dnam{"زرمه"}
+            }
+            portion-per-1e9{
+                dnam{"p/b"}
             }
         }
         consumption{

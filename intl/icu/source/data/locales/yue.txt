@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 yue{
     AuxExemplarCharacters{
         "[乍 仂 伏 佐 侶 僳 兆 兌 兹 凸 别 券 勳 卑 卞 占 叶 嘅 堤 墎 壤 奥 孜 峇 嶼 巽 栗 楔 涅 渾 澎 灘 燦 狄 琳 瑚 甫 碑"
@@ -770,9 +770,9 @@ yue{
                 "ahmmssz",
                 "ahmmss",
                 "ahmm",
-                "GyMEEEEd",
-                "GyMd",
-                "GyMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
+                "GyMMMd",
                 "GyMd",
             }
             availableFormats{
@@ -981,9 +981,9 @@ yue{
                 "ahmmssz",
                 "ahmmss",
                 "ahmm",
-                "yMEEEEd",
-                "yMd",
-                "yMd",
+                "yMMMEEEEd",
+                "yMMMd",
+                "yMMMd",
                 "yMd",
             }
             availableFormats{

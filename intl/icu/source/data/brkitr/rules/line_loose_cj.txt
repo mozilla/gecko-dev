@@ -318,7 +318,7 @@ $LB20NonBreaks = [$LB18NonBreaks - $CB];
 #             and then to default UAX #14 behaviour (UTC-179-C32).
 #
 ^($HY | $HH) $CM* $ALPlus;
-$GL ($HY | $HH) $CM* $ALPlus; 
+$GL $CM* ($HY | $HH) $CM* $ALPlus;
 # Non-breaking CB from LB8a:
 $CB $CM* $ZWJ ($HY | $HH) $CM* $ALPlus;
 # Non-breaking SP from LB14:

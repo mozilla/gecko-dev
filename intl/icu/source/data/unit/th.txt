@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 th{
     units{
         acceleration{
@@ -89,6 +89,10 @@ th{
             }
             permyriad{
                 other{"{0} เปอร์มีเรียด"}
+            }
+            portion-per-1e9{
+                dnam{"ส่วนต่อพันล้าน"}
+                other{"{0} ส่วนต่อพันล้าน"}
             }
         }
         consumption{
@@ -628,6 +632,10 @@ th{
             }
             permyriad{
                 dnam{"‱"}
+            }
+            portion-per-1e9{
+                dnam{"สตพล."}
+                other{"{0}สตพล."}
             }
         }
         consumption{
@@ -1319,6 +1327,10 @@ th{
             }
             permyriad{
                 dnam{"เปอร์มีเรียด"}
+            }
+            portion-per-1e9{
+                dnam{"ส่วน/พันล้าน"}
+                other{"{0} สตพล."}
             }
         }
         consumption{

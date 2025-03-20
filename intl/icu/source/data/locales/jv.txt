@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 jv{
     AuxExemplarCharacters{"[f q v x z]"}
     ExemplarCharacters{"[aâå b c d eéèê g h iì j k l m n oò p r s t uù w y]"}

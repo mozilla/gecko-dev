@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 nn{
     %%Parent{"no"}
     units{
@@ -687,6 +687,9 @@ nn{
         concentr{
             millimole-per-liter{
                 dnam{"mmol/l"}
+            }
+            portion-per-1e9{
+                dnam{"delar/milliard"}
             }
         }
         consumption{

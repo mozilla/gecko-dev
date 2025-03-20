@@ -1,6 +1,6 @@
 ﻿# © 2016 and later: Unicode, Inc. and others.
 # License & terms of use: http://www.unicode.org/copyright.html
-# Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+# Generated using tools/cldr/cldr-to-icu/
 #
 # File: byn_Ethi_byn_Latn_Xaleget.txt
 # Generated from CLDR
@@ -755,16 +755,16 @@ $wordBoundary{ኦ → $ኦ ; # ETHIOPIC SYLLABLE GLOTTAL O
 # Convert to dot to dot if dot is followed by a number, ellipsis, or another dot.
 \. $1 ← \.([0-9….]) ;
 # Convert to Ethiopic Fullstop if dot is not followed by a number or another dot.
-። $1 ↔ \.([^0-9.]) ;
+። $1 ← \.([^0-9.]) ;
 \, $1 ← \,([0-9]) ;
-# ፣ $1 ↔ \,([^0-9]) ;
+# ፣ $1 ← \,([^0-9]) ;
 ፤ ↔ \;    ;
 ፦ ↔ \:\-  ;
 # ፥ ↔ \:  ;
 # ፨ → "#" ;
 # ፠ → \+  ;
 ፧ → \?  ;
-፡ $1 ↔ \,([^0-9])   ;
+፡ $1 ← \,([^0-9])   ;
 ::Null ;
 $1 $ጥበቅ ← $ጥበቅ ([ሀ-ፖ]) ;
 ########################################################################

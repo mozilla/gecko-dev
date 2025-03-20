@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 dua{
     AuxExemplarCharacters{"[h q v x z]"}
     ExemplarCharacters{"[aá b ɓ c d ɗ eé ɛ{ɛ́} f g ií j k l m n {ny} ŋ oó ɔ{ɔ́} p r s t uúū w y]"}

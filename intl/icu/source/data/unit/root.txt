@@ -1,8 +1,8 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 root{
-    Version{"46"}
+    Version{"47"}
     durationUnits{
         hm{"h:mm"}
         hms{"h:mm:ss"}
@@ -176,6 +176,10 @@ root{
             permyriad{
                 dnam{"‱"}
                 other{"{0}‱"}
+            }
+            portion-per-1e9{
+                dnam{"ppb"}
+                other{"{0} ppb"}
             }
         }
         consumption{

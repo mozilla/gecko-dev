@@ -1,13 +1,13 @@
 ﻿# © 2016 and later: Unicode, Inc. and others.
 # License & terms of use: http://www.unicode.org/copyright.html
-# Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+# Generated using tools/cldr/cldr-to-icu/
 #
 # File: Latn_Kana.txt
 # Generated from CLDR
 #
 
 # note: a global filter is more efficient, but MUST include all source chars
-#:: [\u0000-\u007E 、。 \u3099-゜ ァ-ー ｡-ﾟ [:Latin:][:Katakana:] [:nonspacing mark:]] ;
+#:: [\u0000-\u007E 、。 \u3099-゜ ァ-ー ｡-ﾟ [:Latin:][:Katakana:] [:Nonspacing_Mark:]] ;
 # MINIMAL FILTER GENERATED FOR: Latin-Katakana
 ### WARNING -- must add width filter, both here and below!!! ###
 :: [[ᄀ-ᄒᄚᄡ\u1160-ᅵᆪᆬ-ᆭᆰ-ᆵ←-↓│■○\u3000-。「-」\u3099-\u309Aァ-ロワヲ-ヴヷヺ-ー！-～￠-￦][',.A-Za-z~À-ÖØ-öø-ďĒ-ĥĨ-İĴ-ķĹ-ľŃ-ňŌ-őŔ-ťŨ-žƠ-ơƯ-ưǍ-ǜǞ-ǣǦ-ǭǰǴ-ǵǸ-țȞ-ȟȦ-ȳ\u0304Ӣ-ӣӮ-ӯḀ-ẙẠ-ỹᾱᾹῑῙῡῩK-Å]] ;
@@ -378,11 +378,11 @@ x → | ks ;
 # Final cleanup
 '~' → ; # delete stray tildes between letters
 [:Katakana:] { '' } [:Latin:] → ; # delete stray quotes between letters
-# [ʾ[:Nonspacing Mark:]-[\u3099-゜]] → ; # delete any non-spacing marks that we didn't use
+# [ʾ[:Nonspacing_Mark:]-[\u3099-゜]] → ; # delete any non-spacing marks that we didn't use
 :: NFC (NFD) ;
 :: ([[:Katakana:][\u309B\u309C\u30A0\u30FC\uFF70\uFF9E\uFF9F]] halfwidth-fullwidth);
 # note: a global filter is more efficient, but MUST include all source chars!!
-#:: ([\u0000-\u007E 、。 \u3099-゜ ァ-ー ｡-ﾟ [:Latin:][:Katakana:] [:nonspacing mark:]]);
+#:: ([\u0000-\u007E 、。 \u3099-゜ ァ-ー ｡-ﾟ [:Latin:][:Katakana:] [:Nonspacing_Mark:]]);
 # MINIMAL FILTER GENERATED FOR: Latin-Katakana BACKWARD
 :: ( [[\ -~¢-£¥-¦¬\u0304₩｡-ﾾￂ-ￇￊ-ￏￒ-ￗￚ-ￜ￨-￮][~、-。がぎぐげござじずぜぞだぢづでどば-ぱび-ぴぶ-ぷべ-ぺぼ-ぽゔ\u3099-゛ゞァ-ヺー-ヾ][\u309B\u309C\u30A0\u30FC\uFF70\uFF9E\uFF9F]] ) ;
 # eof

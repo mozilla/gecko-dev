@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 sq{
     units{
         acceleration{
@@ -196,6 +196,11 @@ sq{
                 dnam{"përdhjetëmijë"}
                 one{"{0} përdhjetëmijë"}
                 other{"{0} përdhjetëmijë"}
+            }
+            portion-per-1e9{
+                dnam{"pjesë për miliard"}
+                one{"{0} pjesë për miliard"}
+                other{"{0} pjesë për miliard"}
             }
         }
         consumption{

@@ -1,6 +1,6 @@
 ﻿# © 2016 and later: Unicode, Inc. and others.
 # License & terms of use: http://www.unicode.org/copyright.html
-# Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+# Generated using tools/cldr/cldr-to-icu/
 #
 # File: lt_Title.txt
 # Generated from CLDR
@@ -8,13 +8,13 @@
 
 # Make any string of letters after a cased letter be lower
 ::NFD();
-[:cased:] [:case-ignorable:]* {I } [^[:ccc=Not_Reordered:][:ccc=Above:]]* [:ccc=Above:] → i \u0307;
-[:cased:] [:case-ignorable:]* {J } [^[:ccc=Not_Reordered:][:ccc=Above:]]* [:ccc=Above:] → j \u0307;
-[:cased:] [:case-ignorable:]* {I \u0328 } [^[:ccc=Not_Reordered:][:ccc=Above:]]* [:ccc=Above:] → i \u0328 \u0307;
-[:cased:] [:case-ignorable:]* {I \u0300 → i \u0307 \u0300;
-[:cased:] [:case-ignorable:]* {I \u0301 → i \u0307 \u0301;
-[:cased:] [:case-ignorable:]* {I \u0303 → i \u0307 \u0303;
-[:cased:] [:case-ignorable:]* { (.) → &Any-Lower($1) ;
+[:Cased:] [:Case_Ignorable:]* {I } [^[:ccc=Not_Reordered:][:ccc=Above:]]* [:ccc=Above:] → i \u0307;
+[:Cased:] [:Case_Ignorable:]* {J } [^[:ccc=Not_Reordered:][:ccc=Above:]]* [:ccc=Above:] → j \u0307;
+[:Cased:] [:Case_Ignorable:]* {I \u0328 } [^[:ccc=Not_Reordered:][:ccc=Above:]]* [:ccc=Above:] → i \u0328 \u0307;
+[:Cased:] [:Case_Ignorable:]* {I \u0300 → i \u0307 \u0300;
+[:Cased:] [:Case_Ignorable:]* {I \u0301 → i \u0307 \u0301;
+[:Cased:] [:Case_Ignorable:]* {I \u0303 → i \u0307 \u0303;
+[:Cased:] [:Case_Ignorable:]* { (.) → &Any-Lower($1) ;
 # Otherwise all lowercase go to upper (titlecase stay as is)
 [:Soft_Dotted:] [^[:ccc=Not_Reordered:][:ccc=Above:]]* { \u0307 → ;
 ([:Lowercase:]) → &Any-Upper($1) ;

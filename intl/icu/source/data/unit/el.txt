@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 el{
     units{
         acceleration{
@@ -442,6 +442,22 @@ el{
                 gender{"neuter"}
                 one{"{0} τοις δεκάκις χιλίοις"}
                 other{"{0} τοις δεκάκις χιλίοις"}
+            }
+            portion-per-1e9{
+                case{
+                    accusative{
+                        one{"{0} μέρος στο δισεκατομμύριο"}
+                        other{"{0} μέρη στο δισεκατομμύριο"}
+                    }
+                    genitive{
+                        one{"{0} μέρους στο δισεκατομμύριο"}
+                        other{"{0} μερών στο δισεκατομμύριο"}
+                    }
+                }
+                dnam{"μέρη στο δισεκατομμύριο"}
+                gender{"neuter"}
+                one{"{0} μέρος στο δισεκατομμύριο"}
+                other{"{0} μέρη στο δισεκατομμύριο"}
             }
         }
         consumption{
@@ -2847,6 +2863,9 @@ el{
             }
             permyriad{
                 dnam{"τοις δεκάκις χιλίοις"}
+            }
+            portion-per-1e9{
+                dnam{"μέρη/δισεκατομμύριο"}
             }
         }
         consumption{

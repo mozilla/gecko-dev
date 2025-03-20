@@ -1,12 +1,20 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 uk{
     RBNFRules{
         OrdinalRules{
             "%digits-ordinal:",
+            "0: =%digits-ordinal-masculine=;",
+            "%digits-ordinal-masculine:",
             "-x: \u2212>>;",
-            "0: =#,##0=;",
+            "0: =#,##0=-$(ordinal,few{\u0456\u0439}other{\u0438\u0439})$;",
+            "%digits-ordinal-neuter:",
+            "-x: \u2212>>;",
+            "0: =#,##0=-$(ordinal,few{\u0454}other{\u0435})$;",
+            "%digits-ordinal-feminine:",
+            "-x: \u2212>>;",
+            "0: =#,##0=-$(ordinal,few{\u044F}other{\u0430})$;",
         }
         SpelloutRules{
             "%%lenient-parse:",

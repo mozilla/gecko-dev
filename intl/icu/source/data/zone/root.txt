@@ -1,8 +1,8 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 root{
-    Version{"46"}
+    Version{"47"}
     zoneStrings{
         "Africa:Asmera"{
             ec{"Asmara"}
@@ -61,6 +61,9 @@ root{
         "America:Merida"{
             ec{"Mérida"}
         }
+        "America:Noronha"{
+            ec{"Fernando de Noronha"}
+        }
         "America:North_Dakota:Beulah"{
             ec{"Beulah, North Dakota"}
         }
@@ -92,7 +95,7 @@ root{
             ec{"St. Vincent"}
         }
         "Antarctica:DumontDUrville"{
-            ec{"Dumont d’Urville"}
+            ec{"Dumont-d’Urville"}
         }
         "Asia:Calcutta"{
             ec{"Kolkata"}
@@ -117,9 +120,6 @@ root{
         }
         "Etc:UTC"{
             ss{"UTC"}
-        }
-        "Etc:Unknown"{
-            ec{"Unknown"}
         }
         "Europe:Kiev"{
             ec{"Kyiv"}

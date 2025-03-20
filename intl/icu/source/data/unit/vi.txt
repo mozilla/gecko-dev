@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 vi{
     units{
         acceleration{
@@ -117,6 +117,10 @@ vi{
             }
             permyriad{
                 other{"{0} phần vạn"}
+            }
+            portion-per-1e9{
+                dnam{"phần tỷ"}
+                other{"{0} phần tỷ"}
             }
         }
         consumption{
@@ -638,6 +642,9 @@ vi{
             permyriad{
                 dnam{"‱"}
             }
+            portion-per-1e9{
+                other{"{0}ppb"}
+            }
         }
         digital{
             byte{
@@ -800,6 +807,9 @@ vi{
             }
             permyriad{
                 dnam{"phần vạn"}
+            }
+            portion-per-1e9{
+                dnam{"phần tỷ"}
             }
         }
         consumption{

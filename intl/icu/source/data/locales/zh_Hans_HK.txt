@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 zh_Hans_HK{
     calendar{
         buddhist{
@@ -24,9 +24,9 @@ zh_Hans_HK{
                 "ahmmssz",
                 "ahmmss",
                 "ahmm",
-                "GyMEEEEd",
-                "GyMd",
-                "GyMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
+                "GyMMMd",
                 "GyyMd",
             }
             availableFormats{
@@ -107,9 +107,9 @@ zh_Hans_HK{
                 "ahmmssz",
                 "ahmmss",
                 "ahmm",
-                "GyMEEEEd",
-                "GyMd",
-                "GyMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
+                "GyMMMd",
                 "GGGGGyyMd",
             }
             availableFormats{
@@ -173,9 +173,9 @@ zh_Hans_HK{
                 "ahmmssz",
                 "ahmmss",
                 "ahmm",
-                "yMEEEEd",
-                "yMd",
-                "yMd",
+                "yMMMEEEEd",
+                "yMMMd",
+                "yMMMd",
                 "yyMd",
             }
             availableFormats{
@@ -240,9 +240,9 @@ zh_Hans_HK{
                 "ahmmssz",
                 "ahmmss",
                 "ahmm",
-                "GyMEEEEd",
-                "GyMd",
-                "GyMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
+                "GyMMMd",
                 "GyyMd",
             }
         }
@@ -267,9 +267,9 @@ zh_Hans_HK{
                 "ahmmssz",
                 "ahmmss",
                 "ahmm",
-                "GyMEEEEd",
-                "GyMd",
-                "GyMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
+                "GyMMMd",
                 "GyyMd",
             }
             availableFormats{
@@ -298,9 +298,9 @@ zh_Hans_HK{
                 "ahmmssz",
                 "ahmmss",
                 "ahmm",
-                "GyMEEEEd",
-                "GyMd",
-                "GyMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
+                "GyMMMd",
                 "GyyMd",
             }
             availableFormats{

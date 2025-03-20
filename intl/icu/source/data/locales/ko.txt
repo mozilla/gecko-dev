@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ko{
     AuxExemplarCharacters{
         "[ᄀ ᄁ ᄂ ᄃ ᄄ ᄅ ᄆ ᄇ ᄈ ᄉ ᄊ ᄋ ᄌ ᄍ ᄎ ᄏ ᄐ ᄑ ᄒ ᅡ ᅢ ᅣ ᅤ ᅥ ᅦ ᅧ ᅨ ᅩ ᅪ ᅫ ᅬ ᅭ ᅮ ᅯ ᅰ ᅱ ᅲ ᅳ"
@@ -856,8 +856,8 @@ ko{
                 "ahmsz",
                 "ahmmss",
                 "ahmm",
-                "GyMEEEEd",
-                "GyMd",
+                "GyMMMEEEEd",
+                "GyMMMd",
                 "GyMd",
                 "GyMd",
             }
@@ -1085,8 +1085,8 @@ ko{
                 "ahmsz",
                 "ahmmss",
                 "ahmm",
-                "yMEEEEd",
-                "yMd",
+                "yMMMMEEEEd",
+                "yMMMMd",
                 "yMd",
                 "yyMd",
             }

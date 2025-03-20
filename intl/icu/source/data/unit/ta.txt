@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ta{
     units{
         acceleration{
@@ -467,6 +467,25 @@ ta{
                 }
                 one{"{0} பெர்மிரியட்"}
                 other{"{0} பெர்மிரியட்"}
+            }
+            portion-per-1e9{
+                case{
+                    ablative{
+                        one{"{0} பார்ட்ஸ்/பில்லியனில்"}
+                        other{"{0} பார்ட்ஸ்/பில்லியனில்"}
+                    }
+                    accusative{
+                        one{"{0} பார்ட்ஸ்/பில்லியனை"}
+                        other{"{0} பார்ட்ஸ்/பில்லியனை"}
+                    }
+                    dative{
+                        one{"{0} பார்ட்ஸ்/பில்லியனுக்கு"}
+                        other{"{0} பார்ட்ஸ்/பில்லியனுக்கு"}
+                    }
+                }
+                dnam{"பார்ட்ஸ்/பில்லியன்"}
+                one{"{0} பார்ட்ஸ்/பில்லியன்"}
+                other{"{0} பார்ட்ஸ்/பில்லியன்"}
             }
         }
         consumption{
@@ -2769,6 +2788,11 @@ ta{
             permyriad{
                 dnam{"‱"}
             }
+            portion-per-1e9{
+                dnam{"பா/பி"}
+                one{"{0} பா/பி"}
+                other{"{0} பா/பி"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -3585,6 +3609,11 @@ ta{
             }
             permyriad{
                 dnam{"பெர்மிரியட்"}
+            }
+            portion-per-1e9{
+                dnam{"பார்ட்ஸ்/பில்லியன்"}
+                one{"{0} பார்ட்ஸ்/பில்லியன்"}
+                other{"{0} பார்ட்ஸ்/பில்லியன்"}
             }
         }
         consumption{

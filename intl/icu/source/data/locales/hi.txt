@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 hi{
     AuxExemplarCharacters{"[\u200C\u200D ॄ]"}
     ExemplarCharacters{
@@ -692,7 +692,7 @@ hi{
                         "जुल॰",
                         "अग॰",
                         "सित॰",
-                        "अक्तू॰",
+                        "अक्टू॰",
                         "नव॰",
                         "दिस॰",
                     }
@@ -706,7 +706,7 @@ hi{
                         "जुलाई",
                         "अगस्त",
                         "सितंबर",
-                        "अक्तूबर",
+                        "अक्टूबर",
                         "नवंबर",
                         "दिसंबर",
                     }
@@ -793,7 +793,7 @@ hi{
             intervalFormats{
                 GyM{
                     G{"GGGGG M/y – GGGGG M/y"}
-                    M{"GGGGG M/y – M/"}
+                    M{"GGGGG M/y – M/y"}
                     y{"GGGGG M/y – M/y"}
                 }
                 GyMd{

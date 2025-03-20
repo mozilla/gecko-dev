@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 mr{
     units{
         acceleration{
@@ -819,6 +819,38 @@ mr{
                 gender{"masculine"}
                 one{"{0} पर्मिरेड"}
                 other{"{0} पर्मिरेड"}
+            }
+            portion-per-1e9{
+                case{
+                    ablative{
+                        one{"{0} भाग प्रति अब्जाहून"}
+                        other{"{0} भाग प्रति अब्जांहून"}
+                    }
+                    accusative{
+                        one{"{0} भाग प्रति अब्जना"}
+                        other{"{0} भाग प्रति अब्जांना"}
+                    }
+                    dative{
+                        one{"{0} भाग प्रति अब्जासाठी"}
+                        other{"{0} भाग प्रति अब्जांसाठी"}
+                    }
+                    ergative{
+                        one{"{0} भाग प्रति अब्जाने"}
+                        other{"{0} भाग प्रति अब्जांनी"}
+                    }
+                    genitive{
+                        one{"{0} भाग प्रति अब्जचे"}
+                        other{"{0} भाग प्रति अब्जांचे"}
+                    }
+                    locative{
+                        one{"{0} भाग प्रति अब्जहून"}
+                        other{"{0} भाग प्रति अब्जांहून"}
+                    }
+                }
+                dnam{"भाग प्रति अब्ज"}
+                gender{"neuter"}
+                one{"{0} भाग प्रति अब्ज"}
+                other{"{0} भाग प्रति अब्ज"}
             }
         }
         consumption{
@@ -4255,6 +4287,11 @@ mr{
                 one{"{0}ppm"}
                 other{"{0}ppm"}
             }
+            portion-per-1e9{
+                dnam{"भाग/अब्ज"}
+                one{"{0} भाग/अब्ज"}
+                other{"{0} भाग/अब्ज"}
+            }
         }
         consumption{
             mile-per-gallon{
@@ -4726,6 +4763,11 @@ mr{
             }
             permyriad{
                 dnam{"पर्मिरेड"}
+            }
+            portion-per-1e9{
+                dnam{"भाग/अब्ज"}
+                one{"{0} भाग प्रति अब्ज"}
+                other{"{0} भाप्रअ"}
             }
         }
         consumption{

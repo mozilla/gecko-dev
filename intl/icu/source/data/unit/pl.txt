@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 pl{
     units{
         acceleration{
@@ -907,6 +907,28 @@ pl{
                 many{"{0} punktów bazowych"}
                 one{"{0} punkt bazowy"}
                 other{"{0} punktu bazowego"}
+            }
+            portion-per-1e9{
+                case{
+                    accusative{
+                        few{"{0} części na miliard"}
+                        many{"{0} części na miliard"}
+                        one{"{0} część na miliard"}
+                        other{"{0} części na miliard"}
+                    }
+                    genitive{
+                        few{"{0} części na miliard"}
+                        many{"{0} części na miliard"}
+                        one{"{0} części na miliard"}
+                        other{"{0} części na miliard"}
+                    }
+                }
+                dnam{"części na miliard"}
+                few{"{0} części na miliard"}
+                gender{"feminine"}
+                many{"{0} części na miliard"}
+                one{"{0} część na miliard"}
+                other{"{0} części na miliard"}
             }
         }
         consumption{

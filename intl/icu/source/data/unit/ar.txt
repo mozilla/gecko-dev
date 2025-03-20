@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 ar{
     units{
         acceleration{
@@ -328,6 +328,16 @@ ar{
             }
             permyriad{
                 gender{"feminine"}
+            }
+            portion-per-1e9{
+                dnam{"جزء بالمليار"}
+                few{"{0} أجزاء بالمليار"}
+                gender{"masculine"}
+                many{"{0} جزءًا بالمليار"}
+                one{"{0} جزء بالمليار"}
+                other{"{0} جزء بالمليار"}
+                two{"جزآن بالمليار"}
+                zero{"{0} جزء بالمليار"}
             }
         }
         consumption{
@@ -1386,6 +1396,15 @@ ar{
                 two{"{0} ؊"}
                 zero{"{0} ؊"}
             }
+            portion-per-1e9{
+                dnam{"جزء/مليار"}
+                few{"{0} أجزاء/مليار"}
+                many{"{0} جزءًا/مليار"}
+                one{"{0} جزء/مليار"}
+                other{"{0} جزء/مليار"}
+                two{"جزآن/مليار"}
+                zero{"{0} جزء/مليار"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -2037,6 +2056,15 @@ ar{
                 other{"{0} جزء/مليون"}
                 two{"{0} جزء/مليون"}
                 zero{"{0} جزء/مليون"}
+            }
+            portion-per-1e9{
+                dnam{"جزء/مليار"}
+                few{"{0} أجزاء/مليار"}
+                many{"{0} جزءًا/مليار"}
+                one{"{0} جزء/مليار"}
+                other{"{0} جزء/مليار"}
+                two{"جزآن/مليار"}
+                zero{"{0} جزء/مليار"}
             }
         }
         consumption{

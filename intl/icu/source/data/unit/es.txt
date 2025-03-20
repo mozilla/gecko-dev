@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 es{
     units{
         acceleration{
@@ -228,6 +228,12 @@ es{
                 gender{"masculine"}
                 one{"{0} por diez mil"}
                 other{"{0} por diez mil"}
+            }
+            portion-per-1e9{
+                dnam{"partes por millardo"}
+                gender{"feminine"}
+                one{"{0} parte por millardo"}
+                other{"{0} partes por millardo"}
             }
         }
         consumption{
@@ -1342,6 +1348,10 @@ es{
                 one{"{0}‱"}
                 other{"{0}‱"}
             }
+            portion-per-1e9{
+                one{"{0}ppb"}
+                other{"{0}ppb"}
+            }
         }
         consumption{
             liter-per-100-kilometer{
@@ -2095,6 +2105,9 @@ es{
                 dnam{"por diez mil"}
                 one{"{0} ‱"}
                 other{"{0} ‱"}
+            }
+            portion-per-1e9{
+                dnam{"partes/millardo"}
             }
         }
         consumption{

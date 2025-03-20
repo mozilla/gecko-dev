@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 cs{
     units{
         acceleration{
@@ -1101,6 +1101,46 @@ cs{
                 many{"{0} desetiny promile"}
                 one{"{0} desetina promile"}
                 other{"{0} desetin promile"}
+            }
+            portion-per-1e9{
+                case{
+                    accusative{
+                        few{"{0} částice na miliardu"}
+                        many{"{0} částice na miliardu"}
+                        one{"{0} částici na miliardu"}
+                        other{"{0} částic na miliardu"}
+                    }
+                    dative{
+                        few{"{0} částicím na miliardu"}
+                        many{"{0} částice na miliardu"}
+                        one{"{0} částici na miliardu"}
+                        other{"{0} částicím na miliardu"}
+                    }
+                    genitive{
+                        few{"{0} částic na miliardu"}
+                        many{"{0} částice na miliardu"}
+                        one{"{0} částice na miliardu"}
+                        other{"{0} částic na miliardu"}
+                    }
+                    instrumental{
+                        few{"{0} částicemi na miliardu"}
+                        many{"{0} částice na miliardu"}
+                        one{"{0} částicí na miliardu"}
+                        other{"{0} částicemi na miliardu"}
+                    }
+                    locative{
+                        few{"{0} částicích na miliardu"}
+                        many{"{0} částice na miliardu"}
+                        one{"{0} částici na miliardu"}
+                        other{"{0} částicích na miliardu"}
+                    }
+                }
+                dnam{"částice na miliardu"}
+                few{"{0} částice na miliardu"}
+                gender{"feminine"}
+                many{"{0} částice na miliardu"}
+                one{"{0} částice na miliardu"}
+                other{"{0} částic na miliardu"}
             }
         }
         consumption{
@@ -5728,6 +5768,13 @@ cs{
                 many{"{0} ‱"}
                 one{"{0} ‱"}
                 other{"{0} ‱"}
+            }
+            portion-per-1e9{
+                dnam{"částic/mld."}
+                few{"{0} částice na mld"}
+                many{"{0} částic na mld"}
+                one{"{0} částice na mld"}
+                other{"{0} částic na mld"}
             }
         }
         consumption{

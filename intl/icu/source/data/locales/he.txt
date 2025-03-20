@@ -1,6 +1,6 @@
 ﻿// © 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
-// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+// Generated using tools/cldr/cldr-to-icu/
 he{
     AuxExemplarCharacters{"[ֽ ׄ\u200E\u200F ְ ֱ ֲ ֳ ִ ֵ ֶ ַ ָ ֹ ֻ ׂ ׁ ּ ֿ ״]"}
     ExemplarCharacters{"[א ב ג ד ה ו ז ח ט י כך ל מם נן ס ע פף צץ ק ר ש ת]"}

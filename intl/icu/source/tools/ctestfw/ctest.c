@@ -181,7 +181,9 @@ static TestNode *createTestNode(const char* name, int32_t nameLen)
     newNode->sibling = NULL;
     newNode->child = NULL;
 
-    strncpy( newNode->name, name, nameLen );
+    if (nameLen > 0) {
+        strncpy( newNode->name, name, nameLen );
+    }
     newNode->name[nameLen] = 0;
 
     return  newNode;
