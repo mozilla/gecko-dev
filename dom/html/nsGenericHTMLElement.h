@@ -699,15 +699,22 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
 
   static bool LegacyTouchAPIEnabled(JSContext* aCx, JSObject* aObj);
 
+  // https://html.spec.whatwg.org/#dom-window-nameditem-filter
   static inline bool CanHaveName(nsAtom* aTag) {
     return aTag == nsGkAtoms::img || aTag == nsGkAtoms::form ||
            aTag == nsGkAtoms::embed || aTag == nsGkAtoms::object;
   }
-  static inline bool ShouldExposeNameAsHTMLDocumentProperty(Element* aElement) {
+  static inline bool ShouldExposeNameAsWindowProperty(Element* aElement) {
     return aElement->IsHTMLElement() &&
            CanHaveName(aElement->NodeInfo()->NameAtom());
   }
+  // https://html.spec.whatwg.org/#dom-document-nameditem-filter
   static inline bool ShouldExposeIdAsHTMLDocumentProperty(Element* aElement) {
+    if (!aElement->HasID() || aElement->IsInNativeAnonymousSubtree()) {
+      return false;
+    }
+    // XXX Not all objects is exposed per spec, but other browsers doesn't check
+    // if object is exposed, either.
     if (aElement->IsHTMLElement(nsGkAtoms::object)) {
       return true;
     }
@@ -716,6 +723,16 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
     // name (which doesn't have to match the id or anything).
     // HasName() is true precisely when name is nonempty.
     return aElement->IsHTMLElement(nsGkAtoms::img) && aElement->HasName();
+  }
+  static inline bool ShouldExposeNameAsHTMLDocumentProperty(Element* aElement) {
+    if (!aElement->HasName() || aElement->IsInNativeAnonymousSubtree()) {
+      return false;
+    }
+    // XXX Not all embeds/objects are exposed per spec, but other browser
+    // doesn't check if embeds/objects are exposed.
+    return aElement->IsAnyOfHTMLElements(nsGkAtoms::embed, nsGkAtoms::form,
+                                         nsGkAtoms::iframe, nsGkAtoms::img,
+                                         nsGkAtoms::object);
   }
 
   virtual inline void ResultForDialogSubmit(nsAString& aResult) {

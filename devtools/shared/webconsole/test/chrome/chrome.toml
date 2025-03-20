@@ -10,6 +10,9 @@ support-files = [
   "console-test-worker.js",
   "!/browser/base/content/test/general/browser_star_hsts.sjs",
 ]
+prefs = [
+  "devtools.console.stdout.chrome=false",
+]
 
 ["test_basics.html"]
 
