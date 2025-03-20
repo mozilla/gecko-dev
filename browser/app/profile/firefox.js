@@ -1065,8 +1065,10 @@ pref("browser.tabs.groups.enabled", false);
 #endif
 pref("browser.tabs.groups.smart.enabled", false);
 
-pref("browser.tabs.groups.dragOverDelayMS", 240);
-pref("browser.tabs.dragdrop.moveOverThresholdPercent", 80);
+pref("browser.tabs.dragDrop.createGroup.delayMS", 240);
+pref("browser.tabs.dragDrop.expandGroup.delayMS", 350);
+pref("browser.tabs.dragDrop.selectTab.delayMS", 350);
+pref("browser.tabs.dragDrop.moveOverThresholdPercent", 80);
 
 pref("browser.tabs.firefox-view.logLevel", "Warn");
 

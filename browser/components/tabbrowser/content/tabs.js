@@ -27,8 +27,9 @@
   class MozTabbrowserTabs extends MozElements.TabsBase {
     static observedAttributes = ["orient"];
 
-    #maxTabsPerRow;
     #dragOverCreateGroupTimer;
+    #dragTime = 0;
+    #maxTabsPerRow;
     #mustUpdateTabMinHeight = false;
     #tabMinHeight = 36;
 
@@ -106,8 +107,6 @@
 
       this._blockDblClick = false;
       this._tabDropIndicator = this.querySelector(".tab-drop-indicator");
-      this._dragOverDelay = 350;
-      this._dragTime = 0;
       this._closeButtonsUpdatePending = false;
       this._closingTabsSpacer = this.querySelector(".closing-tabs-spacer");
       this._tabDefaultMaxWidth = NaN;
@@ -938,13 +937,26 @@
       this.finishAnimateTabMove();
 
       if (effects == "link") {
-        let tab = this.#getDragTarget(event, { ignoreSides: true });
-        if (tab) {
-          if (!this._dragTime) {
-            this._dragTime = Date.now();
+        let target = this.#getDragTarget(event, { ignoreSides: true });
+        if (target) {
+          if (!this.#dragTime) {
+            this.#dragTime = Date.now();
           }
-          if (Date.now() >= this._dragTime + this._dragOverDelay) {
-            this.selectedItem = tab;
+          let overGroupLabel = isTabGroupLabel(target);
+          if (
+            Date.now() >=
+            this.#dragTime +
+              Services.prefs.getIntPref(
+                overGroupLabel
+                  ? "browser.tabs.dragDrop.expandGroup.delayMS"
+                  : "browser.tabs.dragDrop.selectTab.delayMS"
+              )
+          ) {
+            if (overGroupLabel) {
+              target.group.collapsed = false;
+            } else {
+              this.selectedItem = target;
+            }
           }
           ind.hidden = true;
           return;
@@ -1455,7 +1467,7 @@
     }
 
     on_dragleave(event) {
-      this._dragTime = 0;
+      this.#dragTime = 0;
 
       // This does not work at all (see bug 458613)
       var target = event.relatedTarget;
@@ -2573,7 +2585,7 @@
 
         moveOverThreshold = gBrowser._tabGroupsEnabled
           ? Services.prefs.getIntPref(
-              "browser.tabs.dragdrop.moveOverThresholdPercent"
+              "browser.tabs.dragDrop.moveOverThresholdPercent"
             ) / 100
           : 0.5;
         moveOverThreshold = Math.min(1, Math.max(0, moveOverThreshold));
@@ -2620,7 +2632,9 @@
         if (shouldCreateGroupOnDrop) {
           this.#dragOverCreateGroupTimer = setTimeout(
             () => this.#triggerDragOverCreateGroup(dragData, dropElement),
-            Services.prefs.getIntPref("browser.tabs.groups.dragOverDelayMS")
+            Services.prefs.getIntPref(
+              "browser.tabs.dragDrop.createGroup.delayMS"
+            )
           );
         } else {
           this.removeAttribute("movingtab-createGroup");
