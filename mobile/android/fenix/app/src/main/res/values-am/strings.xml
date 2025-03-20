@@ -1460,6 +1460,32 @@
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">አስወግድ</string>
   <!--
+    WebCompat Reporter
+
+    The title of the Web Compat Reporter feature. This is displayed in the top app bar.
+  -->
+  <string name="webcompat_reporter_screen_title">የተበላሽ ጣቢያ አሳውቅ</string>
+  <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+  <string name="webcompat_reporter_label_url">URL</string>
+  <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
+  <string name="webcompat_reporter_choose_reason">ምክንያት ይምረጡ</string>
+  <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+  <string name="webcompat_reporter_label_description">ችግሩን ይግለጹ (አማራጭ)</string>
+  <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+  <string name="webcompat_reporter_send_more_info">ተጨማሪ መረጃ ላክ</string>
+  <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+  <string name="webcompat_reporter_cancel">ሰርዝ</string>
+  <!-- The button text for the send button to submit the provided form data. -->
+  <string name="webcompat_reporter_send">ላክ</string>
+  <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
+  <string name="webcompat_reporter_dismiss_success_snackbar_text">ዝጋ</string>
+  <!--
+    These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site.
+
+    Broken site reason text for site slow or not working
+  -->
+  <string name="webcompat_reporter_reason_slow">ጣቢያ ቀርፋፋ ወይም አይሰራም</string>
+  <!--
     Crashes
 
     Title text displayed on the tab crash page. %1$s is the name of the app (for example "Firefox").

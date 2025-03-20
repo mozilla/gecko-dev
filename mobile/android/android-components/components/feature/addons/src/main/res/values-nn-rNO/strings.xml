@@ -84,6 +84,8 @@
   <string name="mozac_feature_addons_permissions_trial_ml_description">Last ned og køyr AI-modellar på eininga di</string>
   <!-- Description for userScripts permission. -->
   <string name="mozac_feature_addons_permissions_user_scripts_description">Tillat at ikkje stadfesta tredjepartsskript får tilgang til dataa dine</string>
+  <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+  <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Ikkje stadfesta skript kan utgjere sikkerheit- og personvernrisiko. Køyr berre skript frå utvidingar eller kjelder du stolar på.</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">Utvide utviklarverktøy for å få tilgang til dine data i opne faner</string>
   <!-- Description for text button that expands the list of domain permissions -->

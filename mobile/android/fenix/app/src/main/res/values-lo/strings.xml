@@ -1009,6 +1009,12 @@
   <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">ກວດເບິ່ງ 100+ ສ່ວນຂະຫຍາຍໃຫມ່ທີ່ຊ່ວຍໃຫ້ທ່ານສ້າງ Firefox ຂອງທ່ານເອງ.</string>
   <!-- Button text of the Nimbus message for extensions general availability. -->
   <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">ສຳຫຼວດສ່ວນຂະຫຍາຍ</string>
+  <!--
+    This is a message shown to the user when too many errors have occurred with the extensions process and they have been disabled.
+    The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="extension_process_crash_dialog_message">ນຶ່ງ ຫຼື ຫຼາຍສ່ວນຂະຫຍາຍຢຸດເຮັດວຽກ, ເຮັດໃຫ້ລະບົບຂອງທ່ານບໍ່ສະຖຽນ. %1$s ພະຍາຍາມປິດເປີດສ່ວນຂະຫຍາຍຄືນໃໝ່ບໍ່ສຳເລັດ.\n\nສ່ວນຂະຫຍາຍຈະບໍ່ຖືກຣີສະຕາດໃນລະຫວ່າງເຊສຊັນປັດຈຸບັນຂອງທ່ານ.\n\nການລຶບ ຫຼື ປິດນຳໃຊ້ສ່ວນຂະຫຍາຍອາດຈະແກ້ໄຂບັນຫານີ້ໄດ້.</string>
   <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
   <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">ລອງຣີສະຕາດສ່ວນຂະຫຍາຍ</string>
   <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
@@ -1097,6 +1103,8 @@
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">ແບ່ງປັນຂໍ້ມູນປະສິດທິພາບ, ການໃຊ້ງານ, ຮາດແວ ແລະ ການປັບແຕ່ງໃນບຣາວເຊີຂອງທ່ານກັບ Mozilla ເພື່ອຊ່ວຍພວກເຮົາສ້າງ %1$s ໃຫ້ດີຂື້ນກ່ວາເກົ່າ</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">ຂໍ້ມູນດ້ານການຕະຫຼາດ</string>
+  <!-- Learn more link for marketing data preference -->
+  <string name="preferences_marketing_data_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບຂໍ້ມູນການຕະຫຼາດ</string>
   <!-- Preference switch for daily usage ping data collection -->
   <string name="preferences_daily_usage_ping_title">ping ການນໍາໃຊ້ປະຈໍາວັນ</string>
   <string name="preferences_daily_usage_ping_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບການໃຊ້ ping ປະຈໍາວັນ</string>
@@ -2080,6 +2088,10 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">ໄອຄອນການຍົກເວັ້ນການປ້ອງກັນການຕິດຕາມທີ່ປັບປຸງໃຫ້ດີຂຶ້ນ</string>
+  <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+  <string name="preference_doh_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
+  <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_2">ໃຊ້ຕົວແກ້ໄຂ DNS ເລີ່ມຕົ້ນຂອງທ່ານຖ້າມີບັນຫາກັບຜູ້ໃຫ້ບໍລິການ DNS ທີ່ປອດໄພ</string>
   <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection">ການປົກປ້ອງສູງສຸດ</string>
   <!-- About page link text to open support link -->
@@ -2140,6 +2152,8 @@
   <string name="preferences_android_autofill">ຕື່ມຂໍ້ມູນອັດຕະໂນມັດໃນແອັບຯອື່ນ</string>
   <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
   <string name="preferences_android_autofill_description">ຕື່ມຂໍ້ມູນຊື່ຜູ້ໃຊ້ ແລະ ລະຫັດຜ່ານໃນແອັບຯອື່ນໃນອຸປະກອນຂອງທ່ານ.</string>
+  <!-- Clickable text for opening an external link for more information about Sync. -->
+  <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບການຊິ້ງ</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
   <string name="preferences_passwords_exceptions">ຍົກເວັ້ນ</string>
   <!-- Text on button to remove all saved login exceptions -->
@@ -2230,6 +2244,8 @@
   <string name="credit_cards_saved_cards">ບັນທຶກບັດໄວ້ແລ້ວ</string>
   <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
   <string name="credit_cards_biometric_prompt_message">ປົດລັອກເພື່ອເບິ່ງບັດທີ່ທ່ານໄດ້ບັນທຶກໄວ້</string>
+  <!-- Message of warning dialog if users have no device authentication set up -->
+  <string name="credit_cards_warning_dialog_message_3">ຕັ້ງຄ່າຮູບແບບການລັອກອຸປະກອນ, PIN, ຫຼື ລະຫັດຜ່ານເພື່ອປົກປ້ອງວິທີການຊໍາລະທີ່ບັນທຶກໄວ້ຂອງທ່ານຈາກການຖືກເຂົ້າເຖິງຖ້າຄົນອື່ນມີອຸປະກອນຂອງທ່ານ.</string>
   <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
   <string name="credit_cards_warning_dialog_set_up_now">ຕິດຕັ້ງດ່ຽວນີ້</string>
   <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
@@ -2489,6 +2505,14 @@
   <string name="experiments_snackbar">ເປີດໃຊ້ງານການສົ່ງຂໍ້ມູນທາງໄກເພື່ອສົ່ງຂໍ້ມູນ.</string>
   <!-- Snackbar button text to navigate to telemetry settings. -->
   <string name="experiments_snackbar_button">ໄປທີ່ການຕັ້ງຄ່າ</string>
+  <!-- Text for learn more caption presenting a link with information about review quality. %s is a link using review_quality_check_info_learn_more_link as text. -->
+  <string name="review_quality_check_info_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">ຮຽນຮູ້ເພີ່ມເຕີມກ່ຽວກັບ %s.</string>
+  <!-- Clickable text that links to review quality check recommended products support article. -->
+  <string name="review_quality_check_settings_recommended_products_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">ຮຽນຮູ້ເພີ່ມຕື່ມ</string>
+  <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
+  <string name="review_quality_check_outdated_analysis_warning_action" moz:removedIn="136" tools:ignore="UnusedResources">ກວດເບິ່ງດຽວນີ້</string>
+  <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
+  <string name="review_quality_check_contextual_onboarding_learn_more_link" moz:removedIn="136" tools:ignore="UnusedResources">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
   <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot terms of use. -->
   <string name="review_quality_check_contextual_onboarding_terms_use" moz:removedIn="136" tools:ignore="UnusedResources">ເງື່ອນ​ໄຂ​ການ​ນໍາ​ໃຊ້​</string>
   <!--
@@ -2506,4 +2530,9 @@
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="a11y_action_label_pocket_learn_more">ເປີດລິ້ງເພື່ອສຶກສາເພີ່ມເຕີມ</string>
   <!-- Translations feature -->
+
+  <!-- Text that links to additional information about the Firefox translations feature. -->
+  <string name="translations_bottom_sheet_info_message_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
+  <!-- Clickable text from the screen header that links to a website. -->
+  <string name="download_languages_header_learn_more_preference">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
 </resources>
