@@ -98,6 +98,9 @@ const COMMON_PREFERENCES = new Map([
   // This can be removed once Firefox 69 and 68 ESR and are no longer supported.
   ["browser.contentblocking.introCount", 99],
 
+  // Set global `dump` function to log strings to `stdout` for release builds as well.
+  ["browser.dom.window.dump.enabled", true],
+
   // Indicate that the download panel has been shown once so that
   // whichever download test runs first doesn't show the popup
   // inconsistently.
