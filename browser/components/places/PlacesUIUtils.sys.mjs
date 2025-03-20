@@ -1520,48 +1520,9 @@ export var PlacesUIUtils = {
       let window = this.triggerNode.ownerGlobal;
       switch (command) {
         case "placesCmd_copy": {
-          // This is a little hacky, but there is a lot of code in Places that handles
-          // clipboard stuff, so it's easier to reuse.
-          let node = {};
-          node.type = 0;
-          node.title = this.triggerNode.label;
-          node.uri = this.triggerNode.link;
-
-          // Copied from _populateClipboard in controller.js
-
-          // This order is _important_! It controls how this and other applications
-          // select data to be inserted based on type.
-          let contents = [
-            { type: lazy.PlacesUtils.TYPE_X_MOZ_URL, entries: [] },
-            { type: lazy.PlacesUtils.TYPE_HTML, entries: [] },
-            { type: lazy.PlacesUtils.TYPE_PLAINTEXT, entries: [] },
-          ];
-
-          contents.forEach(function (content) {
-            content.entries.push(lazy.PlacesUtils.wrapNode(node, content.type));
-          });
-
-          let xferable = Cc[
-            "@mozilla.org/widget/transferable;1"
-          ].createInstance(Ci.nsITransferable);
-          xferable.init(null);
-
-          function addData(type, data) {
-            xferable.addDataFlavor(type);
-            xferable.setTransferData(
-              type,
-              lazy.PlacesUtils.toISupportsString(data)
-            );
-          }
-
-          contents.forEach(function (content) {
-            addData(content.type, content.entries.join(lazy.PlacesUtils.endl));
-          });
-
-          Services.clipboard.setData(
-            xferable,
-            null,
-            Ci.nsIClipboard.kGlobalClipboard
+          lazy.BrowserUtils.copyLink(
+            this.triggerNode.link,
+            this.triggerNode.label
           );
           break;
         }

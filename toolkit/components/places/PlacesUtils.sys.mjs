@@ -973,6 +973,40 @@ export var PlacesUtils = {
   },
 
   /**
+   * Copy a single places result node, recursively if applicable.
+   *
+   * @param {Object} node
+   *    The node to copy. If not a real places node but a single
+   *    title/URL combination, you must set `type` to 0 (aka RESULT_TYPE_URI),
+   *    and provide a `title` and `uri` property which should both be strings.
+   */
+  copyNode(node) {
+    // This order is _important_! It controls how this and other applications
+    // select data to be inserted based on type.
+    let contentTypes = [
+      this.TYPE_X_MOZ_URL,
+      this.TYPE_HTML,
+      this.TYPE_PLAINTEXT,
+    ];
+
+    let xferable = Cc["@mozilla.org/widget/transferable;1"].createInstance(
+      Ci.nsITransferable
+    );
+    xferable.init(null);
+    for (let contentType of contentTypes) {
+      xferable.addDataFlavor(contentType);
+      let data = this.wrapNode(node, contentType);
+      xferable.setTransferData(contentType, this.toISupportsString(data));
+    }
+
+    Services.clipboard.setData(
+      xferable,
+      null,
+      Ci.nsIClipboard.kGlobalClipboard
+    );
+  },
+
+  /**
    * String-wraps a result node according to the rules of the specified
    * content type for copy or move operations.
    *
