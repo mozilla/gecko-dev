@@ -15,7 +15,6 @@ def test_install_invalid_addon(session):
     assert_error(response, "unknown error")
 
 
-@pytest.mark.allow_system_access
 @pytest.mark.parametrize("value", [True, False], ids=["required", "not required"])
 def test_install_unsigned_addon_with_signature(session, use_pref, value):
     # Even though "xpinstall.signatures.required" preference is enabled in Firefox by default,
@@ -42,7 +41,6 @@ def test_install_unsigned_addon_with_signature(session, use_pref, value):
             uninstall_addon(session, addon_id)
 
 
-@pytest.mark.allow_system_access
 def test_install_unsigned_addon_temporarily(session):
     response = install_addon(
         session, "addon", get_base64_for_extension_file("firefox/unsigned.xpi"), True
@@ -60,7 +58,6 @@ def test_install_unsigned_addon_temporarily(session):
         uninstall_addon(session, addon_id)
 
 
-@pytest.mark.allow_system_access
 @pytest.mark.parametrize("temporary", [True, False])
 def test_install_signed_addon(session, temporary):
     response = install_addon(
@@ -79,7 +76,6 @@ def test_install_signed_addon(session, temporary):
         uninstall_addon(session, addon_id)
 
 
-@pytest.mark.allow_system_access
 @pytest.mark.parametrize("allow_private_browsing", [True, False])
 def test_install_addon_with_private_browsing(session, allow_private_browsing):
     response = install_addon(

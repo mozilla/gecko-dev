@@ -2817,8 +2817,6 @@ toolbar#nav-bar {
             cmd = os.path.abspath(app)
             args = list(extraArgs)
             args.append("-marionette")
-            # To switch to chrome context in Marionette system access is required
-            args.append("-remote-allow-system-access")
             # TODO: mozrunner should use -foreground at least for mac
             # https://bugzilla.mozilla.org/show_bug.cgi?id=916512
             args.append("-foreground")

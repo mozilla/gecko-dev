@@ -377,8 +377,7 @@ class FirefoxInstanceManager:
                           self.e10s)
 
         args = self.binary_args[:] if self.binary_args else []
-        args += [cmd_arg("marionette"),
-                 cmd_arg("remote-allow-system-access"), "about:blank"]
+        args += [cmd_arg("marionette"), "about:blank"]
 
         debug_args, cmd = browser_command(self.binary,
                                           args,

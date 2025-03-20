@@ -409,11 +409,10 @@ class GeckoInstance(object):
             }
         )
 
-        extra_args = ["-marionette", "-remote-allow-system-access"]
         args = {
             "binary": self.binary,
             "profile": self.profile,
-            "cmdargs": extra_args + self.app_args,
+            "cmdargs": ["-marionette"] + self.app_args,
             "env": env,
             "symbols_path": self.symbols_path,
             "process_args": process_args,
