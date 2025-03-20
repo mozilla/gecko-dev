@@ -28,8 +28,12 @@ let shareUrlSpy = sinon.spy();
 let openSharingPreferencesSpy = sinon.spy();
 let getSharingProvidersSpy = sinon.spy();
 
-let stub = sinon.stub(gBrowser, "MacSharingService").get(() => {
-  return {
+let { MockRegistrar } = ChromeUtils.importESModule(
+  "resource://testing-common/MockRegistrar.sys.mjs"
+);
+let mockMacSharingService = MockRegistrar.register(
+  "@mozilla.org/widget/macsharingservice;1",
+  {
     getSharingProviders(url) {
       getSharingProvidersSpy(url);
       return mockShareData;
@@ -40,11 +44,12 @@ let stub = sinon.stub(gBrowser, "MacSharingService").get(() => {
     openSharingPreferences() {
       openSharingPreferencesSpy();
     },
-  };
-});
+    QueryInterface: ChromeUtils.generateQI([Ci.nsIMacSharingService]),
+  }
+);
 
-registerCleanupFunction(async function () {
-  stub.restore();
+registerCleanupFunction(function () {
+  MockRegistrar.unregister(mockMacSharingService);
 });
 
 /**

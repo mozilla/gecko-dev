@@ -16,16 +16,15 @@ const TEST_URL = BASE + "browser_contextmenu_shareurl.html";
 // Setup spies for observing function calls from MacSharingService
 let shareUrlSpy = sinon.spy();
 
-let stub = sinon.stub(gBrowser.ownerGlobal, "WindowsUIUtils").get(() => {
-  return {
-    shareUrl(url, title) {
-      shareUrlSpy(url, title);
-    },
-  };
+SharingUtils.testOnlyMockUIUtils({
+  shareUrl(url, title) {
+    shareUrlSpy(url, title);
+  },
+  QueryInterface: ChromeUtils.generateQI([Ci.nsIWindowsUIUtils]),
 });
 
 registerCleanupFunction(async function () {
-  stub.restore();
+  SharingUtils.testOnlyMockUIUtils(null);
 });
 
 /**

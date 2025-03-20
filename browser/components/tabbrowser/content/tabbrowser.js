@@ -113,12 +113,6 @@
         UrlbarProviderOpenTabs:
           "resource:///modules/UrlbarProviderOpenTabs.sys.mjs",
       });
-      XPCOMUtils.defineLazyServiceGetters(this, {
-        MacSharingService: [
-          "@mozilla.org/widget/macsharingservice;1",
-          "nsIMacSharingService",
-        ],
-      });
       ChromeUtils.defineLazyGetter(this, "tabLocalization", () => {
         return new Localization(
           ["browser/tabbrowser.ftl", "branding/brand.ftl"],
@@ -8867,7 +8861,7 @@ var TabContextMenu = {
       PrivateBrowsingUtils.isWindowPrivate(window);
     reopenInContainer.disabled = this.contextTab.hidden;
 
-    gShareUtils.updateShareURLMenuItem(
+    SharingUtils.updateShareURLMenuItem(
       this.contextTab.linkedBrowser,
       document.getElementById("context_sendTabToDevice")
     );
