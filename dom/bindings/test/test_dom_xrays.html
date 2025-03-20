@@ -163,7 +163,7 @@ function test() {
   is(elem.version, "", "WebIDL properties should be exposed through Xrays");
 
   // HTMLCollection
-  var coll = doc.getElementsByTagName("iframe");
+  var coll = doc.getElementsByTagName("div");
 
   // Named properties live on the instance for non-global objects.
   checkXrayProperty(coll, "iframe", [ doc.getElementById("iframe") ]);
