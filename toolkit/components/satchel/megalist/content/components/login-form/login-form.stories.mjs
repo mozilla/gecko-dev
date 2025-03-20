@@ -11,7 +11,8 @@ export default {
   component: "login-form",
 };
 
-window.MozXULElement.insertFTLIfNeeded("preview/contextual-manager.ftl");
+// eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
+window.MozXULElement.insertFTLIfNeeded("browser/contextual-manager.ftl");
 
 export const AddLoginForm = () => html`<login-form type="add"></login-form>`;
 export const EditLoginForm = () => html`<login-form type="edit"></login-form>`;

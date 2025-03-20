@@ -16,7 +16,8 @@ export default {
   },
 };
 
-window.MozXULElement.insertFTLIfNeeded("preview/contextual-manager.ftl");
+// eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
+window.MozXULElement.insertFTLIfNeeded("browser/contextual-manager.ftl");
 
 const Template = ({ website, username, password }) => {
   return html`

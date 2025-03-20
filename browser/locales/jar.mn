@@ -19,7 +19,6 @@
   preview/backupSettings.ftl                       (../locales-preview/backupSettings.ftl)
   preview/smartTabGroups.ftl                       (../locales-preview/smartTabGroups.ftl)
   preview/tabUnload.ftl                            (../locales-preview/tabUnload.ftl)
-  preview/contextual-manager.ftl                   (../../toolkit/components/satchel/megalist/content/contextual-manager.ftl)
 
 @AB_CD@.jar:
 % locale browser @AB_CD@ %locale/browser/

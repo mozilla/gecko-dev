@@ -80,10 +80,12 @@ export class DataSourceBase {
     this.#aggregatorApi.discardChangesConfirmed();
   }
 
-  formatMessages = createFormatMessages("preview/contextual-manager.ftl");
+  // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
+  formatMessages = createFormatMessages("browser/contextual-manager.ftl");
   static ftl = new Localization([
     "branding/brand.ftl",
-    "preview/contextual-manager.ftl",
+    // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
+    "browser/contextual-manager.ftl",
   ]);
 
   async localizeStrings(strings) {
