@@ -592,8 +592,8 @@ user-login = "Amanieu"
 user-name = "Amanieu d'Antras"
 
 [[publisher.serde]]
-version = "1.0.218"
-when = "2025-02-20"
+version = "1.0.219"
+when = "2025-03-09"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
@@ -606,8 +606,8 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.serde_derive]]
-version = "1.0.218"
-when = "2025-02-20"
+version = "1.0.219"
+when = "2025-03-09"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
@@ -1950,7 +1950,7 @@ who = "Jan-Erik Rediger <jrediger@mozilla.com>"
 criteria = "safe-to-deploy"
 user-id = 127697 # bendk
 start = "2022-06-16"
-end = "2025-03-05"
+end = "2026-03-14"
 notes = "Maintained by Mozilla"
 aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
 
