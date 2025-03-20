@@ -216,12 +216,10 @@ export class DataSourceBase {
   /**
    * Creates collapsible section header line.
    *
-   * @param {string} label for the section
    * @returns {object} section header line
    */
-  createHeaderLine(label, tooltip) {
+  createHeaderLine() {
     const result = {
-      label,
       value: {},
       collapsed: false,
       start: true,
@@ -239,11 +237,7 @@ export class DataSourceBase {
 
       lineIsReady: () => true,
 
-      commands: [{ id: "Toggle", label: "command-toggle" }],
-
-      get toggleTooltip() {
-        return this.collapsed ? tooltip.expand : tooltip.collapse;
-      },
+      commands: [{ id: "Toggle" }],
 
       executeToggle() {
         this.collapsed = !this.collapsed;

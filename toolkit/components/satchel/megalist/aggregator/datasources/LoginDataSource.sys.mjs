@@ -90,17 +90,9 @@ export class LoginDataSource extends DataSourceBase {
     super(...args);
     // Wait for Fluent to provide strings before loading data
     this.localizeStrings({
-      headerLabel: { id: "contextual-manager-passwords-section-label" },
-      expandSection: {
-        id: "contextual-manager-passwords-expand-section-tooltip",
-      },
-      collapseSection: {
-        id: "contextual-manager-passwords-collapse-section-tooltip",
-      },
       originLabel: { id: "contextual-manager-passwords-origin-label" },
       usernameLabel: { id: "contextual-manager-passwords-username-label" },
       passwordLabel: { id: "contextual-manager-passwords-password-label" },
-      passwordsDisabled: { id: "contextual-manager-passwords-disabled" },
       revealPasswordOSAuthDialogPrompt: {
         id: this.getPlatformFtl(
           "contextual-manager-passwords-reveal-password-os-auth-dialog-message"
@@ -148,22 +140,14 @@ export class LoginDataSource extends DataSourceBase {
       passwordsExportFilePickerCsvFilterTitle: {
         id: "contextual-manager-passwords-export-file-picker-csv-filter-title",
       },
-      dismissBreachCommandLabel: {
-        id: "contextual-manager-passwords-dismiss-breach-alert-command",
-      },
     }).then(strings => {
-      const copyCommand = { id: "Copy", label: "command-copy" };
-      const editCommand = { id: "Edit", label: "command-edit" };
-      const deleteCommand = { id: "Delete", label: "command-delete" };
+      const copyCommand = { id: "Copy" };
+      const editCommand = { id: "Edit" };
+      const deleteCommand = { id: "Delete" };
       const dismissBreachCommand = {
         id: "DismissBreach",
-        label: strings.dismissBreachCommandLabel,
       };
-      const tooltip = {
-        expand: strings.expandSection,
-        collapse: strings.collapseSection,
-      };
-      this.#header = this.createHeaderLine(strings.headerLabel, tooltip);
+      this.#header = this.createHeaderLine();
       this.#header.commands.push(
         { id: "AddLogin" },
         { id: "UpdateLogin" },
@@ -172,17 +156,15 @@ export class LoginDataSource extends DataSourceBase {
         { id: "ConfirmDiscardChanges" },
         {
           id: "ImportFromBrowser",
-          label: "passwords-command-import-from-browser",
         },
-        { id: "Import", label: "passwords-command-import" },
-        { id: "Export", label: "passwords-command-export" },
-        { id: "RemoveAll", label: "passwords-command-remove-all" },
+        { id: "Import" },
+        { id: "Export" },
+        { id: "RemoveAll" },
         {
           id: "Settings",
-          label: "passwords-command-settings",
           url: PREFERENCES_URL,
         },
-        { id: "Help", label: "passwords-command-help", url: SUPPORT_URL },
+        { id: "Help", url: SUPPORT_URL },
         { id: "UpdateDisplayMode" },
         { id: "OpenLink" }
       );
@@ -253,7 +235,7 @@ export class LoginDataSource extends DataSourceBase {
         },
         commands: {
           value: [
-            { id: "Open", label: "command-open" },
+            { id: "Open" },
             copyCommand,
             editCommand,
             deleteCommand,
@@ -333,12 +315,11 @@ export class LoginDataSource extends DataSourceBase {
             },
             {
               id: "Reveal",
-              label: "command-reveal",
               verify: true,
               OSAuthPromptMessage: strings.revealPasswordOSAuthDialogPrompt,
               OSAuthCaptionMessage: strings.passwordOSAuthDialogCaption,
             },
-            { id: "Conceal", label: "command-conceal" },
+            { id: "Conceal" },
             {
               ...editCommand,
               verify: true,
@@ -346,7 +327,7 @@ export class LoginDataSource extends DataSourceBase {
               OSAuthCaptionMessage: strings.passwordOSAuthDialogCaption,
             },
             deleteCommand,
-            { id: "Cancel", label: "command-cancel" },
+            { id: "Cancel" },
           ],
         },
         executeReveal: {

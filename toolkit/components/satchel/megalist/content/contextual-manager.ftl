@@ -13,27 +13,8 @@ contextual-manager-menu-more-options-button =
 contextual-manager-more-options-popup =
   .aria-label = More Options
 
-## Commands
-
-contextual-manager-command-copy = Copy
-contextual-manager-command-reveal = Reveal
-contextual-manager-command-conceal = Conceal
-contextual-manager-command-toggle = Toggle
-contextual-manager-command-open = Open
-contextual-manager-command-delete = Remove record
-contextual-manager-command-edit = Edit
-contextual-manager-command-save = Save
-contextual-manager-command-cancel = Cancel
-
 ## Passwords
 
-contextual-manager-passwords-section-label = Passwords
-contextual-manager-passwords-disabled = Passwords are disabled
-
-contextual-manager-passwords-expand-section-tooltip = Show Passwords
-contextual-manager-passwords-collapse-section-tooltip = Hide Passwords
-
-contextual-manager-passwords-dismiss-breach-alert-command = Dismiss breach alert
 contextual-manager-passwords-command-create = Add password
 contextual-manager-passwords-command-import-from-browser = Import from another browser…
 contextual-manager-passwords-command-import = Import from a file…
@@ -41,9 +22,6 @@ contextual-manager-passwords-command-export = Export passwords
 contextual-manager-passwords-command-remove-all = Remove all passwords
 contextual-manager-passwords-command-settings = Settings
 contextual-manager-passwords-command-help = Help
-contextual-manager-passwords-command-sort-name = Sort by name (A-Z)
-# This message can be seen when sorting logins by breached or vulnerable alerts.
-contextual-manager-passwords-command-sort-alerts = Sort by alerts
 
 contextual-manager-passwords-os-auth-dialog-caption = { -brand-full-name }
 
@@ -366,65 +344,3 @@ contextual-manager-passwords-discard-changes-heading-and-message =
   .message = Your changes won’t be saved.
 contextual-manager-passwords-discard-changes-close-button = Close
 contextual-manager-passwords-discard-changes-go-back-button = Go back
-
-## Payments
-
-contextual-manager-payments-command-create = Add Payment Method
-
-contextual-manager-payments-section-label = Payment methods
-contextual-manager-payments-disabled = Payments methods are disabled
-
-contextual-manager-payments-expand-section-tooltip = Show Payments
-contextual-manager-payments-collapse-section-tooltip = Hide Payments
-
-# Variables
-#   $count (number) - Number of payment methods
-contextual-manager-payments-count =
-  { $count ->
-      [one] { $count } payment method
-     *[other] { $count } payment methods
-  }
-
-# Variables
-#   $count (number) - Number of filtered payment methods
-#   $total (number) - Total number of payment methods
-contextual-manager-payments-filtered-count =
-  { $total ->
-      [one] { $count } of { $total } payment method
-     *[other] { $count } of { $total } payment methods
-  }
-
-contextual-manager-card-number-label = Card Number
-contextual-manager-card-expiration-label = Expires on
-contextual-manager-card-holder-label = Name on Card
-
-## Addresses
-
-contextual-manager-addresses-command-create = Add Address
-
-contextual-manager-addresses-section-label = Addresses
-contextual-manager-addresses-disabled = Addresses are disabled
-
-contextual-manager-addresses-expand-section-tooltip = Show Addresses
-contextual-manager-addresses-collapse-section-tooltip = Hide Addresses
-
-# Variables
-#   $count (number) - Number of addresses
-contextual-manager-addresses-count =
-  { $count ->
-      [one] { $count } address
-     *[other] { $count } addresses
-  }
-
-# Variables
-#   $count (number) - Number of filtered addresses
-#   $total (number) - Total number of addresses
-contextual-manager-addresses-filtered-count =
-  { $total ->
-      [one] { $count } of { $total } address
-     *[other] { $count } of { $total } addresses
-  }
-
-contextual-manager-address-name-label = Name
-contextual-manager-address-phone-label = Phone
-contextual-manager-address-email-label = Email

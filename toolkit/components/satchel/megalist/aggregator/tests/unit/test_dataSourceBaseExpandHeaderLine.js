@@ -14,23 +14,13 @@ add_task(function test_dataSourceBaseExpandHeaderLine() {
     setLayout: () => {},
   });
 
-  const tooltip = {
-    expand: "tooltip-expanded",
-    collapse: "tooltip-collapsed",
-  };
-
-  const headerLine = dataSourceBase.createHeaderLine("test-label", tooltip);
+  const headerLine = dataSourceBase.createHeaderLine();
   const previousTemplate = headerLine.template;
   headerLine.executeToggle();
 
   Assert.ok(
     didRefreshAllLinesOnScreen,
     "Header line refreshes all lines on screen when expanded"
-  );
-  Assert.equal(
-    headerLine.toggleTooltip,
-    tooltip.expand,
-    "Header line toggles tooltip when expanded"
   );
   Assert.notEqual(
     previousTemplate,
