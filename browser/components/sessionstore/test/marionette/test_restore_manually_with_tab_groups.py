@@ -172,6 +172,77 @@ class TestSessionRestoreWithTabGroups(SessionStoreTestCase):
             """
         )
 
+    def test_open_groups_become_permanently_saved_after_two_quits_bug1954488(self):
+        self.wait_for_windows(
+            self.all_windows, "Not all requested windows have been opened"
+        )
+
+        self.marionette.execute_async_script(
+            """
+            let resolve = arguments[0];
+            gBrowser.addTabGroup([gBrowser.tabs[3], gBrowser.tabs[4]], { id: "save-through-restore-1", label: "open-1" });
+            gBrowser.addTabGroup([gBrowser.tabs[1], gBrowser.tabs[2]], { id: "save-through-restore-2", label: "open-2" });
+
+            let { TabStateFlusher } = ChromeUtils.importESModule("resource:///modules/sessionstore/TabStateFlusher.sys.mjs");
+            TabStateFlusher.flushWindow(gBrowser.ownerGlobal).then(resolve);
+        """
+        )
+
+        self.marionette.quit()
+        self.marionette.start_session()
+        self.marionette.set_context("chrome")
+
+        self.assertEqual(
+            self.marionette.execute_script(
+                """
+                return SessionStore.savedGroups.length;
+                """
+            ),
+            2,
+            "There are two saved groups",
+        )
+
+        win = self.marionette.current_chrome_window_handle
+        self.open_tabs(win, (inline("sit"), inline("amet")))
+
+        self.marionette.quit()
+        self.marionette.start_session()
+        self.marionette.set_context("chrome")
+
+        self.assertEqual(
+            self.marionette.execute_script(
+                """
+                return SessionStore.savedGroups.length;
+                """
+            ),
+            2,
+            "There are two saved groups",
+        )
+
+        self.marionette.execute_script(
+            """
+            SessionStore.restoreLastSession();
+        """
+        )
+        self.wait_for_tabcount(2, "Waiting for 2 tabs")
+
+        self.assertEqual(
+            self.marionette.execute_script(
+                """
+                return SessionStore.savedGroups.length;
+                """
+            ),
+            2,
+            "There are still two saved groups after the second quit",
+        )
+
+        self.marionette.execute_script(
+            """
+            SessionStore.forgetSavedTabGroup("save-through-restore-1");
+            SessionStore.forgetSavedTabGroup("save-through-restore-2");
+            """
+        )
+
     def wait_for_tabcount(self, expected_tabcount, message, timeout=5):
         current_tabcount = None
 
