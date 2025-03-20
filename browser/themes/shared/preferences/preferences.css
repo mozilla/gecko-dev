@@ -278,10 +278,10 @@ radio {
 }
 
 .extension-controlled-icon {
-  height: 20px;
+  height: var(--icon-size-medium);
   margin: 2px 0 6px;
   vertical-align: middle;
-  width: 20px;
+  width: var(--icon-size-medium);
   -moz-context-properties: fill;
   fill: currentColor;
 }
@@ -679,8 +679,8 @@ html|dialog,
   background-color: transparent; /* override common.css, but keep hover/active states */
   min-width: 0;
   min-height: auto;
-  width: 20px;
-  height: 20px;
+  width: var(--icon-size-medium);
+  height: var(--icon-size-medium);
   padding: 0;
   margin-inline: 0 8px;
 }
@@ -919,8 +919,8 @@ dialog > .sync-engines-list + hbox {
 .androidIcon,
 .iOSIcon {
   margin-inline: 2px 4px;
-  width: 20px;
-  height: 20px;
+  width: var(--icon-size-medium);
+  height: var(--icon-size-medium);
   vertical-align: text-bottom;
 }
 

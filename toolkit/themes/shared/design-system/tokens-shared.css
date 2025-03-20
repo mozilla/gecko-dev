@@ -157,7 +157,11 @@
     --icon-color-information: light-dark(var(--color-blue-50), var(--color-blue-30));
     --icon-color-success: light-dark(var(--color-green-50), var(--color-green-30));
     --icon-color-warning: light-dark(var(--color-yellow-50), var(--color-yellow-30));
-    --icon-size-default: var(--size-item-small);
+    --icon-size-default: var(--icon-size-small);
+    --icon-size-small: var(--size-item-small);
+    --icon-size-medium: 20px;
+    --icon-size-large: 24px;
+    --icon-size-xlarge: var(--size-item-large);
 
     /** Input - Text **/
     --input-text-min-height: var(--button-min-height);

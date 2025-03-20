@@ -759,7 +759,11 @@ export const storybookTables = {
     },
   ],
   "icon-size": [
-    { value: "var(--size-item-small)", name: "--icon-size-default" },
+    { value: "var(--icon-size-small)", name: "--icon-size-default" },
+    { value: "var(--size-item-small)", name: "--icon-size-small" },
+    { value: "20px", name: "--icon-size-medium" },
+    { value: "24px", name: "--icon-size-large" },
+    { value: "var(--size-item-large)", name: "--icon-size-xlarge" },
   ],
   "input-space": [
     { value: "var(--space-xsmall)", name: "--input-space-block" },
@@ -1306,7 +1310,11 @@ export const variableLookupTable = {
     prefersContrast: "var(--icon-color)",
     default: "light-dark(var(--color-red-50), var(--color-red-30))",
   },
-  "icon-size-default": "var(--size-item-small)",
+  "icon-size-default": "var(--icon-size-small)",
+  "icon-size-small": "var(--size-item-small)",
+  "icon-size-medium": "20px",
+  "icon-size-large": "24px",
+  "icon-size-xlarge": "var(--size-item-large)",
   "input-text-min-height": "var(--button-min-height)",
   "input-space-block": "var(--space-xsmall)",
   "link-color": {

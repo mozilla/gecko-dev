@@ -228,8 +228,8 @@ moz-button-group,
 
 .login-item-favicon {
   margin-inline-end: 12px;
-  height: 24px;
-  width: 24px;
+  height: var(--icon-size-large);
+  width: var(--icon-size-large);
   flex-shrink: 0;
   -moz-context-properties: fill, fill-opacity;
   fill: currentColor;
@@ -275,7 +275,7 @@ login-command-button {
   inset-inline-start: 32px;
   -moz-context-properties: fill;
   fill: currentColor;
-  width: 24px;
+  width: var(--icon-size-large);
 }
 
 .alert-learn-more-link:hover,

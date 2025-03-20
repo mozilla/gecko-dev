@@ -836,7 +836,19 @@
     },
     "size": {
       "default": {
+        "value": "{icon.size.small}"
+      },
+      "small": {
         "value": "{size.item.small}"
+      },
+      "medium": {
+        "value": "20px"
+      },
+      "large": {
+        "value": "24px"
+      },
+      "xlarge": {
+        "value": "{size.item.large}"
       }
     }
   },

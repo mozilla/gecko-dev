@@ -63,8 +63,8 @@
 .warning-icon {
   -moz-context-properties: fill;
   fill: currentColor;
-  width: 32px;
-  height: 32px;
+  width: var(--icon-size-xlarge);
+  height: var(--icon-size-xlarge);
   margin: 8px;
 }
 
