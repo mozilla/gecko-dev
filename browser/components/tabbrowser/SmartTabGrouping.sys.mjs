@@ -54,7 +54,7 @@ const EXPECTED_EMBEDDING_MODEL_OBJECTS = 4;
 
 export const DIM_REDUCTION_METHODS = {};
 const MISSING_ANCHOR_IN_CLUSTER_PENALTY = 0.2;
-const NEAREST_NEIGHBOR_DEFAULT_THRESHOLD = 0.2;
+const NEAREST_NEIGHBOR_DEFAULT_THRESHOLD = 0.21;
 const MAX_NN_GROUPED_TABS = 4;
 
 const DISSIMILAR_TAB_LABEL = "none";
@@ -141,7 +141,6 @@ export class SmartTabGroupingManager {
   async smartTabGroupingForGroup(group, tabs) {
     // Add tabs to suggested group
     const groupTabs = group.tabs;
-
     const uniqueSpecs = new Set();
     const allTabs = tabs.filter(tab => {
       // Don't include tabs already pinned
@@ -198,11 +197,12 @@ export class SmartTabGroupingManager {
       case SUGGEST_OTHER_TABS_METHODS.NEAREST_NEIGHBOR:
       default:
         // find nearest neighbors to current group
-        suggestedTabs = await this.findNearestNeighbors(
+        suggestedTabs = await this.findNearestNeighbors({
           allTabs,
-          groupIndices,
-          alreadyGroupedIndices
-        );
+          groupedIndices: groupIndices,
+          alreadyGroupedIndices,
+          groupLabel: group?.label,
+        });
     }
     return suggestedTabs;
   }
@@ -237,23 +237,32 @@ export class SmartTabGroupingManager {
    * @param {array} allTabs all tabs that are part of the window
    * @param {array} groupedIndices indices of tabs that are already part of the group
    * @param {array} alreadyGroupedIndices indices of tabs that are part of other groups
+   * @param {string} groupLabel name of group if present
    * @param {number} threshold for nearest neighbor similarity
    * @returns a list of suggested tabs that are similar to the groupedIndices tabs
    */
-  async findNearestNeighbors(
+  async findNearestNeighbors({
     allTabs,
     groupedIndices,
     alreadyGroupedIndices,
+    groupLabel = "",
     threshold = NEAREST_NEIGHBOR_DEFAULT_THRESHOLD,
     precomputedEmbeddings = [],
-    depth = 1
-  ) {
+    depth = 1,
+  }) {
     // get embeddings for all the tabs
     const tabData = await this._prepareTabData(allTabs);
     let embeddings = precomputedEmbeddings;
     if (precomputedEmbeddings.length === 0) {
       embeddings = await this._generateEmbeddings(
-        tabData.map(a => a[EMBED_TEXT_KEY])
+        tabData.map((td, index) => {
+          let text = td[EMBED_TEXT_KEY];
+          // augment with group name if it's present
+          if (groupLabel && groupedIndices.includes(index)) {
+            text = `${groupLabel.slice(0, 100)}. ${td[EMBED_TEXT_KEY]}`;
+          }
+          return text;
+        })
       );
     }
 
@@ -291,14 +300,15 @@ export class SmartTabGroupingManager {
     // recurse once if the initial call only had a single tab
     // and we found at least 1 similar tab - this improves recall
     if (groupedIndices.length === 1 && !!closestTabs.length && depth === 1) {
-      const recurseSimilarTabs = await this.findNearestNeighbors(
+      const recurseSimilarTabs = await this.findNearestNeighbors({
         allTabs,
-        similarTabsIndices,
-        alreadyGroupedIndices.concat(groupedIndices),
+        groupedIndices: similarTabsIndices,
+        alreadyGroupedIndices: alreadyGroupedIndices.concat(groupedIndices),
+        groupLabel,
         threshold,
-        embeddings,
-        depth - 1
-      );
+        precomputedEmbeddings: embeddings,
+        depth: depth - 1,
+      });
       closestTabs = closestTabs.concat(recurseSimilarTabs);
     }
     return closestTabs;

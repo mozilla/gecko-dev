@@ -109,31 +109,39 @@ add_task(async function test_clustering() {
   let labels = parseTsvStructured(rawLabels);
   labels = labels.map(l => ({ ...l, label: l.smart_group_label }));
   const startTime = performance.now();
-  const similarTabs = await stgManager.findNearestNeighbors(
-    labels,
-    [1],
-    [],
-    0.3
-  );
+  const similarTabs = await stgManager.findNearestNeighbors({
+    allTabs: labels,
+    groupedIndices: [1],
+    alreadyGroupedIndices: [],
+    groupLabel: "Travel Planning",
+    threshold: 0.3,
+  });
   const endTime = performance.now();
   singleTabMetrics["SINGLE-TAB-LATENCY"].push(endTime - startTime);
   const titles = similarTabs.map(s => s.label);
   Assert.equal(
     titles.length,
-    5,
+    6,
     "Proper number of similar tabs should be returned"
   );
   Assert.equal(
     titles[0],
-    "Impact of Tourism on Local Communities - Google Scholar"
+    "Tourist Behavior and Decision Making: A Research Overview"
   );
   Assert.equal(
     titles[1],
-    "Tourist Behavior and Decision Making: A Research Overview"
+    "Impact of Tourism on Local Communities - Google Scholar"
   );
-  Assert.equal(titles[2], "Global Health Outlook - Reuters");
-  Assert.equal(titles[3], "Climate Change Impact 2022 - Google Scholar");
+  Assert.equal(titles[2], "Cheap Flights, Airline Tickets & Airfare Deals");
+  Assert.equal(
+    titles[3],
+    "The Influence of Travel Restrictions on the Spread of COVID-19 - Nature"
+  );
   Assert.equal(titles[4], "Hotel Deals: Save Big on Hotels with Expedia");
+  Assert.equal(
+    titles[5],
+    "Mental Health Trends During COVID-19 - ScienceDirect"
+  );
   reportMetrics(singleTabMetrics);
   generateEmbeddingsStub.restore();
   await EngineProcess.destroyMLEngine();
@@ -188,7 +196,11 @@ add_task(async function test_n_clustering() {
             []
           );
         } else if (method === "NEAREST_NEIGHBORS_ANCHOR") {
-          await stgManager.findNearestNeighbors(samples.labels, [0], []);
+          await stgManager.findNearestNeighbors({
+            allTabs: samples.labels,
+            groupedIndices: [0],
+            alreadyGroupedIndices: [],
+          });
         }
         let endTime = performance.now();
         const key = `${method}-${n}-TABS-latency`;
