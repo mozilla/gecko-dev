@@ -13,8 +13,7 @@ import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.TabsTray
 import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
-import org.mozilla.fenix.home.HomeScreenViewModel.Companion.ALL_NORMAL_TABS
-import org.mozilla.fenix.home.HomeScreenViewModel.Companion.ALL_PRIVATE_TABS
+import org.mozilla.fenix.home.HomeFragment
 import org.mozilla.fenix.tabstray.ext.isActiveDownload
 
 /**
@@ -122,9 +121,9 @@ class DefaultNavigationInteractor(
 
     private fun closeAllTabs(private: Boolean, isConfirmed: Boolean) {
         val sessionsToClose = if (private) {
-            ALL_PRIVATE_TABS
+            HomeFragment.ALL_PRIVATE_TABS
         } else {
-            ALL_NORMAL_TABS
+            HomeFragment.ALL_NORMAL_TABS
         }
 
         if (private && !isConfirmed) {
