@@ -201,10 +201,12 @@ class WeakMapBase : public mozilla::LinkedListElement<WeakMapBase> {
 
 template <class Key, class Value>
 class WeakMap
-    : private HashMap<Key, Value, StableCellHasher<Key>, ZoneAllocPolicy>,
+    : private HashMap<HeapPtr<Key>, HeapPtr<Value>,
+                      StableCellHasher<HeapPtr<Key>>, ZoneAllocPolicy>,
       public WeakMapBase {
  public:
-  using Base = HashMap<Key, Value, StableCellHasher<Key>, ZoneAllocPolicy>;
+  using Base = HashMap<HeapPtr<Key>, HeapPtr<Value>,
+                       StableCellHasher<HeapPtr<Key>>, ZoneAllocPolicy>;
 
   using Lookup = typename Base::Lookup;
   using Entry = typename Base::Entry;
@@ -226,8 +228,8 @@ class WeakMap
   // Resolve ambiguity with LinkedListElement<>::remove.
   using Base::remove;
 
-  using UnbarrieredKey = typename RemoveBarrier<Key>::Type;
-  using UnbarrieredValue = typename RemoveBarrier<Value>::Type;
+  using BarrieredKey = HeapPtr<Key>;
+  using BarrieredValue = HeapPtr<Value>;
 
   explicit WeakMap(JSContext* cx, JSObject* memOf = nullptr);
   explicit WeakMap(JS::Zone* zone, JSObject* memOf = nullptr);
@@ -235,10 +237,10 @@ class WeakMap
 
   // Get the value associated with a key, or a default constructed Value if the
   // key is not present in the map.
-  UnbarrieredValue get(const Lookup& l) {
+  Value get(const Lookup& l) {
     Ptr ptr = lookup(l);
     if (!ptr) {
-      return UnbarrieredValue();
+      return Value();
     }
     return ptr->value();
   }
@@ -313,15 +315,15 @@ class WeakMap
   }
 #endif
 
-  bool markEntry(GCMarker* marker, gc::CellColor mapColor, Key& key,
-                 Value& value, bool populateWeakKeysTable);
+  bool markEntry(GCMarker* marker, gc::CellColor mapColor, BarrieredKey& key,
+                 BarrieredValue& value, bool populateWeakKeysTable);
 
   void trace(JSTracer* trc) override;
 
   size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
 
  protected:
-  inline void assertMapIsSameZoneWithValue(const Value& v);
+  inline void assertMapIsSameZoneWithValue(const BarrieredValue& v);
 
   bool markEntries(GCMarker* marker) override;
 
@@ -377,11 +379,11 @@ class WeakMap
   void traceMappings(WeakMapTracer* tracer) override;
 };
 
-using ObjectValueWeakMap = WeakMap<HeapPtr<JSObject*>, HeapPtr<Value>>;
-using ValueValueWeakMap = WeakMap<HeapPtr<Value>, HeapPtr<Value>>;
+using ObjectValueWeakMap = WeakMap<JSObject*, Value>;
+using ValueValueWeakMap = WeakMap<Value, Value>;
 
 // Generic weak map for mapping objects to other objects.
-using ObjectWeakMap = WeakMap<HeapPtr<JSObject*>, HeapPtr<JSObject*>>;
+using ObjectWeakMap = WeakMap<JSObject*, JSObject*>;
 
 // Get the hash from the Symbol.
 HashNumber GetSymbolHash(JS::Symbol* sym);

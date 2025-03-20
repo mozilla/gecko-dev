@@ -99,7 +99,7 @@ inline bool IsSymbol(const HeapPtr<JS::Value>& key) {
 // collecting but the value zone is, and incorrectly free a value that is
 // reachable solely through weakmaps.
 template <class K, class V>
-void WeakMap<K, V>::assertMapIsSameZoneWithValue(const V& v) {
+void WeakMap<K, V>::assertMapIsSameZoneWithValue(const BarrieredValue& v) {
 #ifdef DEBUG
   gc::Cell* cell = gc::ToMarkable(v);
   if (cell) {
@@ -116,14 +116,15 @@ WeakMap<K, V>::WeakMap(JSContext* cx, JSObject* memOf)
 template <class K, class V>
 WeakMap<K, V>::WeakMap(JS::Zone* zone, JSObject* memOf)
     : Base(zone), WeakMapBase(memOf, zone) {
-  using ElemType = typename K::ElementType;
+  static_assert(std::is_same_v<typename RemoveBarrier<K>::Type, K>);
+  static_assert(std::is_same_v<typename RemoveBarrier<V>::Type, V>);
 
   // The object's TraceKind needs to be added to CC graph if this object is
   // used as a WeakMap key, otherwise the key is considered to be pointed from
   // somewhere unknown, and results in leaking the subgraph which contains the
   // key. See the comments in NoteWeakMapsTracer::trace for more details.
-  if constexpr (std::is_pointer_v<ElemType>) {
-    using NonPtrType = std::remove_pointer_t<ElemType>;
+  if constexpr (std::is_pointer_v<K>) {
+    using NonPtrType = std::remove_pointer_t<K>;
     static_assert(JS::IsCCTraceKind(NonPtrType::TraceKind),
                   "Object's TraceKind should be added to CC graph.");
   }
@@ -149,8 +150,9 @@ WeakMap<K, V>::~WeakMap() {
 // delegates) where future changes to their mark color would require marking the
 // value (or the key).
 template <class K, class V>
-bool WeakMap<K, V>::markEntry(GCMarker* marker, gc::CellColor mapColor, K& key,
-                              V& value, bool populateWeakKeysTable) {
+bool WeakMap<K, V>::markEntry(GCMarker* marker, gc::CellColor mapColor,
+                              BarrieredKey& key, BarrieredValue& value,
+                              bool populateWeakKeysTable) {
 #ifdef DEBUG
   MOZ_ASSERT(IsMarked(mapColor));
   if (marker->isParallelMarking()) {
@@ -388,7 +390,7 @@ size_t WeakMap<K, V>::sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) {
 template <class K, class V>
 void WeakMap<K, V>::assertEntriesNotAboutToBeFinalized() {
   for (Range r = Base::all(); !r.empty(); r.popFront()) {
-    UnbarrieredKey k = r.front().key();
+    K k = r.front().key();
     MOZ_ASSERT(!gc::IsAboutToBeFinalizedUnbarriered(k));
     JSObject* delegate = gc::detail::GetDelegate(k);
     if (delegate) {
