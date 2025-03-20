@@ -113,6 +113,24 @@ const TEST_DATA = [
     expected: "a:b; c: d;span { e:f; }",
   },
   {
+    desc: "create at the end of rule with nested rule and line breaks",
+    input: `
+      position: absolute;
+      &.class {}`,
+    instruction: {
+      type: "create",
+      name: "color",
+      value: "red",
+      priority: "",
+      index: 1,
+      enabled: true,
+    },
+    expected: `
+      position: absolute;
+      color: red;
+      &.class {}`,
+  },
+  {
     desc: "create at the end of rule with CSSNestedDeclarations",
     input: "a:b; span { e:f; } g: h;",
     instruction: {

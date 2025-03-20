@@ -121,3 +121,76 @@ add_task(async function () {
     "We still have the same number of text properties."
   );
 });
+
+add_task(async function addDeclarationInRuleWithNestedRule() {
+  await addTab(
+    "data:text/html;charset=utf-8," +
+      encodeURIComponent(`
+    <style>
+      h1 {
+        position: absolute;
+        &.myClass {
+          outline-color: hotpink;
+        }
+      }
+    </style>
+    <h1 class=myClass>Hello</h1>
+  `)
+  );
+  const { inspector, view } = await openRuleView();
+  await selectNode("h1", inspector);
+
+  info("Focus the new property name field in h1 rule");
+  const ruleEditor = getRuleViewRuleEditor(view, 2);
+  let editor = await focusNewRuleViewProperty(ruleEditor);
+
+  is(
+    inplaceEditor(ruleEditor.newPropSpan),
+    editor,
+    "Next focused editor should be the new property editor."
+  );
+
+  info("Entering the property name");
+  editor.input.value = "color";
+
+  info("Pressing RETURN and waiting for the value field focus");
+  const onNameAdded = view.once("ruleview-changed");
+  EventUtils.synthesizeKey("VK_RETURN", {}, view.styleWindow);
+
+  await onNameAdded;
+
+  editor = inplaceEditor(view.styleDocument.activeElement);
+
+  const textProp = ruleEditor.rule.textProps[1];
+  is(
+    editor,
+    inplaceEditor(textProp.editor.valueSpan),
+    "Should be editing the value span now."
+  );
+
+  info("Entering the property value");
+  const onValueAdded = view.once("ruleview-changed");
+  editor.input.value = "gold";
+  EventUtils.synthesizeKey("VK_RETURN", {}, view.styleWindow);
+  await onValueAdded;
+
+  is(textProp.value, "gold", "Text prop should have been changed.");
+
+  const goldRgb = InspectorUtils.colorToRGBA("gold");
+  is(
+    await getComputedStyleProperty("h1", null, "color"),
+    `rgb(${goldRgb.r}, ${goldRgb.g}, ${goldRgb.b})`,
+    "color was properly applied on element"
+  );
+  is(
+    await getComputedStyleProperty("h1", null, "position"),
+    "absolute",
+    `The "position" declaration from the top level rule was preserved`
+  );
+  const hotpinkRgb = InspectorUtils.colorToRGBA("hotpink");
+  is(
+    await getComputedStyleProperty("h1", null, "outline-color"),
+    `rgb(${hotpinkRgb.r}, ${hotpinkRgb.g}, ${hotpinkRgb.b})`,
+    `The "outline-color" declaration from the nested rule was preserved`
+  );
+});
