@@ -36,7 +36,7 @@ export function fetchScopes() {
         // Avoid generating previews, if we resumed or switched to another frame while retrieving scopes
         validateSelectedFrame(getState(), selectedFrame);
 
-        dispatch(generateInlinePreview());
+        dispatch(generateInlinePreview(selectedFrame));
       });
     }
 

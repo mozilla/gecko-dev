@@ -3,17 +3,13 @@
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 import {
-  getOriginalFrameScope,
-  getGeneratedFrameScope,
   getSelectedFrameInlinePreviews,
   getSelectedLocation,
-  getSelectedFrame,
+  getSelectedScope,
 } from "../../selectors/index";
 import { features } from "../../utils/prefs";
 import { validateSelectedFrame } from "../../utils/context";
 
-// We need to display all variables in the current functional scope so
-// include all data for block scopes until the first functional scope
 /**
  * Determing the number of levels to go in the scope tree
  * We need to display all variables in the current function scope so
@@ -35,7 +31,7 @@ function getScopeLevels(scope) {
 /**
  * Update the inline previews for the currently selected frame.
  */
-export function generateInlinePreview() {
+export function generateInlinePreview(selectedFrame) {
   return async function ({ dispatch, getState, parserWorker, client }) {
     if (!features.inlinePreview) {
       return null;
@@ -45,20 +41,7 @@ export function generateInlinePreview() {
     if (getSelectedFrameInlinePreviews(getState())) {
       return null;
     }
-
-    const selectedFrame = getSelectedFrame(getState());
-
-    const originalFrameScopes = getOriginalFrameScope(
-      getState(),
-      selectedFrame
-    );
-
-    const generatedFrameScopes = getGeneratedFrameScope(
-      getState(),
-      selectedFrame
-    );
-
-    let scopes = originalFrameScopes?.scope || generatedFrameScopes?.scope;
+    let scopes = getSelectedScope(getState());
 
     if (!scopes || !scopes.bindings) {
       return null;
@@ -76,6 +59,7 @@ export function generateInlinePreview() {
     }
 
     const originalAstScopes = await parserWorker.getScopes(selectedLocation);
+
     // Bailout if we resumed or moved to another frame while computing the scope
     validateSelectedFrame(getState(), selectedFrame);
 

@@ -592,7 +592,7 @@ async function waitForPaused(
 
   await waitForState(
     dbg,
-    () => isPaused(dbg) && !!getSelectedScope(getCurrentThread()),
+    () => isPaused(dbg) && !!getSelectedScope(),
     "paused"
   );
 
