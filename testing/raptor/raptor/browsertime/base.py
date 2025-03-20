@@ -10,9 +10,11 @@ import pathlib
 import re
 import signal
 import sys
+import tempfile
 from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 
+import mozcrash
 import mozprocess
 import six
 from benchmark import Benchmark
@@ -45,6 +47,7 @@ class Browsertime(Perftest):
         self.browsertime = True
         self.browsertime_failure = ""
         self.browsertime_user_args = []
+        self._crash_directory = None
 
         for key in list(kwargs):
             if key.startswith("browsertime_"):
@@ -91,6 +94,13 @@ class Browsertime(Perftest):
                 LOG.info("{}: {}".format(k, os.stat(getattr(self, k))))
             except Exception as e:
                 LOG.info("{}: {}".format(k, e))
+
+    @property
+    def crash_directory(self):
+        if not self._crash_directory:
+            self._crash_directory = tempfile.mkdtemp()
+            self._dirs_to_remove.append(self._crash_directory)
+        return self._crash_directory
 
     def build_browser_profile(self):
         super(Browsertime, self).build_browser_profile()
@@ -262,6 +272,9 @@ class Browsertime(Perftest):
 
     def check_for_crashes(self):
         super(Browsertime, self).check_for_crashes()
+        self.crashes += mozcrash.log_crashes(
+            LOG, self.crash_directory, self.config["symbols_path"]
+        )
 
     def clean_up(self):
         super(Browsertime, self).clean_up()
@@ -966,6 +979,7 @@ class Browsertime(Perftest):
         # It's easier to configure the PATH here than at the TC level.
         env = dict(os.environ)
         env["PYTHON"] = sys.executable
+        env["MINIDUMP_SAVE_PATH"] = str(self.crash_directory)
         if self.browsertime_video and self.browsertime_ffmpeg:
             ffmpeg_dir = os.path.dirname(os.path.abspath(self.browsertime_ffmpeg))
             old_path = env.setdefault("PATH", "")

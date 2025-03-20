@@ -5,10 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
-import shutil
-import tempfile
 
-import mozcrash
 from cmdline import CHROME_ANDROID_APPS, FIREFOX_ANDROID_APPS
 from logger.logger import RaptorLogger
 from mozdevice import ADBDeviceFactory
@@ -235,30 +232,6 @@ class BrowsertimeAndroid(PerftestAndroid, Browsertime):
         # make sure no remote profile exists
         if self.device.exists(self.geckodriver_profile):
             self.device.rm(self.geckodriver_profile, force=True, recursive=True)
-
-    def check_for_crashes(self):
-        super(BrowsertimeAndroid, self).check_for_crashes()
-
-        try:
-            dump_dir = tempfile.mkdtemp()
-            remote_dir = os.path.join(self.geckodriver_profile, "minidumps")
-            if not self.device.is_dir(remote_dir):
-                return
-            self.device.pull(remote_dir, dump_dir)
-            self.crashes += mozcrash.log_crashes(
-                LOG, dump_dir, self.config["symbols_path"]
-            )
-        except Exception as e:
-            LOG.error(
-                "Could not pull the crash data!",
-                exc_info=True,
-            )
-            raise e
-        finally:
-            try:
-                shutil.rmtree(dump_dir)
-            except Exception:
-                LOG.warning("unable to remove directory: %s" % dump_dir)
 
     def run_test_setup(self, test):
         super(BrowsertimeAndroid, self).run_test_setup(test)
