@@ -212,7 +212,9 @@ static srtp_err_status_t srtp_aes_gcm_nss_context_init(void *cv,
         return (srtp_err_status_cipher_fail);
     }
 
-    SECItem key_item = { siBuffer, (unsigned char *)key, c->key_size };
+    /* explicitly cast away const of key */
+    SECItem key_item = { siBuffer, (unsigned char *)(uintptr_t)key,
+                         c->key_size };
     c->key = PK11_ImportSymKey(slot, CKM_AES_GCM, PK11_OriginUnwrap,
                                CKA_ENCRYPT, &key_item, NULL);
     PK11_FreeSlot(slot);

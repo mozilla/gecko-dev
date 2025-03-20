@@ -1,5 +1,5 @@
 [![CMake Build](https://github.com/cisco/libsrtp/actions/workflows/cmake.yml/badge.svg)](https://github.com/cisco/libsrtp/actions/workflows/cmake.yml)
-[![Build Status](https://travis-ci.org/cisco/libsrtp.svg?branch=master)](https://travis-ci.org/cisco/libsrtp)
+[![Autotools Build](https://github.com/cisco/libsrtp/actions/workflows/autotools.yml/badge.svg)](https://github.com/cisco/libsrtp/actions/workflows/autotools.yml)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/14274/badge.svg)](https://scan.coverity.com/projects/cisco-libsrtp)
 [![OSS-Fuzz Status](https://oss-fuzz-build-logs.storage.googleapis.com/badges/systemd.svg)](https://oss-fuzz-build-logs.storage.googleapis.com/index.html#libsrtp)
 
@@ -212,18 +212,28 @@ supported. This includes
 - the cipher F8,
 - the use of the packet index to select between master keys.
 
-The user should be aware that it is possible to misuse this libary,
+The user should be aware that it is possible to misuse this library,
 and that the result may be that the security level it provides is
 inadequate. If you are implementing a feature using this library, you
 will want to read the Security Considerations section of [RFC 3711](https://tools.ietf.org/html/rfc3711#section-9).
 In addition, it is important that you read and understand the
 terms outlined in the [License and Disclaimer](#license-and-disclaimer) section.
 
+This library also supports the AES-GCM Authenticated Encryption methods
+described in [RFC 7714](https://tools.ietf.org/html/rfc7714)
+
 --------------------------------------------------------------------------------
 
 <a name="implementation-notes"></a>
 ## Implementation Notes
 
+  * It is possible to configure which 3rd party (ie openssl/nss/etc) crypto backend
+    libSRTP will be built with. If no 3rd party backend is set then libSRTP provides
+    an internal implementation of AES and Sha1. The internal implementation only
+    supports AES-128 & AES-256, so to use AES-192 or the AES-GCM group of ciphers a
+    3rd party crypto backend must be configured. For this and performance reasons it
+    is highly recommended to use a 3rd party crypto backend.
+  
   * The `srtp_protect()` function assumes that the buffer holding the
     rtp packet has enough storage allocated that the authentication
     tag can be written to the end of that packet. If this assumption
@@ -282,11 +292,13 @@ Option                         | Description
 -------------------------------|--------------------
 \-\-help                   \-h | Display help
 \-\-enable-debug-logging       | Enable debug logging in all modules
-\-\-enable-log-stdout          | Enable logging to stdout
 \-\-enable-openssl             | Enable OpenSSL crypto engine
+\-\-enable-nss                 | Enable NSS crypto engine
 \-\-enable-openssl-kdf         | Enable OpenSSL KDF algorithm
-\-\-with-log-file              | Use file for logging
+\-\-enable-log-stdout          | Enable logging to stdout
 \-\-with-openssl-dir           | Location of OpenSSL installation
+\-\-with-nss-dir               | Location of NSS installation
+\-\-with-log-file              | Use file for logging
 
 By default there is no log output, logging can be enabled to be output to stdout
 or a given file using the configure options.
@@ -340,7 +352,7 @@ cmake .. -G "Visual Studio 15 2017 Win64"
 <a name="using-meson"></a>
 ## Using Meson
 
-On all platforms including Windows, one can build using [Meson](https://mesonbuild.org).
+On all platforms including Windows, one can build using [Meson](https://mesonbuild.com).
 Steps to download Meson are here: https://mesonbuild.com/Getting-meson.html
 
 To build with Meson, you can do something like:
