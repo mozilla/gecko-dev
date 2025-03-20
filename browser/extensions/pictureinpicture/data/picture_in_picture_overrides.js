@@ -212,6 +212,12 @@ let AVAILABLE_PIP_OVERRIDES;
       },
     },
 
+    kick: {
+      "https://*.kick.com/*": {
+        visibilityThreshold: 0.7,
+      },
+    },
+
     laracasts: {
       "https://*.laracasts.com/*": { policy: TOGGLE_POLICIES.ONE_QUARTER },
     },
