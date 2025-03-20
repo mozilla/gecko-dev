@@ -34,7 +34,6 @@ class DownloadUIStateTest {
             items = fileItems,
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = setOf("2", "4"),
-            isDeletingItems = false,
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
         )
 
@@ -88,7 +87,6 @@ class DownloadUIStateTest {
             items = fileItems,
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = setOf("7"),
-            isDeletingItems = false,
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
         )
 
@@ -175,7 +173,6 @@ class DownloadUIStateTest {
             items = fileItems,
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            isDeletingItems = false,
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.Image,
         )
 
@@ -233,7 +230,6 @@ class DownloadUIStateTest {
             items = fileItems,
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            isDeletingItems = false,
             filtersFeatureFlag = true,
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
         )
@@ -266,7 +262,6 @@ class DownloadUIStateTest {
             items = fileItems,
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            isDeletingItems = false,
             filtersFeatureFlag = true,
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
         )
@@ -300,7 +295,6 @@ class DownloadUIStateTest {
             items = fileItems,
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            isDeletingItems = false,
             filtersFeatureFlag = false,
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
         )
@@ -334,7 +328,6 @@ class DownloadUIStateTest {
             items = fileItems,
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            isDeletingItems = false,
             filtersFeatureFlag = false,
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.Image,
         )

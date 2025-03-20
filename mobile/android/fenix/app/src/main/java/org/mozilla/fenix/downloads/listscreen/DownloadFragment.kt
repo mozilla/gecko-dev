@@ -226,13 +226,11 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler, MenuProvider
     ): (suspend (context: Context) -> Unit) {
         return { context ->
             CoroutineScope(IO).launch {
-                downloadStore.dispatch(DownloadUIAction.EnterDeletionMode)
                 context.let {
                     for (item in items) {
                         it.components.useCases.downloadUseCases.removeDownload(item.id)
                     }
                 }
-                downloadStore.dispatch(DownloadUIAction.ExitDeletionMode)
             }
         }
     }

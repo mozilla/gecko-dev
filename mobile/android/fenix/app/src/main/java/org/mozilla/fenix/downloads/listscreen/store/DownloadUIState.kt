@@ -13,7 +13,6 @@ import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState.Mode
  * @property items List of [FileItem] to display.
  * @property mode Current [Mode] of the Download screen.
  * @property pendingDeletionIds Set of [FileItem] IDs that are waiting to be deleted.
- * @property isDeletingItems Whether or not download items are being deleted.
  * @param filtersFeatureFlag Feature flag with a short lifespan to disable content type filters till the UI is ready.
  * @param userSelectedContentTypeFilter The user selected [FileItem.ContentTypeFilter].
  */
@@ -21,7 +20,6 @@ data class DownloadUIState(
     val items: List<FileItem>,
     val mode: Mode,
     val pendingDeletionIds: Set<String>,
-    val isDeletingItems: Boolean,
     private val filtersFeatureFlag: Boolean = true,
     private val userSelectedContentTypeFilter: FileItem.ContentTypeFilter = FileItem.ContentTypeFilter.All,
 ) : State {
@@ -91,7 +89,6 @@ data class DownloadUIState(
             items = emptyList(),
             mode = Mode.Normal,
             pendingDeletionIds = emptySet(),
-            isDeletingItems = false,
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
         )
     }

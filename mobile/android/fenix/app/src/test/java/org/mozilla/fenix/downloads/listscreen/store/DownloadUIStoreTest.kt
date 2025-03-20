@@ -70,7 +70,6 @@ class DownloadUIStoreTest {
             items = listOf(fileItem, newFileItem),
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            isDeletingItems = false,
         )
         val store = DownloadUIStore(initialState)
 
@@ -80,7 +79,6 @@ class DownloadUIStoreTest {
             items = listOf(fileItem, newFileItem),
             mode = DownloadUIState.Mode.Editing(setOf(fileItem, newFileItem)),
             pendingDeletionIds = emptySet(),
-            isDeletingItems = false,
         )
 
         assertEquals(expected, store.state)
@@ -100,20 +98,17 @@ class DownloadUIStoreTest {
         items = listOf(),
         mode = DownloadUIState.Mode.Normal,
         pendingDeletionIds = emptySet(),
-        isDeletingItems = false,
     )
 
     private fun oneItemEditState(): DownloadUIState = DownloadUIState(
         items = listOf(),
         mode = DownloadUIState.Mode.Editing(setOf(fileItem)),
         pendingDeletionIds = emptySet(),
-        isDeletingItems = false,
     )
 
     private fun twoItemEditState(): DownloadUIState = DownloadUIState(
         items = listOf(),
         mode = DownloadUIState.Mode.Editing(setOf(fileItem, newFileItem)),
         pendingDeletionIds = emptySet(),
-        isDeletingItems = false,
     )
 }

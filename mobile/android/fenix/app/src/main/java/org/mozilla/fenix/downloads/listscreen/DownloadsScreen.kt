@@ -395,7 +395,6 @@ private class DownloadsScreenPreviewModelParameterProvider :
                 ),
                 mode = DownloadUIState.Mode.Normal,
                 pendingDeletionIds = emptySet(),
-                isDeletingItems = false,
                 userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
             ),
         )

@@ -53,8 +53,6 @@ private fun downloadStateReducer(
         }
 
         is DownloadUIAction.ExitEditMode -> state.copy(mode = Mode.Normal)
-        is DownloadUIAction.EnterDeletionMode -> state.copy(isDeletingItems = true)
-        is DownloadUIAction.ExitDeletionMode -> state.copy(isDeletingItems = false)
         is DownloadUIAction.AddPendingDeletionSet ->
             state.copy(
                 pendingDeletionIds = state.pendingDeletionIds + action.itemIds,

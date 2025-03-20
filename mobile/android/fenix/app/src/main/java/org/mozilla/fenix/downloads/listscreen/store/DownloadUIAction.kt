@@ -46,16 +46,6 @@ sealed interface DownloadUIAction : Action {
     data class UndoPendingDeletionSet(val itemIds: Set<String>) : DownloadUIAction
 
     /**
-     * [DownloadUIAction] to enter deletion mode.
-     */
-    data object EnterDeletionMode : DownloadUIAction
-
-    /**
-     * [DownloadUIAction] to exit deletion mode.
-     */
-    data object ExitDeletionMode : DownloadUIAction
-
-    /**
      * [DownloadUIAction] to update the list of [FileItem]s.
      */
     data class UpdateFileItems(val items: List<FileItem>) : DownloadUIAction
