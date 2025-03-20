@@ -1569,7 +1569,6 @@ class JSAtom : public JSLinearString {
   }
 
   inline js::HashNumber hash() const;
-  inline void initHash(js::HashNumber hash);
 
   template <typename CharT>
   static bool lengthFitsInline(size_t length);
@@ -1601,7 +1600,6 @@ class NormalAtom : public JSAtom {
 
  public:
   HashNumber hash() const { return hash_; }
-  void initHash(HashNumber hash) { hash_ = hash; }
 
   static constexpr size_t offsetOfHash() { return offsetof(NormalAtom, hash_); }
 };
@@ -1680,7 +1678,6 @@ class FatInlineAtom : public JSAtom {
 
  public:
   HashNumber hash() const { return hash_; }
-  void initHash(HashNumber hash) { hash_ = hash; }
 
   inline void finalize(JS::GCContext* gcx);
 
@@ -1762,13 +1759,6 @@ inline js::HashNumber JSAtom::hash() const {
     return static_cast<const js::FatInlineAtom*>(this)->hash();
   }
   return static_cast<const js::NormalAtom*>(this)->hash();
-}
-
-inline void JSAtom::initHash(js::HashNumber hash) {
-  if (isFatInline()) {
-    return static_cast<js::FatInlineAtom*>(this)->initHash(hash);
-  }
-  return static_cast<js::NormalAtom*>(this)->initHash(hash);
 }
 
 namespace js {
