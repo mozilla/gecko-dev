@@ -10,9 +10,7 @@ let resetTelemetry = async () => {
 add_task(async function test_tabGroupTelemetry() {
   await resetTelemetry();
 
-  let tabGroupCreateTelemetry,
-    tabGroupModifyTelemetry,
-    tabGroupCollapseTelemetry;
+  let tabGroupCreateTelemetry;
 
   let group1tab = BrowserTestUtils.addTab(gBrowser, "https://example.com");
   await BrowserTestUtils.browserLoaded(group1tab.linkedBrowser);
@@ -24,15 +22,13 @@ add_task(async function test_tabGroupTelemetry() {
   gBrowser.tabGroupMenu.close();
 
   await BrowserTestUtils.waitForCondition(() => {
-    tabGroupCreateTelemetry =
-      Glean.browserEngagement.tabGroupCreate.testGetValue();
-    tabGroupModifyTelemetry =
-      Glean.browserEngagement.tabGroupModify.testGetValue();
+    tabGroupCreateTelemetry = Glean.tabgroup.createGroup.testGetValue();
     return (
       tabGroupCreateTelemetry?.length == 1 &&
-      tabGroupModifyTelemetry?.length == 1
+      Glean.tabgroup.tabCountInGroups.inside.testGetValue() !== null &&
+      Glean.tabgroup.tabsPerActiveGroup.average.testGetValue() !== null
     );
-  }, "Wait for tabGroupCreate and tabGroupModify events after creating a single tab group");
+  }, "Wait for createGroup and at least one metric from the tabCountInGroups and tabsPerActiveGroup to be set");
 
   Assert.deepEqual(
     tabGroupCreateTelemetry[0].extra,
@@ -44,17 +40,36 @@ add_task(async function test_tabGroupTelemetry() {
     },
     "tabGroupCreate event extra_keys has correct values after tab group create"
   );
-  Assert.deepEqual(
-    tabGroupModifyTelemetry[0].extra,
-    {
-      tabs_per_active_group_min: "1",
-      tabs_per_active_group_max: "1",
-      tabs_inside_groups: "1",
-      tabs_per_active_group_median: "1",
-      tabs_outside_groups: "1",
-      tabs_per_active_group_average: "1",
-    },
-    "tabGroupModify event extra_keys has correct values after tab group create"
+
+  Assert.equal(
+    Glean.tabgroup.tabCountInGroups.inside.testGetValue(),
+    1,
+    "tabCountInGroups.inside has correct value"
+  );
+  Assert.equal(
+    Glean.tabgroup.tabCountInGroups.outside.testGetValue(),
+    1,
+    "tabCountInGroups.outside has correct value"
+  );
+  Assert.equal(
+    Glean.tabgroup.tabsPerActiveGroup.median.testGetValue(),
+    1,
+    "tabsPerActiveGroup.median has correct value"
+  );
+  Assert.equal(
+    Glean.tabgroup.tabsPerActiveGroup.average.testGetValue(),
+    1,
+    "tabsPerActiveGroup.average has correct value"
+  );
+  Assert.equal(
+    Glean.tabgroup.tabsPerActiveGroup.max.testGetValue(),
+    1,
+    "tabsPerActiveGroup.max has correct value"
+  );
+  Assert.equal(
+    Glean.tabgroup.tabsPerActiveGroup.min.testGetValue(),
+    1,
+    "tabsPerActiveGroup.min has correct value"
   );
 
   await resetTelemetry();
@@ -75,23 +90,43 @@ add_task(async function test_tabGroupTelemetry() {
   gBrowser.tabGroupMenu.close();
 
   await BrowserTestUtils.waitForCondition(() => {
-    tabGroupModifyTelemetry =
-      Glean.browserEngagement.tabGroupModify.testGetValue();
-    return tabGroupModifyTelemetry?.length == 1;
-  }, "Wait for tabGroupModify event after adding a new tab group");
+    return (
+      Glean.tabgroup.tabCountInGroups.inside.testGetValue() !== null &&
+      Glean.tabgroup.tabsPerActiveGroup.average.testGetValue() !== null
+    );
+  }, "Wait for at least one metric from the tabCountInGroups and tabsPerActiveGroup to be set after adding a new tab group");
 
-  Assert.deepEqual(
-    tabGroupModifyTelemetry[0].extra,
-    {
-      tabs_per_active_group_max: "3",
-      tabs_per_active_group_min: "1",
-      tabs_per_active_group_median: "2",
-      tabs_per_active_group_average: "2",
-      tabs_inside_groups: "4",
-      tabs_outside_groups: "1",
-    },
-    "tabGroupModify event extra_keys has correct values after adding a new tab group"
+  Assert.equal(
+    Glean.tabgroup.tabCountInGroups.inside.testGetValue(),
+    4,
+    "tabCountInGroups.inside has correct value after adding a new tab group"
   );
+  Assert.equal(
+    Glean.tabgroup.tabCountInGroups.outside.testGetValue(),
+    1,
+    "tabCountInGroups.outside has correct value after adding a new tab group"
+  );
+  Assert.equal(
+    Glean.tabgroup.tabsPerActiveGroup.median.testGetValue(),
+    2,
+    "tabsPerActiveGroup.median has correct value after adding a new tab group"
+  );
+  Assert.equal(
+    Glean.tabgroup.tabsPerActiveGroup.average.testGetValue(),
+    2,
+    "tabsPerActiveGroup.average has correct value after adding a new tab group"
+  );
+  Assert.equal(
+    Glean.tabgroup.tabsPerActiveGroup.max.testGetValue(),
+    3,
+    "tabsPerActiveGroup.max has correct value after adding a new tab group"
+  );
+  Assert.equal(
+    Glean.tabgroup.tabsPerActiveGroup.min.testGetValue(),
+    1,
+    "tabsPerActiveGroup.min has correct value after adding a new tab group"
+  );
+
   await resetTelemetry();
 
   let newTabInGroup2 = BrowserTestUtils.addTab(gBrowser, "https://example.com");
@@ -100,42 +135,62 @@ add_task(async function test_tabGroupTelemetry() {
   group2.addTabs([newTabInGroup2]);
 
   await BrowserTestUtils.waitForCondition(() => {
-    tabGroupModifyTelemetry =
-      Glean.browserEngagement.tabGroupModify.testGetValue();
-    return tabGroupModifyTelemetry?.length == 1;
-  }, "Wait for tabGroupModify event after modifying a tab group");
+    return (
+      Glean.tabgroup.tabCountInGroups.inside.testGetValue() !== null &&
+      Glean.tabgroup.tabsPerActiveGroup.average.testGetValue() !== null
+    );
+  }, "Wait for at least one metric from the tabCountInGroups and tabsPerActiveGroup to be set after modifying a tab group");
 
-  Assert.deepEqual(
-    tabGroupModifyTelemetry[0].extra,
-    {
-      tabs_per_active_group_max: "4",
-      tabs_per_active_group_min: "1",
-      tabs_per_active_group_median: "2.5",
-      tabs_per_active_group_average: "2.5",
-      tabs_inside_groups: "5",
-      tabs_outside_groups: "1",
-    },
-    "tabGroupModify event extra_keys has correct values after changing the number of tabs in groups"
+  Assert.equal(
+    Glean.tabgroup.tabCountInGroups.inside.testGetValue(),
+    5,
+    "tabCountInGroups.inside has correct value after modifying a tab group"
   );
-  await Services.fog.testFlushAllChildren();
-  Services.fog.testResetFOG();
+  Assert.equal(
+    Glean.tabgroup.tabCountInGroups.outside.testGetValue(),
+    1,
+    "tabCountInGroups.outside has correct value after modifying a tab group"
+  );
+  Assert.equal(
+    Glean.tabgroup.tabsPerActiveGroup.median.testGetValue(),
+    2,
+    "tabsPerActiveGroup.median has correct value after modifying a tab group"
+  );
+  Assert.equal(
+    Glean.tabgroup.tabsPerActiveGroup.average.testGetValue(),
+    2,
+    "tabsPerActiveGroup.average has correct value after modifying a tab group"
+  );
+  Assert.equal(
+    Glean.tabgroup.tabsPerActiveGroup.max.testGetValue(),
+    4,
+    "tabsPerActiveGroup.max has correct value after modifying a tab group"
+  );
+  Assert.equal(
+    Glean.tabgroup.tabsPerActiveGroup.min.testGetValue(),
+    1,
+    "tabsPerActiveGroup.min has correct value after modifying a tab group"
+  );
+
+  await resetTelemetry();
 
   group2.collapsed = true;
 
   await BrowserTestUtils.waitForCondition(() => {
-    tabGroupCollapseTelemetry =
-      Glean.browserEngagement.tabGroupExpandOrCollapse.testGetValue();
-    return tabGroupCollapseTelemetry?.length;
-  }, "Wait for tabGroupExpandOrCollapseEvent after tab group collapse");
+    return Glean.tabgroup.activeGroups.collapsed.testGetValue() !== null;
+  }, "Wait for the activeGroups metric to be set after collapsing a tab group");
 
-  Assert.deepEqual(
-    tabGroupCollapseTelemetry[0].extra,
-    {
-      total_collapsed: "1",
-      total_expanded: "1",
-    },
-    "tabGroupExpandOrCollapse event extra_keys has correct values"
+  Assert.equal(
+    Glean.tabgroup.activeGroups.collapsed.testGetValue(),
+    1,
+    "activeGroups.collapsed has correct value after collapsing a tab group"
   );
+  Assert.equal(
+    Glean.tabgroup.activeGroups.expanded.testGetValue(),
+    1,
+    "activeGroups.collapsed has correct value after collapsing a tab group"
+  );
+
   await resetTelemetry();
 
   await removeTabGroup(group1);

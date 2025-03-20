@@ -586,7 +586,6 @@ export let BrowserUsageTelemetry = {
         break;
       case "TabGroupCreate":
         this._onTabGroupCreate(event);
-        this._onTabGroupChange();
         break;
       case "TabGrouped":
       case "TabUngrouped":
@@ -1218,7 +1217,7 @@ export let BrowserUsageTelemetry = {
 
   _onTabGroupCreate(event) {
     if (event.detail.isUserCreated) {
-      Glean.browserEngagement.tabGroupCreate.record({
+      Glean.tabgroup.createGroup.record({
         id: event.target.id,
         layout: lazy.sidebarVerticalTabs ? "vertical" : "horizontal",
         source: event.detail.telemetryUserCreateSource,
@@ -1238,6 +1237,10 @@ export let BrowserUsageTelemetry = {
   _doOnTabGroupChange() {
     let totalTabs = 0;
     let totalTabsInGroups = 0;
+    let max = 0;
+    let min = 0;
+    let average = 0;
+    let median = 0;
 
     // Used for calculation of average and median
     let tabGroupLengths = [];
@@ -1251,29 +1254,27 @@ export let BrowserUsageTelemetry = {
     }
 
     const tabGroupCount = tabGroupLengths.length;
-    if (!tabGroupCount) {
-      // If this event was fired because the last tab group was closed, do not
-      // fire a metric.
-      return;
-    }
+    if (tabGroupCount) {
+      tabGroupLengths.sort((a, b) => a - b);
+      const middleIndex = Math.floor(tabGroupCount / 2);
 
-    tabGroupLengths.sort((a, b) => a - b);
-    const middleIndex = Math.floor(tabGroupCount / 2);
-
-    const data = {
-      tabs_per_active_group_median:
+      max = Math.max(...tabGroupLengths);
+      min = Math.min(...tabGroupLengths);
+      median =
         tabGroupCount % 2 == 0
           ? (tabGroupLengths[middleIndex - 1] + tabGroupLengths[middleIndex]) /
             2
-          : tabGroupLengths[middleIndex],
-      tabs_per_active_group_average:
-        tabGroupLengths.reduce((a, b) => a + b, 0) / tabGroupCount,
-      tabs_per_active_group_min: Math.min(...tabGroupLengths),
-      tabs_per_active_group_max: Math.max(...tabGroupLengths),
-      tabs_inside_groups: totalTabsInGroups,
-      tabs_outside_groups: totalTabs - totalTabsInGroups,
-    };
-    Glean.browserEngagement.tabGroupModify.record(data);
+          : tabGroupLengths[middleIndex];
+      average = tabGroupLengths.reduce((a, b) => a + b, 0) / tabGroupCount;
+    }
+
+    Glean.tabgroup.tabCountInGroups.inside.set(totalTabsInGroups);
+    Glean.tabgroup.tabCountInGroups.outside.set(totalTabs - totalTabsInGroups);
+
+    Glean.tabgroup.tabsPerActiveGroup.median.set(median);
+    Glean.tabgroup.tabsPerActiveGroup.average.set(average);
+    Glean.tabgroup.tabsPerActiveGroup.max.set(max);
+    Glean.tabgroup.tabsPerActiveGroup.min.set(min);
   },
 
   _onTabGroupExpandOrCollapse() {
@@ -1295,10 +1296,8 @@ export let BrowserUsageTelemetry = {
       }
     }
 
-    Glean.browserEngagement.tabGroupExpandOrCollapse.record({
-      total_collapsed: collapsed,
-      total_expanded: expanded,
-    });
+    Glean.tabgroup.activeGroups.collapsed.set(collapsed);
+    Glean.tabgroup.activeGroups.expanded.set(expanded);
   },
 
   /**
