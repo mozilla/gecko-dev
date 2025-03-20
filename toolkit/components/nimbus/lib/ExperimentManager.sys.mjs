@@ -2,10 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import {
-  PrefFlipsFeature,
-  REASON_PREFFLIPS_FAILED,
-} from "resource://nimbus/lib/PrefFlipsFeature.sys.mjs";
+import { PrefFlipsFeature } from "resource://nimbus/lib/PrefFlipsFeature.sys.mjs";
 
 const lazy = {};
 
@@ -16,13 +13,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExperimentStore: "resource://nimbus/lib/ExperimentStore.sys.mjs",
   FirstStartup: "resource://gre/modules/FirstStartup.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  NimbusTelemetry: "resource://nimbus/lib/Telemetry.sys.mjs",
   NormandyUtils: "resource://normandy/lib/NormandyUtils.sys.mjs",
   PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
   EnrollmentsContext:
     "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs",
   Sampling: "resource://gre/modules/components-utils/Sampling.sys.mjs",
-  TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
-  TelemetryEvents: "resource://normandy/lib/TelemetryEvents.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "log", () => {
@@ -32,8 +28,6 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
   return new Logger("ExperimentManager");
 });
 
-const TELEMETRY_EVENT_OBJECT = "nimbus_experiment";
-const TELEMETRY_EXPERIMENT_ACTIVE_PREFIX = "nimbus-";
 const TELEMETRY_DEFAULT_EXPERIMENT_TYPE = "nimbus";
 
 const UPLOAD_ENABLED_PREF = "datareporting.healthreport.uploadEnabled";
@@ -201,13 +195,13 @@ export class _ExperimentManager {
     const restoredRollouts = this.store.getAllActiveRollouts();
 
     for (const experiment of restoredExperiments) {
-      this.setExperimentActive(experiment);
+      lazy.NimbusTelemetry.setExperimentActive(experiment);
       if (this._restoreEnrollmentPrefs(experiment)) {
         this._updatePrefObservers(experiment);
       }
     }
     for (const rollout of restoredRollouts) {
-      this.setExperimentActive(rollout);
+      lazy.NimbusTelemetry.setExperimentActive(rollout);
       if (this._restoreEnrollmentPrefs(rollout)) {
         this._updatePrefObservers(rollout);
       }
@@ -338,7 +332,8 @@ export class _ExperimentManager {
         statusTelemetry.status = ENROLLMENT_STATUS.ENROLLED;
         statusTelemetry.reason = ENROLLMENT_STATUS_REASONS.QUALIFIED;
       }
-      this.sendEnrollmentStatusTelemetry(statusTelemetry);
+
+      lazy.NimbusTelemetry.recordEnrollmentStatus(statusTelemetry);
     }
   }
 
@@ -410,36 +405,46 @@ export class _ExperimentManager {
     // validation failed telemetry events
     if (validationEnabled) {
       for (const slug of invalidRecipes) {
-        this.sendValidationFailedTelemetry(slug, "invalid-recipe");
+        lazy.NimbusTelemetry.recordValidationFailure(slug, "invalid-recipe");
       }
       for (const [slug, branches] of invalidBranches.entries()) {
         for (const branch of branches) {
-          this.sendValidationFailedTelemetry(slug, "invalid-branch", {
+          lazy.NimbusTelemetry.recordValidationFailure(slug, "invalid-branch", {
             branch,
           });
         }
       }
       for (const [slug, featureIds] of invalidFeatures.entries()) {
         for (const featureId of featureIds) {
-          this.sendValidationFailedTelemetry(slug, "invalid-feature", {
-            feature: featureId,
-          });
+          lazy.NimbusTelemetry.recordValidationFailure(
+            slug,
+            "invalid-feature",
+            {
+              feature: featureId,
+            }
+          );
         }
       }
     }
 
     if (locale) {
       for (const slug of missingLocale.values()) {
-        this.sendValidationFailedTelemetry(slug, "l10n-missing-locale", {
-          locale,
-        });
+        lazy.NimbusTelemetry.recordValidationFailure(
+          slug,
+          "l10n-missing-locale",
+          { locale }
+        );
       }
 
       for (const [slug, ids] of missingL10nIds.entries()) {
-        this.sendValidationFailedTelemetry(slug, "l10n-missing-entry", {
-          l10n_ids: ids.join(","),
-          locale,
-        });
+        lazy.NimbusTelemetry.recordValidationFailure(
+          slug,
+          "l10n-missing-entry",
+          {
+            l10nIds: ids.join(","),
+            locale,
+          }
+        );
       }
     }
 
@@ -595,7 +600,7 @@ export class _ExperimentManager {
       (enrollment.active ||
         (!isFirefoxLabsOptIn && (!enrollment.isRollout || !reenroll)))
     ) {
-      this.sendFailureTelemetry("enrollFailed", slug, "name-conflict");
+      lazy.NimbusTelemetry.recordEnrollmentFailure(slug, "name-conflict");
       throw new Error(`An experiment with the slug "${slug}" already exists.`);
     }
 
@@ -637,7 +642,7 @@ export class _ExperimentManager {
             recipe.isRollout ? "rollout" : "experiment"
           } for this feature.`
         );
-        this.sendFailureTelemetry("enrollFailed", slug, "feature-conflict");
+        lazy.NimbusTelemetry.recordEnrollmentFailure(slug, "feature-conflict");
 
         return null;
       }
@@ -695,7 +700,7 @@ export class _ExperimentManager {
     }
 
     /** @type {Enrollment} */
-    const experiment = {
+    const enrollment = {
       slug,
       branch,
       active: true,
@@ -709,11 +714,11 @@ export class _ExperimentManager {
     };
 
     if (localizations) {
-      experiment.localizations = localizations;
+      enrollment.localizations = localizations;
     }
 
     if (typeof isFirefoxLabsOptIn !== "undefined") {
-      Object.assign(experiment, {
+      Object.assign(enrollment, {
         isFirefoxLabsOptIn,
         firefoxLabsTitle,
         firefoxLabsDescription,
@@ -724,27 +729,26 @@ export class _ExperimentManager {
     }
 
     if (typeof isRollout !== "undefined") {
-      experiment.isRollout = isRollout;
+      enrollment.isRollout = isRollout;
     }
 
     // Tag this as a forced enrollment. This prevents all unenrolling unless
     // manually triggered from about:studies
     if (options.force) {
-      experiment.force = true;
+      enrollment.force = true;
     }
 
     if (isRollout) {
-      experiment.experimentType = "rollout";
-      this.store.addEnrollment(experiment);
-      this.setExperimentActive(experiment);
+      enrollment.experimentType = "rollout";
+      this.store.addEnrollment(enrollment);
     } else {
-      this.store.addEnrollment(experiment);
-      this.setExperimentActive(experiment);
+      this.store.addEnrollment(enrollment);
     }
-    this.sendEnrollmentTelemetry(experiment);
+
+    lazy.NimbusTelemetry.recordEnrollment(enrollment);
 
     this._setEnrollmentPrefs(prefsToSet);
-    this._updatePrefObservers(experiment);
+    this._updatePrefObservers(enrollment);
 
     lazy.log.debug(
       `New ${isRollout ? "rollout" : "experiment"} started: ${slug}, ${
@@ -752,7 +756,7 @@ export class _ExperimentManager {
       }`
     );
 
-    return experiment;
+    return enrollment;
   }
 
   forceEnroll(recipe, branch, source = "force-enrollment") {
@@ -857,7 +861,7 @@ export class _ExperimentManager {
   unenroll(slug, reason = "unknown") {
     const enrollment = this.store.get(slug);
     if (!enrollment) {
-      this.sendFailureTelemetry("unenrollFailed", slug, "does-not-exist");
+      lazy.NimbusTelemetry.recordUnenrollmentFailure(slug, "does-not-exist");
       throw new Error(`Could not find an experiment with the slug "${slug}"`);
     }
 
@@ -900,57 +904,30 @@ export class _ExperimentManager {
     const { slug } = enrollment;
 
     if (!enrollment.active) {
-      this.sendFailureTelemetry("unenrollFailed", slug, "already-unenrolled");
+      lazy.NimbusTelemetry.recordUnenrollmentFailure(
+        slug,
+        "already-unenrolled"
+      );
       throw new Error(
         `Cannot stop experiment "${slug}" because it is already expired`
       );
     }
 
-    lazy.TelemetryEnvironment.setExperimentInactive(slug);
-    // We also need to set the experiment inactive in the Glean Experiment API
-    Services.fog.setExperimentInactive(slug);
     this.store.updateExperiment(slug, {
       active: false,
       unenrollReason: reason,
     });
 
-    lazy.TelemetryEvents.sendEvent(
-      "unenroll",
-      TELEMETRY_EVENT_OBJECT,
+    lazy.NimbusTelemetry.recordUnenrollment(
       slug,
-      Object.assign(
-        {
-          reason,
-          branch: enrollment.branch.slug,
-        },
-        typeof changedPref !== "undefined"
-          ? { changedPref: changedPref.name }
-          : {},
-        typeof conflictingSlug !== "undefined" ? { conflictingSlug } : {},
-        reason === REASON_PREFFLIPS_FAILED ? { prefType, prefName } : {}
-      )
-    );
-    // Sent Glean event equivalent
-    Glean.nimbusEvents.unenrollment.record(
-      Object.assign(
-        {
-          experiment: slug,
-          branch: enrollment.branch.slug,
-          reason,
-        },
-        typeof changedPref !== "undefined"
-          ? { changed_pref: changedPref.name }
-          : {},
-        typeof conflictingSlug !== "undefined"
-          ? { conflicting_slug: conflictingSlug }
-          : {},
-        reason === REASON_PREFFLIPS_FAILED
-          ? {
-              pref_type: prefType,
-              pref_name: prefName,
-            }
-          : {}
-      )
+      reason,
+      enrollment.branch.slug,
+      {
+        changedPref,
+        conflictingSlug,
+        prefType,
+        prefName,
+      }
     );
 
     this._unsetEnrollmentPrefs(enrollment, { changedPref, duringRestore });
@@ -978,110 +955,6 @@ export class _ExperimentManager {
     }
 
     this.optInRecipes = [];
-  }
-
-  /**
-   * Send Telemetry for undesired event
-   *
-   * @param {string} eventName
-   * @param {string} slug
-   * @param {string} reason
-   */
-  sendFailureTelemetry(eventName, slug, reason) {
-    lazy.TelemetryEvents.sendEvent(eventName, TELEMETRY_EVENT_OBJECT, slug, {
-      reason,
-    });
-    if (eventName == "enrollFailed") {
-      Glean.nimbusEvents.enrollFailed.record({
-        experiment: slug,
-        reason,
-      });
-    } else if (eventName == "unenrollFailed") {
-      Glean.nimbusEvents.unenrollFailed.record({
-        experiment: slug,
-        reason,
-      });
-    }
-  }
-
-  sendValidationFailedTelemetry(slug, reason, extra) {
-    lazy.TelemetryEvents.sendEvent(
-      "validationFailed",
-      TELEMETRY_EVENT_OBJECT,
-      slug,
-      {
-        reason,
-        ...extra,
-      }
-    );
-    Glean.nimbusEvents.validationFailed.record({
-      experiment: slug,
-      reason,
-      ...extra,
-    });
-  }
-
-  /**
-   *
-   * @param {Enrollment} experiment
-   */
-  sendEnrollmentTelemetry({ slug, branch, experimentType }) {
-    lazy.TelemetryEvents.sendEvent("enroll", TELEMETRY_EVENT_OBJECT, slug, {
-      experimentType,
-      branch: branch.slug,
-    });
-    Glean.nimbusEvents.enrollment.record({
-      experiment: slug,
-      branch: branch.slug,
-      experiment_type: experimentType,
-    });
-  }
-
-  /**
-   *
-   * @param {object} enrollmentStatus
-   * @param {string} enrollmentStatus.slug
-   * @param {string} enrollmentStatus.status
-   * @param {string?} enrollmentStatus.reason
-   * @param {string?} enrollmentStatus.branch
-   * @param {string?} enrollmentStatus.error_string
-   * @param {string?} enrollmentStatus.conflict_slug
-   */
-  sendEnrollmentStatusTelemetry({
-    slug,
-    status,
-    reason,
-    branch,
-    error_string,
-    conflict_slug,
-  }) {
-    Glean.nimbusEvents.enrollmentStatus.record({
-      slug,
-      status,
-      reason,
-      branch,
-      error_string,
-      conflict_slug,
-    });
-  }
-
-  /**
-   * Sets Telemetry when activating an experiment.
-   *
-   * @param {Enrollment} experiment
-   */
-  setExperimentActive(experiment) {
-    lazy.TelemetryEnvironment.setExperimentActive(
-      experiment.slug,
-      experiment.branch.slug,
-      {
-        type: `${TELEMETRY_EXPERIMENT_ACTIVE_PREFIX}${experiment.experimentType}`,
-      }
-    );
-    // Report the experiment to the Glean Experiment API
-    Services.fog.setExperimentActive(experiment.slug, experiment.branch.slug, {
-      type: `${TELEMETRY_EXPERIMENT_ACTIVE_PREFIX}${experiment.experimentType}`,
-    });
   }
 
   /**
