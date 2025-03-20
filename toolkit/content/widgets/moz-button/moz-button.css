@@ -30,6 +30,12 @@ button {
   padding-block-end: var(--button-outer-padding-block-end, var(--button-outer-padding-block));
 }
 
+@media not ((prefers-contrast) or (forced-colors)) {
+  button.badged::after {
+    background-color: var(--button-attention-dot-color, var(--attention-dot-color));
+  }
+}
+
 .button-background {
   box-sizing: border-box;
   min-height: var(--button-min-height);
@@ -44,10 +50,22 @@ button {
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
 
   &[size=small] {
     min-height: var(--button-min-height-small);
     font-size: var(--button-font-size-small);
+  }
+
+  &.badged::after {
+    content: "";
+    position: absolute;
+    height: 6px;
+    width: 6px;
+    inset-block-start: var(--space-xxsmall);
+    inset-inline-end: var(--space-xxsmall);
+    background-color: var(--attention-dot-color);
+    border-radius: var(--border-radius-circle);
   }
 
   button:hover > & {
