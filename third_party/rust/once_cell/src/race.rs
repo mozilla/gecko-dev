@@ -50,6 +50,47 @@ impl OnceNonZeroUsize {
         NonZeroUsize::new(val)
     }
 
+    /// Get the reference to the underlying value, without checking if the cell
+    /// is initialized.
+    ///
+    /// # Safety
+    ///
+    /// Caller must ensure that the cell is in initialized state, and that
+    /// the contents are acquired by (synchronized to) this thread.
+    pub unsafe fn get_unchecked(&self) -> NonZeroUsize {
+        #[inline(always)]
+        fn as_const_ptr(r: &AtomicUsize) -> *const usize {
+            use core::mem::align_of;
+
+            let p: *const AtomicUsize = r;
+            // SAFETY: "This type has the same size and bit validity as
+            // the underlying integer type, usize. However, the alignment of
+            // this type is always equal to its size, even on targets where
+            // usize has a lesser alignment."
+            const _ALIGNMENT_COMPATIBLE: () =
+                assert!(align_of::<AtomicUsize>() % align_of::<usize>() == 0);
+            p.cast::<usize>()
+        }
+
+        // TODO(MSRV-1.70): Use `AtomicUsize::as_ptr().cast_const()`
+        // See https://github.com/rust-lang/rust/issues/138246.
+        let p = as_const_ptr(&self.inner);
+
+        // SAFETY: The caller is responsible for ensuring that the value
+        // was initialized and that the contents have been acquired by
+        // this thread. Assuming that, we can assume there will be no
+        // conflicting writes to the value since the value will never
+        // change once initialized. This relies on the statement in
+        // https://doc.rust-lang.org/1.83.0/core/sync/atomic/ that "(A
+        // `compare_exchange` or `compare_exchange_weak` that does not
+        // succeed is not considered a write."
+        let val = unsafe { p.read() };
+
+        // SAFETY: The caller is responsible for ensuring the value is
+        // initialized and thus not zero.
+        unsafe { NonZeroUsize::new_unchecked(val) }
+    }
+
     /// Sets the contents of this cell to `value`.
     ///
     /// Returns `Ok(())` if the cell was empty and `Err(())` if it was
@@ -332,6 +373,11 @@ mod once_box {
             OnceBox { inner: AtomicPtr::new(ptr::null_mut()), ghost: PhantomData }
         }
 
+        /// Creates a new cell with the given value.
+        pub fn with_value(value: Box<T>) -> Self {
+            OnceBox { inner: AtomicPtr::new(Box::into_raw(value)), ghost: PhantomData }
+        }
+
         /// Gets a reference to the underlying value.
         pub fn get(&self) -> Option<&T> {
             let ptr = self.inner.load(Ordering::Acquire);
@@ -409,6 +455,15 @@ mod once_box {
     }
 
     unsafe impl<T: Sync + Send> Sync for OnceBox<T> {}
+
+    impl<T: Clone> Clone for OnceBox<T> {
+        fn clone(&self) -> Self {
+            match self.get() {
+                Some(value) => OnceBox::with_value(Box::new(value.clone())),
+                None => OnceBox::new(),
+            }
+        }
+    }
 
     /// ```compile_fail
     /// struct S(*mut ());
