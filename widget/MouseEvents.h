@@ -160,6 +160,12 @@ class WidgetMouseEventBase : public WidgetInputEvent {
   // Finger or touch pressure of event. It ranges between 0.0 and 1.0.
   float mPressure;
 
+  /**
+   * Returns computed pressure for mouse button from mPressure, mButtons and
+   * mInputSource.
+   */
+  [[nodiscard]] float ComputeMouseButtonPressure() const;
+
   // Pressed button ID of mousedown or mouseup event.
   // This is set only when pressing a button causes the event.
   int16_t mButton;

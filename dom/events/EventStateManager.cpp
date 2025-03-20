@@ -5036,6 +5036,8 @@ static UniquePtr<WidgetMouseEvent> CreateMouseOrPointerWidgetEvent(
   newEvent->mRelatedTarget = aRelatedTarget;
   newEvent->mRefPoint = aMouseEvent->mRefPoint;
   newEvent->mModifiers = aMouseEvent->mModifiers;
+  // NOTE: If you need to change this if-expression, you need to update
+  // WidgetMouseEventBase::ComputeMouseButtonPressure() too.
   if (!aMouseEvent->mFlags.mDispatchedAtLeastOnce &&
       aMouseEvent->InputSourceSupportsHover()) {
     // If we synthesize a pointer event or a mouse event from another event
@@ -5069,14 +5071,8 @@ static UniquePtr<WidgetMouseEvent> CreateMouseOrPointerWidgetEvent(
     // Adjust pressure if it does not matches with mButtons.
     // FIXME: We may use wrong pressure value if the source event has not been
     // dispatched into the DOM yet.  However, fixing this requires to store the
-    // last pressure value somewhere.
-    if (newEvent->mButtons && aMouseEvent->mPressure == 0) {
-      newEvent->mPressure = 0.5f;
-    } else if (!newEvent->mButtons && aMouseEvent->mPressure != 0) {
-      newEvent->mPressure = 0;
-    } else {
-      newEvent->mPressure = aMouseEvent->mPressure;
-    }
+    // last pressure value somewhere (bug 1953669).
+    newEvent->mPressure = newEvent->ComputeMouseButtonPressure();
   } else {
     // If the event has already been dispatched into the tree, web apps has
     // already handled the button state change, so the button state of the

@@ -611,10 +611,7 @@ void PointerEventHandler::InitPointerEventFromMouse(
                                : aMouseEvent->mButton;
 
   aPointerEvent->mButtons = aMouseEvent->mButtons;
-  aPointerEvent->mPressure =
-      aPointerEvent->mButtons
-          ? aMouseEvent->mPressure ? aMouseEvent->mPressure : 0.5f
-          : 0.0f;
+  aPointerEvent->mPressure = aMouseEvent->ComputeMouseButtonPressure();
 }
 
 /* static */
