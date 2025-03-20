@@ -134,7 +134,8 @@ function getGeneratedFrameId(frameId) {
   }
   return frameId;
 }
-
+// This is Environment Scope information from the platform.
+// See https://searchfox.org/mozilla-central/rev/b0e8e4ceb46cb3339cdcb90310fcc161ef4b9e3e/devtools/server/actors/environment.js#42-81
 export function getGeneratedFrameScope(state, frame) {
   if (!frame) {
     return null;

@@ -14,13 +14,20 @@ import { validateSelectedFrame } from "../../utils/context";
 
 // We need to display all variables in the current functional scope so
 // include all data for block scopes until the first functional scope
-function getLocalScopeLevels(originalAstScopes) {
+/**
+ * Determing the number of levels to go in the scope tree
+ * We need to display all variables in the current function scope so
+ * include all data for block scopes until the first function scope
+ *
+ * @param {Object} scope - Environment information from the platform
+ *                         See https://searchfox.org/mozilla-central/rev/b0e8e4ceb46cb3339cdcb90310fcc161ef4b9e3e/devtools/server/actors/environment.js#42-81
+ * @returns
+ */
+function getScopeLevels(scope) {
   let levels = 0;
-  while (
-    originalAstScopes[levels] &&
-    originalAstScopes[levels].type === "block"
-  ) {
+  while (scope && scope.type === "block") {
     levels++;
+    scope = scope.parent;
   }
   return levels;
 }
@@ -78,7 +85,7 @@ export function generateInlinePreview() {
 
     const allPreviews = [];
     const pausedOnLine = selectedLocation.line;
-    const levels = getLocalScopeLevels(originalAstScopes);
+    const levels = getScopeLevels(scopes);
 
     for (
       let curLevel = 0;

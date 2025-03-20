@@ -236,6 +236,8 @@ function update(state = initialPauseState(), action) {
         ...threadState().frameScopes.generated,
         [selectedFrameId]: {
           pending: status !== "done",
+          // Environment Scope information from the platform.
+          // See https://searchfox.org/mozilla-central/rev/b0e8e4ceb46cb3339cdcb90310fcc161ef4b9e3e/devtools/server/actors/environment.js#42-81
           scope: value,
         },
       };
