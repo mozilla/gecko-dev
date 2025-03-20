@@ -4120,7 +4120,7 @@ if __name__ == "__main__":
     parser_cldr_tags.add_argument(
         "--url",
         metavar="URL",
-        default="https://unicode.org/Public/cldr/<VERSION>/cldr-common-<VERSION>.0.zip",
+        default="https://unicode.org/Public/cldr/<VERSION>/cldr-common-<VERSION>.zip",
         type=EnsureHttps,
         help="Download url CLDR data (default: %(default)s)",
     )
