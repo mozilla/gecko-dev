@@ -108,7 +108,9 @@ async function getExpectedWebCompatInfo(tab, snapshot, fullAppData = false) {
     securitySoftware;
 
   const browserInfo = {
+    addons: [],
     app,
+    experiments: [],
     graphics: {
       devicesJson(actualStr) {
         const expected = getExpectedGraphicsDevices(snapshot);
@@ -159,6 +161,10 @@ async function getExpectedWebCompatInfo(tab, snapshot, fullAppData = false) {
       ),
       globalPrivacyControlEnabled: Services.prefs.getBoolPref(
         "privacy.globalprivacycontrol.enabled",
+        false
+      ),
+      h1InSectionUseragentStylesEnabled: Services.prefs.getBoolPref(
+        "layout.css.h1-in-section-ua-styles.enabled",
         false
       ),
       installtriggerEnabled: Services.prefs.getBoolPref(
@@ -246,8 +252,12 @@ function extractBrokenSiteReportFromGleanPing(Glean) {
     Glean.brokenSiteReportTabInfoFrameworks
   );
   ping.browserInfo = {
+    addons: Array.from(Glean.brokenSiteReportBrowserInfo.addons.testGetValue()),
     app: extractPingData(Glean.brokenSiteReportBrowserInfoApp),
     graphics: extractPingData(Glean.brokenSiteReportBrowserInfoGraphics),
+    experiments: Array.from(
+      Glean.brokenSiteReportBrowserInfo.experiments.testGetValue()
+    ),
     prefs: extractPingData(Glean.brokenSiteReportBrowserInfoPrefs),
     security: extractPingData(Glean.brokenSiteReportBrowserInfoSecurity),
     system: extractPingData(Glean.brokenSiteReportBrowserInfoSystem),
@@ -268,6 +278,14 @@ async function testSend(tab, menu, expectedOverrides = {}) {
   expected.url = url;
   expected.description = description;
   expected.breakageCategory = breakageCategory;
+
+  if (expectedOverrides.addons) {
+    expected.browserInfo.addons = expectedOverrides.addons;
+  }
+
+  if (expectedOverrides.experiments) {
+    expected.browserInfo.experiments = expectedOverrides.experiments;
+  }
 
   if (expectedOverrides.antitracking) {
     expected.tabInfo.antitracking = expectedOverrides.antitracking;
