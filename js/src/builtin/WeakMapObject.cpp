@@ -118,14 +118,20 @@ bool WeakMapObject::delete_(JSContext* cx, unsigned argc, Value* vp) {
       cx, args);
 }
 
-static bool SetWeakMapEntryImpl(JSContext* cx, Handle<WeakMapObject*> mapObj,
-                                Handle<Value> keyVal, Handle<Value> value) {
+static bool EnsureValidWeakMapKey(JSContext* cx, Handle<Value> keyVal) {
   if (MOZ_UNLIKELY(!CanBeHeldWeakly(cx, keyVal))) {
     unsigned errorNum = GetErrorNumber(true);
     ReportValueError(cx, errorNum, JSDVG_IGNORE_STACK, keyVal, nullptr);
     return false;
   }
+  return true;
+}
 
+static bool SetWeakMapEntryImpl(JSContext* cx, Handle<WeakMapObject*> mapObj,
+                                Handle<Value> keyVal, Handle<Value> value) {
+  if (!EnsureValidWeakMapKey(cx, keyVal)) {
+    return false;
+  }
   return WeakCollectionPutEntryInternal(cx, mapObj, keyVal, value);
 }
 
@@ -150,12 +156,10 @@ bool WeakMapObject::set(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 #ifdef NIGHTLY_BUILD
-static bool getOrAddWeakMapEntry(JSContext* cx, Handle<WeakMapObject*> mapObj,
+static bool GetOrAddWeakMapEntry(JSContext* cx, Handle<WeakMapObject*> mapObj,
                                  Handle<Value> key, Handle<Value> value,
                                  MutableHandleValue rval) {
-  if (MOZ_UNLIKELY(!CanBeHeldWeakly(cx, key))) {
-    unsigned errorNum = GetErrorNumber(true);
-    ReportValueError(cx, errorNum, JSDVG_IGNORE_STACK, key, nullptr);
+  if (!EnsureValidWeakMapKey(cx, key)) {
     return false;
   }
 
@@ -207,7 +211,7 @@ static bool getOrAddWeakMapEntry(JSContext* cx, Handle<WeakMapObject*> mapObj,
   MOZ_ASSERT(WeakMapObject::is(args.thisv()));
 
   Rooted<WeakMapObject*> map(cx, &args.thisv().toObject().as<WeakMapObject>());
-  return getOrAddWeakMapEntry(cx, map, args.get(0), args.get(1), args.rval());
+  return GetOrAddWeakMapEntry(cx, map, args.get(0), args.get(1), args.rval());
 }
 
 /* static */

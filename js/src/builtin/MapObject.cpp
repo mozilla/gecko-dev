@@ -955,8 +955,7 @@ bool MapObject::getOrInsert_impl(JSContext* cx, const CallArgs& args) {
 }
 
 bool MapObject::getOrInsert(JSContext* cx, unsigned argc, Value* vp) {
-  AutoJSMethodProfilerEntry pseudoFrame(cx, "Map.prototype",
-                                        "getOrInsertComputed");
+  AutoJSMethodProfilerEntry pseudoFrame(cx, "Map.prototype", "getOrInsert");
   CallArgs args = CallArgsFromVp(argc, vp);
   return CallNonGenericMethod<MapObject::is, MapObject::getOrInsert_impl>(cx,
                                                                           args);
