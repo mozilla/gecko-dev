@@ -21,7 +21,7 @@ pub struct Window {
 }
 
 // C99 functions that do the compositor work
-extern {
+extern "C" {
     fn com_dc_create_window(
         width: i32,
         height: i32,
