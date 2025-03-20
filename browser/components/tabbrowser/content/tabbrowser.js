@@ -1177,8 +1177,9 @@
 
       let newTab = this.getTabForBrowser(newBrowser);
 
+      let timerId;
       if (!aForceUpdate) {
-        TelemetryStopwatch.start("FX_TAB_SWITCH_UPDATE_MS");
+        timerId = Glean.browserTabswitch.update.start();
 
         if (gMultiProcessBrowser) {
           this._asyncTabSwitching = true;
@@ -1402,7 +1403,7 @@
       }
 
       if (!aForceUpdate) {
-        TelemetryStopwatch.finish("FX_TAB_SWITCH_UPDATE_MS");
+        Glean.browserTabswitch.update.stopAndAccumulate(timerId);
       }
     }
 

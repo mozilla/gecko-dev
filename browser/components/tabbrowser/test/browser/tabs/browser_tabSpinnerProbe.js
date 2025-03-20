@@ -1,8 +1,7 @@
 "use strict";
 
 /**
- * Tests the FX_TAB_SWITCH_SPINNER_VISIBLE_MS and
- * FX_TAB_SWITCH_SPINNER_VISIBLE_LONG_MS telemetry probes
+ * Tests the FX_TAB_SWITCH_SPINNER_VISIBLE_MS telemetry probe
  */
 const MIN_HANG_TIME = 500; // ms
 const MAX_HANG_TIME = 5 * 1000; // ms
@@ -43,9 +42,8 @@ function hangContentProcess(browser, aMs) {
 /**
  * A generator intended to be run as a Task. It tests one of the tab spinner
  * telemetry probes.
- * @param {String} aProbe The probe to test. Should be one of:
+ * @param {String} aProbe The probe to test. Should be:
  *                  - FX_TAB_SWITCH_SPINNER_VISIBLE_MS
- *                  - FX_TAB_SWITCH_SPINNER_VISIBLE_LONG_MS
  */
 async function testProbe(aProbe) {
   info(`Testing probe: ${aProbe}`);
@@ -99,4 +97,3 @@ add_setup(async function () {
 });
 
 add_task(testProbe.bind(null, "FX_TAB_SWITCH_SPINNER_VISIBLE_MS"));
-add_task(testProbe.bind(null, "FX_TAB_SWITCH_SPINNER_VISIBLE_LONG_MS"));
