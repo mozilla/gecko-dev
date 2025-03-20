@@ -104,7 +104,7 @@ class WeakMapBase : public mozilla::LinkedListElement<WeakMapBase> {
   using CellColor = js::gc::CellColor;
 
   WeakMapBase(JSObject* memOf, JS::Zone* zone);
-  virtual ~WeakMapBase();
+  virtual ~WeakMapBase() {}
 
   JS::Zone* zone() const { return zone_; }
 
@@ -231,6 +231,7 @@ class WeakMap
 
   explicit WeakMap(JSContext* cx, JSObject* memOf = nullptr);
   explicit WeakMap(JS::Zone* zone, JSObject* memOf = nullptr);
+  ~WeakMap() override;
 
   // Get the value associated with a key, or a default constructed Value if the
   // key is not present in the map.

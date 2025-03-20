@@ -22,11 +22,6 @@ WeakMapBase::WeakMapBase(JSObject* memOf, Zone* zone)
   MOZ_ASSERT(!IsMarked(mapColor()));
 }
 
-WeakMapBase::~WeakMapBase() {
-  MOZ_ASSERT(CurrentThreadIsGCFinalizing() ||
-             CurrentThreadCanAccessZone(zone_));
-}
-
 void WeakMapBase::unmarkZone(JS::Zone* zone) {
   zone->gcEphemeronEdges().clearAndCompact();
   MOZ_ASSERT(zone->gcNurseryEphemeronEdges().count() == 0);
