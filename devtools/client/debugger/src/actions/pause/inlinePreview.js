@@ -11,28 +11,11 @@ import { features } from "../../utils/prefs";
 import { validateSelectedFrame } from "../../utils/context";
 
 /**
- * Determing the number of levels to go in the scope tree
- * We need to display all variables in the current function scope so
- * include all data for block scopes until the first function scope
- *
- * @param {Object} scope - Environment information from the platform
- *                         See https://searchfox.org/mozilla-central/rev/b0e8e4ceb46cb3339cdcb90310fcc161ef4b9e3e/devtools/server/actors/environment.js#42-81
- * @returns
- */
-function getScopeLevels(scope) {
-  let levels = 0;
-  while (scope && scope.type === "block") {
-    levels++;
-    scope = scope.parent;
-  }
-  return levels;
-}
-
-/**
  * Update the inline previews for the currently selected frame.
  */
 export function generateInlinePreview(selectedFrame) {
-  return async function ({ dispatch, getState, parserWorker, client }) {
+  return async function (thunkArgs) {
+    const { dispatch, getState } = thunkArgs;
     if (!features.inlinePreview) {
       return null;
     }
@@ -41,68 +24,13 @@ export function generateInlinePreview(selectedFrame) {
     if (getSelectedFrameInlinePreviews(getState())) {
       return null;
     }
-    let scopes = getSelectedScope(getState());
+    const scope = getSelectedScope(getState());
 
-    if (!scopes || !scopes.bindings) {
+    if (!scope || !scope.bindings) {
       return null;
     }
 
-    // It's important to use selectedLocation, because we don't know
-    // if we'll be viewing the original or generated frame location
-    const selectedLocation = getSelectedLocation(getState());
-    if (!selectedLocation) {
-      return null;
-    }
-
-    if (!parserWorker.isLocationSupported(selectedLocation)) {
-      return null;
-    }
-
-    const originalAstScopes = await parserWorker.getScopes(selectedLocation);
-
-    // Bailout if we resumed or moved to another frame while computing the scope
-    validateSelectedFrame(getState(), selectedFrame);
-
-    if (!originalAstScopes) {
-      return null;
-    }
-
-    const allPreviews = [];
-    const pausedOnLine = selectedLocation.line;
-    const levels = getScopeLevels(scopes);
-
-    for (
-      let curLevel = 0;
-      curLevel <= levels && scopes && scopes.bindings;
-      curLevel++
-    ) {
-      // All the bindings from the platform scopes
-      const bindings = getScopeBindings(scopes);
-
-      // Generate the previews for all the bindings
-      const allPreviewBindingsComplete = Object.keys(bindings).map(
-        async name => {
-          // Get previews for this binding
-          const previews = await generatePreviewsForBinding(
-            originalAstScopes[curLevel]?.bindings[name],
-            pausedOnLine,
-            name,
-            bindings[name].value,
-            client,
-            selectedFrame.thread
-          );
-
-          allPreviews.push(...previews);
-        }
-      );
-      await Promise.all(allPreviewBindingsComplete);
-
-      // Bailout if we resumed or moved to another frame while fetching the values from the backend
-      validateSelectedFrame(getState(), selectedFrame);
-
-      scopes = scopes.parent;
-    }
-
+    const allPreviews = await getPreviews(selectedFrame, scope, thunkArgs);
     // Sort previews by line and column so they're displayed in the right order in the editor
     allPreviews.sort((previewA, previewB) => {
       if (previewA.line < previewB.line) {
@@ -131,16 +59,81 @@ export function generateInlinePreview(selectedFrame) {
     });
   };
 }
+/**
+ * Creates all the previews
+ *
+ * @param {Object} selectedFrame
+ * @param {Object} scope - Scopes from the platform
+ * @param {Object} thunkArgs
+ * @returns
+ */
+async function getPreviews(selectedFrame, scope, thunkArgs) {
+  const { client, parserWorker, getState } = thunkArgs;
+
+  // It's important to use selectedLocation, because we don't know
+  // if we'll be viewing the original or generated frame location
+  const selectedLocation = getSelectedLocation(getState());
+  if (!selectedLocation) {
+    return [];
+  }
+
+  if (!parserWorker.isLocationSupported(selectedLocation)) {
+    return [];
+  }
+
+  const originalAstScopes = await parserWorker.getScopes(selectedLocation);
+  if (!originalAstScopes) {
+    return [];
+  }
+
+  // Bailout if we resumed or moved to another frame while computing the scope
+  validateSelectedFrame(getState(), selectedFrame);
+
+  const allPreviews = [];
+  let level = 0;
+  while (scope && scope.bindings) {
+    // All the bindings from the platform environment
+    const bindings = getScopeBindings(scope);
+
+    // Generate the previews for all the bindings
+    const allPreviewBindingsComplete = Object.keys(bindings).map(async name => {
+      // Get previews for this binding
+      const previews = await generatePreviewsForBinding(
+        originalAstScopes[level]?.bindings[name],
+        selectedLocation.line,
+        name,
+        bindings[name].value,
+        client,
+        selectedFrame.thread
+      );
+
+      allPreviews.push(...previews);
+    });
+    await Promise.all(allPreviewBindingsComplete);
+
+    // Bailout if we resumed or moved to another frame while fetching the values from the backend
+    validateSelectedFrame(getState(), selectedFrame);
+
+    // We need to display all variables in for all block scopes up until
+    // and including the first function scope.
+    if (scope.type === "function") {
+      break;
+    }
+    level++;
+    scope = scope.parent;
+  }
+  return allPreviews;
+}
 
 /**
  * Merge both variables and arguments into a unique "bindings" objects, where arguments overrides variables.
  *
- * @param {Object} scopes
+ * @param {Object} scope
  * @returns
  */
-function getScopeBindings(scopes) {
-  const bindings = { ...scopes.bindings.variables };
-  scopes.bindings.arguments.forEach(argument => {
+function getScopeBindings(scope) {
+  const bindings = { ...scope.bindings.variables };
+  scope.bindings.arguments.forEach(argument => {
     Object.keys(argument).forEach(key => {
       bindings[key] = argument[key];
     });

@@ -19,7 +19,6 @@ add_task(async function () {
   // Trigger the breakpoint ane ensure we're paused
   invokeInTab("main");
   await waitForPaused(dbg);
-  await waitForDispatch(dbg.store, "ADD_INLINE_PREVIEW");
 
   // Scroll element into view
   findElement(dbg, "frame", 2).focus();
