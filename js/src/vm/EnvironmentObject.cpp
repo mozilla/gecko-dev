@@ -2753,7 +2753,7 @@ DebugEnvironmentProxy* DebugEnvironments::hasDebugEnvironment(
     return nullptr;
   }
 
-  if (JSObject* obj = envs->proxiedEnvs.lookup(&env)) {
+  if (JSObject* obj = envs->proxiedEnvs.get(&env)) {
     MOZ_ASSERT(CanUseDebugEnvironmentMaps(cx));
     return &obj->as<DebugEnvironmentProxy>();
   }
@@ -2777,7 +2777,12 @@ bool DebugEnvironments::addDebugEnvironment(
     return false;
   }
 
-  return envs->proxiedEnvs.add(cx, env, debugEnv);
+  if (!envs->proxiedEnvs.put(env, debugEnv)) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+
+  return true;
 }
 
 /* static */
@@ -2981,7 +2986,7 @@ void DebugEnvironments::onPopCall(JSContext* cx, AbstractFramePtr frame) {
 
     CallObject& callobj = frame.environmentChain()->as<CallObject>();
     envs->liveEnvs.remove(&callobj);
-    if (JSObject* obj = envs->proxiedEnvs.lookup(&callobj)) {
+    if (JSObject* obj = envs->proxiedEnvs.get(&callobj)) {
       debugEnv = &obj->as<DebugEnvironmentProxy>();
     }
   } else {
@@ -3033,7 +3038,7 @@ void DebugEnvironments::onPopGeneric(JSContext* cx, const EnvironmentIter& ei) {
   if (env) {
     envs->liveEnvs.remove(env);
 
-    if (JSObject* obj = envs->proxiedEnvs.lookup(env)) {
+    if (JSObject* obj = envs->proxiedEnvs.get(env)) {
       Rooted<DebugEnvironmentProxy*> debugEnv(
           cx, &obj->as<DebugEnvironmentProxy>());
       DebugEnvironments::takeFrameSnapshot(cx, debugEnv, ei.initialFrame());

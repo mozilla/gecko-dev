@@ -215,14 +215,26 @@ class WeakMap
   using Base::empty;
   using Base::has;
   using Base::shallowSizeOfExcludingThis;
+  using Base::shallowSizeOfIncludingThis;
 
   // Resolve ambiguity with LinkedListElement<>::remove.
   using Base::remove;
 
   using UnbarrieredKey = typename RemoveBarrier<Key>::Type;
+  using UnbarrieredValue = typename RemoveBarrier<Value>::Type;
 
   explicit WeakMap(JSContext* cx, JSObject* memOf = nullptr);
   explicit WeakMap(JS::Zone* zone, JSObject* memOf = nullptr);
+
+  // Get the value associated with a key, or a default constructed Value if the
+  // key is not present in the map.
+  UnbarrieredValue get(const Lookup& l) {
+    Ptr ptr = lookup(l);
+    if (!ptr) {
+      return UnbarrieredValue();
+    }
+    return ptr->value();
+  }
 
   // Add a read barrier to prevent an incorrectly gray value from escaping the
   // weak map. See the UnmarkGrayTracer::onChild comment in gc/Marking.cpp.
@@ -335,27 +347,7 @@ using ObjectValueWeakMap = WeakMap<HeapPtr<JSObject*>, HeapPtr<Value>>;
 using ValueValueWeakMap = WeakMap<HeapPtr<Value>, HeapPtr<Value>>;
 
 // Generic weak map for mapping objects to other objects.
-class ObjectWeakMap {
-  ObjectValueWeakMap map;
-
- public:
-  explicit ObjectWeakMap(JSContext* cx);
-
-  JS::Zone* zone() const { return map.zone(); }
-
-  JSObject* lookup(const JSObject* obj);
-  bool add(JSContext* cx, JSObject* obj, JSObject* target);
-  void remove(JSObject* key);
-  void clear();
-
-  void trace(JSTracer* trc);
-  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf);
-  size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) {
-    return mallocSizeOf(this) + sizeOfExcludingThis(mallocSizeOf);
-  }
-
-  ObjectValueWeakMap& valueMap() { return map; }
-};
+using ObjectWeakMap = WeakMap<HeapPtr<JSObject*>, HeapPtr<JSObject*>>;
 
 // Get the hash from the Symbol.
 HashNumber GetSymbolHash(JS::Symbol* sym);

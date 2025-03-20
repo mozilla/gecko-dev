@@ -155,22 +155,26 @@ ObjectRealm::getOrCreateNonSyntacticLexicalEnvironment(JSContext* cx,
     nonSyntacticLexicalEnvironments_ = std::move(map);
   }
 
-  RootedObject lexicalEnv(cx, nonSyntacticLexicalEnvironments_->lookup(key));
-
-  if (!lexicalEnv) {
-    MOZ_ASSERT(key->is<NonSyntacticVariablesObject>() ||
-               !key->is<EnvironmentObject>());
-    lexicalEnv =
-        NonSyntacticLexicalEnvironmentObject::create(cx, enclosing, thisv);
-    if (!lexicalEnv) {
-      return nullptr;
-    }
-    if (!nonSyntacticLexicalEnvironments_->add(cx, key, lexicalEnv)) {
-      return nullptr;
-    }
+  JSObject* obj = nonSyntacticLexicalEnvironments_->get(key);
+  if (obj) {
+    return &obj->as<NonSyntacticLexicalEnvironmentObject>();
   }
 
-  return &lexicalEnv->as<NonSyntacticLexicalEnvironmentObject>();
+  MOZ_ASSERT(key->is<NonSyntacticVariablesObject>() ||
+             !key->is<EnvironmentObject>());
+
+  Rooted<NonSyntacticLexicalEnvironmentObject*> lexicalEnv(
+      cx, NonSyntacticLexicalEnvironmentObject::create(cx, enclosing, thisv));
+  if (!lexicalEnv) {
+    return nullptr;
+  }
+
+  if (!nonSyntacticLexicalEnvironments_->put(key, lexicalEnv)) {
+    ReportOutOfMemory(cx);
+    return nullptr;
+  }
+
+  return lexicalEnv;
 }
 
 NonSyntacticLexicalEnvironmentObject*
@@ -230,7 +234,7 @@ ObjectRealm::getNonSyntacticLexicalEnvironment(JSObject* key) const {
     MOZ_ASSERT(!key->as<WithEnvironmentObject>().isSyntactic());
     key = &key->as<WithEnvironmentObject>().object();
   }
-  JSObject* lexicalEnv = nonSyntacticLexicalEnvironments_->lookup(key);
+  JSObject* lexicalEnv = nonSyntacticLexicalEnvironments_->get(key);
   if (!lexicalEnv) {
     return nullptr;
   }
@@ -416,7 +420,7 @@ void Realm::setNewObjectMetadata(JSContext* cx, HandleObject obj) {
       objects_.objectMetadataTable = std::move(table);
     }
 
-    if (!objects_.objectMetadataTable->add(cx, obj, metadata)) {
+    if (!objects_.objectMetadataTable->put(obj, metadata)) {
       oomUnsafe.crash("setNewObjectMetadata");
     }
   }
@@ -534,12 +538,12 @@ void ObjectRealm::addSizeOfExcludingThis(
 
   if (objectMetadataTable) {
     *objectMetadataTablesArg +=
-        objectMetadataTable->sizeOfIncludingThis(mallocSizeOf);
+        objectMetadataTable->shallowSizeOfIncludingThis(mallocSizeOf);
   }
 
   if (auto& map = nonSyntacticLexicalEnvironments_) {
     *nonSyntacticLexicalEnvironmentsArg +=
-        map->sizeOfIncludingThis(mallocSizeOf);
+        map->shallowSizeOfIncludingThis(mallocSizeOf);
   }
 }
 
