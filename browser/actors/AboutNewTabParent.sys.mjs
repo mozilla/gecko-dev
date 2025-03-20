@@ -50,10 +50,6 @@ export class AboutNewTabParent extends JSWindowActorParent {
           id: "defaultBrowserCheck",
           context: { source: "newtab" },
         });
-        lazy.ASRouter.sendTriggerMessage({
-          browser: this.browsingContext.top.embedderElement,
-          id: "newtabMessageCheck",
-        });
         break;
 
       case "Init": {
