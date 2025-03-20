@@ -298,17 +298,21 @@ void MediaPipeline::DetachTransport_s() {
   mReceiverRtcpSendEventListener.DisconnectIfExists();
 }
 
-void MediaPipeline::UpdateTransport_m(
-    const std::string& aTransportId, UniquePtr<MediaPipelineFilter>&& aFilter) {
+void MediaPipeline::UpdateTransport_m(const std::string& aTransportId,
+                                      UniquePtr<MediaPipelineFilter>&& aFilter,
+                                      bool aSignalingStable) {
   mStsThread->Dispatch(NS_NewRunnableFunction(
-      __func__, [aTransportId, filter = std::move(aFilter),
-                 self = RefPtr<MediaPipeline>(this)]() mutable {
-        self->UpdateTransport_s(aTransportId, std::move(filter));
+      __func__,
+      [aTransportId, filter = std::move(aFilter),
+       self = RefPtr<MediaPipeline>(this), aSignalingStable]() mutable {
+        self->UpdateTransport_s(aTransportId, std::move(filter),
+                                aSignalingStable);
       }));
 }
 
-void MediaPipeline::UpdateTransport_s(
-    const std::string& aTransportId, UniquePtr<MediaPipelineFilter>&& aFilter) {
+void MediaPipeline::UpdateTransport_s(const std::string& aTransportId,
+                                      UniquePtr<MediaPipelineFilter>&& aFilter,
+                                      bool aSignalingStable) {
   ASSERT_ON_THREAD(mStsThread);
   if (!mSignalsConnected) {
     mTransportHandler->SignalStateChange.connect(
@@ -339,7 +343,7 @@ void MediaPipeline::UpdateTransport_s(
   if (mFilter && aFilter) {
     // Use the new filter, but don't forget any remote SSRCs that we've learned
     // by receiving traffic.
-    mFilter->Update(*aFilter);
+    mFilter->Update(*aFilter, aSignalingStable);
   } else {
     mFilter = std::move(aFilter);
   }

@@ -112,10 +112,12 @@ class MediaPipeline : public sigslot::has_slots<> {
   virtual void Shutdown();
 
   void UpdateTransport_m(const std::string& aTransportId,
-                         UniquePtr<MediaPipelineFilter>&& aFilter);
+                         UniquePtr<MediaPipelineFilter>&& aFilter,
+                         bool aSignalingStable);
 
   void UpdateTransport_s(const std::string& aTransportId,
-                         UniquePtr<MediaPipelineFilter>&& aFilter);
+                         UniquePtr<MediaPipelineFilter>&& aFilter,
+                         bool aSignalingStable);
 
   virtual DirectionType Direction() const { return mDirection; }
   size_t Level() const { return mLevel; }

@@ -136,6 +136,7 @@ class JsepTrack {
       mVideoPreferredCodec = rhs.mVideoPreferredCodec;
       mUniqueReceivePayloadTypes = rhs.mUniqueReceivePayloadTypes;
       mReceivePayloadTypes = rhs.mReceivePayloadTypes;
+      mDuplicateReceivePayloadTypes = rhs.mDuplicateReceivePayloadTypes;
 
       mPrototypeCodecs.clear();
       for (const auto& codec : rhs.mPrototypeCodecs) {
@@ -264,6 +265,10 @@ class JsepTrack {
     return mUniqueReceivePayloadTypes;
   }
 
+  std::vector<uint8_t> GetDuplicateReceivePayloadTypes() const {
+    return mDuplicateReceivePayloadTypes;
+  }
+
  private:
   std::vector<UniquePtr<JsepCodecDescription>> GetCodecClones() const;
   static void EnsureNoDuplicatePayloadTypes(
@@ -336,6 +341,8 @@ class JsepTrack {
   // Used for matching SSRC to PT as only unique PTs support for this.
   std::vector<uint8_t> mUniqueReceivePayloadTypes;
   std::vector<uint16_t> mReceivePayloadTypes;
+  // Payload types that are duplicate
+  std::vector<uint8_t> mDuplicateReceivePayloadTypes;
 };
 
 }  // namespace mozilla

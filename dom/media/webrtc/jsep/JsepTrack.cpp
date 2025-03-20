@@ -731,7 +731,7 @@ void JsepTrack::SetUniqueReceivePayloadTypes(std::vector<JsepTrack*>& tracks,
                                              bool localOffer) {
   // Maps to track details if no other track contains the payload type,
   // otherwise maps to nullptr.
-  std::map<uint16_t, JsepTrack*> payloadTypeToDetailsMap;
+  std::map<uint16_t, std::tuple<JsepTrack*, bool>> payloadTypeToDetailsMap;
 
   for (JsepTrack* track : tracks) {
     if (track->GetMediaType() == SdpMediaSection::kApplication) {
@@ -751,23 +751,24 @@ void JsepTrack::SetUniqueReceivePayloadTypes(std::vector<JsepTrack*>& tracks,
     }
 
     for (uint16_t pt : payloadTypesForTrack) {
-      if (payloadTypeToDetailsMap.count(pt)) {
-        // Found in more than one track, not unique
-        payloadTypeToDetailsMap[pt] = nullptr;
-      } else {
-        payloadTypeToDetailsMap[pt] = track;
-      }
+      payloadTypeToDetailsMap[pt] =
+          std::make_tuple(track, !payloadTypeToDetailsMap.count(pt));
     }
   }
 
   for (auto ptAndDetails : payloadTypeToDetailsMap) {
     uint16_t uniquePt = ptAndDetails.first;
     MOZ_ASSERT(uniquePt <= UINT8_MAX);
-    auto* trackDetails = ptAndDetails.second;
+    auto* trackDetails = std::get<JsepTrack*>(ptAndDetails.second);
 
     if (trackDetails) {
-      trackDetails->mUniqueReceivePayloadTypes.push_back(
-          static_cast<uint8_t>(uniquePt));
+      if (std::get<bool>(ptAndDetails.second)) {
+        trackDetails->mUniqueReceivePayloadTypes.push_back(
+            static_cast<uint8_t>(uniquePt));
+      } else {
+        trackDetails->mDuplicateReceivePayloadTypes.push_back(
+            static_cast<uint8_t>(uniquePt));
+      }
     }
   }
 }

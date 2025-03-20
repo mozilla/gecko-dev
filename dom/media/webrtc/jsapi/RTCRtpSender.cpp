@@ -1393,7 +1393,7 @@ void RTCRtpSender::UpdateTransport() {
   }
 
   mPipeline->UpdateTransport_m(GetJsepTransceiver().mTransport.mTransportId,
-                               nullptr);
+                               nullptr, true);
 }
 
 void RTCRtpSender::MaybeUpdateConduit() {
