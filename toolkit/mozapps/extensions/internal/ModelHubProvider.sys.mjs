@@ -8,6 +8,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   AddonManagerPrivate: "resource://gre/modules/AddonManager.sys.mjs",
+  DownloadUtils: "resource://gre/modules/DownloadUtils.sys.mjs",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -24,6 +25,10 @@ const MODELHUB_ADDON_TYPE = "mlmodel";
 class ModelHubAddonWrapper {
   constructor(id = MODELHUB_ADDON_ID_SUFFIX) {
     this.id = id;
+    // TODO: use actual values (for now random 0 bytes to 100 GB)
+    this.fileSize = lazy.DownloadUtils.getTransferTotal(
+      Math.random() * Math.pow(10, 1 + Math.random() * 10)
+    );
   }
 
   get isActive() {

@@ -26,10 +26,11 @@ let promptService;
 
 AddonTestUtils.initMochitest(this);
 
+// Find rows that aren't hidden (itself or ancestors)
 function getDetailRows(card) {
   return Array.from(
-    card.querySelectorAll('[name="details"] .addon-detail-row:not([hidden])')
-  );
+    card.querySelectorAll('[name="details"] .addon-detail-row')
+  ).filter(row => !row.closest("[hidden]"));
 }
 
 async function checkLabel(row, name) {
