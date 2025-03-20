@@ -348,6 +348,8 @@ skip-if = ["true"] # TODO: Fix this test (bug 1925823 comment 4)
 
 ["browser_sidebar_button_reset.js"]
 
+["browser_sidebar_position_start.js"]
+
 ["browser_sidebar_toggle.js"]
 skip-if = ["verify"]
 

@@ -48,6 +48,7 @@ const kPrefLibraryButtonUsed = "browser.engagement.library-button.has-used";
 const kPrefSidebarButtonUsed = "browser.engagement.sidebar-button.has-used";
 const kPrefSidebarRevampEnabled = "sidebar.revamp";
 const kPrefSidebarVerticalTabsEnabled = "sidebar.verticalTabs";
+const kPrefSidebarPositionStartEnabled = "sidebar.position_start";
 
 const kExpectedWindowURL = AppConstants.BROWSER_CHROME_URL;
 
@@ -65,7 +66,7 @@ const kSubviewEvents = ["ViewShowing", "ViewHiding"];
  * The current version. We can use this to auto-add new default widgets as necessary.
  * (would be const but isn't because of testing purposes)
  */
-var kVersion = 21;
+var kVersion = 22;
 
 /**
  * Buttons removed from built-ins by version they were removed. kVersion must be
@@ -181,6 +182,7 @@ var gUIStateBeforeReset = {
   currentTheme: null,
   uiDensity: null,
   autoTouchMode: null,
+  sidebarPositionStart: null,
 };
 
 /*
@@ -224,7 +226,9 @@ XPCOMUtils.defineLazyPreferenceGetter(
       CustomizableUI.addWidgetToArea(
         "sidebar-button",
         CustomizableUI.AREA_NAVBAR,
-        0
+        Services.prefs.getBoolPref(kPrefSidebarPositionStartEnabled, true)
+          ? 0
+          : undefined // Adds to the end of navbar if position_start is false.
       );
     }
   }
@@ -418,6 +422,7 @@ var CustomizableUIInternal = {
 
     Services.prefs.addObserver(kPrefSidebarVerticalTabsEnabled, this);
     Services.prefs.addObserver(kPrefSidebarRevampEnabled, this);
+    Services.prefs.addObserver(kPrefSidebarPositionStartEnabled, this);
   },
 
   /**
@@ -833,6 +838,18 @@ var CustomizableUIInternal = {
           0,
           "vertical-spacer"
         );
+      }
+    }
+
+    if (currentVersion < 22) {
+      if (!Services.prefs.getBoolPref(kPrefSidebarPositionStartEnabled, true)) {
+        // If the sidebar is on the right, the toolbar button is also on the right.
+        const navbarPlacements =
+          gSavedState.placements[CustomizableUI.AREA_NAVBAR];
+        if (navbarPlacements[0] === "sidebar-button") {
+          navbarPlacements.shift();
+          navbarPlacements.push("sidebar-button");
+        }
       }
     }
   },
@@ -4483,6 +4500,9 @@ var CustomizableUIInternal = {
         kPrefAutoHideDownloadsButton
       );
       gUIStateBeforeReset.newElementCount = gNewElementCount;
+      gUIStateBeforeReset.sidebarPositionStart = Services.prefs.getBoolPref(
+        kPrefSidebarPositionStartEnabled
+      );
     } catch (e) {}
 
     Services.prefs.clearUserPref(kPrefCustomizationState);
@@ -4490,6 +4510,7 @@ var CustomizableUIInternal = {
     Services.prefs.clearUserPref(kPrefUIDensity);
     Services.prefs.clearUserPref(kPrefAutoTouchMode);
     Services.prefs.clearUserPref(kPrefAutoHideDownloadsButton);
+    Services.prefs.clearUserPref(kPrefSidebarPositionStartEnabled);
     gDefaultTheme.enable();
     gNewElementCount = 0;
     lazy.log.debug("State reset");
@@ -4581,6 +4602,7 @@ var CustomizableUIInternal = {
       uiDensity,
       autoTouchMode,
       autoHideDownloadsButton,
+      sidebarPositionStart,
     } = gUIStateBeforeReset;
     gNewElementCount = gUIStateBeforeReset.newElementCount;
 
@@ -4595,6 +4617,10 @@ var CustomizableUIInternal = {
     Services.prefs.setBoolPref(
       kPrefAutoHideDownloadsButton,
       autoHideDownloadsButton
+    );
+    Services.prefs.setBoolPref(
+      kPrefSidebarPositionStartEnabled,
+      sidebarPositionStart
     );
     currentTheme.enable();
     this.loadSavedState();
@@ -4941,6 +4967,11 @@ var CustomizableUIInternal = {
       return false;
     }
 
+    if (Services.prefs.prefHasUserValue(kPrefSidebarPositionStartEnabled)) {
+      lazy.log.debug(kPrefSidebarPositionStartEnabled + " pref is non-default");
+      return false;
+    }
+
     return true;
   },
 
@@ -5172,6 +5203,10 @@ var CustomizableUIInternal = {
       kPrefSidebarVerticalTabsEnabled,
       false
     );
+    let positionStartEnabled = Services.prefs.getBoolPref(
+      kPrefSidebarPositionStartEnabled,
+      true
+    );
     lazy.log.debug(
       `reconcileSidebarPrefs, kPrefSidebarRevampEnabled: {sidebarRevampEnabled}, kPrefSidebarVerticalTabsEnabled: ${verticalTabsEnabled}`
     );
@@ -5203,6 +5238,17 @@ var CustomizableUIInternal = {
           Services.prefs.setBoolPref(kPrefSidebarVerticalTabsEnabled, false);
         }
         break;
+      }
+      case kPrefSidebarPositionStartEnabled: {
+        // If the sidebar moves to the left or right, move the toolbar button along with it.
+        const navbarPlacements = gPlacements.get(CustomizableUI.AREA_NAVBAR);
+        const index = navbarPlacements.indexOf("sidebar-button");
+        if (!positionStartEnabled && index === 0) {
+          this.moveWidgetWithinArea("sidebar-button", navbarPlacements.length);
+        }
+        if (positionStartEnabled && index === navbarPlacements.length - 1) {
+          this.moveWidgetWithinArea("sidebar-button", 0);
+        }
       }
     }
   },
@@ -5276,6 +5322,8 @@ var CustomizableUIInternal = {
       CustomizableUI.beginBatchUpdate();
       let customVerticalNavbarPlacements = this.getSavedVerticalSnapshotState();
       let tabstripPlacements = this.getSavedHorizontalSnapshotState();
+      const isSidebarLast =
+        gPlacements.get(CustomizableUI.AREA_NAVBAR).at(-1) === "sidebar-button";
       // Remove non-default widgets to the nav-bar
       for (let id of CustomizableUI.getWidgetIdsInArea("TabsToolbar")) {
         if (id == "tabbrowser-tabs") {
@@ -5309,6 +5357,11 @@ var CustomizableUIInternal = {
           CustomizableUI.addWidgetToArea(id, CustomizableUI.AREA_NAVBAR, index);
         }
       });
+      // If sidebar was previously the last widget in navbar, carry it over to
+      // the end of the newly constructed navbar.
+      if (isSidebarLast) {
+        this.addWidgetToArea("sidebar-button", CustomizableUI.AREA_NAVBAR);
+      }
       CustomizableUI.endBatchUpdate();
     } else {
       this.saveNavBarWhenVerticalTabsState();
@@ -6400,7 +6453,8 @@ export var CustomizableUI = {
       gUIStateBeforeReset.drawInTitlebar != null ||
       gUIStateBeforeReset.currentTheme != null ||
       gUIStateBeforeReset.autoTouchMode != null ||
-      gUIStateBeforeReset.uiDensity != null
+      gUIStateBeforeReset.uiDensity != null ||
+      gUIStateBeforeReset.sidebarPositionStart != null
     );
   },
 
