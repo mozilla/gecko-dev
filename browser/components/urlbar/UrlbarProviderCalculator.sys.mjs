@@ -164,7 +164,7 @@ class ProviderCalculator extends UrlbarProvider {
       };
     } else {
       const l10nId =
-        value < 1
+        Math.abs(value) < 1
           ? "urlbar-result-action-calculator-result-decimal"
           : "urlbar-result-action-calculator-result-3";
       input = {
